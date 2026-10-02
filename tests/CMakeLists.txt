@@ -81,6 +81,19 @@ nesturbator_runner_test(NAME runner.dump.unwritable
   ARGS --frames 1 --dump-frame "1:${CMAKE_BINARY_DIR}/no-such-dir/frame1.ppm"
   EXIT 1)
 
+# CI's hash-equality job compares the file write_hashes.cmake writes on each
+# platform. It must be the runner.advance lines with LF endings only, byte for
+# byte tests/runner/hashes.txt.
+add_test(NAME runner.write_hashes
+  COMMAND ${CMAKE_COMMAND} -DBUILD=${PROJECT_BINARY_DIR}
+    -DOUT=${CMAKE_CURRENT_BINARY_DIR}/hashes.txt
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/write_hashes.cmake)
+set_tests_properties(runner.write_hashes PROPERTIES FIXTURES_SETUP hashes_txt)
+add_test(NAME runner.write_hashes.content
+  COMMAND ${CMAKE_COMMAND} -E compare_files
+    ${CMAKE_CURRENT_BINARY_DIR}/hashes.txt ${CMAKE_CURRENT_SOURCE_DIR}/runner/hashes.txt)
+set_tests_properties(runner.write_hashes.content PROPERTIES FIXTURES_REQUIRED hashes_txt)
+
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
 function(nesturbator_core_test name source)

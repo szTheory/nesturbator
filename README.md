@@ -69,6 +69,10 @@ period, the test card's edge pixels, and that two instances run apart.
 table's invariants: `$20` and `$30` are white, `$xE` and `$xF` are black under
 every emphasis, an emphasis bit raises no colour channel but its own, and
 brightness never falls down a column.
+`runner.write_hashes` runs `tests/cmake/write_hashes.cmake`, which CI uses
+to write each platform's `hashes.txt`, and `runner.write_hashes.content`
+requires that file to equal `tests/runner/hashes.txt` byte for byte, with LF
+line endings only.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
 `host.convert` checks the colour conversion the runner and the libretro
@@ -97,6 +101,26 @@ checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
 `install.consumer` builds `tests/consumer`, a separate project that includes
 only `<nesturbator.h>`, against that install with `find_package`, then runs
 one frame with it.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request, every push to `main`
+and on demand, with the same preset commands as above. The `build` job runs
+`ci` on Linux and macOS and `ci-msvc` on Windows, each on x64 and arm64: six
+platforms. Each leg also checks its three archives and writes its hashes for
+frames 1 and 3:
+
+```sh
+cmake -DBUILD=build/ci -DOUT=hashes.txt -P tests/cmake/write_hashes.cmake
+```
+
+The `hygiene` job runs the `hygiene` lane, `asan` runs `asan` with Clang 18,
+and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
+the pull-request title to be a Conventional Commit. `hash-equality` requires
+the six `hashes.txt` files to be byte-identical, so a platform that computes
+a different frame fails the run. The branch rules require one check, `CI
+required`, which passes only when every other job succeeded. Every action is
+pinned to a commit SHA, and Dependabot proposes updates weekly.
 
 ## Using the library
 
