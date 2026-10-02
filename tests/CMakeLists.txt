@@ -2,9 +2,11 @@
 # checks the exact standard output and exit status.
 #
 #   nesturbator_runner_test(NAME <test> ARGS <arg>... EXIT <code>
-#                           [EXPECT <line>...])
+#                           [IGNORE_STDOUT] [EXPECT <line>...])
+#
+# Without EXPECT and IGNORE_STDOUT the output must be empty.
 function(nesturbator_runner_test)
-  cmake_parse_arguments(T "" "NAME;EXIT" "ARGS;EXPECT" ${ARGN})
+  cmake_parse_arguments(T "IGNORE_STDOUT" "NAME;EXIT" "ARGS;EXPECT" ${ARGN})
   # A quoted add_test argument keeps its semicolons, so each list arrives
   # whole as one -D value.
   set(cmd "$<TARGET_FILE:nesturbator-run>" ${T_ARGS})
@@ -13,6 +15,7 @@ function(nesturbator_runner_test)
       "-DCMD=${cmd}"
       "-DEXPECT=${T_EXPECT}"
       "-DEXPECT_EXIT=${T_EXIT}"
+      "-DIGNORE_STDOUT=${T_IGNORE_STDOUT}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
 endfunction()
 
@@ -22,3 +25,27 @@ nesturbator_runner_test(NAME runner.hash
   ARGS --frames 1 --hash-frame 1
   EXIT 0
   EXPECT "frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453")
+
+# D-04: frame advance shows in the metadata, not the pixels. Frame 3 has the
+# same hash as frame 1 and three frames of ticks (3 x 714732).
+nesturbator_runner_test(NAME runner.advance
+  ARGS --frames 3 --hash-frame 1 --hash-frame 3
+  EXIT 0
+  EXPECT
+    "frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453"
+    "frame 3 ticks 2144196 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453")
+
+# No --hash-frame: frames run, nothing is printed.
+nesturbator_runner_test(NAME runner.nohash ARGS --frames 2 EXIT 0)
+
+# Usage errors exit 2 (LIBRETRO-AND-RUNNER section 5).
+nesturbator_runner_test(NAME runner.usage.beyond
+  ARGS --frames 1 --hash-frame 2 EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.zero
+  ARGS --frames 1 --hash-frame 0 EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.unknown
+  ARGS --bogus EXIT 2 IGNORE_STDOUT)
+# A cartridge path arrives in Phase 3; until then a positional argument is a
+# usage error.
+nesturbator_runner_test(NAME runner.usage.positional
+  ARGS cartridge EXIT 2 IGNORE_STDOUT)

@@ -1,10 +1,11 @@
 # Runs a command and checks its exact standard output and exit status.
 #
 #   cmake -DCMD=<program;arg;...> -DEXPECT=<line;line;...> -DEXPECT_EXIT=<code>
-#         -P expect_output.cmake
+#         [-DIGNORE_STDOUT=ON] -P expect_output.cmake
 #
 # EXPECT lists the expected output lines; each line ends with a newline, and
-# an empty EXPECT means no output at all. Carriage returns are removed from
+# an empty EXPECT means no output at all. With IGNORE_STDOUT=ON only the exit
+# status is checked (usage errors). Carriage returns are removed from
 # the output before comparing, so Windows text-mode output compares equal.
 
 if(NOT DEFINED CMD OR CMD STREQUAL "")
@@ -30,7 +31,7 @@ set(failed FALSE)
 if(NOT "${actual_exit}" STREQUAL "${EXPECT_EXIT}")
   set(failed TRUE)
 endif()
-if(NOT "${actual}" STREQUAL "${expected}")
+if(NOT IGNORE_STDOUT AND NOT "${actual}" STREQUAL "${expected}")
   set(failed TRUE)
 endif()
 if(failed)
