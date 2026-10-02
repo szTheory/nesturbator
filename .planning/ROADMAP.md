@@ -31,11 +31,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `cmake --workflow --preset asan`, `--preset nofp` and `--preset hygiene` pass: the tests are clean under the address and undefined-behaviour sanitizers, the core has no floating point and no undefined symbols beyond the C memory functions, and the tree holds no personal data and no unlisted ROM.
   5. Every pull request builds the library, runner and libretro archives for each platform, and a behaviour-changing merge to `main` publishes them with a `SHA256SUMS` file as a GitHub release with no manual step.
 
-**Plans**: 12 plans
+**Plans**: 1/12 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 01-01-PLAN.md — Tracer: header, core test card, runner hash under the `ci` preset; runner contract tests
+- [x] 01-01-PLAN.md — Tracer: header, core test card, runner hash under the `ci` preset; runner contract tests
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02-PLAN.md — D-11 core API and frame tests, header-alone tests, SHA-256 known answers, version consistency
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. A test frame in RetroArch | 0/TBD | Not started | - |
+| 1. A test frame in RetroArch | 1/12 | In Progress|  |
 | 2. The CPU matches the public vectors | 0/TBD | Not started | - |
 | 3. A real game in RetroArch | 0/TBD | Not started | - |
 | 4. Sound | 0/TBD | Not started | - |
