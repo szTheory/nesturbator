@@ -19,6 +19,13 @@ cmake --workflow --preset dev   # Debug build and the same tests
 
 On Windows with MSVC, use `ci-msvc` from a developer command prompt.
 
+The tests are plain C programs under `tests/` that use the macros in
+`tests/check.h`; CTest runs them. `core.api` checks every status code of
+`nesturbator_create` and that a custom allocator gets back each block it
+handed out. `core.frame` checks the buffer rules of `nesturbator_run_frame`,
+that a refused call changes nothing, the audio sample count over a whole
+period, the test card's edge pixels, and that two instances run apart.
+
 The `ci` build puts the library at `build/ci/libnesturbator.a` and the runner
 at `build/ci/runner/nesturbator-run`. The public header is
 `include/nesturbator.h`.

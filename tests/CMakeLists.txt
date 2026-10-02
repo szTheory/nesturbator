@@ -49,3 +49,18 @@ nesturbator_runner_test(NAME runner.usage.unknown
 # usage error.
 nesturbator_runner_test(NAME runner.usage.positional
   ARGS cartridge EXIT 2 IGNORE_STDOUT)
+
+# Core tests: programs using tests/check.h, through the public header only.
+# Each exits 0 when every check passes.
+function(nesturbator_core_test name source)
+  add_executable(${name} ${source})
+  target_link_libraries(${name} PRIVATE nesturbator::nesturbator)
+  nesturbator_warnings(${name})
+  add_test(NAME ${name} COMMAND ${name})
+endfunction()
+
+# D-11: version, info, create, every create status and the allocators.
+nesturbator_core_test(core.api core/test_api.c)
+# D-11: run_frame statuses, buffer rules, the D-09 audio period, the D-02
+# boundary pixels and two independent instances.
+nesturbator_core_test(core.frame core/test_frame.c)
