@@ -10,7 +10,7 @@ Milestone 1. Each category's pull request builds the release archives, and mergi
 ### A test frame in RetroArch
 
 - [ ] **FRAME-01**: `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds the library, the runner and the libretro core and runs every test on all six platforms; CI runs the same commands.
-- [ ] **FRAME-02**: A C program that includes only the public header creates an instance, runs one frame and destroys it; the `ci` preset builds and runs it against the installed package.
+- [x] **FRAME-02**: A C program that includes only the public header creates an instance, runs one frame and destroys it; the `ci` preset builds and runs it against the installed package.
 - [x] **FRAME-03**: With no cartridge loaded the core outputs a fixed test frame. `nesturbator-run --frames 1 --dump-frame 1:FILE --hash-frame 1` writes it as an image and prints its SHA-256, and the hash is the same on every platform.
 - [x] **FRAME-04**: The libretro core loads in a test program that calls it the way RetroArch does, and the frame it delivers equals the runner's.
 - [ ] **FRAME-05**: The README's one-line install lets RetroArch on an Apple Silicon Mac load the core and show the test frame. `ctest -L retroarch` runs that launch unattended with RetroArch's frame-limit and screenshot options and compares the screenshot with the runner's frame; it reports itself skipped where RetroArch is not installed.
@@ -78,7 +78,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | FRAME-01 | Phase 1 | Pending |
-| FRAME-02 | Phase 1 | Pending |
+| FRAME-02 | Phase 1 | Complete |
 | FRAME-03 | Phase 1 | Complete |
 | FRAME-04 | Phase 1 | Complete |
 | FRAME-05 | Phase 1 | Pending |

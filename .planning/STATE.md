@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: A test frame in RetroArch
 status: executing
-stopped_at: Completed 01-05-PLAN.md
-last_updated: "2026-10-02T21:10:44.716Z"
+stopped_at: Completed 01-06-PLAN.md
+last_updated: "2026-10-02T21:15:07.661Z"
 last_activity: 2026-10-02
 last_activity_desc: Phase 01 execution started
-state_head: ad7c885d9fde9e2197815ae47129eaa4e9b39de2
+state_head: 2a8551502a5e2358260a8b7c7e0a8c5451b542f9
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 12
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-02)
 ## Current Position
 
 Phase: 01 (A test frame in RetroArch) — EXECUTING
-Plan: 6 of 12
+Plan: 7 of 12
 Status: Ready to execute
 Last activity: 2026-10-02 — Phase 01 execution started
 
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P03 | 1 min | 2 tasks | 13 files |
 | Phase 01 P04 | 2 min | 2 tasks | 11 files |
 | Phase 01 P05 | 3 min | 2 tasks | 13 files |
+| Phase 01 P06 | 3 min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,8 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-04: host/ holds code shared by runner and adapter (target nesturbator_host, hidden visibility, PIC, not installed)
 - [Phase 01]: libretro.vendored pins libretro.h via a reusable cmake -P driver (tests/cmake/vendored_sha256.cmake)
 - [Phase 01]: retro_load_game refuses a second load while an instance exists, so no instance leaks
+- [Phase 01]: 01-06: nesturbator.pc derives its prefix from CMAKE_INSTALL_LIBDIR via file(RELATIVE_PATH), so it relocates under lib, lib64 or deeper
+- [Phase 01]: 01-06: check_archives.cmake allow-lists each component's entries; a missing or extra file fails
 
 ### Pending Todos
 
@@ -100,6 +103,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-02T21:10:44.693Z
-Stopped at: Completed 01-05-PLAN.md
+Last session: 2026-10-02T21:15:07.645Z
+Stopped at: Completed 01-06-PLAN.md
 Resume file: None
