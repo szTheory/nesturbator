@@ -101,6 +101,8 @@ jobs:
             ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { "$($Matches[1])=$($Matches[2])" >> $env:GITHUB_ENV } }
       - run: cmake --workflow --preset ${{ matrix.preset }}
       - run: cmake -DDIR=build/${{ matrix.preset }} -P tests/cmake/check_archives.cmake
+      - if: matrix.os == 'macos' && matrix.arch == 'arm64'
+        run: cmake -DREADME=README.md -DPACKAGES=build/${{ matrix.preset }}/packages -DOUT=build/install-line -P tests/cmake/check_install_line.cmake
       - run: cmake -DBUILD=build/${{ matrix.preset }} -DOUT=hashes.txt -P tests/cmake/write_hashes.cmake
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

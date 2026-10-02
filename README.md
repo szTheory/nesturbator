@@ -178,7 +178,7 @@ libretro for six platforms) and `SHA256SUMS`. `SHA256SUMS` carries a
 build-provenance attestation that covers every archive. To check a download:
 
 ```sh
-gh attestation verify FILE --repo <owner>/nesturbator
+gh attestation verify FILE --repo szTheory/nesturbator
 ```
 
 Before publishing, the workflow requires exactly the 18 expected archive
@@ -277,6 +277,37 @@ content.
 `libretro/libretro.h` is the libretro API header, copied unchanged from
 RetroArch; its source and licence are in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## Install in RetroArch (Apple Silicon)
+
+With RetroArch installed (see below), this one line puts the released core in
+RetroArch's `cores` directory and its information file in `info`:
+
+<!-- x-release-please-start-version -->
+```sh
+mkdir -p ~/Library/Application\ Support/RetroArch && curl -fsSL https://github.com/szTheory/nesturbator/releases/download/v0.0.0/nesturbator-0.0.0-libretro-macos-arm64.zip | tar -xf - -C ~/Library/Application\ Support/RetroArch cores info
+```
+<!-- x-release-please-end -->
+
+Then start RetroArch, choose Load Core → nesturbator, then Start Core: the
+test card appears.
+
+Each release pull request updates the version in the line; the first release
+is v0.1.0. Naming `cores info` leaves the archive's `LICENSE` and
+`THIRD-PARTY-NOTICES.md` out of RetroArch's directory. Files fetched with
+`curl` carry no quarantine flag, so macOS loads the core without a prompt.
+This checks the line's extraction against the archive a build writes:
+
+```sh
+cmake -DREADME=README.md -DPACKAGES=build/ci/packages -DOUT=build/ci/install-line -P tests/cmake/check_install_line.cmake
+```
+
+It takes the `tar` arguments from the line above, pipes the zip through them
+on standard input as `curl` would, and requires exactly
+`cores/nesturbator_libretro.dylib` and `info/nesturbator_libretro.info`. It
+also requires the URL to name the version in `version.txt`. It runs on macOS,
+whose `tar` reads a zip from standard input, and on the macOS arm64 leg of
+continuous integration.
 
 ## Try it in RetroArch (from a build)
 
