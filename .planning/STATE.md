@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: A test frame in RetroArch
 status: executing
-stopped_at: Completed 01-06-PLAN.md
-last_updated: "2026-10-02T21:15:07.661Z"
+stopped_at: Completed 01-07-PLAN.md
+last_updated: "2026-10-02T21:21:08.203Z"
 last_activity: 2026-10-02
 last_activity_desc: Phase 01 execution started
-state_head: 2a8551502a5e2358260a8b7c7e0a8c5451b542f9
+state_head: 1500333a4c282b2db5edc996469606291b4855eb
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 12
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-02)
 ## Current Position
 
 Phase: 01 (A test frame in RetroArch) — EXECUTING
-Plan: 7 of 12
+Plan: 8 of 12
 Status: Ready to execute
 Last activity: 2026-10-02 — Phase 01 execution started
 
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P04 | 2 min | 2 tasks | 11 files |
 | Phase 01 P05 | 3 min | 2 tasks | 13 files |
 | Phase 01 P06 | 3 min | 2 tasks | 12 files |
+| Phase 01 P07 | 6 min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,9 @@ Recent decisions affecting current work:
 - [Phase 01]: retro_load_game refuses a second load while an instance exists, so no instance leaks
 - [Phase 01]: 01-06: nesturbator.pc derives its prefix from CMAKE_INSTALL_LIBDIR via file(RELATIVE_PATH), so it relocates under lib, lib64 or deeper
 - [Phase 01]: 01-06: check_archives.cmake allow-lists each component's entries; a missing or extra file fails
+- [Phase 01]: abi.undefined_symbols ignores names defined by another member of the same archive
+- [Phase 01]: bzero is allowed on Darwin only (Apple clang lowers a zeroing memset to it); ELF keeps the exact allowlist
+- [Phase 01]: Core comments state numbers as integers or words so the float scan needs no comment exception
 
 ### Pending Todos
 
@@ -103,6 +107,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-02T21:15:07.645Z
-Stopped at: Completed 01-06-PLAN.md
+Last session: 2026-10-02T21:21:08.189Z
+Stopped at: Completed 01-07-PLAN.md
 Resume file: None
