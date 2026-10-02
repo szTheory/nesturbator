@@ -64,6 +64,8 @@ nesturbator_core_test(core.api core/test_api.c)
 # D-11: run_frame statuses, buffer rules, the D-09 audio period, the D-02
 # boundary pixels and two independent instances.
 nesturbator_core_test(core.frame core/test_frame.c)
+# D-14: nesturbator_get_palette's copy rules and the palette invariants.
+nesturbator_core_test(core.palette core/test_palette.c)
 
 # D-11: the public header alone, as C17 and as C++, warnings as errors in
 # every preset. Building is the test; running only shows it linked.

@@ -21,6 +21,7 @@ endfunction()
 add_library(nesturbator STATIC
   src/instance.c
   src/frame.c
+  src/palette.c
   src/palette_ntsc.c
   src/testcard.c)
 add_library(nesturbator::nesturbator ALIAS nesturbator)
