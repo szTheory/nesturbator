@@ -50,6 +50,37 @@ nesturbator_runner_test(NAME runner.usage.unknown
 nesturbator_runner_test(NAME runner.usage.positional
   ARGS cartridge EXIT 2 IGNORE_STDOUT)
 
+# FRAME-03 / D-16: --dump-frame writes the test card as a 256x240 P6 image
+# (15 header bytes + 256*240*3) while the hash line stays over the native
+# pixels. Pixel (8,232) is native $12, whose table entry is 0x552AFF. Later
+# tests read the image through the fixture testframe_ppm.
+set(NESTURBATOR_TESTFRAME_PPM ${CMAKE_BINARY_DIR}/testframe/frame1.ppm)
+set(dump_cmd "$<TARGET_FILE:nesturbator-run>" --frames 1
+  --dump-frame "1:${NESTURBATOR_TESTFRAME_PPM}" --hash-frame 1)
+add_test(NAME runner.dump
+  COMMAND ${CMAKE_COMMAND}
+    "-DCMD=${dump_cmd}"
+    "-DEXPECT=frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453"
+    -DEXPECT_EXIT=0
+    "-DFILE=${NESTURBATOR_TESTFRAME_PPM}"
+    -DSIZE=184335
+    -DPIXELS=8:232:552AFF
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_ppm.cmake")
+set_tests_properties(runner.dump PROPERTIES FIXTURES_SETUP testframe_ppm)
+
+# --dump-frame usage errors exit 2: N beyond --frames, no colon, no FILE.
+nesturbator_runner_test(NAME runner.usage.dump
+  ARGS --dump-frame 2:x.ppm --frames 1 EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.dump.colon
+  ARGS --frames 1 --dump-frame 1 EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.dump.file
+  ARGS --frames 1 --dump-frame 1: EXIT 2 IGNORE_STDOUT)
+
+# A file that cannot be created (its directory does not exist) exits 1.
+nesturbator_runner_test(NAME runner.dump.unwritable
+  ARGS --frames 1 --dump-frame "1:${CMAKE_BINARY_DIR}/no-such-dir/frame1.ppm"
+  EXIT 1)
+
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
 function(nesturbator_core_test name source)

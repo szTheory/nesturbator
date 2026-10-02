@@ -29,6 +29,8 @@ period, the test card's edge pixels, and that two instances run apart.
 table's invariants: `$20` and `$30` are white, `$xE` and `$xF` are black under
 every emphasis, an emphasis bit raises no colour channel but its own, and
 brightness never falls down a column.
+`runner.dump` runs the command above and checks the image's size, header and
+pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
 `host.convert` checks the colour conversion the runner and the libretro
 adapter share (`host/convert.c`): each native pixel's low 9 bits pick the
 table entry, and the input and output row pitches are honoured.
@@ -63,12 +65,16 @@ at `build/ci/runner/nesturbator-run`. The public header is
 cartridge, so every frame is the built-in test card.
 
 ```sh
-nesturbator-run --frames N [--hash-frame N]...
+nesturbator-run --frames N [--hash-frame N]... [--dump-frame N:FILE]...
 ```
 
 - `--frames N` runs N frames (N is 1 or more).
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
+- `--dump-frame N:FILE` writes frame N to FILE as a binary PPM (P6), 256x240,
+  in the RGB of the colour table. N follows the `--hash-frame` rules, and the
+  option can be repeated. The image is converted by `host/convert.c`, the same
+  loop the libretro adapter uses, so both show the same colours.
 
 Each hashed frame prints one line:
 
@@ -86,7 +92,17 @@ $ nesturbator-run --frames 1 --hash-frame 1
 frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453
 ```
 
-Exit status: 0 done, 1 failure, 2 usage error.
+The hash is always over the native pixels, never over a dumped image:
+
+```
+$ nesturbator-run --frames 1 --dump-frame 1:frame1.ppm --hash-frame 1
+frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453
+```
+
+writes `frame1.ppm` (184335 bytes) and prints the same line as before.
+
+Exit status: 0 done, 1 failure (including a FILE that cannot be written),
+2 usage error.
 
 ## What it will be
 

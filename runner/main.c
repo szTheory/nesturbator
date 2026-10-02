@@ -1,6 +1,6 @@
 /* nesturbator-run: the headless runner.
  *
- *   nesturbator-run [--frames N] [--hash-frame N]...
+ *   nesturbator-run [--frames N] [--hash-frame N]... [--dump-frame N:FILE]...
  *
  * Runs N frames of one instance with no cartridge. For each --hash-frame N it
  * prints, after frame N has run:
@@ -8,7 +8,11 @@
  *   frame <N> ticks <ticks> sha256 <64 lowercase hex digits>
  *
  * The hash is SHA-256 over the 256x240 native pixels as little-endian
- * uint16_t, row-major, top row first.
+ * uint16_t, row-major, top row first; never over the image (D-16).
+ *
+ * For each --dump-frame N:FILE it writes frame N to FILE as a binary PPM (P6),
+ * 256x240, in the RGB of nesturbator_get_palette, converted by the loop the
+ * libretro adapter also uses (D-15).
  *
  * Exit status (LIBRETRO-AND-RUNNER section 5): 0 done, 1 failure, 2 usage.
  */
@@ -16,7 +20,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "convert.h"
 #include "nesturbator.h"
+#include "ppm.h"
 #include "sha256.h"
 
 #define WIDTH 256u
@@ -26,24 +32,27 @@
 static int usage(const char *why)
 {
     fprintf(stderr, "nesturbator-run: %s\n", why);
-    fprintf(stderr, "usage: nesturbator-run [--frames N] [--hash-frame N]...\n"
-                    "  --frames N      run N frames (N >= 1)\n"
-                    "  --hash-frame N  print the SHA-256 of frame N (1 <= N <= --frames)\n");
+    fprintf(stderr, "usage: nesturbator-run [--frames N] [--hash-frame N]... [--dump-frame N:FILE]...\n"
+                    "  --frames N           run N frames (N >= 1)\n"
+                    "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
+                    "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n");
     return 2;
 }
 
-/* Parses a decimal number from 1 to 4294967295. Returns 0 on any other text. */
-static int parse_count(const char *text, uint32_t *out)
+/* Parses the first len characters of text as a decimal number from 1 to
+   4294967295. Returns 0 on any other text. */
+static int parse_count_n(const char *text, size_t len, uint32_t *out)
 {
     uint64_t v = 0;
-    if (text == NULL || *text == '\0') {
+    if (text == NULL || len == 0u) {
         return 0;
     }
-    for (const char *p = text; *p != '\0'; p++) {
-        if (*p < '0' || *p > '9') {
+    for (size_t k = 0; k < len; k++) {
+        char c = text[k];
+        if (c < '0' || c > '9') {
             return 0;
         }
-        v = v * 10u + (uint64_t)(*p - '0');
+        v = v * 10u + (uint64_t)(c - '0');
         if (v > 0xffffffffu) {
             return 0;
         }
@@ -52,6 +61,25 @@ static int parse_count(const char *text, uint32_t *out)
         return 0;
     }
     *out = (uint32_t)v;
+    return 1;
+}
+
+static int parse_count(const char *text, uint32_t *out)
+{
+    return text != NULL && parse_count_n(text, strlen(text), out);
+}
+
+/* Parses N:FILE, splitting at the first colon so FILE may hold more. */
+static int parse_dump(const char *text, uint32_t *frame, const char **path)
+{
+    const char *colon = text != NULL ? strchr(text, ':') : NULL;
+    if (colon == NULL || colon[1] == '\0') {
+        return 0;
+    }
+    if (!parse_count_n(text, (size_t)(colon - text), frame)) {
+        return 0;
+    }
+    *path = colon + 1;
     return 1;
 }
 
@@ -75,47 +103,98 @@ static void hash_frame(const uint16_t *video, char hex[65])
     nesturbator_run_sha256_hex(digest, hex);
 }
 
+/* The runner's options. Each list has room for one entry per argument. */
+typedef struct options {
+    uint32_t frames;
+    uint32_t *hash_frames;
+    uint32_t hash_count;
+    uint32_t *dump_frames;
+    const char **dump_paths;
+    uint32_t dump_count;
+} options;
+
+static void free_options(options *o)
+{
+    free(o->hash_frames);
+    free(o->dump_frames);
+    free((void *)o->dump_paths);
+}
+
+/* Returns 0 when the options are valid, 2 after a usage message, 1 when out of
+   memory. */
+static int parse_options(int argc, char **argv, options *o)
+{
+    size_t n_args = (size_t)argc;
+    o->hash_frames = (uint32_t *)malloc(n_args * sizeof *o->hash_frames);
+    o->dump_frames = (uint32_t *)malloc(n_args * sizeof *o->dump_frames);
+    o->dump_paths = (const char **)malloc(n_args * sizeof *o->dump_paths);
+    if (o->hash_frames == NULL || o->dump_frames == NULL || o->dump_paths == NULL) {
+        fprintf(stderr, "nesturbator-run: out of memory\n");
+        return 1;
+    }
+    /* Every option takes one value, so options sit at odd positions. */
+    for (int i = 1; i < argc; i += 2) {
+        const char *arg = argv[i];
+        const char *value = i + 1 < argc ? argv[i + 1] : NULL;
+        uint32_t n;
+        if (strcmp(arg, "--dump-frame") == 0) {
+            const char *path;
+            if (!parse_dump(value, &n, &path)) {
+                return usage("--dump-frame needs N:FILE with N of 1 or more");
+            }
+            o->dump_frames[o->dump_count] = n;
+            o->dump_paths[o->dump_count] = path;
+            o->dump_count++;
+        } else if (strcmp(arg, "--frames") == 0 || strcmp(arg, "--hash-frame") == 0) {
+            if (!parse_count(value, &n)) {
+                return usage("option needs a whole number of 1 or more");
+            }
+            if (strcmp(arg, "--frames") == 0) {
+                o->frames = n;
+            } else {
+                o->hash_frames[o->hash_count++] = n;
+            }
+        } else {
+            return usage(arg[0] == '-' ? "unknown option" : "unexpected argument");
+        }
+    }
+    for (uint32_t k = 0; k < o->hash_count; k++) {
+        if (o->hash_frames[k] > o->frames) {
+            return usage("--hash-frame is beyond --frames");
+        }
+    }
+    for (uint32_t k = 0; k < o->dump_count; k++) {
+        if (o->dump_frames[k] > o->frames) {
+            return usage("--dump-frame is beyond --frames");
+        }
+    }
+    return 0;
+}
+
+static int listed(const uint32_t *list, uint32_t count, uint32_t f)
+{
+    for (uint32_t k = 0; k < count; k++) {
+        if (list[k] == f) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     static uint16_t video[WIDTH * HEIGHT];
     static int16_t audio[AUDIO_CAPACITY];
-    uint32_t frames = 0;
-    uint32_t *hash_frames = NULL;
-    uint32_t hash_count = 0;
-    int status = 0;
+    static uint32_t palette[512];
+    static uint32_t image[WIDTH * HEIGHT];
+    options opt;
+    int status;
 
-    if (argc > 1) {
-        hash_frames = (uint32_t *)malloc((size_t)argc * sizeof *hash_frames);
-        if (hash_frames == NULL) {
-            fprintf(stderr, "nesturbator-run: out of memory\n");
-            return 1;
-        }
-    }
-    for (int i = 1; i < argc; i++) {
-        const char *arg = argv[i];
-        int is_frames = strcmp(arg, "--frames") == 0;
-        int is_hash = strcmp(arg, "--hash-frame") == 0;
-        if (!is_frames && !is_hash) {
-            free(hash_frames);
-            return usage(arg[0] == '-' ? "unknown option" : "unexpected argument");
-        }
-        uint32_t n;
-        if (i + 1 >= argc || !parse_count(argv[i + 1], &n)) {
-            free(hash_frames);
-            return usage("option needs a whole number of 1 or more");
-        }
-        i++;
-        if (is_frames) {
-            frames = n;
-        } else {
-            hash_frames[hash_count++] = n;
-        }
-    }
-    for (uint32_t k = 0; k < hash_count; k++) {
-        if (hash_frames[k] > frames) {
-            free(hash_frames);
-            return usage("--hash-frame is beyond --frames");
-        }
+    memset(&opt, 0, sizeof opt);
+    status = parse_options(argc, argv, &opt);
+    if (status != 0) {
+        free_options(&opt);
+        return status;
     }
 
     nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
@@ -123,11 +202,14 @@ int main(int argc, char **argv)
     nesturbator_status st = nesturbator_create(&cfg, &inst);
     if (st != NESTURBATOR_OK) {
         fprintf(stderr, "nesturbator-run: nesturbator_create failed with status %d\n", (int)st);
-        free(hash_frames);
+        free_options(&opt);
         return 1;
     }
+    if (opt.dump_count > 0u) {
+        nesturbator_get_palette(inst, palette, 512u);
+    }
 
-    for (uint32_t f = 1; f <= frames && status == 0; f++) {
+    for (uint32_t f = 1; f <= opt.frames && status == 0; f++) {
         nesturbator_frame io;
         memset(&io, 0, sizeof io);
         io.size = (uint32_t)sizeof io;
@@ -142,22 +224,26 @@ int main(int argc, char **argv)
             status = 1;
             break;
         }
-        int wanted = 0;
-        for (uint32_t k = 0; k < hash_count; k++) {
-            if (hash_frames[k] == f) {
-                wanted = 1;
-            }
-        }
-        if (wanted) {
+        if (listed(opt.hash_frames, opt.hash_count, f)) {
             char hex[65];
             hash_frame(video, hex);
             printf("frame %lu ticks %llu sha256 %s\n", (unsigned long)f,
                    (unsigned long long)io.ticks, hex);
         }
+        if (listed(opt.dump_frames, opt.dump_count, f)) {
+            nesturbator_host_convert(palette, video, WIDTH, image, WIDTH);
+            for (uint32_t k = 0; k < opt.dump_count; k++) {
+                if (opt.dump_frames[k] == f &&
+                    nesturbator_run_write_ppm(opt.dump_paths[k], image, WIDTH) != 0) {
+                    fprintf(stderr, "nesturbator-run: cannot write %s\n", opt.dump_paths[k]);
+                    status = 1;
+                }
+            }
+        }
     }
 
     nesturbator_destroy(inst);
-    free(hash_frames);
+    free_options(&opt);
     if (fflush(stdout) != 0) {
         fprintf(stderr, "nesturbator-run: cannot write output\n");
         return 1;
