@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: A test frame in RetroArch
 status: executing
-stopped_at: Completed 01-09-PLAN.md
-last_updated: "2026-10-02T21:36:51.588Z"
+stopped_at: Completed 01-10-PLAN.md
+last_updated: "2026-10-02T21:45:01.502Z"
 last_activity: 2026-10-02
 last_activity_desc: Phase 01 execution started
-state_head: 59b42fd123ee3ab3001bd1e5ccc0e8dbd6fa1877
+state_head: d5187cbdda13c0ab4006573b57e0abe4e0fdf7d9
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-02)
 ## Current Position
 
 Phase: 01 (A test frame in RetroArch) — EXECUTING
-Plan: 10 of 12
+Plan: 11 of 12
 Status: Ready to execute
 Last activity: 2026-10-02 — Phase 01 execution started
 
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P07 | 6 min | 2 tasks | 10 files |
 | Phase 01 P08 | 4 min | 2 tasks | 27 files |
 | Phase 01 P09 | 7 min | 2 tasks | 9 files |
+| Phase 01 P10 | 6 min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-08: NESTURBATOR_CONFIG_INIT is fenced from clang-format, which would lay its braces out as a block
 - [Phase 01]: compare_frame logic lives in nesturbator_test_compare_files so retroarch.compare checks the exact CLI messages; a too-large BMP returns 1 with its size so 257x240 is a size mismatch
 - [Phase 01]: test.cfg.in sets all 34 path keys of the pinned v1.22.2 retroarch.cfg under the build directory; run_retroarch.cmake snapshots the user's RetroArch directory (size + microsecond mtime) and fails on any change
+- [Phase 01]: 01-10: ci.yml's concurrency group includes github.workflow, so release.yml's call to ci.yml never queues behind or is replaced by the push run on the same SHA
+- [Phase 01]: 01-10: create-github-app-token takes vars.NESTURBATOR_APP_ID through client-id (app-id is deprecated); GitHub accepts the App's Client ID or App ID
+- [Phase 01]: 01-10: write_hashes.cmake is checked in the ci lane by runner.write_hashes and runner.write_hashes.content against tests/runner/hashes.txt
 
 ### Pending Todos
 
@@ -114,6 +118,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-02T21:36:51.575Z
-Stopped at: Completed 01-09-PLAN.md
+Last session: 2026-10-02T21:45:01.485Z
+Stopped at: Completed 01-10-PLAN.md
 Resume file: None
