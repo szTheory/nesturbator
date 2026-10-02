@@ -83,7 +83,15 @@ checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
 `libretro.host` loads the built libretro core at run time, calls it in the
 order RetroArch does, and checks that the frame it receives equals the
 runner's dumped image pixel for pixel, plus four colours written into the
-test. `palette.regen` rebuilds the colour table with `tools/palgen` and
+test. `retroarch.compare` checks `compare_frame`, the tool the RetroArch test
+uses to compare a screenshot with the runner's frame. It writes one picture as
+a P6 image and as BMPs in each layout `sips` can produce (40, 108 and
+124-byte headers, 24 and 32 bits per pixel, either row order), and requires
+each to read back equal. It also requires a 257x240 or 256x239 image to fail
+on size, one colour channel of pixel (17,200) off by one to be reported as
+`first difference at 17,200`, and truncated or malformed files to be
+rejected. `retroarch.compare.cli` runs `compare_frame` on an equal pair.
+`palette.regen` rebuilds the colour table with `tools/palgen` and
 checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
 `install.stage` installs the library into `build/ci/stage`, and
 `install.consumer` builds `tests/consumer`, a separate project that includes

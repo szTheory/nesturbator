@@ -197,3 +197,6 @@ add_test(NAME install.consumer
       "-DCMAKE_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}"
     --test-command consumer)
 set_tests_properties(install.consumer PROPERTIES FIXTURES_REQUIRED staged)
+
+# FRAME-05: the RetroArch screenshot comparison and its comparator's tests.
+add_subdirectory(retroarch)
