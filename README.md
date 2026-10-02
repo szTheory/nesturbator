@@ -46,6 +46,32 @@ order RetroArch does, and checks that the frame it receives equals the
 runner's dumped image pixel for pixel, plus four colours written into the
 test. `palette.regen` rebuilds the colour table with `tools/palgen` and
 checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
+`install.stage` installs the library into `build/ci/stage`, and
+`install.consumer` builds `tests/consumer`, a separate project that includes
+only `<nesturbator.h>`, against that install with `find_package`, then runs
+one frame with it.
+
+## Using the library
+
+Install the library, its header and its package files:
+
+```sh
+cmake --install build/ci --component library --prefix <dir>
+```
+
+This writes `include/nesturbator.h`, the static library under `lib`, a CMake
+package under `lib/cmake/nesturbator` and `lib/pkgconfig/nesturbator.pc`.
+Both package files find their paths relative to themselves, so the directory
+can be moved. From CMake:
+
+```cmake
+find_package(nesturbator CONFIG REQUIRED)   # with CMAKE_PREFIX_PATH=<dir>
+target_link_libraries(app PRIVATE nesturbator::nesturbator)
+```
+
+With pkg-config, set `PKG_CONFIG_PATH=<dir>/lib/pkgconfig` and use
+`pkg-config --cflags --libs nesturbator`. The components `runner` and
+`libretro` install `bin/nesturbator-run` and `cores/` with `info/`.
 
 ## The colour table
 

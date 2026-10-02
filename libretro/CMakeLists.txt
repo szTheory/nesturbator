@@ -14,3 +14,9 @@ if(APPLE)
   set_target_properties(nesturbator_libretro PROPERTIES SUFFIX ".dylib")
 endif()
 nesturbator_warnings(nesturbator_libretro)
+# RetroArch's layout: the module in cores/, its information file in info/.
+# RUNTIME covers the Windows DLL.
+install(TARGETS nesturbator_libretro
+  LIBRARY DESTINATION cores COMPONENT libretro
+  RUNTIME DESTINATION cores COMPONENT libretro)
+install(FILES nesturbator_libretro.info DESTINATION info COMPONENT libretro)

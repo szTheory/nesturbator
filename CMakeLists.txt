@@ -46,6 +46,42 @@ set_target_properties(nesturbator_host PROPERTIES
   POSITION_INDEPENDENT_CODE ON)
 nesturbator_warnings(nesturbator_host)
 
+# Install components (ENGINEERING section 2): `library` is the static library,
+# the header, a relocatable CMake package and nesturbator.pc; `runner` and
+# `libretro` are installed from their directories. nesturbator_host, palgen
+# and the tests are never installed.
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+set(NESTURBATOR_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/nesturbator)
+install(TARGETS nesturbator EXPORT nesturbatorTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT library)
+install(FILES include/nesturbator.h
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} COMPONENT library)
+install(EXPORT nesturbatorTargets NAMESPACE nesturbator::
+  DESTINATION ${NESTURBATOR_CMAKE_DIR} COMPONENT library)
+configure_package_config_file(cmake/nesturbatorConfig.cmake.in
+  ${PROJECT_BINARY_DIR}/nesturbatorConfig.cmake
+  INSTALL_DESTINATION ${NESTURBATOR_CMAKE_DIR})
+write_basic_package_version_file(${PROJECT_BINARY_DIR}/nesturbatorConfigVersion.cmake
+  COMPATIBILITY SameMinorVersion)
+install(FILES
+    ${PROJECT_BINARY_DIR}/nesturbatorConfig.cmake
+    ${PROJECT_BINARY_DIR}/nesturbatorConfigVersion.cmake
+  DESTINATION ${NESTURBATOR_CMAKE_DIR} COMPONENT library)
+# nesturbator.pc finds the prefix from its own directory, so the install
+# can move.
+file(RELATIVE_PATH NESTURBATOR_PC_PREFIX
+  /prefix/${CMAKE_INSTALL_LIBDIR}/pkgconfig /prefix)
+string(REGEX REPLACE "/$" "" NESTURBATOR_PC_PREFIX "${NESTURBATOR_PC_PREFIX}")
+configure_file(cmake/nesturbator.pc.in ${PROJECT_BINARY_DIR}/nesturbator.pc @ONLY)
+install(FILES ${PROJECT_BINARY_DIR}/nesturbator.pc
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT library)
+foreach(component library runner libretro)
+  install(FILES LICENSE DESTINATION . COMPONENT ${component})
+endforeach()
+# The libretro module is compiled against the vendored libretro.h.
+install(FILES THIRD-PARTY-NOTICES.md DESTINATION . COMPONENT libretro)
+
 enable_testing()
 add_subdirectory(runner)
 add_subdirectory(libretro)

@@ -168,3 +168,32 @@ add_test(NAME palette.regen
     -DOUT=${CMAKE_CURRENT_BINARY_DIR}/palette_ntsc.c
     -DREF=${PROJECT_SOURCE_DIR}/src/palette_ntsc.c
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/palette_regen.cmake)
+
+# FRAME-02: install the library component into <build>/stage, then build
+# tests/consumer against it with find_package and run it. The consumer gets
+# the parent's compiler, build type, C flags and link flags, each as one
+# argument so an empty value or one with spaces survives: a staged library
+# built with sanitizers needs the same flags to link.
+add_test(NAME install.stage
+  COMMAND ${CMAKE_COMMAND} --install ${PROJECT_BINARY_DIR}
+    --component library --prefix ${PROJECT_BINARY_DIR}/stage
+    --config $<CONFIG>)
+set_tests_properties(install.stage PROPERTIES FIXTURES_SETUP staged)
+get_property(nesturbator_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+set(consumer_config)
+if(nesturbator_multi_config)
+  set(consumer_config --build-config $<CONFIG>)
+endif()
+add_test(NAME install.consumer
+  COMMAND ${CMAKE_CTEST_COMMAND} --build-and-test
+    ${CMAKE_CURRENT_SOURCE_DIR}/consumer ${PROJECT_BINARY_DIR}/consumer
+    --build-generator ${CMAKE_GENERATOR}
+    ${consumer_config}
+    --build-options
+      -DCMAKE_PREFIX_PATH=${PROJECT_BINARY_DIR}/stage
+      -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}"
+      "-DCMAKE_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}"
+    --test-command consumer)
+set_tests_properties(install.consumer PROPERTIES FIXTURES_REQUIRED staged)
