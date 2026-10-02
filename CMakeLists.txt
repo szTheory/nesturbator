@@ -21,6 +21,7 @@ endfunction()
 add_library(nesturbator STATIC
   src/instance.c
   src/frame.c
+  src/palette_ntsc.c
   src/testcard.c)
 add_library(nesturbator::nesturbator ALIAS nesturbator)
 target_include_directories(nesturbator PUBLIC
@@ -35,4 +36,5 @@ nesturbator_warnings(nesturbator)
 
 enable_testing()
 add_subdirectory(runner)
+add_subdirectory(tools/palgen)
 add_subdirectory(tests)

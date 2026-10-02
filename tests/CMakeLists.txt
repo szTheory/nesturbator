@@ -95,3 +95,12 @@ add_test(NAME runner.sha256 COMMAND runner.sha256)
 add_test(NAME version.consistency
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_consistency.cmake)
+
+# D-14: palgen regenerates src/palette_ntsc.c byte for byte, ignoring line
+# endings.
+add_test(NAME palette.regen
+  COMMAND ${CMAKE_COMMAND}
+    -DPALGEN=$<TARGET_FILE:palgen>
+    -DOUT=${CMAKE_CURRENT_BINARY_DIR}/palette_ntsc.c
+    -DREF=${PROJECT_SOURCE_DIR}/src/palette_ntsc.c
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/palette_regen.cmake)
