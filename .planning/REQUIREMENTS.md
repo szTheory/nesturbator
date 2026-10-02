@@ -77,31 +77,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FRAME-01 | — | Pending |
-| FRAME-02 | — | Pending |
-| FRAME-03 | — | Pending |
-| FRAME-04 | — | Pending |
-| FRAME-05 | — | Pending |
-| FRAME-06 | — | Pending |
-| FRAME-07 | — | Pending |
-| CPU-01 | — | Pending |
-| CPU-02 | — | Pending |
-| GAME-01 | — | Pending |
-| GAME-02 | — | Pending |
-| GAME-03 | — | Pending |
-| GAME-04 | — | Pending |
-| GAME-05 | — | Pending |
-| GAME-06 | — | Pending |
-| SND-01 | — | Pending |
-| SND-02 | — | Pending |
-| SND-03 | — | Pending |
-| SND-04 | — | Pending |
+| FRAME-01 | Phase 1 | Pending |
+| FRAME-02 | Phase 1 | Pending |
+| FRAME-03 | Phase 1 | Pending |
+| FRAME-04 | Phase 1 | Pending |
+| FRAME-05 | Phase 1 | Pending |
+| FRAME-06 | Phase 1 | Pending |
+| FRAME-07 | Phase 1 | Pending |
+| CPU-01 | Phase 2 | Pending |
+| CPU-02 | Phase 2 | Pending |
+| GAME-01 | Phase 3 | Pending |
+| GAME-02 | Phase 3 | Pending |
+| GAME-03 | Phase 3 | Pending |
+| GAME-04 | Phase 3 | Pending |
+| GAME-05 | Phase 3 | Pending |
+| GAME-06 | Phase 3 | Pending |
+| SND-01 | Phase 4 | Pending |
+| SND-02 | Phase 4 | Pending |
+| SND-03 | Phase 4 | Pending |
+| SND-04 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 (mapped during roadmap creation)
+- Mapped to phases: 19
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-10-02*
-*Last updated: 2026-10-02 after preparation*
+*Last updated: 2026-10-02 after roadmap creation*
