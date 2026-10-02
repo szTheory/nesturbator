@@ -64,3 +64,34 @@ nesturbator_core_test(core.api core/test_api.c)
 # D-11: run_frame statuses, buffer rules, the D-09 audio period, the D-02
 # boundary pixels and two independent instances.
 nesturbator_core_test(core.frame core/test_frame.c)
+
+# D-11: the public header alone, as C17 and as C++, warnings as errors in
+# every preset. Building is the test; running only shows it linked.
+add_executable(header.c header/header_c.c)
+target_link_libraries(header.c PRIVATE nesturbator::nesturbator)
+nesturbator_warnings(header.c)
+target_compile_options(header.c PRIVATE
+  $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-pedantic -Werror -Wall -Wextra>
+  $<$<C_COMPILER_ID:MSVC>:/W4 /WX>)
+add_test(NAME header.c COMMAND header.c)
+
+add_executable(header.cxx header/header_cxx.cpp)
+target_link_libraries(header.cxx PRIVATE nesturbator::nesturbator)
+set_target_properties(header.cxx PROPERTIES
+  CXX_STANDARD 11 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+target_compile_options(header.cxx PRIVATE
+  $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-pedantic -Werror -Wall -Wextra -Wconversion -Wsign-conversion -Wshadow>
+  $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
+add_test(NAME header.cxx COMMAND header.cxx)
+
+# The runner's SHA-256 against FIPS 180-4 known answers, compiled in directly.
+add_executable(runner.sha256 runner/test_sha256.c ${PROJECT_SOURCE_DIR}/runner/sha256.c)
+target_include_directories(runner.sha256 PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+target_link_libraries(runner.sha256 PRIVATE nesturbator::nesturbator)
+nesturbator_warnings(runner.sha256)
+add_test(NAME runner.sha256 COMMAND runner.sha256)
+
+# version.txt equals the header's version macros.
+add_test(NAME version.consistency
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_consistency.cmake)

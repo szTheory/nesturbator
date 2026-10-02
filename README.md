@@ -25,6 +25,11 @@ The tests are plain C programs under `tests/` that use the macros in
 handed out. `core.frame` checks the buffer rules of `nesturbator_run_frame`,
 that a refused call changes nothing, the audio sample count over a whole
 period, the test card's edge pixels, and that two instances run apart.
+`header.c` and `header.cxx` compile the public header alone as C17 and as
+C++ with warnings as errors and check its struct layout. `runner.sha256`
+checks the runner's SHA-256 against the FIPS 180-4 example digests, and
+`version.consistency` checks that `version.txt` matches the header's version
+macros.
 
 The `ci` build puts the library at `build/ci/libnesturbator.a` and the runner
 at `build/ci/runner/nesturbator-run`. The public header is
