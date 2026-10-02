@@ -59,9 +59,17 @@ static double cos_ref(int k)
     double s6 = sqrt(6.0);
     double mag;
     switch (k % 6) {
-    case 0: case 5: mag = (s6 + s2) / 4.0; break; /* cos 15 */
-    case 1: case 4: mag = s2 / 2.0; break;        /* cos 45 */
-    default: mag = (s6 - s2) / 4.0; break;        /* cos 75 */
+    case 0:
+    case 5:
+        mag = (s6 + s2) / 4.0; /* cos 15 */
+        break;
+    case 1:
+    case 4:
+        mag = s2 / 2.0; /* cos 45 */
+        break;
+    default:
+        mag = (s6 - s2) / 4.0; /* cos 75 */
+        break;
     }
     return (k >= 3 && k <= 8) ? -mag : mag;
 }
@@ -175,20 +183,20 @@ int main(int argc, char **argv)
             "   - each channel clipped to 0..1 and rounded to 0..255 */\n"
             "#include \"internal.h\"\n"
             "\n"
+            "/* Eight entries per line, two lines per row of 16. */\n"
+            "/* clang-format off */\n"
             "const uint32_t nesturbator__palette_ntsc[512] = {\n",
-            (int)LOW_MV[0], (int)LOW_MV[1], (int)LOW_MV[2], (int)LOW_MV[3],
-            (int)HIGH_MV[0], (int)HIGH_MV[1], (int)HIGH_MV[2], (int)HIGH_MV[3],
-            (int)LOW_ATTEN_MV[0], (int)LOW_ATTEN_MV[1], (int)LOW_ATTEN_MV[2],
-            (int)LOW_ATTEN_MV[3], (int)HIGH_ATTEN_MV[0], (int)HIGH_ATTEN_MV[1],
-            (int)HIGH_ATTEN_MV[2], (int)HIGH_ATTEN_MV[3], BLACK_MV, WHITE_MV,
-            EMPHASIS_WAVE[0], EMPHASIS_WAVE[1], EMPHASIS_WAVE[2], CHROMA_GAIN,
-            KR_NUM, K_DEN, KG_NUM, K_DEN, KB_NUM, K_DEN, U_SCALE_NUM, UV_SCALE_DEN,
-            V_SCALE_NUM, UV_SCALE_DEN);
+            (int)LOW_MV[0], (int)LOW_MV[1], (int)LOW_MV[2], (int)LOW_MV[3], (int)HIGH_MV[0],
+            (int)HIGH_MV[1], (int)HIGH_MV[2], (int)HIGH_MV[3], (int)LOW_ATTEN_MV[0],
+            (int)LOW_ATTEN_MV[1], (int)LOW_ATTEN_MV[2], (int)LOW_ATTEN_MV[3], (int)HIGH_ATTEN_MV[0],
+            (int)HIGH_ATTEN_MV[1], (int)HIGH_ATTEN_MV[2], (int)HIGH_ATTEN_MV[3], BLACK_MV, WHITE_MV,
+            EMPHASIS_WAVE[0], EMPHASIS_WAVE[1], EMPHASIS_WAVE[2], CHROMA_GAIN, KR_NUM, K_DEN,
+            KG_NUM, K_DEN, KB_NUM, K_DEN, U_SCALE_NUM, UV_SCALE_DEN, V_SCALE_NUM, UV_SCALE_DEN);
     for (int n = 0; n < 512; n++) {
         fprintf(f, "%s0x%06lX,%s", n % 8 == 0 ? "    " : " ", (unsigned long)xrgb(n),
                 n % 8 == 7 ? "\n" : "");
     }
-    fprintf(f, "};\n");
+    fprintf(f, "};\n/* clang-format on */\n");
     if (fclose(f) != 0) {
         fprintf(stderr, "palgen: cannot write %s\n", argv[1]);
         return 1;

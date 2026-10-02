@@ -10,37 +10,36 @@
 static int check_failures = 0;
 
 /* cond must be true. */
-#define CHECK(cond)                                                          \
-    do {                                                                     \
-        if (!(cond)) {                                                       \
-            fprintf(stderr, "%s:%d: CHECK(%s) failed\n", __FILE__, __LINE__, \
-                    #cond);                                                  \
-            check_failures++;                                                \
-        }                                                                    \
+#define CHECK(cond)                                                                                \
+    do {                                                                                           \
+        if (!(cond)) {                                                                             \
+            fprintf(stderr, "%s:%d: CHECK(%s) failed\n", __FILE__, __LINE__, #cond);               \
+            check_failures++;                                                                      \
+        }                                                                                          \
     } while (0)
 
 /* a == b, compared and printed as unsigned decimal. */
-#define CHECK_EQ_U64(a, b)                                                   \
-    do {                                                                     \
-        unsigned long long check_a_ = (unsigned long long)(a);               \
-        unsigned long long check_b_ = (unsigned long long)(b);               \
-        if (check_a_ != check_b_) {                                          \
-            fprintf(stderr, "%s:%d: %s == %s failed: %llu != %llu\n",        \
-                    __FILE__, __LINE__, #a, #b, check_a_, check_b_);         \
-            check_failures++;                                                \
-        }                                                                    \
+#define CHECK_EQ_U64(a, b)                                                                         \
+    do {                                                                                           \
+        unsigned long long check_a_ = (unsigned long long)(a);                                     \
+        unsigned long long check_b_ = (unsigned long long)(b);                                     \
+        if (check_a_ != check_b_) {                                                                \
+            fprintf(stderr, "%s:%d: %s == %s failed: %llu != %llu\n", __FILE__, __LINE__, #a, #b,  \
+                    check_a_, check_b_);                                                           \
+            check_failures++;                                                                      \
+        }                                                                                          \
     } while (0)
 
 /* a == b, compared as unsigned and printed in hex. */
-#define CHECK_EQ_HEX(a, b)                                                   \
-    do {                                                                     \
-        unsigned long long check_a_ = (unsigned long long)(a);               \
-        unsigned long long check_b_ = (unsigned long long)(b);               \
-        if (check_a_ != check_b_) {                                          \
-            fprintf(stderr, "%s:%d: %s == %s failed: 0x%llx != 0x%llx\n",    \
-                    __FILE__, __LINE__, #a, #b, check_a_, check_b_);         \
-            check_failures++;                                                \
-        }                                                                    \
+#define CHECK_EQ_HEX(a, b)                                                                         \
+    do {                                                                                           \
+        unsigned long long check_a_ = (unsigned long long)(a);                                     \
+        unsigned long long check_b_ = (unsigned long long)(b);                                     \
+        if (check_a_ != check_b_) {                                                                \
+            fprintf(stderr, "%s:%d: %s == %s failed: 0x%llx != 0x%llx\n", __FILE__, __LINE__, #a,  \
+                    #b, check_a_, check_b_);                                                       \
+            check_failures++;                                                                      \
+        }                                                                                          \
     } while (0)
 
 /* Ends main: exit status 1 if any check failed, else 0. */

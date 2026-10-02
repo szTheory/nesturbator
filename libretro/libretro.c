@@ -21,8 +21,8 @@
 
 #define NT_STR_(x) #x
 #define NT_STR(x) NT_STR_(x)
-#define NT_VERSION                                                           \
-    NT_STR(NESTURBATOR_VERSION_MAJOR)                                        \
+#define NT_VERSION                                                                                 \
+    NT_STR(NESTURBATOR_VERSION_MAJOR)                                                              \
     "." NT_STR(NESTURBATOR_VERSION_MINOR) "." NT_STR(NESTURBATOR_VERSION_PATCH)
 
 /* All adapter state. A frontend may keep the module loaded between sessions,
@@ -51,15 +51,32 @@ void retro_set_environment(retro_environment_t cb)
     }
 }
 
-void retro_set_video_refresh(retro_video_refresh_t cb) { video_cb = cb; }
+void retro_set_video_refresh(retro_video_refresh_t cb)
+{
+    video_cb = cb;
+}
 /* The per-sample callback is stored but unused: a core uses the batch
    callback or this one, not both (L7453). */
-void retro_set_audio_sample(retro_audio_sample_t cb) { audio_cb = cb; }
-void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb) { audio_batch_cb = cb; }
-void retro_set_input_poll(retro_input_poll_t cb) { input_poll_cb = cb; }
-void retro_set_input_state(retro_input_state_t cb) { input_state_cb = cb; }
+void retro_set_audio_sample(retro_audio_sample_t cb)
+{
+    audio_cb = cb;
+}
+void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb)
+{
+    audio_batch_cb = cb;
+}
+void retro_set_input_poll(retro_input_poll_t cb)
+{
+    input_poll_cb = cb;
+}
+void retro_set_input_state(retro_input_state_t cb)
+{
+    input_state_cb = cb;
+}
 
-void retro_init(void) {}
+void retro_init(void)
+{
+}
 
 /* L7594: reset every global; the module may be used again. */
 void retro_deinit(void)
@@ -79,7 +96,10 @@ void retro_deinit(void)
     memset(stereo, 0, sizeof stereo);
 }
 
-unsigned retro_api_version(void) { return RETRO_API_VERSION; }
+unsigned retro_api_version(void)
+{
+    return RETRO_API_VERSION;
+}
 
 /* L7627: static strings. need_fullpath false lets the frontend load, unzip
    and patch the content (L6008). */
@@ -129,7 +149,9 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 }
 
 /* The test card has nothing to reset. */
-void retro_reset(void) {}
+void retro_reset(void)
+{
+}
 
 /* L7694: one frame. Input is polled once (L7685), the video callback is
    called once with XRGB8888 rows of 1024 bytes, and the mono samples go out
@@ -170,7 +192,10 @@ void retro_run(void)
 }
 
 /* L7707: size 0 means no save states. */
-size_t retro_serialize_size(void) { return 0; }
+size_t retro_serialize_size(void)
+{
+    return 0;
+}
 
 bool retro_serialize(void *data, size_t len)
 {
@@ -186,7 +211,9 @@ bool retro_unserialize(const void *data, size_t len)
     return false;
 }
 
-void retro_cheat_reset(void) {}
+void retro_cheat_reset(void)
+{
+}
 
 void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
@@ -233,7 +260,10 @@ void retro_unload_game(void)
 }
 
 /* L7812: 0 is NTSC. */
-unsigned retro_get_region(void) { return RETRO_REGION_NTSC; }
+unsigned retro_get_region(void)
+{
+    return RETRO_REGION_NTSC;
+}
 
 /* L7826: NULL and 0 are allowed (L498); no memory is exposed yet. */
 void *retro_get_memory_data(unsigned id)

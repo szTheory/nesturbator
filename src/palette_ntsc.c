@@ -12,6 +12,8 @@
    - each channel clipped to 0..1 and rounded to 0..255 */
 #include "internal.h"
 
+/* Eight entries per line, two lines per row of 16. */
+/* clang-format off */
 const uint32_t nesturbator__palette_ntsc[512] = {
     0x626262, 0x001FB2, 0x2404C8, 0x5200B2, 0x730076, 0x800024, 0x730B00, 0x522800,
     0x244400, 0x005700, 0x005C00, 0x005324, 0x003C76, 0x000000, 0x000000, 0x000000,
@@ -78,3 +80,4 @@ const uint32_t nesturbator__palette_ntsc[512] = {
     0xBDBDBD, 0x899DE3, 0x9F90ED, 0xB587E3, 0xC584C6, 0xCB899F, 0xC59378, 0xB5A15C,
     0x9FAE51, 0x89B75C, 0x79BA78, 0x74B59F, 0x79ABC6, 0x818181, 0x000000, 0x000000,
 };
+/* clang-format on */

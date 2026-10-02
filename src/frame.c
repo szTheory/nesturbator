@@ -9,8 +9,8 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
     if (inst == NULL || io == NULL) {
         return NESTURBATOR_ERR_ARGUMENT;
     }
-    nesturbator_status st = nesturbator__check_size_in(io, NESTURBATOR_FRAME_SIZE_V1,
-                                                        (uint32_t)sizeof *io);
+    nesturbator_status st =
+        nesturbator__check_size_in(io, NESTURBATOR_FRAME_SIZE_V1, (uint32_t)sizeof *io);
     if (st != NESTURBATOR_OK) {
         return st;
     }

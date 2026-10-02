@@ -20,6 +20,13 @@ add_test(NAME hygiene.action_pins.good
   COMMAND ${CMAKE_COMMAND} -DROOT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures
     -DFILE=pins_good.yml -P ${pins})
 
+# Every tracked C source but the vendored libretro.h is formatted as
+# .clang-format says, checked with clang-format 18.
+add_test(NAME hygiene.format
+  COMMAND ${CMAKE_COMMAND} -DCLANG_FORMAT=${NESTURBATOR_CLANG_FORMAT} -DGIT=${NESTURBATOR_GIT}
+    -DROOT=${PROJECT_SOURCE_DIR} -P ${PROJECT_SOURCE_DIR}/tests/cmake/format_check.cmake)
+
 set_tests_properties(
   hygiene.tree hygiene.action_pins hygiene.action_pins.bad hygiene.action_pins.good
+  hygiene.format
   PROPERTIES LABELS hygiene)

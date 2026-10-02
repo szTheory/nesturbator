@@ -32,10 +32,11 @@
 static int usage(const char *why)
 {
     fprintf(stderr, "nesturbator-run: %s\n", why);
-    fprintf(stderr, "usage: nesturbator-run [--frames N] [--hash-frame N]... [--dump-frame N:FILE]...\n"
-                    "  --frames N           run N frames (N >= 1)\n"
-                    "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
-                    "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n");
+    fprintf(stderr,
+            "usage: nesturbator-run [--frames N] [--hash-frame N]... [--dump-frame N:FILE]...\n"
+            "  --frames N           run N frames (N >= 1)\n"
+            "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
+            "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n");
     return 2;
 }
 

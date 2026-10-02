@@ -81,8 +81,8 @@ nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator
     if (cfg == NULL || out == NULL) {
         return NESTURBATOR_ERR_ARGUMENT;
     }
-    nesturbator_status st = nesturbator__check_size_in(cfg, NESTURBATOR_CONFIG_SIZE_V1,
-                                                        (uint32_t)sizeof *cfg);
+    nesturbator_status st =
+        nesturbator__check_size_in(cfg, NESTURBATOR_CONFIG_SIZE_V1, (uint32_t)sizeof *cfg);
     if (st != NESTURBATOR_OK) {
         return st;
     }

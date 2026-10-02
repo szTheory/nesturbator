@@ -6,10 +6,22 @@
 
 #define SENTINEL 0xDEADBEEFu
 
-static uint32_t red(uint32_t c) { return (c >> 16) & 0xFFu; }
-static uint32_t green(uint32_t c) { return (c >> 8) & 0xFFu; }
-static uint32_t blue(uint32_t c) { return c & 0xFFu; }
-static uint32_t luma(uint32_t c) { return 299u * red(c) + 587u * green(c) + 114u * blue(c); }
+static uint32_t red(uint32_t c)
+{
+    return (c >> 16) & 0xFFu;
+}
+static uint32_t green(uint32_t c)
+{
+    return (c >> 8) & 0xFFu;
+}
+static uint32_t blue(uint32_t c)
+{
+    return c & 0xFFu;
+}
+static uint32_t luma(uint32_t c)
+{
+    return 299u * red(c) + 587u * green(c) + 114u * blue(c);
+}
 
 int main(void)
 {

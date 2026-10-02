@@ -9,7 +9,7 @@
 
 #define W 256u
 #define H 240u
-#define WIDE 300u      /* a pitch wider than a row */
+#define WIDE 300u /* a pitch wider than a row */
 #define AUDIO_CAP 1024u
 #define POISON 0x5A5Au /* sentinel the core must overwrite or leave alone */
 

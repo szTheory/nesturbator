@@ -6,10 +6,10 @@
 #include <stdint.h>
 
 typedef struct nesturbator_run_sha256 {
-    uint32_t h[8];       /* intermediate hash value */
-    uint8_t block[64];   /* bytes of the current, unfinished block */
-    uint32_t used;       /* bytes in block */
-    uint64_t total;      /* message length in bytes */
+    uint32_t h[8];     /* intermediate hash value */
+    uint8_t block[64]; /* bytes of the current, unfinished block */
+    uint32_t used;     /* bytes in block */
+    uint64_t total;    /* message length in bytes */
 } nesturbator_run_sha256;
 
 void nesturbator_run_sha256_init(nesturbator_run_sha256 *s);

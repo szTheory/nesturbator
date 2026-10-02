@@ -41,7 +41,10 @@ static void *module_sym(const char *name)
     memcpy(&p, &f, sizeof p);
     return p;
 }
-static void module_close(void) { FreeLibrary(module); }
+static void module_close(void)
+{
+    FreeLibrary(module);
+}
 #else
 static void *module;
 static int module_open(const char *path)
@@ -52,8 +55,14 @@ static int module_open(const char *path)
     }
     return module != NULL;
 }
-static void *module_sym(const char *name) { return dlsym(module, name); }
-static void module_close(void) { (void)dlclose(module); }
+static void *module_sym(const char *name)
+{
+    return dlsym(module, name);
+}
+static void module_close(void)
+{
+    (void)dlclose(module);
+}
 #endif
 
 /* The 25 entry points, typed as libretro.h declares them (L7511-7840). */
@@ -87,15 +96,15 @@ static int missing = 0;
 
 /* ISO C has no conversion from void * to a function pointer, so the
    address is copied byte for byte (01-RESEARCH Pitfall 8). */
-#define RESOLVE(var, name)                                                   \
-    do {                                                                     \
-        void *p_ = module_sym(name);                                         \
-        if (p_ == NULL) {                                                    \
-            fprintf(stderr, "missing symbol %s\n", name);                    \
-            missing++;                                                       \
-        } else {                                                             \
-            memcpy(&(var), &p_, sizeof(var));                                \
-        }                                                                    \
+#define RESOLVE(var, name)                                                                         \
+    do {                                                                                           \
+        void *p_ = module_sym(name);                                                               \
+        if (p_ == NULL) {                                                                          \
+            fprintf(stderr, "missing symbol %s\n", name);                                          \
+            missing++;                                                                             \
+        } else {                                                                                   \
+            memcpy(&(var), &p_, sizeof(var));                                                      \
+        }                                                                                          \
     } while (0)
 
 static void resolve_all(void)
@@ -192,7 +201,10 @@ static size_t RETRO_CALLCONV batch(const int16_t *data, size_t frames)
     return frames;
 }
 
-static void RETRO_CALLCONV on_poll(void) { poll_calls++; }
+static void RETRO_CALLCONV on_poll(void)
+{
+    poll_calls++;
+}
 
 static int16_t RETRO_CALLCONV input(unsigned port, unsigned device, unsigned index, unsigned id)
 {
@@ -227,9 +239,8 @@ static void compare_with_ppm(const char *path)
                         (uint32_t)rgb[3u * i + 2u];
         if ((frame[i] & 0xFFFFFFu) != want) {
             if (mismatches == 0) {
-                fprintf(stderr, "first mismatch at (%u,%u): 0x%06x != 0x%06x\n",
-                        (unsigned)(i % W), (unsigned)(i / W), (unsigned)(frame[i] & 0xFFFFFFu),
-                        (unsigned)want);
+                fprintf(stderr, "first mismatch at (%u,%u): 0x%06x != 0x%06x\n", (unsigned)(i % W),
+                        (unsigned)(i / W), (unsigned)(frame[i] & 0xFFFFFFu), (unsigned)want);
             }
             mismatches++;
         }
@@ -242,7 +253,7 @@ int main(int argc, char **argv)
     struct retro_system_info sys;
     struct retro_system_av_info av;
     struct retro_game_info dummy;
-    static const unsigned char dummy_bytes[16] = { 0 };
+    static const unsigned char dummy_bytes[16] = {0};
     double fps_diff;
 
     if (argc != 3) {

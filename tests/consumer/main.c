@@ -11,7 +11,7 @@ int main(void)
 {
     nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
     nesturbator *inst = NULL;
-    nesturbator_frame io = { 0 };
+    nesturbator_frame io = {0};
     nesturbator_status status = nesturbator_create(&cfg, &inst);
 
     if (status != NESTURBATOR_OK) {

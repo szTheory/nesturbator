@@ -68,8 +68,8 @@ typedef struct nesturbator nesturbator;
 
 /* Output of nesturbator_get_version. */
 typedef struct nesturbator_version {
-    uint32_t size;               /* in: sizeof(nesturbator_version) */
-    uint32_t major;              /* library version */
+    uint32_t size;  /* in: sizeof(nesturbator_version) */
+    uint32_t major; /* library version */
     uint32_t minor;
     uint32_t patch;
     uint32_t abi;                /* NESTURBATOR_ABI_VERSION of the library */
@@ -96,16 +96,19 @@ typedef struct nesturbator_config {
 } nesturbator_config;
 
 /* Every member is listed, so the initialiser is warning-free in C and does
-   not narrow in C++. */
+   not narrow in C++. Kept out of clang-format, which would lay the braces out
+   as a block. */
+/* clang-format off */
 #define NESTURBATOR_CONFIG_INIT \
     { (uint32_t)sizeof(nesturbator_config), NESTURBATOR_ABI_VERSION, { NULL, NULL, NULL } }
+/* clang-format on */
 
 /* Output of nesturbator_get_info. Rates are exact fractions num/den. */
 typedef struct nesturbator_info {
-    uint32_t size;            /* in: sizeof(nesturbator_info) */
-    uint32_t width;           /* pixels per row of the video output: 256 */
-    uint32_t height;          /* rows of the video output: 240 */
-    uint32_t fps_num;         /* frames per second, NTSC: 39375000 / 655171 */
+    uint32_t size;    /* in: sizeof(nesturbator_info) */
+    uint32_t width;   /* pixels per row of the video output: 256 */
+    uint32_t height;  /* rows of the video output: 240 */
+    uint32_t fps_num; /* frames per second, NTSC: 39375000 / 655171 */
     uint32_t fps_den;
     uint32_t sample_rate_num; /* audio samples per second: 48000 / 1 */
     uint32_t sample_rate_den;

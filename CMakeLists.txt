@@ -101,12 +101,22 @@ if(NESTURBATOR_NOFP)
   add_subdirectory(tests/abi)
 endif()
 
-# Preset hygiene: the forbidden-content scan and the action-pin check as CTest
-# tests. A missing tool fails configure (ENGINEERING section 2).
+# Preset hygiene: the forbidden-content scan, the action-pin check and the
+# format check as CTest tests. A missing tool fails configure (ENGINEERING
+# section 2). Formatting is checked with clang-format 18 only, the version on
+# CI's ubuntu-24.04 image; another major version formats differently.
 option(NESTURBATOR_HYGIENE "Register the hygiene tests" OFF)
 if(NESTURBATOR_HYGIENE)
   find_program(NESTURBATOR_SH sh REQUIRED)
   find_program(NESTURBATOR_GIT git REQUIRED)
+  find_program(NESTURBATOR_CLANG_FORMAT NAMES clang-format-18 clang-format
+    HINTS /opt/homebrew/opt/llvm@18/bin /usr/local/opt/llvm@18/bin REQUIRED)
+  execute_process(COMMAND ${NESTURBATOR_CLANG_FORMAT} --version
+    OUTPUT_VARIABLE clang_format_version)
+  if(NOT clang_format_version MATCHES "version 18\\.")
+    message(FATAL_ERROR "the hygiene preset needs clang-format 18; "
+      "${NESTURBATOR_CLANG_FORMAT} reports: ${clang_format_version}")
+  endif()
   add_subdirectory(tests/hygiene)
 endif()
 
