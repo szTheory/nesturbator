@@ -235,6 +235,38 @@ content.
 RetroArch; its source and licence are in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
+## Try it in RetroArch (from a build)
+
+On an Apple Silicon Mac, install RetroArch from `RetroArch_Metal.dmg` on the
+RetroArch website, or with `brew install --cask retroarch-metal`. The
+`retroarch` cask is the Intel-only build, which cannot load an arm64 core.
+After `cmake --workflow --preset ci`, start the core with no content to see
+the test card:
+
+```sh
+/Applications/RetroArch.app/Contents/MacOS/RetroArch -L build/ci/libretro/nesturbator_libretro.dylib
+```
+
+To check RetroArch's picture without looking at it:
+
+```sh
+ctest --preset ci -L retroarch
+```
+
+This runs `retroarch.testframe`. It starts RetroArch with the
+configuration `build/ci/retroarch/test.cfg`, generated from
+`tests/retroarch/test.cfg.in`, so your own RetroArch settings are never read.
+That configuration points every directory and file RetroArch uses under
+`build/ci/retroarch` and turns off content history. RetroArch runs the core
+for 5 frames and writes a screenshot of the core's frame. `sips` converts it
+to BMP, and `compare_frame` requires it to equal the runner's frame 5 at
+exactly 256x240, pixel for pixel. The test also lists RetroArch's directory
+in your home folder before and after the run, and fails if anything in it was
+created, changed or removed. RetroArch opens a window, so the test needs a
+logged-in desktop session. Set `NESTURBATOR_RETROARCH` to use a RetroArch
+binary somewhere else. On other systems, or when RetroArch is not installed,
+the test reports itself skipped.
+
 ## What it will be
 
 - An accuracy-class, deterministic NES core with no GUI of its own.
