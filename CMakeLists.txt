@@ -35,6 +35,16 @@ set_target_properties(nesturbator PROPERTIES
   SOVERSION 1) # D-07: SOVERSION equals NESTURBATOR_ABI_VERSION
 nesturbator_warnings(nesturbator)
 
+# Preset nofp: the core gets no floating-point or vector registers, and the
+# abi tests check it (ENGINEERING section 1).
+option(NESTURBATOR_NOFP "Build the core with -mgeneral-regs-only and run the abi tests" OFF)
+if(NESTURBATOR_NOFP)
+  if(MSVC)
+    message(FATAL_ERROR "NESTURBATOR_NOFP needs GCC or Clang (-mgeneral-regs-only)")
+  endif()
+  target_compile_options(nesturbator PRIVATE -mgeneral-regs-only)
+endif()
+
 # D-15: the native-to-XRGB8888 conversion the runner and the libretro adapter
 # share. Not part of the core and not installed. Hidden visibility keeps its
 # symbol out of the libretro module's exports; PIC lets it link into that
@@ -87,6 +97,9 @@ add_subdirectory(runner)
 add_subdirectory(libretro)
 add_subdirectory(tools/palgen)
 add_subdirectory(tests)
+if(NESTURBATOR_NOFP)
+  add_subdirectory(tests/abi)
+endif()
 
 # Release archives; included last so every install rule is known.
 include(cmake/packaging.cmake)

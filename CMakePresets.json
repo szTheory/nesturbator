@@ -41,13 +41,19 @@
         "CMAKE_MODULE_LINKER_FLAGS": "-fsanitize=address,undefined",
         "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
       }
+    },
+    {
+      "name": "nofp",
+      "inherits": "ci",
+      "cacheVariables": { "NESTURBATOR_NOFP": "ON" }
     }
   ],
   "buildPresets": [
     { "name": "dev", "configurePreset": "dev" },
     { "name": "ci", "configurePreset": "ci" },
     { "name": "ci-msvc", "configurePreset": "ci-msvc" },
-    { "name": "asan", "configurePreset": "asan" }
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "nofp", "configurePreset": "nofp" }
   ],
   "testPresets": [
     {
@@ -75,6 +81,13 @@
       "filter": { "exclude": { "label": "retroarch" } },
       "execution": { "noTestsAction": "error" },
       "environment": { "UBSAN_OPTIONS": "print_stacktrace=1" }
+    },
+    {
+      "name": "nofp",
+      "configurePreset": "nofp",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "abi" } },
+      "execution": { "noTestsAction": "error" }
     }
   ],
   "packagePresets": [
@@ -114,6 +127,14 @@
         { "type": "configure", "name": "asan" },
         { "type": "build", "name": "asan" },
         { "type": "test", "name": "asan" }
+      ]
+    },
+    {
+      "name": "nofp",
+      "steps": [
+        { "type": "configure", "name": "nofp" },
+        { "type": "build", "name": "nofp" },
+        { "type": "test", "name": "nofp" }
       ]
     }
   ]

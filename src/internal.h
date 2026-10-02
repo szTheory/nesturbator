@@ -7,7 +7,7 @@
 
 /* Time unit: one tick is half a master-clock period; NTSC has 24 ticks per
    CPU cycle and 8 per PPU dot (ARCHITECTURE section 2). An average NTSC frame
-   is 89341.5 dots, 714732 ticks, which is exactly the reported frame rate
+   is 89341 and a half dots, 714732 ticks, which is exactly the reported frame rate
    39375000/655171 (01-RESEARCH Open Question 1). */
 #define NESTURBATOR_TICKS_PER_FRAME 714732u
 

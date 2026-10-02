@@ -16,7 +16,18 @@ You need CMake 3.25 or newer, Ninja and a C17 compiler.
 ```sh
 cmake --workflow --preset ci    # Release, warnings as errors; builds, runs every test, writes the archives
 cmake --workflow --preset dev   # Debug build and the same tests
+cmake --workflow --preset asan  # the same tests under AddressSanitizer and UBSan
+cmake --workflow --preset nofp  # core built with -mgeneral-regs-only; the abi checks
 ```
+
+`asan` runs every test except the RetroArch launch. `nofp` runs the tests
+labelled `abi`, which hold the core to integer arithmetic and the C memory
+functions: a text scan of `src/` and `include/` for `float`, `double` and
+floating literals; an `nm` check that the library needs no symbol beyond
+`memcpy`, `memmove`, `memset`, `memcmp`, `malloc`, `free` and the
+toolchain's fortify and stack-protector helpers (plus `bzero` on macOS); an
+`nm` check that it defines no writable data; and a fixture with a `double`
+multiply that these checks must reject.
 
 On Windows with MSVC, use `ci-msvc` from a developer command prompt.
 
