@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `cmake --workflow --preset asan`, `--preset nofp` and `--preset hygiene` pass: the tests are clean under the address and undefined-behaviour sanitizers, the core has no floating point and no undefined symbols beyond the C memory functions, and the tree holds no personal data and no unlisted ROM.
   5. Every pull request builds the library, runner and libretro archives for each platform, and a behaviour-changing merge to `main` publishes them with a `SHA256SUMS` file as a GitHub release with no manual step.
 
-**Plans**: 3/12 plans executed
+**Plans**: 4/12 plans executed
 
 Plans:
 **Wave 1**
@@ -44,7 +44,7 @@ Plans:
 - [x] 01-03-PLAN.md — Palette generator and table, `nesturbator_get_palette` and its invariants
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 01-04-PLAN.md — Shared conversion library, runner `--dump-frame` P6
+- [x] 01-04-PLAN.md — Shared conversion library, runner `--dump-frame` P6
 
 **Wave 5** *(blocked on Wave 4 completion)*
 - [ ] 01-05-PLAN.md — `.gitattributes`, vendored `libretro.h`, libretro adapter, host test equal to the runner's frame
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. A test frame in RetroArch | 3/12 | In Progress|  |
+| 1. A test frame in RetroArch | 4/12 | In Progress|  |
 | 2. The CPU matches the public vectors | 0/TBD | Not started | - |
 | 3. A real game in RetroArch | 0/TBD | Not started | - |
 | 4. Sound | 0/TBD | Not started | - |

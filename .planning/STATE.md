@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: A test frame in RetroArch
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-10-02T21:01:20.768Z"
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-10-02T21:05:25.003Z"
 last_activity: 2026-10-02
 last_activity_desc: Phase 01 execution started
-state_head: a6d220d5cac28c9eb6bf4fab1bc4a45c8567ebc6
+state_head: d6578adc6c7d1218adca41a9a41919f8f09ac5f5
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 12
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-02)
 ## Current Position
 
 Phase: 01 (A test frame in RetroArch) — EXECUTING
-Plan: 4 of 12
+Plan: 5 of 12
 Status: Ready to execute
 Last activity: 2026-10-02 — Phase 01 execution started
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P01 | 4 min | 2 tasks | 15 files |
 | Phase 01 P02 | 3 min | 2 tasks | 9 files |
 | Phase 01 P03 | 1 min | 2 tasks | 13 files |
+| Phase 01 P04 | 2 min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,8 @@ Recent decisions affecting current work:
 - [Phase 01]: Core tests are plain programs on tests/check.h registered with nesturbator_core_test()
 - [Phase 01]: palgen samples phase p at 75+30p degrees with U on the sine and V on the cosine, so colorburst (hue 8) lands on -U
 - [Phase 01]: Generated palette banner is ASCII (--) so all sources stay ASCII for MSVC /WX
+- [Phase 01]: 01-04: --dump-frame splits N:FILE at the first colon so FILE may contain colons
+- [Phase 01]: 01-04: host/ holds code shared by runner and adapter (target nesturbator_host, hidden visibility, PIC, not installed)
 
 ### Pending Todos
 
@@ -94,6 +97,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-02T21:01:20.755Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-10-02T21:05:24.986Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None
