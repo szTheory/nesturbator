@@ -48,5 +48,6 @@ nesturbator_warnings(nesturbator_host)
 
 enable_testing()
 add_subdirectory(runner)
+add_subdirectory(libretro)
 add_subdirectory(tools/palgen)
 add_subdirectory(tests)

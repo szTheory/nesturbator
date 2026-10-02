@@ -1,0 +1,23 @@
+# Core information for RetroArch's info directory.
+display_name = "Nintendo - NES / Famicom (nesturbator)"
+authors = "nesturbator contributors"
+supported_extensions = "nes"
+corename = "nesturbator"
+license = "MIT"
+permissions = ""
+# x-release-please-start-version
+display_version = "0.0.0"
+# x-release-please-end
+manufacturer = "Nintendo"
+categories = "Emulator"
+systemname = "Nintendo Entertainment System"
+systemid = "nes"
+database = "Nintendo - Nintendo Entertainment System"
+supports_no_game = "true"
+savestate = "false"
+libretro_saves = "false"
+memory_descriptors = "false"
+core_options = "false"
+disk_control = "false"
+is_experimental = "true"
+description = "Accuracy-focused NES core. Phase 1 shows a built-in test card."

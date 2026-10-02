@@ -136,6 +136,15 @@ add_test(NAME version.consistency
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_consistency.cmake)
 
+# libretro.h is RetroArch v1.22.2's copy (commit
+# 69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576), byte for byte. .gitattributes
+# keeps it LF on Windows checkouts too.
+add_test(NAME libretro.vendored
+  COMMAND ${CMAKE_COMMAND}
+    -DFILE=${PROJECT_SOURCE_DIR}/libretro/libretro.h
+    -DSHA256=bd3398d29c3763d18617087020ff56b5450a48a63123403a4b674f8e79947acb
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vendored_sha256.cmake)
+
 # D-14: palgen regenerates src/palette_ntsc.c byte for byte, ignoring line
 # endings.
 add_test(NAME palette.regen
