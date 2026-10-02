@@ -87,3 +87,6 @@ add_subdirectory(runner)
 add_subdirectory(libretro)
 add_subdirectory(tools/palgen)
 add_subdirectory(tests)
+
+# Release archives; included last so every install rule is known.
+include(cmake/packaging.cmake)

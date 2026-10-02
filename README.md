@@ -14,7 +14,7 @@ PPU, APU and ROM loading come in later phases. The plan lives in
 You need CMake 3.25 or newer, Ninja and a C17 compiler.
 
 ```sh
-cmake --workflow --preset ci    # Release, warnings as errors; builds and runs every test
+cmake --workflow --preset ci    # Release, warnings as errors; builds, runs every test, writes the archives
 cmake --workflow --preset dev   # Debug build and the same tests
 ```
 
@@ -72,6 +72,29 @@ target_link_libraries(app PRIVATE nesturbator::nesturbator)
 With pkg-config, set `PKG_CONFIG_PATH=<dir>/lib/pkgconfig` and use
 `pkg-config --cflags --libs nesturbator`. The components `runner` and
 `libretro` install `bin/nesturbator-run` and `cores/` with `info/`.
+
+## Downloads and archives
+
+Each release has three zip archives per platform, named
+`nesturbator-VERSION-COMPONENT-OS-ARCH.zip`, where OS is `linux`, `macos` or
+`windows` and ARCH is `x64` or `arm64`. Files sit at the zip root, with no
+enclosing directory:
+
+| Archive | Contents |
+|---|---|
+| `nesturbator-VERSION-libretro-OS-ARCH.zip` | `cores/nesturbator_libretro.{so,dylib,dll}`, `info/nesturbator_libretro.info`, `LICENSE`, `THIRD-PARTY-NOTICES.md` |
+| `nesturbator-VERSION-runner-OS-ARCH.zip` | `bin/nesturbator-run` (`.exe` on Windows), `LICENSE` |
+| `nesturbator-VERSION-library-OS-ARCH.zip` | `include/nesturbator.h`, the static library and package files under `lib/`, `LICENSE` |
+
+Unzip the libretro archive into RetroArch's directory to put the core in
+`cores` and its information file in `info`.
+
+`cmake --workflow --preset ci` ends by writing the three archives for the
+build machine to `build/ci/packages/`. This checks their names and contents:
+
+```sh
+cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake
+```
 
 ## The colour table
 
