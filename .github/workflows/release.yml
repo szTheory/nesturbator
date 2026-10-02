@@ -1,0 +1,134 @@
+# Release on merge (ENGINEERING section 6). release-please opens or updates
+# the release pull request and auto-merges it once CI required passes. When
+# that merge lands, it creates a draft release with its tag; this run then
+# calls ci.yml on the release commit and publishes only after it succeeds.
+#
+# The GitHub App token is minted here, in a run started by a push to main or
+# by hand, never by a pull request. Only release-please and the auto-merge
+# command receive it.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30 # initial; set to twice the first measured cold run (ENGINEERING §5)
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      # A token from the App rather than GITHUB_TOKEN, so CI runs on the
+      # release pull request without waiting for approval. GitHub accepts the
+      # App's Client ID or its App ID here.
+      - id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.NESTURBATOR_APP_ID }}
+          private-key: ${{ secrets.NESTURBATOR_APP_PRIVATE_KEY }}
+      - id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+      # Merges when the ruleset's required check passes on the pull request.
+      - name: Auto-merge the release pull request
+        if: steps.release.outputs.prs_created == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR: ${{ steps.release.outputs.pr }}
+        run: |
+          number=$(printf '%s' "$PR" | jq -r .number)
+          gh pr merge --auto --squash "$number" --repo "$GITHUB_REPOSITORY"
+
+  # The full CI on the exact commit being released; publish needs it.
+  ci:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      pull-requests: read
+
+  publish:
+    needs: [release-please, ci]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30 # initial; set to twice the first measured cold run (ENGINEERING §5)
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: archives-*
+          merge-multiple: true
+          path: dist
+      - name: Exactly the 18 archives
+        run: |
+          VERSION="${TAG#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          expected=$(for c in library runner libretro; do
+            for o in linux macos windows; do
+              for a in x64 arm64; do
+                echo "nesturbator-$VERSION-$c-$o-$a.zip"
+              done
+            done
+          done | LC_ALL=C sort)
+          shopt -s dotglob nullglob
+          names=(dist/*)
+          actual=$(printf '%s\n' "${names[@]#dist/}" | LC_ALL=C sort)
+          if [ "$expected" != "$actual" ]; then
+            echo "::error::dist does not hold exactly the 18 archives of $VERSION (< missing, > extra)"
+            diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") || true
+            exit 1
+          fi
+      # The shasum -a 256 format: digest, two spaces, file name.
+      - name: Write SHA256SUMS
+        run: cd dist && sha256sum -- *.zip > SHA256SUMS
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: dist/SHA256SUMS
+      - name: Upload to the draft release
+        run: gh release upload "$TAG" dist/*.zip dist/SHA256SUMS --repo "$GITHUB_REPOSITORY"
+      - name: Each archive verifies
+        run: |
+          for zip in dist/*.zip; do
+            gh attestation verify "$zip" --repo "$GITHUB_REPOSITORY"
+          done
+      # A copy with its last byte flipped must not verify.
+      - name: A changed archive fails
+        run: |
+          zips=(dist/*.zip)
+          copy="$RUNNER_TEMP/tampered.zip"
+          cp "${zips[0]}" "$copy"
+          size=$(wc -c < "$copy")
+          last=$(tail -c 1 "$copy" | od -An -tu1 | tr -d ' ')
+          printf '%b' "\\0$(printf '%03o' $((last ^ 255)))" |
+            dd of="$copy" bs=1 seek=$((size - 1)) conv=notrunc status=none
+          if cmp -s "${zips[0]}" "$copy"; then
+            echo "::error::the copy was not changed"
+            exit 1
+          fi
+          if gh attestation verify "$copy" --repo "$GITHUB_REPOSITORY"; then
+            echo "::error::a changed archive verified"
+            exit 1
+          fi
+      - name: Publish the release
+        run: gh release edit "$TAG" --draft=false --repo "$GITHUB_REPOSITORY"

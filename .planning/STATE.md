@@ -98,7 +98,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+- Phase 2, first task, after v0.1.0 is published: remove the one-time `release-as` pin with `jq 'del(.packages["."]["release-as"])' release-please-config.json > tmp && mv tmp release-please-config.json`, and confirm `jq -e '.packages["."] | has("release-as") | not' release-please-config.json` exits 0. Left in place, every later release would again be 0.1.0. (Recorded by plan 01-10.)
 
 ### Blockers/Concerns
 

@@ -167,6 +167,25 @@ build machine to `build/ci/packages/`. This checks their names and contents:
 cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake
 ```
 
+## Releases
+
+Merging a behaviour-changing pull request publishes a GitHub release.
+release-please reads the Conventional Commit titles on `main`, opens a release
+pull request that sets the version and the changelog, and merges it once CI
+passes. `.github/workflows/release.yml` then runs the full CI on that exact
+commit and publishes the release with 18 archives (library, runner and
+libretro for six platforms) and `SHA256SUMS`. `SHA256SUMS` carries a
+build-provenance attestation that covers every archive. To check a download:
+
+```sh
+gh attestation verify FILE --repo <owner>/nesturbator
+```
+
+Before publishing, the workflow requires exactly the 18 expected archive
+names, verifies each archive this way, and confirms that a copy with one byte
+changed fails. Pull-request rules are in [CONTRIBUTING.md](CONTRIBUTING.md);
+security reports go through [SECURITY.md](SECURITY.md).
+
 ## The colour table
 
 `src/palette_ntsc.c` maps each native pixel value to an XRGB8888 colour. It is
