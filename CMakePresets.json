@@ -46,6 +46,11 @@
       "name": "nofp",
       "inherits": "ci",
       "cacheVariables": { "NESTURBATOR_NOFP": "ON" }
+    },
+    {
+      "name": "hygiene",
+      "inherits": "base",
+      "cacheVariables": { "NESTURBATOR_HYGIENE": "ON" }
     }
   ],
   "buildPresets": [
@@ -53,7 +58,8 @@
     { "name": "ci", "configurePreset": "ci" },
     { "name": "ci-msvc", "configurePreset": "ci-msvc" },
     { "name": "asan", "configurePreset": "asan" },
-    { "name": "nofp", "configurePreset": "nofp" }
+    { "name": "nofp", "configurePreset": "nofp" },
+    { "name": "hygiene", "configurePreset": "hygiene" }
   ],
   "testPresets": [
     {
@@ -87,6 +93,13 @@
       "configurePreset": "nofp",
       "output": { "outputOnFailure": true },
       "filter": { "include": { "label": "abi" } },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "hygiene",
+      "configurePreset": "hygiene",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "hygiene" } },
       "execution": { "noTestsAction": "error" }
     }
   ],
@@ -135,6 +148,14 @@
         { "type": "configure", "name": "nofp" },
         { "type": "build", "name": "nofp" },
         { "type": "test", "name": "nofp" }
+      ]
+    },
+    {
+      "name": "hygiene",
+      "steps": [
+        { "type": "configure", "name": "hygiene" },
+        { "type": "build", "name": "hygiene" },
+        { "type": "test", "name": "hygiene" }
       ]
     }
   ]

@@ -43,9 +43,10 @@ not affiliated with or endorsed by Nintendo.
 
 ## How this is checked
 
-`scripts/hygiene.sh` rejects ROM and save file extensions and the iNES and FDS
-file signatures unless the manifest lists the file. It runs on every commit and
-push through the hooks in `.githooks/`, and in CI.
+`scripts/hygiene.sh` rejects ROM and save file extensions, the iNES and FDS
+file signatures and any file git treats as binary unless the manifest lists
+the file. It runs on every commit and push through the hooks in `.githooks/`,
+and as the test `hygiene.tree` of `cmake --workflow --preset hygiene`.
 
 ## If something gets in
 

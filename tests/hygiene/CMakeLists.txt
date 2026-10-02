@@ -1,0 +1,25 @@
+# The hygiene lane (FRAME-06, ENGINEERING sections 5 and 7). Registered only
+# when NESTURBATOR_HYGIENE is ON; every test carries the label hygiene.
+
+# The forbidden-content scan over every file git would track: personal data,
+# game images, unlisted binary files and the GSD stop policy.
+add_test(NAME hygiene.tree
+  COMMAND ${NESTURBATOR_SH} ${PROJECT_SOURCE_DIR}/scripts/hygiene.sh --tree
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+
+# Every uses: key under .github names an action by a full commit SHA. The two
+# fixtures show the check fails on a tag and passes on a SHA.
+set(pins ${PROJECT_SOURCE_DIR}/tests/cmake/action_pins.cmake)
+add_test(NAME hygiene.action_pins
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR}/.github -P ${pins})
+add_test(NAME hygiene.action_pins.bad
+  COMMAND ${CMAKE_COMMAND} -DROOT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures
+    -DFILE=pins_bad.yml -P ${pins})
+set_tests_properties(hygiene.action_pins.bad PROPERTIES WILL_FAIL TRUE)
+add_test(NAME hygiene.action_pins.good
+  COMMAND ${CMAKE_COMMAND} -DROOT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures
+    -DFILE=pins_good.yml -P ${pins})
+
+set_tests_properties(
+  hygiene.tree hygiene.action_pins hygiene.action_pins.bad hygiene.action_pins.good
+  PROPERTIES LABELS hygiene)

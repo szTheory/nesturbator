@@ -1,6 +1,7 @@
 #!/bin/sh
-# Repository hygiene for a public repo: no personal data, no game images, and
-# no chain-mode GSD settings in anything that gets committed or pushed.
+# Repository hygiene for a public repo: no personal data, no game images, no
+# binary file the test-ROM manifest does not list, and no chain-mode GSD
+# settings in anything that gets committed or pushed.
 #
 #   scripts/hygiene.sh --staged             the commit being made   (pre-commit)
 #   scripts/hygiene.sh --tree               every file git would track  (CI)
@@ -41,6 +42,13 @@ check_file() {
   case $magic in
     4e45531a | 4644531a) in_manifest "$1" || found 'game image by content' "$1" ;;
   esac
+  # A file git treats as binary (a NUL byte, which grep -I also keys on in the
+  # C locale) must be listed in the manifest. This also stops save states, raw
+  # dumps and screenshots (ENGINEERING section 7).
+  size=$($2 "$1" 2>/dev/null | head -c 1 | wc -c | tr -d ' ')
+  if [ "$size" != 0 ] && ! $2 "$1" 2>/dev/null | LC_ALL=C grep -I -q '' && ! in_manifest "$1"; then
+    found 'binary file not in manifest' "$1"
+  fi
   if $2 "$1" 2>/dev/null | leaks "$HOME_PATH" "$HOME_OK"; then found 'home directory path' "$1"; fi
   if $2 "$1" 2>/dev/null | leaks "$EMAIL" "$EMAIL_OK"; then found 'email address' "$1"; fi
 }
@@ -101,6 +109,11 @@ case $mode in
       if git grep -I -h -E -e "$EMAIL" "$c" -- . ":!$SELF" 2>/dev/null | grep -v -E -e "$EMAIL_OK" | grep -q .; then
         found 'email address' "commit $c"
       fi
+      # --numstat shows a binary file's line counts as "-".
+      for b in $(git diff-tree -r --root --no-commit-id --numstat "$c" |
+        awk -F '\t' '$1 == "-" && $2 == "-" { print $3 }'); do
+        [ "$b" = "$SELF" ] || in_manifest "$b" || found 'binary file not in manifest' "$b (in history)"
+      done
     done
     for e in $(git log "$@" --format='%ae%n%ce' | sort -u); do check_identity "$e" 'history'; done
     for n in $(git log "$@" --name-only --format= | sort -u | grep -i -E -e "$ROM_NAME" || true); do

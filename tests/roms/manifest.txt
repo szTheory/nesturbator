@@ -1,0 +1,18 @@
+# Test ROMs and other binary files allowed in this repository.
+#
+# scripts/hygiene.sh rejects a ROM or save file name, an iNES or FDS image and
+# any file git treats as binary unless its path is the first field of a line
+# here. ASSET_POLICY.md says which files may be listed.
+#
+# One line per file, fields separated by a tab:
+#
+#   path<TAB>source<TAB>pin<TAB>licence<TAB>sha256
+#
+#   path     the file's path from the repository root
+#   source   where the file comes from (a repository URL)
+#   pin      the upstream commit or release the file is taken from
+#   licence  the licence that permits redistribution (SPDX identifier)
+#   sha256   the file's SHA-256, 64 lowercase hex digits
+#
+# Lines starting with # are comments. Phase 1 has no test ROM, so there are no
+# entries yet.

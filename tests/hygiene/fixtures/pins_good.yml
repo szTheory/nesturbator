@@ -1,0 +1,10 @@
+# hygiene.action_pins.good: every key is a full SHA or a local path.
+name: good
+jobs:
+  build:
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
+      - name: checkout again
+        uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+  local:
+    uses: ./.github/workflows/ci.yml

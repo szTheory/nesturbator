@@ -101,5 +101,14 @@ if(NESTURBATOR_NOFP)
   add_subdirectory(tests/abi)
 endif()
 
+# Preset hygiene: the forbidden-content scan and the action-pin check as CTest
+# tests. A missing tool fails configure (ENGINEERING section 2).
+option(NESTURBATOR_HYGIENE "Register the hygiene tests" OFF)
+if(NESTURBATOR_HYGIENE)
+  find_program(NESTURBATOR_SH sh REQUIRED)
+  find_program(NESTURBATOR_GIT git REQUIRED)
+  add_subdirectory(tests/hygiene)
+endif()
+
 # Release archives; included last so every install rule is known.
 include(cmake/packaging.cmake)
