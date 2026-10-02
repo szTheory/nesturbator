@@ -145,6 +145,21 @@ add_test(NAME libretro.vendored
     -DSHA256=bd3398d29c3763d18617087020ff56b5450a48a63123403a4b674f8e79947acb
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vendored_sha256.cmake)
 
+# FRAME-04: a host program loads the built module at run time, calls it as
+# RetroArch does, and compares its frame with the runner's image (fixture
+# testframe_ppm) and with four hard-coded pixels (D-05). The module is a
+# run-time input, so the test program depends on it to build it first.
+add_executable(libretro.host libretro/libretro_host.c)
+target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro)
+target_link_libraries(libretro.host PRIVATE ${CMAKE_DL_LIBS})
+target_compile_definitions(libretro.host PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(libretro.host)
+add_dependencies(libretro.host nesturbator_libretro)
+add_test(NAME libretro.host
+  COMMAND libretro.host $<TARGET_FILE:nesturbator_libretro> ${NESTURBATOR_TESTFRAME_PPM})
+set_tests_properties(libretro.host PROPERTIES FIXTURES_REQUIRED testframe_ppm)
+
 # D-14: palgen regenerates src/palette_ntsc.c byte for byte, ignoring line
 # endings.
 add_test(NAME palette.regen

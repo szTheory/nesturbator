@@ -3,7 +3,8 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: Phase 1, a test frame.** The library and the runner build and run.
+**Status: Phase 1, a test frame.** The library, the runner and the libretro
+core build and run.
 With no cartridge loaded, the core outputs a fixed test card and silence. CPU,
 PPU, APU and ROM loading come in later phases. The plan lives in
 [`.planning/`](.planning/).
@@ -38,7 +39,12 @@ table entry, and the input and output row pitches are honoured.
 C++ with warnings as errors and check its struct layout. `runner.sha256`
 checks the runner's SHA-256 against the FIPS 180-4 example digests, and
 `version.consistency` checks that `version.txt` matches the header's version
-macros. `palette.regen` rebuilds the colour table with `tools/palgen` and
+macros and the libretro `.info` file's `display_version`. `libretro.vendored`
+checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
+`libretro.host` loads the built libretro core at run time, calls it in the
+order RetroArch does, and checks that the frame it receives equals the
+runner's dumped image pixel for pixel, plus four colours written into the
+test. `palette.regen` rebuilds the colour table with `tools/palgen` and
 checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
 
 ## The colour table
@@ -103,6 +109,35 @@ writes `frame1.ppm` (184335 bytes) and prints the same line as before.
 
 Exit status: 0 done, 1 failure (including a FILE that cannot be written),
 2 usage error.
+
+## The libretro core
+
+`libretro/` builds the core that libretro frontends such as RetroArch load.
+The file is named `nesturbator_libretro` with no `lib` prefix:
+
+| OS | File |
+|---|---|
+| macOS | `nesturbator_libretro.dylib` |
+| Linux | `nesturbator_libretro.so` |
+| Windows | `nesturbator_libretro.dll` |
+
+The `ci` build puts it at `build/ci/libretro/`. It exports only the 25
+`retro_*` functions of `libretro.h`.
+
+In this phase the core starts with no content and shows the test card, with
+silence: in RetroArch, use "Start Core", or launch it with `-L` and no content
+path. Loading a game is not supported until the cartridge phase; the core
+refuses any content. It sends XRGB8888 frames of 256x240 and one batch of
+stereo samples per frame at 48000 Hz.
+
+`libretro/nesturbator_libretro.info` is the core information file. It goes in
+RetroArch's `info` directory beside the core in `cores`, and declares
+`supports_no_game = "true"`, which lets RetroArch start the core without
+content.
+
+`libretro/libretro.h` is the libretro API header, copied unchanged from
+RetroArch; its source and licence are in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## What it will be
 
