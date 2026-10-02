@@ -300,7 +300,8 @@ This runs `retroarch.testframe`. It starts RetroArch with the
 configuration `build/ci/retroarch/test.cfg`, generated from
 `tests/retroarch/test.cfg.in`, so your own RetroArch settings are never read.
 That configuration points every directory and file RetroArch uses under
-`build/ci/retroarch` and turns off content history. RetroArch runs the core
+`build/ci/retroarch`, turns off content history, and stops the macOS app
+unpacking its bundled assets into your RetroArch directory. RetroArch runs the core
 for 5 frames and writes a screenshot of the core's frame. `sips` converts it
 to BMP, and `compare_frame` requires it to equal the runner's frame 5 at
 exactly 256x240, pixel for pixel. The test also lists RetroArch's directory
