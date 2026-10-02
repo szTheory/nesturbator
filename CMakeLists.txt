@@ -35,6 +35,17 @@ set_target_properties(nesturbator PROPERTIES
   SOVERSION 1) # D-07: SOVERSION equals NESTURBATOR_ABI_VERSION
 nesturbator_warnings(nesturbator)
 
+# D-15: the native-to-XRGB8888 conversion the runner and the libretro adapter
+# share. Not part of the core and not installed. Hidden visibility keeps its
+# symbol out of the libretro module's exports; PIC lets it link into that
+# module.
+add_library(nesturbator_host STATIC host/convert.c)
+target_include_directories(nesturbator_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/host)
+set_target_properties(nesturbator_host PROPERTIES
+  C_VISIBILITY_PRESET hidden
+  POSITION_INDEPENDENT_CODE ON)
+nesturbator_warnings(nesturbator_host)
+
 enable_testing()
 add_subdirectory(runner)
 add_subdirectory(tools/palgen)

@@ -29,6 +29,9 @@ period, the test card's edge pixels, and that two instances run apart.
 table's invariants: `$20` and `$30` are white, `$xE` and `$xF` are black under
 every emphasis, an emphasis bit raises no colour channel but its own, and
 brightness never falls down a column.
+`host.convert` checks the colour conversion the runner and the libretro
+adapter share (`host/convert.c`): each native pixel's low 9 bits pick the
+table entry, and the input and output row pitches are honoured.
 `header.c` and `header.cxx` compile the public header alone as C17 and as
 C++ with warnings as errors and check its struct layout. `runner.sha256`
 checks the runner's SHA-256 against the FIPS 180-4 example digests, and

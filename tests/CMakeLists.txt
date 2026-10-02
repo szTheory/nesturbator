@@ -67,6 +67,13 @@ nesturbator_core_test(core.frame core/test_frame.c)
 # D-14: nesturbator_get_palette's copy rules and the palette invariants.
 nesturbator_core_test(core.palette core/test_palette.c)
 
+# D-15: the shared host conversion indexes the palette by the low 9 bits and
+# honours both pitches.
+add_executable(host.convert host/test_convert.c)
+target_link_libraries(host.convert PRIVATE nesturbator_host)
+nesturbator_warnings(host.convert)
+add_test(NAME host.convert COMMAND host.convert)
+
 # D-11: the public header alone, as C17 and as C++, warnings as errors in
 # every preset. Building is the test; running only shows it linked.
 add_executable(header.c header/header_c.c)
