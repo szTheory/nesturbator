@@ -2,51 +2,20 @@
 phase: 02-the-cpu-matches-the-public-vectors
 reviewed: 2026-10-03T00:00:00Z
 depth: standard
-files_reviewed: 40
+files_reviewed: 8
 files_reviewed_list:
-  - .github/workflows/ci.yml
   - .github/workflows/nightly.yml
-  - CMakeLists.txt
-  - CMakePresets.json
-  - release-please-config.json
-  - .gitattributes
-  - PROVENANCE.md
   - README.md
-  - THIRD-PARTY-NOTICES.md
-  - include/nesturbator.h
-  - src/bus.c
-  - src/cpu.c
-  - src/instance.c
-  - src/internal.h
   - tests/CMakeLists.txt
+  - tests/cmake/fetch_guard.cmake
   - tests/cmake/fetch_vectors.cmake
-  - tests/cmake/manifest_sha256.cmake
-  - tests/cmake/pins_check.cmake
-  - tests/cmake/release_config.cmake
-  - tests/cmake/vecconv_negative.cmake
-  - tests/cmake/vectors_fixture.cmake
-  - tests/cmake/vectors_full_run.cmake
-  - tests/cmake/vectors_regen.cmake
   - tests/cmake/vectors_sample_match.cmake
-  - tests/core/test_api.c
-  - tests/core/test_profile.c
-  - tests/cpu/test_bus.c
-  - tests/cpu/test_cpu_unit.c
+  - tests/cmake/vectors_stray_write.cmake
   - tests/cpu/test_vectors.c
-  - tests/cpu/vector_bus.c
-  - tests/cpu/vector_bus.h
-  - tests/embed/CMakeLists.txt
-  - tests/roms/manifest.txt
-  - tests/vectors/fixtures/README.md
-  - tests/vectors/n65v.c
-  - tests/vectors/n65v.h
-  - tests/vectors/test_n65v.c
-  - tools/vecconv/CMakeLists.txt
-  - tools/vecconv/vecconv.c
 findings:
-  critical: 1
-  warning: 3
-  info: 6
+  critical: 0
+  warning: 1
+  info: 9
   total: 10
 status: issues_found
 ---
@@ -55,200 +24,97 @@ status: issues_found
 
 **Reviewed:** 2026-10-03T00:00:00Z
 **Depth:** standard
-**Files Reviewed:** 40
+**Files Reviewed:** 8
 **Status:** issues_found
 
 ## Summary
 
-The review covered the 6502 core (`src/cpu.c`), the library bus, the N65V
-reader, the `vecconv` JSON tokenizer, the vector harnesses, the CMake test
-scripts and the CI/nightly workflows. It focused on findings the 2.56M upstream
-vectors cannot catch.
+This is the re-review after the fix pass for CR-01, WR-01, WR-02 and WR-03
+(commits 2a4ea01, bae80dc, 040ca2d, f553966, diff base 809e96f). The Info
+findings IN-01 to IN-06 from the first review are open in
+`02-REVIEW-DISPOSITION.md`. Each was checked again against the current source
+and all six still apply, so they are carried forward below with their IDs.
+Line numbers were updated where they moved. New findings are numbered from
+WR-04 and IN-07.
 
-**src/cpu.c is clean on the points asked about.** All 256 opcodes appear
-exactly once in the switch. Every shift is done on a promoted `int` or
-`uint32_t` and then narrowed, so no shift can overflow or go negative. No full
-expression has two bus calls with an unspecified order. The ALR, ANE, LXA and
-LAS lines (1249, 1265, 1268, 1273) mix one `fetch`/`read_at` with reads of
-`a`, `x` and `s`, and the bus functions never modify those registers. The core
-uses no floating point and no mutable static. `cpu.c` and `bus.c` call nothing
-outside the core, so the "C memory functions only" rule holds.
+**The fixes:**
 
-**The N65V reader is sound.** Every read checks `n > len - off`, and that
-check cannot underflow because `off <= len` is always true. The `ram_count`
-and `cycle_count` fields are `u8`, so the 255-entry arrays cannot overflow.
+- **CR-01 (fixed, correct).** The delete now targets only `DIR/65x02-src`, and
+  only when that directory holds the marker `.nesturbator-vectors`. A
+  non-marked `65x02-src` makes the script stop before any delete. A
+  `65x02-src` that is itself a symlink is removed as a link, not followed.
+  The in-source check runs again on `file(REAL_PATH)` results, so a symlink
+  or a different letter case no longer gets past it. The marker is what
+  actually stops the data loss: even if the in-source check is bypassed (for
+  example on a case-insensitive mount under Linux or WSL, where the
+  lower-casing does not run), the worst outcome is fetched files written into
+  the tree, never a deleted user directory. No path still refers to the old
+  `DIR/src`.
+  `vectors.fetch.guard` would fail against the old script, because case 1
+  expects a refusal message the old script never printed. Two side issues
+  remain: IN-07 and IN-08.
+- **WR-01 (fixed, incomplete).** The fix adds `src/internal.h` because
+  `cpu.c` includes it, but it leaves out what `internal.h` includes in turn
+  (`include/nesturbator.h`). It also leaves out the root `CMakeLists.txt`,
+  which defines `nesturbator_cpu` and its compile flags. See WR-04.
+- **WR-02 (fixed, correct).** `timeout-minutes: 16` (960 s) covers the ctest
+  `TIMEOUT 900` of the fetch plus twice the measured 23 s of everything else.
+  The workflow comment and the comment in `tests/CMakeLists.txt` tie the two
+  values together.
+- **WR-03 (fixed, correct).** `clear_ram(passed)` zeroes all 64 KiB after a
+  failed test. That also covers a failure caused by log overflow. On a
+  passing test the cycle compare limits writes to the logged cycles, so the
+  listed-address clear is enough there. I traced `cpu.vectors.stray-write`
+  through the old harness:
+  - Test 1 leaves `$10 = 1`.
+  - Test 2 then reads 1 and writes 2.
+  - The `ram[0x0010]` compare fails, so the run prints `2 of 2`, which does
+    not match the required `1 of 2`.
+  The test therefore detects a regression.
 
-**The `vecconv` tokenizer is sound.** `parse_uint` stops growing its value at
-65536, so it cannot overflow. `parse_string` writes the key's terminator
-inside bounds for every length; this was checked at 14, 15, 16 and 17 bytes.
-List lengths are checked before the entry is written.
+**Experiments run (scratch directory only, no source modified):**
 
-**The real defects are in the test and CI tooling:**
-- A user-configurable recursive delete in `fetch_vectors.cmake` whose
-  in-source guard can be bypassed (data loss, including the repository's own
-  `src/`).
-- A nightly path filter that misses most of the nightly's inputs.
-- A nightly timeout that leaves no room for network variance.
-- A harness cleanup that lets one failing test corrupt later ones.
-
-## Critical Issues
-
-### CR-01: The in-source guard in fetch_vectors.cmake is lexical, so `file(REMOVE_RECURSE)` can delete the repository's `src/` or any `<dir>/src`
-
-**File:** `tests/cmake/fetch_vectors.cmake:40-47, 136-137` (and `tests/CMakeLists.txt:350-351`)
-**Issue:** The script deletes `${DIR}/src` recursively whenever the 256 files
-do not verify. On a first run nothing verifies, so the delete always runs.
-`DIR` comes from the user-settable cache variable `NESTURBATOR_VECTORS_DIR`,
-and the README tells users to point it "somewhere that survives a clean
-build".
-
-The only protection is `cmake_path(IS_PREFIX ...)`. That command is purely
-lexical: it does not resolve symlinks, and it compares case-sensitively. Two
-consequences:
-
-- **The guard can be bypassed.** On macOS (APFS, case-insensitive by default)
-  or Windows, `-DNESTURBATOR_VECTORS_DIR=/Users/<u>/projects/Nesturbator`
-  (capital N) or `c:/...` instead of `C:/...` passes the guard. The script
-  then runs `file(REMOVE_RECURSE "<repo>/src")`, which deletes the core's
-  source tree. A symlinked path to the checkout does the same.
-- **Outside the tree there is no check at all.** A user who sets the variable
-  to `$HOME` or to an existing workspace loses `$HOME/src` or
-  `<workspace>/src` with no prompt.
-
-`WRITE_PINS` mode runs the same delete.
-
-**Fix:** Delete only a directory this script created and marked, and resolve
-paths before comparing them:
-```cmake
-file(REAL_PATH "${DIR}" dir_real)           # resolves symlinks
-file(REAL_PATH "${SOURCE_DIR}" src_real)
-if(WIN32 OR APPLE)                          # case-insensitive filesystems
-  string(TOLOWER "${dir_real}" dir_cmp)
-  string(TOLOWER "${src_real}" src_cmp)
-else()
-  set(dir_cmp "${dir_real}")
-  set(src_cmp "${src_real}")
-endif()
-# ... IS_PREFIX on dir_cmp/src_cmp as now ...
-set(src "${dir_real}/65x02-src")            # a name no user directory has
-set(marker "${src}/.nesturbator-vectors")
-if(EXISTS "${src}" AND NOT EXISTS "${marker}")
-  message(FATAL_ERROR "fetch_vectors: ${src} exists and was not created by this script; refusing to delete it")
-endif()
-file(REMOVE_RECURSE "${src}")
-file(MAKE_DIRECTORY "${src}")
-file(TOUCH "${marker}")
-```
-Update `vectors_full_files` in `tests/CMakeLists.txt` and the `DIR/src/...`
-path in `vectors_sample_match.cmake` to match.
+- `file(REAL_PATH "/USERS/<u>/PROJECTS/NESTURBATOR")` on macOS returns the
+  canonical-case path.
+- A copy of `fetch_vectors.cmake` with the `TOLOWER` block deleted still
+  passes `fetch_guard.cmake` (IN-08).
+- `DIR=<symlink-to-source>/sub/deeper` is refused, but `sub/deeper` is left
+  created inside the source tree (IN-07).
 
 ## Warnings
 
-### WR-01: The nightly's pull_request path filter misses most of the lane's inputs
+### WR-04: The nightly's path filter still misses inputs that change the CPU build the lane runs
 
-**File:** `.github/workflows/nightly.yml:14-18`
-**Issue:** The workflow runs on a pull request only when the PR touches
-`nightly.yml`, `tests/vectors/**` or `tests/cmake/fetch_vectors.cmake`. The
-`vectors-full` lane also depends on:
-- `tests/cmake/vectors_full_run.cmake`
-- `tests/cmake/vectors_sample_match.cmake`
-- `tools/vecconv/**`
-- `tests/cpu/**`
-- the `NESTURBATOR_VECTORS_FULL` block of `tests/CMakeLists.txt`
-- the `vectors-full` presets in `CMakePresets.json`
-- `src/cpu.c`, whose 10000-test behaviour only this lane exercises
+**File:** `.github/workflows/nightly.yml:13-30`, `README.md:231-236`
+**Issue:** The comment says the list is "every file the vectors-full lane
+builds or runs". The fix added `src/internal.h` because `src/cpu.c` includes
+it. By the same reasoning, two more files belong on the list:
 
-This branch already shows the gap. Commit 1d9c997 ("set policies in the
-vectors-full scripts for CMake 3.31") fixed a nightly failure (run
-37135715964) in scripts that this filter does not cover, so the PR that broke
-them could not have run the nightly. A regression in any of these files
-reaches `main` green and is reported only by the next scheduled run.
+- **`include/nesturbator.h`.** `src/internal.h:6` includes it, and
+  `struct nesturbator` (which holds the CPU state the harness drives) is built
+  on its types.
+- **The root `CMakeLists.txt`.** Lines 44-45 define the `nesturbator_cpu`
+  object library that `cpu.vectors` links (`tests/CMakeLists.txt:214`). Lines
+  11-13 and 33-42 set its C standard, warning set and `-mgeneral-regs-only`.
+  A change there changes the object that runs the 2.56M vectors.
 
-**Fix:** List the real inputs:
+A PR that changes either file can still merge green and break only the next
+scheduled run. That is the gap WR-01 was meant to close. The README repeats
+the same incomplete list.
+**Fix:** Add the two paths to both places:
 ```yaml
-  pull_request:
-    paths:
-      - .github/workflows/nightly.yml
-      - CMakePresets.json
-      - tests/CMakeLists.txt
-      - tests/vectors/**
-      - tests/cpu/**
-      - tests/cmake/fetch_vectors.cmake
-      - tests/cmake/vectors_full_run.cmake
-      - tests/cmake/vectors_sample_match.cmake
-      - tools/vecconv/**
-      - src/cpu.c
+      - CMakeLists.txt
+      - include/nesturbator.h
 ```
-
-### WR-02: The nightly's 3-minute job timeout leaves no room for network variance and overrides the fetch's own 900 s timeout
-
-**File:** `.github/workflows/nightly.yml:25`, `tests/CMakeLists.txt:362`, `tests/cmake/fetch_vectors.cmake:117-119`
-**Issue:** `timeout-minutes: 3` was set from one cold run of 88 s. That run
-covers, in one job:
-- the toolchain step,
-- a full `ci` configure and build (runner, libretro, C++ tests, packaging
-  targets),
-- a roughly 190 MB git fetch from GitHub,
-- 2.56M vectors.
-
-Doubling the measured time is a reasonable rule for CPU-bound jobs. The
-largest piece of this job is a network transfer, though, and its duration
-varies widely. The settings also contradict each other: the fetch test sets
-`TIMEOUT 900`, and git's low-speed abort allows 60 s of stall, but the job
-cancels at 180 s.
-
-A slow fetch therefore turns the run `cancelled`. The report job then opens
-or updates the `nightly` issue with "no test recorded". That is a false-red
-alarm, which teaches people to ignore the issue.
-
-**Fix:** Give the network part its own allowance, for example
-`timeout-minutes: 15`, or measured build/test time × 2 plus the fetch's
-ctest `TIMEOUT`. Alternatively, run the fetch as its own step with a separate
-`timeout-minutes`. Either way, make the ctest and job timeouts agree.
-
-### WR-03: The cpu.vectors cleanup misses stray writes, so one failing test can corrupt every later test in the run
-
-**File:** `tests/cpu/test_vectors.c:187-197, 236`
-**Issue:** `clear_ram()` zeroes only the addresses named in the current
-test's `initial` and `final` RAM lists. The comment says "The cycle compare
-shows that no other address was written", but that holds only when the test
-passed.
-
-When a CPU bug writes to an address the test does not list, two things
-happen:
-1. `run_test` reports that test as failed, which is correct.
-2. The stray byte stays in `machine.ram`.
-
-Any later test that reads that address without listing it then sees a
-non-zero value. The run reports inflated "N of 10000 vectors failed" counts
-and blames the wrong tests, which is exactly when a correct report is needed
-for debugging. The 10000-test nightly runs are the most exposed.
-
-**Fix:** Also clear every address the CPU actually wrote, from the log:
-```c
-static void clear_ram(void)
-{
-    for (uint32_t i = 0u; i < test.initial.ram_count; i++) {
-        machine.ram[test.initial.ram_addr[i]] = 0u;
-    }
-    for (uint32_t i = 0u; i < test.final.ram_count; i++) {
-        machine.ram[test.final.ram_addr[i]] = 0u;
-    }
-    for (uint32_t i = 0u; i < machine.log_count; i++) {
-        if (machine.log[i].kind == N65V_KIND_WRITE) {
-            machine.ram[machine.log[i].addr] = 0u;
-        }
-    }
-}
-```
-If the log overflowed, `memset(machine.ram, 0, sizeof machine.ram)` after the
-failure is the simple fallback.
+Also change the comment so it no longer says "every file the lane builds".
+The lane builds the whole `ci` tree. The list is the files that can change
+what the `vectors-full` tests run.
 
 ## Info
 
 ### IN-01: A new instance's CPU state is all zeros, and "only reset clears it" has no reset to point to
 
-**File:** `src/instance.c:103`, `src/internal.h:30-38`, `src/cpu.c:444-460, 488-491`
+**File:** `src/instance.c:103`, `src/internal.h:33-39`, `src/cpu.c:444-460, 488-491`
 **Issue:**
 - `nesturbator_create` zeroes the instance, so the CPU starts with
   `P = 0x00`, `S = 0x00` and `PC = 0x0000`. That is not a power-up state:
@@ -278,7 +144,7 @@ note at `frame.c:48` now.
 
 ### IN-03: Build helpers leak into an embedding project's namespace
 
-**File:** `CMakeLists.txt:24-48`
+**File:** `CMakeLists.txt:16-45`, `tests/embed/CMakeLists.txt:17`, `README.md:293-295`
 **Issue:** The following are created unconditionally, so a project that uses
 `add_subdirectory` or FetchContent gets them in its own namespace:
 - the target `nesturbator_cpu`,
@@ -288,25 +154,35 @@ note at `frame.c:48` now.
 
 The `nesturbator_` prefix makes clashes unlikely. However,
 `tests/embed/CMakeLists.txt:17` checks only for runner, libretro, palgen,
-vecconv and host targets, so the extra target is not documented or tested.
+vecconv and host targets. The README says an embedded build "adds only the
+library", which is not quite true. The extra target is neither documented
+nor tested.
 **Fix:** Add `nesturbator_cpu` to the embed test's expected targets, or
 mention it in the README's embedding paragraph.
 
 ### IN-04: Script-mode CMake files set policies inconsistently
 
-**File:** `tests/cmake/pins_check.cmake`, `manifest_sha256.cmake`,
-`release_config.cmake`, `vecconv_negative.cmake`, `vectors_fixture.cmake`
+**File:** `tests/cmake/action_pins.cmake`, `check_archives.cmake`,
+`check_install_line.cmake`, `check_ppm.cmake`, `expect_output.cmake`,
+`float_fixture.cmake`, `float_scan.cmake`, `format_check.cmake`,
+`global_symbols.cmake`, `manifest_sha256.cmake`, `palette_regen.cmake`,
+`pins_check.cmake`, `release_config.cmake`, `release_markers.cmake`,
+`vecconv_negative.cmake`, `vectors_fixture.cmake`, `vendored_sha256.cmake`,
+`version_consistency.cmake`
 **Issue:** Commit 1d9c997 added `cmake_minimum_required(VERSION 3.25)` to the
-vectors-full scripts after CMake 3.31 read `IN_LIST` with its pre-3.3 meaning.
-The scripts listed above, which run in `ci`, still have no policy settings.
-None of them uses `IN_LIST` today, so nothing breaks yet. The next edit that
-adds one will break only on runners whose CMake defaults differ.
+vectors-full scripts after CMake 3.31 read `IN_LIST` with its pre-3.3
+meaning. The two new scripts (`fetch_guard.cmake` and
+`vectors_stray_write.cmake`) also set it. The 18 `-P` scripts listed above
+still set no policy. Most of them run in `ci`. None of them uses `IN_LIST`
+today (only `fetch_vectors.cmake` and `undefined_symbols.cmake` do, and both
+set the minimum), so nothing breaks yet. The next edit that adds one will
+break only on runners whose CMake defaults differ.
 **Fix:** Add `cmake_minimum_required(VERSION 3.25)` at the top of every `-P`
 script.
 
 ### IN-05: vecconv accepts leading zeros, which JSON forbids
 
-**File:** `tools/vecconv/vecconv.c:206-232`
+**File:** `tools/vecconv/vecconv.c:205-232`
 **Issue:** `parse_uint` accepts `007` and `00`. The header comment says the
 tokenizer accepts only the vector schema's "unsigned decimal integers", but a
 corrupted or hand-edited input with leading zeros converts silently instead
@@ -319,7 +195,7 @@ if (c == '0' && p->pos + 1u < p->len && p->buf[p->pos + 1u] >= '0' && p->buf[p->
 
 ### IN-06: Helpers are duplicated across the vector tools
 
-**File:** `tests/cpu/test_vectors.c:31-95`, `tests/vectors/test_n65v.c:31-61`, `tools/vecconv/vecconv.c:106-124, 565-574`
+**File:** `tests/cpu/test_vectors.c:31-43, 64-95`, `tests/vectors/test_n65v.c:30-61`, `tools/vecconv/vecconv.c:104-124, 565-574`
 **Issue:**
 - `read_file` exists three times, in two different implementations.
 - `hex_digit` exists twice.
@@ -328,6 +204,64 @@ A fix to one copy, such as a size cap or error handling, will not reach the
 others.
 **Fix:** Move `read_file` and `hex_digit` into `tests/vectors/n65v.c` (or a
 small `vecio.c`) and share them, as the reader already is.
+
+### IN-07: The fetch creates DIR before its resolved-path check, so a refused DIR still leaves directories in the source tree
+
+**File:** `tests/cmake/fetch_vectors.cmake:52-60`
+**Issue:** The lexical check (line 52) passes for a path that reaches the
+source tree through a symlink or a different letter case. Line 53 then runs
+`file(MAKE_DIRECTORY "${dir_abs}")` before the resolved check at line 60
+refuses. I reproduced this with `DIR=<link-to-source>/sub/deeper`: the script
+fails as intended, but `sub/deeper` now exists inside the source tree. A
+refused run should not write to the tree it refuses to touch. Git does not
+track empty directories, so no hygiene check catches it.
+**Fix:** Resolve the deepest existing ancestor instead of creating DIR first,
+and create DIR only after both checks pass:
+```cmake
+set(probe "${dir_abs}")
+set(tail "")
+while(NOT EXISTS "${probe}")
+  cmake_path(GET probe FILENAME leaf)
+  set(tail "${leaf}/${tail}")
+  cmake_path(GET probe PARENT_PATH probe)
+endwhile()
+file(REAL_PATH "${probe}" dir_real)
+cmake_path(APPEND dir_real "${tail}" NORMALIZE OUTPUT_VARIABLE dir_real)
+# ... TOLOWER and check_in_source as now ...
+file(MAKE_DIRECTORY "${dir_abs}")
+```
+
+### IN-08: The lower-casing step is redundant, and `vectors.fetch.guard` cannot detect its removal
+
+**File:** `tests/cmake/fetch_vectors.cmake:37-41, 56-59`, `tests/cmake/fetch_guard.cmake:13-14, 63-66`, `README.md:193-197`
+**Issue:** `file(REAL_PATH)` already returns the on-disk case. On this macOS
+host, `REAL_PATH` of the upper-cased checkout path returns the
+canonical-case path. Windows' realpath (`GetFinalPathNameByHandle`) also
+returns the canonical case. So the `string(TOLOWER)` block never changes the
+result of the comparison. I deleted lines 56-59 in a scratch copy and
+`fetch_guard.cmake` still printed "every guard refused". The comments and
+the README say case 3 tests the lower-case comparison. It actually tests
+`REAL_PATH`, so a reader may later "simplify" the wrong half.
+**Fix:** Change the comments to say that `REAL_PATH` resolves symlinks and
+canonical case, and either:
+- drop the `TOLOWER` block, or
+- keep it and label it as a fallback for file systems whose realpath does
+  not canonicalise case.
+
+### IN-09: Fetched files in the old `DIR/src` layout are orphaned with no note for users
+
+**File:** `tests/cmake/fetch_vectors.cmake:62-68`, `README.md:246-254`
+**Issue:** Before this fix, the lane stored about 1 GB in
+`NESTURBATOR_VECTORS_DIR/src`. The script now uses `65x02-src` and, correctly,
+never deletes the unmarked `src`. Anyone who ran the lane locally, in the
+default `build/vectors-full/vectors-full` or in a persistent
+`NESTURBATOR_VECTORS_DIR`, keeps the old copy indefinitely and downloads a
+second one. Only `02-REVIEW-FIX.md` mentions this, and that file is not
+shipped. CI is not affected, because the nightly has no cache.
+**Fix:** Add a sentence to the README's vectors-full paragraph: "Files
+fetched before the move to `65x02-src` remain in `<dir>/src`; delete that
+directory by hand." Alternatively, have the script print a STATUS line when
+`${dir_abs}/src/nes6502/v1` exists.
 
 ---
 
