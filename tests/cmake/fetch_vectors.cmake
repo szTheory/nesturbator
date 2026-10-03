@@ -37,8 +37,9 @@ set(sub "nes6502/v1")
 # DIR must not land in the source tree, except under build/. The paths are
 # compared after symlinks are resolved, and in lower case on macOS and
 # Windows, whose file systems ignore case by default; cmake_path alone
-# compares the text only. DIR is created first because REAL_PATH resolves
-# only a path that exists.
+# compares the text only. REAL_PATH resolves only a path that exists, so the
+# deepest existing ancestor of DIR is resolved and the rest appended; DIR is
+# created only after both checks pass, so a refused DIR leaves nothing behind.
 function(check_in_source dir_path src_path)
   cmake_path(IS_PREFIX src_path "${dir_path}" NORMALIZE in_source)
   cmake_path(APPEND src_path "build" OUTPUT_VARIABLE build_path)
@@ -50,14 +51,28 @@ endfunction()
 cmake_path(ABSOLUTE_PATH DIR NORMALIZE OUTPUT_VARIABLE dir_abs)
 cmake_path(ABSOLUTE_PATH SOURCE_DIR NORMALIZE OUTPUT_VARIABLE src_abs)
 check_in_source("${dir_abs}" "${src_abs}")
-file(MAKE_DIRECTORY "${dir_abs}")
-file(REAL_PATH "${dir_abs}" dir_real)
+set(probe "${dir_abs}")
+set(rest "")
+while(NOT EXISTS "${probe}")
+  cmake_path(GET probe FILENAME leaf)
+  if(rest STREQUAL "")
+    set(rest "${leaf}")
+  else()
+    set(rest "${leaf}/${rest}")
+  endif()
+  cmake_path(GET probe PARENT_PATH probe)
+endwhile()
+file(REAL_PATH "${probe}" dir_real)
+if(NOT rest STREQUAL "")
+  cmake_path(APPEND dir_real "${rest}")
+endif()
 file(REAL_PATH "${src_abs}" src_real)
 if(CMAKE_HOST_WIN32 OR CMAKE_HOST_APPLE)
   string(TOLOWER "${dir_real}" dir_real)
   string(TOLOWER "${src_real}" src_real)
 endif()
 check_in_source("${dir_real}" "${src_real}")
+file(MAKE_DIRECTORY "${dir_abs}")
 
 # The script deletes only a directory it created: DIR/65x02-src, which holds
 # a marker file from the run that made it. Any other DIR/65x02-src fails.

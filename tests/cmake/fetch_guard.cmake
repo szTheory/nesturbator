@@ -10,6 +10,8 @@
 #    directory's file survives.
 # 2. DIR is a symbolic link to the source tree (not on Windows, where making
 #    one needs a privilege): the script refuses it as inside the source tree.
+#    So it does a not-yet-existing DIR below that link, and creates none of
+#    it in the source tree.
 # 3. DIR is the source tree spelled in upper case, on a host whose file system
 #    ignores case (the spelling exists): the script refuses it too.
 
@@ -57,7 +59,15 @@ endif()
 if(NOT CMAKE_HOST_WIN32)
   file(CREATE_LINK "${SOURCE_DIR}" "${WORK}/link" SYMBOLIC)
   expect_refusal("${WORK}/link" "is inside the source tree but not under build/")
+  # A DIR that does not exist yet below the link is refused before any of it
+  # is created, so the source tree gains no directory.
+  set(probe "${SOURCE_DIR}/fetch-guard-probe")
+  expect_refusal("${WORK}/link/fetch-guard-probe/deeper" "is inside the source tree but not under build/")
   file(REMOVE "${WORK}/link")
+  if(EXISTS "${probe}")
+    file(REMOVE_RECURSE "${probe}")
+    message(FATAL_ERROR "fetch_guard: a refused DIR created ${probe}")
+  endif()
 endif()
 
 string(TOUPPER "${SOURCE_DIR}" upper)
