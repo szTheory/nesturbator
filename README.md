@@ -257,7 +257,9 @@ To keep them somewhere that survives a clean build, set the cache variable
 a configure preset that inherits `vectors-full`. The files go in its
 `65x02-src` subdirectory, which the fetch replaces only when it holds the
 marker file `.nesturbator-vectors` that the fetch wrote; any other
-`65x02-src` there fails the fetch. The fetch refuses a directory inside the
+`65x02-src` there fails the fetch. Files fetched before the move to
+`65x02-src` remain in `<dir>/src`, about 1 GB that the fetch never deletes;
+delete that directory by hand. The fetch refuses a directory inside the
 source tree other than under `build/`, after resolving symbolic links. To
 move to a new upstream commit, regenerate `pins.txt` and the vector sample in one change. The
 command below prints the new total size, which replaces 1,081,529,097 in
