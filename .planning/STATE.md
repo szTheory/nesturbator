@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: The CPU matches the public vectors
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-10-03T15:20:27.568Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-10-03T15:31:23.974Z"
 last_activity: 2026-10-03
 last_activity_desc: Phase 02 execution started
-state_head: e458bde4fafed88d939c474eb3d5ede89769cbe5
+state_head: 0cca941ff75cab56c1c2aa66f549615421fbe19a
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 20
-  completed_plans: 14
+  completed_plans: 15
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-03)
 ## Current Position
 
 Phase: 02 (The CPU matches the public vectors) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-10-03 — Phase 02 execution started
 
@@ -70,6 +70,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 01 P12 | 10min | 2 tasks | 3 files |
 | Phase 02 P01 | 8 min | 3 tasks | 13 files |
 | Phase 02 P02 | 5 min | 2 tasks | 12 files |
+| Phase 02 P03 | 9 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,9 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-02: core.api's counting-allocator arena is 65536 bytes so the instance (now with 2048 bytes of RAM) fits
 - [Phase 02]: 02-02: cpu.vectors takes chunks 1 or 256 and tests-per-chunk 1..10000; stdout is only the '65x02/<xx>: <f> of <n> vectors failed' line
 - [Phase 02]: 02-02: vector fixture tests pass on vectors_fixture.cmake's exit status, with no pass regex
+- [Phase 02]: 02-03: the committed sample is 1,678,114 B (sha256 0c318cec...e109), not D-04's 1,677,602 B; it equals the research's independent encoder
+- [Phase 02]: 02-03: manifest.sha256 recomputes the SHA-256 of every manifest file; pins are 40-hex commits or release tags
+- [Phase 02]: 02-03: vecconv_negative.cmake builds malformed inputs from a committed fixture at test time; vecconv.* tests pass on script exit status, never a regex or WILL_FAIL
 
 ### Pending Todos
 
@@ -140,6 +144,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T15:20:27.528Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-10-03T15:31:23.951Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
