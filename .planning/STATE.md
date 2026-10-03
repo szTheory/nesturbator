@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: The CPU matches the public vectors
 status: executing
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-10-03T15:36:37.371Z"
+stopped_at: Completed 02-05-PLAN.md
+last_updated: "2026-10-03T15:41:12.266Z"
 last_activity: 2026-10-03
 last_activity_desc: Phase 02 execution started
-state_head: d5df0b1abb04518723d1c0d5b6f981a9d33c4094
+state_head: 5725d42e5315bcf909dfe50696e7068a0c22a389
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 20
-  completed_plans: 16
+  completed_plans: 17
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-03)
 ## Current Position
 
 Phase: 02 (The CPU matches the public vectors) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-10-03 — Phase 02 execution started
 
@@ -72,6 +72,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P02 | 5 min | 2 tasks | 12 files |
 | Phase 02 P03 | 9 min | 3 tasks | 14 files |
 | Phase 02 P04 | 3 min | 2 tasks | 3 files |
+| Phase 02 P05 | 3 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,8 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-03: vecconv_negative.cmake builds malformed inputs from a committed fixture at test time; vecconv.* tests pass on script exit status, never a regex or WILL_FAIL
 - [Phase 02]: 02-04: address helpers run as call arguments; no expression holds two bus calls of unspecified order (cpu.c header states the rule)
 - [Phase 02]: 02-04: ea_absi and ea_izy share index_base for the page-cross dummy read; stores pass always_dummy 1
+- [Phase 02]: rmw(nes, ea, op) takes the shift/rotate/inc/dec helper as a function pointer argument; no opcode table in data
+- [Phase 02]: P bits 4 and 5 are written only by pull_p (PLP, RTI); push_p (PHP, BRK) ORs 0x30 into the pushed byte
 
 ### Pending Todos
 
@@ -147,6 +150,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T15:36:37.340Z
-Stopped at: Completed 02-04-PLAN.md
+Last session: 2026-10-03T15:41:12.235Z
+Stopped at: Completed 02-05-PLAN.md
 Resume file: None
