@@ -214,5 +214,20 @@ add_test(NAME install.consumer
     --test-command consumer)
 set_tests_properties(install.consumer PROPERTIES FIXTURES_REQUIRED staged)
 
+# A C-only project embeds the source tree with add_subdirectory, gets only the
+# library, and runs one frame with it.
+add_test(NAME embed.subdirectory
+  COMMAND ${CMAKE_CTEST_COMMAND} --build-and-test
+    ${CMAKE_CURRENT_SOURCE_DIR}/embed ${PROJECT_BINARY_DIR}/embed
+    --build-generator ${CMAKE_GENERATOR}
+    ${consumer_config}
+    --build-options
+      -DNESTURBATOR_SOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}"
+      "-DCMAKE_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}"
+    --test-command embed)
+
 # FRAME-05: the RetroArch screenshot comparison and its comparator's tests.
 add_subdirectory(retroarch)

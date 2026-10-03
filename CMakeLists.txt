@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.25)
 
 # The single version source; release-please updates version.txt.
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" NESTURBATOR_VERSION LIMIT_COUNT 1)
-project(nesturbator VERSION ${NESTURBATOR_VERSION} LANGUAGES C CXX)
+# Only C is needed to build the library. A project that embeds this one with
+# add_subdirectory or FetchContent gets the library and its install rules;
+# the runner, the libretro core, palgen, the tests (which need C++) and the
+# release packaging are added only when this is the top-level project.
+project(nesturbator VERSION ${NESTURBATOR_VERSION} LANGUAGES C)
 
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -45,17 +49,6 @@ if(NESTURBATOR_NOFP)
   target_compile_options(nesturbator PRIVATE -mgeneral-regs-only)
 endif()
 
-# D-15: the native-to-XRGB8888 conversion the runner and the libretro adapter
-# share. Not part of the core and not installed. Hidden visibility keeps its
-# symbol out of the libretro module's exports; PIC lets it link into that
-# module.
-add_library(nesturbator_host STATIC host/convert.c)
-target_include_directories(nesturbator_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/host)
-set_target_properties(nesturbator_host PROPERTIES
-  C_VISIBILITY_PRESET hidden
-  POSITION_INDEPENDENT_CODE ON)
-nesturbator_warnings(nesturbator_host)
-
 # Install components (ENGINEERING section 2): `library` is the static library,
 # the header, a relocatable CMake package and nesturbator.pc; `runner` and
 # `libretro` are installed from their directories. nesturbator_host, palgen
@@ -86,7 +79,26 @@ string(REGEX REPLACE "/$" "" NESTURBATOR_PC_PREFIX "${NESTURBATOR_PC_PREFIX}")
 configure_file(cmake/nesturbator.pc.in ${PROJECT_BINARY_DIR}/nesturbator.pc @ONLY)
 install(FILES ${PROJECT_BINARY_DIR}/nesturbator.pc
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig COMPONENT library)
-foreach(component library runner libretro)
+install(FILES LICENSE DESTINATION . COMPONENT library)
+
+if(NOT PROJECT_IS_TOP_LEVEL)
+  return()
+endif()
+
+enable_language(CXX)
+
+# D-15: the native-to-XRGB8888 conversion the runner and the libretro adapter
+# share. Not part of the core and not installed. Hidden visibility keeps its
+# symbol out of the libretro module's exports; PIC lets it link into that
+# module.
+add_library(nesturbator_host STATIC host/convert.c)
+target_include_directories(nesturbator_host PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/host)
+set_target_properties(nesturbator_host PROPERTIES
+  C_VISIBILITY_PRESET hidden
+  POSITION_INDEPENDENT_CODE ON)
+nesturbator_warnings(nesturbator_host)
+
+foreach(component runner libretro)
   install(FILES LICENSE DESTINATION . COMPONENT ${component})
 endforeach()
 # The libretro module is compiled against the vendored libretro.h.

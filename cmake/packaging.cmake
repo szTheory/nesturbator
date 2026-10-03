@@ -9,7 +9,11 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   set(NESTURBATOR_OS windows)
 else()
-  message(FATAL_ERROR "packaging: no archive name for CMAKE_SYSTEM_NAME '${CMAKE_SYSTEM_NAME}'")
+  # Not a release target: the archives are named after the system as CMake
+  # reports it, so the build still configures.
+  string(TOLOWER "${CMAKE_SYSTEM_NAME}" NESTURBATOR_OS)
+  message(WARNING "packaging: '${CMAKE_SYSTEM_NAME}' is not a release target; "
+    "archives are named '${NESTURBATOR_OS}'")
 endif()
 
 # The architecture the binaries are built for, not the build machine's.
@@ -27,7 +31,9 @@ if(nesturbator_arch_raw MATCHES "^(x86_64|AMD64|x64)$")
 elseif(nesturbator_arch_raw MATCHES "^(arm64|aarch64|ARM64)$")
   set(NESTURBATOR_ARCH arm64)
 else()
-  message(FATAL_ERROR "packaging: no archive name for architecture '${nesturbator_arch_raw}'")
+  string(TOLOWER "${nesturbator_arch_raw}" NESTURBATOR_ARCH)
+  message(WARNING "packaging: '${nesturbator_arch_raw}' is not a release architecture; "
+    "archives are named '${NESTURBATOR_ARCH}'")
 endif()
 
 set(CPACK_GENERATOR ZIP)

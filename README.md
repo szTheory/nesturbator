@@ -108,7 +108,10 @@ checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
 `install.stage` installs the library into `build/ci/stage`, and
 `install.consumer` builds `tests/consumer`, a separate project that includes
 only `<nesturbator.h>`, against that install with `find_package`, then runs
-one frame with it.
+one frame with it. `embed.subdirectory` builds `tests/embed`, a C-only
+project that adds the source tree with `add_subdirectory`; it requires that
+embedding enables no C++, adds no runner, libretro, `palgen` or host-helper
+target and writes no CPack configuration, then runs one frame.
 
 ## Continuous integration
 
@@ -151,6 +154,20 @@ target_link_libraries(app PRIVATE nesturbator::nesturbator)
 With pkg-config, set `PKG_CONFIG_PATH=<dir>/lib/pkgconfig` and use
 `pkg-config --cflags --libs nesturbator`. The components `runner` and
 `libretro` install `bin/nesturbator-run` and `cores/` with `info/`.
+
+The source tree can also be embedded in another CMake project, which needs
+only a C compiler:
+
+```cmake
+add_subdirectory(nesturbator)               # or FetchContent_MakeAvailable
+target_link_libraries(app PRIVATE nesturbator::nesturbator)
+```
+
+An embedded build adds only the library and its `library` install rules. The
+runner, the libretro core, `palgen`, the tests and the release packaging are
+built only when nesturbator is the top-level project. On a system or
+processor other than the six release targets, a top-level build still
+configures and names its archives after what CMake reports, with a warning.
 
 ## Downloads and archives
 
