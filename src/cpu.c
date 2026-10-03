@@ -423,7 +423,7 @@ static void branch(struct nesturbator *nes, int cond)
 static void pull_p(struct nesturbator *nes)
 {
     uint8_t v = pull(nes);
-    nes->cpu.p = (uint8_t)((v & (uint8_t)~FLAG_B) | FLAG_U);
+    nes->cpu.p = (uint8_t)((v & ~FLAG_B) | FLAG_U);
 }
 
 /* PHP and BRK push P with bits 4 and 5 set; P itself is unchanged (D-16). */
