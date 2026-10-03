@@ -10,6 +10,9 @@
 # offset. At the end the offset must equal the blob's size. The first
 # difference fails with the chunk and the blob offset.
 
+# Script mode starts with no policies set; pin them as the other scripts do.
+cmake_minimum_required(VERSION 3.25)
+
 foreach(var VECCONV DIR BLOB WORK)
   if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
     message(FATAL_ERROR "vectors_sample_match: ${var} is not set")

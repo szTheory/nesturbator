@@ -19,6 +19,10 @@
 # No command that reads blobs (size, log, diff) runs in the blobless tree: each
 # would fetch blobs one at a time.
 
+# Script mode starts with no policies set: CMake 3.x then reads IN_LIST with
+# its pre-3.3 meaning and fails (nightly run 37135715964, CMake 3.31).
+cmake_minimum_required(VERSION 3.25)
+
 foreach(var DIR SOURCE_DIR GIT)
   if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
     message(FATAL_ERROR "fetch_vectors: ${var} is not set")

@@ -11,6 +11,9 @@
 # expect_output.cmake. Both tools' output is printed, so a failing test shows
 # its failing-vector count.
 
+# Script mode starts with no policies set; pin them as the other scripts do.
+cmake_minimum_required(VERSION 3.25)
+
 foreach(var VECCONV VECTORS JSON OPCODE OUT)
   if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
     message(FATAL_ERROR "vectors_full_run: ${var} is not set")
