@@ -210,7 +210,9 @@ int main(int argc, char **argv)
         nesturbator_get_palette(inst, palette, 512u);
     }
 
-    for (uint32_t f = 1; f <= opt.frames && status == 0; f++) {
+    /* A 64-bit count, so the loop ends when --frames is 4294967295. */
+    for (uint64_t n = 1; n <= opt.frames && status == 0; n++) {
+        uint32_t f = (uint32_t)n;
         nesturbator_frame io;
         memset(&io, 0, sizeof io);
         io.size = (uint32_t)sizeof io;
