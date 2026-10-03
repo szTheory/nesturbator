@@ -27,13 +27,43 @@
 #define NESTURBATOR_INFO_SIZE_V1 ((uint32_t)sizeof(nesturbator_info))
 #define NESTURBATOR_FRAME_SIZE_V1 ((uint32_t)sizeof(nesturbator_frame))
 
+/* 6502 core state (D-10). P is kept exactly as loaded or pulled: flag
+   writes touch only their own bits, so bits 4 and 5 change only on a pull.
+   The interrupt fields are unused until the bus samples the lines. */
+struct nesturbator__cpu {
+    uint16_t pc;
+    uint8_t a, x, y, s, p;
+    uint8_t nmi_prev, nmi_pending, irq_line, poll_latch;
+    uint8_t halted_in_read; /* nonzero while the current read is stalled */
+    uint8_t jammed;         /* set by a JAM opcode; only reset clears it */
+};
+
+/* Bus-side state: 2048 bytes of internal RAM and the open-bus latch, the
+   last value driven on the data bus (D-12). */
+struct nesturbator__bus {
+    uint8_t ram[2048];
+    uint8_t open_bus;
+};
+
 struct nesturbator {
     nesturbator_allocator allocator; /* copy of the config's, defaults filled in */
     uint64_t frame_number;           /* frames run since create */
     uint64_t ticks;                  /* ticks run since create */
+    struct nesturbator__cpu cpu;     /* the 6502 */
+    struct nesturbator__bus bus;     /* RAM and the open-bus latch */
     uint32_t audio_rem;              /* sample fraction carried over, in units
                                         of 1/315000 sample per tick */
 };
+
+/* One CPU read cycle at addr: advances time by one CPU cycle and returns the
+   value on the data bus (src/bus.c in the library). */
+uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
+
+/* One CPU write cycle of value to addr (src/bus.c in the library). */
+void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+
+/* Runs one whole instruction, opcode fetch to last cycle (D-11). */
+void nesturbator__cpu_step(struct nesturbator *nes);
 
 /* Validates an input struct's size tag before any other field is read.
    's' points at the struct; 'first' is its first released size; 'ours' is

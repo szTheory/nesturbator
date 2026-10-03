@@ -113,7 +113,11 @@ checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
 `vecconv.a9` converts the first three upstream `a9` (LDA immediate) tests in
 `tests/vectors/fixtures` to the binary N65V form with `tools/vecconv` and
 reads them back through the shared reader, which must decode exactly what was
-written. `install.stage` installs the library into `build/ci/stage`, and
+written. It then runs them through the CPU with `cpu.vectors`, which links
+the CPU object the library ships against a test bus of flat RAM that logs
+every cycle, and requires each test's registers, RAM and every bus cycle
+(address, value, read or write) to match: `65x02/a9: 0 of 3 vectors failed`.
+`install.stage` installs the library into `build/ci/stage`, and
 `install.consumer` builds `tests/consumer`, a separate project that includes
 only `<nesturbator.h>`, against that install with `find_package`, then runs
 one frame with it. `embed.subdirectory` builds `tests/embed`, a C-only

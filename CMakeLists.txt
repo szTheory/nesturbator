@@ -21,33 +21,49 @@ function(nesturbator_warnings target)
     $<$<C_COMPILER_ID:MSVC>:/W4>)
 endfunction()
 
+# Preset nofp: the core gets no floating-point or vector registers, and the
+# abi tests check it (ENGINEERING section 1).
+option(NESTURBATOR_NOFP "Build the core with -mgeneral-regs-only and run the abi tests" OFF)
+if(NESTURBATOR_NOFP AND MSVC)
+  message(FATAL_ERROR "NESTURBATOR_NOFP needs GCC or Clang (-mgeneral-regs-only)")
+endif()
+
+# The flags every core target gets (D-09): the public header, hidden
+# visibility, position-independent code, the warnings and, under nofp,
+# -mgeneral-regs-only.
+function(nesturbator_core_flags target)
+  target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  set_target_properties(${target} PROPERTIES
+    C_VISIBILITY_PRESET hidden
+    POSITION_INDEPENDENT_CODE ON)
+  nesturbator_warnings(${target})
+  if(NESTURBATOR_NOFP)
+    target_compile_options(${target} PRIVATE -mgeneral-regs-only)
+  endif()
+endfunction()
+
+# The CPU as an object library: the library folds its object in, and the
+# vector test links the same object against a test bus (D-08, D-09).
+add_library(nesturbator_cpu OBJECT src/cpu.c)
+nesturbator_core_flags(nesturbator_cpu)
+
 # The core library. It links nothing: only the C memory functions are used.
 add_library(nesturbator STATIC
   src/instance.c
   src/frame.c
+  src/bus.c
   src/palette.c
   src/palette_ntsc.c
   src/testcard.c)
+target_sources(nesturbator PRIVATE $<TARGET_OBJECTS:nesturbator_cpu>)
 add_library(nesturbator::nesturbator ALIAS nesturbator)
 target_include_directories(nesturbator PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+nesturbator_core_flags(nesturbator)
 set_target_properties(nesturbator PROPERTIES
-  C_VISIBILITY_PRESET hidden
-  POSITION_INDEPENDENT_CODE ON
   VERSION ${PROJECT_VERSION}
   SOVERSION 1) # D-07: SOVERSION equals NESTURBATOR_ABI_VERSION
-nesturbator_warnings(nesturbator)
-
-# Preset nofp: the core gets no floating-point or vector registers, and the
-# abi tests check it (ENGINEERING section 1).
-option(NESTURBATOR_NOFP "Build the core with -mgeneral-regs-only and run the abi tests" OFF)
-if(NESTURBATOR_NOFP)
-  if(MSVC)
-    message(FATAL_ERROR "NESTURBATOR_NOFP needs GCC or Clang (-mgeneral-regs-only)")
-  endif()
-  target_compile_options(nesturbator PRIVATE -mgeneral-regs-only)
-endif()
 
 # Install components (ENGINEERING section 2): `library` is the static library,
 # the header, a relocatable CMake package and nesturbator.pc; `runner` and

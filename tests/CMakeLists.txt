@@ -204,15 +204,36 @@ add_test(NAME palette.regen
     -DREF=${PROJECT_SOURCE_DIR}/src/palette_ntsc.c
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/palette_regen.cmake)
 
+# D-08, D-09, D-11: the vector program runs N65V tests through the shipped
+# CPU object against the test bus in tests/cpu/vector_bus.c. It does not
+# link the library, which defines the same two bus functions.
+add_executable(cpu.vectors
+  cpu/test_vectors.c
+  cpu/vector_bus.c
+  vectors/n65v.c
+  $<TARGET_OBJECTS:nesturbator_cpu>)
+target_include_directories(cpu.vectors PRIVATE
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_SOURCE_DIR}/tests/vectors
+  ${PROJECT_SOURCE_DIR}/tests/cpu)
+target_compile_definitions(cpu.vectors PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(cpu.vectors)
+
 # CPU-01, D-01 and D-03: vecconv converts the first three upstream a9 tests
 # (tests/vectors/fixtures) to N65V and reads them back through the shared
-# reader.
+# reader; cpu.vectors then runs them through the CPU. The script's exit
+# status decides the test, so it has no pass or fail regex.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/vectors)
 add_test(NAME vecconv.a9
-  COMMAND vecconv ${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/a9-first3.json
-    ${CMAKE_CURRENT_BINARY_DIR}/vectors/a9-first3.n65v a9 --first 3)
-set_tests_properties(vecconv.a9 PROPERTIES
-  PASS_REGULAR_EXPRESSION "vecconv: a9: 3 tests written and re-read")
+  COMMAND ${CMAKE_COMMAND}
+    -DVECCONV=$<TARGET_FILE:vecconv>
+    -DVECTORS=$<TARGET_FILE:cpu.vectors>
+    -DJSON=${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/a9-first3.json
+    -DOPCODE=a9
+    -DFIRST=3
+    -DOUT=${CMAKE_CURRENT_BINARY_DIR}/vectors/a9-first3.n65v
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_fixture.cmake)
 
 # FRAME-02: install the library component into <build>/stage, then build
 # tests/consumer against it with find_package and run it. The consumer gets
