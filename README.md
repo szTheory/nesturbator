@@ -436,6 +436,28 @@ This repository contains no commercial ROM or BIOS data and never will. You
 supply your own legally obtained game images. See
 [ASSET_POLICY.md](ASSET_POLICY.md).
 
+The CPU test data under `tests/vectors/` is MIT data from
+[SingleStepTests 65x02](https://github.com/SingleStepTests/65x02): the sample
+`65x02-sample.n65v` and three small JSON fixtures. Each is listed in
+`tests/roms/manifest.txt` with its source, pin, licence and SHA-256, and its
+licence notice is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+### Regenerating the vector sample
+
+The sample holds the first 100 tests of each of the 256 upstream files. To
+rebuild it at an upstream commit, from a configured `ci` build:
+
+```sh
+cmake -DCOMMIT=<40-digit upstream commit> -DVECCONV=build/ci/tools/vecconv/vecconv \
+      -DWORK=build/ci/vectors-regen -DOUT=tests/vectors/65x02-sample.n65v \
+      -P tests/cmake/vectors_regen.cmake
+```
+
+It downloads the first 64 KiB of each file (about 16 MB), converts 100 tests
+from each with `vecconv`, joins the chunks in opcode order, and prints the
+file's size, its SHA-256 and the line for `tests/roms/manifest.txt`. Moving to
+a new upstream commit is a change of its own, with the new manifest line.
+
 ## How the code is written
 
 From hardware documentation and public test ROMs, with AI coding assistants,
