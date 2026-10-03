@@ -251,6 +251,49 @@ target_compile_definitions(vectors.n65v PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SEC
 nesturbator_warnings(vectors.n65v)
 add_test(NAME vectors.n65v
   COMMAND vectors.n65v ${PROJECT_SOURCE_DIR}/tests/vectors/65x02-sample.n65v)
+# D-05, D-06: with no argument the same program feeds the reader crafted
+# buffers (every truncation, bad magic, version 2, kind 2, opcode mismatch,
+# short count, a repeated index, a trailing byte), each of which must fail
+# with the byte offset at fault.
+add_test(NAME vectors.n65v.crafted COMMAND vectors.n65v)
+
+# D-02, D-06: vecconv converts the compact layout of 02.json, and a prefix
+# that ends inside the 4th test of a9.json converts with --first 3. JAM runs
+# through the CPU in plan 06, so these convert only (RUN=OFF). The script's
+# exit status decides each test.
+add_test(NAME vecconv.02
+  COMMAND ${CMAKE_COMMAND}
+    -DVECCONV=$<TARGET_FILE:vecconv>
+    -DJSON=${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/02-first3.json
+    -DOPCODE=02 -DFIRST=3 -DRUN=OFF
+    -DOUT=${CMAKE_CURRENT_BINARY_DIR}/vectors/02-first3.n65v
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_fixture.cmake)
+add_test(NAME vecconv.a9_tail
+  COMMAND ${CMAKE_COMMAND}
+    -DVECCONV=$<TARGET_FILE:vecconv>
+    -DJSON=${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/a9-tail.json
+    -DOPCODE=a9 -DFIRST=3 -DRUN=OFF
+    -DOUT=${CMAKE_CURRENT_BINARY_DIR}/vectors/a9-tail.n65v
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_fixture.cmake)
+
+# D-02: each malformed input makes vecconv exit 1 with a byte offset.
+# vecconv_negative.cmake builds the case from a fixture and passes only on
+# that result, so no test here sets a regex property or WILL_FAIL.
+function(nesturbator_vecconv_reject name fixture case first)
+  add_test(NAME ${name}
+    COMMAND ${CMAKE_COMMAND}
+      -DVECCONV=$<TARGET_FILE:vecconv>
+      -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/${fixture}
+      -DCASE=${case} -DFIRST=${first}
+      -DWORK=${CMAKE_CURRENT_BINARY_DIR}/vectors/${name}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vecconv_negative.cmake)
+endfunction()
+foreach(case float sign exponent addr_range byte_range kind unknown_key missing_key
+    count empty_file empty_array closed_short truncated)
+  nesturbator_vecconv_reject(vecconv.reject.${case} a9-first3.json ${case} 3)
+endforeach()
+# The a9-tail prefix holds 3 whole tests; asking for 4 must fail.
+nesturbator_vecconv_reject(vecconv.a9_tail.cut a9-tail.json as_is 4)
 
 # Every file in tests/roms/manifest.txt has five fields and the SHA-256 its
 # line gives. The self-test lists a file with a wrong hash and passes only if

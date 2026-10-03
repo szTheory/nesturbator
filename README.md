@@ -120,6 +120,19 @@ every cycle, and requires each test's registers, RAM and every bus cycle
 `vectors.n65v` reads the committed sample `tests/vectors/65x02-sample.n65v`
 through the same reader and requires 256 chunks of 100 tests, chunk k holding
 opcode k, indexes 0 to 99 in each chunk, and nothing after the last chunk.
+`vectors.n65v.crafted` encodes a valid two-test buffer byte by byte and
+requires the reader to reject, naming the byte offset at fault, every
+truncation of it, bad magic, version 2, a cycle kind of 2, the wrong opcode, a
+header count that disagrees with the tests present, a repeated index, and one
+trailing byte. `vecconv.02` converts the first three tests of `02.json`,
+written in the compact layout, and `vecconv.a9_tail` converts three tests from
+a prefix of `a9.json` cut inside the fourth; `vecconv.a9_tail.cut` asks the
+same prefix for four and requires vecconv to fail. The thirteen
+`vecconv.reject.*` tests each edit the `a9` fixture into one malformed input
+(a fraction, a sign, an exponent, an address of 65536, a byte of 256, an
+unknown cycle kind, an unknown or missing key, 256 cycles, an empty file, an
+empty array or a short closed array without `--first`, a cut inside the third
+test) and require vecconv to exit 1 with the byte offset.
 `manifest.sha256` checks every line of `tests/roms/manifest.txt`: five
 tab-separated fields, a pin that is a 40-digit commit or a release tag, a
 licence, and a file whose SHA-256 equals the line's.

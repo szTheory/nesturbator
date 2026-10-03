@@ -17,3 +17,5 @@
 # Lines starting with # are comments.
 tests/vectors/fixtures/a9-first3.json	https://github.com/SingleStepTests/65x02	2f6980a2d95757486c7bee24355c360e40e2a224	MIT	3195bc1b6d17fb002f8d0a4f8f5b99077d42d62f79e35161d9de1f7d4bf1d83b
 tests/vectors/65x02-sample.n65v	https://github.com/SingleStepTests/65x02	2f6980a2d95757486c7bee24355c360e40e2a224	MIT	0c318cec0bd4031396964ca9a0de0daf25c2651c28f34a0d0616a9294430e109
+tests/vectors/fixtures/02-first3.json	https://github.com/SingleStepTests/65x02	2f6980a2d95757486c7bee24355c360e40e2a224	MIT	2738dad0c19bc0e4dc4d3a131a7cd3768a1493df9ec665b0e738fa397fbbb58f
+tests/vectors/fixtures/a9-tail.json	https://github.com/SingleStepTests/65x02	2f6980a2d95757486c7bee24355c360e40e2a224	MIT	6d60b42a8fca08c75e7e3ea364085be67ea786c9d15e279e6fe9e4790ab42ddc
