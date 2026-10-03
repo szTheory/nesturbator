@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: The CPU matches the public vectors
 status: executing
-stopped_at: Completed 02-05-PLAN.md
-last_updated: "2026-10-03T15:41:12.266Z"
+stopped_at: Completed 02-06-PLAN.md
+last_updated: "2026-10-03T15:49:44.230Z"
 last_activity: 2026-10-03
 last_activity_desc: Phase 02 execution started
-state_head: 5725d42e5315bcf909dfe50696e7068a0c22a389
+state_head: 9476c2d08b4104a441d999c4c942301697803bc3
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 20
-  completed_plans: 17
+  completed_plans: 18
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-03)
 ## Current Position
 
 Phase: 02 (The CPU matches the public vectors) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-10-03 — Phase 02 execution started
 
@@ -73,6 +73,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P03 | 9 min | 3 tasks | 14 files |
 | Phase 02 P04 | 3 min | 2 tasks | 3 files |
 | Phase 02 P05 | 3 min | 2 tasks | 3 files |
+| Phase 02 P06 | 6 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,9 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-04: ea_absi and ea_izy share index_base for the page-cross dummy read; stores pass always_dummy 1
 - [Phase 02]: rmw(nes, ea, op) takes the shift/rotate/inc/dec helper as a function pointer argument; no opcode table in data
 - [Phase 02]: P bits 4 and 5 are written only by pull_p (PLP, RTI); push_p (PHP, BRK) ORs 0x30 into the pushed byte
+- [Phase 02]: 02-06: all 256 opcodes are explicit cases with no default:; JAM in a jam helper, SHY/SHX/SHA/TAS through one store_sh
+- [Phase 02]: 02-06: struct nesturbator__profile (ane_magic, lxa_magic) is set to 0xEE by nesturbator_create; the vector harness sets it itself
+- [Phase 02]: 02-06: cpu.vectors.00-ff come from a nested foreach with no skip list; the per-group opcode lists are gone
 
 ### Pending Todos
 
@@ -150,6 +154,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T15:41:12.235Z
-Stopped at: Completed 02-05-PLAN.md
+Last session: 2026-10-03T15:49:44.207Z
+Stopped at: Completed 02-06-PLAN.md
 Resume file: None
