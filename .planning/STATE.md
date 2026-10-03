@@ -3,11 +3,11 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: A test frame in RetroArch
 status: verifying
-stopped_at: PR #1 merged; release PR #2 blocked by README install-line version bug
-last_updated: "2026-10-03T02:17:36.321Z"
+stopped_at: "PR 3 (install-line fix) open; after it merges, release PR 2 refreshes and publishes v0.1.0"
+last_updated: "2026-10-03T11:08:51.825Z"
 last_activity: 2026-10-02
 last_activity_desc: Quick task 261002-uu0 fixed WR-03 (caller memset rule)
-state_head: 922a56f4f19d365113e876fed7585c0ba7620ad9
+state_head: 36a971f5f76c91fb57e5c9fa2eb9f9fd848a7412
 progress:
   total_phases: 4
   completed_phases: 0
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-10-02)
 
 Phase: 01 (A test frame in RetroArch) — EXECUTING
 Plan: 12 of 12
-Status: PR #1 merged (5533aeb); release PR #2 (0.1.0) fails CI: release-please bumped only the tag, not the file name, in the README install line
-Last activity: 2026-10-02 - Completed quick task 261002-uu0: fix WR-03 with the caller memset rule
+Status: PR #1 merged (5533aeb); PR #3 fixes the README install-line bump that failed release PR #2 (0.1.0)
+Last activity: 2026-10-03 - Completed quick task 261003-9tb: README install block bumps every version; PR #3
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -113,7 +113,7 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-- Release PR #2 (chore(main): release 0.1.0) fails CI on macOS arm64: release-please's generic updater rewrites only the first version on a marked line, so the README install URL became v0.1.0/nesturbator-0.0.0-libretro-macos-arm64.zip. Fix on main before v0.1.0 can publish; do not merge PR #2 by hand.
+- Release PR #2 (chore(main): release 0.1.0) failed CI because release-please rewrote only the first version on the README install line. Fix is PR #3 (fix/install-line-version); once it merges, release-please refreshes PR #2, which auto-merges and publishes v0.1.0. Do not merge PR #2 by hand.
 - WR-08 deferred: the release-as pin is removed by the Phase 2 todo above; an automated check waits until after v0.1.0 exists.
 
 ### Quick Tasks Completed
@@ -121,6 +121,7 @@ Recent decisions affecting current work:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 261002-uu0 | Fix WR-03: callers zero size-tagged structs with memset; big-frame test; disposition marks WR-03 fixed | 2026-10-03 | 922a56f | [261002-uu0-fix-wr-03-from-planning-phases-01-a-test](./quick/261002-uu0-fix-wr-03-from-planning-phases-01-a-test/) |
+| 261003-9tb | Fix README install block so release-please bumps every version: NESTURBATOR_VERSION line, check_install_line update, one-version-per-line ctest; PR #3 | 2026-10-03 | 36a971f | [261003-9tb-fix-the-readme-install-block-so-release-](./quick/261003-9tb-fix-the-readme-install-block-so-release-/) |
 
 ## Deferred Items
 
@@ -132,6 +133,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T02:40:00Z
-Stopped at: release PR #2 CI fails on check_install_line (README URL became v0.1.0/nesturbator-0.0.0-...). Next: /gsd-quick on branch fix/install-line-version to fix it, PR it to main; release-please then refreshes PR #2, which auto-merges and publishes v0.1.0; then /gsd-verify-work 01
+Last session: 2026-10-03T11:15:00Z
+Stopped at: quick task 261003-9tb done, PR #3 open. Next: owner merges PR #3 once green; release-please refreshes PR #2, which auto-merges and publishes v0.1.0; then /gsd-verify-work 01
 Resume file: None
