@@ -157,6 +157,9 @@ void nesturbator_get_version(nesturbator_version *out);
  * NESTURBATOR_ABI_VERSION gives NESTURBATOR_ERR_ABI; a partly NULL allocator
  * gives NESTURBATOR_ERR_ARGUMENT; a failed allocation gives
  * NESTURBATOR_ERR_NO_MEMORY. *out is written only on NESTURBATOR_OK.
+ * An instance holds a 2A03 CPU, a 6502 without decimal mode, that matches
+ * the public 65x02 test vectors on every opcode and bus cycle. The CPU does
+ * not yet run during frames.
  * A new instance has no cartridge: each frame is a fixed test pattern and
  * silence. */
 nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator **out);

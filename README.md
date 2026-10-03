@@ -3,11 +3,12 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: Phase 1, a test frame.** The library, the runner and the libretro
-core build and run.
-With no cartridge loaded, the core outputs a fixed test card and silence. CPU,
-PPU, APU and ROM loading come in later phases. The plan lives in
-[`.planning/`](.planning/).
+**Status: Phase 2, the CPU.** The library, the runner and the libretro core
+build and run. The 6502 core matches the public 65x02 test vectors on every
+opcode and every bus cycle, and does not yet drive frames.
+With no cartridge loaded, the core outputs a fixed test card and silence. The
+PPU, APU, ROM loading and the CPU running games come in later phases. The plan
+lives in [`.planning/`](.planning/).
 
 ## Building
 
@@ -134,6 +135,14 @@ RTI keep it, and ADC and SBC stay binary. A JAM opcode makes eleven reads and
 no write, and leaves the CPU jammed. ANE and LXA use a constant of `0xEE`,
 the NTSC RP2A03G value, which the instance holds as part of its machine
 profile.
+`cpu.unit` covers what the sample cannot show, on the same CPU object and
+test bus. A JSR at `0x017B` with S at `0x7D` pushes PCL over its own
+high-address operand and must jump to the pushed byte: exactly six cycles,
+ending at `0x0155` with S at `0x7B` (SingleStepTests 65x02 issue 18). After a
+JAM opcode, each later step must be one read of `0xFFFF` with no register,
+flag or PC change, and a JAM at `0xFFFF` must leave PC at `0x0000`.
+`core.profile` creates an instance and requires both profile constants to be
+`0xEE`.
 `vectors.n65v.crafted` encodes a valid two-test buffer byte by byte and
 requires the reader to reject, naming the byte offset at fault, every
 truncation of it, bad magic, version 2, a cycle kind of 2, the wrong opcode, a
