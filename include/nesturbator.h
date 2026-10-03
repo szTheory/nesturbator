@@ -78,9 +78,11 @@ typedef struct nesturbator_version {
 
 /* Memory hooks. Either all three members are NULL, which means the C
    library's malloc and free, or alloc and free are both set (user may be
-   NULL). Any other combination is NESTURBATOR_ERR_ARGUMENT. free receives the
-   size that was passed to alloc, so arena allocators work. The library
-   allocates only in nesturbator_create, never while running. */
+   NULL). Any other combination is NESTURBATOR_ERR_ARGUMENT. alloc returns
+   memory aligned as malloc's is: suitable for any object type, at least the
+   alignment of max_align_t. free receives the size that was passed to alloc,
+   so arena allocators work. The library allocates only in nesturbator_create,
+   never while running. */
 typedef struct nesturbator_allocator {
     void *(*alloc)(void *user, size_t size);
     void (*free)(void *user, void *ptr, size_t size);
