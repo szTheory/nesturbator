@@ -5,19 +5,19 @@ titles: json
 findings:
   - id: CR-01
     severity: critical
-    disposition: open
+    disposition: fixed
     title: "The in-source guard in fetch_vectors.cmake is lexical, so `file(REMOVE_RECURSE)` can delete the repository's `src/` or any `<dir>/src`"
   - id: WR-01
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "The nightly's pull_request path filter misses most of the lane's inputs"
   - id: WR-02
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "The nightly's 3-minute job timeout leaves no room for network variance and overrides the fetch's own 900 s timeout"
   - id: WR-03
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "The cpu.vectors cleanup misses stray writes, so one failing test can corrupt every later test in the run"
   - id: IN-01
     severity: info
@@ -43,19 +43,19 @@ findings:
     severity: info
     disposition: open
     title: "Helpers are duplicated across the vector tools"
-open: 10
+open: 6
 total: 10
-recorded: 2026-10-03T16:28:05.093Z
+recorded: 2026-10-03T16:47:23.351Z
 ---
 
 # Phase 02: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| CR-01 | critical | open | - |
-| WR-01 | warning | open | - |
-| WR-02 | warning | open | - |
-| WR-03 | warning | open | - |
+| CR-01 | critical | fixed | 02-REVIEW-FIX.md |
+| WR-01 | warning | fixed | 02-REVIEW-FIX.md |
+| WR-02 | warning | fixed | 02-REVIEW-FIX.md |
+| WR-03 | warning | fixed | 02-REVIEW-FIX.md |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |
