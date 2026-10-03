@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `cmake --workflow --preset asan`, `--preset nofp` and `--preset hygiene` pass: the tests are clean under the address and undefined-behaviour sanitizers, the core has no floating point and no undefined symbols beyond the C memory functions, and the tree holds no personal data and no unlisted ROM.
   5. Every pull request builds the library, runner and libretro archives for each platform, and a behaviour-changing merge to `main` publishes them with a `SHA256SUMS` file as a GitHub release with no manual step.
 
-**Plans**: 11/12 plans executed
+**Plans**: 12/12 plans executed
 
 Plans:
 **Wave 1**
@@ -68,7 +68,7 @@ Plans:
 - [x] 01-11-PLAN.md — Owner checkpoint (RetroArch install, repository, App), RetroArch test passing on the Mac, README install line checked against the archive
 
 **Wave 12** *(blocked on Wave 11 completion)*
-- [ ] 01-12-PLAN.md — Push, repository settings, draft pull request, CI green on six platforms
+- [x] 01-12-PLAN.md — Push, repository settings, draft pull request, CI green on six platforms
 
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/ENGINEERING.md`, `.planning/preparation/LIBRETRO-AND-RUNNER.md`, `.planning/preparation/ARCHITECTURE.md`
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. A test frame in RetroArch | 11/12 | In Progress|  |
+| 1. A test frame in RetroArch | 12/12 | In Progress|  |
 | 2. The CPU matches the public vectors | 0/TBD | Not started | - |
 | 3. A real game in RetroArch | 0/TBD | Not started | - |
 | 4. Sound | 0/TBD | Not started | - |

@@ -2,17 +2,17 @@
 gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: A test frame in RetroArch
-status: executing
-stopped_at: Completed 01-11-PLAN.md
-last_updated: "2026-10-03T00:36:06.611Z"
+status: verifying
+stopped_at: Completed 01-12-PLAN.md
+last_updated: "2026-10-03T01:09:09.759Z"
 last_activity: 2026-10-02
 last_activity_desc: Phase 01 execution started
-state_head: 49d03575c133a4d4c4fd1668d6f7de957efad663
+state_head: 4070254d6ebb3b930359db6fcb347666c5403ddc
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-02)
 
 Phase: 01 (A test frame in RetroArch) — EXECUTING
 Plan: 12 of 12
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-02 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -67,6 +67,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P09 | 7 min | 2 tasks | 9 files |
 | Phase 01 P10 | 6 min | 2 tasks | 13 files |
 | Phase 01 P11 | 15min | 3 tasks | 4 files |
+| Phase 01 P12 | 10min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,8 @@ Recent decisions affecting current work:
 - [Phase 01]: RetroArch test config disables bundle_assets_extract so the macOS app leaves the user directory unchanged
 - [Phase 01]: README install-line check runs as a CI step after packaging, not as a ctest test
 - [Phase 01]: Owner hand-offs are scripted down to owner-only clicks
+- [Phase 01]: hashes.txt written with file(CONFIGURE NEWLINE_STYLE LF) so every platform writes the same bytes
+- [Phase 01]: CI job timeouts are twice the durations in run 37084642541, rounded up to whole minutes
 
 ### Pending Todos
 
@@ -122,6 +125,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T00:36:06.596Z
-Stopped at: Completed 01-11-PLAN.md
+Last session: 2026-10-03T01:09:09.745Z
+Stopped at: Completed 01-12-PLAN.md
 Resume file: None
