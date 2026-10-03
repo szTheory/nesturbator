@@ -220,6 +220,15 @@ target_include_directories(cpu.vectors PRIVATE
 target_compile_definitions(cpu.vectors PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(cpu.vectors)
 
+# D-12: the library bus alone, compiled in directly: 24 ticks per call, RAM
+# mirrored over 0x0000-0x1FFF, the open-bus latch for unmapped reads.
+add_executable(bus.unit cpu/test_bus.c ${PROJECT_SOURCE_DIR}/src/bus.c)
+target_include_directories(bus.unit PRIVATE
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/include)
+nesturbator_warnings(bus.unit)
+add_test(NAME bus.unit COMMAND bus.unit)
+
 # CPU-01, D-01 and D-03: vecconv converts the first three upstream a9 tests
 # (tests/vectors/fixtures) to N65V and reads them back through the shared
 # reader; cpu.vectors then runs them through the CPU. The script's exit

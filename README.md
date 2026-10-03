@@ -117,6 +117,10 @@ written. It then runs them through the CPU with `cpu.vectors`, which links
 the CPU object the library ships against a test bus of flat RAM that logs
 every cycle, and requires each test's registers, RAM and every bus cycle
 (address, value, read or write) to match: `65x02/a9: 0 of 3 vectors failed`.
+`bus.unit` checks the library's bus (`src/bus.c`) on its own: each read or
+write advances time by 24 ticks, a byte written at `0x0001` reads back at
+`0x0801`, `0x1001` and `0x1801`, a read outside RAM returns the last value on
+the bus, and a write outside RAM changes no RAM byte.
 `install.stage` installs the library into `build/ci/stage`, and
 `install.consumer` builds `tests/consumer`, a separate project that includes
 only `<nesturbator.h>`, against that install with `find_package`, then runs
