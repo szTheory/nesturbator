@@ -45,14 +45,30 @@ struct nesturbator__bus {
     uint8_t open_bus;
 };
 
+/* Machine profile: values that differ between chips of the same model
+   (D-14). ANE (0x8B) computes A = (A | ane_magic) & X & imm and LXA (0xAB)
+   computes A = X = (A | lxa_magic) & imm. */
+struct nesturbator__profile {
+    uint8_t ane_magic;
+    uint8_t lxa_magic;
+};
+
+/* NTSC RP2A03G: both constants are 0xEE. The 65x02 nes6502 vectors fit 0xEE
+   in all 10000 tests of each opcode, and the NESdev Wiki "CPU unofficial
+   opcodes" (revision 23975) describes the constant as chip dependent. LXA's
+   value is settled against a console test ROM in Phase 3 (deferred). */
+#define NESTURBATOR_RP2A03G_ANE_MAGIC 0xEEu
+#define NESTURBATOR_RP2A03G_LXA_MAGIC 0xEEu
+
 struct nesturbator {
-    nesturbator_allocator allocator; /* copy of the config's, defaults filled in */
-    uint64_t frame_number;           /* frames run since create */
-    uint64_t ticks;                  /* ticks run since create */
-    struct nesturbator__cpu cpu;     /* the 6502 */
-    struct nesturbator__bus bus;     /* RAM and the open-bus latch */
-    uint32_t audio_rem;              /* sample fraction carried over, in units
-                                        of 1/315000 sample per tick */
+    nesturbator_allocator allocator;     /* copy of the config's, defaults filled in */
+    uint64_t frame_number;               /* frames run since create */
+    uint64_t ticks;                      /* ticks run since create */
+    struct nesturbator__cpu cpu;         /* the 6502 */
+    struct nesturbator__bus bus;         /* RAM and the open-bus latch */
+    struct nesturbator__profile profile; /* chip-dependent constants */
+    uint32_t audio_rem;                  /* sample fraction carried over, in units
+                                            of 1/315000 sample per tick */
 };
 
 /* One CPU read cycle at addr: advances time by one CPU cycle and returns the

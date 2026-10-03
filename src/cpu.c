@@ -441,6 +441,48 @@ static uint16_t read_addr(struct nesturbator *nes, uint16_t lo_addr, uint16_t hi
     return (uint16_t)(((uint32_t)hi << 8) | lo);
 }
 
+/* JAM (0x02 0x12 0x22 0x32 0x42 0x52 0x62 0x72 0x92 0xB2 0xD2 0xF2): after
+   the opcode, a read of the next byte that leaves PC alone, then reads of
+   0xFFFF, 0xFFFE, 0xFFFE and six of 0xFFFF, eleven in all. No write, no
+   register or flag change; the CPU stays jammed until reset (D-13; NESdev
+   Wiki "CPU unofficial opcodes" revision 23975; 65x02 commit b7ed828, issue
+   1). */
+static void jam(struct nesturbator *nes)
+{
+    nesturbator__bus_read(nes, nes->cpu.pc);
+    nesturbator__bus_read(nes, 0xFFFFu);
+    nesturbator__bus_read(nes, 0xFFFEu);
+    nesturbator__bus_read(nes, 0xFFFEu);
+    for (uint32_t i = 0u; i < 6u; i++) {
+        nesturbator__bus_read(nes, 0xFFFFu);
+    }
+    nes->cpu.jammed = 1u;
+}
+
+/* SHY, SHX, SHA and TAS store reg AND (H + 1), where hi:lo is the base
+   address before idx is added. The dummy read at the uncorrected address is
+   always made. On a page cross the stored value also replaces the high byte
+   of the address (D-15; NESdev Wiki "CPU unofficial opcodes" revision
+   23975). When DMC DMA halts the CPU in this read, the AND with H + 1 drops
+   out; that RDY case joins here with the DMA (deferred). */
+static void store_sh(struct nesturbator *nes, uint8_t reg, uint8_t lo, uint8_t hi, uint8_t idx)
+{
+    uint32_t sum = (uint32_t)lo + idx;
+    uint8_t value = (uint8_t)(reg & (uint8_t)(hi + 1u));
+    uint8_t high = sum > 0xFFu ? value : hi;
+    nesturbator__bus_read(nes, (uint16_t)(((uint32_t)hi << 8) | (sum & 0xFFu)));
+    nesturbator__bus_write(nes, (uint16_t)(((uint32_t)high << 8) | (sum & 0xFFu)), value);
+}
+
+/* The abs,X and abs,Y forms of store_sh: the two address bytes, then the
+   store. */
+static void store_sh_abs(struct nesturbator *nes, uint8_t reg, uint8_t idx)
+{
+    uint8_t lo = fetch(nes);
+    uint8_t hi = fetch(nes);
+    store_sh(nes, reg, lo, hi, idx);
+}
+
 void nesturbator__cpu_step(struct nesturbator *nes)
 {
     /* A jammed CPU reads 0xFFFF every cycle until reset (D-13). */
@@ -1216,20 +1258,60 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         sbc(nes, fetch(nes));
         break;
 
-    default:
-        /* JAM: after the opcode, a read of the next byte that leaves PC
-           alone, then nine reads at the top of the address space, eleven
-           in all; no write and no register change. An opcode not written
-           yet takes this path too, so it stops the CPU where it can be
-           seen. */
-        nesturbator__bus_read(nes, nes->cpu.pc);
-        nesturbator__bus_read(nes, 0xFFFFu);
-        nesturbator__bus_read(nes, 0xFFFEu);
-        nesturbator__bus_read(nes, 0xFFFEu);
-        for (uint32_t i = 0u; i < 6u; i++) {
-            nesturbator__bus_read(nes, 0xFFFFu);
-        }
-        nes->cpu.jammed = 1u;
+    /* ANE and LXA mix A with a chip-dependent constant from the machine
+       profile (D-14). */
+    case 0x8B: /* ANE */
+        assign(nes, &nes->cpu.a,
+               (uint8_t)((nes->cpu.a | nes->profile.ane_magic) & nes->cpu.x & fetch(nes)));
+        break;
+    case 0xAB: /* LXA */
+        nes->cpu.x = (uint8_t)((nes->cpu.a | nes->profile.lxa_magic) & fetch(nes));
+        assign(nes, &nes->cpu.a, nes->cpu.x);
+        break;
+
+    case 0xBB: { /* LAS abs,Y: S, A and X all take the value read AND S. */
+        uint8_t r = (uint8_t)(read_at(nes, ea_absi(nes, nes->cpu.y, 0)) & nes->cpu.s);
+        nes->cpu.s = r;
+        nes->cpu.x = r;
+        assign(nes, &nes->cpu.a, r);
+        break;
+    }
+
+    /* The unstable stores, all through store_sh (D-15). */
+    case 0x9C: /* SHY abs,X */
+        store_sh_abs(nes, nes->cpu.y, nes->cpu.x);
+        break;
+    case 0x9E: /* SHX abs,Y */
+        store_sh_abs(nes, nes->cpu.x, nes->cpu.y);
+        break;
+    case 0x9F: /* SHA abs,Y */
+        store_sh_abs(nes, (uint8_t)(nes->cpu.a & nes->cpu.x), nes->cpu.y);
+        break;
+    case 0x9B: /* TAS abs,Y: S = A AND X first */
+        nes->cpu.s = (uint8_t)(nes->cpu.a & nes->cpu.x);
+        store_sh_abs(nes, nes->cpu.s, nes->cpu.y);
+        break;
+    case 0x93: { /* SHA (zp),Y: H is the pointer's high byte */
+        uint8_t p = fetch(nes);
+        uint8_t lo = nesturbator__bus_read(nes, p);
+        uint8_t hi = nesturbator__bus_read(nes, (uint8_t)(p + 1u));
+        store_sh(nes, (uint8_t)(nes->cpu.a & nes->cpu.x), lo, hi, nes->cpu.y);
+        break;
+    }
+
+    case 0x02:
+    case 0x12:
+    case 0x22:
+    case 0x32:
+    case 0x42:
+    case 0x52:
+    case 0x62:
+    case 0x72:
+    case 0x92:
+    case 0xB2:
+    case 0xD2:
+    case 0xF2:
+        jam(nes);
         break;
     }
 }

@@ -124,17 +124,23 @@ opcode k, indexes 0 to 99 in each chunk, and nothing after the last chunk.
 compares registers, RAM and every bus cycle, dummy reads included; it passes
 only on exit status 0 and the exact line `65x02/<xx>: 0 of 100 vectors
 failed`. A failure names the upstream test as `xx.json[i]` and the first field
-that differs. The label `vectors` selects them all: today the 151 official
-opcodes in every addressing mode, including read-modify-write, branches,
-jumps, JSR, RTS, RTI, BRK and the stack. The CPU has no decimal mode, as on
-the 2A03: SED and CLD set and clear D, PHP, PLP and RTI keep it, and ADC and
-SBC stay binary.
+that differs. The label `vectors` selects all 256 opcodes, `cpu.vectors.00`
+to `cpu.vectors.ff`, with no opcode or vector skipped: the 151 official ones
+in every addressing mode, the stable unofficial ones (NOP variants, LAX, SAX,
+SLO, RLA, SRE, RRA, DCP, ISC, ANC, ALR, ARR, SBX and SBC `eb`), the twelve
+JAM opcodes, and the unstable ANE, LXA, LAS, SHY, SHX, SHA and TAS. The CPU
+has no decimal mode, as on the 2A03: SED and CLD set and clear D, PHP, PLP and
+RTI keep it, and ADC and SBC stay binary. A JAM opcode makes eleven reads and
+no write, and leaves the CPU jammed. ANE and LXA use a constant of `0xEE`,
+the NTSC RP2A03G value, which the instance holds as part of its machine
+profile.
 `vectors.n65v.crafted` encodes a valid two-test buffer byte by byte and
 requires the reader to reject, naming the byte offset at fault, every
 truncation of it, bad magic, version 2, a cycle kind of 2, the wrong opcode, a
 header count that disagrees with the tests present, a repeated index, and one
 trailing byte. `vecconv.02` converts the first three tests of `02.json`,
-written in the compact layout, and `vecconv.a9_tail` converts three tests from
+written in the compact layout, and runs them through the CPU:
+`65x02/02: 0 of 3 vectors failed`. `vecconv.a9_tail` converts three tests from
 a prefix of `a9.json` cut inside the fourth; `vecconv.a9_tail.cut` asks the
 same prefix for four and requires vecconv to fail. The thirteen
 `vecconv.reject.*` tests each edit the `a9` fixture into one malformed input

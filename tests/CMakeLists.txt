@@ -274,36 +274,28 @@ function(nesturbator_vector_tests)
     set_tests_properties(cpu.vectors.${op} PROPERTIES LABELS vectors)
   endforeach()
 endfunction()
-# All 151 official opcodes.
-set(NESTURBATOR_OFFICIAL_OPCODES
-  00 01 05 06 08 09 0a 0d 0e 10 11 15 16 18 19 1d 1e 20 21 24 25 26 28 29 2a
-  2c 2d 2e 30 31 35 36 38 39 3d 3e 40 41 45 46 48 49 4a 4c 4d 4e 50 51 55 56
-  58 59 5d 5e 60 61 65 66 68 69 6a 6c 6d 6e 70 71 75 76 78 79 7d 7e 81 84 85
-  86 88 8a 8c 8d 8e 90 91 94 95 96 98 99 9a 9d a0 a1 a2 a4 a5 a6 a8 a9 aa ac
-  ad ae b0 b1 b4 b5 b6 b8 b9 ba bc bd be c0 c1 c4 c5 c6 c8 c9 ca cc cd ce d0
-  d1 d5 d6 d8 d9 dd de e0 e1 e4 e5 e6 e8 e9 ea ec ed ee f0 f1 f5 f6 f8 f9 fd
-  fe)
-nesturbator_vector_tests(${NESTURBATOR_OFFICIAL_OPCODES})
-# The 85 stable unofficial opcodes: 27 NOP variants, LAX and SAX, the 42
-# combined read-modify-writes, and ANC, ALR, ARR, SBX and SBC immediate.
-set(NESTURBATOR_STABLE_UNOFFICIAL_OPCODES
-  1a 3a 5a 7a da fa 80 82 89 c2 e2 04 44 64 14 34 54 74 d4 f4 0c 1c 3c 5c 7c
-  dc fc a7 b7 af bf a3 b3 87 97 8f 83 03 07 0f 13 17 1b 1f 23 27 2f 33 37 3b
-  3f 43 47 4f 53 57 5b 5f 63 67 6f 73 77 7b 7f c3 c7 cf d3 d7 db df e3 e7 ef
-  f3 f7 fb ff 0b 2b 4b 6b cb eb)
-nesturbator_vector_tests(${NESTURBATOR_STABLE_UNOFFICIAL_OPCODES})
+# All 256 opcodes, 00 to ff, with no exclusion list (D-18): a chip
+# difference goes through the machine profile, never a skipped vector.
+set(NESTURBATOR_ALL_OPCODES)
+foreach(h 0 1 2 3 4 5 6 7 8 9 a b c d e f)
+  foreach(l 0 1 2 3 4 5 6 7 8 9 a b c d e f)
+    list(APPEND NESTURBATOR_ALL_OPCODES ${h}${l})
+  endforeach()
+endforeach()
+nesturbator_vector_tests(${NESTURBATOR_ALL_OPCODES})
 
-# D-02, D-06: vecconv converts the compact layout of 02.json, and a prefix
-# that ends inside the 4th test of a9.json converts with --first 3. JAM runs
-# through the CPU in plan 06, so these convert only (RUN=OFF). The script's
-# exit status decides each test.
+# D-02, D-06: vecconv converts the compact layout of 02.json and runs its 3
+# JAM tests through the CPU. The script's exit status decides the test.
 add_test(NAME vecconv.02
   COMMAND ${CMAKE_COMMAND}
     -DVECCONV=$<TARGET_FILE:vecconv>
+    -DVECTORS=$<TARGET_FILE:cpu.vectors>
     -DJSON=${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/02-first3.json
-    -DOPCODE=02 -DFIRST=3 -DRUN=OFF
+    -DOPCODE=02 -DFIRST=3
     -DOUT=${CMAKE_CURRENT_BINARY_DIR}/vectors/02-first3.n65v
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_fixture.cmake)
+# A prefix that ends inside the 4th test of a9.json converts with --first 3;
+# it is converted only (RUN=OFF).
 add_test(NAME vecconv.a9_tail
   COMMAND ${CMAKE_COMMAND}
     -DVECCONV=$<TARGET_FILE:vecconv>

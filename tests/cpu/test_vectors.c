@@ -109,6 +109,10 @@ static int run_test(uint8_t opcode)
     struct nesturbator__cpu *cpu = &machine.nes.cpu;
     char field[48];
 
+    /* The vectors were recorded with ANE and LXA constants of 0xEE (D-14);
+       the harness sets them itself rather than relying on create. */
+    machine.nes.profile.ane_magic = 0xEEu;
+    machine.nes.profile.lxa_magic = 0xEEu;
     memset(cpu, 0, sizeof *cpu);
     cpu->pc = in->pc;
     cpu->s = in->s;
