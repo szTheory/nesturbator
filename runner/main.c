@@ -1,8 +1,8 @@
 /* nesturbator-run: the headless runner.
  *
- *   nesturbator-run [--frames N] [--hash-frame N]... [--dump-frame N:FILE]...
+ *   nesturbator-run --frames N [--hash-frame N]... [--dump-frame N:FILE]...
  *
- * Runs N frames of one instance with no cartridge. For each --hash-frame N it
+ * Runs N frames of one instance with no cartridge; --frames is required. For each --hash-frame N it
  * prints, after frame N has run:
  *
  *   frame <N> ticks <ticks> sha256 <64 lowercase hex digits>
@@ -33,7 +33,7 @@ static int usage(const char *why)
 {
     fprintf(stderr, "nesturbator-run: %s\n", why);
     fprintf(stderr,
-            "usage: nesturbator-run [--frames N] [--hash-frame N]... [--dump-frame N:FILE]...\n"
+            "usage: nesturbator-run --frames N [--hash-frame N]... [--dump-frame N:FILE]...\n"
             "  --frames N           run N frames (N >= 1)\n"
             "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
             "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n");
@@ -158,6 +158,9 @@ static int parse_options(int argc, char **argv, options *o)
         } else {
             return usage(arg[0] == '-' ? "unknown option" : "unexpected argument");
         }
+    }
+    if (o->frames == 0u) {
+        return usage("--frames N is required");
     }
     for (uint32_t k = 0; k < o->hash_count; k++) {
         if (o->hash_frames[k] > o->frames) {

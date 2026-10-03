@@ -82,6 +82,7 @@ requires that file to equal `tests/runner/hashes.txt` byte for byte, with LF
 line endings only.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
+`runner.usage.noargs` checks that a run without `--frames` is a usage error.
 `host.convert` checks the colour conversion the runner and the libretro
 adapter share (`host/convert.c`): each native pixel's low 9 bits pick the
 table entry, and the input and output row pitches are honoured.
@@ -220,7 +221,8 @@ cartridge, so every frame is the built-in test card.
 nesturbator-run --frames N [--hash-frame N]... [--dump-frame N:FILE]...
 ```
 
-- `--frames N` runs N frames (N is 1 or more).
+- `--frames N` runs N frames (N is 1 or more). It is required; without it
+  the runner prints its usage and exits 2.
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
 - `--dump-frame N:FILE` writes frame N to FILE as a binary PPM (P6), 256x240,

@@ -43,6 +43,9 @@ nesturbator_runner_test(NAME runner.usage.beyond
   ARGS --frames 1 --hash-frame 2 EXIT 2 IGNORE_STDOUT)
 nesturbator_runner_test(NAME runner.usage.zero
   ARGS --frames 1 --hash-frame 0 EXIT 2 IGNORE_STDOUT)
+# --frames is required: a run with no arguments exits 2.
+nesturbator_runner_test(NAME runner.usage.noargs
+  EXIT 2 IGNORE_STDOUT)
 nesturbator_runner_test(NAME runner.usage.unknown
   ARGS --bogus EXIT 2 IGNORE_STDOUT)
 # A cartridge path arrives in Phase 3; until then a positional argument is a
