@@ -7,11 +7,13 @@
 #   cmake -DDIR=<dir> -DPINS=<unused> -DSOURCE_DIR=<repo> -DGIT=<git>
 #         -DCOMMIT=<40 hex> -DWRITE_PINS=<pins.txt> -P fetch_vectors.cmake
 #
-# The files land in DIR/src/nes6502/v1. When all 256 already match PINS by
-# size and SHA-256 nothing is fetched. Otherwise DIR/src is replaced by a
-# sparse, blobless, depth-1 git checkout of the commit, every file is checked,
-# and DIR/src/.git is removed. A missing, extra or altered file fails with its
-# path; so does no network. Nothing here skips: the test passes or fails.
+# The files land in DIR/65x02-src/nes6502/v1. When all 256 already match PINS
+# by size and SHA-256 nothing is fetched. Otherwise DIR/65x02-src is replaced
+# by a sparse, blobless, depth-1 git checkout of the commit, every file is
+# checked, and DIR/65x02-src/.git is removed. A missing, extra or altered file
+# fails with its path; so does no network. Nothing here skips: the test passes
+# or fails. The script deletes DIR/65x02-src only when it holds the marker
+# file .nesturbator-vectors that the script writes when it creates it.
 #
 # WRITE_PINS mode fetches COMMIT and writes the pin line and one
 # "<sha256>  nes6502/v1/<xx>.json  <size>" line per file, 00 to ff, LF only.
@@ -32,14 +34,37 @@ endforeach()
 set(repo_url "https://github.com/SingleStepTests/65x02")
 set(sub "nes6502/v1")
 
-# DIR must not land in the source tree, except under build/.
+# DIR must not land in the source tree, except under build/. The paths are
+# compared after symlinks are resolved, and in lower case on macOS and
+# Windows, whose file systems ignore case by default; cmake_path alone
+# compares the text only. DIR is created first because REAL_PATH resolves
+# only a path that exists.
+function(check_in_source dir_path src_path)
+  cmake_path(IS_PREFIX src_path "${dir_path}" NORMALIZE in_source)
+  cmake_path(APPEND src_path "build" OUTPUT_VARIABLE build_path)
+  cmake_path(IS_PREFIX build_path "${dir_path}" NORMALIZE in_build)
+  if(in_source AND NOT in_build)
+    message(FATAL_ERROR "fetch_vectors: DIR ${dir_path} is inside the source tree but not under build/")
+  endif()
+endfunction()
 cmake_path(ABSOLUTE_PATH DIR NORMALIZE OUTPUT_VARIABLE dir_abs)
 cmake_path(ABSOLUTE_PATH SOURCE_DIR NORMALIZE OUTPUT_VARIABLE src_abs)
-cmake_path(IS_PREFIX src_abs "${dir_abs}" NORMALIZE in_source)
-cmake_path(APPEND src_abs "build" OUTPUT_VARIABLE build_abs)
-cmake_path(IS_PREFIX build_abs "${dir_abs}" NORMALIZE in_build)
-if(in_source AND NOT in_build)
-  message(FATAL_ERROR "fetch_vectors: DIR ${dir_abs} is inside the source tree but not under build/")
+check_in_source("${dir_abs}" "${src_abs}")
+file(MAKE_DIRECTORY "${dir_abs}")
+file(REAL_PATH "${dir_abs}" dir_real)
+file(REAL_PATH "${src_abs}" src_real)
+if(CMAKE_HOST_WIN32 OR CMAKE_HOST_APPLE)
+  string(TOLOWER "${dir_real}" dir_real)
+  string(TOLOWER "${src_real}" src_real)
+endif()
+check_in_source("${dir_real}" "${src_real}")
+
+# The script deletes only a directory it created: DIR/65x02-src, which holds
+# a marker file from the run that made it. Any other DIR/65x02-src fails.
+set(src "${dir_abs}/65x02-src")
+set(marker "${src}/.nesturbator-vectors")
+if(EXISTS "${src}" AND NOT EXISTS "${marker}")
+  message(FATAL_ERROR "fetch_vectors: ${src} exists and was not created by this script; refusing to delete it")
 endif()
 
 # The 256 file names, 00 to ff.
@@ -83,7 +108,6 @@ if(NOT commit MATCHES "^[0-9a-f]+$" OR NOT commit_len EQUAL 40)
   message(FATAL_ERROR "fetch_vectors: commit '${commit}' is not 40 lowercase hex digits")
 endif()
 
-set(src "${dir_abs}/src")
 set(files "${src}/${sub}")
 
 # Sets OUT to one message per file that is missing, extra, or differs from
@@ -130,6 +154,7 @@ set(ENV{GIT_TERMINAL_PROMPT} 0)
 
 file(REMOVE_RECURSE "${src}")
 file(MAKE_DIRECTORY "${src}")
+file(TOUCH "${marker}")
 
 function(run_git)
   execute_process(

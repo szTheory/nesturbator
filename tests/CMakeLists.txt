@@ -364,6 +364,15 @@ add_test(NAME vectors.pins.selftest
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/pins_check.cmake)
+# The fetch deletes only the directory it created, and refuses a DIR that
+# reaches the source tree through a symlink or a different letter case.
+# Offline: the guards stop the script before any git call.
+add_test(NAME vectors.fetch.guard
+  COMMAND ${CMAKE_COMMAND}
+    -DSCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_vectors.cmake
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/fetch-guard
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_guard.cmake)
 
 # CPU-02, D-22: the full 65x02 set, fetched by git at the pin in
 # tests/vectors/pins.txt. These tests need the network, so they are registered
@@ -374,7 +383,7 @@ set(NESTURBATOR_VECTORS_DIR ${CMAKE_BINARY_DIR}/vectors-full CACHE PATH
   "Where cpu.vectors-full.fetch keeps the fetched 65x02 files (not in the source tree outside build/)")
 if(NESTURBATOR_VECTORS_FULL)
   find_program(NESTURBATOR_GIT git REQUIRED)
-  set(vectors_full_files ${NESTURBATOR_VECTORS_DIR}/src/nes6502/v1)
+  set(vectors_full_files ${NESTURBATOR_VECTORS_DIR}/65x02-src/nes6502/v1)
   set(vectors_full_out ${CMAKE_CURRENT_BINARY_DIR}/vectors-full)
   file(MAKE_DIRECTORY ${vectors_full_out})
   add_test(NAME cpu.vectors-full.fetch

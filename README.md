@@ -185,6 +185,11 @@ line, 256 lines in order from `00.json` to `ff.json`, sizes summing to
 1,081,529,097 bytes, and a commit equal to the sample's manifest pin.
 `vectors.pins.selftest` swaps two lines in a copy and passes only if the check
 reports them as not sorted.
+`vectors.fetch.guard` checks, offline, that the fetch deletes only what it
+created: a `65x02-src` directory without the fetch's marker file is refused
+and left in place, and a directory that reaches the source tree through a
+symbolic link, or through a different letter case on macOS and Windows, is
+refused as inside the source tree.
 `bus.unit` checks the library's bus (`src/bus.c`) on its own: each read or
 write advances time by 24 ticks, a byte written at `0x0001` reads back at
 `0x0801`, `0x1001` and `0x1801`, a read outside RAM returns the last value on
@@ -233,9 +238,12 @@ job can write issues.
 Locally, the lane keeps the fetched files in `build/vectors-full/vectors-full`.
 To keep them somewhere that survives a clean build, set the cache variable
 `NESTURBATOR_VECTORS_DIR` in an untracked `CMakeUserPresets.json`, for example
-a configure preset that inherits `vectors-full`; the fetch refuses a directory
-inside the source tree other than under `build/`. To move to a new upstream
-commit, regenerate `pins.txt` and the vector sample in one change. The
+a configure preset that inherits `vectors-full`. The files go in its
+`65x02-src` subdirectory, which the fetch replaces only when it holds the
+marker file `.nesturbator-vectors` that the fetch wrote; any other
+`65x02-src` there fails the fetch. The fetch refuses a directory inside the
+source tree other than under `build/`, after resolving symbolic links. To
+move to a new upstream commit, regenerate `pins.txt` and the vector sample in one change. The
 command below prints the new total size, which replaces 1,081,529,097 in
 `tests/cmake/pins_check.cmake`:
 
