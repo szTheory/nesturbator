@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: The CPU matches the public vectors
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-10-03T15:05:59.835Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-10-03T15:20:27.568Z"
 last_activity: 2026-10-03
 last_activity_desc: Phase 02 execution started
-state_head: d34219e7fa6a0f728d87002c0d68f6c986f1c49a
+state_head: e458bde4fafed88d939c474eb3d5ede89769cbe5
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 20
-  completed_plans: 13
+  completed_plans: 14
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-03)
 ## Current Position
 
 Phase: 02 (The CPU matches the public vectors) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-10-03 — Phase 02 execution started
 
@@ -69,6 +69,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 01 P11 | 15min | 3 tasks | 4 files |
 | Phase 01 P12 | 10min | 2 tasks | 3 files |
 | Phase 02 P01 | 8 min | 3 tasks | 13 files |
+| Phase 02 P02 | 5 min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,9 @@ Recent decisions affecting current work:
 - [Phase 02]: Fixture attribution goes in tests/vectors/fixtures/README.md with the upstream MIT LICENSE verbatim, correcting D-06's 'comment' wording (JSON has no comments)
 - [Phase 02]: vecconv re-reads its output from disk and re-encodes it byte for byte; opcode argument is exactly two hex digits; --first N errors if the array closes early
 - [Phase 02]: release-as removed from release-please-config.json; release.no_release_as guards it; the next feat: release is 0.1.1
+- [Phase 02]: 02-02: core.api's counting-allocator arena is 65536 bytes so the instance (now with 2048 bytes of RAM) fits
+- [Phase 02]: 02-02: cpu.vectors takes chunks 1 or 256 and tests-per-chunk 1..10000; stdout is only the '65x02/<xx>: <f> of <n> vectors failed' line
+- [Phase 02]: 02-02: vector fixture tests pass on vectors_fixture.cmake's exit status, with no pass regex
 
 ### Pending Todos
 
@@ -136,6 +140,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T15:05:59.739Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-10-03T15:20:27.528Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
