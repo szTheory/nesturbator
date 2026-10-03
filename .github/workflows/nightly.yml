@@ -23,7 +23,7 @@ permissions: {}
 jobs:
   vectors-full:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30 # initial; set to twice the first measured cold run (ENGINEERING §5)
+    timeout-minutes: 3 # twice the cold run 37136095512 (88 s), rounded up to whole minutes (ENGINEERING §5)
     permissions:
       contents: read
     outputs:
