@@ -205,7 +205,9 @@ only `<nesturbator.h>`, against that install with `find_package`, then runs
 one frame with it. `embed.subdirectory` builds `tests/embed`, a C-only
 project that adds the source tree with `add_subdirectory`; it requires that
 embedding enables no C++, adds no runner, libretro, `palgen`, `vecconv` or
-host-helper target and writes no CPack configuration, then runs one frame.
+host-helper target, adds exactly the targets `nesturbator_cpu` and
+`nesturbator` and the helpers listed under "Using the library", and writes no
+CPack configuration, then runs one frame.
 
 ## Continuous integration
 
@@ -291,8 +293,11 @@ add_subdirectory(nesturbator)               # or FetchContent_MakeAvailable
 target_link_libraries(app PRIVATE nesturbator::nesturbator)
 ```
 
-An embedded build adds only the library and its `library` install rules. The
-runner, the libretro core, `palgen`, `vecconv`, the tests and the release
+An embedded build adds only the library and its `library` install rules,
+plus four build helpers with the `nesturbator` prefix: the CPU object library
+`nesturbator_cpu` that the library folds in, the CMake functions
+`nesturbator_core_flags` and `nesturbator_warnings`, and the option
+`NESTURBATOR_NOFP`. The runner, the libretro core, `palgen`, `vecconv`, the tests and the release
 packaging are built only when nesturbator is the top-level project. On a system or
 processor other than the six release targets, a top-level build still
 configures and names its archives after what CMake reports, with a warning.

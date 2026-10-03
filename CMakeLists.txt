@@ -3,7 +3,8 @@ cmake_minimum_required(VERSION 3.25)
 # The single version source; release-please updates version.txt.
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" NESTURBATOR_VERSION LIMIT_COUNT 1)
 # Only C is needed to build the library. A project that embeds this one with
-# add_subdirectory or FetchContent gets the library and its install rules;
+# add_subdirectory or FetchContent gets the library and its install rules,
+# plus the nesturbator_-prefixed helpers below (tests/embed checks the list);
 # the runner, the libretro core, palgen, vecconv, the tests (which need C++)
 # and the release packaging are added only when this is the top-level project.
 project(nesturbator VERSION ${NESTURBATOR_VERSION} LANGUAGES C)

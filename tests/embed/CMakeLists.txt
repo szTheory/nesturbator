@@ -19,6 +19,22 @@ foreach(target nesturbator_host nesturbator-run nesturbator_libretro palgen vecc
     message(FATAL_ERROR "embed: nesturbator added ${target} to an embedding project")
   endif()
 endforeach()
+# Besides the library, embedding adds the CPU object library, the functions
+# nesturbator_core_flags and nesturbator_warnings and the option
+# NESTURBATOR_NOFP, as the README lists. A new name must be added here and
+# there.
+get_property(targets DIRECTORY ${NESTURBATOR_SOURCE_DIR} PROPERTY BUILDSYSTEM_TARGETS)
+if(NOT targets STREQUAL "nesturbator_cpu;nesturbator")
+  message(FATAL_ERROR "embed: nesturbator added the targets '${targets}', not 'nesturbator_cpu;nesturbator'")
+endif()
+foreach(command nesturbator_core_flags nesturbator_warnings)
+  if(NOT COMMAND ${command})
+    message(FATAL_ERROR "embed: the README lists ${command}, which nesturbator no longer adds")
+  endif()
+endforeach()
+if(NOT DEFINED NESTURBATOR_NOFP)
+  message(FATAL_ERROR "embed: the README lists NESTURBATOR_NOFP, which nesturbator no longer adds")
+endif()
 if(EXISTS ${CMAKE_BINARY_DIR}/CPackConfig.cmake)
   message(FATAL_ERROR "embed: nesturbator wrote a CPack configuration")
 endif()

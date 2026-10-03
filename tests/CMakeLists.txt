@@ -463,7 +463,7 @@ add_test(NAME install.consumer
 set_tests_properties(install.consumer PROPERTIES FIXTURES_REQUIRED staged)
 
 # A C-only project embeds the source tree with add_subdirectory, gets only the
-# library, and runs one frame with it.
+# library and its listed nesturbator_ helpers, and runs one frame with it.
 add_test(NAME embed.subdirectory
   COMMAND ${CMAKE_CTEST_COMMAND} --build-and-test
     ${CMAKE_CURRENT_SOURCE_DIR}/embed ${PROJECT_BINARY_DIR}/embed
