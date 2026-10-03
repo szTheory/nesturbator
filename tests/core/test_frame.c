@@ -19,22 +19,25 @@ static int16_t audio[AUDIO_CAP];
 
 static nesturbator *make(void)
 {
-    nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
+    nesturbator_config cfg;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
     nesturbator *inst = NULL;
     CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
     return inst;
 }
 
-static nesturbator_frame frame_io(uint16_t *v, uint32_t pitch, int16_t *a, uint32_t cap)
+/* Fills *io in place after a memset: a struct copy would leave its padding
+   unspecified (C17 6.2.6.1p6). */
+static void frame_io(nesturbator_frame *io, uint16_t *v, uint32_t pitch, int16_t *a, uint32_t cap)
 {
-    nesturbator_frame io;
-    memset(&io, 0, sizeof io);
-    io.size = (uint32_t)sizeof io;
-    io.video = v;
-    io.video_pitch = pitch;
-    io.audio = a;
-    io.audio_capacity = cap;
-    return io;
+    memset(io, 0, sizeof *io);
+    io->size = (uint32_t)sizeof *io;
+    io->video = v;
+    io->video_pitch = pitch;
+    io->audio = a;
+    io->audio_capacity = cap;
 }
 
 /* Every refused call leaves frame_number, ticks and the audio remainder as
@@ -42,32 +45,33 @@ static nesturbator_frame frame_io(uint16_t *v, uint32_t pitch, int16_t *a, uint3
 static void test_refusals(void)
 {
     nesturbator *inst = make();
-    nesturbator_frame io = frame_io(video, W, audio, AUDIO_CAP);
+    nesturbator_frame io;
+    frame_io(&io, video, W, audio, AUDIO_CAP);
 
     CHECK_EQ_U64(nesturbator_run_frame(NULL, &io), NESTURBATOR_ERR_ARGUMENT);
     CHECK_EQ_U64(nesturbator_run_frame(inst, NULL), NESTURBATOR_ERR_ARGUMENT);
 
-    io = frame_io(NULL, W, audio, AUDIO_CAP);
+    frame_io(&io, NULL, W, audio, AUDIO_CAP);
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_ERR_ARGUMENT);
 
-    io = frame_io(video, W, NULL, AUDIO_CAP);
+    frame_io(&io, video, W, NULL, AUDIO_CAP);
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_ERR_ARGUMENT);
 
-    io = frame_io(video, W, audio, AUDIO_CAP);
+    frame_io(&io, video, W, audio, AUDIO_CAP);
     io.size = 0u;
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_ERR_STRUCT_SIZE);
 
     /* Pitch 255 is less than a row: ERR_BUFFER_TOO_SMALL. */
-    io = frame_io(video, 255u, audio, AUDIO_CAP);
+    frame_io(&io, video, 255u, audio, AUDIO_CAP);
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_ERR_BUFFER_TOO_SMALL);
 
     /* The first frame yields 798 samples, so 797 is too small. */
-    io = frame_io(video, W, audio, 797u);
+    frame_io(&io, video, W, audio, 797u);
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_ERR_BUFFER_TOO_SMALL);
     CHECK_EQ_U64(io.audio_count, 0);
 
     /* After all of that the instance is still at its start. */
-    io = frame_io(video, W, audio, 798u);
+    frame_io(&io, video, W, audio, 798u);
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_OK);
     CHECK_EQ_U64(io.frame_number, 1);
     CHECK_EQ_U64(io.ticks, 714732);
@@ -75,9 +79,9 @@ static void test_refusals(void)
 
     /* Frame 2 needs 799 (floor(2*714732*352/315000) = 1597 in total). A
        refusal now must not lose the carried remainder. */
-    io = frame_io(video, W, audio, 798u);
+    frame_io(&io, video, W, audio, 798u);
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_ERR_BUFFER_TOO_SMALL);
-    io = frame_io(video, W, audio, AUDIO_CAP);
+    frame_io(&io, video, W, audio, AUDIO_CAP);
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_OK);
     CHECK_EQ_U64(io.frame_number, 2);
     CHECK_EQ_U64(io.ticks, 2u * 714732u);
@@ -85,7 +89,7 @@ static void test_refusals(void)
 
     /* No audio buffer and capacity 0 is accepted as an argument, but no
        frame has 0 samples. */
-    io = frame_io(video, W, NULL, 0u);
+    frame_io(&io, video, W, NULL, 0u);
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_ERR_BUFFER_TOO_SMALL);
 
     nesturbator_destroy(inst);
@@ -98,7 +102,8 @@ static void test_pitch(void)
     for (size_t i = 0; i < WIDE * H; i++) {
         video[i] = POISON;
     }
-    nesturbator_frame io = frame_io(video, WIDE, audio, AUDIO_CAP);
+    nesturbator_frame io;
+    frame_io(&io, video, WIDE, audio, AUDIO_CAP);
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_OK);
     unsigned bad = 0;
     for (uint32_t y = 0; y < H; y++) {
@@ -129,7 +134,8 @@ static void test_audio_period(void)
         for (uint32_t i = 0; i < AUDIO_CAP; i++) {
             audio[i] = (int16_t)POISON;
         }
-        nesturbator_frame io = frame_io(video2, W, audio, AUDIO_CAP);
+        nesturbator_frame io;
+        frame_io(&io, video2, W, audio, AUDIO_CAP);
         if (nesturbator_run_frame(inst, &io) != NESTURBATOR_OK) {
             CHECK(0);
             break;
@@ -150,7 +156,8 @@ static void test_audio_period(void)
 static void test_boundaries(void)
 {
     nesturbator *inst = make();
-    nesturbator_frame io = frame_io(video2, W, audio, AUDIO_CAP);
+    nesturbator_frame io;
+    frame_io(&io, video2, W, audio, AUDIO_CAP);
     CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_OK);
 #define PX(x, y) video2[(size_t)(y) * W + (x)]
     /* Rule 1: the corner block covers x<8, y<8; (7,7) is its last pixel. */
@@ -187,8 +194,10 @@ static void test_two_instances(void)
 {
     nesturbator *a = make();
     nesturbator *b = make();
-    nesturbator_frame ia = frame_io(video, W, audio, AUDIO_CAP);
-    nesturbator_frame ib = frame_io(video2, W, audio, AUDIO_CAP);
+    nesturbator_frame ia;
+    frame_io(&ia, video, W, audio, AUDIO_CAP);
+    nesturbator_frame ib;
+    frame_io(&ib, video2, W, audio, AUDIO_CAP);
     for (int i = 0; i < 5; i++) {
         if (i < 2) {
             CHECK_EQ_U64(nesturbator_run_frame(a, &ia), NESTURBATOR_OK);
@@ -204,6 +213,48 @@ static void test_two_instances(void)
     nesturbator_destroy(b);
 }
 
+/* WR-03: a frame as a newer host would send it, this build's struct followed
+   by fields it does not know. The frame is the struct with interior padding,
+   so the caller zeroes the whole buffer with memset before setting fields. */
+#define TAIL_BYTES 8u
+typedef union big_frame {
+    nesturbator_frame io;
+    unsigned char bytes[sizeof(nesturbator_frame) + TAIL_BYTES];
+} big_frame;
+
+static void make_big(big_frame *b)
+{
+    memset(b, 0, sizeof *b);
+    b->io.size = (uint32_t)sizeof b->bytes;
+    b->io.video = video2;
+    b->io.video_pitch = W;
+    b->io.audio = audio;
+    b->io.audio_capacity = AUDIO_CAP;
+}
+
+static void test_big_frame(void)
+{
+    nesturbator *inst = make();
+    big_frame big;
+
+    /* Every unknown byte zero: accepted. */
+    make_big(&big);
+    CHECK_EQ_U64(nesturbator_run_frame(inst, &big.io), NESTURBATOR_OK);
+    CHECK_EQ_U64(big.io.frame_number, 1);
+    CHECK_EQ_U64(big.io.audio_count, 798);
+
+    /* One non-zero byte past this build's struct: refused, no state change. */
+    make_big(&big);
+    big.bytes[sizeof(nesturbator_frame) + TAIL_BYTES - 1u] = 1u;
+    CHECK_EQ_U64(nesturbator_run_frame(inst, &big.io), NESTURBATOR_ERR_STRUCT_SIZE);
+
+    nesturbator_frame io;
+    frame_io(&io, video2, W, audio, AUDIO_CAP);
+    CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_OK);
+    CHECK_EQ_U64(io.frame_number, 2);
+    nesturbator_destroy(inst);
+}
+
 int main(void)
 {
     test_refusals();
@@ -211,5 +262,6 @@ int main(void)
     test_audio_period();
     test_boundaries();
     test_two_instances();
+    test_big_frame();
     CHECK_DONE();
 }

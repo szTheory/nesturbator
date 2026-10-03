@@ -201,7 +201,10 @@ int main(int argc, char **argv)
         return status;
     }
 
-    nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
+    nesturbator_config cfg;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
     nesturbator *inst = NULL;
     nesturbator_status st = nesturbator_create(&cfg, &inst);
     if (st != NESTURBATOR_OK) {

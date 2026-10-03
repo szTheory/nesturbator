@@ -3,21 +3,28 @@
 #include <nesturbator.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 static uint16_t video[256 * 240];
 static int16_t audio[1024];
 
 int main(void)
 {
-    nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
+    nesturbator_config cfg;
     nesturbator *inst = NULL;
-    nesturbator_frame io = {0};
-    nesturbator_status status = nesturbator_create(&cfg, &inst);
+    nesturbator_frame io;
+    nesturbator_status status;
 
+    /* Zero every struct before setting fields, as the header requires. */
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    status = nesturbator_create(&cfg, &inst);
     if (status != NESTURBATOR_OK) {
         printf("nesturbator_create: status %d\n", (int)status);
         return 1;
     }
+    memset(&io, 0, sizeof io);
     io.size = (uint32_t)sizeof io;
     io.video = video;
     io.video_pitch = 256;

@@ -228,7 +228,7 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code)
 bool retro_load_game(const struct retro_game_info *game)
 {
     enum retro_pixel_format format = RETRO_PIXEL_FORMAT_XRGB8888;
-    nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
+    nesturbator_config cfg;
 
     if (game != NULL || inst != NULL) {
         return false;
@@ -236,6 +236,9 @@ bool retro_load_game(const struct retro_game_info *game)
     if (env_cb == NULL || !env_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &format)) {
         return false;
     }
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
     if (nesturbator_create(&cfg, &inst) != NESTURBATOR_OK) {
         inst = NULL;
         return false;

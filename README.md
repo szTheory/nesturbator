@@ -174,6 +174,13 @@ built only when nesturbator is the top-level project. On a system or
 processor other than the six release targets, a top-level build still
 configures and names its archives after what CMake reports, with a warning.
 
+Every struct passed to or from the library starts with a `size` field. A
+caller zeroes the struct with `memset`, then sets `size` to its `sizeof` and
+fills the other fields. For `nesturbator_config` that is `size` and `abi`
+(`NESTURBATOR_ABI_VERSION`); the zeroed allocator means `malloc` and `free`.
+Zeroing first keeps padding and the bytes a newer header appends at zero, so
+a host built against a newer header still runs with an older library.
+
 ## Downloads and archives
 
 Each release has three zip archives per platform, named

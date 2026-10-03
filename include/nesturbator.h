@@ -16,6 +16,11 @@
  *     zero; otherwise NESTURBATOR_ERR_STRUCT_SIZE.
  *   - Output structs: the library writes min(size, its own sizeof) bytes and
  *     leaves the size field holding the caller's value.
+ *   - The caller zeroes the whole struct with memset before setting any
+ *     field, so its padding and any bytes a newer header appends are zero.
+ *     A brace or designated initialiser, or a struct copy, does not zero
+ *     padding. This is what lets a struct from a newer header pass the
+ *     larger-size check of an older library.
  * - Struct fields are fixed-width integers and pointers only.
  * - Status codes have fixed values and are only ever appended.
  * - A call that returns a status other than NESTURBATOR_OK changes no state.
@@ -89,15 +94,20 @@ typedef struct nesturbator_allocator {
     void *user;
 } nesturbator_allocator;
 
-/* Input of nesturbator_create. Initialise it with NESTURBATOR_CONFIG_INIT so
-   that size and abi describe the header the host compiled against. */
+/* Input of nesturbator_create. memset it to zero, then set size to
+   sizeof(nesturbator_config) and abi to NESTURBATOR_ABI_VERSION. The zeroed
+   allocator means malloc and free. */
 typedef struct nesturbator_config {
     uint32_t size;                   /* sizeof(nesturbator_config) */
     uint32_t abi;                    /* NESTURBATOR_ABI_VERSION */
     nesturbator_allocator allocator; /* all NULL: malloc and free */
 } nesturbator_config;
 
-/* Every member is listed, so the initialiser is warning-free in C and does
+/* The same default values for C and C++ sources. A config passed to
+   nesturbator_create must still be zeroed with memset first, because an
+   initialised declaration leaves padding and tail bytes unspecified; do not
+   use this macro as the initialiser of a struct handed to the library.
+   Every member is listed, so the initialiser is warning-free in C and does
    not narrow in C++. Kept out of clang-format, which would lay the braces out
    as a block. */
 /* clang-format off */

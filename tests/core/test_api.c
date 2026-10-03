@@ -68,10 +68,18 @@ typedef union big_config {
 
 static void make_big(big_config *b)
 {
-    nesturbator_config init = NESTURBATOR_CONFIG_INIT;
     memset(b, 0, sizeof *b);
-    memcpy(b->bytes, &init, sizeof init);
     b->cfg.size = (uint32_t)sizeof b->bytes;
+    b->cfg.abi = NESTURBATOR_ABI_VERSION;
+}
+
+/* A config as the header asks callers to build it: zeroed with memset, then
+   size and abi set. The zeroed allocator means malloc and free. */
+static void default_config(nesturbator_config *cfg)
+{
+    memset(cfg, 0, sizeof *cfg);
+    cfg->size = (uint32_t)sizeof *cfg;
+    cfg->abi = NESTURBATOR_ABI_VERSION;
 }
 
 static void test_version(void)
@@ -105,7 +113,8 @@ static void test_version(void)
 
 static void test_info(void)
 {
-    nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
+    nesturbator_config cfg;
+    default_config(&cfg);
     nesturbator *inst = NULL;
     CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
 
@@ -135,7 +144,8 @@ static void test_info(void)
 static void test_create_sizes(void)
 {
     nesturbator *inst = NULL;
-    nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
+    nesturbator_config cfg;
+    default_config(&cfg);
 
     CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
     CHECK(inst != NULL);
@@ -167,7 +177,8 @@ static void test_create_sizes(void)
 static void test_create_arguments(void)
 {
     nesturbator *inst = NULL;
-    nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
+    nesturbator_config cfg;
+    default_config(&cfg);
 
     /* NULL cfg or out: ERR_ARGUMENT. */
     CHECK_EQ_U64(nesturbator_create(NULL, &inst), NESTURBATOR_ERR_ARGUMENT);
@@ -199,7 +210,8 @@ static void test_allocators(void)
     nesturbator *const untouched = (nesturbator *)(void *)&marker;
     nesturbator *inst = untouched;
     int frees = 0;
-    nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
+    nesturbator_config cfg;
+    default_config(&cfg);
     cfg.allocator.alloc = failing_alloc;
     cfg.allocator.free = never_free;
     cfg.allocator.user = &frees;

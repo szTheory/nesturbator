@@ -1,5 +1,6 @@
 /* D-14: nesturbator_get_palette's copy rules and the palette invariants. */
 #include <stdint.h>
+#include <string.h>
 
 #include "nesturbator.h"
 #include "../check.h"
@@ -25,7 +26,10 @@ static uint32_t luma(uint32_t c)
 
 int main(void)
 {
-    nesturbator_config cfg = NESTURBATOR_CONFIG_INIT;
+    nesturbator_config cfg;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
     nesturbator *inst = NULL;
     CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
 
