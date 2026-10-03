@@ -3,7 +3,7 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: A test frame in RetroArch
 status: verifying
-stopped_at: Phase 01 code review fixed (10 of 11, WR-08 deferred); PR
+stopped_at: PR #1 merged; release PR #2 blocked by README install-line version bug
 last_updated: "2026-10-03T02:17:36.321Z"
 last_activity: 2026-10-02
 last_activity_desc: Quick task 261002-uu0 fixed WR-03 (caller memset rule)
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-02)
 
 Phase: 01 (A test frame in RetroArch) — EXECUTING
 Plan: 12 of 12
-Status: Verified (human_needed); review fixes pushed; owner merges PR #1
+Status: PR #1 merged (5533aeb); release PR #2 (0.1.0) fails CI: release-please bumped only the tag, not the file name, in the README install line
 Last activity: 2026-10-02 - Completed quick task 261002-uu0: fix WR-03 with the caller memset rule
 
 Progress: [░░░░░░░░░░] 0%
@@ -113,6 +113,7 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
+- Release PR #2 (chore(main): release 0.1.0) fails CI on macOS arm64: release-please's generic updater rewrites only the first version on a marked line, so the README install URL became v0.1.0/nesturbator-0.0.0-libretro-macos-arm64.zip. Fix on main before v0.1.0 can publish; do not merge PR #2 by hand.
 - WR-08 deferred: the release-as pin is removed by the Phase 2 todo above; an automated check waits until after v0.1.0 exists.
 
 ### Quick Tasks Completed
@@ -132,5 +133,5 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-03T02:40:00Z
-Stopped at: WR-03 fixed and pushed (quick 261002-uu0). Next: owner marks PR #1 ready and squash-merges it when CI is green, then /gsd-verify-work 01
+Stopped at: release PR #2 CI fails on check_install_line (README URL became v0.1.0/nesturbator-0.0.0-...). Next: /gsd-quick on branch fix/install-line-version to fix it, PR it to main; release-please then refreshes PR #2, which auto-merges and publishes v0.1.0; then /gsd-verify-work 01
 Resume file: None
