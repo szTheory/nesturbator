@@ -354,6 +354,17 @@ add_test(NAME manifest.sha256.selftest
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/manifest_sha256.cmake)
 
+# D-20: tests/vectors/pins.txt, offline: the pin line, 256 lines in path
+# order, the upstream tree's total size, and the sample's commit. The
+# self-test swaps two lines and passes only on the 'not sorted' report.
+add_test(NAME vectors.pins
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/pins_check.cmake)
+add_test(NAME vectors.pins.selftest
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/pins_check.cmake)
+
 # CPU-02, D-22: the full 65x02 set, fetched by git at the pin in
 # tests/vectors/pins.txt. These tests need the network, so they are registered
 # only when NESTURBATOR_VECTORS_FULL is ON (the vectors-full preset) and the
@@ -375,9 +386,21 @@ if(NESTURBATOR_VECTORS_FULL)
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_vectors.cmake)
   set_tests_properties(cpu.vectors-full.fetch PROPERTIES
     FIXTURES_SETUP vectors_full TIMEOUT 900 LABELS vectors-full)
-  # Each file's 10000 tests through the CPU. The script's exit status decides
-  # the test, so it sets no regex property.
-  foreach(op a9)
+  # D-22: the first 100 converted tests of every fetched file equal the
+  # committed sample byte for byte, the proof of where the sample came from.
+  add_test(NAME cpu.vectors-full.sample-match
+    COMMAND ${CMAKE_COMMAND}
+      -DVECCONV=$<TARGET_FILE:vecconv>
+      -DDIR=${NESTURBATOR_VECTORS_DIR}
+      -DBLOB=${CMAKE_CURRENT_SOURCE_DIR}/vectors/65x02-sample.n65v
+      -DWORK=${vectors_full_out}/sample-match
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_sample_match.cmake)
+  set_tests_properties(cpu.vectors-full.sample-match PROPERTIES
+    FIXTURES_REQUIRED vectors_full LABELS vectors-full)
+  # Each file's 10000 tests through the CPU, 00 to ff with no skip list. The
+  # script's exit status decides the test, so it sets no regex property; a
+  # failure prints the failing-vector count.
+  foreach(op IN LISTS NESTURBATOR_ALL_OPCODES)
     add_test(NAME cpu.vectors-full.${op}
       COMMAND ${CMAKE_COMMAND}
         -DVECCONV=$<TARGET_FILE:vecconv>

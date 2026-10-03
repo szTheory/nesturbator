@@ -172,9 +172,19 @@ on the first line of `tests/vectors/pins.txt` (about 190 MB, a minute or two),
 then a size and SHA-256 check of all 256 files against that file's lines. A
 missing, extra or altered file fails with its path and both hashes, and so
 does a run without the network; nothing is skipped. When every file already
-verifies it fetches nothing. `cpu.vectors-full.a9` converts all of `a9.json`
-with `vecconv`, which then requires exactly 10000 tests, and runs it through
-the CPU: `65x02/a9: 0 of 10000 vectors failed`.
+verifies it fetches nothing. `cpu.vectors-full.00` to `cpu.vectors-full.ff`
+each convert one whole file with `vecconv`, which then requires exactly 10000
+tests, and run it through the CPU; each passes only on the line
+`65x02/<xx>: 0 of 10000 vectors failed` and prints its failing-vector count
+otherwise. That is all 2,560,000 upstream tests. `cpu.vectors-full.sample-match`
+converts the first 100 tests of every fetched file and requires them to equal
+the committed sample chunk by chunk, byte for byte, which proves where the
+sample came from; a difference names the chunk and the blob offset.
+`vectors.pins`, in `ci` and offline, checks `tests/vectors/pins.txt`: its pin
+line, 256 lines in order from `00.json` to `ff.json`, sizes summing to
+1,081,529,097 bytes, and a commit equal to the sample's manifest pin.
+`vectors.pins.selftest` swaps two lines in a copy and passes only if the check
+reports them as not sorted.
 `bus.unit` checks the library's bus (`src/bus.c`) on its own: each read or
 write advances time by 24 ticks, a byte written at `0x0001` reads back at
 `0x0801`, `0x1001` and `0x1801`, a read outside RAM returns the last value on
