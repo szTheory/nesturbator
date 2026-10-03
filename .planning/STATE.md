@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: A test frame in RetroArch
 status: executing
-stopped_at: Completed 01-10-PLAN.md
-last_updated: "2026-10-02T21:45:01.502Z"
+stopped_at: Completed 01-11-PLAN.md
+last_updated: "2026-10-03T00:36:06.611Z"
 last_activity: 2026-10-02
 last_activity_desc: Phase 01 execution started
-state_head: d5187cbdda13c0ab4006573b57e0abe4e0fdf7d9
+state_head: 49d03575c133a4d4c4fd1668d6f7de957efad663
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-02)
 ## Current Position
 
 Phase: 01 (A test frame in RetroArch) — EXECUTING
-Plan: 11 of 12
+Plan: 12 of 12
 Status: Ready to execute
 Last activity: 2026-10-02 — Phase 01 execution started
 
@@ -66,6 +66,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01 P08 | 4 min | 2 tasks | 27 files |
 | Phase 01 P09 | 7 min | 2 tasks | 9 files |
 | Phase 01 P10 | 6 min | 2 tasks | 13 files |
+| Phase 01 P11 | 15min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 01-10: ci.yml's concurrency group includes github.workflow, so release.yml's call to ci.yml never queues behind or is replaced by the push run on the same SHA
 - [Phase 01]: 01-10: create-github-app-token takes vars.NESTURBATOR_APP_ID through client-id (app-id is deprecated); GitHub accepts the App's Client ID or App ID
 - [Phase 01]: 01-10: write_hashes.cmake is checked in the ci lane by runner.write_hashes and runner.write_hashes.content against tests/runner/hashes.txt
+- [Phase 01]: RetroArch test config disables bundle_assets_extract so the macOS app leaves the user directory unchanged
+- [Phase 01]: README install-line check runs as a CI step after packaging, not as a ctest test
+- [Phase 01]: Owner hand-offs are scripted down to owner-only clicks
 
 ### Pending Todos
 
@@ -118,6 +122,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-02T21:45:01.485Z
-Stopped at: Completed 01-10-PLAN.md
+Last session: 2026-10-03T00:36:06.596Z
+Stopped at: Completed 01-11-PLAN.md
 Resume file: None
