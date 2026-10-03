@@ -2,17 +2,17 @@
 gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: The CPU matches the public vectors
-status: executing
-stopped_at: Completed 02-07-PLAN.md
-last_updated: "2026-10-03T16:02:48.757Z"
+status: verifying
+stopped_at: Completed 02-08-PLAN.md
+last_updated: "2026-10-03T16:19:47.694Z"
 last_activity: 2026-10-03
 last_activity_desc: Phase 02 execution started
-state_head: 95bca4288c7dbfaa3843bc895d2e25c9a8df29e4
+state_head: baba2ab0e29df9a35c5bdbbbb6d669e7a065365e
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 20
-  completed_plans: 19
+  completed_plans: 20
   percent: 25
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-10-03)
 
 Phase: 02 (The CPU matches the public vectors) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-03 — Phase 02 execution started
 
 Progress: [███░░░░░░░] 25%
@@ -75,6 +75,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P05 | 3 min | 2 tasks | 3 files |
 | Phase 02 P06 | 6 min | 3 tasks | 9 files |
 | Phase 02 P07 | 11 min | 3 tasks | 11 files |
+| Phase 02 P08 | 15 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,10 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-07: vectors-full tests register only under NESTURBATOR_VECTORS_FULL (preset vectors-full); the fetch re-verifies 256 files by size and SHA-256 and fetches nothing when all match
 - [Phase 02]: 02-07: the nightly has no cache and keeps one rolling issue labelled nightly on scheduled runs; timeout-minutes 30 is initial until plan 08 measures a cold run
 - [Phase 02]: 02-07: CONFORMANCE corrected (JSON array, compact layout, 54,565 B, 8-byte chunk header, 1,678,114 B sample, about 168 MB full set)
+- [Phase 02]: 02-08: main merged into the phase branch (no rebase, no force-push) to clear the PR conflict; branch side won in ROADMAP and STATE
+- [Phase 02]: 02-08: pull_p narrows only the non-constant result, since MSVC /W4 /WX rejects C4310 on (uint8_t)~FLAG_B
+- [Phase 02]: 02-08: nightly-only CMake scripts set cmake_minimum_required(VERSION 3.25) for the runners' CMake 3.31
+- [Phase 02]: 02-08: nightly vectors-full timeout 3 min (twice 88 s cold, run 37136095512); ci build 3 min (twice 69 s, run 37136095554); 88 s is under the D-21 10-minute cache trigger
 
 ### Pending Todos
 
@@ -158,6 +163,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T16:02:42.722Z
-Stopped at: Completed 02-07-PLAN.md
+Last session: 2026-10-03T16:19:47.657Z
+Stopped at: Completed 02-08-PLAN.md
 Resume file: None
