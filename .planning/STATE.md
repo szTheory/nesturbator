@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 current_phase: 01
 current_phase_name: A test frame in RetroArch
 status: verifying
-stopped_at: Completed 01-12-PLAN.md
-last_updated: "2026-10-03T01:09:09.759Z"
+stopped_at: Phase 01 code review fixed (9 of 11); WR-03 open before merge
+last_updated: "2026-10-03T02:10:44Z"
 last_activity: 2026-10-02
-last_activity_desc: Phase 01 execution started
+last_activity_desc: Phase 01 code review fixes applied and pushed
 state_head: 4070254d6ebb3b930359db6fcb347666c5403ddc
 progress:
   total_phases: 4
@@ -29,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-10-02)
 
 Phase: 01 (A test frame in RetroArch) — EXECUTING
 Plan: 12 of 12
-Status: Phase complete — ready for verification
-Last activity: 2026-10-02 — Phase 01 execution started
+Status: Verified (human_needed); review fixes pushed; WR-03 to settle, then owner merges PR #1
+Last activity: 2026-10-02 — code review fix: 9 of 11 fixed, WR-03 and WR-08 skipped for owner
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -113,7 +113,8 @@ Recent decisions affecting current work:
 
 ### Blockers/Concerns
 
-None yet.
+- WR-03 (01-REVIEW.md): the struct size-tag rule needs the caller memset rule in the header before PR #1 merges, because the merge publishes 0.1.0 and fixes the convention.
+- WR-08 deferred: the release-as pin is removed by the Phase 2 todo above; an automated check waits until after v0.1.0 exists.
 
 ## Deferred Items
 
@@ -125,6 +126,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T01:09:09.745Z
-Stopped at: Completed 01-12-PLAN.md
+Last session: 2026-10-03T02:10:44Z
+Stopped at: Phase 01 review fixes pushed. Next: /gsd-quick for WR-03 (memset rule), then owner merges PR #1, then /gsd-verify-work 01
 Resume file: None
