@@ -1,0 +1,162 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}"
+    },
+    {
+      "name": "dev",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "ci",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_COMPILE_WARNING_AS_ERROR": "ON"
+      }
+    },
+    {
+      "name": "ci-msvc",
+      "inherits": "ci",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl"
+      }
+    },
+    {
+      "name": "asan",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_COMPILE_WARNING_AS_ERROR": "ON",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_MODULE_LINKER_FLAGS": "-fsanitize=address,undefined",
+        "CMAKE_SHARED_LINKER_FLAGS": "-fsanitize=address,undefined"
+      }
+    },
+    {
+      "name": "nofp",
+      "inherits": "ci",
+      "cacheVariables": { "NESTURBATOR_NOFP": "ON" }
+    },
+    {
+      "name": "hygiene",
+      "inherits": "base",
+      "cacheVariables": { "NESTURBATOR_HYGIENE": "ON" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "dev", "configurePreset": "dev" },
+    { "name": "ci", "configurePreset": "ci" },
+    { "name": "ci-msvc", "configurePreset": "ci-msvc" },
+    { "name": "asan", "configurePreset": "asan" },
+    { "name": "nofp", "configurePreset": "nofp" },
+    { "name": "hygiene", "configurePreset": "hygiene" }
+  ],
+  "testPresets": [
+    {
+      "name": "dev",
+      "configurePreset": "dev",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "ci",
+      "configurePreset": "ci",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "ci-msvc",
+      "configurePreset": "ci-msvc",
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "asan",
+      "configurePreset": "asan",
+      "output": { "outputOnFailure": true },
+      "filter": { "exclude": { "label": "retroarch" } },
+      "execution": { "noTestsAction": "error" },
+      "environment": { "UBSAN_OPTIONS": "print_stacktrace=1" }
+    },
+    {
+      "name": "nofp",
+      "configurePreset": "nofp",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "abi" } },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "hygiene",
+      "configurePreset": "hygiene",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "hygiene" } },
+      "execution": { "noTestsAction": "error" }
+    }
+  ],
+  "packagePresets": [
+    { "name": "ci", "configurePreset": "ci", "generators": ["ZIP"] },
+    { "name": "ci-msvc", "configurePreset": "ci-msvc", "generators": ["ZIP"] }
+  ],
+  "workflowPresets": [
+    {
+      "name": "dev",
+      "steps": [
+        { "type": "configure", "name": "dev" },
+        { "type": "build", "name": "dev" },
+        { "type": "test", "name": "dev" }
+      ]
+    },
+    {
+      "name": "ci",
+      "steps": [
+        { "type": "configure", "name": "ci" },
+        { "type": "build", "name": "ci" },
+        { "type": "test", "name": "ci" },
+        { "type": "package", "name": "ci" }
+      ]
+    },
+    {
+      "name": "ci-msvc",
+      "steps": [
+        { "type": "configure", "name": "ci-msvc" },
+        { "type": "build", "name": "ci-msvc" },
+        { "type": "test", "name": "ci-msvc" },
+        { "type": "package", "name": "ci-msvc" }
+      ]
+    },
+    {
+      "name": "asan",
+      "steps": [
+        { "type": "configure", "name": "asan" },
+        { "type": "build", "name": "asan" },
+        { "type": "test", "name": "asan" }
+      ]
+    },
+    {
+      "name": "nofp",
+      "steps": [
+        { "type": "configure", "name": "nofp" },
+        { "type": "build", "name": "nofp" },
+        { "type": "test", "name": "nofp" }
+      ]
+    },
+    {
+      "name": "hygiene",
+      "steps": [
+        { "type": "configure", "name": "hygiene" },
+        { "type": "build", "name": "hygiene" },
+        { "type": "test", "name": "hygiene" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+# RetroArch configuration for retroarch.testframe (D-18). run_retroarch.cmake
+# writes it to <build>/retroarch/test.cfg with @RA_DIR@ replaced, and starts
+# RetroArch with -c on it, so the user's own retroarch.cfg is never read.
+#
+# Key names are those of the retroarch.cfg template in RetroArch v1.22.2
+# (commit 69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576), read for key names only.
+# RetroArch ignores a key it does not know, so a key the template does not
+# name is harmless; those are marked "not in the template".
+
+# Never write this file back, and never go fullscreen.
+config_save_on_exit = "false"
+video_fullscreen = "false"
+
+# The screenshot is the core's own 256x240 frame: no scaling, shader or
+# aspect correction from the GPU path.
+video_gpu_screenshot = "false"
+
+# No sound device, and keep running when the window is behind the terminal
+# (the default pauses an unfocused window and the test would time out).
+audio_driver = "null"
+audio_enable = "false"
+pause_nonactive = "false"
+
+# No start screen. menu_show_start_screen is not in the template; the
+# template names rgui_show_start_screen. RGUI draws without asset files,
+# which matters because assets_directory below is empty.
+menu_show_start_screen = "false"
+rgui_show_start_screen = "false"
+menu_driver = "rgui"
+
+# No content history or runtime log is kept, and logs go to the terminal.
+history_list_enable = "false"
+content_runtime_log = "false"
+log_to_file = "false"
+
+# Every *_directory, *_path and *_dir key the template names, read or
+# written, points under the build directory. The core comes from -L, which
+# overrides libretro_path; the .info file is copied into info.
+assets_directory = "@RA_DIR@/assets"
+audio_filter_dir = "@RA_DIR@/filters/audio"
+cache_directory = "@RA_DIR@/cache"
+cheat_database_path = "@RA_DIR@/cheats"
+content_database_path = "@RA_DIR@/database/rdb"
+content_directory = "@RA_DIR@/content"
+content_history_dir = "@RA_DIR@/playlists"
+content_history_path = "@RA_DIR@/playlists/content_history.lpl"
+content_image_history_path = "@RA_DIR@/playlists/content_image_history.lpl"
+content_music_history_path = "@RA_DIR@/playlists/content_music_history.lpl"
+content_video_history_path = "@RA_DIR@/playlists/content_video_history.lpl"
+core_assets_directory = "@RA_DIR@/downloads"
+core_options_path = "@RA_DIR@/retroarch-core-options.cfg"
+dynamic_wallpapers_directory = "@RA_DIR@/wallpapers"
+input_remapping_directory = "@RA_DIR@/remaps"
+input_remapping_path = "@RA_DIR@/remaps/none.rmp"
+joypad_autoconfig_dir = "@RA_DIR@/autoconfig"
+libretro_directory = "@RA_DIR@/cores"
+libretro_info_path = "@RA_DIR@/info"
+libretro_path = "@RA_DIR@/cores/nesturbator_libretro.dylib"
+overlay_directory = "@RA_DIR@/overlays"
+playlist_directory = "@RA_DIR@/playlists"
+recording_config_directory = "@RA_DIR@/records_config"
+recording_output_directory = "@RA_DIR@/records"
+rgui_browser_directory = "@RA_DIR@/content"
+rgui_config_directory = "@RA_DIR@/config"
+savefile_directory = "@RA_DIR@/saves"
+savestate_directory = "@RA_DIR@/states"
+screenshot_directory = "@RA_DIR@/shots"
+system_directory = "@RA_DIR@/system"
+thumbnails_directory = "@RA_DIR@/thumbnails"
+video_filter_dir = "@RA_DIR@/filters/video"
+video_font_path = "@RA_DIR@/fonts/none.ttf"
+video_shader_dir = "@RA_DIR@/shaders"
+
+# Path keys not in the template, redirected the same way.
+content_favorites_path = "@RA_DIR@/playlists/content_favorites.lpl"
+cursor_directory = "@RA_DIR@/database/cursors"
+log_dir = "@RA_DIR@/logs"
+runtime_log_directory = "@RA_DIR@/runtime"
+
+# The macOS app unpacks its bundled assets.zip into the user's RetroArch
+# directory at launch, whatever assets_directory says, and does it again on
+# every launch because this config never saves the extracted version
+# (measured with v1.22.2: 5494 files under assets/ozone and assets/xmb
+# rewritten per run). Not in the template; measured to stop the unpacking.
+bundle_assets_extract_enable = "false"

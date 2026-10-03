@@ -9,13 +9,13 @@ Milestone 1. Each category's pull request builds the release archives, and mergi
 
 ### A test frame in RetroArch
 
-- [ ] **FRAME-01**: `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds the library, the runner and the libretro core and runs every test on all six platforms; CI runs the same commands.
-- [ ] **FRAME-02**: A C program that includes only the public header creates an instance, runs one frame and destroys it; the `ci` preset builds and runs it against the installed package.
-- [ ] **FRAME-03**: With no cartridge loaded the core outputs a fixed test frame. `nesturbator-run --frames 1 --dump-frame 1:FILE --hash-frame 1` writes it as an image and prints its SHA-256, and the hash is the same on every platform.
-- [ ] **FRAME-04**: The libretro core loads in a test program that calls it the way RetroArch does, and the frame it delivers equals the runner's.
-- [ ] **FRAME-05**: The README's one-line install lets RetroArch on an Apple Silicon Mac load the core and show the test frame. `ctest -L retroarch` runs that launch unattended with RetroArch's frame-limit and screenshot options and compares the screenshot with the runner's frame; it reports itself skipped where RetroArch is not installed.
-- [ ] **FRAME-06**: The `asan`, `nofp` and `hygiene` presets pass: the tests run clean under the address and undefined-behaviour sanitizers, the core has no floating point and no undefined symbols beyond the C memory functions, and the tree holds no personal data and no unlisted ROM.
-- [ ] **FRAME-07**: Every pull request builds the library, runner and libretro archives for each platform; a behaviour-changing merge to `main` publishes them, with a `SHA256SUMS` file, as a GitHub release with no manual step.
+- [x] **FRAME-01**: `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds the library, the runner and the libretro core and runs every test on all six platforms; CI runs the same commands.
+- [x] **FRAME-02**: A C program that includes only the public header creates an instance, runs one frame and destroys it; the `ci` preset builds and runs it against the installed package.
+- [x] **FRAME-03**: With no cartridge loaded the core outputs a fixed test frame. `nesturbator-run --frames 1 --dump-frame 1:FILE --hash-frame 1` writes it as an image and prints its SHA-256, and the hash is the same on every platform.
+- [x] **FRAME-04**: The libretro core loads in a test program that calls it the way RetroArch does, and the frame it delivers equals the runner's.
+- [x] **FRAME-05**: The README's one-line install lets RetroArch on an Apple Silicon Mac load the core and show the test frame. `ctest -L retroarch` runs that launch unattended with RetroArch's frame-limit and screenshot options and compares the screenshot with the runner's frame; it reports itself skipped where RetroArch is not installed.
+- [x] **FRAME-06**: The `asan`, `nofp` and `hygiene` presets pass: the tests run clean under the address and undefined-behaviour sanitizers, the core has no floating point and no undefined symbols beyond the C memory functions, and the tree holds no personal data and no unlisted ROM.
+- [x] **FRAME-07**: Every pull request builds the library, runner and libretro archives for each platform; a behaviour-changing merge to `main` publishes them, with a `SHA256SUMS` file, as a GitHub release with no manual step.
 
 ### The CPU matches the public vectors
 
@@ -77,13 +77,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FRAME-01 | Phase 1 | Pending |
-| FRAME-02 | Phase 1 | Pending |
-| FRAME-03 | Phase 1 | Pending |
-| FRAME-04 | Phase 1 | Pending |
-| FRAME-05 | Phase 1 | Pending |
-| FRAME-06 | Phase 1 | Pending |
-| FRAME-07 | Phase 1 | Pending |
+| FRAME-01 | Phase 1 | Complete |
+| FRAME-02 | Phase 1 | Complete |
+| FRAME-03 | Phase 1 | Complete |
+| FRAME-04 | Phase 1 | Complete |
+| FRAME-05 | Phase 1 | Complete |
+| FRAME-06 | Phase 1 | Complete |
+| FRAME-07 | Phase 1 | Complete |
 | CPU-01 | Phase 2 | Pending |
 | CPU-02 | Phase 2 | Pending |
 | GAME-01 | Phase 3 | Pending |

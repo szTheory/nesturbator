@@ -1,6 +1,7 @@
 #!/bin/sh
-# Repository hygiene for a public repo: no personal data, no game images, and
-# no chain-mode GSD settings in anything that gets committed or pushed.
+# Repository hygiene for a public repo: no personal data, no game images, no
+# binary file the test-ROM manifest does not list, and no chain-mode GSD
+# settings in anything that gets committed or pushed.
 #
 #   scripts/hygiene.sh --staged             the commit being made   (pre-commit)
 #   scripts/hygiene.sh --tree               every file git would track  (CI)
@@ -9,6 +10,17 @@
 # Findings name the rule and the file, never the matched text, so the output is
 # safe to paste anywhere. Exit status is 1 if anything was found.
 set -eu
+
+# The C locale for every command: under a UTF-8 locale grep -I takes bytes
+# that are not valid UTF-8 as binary and skips the file, so Latin-1 or other
+# non-UTF-8 text would pass the home-path and address scans. In the C locale
+# only a NUL byte makes a file binary.
+LC_ALL=C
+export LC_ALL
+
+# Path quoting off: git would otherwise print a name with bytes above 0x7F as
+# a C-quoted string, which names no file, so the file would go unscanned.
+git() { command git -c core.quotePath=false "$@"; }
 
 cd "$(git rev-parse --show-toplevel)"
 
@@ -23,6 +35,8 @@ HOME_OK='(/Users/|/home/)runner'
 # Any address except GitHub noreply, documentation domains and SSH remotes.
 EMAIL='[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z][A-Za-z]+'
 EMAIL_OK='@users\.noreply\.github\.com|noreply@github\.com|@example\.(com|org|net)|git@github\.com'
+# Commit messages may also carry the AI co-author trailer's noreply address.
+MESSAGE_EMAIL_OK="$EMAIL_OK|noreply@anthropic\\.com"
 ROM_NAME='\.(nes|fds|unf|unif|nsf|nsfe|sav|srm|state)$'
 
 # stdin is text. True if some line matches $1 and does not match $2.
@@ -31,9 +45,14 @@ leaks() { grep -I -E -e "$1" | grep -v -E -e "$2" | grep -q .; }
 # True if $1 is the first field of a line in the test-ROM manifest.
 in_manifest() { [ -f "$MANIFEST" ] && awk -v p="$1" '$1 == p { f = 1 } END { exit !f }' "$MANIFEST"; }
 
-# $1 is a path; $2 is a command that prints that path's content.
+# $1 is a path; $2 is a command that prints that path's content. A file whose
+# content cannot be read is a finding, so the scan fails closed.
 check_file() {
   [ "$1" = "$SELF" ] && return 0
+  if ! $2 "$1" >/dev/null 2>&1; then
+    found 'cannot read file' "$1"
+    return 0
+  fi
   if printf '%s\n' "$1" | grep -q -i -E -e "$ROM_NAME" && ! in_manifest "$1"; then
     found 'game image by name' "$1"
   fi
@@ -41,11 +60,21 @@ check_file() {
   case $magic in
     4e45531a | 4644531a) in_manifest "$1" || found 'game image by content' "$1" ;;
   esac
+  # A file git treats as binary (a NUL byte, which grep -I also keys on in the
+  # C locale set above) must be listed in the manifest. This also stops save states, raw
+  # dumps and screenshots (ENGINEERING section 7).
+  size=$($2 "$1" 2>/dev/null | head -c 1 | wc -c | tr -d ' ')
+  if [ "$size" != 0 ] && ! $2 "$1" 2>/dev/null | grep -I -q '' && ! in_manifest "$1"; then
+    found 'binary file not in manifest' "$1"
+  fi
   if $2 "$1" 2>/dev/null | leaks "$HOME_PATH" "$HOME_OK"; then found 'home directory path' "$1"; fi
   if $2 "$1" 2>/dev/null | leaks "$EMAIL" "$EMAIL_OK"; then found 'email address' "$1"; fi
 }
 
-check_files() { # $1 is a newline-separated list; $2 as in check_file
+# $1 is a newline-separated list; $2 as in check_file. The lists come from git
+# NUL-separated, so no name is quoted; a name holding a newline splits into
+# parts that name no file, and each part fails closed in check_file.
+check_files() {
   old_ifs=$IFS
   IFS='
 '
@@ -83,13 +112,13 @@ mode=${1:---tree}
 [ $# -gt 0 ] && shift
 case $mode in
   --staged)
-    check_files "$(git diff --cached --name-only --diff-filter=ACMR)" staged_show
+    check_files "$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n')" staged_show
     check_stop_policy
     check_identity "$(git var GIT_AUTHOR_IDENT | sed -E 's/.*<([^>]*)>.*/\1/')" 'author'
     check_identity "$(git var GIT_COMMITTER_IDENT | sed -E 's/.*<([^>]*)>.*/\1/')" 'committer'
     ;;
   --tree)
-    check_files "$(git ls-files --cached --others --exclude-standard)" tree_show
+    check_files "$(git ls-files -z --cached --others --exclude-standard | tr '\0' '\n')" tree_show
     check_stop_policy
     ;;
   --history)
@@ -101,6 +130,19 @@ case $mode in
       if git grep -I -h -E -e "$EMAIL" "$c" -- . ":!$SELF" 2>/dev/null | grep -v -E -e "$EMAIL_OK" | grep -q .; then
         found 'email address' "commit $c"
       fi
+      # A squash merge copies the pull request's title and body into the
+      # message, so messages are scanned as well.
+      if git log -1 --format=%B "$c" | leaks "$HOME_PATH" "$HOME_OK"; then
+        found 'home directory path' "message of $c"
+      fi
+      if git log -1 --format=%B "$c" | leaks "$EMAIL" "$MESSAGE_EMAIL_OK"; then
+        found 'email address' "message of $c"
+      fi
+      # --numstat shows a binary file's line counts as "-".
+      for b in $(git diff-tree -r --root --no-commit-id --numstat "$c" |
+        awk -F '\t' '$1 == "-" && $2 == "-" { print $3 }'); do
+        [ "$b" = "$SELF" ] || in_manifest "$b" || found 'binary file not in manifest' "$b (in history)"
+      done
     done
     for e in $(git log "$@" --format='%ae%n%ce' | sort -u); do check_identity "$e" 'history'; done
     for n in $(git log "$@" --name-only --format= | sort -u | grep -i -E -e "$ROM_NAME" || true); do

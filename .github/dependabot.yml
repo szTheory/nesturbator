@@ -1,0 +1,10 @@
+# Keeps the pinned action SHAs current (ENGINEERING section 5). Actions are
+# the only dependency; the C code has none.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci

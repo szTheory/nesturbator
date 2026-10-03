@@ -1,0 +1,9 @@
+# hygiene.action_pins.bad: both keys use a tag, so the check must fail on
+# lines 7 and 9.
+name: bad
+jobs:
+  build:
+    steps:
+      - uses: actions/checkout@v4
+      - name: checkout again
+        uses: actions/checkout@v4

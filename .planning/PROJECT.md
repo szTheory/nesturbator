@@ -59,6 +59,7 @@ Games behave as they do on the console, identically on every platform, from a sm
 - **Legal**: no ROM or BIOS bytes beyond licensed test ROMs; nothing taken from GPL or LGPL emulators — the repository is public and MIT.
 - **Privacy**: no personal paths, addresses or names in tracked files or release artifacts — the repository is public.
 - **Verification**: every behaviour is shown by a command: `cmake --workflow --preset ci` for the main suite, the other presets and the nightly jobs for the rest — nothing waits on a person.
+- **Hand-offs**: integration, end-to-end and smoke checks run as commands locally or on CI (on CI when they keep paying off there); the owner is asked only for what needs their identity or consent, such as a browser click on GitHub or publishing — and everything around that step is scripted — so phases close with no manual testing.
 - **Delivery**: the owner creates each phase's branch; it merges by pull request into a green `main` and is released automatically — each phase ends in something to download and run.
 
 ## Key Decisions

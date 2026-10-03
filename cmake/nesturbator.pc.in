@@ -1,0 +1,9 @@
+prefix=${pcfiledir}/@NESTURBATOR_PC_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: nesturbator
+Description: NES emulator core
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lnesturbator
+Cflags: -I${includedir}

@@ -53,12 +53,13 @@ maintainer.
 
 ## Vendored files
 
-`libretro.h` (MIT) is the only file this project vendors. Its upstream, commit
-and SHA-256 are recorded here when the file is added.
+`libretro.h` (MIT) is the only file this project vendors. It is never edited;
+ctest `libretro.vendored` checks its SHA-256, and its licence notice is in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 | File | Upstream | Commit | SHA-256 |
 |---|---|---|---|
-| none yet | | | |
+| `libretro/libretro.h` | https://github.com/libretro/RetroArch (`libretro-common/include/libretro.h`) | 69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576 (v1.22.2) | bd3398d29c3763d18617087020ff56b5450a48a63123403a4b674f8e79947acb |
 
 ## Test data
 
