@@ -28,10 +28,13 @@ printf '%s %s\n' "$home" "$mail" >"$cafe"
 # A file name holding a newline cannot be scanned; it must fail closed.
 nl=$(printf 'new\nline.txt')
 printf 'nothing personal\n' >"$nl"
+# Latin-1 text, which is not valid UTF-8.
+printf 'caf\351 %s %s\n' "$home" "$mail" >latin1.txt
 git add -A
 
+# Run under a UTF-8 locale, where grep -I would take latin1.txt as binary.
 status=0
-out=$(sh scripts/hygiene.sh --tree 2>&1) || status=$?
+out=$(LC_ALL=C.UTF-8 sh scripts/hygiene.sh --tree 2>&1) || status=$?
 printf '%s\n' "$out"
 [ "$status" = 1 ] || { echo "FAIL: --tree exit status $status, expected 1"; exit 1; }
 
@@ -45,4 +48,6 @@ expect "home directory path: $cafe"
 expect "email address: $cafe"
 expect "cannot read file: new"
 expect "cannot read file: line.txt"
+expect "home directory path: latin1.txt"
+expect "email address: latin1.txt"
 echo "PASS"

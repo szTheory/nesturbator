@@ -48,9 +48,11 @@ rejects home-directory paths, email addresses other than GitHub noreply, ROM
 and save files, and any file git treats as binary unless
 `tests/roms/manifest.txt` lists it. It reads file names unquoted, so a name
 with non-ASCII bytes is scanned, and it reports a file it cannot read rather
-than passing it. `hygiene.scan_selftest` builds a scratch repository and
-requires the scan to find a home path and an address in a file with a
-non-ASCII name, and to report a file whose name holds a newline as unreadable.
+than passing it. It runs in the C locale, so text that is not UTF-8 is still
+scanned. `hygiene.scan_selftest` builds a scratch repository and, under a
+UTF-8 locale, requires the scan to find a home path and an address in a file
+with a non-ASCII name and in a Latin-1 file, and to report a file whose name
+holds a newline as unreadable.
 `hygiene.action_pins` checks that every
 `uses:` key under `.github` names a full 40-digit commit SHA or a local
 path; `hygiene.action_pins.bad` and `.good` show it rejects a tag and accepts

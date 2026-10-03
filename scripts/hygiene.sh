@@ -11,6 +11,13 @@
 # safe to paste anywhere. Exit status is 1 if anything was found.
 set -eu
 
+# The C locale for every command: under a UTF-8 locale grep -I takes bytes
+# that are not valid UTF-8 as binary and skips the file, so Latin-1 or other
+# non-UTF-8 text would pass the home-path and address scans. In the C locale
+# only a NUL byte makes a file binary.
+LC_ALL=C
+export LC_ALL
+
 # Path quoting off: git would otherwise print a name with bytes above 0x7F as
 # a C-quoted string, which names no file, so the file would go unscanned.
 git() { command git -c core.quotePath=false "$@"; }
@@ -52,10 +59,10 @@ check_file() {
     4e45531a | 4644531a) in_manifest "$1" || found 'game image by content' "$1" ;;
   esac
   # A file git treats as binary (a NUL byte, which grep -I also keys on in the
-  # C locale) must be listed in the manifest. This also stops save states, raw
+  # C locale set above) must be listed in the manifest. This also stops save states, raw
   # dumps and screenshots (ENGINEERING section 7).
   size=$($2 "$1" 2>/dev/null | head -c 1 | wc -c | tr -d ' ')
-  if [ "$size" != 0 ] && ! $2 "$1" 2>/dev/null | LC_ALL=C grep -I -q '' && ! in_manifest "$1"; then
+  if [ "$size" != 0 ] && ! $2 "$1" 2>/dev/null | grep -I -q '' && ! in_manifest "$1"; then
     found 'binary file not in manifest' "$1"
   fi
   if $2 "$1" 2>/dev/null | leaks "$HOME_PATH" "$HOME_OK"; then found 'home directory path' "$1"; fi
