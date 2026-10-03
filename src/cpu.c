@@ -221,6 +221,72 @@ static void transfer(struct nesturbator *nes, uint8_t *dst, uint8_t v)
     assign(nes, dst, v);
 }
 
+/* Shifts and rotates for the accumulator and read-modify-write forms. Each
+   touches only N, Z and C. */
+typedef uint8_t (*nesturbator_rmw_op)(struct nesturbator *nes, uint8_t v);
+
+/* ASL: bit 7 goes to C, a zero comes in at bit 0. */
+static uint8_t asl(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = (uint8_t)(v << 1);
+    set_flag(nes, FLAG_C, (v & 0x80u) != 0u);
+    set_nz(nes, r);
+    return r;
+}
+
+/* Read-modify-write at ea: the CPU reads v, writes v back unchanged while it
+   computes, then writes the result (64doc, "Read-Modify-Write instructions").
+   Both writes are real bus accesses. */
+static void rmw(struct nesturbator *nes, uint16_t ea, nesturbator_rmw_op op)
+{
+    uint8_t v = nesturbator__bus_read(nes, ea);
+    nesturbator__bus_write(nes, ea, v);
+    uint8_t r = op(nes, v);
+    nesturbator__bus_write(nes, ea, r);
+}
+
+/* The stack is page 1. A push writes at 0x0100 + S and then decrements S; a
+   pull increments S and then reads (64doc, "stack"). S wraps within the
+   page. */
+static void push(struct nesturbator *nes, uint8_t v)
+{
+    nesturbator__bus_write(nes, (uint16_t)(0x0100u | nes->cpu.s), v);
+    nes->cpu.s = (uint8_t)(nes->cpu.s - 1u);
+}
+
+static uint8_t pull(struct nesturbator *nes)
+{
+    nes->cpu.s = (uint8_t)(nes->cpu.s + 1u);
+    return nesturbator__bus_read(nes, (uint16_t)(0x0100u | nes->cpu.s));
+}
+
+/* The dummy read of the stack at 0x0100 + S that PLA, PLP, RTS, RTI and JSR
+   make before S moves. */
+static void stack_dummy(struct nesturbator *nes)
+{
+    nesturbator__bus_read(nes, (uint16_t)(0x0100u | nes->cpu.s));
+}
+
+/* Conditional branches: the offset byte, then, when taken, a dummy read at
+   PC while the low byte is added, and a second dummy read at
+   (old PCH << 8) | new PCL when the target is in another page (64doc,
+   "Relative addressing"). The offset is signed. */
+static void branch(struct nesturbator *nes, int cond)
+{
+    uint8_t off = fetch(nes);
+    if (!cond) {
+        return;
+    }
+    implied(nes);
+    uint16_t pc = nes->cpu.pc;
+    uint32_t delta = (off & 0x80u) != 0u ? (uint32_t)off + 0xFF00u : (uint32_t)off;
+    uint16_t target = (uint16_t)(pc + delta);
+    if ((target & 0xFF00u) != (pc & 0xFF00u)) {
+        nesturbator__bus_read(nes, (uint16_t)((pc & 0xFF00u) | (target & 0x00FFu)));
+    }
+    nes->cpu.pc = target;
+}
+
 void nesturbator__cpu_step(struct nesturbator *nes)
 {
     /* A jammed CPU reads 0xFFFF every cycle until reset (D-13). */
@@ -573,6 +639,41 @@ void nesturbator__cpu_step(struct nesturbator *nes)
     case 0xEA: /* NOP */
         implied(nes);
         break;
+
+    /* Read-modify-write. */
+    case 0x06: /* ASL zp */
+        rmw(nes, ea_zp(nes), asl);
+        break;
+
+    /* Stack. */
+    case 0x48: /* PHA */
+        implied(nes);
+        push(nes, nes->cpu.a);
+        break;
+    case 0x68: /* PLA */
+        implied(nes);
+        stack_dummy(nes);
+        assign(nes, &nes->cpu.a, pull(nes));
+        break;
+
+    /* Branches. */
+    case 0xD0: /* BNE */
+        branch(nes, (nes->cpu.p & FLAG_Z) == 0u);
+        break;
+
+    /* JSR: the low address byte, a dummy stack read, the return address
+       (the last operand byte) pushed high byte first, then the high address
+       byte, read after the pushes so a push over the operand is seen
+       (D-17). */
+    case 0x20: {
+        uint8_t lo = fetch(nes);
+        stack_dummy(nes);
+        push(nes, (uint8_t)(nes->cpu.pc >> 8));
+        push(nes, (uint8_t)nes->cpu.pc);
+        uint8_t hi = fetch(nes);
+        nes->cpu.pc = (uint16_t)(((uint32_t)hi << 8) | lo);
+        break;
+    }
 
     default:
         /* JAM: after the opcode, a read of the next byte that leaves PC
