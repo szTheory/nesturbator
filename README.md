@@ -37,7 +37,8 @@ Each lane is one command, `cmake --workflow --preset <lane>`.
 
 The `abi` tests hold the core to integer arithmetic and the C memory
 functions: a text scan of `src/` and `include/` for `float`, `double` and
-floating literals; an `nm` check that the library needs no symbol beyond
+decimal or hex floating literals, with a self-test that it finds `1.5`,
+`0x1p3` and `0x1.8p1`; an `nm` check that the library needs no symbol beyond
 `memcpy`, `memmove`, `memset`, `memcmp`, `malloc`, `free` and the
 toolchain's fortify and stack-protector helpers (plus `bzero` on macOS); an
 `nm` check that it defines no writable data; and a fixture with a `double`
