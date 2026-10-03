@@ -35,6 +35,8 @@ HOME_OK='(/Users/|/home/)runner'
 # Any address except GitHub noreply, documentation domains and SSH remotes.
 EMAIL='[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z][A-Za-z]+'
 EMAIL_OK='@users\.noreply\.github\.com|noreply@github\.com|@example\.(com|org|net)|git@github\.com'
+# Commit messages may also carry the AI co-author trailer's noreply address.
+MESSAGE_EMAIL_OK="$EMAIL_OK|noreply@anthropic\\.com"
 ROM_NAME='\.(nes|fds|unf|unif|nsf|nsfe|sav|srm|state)$'
 
 # stdin is text. True if some line matches $1 and does not match $2.
@@ -127,6 +129,14 @@ case $mode in
       fi
       if git grep -I -h -E -e "$EMAIL" "$c" -- . ":!$SELF" 2>/dev/null | grep -v -E -e "$EMAIL_OK" | grep -q .; then
         found 'email address' "commit $c"
+      fi
+      # A squash merge copies the pull request's title and body into the
+      # message, so messages are scanned as well.
+      if git log -1 --format=%B "$c" | leaks "$HOME_PATH" "$HOME_OK"; then
+        found 'home directory path' "message of $c"
+      fi
+      if git log -1 --format=%B "$c" | leaks "$EMAIL" "$MESSAGE_EMAIL_OK"; then
+        found 'email address' "message of $c"
       fi
       # --numstat shows a binary file's line counts as "-".
       for b in $(git diff-tree -r --root --no-commit-id --numstat "$c" |

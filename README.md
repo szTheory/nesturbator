@@ -49,10 +49,14 @@ and save files, and any file git treats as binary unless
 `tests/roms/manifest.txt` lists it. It reads file names unquoted, so a name
 with non-ASCII bytes is scanned, and it reports a file it cannot read rather
 than passing it. It runs in the C locale, so text that is not UTF-8 is still
-scanned. `hygiene.scan_selftest` builds a scratch repository and, under a
-UTF-8 locale, requires the scan to find a home path and an address in a file
-with a non-ASCII name and in a Latin-1 file, and to report a file whose name
-holds a newline as unreadable.
+scanned. The pre-push hook runs `scripts/hygiene.sh --history`, which also
+scans each commit's message; there the noreply address of the AI co-author
+trailer is allowed as well. `hygiene.scan_selftest` builds a scratch
+repository and, under a UTF-8 locale, requires the scan to find a home path
+and an address in a file with a non-ASCII name and in a Latin-1 file, and to
+report a file whose name holds a newline as unreadable. It then requires
+`--history` to find a home path and an address in a commit message and to
+pass a clean message that carries the trailer.
 `hygiene.action_pins` checks that every
 `uses:` key under `.github` names a full 40-digit commit SHA or a local
 path; `hygiene.action_pins.bad` and `.good` show it rejects a tag and accepts
