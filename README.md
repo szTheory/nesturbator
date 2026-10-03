@@ -223,9 +223,12 @@ required`, which passes only when every other job succeeded. Every action is
 pinned to a commit SHA, and Dependabot proposes updates weekly.
 
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
-04:17 UTC on Ubuntu 24.04, on demand, and on pull requests that change the
-workflow, `tests/vectors/` or `tests/cmake/fetch_vectors.cmake`. It is outside
-`CI required`, so a red nightly blocks no merge. It fetches the full set at
+04:17 UTC on Ubuntu 24.04, on demand, and on pull requests that change any
+of its inputs: the workflow, `CMakePresets.json`, `tests/CMakeLists.txt`,
+`tests/vectors/`, `tests/cpu/`, `tools/vecconv/`, `src/cpu.c`,
+`src/internal.h` and the scripts `fetch_vectors.cmake`,
+`vectors_full_run.cmake` and `vectors_sample_match.cmake` in `tests/cmake/`.
+It is outside `CI required`, so a red nightly blocks no merge. It fetches the full set at
 its pin on every run, with no cache, because a cache used every night would
 stop the fetch from ever being tested; offline, or with any file differing
 from `tests/vectors/pins.txt`, it fails rather than skips. A scheduled run

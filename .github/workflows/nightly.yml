@@ -11,12 +11,23 @@ on:
     - cron: "17 4 * * *"
   workflow_dispatch:
   # A pull request that changes the nightly's own inputs runs it too, since a
-  # schedule runs only on the default branch.
+  # schedule runs only on the default branch. The list is every file the
+  # vectors-full lane builds or runs: its presets and test registrations, the
+  # fetch, converter and run scripts, the harness, and the CPU, whose full
+  # 10000-test behaviour only this lane exercises.
   pull_request:
     paths:
       - .github/workflows/nightly.yml
+      - CMakePresets.json
+      - tests/CMakeLists.txt
       - tests/vectors/**
+      - tests/cpu/**
       - tests/cmake/fetch_vectors.cmake
+      - tests/cmake/vectors_full_run.cmake
+      - tests/cmake/vectors_sample_match.cmake
+      - tools/vecconv/**
+      - src/cpu.c
+      - src/internal.h
 
 permissions: {}
 
