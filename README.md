@@ -318,34 +318,42 @@ RetroArch; its source and licence are in
 
 ## Install in RetroArch (Apple Silicon)
 
-With RetroArch installed (see below), this one line puts the released core in
-RetroArch's `cores` directory and its information file in `info`:
+With RetroArch installed (see below), these two lines put the released core
+in RetroArch's `cores` directory and its information file in `info`. The
+first sets the version; the second downloads and extracts:
 
 <!-- x-release-please-start-version -->
 ```sh
-mkdir -p ~/Library/Application\ Support/RetroArch && curl -fsSL https://github.com/szTheory/nesturbator/releases/download/v0.0.0/nesturbator-0.0.0-libretro-macos-arm64.zip | tar -xf - -C ~/Library/Application\ Support/RetroArch cores info
+NESTURBATOR_VERSION=0.0.0
+mkdir -p ~/Library/Application\ Support/RetroArch && curl -fsSL "https://github.com/szTheory/nesturbator/releases/download/v$NESTURBATOR_VERSION/nesturbator-$NESTURBATOR_VERSION-libretro-macos-arm64.zip" | tar -xf - -C ~/Library/Application\ Support/RetroArch cores info
 ```
 <!-- x-release-please-end -->
 
 Then start RetroArch, choose Load Core → nesturbator, then Start Core: the
 test card appears.
 
-Each release pull request updates the version in the line; the first release
-is v0.1.0. Naming `cores info` leaves the archive's `LICENSE` and
+Each release pull request updates the version on the first line; the first
+release is v0.1.0. The version sits on a line of its own because
+release-please changes only one version on each marked line. Naming `cores info` leaves the archive's `LICENSE` and
 `THIRD-PARTY-NOTICES.md` out of RetroArch's directory. Files fetched with
 `curl` carry no quarantine flag, so macOS loads the core without a prompt.
-This checks the line's extraction against the archive a build writes:
+This checks the lines' extraction against the archive a build writes:
 
 ```sh
 cmake -DREADME=README.md -DPACKAGES=build/ci/packages -DOUT=build/ci/install-line -P tests/cmake/check_install_line.cmake
 ```
 
-It takes the `tar` arguments from the line above, pipes the zip through them
+It takes the `tar` arguments from the second line above, pipes the zip through them
 on standard input as `curl` would, and requires exactly
 `cores/nesturbator_libretro.dylib` and `info/nesturbator_libretro.info`. It
-also requires the URL to name the version in `version.txt`. It runs on macOS,
+also requires the `NESTURBATOR_VERSION` line to equal `version.txt`, and the
+URL to take both the release tag and the file name from
+`$NESTURBATOR_VERSION`. It runs on macOS,
 whose `tar` reads a zip from standard input, and on the macOS arm64 leg of
-continuous integration.
+continuous integration. On every platform, the `ci` preset's
+`release.one_version_per_line` test fails, naming file and line, if any line
+inside an `x-release-please` block of a file release-please updates holds
+more than one version.
 
 ## Try it in RetroArch (from a build)
 

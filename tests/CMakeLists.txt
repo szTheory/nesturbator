@@ -152,6 +152,19 @@ add_test(NAME version.consistency
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_consistency.cmake)
 
+# release-please rewrites only the first version on each marked line, so no
+# marked line in its extra-files may hold two. The self-test runs the scan on
+# a fixture with two versions on line 3 and passes only on that exact error.
+add_test(NAME release.one_version_per_line
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_markers.cmake)
+add_test(NAME release.one_version_per_line.self_test
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DFILES=tests/release/two_versions.md
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_markers.cmake)
+set_tests_properties(release.one_version_per_line.self_test PROPERTIES
+  PASS_REGULAR_EXPRESSION "tests/release/two_versions\\.md:3: 2 versions")
+
 # libretro.h is RetroArch v1.22.2's copy (commit
 # 69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576), byte for byte. .gitattributes
 # keeps it LF on Windows checkouts too.
