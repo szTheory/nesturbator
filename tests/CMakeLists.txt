@@ -324,6 +324,14 @@ add_test(NAME vecconv.a9_tail
     -DOPCODE=a9 -DFIRST=3 -DRUN=OFF
     -DOUT=${CMAKE_CURRENT_BINARY_DIR}/vectors/a9-tail.n65v
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_fixture.cmake)
+# A failed vector's write to an address it does not list must not reach the
+# next vector: cpu.vectors zeroes all of RAM after a failure.
+add_test(NAME cpu.vectors.stray-write
+  COMMAND ${CMAKE_COMMAND}
+    -DVECCONV=$<TARGET_FILE:vecconv>
+    -DVECTORS=$<TARGET_FILE:cpu.vectors>
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/vectors/stray-write
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_stray_write.cmake)
 
 # D-02: each malformed input makes vecconv exit 1 with a byte offset.
 # vecconv_negative.cmake builds the case from a fixture and passes only on

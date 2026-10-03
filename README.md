@@ -127,7 +127,12 @@ opcode k, indexes 0 to 99 in each chunk, and nothing after the last chunk.
 compares registers, RAM and every bus cycle, dummy reads included; it passes
 only on exit status 0 and the exact line `65x02/<xx>: 0 of 100 vectors
 failed`. A failure names the upstream test as `xx.json[i]` and the first field
-that differs. The label `vectors` selects all 256 opcodes, `cpu.vectors.00`
+that differs. Each test starts from zeroed RAM: after a pass the harness
+zeroes the addresses the test listed, and after a failure all 64 KiB, since a
+failing CPU may have written anywhere. `cpu.vectors.stray-write` runs two INC
+tests that do not list their target address, the first with a wrong expected
+A, and requires `65x02/e6: 1 of 2 vectors failed`: the first test's write
+must not reach the second. The label `vectors` selects all 256 opcodes, `cpu.vectors.00`
 to `cpu.vectors.ff`, with no opcode or vector skipped: the 151 official ones
 in every addressing mode, the stable unofficial ones (NOP variants, LAX, SAX,
 SLO, RLA, SRE, RRA, DCP, ISC, ANC, ALR, ARR, SBX and SBC `eb`), the twelve

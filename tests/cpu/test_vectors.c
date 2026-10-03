@@ -184,10 +184,16 @@ static int run_test(uint8_t opcode)
     return 1;
 }
 
-/* Zeroes the addresses this test named, so the next test starts from zeroed
-   RAM. The cycle compare shows that no other address was written. */
-static void clear_ram(void)
+/* Zeroes RAM after a test, so the next test starts from zeroed RAM. After a
+   pass the cycle compare shows that only the named addresses can have been
+   written, so only those are zeroed. A failed test may have written any
+   address, so all of RAM is zeroed. */
+static void clear_ram(int passed)
 {
+    if (!passed) {
+        memset(machine.ram, 0, sizeof machine.ram);
+        return;
+    }
     for (uint32_t i = 0u; i < test.initial.ram_count; i++) {
         machine.ram[test.initial.ram_addr[i]] = 0u;
     }
@@ -230,10 +236,11 @@ int main(int argc, char **argv)
             continue;
         }
         run++;
-        if (!run_test(opcode)) {
+        int passed = run_test(opcode);
+        if (!passed) {
             failed++;
         }
-        clear_ram();
+        clear_ram(passed);
     }
     free(buf);
     if (rc < 0) {
