@@ -9,31 +9,31 @@ findings:
     title: "hygiene.sh never scans tracked files whose names contain non-ASCII bytes"
   - id: CR-02
     severity: critical
-    disposition: open
+    disposition: fixed
     title: "Under a UTF-8 locale, `grep -I` skips non-UTF-8 text, so the home-path and email scans miss it"
   - id: WR-01
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "`--frames 4294967295` makes the runner loop forever"
   - id: WR-02
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "The runner exits 0 and does nothing when `--frames` is missing; the README says it is required"
   - id: WR-03
     severity: warning
-    disposition: open
+    disposition: skipped
     title: "The size-tag rule rejects larger structs whose padding bytes are not zero, and callers cannot control those bytes"
   - id: WR-04
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "The allocator contract states no alignment requirement, but arena allocators are explicitly invited"
   - id: WR-05
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Configuring the project from another CMake project fails on any OS or CPU outside the six release targets"
   - id: WR-06
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "`--history` checks commit identities but never checks commit message bodies"
   - id: WR-07
     severity: warning
@@ -41,11 +41,11 @@ findings:
     title: "The float scan misses hex floating literals"
   - id: WR-08
     severity: warning
-    disposition: open
+    disposition: skipped
     title: "The one-time `release-as: \"0.1.0\"` pin has only a manual todo to remove it, and nothing checks it"
   - id: WR-09
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "CI installs Ninja without `apt-get update`, and its one-minute timeouts sit on the only required check"
   - id: IN-01
     severity: info
@@ -87,9 +87,9 @@ findings:
     severity: info
     disposition: open
     title: "The no-global-state and allowed-symbol checks run only on Linux and miss some nm symbol types"
-open: 19
+open: 10
 total: 21
-recorded: 2026-10-03T01:56:45.076Z
+recorded: 2026-10-03T01:56:55.384Z
 ---
 
 # Phase 01: Code Review Disposition
@@ -97,16 +97,16 @@ recorded: 2026-10-03T01:56:45.076Z
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
 | CR-01 | critical | fixed | 01-REVIEW-FIX.md |
-| CR-02 | critical | open | - |
-| WR-01 | warning | open | - |
-| WR-02 | warning | open | - |
-| WR-03 | warning | open | - |
-| WR-04 | warning | open | - |
-| WR-05 | warning | open | - |
-| WR-06 | warning | open | - |
+| CR-02 | critical | fixed | 01-REVIEW-FIX.md |
+| WR-01 | warning | fixed | 01-REVIEW-FIX.md |
+| WR-02 | warning | fixed | 01-REVIEW-FIX.md |
+| WR-03 | warning | skipped | 01-REVIEW-FIX.md |
+| WR-04 | warning | fixed | 01-REVIEW-FIX.md |
+| WR-05 | warning | fixed | 01-REVIEW-FIX.md |
+| WR-06 | warning | fixed | 01-REVIEW-FIX.md |
 | WR-07 | warning | fixed | 01-REVIEW-FIX.md |
-| WR-08 | warning | open | - |
-| WR-09 | warning | open | - |
+| WR-08 | warning | skipped | 01-REVIEW-FIX.md |
+| WR-09 | warning | fixed | 01-REVIEW-FIX.md |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |
