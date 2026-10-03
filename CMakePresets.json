@@ -51,6 +51,11 @@
       "name": "hygiene",
       "inherits": "base",
       "cacheVariables": { "NESTURBATOR_HYGIENE": "ON" }
+    },
+    {
+      "name": "vectors-full",
+      "inherits": "ci",
+      "cacheVariables": { "NESTURBATOR_VECTORS_FULL": "ON" }
     }
   ],
   "buildPresets": [
@@ -59,7 +64,8 @@
     { "name": "ci-msvc", "configurePreset": "ci-msvc" },
     { "name": "asan", "configurePreset": "asan" },
     { "name": "nofp", "configurePreset": "nofp" },
-    { "name": "hygiene", "configurePreset": "hygiene" }
+    { "name": "hygiene", "configurePreset": "hygiene" },
+    { "name": "vectors-full", "configurePreset": "vectors-full" }
   ],
   "testPresets": [
     {
@@ -100,6 +106,13 @@
       "configurePreset": "hygiene",
       "output": { "outputOnFailure": true },
       "filter": { "include": { "label": "hygiene" } },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "vectors-full",
+      "configurePreset": "vectors-full",
+      "output": { "outputOnFailure": true },
+      "filter": { "include": { "label": "vectors-full" } },
       "execution": { "noTestsAction": "error" }
     }
   ],
@@ -156,6 +169,14 @@
         { "type": "configure", "name": "hygiene" },
         { "type": "build", "name": "hygiene" },
         { "type": "test", "name": "hygiene" }
+      ]
+    },
+    {
+      "name": "vectors-full",
+      "steps": [
+        { "type": "configure", "name": "vectors-full" },
+        { "type": "build", "name": "vectors-full" },
+        { "type": "test", "name": "vectors-full" }
       ]
     }
   ]

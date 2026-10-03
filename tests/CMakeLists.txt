@@ -354,6 +354,43 @@ add_test(NAME manifest.sha256.selftest
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/manifest_sha256.cmake)
 
+# CPU-02, D-22: the full 65x02 set, fetched by git at the pin in
+# tests/vectors/pins.txt. These tests need the network, so they are registered
+# only when NESTURBATOR_VECTORS_FULL is ON (the vectors-full preset) and the
+# ci lane never fetches. Offline the fetch fails; nothing here skips.
+option(NESTURBATOR_VECTORS_FULL "Register the full 65x02 vector tests (network)" OFF)
+set(NESTURBATOR_VECTORS_DIR ${CMAKE_BINARY_DIR}/vectors-full CACHE PATH
+  "Where cpu.vectors-full.fetch keeps the fetched 65x02 files (not in the source tree outside build/)")
+if(NESTURBATOR_VECTORS_FULL)
+  find_program(NESTURBATOR_GIT git REQUIRED)
+  set(vectors_full_files ${NESTURBATOR_VECTORS_DIR}/src/nes6502/v1)
+  set(vectors_full_out ${CMAKE_CURRENT_BINARY_DIR}/vectors-full)
+  file(MAKE_DIRECTORY ${vectors_full_out})
+  add_test(NAME cpu.vectors-full.fetch
+    COMMAND ${CMAKE_COMMAND}
+      -DDIR=${NESTURBATOR_VECTORS_DIR}
+      -DPINS=${CMAKE_CURRENT_SOURCE_DIR}/vectors/pins.txt
+      -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DGIT=${NESTURBATOR_GIT}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_vectors.cmake)
+  set_tests_properties(cpu.vectors-full.fetch PROPERTIES
+    FIXTURES_SETUP vectors_full TIMEOUT 900 LABELS vectors-full)
+  # Each file's 10000 tests through the CPU. The script's exit status decides
+  # the test, so it sets no regex property.
+  foreach(op a9)
+    add_test(NAME cpu.vectors-full.${op}
+      COMMAND ${CMAKE_COMMAND}
+        -DVECCONV=$<TARGET_FILE:vecconv>
+        -DVECTORS=$<TARGET_FILE:cpu.vectors>
+        -DJSON=${vectors_full_files}/${op}.json
+        -DOPCODE=${op}
+        -DOUT=${vectors_full_out}/${op}.n65v
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_full_run.cmake)
+    set_tests_properties(cpu.vectors-full.${op} PROPERTIES
+      FIXTURES_REQUIRED vectors_full LABELS vectors-full)
+  endforeach()
+endif()
+
 # FRAME-02: install the library component into <build>/stage, then build
 # tests/consumer against it with find_package and run it. The consumer gets
 # the parent's compiler, build type, C flags and link flags, each as one

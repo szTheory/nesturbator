@@ -20,6 +20,7 @@ cmake --workflow --preset dev   # Debug build and the same tests
 cmake --workflow --preset asan  # the same tests under AddressSanitizer and UBSan
 cmake --workflow --preset nofp  # core built with -mgeneral-regs-only; the abi checks
 cmake --workflow --preset hygiene  # tree contents, action pins and formatting
+cmake --workflow --preset vectors-full  # the full 65x02 vector set, fetched at its pin (network)
 ```
 
 On Windows with MSVC, use `ci-msvc` from a developer command prompt.
@@ -35,6 +36,7 @@ Each lane is one command, `cmake --workflow --preset <lane>`.
 | `asan` | Every test except the RetroArch launch passes under AddressSanitizer and UBSan, with any report fatal |
 | `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
+| `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
 
 The `abi` tests hold the core to integer arithmetic and the C memory
 functions: a text scan of `src/` and `include/` for `float`, `double` and
@@ -162,6 +164,17 @@ tab-separated fields, a pin that is a 40-digit commit or a release tag, a
 licence, and a file whose SHA-256 equals the line's.
 `manifest.sha256.selftest` lists a scratch file with a wrong hash and passes
 only if the check reports it.
+The `vectors-full` lane registers its tests only when the CMake option
+`NESTURBATOR_VECTORS_FULL` is on, which its preset sets, so `ci` never touches
+the network. `cpu.vectors-full.fetch` runs `tests/cmake/fetch_vectors.cmake`:
+a sparse, blobless, depth-1 git fetch of upstream `nes6502/v1` at the commit
+on the first line of `tests/vectors/pins.txt` (about 190 MB, a minute or two),
+then a size and SHA-256 check of all 256 files against that file's lines. A
+missing, extra or altered file fails with its path and both hashes, and so
+does a run without the network; nothing is skipped. When every file already
+verifies it fetches nothing. `cpu.vectors-full.a9` converts all of `a9.json`
+with `vecconv`, which then requires exactly 10000 tests, and runs it through
+the CPU: `65x02/a9: 0 of 10000 vectors failed`.
 `bus.unit` checks the library's bus (`src/bus.c`) on its own: each read or
 write advances time by 24 ticks, a byte written at `0x0001` reads back at
 `0x0801`, `0x1001` and `0x1801`, a read outside RAM returns the last value on
