@@ -9,6 +9,8 @@
 # Carriage returns are removed before writing, because the Windows C runtime
 # writes "\r\n" on text-mode standard output.
 
+cmake_minimum_required(VERSION 3.25)
+
 if(NOT DEFINED BUILD OR NOT DEFINED OUT)
   message(FATAL_ERROR "write_hashes: pass -DBUILD=<build dir> -DOUT=<file>")
 endif()
@@ -35,5 +37,10 @@ if(NOT rc EQUAL 0)
   message(FATAL_ERROR "write_hashes: ${runner} exited with ${rc}: ${errors}")
 endif()
 string(REPLACE "\r" "" hashes "${hashes}")
-file(WRITE "${OUT}" "${hashes}")
+# file(WRITE) gave a file that differed from the LF reference on both
+# Windows runners (CI run 37084293594); file(CONFIGURE) is told the line
+# ending, LF, so every platform writes the same bytes. It ends the content
+# with a newline of its own, so the runner's last one is removed first.
+string(REGEX REPLACE "\n$" "" hashes "${hashes}")
+file(CONFIGURE OUTPUT "${OUT}" CONTENT "@hashes@" @ONLY NEWLINE_STYLE LF)
 message(STATUS "write_hashes: wrote ${OUT}")

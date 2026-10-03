@@ -8,6 +8,10 @@
 # header per object; the name is the last token. Mach-O prefixes every C
 # symbol with one underscore, which is stripped when APPLE is true.
 
+# Script mode starts with no policies set: CMake 3.x then reads IN_LIST with
+# its pre-3.3 meaning and fails (measured on the CI runners' CMake 3.31).
+cmake_minimum_required(VERSION 3.25)
+
 # The C memory functions; malloc and free for the default allocator (D-08);
 # the fortify and stack-protector helpers that hardened toolchains emit
 # (01-RESEARCH Pitfall 4, measured with Apple clang 21).
