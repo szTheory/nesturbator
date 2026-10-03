@@ -29,13 +29,18 @@
 
 /* 6502 core state (D-10). P is kept exactly as loaded or pulled: flag
    writes touch only their own bits, so bits 4 and 5 change only on a pull.
-   The interrupt fields are unused until the bus samples the lines. */
+   The interrupt fields and halted_in_read are unused until the bus samples
+   the lines and stalls reads.
+   The power-up state is not set yet: nesturbator_create zeroes the instance,
+   so a new CPU has P, S and PC equal to 0 and no reset vector fetch. Nothing
+   runs the CPU during a frame yet; the phase that does adds the reset
+   sequence, which sets S, P and PC and clears jammed. */
 struct nesturbator__cpu {
     uint16_t pc;
     uint8_t a, x, y, s, p;
     uint8_t nmi_prev, nmi_pending, irq_line, poll_latch;
     uint8_t halted_in_read; /* nonzero while the current read is stalled */
-    uint8_t jammed;         /* set by a JAM opcode; only reset clears it */
+    uint8_t jammed;         /* set by a JAM opcode; nothing clears it yet */
 };
 
 /* Bus-side state: 2048 bytes of internal RAM and the open-bus latch, the
