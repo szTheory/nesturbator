@@ -284,6 +284,14 @@ set(NESTURBATOR_OFFICIAL_OPCODES
   d1 d5 d6 d8 d9 dd de e0 e1 e4 e5 e6 e8 e9 ea ec ed ee f0 f1 f5 f6 f8 f9 fd
   fe)
 nesturbator_vector_tests(${NESTURBATOR_OFFICIAL_OPCODES})
+# The 85 stable unofficial opcodes: 27 NOP variants, LAX and SAX, the 42
+# combined read-modify-writes, and ANC, ALR, ARR, SBX and SBC immediate.
+set(NESTURBATOR_STABLE_UNOFFICIAL_OPCODES
+  1a 3a 5a 7a da fa 80 82 89 c2 e2 04 44 64 14 34 54 74 d4 f4 0c 1c 3c 5c 7c
+  dc fc a7 b7 af bf a3 b3 87 97 8f 83 03 07 0f 13 17 1b 1f 23 27 2f 33 37 3b
+  3f 43 47 4f 53 57 5b 5f 63 67 6f 73 77 7b 7f c3 c7 cf d3 d7 db df e3 e7 ef
+  f3 f7 fb ff 0b 2b 4b 6b cb eb)
+nesturbator_vector_tests(${NESTURBATOR_STABLE_UNOFFICIAL_OPCODES})
 
 # D-02, D-06: vecconv converts the compact layout of 02.json, and a prefix
 # that ends inside the 4th test of a9.json converts with --first 3. JAM runs

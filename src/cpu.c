@@ -279,6 +279,86 @@ static uint8_t dec(struct nesturbator *nes, uint8_t v)
     return r;
 }
 
+/* The combined unofficial read-modify-writes: the shift, rotate, increment
+   or decrement writes memory, then its result feeds an ALU operation on A
+   (NESdev Wiki "CPU unofficial opcodes", revision 23975). The timing is that
+   of rmw. SLO: ASL then ORA. RLA: ROL then AND. SRE: LSR then EOR. RRA: ROR
+   then ADC with the C that ROR left. DCP: DEC then CMP. ISC: INC then SBC. */
+static uint8_t slo(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = asl(nes, v);
+    ora(nes, r);
+    return r;
+}
+
+static uint8_t rla(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = rol(nes, v);
+    and_op(nes, r);
+    return r;
+}
+
+static uint8_t sre(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = lsr(nes, v);
+    eor(nes, r);
+    return r;
+}
+
+static uint8_t rra(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = ror(nes, v);
+    adc(nes, r);
+    return r;
+}
+
+static uint8_t dcp(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = (uint8_t)(v - 1u);
+    cmp_reg(nes, nes->cpu.a, r);
+    return r;
+}
+
+static uint8_t isc(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = (uint8_t)(v + 1u);
+    sbc(nes, r);
+    return r;
+}
+
+/* LAX: A and X both take the value read; N and Z follow it. */
+static void lax(struct nesturbator *nes, uint8_t v)
+{
+    nes->cpu.x = v;
+    assign(nes, &nes->cpu.a, v);
+}
+
+/* ANC: AND, then C copies N. */
+static void anc(struct nesturbator *nes, uint8_t v)
+{
+    and_op(nes, v);
+    set_flag(nes, FLAG_C, (nes->cpu.a & 0x80u) != 0u);
+}
+
+/* ARR: t = A AND v, then A = t rotated right through C. N and Z follow A;
+   C is bit 6 of A and V is bit 6 XOR bit 5. No other flag changes. */
+static void arr(struct nesturbator *nes, uint8_t v)
+{
+    uint32_t t = (uint32_t)(nes->cpu.a & v);
+    uint8_t r = (uint8_t)((t >> 1) | ((uint32_t)(nes->cpu.p & FLAG_C) << 7));
+    assign(nes, &nes->cpu.a, r);
+    set_flag(nes, FLAG_C, (r & 0x40u) != 0u);
+    set_flag(nes, FLAG_V, ((((uint32_t)r >> 6) ^ ((uint32_t)r >> 5)) & 1u) != 0u);
+}
+
+/* SBX: X = (A AND X) - v without borrow in; C, N and Z as CMP sets them. */
+static void sbx(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t t = (uint8_t)(nes->cpu.a & nes->cpu.x);
+    cmp_reg(nes, t, v);
+    nes->cpu.x = (uint8_t)(t - v);
+}
+
 /* The accumulator forms of ASL, LSR, ROL and ROR: one dummy cycle. */
 static void accumulator(struct nesturbator *nes, nesturbator_rmw_op op)
 {
@@ -910,6 +990,231 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         nes->cpu.pc = (uint16_t)(((uint32_t)hi << 8) | lo);
         break;
     }
+
+    /* Unofficial NOPs (NESdev Wiki "CPU unofficial opcodes", revision
+       23975). Each makes the bus accesses of its addressing mode and changes
+       nothing; the memory forms read the operand, and abs,X makes the dummy
+       read only on a page cross, as a read does. */
+    case 0x1A:
+    case 0x3A:
+    case 0x5A:
+    case 0x7A:
+    case 0xDA:
+    case 0xFA:
+        implied(nes);
+        break;
+    case 0x80:
+    case 0x82:
+    case 0x89:
+    case 0xC2:
+    case 0xE2:
+        fetch(nes);
+        break;
+    case 0x04:
+    case 0x44:
+    case 0x64:
+        read_at(nes, ea_zp(nes));
+        break;
+    case 0x14:
+    case 0x34:
+    case 0x54:
+    case 0x74:
+    case 0xD4:
+    case 0xF4:
+        read_at(nes, ea_zpx(nes));
+        break;
+    case 0x0C:
+        read_at(nes, ea_abs(nes));
+        break;
+    case 0x1C:
+    case 0x3C:
+    case 0x5C:
+    case 0x7C:
+    case 0xDC:
+    case 0xFC:
+        read_at(nes, ea_absi(nes, nes->cpu.x, 0));
+        break;
+
+    /* LAX: load A and X. */
+    case 0xA7: /* LAX zp */
+        lax(nes, read_at(nes, ea_zp(nes)));
+        break;
+    case 0xB7: /* LAX zp,Y */
+        lax(nes, read_at(nes, ea_zpy(nes)));
+        break;
+    case 0xAF: /* LAX abs */
+        lax(nes, read_at(nes, ea_abs(nes)));
+        break;
+    case 0xBF: /* LAX abs,Y */
+        lax(nes, read_at(nes, ea_absi(nes, nes->cpu.y, 0)));
+        break;
+    case 0xA3: /* LAX (zp,X) */
+        lax(nes, read_at(nes, ea_izx(nes)));
+        break;
+    case 0xB3: /* LAX (zp),Y */
+        lax(nes, read_at(nes, ea_izy(nes, 0)));
+        break;
+
+    /* SAX: store A AND X; no flag changes. */
+    case 0x87: /* SAX zp */
+        nesturbator__bus_write(nes, ea_zp(nes), (uint8_t)(nes->cpu.a & nes->cpu.x));
+        break;
+    case 0x97: /* SAX zp,Y */
+        nesturbator__bus_write(nes, ea_zpy(nes), (uint8_t)(nes->cpu.a & nes->cpu.x));
+        break;
+    case 0x8F: /* SAX abs */
+        nesturbator__bus_write(nes, ea_abs(nes), (uint8_t)(nes->cpu.a & nes->cpu.x));
+        break;
+    case 0x83: /* SAX (zp,X) */
+        nesturbator__bus_write(nes, ea_izx(nes), (uint8_t)(nes->cpu.a & nes->cpu.x));
+        break;
+
+    /* Combined read-modify-writes. abs,X, abs,Y and (zp),Y always make the
+       dummy read, as a read-modify-write does. */
+    case 0x03: /* SLO (zp,X) */
+        rmw(nes, ea_izx(nes), slo);
+        break;
+    case 0x07: /* SLO zp */
+        rmw(nes, ea_zp(nes), slo);
+        break;
+    case 0x0F: /* SLO abs */
+        rmw(nes, ea_abs(nes), slo);
+        break;
+    case 0x13: /* SLO (zp),Y */
+        rmw(nes, ea_izy(nes, 1), slo);
+        break;
+    case 0x17: /* SLO zp,X */
+        rmw(nes, ea_zpx(nes), slo);
+        break;
+    case 0x1B: /* SLO abs,Y */
+        rmw(nes, ea_absi(nes, nes->cpu.y, 1), slo);
+        break;
+    case 0x1F: /* SLO abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), slo);
+        break;
+    case 0x23: /* RLA (zp,X) */
+        rmw(nes, ea_izx(nes), rla);
+        break;
+    case 0x27: /* RLA zp */
+        rmw(nes, ea_zp(nes), rla);
+        break;
+    case 0x2F: /* RLA abs */
+        rmw(nes, ea_abs(nes), rla);
+        break;
+    case 0x33: /* RLA (zp),Y */
+        rmw(nes, ea_izy(nes, 1), rla);
+        break;
+    case 0x37: /* RLA zp,X */
+        rmw(nes, ea_zpx(nes), rla);
+        break;
+    case 0x3B: /* RLA abs,Y */
+        rmw(nes, ea_absi(nes, nes->cpu.y, 1), rla);
+        break;
+    case 0x3F: /* RLA abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), rla);
+        break;
+    case 0x43: /* SRE (zp,X) */
+        rmw(nes, ea_izx(nes), sre);
+        break;
+    case 0x47: /* SRE zp */
+        rmw(nes, ea_zp(nes), sre);
+        break;
+    case 0x4F: /* SRE abs */
+        rmw(nes, ea_abs(nes), sre);
+        break;
+    case 0x53: /* SRE (zp),Y */
+        rmw(nes, ea_izy(nes, 1), sre);
+        break;
+    case 0x57: /* SRE zp,X */
+        rmw(nes, ea_zpx(nes), sre);
+        break;
+    case 0x5B: /* SRE abs,Y */
+        rmw(nes, ea_absi(nes, nes->cpu.y, 1), sre);
+        break;
+    case 0x5F: /* SRE abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), sre);
+        break;
+    case 0x63: /* RRA (zp,X) */
+        rmw(nes, ea_izx(nes), rra);
+        break;
+    case 0x67: /* RRA zp */
+        rmw(nes, ea_zp(nes), rra);
+        break;
+    case 0x6F: /* RRA abs */
+        rmw(nes, ea_abs(nes), rra);
+        break;
+    case 0x73: /* RRA (zp),Y */
+        rmw(nes, ea_izy(nes, 1), rra);
+        break;
+    case 0x77: /* RRA zp,X */
+        rmw(nes, ea_zpx(nes), rra);
+        break;
+    case 0x7B: /* RRA abs,Y */
+        rmw(nes, ea_absi(nes, nes->cpu.y, 1), rra);
+        break;
+    case 0x7F: /* RRA abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), rra);
+        break;
+    case 0xC3: /* DCP (zp,X) */
+        rmw(nes, ea_izx(nes), dcp);
+        break;
+    case 0xC7: /* DCP zp */
+        rmw(nes, ea_zp(nes), dcp);
+        break;
+    case 0xCF: /* DCP abs */
+        rmw(nes, ea_abs(nes), dcp);
+        break;
+    case 0xD3: /* DCP (zp),Y */
+        rmw(nes, ea_izy(nes, 1), dcp);
+        break;
+    case 0xD7: /* DCP zp,X */
+        rmw(nes, ea_zpx(nes), dcp);
+        break;
+    case 0xDB: /* DCP abs,Y */
+        rmw(nes, ea_absi(nes, nes->cpu.y, 1), dcp);
+        break;
+    case 0xDF: /* DCP abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), dcp);
+        break;
+    case 0xE3: /* ISC (zp,X) */
+        rmw(nes, ea_izx(nes), isc);
+        break;
+    case 0xE7: /* ISC zp */
+        rmw(nes, ea_zp(nes), isc);
+        break;
+    case 0xEF: /* ISC abs */
+        rmw(nes, ea_abs(nes), isc);
+        break;
+    case 0xF3: /* ISC (zp),Y */
+        rmw(nes, ea_izy(nes, 1), isc);
+        break;
+    case 0xF7: /* ISC zp,X */
+        rmw(nes, ea_zpx(nes), isc);
+        break;
+    case 0xFB: /* ISC abs,Y */
+        rmw(nes, ea_absi(nes, nes->cpu.y, 1), isc);
+        break;
+    case 0xFF: /* ISC abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), isc);
+        break;
+
+    /* Unofficial immediate ALU operations. */
+    case 0x0B: /* ANC */
+    case 0x2B:
+        anc(nes, fetch(nes));
+        break;
+    case 0x4B: /* ALR: AND, then LSR of A */
+        nes->cpu.a = lsr(nes, (uint8_t)(nes->cpu.a & fetch(nes)));
+        break;
+    case 0x6B: /* ARR */
+        arr(nes, fetch(nes));
+        break;
+    case 0xCB: /* SBX */
+        sbx(nes, fetch(nes));
+        break;
+    case 0xEB: /* SBC immediate */
+        sbc(nes, fetch(nes));
+        break;
 
     default:
         /* JAM: after the opcode, a read of the next byte that leaves PC
