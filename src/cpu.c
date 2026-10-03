@@ -10,12 +10,15 @@
    cycles is the order of the source. */
 #include "internal.h"
 
-/* Flag bits of P. Bits 4 and 5 have no name here: no instruction in this
-   file writes them (02-RESEARCH Pitfall 1). */
+/* Flag bits of P. Bits 4 (B) and 5 exist only on the stack: PHP and BRK push
+   P | 0x30, and PLP and RTI load (v & ~0x10) | 0x20. No other instruction
+   writes them (02-RESEARCH Pitfall 1; D-16). */
 #define FLAG_C 0x01u
 #define FLAG_Z 0x02u
 #define FLAG_I 0x04u
 #define FLAG_D 0x08u
+#define FLAG_B 0x10u
+#define FLAG_U 0x20u
 #define FLAG_V 0x40u
 #define FLAG_N 0x80u
 
@@ -234,6 +237,55 @@ static uint8_t asl(struct nesturbator *nes, uint8_t v)
     return r;
 }
 
+/* LSR: bit 0 goes to C, a zero comes in at bit 7. */
+static uint8_t lsr(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = (uint8_t)(v >> 1);
+    set_flag(nes, FLAG_C, (v & 0x01u) != 0u);
+    set_nz(nes, r);
+    return r;
+}
+
+/* ROL: bit 7 goes to C, the old C comes in at bit 0. */
+static uint8_t rol(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = (uint8_t)((uint32_t)(v << 1) | (nes->cpu.p & FLAG_C));
+    set_flag(nes, FLAG_C, (v & 0x80u) != 0u);
+    set_nz(nes, r);
+    return r;
+}
+
+/* ROR: bit 0 goes to C, the old C comes in at bit 7. */
+static uint8_t ror(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = (uint8_t)((uint32_t)(v >> 1) | ((uint32_t)(nes->cpu.p & FLAG_C) << 7));
+    set_flag(nes, FLAG_C, (v & 0x01u) != 0u);
+    set_nz(nes, r);
+    return r;
+}
+
+/* INC and DEC in memory: N and Z only. */
+static uint8_t inc(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = (uint8_t)(v + 1u);
+    set_nz(nes, r);
+    return r;
+}
+
+static uint8_t dec(struct nesturbator *nes, uint8_t v)
+{
+    uint8_t r = (uint8_t)(v - 1u);
+    set_nz(nes, r);
+    return r;
+}
+
+/* The accumulator forms of ASL, LSR, ROL and ROR: one dummy cycle. */
+static void accumulator(struct nesturbator *nes, nesturbator_rmw_op op)
+{
+    implied(nes);
+    nes->cpu.a = op(nes, nes->cpu.a);
+}
+
 /* Read-modify-write at ea: the CPU reads v, writes v back unchanged while it
    computes, then writes the result (64doc, "Read-Modify-Write instructions").
    Both writes are real bus accesses. */
@@ -285,6 +337,28 @@ static void branch(struct nesturbator *nes, int cond)
         nesturbator__bus_read(nes, (uint16_t)((pc & 0xFF00u) | (target & 0x00FFu)));
     }
     nes->cpu.pc = target;
+}
+
+/* PLP and RTI: bit 4 clear and bit 5 set whatever the stack held (D-16). */
+static void pull_p(struct nesturbator *nes)
+{
+    uint8_t v = pull(nes);
+    nes->cpu.p = (uint8_t)((v & (uint8_t)~FLAG_B) | FLAG_U);
+}
+
+/* PHP and BRK push P with bits 4 and 5 set; P itself is unchanged (D-16). */
+static void push_p(struct nesturbator *nes)
+{
+    push(nes, (uint8_t)(nes->cpu.p | FLAG_B | FLAG_U));
+}
+
+/* Reads a little-endian address: low byte at lo_addr, high byte at
+   hi_addr. */
+static uint16_t read_addr(struct nesturbator *nes, uint16_t lo_addr, uint16_t hi_addr)
+{
+    uint8_t lo = nesturbator__bus_read(nes, lo_addr);
+    uint8_t hi = nesturbator__bus_read(nes, hi_addr);
+    return (uint16_t)(((uint32_t)hi << 8) | lo);
 }
 
 void nesturbator__cpu_step(struct nesturbator *nes)
@@ -640,9 +714,93 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         implied(nes);
         break;
 
-    /* Read-modify-write. */
+    /* Shifts and rotates. Read-modify-write abs,X always makes the dummy
+       read. */
+    case 0x0A: /* ASL A */
+        accumulator(nes, asl);
+        break;
     case 0x06: /* ASL zp */
         rmw(nes, ea_zp(nes), asl);
+        break;
+    case 0x16: /* ASL zp,X */
+        rmw(nes, ea_zpx(nes), asl);
+        break;
+    case 0x0E: /* ASL abs */
+        rmw(nes, ea_abs(nes), asl);
+        break;
+    case 0x1E: /* ASL abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), asl);
+        break;
+    case 0x4A: /* LSR A */
+        accumulator(nes, lsr);
+        break;
+    case 0x46: /* LSR zp */
+        rmw(nes, ea_zp(nes), lsr);
+        break;
+    case 0x56: /* LSR zp,X */
+        rmw(nes, ea_zpx(nes), lsr);
+        break;
+    case 0x4E: /* LSR abs */
+        rmw(nes, ea_abs(nes), lsr);
+        break;
+    case 0x5E: /* LSR abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), lsr);
+        break;
+    case 0x2A: /* ROL A */
+        accumulator(nes, rol);
+        break;
+    case 0x26: /* ROL zp */
+        rmw(nes, ea_zp(nes), rol);
+        break;
+    case 0x36: /* ROL zp,X */
+        rmw(nes, ea_zpx(nes), rol);
+        break;
+    case 0x2E: /* ROL abs */
+        rmw(nes, ea_abs(nes), rol);
+        break;
+    case 0x3E: /* ROL abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), rol);
+        break;
+    case 0x6A: /* ROR A */
+        accumulator(nes, ror);
+        break;
+    case 0x66: /* ROR zp */
+        rmw(nes, ea_zp(nes), ror);
+        break;
+    case 0x76: /* ROR zp,X */
+        rmw(nes, ea_zpx(nes), ror);
+        break;
+    case 0x6E: /* ROR abs */
+        rmw(nes, ea_abs(nes), ror);
+        break;
+    case 0x7E: /* ROR abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), ror);
+        break;
+
+    /* INC and DEC in memory. */
+    case 0xE6: /* INC zp */
+        rmw(nes, ea_zp(nes), inc);
+        break;
+    case 0xF6: /* INC zp,X */
+        rmw(nes, ea_zpx(nes), inc);
+        break;
+    case 0xEE: /* INC abs */
+        rmw(nes, ea_abs(nes), inc);
+        break;
+    case 0xFE: /* INC abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), inc);
+        break;
+    case 0xC6: /* DEC zp */
+        rmw(nes, ea_zp(nes), dec);
+        break;
+    case 0xD6: /* DEC zp,X */
+        rmw(nes, ea_zpx(nes), dec);
+        break;
+    case 0xCE: /* DEC abs */
+        rmw(nes, ea_abs(nes), dec);
+        break;
+    case 0xDE: /* DEC abs,X */
+        rmw(nes, ea_absi(nes, nes->cpu.x, 1), dec);
         break;
 
     /* Stack. */
@@ -650,15 +808,93 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         implied(nes);
         push(nes, nes->cpu.a);
         break;
+    case 0x08: /* PHP */
+        implied(nes);
+        push_p(nes);
+        break;
     case 0x68: /* PLA */
         implied(nes);
         stack_dummy(nes);
         assign(nes, &nes->cpu.a, pull(nes));
         break;
+    case 0x28: /* PLP */
+        implied(nes);
+        stack_dummy(nes);
+        pull_p(nes);
+        break;
 
     /* Branches. */
+    case 0x10: /* BPL */
+        branch(nes, (nes->cpu.p & FLAG_N) == 0u);
+        break;
+    case 0x30: /* BMI */
+        branch(nes, (nes->cpu.p & FLAG_N) != 0u);
+        break;
+    case 0x50: /* BVC */
+        branch(nes, (nes->cpu.p & FLAG_V) == 0u);
+        break;
+    case 0x70: /* BVS */
+        branch(nes, (nes->cpu.p & FLAG_V) != 0u);
+        break;
+    case 0x90: /* BCC */
+        branch(nes, (nes->cpu.p & FLAG_C) == 0u);
+        break;
+    case 0xB0: /* BCS */
+        branch(nes, (nes->cpu.p & FLAG_C) != 0u);
+        break;
     case 0xD0: /* BNE */
         branch(nes, (nes->cpu.p & FLAG_Z) == 0u);
+        break;
+    case 0xF0: /* BEQ */
+        branch(nes, (nes->cpu.p & FLAG_Z) != 0u);
+        break;
+
+    /* Jumps. */
+    case 0x4C: /* JMP abs */
+        nes->cpu.pc = ea_abs(nes);
+        break;
+    case 0x6C: { /* JMP (ind): the pointer's high byte comes from the same
+                    page, so a pointer at xxFF reads xx00 (64doc). */
+        uint16_t ptr = ea_abs(nes);
+        uint16_t next = (uint16_t)((ptr & 0xFF00u) | ((ptr + 1u) & 0x00FFu));
+        nes->cpu.pc = read_addr(nes, ptr, next);
+        break;
+    }
+
+    /* RTS: a dummy read at PC, a dummy stack read, PCL and PCH pulled, a
+       dummy read at the pulled address, then PC steps past it. */
+    case 0x60: {
+        implied(nes);
+        stack_dummy(nes);
+        uint8_t lo = pull(nes);
+        uint8_t hi = pull(nes);
+        nes->cpu.pc = (uint16_t)(((uint32_t)hi << 8) | lo);
+        fetch(nes);
+        break;
+    }
+
+    /* RTI: a dummy read at PC, a dummy stack read, then P, PCL and PCH
+       pulled (D-16). */
+    case 0x40: {
+        implied(nes);
+        stack_dummy(nes);
+        pull_p(nes);
+        uint8_t lo = pull(nes);
+        uint8_t hi = pull(nes);
+        nes->cpu.pc = (uint16_t)(((uint32_t)hi << 8) | lo);
+        break;
+    }
+
+    /* BRK: the byte after the opcode is read and skipped, the return
+       address and P | 0x30 are pushed, I is set and D is left alone (D-16),
+       and PC loads from 0xFFFE/0xFFFF. */
+    case 0x00:
+        fetch(nes);
+        push(nes, (uint8_t)(nes->cpu.pc >> 8));
+        push(nes, (uint8_t)nes->cpu.pc);
+        push_p(nes);
+        set_flag(nes, FLAG_I, 1);
+        nes->cpu.pc = read_addr(nes, 0xFFFEu, 0xFFFFu);
         break;
 
     /* JSR: the low address byte, a dummy stack read, the return address

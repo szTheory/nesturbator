@@ -124,10 +124,11 @@ opcode k, indexes 0 to 99 in each chunk, and nothing after the last chunk.
 compares registers, RAM and every bus cycle, dummy reads included; it passes
 only on exit status 0 and the exact line `65x02/<xx>: 0 of 100 vectors
 failed`. A failure names the upstream test as `xx.json[i]` and the first field
-that differs. The label `vectors` selects them all: today the 105 official
-loads, stores, transfers, ALU, compare, flag, increment and NOP opcodes, in
-every addressing mode. The CPU has no decimal mode, as on the 2A03: SED and
-CLD set and clear D, and ADC and SBC stay binary.
+that differs. The label `vectors` selects them all: today the 151 official
+opcodes in every addressing mode, including read-modify-write, branches,
+jumps, JSR, RTS, RTI, BRK and the stack. The CPU has no decimal mode, as on
+the 2A03: SED and CLD set and clear D, PHP, PLP and RTI keep it, and ADC and
+SBC stay binary.
 `vectors.n65v.crafted` encodes a valid two-test buffer byte by byte and
 requires the reader to reject, naming the byte offset at fault, every
 truncation of it, bad magic, version 2, a cycle kind of 2, the wrong opcode, a
