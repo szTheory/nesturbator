@@ -244,6 +244,24 @@ add_test(NAME vecconv.a9
     -DOUT=${CMAKE_CURRENT_BINARY_DIR}/vectors/a9-first3.n65v
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_fixture.cmake)
 
+# CPU-01, D-04 and D-05: the committed sample reads through the shared reader
+# as 256 chunks of 100 tests, opcodes 00 to ff, and ends after the last one.
+add_executable(vectors.n65v vectors/test_n65v.c vectors/n65v.c)
+target_compile_definitions(vectors.n65v PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(vectors.n65v)
+add_test(NAME vectors.n65v
+  COMMAND vectors.n65v ${PROJECT_SOURCE_DIR}/tests/vectors/65x02-sample.n65v)
+
+# Every file in tests/roms/manifest.txt has five fields and the SHA-256 its
+# line gives. The self-test lists a file with a wrong hash and passes only if
+# the check reports it.
+add_test(NAME manifest.sha256
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/manifest_sha256.cmake)
+add_test(NAME manifest.sha256.selftest
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/manifest_sha256.cmake)
+
 # FRAME-02: install the library component into <build>/stage, then build
 # tests/consumer against it with find_package and run it. The consumer gets
 # the parent's compiler, build type, C flags and link flags, each as one

@@ -117,6 +117,14 @@ written. It then runs them through the CPU with `cpu.vectors`, which links
 the CPU object the library ships against a test bus of flat RAM that logs
 every cycle, and requires each test's registers, RAM and every bus cycle
 (address, value, read or write) to match: `65x02/a9: 0 of 3 vectors failed`.
+`vectors.n65v` reads the committed sample `tests/vectors/65x02-sample.n65v`
+through the same reader and requires 256 chunks of 100 tests, chunk k holding
+opcode k, indexes 0 to 99 in each chunk, and nothing after the last chunk.
+`manifest.sha256` checks every line of `tests/roms/manifest.txt`: five
+tab-separated fields, a pin that is a 40-digit commit or a release tag, a
+licence, and a file whose SHA-256 equals the line's.
+`manifest.sha256.selftest` lists a scratch file with a wrong hash and passes
+only if the check reports it.
 `bus.unit` checks the library's bus (`src/bus.c`) on its own: each read or
 write advances time by 24 ticks, a byte written at `0x0001` reads back at
 `0x0801`, `0x1001` and `0x1801`, a read outside RAM returns the last value on
