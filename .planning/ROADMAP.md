@@ -12,7 +12,7 @@ Milestone 1 takes nesturbator from an empty repository to NROM games that render
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: A test frame in RetroArch** - The library, runner and libretro core build, test and release on six platforms and show a built-in test frame in RetroArch
+- [x] **Phase 1: A test frame in RetroArch** - The library, runner and libretro core build, test and release on six platforms and show a built-in test frame in RetroArch (completed 2026-10-03)
 - [ ] **Phase 2: The CPU matches the public vectors** - Every opcode matches the public 65x02 vectors on final state and on every bus cycle
 - [ ] **Phase 3: A real game in RetroArch** - NROM games render and take controller input, with frame hashes equal on every platform
 - [ ] **Phase 4: Sound** - NROM games play with sound, with audio hashes equal on every platform
@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. `cmake --workflow --preset asan`, `--preset nofp` and `--preset hygiene` pass: the tests are clean under the address and undefined-behaviour sanitizers, the core has no floating point and no undefined symbols beyond the C memory functions, and the tree holds no personal data and no unlisted ROM.
   5. Every pull request builds the library, runner and libretro archives for each platform, and a behaviour-changing merge to `main` publishes them with a `SHA256SUMS` file as a GitHub release with no manual step.
 
-**Plans**: 12/12 plans executed
+**Plans**: 12/12 plans complete
 
 Plans:
 **Wave 1**
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. A test frame in RetroArch | 12/12 | In Progress|  |
+| 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
 | 2. The CPU matches the public vectors | 0/TBD | Not started | - |
 | 3. A real game in RetroArch | 0/TBD | Not started | - |
 | 4. Sound | 0/TBD | Not started | - |

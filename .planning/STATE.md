@@ -1,43 +1,43 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 01
-current_phase_name: A test frame in RetroArch
-status: verifying
-stopped_at: "PR 3 (install-line fix) open; after it merges, release PR 2 refreshes and publishes v0.1.0"
-last_updated: "2026-10-03T11:08:51.825Z"
-last_activity: 2026-10-02
-last_activity_desc: Quick task 261002-uu0 fixed WR-03 (caller memset rule)
-state_head: 36a971f5f76c91fb57e5c9fa2eb9f9fd848a7412
+current_phase: 2
+current_phase_name: The CPU matches the public vectors
+status: planning
+stopped_at: Phase 01 complete, ready to plan Phase 2
+last_updated: "2026-10-03T13:20:33.240Z"
+last_activity: 2026-10-03
+last_activity_desc: Phase 01 complete, transitioned to Phase 2
+state_head: dd16c532330a55ae65aa40c86b62089b03fd2735
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 12
   completed_plans: 12
-  percent: 0
+  percent: 25
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-02)
+See: .planning/PROJECT.md (updated 2026-10-03)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 01 — A test frame in RetroArch
+**Current focus:** Phase 2 — The CPU matches the public vectors
 
 ## Current Position
 
-Phase: 01 (A test frame in RetroArch) — EXECUTING
-Plan: 12 of 12
-Status: PR #1 merged (5533aeb); PR #3 fixes the README install-line bump that failed release PR #2 (0.1.0)
-Last activity: 2026-10-03 - Completed quick task 261003-9tb: README install block bumps every version; PR #3
+Phase: 2 — The CPU matches the public vectors
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-03 — Phase 01 complete, transitioned to Phase 2
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 25%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
+- Total plans completed: 12
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -45,7 +45,7 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01 | 12 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -109,12 +109,11 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Phase 2, first task, after v0.1.0 is published: remove the one-time `release-as` pin with `jq 'del(.packages["."]["release-as"])' release-please-config.json > tmp && mv tmp release-please-config.json`, and confirm `jq -e '.packages["."] | has("release-as") | not' release-please-config.json` exits 0. Left in place, every later release would again be 0.1.0. (Recorded by plan 01-10.)
+- Phase 2, first task (v0.1.0 is published, so this is due now, before any `feat:` or `fix:` merge): remove the one-time `release-as` pin with `jq 'del(.packages["."]["release-as"])' release-please-config.json > tmp && mv tmp release-please-config.json`, and confirm `jq -e '.packages["."] | has("release-as") | not' release-please-config.json` exits 0. Left in place, every later release would again be 0.1.0. (Recorded by plan 01-10.)
 
 ### Blockers/Concerns
 
-- Release PR #2 (chore(main): release 0.1.0) failed CI because release-please rewrote only the first version on the README install line. Fix is PR #3 (fix/install-line-version); once it merges, release-please refreshes PR #2, which auto-merges and publishes v0.1.0. Do not merge PR #2 by hand.
-- WR-08 deferred: the release-as pin is removed by the Phase 2 todo above; an automated check waits until after v0.1.0 exists.
+- [Phase 1] WR-08: the release-as pin is still in release-please-config.json; the Phase 2 todo above removes it and adds an automated check that it stays gone.
 
 ### Quick Tasks Completed
 
@@ -133,6 +132,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T11:15:00Z
-Stopped at: quick task 261003-9tb done, PR #3 open. Next: owner merges PR #3 once green; release-please refreshes PR #2, which auto-merges and publishes v0.1.0; then /gsd-verify-work 01
+Last session: 2026-10-03T13:25:00Z
+Stopped at: Phase 01 complete, ready to plan Phase 2
 Resume file: None

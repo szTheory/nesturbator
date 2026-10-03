@@ -1,35 +1,40 @@
 ---
 phase: 01-a-test-frame-in-retroarch
-verified: 2026-10-03T01:40:00Z
-status: human_needed
-score: 3/5 must-haves verified
-covered_files: [".clang-format", ".gitattributes", ".github/dependabot.yml", ".github/rulesets/main.json", ".github/workflows/ci.yml", ".github/workflows/release.yml", ".planning/phases/01-a-test-frame-in-retroarch/01-01-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-01-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-02-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-02-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-03-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-03-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-04-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-04-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-05-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-05-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-06-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-06-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-07-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-07-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-08-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-08-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-09-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-09-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-10-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-10-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-11-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-11-SUMMARY.md", ".planning/phases/01-a-test-frame-in-retroarch/01-12-PLAN.md", ".planning/phases/01-a-test-frame-in-retroarch/01-12-SUMMARY.md", ".release-please-manifest.json", "ASSET_POLICY.md", "CMakeLists.txt", "CMakePresets.json", "CONTRIBUTING.md", "PROVENANCE.md", "README.md", "SECURITY.md", "THIRD-PARTY-NOTICES.md", "cmake/nesturbator.pc.in", "cmake/nesturbatorConfig.cmake.in", "cmake/packaging.cmake", "host/convert.c", "host/convert.h", "include/nesturbator.h", "libretro/CMakeLists.txt", "libretro/libretro.c", "libretro/libretro.h", "libretro/nesturbator_libretro.info", "release-please-config.json", "runner/CMakeLists.txt", "runner/main.c", "runner/ppm.c", "runner/ppm.h", "runner/sha256.c", "runner/sha256.h", "scripts/hygiene.sh", "src/frame.c", "src/instance.c", "src/internal.h", "src/palette.c", "src/palette_ntsc.c", "src/testcard.c", "tests/CMakeLists.txt", "tests/abi/CMakeLists.txt", "tests/abi/float_fixture.c", "tests/check.h", "tests/cmake/action_pins.cmake", "tests/cmake/check_archives.cmake", "tests/cmake/check_install_line.cmake", "tests/cmake/check_ppm.cmake", "tests/cmake/expect_output.cmake", "tests/cmake/float_fixture.cmake", "tests/cmake/float_scan.cmake", "tests/cmake/format_check.cmake", "tests/cmake/global_symbols.cmake", "tests/cmake/palette_regen.cmake", "tests/cmake/undefined_symbols.cmake", "tests/cmake/vendored_sha256.cmake", "tests/cmake/version_consistency.cmake", "tests/cmake/write_hashes.cmake", "tests/consumer/CMakeLists.txt", "tests/consumer/main.c", "tests/core/test_api.c", "tests/core/test_frame.c", "tests/core/test_palette.c", "tests/header/header_c.c", "tests/header/header_cxx.cpp", "tests/host/test_convert.c", "tests/hygiene/CMakeLists.txt", "tests/hygiene/fixtures/pins_bad.yml", "tests/hygiene/fixtures/pins_good.yml", "tests/libretro/libretro_host.c", "tests/retroarch/CMakeLists.txt", "tests/retroarch/bmp_ppm.c", "tests/retroarch/bmp_ppm.h", "tests/retroarch/compare_frame.c", "tests/retroarch/run_retroarch.cmake", "tests/retroarch/test.cfg.in", "tests/retroarch/test_compare_frame.c", "tests/roms/manifest.txt", "tests/runner/hashes.txt", "tests/runner/test_sha256.c", "tools/palgen/CMakeLists.txt", "tools/palgen/palgen.c", "version.txt"]
-covered_digest: "v2:sha256:34c1febc283068974ecc7da71a3faadb752882d5bb49ee88edb8efd786f31fa8"
-behavior_unverified: 2
+verified: 2026-10-03T13:19:04Z
+status: passed
+score: 5/5 must-haves verified
+covered_files: [".clang-format",".gitattributes",".githooks/pre-commit",".githooks/pre-push",".github/dependabot.yml",".github/rulesets/main.json",".github/workflows/ci.yml",".github/workflows/release.yml",".planning/phases/01-a-test-frame-in-retroarch/01-01-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-01-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-02-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-02-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-03-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-03-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-04-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-04-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-05-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-05-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-06-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-06-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-07-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-07-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-08-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-08-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-09-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-09-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-10-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-10-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-11-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-11-SUMMARY.md",".planning/phases/01-a-test-frame-in-retroarch/01-12-PLAN.md",".planning/phases/01-a-test-frame-in-retroarch/01-12-SUMMARY.md",".release-please-manifest.json","ASSET_POLICY.md","CHANGELOG.md","CMakeLists.txt","CMakePresets.json","CONTRIBUTING.md","PROVENANCE.md","README.md","SECURITY.md","THIRD-PARTY-NOTICES.md","cmake/nesturbator.pc.in","cmake/nesturbatorConfig.cmake.in","cmake/packaging.cmake","host/convert.c","host/convert.h","include/nesturbator.h","libretro/CMakeLists.txt","libretro/libretro.c","libretro/libretro.h","libretro/nesturbator_libretro.info","release-please-config.json","runner/CMakeLists.txt","runner/main.c","runner/ppm.c","runner/ppm.h","runner/sha256.c","runner/sha256.h","scripts/hygiene.sh","src/frame.c","src/instance.c","src/internal.h","src/palette.c","src/palette_ntsc.c","src/testcard.c","tests/CMakeLists.txt","tests/abi/CMakeLists.txt","tests/abi/float_fixture.c","tests/check.h","tests/cmake/action_pins.cmake","tests/cmake/check_archives.cmake","tests/cmake/check_install_line.cmake","tests/cmake/check_ppm.cmake","tests/cmake/expect_output.cmake","tests/cmake/float_fixture.cmake","tests/cmake/float_scan.cmake","tests/cmake/format_check.cmake","tests/cmake/global_symbols.cmake","tests/cmake/palette_regen.cmake","tests/cmake/release_markers.cmake","tests/cmake/undefined_symbols.cmake","tests/cmake/vendored_sha256.cmake","tests/cmake/version_consistency.cmake","tests/cmake/write_hashes.cmake","tests/consumer/CMakeLists.txt","tests/consumer/main.c","tests/core/test_api.c","tests/core/test_frame.c","tests/core/test_palette.c","tests/embed/CMakeLists.txt","tests/header/header_c.c","tests/header/header_cxx.cpp","tests/host/test_convert.c","tests/hygiene/CMakeLists.txt","tests/hygiene/fixtures/pins_bad.yml","tests/hygiene/fixtures/pins_good.yml","tests/hygiene/scan_selftest.sh","tests/libretro/libretro_host.c","tests/release/two_versions.md","tests/retroarch/CMakeLists.txt","tests/retroarch/bmp_ppm.c","tests/retroarch/bmp_ppm.h","tests/retroarch/compare_frame.c","tests/retroarch/run_retroarch.cmake","tests/retroarch/test.cfg.in","tests/retroarch/test_compare_frame.c","tests/roms/manifest.txt","tests/runner/hashes.txt","tests/runner/test_sha256.c","tools/palgen/CMakeLists.txt","tools/palgen/palgen.c","version.txt"]
+covered_digest: "v2:sha256:374e6ae4042dd378745ea4ab144c4567afed0ac612145e9dbcd5709011e6bb90"
+behavior_unverified: 0
 overrides_applied: 0
-behavior_unverified_items:
-  - truth: "SC5 (release half): a behaviour-changing merge to main publishes the 18 archives with SHA256SUMS as a GitHub release with no manual step"
-    test: "Owner marks PR #1 ready and squash-merges it. Then, by command: gh run list --workflow release.yml; gh pr list --label 'autorelease: pending' (release PR opened and auto-merged); gh release view v0.1.0 --json isDraft,assets (isDraft false, 18 zips + SHA256SUMS); gh release download v0.1.0 -D <scratch> && (cd <scratch> && shasum -a 256 -c SHA256SUMS)"
-    expected: "Release v0.1.0 is published (not draft) with exactly 18 nesturbator-0.1.0-{library,runner,libretro}-{linux,macos,windows}-{x64,arm64}.zip files and a SHA256SUMS that verifies; no person acted after the merge of PR #1"
-    why_human: "The pipeline has never run: no release exists (gh release list is empty) and it can only start from a merge to main, which needs the owner's consent. Every step after the merge is checkable by command."
-  - truth: "SC3 (install half): the README's one-line install on an Apple Silicon Mac puts the released core where RetroArch loads it"
-    test: "After v0.1.0 is published: run the README line with HOME pointed at a scratch directory (or extract into a scratch dir), confirm cores/nesturbator_libretro.dylib and info/nesturbator_libretro.info arrive; then ctest --preset ci -L retroarch"
-    expected: "curl returns 200 for the v0.1.0 URL the release PR wrote into README.md; the two files extract; retroarch.testframe passes"
-    why_human: "Today the line names v0.0.0, whose URL returns 404, so the download half cannot run until the first release. The tar half is already proven against the built archive, locally and on the macos-15 arm64 CI leg."
-human_verification:
-  - test: "Mark draft PR #1 ready for review and squash-merge it into main (owner consent; the only manual action)"
-    expected: "The Release workflow starts on the push to main; from there the automated checks listed under behavior_unverified_items prove SC5's release half and SC3's install half without further owner action"
-    why_human: "Merging to main and publishing a first public release need the owner's consent (PROJECT.md Hand-offs constraint). Everything after it is a command."
+re_verification:
+  previous_status: human_needed
+  previous_score: 3/5
+  gaps_closed:
+    - "SC5 (release half): a behaviour-changing merge to main publishes the 18 archives with SHA256SUMS as a GitHub release with no manual step"
+    - "SC3 (install half): the README's one-line install on an Apple Silicon Mac puts the released core where RetroArch loads it"
+    - "CR-01/CR-02 hygiene fail-open warnings (scripts/hygiene.sh)"
+  gaps_remaining: []
+  regressions: []
+advisory:
+  - finding: "release-please-config.json still carries the one-time release-as: \"0.1.0\" pin (WR-08). The next releasable merge would propose 0.1.0 again, so SC5 would not hold for the second release unless the pin is removed."
+    category: other
+    reason: "Tracked as the first Phase 2 task in STATE.md (jq removal plus a jq -e check). Nothing automated enforces it yet. Resolve by removing the pin before the next feat/fix merge."
+    evidence_status: "none provided (no failing run; the risk applies to the next release only)"
+  - finding: "CI job timeouts are still 1-2 minutes on the only required check, which the release run reuses (WR-09, timeouts part left to the owner)"
+    category: other
+    reason: "The v0.1.0 release run 37125205144 passed every leg, so there is no failure evidence. It is a margin risk only."
+    evidence_status: "none provided"
 ---
 
 # Phase 1: A test frame in RetroArch Verification Report
 
 **Phase Goal:** Anyone can build, test, download and install the library, the runner and the libretro core, and RetroArch shows the core's built-in test frame.
-**Verified:** 2026-10-03T01:40:00Z
-**Status:** human_needed
-**Re-verification:** No (initial verification)
+**Verified:** 2026-10-03T13:19:04Z
+**Status:** passed
+**Re-verification:** Yes. The previous report (human_needed, 3/5) went stale when PR #3 and release PR #2 changed covered files.
 
-Build, test, the six-platform pull-request archives and RetroArch showing the test frame are all proven by commands I ran myself. "Download and install" is not proven yet. No release exists, so the README's install URL currently returns 404. The release pipeline has never run, and it can only start after the owner merges PR #1. Nothing in the code blocks the goal. The phase's own code review raised two Critical findings in the hygiene script (CR-01, CR-02). They do not make SC4 false today, but they should be fixed before merge (see Warnings).
+Every success criterion now holds, and I proved each one with a command I ran myself. v0.1.0 is published, not a draft, with 18 archives and a SHA256SUMS file that verifies. The release PR was opened and merged by the release App, with no person acting. The README block, run with HOME set to a scratch directory, downloads the release and installs the core and its .info file. RetroArch running that **installed, released** core produces a screenshot equal to the runner's frame. That closes the previous report's caveat that the RetroArch test only loaded the build-tree core. CR-01 and CR-02 are fixed, and I reproduced the fix myself.
 
 ## Goal Achievement
 
@@ -37,58 +42,65 @@ Build, test, the six-platform pull-request archives and RetroArch showing the te
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds library, runner, libretro core and passes every test on six platforms; CI runs the same commands; an installed-package consumer creates an instance, runs one frame, destroys it | ✓ VERIFIED | Locally (macOS arm64) `cmake --workflow --preset ci` exit 0, 30/30 tests, 3 zips packaged. CI run 37084997715 (PR #1 head a9eb2cb, conclusion success): all six `build` legs ran `cmake --workflow --preset ${{ matrix.preset }}`, each "100% tests passed out of 30". `install.consumer` passed on windows-11-arm, windows-2025 and ubuntu-24.04-arm (logs checked). `tests/consumer/main.c` includes only `<nesturbator.h>`, uses `find_package(nesturbator CONFIG)` against `build/<preset>/stage`, checks create, run_frame and frame_number==1, then destroy. Local HEAD e02c158 differs from a9eb2cb only in 01-REVIEW*.md. |
-| 2 | With no cartridge, `nesturbator-run --frames 1 --dump-frame 1:FILE --hash-frame 1` writes the frame as an image and prints a SHA-256 identical on all six platforms; the libretro test host receives an equal frame | ✓ VERIFIED | Ran it: exit 0, prints `frame 1 ticks 714732 sha256 b49e9be4…0453`, and writes a valid P6 `256 240 255`. Downloaded all six `hashes-*` artifacts from run 37084997715: byte-identical (same digest), and identical to the local macOS arm64 `write_hashes.cmake` output. The `hash-equality` job passed. `libretro.host` dlopens the core, resolves every retro_* symbol, calls it in RetroArch's order (set_environment, init, load_game(NULL), get_system_av_info, run) and compares XRGB8888 pixels with the runner's P6, requiring 0 mismatches. It passes on all six CI legs. |
-| 3 | After the README's one-line install on Apple Silicon, `ctest -L retroarch` launches RetroArch unattended and its screenshot matches the runner's frame; skipped where RetroArch is absent | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED (partial) | **Proven:** `ctest --preset ci -L retroarch -V` on this Mac (RetroArch 1.22.2) passed: "RetroArch's frame equals the runner's frame". `run_retroarch.cmake` uses an isolated config, `--max-frames=5 --max-frames-ss`, strips colour management with sips, does a pixel-exact `compare_frame` against runner frame 5, and checks the user directory is untouched. The skip path works: on macos-15 CI (no RetroArch) the test shows `***Skipped`. `check_install_line.cmake` parses the README line's tar arguments and extracts exactly `cores/nesturbator_libretro.dylib` and `info/nesturbator_libretro.info` from the built zip. It passed locally and on the macos-15 arm64 CI leg. **Unproven:** the line's URL `…/releases/download/v0.0.0/nesturbator-0.0.0-libretro-macos-arm64.zip` returns HTTP 404, and no release exists yet. The release PR must rewrite it to v0.1.0 (README.md is in release-please `extra-files`, inside an `x-release-please-start-version` block), and that has not happened yet. Also, the RetroArch test loads the build-tree core, not the installed one. |
-| 4 | `asan`, `nofp` and `hygiene` presets pass: sanitizer-clean, core has no floating point and no undefined symbols beyond the C memory functions, tree holds no personal data and no unlisted ROM | ✓ VERIFIED (with warning) | Locally: `asan` exit 0 (29/29), `nofp` exit 0 (5/5 abi: float_scan, selftest, undefined_symbols, global_symbols, float_fixture), `hygiene` exit 0 (5/5). The same lanes are green in CI run 37084997715 (asan, nofp ×2, hygiene). I scanned the tree myself, independently of the hygiene script and fail-closed (`core.quotePath=false`, `LC_ALL=C`). There are 0 non-ASCII file names and 0 non-UTF-8 text files among 141 tracked files, so neither the CR-01 nor the CR-02 bypass applies to today's tree. The only `/Users/` hits are the patterns in scripts/hygiene.sh. There are no email addresses beyond noreply addresses. All commit identities are `szTheory@users.noreply.github.com`. There are no ROM-extension files. `hygiene.sh --history` exit 0. **Warning:** I reproduced CR-01 and CR-02 in a scratch repo. With `café.txt` and a Latin-1 file both holding a home path, `hygiene.sh --tree` reported only the ASCII control file. The gate fails open, so the guarantee for future commits is weaker than CLAUDE.md rule 3 claims. |
-| 5 | Every PR builds library, runner and libretro archives for each platform; a behaviour-changing merge to main publishes them with SHA256SUMS as a GitHub release with no manual step | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED (partial) | **PR half proven:** run 37084997715 uploaded six `archives-<os>-<arch>` artifacts. I downloaded `archives-windows-arm64`: library, runner and libretro zips. `check_archives.cmake` ran on every leg. **Release half present and wired but never run:** I ran actionlint on release.yml and ci.yml and it was clean. release.yml runs release-please with an App token, auto-merges the release PR, then re-runs ci.yml on the release commit. Publish requires exactly the 18 archives, writes SHA256SUMS, attests, uploads, verifies, runs a tamper check, then `--draft=false`. Repository: `NESTURBATOR_APP_ID` variable and `NESTURBATOR_APP_PRIVATE_KEY` secret present. `allow_auto_merge` true, squash only. Ruleset `main` active and semantically equal to `.github/rulesets/main.json` (the only differences are server defaults). PR #1 title `feat: …` is releasable. **Not provable before merge:** `gh release list` is empty, and release.yml has never run. I could not confirm the App installation on the repository with a user token (HTTP 403/401). |
+| 1 | `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds library, runner and libretro core and passes every test on six platforms; CI runs the same commands; an installed-package consumer creates an instance, runs one frame and destroys it | ✓ VERIFIED | Local run on dd16c53 + UAT edit: `cmake --workflow --preset ci` exit 0, "100% tests passed out of 34", including `install.consumer`, `install.stage` and `embed.subdirectory`; it produced 3 zips. On GitHub, the Release run 37125205144 (push, dd16c53, attempt 1) called ci.yml. All six `ci / build (...)` legs succeeded, as did `CI required`. |
+| 2 | With no cartridge, `nesturbator-run --frames 1 --dump-frame 1:FILE --hash-frame 1` writes the frame as an image and prints a SHA-256 identical on all six platforms; the libretro test host receives an equal frame | ✓ VERIFIED | I ran the **released** `nesturbator-0.1.0-runner-macos-arm64.zip` binary. It prints `frame 1 ticks 714732 sha256 b49e9be4…0453` and writes P6 `256 240`. The local build prints the same digest, which also matches the previous report. The `ci / hash-equality` job passed in the release run. `libretro.host` passed locally. |
+| 3 | After the README's one-line install on Apple Silicon, `ctest -L retroarch` launches RetroArch unattended and its screenshot matches the runner's frame; skipped where RetroArch is absent | ✓ VERIFIED | The README block (lines 327-328, `NESTURBATOR_VERSION=0.1.0` then curl and tar) ran with `HOME=<scratch>/home`: exit 0. It extracted exactly `cores/nesturbator_libretro.dylib` and `info/nesturbator_libretro.info`, both byte-identical (`cmp`) to the release zip. The URL returns HTTP 200. `ctest --preset ci -L retroarch`: retroarch.testframe passed. **In addition**, I ran `run_retroarch.cmake` with `-DCORE=` and `-DINFO=` pointing at the scratch-installed released files and `RA_DIR` in scratch: "RetroArch's frame equals the runner's frame", exit 0. The skip path was proven earlier on macos-15 CI and that code is unchanged. |
+| 4 | `asan`, `nofp` and `hygiene` presets pass: sanitizer-clean, no floating point and no undefined symbols beyond the C memory functions in the core, no personal data and no unlisted ROM in the tree | ✓ VERIFIED | Local: `asan` exit 0 (33/33), `nofp` exit 0 (5/5), `hygiene` exit 0 (6/6, including `hygiene.scan_selftest`). `scripts/hygiene.sh --tree` exit 0 and `--history` exit 0. The release run's `asan`, `nofp` ×2 and `hygiene` jobs all succeeded. **CR-01/CR-02 fixed:** the script exports `LC_ALL=C` and wraps git with `core.quotePath=false`. Lists are read with `-z`, and `check_file` fails closed on unreadable content. I repeated my own repro in a scratch repo under `LC_ALL=en_US.UTF-8`: `café.txt` and a Latin-1 file, each holding a home path. Both were now reported, with exit 1; before the fix neither was. |
+| 5 | Every PR builds library, runner and libretro archives for each platform; a behaviour-changing merge to main publishes them with SHA256SUMS as a GitHub release with no manual step | ✓ VERIFIED | **PR half:** the PR #3 CI run 37118749962 uploaded `archives-{linux,macos,windows}-{x64,arm64}` and six `hashes-*` artifacts. **Release half:** the owner merged `fix:` PR #3 at 13:07:24Z. The Release run on that push updated release PR #2. The App (`app/nesturbator-release`, bot) auto-merged PR #2 at 13:08:58Z. Release run 37125205144 (push, attempt 1) passed release-please, the full CI and `publish`. `gh release view v0.1.0`: isDraft false, isPrerelease false, target dd16c53. It has 19 assets: the 18 expected `nesturbator-0.1.0-{library,libretro,runner}-{linux,macos,windows}-{x64,arm64}.zip` files plus SHA256SUMS. I downloaded it to scratch: `shasum -a 256 -c SHA256SUMS` exit 0, 18 OK. No person acted after the merge. See Info for how PR #2 stalled before PR #3. |
 
-**Score:** 3/5 truths verified (2 present, behavior-unverified)
+**Score:** 5/5 truths verified (0 present, behavior-unverified)
+
+### Advisory (New Scope, Unevidenced)
+
+| # | Finding | Category | Why Advisory |
+|---|---------|----------|--------------|
+| 1 | `release-as: "0.1.0"` pin still in `release-please-config.json` (WR-08). The next releasable merge would propose 0.1.0 again. | other | Tracked as the first Phase 2 task in STATE.md. It affects the next release, not v0.1.0. No failing run. |
+| 2 | 1-2 min CI timeouts on the required check that the release run reuses (WR-09 remainder) | other | The release run passed on every leg. Margin risk only. |
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `include/nesturbator.h` | Public API | ✓ VERIFIED | Used by consumer, header.c/header.cxx tests |
-| `src/{instance,frame,testcard,palette,palette_ntsc}.c` | Core, test card, palette | ✓ VERIFIED | core.api/frame/palette tests pass; palette.regen byte-exact |
-| `runner/main.c`, `ppm.c`, `sha256.c` | Runner, P6 dump, hash | ✓ VERIFIED | Ran directly; runner.* and runner.sha256 tests pass |
-| `host/convert.c` | Shared palette conversion | ✓ VERIFIED | host.convert passes; used by runner and adapter |
-| `libretro/libretro.c`, `.info` | Adapter | ✓ VERIFIED | libretro.host passes on 6 legs; RetroArch loads it locally |
-| `cmake/packaging.cmake`, `nesturbatorConfig.cmake.in`, `.pc.in` | Install + CPack | ✓ VERIFIED | install.stage/consumer pass; 3 zips per platform |
-| `scripts/hygiene.sh` | Privacy/ROM gate | ⚠️ VERIFIED with defects | Runs and passes; fails open on non-ASCII names / non-UTF-8 text (CR-01/CR-02) |
-| `tests/retroarch/*` | Unattended RetroArch compare | ✓ VERIFIED | Passed locally against RetroArch 1.22.2 |
-| `.github/workflows/ci.yml` | Six-platform CI | ✓ VERIFIED | Green run 37084997715 |
-| `.github/workflows/release.yml`, `release-please-config.json` | Release on merge | ⚠️ PRESENT, never run | actionlint clean; no run history |
-| `tests/cmake/check_install_line.cmake` | README line check | ✓ VERIFIED | Passes locally and on macos-15 arm64 CI |
+| `include/nesturbator.h` | Public API, version macros | ✓ VERIFIED | Release bumped to 0.1.0 via `x-release-please-*` markers; `version.consistency` passes |
+| `src/*.c` | Core, test card, palette | ✓ VERIFIED | core.* and palette.regen pass |
+| `runner/*` | Runner, P6 dump, hash | ✓ VERIFIED | Released binary run directly; no-args exits 2 (WR-02 fixed) |
+| `libretro/libretro.c`, `.info` | Adapter | ✓ VERIFIED | Released dylib loaded by RetroArch, frame equal |
+| `cmake/packaging.cmake` etc. | Install + CPack | ✓ VERIFIED | 3 zips locally, 18 in the release |
+| `scripts/hygiene.sh` | Privacy/ROM gate, fail-closed | ✓ VERIFIED | CR-01/CR-02 fix reproduced; `hygiene.scan_selftest` in the hygiene lane |
+| `.github/workflows/release.yml`, `release-please-config.json` | Release on merge | ✓ VERIFIED | Run 37125205144 published v0.1.0; actionlint exit 0 |
+| `tests/cmake/check_install_line.cmake` | README line check | ✓ VERIFIED | Wired in ci.yml:105 (macOS leg) |
+| `tests/cmake/release_markers.cmake`, `tests/release/two_versions.md` | One version per marked line (regression for the PR #2 stall) | ✓ VERIFIED | `release.one_version_per_line` and its self-test are in tests/CMakeLists.txt:158-165 and pass |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| ci.yml build legs | CMakePresets `ci`/`ci-msvc` | `cmake --workflow --preset` | WIRED | Same command as local |
-| ci.yml | hash-equality | `hashes-*` artifacts | WIRED | 6 artifacts, byte-identical |
-| ci.yml `CI required` | ruleset required check | context `CI required`, integration 15368 | WIRED | Remote ruleset active |
-| release.yml publish | ci.yml archives | `workflow_call` + `archives-*` download | WIRED (unexercised) | Never run |
-| README install line | release version | release-please `extra-files` generic block | WIRED (unexercised) | Still v0.0.0 |
-| libretro.host | runner P6 | `NESTURBATOR_TESTFRAME_PPM` fixture | WIRED | Pixel-exact compare |
-| retroarch.testframe | runner + compare_frame | run_retroarch.cmake | WIRED | Passed locally |
+| release.yml | ci.yml | `workflow_call` | WIRED (exercised) | `ci / *` jobs ran inside run 37125205144 |
+| release.yml publish | `archives-*` artifacts | download + SHA256SUMS | WIRED (exercised) | 18 zips + sums published; sums verify |
+| README install block | release tag | release-please generic `x-release-please-start-version` block | WIRED (exercised) | Line reads 0.1.0; URL 200 |
+| Release App | release PR auto-merge | `auto_squash_enabled` by bot | WIRED (exercised) | PR #2 merged by `nesturbator-release[bot]` |
+| retroarch.testframe | runner + compare_frame | run_retroarch.cmake | WIRED | Passes with build core and with released installed core |
+| pre-commit / CI hygiene | scripts/hygiene.sh | `.githooks`, ci.yml hygiene job | WIRED | hygiene job green in release run |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
-| ci lane | `cmake --workflow --preset ci` | exit 0, 30/30 | ✓ PASS |
-| asan lane | `cmake --workflow --preset asan` | exit 0, 29/29 | ✓ PASS |
+| ci lane | `cmake --workflow --preset ci` | exit 0, 34/34 | ✓ PASS |
+| asan lane | `cmake --workflow --preset asan` | exit 0, 33/33 | ✓ PASS |
 | nofp lane | `cmake --workflow --preset nofp` | exit 0, 5/5 | ✓ PASS |
-| hygiene lane | `cmake --workflow --preset hygiene` | exit 0, 5/5 | ✓ PASS |
-| RetroArch on Apple Silicon | `ctest --preset ci -L retroarch -V` | "RetroArch's frame equals the runner's frame" | ✓ PASS |
-| Runner hash and dump | `nesturbator-run --frames 1 --dump-frame 1:f.ppm --hash-frame 1` | sha256 b49e9be4…, P6 256x240 | ✓ PASS |
-| Cross-platform hash | downloaded 6 `hashes-*` artifacts + local write_hashes | all identical | ✓ PASS |
-| Install-line extraction | `check_install_line.cmake` | extracts the core and its .info file | ✓ PASS |
-| Install-line download | `curl -sIL …/v0.0.0/…-libretro-macos-arm64.zip` | 404 | ? SKIP (no release yet) |
-| Workflow lint | `actionlint ci.yml release.yml` | clean | ✓ PASS |
+| hygiene lane | `cmake --workflow --preset hygiene` | exit 0, 6/6 | ✓ PASS |
+| RetroArch, build core | `ctest --preset ci -L retroarch` | 1/1 passed | ✓ PASS |
+| RetroArch, released installed core | `cmake -DCORE=<scratch HOME>/…/cores/nesturbator_libretro.dylib -DINFO=… -P tests/retroarch/run_retroarch.cmake` | "RetroArch's frame equals the runner's frame", exit 0 | ✓ PASS |
+| Release published | `gh release view v0.1.0 --json isDraft,assets` | false; 18 zips + SHA256SUMS | ✓ PASS |
+| Release integrity | `gh release download v0.1.0` + `shasum -a 256 -c SHA256SUMS` | exit 0, 18 OK | ✓ PASS |
+| Install URL | `curl -sIL …/v0.1.0/nesturbator-0.1.0-libretro-macos-arm64.zip` | 200 | ✓ PASS |
+| README install | README lines 327-328 under `HOME=<scratch>` | exit 0; both files extracted, byte-identical to zip | ✓ PASS |
+| Released runner hash | released `nesturbator-run --frames 1 --hash-frame 1` | b49e9be4…0453, equals local build | ✓ PASS |
+| No person after merge | `gh pr view 2`, issue timeline | author, auto-merge and merge all by the release App bot | ✓ PASS |
+| Hygiene fail-closed | scratch repo with `café.txt` + Latin-1 file under a UTF-8 locale | both flagged, exit 1 | ✓ PASS |
 | History hygiene | `scripts/hygiene.sh --history` | exit 0 | ✓ PASS |
-| CR-01/CR-02 repro | scratch repo, `hygiene.sh --tree` | missed `café.txt` and Latin-1 file | ✗ confirms defect |
+| Workflow lint | `actionlint ci.yml release.yml` | exit 0 | ✓ PASS |
 
 ### Probe Execution
 
@@ -96,48 +108,40 @@ No `scripts/*/tests/probe-*.sh` exist, and no PLAN declares a probe. Step 7c: SK
 
 ### Requirements Coverage
 
-| Requirement | Source Plan(s) | Status | Evidence |
-|-------------|----------------|--------|----------|
-| FRAME-01 | 4 plans | ✓ SATISFIED | SC1 |
-| FRAME-02 | 2 plans | ✓ SATISFIED | install.consumer on all legs |
-| FRAME-03 | 4 plans | ✓ SATISFIED | SC2 |
-| FRAME-04 | 01-05 | ✓ SATISFIED | libretro.host |
-| FRAME-05 | 3 plans | ? PARTIAL | RetroArch compare and skip proven; download half of install line awaits first release |
-| FRAME-06 | 2 plans | ✓ SATISFIED (warning) | Lanes pass; tree clean; hygiene gate fails open (CR-01/CR-02) |
-| FRAME-07 | 3 plans | ? PARTIAL | PR archives proven; publish on merge unrun |
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| FRAME-01 | ✓ SATISFIED | SC1 |
+| FRAME-02 | ✓ SATISFIED | `install.consumer` |
+| FRAME-03 | ✓ SATISFIED | SC2 |
+| FRAME-04 | ✓ SATISFIED | `libretro.host` |
+| FRAME-05 | ✓ SATISFIED | SC3: download, install and RetroArch compare of the released core |
+| FRAME-06 | ✓ SATISFIED | SC4; hygiene gate now fails closed |
+| FRAME-07 | ✓ SATISFIED | SC5: v0.1.0 published by the pipeline |
 
-All seven IDs appear in plan frontmatter. None is orphaned. REQUIREMENTS.md already marks FRAME-05 and FRAME-07 `[x] Complete`. That is premature until the first release is published.
+All seven IDs are claimed by plans, and none is orphaned. REQUIREMENTS.md marks all seven Complete, which is now accurate.
 
 ### Anti-Patterns Found
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| scripts/hygiene.sh | 30, 41-53, 94, 100 | Fails open: C-quoted non-ASCII paths unreadable, `grep -I` under UTF-8 locale skips non-UTF-8 text (CR-01, CR-02, reproduced) | ⚠️ Warning | Future commits can leak home paths, emails or ROM bytes past the pre-commit hook and CI. The current tree is clean. Fix: `-c core.quotePath=false` (or `-z` lists), `LC_ALL=C` exported, and fail closed on unreadable content |
-| .github/workflows/ci.yml | 33-155 | 1-2 min timeouts on all jobs; `apt-get install` without `update` (WR-09) | ⚠️ Warning | release.yml reuses ci.yml, so a slow runner can fail the release run's CI and stop the publish |
-| release-please-config.json | 10 | `release-as: "0.1.0"` with only a STATE.md todo to remove it (WR-08) | ⚠️ Warning | The second release would re-propose 0.1.0. This is tracked for Phase 2 but not by an automated check |
-| runner/main.c | 36 | Runner with no args exits 0 (WR-02, reproduced: `no-args exit=0`) | ℹ️ Info | Contradicts README "--frames required" |
-| — | — | TBD/FIXME/XXX/TODO in phase files | none found | — |
+| release-please-config.json | 10 | `release-as: "0.1.0"` pin still present (WR-08) | ⚠️ Warning | It must be removed before the next releasable merge; tracked as the first Phase 2 task |
+| .github/workflows/ci.yml | jobs | 1-2 min timeouts (WR-09 remainder, owner's call) | ℹ️ Info | The release run passed |
+| 01-REVIEW-DISPOSITION.md | — | IN-01 to IN-07 still `open` | ℹ️ Info | Info-level only |
+| — | — | TBD/FIXME/XXX/TODO in files changed since the previous report | none found | — |
+
+**Info: the first release PR stalled.** Release PR #2 was opened and set to auto-squash at 02:28Z, after PR #1 merged. It did not merge until 13:08Z. It needed a code fix (PR #3) because release-please changes only one version per line, and the old README install line held two versions. The fix put the version on its own line and added the `release.one_version_per_line` test, which fails on any marked line holding two versions. After PR #3, the pipeline ran without anyone acting. SC5 is about the pipeline as shipped, so the stall does not make it false, and a regression test now guards it.
+
+**Info:** in the uncommitted 01-UAT.md, `updated: 2026-10-03T13:30:00Z` is later than the system clock at verification time (13:19Z). This is cosmetic.
 
 ### Human Verification Required
 
-#### 1. Merge PR #1 (owner consent only)
-
-**Test:** Mark draft PR #1 ready and squash-merge it.
-**Expected:** release.yml runs. Release-please opens the v0.1.0 PR and auto-merges it once `CI required` passes. The release CI re-runs and publish makes v0.1.0 public.
-**Why human:** Only merging to main and publishing need the owner's consent. Every check after that is a command, listed under `behavior_unverified_items`: `gh release view v0.1.0`, `shasum -c SHA256SUMS`, curl of the README URL, a scratch run of the install line, and `ctest --preset ci -L retroarch`. Run them as an automated follow-up, not as manual testing.
+None. Every check above ran as a command.
 
 ### Gaps Summary
 
-There is no blocking gap in the code. Two success criteria are only half proven, and both for the same reason: the release-on-merge path (SC5) and the README install download that depends on it (SC3) cannot run until PR #1 merges. Everything checkable before merge is checked. The workflows lint clean. The App credential variable and secret exist. Auto-merge is enabled. The ruleset is live and matches the file. The install line's extraction works against the real archive.
-
-Recommended before merge, so the first release is not exposed to known risks:
-1. Fix CR-01/CR-02 in scripts/hygiene.sh. It is a few lines, and the review gives the fix. The public repository's only privacy gate currently fails open.
-2. Raise the CI job timeouts and add `apt-get update` (WR-09). The release run reuses ci.yml, so the current margins put the "no manual step" publish at risk.
-3. Triage the 01-REVIEW-DISPOSITION.md ledger. All 21 findings are still `open`.
-
-After the merge, the post-merge commands above close SC3 and SC5. Re-run verification then, or mark them passed.
+There are no gaps. Both open truths from the previous report (SC3 install half, SC5 release half) are closed by commands run in this verification, and the CR-01/CR-02 fail-open defects are fixed. One forward-looking warning: remove the `release-as` pin before the next `feat:`/`fix:` merge, or the next release will not publish as a new version. STATE.md already schedules this as the first Phase 2 task.
 
 ---
 
-_Verified: 2026-10-03T01:40:00Z_
+_Verified: 2026-10-03T13:19:04Z_
 _Verifier: Claude (gsd-verifier)_

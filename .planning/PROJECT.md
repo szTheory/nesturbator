@@ -12,13 +12,12 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ One command installs the core into RetroArch on an Apple Silicon Mac, and a test shows RetroArch displays the runner's frame. — Phase 1 (v0.1.0)
+- ✓ `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds and tests everything on Linux, macOS and Windows, x64 and arm64, and CI runs the same commands. — Phase 1
+- ✓ Every behaviour-changing merge to `main` produces a release with the library, the runner and the libretro core. — Phase 1 (v0.1.0 published by the release App, no person acting)
 
 ### Active
 
-- [ ] One command installs the core into RetroArch on an Apple Silicon Mac, and a test shows RetroArch displays the runner's frame.
-- [ ] `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds and tests everything on Linux, macOS and Windows, x64 and arm64, and CI runs the same commands.
-- [ ] Every behaviour-changing merge to `main` produces a release with the library, the runner and the libretro core.
 - [ ] The CPU matches the public 65x02 vectors on every opcode and every bus cycle.
 - [ ] NROM games render, take controller input and play with sound in RetroArch.
 - [ ] Frame and audio hashes are identical on every supported platform.
@@ -71,11 +70,12 @@ Games behave as they do on the console, identically on every platform, from a sm
 | Integer-only core; `cmake --workflow --preset nofp` shows it | Bit-identical hashes on every platform | — Pending |
 | Video out as palette index plus emphasis; audio out as mono 16-bit from an owned synthesiser | Hashes stay independent of palette; existing audio libraries are LGPL | — Pending |
 | Opaque-instance C API shared with the sibling core | One future host can load every core | — Pending |
+| Integration, end-to-end and smoke checks are commands; owner hand-offs shrink to consent clicks | Phases close with no manual testing (Hand-offs constraint) | ✓ Good — Phase 1 UAT ran entirely by command after the merge |
 | Tests run on committed, licensed files: a 65x02 sample, AccuracyCoin, Holy Mapperel, open-licence games | Reproducible without a network; clear rights | — Pending |
 | One scoreboard file in which a passing test stays passing | A regression is a one-line diff | — Pending |
 | One entrypoint: CMake workflow presets | No script to keep in step with CI | — Pending |
-| release-please, whose release pull request merges itself when CI passes; unsigned macOS artifacts installed by script | Automatic releases; no legal name in artifacts | — Pending |
-| With no cartridge loaded the core outputs a built-in test frame | A build or a release can be checked without any ROM | — Pending |
+| release-please, whose release pull request merges itself when CI passes; unsigned macOS artifacts installed by script | Automatic releases; no legal name in artifacts | ✓ Good — v0.1.0 released itself; a version must appear once per README line (`release.one_version_per_line`) |
+| With no cartridge loaded the core outputs a built-in test frame | A build or a release can be checked without any ROM | ✓ Good — Phase 1 checked v0.1.0 in RetroArch with no ROM |
 | NROM first, then MMC1, MMC3, UxROM, CNROM, AxROM | Six mappers cover 96% of the North American licensed library | — Pending |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
@@ -98,4 +98,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-02 after preparation*
+*Last updated: 2026-10-03 after Phase 1*
