@@ -13,7 +13,9 @@
 #    So it does a not-yet-existing DIR below that link, and creates none of
 #    it in the source tree.
 # 3. DIR is the source tree spelled in upper case, on a host whose file system
-#    ignores case (the spelling exists): the script refuses it too.
+#    ignores case (the spelling exists): the script refuses it too. REAL_PATH
+#    returning the on-disk case is what refuses it; the script's lower-casing
+#    is only a fallback, and this case passes without it.
 
 cmake_minimum_required(VERSION 3.25)
 

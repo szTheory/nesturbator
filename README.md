@@ -197,8 +197,9 @@ reports them as not sorted.
 created: a `65x02-src` directory without the fetch's marker file is refused
 and left in place, and a directory that reaches the source tree through a
 symbolic link, or through a different letter case on macOS and Windows, is
-refused as inside the source tree. A refused directory that does not exist
-yet is not created.
+refused as inside the source tree; the fetch compares paths after resolving
+them to the links' targets and the case stored on disk. A refused directory
+that does not exist yet is not created.
 `bus.unit` checks the library's bus (`src/bus.c`) on its own: each read or
 write advances time by 24 ticks, a byte written at `0x0001` reads back at
 `0x0801`, `0x1001` and `0x1801`, a read outside RAM returns the last value on

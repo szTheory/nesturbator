@@ -34,10 +34,15 @@ endforeach()
 set(repo_url "https://github.com/SingleStepTests/65x02")
 set(sub "nes6502/v1")
 
-# DIR must not land in the source tree, except under build/. The paths are
-# compared after symlinks are resolved, and in lower case on macOS and
-# Windows, whose file systems ignore case by default; cmake_path alone
-# compares the text only. REAL_PATH resolves only a path that exists, so the
+# DIR must not land in the source tree, except under build/. cmake_path alone
+# compares the text only, so the paths are compared again after REAL_PATH,
+# which resolves symbolic links and returns the case stored on disk (checked
+# on macOS; Windows' realpath does the same). That second check is what
+# refuses a symlinked or differently cased spelling of the source tree. The
+# lower-casing on macOS and Windows, whose file systems ignore case by
+# default, is a fallback: it covers a realpath that does not canonicalise
+# case and the part of DIR that does not exist yet, which REAL_PATH cannot
+# see. REAL_PATH resolves only a path that exists, so the
 # deepest existing ancestor of DIR is resolved and the rest appended; DIR is
 # created only after both checks pass, so a refused DIR leaves nothing behind.
 function(check_in_source dir_path src_path)
