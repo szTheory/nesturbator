@@ -110,13 +110,16 @@ on size, one colour channel of pixel (17,200) off by one to be reported as
 rejected. `retroarch.compare.cli` runs `compare_frame` on an equal pair.
 `palette.regen` rebuilds the colour table with `tools/palgen` and
 checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
-`install.stage` installs the library into `build/ci/stage`, and
+`vecconv.a9` converts the first three upstream `a9` (LDA immediate) tests in
+`tests/vectors/fixtures` to the binary N65V form with `tools/vecconv` and
+reads them back through the shared reader, which must decode exactly what was
+written. `install.stage` installs the library into `build/ci/stage`, and
 `install.consumer` builds `tests/consumer`, a separate project that includes
 only `<nesturbator.h>`, against that install with `find_package`, then runs
 one frame with it. `embed.subdirectory` builds `tests/embed`, a C-only
 project that adds the source tree with `add_subdirectory`; it requires that
-embedding enables no C++, adds no runner, libretro, `palgen` or host-helper
-target and writes no CPack configuration, then runs one frame.
+embedding enables no C++, adds no runner, libretro, `palgen`, `vecconv` or
+host-helper target and writes no CPack configuration, then runs one frame.
 
 ## Continuous integration
 
@@ -169,8 +172,8 @@ target_link_libraries(app PRIVATE nesturbator::nesturbator)
 ```
 
 An embedded build adds only the library and its `library` install rules. The
-runner, the libretro core, `palgen`, the tests and the release packaging are
-built only when nesturbator is the top-level project. On a system or
+runner, the libretro core, `palgen`, `vecconv`, the tests and the release
+packaging are built only when nesturbator is the top-level project. On a system or
 processor other than the six release targets, a top-level build still
 configures and names its archives after what CMake reports, with a warning.
 
