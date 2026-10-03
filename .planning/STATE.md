@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: The CPU matches the public vectors
 status: executing
-stopped_at: Phase 2 context gathered
-last_updated: "2026-10-03T14:56:27.520Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-10-03T15:05:59.835Z"
 last_activity: 2026-10-03
 last_activity_desc: Phase 02 execution started
-state_head: f23cca45885f1758601500b57cc7af2bece38e85
+state_head: d34219e7fa6a0f728d87002c0d68f6c986f1c49a
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 20
-  completed_plans: 12
+  completed_plans: 13
   percent: 25
 ---
 
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-10-03)
 ## Current Position
 
 Phase: 02 (The CPU matches the public vectors) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 02
+Plan: 2 of 8
+Status: Ready to execute
 Last activity: 2026-10-03 — Phase 02 execution started
 
 Progress: [███░░░░░░░] 25%
@@ -68,6 +68,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 01 P10 | 6 min | 2 tasks | 13 files |
 | Phase 01 P11 | 15min | 3 tasks | 4 files |
 | Phase 01 P12 | 10min | 2 tasks | 3 files |
+| Phase 02 P01 | 8 min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -106,14 +107,17 @@ Recent decisions affecting current work:
 - [Phase 01]: Owner hand-offs are scripted down to owner-only clicks
 - [Phase 01]: hashes.txt written with file(CONFIGURE NEWLINE_STYLE LF) so every platform writes the same bytes
 - [Phase 01]: CI job timeouts are twice the durations in run 37084642541, rounded up to whole minutes
+- [Phase 02]: Fixture attribution goes in tests/vectors/fixtures/README.md with the upstream MIT LICENSE verbatim, correcting D-06's 'comment' wording (JSON has no comments)
+- [Phase 02]: vecconv re-reads its output from disk and re-encodes it byte for byte; opcode argument is exactly two hex digits; --first N errors if the array closes early
+- [Phase 02]: release-as removed from release-please-config.json; release.no_release_as guards it; the next feat: release is 0.1.1
 
 ### Pending Todos
 
-- Phase 2, first task (v0.1.0 is published, so this is due now, before any `feat:` or `fix:` merge): remove the one-time `release-as` pin with `jq 'del(.packages["."]["release-as"])' release-please-config.json > tmp && mv tmp release-please-config.json`, and confirm `jq -e '.packages["."] | has("release-as") | not' release-please-config.json` exits 0. Left in place, every later release would again be 0.1.0. (Recorded by plan 01-10.)
+None.
 
 ### Blockers/Concerns
 
-- [Phase 1] WR-08: the release-as pin is still in release-please-config.json; the Phase 2 todo above removes it and adds an automated check that it stays gone.
+None. (WR-08 resolved in plan 02-01: `release-as` removed in 30197fe and guarded by `release.no_release_as`.)
 
 ### Quick Tasks Completed
 
@@ -132,6 +136,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T13:40:57.771Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-the-cpu-matches-the-public-vectors/02-CONTEXT.md
+Last session: 2026-10-03T15:05:59.739Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None

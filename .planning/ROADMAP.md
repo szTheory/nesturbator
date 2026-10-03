@@ -83,11 +83,11 @@ Plans:
   2. `ctest -L vectors-full` fetches the full 65x02 vector set at its pinned commit and every test matches; CI runs it nightly.
   3. The `ci`, `asan`, `nofp` and `hygiene` presets still pass on all six platforms with the CPU in the library, and merging the phase publishes a release.
 
-**Plans**: 8 plans
+**Plans**: 1/8 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 02-01-PLAN.md — Tracer: `a9` fixture through vecconv and back through the N65V reader, on the owner's phase 2 branch; vecconv kept out of embeds; release-as pin removed
+- [x] 02-01-PLAN.md — Tracer: `a9` fixture through vecconv and back through the N65V reader, on the owner's phase 2 branch; vecconv kept out of embeds; release-as pin removed
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 02-02-PLAN.md — Tracer: the `a9` fixture through the shipped CPU object behind the link-time bus seam; `bus.c`; `bus.unit`
@@ -151,6 +151,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
-| 2. The CPU matches the public vectors | 0/TBD | Not started | - |
+| 2. The CPU matches the public vectors | 1/8 | In Progress|  |
 | 3. A real game in RetroArch | 0/TBD | Not started | - |
 | 4. Sound | 0/TBD | Not started | - |
