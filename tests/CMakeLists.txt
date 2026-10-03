@@ -165,6 +165,12 @@ add_test(NAME release.one_version_per_line.self_test
 set_tests_properties(release.one_version_per_line.self_test PROPERTIES
   PASS_REGULAR_EXPRESSION "tests/release/two_versions\\.md:3: 2 versions")
 
+# A one-time release-as pin in release-please-config.json must not stay
+# behind, or every later release reuses its version.
+add_test(NAME release.no_release_as
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_config.cmake)
+
 # libretro.h is RetroArch v1.22.2's copy (commit
 # 69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576), byte for byte. .gitattributes
 # keeps it LF on Windows checkouts too.

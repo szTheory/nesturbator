@@ -212,7 +212,10 @@ cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake
 Merging a behaviour-changing pull request publishes a GitHub release.
 release-please reads the Conventional Commit titles on `main`, opens a release
 pull request that sets the version and the changelog, and merges it once CI
-passes. `.github/workflows/release.yml` then runs the full CI on that exact
+passes. The version comes from the Conventional Commit titles alone: before
+1.0 a `feat:` raises the patch number, and `release.no_release_as` keeps a
+one-time `release-as` pin from staying behind in
+`release-please-config.json`. `.github/workflows/release.yml` then runs the full CI on that exact
 commit and publishes the release with 18 archives (library, runner and
 libretro for six platforms) and `SHA256SUMS`. `SHA256SUMS` carries a
 build-provenance attestation that covers every archive. To check a download:
