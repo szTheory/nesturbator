@@ -198,6 +198,16 @@ add_test(NAME palette.regen
     -DREF=${PROJECT_SOURCE_DIR}/src/palette_ntsc.c
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/palette_regen.cmake)
 
+# CPU-01, D-01 and D-03: vecconv converts the first three upstream a9 tests
+# (tests/vectors/fixtures) to N65V and reads them back through the shared
+# reader.
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/vectors)
+add_test(NAME vecconv.a9
+  COMMAND vecconv ${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/a9-first3.json
+    ${CMAKE_CURRENT_BINARY_DIR}/vectors/a9-first3.n65v a9 --first 3)
+set_tests_properties(vecconv.a9 PROPERTIES
+  PASS_REGULAR_EXPRESSION "vecconv: a9: 3 tests written and re-read")
+
 # FRAME-02: install the library component into <build>/stage, then build
 # tests/consumer against it with find_package and run it. The consumer gets
 # the parent's compiler, build type, C flags and link flags, each as one

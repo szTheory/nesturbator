@@ -4,8 +4,8 @@ cmake_minimum_required(VERSION 3.25)
 file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/version.txt" NESTURBATOR_VERSION LIMIT_COUNT 1)
 # Only C is needed to build the library. A project that embeds this one with
 # add_subdirectory or FetchContent gets the library and its install rules;
-# the runner, the libretro core, palgen, the tests (which need C++) and the
-# release packaging are added only when this is the top-level project.
+# the runner, the libretro core, palgen, vecconv, the tests (which need C++)
+# and the release packaging are added only when this is the top-level project.
 project(nesturbator VERSION ${NESTURBATOR_VERSION} LANGUAGES C)
 
 set(CMAKE_C_STANDARD 17)
@@ -51,8 +51,8 @@ endif()
 
 # Install components (ENGINEERING section 2): `library` is the static library,
 # the header, a relocatable CMake package and nesturbator.pc; `runner` and
-# `libretro` are installed from their directories. nesturbator_host, palgen
-# and the tests are never installed.
+# `libretro` are installed from their directories. nesturbator_host, palgen,
+# vecconv and the tests are never installed.
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 set(NESTURBATOR_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/nesturbator)
@@ -108,6 +108,7 @@ enable_testing()
 add_subdirectory(runner)
 add_subdirectory(libretro)
 add_subdirectory(tools/palgen)
+add_subdirectory(tools/vecconv)
 add_subdirectory(tests)
 if(NESTURBATOR_NOFP)
   add_subdirectory(tests/abi)
