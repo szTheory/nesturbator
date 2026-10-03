@@ -34,7 +34,11 @@ permissions: {}
 jobs:
   vectors-full:
     runs-on: ubuntu-24.04
-    timeout-minutes: 3 # twice the cold run 37136095512 (88 s), rounded up to whole minutes (ENGINEERING §5)
+    # Cold run 37136095512 took 88 s: 65 s in the fetch, 23 s in everything else.
+    # The fetch is a network transfer, so it gets its own allowance, the 900 s
+    # TIMEOUT of cpu.vectors-full.fetch in tests/CMakeLists.txt; the rest gets
+    # twice its measured 23 s. 900 + 46 = 946 s, rounded up to whole minutes.
+    timeout-minutes: 16
     permissions:
       contents: read
     outputs:

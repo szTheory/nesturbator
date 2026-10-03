@@ -393,6 +393,8 @@ if(NESTURBATOR_VECTORS_FULL)
       -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
       -DGIT=${NESTURBATOR_GIT}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_vectors.cmake)
+  # The nightly's timeout-minutes is this TIMEOUT plus twice the rest of the
+  # lane's measured time; change the two together.
   set_tests_properties(cpu.vectors-full.fetch PROPERTIES
     FIXTURES_SETUP vectors_full TIMEOUT 900 LABELS vectors-full)
   # D-22: the first 100 converted tests of every fetched file equal the
