@@ -4,8 +4,8 @@ fixed_at: 2026-10-03T02:10:00Z
 review_path: .planning/phases/01-a-test-frame-in-retroarch/01-REVIEW.md
 iteration: 1
 findings_in_scope: 11
-fixed: 9
-skipped: 2
+fixed: 10
+skipped: 1
 status: partial
 ---
 
@@ -17,8 +17,8 @@ status: partial
 
 **Summary:**
 - Findings in scope: 11 (CR-01, CR-02, WR-01 to WR-09; scope critical_warning)
-- Fixed: 9 (WR-09 only in part)
-- Skipped: 2 (WR-03, WR-08)
+- Fixed: 10 (WR-09 only in part; WR-03 fixed later, after the owner's decision)
+- Skipped: 1 (WR-08)
 
 **Where verification ran:** in the main checkout on branch `phase/01-test-frame`. `workflow.use_worktrees` is false, so no worktree was made. Before each commit, `cmake --workflow --preset ci` (31 tests, then 32 after WR-05) and `cmake --workflow --preset hygiene` (6 tests) passed. `asan` and `nofp` also passed after WR-05, and `nofp` passed again after WR-07. The `scripts/hygiene.sh` pre-commit hook ran on every commit and was never bypassed.
 
@@ -121,17 +121,18 @@ status: partial
 - I checked that the YAML still parses with PyYAML. This can only really be tested on GitHub Actions.
 - **Not changed: the timeouts.** Plan 01-12 and ENGINEERING section 5 set them on purpose to twice the measured cold run. Raising them to 10 minutes or more would replace that rule, which is the owner's decision. 01-12-SUMMARY already names the risk: Windows x64 took 65 s against its 2-minute limit.
 
-## Skipped Issues
-
 ### WR-03: The size-tag rule rejects larger structs whose padding bytes are not zero, and callers cannot control those bytes
 
-**File:** `include/nesturbator.h:11-16`
-**Reason:** The owner needs to decide this. The review offers two contracts and leaves the choice open:
-- callers must `memset` boundary structs to zero, or
-- the library promises to append only fields that leave no padding, checked with `_Static_assert`.
+**Files modified:** `include/nesturbator.h`, `README.md`, `runner/main.c`, `libretro/libretro.c`, `tests/core/test_frame.c`, `tests/core/test_api.c`, `tests/core/test_palette.c`, `tests/consumer/main.c`
+**Commit:** b6adc77
+**Applied fix:**
+- The owner chose the caller-memset rule over padding-free structs: `nesturbator_frame` has interior padding next to its pointers, and its layout differs between ILP32 and LP64.
+- The header's conventions block says the caller zeroes every size-tagged struct with `memset` before setting fields, and that a brace initialiser or a struct copy does not zero padding. The config and `NESTURBATOR_CONFIG_INIT` comments say the same; the macro stays for source compatibility.
+- The README's "Using the library" section states the rule.
+- The runner, the libretro adapter, the core tests and the consumer test now `memset` every config and frame before setting fields. `frame_io` in `test_frame.c` fills a frame in place instead of returning a copy.
+- New `core.frame` test: a frame 8 bytes larger, zeroed with `memset`, is accepted; with one non-zero tail byte it gives `NESTURBATOR_ERR_STRUCT_SIZE` and the next frame is still frame 2.
 
-Either one changes the header's convention, which it says is "fixed; later releases only append". This should be settled before the first release.
-**Original issue:** In C, a brace-initialised automatic struct does not guarantee zero padding. A host built against a newer, larger struct can then randomly get `NESTURBATOR_ERR_STRUCT_SIZE` from an older library, because the bytes past the old `sizeof` include padding that may not be zero.
+## Skipped Issues
 
 ### WR-08: The one-time `release-as: "0.1.0"` pin has only a manual todo to remove it, and nothing checks it
 

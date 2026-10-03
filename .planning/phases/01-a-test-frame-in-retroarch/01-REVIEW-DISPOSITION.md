@@ -21,7 +21,7 @@ findings:
     title: "The runner exits 0 and does nothing when `--frames` is missing; the README says it is required"
   - id: WR-03
     severity: warning
-    disposition: skipped
+    disposition: fixed
     title: "The size-tag rule rejects larger structs whose padding bytes are not zero, and callers cannot control those bytes"
   - id: WR-04
     severity: warning
@@ -100,7 +100,7 @@ recorded: 2026-10-03T01:56:55.384Z
 | CR-02 | critical | fixed | 01-REVIEW-FIX.md |
 | WR-01 | warning | fixed | 01-REVIEW-FIX.md |
 | WR-02 | warning | fixed | 01-REVIEW-FIX.md |
-| WR-03 | warning | skipped | 01-REVIEW-FIX.md |
+| WR-03 | warning | fixed | 01-REVIEW-FIX.md |
 | WR-04 | warning | fixed | 01-REVIEW-FIX.md |
 | WR-05 | warning | fixed | 01-REVIEW-FIX.md |
 | WR-06 | warning | fixed | 01-REVIEW-FIX.md |
