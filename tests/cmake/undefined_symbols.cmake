@@ -25,6 +25,11 @@ set(allowed
 if(APPLE)
   list(APPEND allowed bzero)
 endif()
+# x86-64 ELF: position-independent code refers to the linker-defined
+# _GLOBAL_OFFSET_TABLE_ (System V x86-64 psABI, section 3.5; measured with
+# GCC 14 on ubuntu-24.04, CI run 37084485603). It is a linker symbol, not a
+# library function.
+list(APPEND allowed _GLOBAL_OFFSET_TABLE_)
 
 function(nm_names args out)
   execute_process(COMMAND "${NM}" ${args} "${LIB}"

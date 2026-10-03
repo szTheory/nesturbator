@@ -103,7 +103,9 @@ jobs:
       - run: cmake -DDIR=build/${{ matrix.preset }} -P tests/cmake/check_archives.cmake
       - if: matrix.os == 'macos' && matrix.arch == 'arm64'
         run: cmake -DREADME=README.md -DPACKAGES=build/${{ matrix.preset }}/packages -DOUT=build/install-line -P tests/cmake/check_install_line.cmake
-      - run: cmake -DBUILD=build/${{ matrix.preset }} -DOUT=hashes.txt -P tests/cmake/write_hashes.cmake
+      # Quoted: Windows runs steps in PowerShell, which splits an unquoted
+      # -DOUT=hashes.txt at the dot (CI run 37084485603 wrote "hashes").
+      - run: cmake "-DBUILD=build/${{ matrix.preset }}" "-DOUT=hashes.txt" -P tests/cmake/write_hashes.cmake
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: archives-${{ matrix.os }}-${{ matrix.arch }}
