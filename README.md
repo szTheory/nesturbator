@@ -350,7 +350,10 @@ also requires the `NESTURBATOR_VERSION` line to equal `version.txt`, and the
 URL to take both the release tag and the file name from
 `$NESTURBATOR_VERSION`. It runs on macOS,
 whose `tar` reads a zip from standard input, and on the macOS arm64 leg of
-continuous integration.
+continuous integration. On every platform, the `ci` preset's
+`release.one_version_per_line` test fails, naming file and line, if any line
+inside an `x-release-please` block of a file release-please updates holds
+more than one version.
 
 ## Try it in RetroArch (from a build)
 
