@@ -13,6 +13,7 @@
 #   float        "s": 215     becomes "s": 1.5
 #   sign         "a": 22      becomes "a": -1
 #   exponent     "x": 214     becomes "x": 1e3
+#   leading_zero "y": 9       becomes "y": 09
 #   addr_range   "pc": 33710  becomes "pc": 65536
 #   byte_range   "y": 9       becomes "y": 256
 #   kind         the first "read" becomes "fetch"
@@ -59,6 +60,8 @@ elseif(CASE STREQUAL "sign")
   replace_first("\"a\": 22" "\"a\": -1")
 elseif(CASE STREQUAL "exponent")
   replace_first("\"x\": 214" "\"x\": 1e3")
+elseif(CASE STREQUAL "leading_zero")
+  replace_first("\"y\": 9" "\"y\": 09")
 elseif(CASE STREQUAL "addr_range")
   replace_first("\"pc\": 33710" "\"pc\": 65536")
 elseif(CASE STREQUAL "byte_range")

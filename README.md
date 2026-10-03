@@ -161,9 +161,9 @@ trailing byte. `vecconv.02` converts the first three tests of `02.json`,
 written in the compact layout, and runs them through the CPU:
 `65x02/02: 0 of 3 vectors failed`. `vecconv.a9_tail` converts three tests from
 a prefix of `a9.json` cut inside the fourth; `vecconv.a9_tail.cut` asks the
-same prefix for four and requires vecconv to fail. The thirteen
+same prefix for four and requires vecconv to fail. The fourteen
 `vecconv.reject.*` tests each edit the `a9` fixture into one malformed input
-(a fraction, a sign, an exponent, an address of 65536, a byte of 256, an
+(a fraction, a sign, an exponent, a leading zero, an address of 65536, a byte of 256, an
 unknown cycle kind, an unknown or missing key, 256 cycles, an empty file, an
 empty array or a short closed array without `--first`, a cut inside the third
 test) and require vecconv to exit 1 with the byte offset.

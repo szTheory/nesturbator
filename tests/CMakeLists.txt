@@ -351,7 +351,7 @@ function(nesturbator_vecconv_reject name fixture case first)
       -DWORK=${CMAKE_CURRENT_BINARY_DIR}/vectors/${name}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vecconv_negative.cmake)
 endfunction()
-foreach(case float sign exponent addr_range byte_range kind unknown_key missing_key
+foreach(case float sign exponent leading_zero addr_range byte_range kind unknown_key missing_key
     count empty_file empty_array closed_short truncated)
   nesturbator_vecconv_reject(vecconv.reject.${case} a9-first3.json ${case} 3)
 endforeach()

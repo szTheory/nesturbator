@@ -7,7 +7,8 @@
 
    The tokenizer knows only the vector schema (D-02): any JSON whitespace,
    keys matched by name (name, initial, final, cycles; pc, s, a, x, y, p,
-   ram), unsigned decimal integers and the kinds "read" and "write". Each
+   ram), unsigned decimal integers without a leading zero, as JSON requires,
+   and the kinds "read" and "write". Each
    file is one JSON array of objects; `name` is dropped. Anything else, a
    value out of range, a list longer than 255, a missing or repeated key, or
    a first cycle that is not a read of the opcode at the initial pc, exits 1
@@ -215,6 +216,10 @@ static int parse_uint(struct parser *p, uint32_t max, uint32_t *out)
         return fail(start, "signed number");
     if (c < '0' || c > '9')
         return fail(start, c < 0 ? "input ends, expected a number" : "expected a number");
+    /* JSON (RFC 8259 section 6) allows no leading zero. */
+    if (c == '0' && p->pos + 1u < p->len && p->buf[p->pos + 1u] >= '0' &&
+        p->buf[p->pos + 1u] <= '9')
+        return fail(start, "number with a leading zero");
     while (c >= '0' && c <= '9') {
         if (v <= 65536u) /* saturates; anything above 65536 is out of range */
             v = v * 10u + (uint32_t)(c - '0');
