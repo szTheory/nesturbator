@@ -79,4 +79,13 @@ void n65v_init(struct n65v_reader *r, const uint8_t *buf, size_t len, uint8_t fi
    or past len. */
 int n65v_next(struct n65v_reader *r, struct n65v_test *t, uint8_t *opcode);
 
+/* Helpers shared by vecconv and the vector tests. */
+
+/* Reads the whole file at path into a malloc'd buffer the caller frees and
+   sets *len to its size. Returns NULL if the file cannot be read. */
+uint8_t *n65v_read_file(const char *path, size_t *len);
+
+/* The value of one hexadecimal digit, either case; -1 for any other char. */
+int n65v_hex_digit(char c);
+
 #endif

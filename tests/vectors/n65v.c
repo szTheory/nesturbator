@@ -1,10 +1,12 @@
 /* The N65V v1 reader (D-05). Fields are decoded byte by byte, never copied
    into a struct, and each read first checks n > len - off, which cannot
-   overflow because off never exceeds len. */
+   overflow because off never exceeds len. The file and hex-digit helpers at
+   the end are shared by vecconv and the vector tests. */
 #include "n65v.h"
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static void fail(struct n65v_reader *r, size_t off, const char *fmt, ...)
@@ -157,4 +159,47 @@ int n65v_next(struct n65v_reader *r, struct n65v_test *t, uint8_t *opcode)
     r->left--;
     *opcode = r->opcode;
     return 1;
+}
+
+uint8_t *n65v_read_file(const char *path, size_t *len)
+{
+    size_t cap = 65536u;
+    size_t n = 0u;
+    uint8_t *buf;
+    FILE *f = fopen(path, "rb");
+    if (f == NULL)
+        return NULL;
+    buf = (uint8_t *)malloc(cap);
+    while (buf != NULL) {
+        uint8_t *bigger;
+        n += fread(buf + n, 1u, cap - n, f);
+        if (n < cap)
+            break;
+        bigger = (uint8_t *)realloc(buf, cap * 2u);
+        if (bigger == NULL) {
+            free(buf);
+            buf = NULL;
+            break;
+        }
+        buf = bigger;
+        cap *= 2u;
+    }
+    if (buf != NULL && ferror(f)) {
+        free(buf);
+        buf = NULL;
+    }
+    fclose(f);
+    *len = n;
+    return buf;
+}
+
+int n65v_hex_digit(char c)
+{
+    if (c >= '0' && c <= '9')
+        return c - '0';
+    if (c >= 'a' && c <= 'f')
+        return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F')
+        return c - 'A' + 10;
+    return -1;
 }

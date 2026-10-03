@@ -27,44 +27,11 @@
 static struct n65v_test test;
 static struct n65v_reader reader;
 
-/* Reads the whole file into a malloc'd buffer; NULL on failure. */
-static uint8_t *read_file(const char *path, size_t *len)
-{
-    FILE *f = fopen(path, "rb");
-    if (f == NULL) {
-        return NULL;
-    }
-    size_t cap = 65536u;
-    size_t n = 0u;
-    uint8_t *buf = (uint8_t *)malloc(cap);
-    while (buf != NULL) {
-        n += fread(buf + n, 1u, cap - n, f);
-        if (n < cap) {
-            break;
-        }
-        uint8_t *bigger = (uint8_t *)realloc(buf, cap * 2u);
-        if (bigger == NULL) {
-            free(buf);
-            buf = NULL;
-            break;
-        }
-        buf = bigger;
-        cap *= 2u;
-    }
-    if (buf != NULL && ferror(f)) {
-        free(buf);
-        buf = NULL;
-    }
-    fclose(f);
-    *len = n;
-    return buf;
-}
-
 /* The committed sample: 256 chunks of 100 tests, opcodes 00 to ff in order. */
 static void check_sample(const char *path)
 {
     size_t len = 0u;
-    uint8_t *buf = read_file(path, &len);
+    uint8_t *buf = n65v_read_file(path, &len);
     if (buf == NULL) {
         fprintf(stderr, "vectors.n65v: %s: cannot read\n", path);
         check_failures++;

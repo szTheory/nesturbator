@@ -28,20 +28,6 @@ static int usage(void)
     return 2;
 }
 
-static int hex_digit(char c)
-{
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    }
-    if (c >= 'a' && c <= 'f') {
-        return c - 'a' + 10;
-    }
-    if (c >= 'A' && c <= 'F') {
-        return c - 'A' + 10;
-    }
-    return -1;
-}
-
 /* Parses decimal 1 to max; returns 0 on anything else. */
 static uint32_t parse_count(const char *s, uint32_t max)
 {
@@ -59,39 +45,6 @@ static uint32_t parse_count(const char *s, uint32_t max)
         }
     }
     return v;
-}
-
-/* Reads the whole file into a malloc'd buffer; NULL on failure. */
-static uint8_t *read_file(const char *path, size_t *len)
-{
-    FILE *f = fopen(path, "rb");
-    if (f == NULL) {
-        return NULL;
-    }
-    size_t cap = 65536u;
-    size_t n = 0u;
-    uint8_t *buf = (uint8_t *)malloc(cap);
-    while (buf != NULL) {
-        n += fread(buf + n, 1u, cap - n, f);
-        if (n < cap) {
-            break;
-        }
-        uint8_t *bigger = (uint8_t *)realloc(buf, cap * 2u);
-        if (bigger == NULL) {
-            free(buf);
-            buf = NULL;
-            break;
-        }
-        buf = bigger;
-        cap *= 2u;
-    }
-    if (buf != NULL && ferror(f)) {
-        free(buf);
-        buf = NULL;
-    }
-    fclose(f);
-    *len = n;
-    return buf;
 }
 
 static void mismatch(uint8_t opcode, const char *field, unsigned expected, unsigned got)
@@ -207,8 +160,8 @@ int main(int argc, char **argv)
     if (argc != 5) {
         return usage();
     }
-    int hi = hex_digit(argv[2][0]);
-    int lo = hi < 0 ? -1 : hex_digit(argv[2][1]);
+    int hi = n65v_hex_digit(argv[2][0]);
+    int lo = hi < 0 ? -1 : n65v_hex_digit(argv[2][1]);
     if (lo < 0 || argv[2][2] != '\0') {
         return usage();
     }
@@ -220,7 +173,7 @@ int main(int argc, char **argv)
     }
 
     size_t len = 0u;
-    uint8_t *buf = read_file(argv[1], &len);
+    uint8_t *buf = n65v_read_file(argv[1], &len);
     if (buf == NULL) {
         fprintf(stderr, "cpu.vectors: %s: cannot read\n", argv[1]);
         return 1;

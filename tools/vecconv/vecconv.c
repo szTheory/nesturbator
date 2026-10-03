@@ -103,27 +103,6 @@ static void put_header(struct buf *b, uint8_t opcode)
 
 /* --- Files ---------------------------------------------------------------- */
 
-/* Reads the whole file; returns 0 if it cannot. */
-static int read_file(const char *path, struct buf *b)
-{
-    uint8_t chunk[65536];
-    size_t n;
-    FILE *f = fopen(path, "rb");
-    if (f == NULL)
-        return 0;
-    while ((n = fread(chunk, 1u, sizeof chunk, f)) > 0u) {
-        size_t i;
-        for (i = 0; i < n; i++)
-            put8(b, chunk[i]);
-    }
-    if (ferror(f)) {
-        fclose(f);
-        return 0;
-    }
-    fclose(f);
-    return 1;
-}
-
 static int write_file(const char *path, const struct buf *b)
 {
     FILE *f = fopen(path, "wb");
@@ -530,9 +509,9 @@ static int reread(const char *path, uint8_t opcode, uint32_t count)
     uint8_t op = 0;
     int rc, ok = 1;
 
-    if (!read_file(path, &file)) {
+    file.data = n65v_read_file(path, &file.len);
+    if (file.data == NULL) {
         fprintf(stderr, "vecconv: %s: cannot read back\n", path);
-        free(file.data);
         return 0;
     }
     n65v_init(&r, file.data, file.len, opcode, 1u, count);
@@ -567,17 +546,6 @@ static int reread(const char *path, uint8_t opcode, uint32_t count)
 
 /* --- Command line --------------------------------------------------------- */
 
-static int hex_digit(char c)
-{
-    if (c >= '0' && c <= '9')
-        return c - '0';
-    if (c >= 'a' && c <= 'f')
-        return c - 'a' + 10;
-    if (c >= 'A' && c <= 'F')
-        return c - 'A' + 10;
-    return -1;
-}
-
 static int usage(void)
 {
     fprintf(stderr, "usage: vecconv <in.json> <out.n65v> <opcode-hex> [--first N]\n");
@@ -594,8 +562,8 @@ int main(int argc, char **argv)
 
     if (argc != 4 && argc != 6)
         return usage();
-    hi = strlen(argv[3]) == 2u ? hex_digit(argv[3][0]) : -1;
-    lo = strlen(argv[3]) == 2u ? hex_digit(argv[3][1]) : -1;
+    hi = strlen(argv[3]) == 2u ? n65v_hex_digit(argv[3][0]) : -1;
+    lo = strlen(argv[3]) == 2u ? n65v_hex_digit(argv[3][1]) : -1;
     if (hi < 0 || lo < 0)
         return usage();
     opcode = (uint8_t)((hi << 4) | lo);
@@ -613,7 +581,8 @@ int main(int argc, char **argv)
     }
 
     in_path = argv[1];
-    if (!read_file(in_path, &in)) {
+    in.data = n65v_read_file(in_path, &in.len);
+    if (in.data == NULL) {
         fprintf(stderr, "vecconv: %s: cannot read\n", in_path);
         return 1;
     }
