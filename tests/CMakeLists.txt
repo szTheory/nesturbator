@@ -220,6 +220,27 @@ target_include_directories(cpu.vectors PRIVATE
 target_compile_definitions(cpu.vectors PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(cpu.vectors)
 
+# D-13, D-17: what the sample cannot show, on the same CPU object and test
+# bus: the JSR whose push overwrites its ADH operand (65x02 issue 18), the
+# jammed loop, and a JAM at 0xFFFF wrapping PC to 0x0000. It does not link
+# the library.
+add_executable(cpu.unit cpu/test_cpu_unit.c cpu/vector_bus.c $<TARGET_OBJECTS:nesturbator_cpu>)
+target_include_directories(cpu.unit PRIVATE
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_SOURCE_DIR}/tests/vectors
+  ${PROJECT_SOURCE_DIR}/tests/cpu)
+nesturbator_warnings(cpu.unit)
+add_test(NAME cpu.unit COMMAND cpu.unit)
+
+# D-14: nesturbator_create sets the RP2A03G machine profile, read through
+# the internal header.
+add_executable(core.profile core/test_profile.c)
+target_link_libraries(core.profile PRIVATE nesturbator::nesturbator)
+target_include_directories(core.profile PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(core.profile)
+add_test(NAME core.profile COMMAND core.profile)
+
 # D-12: the library bus alone, compiled in directly: 24 ticks per call, RAM
 # mirrored over 0x0000-0x1FFF, the open-bus latch for unmapped reads.
 add_executable(bus.unit cpu/test_bus.c ${PROJECT_SOURCE_DIR}/src/bus.c)
