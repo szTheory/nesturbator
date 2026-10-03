@@ -11,6 +11,10 @@
 # safe to paste anywhere. Exit status is 1 if anything was found.
 set -eu
 
+# Path quoting off: git would otherwise print a name with bytes above 0x7F as
+# a C-quoted string, which names no file, so the file would go unscanned.
+git() { command git -c core.quotePath=false "$@"; }
+
 cd "$(git rev-parse --show-toplevel)"
 
 SELF=scripts/hygiene.sh
@@ -32,9 +36,14 @@ leaks() { grep -I -E -e "$1" | grep -v -E -e "$2" | grep -q .; }
 # True if $1 is the first field of a line in the test-ROM manifest.
 in_manifest() { [ -f "$MANIFEST" ] && awk -v p="$1" '$1 == p { f = 1 } END { exit !f }' "$MANIFEST"; }
 
-# $1 is a path; $2 is a command that prints that path's content.
+# $1 is a path; $2 is a command that prints that path's content. A file whose
+# content cannot be read is a finding, so the scan fails closed.
 check_file() {
   [ "$1" = "$SELF" ] && return 0
+  if ! $2 "$1" >/dev/null 2>&1; then
+    found 'cannot read file' "$1"
+    return 0
+  fi
   if printf '%s\n' "$1" | grep -q -i -E -e "$ROM_NAME" && ! in_manifest "$1"; then
     found 'game image by name' "$1"
   fi
@@ -53,7 +62,10 @@ check_file() {
   if $2 "$1" 2>/dev/null | leaks "$EMAIL" "$EMAIL_OK"; then found 'email address' "$1"; fi
 }
 
-check_files() { # $1 is a newline-separated list; $2 as in check_file
+# $1 is a newline-separated list; $2 as in check_file. The lists come from git
+# NUL-separated, so no name is quoted; a name holding a newline splits into
+# parts that name no file, and each part fails closed in check_file.
+check_files() {
   old_ifs=$IFS
   IFS='
 '
@@ -91,13 +103,13 @@ mode=${1:---tree}
 [ $# -gt 0 ] && shift
 case $mode in
   --staged)
-    check_files "$(git diff --cached --name-only --diff-filter=ACMR)" staged_show
+    check_files "$(git diff --cached --name-only -z --diff-filter=ACMR | tr '\0' '\n')" staged_show
     check_stop_policy
     check_identity "$(git var GIT_AUTHOR_IDENT | sed -E 's/.*<([^>]*)>.*/\1/')" 'author'
     check_identity "$(git var GIT_COMMITTER_IDENT | sed -E 's/.*<([^>]*)>.*/\1/')" 'committer'
     ;;
   --tree)
-    check_files "$(git ls-files --cached --others --exclude-standard)" tree_show
+    check_files "$(git ls-files -z --cached --others --exclude-standard | tr '\0' '\n')" tree_show
     check_stop_policy
     ;;
   --history)

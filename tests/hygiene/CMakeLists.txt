@@ -7,6 +7,12 @@ add_test(NAME hygiene.tree
   COMMAND ${NESTURBATOR_SH} ${PROJECT_SOURCE_DIR}/scripts/hygiene.sh --tree
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 
+# The scan finds personal data in a scratch repository whose files are easy to
+# miss, and fails closed on a file it cannot read.
+add_test(NAME hygiene.scan_selftest
+  COMMAND ${NESTURBATOR_SH} ${CMAKE_CURRENT_SOURCE_DIR}/scan_selftest.sh
+    ${PROJECT_SOURCE_DIR}/scripts/hygiene.sh ${CMAKE_CURRENT_BINARY_DIR}/scan_selftest)
+
 # Every uses: key under .github names an action by a full commit SHA. The two
 # fixtures show the check fails on a tag and passes on a SHA.
 set(pins ${PROJECT_SOURCE_DIR}/tests/cmake/action_pins.cmake)
@@ -27,6 +33,6 @@ add_test(NAME hygiene.format
     -DROOT=${PROJECT_SOURCE_DIR} -P ${PROJECT_SOURCE_DIR}/tests/cmake/format_check.cmake)
 
 set_tests_properties(
-  hygiene.tree hygiene.action_pins hygiene.action_pins.bad hygiene.action_pins.good
+  hygiene.tree hygiene.scan_selftest hygiene.action_pins hygiene.action_pins.bad hygiene.action_pins.good
   hygiene.format
   PROPERTIES LABELS hygiene)

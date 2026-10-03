@@ -46,7 +46,12 @@ multiply that these checks must reject.
 The `hygiene` tests: `hygiene.tree` runs `scripts/hygiene.sh --tree`, which
 rejects home-directory paths, email addresses other than GitHub noreply, ROM
 and save files, and any file git treats as binary unless
-`tests/roms/manifest.txt` lists it. `hygiene.action_pins` checks that every
+`tests/roms/manifest.txt` lists it. It reads file names unquoted, so a name
+with non-ASCII bytes is scanned, and it reports a file it cannot read rather
+than passing it. `hygiene.scan_selftest` builds a scratch repository and
+requires the scan to find a home path and an address in a file with a
+non-ASCII name, and to report a file whose name holds a newline as unreadable.
+`hygiene.action_pins` checks that every
 `uses:` key under `.github` names a full 40-digit commit SHA or a local
 path; `hygiene.action_pins.bad` and `.good` show it rejects a tag and accepts
 a SHA. `hygiene.format` runs clang-format over every tracked C source except
