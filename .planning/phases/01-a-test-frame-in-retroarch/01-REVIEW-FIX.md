@@ -35,7 +35,7 @@ status: partial
 - New test `hygiene.scan_selftest` (hygiene lane) builds a scratch repository. It checks that a file named `café.txt` is flagged for its home path and its address, and that a name containing a newline is reported as unreadable.
 - I checked that the test fails against the old script.
 
-### CR-02: Under a UTF-8 locale, grep -I skips non-UTF-8 text
+### CR-02: Under a UTF-8 locale, `grep -I` skips non-UTF-8 text, so the home-path and email scans miss it
 
 **Files modified:** `scripts/hygiene.sh`, `tests/hygiene/scan_selftest.sh`, `README.md`
 **Commit:** df8d840
@@ -44,14 +44,14 @@ status: partial
 - The self-test adds a Latin-1 file and runs the scan under `LC_ALL=C.UTF-8`.
 - I checked that the test fails against the previous script.
 
-### WR-01: --frames 4294967295 makes the runner loop forever
+### WR-01: `--frames 4294967295` makes the runner loop forever
 
 **Files modified:** `runner/main.c`
 **Commit:** 566e06e
 **Applied fix:** The frame loop now counts in `uint64_t`, and `f` is cast to `uint32_t` inside the loop.
 **Status:** fixed: requires human verification. No CTest is added, because hitting the limit means running 2^32-1 frames. The commit message says so. The fix is two lines and is easy to check by reading.
 
-### WR-02: The runner exits 0 when --frames is missing
+### WR-02: The runner exits 0 and does nothing when `--frames` is missing; the README says it is required
 
 **Files modified:** `runner/main.c`, `tests/CMakeLists.txt`, `README.md`
 **Commit:** 7fb81fb
@@ -62,13 +62,13 @@ status: partial
 - The README says the option is required.
 - I did not add a test with options but no `--frames`: it would already exit 2 through the "beyond --frames" check, so it would not show this fix.
 
-### WR-04: The allocator contract states no alignment requirement
+### WR-04: The allocator contract states no alignment requirement, but arena allocators are explicitly invited
 
 **Files modified:** `include/nesturbator.h`
 **Commit:** 22b310e
 **Applied fix:** The allocator comment now says alloc returns memory aligned as malloc's is: suitable for any object type and at least the alignment of `max_align_t`. This only documents the contract and changes no behaviour, so no test was added. I did not add the review's optional runtime rejection of misaligned pointers.
 
-### WR-05: Configuring from another CMake project fails outside the six release targets
+### WR-05: Configuring the project from another CMake project fails on any OS or CPU outside the six release targets
 
 **Files modified:** `CMakeLists.txt`, `cmake/packaging.cmake`, `tests/embed/CMakeLists.txt` (new), `tests/CMakeLists.txt`, `README.md`
 **Commit:** f7befb1
@@ -92,7 +92,7 @@ status: partial
 - The README now has an embedding section.
 - **Not exercised:** the packaging fallback on an actual non-release platform. There is no such toolchain here.
 
-### WR-06: --history never checks commit message bodies
+### WR-06: `--history` checks commit identities but never checks commit message bodies
 
 **Files modified:** `scripts/hygiene.sh`, `tests/hygiene/scan_selftest.sh`, `README.md`
 **Commit:** c795d10
@@ -112,7 +112,7 @@ status: partial
 - The SELFTEST sample now has `z = 0x1p3;` and `w = 0x1.8p1;` and expects exactly lines 3, 4 and 5.
 - The real scan of `src/` and `include/` is still clean, and the `nofp` lane passes.
 
-### WR-09: CI installs Ninja without apt-get update; tight timeouts (partial)
+### WR-09: CI installs Ninja without `apt-get update`, and its one-minute timeouts sit on the only required check
 
 **Files modified:** `.github/workflows/ci.yml`
 **Commit:** 9d3dc4a
@@ -123,7 +123,7 @@ status: partial
 
 ## Skipped Issues
 
-### WR-03: The size-tag rule rejects larger structs whose padding bytes are not zero
+### WR-03: The size-tag rule rejects larger structs whose padding bytes are not zero, and callers cannot control those bytes
 
 **File:** `include/nesturbator.h:11-16`
 **Reason:** The owner needs to decide this. The review offers two contracts and leaves the choice open:
@@ -133,7 +133,7 @@ status: partial
 Either one changes the header's convention, which it says is "fixed; later releases only append". This should be settled before the first release.
 **Original issue:** In C, a brace-initialised automatic struct does not guarantee zero padding. A host built against a newer, larger struct can then randomly get `NESTURBATOR_ERR_STRUCT_SIZE` from an older library, because the bytes past the old `sizeof` include padding that may not be zero.
 
-### WR-08: The one-time release-as pin has only a manual todo to remove it
+### WR-08: The one-time `release-as: "0.1.0"` pin has only a manual todo to remove it, and nothing checks it
 
 **File:** `release-please-config.json:10`
 **Reason:** The owner needs to decide this. The suggested check fails while the pin is present and `.release-please-manifest.json` is at or above it. But the 0.1.0 release PR itself bumps the manifest to 0.1.0 while the pin is still needed to produce that version. So the check would turn that PR red, and under `CI required` the release could not merge. release-please also rewrites its own branch, so the pin cannot be removed inside the release PR. A safe check needs a decided order, for example:
