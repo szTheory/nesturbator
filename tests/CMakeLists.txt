@@ -257,6 +257,25 @@ add_test(NAME vectors.n65v
 # with the byte offset at fault.
 add_test(NAME vectors.n65v.crafted COMMAND vectors.n65v)
 
+# CPU-01: cpu.vectors.<xx> runs opcode xx's 100 tests from the committed
+# sample through the CPU and compares registers, RAM and every bus cycle.
+# expect_output.cmake checks the exit status and the exact line, so a reader
+# error after a clean count still fails; no test sets a regex property.
+function(nesturbator_vector_tests)
+  foreach(op IN LISTS ARGN)
+    set(cmd "$<TARGET_FILE:cpu.vectors>"
+      "${PROJECT_SOURCE_DIR}/tests/vectors/65x02-sample.n65v" ${op} 256 100)
+    add_test(NAME cpu.vectors.${op}
+      COMMAND ${CMAKE_COMMAND}
+        "-DCMD=${cmd}"
+        "-DEXPECT=65x02/${op}: 0 of 100 vectors failed"
+        "-DEXPECT_EXIT=0"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+    set_tests_properties(cpu.vectors.${op} PROPERTIES LABELS vectors)
+  endforeach()
+endfunction()
+nesturbator_vector_tests(a1 a5 a9 ad b1 b5 b6 b9 bd)
+
 # D-02, D-06: vecconv converts the compact layout of 02.json, and a prefix
 # that ends inside the 4th test of a9.json converts with --first 3. JAM runs
 # through the CPU in plan 06, so these convert only (RUN=OFF). The script's
