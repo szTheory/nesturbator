@@ -98,7 +98,10 @@ table entry, and the input and output row pitches are honoured.
 C++ with warnings as errors and check its struct layout. `runner.sha256`
 checks the runner's SHA-256 against the FIPS 180-4 example digests, and
 `version.consistency` checks that `version.txt` matches the header's version
-macros and the libretro `.info` file's `display_version`. `libretro.vendored`
+macros and the libretro `.info` file's `display_version`.
+`cmake.script_policy` checks that every script in `tests/cmake` sets
+`cmake_minimum_required(VERSION 3.25)`, so each CMake release reads it the
+same way. `libretro.vendored`
 checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
 `libretro.host` loads the built libretro core at run time, calls it in the
 order RetroArch does, and checks that the frame it receives equals the

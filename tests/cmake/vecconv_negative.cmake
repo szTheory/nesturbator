@@ -25,6 +25,8 @@
 #   truncated    the fixture cut inside its 3rd test, with --first 3
 #   as_is        the fixture unchanged (for a fixture whose cut ends early)
 
+cmake_minimum_required(VERSION 3.25)
+
 foreach(var VECCONV FIXTURE CASE WORK)
   if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
     message(FATAL_ERROR "vecconv_negative: ${var} is not set")

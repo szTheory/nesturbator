@@ -3,6 +3,9 @@
 # change here. The vendored libretro/libretro.h is left as upstream wrote it.
 #
 #   cmake -DCLANG_FORMAT=<clang-format> -DGIT=<git> -DROOT=<source dir> -P format_check.cmake
+
+cmake_minimum_required(VERSION 3.25)
+
 execute_process(COMMAND "${GIT}" ls-files "*.c" "*.h" "*.cpp"
   WORKING_DIRECTORY "${ROOT}"
   OUTPUT_VARIABLE out RESULT_VARIABLE rc)

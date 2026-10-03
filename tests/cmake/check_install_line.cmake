@@ -14,6 +14,8 @@
 # standard input. VERSION defaults to version.txt at the repository root.
 # The line's download half (the release URL) is not fetched here.
 
+cmake_minimum_required(VERSION 3.25)
+
 foreach(var README PACKAGES OUT)
   if(NOT DEFINED ${var})
     message(FATAL_ERROR "check_install_line: pass -D${var}=...")

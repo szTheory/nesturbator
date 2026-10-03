@@ -10,6 +10,8 @@
 # are removed from captured output first, so Windows text-mode output
 # compares equal. Both tools' standard output is echoed as status lines.
 
+cmake_minimum_required(VERSION 3.25)
+
 foreach(var VECCONV JSON OPCODE FIRST OUT)
   if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
     message(FATAL_ERROR "vectors_fixture: ${var} is not set")

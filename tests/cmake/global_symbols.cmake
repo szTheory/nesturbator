@@ -12,6 +12,9 @@
 # table. The default allocator is plain code that stores the static
 # malloc/free wrappers into the instance at creation, and const lookup tables
 # hold integers only.
+
+cmake_minimum_required(VERSION 3.25)
+
 execute_process(COMMAND "${NM}" "${LIB}"
   RESULT_VARIABLE rc OUTPUT_VARIABLE text ERROR_VARIABLE err)
 if(NOT rc EQUAL 0)

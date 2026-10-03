@@ -9,6 +9,8 @@
 # with the P6 header "P6\n256 240\n255\n", that its first pixel is white
 # (FFFFFF) and that each pixel listed in PIXELS has the given colour.
 
+cmake_minimum_required(VERSION 3.25)
+
 if(NOT DEFINED FILE OR NOT DEFINED SIZE)
   message(FATAL_ERROR "check_ppm: FILE and SIZE must be set")
 endif()

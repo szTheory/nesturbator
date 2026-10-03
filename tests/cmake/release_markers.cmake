@@ -10,6 +10,8 @@
 # FILES is a list of paths relative to SOURCE_DIR. Without it, the scan
 # covers every extra-files path in SOURCE_DIR/release-please-config.json.
 
+cmake_minimum_required(VERSION 3.25)
+
 if(NOT DEFINED SOURCE_DIR)
   message(FATAL_ERROR "release_markers: pass -DSOURCE_DIR=...")
 endif()

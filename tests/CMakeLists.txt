@@ -152,6 +152,12 @@ add_test(NAME version.consistency
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_consistency.cmake)
 
+# Every script in tests/cmake sets its policy version, so CMake reads it the
+# same way on every runner.
+add_test(NAME cmake.script_policy
+  COMMAND ${CMAKE_COMMAND} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/cmake
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/script_policy.cmake)
+
 # release-please rewrites only the first version on each marked line, so no
 # marked line in its extra-files may hold two. The self-test runs the scan on
 # a fixture with two versions on line 3 and passes only on that exact error.

@@ -7,6 +7,9 @@
 #
 #   cmake -DBIN=<build dir> -DNM=<nm> -DLIB=<fixture library> -DAPPLE=<bool>
 #         -DSCRIPTS=<tests/cmake> -P float_fixture.cmake
+
+cmake_minimum_required(VERSION 3.25)
+
 execute_process(
   COMMAND "${CMAKE_COMMAND}" --build "${BIN}" --target nesturbator_float_fixture
   RESULT_VARIABLE rc OUTPUT_VARIABLE out ERROR_VARIABLE err)

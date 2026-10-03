@@ -10,6 +10,8 @@
 # SELFTEST writes a scratch manifest listing a scratch file with a wrong hash
 # and passes only if the check reports that file's hash mismatch.
 
+cmake_minimum_required(VERSION 3.25)
+
 # Appends one message per problem in MANIFEST (paths relative to ROOT) to OUT.
 function(manifest_check manifest root out)
   set(found)

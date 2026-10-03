@@ -8,6 +8,8 @@
 # status is checked (usage errors). Carriage returns are removed from
 # the output before comparing, so Windows text-mode output compares equal.
 
+cmake_minimum_required(VERSION 3.25)
+
 if(NOT DEFINED CMD OR CMD STREQUAL "")
   message(FATAL_ERROR "expect_output: CMD is not set")
 endif()

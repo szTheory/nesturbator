@@ -5,6 +5,8 @@
 #
 #   cmake -DSOURCE_DIR=<repository root> -P release_config.cmake
 
+cmake_minimum_required(VERSION 3.25)
+
 if(NOT DEFINED SOURCE_DIR)
   message(FATAL_ERROR "release_config: pass -DSOURCE_DIR=...")
 endif()

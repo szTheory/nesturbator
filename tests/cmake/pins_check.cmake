@@ -10,6 +10,8 @@
 # SELFTEST checks a copy with lines 2 and 3 swapped and passes only if the
 # check reports it as not sorted.
 
+cmake_minimum_required(VERSION 3.25)
+
 if(NOT SOURCE_DIR)
   message(FATAL_ERROR "pins_check: SOURCE_DIR is required")
 endif()
