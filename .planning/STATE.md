@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: The CPU matches the public vectors
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-10-03T15:31:23.974Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-10-03T15:36:37.371Z"
 last_activity: 2026-10-03
 last_activity_desc: Phase 02 execution started
-state_head: 0cca941ff75cab56c1c2aa66f549615421fbe19a
+state_head: d5df0b1abb04518723d1c0d5b6f981a9d33c4094
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 20
-  completed_plans: 15
+  completed_plans: 16
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-03)
 ## Current Position
 
 Phase: 02 (The CPU matches the public vectors) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
 Last activity: 2026-10-03 — Phase 02 execution started
 
@@ -71,6 +71,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P01 | 8 min | 3 tasks | 13 files |
 | Phase 02 P02 | 5 min | 2 tasks | 12 files |
 | Phase 02 P03 | 9 min | 3 tasks | 14 files |
+| Phase 02 P04 | 3 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -118,6 +119,8 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-03: the committed sample is 1,678,114 B (sha256 0c318cec...e109), not D-04's 1,677,602 B; it equals the research's independent encoder
 - [Phase 02]: 02-03: manifest.sha256 recomputes the SHA-256 of every manifest file; pins are 40-hex commits or release tags
 - [Phase 02]: 02-03: vecconv_negative.cmake builds malformed inputs from a committed fixture at test time; vecconv.* tests pass on script exit status, never a regex or WILL_FAIL
+- [Phase 02]: 02-04: address helpers run as call arguments; no expression holds two bus calls of unspecified order (cpu.c header states the rule)
+- [Phase 02]: 02-04: ea_absi and ea_izy share index_base for the page-cross dummy read; stores pass always_dummy 1
 
 ### Pending Todos
 
@@ -144,6 +147,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T15:31:23.951Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-10-03T15:36:37.340Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
