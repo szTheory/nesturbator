@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: The CPU matches the public vectors
 status: executing
-stopped_at: Completed 02-06-PLAN.md
-last_updated: "2026-10-03T15:49:44.230Z"
+stopped_at: Completed 02-07-PLAN.md
+last_updated: "2026-10-03T16:02:48.757Z"
 last_activity: 2026-10-03
 last_activity_desc: Phase 02 execution started
-state_head: 9476c2d08b4104a441d999c4c942301697803bc3
+state_head: 95bca4288c7dbfaa3843bc895d2e25c9a8df29e4
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 20
-  completed_plans: 18
+  completed_plans: 19
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-03)
 ## Current Position
 
 Phase: 02 (The CPU matches the public vectors) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-10-03 — Phase 02 execution started
 
@@ -74,6 +74,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P04 | 3 min | 2 tasks | 3 files |
 | Phase 02 P05 | 3 min | 2 tasks | 3 files |
 | Phase 02 P06 | 6 min | 3 tasks | 9 files |
+| Phase 02 P07 | 11 min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -128,6 +129,9 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-06: all 256 opcodes are explicit cases with no default:; JAM in a jam helper, SHY/SHX/SHA/TAS through one store_sh
 - [Phase 02]: 02-06: struct nesturbator__profile (ane_magic, lxa_magic) is set to 0xEE by nesturbator_create; the vector harness sets it itself
 - [Phase 02]: 02-06: cpu.vectors.00-ff come from a nested foreach with no skip list; the per-group opcode lists are gone
+- [Phase 02]: 02-07: vectors-full tests register only under NESTURBATOR_VECTORS_FULL (preset vectors-full); the fetch re-verifies 256 files by size and SHA-256 and fetches nothing when all match
+- [Phase 02]: 02-07: the nightly has no cache and keeps one rolling issue labelled nightly on scheduled runs; timeout-minutes 30 is initial until plan 08 measures a cold run
+- [Phase 02]: 02-07: CONFORMANCE corrected (JSON array, compact layout, 54,565 B, 8-byte chunk header, 1,678,114 B sample, about 168 MB full set)
 
 ### Pending Todos
 
@@ -154,6 +158,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T15:49:44.207Z
-Stopped at: Completed 02-06-PLAN.md
+Last session: 2026-10-03T16:02:42.722Z
+Stopped at: Completed 02-07-PLAN.md
 Resume file: None

@@ -83,7 +83,7 @@ Plans:
   2. `ctest -L vectors-full` fetches the full 65x02 vector set at its pinned commit and every test matches; CI runs it nightly.
   3. The `ci`, `asan`, `nofp` and `hygiene` presets still pass on all six platforms with the CPU in the library, and merging the phase publishes a release.
 
-**Plans**: 6/8 plans executed
+**Plans**: 7/8 plans executed
 
 Plans:
 **Wave 1**
@@ -105,7 +105,7 @@ Plans:
 - [x] 02-06-PLAN.md — Unofficial, JAM and unstable opcodes, machine profile, all 256 tests, JSR-overlap and jam unit tests, header and README
 
 **Wave 7** *(blocked on Wave 6 completion)*
-- [ ] 02-07-PLAN.md — Full set fetched at the pin: `pins.txt`, fetch fixture, sample-match, `vectors-full` preset, `nightly.yml`
+- [x] 02-07-PLAN.md — Full set fetched at the pin: `pins.txt`, fetch fixture, sample-match, `vectors-full` preset, `nightly.yml`
 
 **Wave 8** *(blocked on Wave 7 completion)*
 - [ ] 02-08-PLAN.md — Push, draft pull request, CI and nightly green on GitHub, timeouts from measured runs
@@ -151,6 +151,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
-| 2. The CPU matches the public vectors | 6/8 | In Progress|  |
+| 2. The CPU matches the public vectors | 7/8 | In Progress|  |
 | 3. A real game in RetroArch | 0/TBD | Not started | - |
 | 4. Sound | 0/TBD | Not started | - |
