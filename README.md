@@ -217,6 +217,33 @@ a different frame fails the run. The branch rules require one check, `CI
 required`, which passes only when every other job succeeded. Every action is
 pinned to a commit SHA, and Dependabot proposes updates weekly.
 
+`.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
+04:17 UTC on Ubuntu 24.04, on demand, and on pull requests that change the
+workflow, `tests/vectors/` or `tests/cmake/fetch_vectors.cmake`. It is outside
+`CI required`, so a red nightly blocks no merge. It fetches the full set at
+its pin on every run, with no cache, because a cache used every night would
+stop the fetch from ever being tested; offline, or with any file differing
+from `tests/vectors/pins.txt`, it fails rather than skips. A scheduled run
+keeps one open issue labelled `nightly`: a failure opens it, or updates it,
+with the run's URL and the failing keys (`65x02/<xx>`, `fetch`,
+`sample-match`), and the next passing run closes it. It holds no secret and
+makes no commit; its token can only read the repository, and only the report
+job can write issues.
+
+Locally, the lane keeps the fetched files in `build/vectors-full/vectors-full`.
+To keep them somewhere that survives a clean build, set the cache variable
+`NESTURBATOR_VECTORS_DIR` in an untracked `CMakeUserPresets.json`, for example
+a configure preset that inherits `vectors-full`; the fetch refuses a directory
+inside the source tree other than under `build/`. To move to a new upstream
+commit, regenerate `pins.txt` and the vector sample in one change. The
+command below prints the new total size, which replaces 1,081,529,097 in
+`tests/cmake/pins_check.cmake`:
+
+```sh
+cmake -DDIR=build/pins -DSOURCE_DIR=. -DGIT=git -DCOMMIT=<40-digit upstream commit> \
+      -DWRITE_PINS=tests/vectors/pins.txt -P tests/cmake/fetch_vectors.cmake
+```
+
 ## Using the library
 
 Install the library, its header and its package files:
