@@ -274,7 +274,15 @@ function(nesturbator_vector_tests)
     set_tests_properties(cpu.vectors.${op} PROPERTIES LABELS vectors)
   endforeach()
 endfunction()
-nesturbator_vector_tests(a1 a5 a9 ad b1 b5 b6 b9 bd)
+# The official opcodes written so far: loads, stores, transfers, the ALU,
+# compares, flags, register increments and NOP (105).
+set(NESTURBATOR_OFFICIAL_OPCODES
+  01 05 09 0d 11 15 18 19 1d 21 24 25 29 2c 2d 31 35 38 39 3d 41 45 49 4d 51
+  55 58 59 5d 61 65 69 6d 71 75 78 79 7d 81 84 85 86 88 8a 8c 8d 8e 91 94 95
+  96 98 99 9a 9d a0 a1 a2 a4 a5 a6 a8 a9 aa ac ad ae b1 b4 b5 b6 b8 b9 ba bc
+  bd be c0 c1 c4 c5 c8 c9 ca cc cd d1 d5 d8 d9 dd e0 e1 e4 e5 e8 e9 ea ec ed
+  f1 f5 f8 f9 fd)
+nesturbator_vector_tests(${NESTURBATOR_OFFICIAL_OPCODES})
 
 # D-02, D-06: vecconv converts the compact layout of 02.json, and a prefix
 # that ends inside the 4th test of a9.json converts with --first 3. JAM runs
