@@ -11,14 +11,17 @@ on:
     - cron: "17 4 * * *"
   workflow_dispatch:
   # A pull request that changes the nightly's own inputs runs it too, since a
-  # schedule runs only on the default branch. The list is every file the
-  # vectors-full lane builds or runs: its presets and test registrations, the
-  # fetch, converter and run scripts, the harness, and the CPU, whose full
-  # 10000-test behaviour only this lane exercises.
+  # schedule runs only on the default branch. The lane builds the whole `ci`
+  # tree; the list is the files that can change what its vectors-full tests
+  # run: its presets and test registrations, the fetch, converter and run
+  # scripts, the harness, and the CPU with the header and build file it is
+  # compiled from, whose full 10000-test behaviour only this lane exercises.
   pull_request:
     paths:
       - .github/workflows/nightly.yml
+      - CMakeLists.txt
       - CMakePresets.json
+      - include/nesturbator.h
       - tests/CMakeLists.txt
       - tests/vectors/**
       - tests/cpu/**
