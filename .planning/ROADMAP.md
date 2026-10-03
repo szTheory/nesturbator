@@ -83,7 +83,33 @@ Plans:
   2. `ctest -L vectors-full` fetches the full 65x02 vector set at its pinned commit and every test matches; CI runs it nightly.
   3. The `ci`, `asan`, `nofp` and `hygiene` presets still pass on all six platforms with the CPU in the library, and merging the phase publishes a release.
 
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+**Wave 1**
+- [ ] 02-01-PLAN.md — Tracer: `a9` fixture through vecconv and back through the N65V reader, on the owner's phase 2 branch; vecconv kept out of embeds; release-as pin removed
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 02-02-PLAN.md — Tracer: the `a9` fixture through the shipped CPU object behind the link-time bus seam; `bus.c`; `bus.unit`
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 02-03-PLAN.md — Committed 65x02 sample from range prefixes, manifest and hash check, converter and reader rejection tests, licence notice
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 02-04-PLAN.md — Addressing modes and the 105 official load, store, transfer, ALU, compare and flag opcodes against the sample (`cpu.vectors.<xx>`, label `vectors`)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 02-05-PLAN.md — The other 46 official opcodes: read-modify-write, branches, jumps, subroutines, stack, BRK and RTI
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [ ] 02-06-PLAN.md — Unofficial, JAM and unstable opcodes, machine profile, all 256 tests, JSR-overlap and jam unit tests, header and README
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [ ] 02-07-PLAN.md — Full set fetched at the pin: `pins.txt`, fetch fixture, sample-match, `vectors-full` preset, `nightly.yml`
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- [ ] 02-08-PLAN.md — Push, draft pull request, CI and nightly green on GitHub, timeouts from measured runs
+
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`, `.planning/preparation/ENGINEERING.md`
 

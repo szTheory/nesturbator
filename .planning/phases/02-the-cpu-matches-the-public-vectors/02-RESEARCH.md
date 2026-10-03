@@ -342,11 +342,11 @@ The first 3 objects of `a9.json` end at byte 984; those of `02.json` end at byte
 | A3 | A full nightly (fetch ~89 s per D-19 plus 2.56 M tests in C) fits well under 10 minutes; the first run sets `timeout-minutes` | D-24 | Low: measured on first run |
 | A4 | `gh label create --force` works with the job's `GITHUB_TOKEN` under `issues: write` | Pitfall 11 | Low: a first scheduled or dispatched run shows it |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Release version for this phase.** A `feat:` merge after removing `release-as` gives 0.1.1. If the owner wants 0.2.0 per phase, set `"release-as": "0.2.0"`, which re-arms the trap for the next phase. Recommendation: accept 0.1.1 and keep the automated check that `release-as` is absent.
-2. **Scoreboard now or in Phase 3 (discretion).** Recommendation: Phase 3. The phase bar is "every vector passes", and the sample has nothing to "improve".
-3. **Measured nightly duration.** Unknown until the first `pull_request`-triggered run on the phase branch. Set `timeout-minutes` from that run, as the existing jobs do.
+1. **Release version for this phase. (RESOLVED)** A `feat:` merge after removing `release-as` gives 0.1.1. If the owner wants 0.2.0 per phase, set `"release-as": "0.2.0"`, which re-arms the trap for the next phase. Recommendation: accept 0.1.1 and keep the automated check that `release-as` is absent. **Resolution:** 0.1.1. Plan 01 Task 3 removes the pin and adds `release.no_release_as`.
+2. **Scoreboard now or in Phase 3 (discretion). (RESOLVED)** Recommendation: Phase 3. The phase bar is "every vector passes", and the sample has nothing to "improve". **Resolution:** deferred to Phase 3 under Claude's discretion (CONTEXT.md); no Phase 2 plan creates the scoreboard file.
+3. **Measured nightly duration. (RESOLVED)** Unknown until the first `pull_request`-triggered run on the phase branch. Set `timeout-minutes` from that run, as the existing jobs do. **Resolution:** plan 08 Task 2 sets the nightly and ci.yml timeouts from the measured pull-request runs; plan 08 Task 1 step 6 gives a job that times out on legitimate work a provisional raise first.
 
 ## Environment Availability
 
