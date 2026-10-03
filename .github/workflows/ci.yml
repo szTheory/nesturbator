@@ -88,7 +88,7 @@ jobs:
         run: |
           echo "CC=gcc-14" >> "$GITHUB_ENV"
           echo "CXX=g++-14" >> "$GITHUB_ENV"
-          command -v ninja || sudo apt-get install -y ninja-build
+          command -v ninja || { sudo apt-get update && sudo apt-get install -y ninja-build; }
       # The MSVC developer environment for the runner's own architecture,
       # without a third-party action.
       - name: Load MSVC environment
@@ -144,7 +144,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Ninja
-        run: command -v ninja || sudo apt-get install -y ninja-build
+        run: command -v ninja || { sudo apt-get update && sudo apt-get install -y ninja-build; }
       - run: cmake --workflow --preset nofp
 
   # The same inputs give the same hashes on every platform: all six
