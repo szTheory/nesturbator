@@ -167,6 +167,15 @@ add_test(NAME vectors.source_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}/policy
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_source_policy.cmake)
 
+# Phase 2 keeps the public declaration stream at the Phase 1 baseline. Phase 3
+# must deliberately revise or remove this temporary policy with its API work.
+add_test(NAME vectors.api_policy
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_api_policy.cmake)
+add_test(NAME vectors.api_policy.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_api_policy.cmake)
+
 # release-please rewrites only the first version on each marked line, so no
 # marked line in its extra-files may hold two. The self-test runs the scan on
 # a fixture with two versions on line 3 and passes only on that exact error.
