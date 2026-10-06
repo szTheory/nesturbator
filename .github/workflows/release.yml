@@ -138,13 +138,18 @@ jobs:
           EXPECTED_TAG: ${{ needs.release-please.outputs.tag_name }}
         run: |
           version="${EXPECTED_TAG#v}"
-          expected=$(for component in library runner libretro; do
-            for os in linux macos windows; do
-              for arch in x64 arm64; do
-                echo "nesturbator-$version-$component-$os-$arch.zip"
+          expected=$(
+            {
+              for component in library runner libretro; do
+                for os in linux macos windows; do
+                  for arch in x64 arm64; do
+                    echo "nesturbator-$version-$component-$os-$arch.zip"
+                  done
+                done
               done
-            done
-          done; echo SHA256SUMS | LC_ALL=C sort)
+              echo SHA256SUMS
+            } | LC_ALL=C sort
+          )
           attempt=1
           while [ "$attempt" -le 6 ]; do
             release=$(gh release view "$EXPECTED_TAG" --repo "$REPOSITORY" \
