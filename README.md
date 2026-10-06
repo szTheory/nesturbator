@@ -235,21 +235,29 @@ required`, which passes only when every other job succeeded. Every action is
 pinned to a commit SHA, and Dependabot proposes updates weekly.
 
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
-04:17 UTC on Ubuntu 24.04, on demand, and on pull requests that change a
-file that can change what its tests run: the workflow, the root
-`CMakeLists.txt`, `CMakePresets.json`, `tests/CMakeLists.txt`,
-`tests/vectors/`, `tests/cpu/`, `tools/vecconv/`, `src/cpu.c`,
-`src/internal.h`, `include/nesturbator.h` and the scripts `fetch_vectors.cmake`,
-`vectors_full_run.cmake` and `vectors_sample_match.cmake` in `tests/cmake/`.
-It is outside `CI required`, so a red nightly blocks no merge. It fetches the full set at
+04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
+requests that change a file that can change what its tests run: the workflow,
+the root `CMakeLists.txt`, `CMakePresets.json`, `tests/CMakeLists.txt`,
+`tests/vectors/`, `tests/cpu/`, `tools/vecconv/`, `src/cpu.c`, `src/internal.h`,
+`include/nesturbator.h` and the scripts `fetch_vectors.cmake`,
+`vectors_full_run.cmake`, `vectors_sample_match.cmake` and
+`vector_registration_policy.cmake` in `tests/cmake/`.
+It is outside `CI required`, so a red nightly blocks no merge. Before the
+full run, it saves the CTest JSON inventory and checks all 258 full-tier tests,
+including their labels, fixtures and no-skip properties. The workflow then
+runs the lane once and saves its JUnit result. Both files are uploaded together
+as `vectors-full-evidence-<run ID>`; the job summary records the event, head
+SHA, run URL and artifact name. This makes each main commit's exact run and
+test evidence queryable by its run ID. The workflow fetches the full set at
 its pin on every run, with no cache, because a cache used every night would
 stop the fetch from ever being tested; offline, or with any file differing
-from `tests/vectors/pins.txt`, it fails rather than skips. A scheduled run
-keeps one open issue labelled `nightly`: a failure opens it, or updates it,
-with the run's URL and the failing keys (`65x02/<xx>`, `fetch`,
-`sample-match`), and the next passing run closes it. It holds no secret and
-makes no commit; its token can only read the repository, and only the report
-job can write issues.
+from `tests/vectors/pins.txt`, it fails rather than skips. Scheduled and
+main-push runs share one open issue labelled `nightly`: a failure opens it,
+or updates it with the event, head SHA, run URL and failing keys
+(`65x02/<xx>`, `fetch`, `sample-match`), and the next passing run closes it.
+It uses GitHub's per-job token: the full-run job has only `contents: read`, and
+only the report job has `issues: write`. Checkout credentials are not persisted
+and the workflow makes no commits.
 
 Locally, the lane keeps the fetched files in `build/vectors-full/vectors-full`.
 To keep them somewhere that survives a clean build, set the cache variable

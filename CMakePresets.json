@@ -111,7 +111,10 @@
     {
       "name": "vectors-full",
       "configurePreset": "vectors-full",
-      "output": { "outputOnFailure": true },
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build/vectors-full/vectors-full.junit.xml"
+      },
       "filter": { "include": { "label": "vectors-full" } },
       "execution": { "noTestsAction": "error" }
     }
