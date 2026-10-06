@@ -158,6 +158,15 @@ add_test(NAME cmake.script_policy
   COMMAND ${CMAKE_COMMAND} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/cmake
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/script_policy.cmake)
 
+# D-01 and D-02: vector conversion and fetch stay implemented by the owned C
+# parser; release configuration scripts are outside this scoped policy.
+add_test(NAME vectors.source_policy
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_source_policy.cmake)
+add_test(NAME vectors.source_policy.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}/policy
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_source_policy.cmake)
+
 # release-please rewrites only the first version on each marked line, so no
 # marked line in its extra-files may hold two. The self-test runs the scan on
 # a fixture with two versions on line 3 and passes only on that exact error.
