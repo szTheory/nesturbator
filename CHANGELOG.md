@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/szTheory/nesturbator/compare/v0.1.1...v0.1.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* **ci:** sort published release asset inventory ([#10](https://github.com/szTheory/nesturbator/issues/10)) ([fbb9d6e](https://github.com/szTheory/nesturbator/commit/fbb9d6ec6804083c1b20c9ca0fbd6abb1ecaeacf))
+
 ## [0.1.1](https://github.com/szTheory/nesturbator/compare/v0.1.0...v0.1.1) (2026-10-06)
 
 
