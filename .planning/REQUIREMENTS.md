@@ -19,8 +19,8 @@ Milestone 1. Each category's pull request builds the release archives, and mergi
 
 ### The CPU matches the public vectors
 
-- [ ] **CPU-01**: `ctest -L vectors` runs the committed sample of the 65x02 vectors through the CPU, and every opcode matches on final state and on every bus cycle.
-- [ ] **CPU-02**: `ctest -L vectors-full` runs the full 65x02 vector set, fetched at its pinned commit, with every test matching; CI runs it nightly.
+- [x] **CPU-01**: `ctest -L vectors` runs the committed sample of the 65x02 vectors through the CPU, and every opcode matches on final state and on every bus cycle.
+- [x] **CPU-02**: `ctest -L vectors-full` runs the full 65x02 vector set, fetched at its pinned commit, with every test matching; CI runs it nightly.
 
 ### A real game in RetroArch
 
@@ -84,8 +84,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FRAME-05 | Phase 1 | Complete |
 | FRAME-06 | Phase 1 | Complete |
 | FRAME-07 | Phase 1 | Complete |
-| CPU-01 | Phase 2 | Pending |
-| CPU-02 | Phase 2 | Pending |
+| CPU-01 | Phase 2 | Complete |
+| CPU-02 | Phase 2 | Complete |
 | GAME-01 | Phase 3 | Pending |
 | GAME-02 | Phase 3 | Pending |
 | GAME-03 | Phase 3 | Pending |

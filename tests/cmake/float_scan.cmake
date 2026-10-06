@@ -13,6 +13,8 @@
 # beside a hex integer literal and fails unless exactly those lines are
 # reported.
 
+cmake_minimum_required(VERSION 3.25)
+
 # Appends "file:line: text" for each finding in FILE to the list OUT.
 function(float_scan_file file out)
   file(READ "${file}" text)

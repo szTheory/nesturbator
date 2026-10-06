@@ -82,4 +82,29 @@ out=$(sh scripts/hygiene.sh --history 2>&1) || {
   echo "FAIL: --history found something in a clean commit"
   exit 1
 }
+
+# A tracked JSON total above 64 KiB is rejected from the staged index, the
+# working tree and commit history. The generated file exists only in this
+# isolated scratch repository, never in the project's shipped vector data.
+mkdir -p tests/vectors
+awk 'BEGIN { for (i = 0; i < 65537; i++) printf "a" }' >tests/vectors/oversized.json
+git add tests/vectors/oversized.json
+for mode in --staged --tree; do
+  status=0
+  out=$(sh scripts/hygiene.sh "$mode" 2>&1) || status=$?
+  [ "$status" = 1 ] || { echo "FAIL: $mode exit status $status, expected 1"; exit 1; }
+  printf '%s\n' "$out" | grep -q -F 'hygiene: tracked vector JSON exceeds 65536 bytes:' || {
+    echo "FAIL: $mode did not reject oversized vector JSON"
+    exit 1
+  }
+done
+git -c user.name=test -c user.email=test@users.noreply.github.com \
+  -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -q -m 'test: oversized vector fixture'
+status=0
+out=$(sh scripts/hygiene.sh --history 2>&1) || status=$?
+[ "$status" = 1 ] || { echo "FAIL: --history exit status $status, expected 1"; exit 1; }
+printf '%s\n' "$out" | grep -q -F 'hygiene: tracked vector JSON exceeds 65536 bytes:' || {
+  echo "FAIL: --history did not reject oversized vector JSON"
+  exit 1
+}
 echo "PASS"

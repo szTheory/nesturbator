@@ -3,6 +3,9 @@
 # file; release-please updates all three.
 #
 #   cmake -DSOURCE_DIR=<repository root> -P version_consistency.cmake
+
+cmake_minimum_required(VERSION 3.25)
+
 file(STRINGS "${SOURCE_DIR}/version.txt" text_version LIMIT_COUNT 1)
 file(READ "${SOURCE_DIR}/include/nesturbator.h" header)
 set(parts "")

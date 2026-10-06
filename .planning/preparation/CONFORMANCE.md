@@ -39,15 +39,15 @@ nesturbator's correctness claims rest on outside tests. They differ in what they
 
 ## The 65x02 vectors
 
-**Schema.** `00.json` to `ff.json`, each 10,000 tests, one per line: `name` (not unique), `initial` and `final` (`pc`, `s`, `a`, `x`, `y`, `p`, `ram` as [address, value] pairs), `cycles` as [address, value, "read" or "write"]. Memory is 64 KiB of flat RAM [CF.04].
+**Schema.** `00.json` to `ff.json`, each a JSON array of 10,000 tests; 25 files use a compact layout (`[{`, `[[`), the rest a spaced one; a reader must not depend on either. Each test has `name` (not unique), `initial` and `final` (`pc`, `s`, `a`, `x`, `y`, `p`, `ram` as [address, value] pairs), `cycles` as [address, value, "read" or "write"]. Memory is 64 KiB of flat RAM [CF.04].
 
 **Coverage.** All 256 opcodes, including JAM and the unstable ones, where the vectors fix one emulator's choice: ANE and LXA fit only the constant $EE [CF.04]; AccuracyCoin tests those two only where the constant cannot matter [CF.01]. Absent: reset, NMI, IRQ, interrupt polling, DMA, open bus, registers, mirrors [CF.04].
 
-**Per-pull-request sample.** Recommendation: the first 100 tests of each file (25,600), fixed by index order at the pin. They sit in the first 54,433 bytes of each measured file, so 256 range requests of 64 KiB rebuild the sample [CF.04]. Strongest alternative: every 100th test, which needs the full set. Nightly failures the sample misses would argue for a larger one.
+**Per-pull-request sample.** Recommendation: the first 100 tests of each file (25,600), fixed by index order at the pin. They sit in the first 54,565 bytes of each file (all 256 files), so 256 range requests of 64 KiB rebuild the sample [CF.04]. Strongest alternative: every 100th test, which needs the full set. Nightly failures the sample misses would argue for a larger one.
 
-**Binary form.** Recommendation, little-endian: header `N65V`, version u8, opcode u8, count u16; per test: index u16; `initial` and `final` each as pc u16, s a x y p u8, count u8, (address u16, value u8) pairs; count u8, (address u16, value u8, kind u8) cycle triples. Measured 63.3 B per test: 1.6 MB for the sample (committable as MIT data), 162 MB for the full set.
+**Binary form.** Recommendation, little-endian: an 8-byte header per opcode chunk: `N65V`, version u8, opcode u8, count u16; per test: index u16; `initial` and `final` each as pc u16, s a x y p u8, count u8, (address u16, value u8) pairs; count u8, (address u16, value u8, kind u8) cycle triples. Measured 65.55 B per test, chunk headers included: 1,678,114 B for the sample (committable as MIT data), about 168 MB for the full set.
 
-**Nightly full set.** 2,560,000 tests, about 11 million CPU cycles; the cost is download and parsing. The tree is 5.17 GB over five CPU variants; a sparse checkout of `nes6502/v1` fetches 1.08 GB. GitHub Actions caches default to 10 GB per repository and drop entries unused for 7 days [CF.04][CF.12].
+**Nightly full set.** 2,560,000 tests, about 11 million CPU cycles; the cost is download and parsing. The tree is 5.17 GB over five CPU variants; a sparse checkout of `nes6502/v1` is 1,081,529,097 B on disk, about 193 MB transferred. GitHub Actions caches default to 10 GB per repository and drop entries unused for 7 days [CF.04][CF.12].
 
 ## Classic suites
 

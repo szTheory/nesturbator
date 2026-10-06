@@ -27,13 +27,64 @@
 #define NESTURBATOR_INFO_SIZE_V1 ((uint32_t)sizeof(nesturbator_info))
 #define NESTURBATOR_FRAME_SIZE_V1 ((uint32_t)sizeof(nesturbator_frame))
 
-struct nesturbator {
-    nesturbator_allocator allocator; /* copy of the config's, defaults filled in */
-    uint64_t frame_number;           /* frames run since create */
-    uint64_t ticks;                  /* ticks run since create */
-    uint32_t audio_rem;              /* sample fraction carried over, in units
-                                        of 1/315000 sample per tick */
+/* 6502 core state (D-10). P is kept exactly as loaded or pulled: flag
+   writes touch only their own bits, so bits 4 and 5 change only on a pull.
+   The interrupt fields and halted_in_read are unused until the bus samples
+   the lines and stalls reads.
+   The power-up state is not set yet: nesturbator_create zeroes the instance,
+   so a new CPU has P, S and PC equal to 0 and no reset vector fetch. Nothing
+   runs the CPU during a frame yet; the phase that does adds the reset
+   sequence, which sets S, P and PC and clears jammed. */
+struct nesturbator__cpu {
+    uint16_t pc;
+    uint8_t a, x, y, s, p;
+    uint8_t nmi_prev, nmi_pending, irq_line, poll_latch;
+    uint8_t halted_in_read; /* nonzero while the current read is stalled */
+    uint8_t jammed;         /* set by a JAM opcode; nothing clears it yet */
 };
+
+/* Bus-side state: 2048 bytes of internal RAM and the open-bus latch, the
+   last value driven on the data bus (D-12). */
+struct nesturbator__bus {
+    uint8_t ram[2048];
+    uint8_t open_bus;
+};
+
+/* Machine profile: values that differ between chips of the same model
+   (D-14). ANE (0x8B) computes A = (A | ane_magic) & X & imm and LXA (0xAB)
+   computes A = X = (A | lxa_magic) & imm. */
+struct nesturbator__profile {
+    uint8_t ane_magic;
+    uint8_t lxa_magic;
+};
+
+/* NTSC RP2A03G: both constants are 0xEE. The 65x02 nes6502 vectors fit 0xEE
+   in all 10000 tests of each opcode, and the NESdev Wiki "CPU unofficial
+   opcodes" (revision 23975) describes the constant as chip dependent. LXA's
+   value is settled against a console test ROM in Phase 3 (deferred). */
+#define NESTURBATOR_RP2A03G_ANE_MAGIC 0xEEu
+#define NESTURBATOR_RP2A03G_LXA_MAGIC 0xEEu
+
+struct nesturbator {
+    nesturbator_allocator allocator;     /* copy of the config's, defaults filled in */
+    uint64_t frame_number;               /* frames run since create */
+    uint64_t ticks;                      /* ticks run since create */
+    struct nesturbator__cpu cpu;         /* the 6502 */
+    struct nesturbator__bus bus;         /* RAM and the open-bus latch */
+    struct nesturbator__profile profile; /* chip-dependent constants */
+    uint32_t audio_rem;                  /* sample fraction carried over, in units
+                                            of 1/315000 sample per tick */
+};
+
+/* One CPU read cycle at addr: advances time by one CPU cycle and returns the
+   value on the data bus (src/bus.c in the library). */
+uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
+
+/* One CPU write cycle of value to addr (src/bus.c in the library). */
+void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+
+/* Runs one whole instruction, opcode fetch to last cycle (D-11). */
+void nesturbator__cpu_step(struct nesturbator *nes);
 
 /* Validates an input struct's size tag before any other field is read.
    's' points at the struct; 'first' is its first released size; 'ours' is

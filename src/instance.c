@@ -102,6 +102,8 @@ nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator
     }
     memset(inst, 0, sizeof *inst);
     inst->allocator = a;
+    inst->profile.ane_magic = NESTURBATOR_RP2A03G_ANE_MAGIC; /* D-14 */
+    inst->profile.lxa_magic = NESTURBATOR_RP2A03G_LXA_MAGIC;
     *out = inst;
     return NESTURBATOR_OK;
 }

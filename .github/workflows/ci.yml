@@ -66,7 +66,7 @@ jobs:
 
   build:
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 2 # twice the cold run 37084642541 (53 s, windows-11-arm), rounded up to whole minutes (ENGINEERING §5)
+    timeout-minutes: 3 # twice the cold run 37136095554 (69 s, windows-11-arm), rounded up to whole minutes (ENGINEERING §5)
     strategy:
       fail-fast: false
       matrix:
@@ -131,7 +131,7 @@ jobs:
 
   nofp:
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 1 # twice the cold run 37084642541 (15 s, ubuntu-24.04-arm), rounded up to whole minutes (ENGINEERING §5)
+    timeout-minutes: 2 # twice the slowest measured run 37084642541 (38 s, ubuntu-24.04), rounded up to two minutes (ENGINEERING §5)
     strategy:
       fail-fast: false
       matrix:

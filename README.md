@@ -3,11 +3,12 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: Phase 1, a test frame.** The library, the runner and the libretro
-core build and run.
-With no cartridge loaded, the core outputs a fixed test card and silence. CPU,
-PPU, APU and ROM loading come in later phases. The plan lives in
-[`.planning/`](.planning/).
+**Status: Phase 2, the CPU.** The library, the runner and the libretro core
+build and run. The 6502 core matches the public 65x02 test vectors on every
+opcode and every bus cycle, and does not yet drive frames.
+With no cartridge loaded, the core outputs a fixed test card and silence. The
+PPU, APU, ROM loading and the CPU running games come in later phases. The plan
+lives in [`.planning/`](.planning/).
 
 ## Building
 
@@ -19,6 +20,7 @@ cmake --workflow --preset dev   # Debug build and the same tests
 cmake --workflow --preset asan  # the same tests under AddressSanitizer and UBSan
 cmake --workflow --preset nofp  # core built with -mgeneral-regs-only; the abi checks
 cmake --workflow --preset hygiene  # tree contents, action pins and formatting
+cmake --workflow --preset vectors-full  # the full 65x02 vector set, fetched at its pin (network)
 ```
 
 On Windows with MSVC, use `ci-msvc` from a developer command prompt.
@@ -34,6 +36,7 @@ Each lane is one command, `cmake --workflow --preset <lane>`.
 | `asan` | Every test except the RetroArch launch passes under AddressSanitizer and UBSan, with any report fatal |
 | `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
+| `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
 
 The `abi` tests hold the core to integer arithmetic and the C memory
 functions: a text scan of `src/` and `include/` for `float`, `double` and
@@ -95,7 +98,10 @@ table entry, and the input and output row pitches are honoured.
 C++ with warnings as errors and check its struct layout. `runner.sha256`
 checks the runner's SHA-256 against the FIPS 180-4 example digests, and
 `version.consistency` checks that `version.txt` matches the header's version
-macros and the libretro `.info` file's `display_version`. `libretro.vendored`
+macros and the libretro `.info` file's `display_version`.
+`cmake.script_policy` checks that every script in `tests/cmake` sets
+`cmake_minimum_required(VERSION 3.25)`, so each CMake release reads it the
+same way. `libretro.vendored`
 checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
 `libretro.host` loads the built libretro core at run time, calls it in the
 order RetroArch does, and checks that the frame it receives equals the
@@ -110,13 +116,103 @@ on size, one colour channel of pixel (17,200) off by one to be reported as
 rejected. `retroarch.compare.cli` runs `compare_frame` on an equal pair.
 `palette.regen` rebuilds the colour table with `tools/palgen` and
 checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
+`vecconv.a9` converts the first three upstream `a9` (LDA immediate) tests in
+`tests/vectors/fixtures` to the binary N65V form with `tools/vecconv` and
+reads them back through the shared reader, which must decode exactly what was
+written. It then runs them through the CPU with `cpu.vectors`, which links
+the CPU object the library ships against a test bus of flat RAM that logs
+every cycle, and requires each test's registers, RAM and every bus cycle
+(address, value, read or write) to match: `65x02/a9: 0 of 3 vectors failed`.
+`vectors.n65v` reads the committed sample `tests/vectors/65x02-sample.n65v`
+through the same reader and requires 256 chunks of 100 tests, chunk k holding
+opcode k, indexes 0 to 99 in each chunk, and nothing after the last chunk.
+`cpu.vectors.<xx>` runs opcode xx's 100 sample tests through the CPU and
+compares registers, RAM and every bus cycle, dummy reads included; it passes
+only on exit status 0 and the exact line `65x02/<xx>: 0 of 100 vectors
+failed`. A failure names the upstream test as `xx.json[i]` and the first field
+that differs. Each test starts from zeroed RAM: after a pass the harness
+zeroes the addresses the test listed, and after a failure all 64 KiB, since a
+failing CPU may have written anywhere. `cpu.vectors.stray-write` runs two INC
+tests that do not list their target address, the first with a wrong expected
+A, and requires `65x02/e6: 1 of 2 vectors failed`: the first test's write
+must not reach the second. The label `vectors` selects all 256 opcodes, `cpu.vectors.00`
+to `cpu.vectors.ff`, with no opcode or vector skipped: the 151 official ones
+in every addressing mode, the stable unofficial ones (NOP variants, LAX, SAX,
+SLO, RLA, SRE, RRA, DCP, ISC, ANC, ALR, ARR, SBX and SBC `eb`), the twelve
+JAM opcodes, and the unstable ANE, LXA, LAS, SHY, SHX, SHA and TAS. The CPU
+has no decimal mode, as on the 2A03: SED and CLD set and clear D, PHP, PLP and
+RTI keep it, and ADC and SBC stay binary. A JAM opcode makes eleven reads and
+no write, and leaves the CPU jammed. ANE and LXA use a constant of `0xEE`,
+the NTSC RP2A03G value, which the instance holds as part of its machine
+profile.
+`cpu.unit` covers what the sample cannot show, on the same CPU object and
+test bus. A JSR at `0x017B` with S at `0x7D` pushes PCL over its own
+high-address operand and must jump to the pushed byte: exactly six cycles,
+ending at `0x0155` with S at `0x7B` (SingleStepTests 65x02 issue 18). After a
+JAM opcode, each later step must be one read of `0xFFFF` with no register,
+flag or PC change, and a JAM at `0xFFFF` must leave PC at `0x0000`.
+`core.profile` creates an instance and requires both profile constants to be
+`0xEE`.
+`vectors.n65v.crafted` encodes a valid two-test buffer byte by byte and
+requires the reader to reject, naming the byte offset at fault, every
+truncation of it, bad magic, version 2, a cycle kind of 2, the wrong opcode, a
+header count that disagrees with the tests present, a repeated index, and one
+trailing byte. `vecconv.02` converts the first three tests of `02.json`,
+written in the compact layout, and runs them through the CPU:
+`65x02/02: 0 of 3 vectors failed`. `vecconv.a9_tail` converts three tests from
+a prefix of `a9.json` cut inside the fourth; `vecconv.a9_tail.cut` asks the
+same prefix for four and requires vecconv to fail. The fourteen
+`vecconv.reject.*` tests each edit the `a9` fixture into one malformed input
+(a fraction, a sign, an exponent, a leading zero, an address of 65536, a byte of 256, an
+unknown cycle kind, an unknown or missing key, 256 cycles, an empty file, an
+empty array or a short closed array without `--first`, a cut inside the third
+test) and require vecconv to exit 1 with the byte offset.
+`manifest.sha256` checks every line of `tests/roms/manifest.txt`: five
+tab-separated fields, a pin that is a 40-digit commit or a release tag, a
+licence, and a file whose SHA-256 equals the line's.
+`manifest.sha256.selftest` lists a scratch file with a wrong hash and passes
+only if the check reports it.
+The `vectors-full` lane registers its tests only when the CMake option
+`NESTURBATOR_VECTORS_FULL` is on, which its preset sets, so `ci` never touches
+the network. `cpu.vectors-full.fetch` runs `tests/cmake/fetch_vectors.cmake`:
+a sparse, blobless, depth-1 git fetch of upstream `nes6502/v1` at the commit
+on the first line of `tests/vectors/pins.txt` (about 190 MB, a minute or two),
+then a size and SHA-256 check of all 256 files against that file's lines. A
+missing, extra or altered file fails with its path and both hashes, and so
+does a run without the network; nothing is skipped. When every file already
+verifies it fetches nothing. `cpu.vectors-full.00` to `cpu.vectors-full.ff`
+each convert one whole file with `vecconv`, which then requires exactly 10000
+tests, and run it through the CPU; each passes only on the line
+`65x02/<xx>: 0 of 10000 vectors failed` and prints its failing-vector count
+otherwise. That is all 2,560,000 upstream tests. `cpu.vectors-full.sample-match`
+converts the first 100 tests of every fetched file and requires them to equal
+the committed sample chunk by chunk, byte for byte, which proves where the
+sample came from; a difference names the chunk and the blob offset.
+`vectors.pins`, in `ci` and offline, checks `tests/vectors/pins.txt`: its pin
+line, 256 lines in order from `00.json` to `ff.json`, sizes summing to
+1,081,529,097 bytes, and a commit equal to the sample's manifest pin.
+`vectors.pins.selftest` swaps two lines in a copy and passes only if the check
+reports them as not sorted.
+`vectors.fetch.guard` checks, offline, that the fetch deletes only what it
+created: a `65x02-src` directory without the fetch's marker file is refused
+and left in place, and a directory that reaches the source tree through a
+symbolic link, or through a different letter case on macOS and Windows, is
+refused as inside the source tree; the fetch compares paths after resolving
+them to the links' targets and the case stored on disk. A refused directory
+that does not exist yet is not created.
+`bus.unit` checks the library's bus (`src/bus.c`) on its own: each read or
+write advances time by 24 ticks, a byte written at `0x0001` reads back at
+`0x0801`, `0x1001` and `0x1801`, a read outside RAM returns the last value on
+the bus, and a write outside RAM changes no RAM byte.
 `install.stage` installs the library into `build/ci/stage`, and
 `install.consumer` builds `tests/consumer`, a separate project that includes
 only `<nesturbator.h>`, against that install with `find_package`, then runs
 one frame with it. `embed.subdirectory` builds `tests/embed`, a C-only
 project that adds the source tree with `add_subdirectory`; it requires that
-embedding enables no C++, adds no runner, libretro, `palgen` or host-helper
-target and writes no CPack configuration, then runs one frame.
+embedding enables no C++, adds no runner, libretro, `palgen`, `vecconv` or
+host-helper target, adds exactly the targets `nesturbator_cpu` and
+`nesturbator` and the helpers listed under "Using the library", and writes no
+CPack configuration, then runs one frame.
 
 ## Continuous integration
 
@@ -137,6 +233,65 @@ the six `hashes.txt` files to be byte-identical, so a platform that computes
 a different frame fails the run. The branch rules require one check, `CI
 required`, which passes only when every other job succeeded. Every action is
 pinned to a commit SHA, and Dependabot proposes updates weekly.
+
+`.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
+04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
+requests that change a file that can change what its tests run: the workflow,
+the root `CMakeLists.txt`, `CMakePresets.json`, `tests/CMakeLists.txt`,
+`tests/vectors/`, `tests/cpu/`, `tools/vecconv/`, `src/cpu.c`, `src/internal.h`,
+`include/nesturbator.h` and the scripts `fetch_vectors.cmake`,
+`vectors_full_run.cmake`, `vectors_sample_match.cmake` and
+`vector_registration_policy.cmake` in `tests/cmake/`.
+It is outside `CI required`, so a red nightly blocks no merge. Before the
+full run, it saves the CTest JSON inventory and checks all 258 full-tier tests,
+including their labels, fixtures and no-skip properties. The workflow then
+runs the lane once and saves its JUnit result. Both files are uploaded together
+as `vectors-full-evidence-<run ID>`; the job summary records the event, head
+SHA, run URL and artifact name. This makes each main commit's exact run and
+test evidence queryable by its run ID. The workflow fetches the full set at
+its pin on every run, with no cache, because a cache used every night would
+stop the fetch from ever being tested; offline, or with any file differing
+from `tests/vectors/pins.txt`, it fails rather than skips. Scheduled and
+main-push runs share one open issue labelled `nightly`: a failure opens it,
+or updates it with the event, head SHA, run URL and failing keys
+(`65x02/<xx>`, `fetch`, `sample-match`), and the next passing run closes it.
+It uses GitHub's per-job token: the full-run job has only `contents: read`, and
+only the report job has `issues: write`. Checkout credentials are not persisted
+and the workflow makes no commits.
+
+After the Phase 2 merge, collect release, exact-commit main-push and first
+post-merge scheduled vector evidence with this read-only command (replace the
+SHA and tag with the merge commit and expected release tag):
+
+```sh
+scripts/phase2_outcomes.sh <phase-2-merge-sha> <release-tag>
+```
+
+It reports external events that have not happened yet as `PENDING` (exit 2);
+completed failures return exit 1, and a fully passing report returns exit 0.
+Only a published release and successful runs with matching commits and all
+258 completed vector results are reported as `PASS`. It requires authenticated
+`gh`, `jq` and CMake. Run `scripts/phase2_outcomes.sh --self-test` to exercise
+the evidence parser without querying GitHub.
+
+Locally, the lane keeps the fetched files in `build/vectors-full/vectors-full`.
+To keep them somewhere that survives a clean build, set the cache variable
+`NESTURBATOR_VECTORS_DIR` in an untracked `CMakeUserPresets.json`, for example
+a configure preset that inherits `vectors-full`. The files go in its
+`65x02-src` subdirectory, which the fetch replaces only when it holds the
+marker file `.nesturbator-vectors` that the fetch wrote; any other
+`65x02-src` there fails the fetch. Files fetched before the move to
+`65x02-src` remain in `<dir>/src`, about 1 GB that the fetch never deletes;
+delete that directory by hand. The fetch refuses a directory inside the
+source tree other than under `build/`, after resolving symbolic links. To
+move to a new upstream commit, regenerate `pins.txt` and the vector sample in one change. The
+command below prints the new total size, which replaces 1,081,529,097 in
+`tests/cmake/pins_check.cmake`:
+
+```sh
+cmake -DDIR=build/pins -DSOURCE_DIR=. -DGIT=git -DCOMMIT=<40-digit upstream commit> \
+      -DWRITE_PINS=tests/vectors/pins.txt -P tests/cmake/fetch_vectors.cmake
+```
 
 ## Using the library
 
@@ -168,9 +323,12 @@ add_subdirectory(nesturbator)               # or FetchContent_MakeAvailable
 target_link_libraries(app PRIVATE nesturbator::nesturbator)
 ```
 
-An embedded build adds only the library and its `library` install rules. The
-runner, the libretro core, `palgen`, the tests and the release packaging are
-built only when nesturbator is the top-level project. On a system or
+An embedded build adds only the library and its `library` install rules,
+plus four build helpers with the `nesturbator` prefix: the CPU object library
+`nesturbator_cpu` that the library folds in, the CMake functions
+`nesturbator_core_flags` and `nesturbator_warnings`, and the option
+`NESTURBATOR_NOFP`. The runner, the libretro core, `palgen`, `vecconv`, the tests and the release
+packaging are built only when nesturbator is the top-level project. On a system or
 processor other than the six release targets, a top-level build still
 configures and names its archives after what CMake reports, with a warning.
 
@@ -209,7 +367,10 @@ cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake
 Merging a behaviour-changing pull request publishes a GitHub release.
 release-please reads the Conventional Commit titles on `main`, opens a release
 pull request that sets the version and the changelog, and merges it once CI
-passes. `.github/workflows/release.yml` then runs the full CI on that exact
+passes. The version comes from the Conventional Commit titles alone: before
+1.0 a `feat:` raises the patch number, and `release.no_release_as` keeps a
+one-time `release-as` pin from staying behind in
+`release-please-config.json`. `.github/workflows/release.yml` then runs the full CI on that exact
 commit and publishes the release with 18 archives (library, runner and
 libretro for six platforms) and `SHA256SUMS`. `SHA256SUMS` carries a
 build-provenance attestation that covers every archive. To check a download:
@@ -386,7 +547,8 @@ in your home folder before and after the run, and fails if anything in it was
 created, changed or removed. RetroArch opens a window, so the test needs a
 logged-in desktop session. Set `NESTURBATOR_RETROARCH` to use a RetroArch
 binary somewhere else. On other systems, or when RetroArch is not installed,
-the test reports itself skipped.
+the test reports itself skipped. If RetroArch exits unsuccessfully, CMake
+reports its captured stdout and stderr separately.
 
 ## What it will be
 
@@ -400,6 +562,28 @@ the test reports itself skipped.
 This repository contains no commercial ROM or BIOS data and never will. You
 supply your own legally obtained game images. See
 [ASSET_POLICY.md](ASSET_POLICY.md).
+
+The CPU test data under `tests/vectors/` is MIT data from
+[SingleStepTests 65x02](https://github.com/SingleStepTests/65x02): the sample
+`65x02-sample.n65v` and three small JSON fixtures. Each is listed in
+`tests/roms/manifest.txt` with its source, pin, licence and SHA-256, and its
+licence notice is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+### Regenerating the vector sample
+
+The sample holds the first 100 tests of each of the 256 upstream files. To
+rebuild it at an upstream commit, from a configured `ci` build:
+
+```sh
+cmake -DCOMMIT=<40-digit upstream commit> -DVECCONV=build/ci/tools/vecconv/vecconv \
+      -DWORK=build/ci/vectors-regen -DOUT=tests/vectors/65x02-sample.n65v \
+      -P tests/cmake/vectors_regen.cmake
+```
+
+It downloads the first 64 KiB of each file (about 16 MB), converts 100 tests
+from each with `vecconv`, joins the chunks in opcode order, and prints the
+file's size, its SHA-256 and the line for `tests/roms/manifest.txt`. Moving to
+a new upstream commit is a change of its own, with the new manifest line.
 
 ## How the code is written
 

@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-10-03T17:08:05.220Z",
+  "phase": "02",
+  "phase_name": "The CPU matches the public vectors",
+  "phase_dir": ".planning/phases/02-the-cpu-matches-the-public-vectors",
+  "plan": 8,
+  "task": 1,
+  "total_tasks": 4,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Execute plans 02-01..02-08", "status": "done", "commit": "08110c9"},
+    {"id": 2, "name": "Code review fix pass 1 (CR-01, WR-01..03)", "status": "done", "commit": "30755cb"},
+    {"id": 3, "name": "Re-review of fix diff + fix pass 2 --all (WR-04, IN-01..09)", "status": "done", "commit": "113cf08"}
+  ],
+  "remaining_tasks": [
+    {"id": 1, "name": "UAT 1: Decide on CR-01 before merge (now fixed in 2a4ea01 with vectors.fetch.guard; mark passed)", "status": "not_started"},
+    {"id": 2, "name": "UAT 2: Owner acknowledges the flagged prohibitions in 02-VERIFICATION.md", "status": "not_started"},
+    {"id": 3, "name": "UAT 3: Release v0.1.1 after owner merges PR #5", "status": "not_started"},
+    {"id": 4, "name": "UAT 4: First scheduled nightly on main passes vectors-full (258 tests)", "status": "not_started"}
+  ],
+  "blockers": [],
+  "async_jobs": [],
+  "human_actions_pending": [
+    {"action": "Approve pushing phase/02-cpu-vectors (22 commits ahead of origin) so PR #5 carries the review fixes", "context": "Nothing was pushed during the review/fix runs; PR #5 is open with head phase/02-cpu-vectors", "blocking": true},
+    {"action": "Merge PR #5 once CI is green", "context": "UAT 3 and 4 are post-merge checks", "blocking": true},
+    {"action": "Delete build/vectors-full/vectors-full/src by hand (about 1 GB, old fetch layout)", "context": "The fetch guard never deletes an unmarked directory", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "Re-review of the fix diff carried forward open IN-01..06 into the new 02-REVIEW.md", "rationale": "The workflow overwrites REVIEW.md; without carry-forward the --all fix pass would have lost them", "phase": "02"},
+    {"decision": "IN-08: kept the lower-casing step in fetch_vectors.cmake, changed only comments", "rationale": "After IN-07 it covers the not-yet-existing tail of DIR that REAL_PATH cannot canonicalise", "phase": "02"},
+    {"decision": "IN-06: tests/retroarch/bmp_ppm.c keeps its own read_file", "rationale": "It belongs to the RetroArch comparison tool, not the vector tools", "phase": "02"},
+    {"decision": "IN-09: README note only, no code deletes the old DIR/src", "rationale": "Never delete unmarked directories", "phase": "02"}
+  ],
+  "uncommitted_files": [],
+  "next_action": "Run /gsd-verify-work 02 to resume UAT at test 1 (CR-01 is fixed; mark passed with commit 2a4ea01)",
+  "context_notes": "All review findings (14) are fixed per 02-REVIEW-DISPOSITION.md. ci preset passes 321/321 locally. IN-07's new path walk is only tested on macOS; the Windows CI run is its first real test."
+}

@@ -10,6 +10,8 @@
 # repository root. Only zips of that version count, so CPack's staging
 # directory and zips left from an earlier version are ignored.
 
+cmake_minimum_required(VERSION 3.25)
+
 if(NOT DEFINED PACKAGES)
   if(NOT DEFINED DIR)
     message(FATAL_ERROR "check_archives: pass -DDIR=<build dir> or -DPACKAGES=<zip dir>")

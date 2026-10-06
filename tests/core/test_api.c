@@ -17,7 +17,7 @@ typedef struct counter {
         uint64_t u;
         void *p;
         void (*f)(void);
-        unsigned char bytes[256];
+        unsigned char bytes[65536]; /* room for the instance, RAM included */
     } storage;
     int in_use;
 } counter;

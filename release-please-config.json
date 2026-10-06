@@ -7,12 +7,20 @@
       "bump-patch-for-minor-pre-major": true,
       "draft": true,
       "force-tag-creation": true,
-      "release-as": "0.1.0",
       "include-v-in-tag": true,
       "extra-files": [
-        { "type": "generic", "path": "include/nesturbator.h" },
-        { "type": "generic", "path": "README.md" },
-        { "type": "generic", "path": "libretro/nesturbator_libretro.info" }
+        {
+          "type": "generic",
+          "path": "include/nesturbator.h"
+        },
+        {
+          "type": "generic",
+          "path": "README.md"
+        },
+        {
+          "type": "generic",
+          "path": "libretro/nesturbator_libretro.info"
+        }
       ]
     }
   }

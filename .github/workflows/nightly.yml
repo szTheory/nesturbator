@@ -1,0 +1,148 @@
+# Nightly full 65x02 vector run (CPU-02; ENGINEERING section 5). It is
+# outside `CI required`: a red nightly opens an issue and blocks nothing.
+# `cmake --workflow --preset vectors-full` fetches the full set by git at the
+# pin in tests/vectors/pins.txt, checks every file's SHA-256, and runs all
+# 2,560,000 tests. There is no cache (Phase 2 D-21): a cache used every night
+# stays warm forever, and the fetch at the pin would stop being tested.
+name: Nightly
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+  # A pull request that changes the nightly's own inputs runs it too, since a
+  # schedule runs only on the default branch. The lane builds the whole `ci`
+  # tree; the list is the files that can change what its vectors-full tests
+  # run: its presets and test registrations, the fetch, converter and run
+  # scripts, the harness, and the CPU with the header and build file it is
+  # compiled from, whose full 10000-test behaviour only this lane exercises.
+  pull_request:
+    paths:
+      - .github/workflows/nightly.yml
+      - CMakeLists.txt
+      - CMakePresets.json
+      - include/nesturbator.h
+      - tests/CMakeLists.txt
+      - tests/vectors/**
+      - tests/cpu/**
+      - tests/cmake/fetch_vectors.cmake
+      - tests/cmake/vectors_full_run.cmake
+      - tests/cmake/vectors_sample_match.cmake
+      - tests/cmake/vector_registration_policy.cmake
+      - tools/vecconv/**
+      - src/cpu.c
+      - src/internal.h
+
+permissions: {}
+
+jobs:
+  vectors-full:
+    runs-on: ubuntu-24.04
+    # Cold run 37136095512 took 88 s: 65 s in the fetch, 23 s in everything else.
+    # The fetch is a network transfer, so it gets its own allowance, the 900 s
+    # TIMEOUT of cpu.vectors-full.fetch in tests/CMakeLists.txt; the rest gets
+    # twice its measured 23 s. 900 + 46 = 946 s, rounded up to whole minutes.
+    timeout-minutes: 16
+    permissions:
+      contents: read
+    outputs:
+      failed: ${{ steps.keys.outputs.failed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # GCC 14, as in ci.yml; the image's default gcc is 13.
+      - name: Linux toolchain
+        run: |
+          echo "CC=gcc-14" >> "$GITHUB_ENV"
+          echo "CXX=g++-14" >> "$GITHUB_ENV"
+          command -v ninja || { sudo apt-get update && sudo apt-get install -y ninja-build; }
+      # Configure without running the fetch fixture, then preserve the exact
+      # inventory checked before the network-backed workflow starts.
+      - name: Record and check full-tier inventory
+        run: |
+          cmake --preset vectors-full
+          ctest --test-dir build/vectors-full --show-only=json-v1 > build/vectors-full/registered-tests.json
+          cmake -DROOT="$GITHUB_WORKSPACE" \
+            -DINVENTORY_FILE="$GITHUB_WORKSPACE/build/vectors-full/registered-tests.json" \
+            -DFULL_ONLY=ON -P tests/cmake/vector_registration_policy.cmake
+      - run: cmake --workflow --preset vectors-full
+      # The failed tests as report keys: cpu.vectors-full.<xx> becomes
+      # 65x02/<xx>; fetch and sample-match keep their names.
+      - name: Failed keys
+        id: keys
+        if: always()
+        run: |
+          log=build/vectors-full/Testing/Temporary/LastTestsFailed.log
+          keys=""
+          if [ -f "$log" ]; then
+            keys=$(cut -d: -f2- "$log" \
+              | sed -n 's/^cpu\.vectors-full\.//p' \
+              | sed -E 's|^([0-9a-f]{2})$|65x02/\1|' \
+              | sort | tr '\n' ' ' | sed 's/ $//')
+          fi
+          printf 'failed: %s\n' "${keys:-none}"
+          echo "failed=$keys" >> "$GITHUB_OUTPUT"
+      - name: Verify run evidence
+        if: always()
+        run: |
+          test -s build/vectors-full/registered-tests.json
+          test -s build/vectors-full/vectors-full.junit.xml
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: vectors-full-evidence-${{ github.run_id }}
+          path: |
+            build/vectors-full/registered-tests.json
+            build/vectors-full/vectors-full.junit.xml
+          if-no-files-found: error
+      - name: Record run identity
+        if: always()
+        env:
+          ARTIFACT: vectors-full-evidence-${{ github.run_id }}
+        run: |
+          printf 'event: %s\nhead SHA: %s\nrun: %s/%s/actions/runs/%s\nartifact: %s\n' \
+            "$GITHUB_EVENT_NAME" "$GITHUB_SHA" "$GITHUB_SERVER_URL" \
+            "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$ARTIFACT" >> "$GITHUB_STEP_SUMMARY"
+
+  # On scheduled and main-push runs: one rolling issue labelled nightly,
+  # opened or updated on failure and closed on success. No checkout, so gh is
+  # given the repository.
+  report:
+    needs: vectors-full
+    if: always() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    permissions:
+      issues: write
+    steps:
+      - name: Rolling issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ needs.vectors-full.result }}
+          FAILED: ${{ needs.vectors-full.outputs.failed }}
+          HEAD_SHA: ${{ github.sha }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          gh label create nightly --force --repo "$GITHUB_REPOSITORY" \
+            --description "Nightly vectors-full run"
+          issue=$(gh issue list --repo "$GITHUB_REPOSITORY" --label nightly --state open \
+            --json number -q '.[0].number // empty')
+          if [ "$RESULT" = "success" ]; then
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --repo "$GITHUB_REPOSITORY" \
+                --comment "Passed for $EVENT at $HEAD_SHA in $url"
+            fi
+            exit 0
+          fi
+          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nResult: %s\n\nFailed: %s\n' \
+            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-no test recorded; see the run}")
+          if [ -n "$issue" ]; then
+            gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "Nightly vectors-full failed" \
+              --label nightly --body "$body"
+          fi

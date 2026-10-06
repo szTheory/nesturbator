@@ -8,6 +8,9 @@
 # Without FILE, every *.yml and *.yaml file under ROOT is read. A value passes
 # if it is a local path (./...) or owner/repo[/path]@<40 lowercase hex digits>.
 # Each offender is printed as file:line.
+
+cmake_minimum_required(VERSION 3.25)
+
 if(DEFINED FILE)
   set(files "${ROOT}/${FILE}")
 else()

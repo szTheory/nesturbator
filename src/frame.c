@@ -45,6 +45,10 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
 
     inst->audio_rem = (uint32_t)(acc % NESTURBATOR_AUDIO_TICKS_PER_PERIOD);
     inst->frame_number += 1u;
+    /* No CPU runs in a frame yet, so time advances here by a whole frame.
+       Each bus access also advances ticks (src/bus.c); once the CPU runs
+       here, the frame steps it until ticks reaches the frame's end instead
+       of adding this constant, or time would be counted twice. */
     inst->ticks += NESTURBATOR_TICKS_PER_FRAME;
     io->audio_count = n;
     io->frame_number = inst->frame_number;

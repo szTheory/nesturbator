@@ -83,7 +83,7 @@ Six legs run per pull request because cross-platform identity is a product claim
 - **Concurrency.** `cancel-in-progress` is true only for pull requests, so each `main` commit keeps a result; `release.yml` has its own group, because a called workflow sees the caller's context [ENG.03][ENG.04].
 - **Timeouts** are twice a measured cold duration, with the run recorded in a comment; the default is 360 minutes [ENG.03][ENG.13].
 - **Pins.** Every `uses:` is a full SHA (threadline uses tags): the setting `sha_pinning_required` rejects anything else [ENG.13]; a `hygiene` test reads every `uses:` key, since scrypath's pattern matches only `- uses:` and sees 50 of its 60 lines [ENG.05]; Dependabot covers `github-actions` alone [ENG.01].
-- **Caches.** No compiler cache at first (ccache is on no image); a later one is keyed by preset, runner label and compiler version, not `runner.os` [ENG.03]. The nightly vector cache is keyed by upstream commit; entries unused for 7 days expire [ENG.13].
+- **Caches.** No compiler cache at first (ccache is on no image); a later one is keyed by preset, runner label and compiler version, not `runner.os` [ENG.03]. The nightly fetches the 65x02 vectors at their pin on every run, with no cache: a cache used every night stays warm forever, and the fetch would stop being tested (Phase 2 D-21). Converted N65V is cached only if a cold run exceeds about 10 minutes, keyed on `tests/vectors/pins.txt` and the converter sources; the raw JSON is never cached.
 
 ## 6. Release
 | Key | Value | Reason |

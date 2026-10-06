@@ -152,6 +152,43 @@ add_test(NAME version.consistency
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_consistency.cmake)
 
+# Every script in tests/cmake sets its policy version, so CMake reads it the
+# same way on every runner.
+add_test(NAME cmake.script_policy
+  COMMAND ${CMAKE_COMMAND} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/cmake
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/script_policy.cmake)
+
+# D-01 and D-02: vector conversion and fetch stay implemented by the owned C
+# parser; release configuration scripts are outside this scoped policy.
+add_test(NAME vectors.source_policy
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_source_policy.cmake)
+add_test(NAME vectors.source_policy.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}/policy
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_source_policy.cmake)
+
+# Phase 2 keeps the public declaration stream at the Phase 1 baseline. Phase 3
+# must deliberately revise or remove this temporary policy with its API work.
+add_test(NAME vectors.api_policy
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_api_policy.cmake)
+add_test(NAME vectors.api_policy.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_api_policy.cmake)
+
+# Exact opcode inventories come from CTest's machine-readable metadata. The
+# policy configures the full preset but never runs its network-backed fixture.
+add_test(NAME vectors.registration_policy
+  COMMAND ${CMAKE_COMMAND}
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DCI_BUILD=${PROJECT_BINARY_DIR}
+    -DFULL_BUILD=${PROJECT_BINARY_DIR}/../vectors-full
+    -DCTEST=${CMAKE_CTEST_COMMAND}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
+add_test(NAME vectors.registration_policy.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
+
 # release-please rewrites only the first version on each marked line, so no
 # marked line in its extra-files may hold two. The self-test runs the scan on
 # a fixture with two versions on line 3 and passes only on that exact error.
@@ -164,6 +201,12 @@ add_test(NAME release.one_version_per_line.self_test
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_markers.cmake)
 set_tests_properties(release.one_version_per_line.self_test PROPERTIES
   PASS_REGULAR_EXPRESSION "tests/release/two_versions\\.md:3: 2 versions")
+
+# A one-time release-as pin in release-please-config.json must not stay
+# behind, or every later release reuses its version.
+add_test(NAME release.no_release_as
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_config.cmake)
 
 # libretro.h is RetroArch v1.22.2's copy (commit
 # 69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576), byte for byte. .gitattributes
@@ -198,6 +241,235 @@ add_test(NAME palette.regen
     -DREF=${PROJECT_SOURCE_DIR}/src/palette_ntsc.c
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/palette_regen.cmake)
 
+# D-08, D-09, D-11: the vector program runs N65V tests through the shipped
+# CPU object against the test bus in tests/cpu/vector_bus.c. It does not
+# link the library, which defines the same two bus functions.
+add_executable(cpu.vectors
+  cpu/test_vectors.c
+  cpu/vector_bus.c
+  vectors/n65v.c
+  $<TARGET_OBJECTS:nesturbator_cpu>)
+target_include_directories(cpu.vectors PRIVATE
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_SOURCE_DIR}/tests/vectors
+  ${PROJECT_SOURCE_DIR}/tests/cpu)
+target_compile_definitions(cpu.vectors PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(cpu.vectors)
+
+# D-13, D-17: what the sample cannot show, on the same CPU object and test
+# bus: the JSR whose push overwrites its ADH operand (65x02 issue 18), the
+# jammed loop, and a JAM at 0xFFFF wrapping PC to 0x0000. It does not link
+# the library.
+add_executable(cpu.unit cpu/test_cpu_unit.c cpu/vector_bus.c $<TARGET_OBJECTS:nesturbator_cpu>)
+target_include_directories(cpu.unit PRIVATE
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_SOURCE_DIR}/tests/vectors
+  ${PROJECT_SOURCE_DIR}/tests/cpu)
+nesturbator_warnings(cpu.unit)
+add_test(NAME cpu.unit COMMAND cpu.unit)
+
+# D-14: nesturbator_create sets the RP2A03G machine profile, read through
+# the internal header.
+add_executable(core.profile core/test_profile.c)
+target_link_libraries(core.profile PRIVATE nesturbator::nesturbator)
+target_include_directories(core.profile PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(core.profile)
+add_test(NAME core.profile COMMAND core.profile)
+
+# D-12: the library bus alone, compiled in directly: 24 ticks per call, RAM
+# mirrored over 0x0000-0x1FFF, the open-bus latch for unmapped reads.
+add_executable(bus.unit cpu/test_bus.c ${PROJECT_SOURCE_DIR}/src/bus.c)
+target_include_directories(bus.unit PRIVATE
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/include)
+nesturbator_warnings(bus.unit)
+add_test(NAME bus.unit COMMAND bus.unit)
+
+# CPU-01, D-01 and D-03: vecconv converts the first three upstream a9 tests
+# (tests/vectors/fixtures) to N65V and reads them back through the shared
+# reader; cpu.vectors then runs them through the CPU. The script's exit
+# status decides the test, so it has no pass or fail regex.
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/vectors)
+add_test(NAME vecconv.a9
+  COMMAND ${CMAKE_COMMAND}
+    -DVECCONV=$<TARGET_FILE:vecconv>
+    -DVECTORS=$<TARGET_FILE:cpu.vectors>
+    -DJSON=${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/a9-first3.json
+    -DOPCODE=a9
+    -DFIRST=3
+    -DOUT=${CMAKE_CURRENT_BINARY_DIR}/vectors/a9-first3.n65v
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_fixture.cmake)
+
+# CPU-01, D-04 and D-05: the committed sample reads through the shared reader
+# as 256 chunks of 100 tests, opcodes 00 to ff, and ends after the last one.
+add_executable(vectors.n65v vectors/test_n65v.c vectors/n65v.c)
+target_compile_definitions(vectors.n65v PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(vectors.n65v)
+add_test(NAME vectors.n65v
+  COMMAND vectors.n65v ${PROJECT_SOURCE_DIR}/tests/vectors/65x02-sample.n65v)
+# D-05, D-06: with no argument the same program feeds the reader crafted
+# buffers (every truncation, bad magic, version 2, kind 2, opcode mismatch,
+# short count, a repeated index, a trailing byte), each of which must fail
+# with the byte offset at fault.
+add_test(NAME vectors.n65v.crafted COMMAND vectors.n65v)
+
+# CPU-01: cpu.vectors.<xx> runs opcode xx's 100 tests from the committed
+# sample through the CPU and compares registers, RAM and every bus cycle.
+# expect_output.cmake checks the exit status and the exact line, so a reader
+# error after a clean count still fails; no test sets a regex property.
+function(nesturbator_vector_tests)
+  foreach(op IN LISTS ARGN)
+    set(cmd "$<TARGET_FILE:cpu.vectors>"
+      "${PROJECT_SOURCE_DIR}/tests/vectors/65x02-sample.n65v" ${op} 256 100)
+    add_test(NAME cpu.vectors.${op}
+      COMMAND ${CMAKE_COMMAND}
+        "-DCMD=${cmd}"
+        "-DEXPECT=65x02/${op}: 0 of 100 vectors failed"
+        "-DEXPECT_EXIT=0"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+    set_tests_properties(cpu.vectors.${op} PROPERTIES LABELS vectors)
+  endforeach()
+endfunction()
+# All 256 opcodes, 00 to ff, with no exclusion list (D-18): a chip
+# difference goes through the machine profile, never a skipped vector.
+set(NESTURBATOR_ALL_OPCODES)
+foreach(h 0 1 2 3 4 5 6 7 8 9 a b c d e f)
+  foreach(l 0 1 2 3 4 5 6 7 8 9 a b c d e f)
+    list(APPEND NESTURBATOR_ALL_OPCODES ${h}${l})
+  endforeach()
+endforeach()
+nesturbator_vector_tests(${NESTURBATOR_ALL_OPCODES})
+
+# D-02, D-06: vecconv converts the compact layout of 02.json and runs its 3
+# JAM tests through the CPU. The script's exit status decides the test.
+add_test(NAME vecconv.02
+  COMMAND ${CMAKE_COMMAND}
+    -DVECCONV=$<TARGET_FILE:vecconv>
+    -DVECTORS=$<TARGET_FILE:cpu.vectors>
+    -DJSON=${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/02-first3.json
+    -DOPCODE=02 -DFIRST=3
+    -DOUT=${CMAKE_CURRENT_BINARY_DIR}/vectors/02-first3.n65v
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_fixture.cmake)
+# A prefix that ends inside the 4th test of a9.json converts with --first 3;
+# it is converted only (RUN=OFF).
+add_test(NAME vecconv.a9_tail
+  COMMAND ${CMAKE_COMMAND}
+    -DVECCONV=$<TARGET_FILE:vecconv>
+    -DJSON=${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/a9-tail.json
+    -DOPCODE=a9 -DFIRST=3 -DRUN=OFF
+    -DOUT=${CMAKE_CURRENT_BINARY_DIR}/vectors/a9-tail.n65v
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_fixture.cmake)
+# A failed vector's write to an address it does not list must not reach the
+# next vector: cpu.vectors zeroes all of RAM after a failure.
+add_test(NAME cpu.vectors.stray-write
+  COMMAND ${CMAKE_COMMAND}
+    -DVECCONV=$<TARGET_FILE:vecconv>
+    -DVECTORS=$<TARGET_FILE:cpu.vectors>
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/vectors/stray-write
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_stray_write.cmake)
+
+# D-02: each malformed input makes vecconv exit 1 with a byte offset.
+# vecconv_negative.cmake builds the case from a fixture and passes only on
+# that result, so no test here sets a regex property or WILL_FAIL.
+function(nesturbator_vecconv_reject name fixture case first)
+  add_test(NAME ${name}
+    COMMAND ${CMAKE_COMMAND}
+      -DVECCONV=$<TARGET_FILE:vecconv>
+      -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/vectors/fixtures/${fixture}
+      -DCASE=${case} -DFIRST=${first}
+      -DWORK=${CMAKE_CURRENT_BINARY_DIR}/vectors/${name}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vecconv_negative.cmake)
+endfunction()
+foreach(case float sign exponent leading_zero addr_range byte_range kind unknown_key missing_key
+    count empty_file empty_array closed_short truncated)
+  nesturbator_vecconv_reject(vecconv.reject.${case} a9-first3.json ${case} 3)
+endforeach()
+# The a9-tail prefix holds 3 whole tests; asking for 4 must fail.
+nesturbator_vecconv_reject(vecconv.a9_tail.cut a9-tail.json as_is 4)
+
+# Every file in tests/roms/manifest.txt has five fields and the SHA-256 its
+# line gives. The self-test lists a file with a wrong hash and passes only if
+# the check reports it.
+add_test(NAME manifest.sha256
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/manifest_sha256.cmake)
+add_test(NAME manifest.sha256.selftest
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/manifest_sha256.cmake)
+
+# D-20: tests/vectors/pins.txt, offline: the pin line, 256 lines in path
+# order, the upstream tree's total size, and the sample's commit. The
+# self-test swaps two lines and passes only on the 'not sorted' report.
+add_test(NAME vectors.pins
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/pins_check.cmake)
+add_test(NAME vectors.pins.selftest
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/pins_check.cmake)
+# The fetch deletes only the directory it created, and refuses a DIR that
+# reaches the source tree through a symlink or a different letter case.
+# Offline: the guards stop the script before any git call.
+add_test(NAME vectors.fetch.guard
+  COMMAND ${CMAKE_COMMAND}
+    -DSCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_vectors.cmake
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/fetch-guard
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_guard.cmake)
+
+# CPU-02, D-22: the full 65x02 set, fetched by git at the pin in
+# tests/vectors/pins.txt. These tests need the network, so they are registered
+# only when NESTURBATOR_VECTORS_FULL is ON (the vectors-full preset) and the
+# ci lane never fetches. Offline the fetch fails; nothing here skips.
+option(NESTURBATOR_VECTORS_FULL "Register the full 65x02 vector tests (network)" OFF)
+set(NESTURBATOR_VECTORS_DIR ${CMAKE_BINARY_DIR}/vectors-full CACHE PATH
+  "Where cpu.vectors-full.fetch keeps the fetched 65x02 files (not in the source tree outside build/)")
+if(NESTURBATOR_VECTORS_FULL)
+  find_program(NESTURBATOR_GIT git REQUIRED)
+  set(vectors_full_files ${NESTURBATOR_VECTORS_DIR}/65x02-src/nes6502/v1)
+  set(vectors_full_out ${CMAKE_CURRENT_BINARY_DIR}/vectors-full)
+  file(MAKE_DIRECTORY ${vectors_full_out})
+  add_test(NAME cpu.vectors-full.fetch
+    COMMAND ${CMAKE_COMMAND}
+      -DDIR=${NESTURBATOR_VECTORS_DIR}
+      -DPINS=${CMAKE_CURRENT_SOURCE_DIR}/vectors/pins.txt
+      -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DGIT=${NESTURBATOR_GIT}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_vectors.cmake)
+  # The nightly's timeout-minutes is this TIMEOUT plus twice the rest of the
+  # lane's measured time; change the two together.
+  set_tests_properties(cpu.vectors-full.fetch PROPERTIES
+    FIXTURES_SETUP vectors_full TIMEOUT 900 LABELS vectors-full)
+  # D-22: the first 100 converted tests of every fetched file equal the
+  # committed sample byte for byte, the proof of where the sample came from.
+  add_test(NAME cpu.vectors-full.sample-match
+    COMMAND ${CMAKE_COMMAND}
+      -DVECCONV=$<TARGET_FILE:vecconv>
+      -DDIR=${NESTURBATOR_VECTORS_DIR}
+      -DBLOB=${CMAKE_CURRENT_SOURCE_DIR}/vectors/65x02-sample.n65v
+      -DWORK=${vectors_full_out}/sample-match
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_sample_match.cmake)
+  set_tests_properties(cpu.vectors-full.sample-match PROPERTIES
+    FIXTURES_REQUIRED vectors_full LABELS vectors-full)
+  # Each file's 10000 tests through the CPU, 00 to ff with no skip list. The
+  # script's exit status decides the test, so it sets no regex property; a
+  # failure prints the failing-vector count.
+  foreach(op IN LISTS NESTURBATOR_ALL_OPCODES)
+    add_test(NAME cpu.vectors-full.${op}
+      COMMAND ${CMAKE_COMMAND}
+        -DVECCONV=$<TARGET_FILE:vecconv>
+        -DVECTORS=$<TARGET_FILE:cpu.vectors>
+        -DJSON=${vectors_full_files}/${op}.json
+        -DOPCODE=${op}
+        -DOUT=${vectors_full_out}/${op}.n65v
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_full_run.cmake)
+    set_tests_properties(cpu.vectors-full.${op} PROPERTIES
+      FIXTURES_REQUIRED vectors_full LABELS vectors-full)
+  endforeach()
+endif()
+
 # FRAME-02: install the library component into <build>/stage, then build
 # tests/consumer against it with find_package and run it. The consumer gets
 # the parent's compiler, build type, C flags and link flags, each as one
@@ -228,7 +500,7 @@ add_test(NAME install.consumer
 set_tests_properties(install.consumer PROPERTIES FIXTURES_REQUIRED staged)
 
 # A C-only project embeds the source tree with add_subdirectory, gets only the
-# library, and runs one frame with it.
+# library and its listed nesturbator_ helpers, and runs one frame with it.
 add_test(NAME embed.subdirectory
   COMMAND ${CMAKE_CTEST_COMMAND} --build-and-test
     ${CMAKE_CURRENT_SOURCE_DIR}/embed ${PROJECT_BINARY_DIR}/embed

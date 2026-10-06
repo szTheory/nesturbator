@@ -2,6 +2,9 @@
 # (PROVENANCE.md, Vendored files).
 #
 #   cmake -DFILE=<path> -DSHA256=<expected hex> -P vendored_sha256.cmake
+
+cmake_minimum_required(VERSION 3.25)
+
 file(SHA256 "${FILE}" actual)
 if(NOT actual STREQUAL SHA256)
   message(FATAL_ERROR "${FILE}: SHA-256 is ${actual}, the pin is ${SHA256}")

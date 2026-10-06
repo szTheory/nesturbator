@@ -104,6 +104,36 @@ check_identity() { # $1 is an email; $2 says where it came from
   esac
 }
 
+# Keep vector JSON tracked data below the sample-fixture budget, excluding
+# untracked build caches. Check the index, working tree and every commit.
+check_vector_json_budget() {
+  budget_mode=$1
+  budget_ref=${2:-}
+  total=0
+  if [ "$budget_mode" = commit ]; then
+    budget_files=$(git ls-tree -r --name-only "$budget_ref" -- tests/vectors)
+  else
+    budget_files=$(git ls-files --cached -- tests/vectors)
+  fi
+  for budget_file in $budget_files; do
+    case $budget_file in tests/vectors/*.json) ;; *) continue ;; esac
+    case $budget_mode in
+      staged) budget_size=$(git cat-file -s ":$budget_file" 2>/dev/null || echo 0) ;;
+      tree)
+        if [ -f "$budget_file" ]; then
+          budget_size=$(wc -c <"$budget_file" | tr -d ' ')
+        else
+          budget_size=$(git cat-file -s ":$budget_file" 2>/dev/null || echo 0)
+        fi
+        ;;
+      commit) budget_size=$(git cat-file -s "$budget_ref:$budget_file" 2>/dev/null || echo 0) ;;
+    esac
+    case $budget_size in *[!0-9]*|'') budget_size=0 ;; esac
+    total=$((total + budget_size))
+  done
+  [ "$total" -le 65536 ] || found 'tracked vector JSON exceeds 65536 bytes' "tests/vectors/*.json ($total bytes)"
+}
+
 staged_show() { git show ":$1"; }
 # A tracked file deleted from the working tree is still read from the index.
 tree_show() { if [ -f "$1" ]; then cat "$1"; else git show ":$1"; fi; }
@@ -116,10 +146,12 @@ case $mode in
     check_stop_policy
     check_identity "$(git var GIT_AUTHOR_IDENT | sed -E 's/.*<([^>]*)>.*/\1/')" 'author'
     check_identity "$(git var GIT_COMMITTER_IDENT | sed -E 's/.*<([^>]*)>.*/\1/')" 'committer'
+    check_vector_json_budget staged
     ;;
   --tree)
     check_files "$(git ls-files -z --cached --others --exclude-standard | tr '\0' '\n')" tree_show
     check_stop_policy
+    check_vector_json_budget tree
     ;;
   --history)
     [ $# -gt 0 ] || set -- --all
@@ -143,6 +175,7 @@ case $mode in
         awk -F '\t' '$1 == "-" && $2 == "-" { print $3 }'); do
         [ "$b" = "$SELF" ] || in_manifest "$b" || found 'binary file not in manifest' "$b (in history)"
       done
+      check_vector_json_budget commit "$c"
     done
     for e in $(git log "$@" --format='%ae%n%ce' | sort -u); do check_identity "$e" 'history'; done
     for n in $(git log "$@" --name-only --format= | sort -u | grep -i -E -e "$ROM_NAME" || true); do

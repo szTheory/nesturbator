@@ -1,18 +1,17 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 2
+current_phase: 02
 current_phase_name: The CPU matches the public vectors
-status: planning
-stopped_at: Phase 01 complete, ready to plan Phase 2
-last_updated: "2026-10-03T13:20:33.240Z"
-last_activity: 2026-10-03
-last_activity_desc: Phase 01 complete, transitioned to Phase 2
-state_head: dd16c532330a55ae65aa40c86b62089b03fd2735
+status: verifying
+stopped_at: Completed 02-11-PLAN.md
+last_updated: "2026-10-06T17:11:01.635Z"
+last_activity: Phase 02 plan 10 nightly vector evidence completed
+state_head: bbc3f576b2e45995b87d61bc24c1d882b7c7bdeb
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 23
+  completed_plans: 23
   percent: 25
 ---
 
@@ -23,14 +22,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-03)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 2 — The CPU matches the public vectors
+**Current focus:** Phase 02 — The CPU matches the public vectors
 
 ## Current Position
 
-Phase: 2 — The CPU matches the public vectors
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-10-03 — Phase 01 complete, transitioned to Phase 2
+Phase: 02 (The CPU matches the public vectors) — EXECUTING
+Plan: 11 of 11
+Status: Phase execution in progress
+Last activity: Phase 02 plan 10 nightly vector evidence completed
 
 Progress: [███░░░░░░░] 25%
 
@@ -68,6 +67,17 @@ Progress: [███░░░░░░░] 25%
 | Phase 01 P10 | 6 min | 2 tasks | 13 files |
 | Phase 01 P11 | 15min | 3 tasks | 4 files |
 | Phase 01 P12 | 10min | 2 tasks | 3 files |
+| Phase 02 P01 | 8 min | 3 tasks | 13 files |
+| Phase 02 P02 | 5 min | 2 tasks | 12 files |
+| Phase 02 P03 | 9 min | 3 tasks | 14 files |
+| Phase 02 P04 | 3 min | 2 tasks | 3 files |
+| Phase 02 P05 | 3 min | 2 tasks | 3 files |
+| Phase 02 P06 | 6 min | 3 tasks | 9 files |
+| Phase 02 P07 | 11 min | 3 tasks | 11 files |
+| Phase 02 P08 | 15 min | 2 tasks | 6 files |
+| Phase 02 P09 | 15 min | 3 tasks | 6 files |
+| Phase 02 P10 | 15min | 2 tasks | 6 files |
+| Phase 02 P11 | 16min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -106,14 +116,44 @@ Recent decisions affecting current work:
 - [Phase 01]: Owner hand-offs are scripted down to owner-only clicks
 - [Phase 01]: hashes.txt written with file(CONFIGURE NEWLINE_STYLE LF) so every platform writes the same bytes
 - [Phase 01]: CI job timeouts are twice the durations in run 37084642541, rounded up to whole minutes
+- [Phase 02]: Fixture attribution goes in tests/vectors/fixtures/README.md with the upstream MIT LICENSE verbatim, correcting D-06's 'comment' wording (JSON has no comments)
+- [Phase 02]: vecconv re-reads its output from disk and re-encodes it byte for byte; opcode argument is exactly two hex digits; --first N errors if the array closes early
+- [Phase 02]: release-as removed from release-please-config.json; release.no_release_as guards it; the next feat: release is 0.1.1
+- [Phase 02]: 02-02: core.api's counting-allocator arena is 65536 bytes so the instance (now with 2048 bytes of RAM) fits
+- [Phase 02]: 02-02: cpu.vectors takes chunks 1 or 256 and tests-per-chunk 1..10000; stdout is only the '65x02/<xx>: <f> of <n> vectors failed' line
+- [Phase 02]: 02-02: vector fixture tests pass on vectors_fixture.cmake's exit status, with no pass regex
+- [Phase 02]: 02-03: the committed sample is 1,678,114 B (sha256 0c318cec...e109), not D-04's 1,677,602 B; it equals the research's independent encoder
+- [Phase 02]: 02-03: manifest.sha256 recomputes the SHA-256 of every manifest file; pins are 40-hex commits or release tags
+- [Phase 02]: 02-03: vecconv_negative.cmake builds malformed inputs from a committed fixture at test time; vecconv.* tests pass on script exit status, never a regex or WILL_FAIL
+- [Phase 02]: 02-04: address helpers run as call arguments; no expression holds two bus calls of unspecified order (cpu.c header states the rule)
+- [Phase 02]: 02-04: ea_absi and ea_izy share index_base for the page-cross dummy read; stores pass always_dummy 1
+- [Phase 02]: rmw(nes, ea, op) takes the shift/rotate/inc/dec helper as a function pointer argument; no opcode table in data
+- [Phase 02]: P bits 4 and 5 are written only by pull_p (PLP, RTI); push_p (PHP, BRK) ORs 0x30 into the pushed byte
+- [Phase 02]: 02-06: all 256 opcodes are explicit cases with no default:; JAM in a jam helper, SHY/SHX/SHA/TAS through one store_sh
+- [Phase 02]: 02-06: struct nesturbator__profile (ane_magic, lxa_magic) is set to 0xEE by nesturbator_create; the vector harness sets it itself
+- [Phase 02]: 02-06: cpu.vectors.00-ff come from a nested foreach with no skip list; the per-group opcode lists are gone
+- [Phase 02]: 02-07: vectors-full tests register only under NESTURBATOR_VECTORS_FULL (preset vectors-full); the fetch re-verifies 256 files by size and SHA-256 and fetches nothing when all match
+- [Phase 02]: 02-07: the nightly has no cache and keeps one rolling issue labelled nightly on scheduled runs; timeout-minutes 30 is initial until plan 08 measures a cold run
+- [Phase 02]: 02-07: CONFORMANCE corrected (JSON array, compact layout, 54,565 B, 8-byte chunk header, 1,678,114 B sample, about 168 MB full set)
+- [Phase 02]: 02-08: main merged into the phase branch (no rebase, no force-push) to clear the PR conflict; branch side won in ROADMAP and STATE
+- [Phase 02]: 02-08: pull_p narrows only the non-constant result, since MSVC /W4 /WX rejects C4310 on (uint8_t)~FLAG_B
+- [Phase 02]: 02-08: nightly-only CMake scripts set cmake_minimum_required(VERSION 3.25) for the runners' CMake 3.31
+- [Phase 02]: 02-08: nightly vectors-full timeout 3 min (twice 88 s cold, run 37136095512); ci build 3 min (twice 69 s, run 37136095554); 88 s is under the D-21 10-minute cache trigger
+- [Phase 02]: 02-09 pins the Phase 1 normalized public API only as a temporary Phase 2 gate, with a Phase 3 retirement path.
+- [Phase 02]: 02-09 checks vector registrations from CTest json-v1 metadata and configures the full preset without running its fetch fixture.
+- [Phase 02]: Keep D-21's cold fetch behavior and guard nightly cache, skip, permission and privileged-trigger policy in hygiene.
+- [Phase 02]: Validate the exact archived CTest json-v1 inventory before invoking the full workflow, then upload that inventory with the actual JUnit result.
+- [Phase 02]: Name evidence artifacts with the GitHub run ID and record event, head SHA, run URL and artifact name for later queries.
+- [Phase 02]: Tie release-please's tag commit to the phase merge through GitHub ancestry comparison; keep the identities distinct.
+- [Phase 02]: Keep post-merge evidence queries read-only and classify untriggered events as pending.
 
 ### Pending Todos
 
-- Phase 2, first task (v0.1.0 is published, so this is due now, before any `feat:` or `fix:` merge): remove the one-time `release-as` pin with `jq 'del(.packages["."]["release-as"])' release-please-config.json > tmp && mv tmp release-please-config.json`, and confirm `jq -e '.packages["."] | has("release-as") | not' release-please-config.json` exits 0. Left in place, every later release would again be 0.1.0. (Recorded by plan 01-10.)
+None.
 
 ### Blockers/Concerns
 
-- [Phase 1] WR-08: the release-as pin is still in release-please-config.json; the Phase 2 todo above removes it and adds an automated check that it stays gone.
+None. (WR-08 resolved in plan 02-01: `release-as` removed in 30197fe and guarded by `release.no_release_as`.)
 
 ### Quick Tasks Completed
 
@@ -132,6 +172,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-03T13:25:00Z
-Stopped at: Phase 01 complete, ready to plan Phase 2
+Last session: 2026-10-06T17:11:01.555Z
+Stopped at: Completed 02-11-PLAN.md
 Resume file: None

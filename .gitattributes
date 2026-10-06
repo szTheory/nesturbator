@@ -1,1 +1,5 @@
 * text=auto eol=lf
+# The N65V vector sample is binary data; its SHA-256 is in tests/roms/manifest.txt.
+*.n65v binary
+# The JSON fixtures are hashed in the manifest, so they stay LF on every checkout.
+tests/vectors/fixtures/*.json text eol=lf
