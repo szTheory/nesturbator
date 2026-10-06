@@ -189,6 +189,12 @@ add_test(NAME vectors.registration_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
 
+# Run-bound full-vector evidence contains the CTest inventory, including tests
+# outside the vector label. Only the 258 full-vector entries define this lane.
+add_test(NAME vectors.result_policy.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_result_policy.cmake)
+
 # release-please rewrites only the first version on each marked line, so no
 # marked line in its extra-files may hold two. The self-test runs the scan on
 # a fixture with two versions on line 3 and passes only on that exact error.
