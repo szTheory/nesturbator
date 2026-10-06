@@ -83,7 +83,7 @@ Plans:
   2. `ctest -L vectors-full` fetches the full 65x02 vector set at its pinned commit and every test matches; CI runs it nightly.
   3. The `ci`, `asan`, `nofp` and `hygiene` presets still pass on all six platforms with the CPU in the library, and merging the phase publishes a release.
 
-**Plans**: 8/8 plans executed
+**Plans**: 8/11 plans executed
 
 Plans:
 **Wave 1**
@@ -109,6 +109,15 @@ Plans:
 
 **Wave 8** *(blocked on Wave 7 completion)*
 - [x] 02-08-PLAN.md — Push, draft pull request, CI and nightly green on GitHub, timeouts from measured runs
+
+**Wave 9** *(gap closure: automated verification)*
+- [ ] 02-09-PLAN.md — Scoped parser, API, JSON-size and exact-vector-registration gates
+
+**Wave 10** *(blocked on Wave 9 completion)*
+- [ ] 02-10-PLAN.md — Nightly policy and permissions gates; full vectors on each main push
+
+**Wave 11** *(blocked on Wave 10 completion)*
+- [ ] 02-11-PLAN.md — Published release assertion, commit-bound outcome query, durable GSD UAT rule
 
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`, `.planning/preparation/ENGINEERING.md`
@@ -151,6 +160,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
-| 2. The CPU matches the public vectors | 8/8 | In Progress|  |
+| 2. The CPU matches the public vectors | 8/11 | In Progress|  |
 | 3. A real game in RetroArch | 0/TBD | Not started | - |
 | 4. Sound | 0/TBD | Not started | - |
