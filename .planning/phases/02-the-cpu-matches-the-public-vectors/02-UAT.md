@@ -48,9 +48,13 @@ blocked: 2
 - gap_id: G-02-2
   truth: "Machine-checkable Phase 2 prohibitions and post-merge outcomes are enforced or observed automatically, and the project keeps an automation-first verification default."
   status: failed
-  reason: "The user requested enforcing tests and a durable default to eliminate human UAT wherever a command can provide reliable evidence."
+  reason: "Root cause diagnosed: six machine-checkable prohibitions had no direct policy-to-gate mapping, post-merge GitHub outcomes were not reconciled into verification, and the existing automation-first project rule was not operationalized at the UAT handoff."
   severity: major
   test: 2
-  artifacts: []
-  missing: []
-  debug_session: ""
+  artifacts:
+    - .planning/debug/DEBUG-automation-first-uat.md
+  missing:
+    - "Focused, dependency-free assertions for machine-verifiable prohibitions (vector parsing, API freeze for this phase, oversized vector JSON, complete 00-ff registration, nightly policy, and least-privilege workflow permissions)."
+    - "Automated collection of release and main-push/nightly outcomes tied to the expected commit, with no manual polling; preserve owner authority over merge or publication consent."
+    - "A durable GSD rule that command-verifiable criteria are run and recorded before conversational UAT; reserve owner prompts for identity/consent or a specific judgment with no useful automated oracle."
+  debug_session: .planning/debug/DEBUG-automation-first-uat.md
