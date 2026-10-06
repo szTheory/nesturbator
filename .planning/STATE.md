@@ -3,15 +3,15 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: The CPU matches the public vectors
 status: verifying
-stopped_at: Completed 02-10-PLAN.md
-last_updated: "2026-10-06T16:53:59.980Z"
+stopped_at: Completed 02-11-PLAN.md
+last_updated: "2026-10-06T17:11:01.635Z"
 last_activity: Phase 02 plan 10 nightly vector evidence completed
-state_head: 8b6a33848b7cc2fc9b07bff1b1cac1046d24735b
+state_head: bbc3f576b2e45995b87d61bc24c1d882b7c7bdeb
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 23
-  completed_plans: 22
+  completed_plans: 23
   percent: 25
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-10-03)
 ## Current Position
 
 Phase: 02 (The CPU matches the public vectors) — EXECUTING
-Plan: 10 of 11
+Plan: 11 of 11
 Status: Phase execution in progress
 Last activity: Phase 02 plan 10 nightly vector evidence completed
 
@@ -77,6 +77,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P08 | 15 min | 2 tasks | 6 files |
 | Phase 02 P09 | 15 min | 3 tasks | 6 files |
 | Phase 02 P10 | 15min | 2 tasks | 6 files |
+| Phase 02 P11 | 16min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -143,6 +144,8 @@ Recent decisions affecting current work:
 - [Phase 02]: Keep D-21's cold fetch behavior and guard nightly cache, skip, permission and privileged-trigger policy in hygiene.
 - [Phase 02]: Validate the exact archived CTest json-v1 inventory before invoking the full workflow, then upload that inventory with the actual JUnit result.
 - [Phase 02]: Name evidence artifacts with the GitHub run ID and record event, head SHA, run URL and artifact name for later queries.
+- [Phase 02]: Tie release-please's tag commit to the phase merge through GitHub ancestry comparison; keep the identities distinct.
+- [Phase 02]: Keep post-merge evidence queries read-only and classify untriggered events as pending.
 
 ### Pending Todos
 
@@ -169,6 +172,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-06T16:53:03.052Z
-Stopped at: Completed 02-10-PLAN.md
+Last session: 2026-10-06T17:11:01.555Z
+Stopped at: Completed 02-11-PLAN.md
 Resume file: None
