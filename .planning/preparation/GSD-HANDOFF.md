@@ -2,7 +2,7 @@
 title: "GSD hand-off: kickoff, per-phase steps and owner tasks"
 summary: "How to start and run this project with opengsd one step at a time: the kickoff text, the settings and why, the per-phase steps, and the tasks only the owner can do."
 read_when: "Before starting the GSD project, before each phase, and when a GSD step behaves unexpectedly."
-updated: 2026-10-02
+updated: 2026-10-06
 ---
 
 # GSD hand-off
@@ -70,6 +70,23 @@ One session per numbered step, so the model can be changed between steps.
 6. `/gsd-ship N`
 7. In a terminal, give the pull request a Conventional Commit title and let it merge when CI passes: `gh pr edit --title "feat: <what the phase delivers>"`, then `gh pr merge --auto --squash`. Keep these two out of a GSD command's text; GSD would read the merge option as its own auto flag. If the title check ran before the new title, start it again with `gh run rerun --failed`.
 8. The release publishes itself: release-please opens its pull request, which merges when CI passes. Install it with the README's one line and try it in RetroArch.
+
+### Verification before owner UAT
+
+Before conversational UAT, run every command-verifiable criterion locally or
+in CI and record the command, exit status, commit or run URL, and evidence in
+`VERIFICATION.md` or the phase UAT record. Add a missing regression gate when
+a test-tier prohibition has no enforcing check. After an authorized merge,
+collect release and hosted-run outcomes with the phase's read-only evidence
+command; keep not-yet-triggered external events pending. Existing CI failure
+and issue reporting remain the automatic backstop. Prompt the owner only for
+identity-bound consent not already granted or an irreducible subjective
+judgment, and explain why no useful command can answer it. Fix a reproduced
+defect with a known fix under the existing authority. Clean-room provenance
+remains a judgment item because repository scans cannot establish which
+sources a person or agent opened. Preserve one GSD step per command and the
+owner's merge boundary. Do not invent a no-human-verify setting: installed GSD
+supports end-of-phase and mid-flight verification only.
 
 What keeps GSD from running on to the next step [GH.01]:
 - Give GSD commands only a phase number. Its auto flag and its chain flag (two dashes followed by `auto` or `chain`) make one step start the next.
