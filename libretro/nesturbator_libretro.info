@@ -6,7 +6,7 @@ corename = "nesturbator"
 license = "MIT"
 permissions = ""
 # x-release-please-start-version
-display_version = "0.1.1"
+display_version = "0.1.2"
 # x-release-please-end
 manufacturer = "Nintendo"
 categories = "Emulator"
