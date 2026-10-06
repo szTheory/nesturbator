@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/szTheory/nesturbator/compare/v0.1.2...v0.1.3) (2026-10-06)
+
+
+### Bug Fixes
+
+* **ci:** classify verified published release evidence ([#12](https://github.com/szTheory/nesturbator/issues/12)) ([63e0e1a](https://github.com/szTheory/nesturbator/commit/63e0e1a5b131444fc4966d1d90ec5e688bf07bbc))
+
 ## [0.1.2](https://github.com/szTheory/nesturbator/compare/v0.1.1...v0.1.2) (2026-10-06)
 
 
