@@ -66,7 +66,7 @@ jobs:
 
   build:
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 3 # twice the cold run 37136095554 (69 s, windows-11-arm), rounded up to whole minutes (ENGINEERING §5)
+    timeout-minutes: 7 # twice the slowest observed workflow, 198 s on macOS Intel including packaging; rounded up (ENGINEERING §5)
     strategy:
       fail-fast: false
       matrix:
