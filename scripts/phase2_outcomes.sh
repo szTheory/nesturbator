@@ -1,5 +1,18 @@
 #!/bin/sh
 set -eu
+expected_assets() {
+  version=$1
+  {
+    for c in library runner libretro; do
+      for o in linux macos windows; do
+        for a in x64 arm64; do
+          echo "nesturbator-$version-$c-$o-$a.zip"
+        done
+      done
+    done
+    echo SHA256SUMS
+  } | LC_ALL=C sort
+}
 if [ "${1:-}" = --self-test ]; then
   command -v jq >/dev/null || { echo "jq is required for self-tests" >&2; exit 2; }
   cmake -DSELFTEST=ON -P "$(dirname "$0")/../tests/cmake/vector_result_policy.cmake"
@@ -10,6 +23,9 @@ if [ "${1:-}" = --self-test ]; then
   printf '%s' "$artifacts" | jq -e --arg n vectors-full-evidence-7 'any(.artifacts[]; .name == $n and .expired == false)' >/dev/null || { echo "present artifact fixture rejected" >&2; exit 1; }
   if printf '%s' "$artifacts" | jq -e --arg n vectors-full-evidence-8 'any(.artifacts[]; .name == $n and .expired == false)' >/dev/null; then echo "missing artifact fixture accepted" >&2; exit 1; fi
   if printf '%s' '{"assets":[{"name":"SHA256SUMS","size":1}]}' | jq -e '([.assets[].name] | sort) == ["a.zip","SHA256SUMS"]' >/dev/null; then echo "missing asset fixture accepted" >&2; exit 1; fi
+  assets=$(expected_assets 0.0.0)
+  [ "$(printf '%s\n' "$assets" | wc -l | tr -d ' ')" -eq 19 ] || { echo "expected asset set has wrong size" >&2; exit 1; }
+  [ "$(printf '%s\n' "$assets" | LC_ALL=C sort)" = "$assets" ] || { echo "expected asset set is not C-locale sorted" >&2; exit 1; }
   state=$(printf '%s' '{"status":"in_progress","conclusion":null}' | jq -r 'if .status != "completed" then "PENDING" else "FAIL" end')
   [ "$state" = PENDING ] || { echo "pending schedule fixture misclassified" >&2; exit 1; }
   echo "phase2_outcomes: SHA, artifact, asset, pending schedule and successful run fixtures passed"
@@ -25,7 +41,7 @@ for tool in gh jq cmake; do command -v "$tool" >/dev/null || { echo "$tool is re
 gh auth status >/dev/null 2>&1 || { echo "gh is not authenticated (read-only query)" >&2; exit 2; }
 repo=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
 version=${tag#v}
-expected=$(for c in library runner libretro; do for o in linux macos windows; do for a in x64 arm64; do echo "nesturbator-$version-$c-$o-$a.zip"; done; done; done; echo SHA256SUMS | LC_ALL=C sort)
+expected=$(expected_assets "$version")
 pending=0 failed=0
 release=$(gh release view "$tag" --repo "$repo" --json tagName,isDraft,url,assets 2>/dev/null || true)
 if [ -z "$release" ]; then echo "release: PENDING (tag not published)"; pending=1
