@@ -14,11 +14,11 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 - ✓ One command installs the core into RetroArch on an Apple Silicon Mac, and a test shows RetroArch displays the runner's frame. — Phase 1 (v0.1.0)
 - ✓ `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds and tests everything on Linux, macOS and Windows, x64 and arm64, and CI runs the same commands. — Phase 1
-- ✓ Every behaviour-changing merge to `main` produces a release with the library, the runner and the libretro core. — Phase 1 (v0.1.0 published by the release App, no person acting)
+- ✓ Every behaviour-changing merge to `main` produces a release with the library, the runner and the libretro core. — Phase 1 (v0.1.0) and Phase 2 (v0.1.1), published automatically
+- ✓ The CPU matches the public 65x02 vectors on all 256 opcodes and every bus cycle. — Phase 2 (62/62 verification truths passed)
+- ✓ The pinned full 65x02 vector set passes, with CI scheduled to run it nightly. — Phase 2 (main-push and owner-authorized manual runs passed; the first cron event was not observed)
 
 ### Active
-
-- [ ] The CPU matches the public 65x02 vectors on every opcode and every bus cycle.
 - [ ] NROM games render, take controller input and play with sound in RetroArch.
 - [ ] Frame and audio hashes are identical on every supported platform.
 
@@ -57,8 +57,8 @@ Games behave as they do on the console, identically on every platform, from a sm
 - **Determinism**: integer-only core with all state in the instance — the same inputs give identical frame and audio hashes on every platform.
 - **Legal**: no ROM or BIOS bytes beyond licensed test ROMs; nothing taken from GPL or LGPL emulators — the repository is public and MIT.
 - **Privacy**: no personal paths, addresses or names in tracked files or release artifacts — the repository is public.
-- **Verification**: every behaviour is shown by a command: `cmake --workflow --preset ci` for the main suite, the other presets and the nightly jobs for the rest — nothing waits on a person.
-- **Hand-offs**: integration, end-to-end and smoke checks run as commands locally or on CI (on CI when they keep paying off there); the owner is asked only for what needs their identity or consent, such as a browser click on GitHub or publishing — and everything around that step is scripted — so phases close with no manual testing.
+- **Verification**: every machine-verifiable behaviour is shown by a command: `cmake --workflow --preset ci` for the main suite, with other presets and hosted workflows covering the rest. Owner input is reserved for consent or irreducible judgment, such as source provenance.
+- **Hand-offs**: integration, end-to-end and smoke checks run as commands locally or on CI (on CI when they keep paying off there); identity, consent and irreducible judgments are the only owner hand-offs, so product behavior closes without manual UAT.
 - **Delivery**: the owner creates each phase's branch; it merges by pull request into a green `main` and is released automatically — each phase ends in something to download and run.
 
 ## Key Decisions
@@ -70,11 +70,12 @@ Games behave as they do on the console, identically on every platform, from a sm
 | Integer-only core; `cmake --workflow --preset nofp` shows it | Bit-identical hashes on every platform | — Pending |
 | Video out as palette index plus emphasis; audio out as mono 16-bit from an owned synthesiser | Hashes stay independent of palette; existing audio libraries are LGPL | — Pending |
 | Opaque-instance C API shared with the sibling core | One future host can load every core | — Pending |
-| Integration, end-to-end and smoke checks are commands; owner hand-offs shrink to consent clicks | Phases close with no manual testing (Hand-offs constraint) | ✓ Good — Phase 1 UAT ran entirely by command after the merge |
-| Tests run on committed, licensed files: a 65x02 sample, AccuracyCoin, Holy Mapperel, open-licence games | Reproducible without a network; clear rights | — Pending |
+| Integration, end-to-end and smoke checks are automated; owner hand-offs are limited to consent and irreducible judgment | CI evidence closes product behavior; source provenance cannot be machine-proven | ✓ Good — Phase 2 behavior used automated evidence; owner input was limited to clean-room provenance and authorizing the manual schedule substitute |
+| Tests use committed, licensed samples; full pinned suites are fetched cold and their run-bound inventory and JUnit results are checked separately | Reproducibility, clear rights and evidence that distinguishes passing tests from merely registered tests | ✓ Good — Phase 2 sample, main-push and manual full-vector runs, with run-bound artifacts; the cron trigger remains policy-checked |
+| The public API declaration baseline is a temporary Phase 2 guard; revise or retire it in Phase 3 if the API changes | Protect the shipped boundary during CPU work while preserving planned API evolution | → Phase 3 |
 | One scoreboard file in which a passing test stays passing | A regression is a one-line diff | — Pending |
 | One entrypoint: CMake workflow presets | No script to keep in step with CI | — Pending |
-| release-please, whose release pull request merges itself when CI passes; unsigned macOS artifacts installed by script | Automatic releases; no legal name in artifacts | ✓ Good — v0.1.0 released itself; a version must appear once per README line (`release.one_version_per_line`) |
+| release-please, whose release pull request merges itself when CI passes; unsigned macOS artifacts installed by script | Automatic releases; no legal name in artifacts | ✓ Good — v0.1.0 and v0.1.1 released automatically; `release.one_version_per_line` remains guarded |
 | With no cartridge loaded the core outputs a built-in test frame | A build or a release can be checked without any ROM | ✓ Good — Phase 1 checked v0.1.0 in RetroArch with no ROM |
 | NROM first, then MMC1, MMC3, UxROM, CNROM, AxROM | Six mappers cover 96% of the North American licensed library | — Pending |
 
@@ -98,4 +99,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-03 after Phase 1*
+*Last updated: 2026-10-06 after Phase 2*

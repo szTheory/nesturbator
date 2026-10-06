@@ -13,7 +13,7 @@ Milestone 1 takes nesturbator from an empty repository to NROM games that render
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: A test frame in RetroArch** - The library, runner and libretro core build, test and release on six platforms and show a built-in test frame in RetroArch (completed 2026-10-03)
-- [ ] **Phase 2: The CPU matches the public vectors** - Every opcode matches the public 65x02 vectors on final state and on every bus cycle
+- [x] **Phase 2: The CPU matches the public vectors** - Every opcode matches the public 65x02 vectors on final state and on every bus cycle (completed 2026-10-06)
 - [ ] **Phase 3: A real game in RetroArch** - NROM games render and take controller input, with frame hashes equal on every platform
 - [ ] **Phase 4: Sound** - NROM games play with sound, with audio hashes equal on every platform
 
@@ -83,7 +83,7 @@ Plans:
   2. `ctest -L vectors-full` fetches the full 65x02 vector set at its pinned commit and every test matches; CI runs it nightly.
   3. The `ci`, `asan`, `nofp` and `hygiene` presets still pass on all six platforms with the CPU in the library, and merging the phase publishes a release.
 
-**Plans**: 11/11 plans executed
+**Plans**: 11/11 plans complete
 
 Plans:
 **Wave 1**
@@ -160,6 +160,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
-| 2. The CPU matches the public vectors | 11/11 | In Progress|  |
+| 2. The CPU matches the public vectors | 11/11 | Complete    | 2026-10-06 |
 | 3. A real game in RetroArch | 0/TBD | Not started | - |
 | 4. Sound | 0/TBD | Not started | - |
