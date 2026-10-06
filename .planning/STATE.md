@@ -3,16 +3,16 @@ gsd_state_version: "1.0"
 current_phase: 02
 current_phase_name: The CPU matches the public vectors
 status: verifying
-stopped_at: Completed 02-09-PLAN.md
-last_updated: "2026-10-06T14:53:04.355Z"
+stopped_at: Completed 02-10-PLAN.md
+last_updated: "2026-10-06T16:53:03.119Z"
 last_activity: 2026-10-06
 last_activity_desc: Phase 02 plan 09 policy gates completed
-state_head: 08c1df4596068f18a26bffe09aca2cdb4e88a255
+state_head: 70e73a82a952ff511691282f421b7d281929c21a
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 23
-  completed_plans: 21
+  completed_plans: 22
   percent: 25
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-10-03)
 ## Current Position
 
 Phase: 02 (The CPU matches the public vectors) — EXECUTING
-Plan: 9 of 11
+Plan: 10 of 11
 Status: Phase execution in progress
 Last activity: 2026-10-06 — Phase 02 plan 09 policy gates completed
 
@@ -77,6 +77,7 @@ Progress: [███░░░░░░░] 25%
 | Phase 02 P07 | 11 min | 3 tasks | 11 files |
 | Phase 02 P08 | 15 min | 2 tasks | 6 files |
 | Phase 02 P09 | 15 min | 3 tasks | 6 files |
+| Phase 02 P10 | 15min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,9 @@ Recent decisions affecting current work:
 - [Phase 02]: 02-08: nightly vectors-full timeout 3 min (twice 88 s cold, run 37136095512); ci build 3 min (twice 69 s, run 37136095554); 88 s is under the D-21 10-minute cache trigger
 - [Phase 02]: 02-09 pins the Phase 1 normalized public API only as a temporary Phase 2 gate, with a Phase 3 retirement path.
 - [Phase 02]: 02-09 checks vector registrations from CTest json-v1 metadata and configures the full preset without running its fetch fixture.
+- [Phase 02]: Keep D-21's cold fetch behavior and guard nightly cache, skip, permission and privileged-trigger policy in hygiene.
+- [Phase 02]: Validate the exact archived CTest json-v1 inventory before invoking the full workflow, then upload that inventory with the actual JUnit result.
+- [Phase 02]: Name evidence artifacts with the GitHub run ID and record event, head SHA, run URL and artifact name for later queries.
 
 ### Pending Todos
 
@@ -166,6 +170,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-06T13:51:37Z
-Stopped at: Session resumed; Phase 02 verification remains at UAT test 1 of 4
-Resume file: .planning/phases/02-the-cpu-matches-the-public-vectors/.continue-here.md
+Last session: 2026-10-06T16:53:03.052Z
+Stopped at: Completed 02-10-PLAN.md
+Resume file: None
