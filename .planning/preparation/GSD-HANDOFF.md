@@ -88,6 +88,18 @@ sources a person or agent opened. Preserve one GSD step per command and the
 owner's merge boundary. Do not invent a no-human-verify setting: installed GSD
 supports end-of-phase and mid-flight verification only.
 
+**Default, recorded 2026-10-06:** Verification is automation-first; this is a
+settled project preference, not a question to reopen in later phases. Put
+deterministic behavior in local commands and tests. Put integration, end-to-end,
+smoke and seam checks in CI when they catch recurring regressions; use a
+read-only evidence command for one-time hosted outcomes. Record passing results
+from those commands directly in the phase evidence instead of asking the owner
+to repeat them. Keep future external events pending without handing them to the
+owner when automation can collect them later. Ask the owner only for an
+identity-bound or genuinely subjective judgment that no available test or
+artifact can establish. Do not add recurring checks that have no recurring
+value, and do not re-propose this default as an unresolved decision.
+
 What keeps GSD from running on to the next step [GH.01]:
 - Give GSD commands only a phase number. Its auto flag and its chain flag (two dashes followed by `auto` or `chain`) make one step start the next.
 - `/gsd-next`, `/gsd-progress` with its next option, `/gsd-autonomous` and `/gsd-manager` each start the following step by themselves.
