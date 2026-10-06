@@ -1,12 +1,12 @@
 ---
 phase: 02-the-cpu-matches-the-public-vectors
-verified: 2026-10-03T16:40:00Z
+verified: 2026-10-06T17:43:41Z
 status: human_needed
-score: 50/53 must-haves verified (3 post-merge backstops, insufficient_spec until merge)
+score: 58/62 must-haves verified
 covered_files:
-  - .gitattributes
   - .github/workflows/ci.yml
   - .github/workflows/nightly.yml
+  - .github/workflows/release.yml
   - .planning/phases/02-the-cpu-matches-the-public-vectors/02-01-PLAN.md
   - .planning/phases/02-the-cpu-matches-the-public-vectors/02-01-SUMMARY.md
   - .planning/phases/02-the-cpu-matches-the-public-vectors/02-02-PLAN.md
@@ -23,6 +23,13 @@ covered_files:
   - .planning/phases/02-the-cpu-matches-the-public-vectors/02-07-SUMMARY.md
   - .planning/phases/02-the-cpu-matches-the-public-vectors/02-08-PLAN.md
   - .planning/phases/02-the-cpu-matches-the-public-vectors/02-08-SUMMARY.md
+  - .planning/phases/02-the-cpu-matches-the-public-vectors/02-09-PLAN.md
+  - .planning/phases/02-the-cpu-matches-the-public-vectors/02-09-SUMMARY.md
+  - .planning/phases/02-the-cpu-matches-the-public-vectors/02-10-PLAN.md
+  - .planning/phases/02-the-cpu-matches-the-public-vectors/02-10-SUMMARY.md
+  - .planning/phases/02-the-cpu-matches-the-public-vectors/02-11-PLAN.md
+  - .planning/phases/02-the-cpu-matches-the-public-vectors/02-11-SUMMARY.md
+  - .planning/phases/02-the-cpu-matches-the-public-vectors/02-REVIEW-FIX.md
   - CMakeLists.txt
   - CMakePresets.json
   - PROVENANCE.md
@@ -30,16 +37,21 @@ covered_files:
   - THIRD-PARTY-NOTICES.md
   - include/nesturbator.h
   - release-please-config.json
+  - scripts/phase2_outcomes.sh
   - src/bus.c
   - src/cpu.c
   - src/instance.c
   - src/internal.h
   - tests/CMakeLists.txt
+  - tests/cmake/fetch_guard.cmake
   - tests/cmake/fetch_vectors.cmake
   - tests/cmake/manifest_sha256.cmake
-  - tests/cmake/pins_check.cmake
+  - tests/cmake/nightly_workflow_policy.cmake
   - tests/cmake/release_config.cmake
-  - tests/cmake/vecconv_negative.cmake
+  - tests/cmake/vector_api_policy.cmake
+  - tests/cmake/vector_registration_policy.cmake
+  - tests/cmake/vector_result_policy.cmake
+  - tests/cmake/vector_source_policy.cmake
   - tests/cmake/vectors_fixture.cmake
   - tests/cmake/vectors_full_run.cmake
   - tests/cmake/vectors_regen.cmake
@@ -52,6 +64,8 @@ covered_files:
   - tests/cpu/vector_bus.c
   - tests/cpu/vector_bus.h
   - tests/embed/CMakeLists.txt
+  - tests/hygiene/CMakeLists.txt
+  - tests/hygiene/scan_selftest.sh
   - tests/roms/manifest.txt
   - tests/vectors/65x02-sample.n65v
   - tests/vectors/fixtures/02-first3.json
@@ -64,192 +78,171 @@ covered_files:
   - tests/vectors/test_n65v.c
   - tools/vecconv/CMakeLists.txt
   - tools/vecconv/vecconv.c
-covered_digest: "v2:sha256:56a2096ce4636d77f7b0c7327107ff79869bbd91530e011df217a4ddd180da0e"
+covered_digest: "v3:sha256:4bc9a8bdc68a81eca11c717ba8100fb6eec82a7612ec36a51a59ec14f203b3ad"
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
-  - test: "After the owner merges PR #5: `gh release view v0.1.1 --json tagName,isDraft,assets` and `gh run list --workflow release.yml --branch main --limit 2`"
-    expected: "release.yml succeeded on the merge (and on the release-please PR merge); v0.1.1 is published (not draft) with the per-platform library/runner/libretro archives and SHA256SUMS"
-    why_human: "Backstop (02-08 must-have, verification: backstop; SC 3 second clause). Can only happen after the merge; runnable by command, no visual judgement needed"
-  - test: "The morning after merge: `gh run list --workflow nightly.yml --event schedule --limit 1` and `gh run view <id> --json jobs`"
-    expected: "vectors-full success with 258 tests passed; report job ran (issues: write) and found/closed nothing or closed the rolling `nightly` issue"
-    why_human: "Backstop (02-07 and 02-08 must-haves, verification: backstop). The schedule and the report job fire only on main"
-  - test: "Decide on CR-01 before merge: fix `tests/cmake/fetch_vectors.cmake` (resolve the path, case-fold on macOS/Windows, delete only a marked directory) or record it deferred with a reason in 02-REVIEW-DISPOSITION.md"
-    expected: "Either a fix commit with a test that the guard rejects a case-variant/symlinked DIR, or an explicit deferred disposition"
-    why_human: "Escalation: a critical data-loss defect in shipped test tooling, reproduced by the verifier, outside the CPU must-haves; the owner decides whether it gates the merge"
-  - test: "Acknowledge the flagged prohibitions (see Prohibitions table): five test-tier prohibitions have no wired enforcing test, one judgment-tier (clean room)"
-    expected: "Owner accepts the verifier's directly-observed compliance, or asks for enforcing tests"
-    why_human: "Fail-closed rule for test-tier prohibitions without wired enforcement; judgment-tier needs human resolution"
+  - test: "After the owner-authorized merge, run scripts/phase2_outcomes.sh <merge-sha> v0.1.1 and confirm release publication."
+    expected: "A non-draft v0.1.1 release exists with exactly the 18 library, runner and libretro archives plus nonempty SHA256SUMS, and its release workflow run succeeded on the tag commit descended from the merge."
+    why_human: "The merge and release have not occurred; a local repository cannot provide the identity-bound hosted release outcome."
+  - test: "After merge, use scripts/phase2_outcomes.sh <merge-sha> v0.1.1 to collect the main-push full-vector run."
+    expected: "The run is tied to the exact merge SHA, vectors-full succeeds, and its artifact records the exact 258-test inventory and completed passing JUnit results."
+    why_human: "The main-push workflow has not run for the merge commit; its hosted result is pending and was not counted as passed."
+  - test: "After the first scheduled run following merge, use scripts/phase2_outcomes.sh <merge-sha> v0.1.1 to collect the scheduled full-vector result."
+    expected: "A scheduled run on a descendant of the merge has all 258 vector checks passing with valid run-bound evidence, and the scheduled reporter job completes."
+    why_human: "No post-merge scheduled run exists yet; its hosted result is pending and was not counted as passed."
+  - test: "Owner confirms whether any GPL or LGPL emulator source was opened or copied while implementing the CPU."
+    expected: "The clean-room requirement was followed; no GPL or LGPL emulator source was consulted or copied."
+    why_human: "Source-opening history is an identity-bound judgment that repository contents and automated scanners cannot establish."
 ---
 
 # Phase 2: The CPU matches the public vectors — Verification Report
 
 **Phase Goal:** The 6502 behaves as the public 65x02 vectors say on every opcode and every bus cycle, and the release that merging publishes carries it.
-**Verified:** 2026-10-03T16:40:00Z
-**Status:** human_needed (all pre-merge must-haves verified by running them; what remains is post-merge backstops, one escalated review finding, and flagged prohibitions)
-**Re-verification:** No — initial verification
-
-## Commands run by the verifier (own process, HEAD 076f2c4)
-
-| Command | Result |
-| --- | --- |
-| `cmake --workflow --preset ci` | exit 0, 100% tests passed out of 317; `ctest -N -L vectors` = 256 tests |
-| `cmake --workflow --preset vectors-full` | exit 0, 100% tests passed out of 258 (fetch, sample-match, 256 x `0 of 10000 vectors failed`) |
-| `cmake --workflow --preset hygiene` | exit 0, 6/6 |
-| `cmake --workflow --preset nofp` | exit 0, 5/5 |
-| `cmake --workflow --preset asan` | exit 0, 316/316 |
-| Mutation: `index_base` page-cross dummy read removed, harness rebuilt by hand | bd 49/100, b9 57/100, b1 48/100 vectors failed (harness catches cycle-level errors) |
-| Mutation: LDA #imm result xor 1 | a9 100/100 failed |
-| Unmutated hand build of harness | bd, 9d, a9, 20, 6c, 8b: 0 of 100 failed |
-| `fetch_vectors.cmake` with `GIT=/usr/bin/false` (simulated no network), fresh DIR | exit 1 (red, no skip) |
-| `fetch_vectors.cmake` with DIR=`<repo>/tests` | exit 1, "inside the source tree but not under build/" |
-| CR-01 repro on a scratch fake repo: DIR=`<scratch>/FakeRepo`, SOURCE_DIR=`<scratch>/fakerepo` | exit 1 but `<scratch>/fakerepo/src/cpu.c` deleted — CR-01 confirmed |
-| `gh pr checks 5` / run 37136463308 (head 5b17fbb) | all 13 CI jobs success incl. `CI required`; 6 build legs 317/317, asan 316, both nofp 5/5, hygiene 6/6, hash-equality |
-| run 37136463342 (nightly on PR, head 5b17fbb) | vectors-full success, 258 passed, fetch 64.6 s cold; report skipped (not schedule) |
-
-Local HEAD is 2 commits ahead of the PR head; `git diff 5b17fbb HEAD` touches only 02-REVIEW.md and 02-REVIEW-DISPOSITION.md, so the CI evidence applies to the code at HEAD.
+**Verified:** 2026-10-06T17:43:41Z
+**Status:** human_needed
+**Re-verification:** No — the previous report had no `gaps:` section; this is an initial verification against the current roadmap and all 11 plans.
 
 ## Goal Achievement
 
 ### Roadmap Success Criteria
 
 | # | Success criterion | Status | Evidence |
-| --- | --- | --- | --- |
-| SC1 | `ctest -L vectors` in `ci` passes the committed sample for all 256 opcodes, final state and every bus cycle | ✓ VERIFIED | 256 `cpu.vectors.<xx>` registered from an `00..ff` loop, no exclusion list; each checked by expect_output.cmake for exit 0 and exact `65x02/<xx>: 0 of 100 vectors failed`; harness compares pc,s,a,x,y,raw p, final RAM, cycle count and each cycle's addr/value/kind; mutation tests prove it is not vacuous; passes on all six CI legs |
-| SC2 | `ctest -L vectors-full` fetches the full set at its pin, every test matches; CI runs it nightly | ✓ VERIFIED | Local run 258/258; each full test prints `vecconv: xx: 10000 tests written and re-read` and `65x02/xx: 0 of 10000 vectors failed`; fetch verifies 256 SHA-256+size against pins.txt (commit 2f6980a2…); nightly.yml cron `17 4 * * *`, green on the PR. The first scheduled run is a backstop (below) |
-| SC3 | `ci`, `asan`, `nofp`, `hygiene` pass on all six platforms with the CPU in the library; merging publishes a release | ✓ VERIFIED (presets) / backstop (release) | CI run 37136463308 all green; `nm libnesturbator.a` shows `cpu.c.o` (U bus_read/bus_write only, T cpu_step) and `bus.c.o`. Release publication is the 02-08 backstop truth |
+|---|---|---|---|
+| 1 | CI's `vectors` label passes committed samples for all 256 opcodes, final state and every bus cycle. | ✓ VERIFIED | Fresh `cmake --workflow --preset ci` completed 327/327 when run outside the restricted sandbox. It rebuilt `src/cpu.c`; all 256 `cpu.vectors.00`–`.ff` tests passed. The harness compares registers, raw P, RAM pairs, cycle count and each bus-cycle address/value/kind. Mutation evidence in the prior verification shows cycle/value mutations fail. |
+| 2 | `vectors-full` fetches the pinned set and every vector matches; CI schedules it nightly. | ✓ VERIFIED (implementation); scheduled hosted outcome pending | Fresh `cmake --workflow --preset vectors-full` fetched/checked the pinned data and passed 258/258, including fetch, sample-match and all 256 10,000-vector opcode tests. `nightly.yml` has the scheduled trigger and invokes the full preset; hygiene policy tests enforce no cache/skip and the workflow wiring. The first scheduled post-merge result remains pending and is listed for human verification, not counted as a pass. |
+| 3 | `ci`, `asan`, `nofp`, `hygiene` pass with the CPU in the library; merge publishes a release. | ? UNCERTAIN — release event pending | Fresh local results: CI 327/327 (including RetroArch after leaving the restricted sandbox), ASan 326/326, no-FP 5/5, hygiene 8/8. The six-platform workflow matrix and packaging are wired; prior CI evidence covered the phase CPU matrix. The owner-authorized merge/release has not occurred, so the merge-published release clause is unresolved rather than passed. See the pending release item. |
 
 ### Plan must-have truths
 
-| Plan | Truth (abridged) | Status | Evidence |
-| --- | --- | --- | --- |
-| 01 | Branch `^phase/02`, plans tracked before first code commit | ✓ | branch phase/02-cpu-vectors; plan commit f23cca4 is ancestor of first code commit fef3fda |
-| 01 | `vecconv.a9` converts and re-reads 3 tests | ✓ | passes in ci; message seen in full lane for 10000-test files |
-| 01 | Reader rejects zero-length / truncated buffers with offset | ✓ | `vectors.n65v.crafted` passes |
-| 01 | vecconv exits 1 with offset on every D-02 input | ✓ | 13 `vecconv.reject.*` + `vecconv.a9_tail.cut` pass |
-| 01 | vecconv host tool, not installed, forbidden in embed | ✓ | tests/embed/CMakeLists.txt:17 lists vecconv; CMakeLists.txt:71 "never installed"; embed test passes |
-| 01 | No `release-as`; `release.no_release_as` | ✓ | config has no key; test passes |
-| 01/02 | runner.hash and write_hashes.content unchanged | ✓ | pass in ci; hash-equality green on six platforms |
-| 02 | `vecconv.a9` through the CPU prints `0 of 3` | ✓ | vectors_fixture.cmake RUN path; test passes |
-| 02 | cpu.c calls exactly two external functions; lib vs test bus never both | ✓ | `nm -u cpu.c.o` = bus_read, bus_write only; cpu.vectors links vector_bus.c + TARGET_OBJECTS, not the library |
-| 02 | cpu.o, bus.o in libnesturbator.a; no new undefined/writable/FP | ✓ | nm output; nofp and global_symbols checks pass locally and in CI |
-| 02 | `bus.unit` 24 ticks, mirrors, open bus | ✓ | passes |
-| 03 | Sample blob 1,678,114 B, SHA-256 0c318cec… | ✓ | `stat`/`shasum` match; manifest line matches |
-| 03 | `vectors_regen.cmake` from range prefixes | ✓ (artifact) | file exists with RANGE_END, `--first`; byte-identity independently proven by `cpu.vectors-full.sample-match` |
-| 03 | `manifest.sha256` + selftest | ✓ | pass |
-| 03 | `vectors.n65v` validates blob, crafted rejections | ✓ | pass |
-| 03 | Empty-input edges for vecconv | ✓ | reject.empty_file/empty_array/closed_short/truncated pass |
-| 03 | Ordering edges | ✓ | crafted repeated-index case; blob checked 00-ff |
-| 03 | MIT notice verbatim, PROVENANCE lists blob | ✓ | THIRD-PARTY-NOTICES.md §"SingleStepTests 65x02" at 2f6980a2…; PROVENANCE.md:80 |
-| 04 | 105 non-control official opcodes pass | ✓ | subsumed by 256/256 |
-| 04 | Registers, raw p, RAM, every cycle incl. dummy reads | ✓ | harness code + mutation test |
-| 04 | Page-crossing adjacency | ✓ | 256/256 sample + 2.56M full; mutation of page-cross dummy read fails bd/b9/b1 |
-| 04 | SED/CLD store D; ADC/SBC binary | ✓ | 61/69/e9/f8/d8 sample and full pass |
-| 04 | Flag writes touch only own bits | ✓ | raw p compare over full set |
-| 05 | 151 official opcodes pass | ✓ | subsumed by 256/256 (NESTURBATOR_OFFICIAL_OPCODES list was superseded by NESTURBATOR_ALL_OPCODES in plan 06 — gsd artifact pattern check flags this; intentional) |
-| 05 | RMW write-back, branch page dummy, JMP (ind) bug | ✓ | full set passes for these opcodes |
-| 05 | D kept through PHP/PLP/RTI/BRK | ✓ | full set |
-| 05 | P bits 4/5 rule | ✓ | raw p compare over full set |
-| 05 | JSR order | ✓ | opcode 20 full set + cpu.unit |
-| 06 | All 256 `cpu.vectors.xx` in ci (=SC1) | ✓ | see SC1 |
-| 06 | 256 `case 0x`, no `default:` | ✓ | grep: 256, no default |
-| 06 | JAM: 11 reads, jammed, loop | ✓ | `cpu.unit` test_jammed_loop + PC wrap test, passes |
-| 06 | ANE/LXA magic, defaults 0xEE | ✓ | `core.profile` passes; instance.c:105-106 |
-| 06 | SHY/SHX/SHA/TAS via one helper | ✓ | `store_sh`; 9c 9e 9f 93 9b pass full set |
-| 06 | JSR stack-overlap issue #18 case | ✓ | cpu.unit (pc 0x017B → 0x0155) passes |
-| 06 | 25 opcodes with P bits 4/5 set pass raw | ✓ | all 256 pass |
-| 06 | `vecconv.02` compact layout, `0 of 3` | ✓ | passes |
-| 06 | No skip list | ✓ | loop over 00..ff; no exclusion variable |
-| 07 | vectors-full fetch + 2.56M tests (=SC2) | ✓ | see SC2 |
-| 07 | sample-match provenance | ✓ | passes locally and on GitHub |
-| 07 | Missing/altered/no network fails fetch; no 77/SKIP | ✓ | simulated offline → exit 1; grep finds no SKIP_RETURN_CODE/77; vectors_full_run requires exactly `0 of 10000` |
-| 07 | `vectors.pins` offline ordering check | ✓ | passes with selftest |
-| 07 | ci never touches network | ✓ | full tests only under `NESTURBATOR_VECTORS_FULL` (default OFF) |
-| 07 | nightly.yml cron, dispatch, PR paths, `permissions: {}`, SHA pins, no cache/secrets | ✓ | file read; action_pins check passes |
-| 07 | Report job rolling issue on schedule | ⚠️ backstop (insufficient_spec) | only runs on `schedule` |
-| 08 | `CI required` success, six legs with 256 vector tests, asan, nofp, hygiene, hash-equality | ✓ | run 37136463308 |
-| 08 | Nightly on PR success, 258 passed | ✓ | run 37136463342 |
-| 08 | Nightly timeout = 2 × cold run, run ID in comment | ✓ | `timeout-minutes: 3`, 2×88 s; cites 37136095512 |
-| 08 | ci.yml timeouts re-measured | ✓ (warning) | all jobs under half their timeout on measured run 37136095554; but on head run 37136463308 `nofp (ubuntu-24.04)` took 38 s against a 1-minute timeout (63%) |
-| 08 | No `provisional` timeout comment survives | ✓ | grep finds none |
-| 08 | hash-equality still passes | ✓ | green |
-| 08 | Release 0.1.1 published after merge | ⚠️ backstop (insufficient_spec) | post-merge |
-| 08 | First scheduled nightly on main passes | ⚠️ backstop (insufficient_spec) | post-merge |
+All 62 truths declared across the 11 plans were assessed. The table summarizes truth status per plan; the four unresolved hosted-event truths are identified separately below.
 
-**Score:** 50/53 truths verified (0 present-but-behavior-unverified; 3 post-merge backstops). The behaviour-dependent truths (JAM sequence and loop, JSR overlap, page-cross dummy reads) are each exercised by a passing named test, and the mutation runs show the harness detects cycle-level errors.
+| Plan | Truths verified | Truths total | Evidence summary |
+|---|---:|---:|---|
+| 02-01 | 7 | 7 | Converter/reader fixtures pass; C-owned parser policy, host-only target, release pin guard, frame regressions and original branch/history condition checked. |
+| 02-02 | 5 | 5 | Shared shipped CPU object and test bus wiring; bus ticks/mirroring/open-bus unit tests; vector tracer and ABI/no-FP checks pass. |
+| 02-03 | 7 | 7 | Sample manifest/hash, exact 256 chunk structure, crafted truncation/rejection tests, regeneration path and MIT provenance verified. |
+| 02-04 | 5 | 5 | Official opcode sample and addressing/cycle adjacency behavior passed through active value-comparison tests. |
+| 02-05 | 5 | 5 | Official control/RMW/stack behavior, raw status bits and JSR cycle order exercised by sample and named unit tests. |
+| 02-06 | 9 | 9 | All 256 opcodes run; unofficial/JAM/profile/store cases and JSR overlap unit tests passed; no opcode waiver is used. |
+| 02-07 | 6 | 7 | Full set and pinned file hashes passed locally; offline failure, exact sample match, registration and workflow policy verified. The first scheduled reporter execution remains pending. |
+| 02-08 | 6 | 8 | PR/full-vector wiring and timeout configuration verified; the post-merge release and first scheduled main run remain pending. |
+| 02-09 | 3 | 3 | Source dependency policy, API declaration baseline, JSON size and exact no-skip registration checks pass in CI. |
+| 02-10 | 2 | 3 | Nightly workflow security/policy gates pass. Main-push run-bound inventory/JUnit outcome remains pending until that hosted event occurs. |
+| 02-11 | 3 | 3 | Release assertion, pending-aware read-only collector, evidence result validator and automation-first handoff rule are implemented and wired; local self-test covers success, pending, wrong SHA, missing assets/artifact and result mutations. |
+
+**Score:** 58/62 plan truths verified; 4 hosted-event truths await post-merge evidence. `behavior_unverified: 0` — no state transition or cancellation invariant lacks a test.
 
 ### Prohibitions
 
-| Plan | Prohibition | Tier | Disposition |
-| --- | --- | --- | --- |
-| 01 | No JSON library, Python or `string(JSON)` parse of vector files | test | ⚠️ flagged: no wired enforcing test. Observed compliant: vecconv is owned C; `string(JSON)` appears only in release_config/release_markers on release-please-config.json |
-| 02 | Public header gains no function/type/field | test | ⚠️ flagged: no API-freeze test. Observed compliant: `git diff main..HEAD -- include/nesturbator.h` adds 3 comment lines only |
-| 02 | No GPL/LGPL source opened | judgment | ⚠️ unverified-prohibition, human review recommended (non-authoritative: nothing in the tree suggests copying) |
-| 03 | Full 1.08 GB JSON never committed | test | ⚠️ flagged: hygiene blocks unlisted binaries, not large text JSON. Observed compliant: only the 3 fixtures are tracked JSON; .git is 6.7 MB |
-| 06 | No exclusion/waiver list | test | ⚠️ flagged: no test asserts the count. Observed compliant: `ctest -N -L vectors` = 256, full lane 256 |
-| 07 | Nightly never passes on skipped/cached fetch | test | ⚠️ flagged: no wired test. Observed compliant: no actions/cache, no SKIP_RETURN_CODE/77; simulated offline run exits 1 |
-| 07 | Nightly no commit, no secret, minimal permissions | test | ⚠️ flagged: no wired test. Observed compliant: `permissions: {}`, contents: read / issues: write in report only, `persist-credentials: false` |
+| Plan | Must-not condition | Status | Evidence |
+|---|---|---|---|
+| 01 | No external JSON library, Python, or CMake JSON parsing of vector inputs. | ✓ VERIFIED | `vectors.source_policy` and its mutation self-test pass; `vecconv` is C. |
+| 02 | No public API declaration change; CPU reached through internal hook. | ✓ VERIFIED | `vectors.api_policy` and mutation self-test pass; `cpu.vectors` links the CPU object directly. |
+| 02 | No GPL/LGPL emulator source opened or copied. | ? UNCERTAIN — owner judgment | No repository scan can establish source-opening history; human item above. |
+| 03 | Do not commit the 1.08 GB upstream JSON set. | ✓ VERIFIED | Hygiene and JSON-size policy/self-test pass; only committed small fixtures and the N65V sample are tracked. |
+| 06 | No hidden opcode exclusion/waiver list. | ✓ VERIFIED | 00–ff tests are required by the registration policy; both sample and full inventories pass, and all opcode tests passed. |
+| 07 | Nightly cannot pass through cache or skipped fetch. | ✓ VERIFIED | Nightly policy and self-test pass; cold pinned fetch passed; the policy rejects cache/skip behavior. |
+| 07 | No workflow writeback/secrets outside scoped issue reporting. | ✓ VERIFIED | Workflow policy, permissions inspection and action pin checks pass. |
 
-### Required Artifacts
+## Required Artifacts
 
-`gsd-tools verify.artifacts` across all 8 plans: 27/28 pass. The one miss is `tests/CMakeLists.txt` missing pattern `NESTURBATOR_OFFICIAL_OPCODES` (plan 05), superseded by `NESTURBATOR_ALL_OPCODES` in plan 06; not a stub. All artifacts are substantive and wired (each is built and exercised by a passing ctest).
+| Artifact | Expected | Status | Details |
+|---|---|---|---|
+| `src/cpu.c`, `src/bus.c`, `src/internal.h` | CPU instruction implementation, bus seam and internal state | ✓ VERIFIED | Substantive; CPU object is folded into `nesturbator` and separately linked into `cpu.vectors` with the test bus. Current sample/full vector runs prove flow through the object. |
+| `tests/cpu/test_vectors.c`, `tests/cpu/vector_bus.c` | Compare final state, RAM and every bus cycle | ✓ VERIFIED | CTest labels register exactly 256 opcodes per tier; each run passed. |
+| `tools/vecconv/vecconv.c`, `tests/vectors/n65v.c` | JSON conversion and bounds-checked N65V reader | ✓ VERIFIED | Converter re-reads output through `n65v_next`; fixtures and negative-input tests pass. Converter is excluded from installed and embedded targets. |
+| `tests/vectors/65x02-sample.n65v`, `tests/vectors/pins.txt`, manifest | Provenanced sample plus pinned full-set hashes | ✓ VERIFIED | Manifest/hash checks pass; fresh full run validates the upstream pin and byte-identical sample prefix. |
+| `tests/cmake/fetch_vectors.cmake`, `tests/cmake/fetch_guard.cmake` | Pinned fetch and source-tree protection | ✓ VERIFIED | Current `vectors.fetch.guard` passes symlink/case spelling checks; script only deletes its marked `65x02-src` tree. |
+| `.github/workflows/nightly.yml`, `CMakePresets.json` | Scheduled full-vector lane and evidence artifacts | ✓ VERIFIED (wiring) | Schedule, main push, preset, exact inventory and run-bound artifact/JUnit wiring verified; hosted post-merge outcomes remain pending. |
+| `tests/cmake/vector_source_policy.cmake`, `vector_api_policy.cmake`, `vector_registration_policy.cmake`, `nightly_workflow_policy.cmake` | Automated prohibition and inventory guards | ✓ VERIFIED | Registered in CI/hygiene and exercised by live and mutation tests. |
+| `.github/workflows/release.yml`, `scripts/phase2_outcomes.sh`, `tests/cmake/vector_result_policy.cmake` | Publication assertion and commit-bound outcome query | ✓ VERIFIED (implementation) | Workflow checks exactly 18 archives plus `SHA256SUMS`; collector uses read-only GitHub queries and distinguishes pending (exit 2) from failure (exit 1). Self-test passes. Remote release outcome remains pending. |
+| `tests/CMakeLists.txt` in plan 02-05 artifact query | Plan named `NESTURBATOR_OFFICIAL_OPCODES` | ✓ VERIFIED (superseded naming) | Query's literal pattern is absent because later plan 02-06 replaced the 151-opcode list with `NESTURBATOR_ALL_OPCODES`; current registration checker requires all `00`–`ff` tests and passes. This is not a stub. |
 
-### Key Link Verification
+`gsd-tools query verify.artifacts` passed all current artifacts except the expected plan-02-05 naming mismatch above (the superseded variable). `gsd-tools query verify.key-links` reported 15 direct pattern matches; its generic target matcher did not understand several function/test invocations and GitHub API targets. Those were traced manually: test registrations invoke the policy scripts; workflow jobs invoke the vectors preset and metadata checks; the result collector calls `gh` release, run and artifact APIs. No substantive artifact is orphaned.
 
-`gsd-tools verify.key-links`: 13/13 verified across all plans (vecconv→n65v_next, add_subdirectory(tools/vecconv), TARGET_OBJECTS:nesturbator_cpu, cpu.vectors link set, manifest→blob, regen→`--first`, LABELS vectors, FIXTURES_SETUP vectors_full, nightly→`--preset vectors-full`, RP2A03G profile, ane_magic in harness, nightly.yml paths).
+## Key Link Verification
 
-### Data-Flow Trace (Level 4)
+| From | To | Via | Status | Details |
+|---|---|---|---|---|
+| `CMakeLists.txt` | `src/cpu.c` | `nesturbator_cpu` object folded into `nesturbator` | ✓ WIRED | `target_sources(... $<TARGET_OBJECTS:nesturbator_cpu>)`; confirmed by CI build and library symbols. |
+| `tests/CMakeLists.txt` | CPU object + `vector_bus.c` | `cpu.vectors` target | ✓ WIRED | Test target links `$<TARGET_OBJECTS:nesturbator_cpu>` and test bus, not the library bus. |
+| `tools/vecconv/vecconv.c` | `tests/vectors/n65v.c` | `n65v_next` re-read | ✓ WIRED | Executed by converter tests. |
+| `tests/CMakeLists.txt` | committed sample | 256 labeled test registrations | ✓ WIRED | All 256 ran and passed in current CI. |
+| `cpu.vectors-full.fetch` | `pins.txt` + fetched files | CTest fixture then SHA-256/size validation | ✓ WIRED | Fetch and all dependent vector tests passed. |
+| `nightly.yml` | `vectors-full` preset | scheduled/main triggers launch full workflow | ✓ WIRED | Source trigger and job command verified; hosted post-merge run is pending. |
+| Hygiene/CI CTest registrations | policy scripts | direct `cmake -P` invocations | ✓ WIRED | Live policy tests passed in CI/hygiene; mutation self-tests passed. |
+| `release.yml` | published GitHub release | upload, publish, bounded exact metadata assertion | ✓ WIRED | Workflow source and syntax verified; no live release exists yet. |
+| `scripts/phase2_outcomes.sh` | GitHub APIs | `gh` read-only release/run/artifact queries | ✓ WIRED | Self-test confirms pending/success/failure handling; no real post-merge query was made. |
+| `.planning/preparation/GSD-HANDOFF.md` | project UAT constraints | documents automated checks before owner prompts | ✓ WIRED | Source references project Verification and Hand-offs constraints. |
 
-| Artifact | Data | Source | Real data | Status |
-| --- | --- | --- | --- | --- |
-| cpu.vectors.<xx> | expected state/cycles | committed 65x02-sample.n65v (SHA-256 pinned in manifest, byte-equal to upstream per sample-match) | yes | ✓ FLOWING |
-| cpu.vectors-full.<xx> | expected state/cycles | upstream JSON at pinned commit, SHA-256 checked per file | yes | ✓ FLOWING |
+## Data-Flow Trace (Level 4)
 
-### Behavioral Spot-Checks / Probe Execution
+| Artifact | Data variable | Source | Produces real data | Status |
+|---|---|---|---|---|
+| `cpu.vectors.<xx>` | expected CPU state/cycles | Committed N65V sample; manifest SHA-256 and sample provenance | Yes | ✓ FLOWING |
+| `cpu.vectors-full.<xx>` | expected CPU state/cycles | 256 JSON files from the pinned upstream commit, individually size/hash checked | Yes | ✓ FLOWING |
+| `vectors-full` archived evidence | test inventory/JUnit | CTest registration and completed CTest result on the same workflow run | Yes when the host run occurs | ✓ FLOWING (hosted run pending) |
 
-See "Commands run by the verifier". No `scripts/*/tests/probe-*.sh` probes exist or are declared for this phase.
+## Behavioral Spot-Checks
 
-### Requirements Coverage
+| Behavior | Command | Result | Status |
+|---|---|---|---|
+| 256 sample opcodes match final state and every cycle | `cmake --workflow --preset ci` | 327/327 passed outside the restricted sandbox; 256 vector cases passed | ✓ PASS |
+| All 2,560,000 pinned vectors match | `cmake --workflow --preset vectors-full` | Fetch, sample-match and all 256 opcode tests passed; 258/258 | ✓ PASS |
+| JAM loop, JSR overlap, bus timing and CPU unit behavior | `cmake --workflow --preset ci` | `cpu.unit` and `bus.unit` passed; explicit transition/order tests are present | ✓ PASS |
+| Output identity and workflows' release/vector outcomes | `scripts/phase2_outcomes.sh --self-test` | Success, pending, wrong-SHA, missing-artifact/assets, failed and skipped result cases passed | ✓ PASS |
 
-| Requirement | Source plans | Status | Evidence |
-| --- | --- | --- | --- |
-| CPU-01 | 02-01..02-06, 02-08 | ✓ SATISFIED | SC1 evidence; six platforms green |
-| CPU-02 | 02-07, 02-08 | ✓ SATISFIED (nightly-on-main is backstop) | SC2 evidence; nightly green on the PR |
+## Probe Execution
 
-No orphaned requirements: REQUIREMENTS.md maps only CPU-01 and CPU-02 to Phase 2.
+No phase-declared or conventional `scripts/*/tests/probe-*.sh` probes were found.
 
-### Anti-Patterns and Review Findings
+## Test Quality Audit
 
-No TBD/FIXME/XXX in changed source, test or workflow files.
+| Test File | Linked requirement | Active | Skipped | Circular | Assertion level | Verdict |
+|---|---|---:|---:|---:|---|---|
+| `tests/cpu/test_vectors.c` | CPU-01/02 | Yes | 0 | No | Value + per-cycle behavioral | ✓ ADEQUATE |
+| `tests/vectors/test_n65v.c` | CPU-01/02 | Yes | 0 | No | Value and malformed-input behavior | ✓ ADEQUATE |
+| `tests/cpu/test_cpu_unit.c`, `tests/cpu/test_bus.c` | CPU-01 | Yes | 0 | No | Ordered multi-cycle assertions | ✓ ADEQUATE |
+| `tests/cmake/vector_result_policy.cmake` and self-test | CPU-02 evidence | Yes | 0 | No | Exact inventory and completed JUnit values | ✓ ADEQUATE |
 
-| Item | File | Severity | Undermines a must-have? |
-| --- | --- | --- | --- |
-| CR-01 lexical in-source guard; `file(REMOVE_RECURSE "${DIR}/src")` | tests/cmake/fetch_vectors.cmake:36-43,136 | ⚠️ Warning, escalated | No. The fetch, pin checks and full-set results are correct. Verifier reproduced the data loss on a scratch copy: a case-variant DIR deleted `<fake repo>/src/cpu.c`. It only fires when a user sets `NESTURBATOR_VECTORS_DIR`, and the README invites that. Not a CPU-correctness gap, but a critical safety defect in shipped tooling. Owner decision before merge |
-| WR-01 nightly PR path filter misses its inputs | .github/workflows/nightly.yml:14-18 | ⚠️ Warning | No. CPU-02 "CI runs it nightly" holds via cron, but a change to cpu.c, vecconv or the run scripts is not full-set-tested before merge. The phase PR itself did trigger it |
-| WR-02 3-minute nightly timeout with a network fetch | nightly.yml:25 | ⚠️ Warning | Not now: PR run took 90 s with a 64.6 s fetch, so it is already at 50% of the cap. It threatens the "first scheduled nightly passes" backstop if the fetch is slow |
-| WR-03 harness clears only listed addresses | tests/cpu/test_vectors.c:187-197 | ⚠️ Warning | No. It can only inflate failure counts after a real failure; it cannot turn a failure into a pass, because a passing test's cycle log matches the expected writes exactly |
-| nofp (ubuntu-24.04) 38 s on a 1-minute timeout | .github/workflows/ci.yml:134 | ⚠️ Warning | No (measured run was 12 s); a slow runner could cancel a required leg |
-| IN-01..IN-06 | various | ℹ️ Info | No; dormant until the CPU drives frames (phase 3) |
+Disabled requirement tests: 0. Circular expected-value generation detected: 0. Expected vector values come from the pinned external MIT data; `vectors_sample_match` verifies the committed prefix against fetched data. No test-quality blocker found.
 
-### Human Verification Required
+## Requirements Coverage
 
-These are owner actions and post-merge commands, not manual UAT:
+| Requirement | Source plans | Description | Status | Evidence |
+|---|---|---|---|---|
+| CPU-01 | 02-01 through 02-09, 02-11 | All 256 opcodes match committed 65x02 vectors on final state and every bus cycle | ✓ SATISFIED | Fresh CI sample pass, exact 256 registrations, harness comparisons and CPU object wiring. |
+| CPU-02 | 02-07 through 02-11 | Full pinned 65x02 set matches and is run in the nightly lane | ✓ SATISFIED (implementation); hosted outcomes pending | Fresh pinned full run 258/258; schedule/main triggers and full preset are wired. Pending post-merge hosted outcomes are explicit human items, not evidence of a pass. |
 
-1. **Release after merge.** Run `gh release view v0.1.1` and `gh run list --workflow release.yml`. Expected: v0.1.1 is published with its archives and SHA256SUMS. This is a backstop and can happen only after merge.
-2. **First scheduled nightly on main.** Run `gh run list --workflow nightly.yml --event schedule --limit 1`. Expected: vectors-full passes 258/258 and the report job runs. This is a backstop.
-3. **CR-01 disposition.** Before merge, fix it or record it as deferred with a reason in 02-REVIEW-DISPOSITION.md. Escalated because it is critical.
-4. **Flagged prohibitions.** Accept the observed compliance, or ask for enforcing tests. One is judgment-tier (clean room) and needs owner acknowledgement.
+No orphaned requirements: `REQUIREMENTS.md` assigns only CPU-01 and CPU-02 to Phase 2, and plans declare both.
 
-### Gaps Summary
+## Anti-Patterns Found
 
-No must-have failed. The CPU matches all 25,600 sample vectors and all 2,560,000 full vectors on final state and on every bus cycle. This holds locally, on six CI platforms, and in the nightly lane on the PR. Mutation runs show the harness catches single-cycle and single-value errors. What remains:
-- the post-merge release and the scheduled nightly (both backstops);
-- an owner decision on the reproduced CR-01 data-loss defect in `fetch_vectors.cmake`;
-- six prohibitions flagged under the fail-closed rule (five test-tier, one judgment-tier), all observed compliant.
+| File | Line | Pattern | Severity | Impact |
+|---|---:|---|---|---|
+| None | — | No unreferenced TBD/FIXME/XXX, TODO/HACK/PLACEHOLDER or stub return in the phase implementation/test/workflow files | — | No blocker found |
 
-WR-02 and the nofp timeout headroom are the likeliest causes of a future false red.
+The initial hygiene run flagged a personal workspace path in the review-fix note. It was replaced with “Main checkout”; `sh scripts/hygiene.sh --tree` and the full hygiene preset then passed. The review-fix note is committed. The user-reserved `.planning/HANDOFF.json` deletion and `.planning/config.json` modification were preserved.
+
+## Decision Coverage
+
+The decision-coverage query found 24 trackable CONTEXT decisions and 24 honored by plans, summaries or shipped artifacts. This warning-only gate does not affect status.
+
+## Human Verification Required
+
+1. **Published release:** After the owner-authorized merge, run `scripts/phase2_outcomes.sh <merge-sha> v0.1.1`. Confirm a successful release run on the tag commit and the exact 18 platform archives plus `SHA256SUMS`.
+2. **Main-push full-vector result:** Use the same command after merge. Confirm the run is tied to the exact merge SHA and that its 258-test inventory and completed JUnit artifact pass validation.
+3. **First scheduled nightly and reporter:** After the first scheduled run following merge, use the same command. Confirm 258 passing checks on a descendant commit and a completed report job.
+4. **Clean-room provenance:** The owner confirms no GPL/LGPL emulator source was consulted or copied. The repository cannot establish an individual's source-opening history.
+
+## Gaps Summary
+
+No implementation gap was found in the CPU or vector pipeline. The committed sample and the freshly fetched pinned full set pass all final-state and bus-cycle checks. CI, ASan, no-FP and hygiene pass locally; the CI rerun required leaving the restricted sandbox for RetroArch, whose process aborted with empty output inside that sandbox. The review's CR-01 asset ordering, WR-01 pending classification and WR-02 timeout findings are fixed and locally exercised. The earlier source-tree deletion hazard is also covered by the current fetch guard and its passing symlink/case self-test.
+
+Status is `human_needed` because the merge-bound release, exact-merge main-push run and first scheduled nightly have not occurred, and clean-room provenance requires an owner judgment. None of these pending items is marked passed.
 
 ---
 
-_Verified: 2026-10-03T16:40:00Z_
-_Verifier: Claude (gsd-verifier)_
+_Verified: 2026-10-06T17:43:41Z_
+_Verifier: the agent (gsd-verifier)_
