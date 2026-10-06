@@ -485,7 +485,7 @@ first sets the version; the second downloads and extracts:
 
 <!-- x-release-please-start-version -->
 ```sh
-NESTURBATOR_VERSION=0.1.0
+NESTURBATOR_VERSION=0.1.1
 mkdir -p ~/Library/Application\ Support/RetroArch && curl -fsSL "https://github.com/szTheory/nesturbator/releases/download/v$NESTURBATOR_VERSION/nesturbator-$NESTURBATOR_VERSION-libretro-macos-arm64.zip" | tar -xf - -C ~/Library/Application\ Support/RetroArch cores info
 ```
 <!-- x-release-please-end -->
