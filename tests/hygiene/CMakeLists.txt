@@ -26,6 +26,17 @@ add_test(NAME hygiene.action_pins.good
   COMMAND ${CMAKE_COMMAND} -DROOT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures
     -DFILE=pins_good.yml -P ${pins})
 
+# The nightly full-vector lane must remain cold, non-skippable and least
+# privileged. Synthetic mutations exercise the same classifier as the file.
+add_test(NAME hygiene.nightly_workflow_policy
+  COMMAND ${CMAKE_COMMAND}
+    -DROOT=${PROJECT_SOURCE_DIR}
+    -DWORKFLOW=${PROJECT_SOURCE_DIR}/.github/workflows/nightly.yml
+    -P ${PROJECT_SOURCE_DIR}/tests/cmake/nightly_workflow_policy.cmake)
+add_test(NAME hygiene.nightly_workflow_policy.selftest
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -P ${PROJECT_SOURCE_DIR}/tests/cmake/nightly_workflow_policy.cmake)
+
 # Every tracked C source but the vendored libretro.h is formatted as
 # .clang-format says, checked with clang-format 18.
 add_test(NAME hygiene.format
@@ -34,5 +45,5 @@ add_test(NAME hygiene.format
 
 set_tests_properties(
   hygiene.tree hygiene.scan_selftest hygiene.action_pins hygiene.action_pins.bad hygiene.action_pins.good
-  hygiene.format
+  hygiene.nightly_workflow_policy hygiene.nightly_workflow_policy.selftest hygiene.format
   PROPERTIES LABELS hygiene)
