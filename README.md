@@ -267,9 +267,10 @@ SHA and tag with the merge commit and expected release tag):
 scripts/phase2_outcomes.sh <phase-2-merge-sha> <release-tag>
 ```
 
-It reports external events that have not happened yet as `PENDING`; only a
-published release and successful runs with matching commits and all 258
-completed vector results are reported as `PASS`. It requires authenticated
+It reports external events that have not happened yet as `PENDING` (exit 2);
+completed failures return exit 1, and a fully passing report returns exit 0.
+Only a published release and successful runs with matching commits and all
+258 completed vector results are reported as `PASS`. It requires authenticated
 `gh`, `jq` and CMake. Run `scripts/phase2_outcomes.sh --self-test` to exercise
 the evidence parser without querying GitHub.
 

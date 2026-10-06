@@ -13,6 +13,26 @@ expected_assets() {
     echo SHA256SUMS
   } | LC_ALL=C sort
 }
+classify_run_status() {
+  status=$1 conclusion=$2 label=$3
+  if [ "$status" != completed ]; then
+    echo "$label: PENDING ($status)"
+    pending=1
+    return 1
+  fi
+  if [ "$conclusion" != success ]; then
+    echo "$label: FAIL ($conclusion)"
+    failed=1
+    return 1
+  fi
+  return 0
+}
+outcome_exit_code() {
+  if [ "$failed" -ne 0 ]; then echo 1
+  elif [ "$pending" -ne 0 ]; then echo 2
+  else echo 0
+  fi
+}
 if [ "${1:-}" = --self-test ]; then
   command -v jq >/dev/null || { echo "jq is required for self-tests" >&2; exit 2; }
   cmake -DSELFTEST=ON -P "$(dirname "$0")/../tests/cmake/vector_result_policy.cmake"
@@ -26,8 +46,14 @@ if [ "${1:-}" = --self-test ]; then
   assets=$(expected_assets 0.0.0)
   [ "$(printf '%s\n' "$assets" | wc -l | tr -d ' ')" -eq 19 ] || { echo "expected asset set has wrong size" >&2; exit 1; }
   [ "$(printf '%s\n' "$assets" | LC_ALL=C sort)" = "$assets" ] || { echo "expected asset set is not C-locale sorted" >&2; exit 1; }
-  state=$(printf '%s' '{"status":"in_progress","conclusion":null}' | jq -r 'if .status != "completed" then "PENDING" else "FAIL" end')
-  [ "$state" = PENDING ] || { echo "pending schedule fixture misclassified" >&2; exit 1; }
+  pending=0 failed=0
+  classify_run_status in_progress null "pending fixture" >/dev/null || :
+  [ "$pending" -eq 1 ] && [ "$failed" -eq 0 ] || { echo "in-progress run fixture misclassified" >&2; exit 1; }
+  [ "$(outcome_exit_code)" -eq 2 ] || { echo "pending outcome did not select exit 2" >&2; exit 1; }
+  pending=0 failed=0
+  classify_run_status completed failure "failed fixture" >/dev/null || :
+  [ "$failed" -eq 1 ] && [ "$pending" -eq 0 ] || { echo "completed failure fixture misclassified" >&2; exit 1; }
+  [ "$(outcome_exit_code)" -eq 1 ] || { echo "failure outcome did not select exit 1" >&2; exit 1; }
   echo "phase2_outcomes: SHA, artifact, asset, pending schedule and successful run fixtures passed"
   exit 0
 fi
@@ -71,11 +97,10 @@ check_run() {
   run=$(gh run view "$id" --repo "$repo" --json headSha,status,conclusion,url,jobs)
   sha=$(printf '%s' "$run" | jq -r .headSha)
   if [ "$sha" != "$expected_sha" ]; then echo "$label: FAIL (wrong SHA $sha)"; failed=1; return; fi
-  if ! printf '%s' "$run" | jq -e '.status == "completed" and .conclusion == "success" and any(.jobs[]; .name == "vectors-full" and .conclusion == "success")' >/dev/null; then
-    state=$(printf '%s' "$run" | jq -r 'if .status != "completed" then "PENDING (" + .status + ")" else "FAIL (" + .conclusion + ")" end')
-    echo "$label: $state"
-    failed=1; return
-  fi
+  status=$(printf '%s' "$run" | jq -r .status)
+  conclusion=$(printf '%s' "$run" | jq -r .conclusion)
+  if ! classify_run_status "$status" "$conclusion" "$label"; then return; fi
+  if ! printf '%s' "$run" | jq -e 'any(.jobs[]; .name == "vectors-full" and .conclusion == "success")' >/dev/null; then echo "$label: FAIL (vectors-full job unsuccessful)"; failed=1; return; fi
   artifact="vectors-full-evidence-$id"
   meta=$(gh api "repos/$repo/actions/runs/$id/artifacts")
   if ! printf '%s' "$meta" | jq -e --arg n "$artifact" 'any(.artifacts[]; .name == $n and .expired == false)' >/dev/null; then echo "$label: FAIL (missing artifact)"; failed=1; return; fi
@@ -100,6 +125,4 @@ else
   if [ "$rel" != ahead ] && [ "$ssha" != "$merge_sha" ]; then echo "scheduled vectors-full: FAIL (head not descended from merge)"; failed=1
   else check_run "$scheduled" "$ssha" "scheduled vectors-full"; fi
 fi
-if [ "$failed" -ne 0 ]; then exit 1; fi
-if [ "$pending" -ne 0 ]; then exit 2; fi
-exit 0
+exit "$(outcome_exit_code)"
