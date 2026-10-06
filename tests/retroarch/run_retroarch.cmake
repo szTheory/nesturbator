@@ -98,9 +98,10 @@ execute_process(
   COMMAND "${retroarch}" -c "${RA_DIR}/test.cfg" -L "${core}"
     --max-frames=5 --max-frames-ss "--max-frames-ss-path=${RA_DIR}/shot.png"
   RESULT_VARIABLE ra_result
-  OUTPUT_VARIABLE ra_output
-  ERROR_VARIABLE ra_output
+  OUTPUT_VARIABLE ra_stdout
+  ERROR_VARIABLE ra_stderr
   TIMEOUT 50)
+set(ra_output "stdout:\n${ra_stdout}\nstderr:\n${ra_stderr}")
 
 # 7. Nothing in the user's directory was created, changed or removed. Checked
 # before RetroArch's own result, so a failed run is still checked.

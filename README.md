@@ -524,7 +524,8 @@ in your home folder before and after the run, and fails if anything in it was
 created, changed or removed. RetroArch opens a window, so the test needs a
 logged-in desktop session. Set `NESTURBATOR_RETROARCH` to use a RetroArch
 binary somewhere else. On other systems, or when RetroArch is not installed,
-the test reports itself skipped.
+the test reports itself skipped. If RetroArch exits unsuccessfully, CMake
+reports its captured stdout and stderr separately.
 
 ## What it will be
 
