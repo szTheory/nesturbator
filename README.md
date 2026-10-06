@@ -259,6 +259,20 @@ It uses GitHub's per-job token: the full-run job has only `contents: read`, and
 only the report job has `issues: write`. Checkout credentials are not persisted
 and the workflow makes no commits.
 
+After the Phase 2 merge, collect release, exact-commit main-push and first
+post-merge scheduled vector evidence with this read-only command (replace the
+SHA and tag with the merge commit and expected release tag):
+
+```sh
+scripts/phase2_outcomes.sh <phase-2-merge-sha> <release-tag>
+```
+
+It reports external events that have not happened yet as `PENDING`; only a
+published release and successful runs with matching commits and all 258
+completed vector results are reported as `PASS`. It requires authenticated
+`gh`, `jq` and CMake. Run `scripts/phase2_outcomes.sh --self-test` to exercise
+the evidence parser without querying GitHub.
+
 Locally, the lane keeps the fetched files in `build/vectors-full/vectors-full`.
 To keep them somewhere that survives a clean build, set the cache variable
 `NESTURBATOR_VECTORS_DIR` in an untracked `CMakeUserPresets.json`, for example
