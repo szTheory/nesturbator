@@ -1,9 +1,9 @@
 ---
-status: partial
+status: complete
 phase: 02-the-cpu-matches-the-public-vectors
 source: [02-VERIFICATION.md]
 started: 2026-10-06T17:46:43Z
-updated: 2026-10-06T20:59:30Z
+updated: 2026-10-06T21:12:09.122Z
 ---
 
 ## Current Test
@@ -24,11 +24,11 @@ result: pass
 source: automated
 evidence: "scripts/phase2_outcomes.sh ea55b1f74b5e60ef088a4048bd15fcb2568e44fc v0.1.1 (2026-10-06): PASS, run https://github.com/szTheory/nesturbator/actions/runs/37509491346."
 
-### 3. First scheduled nightly after merge
-expected: After the first scheduled run, the same command confirms a descendant commit, all 258 vector checks passing, valid run-bound evidence, and a completed reporter job.
-result: blocked
-blocked_by: third-party
-reason: "The first post-merge scheduled run has not started yet (checked 2026-10-06T20:59Z); scheduled for 2026-10-07 04:17 UTC. The read-only collector confirms release and exact-merge main-push evidence pass, while the scheduled run remains pending. Recheck automatically with scripts/phase2_outcomes.sh after it runs; no owner action is needed."
+### 3. Post-merge full-vector backstop (manual dispatch substituted for schedule)
+expected: A full-vector run on main after the Phase 02 merge confirms all 258 tests pass with valid run-bound inventory and JUnit evidence. The reporter path is verified separately by the exact-merge main-push run; the owner requested a manual dispatch to avoid waiting for the first cron event.
+result: pass
+source: automated
+evidence: "Owner requested manual dispatch on 2026-10-06. `workflow_dispatch` run 37531643137 on main commit c3e96382ae991d18f69f88096611d42e6a076e0e, a descendant of Phase 02 merge ea55b1f74b5e60ef088a4048bd15fcb2568e44fc, completed `vectors-full` successfully. Downloaded `vectors-full-evidence-37531643137`; `cmake -DINVENTORY=registered-tests.json -DJUNIT=vectors-full.junit.xml -P tests/cmake/vector_result_policy.cmake` exited 0, validating the exact 258-test inventory and completed passing results. The `report` job is intentionally skipped for manual dispatch; exact-merge main-push run 37509491346 completed both `vectors-full` and `report` successfully. The scheduled trigger and report condition remain covered by workflow policy tests."
 
 ### 4. Clean-room source provenance
 expected: Confirm that no GPL or LGPL emulator source was consulted or copied while implementing the CPU. Repository scans cannot establish which external sources a person opened.
@@ -39,12 +39,12 @@ evidence: "Owner confirmed in conversation on 2026-10-06: pass."
 ## Summary
 
 total: 4
-passed: 3
+passed: 4
 issues: 0
 pending: 0
 skipped: 0
-blocked: 1
+blocked: 0
 
 ## Gaps
 
-Release publication and exact-merge full-vector evidence passed automated checks. The first scheduled nightly remains blocked only until the scheduled GitHub run exists; it is not an owner hand-off. Clean-room provenance remains the one identity-bound owner judgment.
+Release publication, exact-merge full-vector evidence, and the manually dispatched post-merge full-vector backstop all passed automated checks. The first cron event itself was not awaited because the owner requested a manual dispatch; the scheduled trigger remains wired and policy-checked, while its same-run reporter path passed on the exact-merge main-push run. Clean-room provenance passed with the owner's confirmation.
