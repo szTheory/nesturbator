@@ -3,6 +3,18 @@ phase: 02
 review: 02-REVIEW.md
 titles: json
 findings:
+  - id: CR-01
+    severity: critical
+    disposition: fixed
+    title: "[BLOCKER] Valid release assets are always reported as mismatched"
+  - id: WR-01
+    severity: warning
+    disposition: fixed
+    title: "[WARNING] In-progress nightly run is classified as a failure"
+  - id: WR-02
+    severity: warning
+    disposition: fixed
+    title: "[WARNING] Required no-FP CI job has little timeout headroom"
   - id: WR-04
     severity: warning
     disposition: fixed
@@ -43,44 +55,32 @@ findings:
     severity: info
     disposition: fixed
     title: "Fetched files in the old `DIR/src` layout are orphaned with no note for users"
-  - id: CR-01
-    severity: critical
-    disposition: fixed
-    title: "The in-source guard in fetch_vectors.cmake is lexical, so `file(REMOVE_RECURSE)` can delete the repository's `src/` or any `<dir>/src`"
-  - id: WR-01
-    severity: warning
-    disposition: fixed
-    title: "The nightly's pull_request path filter misses most of the lane's inputs"
-  - id: WR-02
-    severity: warning
-    disposition: fixed
-    title: "The nightly's 3-minute job timeout leaves no room for network variance and overrides the fetch's own 900 s timeout"
   - id: WR-03
     severity: warning
     disposition: fixed
     title: "The cpu.vectors cleanup misses stray writes, so one failing test can corrupt every later test in the run"
 open: 0
 total: 14
-recorded: 2026-10-03T17:03:00.391Z
+recorded: 2026-10-06T17:28:17.138Z
 ---
 
 # Phase 02: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-04 | warning | fixed | 02-REVIEW-FIX.md |
-| IN-01 | info | fixed | 02-REVIEW-FIX.md |
-| IN-02 | info | fixed | 02-REVIEW-FIX.md |
-| IN-03 | info | fixed | 02-REVIEW-FIX.md |
-| IN-04 | info | fixed | 02-REVIEW-FIX.md |
-| IN-05 | info | fixed | 02-REVIEW-FIX.md |
-| IN-06 | info | fixed | 02-REVIEW-FIX.md |
-| IN-07 | info | fixed | 02-REVIEW-FIX.md |
-| IN-08 | info | fixed | 02-REVIEW-FIX.md |
-| IN-09 | info | fixed | 02-REVIEW-FIX.md |
-| CR-01 | critical | fixed | 02-REVIEW-FIX.md (not in the current review) |
-| WR-01 | warning | fixed | 02-REVIEW-FIX.md (not in the current review) |
-| WR-02 | warning | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| CR-01 | critical | fixed | 02-REVIEW-FIX.md |
+| WR-01 | warning | fixed | 02-REVIEW-FIX.md |
+| WR-02 | warning | fixed | 02-REVIEW-FIX.md |
+| WR-04 | warning | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| IN-01 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| IN-02 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| IN-03 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| IN-04 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| IN-05 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| IN-06 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| IN-07 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| IN-08 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| IN-09 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |
 | WR-03 | warning | fixed | 02-REVIEW-FIX.md (not in the current review) |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
