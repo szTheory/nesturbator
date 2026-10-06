@@ -195,6 +195,16 @@ add_test(NAME vectors.result_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_result_policy.cmake)
 
+# The post-merge evidence collector is POSIX and uses jq; exercise its
+# read-only outcome classification in CI wherever those tools are available.
+if(UNIX)
+  find_program(NESTURBATOR_JQ_EXECUTABLE NAMES jq)
+  if(NESTURBATOR_JQ_EXECUTABLE)
+    add_test(NAME phase2.outcomes.self_test
+      COMMAND sh "${PROJECT_SOURCE_DIR}/scripts/phase2_outcomes.sh" --self-test)
+  endif()
+endif()
+
 # release-please rewrites only the first version on each marked line, so no
 # marked line in its extra-files may hold two. The self-test runs the scan on
 # a fixture with two versions on line 3 and passes only on that exact error.

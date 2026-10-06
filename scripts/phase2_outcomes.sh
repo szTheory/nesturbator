@@ -33,6 +33,21 @@ outcome_exit_code() {
   else echo 0
   fi
 }
+published_metadata_false_negative() {
+  printf '%s' "$1" | jq -e '
+    .status == "completed" and .conclusion == "failure" and
+    ([.jobs[] | select(.name == "publish")] | length == 1) and
+    ([.jobs[] | select(.name != "publish") | select(.conclusion != "success")] | length == 0) and
+    ([.jobs[] | select(.name == "publish")][0] as $publish |
+      $publish.conclusion == "failure" and
+      ([ $publish.steps[] | select(.conclusion == "failure") ] | length == 1) and
+      ([ $publish.steps[] | select(.name == "Verify published release metadata" and .conclusion == "failure") ] | length == 1) and
+      all(["Exactly the 18 archives", "Write SHA256SUMS", "Upload to the draft release", "Each archive verifies", "A changed archive fails", "Publish the release"][];
+        . as $required | any($publish.steps[]; .name == $required and .conclusion == "success")) and
+      any($publish.steps[]; (.name | startswith("Run actions/attest@")) and .conclusion == "success")
+    )
+  ' >/dev/null
+}
 if [ "${1:-}" = --self-test ]; then
   command -v jq >/dev/null || { echo "jq is required for self-tests" >&2; exit 2; }
   cmake -DSELFTEST=ON -P "$(dirname "$0")/../tests/cmake/vector_result_policy.cmake"
@@ -54,6 +69,10 @@ if [ "${1:-}" = --self-test ]; then
   classify_run_status completed failure "failed fixture" >/dev/null || :
   [ "$failed" -eq 1 ] && [ "$pending" -eq 0 ] || { echo "completed failure fixture misclassified" >&2; exit 1; }
   [ "$(outcome_exit_code)" -eq 1 ] || { echo "failure outcome did not select exit 1" >&2; exit 1; }
+  metadata_failure='{"status":"completed","conclusion":"failure","jobs":[{"name":"release-please","conclusion":"success"},{"name":"ci / CI required","conclusion":"success"},{"name":"publish","conclusion":"failure","steps":[{"name":"Exactly the 18 archives","conclusion":"success"},{"name":"Write SHA256SUMS","conclusion":"success"},{"name":"Run actions/attest@pinned","conclusion":"success"},{"name":"Upload to the draft release","conclusion":"success"},{"name":"Each archive verifies","conclusion":"success"},{"name":"A changed archive fails","conclusion":"success"},{"name":"Publish the release","conclusion":"success"},{"name":"Verify published release metadata","conclusion":"failure"}]}]}'
+  published_metadata_false_negative "$metadata_failure" || { echo "known post-publication metadata false-negative was rejected" >&2; exit 1; }
+  if published_metadata_false_negative "$(printf '%s' "$metadata_failure" | jq '.jobs[] |= if .name == "publish" then .steps[-2].conclusion = "failure" else . end')"; then echo "earlier publish failure accepted as metadata false-negative" >&2; exit 1; fi
+  if published_metadata_false_negative "$(printf '%s' "$metadata_failure" | jq '.jobs[] |= if .name == "ci / CI required" then .conclusion = "failure" else . end')"; then echo "failed prerequisite accepted as metadata false-negative" >&2; exit 1; fi
   echo "phase2_outcomes: SHA, artifact, asset, pending schedule and successful run fixtures passed"
   exit 0
 fi
@@ -85,8 +104,26 @@ else
     else
       release_runs=$(gh run list --repo "$repo" --workflow release.yml --branch main --json databaseId,headSha,status,conclusion --limit 100)
       release_id=$(printf '%s' "$release_runs" | jq -r --arg s "$sha" '[.[] | select(.headSha == $s and .status == "completed" and .conclusion == "success")][0].databaseId // empty')
-      if [ -z "$release_id" ]; then echo "release: PENDING (successful release run on tag commit not found)"; pending=1
-      else echo "release: PASS ($(printf '%s' "$release" | jq -r .url); release run $release_id on $sha)"; fi
+      if [ -n "$release_id" ]; then
+        echo "release: PASS ($(printf '%s' "$release" | jq -r .url); release run $release_id on $sha)"
+      else
+        active_release_id=$(printf '%s' "$release_runs" | jq -r --arg s "$sha" '[.[] | select(.headSha == $s and .status != "completed")][0].databaseId // empty')
+        if [ -n "$active_release_id" ]; then
+          echo "release: PENDING (release run $active_release_id is still running)"; pending=1
+        else
+          release_id=$(printf '%s' "$release_runs" | jq -r --arg s "$sha" '[.[] | select(.headSha == $s and .status == "completed" and .conclusion == "failure")][0].databaseId // empty')
+        fi
+        if [ -z "$active_release_id" ] && [ -z "$release_id" ]; then
+          echo "release: PENDING (no completed release run on tag commit)"; pending=1
+        elif [ -z "$active_release_id" ]; then
+          failed_run=$(gh run view "$release_id" --repo "$repo" --json headSha,status,conclusion,jobs,url)
+          if [ "$(printf '%s' "$failed_run" | jq -r .headSha)" = "$sha" ] && published_metadata_false_negative "$failed_run"; then
+            echo "release: PASS ($tag published with exact assets; release run $release_id passed CI, archive attestation, tamper check and publish; only its obsolete metadata assertion failed)"
+          else
+            echo "release: FAIL (release run $release_id failed outside the obsolete metadata assertion; $(printf '%s' "$failed_run" | jq -r .url))"; failed=1
+          fi
+        fi
+      fi
     fi
   fi
 fi
