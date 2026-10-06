@@ -176,6 +176,19 @@ add_test(NAME vectors.api_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_api_policy.cmake)
 
+# Exact opcode inventories come from CTest's machine-readable metadata. The
+# policy configures the full preset but never runs its network-backed fixture.
+add_test(NAME vectors.registration_policy
+  COMMAND ${CMAKE_COMMAND}
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DCI_BUILD=${PROJECT_BINARY_DIR}
+    -DFULL_BUILD=${PROJECT_BINARY_DIR}/../vectors-full
+    -DCTEST=${CMAKE_CTEST_COMMAND}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
+add_test(NAME vectors.registration_policy.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
+
 # release-please rewrites only the first version on each marked line, so no
 # marked line in its extra-files may hold two. The self-test runs the scan on
 # a fixture with two versions on line 3 and passes only on that exact error.
