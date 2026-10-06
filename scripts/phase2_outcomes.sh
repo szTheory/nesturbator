@@ -84,4 +84,6 @@ else
   if [ "$rel" != ahead ] && [ "$ssha" != "$merge_sha" ]; then echo "scheduled vectors-full: FAIL (head not descended from merge)"; failed=1
   else check_run "$scheduled" "$ssha" "scheduled vectors-full"; fi
 fi
-[ "$failed" -eq 0 ] && [ "$pending" -eq 0 ]
+if [ "$failed" -ne 0 ]; then exit 1; fi
+if [ "$pending" -ne 0 ]; then exit 2; fi
+exit 0
