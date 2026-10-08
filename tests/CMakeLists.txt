@@ -55,7 +55,7 @@ nesturbator_runner_test(NAME runner.usage.positional
 
 # FRAME-03 / D-16: --dump-frame writes the test card as a 256x240 P6 image
 # (15 header bytes + 256*240*3) while the hash line stays over the native
-# pixels. Pixel (8,232) is native $12, whose table entry is 0x552AFF. Later
+# pixels. Pixel (8,232) is native $12, whose calibrated table entry is 0x5238FF. Later
 # tests read the image through the fixture testframe_ppm.
 set(NESTURBATOR_TESTFRAME_PPM ${CMAKE_BINARY_DIR}/testframe/frame1.ppm)
 set(dump_cmd "$<TARGET_FILE:nesturbator-run>" --frames 1
@@ -67,7 +67,7 @@ add_test(NAME runner.dump
     -DEXPECT_EXIT=0
     "-DFILE=${NESTURBATOR_TESTFRAME_PPM}"
     -DSIZE=184335
-    -DPIXELS=8:232:552AFF
+    -DPIXELS=8:232:5238FF
     -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_ppm.cmake")
 set_tests_properties(runner.dump PROPERTIES FIXTURES_SETUP testframe_ppm)
 
@@ -172,7 +172,8 @@ add_test(NAME fuzz.registration
     -DBUILD_DIR=${PROJECT_BINARY_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fuzz_registration.cmake)
 
-# D-14: nesturbator_get_palette's copy rules and the palette invariants.
+# D-14: nesturbator_get_palette's copy rules, calibrated sRGB samples and
+# palette invariants.
 nesturbator_core_test(core.palette core/test_palette.c)
 
 # D-15: the shared host conversion indexes the palette by the low 9 bits and

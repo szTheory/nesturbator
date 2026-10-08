@@ -246,10 +246,11 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * advance on later frame calls. Audio is currently silent. */
 nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *io);
 
-/* Copies up to `count` XRGB8888 entries (0x00RRGGBB), indexed by native
- * pixel value (palette entry | emphasis << 6). Display data only; never part
- * of a hash. Copies min(count, 512) entries; out NULL or count 0 does
- * nothing. inst is reserved for per-PPU-revision tables and may be NULL. */
+/* Copies up to `count` calibrated NTSC-to-sRGB XRGB8888 entries (0x00RRGGBB),
+ * indexed by native pixel value (palette entry | emphasis << 6). Display data
+ * only; the native pixels remain the canonical frame-hash input. Copies
+ * min(count, 512) entries; out NULL or count 0 does nothing. inst is reserved
+ * for per-PPU-revision tables and may be NULL. */
 void nesturbator_get_palette(const nesturbator *inst, uint32_t *out_xrgb8888, uint32_t count);
 
 #ifdef __cplusplus

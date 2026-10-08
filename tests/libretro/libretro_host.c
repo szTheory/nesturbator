@@ -328,7 +328,7 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size, co
             }
         }
         CHECK_EQ_U64(mismatches, 0u);
-        CHECK_EQ_HEX(frame[0], 0xC23400u);
+        CHECK_EQ_HEX(frame[0], 0xBA3100u);
         nesturbator_destroy(nes);
     }
     p_unload_game();
@@ -623,8 +623,8 @@ int main(int argc, char **argv)
 
     /* D-05: four pixels from src/palette_ntsc.c, written out here. */
     CHECK_EQ_HEX(frame[0 * W + 0] & 0xFFFFFFu, 0xFFFFFF);    /* native $30 */
-    CHECK_EQ_HEX(frame[18 * W + 100] & 0xFFFFFFu, 0xC23400); /* native $16 */
-    CHECK_EQ_HEX(frame[46 * W + 100] & 0xFFFFFFu, 0xC52700); /* native $56 */
+    CHECK_EQ_HEX(frame[18 * W + 100] & 0xFFFFFFu, 0xBA3100); /* native $16 */
+    CHECK_EQ_HEX(frame[46 * W + 100] & 0xFFFFFFu, 0xBC2700); /* native $56 */
     CHECK_EQ_HEX(frame[10 * W + 213] & 0xFFFFFFu, 0x000000); /* native $0D */
 
     /* FRAME-04: the same frame the runner writes. */
