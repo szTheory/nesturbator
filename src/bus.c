@@ -190,7 +190,3 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
     }
 }
 
-uint8_t nesturbator__cart_read(struct nesturbator *nes, uint16_t addr)
-{
-    return nes->cart.prg[(addr - 0x8000u) & 0x3fffu];
-}

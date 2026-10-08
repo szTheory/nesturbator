@@ -298,7 +298,9 @@ add_test(NAME core.profile COMMAND core.profile)
 
 # D-12: the library bus alone, compiled in directly: 24 ticks per call, RAM
 # mirrored over 0x0000-0x1FFF, the open-bus latch for unmapped reads.
-add_executable(bus.unit cpu/test_bus.c ${PROJECT_SOURCE_DIR}/src/bus.c)
+add_executable(bus.unit cpu/test_bus.c
+  ${PROJECT_SOURCE_DIR}/src/bus.c
+  ${PROJECT_SOURCE_DIR}/src/cartridge.c)
 target_include_directories(bus.unit PRIVATE
   ${PROJECT_SOURCE_DIR}/src
   ${PROJECT_SOURCE_DIR}/include)
