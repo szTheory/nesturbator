@@ -5,6 +5,11 @@
 #         -DCOMPARE=<compare_frame> -DRA_DIR=<build>/retroarch
 #         -DTEMPLATE=<test.cfg.in> -P run_retroarch.cmake
 #
+# For a real-game required run, also pass -DREQUIRED=ON -DROM=<game.nes>
+# -DFRAME=<frame> -DRETROARCH=<app executable> -DEXPECTED_VERSION=<version>
+# and -DVERSION_PLIST=<app>/Contents/Info.plist. Required mode fails closed;
+# local runs preserve skip-if-unavailable behavior.
+#
 # Where it cannot run (not macOS, or no RetroArch) it prints a line starting
 # "nesturbator-skip:" and reports itself skipped: exit 77 on CMake 3.29 and
 # newer, which have cmake_language(EXIT); on 3.25 to 3.28 it exits 0 and the

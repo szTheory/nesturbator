@@ -651,7 +651,7 @@ To check RetroArch's picture without looking at it:
 ctest --preset ci -L retroarch
 ```
 
-This runs `retroarch.testframe`. It starts RetroArch with the
+This runs `retroarch.testframe` and `retroarch.game`. The first starts RetroArch with the
 configuration `build/ci/retroarch/test.cfg`, generated from
 `tests/retroarch/test.cfg.in`, so your own RetroArch settings are never read.
 That configuration points every directory and file RetroArch uses under
@@ -666,6 +666,26 @@ logged-in desktop session. Set `NESTURBATOR_RETROARCH` to use a RetroArch
 binary somewhere else. On other systems, or when RetroArch is not installed,
 the test reports itself skipped. If RetroArch exits unsuccessfully, CMake
 reports its captured stdout and stderr separately.
+
+`retroarch.game` loads the manifest-listed Nesteroids image from the build
+tree, runs through frame 60, and compares RetroArch's captured image with the
+runner's frame 60. The selected frame shows the game's title screen. The
+required-mode driver also rejects missing RetroArch, game content, screenshots
+and launch failures instead of skipping; the local CTest remains optional when
+RetroArch is not installed.
+
+The official RetroArch v1.22.2 macOS candidate is
+[`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),
+universal for arm64 and x86_64, with measured SHA-256
+`81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434`. To run
+the opt-in hosted candidate trial on `macos-15`:
+
+```sh
+gh workflow run ci.yml --ref phase/03-real-game-in-retroarch -f retroarch_trial=true
+```
+
+The candidate job is not part of `CI required` until a hosted run proves the
+release launches, captures the selected game frame and matches the runner.
 
 ## What it will be
 
