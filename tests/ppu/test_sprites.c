@@ -68,11 +68,26 @@ static void test_sprite_is_limited_to_its_eight_pixel_row(void)
     CHECK_EQ_U64(pixels[NESTURBATOR_WIDTH], 0x0fu);
 }
 
+static void test_oam_dma_copies_page_and_wraps_destination(void)
+{
+    setup();
+    for (uint16_t i = 0u; i < 256u; i++)
+        nes.bus.ram[i] = (uint8_t)(i ^ 0xa5u);
+    nes.ppu.oam_addr = 0xf0u;
+    uint64_t before = nes.ticks;
+    nesturbator__bus_write(&nes, 0x4014u, 0x00u);
+    CHECK_EQ_U64(nes.ticks - before, 24u * 514u);
+    CHECK_EQ_U64(nes.ppu.oam[0xf0u], 0xa5u);
+    CHECK_EQ_U64(nes.ppu.oam[0xefu], (255u ^ 0xa5u));
+    CHECK_EQ_U64(nes.ppu.oam_addr, 0xf0u);
+}
+
 int main(void)
 {
     test_sprite_pixel_is_composed_and_hits_background();
     test_ninth_in_range_sprite_sets_overflow();
     test_left_clipping_and_x255_hit_boundary();
     test_sprite_is_limited_to_its_eight_pixel_row();
+    test_oam_dma_copies_page_and_wraps_destination();
     CHECK_DONE();
 }
