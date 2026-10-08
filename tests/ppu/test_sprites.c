@@ -116,7 +116,10 @@ static void test_oam_dma_copies_page_and_wraps_destination(void)
     nes.ppu.oam_addr = 0xf0u;
     uint64_t before = nes.ticks;
     nesturbator__bus_write(&nes, 0x4014u, 0x00u);
-    CHECK_EQ_U64(nes.ticks - before, 24u * 514u);
+    CHECK_EQ_U64(nes.ticks - before, 24u);
+    CHECK_EQ_U64(nes.ppu.oam[0xf0u], 0u);
+    (void)nesturbator__bus_read(&nes, 0x0000u);
+    CHECK_EQ_U64(nes.ticks - before, 24u * 515u);
     CHECK_EQ_U64(nes.ppu.oam[0xf0u], 0xa5u);
     CHECK_EQ_U64(nes.ppu.oam[0xefu], (255u ^ 0xa5u));
     CHECK_EQ_U64(nes.ppu.oam_addr, 0xf0u);
@@ -128,7 +131,9 @@ static void test_oam_dma_copies_page_and_wraps_destination(void)
     nes.ppu.ppu_ticks = 24u;
     before = nes.ticks;
     nesturbator__bus_write(&nes, 0x4014u, 0x00u);
-    CHECK_EQ_U64(nes.ticks - before, 24u * 515u);
+    CHECK_EQ_U64(nes.ticks - before, 24u);
+    (void)nesturbator__bus_read(&nes, 0x0000u);
+    CHECK_EQ_U64(nes.ticks - before, 24u * 516u);
     CHECK_EQ_U64(nes.ppu.oam[0], 0xa5u);
     CHECK_EQ_U64(nes.ppu.oam[255], (255u ^ 0xa5u));
     CHECK_EQ_U64(nes.ppu.ppu_ticks, nes.ticks);
@@ -139,6 +144,8 @@ static void test_dma_keeps_ppu_vblank_timing_while_stalling_cpu(void)
     setup();
     nes.ppu.scanline = 241u;
     nesturbator__bus_write(&nes, 0x4014u, 0x00u);
+    CHECK_EQ_U64(nes.ppu.status & 0x80u, 0u);
+    (void)nesturbator__bus_read(&nes, 0x0000u);
     CHECK_EQ_U64(nes.ppu.status & 0x80u, 0x80u);
     CHECK_EQ_U64(nes.ppu.ppu_ticks, nes.ticks);
 }
