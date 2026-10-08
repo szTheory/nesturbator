@@ -2,18 +2,18 @@
 gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: A real game in RetroArch
-current_plan: 7
+current_plan: 8
 status: executing
-stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-10-08T17:53:22.186Z"
+stopped_at: Completed 03-05-PLAN.md
+last_updated: "2026-10-08T18:02:59.175Z"
 last_activity: 2026-10-08
 last_activity_desc: Phase 01 code-review fixes recorded; Phase 03 ready to plan; local RetroArch test failure carried forward
-state_head: 61bed73664494afb0a4dca83d7fccde8436b0588
+state_head: 2337f9faaabb605d544cbae707aece919647c1c1
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 36
-  completed_plans: 29
+  completed_plans: 30
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-10-06)
 ## Current Position
 
 Phase: 03 (A real game in RetroArch) — READY TO EXECUTE
-Current Plan: 7
+Current Plan: 8
 Total Plans in Phase: 13
-Plan: 7 of 13 (03-01 complete)
+Plan: 8 of 13 (03-01 complete)
 Status: Ready to execute
 Last activity: 2026-10-08 — Phase 01 complete, transitioned to Phase 03
 
@@ -89,6 +89,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03 P10 | 7 min | 1 tasks | 14 files |
 | Phase 03 P03 | 11min | 2 tasks | 8 files |
 | Phase 03 P04 | 15min | 2 tasks | 7 files |
+| Phase 03 P05 | 7min | 1 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Select mapper-0 CIRAM horizontal or vertical mirroring from iNES flags 6 bit 0.
 - [Phase 03]: Sprite evaluation uses secondary OAM and next-scanline pattern fetches.
 - [Phase 03]: OAM DMA keeps PPU advancement on the shared CPU tick cursor.
+- [Phase 03]: Controller masks are sampled once at successful frame entry so boundary-crossing instructions retain one deterministic frame input.
+- [Phase 03]: The two standard controller ports keep independent per-instance latches and shift registers at $4016/$4017.
 
 ### Pending Todos
 
@@ -143,6 +146,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-08T17:53:22.105Z
-Stopped at: Completed 03-04-PLAN.md
+Last session: 2026-10-08T18:02:59.125Z
+Stopped at: Completed 03-05-PLAN.md
 Resume file: None
