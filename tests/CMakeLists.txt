@@ -84,12 +84,12 @@ nesturbator_runner_test(NAME runner.dump.unwritable
   ARGS --frames 1 --dump-frame "1:${CMAKE_BINARY_DIR}/no-such-dir/frame1.ppm"
   EXIT 1)
 
-# CI's hash-equality job compares the file write_hashes.cmake writes on each
-# platform. It must be the runner.advance lines with LF endings only, byte for
-# byte tests/runner/hashes.txt.
+# CI's hash-equality job compares every game boot and DABG movie milestone
+# written by write_hashes.cmake on each platform.
 add_test(NAME runner.write_hashes
   COMMAND ${CMAKE_COMMAND} -DBUILD=${PROJECT_BINARY_DIR}
     -DOUT=${CMAKE_CURRENT_BINARY_DIR}/hashes.txt
+    -DMOVIE_WRITER=$<TARGET_FILE:runner.game_movie>
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/write_hashes.cmake)
 set_tests_properties(runner.write_hashes PROPERTIES FIXTURES_SETUP hashes_txt)
 add_test(NAME runner.write_hashes.content
@@ -218,6 +218,10 @@ add_test(NAME runner.movie
   COMMAND runner.movie.test $<TARGET_FILE:nesturbator-run>
     ${CMAKE_CURRENT_BINARY_DIR}/fixture.nmovie ${CMAKE_CURRENT_BINARY_DIR}/movie-a.out
     ${CMAKE_CURRENT_BINARY_DIR}/movie-b.out ${CMAKE_CURRENT_BINARY_DIR}/jam.nes)
+
+# D-02: fixed two-port movie scripts feed the pinned DABG hash inventory.
+add_executable(runner.game_movie runner/game_movie.c)
+nesturbator_warnings(runner.game_movie)
 
 # version.txt equals the header's version macros.
 add_test(NAME version.consistency

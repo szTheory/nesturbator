@@ -162,8 +162,9 @@ typedef struct nesturbator_info {
  * grayscale and emphasis. Sprite pixels use OAM order, transparency, palette,
  * horizontal/vertical flip, 8x8 or 8x16 pattern selection and the priority bit;
  * `$2001` controls left-edge clipping. Sprite-zero hit and overflow are
- * tracked in PPU status at their scanline/pixel timing. Display conversion is
- * separate. A CPU write to `$4014` queues an OAM DMA. The next CPU read is
+ * tracked in PPU status at their scanline/pixel timing. Native pixels are the
+ * canonical frame-hash input; display conversion is separate. A CPU write to
+ * `$4014` queues an OAM DMA. The next CPU read is
  * halted while it reads one 256-byte page through the normal bus and writes
  * OAM starting at `$2003`'s address; it stalls the CPU for 513 or 514 cycles
  * by cycle parity while PPU time continues.
@@ -219,7 +220,8 @@ void nesturbator_destroy(nesturbator *inst);
    64 MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and
    leave a previously loaded cartridge untouched. Allocation failure returns
    NESTURBATOR_ERR_NO_MEMORY. A loaded image resets the CPU from its PRG reset
-   vector. Unload releases cartridge state. */
+   vector at the end of the PRG data (including the upper bank of 32 KiB NROM).
+   Unload releases cartridge state. */
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
 void nesturbator_unload_cartridge(nesturbator *inst);
 

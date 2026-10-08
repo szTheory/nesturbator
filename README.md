@@ -19,6 +19,13 @@ The runner accepts content with `--rom FILE`, for example:
 nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.ppm
 ```
 
+The CI suite pins three redistributable mapper-0 games: MIT-licensed
+Nesteroids, zlib-licensed Double Action Blaster Guys, and all-permissive RHDE.
+Their boot hashes and scripted DABG two-port movie hashes are checked against
+`tests/runner/hashes.txt` on every platform; the hashes use native pixels
+before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
+banks and uses the 8 KiB CHR RAM it fills during startup.
+
 It can also replay an owned, versioned two-port input movie:
 
 ```sh
@@ -152,10 +159,10 @@ period, the test card's edge pixels, and that two instances run apart.
 table's invariants: `$20` and `$30` are white, `$xE` and `$xF` are black under
 every emphasis, an emphasis bit raises no colour channel but its own, and
 brightness never falls down a column.
-`runner.write_hashes` runs `tests/cmake/write_hashes.cmake`, which CI uses
-to write each platform's `hashes.txt`, and `runner.write_hashes.content`
-requires that file to equal `tests/runner/hashes.txt` byte for byte, with LF
-line endings only.
+`runner.write_hashes` runs each pinned game and the three scripted DABG
+two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
+180; `runner.write_hashes.content` requires the complete sorted inventory to
+equal `tests/runner/hashes.txt` byte for byte, with LF line endings only.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
 `runner.usage.noargs` checks that a run without `--frames` is a usage error.
@@ -287,11 +294,14 @@ CPack configuration, then runs one frame.
 `.github/workflows/ci.yml` runs on every pull request, every push to `main`
 and on demand, with the same preset commands as above. The `build` job runs
 `ci` on Linux and macOS and `ci-msvc` on Windows, each on x64 and arm64: six
-platforms. Each leg also checks its three archives and writes its hashes for
-frames 1 and 3:
+platforms. Each leg also checks its three archives and writes native-frame
+hashes for each pinned game's boot and the DABG port-0, port-1 and combined
+input scripts:
 
 ```sh
-cmake -DBUILD=build/ci -DOUT=hashes.txt -P tests/cmake/write_hashes.cmake
+cmake -DBUILD=build/ci -DOUT=hashes.txt \
+      -DMOVIE_WRITER=build/ci/tests/runner.game_movie \
+      -P tests/cmake/write_hashes.cmake
 ```
 
 The `hygiene` job runs the `hygiene` lane, `asan` runs `asan` with Clang 18,
