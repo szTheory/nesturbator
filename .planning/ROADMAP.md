@@ -133,7 +133,16 @@ Plans:
   3. `nesturbator-run --movie FILE` replays recorded controller input and prints the same frame hashes on every run, and the libretro test program, fed the same input, receives equal frames.
   4. The runner runs AccuracyCoin and reads each result from RAM; the results equal the committed scoreboard file, a test fails if that file loses a pass that `main` has, and every test on pages 2 and 17 passes.
 
-**Plans**: TBD
+**Plans**: 8 plans
+Plans:
+- [ ] 03-01-PLAN.md — Pinned game tracer through runner/libretro and conserved frame clock
+- [ ] 03-02-PLAN.md — Safe iNES/NES 2.0 loader and fuzz corpus
+- [ ] 03-03-PLAN.md — PPU registers, timing and background rendering
+- [ ] 03-04-PLAN.md — Sprite rendering and OAM DMA
+- [ ] 03-05-PLAN.md — Two standard controller ports and deterministic movie replay
+- [ ] 03-06-PLAN.md — Three pinned games, native hashes and offline palette calibration
+- [ ] 03-07-PLAN.md — AccuracyCoin pages 2/17 and nonregression scoreboard
+- [ ] 03-08-PLAN.md — Six-platform hashes and required RetroArch hosted gate
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md`, `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`, `.planning/preparation/LIBRETRO-AND-RUNNER.md`
 
