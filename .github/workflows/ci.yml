@@ -198,7 +198,7 @@ jobs:
             echo "::error::${dirs[0]} is not sorted"
             exit 1
           fi
-          if ! awk 'NF != 7 || $3 != "sha256" || length($4) != 64 || $4 !~ /^[0-9a-f]+$/ { exit 1 } { print $1 " " $2 }' "$first" > "$actual"; then
+          if ! awk 'NF != 6 || $5 != "sha256" || length($6) != 64 || $6 !~ /^[0-9a-f]+$/ { exit 1 } { print $1 " " $2 }' "$first" > "$actual"; then
             echo "::error::${dirs[0]} has a malformed hash row"
             exit 1
           fi
