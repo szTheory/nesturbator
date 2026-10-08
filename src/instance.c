@@ -114,5 +114,5 @@ void nesturbator_destroy(nesturbator *inst)
         return;
     }
     nesturbator_allocator a = inst->allocator;
-    a.free(a.user, inst, sizeof *inst);
+    (a.free)(a.user, inst, sizeof *inst);
 }
