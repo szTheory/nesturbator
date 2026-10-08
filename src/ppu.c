@@ -1,6 +1,47 @@
 /* PPU memory, registers, dot clock and native background output. */
 #include "internal.h"
 
+static uint16_t background_pixel(struct nesturbator *nes, uint32_t x, uint32_t y)
+{
+    uint8_t color = 0u;
+    uint8_t subpalette = 0u;
+    if ((nes->ppu.mask & 0x08u) != 0u && (x >= 8u || (nes->ppu.mask & 0x02u) != 0u)) {
+        uint32_t scroll_x = (uint32_t)(nes->ppu.t & 0x001fu) * 8u + nes->ppu.fine_x + x;
+        uint32_t scroll_y = (uint32_t)((nes->ppu.t >> 5) & 0x001fu) * 8u +
+                            (uint32_t)((nes->ppu.t >> 12) & 7u) + y;
+        uint32_t tile_x = scroll_x / 8u;
+        uint32_t tile_y = scroll_y / 8u;
+        uint32_t fine_x = scroll_x & 7u;
+        uint32_t fine_y = scroll_y & 7u;
+        uint32_t nt_x = (uint32_t)((nes->ppu.t >> 10) & 1u) + tile_x / 32u;
+        uint32_t nt_y = (uint32_t)((nes->ppu.t >> 11) & 1u) + tile_y / 30u;
+        uint32_t table = (nt_y & 1u) * 2u + (nt_x & 1u);
+        uint16_t nt_base = (uint16_t)(0x2000u + table * 0x400u);
+        uint32_t column = tile_x & 31u;
+        uint32_t row = tile_y % 30u;
+        uint8_t tile = nesturbator__ppu_read(nes, (uint16_t)(nt_base + row * 32u + column));
+        uint16_t pattern_base = (nes->ppu.control & 0x10u) != 0u ? 0x1000u : 0u;
+        uint16_t pattern = (uint16_t)(pattern_base + (uint16_t)tile * 16u + fine_y);
+        uint8_t shift = (uint8_t)(7u - fine_x);
+        uint8_t lo = nesturbator__ppu_read(nes, pattern);
+        uint8_t hi = nesturbator__ppu_read(nes, (uint16_t)(pattern + 8u));
+        color = (uint8_t)(((lo >> shift) & 1u) | (((hi >> shift) & 1u) << 1));
+        if (color != 0u) {
+            uint16_t attribute = (uint16_t)(nt_base + 0x03c0u + (row / 4u) * 8u + column / 4u);
+            uint8_t attr = nesturbator__ppu_read(nes, attribute);
+            uint8_t quadrant = (uint8_t)(((row & 2u) << 1) | (column & 2u));
+            subpalette = (uint8_t)((attr >> quadrant) & 3u);
+        }
+    }
+
+    /* Universal colour zero aliases $3F00 for every background subpalette. [HWP.07] */
+    uint8_t palette_index = color == 0u ? 0u : (uint8_t)(subpalette * 4u + color);
+    uint8_t palette_value = (uint8_t)(nes->ppu.palette[palette_index] & 0x3fu);
+    if ((nes->ppu.mask & 0x01u) != 0u)
+        palette_value &= 0x30u;
+    return (uint16_t)(palette_value | (uint16_t)((nes->ppu.mask >> 5) & 7u) << 6);
+}
+
 uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr)
 {
     addr &= 0x3fffu;
@@ -90,26 +131,13 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
                 nes->ppu.odd_frame ^= 1u;
             }
         }
-    }
-}
-
-void nesturbator__ppu_render(struct nesturbator *nes, uint16_t *video, uint32_t pitch)
-{
-    uint32_t y, x;
-    uint16_t base = (nes->ppu.control & 0x10u) != 0u ? 0x1000u : 0u;
-    for (y = 0; y < NESTURBATOR_HEIGHT; y++) {
-        for (x = 0; x < NESTURBATOR_WIDTH; x++) {
-            uint16_t nt = (uint16_t)(0x2000u + ((nes->ppu.control & 3u) * 0x400u));
-            uint8_t tile = nes->ppu.nametable[((nt - 0x2000u) & 0x07ffu) + (y / 8u) * 32u + x / 8u];
-            uint8_t row = (uint8_t)(y & 7u), col = (uint8_t)(x & 7u);
-            uint8_t plane = 0;
-            if ((nes->ppu.mask & 0x08u) != 0u && (x >= 8u || (nes->ppu.mask & 0x02u) != 0u)) {
-                uint16_t pat = (uint16_t)(base + (uint16_t)tile * 16u + row);
-                uint8_t lo = nesturbator__ppu_read(nes, pat);
-                uint8_t hi = nesturbator__ppu_read(nes, (uint16_t)(pat + 8u));
-                plane = (uint8_t)(((lo >> (7u - col)) & 1u) | (((hi >> (7u - col)) & 1u) << 1));
-            }
-            video[(size_t)y * pitch + x] = (uint16_t)(nes->ppu.palette[plane] & 0x3fu);
+        /* Visible pixels are produced as the PPU crosses each visible dot.
+           Background tile/attribute addressing follows the 2C02 scroll fields. [HWP.02][HWP.05] */
+        if (nes->ppu.scanline >= 1u && nes->ppu.scanline <= NESTURBATOR_HEIGHT &&
+            nes->ppu.dot >= 1u && nes->ppu.dot <= NESTURBATOR_WIDTH && nes->ppu.video_output != NULL) {
+            uint32_t x = (uint32_t)nes->ppu.dot - 1u;
+            uint32_t y = (uint32_t)nes->ppu.scanline - 1u;
+            nes->ppu.video_output[(size_t)y * nes->ppu.video_pitch + x] = background_pixel(nes, x, y);
         }
     }
 }

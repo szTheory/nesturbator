@@ -30,6 +30,11 @@ flag. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
 Nametable accesses use the cartridge's horizontal or vertical mapper-0
 mirroring bit. Register accesses retain the CPU open-bus value in un-driven
 bits, and `$2007` reads are buffered outside palette space.
+Visible native pixels are written to the caller's frame buffer as PPU dots advance. Background
+tiles use the selected pattern table, nametable attributes, coarse/fine scroll,
+and the universal backdrop colour. `$2001` grayscale and emphasis remain in
+the native pixel value; host palette conversion is separate and does not affect
+frame hashes.
 
 ## Building
 

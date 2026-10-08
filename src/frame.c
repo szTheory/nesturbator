@@ -46,14 +46,17 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
         inst->ticks += NESTURBATOR_TICKS_PER_FRAME;
     } else {
         uint64_t target = inst->ticks + NESTURBATOR_TICKS_PER_FRAME;
+        inst->ppu.video_output = io->video;
+        inst->ppu.video_pitch = io->video_pitch;
         while (inst->ticks < target && inst->cpu.jammed == 0u) {
             nesturbator__cpu_step(inst);
         }
+        nesturbator__ppu_run_until(inst, inst->ticks);
+        inst->ppu.video_output = NULL;
+        inst->ppu.video_pitch = 0u;
         if (inst->cpu.jammed != 0u) {
             return NESTURBATOR_STOP_JAM;
         }
-        nesturbator__ppu_run_until(inst, inst->ticks);
-        nesturbator__ppu_render(inst, io->video, io->video_pitch);
     }
     if (n > 0u) {
         memset(io->audio, 0, (size_t)n * sizeof io->audio[0]);

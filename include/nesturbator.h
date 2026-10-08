@@ -135,7 +135,9 @@ typedef struct nesturbator_info {
  *
  * Video: native pixels, one uint16_t each, row y starting at
  * video[y * video_pitch]. A pixel is a palette entry 0-63 in bits 0-5 and
- * the three emphasis bits in bits 6-8; bits 9-15 are zero.
+ * the three PPUMASK emphasis bits in bits 6-8; bits 9-15 are zero. Background
+ * pixels reflect mapper-0 nametable mirroring, pattern/attribute data, scroll,
+ * grayscale and emphasis. Display conversion is separate.
  *
  * Audio: mono signed 16-bit samples at the info sample rate. A frame yields
  * 798 or 799 samples; the fraction carries over to the next frame. */

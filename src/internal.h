@@ -58,6 +58,8 @@ struct nesturbator__ppu {
     uint8_t nametable[2048];
     uint8_t palette[32];
     uint8_t oam[256];
+    uint16_t *video_output;
+    uint32_t video_pitch;
     uint64_t ppu_ticks;
     uint16_t scanline;
     uint16_t dot;
@@ -107,7 +109,6 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
 /* One CPU write cycle of value to addr (src/bus.c in the library). */
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
 void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks);
-void nesturbator__ppu_render(struct nesturbator *nes, uint16_t *video, uint32_t pitch);
 uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr);
 void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
 uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg);
