@@ -31,14 +31,14 @@ status: all_fixed
 
 ### WR-02: The vector harness count parser can accept overflowing inputs
 
-**Files modified:** `tests/cpu/test_vectors.c`
-**Commit:** `aa9b83d`
+**Files modified:** `tests/cpu/test_vectors.c`, `tests/CMakeLists.txt`
+**Commits:** `aa9b83d` (parser fix), `a892a6c` (overflow regression tests)
 **Applied fix:** Check the next decimal digit against the maximum before multiplying and adding, preventing overflow from wrapping into an accepted count.
-**Verification:** Re-read the parser and built target `cpu.vectors` successfully in the main checkout. The arithmetic behavior requires human verification.
+**Verification:** Re-read the parser and built target `cpu.vectors` successfully in the main checkout. Added and passed `cpu.vectors.usage.overflow.chunks` and `cpu.vectors.usage.overflow.per_chunk`, which verify oversized decimal limits exit with usage error 2.
 
 ## Verification Environment
 
-The focused builds ran in the main checkout. The full CI workflow was not run; the orchestrator will run `cmake --workflow --preset ci` after both fixes.
+The focused builds and full CI workflow ran in the main checkout. Configure and build passed. The final `cmake --workflow --preset ci` run passed 330 of 331 tests, including both overflow regressions; `retroarch.testframe` aborted because RetroArch did not start successfully in this environment. Its harness requires a logged-in macOS GUI session. No manual verification remains for WR-01 or WR-02.
 
 ---
 
