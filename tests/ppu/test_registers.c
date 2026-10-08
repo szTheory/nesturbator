@@ -56,10 +56,27 @@ static void test_status_read_on_vblank_dot_observes_then_clears_flag(void)
     CHECK_EQ_U64(nes.cpu.nmi_pending, 0u);
 }
 
+static void test_nametable_mirroring_follows_cartridge_header(void)
+{
+    uint8_t header[16] = {0};
+    reset();
+    nes.cart.bytes = header;
+    nesturbator__ppu_write(&nes, 0x2000u, 0x11u);
+    CHECK_EQ_U64(nesturbator__ppu_read(&nes, 0x2400u), 0x11u);
+    CHECK_EQ_U64(nesturbator__ppu_read(&nes, 0x2800u), 0u);
+
+    memset(nes.ppu.nametable, 0, sizeof nes.ppu.nametable);
+    header[6] = 1u;
+    nesturbator__ppu_write(&nes, 0x2000u, 0x22u);
+    CHECK_EQ_U64(nesturbator__ppu_read(&nes, 0x2800u), 0x22u);
+    CHECK_EQ_U64(nesturbator__ppu_read(&nes, 0x2400u), 0u);
+}
+
 int main(void)
 {
     test_register_latches_and_palette_aliases();
     test_status_read_just_before_vblank_suppresses_flag();
     test_status_read_on_vblank_dot_observes_then_clears_flag();
+    test_nametable_mirroring_follows_cartridge_header();
     CHECK_DONE();
 }

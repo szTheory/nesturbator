@@ -23,10 +23,13 @@ retaining any overshoot for the next request. Audio output is currently silent.
 If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
 CPU stays latched until the cartridge is unloaded or reloaded.
 
-The initial PPU timing model sets vblank at scanline 241 dot 1, clears it at
-scanline 261 dot 1, and raises the pending NMI edge when enabled. It skips
-pre-render dot 340 on odd NTSC frames while rendering; the ordinary even-frame
-line retains that dot.
+The PPU sets vblank at scanline 241 dot 1 and clears it at scanline 261 dot 1.
+A `$2002` read immediately before the vblank start dot suppresses the flag and
+NMI edge for that frame; reads on or after the start dot observe and clear the
+flag. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
+Nametable accesses use the cartridge's horizontal or vertical mapper-0
+mirroring bit. Register accesses retain the CPU open-bus value in un-driven
+bits, and `$2007` reads are buffered outside palette space.
 
 ## Building
 

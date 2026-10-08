@@ -9,8 +9,19 @@ uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr)
             return 0;
         return nes->cart.chr[addr & 0x1fffu];
     }
-    if (addr < 0x3f00u)
-        return nes->ppu.nametable[(addr - 0x2000u) & 0x07ffu];
+    if (addr < 0x3f00u) {
+        uint16_t offset = (uint16_t)((addr - 0x2000u) & 0x0fffu);
+        uint16_t table = (uint16_t)(offset >> 10);
+        uint16_t within = (uint16_t)(offset & 0x03ffu);
+        uint16_t ciram;
+        /* iNES flags 6 bit 0 selects vertical (1) or horizontal (0)
+           mirroring for mapper 0. Four-screen boards are rejected at load. [HWP.14] */
+        if (nes->cart.bytes != NULL && (nes->cart.bytes[6] & 1u) != 0u)
+            ciram = (uint16_t)((table & 1u) * 0x400u + within);
+        else
+            ciram = (uint16_t)((table >> 1) * 0x400u + within);
+        return nes->ppu.nametable[ciram];
+    }
     addr = (uint16_t)((addr - 0x3f00u) & 0x1fu);
     if ((addr & 0x13u) == 0x10u)
         addr &= 0x0fu;
@@ -24,7 +35,15 @@ void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         if (nes->cart.chr_is_ram)
             nes->cart.chr[addr & 0x1fffu] = value;
     } else if (addr < 0x3f00u) {
-        nes->ppu.nametable[(addr - 0x2000u) & 0x07ffu] = value;
+        uint16_t offset = (uint16_t)((addr - 0x2000u) & 0x0fffu);
+        uint16_t table = (uint16_t)(offset >> 10);
+        uint16_t within = (uint16_t)(offset & 0x03ffu);
+        uint16_t ciram;
+        if (nes->cart.bytes != NULL && (nes->cart.bytes[6] & 1u) != 0u)
+            ciram = (uint16_t)((table & 1u) * 0x400u + within);
+        else
+            ciram = (uint16_t)((table >> 1) * 0x400u + within);
+        nes->ppu.nametable[ciram] = value;
     } else {
         addr = (uint16_t)((addr - 0x3f00u) & 0x1fu);
         if ((addr & 0x13u) == 0x10u)
@@ -43,9 +62,12 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
         /* NTSC vblank starts at scanline 241 dot 1 and ends at 261 dot 1.
            Enabling NMI with vblank active raises the CPU's pending edge. [HWP.03] */
         if (nes->ppu.scanline == 241u && nes->ppu.dot == 1u) {
-            nes->ppu.status |= 0x80u;
-            if ((nes->ppu.control & 0x80u) != 0u)
-                nes->cpu.nmi_pending = 1u;
+            if (nes->ppu.vblank_suppress == 0u) {
+                nes->ppu.status |= 0x80u;
+                if ((nes->ppu.control & 0x80u) != 0u)
+                    nes->cpu.nmi_pending = 1u;
+            }
+            nes->ppu.vblank_suppress = 0u;
         }
         if (nes->ppu.scanline == 261u && nes->ppu.dot == 1u) {
             nes->ppu.status &= 0x1fu;
@@ -97,6 +119,10 @@ uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg)
     if (reg == 0x2002u) {
         nes->bus.open_bus = (uint8_t)((nes->ppu.status & 0xe0u) | (nes->bus.open_bus & 0x1fu));
         nes->ppu.status &= 0x7fu;
+        /* A read on scanline 241 before dot 1 suppresses this frame's flag
+           and NMI edge. Reads at/after dot 1 observe and clear the flag. [HWP.03] */
+        if (nes->ppu.scanline == 241u && nes->ppu.dot == 0u)
+            nes->ppu.vblank_suppress = 1u;
         nes->ppu.address_latch = 0;
         nes->cpu.nmi_pending = 0u;
     } else if (reg == 0x2004u) {

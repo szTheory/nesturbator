@@ -150,7 +150,10 @@ typedef struct nesturbator_frame {
     uint64_t frame_number;   /* out: frames run by this instance, 1 after the first */
     uint64_t ticks;          /* out: emulated time in half master-clock periods
                                 since create; instructions may carry residual
-                                ticks across the nominal 714732-tick boundary */
+                                ticks across the nominal 714732-tick boundary.
+                                PPU vblank begins at scanline 241 dot 1 and ends
+                                at scanline 261 dot 1; a status read just before
+                                the start dot suppresses that frame's NMI edge. */
 } nesturbator_frame;
 
 /* Writes the library's version into *out. Writes nothing when out is NULL or

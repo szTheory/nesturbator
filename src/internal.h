@@ -53,6 +53,7 @@ struct nesturbator__bus {
 struct nesturbator__ppu {
     uint8_t control, mask, status, oam_addr;
     uint8_t address_latch, fine_x, read_buffer;
+    uint8_t vblank_suppress;
     uint16_t v, t;
     uint8_t nametable[2048];
     uint8_t palette[32];
