@@ -194,6 +194,29 @@ nesturbator_core_test(accuracy.scoreboard accuracy/test_scoreboard.c)
 target_compile_definitions(accuracy.scoreboard PRIVATE
   NESTURBATOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
+# The candidate scoreboard must fail if it drops a prior protected-main PASS.
+set(ACCURACYCOIN_REGRESSION_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-regression-baseline.txt)
+file(WRITE ${ACCURACYCOIN_REGRESSION_BASELINE}
+  "accuracycoin/Removed PASS\tpass\t0x01\t-\t-\n")
+add_test(NAME accuracy.scoreboard.no_lost_pass
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DREGRESSION_BASELINE=${ACCURACYCOIN_REGRESSION_BASELINE}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+
+# Exercise the CI-only handoff failure and the confirmed empty first-merge case
+# with isolated, build-directory fixtures rather than the local snapshot.
+add_test(NAME accuracy.scoreboard.ci_missing_baseline
+  COMMAND ${CMAKE_COMMAND} -E env --unset=NESTURBATOR_SCOREBOARD_BASELINE CI=true
+    $<TARGET_FILE:accuracy.scoreboard>)
+set_tests_properties(accuracy.scoreboard.ci_missing_baseline PROPERTIES WILL_FAIL TRUE)
+set(ACCURACYCOIN_EMPTY_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-empty-baseline.txt)
+file(WRITE ${ACCURACYCOIN_EMPTY_BASELINE} "")
+add_test(NAME accuracy.scoreboard.ci_empty_baseline
+  COMMAND ${CMAKE_COMMAND} -E env CI=true
+    "NESTURBATOR_SCOREBOARD_BASELINE=${ACCURACYCOIN_EMPTY_BASELINE}"
+    $<TARGET_FILE:accuracy.scoreboard>)
+
 # D-15: the shared host conversion indexes the palette by the low 9 bits and
 # honours both pitches.
 add_executable(host.convert host/test_convert.c)
