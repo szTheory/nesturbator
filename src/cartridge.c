@@ -141,7 +141,11 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     memset(&inst->cpu, 0, sizeof inst->cpu);
     inst->cpu.s = 0xfdu;
     inst->cpu.p = 0x24u;
-    inst->cpu.pc = (uint16_t)(inst->cart.prg[0x3ffcu] | ((uint16_t)inst->cart.prg[0x3ffdu] << 8));
+    /* The reset vector is at the end of PRG ROM; 16 KiB NROM mirrors its
+       single bank, while 32 KiB NROM stores the vectors in the upper bank.
+       [HWP.14] */
+    inst->cpu.pc = (uint16_t)(inst->cart.prg[layout.prg_size - 4u] |
+                              ((uint16_t)inst->cart.prg[layout.prg_size - 3u] << 8));
     inst->ticks = 0;
     inst->frame_number = 0;
     inst->audio_rem = 0;
