@@ -2,18 +2,18 @@
 gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: A real game in RetroArch
-current_plan: 12
+current_plan: 13
 status: executing
-stopped_at: Completed 03-07-PLAN.md
-last_updated: "2026-10-08T19:36:04.809Z"
+stopped_at: Completed 03-13-PLAN.md
+last_updated: "2026-10-08T19:49:24.436Z"
 last_activity: 2026-10-08
 last_activity_desc: Phase 01 code-review fixes recorded; Phase 03 ready to plan; local RetroArch test failure carried forward
-state_head: 14d006c511098cf72d5d5ea1886ebd0fb4674f56
+state_head: 5ae1357598a19ccc2573e4ebf04f825905aa105f
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 36
-  completed_plans: 34
+  completed_plans: 35
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-10-06)
 ## Current Position
 
 Phase: 03 (A real game in RetroArch) — READY TO EXECUTE
-Current Plan: 12
+Current Plan: 13
 Total Plans in Phase: 13
-Plan: 12 of 13 (03-01 complete)
+Plan: 13 of 13 (03-01 complete)
 Status: Ready to execute
 Last activity: 2026-10-08 — Phase 01 complete, transitioned to Phase 03
 
@@ -94,6 +94,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03 P06 | 16min | 1 tasks | 10 files |
 | Phase 03 P12 | 12min | 1 tasks | 7 files |
 | Phase 03 P07 | 57min | 1 tasks | 15 files |
+| Phase 03 P13 | 12 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -130,6 +131,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Expose a read-only CPU RAM peek for conformance tooling; accept RAM mirrors through $1FFF and reject other addresses without side effects.
 - [Phase 03]: Use the exact ROM-resident AccuracyCoin directory as the source of names and result locations.
 - [Phase 03]: Model PPU I/O bus decay at the conservative end of the documented 3–30 ms range using integer dot counts.
+- [Phase 03]: CI uses the fetched protected-main scoreboard bytes; confirmed absence after successful lookup supplies an empty baseline.
+- [Phase 03]: Detached local runs use the committed scoreboard-main.txt snapshot; CI requires the workflow-provided baseline path.
 
 ### Pending Todos
 
@@ -157,6 +160,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-08T19:36:04.646Z
-Stopped at: Completed 03-07-PLAN.md
+Last session: 2026-10-08T19:49:24.273Z
+Stopped at: Completed 03-13-PLAN.md
 Resume file: None

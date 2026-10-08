@@ -133,7 +133,7 @@ Plans:
   3. `nesturbator-run --movie FILE` replays recorded controller input and prints the same frame hashes on every run, and the libretro test program, fed the same input, receives equal frames.
   4. The runner runs AccuracyCoin and reads each result from RAM; the results equal the committed scoreboard file, a test fails if that file loses a pass that `main` has, and every test on pages 2 and 17 passes.
 
-**Plans**: 11/13 plans executed
+**Plans**: 12/13 plans executed
 Plans:
 **Wave 1**
 - [x] 03-01-PLAN.md — Generated mapper-0 tracer through runner/libretro and conserved frame clock
@@ -169,7 +169,7 @@ Plans:
 - [x] 03-07-PLAN.md — AccuracyCoin pages 2/17 and RAM-derived scoreboard rows
 
 **Wave 12** *(blocked on Wave 11 completion)*
-- [ ] 03-13-PLAN.md — Cross-platform protected-main scoreboard baseline gate
+- [x] 03-13-PLAN.md — Cross-platform protected-main scoreboard baseline gate
 
 **Wave 13** *(blocked on Wave 12 completion)*
 - [ ] 03-08-PLAN.md — Six-platform hashes and required RetroArch hosted gate
@@ -201,5 +201,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
 | 2. The CPU matches the public vectors | 11/11 | Complete    | 2026-10-06 |
-| 3. A real game in RetroArch | 11/13 | In Progress | - |
+| 3. A real game in RetroArch | 12/13 | In Progress | - |
 | 4. Sound | 0/TBD | Not started | - |
