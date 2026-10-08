@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "internal.h"
 #include "nesturbator.h"
 #include "../check.h"
 
@@ -85,9 +86,34 @@ static void test_reject_before_allocation(void)
     nesturbator_destroy(inst);
     free(rom);
 }
+static void test_32k_reset_vector_comes_from_upper_prg_bank(void)
+{
+    nesturbator_config cfg;
+    nesturbator *inst = NULL;
+    uint8_t *rom = calloc(1u, 16u + 32768u + 8192u);
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg; cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK(rom != NULL);
+    if (rom == NULL)
+        return;
+    memcpy(rom, "NES\032", 4u);
+    rom[4] = 2u;
+    rom[5] = 1u;
+    rom[16u + 32768u - 4u] = 0x23u;
+    rom[16u + 32768u - 3u] = 0x81u;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, 16u + 32768u + 8192u),
+                 NESTURBATOR_OK);
+    if (inst != NULL) {
+        CHECK_EQ_HEX(((struct nesturbator *)inst)->cpu.pc, 0x8123u);
+        nesturbator_destroy(inst);
+    }
+    free(rom);
+}
 int main(void)
 {
     test_formats_and_lifetime();
     test_reject_before_allocation();
+    test_32k_reset_vector_comes_from_upper_prg_bank();
     CHECK_DONE();
 }
