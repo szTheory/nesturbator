@@ -44,15 +44,35 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
     while (nes->ppu.ppu_ticks + 8u <= ticks) {
         nes->ppu.ppu_ticks += 8u;
         nes->ppu.dot++;
-        if (nes->ppu.scanline == 241u && nes->ppu.dot == 1u)
+        /* NTSC vblank starts at scanline 241 dot 1 and ends at 261 dot 1.
+           Enabling NMI with vblank active raises the CPU's pending edge. [HWP.03] */
+        /* NTSC vblank starts at scanline 241 dot 1 and ends at 261 dot 1.
+           Enabling NMI with vblank active raises the CPU's pending edge. [HWP.03] */
+        if (nes->ppu.scanline == 241u && nes->ppu.dot == 1u) {
             nes->ppu.status |= 0x80u;
-        if (nes->ppu.scanline == 261u && nes->ppu.dot == 1u)
+            if ((nes->ppu.control & 0x80u) != 0u)
+                nes->cpu.nmi_pending = 1u;
+        }
+        if (nes->ppu.scanline == 261u && nes->ppu.dot == 1u) {
             nes->ppu.status &= 0x1fu;
+            nes->cpu.nmi_pending = 0u;
+        }
+        /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] */
+        /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] */
+        if (nes->ppu.scanline == 261u && nes->ppu.dot == 340u && nes->ppu.odd_frame != 0u &&
+            (nes->ppu.mask & 0x18u) != 0u) {
+            nes->ppu.scanline = 0u;
+            nes->ppu.dot = 0u;
+            nes->ppu.odd_frame = 0u;
+            continue;
+        }
         if (nes->ppu.dot == 341u) {
             nes->ppu.dot = 0;
             nes->ppu.scanline++;
-            if (nes->ppu.scanline == 262u)
+            if (nes->ppu.scanline == 262u) {
                 nes->ppu.scanline = 0;
+                nes->ppu.odd_frame ^= 1u;
+            }
         }
     }
 }
@@ -104,6 +124,7 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
             nes->bus.open_bus = (uint8_t)((nes->ppu.status & 0xe0u) | (nes->bus.open_bus & 0x1fu));
             nes->ppu.status &= 0x7fu;
             nes->ppu.address_latch = 0;
+            nes->cpu.nmi_pending = 0u;
         } else if (reg == 0x2004u) {
             nes->bus.open_bus = nes->ppu.oam[nes->ppu.oam_addr];
         } else if (reg == 0x2007u) {
@@ -133,6 +154,10 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         if (reg == 0x2000u) {
             nes->ppu.control = value;
             nes->ppu.t = (uint16_t)((nes->ppu.t & 0xf3ffu) | ((value & 3u) << 10));
+            if ((value & 0x80u) != 0u && (nes->ppu.status & 0x80u) != 0u)
+                nes->cpu.nmi_pending = 1u;
+            else
+                nes->cpu.nmi_pending = 0u;
         } else if (reg == 0x2001u) {
             nes->ppu.mask = value;
         } else if (reg == 0x2003u) {

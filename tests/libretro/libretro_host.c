@@ -319,7 +319,7 @@ done:
     image[16] = 0xa9u;
 }
 
-static void check_ppu_frame_edges(void)
+static void check_ppu_frame_edges(unsigned char *image, size_t image_size)
 {
     nesturbator_config cfg;
     nesturbator *probe = NULL;
@@ -329,6 +329,9 @@ static void check_ppu_frame_edges(void)
     CHECK(nesturbator_create(&cfg, &probe) == NESTURBATOR_OK);
     if (probe == NULL)
         return;
+    image[16u + 0x3ffau] = 0x50u;
+    image[16u + 0x3ffbu] = 0x80u;
+    CHECK(nesturbator_load_cartridge(probe, image, image_size) == NESTURBATOR_OK);
 
     probe->ppu.scanline = 241u;
     probe->ppu.dot = 0u;
@@ -338,6 +341,16 @@ static void check_ppu_frame_edges(void)
     CHECK_EQ_U64(probe->cpu.nmi_pending, 1u);
     (void)nesturbator__bus_read(probe, 0x2002u);
     CHECK((probe->ppu.status & 0x80u) == 0u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 0u);
+
+    probe->ppu.ppu_ticks = 0u;
+    probe->ppu.scanline = 241u;
+    probe->ppu.dot = 0u;
+    probe->ppu.status = 0u;
+    nesturbator__ppu_run_until(probe, 8u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 1u);
+    nesturbator__cpu_step(probe);
+    CHECK_EQ_U64(probe->cpu.pc, 0x8050u);
     CHECK_EQ_U64(probe->cpu.nmi_pending, 0u);
 
     probe->ppu.ppu_ticks = 0u;
@@ -430,7 +443,7 @@ int main(int argc, char **argv)
     dummy_bytes[16u + 0x3ffeu] = 0x00;
     dummy_bytes[16u + 0x3fffu] = 0x80;
     check_core_timing_and_jam(dummy_bytes, sizeof dummy_bytes);
-    check_ppu_frame_edges();
+    check_ppu_frame_edges(dummy_bytes, sizeof dummy_bytes);
     memset(&dummy, 0, sizeof dummy);
     dummy.data = dummy_bytes;
     dummy.size = sizeof dummy_bytes;

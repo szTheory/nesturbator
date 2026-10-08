@@ -23,6 +23,11 @@ retaining any overshoot for the next request. Audio output is currently silent.
 If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
 CPU stays latched until the cartridge is unloaded or reloaded.
 
+The initial PPU timing model sets vblank at scanline 241 dot 1, clears it at
+scanline 261 dot 1, and raises the pending NMI edge when enabled. It skips
+pre-render dot 340 on odd NTSC frames while rendering; the ordinary even-frame
+line retains that dot.
+
 ## Building
 
 You need CMake 3.25 or newer, Ninja and a C17 compiler.
