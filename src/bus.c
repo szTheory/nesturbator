@@ -22,6 +22,25 @@ static void cycle(struct nesturbator *nes)
     ppu_catch_up(nes);
 }
 
+static void oam_dma(struct nesturbator *nes, uint8_t page)
+{
+    /* RDY takes effect after the $4014 write. A halt cycle is always spent;
+       an extra alignment cycle is needed when the write leaves the CPU on
+       the even phase. Each source byte uses the ordinary CPU bus decoder,
+       and each destination byte occupies a separate put cycle. [HWC.01] */
+    uint8_t align = (uint8_t)(((nes->ticks / 24u) & 1u) == 0u);
+    uint16_t halted_read = nes->cpu.pc;
+    (void)nesturbator__bus_read(nes, halted_read);
+    if (align != 0u)
+        (void)nesturbator__bus_read(nes, halted_read);
+    for (uint16_t offset = 0u; offset < 256u; offset++) {
+        uint8_t value = nesturbator__bus_read(nes, (uint16_t)(((uint16_t)page << 8) | offset));
+        cycle(nes);
+        nes->bus.open_bus = value;
+        nesturbator__ppu_register_write(nes, 0x2004u, value);
+    }
+}
+
 uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
 {
     cycle(nes);
@@ -46,6 +65,7 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
     } else if (addr < 0x4000u) {
         uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
         nesturbator__ppu_register_write(nes, reg, value);
+    } else if (addr == 0x4014u) {
+        oam_dma(nes, value);
     }
 }
-

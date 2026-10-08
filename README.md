@@ -39,6 +39,9 @@ and fetched for the following scanline; transparent pixels reveal the
 background, and the priority bit selects which opaque layer appears in front.
 `$2001` grayscale and emphasis remain in the native pixel value; host palette
 conversion is separate and does not affect frame hashes.
+Writing a page number to `$4014` transfers 256 bytes through the CPU bus into
+OAM, wraps from the current `$2003` address, and stalls the CPU for 513 or 514
+cycles according to cycle parity. The PPU keeps advancing during the transfer.
 
 ## Building
 
