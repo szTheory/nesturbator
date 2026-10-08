@@ -56,6 +56,11 @@ static void test_left_clipping_and_x255_hit_boundary(void)
     CHECK_EQ_U64(pixels[0], 0u);
 
     setup();
+    nes.ppu.oam[3] = 8u;
+    nesturbator__ppu_run_until(&nes, (341u + 9u) * 8u);
+    CHECK_EQ_U64(pixels[8], 0x2au);
+
+    setup();
     nes.ppu.oam[3] = 255u;
     nesturbator__ppu_run_until(&nes, 341u * 8u + 256u * 8u);
     CHECK_EQ_U64(pixels[255], 0x2au);
