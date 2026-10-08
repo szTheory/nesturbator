@@ -44,6 +44,18 @@ while 256 bytes transfer through the CPU bus into OAM. The transfer wraps from
 the current `$2003` address and stalls the CPU for 513 or 514 cycles according
 to cycle parity. The PPU keeps advancing during the transfer.
 
+The public `nesturbator_set_input` API accepts a size-tagged pair of standard
+controller button masks. Port 0 is `$4016`; port 1 is `$4017`. Each port shifts
+A, B, Select, Start, Up, Down, Left, Right, least-significant bit first. A
+write with bit 0 high makes reads report the current A button; the high-to-low
+transition latches both masks. After eight reads, D0 returns 1. D6 reads high,
+while D5 and D7 retain the CPU bus open-bus value. Refused input calls leave
+the instance unchanged. Input is snapshotted at the beginning of each
+successful frame call. An instruction that crosses the requested frame
+boundary completes with that frame's snapshot; the next mask begins on the
+next `nesturbator_run_frame` call. The libretro adapter polls both standard
+joypads once per frame and maps the host's NES button IDs to these masks.
+
 ## Building
 
 You need CMake 3.25 or newer, Ninja and a C17 compiler.

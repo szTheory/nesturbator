@@ -160,6 +160,7 @@ void retro_reset(void)
 void retro_run(void)
 {
     nesturbator_frame io;
+    nesturbator_input input;
     uint32_t i;
 
     if (input_poll_cb != NULL) {
@@ -168,6 +169,22 @@ void retro_run(void)
     if (inst == NULL) {
         return;
     }
+    memset(&input, 0, sizeof input);
+    input.size = (uint32_t)sizeof input;
+    for (unsigned port = 0; port < 2u; port++) {
+        static const unsigned ids[8] = {
+            RETRO_DEVICE_ID_JOYPAD_A,      RETRO_DEVICE_ID_JOYPAD_B,
+            RETRO_DEVICE_ID_JOYPAD_SELECT, RETRO_DEVICE_ID_JOYPAD_START,
+            RETRO_DEVICE_ID_JOYPAD_UP,     RETRO_DEVICE_ID_JOYPAD_DOWN,
+            RETRO_DEVICE_ID_JOYPAD_LEFT,   RETRO_DEVICE_ID_JOYPAD_RIGHT};
+        for (unsigned button = 0; button < 8u; button++) {
+            if (input_state_cb != NULL &&
+                input_state_cb(port, RETRO_DEVICE_JOYPAD, 0u, ids[button]) != 0) {
+                input.buttons[port] |= (uint8_t)(1u << button);
+            }
+        }
+    }
+    (void)nesturbator_set_input(inst, &input);
     memset(&io, 0, sizeof io);
     io.size = (uint32_t)sizeof io;
     io.video = video;

@@ -113,8 +113,8 @@ nesturbator_status nesturbator_set_input(nesturbator *inst, const nesturbator_in
     if (inst == NULL || input == NULL) {
         return NESTURBATOR_ERR_ARGUMENT;
     }
-    nesturbator_status st = nesturbator__check_size_in(input, NESTURBATOR_INPUT_SIZE_V1,
-                                                        (uint32_t)sizeof *input);
+    nesturbator_status st =
+        nesturbator__check_size_in(input, NESTURBATOR_INPUT_SIZE_V1, (uint32_t)sizeof *input);
     if (st != NESTURBATOR_OK) {
         return st;
     }

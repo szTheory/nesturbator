@@ -149,6 +149,8 @@ static unsigned video_width, video_height;
 static size_t video_pitch;
 static uint32_t frame[W * H];
 static int poll_calls;
+static int input_calls;
+static uint8_t host_buttons[2];
 static int sample_calls;
 static int batch_calls;
 static size_t batch_frames;
@@ -211,11 +213,93 @@ static void RETRO_CALLCONV on_poll(void)
 
 static int16_t RETRO_CALLCONV input(unsigned port, unsigned device, unsigned index, unsigned id)
 {
-    (void)port;
-    (void)device;
-    (void)index;
-    (void)id;
-    return 0;
+    static const uint8_t button_bits[9] = {NESTURBATOR_BUTTON_B,      0u,
+                                           NESTURBATOR_BUTTON_SELECT, NESTURBATOR_BUTTON_START,
+                                           NESTURBATOR_BUTTON_UP,     NESTURBATOR_BUTTON_DOWN,
+                                           NESTURBATOR_BUTTON_LEFT,   NESTURBATOR_BUTTON_RIGHT,
+                                           NESTURBATOR_BUTTON_A};
+    input_calls++;
+    if (port > 1u || device != RETRO_DEVICE_JOYPAD || index != 0u || id >= 9u) {
+        CHECK(0);
+        return 0;
+    }
+    return (host_buttons[port] & button_bits[id]) != 0u ? 1 : 0;
+}
+
+static void check_input_frame_parity(unsigned char *image, size_t image_size)
+{
+    static const uint8_t program[] = {
+        0xa9, 0x3f, 0x8d, 0x06, 0x20, 0xa9, 0x00, 0x8d, 0x06, 0x20, 0xa9, 0x01, 0x8d, 0x16, 0x40,
+        0xa9, 0x00, 0x8d, 0x16, 0x40, 0xad, 0x16, 0x40, 0x29, 0x01, 0xd0, 0x05, 0xa9, 0x27, 0x4c,
+        0x22, 0x80, 0xa9, 0x16, 0x8d, 0x07, 0x20, 0xa9, 0x0a, 0x8d, 0x01, 0x20, 0x4c, 0x00, 0x80};
+    nesturbator_config cfg;
+    nesturbator_input scripted;
+    nesturbator *nes = NULL;
+    nesturbator_frame io;
+    struct retro_game_info game;
+    uint16_t native[W * H];
+    int16_t audio[1024];
+    uint32_t palette[512];
+    uint32_t mismatches = 0u;
+
+    p_unload_game();
+    memset(image, 0, image_size);
+    image[0] = 'N';
+    image[1] = 'E';
+    image[2] = 'S';
+    image[3] = 0x1a;
+    image[4] = 1;
+    image[5] = 1;
+    memcpy(image + 16u, program, sizeof program);
+    image[16u + 0x3ffau] = 0x00;
+    image[16u + 0x3ffbu] = 0x80;
+    image[16u + 0x3ffcu] = 0x00;
+    image[16u + 0x3ffdu] = 0x80;
+    image[16u + 0x3ffeu] = 0x00;
+    image[16u + 0x3fffu] = 0x80;
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = image_size;
+    CHECK(p_load_game(&game));
+
+    host_buttons[0] = NESTURBATOR_BUTTON_A;
+    host_buttons[1] = NESTURBATOR_BUTTON_B | NESTURBATOR_BUTTON_LEFT;
+    input_calls = 0;
+    video_calls = 0;
+    p_run();
+    CHECK_EQ_U64(video_calls, 1u);
+    CHECK_EQ_U64(input_calls, 16u);
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &nes), NESTURBATOR_OK);
+    if (nes != NULL) {
+        CHECK_EQ_U64(nesturbator_load_cartridge(nes, image, image_size), NESTURBATOR_OK);
+        memset(&scripted, 0, sizeof scripted);
+        scripted.size = (uint32_t)sizeof scripted;
+        scripted.buttons[0] = host_buttons[0];
+        scripted.buttons[1] = host_buttons[1];
+        CHECK_EQ_U64(nesturbator_set_input(nes, &scripted), NESTURBATOR_OK);
+        memset(&io, 0, sizeof io);
+        io.size = (uint32_t)sizeof io;
+        io.video = native;
+        io.video_pitch = W;
+        io.audio = audio;
+        io.audio_capacity = 1024u;
+        CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+        nesturbator_get_palette(nes, palette, 512u);
+        for (uint32_t pixel = 0; pixel < W * H; pixel++) {
+            if (frame[pixel] != palette[native[pixel] & 0x1ffu]) {
+                mismatches++;
+            }
+        }
+        CHECK_EQ_U64(mismatches, 0u);
+        CHECK_EQ_HEX(frame[0], 0xC23400u);
+        nesturbator_destroy(nes);
+    }
+    p_unload_game();
+    memset(host_buttons, 0, sizeof host_buttons);
 }
 
 /* ---- the runner's image ---- */
@@ -470,6 +554,7 @@ int main(int argc, char **argv)
     CHECK_EQ_U64(video_calls, 2);
     CHECK(memcmp(frame, first_content_frame, sizeof frame) == 0);
     p_unload_game();
+    check_input_frame_parity(dummy_bytes, sizeof dummy_bytes);
     video_calls = 0;
     batch_calls = 0;
     batch_frames = 0;

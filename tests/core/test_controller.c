@@ -42,6 +42,21 @@ static void test_two_ports_shift_independently(void)
     }
     CHECK_EQ_U64(nesturbator__bus_read(nes, 0x4016u) & 1u, 1u);
     CHECK_EQ_U64(nesturbator__bus_read(nes, 0x4017u) & 1u, 1u);
+    CHECK_EQ_U64(nesturbator__bus_read(nes, 0x4016u) & 1u, 1u);
+    input.buttons[0] = NESTURBATOR_BUTTON_START;
+    input.buttons[1] = NESTURBATOR_BUTTON_RIGHT;
+    CHECK_EQ_U64(nesturbator_set_input(nes, &input), NESTURBATOR_OK);
+    nesturbator__controller_begin_frame(nes);
+    nesturbator__bus_write(nes, 0x4016u, 1u);
+    CHECK_EQ_U64(nesturbator__bus_read(nes, 0x4016u) & 1u, 0u);
+    nesturbator__bus_write(nes, 0x4016u, 0u);
+    for (uint32_t i = 0; i < 7u; i++) {
+        CHECK_EQ_U64(nesturbator__bus_read(nes, 0x4016u) & 1u, i == 3u ? 1u : 0u);
+        CHECK_EQ_U64(nesturbator__bus_read(nes, 0x4017u) & 1u, 0u);
+    }
+    CHECK_EQ_U64(nesturbator__bus_read(nes, 0x4016u) & 1u, 0u);
+    CHECK_EQ_U64(nesturbator__bus_read(nes, 0x4017u) & 1u, 1u);
+    CHECK_EQ_U64(nesturbator__bus_read(nes, 0x4016u) & 1u, 1u);
     nesturbator_destroy(nes);
 }
 
@@ -60,6 +75,7 @@ static void test_high_strobe_tracks_a_and_invalid_input_is_unchanged(void)
     input.buttons[0] = 0u;
     CHECK_EQ_U64(nesturbator_set_input(nes, &input), NESTURBATOR_OK);
     nesturbator__controller_begin_frame(nes);
+    CHECK_EQ_U64(nesturbator__bus_read(nes, 0x4016u) & 1u, 0u);
     memset(&invalid, 0, sizeof invalid);
     invalid.size = 0u;
     CHECK_EQ_U64(nesturbator_set_input(nes, &invalid), NESTURBATOR_ERR_STRUCT_SIZE);

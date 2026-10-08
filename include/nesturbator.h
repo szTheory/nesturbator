@@ -67,7 +67,7 @@ enum nesturbator_status {
     NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5,
     /* The loaded cartridge executed a JAM opcode; the instance is latched. */
     NESTURBATOR_STOP_JAM = 6,
-/* Cartridge bytes are malformed or outside the supported mapper-0 profile. */
+    /* Cartridge bytes are malformed or outside the supported mapper-0 profile. */
     NESTURBATOR_ERR_CARTRIDGE = 7
 };
 typedef enum nesturbator_status nesturbator_status;
@@ -125,8 +125,8 @@ enum nesturbator_button {
    sampled at the start of nesturbator_run_frame; setting input during a frame
    affects the next call. Zero unused/reserved bytes before calling. */
 typedef struct nesturbator_input {
-    uint32_t size;       /* in: sizeof(nesturbator_input) */
-    uint8_t buttons[2];  /* in: NESTURBATOR_BUTTON_* mask for each port */
+    uint32_t size;      /* in: sizeof(nesturbator_input) */
+    uint8_t buttons[2]; /* in: NESTURBATOR_BUTTON_* mask for each port */
 } nesturbator_input;
 
 /* The same default values for C and C++ sources. A config passed to
@@ -234,6 +234,10 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * this frame's sample count, gives NESTURBATOR_ERR_BUFFER_TOO_SMALL.
  * On success it fills 256x240 pixels and audio_count samples, advances the
  * instance by one frame and writes audio_count, frame_number and ticks.
+ * At the start of a successful call, the latest input set through
+ * nesturbator_set_input is sampled for that frame. Instructions complete
+ * across the requested frame boundary; the next input is sampled only on the
+ * next call, so a crossing instruction cannot mix frame masks.
  * No cartridge: test pattern and silence. A JAM opcode stops with
  * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
  * advance on later frame calls. Audio is currently silent. */
