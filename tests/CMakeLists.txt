@@ -300,7 +300,8 @@ add_test(NAME core.profile COMMAND core.profile)
 # mirrored over 0x0000-0x1FFF, the open-bus latch for unmapped reads.
 add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/bus.c
-  ${PROJECT_SOURCE_DIR}/src/cartridge.c)
+  ${PROJECT_SOURCE_DIR}/src/cartridge.c
+  ${PROJECT_SOURCE_DIR}/src/ppu.c)
 target_include_directories(bus.unit PRIVATE
   ${PROJECT_SOURCE_DIR}/src
   ${PROJECT_SOURCE_DIR}/include)

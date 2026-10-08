@@ -107,6 +107,10 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
 void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks);
 void nesturbator__ppu_render(struct nesturbator *nes, uint16_t *video, uint32_t pitch);
+uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr);
+void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg);
+void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint8_t value);
 uint8_t nesturbator__cart_read(struct nesturbator *nes, uint16_t addr);
 
 /* Runs one whole instruction, opcode fetch to last cycle (D-11). */
