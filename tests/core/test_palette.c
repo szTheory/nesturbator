@@ -67,6 +67,15 @@ int main(void)
     CHECK_EQ_HEX(pal[0x20], 0xFFFFFFu);
     CHECK_EQ_HEX(pal[0x30], 0xFFFFFFu);
 
+    /* Fixed NTSC-to-sRGB calibration samples. These pin both transfer and
+       primary conversion at black, neutral, hue, emphasis, and table edges. */
+    CHECK_EQ_HEX(pal[0x00], 0x595959u);
+    CHECK_EQ_HEX(pal[0x0D], 0x000000u);
+    CHECK_EQ_HEX(pal[0x16], 0xBA3100u);
+    CHECK_EQ_HEX(pal[0x56], 0xBD2700u);
+    CHECK_EQ_HEX(pal[0x100], 0x473E7Au);
+    CHECK_EQ_HEX(pal[0x1FF], 0x000000u);
+
     /* $xE/$xF are black under every emphasis. */
     for (uint32_t e = 0; e < 8u; e++) {
         for (uint32_t r = 0; r < 4u; r++) {
