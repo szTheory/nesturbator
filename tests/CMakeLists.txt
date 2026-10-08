@@ -97,6 +97,20 @@ add_test(NAME runner.write_hashes.content
     ${CMAKE_CURRENT_BINARY_DIR}/hashes.txt ${CMAKE_CURRENT_SOURCE_DIR}/runner/hashes.txt)
 set_tests_properties(runner.write_hashes.content PROPERTIES FIXTURES_REQUIRED hashes_txt)
 
+# AccuracyCoin page runs are kept separate so a failure names the page whose
+# RAM-derived results diverged from the committed scoreboard.
+set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
+set(ACCURACYCOIN_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/scoreboard.txt)
+foreach(page IN ITEMS 2 17)
+  add_test(NAME accuracycoin.page${page}
+    COMMAND ${CMAKE_COMMAND}
+      "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_ROM};--scoreboard;${ACCURACYCOIN_SCOREBOARD}"
+      "-DEXPECT=accuracycoin page ${page} PASS"
+      -DEXPECT_EXIT=0
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake)
+  set_tests_properties(accuracycoin.page${page} PROPERTIES TIMEOUT 60)
+endforeach()
+
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
 function(nesturbator_core_test name source)
