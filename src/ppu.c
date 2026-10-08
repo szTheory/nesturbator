@@ -59,6 +59,8 @@ static void sprite_evaluate(struct nesturbator *nes)
         return;
     if (ppu->dot < 65u || ppu->dot > 256u)
         return;
+    if (ppu->eval_n >= 64u)
+        return;
 
     /* The 2C02 clears secondary OAM then alternates primary-OAM reads and
        evaluation during dots 1-256. This captures each candidate when its
