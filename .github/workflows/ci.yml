@@ -129,7 +129,7 @@ jobs:
 
   asan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 2 # twice the cold run 37084642541 (31 s), rounded up to whole minutes (ENGINEERING §5)
+    timeout-minutes: 5 # hosted run 37857200684 exceeded the old 2-minute cap; retain margin above the observed 2m14s
     env:
       CC: clang-18
       CXX: clang++-18

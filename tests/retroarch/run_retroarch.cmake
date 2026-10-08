@@ -149,8 +149,19 @@ set(ra_args)
 if(DEFINED ROM AND NOT ROM STREQUAL "")
   list(APPEND ra_args "${ra_content}")
 endif()
+# RetroArch's macOS app creates first-run directories under its home folder
+# even when every config path is redirected. Give the child an isolated home
+# inside RA_DIR while snapshotting the real user's directory above.
+set(ra_home "${RA_DIR}/home")
+file(MAKE_DIRECTORY "${ra_home}")
 execute_process(
-  COMMAND "${retroarch}" -c "${RA_DIR}/test.cfg" -L "${core}" ${ra_args}
+  COMMAND "${CMAKE_COMMAND}" -E env
+    "HOME=${ra_home}"
+    "CFFIXED_USER_HOME=${ra_home}"
+    "XDG_CONFIG_HOME=${ra_home}/.config"
+    "XDG_DATA_HOME=${ra_home}/.local/share"
+    "XDG_CACHE_HOME=${ra_home}/.cache"
+    "${retroarch}" -c "${RA_DIR}/test.cfg" -L "${core}" ${ra_args}
     "--max-frames=${frame}" --max-frames-ss "--max-frames-ss-path=${RA_DIR}/shot.png"
   RESULT_VARIABLE ra_result
   OUTPUT_VARIABLE ra_stdout
@@ -182,8 +193,17 @@ if(NOT ra_result EQUAL 0)
   # A local GUI-less session can make macOS abort the app before it writes
   # anything. Keep that environment limitation optional; required hosted
   # runs still fail closed, and any failure with diagnostics remains visible.
-  if(NOT REQUIRED AND ra_result STREQUAL "Subprocess aborted" AND
-      ra_stdout STREQUAL "" AND ra_stderr STREQUAL "")
+  set(local_gui_abort FALSE)
+  if(ra_stdout STREQUAL "" AND ra_result STREQUAL "Subprocess aborted" AND
+      ra_stderr STREQUAL "")
+    set(local_gui_abort TRUE)
+  elseif(ra_stdout STREQUAL "" AND ra_result EQUAL 1)
+    string(STRIP "${ra_stderr}" ra_stderr_trimmed)
+    if(ra_stderr_trimmed STREQUAL "Subprocess aborted")
+      set(local_gui_abort TRUE)
+    endif()
+  endif()
+  if(NOT REQUIRED AND local_gui_abort)
     skip("RetroArch aborted before startup in the local GUI session")
   endif()
   message(FATAL_ERROR "RetroArch exited with ${ra_result}:\n${ra_output}")

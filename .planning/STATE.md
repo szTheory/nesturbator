@@ -4,11 +4,11 @@ current_phase: 03
 current_phase_name: A real game in RetroArch
 current_plan: 8
 status: executing
-stopped_at: 03-08 local CI gates pass; hosted PR CI and RetroArch candidate rerun pending
-last_updated: "2026-10-08T23:10:47.000Z"
+stopped_at: 03-08 all local presets pass; isolate RetroArch's first-run home and rerun the hosted candidate on the exact new commit
+last_updated: "2026-10-08T23:20:27.000Z"
 last_activity: 2026-10-08
-last_activity_desc: Hosted CI exposed portability warnings and a missing candidate scoreboard baseline; fixes pass all local presets and await hosted rerun
-state_head: 389e4c7e6cf5d7783ae85aabec1465de5fafedb4
+last_activity_desc: All four local workflow presets pass; the candidate runner now isolates RetroArch first-run files and preserves optional local GUI skips
+state_head: f5888f216e7e3edd95e13bfb3956f2e7a805a101
 progress:
   total_phases: 4
   completed_phases: 2
@@ -31,9 +31,9 @@ See: .planning/PROJECT.md (updated 2026-10-06)
 Phase: 03 (A real game in RetroArch) — EXECUTING
 Current Plan: 03-08 (Hosted RetroArch validation checkpoint)
 Total Plans in Phase: 13
-Plans complete: 12 of 13; Plan 03-08 has local implementation and all local presets pass, with hosted CI and the RetroArch candidate rerun pending.
-Status: Checkpoint — local gates pass; hosted run pending
-Last activity: 2026-10-08 — hosted CI failures diagnosed and fixed locally; exact-commit rerun pending
+Plans complete: 12 of 13; Plan 03-08 has local implementation and all four local workflow presets pass; hosted screenshot equality remains pending.
+Status: Checkpoint — local gates pass; publish and hosted rerun pending
+Last activity: 2026-10-08 — isolated RetroArch first-run app data inside the build tree and preserved the optional local GUI-abort skip
 
 Progress: [█████░░░░░] 50%
 
@@ -142,7 +142,9 @@ None.
 ### Blockers/Concerns
 
 - **Phase 03 local CI:** after the hosted-build fixes, `cmake --workflow --preset ci` passed 346/346, ASan 344/344, no-float 5/5, and hygiene 8/8. The two local RetroArch launch tests are skipped after the macOS GUI session aborts with empty output; only hosted candidate evidence can verify the released app.
-- **Phase 03 hosted CI:** run 37857200684 for `389e4c7` failed before candidate asset installation because the candidate job did not prepare `NESTURBATOR_SCOREBOARD_BASELINE`. GCC conversion/format-truncation warnings and MSVC C4310 were also found. The workflow and compiler fixes pass locally; hosted rerun is pending.
+- **Phase 03 hosted CI:** run 37857200684 for `389e4c7` failed before candidate asset installation because the candidate job did not prepare `NESTURBATOR_SCOREBOARD_BASELINE`. GCC conversion/format-truncation warnings and MSVC C4310 were also found. Run 37858136711 for `f5888f2` exposed further GCC/MSVC strict-warning failures in test fixtures; their fixes pass locally and are pending publication.
+- **Phase 03 sanitizer timeout:** run 37857200684 exceeded the two-minute ASan job limit (2m14s). The workflow limit is raised to five minutes for the next PR run.
+- **Phase 03 RetroArch trial:** run 37858136711 verified the pinned DMG SHA-256 and v1.22.2, built the test core, and launched the game far enough to produce frame artifacts. The test correctly failed because RetroArch created first-run `config/` and `overlays/keyboards/` under the real home. The child now receives an isolated home under its build directory; all local workflow presets pass, including the expected optional local GUI-abort skips. Publish and rerun the exact-commit hosted trial.
 - WR-08 is resolved in plan 02-01: `release-as` was removed in `30197fe` and guarded by `release.no_release_as`.
 
 ### Quick Tasks Completed
@@ -162,6 +164,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-08T23:10:47.000Z
-Stopped at: 03-08 local CI gates pass; hosted PR CI and RetroArch candidate rerun pending
+Last session: 2026-10-08T23:20:27.000Z
+Stopped at: 03-08 all local workflow presets pass; publish isolated-home fix and rerun the exact-commit hosted candidate
 Resume file: .planning/phases/03-a-real-game-in-retroarch/03-08-CHECKPOINT.md

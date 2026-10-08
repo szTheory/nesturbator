@@ -192,7 +192,8 @@ add_test(NAME fuzz.registration
 nesturbator_core_test(core.palette core/test_palette.c)
 nesturbator_core_test(accuracy.scoreboard accuracy/test_scoreboard.c)
 target_compile_definitions(accuracy.scoreboard PRIVATE
-  NESTURBATOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+  NESTURBATOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 
 # The candidate scoreboard must fail if it drops a prior protected-main PASS.
 set(ACCURACYCOIN_REGRESSION_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-regression-baseline.txt)

@@ -57,7 +57,7 @@ static void test_ninth_in_range_sprite_sets_overflow(void)
 static void test_left_clipping_and_x255_hit_boundary(void)
 {
     setup();
-    nes.ppu.mask &= (uint8_t)~0x04u;
+    nes.ppu.mask &= 0xfbu;
     nesturbator__ppu_run_until(&nes, 341u * 8u + 8u);
     CHECK_EQ_U64(pixels[0], 0u);
 

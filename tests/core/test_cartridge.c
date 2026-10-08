@@ -25,7 +25,7 @@ static void make_image(uint8_t *p, size_t size, int nes2, int chr_ram)
     memset(p, 0, size);
     memcpy(p, "NES\032", 4);
     p[4] = 1u;
-    p[5] = chr_ram ? 0u : 1u;
+    p[5] = (uint8_t)(chr_ram ? 0u : 1u);
     if (nes2) {
         p[7] = 8u;
         if (chr_ram)
