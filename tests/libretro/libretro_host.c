@@ -253,7 +253,7 @@ int main(int argc, char **argv)
     struct retro_system_info sys;
     struct retro_system_av_info av;
     struct retro_game_info dummy;
-    static const unsigned char dummy_bytes[16] = {0};
+    static unsigned char dummy_bytes[16u + 16384u + 8192u];
     double fps_diff;
 
     if (argc != 3) {
@@ -292,11 +292,24 @@ int main(int argc, char **argv)
     p_set_input_poll(on_poll);
     p_set_input_state(input);
 
-    /* D-10: content is refused in Phase 1. */
+    /* Task 1: an owned synthetic mapper-0 image must load through libretro. */
+    memset(dummy_bytes, 0, sizeof dummy_bytes);
+    dummy_bytes[0] = 'N';
+    dummy_bytes[1] = 'E';
+    dummy_bytes[2] = 'S';
+    dummy_bytes[3] = 0x1a;
+    dummy_bytes[4] = 1;
+    dummy_bytes[5] = 1;
+    dummy_bytes[16] = 0x4c; /* JMP $8000 */
+    dummy_bytes[17] = 0x00;
+    dummy_bytes[18] = 0x80;
+    dummy_bytes[16u + 0x3ffcu] = 0x00;
+    dummy_bytes[16u + 0x3ffdu] = 0x80;
     memset(&dummy, 0, sizeof dummy);
     dummy.data = dummy_bytes;
     dummy.size = sizeof dummy_bytes;
-    CHECK(!p_load_game(&dummy));
+    CHECK(p_load_game(&dummy));
+    p_unload_game();
 
     /* No content: the test card, in XRGB8888 (L861-865). */
     pixel_format_calls = 0;
