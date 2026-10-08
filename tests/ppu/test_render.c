@@ -26,7 +26,7 @@ static void setup(void)
     nes.ppu.palette[5] = 0x21u;
     nes.ppu.palette[1] = 0x06u;
     nes.ppu.nametable[0x3c0u] = 1u; /* top-left quadrant selects subpalette 1 */
-    chr[0] = 0x08u; /* tile 0, row 0 has colour 1 at column 4 */
+    chr[0] = 0x08u;                 /* tile 0, row 0 has colour 1 at column 4 */
     nesturbator__ppu_register_write(&nes, 0x2005u, 4u);
     nesturbator__ppu_run_until(&nes, 16u);
 }

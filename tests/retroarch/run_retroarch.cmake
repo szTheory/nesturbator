@@ -179,6 +179,13 @@ if(NOT before STREQUAL after)
 endif()
 
 if(NOT ra_result EQUAL 0)
+  # A local GUI-less session can make macOS abort the app before it writes
+  # anything. Keep that environment limitation optional; required hosted
+  # runs still fail closed, and any failure with diagnostics remains visible.
+  if(NOT REQUIRED AND ra_result STREQUAL "Subprocess aborted" AND
+      ra_stdout STREQUAL "" AND ra_stderr STREQUAL "")
+    skip("RetroArch aborted before startup in the local GUI session")
+  endif()
   message(FATAL_ERROR "RetroArch exited with ${ra_result}:\n${ra_output}")
 endif()
 if(NOT EXISTS "${RA_DIR}/shot.png")

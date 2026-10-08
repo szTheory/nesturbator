@@ -665,14 +665,16 @@ created, changed or removed. RetroArch opens a window, so the test needs a
 logged-in desktop session. Set `NESTURBATOR_RETROARCH` to use a RetroArch
 binary somewhere else. On other systems, or when RetroArch is not installed,
 the test reports itself skipped. If RetroArch exits unsuccessfully, CMake
-reports its captured stdout and stderr separately.
+reports its captured stdout and stderr separately. On a local macOS GUI
+session, an abort with no captured output is also skipped in optional mode;
+required hosted mode treats the same abort as a failure.
 
 `retroarch.game` loads the manifest-listed Nesteroids image from the build
 tree, runs through frame 60, and compares RetroArch's captured image with the
 runner's frame 60. The selected frame shows the game's title screen. The
 required-mode driver also rejects missing RetroArch, game content, screenshots
 and launch failures instead of skipping; the local CTest remains optional when
-RetroArch is not installed.
+RetroArch is not installed or the GUI session aborts without output.
 
 The official RetroArch v1.22.2 macOS candidate is
 [`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),

@@ -8,8 +8,8 @@ static uint16_t background_pixel(struct nesturbator *nes, uint32_t x, uint32_t y
     uint8_t subpalette = 0u;
     if ((nes->ppu.mask & 0x08u) != 0u && (x >= 8u || (nes->ppu.mask & 0x02u) != 0u)) {
         uint32_t scroll_x = (uint32_t)(nes->ppu.t & 0x001fu) * 8u + nes->ppu.fine_x + x;
-        uint32_t scroll_y = (uint32_t)((nes->ppu.t >> 5) & 0x001fu) * 8u +
-                            (uint32_t)((nes->ppu.t >> 12) & 7u) + y;
+        uint32_t scroll_y =
+            (uint32_t)((nes->ppu.t >> 5) & 0x001fu) * 8u + (uint32_t)((nes->ppu.t >> 12) & 7u) + y;
         uint32_t tile_x = scroll_x / 8u;
         uint32_t tile_y = scroll_y / 8u;
         uint32_t fine_x = scroll_x & 7u;
@@ -142,8 +142,8 @@ static uint16_t compose_pixel(struct nesturbator *nes, uint32_t x, uint32_t y)
         if (x < sx || x >= (uint32_t)sx + 8u)
             continue;
         uint8_t bit = (uint8_t)(7u - (x - sx));
-        uint8_t color = (uint8_t)(((ppu->sprite_lo[i] >> bit) & 1u) |
-                                  (((ppu->sprite_hi[i] >> bit) & 1u) << 1));
+        uint8_t color =
+            (uint8_t)(((ppu->sprite_lo[i] >> bit) & 1u) | (((ppu->sprite_hi[i] >> bit) & 1u) << 1));
         if (color == 0u)
             continue;
         if (ppu->sprite_zero[i] != 0u && bg_opaque != 0u && x != 255u &&
@@ -261,7 +261,8 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
         /* Visible pixels are produced as the PPU crosses each visible dot.
            Background tile/attribute addressing follows the 2C02 scroll fields. [HWP.02][HWP.05] */
         if (nes->ppu.scanline >= 1u && nes->ppu.scanline <= NESTURBATOR_HEIGHT &&
-            nes->ppu.dot >= 1u && nes->ppu.dot <= NESTURBATOR_WIDTH && nes->ppu.video_output != NULL) {
+            nes->ppu.dot >= 1u && nes->ppu.dot <= NESTURBATOR_WIDTH &&
+            nes->ppu.video_output != NULL) {
             uint32_t x = (uint32_t)nes->ppu.dot - 1u;
             uint32_t y = (uint32_t)nes->ppu.scanline - 1u;
             nes->ppu.video_output[(size_t)y * nes->ppu.video_pitch + x] = compose_pixel(nes, x, y);
@@ -328,13 +329,15 @@ void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint
             nes->ppu.fine_x = (uint8_t)(value & 7u);
             nes->ppu.t = (uint16_t)((nes->ppu.t & 0xffe0u) | (value >> 3));
         } else {
-            nes->ppu.t = (uint16_t)((uint32_t)(nes->ppu.t & 0x8c1fu) | ((uint32_t)(value & 0xf8u) << 2) |
-                                    ((uint32_t)(value & 7u) << 12));
+            nes->ppu.t =
+                (uint16_t)((uint32_t)(nes->ppu.t & 0x8c1fu) | ((uint32_t)(value & 0xf8u) << 2) |
+                           ((uint32_t)(value & 7u) << 12));
         }
         nes->ppu.address_latch ^= 1u;
     } else if (reg == 0x2006u) {
         if (nes->ppu.address_latch == 0u) {
-            nes->ppu.t = (uint16_t)((uint32_t)(nes->ppu.t & 0x00ffu) | ((uint32_t)(value & 0x3fu) << 8));
+            nes->ppu.t =
+                (uint16_t)((uint32_t)(nes->ppu.t & 0x00ffu) | ((uint32_t)(value & 0x3fu) << 8));
         } else {
             nes->ppu.t = (uint16_t)((nes->ppu.t & 0x7f00u) | value);
             nes->ppu.v = nes->ppu.t;

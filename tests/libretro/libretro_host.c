@@ -276,9 +276,26 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size, co
 
     /* Replay the same owned fixture through the runner and compare host pixels. */
     {
-        unsigned char movie_bytes[20] = {'N', 'M', 'O', 'V', 'I', 'E', '1', 0,
-                                         1,   0,   0,   0,   1,   0,   0,   0,
-                                         MOVIE_FIXTURE_PORT0, 0, MOVIE_FIXTURE_PORT1, 0};
+        unsigned char movie_bytes[20] = {'N',
+                                         'M',
+                                         'O',
+                                         'V',
+                                         'I',
+                                         'E',
+                                         '1',
+                                         0,
+                                         1,
+                                         0,
+                                         0,
+                                         0,
+                                         1,
+                                         0,
+                                         0,
+                                         0,
+                                         MOVIE_FIXTURE_PORT0,
+                                         0,
+                                         MOVIE_FIXTURE_PORT1,
+                                         0};
         char movie_path[4096];
         char command[16384];
         FILE *rom = fopen(rom_path, "wb");
@@ -296,8 +313,8 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size, co
             CHECK(fclose(movie) == 0);
         }
         CHECK(snprintf(command, sizeof command,
-                       "\"%s\" --rom \"%s\" --movie \"%s\" --dump-frame 1:\"%s\"",
-                       runner, rom_path, movie_path, ppm_path) > 0);
+                       "\"%s\" --rom \"%s\" --movie \"%s\" --dump-frame 1:\"%s\"", runner, rom_path,
+                       movie_path, ppm_path) > 0);
         CHECK_EQ_U64(system(command), 0u);
         compare_with_ppm(ppm_path);
         remove(movie_path);

@@ -121,8 +121,8 @@ int main(int argc, char **argv)
 
     if (baseline == NULL)
         return 1;
-    (void)snprintf(candidate_path, sizeof candidate_path,
-                   "%s/tests/accuracy/scoreboard.txt", NESTURBATOR_SOURCE_DIR);
+    (void)snprintf(candidate_path, sizeof candidate_path, "%s/tests/accuracy/scoreboard.txt",
+                   NESTURBATOR_SOURCE_DIR);
     if (!load_scoreboard(candidate_path, current, &current_count) || current_count == 0u ||
         !load_scoreboard(baseline, baseline_rows, &baseline_count))
         return 1;
@@ -135,7 +135,8 @@ int main(int argc, char **argv)
             now++;
         if (now == current_count || strcmp(current[now].name, baseline_rows[prior].name) != 0 ||
             strcmp(current[now].status, "pass") != 0) {
-            (void)fprintf(stderr, "scoreboard lost protected PASS: %s\n", baseline_rows[prior].name);
+            (void)fprintf(stderr, "scoreboard lost protected PASS: %s\n",
+                          baseline_rows[prior].name);
             passed = 0;
         }
     }

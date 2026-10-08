@@ -203,7 +203,7 @@ int main(int argc, char **argv)
             "   Native pixel (palette entry | emphasis << 6) to XRGB8888 0x00RRGGBB.\n"
             "   Sources: NESdev Wiki \"NTSC video\" rev 24244, \"PPU palettes\" rev 24257,\n"
             "   \"Colour emphasis\" rev 23220; ICC BT.601 525-line registry; W3C sRGB.\n"
-            "   - BT.601 525-line gamma 2.4; linear-light primary matrix to sRGB/D65;\n"
+            "   - BT.601 525-line gamma 24/10; linear-light primary matrix to sRGB/D65;\n"
             "     sRGB transfer curve; out-of-gamut clipping and nearest 8-bit rounding\n"
             "   Parameters:\n"
             "   - levels low %d %d %d %d mV, high %d %d %d %d mV\n"

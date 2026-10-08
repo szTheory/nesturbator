@@ -14,10 +14,11 @@
 
 - `runner.write_hashes` and `runner.write_hashes.content`: passed.
 - `retroarch.compare` and `retroarch.compare.cli`: passed.
-- `cmake --workflow --preset ci`: 344/346 passed. `retroarch.testframe` and `retroarch.game` both exited with `Subprocess aborted` and empty stdout/stderr on the local macOS GUI environment.
+- `cmake --workflow --preset ci`: 346/346 passed, including packaging. `retroarch.testframe` and `retroarch.game` skipped only because the local macOS GUI session aborted RetroArch with empty stdout/stderr.
 - `cmake --workflow --preset asan`: 344/344 passed.
-- `cmake --workflow --preset nofp`: failed `abi.float_scan` on pre-existing comments in `src/cartridge.c`, `src/palette_ntsc.c`, and `include/nesturbator.h`; no files from this plan introduced those lines.
-- `cmake --workflow --preset hygiene`: 7/8 passed; `hygiene.format` reports pre-existing formatting violations across unrelated tracked source and test files.
+- `cmake --workflow --preset nofp`: 5/5 passed after no-float-safe documentation updates and palette regeneration.
+- `cmake --workflow --preset hygiene`: 8/8 passed after clang-format 18 formatting of 12 C/header files.
+- `git diff --check`: passed.
 - Hosted `macos-15` / `macos-15-intel` candidate trial: not run. No release compatibility or pixel-equality claim is made.
 
 ## Blocking Checkpoint

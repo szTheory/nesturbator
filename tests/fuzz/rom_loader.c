@@ -12,7 +12,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     nesturbator_config config = {0};
     config.size = (uint32_t)sizeof config;
     config.abi = NESTURBATOR_ABI_VERSION;
-    if (nesturbator_create(&config, &inst) != NESTURBATOR_OK) return 0;
+    if (nesturbator_create(&config, &inst) != NESTURBATOR_OK)
+        return 0;
     (void)nesturbator_load_cartridge(inst, data, size);
     nesturbator_unload_cartridge(inst);
     nesturbator_destroy(inst);
@@ -64,7 +65,8 @@ int main(int argc, char **argv)
         return 1;
     }
     for (int i = 1; i < argc; ++i) {
-        if (!replay_file(argv[i])) return 1;
+        if (!replay_file(argv[i]))
+            return 1;
     }
     return 0;
 }

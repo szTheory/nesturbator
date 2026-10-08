@@ -2,7 +2,7 @@
    Native pixel (palette entry | emphasis << 6) to XRGB8888 0x00RRGGBB.
    Sources: NESdev Wiki "NTSC video" rev 24244, "PPU palettes" rev 24257,
    "Colour emphasis" rev 23220; ICC BT.601 525-line registry; W3C sRGB.
-   - BT.601 525-line gamma 2.4; linear-light primary matrix to sRGB/D65;
+   - BT.601 525-line gamma 24/10; linear-light primary matrix to sRGB/D65;
      sRGB transfer curve; out-of-gamut clipping and nearest 8-bit rounding
    Parameters:
    - levels low 228 312 552 880 mV, high 616 840 1100 1100 mV

@@ -101,7 +101,7 @@ static void test_8x16_selects_pattern_table_and_vertical_flip(void)
 {
     setup();
     nes.ppu.control = 0x20u;
-    nes.ppu.oam[1] = 3u; /* table 1, even tile 2 */
+    nes.ppu.oam[1] = 3u;    /* table 1, even tile 2 */
     nes.ppu.oam[2] = 0x80u; /* row 0 selects source row 15 */
     chr[0x1000u + 32u + 16u + 7u] = 0x80u;
     nesturbator__ppu_run_until(&nes, 341u * 8u + 8u);

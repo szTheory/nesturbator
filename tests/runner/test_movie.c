@@ -31,8 +31,8 @@ static int write_bytes(const char *path, const unsigned char *bytes, size_t size
 static int run(const char *runner, const char *movie, const char *output)
 {
     char command[8192];
-    if (snprintf(command, sizeof command, "\"%s\" --movie \"%s\" > \"%s\" 2>&1", runner,
-                 movie, output) <= 0)
+    if (snprintf(command, sizeof command, "\"%s\" --movie \"%s\" > \"%s\" 2>&1", runner, movie,
+                 output) <= 0)
         return -1;
     return system(command);
 }
@@ -40,9 +40,8 @@ static int run(const char *runner, const char *movie, const char *output)
 static int run_jam(const char *runner, const char *movie, const char *rom, const char *output)
 {
     char command[8192];
-    if (snprintf(command, sizeof command,
-                 "\"%s\" --movie \"%s\" --rom \"%s\" > \"%s\" 2>&1", runner,
-                 movie, rom, output) <= 0)
+    if (snprintf(command, sizeof command, "\"%s\" --movie \"%s\" --rom \"%s\" > \"%s\" 2>&1",
+                 runner, movie, rom, output) <= 0)
         return -1;
     return system(command);
 }

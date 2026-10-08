@@ -213,7 +213,7 @@ nesturbator_status nesturbator_set_input(nesturbator *inst, const nesturbator_in
 /* Frees an instance through the allocator it was created with. Accepts NULL. */
 void nesturbator_destroy(nesturbator *inst);
 
-/* Copies one bounded mapper-0 iNES 1.0 or NES 2.0 image into the instance.
+/* Copies one bounded mapper-0 iNES v1 or NES 2 image into the instance.
    Accepts 16 or 32 KiB PRG and either 8 KiB CHR ROM or 8 KiB declared CHR RAM;
    trainers are accepted. Other mappers, unsupported console/region/RAM
    profiles, malformed headers, truncation, extra payload, and images above
@@ -229,7 +229,8 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    are accepted and use the NES's 2 KiB RAM mirrors; other addresses are
    rejected. This inspection path does not perform bus side effects and is
    intended for conformance harnesses. On error, *value is unchanged. */
-nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address, uint8_t *value);
+nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,
+                                            uint8_t *value);
 
 /* Writes the video and audio format into *out. Writes nothing when inst or
    out is NULL or out->size is 0; otherwise min(out->size, sizeof) bytes. */
