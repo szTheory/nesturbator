@@ -140,3 +140,12 @@ void nesturbator_destroy(nesturbator *inst)
     }
     (a.free)(a.user, inst, sizeof *inst);
 }
+
+nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address, uint8_t *value)
+{
+    if (inst == NULL || value == NULL || address >= 0x2000u) {
+        return NESTURBATOR_ERR_ARGUMENT;
+    }
+    *value = inst->bus.ram[address & 0x07ffu];
+    return NESTURBATOR_OK;
+}

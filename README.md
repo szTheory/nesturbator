@@ -26,6 +26,20 @@ Their boot hashes and scripted DABG two-port movie hashes are checked against
 before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
 banks and uses the 8 KiB CHR RAM it fills during startup.
 
+The pinned MIT AccuracyCoin test ROM is also included for conformance checks.
+The CI runner drives one menu page at a time, reads result bytes from CPU RAM
+through `nesturbator_peek_cpu_ram`, and compares the named rows on pages 2 and
+17 with `tests/accuracy/scoreboard.txt`:
+
+```sh
+nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin.nes \
+  --scoreboard tests/accuracy/scoreboard.txt
+```
+
+The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
+mirrors, and rejects other bus addresses without side effects. It is intended
+for conformance and debugger integrations.
+
 It can also replay an owned, versioned two-port input movie:
 
 ```sh

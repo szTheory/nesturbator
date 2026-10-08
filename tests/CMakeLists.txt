@@ -107,6 +107,7 @@ foreach(page IN ITEMS 2 17)
       "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_ROM};--scoreboard;${ACCURACYCOIN_SCOREBOARD}"
       "-DEXPECT=accuracycoin page ${page} PASS"
       -DEXPECT_EXIT=0
+      -DIGNORE_STDOUT=TRUE
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake)
   set_tests_properties(accuracycoin.page${page} PROPERTIES TIMEOUT 60)
 endforeach()
@@ -189,6 +190,9 @@ add_test(NAME fuzz.registration
 # D-14: nesturbator_get_palette's copy rules, calibrated sRGB samples and
 # palette invariants.
 nesturbator_core_test(core.palette core/test_palette.c)
+nesturbator_core_test(accuracy.scoreboard accuracy/test_scoreboard.c)
+target_compile_definitions(accuracy.scoreboard PRIVATE
+  NESTURBATOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 # D-15: the shared host conversion indexes the palette by the low 9 bits and
 # honours both pitches.

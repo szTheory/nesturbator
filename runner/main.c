@@ -2,6 +2,7 @@
  *
  *   nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--dump-frame N:FILE]...
  *   nesturbator-run --movie FILE [--rom FILE] [--dump-frame N:FILE]...
+ *   nesturbator-run --accuracycoin-page N --rom FILE --scoreboard FILE
  *
  * Runs N frames, with optional mapper-0 cartridge content. A movie supplies the
  * two port masks for every frame and prints the native hash of every replayed frame.
@@ -114,6 +115,8 @@ typedef struct options {
     uint32_t frames;
     const char *movie_path;
     const char *rom_path;
+    const char *scoreboard_path;
+    uint32_t accuracy_page;
     uint32_t *hash_frames;
     uint32_t hash_count;
     uint32_t *dump_frames;
@@ -149,6 +152,14 @@ static int parse_options(int argc, char **argv, options *o)
             if (value == NULL || value[0] == '\0')
                 return usage("--rom needs a file path");
             o->rom_path = value;
+        } else if (strcmp(arg, "--scoreboard") == 0) {
+            if (value == NULL || value[0] == '\0' || o->scoreboard_path != NULL)
+                return usage("--scoreboard needs one file path");
+            o->scoreboard_path = value;
+        } else if (strcmp(arg, "--accuracycoin-page") == 0) {
+            if (!parse_count(value, &n) || o->accuracy_page != 0u)
+                return usage("--accuracycoin-page needs one page number");
+            o->accuracy_page = n;
         } else if (strcmp(arg, "--movie") == 0) {
             if (value == NULL || value[0] == '\0' || o->movie_path != NULL)
                 return usage("--movie needs one file path");
@@ -174,6 +185,15 @@ static int parse_options(int argc, char **argv, options *o)
             return usage(arg[0] == '-' ? "unknown option" : "unexpected argument");
         }
     }
+    if (o->accuracy_page != 0u) {
+        if (o->accuracy_page != 2u && o->accuracy_page != 17u)
+            return usage("AccuracyCoin supports pages 2 and 17");
+        if (o->rom_path == NULL || o->scoreboard_path == NULL || o->movie_path != NULL || o->frames != 0u)
+            return usage("AccuracyCoin page mode needs --rom and --scoreboard only");
+        o->frames = 1800u;
+    } else if (o->scoreboard_path != NULL) {
+        return usage("--scoreboard requires --accuracycoin-page");
+    }
     if (o->frames == 0u && o->movie_path == NULL) {
         return usage("--frames N is required");
     }
@@ -187,6 +207,281 @@ static int listed(const uint32_t *list, uint32_t count, uint32_t f)
             return 1;
         }
     }
+    return 0;
+}
+
+#define ACCURACY_MAX_TESTS 32u
+typedef struct accuracy_test {
+    char name[64];
+    uint16_t result_address;
+} accuracy_test;
+
+static uint16_t read_le16(const uint8_t *p)
+{
+    return (uint16_t)((uint16_t)p[0] | ((uint16_t)p[1] << 8));
+}
+
+static int compare_accuracy_test(const void *left, const void *right)
+{
+    const accuracy_test *a = (const accuracy_test *)left;
+    const accuracy_test *b = (const accuracy_test *)right;
+    return strcmp(a->name, b->name);
+}
+
+static int accuracy_rom_offset(uint16_t address, size_t size, size_t *offset)
+{
+    if (address < 0x8000u)
+        return 0;
+    size_t result = 16u + (size_t)(address - 0x8000u);
+    if (result >= size)
+        return 0;
+    *offset = result;
+    return 1;
+}
+
+/* Read the page directory embedded in the pinned ROM; names and result
+   addresses are never duplicated in project code. */
+static int accuracy_page_tests(const char *path, uint32_t page, accuracy_test *tests,
+                               size_t *test_count)
+{
+    FILE *file = fopen(path, "rb");
+    uint8_t *bytes = NULL;
+    long length;
+    size_t first_page_offset;
+    size_t count;
+    int ok = 0;
+    if (file == NULL || fseek(file, 0, SEEK_END) != 0 || (length = ftell(file)) < 0 ||
+        fseek(file, 0, SEEK_SET) != 0)
+        goto done;
+    bytes = (uint8_t *)malloc((size_t)length);
+    if (bytes == NULL || fread(bytes, 1, (size_t)length, file) != (size_t)length || length < 0x140 ||
+        memcmp(bytes, "NES\x1a", 4u) != 0)
+        goto done;
+    if (!accuracy_rom_offset(read_le16(bytes + 0x110), (size_t)length, &first_page_offset) ||
+        first_page_offset < 0x110u || (first_page_offset - 0x110u) % 2u != 0u)
+        goto done;
+    count = (first_page_offset - 0x110u) / 2u;
+    if (count != 22u || page == 0u || page > count)
+        goto done;
+    uint16_t address = read_le16(bytes + 0x110u + (page - 1u) * 2u);
+    size_t at;
+    if (!accuracy_rom_offset(address, (size_t)length, &at))
+        goto done;
+    while (at < (size_t)length && bytes[at] != 0xffu)
+        at++;
+    if (at == (size_t)length)
+        goto done;
+    at++;
+    *test_count = 0u;
+    while (at < (size_t)length && bytes[at] != 0xffu) {
+        size_t begin = at;
+        while (at < (size_t)length && bytes[at] != 0xffu)
+            at++;
+        size_t name_len = at - begin;
+        if (at == (size_t)length || name_len == 0u || name_len >= sizeof tests[0].name ||
+            *test_count >= ACCURACY_MAX_TESTS || at + 5u >= (size_t)length)
+            goto done;
+        memcpy(tests[*test_count].name, bytes + begin, name_len);
+        tests[*test_count].name[name_len] = '\0';
+        at++;
+        tests[*test_count].result_address = read_le16(bytes + at);
+        at += 4u; /* result address and test routine pointer */
+        if (tests[*test_count].result_address >= 0x2000u)
+            goto done;
+        (*test_count)++;
+    }
+    ok = at < (size_t)length && *test_count > 0u;
+done:
+    free(bytes);
+    if (file != NULL)
+        fclose(file);
+    return ok;
+}
+
+static int accuracy_ram(const nesturbator *inst, uint16_t address, uint8_t *out)
+{
+    return nesturbator_peek_cpu_ram(inst, address, out) == NESTURBATOR_OK;
+}
+
+static nesturbator_status accuracy_frame(nesturbator *inst, uint16_t buttons,
+                                         uint16_t *video, int16_t *audio)
+{
+    nesturbator_input input;
+    nesturbator_frame frame;
+    memset(&input, 0, sizeof input);
+    input.size = (uint32_t)sizeof input;
+    input.buttons[0] = (uint8_t)buttons;
+    nesturbator_status st = nesturbator_set_input(inst, &input);
+    if (st != NESTURBATOR_OK)
+        return st;
+    memset(&frame, 0, sizeof frame);
+    frame.size = (uint32_t)sizeof frame;
+    frame.video = video;
+    frame.video_pitch = WIDTH;
+    frame.audio = audio;
+    frame.audio_capacity = AUDIO_CAPACITY;
+    return nesturbator_run_frame(inst, &frame);
+}
+
+static int accuracy_compare_scoreboard(const char *path, const accuracy_test *tests,
+                                       const uint8_t *results, size_t count, uint32_t page)
+{
+    FILE *file = fopen(path, "r");
+    char line[256];
+    size_t found = 0u;
+    if (file == NULL)
+        return 0;
+    while (fgets(line, sizeof line, file) != NULL) {
+        if (strchr(line, '\n') == NULL && !feof(file)) {
+            fclose(file);
+            return 0;
+        }
+        for (size_t i = 0; i < count; i++) {
+            char key[128];
+            char expected[256];
+            (void)snprintf(key, sizeof key, "accuracycoin/%s\t", tests[i].name);
+            if (strncmp(line, key, strlen(key)) == 0) {
+                uint8_t result = results[i];
+                const char *status = (result & 3u) == 1u ? "pass" : (result == 0xffu ? "skip" : "fail");
+                (void)snprintf(expected, sizeof expected, "accuracycoin/%s\t%s\t0x%02x\t-\t-\n",
+                               tests[i].name, status, result);
+                if (strcmp(line, expected) != 0 || (found & ((size_t)1u << i)) != 0u) {
+                    fclose(file);
+                    return 0;
+                }
+                found |= (size_t)1u << i;
+            }
+        }
+    }
+    fclose(file);
+    if (count > sizeof(size_t) * 8u || found != (((size_t)1u << count) - 1u))
+        return 0;
+    (void)page;
+    return 1;
+}
+
+static int run_accuracycoin(nesturbator *inst, const options *opt,
+                            uint16_t *video, int16_t *audio)
+{
+    accuracy_test tests[ACCURACY_MAX_TESTS];
+    uint8_t results[ACCURACY_MAX_TESTS];
+    size_t count = 0u;
+    uint32_t frames = 0u;
+    uint8_t value = 0u;
+    if (!accuracy_page_tests(opt->rom_path, opt->accuracy_page, tests, &count)) {
+        fprintf(stderr, "nesturbator-run: invalid or missing AccuracyCoin directory\n");
+        return 1;
+    }
+    qsort(tests, count, sizeof tests[0], compare_accuracy_test);
+    for (size_t i = 1u; i < count; i++) {
+        if (strcmp(tests[i - 1u].name, tests[i].name) == 0) {
+            fprintf(stderr, "nesturbator-run: duplicate AccuracyCoin test name '%s'\n", tests[i].name);
+            return 1;
+        }
+    }
+    /* The menu reports ready at $00EC. Boot and every input pulse are bounded. */
+    while (frames < 120u) {
+        nesturbator_status st = accuracy_frame(inst, 0u, video, audio);
+        frames++;
+        if (st != NESTURBATOR_OK || !accuracy_ram(inst, 0x00ecu, &value))
+            return 1;
+        if (value == 0x0au)
+            break;
+    }
+    if (value != 0x0au) {
+        fprintf(stderr, "nesturbator-run: AccuracyCoin menu did not become ready within 120 frames\n");
+        return 1;
+    }
+    for (uint32_t p = 1u; p < opt->accuracy_page; p++) {
+        if (accuracy_frame(inst, NESTURBATOR_BUTTON_RIGHT, video, audio) != NESTURBATOR_OK ||
+            accuracy_frame(inst, 0u, video, audio) != NESTURBATOR_OK) {
+            fprintf(stderr, "nesturbator-run: AccuracyCoin page navigation failed\n");
+            return 1;
+        }
+        frames += 2u;
+        /* DrawNewSuiteTable disables NMI while it replaces the page. Give it
+           several frame boundaries before sending the next edge-sensitive key. */
+        for (uint32_t settle = 0u; settle < 3u; settle++) {
+            if (accuracy_frame(inst, 0u, video, audio) != NESTURBATOR_OK)
+                return 1;
+            frames++;
+        }
+    }
+    uint8_t selected_page = 0xffu;
+    uint8_t cursor = 0u;
+    if (!accuracy_ram(inst, 0x0014u, &selected_page) ||
+        !accuracy_ram(inst, 0x0016u, &cursor) ||
+        selected_page != (uint8_t)(opt->accuracy_page - 1u) || cursor != 0xffu) {
+        fprintf(stderr, "nesturbator-run: AccuracyCoin menu selection mismatch (page-index=%u cursor=0x%02x)\n",
+                selected_page, cursor);
+        return 1;
+    }
+    if (accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio) != NESTURBATOR_OK ||
+        accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio) != NESTURBATOR_OK) {
+        fprintf(stderr, "nesturbator-run: AccuracyCoin page start press failed\n");
+        return 1;
+    }
+    if (accuracy_frame(inst, 0u, video, audio) != NESTURBATOR_OK) {
+        fprintf(stderr, "nesturbator-run: AccuracyCoin page start failed\n");
+        return 1;
+    }
+    frames += 3u;
+    int complete = 0;
+    while (frames < opt->frames) {
+        complete = 1;
+        for (size_t i = 0; i < count; i++) {
+            if (!accuracy_ram(inst, tests[i].result_address, &results[i]))
+                return 1;
+            if (results[i] == 0u || (results[i] & 3u) == 3u)
+                complete = 0;
+        }
+        if (complete)
+            break;
+        if (accuracy_frame(inst, 0u, video, audio) != NESTURBATOR_OK)
+            return 1;
+        frames++;
+    }
+    if (!complete || frames >= opt->frames) {
+        for (size_t i = 0; i < count; i++) {
+            (void)accuracy_ram(inst, tests[i].result_address, &results[i]);
+            fprintf(stderr, "nesturbator-run: timeout result '%s'=0x%02x\n",
+                    tests[i].name, results[i]);
+        }
+        (void)accuracy_ram(inst, 0x00ecu, &value);
+        selected_page = 0u;
+        cursor = 0u;
+        uint8_t page_running = 0u;
+        (void)accuracy_ram(inst, 0x0014u, &selected_page);
+        (void)accuracy_ram(inst, 0x0016u, &cursor);
+        (void)accuracy_ram(inst, 0x0034u, &page_running);
+        fprintf(stderr, "nesturbator-run: AccuracyCoin page %u timed out after %u frames\n",
+                opt->accuracy_page, frames);
+        fprintf(stderr, "nesturbator-run: menu $00ec=0x%02x page-index=%u cursor=0x%02x suite-running=%u\n",
+                value, selected_page, cursor, page_running);
+        return 1;
+    }
+    int all_passed = 1;
+    for (size_t i = 0; i < count; i++) {
+        if (!accuracy_ram(inst, tests[i].result_address, &results[i]))
+            return 1;
+        uint8_t code = results[i] & 3u;
+        const char *status = code == 1u ? "pass" : (results[i] == 0xffu ? "skip" : "fail");
+        printf("accuracycoin/%s\t%s\t0x%02x\t-\t-\n", tests[i].name, status, results[i]);
+        if (code != 1u) {
+            fprintf(stderr, "nesturbator-run: AccuracyCoin page %u test '%s' returned 0x%02x\n",
+                    opt->accuracy_page, tests[i].name, results[i]);
+            all_passed = 0;
+        }
+    }
+    if (!all_passed)
+        return 1;
+    if (!accuracy_compare_scoreboard(opt->scoreboard_path, tests, results, count, opt->accuracy_page)) {
+        fprintf(stderr, "nesturbator-run: AccuracyCoin page %u RAM results differ from scoreboard\n",
+                opt->accuracy_page);
+        return 1;
+    }
+    printf("accuracycoin page %u PASS (%lu tests, %u frames)\n", opt->accuracy_page,
+           (unsigned long)count, frames);
     return 0;
 }
 
@@ -288,6 +583,14 @@ int main(int argc, char **argv)
     }
     if (opt.dump_count > 0u) {
         nesturbator_get_palette(inst, palette, 512u);
+    }
+
+    if (opt.accuracy_page != 0u) {
+        status = run_accuracycoin(inst, &opt, video, audio);
+        nesturbator_destroy(inst);
+        nesturbator_movie_free(&movie);
+        free_options(&opt);
+        return status;
     }
 
     /* A 64-bit count, so the loop ends when --frames is 4294967295. */

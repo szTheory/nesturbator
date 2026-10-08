@@ -215,6 +215,13 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
 {
     while (nes->ppu.ppu_ticks + 8u <= ticks) {
         nes->ppu.ppu_ticks += 8u;
+        /* Model the analog PPU I/O bus decay at the conservative 30 ms end
+           of the measured 3-30 ms range. This avoids platform time sources. [HWP.04] */
+        if (nes->ppu.io_bus_age < 160000u) {
+            nes->ppu.io_bus_age++;
+            if (nes->ppu.io_bus_age == 160000u)
+                nes->ppu.io_bus = 0u;
+        }
         nes->ppu.dot++;
         /* NTSC vblank starts at scanline 241 dot 1 and ends at 261 dot 1.
            Enabling NMI with vblank active raises the CPU's pending edge. [HWP.03] */
@@ -264,8 +271,9 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
 
 uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg)
 {
+    uint8_t value = nes->ppu.io_bus;
     if (reg == 0x2002u) {
-        nes->bus.open_bus = (uint8_t)((nes->ppu.status & 0xe0u) | (nes->bus.open_bus & 0x1fu));
+        value = (uint8_t)((nes->ppu.status & 0xe0u) | (nes->ppu.io_bus & 0x1fu));
         nes->ppu.status &= 0x7fu;
         /* A read on scanline 241 before dot 1 suppresses this frame's flag
            and NMI edge. Reads at/after dot 1 observe and clear the flag. [HWP.03] */
@@ -274,22 +282,34 @@ uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg)
         nes->ppu.address_latch = 0;
         nes->cpu.nmi_pending = 0u;
     } else if (reg == 0x2004u) {
-        nes->bus.open_bus = nes->ppu.oam[nes->ppu.oam_addr];
+        value = nes->ppu.oam[nes->ppu.oam_addr];
     } else if (reg == 0x2007u) {
-        uint8_t value = nesturbator__ppu_read(nes, nes->ppu.v);
+        uint8_t memory_value = nesturbator__ppu_read(nes, nes->ppu.v);
         if (nes->ppu.v < 0x3f00u) {
             uint8_t old = nes->ppu.read_buffer;
-            nes->ppu.read_buffer = value;
+            nes->ppu.read_buffer = memory_value;
             value = old;
+        } else {
+            /* Palette RAM returns immediately but the external PPU bus fetch
+               still fills the read buffer from its $2Fxx nametable mirror. [CF.01] */
+            nes->ppu.read_buffer = nesturbator__ppu_read(nes, (uint16_t)(nes->ppu.v - 0x1000u));
+            value = nesturbator__ppu_read(nes, nes->ppu.v);
+            value = (uint8_t)((value & 0x3fu) | (nes->ppu.io_bus & 0xc0u));
+            if ((nes->ppu.mask & 1u) != 0u)
+                value &= 0xf0u;
         }
-        nes->bus.open_bus = value;
         nes->ppu.v = (uint16_t)((nes->ppu.v + ((nes->ppu.control & 4u) ? 32u : 1u)) & 0x7fffu);
     }
-    return nes->bus.open_bus;
+    nes->ppu.io_bus = value;
+    nes->ppu.io_bus_age = 0u;
+    return value;
 }
 
 void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint8_t value)
 {
+    /* PPU I/O retains its last register write independently of CPU bus traffic. [HWP.04] */
+    nes->ppu.io_bus = value;
+    nes->ppu.io_bus_age = 0u;
     if (reg == 0x2000u) {
         nes->ppu.control = value;
         nes->ppu.t = (uint16_t)((nes->ppu.t & 0xf3ffu) | ((value & 3u) << 10));

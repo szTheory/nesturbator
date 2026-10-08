@@ -225,6 +225,12 @@ void nesturbator_destroy(nesturbator *inst);
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
 void nesturbator_unload_cartridge(nesturbator *inst);
 
+/* Reads CPU internal RAM without changing emulator state. Addresses $0000-$1FFF
+   are accepted and use the NES's 2 KiB RAM mirrors; other addresses are
+   rejected. This inspection path does not perform bus side effects and is
+   intended for conformance harnesses. On error, *value is unchanged. */
+nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address, uint8_t *value);
+
 /* Writes the video and audio format into *out. Writes nothing when inst or
    out is NULL or out->size is 0; otherwise min(out->size, sizeof) bytes. */
 void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);

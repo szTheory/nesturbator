@@ -72,11 +72,47 @@ static void test_nametable_mirroring_follows_cartridge_header(void)
     CHECK_EQ_U64(nesturbator__ppu_read(&nes, 0x2400u), 0u);
 }
 
+static void test_register_open_bus_and_ppudata_buffer(void)
+{
+    reset();
+    nesturbator__ppu_register_write(&nes, 0x2001u, 0x1bu);
+    CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2000u), 0x1bu);
+    nes.ppu.status = 0x80u;
+    CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2002u), 0x9bu);
+
+    nesturbator__ppu_write(&nes, 0x2000u, 0x42u);
+    nesturbator__ppu_register_write(&nes, 0x2006u, 0x20u);
+    nesturbator__ppu_register_write(&nes, 0x2006u, 0x00u);
+    nes.ppu.read_buffer = 0x11u;
+    CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2007u), 0x11u);
+    CHECK_EQ_U64(nes.ppu.read_buffer, 0x42u);
+
+    nesturbator__ppu_write(&nes, 0x2f00u, 0x35u);
+    nesturbator__ppu_write(&nes, 0x3f00u, 0x2au);
+    nes.ppu.mask = 0u;
+    nesturbator__ppu_register_write(&nes, 0x2006u, 0x3fu);
+    nesturbator__ppu_register_write(&nes, 0x2006u, 0x00u);
+    CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2007u), 0x2au);
+    CHECK_EQ_U64(nes.ppu.read_buffer, 0x35u);
+
+    nes.ppu.mask = 1u;
+    nes.ppu.io_bus = 0xc0u;
+    nes.ppu.palette[0x0cu] = 0x1au;
+    nes.ppu.v = 0x3f1cu;
+    CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2007u), 0xd0u);
+
+    nes.ppu.io_bus = 0xffu;
+    nes.ppu.io_bus_age = 0u;
+    nesturbator__ppu_run_until(&nes, 160000u * 8u);
+    CHECK_EQ_U64(nes.ppu.io_bus, 0u);
+}
+
 int main(void)
 {
     test_register_latches_and_palette_aliases();
     test_status_read_just_before_vblank_suppresses_flag();
     test_status_read_on_vblank_dot_observes_then_clears_flag();
     test_nametable_mirroring_follows_cartridge_header();
+    test_register_open_bus_and_ppudata_buffer();
     CHECK_DONE();
 }
