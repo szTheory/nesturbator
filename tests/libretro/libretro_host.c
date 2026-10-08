@@ -2,7 +2,7 @@
  * order a frontend such as RetroArch does (01-RESEARCH Pattern 3), then
  * compares the frame it receives with the runner's P6 image.
  *
- *   libretro.host <module> <frame1.ppm>
+ *   libretro.host <module> <testframe.ppm> <content.ppm> <runner> <generated.nes>
  *
  * The four hard-coded pixels (D-05) do not go through the shared palette
  * path, so an indexing bug there cannot cancel out in the comparison. */
@@ -17,10 +17,15 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../check.h"
+#include "../../src/internal.h"
 #include "libretro.h"
+#include "nesturbator.h"
+#include "movie_fixture.h"
+#include "../test_process.h"
 
 #define W 256u
 #define H 240u
@@ -146,6 +151,8 @@ static unsigned video_width, video_height;
 static size_t video_pitch;
 static uint32_t frame[W * H];
 static int poll_calls;
+static int input_calls;
+static uint8_t host_buttons[2];
 static int sample_calls;
 static int batch_calls;
 static size_t batch_frames;
@@ -208,11 +215,142 @@ static void RETRO_CALLCONV on_poll(void)
 
 static int16_t RETRO_CALLCONV input(unsigned port, unsigned device, unsigned index, unsigned id)
 {
-    (void)port;
-    (void)device;
-    (void)index;
-    (void)id;
-    return 0;
+    static const uint8_t button_bits[9] = {NESTURBATOR_BUTTON_B,      0u,
+                                           NESTURBATOR_BUTTON_SELECT, NESTURBATOR_BUTTON_START,
+                                           NESTURBATOR_BUTTON_UP,     NESTURBATOR_BUTTON_DOWN,
+                                           NESTURBATOR_BUTTON_LEFT,   NESTURBATOR_BUTTON_RIGHT,
+                                           NESTURBATOR_BUTTON_A};
+    input_calls++;
+    if (port > 1u || device != RETRO_DEVICE_JOYPAD || index != 0u || id >= 9u) {
+        CHECK(0);
+        return 0;
+    }
+    return (host_buttons[port] & button_bits[id]) != 0u ? 1 : 0;
+}
+
+static void compare_with_ppm(const char *path);
+
+static void check_input_frame_parity(unsigned char *image, size_t image_size, const char *runner,
+                                     const char *rom_path, const char *ppm_path)
+{
+    static const uint8_t program[] = {
+        0xa9, 0x3f, 0x8d, 0x06, 0x20, 0xa9, 0x00, 0x8d, 0x06, 0x20, 0xa9, 0x01, 0x8d, 0x16, 0x40,
+        0xa9, 0x00, 0x8d, 0x16, 0x40, 0xad, 0x16, 0x40, 0x29, 0x01, 0xd0, 0x05, 0xa9, 0x27, 0x4c,
+        0x22, 0x80, 0xa9, 0x16, 0x8d, 0x07, 0x20, 0xa9, 0x0a, 0x8d, 0x01, 0x20, 0x4c, 0x00, 0x80};
+    nesturbator_config cfg;
+    nesturbator_input scripted;
+    nesturbator *nes = NULL;
+    nesturbator_frame io;
+    struct retro_game_info game;
+    uint16_t native[W * H];
+    int16_t audio[1024];
+    uint32_t palette[512];
+    uint32_t mismatches = 0u;
+
+    p_unload_game();
+    memset(image, 0, image_size);
+    image[0] = 'N';
+    image[1] = 'E';
+    image[2] = 'S';
+    image[3] = 0x1a;
+    image[4] = 1;
+    image[5] = 1;
+    memcpy(image + 16u, program, sizeof program);
+    image[16u + 0x3ffau] = 0x00;
+    image[16u + 0x3ffbu] = 0x80;
+    image[16u + 0x3ffcu] = 0x00;
+    image[16u + 0x3ffdu] = 0x80;
+    image[16u + 0x3ffeu] = 0x00;
+    image[16u + 0x3fffu] = 0x80;
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = image_size;
+    CHECK(p_load_game(&game));
+
+    host_buttons[0] = MOVIE_FIXTURE_PORT0;
+    host_buttons[1] = MOVIE_FIXTURE_PORT1;
+    input_calls = 0;
+    video_calls = 0;
+    p_run();
+    CHECK_EQ_U64(video_calls, 1u);
+    CHECK_EQ_U64(input_calls, 16u);
+
+    /* Replay the same owned fixture through the runner and compare host pixels. */
+    {
+        unsigned char movie_bytes[20] = {'N',
+                                         'M',
+                                         'O',
+                                         'V',
+                                         'I',
+                                         'E',
+                                         '1',
+                                         0,
+                                         1,
+                                         0,
+                                         0,
+                                         0,
+                                         1,
+                                         0,
+                                         0,
+                                         0,
+                                         MOVIE_FIXTURE_PORT0,
+                                         0,
+                                         MOVIE_FIXTURE_PORT1,
+                                         0};
+        char movie_path[4096];
+        char frame_argument[4096];
+        const char *const command[] = {runner,     "--rom",        rom_path,       "--movie",
+                                       movie_path, "--dump-frame", frame_argument, NULL};
+        FILE *rom = fopen(rom_path, "wb");
+        FILE *movie = NULL;
+        CHECK(rom != NULL);
+        if (rom != NULL) {
+            CHECK(fwrite(image, 1, image_size, rom) == image_size);
+            CHECK(fclose(rom) == 0);
+        }
+        CHECK(snprintf(movie_path, sizeof movie_path, "%s.movie", rom_path) > 0);
+        CHECK(snprintf(frame_argument, sizeof frame_argument, "1:%s", ppm_path) > 0);
+        movie = fopen(movie_path, "wb");
+        CHECK(movie != NULL);
+        if (movie != NULL) {
+            CHECK(fwrite(movie_bytes, 1, sizeof movie_bytes, movie) == sizeof movie_bytes);
+            CHECK(fclose(movie) == 0);
+        }
+        CHECK_EQ_U64(test_process_run(command, NULL), 0u);
+        compare_with_ppm(ppm_path);
+        remove(movie_path);
+    }
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &nes), NESTURBATOR_OK);
+    if (nes != NULL) {
+        CHECK_EQ_U64(nesturbator_load_cartridge(nes, image, image_size), NESTURBATOR_OK);
+        memset(&scripted, 0, sizeof scripted);
+        scripted.size = (uint32_t)sizeof scripted;
+        scripted.buttons[0] = host_buttons[0];
+        scripted.buttons[1] = host_buttons[1];
+        CHECK_EQ_U64(nesturbator_set_input(nes, &scripted), NESTURBATOR_OK);
+        memset(&io, 0, sizeof io);
+        io.size = (uint32_t)sizeof io;
+        io.video = native;
+        io.video_pitch = W;
+        io.audio = audio;
+        io.audio_capacity = 1024u;
+        CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+        nesturbator_get_palette(nes, palette, 512u);
+        for (uint32_t pixel = 0; pixel < W * H; pixel++) {
+            if (frame[pixel] != palette[native[pixel] & 0x1ffu]) {
+                mismatches++;
+            }
+        }
+        CHECK_EQ_U64(mismatches, 0u);
+        CHECK_EQ_HEX(frame[0], 0xBA3100u);
+        nesturbator_destroy(nes);
+    }
+    p_unload_game();
+    memset(host_buttons, 0, sizeof host_buttons);
 }
 
 /* ---- the runner's image ---- */
@@ -248,16 +386,140 @@ static void compare_with_ppm(const char *path)
     CHECK_EQ_U64(mismatches, 0);
 }
 
+static void check_core_timing_and_jam(unsigned char *image, size_t image_size)
+{
+    uint16_t first[W * H], second[W * H];
+    int16_t audio[1024];
+    nesturbator_config cfg;
+    nesturbator *a = NULL, *b = NULL, *jam = NULL;
+    nesturbator_frame fa, fb;
+    uint64_t previous_ticks = 0u;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK(nesturbator_create(&cfg, &a) == NESTURBATOR_OK);
+    CHECK(nesturbator_create(&cfg, &b) == NESTURBATOR_OK);
+    if (a == NULL || b == NULL)
+        goto done;
+    CHECK(nesturbator_load_cartridge(a, image, image_size) == NESTURBATOR_OK);
+    CHECK(nesturbator_load_cartridge(b, image, image_size) == NESTURBATOR_OK);
+    for (uint64_t frame_number = 1; frame_number <= 6u; frame_number++) {
+        memset(&fa, 0, sizeof fa);
+        memset(&fb, 0, sizeof fb);
+        fa.size = (uint32_t)sizeof fa;
+        fa.video = first;
+        fa.video_pitch = W;
+        fa.audio = audio;
+        fa.audio_capacity = 1024u;
+        fb = fa;
+        fb.video = second;
+        CHECK(nesturbator_run_frame(a, &fa) == NESTURBATOR_OK);
+        CHECK(nesturbator_run_frame(b, &fb) == NESTURBATOR_OK);
+        CHECK(fa.ticks >= previous_ticks + 714732u);
+        CHECK(fa.ticks <= previous_ticks + 714900u);
+        CHECK_EQ_U64(fa.ticks % 24u, 0u);
+        previous_ticks = fa.ticks;
+        CHECK(memcmp(first, second, sizeof first) == 0);
+    }
+    image[16] = 0x02u; /* JAM */
+    CHECK(nesturbator_create(&cfg, &jam) == NESTURBATOR_OK);
+    if (jam != NULL) {
+        CHECK(nesturbator_load_cartridge(jam, image, image_size) == NESTURBATOR_OK);
+        memset(&fa, 0, sizeof fa);
+        fa.size = (uint32_t)sizeof fa;
+        fa.video = first;
+        fa.video_pitch = W;
+        fa.audio = audio;
+        fa.audio_capacity = 1024u;
+        fa.frame_number = 99u;
+        fa.ticks = 99u;
+        CHECK(nesturbator_run_frame(jam, &fa) == NESTURBATOR_STOP_JAM);
+        CHECK_EQ_U64(fa.frame_number, 99u);
+        CHECK_EQ_U64(fa.ticks, 99u);
+        fa.frame_number = 99u;
+        fa.ticks = 99u;
+        CHECK(nesturbator_run_frame(jam, &fa) == NESTURBATOR_STOP_JAM);
+        CHECK_EQ_U64(fa.frame_number, 99u);
+        CHECK_EQ_U64(fa.ticks, 99u);
+        fa.frame_number = 100u;
+        fa.ticks = 100u;
+        CHECK(nesturbator_run_frame(jam, &fa) == NESTURBATOR_STOP_JAM);
+        CHECK_EQ_U64(fa.frame_number, 100u);
+        CHECK_EQ_U64(fa.ticks, 100u);
+    }
+done:
+    nesturbator_destroy(jam);
+    nesturbator_destroy(b);
+    nesturbator_destroy(a);
+    image[16] = 0xa9u;
+}
+
+static void check_ppu_frame_edges(unsigned char *image, size_t image_size)
+{
+    nesturbator_config cfg;
+    nesturbator *probe = NULL;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK(nesturbator_create(&cfg, &probe) == NESTURBATOR_OK);
+    if (probe == NULL)
+        return;
+    image[16u + 0x3ffau] = 0x50u;
+    image[16u + 0x3ffbu] = 0x80u;
+    CHECK(nesturbator_load_cartridge(probe, image, image_size) == NESTURBATOR_OK);
+
+    probe->ppu.scanline = 241u;
+    probe->ppu.dot = 0u;
+    probe->ppu.control = 0x80u;
+    nesturbator__ppu_run_until(probe, 8u);
+    CHECK((probe->ppu.status & 0x80u) != 0u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 1u);
+    (void)nesturbator__bus_read(probe, 0x2002u);
+    CHECK((probe->ppu.status & 0x80u) == 0u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 0u);
+
+    probe->ppu.ppu_ticks = 0u;
+    probe->ppu.scanline = 241u;
+    probe->ppu.dot = 0u;
+    probe->ppu.status = 0u;
+    nesturbator__ppu_run_until(probe, 8u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 1u);
+    nesturbator__cpu_step(probe);
+    CHECK_EQ_U64(probe->cpu.pc, 0x8050u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 0u);
+
+    probe->ppu.ppu_ticks = 0u;
+    probe->ppu.scanline = 261u;
+    probe->ppu.dot = 339u;
+    probe->ppu.mask = 0x08u;
+    probe->ppu.odd_frame = 1u;
+    nesturbator__ppu_run_until(probe, 8u);
+    CHECK_EQ_U64(probe->ppu.scanline, 0u);
+    CHECK_EQ_U64(probe->ppu.dot, 0u);
+    CHECK_EQ_U64(probe->ppu.odd_frame, 0u);
+
+    probe->ppu.ppu_ticks = 0u;
+    probe->ppu.scanline = 261u;
+    probe->ppu.dot = 339u;
+    probe->ppu.odd_frame = 0u;
+    nesturbator__ppu_run_until(probe, 8u);
+    CHECK_EQ_U64(probe->ppu.scanline, 261u);
+    CHECK_EQ_U64(probe->ppu.dot, 340u);
+    nesturbator_destroy(probe);
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
     struct retro_system_av_info av;
     struct retro_game_info dummy;
-    static const unsigned char dummy_bytes[16] = {0};
+    static unsigned char dummy_bytes[16u + 16384u + 8192u];
+    static uint32_t first_content_frame[W * H];
     double fps_diff;
 
-    if (argc != 3) {
-        fprintf(stderr, "usage: libretro.host <module> <frame1.ppm>\n");
+    if (argc != 6) {
+        fprintf(stderr, "usage: libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
+                        "<generated.nes>\n");
         return 2;
     }
     if (!module_open(argv[1])) {
@@ -292,13 +554,66 @@ int main(int argc, char **argv)
     p_set_input_poll(on_poll);
     p_set_input_state(input);
 
-    /* D-10: content is refused in Phase 1. */
+    /* Task 1: an owned synthetic mapper-0 image must load through libretro. */
+    memset(dummy_bytes, 0, sizeof dummy_bytes);
+    dummy_bytes[0] = 'N';
+    dummy_bytes[1] = 'E';
+    dummy_bytes[2] = 'S';
+    dummy_bytes[3] = 0x1a;
+    dummy_bytes[4] = 1;
+    dummy_bytes[5] = 1;
+    {
+        static const unsigned char program[] = {
+            0xa9, 0x3f, 0x8d, 0x06, 0x20, 0xa9, 0x00, 0x8d, 0x06, 0x20, 0xa9, 0x0f, 0x8d, 0x07,
+            0x20, 0xa9, 0x16, 0x8d, 0x07, 0x20, 0xa9, 0x27, 0x8d, 0x07, 0x20, 0xa9, 0x30, 0x8d,
+            0x07, 0x20, 0xa9, 0x20, 0x8d, 0x06, 0x20, 0xa9, 0x00, 0x8d, 0x06, 0x20, 0xa9, 0x01,
+            0x8d, 0x07, 0x20, 0xa9, 0x0a, 0x8d, 0x01, 0x20, 0x4c, 0x32, 0x80};
+        memcpy(dummy_bytes + 16u, program, sizeof program);
+        memset(dummy_bytes + 16u + 16384u + 16u, 0xff, 8u);
+    }
+    dummy_bytes[16u + 0x3ffau] = 0x00;
+    dummy_bytes[16u + 0x3ffbu] = 0x80;
+    dummy_bytes[16u + 0x3ffcu] = 0x00;
+    dummy_bytes[16u + 0x3ffdu] = 0x80;
+    dummy_bytes[16u + 0x3ffeu] = 0x00;
+    dummy_bytes[16u + 0x3fffu] = 0x80;
+    check_core_timing_and_jam(dummy_bytes, sizeof dummy_bytes);
+    check_ppu_frame_edges(dummy_bytes, sizeof dummy_bytes);
     memset(&dummy, 0, sizeof dummy);
     dummy.data = dummy_bytes;
     dummy.size = sizeof dummy_bytes;
-    CHECK(!p_load_game(&dummy));
+    CHECK(p_load_game(&dummy));
+    {
+        FILE *rom = fopen(argv[5], "wb");
+        CHECK(rom != NULL);
+        if (rom != NULL) {
+            CHECK(fwrite(dummy_bytes, 1, sizeof dummy_bytes, rom) == sizeof dummy_bytes);
+            fclose(rom);
+        }
+        {
+            char frame_argument[4096];
+            const char *const command[] = {argv[4],        "--frames",     "1", "--rom", argv[5],
+                                           "--dump-frame", frame_argument, NULL};
+            CHECK(snprintf(frame_argument, sizeof frame_argument, "1:%s", argv[3]) > 0);
+            CHECK_EQ_U64(test_process_run(command, NULL), 0);
+        }
+    }
+    p_run();
+    CHECK_EQ_U64(video_calls, 1);
+    compare_with_ppm(argv[3]);
+    CHECK(frame[0] != frame[W + 8u]);
+    memcpy(first_content_frame, frame, sizeof frame);
+    p_run();
+    CHECK_EQ_U64(video_calls, 2);
+    CHECK(memcmp(frame, first_content_frame, sizeof frame) == 0);
+    p_unload_game();
+    check_input_frame_parity(dummy_bytes, sizeof dummy_bytes, argv[4], argv[5], argv[3]);
+    video_calls = 0;
+    batch_calls = 0;
+    batch_frames = 0;
+    batch_nonzero = 0;
 
-    /* No content: the test card, in XRGB8888 (L861-865). */
+    /* No content remains supported: the test card, in XRGB8888. */
     pixel_format_calls = 0;
     CHECK(p_load_game(NULL));
     CHECK_EQ_U64(pixel_format_calls, 1);
@@ -328,8 +643,8 @@ int main(int argc, char **argv)
 
     /* D-05: four pixels from src/palette_ntsc.c, written out here. */
     CHECK_EQ_HEX(frame[0 * W + 0] & 0xFFFFFFu, 0xFFFFFF);    /* native $30 */
-    CHECK_EQ_HEX(frame[18 * W + 100] & 0xFFFFFFu, 0xC23400); /* native $16 */
-    CHECK_EQ_HEX(frame[46 * W + 100] & 0xFFFFFFu, 0xC52700); /* native $56 */
+    CHECK_EQ_HEX(frame[18 * W + 100] & 0xFFFFFFu, 0xBA3100); /* native $16 */
+    CHECK_EQ_HEX(frame[46 * W + 100] & 0xFFFFFFu, 0xBC2700); /* native $56 */
     CHECK_EQ_HEX(frame[10 * W + 213] & 0xFFFFFFu, 0x000000); /* native $0D */
 
     /* FRAME-04: the same frame the runner writes. */

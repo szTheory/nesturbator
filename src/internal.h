@@ -26,6 +26,7 @@
 #define NESTURBATOR_CONFIG_SIZE_V1 ((uint32_t)sizeof(nesturbator_config))
 #define NESTURBATOR_INFO_SIZE_V1 ((uint32_t)sizeof(nesturbator_info))
 #define NESTURBATOR_FRAME_SIZE_V1 ((uint32_t)sizeof(nesturbator_frame))
+#define NESTURBATOR_INPUT_SIZE_V1 ((uint32_t)sizeof(nesturbator_input))
 
 /* 6502 core state (D-10). P is kept exactly as loaded or pulled: flag
    writes touch only their own bits, so bits 4 and 5 change only on a pull.
@@ -48,6 +49,38 @@ struct nesturbator__cpu {
 struct nesturbator__bus {
     uint8_t ram[2048];
     uint8_t open_bus;
+    uint8_t oam_dma_pending, oam_dma_page;
+    uint8_t input_pending[2], input_buttons[2];
+    uint8_t controller_latch[2], controller_shift[2], controller_strobe;
+};
+
+struct nesturbator__ppu {
+    uint8_t control, mask, status, oam_addr;
+    uint8_t address_latch, fine_x, read_buffer, io_bus;
+    uint32_t io_bus_age;
+    uint8_t vblank_suppress;
+    uint16_t v, t;
+    uint8_t nametable[2048];
+    uint8_t palette[32];
+    uint8_t oam[256];
+    uint8_t secondary_oam[32];
+    uint8_t sprite_count, eval_n, eval_latch, eval_target;
+    uint8_t sprite_zero[8], sprite_x[8], sprite_attr[8];
+    uint8_t sprite_lo[8], sprite_hi[8];
+    uint16_t *video_output;
+    uint32_t video_pitch;
+    uint64_t ppu_ticks;
+    uint16_t scanline;
+    uint16_t dot;
+    uint8_t odd_frame;
+};
+
+struct nesturbator__cartridge {
+    uint8_t *bytes;
+    size_t size;
+    uint8_t *prg;
+    uint8_t *chr;
+    uint8_t chr_is_ram;
 };
 
 /* Machine profile: values that differ between chips of the same model
@@ -66,11 +99,13 @@ struct nesturbator__profile {
 #define NESTURBATOR_RP2A03G_LXA_MAGIC 0xEEu
 
 struct nesturbator {
-    nesturbator_allocator allocator;     /* copy of the config's, defaults filled in */
-    uint64_t frame_number;               /* frames run since create */
-    uint64_t ticks;                      /* ticks run since create */
-    struct nesturbator__cpu cpu;         /* the 6502 */
-    struct nesturbator__bus bus;         /* RAM and the open-bus latch */
+    nesturbator_allocator allocator; /* copy of the config's, defaults filled in */
+    uint64_t frame_number;           /* frames run since create */
+    uint64_t ticks;                  /* ticks run since create */
+    struct nesturbator__cpu cpu;     /* the 6502 */
+    struct nesturbator__bus bus;     /* RAM and the open-bus latch */
+    struct nesturbator__ppu ppu;
+    struct nesturbator__cartridge cart;
     struct nesturbator__profile profile; /* chip-dependent constants */
     uint32_t audio_rem;                  /* sample fraction carried over, in units
                                             of 1/315000 sample per tick */
@@ -82,6 +117,12 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
 
 /* One CPU write cycle of value to addr (src/bus.c in the library). */
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks);
+uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr);
+void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg);
+void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint8_t value);
+uint8_t nesturbator__cart_read(struct nesturbator *nes, uint16_t addr);
 
 /* Runs one whole instruction, opcode fetch to last cycle (D-11). */
 void nesturbator__cpu_step(struct nesturbator *nes);
@@ -91,6 +132,7 @@ void nesturbator__cpu_step(struct nesturbator *nes);
    sizeof in this build. Returns NESTURBATOR_OK or
    NESTURBATOR_ERR_STRUCT_SIZE. */
 nesturbator_status nesturbator__check_size_in(const void *s, uint32_t first, uint32_t ours);
+void nesturbator__controller_begin_frame(struct nesturbator *nes);
 
 /* The no-cartridge test card: native pixel at column x, row y (D-01, D-02). */
 uint16_t nesturbator__test_pixel(uint32_t x, uint32_t y);

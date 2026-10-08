@@ -3,12 +3,107 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: Phase 2, the CPU.** The library, the runner and the libretro core
-build and run. The 6502 core matches the public 65x02 test vectors on every
-opcode and every bus cycle, and does not yet drive frames.
-With no cartridge loaded, the core outputs a fixed test card and silence. The
-PPU, APU, ROM loading and the CPU running games come in later phases. The plan
-lives in [`.planning/`](.planning/).
+**Status: Phase 3, first cartridge path.** The 6502 core matches the public
+65x02 test vectors on every opcode and bus cycle. The library, runner and
+libretro core accept bounded mapper-0 iNES 1.0 and NES 2.0 images with 16 or
+32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the PPU renders backgrounds
+and evaluated sprites, including palette priority, flips, 8x16 selection,
+clipping, sprite-zero hit and the eight-sprite limit. This is an initial tracer,
+not full game compatibility. Other cartridge geometries and audio are still in
+later work. With no cartridge, the fixed test
+card and silence remain available. The plan lives in [`.planning/`](.planning/).
+
+The runner accepts content with `--rom FILE`, for example:
+
+```sh
+nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.ppm
+```
+
+The CI suite pins three redistributable mapper-0 games: MIT-licensed
+Nesteroids, zlib-licensed Double Action Blaster Guys, and all-permissive RHDE.
+Their boot hashes and scripted DABG two-port movie hashes are checked against
+`tests/runner/hashes.txt` on every platform; the hashes use native pixels
+before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
+banks and uses the 8 KiB CHR RAM it fills during startup.
+
+The pinned MIT AccuracyCoin test ROM is also included for conformance checks.
+The CI runner drives one menu page at a time, reads result bytes from CPU RAM
+through `nesturbator_peek_cpu_ram`, and compares the exact names, order, status,
+and result codes on pages 2 and 17 with `tests/accuracy/scoreboard.txt`:
+
+```sh
+nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin.nes \
+  --scoreboard tests/accuracy/scoreboard.txt
+```
+
+Before the workflow preset, each of the six CI build lanes fetches protected
+`refs/heads/main` with tags disabled. A cross-platform CMake script exports the
+exact protected-main scoreboard bytes through
+`NESTURBATOR_SCOREBOARD_BASELINE`; fetch, path inspection, content retrieval,
+and environment handoff errors fail the job. If a successful fetch confirms
+that main has no scoreboard yet, CI supplies an empty baseline for the first
+merge. The scoreboard test requires that CI-provided path and never falls back
+to the candidate snapshot. Detached local runs use the committed
+`tests/accuracy/scoreboard-main.txt` snapshot. In both cases a prior `pass` row
+must remain present and passing; AccuracyCoin results continue to be checked
+against live emulated RAM.
+
+The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
+mirrors, and rejects other bus addresses without side effects. It is intended
+for conformance and debugger integrations.
+
+It can also replay an owned, versioned two-port input movie:
+
+```sh
+nesturbator-run --movie input.nmovie --rom game.nes
+```
+
+The binary movie begins with the eight bytes `NMOVIE1` and a zero byte, then
+little-endian `uint32_t` version `1` and frame count. Each frame stores two
+little-endian `uint16_t` button masks, port 0 then port 1; values must fit the
+eight standard NES button bits. The count is limited to 1,000,000 frames, and
+the file must contain exactly the declared records. Empty movies are valid and
+run zero frames. Invalid, truncated, extra, unsupported-version, or oversized
+movies fail before a frame runs. Replay prints one native-pixel SHA-256 line
+per frame in ascending frame order; a JAM stop reports its frame and exits
+nonzero.
+
+Frame time advances in 24-tick CPU cycles. A frame request runs complete
+instructions through the requested boundary and reports the actual tick count,
+retaining any overshoot for the next request. Audio output is currently silent.
+If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
+CPU stays latched until the cartridge is unloaded or reloaded.
+
+The PPU sets vblank at scanline 241 dot 1 and clears it at scanline 261 dot 1.
+A `$2002` read immediately before the vblank start dot suppresses the flag and
+NMI edge for that frame; reads on or after the start dot observe and clear the
+flag. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
+Nametable accesses use the cartridge's horizontal or vertical mapper-0
+mirroring bit. Register accesses retain the CPU open-bus value in un-driven
+bits, and `$2007` reads are buffered outside palette space.
+Visible native pixels are written to the caller's frame buffer as PPU dots advance. Background
+tiles use the selected pattern table, nametable attributes, coarse/fine scroll,
+and the universal backdrop colour. Sprites are evaluated into secondary OAM
+and fetched for the following scanline; transparent pixels reveal the
+background, and the priority bit selects which opaque layer appears in front.
+`$2001` grayscale and emphasis remain in the native pixel value; host palette
+conversion is separate and does not affect frame hashes.
+Writing a page number to `$4014` queues an OAM DMA; the next CPU read is halted
+while 256 bytes transfer through the CPU bus into OAM. The transfer wraps from
+the current `$2003` address and stalls the CPU for 513 or 514 cycles according
+to cycle parity. The PPU keeps advancing during the transfer.
+
+The public `nesturbator_set_input` API accepts a size-tagged pair of standard
+controller button masks. Port 0 is `$4016`; port 1 is `$4017`. Each port shifts
+A, B, Select, Start, Up, Down, Left, Right, least-significant bit first. A
+write with bit 0 high makes reads report the current A button; the high-to-low
+transition latches both masks. After eight reads, D0 returns 1. D6 reads high,
+while D5 and D7 retain the CPU bus open-bus value. Refused input calls leave
+the instance unchanged. Input is snapshotted at the beginning of each
+successful frame call. An instruction that crosses the requested frame
+boundary completes with that frame's snapshot; the next mask begins on the
+next `nesturbator_run_frame` call. The libretro adapter polls both standard
+joypads once per frame and maps the host's NES button IDs to these masks.
 
 ## Building
 
@@ -37,6 +132,12 @@ Each lane is one command, `cmake --workflow --preset <lane>`.
 | `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
 | `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
+
+`fuzz.regress` replays checked-in malformed cartridge seeds through the public
+cartridge load/unload lifecycle on every CI platform. The Linux nightly builds
+that same entry point with Clang libFuzzer and ASan/UBSan, then runs it for a
+bounded minute. The corpus is manifest-listed and local; CI does not download
+ROMs or fuzz seeds.
 
 The `abi` tests hold the core to integer arithmetic and the C memory
 functions: a text scan of `src/` and `include/` for `float`, `double` and
@@ -84,10 +185,11 @@ period, the test card's edge pixels, and that two instances run apart.
 table's invariants: `$20` and `$30` are white, `$xE` and `$xF` are black under
 every emphasis, an emphasis bit raises no colour channel but its own, and
 brightness never falls down a column.
-`runner.write_hashes` runs `tests/cmake/write_hashes.cmake`, which CI uses
-to write each platform's `hashes.txt`, and `runner.write_hashes.content`
-requires that file to equal `tests/runner/hashes.txt` byte for byte, with LF
-line endings only.
+`runner.write_hashes` runs each pinned game and the three scripted DABG
+two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
+180. It fails if any requested frame is missing or duplicated;
+`runner.write_hashes.content` requires all 30 sorted keys to equal
+`tests/runner/hashes.txt` byte for byte, with LF line endings only.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
 `runner.usage.noargs` checks that a run without `--frames` is a usage error.
@@ -219,20 +321,25 @@ CPack configuration, then runs one frame.
 `.github/workflows/ci.yml` runs on every pull request, every push to `main`
 and on demand, with the same preset commands as above. The `build` job runs
 `ci` on Linux and macOS and `ci-msvc` on Windows, each on x64 and arm64: six
-platforms. Each leg also checks its three archives and writes its hashes for
-frames 1 and 3:
+platforms. Each leg also checks its three archives and writes native-frame
+hashes for each pinned game's boot and the DABG port-0, port-1 and combined
+input scripts:
 
 ```sh
-cmake -DBUILD=build/ci -DOUT=hashes.txt -P tests/cmake/write_hashes.cmake
+cmake -DBUILD=build/ci -DOUT=hashes.txt \
+      -DMOVIE_WRITER=build/ci/tests/runner.game_movie \
+      -P tests/cmake/write_hashes.cmake
 ```
 
 The `hygiene` job runs the `hygiene` lane, `asan` runs `asan` with Clang 18,
 and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
-a different frame fails the run. The branch rules require one check, `CI
-required`, which passes only when every other job succeeded. Every action is
-pinned to a commit SHA, and Dependabot proposes updates weekly.
+a different frame fails the run. It also requires six nonempty artifacts with
+the exact 30-key game and movie inventory, rejecting duplicates, missing keys,
+extra keys and malformed hashes. The branch rules require one check,
+`CI required`, which passes only when every required job succeeded. Every
+action is pinned to a commit SHA, and Dependabot proposes updates weekly.
 
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
 04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
@@ -255,9 +362,11 @@ from `tests/vectors/pins.txt`, it fails rather than skips. Scheduled and
 main-push runs share one open issue labelled `nightly`: a failure opens it,
 or updates it with the event, head SHA, run URL and failing keys
 (`65x02/<xx>`, `fetch`, `sample-match`), and the next passing run closes it.
-It uses GitHub's per-job token: the full-run job has only `contents: read`, and
-only the report job has `issues: write`. Checkout credentials are not persisted
-and the workflow makes no commits.
+The ROM loader fuzz outcome is recorded in the job summary and included in
+scheduled and main-push failure issues. It uses GitHub's per-job token: the
+full-run job has only `contents: read`, and only the report job has
+`issues: write`. Checkout credentials are not persisted and the workflow
+makes no commits.
 
 After the Phase 2 merge, collect release, exact-commit main-push and first
 post-merge scheduled vector evidence with this read-only command (replace the
@@ -386,13 +495,15 @@ security reports go through [SECURITY.md](SECURITY.md).
 
 ## The colour table
 
-`src/palette_ntsc.c` maps each native pixel value to an XRGB8888 colour. It is
-generated by `tools/palgen`, a host tool built with the project but not
-linked into the library, from the NTSC signal levels, phases and emphasis
-rules on the NESdev Wiki (the page revisions are named in the file's header).
-A host reads it with `nesturbator_get_palette`; it is display data only and
-never part of a hash. Do not edit the table by hand; change palgen and
-regenerate:
+`src/palette_ntsc.c` maps each native pixel value to calibrated sRGB in
+XRGB8888. The existing offline `tools/palgen` host tool decodes the NTSC signal
+levels, phases and emphasis rules from the cited NESdev Wiki revisions, applies
+the 2.4 transfer curve and 525-line BT.601 primaries, converts linear RGB to
+sRGB/D65, clips out-of-gamut channels and rounds to 8 bits. The BT.601
+chromaticities and transfer curve are from the [ICC BT.601 registry](https://registry.color.org/rgb-registry/bt601);
+the sRGB primaries and transfer curve follow the [W3C sRGB specification](https://www.w3.org/Graphics/Color/srgb).
+`nesturbator_get_palette` returns this display table; it never affects native
+frame hashes. Do not edit the table by hand; change palgen and regenerate:
 
 ```sh
 build/ci/tools/palgen/palgen src/palette_ntsc.c
@@ -404,15 +515,21 @@ at `build/ci/runner/nesturbator-run`. The public header is
 
 ## The runner
 
-`nesturbator-run` runs the core without a window. In this phase it takes no
-cartridge, so every frame is the built-in test card.
+`nesturbator-run` runs the core without a window and accepts a mapper-0 image
+with `--rom FILE`. The loader validates the entire image before allocating
+cartridge state. It rejects unsupported mapper, console, region, RAM and ROM
+geometries, truncation, trailing bytes, and images larger than 64 MiB; the
+runner prints a diagnostic and exits nonzero for rejected content.
 
 ```sh
-nesturbator-run --frames N [--hash-frame N]... [--dump-frame N:FILE]...
+nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--dump-frame N:FILE]...
 ```
 
 - `--frames N` runs N frames (N is 1 or more). It is required; without it
   the runner prints its usage and exits 2.
+- `--rom FILE` loads a bounded mapper-0 iNES 1.0 or NES 2.0 image. Accepted
+  geometry is 16 or 32 KiB PRG with 8 KiB CHR ROM or declared 8 KiB CHR RAM;
+  optional trainers are included in the validated file length.
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
 - `--dump-frame N:FILE` writes frame N to FILE as a binary PPM (P6), 256x240,
@@ -534,13 +651,15 @@ To check RetroArch's picture without looking at it:
 ctest --preset ci -L retroarch
 ```
 
-This runs `retroarch.testframe`. It starts RetroArch with the
+This runs `retroarch.testframe` and `retroarch.game`. The first starts RetroArch with the
 configuration `build/ci/retroarch/test.cfg`, generated from
 `tests/retroarch/test.cfg.in`, so your own RetroArch settings are never read.
 That configuration points every directory and file RetroArch uses under
 `build/ci/retroarch`, turns off content history, and stops the macOS app
-unpacking its bundled assets into your RetroArch directory. RetroArch runs the core
-for 5 frames and writes a screenshot of the core's frame. `sips` converts it
+unpacking its bundled assets into your RetroArch directory. Its first-run
+configuration and support files also use a temporary home under that build
+directory, so the test leaves your home untouched. RetroArch runs the core for
+5 frames and writes a screenshot of the core's frame. `sips` converts it
 to BMP, and `compare_frame` requires it to equal the runner's frame 5 at
 exactly 256x240, pixel for pixel. The test also lists RetroArch's directory
 in your home folder before and after the run, and fails if anything in it was
@@ -548,7 +667,28 @@ created, changed or removed. RetroArch opens a window, so the test needs a
 logged-in desktop session. Set `NESTURBATOR_RETROARCH` to use a RetroArch
 binary somewhere else. On other systems, or when RetroArch is not installed,
 the test reports itself skipped. If RetroArch exits unsuccessfully, CMake
-reports its captured stdout and stderr separately.
+reports its captured stdout and stderr separately. On a local macOS GUI
+session, an abort with no captured output is also skipped in optional mode;
+required hosted mode treats the same abort as a failure.
+
+`retroarch.game` loads the manifest-listed Nesteroids image from the build
+tree, runs through frame 60, and compares RetroArch's captured image with the
+runner's frame 60. The selected frame shows the game's title screen. The
+required-mode driver also rejects missing RetroArch, game content, screenshots
+and launch failures instead of skipping; the local CTest remains optional when
+RetroArch is not installed or the GUI session aborts without output.
+
+The official RetroArch v1.22.2 macOS release is
+[`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),
+universal for arm64 and x86_64, with measured SHA-256
+`81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434`. The
+required `retroarch-e2e` job downloads this asset on `macos-15`, verifies its
+checksum and exact version, loads Nesteroids, and compares the nonempty frame-60
+screenshot pixel for pixel with the runner's output. It isolates RetroArch's
+first-run home under the build tree and retains the asset evidence, screenshot,
+and runner frame in the `retroarch-e2e-frames` artifact. Missing assets, changes
+to the real home directory, startup errors, and frame mismatches fail the
+required CI check. No manual screenshot or gameplay check is needed.
 
 ## What it will be
 

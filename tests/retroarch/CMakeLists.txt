@@ -39,3 +39,24 @@ set_tests_properties(retroarch.testframe PROPERTIES
   SKIP_REGULAR_EXPRESSION "nesturbator-skip:"
   TIMEOUT 60
   RUN_SERIAL TRUE)
+
+# D-08: real licensed game content, with a frame shared by the runner oracle.
+# The hosted required job calls this same driver with REQUIRED=ON, the pinned
+# RetroArch path and version metadata; local runs retain skip-if-unavailable.
+add_test(NAME retroarch.game
+  COMMAND ${CMAKE_COMMAND}
+    "-DCORE=$<TARGET_FILE:nesturbator_libretro>"
+    "-DINFO=${PROJECT_SOURCE_DIR}/libretro/nesturbator_libretro.info"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DCOMPARE=$<TARGET_FILE:compare_frame>"
+    "-DRA_DIR=${CMAKE_BINARY_DIR}/retroarch-game"
+    "-DTEMPLATE=${CMAKE_CURRENT_SOURCE_DIR}/test.cfg.in"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes"
+    -DFRAME=60
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/run_retroarch.cmake)
+set_tests_properties(retroarch.game PROPERTIES
+  LABELS retroarch
+  SKIP_RETURN_CODE 77
+  SKIP_REGULAR_EXPRESSION "nesturbator-skip:"
+  TIMEOUT 60
+  RUN_SERIAL TRUE)

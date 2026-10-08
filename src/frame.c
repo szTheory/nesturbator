@@ -9,6 +9,9 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
     if (inst == NULL || io == NULL) {
         return NESTURBATOR_ERR_ARGUMENT;
     }
+    if (inst->cpu.jammed != 0u) {
+        return NESTURBATOR_STOP_JAM;
+    }
     nesturbator_status st =
         nesturbator__check_size_in(io, NESTURBATOR_FRAME_SIZE_V1, (uint32_t)sizeof *io);
     if (st != NESTURBATOR_OK) {
@@ -32,11 +35,28 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
         return NESTURBATOR_ERR_BUFFER_TOO_SMALL;
     }
 
-    /* No cartridge: test pattern and silence. */
-    for (uint32_t y = 0; y < NESTURBATOR_HEIGHT; y++) {
-        uint16_t *row = io->video + (size_t)y * io->video_pitch;
-        for (uint32_t x = 0; x < NESTURBATOR_WIDTH; x++) {
-            row[x] = nesturbator__test_pixel(x, y);
+    nesturbator__controller_begin_frame(inst);
+    if (inst->cart.bytes == NULL) {
+        /* No cartridge: test pattern and silence. */
+        for (uint32_t y = 0; y < NESTURBATOR_HEIGHT; y++) {
+            uint16_t *row = io->video + (size_t)y * io->video_pitch;
+            for (uint32_t x = 0; x < NESTURBATOR_WIDTH; x++) {
+                row[x] = nesturbator__test_pixel(x, y);
+            }
+        }
+        inst->ticks += NESTURBATOR_TICKS_PER_FRAME;
+    } else {
+        uint64_t target = inst->ticks + NESTURBATOR_TICKS_PER_FRAME;
+        inst->ppu.video_output = io->video;
+        inst->ppu.video_pitch = io->video_pitch;
+        while (inst->ticks < target && inst->cpu.jammed == 0u) {
+            nesturbator__cpu_step(inst);
+        }
+        nesturbator__ppu_run_until(inst, inst->ticks);
+        inst->ppu.video_output = NULL;
+        inst->ppu.video_pitch = 0u;
+        if (inst->cpu.jammed != 0u) {
+            return NESTURBATOR_STOP_JAM;
         }
     }
     if (n > 0u) {
@@ -45,11 +65,6 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
 
     inst->audio_rem = (uint32_t)(acc % NESTURBATOR_AUDIO_TICKS_PER_PERIOD);
     inst->frame_number += 1u;
-    /* No CPU runs in a frame yet, so time advances here by a whole frame.
-       Each bus access also advances ticks (src/bus.c); once the CPU runs
-       here, the frame steps it until ticks reaches the frame's end instead
-       of adding this constant, or time would be counted twice. */
-    inst->ticks += NESTURBATOR_TICKS_PER_FRAME;
     io->audio_count = n;
     io->frame_number = inst->frame_number;
     io->ticks = inst->ticks;

@@ -111,6 +111,25 @@ static void test_version(void)
     nesturbator_get_version(NULL);
 }
 
+static void test_cpu_ram_peek_is_read_only_and_mirrored(void)
+{
+    nesturbator_config cfg;
+    nesturbator *inst = NULL;
+    uint8_t value = 0xa5u;
+    default_config(&cfg);
+    CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(inst, 0x0000u, &value), NESTURBATOR_OK);
+    CHECK_EQ_U64(value, 0u);
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(inst, 0x1800u, &value), NESTURBATOR_OK);
+    CHECK_EQ_U64(value, 0u);
+    value = 0xa5u;
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(inst, 0x2000u, &value), NESTURBATOR_ERR_ARGUMENT);
+    CHECK_EQ_U64(value, 0xa5u);
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(NULL, 0u, &value), NESTURBATOR_ERR_ARGUMENT);
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(inst, 0u, NULL), NESTURBATOR_ERR_ARGUMENT);
+    nesturbator_destroy(inst);
+}
+
 static void test_info(void)
 {
     nesturbator_config cfg;
@@ -260,5 +279,6 @@ int main(void)
     test_create_sizes();
     test_create_arguments();
     test_allocators();
+    test_cpu_ram_peek_is_read_only_and_mirrored();
     CHECK_DONE();
 }

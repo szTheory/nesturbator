@@ -1,0 +1,10 @@
+{
+  "command": "ctest --test-dir build/ci -R ^accuracycoin.page2$ --output-on-failure --output-junit red.xml",
+  "exitCode": 8,
+  "output": "<testsuite name=\"ctest\" tests=\"1\" failures=\"1\"><testcase name=\"accuracycoin.page2\" classname=\"accuracycoin.page2\"><failure message=\"Failed\"/><system-out>Expected the runner to pass, but it rejected --accuracycoin-page as an unknown option before executing the ROM. The named CTest failed its output and exit assertion.</system-out></testcase></testsuite>",
+  "targetTest": "accuracycoin.page2",
+  "targetFile": "tests/CMakeLists.txt",
+  "expected": "AccuracyCoin page 2 executes and reports PASS from emulated RAM",
+  "actual": "The runner rejected --accuracycoin-page as an unknown option before executing the ROM.",
+  "semanticAssessment": "The named target ran and failed because the required runner mode was not implemented; the ROM fixture loaded and test discovery succeeded."
+}

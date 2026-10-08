@@ -51,8 +51,10 @@ nesturbator_core_flags(nesturbator_cpu)
 # The core library. It links nothing: only the C memory functions are used.
 add_library(nesturbator STATIC
   src/instance.c
+  src/cartridge.c
   src/frame.c
   src/bus.c
+  src/ppu.c
   src/palette.c
   src/palette_ntsc.c
   src/testcard.c)

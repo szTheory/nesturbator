@@ -7,10 +7,9 @@
    M2's fall, lets the PPU catch up again, and then does the access. */
 #include "internal.h"
 
-/* Runs the PPU up to nes->ticks. There is no PPU yet. */
 static void ppu_catch_up(struct nesturbator *nes)
 {
-    (void)nes;
+    nesturbator__ppu_run_until(nes, nes->ticks);
 }
 
 /* Time for one CPU cycle, with the PPU brought up to both M2 edges. */
@@ -22,15 +21,59 @@ static void cycle(struct nesturbator *nes)
     ppu_catch_up(nes);
 }
 
-uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
+static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
 {
     cycle(nes);
-    /* 0x0000 to 0x1FFF: the 2048 bytes of RAM, mirrored four times. Nothing
-       else answers yet, so any other read returns the last bus value. */
-    if (addr < 0x2000u) {
+    /* CPU RAM mirrors, PPU registers, and NROM PRG are decoded here. */
+    if (addr == 0x4016u || addr == 0x4017u) {
+        uint8_t port = (uint8_t)(addr - 0x4016u);
+        uint8_t bit;
+        if (nes->bus.controller_strobe != 0u) {
+            bit = (uint8_t)(nes->bus.input_buttons[port] & 1u);
+        } else {
+            bit = (uint8_t)(nes->bus.controller_shift[port] & 1u);
+            nes->bus.controller_shift[port] =
+                (uint8_t)((nes->bus.controller_shift[port] >> 1) | 0x80u);
+        }
+        /* D0 is serial data, D6 reads high, and D5/D7 retain open bus. */
+        nes->bus.open_bus = (uint8_t)((nes->bus.open_bus & 0xa0u) | 0x40u | bit);
+    } else if (addr < 0x2000u) {
         nes->bus.open_bus = nes->bus.ram[addr & 0x7FFu];
+    } else if (addr < 0x4000u) {
+        uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
+        nes->bus.open_bus = nesturbator__ppu_register_read(nes, reg);
+    } else if (addr >= 0x8000u && nes->cart.bytes != NULL) {
+        nes->bus.open_bus = nesturbator__cart_read(nes, addr);
     }
     return nes->bus.open_bus;
+}
+
+static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
+{
+    /* RDY takes effect after the $4014 write. A halt cycle is always spent;
+       an extra alignment cycle is needed when the write leaves the CPU on
+       the even phase. Each source byte uses the ordinary CPU bus decoder,
+       and each destination byte occupies a separate put cycle. [HWC.01] */
+    uint8_t align = (uint8_t)(((nes->ticks / 24u) & 1u) == 0u);
+    (void)bus_read_cycle(nes, halted_read);
+    if (align != 0u)
+        (void)bus_read_cycle(nes, halted_read);
+    for (uint16_t offset = 0u; offset < 256u; offset++) {
+        uint8_t value = bus_read_cycle(nes, (uint16_t)(((uint16_t)page << 8) | offset));
+        cycle(nes);
+        nes->bus.open_bus = value;
+        nesturbator__ppu_register_write(nes, 0x2004u, value);
+    }
+}
+
+uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
+{
+    if (nes->bus.oam_dma_pending != 0u) {
+        uint8_t page = nes->bus.oam_dma_page;
+        nes->bus.oam_dma_pending = 0u;
+        oam_dma(nes, page, addr);
+    }
+    return bus_read_cycle(nes, addr);
 }
 
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value)
@@ -39,5 +82,20 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
     nes->bus.open_bus = value;
     if (addr < 0x2000u) {
         nes->bus.ram[addr & 0x7FFu] = value;
+    } else if (addr < 0x4000u) {
+        uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
+        nesturbator__ppu_register_write(nes, reg, value);
+    } else if (addr == 0x4014u) {
+        nes->bus.oam_dma_page = value;
+        nes->bus.oam_dma_pending = 1u;
+    } else if (addr == 0x4016u) {
+        uint8_t strobe = (uint8_t)(value & 1u);
+        if (nes->bus.controller_strobe != 0u && strobe == 0u) {
+            nes->bus.controller_latch[0] = nes->bus.input_buttons[0];
+            nes->bus.controller_latch[1] = nes->bus.input_buttons[1];
+            nes->bus.controller_shift[0] = nes->bus.controller_latch[0];
+            nes->bus.controller_shift[1] = nes->bus.controller_latch[1];
+        }
+        nes->bus.controller_strobe = strobe;
     }
 }

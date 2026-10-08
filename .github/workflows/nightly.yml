@@ -34,6 +34,8 @@ on:
       - tools/vecconv/**
       - src/cpu.c
       - src/internal.h
+      - tests/fuzz/**
+      - tests/roms/manifest.txt
 
 permissions: {}
 
@@ -107,11 +109,55 @@ jobs:
             "$GITHUB_EVENT_NAME" "$GITHUB_SHA" "$GITHUB_SERVER_URL" \
             "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$ARTIFACT" >> "$GITHUB_STEP_SUMMARY"
 
+  rom-loader-fuzz:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    outputs:
+      outcome: ${{ steps.fuzz.outcome }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify local corpus and Clang
+        run: |
+          test -d tests/fuzz/corpus
+          test -n "$(find tests/fuzz/corpus -type f -print -quit)"
+          clang --version
+      - name: Configure sanitized libFuzzer target
+        run: >-
+          cmake -S . -B build/fuzz -G Ninja
+          -DCMAKE_C_COMPILER=clang
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          -DCMAKE_C_FLAGS=-fsanitize=fuzzer-no-link,address,undefined\ -fno-sanitize-recover=all\ -fno-omit-frame-pointer
+          -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined
+          -DNESTURBATOR_LIBFUZZER=ON
+      - name: Build bounded ROM loader fuzzer
+        run: cmake --build build/fuzz --target fuzz.rom_loader.libfuzzer
+      - name: Run bounded ROM loader mutation test
+        id: fuzz
+        run: |
+          test -x build/fuzz/tests/fuzz.rom_loader.libfuzzer
+          test -n "$(find tests/fuzz/corpus -type f -print -quit)"
+          build/fuzz/tests/fuzz.rom_loader.libfuzzer \
+            -max_total_time=60 -timeout=2 -max_len=65536 tests/fuzz/corpus
+      - name: Record fuzz outcome
+        if: always()
+        env:
+          OUTCOME: ${{ steps.fuzz.outcome }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          printf 'ROM loader libFuzzer outcome: **%s**\n\nHead SHA: `%s`\n\nRun: %s/%s/actions/runs/%s\n' \
+            "$OUTCOME" "$HEAD_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" \
+            >> "$GITHUB_STEP_SUMMARY"
+
   # On scheduled and main-push runs: one rolling issue labelled nightly,
   # opened or updated on failure and closed on success. No checkout, so gh is
   # given the repository.
   report:
-    needs: vectors-full
+    needs: [vectors-full, rom-loader-fuzz]
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-24.04
     timeout-minutes: 1
@@ -121,8 +167,9 @@ jobs:
       - name: Rolling issue
         env:
           GH_TOKEN: ${{ github.token }}
-          RESULT: ${{ needs.vectors-full.result }}
+          RESULT: ${{ needs.vectors-full.result == 'success' && needs.rom-loader-fuzz.result == 'success' && 'success' || 'failure' }}
           FAILED: ${{ needs.vectors-full.outputs.failed }}
+          FUZZ: ${{ needs.rom-loader-fuzz.outputs.outcome }}
           HEAD_SHA: ${{ github.sha }}
           EVENT: ${{ github.event_name }}
         run: |
@@ -138,8 +185,8 @@ jobs:
             fi
             exit 0
           fi
-          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nResult: %s\n\nFailed: %s\n' \
-            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-no test recorded; see the run}")
+          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nOverall result: %s\n\nFailed vector keys: %s\n\nROM loader fuzz outcome: %s\n' \
+            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-none recorded; see the run}" "${FUZZ:-not recorded; see the run}")
           if [ -n "$issue" ]; then
             gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" --body "$body"
           else

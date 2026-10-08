@@ -23,7 +23,8 @@
  *     larger-size check of an older library.
  * - Struct fields are fixed-width integers and pointers only.
  * - Status codes have fixed values and are only ever appended.
- * - A call that returns a status other than NESTURBATOR_OK changes no state.
+ * - An error status changes no state. NESTURBATOR_STOP_JAM is a latched stop
+ *   condition and leaves the CPU stopped at its JAM opcode.
  * - NESTURBATOR_ABI_VERSION rises only on a breaking change to this header.
  *   Appending functions, struct fields or status codes does not raise it.
  *   The library version (NESTURBATOR_VERSION_*) is separate from it.
@@ -63,7 +64,11 @@ enum nesturbator_status {
     /* The allocator returned NULL. */
     NESTURBATOR_ERR_NO_MEMORY = 4,
     /* A caller-owned buffer is too small for the output. */
-    NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5
+    NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5,
+    /* The loaded cartridge executed a JAM opcode; the instance is latched. */
+    NESTURBATOR_STOP_JAM = 6,
+    /* Cartridge bytes are malformed or outside the supported mapper-0 profile. */
+    NESTURBATOR_ERR_CARTRIDGE = 7
 };
 typedef enum nesturbator_status nesturbator_status;
 
@@ -86,8 +91,8 @@ typedef struct nesturbator_version {
    NULL). Any other combination is NESTURBATOR_ERR_ARGUMENT. alloc returns
    memory aligned as malloc's is: suitable for any object type, at least the
    alignment of max_align_t. free receives the size that was passed to alloc,
-   so arena allocators work. The library allocates only in nesturbator_create,
-   never while running. */
+   so arena allocators work. The library allocates at create and cartridge
+   load, never while running. */
 typedef struct nesturbator_allocator {
     void *(*alloc)(void *user, size_t size);
     void (*free)(void *user, void *ptr, size_t size);
@@ -102,6 +107,28 @@ typedef struct nesturbator_config {
     uint32_t abi;                    /* NESTURBATOR_ABI_VERSION */
     nesturbator_allocator allocator; /* all NULL: malloc and free */
 } nesturbator_config;
+
+/* Standard controller buttons. The bit values match the order read from the
+   NES serial ports, A first and Right last. */
+enum nesturbator_button {
+    NESTURBATOR_BUTTON_A = 1u << 0,
+    NESTURBATOR_BUTTON_B = 1u << 1,
+    NESTURBATOR_BUTTON_SELECT = 1u << 2,
+    NESTURBATOR_BUTTON_START = 1u << 3,
+    NESTURBATOR_BUTTON_UP = 1u << 4,
+    NESTURBATOR_BUTTON_DOWN = 1u << 5,
+    NESTURBATOR_BUTTON_LEFT = 1u << 6,
+    NESTURBATOR_BUTTON_RIGHT = 1u << 7
+};
+
+/* Input for one frame. Port 0 is $4016 and port 1 is $4017. Values are
+   sampled at the start of nesturbator_run_frame; setting input during a frame
+   affects the next call. Runner movie replay submits one mask pair through this
+   contract before each frame. Zero unused/reserved bytes before calling. */
+typedef struct nesturbator_input {
+    uint32_t size;      /* in: sizeof(nesturbator_input) */
+    uint8_t buttons[2]; /* in: NESTURBATOR_BUTTON_* mask for each port */
+} nesturbator_input;
 
 /* The same default values for C and C++ sources. A config passed to
    nesturbator_create must still be zeroed with memset first, because an
@@ -130,7 +157,17 @@ typedef struct nesturbator_info {
  *
  * Video: native pixels, one uint16_t each, row y starting at
  * video[y * video_pitch]. A pixel is a palette entry 0-63 in bits 0-5 and
- * the three emphasis bits in bits 6-8; bits 9-15 are zero.
+ * the three PPUMASK emphasis bits in bits 6-8; bits 9-15 are zero. Background
+ * pixels reflect mapper-0 nametable mirroring, pattern/attribute data, scroll,
+ * grayscale and emphasis. Sprite pixels use OAM order, transparency, palette,
+ * horizontal/vertical flip, 8x8 or 8x16 pattern selection and the priority bit;
+ * `$2001` controls left-edge clipping. Sprite-zero hit and overflow are
+ * tracked in PPU status at their scanline/pixel timing. Native pixels are the
+ * canonical frame-hash input; display conversion is separate. A CPU write to
+ * `$4014` queues an OAM DMA. The next CPU read is
+ * halted while it reads one 256-byte page through the normal bus and writes
+ * OAM starting at `$2003`'s address; it stalls the CPU for 513 or 514 cycles
+ * by cycle parity while PPU time continues.
  *
  * Audio: mono signed 16-bit samples at the info sample rate. A frame yields
  * 798 or 799 samples; the fraction carries over to the next frame. */
@@ -144,7 +181,11 @@ typedef struct nesturbator_frame {
     uint32_t audio_count;    /* out: samples written to audio */
     uint64_t frame_number;   /* out: frames run by this instance, 1 after the first */
     uint64_t ticks;          /* out: emulated time in half master-clock periods
-                                since create; 714732 per NTSC frame */
+                                since create; instructions may carry residual
+                                ticks across the nominal 714732-tick boundary.
+                                PPU vblank begins at scanline 241 dot 1 and ends
+                                at scanline 261 dot 1; a status read just before
+                                the start dot suppresses that frame's NMI edge. */
 } nesturbator_frame;
 
 /* Writes the library's version into *out. Writes nothing when out is NULL or
@@ -164,8 +205,32 @@ void nesturbator_get_version(nesturbator_version *out);
  * silence. */
 nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator **out);
 
+/* Sets the next frame's standard controller state. A NULL instance or input
+   returns NESTURBATOR_ERR_ARGUMENT; a bad size tag returns
+   NESTURBATOR_ERR_STRUCT_SIZE. Refused calls leave the instance unchanged. */
+nesturbator_status nesturbator_set_input(nesturbator *inst, const nesturbator_input *input);
+
 /* Frees an instance through the allocator it was created with. Accepts NULL. */
 void nesturbator_destroy(nesturbator *inst);
+
+/* Copies one bounded mapper-0 iNES v1 or NES 2 image into the instance.
+   Accepts 16 or 32 KiB PRG and either 8 KiB CHR ROM or 8 KiB declared CHR RAM;
+   trainers are accepted. Other mappers, unsupported console/region/RAM
+   profiles, malformed headers, truncation, extra payload, and images above
+   64 MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and
+   leave a previously loaded cartridge untouched. Allocation failure returns
+   NESTURBATOR_ERR_NO_MEMORY. A loaded image resets the CPU from its PRG reset
+   vector at the end of the PRG data (including the upper bank of 32 KiB NROM).
+   Unload releases cartridge state. */
+nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
+void nesturbator_unload_cartridge(nesturbator *inst);
+
+/* Reads CPU internal RAM without changing emulator state. Addresses $0000-$1FFF
+   are accepted and use the NES's 2 KiB RAM mirrors; other addresses are
+   rejected. This inspection path does not perform bus side effects and is
+   intended for conformance harnesses. On error, *value is unchanged. */
+nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,
+                                            uint8_t *value);
 
 /* Writes the video and audio format into *out. Writes nothing when inst or
    out is NULL or out->size is 0; otherwise min(out->size, sizeof) bytes. */
@@ -179,13 +244,20 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * this frame's sample count, gives NESTURBATOR_ERR_BUFFER_TOO_SMALL.
  * On success it fills 256x240 pixels and audio_count samples, advances the
  * instance by one frame and writes audio_count, frame_number and ticks.
- * No cartridge: test pattern and silence. */
+ * At the start of a successful call, the latest input set through
+ * nesturbator_set_input is sampled for that frame. Instructions complete
+ * across the requested frame boundary; the next input is sampled only on the
+ * next call, so a crossing instruction cannot mix frame masks.
+ * No cartridge: test pattern and silence. A JAM opcode stops with
+ * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
+ * advance on later frame calls. Audio is currently silent. */
 nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *io);
 
-/* Copies up to `count` XRGB8888 entries (0x00RRGGBB), indexed by native
- * pixel value (palette entry | emphasis << 6). Display data only; never part
- * of a hash. Copies min(count, 512) entries; out NULL or count 0 does
- * nothing. inst is reserved for per-PPU-revision tables and may be NULL. */
+/* Copies up to `count` calibrated NTSC-to-sRGB XRGB8888 entries (0x00RRGGBB),
+ * indexed by native pixel value (palette entry | emphasis << 6). Display data
+ * only; the native pixels remain the canonical frame-hash input. Copies
+ * min(count, 512) entries; out NULL or count 0 does nothing. inst is reserved
+ * for per-PPU-revision tables and may be NULL. */
 void nesturbator_get_palette(const nesturbator *inst, uint32_t *out_xrgb8888, uint32_t count);
 
 #ifdef __cplusplus

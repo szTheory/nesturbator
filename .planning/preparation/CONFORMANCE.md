@@ -2,7 +2,7 @@
 title: "Conformance tests, oracles and the scoreboard"
 summary: "Public NES test suites and reference emulators - what each proves, how it reports headlessly, its licence and its pin."
 read_when: "Choosing test ROMs; writing the headless runner, pin manifest, scoreboard or CI tiers."
-updated: 2026-10-02
+updated: 2026-10-08
 ---
 
 # Conformance tests, oracles and the scoreboard
@@ -78,8 +78,10 @@ Explicit licences only [CF.13]; m = mapper.
 | Licence | ROMs (source and pin) |
 |---|---|
 | MIT | AccuracyCoin (`100thCoin/AccuracyCoin` @673ef550); Nesteroids (`battlelinegames/nesteroids` @ae65d780; game, m0); nes-runner (`zorchenhimer/nes-runner` v1; game, m1) |
-| zlib | Holy Mapperel (`pinobatch/holy-mapperel` v0.02); Double Action Blaster Guys (`NovaSquirrel/DABG` v2; game, m0); Pently demo (`pinobatch/pently` v0.05wip11; music, m0) |
+| zlib | Holy Mapperel (`pinobatch/holy-mapperel` v0.02); Double Action Blaster Guys (`NovaSquirrel/DABG` @`5ecc60b6af3f726851bfeb1c2555388c5953e0c0`; game, m0; exact `LICENSE.txt` says zlib); Pently demo (`pinobatch/pently` v0.05wip11; music, m0) |
 | all-permissive | RHDE (`pinobatch/rhde-nes` v0.07; game, m0) |
+
+**DABG pin correction (2026-10-08).** The previously cited `v2` commit `81ce44cf6fd9f0c1fc40301f2d29f080c26eb811` has an exact `LICENSE.txt` containing GNU GPL-3.0, despite this table's earlier zlib classification. It is not suitable as a committed fixture under this project's redistribution policy. The replacement DABG source pin is `5ecc60b6af3f726851bfeb1c2555388c5953e0c0`; its exact `LICENSE.txt` begins “The zlib License” and permits redistribution under that license. The corrected source URL is `https://github.com/NovaSquirrel/DABG/tree/5ecc60b6af3f726851bfeb1c2555388c5953e0c0`. The ROM is built from this source pin because the tree has no prebuilt `.nes` artifact; it is not modified.
 
 Excluded: Thwaite, Concentration Room (GPL-3.0), 240p Test Suite (GPL-2.0): copyleft. Nova the Squirrel: CC BY-NC-SA assets. Lizard: assets not redistributable. Super Tilt Bro (WTFPL): no release asset. nes15: fonts of unstated origin. spritecans: only "feel free to spread". tvpassfail: "do not distribute".
 

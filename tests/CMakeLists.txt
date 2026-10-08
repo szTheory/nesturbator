@@ -55,7 +55,7 @@ nesturbator_runner_test(NAME runner.usage.positional
 
 # FRAME-03 / D-16: --dump-frame writes the test card as a 256x240 P6 image
 # (15 header bytes + 256*240*3) while the hash line stays over the native
-# pixels. Pixel (8,232) is native $12, whose table entry is 0x552AFF. Later
+# pixels. Pixel (8,232) is native $12, whose calibrated table entry is 0x5238FF. Later
 # tests read the image through the fixture testframe_ppm.
 set(NESTURBATOR_TESTFRAME_PPM ${CMAKE_BINARY_DIR}/testframe/frame1.ppm)
 set(dump_cmd "$<TARGET_FILE:nesturbator-run>" --frames 1
@@ -67,7 +67,7 @@ add_test(NAME runner.dump
     -DEXPECT_EXIT=0
     "-DFILE=${NESTURBATOR_TESTFRAME_PPM}"
     -DSIZE=184335
-    -DPIXELS=8:232:552AFF
+    -DPIXELS=8:232:5238FF
     -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_ppm.cmake")
 set_tests_properties(runner.dump PROPERTIES FIXTURES_SETUP testframe_ppm)
 
@@ -84,18 +84,33 @@ nesturbator_runner_test(NAME runner.dump.unwritable
   ARGS --frames 1 --dump-frame "1:${CMAKE_BINARY_DIR}/no-such-dir/frame1.ppm"
   EXIT 1)
 
-# CI's hash-equality job compares the file write_hashes.cmake writes on each
-# platform. It must be the runner.advance lines with LF endings only, byte for
-# byte tests/runner/hashes.txt.
+# CI's hash-equality job compares every game boot and DABG movie milestone
+# written by write_hashes.cmake on each platform.
 add_test(NAME runner.write_hashes
   COMMAND ${CMAKE_COMMAND} -DBUILD=${PROJECT_BINARY_DIR}
     -DOUT=${CMAKE_CURRENT_BINARY_DIR}/hashes.txt
+    -DMOVIE_WRITER=$<TARGET_FILE:runner.game_movie>
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/write_hashes.cmake)
 set_tests_properties(runner.write_hashes PROPERTIES FIXTURES_SETUP hashes_txt)
 add_test(NAME runner.write_hashes.content
   COMMAND ${CMAKE_COMMAND} -E compare_files
     ${CMAKE_CURRENT_BINARY_DIR}/hashes.txt ${CMAKE_CURRENT_SOURCE_DIR}/runner/hashes.txt)
 set_tests_properties(runner.write_hashes.content PROPERTIES FIXTURES_REQUIRED hashes_txt)
+
+# AccuracyCoin page runs are kept separate so a failure names the page whose
+# RAM-derived results diverged from the committed scoreboard.
+set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
+set(ACCURACYCOIN_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/scoreboard.txt)
+foreach(page IN ITEMS 2 17)
+  add_test(NAME accuracycoin.page${page}
+    COMMAND ${CMAKE_COMMAND}
+      "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_ROM};--scoreboard;${ACCURACYCOIN_SCOREBOARD}"
+      "-DEXPECT=accuracycoin page ${page} PASS"
+      -DEXPECT_EXIT=0
+      -DIGNORE_STDOUT=TRUE
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake)
+  set_tests_properties(accuracycoin.page${page} PROPERTIES TIMEOUT 60)
+endforeach()
 
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
@@ -111,8 +126,97 @@ nesturbator_core_test(core.api core/test_api.c)
 # D-11: run_frame statuses, buffer rules, the D-09 audio period, the D-02
 # boundary pixels and two independent instances.
 nesturbator_core_test(core.frame core/test_frame.c)
-# D-14: nesturbator_get_palette's copy rules and the palette invariants.
+nesturbator_core_test(core.cartridge core/test_cartridge.c)
+target_include_directories(core.cartridge PRIVATE ${PROJECT_SOURCE_DIR}/src)
+add_executable(core.controller core/test_controller.c)
+target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
+target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(core.controller)
+add_test(NAME core.controller COMMAND core.controller)
+
+# Focused CPU-visible PPU register and dot-boundary tests.
+add_executable(ppu.registers ppu/test_registers.c)
+target_link_libraries(ppu.registers PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.registers PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.registers)
+add_test(NAME ppu.registers COMMAND ppu.registers)
+add_executable(ppu.render ppu/test_render.c)
+target_link_libraries(ppu.render PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.render PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.render)
+add_test(NAME ppu.render COMMAND ppu.render)
+add_executable(ppu.sprites ppu/test_sprites.c)
+target_link_libraries(ppu.sprites PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.sprites PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.sprites)
+add_test(NAME ppu.sprites COMMAND ppu.sprites)
+
+# The same entry point is linked into the Linux libFuzzer binary and replayed
+# from checked-in seeds on every CI platform. Refuse an empty corpus at configure
+# time so a missing directory cannot turn this into a passing no-op.
+file(GLOB NESTURBATOR_ROM_LOADER_CORPUS CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus/*")
+if(NOT NESTURBATOR_ROM_LOADER_CORPUS)
+  message(FATAL_ERROR "ROM loader fuzz corpus is missing or empty")
+endif()
+add_executable(fuzz.rom_loader fuzz/rom_loader.c)
+target_link_libraries(fuzz.rom_loader PRIVATE nesturbator::nesturbator)
+target_compile_definitions(fuzz.rom_loader PRIVATE NESTURBATOR_FUZZ_REPLAY=1)
+nesturbator_warnings(fuzz.rom_loader)
+add_test(NAME fuzz.regress
+  COMMAND fuzz.rom_loader ${NESTURBATOR_ROM_LOADER_CORPUS})
+set_tests_properties(fuzz.regress PROPERTIES TIMEOUT 30)
+
+# Linux nightly only: the same source/entry point and sanitized library, with
+# Clang's libFuzzer main and runtime instrumentation.
+option(NESTURBATOR_LIBFUZZER "Build the ROM loader libFuzzer target" OFF)
+if(NESTURBATOR_LIBFUZZER)
+  if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+    message(FATAL_ERROR "NESTURBATOR_LIBFUZZER requires Clang")
+  endif()
+  add_executable(fuzz.rom_loader.libfuzzer fuzz/rom_loader.c)
+  target_link_libraries(fuzz.rom_loader.libfuzzer PRIVATE nesturbator::nesturbator)
+  target_compile_options(fuzz.rom_loader.libfuzzer PRIVATE -fsanitize=fuzzer-no-link)
+  target_link_options(fuzz.rom_loader.libfuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+  nesturbator_warnings(fuzz.rom_loader.libfuzzer)
+endif()
+
+add_test(NAME fuzz.registration
+  COMMAND ${CMAKE_COMMAND}
+    -DCTEST=${CMAKE_CTEST_COMMAND}
+    -DBUILD_DIR=${PROJECT_BINARY_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fuzz_registration.cmake)
+
+# D-14: nesturbator_get_palette's copy rules, calibrated sRGB samples and
+# palette invariants.
 nesturbator_core_test(core.palette core/test_palette.c)
+nesturbator_core_test(accuracy.scoreboard accuracy/test_scoreboard.c)
+target_compile_definitions(accuracy.scoreboard PRIVATE
+  NESTURBATOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+
+# The candidate scoreboard must fail if it drops a prior protected-main PASS.
+set(ACCURACYCOIN_REGRESSION_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-regression-baseline.txt)
+file(WRITE ${ACCURACYCOIN_REGRESSION_BASELINE}
+  "accuracycoin/Removed PASS\tpass\t0x01\t-\t-\n")
+add_test(NAME accuracy.scoreboard.no_lost_pass
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DREGRESSION_BASELINE=${ACCURACYCOIN_REGRESSION_BASELINE}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+
+# Exercise the CI-only handoff failure and the confirmed empty first-merge case
+# with isolated, build-directory fixtures rather than the local snapshot.
+add_test(NAME accuracy.scoreboard.ci_missing_baseline
+  COMMAND ${CMAKE_COMMAND} -E env --unset=NESTURBATOR_SCOREBOARD_BASELINE CI=true
+    $<TARGET_FILE:accuracy.scoreboard>)
+set_tests_properties(accuracy.scoreboard.ci_missing_baseline PROPERTIES WILL_FAIL TRUE)
+set(ACCURACYCOIN_EMPTY_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-empty-baseline.txt)
+file(WRITE ${ACCURACYCOIN_EMPTY_BASELINE} "")
+add_test(NAME accuracy.scoreboard.ci_empty_baseline
+  COMMAND ${CMAKE_COMMAND} -E env CI=true
+    "NESTURBATOR_SCOREBOARD_BASELINE=${ACCURACYCOIN_EMPTY_BASELINE}"
+    $<TARGET_FILE:accuracy.scoreboard>)
 
 # D-15: the shared host conversion indexes the palette by the low 9 bits and
 # honours both pitches.
@@ -146,6 +250,25 @@ target_include_directories(runner.sha256 PRIVATE ${PROJECT_SOURCE_DIR}/runner)
 target_link_libraries(runner.sha256 PRIVATE nesturbator::nesturbator)
 nesturbator_warnings(runner.sha256)
 add_test(NAME runner.sha256 COMMAND runner.sha256)
+
+# GAME-03 / D-06: an empty owned movie is valid and replays zero frames.
+add_executable(runner.movie.test runner/test_movie.c)
+target_link_libraries(runner.movie.test PRIVATE nesturbator::nesturbator)
+target_include_directories(runner.movie.test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/runner)
+target_compile_definitions(runner.movie.test PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(runner.movie.test)
+add_test(NAME runner.movie
+  COMMAND runner.movie.test $<TARGET_FILE:nesturbator-run>
+    ${CMAKE_CURRENT_BINARY_DIR}/fixture.nmovie ${CMAKE_CURRENT_BINARY_DIR}/movie-a.out
+    ${CMAKE_CURRENT_BINARY_DIR}/movie-b.out ${CMAKE_CURRENT_BINARY_DIR}/jam.nes)
+
+# D-02: fixed two-port movie scripts feed the pinned DABG hash inventory.
+add_executable(runner.game_movie runner/game_movie.c)
+target_compile_definitions(runner.game_movie PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(runner.game_movie)
 
 # version.txt equals the header's version macros.
 add_test(NAME version.consistency
@@ -238,14 +361,17 @@ add_test(NAME libretro.vendored
 # testframe_ppm) and with four hard-coded pixels (D-05). The module is a
 # run-time input, so the test program depends on it to build it first.
 add_executable(libretro.host libretro/libretro_host.c)
-target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro)
-target_link_libraries(libretro.host PRIVATE ${CMAKE_DL_LIBS})
+target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro
+  ${CMAKE_CURRENT_SOURCE_DIR}/runner)
+target_link_libraries(libretro.host PRIVATE nesturbator ${CMAKE_DL_LIBS})
 target_compile_definitions(libretro.host PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(libretro.host)
-add_dependencies(libretro.host nesturbator_libretro)
+add_dependencies(libretro.host nesturbator_libretro nesturbator-run)
 add_test(NAME libretro.host
-  COMMAND libretro.host $<TARGET_FILE:nesturbator_libretro> ${NESTURBATOR_TESTFRAME_PPM})
+  COMMAND libretro.host $<TARGET_FILE:nesturbator_libretro>
+    ${NESTURBATOR_TESTFRAME_PPM} ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.ppm
+    $<TARGET_FILE:nesturbator-run> ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.nes)
 set_tests_properties(libretro.host PROPERTIES FIXTURES_REQUIRED testframe_ppm)
 
 # D-14: palgen regenerates src/palette_ntsc.c byte for byte, ignoring line
@@ -296,7 +422,10 @@ add_test(NAME core.profile COMMAND core.profile)
 
 # D-12: the library bus alone, compiled in directly: 24 ticks per call, RAM
 # mirrored over 0x0000-0x1FFF, the open-bus latch for unmapped reads.
-add_executable(bus.unit cpu/test_bus.c ${PROJECT_SOURCE_DIR}/src/bus.c)
+add_executable(bus.unit cpu/test_bus.c
+  ${PROJECT_SOURCE_DIR}/src/bus.c
+  ${PROJECT_SOURCE_DIR}/src/cartridge.c
+  ${PROJECT_SOURCE_DIR}/src/ppu.c)
 target_include_directories(bus.unit PRIVATE
   ${PROJECT_SOURCE_DIR}/src
   ${PROJECT_SOURCE_DIR}/include)
@@ -357,6 +486,26 @@ foreach(h 0 1 2 3 4 5 6 7 8 9 a b c d e f)
   endforeach()
 endforeach()
 nesturbator_vector_tests(${NESTURBATOR_ALL_OPCODES})
+
+# D-08: reject decimal vector limits that exceed their uint32 bounds instead
+# of allowing arithmetic overflow to wrap them back into the accepted range.
+set(vector_chunks_overflow_cmd "$<TARGET_FILE:cpu.vectors>"
+  "${PROJECT_SOURCE_DIR}/tests/vectors/65x02-sample.n65v" a9 4294967552 100)
+add_test(NAME cpu.vectors.usage.overflow.chunks
+  COMMAND ${CMAKE_COMMAND}
+    "-DCMD=${vector_chunks_overflow_cmd}"
+    -DEXPECT_EXIT=2 -DIGNORE_STDOUT=ON
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+set_tests_properties(cpu.vectors.usage.overflow.chunks PROPERTIES LABELS vectors)
+
+set(vector_per_chunk_overflow_cmd "$<TARGET_FILE:cpu.vectors>"
+  "${PROJECT_SOURCE_DIR}/tests/vectors/65x02-sample.n65v" a9 256 4294977296)
+add_test(NAME cpu.vectors.usage.overflow.per_chunk
+  COMMAND ${CMAKE_COMMAND}
+    "-DCMD=${vector_per_chunk_overflow_cmd}"
+    -DEXPECT_EXIT=2 -DIGNORE_STDOUT=ON
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+set_tests_properties(cpu.vectors.usage.overflow.per_chunk PROPERTIES LABELS vectors)
 
 # D-02, D-06: vecconv converts the compact layout of 02.json and runs its 3
 # JAM tests through the CPU. The script's exit status decides the test.

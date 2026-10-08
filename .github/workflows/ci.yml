@@ -99,13 +99,17 @@ jobs:
           $arch = if ($env:RUNNER_ARCH -eq 'ARM64') { 'arm64' } else { 'x64' }
           cmd /c "`"$vs\VC\Auxiliary\Build\vcvarsall.bat`" $arch && set" |
             ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { "$($Matches[1])=$($Matches[2])" >> $env:GITHUB_ENV } }
+      # Establish the regression baseline from protected main before any
+      # candidate-controlled CTest configuration or scoreboard files run.
+      - name: Prepare protected-main scoreboard baseline
+        run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake
       - run: cmake --workflow --preset ${{ matrix.preset }}
       - run: cmake -DDIR=build/${{ matrix.preset }} -P tests/cmake/check_archives.cmake
       - if: matrix.os == 'macos' && matrix.arch == 'arm64'
         run: cmake -DREADME=README.md -DPACKAGES=build/${{ matrix.preset }}/packages -DOUT=build/install-line -P tests/cmake/check_install_line.cmake
-      # Quoted: Windows runs steps in PowerShell, which splits an unquoted
-      # -DOUT=hashes.txt at the dot (CI run 37084485603 wrote "hashes").
-      - run: cmake "-DBUILD=build/${{ matrix.preset }}" "-DOUT=hashes.txt" -P tests/cmake/write_hashes.cmake
+      # Quote each -D argument for PowerShell; the movie writer's executable
+      # suffix is platform-specific.
+      - run: cmake "-DBUILD=build/${{ matrix.preset }}" "-DOUT=hashes.txt" "-DMOVIE_WRITER=build/${{ matrix.preset }}/tests/runner.game_movie${{ runner.os == 'Windows' && '.exe' || '' }}" -P tests/cmake/write_hashes.cmake
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: archives-${{ matrix.os }}-${{ matrix.arch }}
@@ -119,7 +123,7 @@ jobs:
 
   asan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 2 # twice the cold run 37084642541 (31 s), rounded up to whole minutes (ENGINEERING §5)
+    timeout-minutes: 5 # hosted run 37857200684 exceeded the old 2-minute cap; retain margin above the observed 2m14s
     env:
       CC: clang-18
       CXX: clang++-18
@@ -127,6 +131,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Prepare protected-main scoreboard baseline
+        run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake
       - run: cmake --workflow --preset asan
 
   nofp:
@@ -167,16 +173,49 @@ jobs:
             exit 1
           fi
           for d in "${dirs[@]}"; do
-            if [ ! -f "$d/hashes.txt" ]; then
-              echo "::error::${d#hashes/} holds no hashes.txt"
+            if [ ! -s "$d/hashes.txt" ]; then
+              echo "::error::${d#hashes/} holds no nonempty hashes.txt"
               exit 1
             fi
           done
+
+          expected=$(mktemp)
+          actual=$(mktemp)
+          trap 'rm -f "$expected" "$actual"' EXIT
+          for game in nesteroids dabg rhde; do
+            for frame in 1 30 60 120 180; do
+              printf '%s/boot/frame %s\n' "$game" "$frame"
+            done
+          done >> "$expected"
+          for port in p0 p1 both; do
+            for frame in 1 30 60 120 180; do
+              printf 'dabg/%s/frame %s\n' "$port" "$frame"
+            done
+          done >> "$expected"
+          LC_ALL=C sort -o "$expected" "$expected"
+          first="${dirs[0]}/hashes.txt"
+          if ! LC_ALL=C sort -c "$first"; then
+            echo "::error::${dirs[0]} is not sorted"
+            exit 1
+          fi
+          if ! awk 'NF != 6 || $5 != "sha256" || length($6) != 64 || $6 !~ /^[0-9a-f]+$/ { exit 1 } { print $1 " " $2 }' "$first" > "$actual"; then
+            echo "::error::${dirs[0]} has a malformed hash row"
+            exit 1
+          fi
+          if ! LC_ALL=C sort -c "$actual" || ! cmp -s "$expected" "$actual"; then
+            echo "::error::${dirs[0]} has an incomplete, duplicated, or unexpected hash inventory"
+            diff -u "$expected" "$actual" || true
+            exit 1
+          fi
           first="${dirs[0]}/hashes.txt"
           echo "${dirs[0]#hashes/hashes-}:"
           cat "$first"
           status=0
           for d in "${dirs[@]}"; do
+            if ! cmp -s "$expected" <(awk '{ print $1 " " $2 }' "$d/hashes.txt"); then
+              echo "::error::${d#hashes/} has a different key inventory"
+              status=1
+            fi
             if ! cmp -s "$first" "$d/hashes.txt"; then
               echo "::error::${d#hashes/hashes-} differs from ${dirs[0]#hashes/hashes-}"
               cat "$d/hashes.txt"
@@ -185,13 +224,75 @@ jobs:
           done
           exit "$status"
 
+  # Required hosted proof using the pinned released app and a manifest-listed
+  # game. Its screenshot is retained for diagnosis and reproducibility.
+  retroarch-e2e:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare protected-main scoreboard baseline
+        run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake
+      - name: Build and run the local test suite
+        env:
+          NESTURBATOR_RETROARCH: /tmp/retroarch-e2e-not-installed-yet
+        run: cmake --workflow --preset ci
+      - name: Install and verify the pinned RetroArch candidate
+        env:
+          RETROARCH_URL: https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg
+          RETROARCH_SHA256: 81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434
+        run: |
+          set -euo pipefail
+          dir="$GITHUB_WORKSPACE/build/retroarch-e2e"
+          mkdir -p "$dir/mount"
+          curl --fail --location --retry 2 "$RETROARCH_URL" --output "$dir/RetroArch.dmg"
+          actual=$(shasum -a 256 "$dir/RetroArch.dmg" | awk '{print $1}')
+          printf 'asset URL: %s\nexpected SHA-256: %s\nactual SHA-256: %s\n' \
+            "$RETROARCH_URL" "$RETROARCH_SHA256" "$actual" | tee "$dir/asset-evidence.txt"
+          test "$actual" = "$RETROARCH_SHA256"
+          hdiutil attach "$dir/RetroArch.dmg" -nobrowse -readonly -mountpoint "$dir/mount"
+          ditto "$dir/mount/RetroArch.app" "$dir/RetroArch.app"
+          hdiutil detach "$dir/mount"
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' \
+            "$dir/RetroArch.app/Contents/Info.plist")
+          printf 'RetroArch version: %s\n' "$version" | tee -a "$dir/asset-evidence.txt"
+          test "$version" = 1.22.2
+      - name: Compare the hosted RetroArch game frame
+        run: >-
+          cmake
+          -DCORE="$GITHUB_WORKSPACE/build/ci/libretro/nesturbator_libretro.dylib"
+          -DINFO="$GITHUB_WORKSPACE/libretro/nesturbator_libretro.info"
+          -DRUNNER="$GITHUB_WORKSPACE/build/ci/runner/nesturbator-run"
+          -DCOMPARE="$GITHUB_WORKSPACE/build/ci/tests/retroarch/compare_frame"
+          -DRA_DIR="$GITHUB_WORKSPACE/build/retroarch-e2e/run"
+          -DTEMPLATE="$GITHUB_WORKSPACE/tests/retroarch/test.cfg.in"
+          -DROM="$GITHUB_WORKSPACE/tests/roms/nesteroids.nes"
+          -DFRAME=60
+          -DREQUIRED=ON
+          -DRETROARCH="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/MacOS/RetroArch"
+          -DEXPECTED_VERSION=1.22.2
+          -DVERSION_PLIST="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/Info.plist"
+          -P tests/retroarch/run_retroarch.cmake
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: retroarch-e2e-frames
+          path: |
+            build/retroarch-e2e/asset-evidence.txt
+            build/retroarch-e2e/run/runner.ppm
+            build/retroarch-e2e/run/shot.png
+            build/retroarch-e2e/run/shot.bmp
+          if-no-files-found: error
+
   # The one required check. GitHub reports a skipped job as success and skips
   # a job whose dependency failed, so this runs always and requires every
   # result to be success.
   ci-required:
     name: CI required
     if: always()
-    needs: [hygiene, title, build, asan, nofp, hash-equality]
+    needs: [hygiene, title, build, asan, nofp, hash-equality, retroarch-e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 1 # twice the cold run 37084642541 (4 s), rounded up to whole minutes (ENGINEERING §5)
     steps:

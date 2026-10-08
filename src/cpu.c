@@ -491,6 +491,22 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         return;
     }
 
+    /* NMI is sampled at an instruction boundary; it pushes PC and P with B
+       clear, then reads the fixed vector. [HWC.08] */
+    if (nes->cpu.nmi_pending != 0u) {
+        nesturbator__bus_read(nes, nes->cpu.pc);
+        nesturbator__bus_read(nes, nes->cpu.pc);
+        push(nes, (uint8_t)(nes->cpu.pc >> 8));
+        push(nes, (uint8_t)nes->cpu.pc);
+        push(nes, (uint8_t)((nes->cpu.p & (uint8_t)(UINT8_MAX ^ FLAG_B)) | FLAG_U));
+        nes->cpu.p |= FLAG_I;
+        uint8_t lo = nesturbator__bus_read(nes, 0xFFFAu);
+        uint8_t hi = nesturbator__bus_read(nes, 0xFFFBu);
+        nes->cpu.pc = (uint16_t)(((uint16_t)hi << 8) | lo);
+        nes->cpu.nmi_pending = 0u;
+        return;
+    }
+
     uint8_t opcode = fetch(nes);
     switch (opcode) {
     /* Loads. */
