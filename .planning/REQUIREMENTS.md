@@ -29,7 +29,7 @@ Milestone 1. Each category's pull request builds the release archives, and mergi
 - [x] **GAME-03**: `nesturbator-run --movie FILE` replays recorded controller input and prints the same frame hashes on every run; the libretro test program, fed the same input, receives equal frames.
 - [x] **GAME-04**: The runner runs AccuracyCoin and reads each test's result from RAM; the results equal the committed scoreboard file, a test fails if that file loses a pass that `main` has, and every test on pages 2 and 17 (addressing-mode wraparound, PPU behaviour) passes.
 - [x] **GAME-05**: `ctest -R fuzz.regress` replays the ROM loader's corpus without a crash on every platform, and the loader's libFuzzer target runs nightly in CI.
-- [ ] **GAME-06**: Frame hashes for every committed ROM are identical on all six platforms.
+- [x] **GAME-06**: Frame hashes for every committed ROM are identical on all six platforms.
 
 ### Sound
 
@@ -91,7 +91,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GAME-03 | Phase 3 | Complete |
 | GAME-04 | Phase 3 | Complete |
 | GAME-05 | Phase 3 | Complete |
-| GAME-06 | Phase 3 | Pending |
+| GAME-06 | Phase 3 | Complete |
 | SND-01 | Phase 4 | Pending |
 | SND-02 | Phase 4 | Pending |
 | SND-03 | Phase 4 | Pending |
