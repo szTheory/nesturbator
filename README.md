@@ -19,6 +19,22 @@ The runner accepts content with `--rom FILE`, for example:
 nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.ppm
 ```
 
+It can also replay an owned, versioned two-port input movie:
+
+```sh
+nesturbator-run --movie input.nmovie --rom game.nes
+```
+
+The binary movie begins with the eight bytes `NMOVIE1` and a zero byte, then
+little-endian `uint32_t` version `1` and frame count. Each frame stores two
+little-endian `uint16_t` button masks, port 0 then port 1; values must fit the
+eight standard NES button bits. The count is limited to 1,000,000 frames, and
+the file must contain exactly the declared records. Empty movies are valid and
+run zero frames. Invalid, truncated, extra, unsupported-version, or oversized
+movies fail before a frame runs. Replay prints one native-pixel SHA-256 line
+per frame in ascending frame order; a JAM stop reports its frame and exits
+nonzero.
+
 Frame time advances in 24-tick CPU cycles. A frame request runs complete
 instructions through the requested boundary and reports the actual tick count,
 retaining any overshoot for the next request. Audio output is currently silent.

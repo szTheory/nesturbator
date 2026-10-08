@@ -123,7 +123,8 @@ enum nesturbator_button {
 
 /* Input for one frame. Port 0 is $4016 and port 1 is $4017. Values are
    sampled at the start of nesturbator_run_frame; setting input during a frame
-   affects the next call. Zero unused/reserved bytes before calling. */
+   affects the next call. Runner movie replay submits one mask pair through this
+   contract before each frame. Zero unused/reserved bytes before calling. */
 typedef struct nesturbator_input {
     uint32_t size;      /* in: sizeof(nesturbator_input) */
     uint8_t buttons[2]; /* in: NESTURBATOR_BUTTON_* mask for each port */

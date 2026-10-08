@@ -1,9 +1,11 @@
 /* nesturbator-run: the headless runner.
  *
  *   nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--dump-frame N:FILE]...
+ *   nesturbator-run --movie FILE [--rom FILE] [--dump-frame N:FILE]...
  *
- * Runs N frames, with optional mapper-0 cartridge content; --frames is required. For each
- * --hash-frame N it prints, after frame N has run:
+ * Runs N frames, with optional mapper-0 cartridge content. A movie supplies the
+ * two port masks for every frame and prints the native hash of every replayed frame.
+ * For each --hash-frame N it prints, after frame N has run:
  *
  *   frame <N> ticks <ticks> sha256 <64 lowercase hex digits>
  *
@@ -21,6 +23,7 @@
 #include <string.h>
 
 #include "convert.h"
+#include "movie.h"
 #include "nesturbator.h"
 #include "ppm.h"
 #include "sha256.h"
@@ -32,9 +35,10 @@
 static int usage(const char *why)
 {
     fprintf(stderr, "nesturbator-run: %s\n", why);
-    fprintf(stderr, "usage: nesturbator-run --frames N [--rom FILE] [--hash-frame N]... "
+    fprintf(stderr, "usage: nesturbator-run (--frames N | --movie FILE) [--rom FILE] [--hash-frame N]... "
                     "[--dump-frame N:FILE]...\n"
                     "  --frames N           run N frames (N >= 1)\n"
+                    "  --movie FILE         replay a validated two-port movie\n"
                     "  --rom FILE           load a mapper-0 iNES image\n"
                     "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
                     "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n");
@@ -108,6 +112,7 @@ static void hash_frame(const uint16_t *video, char hex[65])
 /* The runner's options. Each list has room for one entry per argument. */
 typedef struct options {
     uint32_t frames;
+    const char *movie_path;
     const char *rom_path;
     uint32_t *hash_frames;
     uint32_t hash_count;
@@ -144,6 +149,10 @@ static int parse_options(int argc, char **argv, options *o)
             if (value == NULL || value[0] == '\0')
                 return usage("--rom needs a file path");
             o->rom_path = value;
+        } else if (strcmp(arg, "--movie") == 0) {
+            if (value == NULL || value[0] == '\0' || o->movie_path != NULL)
+                return usage("--movie needs one file path");
+            o->movie_path = value;
         } else if (strcmp(arg, "--dump-frame") == 0) {
             const char *path;
             if (!parse_dump(value, &n, &path)) {
@@ -165,18 +174,8 @@ static int parse_options(int argc, char **argv, options *o)
             return usage(arg[0] == '-' ? "unknown option" : "unexpected argument");
         }
     }
-    if (o->frames == 0u) {
+    if (o->frames == 0u && o->movie_path == NULL) {
         return usage("--frames N is required");
-    }
-    for (uint32_t k = 0; k < o->hash_count; k++) {
-        if (o->hash_frames[k] > o->frames) {
-            return usage("--hash-frame is beyond --frames");
-        }
-    }
-    for (uint32_t k = 0; k < o->dump_count; k++) {
-        if (o->dump_frames[k] > o->frames) {
-            return usage("--dump-frame is beyond --frames");
-        }
     }
     return 0;
 }
@@ -198,13 +197,46 @@ int main(int argc, char **argv)
     static uint32_t palette[512];
     static uint32_t image[WIDTH * HEIGHT];
     options opt;
+    nesturbator_movie movie;
     int status;
 
     memset(&opt, 0, sizeof opt);
+    memset(&movie, 0, sizeof movie);
     status = parse_options(argc, argv, &opt);
     if (status != 0) {
         free_options(&opt);
         return status;
+    }
+
+    if (opt.movie_path != NULL) {
+        if (!nesturbator_movie_read(opt.movie_path, &movie)) {
+            fprintf(stderr, "nesturbator-run: malformed or unreadable movie %s\n", opt.movie_path);
+            free_options(&opt);
+            return 1;
+        }
+        if (opt.frames != 0u && opt.frames != movie.frame_count) {
+            fprintf(stderr, "nesturbator-run: --frames must match the movie frame count\n");
+            nesturbator_movie_free(&movie);
+            free_options(&opt);
+            return 2;
+        }
+        opt.frames = movie.frame_count;
+    }
+    for (uint32_t k = 0; k < opt.hash_count; k++) {
+        if (opt.hash_frames[k] > opt.frames) {
+            status = usage("--hash-frame is beyond the requested frame count");
+            nesturbator_movie_free(&movie);
+            free_options(&opt);
+            return status;
+        }
+    }
+    for (uint32_t k = 0; k < opt.dump_count; k++) {
+        if (opt.dump_frames[k] > opt.frames) {
+            status = usage("--dump-frame is beyond the requested frame count");
+            nesturbator_movie_free(&movie);
+            free_options(&opt);
+            return status;
+        }
     }
 
     nesturbator_config cfg;
@@ -215,6 +247,7 @@ int main(int argc, char **argv)
     nesturbator_status st = nesturbator_create(&cfg, &inst);
     if (st != NESTURBATOR_OK) {
         fprintf(stderr, "nesturbator-run: nesturbator_create failed with status %d\n", (int)st);
+        nesturbator_movie_free(&movie);
         free_options(&opt);
         return 1;
     }
@@ -228,6 +261,7 @@ int main(int argc, char **argv)
                 fclose(rom);
             fprintf(stderr, "nesturbator-run: cannot read cartridge %s\n", opt.rom_path);
             nesturbator_destroy(inst);
+            nesturbator_movie_free(&movie);
             free_options(&opt);
             return 1;
         }
@@ -237,6 +271,7 @@ int main(int argc, char **argv)
             fclose(rom);
             fprintf(stderr, "nesturbator-run: cannot read cartridge %s\n", opt.rom_path);
             nesturbator_destroy(inst);
+            nesturbator_movie_free(&movie);
             free_options(&opt);
             return 1;
         }
@@ -246,6 +281,7 @@ int main(int argc, char **argv)
         if (st != NESTURBATOR_OK) {
             fprintf(stderr, "nesturbator-run: malformed or unsupported mapper-0 cartridge (status %d)\n", (int)st);
             nesturbator_destroy(inst);
+            nesturbator_movie_free(&movie);
             free_options(&opt);
             return 1;
         }
@@ -264,14 +300,29 @@ int main(int argc, char **argv)
         io.video_pitch = WIDTH;
         io.audio = audio;
         io.audio_capacity = AUDIO_CAPACITY;
+        if (opt.movie_path != NULL) {
+            nesturbator_input input;
+            memset(&input, 0, sizeof input);
+            input.size = (uint32_t)sizeof input;
+            input.buttons[0] = movie.masks[(size_t)(f - 1u) * 2u];
+            input.buttons[1] = movie.masks[(size_t)(f - 1u) * 2u + 1u];
+            st = nesturbator_set_input(inst, &input);
+            if (st != NESTURBATOR_OK) {
+                fprintf(stderr, "nesturbator-run: cannot set movie input at frame %u\n", f);
+                status = 1;
+                break;
+            }
+        }
         st = nesturbator_run_frame(inst, &io);
         if (st != NESTURBATOR_OK) {
-            fprintf(stderr, "nesturbator-run: nesturbator_run_frame failed with status %d\n",
-                    (int)st);
+            if (st == NESTURBATOR_STOP_JAM)
+                fprintf(stderr, "nesturbator-run: JAM stopped replay at frame %u\n", f);
+            else
+                fprintf(stderr, "nesturbator-run: frame %u failed with status %d\n", f, (int)st);
             status = 1;
             break;
         }
-        if (listed(opt.hash_frames, opt.hash_count, f)) {
+        if ((opt.movie_path != NULL || listed(opt.hash_frames, opt.hash_count, f))) {
             char hex[65];
             hash_frame(video, hex);
             printf("frame %lu ticks %llu sha256 %s\n", (unsigned long)f,
@@ -290,6 +341,7 @@ int main(int argc, char **argv)
     }
 
     nesturbator_destroy(inst);
+    nesturbator_movie_free(&movie);
     free_options(&opt);
     if (fflush(stdout) != 0) {
         fprintf(stderr, "nesturbator-run: cannot write output\n");

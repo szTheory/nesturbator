@@ -210,11 +210,13 @@ add_test(NAME runner.sha256 COMMAND runner.sha256)
 # GAME-03 / D-06: an empty owned movie is valid and replays zero frames.
 add_executable(runner.movie.test runner/test_movie.c)
 target_link_libraries(runner.movie.test PRIVATE nesturbator::nesturbator)
-target_include_directories(runner.movie.test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(runner.movie.test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/runner)
 nesturbator_warnings(runner.movie.test)
-add_test(NAME runner.movie.empty
+add_test(NAME runner.movie
   COMMAND runner.movie.test $<TARGET_FILE:nesturbator-run>
-    ${CMAKE_CURRENT_BINARY_DIR}/empty.nmovie ${CMAKE_CURRENT_BINARY_DIR}/empty-movie.out)
+    ${CMAKE_CURRENT_BINARY_DIR}/fixture.nmovie ${CMAKE_CURRENT_BINARY_DIR}/movie-a.out
+    ${CMAKE_CURRENT_BINARY_DIR}/movie-b.out ${CMAKE_CURRENT_BINARY_DIR}/jam.nes)
 
 # version.txt equals the header's version macros.
 add_test(NAME version.consistency
@@ -307,7 +309,8 @@ add_test(NAME libretro.vendored
 # testframe_ppm) and with four hard-coded pixels (D-05). The module is a
 # run-time input, so the test program depends on it to build it first.
 add_executable(libretro.host libretro/libretro_host.c)
-target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro)
+target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro
+  ${CMAKE_CURRENT_SOURCE_DIR}/runner)
 target_link_libraries(libretro.host PRIVATE nesturbator ${CMAKE_DL_LIBS})
 target_compile_definitions(libretro.host PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)

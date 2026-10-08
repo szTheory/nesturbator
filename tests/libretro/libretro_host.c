@@ -24,6 +24,7 @@
 #include "../../src/internal.h"
 #include "libretro.h"
 #include "nesturbator.h"
+#include "movie_fixture.h"
 
 #define W 256u
 #define H 240u
@@ -226,7 +227,10 @@ static int16_t RETRO_CALLCONV input(unsigned port, unsigned device, unsigned ind
     return (host_buttons[port] & button_bits[id]) != 0u ? 1 : 0;
 }
 
-static void check_input_frame_parity(unsigned char *image, size_t image_size)
+static void compare_with_ppm(const char *path);
+
+static void check_input_frame_parity(unsigned char *image, size_t image_size, const char *runner,
+                                     const char *rom_path, const char *ppm_path)
 {
     static const uint8_t program[] = {
         0xa9, 0x3f, 0x8d, 0x06, 0x20, 0xa9, 0x00, 0x8d, 0x06, 0x20, 0xa9, 0x01, 0x8d, 0x16, 0x40,
@@ -262,13 +266,42 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size)
     game.size = image_size;
     CHECK(p_load_game(&game));
 
-    host_buttons[0] = NESTURBATOR_BUTTON_A;
-    host_buttons[1] = NESTURBATOR_BUTTON_B | NESTURBATOR_BUTTON_LEFT;
+    host_buttons[0] = MOVIE_FIXTURE_PORT0;
+    host_buttons[1] = MOVIE_FIXTURE_PORT1;
     input_calls = 0;
     video_calls = 0;
     p_run();
     CHECK_EQ_U64(video_calls, 1u);
     CHECK_EQ_U64(input_calls, 16u);
+
+    /* Replay the same owned fixture through the runner and compare host pixels. */
+    {
+        unsigned char movie_bytes[20] = {'N', 'M', 'O', 'V', 'I', 'E', '1', 0,
+                                         1,   0,   0,   0,   1,   0,   0,   0,
+                                         MOVIE_FIXTURE_PORT0, 0, MOVIE_FIXTURE_PORT1, 0};
+        char movie_path[4096];
+        char command[16384];
+        FILE *rom = fopen(rom_path, "wb");
+        FILE *movie = NULL;
+        CHECK(rom != NULL);
+        if (rom != NULL) {
+            CHECK(fwrite(image, 1, image_size, rom) == image_size);
+            CHECK(fclose(rom) == 0);
+        }
+        CHECK(snprintf(movie_path, sizeof movie_path, "%s.movie", rom_path) > 0);
+        movie = fopen(movie_path, "wb");
+        CHECK(movie != NULL);
+        if (movie != NULL) {
+            CHECK(fwrite(movie_bytes, 1, sizeof movie_bytes, movie) == sizeof movie_bytes);
+            CHECK(fclose(movie) == 0);
+        }
+        CHECK(snprintf(command, sizeof command,
+                       "\"%s\" --rom \"%s\" --movie \"%s\" --dump-frame 1:\"%s\"",
+                       runner, rom_path, movie_path, ppm_path) > 0);
+        CHECK_EQ_U64(system(command), 0u);
+        compare_with_ppm(ppm_path);
+        remove(movie_path);
+    }
 
     memset(&cfg, 0, sizeof cfg);
     cfg.size = (uint32_t)sizeof cfg;
@@ -554,7 +587,7 @@ int main(int argc, char **argv)
     CHECK_EQ_U64(video_calls, 2);
     CHECK(memcmp(frame, first_content_frame, sizeof frame) == 0);
     p_unload_game();
-    check_input_frame_parity(dummy_bytes, sizeof dummy_bytes);
+    check_input_frame_parity(dummy_bytes, sizeof dummy_bytes, argv[4], argv[5], argv[3]);
     video_calls = 0;
     batch_calls = 0;
     batch_frames = 0;
