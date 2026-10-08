@@ -42,6 +42,12 @@ static void test_sprite_pixel_is_composed_and_hits_background(void)
 static void test_ninth_in_range_sprite_sets_overflow(void)
 {
     setup();
+    for (uint32_t i = 0; i < 8u; i++)
+        nes.ppu.oam[i * 4u] = 0u;
+    nesturbator__ppu_run_until(&nes, 341u * 8u);
+    CHECK_EQ_U64(nes.ppu.status & 0x20u, 0u);
+
+    setup();
     for (uint32_t i = 0; i < 9u; i++)
         nes.ppu.oam[i * 4u] = 0u;
     nesturbator__ppu_run_until(&nes, 341u * 8u);
