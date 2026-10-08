@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 # Phase 3 baseline: this SHA-256 follows the mapper-0 cartridge API. It is a
 # temporary guard, not a permanent repository-wide freeze.
-set(PHASE3_DECLARATIONS_SHA256 "db8ac431b73e1f9a19cd8a093230e3f0d0dbfb7ef8ed6d8be59f7ddc2caf5720")
+set(PHASE3_DECLARATIONS_SHA256 "77486af68d7a95898aeda1f2427a27c7019ea15d050dac96041729e7405e8fe5")
 
 function(normalize_api source out_hash)
   string(REGEX REPLACE "/\\*([^*]|\\*+[^*/])*\\*+/" "" text "${source}")
