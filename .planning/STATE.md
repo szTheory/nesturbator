@@ -2,18 +2,18 @@
 gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: A real game in RetroArch
-current_plan: 5
+current_plan: 6
 status: executing
-stopped_at: Completed 03-10-PLAN.md
-last_updated: "2026-10-08T17:25:03.212Z"
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-10-08T17:35:36.519Z"
 last_activity: 2026-10-08
 last_activity_desc: Phase 01 code-review fixes recorded; Phase 03 ready to plan; local RetroArch test failure carried forward
-state_head: c16e82ec9f8a19ae9656927ab93819c727e44a7c
+state_head: 2e7c0206f5fda514f9ca28d3d1145e12cc3cede4
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 36
-  completed_plans: 27
+  completed_plans: 28
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-10-06)
 ## Current Position
 
 Phase: 03 (A real game in RetroArch) — READY TO EXECUTE
-Current Plan: 5
+Current Plan: 6
 Total Plans in Phase: 13
-Plan: 5 of 13 (03-01 complete)
+Plan: 6 of 13 (03-01 complete)
 Status: Ready to execute
 Last activity: 2026-10-08 — Phase 01 complete, transitioned to Phase 03
 
@@ -87,6 +87,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03 P09 | 7 min | 2 tasks | 7 files |
 | Phase 03 P02 | 5min | 1 tasks | 6 files |
 | Phase 03 P10 | 7 min | 1 tasks | 14 files |
+| Phase 03 P03 | 11min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Replay and libFuzzer call the same LLVMFuzzerTestOneInput function through public cartridge load, unload, and instance destruction.
 - [Phase 03]: Use synthetic, manifest-listed corpus bytes and do not fetch a ROM or fuzz corpus at runtime.
 - [Phase 03]: Require Clang for the optional libFuzzer build and instrument the core with fuzzer coverage plus ASan/UBSan in Linux nightly.
+- [Phase 03]: Write native pixels into the caller-owned pitched output buffer at visible PPU dots to preserve the 64 KiB instance allocation contract.
+- [Phase 03]: Select mapper-0 CIRAM horizontal or vertical mirroring from iNES flags 6 bit 0.
 
 ### Pending Todos
 
@@ -137,6 +140,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-08T17:25:03.157Z
-Stopped at: Completed 03-10-PLAN.md
+Last session: 2026-10-08T17:35:36.468Z
+Stopped at: Completed 03-03-PLAN.md
 Resume file: None

@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 5
+open_count: 6
 waived_count: 0
 fixed_count: 0
-total_count: 5
-last_updated: 2026-10-08T17:24:58.129Z
+total_count: 6
+last_updated: 2026-10-08T17:35:40.416Z
 ---
 
 # Broken Windows Ledger
@@ -20,6 +20,7 @@ last_updated: 2026-10-08T17:24:58.129Z
 | 3 | 02 | deviation | scripts/phase2_outcomes.sh |  | A metadata mismatch retry could bypass the counter increment, and pending outcomes shared failure's exit code; both were corrected. | open |  | 2026-10-06T17:13:00.823Z |  |
 | 4 | 03 | deviation | .planning/phases/03-a-real-game-in-retroarch/03-02-SUMMARY.md |  | Task carried tdd=true but lacked a test-first RED commit; documented for phase TDD review. | open |  | 2026-10-08T17:15:25.758Z |  |
 | 5 | 03 | unrun-verify | .github/workflows/nightly.yml |  | The hosted Linux nightly libFuzzer run is not verified because this branch is local-only and no Actions run exists. | open |  | 2026-10-08T17:24:58.129Z |  |
+| 6 | 03 | deviation | src/frame.c |  | Framebuffer is caller-owned and written per visible dot to preserve the existing 64 KiB instance allocator contract. | open |  | 2026-10-08T17:35:40.416Z |  |
 
 ````json
 [
@@ -85,6 +86,19 @@ last_updated: 2026-10-08T17:24:58.129Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-10-08T17:24:58.129Z",
+    "resolved_at": null,
+    "milestone": null
+  },
+  {
+    "id": 6,
+    "kind": "deviation",
+    "phase": "03",
+    "file": "src/frame.c",
+    "line": null,
+    "description": "Framebuffer is caller-owned and written per visible dot to preserve the existing 64 KiB instance allocator contract.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-10-08T17:35:40.416Z",
     "resolved_at": null,
     "milestone": null
   }
