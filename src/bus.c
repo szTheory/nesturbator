@@ -22,26 +22,7 @@ static void cycle(struct nesturbator *nes)
     ppu_catch_up(nes);
 }
 
-static void oam_dma(struct nesturbator *nes, uint8_t page)
-{
-    /* RDY takes effect after the $4014 write. A halt cycle is always spent;
-       an extra alignment cycle is needed when the write leaves the CPU on
-       the even phase. Each source byte uses the ordinary CPU bus decoder,
-       and each destination byte occupies a separate put cycle. [HWC.01] */
-    uint8_t align = (uint8_t)(((nes->ticks / 24u) & 1u) == 0u);
-    uint16_t halted_read = nes->cpu.pc;
-    (void)nesturbator__bus_read(nes, halted_read);
-    if (align != 0u)
-        (void)nesturbator__bus_read(nes, halted_read);
-    for (uint16_t offset = 0u; offset < 256u; offset++) {
-        uint8_t value = nesturbator__bus_read(nes, (uint16_t)(((uint16_t)page << 8) | offset));
-        cycle(nes);
-        nes->bus.open_bus = value;
-        nesturbator__ppu_register_write(nes, 0x2004u, value);
-    }
-}
-
-uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
+static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
 {
     cycle(nes);
     /* CPU RAM mirrors, PPU registers, and NROM PRG are decoded here. */
@@ -56,6 +37,34 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
     return nes->bus.open_bus;
 }
 
+static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
+{
+    /* RDY takes effect after the $4014 write. A halt cycle is always spent;
+       an extra alignment cycle is needed when the write leaves the CPU on
+       the even phase. Each source byte uses the ordinary CPU bus decoder,
+       and each destination byte occupies a separate put cycle. [HWC.01] */
+    uint8_t align = (uint8_t)(((nes->ticks / 24u) & 1u) == 0u);
+    (void)bus_read_cycle(nes, halted_read);
+    if (align != 0u)
+        (void)bus_read_cycle(nes, halted_read);
+    for (uint16_t offset = 0u; offset < 256u; offset++) {
+        uint8_t value = bus_read_cycle(nes, (uint16_t)(((uint16_t)page << 8) | offset));
+        cycle(nes);
+        nes->bus.open_bus = value;
+        nesturbator__ppu_register_write(nes, 0x2004u, value);
+    }
+}
+
+uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
+{
+    if (nes->bus.oam_dma_pending != 0u) {
+        uint8_t page = nes->bus.oam_dma_page;
+        nes->bus.oam_dma_pending = 0u;
+        oam_dma(nes, page, addr);
+    }
+    return bus_read_cycle(nes, addr);
+}
+
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value)
 {
     cycle(nes);
@@ -66,6 +75,7 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
         nesturbator__ppu_register_write(nes, reg, value);
     } else if (addr == 0x4014u) {
-        oam_dma(nes, value);
+        nes->bus.oam_dma_page = value;
+        nes->bus.oam_dma_pending = 1u;
     }
 }

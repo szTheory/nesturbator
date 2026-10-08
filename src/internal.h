@@ -48,6 +48,7 @@ struct nesturbator__cpu {
 struct nesturbator__bus {
     uint8_t ram[2048];
     uint8_t open_bus;
+    uint8_t oam_dma_pending, oam_dma_page;
 };
 
 struct nesturbator__ppu {

@@ -141,9 +141,10 @@ typedef struct nesturbator_info {
  * horizontal/vertical flip, 8x8 or 8x16 pattern selection and the priority bit;
  * `$2001` controls left-edge clipping. Sprite-zero hit and overflow are
  * tracked in PPU status at their scanline/pixel timing. Display conversion is
- * separate. A CPU write to `$4014` reads one 256-byte page through the normal
- * bus and writes OAM starting at `$2003`'s address; it stalls the CPU for 513
- * or 514 cycles by cycle parity while PPU time continues.
+ * separate. A CPU write to `$4014` queues an OAM DMA. The next CPU read is
+ * halted while it reads one 256-byte page through the normal bus and writes
+ * OAM starting at `$2003`'s address; it stalls the CPU for 513 or 514 cycles
+ * by cycle parity while PPU time continues.
  *
  * Audio: mono signed 16-bit samples at the info sample rate. A frame yields
  * 798 or 799 samples; the fraction carries over to the next frame. */
