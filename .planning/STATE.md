@@ -3,18 +3,18 @@ gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: A real game in RetroArch
 current_plan: 8
-status: executing
-stopped_at: 03-08 hosted RetroArch candidate passed on c5ec53b; final local workflow checks pass, publish the required-gate promotion and rerun the full matrix
-last_updated: "2026-10-08T23:26:44.000Z"
+status: complete
+stopped_at: Phase 03 complete; next run `$gsd-discuss-phase 04`
+last_updated: "2026-10-08T23:50:04.000Z"
 last_activity: 2026-10-08
-last_activity_desc: RetroArch candidate proof is recorded; required-gate promotion, matrix inputs, and target-scoped MSVC fixes pass local checks and are ready to publish
-state_head: c5ec53b5402b3141f0fef13d4724f436d13f48c6
+last_activity_desc: Phase 03 plan 08 passed exact-head CI, required RetroArch frame equality, six-platform hash equality, and nightly vector/fuzz gates
+state_head: 0ba7b8127f13bd06a6d1d35f7ff3dee6aa7c95d2
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 36
-  completed_plans: 35
-  percent: 50
+  completed_plans: 36
+  percent: 75
 ---
 
 # Project State
@@ -24,23 +24,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-06)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 3 — A real game in RetroArch
+**Current focus:** Phase 4 — Sound
 
 ## Current Position
 
-Phase: 03 (A real game in RetroArch) — EXECUTING
-Current Plan: 03-08 (Hosted RetroArch validation checkpoint)
+Phase: 03 (A real game in RetroArch) — COMPLETE
+Current Plan: 03-08 (Hosted RetroArch and six-platform hash gates)
 Total Plans in Phase: 13
-Plans complete: 12 of 13; Plan 03-08 has local implementation, all four local workflow presets pass, and the hosted RetroArch candidate passes exact screenshot equality on `c5ec53b`.
-Status: Checkpoint — candidate proven; final required-matrix run pending
-Last activity: 2026-10-08 — hosted frame-60 comparison passed; promote the tested job and repair the unrelated baseline/hash-inventory/MSVC CI issues
+Plans complete: 13 of 13.
+Status: PR #18 has green exact-head required CI and is ready for its authorized squash merge.
+Last activity: 2026-10-08 — the required RetroArch screenshot, all six platform hash inventories, and nightly full-vector/fuzz checks passed on `0ba7b812`.
 
-Progress: [█████░░░░░] 50%
+Progress: [███████░░░] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 35
+- Total plans completed: 36
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -50,7 +50,7 @@ Progress: [█████░░░░░] 50%
 |-------|-------|-------|----------|
 | 01 | 12 | - | - |
 | 02 | 11 | - | - |
-| 03 | 12 | - | - |
+| 03 | 13 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -134,6 +134,7 @@ Recent decisions affecting current work:
 - [Phase 03]: Model PPU I/O bus decay at the conservative end of the documented 3–30 ms range using integer dot counts.
 - [Phase 03]: CI uses the fetched protected-main scoreboard bytes; confirmed absence after successful lookup supplies an empty baseline.
 - [Phase 03]: Detached local runs use the committed scoreboard-main.txt snapshot; CI requires the workflow-provided baseline path.
+- [Phase 03]: Require hosted six-platform hash equality and released-RetroArch screenshot equality in `CI required`; retain evidence artifacts and skip owner UAT when these machine checks cover the behavior.
 
 ### Pending Todos
 
@@ -141,12 +142,7 @@ None.
 
 ### Blockers/Concerns
 
-- **Phase 03 local CI:** after the hosted-build fixes, `cmake --workflow --preset ci` passed 346/346, ASan 344/344, no-float 5/5, and hygiene 8/8. The two local RetroArch launch tests skip after the macOS GUI session aborts with empty output; hosted `retroarch-e2e` supplies the required released-app proof.
-- **Phase 03 hosted CI history:** run 37857200684 for `389e4c7` initially failed before candidate asset installation because its job lacked the protected-main scoreboard baseline; GCC conversion/format-truncation warnings and MSVC C4310 were also fixed in follow-up commits. Run 37858136711 for `f5888f2` exposed further test fixture warnings, fixed in `c5ec53b`.
-- **Phase 03 sanitizer timeout:** run 37857200684 exceeded the old two-minute ASan job limit (2m14s). The workflow limit is now five minutes.
-- **Phase 03 hosted matrix follow-up:** PR run 37858960926 and candidate run 37859023685 exposed three independent CI wiring/portability issues: the ASan job lacked the protected-main scoreboard baseline, six-platform hash collection omitted `MOVIE_WRITER`, and two movie test targets hit MSVC's C4996 warning. Local fixes pass the exact hash command; hosted full-matrix evidence is pending.
-- **Phase 03 RetroArch E2E:** exact-commit run 37859023685 on `c5ec53b5402b3141f0fef13d4724f436d13f48c6` passed the local suite, verified the official DMG SHA-256 and RetroArch 1.22.2, launched Nesteroids frame 60 without changing the real home, captured a 1503-byte screenshot, and proved pixel equality with the runner. Artifact `retroarch-candidate-37859023685` (ID `11584984604`) contains the asset and frame evidence. The workflow changes configure this proven job as required `retroarch-e2e`, retaining `retroarch-e2e-frames`.
-- WR-08 is resolved in plan 02-01: `release-as` was removed in `30197fe` and guarded by `release.no_release_as`.
+None for Phase 03. Clean-room source provenance remains an irreducible owner judgment, as recorded in Phase 02.
 
 ### Quick Tasks Completed
 
@@ -165,6 +161,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-08T23:26:44.000Z
-Stopped at: 03-08 candidate passed and local workflow checks pass; publish required-gate promotion and CI matrix fixes, then verify all exact-commit checks
-Resume file: .planning/phases/03-a-real-game-in-retroarch/03-08-CHECKPOINT.md
+Last session: 2026-10-08T23:50:04.000Z
+Stopped at: Phase 03 complete; after PR #18 is squash-merged, discuss Phase 04
+Resume file: .planning/phases/03-a-real-game-in-retroarch/03-08-SUMMARY.md

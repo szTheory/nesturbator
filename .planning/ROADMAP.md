@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: A test frame in RetroArch** - The library, runner and libretro core build, test and release on six platforms and show a built-in test frame in RetroArch (completed 2026-10-03)
 - [x] **Phase 2: The CPU matches the public vectors** - Every opcode matches the public 65x02 vectors on final state and on every bus cycle (completed 2026-10-06)
-- [ ] **Phase 3: A real game in RetroArch** - NROM games render and take controller input, with frame hashes equal on every platform
+- [x] **Phase 3: A real game in RetroArch** - NROM games render and take controller input, with frame hashes equal on every platform (completed 2026-10-08)
 - [ ] **Phase 4: Sound** - NROM games play with sound, with audio hashes equal on every platform
 
 ## Phase Details
@@ -129,11 +129,11 @@ Plans:
 **Requirements**: GAME-01, GAME-02, GAME-03, GAME-04, GAME-05, GAME-06
 **Success Criteria** (what must be TRUE):
   1. The runner loads an iNES or NES 2.0 file for mapper 0, and exits non-zero with a message on a malformed, truncated or oversized file; a counting-allocator test shows a rejected file allocates nothing, `ctest -R fuzz.regress` replays the loader's corpus without a crash on every platform, and the libFuzzer target runs nightly in CI.
-  2. The runner's frames from the committed open-licence NROM games match their recorded hashes on all six platforms, the libretro test program receives equal frames, and `ctest -L retroarch` loads one of the games in RetroArch and its screenshot matches the runner's frame.
+  2. The runner's frames from the committed open-licence NROM games match their recorded hashes on all six platforms, the libretro test program receives equal frames, and the required hosted `retroarch-e2e` job verifies a released RetroArch screenshot against the runner's frame and retains the evidence artifact.
   3. `nesturbator-run --movie FILE` replays recorded controller input and prints the same frame hashes on every run, and the libretro test program, fed the same input, receives equal frames.
   4. The runner runs AccuracyCoin and reads each result from RAM; the results equal the committed scoreboard file, a test fails if that file loses a pass that `main` has, and every test on pages 2 and 17 passes.
 
-**Plans**: 12/13 plans executed
+**Plans**: 13/13 plans complete
 Plans:
 **Wave 1**
 - [x] 03-01-PLAN.md — Generated mapper-0 tracer through runner/libretro and conserved frame clock
@@ -172,7 +172,7 @@ Plans:
 - [x] 03-13-PLAN.md — Cross-platform protected-main scoreboard baseline gate
 
 **Wave 13** *(blocked on Wave 12 completion)*
-- [ ] 03-08-PLAN.md — Six-platform hashes and required RetroArch hosted gate
+- [x] 03-08-PLAN.md — Six-platform hashes and required RetroArch hosted gate
 
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md`, `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`, `.planning/preparation/LIBRETRO-AND-RUNNER.md`
@@ -201,5 +201,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
 | 2. The CPU matches the public vectors | 11/11 | Complete    | 2026-10-06 |
-| 3. A real game in RetroArch | 12/13 | In Progress | - |
+| 3. A real game in RetroArch | 13/13 | Complete | 2026-10-08 |
 | 4. Sound | 0/TBD | Not started | - |

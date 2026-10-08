@@ -1,34 +1,34 @@
-# Phase 03 Plan 08: Hosted RetroArch Trial Checkpoint
+# Phase 03 Plan 08: Completion Checkpoint
 
-**Status:** Incomplete pending the final required CI run. The six-platform hash inventory is implemented, and hosted RetroArch frame equality passed on exact commit `c5ec53b`; local workflow changes promote that check to `ci-required`.
+**Status:** Complete. The phase's recurring game, movie, six-platform hash, and released-RetroArch checks are automated; no owner gameplay or screenshot UAT remains.
 
-## Completed Work
+## Required Hosted Evidence
 
-- Commit `d671a65` validates the exact 30 game and movie hash keys, rejects incomplete or duplicate generated frame rows, and checks six nonempty byte-identical CI artifacts. It also reports nightly ROM-loader fuzz outcomes.
-- Commit `b3b94fd` adds a real-game frame-60 RetroArch driver path, a `retroarch.game` CTest registration, and an opt-in `macos-15` candidate job excluded from `ci-required`.
-- Candidate asset: official RetroArch v1.22.2 universal macOS DMG at `https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg`.
-- Locally measured SHA-256: `81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434`. The complete 232,801,022-byte image passes `hdiutil verify`; its embedded app reports version 1.22.2 and architectures `x86_64 arm64`.
-- Frame 60 of the manifest-listed Nesteroids image is its visible title screen and is the runner/RetroArch comparison target.
+- Implementation commit: `0ba7b8127f13bd06a6d1d35f7ff3dee6aa7c95d2`.
+- CI run `37860982545`: all six platform build/test legs, hash equality, ASan, no-float, hygiene, the Conventional Commit title check, `retroarch-e2e`, and `CI required` passed.
+- Nightly run `37860982588` on the same commit: `vectors-full` and `rom-loader-fuzz` passed.
+- The official RetroArch 1.22.2 DMG checksum matched `81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434`. Nesteroids frame 60 produced a 1503-byte screenshot that compared equal to the runner's frame 60.
+- Artifact `retroarch-e2e-frames`, ID `11585683202`, retains the asset record, runner image, and RetroArch screenshot.
+- The six platform hash artifacts each contain the same sorted 30-row inventory; `hash-equality` validates row shape, expected keys, and byte equality.
 
 ## Local Verification
 
-- `runner.write_hashes` and `runner.write_hashes.content`: passed.
-- `retroarch.compare` and `retroarch.compare.cli`: passed.
-- `cmake --workflow --preset ci`: 346/346 passed, including packaging, after the hosted-build fixes. `retroarch.testframe` and `retroarch.game` skipped only because the local macOS GUI session aborted RetroArch with empty stdout/stderr; hosted `retroarch-e2e` supplies required released-app proof.
+- `cmake --workflow --preset ci`: 346/346 passed. The two optional local RetroArch launches skipped after the GUI session aborted; the required hosted E2E passed.
 - `cmake --workflow --preset asan`: 344/344 passed.
 - `cmake --workflow --preset nofp`: 5/5 passed.
-- `cmake --workflow --preset hygiene`: 8/8 passed after formatting `runner/main.c` with clang-format 18.
-- `git diff --check`: passed.
-- Hosted run `37857200684` tested commit `389e4c7e6cf5d7783ae85aabec1465de5fafedb4`. Its candidate job stopped in `accuracy.scoreboard` because the job did not run `prepare_scoreboard_baseline.cmake`; the upload contains no asset evidence. This is an invalid/inconclusive RetroArch trial, not an arm64 compatibility result.
-- The same hosted run exposed GCC 14 `-Wconversion` and `-Wformat-truncation` errors, plus MSVC C4310 in NMI status masking. These are fixed locally with explicit bounded arithmetic/string formats and a representable status mask.
-- Hosted `macos-15` candidate success and screenshot equality remain unverified; no release compatibility or pixel-equality claim is made yet.
-- The first hosted run also hit the ASan job's two-minute timeout (2m14s). The next PR run increases that job ceiling to five minutes based on this observed duration.
-- Hosted retry run `37858136711` was dispatched against exact commit `f5888f216e7e3edd95e13bfb3956f2e7a805a101` with `retroarch_trial=true`. Its Linux and Windows matrix exposed strict-warning errors in test fixtures (`test_cartridge.c`, `test_sprites.c`, and the MSVC CRT warning in `accuracy.scoreboard`); these fixes pass all relevant local presets.
-- Candidate run `37859023685` on exact commit `c5ec53b5402b3141f0fef13d4724f436d13f48c6` completed its local suite, verified the pinned DMG SHA-256 and RetroArch 1.22.2, launched the game in an isolated HOME/CFFIXED_USER_HOME/XDG environment, left the real home unchanged, captured a 1503-byte screenshot, and passed exact pixel comparison for frame 60. Artifact `retroarch-candidate-37859023685` (ID `11584984604`) preserves the evidence. Local workflow changes promote this passing job to required CI as `retroarch-e2e` and retain `retroarch-e2e-frames`.
-- Hosted full CI runs `37858960926` and `37859023685` also found: the ASan job lacked its protected-main scoreboard baseline, the six-platform hash step omitted `MOVIE_WRITER`, and the movie test helper/writer lacked target-scoped MSVC CRT definitions. Those workflow and target fixes are local; the exact `write_hashes.cmake` invocation passed locally with the writer argument.
+- `cmake --workflow --preset hygiene`: 8/8 passed.
+- The six downloaded hash artifacts also passed the corrected field/schema and byte-equality check locally.
 
-## Next
+## Follow-up Fixes
 
-Publish the required-gate promotion and matrix fixes. Verify the exact-head PR run passes the six-platform builds, protected-main scoreboard, hash equality, ASan, no-float, hygiene, title, and required `retroarch-e2e`; confirm `retroarch-e2e-frames` is retained for that same head. The candidate already passes on its exact implementation commit, so no architecture fallback or owner gameplay check is needed.
+- Windows exposed shell-quoting failures in the movie and libretro test subprocesses. `tests/test_process.h` now launches children directly on Windows and POSIX, preserving test output capture without invoking a command shell.
+- The hosted aggregate validator expected seven whitespace fields even though the generated rows contain six. It now validates the actual `key frame ticks value sha256 digest` row shape.
+- The formatter failure during the first helper run was fixed before the passing exact-head CI run.
 
-The existing user edits to `.planning/config.json` and deletion of `.planning/HANDOFF.json` are preserved and unstaged.
+## Continuation
+
+The D-11 automation-first policy remains in `.planning/PROJECT.md` and Phase 03 context. Do not repeat a manual RetroArch trial or ask for owner gameplay UAT; the required machine evidence is retained in CI.
+
+After PR #18 is squash-merged, the next GSD command is `$gsd-discuss-phase 04`.
+
+The pre-existing local `.planning/config.json` edit and `.planning/HANDOFF.json` deletion were preserved and excluded from the PR.
