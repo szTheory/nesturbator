@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "../check.h"
+#include "../../src/internal.h"
 #include "libretro.h"
 #include "nesturbator.h"
 
@@ -318,6 +319,47 @@ done:
     image[16] = 0xa9u;
 }
 
+static void check_ppu_frame_edges(void)
+{
+    nesturbator_config cfg;
+    nesturbator *probe = NULL;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK(nesturbator_create(&cfg, &probe) == NESTURBATOR_OK);
+    if (probe == NULL)
+        return;
+
+    probe->ppu.scanline = 241u;
+    probe->ppu.dot = 0u;
+    probe->ppu.control = 0x80u;
+    nesturbator__ppu_run_until(probe, 8u);
+    CHECK((probe->ppu.status & 0x80u) != 0u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 1u);
+    (void)nesturbator__bus_read(probe, 0x2002u);
+    CHECK((probe->ppu.status & 0x80u) == 0u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 0u);
+
+    probe->ppu.ppu_ticks = 0u;
+    probe->ppu.scanline = 261u;
+    probe->ppu.dot = 339u;
+    probe->ppu.mask = 0x08u;
+    probe->ppu.odd_frame = 1u;
+    nesturbator__ppu_run_until(probe, 8u);
+    CHECK_EQ_U64(probe->ppu.scanline, 0u);
+    CHECK_EQ_U64(probe->ppu.dot, 0u);
+    CHECK_EQ_U64(probe->ppu.odd_frame, 0u);
+
+    probe->ppu.ppu_ticks = 0u;
+    probe->ppu.scanline = 261u;
+    probe->ppu.dot = 339u;
+    probe->ppu.odd_frame = 0u;
+    nesturbator__ppu_run_until(probe, 8u);
+    CHECK_EQ_U64(probe->ppu.scanline, 261u);
+    CHECK_EQ_U64(probe->ppu.dot, 340u);
+    nesturbator_destroy(probe);
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
@@ -388,6 +430,7 @@ int main(int argc, char **argv)
     dummy_bytes[16u + 0x3ffeu] = 0x00;
     dummy_bytes[16u + 0x3fffu] = 0x80;
     check_core_timing_and_jam(dummy_bytes, sizeof dummy_bytes);
+    check_ppu_frame_edges();
     memset(&dummy, 0, sizeof dummy);
     dummy.data = dummy_bytes;
     dummy.size = sizeof dummy_bytes;

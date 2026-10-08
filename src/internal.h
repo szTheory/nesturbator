@@ -60,6 +60,7 @@ struct nesturbator__ppu {
     uint64_t ppu_ticks;
     uint16_t scanline;
     uint16_t dot;
+    uint8_t odd_frame;
 };
 
 struct nesturbator__cartridge {
