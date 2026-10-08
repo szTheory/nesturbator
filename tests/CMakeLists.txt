@@ -358,6 +358,26 @@ foreach(h 0 1 2 3 4 5 6 7 8 9 a b c d e f)
 endforeach()
 nesturbator_vector_tests(${NESTURBATOR_ALL_OPCODES})
 
+# D-08: reject decimal vector limits that exceed their uint32 bounds instead
+# of allowing arithmetic overflow to wrap them back into the accepted range.
+set(vector_chunks_overflow_cmd "$<TARGET_FILE:cpu.vectors>"
+  "${PROJECT_SOURCE_DIR}/tests/vectors/65x02-sample.n65v" a9 4294967552 100)
+add_test(NAME cpu.vectors.usage.overflow.chunks
+  COMMAND ${CMAKE_COMMAND}
+    "-DCMD=${vector_chunks_overflow_cmd}"
+    -DEXPECT_EXIT=2 -DIGNORE_STDOUT=ON
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+set_tests_properties(cpu.vectors.usage.overflow.chunks PROPERTIES LABELS vectors)
+
+set(vector_per_chunk_overflow_cmd "$<TARGET_FILE:cpu.vectors>"
+  "${PROJECT_SOURCE_DIR}/tests/vectors/65x02-sample.n65v" a9 256 4294977296)
+add_test(NAME cpu.vectors.usage.overflow.per_chunk
+  COMMAND ${CMAKE_COMMAND}
+    "-DCMD=${vector_per_chunk_overflow_cmd}"
+    -DEXPECT_EXIT=2 -DIGNORE_STDOUT=ON
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+set_tests_properties(cpu.vectors.usage.overflow.per_chunk PROPERTIES LABELS vectors)
+
 # D-02, D-06: vecconv converts the compact layout of 02.json and runs its 3
 # JAM tests through the CPU. The script's exit status decides the test.
 add_test(NAME vecconv.02
