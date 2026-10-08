@@ -12,9 +12,9 @@ provides:
   - CPU-bus OAM DMA with page reads, OAMADDR wrap, parity timing, and continued PPU advancement
 affects: [ppu, bus, frame-hashes, accuracycoin]
 actuals:
-  tokens: 4596
+  tokens: 4926
   tasks: 2
-  commits: 7
+  commits: 10
 tech-stack:
   added: []
   patterns:
@@ -48,12 +48,12 @@ coverage:
         status: pass
     human_judgment: false
 metrics:
-  duration: 15min
+  duration: 19min
   completed: 2026-10-08
   status: complete
-  commits: 7
+  commits: 10
   plan_head_before: 4dc047bead0a802134753eee412ed341f851e817
-  plan_head_after: 669ca64462c15395d91a717e87e0143861e7e4af
+  plan_head_after: 8634abe2150448f03bb57889e72e1c6c428bfec3
 ---
 
 # Phase 03 Plan 04: Sprite Composition and OAM DMA Summary
@@ -62,9 +62,9 @@ metrics:
 
 ## Performance
 
-- **Duration:** 15 min
+- **Duration:** 19 min
 - **Started:** 2026-10-08T17:33:00Z
-- **Completed:** 2026-10-08T17:48:28Z
+- **Completed:** 2026-10-08T17:52:20Z
 - **Tasks:** 2
 - **Files modified:** 7
 
@@ -80,13 +80,15 @@ metrics:
 2. **Task 2: Route CPU OAM DMA into the same rendering state** — RED `3990270`; GREEN `6156f21`.
 3. **Task 2 supplemental edge coverage** — `f730000`, `669ca64`.
 4. **Task 2 bounds safety correction** — `fda49bb`.
+5. **Task 2 scheduling follow-up** — RED `345400b`; GREEN `8634abe`.
 
-**Plan metadata:** pending.
+**Plan metadata:** `1c4e6d5` (initial summary/state close-out commit).
 
 ## TDD Gate Compliance
 
 - **Task 1 RED:** `ctest --test-dir build/ci -R '^ppu\.sprites$' --output-on-failure --output-junit ...` exited 8. The target executed and failed its planned sprite-pixel, sprite-zero, and overflow assertions; observed pixel was 15 instead of 42 and both status bits were clear. `gsd_run check tdd-red-evidence` returned `RED_EVIDENCE_OK` (`build/ci/ppu-sprites-red.json`). GREEN passed the focused test and the full CI workflow apart from the known GUI abort.
 - **Task 2 RED:** The same target exited 8 on the planned DMA content and cycle assertions; only the `$4014` write cycle elapsed and OAM remained unchanged. The classifier returned `RED_EVIDENCE_OK` (`build/ci/ppu-dma-red.json`). GREEN passed both parity cases and the focused sprite/DMA suite.
+- **Scheduling follow-up RED:** The target exited 8 because the current implementation performed the transfer inside the `$4014` write, before the next CPU read. The classifier returned `RED_EVIDENCE_OK` (`build/ci/ppu-scheduling-red.json`). The GREEN correction queues the page and starts halt/alignment on the next bus read; the focused suite passes.
 - No REFACTOR phase was needed.
 
 ## Files Created/Modified
@@ -120,12 +122,19 @@ metrics:
 - **Verification:** Focused suite and full workflow passed all non-GUI tests.
 - **Committed in:** `fda49bb`.
 
-**Total deviations:** 2 auto-fixed (one blocking build issue, one bounds bug).
+**3. [Rule 1 - Bug] Start OAM DMA at the following CPU read**
+- **Found during:** Task 2 integration review
+- **Issue:** Starting DMA inside every `$4014` write halts before subsequent writes in read-modify-write instructions have completed.
+- **Fix:** Queue the selected page and perform halt/alignment only when the next CPU read arrives, repeating that read through normal bus decoding.
+- **Verification:** Test-first evidence confirmed the early transfer; focused tests and the full workflow passed after the fix.
+- **Committed in:** `8634abe` (preceded by RED commit `345400b`).
+
+**Total deviations:** 3 auto-fixed (one blocking build issue, two correctness/safety bugs).
 **Impact on plan:** Both corrections were required for safe execution; no dependencies or architectural changes were introduced.
 
 ## Issues Encountered
 
-- `cmake --workflow --preset ci` was run after both behavior tasks. Each final run built successfully and passed 336/337 tests. The only failure was the previously observed local `retroarch.testframe`: RetroArch exited with `Subprocess aborted`, with empty stdout and stderr. No additional failing tests appeared.
+- `cmake --workflow --preset ci` was run after both behavior tasks and after the scheduling correction. Each final run built successfully and passed 336/337 tests. The only failure was the previously observed local `retroarch.testframe`: RetroArch exited with `Subprocess aborted`, with empty stdout and stderr. No additional failing tests appeared.
 - Focused `ppu.sprites` passed after each task's final changes, including both DMA cycle parities and the 8/9-sprite boundary.
 
 ## User Setup Required
@@ -139,7 +148,7 @@ The PPU now produces background/sprite native pixels and OAM DMA advances shared
 ## Self-Check: PASSED
 
 - `tests/ppu/test_sprites.c` exists and is registered as `ppu.sprites`.
-- All seven plan commits are present from `plan_head_before` through `plan_head_after`.
+- All nine task commits are present from `plan_head_before` through `plan_head_after`.
 - Modified files contain no UI-fed placeholder or unfinished TODO/FIXME stubs.
 
 ---
