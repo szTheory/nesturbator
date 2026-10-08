@@ -207,6 +207,15 @@ target_link_libraries(runner.sha256 PRIVATE nesturbator::nesturbator)
 nesturbator_warnings(runner.sha256)
 add_test(NAME runner.sha256 COMMAND runner.sha256)
 
+# GAME-03 / D-06: an empty owned movie is valid and replays zero frames.
+add_executable(runner.movie.test runner/test_movie.c)
+target_link_libraries(runner.movie.test PRIVATE nesturbator::nesturbator)
+target_include_directories(runner.movie.test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+nesturbator_warnings(runner.movie.test)
+add_test(NAME runner.movie.empty
+  COMMAND runner.movie.test $<TARGET_FILE:nesturbator-run>
+    ${CMAKE_CURRENT_BINARY_DIR}/empty.nmovie ${CMAKE_CURRENT_BINARY_DIR}/empty-movie.out)
+
 # version.txt equals the header's version macros.
 add_test(NAME version.consistency
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
