@@ -23,7 +23,7 @@ execute_process(
   RESULT_VARIABLE fetch_result
   OUTPUT_VARIABLE fetch_stdout
   ERROR_VARIABLE fetch_stderr)
-if(NOT fetch_result EQUAL 0)
+if(NOT "${fetch_result}" STREQUAL "0")
   message(FATAL_ERROR "Could not fetch protected refs/heads/main (${fetch_result}): ${fetch_stderr}")
 endif()
 
@@ -32,7 +32,7 @@ execute_process(
   RESULT_VARIABLE tree_result
   OUTPUT_VARIABLE tree_entry
   ERROR_VARIABLE tree_stderr)
-if(NOT tree_result EQUAL 0)
+if(NOT "${tree_result}" STREQUAL "0")
   message(FATAL_ERROR "Could not inspect protected-main scoreboard path (${tree_result}): ${tree_stderr}")
 endif()
 
@@ -48,7 +48,7 @@ else()
     RESULT_VARIABLE show_result
     OUTPUT_FILE "${baseline_file}"
     ERROR_VARIABLE show_stderr)
-  if(NOT show_result EQUAL 0)
+  if(NOT "${show_result}" STREQUAL "0")
     message(FATAL_ERROR "Could not retrieve protected-main scoreboard bytes (${show_result}): ${show_stderr}")
   endif()
 endif()

@@ -28,13 +28,25 @@ banks and uses the 8 KiB CHR RAM it fills during startup.
 
 The pinned MIT AccuracyCoin test ROM is also included for conformance checks.
 The CI runner drives one menu page at a time, reads result bytes from CPU RAM
-through `nesturbator_peek_cpu_ram`, and compares the named rows on pages 2 and
-17 with `tests/accuracy/scoreboard.txt`:
+through `nesturbator_peek_cpu_ram`, and compares the exact names, order, status,
+and result codes on pages 2 and 17 with `tests/accuracy/scoreboard.txt`:
 
 ```sh
 nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin.nes \
   --scoreboard tests/accuracy/scoreboard.txt
 ```
+
+Before the workflow preset, each of the six CI build lanes fetches protected
+`refs/heads/main` with tags disabled. A cross-platform CMake script exports the
+exact protected-main scoreboard bytes through
+`NESTURBATOR_SCOREBOARD_BASELINE`; fetch, path inspection, content retrieval,
+and environment handoff errors fail the job. If a successful fetch confirms
+that main has no scoreboard yet, CI supplies an empty baseline for the first
+merge. The scoreboard test requires that CI-provided path and never falls back
+to the candidate snapshot. Detached local runs use the committed
+`tests/accuracy/scoreboard-main.txt` snapshot. In both cases a prior `pass` row
+must remain present and passing; AccuracyCoin results continue to be checked
+against live emulated RAM.
 
 The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
 mirrors, and rejects other bus addresses without side effects. It is intended
