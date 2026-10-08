@@ -113,6 +113,13 @@ nesturbator_core_test(core.api core/test_api.c)
 nesturbator_core_test(core.frame core/test_frame.c)
 nesturbator_core_test(core.cartridge core/test_cartridge.c)
 
+# Focused CPU-visible PPU register and dot-boundary tests.
+add_executable(ppu.registers ppu/test_registers.c)
+target_link_libraries(ppu.registers PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.registers PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.registers)
+add_test(NAME ppu.registers COMMAND ppu.registers)
+
 # The same entry point is linked into the Linux libFuzzer binary and replayed
 # from checked-in seeds on every CI platform. Refuse an empty corpus at configure
 # time so a missing directory cannot turn this into a passing no-op.
