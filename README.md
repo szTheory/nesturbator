@@ -187,8 +187,9 @@ every emphasis, an emphasis bit raises no colour channel but its own, and
 brightness never falls down a column.
 `runner.write_hashes` runs each pinned game and the three scripted DABG
 two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
-180; `runner.write_hashes.content` requires the complete sorted inventory to
-equal `tests/runner/hashes.txt` byte for byte, with LF line endings only.
+180. It fails if any requested frame is missing or duplicated;
+`runner.write_hashes.content` requires all 30 sorted keys to equal
+`tests/runner/hashes.txt` byte for byte, with LF line endings only.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
 `runner.usage.noargs` checks that a run without `--frames` is a usage error.
@@ -334,9 +335,11 @@ The `hygiene` job runs the `hygiene` lane, `asan` runs `asan` with Clang 18,
 and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
-a different frame fails the run. The branch rules require one check, `CI
-required`, which passes only when every other job succeeded. Every action is
-pinned to a commit SHA, and Dependabot proposes updates weekly.
+a different frame fails the run. It also requires six nonempty artifacts with
+the exact 30-key game and movie inventory, rejecting duplicates, missing keys,
+extra keys and malformed hashes. The branch rules require one check,
+`CI required`, which passes only when every required job succeeded. Every
+action is pinned to a commit SHA, and Dependabot proposes updates weekly.
 
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
 04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
@@ -359,9 +362,11 @@ from `tests/vectors/pins.txt`, it fails rather than skips. Scheduled and
 main-push runs share one open issue labelled `nightly`: a failure opens it,
 or updates it with the event, head SHA, run URL and failing keys
 (`65x02/<xx>`, `fetch`, `sample-match`), and the next passing run closes it.
-It uses GitHub's per-job token: the full-run job has only `contents: read`, and
-only the report job has `issues: write`. Checkout credentials are not persisted
-and the workflow makes no commits.
+The ROM loader fuzz outcome is recorded in the job summary and included in
+scheduled and main-push failure issues. It uses GitHub's per-job token: the
+full-run job has only `contents: read`, and only the report job has
+`issues: write`. Checkout credentials are not persisted and the workflow
+makes no commits.
 
 After the Phase 2 merge, collect release, exact-commit main-push and first
 post-merge scheduled vector evidence with this read-only command (replace the

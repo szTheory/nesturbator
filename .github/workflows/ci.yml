@@ -171,16 +171,49 @@ jobs:
             exit 1
           fi
           for d in "${dirs[@]}"; do
-            if [ ! -f "$d/hashes.txt" ]; then
-              echo "::error::${d#hashes/} holds no hashes.txt"
+            if [ ! -s "$d/hashes.txt" ]; then
+              echo "::error::${d#hashes/} holds no nonempty hashes.txt"
               exit 1
             fi
           done
+
+          expected=$(mktemp)
+          actual=$(mktemp)
+          trap 'rm -f "$expected" "$actual"' EXIT
+          for game in nesteroids dabg rhde; do
+            for frame in 1 30 60 120 180; do
+              printf '%s/boot/frame %s\n' "$game" "$frame"
+            done
+          done >> "$expected"
+          for port in p0 p1 both; do
+            for frame in 1 30 60 120 180; do
+              printf 'dabg/%s/frame %s\n' "$port" "$frame"
+            done
+          done >> "$expected"
+          LC_ALL=C sort -o "$expected" "$expected"
+          first="${dirs[0]}/hashes.txt"
+          if ! LC_ALL=C sort -c "$first"; then
+            echo "::error::${dirs[0]} is not sorted"
+            exit 1
+          fi
+          if ! awk 'NF != 7 || $3 != "sha256" || length($4) != 64 || $4 !~ /^[0-9a-f]+$/ { exit 1 } { print $1 " " $2 }' "$first" > "$actual"; then
+            echo "::error::${dirs[0]} has a malformed hash row"
+            exit 1
+          fi
+          if ! LC_ALL=C sort -c "$actual" || ! cmp -s "$expected" "$actual"; then
+            echo "::error::${dirs[0]} has an incomplete, duplicated, or unexpected hash inventory"
+            diff -u "$expected" "$actual" || true
+            exit 1
+          fi
           first="${dirs[0]}/hashes.txt"
           echo "${dirs[0]#hashes/hashes-}:"
           cat "$first"
           status=0
           for d in "${dirs[@]}"; do
+            if ! cmp -s "$expected" <(awk '{ print $1 " " $2 }' "$d/hashes.txt"); then
+              echo "::error::${d#hashes/} has a different key inventory"
+              status=1
+            fi
             if ! cmp -s "$first" "$d/hashes.txt"; then
               echo "::error::${d#hashes/hashes-} differs from ${dirs[0]#hashes/hashes-}"
               cat "$d/hashes.txt"
@@ -195,7 +228,7 @@ jobs:
   ci-required:
     name: CI required
     if: always()
-    needs: [hygiene, title, build, asan, nofp, hash-equality]
+    needs: [hygiene, title, build, asan, nofp, hash-equality, retroarch-e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 1 # twice the cold run 37084642541 (4 s), rounded up to whole minutes (ENGINEERING §5)
     steps:
