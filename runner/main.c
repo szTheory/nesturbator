@@ -1,9 +1,9 @@
 /* nesturbator-run: the headless runner.
  *
- *   nesturbator-run --frames N [--hash-frame N]... [--dump-frame N:FILE]...
+ *   nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--dump-frame N:FILE]...
  *
- * Runs N frames of one instance with no cartridge; --frames is required. For each --hash-frame N it
- * prints, after frame N has run:
+ * Runs N frames, with optional mapper-0 cartridge content; --frames is required. For each
+ * --hash-frame N it prints, after frame N has run:
  *
  *   frame <N> ticks <ticks> sha256 <64 lowercase hex digits>
  *
@@ -32,11 +32,12 @@
 static int usage(const char *why)
 {
     fprintf(stderr, "nesturbator-run: %s\n", why);
-    fprintf(stderr,
-            "usage: nesturbator-run --frames N [--hash-frame N]... [--dump-frame N:FILE]...\n"
-            "  --frames N           run N frames (N >= 1)\n"
-            "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
-            "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n");
+    fprintf(stderr, "usage: nesturbator-run --frames N [--rom FILE] [--hash-frame N]... "
+                    "[--dump-frame N:FILE]...\n"
+                    "  --frames N           run N frames (N >= 1)\n"
+                    "  --rom FILE           load a mapper-0 iNES image\n"
+                    "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
+                    "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n");
     return 2;
 }
 
@@ -107,6 +108,7 @@ static void hash_frame(const uint16_t *video, char hex[65])
 /* The runner's options. Each list has room for one entry per argument. */
 typedef struct options {
     uint32_t frames;
+    const char *rom_path;
     uint32_t *hash_frames;
     uint32_t hash_count;
     uint32_t *dump_frames;
@@ -138,7 +140,11 @@ static int parse_options(int argc, char **argv, options *o)
         const char *arg = argv[i];
         const char *value = i + 1 < argc ? argv[i + 1] : NULL;
         uint32_t n;
-        if (strcmp(arg, "--dump-frame") == 0) {
+        if (strcmp(arg, "--rom") == 0) {
+            if (value == NULL || value[0] == '\0')
+                return usage("--rom needs a file path");
+            o->rom_path = value;
+        } else if (strcmp(arg, "--dump-frame") == 0) {
             const char *path;
             if (!parse_dump(value, &n, &path)) {
                 return usage("--dump-frame needs N:FILE with N of 1 or more");
@@ -211,6 +217,38 @@ int main(int argc, char **argv)
         fprintf(stderr, "nesturbator-run: nesturbator_create failed with status %d\n", (int)st);
         free_options(&opt);
         return 1;
+    }
+    if (opt.rom_path != NULL) {
+        FILE *rom = fopen(opt.rom_path, "rb");
+        long length;
+        uint8_t *bytes;
+        if (rom == NULL || fseek(rom, 0, SEEK_END) != 0 || (length = ftell(rom)) <= 0 ||
+            fseek(rom, 0, SEEK_SET) != 0) {
+            if (rom != NULL)
+                fclose(rom);
+            fprintf(stderr, "nesturbator-run: cannot read cartridge %s\n", opt.rom_path);
+            nesturbator_destroy(inst);
+            free_options(&opt);
+            return 1;
+        }
+        bytes = (uint8_t *)malloc((size_t)length);
+        if (bytes == NULL || fread(bytes, 1, (size_t)length, rom) != (size_t)length) {
+            free(bytes);
+            fclose(rom);
+            fprintf(stderr, "nesturbator-run: cannot read cartridge %s\n", opt.rom_path);
+            nesturbator_destroy(inst);
+            free_options(&opt);
+            return 1;
+        }
+        fclose(rom);
+        st = nesturbator_load_cartridge(inst, bytes, (size_t)length);
+        free(bytes);
+        if (st != NESTURBATOR_OK) {
+            fprintf(stderr, "nesturbator-run: unsupported cartridge (status %d)\n", (int)st);
+            nesturbator_destroy(inst);
+            free_options(&opt);
+            return 1;
+        }
     }
     if (opt.dump_count > 0u) {
         nesturbator_get_palette(inst, palette, 512u);

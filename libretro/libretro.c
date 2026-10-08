@@ -2,8 +2,8 @@
  * client of nesturbator.h. "Lnnn" is a line of the vendored libretro.h
  * (RetroArch v1.22.2, see PROVENANCE.md).
  *
- * Phase 1 has no cartridge: the core starts without content and shows the
- * built-in test card with silence. Loading a game returns false (D-10). */
+ * Without content the core shows its built-in test card; mapper-0 content is
+ * copied into the instance before the frontend's buffer expires. */
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -222,15 +222,15 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code)
     (void)code;
 }
 
-/* L7761. Phase 1 runs only without content (D-10): game NULL starts the test
-   card, anything else returns false. XRGB8888 is chosen here (L861); the
+/* L7761. A NULL game starts the test card; non-NULL content is loaded through
+   the public NROM API. XRGB8888 is chosen here (L861); the
    default 0RGB1555 is deprecated (L5620-5647). */
 bool retro_load_game(const struct retro_game_info *game)
 {
     enum retro_pixel_format format = RETRO_PIXEL_FORMAT_XRGB8888;
     nesturbator_config cfg;
 
-    if (game != NULL || inst != NULL) {
+    if (inst != NULL || (game != NULL && (game->data == NULL || game->size == 0u))) {
         return false;
     }
     if (env_cb == NULL || !env_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &format)) {
@@ -240,6 +240,12 @@ bool retro_load_game(const struct retro_game_info *game)
     cfg.size = (uint32_t)sizeof cfg;
     cfg.abi = NESTURBATOR_ABI_VERSION;
     if (nesturbator_create(&cfg, &inst) != NESTURBATOR_OK) {
+        inst = NULL;
+        return false;
+    }
+    if (game != NULL &&
+        nesturbator_load_cartridge(inst, game->data, game->size) != NESTURBATOR_OK) {
+        nesturbator_destroy(inst);
         inst = NULL;
         return false;
     }

@@ -3,12 +3,25 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: Phase 2, the CPU.** The library, the runner and the libretro core
-build and run. The 6502 core matches the public 65x02 test vectors on every
-opcode and every bus cycle, and does not yet drive frames.
-With no cartridge loaded, the core outputs a fixed test card and silence. The
-PPU, APU, ROM loading and the CPU running games come in later phases. The plan
-lives in [`.planning/`](.planning/).
+**Status: Phase 3, first cartridge path.** The 6502 core matches the public
+65x02 test vectors on every opcode and bus cycle. The library, runner and
+libretro core accept a generated mapper-0 iNES image with one 16 KiB PRG bank
+and one 8 KiB CHR bank; the current PPU path renders background tiles. This is
+an initial tracer, not full game compatibility. Other cartridge geometries,
+sprites and audio are still in later work. With no cartridge, the fixed test
+card and silence remain available. The plan lives in [`.planning/`](.planning/).
+
+The runner accepts content with `--rom FILE`, for example:
+
+```sh
+nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.ppm
+```
+
+Frame time advances in 24-tick CPU cycles. A frame request runs complete
+instructions through the requested boundary and reports the actual tick count,
+retaining any overshoot for the next request. Audio output is currently silent.
+If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
+CPU stays latched until the cartridge is unloaded or reloaded.
 
 ## Building
 

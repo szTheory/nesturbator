@@ -2,7 +2,7 @@
  * order a frontend such as RetroArch does (01-RESEARCH Pattern 3), then
  * compares the frame it receives with the runner's P6 image.
  *
- *   libretro.host <module> <frame1.ppm>
+ *   libretro.host <module> <testframe.ppm> <content.ppm> <runner> <generated.nes>
  *
  * The four hard-coded pixels (D-05) do not go through the shared palette
  * path, so an indexing bug there cannot cancel out in the comparison. */
@@ -17,10 +17,12 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../check.h"
 #include "libretro.h"
+#include "nesturbator.h"
 
 #define W 256u
 #define H 240u
@@ -248,16 +250,86 @@ static void compare_with_ppm(const char *path)
     CHECK_EQ_U64(mismatches, 0);
 }
 
+static void check_core_timing_and_jam(unsigned char *image, size_t image_size)
+{
+    uint16_t first[W * H], second[W * H];
+    int16_t audio[1024];
+    nesturbator_config cfg;
+    nesturbator *a = NULL, *b = NULL, *jam = NULL;
+    nesturbator_frame fa, fb;
+    uint64_t previous_ticks = 0u;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK(nesturbator_create(&cfg, &a) == NESTURBATOR_OK);
+    CHECK(nesturbator_create(&cfg, &b) == NESTURBATOR_OK);
+    if (a == NULL || b == NULL)
+        goto done;
+    CHECK(nesturbator_load_cartridge(a, image, image_size) == NESTURBATOR_OK);
+    CHECK(nesturbator_load_cartridge(b, image, image_size) == NESTURBATOR_OK);
+    for (uint64_t frame_number = 1; frame_number <= 6u; frame_number++) {
+        memset(&fa, 0, sizeof fa);
+        memset(&fb, 0, sizeof fb);
+        fa.size = (uint32_t)sizeof fa;
+        fa.video = first;
+        fa.video_pitch = W;
+        fa.audio = audio;
+        fa.audio_capacity = 1024u;
+        fb = fa;
+        fb.video = second;
+        CHECK(nesturbator_run_frame(a, &fa) == NESTURBATOR_OK);
+        CHECK(nesturbator_run_frame(b, &fb) == NESTURBATOR_OK);
+        CHECK(fa.ticks >= previous_ticks + 714732u);
+        CHECK(fa.ticks <= previous_ticks + 714900u);
+        CHECK_EQ_U64(fa.ticks % 24u, 0u);
+        previous_ticks = fa.ticks;
+        CHECK(memcmp(first, second, sizeof first) == 0);
+    }
+    image[16] = 0x02u; /* JAM */
+    CHECK(nesturbator_create(&cfg, &jam) == NESTURBATOR_OK);
+    if (jam != NULL) {
+        CHECK(nesturbator_load_cartridge(jam, image, image_size) == NESTURBATOR_OK);
+        memset(&fa, 0, sizeof fa);
+        fa.size = (uint32_t)sizeof fa;
+        fa.video = first;
+        fa.video_pitch = W;
+        fa.audio = audio;
+        fa.audio_capacity = 1024u;
+        fa.frame_number = 99u;
+        fa.ticks = 99u;
+        CHECK(nesturbator_run_frame(jam, &fa) == NESTURBATOR_STOP_JAM);
+        CHECK_EQ_U64(fa.frame_number, 99u);
+        CHECK_EQ_U64(fa.ticks, 99u);
+        fa.frame_number = 99u;
+        fa.ticks = 99u;
+        CHECK(nesturbator_run_frame(jam, &fa) == NESTURBATOR_STOP_JAM);
+        CHECK_EQ_U64(fa.frame_number, 99u);
+        CHECK_EQ_U64(fa.ticks, 99u);
+        fa.frame_number = 100u;
+        fa.ticks = 100u;
+        CHECK(nesturbator_run_frame(jam, &fa) == NESTURBATOR_STOP_JAM);
+        CHECK_EQ_U64(fa.frame_number, 100u);
+        CHECK_EQ_U64(fa.ticks, 100u);
+    }
+done:
+    nesturbator_destroy(jam);
+    nesturbator_destroy(b);
+    nesturbator_destroy(a);
+    image[16] = 0xa9u;
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
     struct retro_system_av_info av;
     struct retro_game_info dummy;
     static unsigned char dummy_bytes[16u + 16384u + 8192u];
+    static uint32_t first_content_frame[W * H];
     double fps_diff;
 
-    if (argc != 3) {
-        fprintf(stderr, "usage: libretro.host <module> <frame1.ppm>\n");
+    if (argc != 6) {
+        fprintf(stderr, "usage: libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
+                        "<generated.nes>\n");
         return 2;
     }
     if (!module_open(argv[1])) {
@@ -300,18 +372,54 @@ int main(int argc, char **argv)
     dummy_bytes[3] = 0x1a;
     dummy_bytes[4] = 1;
     dummy_bytes[5] = 1;
-    dummy_bytes[16] = 0x4c; /* JMP $8000 */
-    dummy_bytes[17] = 0x00;
-    dummy_bytes[18] = 0x80;
+    {
+        static const unsigned char program[] = {
+            0xa9, 0x3f, 0x8d, 0x06, 0x20, 0xa9, 0x00, 0x8d, 0x06, 0x20, 0xa9, 0x0f, 0x8d, 0x07,
+            0x20, 0xa9, 0x16, 0x8d, 0x07, 0x20, 0xa9, 0x27, 0x8d, 0x07, 0x20, 0xa9, 0x30, 0x8d,
+            0x07, 0x20, 0xa9, 0x20, 0x8d, 0x06, 0x20, 0xa9, 0x00, 0x8d, 0x06, 0x20, 0xa9, 0x01,
+            0x8d, 0x07, 0x20, 0xa9, 0x0a, 0x8d, 0x01, 0x20, 0x4c, 0x32, 0x80};
+        memcpy(dummy_bytes + 16u, program, sizeof program);
+        memset(dummy_bytes + 16u + 16384u + 16u, 0xff, 8u);
+    }
+    dummy_bytes[16u + 0x3ffau] = 0x00;
+    dummy_bytes[16u + 0x3ffbu] = 0x80;
     dummy_bytes[16u + 0x3ffcu] = 0x00;
     dummy_bytes[16u + 0x3ffdu] = 0x80;
+    dummy_bytes[16u + 0x3ffeu] = 0x00;
+    dummy_bytes[16u + 0x3fffu] = 0x80;
+    check_core_timing_and_jam(dummy_bytes, sizeof dummy_bytes);
     memset(&dummy, 0, sizeof dummy);
     dummy.data = dummy_bytes;
     dummy.size = sizeof dummy_bytes;
     CHECK(p_load_game(&dummy));
+    {
+        FILE *rom = fopen(argv[5], "wb");
+        char command[4096];
+        CHECK(rom != NULL);
+        if (rom != NULL) {
+            CHECK(fwrite(dummy_bytes, 1, sizeof dummy_bytes, rom) == sizeof dummy_bytes);
+            fclose(rom);
+        }
+        CHECK(snprintf(command, sizeof command,
+                       "\"%s\" --frames 1 --rom \"%s\" --dump-frame 1:\"%s\"", argv[4], argv[5],
+                       argv[3]) > 0);
+        CHECK_EQ_U64(system(command), 0);
+    }
+    p_run();
+    CHECK_EQ_U64(video_calls, 1);
+    compare_with_ppm(argv[3]);
+    CHECK(frame[0] != frame[W + 8u]);
+    memcpy(first_content_frame, frame, sizeof frame);
+    p_run();
+    CHECK_EQ_U64(video_calls, 2);
+    CHECK(memcmp(frame, first_content_frame, sizeof frame) == 0);
     p_unload_game();
+    video_calls = 0;
+    batch_calls = 0;
+    batch_frames = 0;
+    batch_nonzero = 0;
 
-    /* No content: the test card, in XRGB8888 (L861-865). */
+    /* No content remains supported: the test card, in XRGB8888. */
     pixel_format_calls = 0;
     CHECK(p_load_game(NULL));
     CHECK_EQ_U64(pixel_format_calls, 1);

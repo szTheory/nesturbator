@@ -23,7 +23,8 @@
  *     larger-size check of an older library.
  * - Struct fields are fixed-width integers and pointers only.
  * - Status codes have fixed values and are only ever appended.
- * - A call that returns a status other than NESTURBATOR_OK changes no state.
+ * - An error status changes no state. NESTURBATOR_STOP_JAM is a latched stop
+ *   condition and leaves the CPU stopped at its JAM opcode.
  * - NESTURBATOR_ABI_VERSION rises only on a breaking change to this header.
  *   Appending functions, struct fields or status codes does not raise it.
  *   The library version (NESTURBATOR_VERSION_*) is separate from it.
@@ -63,7 +64,11 @@ enum nesturbator_status {
     /* The allocator returned NULL. */
     NESTURBATOR_ERR_NO_MEMORY = 4,
     /* A caller-owned buffer is too small for the output. */
-    NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5
+    NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5,
+    /* The loaded cartridge executed a JAM opcode; the instance is latched. */
+    NESTURBATOR_STOP_JAM = 6,
+    /* Cartridge bytes are not a supported mapper-0 iNES image. */
+    NESTURBATOR_ERR_CARTRIDGE = 7
 };
 typedef enum nesturbator_status nesturbator_status;
 
@@ -86,8 +91,8 @@ typedef struct nesturbator_version {
    NULL). Any other combination is NESTURBATOR_ERR_ARGUMENT. alloc returns
    memory aligned as malloc's is: suitable for any object type, at least the
    alignment of max_align_t. free receives the size that was passed to alloc,
-   so arena allocators work. The library allocates only in nesturbator_create,
-   never while running. */
+   so arena allocators work. The library allocates at create and cartridge
+   load, never while running. */
 typedef struct nesturbator_allocator {
     void *(*alloc)(void *user, size_t size);
     void (*free)(void *user, void *ptr, size_t size);
@@ -144,7 +149,8 @@ typedef struct nesturbator_frame {
     uint32_t audio_count;    /* out: samples written to audio */
     uint64_t frame_number;   /* out: frames run by this instance, 1 after the first */
     uint64_t ticks;          /* out: emulated time in half master-clock periods
-                                since create; 714732 per NTSC frame */
+                                since create; instructions may carry residual
+                                ticks across the nominal 714732-tick boundary */
 } nesturbator_frame;
 
 /* Writes the library's version into *out. Writes nothing when out is NULL or
@@ -167,6 +173,13 @@ nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator
 /* Frees an instance through the allocator it was created with. Accepts NULL. */
 void nesturbator_destroy(nesturbator *inst);
 
+/* Copies one mapper-0 iNES cartridge into the instance. This tracer accepts
+   one 16 KiB PRG bank and one 8 KiB CHR bank. Invalid content returns
+   NESTURBATOR_ERR_CARTRIDGE without changing the instance. A loaded image
+   resets the CPU from its PRG reset vector. Unload releases cartridge state. */
+nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
+void nesturbator_unload_cartridge(nesturbator *inst);
+
 /* Writes the video and audio format into *out. Writes nothing when inst or
    out is NULL or out->size is 0; otherwise min(out->size, sizeof) bytes. */
 void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
@@ -179,7 +192,9 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * this frame's sample count, gives NESTURBATOR_ERR_BUFFER_TOO_SMALL.
  * On success it fills 256x240 pixels and audio_count samples, advances the
  * instance by one frame and writes audio_count, frame_number and ticks.
- * No cartridge: test pattern and silence. */
+ * No cartridge: test pattern and silence. A JAM opcode stops with
+ * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
+ * advance on later frame calls. Audio is currently silent. */
 nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *io);
 
 /* Copies up to `count` XRGB8888 entries (0x00RRGGBB), indexed by native

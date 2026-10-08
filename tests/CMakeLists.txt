@@ -239,13 +239,15 @@ add_test(NAME libretro.vendored
 # run-time input, so the test program depends on it to build it first.
 add_executable(libretro.host libretro/libretro_host.c)
 target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro)
-target_link_libraries(libretro.host PRIVATE ${CMAKE_DL_LIBS})
+target_link_libraries(libretro.host PRIVATE nesturbator ${CMAKE_DL_LIBS})
 target_compile_definitions(libretro.host PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(libretro.host)
-add_dependencies(libretro.host nesturbator_libretro)
+add_dependencies(libretro.host nesturbator_libretro nesturbator-run)
 add_test(NAME libretro.host
-  COMMAND libretro.host $<TARGET_FILE:nesturbator_libretro> ${NESTURBATOR_TESTFRAME_PPM})
+  COMMAND libretro.host $<TARGET_FILE:nesturbator_libretro>
+    ${NESTURBATOR_TESTFRAME_PPM} ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.ppm
+    $<TARGET_FILE:nesturbator-run> ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.nes)
 set_tests_properties(libretro.host PROPERTIES FIXTURES_REQUIRED testframe_ppm)
 
 # D-14: palgen regenerates src/palette_ntsc.c byte for byte, ignoring line
