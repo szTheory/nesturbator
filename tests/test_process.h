@@ -80,8 +80,8 @@ static int test_process_run(const char *const arguments[], const char *output_pa
         security.nLength = (DWORD)sizeof security;
         security.lpSecurityDescriptor = NULL;
         security.bInheritHandle = TRUE;
-        output = CreateFileA(output_path, GENERIC_WRITE, FILE_SHARE_READ, &security,
-                             CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        output = CreateFileA(output_path, GENERIC_WRITE, FILE_SHARE_READ, &security, CREATE_ALWAYS,
+                             FILE_ATTRIBUTE_NORMAL, NULL);
         if (output == INVALID_HANDLE_VALUE)
             return -1;
     }

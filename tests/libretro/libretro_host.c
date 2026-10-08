@@ -299,8 +299,8 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size, co
                                          0};
         char movie_path[4096];
         char frame_argument[4096];
-        const char *const command[] = {runner, "--rom", rom_path, "--movie", movie_path,
-                                       "--dump-frame", frame_argument, NULL};
+        const char *const command[] = {runner,     "--rom",        rom_path,       "--movie",
+                                       movie_path, "--dump-frame", frame_argument, NULL};
         FILE *rom = fopen(rom_path, "wb");
         FILE *movie = NULL;
         CHECK(rom != NULL);
@@ -592,7 +592,7 @@ int main(int argc, char **argv)
         }
         {
             char frame_argument[4096];
-            const char *const command[] = {argv[4], "--frames", "1", "--rom", argv[5],
+            const char *const command[] = {argv[4],        "--frames",     "1", "--rom", argv[5],
                                            "--dump-frame", frame_argument, NULL};
             CHECK(snprintf(frame_argument, sizeof frame_argument, "1:%s", argv[3]) > 0);
             CHECK_EQ_U64(test_process_run(command, NULL), 0);
