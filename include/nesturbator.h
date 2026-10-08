@@ -137,7 +137,11 @@ typedef struct nesturbator_info {
  * video[y * video_pitch]. A pixel is a palette entry 0-63 in bits 0-5 and
  * the three PPUMASK emphasis bits in bits 6-8; bits 9-15 are zero. Background
  * pixels reflect mapper-0 nametable mirroring, pattern/attribute data, scroll,
- * grayscale and emphasis. Display conversion is separate.
+ * grayscale and emphasis. Sprite pixels use OAM order, transparency, palette,
+ * horizontal/vertical flip, 8x8 or 8x16 pattern selection and the priority bit;
+ * `$2001` controls left-edge clipping. Sprite-zero hit and overflow are
+ * tracked in PPU status at their scanline/pixel timing. Display conversion is
+ * separate.
  *
  * Audio: mono signed 16-bit samples at the info sample rate. A frame yields
  * 798 or 799 samples; the fraction carries over to the next frame. */

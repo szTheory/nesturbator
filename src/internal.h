@@ -58,6 +58,10 @@ struct nesturbator__ppu {
     uint8_t nametable[2048];
     uint8_t palette[32];
     uint8_t oam[256];
+    uint8_t secondary_oam[32];
+    uint8_t sprite_count, eval_n, eval_latch, eval_target;
+    uint8_t sprite_zero[8], sprite_x[8], sprite_attr[8];
+    uint8_t sprite_lo[8], sprite_hi[8];
     uint16_t *video_output;
     uint32_t video_pitch;
     uint64_t ppu_ticks;

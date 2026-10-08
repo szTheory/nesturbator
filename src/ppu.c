@@ -1,7 +1,8 @@
 /* PPU memory, registers, dot clock and native background output. */
 #include "internal.h"
+#include <string.h>
 
-static uint16_t background_pixel(struct nesturbator *nes, uint32_t x, uint32_t y)
+static uint16_t background_pixel(struct nesturbator *nes, uint32_t x, uint32_t y, uint8_t *opaque)
 {
     uint8_t color = 0u;
     uint8_t subpalette = 0u;
@@ -34,12 +35,127 @@ static uint16_t background_pixel(struct nesturbator *nes, uint32_t x, uint32_t y
         }
     }
 
+    *opaque = color != 0u;
     /* Universal colour zero aliases $3F00 for every background subpalette. [HWP.07] */
     uint8_t palette_index = color == 0u ? 0u : (uint8_t)(subpalette * 4u + color);
     uint8_t palette_value = (uint8_t)(nes->ppu.palette[palette_index] & 0x3fu);
     if ((nes->ppu.mask & 0x01u) != 0u)
         palette_value &= 0x30u;
     return (uint16_t)(palette_value | (uint16_t)((nes->ppu.mask >> 5) & 7u) << 6);
+}
+
+static void sprite_evaluate(struct nesturbator *nes)
+{
+    struct nesturbator__ppu *ppu = &nes->ppu;
+    if (ppu->scanline > 239u)
+        return;
+    if (ppu->dot == 65u) {
+        ppu->sprite_count = 0u;
+        ppu->eval_n = 0u;
+        ppu->eval_target = (uint8_t)(ppu->scanline + 1u);
+        memset(ppu->secondary_oam, 0xff, sizeof ppu->secondary_oam);
+    }
+    if ((ppu->mask & 0x18u) == 0u)
+        return;
+    if (ppu->dot < 65u || ppu->dot > 256u)
+        return;
+
+    /* The 2C02 clears secondary OAM then alternates primary-OAM reads and
+       evaluation during dots 1-256. This captures each candidate when its
+       Y byte is evaluated, rather than sampling all of OAM at pixel time.
+       [HWP.06] */
+    if ((ppu->dot & 1u) != 0u) {
+        ppu->eval_latch = ppu->oam[(uint16_t)ppu->eval_n * 4u];
+        return;
+    }
+    uint16_t top = (uint16_t)ppu->eval_latch + 1u;
+    uint8_t height = (ppu->control & 0x20u) != 0u ? 16u : 8u;
+    if ((uint16_t)ppu->eval_target >= top && (uint16_t)ppu->eval_target < top + height) {
+        if (ppu->sprite_count < 8u) {
+            uint8_t slot = ppu->sprite_count++;
+            uint16_t base = (uint16_t)ppu->eval_n * 4u;
+            for (uint8_t byte = 0u; byte < 4u; byte++)
+                ppu->secondary_oam[(uint16_t)slot * 4u + byte] = ppu->oam[base + byte];
+            ppu->sprite_zero[slot] = ppu->eval_n == 0u;
+        } else {
+            ppu->status |= 0x20u;
+        }
+    }
+    ppu->eval_n++;
+}
+
+static uint8_t reverse_bits(uint8_t value)
+{
+    value = (uint8_t)(((value & 0x55u) << 1) | ((value >> 1) & 0x55u));
+    value = (uint8_t)(((value & 0x33u) << 2) | ((value >> 2) & 0x33u));
+    return (uint8_t)((value << 4) | (value >> 4));
+}
+
+static void sprite_fetch(struct nesturbator *nes)
+{
+    struct nesturbator__ppu *ppu = &nes->ppu;
+    if (ppu->dot != 257u)
+        return;
+    uint8_t height = (ppu->control & 0x20u) != 0u ? 16u : 8u;
+    uint16_t target = (uint16_t)ppu->scanline + 1u;
+    for (uint8_t i = 0u; i < ppu->sprite_count; i++) {
+        uint16_t base = (uint16_t)i * 4u;
+        uint8_t y = ppu->secondary_oam[base];
+        uint8_t tile = ppu->secondary_oam[base + 1u];
+        uint8_t attr = ppu->secondary_oam[base + 2u];
+        uint8_t row = (uint8_t)(target - ((uint16_t)y + 1u));
+        if ((attr & 0x80u) != 0u)
+            row = (uint8_t)(height - 1u - row);
+        uint16_t pattern;
+        if (height == 16u) {
+            pattern = (uint16_t)((tile & 1u) * 0x1000u + (tile & 0xfeu) * 16u);
+            if (row >= 8u) {
+                pattern += 16u;
+                row = (uint8_t)(row - 8u);
+            }
+        } else {
+            pattern = (ppu->control & 0x08u) != 0u ? 0x1000u : 0u;
+            pattern += (uint16_t)tile * 16u;
+        }
+        ppu->sprite_lo[i] = nesturbator__ppu_read(nes, (uint16_t)(pattern + row));
+        ppu->sprite_hi[i] = nesturbator__ppu_read(nes, (uint16_t)(pattern + row + 8u));
+        if ((attr & 0x40u) != 0u) {
+            ppu->sprite_lo[i] = reverse_bits(ppu->sprite_lo[i]);
+            ppu->sprite_hi[i] = reverse_bits(ppu->sprite_hi[i]);
+        }
+        ppu->sprite_x[i] = ppu->secondary_oam[base + 3u];
+        ppu->sprite_attr[i] = attr;
+    }
+}
+
+static uint16_t compose_pixel(struct nesturbator *nes, uint32_t x, uint32_t y)
+{
+    uint8_t bg_opaque = 0u;
+    uint16_t bg = background_pixel(nes, x, y, &bg_opaque);
+    struct nesturbator__ppu *ppu = &nes->ppu;
+    if ((ppu->mask & 0x10u) == 0u || (x < 8u && (ppu->mask & 0x04u) == 0u))
+        return bg;
+    for (uint8_t i = 0u; i < ppu->sprite_count; i++) {
+        uint8_t sx = ppu->sprite_x[i];
+        if (x < sx || x >= (uint32_t)sx + 8u)
+            continue;
+        uint8_t bit = (uint8_t)(7u - (x - sx));
+        uint8_t color = (uint8_t)(((ppu->sprite_lo[i] >> bit) & 1u) |
+                                  (((ppu->sprite_hi[i] >> bit) & 1u) << 1));
+        if (color == 0u)
+            continue;
+        if (ppu->sprite_zero[i] != 0u && bg_opaque != 0u && x != 255u &&
+            (ppu->mask & 0x08u) != 0u && (x >= 8u || (ppu->mask & 0x06u) == 0x06u))
+            ppu->status |= 0x40u;
+        if (bg_opaque != 0u && (ppu->sprite_attr[i] & 0x20u) != 0u)
+            return bg;
+        uint8_t palette = (uint8_t)(0x10u + (ppu->sprite_attr[i] & 3u) * 4u + color);
+        uint8_t value = (uint8_t)(ppu->palette[palette] & 0x3fu);
+        if ((ppu->mask & 1u) != 0u)
+            value &= 0x30u;
+        return (uint16_t)(value | (uint16_t)((ppu->mask >> 5) & 7u) << 6);
+    }
+    return bg;
 }
 
 uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr)
@@ -114,6 +230,8 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
             nes->ppu.status &= 0x1fu;
             nes->cpu.nmi_pending = 0u;
         }
+        sprite_evaluate(nes);
+        sprite_fetch(nes);
         /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] */
         /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] */
         if (nes->ppu.scanline == 261u && nes->ppu.dot == 340u && nes->ppu.odd_frame != 0u &&
@@ -137,7 +255,7 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
             nes->ppu.dot >= 1u && nes->ppu.dot <= NESTURBATOR_WIDTH && nes->ppu.video_output != NULL) {
             uint32_t x = (uint32_t)nes->ppu.dot - 1u;
             uint32_t y = (uint32_t)nes->ppu.scanline - 1u;
-            nes->ppu.video_output[(size_t)y * nes->ppu.video_pitch + x] = background_pixel(nes, x, y);
+            nes->ppu.video_output[(size_t)y * nes->ppu.video_pitch + x] = compose_pixel(nes, x, y);
         }
     }
 }

@@ -17,7 +17,7 @@ static void setup(void)
     memset(pixels, 0, sizeof pixels);
     nes.cart.bytes = header;
     nes.cart.chr = chr;
-    nes.ppu.mask = 0x14u; /* sprites and leftmost sprite pixels */
+    nes.ppu.mask = 0x1eu; /* background, sprites and leftmost pixels */
     nes.ppu.video_output = pixels;
     nes.ppu.video_pitch = NESTURBATOR_WIDTH;
     nes.ppu.palette[0] = 0x0fu;
@@ -26,6 +26,7 @@ static void setup(void)
     nes.ppu.oam[1] = 1u;
     nes.ppu.oam[2] = 0u;
     nes.ppu.oam[3] = 0u;
+    chr[0] = 0x80u;  /* background tile 0, row 0, column 0 */
     chr[16] = 0x80u; /* sprite tile 1, row 0, column 0 */
 }
 
@@ -46,9 +47,32 @@ static void test_ninth_in_range_sprite_sets_overflow(void)
     CHECK_EQ_U64(nes.ppu.status & 0x20u, 0x20u);
 }
 
+static void test_left_clipping_and_x255_hit_boundary(void)
+{
+    setup();
+    nes.ppu.mask &= (uint8_t)~0x04u;
+    nesturbator__ppu_run_until(&nes, 341u * 8u + 8u);
+    CHECK_EQ_U64(pixels[0], 0u);
+
+    setup();
+    nes.ppu.oam[3] = 255u;
+    nesturbator__ppu_run_until(&nes, 341u * 8u + 256u * 8u);
+    CHECK_EQ_U64(pixels[255], 0x2au);
+    CHECK_EQ_U64(nes.ppu.status & 0x40u, 0u);
+}
+
+static void test_sprite_is_limited_to_its_eight_pixel_row(void)
+{
+    setup();
+    nesturbator__ppu_run_until(&nes, 2u * 341u * 8u + 8u);
+    CHECK_EQ_U64(pixels[NESTURBATOR_WIDTH], 0x0fu);
+}
+
 int main(void)
 {
     test_sprite_pixel_is_composed_and_hits_background();
     test_ninth_in_range_sprite_sets_overflow();
+    test_left_clipping_and_x255_hit_boundary();
+    test_sprite_is_limited_to_its_eight_pixel_row();
     CHECK_DONE();
 }

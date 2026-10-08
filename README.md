@@ -6,9 +6,11 @@ automation, and a libretro adapter.
 **Status: Phase 3, first cartridge path.** The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded mapper-0 iNES 1.0 and NES 2.0 images with 16 or
-32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the current PPU path renders background tiles. This is
-an initial tracer, not full game compatibility. Other cartridge geometries,
-sprites and audio are still in later work. With no cartridge, the fixed test
+32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the PPU renders backgrounds
+and evaluated sprites, including palette priority, flips, 8x16 selection,
+clipping, sprite-zero hit and the eight-sprite limit. This is an initial tracer,
+not full game compatibility. Other cartridge geometries and audio are still in
+later work. With no cartridge, the fixed test
 card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
 The runner accepts content with `--rom FILE`, for example:
@@ -32,9 +34,11 @@ mirroring bit. Register accesses retain the CPU open-bus value in un-driven
 bits, and `$2007` reads are buffered outside palette space.
 Visible native pixels are written to the caller's frame buffer as PPU dots advance. Background
 tiles use the selected pattern table, nametable attributes, coarse/fine scroll,
-and the universal backdrop colour. `$2001` grayscale and emphasis remain in
-the native pixel value; host palette conversion is separate and does not affect
-frame hashes.
+and the universal backdrop colour. Sprites are evaluated into secondary OAM
+and fetched for the following scanline; transparent pixels reveal the
+background, and the priority bit selects which opaque layer appears in front.
+`$2001` grayscale and emphasis remain in the native pixel value; host palette
+conversion is separate and does not affect frame hashes.
 
 ## Building
 
