@@ -39,10 +39,11 @@ static uint32_t parse_count(const char *s, uint32_t max)
         if (*s < '0' || *s > '9') {
             return 0u;
         }
-        v = v * 10u + (uint32_t)(*s - '0');
-        if (v > max) {
+        uint32_t digit = (uint32_t)(*s - '0');
+        if (v > (max - digit) / 10u) {
             return 0u;
         }
+        v = v * 10u + digit;
     }
     return v;
 }
