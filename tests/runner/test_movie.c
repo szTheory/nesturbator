@@ -4,6 +4,7 @@
 
 #include "check.h"
 #include "movie_fixture.h"
+#include "test_process.h"
 
 static void header(unsigned char bytes[16], uint32_t count)
 {
@@ -30,20 +31,14 @@ static int write_bytes(const char *path, const unsigned char *bytes, size_t size
 
 static int run(const char *runner, const char *movie, const char *output)
 {
-    char command[8192];
-    if (snprintf(command, sizeof command, "\"%s\" --movie \"%s\" > \"%s\" 2>&1", runner, movie,
-                 output) <= 0)
-        return -1;
-    return system(command);
+    const char *const arguments[] = {runner, "--movie", movie, NULL};
+    return test_process_run(arguments, output);
 }
 
 static int run_jam(const char *runner, const char *movie, const char *rom, const char *output)
 {
-    char command[8192];
-    if (snprintf(command, sizeof command, "\"%s\" --movie \"%s\" --rom \"%s\" > \"%s\" 2>&1",
-                 runner, movie, rom, output) <= 0)
-        return -1;
-    return system(command);
+    const char *const arguments[] = {runner, "--movie", movie, "--rom", rom, NULL};
+    return test_process_run(arguments, output);
 }
 
 static int rejected_before_replay(const char *runner, const char *movie, const char *output)

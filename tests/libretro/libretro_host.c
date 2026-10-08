@@ -25,6 +25,7 @@
 #include "libretro.h"
 #include "nesturbator.h"
 #include "movie_fixture.h"
+#include "../test_process.h"
 
 #define W 256u
 #define H 240u
@@ -297,7 +298,9 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size, co
                                          MOVIE_FIXTURE_PORT1,
                                          0};
         char movie_path[4096];
-        char command[16384];
+        char frame_argument[4096];
+        const char *const command[] = {runner, "--rom", rom_path, "--movie", movie_path,
+                                       "--dump-frame", frame_argument, NULL};
         FILE *rom = fopen(rom_path, "wb");
         FILE *movie = NULL;
         CHECK(rom != NULL);
@@ -306,16 +309,14 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size, co
             CHECK(fclose(rom) == 0);
         }
         CHECK(snprintf(movie_path, sizeof movie_path, "%s.movie", rom_path) > 0);
+        CHECK(snprintf(frame_argument, sizeof frame_argument, "1:%s", ppm_path) > 0);
         movie = fopen(movie_path, "wb");
         CHECK(movie != NULL);
         if (movie != NULL) {
             CHECK(fwrite(movie_bytes, 1, sizeof movie_bytes, movie) == sizeof movie_bytes);
             CHECK(fclose(movie) == 0);
         }
-        CHECK(snprintf(command, sizeof command,
-                       "\"%s\" --rom \"%s\" --movie \"%s\" --dump-frame 1:\"%s\"", runner, rom_path,
-                       movie_path, ppm_path) > 0);
-        CHECK_EQ_U64(system(command), 0u);
+        CHECK_EQ_U64(test_process_run(command, NULL), 0u);
         compare_with_ppm(ppm_path);
         remove(movie_path);
     }
@@ -584,16 +585,18 @@ int main(int argc, char **argv)
     CHECK(p_load_game(&dummy));
     {
         FILE *rom = fopen(argv[5], "wb");
-        char command[4096];
         CHECK(rom != NULL);
         if (rom != NULL) {
             CHECK(fwrite(dummy_bytes, 1, sizeof dummy_bytes, rom) == sizeof dummy_bytes);
             fclose(rom);
         }
-        CHECK(snprintf(command, sizeof command,
-                       "\"%s\" --frames 1 --rom \"%s\" --dump-frame 1:\"%s\"", argv[4], argv[5],
-                       argv[3]) > 0);
-        CHECK_EQ_U64(system(command), 0);
+        {
+            char frame_argument[4096];
+            const char *const command[] = {argv[4], "--frames", "1", "--rom", argv[5],
+                                           "--dump-frame", frame_argument, NULL};
+            CHECK(snprintf(frame_argument, sizeof frame_argument, "1:%s", argv[3]) > 0);
+            CHECK_EQ_U64(test_process_run(command, NULL), 0);
+        }
     }
     p_run();
     CHECK_EQ_U64(video_calls, 1);
