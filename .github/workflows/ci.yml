@@ -99,6 +99,10 @@ jobs:
           $arch = if ($env:RUNNER_ARCH -eq 'ARM64') { 'arm64' } else { 'x64' }
           cmd /c "`"$vs\VC\Auxiliary\Build\vcvarsall.bat`" $arch && set" |
             ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { "$($Matches[1])=$($Matches[2])" >> $env:GITHUB_ENV } }
+      # Establish the regression baseline from protected main before any
+      # candidate-controlled CTest configuration or scoreboard files run.
+      - name: Prepare protected-main scoreboard baseline
+        run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake
       - run: cmake --workflow --preset ${{ matrix.preset }}
       - run: cmake -DDIR=build/${{ matrix.preset }} -P tests/cmake/check_archives.cmake
       - if: matrix.os == 'macos' && matrix.arch == 'arm64'
