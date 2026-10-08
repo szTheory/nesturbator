@@ -122,5 +122,5 @@ No gaps. The roadmap's five outcome truths are supported by substantive implemen
 
 ---
 
-_Verified: 2026-10-08T15:20:00Z_  
+_Verified: 2026-10-08T15:20:00Z_<br>
 _Verifier: the agent (gsd-verifier)_

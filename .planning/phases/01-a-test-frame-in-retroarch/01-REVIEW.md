@@ -91,9 +91,9 @@ status: issues_found
 
 # Phase 1: Code Review Report
 
-**Reviewed:** 2026-10-08T15:11:07Z  
-**Depth:** standard  
-**Files Reviewed:** 77  
+**Reviewed:** 2026-10-08T15:11:07Z<br>
+**Depth:** standard<br>
+**Files Reviewed:** 77<br>
 **Status:** issues_found
 
 ## Summary
@@ -104,20 +104,20 @@ Reviewed the 77 existing files returned by the phase scope resolver after filter
 
 ### WR-01: Calling the allocator member can expand a function-like `free` macro
 
-**Classification:** WARNING  
-**File:** `src/instance.c:117`  
+**Classification:** WARNING<br>
+**File:** `src/instance.c:117`<br>
 **Issue:** The core includes `<stdlib.h>`, and C implementations may define `free` as a function-like macro (debug allocators commonly do). In `a.free(a.user, inst, sizeof *inst)`, the preprocessor still expands the `free(` token even though it follows `a.`. A macro expecting the standard one-argument `free(ptr)` then sees three arguments and prevents the core from compiling in that configuration.
 **Fix:** Suppress function-like macro expansion when invoking the callback: `(a.free)(a.user, inst, sizeof *inst);`.
 
 ### WR-02: The vector harness count parser can accept overflowing inputs
 
-**Classification:** WARNING  
-**File:** `tests/cpu/test_vectors.c:42-44`  
+**Classification:** WARNING<br>
+**File:** `tests/cpu/test_vectors.c:42-44`<br>
 **Issue:** `v * 10u + digit` wraps modulo 2^32 before the `v > max` check. A value such as `4294967297` wraps to `1` and is accepted as one chunk/test, despite exceeding the documented bound. This makes invalid command-line limits silently select a different validation run.
 **Fix:** Before multiplying, reject when `v > (max - digit) / 10u`, then compute `v = v * 10u + digit`.
 
 ---
 
-_Reviewed: 2026-10-08T15:11:07Z_  
-_Reviewer: the agent (gsd-code-reviewer)_  
+_Reviewed: 2026-10-08T15:11:07Z_<br>
+_Reviewer: the agent (gsd-code-reviewer)_<br>
 _Depth: standard_
