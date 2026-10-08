@@ -2,18 +2,18 @@
 gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: A real game in RetroArch
-current_plan: 10
+current_plan: 11
 status: executing
-stopped_at: Completed 03-06-PLAN.md
-last_updated: "2026-10-08T18:28:19.873Z"
+stopped_at: Completed 03-12-PLAN.md
+last_updated: "2026-10-08T18:36:12.798Z"
 last_activity: 2026-10-08
 last_activity_desc: Phase 01 code-review fixes recorded; Phase 03 ready to plan; local RetroArch test failure carried forward
-state_head: efeffc537fb3470a867d34b2a01f43d360b546eb
+state_head: "0bdf6a32a400bc873286094900da04f0f08f49be"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 36
-  completed_plans: 32
+  completed_plans: 33
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-10-06)
 ## Current Position
 
 Phase: 03 (A real game in RetroArch) — READY TO EXECUTE
-Current Plan: 10
+Current Plan: 11
 Total Plans in Phase: 13
-Plan: 10 of 13 (03-01 complete)
+Plan: 11 of 13 (03-01 complete)
 Status: Ready to execute
 Last activity: 2026-10-08 — Phase 01 complete, transitioned to Phase 03
 
@@ -92,6 +92,7 @@ Progress: [█████░░░░░] 50%
 | Phase 03 P05 | 7min | 1 tasks | 11 files |
 | Phase 03 P11 | 8min | 1 tasks | 10 files |
 | Phase 03 P06 | 16min | 1 tasks | 10 files |
+| Phase 03 P12 | 12min | 1 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,7 @@ Recent decisions affecting current work:
 - [Phase 03]: Use a 16-byte NMOVIE1 header and little-endian version/count, then two little-endian 16-bit masks per frame; validate all bounds before replay.
 - [Phase 03]: Movie replay hashes every frame in ascending order and reports the one-based JAM stop frame.
 - [Phase 03]: DABG uses exact zlib-licensed default-branch commit 5ecc60b6af3f726851bfeb1c2555388c5953e0c0 because v2 resolves to GPL-3.0; DABG remains the two-player fixture.
+- [Phase 03]: Use 525-line BT.601 2.4 transfer and primaries followed by deterministic offline sRGB/D65 encoding; native pixels remain the hash input.
 
 ### Pending Todos
 
@@ -151,6 +153,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-08T18:28:19.814Z
-Stopped at: Completed 03-06-PLAN.md
+Last session: 2026-10-08T18:36:12.712Z
+Stopped at: Completed 03-12-PLAN.md
 Resume file: None
