@@ -56,6 +56,12 @@ Each lane is one command, `cmake --workflow --preset <lane>`.
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
 | `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
 
+`fuzz.regress` replays checked-in malformed cartridge seeds through the public
+cartridge load/unload lifecycle on every CI platform. The Linux nightly builds
+that same entry point with Clang libFuzzer and ASan/UBSan, then runs it for a
+bounded minute. The corpus is manifest-listed and local; CI does not download
+ROMs or fuzz seeds.
+
 The `abi` tests hold the core to integer arithmetic and the C memory
 functions: a text scan of `src/` and `include/` for `float`, `double` and
 decimal or hex floating literals, with a self-test that it finds `1.5`,

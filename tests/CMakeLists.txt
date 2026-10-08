@@ -113,6 +113,36 @@ nesturbator_core_test(core.api core/test_api.c)
 nesturbator_core_test(core.frame core/test_frame.c)
 nesturbator_core_test(core.cartridge core/test_cartridge.c)
 
+# The same entry point is linked into the Linux libFuzzer binary and replayed
+# from checked-in seeds on every CI platform. Refuse an empty corpus at configure
+# time so a missing directory cannot turn this into a passing no-op.
+file(GLOB NESTURBATOR_ROM_LOADER_CORPUS CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus/*")
+if(NOT NESTURBATOR_ROM_LOADER_CORPUS)
+  message(FATAL_ERROR "ROM loader fuzz corpus is missing or empty")
+endif()
+add_executable(fuzz.rom_loader fuzz/rom_loader.c)
+target_link_libraries(fuzz.rom_loader PRIVATE nesturbator::nesturbator)
+target_compile_definitions(fuzz.rom_loader PRIVATE NESTURBATOR_FUZZ_REPLAY=1)
+nesturbator_warnings(fuzz.rom_loader)
+add_test(NAME fuzz.regress
+  COMMAND fuzz.rom_loader ${NESTURBATOR_ROM_LOADER_CORPUS})
+set_tests_properties(fuzz.regress PROPERTIES TIMEOUT 30)
+
+# Linux nightly only: the same source/entry point and sanitized library, with
+# Clang's libFuzzer main and runtime instrumentation.
+option(NESTURBATOR_LIBFUZZER "Build the ROM loader libFuzzer target" OFF)
+if(NESTURBATOR_LIBFUZZER)
+  if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
+    message(FATAL_ERROR "NESTURBATOR_LIBFUZZER requires Clang")
+  endif()
+  add_executable(fuzz.rom_loader.libfuzzer fuzz/rom_loader.c)
+  target_link_libraries(fuzz.rom_loader.libfuzzer PRIVATE nesturbator::nesturbator)
+  target_compile_options(fuzz.rom_loader.libfuzzer PRIVATE -fsanitize=fuzzer-no-link)
+  target_link_options(fuzz.rom_loader.libfuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+  nesturbator_warnings(fuzz.rom_loader.libfuzzer)
+endif()
+
 add_test(NAME fuzz.registration
   COMMAND ${CMAKE_COMMAND}
     -DCTEST=${CMAKE_CTEST_COMMAND}
