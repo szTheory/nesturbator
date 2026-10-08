@@ -5,11 +5,11 @@ titles: json
 findings:
   - id: WR-01
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Calling the allocator member can expand a function-like `free` macro"
   - id: WR-02
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "The vector harness count parser can accept overflowing inputs"
   - id: CR-01
     severity: critical
@@ -87,17 +87,17 @@ findings:
     severity: info
     disposition: open
     title: "The no-global-state and allowed-symbol checks run only on Linux and miss some nm symbol types"
-open: 12
+open: 10
 total: 21
-recorded: 2026-10-08T15:12:26.578Z
+recorded: 2026-10-08T15:25:56.253Z
 ---
 
 # Phase 01: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | open | - |
-| WR-02 | warning | open | - |
+| WR-01 | warning | fixed | 01-REVIEW-FIX.md |
+| WR-02 | warning | fixed | 01-REVIEW-FIX.md |
 | CR-01 | critical | fixed | 01-REVIEW-FIX.md (not in the current review) |
 | CR-02 | critical | fixed | 01-REVIEW-FIX.md (not in the current review) |
 | WR-03 | warning | fixed | 01-REVIEW-FIX.md (not in the current review) |
