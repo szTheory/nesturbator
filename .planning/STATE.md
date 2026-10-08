@@ -2,13 +2,13 @@
 gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: A real game in RetroArch
-current_plan: 13
+current_plan: 8
 status: executing
-stopped_at: 03-08 local workflows passed; exact-commit hosted RetroArch trial pending explicit user approval
-last_updated: "2026-10-08T22:54:41.792Z"
+stopped_at: 03-08 local CI gates pass; hosted PR CI and RetroArch candidate rerun pending
+last_updated: "2026-10-08T23:10:47.000Z"
 last_activity: 2026-10-08
-last_activity_desc: Phase 01 code-review fixes recorded; Phase 03 ready to plan; local RetroArch test failure carried forward
-state_head: 577d28ff6ffb4f6dc9cf70547f5a91d3f195b811
+last_activity_desc: Hosted CI exposed portability warnings and a missing candidate scoreboard baseline; fixes pass all local presets and await hosted rerun
+state_head: 389e4c7e6cf5d7783ae85aabec1465de5fafedb4
 progress:
   total_phases: 4
   completed_phases: 2
@@ -28,19 +28,19 @@ See: .planning/PROJECT.md (updated 2026-10-06)
 
 ## Current Position
 
-Phase: 03 (A real game in RetroArch) — READY TO EXECUTE
-Current Plan: 13
+Phase: 03 (A real game in RetroArch) — EXECUTING
+Current Plan: 03-08 (Hosted RetroArch validation checkpoint)
 Total Plans in Phase: 13
-Plan: 13 of 13 (03-01 complete)
-Status: Ready to execute
-Last activity: 2026-10-08 — Phase 01 complete, transitioned to Phase 03
+Plans complete: 12 of 13; Plan 03-08 has local implementation and all local presets pass, with hosted CI and the RetroArch candidate rerun pending.
+Status: Checkpoint — local gates pass; hosted run pending
+Last activity: 2026-10-08 — hosted CI failures diagnosed and fixed locally; exact-commit rerun pending
 
 Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 23
+- Total plans completed: 35
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -50,6 +50,7 @@ Progress: [█████░░░░░] 50%
 |-------|-------|-------|----------|
 | 01 | 12 | - | - |
 | 02 | 11 | - | - |
+| 03 | 12 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -140,9 +141,9 @@ None.
 
 ### Blockers/Concerns
 
-- **Local CI concern to carry into Phase 03 planning:** On 2026-10-08, two runs of `cmake --workflow --preset ci` configured and built successfully, and the final run passed 330/331 tests. `retroarch.testframe` exited with `Subprocess aborted` and empty stdout/stderr; the harness notes it requires a logged-in macOS GUI session, but the cause is not yet determined. Both new vector-count overflow regression tests passed. See [Phase 01 review fix report](./phases/01-a-test-frame-in-retroarch/01-REVIEW-FIX.md). Phase 01's recorded verification remains passed; do not treat this latest local workflow run as fully green.
+- **Phase 03 local CI:** after the hosted-build fixes, `cmake --workflow --preset ci` passed 346/346, ASan 344/344, no-float 5/5, and hygiene 8/8. The two local RetroArch launch tests are skipped after the macOS GUI session aborts with empty output; only hosted candidate evidence can verify the released app.
+- **Phase 03 hosted CI:** run 37857200684 for `389e4c7` failed before candidate asset installation because the candidate job did not prepare `NESTURBATOR_SCOREBOARD_BASELINE`. GCC conversion/format-truncation warnings and MSVC C4310 were also found. The workflow and compiler fixes pass locally; hosted rerun is pending.
 - WR-08 is resolved in plan 02-01: `release-as` was removed in `30197fe` and guarded by `release.no_release_as`.
-- 03-08 hosted RetroArch validation is pending explicit user approval to push the phase branch; automatic approval review rejected export to the configured GitHub remote as unverified.
 
 ### Quick Tasks Completed
 
@@ -161,6 +162,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-08T22:54:41.407Z
-Stopped at: 03-08 local workflows passed; exact-commit hosted RetroArch trial pending explicit user approval
+Last session: 2026-10-08T23:10:47.000Z
+Stopped at: 03-08 local CI gates pass; hosted PR CI and RetroArch candidate rerun pending
 Resume file: .planning/phases/03-a-real-game-in-retroarch/03-08-CHECKPOINT.md

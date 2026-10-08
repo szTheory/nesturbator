@@ -340,13 +340,13 @@ static int accuracy_compare_scoreboard(const char *path, const accuracy_test *te
         }
         for (size_t i = 0; i < count; i++) {
             char key[128];
-            char expected[256];
-            (void)snprintf(key, sizeof key, "accuracycoin/%s\t", tests[i].name);
+            char expected[128];
+            (void)snprintf(key, sizeof key, "accuracycoin/%.63s\t", tests[i].name);
             if (strncmp(line, key, strlen(key)) == 0) {
                 uint8_t result = results[i];
                 const char *status =
                     (result & 3u) == 1u ? "pass" : (result == 0xffu ? "skip" : "fail");
-                (void)snprintf(expected, sizeof expected, "accuracycoin/%s\t%s\t0x%02x\t-\t-\n",
+                (void)snprintf(expected, sizeof expected, "accuracycoin/%.63s\t%s\t0x%02x\t-\t-\n",
                                tests[i].name, status, result);
                 if (strcmp(line, expected) != 0 || (found & ((size_t)1u << i)) != 0u) {
                     fclose(file);

@@ -14,17 +14,17 @@
 
 - `runner.write_hashes` and `runner.write_hashes.content`: passed.
 - `retroarch.compare` and `retroarch.compare.cli`: passed.
-- `cmake --workflow --preset ci`: 346/346 passed, including packaging. `retroarch.testframe` and `retroarch.game` skipped only because the local macOS GUI session aborted RetroArch with empty stdout/stderr.
+- `cmake --workflow --preset ci`: 346/346 passed, including packaging, after the hosted-build fixes. `retroarch.testframe` and `retroarch.game` skipped only because the local macOS GUI session aborted RetroArch with empty stdout/stderr.
 - `cmake --workflow --preset asan`: 344/344 passed.
-- `cmake --workflow --preset nofp`: 5/5 passed after no-float-safe documentation updates and palette regeneration.
-- `cmake --workflow --preset hygiene`: 8/8 passed after clang-format 18 formatting of 12 C/header files.
+- `cmake --workflow --preset nofp`: 5/5 passed.
+- `cmake --workflow --preset hygiene`: 8/8 passed after formatting `runner/main.c` with clang-format 18.
 - `git diff --check`: passed.
-- Hosted `macos-15` / `macos-15-intel` candidate trial: not run. No release compatibility or pixel-equality claim is made.
+- Hosted run `37857200684` tested commit `389e4c7e6cf5d7783ae85aabec1465de5fafedb4`. Its candidate job stopped in `accuracy.scoreboard` because the job did not run `prepare_scoreboard_baseline.cmake`; the upload contains no asset evidence. This is an invalid/inconclusive RetroArch trial, not an arm64 compatibility result.
+- The same hosted run exposed GCC 14 `-Wconversion` and `-Wformat-truncation` errors, plus MSVC C4310 in NMI status masking. These are fixed locally with explicit bounded arithmetic/string formats and a representable status mask.
+- Hosted `macos-15` candidate success and screenshot equality remain unverified; no release compatibility or pixel-equality claim is made yet.
 
-## Blocking Checkpoint
+## Next
 
-Pushing the candidate commit to the configured GitHub remote was rejected by automatic approval review as exporting repository contents to an unverified remote; the review stated that trusted user messages did not specifically authorize that export. Do not retry through another path until explicit user approval is obtained.
-
-After approval, push `phase/03-real-game-in-retroarch`, create or use its PR, and run the exact-commit CI workflow with `retroarch_trial=true`. Verify the candidate's measured checksum, exact version, core/game load, nonempty screenshot, and pixel equality on `macos-15`. If that candidate fails, run the bounded `macos-15-intel` candidate with its official architecture-specific asset and measured SHA-256. Only after a hosted candidate passes should the workflow promote it to required job `retroarch-e2e`, add it to `ci-required`, retain `retroarch-e2e-frames`, and collect the final exact-commit Actions evidence.
+Publish the local fixes to `phase/03-real-game-in-retroarch` and rerun CI plus `retroarch_trial=true` on that exact commit. The candidate job now prepares its protected-main scoreboard baseline before running the CI preset. If RetroArch itself fails after the pinned asset has installed and launched, run the bounded `macos-15-intel` trial with its official architecture-specific asset and measured SHA-256. Promote only a passing hosted candidate to required job `retroarch-e2e`, make `ci-required` depend on it, retain `retroarch-e2e-frames`, and verify the final exact-commit checks and artifact.
 
 The existing user edits to `.planning/config.json` and deletion of `.planning/HANDOFF.json` are preserved and unstaged.

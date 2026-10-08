@@ -498,7 +498,7 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         nesturbator__bus_read(nes, nes->cpu.pc);
         push(nes, (uint8_t)(nes->cpu.pc >> 8));
         push(nes, (uint8_t)nes->cpu.pc);
-        push(nes, (uint8_t)((nes->cpu.p & (uint8_t)~FLAG_B) | FLAG_U));
+        push(nes, (uint8_t)((nes->cpu.p & (uint8_t)(UINT8_MAX ^ FLAG_B)) | FLAG_U));
         nes->cpu.p |= FLAG_I;
         uint8_t lo = nesturbator__bus_read(nes, 0xFFFAu);
         uint8_t hi = nesturbator__bus_read(nes, 0xFFFBu);

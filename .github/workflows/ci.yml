@@ -239,6 +239,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Prepare protected-main scoreboard baseline
+        run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake
       - name: Build and run the local test suite
         env:
           NESTURBATOR_RETROARCH: /tmp/retroarch-candidate-not-installed-yet

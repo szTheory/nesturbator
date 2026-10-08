@@ -117,7 +117,7 @@ static void sprite_fetch(struct nesturbator *nes)
             }
         } else {
             pattern = (ppu->control & 0x08u) != 0u ? 0x1000u : 0u;
-            pattern += (uint16_t)tile * 16u;
+            pattern = (uint16_t)(pattern + (uint16_t)tile * 16u);
         }
         ppu->sprite_lo[i] = nesturbator__ppu_read(nes, (uint16_t)(pattern + row));
         ppu->sprite_hi[i] = nesturbator__ppu_read(nes, (uint16_t)(pattern + row + 8u));
