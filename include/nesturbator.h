@@ -108,6 +108,27 @@ typedef struct nesturbator_config {
     nesturbator_allocator allocator; /* all NULL: malloc and free */
 } nesturbator_config;
 
+/* Standard controller buttons. The bit values match the order read from the
+   NES serial ports, A first and Right last. */
+enum nesturbator_button {
+    NESTURBATOR_BUTTON_A = 1u << 0,
+    NESTURBATOR_BUTTON_B = 1u << 1,
+    NESTURBATOR_BUTTON_SELECT = 1u << 2,
+    NESTURBATOR_BUTTON_START = 1u << 3,
+    NESTURBATOR_BUTTON_UP = 1u << 4,
+    NESTURBATOR_BUTTON_DOWN = 1u << 5,
+    NESTURBATOR_BUTTON_LEFT = 1u << 6,
+    NESTURBATOR_BUTTON_RIGHT = 1u << 7
+};
+
+/* Input for one frame. Port 0 is $4016 and port 1 is $4017. Values are
+   sampled at the start of nesturbator_run_frame; setting input during a frame
+   affects the next call. Zero unused/reserved bytes before calling. */
+typedef struct nesturbator_input {
+    uint32_t size;       /* in: sizeof(nesturbator_input) */
+    uint8_t buttons[2];  /* in: NESTURBATOR_BUTTON_* mask for each port */
+} nesturbator_input;
+
 /* The same default values for C and C++ sources. A config passed to
    nesturbator_create must still be zeroed with memset first, because an
    initialised declaration leaves padding and tail bytes unspecified; do not
@@ -181,6 +202,11 @@ void nesturbator_get_version(nesturbator_version *out);
  * A new instance has no cartridge: each frame is a fixed test pattern and
  * silence. */
 nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator **out);
+
+/* Sets the next frame's standard controller state. A NULL instance or input
+   returns NESTURBATOR_ERR_ARGUMENT; a bad size tag returns
+   NESTURBATOR_ERR_STRUCT_SIZE. Refused calls leave the instance unchanged. */
+nesturbator_status nesturbator_set_input(nesturbator *inst, const nesturbator_input *input);
 
 /* Frees an instance through the allocator it was created with. Accepts NULL. */
 void nesturbator_destroy(nesturbator *inst);

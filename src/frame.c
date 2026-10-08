@@ -35,6 +35,7 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
         return NESTURBATOR_ERR_BUFFER_TOO_SMALL;
     }
 
+    nesturbator__controller_begin_frame(inst);
     if (inst->cart.bytes == NULL) {
         /* No cartridge: test pattern and silence. */
         for (uint32_t y = 0; y < NESTURBATOR_HEIGHT; y++) {

@@ -26,6 +26,7 @@
 #define NESTURBATOR_CONFIG_SIZE_V1 ((uint32_t)sizeof(nesturbator_config))
 #define NESTURBATOR_INFO_SIZE_V1 ((uint32_t)sizeof(nesturbator_info))
 #define NESTURBATOR_FRAME_SIZE_V1 ((uint32_t)sizeof(nesturbator_frame))
+#define NESTURBATOR_INPUT_SIZE_V1 ((uint32_t)sizeof(nesturbator_input))
 
 /* 6502 core state (D-10). P is kept exactly as loaded or pulled: flag
    writes touch only their own bits, so bits 4 and 5 change only on a pull.
@@ -49,6 +50,8 @@ struct nesturbator__bus {
     uint8_t ram[2048];
     uint8_t open_bus;
     uint8_t oam_dma_pending, oam_dma_page;
+    uint8_t input_pending[2], input_buttons[2];
+    uint8_t controller_latch[2], controller_shift[2], controller_strobe;
 };
 
 struct nesturbator__ppu {
@@ -128,6 +131,7 @@ void nesturbator__cpu_step(struct nesturbator *nes);
    sizeof in this build. Returns NESTURBATOR_OK or
    NESTURBATOR_ERR_STRUCT_SIZE. */
 nesturbator_status nesturbator__check_size_in(const void *s, uint32_t first, uint32_t ours);
+void nesturbator__controller_begin_frame(struct nesturbator *nes);
 
 /* The no-cartridge test card: native pixel at column x, row y (D-01, D-02). */
 uint16_t nesturbator__test_pixel(uint32_t x, uint32_t y);

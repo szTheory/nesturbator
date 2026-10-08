@@ -108,6 +108,27 @@ nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator
     return NESTURBATOR_OK;
 }
 
+nesturbator_status nesturbator_set_input(nesturbator *inst, const nesturbator_input *input)
+{
+    if (inst == NULL || input == NULL) {
+        return NESTURBATOR_ERR_ARGUMENT;
+    }
+    nesturbator_status st = nesturbator__check_size_in(input, NESTURBATOR_INPUT_SIZE_V1,
+                                                        (uint32_t)sizeof *input);
+    if (st != NESTURBATOR_OK) {
+        return st;
+    }
+    inst->bus.input_pending[0] = input->buttons[0];
+    inst->bus.input_pending[1] = input->buttons[1];
+    return NESTURBATOR_OK;
+}
+
+void nesturbator__controller_begin_frame(struct nesturbator *nes)
+{
+    nes->bus.input_buttons[0] = nes->bus.input_pending[0];
+    nes->bus.input_buttons[1] = nes->bus.input_pending[1];
+}
+
 void nesturbator_destroy(nesturbator *inst)
 {
     if (inst == NULL) {

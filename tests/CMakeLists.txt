@@ -112,6 +112,11 @@ nesturbator_core_test(core.api core/test_api.c)
 # boundary pixels and two independent instances.
 nesturbator_core_test(core.frame core/test_frame.c)
 nesturbator_core_test(core.cartridge core/test_cartridge.c)
+add_executable(core.controller core/test_controller.c)
+target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
+target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(core.controller)
+add_test(NAME core.controller COMMAND core.controller)
 
 # Focused CPU-visible PPU register and dot-boundary tests.
 add_executable(ppu.registers ppu/test_registers.c)
