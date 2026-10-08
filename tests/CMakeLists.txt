@@ -112,6 +112,13 @@ nesturbator_core_test(core.api core/test_api.c)
 # boundary pixels and two independent instances.
 nesturbator_core_test(core.frame core/test_frame.c)
 nesturbator_core_test(core.cartridge core/test_cartridge.c)
+
+add_test(NAME fuzz.registration
+  COMMAND ${CMAKE_COMMAND}
+    -DCTEST=${CMAKE_CTEST_COMMAND}
+    -DBUILD_DIR=${PROJECT_BINARY_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fuzz_registration.cmake)
+
 # D-14: nesturbator_get_palette's copy rules and the palette invariants.
 nesturbator_core_test(core.palette core/test_palette.c)
 
