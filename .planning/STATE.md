@@ -2,18 +2,18 @@
 gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: A real game in RetroArch
-current_plan: 2
+current_plan: 3
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-10-08T17:02:26.690Z"
+stopped_at: Completed 03-09-PLAN.md
+last_updated: "2026-10-08T17:09:57.524Z"
 last_activity: 2026-10-08
 last_activity_desc: Phase 01 code-review fixes recorded; Phase 03 ready to plan; local RetroArch test failure carried forward
-state_head: cdb299d8ba53cf70935e6485070dc379adbfa672
+state_head: 0268605eec4ccede1a916daa2a6b8484415a10cf
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 36
-  completed_plans: 24
+  completed_plans: 25
   percent: 50
 ---
 
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-10-06)
 ## Current Position
 
 Phase: 03 (A real game in RetroArch) — READY TO EXECUTE
-Current Plan: 2
+Current Plan: 3
 Total Plans in Phase: 13
-Plan: 2 of 13 (03-01 complete)
+Plan: 3 of 13 (03-01 complete)
 Status: Ready to execute
 Last activity: 2026-10-08 — Phase 01 complete, transitioned to Phase 03
 
@@ -84,6 +84,7 @@ Progress: [█████░░░░░] 50%
 | Phase 02 P10 | 15min | 2 tasks | 6 files |
 | Phase 02 P11 | 16min | 2 tasks | 5 files |
 | Phase 03 P01 | 13 min | 2 tasks | 12 files |
+| Phase 03 P09 | 7 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,8 @@ Recent decisions affecting current work:
 - [Phase 03]: Support one 16 KiB PRG and one 8 KiB CHR mapper-0 iNES geometry in the tracer.
 - [Phase 03]: Carry frame overshoot from the instance tick cursor; JAM reports a latched nonzero stop status.
 - [Phase 03]: Refresh the temporary public declaration guard to the Phase 3 API baseline.
+- [Phase 03]: Keep CPU bus M2 scheduling in bus.c while PPU state transitions and register effects live in ppu.c.
+- [Phase 03]: Keep cartridge parsing, allocator ownership, and frame state reset behavior unchanged during extraction.
 
 ### Pending Todos
 
@@ -127,6 +130,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-08T17:02:26.634Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-10-08T17:09:57.472Z
+Stopped at: Completed 03-09-PLAN.md
 Resume file: None
