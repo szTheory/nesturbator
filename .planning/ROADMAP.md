@@ -133,16 +133,47 @@ Plans:
   3. `nesturbator-run --movie FILE` replays recorded controller input and prints the same frame hashes on every run, and the libretro test program, fed the same input, receives equal frames.
   4. The runner runs AccuracyCoin and reads each result from RAM; the results equal the committed scoreboard file, a test fails if that file loses a pass that `main` has, and every test on pages 2 and 17 passes.
 
-**Plans**: 8 plans
+**Plans**: 13 plans
 Plans:
-- [ ] 03-01-PLAN.md — Pinned game tracer through runner/libretro and conserved frame clock
-- [ ] 03-02-PLAN.md — Safe iNES/NES 2.0 loader and fuzz corpus
+**Wave 1**
+- [ ] 03-01-PLAN.md — Generated mapper-0 tracer through runner/libretro and conserved frame clock
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 03-09-PLAN.md — Extract the proven cartridge and PPU seams into owned modules
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 03-02-PLAN.md — Safe iNES/NES 2.0 loader and preallocation rejection
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 03-10-PLAN.md — Fuzz corpus replay on every CI leg and nightly libFuzzer
+
+**Wave 5** *(blocked on Wave 4 completion)*
 - [ ] 03-03-PLAN.md — PPU registers, timing and background rendering
+
+**Wave 6** *(blocked on Wave 5 completion)*
 - [ ] 03-04-PLAN.md — Sprite rendering and OAM DMA
-- [ ] 03-05-PLAN.md — Two standard controller ports and deterministic movie replay
-- [ ] 03-06-PLAN.md — Three pinned games, native hashes and offline palette calibration
-- [ ] 03-07-PLAN.md — AccuracyCoin pages 2/17 and nonregression scoreboard
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [ ] 03-05-PLAN.md — Two standard controller ports and libretro input seam
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- [ ] 03-11-PLAN.md — Owned deterministic movie replay and cross-host hashes
+
+**Wave 9** *(blocked on Wave 8 completion)*
+- [ ] 03-06-PLAN.md — Three pinned games and native hash milestones
+
+**Wave 10** *(blocked on Wave 9 completion)*
+- [ ] 03-12-PLAN.md — Offline palette calibration preserving native hashes
+
+**Wave 11** *(blocked on Wave 10 completion)*
+- [ ] 03-07-PLAN.md — AccuracyCoin pages 2/17 and RAM-derived scoreboard rows
+
+**Wave 12** *(blocked on Wave 11 completion)*
+- [ ] 03-13-PLAN.md — Cross-platform protected-main scoreboard baseline gate
+
+**Wave 13** *(blocked on Wave 12 completion)*
 - [ ] 03-08-PLAN.md — Six-platform hashes and required RetroArch hosted gate
+
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md`, `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`, `.planning/preparation/LIBRETRO-AND-RUNNER.md`
 
