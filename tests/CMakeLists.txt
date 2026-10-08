@@ -256,6 +256,8 @@ add_executable(runner.movie.test runner/test_movie.c)
 target_link_libraries(runner.movie.test PRIVATE nesturbator::nesturbator)
 target_include_directories(runner.movie.test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/runner)
+target_compile_definitions(runner.movie.test PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(runner.movie.test)
 add_test(NAME runner.movie
   COMMAND runner.movie.test $<TARGET_FILE:nesturbator-run>
@@ -264,6 +266,8 @@ add_test(NAME runner.movie
 
 # D-02: fixed two-port movie scripts feed the pinned DABG hash inventory.
 add_executable(runner.game_movie runner/game_movie.c)
+target_compile_definitions(runner.game_movie PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(runner.game_movie)
 
 # version.txt equals the header's version macros.

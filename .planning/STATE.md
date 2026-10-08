@@ -4,11 +4,11 @@ current_phase: 03
 current_phase_name: A real game in RetroArch
 current_plan: 8
 status: executing
-stopped_at: 03-08 all local presets pass; isolate RetroArch's first-run home and rerun the hosted candidate on the exact new commit
-last_updated: "2026-10-08T23:20:27.000Z"
+stopped_at: 03-08 hosted RetroArch candidate passed on c5ec53b; final local workflow checks pass, publish the required-gate promotion and rerun the full matrix
+last_updated: "2026-10-08T23:26:44.000Z"
 last_activity: 2026-10-08
-last_activity_desc: All four local workflow presets pass; the candidate runner now isolates RetroArch first-run files and preserves optional local GUI skips
-state_head: f5888f216e7e3edd95e13bfb3956f2e7a805a101
+last_activity_desc: RetroArch candidate proof is recorded; required-gate promotion, matrix inputs, and target-scoped MSVC fixes pass local checks and are ready to publish
+state_head: c5ec53b5402b3141f0fef13d4724f436d13f48c6
 progress:
   total_phases: 4
   completed_phases: 2
@@ -31,9 +31,9 @@ See: .planning/PROJECT.md (updated 2026-10-06)
 Phase: 03 (A real game in RetroArch) — EXECUTING
 Current Plan: 03-08 (Hosted RetroArch validation checkpoint)
 Total Plans in Phase: 13
-Plans complete: 12 of 13; Plan 03-08 has local implementation and all four local workflow presets pass; hosted screenshot equality remains pending.
-Status: Checkpoint — local gates pass; publish and hosted rerun pending
-Last activity: 2026-10-08 — isolated RetroArch first-run app data inside the build tree and preserved the optional local GUI-abort skip
+Plans complete: 12 of 13; Plan 03-08 has local implementation, all four local workflow presets pass, and the hosted RetroArch candidate passes exact screenshot equality on `c5ec53b`.
+Status: Checkpoint — candidate proven; final required-matrix run pending
+Last activity: 2026-10-08 — hosted frame-60 comparison passed; promote the tested job and repair the unrelated baseline/hash-inventory/MSVC CI issues
 
 Progress: [█████░░░░░] 50%
 
@@ -141,10 +141,11 @@ None.
 
 ### Blockers/Concerns
 
-- **Phase 03 local CI:** after the hosted-build fixes, `cmake --workflow --preset ci` passed 346/346, ASan 344/344, no-float 5/5, and hygiene 8/8. The two local RetroArch launch tests are skipped after the macOS GUI session aborts with empty output; only hosted candidate evidence can verify the released app.
-- **Phase 03 hosted CI:** run 37857200684 for `389e4c7` failed before candidate asset installation because the candidate job did not prepare `NESTURBATOR_SCOREBOARD_BASELINE`. GCC conversion/format-truncation warnings and MSVC C4310 were also found. Run 37858136711 for `f5888f2` exposed further GCC/MSVC strict-warning failures in test fixtures; their fixes pass locally and are pending publication.
-- **Phase 03 sanitizer timeout:** run 37857200684 exceeded the two-minute ASan job limit (2m14s). The workflow limit is raised to five minutes for the next PR run.
-- **Phase 03 RetroArch trial:** run 37858136711 verified the pinned DMG SHA-256 and v1.22.2, built the test core, and launched the game far enough to produce frame artifacts. The test correctly failed because RetroArch created first-run `config/` and `overlays/keyboards/` under the real home. The child now receives an isolated home under its build directory; all local workflow presets pass, including the expected optional local GUI-abort skips. Publish and rerun the exact-commit hosted trial.
+- **Phase 03 local CI:** after the hosted-build fixes, `cmake --workflow --preset ci` passed 346/346, ASan 344/344, no-float 5/5, and hygiene 8/8. The two local RetroArch launch tests skip after the macOS GUI session aborts with empty output; hosted `retroarch-e2e` supplies the required released-app proof.
+- **Phase 03 hosted CI history:** run 37857200684 for `389e4c7` initially failed before candidate asset installation because its job lacked the protected-main scoreboard baseline; GCC conversion/format-truncation warnings and MSVC C4310 were also fixed in follow-up commits. Run 37858136711 for `f5888f2` exposed further test fixture warnings, fixed in `c5ec53b`.
+- **Phase 03 sanitizer timeout:** run 37857200684 exceeded the old two-minute ASan job limit (2m14s). The workflow limit is now five minutes.
+- **Phase 03 hosted matrix follow-up:** PR run 37858960926 and candidate run 37859023685 exposed three independent CI wiring/portability issues: the ASan job lacked the protected-main scoreboard baseline, six-platform hash collection omitted `MOVIE_WRITER`, and two movie test targets hit MSVC's C4996 warning. Local fixes pass the exact hash command; hosted full-matrix evidence is pending.
+- **Phase 03 RetroArch E2E:** exact-commit run 37859023685 on `c5ec53b5402b3141f0fef13d4724f436d13f48c6` passed the local suite, verified the official DMG SHA-256 and RetroArch 1.22.2, launched Nesteroids frame 60 without changing the real home, captured a 1503-byte screenshot, and proved pixel equality with the runner. Artifact `retroarch-candidate-37859023685` (ID `11584984604`) contains the asset and frame evidence. The workflow changes configure this proven job as required `retroarch-e2e`, retaining `retroarch-e2e-frames`.
 - WR-08 is resolved in plan 02-01: `release-as` was removed in `30197fe` and guarded by `release.no_release_as`.
 
 ### Quick Tasks Completed
@@ -164,6 +165,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-08T23:20:27.000Z
-Stopped at: 03-08 all local workflow presets pass; publish isolated-home fix and rerun the exact-commit hosted candidate
+Last session: 2026-10-08T23:26:44.000Z
+Stopped at: 03-08 candidate passed and local workflow checks pass; publish required-gate promotion and CI matrix fixes, then verify all exact-commit checks
 Resume file: .planning/phases/03-a-real-game-in-retroarch/03-08-CHECKPOINT.md

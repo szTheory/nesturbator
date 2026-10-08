@@ -1,6 +1,6 @@
 # Phase 03 Plan 08: Hosted RetroArch Trial Checkpoint
 
-**Status:** Incomplete. The six-platform hash inventory task is committed. The real RetroArch check is implemented as an opt-in hosted candidate trial and must not become a required gate until a hosted macOS runner proves it.
+**Status:** Incomplete pending the final required CI run. The six-platform hash inventory is implemented, and hosted RetroArch frame equality passed on exact commit `c5ec53b`; local workflow changes promote that check to `ci-required`.
 
 ## Completed Work
 
@@ -14,7 +14,7 @@
 
 - `runner.write_hashes` and `runner.write_hashes.content`: passed.
 - `retroarch.compare` and `retroarch.compare.cli`: passed.
-- `cmake --workflow --preset ci`: 346/346 passed, including packaging, after the hosted-build fixes. `retroarch.testframe` and `retroarch.game` skipped only because the local macOS GUI session aborted RetroArch with empty stdout/stderr.
+- `cmake --workflow --preset ci`: 346/346 passed, including packaging, after the hosted-build fixes. `retroarch.testframe` and `retroarch.game` skipped only because the local macOS GUI session aborted RetroArch with empty stdout/stderr; hosted `retroarch-e2e` supplies required released-app proof.
 - `cmake --workflow --preset asan`: 344/344 passed.
 - `cmake --workflow --preset nofp`: 5/5 passed.
 - `cmake --workflow --preset hygiene`: 8/8 passed after formatting `runner/main.c` with clang-format 18.
@@ -23,11 +23,12 @@
 - The same hosted run exposed GCC 14 `-Wconversion` and `-Wformat-truncation` errors, plus MSVC C4310 in NMI status masking. These are fixed locally with explicit bounded arithmetic/string formats and a representable status mask.
 - Hosted `macos-15` candidate success and screenshot equality remain unverified; no release compatibility or pixel-equality claim is made yet.
 - The first hosted run also hit the ASan job's two-minute timeout (2m14s). The next PR run increases that job ceiling to five minutes based on this observed duration.
-- Hosted retry run `37858136711` was dispatched against exact commit `f5888f216e7e3edd95e13bfb3956f2e7a805a101` with `retroarch_trial=true`. Its Linux and Windows matrix exposed strict-warning errors in test fixtures (`test_cartridge.c`, `test_sprites.c`, and the MSVC CRT warning in `accuracy.scoreboard`); these fixes pass all relevant local presets and await publication.
-- The candidate job in `37858136711` completed its local test suite, verified the pinned DMG SHA-256 and RetroArch 1.22.2, then launched the game and produced screenshot/frame artifacts. It failed the user-data isolation check because the app created `config/` and `overlays/keyboards/` in the real home before pixel comparison. The RetroArch process now gets an isolated HOME, CFFIXED_USER_HOME, and XDG directories inside `RA_DIR`; the original home remains under before/after snapshot. All four local presets pass after this fix. The local GUI abort remains an expected optional skip.
+- Hosted retry run `37858136711` was dispatched against exact commit `f5888f216e7e3edd95e13bfb3956f2e7a805a101` with `retroarch_trial=true`. Its Linux and Windows matrix exposed strict-warning errors in test fixtures (`test_cartridge.c`, `test_sprites.c`, and the MSVC CRT warning in `accuracy.scoreboard`); these fixes pass all relevant local presets.
+- Candidate run `37859023685` on exact commit `c5ec53b5402b3141f0fef13d4724f436d13f48c6` completed its local suite, verified the pinned DMG SHA-256 and RetroArch 1.22.2, launched the game in an isolated HOME/CFFIXED_USER_HOME/XDG environment, left the real home unchanged, captured a 1503-byte screenshot, and passed exact pixel comparison for frame 60. Artifact `retroarch-candidate-37859023685` (ID `11584984604`) preserves the evidence. Local workflow changes promote this passing job to required CI as `retroarch-e2e` and retain `retroarch-e2e-frames`.
+- Hosted full CI runs `37858960926` and `37859023685` also found: the ASan job lacked its protected-main scoreboard baseline, the six-platform hash step omitted `MOVIE_WRITER`, and the movie test helper/writer lacked target-scoped MSVC CRT definitions. Those workflow and target fixes are local; the exact `write_hashes.cmake` invocation passed locally with the writer argument.
 
 ## Next
 
-Publish the local fixes, then rerun the exact-commit candidate after the isolated-home fix. It must prove the asset checksum, exact version, core/game load, nonempty screenshot, untouched real home, and pixel equality. If it passes, promote the candidate to required job `retroarch-e2e`, make `ci-required` depend on it, retain `retroarch-e2e-frames`, then verify all final exact-commit PR checks and the retained artifact. If RetroArch itself fails after the pinned asset installs and launches, run the bounded `macos-15-intel` trial with its official architecture-specific asset and measured SHA-256.
+Publish the required-gate promotion and matrix fixes. Verify the exact-head PR run passes the six-platform builds, protected-main scoreboard, hash equality, ASan, no-float, hygiene, title, and required `retroarch-e2e`; confirm `retroarch-e2e-frames` is retained for that same head. The candidate already passes on its exact implementation commit, so no architecture fallback or owner gameplay check is needed.
 
 The existing user edits to `.planning/config.json` and deletion of `.planning/HANDOFF.json` are preserved and unstaged.

@@ -678,18 +678,17 @@ required-mode driver also rejects missing RetroArch, game content, screenshots
 and launch failures instead of skipping; the local CTest remains optional when
 RetroArch is not installed or the GUI session aborts without output.
 
-The official RetroArch v1.22.2 macOS candidate is
+The official RetroArch v1.22.2 macOS release is
 [`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),
 universal for arm64 and x86_64, with measured SHA-256
-`81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434`. To run
-the opt-in hosted candidate trial on `macos-15`:
-
-```sh
-gh workflow run ci.yml --ref phase/03-real-game-in-retroarch -f retroarch_trial=true
-```
-
-The candidate job is not part of `CI required` until a hosted run proves the
-release launches, captures the selected game frame and matches the runner.
+`81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434`. The
+required `retroarch-e2e` job downloads this asset on `macos-15`, verifies its
+checksum and exact version, loads Nesteroids, and compares the nonempty frame-60
+screenshot pixel for pixel with the runner's output. It isolates RetroArch's
+first-run home under the build tree and retains the asset evidence, screenshot,
+and runner frame in the `retroarch-e2e-frames` artifact. Missing assets, changes
+to the real home directory, startup errors, and frame mismatches fail the
+required CI check. No manual screenshot or gameplay check is needed.
 
 ## What it will be
 
