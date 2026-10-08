@@ -119,6 +119,11 @@ target_link_libraries(ppu.registers PRIVATE nesturbator::nesturbator)
 target_include_directories(ppu.registers PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_warnings(ppu.registers)
 add_test(NAME ppu.registers COMMAND ppu.registers)
+add_executable(ppu.render ppu/test_render.c)
+target_link_libraries(ppu.render PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.render PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.render)
+add_test(NAME ppu.render COMMAND ppu.render)
 
 # The same entry point is linked into the Linux libFuzzer binary and replayed
 # from checked-in seeds on every CI platform. Refuse an empty corpus at configure
