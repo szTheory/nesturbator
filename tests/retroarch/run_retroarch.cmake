@@ -28,17 +28,57 @@ endforeach()
 
 # 1. The test is written for the macOS RetroArch app and sips.
 if(NOT CMAKE_HOST_APPLE)
+  if(REQUIRED)
+    message(FATAL_ERROR "required RetroArch E2E test must run on macOS")
+  endif()
   skip("RetroArch test runs on macOS only")
 endif()
 
 # 2. RetroArch: an override from the environment, else the DMG's location.
-if(DEFINED ENV{NESTURBATOR_RETROARCH})
+if(DEFINED RETROARCH AND NOT RETROARCH STREQUAL "")
+  set(retroarch "${RETROARCH}")
+elseif(DEFINED ENV{NESTURBATOR_RETROARCH})
   set(retroarch "$ENV{NESTURBATOR_RETROARCH}")
 else()
   set(retroarch "/Applications/RetroArch.app/Contents/MacOS/RetroArch")
 endif()
 if(NOT EXISTS "${retroarch}")
+  if(REQUIRED)
+    message(FATAL_ERROR "required RetroArch executable is missing at ${retroarch}")
+  endif()
   skip("RetroArch not found at ${retroarch}")
+endif()
+
+if(REQUIRED AND (NOT DEFINED ROM OR ROM STREQUAL ""))
+  message(FATAL_ERROR "required RetroArch E2E test needs a pinned game ROM")
+endif()
+if(REQUIRED AND (NOT DEFINED EXPECTED_VERSION OR EXPECTED_VERSION STREQUAL ""))
+  message(FATAL_ERROR "required RetroArch E2E test needs an exact expected version")
+endif()
+
+if(DEFINED ROM AND NOT ROM STREQUAL "")
+  if(NOT EXISTS "${ROM}" OR IS_DIRECTORY "${ROM}")
+    message(FATAL_ERROR "RetroArch test ROM is missing: ${ROM}")
+  endif()
+  if(NOT DEFINED FRAME OR NOT FRAME MATCHES "^[1-9][0-9]*$")
+    message(FATAL_ERROR "RetroArch game test needs a positive -DFRAME")
+  endif()
+  set(frame "${FRAME}")
+else()
+  set(frame 5)
+endif()
+
+if(DEFINED EXPECTED_VERSION AND NOT EXPECTED_VERSION STREQUAL "")
+  if(NOT DEFINED VERSION_PLIST OR NOT EXISTS "${VERSION_PLIST}")
+    message(FATAL_ERROR "RetroArch version plist is missing: ${VERSION_PLIST}")
+  endif()
+  execute_process(COMMAND /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${VERSION_PLIST}"
+    RESULT_VARIABLE version_result OUTPUT_VARIABLE measured_version ERROR_VARIABLE version_error)
+  string(STRIP "${measured_version}" measured_version)
+  if(NOT version_result EQUAL 0 OR NOT measured_version STREQUAL EXPECTED_VERSION)
+    message(FATAL_ERROR "RetroArch version mismatch: expected ${EXPECTED_VERSION}, got '${measured_version}': ${version_error}")
+  endif()
+  message(STATUS "RetroArch version: ${measured_version}")
 endif()
 
 # 3. A fresh directory with the configuration and the core's .info file.
@@ -54,8 +94,15 @@ endforeach()
 configure_file("${TEMPLATE}" "${RA_DIR}/test.cfg" @ONLY)
 file(COPY "${INFO}" DESTINATION "${RA_DIR}/info")
 
-# 4. The reference: the runner's frame 5 as a P6 image.
-execute_process(COMMAND "${RUNNER}" --frames 5 --dump-frame "5:${RA_DIR}/runner.ppm"
+# 4. Keep content under the build tree and use the runner's matching frame.
+set(ra_content_args)
+if(DEFINED ROM AND NOT ROM STREQUAL "")
+  file(COPY_FILE "${ROM}" "${RA_DIR}/content/game.nes")
+  set(ra_content "${RA_DIR}/content/game.nes")
+  list(APPEND ra_content_args --rom "${ra_content}")
+endif()
+execute_process(COMMAND "${RUNNER}" --frames "${frame}" ${ra_content_args}
+    --dump-frame "${frame}:${RA_DIR}/runner.ppm"
   RESULT_VARIABLE result)
 if(NOT result EQUAL 0)
   message(FATAL_ERROR "nesturbator-run exited with ${result}")
@@ -90,13 +137,16 @@ function(snapshot out)
 endfunction()
 snapshot(before)
 
-# 6. RetroArch with only test.cfg, the core by absolute path and no content
-# (the core sets SET_SUPPORT_NO_GAME). It exits after 5 frames and writes the
-# core's frame to shot.png.
+# 6. RetroArch with only test.cfg, the core by absolute path and pinned content
+# when supplied. It writes the selected core frame to shot.png.
 file(REAL_PATH "${CORE}" core)
+set(ra_args)
+if(DEFINED ROM AND NOT ROM STREQUAL "")
+  list(APPEND ra_args "${ra_content}")
+endif()
 execute_process(
-  COMMAND "${retroarch}" -c "${RA_DIR}/test.cfg" -L "${core}"
-    --max-frames=5 --max-frames-ss "--max-frames-ss-path=${RA_DIR}/shot.png"
+  COMMAND "${retroarch}" -c "${RA_DIR}/test.cfg" -L "${core}" ${ra_args}
+    "--max-frames=${frame}" --max-frames-ss "--max-frames-ss-path=${RA_DIR}/shot.png"
   RESULT_VARIABLE ra_result
   OUTPUT_VARIABLE ra_stdout
   ERROR_VARIABLE ra_stderr
@@ -129,6 +179,10 @@ endif()
 if(NOT EXISTS "${RA_DIR}/shot.png")
   message(FATAL_ERROR "RetroArch wrote no screenshot at ${RA_DIR}/shot.png:\n${ra_output}")
 endif()
+file(SIZE "${RA_DIR}/shot.png" screenshot_size)
+if(screenshot_size EQUAL 0)
+  message(FATAL_ERROR "RetroArch wrote an empty screenshot at ${RA_DIR}/shot.png:\n${ra_output}")
+endif()
 
 # 8. D-20: sips colour-converts a PNG with a gAMA other than 1/2.2 or an iCCP
 # chunk (01-RESEARCH, measured), so colour management is always stripped from
@@ -151,4 +205,5 @@ execute_process(COMMAND "${COMPARE}" "${RA_DIR}/runner.ppm" "${RA_DIR}/shot.bmp"
 if(NOT result EQUAL 0)
   message(FATAL_ERROR "RetroArch's frame differs from the runner's:\n${compare_output}")
 endif()
-message(STATUS "RetroArch's frame equals the runner's frame")
+message(STATUS "RetroArch screenshot: ${RA_DIR}/shot.png (${screenshot_size} bytes)")
+message(STATUS "RetroArch's frame ${frame} equals the runner's frame ${frame}")
