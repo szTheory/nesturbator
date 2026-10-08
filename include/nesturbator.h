@@ -67,7 +67,7 @@ enum nesturbator_status {
     NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5,
     /* The loaded cartridge executed a JAM opcode; the instance is latched. */
     NESTURBATOR_STOP_JAM = 6,
-    /* Cartridge bytes are not a supported mapper-0 iNES image. */
+/* Cartridge bytes are malformed or outside the supported mapper-0 profile. */
     NESTURBATOR_ERR_CARTRIDGE = 7
 };
 typedef enum nesturbator_status nesturbator_status;
@@ -173,10 +173,14 @@ nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator
 /* Frees an instance through the allocator it was created with. Accepts NULL. */
 void nesturbator_destroy(nesturbator *inst);
 
-/* Copies one mapper-0 iNES cartridge into the instance. This tracer accepts
-   one 16 KiB PRG bank and one 8 KiB CHR bank. Invalid content returns
-   NESTURBATOR_ERR_CARTRIDGE without changing the instance. A loaded image
-   resets the CPU from its PRG reset vector. Unload releases cartridge state. */
+/* Copies one bounded mapper-0 iNES 1.0 or NES 2.0 image into the instance.
+   Accepts 16 or 32 KiB PRG and either 8 KiB CHR ROM or 8 KiB declared CHR RAM;
+   trainers are accepted. Other mappers, unsupported console/region/RAM
+   profiles, malformed headers, truncation, extra payload, and images above
+   64 MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and
+   leave a previously loaded cartridge untouched. Allocation failure returns
+   NESTURBATOR_ERR_NO_MEMORY. A loaded image resets the CPU from its PRG reset
+   vector. Unload releases cartridge state. */
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
 void nesturbator_unload_cartridge(nesturbator *inst);
 

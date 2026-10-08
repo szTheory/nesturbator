@@ -111,6 +111,7 @@ nesturbator_core_test(core.api core/test_api.c)
 # D-11: run_frame statuses, buffer rules, the D-09 audio period, the D-02
 # boundary pixels and two independent instances.
 nesturbator_core_test(core.frame core/test_frame.c)
+nesturbator_core_test(core.cartridge core/test_cartridge.c)
 # D-14: nesturbator_get_palette's copy rules and the palette invariants.
 nesturbator_core_test(core.palette core/test_palette.c)
 

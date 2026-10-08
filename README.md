@@ -5,8 +5,8 @@ automation, and a libretro adapter.
 
 **Status: Phase 3, first cartridge path.** The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
-libretro core accept a generated mapper-0 iNES image with one 16 KiB PRG bank
-and one 8 KiB CHR bank; the current PPU path renders background tiles. This is
+libretro core accept bounded mapper-0 iNES 1.0 and NES 2.0 images with 16 or
+32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the current PPU path renders background tiles. This is
 an initial tracer, not full game compatibility. Other cartridge geometries,
 sprites and audio are still in later work. With no cartridge, the fixed test
 card and silence remain available. The plan lives in [`.planning/`](.planning/).
@@ -422,15 +422,21 @@ at `build/ci/runner/nesturbator-run`. The public header is
 
 ## The runner
 
-`nesturbator-run` runs the core without a window. In this phase it takes no
-cartridge, so every frame is the built-in test card.
+`nesturbator-run` runs the core without a window and accepts a mapper-0 image
+with `--rom FILE`. The loader validates the entire image before allocating
+cartridge state. It rejects unsupported mapper, console, region, RAM and ROM
+geometries, truncation, trailing bytes, and images larger than 64 MiB; the
+runner prints a diagnostic and exits nonzero for rejected content.
 
 ```sh
-nesturbator-run --frames N [--hash-frame N]... [--dump-frame N:FILE]...
+nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--dump-frame N:FILE]...
 ```
 
 - `--frames N` runs N frames (N is 1 or more). It is required; without it
   the runner prints its usage and exits 2.
+- `--rom FILE` loads a bounded mapper-0 iNES 1.0 or NES 2.0 image. Accepted
+  geometry is 16 or 32 KiB PRG with 8 KiB CHR ROM or declared 8 KiB CHR RAM;
+  optional trainers are included in the validated file length.
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
 - `--dump-frame N:FILE` writes frame N to FILE as a binary PPM (P6), 256x240,

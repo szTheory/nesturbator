@@ -244,7 +244,7 @@ int main(int argc, char **argv)
         st = nesturbator_load_cartridge(inst, bytes, (size_t)length);
         free(bytes);
         if (st != NESTURBATOR_OK) {
-            fprintf(stderr, "nesturbator-run: unsupported cartridge (status %d)\n", (int)st);
+            fprintf(stderr, "nesturbator-run: malformed or unsupported mapper-0 cartridge (status %d)\n", (int)st);
             nesturbator_destroy(inst);
             free_options(&opt);
             return 1;
