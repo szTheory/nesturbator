@@ -164,7 +164,10 @@ typedef struct nesturbator_info {
  * grayscale and emphasis. Sprite pixels use OAM order, transparency, palette,
  * horizontal/vertical flip, 8x8 or 8x16 pattern selection and the priority bit;
  * `$2001` controls left-edge clipping. Sprite-zero hit and overflow are
- * tracked in PPU status at their scanline/pixel timing. Native pixels are the
+ * tracked in PPU status at their scanline/pixel timing. After eight selected
+ * sprites, the 2C02 diagonal OAM scan can set overflow from a non-Y byte,
+ * while a skipped in-range Y does not; the flag clears at pre-render dot 1.
+ * Native pixels are the
  * canonical frame-hash input; display conversion is separate. A CPU write to
  * `$4014` queues an OAM DMA. The next CPU read is
  * halted while it reads one 256-byte page through the normal bus and writes

@@ -52,6 +52,8 @@ static void sprite_evaluate(struct nesturbator *nes)
     if (ppu->dot == 65u) {
         ppu->eval_count = 0u;
         ppu->eval_n = 0u;
+        ppu->eval_m = 0u;
+        ppu->eval_remaining = 0u;
         /* Pre-render evaluation prepares visible scanline zero; Y+1 wraps
            at eight bits on the 2C02. [HWP.02][HWP.06] */
         ppu->eval_target = ppu->scanline == 261u ? 0u : (uint8_t)(ppu->scanline + 1u);
@@ -64,12 +66,19 @@ static void sprite_evaluate(struct nesturbator *nes)
     if (ppu->eval_n >= 64u)
         return;
 
-    /* The 2C02 clears secondary OAM then alternates primary-OAM reads and
-       evaluation during dots 1-256. This captures each candidate when its
-       Y byte is evaluated, rather than sampling all of OAM at pixel time.
-       [HWP.06] */
+    /* The 2C02 alternates primary-OAM reads and comparisons. Once eight
+       sprites are selected, a miss advances both n and m, so tile, attribute
+       and X bytes can be mistaken for Y. A hit consumes the next three bytes,
+       carrying to the next n only when m wraps. [HWP.06] */
     if ((ppu->dot & 1u) != 0u) {
-        ppu->eval_latch = ppu->oam[(uint16_t)ppu->eval_n * 4u];
+        ppu->eval_latch = ppu->oam[(uint16_t)ppu->eval_n * 4u + ppu->eval_m];
+        return;
+    }
+    if (ppu->eval_remaining != 0u) {
+        ppu->eval_remaining--;
+        ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
+        if (ppu->eval_m == 0u)
+            ppu->eval_n++;
         return;
     }
     uint16_t top = (uint16_t)ppu->eval_latch + 1u;
@@ -83,12 +92,21 @@ static void sprite_evaluate(struct nesturbator *nes)
             for (uint8_t byte = 0u; byte < 4u; byte++)
                 ppu->secondary_oam[(uint16_t)slot * 4u + byte] = ppu->oam[base + byte];
             ppu->eval_sprite_zero[slot] = ppu->eval_n == 0u;
+            ppu->eval_n++;
+            return;
         } else {
             if (ppu->scanline != 261u)
                 ppu->status |= 0x20u;
+            ppu->eval_remaining = 3u;
+            ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
+            if (ppu->eval_m == 0u)
+                ppu->eval_n++;
+            return;
         }
     }
     ppu->eval_n++;
+    if (ppu->eval_count == 8u)
+        ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
 }
 
 static uint8_t reverse_bits(uint8_t value)

@@ -9,7 +9,10 @@ libretro core accept bounded mapper-0 iNES 1.0 and NES 2.0 images with 16 or
 32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
 clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
-includes OAM Y=$FF sprites on visible framebuffer row 0. This is an initial tracer,
+includes OAM Y=$FF sprites on visible framebuffer row 0. After eight sprites
+are selected, the 2C02's diagonal OAM scan can set sprite overflow from a
+tile, attribute or X byte; an in-range Y skipped by that scan does not set it.
+Overflow remains in PPU status until pre-render dot 1. This is an initial tracer,
 not full game compatibility. Other cartridge geometries and later sound work
 remain planned. With no cartridge, the fixed test
 card and silence remain available. The plan lives in [`.planning/`](.planning/).
