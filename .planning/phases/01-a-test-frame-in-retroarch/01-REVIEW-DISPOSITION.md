@@ -3,6 +3,10 @@ phase: 01
 review: 01-REVIEW.md
 titles: json
 findings:
+  - id: CR-01
+    severity: critical
+    disposition: open
+    title: "BLOCKER — Accepted iNES trainers are silently discarded"
   - id: WR-01
     severity: warning
     disposition: fixed
@@ -11,10 +15,6 @@ findings:
     severity: warning
     disposition: fixed
     title: "The vector harness count parser can accept overflowing inputs"
-  - id: CR-01
-    severity: critical
-    disposition: fixed
-    title: "hygiene.sh never scans tracked files whose names contain non-ASCII bytes"
   - id: CR-02
     severity: critical
     disposition: fixed
@@ -87,18 +87,18 @@ findings:
     severity: info
     disposition: open
     title: "The no-global-state and allowed-symbol checks run only on Linux and miss some nm symbol types"
-open: 10
+open: 11
 total: 21
-recorded: 2026-10-08T15:25:56.253Z
+recorded: 2026-10-09T11:42:09.341Z
 ---
 
 # Phase 01: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | fixed | 01-REVIEW-FIX.md |
-| WR-02 | warning | fixed | 01-REVIEW-FIX.md |
-| CR-01 | critical | fixed | 01-REVIEW-FIX.md (not in the current review) |
+| CR-01 | critical | open | - |
+| WR-01 | warning | fixed | 01-REVIEW-FIX.md (not in the current review) |
+| WR-02 | warning | fixed | 01-REVIEW-FIX.md (not in the current review) |
 | CR-02 | critical | fixed | 01-REVIEW-FIX.md (not in the current review) |
 | WR-03 | warning | fixed | 01-REVIEW-FIX.md (not in the current review) |
 | WR-04 | warning | fixed | 01-REVIEW-FIX.md (not in the current review) |
