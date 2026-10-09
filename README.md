@@ -229,8 +229,9 @@ every emphasis, an emphasis bit raises no colour channel but its own, and
 brightness never falls down a column.
 `runner.write_hashes` runs each pinned game and the three scripted DABG
 two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
-180. It fails if any requested frame is missing or duplicated;
-`runner.write_hashes.content` requires all 30 sorted keys to equal
+180, plus transition and PCM hashes for each game's boot run. It fails if any
+requested frame or audio hash is missing or duplicated;
+`runner.write_hashes.content` requires all 36 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
@@ -633,11 +634,11 @@ The file is named `nesturbator_libretro` with no `lib` prefix:
 The `ci` build puts it at `build/ci/libretro/`. It exports only the 25
 `retro_*` functions of `libretro.h`.
 
-In this phase the core starts with no content and shows the test card, with
-silence: in RetroArch, use "Start Core", or launch it with `-L` and no content
-path. Loading a game is not supported until the cartridge phase; the core
-refuses any content. It sends XRGB8888 frames of 256x240 and one batch of
-stereo samples per frame at 48000 Hz.
+With no content, the core shows the test card and sends silence: in RetroArch,
+use "Start Core", or launch it with `-L` and no content path. Mapper-0 games
+send one batch of stereo samples per frame at 48000 Hz, with each channel equal
+to the core's mono sample. `libretro.host` checks this sample-by-sample without
+an audio device.
 
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares

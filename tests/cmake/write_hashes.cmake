@@ -1,6 +1,5 @@
 # Writes a sorted inventory of native frame hashes for every licensed game
-# ROM plus the two-port DABG input scripts. The hash is over native pixels,
-# independent of the display palette.
+# ROM plus the two-port DABG input scripts, and audio hashes for each game.
 #
 #   cmake -DBUILD=<build dir> -DOUT=<file> -DMOVIE_WRITER=<exe> -P write_hashes.cmake
 
@@ -52,7 +51,7 @@ set(frame_args --hash-frame 1 --hash-frame 30 --hash-frame 60 --hash-frame 120 -
 foreach(game IN ITEMS nesteroids dabg rhde)
   set(rom "${source_dir}/tests/roms/${game}.nes")
   execute_process(
-    COMMAND "${runner}" --frames 180 --rom "${rom}" ${frame_args}
+    COMMAND "${runner}" --frames 180 --rom "${rom}" ${frame_args} --hash-audio
     OUTPUT_VARIABLE hashes
     ERROR_VARIABLE errors
     RESULT_VARIABLE rc)
@@ -62,10 +61,18 @@ foreach(game IN ITEMS nesteroids dabg rhde)
   string(REPLACE "\r" "" hashes "${hashes}")
   string(REPLACE "\n" ";" hash_lines "${hashes}")
   set(found_frames)
+  set(found_audio)
   foreach(line IN LISTS hash_lines)
     if(line MATCHES "^frame (1|30|60|120|180) ")
       list(APPEND output_lines "${game}/boot/${line}")
       list(APPEND found_frames "${CMAKE_MATCH_1}")
+    elseif(line MATCHES "^audio (transitions|pcm) sha256 ([0-9a-f]+)$")
+      string(LENGTH "${CMAKE_MATCH_2}" digest_length)
+      if(NOT digest_length EQUAL 64)
+        message(FATAL_ERROR "write_hashes: ${game} ${CMAKE_MATCH_1} digest has ${digest_length} hex characters")
+      endif()
+      list(APPEND output_lines "${game}/boot/audio/${CMAKE_MATCH_1} sha256 ${CMAKE_MATCH_2}")
+      list(APPEND found_audio "${CMAKE_MATCH_1}")
     endif()
   endforeach()
   list(LENGTH found_frames found_count)
@@ -76,6 +83,15 @@ foreach(game IN ITEMS nesteroids dabg rhde)
   list(SORT found_frames COMPARE NATURAL)
   if(NOT found_frames STREQUAL "1;30;60;120;180")
     message(FATAL_ERROR "write_hashes: ${game} boot inventory is incomplete or duplicated: ${found_frames}")
+  endif()
+  list(LENGTH found_audio audio_count)
+  if(NOT audio_count EQUAL 2)
+    message(FATAL_ERROR "write_hashes: ${game} boot has ${audio_count} audio hash rows; expected 2")
+  endif()
+  list(REMOVE_DUPLICATES found_audio)
+  list(SORT found_audio)
+  if(NOT found_audio STREQUAL "pcm;transitions")
+    message(FATAL_ERROR "write_hashes: ${game} boot audio hashes are incomplete or duplicated: ${found_audio}")
   endif()
 endforeach()
 
@@ -116,8 +132,8 @@ endforeach()
 
 list(SORT output_lines)
 list(LENGTH output_lines output_count)
-if(NOT output_count EQUAL 30)
-  message(FATAL_ERROR "write_hashes: expected 30 game/movie frame hashes, got ${output_count}")
+if(NOT output_count EQUAL 36)
+  message(FATAL_ERROR "write_hashes: expected 30 game/movie frame hashes and 6 game audio hashes, got ${output_count}")
 endif()
 list(JOIN output_lines "\n" hashes)
 file(CONFIGURE OUTPUT "${OUT}" CONTENT "@hashes@" @ONLY NEWLINE_STYLE LF)
