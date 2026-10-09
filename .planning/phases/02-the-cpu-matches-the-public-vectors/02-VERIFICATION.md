@@ -37,7 +37,7 @@ re_verification:
 
 | # | Truth | Status | Evidence |
 |---|---|---|---|
-| 1 | CI runs committed sample vectors for all 256 opcodes and matches final state and every bus cycle. | ✓ VERIFIED | `src/cpu.c` contains 256 opcode cases. `tests/cpu/test_vectors.c` compares PC, S/A/X/Y/P, final RAM, cycle count, and each ordered cycle's address/value/kind. `tests/CMakeLists.txt` generates 00–ff tests from the committed 256-chunk sample. Configured `cmake --workflow --preset ci` regression gate passed 357/357 per supplied gate result. |
+| 1 | CI runs committed sample vectors for all 256 opcodes and matches final state and every bus cycle. | ✓ VERIFIED | `src/cpu.c` contains 256 opcode cases. `tests/cpu/test_vectors.c` compares PC, S/A/X/Y/P, final RAM, cycle count, and each ordered cycle's address/value/kind. `tests/CMakeLists.txt` generates 00–ff tests from the committed 256-chunk sample. Configured `cmake --workflow --preset ci` completed 357 tests: 355 passed, 2 RetroArch checks skipped because the runtime was unavailable, and none failed. |
 | 2 | Full pinned vectors are fetched, all tests match, and CI runs the suite nightly. | ✓ VERIFIED (two post-merge scheduled-event assertions PASSED by accepted override) | `tests/vectors/pins.txt`, `fetch_vectors.cmake`, `vectors_sample_match.cmake`, and the full preset enforce the pin and sample identity. `nightly.yml` runs `vectors-full`; UAT records exact-merge main-push run 37509491346 and manual post-merge run 37531643137 with all 258 registered CTest entries and completed passing JUnit results checked by `vector_result_policy.cmake`. The cron event itself was not observed; the two scheduled-only assertions are explicitly overridden with owner acceptance above. |
 | 3 | CI, ASan, no-FP and hygiene pass across six platforms; merging publishes a release carrying the implementation. | ✓ VERIFIED | Current CI workflow defines the six-platform build matrix and the asan/nofp/hygiene gates; the CPU object is linked into the library in `CMakeLists.txt`. `.planning/phases/02-the-cpu-matches-the-public-vectors/02-UAT.md` records release v0.1.1 publication after the authorized merge, exact 18 archives plus nonempty SHA256SUMS, passing release CI/attestation/tamper/publication, and release tag ancestry from the phase merge. |
 
@@ -98,7 +98,7 @@ Plan artifact queries passed except the superseded 02-05 symbol; its replacement
 
 | Behavior | Command/evidence | Result | Status |
 |---|---|---|---|
-| Sample CPU vector suite and repository regression | Supplied `cmake --workflow --preset ci` gate result | 357/357 tests passed per task context; no additional tests run by this verifier. | ✓ PASS |
+| Sample CPU vector suite and repository regression | `cmake --workflow --preset ci` | 355 passed, 2 skipped (`retroarch.testframe`, `retroarch.game`) out of 357; no failures. No additional tests run by this verifier. | ✓ PASS |
 | Exact-merge full-vector workflow and reporter | Phase UAT run 37509491346 | `vectors-full` and report job succeeded on the exact phase merge SHA. | ✓ PASS |
 | Post-merge full-vector evidence | Phase UAT run 37531643137 and archived inventory/JUnit check | Manual dispatch on main passed; policy accepted exact 258-test inventory and all passing results. | ✓ PASS |
 | Release publication | Phase UAT release evidence | v0.1.1 publication, expected archive/checksum inventory, tag ancestry, CI, attestations, tamper check and publish recorded passed. | ✓ PASS |
