@@ -1,9 +1,10 @@
 ---
 phase: 04-sound
-verified: 2026-10-09T15:23:30.369Z
+verified: 2026-10-09T22:33:58Z
 status: passed
 score: 15/15 plan must-haves verified; 4/4 roadmap success criteria verified
 covered_files:
+  - .github/workflows/ci.yml
   - .planning/phases/04-sound/04-01-PLAN.md
   - .planning/phases/04-sound/04-01-SUMMARY.md
   - .planning/phases/04-sound/04-02-PLAN.md
@@ -12,7 +13,6 @@ covered_files:
   - .planning/phases/04-sound/04-03-SUMMARY.md
   - .planning/phases/04-sound/04-04-PLAN.md
   - .planning/phases/04-sound/04-04-SUMMARY.md
-  - .github/workflows/ci.yml
   - CMakeLists.txt
   - README.md
   - include/nesturbator.h
@@ -28,10 +28,10 @@ covered_files:
   - src/internal.h
   - src/synth.c
   - tests/CMakeLists.txt
-  - tests/cmake/hash_inventory.cmake
   - tests/accuracy/scoreboard-main.txt
   - tests/accuracy/scoreboard.txt
   - tests/accuracy/test_scoreboard.c
+  - tests/cmake/hash_inventory.cmake
   - tests/cmake/write_hashes.cmake
   - tests/core/test_apu.c
   - tests/core/test_synth.c
@@ -39,7 +39,7 @@ covered_files:
   - tests/runner/hashes.txt
   - tests/runner/test_audio_hash.c
   - tests/runner/test_spectral.c
-covered_digest: "v3:sha256:4f934113e2d80f47a25cc709d779ae347bda671807ce0d8e10a8a3342ad8868a"
+covered_digest: "v3:sha256:3c4c17083a5d04789e798196fee7f4aa2f6894586ad9833118c0614d287a58e8"
 behavior_unverified: 0
 overrides_applied: 0
 ---
@@ -47,9 +47,9 @@ overrides_applied: 0
 # Phase 4: Sound Verification Report
 
 **Phase Goal:** NROM games play with sound in RetroArch, and the audio is identical on every platform.
-**Verified:** 2026-10-09T15:23:30.369Z
+**Verified:** 2026-10-09T22:33:58Z
 **Status:** passed
-**Re-verification:** Yes — the previous report was stale after covered source changes. This pass reran the full local CI workflow and checked the current hosted run for the same code revision.
+**Re-verification:** Yes — refreshed after the later Phase 03 sprite-timing and Phase 04.1 trainer changes. The complete local CI workflow passed on source commit `20331371c8036cd5fccec6491d25262e3a2c0364`: 355 tests passed, 2 RetroArch launch tests skipped because RetroArch is unavailable locally, 0 failed. Hosted CI run [37994563525](https://github.com/szTheory/nesturbator/actions/runs/37994563525) on the same source SHA passed six platform builds, cross-platform hash equality, RetroArch E2E capture, and the required aggregate. Later commits through HEAD contain planning documentation only.
 
 ## Goal Achievement
 
@@ -58,7 +58,7 @@ overrides_applied: 0
 | # | Truth | Status | Evidence |
 |---|---|---|---|
 | 1 | APU channels produce documented sequences; licensed NROM audio has pinned hashes; libretro delivers the same samples as the core. | ✓ VERIFIED | `tests/core/test_apu.c` drives both pulse units, triangle, noise and DMC, and covers DMC fetch, frame sequencing and IRQ behavior. `runner.write_hashes` regenerates three licensed NROM runs and `runner.write_hashes.content` compares the dual-hash inventory to committed `tests/runner/hashes.txt`. `libretro.host` runs an audible synthetic NROM through the adapter and a direct core instance, then compares every left and right sample across two frames. The full local workflow passed the relevant tests. |
-| 2 | `nesturbator-run --hash-audio` emits canonical transition and PCM hashes whose representation is platform-independent. | ✓ VERIFIED | `runner/main.c` installs the per-instance APU observer and prints separate digests. `runner/audio_hash.c` serializes cycle/level records and signed PCM explicitly in little-endian byte order; `tests/runner/test_audio_hash.c` pins empty, event ordering and PCM byte cases. The no-cartridge known answer and three game baselines passed. Hosted CI run [37946197394](https://github.com/szTheory/nesturbator/actions/runs/37946197394) succeeded on Linux, macOS and Windows x64/arm64; its six-platform hash-equality job and required aggregate passed. The tested code revision is `80bea33`; current `77d45e5` adds only phase documentation after that run. |
+| 2 | `nesturbator-run --hash-audio` emits canonical transition and PCM hashes whose representation is platform-independent. | ✓ VERIFIED | `runner/main.c` installs the per-instance APU observer and prints separate digests. `runner/audio_hash.c` serializes cycle/level records and signed PCM explicitly in little-endian byte order; `tests/runner/test_audio_hash.c` pins empty, event ordering and PCM byte cases. The no-cartridge known answer and three game baselines passed. Hosted CI run [37994563525](https://github.com/szTheory/nesturbator/actions/runs/37994563525) passed Linux, macOS and Windows x64/arm64, six-platform hash equality, RetroArch E2E capture, and the required aggregate on source SHA `2033137`. The commits after that source revision contain planning documentation only.
 | 3 | The committed AccuracyCoin scoreboard passes the six required sound tests. | ✓ VERIFIED | `tests/accuracy/scoreboard.txt` and `scoreboard-main.txt` contain the six exact named passing rows; `accuracycoin.page14` passed and its runner validates result names and RAM locations. |
 | 4 | Five reference tones meet the non-harmonic peak threshold below 16 kHz. | ✓ VERIFIED | `runner.spectral` measures pulse periods 100, 40, 12, 8 and triangle period 1 using the documented integer FFT/window rules. It passed; recorded results range from -85.46 dB to -91.83 dB, below the -80 dB limit. |
 
@@ -110,11 +110,11 @@ overrides_applied: 0
 | Libretro stereo parity | Same focused CTest invocation (`libretro.host`) | Passed; all samples equal in both channels over two audible frames | ✓ PASS |
 | Five-tone spectral gate | Same focused CTest invocation (`runner.spectral`) | Passed; all five peaks below -80 dB | ✓ PASS |
 
-The current `cmake --workflow --preset ci` run passed 355/357 tests and generated all three package archives. `retroarch.testframe` and `retroarch.game` self-skipped locally because RetroArch did not start. Hosted run [37946197394](https://github.com/szTheory/nesturbator/actions/runs/37946197394) passed its pinned RetroArch E2E screenshot job and all six platform builds, so the local host limitation leaves no acceptance check pending. `libretro.host` independently passed sample-by-sample stereo parity without an audio device.
+The current `cmake --workflow --preset ci` run passed 355 tests, skipped `retroarch.testframe` and `retroarch.game` because RetroArch was unavailable locally, and had 0 failures; it also generated all three package archives. Hosted run [37994563525](https://github.com/szTheory/nesturbator/actions/runs/37994563525) passed the pinned RetroArch E2E capture and six-platform builds, so no acceptance check remains pending. `libretro.host` independently passed sample-by-sample stereo parity without an audio device.
 
 ### Review Gate
 
-The existing standard review at `04-REVIEW.md` found no findings across 26 Phase 04 files. The later sound-related source/test diff in `888d866` was inspected inline and contains formatting-only changes; it changes no expressions or behavior. No new review finding was identified. The configured reviewer-agent dispatch was unavailable under this session's no-subagent policy, so the prior review artifact was not rewritten.
+The existing Phase 04 review found no findings across its 26-file scope. All eight files changed since that review are covered by the later clean Phase 03 review (sprite timing) and Phase 04.1 review (trainer RAM and bus mapping); both report zero critical, warning, and info findings. No review finding remains open.
 
 ### Requirements Coverage
 
@@ -158,9 +158,9 @@ None. The prior passed report had no `gaps:` section, and this refresh found no 
 
 ### Gaps Summary
 
-The implementation satisfies all four roadmap criteria and all 15 plan truths. The full local workflow passed 355 tests with only the two unavailable local RetroArch launch tests skipped; hosted CI run 37946197394 passed all six platform builds, cross-platform hash equality, pinned RetroArch E2E, sanitizers, no-float, hygiene, and the required aggregate. No behavior-dependent human verification remains.
+The implementation satisfies all four roadmap criteria and all 15 plan truths. The full local workflow passed 355 tests with only the two unavailable local RetroArch launch tests skipped; hosted CI run 37994563525 passed all six platform builds, cross-platform hash equality, pinned RetroArch E2E, sanitizers, no-float, hygiene, and the required aggregate. No behavior-dependent human verification remains.
 
 ---
 
-_Verified: 2026-10-09T15:23:30.369Z_
+_Verified: 2026-10-09T22:33:58Z_
 _Verifier: Codex (inline; verifier-agent dispatch is unavailable under this session's no-subagent policy)_
