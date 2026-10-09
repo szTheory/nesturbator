@@ -2,18 +2,18 @@
 gsd_state_version: "1.0"
 current_phase: 04
 current_phase_name: Sound
-current_plan: 3
+current_plan: 4
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-10-09T04:33:24Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-10-09T04:57:57Z"
 last_activity: 2026-10-09
-last_activity_desc: Completed Phase 04 Plan 02 frame counter and DMC timing
-state_head: 90fa202
+last_activity_desc: Completed Phase 04 Plan 03 fixed-point synthesis and spectral gate
+state_head: d411737
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 40
-  completed_plans: 38
+  completed_plans: 39
   percent: 75
 ---
 
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-10-06)
 ## Current Position
 
 Phase: 04 (Sound) — EXECUTING
-Current Plan: 3
+Current Plan: 4
 Total Plans in Phase: 4
-Plans complete: 2 of 4.
+Plans complete: 3 of 4.
 Status: Ready to execute
-Last activity: 2026-10-09 — Phase 04 Plan 02 complete
+Last activity: 2026-10-09 — Phase 04 Plan 03 complete
 
 Progress: [████████░░] 75%
 
@@ -51,7 +51,7 @@ Progress: [████████░░] 75%
 | 01 | 12 | - | - |
 | 02 | 11 | - | - |
 | 03 | 13 | - | - |
-| 04 | 2 | 4 | 68 min |
+| 04 | 3 | 4 | 53 min |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -99,6 +99,7 @@ Progress: [████████░░] 75%
 | Phase 03 P13 | 12 min | 2 tasks | 7 files |
 | Phase 04 P01 | 14 min | 2 tasks | 11 files |
 | Phase 04 P02 | 122 min | 2 tasks | 15 files |
+| Phase 04 P03 | 24 min | 1 task | 15 files |
 
 ## Accumulated Context
 
@@ -144,6 +145,8 @@ Recent decisions affecting current work:
 - [Phase 04]: Preserve a resumed CPU read after DMC sample fetch, and use the observed GET phase for a deferred reload when `$4015` re-enables DMC with a full sample buffer.
 - [Phase 04]: Keep frame and DMC IRQ status independent while aggregating the CPU IRQ line; behavior revision 2 records the resulting emulation change.
 - [Phase 04]: Require six exact AccuracyCoin page-14 APU results in CI so these frame, length, and DMC acceptance checks need no owner UAT.
+- [Phase 04]: Keep the 16-tap, 32-phase Q15 synthesis kernel, Q30 filter history, and bounded 1024-sample staging ring in per-instance state; advance audio behavior revision to 3.
+- [Phase 04]: Verify the five coherent spectral fixtures in CI with the first 512 folded harmonic orders masked and no floating-point analyzer.
 
 ### Pending Todos
 
@@ -170,6 +173,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T04:33:24Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-10-09T04:57:57Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None

@@ -33,10 +33,10 @@ Milestone 1. Each category's pull request builds the release archives, and mergi
 
 ### Sound
 
-- [x] **SND-01**: A test steps each APU channel (two pulse, triangle, noise, DMC) through its documented output sequence; the runner's audio for the committed open-licence games matches recorded hashes, and the libretro test program receives equal samples.
+- [ ] **SND-01**: A test steps each APU channel (two pulse, triangle, noise, DMC) through its documented output sequence; the runner's audio for the committed open-licence games matches recorded hashes, and the libretro test program receives equal samples.
 - [ ] **SND-02**: `nesturbator-run --hash-audio` prints two hashes, one of the level-transition stream and one of the 16-bit samples, and both are identical on every platform.
-- [ ] **SND-03**: The scoreboard shows AccuracyCoin's length counter, frame counter and DMC tests passing: Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter 5-step and Delta Modulation Channel.
-- [ ] **SND-04**: A test in the `ci` preset renders five reference tones and shows that the synthesiser's largest non-harmonic peak below 16 kHz is under -80 dB.
+- [x] **SND-03**: The scoreboard shows AccuracyCoin's length counter, frame counter and DMC tests passing: Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter 5-step and Delta Modulation Channel.
+- [x] **SND-04**: A test in the `ci` preset renders five reference tones and shows that the synthesiser's largest non-harmonic peak below 16 kHz is under -80 dB.
 
 ## v2 Requirements
 
