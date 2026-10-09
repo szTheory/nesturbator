@@ -39,6 +39,36 @@ static void test_sprite_pixel_is_composed_and_hits_background(void)
     CHECK_EQ_U64(nes.ppu.status & 0x40u, 0x40u);
 }
 
+static void test_prerender_wraps_sprite_rows_into_visible_scanline_zero(void)
+{
+    for (uint8_t odd = 0u; odd < 2u; odd++) {
+        setup();
+        nes.ppu.scanline = 261u;
+        nes.ppu.odd_frame = odd;
+        nes.ppu.oam[0] = 0xffu;
+        nes.ppu.oam[3] = 16u;
+
+        uint64_t first_row_dots = odd != 0u ? 340u + 17u : 341u + 17u;
+        nesturbator__ppu_run_until(&nes, first_row_dots * 8u);
+        CHECK_EQ_U64(pixels[16], 0x2au);
+        CHECK_EQ_U64(pixels[17], 0x0fu);
+
+        uint64_t second_row_dots = first_row_dots + 341u;
+        nesturbator__ppu_run_until(&nes, second_row_dots * 8u);
+        CHECK_EQ_U64(pixels[NESTURBATOR_WIDTH + 16u], 0x0fu);
+
+        setup();
+        nes.ppu.scanline = 261u;
+        nes.ppu.odd_frame = odd;
+        nes.ppu.oam[0] = 0u;
+        nes.ppu.oam[3] = 16u;
+        nesturbator__ppu_run_until(&nes, first_row_dots * 8u);
+        CHECK_EQ_U64(pixels[16], 0x0fu);
+        nesturbator__ppu_run_until(&nes, second_row_dots * 8u);
+        CHECK_EQ_U64(pixels[NESTURBATOR_WIDTH + 16u], 0x2au);
+    }
+}
+
 static void test_ninth_in_range_sprite_sets_overflow(void)
 {
     setup();
@@ -152,6 +182,7 @@ static void test_dma_keeps_ppu_vblank_timing_while_stalling_cpu(void)
 
 int main(void)
 {
+    test_prerender_wraps_sprite_rows_into_visible_scanline_zero();
     test_sprite_pixel_is_composed_and_hits_background();
     test_ninth_in_range_sprite_sets_overflow();
     test_left_clipping_and_x255_hit_boundary();
