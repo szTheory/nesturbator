@@ -2,18 +2,18 @@
 gsd_state_version: "1.0"
 current_phase: 04
 current_phase_name: Sound
-current_plan: 1
-status: planning
-stopped_at: Phase 04 plans complete; ready to execute
-last_updated: "2026-10-09T01:18:36.257Z"
+current_plan: 2
+status: executing
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-10-09T02:31:15.039Z"
 last_activity: 2026-10-08
-last_activity_desc: Phase 04 planning complete
-state_head: 93942b7a5d0fa5120e63865a37af29261dcbf825
+last_activity_desc: Phase 04 execution started
+state_head: 9f52821435401205d4f512d4e8e32845b222fdb8
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 40
-  completed_plans: 36
+  completed_plans: 37
   percent: 75
 ---
 
@@ -24,16 +24,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-06)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 4 — Sound
+**Current focus:** Phase 04 — Sound
 
 ## Current Position
 
-Phase: 04 (Sound) — READY TO EXECUTE
-Current Plan: 1
+Phase: 04 (Sound) — EXECUTING
+Current Plan: 2
 Total Plans in Phase: 4
 Plans complete: 0 of 4.
 Status: Ready to execute
-Last activity: 2026-10-08 — Phase 04 planning complete
+Last activity: 2026-10-08 — Phase 04 execution started
 
 Progress: [████████░░] 75%
 
@@ -96,6 +96,7 @@ Progress: [████████░░] 75%
 | Phase 03 P12 | 12min | 1 tasks | 7 files |
 | Phase 03 P07 | 57min | 1 tasks | 15 files |
 | Phase 03 P13 | 12 min | 2 tasks | 7 files |
+| Phase 04 P01 | 14 min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -135,6 +136,9 @@ Recent decisions affecting current work:
 - [Phase 03]: CI uses the fetched protected-main scoreboard bytes; confirmed absence after successful lookup supplies an empty baseline.
 - [Phase 03]: Detached local runs use the committed scoreboard-main.txt snapshot; CI requires the workflow-provided baseline path.
 - [Phase 03]: Require hosted six-platform hash equality and released-RetroArch screenshot equality in `CI required`; retain evidence artifacts and skip owner UAT when these machine checks cover the behavior.
+- [Phase 04]: Keep APU state instance-owned and clock it before bus register decode on each CPU cycle.
+- [Phase 04]: Use the measured RP2A03G noise LFSR power-up state of zero, whose first clock shifts in one.
+- [Phase 04]: Use checked-in integer pulse and 16 x 16 x 128 TND mixer cells for deterministic output.
 
 ### Pending Todos
 
@@ -161,6 +165,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: Phase 04 planning complete
-Stopped at: Phase 04 plans are ready; next command is `$gsd-execute-phase 04`
-Resume file: .planning/phases/04-sound/04-CONTEXT.md
+Last session: 2026-10-09T02:31:14.983Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
