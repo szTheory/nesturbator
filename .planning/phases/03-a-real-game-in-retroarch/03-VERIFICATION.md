@@ -1,66 +1,9 @@
 ---
 phase: 03-a-real-game-in-retroarch
-verified: 2026-10-09T19:47:24Z
-status: gaps_found
-score: 25/28 must-haves verified
+verified: 2026-10-09T21:50:41Z
+status: passed
+score: 31/31 must-haves verified
 covered_files:
-  - .github/workflows/ci.yml
-  - .github/workflows/nightly.yml
-  - README.md
-  - include/nesturbator.h
-  - libretro/libretro.c
-  - runner/CMakeLists.txt
-  - runner/main.c
-  - runner/movie.c
-  - runner/movie.h
-  - src/bus.c
-  - src/cartridge.c
-  - src/cpu.c
-  - src/frame.c
-  - src/instance.c
-  - src/internal.h
-  - src/palette_ntsc.c
-  - src/ppu.c
-  - tests/CMakeLists.txt
-  - tests/accuracy/scoreboard-main.txt
-  - tests/accuracy/scoreboard.txt
-  - tests/accuracy/test_scoreboard.c
-  - tests/cmake/fuzz_registration.cmake
-  - tests/cmake/hash_inventory.cmake
-  - tests/cmake/prepare_scoreboard_baseline.cmake
-  - tests/cmake/vector_api_policy.cmake
-  - tests/cmake/verify_scoreboard_regression.cmake
-  - tests/cmake/write_hashes.cmake
-  - tests/core/test_api.c
-  - tests/core/test_cartridge.c
-  - tests/core/test_controller.c
-  - tests/core/test_palette.c
-  - tests/fuzz/corpus/empty
-  - tests/fuzz/corpus/header-only
-  - tests/fuzz/corpus/mapper-bits
-  - tests/fuzz/corpus/short-prg
-  - tests/fuzz/corpus/single-byte
-  - tests/fuzz/corpus/trailing-byte
-  - tests/fuzz/corpus/truncated-header
-  - tests/fuzz/corpus/valid-nrom
-  - tests/fuzz/rom_loader.c
-  - tests/libretro/libretro_host.c
-  - tests/ppu/test_registers.c
-  - tests/ppu/test_render.c
-  - tests/ppu/test_sprites.c
-  - tests/retroarch/CMakeLists.txt
-  - tests/retroarch/run_retroarch.cmake
-  - tests/retroarch/test.cfg.in
-  - tests/roms/accuracycoin.nes
-  - tests/roms/dabg.nes
-  - tests/roms/manifest.txt
-  - tests/roms/nesteroids.nes
-  - tests/roms/rhde.nes
-  - tests/runner/game_movie.c
-  - tests/runner/hashes.txt
-  - tests/runner/movie_fixture.h
-  - tests/runner/test_movie.c
-  - tools/palgen/palgen.c
   - .planning/phases/03-a-real-game-in-retroarch/03-01-PLAN.md
   - .planning/phases/03-a-real-game-in-retroarch/03-01-SUMMARY.md
   - .planning/phases/03-a-real-game-in-retroarch/03-02-PLAN.md
@@ -89,137 +32,146 @@ covered_files:
   - .planning/phases/03-a-real-game-in-retroarch/03-13-SUMMARY.md
   - .planning/phases/03-a-real-game-in-retroarch/03-14-PLAN.md
   - .planning/phases/03-a-real-game-in-retroarch/03-14-SUMMARY.md
-covered_digest: "v3:sha256:8bbb9a829484bac8a7486c70bf7e46b321a9a643ab68ed5a5a24d5ab22c43e16"
+  - .planning/phases/03-a-real-game-in-retroarch/03-15-PLAN.md
+  - .planning/phases/03-a-real-game-in-retroarch/03-15-SUMMARY.md
+  - README.md
+  - include/nesturbator.h
+  - src/internal.h
+  - src/ppu.c
+  - tests/ppu/test_sprites.c
+covered_digest: "v3:sha256:b5f31f2d97eeb890004e1d3865d6dd1f4246160a700fc8d53e1b740a3816f564"
 behavior_unverified: 0
 overrides_applied: 0
-gaps:
-  - truth: "Sprite overflow and related sprite outcomes match the documented 2C02 scan behavior."
-    status: failed
-    reason: "After the first eight sprites, the evaluator continues testing only each candidate's Y byte. The 2C02 diagonal scan also interprets tile, attribute, and X bytes as candidate Y values, so status bit 5 can be wrong for real programs."
-    artifacts:
-      - path: "src/ppu.c"
-        issue: "Post-eighth-sprite evaluation does not advance the diagonal n/m scan through OAM bytes."
-      - path: "tests/ppu/test_sprites.c"
-        issue: "Tests cover an in-range ninth Y entry but not a false positive from a non-Y byte or diagonal candidate skipping."
-    missing:
-      - "Implement the documented post-eighth-sprite diagonal scan and add regression cases for non-Y-byte false positives and skipped candidates."
-human_verification:
-  - test: "Run the required hosted CI for commit 124dc96159596c3938433d5872805e21d5e2ca6c and inspect hash-equality plus retroarch-e2e evidence."
-    expected: "All six complete game/movie hash inventories compare byte for byte; pinned RetroArch loads the game, its captured frame equals the runner frame, and retroarch-e2e-frames is retained."
-    why_human: "No hosted run exists for current HEAD. The latest supplied local workflow skipped both RetroArch tests because RetroArch was unavailable, and the prior hosted run predates the row-zero PPU and frame-hash change."
+re_verification:
+  previous_status: gaps_found
+  previous_score: 25/28
+  gaps_closed:
+    - "Sprite overflow and related sprite outcomes match the documented 2C02 scan behavior."
+    - "Exact-remediation-SHA six-platform hash equality and RetroArch capture evidence are available."
+  gaps_remaining: []
+  regressions: []
 ---
 
-# Phase 3: A Real Game in RetroArch Verification Report
+# Phase 3: A Real Game in RetroArch — Verification Report
 
 **Phase Goal:** A player loads an NROM game in RetroArch, sees it render and controls it, and its frames are identical on every platform.
-**Verified:** 2026-10-09T19:47:24Z
-**Status:** gaps_found
-**Re-verification:** Yes — after the row-zero sprite gap closure
+**Verified:** 2026-10-09T21:50:41Z
+**Status:** passed
+**Re-verification:** Yes — after diagonal sprite-overflow and exact-SHA evidence gap closure
 
 ## Goal Achievement
 
 ### Observable Truths
 
+The four roadmap success criteria were verified in addition to all plan must-haves. The 31 plan truths include the roadmap behaviors; repeated statements were merged by intent.
+
 | # | Truth | Status | Evidence |
 |---|---|---|---|
-| 1 | Mapper-0 iNES/NES 2.0 loading validates complete bounded geometry before allocation; malformed input rejects with a diagnostic; fuzz corpus regression and bounded nightly fuzz are wired. | ✓ VERIFIED | `src/cartridge.c`, `runner/main.c`, `tests/core/test_cartridge.c`, `tests/fuzz/rom_loader.c`, `tests/cmake/fuzz_registration.cmake`, and `.github/workflows/nightly.yml` provide validation, preallocation rejection, corpus replay registration, and the bounded sanitizer fuzz job. The supplied current CI run passed 355 tests, with only the two RetroArch tests skipped. |
-| 2 | NROM frames match recorded hashes, libretro receives equal frames, and released RetroArch capture matches the runner; current code has byte-identical hashes on all six platforms. | ⚠️ UNCERTAIN | Local runner hash-content and libretro host tests passed in the supplied CI run. The hosted `retroarch-e2e` and six-platform equality gates are wired in `.github/workflows/ci.yml`; prior hosted evidence exists, but it predates the Phase 03-14 row-zero rendering and native-hash update. No hosted run for current HEAD exists (`gh run list --workflow ci.yml --commit 124dc96159596c3938433d5872805e21d5e2ca6c` returned `[]`). See human verification. |
-| 3 | Movie replay produces repeatable ordered hashes and the same masks produce equal libretro frames. | ✓ VERIFIED | `runner/movie.c`, `runner/main.c`, `tests/runner/test_movie.c`, and `tests/libretro/libretro_host.c` implement and exercise bounded movie replay and pixel parity; current supplied CI passed the applicable tests. |
-| 4 | AccuracyCoin page 2/17 results are read from emulated RAM, match named sorted scoreboard rows, and protect prior passing rows. | ✓ VERIFIED | `runner/main.c` obtains emulated RAM results; `tests/accuracy/test_scoreboard.c` checks rows and `tests/cmake/verify_scoreboard_regression.cmake` covers loss of a prior PASS. Protected-main baseline handoff is wired through `tests/cmake/prepare_scoreboard_baseline.cmake` and the CI matrix. Current supplied CI passed the runnable AccuracyCoin and scoreboard checks. |
-| 5 | PPU registers, mirroring, vblank/NMI, timing, and background pixel state follow the selected NTSC behavior. | ✓ VERIFIED | `src/ppu.c`, `src/bus.c`, `tests/ppu/test_registers.c`, and `tests/ppu/test_render.c` implement the path; the supplied CI run passed registered PPU tests. |
-| 6 | Sprite priority, clipping, hit, overflow, DMA, and scanline-adjacent behavior match documented results. | ✗ FAILED | The current review's WR-01 is confirmed in code: `src/ppu.c` checks only the latched Y byte after eight sprites. `tests/ppu/test_sprites.c::test_ninth_in_range_sprite_sets_overflow` covers only the ninth in-range Y case, not diagonal false positives or skipped entries. This contradicts the explicit sprite overflow must-have in plans 03-04 and 03-14. |
-| 7 | Y=$FF with an opaque first pattern row appears on framebuffer row 0 after pre-render on even and odd frames; Y=$00 begins on row 1. | ✓ VERIFIED | `tests/ppu/test_sprites.c::test_prerender_wraps_sprite_rows_into_visible_scanline_zero` advances the real PPU clock through even/odd pre-render transitions and checks row 0, row 1, and neighboring output. The supplied CI run passed. |
-| 8 | Two standard controller ports latch and shift deterministic masks through $4016/$4017, and scripted inputs match libretro frames. | ✓ VERIFIED | `src/bus.c`, `src/instance.c`, `libretro/libretro.c`, `tests/core/test_controller.c`, and `tests/libretro/libretro_host.c` connect and test controller input; applicable tests passed in supplied CI. |
-| 9 | Three licensed, manifest-pinned games (including DABG and CHR-RAM RHDE) have stable native-frame hash milestones. | ✓ VERIFIED | `tests/roms/manifest.txt` pins fixture checksums and `tests/runner/hashes.txt` records generated milestones. `runner.write_hashes.content` passed in supplied CI. |
-| 10 | NTSC-to-sRGB palette regeneration is byte-identical and calibration preserves canonical native frame hashes. | ✓ VERIFIED | `tools/palgen/palgen.c`, `src/palette_ntsc.c`, and palette regeneration tests implement the offline path; the supplied CI run passed. |
-| 11 | The generated row-zero game hash inventory matches its committed baseline, and the normal workflow retains hosted six-platform and RetroArch gates. | ✓ VERIFIED | `runner.write_hashes.content` passed in supplied CI; `.github/workflows/ci.yml` still makes `ci-required` depend on `hash-equality` and `retroarch-e2e`. Exact-current hosted execution is tracked separately under truth 2. |
-| 12 | Scoreboard CI uses fetched protected-main bytes (or a confirmed empty baseline); detached local runs use the committed snapshot. | ✓ VERIFIED | `tests/cmake/prepare_scoreboard_baseline.cmake`, `tests/accuracy/test_scoreboard.c`, and the six-lane `.github/workflows/ci.yml` handoff enforce the source contract. The scoreboard regression checks passed locally. |
+| 1 | iNES and NES 2.0 mapper-0 images validate before allocation; malformed input is rejected; corpus replay and nightly fuzzing are wired. | ✓ VERIFIED | `src/cartridge.c` validates the complete supported layout before cartridge allocation; `tests/core/test_cartridge.c` covers formats, rejection-before-allocation, and safe lifecycle. `fuzz.regress` passed locally and the exact-SHA six-platform CI run passed. Nightly run [37962202123](https://github.com/szTheory/nesturbator/actions/runs/37962202123) also passed `rom-loader-fuzz`, including sanitized build and bounded mutation steps. |
+| 2 | The PPU renders game-derived frames and implements NTSC register, memory, timing, background, sprite, overflow, DMA, and scanline behavior. | ✓ VERIFIED | `src/ppu.c` and `src/bus.c` connect cartridge/PPU state to the shared frame clock. The focused local run passed `ppu.sprites`, including non-Y false-positive, skipped-Y, ninth-sprite, status timing/clear, and row-zero cases; `ppu.registers` and `ppu.render` are covered by the supplied 357/357 local full-workflow result. |
+| 3 | Standard two-port controller input reaches the core and libretro; recorded movies replay deterministic frame hashes and same-input libretro frames. | ✓ VERIFIED | `$4016/$4017` latch/shift is implemented in `src/bus.c`; `libretro/libretro.c` polls joypad callbacks and submits frame input. `tests/core/test_controller.c`, `tests/libretro/libretro_host.c`, `runner/movie.c`, and `tests/runner/test_movie.c` cover serial input, host parity, valid replay, and malformed movies. All applicable tests passed in the supplied local workflow. |
+| 4 | Pinned licensed NROM games have recorded native frame/hash milestones, the calibrated palette preserves native hashes, and the exact hosted six-platform inventories match. | ✓ VERIFIED | `tests/roms/manifest.txt` pins ROM provenance/checksums; `tests/runner/hashes.txt` contains 36 rows and `runner.write_hashes.content` passed locally. `src/palette_ntsc.c` is generated by `tools/palgen/palgen.c` and palette tests check regeneration. CI run [37994563525](https://github.com/szTheory/nesturbator/actions/runs/37994563525) has head SHA `20331371c8036cd5fccec6491d25262e3a2c0364`; all six Linux/macOS/Windows x64/arm64 build legs and byte-for-byte `hash-equality` succeeded. |
+| 5 | RetroArch loads a pinned open-license game, renders the runner-matched frame, and retains its evidence artifact. | ✓ VERIFIED | In run 37994563525, `retroarch-e2e` and `CI required` succeeded for the exact remediation SHA. Downloaded artifact `retroarch-e2e-frames` contains nonempty 180 KiB `run/runner.ppm`, 1.5 KiB `run/shot.png`, 180 KiB `run/shot.bmp`, and `asset-evidence.txt`; the job's successful frame-comparison step compares capture to runner output. Evidence records RetroArch 1.22.2 and matching expected/actual SHA-256 `81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434`. |
+| 6 | AccuracyCoin pages 2 and 17 report RAM-derived results equal to the committed scoreboard, and no prior pass can disappear unnoticed. | ✓ VERIFIED | `runner/main.c` reads the emulated RAM results; `tests/accuracy/test_scoreboard.c` verifies named rows and the protected baseline; `tests/cmake/prepare_scoreboard_baseline.cmake` wires the fetched main baseline. The focused local run passed both page checks; all six hosted lanes prepared the protected-main baseline and succeeded. |
 
-**Score:** 25/28 plan must-have truths verified; 2 failed (one shared overflow defect) and 1 uncertain. The two failed plan truths are the same diagonal-overflow defect described under truth 6 (plans 03-04 and 03-14).
+**Score:** 31/31 plan must-haves verified; all 4 roadmap success criteria satisfied. Behavior-unverified truths: 0.
 
 ### Required Artifacts
 
-| Artifact | Expected | Status | Details |
+| Artifact group | Expected | Status | Evidence |
 |---|---|---|---|
-| `src/cartridge.c`, `tests/core/test_cartridge.c` | Bounded loader and allocation-before-validation | ✓ VERIFIED | Substantive implementation and registered tests; supplied CI passed. |
-| `runner/main.c`, `runner/movie.c`, `tests/runner/test_movie.c` | Content and movie replay with deterministic output | ✓ VERIFIED | Runner path, bounded parser and replay tests are connected; supplied CI passed. |
-| `src/ppu.c`, `tests/ppu/test_registers.c`, `tests/ppu/test_render.c`, `tests/ppu/test_sprites.c` | PPU state and rendered game pixels | ⚠️ PARTIAL | Row-zero path and other tested PPU paths pass; diagonal sprite-overflow emulation remains incomplete. |
-| `libretro/libretro.c`, `tests/libretro/libretro_host.c` | Content, controller, video and frame parity | ✓ VERIFIED | Adapter calls the shared public core and host parity test passed. |
-| `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`, `tests/retroarch/run_retroarch.cmake`, `tests/cmake/hash_inventory.cmake` | Six-platform equality, released RetroArch comparison, bounded nightly fuzz | ✓ VERIFIED (wiring) | Required jobs and consumers are connected. Historical exact-run proof predates current frame changes, so current hosted outcome remains human verification. |
+| Loader and fuzz | `src/cartridge.c`, loader tests, corpus, fuzz target | ✓ VERIFIED | All declared paths exist and contain implementation/test inputs. Loader APIs are reached by runner and libretro paths; CTest and nightly workflow invoke the owned loader/fuzzer. |
+| PPU and rendering | `src/ppu.c`, register/render/sprite tests | ✓ VERIFIED | Real PPU state is clocked from frame execution and CPU bus writes. Focused `ppu.sprites` passed 1/1; local workflow passed all other registered checks. |
+| Controllers and movies | bus/input adapter, movie parser/runner, seam tests | ✓ VERIFIED | Input callback values flow to public per-frame input; movie masks feed the same API. Controller, movie, and libretro host tests are registered and passed. |
+| ROMs and deterministic inventory | manifest, three NROM images, `tests/runner/hashes.txt`, palette source/tool | ✓ VERIFIED | All declared artifacts exist; hashes and palette regeneration are checked in CI. Six-host equality evidence succeeded on the remediation SHA. |
+| AccuracyCoin | ROM, scoreboard, regression test, baseline handoff | ✓ VERIFIED | RAM results flow into sorted scoreboard comparison; no-lost-PASS regression is connected to CI baseline setup. |
+| Hosted RetroArch gate | `.github/workflows/ci.yml`, `tests/retroarch/run_retroarch.cmake`, pinned binary evidence | ✓ VERIFIED | Required job installs/checks pinned released RetroArch, compares captured output with runner output, fails closed, and uploads the inspected artifact. |
+
+All declared plan artifacts were present. No stub or orphan was found among the artifacts supporting the must-haves.
 
 ### Key Link Verification
 
-| From | To | Via | Status | Details |
+| From | To | Via | Status | Evidence |
 |---|---|---|---|---|
-| `runner/main.c` | public cartridge/frame API | load, input, run, hash | WIRED | Runner and generated game/movie checks use the public instance API. |
-| `libretro/libretro.c` | public cartridge/frame/input API | content load, joypad poll, video callback | WIRED | `libretro.host` passed host rendering and scripted-input parity. |
-| `src/frame.c` / `src/bus.c` | `src/ppu.c` | shared instance timing and bus effects | WIRED | PPU and frame tests passed; state is per-instance. |
-| `tests/cmake/write_hashes.cmake` | six-platform CI | upload inventories and compare complete ordered rows | WIRED | Required `hash-equality` job consumes six build artifacts; current commit's remote result is not available yet. |
-| `tests/retroarch/run_retroarch.cmake` | pinned RetroArch and runner | capture and compare the same frame | WIRED | Required job and artifact upload remain in CI; current local RetroArch tests skipped and exact-current hosted run is absent. |
-| `tests/cmake/prepare_scoreboard_baseline.cmake` | scoreboard tests | protected-main baseline handoff | WIRED | CI sets required baseline before CTest; regression suite passed locally. |
+| Runner and libretro content paths | Public cartridge/frame/input API | Load cartridge, set input, run frame | ✓ WIRED | `runner/main.c` and `libretro/libretro.c` call the shared public API; `tests/libretro/libretro_host.c` asserts parity. |
+| CPU bus and frame clock | Instance PPU | Register/memory side effects and per-dot clock | ✓ WIRED | `src/bus.c` and `src/frame.c` reach `src/ppu.c`; register/render/sprite tests exercise production clock paths. |
+| Movie reader and libretro host | Per-frame input API | Two-port masks | ✓ WIRED | `runner/main.c` takes the validated movie masks per frame; host tests feed matching input masks. |
+| Hash generation and six CI lanes | Complete sorted hash inventories | Per-lane artifacts plus `hash-equality` fan-in | ✓ WIRED | CI run 37994563525's `hash-equality` succeeded after the six platform build jobs. |
+| RetroArch launch harness | Pinned game and runner frame oracle | Required CI job, screenshot capture, `compare_frame` | ✓ WIRED | Exact-SHA `retroarch-e2e` succeeded; its retained runner/screenshot files and binary checksum evidence were inspected. |
+| AccuracyCoin runner | Emulated result RAM and scoreboard | Required page execution and row comparison | ✓ WIRED | `runner/main.c` reads CPU RAM; scoreboard tests and six-lane protected-main baseline step succeeded. |
+| Fuzz corpus and nightly target | Owned loader and teardown | `fuzz.regress` and bounded libFuzzer invocation | ✓ WIRED | Registration and workflow invoke `tests/fuzz/rom_loader.c`; local regression passed and hosted jobs succeeded. |
 
 ### Data-Flow Trace (Level 4)
 
-| Artifact | Data | Source | Real data | Status |
+| Artifact | Data | Source | Produces real data | Status |
 |---|---|---|---|---|
-| `runner/main.c` | Native frame pixels and hashes | Loaded manifest ROM → instance → frame API | Yes | ✓ FLOWING |
-| `libretro/libretro.c` | Host video buffer | Same instance frame → conversion → callback | Yes | ✓ FLOWING |
-| `src/ppu.c` | Framebuffer pixels | Cartridge CHR, nametable, palette, OAM | Yes | ✓ FLOWING |
+| `runner/main.c` | Native frame and hash | Manifest ROM → instance → frame API | Yes | ✓ FLOWING |
+| `libretro/libretro.c` | Host video frame | Instance framebuffer → conversion → video callback | Yes | ✓ FLOWING |
+| `src/ppu.c` | Pixels and sprite status | Cartridge CHR, PPU memory/registers, OAM | Yes | ✓ FLOWING |
 | AccuracyCoin mode | Result rows | Emulated CPU RAM | Yes | ✓ FLOWING |
-| Hash generator | Game/movie hashes | Runner output for manifest games and scripts | Yes | ✓ FLOWING |
+| Hash generator | Game/movie inventory | Runner output for manifest games and movie fixtures | Yes | ✓ FLOWING |
+| RetroArch capture | Screenshot | Pinned released RetroArch loading the test game | Yes | ✓ FLOWING |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command/evidence | Result | Status |
 |---|---|---|---|
-| Current local CI workflow | Supplied `cmake --workflow --preset ci` result | 355 passed, 2 skipped (`retroarch.testframe`, `retroarch.game` because RetroArch unavailable), 0 failed; package step completed | ✓ PASS |
-| Row-zero Y=$FF sprite path | Registered `ppu.sprites` clock-path test, included in supplied workflow | Even/odd pre-render and adjacent-row assertions passed | ✓ PASS |
-| Game/movie hashes, libretro parity, AccuracyCoin, fuzz regression | Registered tests in supplied workflow | Applicable tests passed | ✓ PASS |
-| Diagonal sprite-overflow behavior | Read `src/ppu.c:64-91` and `tests/ppu/test_sprites.c:75-90` | Evaluator tests only OAM Y bytes after the first eight; no diagonal byte scan case exists | ✗ FAIL |
-| Exact-current hosted hashes and RetroArch screenshot | `gh run list --workflow ci.yml --commit 124dc96159596c3938433d5872805e21d5e2ca6c` | `[]`; prior hosted run predates row-zero/frame hash change | ? HUMAN |
+| Focused GAME-01 through GAME-05 seams and hash content | `ctest --preset ci -R '^(core\.cartridge|core\.controller|libretro\.host|runner\.movie|runner\.write_hashes\.content|fuzz\.regress|ppu\.sprites|accuracycoin\.page2|accuracycoin\.page17)$' --output-on-failure` | 11/11 passed (CTest also selected `runner.dump` and `runner.write_hashes` by registered test properties) | ✓ PASS |
+| Full local CI workflow | Supplied `cmake --workflow --preset ci` result | 357/357 tests passed; two RetroArch checks skipped because RetroArch is unavailable locally | ✓ PASS |
+| Diagonal sprite-overflow timing | `ctest --test-dir build/ci -R 'ppu.sprites' --output-on-failure` | 1/1 passed against production PPU clock | ✓ PASS |
+| Exact-SHA platform inventory equality | Hosted run 37994563525, `hash-equality` job | Successful for SHA `20331371c8036cd5fccec6491d25262e3a2c0364` | ✓ PASS |
+| Exact-SHA RetroArch capture | Hosted run 37994563525, `retroarch-e2e` job and downloaded artifact | Job passed; screenshot, runner frame, and pinned-binary checksum evidence present and inspected | ✓ PASS |
+| Scheduled loader mutation fuzzing | Nightly run 37962202123, `rom-loader-fuzz` job | Sanitized target built and bounded mutation test passed | ✓ PASS |
+| Hosted required status | Hosted run 37994563525, `CI required` job | Success | ✓ PASS |
 
 ### Probe Execution
 
-No phase plan declares a probe script, and no conventional phase probe is present. Not applicable.
+No plan declares a probe, and no phase probe script exists. Not applicable.
 
 ### Requirements Coverage
 
 | Requirement | Source plans | Status | Evidence |
 |---|---|---|---|
-| GAME-01 | 03-01, 03-02, 03-09 | ✓ SATISFIED | Loader validates before allocation; rejection and corpus tests passed. Nightly fuzz target is wired. |
-| GAME-02 | 03-01, 03-03, 03-04, 03-06, 03-08, 03-09, 03-12, 03-14 | ? NEEDS HOSTED EVIDENCE | Runner hashes and libretro equality pass locally; no hosted RetroArch/hash-equality run for current HEAD after the frame-hash update. |
-| GAME-03 | 03-05, 03-06, 03-08, 03-11 | ✓ SATISFIED | Repeatable movie hashes and same-input libretro pixel parity tests passed locally. |
-| GAME-04 | 03-03, 03-04, 03-07, 03-13, 03-14 | ✓ SATISFIED (scope criteria) | RAM-derived page 2/17 results, scoreboard equality, and protected-main no-lost-PASS checks passed. The separate diagonal overflow accuracy gap is captured under the failed plan truth. |
-| GAME-05 | 03-08, 03-10 | ✓ SATISFIED (local regression and wiring) | Fuzz corpus replay passed; bounded nightly libFuzzer workflow remains connected. Nightly execution was not claimed. |
-| GAME-06 | 03-06, 03-08, 03-12, 03-14 | ? NEEDS HOSTED EVIDENCE | Current local output matches its committed inventory; byte-for-byte results across all six platforms require the not-yet-observed current hosted `hash-equality` run. |
+| GAME-01 | 03-01, 03-02, 03-09 | ✓ SATISFIED | Bounded mapper-0 loading, rejection-before-allocation tests, corpus regression, and nightly fuzz wiring. |
+| GAME-02 | 03-01, 03-03, 03-04, 03-06, 03-08, 03-09, 03-12, 03-14, 03-15 | ✓ SATISFIED | Game frame hashes, libretro parity, PPU/sprite behavior, exact-SHA RetroArch frame comparison. |
+| GAME-03 | 03-05, 03-06, 03-08, 03-11 | ✓ SATISFIED | Deterministic movie replay and same-input host parity; hosted hash equality includes the complete movie/game inventory. |
+| GAME-04 | 03-03, 03-04, 03-07, 03-13, 03-14, 03-15 | ✓ SATISFIED | AccuracyCoin pages 2/17 RAM results, scoreboard equality and regression gate; sprite overflow cases pass. |
+| GAME-05 | 03-08, 03-10 | ✓ SATISFIED | `fuzz.regress` passed locally; nightly run 37962202123 passed the sanitized, bounded `rom-loader-fuzz` job. |
+| GAME-06 | 03-06, 03-08, 03-12, 03-14, 03-15 | ✓ SATISFIED | Six complete inventories compared byte-for-byte in successful exact-SHA `hash-equality`. |
 
-No Phase 03 requirement is orphaned in `REQUIREMENTS.md`.
+No requirement assigned to Phase 03 was orphaned in `REQUIREMENTS.md`.
+
+### Test Quality Audit
+
+| Test area | Active / skipped | Circular | Assertion strength | Verdict |
+|---|---|---|---|---|
+| Loader, controller, PPU, libretro, movie, scoreboard, fuzz | Active registered tests; no disabled-test markers found in the inspected requirement-linked files | No expected-output generation from the tested implementation found | Value and behavioral assertions, including RAM rows, hashes, pixel equality, and clocked PPU status | ✓ ADEQUATE |
+| Cross-platform frame inventory | Hosted `hash-equality` passed on exact SHA | Inventory is a deterministic regression baseline; hosted comparison independently runs each platform build | Byte-for-byte equality of complete ordered output | ✓ ADEQUATE for GAME-02/GAME-06 |
+| RetroArch capture | Required hosted test passed on exact SHA | Runner is the specified pixel oracle; the check establishes host/render integration and exact capture equality | Pixel-by-pixel frame comparison plus pinned binary checksum | ✓ ADEQUATE for the stated integration criterion |
+
+Disabled requirement-linked tests: 0. Circular expected-value patterns: 0. No insufficient assertion blocker found.
 
 ### Anti-Patterns Found
 
 | File | Pattern | Severity | Impact |
 |---|---|---|---|
-| `src/ppu.c` | Post-eighth-sprite overflow evaluator only checks each candidate Y byte | 🛑 BLOCKER | Fails the explicit documented sprite overflow outcome; see gap. |
-| `libretro/libretro.c` | Per-sample audio callback is stored but not invoked | ⚠️ ADVISORY (out of scope) | SOUND is a later phase requirement and not part of GAME-01 through GAME-06. |
-| `libretro/libretro.c` | `retro_reset()` is empty for a loaded game | ⚠️ ADVISORY (out of scope) | No Phase 03 must-have requires frontend reset behavior. |
+| None in Phase 03 must-have implementation scope | No unresolved `TBD`/`FIXME`/`XXX`, placeholder, hollow-data, or console-only implementation found | — | No blocker. |
 
-No unreferenced `TBD`, `FIXME`, or `XXX` debt markers were found in the inspected Phase 03 implementation scope. Review disposition rows for the audio callback/reset findings and duplicate comments were carried as outside this review's finding set; they are not verification gaps for this phase. WR-01 is blocking because its technical claim directly disproves the sprite-overflow must-have, independent of its review severity label.
+The current code review is clean (`03-REVIEW.md`: zero findings; `03-REVIEW-DISPOSITION.md`: no open dispositions). Previously deferred audio callback and reset observations are outside GAME-01 through GAME-06 and tracked beyond this phase; they do not fail a Phase 03 truth.
+
+### Decision Coverage
+
+The verification gate reports all 11 trackable CONTEXT.md decisions honored; no unhonored decisions.
 
 ### Human Verification Required
 
-#### 1. Exact-current hosted CI evidence
-
-**Test:** Run required CI for the current code revision and inspect `hash-equality`, `retroarch-e2e`, and the retained `retroarch-e2e-frames` artifact.
-**Expected:** Six complete inventories are byte-identical and the pinned RetroArch screenshot matches the runner frame.
-**Why human:** The local machine has no runnable RetroArch, and GitHub Actions has no run for current HEAD. Existing hosted evidence is from before the Phase 03-14 frame output change.
+None. The phase CONTEXT explicitly makes command-verifiable checks automatic and says no behavior requires owner UAT. The only former manual evidence need is now satisfied by the exact-SHA hosted hash/RetroArch gates and inspected retained artifact.
 
 ### Gaps Summary
 
-The phase's observable NROM load, render, controls, deterministic local hashes, movie replay, libretro parity, AccuracyCoin selected-page results, and loader/fuzz behavior are present and exercised. One concrete implementation requirement remains unmet: sprite overflow does not reproduce the 2C02 post-eighth-sprite diagonal OAM scan. Add the scan and regression cases before treating this phase's emulation outcome as complete. Exact-current six-platform and RetroArch proof also remains outstanding; the workflow is wired, but no current-head hosted run can substantiate those outcomes yet.
-
-Decision coverage: all 11 trackable CONTEXT.md decisions honored (non-blocking gate).
+The two previously open verification items are closed. The corrected per-instance sprite evaluator now performs the post-eighth-sprite diagonal OAM byte walk; its production-clock regression passes in the 11-test focused selection. Run 37994563525 is successful on exact remediation SHA `20331371c8036cd5fccec6491d25262e3a2c0364`, with all six platform legs, hash equality, RetroArch screenshot comparison, and required CI status green. Nightly run 37962202123 additionally passed the sanitized bounded ROM-loader fuzz job. Current HEAD is a descendant of the remediation SHA; subsequent changes are phase summary/review/disposition records, not implementation, tests, or public docs. The retained RetroArch artifact is present and inspected, including matching pinned binary checksum evidence. All GAME-01 through GAME-06 requirements and roadmap success criteria are satisfied.
 
 ---
 
-_Verified: 2026-10-09T19:47:24Z_
+_Verified: 2026-10-09T21:50:41Z_
 _Verifier: the agent (gsd-verifier)_

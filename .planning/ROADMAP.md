@@ -14,9 +14,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: A test frame in RetroArch** - The library, runner and libretro core build, test and release on six platforms and show a built-in test frame in RetroArch (completed 2026-10-03)
 - [x] **Phase 2: The CPU matches the public vectors** - Every opcode matches the public 65x02 vectors on final state and on every bus cycle (completed 2026-10-06)
-- [x] **Phase 3: A real game in RetroArch** - NROM games render and take controller input, with frame hashes equal on every platform (completed 2026-10-08)
+- [x] **Phase 3: A real game in RetroArch** - NROM games render and take controller input, with frame hashes equal on every platform (completed 2026-10-09)
 - [x] **Phase 4: Sound** - NROM games play with sound, with audio hashes equal on every platform (completed 2026-10-09)
 - [x] **Phase 4.1: Close gap: GAME-01 — initialize accepted iNES trainers** - Trainer bytes initialize CPU-visible NROM RAM before execution (completed 2026-10-09)
+- [ ] **Phase 4.2: Close gap: SND-01 — deliver single-sample libretro audio** - Frontends with only the single-sample callback receive deterministic stereo PCM
 
 ## Phase Details
 
@@ -134,7 +135,7 @@ Plans:
   3. `nesturbator-run --movie FILE` replays recorded controller input and prints the same frame hashes on every run, and the libretro test program, fed the same input, receives equal frames.
   4. The runner runs AccuracyCoin and reads each result from RAM; the results equal the committed scoreboard file, a test fails if that file loses a pass that `main` has, and every test on pages 2 and 17 passes.
 
-**Plans**: 15/15 plans executed
+**Plans**: 15/15 plans complete
 Plans:
 
 **Wave 1**
@@ -205,21 +206,6 @@ Plans:
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`
 
-### Phase 04.2: Close gap: SND-01 — deliver single-sample libretro audio (INSERTED)
-
-**Goal:** A libretro frontend that provides only the single-sample audio callback receives the core's stereo PCM, with deterministic host coverage in CI.
-**Requirements**: SND-01
-**Depends on:** Phase 4
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (run $gsd-plan-phase 04.2 to break down)
-
-**Success Criteria:**
-- When `audio_batch_cb` is absent and `audio_cb` is registered, `retro_run` delivers each stereo PCM pair through `audio_cb` in frame order.
-- When both callbacks are registered, the adapter uses the batch callback and does not also invoke the single-sample callback.
-- A deterministic libretro host test registers only `audio_cb` and compares its samples with the direct core PCM; the existing CI workflow runs the regression without audio hardware or owner UAT.
-
 ### Phase 4.1: Close gap: GAME-01 — initialize accepted iNES trainers (INSERTED)
 
 **Goal:** Accepted trainer-bearing iNES and NES 2.0 mapper-0 images initialize writable CPU-visible PRG RAM with the 512 trainer bytes at $7000-$71FF before execution, with the behavior covered by deterministic CI tests.
@@ -233,15 +219,31 @@ Plans:
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/ENGINEERING.md`, `.planning/v1-MILESTONE-AUDIT.md`
 
+### Phase 4.2: Close gap: SND-01 — deliver single-sample libretro audio (INSERTED)
+
+**Goal:** A libretro frontend that provides only the single-sample audio callback receives the core's stereo PCM, with deterministic host coverage in CI.
+**Requirements**: SND-01
+**Depends on:** Phase 4
+**Plans**: 0 plans written; planning pending
+
+Plans:
+- Planning from the milestone audit: `$gsd-plan-phase 04.2 --skip-research`
+
+**Success Criteria:**
+- When `audio_batch_cb` is absent and `audio_cb` is registered, `retro_run` delivers each stereo PCM pair through `audio_cb` in frame order.
+- When both callbacks are registered, the adapter uses the batch callback and does not also invoke the single-sample callback.
+- A deterministic libretro host test registers only `audio_cb` and compares its samples with the direct core PCM; the existing CI workflow runs the regression without audio hardware or owner UAT.
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 4.1
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 4.1 → 4.2
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
 | 2. The CPU matches the public vectors | 11/11 | Complete    | 2026-10-06 |
-| 3. A real game in RetroArch | 15/15 | Gap closure planned | — |
+| 3. A real game in RetroArch | 15/15 | Complete    | 2026-10-09 |
 | 4. Sound | 4/4 | Complete    | 2026-10-09 |
 | 4.1. Close gap: GAME-01 — initialize accepted iNES trainers | 1/1 | Complete    | 2026-10-09 |
+| 4.2. Close gap: SND-01 — deliver single-sample libretro audio | 0 plans | Planning   | — |

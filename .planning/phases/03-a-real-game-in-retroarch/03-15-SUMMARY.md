@@ -98,7 +98,7 @@ status: complete
 - Original Task 2 CI run: https://github.com/szTheory/nesturbator/actions/runs/37992224142. Its head SHA was `4fce43491b1b058491eff7cb2fe1fa68b85a036e`; it passed before review found the first-eight selection timing defect.
 - Remediation CI run: https://github.com/szTheory/nesturbator/actions/runs/37994563525. Its `headSha` exactly matches `20331371c8036cd5fccec6491d25262e3a2c0364`; conclusion: `success`.
 - All six Linux, macOS, and Windows x64/arm64 builds succeeded on the remediation SHA. `hash-equality`, `retroarch-e2e`, and `CI required` each succeeded; ASan, hygiene, no-FP, and Conventional Commit title checks also succeeded.
-- Retained artifact `retroarch-e2e-frames` was downloaded and inspected: `run/runner.ppm` (184335 bytes), `run/shot.png` (1579 bytes), `run/shot.bmp` (184374 bytes), and `asset-evidence.txt` (285 bytes). The evidence records matching expected and actual SHA-256 values for pinned RetroArch 1.22.2.
+- Retained artifact `retroarch-e2e-frames` was downloaded and inspected. It contains a nonempty runner frame, PNG/BMP capture images, and checksum evidence whose expected and actual SHA-256 values match for pinned RetroArch 1.22.2.
 
 ## Deviations from Plan
 
