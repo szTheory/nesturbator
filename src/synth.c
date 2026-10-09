@@ -47,6 +47,8 @@ const int16_t nesturbator__synth_kernel[NESTURBATOR_SYNTH_PHASES][NESTURBATOR_SY
 /* Exact integer nonlinear mixer cells, moved here so the mixer and
    synthesis coefficients share one owned table module. HWC.11. */
 /* Integer mixer cells derived from NES-HARDWARE-CPU-APU.md HWC.11. */
+// clang-format off
+/* Precomputed integer mixer lookup tables; retain their compact row layout. */
 const uint16_t nesturbator__pulse_mix[31] = {
     0u, 382u, 754u, 1118u, 1474u, 1821u, 2160u, 2491u, 2815u, 3132u, 3442u, 3745u, 4042u, 4332u, 4616u, 4895u, 5167u, 5434u, 5696u, 5953u, 6204u, 6450u, 6692u, 6929u, 7162u, 7390u, 7614u, 7834u, 8050u, 8262u, 8470u
 };
@@ -2644,10 +2646,13 @@ const uint16_t nesturbator__tnd_mix[16][16][128] = {
         }
     }
 };
+// clang-format on
 
-_Static_assert(sizeof nesturbator__synth_kernel / sizeof nesturbator__synth_kernel[0] == NESTURBATOR_SYNTH_PHASES,
+_Static_assert(sizeof nesturbator__synth_kernel / sizeof nesturbator__synth_kernel[0] ==
+                   NESTURBATOR_SYNTH_PHASES,
                "synthesis phase count");
-_Static_assert(sizeof nesturbator__synth_kernel[0] / sizeof nesturbator__synth_kernel[0][0] == NESTURBATOR_SYNTH_TAPS,
+_Static_assert(sizeof nesturbator__synth_kernel[0] / sizeof nesturbator__synth_kernel[0][0] ==
+                   NESTURBATOR_SYNTH_TAPS,
                "synthesis tap count");
 _Static_assert(sizeof nesturbator__pulse_mix / sizeof nesturbator__pulse_mix[0] == 31u,
                "pulse mixer dimension");
@@ -2669,8 +2674,7 @@ static int64_t multiply_q30(int64_t value, int64_t coefficient)
 {
     int64_t whole = value / NESTURBATOR_FILTER_Q30;
     int64_t remainder = value % NESTURBATOR_FILTER_Q30;
-    return whole * coefficient +
-           (remainder * coefficient) / NESTURBATOR_FILTER_Q30;
+    return whole * coefficient + (remainder * coefficient) / NESTURBATOR_FILTER_Q30;
 }
 
 static int64_t rounded_q30(int64_t value)
@@ -2702,11 +2706,10 @@ static int32_t interpolate_coefficient(unsigned phase, unsigned tap, uint32_t ph
         b = tap == 0u ? 0 : nesturbator__synth_kernel[0][tap - 1u];
     }
     int64_t numerator = (int64_t)(b - a) * phase_fraction;
-    int64_t delta = numerator >= 0
-                        ? (numerator + (NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u)) /
-                              NESTURBATOR_AUDIO_TICKS_PER_PERIOD
-                        : -((-numerator + (NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u)) /
-                            NESTURBATOR_AUDIO_TICKS_PER_PERIOD);
+    int64_t delta = numerator >= 0 ? (numerator + (NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u)) /
+                                         NESTURBATOR_AUDIO_TICKS_PER_PERIOD
+                                   : -((-numerator + (NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u)) /
+                                       NESTURBATOR_AUDIO_TICKS_PER_PERIOD);
     return (int32_t)((int64_t)a + delta);
 }
 
@@ -2731,14 +2734,11 @@ void nesturbator__synth_transition(struct nesturbator *nes, int32_t level)
         coefficients[tap] = interpolate_coefficient(phase, tap, phase_fraction);
         sum += coefficients[tap];
     }
-    unsigned correction_tap = nes->apu.sample_phase <
-                                      NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u
-                                  ? 7u
-                                  : 8u;
+    unsigned correction_tap =
+        nes->apu.sample_phase < NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u ? 7u : 8u;
     coefficients[correction_tap] += 32768 - sum;
     for (unsigned tap = 0u; tap < NESTURBATOR_SYNTH_TAPS; tap++) {
-        unsigned slot = (unsigned)(synth->impulse_head + tap) &
-                        (NESTURBATOR_SYNTH_TAPS - 1u);
+        unsigned slot = (unsigned)(synth->impulse_head + tap) & (NESTURBATOR_SYNTH_TAPS - 1u);
         synth->impulse[slot] += (int64_t)delta * coefficients[tap];
     }
     synth->mixed_level = level;
@@ -2754,11 +2754,9 @@ void nesturbator__synth_sample(struct nesturbator *nes)
 
     int64_t input = synth->integrator_q15 * INT64_C(32768);
     for (unsigned filter = 0u; filter < 2u; filter++) {
-        int64_t highpass_input = input + synth->hp_output_q30[filter] -
-                                 synth->hp_input_q30[filter];
+        int64_t highpass_input = input + synth->hp_output_q30[filter] - synth->hp_input_q30[filter];
         synth->hp_input_q30[filter] = input;
-        synth->hp_output_q30[filter] =
-            multiply_q30(highpass_input, hp_coefficient_q30[filter]);
+        synth->hp_output_q30[filter] = multiply_q30(highpass_input, hp_coefficient_q30[filter]);
         input = synth->hp_output_q30[filter];
     }
     synth->lp_output_q30 += multiply_q30(input - synth->lp_output_q30, lp_coefficient_q30);
@@ -2768,8 +2766,7 @@ void nesturbator__synth_sample(struct nesturbator *nes)
         return;
     }
     synth->pcm[synth->pcm_write] = pcm_sample(synth->lp_output_q30);
-    synth->pcm_write = (uint16_t)((synth->pcm_write + 1u) &
-                                  (NESTURBATOR_SYNTH_RING_CAPACITY - 1u));
+    synth->pcm_write = (uint16_t)((synth->pcm_write + 1u) & (NESTURBATOR_SYNTH_RING_CAPACITY - 1u));
     synth->pcm_count++;
 }
 
@@ -2781,8 +2778,8 @@ uint32_t nesturbator__synth_drain(struct nesturbator *nes, int16_t *out, uint32_
         return 0u;
     while (drained < count && synth->pcm_count != 0u) {
         out[drained++] = synth->pcm[synth->pcm_read];
-        synth->pcm_read = (uint16_t)((synth->pcm_read + 1u) &
-                                     (NESTURBATOR_SYNTH_RING_CAPACITY - 1u));
+        synth->pcm_read =
+            (uint16_t)((synth->pcm_read + 1u) & (NESTURBATOR_SYNTH_RING_CAPACITY - 1u));
         synth->pcm_count--;
     }
     return drained;

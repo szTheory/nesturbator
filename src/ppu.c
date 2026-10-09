@@ -268,9 +268,8 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
         }
         /* Visible pixels are produced as the PPU crosses each visible dot.
            Background tile/attribute addressing follows the 2C02 scroll fields. [HWP.02][HWP.05] */
-        if (nes->ppu.scanline < NESTURBATOR_HEIGHT &&
-            nes->ppu.dot >= 1u && nes->ppu.dot <= NESTURBATOR_WIDTH &&
-            nes->ppu.video_output != NULL) {
+        if (nes->ppu.scanline < NESTURBATOR_HEIGHT && nes->ppu.dot >= 1u &&
+            nes->ppu.dot <= NESTURBATOR_WIDTH && nes->ppu.video_output != NULL) {
             uint32_t x = (uint32_t)nes->ppu.dot - 1u;
             uint32_t y = nes->ppu.scanline;
             nes->ppu.video_output[(size_t)y * nes->ppu.video_pitch + x] = compose_pixel(nes, x, y);

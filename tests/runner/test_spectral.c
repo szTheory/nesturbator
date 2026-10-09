@@ -169,8 +169,7 @@ static int is_harmonic_neighbour(unsigned bin, unsigned fundamental)
     /* Include folded aliases of the first 512 harmonic orders. This finite
        order avoids masking every bin after the coherent aliases repeat. */
     for (unsigned harmonic = 1u; harmonic <= SPECTRAL_HARMONICS; harmonic++) {
-        unsigned harmonic_bin =
-            (unsigned)(((uint64_t)harmonic * fundamental) % SPECTRAL_SAMPLES);
+        unsigned harmonic_bin = (unsigned)(((uint64_t)harmonic * fundamental) % SPECTRAL_SAMPLES);
         if (harmonic_bin > SPECTRAL_SAMPLES / 2u)
             harmonic_bin = SPECTRAL_SAMPLES - harmonic_bin;
         unsigned distance = bin > harmonic_bin ? bin - harmonic_bin : harmonic_bin - bin;
@@ -239,8 +238,8 @@ static void check_fft_with_coherent_sine(void)
 
 static unsigned native_bin(unsigned period, int triangle)
 {
-    uint64_t denominator = (triangle != 0 ? UINT64_C(32) : UINT64_C(16)) *
-                           ((uint64_t)period + 1u) * UINT64_C(48000);
+    uint64_t denominator =
+        (triangle != 0 ? UINT64_C(32) : UINT64_C(16)) * ((uint64_t)period + 1u) * UINT64_C(48000);
     uint64_t numerator = UINT64_C(1789773) * SPECTRAL_SAMPLES;
     return (unsigned)((numerator + denominator / 2u) / denominator);
 }
@@ -252,8 +251,7 @@ static int32_t triangle_level(unsigned phase)
     return (int32_t)(dac * 1000u);
 }
 
-static void run_tone(unsigned period, int triangle, unsigned raw_bin,
-                     unsigned *fundamental_bin)
+static void run_tone(unsigned period, int triangle, unsigned raw_bin, unsigned *fundamental_bin)
 {
     const uint64_t event_denominator = (triangle != 0 ? UINT64_C(32) : UINT64_C(2)) * raw_bin;
     const uint64_t event_numerator = (uint64_t)SPECTRAL_SAMPLES * SAMPLE_PERIOD_UNITS;
@@ -291,9 +289,8 @@ static void run_tone(unsigned period, int triangle, unsigned raw_bin,
             /* The core observes an edge on the CPU cycle immediately before
                a due sample, so a mathematically exact sample boundary uses
                the last representable phase of the preceding sample period. */
-            nes->apu.sample_phase = phase == 0u
-                                        ? (uint32_t)(sample_period - CPU_SAMPLE_STEP)
-                                        : phase;
+            nes->apu.sample_phase =
+                phase == 0u ? (uint32_t)(sample_period - CPU_SAMPLE_STEP) : phase;
             if (triangle != 0)
                 level = triangle_level(event_index);
             else
@@ -309,9 +306,7 @@ static void run_tone(unsigned period, int triangle, unsigned raw_bin,
     }
 
     CHECK_EQ_U64(nes->synth.overflow, 0u);
-    *fundamental_bin = raw_bin <= SPECTRAL_SAMPLES / 2u
-                           ? raw_bin
-                           : SPECTRAL_SAMPLES - raw_bin;
+    *fundamental_bin = raw_bin <= SPECTRAL_SAMPLES / 2u ? raw_bin : SPECTRAL_SAMPLES - raw_bin;
     CHECK(*fundamental_bin != 0u);
 
     for (unsigned i = 0u; i < SPECTRAL_SAMPLES; i++) {

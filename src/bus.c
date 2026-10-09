@@ -45,8 +45,8 @@ static uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr)
         /* D0 is serial data, D6 reads high, and D5/D7 retain open bus. */
         nes->bus.open_bus = (uint8_t)((nes->bus.open_bus & 0xa0u) | 0x40u | bit);
     } else if (addr == 0x4015u) {
-        nes->bus.open_bus = (uint8_t)((nesturbator__apu_status_read(nes) & 0xdfu) |
-                                      (nes->bus.open_bus & 0x20u));
+        nes->bus.open_bus =
+            (uint8_t)((nesturbator__apu_status_read(nes) & 0xdfu) | (nes->bus.open_bus & 0x20u));
     } else if (addr < 0x2000u) {
         nes->bus.open_bus = nes->bus.ram[addr & 0x7FFu];
     } else if (addr < 0x4000u) {
@@ -62,8 +62,7 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read)
 {
     struct nesturbator__dmc *dmc = &nes->apu.dmc;
     if (dmc->dma_pending == 0u || dmc->enable_delay != 0u ||
-        nes->bus.apu_get_put_phase != dmc->dma_halt_phase ||
-        dmc->remaining == 0u ||
+        nes->bus.apu_get_put_phase != dmc->dma_halt_phase || dmc->remaining == 0u ||
         nes->cart.prg == NULL)
         return 0u;
 
