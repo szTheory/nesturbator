@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: A real game in RetroArch** - NROM games render and take controller input, with frame hashes equal on every platform (completed 2026-10-09)
 - [x] **Phase 4: Sound** - NROM games play with sound, with audio hashes equal on every platform (completed 2026-10-09)
 - [x] **Phase 4.1: Close gap: GAME-01 — initialize accepted iNES trainers** - Trainer bytes initialize CPU-visible NROM RAM before execution (completed 2026-10-09)
-- [ ] **Phase 4.2: Close gap: SND-01 — deliver single-sample libretro audio** - Frontends with only the single-sample callback receive deterministic stereo PCM
+- [x] **Phase 4.2: Close gap: SND-01 — deliver single-sample libretro audio** - Frontends with only the single-sample callback receive deterministic stereo PCM (completed 2026-10-09)
 
 ## Phase Details
 
@@ -224,10 +224,10 @@ Plans:
 **Goal:** A libretro frontend that provides only the single-sample audio callback receives the core's stereo PCM, with deterministic host coverage in CI.
 **Requirements**: SND-01
 **Depends on:** Phase 4
-**Plans**: 1 plan
+**Plans**: 1/1 plans complete
 
 Plans:
-- [ ] 04.2-01-PLAN.md — Sample-only libretro audio fallback with direct-core host parity and batch priority
+- [x] 04.2-01-PLAN.md — Sample-only libretro audio fallback with direct-core host parity and batch priority
 
 **Success Criteria:**
 - When `audio_batch_cb` is absent and `audio_cb` is registered, `retro_run` delivers each stereo PCM pair through `audio_cb` in frame order.
@@ -246,4 +246,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 4.1 → 4.2
 | 3. A real game in RetroArch | 15/15 | Complete    | 2026-10-09 |
 | 4. Sound | 4/4 | Complete    | 2026-10-09 |
 | 4.1. Close gap: GAME-01 — initialize accepted iNES trainers | 1/1 | Complete    | 2026-10-09 |
-| 4.2. Close gap: SND-01 — deliver single-sample libretro audio | 0/1 | Planned     | — |
+| 4.2. Close gap: SND-01 — deliver single-sample libretro audio | 1/1 | Complete    | 2026-10-09 |
