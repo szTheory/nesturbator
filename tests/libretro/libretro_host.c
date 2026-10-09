@@ -155,6 +155,7 @@ static int poll_calls;
 static int input_calls;
 static uint8_t host_buttons[2];
 static int sample_calls;
+static int16_t sample_samples[AUDIO_CAPTURE_CAPACITY * 2u];
 static int batch_calls;
 static size_t batch_frames;
 static int batch_nonzero;
@@ -192,8 +193,10 @@ static void RETRO_CALLCONV video(const void *data, unsigned width, unsigned heig
 
 static void RETRO_CALLCONV sample(int16_t left, int16_t right)
 {
-    (void)left;
-    (void)right;
+    if ((size_t)sample_calls < AUDIO_CAPTURE_CAPACITY) {
+        sample_samples[2u * (size_t)sample_calls] = left;
+        sample_samples[2u * (size_t)sample_calls + 1u] = right;
+    }
     sample_calls++;
 }
 
@@ -409,8 +412,11 @@ static void check_sound_frame_parity(unsigned char *image, size_t image_size)
         batch_calls = 0;
         batch_frames = 0u;
         batch_nonzero = 0;
+        sample_calls = 0;
+        p_set_audio_sample(sample);
+        p_set_audio_sample_batch(NULL);
         p_run();
-        CHECK_EQ_U64(batch_calls, 1u);
+        CHECK_EQ_U64(batch_calls, 0u);
 
         memset(&io, 0, sizeof io);
         io.size = (uint32_t)sizeof io;
@@ -419,17 +425,18 @@ static void check_sound_frame_parity(unsigned char *image, size_t image_size)
         io.audio = mono;
         io.audio_capacity = AUDIO_CAPTURE_CAPACITY;
         CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
-        CHECK_EQ_U64(batch_frames, io.audio_count);
-        if (batch_frames <= AUDIO_CAPTURE_CAPACITY) {
+        CHECK_EQ_U64(sample_calls, io.audio_count);
+        if (sample_calls == (int)io.audio_count && io.audio_count <= AUDIO_CAPTURE_CAPACITY) {
             for (size_t i = 0u; i < io.audio_count; i++) {
-                CHECK_EQ_U64((uint16_t)batch_samples[2u * i], (uint16_t)mono[i]);
-                CHECK_EQ_U64((uint16_t)batch_samples[2u * i + 1u], (uint16_t)mono[i]);
+                CHECK_EQ_U64((uint16_t)sample_samples[2u * i], (uint16_t)mono[i]);
+                CHECK_EQ_U64((uint16_t)sample_samples[2u * i + 1u], (uint16_t)mono[i]);
                 audible |= mono[i] != 0;
             }
         }
-        CHECK(batch_nonzero > 0);
     }
     CHECK(audible != 0);
+    p_set_audio_sample(NULL);
+    p_set_audio_sample_batch(batch);
     nesturbator_destroy(nes);
     p_unload_game();
 }
@@ -695,6 +702,7 @@ int main(int argc, char **argv)
     check_input_frame_parity(dummy_bytes, sizeof dummy_bytes, argv[4], argv[5], argv[3]);
     check_sound_frame_parity(dummy_bytes, sizeof dummy_bytes);
     video_calls = 0;
+    sample_calls = 0;
     batch_calls = 0;
     batch_frames = 0;
     batch_nonzero = 0;

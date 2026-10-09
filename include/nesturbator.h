@@ -177,7 +177,10 @@ typedef struct nesturbator_info {
  * OAM starting at `$2003`'s address; it stalls the CPU for 513 or 514 cycles
  * by cycle parity while PPU time continues.
  *
- * Audio: mono signed 16-bit samples at the info sample rate. A frame yields
+ * Audio: mono signed 16-bit samples at the info sample rate. The libretro
+ * adapter duplicates each sample into left and right channels, preferring its
+ * batch callback and using the single-sample callback only when batch is
+ * unavailable (libretro.h L7453, L7465). A frame yields
  * 798 or 799 samples; the fraction carries over to the next frame. Mapper-0
  * pulse, triangle, noise and DMC state advances on CPU bus cycles and
  * contributes its DAC level to PCM. With no cartridge loaded, every sample is

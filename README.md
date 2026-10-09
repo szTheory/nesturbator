@@ -649,10 +649,13 @@ The `ci` build puts it at `build/ci/libretro/`. It exports only the 25
 `retro_*` functions of `libretro.h`.
 
 With no content, the core shows the test card and sends silence: in RetroArch,
-use "Start Core", or launch it with `-L` and no content path. Mapper-0 games
-send one batch of stereo samples per frame at 48000 Hz, with each channel equal
-to the core's mono sample. `libretro.host` checks this sample-by-sample without
-an audio device.
+use "Start Core", or launch it with `-L` and no content path. The public core
+returns mono signed 16-bit PCM. The libretro adapter duplicates each sample to
+left and right at 48000 Hz, preferring one batch callback per frame and using
+the single-sample callback only when no batch callback is registered. When both
+callbacks are registered, only the batch callback receives audio.
+`libretro.host` checks both callback paths against direct core PCM without an
+audio device.
 
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares
