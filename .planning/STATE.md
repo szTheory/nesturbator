@@ -1,13 +1,12 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 04
+current_phase: 03
 current_plan: Not started
-status: completed
-stopped_at: Phase 04 complete — all phases complete
-last_updated: "2026-10-09T13:18:20Z"
+status: planning
+stopped_at: Phase 03 verification found a scanline-0 sprite gap; plan gap closure next
+last_updated: "2026-10-09T13:33:28.934Z"
 last_activity: 2026-10-09
-last_activity_desc: Phase 02 verification refreshed; 62/62 must-haves passed
-state_head: f329a51180e14f45681856c97dfd42683dfcc93c
+state_head: c790d993c1cd8c9023f5ea8cac6391b2d4490bdb
 progress:
   total_phases: 4
   completed_phases: 4
@@ -23,16 +22,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-09)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Refresh missing verification for Phase 03 before the Milestone 1 audit
+**Current focus:** Close Phase 03's scanline-0 sprite gap, then obtain exact-HEAD hosted RetroArch and six-platform CI evidence before the Milestone 1 audit
 
 ## Current Position
 
-Phase: 04
+Current Phase: 03
+Current Phase Name: A real game in RetroArch
 Current Plan: Not started
-Total Plans in Phase: 4
-Plans complete: 4 of 4.
-Status: All phases complete; Phase 02 verification refreshed
-Last activity: 2026-10-09 — Phase 02 verification passed (62/62; UAT 4/4)
+Total Plans in Phase: 13
+Plans complete: 13 of 13.
+Status: planning
+Last activity: 2026-10-09
+Last Activity Description: Phase 03 verification found one rendering gap; exact-HEAD hosted CI evidence is pending
 
 Progress: [██████████] 100%
 
@@ -155,7 +156,7 @@ None.
 
 ### Blockers/Concerns
 
-Phase 04's four plans passed structure and coverage checks. Phase 01 verification passes (69/69; UAT 4/4), and Phase 02 verification now passes (62/62; UAT 4/4). Phase 03 verification is missing and must be refreshed before the Milestone 1 audit. Phase 01 has one open advisory code-review warning in `01-REVIEW-DISPOSITION.md`: the release-policy test matcher can accept an expression containing `always()`. The Phase 02 review ledger has one open CR-01 about the libretro single-sample audio callback; the review scope was degraded and included later-phase files, so it is not attributed to Phase 02 and did not block CPU/vector verification.
+Phase 04's four plans passed structure and coverage checks. Phase 01 verification passes (69/69; UAT 4/4), and Phase 02 verification passes (62/62; UAT 4/4). Phase 03 verification found one blocker: sprite evaluation does not prepare visible scanline 0, including OAM Y=255 wraparound; add the full-frame boundary test and fix before marking the phase complete. The local CI preset passed 354 tests and skipped the two RetroArch host tests because RetroArch was unavailable. The existing required hosted RetroArch screenshot and six-platform hash jobs must produce exact-HEAD evidence after gap closure. Phase 03 code review also records open CR-01 (per-sample audio callback) and CR-02 (loaded-game reset), both outside Phase 03 success criteria; CR-03 matches the sprite gap. Phase 01 has one open advisory code-review warning in `01-REVIEW-DISPOSITION.md`: the release-policy test matcher can accept an expression containing `always()`. The Phase 02 review ledger has one open CR-01 about the libretro single-sample audio callback; its scope was degraded and included later-phase files, so it is not attributed to Phase 02 and did not block CPU/vector verification.
 
 ### Quick Tasks Completed
 
@@ -174,6 +175,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T13:18:20Z
-Stopped at: Phase 02 verification passed; ready to refresh Phase 03 verification
+Last session: 2026-10-09T13:33:19Z
+Stopped at: Phase 03 verification found a scanline-0 sprite gap; plan gap closure next
 Resume file: None
