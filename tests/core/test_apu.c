@@ -198,6 +198,46 @@ static void test_dmc_fetch_from_mapper0(void)
     free(image);
 }
 
+static void test_dmc_enable_waits_full_write_delay(void)
+{
+    const size_t image_size = 16u + 16384u + 8192u;
+    uint8_t *image = calloc(1u, image_size);
+    nesturbator *inst = make();
+    CHECK(image != NULL);
+    if (image == NULL || inst == NULL) {
+        free(image);
+        nesturbator_destroy(inst);
+        return;
+    }
+    make_image(image, image_size);
+    image[16u + 0x40u] = 0x5au;
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, image_size), NESTURBATOR_OK);
+    struct nesturbator *nes = (struct nesturbator *)inst;
+    nes->bus.apu_get_put_phase = 0u;
+    nesturbator__apu_write(nes, 0x4012u, 1u);
+    nesturbator__apu_write(nes, 0x4013u, 0u);
+    nesturbator__apu_write(nes, 0x4015u, 0x10u);
+    CHECK_EQ_U64(nes->apu.dmc.enable_delay, 3u);
+    CHECK_EQ_U64(nes->apu.dmc.dma_pending, 1u);
+    /* Keep the request pending while its start delay expires, without
+       introducing a second request from the output unit. */
+    nes->apu.dmc.buffer_empty = 0u;
+    nes->apu.dmc.bits = 8u;
+    nes->apu.dmc.counter = 100u;
+    for (unsigned i = 0u; i < 3u; i++) {
+        (void)nesturbator__bus_read(nes, 0x8000u);
+        CHECK_EQ_U64(nes->apu.dmc.dma_pending, 1u);
+        CHECK_EQ_U64(nes->apu.dmc.remaining, 1u);
+        CHECK_EQ_U64(nes->apu.dmc.address, 0xc040u);
+    }
+    (void)nesturbator__bus_read(nes, 0x8000u);
+    CHECK_EQ_U64(nes->apu.dmc.dma_pending, 0u);
+    CHECK_EQ_U64(nes->apu.dmc.remaining, 0u);
+    CHECK_EQ_U64(nes->apu.dmc.sample_buffer, 0x5au);
+    nesturbator_destroy(inst);
+    free(image);
+}
+
 static void test_frame_counter_modes_and_irq_sources(void)
 {
     nesturbator *inst = make();
@@ -271,8 +311,8 @@ static void test_dmc_timer_uses_half_rate_phase(void)
     nes->apu.dmc.reg[0] = 0x0fu;
     nes->apu.dmc.timer = 27u; /* 54 CPU cycles at the fastest NTSC rate. */
     nes->apu.dmc.counter = 1u;
-    nes->apu.dmc.bits = 1u;
-    nes->apu.dmc.shift = 1u;
+    nes->apu.dmc.bits = 2u;
+    nes->apu.dmc.shift = 3u;
     nes->apu.dmc.output = 64u;
     nes->apu.pulse_clock_phase = 0u;
 
@@ -333,6 +373,7 @@ int main(void)
     test_public_pulse_pcm();
     test_documented_channel_sequences();
     test_dmc_fetch_from_mapper0();
+    test_dmc_enable_waits_full_write_delay();
     test_frame_counter_modes_and_irq_sources();
     test_get_put_delays();
     test_frame_irq_cpu_entry();
