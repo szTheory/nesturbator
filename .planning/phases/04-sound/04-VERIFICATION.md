@@ -1,6 +1,6 @@
 ---
 phase: 04-sound
-verified: 2026-10-09T05:17:05Z
+verified: 2026-10-09T15:23:30.369Z
 status: passed
 score: 15/15 plan must-haves verified; 4/4 roadmap success criteria verified
 covered_files:
@@ -12,6 +12,7 @@ covered_files:
   - .planning/phases/04-sound/04-03-SUMMARY.md
   - .planning/phases/04-sound/04-04-PLAN.md
   - .planning/phases/04-sound/04-04-SUMMARY.md
+  - .github/workflows/ci.yml
   - CMakeLists.txt
   - README.md
   - include/nesturbator.h
@@ -27,6 +28,7 @@ covered_files:
   - src/internal.h
   - src/synth.c
   - tests/CMakeLists.txt
+  - tests/cmake/hash_inventory.cmake
   - tests/accuracy/scoreboard-main.txt
   - tests/accuracy/scoreboard.txt
   - tests/accuracy/test_scoreboard.c
@@ -37,7 +39,7 @@ covered_files:
   - tests/runner/hashes.txt
   - tests/runner/test_audio_hash.c
   - tests/runner/test_spectral.c
-covered_digest: "v3:sha256:0cd7809302a93a14fca811aaeaebdf9853e970a538f83eef07a904757b3ed182"
+covered_digest: "v3:sha256:4f934113e2d80f47a25cc709d779ae347bda671807ce0d8e10a8a3342ad8868a"
 behavior_unverified: 0
 overrides_applied: 0
 ---
@@ -45,9 +47,9 @@ overrides_applied: 0
 # Phase 4: Sound Verification Report
 
 **Phase Goal:** NROM games play with sound in RetroArch, and the audio is identical on every platform.
-**Verified:** 2026-10-09T05:17:05Z
+**Verified:** 2026-10-09T15:23:30.369Z
 **Status:** passed
-**Re-verification:** No — the prior report had no unresolved `gaps:`; this pass refreshed evidence after phase metadata synchronization.
+**Re-verification:** Yes — the previous report was stale after covered source changes. This pass reran the full local CI workflow and checked the current hosted run for the same code revision.
 
 ## Goal Achievement
 
@@ -55,8 +57,8 @@ overrides_applied: 0
 
 | # | Truth | Status | Evidence |
 |---|---|---|---|
-| 1 | APU channels produce documented sequences; licensed NROM audio has pinned hashes; libretro delivers the same samples as the core. | ✓ VERIFIED | `tests/core/test_apu.c` drives both pulse units, triangle, noise and DMC, and covers DMC fetch, frame sequencing and IRQ behavior. `runner.write_hashes` regenerates three licensed NROM runs and `runner.write_hashes.content` compares the dual-hash inventory to committed `tests/runner/hashes.txt`. `libretro.host` runs an audible synthetic NROM through the adapter and a direct core instance, then compares every left and right sample across two frames. The named tests passed in this verification. |
-| 2 | `nesturbator-run --hash-audio` emits canonical transition and PCM hashes whose representation is platform-independent. | ✓ VERIFIED | `runner/main.c` installs the per-instance APU observer and prints separate digests. `runner/audio_hash.c` serializes cycle/level records and signed PCM explicitly in little-endian byte order; `tests/runner/test_audio_hash.c` pins empty, event ordering and PCM byte cases. The no-cartridge known answer and three game baselines passed. `.github/workflows/ci.yml` runs the same `ci` checks on Linux, macOS and Windows, x64 and arm64. This local verification did not observe hosted jobs on all six runners. |
+| 1 | APU channels produce documented sequences; licensed NROM audio has pinned hashes; libretro delivers the same samples as the core. | ✓ VERIFIED | `tests/core/test_apu.c` drives both pulse units, triangle, noise and DMC, and covers DMC fetch, frame sequencing and IRQ behavior. `runner.write_hashes` regenerates three licensed NROM runs and `runner.write_hashes.content` compares the dual-hash inventory to committed `tests/runner/hashes.txt`. `libretro.host` runs an audible synthetic NROM through the adapter and a direct core instance, then compares every left and right sample across two frames. The full local workflow passed the relevant tests. |
+| 2 | `nesturbator-run --hash-audio` emits canonical transition and PCM hashes whose representation is platform-independent. | ✓ VERIFIED | `runner/main.c` installs the per-instance APU observer and prints separate digests. `runner/audio_hash.c` serializes cycle/level records and signed PCM explicitly in little-endian byte order; `tests/runner/test_audio_hash.c` pins empty, event ordering and PCM byte cases. The no-cartridge known answer and three game baselines passed. Hosted CI run [37946197394](https://github.com/szTheory/nesturbator/actions/runs/37946197394) succeeded on Linux, macOS and Windows x64/arm64; its six-platform hash-equality job and required aggregate passed. The tested code revision is `80bea33`; current `77d45e5` adds only phase documentation after that run. |
 | 3 | The committed AccuracyCoin scoreboard passes the six required sound tests. | ✓ VERIFIED | `tests/accuracy/scoreboard.txt` and `scoreboard-main.txt` contain the six exact named passing rows; `accuracycoin.page14` passed and its runner validates result names and RAM locations. |
 | 4 | Five reference tones meet the non-harmonic peak threshold below 16 kHz. | ✓ VERIFIED | `runner.spectral` measures pulse periods 100, 40, 12, 8 and triangle period 1 using the documented integer FFT/window rules. It passed; recorded results range from -85.46 dB to -91.83 dB, below the -80 dB limit. |
 
@@ -108,18 +110,22 @@ overrides_applied: 0
 | Libretro stereo parity | Same focused CTest invocation (`libretro.host`) | Passed; all samples equal in both channels over two audible frames | ✓ PASS |
 | Five-tone spectral gate | Same focused CTest invocation (`runner.spectral`) | Passed; all five peaks below -80 dB | ✓ PASS |
 
-The focused expression selected 10 tests (including the required hash writer fixture); all 10 passed in 1.40 seconds. The prior execution run reports `cmake --workflow --preset ci` passed 350/352 with only `retroarch.testframe` and `retroarch.game` skipped because RetroArch is unavailable on this host. This verifier did not rerun the full workflow. The adapter's audio contract is covered by `libretro.host`; the two unavailable RetroArch tests concern launch/frame capture and do not assert audio-device output.
+The current `cmake --workflow --preset ci` run passed 355/357 tests and generated all three package archives. `retroarch.testframe` and `retroarch.game` self-skipped locally because RetroArch did not start. Hosted run [37946197394](https://github.com/szTheory/nesturbator/actions/runs/37946197394) passed its pinned RetroArch E2E screenshot job and all six platform builds, so the local host limitation leaves no acceptance check pending. `libretro.host` independently passed sample-by-sample stereo parity without an audio device.
+
+### Review Gate
+
+The existing standard review at `04-REVIEW.md` found no findings across 26 Phase 04 files. The later sound-related source/test diff in `888d866` was inspected inline and contains formatting-only changes; it changes no expressions or behavior. No new review finding was identified. The configured reviewer-agent dispatch was unavailable under this session's no-subagent policy, so the prior review artifact was not rewritten.
 
 ### Requirements Coverage
 
 | Requirement | Source Plans | Status | Evidence |
 |---|---|---|---|
-| SND-01 | 04-01, 04-02, 04-04 | ✓ SATISFIED | Channel sequences, three game baselines and sample-by-sample libretro parity passed. **Bookkeeping mismatch:** the requirement checklist at `REQUIREMENTS.md` still leaves SND-01 unchecked, although its traceability row says Complete and the implementation evidence satisfies it. |
+| SND-01 | 04-01, 04-02, 04-04 | ✓ SATISFIED | Channel sequences, three game baselines and sample-by-sample libretro parity passed; the requirement checklist and traceability row both mark SND-01 complete. |
 | SND-02 | 04-04 | ✓ SATISFIED | Canonical serialization tests, silence digest and game-level dual hashes passed; the workflow matrix wires the same checks on all six platforms. |
 | SND-03 | 04-02 | ✓ SATISFIED | Six required AccuracyCoin named rows are committed and `accuracycoin.page14` passed. |
 | SND-04 | 04-03 | ✓ SATISFIED | Five-tone `runner.spectral` CI gate passed below -80 dB. |
 
-No SND requirement mapped to Phase 04 is omitted from the plan requirements fields. The stale SND-01 checkbox is documentation bookkeeping, not a missing implementation or test link; it should be checked during closeout synchronization.
+No SND requirement mapped to Phase 04 is omitted from the plan requirements fields or left unchecked in `REQUIREMENTS.md`.
 
 ### Decision Coverage
 
@@ -152,9 +158,9 @@ None. The prior passed report had no `gaps:` section, and this refresh found no 
 
 ### Gaps Summary
 
-The implementation satisfies the four roadmap criteria and all 15 plan truths. Focused audio verification passed all 10 selected tests. CI is configured to repeat those checks across the six supported platform/architecture runners, but this local pass does not claim hosted results. Phase code evidence is complete; the SND-01 checkbox in REQUIREMENTS.md remains a closeout bookkeeping inconsistency even though the traceability table says Complete.
+The implementation satisfies all four roadmap criteria and all 15 plan truths. The full local workflow passed 355 tests with only the two unavailable local RetroArch launch tests skipped; hosted CI run 37946197394 passed all six platform builds, cross-platform hash equality, pinned RetroArch E2E, sanitizers, no-float, hygiene, and the required aggregate. No behavior-dependent human verification remains.
 
 ---
 
-_Verified: 2026-10-09T05:17:05Z_  
-_Verifier: the agent (gsd-verifier)_
+_Verified: 2026-10-09T15:23:30.369Z_
+_Verifier: Codex (inline; verifier-agent dispatch is unavailable under this session's no-subagent policy)_

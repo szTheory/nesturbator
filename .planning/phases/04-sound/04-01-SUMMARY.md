@@ -89,7 +89,7 @@ metrics:
 ## Files Created/Modified
 
 - `src/apu.c` - Per-instance channel clocks, register behavior, channel levels, integer mixer lookup and PCM output.
-- Initially added fixed pulse and TND mixer cells in `src/apu_mix_table.h`; Plan 04-03 later consolidated them into `src/synth.c`.
+- Introduced the fixed pulse and TND mixer cells; Plan 04-03 later consolidated them into `src/synth.c`.
 - `src/internal.h` - APU/channel state and internal interfaces.
 - `src/bus.c`, `src/frame.c`, `src/cartridge.c` - Shared bus timing, caller-buffer sampling and APU reset integration.
 - `tests/core/test_apu.c`, `tests/CMakeLists.txt`, `CMakeLists.txt` - Public tracer and all-channel coverage; explicit source registration, including the standalone bus test target.
