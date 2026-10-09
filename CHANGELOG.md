@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/szTheory/nesturbator/compare/v0.1.4...v0.1.5) (2026-10-09)
+
+
+### Features
+
+* add sound to NROM games ([#20](https://github.com/szTheory/nesturbator/issues/20)) ([6684560](https://github.com/szTheory/nesturbator/commit/66845607ed48710821531d9dfd03f4514a551c35))
+
 ## [0.1.4](https://github.com/szTheory/nesturbator/compare/v0.1.3...v0.1.4) (2026-10-08)
 
 
