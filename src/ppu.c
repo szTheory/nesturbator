@@ -47,12 +47,14 @@ static uint16_t background_pixel(struct nesturbator *nes, uint32_t x, uint32_t y
 static void sprite_evaluate(struct nesturbator *nes)
 {
     struct nesturbator__ppu *ppu = &nes->ppu;
-    if (ppu->scanline > 239u)
+    if (ppu->scanline > 239u && ppu->scanline != 261u)
         return;
     if (ppu->dot == 65u) {
         ppu->sprite_count = 0u;
         ppu->eval_n = 0u;
-        ppu->eval_target = (uint8_t)(ppu->scanline + 1u);
+        /* Pre-render evaluation prepares visible scanline zero; Y+1 wraps
+           at eight bits on the 2C02. [HWP.02][HWP.06] */
+        ppu->eval_target = ppu->scanline == 261u ? 0u : (uint8_t)(ppu->scanline + 1u);
         memset(ppu->secondary_oam, 0xff, sizeof ppu->secondary_oam);
     }
     if ((ppu->mask & 0x18u) == 0u)
@@ -70,9 +72,10 @@ static void sprite_evaluate(struct nesturbator *nes)
         ppu->eval_latch = ppu->oam[(uint16_t)ppu->eval_n * 4u];
         return;
     }
-    uint16_t top = (uint16_t)ppu->eval_latch + 1u;
+    uint8_t top = (uint8_t)(ppu->eval_latch + 1u);
     uint8_t height = (ppu->control & 0x20u) != 0u ? 16u : 8u;
-    if ((uint16_t)ppu->eval_target >= top && (uint16_t)ppu->eval_target < top + height) {
+    uint8_t row = (uint8_t)(ppu->eval_target - top);
+    if (row < height) {
         if (ppu->sprite_count < 8u) {
             uint8_t slot = ppu->sprite_count++;
             uint16_t base = (uint16_t)ppu->eval_n * 4u;
@@ -99,13 +102,13 @@ static void sprite_fetch(struct nesturbator *nes)
     if (ppu->dot != 257u)
         return;
     uint8_t height = (ppu->control & 0x20u) != 0u ? 16u : 8u;
-    uint16_t target = (uint16_t)ppu->scanline + 1u;
+    uint8_t target = ppu->scanline == 261u ? 0u : (uint8_t)(ppu->scanline + 1u);
     for (uint8_t i = 0u; i < ppu->sprite_count; i++) {
         uint16_t base = (uint16_t)i * 4u;
         uint8_t y = ppu->secondary_oam[base];
         uint8_t tile = ppu->secondary_oam[base + 1u];
         uint8_t attr = ppu->secondary_oam[base + 2u];
-        uint8_t row = (uint8_t)(target - ((uint16_t)y + 1u));
+        uint8_t row = (uint8_t)(target - (uint8_t)(y + 1u));
         if ((attr & 0x80u) != 0u)
             row = (uint8_t)(height - 1u - row);
         uint16_t pattern;
@@ -260,11 +263,11 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
         }
         /* Visible pixels are produced as the PPU crosses each visible dot.
            Background tile/attribute addressing follows the 2C02 scroll fields. [HWP.02][HWP.05] */
-        if (nes->ppu.scanline >= 1u && nes->ppu.scanline <= NESTURBATOR_HEIGHT &&
+        if (nes->ppu.scanline < NESTURBATOR_HEIGHT &&
             nes->ppu.dot >= 1u && nes->ppu.dot <= NESTURBATOR_WIDTH &&
             nes->ppu.video_output != NULL) {
             uint32_t x = (uint32_t)nes->ppu.dot - 1u;
-            uint32_t y = (uint32_t)nes->ppu.scanline - 1u;
+            uint32_t y = nes->ppu.scanline;
             nes->ppu.video_output[(size_t)y * nes->ppu.video_pitch + x] = compose_pixel(nes, x, y);
         }
     }

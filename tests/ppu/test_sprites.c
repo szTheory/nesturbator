@@ -16,6 +16,7 @@ static void setup(void)
     memset(chr, 0, sizeof chr);
     memset(header, 0, sizeof header);
     memset(pixels, 0, sizeof pixels);
+    nes.ppu.scanline = 261u;
     nes.cart.bytes = header;
     nes.cart.chr = chr;
     nes.ppu.mask = 0x1eu; /* background, sprites and leftmost pixels */
@@ -23,7 +24,7 @@ static void setup(void)
     nes.ppu.video_pitch = NESTURBATOR_WIDTH;
     nes.ppu.palette[0] = 0x0fu;
     nes.ppu.palette[0x11] = 0x2au;
-    nes.ppu.oam[0] = 0u;
+    nes.ppu.oam[0] = 0xffu;
     nes.ppu.oam[1] = 1u;
     nes.ppu.oam[2] = 0u;
     nes.ppu.oam[3] = 0u;
@@ -43,12 +44,13 @@ static void test_prerender_wraps_sprite_rows_into_visible_scanline_zero(void)
 {
     for (uint8_t odd = 0u; odd < 2u; odd++) {
         setup();
+        chr[0] = 0u;
         nes.ppu.scanline = 261u;
         nes.ppu.odd_frame = odd;
         nes.ppu.oam[0] = 0xffu;
         nes.ppu.oam[3] = 16u;
 
-        uint64_t first_row_dots = odd != 0u ? 340u + 17u : 341u + 17u;
+        uint64_t first_row_dots = odd != 0u ? 340u + 18u : 341u + 18u;
         nesturbator__ppu_run_until(&nes, first_row_dots * 8u);
         CHECK_EQ_U64(pixels[16], 0x2au);
         CHECK_EQ_U64(pixels[17], 0x0fu);
@@ -58,6 +60,7 @@ static void test_prerender_wraps_sprite_rows_into_visible_scanline_zero(void)
         CHECK_EQ_U64(pixels[NESTURBATOR_WIDTH + 16u], 0x0fu);
 
         setup();
+        chr[0] = 0u;
         nes.ppu.scanline = 261u;
         nes.ppu.odd_frame = odd;
         nes.ppu.oam[0] = 0u;
@@ -72,14 +75,18 @@ static void test_prerender_wraps_sprite_rows_into_visible_scanline_zero(void)
 static void test_ninth_in_range_sprite_sets_overflow(void)
 {
     setup();
-    for (uint32_t i = 0; i < 8u; i++)
+    for (uint32_t i = 0u; i < 64u; i++)
         nes.ppu.oam[i * 4u] = 0u;
+    for (uint32_t i = 0; i < 8u; i++)
+        nes.ppu.oam[i * 4u] = 0xffu;
     nesturbator__ppu_run_until(&nes, 341u * 8u);
     CHECK_EQ_U64(nes.ppu.status & 0x20u, 0u);
 
     setup();
-    for (uint32_t i = 0; i < 9u; i++)
+    for (uint32_t i = 0u; i < 64u; i++)
         nes.ppu.oam[i * 4u] = 0u;
+    for (uint32_t i = 0; i < 9u; i++)
+        nes.ppu.oam[i * 4u] = 0xffu;
     nesturbator__ppu_run_until(&nes, 341u * 8u);
     CHECK_EQ_U64(nes.ppu.status & 0x20u, 0x20u);
 }

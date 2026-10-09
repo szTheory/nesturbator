@@ -50,7 +50,7 @@ extern "C" {
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
    the same inputs. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 3
+#define NESTURBATOR_BEHAVIOUR_REVISION 4
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -155,7 +155,9 @@ typedef struct nesturbator_info {
 
 /* In/out of nesturbator_run_frame. The caller owns both buffers.
  *
- * Video: native pixels, one uint16_t each, row y starting at
+ * Video: native pixels, one uint16_t each, rows 0-239 in physical visible
+ * scanline order, with row 0 rendered after pre-render scanline 261. A sprite
+ * with OAM Y=$FF can wrap into row 0. Row y starts at
  * video[y * video_pitch]. A pixel is a palette entry 0-63 in bits 0-5 and
  * the three PPUMASK emphasis bits in bits 6-8; bits 9-15 are zero. Background
  * pixels reflect mapper-0 nametable mirroring, pattern/attribute data, scroll,
