@@ -94,9 +94,21 @@ cycles. DMC sample fetches halt CPU reads at the bus seam, repeat the parked
 read, and preserve the independent IRQ source. These timing rules follow
 NES-HARDWARE-CPU-APU sections 2 and 4 (HWC.01, HWC.23) and are exercised by
 `core.apu` and the six AccuracyCoin page-14 results. The nonlinear pulse and TND
-mixer uses checked-in integer pulse and 16×16×128 TND tables from HWC.11;
-band-limited synthesis and analogue output filters remain later sound work
-(section 5).
+mixer uses checked-in integer pulse and 16×16×128 TND tables from HWC.11.
+Mixed-level changes feed a per-instance, fixed-point band-limited synthesizer.
+Its 16-tap, 32-phase Q15 kernel preserves each level transition exactly, then
+applies the NES 90 Hz and 440 Hz high-pass filters and 14 kHz low-pass filter
+before returning signed 16-bit mono PCM. The bounded staging ring carries
+kernel and filter history across caller frame boundaries. `runner.spectral`
+checks pulse periods 100, 40, 12 and 8, and triangle period 1 using a 4096
+sample filter warm-up and a 32768-sample periodic-Hann spectrum. It excludes
+one bin on either side of the first 512 integer harmonic orders after folding
+them into the positive FFT spectrum; the triangle's fundamental bin is folded
+at Nyquist. Each tone uses the nearest coherent bin to its NTSC timer
+frequency. The largest remaining peak below 16 kHz must be below -80 dB
+relative to the fundamental. These analysis choices are test rules; the
+synthesizer itself uses integer arithmetic and checked-in coefficient tables
+only.
 If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
 CPU stays latched until the cartridge is unloaded or reloaded.
 

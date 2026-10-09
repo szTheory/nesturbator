@@ -1,8 +1,56 @@
+/* Fixed-point mixer and band-limited audio synthesis. The channel-mix tables
+   are the project-owned HWC.11 tables. The kernel rows are 16-tap, 32-phase
+   integrals of a Nyquist sinc under a beta-8 Kaiser window over 15 samples;
+   coefficients are rounded to Q15 and the rounding residue keeps each row at
+   exactly 32768. Runtime state and arithmetic are integer-only. */
+#include "internal.h"
+
+#include <string.h>
+
+#define NESTURBATOR_FILTER_Q30 INT64_C(1073741824)
+
+const int16_t nesturbator__synth_kernel[NESTURBATOR_SYNTH_PHASES][NESTURBATOR_SYNTH_TAPS] = {
+    {8, -27, 70, -148, 293, -644, 2606, 28452, 2606, -644, 293, -148, 70, -27, 8, 0},
+    {6, -21, 48, -93, 171, -376, 1802, 28411, 3457, -919, 419, -204, 92, -34, 9, 0},
+    {5, -14, 27, -40, 52, -118, 1047, 28288, 4351, -1199, 547, -262, 115, -42, 11, 0},
+    {4, -8, 7, 11, -62, 129, 343, 28082, 5286, -1481, 675, -319, 138, -49, 12, 0},
+    {3, -3, -11, 59, -169, 363, -309, 27797, 6257, -1761, 802, -377, 161, -57, 14, -1},
+    {2, 3, -28, 103, -270, 582, -906, 27431, 7261, -2038, 927, -434, 184, -64, 16, -1},
+    {1, 7, -44, 145, -364, 785, -1448, 26990, 8294, -2308, 1049, -489, 206, -72, 17, -1},
+    {1, 12, -58, 182, -449, 970, -1935, 26471, 9351, -2568, 1166, -542, 228, -79, 19, -1},
+    {0, 15, -71, 216, -526, 1136, -2366, 25885, 10427, -2814, 1276, -592, 249, -86, 20, -1},
+    {-1, 18, -82, 246, -594, 1284, -2742, 25229, 11518, -3044, 1378, -639, 268, -92, 22, -1},
+    {-1, 21, -92, 271, -653, 1411, -3062, 24512, 12617, -3254, 1471, -682, 286, -98, 23, -2},
+    {-1, 23, -100, 293, -703, 1518, -3329, 23732, 13720, -3440, 1554, -719, 301, -104, 25, -2},
+    {-2, 25, -106, 310, -743, 1605, -3542, 22896, 14822, -3600, 1624, -752, 315, -108, 26, -2},
+    {-2, 27, -111, 324, -774, 1672, -3705, 22009, 15916, -3729, 1680, -777, 325, -112, 27, -2},
+    {-2, 28, -115, 333, -796, 1720, -3818, 21077, 16997, -3826, 1722, -797, 334, -115, 28, -2},
+    {-2, 28, -117, 339, -808, 1747, -3885, 20105, 18059, -3885, 1748, -809, 339, -117, 28, -2},
+    {-2, 28, -117, 340, -813, 1757, -3906, 19097, 19097, -3906, 1757, -813, 340, -117, 28, -2},
+    {-2, 28, -117, 339, -809, 1748, -3885, 18059, 20105, -3885, 1747, -808, 339, -117, 28, -2},
+    {-2, 28, -115, 334, -797, 1722, -3826, 16997, 21077, -3818, 1720, -796, 333, -115, 28, -2},
+    {-2, 27, -112, 325, -777, 1680, -3729, 15916, 22009, -3705, 1672, -774, 324, -111, 27, -2},
+    {-2, 26, -108, 315, -752, 1624, -3600, 14822, 22896, -3542, 1605, -743, 310, -106, 25, -2},
+    {-2, 25, -104, 301, -719, 1554, -3440, 13720, 23732, -3329, 1518, -703, 293, -100, 23, -1},
+    {-2, 23, -98, 286, -682, 1471, -3254, 12617, 24512, -3062, 1411, -653, 271, -92, 21, -1},
+    {-1, 22, -92, 268, -639, 1378, -3044, 11518, 25229, -2742, 1284, -594, 246, -82, 18, -1},
+    {-1, 20, -86, 249, -592, 1276, -2814, 10427, 25885, -2366, 1136, -526, 216, -71, 15, 0},
+    {-1, 19, -79, 228, -542, 1166, -2568, 9351, 26471, -1935, 970, -449, 182, -58, 12, 1},
+    {-1, 17, -72, 206, -489, 1049, -2308, 8294, 26990, -1448, 785, -364, 145, -44, 7, 1},
+    {-1, 16, -64, 184, -434, 927, -2038, 7261, 27431, -906, 582, -270, 103, -28, 3, 2},
+    {-1, 14, -57, 161, -377, 802, -1761, 6257, 27797, -309, 363, -169, 59, -11, -3, 3},
+    {0, 12, -49, 138, -319, 675, -1481, 5286, 28082, 343, 129, -62, 11, 7, -8, 4},
+    {0, 11, -42, 115, -262, 547, -1199, 4351, 28288, 1047, -118, 52, -40, 27, -14, 5},
+    {0, 9, -34, 92, -204, 419, -919, 3457, 28411, 1802, -376, 171, -93, 48, -21, 6},
+};
+
+/* Exact integer nonlinear mixer cells, moved here so the mixer and
+   synthesis coefficients share one owned table module. HWC.11. */
 /* Integer mixer cells derived from NES-HARDWARE-CPU-APU.md HWC.11. */
-static const uint16_t pulse_mix[31] = {
+const uint16_t nesturbator__pulse_mix[31] = {
     0u, 382u, 754u, 1118u, 1474u, 1821u, 2160u, 2491u, 2815u, 3132u, 3442u, 3745u, 4042u, 4332u, 4616u, 4895u, 5167u, 5434u, 5696u, 5953u, 6204u, 6450u, 6692u, 6929u, 7162u, 7390u, 7614u, 7834u, 8050u, 8262u, 8470u
 };
-static const uint16_t tnd_mix[16][16][128] = {
+const uint16_t nesturbator__tnd_mix[16][16][128] = {
     {
         {
             0u, 230u, 459u, 685u, 909u, 1131u, 1352u, 1570u, 1787u, 2002u, 2215u, 2426u, 2636u, 2843u, 3049u, 3254u,
@@ -2596,3 +2644,146 @@ static const uint16_t tnd_mix[16][16][128] = {
         }
     }
 };
+
+_Static_assert(sizeof nesturbator__synth_kernel / sizeof nesturbator__synth_kernel[0] == NESTURBATOR_SYNTH_PHASES,
+               "synthesis phase count");
+_Static_assert(sizeof nesturbator__synth_kernel[0] / sizeof nesturbator__synth_kernel[0][0] == NESTURBATOR_SYNTH_TAPS,
+               "synthesis tap count");
+_Static_assert(sizeof nesturbator__pulse_mix / sizeof nesturbator__pulse_mix[0] == 31u,
+               "pulse mixer dimension");
+_Static_assert(sizeof nesturbator__tnd_mix / sizeof nesturbator__tnd_mix[0] == 16u,
+               "triangle mixer dimension");
+_Static_assert(sizeof nesturbator__tnd_mix[0] / sizeof nesturbator__tnd_mix[0][0] == 16u,
+               "noise mixer dimension");
+_Static_assert(sizeof nesturbator__tnd_mix[0][0] / sizeof nesturbator__tnd_mix[0][0][0] == 128u,
+               "DMC mixer dimension");
+
+/* The RC corner values are evaluated offline from exp(-2*pi*f/48000) and
+   checked in as Q30 integers. HWC.11 specifies the two high-pass corners and
+   the low-pass corner; filter state uses Q30 guard precision after the Q15
+   kernel integration. */
+static const int64_t hp_coefficient_q30[2] = {INT64_C(1061166322), INT64_C(1013645983)};
+static const int64_t lp_coefficient_q30 = INT64_C(901945580);
+
+static int64_t multiply_q30(int64_t value, int64_t coefficient)
+{
+    int64_t whole = value / NESTURBATOR_FILTER_Q30;
+    int64_t remainder = value % NESTURBATOR_FILTER_Q30;
+    return whole * coefficient +
+           (remainder * coefficient) / NESTURBATOR_FILTER_Q30;
+}
+
+static int64_t rounded_q30(int64_t value)
+{
+    if (value >= 0)
+        return (value + NESTURBATOR_FILTER_Q30 / 2) / NESTURBATOR_FILTER_Q30;
+    return -((-value + NESTURBATOR_FILTER_Q30 / 2) / NESTURBATOR_FILTER_Q30);
+}
+
+static int16_t pcm_sample(int64_t value_q30)
+{
+    int64_t value = rounded_q30(value_q30);
+    if (value > INT16_MAX)
+        value = INT16_MAX;
+    else if (value < INT16_MIN)
+        value = INT16_MIN;
+    return (int16_t)value;
+}
+
+static int32_t interpolate_coefficient(unsigned phase, unsigned tap, uint32_t phase_fraction)
+{
+    int32_t a = nesturbator__synth_kernel[phase][tap];
+    int32_t b;
+    if (phase + 1u < NESTURBATOR_SYNTH_PHASES) {
+        b = nesturbator__synth_kernel[phase + 1u][tap];
+    } else {
+        /* Phase 32 is phase 0 shifted one tap to the right. The last tap of
+           phase 0 is zero, so this endpoint preserves both support and sum. */
+        b = tap == 0u ? 0 : nesturbator__synth_kernel[0][tap - 1u];
+    }
+    int64_t numerator = (int64_t)(b - a) * phase_fraction;
+    int64_t delta = numerator >= 0
+                        ? (numerator + (NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u)) /
+                              NESTURBATOR_AUDIO_TICKS_PER_PERIOD
+                        : -((-numerator + (NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u)) /
+                            NESTURBATOR_AUDIO_TICKS_PER_PERIOD);
+    return (int32_t)((int64_t)a + delta);
+}
+
+void nesturbator__synth_reset(struct nesturbator *nes)
+{
+    memset(&nes->synth, 0, sizeof nes->synth);
+}
+
+void nesturbator__synth_transition(struct nesturbator *nes, int32_t level)
+{
+    struct nesturbator__synth *synth = &nes->synth;
+    int32_t delta = level - synth->mixed_level;
+    if (delta == 0)
+        return;
+
+    uint32_t phase_numerator = nes->apu.sample_phase * NESTURBATOR_SYNTH_PHASES;
+    unsigned phase = (unsigned)(phase_numerator / NESTURBATOR_AUDIO_TICKS_PER_PERIOD);
+    uint32_t phase_fraction = phase_numerator % NESTURBATOR_AUDIO_TICKS_PER_PERIOD;
+    int32_t coefficients[NESTURBATOR_SYNTH_TAPS];
+    int32_t sum = 0;
+    for (unsigned tap = 0u; tap < NESTURBATOR_SYNTH_TAPS; tap++) {
+        coefficients[tap] = interpolate_coefficient(phase, tap, phase_fraction);
+        sum += coefficients[tap];
+    }
+    unsigned correction_tap = nes->apu.sample_phase <
+                                      NESTURBATOR_AUDIO_TICKS_PER_PERIOD / 2u
+                                  ? 7u
+                                  : 8u;
+    coefficients[correction_tap] += 32768 - sum;
+    for (unsigned tap = 0u; tap < NESTURBATOR_SYNTH_TAPS; tap++) {
+        unsigned slot = (unsigned)(synth->impulse_head + tap) &
+                        (NESTURBATOR_SYNTH_TAPS - 1u);
+        synth->impulse[slot] += (int64_t)delta * coefficients[tap];
+    }
+    synth->mixed_level = level;
+}
+
+void nesturbator__synth_sample(struct nesturbator *nes)
+{
+    struct nesturbator__synth *synth = &nes->synth;
+    unsigned head = synth->impulse_head;
+    synth->integrator_q15 += synth->impulse[head];
+    synth->impulse[head] = 0;
+    synth->impulse_head = (uint8_t)((head + 1u) & (NESTURBATOR_SYNTH_TAPS - 1u));
+
+    int64_t input = synth->integrator_q15 * INT64_C(32768);
+    for (unsigned filter = 0u; filter < 2u; filter++) {
+        int64_t highpass_input = input + synth->hp_output_q30[filter] -
+                                 synth->hp_input_q30[filter];
+        synth->hp_input_q30[filter] = input;
+        synth->hp_output_q30[filter] =
+            multiply_q30(highpass_input, hp_coefficient_q30[filter]);
+        input = synth->hp_output_q30[filter];
+    }
+    synth->lp_output_q30 += multiply_q30(input - synth->lp_output_q30, lp_coefficient_q30);
+
+    if (synth->pcm_count >= NESTURBATOR_SYNTH_RING_CAPACITY) {
+        synth->overflow = 1u;
+        return;
+    }
+    synth->pcm[synth->pcm_write] = pcm_sample(synth->lp_output_q30);
+    synth->pcm_write = (uint16_t)((synth->pcm_write + 1u) &
+                                  (NESTURBATOR_SYNTH_RING_CAPACITY - 1u));
+    synth->pcm_count++;
+}
+
+uint32_t nesturbator__synth_drain(struct nesturbator *nes, int16_t *out, uint32_t count)
+{
+    struct nesturbator__synth *synth = &nes->synth;
+    uint32_t drained = 0u;
+    if (out == NULL)
+        return 0u;
+    while (drained < count && synth->pcm_count != 0u) {
+        out[drained++] = synth->pcm[synth->pcm_read];
+        synth->pcm_read = (uint16_t)((synth->pcm_read + 1u) &
+                                     (NESTURBATOR_SYNTH_RING_CAPACITY - 1u));
+        synth->pcm_count--;
+    }
+    return drained;
+}

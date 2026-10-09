@@ -128,6 +128,7 @@ void nesturbator_unload_cartridge(nesturbator *inst)
     memset(&inst->cart, 0, sizeof inst->cart);
     memset(&inst->apu, 0, sizeof inst->apu);
     inst->apu.dmc.buffer_empty = 1u;
+    nesturbator__synth_reset(inst);
     memset(&inst->ppu, 0, sizeof inst->ppu);
     memset(&inst->cpu, 0, sizeof inst->cpu);
     inst->ticks = 0;
@@ -170,6 +171,7 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     memset(&inst->bus, 0, sizeof inst->bus);
     memset(&inst->apu, 0, sizeof inst->apu);
     inst->apu.dmc.buffer_empty = 1u;
+    nesturbator__synth_reset(inst);
     memset(&inst->ppu, 0, sizeof inst->ppu);
     memset(&inst->cpu, 0, sizeof inst->cpu);
     inst->cpu.s = 0xfdu;

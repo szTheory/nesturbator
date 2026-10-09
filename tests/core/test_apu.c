@@ -62,7 +62,7 @@ static void test_public_pulse_pcm(void)
     unsigned nonzero = 0u;
     for (uint32_t i = 0u; i < io.audio_count; i++)
         nonzero += samples[i] != 0;
-    static const int16_t expected[] = {0, 0, 4895, 4895, 0, 0, 4895, 4895};
+    static const int16_t expected[] = {0, 0, 0, 3, -10, 25, -52, 106};
     for (uint32_t i = 0u; i < sizeof expected / sizeof expected[0]; i++)
         CHECK_EQ_U64((uint16_t)samples[i], (uint16_t)expected[i]);
     CHECK(nonzero > 0u);
@@ -86,6 +86,7 @@ static void test_documented_channel_sequences(void)
     nes->apu.dmc.output = 127u;
     CHECK_EQ_U64(nesturbator__apu_mixed_level(nes), 22325u);
     memset(&nes->apu, 0, sizeof nes->apu);
+    nesturbator__synth_reset(nes);
 
     /* Independent pulse units: their own duty phase, timer and enable bit. */
     nesturbator__apu_write(nes, 0x4015u, 0x03u);

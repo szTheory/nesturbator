@@ -50,7 +50,7 @@ extern "C" {
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
    the same inputs. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 2
+#define NESTURBATOR_BEHAVIOUR_REVISION 3
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -176,7 +176,11 @@ typedef struct nesturbator_info {
  * zero. Channel timer, sequence, envelope/sweep/linear-counter and gating
  * behavior follows NES-HARDWARE-CPU-APU.md section 4 (HWC.05, HWC.08,
  * HWC.10). The pulse and 16 x 16 x 128 TND integer mixer is from section 5
- * (HWC.11); synthesis references are HWC.28-HWC.30. */
+ * (HWC.11). Mixed-level transitions use the fixed-point 16-tap, 32-phase
+ * band-limited kernel, followed by the NES 90 Hz and 440 Hz high-pass and
+ * 14 kHz low-pass filters (HWC.28-HWC.30). Synthesis and filter history are
+ * per-instance and persist across frame calls; the bounded PCM staging ring
+ * is drained into the caller's frame buffer. */
 typedef struct nesturbator_frame {
     uint32_t size;           /* in: sizeof(nesturbator_frame) */
     uint16_t *video;         /* in: at least 240 rows of video_pitch pixels */

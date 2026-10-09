@@ -2,7 +2,7 @@
    NES-HARDWARE-CPU-APU.md section 4 (HWC.08, HWC.10, HWC.11). */
 #include "internal.h"
 
-#include "apu_mix_table.h"
+#include <string.h>
 
 static const uint8_t duty[4] = {0x01u, 0x03u, 0x0fu, 0xfcu};
 static const uint8_t length_table[32] = {
@@ -77,7 +77,7 @@ uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes)
     uint32_t t = nesturbator__apu_channel_level(nes, 2u);
     uint32_t n = nesturbator__apu_channel_level(nes, 3u);
     uint32_t d = nesturbator__apu_channel_level(nes, 4u);
-    uint32_t output = pulse_mix[p] + tnd_mix[t][n][d];
+    uint32_t output = nesturbator__pulse_mix[p] + nesturbator__tnd_mix[t][n][d];
     return output > 32767u ? 32767u : (uint16_t)output;
 }
 
@@ -157,10 +157,19 @@ void nesturbator__apu_begin_frame(struct nesturbator *nes, int16_t *samples, uin
     nes->apu.sample_limit = count;
     nes->apu.sample_count = 0u;
     nes->apu.sample_phase = nes->audio_rem;
+    nesturbator__synth_transition(nes, (int32_t)nesturbator__apu_mixed_level(nes));
 }
 
 void nesturbator__apu_end_frame(struct nesturbator *nes)
 {
+    if (nes->apu.sample_output != NULL && nes->apu.sample_count != 0u) {
+        uint32_t drained = nesturbator__synth_drain(
+            nes, nes->apu.sample_output, nes->apu.sample_count);
+        if (drained < nes->apu.sample_count) {
+            memset(nes->apu.sample_output + drained, 0,
+                   (size_t)(nes->apu.sample_count - drained) * sizeof nes->apu.sample_output[0]);
+        }
+    }
     nes->apu.sample_output = NULL;
     nes->apu.sample_limit = 0u;
     nes->apu.sample_count = 0u;
@@ -297,14 +306,13 @@ void nesturbator__apu_clock(struct nesturbator *nes)
             nes->apu.frame_cycle = 0u;
     }
     update_irq_line(nes);
+    nesturbator__synth_transition(nes, (int32_t)nesturbator__apu_mixed_level(nes));
     nes->apu.sample_phase += 24u * NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD;
-    while (nes->apu.sample_phase >= NESTURBATOR_AUDIO_TICKS_PER_PERIOD) {
+    if (nes->apu.sample_phase >= NESTURBATOR_AUDIO_TICKS_PER_PERIOD) {
         nes->apu.sample_phase -= NESTURBATOR_AUDIO_TICKS_PER_PERIOD;
         if (nes->apu.sample_output != NULL && nes->apu.sample_count < nes->apu.sample_limit) {
-            /* Integer-only table mix; filtered synthesis is a later phase
-               deliverable. */
-            nes->apu.sample_output[nes->apu.sample_count++] =
-                (int16_t)nesturbator__apu_mixed_level(nes);
+            nesturbator__synth_sample(nes);
+            nes->apu.sample_count++;
         }
     }
 }
@@ -323,7 +331,7 @@ uint8_t nesturbator__apu_status_read(struct nesturbator *nes)
     return status;
 }
 
-void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t value)
+static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t value)
 {
     if (addr == 0x4017u) {
         nes->apu.frame_irq_inhibit = (uint8_t)((value >> 6) & 1u);
@@ -443,4 +451,10 @@ void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         if ((nes->apu.enabled & (1u << index)) != 0u)
             pulse->length = length_table[value >> 3];
     }
+}
+
+void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t value)
+{
+    apu_write_register(nes, addr, value);
+    nesturbator__synth_transition(nes, (int32_t)nesturbator__apu_mixed_level(nes));
 }

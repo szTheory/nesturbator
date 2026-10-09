@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
 
-# Phase 4 baseline: this SHA-256 follows the mapper-0 API and its behavior
-# revision value. It is a temporary guard, not a permanent repository freeze.
-set(PHASE4_DECLARATIONS_SHA256 "0fc072e28d53ec6bce76c806047d78284c92443c609e0560c1c4e3e5b7a93c41")
+# Phase 4 baseline: this SHA-256 follows the mapper-0 API and its audio
+# behavior revision. It is a temporary guard, not a permanent repository freeze.
+set(PHASE4_DECLARATIONS_SHA256 "7e9fa314d5d8b325e9d46f5aeb923e902d70b42e7f71e36321a1ba948e6baae7")
 
 function(normalize_api source out_hash)
   string(REGEX REPLACE "/\\*([^*]|\\*+[^*/])*\\*+/" "" text "${source}")

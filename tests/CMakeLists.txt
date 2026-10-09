@@ -38,6 +38,14 @@ nesturbator_runner_test(NAME runner.advance
 # No --hash-frame: frames run, nothing is printed.
 nesturbator_runner_test(NAME runner.nohash ARGS --frames 2 EXIT 0)
 
+# SND-04: a fixed-point FFT checks the five locked APU reference periods.
+add_executable(runner.spectral runner/test_spectral.c)
+target_link_libraries(runner.spectral PRIVATE nesturbator::nesturbator)
+target_include_directories(runner.spectral PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(runner.spectral)
+add_test(NAME runner.spectral COMMAND runner.spectral)
+set_tests_properties(runner.spectral PROPERTIES TIMEOUT 60)
+
 # Usage errors exit 2 (LIBRETRO-AND-RUNNER section 5).
 nesturbator_runner_test(NAME runner.usage.beyond
   ARGS --frames 1 --hash-frame 2 EXIT 2 IGNORE_STDOUT)
@@ -127,6 +135,8 @@ nesturbator_core_test(core.api core/test_api.c)
 # boundary pixels and two independent instances.
 nesturbator_core_test(core.frame core/test_frame.c)
 nesturbator_core_test(core.apu core/test_apu.c)
+nesturbator_core_test(core.synth core/test_synth.c)
+target_include_directories(core.synth PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_core_test(core.cartridge core/test_cartridge.c)
 target_include_directories(core.cartridge PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
@@ -426,6 +436,7 @@ add_test(NAME core.profile COMMAND core.profile)
 add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/bus.c
   ${PROJECT_SOURCE_DIR}/src/apu.c
+  ${PROJECT_SOURCE_DIR}/src/synth.c
   ${PROJECT_SOURCE_DIR}/src/cartridge.c
   ${PROJECT_SOURCE_DIR}/src/ppu.c)
 target_include_directories(bus.unit PRIVATE

@@ -55,6 +55,7 @@ add_library(nesturbator STATIC
   src/frame.c
   src/bus.c
   src/apu.c
+  src/synth.c
   src/ppu.c
   src/palette.c
   src/palette_ntsc.c
