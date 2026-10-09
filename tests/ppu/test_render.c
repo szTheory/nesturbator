@@ -18,7 +18,7 @@ static void setup(void)
     nes.cart.bytes = header;
     nes.cart.chr = chr;
     nes.ppu.mask = 0x0au; /* background plus leftmost 8 pixels */
-    nes.ppu.scanline = 1u;
+    nes.ppu.scanline = 0u;
     nes.ppu.video_output = pixels;
     nes.ppu.video_pitch = NESTURBATOR_WIDTH;
     nes.ppu.palette[0] = 0x0fu;
@@ -44,7 +44,7 @@ static void test_grayscale_and_emphasis_stay_in_native_pixel(void)
     nes.ppu.mask |= 0xa1u; /* grayscale plus red and blue emphasis */
     nes.ppu.dot = 0u;
     nes.ppu.ppu_ticks = 0u;
-    nes.ppu.scanline = 1u;
+    nes.ppu.scanline = 0u;
     nesturbator__ppu_run_until(&nes, 16u);
     CHECK_EQ_U64(pixels[0], (0x21u & 0x30u) | (5u << 6));
 }

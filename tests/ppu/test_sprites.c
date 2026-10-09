@@ -75,19 +75,21 @@ static void test_prerender_wraps_sprite_rows_into_visible_scanline_zero(void)
 static void test_ninth_in_range_sprite_sets_overflow(void)
 {
     setup();
+    nes.ppu.scanline = 0u;
     for (uint32_t i = 0u; i < 64u; i++)
-        nes.ppu.oam[i * 4u] = 0u;
+        nes.ppu.oam[i * 4u] = 8u;
     for (uint32_t i = 0; i < 8u; i++)
-        nes.ppu.oam[i * 4u] = 0xffu;
-    nesturbator__ppu_run_until(&nes, 341u * 8u);
+        nes.ppu.oam[i * 4u] = 0u;
+    nesturbator__ppu_run_until(&nes, 257u * 8u);
     CHECK_EQ_U64(nes.ppu.status & 0x20u, 0u);
 
     setup();
+    nes.ppu.scanline = 0u;
     for (uint32_t i = 0u; i < 64u; i++)
-        nes.ppu.oam[i * 4u] = 0u;
+        nes.ppu.oam[i * 4u] = 8u;
     for (uint32_t i = 0; i < 9u; i++)
-        nes.ppu.oam[i * 4u] = 0xffu;
-    nesturbator__ppu_run_until(&nes, 341u * 8u);
+        nes.ppu.oam[i * 4u] = 0u;
+    nesturbator__ppu_run_until(&nes, 257u * 8u);
     CHECK_EQ_U64(nes.ppu.status & 0x20u, 0x20u);
 }
 

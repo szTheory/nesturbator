@@ -50,7 +50,7 @@ static void sprite_evaluate(struct nesturbator *nes)
     if (ppu->scanline > 239u && ppu->scanline != 261u)
         return;
     if (ppu->dot == 65u) {
-        ppu->sprite_count = 0u;
+        ppu->eval_count = 0u;
         ppu->eval_n = 0u;
         /* Pre-render evaluation prepares visible scanline zero; Y+1 wraps
            at eight bits on the 2C02. [HWP.02][HWP.06] */
@@ -72,18 +72,20 @@ static void sprite_evaluate(struct nesturbator *nes)
         ppu->eval_latch = ppu->oam[(uint16_t)ppu->eval_n * 4u];
         return;
     }
-    uint8_t top = (uint8_t)(ppu->eval_latch + 1u);
+    uint16_t top = (uint16_t)ppu->eval_latch + 1u;
     uint8_t height = (ppu->control & 0x20u) != 0u ? 16u : 8u;
-    uint8_t row = (uint8_t)(ppu->eval_target - top);
-    if (row < height) {
-        if (ppu->sprite_count < 8u) {
-            uint8_t slot = ppu->sprite_count++;
+    uint8_t wraps_to_first_row = ppu->eval_target == 0u && top == 256u;
+    if (wraps_to_first_row != 0u ||
+        ((uint16_t)ppu->eval_target >= top && (uint16_t)ppu->eval_target < top + height)) {
+        if (ppu->eval_count < 8u) {
+            uint8_t slot = ppu->eval_count++;
             uint16_t base = (uint16_t)ppu->eval_n * 4u;
             for (uint8_t byte = 0u; byte < 4u; byte++)
                 ppu->secondary_oam[(uint16_t)slot * 4u + byte] = ppu->oam[base + byte];
-            ppu->sprite_zero[slot] = ppu->eval_n == 0u;
+            ppu->eval_sprite_zero[slot] = ppu->eval_n == 0u;
         } else {
-            ppu->status |= 0x20u;
+            if (ppu->scanline != 261u)
+                ppu->status |= 0x20u;
         }
     }
     ppu->eval_n++;
@@ -99,16 +101,17 @@ static uint8_t reverse_bits(uint8_t value)
 static void sprite_fetch(struct nesturbator *nes)
 {
     struct nesturbator__ppu *ppu = &nes->ppu;
-    if (ppu->dot != 257u)
+    if ((ppu->scanline > 239u && ppu->scanline != 261u) || ppu->dot != 257u)
         return;
     uint8_t height = (ppu->control & 0x20u) != 0u ? 16u : 8u;
     uint8_t target = ppu->scanline == 261u ? 0u : (uint8_t)(ppu->scanline + 1u);
-    for (uint8_t i = 0u; i < ppu->sprite_count; i++) {
+    for (uint8_t i = 0u; i < ppu->eval_count; i++) {
         uint16_t base = (uint16_t)i * 4u;
         uint8_t y = ppu->secondary_oam[base];
         uint8_t tile = ppu->secondary_oam[base + 1u];
         uint8_t attr = ppu->secondary_oam[base + 2u];
-        uint8_t row = (uint8_t)(target - (uint8_t)(y + 1u));
+        uint16_t top = (uint16_t)y + 1u;
+        uint8_t row = target == 0u && top == 256u ? 0u : (uint8_t)((uint16_t)target - top);
         if ((attr & 0x80u) != 0u)
             row = (uint8_t)(height - 1u - row);
         uint16_t pattern;
@@ -130,7 +133,9 @@ static void sprite_fetch(struct nesturbator *nes)
         }
         ppu->sprite_x[i] = ppu->secondary_oam[base + 3u];
         ppu->sprite_attr[i] = attr;
+        ppu->sprite_zero[i] = ppu->eval_sprite_zero[i];
     }
+    ppu->sprite_count = ppu->eval_count;
 }
 
 static uint16_t compose_pixel(struct nesturbator *nes, uint32_t x, uint32_t y)
