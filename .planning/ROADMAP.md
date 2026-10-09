@@ -134,7 +134,7 @@ Plans:
   3. `nesturbator-run --movie FILE` replays recorded controller input and prints the same frame hashes on every run, and the libretro test program, fed the same input, receives equal frames.
   4. The runner runs AccuracyCoin and reads each result from RAM; the results equal the committed scoreboard file, a test fails if that file loses a pass that `main` has, and every test on pages 2 and 17 passes.
 
-**Plans**: 14/14 plans complete
+**Plans**: 14/15 plans complete
 Plans:
 
 **Wave 1**
@@ -178,6 +178,9 @@ Plans:
 
 **Wave 14** *(blocked on Wave 13 completion)*
 - [x] 03-14-PLAN.md — Render Y=$FF sprites on the first visible scanline
+
+**Wave 15** *(gap closure; blocked on completed sprite, hosted CI and row-zero plans)*
+- [ ] 03-15-PLAN.md — Correct the post-eighth-sprite diagonal OAM scan and collect exact-commit hosted evidence
 
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md`, `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`, `.planning/preparation/LIBRETRO-AND-RUNNER.md`
@@ -239,6 +242,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 4.1
 |-------|----------------|--------|-----------|
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
 | 2. The CPU matches the public vectors | 11/11 | Complete    | 2026-10-06 |
-| 3. A real game in RetroArch | 14/14 | Complete    | 2026-10-09 |
+| 3. A real game in RetroArch | 14/15 | Gap closure planned | — |
 | 4. Sound | 4/4 | Complete    | 2026-10-09 |
 | 4.1. Close gap: GAME-01 — initialize accepted iNES trainers | 1/1 | Complete    | 2026-10-09 |
