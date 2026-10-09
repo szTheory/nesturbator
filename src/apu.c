@@ -80,17 +80,27 @@ uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes)
     return output > 32767u ? 32767u : (uint16_t)output;
 }
 
-static void dmc_fetch(struct nesturbator *nes)
+static void update_irq_line(struct nesturbator *nes)
 {
-    struct nesturbator__dmc *dmc = &nes->apu.dmc;
-    if (dmc->buffer_empty == 0u || dmc->remaining == 0u || nes->cart.prg == NULL)
-        return;
-    size_t prg_size = nes->cart.size >= 16u + 32768u ? 32768u : 16384u;
-    size_t offset = (size_t)(dmc->address - 0x8000u) % prg_size;
-    dmc->sample_buffer = nes->cart.prg[offset];
-    dmc->buffer_empty = 0u;
-    dmc->address = dmc->address == 0xffffu ? 0x8000u : (uint16_t)(dmc->address + 1u);
-    dmc->remaining--;
+    nes->cpu.irq_line = (uint8_t)(nes->apu.frame_irq != 0u || nes->apu.dmc.irq != 0u);
+}
+
+static void envelope_clock(uint8_t control, uint8_t *divider, uint8_t *decay, uint8_t *start);
+
+static void frame_quarter_clock(struct nesturbator__apu *apu)
+{
+    for (unsigned i = 0u; i < 2u; i++) {
+        struct nesturbator__pulse *pulse = &apu->pulse[i];
+        envelope_clock(pulse->reg[0], &pulse->env_divider, &pulse->env_decay, &pulse->env_start);
+    }
+    envelope_clock(apu->noise.reg[0], &apu->noise.env_divider,
+                   &apu->noise.env_decay, &apu->noise.env_start);
+    if (apu->triangle.linear_reload_flag != 0u)
+        apu->triangle.linear = apu->triangle.linear_reload;
+    else if (apu->triangle.linear != 0u)
+        apu->triangle.linear--;
+    if ((apu->triangle.reg[0] & 0x80u) == 0u)
+        apu->triangle.linear_reload_flag = 0u;
 }
 
 static void envelope_clock(uint8_t control, uint8_t *divider, uint8_t *decay, uint8_t *start)
@@ -199,8 +209,6 @@ void nesturbator__apu_clock(struct nesturbator *nes)
                 dmc->shift = dmc->sample_buffer;
                 dmc->buffer_empty = 1u;
                 dmc->bits = 8u;
-            } else {
-                dmc_fetch(nes);
             }
         }
         if (dmc->bits != 0u) {
@@ -213,31 +221,43 @@ void nesturbator__apu_clock(struct nesturbator *nes)
             dmc->shift >>= 1;
             dmc->bits--;
         }
-        if (dmc->buffer_empty != 0u)
-            dmc_fetch(nes);
+        if (dmc->buffer_empty != 0u && dmc->remaining != 0u)
+            dmc->dma_pending = 1u;
     } else {
         dmc->counter--;
     }
-    nes->apu.frame_cycle++;
-    if (nes->apu.frame_cycle == 7457u || nes->apu.frame_cycle == 14913u ||
-        nes->apu.frame_cycle == 22371u || nes->apu.frame_cycle == 29829u) {
-        for (unsigned i = 0u; i < 2u; i++) {
-            struct nesturbator__pulse *pulse = &nes->apu.pulse[i];
-            envelope_clock(pulse->reg[0], &pulse->env_divider, &pulse->env_decay, &pulse->env_start);
+    /* Frame-counter writes reset after three or four CPU cycles according to
+       APU phase; the sequence edge follows two or three cycles later. The
+       cycle-level model follows HWC.23 and the AccuracyCoin page-14 timing
+       cases; this boundary intentionally has no M2-high subcycle state. */
+    if (nes->apu.frame_reset_delay != 0u) {
+        nes->apu.frame_reset_delay--;
+        if (nes->apu.frame_reset_delay == 0u) {
+            nes->apu.frame_mode = nes->apu.frame_pending_mode;
+            nes->apu.frame_cycle = 0u;
+            if (nes->apu.frame_mode != 0u) {
+                frame_quarter_clock(&nes->apu);
+                length_clock(&nes->apu);
+            }
         }
-        envelope_clock(nes->apu.noise.reg[0], &nes->apu.noise.env_divider,
-                       &nes->apu.noise.env_decay, &nes->apu.noise.env_start);
-        if (nes->apu.triangle.linear_reload_flag != 0u)
-            nes->apu.triangle.linear = nes->apu.triangle.linear_reload;
-        else if (nes->apu.triangle.linear != 0u)
-            nes->apu.triangle.linear--;
-        if ((nes->apu.triangle.reg[0] & 0x80u) == 0u)
-            nes->apu.triangle.linear_reload_flag = 0u;
-        if (nes->apu.frame_cycle == 14913u || nes->apu.frame_cycle == 29829u)
-            length_clock(&nes->apu);
-        if (nes->apu.frame_cycle == 29829u)
+    } else {
+        nes->apu.frame_cycle++;
+        if (nes->apu.frame_cycle == 7457u || nes->apu.frame_cycle == 14913u ||
+            nes->apu.frame_cycle == 22371u ||
+            (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == 29829u) ||
+            (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == 37281u)) {
+            frame_quarter_clock(&nes->apu);
+            if (nes->apu.frame_cycle == 14913u || nes->apu.frame_cycle == 37281u)
+                length_clock(&nes->apu);
+        }
+        if (nes->apu.frame_mode == 0u && nes->apu.frame_cycle >= 29828u &&
+            nes->apu.frame_cycle <= 29830u && nes->apu.frame_irq_inhibit == 0u)
+            nes->apu.frame_irq = 1u;
+        if ((nes->apu.frame_mode == 0u && nes->apu.frame_cycle >= 29830u) ||
+            (nes->apu.frame_mode != 0u && nes->apu.frame_cycle >= 37282u))
             nes->apu.frame_cycle = 0u;
     }
+    update_irq_line(nes);
     nes->apu.sample_phase += 24u * NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD;
     while (nes->apu.sample_phase >= NESTURBATOR_AUDIO_TICKS_PER_PERIOD) {
         nes->apu.sample_phase -= NESTURBATOR_AUDIO_TICKS_PER_PERIOD;
@@ -250,10 +270,29 @@ void nesturbator__apu_clock(struct nesturbator *nes)
     }
 }
 
+uint8_t nesturbator__apu_status_read(struct nesturbator *nes)
+{
+    uint8_t status = (uint8_t)((nes->apu.pulse[0].length != 0u ? 1u : 0u) |
+                               (nes->apu.pulse[1].length != 0u ? 2u : 0u) |
+                               (nes->apu.triangle.length != 0u ? 4u : 0u) |
+                               (nes->apu.noise.length != 0u ? 8u : 0u) |
+                               (nes->apu.dmc.remaining != 0u ? 0x10u : 0u) |
+                               (nes->apu.frame_irq != 0u ? 0x40u : 0u) |
+                               (nes->apu.dmc.irq != 0u ? 0x80u : 0u));
+    nes->apu.frame_irq = 0u;
+    update_irq_line(nes);
+    return status;
+}
+
 void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t value)
 {
     if (addr == 0x4017u) {
-        nes->apu.frame_cycle = 0u;
+        nes->apu.frame_irq_inhibit = (uint8_t)((value >> 6) & 1u);
+        if (nes->apu.frame_irq_inhibit != 0u)
+            nes->apu.frame_irq = 0u;
+        nes->apu.frame_pending_mode = (uint8_t)((value >> 7) & 1u);
+        nes->apu.frame_reset_delay = (uint8_t)(((nes->ticks / 24u) & 1u) != 0u ? 3u : 4u);
+        update_irq_line(nes);
         return;
     }
     if (addr == 0x4015u) {
@@ -274,7 +313,10 @@ void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
             nes->apu.dmc.address = (uint16_t)(0xc000u | ((uint32_t)nes->apu.dmc.reg[2] << 6));
             nes->apu.dmc.remaining = (uint16_t)(((uint32_t)nes->apu.dmc.reg[3] << 4) | 1u);
             nes->apu.dmc.buffer_empty = 1u;
+            nes->apu.dmc.dma_pending = 1u;
         }
+        nes->apu.dmc.irq = 0u;
+        update_irq_line(nes);
         return;
     }
     if (addr >= 0x4008u && addr <= 0x400bu) {
@@ -312,9 +354,12 @@ void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         struct nesturbator__dmc *dmc = &nes->apu.dmc;
         unsigned reg = (unsigned)(addr - 0x4010u);
         dmc->reg[reg] = value;
-        if (reg == 0u)
+        if (reg == 0u) {
             dmc->timer = dmc_period[value & 0x0fu];
-        else if (reg == 1u)
+            if ((value & 0x80u) == 0u)
+                dmc->irq = 0u;
+            update_irq_line(nes);
+        } else if (reg == 1u)
             dmc->output = (uint8_t)(value & 0x7fu);
         return;
     }

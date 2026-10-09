@@ -187,6 +187,7 @@ static void test_dmc_fetch_from_mapper0(void)
     nesturbator__apu_write(nes, 0x4013u, 0u); /* one byte */
     nesturbator__apu_write(nes, 0x4015u, 0x10u);
     nesturbator__apu_clock(nes);
+    (void)nesturbator__bus_read(nes, 0x8000u);
     CHECK_EQ_U64(nes->apu.dmc.sample_buffer, 0x5au);
     CHECK_EQ_U64(nes->apu.dmc.address, 0xc041u);
     CHECK_EQ_U64(nes->apu.dmc.remaining, 0u);
@@ -200,7 +201,7 @@ static void test_frame_counter_modes_and_irq_sources(void)
     struct nesturbator *nes = (struct nesturbator *)inst;
 
     /* 4-step mode raises frame IRQ at the last half-frame edge. */
-    nes->apu.frame_cycle = 29827u;
+    nes->apu.frame_cycle = 29826u;
     nesturbator__apu_clock(nes);
     CHECK_EQ_U64(nes->apu.frame_irq, 0u);
     nesturbator__apu_clock(nes);

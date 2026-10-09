@@ -3,14 +3,14 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: Phase 3, first cartridge path.** The 6502 core matches the public
+**Status: Phase 4, NTSC sound timing.** The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded mapper-0 iNES 1.0 and NES 2.0 images with 16 or
 32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
 clipping, sprite-zero hit and the eight-sprite limit. This is an initial tracer,
-not full game compatibility. Other cartridge geometries and audio are still in
-later work. With no cartridge, the fixed test
+not full game compatibility. Other cartridge geometries and later sound work
+remain planned. With no cartridge, the fixed test
 card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
 The runner accepts content with `--rom FILE`, for example:
@@ -46,7 +46,9 @@ merge. The scoreboard test requires that CI-provided path and never falls back
 to the candidate snapshot. Detached local runs use the committed
 `tests/accuracy/scoreboard-main.txt` snapshot. In both cases a prior `pass` row
 must remain present and passing; AccuracyCoin results continue to be checked
-against live emulated RAM.
+against live emulated RAM. Page 14 adds the six required APU results: Length
+Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter
+5-step, and Delta Modulation Channel.
 
 The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
 mirrors, and rejects other bus addresses without side effects. It is intended
@@ -82,7 +84,14 @@ period table and mode tap; and DMC uses its timer, sample fetch, shift register
 and 7-bit DAC. RP2A03G noise starts at measured LFSR state `$0000`, with its
 first clock shifting in 1 (HWC.05); the APU_Noise overview's “loads 1” wording
 describes the operational initialization model (HWC.08). These channel
-sequences use integer state and bus-cycle ordering. The nonlinear pulse and TND
+sequences use integer state and bus-cycle ordering. The 4-step and 5-step frame
+sequencers clock envelopes, linear and length counters, and maintain a frame
+IRQ independent from the DMC IRQ; `$4015` reports and clears the frame source.
+Writes to `$4017` take effect after the parity-dependent three or four CPU
+cycles. DMC sample fetches halt CPU reads at the bus seam, repeat the parked
+read, and preserve the independent IRQ source. These timing rules follow
+NES-HARDWARE-CPU-APU sections 2 and 4 (HWC.01, HWC.23) and are exercised by
+`core.apu` and the six AccuracyCoin page-14 results. The nonlinear pulse and TND
 mixer uses checked-in integer pulse and 16×16×128 TND tables from HWC.11;
 band-limited synthesis and analogue output filters remain later sound work
 (section 5).

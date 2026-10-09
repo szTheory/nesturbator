@@ -22,9 +22,8 @@ static void cycle(struct nesturbator *nes)
     ppu_catch_up(nes);
 }
 
-static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
+static uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr)
 {
-    cycle(nes);
     /* CPU RAM mirrors, PPU registers, and NROM PRG are decoded here. */
     if (addr == 0x4016u || addr == 0x4017u) {
         uint8_t port = (uint8_t)(addr - 0x4016u);
@@ -38,6 +37,9 @@ static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
         }
         /* D0 is serial data, D6 reads high, and D5/D7 retain open bus. */
         nes->bus.open_bus = (uint8_t)((nes->bus.open_bus & 0xa0u) | 0x40u | bit);
+    } else if (addr == 0x4015u) {
+        nes->bus.open_bus = (uint8_t)((nesturbator__apu_status_read(nes) & 0xdfu) |
+                                      (nes->bus.open_bus & 0x20u));
     } else if (addr < 0x2000u) {
         nes->bus.open_bus = nes->bus.ram[addr & 0x7FFu];
     } else if (addr < 0x4000u) {
@@ -47,6 +49,43 @@ static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
         nes->bus.open_bus = nesturbator__cart_read(nes, addr);
     }
     return nes->bus.open_bus;
+}
+
+static void dmc_dma(struct nesturbator *nes, uint16_t parked_read)
+{
+    struct nesturbator__dmc *dmc = &nes->apu.dmc;
+    if (dmc->dma_pending == 0u || dmc->remaining == 0u || nes->cart.prg == NULL)
+        return;
+
+    /* RDY halts the CPU only on reads. The first halted cycle repeats the
+       parked CPU access, including controller and PPU register side effects. */
+    (void)bus_read_data(nes, parked_read);
+    cycle(nes);
+    cycle(nes);
+    if (((nes->ticks / 24u) & 1u) == 0u)
+        cycle(nes);
+    dmc->sample_buffer = nesturbator__cart_read(nes, dmc->address);
+    dmc->buffer_empty = 0u;
+    dmc->dma_pending = 0u;
+    dmc->address = dmc->address == 0xffffu ? 0x8000u : (uint16_t)(dmc->address + 1u);
+    dmc->remaining--;
+    if (dmc->remaining == 0u) {
+        if ((dmc->reg[0] & 0x40u) != 0u) {
+            dmc->address = (uint16_t)(0xc000u | ((uint32_t)dmc->reg[2] << 6));
+            dmc->remaining = (uint16_t)(((uint32_t)dmc->reg[3] << 4) | 1u);
+        } else if ((dmc->reg[0] & 0x80u) != 0u) {
+            dmc->irq = 1u;
+            nes->cpu.irq_line = 1u;
+        }
+    }
+}
+
+static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
+{
+    cycle(nes);
+    if (nes->apu.dmc.dma_pending != 0u)
+        dmc_dma(nes, addr);
+    return bus_read_data(nes, addr);
 }
 
 static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)

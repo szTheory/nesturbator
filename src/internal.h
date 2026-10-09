@@ -86,7 +86,7 @@ struct nesturbator__apu {
     struct nesturbator__dmc dmc;
     uint8_t enabled;
     uint8_t pulse_clock_phase;
-    uint8_t frame_mode, frame_irq_inhibit, frame_irq;
+    uint8_t frame_mode, frame_pending_mode, frame_irq_inhibit, frame_irq;
     uint8_t frame_reset_delay;
     uint32_t frame_cycle;
     uint32_t sample_phase;
@@ -162,6 +162,7 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
 void nesturbator__apu_clock(struct nesturbator *nes);
 void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
 uint8_t nesturbator__apu_channel_level(const struct nesturbator *nes, unsigned channel);
+uint8_t nesturbator__apu_status_read(struct nesturbator *nes);
 uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes);
 void nesturbator__apu_begin_frame(struct nesturbator *nes, int16_t *samples, uint32_t count);
 void nesturbator__apu_end_frame(struct nesturbator *nes);

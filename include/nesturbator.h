@@ -50,7 +50,7 @@ extern "C" {
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
    the same inputs. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 1
+#define NESTURBATOR_BEHAVIOUR_REVISION 2
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -253,7 +253,9 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * At the start of a successful call, the latest input set through
  * nesturbator_set_input is sampled for that frame. Instructions complete
  * across the requested frame boundary; the next input is sampled only on the
- * next call, so a crossing instruction cannot mix frame masks.
+ * next call, so a crossing instruction cannot mix frame masks. Cartridge
+ * audio clocks the NTSC RP2A03 channels and frame sequencer on CPU cycles;
+ * frame-counter and DMC interrupt status are independent.
  * No cartridge: test pattern and silence. A JAM opcode stops with
  * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
  * advance on later frame calls. Audio is mono signed 16-bit PCM; no-cartridge
