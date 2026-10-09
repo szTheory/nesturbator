@@ -1,20 +1,20 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 04
-current_phase_name: Sound
-current_plan: Not started
-status: "Phase 04 shipped — PR #20"
-stopped_at: "Phase 04 PR #20 open; hosted checks running"
-last_updated: "2026-10-09T15:35:04.860Z"
+current_phase: "04.1"
+current_phase_name: "Close gap: GAME-01 — initialize accepted iNES trainers"
+current_plan: 04.1-01
+status: Ready to execute Phase 04.1
+stopped_at: Phase 04.1 planning complete; ready to execute 04.1-01
+last_updated: "2026-10-09T17:32:57.129Z"
 last_activity: 2026-10-09
-last_activity_desc: "Shipped Phase 04 as PR #20; hosted checks are running"
-state_head: 2cf0edf45ae182ac5f95ebb2bf9712326b9f3d06
+last_activity_desc: Phase 4.1 planning complete — 1 plans ready
+state_head: 21908fb17b00df832f82250d651e7e684afa7472
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
-  total_plans: 41
+  total_plans: 42
   completed_plans: 41
-  percent: 100
+  percent: 80
 ---
 
 # Project State
@@ -24,20 +24,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-09)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 04 — Sound (verified; ready to ship through a pull request)
+**Current focus:** Phase 04.1 — implement accepted trainer initialization for GAME-01 (ready to execute).
 
 ## Current Position
 
-Current Phase: 04
-Current Phase Name: Sound
-Current Plan: Not started
-Total Plans in Phase: 4
-Plans complete: 4 of 4.
-Status: Phase 04 shipped — PR #20
-Last activity: 2026-10-09
-Last Activity Description: Shipped Phase 04 as PR #20; hosted checks are running
+Current Phase: 04.1
+Current Phase Name: Close gap: GAME-01 — initialize accepted iNES trainers
+Current Plan: 04.1-01
+Total Plans in Phase: 1
+Plans complete: 0 of 1.
+Status: Ready to execute Phase 04.1
+Last activity: 2026-10-09 — Phase 4.1 planning complete
+Last Activity Description: Phase 4.1 planning complete — 1 plans ready
 
-Progress: [██████████] 100%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -124,7 +124,7 @@ None.
 
 ### Blockers/Concerns
 
-Phase 04 verification passed 15/15 plan truths and 4/4 roadmap criteria. Local `cmake --workflow --preset ci` passed 355/357 tests; the two local RetroArch launch tests self-skipped. Hosted run 37946197394 passed all six platform builds, cross-platform hashes, pinned RetroArch E2E, ASan, no-FP, hygiene, and the required aggregate. No product UAT remains. Advisory review debt remains: the libretro per-sample audio callback is stored but unused (batch audio is used), loaded-game `retro_reset` remains empty, and Phase 01's release-policy matcher may accept an expression containing `always()`. The Phase 02 callback note overlaps the later Phase 03 finding and is not a separate CPU defect. No open item blocks the sound requirements. A Phase 04 PR has not yet been created; ship the verified phase branch before closing the milestone.
+The milestone audit in `.planning/v1-MILESTONE-AUDIT.md` found two integration gaps: GAME-01 trainer initialization is planned in Phase 04.1 plan 04.1-01, and SND-01 single-sample libretro audio remains a follow-up gap. Phase 04 shipped in merged PR #20; its green hosted checks are recorded in the audit. Phase 04.1 verifies trainer behavior through synthetic core-bus tests and the CI workflow; no owner UAT is needed for this deterministic behavior.
 
 ### Quick Tasks Completed
 
@@ -132,6 +132,10 @@ Phase 04 verification passed 15/15 plan truths and 4/4 roadmap criteria. Local `
 |---|-------------|------|--------|-----------|
 | 261002-uu0 | Fix WR-03: callers zero size-tagged structs with memset; big-frame test; disposition marks WR-03 fixed | 2026-10-03 | 922a56f | [261002-uu0-fix-wr-03-from-planning-phases-01-a-test](./quick/261002-uu0-fix-wr-03-from-planning-phases-01-a-test/) |
 | 261003-9tb | Fix README install block so release-please bumps every version: NESTURBATOR_VERSION line, check_install_line update, one-version-per-line ctest; PR #3 | 2026-10-03 | 36a971f | [261003-9tb-fix-the-readme-install-block-so-release-](./quick/261003-9tb-fix-the-readme-install-block-so-release-/) |
+
+### Roadmap Evolution
+
+- Phase 04.1 inserted after Phase 4: Close gap: GAME-01 — initialize accepted iNES trainers (URGENT)
 
 ## Deferred Items
 
@@ -144,5 +148,5 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-09T15:28:55.002Z
-Stopped at: Phase 04 PR #20 open; hosted checks running
+Stopped at: Phase 04.1 planning complete; ready to execute 04.1-01
 Resume file: None
