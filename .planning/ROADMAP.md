@@ -224,10 +224,10 @@ Plans:
 **Goal:** A libretro frontend that provides only the single-sample audio callback receives the core's stereo PCM, with deterministic host coverage in CI.
 **Requirements**: SND-01
 **Depends on:** Phase 4
-**Plans**: 0 plans written; planning pending
+**Plans**: 1 plan
 
 Plans:
-- Planning from the milestone audit: `$gsd-plan-phase 04.2 --skip-research`
+- [ ] 04.2-01-PLAN.md — Sample-only libretro audio fallback with direct-core host parity and batch priority
 
 **Success Criteria:**
 - When `audio_batch_cb` is absent and `audio_cb` is registered, `retro_run` delivers each stereo PCM pair through `audio_cb` in frame order.
