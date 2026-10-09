@@ -75,10 +75,17 @@ retaining any overshoot for the next request. Audio is mono signed 16-bit PCM at
 forward. With no cartridge loaded, samples are zero. Mapper-0 pulse register
 writes and the `$4015` enable gate share the CPU bus timeline; pulse timer,
 duty, length and DAC gating follow NTSC RP2A03 documentation in
-`.planning/preparation/NES-HARDWARE-CPU-APU.md` section 4.1 (HWC.08). The
-tracer currently scales the integer pulse DAC level into signed PCM; the
-nonlinear mixer and band-limited synthesis are later sound work (HWC.11,
-section 5).
+`.planning/preparation/NES-HARDWARE-CPU-APU.md` section 4 (HWC.08). Both pulse
+units use independent duty phases, timers and length gates; triangle follows
+its 32-step DAC sequence and linear/length gates; noise uses the 15-bit LFSR,
+period table and mode tap; and DMC uses its timer, sample fetch, shift register
+and 7-bit DAC. RP2A03G noise starts at measured LFSR state `$0000`, with its
+first clock shifting in 1 (HWC.05); the APU_Noise overview's “loads 1” wording
+describes the operational initialization model (HWC.08). These channel
+sequences use integer state and bus-cycle ordering. The nonlinear pulse and TND
+mixer uses checked-in integer pulse and 16×16×128 TND tables from HWC.11;
+band-limited synthesis and analogue output filters remain later sound work
+(section 5).
 If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
 CPU stays latched until the cartridge is unloaded or reloaded.
 

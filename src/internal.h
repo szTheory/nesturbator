@@ -58,13 +58,34 @@ struct nesturbator__pulse {
     uint16_t timer;
     uint16_t counter;
     uint8_t reg[4];
-    uint8_t phase;
-    uint8_t length;
+    uint8_t phase, length, env_divider, env_decay, env_start, sweep_divider, sweep_reload;
+};
+
+struct nesturbator__triangle {
+    uint16_t timer, counter;
+    uint8_t reg[4];
+    uint8_t phase, length, linear, linear_reload, linear_reload_flag;
+};
+
+struct nesturbator__noise {
+    uint16_t lfsr, counter;
+    uint8_t reg[4];
+    uint8_t length, env_divider, env_decay, env_start;
+};
+
+struct nesturbator__dmc {
+    uint16_t timer, counter, address, remaining;
+    uint8_t reg[4], output, shift, bits, sample_buffer, buffer_empty;
 };
 
 struct nesturbator__apu {
     struct nesturbator__pulse pulse[2];
+    struct nesturbator__triangle triangle;
+    struct nesturbator__noise noise;
+    struct nesturbator__dmc dmc;
     uint8_t enabled;
+    uint8_t pulse_clock_phase;
+    uint32_t frame_cycle;
     uint32_t sample_phase;
     int16_t *sample_output;
     uint32_t sample_limit;
@@ -137,6 +158,8 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
 void nesturbator__apu_clock(struct nesturbator *nes);
 void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+uint8_t nesturbator__apu_channel_level(const struct nesturbator *nes, unsigned channel);
+uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes);
 void nesturbator__apu_begin_frame(struct nesturbator *nes, int16_t *samples, uint32_t count);
 void nesturbator__apu_end_frame(struct nesturbator *nes);
 void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks);
