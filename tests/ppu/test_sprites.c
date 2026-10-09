@@ -109,7 +109,7 @@ static void test_diagonal_overflow_compares_non_y_bytes(void)
     const uint8_t compared_bytes[] = {1u, 2u, 3u, 0u};
     for (uint8_t case_index = 0u; case_index < 4u; case_index++) {
         setup_diagonal_overflow();
-        uint16_t address = (uint16_t)compared_entries[case_index] * 4u +
+        uint32_t address = (uint32_t)compared_entries[case_index] * 4u +
                            compared_bytes[case_index];
         nes.ppu.oam[address] = 0u;
         uint64_t comparison_dot = (uint64_t)(84u + 2u * case_index);
