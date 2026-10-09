@@ -1,59 +1,72 @@
 ---
 phase: 03-a-real-game-in-retroarch
-reviewed: 2026-10-09T14:06:03Z
+reviewed: 2026-10-09T19:43:58Z
 depth: standard
-files_reviewed: 11
+files_reviewed: 34
 files_reviewed_list:
-  - README.md
+  - .github/workflows/ci.yml
+  - .github/workflows/nightly.yml
   - include/nesturbator.h
+  - libretro/libretro.c
+  - runner/main.c
+  - runner/movie.c
+  - runner/movie.h
+  - src/bus.c
+  - src/cartridge.c
+  - src/cpu.c
+  - src/frame.c
   - src/instance.c
   - src/internal.h
+  - src/palette_ntsc.c
   - src/ppu.c
+  - tests/accuracy/test_scoreboard.c
+  - tests/cmake/fuzz_registration.cmake
+  - tests/cmake/prepare_scoreboard_baseline.cmake
   - tests/cmake/vector_api_policy.cmake
+  - tests/cmake/verify_scoreboard_regression.cmake
+  - tests/cmake/write_hashes.cmake
   - tests/core/test_api.c
+  - tests/core/test_cartridge.c
+  - tests/core/test_controller.c
+  - tests/core/test_palette.c
+  - tests/fuzz/rom_loader.c
   - tests/libretro/libretro_host.c
+  - tests/ppu/test_registers.c
   - tests/ppu/test_render.c
   - tests/ppu/test_sprites.c
-  - tests/runner/hashes.txt
+  - tests/runner/game_movie.c
+  - tests/runner/movie_fixture.h
+  - tests/runner/test_movie.c
+  - tools/palgen/palgen.c
 findings:
   critical: 0
   warning: 1
-  info: 1
-  total: 2
+  info: 0
+  total: 1
 status: issues_found
 ---
 
 # Phase 03: Code Review Report
 
-**Reviewed:** 2026-10-09T14:06:03Z  
-**Depth:** standard  
-**Files Reviewed:** 11  
+**Reviewed:** 2026-10-09T19:43:58Z
+**Depth:** standard
+**Files Reviewed:** 34
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the 11 paths in the incremental Phase 03-14 scope. The row-zero sprite preparation is consistently wired from pre-render initialization through evaluation, fetch, and caller-buffer output. The public header still contains a contradictory description of frame execution, and `src/ppu.c` repeats two hardware comments.
+Reviewed the Phase 03 task-owned source scope reconstructed from the 03-01 through 03-14 summaries and task commit evidence. Evaluation-scope provenance was degraded (`source=phase-range`, `reason=no-reachable-task-commits`, with 12 unreachable plan commit identifiers); its broad fallback also included later-phase files, so those were excluded from this Phase 03 scope. The PPU sprite overflow path does not reproduce the 2C02's diagonal overflow scan and can return incorrect status for real programs.
 
 ## Warnings
 
-### WR-01: Public API documentation says the CPU does not run during frames
+### WR-01: Sprite overflow scan misses hardware false positives
 
-**Severity:** WARNING  
-**File:** `include/nesturbator.h:214-218`  
-**Issue:** The `nesturbator_create` comment says “The CPU does not yet run during frames,” but the library executes CPU instructions during `nesturbator_run_frame` whenever a cartridge is loaded. This gives API consumers a materially false description of the current core and conflicts with the documented cartridge-loading and frame-running behavior below it.
-**Fix:** Remove the stale sentence and describe the two cases accurately, for example: “With a loaded cartridge, frame calls execute the CPU and connected devices; without a cartridge, each frame is a fixed test pattern and silence.”
-
-## Info
-
-### IN-01: Duplicate PPU hardware comments
-
-**Severity:** INFO  
-**File:** `src/ppu.c:234-237,252-253`  
-**Issue:** The vblank timing comment is repeated verbatim at lines 234-237, and the odd-frame dot-skip comment is repeated at lines 252-253. The duplicates add noise around timing-sensitive code and can drift independently during later edits.
-**Fix:** Keep one copy of each comment immediately before its corresponding condition.
+**File:** `src/ppu.c:75-89`
+**Issue:** After the first eight in-range sprites, the evaluator continues testing only each candidate's Y byte (`eval_latch`). The 2C02's overflow behavior advances through OAM bytes diagonally after the eighth sprite; tile, attribute, and X bytes can be interpreted as Y values and falsely set overflow, while the scan advances differently through remaining OAM. Games that poll `$2002` bit 5 therefore receive incorrect results, even though the ordinary eight-sprite boundary works.
+**Fix:** Model the post-eighth-sprite `n/m` diagonal scan and its byte-level comparison behavior; add cases where a non-Y OAM byte is in range and where the scan skips candidates, asserting `$2002` bit 5.
 
 ---
 
-_Reviewed: 2026-10-09T14:06:03Z_  
-_Reviewer: the agent (gsd-code-reviewer)_  
+_Reviewed: 2026-10-09T19:43:58Z_
+_Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
