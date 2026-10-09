@@ -1,70 +1,43 @@
 ---
 phase: 01-a-test-frame-in-retroarch
-reviewed: 2026-10-09T11:40:58Z
+reviewed: 2026-10-09T12:55:57Z
 depth: standard
-files_reviewed: 31
+files_reviewed: 4
 files_reviewed_list:
-  - .release-please-manifest.json
-  - CHANGELOG.md
-  - CMakeLists.txt
-  - README.md
-  - include/nesturbator.h
-  - libretro/nesturbator_libretro.info
-  - runner/CMakeLists.txt
-  - runner/audio_hash.c
-  - runner/audio_hash.h
-  - runner/main.c
-  - src/apu.c
-  - src/bus.c
-  - src/cartridge.c
-  - src/cpu.c
-  - src/frame.c
-  - src/instance.c
-  - src/internal.h
-  - src/synth.c
+  - .github/workflows/release.yml
   - tests/CMakeLists.txt
-  - tests/accuracy/scoreboard-main.txt
-  - tests/accuracy/scoreboard.txt
-  - tests/cmake/vector_api_policy.cmake
-  - tests/cmake/write_hashes.cmake
-  - tests/core/test_api.c
-  - tests/core/test_apu.c
-  - tests/core/test_synth.c
-  - tests/libretro/libretro_host.c
-  - tests/runner/hashes.txt
-  - tests/runner/test_audio_hash.c
-  - tests/runner/test_spectral.c
-  - version.txt
+  - tests/cmake/release_credentials_policy.cmake
+  - tests/cmake/release_policy.cmake
 findings:
-  critical: 1
-  warning: 0
+  critical: 0
+  warning: 1
   info: 0
   total: 1
 status: issues_found
-scope_status: degraded
 ---
 
 # Phase 01: Code Review Report
 
-**Reviewed:** 2026-10-09T11:40:58Z
-**Depth:** standard
-**Files Reviewed:** 31
+**Reviewed:** 2026-10-09T12:55:57Z  
+**Depth:** standard  
+**Files Reviewed:** 4  
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the supplied 31-file scope at standard depth. The evaluation-scope resolver reported degraded coverage because Phase 01 task commits were not reachable, so this review covers the reviewable files changed since the previous Phase 01 review. A blocker exists in cartridge loading: images marked as containing an iNES trainer are accepted, but trainer bytes are skipped instead of initialized into CPU RAM, so affected games boot with incorrect state.
+Reviewed the release workflow and its CMake policy checks. The scope resolver identified the four files listed above with status `degraded (no-reachable-task-commits)`, bounded by the previous review commit `f56b0f7b64da3abcf02b5a7fc092f3216b5d5ede`; that degraded provenance is retained here. One warning: the publish-gate regression check can accept a condition that overrides the required CI success gate.
 
-## Critical Issues
+## Warnings
 
-### CR-01: BLOCKER — Accepted iNES trainers are silently discarded
+### WR-01: Release policy test can accept publish despite failed CI
 
-**File:** `src/cartridge.c:151-170`
-**Issue:** `validate_image` accepts the iNES trainer flag and `offset` skips the 512 trainer bytes before pointing `cart.prg` at PRG ROM. The accepted trainer bytes are then never copied into the CPU-visible `$7000-$71FF` PRG-RAM area. An image relying on its trainer therefore loads successfully but starts with different memory contents than the cartridge specifies. The public header explicitly promises that trainers are accepted (`include/nesturbator.h:227-231`), making this a supported-input correctness failure.
-**Fix:** Either implement the supported mapper-0 PRG-RAM window and copy the trainer bytes into `$7000-$71FF` during load, or reject trainer-flagged images until that memory is implemented. Do not report successful loading while dropping the trainer.
+**Severity:** WARNING  
+**File:** `tests/cmake/release_policy.cmake:47-51`  
+**Issue:** The check only searches for the literal `needs.release-please.outputs.release_created == 'true'` somewhere in the publish job. A condition such as `if: needs.release-please.outputs.release_created == 'true' || always()` still contains that substring, so this test passes even though `always()` makes the job eligible after the required `ci` job fails. The workflow currently has the intended condition, but this checker would not catch that regression.
+**Fix:** Parse the workflow YAML and validate the complete `publish.if` expression and `needs` list, rejecting status-function overrides such as `always()`. At minimum, compare the entire normalized `if` value against the approved expression rather than searching for a substring.
 
 ---
 
-_Reviewed: 2026-10-09T11:40:58Z_
-_Reviewer: the agent (gsd-code-reviewer)_
+_Reviewed: 2026-10-09T12:55:57Z_  
+_Reviewer: the agent (gsd-code-reviewer)_  
 _Depth: standard_
