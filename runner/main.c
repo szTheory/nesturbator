@@ -1,7 +1,7 @@
 /* nesturbator-run: the headless runner.
  *
- *   nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--dump-frame N:FILE]...
- *   nesturbator-run --movie FILE [--rom FILE] [--dump-frame N:FILE]...
+ *   nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame
+ * N:FILE]... nesturbator-run --movie FILE [--rom FILE] [--hash-audio] [--dump-frame N:FILE]...
  *   nesturbator-run --accuracycoin-page N --rom FILE --scoreboard FILE
  *
  * Runs N frames, with optional mapper-0 cartridge content. A movie supplies the
@@ -24,6 +24,8 @@
 #include <string.h>
 
 #include "convert.h"
+#include "audio_hash.h"
+#include "internal.h"
 #include "movie.h"
 #include "nesturbator.h"
 #include "ppm.h"
@@ -38,11 +40,12 @@ static int usage(const char *why)
     fprintf(stderr, "nesturbator-run: %s\n", why);
     fprintf(stderr,
             "usage: nesturbator-run (--frames N | --movie FILE) [--rom FILE] [--hash-frame N]... "
-            "[--dump-frame N:FILE]...\n"
+            "[--hash-audio] [--dump-frame N:FILE]...\n"
             "  --frames N           run N frames (N >= 1)\n"
             "  --movie FILE         replay a validated two-port movie\n"
             "  --rom FILE           load a mapper-0 iNES image\n"
             "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
+            "  --hash-audio         print SHA-256 of canonical transitions and signed PCM\n"
             "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n");
     return 2;
 }
@@ -111,6 +114,14 @@ static void hash_frame(const uint16_t *video, char hex[65])
     nesturbator_run_sha256_hex(digest, hex);
 }
 
+static void print_audio_hash(nesturbator_run_audio_hash *hash)
+{
+    char transitions_hex[65], pcm_hex[65];
+    nesturbator_run_audio_hash_final(hash, transitions_hex, pcm_hex);
+    printf("audio transitions sha256 %s\n", transitions_hex);
+    printf("audio pcm sha256 %s\n", pcm_hex);
+}
+
 /* The runner's options. Each list has room for one entry per argument. */
 typedef struct options {
     uint32_t frames;
@@ -123,6 +134,7 @@ typedef struct options {
     uint32_t *dump_frames;
     const char **dump_paths;
     uint32_t dump_count;
+    int hash_audio;
 } options;
 
 static void free_options(options *o)
@@ -144,11 +156,18 @@ static int parse_options(int argc, char **argv, options *o)
         fprintf(stderr, "nesturbator-run: out of memory\n");
         return 1;
     }
-    /* Every option takes one value, so options sit at odd positions. */
-    for (int i = 1; i < argc; i += 2) {
-        const char *arg = argv[i];
-        const char *value = i + 1 < argc ? argv[i + 1] : NULL;
+    /* Most options take a value; --hash-audio is a standalone switch. */
+    for (int i = 1; i < argc;) {
+        const char *arg = argv[i++];
+        const char *value;
         uint32_t n;
+        if (strcmp(arg, "--hash-audio") == 0) {
+            if (o->hash_audio != 0)
+                return usage("--hash-audio may be specified once");
+            o->hash_audio = 1;
+            continue;
+        }
+        value = i < argc ? argv[i++] : NULL;
         if (strcmp(arg, "--rom") == 0) {
             if (value == NULL || value[0] == '\0')
                 return usage("--rom needs a file path");
@@ -306,7 +325,7 @@ static int accuracy_ram(const nesturbator *inst, uint16_t address, uint8_t *out)
 }
 
 static nesturbator_status accuracy_frame(nesturbator *inst, uint16_t buttons, uint16_t *video,
-                                         int16_t *audio)
+                                         int16_t *audio, nesturbator_run_audio_hash *audio_hash)
 {
     nesturbator_input input;
     nesturbator_frame frame;
@@ -322,7 +341,10 @@ static nesturbator_status accuracy_frame(nesturbator *inst, uint16_t buttons, ui
     frame.video_pitch = WIDTH;
     frame.audio = audio;
     frame.audio_capacity = AUDIO_CAPACITY;
-    return nesturbator_run_frame(inst, &frame);
+    st = nesturbator_run_frame(inst, &frame);
+    if (st == NESTURBATOR_OK && audio_hash != NULL)
+        nesturbator_run_audio_hash_pcm(audio_hash, audio, frame.audio_count);
+    return st;
 }
 
 static int accuracy_compare_scoreboard(const char *path, const accuracy_test *tests,
@@ -373,9 +395,9 @@ static int accuracy_compare_scoreboard(const char *path, const accuracy_test *te
 
 static int accuracy_page_required_apu_test(const char *name)
 {
-    static const char *const required[] = {
-        "Length Counter", "Length Table", "Frame Counter IRQ", "Frame Counter 4-step",
-        "Frame Counter 5-step", "Delta Modulation Channel"};
+    static const char *const required[] = {"Length Counter",       "Length Table",
+                                           "Frame Counter IRQ",    "Frame Counter 4-step",
+                                           "Frame Counter 5-step", "Delta Modulation Channel"};
     for (size_t i = 0u; i < sizeof required / sizeof required[0]; i++)
         if (strcmp(name, required[i]) == 0)
             return 1;
@@ -384,9 +406,9 @@ static int accuracy_page_required_apu_test(const char *name)
 
 static int accuracy_page_has_required_apu_tests(const accuracy_test *tests, size_t count)
 {
-    static const char *const required[] = {
-        "Length Counter", "Length Table", "Frame Counter IRQ", "Frame Counter 4-step",
-        "Frame Counter 5-step", "Delta Modulation Channel"};
+    static const char *const required[] = {"Length Counter",       "Length Table",
+                                           "Frame Counter IRQ",    "Frame Counter 4-step",
+                                           "Frame Counter 5-step", "Delta Modulation Channel"};
     for (size_t want = 0u; want < sizeof required / sizeof required[0]; want++) {
         int found = 0;
         for (size_t i = 0u; i < count; i++)
@@ -397,7 +419,8 @@ static int accuracy_page_has_required_apu_tests(const accuracy_test *tests, size
     return 1;
 }
 
-static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *video, int16_t *audio)
+static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *video, int16_t *audio,
+                            nesturbator_run_audio_hash *audio_hash)
 {
     accuracy_test tests[ACCURACY_MAX_TESTS];
     uint8_t results[ACCURACY_MAX_TESTS];
@@ -422,7 +445,7 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
     }
     /* The menu reports ready at $00EC. Boot and every input pulse are bounded. */
     while (frames < 120u) {
-        nesturbator_status st = accuracy_frame(inst, 0u, video, audio);
+        nesturbator_status st = accuracy_frame(inst, 0u, video, audio, audio_hash);
         frames++;
         if (st != NESTURBATOR_OK || !accuracy_ram(inst, 0x00ecu, &value))
             return 1;
@@ -435,8 +458,9 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
         return 1;
     }
     for (uint32_t p = 1u; p < opt->accuracy_page; p++) {
-        if (accuracy_frame(inst, NESTURBATOR_BUTTON_RIGHT, video, audio) != NESTURBATOR_OK ||
-            accuracy_frame(inst, 0u, video, audio) != NESTURBATOR_OK) {
+        if (accuracy_frame(inst, NESTURBATOR_BUTTON_RIGHT, video, audio, audio_hash) !=
+                NESTURBATOR_OK ||
+            accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK) {
             fprintf(stderr, "nesturbator-run: AccuracyCoin page navigation failed\n");
             return 1;
         }
@@ -444,7 +468,7 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
         /* DrawNewSuiteTable disables NMI while it replaces the page. Give it
            several frame boundaries before sending the next edge-sensitive key. */
         for (uint32_t settle = 0u; settle < 3u; settle++) {
-            if (accuracy_frame(inst, 0u, video, audio) != NESTURBATOR_OK)
+            if (accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK)
                 return 1;
             frames++;
         }
@@ -459,12 +483,12 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
             selected_page, cursor);
         return 1;
     }
-    if (accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio) != NESTURBATOR_OK ||
-        accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio) != NESTURBATOR_OK) {
+    if (accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio, audio_hash) != NESTURBATOR_OK ||
+        accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio, audio_hash) != NESTURBATOR_OK) {
         fprintf(stderr, "nesturbator-run: AccuracyCoin page start press failed\n");
         return 1;
     }
-    if (accuracy_frame(inst, 0u, video, audio) != NESTURBATOR_OK) {
+    if (accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK) {
         fprintf(stderr, "nesturbator-run: AccuracyCoin page start failed\n");
         return 1;
     }
@@ -480,7 +504,7 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
         }
         if (complete)
             break;
-        if (accuracy_frame(inst, 0u, video, audio) != NESTURBATOR_OK)
+        if (accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK)
             return 1;
         frames++;
     }
@@ -514,8 +538,7 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
         uint8_t code = results[i] & 3u;
         const char *status = code == 1u ? "pass" : (results[i] == 0xffu ? "skip" : "fail");
         printf("accuracycoin/%s\t%s\t0x%02x\t-\t-\n", tests[i].name, status, results[i]);
-        int required = opt->accuracy_page != 14u ||
-                       accuracy_page_required_apu_test(tests[i].name);
+        int required = opt->accuracy_page != 14u || accuracy_page_required_apu_test(tests[i].name);
         if (opt->accuracy_page != 14u || required != 0) {
             required_tests[required_count] = tests[i];
             required_results[required_count] = results[i];
@@ -530,8 +553,7 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
     if (!all_passed)
         return 1;
     if (!accuracy_compare_scoreboard(opt->scoreboard_path, required_tests, required_results,
-                                     required_count,
-                                     opt->accuracy_page)) {
+                                     required_count, opt->accuracy_page)) {
         fprintf(stderr,
                 "nesturbator-run: AccuracyCoin page %u RAM results differ from scoreboard\n",
                 opt->accuracy_page);
@@ -550,6 +572,7 @@ int main(int argc, char **argv)
     static uint32_t image[WIDTH * HEIGHT];
     options opt;
     nesturbator_movie movie;
+    nesturbator_run_audio_hash audio_hash;
     int status;
 
     memset(&opt, 0, sizeof opt);
@@ -559,6 +582,7 @@ int main(int argc, char **argv)
         free_options(&opt);
         return status;
     }
+    nesturbator_run_audio_hash_init(&audio_hash);
 
     if (opt.movie_path != NULL) {
         if (!nesturbator_movie_read(opt.movie_path, &movie)) {
@@ -644,8 +668,15 @@ int main(int argc, char **argv)
         nesturbator_get_palette(inst, palette, 512u);
     }
 
+    if (opt.hash_audio != 0)
+        nesturbator__apu_set_transition_sink(inst, nesturbator_run_audio_hash_transition,
+                                             &audio_hash);
+
     if (opt.accuracy_page != 0u) {
-        status = run_accuracycoin(inst, &opt, video, audio);
+        status =
+            run_accuracycoin(inst, &opt, video, audio, opt.hash_audio != 0 ? &audio_hash : NULL);
+        if (status == 0 && opt.hash_audio != 0)
+            print_audio_hash(&audio_hash);
         nesturbator_destroy(inst);
         nesturbator_movie_free(&movie);
         free_options(&opt);
@@ -684,6 +715,8 @@ int main(int argc, char **argv)
             status = 1;
             break;
         }
+        if (opt.hash_audio != 0)
+            nesturbator_run_audio_hash_pcm(&audio_hash, audio, io.audio_count);
         if ((opt.movie_path != NULL || listed(opt.hash_frames, opt.hash_count, f))) {
             char hex[65];
             hash_frame(video, hex);
@@ -701,6 +734,9 @@ int main(int argc, char **argv)
             }
         }
     }
+
+    if (status == 0 && opt.hash_audio != 0)
+        print_audio_hash(&audio_hash);
 
     nesturbator_destroy(inst);
     nesturbator_movie_free(&movie);

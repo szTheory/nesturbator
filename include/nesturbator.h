@@ -180,7 +180,8 @@ typedef struct nesturbator_info {
  * band-limited kernel, followed by the NES 90 Hz and 440 Hz high-pass and
  * 14 kHz low-pass filters (HWC.28-HWC.30). Synthesis and filter history are
  * per-instance and persist across frame calls; the bounded PCM staging ring
- * is drained into the caller's frame buffer. */
+ * is drained into the caller's frame buffer. For fixed content, behavior
+ * revision and input sequence, PCM samples are bit-for-bit deterministic. */
 typedef struct nesturbator_frame {
     uint32_t size;           /* in: sizeof(nesturbator_frame) */
     uint16_t *video;         /* in: at least 240 rows of video_pitch pixels */

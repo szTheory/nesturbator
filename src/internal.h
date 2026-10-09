@@ -100,6 +100,8 @@ struct nesturbator__apu {
     uint32_t sample_count;
 };
 
+typedef void (*nesturbator__transition_sink)(void *context, uint64_t cpu_cycle, int32_t level);
+
 /* Per-instance band-limited synthesis, filters, and caller-frame staging. The
    impulse cursor advances only when the 48 kHz sample clock emits a sample. */
 struct nesturbator__synth {
@@ -167,6 +169,8 @@ struct nesturbator {
     struct nesturbator__bus bus;     /* RAM and the open-bus latch */
     struct nesturbator__apu apu;
     struct nesturbator__synth synth;
+    nesturbator__transition_sink transition_sink;
+    void *transition_sink_context;
     struct nesturbator__ppu ppu;
     struct nesturbator__cartridge cart;
     struct nesturbator__profile profile; /* chip-dependent constants */
@@ -182,6 +186,8 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
 void nesturbator__apu_clock(struct nesturbator *nes);
 void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+void nesturbator__apu_set_transition_sink(struct nesturbator *nes,
+                                          nesturbator__transition_sink sink, void *context);
 uint8_t nesturbator__apu_channel_level(const struct nesturbator *nes, unsigned channel);
 uint8_t nesturbator__apu_status_read(struct nesturbator *nes);
 uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes);

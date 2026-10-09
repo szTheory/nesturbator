@@ -5,17 +5,16 @@
 #include <string.h>
 
 static const uint8_t duty[4] = {0x01u, 0x03u, 0x0fu, 0xfcu};
-static const uint8_t length_table[32] = {
-    10u, 254u, 20u, 2u, 40u, 4u, 80u, 6u, 160u, 8u, 60u, 10u, 14u, 12u, 26u, 14u,
-    12u, 16u, 24u, 18u, 48u, 20u, 96u, 22u, 192u, 24u, 72u, 26u, 16u, 28u, 32u, 30u
-};
-static const uint16_t noise_period[16] = {
-    4u, 8u, 16u, 32u, 64u, 96u, 128u, 160u, 202u, 254u, 380u, 508u, 762u, 1016u, 2034u, 4068u};
-static const uint16_t dmc_period[16] = {
-    428u, 380u, 340u, 320u, 286u, 254u, 226u, 214u, 190u, 160u, 142u, 128u, 106u, 84u, 72u, 54u};
-static const uint8_t triangle_sequence[32] = {
-    15u, 14u, 13u, 12u, 11u, 10u, 9u, 8u, 7u, 6u, 5u, 4u, 3u, 2u, 1u, 0u,
-    0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u, 13u, 14u, 15u};
+static const uint8_t length_table[32] = {10u, 254u, 20u,  2u,  40u, 4u,  80u, 6u,  160u, 8u,  60u,
+                                         10u, 14u,  12u,  26u, 14u, 12u, 16u, 24u, 18u,  48u, 20u,
+                                         96u, 22u,  192u, 24u, 72u, 26u, 16u, 28u, 32u,  30u};
+static const uint16_t noise_period[16] = {4u,   8u,   16u,  32u,  64u,  96u,   128u,  160u,
+                                          202u, 254u, 380u, 508u, 762u, 1016u, 2034u, 4068u};
+static const uint16_t dmc_period[16] = {428u, 380u, 340u, 320u, 286u, 254u, 226u, 214u,
+                                        190u, 160u, 142u, 128u, 106u, 84u,  72u,  54u};
+static const uint8_t triangle_sequence[32] = {15u, 14u, 13u, 12u, 11u, 10u, 9u,  8u,  7u,  6u, 5u,
+                                              4u,  3u,  2u,  1u,  0u,  0u,  1u,  2u,  3u,  4u, 5u,
+                                              6u,  7u,  8u,  9u,  10u, 11u, 12u, 13u, 14u, 15u};
 
 static uint16_t sweep_target(const struct nesturbator__pulse *pulse, unsigned channel)
 {
@@ -31,7 +30,8 @@ static uint8_t pulse_volume(const struct nesturbator__pulse *pulse)
     return (pulse->reg[0] & 0x10u) != 0u ? (uint8_t)(pulse->reg[0] & 0x0fu) : pulse->env_decay;
 }
 
-static uint8_t pulse_output(const struct nesturbator__pulse *pulse, uint8_t enabled, unsigned channel)
+static uint8_t pulse_output(const struct nesturbator__pulse *pulse, uint8_t enabled,
+                            unsigned channel)
 {
     uint16_t target = sweep_target(pulse, channel);
     if ((enabled == 0u) || pulse->length == 0u || pulse->timer < 8u || pulse->timer > 0x7ffu ||
@@ -58,7 +58,8 @@ static uint8_t noise_output(const struct nesturbator__noise *noise, uint8_t enab
 uint8_t nesturbator__apu_channel_level(const struct nesturbator *nes, unsigned channel)
 {
     if (channel < 2u)
-        return pulse_output(&nes->apu.pulse[channel], (uint8_t)(nes->apu.enabled & (1u << channel)), channel);
+        return pulse_output(&nes->apu.pulse[channel], (uint8_t)(nes->apu.enabled & (1u << channel)),
+                            channel);
     if (channel == 2u)
         return triangle_output(&nes->apu.triangle, (uint8_t)(nes->apu.enabled & 4u));
     if (channel == 3u)
@@ -72,8 +73,8 @@ uint8_t nesturbator__apu_channel_level(const struct nesturbator *nes, unsigned c
    contract in HWC.11 without runtime floating point. */
 uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes)
 {
-    uint32_t p = (uint32_t)nesturbator__apu_channel_level(nes, 0u) +
-                 nesturbator__apu_channel_level(nes, 1u);
+    uint32_t p =
+        (uint32_t)nesturbator__apu_channel_level(nes, 0u) + nesturbator__apu_channel_level(nes, 1u);
     uint32_t t = nesturbator__apu_channel_level(nes, 2u);
     uint32_t n = nesturbator__apu_channel_level(nes, 3u);
     uint32_t d = nesturbator__apu_channel_level(nes, 4u);
@@ -81,10 +82,30 @@ uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes)
     return output > 32767u ? 32767u : (uint16_t)output;
 }
 
+/* Keep the observer ahead of synthesis so it sees every level transition at
+   the shared CPU-cycle cursor, including multiple events with the same cycle. */
+static void update_mixed_level(struct nesturbator *nes)
+{
+    int32_t level = (int32_t)nesturbator__apu_mixed_level(nes);
+    if (level == nes->synth.mixed_level)
+        return;
+    if (nes->transition_sink != NULL)
+        nes->transition_sink(nes->transition_sink_context, nes->ticks / 24u, level);
+    nesturbator__synth_transition(nes, level);
+}
+
+void nesturbator__apu_set_transition_sink(struct nesturbator *nes,
+                                          nesturbator__transition_sink sink, void *context)
+{
+    if (nes == NULL)
+        return;
+    nes->transition_sink = sink;
+    nes->transition_sink_context = context;
+}
+
 static void update_irq_line(struct nesturbator *nes)
 {
-    nes->cpu.irq_line = (uint8_t)((nes->apu.frame_irq != 0u &&
-                                   nes->apu.frame_irq_inhibit == 0u) ||
+    nes->cpu.irq_line = (uint8_t)((nes->apu.frame_irq != 0u && nes->apu.frame_irq_inhibit == 0u) ||
                                   nes->apu.dmc.irq != 0u);
 }
 
@@ -96,8 +117,8 @@ static void frame_quarter_clock(struct nesturbator__apu *apu)
         struct nesturbator__pulse *pulse = &apu->pulse[i];
         envelope_clock(pulse->reg[0], &pulse->env_divider, &pulse->env_decay, &pulse->env_start);
     }
-    envelope_clock(apu->noise.reg[0], &apu->noise.env_divider,
-                   &apu->noise.env_decay, &apu->noise.env_start);
+    envelope_clock(apu->noise.reg[0], &apu->noise.env_divider, &apu->noise.env_decay,
+                   &apu->noise.env_start);
     if (apu->triangle.linear_reload_flag != 0u)
         apu->triangle.linear = apu->triangle.linear_reload;
     else if (apu->triangle.linear != 0u)
@@ -157,14 +178,14 @@ void nesturbator__apu_begin_frame(struct nesturbator *nes, int16_t *samples, uin
     nes->apu.sample_limit = count;
     nes->apu.sample_count = 0u;
     nes->apu.sample_phase = nes->audio_rem;
-    nesturbator__synth_transition(nes, (int32_t)nesturbator__apu_mixed_level(nes));
+    update_mixed_level(nes);
 }
 
 void nesturbator__apu_end_frame(struct nesturbator *nes)
 {
     if (nes->apu.sample_output != NULL && nes->apu.sample_count != 0u) {
-        uint32_t drained = nesturbator__synth_drain(
-            nes, nes->apu.sample_output, nes->apu.sample_count);
+        uint32_t drained =
+            nesturbator__synth_drain(nes, nes->apu.sample_output, nes->apu.sample_count);
         if (drained < nes->apu.sample_count) {
             memset(nes->apu.sample_output + drained, 0,
                    (size_t)(nes->apu.sample_count - drained) * sizeof nes->apu.sample_output[0]);
@@ -306,7 +327,7 @@ void nesturbator__apu_clock(struct nesturbator *nes)
             nes->apu.frame_cycle = 0u;
     }
     update_irq_line(nes);
-    nesturbator__synth_transition(nes, (int32_t)nesturbator__apu_mixed_level(nes));
+    update_mixed_level(nes);
     nes->apu.sample_phase += 24u * NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD;
     if (nes->apu.sample_phase >= NESTURBATOR_AUDIO_TICKS_PER_PERIOD) {
         nes->apu.sample_phase -= NESTURBATOR_AUDIO_TICKS_PER_PERIOD;
@@ -319,13 +340,13 @@ void nesturbator__apu_clock(struct nesturbator *nes)
 
 uint8_t nesturbator__apu_status_read(struct nesturbator *nes)
 {
-    uint8_t status = (uint8_t)((nes->apu.pulse[0].length != 0u ? 1u : 0u) |
-                               (nes->apu.pulse[1].length != 0u ? 2u : 0u) |
-                               (nes->apu.triangle.length != 0u ? 4u : 0u) |
-                               (nes->apu.noise.length != 0u ? 8u : 0u) |
-                               (nes->apu.dmc.remaining != 0u ? 0x10u : 0u) |
-                               (nes->apu.frame_irq != 0u ? 0x40u : 0u) |
-                               (nes->apu.dmc.irq != 0u ? 0x80u : 0u));
+    uint8_t status =
+        (uint8_t)((nes->apu.pulse[0].length != 0u ? 1u : 0u) |
+                  (nes->apu.pulse[1].length != 0u ? 2u : 0u) |
+                  (nes->apu.triangle.length != 0u ? 4u : 0u) |
+                  (nes->apu.noise.length != 0u ? 8u : 0u) |
+                  (nes->apu.dmc.remaining != 0u ? 0x10u : 0u) |
+                  (nes->apu.frame_irq != 0u ? 0x40u : 0u) | (nes->apu.dmc.irq != 0u ? 0x80u : 0u));
     nes->apu.frame_irq_clear_pending = 1u;
     update_irq_line(nes);
     return status;
@@ -341,8 +362,7 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
         /* The bus has clocked the write cycle before register decode. GET
            writes take four subsequent cycles and PUT writes take three;
            AccuracyCoin page 14 exercises both edges. */
-        nes->apu.frame_reset_delay =
-            (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 4u : 3u);
+        nes->apu.frame_reset_delay = (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 4u : 3u);
         update_irq_line(nes);
         return;
     }
@@ -365,8 +385,7 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
             nes->apu.dmc.remaining = 0u;
             nes->apu.dmc.enable_delay = 0u;
             nes->apu.dmc.dma_load_waiting = 0u;
-        }
-        else if (nes->apu.dmc.remaining == 0u) {
+        } else if (nes->apu.dmc.remaining == 0u) {
             nes->apu.dmc.address = (uint16_t)(0xc000u | ((uint32_t)nes->apu.dmc.reg[2] << 6));
             nes->apu.dmc.remaining = (uint16_t)(((uint32_t)nes->apu.dmc.reg[3] << 4) | 1u);
             /* Restarting the memory reader does not discard a byte already
@@ -377,12 +396,10 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
                 nes->apu.dmc.dma_pending = 1u;
                 nes->apu.dmc.dma_halt_phase = 1u; /* load DMA halts on GET */
                 nes->apu.dmc.dma_load_waiting = 0u;
-            } else if (nes->apu.dmc.buffer_empty == 0u &&
-                       nes->apu.dmc.dma_pending == 0u) {
+            } else if (nes->apu.dmc.buffer_empty == 0u && nes->apu.dmc.dma_pending == 0u) {
                 nes->apu.dmc.dma_load_waiting = 1u;
             }
-            nes->apu.dmc.enable_delay =
-                (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 4u : 3u);
+            nes->apu.dmc.enable_delay = (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 4u : 3u);
         }
         nes->apu.dmc.irq = 0u;
         update_irq_line(nes);
@@ -397,8 +414,8 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
         else if (reg == 2u)
             triangle->timer = (uint16_t)((triangle->timer & 0x0700u) | value);
         else if (reg == 3u) {
-            triangle->timer = (uint16_t)((triangle->timer & 0x00ffu) |
-                                         ((uint32_t)(value & 7u) << 8));
+            triangle->timer =
+                (uint16_t)((triangle->timer & 0x00ffu) | ((uint32_t)(value & 7u) << 8));
             triangle->counter = triangle->timer;
             triangle->phase = 0u;
             triangle->linear = triangle->linear_reload;
@@ -443,8 +460,7 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
     if (reg == 2u) {
         pulse->timer = (uint16_t)((pulse->timer & 0x0700u) | value);
     } else if (reg == 3u) {
-        pulse->timer = (uint16_t)((pulse->timer & 0x00ffu) |
-                                  ((uint32_t)(value & 7u) << 8));
+        pulse->timer = (uint16_t)((pulse->timer & 0x00ffu) | ((uint32_t)(value & 7u) << 8));
         pulse->counter = pulse->timer;
         pulse->phase = 0u;
         pulse->env_start = 1u;
@@ -456,5 +472,5 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
 void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t value)
 {
     apu_write_register(nes, addr, value);
-    nesturbator__synth_transition(nes, (int32_t)nesturbator__apu_mixed_level(nes));
+    update_mixed_level(nes);
 }

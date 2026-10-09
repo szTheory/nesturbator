@@ -37,6 +37,12 @@ nesturbator_runner_test(NAME runner.advance
 
 # No --hash-frame: frames run, nothing is printed.
 nesturbator_runner_test(NAME runner.nohash ARGS --frames 2 EXIT 0)
+nesturbator_runner_test(NAME runner.hash_audio.silent
+  ARGS --frames 1 --hash-audio
+  EXIT 0
+  EXPECT
+    "audio transitions sha256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "audio pcm sha256 bfd6d535131a45e8a31340082147c4928edd44f2e05fe127081a1900b3cc0edc")
 
 # SND-04: a fixed-point FFT checks the five locked APU reference periods.
 add_executable(runner.spectral runner/test_spectral.c)
@@ -261,6 +267,12 @@ target_include_directories(runner.sha256 PRIVATE ${PROJECT_SOURCE_DIR}/runner)
 target_link_libraries(runner.sha256 PRIVATE nesturbator::nesturbator)
 nesturbator_warnings(runner.sha256)
 add_test(NAME runner.sha256 COMMAND runner.sha256)
+
+add_executable(runner.audio_hash runner/test_audio_hash.c
+  ${PROJECT_SOURCE_DIR}/runner/audio_hash.c ${PROJECT_SOURCE_DIR}/runner/sha256.c)
+target_include_directories(runner.audio_hash PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+nesturbator_warnings(runner.audio_hash)
+add_test(NAME runner.audio_hash COMMAND runner.audio_hash)
 
 # GAME-03 / D-06: an empty owned movie is valid and replays zero frames.
 add_executable(runner.movie.test runner/test_movie.c)

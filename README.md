@@ -108,7 +108,11 @@ at Nyquist. Each tone uses the nearest coherent bin to its NTSC timer
 frequency. The largest remaining peak below 16 kHz must be below -80 dB
 relative to the fundamental. These analysis choices are test rules; the
 synthesizer itself uses integer arithmetic and checked-in coefficient tables
-only.
+only. A private per-instance transition observer runs before synthesis consumes
+each changed mixed level and retains no event log. `nesturbator-run --hash-audio`
+prints separate SHA-256 hashes for 12-byte transition records
+(`uint64` CPU cycle little-endian, then `int32` level little-endian) and signed
+PCM samples (`int16` little-endian). Both encodings are host-endian independent.
 If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
 CPU stays latched until the cartridge is unloaded or reloaded.
 
@@ -560,7 +564,7 @@ geometries, truncation, trailing bytes, and images larger than 64 MiB; the
 runner prints a diagnostic and exits nonzero for rejected content.
 
 ```sh
-nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--dump-frame N:FILE]...
+nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
 ```
 
 - `--frames N` runs N frames (N is 1 or more). It is required; without it
@@ -570,6 +574,10 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--dump-frame N:FILE
   optional trainers are included in the validated file length.
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
+- `--hash-audio` prints one hash for all mixed-level transitions and one for
+  all signed 16-bit PCM samples emitted by the requested run. It also works
+  with `--movie` and AccuracyCoin page mode; a no-cartridge run hashes an empty
+  transition stream and its silent PCM bytes.
 - `--dump-frame N:FILE` writes frame N to FILE as a binary PPM (P6), 256x240,
   in the RGB of the colour table. N follows the `--hash-frame` rules, and the
   option can be repeated. The image is converted by `host/convert.c`, the same
@@ -589,6 +597,14 @@ give the same hash on every platform. For the test card:
 ```
 $ nesturbator-run --frames 1 --hash-frame 1
 frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453
+```
+
+Audio hashes can be checked without an audio device:
+
+```
+$ nesturbator-run --frames 1 --hash-audio
+audio transitions sha256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+audio pcm sha256 bfd6d535131a45e8a31340082147c4928edd44f2e05fe127081a1900b3cc0edc
 ```
 
 The hash is always over the native pixels, never over a dumped image:
