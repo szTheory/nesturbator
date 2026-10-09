@@ -160,6 +160,7 @@ static void test_documented_channel_sequences(void)
     nes->apu.dmc.counter = 0u;
     nes->apu.dmc.bits = 1u;
     nes->apu.dmc.shift = 1u;
+    nes->apu.pulse_clock_phase = 1u;
     nesturbator__apu_clock(nes);
     CHECK_EQ_U64(nesturbator__apu_channel_level(nes, 4u), 66u);
     nesturbator__apu_write(nes, 0x4015u, 0u);
@@ -187,6 +188,8 @@ static void test_dmc_fetch_from_mapper0(void)
     nesturbator__apu_write(nes, 0x4013u, 0u); /* one byte */
     nesturbator__apu_write(nes, 0x4015u, 0x10u);
     nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes);
     (void)nesturbator__bus_read(nes, 0x8000u);
     CHECK_EQ_U64(nes->apu.dmc.sample_buffer, 0x5au);
     CHECK_EQ_U64(nes->apu.dmc.address, 0xc041u);
@@ -205,6 +208,11 @@ static void test_frame_counter_modes_and_irq_sources(void)
     nesturbator__apu_clock(nes);
     CHECK_EQ_U64(nes->apu.frame_irq, 0u);
     nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.frame_irq, 1u);
+    CHECK((nesturbator__apu_status_read(nes) & 0x40u) != 0u);
+    nes->bus.apu_get_put_phase = 1u;
+    nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.frame_cycle, 29829u);
     CHECK_EQ_U64(nes->apu.frame_irq, 1u);
     CHECK_EQ_U64(nes->cpu.irq_line, 1u);
 
@@ -227,11 +235,107 @@ static void test_frame_counter_modes_and_irq_sources(void)
     nesturbator_destroy(inst);
 }
 
+static void test_get_put_delays(void)
+{
+    nesturbator *inst = make();
+    struct nesturbator *nes = (struct nesturbator *)inst;
+
+    /* The observed ROM trace labels phase 1 GET and phase 0 PUT. Both
+       documented post-write delay lengths remain explicit at decode. */
+    nes->bus.apu_get_put_phase = 1u;
+    nesturbator__apu_write(nes, 0x4017u, 0x80u);
+    CHECK_EQ_U64(nes->apu.frame_reset_delay, 4u);
+    nes->apu.frame_reset_delay = 0u;
+    nes->bus.apu_get_put_phase = 0u;
+    nesturbator__apu_write(nes, 0x4017u, 0x80u);
+    CHECK_EQ_U64(nes->apu.frame_reset_delay, 3u);
+
+    nesturbator__apu_write(nes, 0x4010u, 0u);
+    nesturbator__apu_write(nes, 0x4012u, 1u);
+    nesturbator__apu_write(nes, 0x4013u, 0u);
+    nes->bus.apu_get_put_phase = 1u;
+    nesturbator__apu_write(nes, 0x4015u, 0x10u);
+    CHECK_EQ_U64(nes->apu.dmc.enable_delay, 4u);
+    nes->apu.dmc.remaining = 0u;
+    nes->apu.dmc.dma_pending = 0u;
+    nes->bus.apu_get_put_phase = 0u;
+    nesturbator__apu_write(nes, 0x4015u, 0x10u);
+    CHECK_EQ_U64(nes->apu.dmc.enable_delay, 3u);
+    nesturbator_destroy(inst);
+}
+
+static void test_dmc_timer_uses_half_rate_phase(void)
+{
+    nesturbator *inst = make();
+    struct nesturbator *nes = (struct nesturbator *)inst;
+    nes->apu.dmc.reg[0] = 0x0fu;
+    nes->apu.dmc.timer = 27u; /* 54 CPU cycles at the fastest NTSC rate. */
+    nes->apu.dmc.counter = 1u;
+    nes->apu.dmc.bits = 1u;
+    nes->apu.dmc.shift = 1u;
+    nes->apu.dmc.output = 64u;
+    nes->apu.pulse_clock_phase = 0u;
+
+    nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.dmc.counter, 1u);
+    CHECK_EQ_U64(nes->apu.dmc.output, 64u);
+    nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.dmc.counter, 0u);
+    CHECK_EQ_U64(nes->apu.dmc.output, 64u);
+    nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.dmc.counter, 0u);
+    CHECK_EQ_U64(nes->apu.dmc.output, 64u);
+    nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.dmc.counter, 26u);
+    CHECK_EQ_U64(nes->apu.dmc.output, 66u);
+
+    /* After 27 more APU edges (54 CPU cycles), the next bit clocks. */
+    for (unsigned i = 0u; i < 53u; i++)
+        nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.dmc.output, 66u);
+    nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.dmc.output, 68u);
+    nesturbator_destroy(inst);
+}
+
+static void test_frame_irq_cpu_entry(void)
+{
+    const size_t image_size = 16u + 16384u + 8192u;
+    uint8_t *image = calloc(1u, image_size);
+    nesturbator *inst = make();
+    CHECK(image != NULL);
+    if (image == NULL || inst == NULL) {
+        free(image);
+        nesturbator_destroy(inst);
+        return;
+    }
+    make_image(image, image_size);
+    image[16u + 0x3ffeu] = 0x00u;
+    image[16u + 0x3fffu] = 0x90u;
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, image_size), NESTURBATOR_OK);
+    struct nesturbator *nes = (struct nesturbator *)inst;
+    nes->cpu.pc = 0x8123u;
+    nes->cpu.s = 0xfdu;
+    nes->cpu.p = 0x20u;
+    nes->cpu.irq_line = 1u;
+    nes->cpu.poll_latch = 1u;
+    nesturbator__cpu_step(nes);
+    CHECK_EQ_U64(nes->cpu.pc, 0x9000u);
+    CHECK_EQ_U64(nes->cpu.s, 0xfau);
+    CHECK((nes->cpu.p & 0x04u) != 0u);
+    CHECK_EQ_U64(nes->cpu.poll_latch, 0u);
+    nesturbator_destroy(inst);
+    free(image);
+}
+
 int main(void)
 {
     test_public_pulse_pcm();
     test_documented_channel_sequences();
     test_dmc_fetch_from_mapper0();
     test_frame_counter_modes_and_irq_sources();
+    test_get_put_delays();
+    test_frame_irq_cpu_entry();
+    test_dmc_timer_uses_half_rate_phase();
     CHECK_DONE();
 }
