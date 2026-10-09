@@ -12,7 +12,10 @@ clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
 includes OAM Y=$FF sprites on visible framebuffer row 0. After eight sprites
 are selected, the 2C02's diagonal OAM scan can set sprite overflow from a
 tile, attribute or X byte; an in-range Y skipped by that scan does not set it.
-Overflow remains in PPU status until pre-render dot 1. This is an initial tracer,
+Overflow remains in PPU status until pre-render dot 1. The first eight
+sprites are copied one byte per odd/even OAM pair, so their final X bytes are
+copied before the ninth Y comparison at dot 130; `$2002` reads before that
+comparison still see overflow clear. This is an initial tracer,
 not full game compatibility. Other cartridge geometries and later sound work
 remain planned. With no cartridge, the fixed test
 card and silence remain available. The plan lives in [`.planning/`](.planning/).

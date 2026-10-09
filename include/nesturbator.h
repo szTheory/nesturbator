@@ -167,6 +167,9 @@ typedef struct nesturbator_info {
  * tracked in PPU status at their scanline/pixel timing. After eight selected
  * sprites, the 2C02 diagonal OAM scan can set overflow from a non-Y byte,
  * while a skipped in-range Y does not; the flag clears at pre-render dot 1.
+ * The first eight selected sprites each take eight dots to copy, so the ninth
+ * Y is compared at dot 130 after its dot-129 read; `$2002` reports overflow
+ * only after that comparison.
  * Native pixels are the
  * canonical frame-hash input; display conversion is separate. A CPU write to
  * `$4014` queues an OAM DMA. The next CPU read is

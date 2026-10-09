@@ -103,8 +103,8 @@ static void setup_diagonal_overflow(void)
 
 static void test_diagonal_overflow_compares_non_y_bytes(void)
 {
-    /* The ninth Y is read at dots 81/82. Each miss advances both the
-       primary-OAM entry and byte index; byte index 3 wraps to 0. */
+    /* Eight selected sprites take eight dots each. The ninth Y is read at
+       dots 129/130; after its miss, the diagonal walk advances both n and m. */
     const uint8_t compared_entries[] = {9u, 10u, 11u, 12u};
     const uint8_t compared_bytes[] = {1u, 2u, 3u, 0u};
     for (uint8_t case_index = 0u; case_index < 4u; case_index++) {
@@ -112,9 +112,9 @@ static void test_diagonal_overflow_compares_non_y_bytes(void)
         uint32_t address = (uint32_t)compared_entries[case_index] * 4u;
         address += compared_bytes[case_index];
         nes.ppu.oam[address] = 0u;
-        uint64_t comparison_dot = (uint64_t)(84u + 2u * case_index);
+        uint64_t comparison_dot = (uint64_t)(132u + 2u * case_index);
         for (uint8_t step = 0u; step <= case_index + 1u; step++) {
-            uint64_t read_dot = 81u + 2u * step;
+            uint64_t read_dot = 129u + 2u * step;
             nesturbator__ppu_run_until(&nes, read_dot * 8u);
             CHECK_EQ_U64(nes.ppu.eval_n, 8u + step);
             CHECK_EQ_U64(nes.ppu.eval_m, step & 3u);
@@ -145,10 +145,10 @@ static void test_diagonal_overflow_skips_in_range_y(void)
 
     setup_diagonal_overflow();
     nes.ppu.oam[8u * 4u] = 0u;
-    nesturbator__ppu_run_until(&nes, 81u * 8u);
-    CHECK_EQ_U64(nes.ppu.status & 0x20u, 0u);
-    nesturbator__ppu_run_until(&nes, 82u * 8u);
-    CHECK_EQ_U64(nes.ppu.status & 0x20u, 0x20u);
+    nesturbator__ppu_run_until(&nes, 129u * 8u);
+    CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2002u) & 0x20u, 0u);
+    nesturbator__ppu_run_until(&nes, 130u * 8u);
+    CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2002u) & 0x20u, 0x20u);
 }
 
 static void test_diagonal_overflow_clears_on_prerender(void)
@@ -163,7 +163,7 @@ static void test_diagonal_overflow_clears_on_prerender(void)
     nesturbator__ppu_run_until(&nes, (341u * 262u) * 8u);
     CHECK_EQ_U64(nes.ppu.status & 0x20u, 0u);
     CHECK_EQ_U64(nes.ppu.eval_count, 8u);
-    nesturbator__ppu_run_until(&nes, (341u * 262u + 84u) * 8u);
+    nesturbator__ppu_run_until(&nes, (341u * 262u + 132u) * 8u);
     CHECK_EQ_U64(nes.ppu.status & 0x20u, 0x20u);
 }
 
