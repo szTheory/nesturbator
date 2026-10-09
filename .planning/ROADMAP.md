@@ -202,6 +202,21 @@ Plans:
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`
 
+### Phase 04.2: Close gap: SND-01 — deliver single-sample libretro audio (INSERTED)
+
+**Goal:** A libretro frontend that provides only the single-sample audio callback receives the core's stereo PCM, with deterministic host coverage in CI.
+**Requirements**: SND-01
+**Depends on:** Phase 4
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run $gsd-plan-phase 04.2 to break down)
+
+**Success Criteria:**
+- When `audio_batch_cb` is absent and `audio_cb` is registered, `retro_run` delivers each stereo PCM pair through `audio_cb` in frame order.
+- When both callbacks are registered, the adapter uses the batch callback and does not also invoke the single-sample callback.
+- A deterministic libretro host test registers only `audio_cb` and compares its samples with the direct core PCM; the existing CI workflow runs the regression without audio hardware or owner UAT.
+
 ### Phase 4.1: Close gap: GAME-01 — initialize accepted iNES trainers (INSERTED)
 
 **Goal:** Accepted trainer-bearing iNES and NES 2.0 mapper-0 images initialize writable CPU-visible PRG RAM with the 512 trainer bytes at $7000-$71FF before execution, with the behavior covered by deterministic CI tests.

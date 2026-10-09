@@ -1,16 +1,16 @@
 ---
 gsd_state_version: "1.0"
-current_phase: "4.1"
-current_phase_name: "Close gap: GAME-01 — initialize accepted iNES trainers"
-current_plan: Complete
-status: completed
-stopped_at: Phase 4.1 complete — all phases complete
-last_updated: "2026-10-09T18:00:44Z"
+current_phase: "04.2 — Close gap: SND-01 — deliver single-sample libretro audio"
+current_phase_name: "Close gap: SND-01 — deliver single-sample libretro audio"
+current_plan: Not started
+status: planning
+stopped_at: Phase 01 verification refreshed; refresh Phase 02 next
+last_updated: "2026-10-09T19:23:37.308Z"
 last_activity: 2026-10-09
-last_activity_desc: Phase 4.1 complete
-state_head: 8e8c58036b9d06db94bf615e118e24d8d74e2fd0
+last_activity_desc: Phase 01 verification passed; Phase 02 verification is next
+state_head: 2134ab3720b4d2e4a03fb0b08564b6fe5ff1a65b
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 5
   total_plans: 42
   completed_plans: 42
@@ -28,14 +28,14 @@ See: .planning/PROJECT.md (updated 2026-10-09)
 
 ## Current Position
 
-Current Phase: 4.1
-Current Phase Name: Close gap: GAME-01 — initialize accepted iNES trainers
-Current Plan: Complete (04.1-01)
-Total Plans in Phase: 1
-Plans complete: 1 of 1.
-Status: All phases complete
-Last activity: 2026-10-09 — Phase 4.1 complete
-Last Activity Description: Phase 4.1 complete
+Current Phase: 04.2 — Close gap: SND-01 — deliver single-sample libretro audio
+Current Phase Name: Close gap: SND-01 — deliver single-sample libretro audio
+Current Plan: Not started
+Total Plans in Phase: 0
+Plans complete: 0 of 0.
+Status: Ready to plan
+Last activity: 2026-10-09 — Phase 01 complete, transitioned to Phase 04.2
+Last Activity Description: Phase 01 complete, transitioned to Phase 04.2
 
 Progress: [██████████] 100%
 
@@ -128,7 +128,7 @@ None.
 
 ### Blockers/Concerns
 
-The milestone audit in `.planning/v1-MILESTONE-AUDIT.md` found two integration gaps. Phase 04.1 closed the GAME-01 trainer gap with synthetic core-bus tests and the CI workflow. SND-01 single-sample libretro audio remains the one known integration gap for the milestone audit to recheck. Phase 04 shipped in merged PR #20; its green hosted checks are recorded in the audit. No owner UAT is needed for the deterministic trainer behavior.
+The milestone audit in `.planning/v1-MILESTONE-AUDIT.md` found the SND-01 single-sample libretro audio integration gap; Phase 04.1 closed the GAME-01 trainer gap with synthetic core-bus tests and the CI workflow. The progress audit now reports Phases 01–04 verification digests as stale after covered files changed. The next command refreshes Phase 01 verification, and execute-phase resumes at verification gates rather than re-running summarized plans. Phase 04.2 then resumes planning directly from the milestone audit with research skipped. No owner UAT is needed for these deterministic callback and trainer behaviors.
 
 ### Quick Tasks Completed
 
@@ -140,6 +140,7 @@ The milestone audit in `.planning/v1-MILESTONE-AUDIT.md` found two integration g
 ### Roadmap Evolution
 
 - Phase 04.1 inserted after Phase 4: Close gap: GAME-01 — initialize accepted iNES trainers (URGENT)
+- Phase 04.2 inserted after Phase 4: Close gap: SND-01 — deliver single-sample libretro audio (URGENT)
 
 ## Deferred Items
 
@@ -151,6 +152,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T18:00:44Z
-Stopped at: Phase 4.1 complete; refresh the milestone audit before archive
-Resume file: None
+Last session: 2026-10-09T19:17:53Z
+Stopped at: Phase 01 verification freshness restored; Phase 02 verification is next
+Resume file: $gsd-execute-phase 02
+
+Next GSD sequence: refresh stale verification in roadmap order (02, then 03, 04); resume Phase 04.2 planning with `$gsd-plan-phase 04.2 --skip-research`.
