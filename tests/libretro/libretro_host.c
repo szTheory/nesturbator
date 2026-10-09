@@ -29,6 +29,7 @@
 
 #define W 256u
 #define H 240u
+#define AUDIO_CAPTURE_CAPACITY 1024u
 
 /* ---- module loading ---- */
 
@@ -157,6 +158,7 @@ static int sample_calls;
 static int batch_calls;
 static size_t batch_frames;
 static int batch_nonzero;
+static int16_t batch_samples[AUDIO_CAPTURE_CAPACITY * 2u];
 
 static bool RETRO_CALLCONV env(unsigned cmd, void *data)
 {
@@ -200,6 +202,9 @@ static size_t RETRO_CALLCONV batch(const int16_t *data, size_t frames)
     size_t i;
     batch_calls++;
     batch_frames = frames;
+    CHECK(frames <= AUDIO_CAPTURE_CAPACITY);
+    if (frames <= AUDIO_CAPTURE_CAPACITY)
+        memcpy(batch_samples, data, frames * 2u * sizeof batch_samples[0]);
     for (i = 0; i < frames * 2u; i++) {
         if (data[i] != 0) {
             batch_nonzero++;
@@ -351,6 +356,82 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size, co
     }
     p_unload_game();
     memset(host_buttons, 0, sizeof host_buttons);
+}
+
+static void check_sound_frame_parity(unsigned char *image, size_t image_size)
+{
+    static const uint8_t program[] = {0xa9u, 0x01u, 0x8du, 0x15u, 0x40u, 0xa9u, 0x1fu, 0x8du,
+                                      0x00u, 0x40u, 0xa9u, 0x64u, 0x8du, 0x02u, 0x40u, 0xa9u,
+                                      0x00u, 0x8du, 0x03u, 0x40u, 0x4cu, 0x14u, 0x80u};
+    static uint16_t native[W * H];
+    int16_t mono[AUDIO_CAPTURE_CAPACITY];
+    nesturbator_config cfg;
+    nesturbator_frame io;
+    nesturbator *nes = NULL;
+    struct retro_game_info game;
+    int audible = 0;
+    bool loaded;
+
+    p_unload_game();
+    memset(image, 0, image_size);
+    image[0] = 'N';
+    image[1] = 'E';
+    image[2] = 'S';
+    image[3] = 0x1a;
+    image[4] = 1u;
+    image[5] = 1u;
+    memcpy(image + 16u, program, sizeof program);
+    image[16u + 0x3ffau] = 0x00u;
+    image[16u + 0x3ffbu] = 0x80u;
+    image[16u + 0x3ffcu] = 0x00u;
+    image[16u + 0x3ffdu] = 0x80u;
+    image[16u + 0x3ffeu] = 0x00u;
+    image[16u + 0x3fffu] = 0x80u;
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = image_size;
+    loaded = p_load_game(&game);
+    CHECK(loaded);
+    if (!loaded)
+        return;
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &nes), NESTURBATOR_OK);
+    if (nes == NULL) {
+        p_unload_game();
+        return;
+    }
+    CHECK_EQ_U64(nesturbator_load_cartridge(nes, image, image_size), NESTURBATOR_OK);
+    memset(host_buttons, 0, sizeof host_buttons);
+    for (unsigned frame_index = 0u; frame_index < 2u; frame_index++) {
+        batch_calls = 0;
+        batch_frames = 0u;
+        batch_nonzero = 0;
+        p_run();
+        CHECK_EQ_U64(batch_calls, 1u);
+
+        memset(&io, 0, sizeof io);
+        io.size = (uint32_t)sizeof io;
+        io.video = native;
+        io.video_pitch = W;
+        io.audio = mono;
+        io.audio_capacity = AUDIO_CAPTURE_CAPACITY;
+        CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+        CHECK_EQ_U64(batch_frames, io.audio_count);
+        if (batch_frames <= AUDIO_CAPTURE_CAPACITY) {
+            for (size_t i = 0u; i < io.audio_count; i++) {
+                CHECK_EQ_U64((uint16_t)batch_samples[2u * i], (uint16_t)mono[i]);
+                CHECK_EQ_U64((uint16_t)batch_samples[2u * i + 1u], (uint16_t)mono[i]);
+                audible |= mono[i] != 0;
+            }
+        }
+        CHECK(batch_nonzero > 0);
+    }
+    CHECK(audible != 0);
+    nesturbator_destroy(nes);
+    p_unload_game();
 }
 
 /* ---- the runner's image ---- */
@@ -602,12 +683,17 @@ int main(int argc, char **argv)
     CHECK_EQ_U64(video_calls, 1);
     compare_with_ppm(argv[3]);
     CHECK(frame[0] != frame[W + 8u]);
-    memcpy(first_content_frame, frame, sizeof frame);
+    /* The generated cartridge writes its nametable during the first frame;
+       compare steady-state frames after that startup write has completed. */
     p_run();
     CHECK_EQ_U64(video_calls, 2);
+    memcpy(first_content_frame, frame, sizeof frame);
+    p_run();
+    CHECK_EQ_U64(video_calls, 3);
     CHECK(memcmp(frame, first_content_frame, sizeof frame) == 0);
     p_unload_game();
     check_input_frame_parity(dummy_bytes, sizeof dummy_bytes, argv[4], argv[5], argv[3]);
+    check_sound_frame_parity(dummy_bytes, sizeof dummy_bytes);
     video_calls = 0;
     batch_calls = 0;
     batch_frames = 0;

@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: A test frame in RetroArch** - The library, runner and libretro core build, test and release on six platforms and show a built-in test frame in RetroArch (completed 2026-10-03)
 - [x] **Phase 2: The CPU matches the public vectors** - Every opcode matches the public 65x02 vectors on final state and on every bus cycle (completed 2026-10-06)
 - [x] **Phase 3: A real game in RetroArch** - NROM games render and take controller input, with frame hashes equal on every platform (completed 2026-10-08)
-- [ ] **Phase 4: Sound** - NROM games play with sound, with audio hashes equal on every platform
+- [x] **Phase 4: Sound** - NROM games play with sound, with audio hashes equal on every platform (completed 2026-10-09)
 
 ## Phase Details
 
@@ -133,8 +133,9 @@ Plans:
   3. `nesturbator-run --movie FILE` replays recorded controller input and prints the same frame hashes on every run, and the libretro test program, fed the same input, receives equal frames.
   4. The runner runs AccuracyCoin and reads each result from RAM; the results equal the committed scoreboard file, a test fails if that file loses a pass that `main` has, and every test on pages 2 and 17 passes.
 
-**Plans**: 13/13 plans complete
+**Plans**: 14/14 plans complete
 Plans:
+
 **Wave 1**
 - [x] 03-01-PLAN.md — Generated mapper-0 tracer through runner/libretro and conserved frame clock
 
@@ -174,6 +175,9 @@ Plans:
 **Wave 13** *(blocked on Wave 12 completion)*
 - [x] 03-08-PLAN.md — Six-platform hashes and required RetroArch hosted gate
 
+**Wave 14** *(blocked on Wave 13 completion)*
+- [x] 03-14-PLAN.md — Render Y=$FF sprites on the first visible scanline
+
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md`, `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`, `.planning/preparation/LIBRETRO-AND-RUNNER.md`
 
@@ -188,7 +192,12 @@ Plans:
   3. The committed scoreboard shows AccuracyCoin's Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter 5-step and Delta Modulation Channel tests passing.
   4. A test in the `ci` preset renders five reference tones and shows the synthesiser's largest non-harmonic peak below 16 kHz is under -80 dB.
 
-**Plans**: TBD
+**Plans**: 4/4 executed (4 plans written)
+- [x] 04-01-PLAN.md
+- [x] 04-02-PLAN.md
+- [x] 04-03-PLAN.md
+- [x] 04-04-PLAN.md
+
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`
 
@@ -201,5 +210,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
 | 2. The CPU matches the public vectors | 11/11 | Complete    | 2026-10-06 |
-| 3. A real game in RetroArch | 13/13 | Complete | 2026-10-08 |
-| 4. Sound | 0/TBD | Not started | - |
+| 3. A real game in RetroArch | 14/14 | Complete    | 2026-10-09 |
+| 4. Sound | 4/4 | Complete    | 2026-10-09 |

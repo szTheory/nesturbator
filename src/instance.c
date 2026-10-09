@@ -102,6 +102,10 @@ nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator
     }
     memset(inst, 0, sizeof *inst);
     inst->allocator = a;
+    /* Start before visible line zero so the pre-render PPU work can populate
+       its first background and sprite state. [HWP.03][HWP.06] */
+    inst->ppu.scanline = 261u;
+    inst->apu.dmc.buffer_empty = 1u;
     inst->profile.ane_magic = NESTURBATOR_RP2A03G_ANE_MAGIC; /* D-14 */
     inst->profile.lxa_magic = NESTURBATOR_RP2A03G_LXA_MAGIC;
     *out = inst;

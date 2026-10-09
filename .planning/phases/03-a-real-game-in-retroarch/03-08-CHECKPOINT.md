@@ -29,6 +29,6 @@
 
 The D-11 automation-first policy remains in `.planning/PROJECT.md` and Phase 03 context. Do not repeat a manual RetroArch trial or ask for owner gameplay UAT; the required machine evidence is retained in CI.
 
-After PR #18 is squash-merged, the next GSD command is `$gsd-discuss-phase 04`.
+PR #18 was squash-merged as `5919ac14`, and the release automation advanced `main` to `93942b7a` (v0.1.4). Phase 04 discussion and planning are complete; the next GSD command is `$gsd-execute-phase 04`.
 
 The pre-existing local `.planning/config.json` edit and `.planning/HANDOFF.json` deletion were preserved and excluded from the PR.

@@ -3,14 +3,15 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: Phase 3, first cartridge path.** The 6502 core matches the public
+**Status: Phase 4, NTSC sound timing.** The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded mapper-0 iNES 1.0 and NES 2.0 images with 16 or
 32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
-clipping, sprite-zero hit and the eight-sprite limit. This is an initial tracer,
-not full game compatibility. Other cartridge geometries and audio are still in
-later work. With no cartridge, the fixed test
+clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
+includes OAM Y=$FF sprites on visible framebuffer row 0. This is an initial tracer,
+not full game compatibility. Other cartridge geometries and later sound work
+remain planned. With no cartridge, the fixed test
 card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
 The runner accepts content with `--rom FILE`, for example:
@@ -46,7 +47,9 @@ merge. The scoreboard test requires that CI-provided path and never falls back
 to the candidate snapshot. Detached local runs use the committed
 `tests/accuracy/scoreboard-main.txt` snapshot. In both cases a prior `pass` row
 must remain present and passing; AccuracyCoin results continue to be checked
-against live emulated RAM.
+against live emulated RAM. Page 14 adds the six required APU results: Length
+Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter
+5-step, and Delta Modulation Channel.
 
 The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
 mirrors, and rejects other bus addresses without side effects. It is intended
@@ -70,7 +73,47 @@ nonzero.
 
 Frame time advances in 24-tick CPU cycles. A frame request runs complete
 instructions through the requested boundary and reports the actual tick count,
-retaining any overshoot for the next request. Audio output is currently silent.
+retaining any overshoot for the next request. Audio is mono signed 16-bit PCM at
+48 kHz; each frame returns 798 or 799 samples with the fraction carried
+forward. With no cartridge loaded, samples are zero. Mapper-0 pulse register
+writes and the `$4015` enable gate share the CPU bus timeline; pulse timer,
+duty, length and DAC gating follow NTSC RP2A03 documentation in
+`.planning/preparation/NES-HARDWARE-CPU-APU.md` section 4 (HWC.08). Both pulse
+units use independent duty phases, timers and length gates; triangle follows
+its 32-step DAC sequence and linear/length gates; noise uses the 15-bit LFSR,
+period table and mode tap; and DMC uses its timer, sample fetch, shift register
+and 7-bit DAC. RP2A03G noise starts at measured LFSR state `$0000`, with its
+first clock shifting in 1 (HWC.05); the APU_Noise overview's “loads 1” wording
+describes the operational initialization model (HWC.08). These channel
+sequences use integer state and bus-cycle ordering. The 4-step and 5-step frame
+sequencers clock envelopes, linear and length counters, and maintain a frame
+IRQ independent from the DMC IRQ; `$4015` reports and clears the frame source.
+The CPU accepts an enabled IRQ from its instruction-end polling sample and
+enters the IRQ vector with the normal seven-cycle stack sequence (HWC.02).
+Writes to `$4017` take effect after the parity-dependent three or four CPU
+cycles. DMC sample fetches halt CPU reads at the bus seam, repeat the parked
+read, and preserve the independent IRQ source. These timing rules follow
+NES-HARDWARE-CPU-APU sections 2 and 4 (HWC.01, HWC.23) and are exercised by
+`core.apu` and the six AccuracyCoin page-14 results. The nonlinear pulse and TND
+mixer uses checked-in integer pulse and 16×16×128 TND tables from HWC.11.
+Mixed-level changes feed a per-instance, fixed-point band-limited synthesizer.
+Its 16-tap, 32-phase Q15 kernel preserves each level transition exactly, then
+applies the NES 90 Hz and 440 Hz high-pass filters and 14 kHz low-pass filter
+before returning signed 16-bit mono PCM. The bounded staging ring carries
+kernel and filter history across caller frame boundaries. `runner.spectral`
+checks pulse periods 100, 40, 12 and 8, and triangle period 1 using a 4096
+sample filter warm-up and a 32768-sample periodic-Hann spectrum. It excludes
+one bin on either side of the first 512 integer harmonic orders after folding
+them into the positive FFT spectrum; the triangle's fundamental bin is folded
+at Nyquist. Each tone uses the nearest coherent bin to its NTSC timer
+frequency. The largest remaining peak below 16 kHz must be below -80 dB
+relative to the fundamental. These analysis choices are test rules; the
+synthesizer itself uses integer arithmetic and checked-in coefficient tables
+only. A private per-instance transition observer runs before synthesis consumes
+each changed mixed level and retains no event log. `nesturbator-run --hash-audio`
+prints separate SHA-256 hashes for 12-byte transition records
+(`uint64` CPU cycle little-endian, then `int32` level little-endian) and signed
+PCM samples (`int16` little-endian). Both encodings are host-endian independent.
 If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
 CPU stays latched until the cartridge is unloaded or reloaded.
 
@@ -187,8 +230,9 @@ every emphasis, an emphasis bit raises no colour channel but its own, and
 brightness never falls down a column.
 `runner.write_hashes` runs each pinned game and the three scripted DABG
 two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
-180. It fails if any requested frame is missing or duplicated;
-`runner.write_hashes.content` requires all 30 sorted keys to equal
+180, plus transition and PCM hashes for each game's boot run. It fails if any
+requested frame or audio hash is missing or duplicated;
+`runner.write_hashes.content` requires all 36 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
@@ -522,7 +566,7 @@ geometries, truncation, trailing bytes, and images larger than 64 MiB; the
 runner prints a diagnostic and exits nonzero for rejected content.
 
 ```sh
-nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--dump-frame N:FILE]...
+nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
 ```
 
 - `--frames N` runs N frames (N is 1 or more). It is required; without it
@@ -532,6 +576,10 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--dump-frame N:FILE
   optional trainers are included in the validated file length.
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
+- `--hash-audio` prints one hash for all mixed-level transitions and one for
+  all signed 16-bit PCM samples emitted by the requested run. It also works
+  with `--movie` and AccuracyCoin page mode; a no-cartridge run hashes an empty
+  transition stream and its silent PCM bytes.
 - `--dump-frame N:FILE` writes frame N to FILE as a binary PPM (P6), 256x240,
   in the RGB of the colour table. N follows the `--hash-frame` rules, and the
   option can be repeated. The image is converted by `host/convert.c`, the same
@@ -551,6 +599,14 @@ give the same hash on every platform. For the test card:
 ```
 $ nesturbator-run --frames 1 --hash-frame 1
 frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453
+```
+
+Audio hashes can be checked without an audio device:
+
+```
+$ nesturbator-run --frames 1 --hash-audio
+audio transitions sha256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+audio pcm sha256 bfd6d535131a45e8a31340082147c4928edd44f2e05fe127081a1900b3cc0edc
 ```
 
 The hash is always over the native pixels, never over a dumped image:
@@ -579,11 +635,11 @@ The file is named `nesturbator_libretro` with no `lib` prefix:
 The `ci` build puts it at `build/ci/libretro/`. It exports only the 25
 `retro_*` functions of `libretro.h`.
 
-In this phase the core starts with no content and shows the test card, with
-silence: in RetroArch, use "Start Core", or launch it with `-L` and no content
-path. Loading a game is not supported until the cartridge phase; the core
-refuses any content. It sends XRGB8888 frames of 256x240 and one batch of
-stereo samples per frame at 48000 Hz.
+With no content, the core shows the test card and sends silence: in RetroArch,
+use "Start Core", or launch it with `-L` and no content path. Mapper-0 games
+send one batch of stereo samples per frame at 48000 Hz, with each channel equal
+to the core's mono sample. `libretro.host` checks this sample-by-sample without
+an audio device.
 
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares

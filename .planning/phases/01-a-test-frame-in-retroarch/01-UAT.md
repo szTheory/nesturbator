@@ -2,8 +2,8 @@
 status: complete
 phase: 01-a-test-frame-in-retroarch
 source: [01-VERIFICATION.md]
-started: 2026-10-03T01:45:00Z
-updated: 2026-10-03T13:20:27Z
+started: 2026-10-09T11:47:58Z
+updated: 2026-10-09T12:53:46.391Z
 ---
 
 ## Current Test
@@ -29,10 +29,52 @@ evidence: |
   Note: PR #3 (fix: bump every version in the README install line) was needed
   before the release so that the line named v0.1.0 everywhere.
 
+### 2. Review clean-room provenance of the palette generator and table
+expected: Confirm tools/palgen/palgen.c and src/palette_ntsc.c use independently structured implementations based on cited hardware facts, without copied or paraphrased restricted decoder or emulator code.
+result: pass
+source: owner
+evidence: |
+  Owner reports no awareness of copied or restricted code, says they did not read
+  the referenced material personally, and passes this judgment. The agent did not
+  open emulator decoder source during this review.
+
+### 3. Review release credential isolation enforcement
+expected: |
+  Pull-request-controlled or manually selected branch code cannot access the
+  release App key or token; release.yml runs only on pushes to main and passes
+  the token only to release-please and auto-merge.
+result: pass
+source: automated
+evidence: |
+  `cmake --workflow --preset ci` passed `release.credentials_policy` and its
+  mutation self-test. The test requires the sole event to be push-to-main, the
+  private-key reference to appear once inside the release job, and exactly two
+  App-token consumers. Its mutation self-test rejects workflow_dispatch and an
+  extra private-key consumer. `actionlint .github/workflows/release.yml` exited
+  0. Removed workflow_dispatch because GitHub allows dispatching against a
+  selected branch or tag.
+
+### 4. Verify docs-only and chore-only merges do not publish a release
+expected: |
+  Non-breaking docs-only and chore-only commits do not create a release; a
+  behavior-changing release publishes 18 archives plus SHA256SUMS with
+  verified attestations.
+result: pass
+source: automated
+evidence: |
+  `cmake --workflow --preset ci` passed `release.nonbehavioral_policy` and its
+  mutation self-test. The check pins release-please-action v5.0.0 (bundled
+  release-please 17.6.0), requires the `simple` strategy with no custom
+  changelog sections, verifies that non-breaking docs/chore types are filtered,
+  and that feature/fix/perf/revert and breaking commits remain releaseable.
+  It also requires the publish job to depend on successful CI and a created
+  release. The current hosted v0.1.4 release run succeeded with 18 archives
+  plus SHA256SUMS (19 assets); the release workflow verifies attestations.
+
 ## Summary
 
-total: 1
-passed: 1
+total: 4
+passed: 4
 issues: 0
 pending: 0
 skipped: 0

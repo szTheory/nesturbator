@@ -5,8 +5,8 @@ titles: json
 findings:
   - id: CR-01
     severity: critical
-    disposition: fixed
-    title: "[BLOCKER] Valid release assets are always reported as mismatched"
+    disposition: open
+    title: "Single-sample libretro audio callback is never called"
   - id: WR-01
     severity: warning
     disposition: fixed
@@ -59,18 +59,18 @@ findings:
     severity: warning
     disposition: fixed
     title: "The cpu.vectors cleanup misses stray writes, so one failing test can corrupt every later test in the run"
-open: 0
+open: 1
 total: 14
-recorded: 2026-10-06T17:28:17.138Z
+recorded: 2026-10-09T13:14:10.919Z
 ---
 
 # Phase 02: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| CR-01 | critical | fixed | 02-REVIEW-FIX.md |
-| WR-01 | warning | fixed | 02-REVIEW-FIX.md |
-| WR-02 | warning | fixed | 02-REVIEW-FIX.md |
+| CR-01 | critical | open | - |
+| WR-01 | warning | fixed | 02-REVIEW-FIX.md (not in the current review) |
+| WR-02 | warning | fixed | 02-REVIEW-FIX.md (not in the current review) |
 | WR-04 | warning | fixed | 02-REVIEW-FIX.md (not in the current review) |
 | IN-01 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |
 | IN-02 | info | fixed | 02-REVIEW-FIX.md (not in the current review) |

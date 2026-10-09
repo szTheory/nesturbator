@@ -50,7 +50,7 @@ extern "C" {
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
    the same inputs. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 1
+#define NESTURBATOR_BEHAVIOUR_REVISION 4
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -155,7 +155,9 @@ typedef struct nesturbator_info {
 
 /* In/out of nesturbator_run_frame. The caller owns both buffers.
  *
- * Video: native pixels, one uint16_t each, row y starting at
+ * Video: native pixels, one uint16_t each, rows 0-239 in physical visible
+ * scanline order, with row 0 rendered after pre-render scanline 261. A sprite
+ * with OAM Y=$FF can wrap into row 0. Row y starts at
  * video[y * video_pitch]. A pixel is a palette entry 0-63 in bits 0-5 and
  * the three PPUMASK emphasis bits in bits 6-8; bits 9-15 are zero. Background
  * pixels reflect mapper-0 nametable mirroring, pattern/attribute data, scroll,
@@ -170,7 +172,18 @@ typedef struct nesturbator_info {
  * by cycle parity while PPU time continues.
  *
  * Audio: mono signed 16-bit samples at the info sample rate. A frame yields
- * 798 or 799 samples; the fraction carries over to the next frame. */
+ * 798 or 799 samples; the fraction carries over to the next frame. Mapper-0
+ * pulse, triangle, noise and DMC state advances on CPU bus cycles and
+ * contributes its DAC level to PCM. With no cartridge loaded, every sample is
+ * zero. Channel timer, sequence, envelope/sweep/linear-counter and gating
+ * behavior follows NES-HARDWARE-CPU-APU.md section 4 (HWC.05, HWC.08,
+ * HWC.10). The pulse and 16 x 16 x 128 TND integer mixer is from section 5
+ * (HWC.11). Mixed-level transitions use the fixed-point 16-tap, 32-phase
+ * band-limited kernel, followed by the NES 90 Hz and 440 Hz high-pass and
+ * 14 kHz low-pass filters (HWC.28-HWC.30). Synthesis and filter history are
+ * per-instance and persist across frame calls; the bounded PCM staging ring
+ * is drained into the caller's frame buffer. For fixed content, behavior
+ * revision and input sequence, PCM samples are bit-for-bit deterministic. */
 typedef struct nesturbator_frame {
     uint32_t size;           /* in: sizeof(nesturbator_frame) */
     uint16_t *video;         /* in: at least 240 rows of video_pitch pixels */
@@ -247,10 +260,14 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * At the start of a successful call, the latest input set through
  * nesturbator_set_input is sampled for that frame. Instructions complete
  * across the requested frame boundary; the next input is sampled only on the
- * next call, so a crossing instruction cannot mix frame masks.
+ * next call, so a crossing instruction cannot mix frame masks. Cartridge
+ * audio clocks the NTSC RP2A03 channels and frame sequencer on CPU cycles;
+ * frame-counter and DMC interrupt status are independent. The CPU samples an
+ * enabled IRQ at instruction boundaries and enters the IRQ vector (HWC.02).
  * No cartridge: test pattern and silence. A JAM opcode stops with
  * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
- * advance on later frame calls. Audio is currently silent. */
+ * advance on later frame calls. Audio is mono signed 16-bit PCM; no-cartridge
+ * audio is zero. */
 nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *io);
 
 /* Copies up to `count` calibrated NTSC-to-sRGB XRGB8888 entries (0x00RRGGBB),

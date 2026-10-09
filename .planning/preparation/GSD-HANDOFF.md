@@ -2,7 +2,7 @@
 title: "GSD hand-off: kickoff, per-phase steps and owner tasks"
 summary: "How to start and run this project with opengsd one step at a time: the kickoff text, the settings and why, the per-phase steps, and the tasks only the owner can do."
 read_when: "Before starting the GSD project, before each phase, and when a GSD step behaves unexpectedly."
-updated: 2026-10-06
+updated: 2026-10-09
 ---
 
 # GSD hand-off
@@ -73,15 +73,22 @@ One session per numbered step, so the model can be changed between steps.
 
 ### Verification before owner UAT
 
-Before conversational UAT, run every command-verifiable criterion locally or
-in CI and record the command, exit status, commit or run URL, and evidence in
-`VERIFICATION.md` or the phase UAT record. Add a missing regression gate when
-a test-tier prohibition has no enforcing check. After an authorized merge,
-collect release and hosted-run outcomes with the phase's read-only evidence
-command; keep not-yet-triggered external events pending. Existing CI failure
-and issue reporting remain the automatic backstop. Prompt the owner only for
-identity-bound consent not already granted or an irreducible subjective
-judgment, and explain why no useful command can answer it. Fix a reproduced
+Before conversational UAT, inspect every pending item and first close it with
+existing command evidence where possible. For repeatable behavior with
+recurring regression value, add a regression check to the existing CTest/CI
+entrypoint when one is missing; do not add a dependency when the existing
+toolchain can express the check. Run the relevant command locally or in CI and
+record its command, exit status, commit or run URL, and evidence in
+`VERIFICATION.md` or the phase UAT record. Mark automated UAT rows with their
+evidence instead of presenting them one at a time to the owner. Add a missing
+regression gate when a test-tier prohibition has no enforcing check. After an
+authorized merge, collect release and hosted-run outcomes with the phase's
+read-only evidence command; keep not-yet-triggered external events pending.
+Existing CI failure and issue reporting remain the automatic backstop. Prompt
+the owner only for identity-bound consent not already granted or an
+irreducible subjective judgment, and explain exactly why no useful command or
+artifact can answer it. If any such item remains, finish all automatable items
+first and hand off only the consolidated irreducible item. Fix a reproduced
 defect with a known fix under the existing authority. Clean-room provenance
 remains a judgment item because repository scans cannot establish which
 sources a person or agent opened. Preserve one GSD step per command and the
@@ -99,6 +106,16 @@ owner when automation can collect them later. Ask the owner only for an
 identity-bound or genuinely subjective judgment that no available test or
 artifact can establish. Do not add recurring checks that have no recurring
 value, and do not re-propose this default as an unresolved decision.
+
+**Verification execution rule, reaffirmed 2026-10-09:** `$gsd-verify-work`
+must audit and resolve every pending UAT row that can be proven by code,
+configuration, a deterministic test, CI, or existing hosted evidence before
+rendering a user checkpoint. Never ask the owner to pass rows already covered
+by those sources. If one owner judgment remains, present only that item with
+the specific limit of automation. Phase 01 applied this rule by moving release
+credential isolation and docs/chore release policy into CTest; palette source
+provenance remains the sole owner judgment because repository evidence cannot
+prove which material an author read or rule out unrecorded paraphrase.
 
 What keeps GSD from running on to the next step [GH.01]:
 - Give GSD commands only a phase number. Its auto flag and its chain flag (two dashes followed by `auto` or `chain`) make one step start the next.

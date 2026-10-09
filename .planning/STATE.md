@@ -1,46 +1,48 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 03
-current_phase_name: A real game in RetroArch
-current_plan: 8
-status: complete
-stopped_at: Phase 03 complete; next run `$gsd-discuss-phase 04`
-last_updated: "2026-10-08T23:50:04.000Z"
-last_activity: 2026-10-08
-last_activity_desc: Phase 03 plan 08 passed exact-head CI, required RetroArch frame equality, six-platform hash equality, and nightly vector/fuzz gates
-state_head: 0ba7b8127f13bd06a6d1d35f7ff3dee6aa7c95d2
+current_phase: 04
+current_phase_name: Sound
+current_plan: Not started
+status: "Phase 04 shipped — PR #20"
+stopped_at: "Phase 04 PR #20 open; hosted checks running"
+last_updated: "2026-10-09T15:35:04.860Z"
+last_activity: 2026-10-09
+last_activity_desc: "Shipped Phase 04 as PR #20; hosted checks are running"
+state_head: 2cf0edf45ae182ac5f95ebb2bf9712326b9f3d06
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 36
-  completed_plans: 36
-  percent: 75
+  completed_phases: 4
+  total_plans: 41
+  completed_plans: 41
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-06)
+See: .planning/PROJECT.md (updated 2026-10-09)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 4 — Sound
+**Current focus:** Phase 04 — Sound (verified; ready to ship through a pull request)
 
 ## Current Position
 
-Phase: 03 (A real game in RetroArch) — COMPLETE
-Current Plan: 03-08 (Hosted RetroArch and six-platform hash gates)
-Total Plans in Phase: 13
-Plans complete: 13 of 13.
-Status: PR #18 has green exact-head required CI and is ready for its authorized squash merge.
-Last activity: 2026-10-08 — the required RetroArch screenshot, all six platform hash inventories, and nightly full-vector/fuzz checks passed on `0ba7b812`.
+Current Phase: 04
+Current Phase Name: Sound
+Current Plan: Not started
+Total Plans in Phase: 4
+Plans complete: 4 of 4.
+Status: Phase 04 shipped — PR #20
+Last activity: 2026-10-09
+Last Activity Description: Shipped Phase 04 as PR #20; hosted checks are running
 
-Progress: [███████░░░] 75%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 36
+- Total plans completed: 41
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -50,7 +52,8 @@ Progress: [███████░░░] 75%
 |-------|-------|-------|----------|
 | 01 | 12 | - | - |
 | 02 | 11 | - | - |
-| 03 | 13 | - | - |
+| 03 | 14 | - | - |
+| 04 | 4 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -96,6 +99,11 @@ Progress: [███████░░░] 75%
 | Phase 03 P12 | 12min | 1 tasks | 7 files |
 | Phase 03 P07 | 57min | 1 tasks | 15 files |
 | Phase 03 P13 | 12 min | 2 tasks | 7 files |
+| Phase 04 P01 | 14 min | 2 tasks | 11 files |
+| Phase 04 P02 | 122 min | 2 tasks | 15 files |
+| Phase 04 P03 | 24 min | 1 task | 15 files |
+| Phase 04 P04 | 10min | 2 tasks | 14 files |
+| Phase 03 P14 | 11min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -104,37 +112,11 @@ Progress: [███████░░░] 75%
 Decisions are logged in PROJECT.md Key Decisions table; the full list with sources is `.planning/preparation/DECISIONS.md`.
 Recent decisions affecting current work:
 
-- Phase 02: all 256 opcodes match the committed public vectors on final state and each bus cycle; verification passed 62/62 truths.
-- Phase 02: full-vector runs are cold and retain run-ID/SHA-bound CTest inventory plus JUnit results; validate both before reporting a pass.
-- Phase 02: keep the public API declaration guard only through the CPU phase; Phase 3 must revise or retire it if public declarations change.
-- Phase 02: the owner-authorized manual dispatch supplied the post-merge full-vector backstop; no cron event is claimed, and the reporter passed on the exact-merge main-push.
-- Phase 02: clean-room source provenance remains an irreducible owner judgment; machine-verifiable behavior and product UAT are automated.
-- [Phase 03]: Support one 16 KiB PRG and one 8 KiB CHR mapper-0 iNES geometry in the tracer.
-- [Phase 03]: Carry frame overshoot from the instance tick cursor; JAM reports a latched nonzero stop status.
-- [Phase 03]: Refresh the temporary public declaration guard to the Phase 3 API baseline.
-- [Phase 03]: Keep CPU bus M2 scheduling in bus.c while PPU state transitions and register effects live in ppu.c.
-- [Phase 03]: Keep cartridge parsing, allocator ownership, and frame state reset behavior unchanged during extraction.
-- [Phase 03]: Keep mapper-0 support bounded to 16/32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM.
-- [Phase 03]: Validate exact complete-file geometry before allocation; reject unsupported header profiles and trailing data.
-- [Phase 03]: Replay and libFuzzer call the same LLVMFuzzerTestOneInput function through public cartridge load, unload, and instance destruction.
-- [Phase 03]: Use synthetic, manifest-listed corpus bytes and do not fetch a ROM or fuzz corpus at runtime.
-- [Phase 03]: Require Clang for the optional libFuzzer build and instrument the core with fuzzer coverage plus ASan/UBSan in Linux nightly.
-- [Phase 03]: Write native pixels into the caller-owned pitched output buffer at visible PPU dots to preserve the 64 KiB instance allocation contract.
-- [Phase 03]: Select mapper-0 CIRAM horizontal or vertical mirroring from iNES flags 6 bit 0.
-- [Phase 03]: Sprite evaluation uses secondary OAM and next-scanline pattern fetches.
-- [Phase 03]: OAM DMA keeps PPU advancement on the shared CPU tick cursor.
-- [Phase 03]: Controller masks are sampled once at successful frame entry so boundary-crossing instructions retain one deterministic frame input.
-- [Phase 03]: The two standard controller ports keep independent per-instance latches and shift registers at $4016/$4017.
-- [Phase 03]: Use a 16-byte NMOVIE1 header and little-endian version/count, then two little-endian 16-bit masks per frame; validate all bounds before replay.
-- [Phase 03]: Movie replay hashes every frame in ascending order and reports the one-based JAM stop frame.
-- [Phase 03]: DABG uses exact zlib-licensed default-branch commit 5ecc60b6af3f726851bfeb1c2555388c5953e0c0 because v2 resolves to GPL-3.0; DABG remains the two-player fixture.
-- [Phase 03]: Use 525-line BT.601 2.4 transfer and primaries followed by deterministic offline sRGB/D65 encoding; native pixels remain the hash input.
-- [Phase 03]: Expose a read-only CPU RAM peek for conformance tooling; accept RAM mirrors through $1FFF and reject other addresses without side effects.
-- [Phase 03]: Use the exact ROM-resident AccuracyCoin directory as the source of names and result locations.
-- [Phase 03]: Model PPU I/O bus decay at the conservative end of the documented 3–30 ms range using integer dot counts.
-- [Phase 03]: CI uses the fetched protected-main scoreboard bytes; confirmed absence after successful lookup supplies an empty baseline.
-- [Phase 03]: Detached local runs use the committed scoreboard-main.txt snapshot; CI requires the workflow-provided baseline path.
-- [Phase 03]: Require hosted six-platform hash equality and released-RetroArch screenshot equality in `CI required`; retain evidence artifacts and skip owner UAT when these machine checks cover the behavior.
+- Phase 04: Keep APU, synthesis, sample scheduling, and filter history in each instance and clock them from the CPU cycle timeline.
+- Phase 04: Preserve frame-counter and DMC IRQ independence, DMA phase behavior, and the six named AccuracyCoin results in automated tests.
+- Phase 04: Use the checked-in integer mixer and 16-tap/32-phase Q15 synthesis kernel with a bounded per-instance PCM ring; gate five tones below -80 dB.
+- Phase 04: Hash mixed-level transitions before synthesis and signed PCM separately using explicit little-endian serialization.
+- Phase 04: Require local CTest and hosted six-platform hash, sanitizer, no-float, hygiene, and RetroArch smoke checks; no listening UAT is required.
 
 ### Pending Todos
 
@@ -142,7 +124,7 @@ None.
 
 ### Blockers/Concerns
 
-None for Phase 03. Clean-room source provenance remains an irreducible owner judgment, as recorded in Phase 02.
+Phase 04 verification passed 15/15 plan truths and 4/4 roadmap criteria. Local `cmake --workflow --preset ci` passed 355/357 tests; the two local RetroArch launch tests self-skipped. Hosted run 37946197394 passed all six platform builds, cross-platform hashes, pinned RetroArch E2E, ASan, no-FP, hygiene, and the required aggregate. No product UAT remains. Advisory review debt remains: the libretro per-sample audio callback is stored but unused (batch audio is used), loaded-game `retro_reset` remains empty, and Phase 01's release-policy matcher may accept an expression containing `always()`. The Phase 02 callback note overlaps the later Phase 03 finding and is not a separate CPU defect. No open item blocks the sound requirements. A Phase 04 PR has not yet been created; ship the verified phase branch before closing the milestone.
 
 ### Quick Tasks Completed
 
@@ -161,6 +143,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-08T23:50:04.000Z
-Stopped at: Phase 03 complete; after PR #18 is squash-merged, discuss Phase 04
-Resume file: .planning/phases/03-a-real-game-in-retroarch/03-08-SUMMARY.md
+Last session: 2026-10-09T15:28:55.002Z
+Stopped at: Phase 04 PR #20 open; hosted checks running
+Resume file: None

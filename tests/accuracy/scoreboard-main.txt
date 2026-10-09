@@ -1,0 +1,6 @@
+accuracycoin/Delta Modulation Channel	pass	0x01	-	-
+accuracycoin/Frame Counter 4-step	pass	0x01	-	-
+accuracycoin/Frame Counter 5-step	pass	0x01	-	-
+accuracycoin/Frame Counter IRQ	pass	0x01	-	-
+accuracycoin/Length Counter	pass	0x01	-	-
+accuracycoin/Length Table	pass	0x01	-	-

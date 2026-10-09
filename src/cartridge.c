@@ -126,6 +126,9 @@ void nesturbator_unload_cartridge(nesturbator *inst)
     }
     inst->allocator.free(inst->allocator.user, inst->cart.bytes, inst->cart.size);
     memset(&inst->cart, 0, sizeof inst->cart);
+    memset(&inst->apu, 0, sizeof inst->apu);
+    inst->apu.dmc.buffer_empty = 1u;
+    nesturbator__synth_reset(inst);
     memset(&inst->ppu, 0, sizeof inst->ppu);
     memset(&inst->cpu, 0, sizeof inst->cpu);
     inst->ticks = 0;
@@ -166,6 +169,9 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     if (layout.chr_is_ram)
         memset(inst->cart.chr, 0, 8192u);
     memset(&inst->bus, 0, sizeof inst->bus);
+    memset(&inst->apu, 0, sizeof inst->apu);
+    inst->apu.dmc.buffer_empty = 1u;
+    nesturbator__synth_reset(inst);
     memset(&inst->ppu, 0, sizeof inst->ppu);
     memset(&inst->cpu, 0, sizeof inst->cpu);
     inst->cpu.s = 0xfdu;

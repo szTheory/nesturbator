@@ -117,4 +117,4 @@ Hosted verification is tied to implementation commit `0ba7b8127f13bd06a6d1d35f7f
 
 All product-visible acceptance in this plan is covered by CI, including real RetroArch loading and image comparison. No owner gameplay or screenshot UAT remains. Clean-room source provenance is the separate irreducible judgment documented in Phase 02.
 
-After PR #18 is squash-merged, the next specific command is `$gsd-discuss-phase 04`.
+PR #18 was squash-merged as `5919ac14`, and the release automation advanced `main` to `93942b7a` (v0.1.4). Phase 04 discussion and planning are complete; the next specific command is `$gsd-execute-phase 04`.

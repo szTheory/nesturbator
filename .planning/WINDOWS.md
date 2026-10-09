@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 8
+open_count: 10
 waived_count: 0
 fixed_count: 0
-total_count: 8
-last_updated: 2026-10-08T19:49:17.206Z
+total_count: 10
+last_updated: 2026-10-09T14:02:27.707Z
 ---
 
 # Broken Windows Ledger
@@ -23,6 +23,8 @@ last_updated: 2026-10-08T19:49:17.206Z
 | 6 | 03 | deviation | src/frame.c |  | Framebuffer is caller-owned and written per visible dot to preserve the existing 64 KiB instance allocator contract. | open |  | 2026-10-08T17:35:40.416Z |  |
 | 7 | 03 | deviation | tests/cmake/vector_api_policy.cmake |  | Refreshed the Phase 3 public declaration digest after the planned input API changed the header. | open |  | 2026-10-08T18:02:58.176Z |  |
 | 8 | 03 | unrun-verify | .github/workflows/ci.yml |  | The six hosted build lanes were not exercised from the local plan run; observe the GitHub Actions matrix result. | open |  | 2026-10-08T19:49:17.206Z |  |
+| 9 | 03 | skipped-test | tests/retroarch/run_retroarch.cmake |  | Local retroarch.testframe skipped because RetroArch aborted before startup; hosted retroarch-e2e is the existing evidence path. | open |  | 2026-10-09T14:02:27.608Z |  |
+| 10 | 03 | skipped-test | tests/retroarch/run_retroarch.cmake |  | Local retroarch.game skipped because RetroArch aborted before startup; hosted retroarch-e2e is the existing evidence path. | open |  | 2026-10-09T14:02:27.707Z |  |
 
 ````json
 [
@@ -127,6 +129,32 @@ last_updated: 2026-10-08T19:49:17.206Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-10-08T19:49:17.206Z",
+    "resolved_at": null,
+    "milestone": null
+  },
+  {
+    "id": 9,
+    "kind": "skipped-test",
+    "phase": "03",
+    "file": "tests/retroarch/run_retroarch.cmake",
+    "line": null,
+    "description": "Local retroarch.testframe skipped because RetroArch aborted before startup; hosted retroarch-e2e is the existing evidence path.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-10-09T14:02:27.608Z",
+    "resolved_at": null,
+    "milestone": null
+  },
+  {
+    "id": 10,
+    "kind": "skipped-test",
+    "phase": "03",
+    "file": "tests/retroarch/run_retroarch.cmake",
+    "line": null,
+    "description": "Local retroarch.game skipped because RetroArch aborted before startup; hosted retroarch-e2e is the existing evidence path.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-10-09T14:02:27.707Z",
     "resolved_at": null,
     "milestone": null
   }

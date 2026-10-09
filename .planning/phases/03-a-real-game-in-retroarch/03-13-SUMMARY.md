@@ -112,7 +112,7 @@ plan_head_after: 5ae1357598a19ccc2573e4ebf04f825905aa105f
 
 ## Verification
 
-- `cmake -P tests/cmake/prepare_scoreboard_baseline.cmake` with temporary `RUNNER_TEMP` and `GITHUB_ENV`: passed; protected main was fetched, its scoreboard path was confirmed absent, the resulting baseline was zero bytes, and the handoff variable was appended.
+- The `tests/cmake/prepare_scoreboard_baseline.cmake` script, run with temporary `RUNNER_TEMP` and `GITHUB_ENV`, passed; protected main was fetched, its scoreboard path was confirmed absent, the resulting baseline was zero bytes, and the handoff variable was appended.
 - `ctest --test-dir build/ci -R '^accuracy[.]scoreboard([.]|$)' --output-on-failure`: passed 4/4, including lost-PASS regression, missing CI handoff, and empty CI baseline.
 - AccuracyCoin `page2` and `page17` remained passing against the live RAM-derived candidate scoreboard in the full workflow.
 - `cmake --workflow --preset ci`: configure and build passed; 344/345 tests passed. The sole failure was the known local `retroarch.testframe` GUI-session abort (`Subprocess aborted`, empty stdout and stderr). This local run is not fully green.

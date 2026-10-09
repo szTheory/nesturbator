@@ -33,10 +33,10 @@ Milestone 1. Each category's pull request builds the release archives, and mergi
 
 ### Sound
 
-- [ ] **SND-01**: A test steps each APU channel (two pulse, triangle, noise, DMC) through its documented output sequence; the runner's audio for the committed open-licence games matches recorded hashes, and the libretro test program receives equal samples.
-- [ ] **SND-02**: `nesturbator-run --hash-audio` prints two hashes, one of the level-transition stream and one of the 16-bit samples, and both are identical on every platform.
-- [ ] **SND-03**: The scoreboard shows AccuracyCoin's length counter, frame counter and DMC tests passing: Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter 5-step and Delta Modulation Channel.
-- [ ] **SND-04**: A test in the `ci` preset renders five reference tones and shows that the synthesiser's largest non-harmonic peak below 16 kHz is under -80 dB.
+- [x] **SND-01**: A test steps each APU channel (two pulse, triangle, noise, DMC) through its documented output sequence; the runner's audio for the committed open-licence games matches recorded hashes, and the libretro test program receives equal samples.
+- [x] **SND-02**: `nesturbator-run --hash-audio` prints two hashes, one of the level-transition stream and one of the 16-bit samples, and both are identical on every platform.
+- [x] **SND-03**: The scoreboard shows AccuracyCoin's length counter, frame counter and DMC tests passing: Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter 5-step and Delta Modulation Channel.
+- [x] **SND-04**: A test in the `ci` preset renders five reference tones and shows that the synthesiser's largest non-harmonic peak below 16 kHz is under -80 dB.
 
 ## v2 Requirements
 
@@ -92,10 +92,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | GAME-04 | Phase 3 | Complete |
 | GAME-05 | Phase 3 | Complete |
 | GAME-06 | Phase 3 | Complete |
-| SND-01 | Phase 4 | Pending |
-| SND-02 | Phase 4 | Pending |
-| SND-03 | Phase 4 | Pending |
-| SND-04 | Phase 4 | Pending |
+| SND-01 | Phase 4 | Complete |
+| SND-02 | Phase 4 | Complete |
+| SND-03 | Phase 4 | Complete |
+| SND-04 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 19 total
@@ -104,4 +104,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-10-02*
-*Last updated: 2026-10-02 after roadmap creation*
+*Last updated: 2026-10-09 after Phase 04 completion*

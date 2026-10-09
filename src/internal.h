@@ -15,6 +15,9 @@
    ticks (D-09, 01-RESEARCH Pattern 2). */
 #define NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD 352u
 #define NESTURBATOR_AUDIO_TICKS_PER_PERIOD 315000u
+#define NESTURBATOR_SYNTH_TAPS 16u
+#define NESTURBATOR_SYNTH_PHASES 32u
+#define NESTURBATOR_SYNTH_RING_CAPACITY 1024u
 
 /* Video output size in pixels. */
 #define NESTURBATOR_WIDTH 256u
@@ -49,9 +52,69 @@ struct nesturbator__cpu {
 struct nesturbator__bus {
     uint8_t ram[2048];
     uint8_t open_bus;
+    uint8_t apu_get_put_phase; /* 1: GET, 0: PUT at the current CPU bus cycle. */
     uint8_t oam_dma_pending, oam_dma_page;
     uint8_t input_pending[2], input_buttons[2];
     uint8_t controller_latch[2], controller_shift[2], controller_strobe;
+};
+
+struct nesturbator__pulse {
+    uint16_t timer;
+    uint16_t counter;
+    uint8_t reg[4];
+    uint8_t phase, length, env_divider, env_decay, env_start, sweep_divider, sweep_reload;
+};
+
+struct nesturbator__triangle {
+    uint16_t timer, counter;
+    uint8_t reg[4];
+    uint8_t phase, length, linear, linear_reload, linear_reload_flag;
+};
+
+struct nesturbator__noise {
+    uint16_t lfsr, counter;
+    uint8_t reg[4];
+    uint8_t length, env_divider, env_decay, env_start;
+};
+
+struct nesturbator__dmc {
+    uint16_t timer, counter, address, remaining;
+    uint8_t reg[4], output, shift, bits, sample_buffer, buffer_empty;
+    uint8_t irq, dma_pending, dma_halt_phase, dma_load_waiting, enable_delay;
+};
+
+struct nesturbator__apu {
+    struct nesturbator__pulse pulse[2];
+    struct nesturbator__triangle triangle;
+    struct nesturbator__noise noise;
+    struct nesturbator__dmc dmc;
+    uint8_t enabled;
+    uint8_t pulse_clock_phase;
+    uint8_t frame_mode, frame_pending_mode, frame_irq_inhibit, frame_irq;
+    uint8_t frame_irq_clear_pending;
+    uint8_t frame_reset_delay;
+    uint32_t frame_cycle;
+    uint32_t sample_phase;
+    int16_t *sample_output;
+    uint32_t sample_limit;
+    uint32_t sample_count;
+};
+
+typedef void (*nesturbator__transition_sink)(void *context, uint64_t cpu_cycle, int32_t level);
+
+/* Per-instance band-limited synthesis, filters, and caller-frame staging. The
+   impulse cursor advances only when the 48 kHz sample clock emits a sample. */
+struct nesturbator__synth {
+    int32_t mixed_level;
+    int64_t impulse[NESTURBATOR_SYNTH_TAPS];
+    uint8_t impulse_head;
+    int64_t integrator_q15;
+    int64_t hp_input_q30[2];
+    int64_t hp_output_q30[2];
+    int64_t lp_output_q30;
+    int16_t pcm[NESTURBATOR_SYNTH_RING_CAPACITY];
+    uint16_t pcm_read, pcm_write, pcm_count;
+    uint8_t overflow;
 };
 
 struct nesturbator__ppu {
@@ -64,7 +127,8 @@ struct nesturbator__ppu {
     uint8_t palette[32];
     uint8_t oam[256];
     uint8_t secondary_oam[32];
-    uint8_t sprite_count, eval_n, eval_latch, eval_target;
+    uint8_t sprite_count, eval_count, eval_n, eval_latch, eval_target;
+    uint8_t eval_sprite_zero[8];
     uint8_t sprite_zero[8], sprite_x[8], sprite_attr[8];
     uint8_t sprite_lo[8], sprite_hi[8];
     uint16_t *video_output;
@@ -104,6 +168,10 @@ struct nesturbator {
     uint64_t ticks;                  /* ticks run since create */
     struct nesturbator__cpu cpu;     /* the 6502 */
     struct nesturbator__bus bus;     /* RAM and the open-bus latch */
+    struct nesturbator__apu apu;
+    struct nesturbator__synth synth;
+    nesturbator__transition_sink transition_sink;
+    void *transition_sink_context;
     struct nesturbator__ppu ppu;
     struct nesturbator__cartridge cart;
     struct nesturbator__profile profile; /* chip-dependent constants */
@@ -117,6 +185,22 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
 
 /* One CPU write cycle of value to addr (src/bus.c in the library). */
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+void nesturbator__apu_clock(struct nesturbator *nes);
+void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+void nesturbator__apu_set_transition_sink(struct nesturbator *nes,
+                                          nesturbator__transition_sink sink, void *context);
+uint8_t nesturbator__apu_channel_level(const struct nesturbator *nes, unsigned channel);
+uint8_t nesturbator__apu_status_read(struct nesturbator *nes);
+uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes);
+void nesturbator__apu_begin_frame(struct nesturbator *nes, int16_t *samples, uint32_t count);
+void nesturbator__apu_end_frame(struct nesturbator *nes);
+void nesturbator__synth_reset(struct nesturbator *nes);
+void nesturbator__synth_transition(struct nesturbator *nes, int32_t level);
+void nesturbator__synth_sample(struct nesturbator *nes);
+uint32_t nesturbator__synth_drain(struct nesturbator *nes, int16_t *out, uint32_t count);
+extern const int16_t nesturbator__synth_kernel[NESTURBATOR_SYNTH_PHASES][NESTURBATOR_SYNTH_TAPS];
+extern const uint16_t nesturbator__pulse_mix[31];
+extern const uint16_t nesturbator__tnd_mix[16][16][128];
 void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks);
 uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr);
 void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);

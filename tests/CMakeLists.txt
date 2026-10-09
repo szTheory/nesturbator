@@ -37,6 +37,20 @@ nesturbator_runner_test(NAME runner.advance
 
 # No --hash-frame: frames run, nothing is printed.
 nesturbator_runner_test(NAME runner.nohash ARGS --frames 2 EXIT 0)
+nesturbator_runner_test(NAME runner.hash_audio.silent
+  ARGS --frames 1 --hash-audio
+  EXIT 0
+  EXPECT
+    "audio transitions sha256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "audio pcm sha256 bfd6d535131a45e8a31340082147c4928edd44f2e05fe127081a1900b3cc0edc")
+
+# SND-04: a fixed-point FFT checks the five locked APU reference periods.
+add_executable(runner.spectral runner/test_spectral.c)
+target_link_libraries(runner.spectral PRIVATE nesturbator::nesturbator)
+target_include_directories(runner.spectral PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(runner.spectral)
+add_test(NAME runner.spectral COMMAND runner.spectral)
+set_tests_properties(runner.spectral PROPERTIES TIMEOUT 60)
 
 # Usage errors exit 2 (LIBRETRO-AND-RUNNER section 5).
 nesturbator_runner_test(NAME runner.usage.beyond
@@ -97,11 +111,19 @@ add_test(NAME runner.write_hashes.content
     ${CMAKE_CURRENT_BINARY_DIR}/hashes.txt ${CMAKE_CURRENT_SOURCE_DIR}/runner/hashes.txt)
 set_tests_properties(runner.write_hashes.content PROPERTIES FIXTURES_REQUIRED hashes_txt)
 
+# Keep the CI cross-platform hash inventory contract executable locally.
+add_test(NAME hash.inventory.self_test
+  COMMAND ${CMAKE_COMMAND}
+    -DSELFTEST=ON
+    "-DWORK=${PROJECT_BINARY_DIR}/hash-inventory-selftest"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hash_inventory.cmake)
+set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
+
 # AccuracyCoin page runs are kept separate so a failure names the page whose
 # RAM-derived results diverged from the committed scoreboard.
 set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
 set(ACCURACYCOIN_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/scoreboard.txt)
-foreach(page IN ITEMS 2 17)
+foreach(page IN ITEMS 2 14 17)
   add_test(NAME accuracycoin.page${page}
     COMMAND ${CMAKE_COMMAND}
       "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_ROM};--scoreboard;${ACCURACYCOIN_SCOREBOARD}"
@@ -126,6 +148,9 @@ nesturbator_core_test(core.api core/test_api.c)
 # D-11: run_frame statuses, buffer rules, the D-09 audio period, the D-02
 # boundary pixels and two independent instances.
 nesturbator_core_test(core.frame core/test_frame.c)
+nesturbator_core_test(core.apu core/test_apu.c)
+nesturbator_core_test(core.synth core/test_synth.c)
+target_include_directories(core.synth PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_core_test(core.cartridge core/test_cartridge.c)
 target_include_directories(core.cartridge PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
@@ -251,6 +276,12 @@ target_link_libraries(runner.sha256 PRIVATE nesturbator::nesturbator)
 nesturbator_warnings(runner.sha256)
 add_test(NAME runner.sha256 COMMAND runner.sha256)
 
+add_executable(runner.audio_hash runner/test_audio_hash.c
+  ${PROJECT_SOURCE_DIR}/runner/audio_hash.c ${PROJECT_SOURCE_DIR}/runner/sha256.c)
+target_include_directories(runner.audio_hash PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+nesturbator_warnings(runner.audio_hash)
+add_test(NAME runner.audio_hash COMMAND runner.audio_hash)
+
 # GAME-03 / D-06: an empty owned movie is valid and replays zero frames.
 add_executable(runner.movie.test runner/test_movie.c)
 target_link_libraries(runner.movie.test PRIVATE nesturbator::nesturbator)
@@ -290,8 +321,8 @@ add_test(NAME vectors.source_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}/policy
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_source_policy.cmake)
 
-# Phase 2 keeps the public declaration stream at the Phase 1 baseline. Phase 3
-# must deliberately revise or remove this temporary policy with its API work.
+# The public API guard follows the current Phase 4 contract; later intentional
+# public API changes must deliberately update or retire this temporary policy.
 add_test(NAME vectors.api_policy
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_api_policy.cmake)
@@ -346,6 +377,24 @@ set_tests_properties(release.one_version_per_line.self_test PROPERTIES
 add_test(NAME release.no_release_as
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_config.cmake)
+
+# Release credentials are available only to a workflow definition selected
+# by a push to protected main, and the App token has exactly two consumers.
+add_test(NAME release.credentials_policy
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_credentials_policy.cmake)
+add_test(NAME release.credentials_policy.selftest
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR} -DSELFTEST=ON
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_credentials_policy.cmake)
+
+# The pinned release-please defaults keep non-breaking docs/chore commits from
+# opening release PRs. Mutations exercise the policy checker itself.
+add_test(NAME release.nonbehavioral_policy
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_policy.cmake)
+add_test(NAME release.nonbehavioral_policy.selftest
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR} -DSELFTEST=ON
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_policy.cmake)
 
 # libretro.h is RetroArch v1.22.2's copy (commit
 # 69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576), byte for byte. .gitattributes
@@ -424,6 +473,8 @@ add_test(NAME core.profile COMMAND core.profile)
 # mirrored over 0x0000-0x1FFF, the open-bus latch for unmapped reads.
 add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/bus.c
+  ${PROJECT_SOURCE_DIR}/src/apu.c
+  ${PROJECT_SOURCE_DIR}/src/synth.c
   ${PROJECT_SOURCE_DIR}/src/cartridge.c
   ${PROJECT_SOURCE_DIR}/src/ppu.c)
 target_include_directories(bus.unit PRIVATE
