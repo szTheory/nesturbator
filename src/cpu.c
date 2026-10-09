@@ -507,6 +507,23 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         return;
     }
 
+    /* IRQ is level-sensitive and accepted from the second-to-last-cycle
+       poll sample. The frame status bit may be visible before its inhibit
+       latch allows this line to trigger. [HWC.02] */
+    if (nes->cpu.poll_latch != 0u && (nes->cpu.p & FLAG_I) == 0u) {
+        nesturbator__bus_read(nes, nes->cpu.pc);
+        nesturbator__bus_read(nes, nes->cpu.pc);
+        push(nes, (uint8_t)(nes->cpu.pc >> 8));
+        push(nes, (uint8_t)nes->cpu.pc);
+        push(nes, (uint8_t)((nes->cpu.p & (uint8_t)(UINT8_MAX ^ FLAG_B)) | FLAG_U));
+        nes->cpu.p |= FLAG_I;
+        uint8_t lo = nesturbator__bus_read(nes, 0xFFFEu);
+        uint8_t hi = nesturbator__bus_read(nes, 0xFFFFu);
+        nes->cpu.pc = (uint16_t)(((uint16_t)hi << 8) | lo);
+        nes->cpu.poll_latch = 0u;
+        return;
+    }
+
     uint8_t opcode = fetch(nes);
     switch (opcode) {
     /* Loads. */

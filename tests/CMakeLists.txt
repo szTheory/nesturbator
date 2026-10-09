@@ -101,7 +101,7 @@ set_tests_properties(runner.write_hashes.content PROPERTIES FIXTURES_REQUIRED ha
 # RAM-derived results diverged from the committed scoreboard.
 set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
 set(ACCURACYCOIN_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/scoreboard.txt)
-foreach(page IN ITEMS 2 17)
+foreach(page IN ITEMS 2 14 17)
   add_test(NAME accuracycoin.page${page}
     COMMAND ${CMAKE_COMMAND}
       "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_ROM};--scoreboard;${ACCURACYCOIN_SCOREBOARD}"
@@ -291,8 +291,8 @@ add_test(NAME vectors.source_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}/policy
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_source_policy.cmake)
 
-# Phase 2 keeps the public declaration stream at the Phase 1 baseline. Phase 3
-# must deliberately revise or remove this temporary policy with its API work.
+# The public API guard follows the current Phase 4 contract; later intentional
+# public API changes must deliberately update or retire this temporary policy.
 add_test(NAME vectors.api_policy
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_api_policy.cmake)

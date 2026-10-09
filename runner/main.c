@@ -187,8 +187,8 @@ static int parse_options(int argc, char **argv, options *o)
         }
     }
     if (o->accuracy_page != 0u) {
-        if (o->accuracy_page != 2u && o->accuracy_page != 17u)
-            return usage("AccuracyCoin supports pages 2 and 17");
+        if (o->accuracy_page != 2u && o->accuracy_page != 14u && o->accuracy_page != 17u)
+            return usage("AccuracyCoin supports pages 2, 14 and 17");
         if (o->rom_path == NULL || o->scoreboard_path == NULL || o->movie_path != NULL ||
             o->frames != 0u)
             return usage("AccuracyCoin page mode needs --rom and --scoreboard only");
@@ -331,6 +331,8 @@ static int accuracy_compare_scoreboard(const char *path, const accuracy_test *te
     FILE *file = fopen(path, "r");
     char line[256];
     size_t found = 0u;
+    size_t last_index = 0u;
+    int have_last = 0;
     if (file == NULL)
         return 0;
     while (fgets(line, sizeof line, file) != NULL) {
@@ -352,7 +354,13 @@ static int accuracy_compare_scoreboard(const char *path, const accuracy_test *te
                     fclose(file);
                     return 0;
                 }
+                if (have_last != 0 && i <= last_index) {
+                    fclose(file);
+                    return 0;
+                }
                 found |= (size_t)1u << i;
+                last_index = i;
+                have_last = 1;
             }
         }
     }
@@ -360,6 +368,32 @@ static int accuracy_compare_scoreboard(const char *path, const accuracy_test *te
     if (count > sizeof(size_t) * 8u || found != (((size_t)1u << count) - 1u))
         return 0;
     (void)page;
+    return 1;
+}
+
+static int accuracy_page_required_apu_test(const char *name)
+{
+    static const char *const required[] = {
+        "Length Counter", "Length Table", "Frame Counter IRQ", "Frame Counter 4-step",
+        "Frame Counter 5-step", "Delta Modulation Channel"};
+    for (size_t i = 0u; i < sizeof required / sizeof required[0]; i++)
+        if (strcmp(name, required[i]) == 0)
+            return 1;
+    return 0;
+}
+
+static int accuracy_page_has_required_apu_tests(const accuracy_test *tests, size_t count)
+{
+    static const char *const required[] = {
+        "Length Counter", "Length Table", "Frame Counter IRQ", "Frame Counter 4-step",
+        "Frame Counter 5-step", "Delta Modulation Channel"};
+    for (size_t want = 0u; want < sizeof required / sizeof required[0]; want++) {
+        int found = 0;
+        for (size_t i = 0u; i < count; i++)
+            found |= strcmp(tests[i].name, required[want]) == 0;
+        if (found == 0)
+            return 0;
+    }
     return 1;
 }
 
@@ -375,6 +409,10 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
         return 1;
     }
     qsort(tests, count, sizeof tests[0], compare_accuracy_test);
+    if (opt->accuracy_page == 14u && !accuracy_page_has_required_apu_tests(tests, count)) {
+        fprintf(stderr, "nesturbator-run: AccuracyCoin page 14 is missing required APU tests\n");
+        return 1;
+    }
     for (size_t i = 1u; i < count; i++) {
         if (strcmp(tests[i - 1u].name, tests[i].name) == 0) {
             fprintf(stderr, "nesturbator-run: duplicate AccuracyCoin test name '%s'\n",
@@ -467,13 +505,23 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
         return 1;
     }
     int all_passed = 1;
+    accuracy_test required_tests[ACCURACY_MAX_TESTS];
+    uint8_t required_results[ACCURACY_MAX_TESTS];
+    size_t required_count = 0u;
     for (size_t i = 0; i < count; i++) {
         if (!accuracy_ram(inst, tests[i].result_address, &results[i]))
             return 1;
         uint8_t code = results[i] & 3u;
         const char *status = code == 1u ? "pass" : (results[i] == 0xffu ? "skip" : "fail");
         printf("accuracycoin/%s\t%s\t0x%02x\t-\t-\n", tests[i].name, status, results[i]);
-        if (code != 1u) {
+        int required = opt->accuracy_page != 14u ||
+                       accuracy_page_required_apu_test(tests[i].name);
+        if (opt->accuracy_page != 14u || required != 0) {
+            required_tests[required_count] = tests[i];
+            required_results[required_count] = results[i];
+            required_count++;
+        }
+        if (code != 1u && required != 0) {
             fprintf(stderr, "nesturbator-run: AccuracyCoin page %u test '%s' returned 0x%02x\n",
                     opt->accuracy_page, tests[i].name, results[i]);
             all_passed = 0;
@@ -481,7 +529,8 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
     }
     if (!all_passed)
         return 1;
-    if (!accuracy_compare_scoreboard(opt->scoreboard_path, tests, results, count,
+    if (!accuracy_compare_scoreboard(opt->scoreboard_path, required_tests, required_results,
+                                     required_count,
                                      opt->accuracy_page)) {
         fprintf(stderr,
                 "nesturbator-run: AccuracyCoin page %u RAM results differ from scoreboard\n",

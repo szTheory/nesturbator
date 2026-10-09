@@ -87,6 +87,8 @@ describes the operational initialization model (HWC.08). These channel
 sequences use integer state and bus-cycle ordering. The 4-step and 5-step frame
 sequencers clock envelopes, linear and length counters, and maintain a frame
 IRQ independent from the DMC IRQ; `$4015` reports and clears the frame source.
+The CPU accepts an enabled IRQ from its instruction-end polling sample and
+enters the IRQ vector with the normal seven-cycle stack sequence (HWC.02).
 Writes to `$4017` take effect after the parity-dependent three or four CPU
 cycles. DMC sample fetches halt CPU reads at the bus seam, repeat the parked
 read, and preserve the independent IRQ source. These timing rules follow

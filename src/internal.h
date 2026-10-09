@@ -49,6 +49,7 @@ struct nesturbator__cpu {
 struct nesturbator__bus {
     uint8_t ram[2048];
     uint8_t open_bus;
+    uint8_t apu_get_put_phase; /* 1: GET, 0: PUT at the current CPU bus cycle. */
     uint8_t oam_dma_pending, oam_dma_page;
     uint8_t input_pending[2], input_buttons[2];
     uint8_t controller_latch[2], controller_shift[2], controller_strobe;
@@ -76,7 +77,7 @@ struct nesturbator__noise {
 struct nesturbator__dmc {
     uint16_t timer, counter, address, remaining;
     uint8_t reg[4], output, shift, bits, sample_buffer, buffer_empty;
-    uint8_t irq, dma_pending;
+    uint8_t irq, dma_pending, dma_halt_phase, dma_load_waiting, enable_delay;
 };
 
 struct nesturbator__apu {
@@ -87,6 +88,7 @@ struct nesturbator__apu {
     uint8_t enabled;
     uint8_t pulse_clock_phase;
     uint8_t frame_mode, frame_pending_mode, frame_irq_inhibit, frame_irq;
+    uint8_t frame_irq_clear_pending;
     uint8_t frame_reset_delay;
     uint32_t frame_cycle;
     uint32_t sample_phase;

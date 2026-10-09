@@ -1,6 +1,7 @@
 /* NTSC RP2A03 APU channel clocks. Hardware facts are from
    NES-HARDWARE-CPU-APU.md section 4 (HWC.08, HWC.10, HWC.11). */
 #include "internal.h"
+
 #include "apu_mix_table.h"
 
 static const uint8_t duty[4] = {0x01u, 0x03u, 0x0fu, 0xfcu};
@@ -11,7 +12,7 @@ static const uint8_t length_table[32] = {
 static const uint16_t noise_period[16] = {
     4u, 8u, 16u, 32u, 64u, 96u, 128u, 160u, 202u, 254u, 380u, 508u, 762u, 1016u, 2034u, 4068u};
 static const uint16_t dmc_period[16] = {
-    428u, 380u, 340u, 320u, 286u, 254u, 226u, 214u, 190u, 160u, 142u, 128u, 106u, 85u, 72u, 54u};
+    428u, 380u, 340u, 320u, 286u, 254u, 226u, 214u, 190u, 160u, 142u, 128u, 106u, 84u, 72u, 54u};
 static const uint8_t triangle_sequence[32] = {
     15u, 14u, 13u, 12u, 11u, 10u, 9u, 8u, 7u, 6u, 5u, 4u, 3u, 2u, 1u, 0u,
     0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u, 13u, 14u, 15u};
@@ -82,7 +83,9 @@ uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes)
 
 static void update_irq_line(struct nesturbator *nes)
 {
-    nes->cpu.irq_line = (uint8_t)(nes->apu.frame_irq != 0u || nes->apu.dmc.irq != 0u);
+    nes->cpu.irq_line = (uint8_t)((nes->apu.frame_irq != 0u &&
+                                   nes->apu.frame_irq_inhibit == 0u) ||
+                                  nes->apu.dmc.irq != 0u);
 }
 
 static void envelope_clock(uint8_t control, uint8_t *divider, uint8_t *decay, uint8_t *start);
@@ -165,6 +168,10 @@ void nesturbator__apu_end_frame(struct nesturbator *nes)
 
 void nesturbator__apu_clock(struct nesturbator *nes)
 {
+    if (nes->apu.frame_irq_clear_pending != 0u && nes->bus.apu_get_put_phase != 0u) {
+        nes->apu.frame_irq = 0u;
+        nes->apu.frame_irq_clear_pending = 0u;
+    }
     nes->apu.pulse_clock_phase ^= 1u;
     if (nes->apu.pulse_clock_phase == 0u) {
         for (unsigned i = 0u; i < 2u; i++) {
@@ -202,29 +209,55 @@ void nesturbator__apu_clock(struct nesturbator *nes)
         noise->counter--;
     }
     struct nesturbator__dmc *dmc = &nes->apu.dmc;
-    if (dmc->counter == 0u) {
-        dmc->counter = dmc_period[dmc->reg[0] & 0x0fu];
-        if (dmc->bits == 0u) {
-            if (dmc->buffer_empty == 0u) {
-                dmc->shift = dmc->sample_buffer;
-                dmc->buffer_empty = 1u;
-                dmc->bits = 8u;
+    if (dmc->enable_delay != 0u)
+        dmc->enable_delay--;
+    /* DMC rate entries are CPU-cycle periods, but the timer receives only
+       every other CPU cycle. Its half-rate edge is offset from the pulse
+       timer edge; the AccuracyCoin page-14 sync probes pin that phase.
+       [HWC.08, HWC.10, HWC.19]. The output clock occurs on the edge that
+       counts down to zero; reloading only after a later zero edge adds one
+       APU cycle. */
+    if (nes->apu.pulse_clock_phase == 0u) {
+        uint8_t output_clock = 0u;
+        if (dmc->counter == 0u) {
+            output_clock = 1u;
+        } else {
+            dmc->counter--;
+            if (dmc->counter == 0u)
+                output_clock = 1u;
+        }
+        if (output_clock != 0u) {
+            uint16_t period = dmc->timer;
+            if (period == 0u)
+                period = (uint16_t)(dmc_period[dmc->reg[0] & 0x0fu] / 2u);
+            dmc->counter = period;
+            if (dmc->bits == 0u) {
+                if (dmc->buffer_empty == 0u) {
+                    dmc->shift = dmc->sample_buffer;
+                    dmc->buffer_empty = 1u;
+                    dmc->bits = 8u;
+                }
+            }
+            if (dmc->bits != 0u) {
+                if ((dmc->shift & 1u) != 0u) {
+                    if (dmc->output <= 125u)
+                        dmc->output = (uint8_t)(dmc->output + 2u);
+                } else if (dmc->output >= 2u) {
+                    dmc->output = (uint8_t)(dmc->output - 2u);
+                }
+                dmc->shift >>= 1;
+                dmc->bits--;
+            }
+            if (dmc->buffer_empty != 0u && dmc->remaining != 0u && dmc->dma_pending == 0u) {
+                dmc->dma_pending = 1u;
+                /* A re-enable while the sample buffer is full still owns the
+                   first read once that buffer drains. AccuracyCoin's L/M/N
+                   edge probes distinguish this delayed load (GET) from an
+                   ordinary output-unit reload (PUT). [HWC.19] */
+                dmc->dma_halt_phase = dmc->dma_load_waiting != 0u ? 1u : 0u;
+                dmc->dma_load_waiting = 0u;
             }
         }
-        if (dmc->bits != 0u) {
-            if ((dmc->shift & 1u) != 0u) {
-                if (dmc->output <= 125u)
-                    dmc->output = (uint8_t)(dmc->output + 2u);
-            } else if (dmc->output >= 2u) {
-                dmc->output = (uint8_t)(dmc->output - 2u);
-            }
-            dmc->shift >>= 1;
-            dmc->bits--;
-        }
-        if (dmc->buffer_empty != 0u && dmc->remaining != 0u)
-            dmc->dma_pending = 1u;
-    } else {
-        dmc->counter--;
     }
     /* Frame-counter writes reset after three or four CPU cycles according to
        APU phase; the sequence edge follows two or three cycles later. The
@@ -247,12 +280,18 @@ void nesturbator__apu_clock(struct nesturbator *nes)
             (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == 29829u) ||
             (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == 37281u)) {
             frame_quarter_clock(&nes->apu);
-            if (nes->apu.frame_cycle == 14913u || nes->apu.frame_cycle == 37281u)
+            if (nes->apu.frame_cycle == 14913u || nes->apu.frame_cycle == 29829u ||
+                (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == 37281u))
                 length_clock(&nes->apu);
         }
-        if (nes->apu.frame_mode == 0u && nes->apu.frame_cycle >= 29828u &&
-            nes->apu.frame_cycle <= 29830u && nes->apu.frame_irq_inhibit == 0u)
+        if (nes->apu.frame_mode == 0u &&
+            (nes->apu.frame_cycle == 29828u || nes->apu.frame_cycle == 29829u))
             nes->apu.frame_irq = 1u;
+        if (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == 29830u) {
+            /* The status flag is reasserted through this edge unless the
+               inhibit latch suppresses the IRQ line at the final cycle. */
+            nes->apu.frame_irq = (uint8_t)(nes->apu.frame_irq_inhibit == 0u);
+        }
         if ((nes->apu.frame_mode == 0u && nes->apu.frame_cycle >= 29830u) ||
             (nes->apu.frame_mode != 0u && nes->apu.frame_cycle >= 37282u))
             nes->apu.frame_cycle = 0u;
@@ -279,7 +318,7 @@ uint8_t nesturbator__apu_status_read(struct nesturbator *nes)
                                (nes->apu.dmc.remaining != 0u ? 0x10u : 0u) |
                                (nes->apu.frame_irq != 0u ? 0x40u : 0u) |
                                (nes->apu.dmc.irq != 0u ? 0x80u : 0u));
-    nes->apu.frame_irq = 0u;
+    nes->apu.frame_irq_clear_pending = 1u;
     update_irq_line(nes);
     return status;
 }
@@ -291,7 +330,11 @@ void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         if (nes->apu.frame_irq_inhibit != 0u)
             nes->apu.frame_irq = 0u;
         nes->apu.frame_pending_mode = (uint8_t)((value >> 7) & 1u);
-        nes->apu.frame_reset_delay = (uint8_t)(((nes->ticks / 24u) & 1u) != 0u ? 3u : 4u);
+        /* The bus has clocked the write cycle before register decode. GET
+           writes take four subsequent cycles and PUT writes take three;
+           AccuracyCoin page 14 exercises both edges. */
+        nes->apu.frame_reset_delay =
+            (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 4u : 3u);
         update_irq_line(nes);
         return;
     }
@@ -307,13 +350,31 @@ void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
                     nes->apu.noise.length = 0u;
             }
         }
-        if ((nes->apu.enabled & 0x10u) == 0u)
+        if ((nes->apu.enabled & 0x10u) == 0u) {
+            /* A buffer-empty reload can already be waiting for the next
+               enabled CPU read. Disabling the reader stops sample progress,
+               but does not cancel that scheduled DMA. [HWC.10] */
             nes->apu.dmc.remaining = 0u;
+            nes->apu.dmc.enable_delay = 0u;
+            nes->apu.dmc.dma_load_waiting = 0u;
+        }
         else if (nes->apu.dmc.remaining == 0u) {
             nes->apu.dmc.address = (uint16_t)(0xc000u | ((uint32_t)nes->apu.dmc.reg[2] << 6));
             nes->apu.dmc.remaining = (uint16_t)(((uint32_t)nes->apu.dmc.reg[3] << 4) | 1u);
-            nes->apu.dmc.buffer_empty = 1u;
-            nes->apu.dmc.dma_pending = 1u;
+            /* Restarting the memory reader does not discard a byte already
+               held in the sample buffer. A fresh load is requested only if
+               that buffer is empty; an output-unit refill retains reload
+               phase. [HWC.10] */
+            if (nes->apu.dmc.buffer_empty != 0u && nes->apu.dmc.dma_pending == 0u) {
+                nes->apu.dmc.dma_pending = 1u;
+                nes->apu.dmc.dma_halt_phase = 1u; /* load DMA halts on GET */
+                nes->apu.dmc.dma_load_waiting = 0u;
+            } else if (nes->apu.dmc.buffer_empty == 0u &&
+                       nes->apu.dmc.dma_pending == 0u) {
+                nes->apu.dmc.dma_load_waiting = 1u;
+            }
+            nes->apu.dmc.enable_delay =
+                (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 4u : 3u);
         }
         nes->apu.dmc.irq = 0u;
         update_irq_line(nes);
@@ -355,7 +416,7 @@ void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         unsigned reg = (unsigned)(addr - 0x4010u);
         dmc->reg[reg] = value;
         if (reg == 0u) {
-            dmc->timer = dmc_period[value & 0x0fu];
+            dmc->timer = (uint16_t)(dmc_period[value & 0x0fu] / 2u);
             if ((value & 0x80u) == 0u)
                 dmc->irq = 0u;
             update_irq_line(nes);

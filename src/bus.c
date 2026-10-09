@@ -17,6 +17,13 @@ static void cycle(struct nesturbator *nes)
 {
     nes->ticks += 9u;
     ppu_catch_up(nes);
+    /* IRQ is polled from the level present at the start of this cycle. The
+       previous value becomes the instruction-end poll sample. [HWC.02] */
+    nes->cpu.poll_latch = nes->cpu.irq_line;
+    /* CPU cycles alternate the APU's get and put slots. Keep this phase at
+       the bus seam so register races and DMA alignment use the same cycle
+       state as reads and writes. [HWC.01, HWC.09] */
+    nes->bus.apu_get_put_phase ^= 1u;
     nesturbator__apu_clock(nes);
     nes->ticks += 15u;
     ppu_catch_up(nes);
@@ -51,20 +58,27 @@ static uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr)
     return nes->bus.open_bus;
 }
 
-static void dmc_dma(struct nesturbator *nes, uint16_t parked_read)
+static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read)
 {
     struct nesturbator__dmc *dmc = &nes->apu.dmc;
-    if (dmc->dma_pending == 0u || dmc->remaining == 0u || nes->cart.prg == NULL)
-        return;
+    if (dmc->dma_pending == 0u || dmc->enable_delay != 0u ||
+        nes->bus.apu_get_put_phase != dmc->dma_halt_phase ||
+        dmc->remaining == 0u ||
+        nes->cart.prg == NULL)
+        return 0u;
 
     /* RDY halts the CPU only on reads. The first halted cycle repeats the
        parked CPU access, including controller and PPU register side effects. */
     (void)bus_read_data(nes, parked_read);
-    cycle(nes);
-    cycle(nes);
-    if (((nes->ticks / 24u) & 1u) == 0u)
-        cycle(nes);
+    cycle(nes); /* DMC dummy read cycle. [HWC.01, HWC.09] */
+    (void)bus_read_data(nes, parked_read);
+    if (nes->bus.apu_get_put_phase != 0u) {
+        cycle(nes); /* Alignment read on PUT. [HWC.01, HWC.09] */
+        (void)bus_read_data(nes, parked_read);
+    }
+    cycle(nes); /* DMC memory get. [HWC.01, HWC.09] */
     dmc->sample_buffer = nesturbator__cart_read(nes, dmc->address);
+    nes->bus.open_bus = dmc->sample_buffer;
     dmc->buffer_empty = 0u;
     dmc->dma_pending = 0u;
     dmc->address = dmc->address == 0xffffu ? 0x8000u : (uint16_t)(dmc->address + 1u);
@@ -78,14 +92,20 @@ static void dmc_dma(struct nesturbator *nes, uint16_t parked_read)
             nes->cpu.irq_line = 1u;
         }
     }
+    return 1u;
 }
 
 static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
 {
     cycle(nes);
-    if (nes->apu.dmc.dma_pending != 0u)
-        dmc_dma(nes, addr);
-    return bus_read_data(nes, addr);
+    if (nes->apu.dmc.dma_pending != 0u && dmc_dma(nes, addr) != 0u) {
+        /* The CPU repeats its parked read once more when RDY is released.
+           This is the resumed bus cycle after the DMC memory get, and is
+           distinct from the GET cycle that filled the sample buffer. [HWC.01] */
+        cycle(nes);
+    }
+    uint8_t value = bus_read_data(nes, addr);
+    return value;
 }
 
 static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)

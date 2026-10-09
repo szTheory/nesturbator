@@ -255,7 +255,8 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * across the requested frame boundary; the next input is sampled only on the
  * next call, so a crossing instruction cannot mix frame masks. Cartridge
  * audio clocks the NTSC RP2A03 channels and frame sequencer on CPU cycles;
- * frame-counter and DMC interrupt status are independent.
+ * frame-counter and DMC interrupt status are independent. The CPU samples an
+ * enabled IRQ at instruction boundaries and enters the IRQ vector (HWC.02).
  * No cartridge: test pattern and silence. A JAM opcode stops with
  * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
  * advance on later frame calls. Audio is mono signed 16-bit PCM; no-cartridge
