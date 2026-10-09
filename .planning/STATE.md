@@ -1,14 +1,14 @@
 ---
 gsd_state_version: "1.0"
-current_phase: "04.2 — Close gap: SND-01 — deliver single-sample libretro audio"
-current_phase_name: "Close gap: SND-01 — deliver single-sample libretro audio"
-current_plan: Not started
-status: planning
-stopped_at: Phase 02 verification refreshed; refresh Phase 03 next
-last_updated: "2026-10-09T19:38:37.000Z"
+current_phase: "03 — A real game in RetroArch (verification gap closure)"
+current_phase_name: "A real game in RetroArch — verification gap closure"
+current_plan: Gap closure plan not yet created
+status: verification gaps found
+stopped_at: Phase 03 verification refreshed; plan the sprite-overflow fix and hosted evidence automation
+last_updated: "2026-10-09T19:50:18.000Z"
 last_activity: 2026-10-09
-last_activity_desc: Phase 02 verification passed; Phase 03 verification is next
-state_head: c2317de
+last_activity_desc: Phase 03 verification found sprite-overflow and current-head hosted-evidence gaps
+state_head: 124dc96
 progress:
   total_phases: 6
   completed_phases: 5
@@ -28,14 +28,14 @@ See: .planning/PROJECT.md (updated 2026-10-09)
 
 ## Current Position
 
-Current Phase: 04.2 — Close gap: SND-01 — deliver single-sample libretro audio
-Current Phase Name: Close gap: SND-01 — deliver single-sample libretro audio
-Current Plan: Not started
-Total Plans in Phase: 0
-Plans complete: 0 of 0.
-Status: Ready to plan
-Last activity: 2026-10-09 — Phase 02 verification refreshed; Phase 03 verification is next
-Last Activity Description: Phase 02 verification passed; Phase 03 verification is next
+Current Phase: 03 — A real game in RetroArch (verification gap closure)
+Current Phase Name: A real game in RetroArch — verification gap closure
+Current Plan: Gap closure plan not yet created
+Total Plans in Phase: 14 original plans
+Plans complete: 14 of 14 original plans; gap plan pending.
+Status: Verification gaps found; ready to plan closure.
+Last activity: 2026-10-09 — Phase 03 verification refreshed
+Last Activity Description: 25/28 must-have truths verified; sprite overflow scan and fresh hosted evidence remain.
 
 Progress: [██████████] 100%
 
@@ -128,7 +128,7 @@ None.
 
 ### Blockers/Concerns
 
-The milestone audit in `.planning/v1-MILESTONE-AUDIT.md` found the SND-01 single-sample libretro audio integration gap; Phase 04.1 closed the GAME-01 trainer gap with synthetic core-bus tests and the CI workflow. Phase 01 and 02 verification are fresh and passed. Phase 03 and 04 verification are stale after covered files changed; `$gsd-execute-phase 03` then `$gsd-execute-phase 04` resume at verification gates without re-running summarized plans. Afterward, Phase 04.2 resumes planning directly from the milestone audit with research skipped. No owner UAT is needed for the deterministic callback and trainer behaviors.
+The refreshed Phase 03 verification is `gaps_found` (25/28): implement and test the 2C02 diagonal OAM sprite-overflow scan, then collect current-head hash equality and RetroArch capture through hosted CI. Local `cmake --workflow --preset ci` passed 355 tests; `retroarch.testframe` and `retroarch.game` skipped because RetroArch is unavailable locally. The phase review reconstructed scope from plan summaries because 12 task commit IDs are unreachable from the current branch; its single active warning matches the verification gap. Next command: `$gsd-plan-phase 03 --gaps`. After Phase 03 closes, Phase 04 verification remains stale; then resume Phase 04.2 planning from the milestone audit with research skipped. The hosted evidence can be automated in CI; no owner-only item is established yet.
 
 ### Quick Tasks Completed
 
@@ -152,8 +152,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T19:38:37Z
-Stopped at: Phase 02 verification refreshed; Phase 03 verification is next
-Resume file: $gsd-execute-phase 03
+Last session: 2026-10-09T19:50:18Z
+Stopped at: Phase 03 verification refreshed; gap closure planning is next
+Resume file: $gsd-plan-phase 03 --gaps
 
-Next GSD sequence: refresh stale verification in roadmap order (03, then 04); resume Phase 04.2 planning with `$gsd-plan-phase 04.2 --skip-research`.
+Next GSD sequence: `$gsd-plan-phase 03 --gaps` → `$gsd-execute-phase 03 --gaps-only` → refresh Phase 04 verification with `$gsd-execute-phase 04` → resume Phase 04.2 planning with `$gsd-plan-phase 04.2 --skip-research`.
