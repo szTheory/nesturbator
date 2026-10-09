@@ -36,6 +36,8 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
     }
 
     nesturbator__controller_begin_frame(inst);
+    if (n > 0u)
+        memset(io->audio, 0, (size_t)n * sizeof io->audio[0]);
     if (inst->cart.bytes == NULL) {
         /* No cartridge: test pattern and silence. */
         for (uint32_t y = 0; y < NESTURBATOR_HEIGHT; y++) {
@@ -46,6 +48,7 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
         }
         inst->ticks += NESTURBATOR_TICKS_PER_FRAME;
     } else {
+        nesturbator__apu_begin_frame(inst, io->audio, n);
         uint64_t target = inst->ticks + NESTURBATOR_TICKS_PER_FRAME;
         inst->ppu.video_output = io->video;
         inst->ppu.video_pitch = io->video_pitch;
@@ -53,14 +56,12 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
             nesturbator__cpu_step(inst);
         }
         nesturbator__ppu_run_until(inst, inst->ticks);
+        nesturbator__apu_end_frame(inst);
         inst->ppu.video_output = NULL;
         inst->ppu.video_pitch = 0u;
         if (inst->cpu.jammed != 0u) {
             return NESTURBATOR_STOP_JAM;
         }
-    }
-    if (n > 0u) {
-        memset(io->audio, 0, (size_t)n * sizeof io->audio[0]);
     }
 
     inst->audio_rem = (uint32_t)(acc % NESTURBATOR_AUDIO_TICKS_PER_PERIOD);

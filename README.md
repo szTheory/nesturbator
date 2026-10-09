@@ -70,7 +70,15 @@ nonzero.
 
 Frame time advances in 24-tick CPU cycles. A frame request runs complete
 instructions through the requested boundary and reports the actual tick count,
-retaining any overshoot for the next request. Audio output is currently silent.
+retaining any overshoot for the next request. Audio is mono signed 16-bit PCM at
+48 kHz; each frame returns 798 or 799 samples with the fraction carried
+forward. With no cartridge loaded, samples are zero. Mapper-0 pulse register
+writes and the `$4015` enable gate share the CPU bus timeline; pulse timer,
+duty, length and DAC gating follow NTSC RP2A03 documentation in
+`.planning/preparation/NES-HARDWARE-CPU-APU.md` section 4.1 (HWC.08). The
+tracer currently scales the integer pulse DAC level into signed PCM; the
+nonlinear mixer and band-limited synthesis are later sound work (HWC.11,
+section 5).
 If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
 CPU stays latched until the cartridge is unloaded or reloaded.
 

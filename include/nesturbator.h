@@ -170,7 +170,11 @@ typedef struct nesturbator_info {
  * by cycle parity while PPU time continues.
  *
  * Audio: mono signed 16-bit samples at the info sample rate. A frame yields
- * 798 or 799 samples; the fraction carries over to the next frame. */
+ * 798 or 799 samples; the fraction carries over to the next frame. Mapper-0
+ * pulse registers advance on CPU bus cycles and contribute their mixed DAC
+ * level to PCM. With no cartridge loaded, every sample is zero. Pulse timer,
+ * duty and length behavior follows NES-HARDWARE-CPU-APU.md section 4.1
+ * (HWC.08); the integer DAC path is described in section 5 (HWC.11). */
 typedef struct nesturbator_frame {
     uint32_t size;           /* in: sizeof(nesturbator_frame) */
     uint16_t *video;         /* in: at least 240 rows of video_pitch pixels */
@@ -250,7 +254,8 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * next call, so a crossing instruction cannot mix frame masks.
  * No cartridge: test pattern and silence. A JAM opcode stops with
  * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
- * advance on later frame calls. Audio is currently silent. */
+ * advance on later frame calls. Audio is mono signed 16-bit PCM; no-cartridge
+ * audio is zero. */
 nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *io);
 
 /* Copies up to `count` calibrated NTSC-to-sRGB XRGB8888 entries (0x00RRGGBB),

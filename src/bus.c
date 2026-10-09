@@ -17,6 +17,7 @@ static void cycle(struct nesturbator *nes)
 {
     nes->ticks += 9u;
     ppu_catch_up(nes);
+    nesturbator__apu_clock(nes);
     nes->ticks += 15u;
     ppu_catch_up(nes);
 }
@@ -97,5 +98,7 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
             nes->bus.controller_shift[1] = nes->bus.controller_latch[1];
         }
         nes->bus.controller_strobe = strobe;
+    } else if (addr >= 0x4000u && addr <= 0x4017u) {
+        nesturbator__apu_write(nes, addr, value);
     }
 }
