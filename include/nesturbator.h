@@ -227,8 +227,9 @@ nesturbator_status nesturbator_set_input(nesturbator *inst, const nesturbator_in
 void nesturbator_destroy(nesturbator *inst);
 
 /* Copies one bounded mapper-0 iNES v1 or NES 2 image into the instance.
-   Accepts 16 or 32 KiB PRG and either 8 KiB CHR ROM or 8 KiB declared CHR RAM;
-   trainers are accepted. Other mappers, unsupported console/region/RAM
+   Accepts 16 or 32 KiB PRG and either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
+   A trainer initializes the writable 8 KiB PRG RAM at CPU $7000-$71FF;
+   other addresses in $6000-$7FFF start at zero. Other mappers, unsupported console/region/RAM
    profiles, malformed headers, truncation, extra payload, and images above
    64 MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and
    leave a previously loaded cartridge untouched. Allocation failure returns

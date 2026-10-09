@@ -52,6 +52,8 @@ static uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr)
     } else if (addr < 0x4000u) {
         uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
         nes->bus.open_bus = nesturbator__ppu_register_read(nes, reg);
+    } else if (addr >= 0x6000u && addr < 0x8000u && nes->cart.prg_ram != NULL) {
+        nes->bus.open_bus = nes->cart.prg_ram[addr - 0x6000u];
     } else if (addr >= 0x8000u && nes->cart.bytes != NULL) {
         nes->bus.open_bus = nesturbator__cart_read(nes, addr);
     }
@@ -144,6 +146,8 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
     } else if (addr < 0x4000u) {
         uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
         nesturbator__ppu_register_write(nes, reg, value);
+    } else if (addr >= 0x6000u && addr < 0x8000u && nes->cart.prg_ram != NULL) {
+        nes->cart.prg_ram[addr - 0x6000u] = value;
     } else if (addr == 0x4014u) {
         nes->bus.oam_dma_page = value;
         nes->bus.oam_dma_pending = 1u;

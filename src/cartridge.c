@@ -140,7 +140,7 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
 {
     const uint8_t *image = (const uint8_t *)data;
     struct cartridge_layout layout;
-    size_t offset, allocation_size;
+    size_t offset, allocation_size, chr_ram_offset;
     uint8_t *copy;
     if (inst == NULL || data == NULL) {
         return NESTURBATOR_ERR_ARGUMENT;
@@ -150,6 +150,12 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
         return NESTURBATOR_ERR_CARTRIDGE;
     offset = 16u + layout.trainer_size;
     allocation_size = size;
+    chr_ram_offset = size;
+    if (layout.trainer_size != 0u) {
+        if (!checked_add(allocation_size, 8192u, &allocation_size))
+            return NESTURBATOR_ERR_CARTRIDGE;
+        chr_ram_offset += 8192u;
+    }
     if (layout.chr_is_ram && !checked_add(allocation_size, 8192u, &allocation_size))
         return NESTURBATOR_ERR_CARTRIDGE;
     copy = (uint8_t *)inst->allocator.alloc(inst->allocator.user, allocation_size);
@@ -164,8 +170,17 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     inst->cart.bytes = copy;
     inst->cart.size = allocation_size;
     inst->cart.prg = copy + offset;
+    inst->cart.prg_size = layout.prg_size;
     inst->cart.chr = inst->cart.prg + layout.prg_size;
+    if (layout.trainer_size != 0u) {
+        /* HWP.14 places the 512-byte trainer at CPU $7000-$71FF. */
+        inst->cart.prg_ram = copy + size;
+        memset(inst->cart.prg_ram, 0, 8192u);
+        memcpy(inst->cart.prg_ram + 0x1000u, image + 16u, 512u);
+    }
     inst->cart.chr_is_ram = (uint8_t)layout.chr_is_ram;
+    if (layout.chr_is_ram)
+        inst->cart.chr = copy + chr_ram_offset;
     if (layout.chr_is_ram)
         memset(inst->cart.chr, 0, 8192u);
     memset(&inst->bus, 0, sizeof inst->bus);
@@ -189,5 +204,5 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
 
 uint8_t nesturbator__cart_read(struct nesturbator *nes, uint16_t addr)
 {
-    return nes->cart.prg[(addr - 0x8000u) & (nes->cart.size >= 32784u ? 0x7fffu : 0x3fffu)];
+    return nes->cart.prg[(addr - 0x8000u) & (nes->cart.prg_size == 32768u ? 0x7fffu : 0x3fffu)];
 }

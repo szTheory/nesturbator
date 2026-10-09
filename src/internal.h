@@ -143,7 +143,9 @@ struct nesturbator__cartridge {
     uint8_t *bytes;
     size_t size;
     uint8_t *prg;
+    size_t prg_size;
     uint8_t *chr;
+    uint8_t *prg_ram;
     uint8_t chr_is_ram;
 };
 
