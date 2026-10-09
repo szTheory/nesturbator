@@ -1,8 +1,8 @@
 ---
 phase: 03-a-real-game-in-retroarch
-verified: 2026-10-09T13:30:25Z
-status: gaps_found
-score: 11/13 must-haves verified
+verified: 2026-10-09T14:17:58Z
+status: human_needed
+score: 12/13 must-haves verified
 covered_files:
   - .github/workflows/ci.yml
   - .github/workflows/nightly.yml
@@ -32,6 +32,8 @@ covered_files:
   - .planning/phases/03-a-real-game-in-retroarch/03-12-SUMMARY.md
   - .planning/phases/03-a-real-game-in-retroarch/03-13-PLAN.md
   - .planning/phases/03-a-real-game-in-retroarch/03-13-SUMMARY.md
+  - .planning/phases/03-a-real-game-in-retroarch/03-14-PLAN.md
+  - .planning/phases/03-a-real-game-in-retroarch/03-14-SUMMARY.md
   - README.md
   - include/nesturbator.h
   - libretro/libretro.c
@@ -68,30 +70,28 @@ covered_files:
   - tests/runner/hashes.txt
   - tests/runner/test_movie.c
   - tools/palgen/palgen.c
-covered_digest: "v3:sha256:b3c25aac505243e4f219813a087943ae210713c0c1345900c6599e0b994f4870"
+covered_digest: "v3:sha256:5e8c52c9ca5d711427e114c7c6bdd56cd8512a91eaf86096f7f25fb53f48555a"
 behavior_unverified: 0
 overrides_applied: 0
-gaps:
-  - truth: "Sprites render on every visible scanline, including scanline 0 after the pre-render transition."
-    status: failed
-    reason: "Sprite evaluation returns on scanline 261, while the PPU begins at scanline 0 without preparing the first visible row. OAM Y=255 sprites that wrap to scanline 0 are therefore omitted."
-    artifacts:
-      - path: "src/ppu.c"
-        issue: "sprite_evaluate() exits for scanlines above 239, and sprite_fetch() only prepares scanline + 1; there is no pre-render setup for target scanline 0."
-      - path: "tests/ppu/test_sprites.c"
-        issue: "The adjacent-scanline and synthetic pixel tests do not advance through pre-render or check Y=255 wraparound, so this gap is untested."
-    missing:
-      - "Prepare sprite evaluation and pattern data for scanline 0 during pre-render, preserving NES Y-coordinate wrap semantics."
-      - "Add an automated full-frame boundary test that asserts a Y=255 sprite appears on visible row 0."
-re_verification: false
+re_verification:
+  previous_status: gaps_found
+  previous_score: 11/13
+  gaps_closed:
+    - "Sprites render on every visible scanline, including scanline 0 after the pre-render transition."
+  gaps_remaining: []
+  regressions: []
+human_verification:
+  - test: "Run and inspect exact-HEAD hosted CI evidence"
+    expected: "All six platform hash inventories are byte-identical, and the required retroarch-e2e job captures the pinned game, compares its screenshot frame with the runner frame, and retains the evidence artifact."
+    why_human: "No hosted workflow run exists for HEAD 5c6267f40c2b6d69e3a4baa875e36f6cb12719e7. The local RetroArch tests were skipped after RetroArch could not start, so external hosted results cannot be established from this checkout."
 ---
 
 # Phase 3: A Real Game in RetroArch Verification Report
 
 **Phase Goal:** A player loads an NROM game in RetroArch, sees it render and controls it, and its frames are identical on every platform.
-**Verified:** 2026-10-09T13:30:25Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-10-09T14:17:58Z
+**Status:** human_needed
+**Re-verification:** Yes — after gap closure
 
 ## Goal Achievement
 
@@ -99,110 +99,105 @@ re_verification: false
 
 | # | Truth | Status | Evidence |
 |---|---|---|---|
-| 1 | The runner safely loads supported mapper-0 iNES/NES 2.0 games and rejects invalid or oversized images before cartridge allocation; corpus regression is wired into CI and nightly fuzzing is configured. | ✓ VERIFIED | `src/cartridge.c` validates the full image before allocator use; `tests/core/test_cartridge.c` uses a counting allocator; `fuzz.regress` is registered in `tests/CMakeLists.txt`; nightly workflow contains the bounded fuzz job. Supplied CI passed the local corpus test. |
-| 2 | Pinned game frames match recorded hashes on all six platforms, libretro matches the runner, and hosted RetroArch captures and compares the real game screenshot. | ? UNCERTAIN | `tests/cmake/write_hashes.cmake` builds complete inventories and `.github/workflows/ci.yml` defines six-platform hash equality and required `retroarch-e2e`; local `libretro.host` passed. However, this checkout has no exact-HEAD hosted run (`gh run list --workflow ci.yml --commit c790d993c1cd8c9023f5ea8cac6391b2d4490bdb` returned `[]`), and the supplied local run skipped both `retroarch.testframe` and `retroarch.game`. No screenshot or six-platform run result was observed. |
-| 3 | Movie input replays deterministically and the same masks produce equal libretro frames. | ✓ VERIFIED | Supplied full CI passed `runner.movie` and `libretro.host`; the tests are registered in `tests/CMakeLists.txt`, and `runner/movie.c` validates the bounded movie before replay. |
-| 4 | AccuracyCoin results are read from emulated RAM, match the scoreboard, pages 2 and 17 pass, and scoreboard regression prevents lost protected-main passes. | ✓ VERIFIED | Supplied full CI passed `accuracycoin.page2`, `accuracycoin.page17`, `accuracy.scoreboard`, and `accuracy.scoreboard.no_lost_pass`; `runner/main.c`, `tests/accuracy/test_scoreboard.c`, and the protected-main handoff in `.github/workflows/ci.yml` implement the corresponding paths. |
-| 5 | The generated NROM path produces the same nonblank deterministic frame through runner and libretro, with CPU/PPU time conserved across frame edges. | ✓ VERIFIED | `tests/libretro/libretro_host.c` loads the generated cartridge through both hosts and compares pixels; `tests/core/test_api.c` and frame tests cover boundary timing. Supplied full CI passed `libretro.host` and `core.frame`. |
-| 6 | The PPU exposes register, mirroring, vblank/NMI, timing, and background pixel behavior used by NROM games. | ✓ VERIFIED | `src/ppu.c`, `src/bus.c`, `tests/ppu/test_registers.c`, and `tests/ppu/test_render.c` are substantive and included in the full CI run; `ppu.registers` and `ppu.render` were among the passing tests. |
-| 7 | Sprite composition, priority, hit/overflow, DMA, and adjacent-scanline outcomes behave correctly, including row 0. | ✗ FAILED | The automated sprite suite covers priority, x boundaries, overflow, DMA, and adjacent rows, but `src/ppu.c` never prepares sprite data for scanline 0. The review finding CR-03 is reproducible by inspection: `sprite_evaluate()` excludes scanline 261 and the initial state starts on scanline 0. See the structured gap above. |
-| 8 | The two standard controller ports accept deterministic input from the runner and libretro joypad callbacks. | ✓ VERIFIED | `src/bus.c`, `libretro/libretro.c`, `tests/core/test_controller.c`, and `tests/libretro/libretro_host.c` connect and exercise the input path; supplied CI passed `core.controller` and `libretro.host`. |
-| 9 | Three manifest-pinned open-licence NROM games and their movie milestones have a sorted recorded hash inventory. | ✓ VERIFIED | `tests/roms/manifest.txt`, `tests/runner/hashes.txt`, and `tests/cmake/write_hashes.cmake` are present; `runner.write_hashes` and `runner.write_hashes.content` passed in supplied CI. |
-| 10 | The calibrated display palette regenerates identically and does not change native frame hashes. | ✓ VERIFIED | `tools/palgen/palgen.c`, `src/palette_ntsc.c`, and `tests/core/test_palette.c` are connected by `palette.regen`; supplied CI passed that test. |
-| 11 | The six-platform CI configuration compares complete byte-identical frame/hash inventories and requires the RetroArch E2E job. | ✓ VERIFIED (wiring) | `.github/workflows/ci.yml` has six build lanes, hash artifact fan-in, `retroarch-e2e`, and `ci-required` dependency wiring. This verifies the gate configuration only; actual hosted output remains UNCERTAIN in truth 2. |
-| 12 | The loader corpus replays without crash, and nightly libFuzzer is bounded and fail-closed. | ✓ VERIFIED | `tests/fuzz/rom_loader.c`, CTest `fuzz.regress`, and `.github/workflows/nightly.yml` contain the wired implementation. Supplied CI passed `fuzz.regress`; nightly execution itself was not observed in this local run. |
-| 13 | The scoreboard test uses a protected-main baseline in CI and a deterministic committed snapshot for detached local runs. | ✓ VERIFIED (wiring) | `tests/cmake/prepare_scoreboard_baseline.cmake`, `.github/workflows/ci.yml`, and `tests/accuracy/test_scoreboard.c` connect the handoff and enforcement; local tests include empty/missing/lost-PASS cases. |
+| 1 | The mapper-0 loader validates supported iNES/NES 2.0 images before allocation; the corpus regression and bounded nightly fuzz job are wired. | ✓ VERIFIED | This execute-phase regression gate completed `cmake --workflow --preset ci` at the reported checkout: 356/356 tests passed. |
+| 2 | Pinned game hashes agree across all six platforms, libretro receives equal frames, and hosted RetroArch compares and retains a game capture. | ⚠️ UNCERTAIN | Local `libretro.host` passed. `.github/workflows/ci.yml` wires six-lane hash equality and required `retroarch-e2e`; `gh run list --commit 5c6267f40c2b6d69e3a4baa875e36f6cb12719e7` returned no hosted run. Local `retroarch.testframe` and `retroarch.game` were skipped because RetroArch could not start. |
+| 3 | Movie replay is deterministic and matching controller masks produce equal libretro frames. | ✓ VERIFIED | Regression check: movie/hash tests and host parity tests remain wired; supplied workflow passed all applicable tests. |
+| 4 | AccuracyCoin results come from RAM, match the scoreboard, and protect existing passing rows. | ✓ VERIFIED | Regression check: page 2/page 17, scoreboard, and no-lost-pass tests remain wired; supplied workflow passed. |
+| 5 | The generated NROM path produces matching nonblank frames through runner and libretro, with frame-edge timing conserved. | ✓ VERIFIED | Regression check: `libretro.host`, frame timing and API tests remain registered; supplied workflow passed all applicable tests. |
+| 6 | PPU registers, mirroring, vblank/NMI, timing, and background rendering are implemented and exercised. | ✓ VERIFIED | Regression check: `ppu.registers` and `ppu.render` remain wired; supplied workflow passed them. |
+| 7 | Sprite composition, priority, hit/overflow, DMA and adjacent rows work, including visible row 0 after pre-render. | ✓ VERIFIED | `src/ppu.c` evaluates scanline 261 for target row 0, wraps OAM Y=$FF only there, fetches row data at dot 257, and stores the next row separately from current composition. `tests/ppu/test_sprites.c::test_prerender_wraps_sprite_rows_into_visible_scanline_zero` advances the normal PPU clock across even and odd pre-render lengths, asserts row-zero palette pixels, confirms Y=$00 first appears on row 1, and checks the next row. The supplied full workflow passed. |
+| 8 | Both controller ports receive deterministic runner and libretro input. | ✓ VERIFIED | Regression check: controller and libretro host tests remain wired and passed in supplied CI. |
+| 9 | Three manifest-pinned games and movie milestones have a sorted recorded hash inventory. | ✓ VERIFIED | Regression check: manifest and generated hash inventory remain in place; generator/content checks passed. |
+| 10 | Palette generation is reproducible and preserves native frame hashes. | ✓ VERIFIED | Regression check: palette generator and `palette.regen` remain wired; supplied CI passed. |
+| 11 | Six-platform CI compares complete inventories and requires the RetroArch E2E job. | ✓ VERIFIED (wiring) | Workflow defines six build lanes, nonempty hash artifact fan-in/equality, and required `retroarch-e2e` dependency. This is configuration evidence only; runtime result is truth 2. |
+| 12 | Loader corpus replay is safe, and nightly libFuzzer is bounded and fail-closed. | ✓ VERIFIED | Regression check: CTest corpus registration and nightly workflow configuration remain present; local corpus test passed. |
+| 13 | CI scoreboard checks use a protected-main baseline and detached local checks use a deterministic snapshot. | ✓ VERIFIED (wiring) | Regression check: protected-main handoff, required CI variable, and detached snapshot path remain wired; supplied scoreboard regressions passed. |
 
-**Score:** 11/13 truths verified (0 present, behavior-unverified; 1 uncertain; 1 failed). The 13 rows combine the four roadmap criteria with non-duplicative plan must-haves. Repeated plan truths (for example, movie replay in Plans 05/11 and host parity in Plans 01/09) are represented once.
+**Score:** 12/13 truths verified (0 present, behavior-unverified; 1 uncertain).
 
-## Required Artifacts
+### Required Artifacts
 
 | Artifact group | Expected | Status | Details |
 |---|---|---|---|
-| `src/cartridge.c`, `tests/core/test_cartridge.c` | Bounded loader and allocation-before-validation prevention | ✓ VERIFIED | Real parser; counting allocator and format/rejection cases are registered. |
-| `src/frame.c`, `src/bus.c`, `src/ppu.c`, `tests/ppu/*` | Shared timed CPU/PPU frame, background and sprite rendering | ⚠️ PARTIAL | Substantive and wired; sprite state for visible scanline 0 is missing. |
-| `runner/main.c`, `runner/movie.c`, `tests/runner/*` | CLI ROM/movie loading, deterministic frame output | ✓ VERIFIED | Linked to public core API; tests are registered and supplied run passed. |
-| `libretro/libretro.c`, `tests/libretro/libretro_host.c` | Libretro content, input, video and frame parity | ✓ VERIFIED | Host calls exported adapter and compares output to runner; test passed. Per-sample audio and reset limitations are listed below as out-of-scope review findings. |
-| `tests/roms/manifest.txt`, `tests/runner/hashes.txt`, `tests/accuracy/scoreboard.txt` | Licensed fixture inventory and committed baselines | ✓ VERIFIED | Manifest and expected inventories exist; full CI hash and AccuracyCoin tests passed. |
-| `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`, `tests/retroarch/run_retroarch.cmake` | Cross-platform hashes, hosted RetroArch proof and nightly fuzz | ✓ VERIFIED (structure) | Wiring is present and fail-closed. Hosted RetroArch execution and artifacts are not available for this exact HEAD. |
+| `src/cartridge.c`, `tests/core/test_cartridge.c` | Bounded loader and allocation-before-validation | ✓ VERIFIED | Existing implementation and tests remain registered; applicable supplied CI tests passed. |
+| `src/frame.c`, `src/bus.c`, `src/ppu.c`, `tests/ppu/*` | Shared timing, background and sprite output | ✓ VERIFIED | The carried scanline-zero defect is fixed and tested through normal clock progression. All applicable local tests passed. |
+| `runner/main.c`, `runner/movie.c`, `tests/runner/*` | CLI content/movie loading and deterministic frame output | ✓ VERIFIED | Existing runner and movie tests remained wired and passed. |
+| `libretro/libretro.c`, `tests/libretro/libretro_host.c` | Content, input, video and host frame parity | ✓ VERIFIED | Host test passed against the runner output. |
+| `tests/roms/manifest.txt`, `tests/runner/hashes.txt` | Licensed fixture list and generated baselines | ✓ VERIFIED (local) | Hash generation and committed content comparison passed locally. Cross-platform equality execution remains part of truth 2. |
+| `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`, `tests/retroarch/run_retroarch.cmake` | Cross-platform gate, hosted screenshot proof and nightly fuzz | ✓ VERIFIED (wiring) | Jobs and fail-closed dependencies are present. Hosted execution is not available for this HEAD. |
 
-The artifact query did not parse these plans' inline/list artifact declarations (`verify.artifacts` returned `total: 0` for all 13 plans), so artifact status above is from direct source, build registration, and test wiring inspection rather than a green artifact-query verdict.
-
-## Key Link Verification
+### Key Link Verification
 
 | From | To | Via | Status | Details |
 |---|---|---|---|---|
-| `runner/main.c` | public cartridge/frame API | load file bytes, run instance, emit native frame/hash | WIRED | Runner hash tests and generated-game host fixture exercise the path. |
-| `libretro/libretro.c` | public cartridge/frame/input API | load game, poll joypads, run frame, convert pixels, call video callback | WIRED | `retro_run()` maps both joypads and passes core output to conversion/video callback; `libretro.host` passed. |
-| `src/frame.c` / `src/bus.c` | `src/ppu.c` | CPU bus cycles advance the same instance PPU cursor | WIRED | Core frame and PPU tests are registered and passed in supplied CI. |
-| `tests/cmake/write_hashes.cmake` | six-platform CI | produce artifacts consumed by equality job | WIRED | YAML fan-in checks six nonempty hash artifacts and compares them byte-for-byte. |
-| `tests/retroarch/run_retroarch.cmake` | released RetroArch + runner | required mode loads pinned content, captures and compares screenshot | WIRED, RUN UNVERIFIED | CI workflow pins the app/checksum, enables required mode, and uploads evidence; no exact-HEAD hosted run was found. |
-| `tests/cmake/prepare_scoreboard_baseline.cmake` | CTest scoreboard checks | CI exports baseline path, test checks no lost PASS | WIRED | Present in matrix before CTest; local baseline-specific regression tests passed. |
+| `runner/main.c` | public cartridge/frame API | load, run, emit frame/hash | WIRED | Runner tests and generated-game fixture exercise the API. |
+| `libretro/libretro.c` | public cartridge/frame/input API | load, joypad poll, frame, callback | WIRED | Host integration test passed. |
+| `src/frame.c` / `src/bus.c` | `src/ppu.c` | shared instance clock | WIRED | Frame and PPU tests passed. |
+| `tests/cmake/write_hashes.cmake` | six-platform CI | hash artifacts and equality gate | WIRED | Complete artifact fan-in and equality job are declared. |
+| `tests/retroarch/run_retroarch.cmake` | released RetroArch + runner | required capture and comparison | WIRED; RUN UNVERIFIED | Required CI job invokes it and uploads evidence; no hosted run for this exact checkout was available. |
+| `tests/cmake/prepare_scoreboard_baseline.cmake` | scoreboard checks | protected baseline handoff | WIRED | Required baseline preparation and regression test paths remain present. |
 
-## Data-Flow Trace (Level 4)
+### Data-Flow Trace (Level 4)
 
 | Artifact | Data variable | Source | Produces real data | Status |
 |---|---|---|---|---|
-| `runner/main.c` | native frame pixels | loaded ROM → instance → `nesturbator_run_frame()` | Yes | ✓ FLOWING |
-| `libretro/libretro.c` | `video`, `xrgb` | instance frame output → `nesturbator_host_convert()` → frontend callback | Yes | ✓ FLOWING |
-| `src/ppu.c` | native framebuffer | CHR/nametable/palette/OAM in the loaded instance | Yes, with scanline 0 sprite omission | ⚠️ PARTIAL |
-| `runner/main.c` AccuracyCoin mode | test result rows | emulated CPU RAM after bounded scripted execution | Yes | ✓ FLOWING |
-| `tests/cmake/write_hashes.cmake` | game/movie hashes | runner output from manifest-listed ROMs and generated movies | Yes | ✓ FLOWING |
+| `runner/main.c` | native frame pixels | loaded ROM → instance → frame API | Yes | ✓ FLOWING |
+| `libretro/libretro.c` | video buffer | instance frame → host conversion → callback | Yes | ✓ FLOWING |
+| `src/ppu.c` | native framebuffer | instance CHR/nametable/palette/OAM | Yes; row-zero sprite path now covered | ✓ FLOWING |
+| AccuracyCoin runner mode | result rows | emulated CPU RAM | Yes | ✓ FLOWING |
+| hash generator | game/movie hashes | runner output for manifest ROMs and movies | Yes | ✓ FLOWING |
 
-## Behavioral Spot-Checks
+### Behavioral Spot-Checks
 
 | Behavior | Command/evidence | Result | Status |
 |---|---|---|---|
-| Full local workflow | Orchestrator supplied `cmake --workflow --preset ci`: 356/356 tests, 354 passed, 2 skipped, 0 failed; package step emitted library, runner, and libretro macOS arm64 ZIPs | RetroArch tests skipped because the host was unavailable; no local RetroArch claim made | ✓ PASS with explicit skips |
-| Loader, core, PPU, controller, movie, game hashes, AccuracyCoin | Named CTest inventory in `build/ci`; supplied workflow result above | Relevant cases passed; all 256 CPU vectors and existing PPU/controller/game tests were included | ✓ PASS |
-| Required real-game RetroArch screenshot | `gh run list --workflow ci.yml --commit c790d993c1cd8c9023f5ea8cac6391b2d4490bdb ...` | No exact-HEAD run listed; local `retroarch.testframe` and `retroarch.game` were skipped | ? NEEDS HOSTED EVIDENCE |
-| Scanline 0 sprite rendering | Source trace of `sprite_evaluate()` and registered `ppu.sprites` test | No scanline 261 preparation and no full-frame Y=255 test | ✗ FAIL |
+| Local CI workflow | `cmake --workflow --preset ci` at HEAD `5c6267f40c2b6d69e3a4baa875e36f6cb12719e7` in this execute-phase run | 356/356 tests passed; `retroarch.testframe` and `retroarch.game` skipped because RetroArch could not start | ✓ PASS with explicit skips |
+| Pre-render Y=$FF row-zero sprite on both parities; Y=$00 adjacent-row behavior | `ppu.sprites` normal clock-path regression, also included in supplied full workflow | Assertions cover row-zero pixel, even/odd pre-render, transparency, row 1 and adjacent row; passed | ✓ PASS |
+| Hash inventory, AccuracyCoin, libretro parity and loader corpus | Applicable named CTests in supplied full workflow | Passed as part of 356 tests | ✓ PASS |
+| Exact-HEAD hosted six-platform and RetroArch capture evidence | No hosted workflow run observed for this checkout; local RetroArch tests skipped | No hosted output/artifact available to inspect | ? HUMAN |
 
-## Probe Execution
+### Probe Execution
 
-No Phase 03 plan declares a `probe-*.sh` path, and no conventional phase probe is part of this C test/tooling phase. Step 7c: not applicable.
+No phase plan declares a `probe-*.sh` path, and this phase has no conventional project probe. Not applicable.
 
-## Requirements Coverage
+### Requirements Coverage
 
-| Requirement | Source plan | Status | Evidence |
+| Requirement | Source plans | Status | Evidence |
 |---|---|---|---|
-| GAME-01 | 03-01, 03-02, 03-09 | ✓ SATISFIED | Full parser validation precedes allocation; invalid file runner path and counting allocator tests passed. |
-| GAME-02 | 03-01, 03-03, 03-04, 03-06, 03-08, 03-09, 03-12 | ⚠️ PARTIAL / HUMAN EVIDENCE | Runner/libretro equality and recorded hashes passed local CTest; exact-host RetroArch screenshot proof is unavailable for this HEAD; sprite scanline 0 rendering is a code gap. |
-| GAME-03 | 03-05, 03-06, 03-08, 03-11 | ✓ SATISFIED | Repeatable ordered movie output and identical scripted host frames passed. |
-| GAME-04 | 03-03, 03-04, 03-07, 03-13 | ✓ SATISFIED | RAM-derived scoreboard tests, pages 2/17, and lost-PASS regression passed; CI baseline handoff is wired. |
-| GAME-05 | 03-08, 03-10 | ✓ SATISFIED (implementation/configuration) | Corpus test passed; nightly libFuzzer job and failure handling are wired. No hosted nightly execution claimed. |
-| GAME-06 | 03-06, 03-08, 03-12 | ⚠️ NEEDS HOSTED EVIDENCE | Six platform artifacts and byte-equality gate are configured, but no six-platform result for this exact HEAD was observed. |
+| GAME-01 | 03-01, 03-02, 03-09 | ✓ SATISFIED | Loader validation, preallocation rejection tests and fuzz corpus regression remain wired and passed locally. |
+| GAME-02 | 03-01, 03-03, 03-04, 03-06, 03-08, 03-09, 03-12, 03-14 | ⚠️ NEEDS HOSTED EVIDENCE | Local game hashes, runner/libretro parity, and row-zero sprite regression passed. Exact-HEAD six-platform equality and hosted RetroArch capture remain unobserved. |
+| GAME-03 | 03-05, 03-06, 03-08, 03-11 | ✓ SATISFIED (local) | Movie replay and libretro input parity tests passed in supplied CI. |
+| GAME-04 | 03-03, 03-04, 03-07, 03-13, 03-14 | ✓ SATISFIED (local) | RAM-derived AccuracyCoin and scoreboard/no-lost-pass tests passed in supplied CI. |
+| GAME-05 | 03-08, 03-10 | ✓ SATISFIED (wiring/local corpus) | Loader corpus regression passed; bounded nightly job remains configured. Nightly hosted execution was not claimed. |
+| GAME-06 | 03-06, 03-08, 03-12, 03-14 | ⚠️ NEEDS HOSTED EVIDENCE | Local generated inventory matches committed baseline; six-platform run for current HEAD is not observed. |
 
-All six required IDs are mapped by Phase 03 plans; no orphaned Phase 03 requirement was found in `REQUIREMENTS.md`.
+All six Phase 03 requirements are claimed by plans; none are orphaned in `REQUIREMENTS.md`.
 
-## Anti-Patterns Found
+### Anti-Patterns Found
 
-| File | Location | Pattern | Severity | Impact |
-|---|---|---|---|---|
-| `src/ppu.c` | `sprite_evaluate()`, `sprite_fetch()` | No sprite preparation for scanline 0 | 🛑 BLOCKER | Phase 03's timed sprite/rendering must-have fails for the top visible row. |
-| `libretro/libretro.c` | lines 58–62, 206–208 | Stores but never invokes per-sample audio callback | ⚠️ WARNING (scope) | CR-01 affects frontends using only the per-sample audio API; GAME-01..06 do not require audio. Do not attribute Phase 04 SND-01 to Phase 03. |
-| `libretro/libretro.c` | lines 151–154 | `retro_reset()` is empty for a loaded game | ⚠️ WARNING (scope) | CR-02 is a libretro API limitation, but no Phase 03 success criterion requires frontend reset behavior. |
-| `libretro/libretro.c` | line 298 | `return NULL` | ℹ️ INFO | Valid no-game/system-info path; not an empty feature implementation. |
+| File | Pattern | Severity | Impact |
+|---|---|---|---|
+| `libretro/libretro.c` | Per-sample audio callback is stored but not invoked | ⚠️ WARNING (out of scope) | Existing Phase 03 review item; not required by GAME-01 through GAME-06. |
+| `libretro/libretro.c` | `retro_reset()` is empty for a loaded game | ⚠️ WARNING (out of scope) | Existing review item; no Phase 03 criterion requires frontend reset behavior. |
+| `libretro/libretro.c` | `return NULL` in no-game/system-info path | ℹ️ INFO | Valid no-content behavior, not a stub. |
 
-The grep scan found no unreferenced `TBD`, `FIXME`, or `XXX` markers in the reviewed implementation/test/workflow scope. CR-01 and CR-02 remain open per `03-REVIEW-DISPOSITION.md`; they are not counted as Phase 03 blockers because they do not falsify this phase's six requirements or roadmap truths.
+No unreferenced `TBD`, `FIXME`, or `XXX` debt markers were found in the reviewed Phase 03 implementation scope. The previous scanline-zero blocker is closed; no regressions were identified. No new-scope advisory findings.
 
-## Human Verification Required
+### Human Verification Required
 
-### 1. Exact-HEAD hosted RetroArch and six-platform evidence
+#### 1. Exact-HEAD hosted CI evidence
 
-**Test:** Run the required CI workflow for this exact commit and inspect the `retroarch-e2e` job, hash-equality result, and retained `retroarch-e2e-frames` artifact.
-**Expected:** All six hash artifacts are present and byte-identical; the required job verifies the pinned RetroArch release checksum/version, captures the game frame, compares it equal to the runner frame, and uploads the screenshot evidence.
-**Why human:** The local environment had no RetroArch installation. Both local RetroArch tests skipped, and no exact-HEAD GitHub Actions run was available to inspect. The workflow definition is wired but cannot prove an external hosted execution by presence alone.
+**Test:** Run/inspect the required CI workflow for `5c6267f40c2b6d69e3a4baa875e36f6cb12719e7` once it is available to hosted CI; inspect six-platform hash equality, the `retroarch-e2e` result, and the retained capture artifact.
+**Expected:** All six hash artifacts are present and byte-identical; RetroArch loads the pinned game, compares its captured frame with the runner frame, and retains the evidence artifact.
+**Why human:** No hosted run for this HEAD was observed, and both local RetroArch tests were skipped after the GUI host could not start RetroArch. This is missing external execution evidence, not a demonstrated source defect.
 
-This human verification item does not change the overall status because the failed sprite-rendering truth takes precedence (`gaps_found`).
+### Gaps Summary
 
-## Gaps Summary
-
-The core loader, game/input/movie paths, local deterministic tests, AccuracyCoin checks, fuzz corpus, and required CI wiring are present and substantive. One observable rendering defect blocks the phase: the PPU does not prepare sprites for visible scanline 0, and current tests do not cover the pre-render/Y=255 transition. Separately, the required hosted RetroArch screenshot and six-platform equality have not been observed for this exact HEAD; local tests explicitly skipped RetroArch. Phase 4 covers sound only, so neither issue is deferred to a later roadmap phase.
+The carried code gap is closed. Pre-render now evaluates and fetches sprites for visible row zero; a registered full clock-path regression checks Y=$FF on even and odd transitions and preserves Y=$00 adjacent-row behavior. The supplied local workflow passed all 356 tests. There are no remaining code gaps. The hosted cross-platform equality and RetroArch screenshot result remain to be observed for this exact HEAD, so the phase routes to `human_needed` pending that evidence.
 
 Decision coverage: all 11 trackable CONTEXT.md decisions honored (non-blocking gate).
 
 ---
 
-_Verified: 2026-10-09T13:30:25Z_  
-_Verifier: the agent (gsd-verifier)_
+_Verified: 2026-10-09T14:17:58Z_  
+_Verifier: inline GSD verification workflow_

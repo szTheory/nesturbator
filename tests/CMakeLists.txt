@@ -111,6 +111,14 @@ add_test(NAME runner.write_hashes.content
     ${CMAKE_CURRENT_BINARY_DIR}/hashes.txt ${CMAKE_CURRENT_SOURCE_DIR}/runner/hashes.txt)
 set_tests_properties(runner.write_hashes.content PROPERTIES FIXTURES_REQUIRED hashes_txt)
 
+# Keep the CI cross-platform hash inventory contract executable locally.
+add_test(NAME hash.inventory.self_test
+  COMMAND ${CMAKE_COMMAND}
+    -DSELFTEST=ON
+    "-DWORK=${PROJECT_BINARY_DIR}/hash-inventory-selftest"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hash_inventory.cmake)
+set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
+
 # AccuracyCoin page runs are kept separate so a failure names the page whose
 # RAM-derived results diverged from the committed scoreboard.
 set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
