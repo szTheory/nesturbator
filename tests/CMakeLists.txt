@@ -126,6 +126,7 @@ nesturbator_core_test(core.api core/test_api.c)
 # D-11: run_frame statuses, buffer rules, the D-09 audio period, the D-02
 # boundary pixels and two independent instances.
 nesturbator_core_test(core.frame core/test_frame.c)
+nesturbator_core_test(core.apu core/test_apu.c)
 nesturbator_core_test(core.cartridge core/test_cartridge.c)
 target_include_directories(core.cartridge PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
