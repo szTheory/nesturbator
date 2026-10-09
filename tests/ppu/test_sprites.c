@@ -109,8 +109,8 @@ static void test_diagonal_overflow_compares_non_y_bytes(void)
     const uint8_t compared_bytes[] = {1u, 2u, 3u, 0u};
     for (uint8_t case_index = 0u; case_index < 4u; case_index++) {
         setup_diagonal_overflow();
-        uint32_t address = (uint32_t)compared_entries[case_index] * 4u +
-                           compared_bytes[case_index];
+        uint32_t address = (uint32_t)compared_entries[case_index] * 4u;
+        address += compared_bytes[case_index];
         nes.ppu.oam[address] = 0u;
         uint64_t comparison_dot = (uint64_t)(84u + 2u * case_index);
         for (uint8_t step = 0u; step <= case_index + 1u; step++) {
@@ -118,8 +118,7 @@ static void test_diagonal_overflow_compares_non_y_bytes(void)
             nesturbator__ppu_run_until(&nes, read_dot * 8u);
             CHECK_EQ_U64(nes.ppu.eval_n, 8u + step);
             CHECK_EQ_U64(nes.ppu.eval_m, step & 3u);
-            CHECK_EQ_U64(nes.ppu.eval_latch,
-                         step == case_index + 1u ? 0u : 0xffu);
+            CHECK_EQ_U64(nes.ppu.eval_latch, step == case_index + 1u ? 0u : 0xffu);
             CHECK_EQ_U64(nes.ppu.status & 0x20u, 0u);
             if (read_dot + 1u < comparison_dot)
                 nesturbator__ppu_run_until(&nes, (read_dot + 1u) * 8u);
