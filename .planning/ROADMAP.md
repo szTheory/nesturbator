@@ -188,9 +188,9 @@ Plans:
   3. The committed scoreboard shows AccuracyCoin's Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter 5-step and Delta Modulation Channel tests passing.
   4. A test in the `ci` preset renders five reference tones and shows the synthesiser's largest non-harmonic peak below 16 kHz is under -80 dB.
 
-**Plans**: 0/4 executed (4 plans written)
+**Plans**: 2/4 executed (4 plans written)
 - [x] 04-01-PLAN.md
-- [ ] 04-02-PLAN.md
+- [x] 04-02-PLAN.md
 - [ ] 04-03-PLAN.md
 - [ ] 04-04-PLAN.md
 
@@ -207,4 +207,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
 | 2. The CPU matches the public vectors | 11/11 | Complete    | 2026-10-06 |
 | 3. A real game in RetroArch | 13/13 | Complete | 2026-10-08 |
-| 4. Sound | 1/4 | In Progress | - |
+| 4. Sound | 2/4 | In Progress | - |

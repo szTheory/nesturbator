@@ -2,18 +2,18 @@
 gsd_state_version: "1.0"
 current_phase: 04
 current_phase_name: Sound
-current_plan: 2
+current_plan: 3
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-10-09T02:31:15.039Z"
-last_activity: 2026-10-08
-last_activity_desc: Phase 04 execution started
-state_head: 9f52821435401205d4f512d4e8e32845b222fdb8
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-10-09T04:33:24Z"
+last_activity: 2026-10-09
+last_activity_desc: Completed Phase 04 Plan 02 frame counter and DMC timing
+state_head: 90fa202
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 40
-  completed_plans: 37
+  completed_plans: 38
   percent: 75
 ---
 
@@ -29,18 +29,18 @@ See: .planning/PROJECT.md (updated 2026-10-06)
 ## Current Position
 
 Phase: 04 (Sound) — EXECUTING
-Current Plan: 2
+Current Plan: 3
 Total Plans in Phase: 4
-Plans complete: 0 of 4.
+Plans complete: 2 of 4.
 Status: Ready to execute
-Last activity: 2026-10-08 — Phase 04 execution started
+Last activity: 2026-10-09 — Phase 04 Plan 02 complete
 
 Progress: [████████░░] 75%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 36
+- Total plans completed: 38
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -51,6 +51,7 @@ Progress: [████████░░] 75%
 | 01 | 12 | - | - |
 | 02 | 11 | - | - |
 | 03 | 13 | - | - |
+| 04 | 2 | 4 | 68 min |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -97,6 +98,7 @@ Progress: [████████░░] 75%
 | Phase 03 P07 | 57min | 1 tasks | 15 files |
 | Phase 03 P13 | 12 min | 2 tasks | 7 files |
 | Phase 04 P01 | 14 min | 2 tasks | 11 files |
+| Phase 04 P02 | 122 min | 2 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -139,6 +141,9 @@ Recent decisions affecting current work:
 - [Phase 04]: Keep APU state instance-owned and clock it before bus register decode on each CPU cycle.
 - [Phase 04]: Use the measured RP2A03G noise LFSR power-up state of zero, whose first clock shifts in one.
 - [Phase 04]: Use checked-in integer pulse and 16 x 16 x 128 TND mixer cells for deterministic output.
+- [Phase 04]: Preserve a resumed CPU read after DMC sample fetch, and use the observed GET phase for a deferred reload when `$4015` re-enables DMC with a full sample buffer.
+- [Phase 04]: Keep frame and DMC IRQ status independent while aggregating the CPU IRQ line; behavior revision 2 records the resulting emulation change.
+- [Phase 04]: Require six exact AccuracyCoin page-14 APU results in CI so these frame, length, and DMC acceptance checks need no owner UAT.
 
 ### Pending Todos
 
@@ -165,6 +170,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T02:31:14.983Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-10-09T04:33:24Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
