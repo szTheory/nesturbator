@@ -76,6 +76,7 @@ struct nesturbator__noise {
 struct nesturbator__dmc {
     uint16_t timer, counter, address, remaining;
     uint8_t reg[4], output, shift, bits, sample_buffer, buffer_empty;
+    uint8_t irq, dma_pending;
 };
 
 struct nesturbator__apu {
@@ -85,6 +86,8 @@ struct nesturbator__apu {
     struct nesturbator__dmc dmc;
     uint8_t enabled;
     uint8_t pulse_clock_phase;
+    uint8_t frame_mode, frame_irq_inhibit, frame_irq;
+    uint8_t frame_reset_delay;
     uint32_t frame_cycle;
     uint32_t sample_phase;
     int16_t *sample_output;

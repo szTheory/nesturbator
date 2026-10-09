@@ -194,10 +194,43 @@ static void test_dmc_fetch_from_mapper0(void)
     free(image);
 }
 
+static void test_frame_counter_modes_and_irq_sources(void)
+{
+    nesturbator *inst = make();
+    struct nesturbator *nes = (struct nesturbator *)inst;
+
+    /* 4-step mode raises frame IRQ at the last half-frame edge. */
+    nes->apu.frame_cycle = 29827u;
+    nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.frame_irq, 0u);
+    nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.frame_irq, 1u);
+    CHECK_EQ_U64(nes->cpu.irq_line, 1u);
+
+    /* Inhibit clears only the frame source; DMC remains asserted. */
+    nes->apu.dmc.irq = 1u;
+    nesturbator__apu_write(nes, 0x4017u, 0x40u);
+    CHECK_EQ_U64(nes->apu.frame_irq, 0u);
+    CHECK_EQ_U64(nes->apu.dmc.irq, 1u);
+    CHECK_EQ_U64(nes->cpu.irq_line, 1u);
+
+    /* Five-step mode clocks the delayed immediate quarter/half edge and
+       never generates a frame IRQ. */
+    nesturbator__apu_write(nes, 0x4017u, 0x80u);
+    nes->apu.frame_reset_delay = 0u;
+    nes->apu.frame_cycle = 14912u;
+    uint8_t length = nes->apu.pulse[0].length;
+    nesturbator__apu_clock(nes);
+    CHECK_EQ_U64(nes->apu.frame_irq, 0u);
+    CHECK_EQ_U64(nes->apu.pulse[0].length, length);
+    nesturbator_destroy(inst);
+}
+
 int main(void)
 {
     test_public_pulse_pcm();
     test_documented_channel_sequences();
     test_dmc_fetch_from_mapper0();
+    test_frame_counter_modes_and_irq_sources();
     CHECK_DONE();
 }
