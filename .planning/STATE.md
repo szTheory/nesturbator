@@ -4,11 +4,11 @@ current_phase: "04.2"
 current_phase_name: "Close gap: SND-01 — deliver single-sample libretro audio (INSERTED)"
 current_plan: Not started
 status: completed
-stopped_at: Phase 04.2 complete — all phases complete
-last_updated: "2026-10-09T23:19:41.124Z"
+stopped_at: Phase 04.2 complete — milestone audit pending
+last_updated: "2026-10-09T23:22:53.105Z"
 last_activity: 2026-10-09
 last_activity_desc: Phase 04.2 complete
-state_head: 21fa8cc8d4f0e4e71e214c1ec88ac51aa90b4763
+state_head: f07d500af41acbb2227ab91cce6d6e5b89fb405f
 progress:
   total_phases: 6
   completed_phases: 6
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-09)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 04.2 — Close gap: SND-01 — deliver single-sample libretro audio (INSERTED)
+**Current focus:** All implementation phases are complete; milestone audit is next.
 
 ## Current Position
 
@@ -32,17 +32,17 @@ Current Phase: 04.2
 Current Phase Name: Close gap: SND-01 — deliver single-sample libretro audio (INSERTED)
 Current Plan: Not started
 Total Plans in Phase: 1
-Plans complete: 43 of 44 plans; Phase 04.2 has 1 plan ready to execute.
+Plans complete: 44 of 44 plans; Phase 04.2 is complete.
 Status: All phases complete
 Last activity: 2026-10-09 — Phase 04.2 complete
 Last Activity Description: Phase 04.2 complete
 
-Progress: 43/44 plans executed; 5/6 phases complete ([██████████] 100%). Phase 04.2 has 1 plan ready to execute.
+Progress: 44/44 plans executed; 6/6 phases complete ([██████████] 100%). Milestone audit is next.
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 45
+- Total plans completed: 44
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -54,8 +54,7 @@ Progress: 43/44 plans executed; 5/6 phases complete ([████████�
 | 02 | 11 | - | - |
 | 03 | 15 | - | - |
 | 04 | 4 | - | - |
-| 4.1 | 1 | - | - |
-| 4.2 | 1 | - | - |
+| 04.1 | 1 | - | - |
 | 04.2 | 1 | - | - |
 
 **Recent Trend:**
@@ -109,6 +108,7 @@ Progress: 43/44 plans executed; 5/6 phases complete ([████████�
 | Phase 03 P14 | 11min | 2 tasks | 11 files |
 | Phase 04.1 P01 | 11 min | 2 tasks | 6 files |
 | Phase 03 P15 | 13min | 2 tasks | 5 files |
+| Phase 04.2 P01 | 6 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -126,6 +126,7 @@ Recent decisions affecting current work:
 - [Phase 04.1]: Copy trainer bytes during load before reset-vector setup, and base NROM mirroring on validated PRG size.
 - [Phase 03]: Copy selected sprite bytes over odd-read/even-write pairs; after eight selections, follow the 2C02 diagonal n/m overflow scan and keep pre-render row-zero preparation intact.
 - [Phase 03]: Keep behavior revision 4 because generated frame and audio hashes are byte-identical.
+- [Phase 04.2]: Preserve batch audio as the primary libretro path; use the single-sample callback only when batch audio is unavailable. — Batch delivery remains efficient for capable hosts, while the mutually exclusive fallback supports sample-only frontends without dropping PCM or duplicating output.
 
 ### Pending Todos
 
@@ -133,7 +134,7 @@ None.
 
 ### Blockers/Concerns
 
-Phase 04 and Phase 04.1 are complete. Phase 04.2 now has one checker-approved plan covering the remaining SND-01 libretro callback gap; post-planning coverage is 1/1 requirements. No research, human UAT, or external blocker remains. Phase 04.2 is ready to execute.
+No implementation blockers remain. Phase 04.2 closed the SND-01 sample-only callback gap with deterministic host coverage and CI. The roadmap analyzer sees 44/44 plans but reports five legacy phase-status/checkbox conflicts; reconcile these during the milestone audit. Review warning WR-01 remains recorded: failed-frame audio silence follows an explicit early return, but lacks a dedicated host regression assertion.
 
 ### Quick Tasks Completed
 
@@ -157,8 +158,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T23:01:24Z
-Stopped at: Phase 04.2 complete — all phases complete
+Last session: 2026-10-09T23:22:52.994Z
+Stopped at: Phase 04.2 complete — milestone audit pending
 Resume file: None
 
-Next GSD command: `$gsd-execute-phase 04.2`.
+Next GSD command: `$gsd-audit-milestone`.
