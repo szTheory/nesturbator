@@ -1,17 +1,17 @@
 ---
 gsd_state_version: "1.0"
 current_phase: 03 — A real game in RetroArch (verification gap closure)
-current_phase_name: A real game in RetroArch
-current_plan: Gap closure plan not yet created
-status: verification gaps found
-stopped_at: Phase 03 verification refreshed; plan the sprite-overflow fix and hosted evidence automation
-last_updated: "2026-10-09T20:53:07.973Z"
+current_phase_name: A real game in RetroArch — verification gap closure
+current_plan: 03-15 — diagonal sprite-overflow closure and exact-SHA hosted evidence
+status: Ready to execute
+stopped_at: Phase 03 gap-closure plan 03-15 passed plan and coverage gates; execute it next
+last_updated: "2026-10-09T20:54:21.710Z"
 last_activity: 2026-10-09
-last_activity_desc: Phase 03 planning complete — 15 plans ready
+last_activity_desc: Phase 03 gap-closure plan 03-15 passed the independent checker and coverage gates
 state_head: c7c5efeb79456accce592151464a51d673ec97b2
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 4
   total_plans: 43
   completed_plans: 42
   percent: 67
@@ -30,12 +30,12 @@ See: .planning/PROJECT.md (updated 2026-10-09)
 
 Current Phase: 03 — A real game in RetroArch (verification gap closure)
 Current Phase Name: A real game in RetroArch — verification gap closure
-Current Plan: Gap closure plan not yet created
+Current Plan: 03-15 — diagonal sprite-overflow closure and exact-SHA hosted evidence
 Total Plans in Phase: 15
-Plans complete: 14 of 14 original plans; gap plan pending.
-Status: Verification gaps found; ready to plan closure.
-Last activity: 2026-10-09 — Phase 03 verification refreshed
-Last Activity Description: Phase 03 planning complete — 15 plans ready
+Plans complete: 42 of 43 overall; 14 of 15 in Phase 03.
+Status: Ready to execute gap closure; verification remains open until the implementation and exact-SHA hosted CI evidence pass.
+Last activity: 2026-10-09 — Phase 03 gap-closure plan verified
+Last Activity Description: Plan 03-15 passed independent review and requirement, decision, and post-planning coverage checks.
 
 Progress: [███████░░░] 67%
 
@@ -128,7 +128,7 @@ None.
 
 ### Blockers/Concerns
 
-The refreshed Phase 03 verification is `gaps_found` (25/28): implement and test the 2C02 diagonal OAM sprite-overflow scan, then collect current-head hash equality and RetroArch capture through hosted CI. Local `cmake --workflow --preset ci` passed 355 tests; `retroarch.testframe` and `retroarch.game` skipped because RetroArch is unavailable locally. The phase review reconstructed scope from plan summaries because 12 task commit IDs are unreachable from the current branch; its single active warning matches the verification gap. Next command: `$gsd-plan-phase 03 --gaps`. After Phase 03 closes, Phase 04 verification remains stale; then resume Phase 04.2 planning from the milestone audit with research skipped. The hosted evidence can be automated in CI; no owner-only item is established yet.
+The refreshed Phase 03 verification remains `gaps_found` (25/28). Checker-approved plan 03-15 covers the 2C02 diagonal OAM sprite-overflow scan, synthetic regressions, local CI, and exact-SHA hosted six-platform hash equality plus RetroArch capture using the existing workflow. Local `cmake --workflow --preset ci` passed 355 tests; `retroarch.testframe` and `retroarch.game` skipped because RetroArch is unavailable locally. The review reconstructed scope from plan summaries because 12 task commit IDs are unreachable from the current branch; its active warning is addressed by plan 03-15. Next command: `$gsd-execute-phase 03 --gaps-only`, then `$gsd-verify-work 03` to record the implementation and hosted evidence. After Phase 03 closes, refresh Phase 04 verification with `$gsd-execute-phase 04`, then resume Phase 04.2 planning from the milestone audit with research skipped. No owner-only UAT is identified; hosted evidence comes from existing CI.
 
 ### Quick Tasks Completed
 
@@ -152,8 +152,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T19:50:18Z
-Stopped at: Phase 03 verification refreshed; gap closure planning is next
-Resume file: $gsd-plan-phase 03 --gaps
+Last session: 2026-10-09T20:54:21Z
+Stopped at: Phase 03 gap-closure plan 03-15 passed plan review and coverage gates
+Resume file: $gsd-execute-phase 03 --gaps-only
 
-Next GSD sequence: `$gsd-plan-phase 03 --gaps` → `$gsd-execute-phase 03 --gaps-only` → refresh Phase 04 verification with `$gsd-execute-phase 04` → resume Phase 04.2 planning with `$gsd-plan-phase 04.2 --skip-research`.
+Next GSD sequence: `$gsd-execute-phase 03 --gaps-only` → `$gsd-verify-work 03` → refresh Phase 04 verification with `$gsd-execute-phase 04` → resume Phase 04.2 planning with `$gsd-plan-phase 04.2 --skip-research`.
