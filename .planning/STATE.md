@@ -4,9 +4,9 @@ current_phase: 04
 current_plan: Not started
 status: completed
 stopped_at: Phase 04 complete — all phases complete
-last_updated: "2026-10-09T05:20:21Z"
+last_updated: "2026-10-09T12:44:00Z"
 last_activity: 2026-10-09
-last_activity_desc: Phase 04 complete; milestone bookkeeping synchronized
+last_activity_desc: Phase 01 verification automation added; clean-room provenance remains pending
 state_head: dd677b5ae1a2d16737a982c1f05710900886b8a1
 progress:
   total_phases: 4
@@ -32,7 +32,7 @@ Current Plan: Not started
 Total Plans in Phase: 4
 Plans complete: 4 of 4.
 Status: Phase implementations complete; earlier verification records need refresh
-Last activity: 2026-10-09 — Phase 04 complete
+Last activity: 2026-10-09 — Phase 01 verification automation added; clean-room provenance remains pending
 
 Progress: [██████████] 100%
 
@@ -155,7 +155,7 @@ None.
 
 ### Blockers/Concerns
 
-None for Phase 04; its four plans passed structure and coverage checks. GSD reports Phase 01 and 02 verification as stale and Phase 03 verification as missing; refresh those reports before the Milestone 1 audit. Clean-room source provenance remains the separate irreducible judgment recorded in Phase 02.
+None for Phase 04; its four plans passed structure and coverage checks. GSD reports Phase 01 and 02 verification as stale and Phase 03 verification as missing; refresh those reports before the Milestone 1 audit. Phase 01 now has CI regression gates for release credential isolation and non-releasing docs/chore changes. Its only outstanding verification item is the irreducible clean-room source-provenance judgment; resume the existing UAT session before refreshing the stale verification report.
 
 ### Quick Tasks Completed
 

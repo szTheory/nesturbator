@@ -370,6 +370,24 @@ add_test(NAME release.no_release_as
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_config.cmake)
 
+# Release credentials are available only to a workflow definition selected
+# by a push to protected main, and the App token has exactly two consumers.
+add_test(NAME release.credentials_policy
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_credentials_policy.cmake)
+add_test(NAME release.credentials_policy.selftest
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR} -DSELFTEST=ON
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_credentials_policy.cmake)
+
+# The pinned release-please defaults keep non-breaking docs/chore commits from
+# opening release PRs. Mutations exercise the policy checker itself.
+add_test(NAME release.nonbehavioral_policy
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_policy.cmake)
+add_test(NAME release.nonbehavioral_policy.selftest
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR} -DSELFTEST=ON
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_policy.cmake)
+
 # libretro.h is RetroArch v1.22.2's copy (commit
 # 69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576), byte for byte. .gitattributes
 # keeps it LF on Windows checkouts too.
