@@ -218,10 +218,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 **Goal:** Accepted trainer-bearing iNES and NES 2.0 mapper-0 images initialize writable CPU-visible PRG RAM with the 512 trainer bytes at $7000-$71FF before execution, with the behavior covered by deterministic CI tests.
 **Requirements**: GAME-01
 **Depends on:** Phase 4
-**Plans:** 0/1 plans executed
+**Plans:** 1/1 plans executed
 
 Plans:
-- [ ] 04.1-01-PLAN.md
+- [x] 04.1-01-PLAN.md
 
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/ENGINEERING.md`, `.planning/v1-MILESTONE-AUDIT.md`

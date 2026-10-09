@@ -1,19 +1,19 @@
 ---
 gsd_state_version: "1.0"
-current_phase: "04.1"
+current_phase: "4.1"
 current_phase_name: "Close gap: GAME-01 — initialize accepted iNES trainers"
-current_plan: 04.1-01
-status: Ready to execute Phase 04.1
-stopped_at: Phase 04.1 planning complete; ready to execute 04.1-01
-last_updated: "2026-10-09T17:32:57.129Z"
+current_plan: 1
+status: verifying
+stopped_at: Completed 04.1-01-PLAN.md
+last_updated: "2026-10-09T17:49:54.982Z"
 last_activity: 2026-10-09
-last_activity_desc: Phase 4.1 planning complete — 1 plans ready
-state_head: 21908fb17b00df832f82250d651e7e684afa7472
+last_activity_desc: Phase 4.1 execution started
+state_head: d29dbbec86178549c9f8cee965e5ad78bb30f9e2
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 42
-  completed_plans: 41
+  completed_plans: 42
   percent: 80
 ---
 
@@ -24,18 +24,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-09)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 04.1 — implement accepted trainer initialization for GAME-01 (ready to execute).
+**Current focus:** Phase 4.1 — Close gap: GAME-01 — initialize accepted iNES trainers
 
 ## Current Position
 
-Current Phase: 04.1
+Current Phase: 4.1
 Current Phase Name: Close gap: GAME-01 — initialize accepted iNES trainers
-Current Plan: 04.1-01
+Current Plan: 1
 Total Plans in Phase: 1
 Plans complete: 0 of 1.
-Status: Ready to execute Phase 04.1
-Last activity: 2026-10-09 — Phase 4.1 planning complete
-Last Activity Description: Phase 4.1 planning complete — 1 plans ready
+Status: Phase complete — ready for verification
+Last activity: 2026-10-09 — Phase 4.1 execution started
+Last Activity Description: Phase 4.1 execution started
 
 Progress: [████████░░] 80%
 
@@ -104,6 +104,7 @@ Progress: [████████░░] 80%
 | Phase 04 P03 | 24 min | 1 task | 15 files |
 | Phase 04 P04 | 10min | 2 tasks | 14 files |
 | Phase 03 P14 | 11min | 2 tasks | 11 files |
+| Phase 04.1 P01 | 11 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,8 @@ Recent decisions affecting current work:
 - Phase 04: Use the checked-in integer mixer and 16-tap/32-phase Q15 synthesis kernel with a bounded per-instance PCM ring; gate five tones below -80 dB.
 - Phase 04: Hash mixed-level transitions before synthesis and signed PCM separately using explicit little-endian serialization.
 - Phase 04: Require local CTest and hosted six-platform hash, sanitizer, no-float, hygiene, and RetroArch smoke checks; no listening UAT is required.
+- [Phase 04.1]: Allocate 8 KiB PRG RAM only for accepted trainer-bearing images; preserve trainerless open-bus behavior.
+- [Phase 04.1]: Copy trainer bytes during load before reset-vector setup, and base NROM mirroring on validated PRG size.
 
 ### Pending Todos
 
@@ -147,6 +150,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T15:28:55.002Z
-Stopped at: Phase 04.1 planning complete; ready to execute 04.1-01
+Last session: 2026-10-09T17:49:54.537Z
+Stopped at: Completed 04.1-01-PLAN.md
 Resume file: None
