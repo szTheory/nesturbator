@@ -3,17 +3,17 @@ gsd_state_version: "1.0"
 current_phase: 04
 current_phase_name: Sound
 current_plan: 4
-status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-10-09T04:57:57Z"
+status: verifying
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-10-09T05:08:47.618Z"
 last_activity: 2026-10-09
 last_activity_desc: Completed Phase 04 Plan 03 fixed-point synthesis and spectral gate
-state_head: d411737
+state_head: 5528ebcc43627f3fe85567235399cbc4fe80d8ad
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 40
-  completed_plans: 39
+  completed_plans: 40
   percent: 75
 ---
 
@@ -32,7 +32,7 @@ Phase: 04 (Sound) — EXECUTING
 Current Plan: 4
 Total Plans in Phase: 4
 Plans complete: 3 of 4.
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-09 — Phase 04 Plan 03 complete
 
 Progress: [████████░░] 75%
@@ -100,6 +100,7 @@ Progress: [████████░░] 75%
 | Phase 04 P01 | 14 min | 2 tasks | 11 files |
 | Phase 04 P02 | 122 min | 2 tasks | 15 files |
 | Phase 04 P03 | 24 min | 1 task | 15 files |
+| Phase 04 P04 | 10min | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,7 @@ Recent decisions affecting current work:
 - [Phase 04]: Require six exact AccuracyCoin page-14 APU results in CI so these frame, length, and DMC acceptance checks need no owner UAT.
 - [Phase 04]: Keep the 16-tap, 32-phase Q15 synthesis kernel, Q30 filter history, and bounded 1024-sample staging ring in per-instance state; advance audio behavior revision to 3.
 - [Phase 04]: Verify the five coherent spectral fixtures in CI with the first 512 folded harmonic orders masked and no floating-point analyzer.
+- [Phase 04]: Canonical audio hashing streams changed mixed levels before synthesis using CPU cycle cursor ticks/24, and serializes transition and PCM records explicitly little-endian. — This makes transition timing and signed PCM hashes platform-independent without exposing a public API or retaining a transition log; known-answer and callback-order tests pin the contract.
 
 ### Pending Todos
 
@@ -173,6 +175,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T04:57:57Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-10-09T05:08:43.323Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
