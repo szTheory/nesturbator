@@ -1,19 +1,19 @@
 ---
 gsd_state_version: "1.0"
-current_phase: 03 — A real game in RetroArch (verification gap closure)
-current_phase_name: A real game in RetroArch — verification gap closure
-current_plan: 03-15 — diagonal sprite-overflow closure and exact-SHA hosted evidence
-status: Ready to execute
-stopped_at: Phase 03 gap-closure plan 03-15 passed plan and coverage gates; execute it next
-last_updated: "2026-10-09T20:54:21.710Z"
+current_phase: 03
+current_phase_name: A real game in RetroArch
+current_plan: 15
+status: awaiting verification
+stopped_at: Completed 03-15-PLAN.md
+last_updated: "2026-10-09T21:19:50.706Z"
 last_activity: 2026-10-09
-last_activity_desc: Phase 03 gap-closure plan 03-15 passed the independent checker and coverage gates
-state_head: c7c5efeb79456accce592151464a51d673ec97b2
+last_activity_desc: Phase 03 plan 03-15 completed with exact-SHA hosted CI evidence
+state_head: 4fce43491b1b058491eff7cb2fe1fa68b85a036e
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 43
-  completed_plans: 42
+  completed_plans: 43
   percent: 67
 ---
 
@@ -24,18 +24,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-09)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Milestone 1 audit and closure
+**Current focus:** Phase 03 — A real game in RetroArch
 
 ## Current Position
 
-Current Phase: 03 — A real game in RetroArch (verification gap closure)
-Current Phase Name: A real game in RetroArch — verification gap closure
-Current Plan: 03-15 — diagonal sprite-overflow closure and exact-SHA hosted evidence
+Current Phase: 03
+Current Phase Name: A real game in RetroArch
+Current Plan: 15 (complete)
 Total Plans in Phase: 15
-Plans complete: 42 of 43 overall; 14 of 15 in Phase 03.
-Status: Ready to execute gap closure; verification remains open until the implementation and exact-SHA hosted CI evidence pass.
-Last activity: 2026-10-09 — Phase 03 gap-closure plan verified
-Last Activity Description: Plan 03-15 passed independent review and requirement, decision, and post-planning coverage checks.
+Plans complete: 43 of 43 overall; 15 of 15 in Phase 03.
+Status: Awaiting Phase 03 verification
+Last activity: 2026-10-09 — Phase 03 plan 03-15 completed
+Last Activity Description: Diagonal sprite overflow passed local CI and exact-SHA hosted gates.
 
 Progress: [███████░░░] 67%
 
@@ -106,6 +106,7 @@ Progress: [███████░░░] 67%
 | Phase 04 P04 | 10min | 2 tasks | 14 files |
 | Phase 03 P14 | 11min | 2 tasks | 11 files |
 | Phase 04.1 P01 | 11 min | 2 tasks | 6 files |
+| Phase 03 P15 | 13min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,8 @@ Recent decisions affecting current work:
 - Phase 04: Require local CTest and hosted six-platform hash, sanitizer, no-float, hygiene, and RetroArch smoke checks; no listening UAT is required.
 - [Phase 04.1]: Allocate 8 KiB PRG RAM only for accepted trainer-bearing images; preserve trainerless open-bus behavior.
 - [Phase 04.1]: Copy trainer bytes during load before reset-vector setup, and base NROM mirroring on validated PRG size.
+- [Phase 03]: Keep the first eight selected sprite slots and pre-render row-zero path intact while scanning n and m after selection fills.
+- [Phase 03]: Keep behavior revision 4 because generated frame and audio hashes are byte-identical.
 
 ### Pending Todos
 
@@ -128,7 +131,7 @@ None.
 
 ### Blockers/Concerns
 
-The refreshed Phase 03 verification remains `gaps_found` (25/28). Checker-approved plan 03-15 covers the 2C02 diagonal OAM sprite-overflow scan, synthetic regressions, local CI, and exact-SHA hosted six-platform hash equality plus RetroArch capture using the existing workflow. Local `cmake --workflow --preset ci` passed 355 tests; `retroarch.testframe` and `retroarch.game` skipped because RetroArch is unavailable locally. The review reconstructed scope from plan summaries because 12 task commit IDs are unreachable from the current branch; its active warning is addressed by plan 03-15. Next command: `$gsd-execute-phase 03 --gaps-only`, then `$gsd-verify-work 03` to record the implementation and hosted evidence. After Phase 03 closes, refresh Phase 04 verification with `$gsd-execute-phase 04`, then resume Phase 04.2 planning from the milestone audit with research skipped. No owner-only UAT is identified; hosted evidence comes from existing CI.
+Plan 03-15 closes the documented diagonal sprite-overflow implementation gap. The local CI workflow passed 357/357 tests; the two local RetroArch checks skipped because the app is unavailable. Hosted run 37992224142 on SHA 4fce43491b1b058491eff7cb2fe1fa68b85a036e passed all six builds, hash equality, RetroArch capture, and CI required; the retained artifact was inspected. Phase 03 verification still needs to be refreshed with `$gsd-verify-work 03`. After Phase 03 closes, refresh Phase 04 verification, then resume Phase 04.2 planning. No owner-only UAT is identified.
 
 ### Quick Tasks Completed
 
@@ -152,8 +155,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T20:54:21Z
-Stopped at: Phase 03 gap-closure plan 03-15 passed plan review and coverage gates
-Resume file: $gsd-execute-phase 03 --gaps-only
+Last session: 2026-10-09T21:19:50.651Z
+Stopped at: Completed 03-15-PLAN.md
+Resume file: None
 
-Next GSD sequence: `$gsd-execute-phase 03 --gaps-only` → `$gsd-verify-work 03` → refresh Phase 04 verification with `$gsd-execute-phase 04` → resume Phase 04.2 planning with `$gsd-plan-phase 04.2 --skip-research`.
+Next GSD sequence: `$gsd-verify-work 03` → refresh Phase 04 verification with `$gsd-execute-phase 04` → resume Phase 04.2 planning with `$gsd-plan-phase 04.2 --skip-research`.
