@@ -683,9 +683,13 @@ int main(int argc, char **argv)
     CHECK_EQ_U64(video_calls, 1);
     compare_with_ppm(argv[3]);
     CHECK(frame[0] != frame[W + 8u]);
-    memcpy(first_content_frame, frame, sizeof frame);
+    /* The generated cartridge writes its nametable during the first frame;
+       compare steady-state frames after that startup write has completed. */
     p_run();
     CHECK_EQ_U64(video_calls, 2);
+    memcpy(first_content_frame, frame, sizeof frame);
+    p_run();
+    CHECK_EQ_U64(video_calls, 3);
     CHECK(memcmp(frame, first_content_frame, sizeof frame) == 0);
     p_unload_game();
     check_input_frame_parity(dummy_bytes, sizeof dummy_bytes, argv[4], argv[5], argv[3]);
