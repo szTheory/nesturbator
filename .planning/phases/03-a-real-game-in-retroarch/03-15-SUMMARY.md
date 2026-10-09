@@ -18,10 +18,10 @@ affects: [GAME-02, GAME-04, GAME-06, ppu, frame-hashes]
 actuals:
   tokens: 2247
   tasks: 2
-  commits: 4
-commits: 4
+  commits: 5
+commits: 5
 plan_head_before: 70f06710aa01d009c0e31bd843c719c310618780
-plan_head_after: 4fce43491b1b058491eff7cb2fe1fa68b85a036e
+plan_head_after: 20331371c8036cd5fccec6491d25262e3a2c0364
 tech-stack:
   added: []
   patterns:
@@ -55,7 +55,7 @@ coverage:
     requirement: GAME-06
     verification:
       - kind: e2e
-        ref: "https://github.com/szTheory/nesturbator/actions/runs/37992224142"
+        ref: "https://github.com/szTheory/nesturbator/actions/runs/37994563525"
         status: pass
     human_judgment: false
 duration: 13min
@@ -76,7 +76,7 @@ status: complete
 
 ## Accomplishments
 
-- The evaluator reads OAM[n][m] on odd dots and compares on even dots after eight selections. Misses advance both n and m without carry; hits set visible overflow and consume three bytes with carry on m wrap. Reads stop at n=64.
+- The evaluator copies the first eight selected sprites through odd-dot reads and even-dot secondary-OAM writes, eight dots per sprite. The ninth Y is read at dot 129 and compared at dot 130. After eight selections, misses advance both n and m without carry; hits set visible overflow and consume three bytes with carry on m wrap. Reads stop at n=64.
 - Production-clock regressions check tile, attribute, X, and wrapped-Y comparisons at their dots, a skipped in-range Y, direct ninth-Y overflow, sticky status, pre-render clearing, and retained first-eight slots. Existing row-zero, sprite pixel, and DMA cases pass.
 - `runner.write_hashes` generated 36 sorted rows byte-identical to `tests/runner/hashes.txt` (SHA-256 `40ed2f2a277b4c93a4ace4c7a273a53747bee61d878eee8451ee7e6b7407f0e2`). The inventory and behavior revision remain unchanged.
 
@@ -86,18 +86,19 @@ status: complete
 2. **Task 1 GREEN implementation and documentation:** `868ab69` — `fix(03-15): scan diagonal OAM bytes after eight sprites`.
 3. **Task 2 hosted GCC portability fix:** `d0b4932` — `fix(03-15): keep sprite fixture indices wide on GCC`.
 4. **Task 2 hosted format fix:** `4fce434` — `style(03-15): format sprite scan regression`.
+5. **Code-review timing correction:** `20331371c8036cd5fccec6491d25262e3a2c0364` — `fix(03-15): correct sprite selection timing`.
 
 ## TDD Gate Compliance
 
 - RED: `ppu.sprites` exited 8 on the planned non-Y positive and skipped-Y negative assertions. The JUnit record at `build/ci/ppu-diagonal-red.json` returned `RED_EVIDENCE_OK`; semantic inspection confirmed status `0` where `32` was expected on a non-Y byte. RED was committed before implementation.
-- GREEN: The focused test passed after the evaluator change and passed again at the tracer feedback gate. The full local CI workflow passed after the behavior and portability changes. No separate refactor was needed.
+- GREEN: The focused timing regression failed against the earlier evaluator and passed after the correction. The final local workflow passed: 357/357 tests, with only the two existing RetroArch checks skipped because this host has no RetroArch setup. No separate refactor was needed.
 
 ## Hosted Evidence
 
-- Existing CI run: https://github.com/szTheory/nesturbator/actions/runs/37992224142
-- `headSha`: `4fce43491b1b058491eff7cb2fe1fa68b85a036e`; conclusion: `success`.
-- All six Linux, macOS, and Windows x64/arm64 builds succeeded. `hash-equality`, `retroarch-e2e`, and `CI required` each succeeded.
-- Retained artifact `retroarch-e2e-frames` was downloaded and inspected: `run/runner.ppm` (184335 bytes), `run/shot.png` (1579 bytes, 256×240), `run/shot.bmp` (184374 bytes), and `asset-evidence.txt` (285 bytes). The evidence records matching expected and actual SHA-256 values for pinned RetroArch 1.22.2.
+- Original Task 2 CI run: https://github.com/szTheory/nesturbator/actions/runs/37992224142. Its head SHA was `4fce43491b1b058491eff7cb2fe1fa68b85a036e`; it passed before review found the first-eight selection timing defect.
+- Remediation CI run: https://github.com/szTheory/nesturbator/actions/runs/37994563525. Its `headSha` exactly matches `20331371c8036cd5fccec6491d25262e3a2c0364`; conclusion: `success`.
+- All six Linux, macOS, and Windows x64/arm64 builds succeeded on the remediation SHA. `hash-equality`, `retroarch-e2e`, and `CI required` each succeeded; ASan, hygiene, no-FP, and Conventional Commit title checks also succeeded.
+- Retained artifact `retroarch-e2e-frames` was downloaded and inspected: `run/runner.ppm` (184335 bytes), `run/shot.png` (1579 bytes), `run/shot.bmp` (184374 bytes), and `asset-evidence.txt` (285 bytes). The evidence records matching expected and actual SHA-256 values for pinned RetroArch 1.22.2.
 
 ## Deviations from Plan
 
@@ -121,6 +122,8 @@ status: complete
 
 The local RetroArch checks skipped because RetroArch was unavailable in the local environment. The exact-SHA hosted RetroArch job passed and retained the capture artifact.
 
+The original gap fix reached the ninth sprite 48 dots early. Selection now takes eight dots per selected sprite, so the ninth Y read/compare occurs at dots 129/130. The post-fix code review is clean; the disposition records the sprite findings and duplicate-comment cleanup as fixed, with audio/reset observations deferred outside Phase 03.
+
 ## User Setup Required
 
 None.
@@ -131,6 +134,6 @@ The structured Phase 03 sprite-overflow gap has implementation and hosted eviden
 
 ## Self-Check: PASSED
 
-- All five modified source, test, and documentation files exist; all four task commits are ancestors of HEAD.
+- All five modified source, test, and documentation files exist; all five task/remediation commits are ancestors of HEAD.
 - The 36-row generated inventory matches the committed file byte for byte.
 - The hosted run's `headSha`, successful jobs, and retained capture artifact were checked directly.

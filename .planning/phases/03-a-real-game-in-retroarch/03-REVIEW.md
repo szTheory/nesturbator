@@ -1,6 +1,6 @@
 ---
 phase: 03-a-real-game-in-retroarch
-reviewed: 2026-10-09T21:22:35Z
+reviewed: 2026-10-09T21:32:43Z
 depth: standard
 files_reviewed: 5
 files_reviewed_list:
@@ -10,39 +10,30 @@ files_reviewed_list:
   - src/ppu.c
   - tests/ppu/test_sprites.c
 findings:
-  critical: 1
+  critical: 0
   warning: 0
   info: 0
-  total: 1
-status: issues_found
+  total: 0
+status: clean
 ---
 
 # Phase 03: Code Review Report
 
-**Reviewed:** 2026-10-09T21:22:35Z  
+**Reviewed:** 2026-10-09T21:32:43Z
 **Depth:** standard  
 **Files Reviewed:** 5  
-**Status:** issues_found
+**Status:** clean
 
 ## Summary
 
-Reviewed the Phase 03 sprite overflow implementation, its tests and public documentation. The diagonal byte index stays within primary OAM and the post eighth sprite read and comparison alternate on odd and even dots. One correctness defect remains at the transition into that scan: sprite selection advances six dots too quickly per in range sprite, so the overflow flag becomes CPU visible too early. The new tests encode this incorrect timing.
+Re-reviewed all five scoped files against the documented 2C02 behavior in HWP.06 and the Phase 03 sprite-overflow requirements. The prior CR-01 timing defect is resolved: first-eight sprite selection uses alternating OAM read and secondary-OAM write phases, and the ninth Y byte is read at dot 129 and compared at dot 130. The tests exercise diagonal `n`/`m` advancement, status observation before and after the comparison, and pre-render clearing and row-zero preparation. The duplicate vblank and odd-frame timing comments are gone. No remaining correctness, security, or quality issue was found in the requested scope.
 
 ## Narrative Findings (AI reviewer)
 
-### Critical Issues
-
-### CR-01: First eight sprites are selected six dots too quickly
-
-**Classification:** BLOCKER  
-**File:** `src/ppu.c:89-96`  
-**Related test:** `tests/ppu/test_sprites.c:106-126`, `tests/ppu/test_sprites.c:146-151`  
-**Issue:** On an in range Y comparison, the evaluator copies all four OAM bytes and increments `eval_n` in the same even dot. The next sprite's Y is read on the following odd dot. The [2C02 sprite evaluation sequence](https://www.nesdev.org/wiki/PPU_sprite_evaluation) instead reads and copies the other three bytes on six further dots before advancing to the next sprite. With eight consecutive in range sprites, this implementation compares the ninth Y at dot 82; hardware compares it at dot 130 (first Y at dots 65/66, then eight dots per selected sprite). A CPU read of `$2002` between those dots observes overflow on the emulator when hardware has not yet reached the ninth sprite. The new tests explicitly assert dots 81/82 and 84 for the diagonal path, so they preserve this incorrect boundary even while exercising the post eighth byte walk. This also changes which later OAM entries can be reached before dot 256.
-
-**Fix:** Add per instance copy state for the first eight selected sprites. After an in range Y comparison, read and copy tile, attribute and X on their three subsequent odd/even dot pairs; advance `eval_n` only after the X copy. Keep the existing post eighth `n`/`m` walk once secondary OAM fills. Update the new tests to assert the ninth Y read/compare at dots 129/130 for eight consecutive in range sprites, and derive the following diagonal comparison dots from that boundary. Include a `$2002` observation immediately before and after dot 130.
+All reviewed files meet quality standards. No issues found.
 
 ---
 
-_Reviewed: 2026-10-09T21:22:35Z_  
+_Reviewed: 2026-10-09T21:32:43Z_
 _Reviewer: the agent (gsd-code-reviewer)_  
 _Depth: standard_
