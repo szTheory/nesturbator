@@ -8,10 +8,16 @@
 
 typedef struct counts {
     unsigned allocs, frees;
+    int fail_alloc;
 } counts;
 static void *count_alloc(void *user, size_t size)
 {
-    ((counts *)user)->allocs++;
+    counts *c = (counts *)user;
+    c->allocs++;
+    if (c->fail_alloc) {
+        c->fail_alloc = 0;
+        return NULL;
+    }
     return malloc(size);
 }
 static void count_free(void *user, void *ptr, size_t size)
@@ -34,11 +40,34 @@ static void make_image(uint8_t *p, size_t size, int nes2, int chr_ram)
     p[16u + 0x3ffcu] = 0u;
     p[16u + 0x3ffdu] = 0x80u;
 }
+static void make_trainer_image(uint8_t *p, size_t prg_size, int nes2)
+{
+    const size_t prg_offset = 16u + 512u;
+    const size_t size = prg_offset + prg_size + 8192u;
+    memset(p, 0, size);
+    memcpy(p, "NES\032", 4u);
+    p[4] = (uint8_t)(prg_size / 16384u);
+    p[5] = 1u;
+    p[6] = 4u;
+    if (nes2)
+        p[7] = 8u;
+    for (size_t i = 0u; i < 512u; ++i)
+        p[16u + i] = (uint8_t)(i * 73u + 0x2du);
+    p[prg_offset + 0x1234u] = 0x5au;
+    p[prg_offset + 0x3ffcu] = 0x34u;
+    p[prg_offset + 0x3ffdu] = 0x81u;
+    if (prg_size == 32768u) {
+        p[prg_offset + 0x0123u] = 0x39u;
+        p[prg_offset + 0x4123u] = 0x6cu;
+        p[prg_offset + 0x7ffcu] = 0x78u;
+        p[prg_offset + 0x7ffdu] = 0x82u;
+    }
+}
 static void test_formats_and_lifetime(void)
 {
     nesturbator_config cfg;
     nesturbator *inst = NULL;
-    counts c = {0, 0};
+    counts c = {0, 0, 0};
     uint8_t *rom = malloc(16u + 16384u + 8192u);
     memset(&cfg, 0, sizeof cfg);
     cfg.size = (uint32_t)sizeof cfg;
@@ -75,8 +104,8 @@ static void test_reject_before_allocation(void)
 {
     nesturbator_config cfg;
     nesturbator *inst = NULL;
-    counts c = {0, 0};
-    uint8_t *rom = malloc(16u + 16384u + 8192u + 1u);
+    counts c = {0, 0, 0};
+    uint8_t *rom = malloc(16u + 512u + 16384u + 8192u + 1u);
     memset(&cfg, 0, sizeof cfg);
     cfg.size = (uint32_t)sizeof cfg;
     cfg.abi = NESTURBATOR_ABI_VERSION;
@@ -84,21 +113,60 @@ static void test_reject_before_allocation(void)
     cfg.allocator.free = count_free;
     cfg.allocator.user = &c;
     CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+    const size_t trainer_size = 16u + 512u + 16384u + 8192u;
+    make_trainer_image(rom, 16384u, 0);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, trainer_size), NESTURBATOR_OK);
     unsigned base = c.allocs;
     size_t full = 16u + 16384u + 8192u;
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, 0u), NESTURBATOR_ERR_CARTRIDGE);
+    CHECK_EQ_U64(c.allocs, base);
+    CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x7000u), 0x2du);
+    make_trainer_image(rom, 16384u, 0);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, trainer_size - 1u),
+                 NESTURBATOR_ERR_CARTRIDGE);
+    CHECK_EQ_U64(c.allocs, base);
+    CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x7000u), 0x2du);
     make_image(rom, full + 1u, 1, 0);
     CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, full + 1u), NESTURBATOR_ERR_CARTRIDGE);
     CHECK_EQ_U64(c.allocs, base);
+    CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x7000u), 0x2du);
     make_image(rom, full, 1, 0);
     rom[9] = 0x0fu;
     CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, full), NESTURBATOR_ERR_CARTRIDGE);
     CHECK_EQ_U64(c.allocs, base);
+    CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x7000u), 0x2du);
     make_image(rom, full, 1, 0);
     rom[7] |= 0x10u;
     CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, full), NESTURBATOR_ERR_CARTRIDGE);
     CHECK_EQ_U64(c.allocs, base);
+    CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x7000u), 0x2du);
+    make_trainer_image(rom, 16384u, 0);
+    c.fail_alloc = 1;
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, trainer_size), NESTURBATOR_ERR_NO_MEMORY);
+    CHECK_EQ_U64(c.allocs, base + 1u);
+    CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x7000u), 0x2du);
     nesturbator_destroy(inst);
     free(rom);
+}
+static void test_trainerless_ram_stays_unmapped(void)
+{
+    nesturbator_config cfg;
+    nesturbator *inst = NULL;
+    uint8_t rom[16u + 16384u + 8192u];
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    make_image(rom, sizeof rom, 0, 0);
+    CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, sizeof rom), NESTURBATOR_OK);
+    if (inst != NULL) {
+        struct nesturbator *nes = (struct nesturbator *)inst;
+        nes->bus.open_bus = 0xa6u;
+        CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x6000u), 0xa6u);
+        nesturbator__bus_write(nes, 0x6000u, 0x5cu);
+        CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x6000u), 0x5cu);
+        nesturbator_destroy(inst);
+    }
 }
 static void test_32k_reset_vector_comes_from_upper_prg_bank(void)
 {
@@ -126,39 +194,61 @@ static void test_32k_reset_vector_comes_from_upper_prg_bank(void)
 }
 static void test_trainer_is_visible_through_cpu_bus(void)
 {
-    nesturbator_config cfg;
-    nesturbator *inst = NULL;
-    const size_t size = 16u + 512u + 16384u + 8192u;
-    uint8_t *rom = calloc(1u, size);
-    CHECK(rom != NULL);
-    if (rom == NULL)
-        return;
-    memset(&cfg, 0, sizeof cfg);
-    cfg.size = (uint32_t)sizeof cfg;
-    cfg.abi = NESTURBATOR_ABI_VERSION;
-    memcpy(rom, "NES\032", 4u);
-    rom[4] = 1u;
-    rom[5] = 1u;
-    rom[6] = 4u;
-    rom[16u] = 0x3cu;
-    rom[16u + 511u] = 0xc7u;
-    rom[16u + 512u + 0x1234u] = 0x5au;
-    rom[16u + 512u + 0x3ffcu] = 0x34u;
-    rom[16u + 512u + 0x3ffdu] = 0x81u;
-    CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
-    CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, size), NESTURBATOR_OK);
-    if (inst != NULL) {
-        CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x7000u), 0x3cu);
-        CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x71ffu), 0xc7u);
-        CHECK_EQ_HEX(((struct nesturbator *)inst)->cpu.pc, 0x8134u);
-        CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x9234u), 0x5au);
-        nesturbator__bus_write((struct nesturbator *)inst, 0x7000u, 0xa5u);
-        nesturbator__bus_write((struct nesturbator *)inst, 0x71ffu, 0x6bu);
-        CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x7000u), 0xa5u);
-        CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0x71ffu), 0x6bu);
-        nesturbator_destroy(inst);
+    for (int nes2 = 0; nes2 <= 1; ++nes2) {
+        const size_t prg_size = nes2 ? 32768u : 16384u;
+        const size_t size = 16u + 512u + prg_size + 8192u;
+        uint8_t *rom = malloc(size);
+        nesturbator_config cfg;
+        nesturbator *first = NULL, *second = NULL;
+        CHECK(rom != NULL);
+        if (rom == NULL)
+            continue;
+        make_trainer_image(rom, prg_size, nes2);
+        memset(&cfg, 0, sizeof cfg);
+        cfg.size = (uint32_t)sizeof cfg;
+        cfg.abi = NESTURBATOR_ABI_VERSION;
+        CHECK_EQ_U64(nesturbator_create(&cfg, &first), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_create(&cfg, &second), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_load_cartridge(first, rom, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_load_cartridge(second, rom, size), NESTURBATOR_OK);
+        if (first != NULL && second != NULL) {
+            struct nesturbator *a = (struct nesturbator *)first;
+            struct nesturbator *b = (struct nesturbator *)second;
+            for (size_t i = 0u; i < 512u; ++i)
+                CHECK_EQ_HEX(nesturbator__bus_read(a, (uint16_t)(0x7000u + i)), rom[16u + i]);
+            CHECK_EQ_HEX(a->cpu.pc, nes2 ? 0x8278u : 0x8134u);
+            CHECK_EQ_HEX(nesturbator__bus_read(a, 0x9234u), 0x5au);
+            if (nes2)
+                CHECK_EQ_HEX(nesturbator__bus_read(a, 0x8123u), 0x39u);
+            if (!nes2)
+                CHECK_EQ_HEX(nesturbator__bus_read(a, 0xd234u), 0x5au);
+            else
+                CHECK_EQ_HEX(nesturbator__bus_read(a, 0xc123u), 0x6cu);
+            const uint16_t boundaries[] = {0x6000u, 0x6fffu, 0x7200u, 0x7fffu};
+            for (size_t i = 0u; i < sizeof boundaries / sizeof boundaries[0]; ++i)
+                CHECK_EQ_HEX(nesturbator__bus_read(a, boundaries[i]), 0u);
+            nesturbator__bus_write(a, 0x6000u, 0x11u);
+            nesturbator__bus_write(a, 0x6fffu, 0x22u);
+            nesturbator__bus_write(a, 0x7200u, 0x33u);
+            nesturbator__bus_write(a, 0x7fffu, 0x44u);
+            for (size_t i = 0u; i < sizeof boundaries / sizeof boundaries[0]; ++i)
+                CHECK_EQ_HEX(nesturbator__bus_read(a, boundaries[i]), (i + 1u) * 0x11u);
+            nesturbator__bus_write(b, 0x6000u, 0x99u);
+            CHECK_EQ_HEX(nesturbator__bus_read(b, 0x6000u), 0x99u);
+            CHECK_EQ_HEX(nesturbator__bus_read(a, 0x6000u), 0x11u);
+            CHECK_EQ_U64(nesturbator_load_cartridge(first, rom, size), NESTURBATOR_OK);
+            CHECK_EQ_HEX(nesturbator__bus_read(a, 0x6000u), 0u);
+            CHECK_EQ_HEX(nesturbator__bus_read(a, 0x7000u), rom[16u]);
+            nesturbator_unload_cartridge(first);
+            CHECK_EQ_U64(nesturbator_load_cartridge(first, rom, size), NESTURBATOR_OK);
+            CHECK_EQ_HEX(nesturbator__bus_read(a, 0x71ffu), rom[16u + 511u]);
+        }
+        if (first != NULL)
+            nesturbator_destroy(first);
+        if (second != NULL)
+            nesturbator_destroy(second);
+        free(rom);
     }
-    free(rom);
 }
 int main(void)
 {
@@ -166,5 +256,6 @@ int main(void)
     test_reject_before_allocation();
     test_32k_reset_vector_comes_from_upper_prg_bank();
     test_trainer_is_visible_through_cpu_bus();
+    test_trainerless_ram_stays_unmapped();
     CHECK_DONE();
 }

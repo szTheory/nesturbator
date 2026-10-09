@@ -16,6 +16,13 @@ card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
 The runner accepts content with `--rom FILE`, for example:
 
+A trainer-bearing mapper-0 image copies its 512 trainer bytes into writable
+instance-owned PRG RAM at CPU `$7000-$71FF` before the reset vector is used.
+The full `$6000-$7FFF` 8 KiB window is writable and starts at zero outside the
+trainer span. Trainerless images keep `$6000-$7FFF` unmapped. Invalid images
+are rejected before cartridge allocation, and a failed reload leaves the
+previous cartridge usable.
+
 ```sh
 nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.ppm
 ```
