@@ -246,4 +246,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 4.1 → 4.2
 | 3. A real game in RetroArch | 15/15 | Complete    | 2026-10-09 |
 | 4. Sound | 4/4 | Complete    | 2026-10-09 |
 | 4.1. Close gap: GAME-01 — initialize accepted iNES trainers | 1/1 | Complete    | 2026-10-09 |
-| 4.2. Close gap: SND-01 — deliver single-sample libretro audio | 0 plans | Planning   | — |
+| 4.2. Close gap: SND-01 — deliver single-sample libretro audio | 0/1 | Planned     | — |
