@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/szTheory/nesturbator/compare/v0.1.3...v0.1.4) (2026-10-08)
+
+
+### Features
+
+* run a real game in RetroArch ([5919ac1](https://github.com/szTheory/nesturbator/commit/5919ac14ed18298b5521e67c0c8442a92747d867))
+
 ## [0.1.3](https://github.com/szTheory/nesturbator/compare/v0.1.2...v0.1.3) (2026-10-06)
 
 
