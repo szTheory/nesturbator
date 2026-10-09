@@ -16,6 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: The CPU matches the public vectors** - Every opcode matches the public 65x02 vectors on final state and on every bus cycle (completed 2026-10-06)
 - [x] **Phase 3: A real game in RetroArch** - NROM games render and take controller input, with frame hashes equal on every platform (completed 2026-10-08)
 - [x] **Phase 4: Sound** - NROM games play with sound, with audio hashes equal on every platform (completed 2026-10-09)
+- [x] **Phase 4.1: Close gap: GAME-01 — initialize accepted iNES trainers** - Trainer bytes initialize CPU-visible NROM RAM before execution (completed 2026-10-09)
 
 ## Phase Details
 
@@ -201,10 +202,23 @@ Plans:
 **UI hint**: no
 **Canonical refs:** `.planning/preparation/NES-HARDWARE-CPU-APU.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/CONFORMANCE.md`
 
+### Phase 4.1: Close gap: GAME-01 — initialize accepted iNES trainers (INSERTED)
+
+**Goal:** Accepted trainer-bearing iNES and NES 2.0 mapper-0 images initialize writable CPU-visible PRG RAM with the 512 trainer bytes at $7000-$71FF before execution, with the behavior covered by deterministic CI tests.
+**Requirements**: GAME-01
+**Depends on:** Phase 4
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] 04.1-01-PLAN.md
+
+**UI hint**: no
+**Canonical refs:** `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/ENGINEERING.md`, `.planning/v1-MILESTONE-AUDIT.md`
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 4.1
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -212,16 +226,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. The CPU matches the public vectors | 11/11 | Complete    | 2026-10-06 |
 | 3. A real game in RetroArch | 14/14 | Complete    | 2026-10-09 |
 | 4. Sound | 4/4 | Complete    | 2026-10-09 |
-
-### Phase 04.1: Close gap: GAME-01 — initialize accepted iNES trainers (INSERTED)
-
-**Goal:** Accepted trainer-bearing iNES and NES 2.0 mapper-0 images initialize writable CPU-visible PRG RAM with the 512 trainer bytes at $7000-$71FF before execution, with the behavior covered by deterministic CI tests.
-**Requirements**: GAME-01
-**Depends on:** Phase 4
-**Plans:** 1/1 plans executed
-
-Plans:
-- [x] 04.1-01-PLAN.md
-
-**UI hint**: no
-**Canonical refs:** `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md`, `.planning/preparation/ARCHITECTURE.md`, `.planning/preparation/ENGINEERING.md`, `.planning/v1-MILESTONE-AUDIT.md`
+| 4.1. Close gap: GAME-01 — initialize accepted iNES trainers | 1/1 | Complete    | 2026-10-09 |

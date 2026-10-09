@@ -82,6 +82,7 @@ None for v1; later work remains tracked in `.planning/seeds/`.
 | Keep APU channel state and the sample scheduler per instance, clocked from CPU bus cycles | Hardware phase order and isolated emulator state make runs reproducible | ✓ Good — Phase 4 APU, DMC and AccuracyCoin checks pass |
 | Use fixed-point transition-to-PCM synthesis with bounded per-instance history | Stable platform output without floating point or a new audio dependency | ✓ Good — Phase 4 spectral, continuity and game-hash checks pass |
 | Serialize audio transitions and signed PCM explicitly as little-endian before hashing | Canonical bytes make audio baselines portable across hosts | ✓ Good — Phase 4 known-answer tests and three game baselines pass |
+| Allocate instance-owned PRG RAM for accepted trainer-bearing mapper-0 images and copy the trainer before reset-vector setup | The CPU must observe the accepted image's initial state through the normal bus, with no cross-instance state | ✓ Good — Phase 4.1 byte-exact bus, ownership, reload, and rejection regressions pass in CI |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -103,4 +104,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-09 after Phase 4*
+*Last updated: 2026-10-09 after Phase 4.1*

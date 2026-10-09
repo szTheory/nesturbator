@@ -2,19 +2,19 @@
 gsd_state_version: "1.0"
 current_phase: "4.1"
 current_phase_name: "Close gap: GAME-01 — initialize accepted iNES trainers"
-current_plan: 1
-status: verifying
-stopped_at: Completed 04.1-01-PLAN.md
-last_updated: "2026-10-09T17:49:54.982Z"
+current_plan: Complete
+status: completed
+stopped_at: Phase 4.1 complete — all phases complete
+last_updated: "2026-10-09T18:00:44Z"
 last_activity: 2026-10-09
-last_activity_desc: Phase 4.1 execution started
-state_head: d29dbbec86178549c9f8cee965e5ad78bb30f9e2
+last_activity_desc: Phase 4.1 complete
+state_head: 8e8c58036b9d06db94bf615e118e24d8d74e2fd0
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 42
   completed_plans: 42
-  percent: 80
+  percent: 100
 ---
 
 # Project State
@@ -24,25 +24,25 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-09)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 4.1 — Close gap: GAME-01 — initialize accepted iNES trainers
+**Current focus:** Milestone 1 audit and closure
 
 ## Current Position
 
 Current Phase: 4.1
 Current Phase Name: Close gap: GAME-01 — initialize accepted iNES trainers
-Current Plan: 1
+Current Plan: Complete (04.1-01)
 Total Plans in Phase: 1
-Plans complete: 0 of 1.
-Status: Phase complete — ready for verification
-Last activity: 2026-10-09 — Phase 4.1 execution started
-Last Activity Description: Phase 4.1 execution started
+Plans complete: 1 of 1.
+Status: All phases complete
+Last activity: 2026-10-09 — Phase 4.1 complete
+Last Activity Description: Phase 4.1 complete
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 41
+- Total plans completed: 42
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -54,6 +54,7 @@ Progress: [████████░░] 80%
 | 02 | 11 | - | - |
 | 03 | 14 | - | - |
 | 04 | 4 | - | - |
+| 4.1 | 1 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -127,7 +128,7 @@ None.
 
 ### Blockers/Concerns
 
-The milestone audit in `.planning/v1-MILESTONE-AUDIT.md` found two integration gaps: GAME-01 trainer initialization is planned in Phase 04.1 plan 04.1-01, and SND-01 single-sample libretro audio remains a follow-up gap. Phase 04 shipped in merged PR #20; its green hosted checks are recorded in the audit. Phase 04.1 verifies trainer behavior through synthetic core-bus tests and the CI workflow; no owner UAT is needed for this deterministic behavior.
+The milestone audit in `.planning/v1-MILESTONE-AUDIT.md` found two integration gaps. Phase 04.1 closed the GAME-01 trainer gap with synthetic core-bus tests and the CI workflow. SND-01 single-sample libretro audio remains the one known integration gap for the milestone audit to recheck. Phase 04 shipped in merged PR #20; its green hosted checks are recorded in the audit. No owner UAT is needed for the deterministic trainer behavior.
 
 ### Quick Tasks Completed
 
@@ -150,6 +151,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T17:49:54.537Z
-Stopped at: Completed 04.1-01-PLAN.md
+Last session: 2026-10-09T18:00:44Z
+Stopped at: Phase 4.1 complete; refresh the milestone audit before archive
 Resume file: None
