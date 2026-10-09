@@ -2,19 +2,19 @@
 gsd_state_version: "1.0"
 current_phase: 03
 current_phase_name: A real game in RetroArch
-current_plan: Not started
+current_plan: 2
 status: executing
-stopped_at: Phase 03 verification found a scanline-0 sprite gap; plan gap closure next
-last_updated: "2026-10-09T13:43:28.205Z"
+stopped_at: Completed 03-14-PLAN.md
+last_updated: "2026-10-09T14:02:42.729Z"
 last_activity: 2026-10-09
-last_activity_desc: Phase 03 planning complete — 14 plans ready
-state_head: 9bcdc4cb87a66876099311b82e0b43096664ec7b
+last_activity_desc: Phase 03 execution started
+state_head: 69b9f07c9f1641311f5590a2cf5f2446b00c25d8
 progress:
   total_phases: 4
   completed_phases: 4
   total_plans: 41
-  completed_plans: 40
-  percent: 98
+  completed_plans: 41
+  percent: 100
 ---
 
 # Project State
@@ -24,20 +24,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-09)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Close Phase 03's scanline-0 sprite gap, then obtain exact-HEAD hosted RetroArch and six-platform CI evidence before the Milestone 1 audit
+**Current focus:** Phase 03 — A real game in RetroArch
 
 ## Current Position
 
 Current Phase: 03
 Current Phase Name: A real game in RetroArch
-Current Plan: Not started
+Current Plan: 2
 Total Plans in Phase: 14
 Plans complete: 13 of 14.
 Status: Ready to execute
-Last activity: 2026-10-09 — Phase 03 planning complete
-Last Activity Description: Phase 03 planning complete — 14 plans ready
+Last activity: 2026-10-09 — Phase 03 execution started
+Last Activity Description: Phase 03 execution started
 
-Progress: [█████████░] 98%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -103,6 +103,7 @@ Progress: [█████████░] 98%
 | Phase 04 P02 | 122 min | 2 tasks | 15 files |
 | Phase 04 P03 | 24 min | 1 task | 15 files |
 | Phase 04 P04 | 10min | 2 tasks | 14 files |
+| Phase 03 P14 | 11min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,9 @@ Recent decisions affecting current work:
 - [Phase 04]: Keep the 16-tap, 32-phase Q15 synthesis kernel, Q30 filter history, and bounded 1024-sample staging ring in per-instance state; advance audio behavior revision to 3.
 - [Phase 04]: Verify the five coherent spectral fixtures in CI with the first 512 folded harmonic orders masked and no floating-point analyzer.
 - [Phase 04]: Canonical audio hashing streams changed mixed levels before synthesis using CPU cycle cursor ticks/24, and serializes transition and PCM records explicitly little-endian. — This makes transition timing and signed PCM hashes platform-independent without exposing a public API or retaining a transition log; known-answer and callback-order tests pin the contract.
+- [Phase 03]: Y=$FF wrap is applied only for target scanline 0; ordinary lines retain bounded range checks.
+- [Phase 03]: Pre-render prepares row-zero sprite pixels with current-row render slots isolated from next-row evaluation.
+- [Phase 03]: Native frame output changed; behaviour revision advances to 4 and generated hashes are refreshed.
 
 ### Pending Todos
 
@@ -158,7 +162,7 @@ None.
 
 ### Blockers/Concerns
 
-Phase 04's four plans passed structure and coverage checks. Phase 01 verification passes (69/69; UAT 4/4), and Phase 02 verification passes (62/62; UAT 4/4). Phase 03 verification found one blocker: sprite evaluation does not prepare visible scanline 0, including OAM Y=255 wraparound; add the full-frame boundary test and fix before marking the phase complete. The local CI preset passed 354 tests and skipped the two RetroArch host tests because RetroArch was unavailable. The existing required hosted RetroArch screenshot and six-platform hash jobs must produce exact-HEAD evidence after gap closure. Phase 03 code review also records open CR-01 (per-sample audio callback) and CR-02 (loaded-game reset), both outside Phase 03 success criteria; CR-03 matches the sprite gap. Phase 01 has one open advisory code-review warning in `01-REVIEW-DISPOSITION.md`: the release-policy test matcher can accept an expression containing `always()`. The Phase 02 review ledger has one open CR-01 about the libretro single-sample audio callback; its scope was degraded and included later-phase files, so it is not attributed to Phase 02 and did not block CPU/vector verification.
+Phase 04's four plans passed structure and coverage checks. Phase 01 verification passes (69/69; UAT 4/4), and Phase 02 verification passes (62/62; UAT 4/4). Phase 03's scanline-0 sprite gap is now closed by plan 03-14: the synthetic even/odd pre-render case passes, AccuracyCoin pages 2, 14, and 17 pass, and the local CI workflow passed 356/356 tests. The two local RetroArch tests skipped after the GUI session aborted before startup. The existing hosted RetroArch screenshot and six-platform hash jobs still need exact-commit evidence from hosted CI. Phase 03 code review also records open CR-01 (per-sample audio callback) and CR-02 (loaded-game reset), both outside Phase 03 success criteria. Phase 01 has one open advisory code-review warning in `01-REVIEW-DISPOSITION.md`: the release-policy test matcher can accept an expression containing `always()`. The Phase 02 review ledger has one open CR-01 about the libretro single-sample audio callback; its scope was degraded and included later-phase files, so it is not attributed to Phase 02 and did not block CPU/vector verification.
 
 ### Quick Tasks Completed
 
@@ -177,6 +181,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T13:33:19Z
-Stopped at: Phase 03 verification found a scanline-0 sprite gap; plan gap closure next
+Last session: 2026-10-09T14:02:42.668Z
+Stopped at: Completed 03-14-PLAN.md
 Resume file: None
