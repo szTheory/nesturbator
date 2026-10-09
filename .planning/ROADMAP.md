@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: A test frame in RetroArch** - The library, runner and libretro core build, test and release on six platforms and show a built-in test frame in RetroArch (completed 2026-10-03)
 - [x] **Phase 2: The CPU matches the public vectors** - Every opcode matches the public 65x02 vectors on final state and on every bus cycle (completed 2026-10-06)
 - [x] **Phase 3: A real game in RetroArch** - NROM games render and take controller input, with frame hashes equal on every platform (completed 2026-10-08)
-- [ ] **Phase 4: Sound** - NROM games play with sound, with audio hashes equal on every platform
+- [x] **Phase 4: Sound** - NROM games play with sound, with audio hashes equal on every platform (completed 2026-10-09)
 
 ## Phase Details
 
@@ -188,7 +188,7 @@ Plans:
   3. The committed scoreboard shows AccuracyCoin's Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter 5-step and Delta Modulation Channel tests passing.
   4. A test in the `ci` preset renders five reference tones and shows the synthesiser's largest non-harmonic peak below 16 kHz is under -80 dB.
 
-**Plans**: 3/4 executed (4 plans written)
+**Plans**: 4/4 executed (4 plans written)
 - [x] 04-01-PLAN.md
 - [x] 04-02-PLAN.md
 - [x] 04-03-PLAN.md
@@ -207,4 +207,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. A test frame in RetroArch | 12/12 | Complete    | 2026-10-03 |
 | 2. The CPU matches the public vectors | 11/11 | Complete    | 2026-10-06 |
 | 3. A real game in RetroArch | 13/13 | Complete | 2026-10-08 |
-| 4. Sound | 4/4 | In Progress | - |
+| 4. Sound | 4/4 | Complete    | 2026-10-09 |

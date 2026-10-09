@@ -19,7 +19,7 @@ tech-stack:
   added: []
   patterns: [instance-owned APU state, integer mixer tables, APU-before-register-decode cycle order]
 key-files:
-  created: [src/apu.c, src/apu_mix_table.h, tests/core/test_apu.c]
+  created: [src/apu.c, tests/core/test_apu.c]
   modified: [src/internal.h, src/bus.c, src/frame.c, src/cartridge.c, CMakeLists.txt, tests/CMakeLists.txt, include/nesturbator.h, README.md]
 key-decisions:
   - "Keep channel state and sample scheduling in each emulator instance, clocked from CPU bus cycles."
@@ -89,7 +89,7 @@ metrics:
 ## Files Created/Modified
 
 - `src/apu.c` - Per-instance channel clocks, register behavior, channel levels, integer mixer lookup and PCM output.
-- `src/apu_mix_table.h` - Fixed pulse and TND mixer cells.
+- Initially added fixed pulse and TND mixer cells in `src/apu_mix_table.h`; Plan 04-03 later consolidated them into `src/synth.c`.
 - `src/internal.h` - APU/channel state and internal interfaces.
 - `src/bus.c`, `src/frame.c`, `src/cartridge.c` - Shared bus timing, caller-buffer sampling and APU reset integration.
 - `tests/core/test_apu.c`, `tests/CMakeLists.txt`, `CMakeLists.txt` - Public tracer and all-channel coverage; explicit source registration, including the standalone bus test target.
