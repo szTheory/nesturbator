@@ -1,14 +1,20 @@
 ---
-status: complete
+status: testing
 phase: 01-a-test-frame-in-retroarch
 source: [01-VERIFICATION.md]
-started: 2026-10-03T01:45:00Z
-updated: 2026-10-03T13:20:27Z
+started: 2026-10-09T11:47:58Z
+updated: 2026-10-09T11:47:58Z
 ---
 
 ## Current Test
 
-[testing complete]
+number: 2
+name: Review clean-room provenance of the palette generator and table
+expected: |
+  Confirm tools/palgen/palgen.c and src/palette_ntsc.c use independently structured
+  implementations based on cited hardware facts, without copied or paraphrased
+  restricted decoder or emulator code.
+awaiting: user response
 
 ## Tests
 
@@ -29,12 +35,24 @@ evidence: |
   Note: PR #3 (fix: bump every version in the README install line) was needed
   before the release so that the line named v0.1.0 everywhere.
 
+### 2. Review clean-room provenance of the palette generator and table
+expected: Confirm tools/palgen/palgen.c and src/palette_ntsc.c use independently structured implementations based on cited hardware facts, without copied or paraphrased restricted decoder or emulator code.
+result: [pending]
+
+### 3. Review release credential isolation enforcement
+expected: Confirm pull-request-controlled code cannot access the release App private key or token; release.yml mints it only for protected release events and passes it only to release-please and auto-merge.
+result: [pending]
+
+### 4. Verify docs-only and chore-only merges do not publish a release
+expected: Confirm the release policy creates no release PR or release for docs/chore-only changes, while a behavior-changing release produces 18 archives plus SHA256SUMS with verified attestations.
+result: [pending]
+
 ## Summary
 
-total: 1
+total: 4
 passed: 1
 issues: 0
-pending: 0
+pending: 3
 skipped: 0
 blocked: 0
 
