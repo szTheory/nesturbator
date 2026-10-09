@@ -462,7 +462,42 @@ static void check_sound_frame_parity(unsigned char *image, size_t image_size)
         }
         CHECK(batch_nonzero > 0);
     }
+
+    /* Failed frames must not deliver stale or partial audio to either callback. */
+    p_unload_game();
+    image[16u] = 0x02u; /* JAM */
+    CHECK_EQ_U64(nesturbator_load_cartridge(nes, image, image_size), NESTURBATOR_OK);
+    memset(&io, 0, sizeof io);
+    io.size = (uint32_t)sizeof io;
+    io.video = native;
+    io.video_pitch = W;
+    io.audio = mono;
+    io.audio_capacity = AUDIO_CAPTURE_CAPACITY;
+    CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_STOP_JAM);
+
+    game.data = image;
+    game.size = image_size;
+    loaded = p_load_game(&game);
+    CHECK(loaded);
+    if (loaded) {
+        for (unsigned callback_mode = 0u; callback_mode < 2u; callback_mode++) {
+            sample_calls = 0;
+            batch_calls = 0;
+            batch_frames = 0u;
+            if (callback_mode == 0u) {
+                p_set_audio_sample_batch(NULL);
+            } else {
+                p_set_audio_sample_batch(batch);
+            }
+            p_run();
+            CHECK_EQ_U64(sample_calls, 0u);
+            CHECK_EQ_U64(batch_calls, 0u);
+            CHECK_EQ_U64(batch_frames, 0u);
+        }
+    }
+
     p_set_audio_sample(NULL);
+    p_set_audio_sample_batch(batch);
     nesturbator_destroy(nes);
     p_unload_game();
 }

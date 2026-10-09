@@ -134,7 +134,7 @@ None.
 
 ### Blockers/Concerns
 
-No implementation blockers remain. Phase 04.2 closed the SND-01 sample-only callback gap with deterministic host coverage and CI. The roadmap analyzer sees 44/44 plans but reports five legacy phase-status/checkbox conflicts; reconcile these during the milestone audit. Review warning WR-01 remains recorded: failed-frame audio silence follows an explicit early return, but lacks a dedicated host regression assertion.
+No implementation blockers remain. Phase 04.2's failed-frame audio callback warning is closed by a generated JAM fixture that passes in the full CI workflow. The roadmap analyzer sees 44/44 plans but reports five legacy phase-status/checkbox conflicts; reconcile these during the milestone audit.
 
 ### Quick Tasks Completed
 
