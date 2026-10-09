@@ -155,7 +155,7 @@ None.
 
 ### Blockers/Concerns
 
-None for Phase 04; its four plans passed structure and coverage checks. Phase 01 verification now passes (69/69) and its UAT is complete (4/4). Phase 02 verification remains stale and Phase 03 verification is missing; refresh both before the Milestone 1 audit. Phase 01 has one advisory code-review warning recorded open in `01-REVIEW-DISPOSITION.md`: the release-policy test matcher can accept an expression containing `always()`.
+Phase 04's four plans passed structure and coverage checks. Phase 01 verification passes (69/69; UAT 4/4), and Phase 02 verification now passes (62/62; UAT 4/4). Phase 03 verification is missing and must be refreshed before the Milestone 1 audit. Phase 01 has one open advisory code-review warning in `01-REVIEW-DISPOSITION.md`: the release-policy test matcher can accept an expression containing `always()`. The Phase 02 review ledger has one open CR-01 about the libretro single-sample audio callback; the review scope was degraded and included later-phase files, so it is not attributed to Phase 02 and did not block CPU/vector verification.
 
 ### Quick Tasks Completed
 
