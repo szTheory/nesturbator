@@ -435,8 +435,34 @@ static void check_sound_frame_parity(unsigned char *image, size_t image_size)
         }
     }
     CHECK(audible != 0);
-    p_set_audio_sample(NULL);
+    p_set_audio_sample(sample);
     p_set_audio_sample_batch(batch);
+    for (unsigned frame_index = 0u; frame_index < 2u; frame_index++) {
+        batch_calls = 0;
+        batch_frames = 0u;
+        batch_nonzero = 0;
+        sample_calls = 0;
+        p_run();
+        CHECK_EQ_U64(batch_calls, 1u);
+        CHECK_EQ_U64(sample_calls, 0u);
+
+        memset(&io, 0, sizeof io);
+        io.size = (uint32_t)sizeof io;
+        io.video = native;
+        io.video_pitch = W;
+        io.audio = mono;
+        io.audio_capacity = AUDIO_CAPTURE_CAPACITY;
+        CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+        CHECK_EQ_U64(batch_frames, io.audio_count);
+        if (batch_frames == io.audio_count && io.audio_count <= AUDIO_CAPTURE_CAPACITY) {
+            for (size_t i = 0u; i < io.audio_count; i++) {
+                CHECK_EQ_U64((uint16_t)batch_samples[2u * i], (uint16_t)mono[i]);
+                CHECK_EQ_U64((uint16_t)batch_samples[2u * i + 1u], (uint16_t)mono[i]);
+            }
+        }
+        CHECK(batch_nonzero > 0);
+    }
+    p_set_audio_sample(NULL);
     nesturbator_destroy(nes);
     p_unload_game();
 }
