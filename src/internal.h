@@ -127,7 +127,9 @@ struct nesturbator__ppu {
     uint8_t palette[32];
     uint8_t oam[256];
     uint8_t secondary_oam[32];
-    uint8_t sprite_count, eval_count, eval_n, eval_latch, eval_target;
+    uint8_t sprite_count, eval_count, eval_n, eval_m, eval_remaining;
+    uint8_t eval_copy_remaining;
+    uint8_t eval_latch, eval_target;
     uint8_t eval_sprite_zero[8];
     uint8_t sprite_zero[8], sprite_x[8], sprite_attr[8];
     uint8_t sprite_lo[8], sprite_hi[8];
@@ -143,7 +145,9 @@ struct nesturbator__cartridge {
     uint8_t *bytes;
     size_t size;
     uint8_t *prg;
+    size_t prg_size;
     uint8_t *chr;
+    uint8_t *prg_ram;
     uint8_t chr_is_ram;
 };
 

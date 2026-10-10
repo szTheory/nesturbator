@@ -9,12 +9,25 @@ libretro core accept bounded mapper-0 iNES 1.0 and NES 2.0 images with 16 or
 32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
 clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
-includes OAM Y=$FF sprites on visible framebuffer row 0. This is an initial tracer,
+includes OAM Y=$FF sprites on visible framebuffer row 0. After eight sprites
+are selected, the 2C02's diagonal OAM scan can set sprite overflow from a
+tile, attribute or X byte; an in-range Y skipped by that scan does not set it.
+Overflow remains in PPU status until pre-render dot 1. The first eight
+sprites are copied one byte per odd/even OAM pair, so their final X bytes are
+copied before the ninth Y comparison at dot 130; `$2002` reads before that
+comparison still see overflow clear. This is an initial tracer,
 not full game compatibility. Other cartridge geometries and later sound work
 remain planned. With no cartridge, the fixed test
 card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
 The runner accepts content with `--rom FILE`, for example:
+
+A trainer-bearing mapper-0 image copies its 512 trainer bytes into writable
+instance-owned PRG RAM at CPU `$7000-$71FF` before the reset vector is used.
+The full `$6000-$7FFF` 8 KiB window is writable and starts at zero outside the
+trainer span. Trainerless images keep `$6000-$7FFF` unmapped. Invalid images
+are rejected before cartridge allocation, and a failed reload leaves the
+previous cartridge usable.
 
 ```sh
 nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.ppm
@@ -636,10 +649,13 @@ The `ci` build puts it at `build/ci/libretro/`. It exports only the 25
 `retro_*` functions of `libretro.h`.
 
 With no content, the core shows the test card and sends silence: in RetroArch,
-use "Start Core", or launch it with `-L` and no content path. Mapper-0 games
-send one batch of stereo samples per frame at 48000 Hz, with each channel equal
-to the core's mono sample. `libretro.host` checks this sample-by-sample without
-an audio device.
+use "Start Core", or launch it with `-L` and no content path. The public core
+returns mono signed 16-bit PCM. The libretro adapter duplicates each sample to
+left and right at 48000 Hz, preferring one batch callback per frame and using
+the single-sample callback only when no batch callback is registered. When both
+callbacks are registered, only the batch callback receives audio.
+`libretro.host` checks both callback paths against direct core PCM without an
+audio device.
 
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares

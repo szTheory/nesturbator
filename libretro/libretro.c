@@ -55,8 +55,8 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 {
     video_cb = cb;
 }
-/* The per-sample callback is stored but unused: a core uses the batch
-   callback or this one, not both (L7453). */
+/* L7453: the frontend may provide either audio callback; retro_run prefers
+   the batch callback when both are registered. */
 void retro_set_audio_sample(retro_audio_sample_t cb)
 {
     audio_cb = cb;
@@ -154,9 +154,10 @@ void retro_reset(void)
 }
 
 /* L7694: one frame. Input is polled once (L7685), the video callback is
-   called once with XRGB8888 rows of 1024 bytes, and the mono samples go out
-   as left/right pairs in one batch call (L7465). A failed frame sends no
-   video or audio. */
+   called once with XRGB8888 rows of 1024 bytes, and mono samples are
+   duplicated into left/right pairs. Prefer the batch callback (L7465); use
+   the per-sample callback only when no batch callback is registered (L7453).
+   A failed frame sends no video or audio. */
 void retro_run(void)
 {
     nesturbator_frame io;
@@ -205,6 +206,10 @@ void retro_run(void)
     }
     if (audio_batch_cb != NULL) {
         (void)audio_batch_cb(stereo, io.audio_count);
+    } else if (audio_cb != NULL) {
+        for (i = 0; i < io.audio_count; i++) {
+            audio_cb(stereo[2u * i], stereo[2u * i + 1u]);
+        }
     }
 }
 

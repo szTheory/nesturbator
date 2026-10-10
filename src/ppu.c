@@ -52,6 +52,9 @@ static void sprite_evaluate(struct nesturbator *nes)
     if (ppu->dot == 65u) {
         ppu->eval_count = 0u;
         ppu->eval_n = 0u;
+        ppu->eval_m = 0u;
+        ppu->eval_remaining = 0u;
+        ppu->eval_copy_remaining = 0u;
         /* Pre-render evaluation prepares visible scanline zero; Y+1 wraps
            at eight bits on the 2C02. [HWP.02][HWP.06] */
         ppu->eval_target = ppu->scanline == 261u ? 0u : (uint8_t)(ppu->scanline + 1u);
@@ -64,12 +67,28 @@ static void sprite_evaluate(struct nesturbator *nes)
     if (ppu->eval_n >= 64u)
         return;
 
-    /* The 2C02 clears secondary OAM then alternates primary-OAM reads and
-       evaluation during dots 1-256. This captures each candidate when its
-       Y byte is evaluated, rather than sampling all of OAM at pixel time.
-       [HWP.06] */
+    /* The 2C02 alternates primary-OAM reads and secondary-OAM writes. A
+       selected Y is followed by three odd/even byte-copy pairs before n
+       advances; after eight slots fill, a miss advances both n and m, so
+       non-Y bytes can be mistaken for Y. [HWP.06] */
     if ((ppu->dot & 1u) != 0u) {
-        ppu->eval_latch = ppu->oam[(uint16_t)ppu->eval_n * 4u];
+        ppu->eval_latch = ppu->oam[(uint16_t)ppu->eval_n * 4u + ppu->eval_m];
+        return;
+    }
+    if (ppu->eval_copy_remaining != 0u) {
+        uint16_t slot_base = (uint16_t)(ppu->eval_count - 1u) * 4u;
+        ppu->secondary_oam[slot_base + ppu->eval_m] = ppu->eval_latch;
+        ppu->eval_copy_remaining--;
+        ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
+        if (ppu->eval_m == 0u)
+            ppu->eval_n++;
+        return;
+    }
+    if (ppu->eval_remaining != 0u) {
+        ppu->eval_remaining--;
+        ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
+        if (ppu->eval_m == 0u)
+            ppu->eval_n++;
         return;
     }
     uint16_t top = (uint16_t)ppu->eval_latch + 1u;
@@ -79,16 +98,24 @@ static void sprite_evaluate(struct nesturbator *nes)
         ((uint16_t)ppu->eval_target >= top && (uint16_t)ppu->eval_target < top + height)) {
         if (ppu->eval_count < 8u) {
             uint8_t slot = ppu->eval_count++;
-            uint16_t base = (uint16_t)ppu->eval_n * 4u;
-            for (uint8_t byte = 0u; byte < 4u; byte++)
-                ppu->secondary_oam[(uint16_t)slot * 4u + byte] = ppu->oam[base + byte];
+            ppu->secondary_oam[(uint16_t)slot * 4u] = ppu->eval_latch;
             ppu->eval_sprite_zero[slot] = ppu->eval_n == 0u;
+            ppu->eval_m = 1u;
+            ppu->eval_copy_remaining = 3u;
+            return;
         } else {
             if (ppu->scanline != 261u)
                 ppu->status |= 0x20u;
+            ppu->eval_remaining = 3u;
+            ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
+            if (ppu->eval_m == 0u)
+                ppu->eval_n++;
+            return;
         }
     }
     ppu->eval_n++;
+    if (ppu->eval_count == 8u)
+        ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
 }
 
 static uint8_t reverse_bits(uint8_t value)
@@ -233,8 +260,6 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
         nes->ppu.dot++;
         /* NTSC vblank starts at scanline 241 dot 1 and ends at 261 dot 1.
            Enabling NMI with vblank active raises the CPU's pending edge. [HWP.03] */
-        /* NTSC vblank starts at scanline 241 dot 1 and ends at 261 dot 1.
-           Enabling NMI with vblank active raises the CPU's pending edge. [HWP.03] */
         if (nes->ppu.scanline == 241u && nes->ppu.dot == 1u) {
             if (nes->ppu.vblank_suppress == 0u) {
                 nes->ppu.status |= 0x80u;
@@ -249,7 +274,6 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
         }
         sprite_evaluate(nes);
         sprite_fetch(nes);
-        /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] */
         /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] */
         if (nes->ppu.scanline == 261u && nes->ppu.dot == 340u && nes->ppu.odd_frame != 0u &&
             (nes->ppu.mask & 0x18u) != 0u) {
