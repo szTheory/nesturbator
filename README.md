@@ -523,7 +523,15 @@ between frames. It keeps CPU RAM and cartridge RAM (PRG RAM and CHR RAM), so
 saves survive, and keeps A, X, Y and the host's input state. The controller
 strobe and shift registers and a pending OAM DMA are cleared. The CPU sets the
 I flag, lowers S by 3 and takes the reset vector in 7 CPU cycles, which count
-in `ticks`. With no cartridge it does nothing and returns `NESTURBATOR_OK`.
+in `ticks`. The PPU restarts at the top of the picture and ignores writes to
+`$2000`, `$2001`, `$2005` and `$2006` until the end of the next vblank, 29,667
+CPU cycles from the reset (the NESdev Wiki documents about 29,658); it keeps
+`v`, the status flags, the OAM address and video memory. The APU is silenced as
+by a write of 0 to `$4015`, its IRQs are cleared and the last `$4017` mode is
+re-applied. Load is unchanged: there is no write-ignore window and no startup
+sequence at power-on, so frame and audio hashes from load do not change and
+the behaviour revision stays 4. With no cartridge it does nothing and returns
+`NESTURBATOR_OK`.
 
 ## Downloads and archives
 

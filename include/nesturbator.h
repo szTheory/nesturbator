@@ -295,7 +295,15 @@ void nesturbator_get_palette(const nesturbator *inst, uint32_t *out_xrgb8888, ui
  * the host's input state are kept, so battery saves survive. The controller
  * strobe and shift registers and a pending OAM DMA are cleared. The CPU sets
  * the I flag, clears a JAM latch, lowers S by 3 and takes the reset vector in
- * 7 bus cycles, which count in ticks; frame_number does not change. */
+ * 7 bus cycles, which count in ticks; frame_number does not change.
+ * The PPU restarts at the top of the picture (scanline 0, dot 0) and ignores
+ * writes to $2000, $2001, $2005 and $2006 until the end of the next vblank:
+ * 29,667 CPU cycles from the reset (NESdev documents about 29,658). Its
+ * control, mask, scroll latch and read buffer are cleared; v, status, OAM
+ * address and video memory are kept. The APU is silenced as by a $4015 = 0
+ * write, its IRQs are cleared and the last $4017 mode is re-applied; its
+ * output filters are kept. Load is unchanged: no write-ignore window and no
+ * startup sequence at power-on, so frame and audio hashes from load stay. */
 nesturbator_status nesturbator_reset(nesturbator *inst);
 
 #ifdef __cplusplus
