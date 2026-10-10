@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 05
 current_phase_name: Tune-up and v1 debt
 status: executing
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-10-10T13:27:39.196Z"
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-10-10T13:33:37.033Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 05 execution started
-state_head: 009f1045c7f9c3a1823ebf53624455ddc070e106
+state_head: d17af0cc2c66416865792115b0307d4d704bea5a
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 7
-  completed_plans: 4
-  percent: 57
+  completed_plans: 5
+  percent: 71
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 ## Current Position
 
 Phase: 05 (Tune-up and v1 debt) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
 Last activity: 2026-10-10 — Phase 05 execution started
 
-Progress: [██████░░░░] 57% of v2
+Progress: [███████░░░] 71% of v2
 
 ## Performance Metrics
 
@@ -110,6 +110,7 @@ Progress: [██████░░░░] 57% of v2
 | Phase 05 P02 | 10 min | 2 tasks | 2 files |
 | Phase 05 P03 | 15 min | 3 tasks | 9 files |
 | Phase 05 P04 | 12 min | 3 tasks | 10 files |
+| Phase 05 P05 | 20 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -131,6 +132,7 @@ Recent decisions affecting current work:
 - [Phase 05]: Release publish gate compared by exact job-scoped line equality to canonical CMake variables
 - [Phase 05]: policy.no-skip has no allowlist; unrunnable tests are not registered and host-app checks live in retroarch-e2e
 - [Phase 05]: Parallel CTest uses execution.jobs 4 with COST on the three long tests; no ccache (compile share 4 to 22 percent)
+- [Phase 05]: nesturbator_reset clears the CPU poll latch after the last reset cycle because each bus cycle resamples the IRQ line
 
 ### Pending Todos
 
@@ -171,8 +173,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T13:27:39.163Z
-Stopped at: Completed 05-04-PLAN.md
+Last session: 2026-10-10T13:33:37.005Z
+Stopped at: Completed 05-05-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-plan-phase 5`.
