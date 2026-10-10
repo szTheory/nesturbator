@@ -169,7 +169,8 @@ nesturbator_status nesturbator_reset(nesturbator *inst)
     inst->bus.controller_shift[0] = 0u;
     inst->bus.controller_shift[1] = 0u;
     inst->bus.oam_dma_pending = 0u;
-    /* Plan 06 calls the PPU and APU resets here. */
+    nesturbator__ppu_reset(inst);
+    nesturbator__apu_reset(inst);
     nesturbator__cpu_reset(inst);
     return NESTURBATOR_OK;
 }

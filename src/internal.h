@@ -139,6 +139,10 @@ struct nesturbator__ppu {
     uint16_t scanline;
     uint16_t dot;
     uint8_t odd_frame;
+    /* Set by a soft reset, cleared at scanline 261 dot 1: while set, writes to
+       $2000, $2001, $2005 and $2006 are dropped. Load and unload zero the PPU,
+       so power-on has no such window (D-17). */
+    uint8_t reset_flag;
 };
 
 struct nesturbator__cartridge {
@@ -218,6 +222,14 @@ void nesturbator__cpu_step(struct nesturbator *nes);
 /* Soft reset of the CPU: I set, seven bus cycles, S lowered by 3, PC from
    $FFFC/$FFFD, jammed and the poll latch cleared (src/cpu.c). */
 void nesturbator__cpu_reset(struct nesturbator *nes);
+
+/* Soft reset of the PPU (src/ppu.c): top of the picture, registers and latches
+   cleared, write-ignore flag set. Run nesturbator__ppu_run_until first. */
+void nesturbator__ppu_reset(struct nesturbator *nes);
+
+/* Soft reset of the APU (src/apu.c): silenced, IRQs and DMC DMA latches cleared,
+   the last $4017 write re-applied. */
+void nesturbator__apu_reset(struct nesturbator *nes);
 
 /* Validates an input struct's size tag before any other field is read.
    's' points at the struct; 'first' is its first released size; 'ours' is

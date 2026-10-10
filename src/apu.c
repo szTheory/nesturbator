@@ -338,6 +338,26 @@ void nesturbator__apu_clock(struct nesturbator *nes)
     }
 }
 
+/* Soft reset. NESdev Wiki "CPU power up state", after reset: $4015 = 0, triangle phase 0,
+   [$4011] &= 1, $4017 unchanged. "APU": "Power-up and reset have the effect of writing $00" to
+   $4015. "APU Frame Counter": a $4017 write takes effect after 3 or 4 CPU cycles. "PPU power up
+   state": the frame counter behaves "as if the APU's $4017 were written 10 clocks before the first
+   code starts executing"; the seven reset cycles plus that delay give the 2-or-1 cycle delay set
+   here. The frame-IRQ clear is on no NESdev page; it rests on the blargg apu_reset readme
+   (irq_flag_cleared) only. The synth and filter history are kept, so the output has no step. */
+void nesturbator__apu_reset(struct nesturbator *nes)
+{
+    nes->apu.triangle.phase = 0u;
+    nes->apu.dmc.output = (uint8_t)(nes->apu.dmc.output & 1u);
+    nesturbator__apu_write(nes, 0x4015u, 0u);
+    nes->apu.frame_irq = 0u;
+    nes->apu.frame_irq_clear_pending = 0u;
+    nes->apu.dmc.dma_pending = 0u;
+    nes->apu.dmc.dma_halt_phase = 0u;
+    nes->apu.frame_reset_delay = (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 2u : 1u);
+    update_irq_line(nes);
+}
+
 uint8_t nesturbator__apu_status_read(struct nesturbator *nes)
 {
     uint8_t status =
