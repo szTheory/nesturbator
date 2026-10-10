@@ -5,11 +5,11 @@ milestone_name: Most of the library plays
 current_phase: 6
 current_phase_name: Mapper seam and PPU fetch pipeline
 status: planning
-stopped_at: Phase 05 complete, ready to plan Phase 6
-last_updated: "2026-10-10T15:11:13.962Z"
+stopped_at: Phase 6 context gathered
+last_updated: "2026-10-10T15:48:57.929Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 05 shipped, PR #25 squash-merged into main
-state_head: fdc435e493f26e12d63966b8bf13feb73acf2181
+last_activity_desc: Phase 6 context gathered (06-CONTEXT.md)
+state_head: 80befbd903943f618bdded97fa22ceee2c7e410e
 progress:
   total_phases: 6
   completed_phases: 7
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 Phase: 6 — Mapper seam and PPU fetch pipeline
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-10-10 — Phase 05 shipped, PR #25 squash-merged into main
+Last activity: 2026-10-10 — Phase 6 context gathered (06-CONTEXT.md)
 
 Progress: [██████░░░░] 58% of v2
 
@@ -180,12 +180,12 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10
-Stopped at: Phase 05 complete, ready to plan Phase 6
-Resume file: None
+Last session: 2026-10-10T15:48:57.887Z
+Stopped at: Phase 6 context gathered
+Resume file: .planning/phases/06-mapper-seam-and-ppu-fetch-pipeline/06-CONTEXT.md
 
-Next GSD command: `/gsd-discuss-phase 6`.
+Next GSD command: `/gsd-plan-phase 6`.
 
 ## Operator Next Steps
 
-- Discuss Phase 6 with /gsd-discuss-phase 6
+- Plan Phase 6 with /gsd-plan-phase 6
