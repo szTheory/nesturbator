@@ -4,17 +4,17 @@ milestone: v2
 milestone_name: Most of the library plays
 current_phase: 05
 current_phase_name: Tune-up and v1 debt
-status: verifying
-stopped_at: Completed 05-07-PLAN.md
-last_updated: "2026-10-10T13:44:41.521Z"
+status: executing
+stopped_at: Completed 05-08-PLAN.md
+last_updated: "2026-10-10T14:19:42.724Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 05 execution started
-state_head: 0ff0fbc97cfb6b3cb3db519e72cab823883f9cf5
+state_head: 13208de6e00268ac22079d44dfef097bd06df3fb
 progress:
   total_phases: 6
   completed_phases: 6
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 8
+  completed_plans: 8
   percent: 100
 ---
 
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 ## Current Position
 
 Phase: 05 (Tune-up and v1 debt) — EXECUTING
-Plan: 7 of 7
-Status: Phase complete — ready for verification
+Plan: 2 of 8
+Status: Ready to execute
 Last activity: 2026-10-10 — Phase 05 execution started
 
 Progress: [██████████] 100% of v2
@@ -113,6 +113,7 @@ Progress: [██████████] 100% of v2
 | Phase 05 P05 | 20 min | 2 tasks | 8 files |
 | Phase 05 P06 | 25 min | 3 tasks | 7 files |
 | Phase 05 P07 | 15 min | 2 tasks | 3 files |
+| Phase 05 P08 | 6 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,7 @@ Recent decisions affecting current work:
 - [Phase 05]: nesturbator_reset clears the CPU poll latch after the last reset cycle because each bus cycle resamples the IRQ line
 - [Phase 05]: Soft reset: vblank_suppress cleared with the PPU position; $4017 re-applied via frame_reset_delay (phase ? 2 : 1)
 - [Phase 05]: retro_reset only calls nesturbator_reset; no unload or reload path
+- [Phase 05]: Suite-flake timeout 30 minutes (WR-02 ceiling) until first measured cold run
 
 ### Pending Todos
 
@@ -177,8 +179,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T13:44:41.503Z
-Stopped at: Completed 05-07-PLAN.md
+Last session: 2026-10-10T14:19:42.691Z
+Stopped at: Completed 05-08-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-plan-phase 5`.
