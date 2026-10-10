@@ -716,6 +716,14 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   The battery bit must be set exactly when battery RAM is declared. CHR NVRAM,
   other submappers, mapper 155 and a 24 KiB or 64 KiB total are refused.
   Mappers 0, 2, 3 and 7 still refuse the battery bit and every RAM size.
+  The board is the MMC1B chip: five writes to `$8000-$FFFF` fill the serial
+  port, and a write on the CPU cycle right after another write is ignored
+  unless its bit 7 is set, which always resets the port (this is what makes
+  `INC $8000` shift one bit, not two). PRG RAM is enabled at power-on and bit 4
+  of the PRG register disables it. The SNROM, SOROM, SUROM and SXROM variants
+  follow from the header sizes (hardware: NESdev Wiki "MMC1" and "SxROM").
+  `nesturbator_reset` keeps the MMC1 registers and the battery RAM, because
+  the cartridge sees no reset line.
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
 - `--hash-audio` prints one hash for all mixed-level transitions and one for

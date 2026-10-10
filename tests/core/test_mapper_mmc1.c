@@ -8,7 +8,7 @@
 #include "../check.h"
 #include "../ines.h"
 
-#define IMAGE_CAP (16u + 32u * INES_PRG_BANK + 4u * INES_CHR_BANK)
+#define IMAGE_CAP (16u + 32u * INES_PRG_BANK + 16u * INES_CHR_BANK)
 
 static nesturbator *make_instance(void)
 {
@@ -78,11 +78,12 @@ static void test_tracer_five_writes_switch_bank(void)
     nesturbator_destroy(inst);
 }
 
-/* Loads a 32 KiB mapper 1 NES 2.0 image with CHR-RAM and the given RAM nibbles. The optional
-   target byte is placed at PRG offset 0 (bank 0, CPU $8000 at power-on) and code at bank 1
-   (CPU $C000), where the reset vector points. */
-static nesturbator *load_small(uint8_t ram_shift, uint8_t nvram_shift, uint8_t battery,
-                               const uint8_t *code, size_t code_len, const uint8_t *target)
+/* Loads a mapper 1 NES 2.0 image with the given sizes and RAM nibbles. chr_8k 0 is CHR-RAM. The
+   optional target byte is placed at PRG offset 0 (bank 0, CPU $8000 at power-on) and code at bank
+   1 (CPU $C000 on a 32 KiB board), where the reset vector points. */
+static nesturbator *load_board(uint8_t prg_16k, uint8_t chr_8k, uint8_t ram_shift,
+                               uint8_t nvram_shift, uint8_t battery, const uint8_t *code,
+                               size_t code_len, const uint8_t *target)
 {
     static uint8_t image[IMAGE_CAP];
     struct ines_segment segs[2];
@@ -102,7 +103,8 @@ static nesturbator *load_small(uint8_t ram_shift, uint8_t nvram_shift, uint8_t b
         n++;
     }
     memset(&spec, 0, sizeof spec);
-    spec.prg_16k = 2u;
+    spec.prg_16k = prg_16k;
+    spec.chr_8k = chr_8k;
     spec.nes2 = 1u;
     spec.mapper = 1u;
     spec.battery = battery;
@@ -115,6 +117,13 @@ static nesturbator *load_small(uint8_t ram_shift, uint8_t nvram_shift, uint8_t b
     CHECK(size != 0u);
     CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
     return inst;
+}
+
+/* A 32 KiB CHR-RAM board. */
+static nesturbator *load_small(uint8_t ram_shift, uint8_t nvram_shift, uint8_t battery,
+                               const uint8_t *code, size_t code_len, const uint8_t *target)
+{
+    return load_board(2u, 0u, ram_shift, nvram_shift, battery, code, code_len, target);
 }
 
 /* A write straight into the hook, as the bus would deliver it. */
@@ -335,6 +344,178 @@ static void test_reset_keeps_state(void)
     nesturbator_destroy(inst);
 }
 
+/* D-10: control bits 0-1 give one-screen lower, one-screen upper, vertical and horizontal; the
+   header mirroring bit is ignored (NESdev Wiki "MMC1"). */
+static void test_mirroring(void)
+{
+    static const uint8_t expect[4][4] = {
+        {0u, 0u, 0u, 0u}, {1u, 1u, 1u, 1u}, {0u, 1u, 0u, 1u}, {0u, 0u, 1u, 1u}};
+    nesturbator *inst = load_small(0u, 0u, 0u, NULL, 0u, NULL);
+    struct nesturbator *nes = inst;
+    uint64_t t = 10u;
+    /* Power-on is one-screen lower. */
+    CHECK(memcmp(nes->map.nt, expect[0], 4u) == 0);
+    for (uint8_t m = 0u; m < 4u; ++m) {
+        t = feed(nes, 0x8000u, (uint8_t)(0x0cu | m), t);
+        CHECK(memcmp(nes->map.nt, expect[m], 4u) == 0);
+    }
+    nesturbator_destroy(inst);
+}
+
+/* D-10: control bit 4 clear maps one 8 KiB bank from CHR0 & $1E; set maps two 4 KiB banks from
+   CHR0 and CHR1. */
+static void test_chr_modes(void)
+{
+    nesturbator *inst = load_board(2u, 16u, 0u, 0u, 0u, NULL, 0u, NULL);
+    struct nesturbator *nes = inst;
+    uint64_t t = 10u;
+    t = feed(nes, 0xa000u, 5u, t);
+    for (uint32_t i = 0u; i < 4u; ++i) {
+        CHECK(nes->map.chr_r[i] == nes->cart.chr + 4u * 4096u + i * 1024u);
+        CHECK(nes->map.chr_r[4u + i] == nes->cart.chr + 5u * 4096u + i * 1024u);
+        CHECK(nes->map.chr_w[i] == NULL);
+    }
+    t = feed(nes, 0x8000u, 0x1cu, t);
+    t = feed(nes, 0xa000u, 3u, t);
+    t = feed(nes, 0xc000u, 6u, t);
+    for (uint32_t i = 0u; i < 4u; ++i) {
+        CHECK(nes->map.chr_r[i] == nes->cart.chr + 3u * 4096u + i * 1024u);
+        CHECK(nes->map.chr_r[4u + i] == nes->cart.chr + 6u * 4096u + i * 1024u);
+    }
+    nesturbator_destroy(inst);
+}
+
+/* D-10: PRG RAM is enabled at power-on and $E000 bit 4 disables it: reads give the open-bus latch,
+   writes drop and the save generation does not move. */
+static void test_ram_enable(void)
+{
+    nesturbator *inst = load_small(0u, 7u, 1u, NULL, 0u, NULL);
+    struct nesturbator *nes = inst;
+    uint8_t *data = NULL;
+    size_t n = 0u;
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_OK);
+    CHECK(nes->map.cpu_r[8] != NULL);
+    nesturbator__bus_write(nes, 0x6000u, 0x77u);
+    CHECK_EQ_HEX(data[0], 0x77u);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 1u);
+    feed(nes, 0xe000u, 0x10u, 10u);
+    CHECK(nes->map.cpu_r[8] == NULL);
+    CHECK(nes->map.cpu_w[8] == NULL);
+    nesturbator__bus_write(nes, 0x6000u, 0x99u);
+    nes->bus.open_bus = 0x5cu;
+    CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x6000u), 0x5cu);
+    CHECK_EQ_HEX(data[0], 0x77u);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 1u);
+    feed(nes, 0xe000u, 0x00u, 40u);
+    CHECK(nes->map.cpu_r[8] != NULL);
+    nesturbator_destroy(inst);
+}
+
+/* D-05, D-10: SNROM's CHR0 bit 4 disables RAM only on a CHR-RAM board with PRG <= 256 KiB and RAM
+   <= 8 KiB. CHR-ROM boards and 512 KiB boards keep it. */
+static void test_snrom_ram_disable(void)
+{
+    nesturbator *inst = load_board(8u, 0u, 7u, 0u, 0u, NULL, 0u, NULL);
+    struct nesturbator *nes = inst;
+    CHECK(nes->map.cpu_r[8] != NULL);
+    feed(nes, 0xa000u, 0x10u, 10u);
+    CHECK(nes->map.cpu_r[8] == NULL);
+    CHECK(nes->map.cpu_w[8] == NULL);
+    feed(nes, 0xa000u, 0x00u, 40u);
+    CHECK(nes->map.cpu_r[8] != NULL);
+    nesturbator_destroy(inst);
+    inst = load_board(8u, 1u, 7u, 0u, 0u, NULL, 0u, NULL);
+    nes = inst;
+    feed(nes, 0xa000u, 0x10u, 10u);
+    CHECK(nes->map.cpu_r[8] != NULL);
+    nesturbator_destroy(inst);
+    inst = load_board(32u, 0u, 7u, 0u, 0u, NULL, 0u, NULL);
+    nes = inst;
+    feed(nes, 0xa000u, 0x10u, 10u);
+    CHECK(nes->map.cpu_r[8] != NULL);
+    nesturbator_destroy(inst);
+}
+
+/* D-05, D-10, C4: SOROM banks its two 8 KiB chips on CHR0 bit 3 only (NESdev Wiki "MMC1": "SOROM
+   implements only this bit"). Bank 0 is the work half and does not count; bank 1 is the span. */
+static void test_sorom_banking(void)
+{
+    nesturbator *inst = load_board(8u, 1u, 7u, 7u, 1u, NULL, 0u, NULL);
+    struct nesturbator *nes = inst;
+    uint8_t *data = NULL;
+    size_t n = 0u;
+    uint64_t t = 10u;
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(n, 8192u);
+    CHECK(nes->map.cpu_r[8] == nes->cart.prg_ram);
+    nesturbator__bus_write(nes, 0x6000u, 0xa1u);
+    CHECK_EQ_HEX(nes->cart.prg_ram[0], 0xa1u);
+    CHECK_EQ_HEX(data[0], 0x00u);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 0u);
+    t = feed(nes, 0xa000u, 0x08u, t);
+    CHECK(nes->map.cpu_r[8] == data);
+    nesturbator__bus_write(nes, 0x6000u, 0xb2u);
+    CHECK_EQ_HEX(data[0], 0xb2u);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 1u);
+    /* Bit 2 alone does not select the second chip. */
+    t = feed(nes, 0xa000u, 0x04u, t);
+    CHECK(nes->map.cpu_r[8] == nes->cart.prg_ram);
+    nesturbator_destroy(inst);
+}
+
+/* D-05, D-10: SXROM's CHR0 bits 3-2 select four 8 KiB RAM banks; span offset = bank x 8 KiB. */
+static void test_sxrom_ram_banks(void)
+{
+    nesturbator *inst = load_board(32u, 0u, 0u, 9u, 1u, NULL, 0u, NULL);
+    struct nesturbator *nes = inst;
+    uint8_t *data = NULL;
+    size_t n = 0u;
+    uint64_t t = 10u;
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(n, 32768u);
+    for (uint8_t b = 0u; b < 4u; ++b) {
+        t = feed(nes, 0xa000u, (uint8_t)(b << 2), t);
+        nesturbator__bus_write(nes, 0x6000u, (uint8_t)(0xb0u + b));
+    }
+    for (uint8_t b = 0u; b < 4u; ++b)
+        CHECK_EQ_HEX(data[(size_t)b * 8192u], 0xb0u + b);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 4u);
+    nesturbator_destroy(inst);
+}
+
+/* D-10, Pitfall 7: on a 512 KiB board CHR0 bit 4 selects the 256 KiB PRG half for both windows,
+   the fixed bank included. */
+static void test_surom_sxrom_prg_halves(void)
+{
+    nesturbator *inst = load_board(32u, 0u, 0u, 7u, 1u, NULL, 0u, NULL);
+    struct nesturbator *nes = inst;
+    uint64_t t = 10u;
+    const uint8_t *prg = nes->cart.prg;
+    /* Mode 3, PRG register 2, CHR0 bit 4 clear: banks 2 and 15. */
+    t = feed(nes, 0xe000u, 2u, t);
+    CHECK(nes->map.cpu_r[16] == prg + 2u * 16384u);
+    CHECK(nes->map.cpu_r[32] == prg + 15u * 16384u);
+    t = feed(nes, 0xa000u, 0x10u, t);
+    CHECK(nes->map.cpu_r[16] == prg + 18u * 16384u);
+    CHECK(nes->map.cpu_r[32] == prg + 31u * 16384u);
+    /* Mode 2: the first bank of the half at $8000. */
+    t = feed(nes, 0x8000u, 0x08u, t);
+    CHECK(nes->map.cpu_r[16] == prg + 16u * 16384u);
+    CHECK(nes->map.cpu_r[32] == prg + 18u * 16384u);
+    /* Modes 0 and 1: a 32 KiB bank; the low register bit is ignored. */
+    t = feed(nes, 0xa000u, 0x00u, t);
+    t = feed(nes, 0xe000u, 3u, t);
+    for (uint8_t mode = 0u; mode < 2u; ++mode) {
+        t = feed(nes, 0x8000u, (uint8_t)(mode << 2), t);
+        CHECK(nes->map.cpu_r[16] == prg + 2u * 16384u);
+        CHECK(nes->map.cpu_r[32] == prg + 3u * 16384u);
+    }
+    nesturbator_destroy(inst);
+}
+
 int main(void)
 {
     test_tracer_five_writes_switch_bank();
@@ -348,5 +529,12 @@ int main(void)
     test_cpu_inc_7f();
     test_cpu_inc_ram_counts_two();
     test_reset_keeps_state();
+    test_mirroring();
+    test_chr_modes();
+    test_ram_enable();
+    test_snrom_ram_disable();
+    test_sorom_banking();
+    test_sxrom_ram_banks();
+    test_surom_sxrom_prg_halves();
     CHECK_DONE();
 }

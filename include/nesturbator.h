@@ -254,6 +254,13 @@ void nesturbator_destroy(nesturbator *inst);
    ignoring the header mirroring bit; ANDed with the ROM byte under the write
    for submapper 2 only; the reset vector is read from bank 0). NROM and UxROM
    take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
+   Mapper 1 is the MMC1B chip: its serial port at $8000-$FFFF takes five
+   writes, a write on the CPU cycle right after another write is ignored
+   unless bit 7 is set (the reset), PRG RAM is enabled at power-on and bit 4
+   of the PRG register disables it, and the SNROM, SOROM, SUROM and SXROM
+   variants are derived from the header sizes. The registers and the battery
+   RAM are kept by nesturbator_reset. MMC1A, mapper 155 and 2ME are not
+   emulated.
    A trainer initializes the writable 8 KiB PRG RAM at CPU $7000-$71FF
    (on a mapper 1 image with no declared RAM the trainer's 8 KiB is work RAM
    with no save span); other addresses in $6000-$7FFF start at zero. Mappers

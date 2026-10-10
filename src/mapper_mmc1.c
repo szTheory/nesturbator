@@ -16,7 +16,22 @@
    RAM enabled. The registers are stored so that a zeroed block is that state
    (see mapper.h), which keeps the seam rule that the loader's memset is the
    power-on state and init writes no register. nesturbator_reset does not
-   touch them: the cartridge sees no reset line. */
+   touch them: the cartridge sees no reset line.
+
+   Variants come from the header sizes only, and the outer bits come from CHR
+   bank register 0 (D-10). Source: NESdev Wiki "MMC1" and "SxROM".
+   - SNROM (CHR-RAM, PRG <= 256 KiB, RAM <= 8 KiB): CHR0 bit 4 disables the
+     PRG RAM.
+   - SOROM (two 8 KiB RAM chips): CHR0 bit 3 picks the chip. The wiki says of
+     it that "SOROM implements only this bit", so bit 2 is not read; bank 0 is
+     the first chip, which does not retain data (the work half) and bank 1 the
+     second, the battery half.
+   - SUROM (512 KiB PRG): CHR0 bit 4 picks the 256 KiB half of PRG, for both
+     windows including the normally fixed bank.
+   - SXROM (32 KiB RAM, 512 KiB PRG): CHR0 bits 3-2 drive RAM A14 and A13, so
+     they pick one of four 8 KiB banks; bit 4 is the PRG half as for SUROM.
+   On every board the PRG register's bit 4 disables the RAM (MMC1B: "PRG-RAM
+   is enabled by default but can by disabled by bit 4 of $E000"). */
 #include "internal.h"
 
 #define MMC1_PRG_256K (256u * 1024u)
@@ -59,12 +74,64 @@ static void mmc1_rebuild(struct nesturbator *nes)
         map->cpu_r[32u + i] = nesturbator__map_prg(nes, hi * 16u + i);
         map->cpu_w[32u + i] = NULL;
     }
-    nesturbator__map_chr_8k(nes, 0u);
-    map->nt[0] = 0u;
-    map->nt[1] = 0u;
-    map->nt[2] = 0u;
-    map->nt[3] = 0u;
-    nesturbator__map_prg_ram_8k(nes, nes->cart.prg_ram);
+    /* CHR: bit 4 of Control clear is one 8 KiB bank (CHR0 with its low bit
+       ignored), set is two independent 4 KiB banks. */
+    if ((control & 0x10u) == 0u) {
+        const uint32_t pair = (uint32_t)(nes->mapper.reg.mmc1.chr0 & 0x1eu);
+        nesturbator__map_chr_4k(nes, 0u, pair);
+        nesturbator__map_chr_4k(nes, 1u, pair | 1u);
+    } else {
+        nesturbator__map_chr_4k(nes, 0u, nes->mapper.reg.mmc1.chr0);
+        nesturbator__map_chr_4k(nes, 1u, nes->mapper.reg.mmc1.chr1);
+    }
+    /* Mirroring: 0 one-screen lower, 1 one-screen upper, 2 vertical, 3
+       horizontal. The header's mirroring bit is not used. */
+    switch (control & 3u) {
+    case 0u:
+        map->nt[0] = 0u;
+        map->nt[1] = 0u;
+        map->nt[2] = 0u;
+        map->nt[3] = 0u;
+        break;
+    case 1u:
+        map->nt[0] = 1u;
+        map->nt[1] = 1u;
+        map->nt[2] = 1u;
+        map->nt[3] = 1u;
+        break;
+    case 2u:
+        map->nt[0] = 0u;
+        map->nt[1] = 1u;
+        map->nt[2] = 0u;
+        map->nt[3] = 1u;
+        break;
+    default:
+        map->nt[0] = 0u;
+        map->nt[1] = 0u;
+        map->nt[2] = 1u;
+        map->nt[3] = 1u;
+        break;
+    }
+    /* PRG RAM: a NULL page reads as open bus and drops writes, so a disabled
+       RAM needs no branch in the bus. */
+    {
+        const uint32_t chr0 = nes->mapper.reg.mmc1.chr0;
+        const size_t ram_total = nes->cart.prg_ram_size;
+        const int snrom_off = nes->cart.chr_is_ram != 0u && nes->cart.prg_size <= MMC1_PRG_256K &&
+                              ram_total <= 8192u && (chr0 & 0x10u) != 0u;
+        uint8_t *ram = NULL;
+        if (nes->cart.prg_ram != NULL && (nes->mapper.reg.mmc1.prg & 0x10u) == 0u && !snrom_off) {
+            /* The bank is chosen by the allocation size, not by a fixed bit
+               pair: SOROM has two chips and only bit 3, SXROM has four. */
+            uint32_t bank = 0u;
+            if (ram_total > 16384u)
+                bank = (chr0 >> 2) & 3u;
+            else if (ram_total > 8192u)
+                bank = (chr0 >> 3) & 1u;
+            ram = nes->cart.prg_ram + (size_t)bank * 8192u;
+        }
+        nesturbator__map_prg_ram_8k(nes, ram);
+    }
 }
 
 static void mmc1_cpu_write(struct nesturbator *nes, uint16_t addr, uint8_t value,
