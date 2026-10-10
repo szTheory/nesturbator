@@ -3,7 +3,10 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: Phase 4, NTSC sound timing.** The 6502 core matches the public
+**Status: v1 shipped; milestone v2 starts with a tune-up.** v1 plays
+mapper-0 games with picture and sound. Phase 5 adds parallel CI, a policy that
+no registered test may skip, and the soft reset (`nesturbator_reset()`, which
+RetroArch's Reset button runs). The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded mapper-0 iNES 1.0 and NES 2.0 images with 16 or
 32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the PPU renders backgrounds
@@ -15,10 +18,9 @@ tile, attribute or X byte; an in-range Y skipped by that scan does not set it.
 Overflow remains in PPU status until pre-render dot 1. The first eight
 sprites are copied one byte per odd/even OAM pair, so their final X bytes are
 copied before the ninth Y comparison at dot 130; `$2002` reads before that
-comparison still see overflow clear. This is an initial tracer,
-not full game compatibility. Other cartridge geometries and later sound work
-remain planned. With no cartridge, the fixed test
-card and silence remain available. The plan lives in [`.planning/`](.planning/).
+comparison still see overflow clear. This is
+not full game compatibility: mapper 0 is the only cartridge board so far.
+With no cartridge, the fixed test card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
 The runner accepts content with `--rom FILE`, for example:
 
@@ -688,6 +690,12 @@ the single-sample callback only when no batch callback is registered. When both
 callbacks are registered, only the batch callback receives audio.
 `libretro.host` checks both callback paths against direct core PCM without an
 audio device.
+
+RetroArch's Reset (`retro_reset`) runs `nesturbator_reset()`, the console's
+soft reset, which keeps RAM and cartridge RAM; it does not unload or reload the
+game. With no content it changes nothing. `libretro.host` compares the frames
+after a reset with those of a direct-API instance given the same frames, reset
+and frames.
 
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares
