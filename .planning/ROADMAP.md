@@ -110,7 +110,20 @@ Plans:
   2. Synthetic CTest cases show the submapper-0 bus-conflict defaults: the written value ANDed with the ROM byte on mappers 2 and 3, and no conflict on mapper 7.
   3. Synthetic CTest cases show the NES 2.0 submapper 1 and 2 overrides, and that CNROM ignores writes to CHR-ROM.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+- [ ] 07-01-PLAN.md — Loader through one probed board switch with power-on PC through the pages (NROM tracer), then the UxROM board with its synthetic cases and wording (BOARD-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 07-02-PLAN.md — CNROM and AxROM boards, one per task with their synthetic cases and wording (BOARD-01)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 07-03-PLAN.md — D-13 loader accept/reject matrix, D-10 id walk, six fuzz seeds, BOARD-01 edge classification (BOARD-01)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 07-04-PLAN.md — Holy Mapperel mapper 2/3/7 ROMs read as 0000 from the frame, one frame hash per ROM pinned from one shared list, push and green CI (BOARD-01)
 **Ships**: a release that plays UxROM, CNROM and AxROM games.
 
 ### Phase 8: MMC1 and battery saves
