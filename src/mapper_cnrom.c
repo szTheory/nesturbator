@@ -1,7 +1,7 @@
 /* Mapper 3, CNROM: fixed 16 or 32 KiB of PRG ROM as on NROM and a switchable
    8 KiB CHR ROM bank. Any CPU write to $8000-$FFFF selects the CHR bank.
    Writes to CHR ROM do nothing: the board has no CHR RAM. Source: NESdev Wiki
-   "CNROM", "INES Mapper 003", "Bus conflict" and "NES 2.0 submappers".
+   "CNROM", "INES Mapper 003", "Bus conflict" and "NES 2 submappers".
 
    Submapper 1 has no bus conflicts and submapper 2 has AND conflicts. NESdev
    says CNROM is always subject to AND-type conflicts, so the project default

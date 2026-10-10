@@ -1,7 +1,7 @@
 /* Mapper 2, UxROM: a switchable 16 KiB PRG bank at $8000-$BFFF, the last
    16 KiB bank fixed at $C000-$FFFF, and 8 KiB of CHR RAM or ROM. Any CPU write
    to $8000-$FFFF selects the bank. Source: NESdev Wiki "UxROM", "Bus conflict"
-   and "NES 2.0 submappers".
+   and "NES 2 submappers".
 
    Submapper 1 has no bus conflicts and submapper 2 has AND conflicts. NESdev
    leaves submapper 0 open; the project default fixed by BOARD-01 is the AND.

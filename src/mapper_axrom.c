@@ -3,7 +3,7 @@
    $8000-$FFFF sets the register, laid out xxxM xPPP: PPP selects the 32 KiB
    bank and M selects which CIRAM page all four nametables use. The header
    mirroring bit has no effect. Source: NESdev Wiki "AxROM", "Bus conflict",
-   "Mirroring" and "NES 2.0 submappers".
+   "Mirroring" and "NES 2 submappers".
 
    The power-on register is 0, which NESdev leaves unspecified, so bank 0 and
    page 0 are an implementation choice (D-16); the reset vector is therefore
