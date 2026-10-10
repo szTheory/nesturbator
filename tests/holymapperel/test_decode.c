@@ -104,7 +104,8 @@ static void test_text_row(void)
     fill(0x10, 0x20, 0x30);
     paint_text(HM_PRG_RAM_Y, "PRG RAM MISSING", 0xf0, 0xe0, 0xd0);
     {
-        uint8_t *p = frame + ((size_t)(HM_PRG_RAM_Y + 6) * HM_WIDTH + (size_t)(HM_TEXT_X + 8 * 4 + 3)) * 3u;
+        uint8_t *p =
+            frame + ((size_t)(HM_PRG_RAM_Y + 6) * HM_WIDTH + (size_t)(HM_TEXT_X + 8 * 4 + 3)) * 3u;
         p[0] = 0xf0;
         p[1] = 0xe0;
         p[2] = 0xd0;
