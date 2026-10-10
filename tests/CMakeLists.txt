@@ -98,6 +98,34 @@ nesturbator_runner_test(NAME runner.dump.unwritable
   ARGS --frames 1 --dump-frame "1:${CMAKE_BINARY_DIR}/no-such-dir/frame1.ppm"
   EXIT 1)
 
+# Holy Mapperel (BOARD-01): each ROM in roms.cmake is run to its frame N, the
+# runner dumps that frame, and holymapperel-decode reads the result code from
+# the pixels. The decoder is test-only; the runner knows nothing of the ROMs.
+include(${CMAKE_CURRENT_SOURCE_DIR}/holymapperel/roms.cmake)
+set(NESTURBATOR_HM_DIR ${CMAKE_CURRENT_BINARY_DIR}/holymapperel)
+file(MAKE_DIRECTORY ${NESTURBATOR_HM_DIR})
+add_executable(holymapperel-decode holymapperel/decode.c)
+nesturbator_warnings(holymapperel-decode)
+target_compile_definitions(holymapperel-decode PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
+  string(REPLACE ":" ";" parts "${entry}")
+  list(GET parts 0 hm_key)
+  list(GET parts 1 hm_file)
+  list(GET parts 2 hm_frames)
+  nesturbator_runner_test(NAME holymapperel.${hm_key}.dump
+    ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
+      --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm"
+    EXIT 0 IGNORE_STDOUT)
+  set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES
+    FIXTURES_SETUP holymapperel_${hm_key} TIMEOUT 120)
+  add_test(NAME holymapperel.${hm_key}.decode
+    COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
+  set_tests_properties(holymapperel.${hm_key}.decode PROPERTIES
+    FIXTURES_REQUIRED holymapperel_${hm_key}
+    PASS_REGULAR_EXPRESSION "^holymapperel: code 0000 \\(")
+endforeach()
+
 # CI's hash-equality job compares every game boot and DABG movie milestone
 # written by write_hashes.cmake on each platform.
 add_test(NAME runner.write_hashes

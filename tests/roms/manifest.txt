@@ -37,3 +37,6 @@ tests/fuzz/corpus/valid-axrom	https://github.com/szTheory/nesturbator	dc01ae863a
 tests/fuzz/corpus/cnrom-chr-ram	https://github.com/szTheory/nesturbator	dc01ae863a7793e2c3bed93c11f7c92e09defe4d	MIT	2ba8b5abf61b1a42d96720002860be617238cdcff949c244c8030a85f8ac9272
 tests/fuzz/corpus/axrom-odd-prg	https://github.com/szTheory/nesturbator	dc01ae863a7793e2c3bed93c11f7c92e09defe4d	MIT	e6f5181134c0489f557c63d5d72c6a73e0efcc7dcb2e80a9c58c7b7d180c6c9d
 tests/fuzz/corpus/submapper-3	https://github.com/szTheory/nesturbator	dc01ae863a7793e2c3bed93c11f7c92e09defe4d	MIT	6fe0586bb2ffbd50245e1545cb400f6db94c5f6ae90da41949170464d08d1afe
+tests/roms/hm/M2_P128K_CR8K_V.nes	https://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z	c022622274ca8b83d214dea97e4388a6b0e92d8a	Zlib	c7e83755bd9adbb7c705ea9f29535442af7390444632f9f824fcf4c00632069b
+tests/roms/hm/M3_P32K_C32K_H.nes	https://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z	c022622274ca8b83d214dea97e4388a6b0e92d8a	Zlib	499891c6d8c7a1e7631bdc601d9d624938842735f92fe1fda7b19ef9fae514b7
+tests/roms/hm/M7_P128K_CR8K.nes	https://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z	c022622274ca8b83d214dea97e4388a6b0e92d8a	Zlib	4aa0050f36ae17e17701506821e5147df5b843bcdf2827468fa9c66e4b7ac1ba
