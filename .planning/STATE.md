@@ -2,11 +2,11 @@
 gsd_state_version: "1.0"
 milestone: v2
 milestone_name: Most of the library plays
-status: planning
+status: ready_to_plan
 last_updated: "2026-10-10T01:18:32.359Z"
 last_activity: 2026-10-09
 progress:
-  total_phases: 0
+  total_phases: 6
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Planning the next milestone. v1 (NROM games with sound) shipped and is archived in `.planning/milestones/`.
+**Current focus:** Milestone v2 (Most of the library plays), Phase 5: Tune-up and v1 debt. v1 shipped and is archived in `.planning/milestones/`.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 5 of 10 (Tune-up and v1 debt); v2 covers Phases 5–10
 Plan: —
-Status: Defining requirements
-Last activity: 2026-10-09 — Milestone v2 started
+Status: Ready to plan
+Last activity: 2026-10-09 — v2 roadmap created (6 phases, 19/19 requirements mapped)
+
+Progress: [░░░░░░░░░░] 0% of v2
 
 ## Performance Metrics
 
@@ -124,7 +126,7 @@ None.
 
 ### Blockers/Concerns
 
-None open. v1 closed with an override closeout. Its deferred tech debt (release-policy substring check, trainer host-path coverage, local RetroArch self-skip on the owner's Mac, no-op `retro_reset()`) is listed in `.planning/MILESTONES.md` and `.planning/milestones/v1-MILESTONE-AUDIT.md`.
+Research flags for v2: Phase 6 (HIGH, PPU fetch timing), Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). v1 closed with an override closeout. Its deferred tech debt (release-policy substring check, trainer host-path coverage, local RetroArch self-skip on the owner's Mac, no-op `retro_reset()`) is listed in `.planning/MILESTONES.md` and `.planning/milestones/v1-MILESTONE-AUDIT.md`.
 
 ### Quick Tasks Completed
 
@@ -137,6 +139,7 @@ None open. v1 closed with an override closeout. Its deferred tech debt (release-
 
 - Phase 04.1 inserted after Phase 4: Close gap: GAME-01 — initialize accepted iNES trainers (URGENT)
 - Phase 04.2 inserted after Phase 4: Close gap: SND-01 — deliver single-sample libretro audio (URGENT)
+- v2 roadmap created 2026-10-09: Phases 5–10 (tune-up, mapper seam and PPU fetch pipeline merged into one phase so every phase releases, UxROM/CNROM/AxROM, MMC1 and battery saves, MMC3, close-out and boot-to-play)
 
 ## Deferred Items
 
@@ -157,11 +160,11 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-10
-Stopped at: Milestone v1 archived — next milestone not started
+Stopped at: v2 roadmap created — Phase 5 not started
 Resume file: None
 
-Next GSD command: `/gsd-new-milestone`.
+Next GSD command: `/gsd-discuss-phase 5`.
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Discuss Phase 5 with /gsd-discuss-phase 5, then plan it with /gsd-plan-phase 5

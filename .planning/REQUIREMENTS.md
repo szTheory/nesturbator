@@ -100,12 +100,31 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| TUNE-01 | Phase 5 | Pending |
+| TUNE-02 | Phase 5 | Pending |
+| TUNE-03 | Phase 5 | Pending |
+| TUNE-04 | Phase 5 | Pending |
+| TUNE-05 | Phase 5 | Pending |
+| TUNE-06 | Phase 5 | Pending |
+| MAP-01 | Phase 6 | Pending |
+| MAP-02 | Phase 6 | Pending |
+| MAP-03 | Phase 9 | Pending |
+| BOARD-01 | Phase 7 | Pending |
+| BOARD-02 | Phase 8 | Pending |
+| BOARD-03 | Phase 9 | Pending |
+| BOARD-04 | Phase 10 | Pending |
+| SAVE-01 | Phase 8 | Pending |
+| SAVE-02 | Phase 8 | Pending |
+| SAVE-03 | Phase 8 | Pending |
+| SAVE-04 | Phase 8 | Pending |
+| SAVE-05 | Phase 8 | Pending |
+| PLAY-01 | Phase 10 | Pending |
 
 **Coverage:**
 - v2 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 ⚠️
+- Mapped to phases: 19
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-10-09*
-*Last updated: 2026-10-09 after initial definition*
+*Last updated: 2026-10-09 after v2 roadmap creation*
