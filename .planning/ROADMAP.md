@@ -30,7 +30,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
 - Decimal phases (5.1, 5.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 5: Tune-up and v1 debt** - CI runs in parallel without flakes, the v1 debt is closed, and a loaded game soft-resets (completed 2026-10-10)
-- [ ] **Phase 6: Mapper seam and PPU fetch pipeline** - NROM moves onto a per-board mapper interface with v1 hashes unchanged, then mid-frame scroll writes render as on the console and A12 rises on the documented dots
+- [x] **Phase 6: Mapper seam and PPU fetch pipeline** - NROM moves onto a per-board mapper interface with v1 hashes unchanged, then mid-frame scroll writes render as on the console and A12 rises on the documented dots (completed 2026-10-10)
 - [ ] **Phase 7: UxROM, CNROM and AxROM** - Discrete-logic board games run, with bus conflicts where the board has them
 - [ ] **Phase 8: MMC1 and battery saves** - MMC1 games run, and battery saves persist through the runner and RetroArch
 - [ ] **Phase 9: MMC3** - MMC3 games run with the A12-clocked scanline IRQ, and the loader accepts exactly the six v2 mappers
@@ -88,7 +88,7 @@ Plans:
   4. The behaviour revision is bumped exactly once; the phase verification lists each re-pinned frame and audio hash with the reason it changed, the six-platform matrix agrees on every new hash, and the protected AccuracyCoin scoreboard loses no passing test.
   5. `cmake --workflow --preset asan`, `--preset nofp` and `--preset hygiene` pass, and the core still links only the C memory functions.
 
-**Plans**: 2/2 plans executed
+**Plans**: 2/2 plans complete
 
 Plans:
 **Wave 1**
@@ -172,7 +172,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 4.1. Close gap: GAME-01 | v1 | 1/1 | Complete | 2026-10-09 |
 | 4.2. Close gap: SND-01 | v1 | 1/1 | Complete | 2026-10-09 |
 | 5. Tune-up and v1 debt | v2 | 8/8 | Complete    | 2026-10-10 |
-| 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | In Progress | - |
+| 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | Complete    | 2026-10-10 |
 | 7. UxROM, CNROM and AxROM | v2 | 0/TBD | Not started | - |
 | 8. MMC1 and battery saves | v2 | 0/TBD | Not started | - |
 | 9. MMC3 | v2 | 0/TBD | Not started | - |
