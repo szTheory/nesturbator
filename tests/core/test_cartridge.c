@@ -424,6 +424,7 @@ static const struct mmc1_row mmc1_rows[] = {
     {"mmc1-submapper-5", 1, 5, 32, 0, 0, 0, 0, 0, 0, OK_},
     /* refuse: PRG */
     {"mmc1-prg-48k", 1, 0, 48, 0, 0, 0, 0, 0, 0, BAD_},
+    {"mmc1-prg-16k", 1, 0, 16, 0, 0, 0, 0, 0, 0, BAD_},
     {"mmc1-prg-1m", 1, 0, 1024, 0, 0, 0, 0, 0, 0, BAD_},
     {"mmc1-512k-chr-rom", 1, 0, 512, 32, 0, 0, 0, 0, 0, BAD_},
     /* refuse: CHR */
