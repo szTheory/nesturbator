@@ -55,3 +55,4 @@ tests/fuzz/corpus/mmc1-nvram-no-battery	https://github.com/szTheory/nesturbator	
 tests/fuzz/corpus/mmc1-szrom	https://github.com/szTheory/nesturbator	df9f7fbbfbcdd6ea0f2276047e022411ed599739	MIT	b8d719e0b239c205ef7f7e90d031e46b180129ffb2b0badb8295bedfc06af54d
 tests/fuzz/corpus/mmc1-chr-nvram	https://github.com/szTheory/nesturbator	df9f7fbbfbcdd6ea0f2276047e022411ed599739	MIT	812bd903a787b4f47804691e98a80f4b8a19e5633eabbf8f07a8a77951ec365c
 tests/fuzz/corpus/mmc1-sub5-128k	https://github.com/szTheory/nesturbator	df9f7fbbfbcdd6ea0f2276047e022411ed599739	MIT	4c08b6786bc9646f4134480251de66e799ba95712e1349201fa189c6efef6658
+tests/roms/hm/M1_P512K_CR8K_S32K.nes	https://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z	c022622274ca8b83d214dea97e4388a6b0e92d8a	Zlib	7db5b5191ce842d44a5a8cb132a58d7116741053d4bd0f8a5def832be80e655a
