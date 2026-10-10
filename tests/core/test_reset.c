@@ -29,7 +29,7 @@ static size_t build_image(uint8_t *out, int chr_ram)
     code[RESET_VECTOR - 0x8000u + 2u] = 0x81u;
     memset(&spec, 0, sizeof spec);
     spec.prg_16k = 1u;
-    spec.chr_8k = chr_ram ? 0u : 1u;
+    spec.chr_8k = (uint8_t)(chr_ram ? 0u : 1u);
     spec.trainer = trainer;
     spec.prg_code = code;
     spec.prg_code_len = sizeof code;
