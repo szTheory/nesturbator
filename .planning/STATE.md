@@ -4,18 +4,18 @@ milestone: v2
 milestone_name: Most of the library plays
 current_phase: 07
 current_phase_name: UxROM, CNROM and AxROM
-status: executing
-stopped_at: Completed 07-03-PLAN.md
-last_updated: "2026-10-10T19:54:44.983Z"
+status: verifying
+stopped_at: Completed 07-04-PLAN.md
+last_updated: "2026-10-10T20:07:13.868Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 07 execution started
-state_head: 419607b44e7fedd34be71a4fe534dfa0e0e65e18
+state_head: 78d9526e29d903c3ec72c35ff56b1df73c808b01
 progress:
   total_phases: 6
   completed_phases: 8
   total_plans: 14
-  completed_plans: 13
-  percent: 93
+  completed_plans: 14
+  percent: 100
 ---
 
 # Project State
@@ -31,10 +31,10 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 
 Phase: 07 (UxROM, CNROM and AxROM) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-10 — Phase 07 execution started
 
-Progress: [█████████░] 93% of v2
+Progress: [██████████] 100% of v2
 
 ## Performance Metrics
 
@@ -121,6 +121,7 @@ Progress: [█████████░] 93% of v2
 | Phase 07 P01 | 30m | 2 tasks | 14 files |
 | Phase 07 P02 | 20min | 2 tasks | 10 files |
 | Phase 07 P03 | 20 min | 2 tasks | 8 files |
+| Phase 07 P04 | 35 min | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -154,6 +155,7 @@ Recent decisions affecting current work:
 - [Phase 07]: Board lookup is probed in validate_image via nesturbator__mapper_ops_for before allocation (D-10); submapper-0 UxROM AND is a project default
 - [Phase 07]: Phase 7 plan 02: board_profile_ok checks CHR geometry per board; AxROM ANDs on submapper 2 only, CNROM on 0 and 2
 - [Phase 07]: Plan 03 seeds pin dc01ae8; clang-format lives at /opt/homebrew/opt/llvm@18/bin/clang-format
+- [Phase 07]: Holy Mapperel result pinned at N=100 for M2, M3 and M7; frame N and 2N must hash alike when hashes are written
 
 ### Pending Todos
 
@@ -198,8 +200,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T19:54:44.950Z
-Stopped at: Completed 07-03-PLAN.md
+Last session: 2026-10-10T20:07:13.842Z
+Stopped at: Completed 07-04-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 7`.
