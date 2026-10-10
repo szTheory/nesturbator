@@ -4,18 +4,18 @@ milestone: v2
 milestone_name: Most of the library plays
 current_phase: 06
 current_phase_name: Mapper seam and PPU fetch pipeline
-status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-10-10T17:11:50.138Z"
+status: verifying
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-10-10T17:35:17.415Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 06 execution started
-state_head: 861b41fe520b395fec89e1edafb139c2d9b4223f
+state_head: f4b9b26b505624b04b0c48d74955fa3ec4a1a888
 progress:
   total_phases: 6
   completed_phases: 7
   total_plans: 10
-  completed_plans: 9
-  percent: 90
+  completed_plans: 10
+  percent: 100
 ---
 
 # Project State
@@ -31,10 +31,10 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 
 Phase: 06 (Mapper seam and PPU fetch pipeline) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-10 — Phase 06 execution started
 
-Progress: [█████████░] 90% of v2
+Progress: [██████████] 100% of v2
 
 ## Performance Metrics
 
@@ -116,6 +116,7 @@ Progress: [█████████░] 90% of v2
 | Phase 05 P07 | 15 min | 2 tasks | 3 files |
 | Phase 05 P08 | 6 min | 2 tasks | 2 files |
 | Phase 06 P01 | 60 min | 3 tasks | 14 files |
+| Phase 06 P02 | 90 min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -143,6 +144,9 @@ Recent decisions affecting current work:
 - [Phase 05]: Suite-flake timeout 30 minutes (WR-02 ceiling); first cold run measured 172 s, lowering it is backlog 999.1
 - [Phase 06]: Ops struct held by value in nes->map.ops and filled by code, so abi.global_symbols passes on ELF
 - [Phase 06]: Mapper resolver lives in cartridge.c and page helpers are static inline in internal.h; no src/mapper.c
+- [Phase 06]: Dot 0 of a rendering line drives the BG-lo address of the pending tile; the odd-frame skip keeps the dot-339 NT address on the bus, so with PPUCTRL bit 4 set odd frames log no rise at line 0 dot 0 (Phase 9 input)
+- [Phase 06]: A $2007 access while rendering applies coarse X and Y increments together; empty sprite slots fetch tile $FF with the slot row masked to the sprite height and load transparent zeros
+- [Phase 06]: Behaviour revision bumped to 5 once (commit 9389198); eight nesteroids and rhde frame hashes re-pinned, ticks and audio unchanged; PPU fetch cost about 23 percent frame time on the Mac
 
 ### Pending Todos
 
@@ -183,8 +187,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T17:11:50.112Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-10-10T17:35:17.390Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-plan-phase 6`.
