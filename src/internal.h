@@ -195,7 +195,7 @@ struct nesturbator {
 };
 
 /* A 1 KiB PRG page by bank number. A true modulo against the loader-validated
-   size, because NES 2.0 sizes need not be powers of two, so a register value
+   size, because NES2 sizes need not be powers of two, so a register value
    cannot point outside the allocation (D-03). */
 static inline const uint8_t *nesturbator__map_prg(const struct nesturbator *nes, uint32_t bank_1k)
 {

@@ -221,7 +221,7 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     inst->frame_number = 0;
     inst->audio_rem = 0;
     inst->cpu_cycle = 0;
-    /* iNES: mapper number from flags 6 and 7; NES 2.0: bits 8-11 in byte 8 and the
+    /* iNES: mapper number from flags 6 and 7; NES2: bits 8-11 in byte 8 and the
        submapper in its high nibble. The validator accepts mapper 0 only today. */
     memset(&inst->mapper, 0, sizeof inst->mapper);
     inst->mapper.id = (uint16_t)((image[6] >> 4) | (image[7] & 0xf0u));
