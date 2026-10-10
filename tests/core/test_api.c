@@ -93,7 +93,7 @@ static void test_version(void)
     CHECK_EQ_U64(v.minor, NESTURBATOR_VERSION_MINOR);
     CHECK_EQ_U64(v.patch, NESTURBATOR_VERSION_PATCH);
     CHECK_EQ_U64(v.abi, 1);
-    CHECK_EQ_U64(v.behaviour_revision, 4);
+    CHECK_EQ_U64(v.behaviour_revision, 5);
 
     /* An older caller's smaller struct: only its bytes are written. */
     memset(&v, 0xAB, sizeof v);

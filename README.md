@@ -22,7 +22,9 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM the only board so far. Mid-frame scroll writes render as on
+board), with NROM the only board so far. The behaviour revision is 5: the PPU
+fetch pipeline changed the frames of games that write the scroll or PPUCTRL
+while rendering. Mid-frame scroll writes render as on
 the console, which a split-scroll test shows scanline by scanline.
 With no cartridge, the fixed test card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
@@ -544,8 +546,8 @@ CPU cycles from the reset (the NESdev Wiki documents about 29,658); it keeps
 `v`, the status flags, the OAM address and video memory. The APU is silenced as
 by a write of 0 to `$4015`, its IRQs are cleared and the last `$4017` mode is
 re-applied. Load is unchanged: there is no write-ignore window and no startup
-sequence at power-on, so frame and audio hashes from load do not change and
-the behaviour revision stays 4. With no cartridge it does nothing and returns
+sequence at power-on, so the soft-reset work leaves frame and audio hashes from
+load unchanged. With no cartridge it does nothing and returns
 `NESTURBATOR_OK`.
 
 ## Downloads and archives

@@ -50,7 +50,7 @@ extern "C" {
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
    the same inputs. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 4
+#define NESTURBATOR_BEHAVIOUR_REVISION 5
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
