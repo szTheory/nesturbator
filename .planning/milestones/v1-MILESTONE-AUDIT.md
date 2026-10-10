@@ -1,6 +1,7 @@
 ---
 milestone: 1
-audited: 2026-10-10T00:25:47Z
+audited: 2026-10-10T00:54:54Z
+previous_audit: 2026-10-10T00:25:47Z
 status: tech_debt
 scores:
   requirements: 19/19
@@ -18,6 +19,7 @@ tech_debt:
   - phase: 03-a-real-game-in-retroarch
     items:
       - "Optional integration coverage: no trainer-bearing fixture currently traverses the complete runner/libretro host path. The shared loader's trainer initialization is verified through the CPU bus for iNES and NES 2.0."
+      - "Local coverage: on the owner's Apple Silicon Mac, `retroarch.testframe` and `retroarch.game` self-skip because the installed RetroArch does not start from the test session (03 deferred-items.md). The hosted `retroarch-e2e` job is the only live screenshot evidence for FRAME-05 and GAME-02."
   - phase: planning
     items:
       - "Warning: GSD milestone initialization reports a null version and 1/6 completed phases, while ROADMAP.md and STATE.md report all six phases and all 44 plans complete. roadmap.analyze reports 100% plan progress but marks five legacy phases `executed` and flags checkbox conflicts. Reconcile this metadata during milestone completion."
@@ -33,7 +35,7 @@ tech_debt:
 
 All 19 v1 requirements are checked complete in `REQUIREMENTS.md`, represented in phase verification reports, and listed in at least one completed summary's `requirements-completed` frontmatter. All six phase verification reports pass. Cross-phase review found 19/19 requirements wired and 12/12 traced end-to-end flows complete. The prior audit's SND-01 single-sample callback blocker is closed by Phase 04.2 and its deterministic host regression.
 
-No behavior verification or owner UAT remains. Phase 02's two schedule-only checks use the previously owner-authorized exact-commit manual-run substitute; provenance review was recorded in Phase 01 UAT. Nyquist validation is disabled in `.planning/config.json`, and `verify:post` has no active validation hook, so Nyquist scanning is skipped.
+No behavior verification or owner UAT remains. Phase 02's two schedule-only checks no longer rest on the owner override alone: scheduled nightly runs 37572239134, 37728282108 and 37884748203 (2026-10-07 to 2026-10-09) passed `vectors-full` and the `report` job; provenance review was recorded in Phase 01 UAT. Nyquist validation is disabled in `.planning/config.json`, and `verify:post` has no active validation hook, so Nyquist scanning is skipped.
 
 The audit status is `tech_debt` because a release-policy test weakness, optional trainer host-path coverage, and a GSD phase-status reporting mismatch remain to review. These do not block Milestone 1 behavior or requirement coverage.
 
@@ -60,7 +62,7 @@ The cross-reference compares `REQUIREMENTS.md`, phase `VERIFICATION.md` requirem
 | FRAME-06 | 01 | passed | listed | `[x]` | SATISFIED | Sanitizer, no-float, symbol, and hygiene checks pass. |
 | FRAME-07 | 01 | passed | listed | `[x]` | SATISFIED | Platform archives and automatic checksummed release path are verified. |
 | CPU-01 | 02 | passed | listed | `[x]` | SATISFIED | All 256 opcode cases compare final state and every bus cycle. |
-| CPU-02 | 02 | passed | listed | `[x]` | SATISFIED | Pinned full-vector workflow and exact-commit evidence pass; the scheduled-only substitute was owner-approved. |
+| CPU-02 | 02 | passed | listed | `[x]` | SATISFIED | Pinned full-vector workflow and exact-commit evidence pass; three scheduled nightly runs (2026-10-07 to 2026-10-09) passed `vectors-full` and `report`. |
 | GAME-01 | 03, 04.1 | passed | listed | `[x]` | SATISFIED | Loader rejection and trainer initialization are covered, including byte-exact CPU-bus tests for both formats. |
 | GAME-02 | 03 | passed | listed | `[x]` | SATISFIED | NROM hashes, runner/libretro parity, sprite behavior, and hosted RetroArch capture. |
 | GAME-03 | 03 | passed | listed | `[x]` | SATISFIED | Movie replay and same-input runner/libretro frame parity. |
@@ -79,7 +81,7 @@ No traceability requirement is orphaned or unsatisfied.
 | Phase | Verification | Result |
 |---|---|---|
 | 01 — A test frame in RetroArch | passed, 69/69 | Six-platform build/release evidence, RetroArch screenshot, and all FRAME requirements covered. |
-| 02 — The CPU matches the public vectors | passed, 62/62 | CPU-01/02 covered; two schedule-only truths use accepted owner overrides. |
+| 02 — The CPU matches the public vectors | passed, 62/62 | CPU-01/02 covered; the two schedule-only overrides are now backed by three passing scheduled runs. |
 | 03 — A real game in RetroArch | passed, 31/31 | All GAME requirements and four roadmap success criteria covered. |
 | 04 — Sound | passed, 15/15; 4/4 roadmap criteria | APU, synthesis, hashes, scoreboard, spectrum, and batch audio parity covered. |
 | 04.1 — Initialize accepted iNES trainers | passed, 8/8 | Trainer bytes reach per-instance PRG RAM and are verified through the CPU bus. |
@@ -122,12 +124,19 @@ The previous audit's stale `include/nesturbator.h` CPU-comment warning and dupli
 
 Skipped: `.planning/config.json` sets `workflow.nyquist_validation` to false and `gsd_run loop render-hooks verify:post` returns no active hooks.
 
+## Refresh (2026-10-10T00:54:54Z)
+
+This refresh re-ran the audit after PR #22 merged. Between the first audit commit and `main` (`5c082c1`), only release metadata and planning notes changed: `.release-please-manifest.json`, `CHANGELOG.md`, the version line in `README.md`, `include/nesturbator.h`, `libretro/nesturbator_libretro.info` and `version.txt`. No emulation, adapter or test code changed, so the integration results above (19/19 wired, 12/12 flows) still describe `main`, and the integration checker was not run again.
+
+- Phase 04.2, with Phase 03 Plan 15 and Phase 04.1, merged to `main` as PR #22 (`58ca4be`). CI on `main` passed at `5c082c1`, and the release-please PR #23 for v0.1.6 merged. The v0.1.6 Release run was still in progress at audit time; v0.1.5 is live with 19 assets.
+- Scheduled nightly evidence now exists for CPU-02, as recorded above.
+- New tech-debt item: the local RetroArch tests self-skip on the owner's Mac because RetroArch does not start there.
+- `retro_reset()` is still a no-op for loaded games. This is outside the v1 requirements and is tracked here only.
+
 ## Next Step
 
-No implementation or human-verification gap remains. Phase 04.2 is still unmerged and has no pull request, so follow the project's delivery gate before archiving the milestone. Ship Phase 04.2 through a green pull request, then complete Milestone 1 and record the non-blocking items as deferred.
+No implementation or human-verification gap remains, and every phase is merged to `main`. Complete Milestone 1 and record the non-blocking items above as deferred:
 
 ```text
-$gsd-ship 04.2
+/gsd-complete-milestone 1
 ```
-
-After that pull request merges to `main`, run `$gsd-complete-milestone 1`.

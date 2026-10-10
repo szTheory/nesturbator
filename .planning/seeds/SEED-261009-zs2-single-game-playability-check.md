@@ -5,6 +5,10 @@ planted: 2026-10-09
 planted_during: Phase 04.2 ship, v1 milestone closeout
 trigger_when: before a future phase or release claim that a supported game is playable end to end, or when a milestone includes game/frontend integration
 scope: medium
+audit_acknowledged:
+  milestone: v1
+  at: 2026-10-09
+  status: dormant
 ---
 
 # SEED-261009-zs2: Prove one supported NROM game from boot through interactive play

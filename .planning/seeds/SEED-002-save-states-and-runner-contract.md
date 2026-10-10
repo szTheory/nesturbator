@@ -5,6 +5,10 @@ planted: 2026-10-02
 planted_during: preparation, before milestone 1
 trigger_when: a milestone includes save states, rewind, run-ahead or netplay, or Playstead is ready to launch this core
 scope: large
+audit_acknowledged:
+  milestone: v1
+  at: 2026-10-09
+  status: dormant
 ---
 
 # SEED-002: Save states, rewind and run-ahead in RetroArch, and the runner contract Playstead needs

@@ -5,6 +5,10 @@ planted: 2026-10-02
 planted_during: preparation, before milestone 1
 trigger_when: milestone 1 has shipped a playable core that can be measured, or a milestone is about speed, fuzzing or weak devices
 scope: medium
+audit_acknowledged:
+  milestone: v1
+  at: 2026-10-09
+  status: dormant
 ---
 
 # SEED-004: The core survives hostile input and gets faster without changing a single hash

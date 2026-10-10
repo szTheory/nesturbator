@@ -5,6 +5,10 @@ planted: 2026-10-02
 planted_during: preparation, before milestone 1
 trigger_when: the committed scoreboard shows which AccuracyCoin tests still fail, or a milestone is about accuracy or about PAL and Dendy games
 scope: large
+audit_acknowledged:
+  milestone: v1
+  at: 2026-10-09
+  status: dormant
 ---
 
 # SEED-003: Every AccuracyCoin test passes, and PAL and Dendy games run at their own timing

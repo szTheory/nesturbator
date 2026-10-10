@@ -1,43 +1,36 @@
 ---
 gsd_state_version: "1.0"
-current_phase: "04.2"
-current_phase_name: "Close gap: SND-01 — deliver single-sample libretro audio (INSERTED)"
-current_plan: Not started
-status: "Phase 04.2 shipped — PR #22"
-stopped_at: Milestone 1 audit complete — Phase 04.2 delivery pending
-last_updated: "2026-10-10T00:30:03.641Z"
+status: Awaiting next milestone
+stopped_at: Milestone v1 archived — next milestone not started
+last_updated: "2026-10-10T00:59:41.085Z"
 last_activity: 2026-10-10
-last_activity_desc: Milestone 1 audit complete; 19/19 requirements satisfied
-state_head: 9511d680f1f933b6911fb74e4da1aef8b572a00c
+last_activity_desc: Milestone v1 completed and archived
+state_head: 5c082c1cd04f3ba1df95f182e070f3910ff7cd77
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 44
   completed_plans: 44
   percent: 100
+current_phase: null
+current_phase_name: null
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-09)
+See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** All implementation phases and the milestone audit are complete; Phase 04.2 delivery is next.
+**Current focus:** Planning the next milestone. v1 (NROM games with sound) shipped and is archived in `.planning/milestones/`.
 
 ## Current Position
 
-Current Phase: 04.2
-Current Phase Name: Close gap: SND-01 — deliver single-sample libretro audio (INSERTED)
-Current Plan: Not started
-Total Plans in Phase: 1
-Plans complete: 44 of 44 plans; Phase 04.2 is complete.
-Status: Phase 04.2 shipped — PR #22
-Last activity: 2026-10-09
-Last Activity Description: 19/19 requirements satisfied, 6/6 phases verified, 12/12 integration flows wired; non-blocking debt recorded in `.planning/v1-MILESTONE-AUDIT.md`.
-
-Progress: 44/44 plans executed; 6/6 phases complete ([██████████] 100%). Milestone audit is complete; Phase 04.2's pull request is next.
+Phase: Milestone v1 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-10-10 — Milestone v1 completed and archived
 
 ## Performance Metrics
 
@@ -134,7 +127,7 @@ None.
 
 ### Blockers/Concerns
 
-No implementation or owner-verification blockers remain. Phase 04.2's failed-frame audio callback warning is closed by a generated JAM fixture that passes in the full CI workflow. The refreshed audit records the remaining release-policy self-test weakness, optional trainer host-path coverage, and a GSD phase-status reporting mismatch. Phase 04.2 has not yet been shipped; follow the PR delivery gate before milestone archival. Full audit details are in `.planning/v1-MILESTONE-AUDIT.md`.
+None open. v1 closed with an override closeout. Its deferred tech debt (release-policy substring check, trainer host-path coverage, local RetroArch self-skip on the owner's Mac, no-op `retro_reset()`) is listed in `.planning/MILESTONES.md` and `.planning/milestones/v1-MILESTONE-AUDIT.md`.
 
 ### Quick Tasks Completed
 
@@ -152,14 +145,26 @@ No implementation or owner-verification blockers remain. Phase 04.2's failed-fra
 
 Items acknowledged and deferred at milestone close, most recent first:
 
-| Category | Item | Status | Deferred At |
-|----------|------|--------|-------------|
-| *(none)* | | | |
+| Category | Item | Status | Deferred At | Milestone |
+|----------|------|--------|-------------|-----------|
+| debug_sessions | DEBUG-automation-first-uat | diagnosed (addressed by plans 02-09 to 02-11) | 2026-10-10 | v1 |
+| seeds | SEED-001 | dormant | 2026-10-10 | v1 |
+| seeds | SEED-002 | dormant | 2026-10-10 | v1 |
+| seeds | SEED-003 | dormant | 2026-10-10 | v1 |
+| seeds | SEED-004 | dormant | 2026-10-10 | v1 |
+| seeds | SEED-005 | dormant | 2026-10-10 | v1 |
+| seeds | SEED-006 | dormant | 2026-10-10 | v1 |
+| seeds | SEED-261009-zs2 | dormant | 2026-10-10 | v1 |
+| deferred_items | 03/deferred-items.md: local `retroarch.testframe` harness aborts on the owner's Mac | acknowledged | 2026-10-10 | v1 |
 
 ## Session Continuity
 
-Last session: 2026-10-10T00:25:47Z
-Stopped at: Milestone 1 audit complete — Phase 04.2 delivery pending
+Last session: 2026-10-10
+Stopped at: Milestone v1 archived — next milestone not started
 Resume file: None
 
-Next GSD command: `$gsd-ship 04.2`.
+Next GSD command: `/gsd-new-milestone`.
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

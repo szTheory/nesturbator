@@ -5,6 +5,10 @@ planted: 2026-10-02
 planted_during: preparation, before milestone 1
 trigger_when: milestone 1 has shipped (NROM games play with picture, input and sound) and the next milestone is about which games run
 scope: large
+audit_acknowledged:
+  milestone: v1
+  at: 2026-10-09
+  status: dormant
 ---
 
 # SEED-001: Most of the licensed library plays (MMC1, MMC3, UxROM, CNROM, AxROM, battery saves)

@@ -3,6 +3,10 @@ status: diagnosed
 trigger: "Phase 02 UAT test 2: automate machine-checkable prohibitions and post-merge evidence; persist an automation-first verification default"
 created: 2026-10-06
 updated: 2026-10-06
+audit_acknowledged:
+  milestone: v1
+  at: 2026-10-09
+  status: diagnosed
 ---
 
 ## Current Focus
@@ -16,6 +20,7 @@ candidate_causes:
   - code: missing direct negative-rule assertions in CTest/hygiene
   - config: verifier/UAT disposition requires owner acknowledgement when test-tier rule lacks a wired check
   - environment: release and schedule occur only after merge on GitHub
+
 and_gate: yes; missing tests cause the acknowledgement gate, while later external events cause separate manual follow-up unless captured by automation.
 
 ## Symptoms
