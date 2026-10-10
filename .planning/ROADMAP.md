@@ -139,7 +139,7 @@ Plans:
   4. A CTest case stops `nesturbator-run --save-interval N` after a flush and finds the span's current bytes on disk.
   5. The libretro core returns the span for `RETRO_MEMORY_SAVE_RAM`, and the `retroarch-e2e` job shows RetroArch writing a `.srm` of the span's size and a second session loading it back.
 
-**Plans**: 3/8 plans executed
+**Plans**: 4/8 plans executed
 
 Plans:
 **Wave 1**
@@ -150,7 +150,7 @@ Plans:
 - [x] 08-03-PLAN.md — Holy Mapperel PRG RAM row reader (--prg-ram, letter glyphs) proven on the M2/M3/M7 ROMs (BOARD-02, SAVE-02)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 08-04-PLAN.md — Twelve mapper 1 reject fuzz seeds with manifest lines (BOARD-02, SAVE-01)
+- [x] 08-04-PLAN.md — Twelve mapper 1 reject fuzz seeds with manifest lines (BOARD-02, SAVE-01)
 - [ ] 08-05-PLAN.md — Zero-based write stamp (WR-01, WR-03), MMC1 serial port, banking, mirroring and SxROM variants with hook- and CPU-level tests (BOARD-02)
 
 **Wave 4** *(blocked on Wave 3 completion)*
@@ -210,7 +210,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 5. Tune-up and v1 debt | v2 | 8/8 | Complete    | 2026-10-10 |
 | 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | Complete    | 2026-10-10 |
 | 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
-| 8. MMC1 and battery saves | v2 | 3/8 | In Progress | - |
+| 8. MMC1 and battery saves | v2 | 4/8 | In Progress | - |
 | 9. MMC3 | v2 | 0/TBD | Not started | - |
 | 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
 
