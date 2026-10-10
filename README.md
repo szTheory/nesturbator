@@ -43,7 +43,7 @@ nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.pp
 
 The CI suite pins three redistributable mapper-0 games: MIT-licensed
 Nesteroids, zlib-licensed Double Action Blaster Guys, and all-permissive RHDE.
-It also runs Holy Mapperel's mapper 2, 3 and 7 test ROMs (zlib) and requires
+It also runs Holy Mapperel's mapper 1, 2, 3 and 7 test ROMs (zlib) and requires
 each to report the result code 0000. Their boot hashes and scripted DABG two-port movie hashes are checked against
 `tests/runner/hashes.txt` on every platform; the hashes use native pixels
 before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
@@ -267,14 +267,15 @@ brightness never falls down a column.
 two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
 180, plus transition and PCM hashes for each game's boot run. It fails if any
 requested frame or audio hash is missing or duplicated;
-`runner.write_hashes.content` requires all 39 sorted keys to equal
+`runner.write_hashes.content` requires all 45 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
-The 39 keys are the 36 game and movie keys plus one
-`holymapperel/<key>/frame N` key per Holy Mapperel ROM; `runner.write_hashes`
+The 45 keys are the 36 game and movie keys plus one
+`holymapperel/<key>/frame N` key per Holy Mapperel ROM (eight) and one
+`holymapperel/m1sxrom.saved/frame N` key for the SXROM ROM's second run; `runner.write_hashes`
 hashes frame N and frame 2N of each and fails if they differ, so a pinned
 result screen is known to be static.
 The `holymapperel.*` tests read Holy Mapperel's result from the frame, not
-from RAM. `holymapperel.<key>.dump` runs a ROM to frame N (100) and writes the
+from RAM. `holymapperel.<key>.dump` runs a ROM to its frame N and writes the
 frame with `--dump-frame`; `holymapperel.<key>.decode` runs the test-only
 `holymapperel-decode` on that image and passes only on the line
 `holymapperel: code 0000 (`. The decoder exits 0 for the code 0000, 1 for any
@@ -284,10 +285,24 @@ screen, a digit cannot be read, or the file is not a 256x240 P6 image.
 `holymapperel.decode.unit` paints frames to test every decoder branch,
 `holymapperel.glyphs` checks the decoder's font against the M3 ROM's CHR, and
 `holymapperel.decode.testcard`, `.early` and `.badsize` check that the test
-card, frame 1 and a wrong-size file exit 2. A new board ROM is one entry and
-one manifest line in `tests/holymapperel/roms.cmake`, which the tests,
-`tests/cmake/write_hashes.cmake` and `tests/cmake/hash_inventory.cmake` all
-read.
+card, frame 1 and a wrong-size file exit 2.
+The five MMC1 ROMs are `M1_P128K_CR8K` (SGROM, `PRG RAM MISSING`),
+`M1_P128K_C32K_W8K` (SJROM) and `M1_P128K_C128K_S8K` (SKROM) and
+`M1_P512K_CR8K_S8K` (SUROM), all `8K PRG RAM OK`, and `M1_P512K_CR8K_S32K`
+(SXROM). Each ROM also has a `holymapperel.<key>.prgram` test: the decoder's
+`--prg-ram` mode reads the PRG RAM row of the result screen and the test
+passes only on its exact text, with the closing quote as the anchor. The SXROM
+ROM runs a two-run chain on one save directory with `nesturbator-run
+--save-dir`: `holymapperel.m1sxrom.clean` empties the directory, run 1 reads
+`0000` and `32K PRG RAM OK` without `+ BATTERY`, `run1.sav` checks the 32,768
+byte save for Holy Mapperel's `SAVEDATA` text at offset 0x100
+(`tests/cmake/check_sav.cmake`), and run 2 reads `0000` and `32K PRG RAM OK +
+BATTERY`, which shows the board loaded its own save. The two runs' screens hash
+differently and both are pinned. A new board ROM is one entry and one manifest
+line in `tests/holymapperel/roms.cmake`, whose entry is
+`<key>:<file>:<N>:<PRG RAM text>` with an optional `:save` field for the
+two-run chain; the tests, `tests/cmake/write_hashes.cmake` and
+`tests/cmake/hash_inventory.cmake` all read it.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
 `runner.usage.noargs` checks that a run without `--frames` is a usage error.
@@ -434,7 +449,7 @@ and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
 a different frame fails the run. It also requires six nonempty artifacts with
-the exact 39-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
+the exact 45-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
 extra keys and malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
@@ -921,7 +936,7 @@ This repository contains no commercial ROM or BIOS data and never will. You
 supply your own legally obtained game images. See
 [ASSET_POLICY.md](ASSET_POLICY.md).
 
-Holy Mapperel's mapper 2, 3 and 7 test ROMs under `tests/roms/hm/` are zlib
+Holy Mapperel's mapper 1, 2, 3 and 7 test ROMs under `tests/roms/hm/` are zlib
 licensed, byte-identical to the v0.02 release, and listed in
 `tests/roms/manifest.txt`; their licence is in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
