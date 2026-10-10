@@ -5,6 +5,10 @@ planted: 2026-10-02
 planted_during: preparation, before milestone 1
 trigger_when: the six common mappers and save states have shipped, or a milestone is about Famicom games, expansion audio, the Disk System or extra controllers
 scope: large
+audit_acknowledged:
+  milestone: v1
+  at: 2026-10-09
+  status: dormant
 ---
 
 # SEED-005: Famicom hardware — expansion audio, the Disk System, more mappers and peripherals

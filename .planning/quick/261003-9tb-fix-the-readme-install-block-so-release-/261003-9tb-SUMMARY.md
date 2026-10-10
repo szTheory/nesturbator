@@ -8,7 +8,7 @@ requires: []
 provides:
   - README install block with the version on its own line
   - release.one_version_per_line ctest and self-test
-affects: [release PR #2]
+affects: ["release PR #2"]
 tech-stack:
   added: []
   patterns:
@@ -34,6 +34,10 @@ actuals:
   commits: 2
 plan_head_before: 83d6a1b9dd6b40cef41511e36f985ee5dfb1d2a8
 plan_head_after: 36a971f5f76c91fb57e5c9fa2eb9f9fd848a7412
+audit_acknowledged:
+  milestone: v1
+  at: 2026-10-09
+  status: complete
 ---
 
 # Phase quick-261003-9tb Plan 01: README install line version fix Summary

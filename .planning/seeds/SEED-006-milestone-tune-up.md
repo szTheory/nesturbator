@@ -5,6 +5,10 @@ planted: 2026-10-02
 planted_during: preparation, before milestone 1
 trigger_when: every milestone after the first
 scope: small
+audit_acknowledged:
+  milestone: v1
+  at: 2026-10-09
+  status: dormant
 ---
 
 # SEED-006: Each milestone starts with a faster CI run, no flaky test, and docs that match the release

@@ -8,20 +8,36 @@ nesturbator is a NES emulator core written in C. It ships as a library other pro
 
 Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
 
+## Current State
+
+v1 "NROM games with sound" shipped on 2026-10-09 (final release v0.1.6). NROM games render, take input from two controller ports and play with sound in RetroArch. Frame and audio hashes match on Linux, macOS and Windows on x64 and arm64. The code is 13,642 lines of C, 5,964 of them in the core library. The milestone record is in `.planning/MILESTONES.md`, and the roadmap, requirements, audit and phase history are in `.planning/milestones/`.
+
+## Next Milestone Goals
+
+Not chosen yet; `/gsd-new-milestone` sets them. Candidates are the v1 deferral seeds in `.planning/seeds/`:
+- SEED-001: most of the licensed library plays (MMC1, MMC3, UxROM, CNROM, AxROM, battery saves).
+- SEED-002: save states, rewind and run-ahead in RetroArch, plus the runner contract Playstead needs.
+- SEED-003: every AccuracyCoin test passes; PAL and Dendy timing.
+- SEED-004: hostile-input robustness and speed with unchanged hashes.
+- SEED-005: Famicom hardware (expansion audio, Disk System, peripherals).
+- SEED-006: faster CI, no flaky tests and docs that match each release.
+- SEED-261009-zs2: one supported NROM game proven from boot through interactive play.
+
 ## Requirements
 
 ### Validated
 
-- ✓ One command installs the core into RetroArch on an Apple Silicon Mac, and a test shows RetroArch displays the runner's frame. — Phase 1 (v0.1.0)
-- ✓ `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds and tests everything on Linux, macOS and Windows, x64 and arm64, and CI runs the same commands. — Phase 1
-- ✓ Every behaviour-changing merge to `main` produces a release with the library, the runner and the libretro core. — Phase 1 (v0.1.0) and Phase 2 (v0.1.1), published automatically
-- ✓ The CPU matches the public 65x02 vectors on all 256 opcodes and every bus cycle. — Phase 2 (62/62 verification truths passed)
-- ✓ The pinned full 65x02 vector set passes, with CI scheduled to run it nightly. — Phase 2 (main-push and owner-authorized manual runs passed; the first cron event was not observed)
-- ✓ NROM games render, take controller input and play with sound in RetroArch. — Phases 3–4 (frame, controller, APU, and libretro callback behavior have automated coverage)
-- ✓ Frame and audio hashes are identical on every supported platform. — Phases 3–4 (pinned outputs run in the six-platform CI matrix)
+- ✓ One command installs the core into RetroArch on an Apple Silicon Mac, and a test shows RetroArch displays the runner's frame. — v1, Phase 1 (v0.1.0)
+- ✓ `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds and tests everything on Linux, macOS and Windows, x64 and arm64, and CI runs the same commands. — v1, Phase 1
+- ✓ Every behaviour-changing merge to `main` produces a release with the library, the runner and the libretro core. — v1, v0.1.0 through v0.1.6, published automatically
+- ✓ The CPU matches the public 65x02 vectors on all 256 opcodes and every bus cycle. — v1, Phase 2 (62/62 verification truths passed)
+- ✓ The pinned full 65x02 vector set passes, with CI scheduled to run it nightly. — v1, Phase 2 (scheduled runs passed 2026-10-07 to 2026-10-09)
+- ✓ NROM games render, take controller input and play with sound in RetroArch. — v1, Phases 3–4.2 (frame, controller, APU, and libretro callback behavior have automated coverage)
+- ✓ Frame and audio hashes are identical on every supported platform. — v1, Phases 3–4 (pinned outputs run in the six-platform CI matrix)
 
 ### Active
-None for v1; later work remains tracked in `.planning/seeds/`.
+
+None until the next milestone defines its requirements; see Next Milestone Goals.
 
 ### Out of Scope
 
@@ -38,7 +54,8 @@ None for v1; later work remains tracked in `.planning/seeds/`.
 
 - **Ecosystem.** Every mainstream libretro NES core is GPL or LGPL. The most accurate emulators are GPL applications or permissive C# and Java programs. A permissive, accuracy-class, embeddable C core does not exist yet. AccuracyCoin, an MIT test ROM with 144 tests, is today's public measure of accuracy.
 - **Sibling projects.** A Neo Geo core with the same three deliverables and the same API conventions. Playstead, a host that launches emulator processes and needs deterministic input replay and safe battery saves from them.
-- **How releases are tried.** In RetroArch on an Apple Silicon Mac, installed by script.
+- **How releases are tried.** In RetroArch on an Apple Silicon Mac, installed by script. The local RetroArch tests currently self-skip on that Mac because RetroArch does not start from the test session; the hosted `retroarch-e2e` job carries the screenshot evidence.
+- **Known debt after v1.** The release-policy self-test matches by substring; no trainer-bearing fixture runs the full host path; `retro_reset()` does nothing for a loaded game. Details are in `.planning/milestones/v1-MILESTONE-AUDIT.md`.
 - **Reference material.** Each file below states facts with their sources. Open the one that matches the work before designing or building.
   - `.planning/preparation/README.md` — index of the files below
   - `.planning/preparation/ARCHITECTURE.md` — time model, CPU, PPU, audio, mappers, public API
@@ -71,12 +88,12 @@ None for v1; later work remains tracked in `.planning/seeds/`.
 | Integer-only core; `cmake --workflow --preset nofp` shows it | Bit-identical hashes on every platform | ✓ Good — fixed-point synthesis and integer spectral analysis pass the Phase 4 CI gate |
 | Video out as palette index plus emphasis; audio out as mono 16-bit from an owned synthesiser | Hashes stay independent of palette; existing audio libraries are LGPL | ✓ Good — Phases 3–4 pin frame/audio output and libretro parity without a device dependency |
 | Opaque-instance C API shared with the sibling core | One future host can load every core | ✓ Good — Phase 1's public-header consumer and libretro host exercise the API |
-| Integration, end-to-end and smoke checks are automated; owner hand-offs are limited to consent and irreducible judgment | CI evidence closes product behavior; source provenance cannot be machine-proven | ✓ Good — Phase 2 behavior used automated evidence; Phase 01's release credential and non-releasing commit policies now have CTest gates; owner input is limited to clean-room provenance and authorizing the manual schedule substitute |
-| Tests use committed, licensed samples; full pinned suites are fetched cold and their run-bound inventory and JUnit results are checked separately | Reproducibility, clear rights and evidence that distinguishes passing tests from merely registered tests | ✓ Good — Phase 2 sample, main-push and manual full-vector runs, with run-bound artifacts; the cron trigger remains policy-checked |
+| Integration, end-to-end and smoke checks are automated; owner hand-offs are limited to consent and irreducible judgment | CI evidence closes product behavior; source provenance cannot be machine-proven | ✓ Good — Phase 2 behavior used automated evidence; Phase 01's release credential and non-releasing commit policies now have CTest gates; owner input is limited to clean-room provenance and authorizing the manual schedule substitute, since replaced by passing scheduled runs |
+| Tests use committed, licensed samples; full pinned suites are fetched cold and their run-bound inventory and JUnit results are checked separately | Reproducibility, clear rights and evidence that distinguishes passing tests from merely registered tests | ✓ Good — Phase 2 sample, main-push and manual full-vector runs, with run-bound artifacts; scheduled runs passed from 2026-10-07 |
 | The public API declaration baseline is a temporary Phase 2 guard; revise or retire it in Phase 3 if the API changes | Protect the shipped boundary during CPU work while preserving planned API evolution | ✓ Good — Phase 3 refreshed the declaration guard for the expanded API |
 | One scoreboard file in which a passing test stays passing | A regression is a one-line diff | ✓ Good — Phase 4 requires the six named APU results and checks the baseline for lost passes |
 | One entrypoint: CMake workflow presets | No script to keep in step with CI | ✓ Good — `cmake --workflow --preset ci` builds, tests and packages all three deliverables |
-| release-please, whose release pull request merges itself when CI passes; unsigned macOS artifacts installed by script | Automatic releases; no legal name in artifacts | ✓ Good — v0.1.0 and v0.1.1 released automatically; `release.one_version_per_line` remains guarded |
+| release-please, whose release pull request merges itself when CI passes; unsigned macOS artifacts installed by script | Automatic releases; no legal name in artifacts | ✓ Good — v0.1.0 through v0.1.6 released automatically; `release.one_version_per_line` remains guarded |
 | With no cartridge loaded the core outputs a built-in test frame | A build or a release can be checked without any ROM | ✓ Good — Phase 1 checked v0.1.0 in RetroArch with no ROM |
 | NROM first, then MMC1, MMC3, UxROM, CNROM, AxROM | Six mappers cover 96% of the North American licensed library | ✓ Good — NROM shipped in Phase 3; remaining mapper families stay in later scope |
 | Keep APU channel state and the sample scheduler per instance, clocked from CPU bus cycles | Hardware phase order and isolated emulator state make runs reproducible | ✓ Good — Phase 4 APU, DMC and AccuracyCoin checks pass |
@@ -106,4 +123,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-09 after Phase 04.2*
+*Last updated: 2026-10-10 after the v1 milestone*
