@@ -50,12 +50,12 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
   4. A CI job fails when a test that its preset expects to run reports itself skipped; the local RetroArch tests either pass on the owner's Mac or are removed, so the hosted `retroarch-e2e` job carries the RetroArch evidence alone.
   5. A CTest case shows that `nesturbator_reset()` keeps CPU RAM and cartridge RAM, enters the reset vector with SP lowered by 3, silences the APU and makes the PPU ignore register writes for the documented interval; `retro_reset()` calls it, the libretro test program's frames after a reset equal those of a direct-API instance of the core given the same frames, reset and frames, and the README and the public header's comments describe the released behaviour.
 
-**Plans**: 1/7 plans executed
+**Plans**: 2/7 plans executed
 
 Plans:
 **Wave 1**
 - [x] 05-01-PLAN.md — Exact, job-scoped release publish-gate check with mutation self-test (TUNE-03)
-- [ ] 05-02-PLAN.md — Shared synthetic iNES builder; trainer image frames equal through runner and libretro (TUNE-04)
+- [x] 05-02-PLAN.md — Shared synthetic iNES builder; trainer image frames equal through runner and libretro (TUNE-04)
 - [ ] 05-03-PLAN.md — policy.no-skip, local RetroArch tests removed, hosted-only RetroArch driver (TUNE-05)
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -160,7 +160,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 4. Sound | v1 | 4/4 | Complete | 2026-10-09 |
 | 4.1. Close gap: GAME-01 | v1 | 1/1 | Complete | 2026-10-09 |
 | 4.2. Close gap: SND-01 | v1 | 1/1 | Complete | 2026-10-09 |
-| 5. Tune-up and v1 debt | v2 | 1/7 | In Progress | - |
+| 5. Tune-up and v1 debt | v2 | 2/7 | In Progress | - |
 | 6. Mapper seam and PPU fetch pipeline | v2 | 0/TBD | Not started | - |
 | 7. UxROM, CNROM and AxROM | v2 | 0/TBD | Not started | - |
 | 8. MMC1 and battery saves | v2 | 0/TBD | Not started | - |
