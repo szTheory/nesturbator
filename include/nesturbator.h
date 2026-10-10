@@ -67,7 +67,8 @@ enum nesturbator_status {
     NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5,
     /* The loaded cartridge executed a JAM opcode; the instance is latched. */
     NESTURBATOR_STOP_JAM = 6,
-    /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 2 UxROM, 3 CNROM and 7 AxROM). */
+    /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 2 UxROM,
+       3 CNROM and 7 AxROM). */
     NESTURBATOR_ERR_CARTRIDGE = 7
 };
 typedef enum nesturbator_status nesturbator_status;

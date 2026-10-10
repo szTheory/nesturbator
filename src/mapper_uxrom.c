@@ -22,8 +22,8 @@ static void uxrom_rebuild(struct nesturbator *nes)
     const uint32_t last_1k = (uint32_t)(nes->cart.prg_size / 1024u) - 16u;
     nesturbator__map_prg_ram(nes);
     for (uint32_t i = 16u; i < 32u; ++i) {
-        map->cpu_r[i] = nesturbator__map_prg(nes, (uint32_t)nes->mapper.reg.uxrom.bank * 16u +
-                                                      (i - 16u));
+        map->cpu_r[i] =
+            nesturbator__map_prg(nes, (uint32_t)nes->mapper.reg.uxrom.bank * 16u + (i - 16u));
         map->cpu_w[i] = NULL;
     }
     for (uint32_t i = 32u; i < 48u; ++i) {

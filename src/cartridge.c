@@ -104,8 +104,8 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
         size_t prg_ram, prg_nvram, chr_ram, chr_nvram;
         mapper = (uint16_t)(mapper | ((image[8] & 0x0fu) << 8));
         submapper = (uint8_t)(image[8] >> 4);
-        if (image[7] & 3u || image[13] != 0u ||
-            image[14] != 0u || image[15] != 0u || image[12] != 0u)
+        if (image[7] & 3u || image[13] != 0u || image[14] != 0u || image[15] != 0u ||
+            image[12] != 0u)
             return 0;
         if (!nes2_rom_size(image[4], image[9] & 0x0fu, 16384u, &layout->prg_size) ||
             !nes2_rom_size(image[5], image[9] >> 4, 8192u, &layout->chr_size) ||

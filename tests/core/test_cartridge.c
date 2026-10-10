@@ -319,8 +319,8 @@ struct board_row {
     const char *label;
     uint16_t mapper;
     uint8_t nes2, submapper;
-    uint16_t prg_banks; /* 16 KiB units; above 255 the NES 2.0 MSB nibble is used */
-    uint8_t chr_8k;     /* 0 is CHR-RAM */
+    uint16_t prg_banks;     /* 16 KiB units; above 255 the NES 2.0 MSB nibble is used */
+    uint8_t chr_8k;         /* 0 is CHR-RAM */
     uint8_t or_idx, or_val; /* header byte patch, OR-ed in; or_idx 0 means none */
     int size_delta;         /* +1 trailing byte, -1 missing byte */
     int diskdude;

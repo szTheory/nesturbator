@@ -14,8 +14,8 @@
 
 /* Builds and loads a board image; seeds[b] is bank b's byte at offset 0 (NULL means zeros). */
 static struct nesturbator *load_board_ex(uint16_t mapper, uint8_t submapper, int nes2,
-                                         uint8_t prg_16k, uint8_t chr_8k, int vertical,
-                                         int trainer, const uint8_t *seeds, uint16_t bank0_vector)
+                                         uint8_t prg_16k, uint8_t chr_8k, int vertical, int trainer,
+                                         const uint8_t *seeds, uint16_t bank0_vector)
 {
     static uint8_t image[IMAGE_CAP];
     static const uint8_t trainer_bytes[INES_TRAINER_SIZE] = {0x6du};
@@ -56,8 +56,8 @@ static struct nesturbator *load_board_ex(uint16_t mapper, uint8_t submapper, int
     return (struct nesturbator *)inst;
 }
 
-static struct nesturbator *load_board(uint16_t mapper, uint8_t submapper, int nes2,
-                                      uint8_t prg_16k, uint8_t chr_8k, int vertical, int trainer,
+static struct nesturbator *load_board(uint16_t mapper, uint8_t submapper, int nes2, uint8_t prg_16k,
+                                      uint8_t chr_8k, int vertical, int trainer,
                                       const uint8_t *seeds)
 {
     return load_board_ex(mapper, submapper, nes2, prg_16k, chr_8k, vertical, trainer, seeds, 0u);

@@ -656,7 +656,8 @@ int main(int argc, char **argv)
         free(bytes);
         if (st != NESTURBATOR_OK) {
             fprintf(stderr,
-                    "nesturbator-run: malformed or unsupported cartridge (status %d); supported mappers are 0, 2, 3 and 7\n",
+                    "nesturbator-run: malformed or unsupported cartridge (status %d); supported "
+                    "mappers are 0, 2, 3 and 7\n",
                     (int)st);
             nesturbator_destroy(inst);
             nesturbator_movie_free(&movie);
