@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 08
 current_phase_name: MMC1 and battery saves
 status: executing
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-10-10T23:06:41.916Z"
+stopped_at: Completed 08-03-PLAN.md
+last_updated: "2026-10-10T23:10:45.818Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 08 execution started
-state_head: 6241000af9bbd5bcffe3a211526fbf80c8059239
+state_head: 436d28528170ebf313798f79c9d5882aa480059c
 progress:
   total_phases: 6
   completed_phases: 9
   total_plans: 22
-  completed_plans: 16
-  percent: 73
+  completed_plans: 17
+  percent: 77
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 ## Current Position
 
 Phase: 08 (MMC1 and battery saves) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-10-10 — Phase 08 execution started
 
-Progress: [███████░░░] 73% of v2
+Progress: [████████░░] 77% of v2
 
 ## Performance Metrics
 
@@ -125,6 +125,7 @@ Progress: [███████░░░] 73% of v2
 | Phase 07 P04 | 35 min | 3 tasks | 17 files |
 | Phase 08 P01 | 40 min | 2 tasks | 13 files |
 | Phase 08 P02 | 30min | 3 tasks | 13 files |
+| Phase 08 P03 | 15 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -161,6 +162,7 @@ Recent decisions affecting current work:
 - [Phase 07]: Holy Mapperel result pinned at N=100 for M2, M3 and M7; frame N and 2N must hash alike when hashes are written
 - [Phase 08]: Zero-means-power-on MMC1 registers: control_x = Control XOR 0x0C, last_write = stamp + 1; PHASE8_DECLARATIONS_SHA256 = 7ec4ca9a124042f9a64d090c4362af019c2b9773cb2aaf901683c0daade2d7f0
 - [Phase 08]: Seed pins: valid-mmc1, valid-mmc1-sorom at 87afe8d; mapper-155 at ac72d05
+- [Phase 08]: 08-03: text glyphs in a second table beside the hex table; O and 0 share a glyph so a 0 in row text reads as O
 
 ### Pending Todos
 
@@ -206,8 +208,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T23:06:41.885Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-10-10T23:10:45.773Z
+Stopped at: Completed 08-03-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 8`.
