@@ -136,7 +136,10 @@ result.
     CHR.
   - **CHR:** ROM of 8-128 KiB in powers of two, or exactly 8 KiB of RAM.
     CHR-NVRAM is rejected.
-  - **NES 2.0 RAM:** V and N are each 0, 8, 16 or 32 KiB, with V + N ≤ 32 KiB.
+  - **NES 2.0 RAM:** V and N are each 0, 8, 16 or 32 KiB, with V + N in {0, 8,
+    16, 32} KiB *(amended during plan-phase 2026-10-10: a 24 KiB total is
+    rejected, because no MMC1 board has it and the RAM bank select has no case
+    for it; research C5)*.
     Above 8 KiB only with 8 KiB of CHR. Non-multiples of 8 KiB (byte 10 =
     `0x01`) are rejected. 16 KiB of RAM with CHR-ROM of 16 KiB or more
     (SZROM) is rejected.
