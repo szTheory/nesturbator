@@ -160,6 +160,9 @@ target_include_directories(core.cartridge PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # D-18: soft reset on a synthetic NROM image with a trainer.
 nesturbator_core_test(core.reset core/test_reset.c)
 target_include_directories(core.reset PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# MAP-01, D-04, D-05, D-06, D-08: cycle-stamped mapper writes, the IRQ OR, the nametable map and reset.
+nesturbator_core_test(core.mapper core/test_mapper.c)
+target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -182,6 +185,18 @@ target_link_libraries(ppu.sprites PRIVATE nesturbator::nesturbator)
 target_include_directories(ppu.sprites PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_warnings(ppu.sprites)
 add_test(NAME ppu.sprites COMMAND ppu.sprites)
+# MAP-02, D-13: v, bus and A12 per dot.
+add_executable(ppu.fetch ppu/test_fetch.c)
+target_link_libraries(ppu.fetch PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.fetch PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.fetch)
+add_test(NAME ppu.fetch COMMAND ppu.fetch)
+# MAP-02, D-14, D-15: mid-frame $2005/$2006 splits against hand-derived origins.
+add_executable(ppu.split_scroll ppu/test_split_scroll.c)
+target_link_libraries(ppu.split_scroll PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.split_scroll PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.split_scroll)
+add_test(NAME ppu.split_scroll COMMAND ppu.split_scroll)
 
 # The same entry point is linked into the Linux libFuzzer binary and replayed
 # from checked-in seeds on every CI platform. Refuse an empty corpus at configure
@@ -502,6 +517,7 @@ add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/apu.c
   ${PROJECT_SOURCE_DIR}/src/synth.c
   ${PROJECT_SOURCE_DIR}/src/cartridge.c
+  ${PROJECT_SOURCE_DIR}/src/mapper_nrom.c
   ${PROJECT_SOURCE_DIR}/src/ppu.c)
 target_include_directories(bus.unit PRIVATE
   ${PROJECT_SOURCE_DIR}/src

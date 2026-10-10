@@ -6,19 +6,20 @@
 
 static struct nesturbator nes;
 static uint8_t chr[8192];
-static uint8_t header[16];
 static uint16_t pixels[NESTURBATOR_WIDTH * NESTURBATOR_HEIGHT];
 
-static void setup(void)
+/* The pipeline fetches pixels from v, so each case starts on the pre-render line with rendering
+   on and runs it through to the first two pixels of line 0 (343 dots). */
+static void setup(uint8_t extra_mask)
 {
     memset(&nes, 0, sizeof nes);
     memset(chr, 0, sizeof chr);
-    memset(header, 0, sizeof header);
     memset(pixels, 0, sizeof pixels);
-    nes.cart.bytes = header;
-    nes.cart.chr = chr;
-    nes.ppu.mask = 0x0au; /* background plus leftmost 8 pixels */
-    nes.ppu.scanline = 0u;
+    /* The PPU reads pattern data through the board's page map. */
+    for (unsigned i = 0u; i < 8u; ++i)
+        nes.map.chr_r[i] = chr + i * 1024u;
+    nes.ppu.mask = (uint8_t)(0x0au | extra_mask); /* background plus leftmost 8 pixels */
+    nes.ppu.scanline = 261u;
     nes.ppu.video_output = pixels;
     nes.ppu.video_pitch = NESTURBATOR_WIDTH;
     nes.ppu.palette[0] = 0x0fu;
@@ -28,24 +29,19 @@ static void setup(void)
     nes.ppu.nametable[0x3c0u] = 1u; /* top-left quadrant selects subpalette 1 */
     chr[0] = 0x08u;                 /* tile 0, row 0 has colour 1 at column 4 */
     nesturbator__ppu_register_write(&nes, 0x2005u, 4u);
-    nesturbator__ppu_run_until(&nes, 16u);
+    nesturbator__ppu_run_until(&nes, (341u + 2u) * 8u);
 }
 
 static void test_fine_scroll_and_attribute_select_native_pixel(void)
 {
-    setup();
+    setup(0u);
     CHECK_EQ_U64(pixels[0], 0x21u);
     CHECK_EQ_U64(pixels[1], 0x0fu);
 }
 
 static void test_grayscale_and_emphasis_stay_in_native_pixel(void)
 {
-    setup();
-    nes.ppu.mask |= 0xa1u; /* grayscale plus red and blue emphasis */
-    nes.ppu.dot = 0u;
-    nes.ppu.ppu_ticks = 0u;
-    nes.ppu.scanline = 0u;
-    nesturbator__ppu_run_until(&nes, 16u);
+    setup(0xa1u); /* grayscale plus red and blue emphasis */
     CHECK_EQ_U64(pixels[0], (0x21u & 0x30u) | (5u << 6));
 }
 

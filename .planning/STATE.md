@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v2
 milestone_name: Most of the library plays
-current_phase: 6
-current_phase_name: Mapper seam and PPU fetch pipeline
-status: planning
-stopped_at: Phase 05 complete, ready to plan Phase 6
-last_updated: "2026-10-10T15:11:13.962Z"
+current_phase: 07
+current_phase_name: UxROM, CNROM and AxROM
+status: executing
+stopped_at: Phase 7 context gathered
+last_updated: "2026-10-10T19:34:06.294Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 05 shipped, PR #25 squash-merged into main
-state_head: fdc435e493f26e12d63966b8bf13feb73acf2181
+last_activity_desc: Phase 06 complete, transitioned to Phase 7
+state_head: 29327b4ae6c9a44fc80889eb24c3c96cdd69d8d5
 progress:
   total_phases: 6
-  completed_phases: 7
-  total_plans: 8
-  completed_plans: 8
-  percent: 58
+  completed_phases: 8
+  total_plans: 14
+  completed_plans: 10
+  percent: 71
 ---
 
 # Project State
@@ -25,21 +25,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 6 — Mapper seam and PPU fetch pipeline
+**Current focus:** Phase 7 — UxROM, CNROM and AxROM
 
 ## Current Position
 
-Phase: 6 — Mapper seam and PPU fetch pipeline
+Phase: 07 (UxROM, CNROM and AxROM) — READY TO EXECUTE
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-10-10 — Phase 05 shipped, PR #25 squash-merged into main
+Status: Ready to execute
+Last activity: 2026-10-10 — Phase 06 complete, transitioned to Phase 7
 
-Progress: [██████░░░░] 58% of v2
+Progress: [███████░░░] 71% of v2
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 52
+- Total plans completed: 54
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -54,6 +54,7 @@ Progress: [██████░░░░] 58% of v2
 | 04.1 | 1 | - | - |
 | 04.2 | 1 | - | - |
 | 05 | 8 | - | - |
+| 06 | 2 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -115,6 +116,8 @@ Progress: [██████░░░░] 58% of v2
 | Phase 05 P06 | 25 min | 3 tasks | 7 files |
 | Phase 05 P07 | 15 min | 2 tasks | 3 files |
 | Phase 05 P08 | 6 min | 2 tasks | 2 files |
+| Phase 06 P01 | 60 min | 3 tasks | 14 files |
+| Phase 06 P02 | 90 min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -140,6 +143,11 @@ Recent decisions affecting current work:
 - [Phase 05]: Soft reset: vblank_suppress cleared with the PPU position; $4017 re-applied via frame_reset_delay (phase ? 2 : 1)
 - [Phase 05]: retro_reset only calls nesturbator_reset; no unload or reload path
 - [Phase 05]: Suite-flake timeout 30 minutes (WR-02 ceiling); first cold run measured 172 s, lowering it is backlog 999.1
+- [Phase 06]: Ops struct held by value in nes->map.ops and filled by code, so abi.global_symbols passes on ELF
+- [Phase 06]: Mapper resolver lives in cartridge.c and page helpers are static inline in internal.h; no src/mapper.c
+- [Phase 06]: Dot 0 of a rendering line drives the BG-lo address of the pending tile; the odd-frame skip keeps the dot-339 NT address on the bus, so with PPUCTRL bit 4 set odd frames log no rise at line 0 dot 0 (Phase 9 input)
+- [Phase 06]: A $2007 access while rendering applies coarse X and Y increments together; empty sprite slots fetch tile $FF with the slot row masked to the sprite height and load transparent zeros
+- [Phase 06]: Behaviour revision bumped to 5 once (commit 9389198); eight nesteroids and rhde frame hashes re-pinned, ticks and audio unchanged; PPU fetch cost about 23 percent frame time on the Mac
 
 ### Pending Todos
 
@@ -147,7 +155,11 @@ None.
 
 ### Blockers/Concerns
 
-Research flags for v2: Phase 6 (HIGH, PPU fetch timing), Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
+Research flags for v2: Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
+- [Phase 06] Draft PR #30 (phase branch) is green in CI at 62fb2bb; local docs commits after it are unpushed; the PR still needs to leave draft and merge.
+- [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-01 the write stamp is one above the documented zero-based index (settle before Phases 8 and 9 use absolute stamps), WR-02 `$2007` palette test on unmasked `v`, WR-03 `nesturbator__map_cpu_read` has no range guard below $4000.
+- [Phase 06] Odd frames with PPUCTRL bit 4 set log no A12 rise at line 0 dot 0 (input for the Phase 9 MMC3 filter).
+- [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
 ### Quick Tasks Completed
 
@@ -180,12 +192,13 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10
-Stopped at: Phase 05 complete, ready to plan Phase 6
-Resume file: None
+Last session: 2026-10-10T18:17:37.263Z
+Stopped at: Phase 7 context gathered
+Resume file: .planning/phases/07-uxrom-cnrom-and-axrom/07-CONTEXT.md
 
-Next GSD command: `/gsd-discuss-phase 6`.
+Next GSD command: `/gsd-discuss-phase 7`.
 
 ## Operator Next Steps
 
-- Discuss Phase 6 with /gsd-discuss-phase 6
+- Take draft PR #30 out of draft and merge it once its CI is green
+- Discuss Phase 7 with /gsd-discuss-phase 7
