@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 07 — UxROM, CNROM and AxROM
+**Current focus:** Phase 8 — MMC1 and battery saves
 
 ## Current Position
 
@@ -165,7 +165,8 @@ None.
 ### Blockers/Concerns
 
 Research flags for v2: Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
-- [Phase 06] Draft PR #30 (phase branch) is green in CI at 62fb2bb; local docs commits after it are unpushed; the PR still needs to leave draft and merge.
+- [Phase 07] Draft PR #32 (phase branch) is green in CI at 214a118 (run 38082253437); later commits touch only .planning/ and are unpushed; the PR still needs to leave draft and merge.
+- [Phase 07] Code review left 2 warnings and 3 info open (07-REVIEW-DISPOSITION.md): WR-01 header, README and mapper_axrom.c say the AxROM reset vector comes from bank 0, true only at power-on (soft reset keeps the bank; add "at power-on" and a reset test), WR-02 hash_inventory.cmake compares only the last platform's keys.
 - [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-01 the write stamp is one above the documented zero-based index (settle before Phases 8 and 9 use absolute stamps), WR-02 `$2007` palette test on unmasked `v`, WR-03 `nesturbator__map_cpu_read` has no range guard below $4000.
 - [Phase 06] Odd frames with PPUCTRL bit 4 set log no A12 rise at line 0 dot 0 (input for the Phase 9 MMC3 filter).
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
@@ -205,9 +206,10 @@ Last session: 2026-10-10T20:07:13.842Z
 Stopped at: Phase 07 complete, ready to plan Phase 8
 Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 7`.
+Next GSD command: `/gsd-discuss-phase 8`.
 
 ## Operator Next Steps
 
-- Take draft PR #30 out of draft and merge it once its CI is green
-- Discuss Phase 7 with /gsd-discuss-phase 7
+- Take draft PR #32 out of draft and merge it (CI run 38082253437 is green)
+- Optionally fix Phase 7 WR-01 (AxROM reset-vector wording) with /gsd-quick before merging
+- Discuss Phase 8 with /gsd-discuss-phase 8
