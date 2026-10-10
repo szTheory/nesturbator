@@ -12,16 +12,19 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 v1 "NROM games with sound" shipped on 2026-10-09 (final release v0.1.6). NROM games render, take input from two controller ports and play with sound in RetroArch. Frame and audio hashes match on Linux, macOS and Windows on x64 and arm64. The code is 13,642 lines of C, 5,964 of them in the core library. The milestone record is in `.planning/MILESTONES.md`, and the roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-## Next Milestone Goals
+## Current Milestone: v2 Most of the library plays
 
-Not chosen yet; `/gsd-new-milestone` sets them. Candidates are the v1 deferral seeds in `.planning/seeds/`:
-- SEED-001: most of the licensed library plays (MMC1, MMC3, UxROM, CNROM, AxROM, battery saves).
-- SEED-002: save states, rewind and run-ahead in RetroArch, plus the runner contract Playstead needs.
-- SEED-003: every AccuracyCoin test passes; PAL and Dendy timing.
-- SEED-004: hostile-input robustness and speed with unchanged hashes.
-- SEED-005: Famicom hardware (expansion audio, Disk System, peripherals).
-- SEED-006: faster CI, no flaky tests and docs that match each release.
-- SEED-261009-zs2: one supported NROM game proven from boot through interactive play.
+**Goal:** Games on the six common board families play in RetroArch with battery saves, with frame and audio hashes identical on every supported platform.
+
+**Target features:**
+- A tune-up phase (SEED-006): faster CI, no flaky test, current pins, docs that match the release, and the v1 debt closed — an exact release-policy gate check, a trainer-bearing image through the full host path, a working `retro_reset()`, and local RetroArch tests that run or are retired instead of self-skipping.
+- MMC1 games run, and battery saves persist across runs as raw `.sav` bytes through the runner and libretro (SEED-001).
+- MMC3 games run with the scanline IRQ counter (SEED-001).
+- UxROM, CNROM and AxROM games run, with bus conflicts where the board has them (SEED-001).
+- Holy Mapperel and per-board frame hashes are pinned in CI.
+- One supported game is proven from boot through interactive play: a defined game-state change, a visible response to input, and non-silent audio (SEED-261009-zs2).
+
+Later milestones remain seeds in `.planning/seeds/`: save states and the runner contract (SEED-002), accuracy and PAL/Dendy (SEED-003), robustness and speed (SEED-004), Famicom hardware (SEED-005).
 
 ## Requirements
 
@@ -37,7 +40,10 @@ Not chosen yet; `/gsd-new-milestone` sets them. Candidates are the v1 deferral s
 
 ### Active
 
-None until the next milestone defines its requirements; see Next Milestone Goals.
+- [ ] CI is faster, has no flaky test, and the v1 debt is closed (release-policy gate, trainer host path, `retro_reset()`, local RetroArch tests).
+- [ ] MMC1, MMC3, UxROM, CNROM and AxROM games run, shown by Holy Mapperel, mapper test ROMs and frame hashes.
+- [ ] Battery saves persist across runs as raw bytes compatible with existing `.sav` files.
+- [ ] One supported game is proven from boot through interactive play by an automated check.
 
 ### Out of Scope
 
@@ -48,7 +54,8 @@ None until the next milestone defines its requirements; see Next Milestone Goals
 - A separate fast or low-accuracy mode — one accurate core keeps one set of bugs and one set of hashes.
 - Signed or notarized macOS artifacts — the script install path does not need them.
 - A test framework dependency — plain CTest executables with an in-repo `check.h` cover the need.
-- PAL and Dendy timing, mappers beyond NROM, save states, expansion audio, FDS, extra peripherals — planned for later milestones; see `.planning/seeds/`.
+- PAL and Dendy timing, mappers beyond the six common families, save states, expansion audio, FDS, extra peripherals — planned for later milestones; see `.planning/seeds/`.
+- Submitting the core to the libretro buildbot — an outward-facing step the owner decides on separately.
 
 ## Context
 
@@ -123,4 +130,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-10 after the v1 milestone*
+*Last updated: 2026-10-09 after starting milestone v2*
