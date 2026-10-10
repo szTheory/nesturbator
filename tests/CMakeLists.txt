@@ -105,7 +105,11 @@ add_test(NAME runner.write_hashes
     -DOUT=${CMAKE_CURRENT_BINARY_DIR}/hashes.txt
     -DMOVIE_WRITER=$<TARGET_FILE:runner.game_movie>
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/write_hashes.cmake)
-set_tests_properties(runner.write_hashes PROPERTIES FIXTURES_SETUP hashes_txt)
+# In parallel mode CTest starts tests in descending COST and a fresh build has
+# no cost history. On CI run 38011892333 runner.write_hashes and the two
+# vectors.registration_policy tests took up to 48 s, 107 s and 21 s of the
+# macos-15-intel and asan legs, so they start first.
+set_tests_properties(runner.write_hashes PROPERTIES FIXTURES_SETUP hashes_txt COST 50)
 add_test(NAME runner.write_hashes.content
   COMMAND ${CMAKE_COMMAND} -E compare_files
     ${CMAKE_CURRENT_BINARY_DIR}/hashes.txt ${CMAKE_CURRENT_SOURCE_DIR}/runner/hashes.txt)
@@ -356,9 +360,11 @@ add_test(NAME vectors.registration_policy
     -DFULL_BUILD=${PROJECT_BINARY_DIR}/../vectors-full
     -DCTEST=${CMAKE_CTEST_COMMAND}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
+set_tests_properties(vectors.registration_policy PROPERTIES COST 1000)
 add_test(NAME vectors.registration_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
+set_tests_properties(vectors.registration_policy.self_test PROPERTIES COST 200)
 
 # Run-bound full-vector evidence contains the CTest inventory, including tests
 # outside the vector label. Only the 258 full-vector entries define this lane.
