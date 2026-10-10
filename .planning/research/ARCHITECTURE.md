@@ -124,7 +124,7 @@ Decisions inside this shape:
 
 - **Offsets, not pointers, in the page tables.** `uint32_t` offsets into `prg` and `chr` are rebuilt from the board registers, never serialised, and avoid pointer-width differences in anything later hashed or saved. DEC.15 (1 KiB pages) is kept: MMC3 banks CHR at 1 KiB and PRG at 8 KiB. 32 + 8 entries is 160 bytes.
 - **Mirroring is a four-entry table**, set by helpers `mirror_horizontal/vertical/single(0|1)` plus a header default. This removes `cart.bytes[6]` from `ppu.c`, and makes AxROM single-screen and MMC1/MMC3 runtime mirroring the same code path. Four-screen stays rejected at load (it needs 4 KiB of cartridge VRAM); say so in the header comment.
-- **PRG-RAM is allocated by the layout, not by the trainer.** Allocate when: battery, trainer, NES 2.0 declares PRG-RAM/NVRAM, or the board is MMC1/MMC3 and the header is iNES 1 (default 8 KiB; 32 KiB only when NES 2.0 says so, as SUROM/SXROM need). Battery-backed bytes are the first `prg_nvram_size` bytes of that region so the pointer handed to hosts is stable and file-compatible.
+- **PRG-RAM is allocated by the layout, not by the trainer.** Allocate when: battery, trainer, NES 2.0 declares PRG-RAM/NVRAM, or the board is MMC1/MMC3 and the header is iNES 1 (default 8 KiB; 32 KiB only when NES 2.0 says so, as SUROM/SXROM need). PRG RAM is one region laid out `[ work | nvram ]` (D-06; NESdev "MMC1" on SOROM): the battery bytes are the last `prg_nvram_size` bytes, the save span starts at offset V, and the pointer handed to hosts is stable and file-compatible.
 - **Reads.** `nesturbator__cart_read(nes, addr)` becomes `prg[prg_off[(addr >> 10) & 31] + (addr & 0x3ff)]`. `dmc_dma` keeps calling it, so DMC reads follow the banks with no extra code. The `cart.prg == NULL` guard in `dmc_dma` stays valid.
 - **Writes.** `nesturbator__bus_write` adds `else if (addr >= 0x8000u) nesturbator__cart_write(nes, addr, value)` after the PRG-RAM branch. `nesturbator__cart_write` computes `cpu_cycle = nes->ticks / 24u` (the same expression `oam_dma` already uses) and calls the board. Because `cpu.c` performs the 6502's read-modify-write dummy write, MMC1's "ignore a write on the cycle right after another write" rule works from this one number.
 - **Bus conflicts** are a shared helper `nesturbator__bus_conflict(nes, addr, value)` returning `value & nesturbator__cart_read(nes, addr)`, called by the board only when its conflict flag is set. The flag comes from the NES 2.0 submapper (mapper 2 and 3: 1 none, 2 AND; mapper 7: per the NESdev table). For submapper 0 (all iNES 1 files): AND for mappers 2 and 3 (preparation notes all licensed dumps are submapper 2), none for mapper 7 because the dump split is 27 without to 31 with. MEDIUM confidence; Holy Mapperel and a synthetic conflict test settle it.
@@ -189,7 +189,7 @@ Step 3 is also what makes split-scroll and mid-frame `$2006` tricks work. It wil
 ### Battery RAM Across the API
 
 ```
-cart load ──> nesturbator__cartridge: prg_ram [ nvram | work ]  (stable for load..unload)
+cart load ──> nesturbator__cartridge: prg_ram [ work | nvram ]  (span at offset V, D-06)  (stable for load..unload)
                     │ CPU write accepted (enabled, not protected, inside nvram)
                     ▼
             cart.save_generation += 1
@@ -269,7 +269,7 @@ Save RAM: described above.
 |--------|--------|
 | `nesturbator_status nesturbator_reset(nesturbator *inst)` | Warm reset as the table above; NULL gives `NESTURBATOR_ERR_ARGUMENT`. Comment states what is kept and cleared. |
 | `enum nesturbator_memory { NESTURBATOR_MEMORY_SAVE_RAM = 0, NESTURBATOR_MEMORY_SYSTEM_RAM = 1 }` | Values fixed once published. SAVE_RAM is the battery span only. SYSTEM_RAM (the 2 KiB `bus.ram`) is free to add and is what `RETRO_MEMORY_SYSTEM_RAM` and cheat/achievement tools read; include it only if the plan wants it (one `case`). |
-| `nesturbator_status nesturbator_get_memory(nesturbator *inst, enum nesturbator_memory kind, void **data, size_t *size)` | Pointer valid from successful load until unload or destroy; `size` 0 and `*data` NULL when absent (no cartridge, no battery). Supersedes read/write-save functions: hosts copy to and from the pointer. |
+| `nesturbator_status nesturbator_get_memory(nesturbator *inst, enum nesturbator_memory kind, uint8_t **data, size_t *size)` | Pointer valid from successful load until unload or destroy; `size` 0 and `*data` NULL when absent (no cartridge, no battery). Supersedes read/write-save functions: hosts copy to and from the pointer. |
 | `uint64_t nesturbator_save_generation(const nesturbator *inst)` | Increments when battery RAM changes; 0 without a cartridge. |
 | Reworded comments | `NESTURBATOR_ERR_CARTRIDGE` ("outside the supported profile": mappers 0-4 and 7), `nesturbator_load_cartridge` (mappers, battery, PRG-RAM sizes, trainer, four-screen still refused), `nesturbator_frame` ("Mapper-0 ..." sentences), `nesturbator_create` ("The CPU does not yet run during frames" is already stale). |
 | `NESTURBATOR_BEHAVIOUR_REVISION` | Bump with the PPU pipeline change (and any reset behaviour that alters output), not with adding boards that change no existing output. |

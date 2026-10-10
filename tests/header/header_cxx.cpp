@@ -13,10 +13,19 @@ static_assert(offsetof(nesturbator_frame, frame_number) % 8 == 0, "frame_number 
 static_assert(sizeof(nesturbator_version) == 24, "version is 6 x uint32_t");
 static_assert(sizeof(nesturbator_info) == 28, "info is 7 x uint32_t");
 
+// The save API is declared: the kind constant, its typedef and both functions.
+static nesturbator_status (*const get_memory_fn)(nesturbator *, nesturbator_memory, uint8_t **,
+                                                 size_t *) = nesturbator_get_memory;
+static uint64_t (*const save_generation_fn)(const nesturbator *) = nesturbator_save_generation;
+static const nesturbator_memory save_kind = NESTURBATOR_MEMORY_SAVE_RAM;
+
 int main()
 {
     // Brace initialisation from the macro must not narrow (01-RESEARCH
     // Pitfall 6).
     nesturbator_config c = NESTURBATOR_CONFIG_INIT;
-    return c.abi == NESTURBATOR_ABI_VERSION && c.size == sizeof c ? 0 : 1;
+    return c.abi == NESTURBATOR_ABI_VERSION && c.size == sizeof c && get_memory_fn != nullptr &&
+                   save_generation_fn != nullptr && save_kind == NESTURBATOR_MEMORY_SAVE_RAM
+               ? 0
+               : 1;
 }

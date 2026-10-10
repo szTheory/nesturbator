@@ -13,9 +13,18 @@ _Static_assert(offsetof(nesturbator_frame, frame_number) % 8 == 0, "frame_number
 _Static_assert(sizeof(nesturbator_version) == 24, "version is 6 x uint32_t");
 _Static_assert(sizeof(nesturbator_info) == 28, "info is 7 x uint32_t");
 
+/* The save API is declared: the kind constant, its typedef and both functions. */
+static nesturbator_status (*const get_memory_fn)(nesturbator *, nesturbator_memory, uint8_t **,
+                                                 size_t *) = nesturbator_get_memory;
+static uint64_t (*const save_generation_fn)(const nesturbator *) = nesturbator_save_generation;
+static const nesturbator_memory save_kind = NESTURBATOR_MEMORY_SAVE_RAM;
+
 int main(void)
 {
     /* The initialiser lists every member: no missing-initializer warning. */
     nesturbator_config c = NESTURBATOR_CONFIG_INIT;
-    return c.abi == NESTURBATOR_ABI_VERSION && c.size == sizeof c ? 0 : 1;
+    return c.abi == NESTURBATOR_ABI_VERSION && c.size == sizeof c && get_memory_fn != NULL &&
+                   save_generation_fn != NULL && save_kind == NESTURBATOR_MEMORY_SAVE_RAM
+               ? 0
+               : 1;
 }

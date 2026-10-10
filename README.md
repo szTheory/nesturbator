@@ -9,7 +9,7 @@ no registered test may skip, and the soft reset (`nesturbator_reset()`, which
 RetroArch's Reset button runs). The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM,
-16 or 32 KiB PRG) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
+16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
 clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
 includes OAM Y=$FF sprites on visible framebuffer row 0. After eight sprites
@@ -570,6 +570,45 @@ sequence at power-on, so the soft-reset work leaves frame and audio hashes from
 load unchanged. With no cartridge it does nothing and returns
 `NESTURBATOR_OK`.
 
+### Battery saves
+
+`nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &size)`
+writes a pointer to the cartridge's battery RAM and its size. The core does no
+file I/O: the host keeps the save file. A NULL `inst`, `data` or `size`, or any
+other kind, returns `NESTURBATOR_ERR_ARGUMENT` and writes nothing. With no
+cartridge, or a cartridge without battery RAM, it returns `NESTURBATOR_OK` with
+`NULL` and 0. The pointer stays valid from a successful load until unload, the
+next successful load or destroy; `nesturbator_reset()` and a refused load keep
+it. Copy a saved file in after load and before the first frame; read the span
+whenever you are between calls.
+
+`nesturbator_save_generation(inst)` counts CPU bus writes that reached the
+span while the board had that RAM enabled and writable, whether or not the
+byte changed. A read-modify-write counts both of its writes. It runs from
+`nesturbator_create()` and never resets or decreases, so compare it with `!=`
+and write the file when it moves. Load (including trainer bytes), reset,
+unload and writes through the pointer do not count. `NULL` gives 0.
+
+PRG RAM is one block laid out `[V work][N NVRAM]`, work RAM first, and the
+save span is the N battery bytes (hardware: NESdev Wiki "MMC1", SOROM). The
+header gives the sizes:
+
+| Header | V (work) | N (battery) | Span |
+|---|---|---|---|
+| iNES 1, mapper 1, PRG up to 256 KiB, no battery | 8 KiB | 0 | none |
+| iNES 1, mapper 1, PRG up to 256 KiB, battery | 0 | 8 KiB | 8 KiB |
+| iNES 1, mapper 1, PRG above 256 KiB, no battery | 32 KiB | 0 | none |
+| iNES 1, mapper 1, PRG above 256 KiB, battery | 0 | 32 KiB | 32 KiB |
+| NES 2.0 | byte 10 low nibble | byte 10 high nibble | N bytes at offset V |
+
+With V = N = 0, `$6000-$7FFF` reads as open bus. A trainer on a mapper 1
+image with no declared RAM maps its 8 KiB as work RAM (the trainer at `$7000`)
+and has no span.
+
+Known gap: an iNES 1 SOROM dump gets one 8 KiB battery block, because that
+header cannot say that half of the RAM is volatile; use a NES 2.0 header
+(V = 8 KiB, N = 8 KiB) for a true SOROM. An iNES 1 SUROM save is 32 KiB.
+
 ## Downloads and archives
 
 Each release has three zip archives per platform, named
@@ -641,7 +680,7 @@ at `build/ci/runner/nesturbator-run`. The public header is
 
 ## The runner
 
-`nesturbator-run` runs the core without a window and accepts a mapper 0, 2, 3 or 7 image
+`nesturbator-run` runs the core without a window and accepts a mapper 0, 1, 2, 3 or 7 image
 with `--rom FILE`. The loader validates the entire image before allocating
 cartridge state. It rejects unsupported mapper, console, region, RAM and ROM
 geometries, truncation, trailing bytes, and images larger than 64 MiB; the
@@ -658,7 +697,8 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   for mapper 0 (NROM), or PRG in 16 KiB banks up to 4 MiB for mapper 2
   (UxROM, submappers 0 to 2), or 16 or 32 KiB PRG with 8, 16 or 32 KiB CHR ROM
   for mapper 3 (CNROM, submappers 0 to 2), or 32 to 256 KiB PRG in 32 KiB banks
-  with 8 KiB declared CHR RAM for mapper 7 (AxROM, submappers 0 to 2); optional trainers are included in the validated
+  with 8 KiB declared CHR RAM for mapper 7 (AxROM, submappers 0 to 2), or the
+  mapper 1 shapes below; optional trainers are included in the validated
   file length. UxROM writes to `$8000-$FFFF` select the bank at `$8000`; the
   last bank stays at `$C000`. Submappers 0 and 2 AND the written value with
   the ROM byte under the write (submapper 0 is the project default), and
@@ -669,6 +709,13 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   the header mirroring bit is ignored, the reset vector comes from bank 0, and
   only submapper 2 ANDs the value with the ROM byte under the write (submapper
   0 has no bus conflict).
+- Mapper 1 (MMC1) is accepted with submapper 0, or submapper 5 with 32 KiB
+  PRG. PRG is a power of two from 32 to 512 KiB, and 512 KiB only with 8 KiB
+  CHR. CHR is 8 to 128 KiB of ROM or 8 KiB of RAM. PRG RAM is 0, 8, 16 or 32
+  KiB in total (work plus battery), and more than 8 KiB only with 8 KiB CHR.
+  The battery bit must be set exactly when battery RAM is declared. CHR NVRAM,
+  other submappers, mapper 155 and a 24 KiB or 64 KiB total are refused.
+  Mappers 0, 2, 3 and 7 still refuse the battery bit and every RAM size.
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
 - `--hash-audio` prints one hash for all mixed-level transitions and one for
