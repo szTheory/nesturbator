@@ -569,6 +569,116 @@ static void check_reset_frame_parity(void)
     nesturbator_destroy(nes);
 }
 
+/* SAVE-05 (D-21): RETRO_MEMORY_SAVE_RAM is the battery span. The adapter owns its instance and
+   the module exports only retro_*, so the span is compared by its bytes with a direct instance
+   run for the same frames (equal only if the adapter returns the instance's real span), and by
+   its size, a stable address and NULL/0 in every other case. LDA #$A5; STA $6000; LDA #$5A;
+   STA $7FFF; JMP * (at $800A). */
+static size_t build_save_image(uint8_t *out, size_t cap, uint8_t battery, uint8_t ram_shift,
+                               uint8_t nvram_shift)
+{
+    static const uint8_t code[] = {0xa9u, 0xa5u, 0x8du, 0x00u, 0x60u, 0xa9u, 0x5au,
+                                   0x8du, 0xffu, 0x7fu, 0x4cu, 0x0au, 0x80u};
+    struct ines_segment seg;
+    struct ines_spec spec;
+    seg.prg_offset = 0u;
+    seg.bytes = code;
+    seg.len = sizeof code;
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 2u;
+    spec.nes2 = 1u;
+    spec.mapper = 1u;
+    spec.battery = battery;
+    spec.prg_ram_shift = ram_shift;
+    spec.prg_nvram_shift = nvram_shift;
+    spec.segments = &seg;
+    spec.segment_count = 1u;
+    spec.nmi_vector = 0x8000u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    return ines_build(out, cap, &spec);
+}
+
+static void check_save_memory(void)
+{
+    static uint8_t image[16u + 2u * INES_PRG_BANK];
+    static uint16_t native[W * H];
+    static int16_t audio[1024];
+    struct retro_game_info game;
+    nesturbator_config cfg;
+    nesturbator_frame io;
+    nesturbator *nes = NULL;
+    uint8_t *direct = NULL;
+    size_t direct_size = 0u;
+    uint8_t *data;
+    size_t size;
+
+    p_unload_game();
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 0u);
+
+    size = build_save_image(image, sizeof image, 1u, 0u, 7u);
+    CHECK(size != 0u);
+    if (size == 0u) {
+        return;
+    }
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = size;
+    CHECK(p_load_game(&game));
+    data = (uint8_t *)p_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+    CHECK(data != NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 8192u);
+    CHECK(p_get_memory_data(RETRO_MEMORY_SYSTEM_RAM) == NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SYSTEM_RAM), 0u);
+    for (unsigned i = 0; i < 3u; i++) {
+        p_run();
+    }
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == data);
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &nes), NESTURBATOR_OK);
+    if (nes != NULL) {
+        CHECK_EQ_U64(nesturbator_load_cartridge(nes, image, size), NESTURBATOR_OK);
+        memset(&io, 0, sizeof io);
+        io.size = (uint32_t)sizeof io;
+        io.video = native;
+        io.video_pitch = W;
+        io.audio = audio;
+        io.audio_capacity = 1024u;
+        for (unsigned i = 0; i < 3u; i++) {
+            CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+        }
+        CHECK_EQ_U64(
+            nesturbator_get_memory(nes, NESTURBATOR_MEMORY_SAVE_RAM, &direct, &direct_size),
+            NESTURBATOR_OK);
+        CHECK_EQ_U64(direct_size, p_get_memory_size(RETRO_MEMORY_SAVE_RAM));
+        CHECK(direct != NULL && direct_size == 8192u);
+        if (direct != NULL && direct_size == 8192u) {
+            CHECK_EQ_HEX(data[0], 0xa5u);
+            CHECK(memcmp(direct, data, direct_size) == 0);
+        }
+        nesturbator_destroy(nes);
+    }
+    p_reset();
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == data);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 8192u);
+    p_unload_game();
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 0u);
+
+    /* Work RAM without a battery is not a save. */
+    size = build_save_image(image, sizeof image, 0u, 7u, 0u);
+    CHECK(size != 0u);
+    game.size = size;
+    CHECK(p_load_game(&game));
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 0u);
+    p_unload_game();
+}
+
 /* With no game loaded, retro_reset leaves the next frame equal to the one before it. */
 static void check_test_card_reset(void)
 {
@@ -988,6 +1098,7 @@ int main(int argc, char **argv)
     check_trainer_frame_parity(argv[4], argv[5], argv[3]);
     check_reset_frame_parity();
     check_test_card_reset();
+    check_save_memory();
     check_sound_frame_parity(dummy_bytes, sizeof dummy_bytes);
     video_calls = 0;
     sample_calls = 0;
@@ -1012,6 +1123,8 @@ int main(int argc, char **argv)
     CHECK(av.timing.sample_rate == 48000.0);
     CHECK_EQ_U64(p_get_region(), RETRO_REGION_NTSC);
 
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 0u);
     p_run();
     CHECK_EQ_U64(video_calls, 1);
     CHECK_EQ_U64(video_width, 256);
