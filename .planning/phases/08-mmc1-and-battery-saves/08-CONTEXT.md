@@ -243,8 +243,13 @@ result.
   so they serialise as they are. On every hook call, including $6000-$7FFF
   RAM writes (NESdev: the ignore applies "even if that first write does not
   target the serial port"):
-  1. Compute `adjacent = (stamp == last_write + 1)`, then set
-     `last_write = stamp`. The update happens even when the write is ignored.
+  1. Compute `adjacent = (last_write != 0u && stamp == last_write)`, then
+     store `last_write = stamp + 1`. The update happens even when the write
+     is ignored. A zeroed `last_write` means "never written".
+     *(Amended during plan-phase 2026-10-10: the earlier form
+     `adjacent = (stamp == last_write + 1); last_write = stamp` would drop a
+     first write at stamp 1 against the zeroed field, which D-17 forbids;
+     both forms agree on every later write.)*
   2. Below $8000, stop.
   3. If bit 7 is set: clear the shift register and set `control |= 0x0C`.
      This is never ignored, and the other registers, mirroring and CHR mode
@@ -269,7 +274,9 @@ result.
   sees no reset line.
 - **D-17:** Write-rule tests run both through the hook and through the CPU:
   - **Hook level:** stamps (n, n+1) are ignored and (n, n+2) are accepted.
-    `last_write` equals the stamp after an ignored write. The first-ever
+    `last_write` equals the stamp plus one after an ignored write
+    *(amended during plan-phase 2026-10-10 to match D-15's stored form)*.
+    The first-ever
     write at a low stamp is not adjacent to the zeroed `last_write`. A $6000
     RAM write followed by a $8000 write on the next cycle is ignored.
   - **CPU level:** synthetic PRG runs `INC $8000` three ways:
@@ -356,8 +363,15 @@ result.
   return NULL and 0. The span is filled inside `retro_load_game` and never
   again in `retro_run` or `retro_reset`, because the host copies the `.srm`
   in after `retro_load_game` returns. The libretro test program
-  (`tests/libretro/libretro_host.c`) checks that the pointer and size equal
-  the direct API's for a battery and a battery-less image. The case of a
+  (`tests/libretro/libretro_host.c`) checks, for a battery image, that the
+  size equals the direct API's; the pointer is non-NULL and stable across
+  `retro_run` and `retro_reset`; and the span bytes equal a direct
+  instance's after the same frames. For a battery-less image both sides
+  give NULL and 0. No new public export is added.
+  *(Amended during plan-phase 2026-10-10: the adapter's instance lives
+  inside the loaded module and `abi.global_symbols` keeps its exports to
+  `retro_*`, so literal pointer equality with the direct API cannot be
+  observed without a new export.)* The case of a
   `.srm` with the wrong size is not part of the required e2e, because that
   is host behaviour. The researcher may measure it once with the pinned
   binary and record the result in RESEARCH.md as a non-gating note.
