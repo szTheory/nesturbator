@@ -425,6 +425,88 @@ static void test_dot_zero_and_odd_frame(void)
     ppu_fixture_free(nes);
 }
 
+/* PPU rendering, sprite fetches: dots 257-320 are eight slots of eight dots, two garbage
+   nametable accesses then the pattern low (address dot 261 + 8s) and high bytes. A slot with no
+   sprite fetches tile $FF, so with sprites at $1000 (or in 8x16 mode, which uses $1FE0-$1FFF)
+   A12 rises on 261, 269, ..., 317 (MMC3 page: 260 0-based) and falls on the next slot's
+   nametable address, 265, ..., 321. -1 is no edge. */
+static int expected_edge_empty_slots_high(unsigned n)
+{
+    if (n >= 261u && n <= 317u && (n - 261u) % 8u == 0u)
+        return 1;
+    if (n >= 265u && n <= 321u && (n - 265u) % 8u == 0u)
+        return 0;
+    return -1;
+}
+
+static void check_empty_slots(uint8_t control, int a12_high, uint16_t lo, uint16_t hi)
+{
+    struct nesturbator *nes = start(0u, control, 0x18u, 5u, 256u);
+    watch_a12(nes);
+    for (unsigned n = 257u; n <= 321u; n++) {
+        unsigned before = mapper_test_edge_count;
+        step(nes);
+        int expect = a12_high ? expected_edge_empty_slots_high(n) : -1;
+        if (expect < 0) {
+            CHECK_EQ_U64(mapper_test_edge_count, before);
+        } else {
+            check_new_edge(nes, before, (uint8_t)expect);
+        }
+        if (n == 261u)
+            CHECK(nes->ppu.bus_addr >= lo && nes->ppu.bus_addr <= hi);
+    }
+    ppu_fixture_free(nes);
+}
+
+static void test_empty_slot_fetches(void)
+{
+    check_empty_slots(0x08u, 1, 0x1ff0u, 0x1fffu); /* 8x8, sprites at $1000 */
+    check_empty_slots(0x00u, 0, 0x0ff0u, 0x0fffu); /* 8x8, sprites at $0000 */
+    check_empty_slots(0x20u, 1, 0x1fe0u, 0x1fffu); /* 8x16, tile $FF is odd: $1xxx */
+}
+
+/* Slots are fetched in secondary OAM order: sprites at Y 3 and 4 on the next line (row 2 and 1)
+   with tiles $10 and $20 put their pattern addresses on dots 261 and 269. */
+static void test_sprite_slot_order(void)
+{
+    struct nesturbator *nes = start(0u, 0x08u, 0x18u, 5u, 0u);
+    nes->ppu.oam[0] = 3u;
+    nes->ppu.oam[1] = 0x10u;
+    nes->ppu.oam[2] = 0u;
+    nes->ppu.oam[3] = 0u;
+    nes->ppu.oam[4] = 4u;
+    nes->ppu.oam[5] = 0x20u;
+    nes->ppu.oam[6] = 0u;
+    nes->ppu.oam[7] = 8u;
+    step_to(nes, 5u, 261u);
+    CHECK_EQ_HEX(nes->ppu.bus_addr, 0x1000u + 0x10u * 16u + 2u);
+    step_to(nes, 5u, 263u);
+    CHECK_EQ_HEX(nes->ppu.bus_addr, 0x1000u + 0x10u * 16u + 2u + 8u);
+    step_to(nes, 5u, 269u);
+    CHECK_EQ_HEX(nes->ppu.bus_addr, 0x1000u + 0x20u * 16u + 1u);
+    ppu_fixture_free(nes);
+}
+
+/* PPU scrolling: at dot 257 "the lower eight bits reflect both increments of v that happen on
+   dot 256 but the upper six bits have already been reloaded". The address dot uses v before the
+   horizontal copy; the read on dot 258 keeps the latched low 8 bits and takes the high 6 from the
+   copied v. */
+static void test_hybrid_garbage_nametable_read(void)
+{
+    struct nesturbator *nes = start(0u, 0u, 0x18u, 5u, 0u);
+    step_to(nes, 5u, 256u);
+    nes->ppu.v = 0x0005u;
+    nes->ppu.t = 0x0413u;
+    step(nes); /* dot 257 */
+    CHECK_EQ_HEX(nes->ppu.bus_addr, 0x2005u);
+    CHECK_EQ_HEX(nes->ppu.v, 0x0413u);
+    step(nes); /* dot 258 */
+    CHECK_EQ_HEX(nes->ppu.bus_addr, 0x2405u);
+    step(nes); /* dot 259: both halves from the copied v */
+    CHECK_EQ_HEX(nes->ppu.bus_addr, 0x2413u);
+    ppu_fixture_free(nes);
+}
+
 int main(void)
 {
     test_coarse_x_increments();
@@ -442,5 +524,8 @@ int main(void)
     test_2006_adjacency();
     test_2007_while_rendering();
     test_dot_zero_and_odd_frame();
+    test_empty_slot_fetches();
+    test_sprite_slot_order();
+    test_hybrid_garbage_nametable_read();
     CHECK_DONE();
 }

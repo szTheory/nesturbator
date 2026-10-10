@@ -253,44 +253,82 @@ static uint8_t reverse_bits(uint8_t value)
     return (uint8_t)((value << 4) | (value >> 4));
 }
 
-static void sprite_fetch(struct nesturbator *nes)
+/* Pattern address of secondary OAM slot `slot` for the next scanline. An empty slot fetches
+   tile $FF: in 8x8 mode that is $0FF0 or $1FF0 by PPUCTRL bit 3, in 8x16 mode $1FE0-$1FFF
+   (A12 high). The low 4 bits of an empty fetch are not documented; the slot's own row is used.
+   [NESdev Wiki, PPU sprite evaluation and PPU rendering] */
+static uint16_t sprite_pattern_address(const struct nesturbator *nes, unsigned slot, unsigned plane)
+{
+    const struct nesturbator__ppu *ppu = &nes->ppu;
+    uint8_t height = (ppu->control & 0x20u) != 0u ? 16u : 8u;
+    uint16_t base = (uint16_t)(slot * 4u);
+    uint8_t tile = slot < ppu->eval_count ? ppu->secondary_oam[base + 1u] : 0xffu;
+    uint8_t attr = ppu->secondary_oam[base + 2u];
+    uint8_t target = ppu->scanline == 261u ? 0u : (uint8_t)(ppu->scanline + 1u);
+    uint16_t top = (uint16_t)ppu->secondary_oam[base] + 1u;
+    uint8_t row = target == 0u && top == 256u ? 0u : (uint8_t)((uint16_t)target - top);
+    if ((attr & 0x80u) != 0u)
+        row = (uint8_t)(height - 1u - row);
+    row = (uint8_t)(row & (height - 1u));
+    uint16_t pattern;
+    if (height == 16u) {
+        pattern = (uint16_t)((tile & 1u) * 0x1000u + (tile & 0xfeu) * 16u);
+        if (row >= 8u) {
+            pattern = (uint16_t)(pattern + 16u);
+            row = (uint8_t)(row - 8u);
+        }
+    } else {
+        pattern = (uint16_t)((ppu->control & 0x08u) != 0u ? 0x1000u : 0u);
+        pattern = (uint16_t)(pattern + (uint16_t)tile * 16u);
+    }
+    return (uint16_t)(pattern + row + (plane != 0u ? 8u : 0u));
+}
+
+/* Dots 257-320: eight slots of eight dots. Two garbage nametable accesses (address and read
+   each), then the sprite pattern low and high bytes. A slot past eval_count loads transparent
+   zeros. The dot-257 address uses v before the horizontal copy, which the caller applies after
+   this returns; the dot-258 read rebuilds its high bits from the copied v and keeps the
+   latched low 8, the mix NESdev "PPU scrolling" describes. */
+static void sprite_access(struct nesturbator *nes)
 {
     struct nesturbator__ppu *ppu = &nes->ppu;
-    if ((ppu->scanline > 239u && ppu->scanline != 261u) || ppu->dot != 257u)
-        return;
-    uint8_t height = (ppu->control & 0x20u) != 0u ? 16u : 8u;
-    uint8_t target = ppu->scanline == 261u ? 0u : (uint8_t)(ppu->scanline + 1u);
-    for (uint8_t i = 0u; i < ppu->eval_count; i++) {
-        uint16_t base = (uint16_t)i * 4u;
-        uint8_t y = ppu->secondary_oam[base];
-        uint8_t tile = ppu->secondary_oam[base + 1u];
-        uint8_t attr = ppu->secondary_oam[base + 2u];
-        uint16_t top = (uint16_t)y + 1u;
-        uint8_t row = target == 0u && top == 256u ? 0u : (uint8_t)((uint16_t)target - top);
-        if ((attr & 0x80u) != 0u)
-            row = (uint8_t)(height - 1u - row);
-        uint16_t pattern;
-        if (height == 16u) {
-            pattern = (uint16_t)((tile & 1u) * 0x1000u + (tile & 0xfeu) * 16u);
-            if (row >= 8u) {
-                pattern += 16u;
-                row = (uint8_t)(row - 8u);
-            }
-        } else {
-            pattern = (ppu->control & 0x08u) != 0u ? 0x1000u : 0u;
-            pattern = (uint16_t)(pattern + (uint16_t)tile * 16u);
-        }
-        ppu->sprite_lo[i] = nesturbator__ppu_read(nes, (uint16_t)(pattern + row));
-        ppu->sprite_hi[i] = nesturbator__ppu_read(nes, (uint16_t)(pattern + row + 8u));
-        if ((attr & 0x40u) != 0u) {
-            ppu->sprite_lo[i] = reverse_bits(ppu->sprite_lo[i]);
-            ppu->sprite_hi[i] = reverse_bits(ppu->sprite_hi[i]);
-        }
-        ppu->sprite_x[i] = ppu->secondary_oam[base + 3u];
-        ppu->sprite_attr[i] = attr;
-        ppu->sprite_zero[i] = ppu->eval_sprite_zero[i];
+    unsigned offset = (unsigned)ppu->dot - 257u;
+    unsigned slot = offset >> 3;
+    int filled = slot < ppu->eval_count;
+    switch (offset & 7u) {
+    case 0u:
+    case 2u:
+        address_dot(nes, nt_address(nes));
+        break;
+    case 1u:
+    case 3u:
+        (void)read_dot(nes, nt_address(nes));
+        break;
+    case 4u:
+        address_dot(nes, sprite_pattern_address(nes, slot, 0u));
+        break;
+    case 5u: {
+        uint8_t lo = read_dot(nes, sprite_pattern_address(nes, slot, 0u));
+        ppu->sprite_lo[slot] = filled ? lo : 0u;
+        break;
     }
-    ppu->sprite_count = ppu->eval_count;
+    case 6u:
+        address_dot(nes, sprite_pattern_address(nes, slot, 1u));
+        break;
+    default: {
+        uint8_t hi = read_dot(nes, sprite_pattern_address(nes, slot, 1u));
+        uint8_t attr = ppu->secondary_oam[slot * 4u + 2u];
+        ppu->sprite_hi[slot] = filled ? hi : 0u;
+        if (filled && (attr & 0x40u) != 0u) {
+            ppu->sprite_lo[slot] = reverse_bits(ppu->sprite_lo[slot]);
+            ppu->sprite_hi[slot] = reverse_bits(ppu->sprite_hi[slot]);
+        }
+        ppu->sprite_x[slot] = ppu->secondary_oam[slot * 4u + 3u];
+        ppu->sprite_attr[slot] = attr;
+        ppu->sprite_zero[slot] = filled ? ppu->eval_sprite_zero[slot] : 0u;
+        break;
+    }
+    }
 }
 
 /* One dot of the fetch pipeline, run at the end of the dot (the existing 8-tick boundary). With
@@ -316,9 +354,8 @@ static void fetch_step(struct nesturbator *nes)
     if (dot <= 256u || (dot >= 321u && dot <= 336u)) {
         background_access(nes);
     } else if (dot <= 320u) {
-        /* The garbage nametable address at dot 257 is taken from v before the horizontal copy. */
+        sprite_access(nes);
         if (dot == 257u) {
-            address_dot(nes, nt_address(nes));
             copy_horizontal(nes);
             ppu->sprite_count = ppu->eval_count;
         }
@@ -461,7 +498,6 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
             nes->ppu.reset_flag = 0u;
         }
         sprite_evaluate(nes);
-        sprite_fetch(nes);
         /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] The skip lands on
            scanline 0 dot 0 without the dot-340 read, so the bus keeps the dot-339 nametable
            address. NESdev "PPU rendering" describes the last dummy fetch replacing the idle

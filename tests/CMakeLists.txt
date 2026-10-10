@@ -191,6 +191,12 @@ target_link_libraries(ppu.fetch PRIVATE nesturbator::nesturbator)
 target_include_directories(ppu.fetch PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_warnings(ppu.fetch)
 add_test(NAME ppu.fetch COMMAND ppu.fetch)
+# MAP-02, D-14, D-15: mid-frame $2005/$2006 splits against hand-derived origins.
+add_executable(ppu.split_scroll ppu/test_split_scroll.c)
+target_link_libraries(ppu.split_scroll PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.split_scroll PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.split_scroll)
+add_test(NAME ppu.split_scroll COMMAND ppu.split_scroll)
 
 # The same entry point is linked into the Linux libFuzzer binary and replayed
 # from checked-in seeds on every CI platform. Refuse an empty corpus at configure

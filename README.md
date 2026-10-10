@@ -22,7 +22,8 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM the only board so far.
+board), with NROM the only board so far. Mid-frame scroll writes render as on
+the console, which a split-scroll test shows scanline by scanline.
 With no cartridge, the fixed test card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
 The runner accepts content with `--rom FILE`, for example:
@@ -152,7 +153,9 @@ writes take effect at the dot-257 horizontal copy and the pre-render dots
 while rendering increments coarse X and Y together. The PPU address bus and
 its A12 line are reported to the cartridge board on every change, with the
 tick of the dot, including `v` itself while rendering is off. Sprites are evaluated into secondary OAM
-and fetched for the following scanline; transparent pixels reveal the
+and fetched for the following scanline, one slot at a time on dots 257-320
+(two garbage nametable accesses, then the pattern low and high bytes), with
+an empty slot fetching tile `$FF` as the console does; transparent pixels reveal the
 background, and the priority bit selects which opaque layer appears in front.
 `$2001` grayscale and emphasis remain in the native pixel value; host palette
 conversion is separate and does not affect frame hashes.
