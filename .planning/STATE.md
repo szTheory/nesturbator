@@ -4,10 +4,10 @@ current_phase: "04.2"
 current_phase_name: "Close gap: SND-01 — deliver single-sample libretro audio (INSERTED)"
 current_plan: Not started
 status: completed
-stopped_at: Phase 04.2 complete — milestone audit pending
-last_updated: "2026-10-09T23:26:56.198Z"
-last_activity: 2026-10-09
-last_activity_desc: Phase 04.2 complete
+stopped_at: Milestone 1 audit complete — Phase 04.2 delivery pending
+last_updated: "2026-10-10T00:25:47Z"
+last_activity: 2026-10-10
+last_activity_desc: Milestone 1 audit complete; 19/19 requirements satisfied
 state_head: 30c96a1d2ef745693fc582ecfa04ebcc1af9a270
 progress:
   total_phases: 6
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-09)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** All implementation phases are complete; milestone audit is next.
+**Current focus:** All implementation phases and the milestone audit are complete; Phase 04.2 delivery is next.
 
 ## Current Position
 
@@ -33,11 +33,11 @@ Current Phase Name: Close gap: SND-01 — deliver single-sample libretro audio (
 Current Plan: Not started
 Total Plans in Phase: 1
 Plans complete: 44 of 44 plans; Phase 04.2 is complete.
-Status: All phases complete
-Last activity: 2026-10-09 — Phase 04.2 complete
-Last Activity Description: Phase 04.2 complete
+Status: All phases complete; Milestone 1 audit status is `tech_debt` with no blockers.
+Last activity: 2026-10-10 — Milestone 1 audit complete
+Last Activity Description: 19/19 requirements satisfied, 6/6 phases verified, 12/12 integration flows wired; non-blocking debt recorded in `.planning/v1-MILESTONE-AUDIT.md`.
 
-Progress: 44/44 plans executed; 6/6 phases complete ([██████████] 100%). Milestone audit is next.
+Progress: 44/44 plans executed; 6/6 phases complete ([██████████] 100%). Milestone audit is complete; Phase 04.2's pull request is next.
 
 ## Performance Metrics
 
@@ -134,7 +134,7 @@ None.
 
 ### Blockers/Concerns
 
-No implementation blockers remain. Phase 04.2's failed-frame audio callback warning is closed by a generated JAM fixture that passes in the full CI workflow. The roadmap analyzer sees 44/44 plans but reports five legacy phase-status/checkbox conflicts; reconcile these during the milestone audit.
+No implementation or owner-verification blockers remain. Phase 04.2's failed-frame audio callback warning is closed by a generated JAM fixture that passes in the full CI workflow. The refreshed audit records the remaining release-policy self-test weakness, optional trainer host-path coverage, and a GSD phase-status reporting mismatch. Phase 04.2 has not yet been shipped; follow the PR delivery gate before milestone archival. Full audit details are in `.planning/v1-MILESTONE-AUDIT.md`.
 
 ### Quick Tasks Completed
 
@@ -158,8 +158,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-09T23:26:56.114Z
-Stopped at: Phase 04.2 complete — milestone audit pending
+Last session: 2026-10-10T00:25:47Z
+Stopped at: Milestone 1 audit complete — Phase 04.2 delivery pending
 Resume file: None
 
-Next GSD command: `$gsd-audit-milestone`.
+Next GSD command: `$gsd-ship 04.2`.

@@ -1,163 +1,133 @@
 ---
 milestone: 1
-audited: 2026-10-09T18:22:15Z
-status: gaps_found
+audited: 2026-10-10T00:25:47Z
+status: tech_debt
 scores:
-  requirements: 18/19
-  phases: 5/5
-  integration: 18/19
-  flows: 11/12
+  requirements: 19/19
+  phases: 6/6
+  integration: 19/19
+  flows: 12/12
 gaps:
-  requirements:
-    - id: SND-01
-      status: unsatisfied
-      phase: "04-sound"
-      claimed_by_plans: ["04-01-PLAN.md", "04-02-PLAN.md", "04-04-PLAN.md"]
-      completed_by_plans: ["04-01-PLAN.md", "04-04-PLAN.md"]
-      verification_status: passed
-      evidence: >-
-        Phase 04 verifies the batch callback path only. libretro/libretro.c stores
-        audio_cb but retro_run invokes only audio_batch_cb, so a frontend that
-        supplies only the single-sample callback receives no PCM. The host test
-        registers both callbacks and asserts zero single-sample calls.
-  integration:
-    - id: SND-01-single-sample-audio
-      status: broken
-      severity: BLOCKER
-      requirements: ["SND-01"]
-      from: "Core stereo PCM frame buffer"
-      to: "Libretro single-sample frontend callback"
-      evidence: >-
-        libretro/libretro.c:206-208 dispatches only audio_batch_cb. audio_cb is
-        retained at lines 32, 58-67 but never called. The host test at
-        tests/libretro/libretro_host.c:632-636 registers both callbacks and
-        expects sample_calls to remain zero.
-  flows:
-    - name: "Libretro audio on a single-sample-only host"
-      status: broken
-      requirements: ["SND-01"]
-      broken_at: "retro_run does not dispatch PCM through audio_cb when audio_batch_cb is absent."
+  requirements: []
+  integration: []
+  flows: []
 tech_debt:
-  - phase: "01-a-test-frame-in-retroarch"
+  - phase: 01-a-test-frame-in-retroarch
     items:
-      - "Warning: tests/cmake/release_policy.cmake checks for required publish-gate text by substring; a condition that adds || always() can evade the checker, although the current workflow has the intended CI dependency and guard."
-  - phase: "03-a-real-game-in-retroarch"
+      - "Warning: tests/cmake/release_policy.cmake checks for the required publish-gate text by substring. The live release workflow has the correct CI dependency and guard, but a mutation that appends `|| always()` could preserve the required substring and evade this self-test."
+  - phase: 03-a-real-game-in-retroarch
     items:
-      - "Warning: include/nesturbator.h:214-218 says the CPU does not run during frames, although loaded-game frames execute CPU instructions."
-      - "Deferred behavior: retro_reset() is empty for a loaded game; frontend reset behavior remains outside the v1 requirements."
-      - "Informational cleanup: src/ppu.c repeats the vblank timing and odd-frame dot-skip comments."
-  - phase: "04.1-close-gap-game-01-initialize-accepted-ines-trainers"
+      - "Optional integration coverage: no trainer-bearing fixture currently traverses the complete runner/libretro host path. The shared loader's trainer initialization is verified through the CPU bus for iNES and NES 2.0."
+  - phase: planning
     items:
-      - "Warning: trainer bytes are covered through the cartridge CPU-bus regression for iNES and NES 2.0, but no trainer-bearing ROM fixture exercises the full runner/libretro host path. The implementation uses the same public loader in those hosts."
+      - "Warning: GSD milestone initialization reports a null version and 1/6 completed phases, while ROADMAP.md and STATE.md report all six phases and all 44 plans complete. roadmap.analyze reports 100% plan progress but marks five legacy phases `executed` and flags checkbox conflicts. Reconcile this metadata during milestone completion."
 ---
+
 # Milestone 1 Audit
 
-**Audited:** 2026-10-09  
-**Status:** gaps_found  
-**Scope:** Milestone 1 (`v1`), all five roadmap phases: 01, 02, 03, 04, and inserted 04.1.
+**Audited:** 2026-10-10
+**Status:** tech debt; no critical gaps
+**Scope:** Milestone 1 (`v1`), phases 01, 02, 03, 04, 04.1, and 04.2.
 
 ## Result
 
-All five phases have a present `VERIFICATION.md` with `status: passed`; all 19 v1 requirements are mapped, checked complete in the traceability table, and represented in phase summary frontmatter. The Phase 04.1 verification closes the earlier GAME-01 trainer gap. Cross-phase tracing confirms the trainer data reaches per-instance CPU-visible PRG RAM and is covered by deterministic bus tests.
+All 19 v1 requirements are checked complete in `REQUIREMENTS.md`, represented in phase verification reports, and listed in at least one completed summary's `requirements-completed` frontmatter. All six phase verification reports pass. Cross-phase review found 19/19 requirements wired and 12/12 traced end-to-end flows complete. The prior audit's SND-01 single-sample callback blocker is closed by Phase 04.2 and its deterministic host regression.
 
-One integration blocker remains: `SND-01` is incomplete for a libretro frontend that provides only the single-sample audio callback. The adapter retains that callback but sends PCM only through the batch callback. This is an automated host-test gap and requires no listening test or owner UAT.
+No behavior verification or owner UAT remains. Phase 02's two schedule-only checks use the previously owner-authorized exact-commit manual-run substitute; provenance review was recorded in Phase 01 UAT. Nyquist validation is disabled in `.planning/config.json`, and `verify:post` has no active validation hook, so Nyquist scanning is skipped.
+
+The audit status is `tech_debt` because a release-policy test weakness, optional trainer host-path coverage, and a GSD phase-status reporting mismatch remain to review. These do not block Milestone 1 behavior or requirement coverage.
 
 ## Scores
 
 | Area | Score | Basis |
 |---|---:|---|
-| Requirements | 18/19 | All requirements except the single-sample `SND-01` callback path are satisfied end-to-end. |
-| Phase verification | 5/5 | All five in-scope phase verification files exist and report passed. |
-| Integration | 18/19 | One requirement edge is broken: PCM to the libretro sample-only callback. |
-| End-to-end flows | 11/12 | The sample-only libretro audio flow is broken; the other eleven traced flows are wired. |
+| Requirements | 19/19 | Every v1 requirement is verified, represented in summary frontmatter, and checked complete in the traceability table. |
+| Phase verification | 6/6 | All six in-scope `VERIFICATION.md` reports exist and have `status: passed`. |
+| Integration | 19/19 | The integration checker found every requirement connected to its implementation and automated evidence. |
+| End-to-end flows | 12/12 | All traced library, runner, libretro, CI, release, and host flows are wired. |
 
 ## Requirement Coverage
 
-The three-source check compared the `REQUIREMENTS.md` traceability table, each phase verification requirements table, and every in-scope summary's `requirements-completed` frontmatter. No traceability requirement is orphaned. The historical phase checkboxes alone do not prove an integration edge; `SND-01` is therefore downgraded based on the cross-phase source trace below.
+The cross-reference compares `REQUIREMENTS.md`, phase `VERIFICATION.md` requirements tables, and every phase summary's `requirements-completed` frontmatter.
 
-| Requirement | Phase | Verification | Summary frontmatter | Audit result | Evidence |
-|---|---:|---|---|---|---|
-| FRAME-01 | 01 | passed | listed | SATISFIED | Six-platform build and test workflow, with the hosted jobs recorded in Phase 01 verification. |
-| FRAME-02 | 01 | passed | listed | SATISFIED | Installed-package consumer compiles and runs using the public header. |
-| FRAME-03 | 01 | passed | listed | SATISFIED | Deterministic no-cartridge frame and runner hash path are verified. |
-| FRAME-04 | 01 | passed | listed | SATISFIED | Libretro host frame is compared with runner output. |
-| FRAME-05 | 01 | passed | listed | SATISFIED | Unattended RetroArch screenshot comparison is covered by hosted evidence. |
-| FRAME-06 | 01 | passed | listed | SATISFIED | Sanitizer, no-float, symbol and hygiene lanes pass. |
-| FRAME-07 | 01 | passed | listed | SATISFIED | Platform archives and automatic checksummed release path are verified. |
-| CPU-01 | 02 | passed | listed | SATISFIED | Sampled 65x02 vectors compare final state and every bus cycle. |
-| CPU-02 | 02 | passed | listed | SATISFIED | Pinned full-vector workflow and exact-run evidence are verified; the scheduled cron event itself is not claimed. |
-| GAME-01 | 03, 04.1 | passed | listed | SATISFIED | Phase 04.1 closes the trainer gap: accepted trainers are copied into writable CPU-visible PRG RAM and checked by cartridge bus tests. |
-| GAME-02 | 03 | passed | listed | SATISFIED | NROM hashes, runner/libretro parity, cross-platform inventory and hosted RetroArch screenshot are verified. |
-| GAME-03 | 03 | passed | listed | SATISFIED | Movie replay and input-driven runner/libretro frame parity are verified. |
-| GAME-04 | 03 | passed | listed | SATISFIED | AccuracyCoin output is read from RAM and protected by the scoreboard regression gate. |
-| GAME-05 | 03 | passed | listed | SATISFIED | Loader corpus regression and nightly libFuzzer wiring are verified. |
-| GAME-06 | 03 | passed | listed | SATISFIED | Hosted six-platform frame-hash inventories match. |
-| SND-01 | 04 | passed | listed | **UNSATISFIED** | The batch callback is verified; a host that supplies only `audio_cb` receives no samples. |
-| SND-02 | 04 | passed | listed | SATISFIED | Transition and PCM hashes use canonical serialization and cross-platform comparison. |
-| SND-03 | 04 | passed | listed | SATISFIED | The six required AccuracyCoin sound rows pass. |
-| SND-04 | 04 | passed | listed | SATISFIED | The five-tone spectral gate passes below the -80 dB threshold. |
+| Requirement | Phase | Verification | Summary frontmatter | Traceability | Audit result | Evidence |
+|---|---:|---|---|---|---|---|
+| FRAME-01 | 01 | passed | listed | `[x]` | SATISFIED | Six-platform `ci`/`ci-msvc` build and test workflow. |
+| FRAME-02 | 01 | passed | listed | `[x]` | SATISFIED | Installed-package consumer uses only the public header. |
+| FRAME-03 | 01 | passed | listed | `[x]` | SATISFIED | Deterministic no-cartridge frame, runner image, and hash equality. |
+| FRAME-04 | 01 | passed | listed | `[x]` | SATISFIED | Libretro host frame equals runner output. |
+| FRAME-05 | 01 | passed | listed | `[x]` | SATISFIED | RetroArch screenshot comparison has hosted evidence; local absence self-skips. |
+| FRAME-06 | 01 | passed | listed | `[x]` | SATISFIED | Sanitizer, no-float, symbol, and hygiene checks pass. |
+| FRAME-07 | 01 | passed | listed | `[x]` | SATISFIED | Platform archives and automatic checksummed release path are verified. |
+| CPU-01 | 02 | passed | listed | `[x]` | SATISFIED | All 256 opcode cases compare final state and every bus cycle. |
+| CPU-02 | 02 | passed | listed | `[x]` | SATISFIED | Pinned full-vector workflow and exact-commit evidence pass; the scheduled-only substitute was owner-approved. |
+| GAME-01 | 03, 04.1 | passed | listed | `[x]` | SATISFIED | Loader rejection and trainer initialization are covered, including byte-exact CPU-bus tests for both formats. |
+| GAME-02 | 03 | passed | listed | `[x]` | SATISFIED | NROM hashes, runner/libretro parity, sprite behavior, and hosted RetroArch capture. |
+| GAME-03 | 03 | passed | listed | `[x]` | SATISFIED | Movie replay and same-input runner/libretro frame parity. |
+| GAME-04 | 03 | passed | listed | `[x]` | SATISFIED | AccuracyCoin RAM results and protected scoreboard regression. |
+| GAME-05 | 03 | passed | listed | `[x]` | SATISFIED | Loader corpus regression and nightly libFuzzer workflow. |
+| GAME-06 | 03 | passed | listed | `[x]` | SATISFIED | Six-platform frame-hash inventories compare byte-for-byte. |
+| SND-01 | 04, 04.2 | passed | listed | `[x]` | SATISFIED | APU and runner audio evidence from Phase 04 plus sample-only and batch-priority host parity from Phase 04.2. |
+| SND-02 | 04 | passed | listed | `[x]` | SATISFIED | Canonical transition and PCM hashes match across supported platforms. |
+| SND-03 | 04 | passed | listed | `[x]` | SATISFIED | All six required AccuracyCoin sound rows pass. |
+| SND-04 | 04 | passed | listed | `[x]` | SATISFIED | Five-tone spectral test remains below the -80 dB limit. |
+
+No traceability requirement is orphaned or unsatisfied.
 
 ## Phase Verification
 
 | Phase | Verification | Result |
 |---|---|---|
-| 01 — A test frame in RetroArch | passed, 69/69 | Complete; hosted six-platform, RetroArch, hygiene and release evidence recorded. |
-| 02 — The CPU matches the public vectors | passed, 62/62 | Complete; two scheduled-event-only truths were explicitly owner-approved using exact merge/manual substitute evidence; no pending UAT. |
-| 03 — A real game in RetroArch | passed, 13/13 | Complete; prior GAME-01 trainer semantics were not in scope of that report and were closed in Phase 04.1. |
-| 04 — Sound | passed, 15/15 | Complete at phase level; its libretro test exercises batch callback only, so cross-phase audit found the sample-only integration omission. |
-| 04.1 — Initialize accepted iNES trainers | passed, 8/8 | Complete; trainer bytes are visible and writable through the normal CPU bus for both accepted header formats. |
+| 01 — A test frame in RetroArch | passed, 69/69 | Six-platform build/release evidence, RetroArch screenshot, and all FRAME requirements covered. |
+| 02 — The CPU matches the public vectors | passed, 62/62 | CPU-01/02 covered; two schedule-only truths use accepted owner overrides. |
+| 03 — A real game in RetroArch | passed, 31/31 | All GAME requirements and four roadmap success criteria covered. |
+| 04 — Sound | passed, 15/15; 4/4 roadmap criteria | APU, synthesis, hashes, scoreboard, spectrum, and batch audio parity covered. |
+| 04.1 — Initialize accepted iNES trainers | passed, 8/8 | Trainer bytes reach per-instance PRG RAM and are verified through the CPU bus. |
+| 04.2 — Deliver single-sample libretro audio | passed, 5/5 | Sample-only callback parity, batch exclusivity, and failed-frame silence are in CI. |
 
-No phase verification file is missing. The phase reports identify no outstanding owner verification. Local RetroArch skips are backed by hosted screenshot evidence where required.
-
-## Cross-Phase Integration
-
-The integration check traced providers to consumers across the C library, runner, libretro adapter, tests, CTest, hosted CI, nightly jobs and release workflow. HTTP routes and authentication are not applicable to this C emulator.
+## Cross-Phase Integration and End-to-End Flows
 
 | Flow | Result | Evidence |
 |---|---|---|
-| Public C API → installed consumer, runner and libretro adapter | WIRED | `include/nesturbator.h` is exported, linked into both hosts, and exercised by installed consumer and host tests. |
-| No-cartridge instance → deterministic test frame/silence → host output | WIRED | Shared frame API drives the runner and libretro output; host tests compare video and zero-sample behavior. |
-| ROM → validated mapper-0 cartridge → CPU/PPU → runner frame/hash | WIRED | Runner uses the public loader and frame API; hosted hashes cover committed games. |
-| Trainer bytes → per-instance PRG RAM → CPU bus → execution | WIRED | `src/cartridge.c:175-179` copies trainer bytes at offset `$1000`; `src/bus.c` maps `$6000-$7FFF`; `core.cartridge` checks both formats and lifecycle. |
-| Controller/movie → serialized bus input → deterministic frames and parity | WIRED | Runner movie playback and libretro host parity use the same controller masks. |
-| AccuracyCoin → RAM results → committed/protected scoreboard | WIRED | Runner reads RAM results; CI checks the committed rows and prevents loss of protected passes. |
-| CPU → sampled and pinned full-vector harnesses → CI/nightly | WIRED | The vector bus seam checks ordered cycles; pinned full-vector workflow and result evidence are present. |
-| ROM loader → regression corpus/fuzzer → CI/nightly | WIRED | Corpus regression is in CI and libFuzzer is configured in nightly. |
-| APU → PCM → runner hashes and six-platform inventory | WIRED | Per-instance synthesis feeds runner PCM and transition hashes with canonical cross-platform serialization. |
-| PCM → libretro batch callback → host sample comparison | WIRED | Host test compares stereo output for audible frames. |
-| PCM → libretro single-sample-only callback | **BROKEN — BLOCKER (SND-01)** | `retro_run` dispatches only `audio_batch_cb`; single-sample-only hosts get no PCM. |
-| CTest/build matrix → cross-platform evidence/RetroArch → release artifacts | WIRED | Required hosted jobs, hash inventories, screenshot evidence and checksummed release workflow are connected. |
+| Public C API and installed package → runner and libretro adapter | WIRED | Installed consumer and host tests exercise the same exported core API. |
+| No-cartridge instance → deterministic test frame → runner hash and libretro video | WIRED | Runner and adapter consume the core frame; host compares pixels to runner output. |
+| Mapper-0 ROM → loader, CPU and PPU → runner frame/hash and libretro video | WIRED | Shared public loader/frame APIs serve both hosts; pinned game and host parity tests cover output. |
+| Trainer bytes → per-instance PRG RAM → CPU bus | WIRED | `src/cartridge.c` copies validated trainer bytes; `core.cartridge` reads every byte through the bus. |
+| Controller/movie input → deterministic frame stream → runner/libretro parity | WIRED | Movie masks feed the public frame API; replay hashes and host input tests cover the path. |
+| AccuracyCoin RAM results → protected scoreboard check | WIRED | Runner reads emulated RAM and CI prevents committed passing rows from disappearing. |
+| CPU → sampled and full vector harnesses → CI/nightly | WIRED | Ordered bus-cycle comparisons and pinned full-set workflow are connected. |
+| ROM loader → regression corpus and fuzzer → CI/nightly | WIRED | Corpus replay is in CI; bounded libFuzzer runs nightly. |
+| APU → PCM → runner audio hashes and six-platform inventory | WIRED | Per-instance synthesis feeds canonical transition and sample hashes. |
+| PCM → libretro batch callback → host parity | WIRED | Batch output compares both stereo channels with direct core PCM. |
+| PCM → libretro single-sample callback → host parity | WIRED | Sample-only host test compares every ordered stereo pair and count; batch remains exclusive when registered. |
+| Build/test matrix and hosted RetroArch → release artifacts | WIRED | CI runs platform, hash, and screenshot gates before checksummed release publication. |
 
 ### Integration Findings
 
-#### BLOCKER — `SND-01`: the single-sample callback is never called
+The old SND-01 blocker is closed. `libretro/libretro.c:195-213` returns before callbacks on a failed frame, prioritizes `audio_batch_cb`, and otherwise sends ordered left/right pairs through `audio_cb`. `tests/libretro/libretro_host.c:411-497` compares sample-only and batch paths against independently stepped core PCM and verifies silence after a JAM frame. `tests/CMakeLists.txt:412-424` registers this host test with the adapter and runner dependencies. Phase 04.2 records the full CI workflow passing all 357 tests; the two unavailable local RetroArch checks were environment-gated skips.
 
-`libretro/libretro.c` stores `audio_cb`, but `retro_run` at lines 206–208 only invokes `audio_batch_cb`. A host registering `retro_set_audio_sample` without `retro_set_audio_sample_batch` receives no samples. The current host test registers both callbacks and expects `sample_calls == 0`, so it cannot catch this compatibility path.
+The integration checker found no blocker, orphan, or missing expected connection. The trainer feature is verified through the shared loader and CPU bus, though no trainer-bearing fixture currently traverses the entire runner/libretro host path; that is optional extra coverage.
 
-Add a fallback that sends each stereo pair through `audio_cb` only when the batch callback is absent, then extend `tests/libretro/libretro_host.c` with a sample-only registration and compare callback values to the direct core PCM. This is deterministic and belongs in CI; human listening/UAT is unnecessary.
+## Non-Blocking Tech Debt
 
-#### WARNING — trainer app-host E2E fixture is absent
-
-The Phase 04.1 implementation is wired and its regression checks trainer visibility, bounds, writability, instance isolation, reload and rejection through the CPU bus. The runner and libretro adapter use the same public loader, but no trainer-bearing ROM fixture currently traverses those host boundaries. This is additional coverage, not a broken implementation path or a v1 blocker.
-
-## Non-Blocking Tech Debt and Deferred Items
-
-| Phase | Item | Classification |
+| Area | Item | Classification |
 |---|---|---|
-| 01 | `tests/cmake/release_policy.cmake` can accept an added `|| always()` because it checks the required publish text by substring; the live release workflow currently has the intended CI dependency and guard. | Warning: strengthen the policy checker to validate the complete condition. |
-| 03 | `include/nesturbator.h:214-218` says the CPU does not run during frames, despite loaded-game execution. | Warning: correct the public API comment. |
-| 03 | `retro_reset()` is empty for loaded games. | Deferred behavior outside current v1 requirements. |
-| 03 | Two hardware comments are duplicated in `src/ppu.c`. | Informational cleanup. |
-| 04.1 | No trainer-bearing fixture exercises the entire runner/libretro path. | Optional integration coverage; current loader-to-bus behavior is directly regression-tested. |
+| Phase 01 release-policy checker | `tests/cmake/release_policy.cmake` checks required publish text by substring. The current workflow is correct, but appending `|| always()` could evade the self-test. | Warning; strengthen the predicate/mutation test in a future cleanup. |
+| Phase 03/04.1 host-path coverage | No trainer-bearing fixture traverses the complete runner/libretro path. The public-loader-to-CPU-bus behavior is directly tested. | Optional integration coverage; no requirement blocker. |
+| GSD planning metadata | The live analyzer returns `completed_phases: 1` and null milestone version although `ROADMAP.md` and `STATE.md` show 6/6 phases and 44/44 plans complete. It marks phases 01–04.1 as `executed`, flags their checked roadmap boxes, and reports 100% plan progress. | Bookkeeping warning; reconcile during milestone completion so future GSD routing reads the same completed state. |
 
-The v1 milestone requires no human verification or UAT. Nyquist validation is disabled in `.planning/config.json`, and `verify:post` has no active validation hook, so Nyquist scanning was skipped.
+The previous audit's stale `include/nesturbator.h` CPU-comment warning and duplicate PPU-comment item do not appear in current source and are removed from this debt list. `retro_reset()` remains a no-op for loaded games, which is outside the v1 requirements and remains out of scope.
+
+## Nyquist Coverage
+
+Skipped: `.planning/config.json` sets `workflow.nyquist_validation` to false and `gsd_run loop render-hooks verify:post` returns no active hooks.
 
 ## Next Step
 
-Close the remaining `SND-01` gap with the phase workflow:
+No implementation or human-verification gap remains. Phase 04.2 is still unmerged and has no pull request, so follow the project's delivery gate before archiving the milestone. Ship Phase 04.2 through a green pull request, then complete Milestone 1 and record the non-blocking items as deferred.
 
 ```text
-$gsd-phase --insert 4.2 "Close gap: SND-01 — deliver single-sample libretro audio"
+$gsd-ship 04.2
 ```
 
-Then run `$gsd-discuss-phase 4.2`, `$gsd-plan-phase 4.2`, and `$gsd-execute-phase 4.2`. Refresh this audit after the closure phase before completing Milestone 1.
+After that pull request merges to `main`, run `$gsd-complete-milestone 1`.
