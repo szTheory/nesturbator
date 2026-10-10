@@ -134,6 +134,15 @@ struct nesturbator__ppu {
     uint8_t eval_sprite_zero[8];
     uint8_t sprite_zero[8], sprite_x[8], sprite_attr[8];
     uint8_t sprite_lo[8], sprite_hi[8];
+    /* Fetch pipeline state. NESdev "PPU rendering": the PPU puts a 14-bit address on its pins,
+       an ALE latch keeps the low 8 bits for the read dot, and each background tile is fetched
+       as nametable, attribute, pattern low and pattern high bytes. Two 16-bit shifters hold
+       pattern bits and two 8-bit shifters hold attribute bits, each fed by a 1-bit latch. */
+    uint16_t bus_addr;
+    uint8_t ale_latch;
+    uint8_t bg_nt, bg_at, bg_lo, bg_hi;
+    uint16_t bg_shift_lo, bg_shift_hi;
+    uint8_t at_shift_lo, at_shift_hi, at_latch_lo, at_latch_hi;
     uint16_t *video_output;
     uint32_t video_pitch;
     uint64_t ppu_ticks;

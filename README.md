@@ -19,7 +19,10 @@ Overflow remains in PPU status until pre-render dot 1. The first eight
 sprites are copied one byte per odd/even OAM pair, so their final X bytes are
 copied before the ninth Y comparison at dot 130; `$2002` reads before that
 comparison still see overflow clear. This is
-not full game compatibility: mapper 0 is the only cartridge board so far.
+not full game compatibility: cartridges load through a per-board mapper
+interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
+hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
+board), with NROM the only board so far.
 With no cartridge, the fixed test card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
 The runner accepts content with `--rom FILE`, for example:
@@ -139,9 +142,16 @@ flag. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
 Nametable accesses use the cartridge's horizontal or vertical mapper-0
 mirroring bit. Register accesses retain the CPU open-bus value in un-driven
 bits, and `$2007` reads are buffered outside palette space.
-Visible native pixels are written to the caller's frame buffer as PPU dots advance. Background
-tiles use the selected pattern table, nametable attributes, coarse/fine scroll,
-and the universal backdrop colour. Sprites are evaluated into secondary OAM
+Visible native pixels are written to the caller's frame buffer as PPU dots advance. The
+background is fetched from `v` two dots per access (nametable, attribute, pattern
+low and high) on the documented dots 1-256 and 321-336, through pattern and
+attribute shifters, so the selected pattern table, nametable attributes,
+fine X and the universal backdrop colour apply as on the console. Scroll
+writes take effect at the dot-257 horizontal copy and the pre-render dots
+280-304 vertical copies, not at the pixel being drawn, and a `$2007` access
+while rendering increments coarse X and Y together. The PPU address bus and
+its A12 line are reported to the cartridge board on every change, with the
+tick of the dot, including `v` itself while rendering is off. Sprites are evaluated into secondary OAM
 and fetched for the following scanline; transparent pixels reveal the
 background, and the priority bit selects which opaque layer appears in front.
 `$2001` grayscale and emphasis remain in the native pixel value; host palette
