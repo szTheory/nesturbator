@@ -43,3 +43,4 @@ tests/roms/hm/M7_P128K_CR8K.nes	https://github.com/pinobatch/holy-mapperel/relea
 tests/fuzz/corpus/valid-mmc1	https://github.com/szTheory/nesturbator	87afe8dfa420f957ea0d9cdace9a5c3b8aa9cc0e	MIT	327effc4c95863847b86119c23314f30b87db431b586b3ec46a2849efb69c3cb
 tests/fuzz/corpus/valid-mmc1-sorom	https://github.com/szTheory/nesturbator	87afe8dfa420f957ea0d9cdace9a5c3b8aa9cc0e	MIT	1b12ba67b1c114316e9e2a34136e5ea6b819959c3e3105b573c3145959511496
 tests/fuzz/corpus/mapper-155	https://github.com/szTheory/nesturbator	ac72d0559c2f48f74132131fadbc7a974c0d53c0	MIT	ea29830af7a33011b259588396c48ed8eb62238f7cd90245fa1ce82e1b559451
+tests/fuzz/corpus/mmc1-ram-24k	https://github.com/szTheory/nesturbator	df9f7fbbfbcdd6ea0f2276047e022411ed599739	MIT	15e4562db5d7dc4f750ac07e7c688dc7573b8162f568c534202f0bf1e9ae6668
