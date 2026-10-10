@@ -1,7 +1,8 @@
 /* Tests for the Holy Mapperel result-screen reader in hm_decode.h.
    With no argument: the decoder cases on painted frames.
-   With --glyphs ROM: the font table equals tiles $30-$39 and $01-$06 of the
-   committed Holy Mapperel M3 ROM's CHR. */
+   With --glyphs ROM: the font tables equal tiles $30-$39, $01-$06 and the
+   letter, space and '+' tiles (ASCII & $3F) of the committed Holy Mapperel M3
+   ROM's CHR. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +37,85 @@ static void paint(int x, int y, int glyph, uint8_t r, uint8_t g, uint8_t b)
             }
         }
     }
+}
+
+/* Paints text from cell x = HM_TEXT_X on pixel row y, using the lookup tables
+   in reverse: each character is drawn from hm_text_glyph or hm_glyph. */
+static void paint_text(int y, const char *text, uint8_t r, uint8_t g, uint8_t b)
+{
+    int x = HM_TEXT_X;
+    for (; *text != '\0'; text++, x += 8) {
+        size_t i;
+        for (i = 0; i < HM_TEXT_GLYPHS; i++) {
+            if (hm_text_glyph[i].c == *text) {
+                int row;
+                int col;
+                for (row = 0; row < 8; row++) {
+                    for (col = 0; col < 8; col++) {
+                        if ((hm_text_glyph[i].rows[row] & (0x80u >> col)) != 0) {
+                            uint8_t *p =
+                                frame + ((size_t)(y + row) * HM_WIDTH + (size_t)(x + col)) * 3u;
+                            p[0] = r;
+                            p[1] = g;
+                            p[2] = b;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        if (i == HM_TEXT_GLYPHS) {
+            const char *hex = "0123456789ABCDEF";
+            const char *at = strchr(hex, *text);
+            CHECK(at != NULL);
+            if (at != NULL) {
+                paint(x, y, (int)(at - hex), r, g, b);
+            }
+        }
+    }
+}
+
+static void test_text_row(void)
+{
+    char text[HM_TEXT_CELLS + 1];
+
+    fill(0x10, 0x20, 0x30);
+    paint_text(HM_PRG_RAM_Y, "32K PRG RAM OK + BATTERY", 0xf0, 0xe0, 0xd0);
+    CHECK_EQ_U64(hm_read_text_row(frame, HM_PRG_RAM_Y, text, sizeof text), 1);
+    CHECK(strcmp(text, "32K PRG RAM OK + BATTERY") == 0);
+
+    fill(0x10, 0x20, 0x30);
+    paint_text(HM_PRG_RAM_Y, "PRG RAM MISSING", 0xf0, 0xe0, 0xd0);
+    CHECK_EQ_U64(hm_read_text_row(frame, HM_PRG_RAM_Y, text, sizeof text), 1);
+    CHECK(strcmp(text, "PRG RAM MISSING") == 0);
+
+    /* Swapped colours read the same: dark glyphs on a light background. */
+    fill(0xf0, 0xe0, 0xd0);
+    paint_text(HM_PRG_RAM_Y, "8K PRG RAM OK", 0x10, 0x20, 0x30);
+    CHECK_EQ_U64(hm_read_text_row(frame, HM_PRG_RAM_Y, text, sizeof text), 1);
+    CHECK(strcmp(text, "8K PRG RAM OK") == 0);
+
+    /* A blank row is empty text. */
+    fill(0, 0, 0);
+    CHECK_EQ_U64(hm_read_text_row(frame, HM_PRG_RAM_Y, text, sizeof text), 1);
+    CHECK(strcmp(text, "") == 0);
+
+    /* One extra lit pixel reads '?' and reports failure. */
+    fill(0x10, 0x20, 0x30);
+    paint_text(HM_PRG_RAM_Y, "PRG RAM MISSING", 0xf0, 0xe0, 0xd0);
+    {
+        uint8_t *p = frame + ((size_t)(HM_PRG_RAM_Y + 6) * HM_WIDTH + (size_t)(HM_TEXT_X + 8 * 4 + 3)) * 3u;
+        p[0] = 0xf0;
+        p[1] = 0xe0;
+        p[2] = 0xd0;
+    }
+    CHECK_EQ_U64(hm_read_text_row(frame, HM_PRG_RAM_Y, text, sizeof text), 0);
+    CHECK(text[4] == '?');
+
+    /* The glyph M lights its own pixel (0,0) and still decodes. */
+    fill(0x10, 0x20, 0x30);
+    paint_text(HM_PRG_RAM_Y, "M", 0xf0, 0xe0, 0xd0);
+    CHECK(hm_text_cell(frame, HM_TEXT_X, HM_PRG_RAM_Y) == 'M');
 }
 
 static void screen(int d0, int d1, int d2, int d3)
@@ -170,6 +250,12 @@ static int test_glyphs(const char *path)
             CHECK_EQ_HEX(t[row] | t[row + 8], hm_glyph[g][row]);
         }
     }
+    for (g = 0; g < (int)HM_TEXT_GLYPHS; g++) {
+        const uint8_t *t = rom + 16 + 32768 + (hm_text_glyph[g].c & 0x3f) * 16;
+        for (row = 0; row < 8; row++) {
+            CHECK_EQ_HEX(t[row] | t[row + 8], hm_text_glyph[g].rows[row]);
+        }
+    }
     CHECK_DONE();
 }
 
@@ -183,6 +269,7 @@ int main(int argc, char **argv)
         return 2;
     }
     test_cases();
+    test_text_row();
     test_ppm();
     CHECK_DONE();
 }
