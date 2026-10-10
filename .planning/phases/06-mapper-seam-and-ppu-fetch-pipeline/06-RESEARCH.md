@@ -607,16 +607,23 @@ Expected re-pin for the final code: those 8 rows (nesteroids and rhde frames 30/
 | A5 | Final re-pin set equals the prototype's 8 rows | Measured Impact | Plan 2 verification lists a different set; the process in D-17/D-18 still applies |
 | A6 | `ppu_a12` tick should be `ppu.ppu_ticks` (dot-end) | Pattern 3 | Phase 9's M2-fall counting must use the same convention |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+Each question below is resolved by a recorded plan decision; the resolution line names it.
 
 1. **Dot-0 bus value.**
    - What we know: the wiki says dot 0's bus "appears to be" the BG-lo address; with BG at `$1000` that makes A12 high at dot 0, which interacts with the odd-frame skip and the MMC3 "counts twice every other frame" note.
    - What's unclear: whether D-10 intends to model it (it lists no dot-0 action).
    - Recommendation: drive `bus_addr` at dot 0 to the BG-lo address of the pending tile (`bg_nt` from the last dummy NT read, fine Y from `v`), hash-neutral, A12 = `ctrl` bit 4; add one ppu.fetch case. If the planner wants to defer it, record it in the plan as a Phase 9 input.
+   - RESOLVED: modelled. 06-02-PLAN.md, decision "Dot-0 bus value (direction 3)"; Task 1 drives it in the wrap branch and ppu.fetch's dot-0 case asserts it.
 2. **`$2007` during rendering.** Recommend including it (Pitfall 7); needs an explicit decision in the plan because it changes the re-pinned Nesteroids values.
+   - RESOLVED: included. 06-02-PLAN.md, decision "`$2007` during rendering (direction 4, Discretion)"; lands in Task 1 before the Task 3 re-pin.
 3. **Odd-frame last dummy read.** D-10: skip "drops the read on dot 340 but keeps the address dot at 339". Wiki: the last dummy NT fetch's tick replaces the idle tick at (0,0). A mapper sees one extra NT read at (0,0) on the wiki reading. Hash-neutral; A12-neutral (NT, A12 = 0). Pick one and test it; the existing `continue` structure makes "dropped" the zero-cost choice.
+   - RESOLVED: D-10's dropped read kept. 06-02-PLAN.md, decision "Odd-frame dummy read (direction 5)"; ppu.fetch asserts the odd frame's bus and A12 edge log (no rise at line 0 dot 0 with PPUCTRL bit 4 set), and the difference is recorded as a Phase 9 input.
 4. **D-01 deviation.** The "const array of ops pointers" must become a filled-by-code struct (or a switch helper) to pass `abi.global_symbols`. The planner should record this as an implementation constraint on D-01 (interface members, watch mask, NULL-member rule and "no switch in bus.c or ppu.c" all stay).
+   - RESOLVED: 06-01-PLAN.md, decision "D-01 implementation constraint (orchestrator direction 1)": the ops struct is held by value in `nes->map.ops`, filled by `nesturbator__mapper_nrom_ops` from the resolver in `cartridge.c`.
 5. **OAMADDR forced to 0 during dots 257-320** (hardware behaviour in the wiki's OAM pages) is not modelled today and not required by this phase. Leave out; note for AccuracyCoin pages 19-22 work.
+   - RESOLVED: out of scope. 06-02-PLAN.md, decision "OAMADDR forced to 0 during 257-320 (direction 7)" and prohibition PROH-06-02-02.
 
 ## Environment Availability
 
