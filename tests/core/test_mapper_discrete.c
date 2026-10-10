@@ -9,13 +9,13 @@
 #include "../check.h"
 #include "../ines.h"
 
-#define IMAGE_CAP (16u + INES_TRAINER_SIZE + 16u * INES_PRG_BANK + INES_CHR_BANK)
+#define IMAGE_CAP (16u + INES_TRAINER_SIZE + 16u * INES_PRG_BANK + 4u * INES_CHR_BANK)
 #define RESET_VECTOR 0xc123u
 
 /* Builds and loads a board image; seeds[b] is bank b's byte at offset 0 (NULL means zeros). */
-static struct nesturbator *load_board(uint16_t mapper, uint8_t submapper, int nes2,
-                                      uint8_t prg_16k, uint8_t chr_8k, int vertical, int trainer,
-                                      const uint8_t *seeds)
+static struct nesturbator *load_board_ex(uint16_t mapper, uint8_t submapper, int nes2,
+                                         uint8_t prg_16k, uint8_t chr_8k, int vertical,
+                                         int trainer, const uint8_t *seeds, uint16_t bank0_vector)
 {
     static uint8_t image[IMAGE_CAP];
     static const uint8_t trainer_bytes[INES_TRAINER_SIZE] = {0x6du};
@@ -39,12 +39,28 @@ static struct nesturbator *load_board(uint16_t mapper, uint8_t submapper, int ne
         image[base + (size_t)b * INES_PRG_BANK + 0u] = seeds != NULL ? seeds[b] : 0u;
         image[base + (size_t)b * INES_PRG_BANK + 0x10u] = (uint8_t)(0x10u + b);
     }
+    /* CHR ROM bank k starts with the marker 0x20 + k. */
+    for (uint8_t k = 0u; k < chr_8k; ++k)
+        image[base + (size_t)prg_16k * INES_PRG_BANK + (size_t)k * INES_CHR_BANK] =
+            (uint8_t)(0x20u + k);
+    /* A reset vector at the end of the first 32 KiB, where AxROM bank 0 keeps it. */
+    if (bank0_vector != 0u) {
+        image[base + 0x7ffcu] = (uint8_t)(bank0_vector & 0xffu);
+        image[base + 0x7ffdu] = (uint8_t)(bank0_vector >> 8);
+    }
     memset(&cfg, 0, sizeof cfg);
     cfg.size = (uint32_t)sizeof cfg;
     cfg.abi = NESTURBATOR_ABI_VERSION;
     CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
     CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
     return (struct nesturbator *)inst;
+}
+
+static struct nesturbator *load_board(uint16_t mapper, uint8_t submapper, int nes2,
+                                      uint8_t prg_16k, uint8_t chr_8k, int vertical, int trainer,
+                                      const uint8_t *seeds)
+{
+    return load_board_ex(mapper, submapper, nes2, prg_16k, chr_8k, vertical, trainer, seeds, 0u);
 }
 
 static void release(struct nesturbator *nes)
@@ -170,6 +186,106 @@ static void test_uxrom_mirroring_follows_header(void)
     release(nes);
 }
 
+/* CNROM: PRG at $8000 holds the AND seed 0x01; CHR bank k starts with 0x20 + k. */
+static uint8_t chr_marker(struct nesturbator *nes)
+{
+    return nes->map.chr_r[0][0];
+}
+
+static void test_cnrom_and_submapper0_and_2(void)
+{
+    static const uint8_t seeds[2] = {0x01u};
+    for (uint8_t sub = 0u; sub <= 2u; sub = (uint8_t)(sub + 2u)) {
+        struct nesturbator *nes = load_board(3u, sub, 1, 2u, 4u, 0, 0, seeds);
+        nesturbator__bus_write(nes, 0x8000u, 0x03u);
+        CHECK_EQ_U64(nes->mapper.reg.cnrom.bank, 0x03u & 0x01u);
+        CHECK(nes->map.chr_r[0] == nes->cart.chr + 8192u);
+        CHECK_EQ_HEX(chr_marker(nes), 0x21u);
+        release(nes);
+    }
+}
+
+static void test_cnrom_no_and_submapper1(void)
+{
+    static const uint8_t seeds[2] = {0x01u};
+    struct nesturbator *nes = load_board(3u, 1u, 1, 2u, 4u, 0, 0, seeds);
+    nesturbator__bus_write(nes, 0x8000u, 0x03u);
+    CHECK(nes->map.chr_r[0] == nes->cart.chr + 3u * 8192u);
+    CHECK_EQ_HEX(chr_marker(nes), 0x23u);
+    release(nes);
+}
+
+static void test_cnrom_chr_size_and_wrap(void)
+{
+    struct nesturbator *nes = load_board(3u, 1u, 1, 2u, 4u, 0, 0, NULL);
+    for (uint8_t v = 0u; v < 4u; ++v) {
+        nesturbator__bus_write(nes, 0x8000u, v);
+        CHECK_EQ_HEX(chr_marker(nes), 0x20u + v);
+    }
+    nesturbator__bus_write(nes, 0x8000u, 4u);
+    CHECK_EQ_HEX(chr_marker(nes), 0x20u);
+    release(nes);
+    nes = load_board(3u, 1u, 1, 2u, 2u, 0, 0, NULL);
+    nesturbator__bus_write(nes, 0x8000u, 2u);
+    CHECK_EQ_HEX(chr_marker(nes), 0x20u);
+    nesturbator__bus_write(nes, 0x8000u, 0x30u);
+    CHECK_EQ_HEX(chr_marker(nes), 0x20u);
+    release(nes);
+}
+
+static void test_cnrom_write_boundary(void)
+{
+    struct nesturbator *nes = load_board(3u, 1u, 1, 2u, 2u, 0, 0, NULL);
+    nesturbator__bus_write(nes, 0x7fffu, 0x01u);
+    CHECK_EQ_U64(nes->mapper.reg.cnrom.bank, 0u);
+    nesturbator__bus_write(nes, 0xffffu, 0x01u);
+    CHECK_EQ_HEX(chr_marker(nes), 0x21u);
+    release(nes);
+}
+
+/* The control proves the $2006/$2007 write path reaches pattern memory when a writable page
+   exists; the CNROM case then proves the drop with the identical sequence. */
+static void test_chr_ram_write_lands_control(void)
+{
+    struct nesturbator *nes = load_board(2u, 0u, 0, 2u, 0u, 0, 0, NULL);
+    CHECK_EQ_U64(nes->ppu.reset_flag, 0u);
+    CHECK_EQ_HEX(nes->cart.chr[0], 0x00u);
+    ppu_poke(nes, 0x0000u, 0xa5u);
+    CHECK_EQ_HEX(nes->cart.chr[0], 0xa5u);
+    release(nes);
+}
+
+static void test_cnrom_chr_rom_write_dropped(void)
+{
+    struct nesturbator *nes = load_board(3u, 1u, 1, 2u, 1u, 0, 0, NULL);
+    CHECK_EQ_U64(nes->ppu.reset_flag, 0u);
+    CHECK(nes->map.chr_w[0] == NULL);
+    ppu_poke(nes, 0x0000u, 0xa5u);
+    CHECK_EQ_HEX(nes->cart.chr[0], 0x20u);
+    CHECK_EQ_HEX(nes->map.chr_r[0][0], 0x20u);
+    release(nes);
+}
+
+static void test_cnrom_prg_as_nrom(void)
+{
+    struct nesturbator *nes = load_board(3u, 1u, 1, 1u, 1u, 0, 0, NULL);
+    CHECK_EQ_HEX(peek(nes, 0x8010u), 0x10u);
+    CHECK_EQ_HEX(peek(nes, 0xc010u), 0x10u);
+    release(nes);
+    nes = load_board(3u, 1u, 1, 2u, 1u, 0, 0, NULL);
+    CHECK_EQ_HEX(peek(nes, 0x8010u), 0x10u);
+    CHECK_EQ_HEX(peek(nes, 0xc010u), 0x11u);
+    release(nes);
+}
+
+static void test_cnrom_power_on(void)
+{
+    struct nesturbator *nes = load_board(3u, 0u, 1, 2u, 2u, 0, 0, NULL);
+    CHECK_EQ_U64(nes->mapper.reg.cnrom.bank, 0u);
+    CHECK(nes->map.chr_r[0] == nes->cart.chr);
+    release(nes);
+}
+
 int main(void)
 {
     test_uxrom_power_on();
@@ -182,5 +298,13 @@ int main(void)
     test_uxrom_chr_ram_write_sticks();
     test_uxrom_trainer_visible();
     test_uxrom_mirroring_follows_header();
+    test_cnrom_and_submapper0_and_2();
+    test_cnrom_no_and_submapper1();
+    test_cnrom_chr_size_and_wrap();
+    test_cnrom_write_boundary();
+    test_chr_ram_write_lands_control();
+    test_cnrom_chr_rom_write_dropped();
+    test_cnrom_prg_as_nrom();
+    test_cnrom_power_on();
     CHECK_DONE();
 }

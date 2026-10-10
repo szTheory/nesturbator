@@ -9,7 +9,7 @@ no registered test may skip, and the soft reset (`nesturbator_reset()`, which
 RetroArch's Reset button runs). The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM,
-16 or 32 KiB PRG) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM; the PPU renders backgrounds
+16 or 32 KiB PRG) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, and mapper 3 (CNROM, 8 to 32 KiB CHR ROM); the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
 clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
 includes OAM Y=$FF sprites on visible framebuffer row 0. After eight sprites
@@ -22,7 +22,7 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM and UxROM as the boards so far. The behaviour revision is 5: the PPU
+board), with NROM, UxROM and CNROM as the boards so far. The behaviour revision is 5: the PPU
 fetch pipeline changed the frames of games that write the scroll or PPUCTRL
 while rendering. Mid-frame scroll writes render as on
 the console, which a split-scroll test shows scanline by scanline.
@@ -30,7 +30,7 @@ With no cartridge, the fixed test card and silence remain available. The plan li
 
 The runner accepts content with `--rom FILE`, for example:
 
-A trainer-bearing NROM or UxROM image copies its 512 trainer bytes into writable
+A trainer-bearing NROM, UxROM or CNROM image copies its 512 trainer bytes into writable
 instance-owned PRG RAM at CPU `$7000-$71FF` before the reset vector is used.
 The full `$6000-$7FFF` 8 KiB window is writable and starts at zero outside the
 trainer span. Trainerless images keep `$6000-$7FFF` unmapped. Invalid images
@@ -621,7 +621,7 @@ at `build/ci/runner/nesturbator-run`. The public header is
 
 ## The runner
 
-`nesturbator-run` runs the core without a window and accepts a mapper 0 or mapper 2 image
+`nesturbator-run` runs the core without a window and accepts a mapper 0, 2 or 3 image
 with `--rom FILE`. The loader validates the entire image before allocating
 cartridge state. It rejects unsupported mapper, console, region, RAM and ROM
 geometries, truncation, trailing bytes, and images larger than 64 MiB; the
@@ -636,11 +636,14 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
 - `--rom FILE` loads a bounded iNES 1.0 or NES 2.0 image. Accepted
   geometry is 8 KiB CHR ROM or declared 8 KiB CHR RAM with 16 or 32 KiB PRG
   for mapper 0 (NROM), or PRG in 16 KiB banks up to 4 MiB for mapper 2
-  (UxROM, submappers 0 to 2); optional trainers are included in the validated
+  (UxROM, submappers 0 to 2), or 16 or 32 KiB PRG with 8, 16 or 32 KiB CHR ROM
+  for mapper 3 (CNROM, submappers 0 to 2); optional trainers are included in the validated
   file length. UxROM writes to `$8000-$FFFF` select the bank at `$8000`; the
   last bank stays at `$C000`. Submappers 0 and 2 AND the written value with
   the ROM byte under the write (submapper 0 is the project default), and
-  submapper 1 takes it raw.
+  submapper 1 takes it raw. CNROM writes to `$8000-$FFFF` select the 8 KiB
+  CHR bank with the same bus-conflict rule (submappers 0 and 2 AND, submapper
+  1 raw); writes to CHR ROM are ignored.
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
 - `--hash-audio` prints one hash for all mixed-level transitions and one for

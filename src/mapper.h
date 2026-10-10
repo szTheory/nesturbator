@@ -50,6 +50,9 @@ struct nesturbator__mapper {
         struct {
             uint8_t bank; /* 16 KiB bank at $8000: the raw written byte */
         } uxrom;
+        struct {
+            uint8_t bank; /* 8 KiB CHR bank: the raw written byte */
+        } cnrom;
     } reg;
 };
 
@@ -84,5 +87,8 @@ void nesturbator__mapper_nrom_ops(struct nesturbator__mapper_ops *out);
 
 /* Fills out with the UxROM board (src/mapper_uxrom.c). */
 void nesturbator__mapper_uxrom_ops(struct nesturbator__mapper_ops *out);
+
+/* Fills out with the CNROM board (src/mapper_cnrom.c). */
+void nesturbator__mapper_cnrom_ops(struct nesturbator__mapper_ops *out);
 
 #endif /* NESTURBATOR_MAPPER_H */

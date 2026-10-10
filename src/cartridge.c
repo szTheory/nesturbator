@@ -60,15 +60,18 @@ static int nes2_ram_size(uint8_t shift, size_t *out)
 static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size, size_t chr_size,
                             int chr_is_ram)
 {
-    if (!chr_is_ram && chr_size != 8192u)
-        return 0;
+    const int chr_8k_ok = chr_is_ram || chr_size == 8192u;
     switch (mapper) {
     case 0u:
-        return submapper == 0u && (prg_size == 16384u || prg_size == 32768u);
+        return chr_8k_ok && submapper == 0u && (prg_size == 16384u || prg_size == 32768u);
     case 2u:
         /* UxROM: up to 4 MiB of PRG in 16 KiB banks. */
-        return submapper <= 2u && prg_size != 0u && prg_size % 16384u == 0u &&
+        return chr_8k_ok && submapper <= 2u && prg_size != 0u && prg_size % 16384u == 0u &&
                prg_size <= 4194304u;
+    case 3u:
+        /* CNROM: 16 or 32 KiB PRG and 8, 16 or 32 KiB of CHR ROM, never CHR RAM. */
+        return !chr_is_ram && submapper <= 2u && (prg_size == 16384u || prg_size == 32768u) &&
+               (chr_size == 8192u || chr_size == 16384u || chr_size == 32768u);
     default:
         return 0;
     }
@@ -171,6 +174,9 @@ int nesturbator__mapper_ops_for(uint16_t id, struct nesturbator__mapper_ops *out
         return 1;
     case 2u:
         nesturbator__mapper_uxrom_ops(out);
+        return 1;
+    case 3u:
+        nesturbator__mapper_cnrom_ops(out);
         return 1;
     default:
         return 0;
