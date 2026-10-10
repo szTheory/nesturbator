@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 08
 current_phase_name: MMC1 and battery saves
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-10-10T22:37:00.118Z"
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-10-10T23:00:05.024Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 07 complete, transitioned to Phase 8
-state_head: 9cc4eaf73458c39e5ee704c1314e7556545cb6d5
+last_activity_desc: Phase 08 execution started
+state_head: 87bd02ebd897bd8b80623785741bf95cf5647982
 progress:
   total_phases: 6
   completed_phases: 9
   total_plans: 22
-  completed_plans: 14
-  percent: 64
+  completed_plans: 15
+  percent: 68
 ---
 
 # Project State
@@ -25,16 +25,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 8 — MMC1 and battery saves
+**Current focus:** Phase 08 — MMC1 and battery saves
 
 ## Current Position
 
-Phase: 08 (MMC1 and battery saves) — READY TO EXECUTE
-Plan: Not started
+Phase: 08 (MMC1 and battery saves) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Last activity: 2026-10-10 — Phase 07 complete, transitioned to Phase 8
+Last activity: 2026-10-10 — Phase 08 execution started
 
-Progress: [██████░░░░] 64% of v2
+Progress: [███████░░░] 68% of v2
 
 ## Performance Metrics
 
@@ -123,6 +123,7 @@ Progress: [██████░░░░] 64% of v2
 | Phase 07 P02 | 20min | 2 tasks | 10 files |
 | Phase 07 P03 | 20 min | 2 tasks | 8 files |
 | Phase 07 P04 | 35 min | 3 tasks | 17 files |
+| Phase 08 P01 | 40 min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -157,6 +158,7 @@ Recent decisions affecting current work:
 - [Phase 07]: Phase 7 plan 02: board_profile_ok checks CHR geometry per board; AxROM ANDs on submapper 2 only, CNROM on 0 and 2
 - [Phase 07]: Plan 03 seeds pin dc01ae8; clang-format lives at /opt/homebrew/opt/llvm@18/bin/clang-format
 - [Phase 07]: Holy Mapperel result pinned at N=100 for M2, M3 and M7; frame N and 2N must hash alike when hashes are written
+- [Phase 08]: Zero-means-power-on MMC1 registers: control_x = Control XOR 0x0C, last_write = stamp + 1; PHASE8_DECLARATIONS_SHA256 = 7ec4ca9a124042f9a64d090c4362af019c2b9773cb2aaf901683c0daade2d7f0
 
 ### Pending Todos
 
@@ -202,9 +204,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T20:29:20.881Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-mmc1-and-battery-saves/08-CONTEXT.md
+Last session: 2026-10-10T23:00:04.984Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 8`.
 
