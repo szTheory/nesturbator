@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/szTheory/nesturbator/compare/v0.1.7...v0.1.8) (2026-10-10)
+
+
+### Features
+
+* mapper seam and PPU fetch pipeline ([#30](https://github.com/szTheory/nesturbator/issues/30)) ([c902dc8](https://github.com/szTheory/nesturbator/commit/c902dc88807ac6235bc6dfcc0836d4c243beb274))
+
 ## [0.1.7](https://github.com/szTheory/nesturbator/compare/v0.1.6...v0.1.7) (2026-10-10)
 
 
