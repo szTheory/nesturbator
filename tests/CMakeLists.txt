@@ -234,6 +234,9 @@ nesturbator_core_test(core.mapper core/test_mapper.c)
 target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_core_test(core.mapper_discrete core/test_mapper_discrete.c)
 target_include_directories(core.mapper_discrete PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# BOARD-02 (D-10, D-14 to D-17): the MMC1 board on synthetic images.
+nesturbator_core_test(core.mapper_mmc1 core/test_mapper_mmc1.c)
+target_include_directories(core.mapper_mmc1 PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # SAVE-01 (D-06, D-11, D-12): the battery span, its address and the write counter.
 nesturbator_core_test(core.save core/test_save.c)
 target_include_directories(core.save PRIVATE ${PROJECT_SOURCE_DIR}/src)

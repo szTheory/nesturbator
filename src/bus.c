@@ -27,7 +27,8 @@ static void cycle(struct nesturbator *nes)
     nesturbator__apu_clock(nes);
     nes->ticks += 15u;
     ppu_catch_up(nes);
-    /* The index of the cycle that just ran, for mapper write stamps (D-04). */
+    /* Count the cycle that just ran. A mapper write stamp is this count minus
+       one: the zero-based index of the write's own cycle (D-14). */
     nes->cpu_cycle++;
 }
 
@@ -180,7 +181,10 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
             uint8_t v = value;
             if ((nes->map.watch & NESTURBATOR_WATCH_BUS_CONFLICT) != 0u)
                 v = (uint8_t)(value & nesturbator__map_cpu_read(nes, addr));
-            nes->map.ops.cpu_write(nes, addr, v, nes->cpu_cycle);
+            /* cycle() has already counted this write's cycle, so the stamp is
+               the zero-based index of that cycle: the first write after load
+               carries 0 plus the cycles run before it (D-14, Phase 6 WR-01). */
+            nes->map.ops.cpu_write(nes, addr, v, nes->cpu_cycle - 1u);
         }
     }
 }

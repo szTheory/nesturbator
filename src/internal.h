@@ -202,8 +202,10 @@ struct nesturbator {
     struct nesturbator__cartridge cart;
     struct nesturbator__mapper mapper; /* board registers: kept by a soft reset */
     struct nesturbator__map map;       /* derived pages, rebuilt by mapper_load */
-    /* CPU bus cycles since load: kept by nesturbator_reset, zeroed by load and
-       unload. Unlike ticks / 24 it is correct on every region (D-04). */
+    /* CPU bus cycles run since load: kept by nesturbator_reset, zeroed by load
+       and unload. Unlike ticks / 24 it is correct on every region (D-04). A
+       write's stamp for the mapper hook is this count minus one, the zero-based
+       index of the write's own cycle (D-14). */
     uint64_t cpu_cycle;
     struct nesturbator__profile profile; /* chip-dependent constants */
     uint32_t audio_rem;                  /* sample fraction carried over, in units
@@ -270,10 +272,25 @@ static inline void nesturbator__map_chr_8k(struct nesturbator *nes, uint32_t ban
     }
 }
 
-/* A CPU read of $4020-$FFFF through the page table. A NULL page is open bus (D-03). */
+/* One 4 KiB CHR bank into pattern-table half 0 ($0000) or 1 ($1000); writable
+   only for CHR-RAM, as the 8 KiB helper is. */
+static inline void nesturbator__map_chr_4k(struct nesturbator *nes, uint32_t half, uint32_t bank_4k)
+{
+    for (uint32_t i = 0u; i < 4u; ++i) {
+        nes->map.chr_r[half * 4u + i] = nesturbator__map_chr(nes, bank_4k * 4u + i);
+        nes->map.chr_w[half * 4u + i] =
+            nes->cart.chr_is_ram != 0u ? nesturbator__map_chr(nes, bank_4k * 4u + i) : NULL;
+    }
+}
+
+/* A CPU read of $4020-$FFFF through the page table. A NULL page is open bus
+   (D-03), and so is everything below $4020, which has no page (WR-03). */
 static inline uint8_t nesturbator__map_cpu_read(struct nesturbator *nes, uint16_t addr)
 {
-    const uint8_t *page = nes->map.cpu_r[(addr - 0x4000u) >> 10];
+    const uint8_t *page;
+    if (addr < 0x4020u)
+        return nes->bus.open_bus;
+    page = nes->map.cpu_r[(addr - 0x4000u) >> 10];
     return page != NULL ? page[addr & 0x3ffu] : nes->bus.open_bus;
 }
 

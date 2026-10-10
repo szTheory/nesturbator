@@ -5,7 +5,7 @@ titles: json
 findings:
   - id: WR-01
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Mapper write stamp is one higher than the documented cycle index"
   - id: WR-02
     severity: warning
@@ -13,7 +13,7 @@ findings:
     title: "`$2007` treats v >= $4000 as non-palette"
   - id: WR-03
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "`nesturbator__map_cpu_read` indexes `cpu_r` with no range guard"
   - id: IN-01
     severity: info
@@ -21,9 +21,9 @@ findings:
     title: "Unknown mapper id loads successfully as an empty cartridge"
   - id: IN-02
     severity: info
-    disposition: open
+    disposition: fixed
     title: "Comments contradict each other on NROM stamp and a possibly stale `cart.size` comment"
-open: 5
+open: 2
 total: 5
 recorded: 2026-10-10T17:40:01.922Z
 ---
@@ -32,11 +32,11 @@ recorded: 2026-10-10T17:40:01.922Z
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | open | - |
+| WR-01 | warning | fixed | 08-05 Task 1 (D-14) |
 | WR-02 | warning | open | - |
-| WR-03 | warning | open | - |
+| WR-03 | warning | fixed | 08-05 Task 1 (D-14) |
 | IN-01 | info | open | - |
-| IN-02 | info | open | - |
+| IN-02 | info | fixed | 08-05 Task 1 (D-14) |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved. A `|` in the reason is kept as prose and escaped on the next run.

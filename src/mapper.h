@@ -30,7 +30,9 @@ struct nesturbator__mapper_ops {
     void (*init)(struct nesturbator *nes);
     /* Page tables and nt[] from the bank registers. */
     void (*rebuild)(struct nesturbator *nes);
-    /* A CPU write to $4020-$FFFF; cpu_cycle is the index of the write's cycle. */
+    /* A CPU write to $4020-$FFFF; cpu_cycle is the zero-based index of the write's own cycle,
+       counted from load (nes->cpu_cycle - 1 once the cycle has run). Consecutive writes differ
+       by one. */
     void (*cpu_write)(struct nesturbator *nes, uint16_t addr, uint8_t value, uint64_t cpu_cycle);
     /* The PPU address bus bit 12 changed to level at PPU tick tick. */
     void (*ppu_a12)(struct nesturbator *nes, uint8_t level, uint64_t tick);
