@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 07
 current_phase_name: UxROM, CNROM and AxROM
 status: executing
-stopped_at: Phase 7 context gathered
-last_updated: "2026-10-10T19:34:06.294Z"
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-10-10T19:45:45.267Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 06 complete, transitioned to Phase 7
-state_head: 29327b4ae6c9a44fc80889eb24c3c96cdd69d8d5
+last_activity_desc: Phase 07 execution started
+state_head: 5584dbc9ce7679cb389aa3c0c01e66469461db0b
 progress:
   total_phases: 6
   completed_phases: 8
   total_plans: 14
-  completed_plans: 10
-  percent: 71
+  completed_plans: 11
+  percent: 79
 ---
 
 # Project State
@@ -25,16 +25,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 7 — UxROM, CNROM and AxROM
+**Current focus:** Phase 07 — UxROM, CNROM and AxROM
 
 ## Current Position
 
-Phase: 07 (UxROM, CNROM and AxROM) — READY TO EXECUTE
-Plan: Not started
+Phase: 07 (UxROM, CNROM and AxROM) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-10-10 — Phase 06 complete, transitioned to Phase 7
+Last activity: 2026-10-10 — Phase 07 execution started
 
-Progress: [███████░░░] 71% of v2
+Progress: [████████░░] 79% of v2
 
 ## Performance Metrics
 
@@ -118,6 +118,7 @@ Progress: [███████░░░] 71% of v2
 | Phase 05 P08 | 6 min | 2 tasks | 2 files |
 | Phase 06 P01 | 60 min | 3 tasks | 14 files |
 | Phase 06 P02 | 90 min | 3 tasks | 12 files |
+| Phase 07 P01 | 30m | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -148,6 +149,7 @@ Recent decisions affecting current work:
 - [Phase 06]: Dot 0 of a rendering line drives the BG-lo address of the pending tile; the odd-frame skip keeps the dot-339 NT address on the bus, so with PPUCTRL bit 4 set odd frames log no rise at line 0 dot 0 (Phase 9 input)
 - [Phase 06]: A $2007 access while rendering applies coarse X and Y increments together; empty sprite slots fetch tile $FF with the slot row masked to the sprite height and load transparent zeros
 - [Phase 06]: Behaviour revision bumped to 5 once (commit 9389198); eight nesteroids and rhde frame hashes re-pinned, ticks and audio unchanged; PPU fetch cost about 23 percent frame time on the Mac
+- [Phase 07]: Board lookup is probed in validate_image via nesturbator__mapper_ops_for before allocation (D-10); submapper-0 UxROM AND is a project default
 
 ### Pending Todos
 
@@ -192,9 +194,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T18:17:37.263Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-uxrom-cnrom-and-axrom/07-CONTEXT.md
+Last session: 2026-10-10T19:45:45.231Z
+Stopped at: Completed 07-01-PLAN.md
+Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 7`.
 
