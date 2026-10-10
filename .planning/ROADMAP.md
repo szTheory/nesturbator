@@ -88,7 +88,15 @@ Plans:
   4. The behaviour revision is bumped exactly once; the phase verification lists each re-pinned frame and audio hash with the reason it changed, the six-platform matrix agrees on every new hash, and the protected AccuracyCoin scoreboard loses no passing test.
   5. `cmake --workflow --preset asan`, `--preset nofp` and `--preset hygiene` pass, and the core still links only the C memory functions.
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+- [ ] 06-01-PLAN.md — Mapper seam: NROM on page tables, nametable map, cycle-stamped write hook and IRQ OR; v1 hashes unchanged, six-platform gate (MAP-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 06-02-PLAN.md — PPU fetch pipeline from v with A12 on the bus, ppu.fetch and ppu.split_scroll, revision 5 and one re-pin (MAP-02)
+
 **Research flag**: HIGH — PPU fetch timing against the half-tick time base is the milestone's largest regression risk; measure the three NROM games' hashes before and after the pipeline plan.
 **Ships**: a release whose split-scroll rendering matches the console, built on the new mapper interface.
 
