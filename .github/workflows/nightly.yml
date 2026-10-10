@@ -158,7 +158,7 @@ jobs:
   # six-platform CI run covers the other hosts once.
   suite-flake:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10 # initial; set to twice the first measured cold run (ENGINEERING §5)
+    timeout-minutes: 30 # WR-02 ceiling until a cold run is measured; then set to twice the first measured cold run (ENGINEERING §5)
     permissions:
       contents: read
     outputs:
