@@ -1,8 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
-# Phase 4 baseline: this SHA-256 follows the mapper-0 API and its audio
-# behavior revision. It is a temporary guard, not a permanent repository freeze.
-set(PHASE4_DECLARATIONS_SHA256 "300efd7209cf4cbf4cf92ad26144f7b03e296e30150af104d1d7750b30900952")
+# Phase 5 baseline: this SHA-256 follows the mapper-0 API, its audio behavior
+# revision and nesturbator_reset. It is a temporary guard, not a permanent
+# repository freeze.
+set(PHASE5_DECLARATIONS_SHA256 "65aabfdcecae98a72d4552851ac90dbc1160eb0df6b428753d44e7868e1ba28e")
 
 function(normalize_api source out_hash)
   string(REGEX REPLACE "/\\*([^*]|\\*+[^*/])*\\*+/" "" text "${source}")
@@ -15,8 +16,8 @@ endfunction()
 
 function(check_api source out_error)
   normalize_api("${source}" actual)
-  if(NOT actual STREQUAL PHASE4_DECLARATIONS_SHA256)
-    set(${out_error} "public declaration stream changed (expected ${PHASE4_DECLARATIONS_SHA256}, found ${actual})" PARENT_SCOPE)
+  if(NOT actual STREQUAL PHASE5_DECLARATIONS_SHA256)
+    set(${out_error} "public declaration stream changed (expected ${PHASE5_DECLARATIONS_SHA256}, found ${actual})" PARENT_SCOPE)
   else()
     set(${out_error} "" PARENT_SCOPE)
   endif()

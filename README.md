@@ -518,6 +518,13 @@ fills the other fields. For `nesturbator_config` that is `size` and `abi`
 Zeroing first keeps padding and the bytes a newer header appends at zero, so
 a host built against a newer header still runs with an older library.
 
+Soft reset: `nesturbator_reset()` is the console's Reset button. Call it
+between frames. It keeps CPU RAM and cartridge RAM (PRG RAM and CHR RAM), so
+saves survive, and keeps A, X, Y and the host's input state. The controller
+strobe and shift registers and a pending OAM DMA are cleared. The CPU sets the
+I flag, lowers S by 3 and takes the reset vector in 7 CPU cycles, which count
+in `ticks`. With no cartridge it does nothing and returns `NESTURBATOR_OK`.
+
 ## Downloads and archives
 
 Each release has three zip archives per platform, named
