@@ -117,6 +117,44 @@ credential isolation and docs/chore release policy into CTest; palette source
 provenance remains the sole owner judgment because repository evidence cannot
 prove which material an author read or rule out unrecorded paraphrase.
 
+**Cross-project operating lessons, recorded 2026-10-09:** These are debugging
+and workflow practices, not hardware evidence. Use this project's NES
+references and tests for NES behavior.
+
+- **Prove the integrated playability claim.** When a phase or release claims
+  that a game is playable, seek one supported game through a single host run:
+  boot to a meaningful state, use a control that changes play, observe
+  gameplay rendering or scrolling, and receive non-silent audio. A title
+  capture, input movie, frame hashes, and audio callback tests establish
+  valuable seams but do not by themselves prove that combined session. Keep
+  this as a future evidence improvement; it does not retroactively change the
+  completed v1 phase contracts. See the playability seed in `.planning/seeds/`.
+- **Diagnose a stalled guest at its first divergence.** Collect a bounded
+  trace of PC/opcode, bus activity, interrupt state, and relevant device
+  state; stop at a defensible instruction/event bound and inspect where
+  expected progress first stops. Confirm the behavior in hardware references,
+  add a small focused regression, then fix it. More cycles or device activity
+  alone do not prove boot. Keep private game inputs and their derived traces
+  local; commit only permitted test data and sanitized evidence.
+- **Close verification gaps in one current-revision batch.** Collect the
+  phase-required goal verification, review, security, validation, and
+  integration evidence against the same relevant revision before planning.
+  Consolidate actionable repository findings into one bounded repair plan
+  with regression and re-review. After repair, get a fresh phase-goal report
+  before planning again. If routing repeats a repaired finding, check report
+  freshness and installed GSD behavior; never edit verdicts or fingerprints
+  to force progress. A passing UAT check and a passed phase-goal verification
+  remain separate claims.
+- **Separate acceptance blockers from engineering dependencies.** Record
+  what external artifact or judgment prevents a product claim, and separately
+  record which technical work actually depends on it. Continue independent
+  work when verified prerequisites allow; an unchanged blocked attempt is not
+  new evidence. Keep the acceptance item open until its evidence exists.
+
+The practices are informed by an owner-supplied report from a sibling
+emulator project and checked against Nesturbator's recorded phase evidence.
+No console-specific timing values or implementation behavior transfer.
+
 What keeps GSD from running on to the next step [GH.01]:
 - Give GSD commands only a phase number. Its auto flag and its chain flag (two dashes followed by `auto` or `chain`) make one step start the next.
 - `/gsd-next`, `/gsd-progress` with its next option, `/gsd-autonomous` and `/gsd-manager` each start the following step by themselves.
@@ -177,7 +215,7 @@ Things an assistant must not decide or cannot do.
 - The 1.15.0 roadmapper was run twice on copies of these inputs. The second run gave four phases with all 19 requirements mapped, a "Canonical refs" line and `**UI hint**: no` on each, and no `**Mode:**` line; GSD's `roadmap.analyze` and `validate consistency` accepted the result. Its remaining notes were then applied to the inputs.
 - A fresh reviewer re-fetched 25 claims from their primary sources: licences, test-suite facts, libretro and RetroArch facts, GitHub runner and release-please facts, the timing arithmetic, and the GSD behaviours this file relies on. Twenty-two held. Two were wrong (the Windows runner images, and two different pins for `libretro.h`) and one could not be confirmed (a MesenCE option); all three are corrected or marked in the files.
 - A second reviewer read only the files GSD reads and proposed deletions. Its findings are applied: requirements worded as commands, the first phase split in two, prohibitions and process limits removed.
-- `list-seeds` reads all six seeds; every frontmatter block parses as strict YAML; every citation ID and every relative link resolves.
+- `list-seeds` reads all seven seeds; every frontmatter block parses as strict YAML; every citation ID and every relative link resolves.
 
 ## Open questions
 - The resume path was exercised through GSD's init query and roadmapper runs on copies, not through a full `/gsd-new-project` session. The table in section 2 covers the case where it asks its questions anyway.
