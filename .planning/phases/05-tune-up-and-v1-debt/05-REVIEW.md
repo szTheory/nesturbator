@@ -105,3 +105,11 @@ This breaks the project rule that the same inputs give the same frame hashes eve
 _Reviewed: 2026-10-10_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
+
+## Re-review after gap plan 05-08 (2026-10-10)
+
+Incremental, standard depth, scope `tests/core/test_reset.c` and `.github/workflows/nightly.yml` (commits 9ed3041 and 1a8fc55 since 6e7cebc). No new findings.
+
+- `tests/core/test_reset.c:32` is now `spec.chr_8k = (uint8_t)(chr_ram ? 0u : 1u);`. `chr_8k` is `uint8_t` (`tests/ines.h:23`) and both values are 0 or 1, so the cast clears the gcc-14 `-Wconversion` error without changing behaviour. The file's other narrowings were already cast.
+- `.github/workflows/nightly.yml:161` raises the `suite-flake` timeout from 10 to 30 minutes and keeps the comment that it is re-set from the first measured cold run. No policy test asserts the value. **WR-02 is resolved.**
+- CR-01, WR-01, WR-03, IN-01, IN-02 and IN-03 are unchanged by 05-08 and stay open.

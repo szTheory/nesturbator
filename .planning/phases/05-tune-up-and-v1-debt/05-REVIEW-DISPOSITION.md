@@ -4,7 +4,7 @@
 |---------|----------|-------------|--------|
 | CR-01 | critical | open | 05-REVIEW.md |
 | WR-01 | warning | open | 05-REVIEW.md |
-| WR-02 | warning | open | 05-REVIEW.md |
+| WR-02 | warning | fixed | 05-REVIEW.md; fixed by 1a8fc55 (05-08) |
 | WR-03 | warning | open | 05-REVIEW.md |
 | IN-01 | info | open | 05-REVIEW.md |
 | IN-02 | info | open | 05-REVIEW.md |
