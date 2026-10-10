@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v2
 milestone_name: Most of the library plays
-current_phase: 05
-current_phase_name: Tune-up and v1 debt
-status: executing
-stopped_at: Completed 05-08-PLAN.md
-last_updated: "2026-10-10T14:19:42.724Z"
+current_phase: 6
+current_phase_name: Mapper seam and PPU fetch pipeline
+status: planning
+stopped_at: Phase 05 complete, ready to plan Phase 6
+last_updated: "2026-10-10T15:04:16.934Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 05 execution started
-state_head: 13208de6e00268ac22079d44dfef097bd06df3fb
+last_activity_desc: Phase 05 complete, transitioned to Phase 6
+state_head: 7baff0c8a7cdfe1c66e48411f0f461b7d9761084
 progress:
   total_phases: 6
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 8
   completed_plans: 8
-  percent: 100
+  percent: 58
 ---
 
 # Project State
@@ -25,21 +25,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 05 — Tune-up and v1 debt
+**Current focus:** Phase 6 — Mapper seam and PPU fetch pipeline
 
 ## Current Position
 
-Phase: 05 (Tune-up and v1 debt) — EXECUTING
-Plan: 2 of 8
-Status: Ready to execute
-Last activity: 2026-10-10 — Phase 05 execution started
+Phase: 6 — Mapper seam and PPU fetch pipeline
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-10 — Phase 05 complete, transitioned to Phase 6
 
-Progress: [██████████] 100% of v2
+Progress: [██████░░░░] 58% of v2
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 44
+- Total plans completed: 52
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -53,6 +53,7 @@ Progress: [██████████] 100% of v2
 | 04 | 4 | - | - |
 | 04.1 | 1 | - | - |
 | 04.2 | 1 | - | - |
+| 05 | 8 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -138,7 +139,7 @@ Recent decisions affecting current work:
 - [Phase 05]: nesturbator_reset clears the CPU poll latch after the last reset cycle because each bus cycle resamples the IRQ line
 - [Phase 05]: Soft reset: vblank_suppress cleared with the PPU position; $4017 re-applied via frame_reset_delay (phase ? 2 : 1)
 - [Phase 05]: retro_reset only calls nesturbator_reset; no unload or reload path
-- [Phase 05]: Suite-flake timeout 30 minutes (WR-02 ceiling) until first measured cold run
+- [Phase 05]: Suite-flake timeout 30 minutes (WR-02 ceiling); first cold run measured 172 s, lowering it is backlog 999.1
 
 ### Pending Todos
 
@@ -146,7 +147,7 @@ None.
 
 ### Blockers/Concerns
 
-Research flags for v2: Phase 6 (HIGH, PPU fetch timing), Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). v1 closed with an override closeout. Its deferred tech debt (release-policy substring check, trainer host-path coverage, local RetroArch self-skip on the owner's Mac, no-op `retro_reset()`) is listed in `.planning/MILESTONES.md` and `.planning/milestones/v1-MILESTONE-AUDIT.md`.
+Research flags for v2: Phase 6 (HIGH, PPU fetch timing), Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 is green but not merged yet.
 
 ### Quick Tasks Completed
 
@@ -179,12 +180,13 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T14:19:42.691Z
-Stopped at: Completed 05-08-PLAN.md
+Last session: 2026-10-10
+Stopped at: Phase 05 complete, ready to plan Phase 6
 Resume file: None
 
-Next GSD command: `/gsd-plan-phase 5`.
+Next GSD command: `/gsd-ship 05` (merge PR #25), then `/gsd-discuss-phase 6`.
 
 ## Operator Next Steps
 
-- Plan Phase 5 with /gsd-plan-phase 5
+- Merge PR #25 with /gsd-ship 05
+- Then discuss Phase 6 with /gsd-discuss-phase 6

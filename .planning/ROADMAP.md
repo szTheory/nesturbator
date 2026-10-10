@@ -29,7 +29,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
 - Integer phases (5, 6, 7): Planned milestone work
 - Decimal phases (5.1, 5.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 5: Tune-up and v1 debt** - CI runs in parallel without flakes, the v1 debt is closed, and a loaded game soft-resets
+- [x] **Phase 5: Tune-up and v1 debt** - CI runs in parallel without flakes, the v1 debt is closed, and a loaded game soft-resets (completed 2026-10-10)
 - [ ] **Phase 6: Mapper seam and PPU fetch pipeline** - NROM moves onto a per-board mapper interface with v1 hashes unchanged, then mid-frame scroll writes render as on the console and A12 rises on the documented dots
 - [ ] **Phase 7: UxROM, CNROM and AxROM** - Discrete-logic board games run, with bus conflicts where the board has them
 - [ ] **Phase 8: MMC1 and battery saves** - MMC1 games run, and battery saves persist through the runner and RetroArch
@@ -50,7 +50,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
   4. A CI job fails when a test that its preset expects to run reports itself skipped; the local RetroArch tests either pass on the owner's Mac or are removed, so the hosted `retroarch-e2e` job carries the RetroArch evidence alone.
   5. A CTest case shows that `nesturbator_reset()` keeps CPU RAM and cartridge RAM, enters the reset vector with SP lowered by 3, silences the APU and makes the PPU ignore register writes for the documented interval; `retro_reset()` calls it, the libretro test program's frames after a reset equal those of a direct-API instance of the core given the same frames, reset and frames, and the README and the public header's comments describe the released behaviour.
 
-**Plans**: 8/8 plans executed
+**Plans**: 8/8 plans complete
 
 Plans:
 **Wave 1**
@@ -163,9 +163,19 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 4. Sound | v1 | 4/4 | Complete | 2026-10-09 |
 | 4.1. Close gap: GAME-01 | v1 | 1/1 | Complete | 2026-10-09 |
 | 4.2. Close gap: SND-01 | v1 | 1/1 | Complete | 2026-10-09 |
-| 5. Tune-up and v1 debt | v2 | 8/8 | In Progress | - |
+| 5. Tune-up and v1 debt | v2 | 8/8 | Complete    | 2026-10-10 |
 | 6. Mapper seam and PPU fetch pipeline | v2 | 0/TBD | Not started | - |
 | 7. UxROM, CNROM and AxROM | v2 | 0/TBD | Not started | - |
 | 8. MMC1 and battery saves | v2 | 0/TBD | Not started | - |
 | 9. MMC3 | v2 | 0/TBD | Not started | - |
 | 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
+
+## Backlog
+
+### Phase 999.1: Follow-up — Phase 05 deferred UAT follow-up: Test 3 (BACKLOG)
+
+**Goal:** Resolve the UAT checkpoint deferred during Phase 05 verification
+**Source phase:** 05
+**Deferred at:** 2026-10-10 during /gsd-verify-work 05 session completion
+**Follow-ups:**
+- [ ] Test 3: Lower nightly suite-flake timeout-minutes from the 30-minute ceiling to about twice the measured cold run (172 s job wall, so 6 to 10 minutes) (deferred 2026-10-10)

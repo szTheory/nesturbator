@@ -37,10 +37,10 @@ Later milestones remain seeds in `.planning/seeds/`: save states and the runner 
 - ✓ The pinned full 65x02 vector set passes, with CI scheduled to run it nightly. — v1, Phase 2 (scheduled runs passed 2026-10-07 to 2026-10-09)
 - ✓ NROM games render, take controller input and play with sound in RetroArch. — v1, Phases 3–4.2 (frame, controller, APU, and libretro callback behavior have automated coverage)
 - ✓ Frame and audio hashes are identical on every supported platform. — v1, Phases 3–4 (pinned outputs run in the six-platform CI matrix)
+- ✓ CI runs CTest in parallel with a nightly flake job, and the v1 debt is closed: exact release-policy gate check, trainer image through the full host path, a soft-resetting `retro_reset()`, and no self-skipping tests. — v2, Phase 5 (PR #25 CI and nightly green; asan leg 171 s to 56 s)
 
 ### Active
 
-- [ ] CI is faster, has no flaky test, and the v1 debt is closed (release-policy gate, trainer host path, `retro_reset()`, local RetroArch tests).
 - [ ] MMC1, MMC3, UxROM, CNROM and AxROM games run, shown by Holy Mapperel, mapper test ROMs and frame hashes.
 - [ ] Battery saves persist across runs as raw bytes compatible with existing `.sav` files.
 - [ ] One supported game is proven from boot through interactive play by an automated check.
@@ -61,8 +61,8 @@ Later milestones remain seeds in `.planning/seeds/`: save states and the runner 
 
 - **Ecosystem.** Every mainstream libretro NES core is GPL or LGPL. The most accurate emulators are GPL applications or permissive C# and Java programs. A permissive, accuracy-class, embeddable C core does not exist yet. AccuracyCoin, an MIT test ROM with 144 tests, is today's public measure of accuracy.
 - **Sibling projects.** A Neo Geo core with the same three deliverables and the same API conventions. Playstead, a host that launches emulator processes and needs deterministic input replay and safe battery saves from them.
-- **How releases are tried.** In RetroArch on an Apple Silicon Mac, installed by script. The local RetroArch tests currently self-skip on that Mac because RetroArch does not start from the test session; the hosted `retroarch-e2e` job carries the screenshot evidence.
-- **Known debt after v1.** The release-policy self-test matches by substring; no trainer-bearing fixture runs the full host path; `retro_reset()` does nothing for a loaded game. Details are in `.planning/milestones/v1-MILESTONE-AUDIT.md`.
+- **How releases are tried.** In RetroArch on an Apple Silicon Mac, installed by script. The local RetroArch tests were removed in Phase 5; the hosted `retroarch-e2e` job carries the screenshot evidence, and `policy.no-skip` fails any CI job whose expected test reports itself skipped.
+- **Known debt after v1.** Closed in Phase 5. The audit that listed it is `.planning/milestones/v1-MILESTONE-AUDIT.md`.
 - **Reference material.** Each file below states facts with their sources. Open the one that matches the work before designing or building.
   - `.planning/preparation/README.md` — index of the files below
   - `.planning/preparation/ARCHITECTURE.md` — time model, CPU, PPU, audio, mappers, public API
@@ -109,6 +109,9 @@ Later milestones remain seeds in `.planning/seeds/`: save states and the runner 
 | Allocate instance-owned PRG RAM for accepted trainer-bearing mapper-0 images and copy the trainer before reset-vector setup | The CPU must observe the accepted image's initial state through the normal bus, with no cross-instance state | ✓ Good — Phase 4.1 byte-exact bus, ownership, reload, and rejection regressions pass in CI |
 | Copy each selected sprite's four OAM bytes over odd-read/even-write pairs; after eight selections, use the 2C02 diagonal n/m overflow scan | `$2002` overflow timing and false-positive outcomes depend on the documented per-dot OAM sequence | ✓ Good — dot-129/130 boundary, non-Y false positives, skipped-Y cases, pre-render behavior, and cross-platform CI are covered |
 | Preserve batch audio as the primary libretro path; use the single-sample callback only when batch audio is unavailable | Batch delivery remains efficient for capable hosts, while the mutually exclusive fallback supports sample-only frontends without dropping PCM or duplicating output | ✓ Good — Phase 4.2 host tests compare sample-only and batch output with direct core PCM |
+| Soft reset keeps CPU RAM, battery RAM and mapper registers; `retro_reset()` only calls `nesturbator_reset()` | The console's reset line does not clear memory, and one reset path keeps libretro and direct-API frames equal | ✓ Good — Phase 5 `core.reset` and `libretro.host` frame parity pass |
+| No skip allowlist: a test that cannot run is not registered, or a required CI job carries it | A self-skipping test reads as green while proving nothing | ✓ Good — Phase 5 `policy.no-skip` passes on every leg |
+| Parallel CTest (jobs 4, COST on long tests), no ccache | Compile share measured at 4 to 22 percent, under the 40 percent rule | ✓ Good — Phase 5 slowest-leg CTest 152 s to 140 s; wall time within runner noise |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -130,4 +133,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-09 after starting milestone v2*
+*Last updated: 2026-10-10 after Phase 5*
