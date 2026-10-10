@@ -47,9 +47,9 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. "Holy
   - The span is the NES 2.0 non-volatile size. For iNES 1 it is 8 KiB, or 32 KiB for mapper 1 with more than 256 KiB of PRG.
   - The pointer stays valid from load to unload.
   - `nesturbator_save_generation()` increases only when a write reaches the span.
-- [ ] **SAVE-02**: `nesturbator-run --save-dir DIR` loads `DIR/<rom name>.sav` when it exists. On exit it writes the battery span there, through a temporary file and a rename, only if the span changed. Holy Mapperel's MMC1 battery ROM passes on a second run that starts from the first run's save. Without `--save-dir` the runner reads and writes no save file.
-- [ ] **SAVE-03**: When the `.sav` length differs from the span, the runner prints both sizes and exits with status 4, and leaves the file byte-identical.
-- [ ] **SAVE-04**: `nesturbator-run --save-interval N` writes a changed span every N frames. A test stops the runner after a flush and finds the current bytes on disk.
+- [x] **SAVE-02**: `nesturbator-run --save-dir DIR` loads `DIR/<rom name>.sav` when it exists. On exit it writes the battery span there, through a temporary file and a rename, only if the span changed. Holy Mapperel's MMC1 battery ROM passes on a second run that starts from the first run's save. Without `--save-dir` the runner reads and writes no save file.
+- [x] **SAVE-03**: When the `.sav` length differs from the span, the runner prints both sizes and exits with status 4, and leaves the file byte-identical.
+- [x] **SAVE-04**: `nesturbator-run --save-interval N` writes a changed span every N frames. A test stops the runner after a flush and finds the current bytes on disk.
 - [ ] **SAVE-05**: The libretro core returns the span for `RETRO_MEMORY_SAVE_RAM`. The `retroarch-e2e` job shows RetroArch writing a `.srm` of the span's size, and a second session loading it back.
 
 ### Playability
@@ -114,9 +114,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BOARD-03 | Phase 9 | Pending |
 | BOARD-04 | Phase 10 | Pending |
 | SAVE-01 | Phase 8 | Complete |
-| SAVE-02 | Phase 8 | Pending |
-| SAVE-03 | Phase 8 | Pending |
-| SAVE-04 | Phase 8 | Pending |
+| SAVE-02 | Phase 8 | Complete |
+| SAVE-03 | Phase 8 | Complete |
+| SAVE-04 | Phase 8 | Complete |
 | SAVE-05 | Phase 8 | Pending |
 | PLAY-01 | Phase 10 | Pending |
 

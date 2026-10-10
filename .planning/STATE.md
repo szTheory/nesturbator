@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 08
 current_phase_name: MMC1 and battery saves
 status: executing
-stopped_at: Completed 08-05-PLAN.md
-last_updated: "2026-10-10T23:19:28.410Z"
+stopped_at: Completed 08-06-PLAN.md
+last_updated: "2026-10-10T23:24:48.596Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 08 execution started
-state_head: d20a34a20d11cabc87cd04ae767780765c529aa4
+state_head: 6ddf68d5ec008762ba06b6e1d2818a521981af3d
 progress:
   total_phases: 6
   completed_phases: 9
   total_plans: 22
-  completed_plans: 19
-  percent: 86
+  completed_plans: 20
+  percent: 91
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 ## Current Position
 
 Phase: 08 (MMC1 and battery saves) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-10-10 — Phase 08 execution started
 
-Progress: [█████████░] 86% of v2
+Progress: [█████████░] 91% of v2
 
 ## Performance Metrics
 
@@ -128,6 +128,7 @@ Progress: [█████████░] 86% of v2
 | Phase 08 P03 | 15 min | 2 tasks | 5 files |
 | Phase 08 P04 | 10min | 2 tasks | 14 files |
 | Phase 08 P05 | 25 min | 3 tasks | 10 files |
+| Phase 08 P06 | 30 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -166,6 +167,7 @@ Recent decisions affecting current work:
 - [Phase 08]: Seed pins: valid-mmc1, valid-mmc1-sorom at 87afe8d; mapper-155 at ac72d05
 - [Phase 08]: 08-03: text glyphs in a second table beside the hex table; O and 0 share a glyph so a 0 in row text reads as O
 - [Phase 08]: 08-05: MMC1 RAM bank chosen by PRG-RAM allocation size; PRG outer bit only above 256 KiB and moves the fixed bank; hook stamp is cpu_cycle - 1
+- [Phase 08]: 08-06: exit flush runs after the frame loop on every path (JAM included); battery-less cartridges do no save I/O
 
 ### Pending Todos
 
@@ -211,8 +213,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T23:19:28.375Z
-Stopped at: Completed 08-05-PLAN.md
+Last session: 2026-10-10T23:24:48.556Z
+Stopped at: Completed 08-06-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 8`.
