@@ -123,6 +123,34 @@ function(runner_save_case case)
 endfunction()
 runner_save_case(roundtrip)
 runner_save_case(fresh)
+runner_save_case(mismatch)
+runner_save_case(mismatch_empty)
+runner_save_case(unchanged)
+runner_save_case(nodir)
+runner_save_case(batteryless)
+runner_save_case(unwritable)
+
+# D-18: save flag usage errors exit 2.
+set(save_rom_arg ${PROJECT_SOURCE_DIR}/tests/roms/none.nes)
+nesturbator_runner_test(NAME runner.usage.save_dir.norom
+  ARGS --frames 1 --save-dir d EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.save_dir.empty
+  ARGS --frames 1 --rom ${save_rom_arg} --save-dir "" EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.save_dir.twice
+  ARGS --frames 1 --rom ${save_rom_arg} --save-dir a --save-dir b EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.save_dir.accuracycoin
+  ARGS --accuracycoin-page 2 --rom ${save_rom_arg} --scoreboard s --save-dir d
+  EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.save_interval.zero
+  ARGS --frames 1 --rom ${save_rom_arg} --save-dir d --save-interval 0 EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.save_interval.nodir
+  ARGS --frames 1 --rom ${save_rom_arg} --save-interval 5 EXIT 2 IGNORE_STDOUT)
+
+# D-18: the save name rule.
+add_executable(runner.save_path runner/test_save.c ${PROJECT_SOURCE_DIR}/runner/save.c)
+target_include_directories(runner.save_path PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+nesturbator_warnings(runner.save_path)
+add_test(NAME runner.save_path COMMAND runner.save_path)
 
 # Holy Mapperel (BOARD-01): each ROM in roms.cmake is run to its frame N, the
 # runner dumps that frame, and holymapperel-decode reads the result code from
