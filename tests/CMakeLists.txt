@@ -6,7 +6,7 @@
 #
 # Without EXPECT and IGNORE_STDOUT the output must be empty.
 function(nesturbator_runner_test)
-  cmake_parse_arguments(T "IGNORE_STDOUT" "NAME;EXIT" "ARGS;EXPECT" ${ARGN})
+  cmake_parse_arguments(T "IGNORE_STDOUT" "NAME;EXIT;CLEAN_DIR" "ARGS;EXPECT" ${ARGN})
   # A quoted add_test argument keeps its semicolons, so each list arrives
   # whole as one -D value.
   set(cmd "$<TARGET_FILE:nesturbator-run>" ${T_ARGS})
@@ -16,6 +16,7 @@ function(nesturbator_runner_test)
       "-DEXPECT=${T_EXPECT}"
       "-DEXPECT_EXIT=${T_EXIT}"
       "-DIGNORE_STDOUT=${T_IGNORE_STDOUT}"
+      "-DCLEAN_DIR=${T_CLEAN_DIR}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
 endfunction()
 
@@ -183,20 +184,20 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
     # SAVE-02 (D-04): the same battery ROM runs twice against one save
     # directory. Run 1 starts empty and must not show + BATTERY; it leaves a
     # 32 KiB save carrying Holy Mapperel's SAVEDATA marker at offset 0x100.
-    # Run 2 loads that save and must show + BATTERY.
+    # Run 2 loads that save and must show + BATTERY. Run 1 empties the save
+    # directory itself, so it still starts empty when ctest repeats it.
     get_filename_component(hm_stem ${hm_file} NAME_WE)
     set(hm_savedir ${NESTURBATOR_HM_DIR}/${hm_key}-save)
-    add_test(NAME holymapperel.${hm_key}.clean
-      COMMAND ${CMAKE_COMMAND} -DDIR=${hm_savedir}
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/clean_dir.cmake)
-    set_tests_properties(holymapperel.${hm_key}.clean PROPERTIES
-      FIXTURES_SETUP holymapperel_${hm_key}_clean)
     foreach(hm_run IN ITEMS run1 run2)
+      set(hm_clean "")
+      if(hm_run STREQUAL "run1")
+        set(hm_clean ${hm_savedir})
+      endif()
       nesturbator_runner_test(NAME holymapperel.${hm_key}.${hm_run}.dump
         ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
           --save-dir ${hm_savedir}
           --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}-${hm_run}.ppm"
-        EXIT 0 IGNORE_STDOUT)
+        EXIT 0 IGNORE_STDOUT CLEAN_DIR ${hm_clean})
       add_test(NAME holymapperel.${hm_key}.${hm_run}.decode
         COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}-${hm_run}.ppm)
       add_test(NAME holymapperel.${hm_key}.${hm_run}.prgram
@@ -208,8 +209,6 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
         PASS_REGULAR_EXPRESSION "^holymapperel: code 0000 \\(")
     endforeach()
     # Run 1: no + BATTERY after the closing quote; the save it leaves is checked.
-    set_tests_properties(holymapperel.${hm_key}.run1.dump PROPERTIES
-      FIXTURES_REQUIRED holymapperel_${hm_key}_clean)
     set_tests_properties(holymapperel.${hm_key}.run1.prgram PROPERTIES
       FIXTURES_REQUIRED holymapperel_${hm_key}_run1
       PASS_REGULAR_EXPRESSION "prg ram \"${hm_text}\"")

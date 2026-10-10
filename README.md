@@ -293,7 +293,7 @@ The five MMC1 ROMs are `M1_P128K_CR8K` (SGROM, `PRG RAM MISSING`),
 `--prg-ram` mode reads the PRG RAM row of the result screen and the test
 passes only on its exact text, with the closing quote as the anchor. The SXROM
 ROM runs a two-run chain on one save directory with `nesturbator-run
---save-dir`: `holymapperel.m1sxrom.clean` empties the directory, run 1 reads
+--save-dir`: run 1 empties the directory before it starts, then reads
 `0000` and `32K PRG RAM OK` without `+ BATTERY`, `run1.sav` checks the 32,768
 byte save for Holy Mapperel's `SAVEDATA` text at offset 0x100
 (`tests/cmake/check_sav.cmake`), and run 2 reads `0000` and `32K PRG RAM OK +
