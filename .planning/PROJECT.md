@@ -38,6 +38,7 @@ Later milestones remain seeds in `.planning/seeds/`: save states and the runner 
 - ✓ NROM games render, take controller input and play with sound in RetroArch. — v1, Phases 3–4.2 (frame, controller, APU, and libretro callback behavior have automated coverage)
 - ✓ Frame and audio hashes are identical on every supported platform. — v1, Phases 3–4 (pinned outputs run in the six-platform CI matrix)
 - ✓ CI runs CTest in parallel with a nightly flake job, and the v1 debt is closed: exact release-policy gate check, trainer image through the full host path, a soft-resetting `retro_reset()`, and no self-skipping tests. — v2, Phase 5 (PR #25 CI and nightly green; asan leg 171 s to 56 s)
+- ✓ Every cartridge loads through one per-board mapper interface with cycle-stamped CPU writes and one IRQ OR, and the PPU runs the 2C02 fetch pipeline with A12 reported to the board, so mid-frame scroll splits render as on the console. — v2, Phase 6 (MAP-01, MAP-02; CI runs 38070510500 and 38072045594 green on all jobs)
 
 ### Active
 
@@ -112,6 +113,8 @@ Later milestones remain seeds in `.planning/seeds/`: save states and the runner 
 | Soft reset keeps CPU RAM, battery RAM and mapper registers; `retro_reset()` only calls `nesturbator_reset()` | The console's reset line does not clear memory, and one reset path keeps libretro and direct-API frames equal | ✓ Good — Phase 5 `core.reset` and `libretro.host` frame parity pass |
 | No skip allowlist: a test that cannot run is not registered, or a required CI job carries it | A self-skipping test reads as green while proving nothing | ✓ Good — Phase 5 `policy.no-skip` passes on every leg |
 | Parallel CTest (jobs 4, COST on long tests), no ccache | Compile share measured at 4 to 22 percent, under the 40 percent rule | ✓ Good — Phase 5 slowest-leg CTest 152 s to 140 s; wall time within runner noise |
+| One mapper ops table held by value per instance; bus and PPU read 1 KiB page tables and a four-entry nametable map; CPU writes reach the board stamped with the CPU cycle | No board switch in the bus or PPU, no file-scope data, and every board serialises as registers plus derived pages | ✓ Good — Phase 6 seam landed with every v1 hash byte-identical on six platforms |
+| Background and sprite patterns come from the `v`-driven 2C02 fetch pipeline, with A12 as literal PPU-bus state | Mid-frame scroll and MMC3's scanline counter depend on the real fetch dots | ✓ Good — Phase 6 `ppu.fetch` and `ppu.split_scroll` pass; revision 5 re-pinned eight frame hashes; costs about 20 percent frame time |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -133,4 +136,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-10 after Phase 5*
+*Last updated: 2026-10-10 after Phase 6*

@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 06 — Mapper seam and PPU fetch pipeline
+**Current focus:** Phase 7 — UxROM, CNROM and AxROM
 
 ## Current Position
 
@@ -155,7 +155,11 @@ None.
 
 ### Blockers/Concerns
 
-Research flags for v2: Phase 6 (HIGH, PPU fetch timing), Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
+Research flags for v2: Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
+- [Phase 06] Draft PR #30 (phase branch) is green in CI at 62fb2bb; local docs commits after it are unpushed; the PR still needs to leave draft and merge.
+- [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-01 the write stamp is one above the documented zero-based index (settle before Phases 8 and 9 use absolute stamps), WR-02 `$2007` palette test on unmasked `v`, WR-03 `nesturbator__map_cpu_read` has no range guard below $4000.
+- [Phase 06] Odd frames with PPUCTRL bit 4 set log no A12 rise at line 0 dot 0 (input for the Phase 9 MMC3 filter).
+- [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
 ### Quick Tasks Completed
 
@@ -192,8 +196,9 @@ Last session: 2026-10-10T17:35:17.390Z
 Stopped at: Phase 06 complete, ready to plan Phase 7
 Resume file: None
 
-Next GSD command: `/gsd-plan-phase 6`.
+Next GSD command: `/gsd-discuss-phase 7`.
 
 ## Operator Next Steps
 
-- Plan Phase 6 with /gsd-plan-phase 6
+- Take draft PR #30 out of draft and merge it once its CI is green
+- Discuss Phase 7 with /gsd-discuss-phase 7
