@@ -362,6 +362,30 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size, co
     memset(host_buttons, 0, sizeof host_buttons);
 }
 
+static void check_ines_builder(void)
+{
+    static uint8_t buf[16u + INES_TRAINER_SIZE + 2u * INES_PRG_BANK + INES_CHR_BANK];
+    struct ines_spec spec;
+    size_t size;
+
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 2u;
+    spec.chr_8k = 1u;
+    spec.mapper = 0x102u;
+    spec.submapper = 1u;
+    spec.nes2 = 1u;
+    spec.mirroring_vertical = 1u;
+    size = ines_build(buf, sizeof buf, &spec);
+    CHECK_EQ_U64(size, 16u + 32768u + 8192u);
+    CHECK_EQ_U64(size, ines_size(&spec));
+    CHECK_EQ_HEX(buf[6], 0x21u);
+    CHECK_EQ_HEX(buf[7], 0x08u);
+    CHECK_EQ_HEX(buf[8], 0x11u);
+    CHECK_EQ_U64(ines_build(buf, size - 1u, &spec), 0u);
+    spec.prg_16k = 0u;
+    CHECK_EQ_U64(ines_build(buf, sizeof buf, &spec), 0u);
+}
+
 static void check_trainer_frame_parity(const char *runner, const char *rom_path,
                                        const char *ppm_path)
 {
@@ -378,8 +402,8 @@ static void check_trainer_frame_parity(const char *runner, const char *rom_path,
     size_t image_size;
     FILE *rom;
     char frame_argument[4096];
-    const char *const command[] = {runner, "--rom", rom_path, "--frames", "1", "--dump-frame",
-                                   frame_argument, NULL};
+    const char *const command[] = {runner, "--rom",        rom_path,       "--frames",
+                                   "1",    "--dump-frame", frame_argument, NULL};
 
     memcpy(trainer, trainer_code, sizeof trainer_code);
     memset(&spec, 0, sizeof spec);
@@ -414,6 +438,18 @@ static void check_trainer_frame_parity(const char *runner, const char *rom_path,
     CHECK(snprintf(frame_argument, sizeof frame_argument, "1:%s", ppm_path) > 0);
     CHECK_EQ_U64(test_process_run(command, NULL), 0u);
     compare_with_ppm(ppm_path);
+
+    /* Negative control: without the trainer the same PRG jumps into empty RAM, so the colour
+       came from the trainer and not from the PRG. */
+    p_unload_game();
+    spec.trainer = NULL;
+    image_size = ines_build(image, sizeof image, &spec);
+    CHECK(image_size != 0u);
+    game.data = image;
+    game.size = image_size;
+    CHECK(p_load_game(&game));
+    p_run();
+    CHECK(frame[0] != 0xBA3100u);
     p_unload_game();
 }
 
@@ -817,6 +853,7 @@ int main(int argc, char **argv)
     CHECK(memcmp(frame, first_content_frame, sizeof frame) == 0);
     p_unload_game();
     check_input_frame_parity(dummy_bytes, sizeof dummy_bytes, argv[4], argv[5], argv[3]);
+    check_ines_builder();
     check_trainer_frame_parity(argv[4], argv[5], argv[3]);
     check_sound_frame_parity(dummy_bytes, sizeof dummy_bytes);
     video_calls = 0;

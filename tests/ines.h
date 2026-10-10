@@ -25,7 +25,7 @@ struct ines_spec {
     uint8_t nes2;
     uint16_t mapper;
     uint8_t submapper;
-    const uint8_t *trainer; /* INES_TRAINER_SIZE bytes, or NULL */
+    const uint8_t *trainer;  /* INES_TRAINER_SIZE bytes, or NULL */
     const uint8_t *prg_code; /* copied at PRG offset 0 (CPU $8000) */
     size_t prg_code_len;
     const uint8_t *chr_data;
