@@ -4,18 +4,18 @@ milestone: v2
 milestone_name: Most of the library plays
 current_phase: 08
 current_phase_name: MMC1 and battery saves
-status: executing
-stopped_at: Completed 08-07-PLAN.md
-last_updated: "2026-10-10T23:31:48.181Z"
+status: verifying
+stopped_at: Completed 08-08-PLAN.md
+last_updated: "2026-10-10T23:38:45.781Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 08 execution started
-state_head: 935b0cac269ab6c03daf7459161281c68b67ed5f
+state_head: 13fcec937c5232adf6811357870791aed98697a8
 progress:
   total_phases: 6
   completed_phases: 9
   total_plans: 22
-  completed_plans: 21
-  percent: 95
+  completed_plans: 22
+  percent: 100
 ---
 
 # Project State
@@ -31,10 +31,10 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 
 Phase: 08 (MMC1 and battery saves) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-10 — Phase 08 execution started
 
-Progress: [█████████░] 95% of v2
+Progress: [██████████] 100% of v2
 
 ## Performance Metrics
 
@@ -130,6 +130,7 @@ Progress: [█████████░] 95% of v2
 | Phase 08 P05 | 25 min | 3 tasks | 10 files |
 | Phase 08 P06 | 30 min | 3 tasks | 9 files |
 | Phase 08 P07 | 20 min | 3 tasks | 15 files |
+| Phase 08 P08 | 45min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -170,6 +171,7 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-05: MMC1 RAM bank chosen by PRG-RAM allocation size; PRG outer bit only above 256 KiB and moves the fixed bank; hook stamp is cpu_cycle - 1
 - [Phase 08]: 08-06: exit flush runs after the frame loop on every path (JAM included); battery-less cartridges do no save I/O
 - [Phase 08]: 08-07: Holy Mapperel mapper 1 pinned N: m1sgrom/m1sjrom/m1skrom 100, m1surom 200, m1sxrom 400; :save field selects the two-run chain
+- [Phase 08]: 08-08: libretro adapter fetches the battery span once in retro_load_game; game mode e2e files renamed per tag
 
 ### Pending Todos
 
@@ -215,8 +217,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T23:31:48.150Z
-Stopped at: Completed 08-07-PLAN.md
+Last session: 2026-10-10T23:38:45.736Z
+Stopped at: Completed 08-08-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 8`.
