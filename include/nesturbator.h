@@ -42,7 +42,7 @@ extern "C" {
 /* Library version of this header. Updated by the release tooling. */
 #define NESTURBATOR_VERSION_MAJOR 0 /* x-release-please-major */
 #define NESTURBATOR_VERSION_MINOR 1 /* x-release-please-minor */
-#define NESTURBATOR_VERSION_PATCH 5 /* x-release-please-patch */
+#define NESTURBATOR_VERSION_PATCH 6 /* x-release-please-patch */
 
 /* Binary interface number. nesturbator_create refuses a config whose abi
    field differs from the library's. A shared library's SOVERSION equals it. */
