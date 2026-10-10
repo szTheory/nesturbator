@@ -116,9 +116,100 @@ static void test_no_ram_is_open_bus(void)
     nesturbator_destroy(inst);
 }
 
+/* D-11: argument errors write nothing; no cartridge and no span are OK with NULL and 0. */
+static void test_arguments_and_empty_cases(void)
+{
+    static uint8_t image[IMAGE_CAP];
+    nesturbator *inst = make_instance();
+    uint8_t sentinel_byte = 0u;
+    uint8_t *data = &sentinel_byte;
+    size_t n = 77u;
+    size_t size;
+    CHECK_EQ_U64(nesturbator_save_generation(NULL), 0u);
+    CHECK_EQ_U64(nesturbator_get_memory(NULL, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_ERR_ARGUMENT);
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, NULL, &n),
+                 NESTURBATOR_ERR_ARGUMENT);
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, NULL),
+                 NESTURBATOR_ERR_ARGUMENT);
+    CHECK_EQ_U64(nesturbator_get_memory(inst, (nesturbator_memory)1, &data, &n),
+                 NESTURBATOR_ERR_ARGUMENT);
+    CHECK(data == &sentinel_byte);
+    CHECK_EQ_U64(n, 77u);
+    /* No cartridge. */
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_OK);
+    CHECK(data == NULL);
+    CHECK_EQ_U64(n, 0u);
+    /* 8 KiB of work RAM and no NVRAM: a battery-less cartridge has no span. */
+    size = build_image(image, 7u, 0u, 0u);
+    CHECK(size != 0u);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
+    data = &sentinel_byte;
+    n = 77u;
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_OK);
+    CHECK(data == NULL);
+    CHECK_EQ_U64(n, 0u);
+    run_frame(inst);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 0u);
+    nesturbator_destroy(inst);
+}
+
+/* D-11, D-12: host writes, a refused load, unload and reload. */
+static void test_lifetime_and_generation(void)
+{
+    static uint8_t image[IMAGE_CAP];
+    size_t size = build_image(image, 0u, 7u, 1u);
+    nesturbator *inst = make_instance();
+    uint8_t *data = NULL, *again = NULL;
+    size_t n = 0u;
+    CHECK(size != 0u);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 0u);
+    /* The host copies a save in after load; that is not a CPU write. */
+    data[5] = 0x77u;
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 0u);
+    run_frame(inst);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 2u);
+    CHECK_EQ_HEX(data[5], 0x77u);
+    /* A refused load keeps the pointer, the bytes and the count. */
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size - 1u), NESTURBATOR_ERR_CARTRIDGE);
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &again, &n),
+                 NESTURBATOR_OK);
+    CHECK(again == data);
+    CHECK_EQ_U64(n, SPAN_8K);
+    CHECK_EQ_HEX(data[0], 0xa5u);
+    CHECK_EQ_HEX(data[5], 0x77u);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 2u);
+    /* Unload: NULL and 0, count kept. */
+    nesturbator_unload_cartridge(inst);
+    again = &image[0];
+    n = 99u;
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &again, &n),
+                 NESTURBATOR_OK);
+    CHECK(again == NULL);
+    CHECK_EQ_U64(n, 0u);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 2u);
+    /* A reload continues from the count, never from 0; load adds nothing. */
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 2u);
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(n, SPAN_8K);
+    CHECK_EQ_HEX(data[0], 0u);
+    run_frame(inst);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 4u);
+    nesturbator_destroy(inst);
+}
+
 int main(void)
 {
     test_span_and_generation();
     test_no_ram_is_open_bus();
+    test_arguments_and_empty_cases();
+    test_lifetime_and_generation();
     CHECK_DONE();
 }
