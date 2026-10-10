@@ -136,6 +136,36 @@ function(check_policy config workflow out_errors)
     string(APPEND errors "${gate_errors}")
   endif()
 
+  # Nothing inside publish may weaken, skip or hide the gate.
+  encode_text("${RELEASE_PUBLISH_IF}" canonical_publish_if)
+  foreach(line IN LISTS publish_lines)
+    if(line MATCHES "continue-on-error")
+      string(APPEND errors "publish-continue-on-error: publication must not tolerate failures\n")
+    endif()
+    if(line MATCHES "^ +(- )?if:" AND NOT line STREQUAL canonical_publish_if)
+      string(APPEND errors "publish-step-if: publish steps must not carry their own condition\n")
+    endif()
+    if(line MATCHES "(^|[ ])(-|[A-Za-z0-9_-]+:)[ ]+[&*][A-Za-z0-9_-]" OR line MATCHES "<<:")
+      string(APPEND errors "publish-anchor: YAML anchors, aliases and merge keys are not allowed in publish\n")
+    endif()
+  endforeach()
+
+  # Exactly one job makes the release public, and it is publish.
+  set(edit_count 0)
+  set(edit_outside FALSE)
+  foreach(line IN LISTS lines)
+    if(line MATCHES "release edit" AND line MATCHES "--draft=false")
+      math(EXPR edit_count "${edit_count} + 1")
+      list(FIND publish_lines "${line}" edit_index)
+      if(edit_index LESS 0)
+        set(edit_outside TRUE)
+      endif()
+    endif()
+  endforeach()
+  if(NOT edit_count EQUAL 1 OR edit_outside)
+    string(APPEND errors "publish-unique: only the publish job may run the --draft=false release edit, once\n")
+  endif()
+
   set(${out_errors} "${errors}" PARENT_SCOPE)
 endfunction()
 
@@ -199,6 +229,59 @@ if(SELFTEST)
   mutate(m "unconditional publish" "${publish_gate}"
     "${publish_needs}    if: always()\n")
   expect_rejected("an unconditional publish job" "${config}" "${m}")
+
+  mutate(m "&& !cancelled()" "${publish_gate}"
+    "${publish_needs}    if: ${gate_condition} && !cancelled()\n")
+  expect_rejected("a publish gate with && !cancelled()" "${config}" "${m}")
+
+  mutate(m "|| failure()" "${publish_gate}"
+    "${publish_needs}    if: ${gate_condition} || failure()\n")
+  expect_rejected("a publish gate with || failure()" "${config}" "${m}")
+
+  mutate(m "wrapped if" "${publish_gate}"
+    "${publish_needs}    if: \${{ ${gate_condition} }}\n")
+  expect_rejected("a publish gate wrapped in an expression" "${config}" "${m}")
+
+  mutate(m "duplicate if" "${publish_gate}" "${publish_gate}    if: ${gate_condition}\n")
+  expect_rejected("a duplicated publish if" "${config}" "${m}")
+
+  mutate(m "dropped needs" "${publish_gate}"
+    "    needs: [release-please]\n    if: ${gate_condition}\n")
+  expect_rejected("a publish job that dropped ci" "${config}" "${m}")
+
+  mutate(m "reordered needs" "${publish_gate}"
+    "    needs: [ci, release-please]\n    if: ${gate_condition}\n")
+  expect_rejected("reordered publish needs" "${config}" "${m}")
+
+  mutate(m "ci widened" "    needs: release-please\n    if: ${gate_condition}\n"
+    "    needs: release-please\n    if: ${gate_condition} || always()\n")
+  expect_rejected("a widened ci job condition" "${config}" "${m}")
+
+  mutate(m "step if" "      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n"
+    "      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1\n        if: always()\n")
+  expect_rejected("a step-level if in publish" "${config}" "${m}")
+
+  mutate(m "continue-on-error" "${publish_gate}" "${publish_gate}    continue-on-error: true\n")
+  expect_rejected("continue-on-error in publish" "${config}" "${m}")
+
+  mutate(m "second publisher"
+    "did not expose the exact 18 archives and SHA256SUMS\"\n          exit 1\n"
+    "did not expose the exact 18 archives and SHA256SUMS\"\n          exit 1\n  publish-again:\n${publish_gate}    runs-on: ubuntu-24.04\n    steps:\n      - run: gh release edit \"$TAG\" --draft=false\n")
+  expect_rejected("a second job that publishes the release" "${config}" "${m}")
+
+  mutate(m "gate in comments" "${publish_gate}"
+    "    # needs: [release-please, ci]\n    # if: ${gate_condition}\n")
+  expect_rejected("a gate present only in comments" "${config}" "${m}")
+
+  mutate(m "semicolon" "${publish_gate}"
+    "${publish_needs}    if: ${gate_condition} || contains('a;b', 'a')\n")
+  expect_rejected("a semicolon in the gate line" "${config}" "${m}")
+
+  mutate(m "anchor" "    env:\n      TAG:" "    env: &publish_env\n      TAG:")
+  expect_rejected("a YAML anchor in publish" "${config}" "${m}")
+
+  mutate(m "alias" "    env:\n      TAG:" "    env: *publish_env\n      TAG:")
+  expect_rejected("a YAML alias in publish" "${config}" "${m}")
 
   message(STATUS "release_policy: docs/chore stay non-releasing; behavior and breaking commits release")
 elseif(NOT errors STREQUAL "")
