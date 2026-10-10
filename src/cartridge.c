@@ -65,6 +65,10 @@ static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size,
     switch (mapper) {
     case 0u:
         return submapper == 0u && (prg_size == 16384u || prg_size == 32768u);
+    case 2u:
+        /* UxROM: up to 4 MiB of PRG in 16 KiB banks. */
+        return submapper <= 2u && prg_size != 0u && prg_size % 16384u == 0u &&
+               prg_size <= 4194304u;
     default:
         return 0;
     }
@@ -164,6 +168,9 @@ int nesturbator__mapper_ops_for(uint16_t id, struct nesturbator__mapper_ops *out
     switch (id) {
     case 0u:
         nesturbator__mapper_nrom_ops(out);
+        return 1;
+    case 2u:
+        nesturbator__mapper_uxrom_ops(out);
         return 1;
     default:
         return 0;

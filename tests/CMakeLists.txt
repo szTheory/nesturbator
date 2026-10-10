@@ -163,6 +163,8 @@ target_include_directories(core.reset PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # MAP-01, D-04, D-05, D-06, D-08: cycle-stamped mapper writes, the IRQ OR, the nametable map and reset.
 nesturbator_core_test(core.mapper core/test_mapper.c)
 target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_core_test(core.mapper_discrete core/test_mapper_discrete.c)
+target_include_directories(core.mapper_discrete PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -518,6 +520,7 @@ add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/synth.c
   ${PROJECT_SOURCE_DIR}/src/cartridge.c
   ${PROJECT_SOURCE_DIR}/src/mapper_nrom.c
+  ${PROJECT_SOURCE_DIR}/src/mapper_uxrom.c
   ${PROJECT_SOURCE_DIR}/src/ppu.c)
 target_include_directories(bus.unit PRIVATE
   ${PROJECT_SOURCE_DIR}/src

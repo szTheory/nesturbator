@@ -47,6 +47,9 @@ struct nesturbator__mapper {
         struct {
             uint8_t unused; /* NROM has no registers; C17 forbids an empty union */
         } nrom;
+        struct {
+            uint8_t bank; /* 16 KiB bank at $8000: the raw written byte */
+        } uxrom;
     } reg;
 };
 
@@ -78,5 +81,8 @@ int nesturbator__mapper_load(struct nesturbator *nes);
 
 /* Fills out with the NROM board (src/mapper_nrom.c). */
 void nesturbator__mapper_nrom_ops(struct nesturbator__mapper_ops *out);
+
+/* Fills out with the UxROM board (src/mapper_uxrom.c). */
+void nesturbator__mapper_uxrom_ops(struct nesturbator__mapper_ops *out);
 
 #endif /* NESTURBATOR_MAPPER_H */
