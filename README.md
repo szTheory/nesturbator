@@ -3,8 +3,8 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: v1 shipped; milestone v2 starts with a tune-up.** v1 plays
-NROM games with picture and sound; milestone v2 adds UxROM (mapper 2). Phase 5 adds parallel CI, a policy that
+**Status: v1 shipped; milestone v2 is under way.** v1 played
+NROM games with picture and sound; milestone v2 now plays mappers 0, 1, 2, 3 and 7 with battery saves. Phase 5 adds parallel CI, a policy that
 no registered test may skip, and the soft reset (`nesturbator_reset()`, which
 RetroArch's Reset button runs). The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
@@ -22,7 +22,7 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, UxROM, CNROM and AxROM as the boards so far. The behaviour revision is 5: the PPU
+board), with NROM, MMC1, UxROM, CNROM and AxROM as the boards so far. The behaviour revision is 5: the PPU
 fetch pipeline changed the frames of games that write the scroll or PPUCTRL
 while rendering. Mid-frame scroll writes render as on
 the console, which a split-scroll test shows scanline by scanline.
@@ -846,10 +846,22 @@ game. With no content it changes nothing. `libretro.host` compares the frames
 after a reset with those of a direct-API instance given the same frames, reset
 and frames.
 
+`retro_get_memory_data` and `retro_get_memory_size` return the battery span
+for `RETRO_MEMORY_SAVE_RAM`, the same span as
+`nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, ...)`; every other
+id, no content and a cartridge without battery RAM give NULL and 0. The adapter
+fetches the span once in `retro_load_game` and does no file I/O: the host
+writes the `.srm` and copies it back in after `retro_load_game` and before the
+first frame. The `.srm` and the runner's `.sav` are the same raw bytes, so a
+save moves between RetroArch and `nesturbator-run --save-dir` by renaming it.
+`libretro.host` checks the span's size, that its address survives `retro_run`
+and `retro_reset`, and that its bytes equal those of a direct-API instance run
+for the same frames.
+
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares
 `supports_no_game = "true"`, which lets RetroArch start the core without
-content.
+content, and `libretro_saves = "true"`.
 
 `libretro/libretro.h` is the libretro API header, copied unchanged from
 RetroArch; its source and licence are in
@@ -909,7 +921,13 @@ the test card:
 RetroArch's picture is checked by the hosted `retroarch-e2e` CI job, not by a
 local test. It installs the pinned RetroArch 1.22.2 on a macOS runner, runs the
 core on the manifest-listed Nesteroids image, and compares RetroArch's
-screenshot with the runner's frame; this is where RetroArch is checked.
+screenshot with the runner's frame; this is where RetroArch is checked. A
+second step runs two RetroArch sessions of the Holy Mapperel SXROM ROM: the
+first writes `saves/M1_P512K_CR8K_S32K.srm` (32,768 bytes, `SAVEDATA` at 0x100)
+when RetroArch unloads the content, and the second loads it back. Each
+screenshot must equal the runner's frame for the same save state (the runner
+reads the first session's `.srm` as `.sav`), the two screenshots must differ,
+and exactly one `.srm` must exist at the end.
 
 The official RetroArch v1.22.2 macOS release is
 [`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),
@@ -919,7 +937,8 @@ required `retroarch-e2e` job downloads this asset on `macos-15`, verifies its
 checksum and exact version, loads Nesteroids, and compares the nonempty frame-60
 screenshot pixel for pixel with the runner's output. It isolates RetroArch's
 first-run home under the build tree and retains the asset evidence, screenshot,
-and runner frame in the `retroarch-e2e-frames` artifact. Missing assets, changes
+and runner frame, and the save round trip's screenshots, runner frames and
+`.srm`, in the `retroarch-e2e-frames` artifact. Missing assets, changes
 to the real home directory, startup errors, and frame mismatches fail the
 required CI check. No manual screenshot or gameplay check is needed.
 
