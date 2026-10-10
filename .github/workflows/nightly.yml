@@ -92,7 +92,7 @@ jobs:
         run: |
           test -s build/vectors-full/registered-tests.json
           test -s build/vectors-full/vectors-full.junit.xml
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: vectors-full-evidence-${{ github.run_id }}
@@ -153,11 +153,38 @@ jobs:
             "$OUTCOME" "$HEAD_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" \
             >> "$GITHUB_STEP_SUMMARY"
 
+  # Hunts flakes that parallel CTest could expose: the ci preset's suite three
+  # times in random order, failing on any failure. Linux only; the PR's
+  # six-platform CI run covers the other hosts once.
+  suite-flake:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10 # initial; set to twice the first measured cold run (ENGINEERING §5)
+    permissions:
+      contents: read
+    outputs:
+      outcome: ${{ steps.flake.outcome }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Linux toolchain
+        run: |
+          echo "CC=gcc-14" >> "$GITHUB_ENV"
+          echo "CXX=g++-14" >> "$GITHUB_ENV"
+          command -v ninja || { sudo apt-get update && sudo apt-get install -y ninja-build; }
+      - name: Prepare protected-main scoreboard baseline
+        run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake
+      - run: cmake --preset ci
+      - run: cmake --build --preset ci
+      - name: Run the suite three times in random order
+        id: flake
+        run: ctest --preset ci --repeat until-fail:3 --schedule-random
+
   # On scheduled and main-push runs: one rolling issue labelled nightly,
   # opened or updated on failure and closed on success. No checkout, so gh is
   # given the repository.
   report:
-    needs: [vectors-full, rom-loader-fuzz]
+    needs: [vectors-full, rom-loader-fuzz, suite-flake]
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-24.04
     timeout-minutes: 1
@@ -167,9 +194,10 @@ jobs:
       - name: Rolling issue
         env:
           GH_TOKEN: ${{ github.token }}
-          RESULT: ${{ needs.vectors-full.result == 'success' && needs.rom-loader-fuzz.result == 'success' && 'success' || 'failure' }}
+          RESULT: ${{ needs.vectors-full.result == 'success' && needs.rom-loader-fuzz.result == 'success' && needs.suite-flake.result == 'success' && 'success' || 'failure' }}
           FAILED: ${{ needs.vectors-full.outputs.failed }}
           FUZZ: ${{ needs.rom-loader-fuzz.outputs.outcome }}
+          FLAKE: ${{ needs.suite-flake.outputs.outcome }}
           HEAD_SHA: ${{ github.sha }}
           EVENT: ${{ github.event_name }}
         run: |
@@ -185,8 +213,8 @@ jobs:
             fi
             exit 0
           fi
-          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nOverall result: %s\n\nFailed vector keys: %s\n\nROM loader fuzz outcome: %s\n' \
-            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-none recorded; see the run}" "${FUZZ:-not recorded; see the run}")
+          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nOverall result: %s\n\nFailed vector keys: %s\n\nROM loader fuzz outcome: %s\n\nSuite flake hunt outcome: %s\n' \
+            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-none recorded; see the run}" "${FUZZ:-not recorded; see the run}" "${FLAKE:-not recorded; see the run}")
           if [ -n "$issue" ]; then
             gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" --body "$body"
           else
