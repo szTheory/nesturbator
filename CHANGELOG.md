@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/szTheory/nesturbator/compare/v0.1.8...v0.1.9) (2026-10-10)
+
+
+### Features
+
+* UxROM, CNROM and AxROM boards ([#32](https://github.com/szTheory/nesturbator/issues/32)) ([a24e9bf](https://github.com/szTheory/nesturbator/commit/a24e9bf5ee5b350137e7c3d29e9e8babc3ed7067))
+
 ## [0.1.8](https://github.com/szTheory/nesturbator/compare/v0.1.7...v0.1.8) (2026-10-10)
 
 
