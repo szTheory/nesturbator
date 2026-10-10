@@ -148,9 +148,15 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
     (void)device;
 }
 
-/* The test card has nothing to reset. */
+/* libretro.h's retro_reset "Resets the current game": the console's Reset button. The core runs
+   its soft reset, which keeps CPU RAM and cartridge RAM, and never unloads or recreates the
+   instance. A test-card instance has nothing to reset; the core returns OK and changes nothing.
+   The status is dropped because libretro's reset returns void. */
 void retro_reset(void)
 {
+    if (inst != NULL) {
+        (void)nesturbator_reset(inst);
+    }
 }
 
 /* L7694: one frame. Input is polled once (L7685), the video callback is
