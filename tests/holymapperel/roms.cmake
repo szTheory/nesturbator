@@ -1,11 +1,15 @@
 # The Holy Mapperel ROMs that tests/CMakeLists.txt, write_hashes.cmake and
-# hash_inventory.cmake all read. Each entry is <key>:<file in tests/roms/hm>:<N>,
-# where N is the frame whose result screen is read and hashed. Phases 8 and 9
-# add one entry here and one line to the manifest list below per ROM.
+# hash_inventory.cmake all read. Each entry is
+# <key>:<file in tests/roms/hm>:<N>:<prg ram text>[:save]. N is the frame whose
+# result screen is read and hashed. The prg ram text is the exact text of the
+# screen's PRG RAM row (nametable row 6), asserted by holymapperel.<key>.prgram
+# with holymapperel-decode --prg-ram. An entry ending in :save runs the two-run
+# save chain that Plan 08-07 adds. Phases 8 and 9 add one entry here and one
+# line to the manifest list below per ROM.
 set(NESTURBATOR_HOLYMAPPEREL_ROMS
-  "m2:M2_P128K_CR8K_V.nes:100"
-  "m3:M3_P32K_C32K_H.nes:100"
-  "m7:M7_P128K_CR8K.nes:100")
+  "m2:M2_P128K_CR8K_V.nes:100:PRG RAM MISSING"
+  "m3:M3_P32K_C32K_H.nes:100:PRG RAM MISSING"
+  "m7:M7_P128K_CR8K.nes:100:PRG RAM MISSING")
 
 # The manifest.txt line of each ROM, so write_hashes.cmake can check provenance.
 set(NESTURBATOR_HOLYMAPPEREL_MANIFEST

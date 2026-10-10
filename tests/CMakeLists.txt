@@ -113,6 +113,12 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
   list(GET parts 0 hm_key)
   list(GET parts 1 hm_file)
   list(GET parts 2 hm_frames)
+  list(GET parts 3 hm_text)
+  list(LENGTH parts hm_parts)
+  set(hm_save "")
+  if(hm_parts GREATER 4)
+    list(GET parts 4 hm_save)
+  endif()
   nesturbator_runner_test(NAME holymapperel.${hm_key}.dump
     ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
       --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm"
@@ -124,6 +130,11 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
   set_tests_properties(holymapperel.${hm_key}.decode PROPERTIES
     FIXTURES_REQUIRED holymapperel_${hm_key}
     PASS_REGULAR_EXPRESSION "^holymapperel: code 0000 \\(")
+  add_test(NAME holymapperel.${hm_key}.prgram
+    COMMAND holymapperel-decode --prg-ram ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
+  set_tests_properties(holymapperel.${hm_key}.prgram PROPERTIES
+    FIXTURES_REQUIRED holymapperel_${hm_key}
+    PASS_REGULAR_EXPRESSION "prg ram \"${hm_text}\"")
 endforeach()
 
 # The decoder's unit cases and font table, and the branches that must exit 2:

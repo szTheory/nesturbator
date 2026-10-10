@@ -2,9 +2,13 @@
    P6 image nesturbator-run --dump-frame writes. Exit 0: the code is 0000.
    Exit 1: a non-zero code, printed with the meaning of each digit. Exit 2:
    there is no result screen, or the input is not a 256x240 P6 image. Only the
-   exit-0 path prints "code 0000 (". */
+   exit-0 path prints "code 0000 (".
+   holymapperel-decode --prg-ram FILE.ppm: reads the PRG RAM text row (y 48,
+   from x 16) and prints holymapperel: prg ram "<text>"; exit 0, or 2 when a
+   cell is unreadable or the input is not a 256x240 P6 image. */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "hm_decode.h"
 
@@ -25,14 +29,21 @@ int main(int argc, char **argv)
     int digit[4];
     int status;
     int k;
+    int prg_ram = 0;
+    const char *path;
 
-    if (argc != 2) {
-        fprintf(stderr, "usage: holymapperel-decode FILE.ppm\n");
+    if (argc == 3 && strcmp(argv[1], "--prg-ram") == 0) {
+        prg_ram = 1;
+        path = argv[2];
+    } else if (argc == 2) {
+        path = argv[1];
+    } else {
+        fprintf(stderr, "usage: holymapperel-decode [--prg-ram] FILE.ppm\n");
         return 2;
     }
-    f = fopen(argv[1], "rb");
+    f = fopen(path, "rb");
     if (f == NULL) {
-        fprintf(stderr, "holymapperel-decode: cannot open %s\n", argv[1]);
+        fprintf(stderr, "holymapperel-decode: cannot open %s\n", path);
         return 2;
     }
     buf = (uint8_t *)malloc(cap);
@@ -46,6 +57,13 @@ int main(int argc, char **argv)
     if (!hm_read_ppm(buf, size, &rgb)) {
         free(buf);
         return fail_read();
+    }
+    if (prg_ram) {
+        char text[HM_TEXT_CELLS + 1];
+        int ok = hm_read_text_row(rgb, HM_PRG_RAM_Y, text, sizeof text);
+        free(buf);
+        printf("holymapperel: prg ram \"%s\"\n", text);
+        return ok ? 0 : 2;
     }
     status = hm_decode_digits(rgb, &code, digit);
     free(buf);
