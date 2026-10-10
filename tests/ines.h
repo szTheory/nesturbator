@@ -89,8 +89,8 @@ static inline size_t ines_build(uint8_t *out, size_t cap, const struct ines_spec
     out[7] = (uint8_t)((s->mapper & 0xf0u) | (s->nes2 != 0u ? 0x08u : 0x00u));
     if (s->nes2 != 0u) {
         out[8] = (uint8_t)(((unsigned)s->submapper << 4) | ((s->mapper >> 8) & 0x0fu));
-        out[10] = (uint8_t)(((unsigned)(s->prg_nvram_shift & 0x0fu) << 4) |
-                            (s->prg_ram_shift & 0x0fu));
+        out[10] =
+            (uint8_t)(((unsigned)(s->prg_nvram_shift & 0x0fu) << 4) | (s->prg_ram_shift & 0x0fu));
         out[11] = (uint8_t)(((unsigned)(s->chr_nvram_shift & 0x0fu) << 4) |
                             (s->chr_8k == 0u ? 0x07u : 0x00u)); /* 64 << 7 = 8 KiB of CHR-RAM */
     }

@@ -165,7 +165,7 @@ struct nesturbator__cartridge {
     size_t prg_ram_size; /* the whole PRG-RAM allocation, laid out [V work][N NVRAM] (D-06) */
     uint8_t *save;       /* the battery span: prg_ram + V, or NULL */
     size_t save_size;    /* N */
-    size_t chr_size; /* CHR-ROM size the loader validated, or 8192 for CHR-RAM */
+    size_t chr_size;     /* CHR-ROM size the loader validated, or 8192 for CHR-RAM */
     uint8_t chr_is_ram;
 };
 
@@ -191,9 +191,9 @@ struct nesturbator {
        create zeroes it: load, reset and unload leave it, so a host cache cannot
        miss a change after a reload. */
     uint64_t save_generation;
-    uint64_t ticks;                  /* ticks run since create */
-    struct nesturbator__cpu cpu;     /* the 6502 */
-    struct nesturbator__bus bus;     /* RAM and the open-bus latch */
+    uint64_t ticks;              /* ticks run since create */
+    struct nesturbator__cpu cpu; /* the 6502 */
+    struct nesturbator__bus bus; /* RAM and the open-bus latch */
     struct nesturbator__apu apu;
     struct nesturbator__synth synth;
     nesturbator__transition_sink transition_sink;

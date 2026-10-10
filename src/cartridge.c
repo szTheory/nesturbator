@@ -111,8 +111,8 @@ static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size,
             return 0;
         if (prg_size == MMC1_PRG_MAX && !chr_8k_ok)
             return 0;
-        if (!chr_is_ram && (!is_pow2(chr_size) || chr_size < MMC1_CHR_MIN ||
-                            chr_size > MMC1_CHR_MAX))
+        if (!chr_is_ram &&
+            (!is_pow2(chr_size) || chr_size < MMC1_CHR_MIN || chr_size > MMC1_CHR_MAX))
             return 0;
         if (chr_nv != 0u)
             return 0;
@@ -192,9 +192,8 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
         }
     }
     layout->battery = (image[6] & 2u) != 0u;
-    if (!board_profile_ok(mapper, submapper, layout->prg_size, layout->chr_size,
-                          layout->chr_is_ram, layout->ram_work, layout->ram_nv, layout->chr_nv,
-                          layout->battery))
+    if (!board_profile_ok(mapper, submapper, layout->prg_size, layout->chr_size, layout->chr_is_ram,
+                          layout->ram_work, layout->ram_nv, layout->chr_nv, layout->battery))
         return 0;
     if (!checked_add(16u, layout->trainer_size, &total) ||
         !checked_add(total, layout->prg_size, &total) ||

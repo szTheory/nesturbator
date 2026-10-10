@@ -10,6 +10,7 @@
 
 #define IMAGE_CAP 70000u
 #define SPAN_8K 8192u
+#define SOROM_CAP (16u + 131072u + 8192u)
 
 /* LDA #$A5; STA $6000; LDA #$5A; STA $7FFF; JMP * (at $800A). */
 static const uint8_t write_code[] = {0xa9u, 0xa5u, 0x8du, 0x00u, 0x60u, 0xa9u, 0x5au,
@@ -205,11 +206,45 @@ static void test_lifetime_and_generation(void)
     nesturbator_destroy(inst);
 }
 
+/* D-06: in a NES 2.0 SOROM (8 KiB work RAM then 8 KiB battery RAM) the span is the second half
+   (NESdev Wiki "MMC1", SOROM). */
+static void test_sorom_span_offset(void)
+{
+    static uint8_t image[SOROM_CAP];
+    struct ines_spec spec;
+    size_t size;
+    nesturbator *inst = make_instance();
+    struct nesturbator *nes = inst;
+    uint8_t *data = NULL;
+    size_t n = 0u;
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 8u;
+    spec.chr_8k = 1u;
+    spec.nes2 = 1u;
+    spec.mapper = 1u;
+    spec.battery = 1u;
+    spec.prg_ram_shift = 7u;
+    spec.prg_nvram_shift = 7u;
+    spec.reset_vector = 0x8000u;
+    size = ines_build(image, SOROM_CAP, &spec);
+    CHECK(size != 0u);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nes->cart.prg_ram_size, 16384u);
+    CHECK(nes->cart.save == nes->cart.prg_ram + 8192u);
+    CHECK_EQ_U64(nes->cart.save_size, 8192u);
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_OK);
+    CHECK(data == nes->cart.prg_ram + 8192u);
+    CHECK_EQ_U64(n, 8192u);
+    nesturbator_destroy(inst);
+}
+
 int main(void)
 {
     test_span_and_generation();
     test_no_ram_is_open_bus();
     test_arguments_and_empty_cases();
     test_lifetime_and_generation();
+    test_sorom_span_offset();
     CHECK_DONE();
 }
