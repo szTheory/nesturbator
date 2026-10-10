@@ -11,8 +11,8 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. "Holy
 
 ### Tune-up and v1 debt
 
-- [ ] **TUNE-01**: The test presets run CTest in parallel. A nightly job runs the suite with `--repeat until-fail:3 --schedule-random` and fails on any failure. The phase verification records the slowest CI leg's time before and after the change, and decides on ccache from the measured share of compile time.
-- [ ] **TUNE-02**: Action pins and runner labels are current, the phase verification records the AccuracyCoin pin as reviewed, and the README and the public header's comments describe the released code.
+- [x] **TUNE-01**: The test presets run CTest in parallel. A nightly job runs the suite with `--repeat until-fail:3 --schedule-random` and fails on any failure. The phase verification records the slowest CI leg's time before and after the change, and decides on ccache from the measured share of compile time.
+- [x] **TUNE-02**: Action pins and runner labels are current, the phase verification records the AccuracyCoin pin as reviewed, and the README and the public header's comments describe the released code.
 - [x] **TUNE-03**: The release-policy self-test fails when the publish gate has any extra condition, such as an appended `|| always()`.
 - [x] **TUNE-04**: A synthetic trainer-bearing image runs through the runner and through the libretro test program, and both deliver equal frames.
 - [x] **TUNE-05**: The local RetroArch tests either run on the owner's Mac or are removed, so the hosted `retroarch-e2e` job carries that evidence alone. A CI job fails when a test that its preset expects to run reports itself skipped.
@@ -100,8 +100,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| TUNE-01 | Phase 5 | Pending |
-| TUNE-02 | Phase 5 | Pending |
+| TUNE-01 | Phase 5 | Complete |
+| TUNE-02 | Phase 5 | Complete |
 | TUNE-03 | Phase 5 | Complete |
 | TUNE-04 | Phase 5 | Complete |
 | TUNE-05 | Phase 5 | Complete |
