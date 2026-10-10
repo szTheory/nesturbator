@@ -67,8 +67,8 @@ enum nesturbator_status {
     NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5,
     /* The loaded cartridge executed a JAM opcode; the instance is latched. */
     NESTURBATOR_STOP_JAM = 6,
-    /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 2 UxROM,
-       3 CNROM and 7 AxROM). */
+    /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 1 MMC1,
+       2 UxROM, 3 CNROM and 7 AxROM). */
     NESTURBATOR_ERR_CARTRIDGE = 7
 };
 typedef enum nesturbator_status nesturbator_status;
@@ -317,6 +317,39 @@ void nesturbator_get_palette(const nesturbator *inst, uint32_t *out_xrgb8888, ui
  * output filters are kept. Load is unchanged: no write-ignore window and no
  * startup sequence at power-on, so frame and audio hashes from load stay. */
 nesturbator_status nesturbator_reset(nesturbator *inst);
+
+/* Battery-backed memory. The core does no file I/O: it hands the host a span
+ * of its own memory and counts the CPU writes that reach it, and the host
+ * keeps the file.
+ *
+ * Mapper 1 (MMC1) cartridges carry PRG RAM laid out as [V bytes work][N bytes
+ * NVRAM], work RAM first. The save span is the N battery bytes; a SOROM image
+ * with a work half exposes only its battery half. The size comes from the
+ * header: iNES 1 gives 8 KiB (32 KiB above 256 KiB of PRG), all of it battery
+ * when flag 6 bit 1 is set and none otherwise; NES 2.0 gives V from the low
+ * and N from the high nibble of byte 10, and its battery bit must equal N != 0.
+ *
+ * nesturbator_get_memory writes the span to *data and *size. A NULL inst, data
+ * or size, or a kind other than NESTURBATOR_MEMORY_SAVE_RAM, returns
+ * NESTURBATOR_ERR_ARGUMENT and writes nothing. No cartridge, or a cartridge
+ * without a span, returns NESTURBATOR_OK with NULL and 0. The pointer is valid
+ * from a successful load until unload, the next successful load or destroy;
+ * nesturbator_reset and a refused load keep it. The host copies a saved file
+ * in after load and before the first frame, and may read the span at any time
+ * between calls.
+ *
+ * nesturbator_save_generation counts CPU bus writes that reached the span
+ * while the board had that RAM enabled and writable, whether or not the byte
+ * changed; a read-modify-write counts both of its writes. It runs from
+ * nesturbator_create and never resets or decreases, so hosts compare it with
+ * != . Load (including trainer bytes), reset, unload and writes the host makes
+ * through the pointer do not count. nesturbator_save_generation(NULL) is 0. */
+enum nesturbator_memory { NESTURBATOR_MEMORY_SAVE_RAM = 0 };
+typedef enum nesturbator_memory nesturbator_memory;
+
+nesturbator_status nesturbator_get_memory(nesturbator *inst, nesturbator_memory kind,
+                                          uint8_t **data, size_t *size);
+uint64_t nesturbator_save_generation(const nesturbator *inst);
 
 #ifdef __cplusplus
 }

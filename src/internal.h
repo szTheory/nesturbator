@@ -162,6 +162,9 @@ struct nesturbator__cartridge {
     size_t prg_size;
     uint8_t *chr;
     uint8_t *prg_ram;
+    size_t prg_ram_size; /* the whole PRG-RAM allocation, laid out [V work][N NVRAM] (D-06) */
+    uint8_t *save;       /* the battery span: prg_ram + V, or NULL */
+    size_t save_size;    /* N */
     size_t chr_size; /* CHR-ROM size the loader validated, or 8192 for CHR-RAM */
     uint8_t chr_is_ram;
 };
@@ -184,6 +187,10 @@ struct nesturbator__profile {
 struct nesturbator {
     nesturbator_allocator allocator; /* copy of the config's, defaults filled in */
     uint64_t frame_number;           /* frames run since create */
+    /* CPU bus writes that reached the battery span since create (D-12). Only
+       create zeroes it: load, reset and unload leave it, so a host cache cannot
+       miss a change after a reload. */
+    uint64_t save_generation;
     uint64_t ticks;                  /* ticks run since create */
     struct nesturbator__cpu cpu;     /* the 6502 */
     struct nesturbator__bus bus;     /* RAM and the open-bus latch */
@@ -236,14 +243,21 @@ static inline void nesturbator__map_header_mirroring(struct nesturbator *nes)
     }
 }
 
-/* $6000-$7FFF is PRG RAM when the loader allocated it (a trainer image). */
-static inline void nesturbator__map_prg_ram(struct nesturbator *nes)
+/* $6000-$7FFF as one 8 KiB bank of PRG RAM, or as NULL pages (open bus reads,
+   dropped writes) when ram_8k is NULL. */
+static inline void nesturbator__map_prg_ram_8k(struct nesturbator *nes, uint8_t *ram_8k)
 {
     for (uint32_t i = 8u; i < 16u; ++i) {
-        uint8_t *ram = nes->cart.prg_ram != NULL ? nes->cart.prg_ram + (i - 8u) * 1024u : NULL;
+        uint8_t *ram = ram_8k != NULL ? ram_8k + (i - 8u) * 1024u : NULL;
         nes->map.cpu_r[i] = ram;
         nes->map.cpu_w[i] = ram;
     }
+}
+
+/* $6000-$7FFF is bank 0 of PRG RAM when the loader allocated any. */
+static inline void nesturbator__map_prg_ram(struct nesturbator *nes)
+{
+    nesturbator__map_prg_ram_8k(nes, nes->cart.prg_ram);
 }
 
 /* One 8 KiB CHR bank into the pattern-table pages; writable only for CHR-RAM. */

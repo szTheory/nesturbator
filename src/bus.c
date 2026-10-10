@@ -162,8 +162,16 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         nesturbator__apu_write(nes, addr, value);
     } else if (addr >= 0x4020u) {
         uint8_t *page = nes->map.cpu_w[(addr - 0x4000u) >> 10];
-        if (page != NULL)
+        if (page != NULL) {
             page[addr & 0x3ffu] = value;
+            /* D-12: count every write that reaches the battery span, changed
+               byte or not. The NULL test comes first because a relational
+               compare against a null pointer is undefined in C17; every
+               non-NULL page here lies inside the cart.bytes allocation. */
+            if (nes->cart.save_size != 0u && page >= nes->cart.save &&
+                page < nes->cart.save + nes->cart.save_size)
+                nes->save_generation++;
+        }
         /* The hook follows the store and is not part of it, so a write that
            lands on a NULL page (NROM's ROM) still reaches the board. With bus
            conflicts the ROM drives the bus too, so the board sees the AND of

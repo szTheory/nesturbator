@@ -223,6 +223,9 @@ nesturbator_core_test(core.mapper core/test_mapper.c)
 target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_core_test(core.mapper_discrete core/test_mapper_discrete.c)
 target_include_directories(core.mapper_discrete PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# SAVE-01 (D-06, D-11, D-12): the battery span, its address and the write counter.
+nesturbator_core_test(core.save core/test_save.c)
+target_include_directories(core.save PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -578,6 +581,7 @@ add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/synth.c
   ${PROJECT_SOURCE_DIR}/src/cartridge.c
   ${PROJECT_SOURCE_DIR}/src/mapper_nrom.c
+  ${PROJECT_SOURCE_DIR}/src/mapper_mmc1.c
   ${PROJECT_SOURCE_DIR}/src/mapper_uxrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_cnrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_axrom.c

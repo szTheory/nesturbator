@@ -450,7 +450,7 @@ static void test_board_switch_matches_profiles(void)
     for (unsigned id = 0u; id <= 4095u; ++id) {
         struct nesturbator__mapper_ops ops;
         int has = nesturbator__mapper_ops_for((uint16_t)id, &ops);
-        int want = id == 0u || id == 2u || id == 3u || id == 7u;
+        int want = id == 0u || id == 1u || id == 2u || id == 3u || id == 7u;
         CHECK_EQ_U64(has, want);
         if (has) {
             boarded++;
@@ -458,7 +458,7 @@ static void test_board_switch_matches_profiles(void)
             CHECK(ops.rebuild != NULL);
         }
     }
-    CHECK_EQ_U64(boarded, 4u);
+    CHECK_EQ_U64(boarded, 5u);
 }
 int main(void)
 {

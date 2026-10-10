@@ -174,3 +174,19 @@ nesturbator_status nesturbator_reset(nesturbator *inst)
     nesturbator__cpu_reset(inst);
     return NESTURBATOR_OK;
 }
+
+nesturbator_status nesturbator_get_memory(nesturbator *inst, nesturbator_memory kind,
+                                          uint8_t **data, size_t *size)
+{
+    if (inst == NULL || data == NULL || size == NULL || kind != NESTURBATOR_MEMORY_SAVE_RAM) {
+        return NESTURBATOR_ERR_ARGUMENT;
+    }
+    *data = inst->cart.save_size != 0u ? inst->cart.save : NULL;
+    *size = inst->cart.save_size;
+    return NESTURBATOR_OK;
+}
+
+uint64_t nesturbator_save_generation(const nesturbator *inst)
+{
+    return inst != NULL ? inst->save_generation : 0u;
+}

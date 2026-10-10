@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
-# Phase 6 baseline: this SHA-256 follows the mapper-0 API, nesturbator_reset
+# Phase 8 baseline: this SHA-256 follows the mapper-0 API, nesturbator_reset, the save API
 # and behaviour revision 5 (the PPU fetch pipeline). It is a temporary guard,
 # not a permanent repository freeze.
-set(PHASE6_DECLARATIONS_SHA256 "4bfec63d18874163df6f252ee047d5e876e4b4d62fd327f1f4c7976d07fd4332")
+set(PHASE8_DECLARATIONS_SHA256 "7ec4ca9a124042f9a64d090c4362af019c2b9773cb2aaf901683c0daade2d7f0")
 
 function(normalize_api source out_hash)
   string(REGEX REPLACE "/\\*([^*]|\\*+[^*/])*\\*+/" "" text "${source}")
@@ -16,8 +16,8 @@ endfunction()
 
 function(check_api source out_error)
   normalize_api("${source}" actual)
-  if(NOT actual STREQUAL PHASE6_DECLARATIONS_SHA256)
-    set(${out_error} "public declaration stream changed (expected ${PHASE6_DECLARATIONS_SHA256}, found ${actual})" PARENT_SCOPE)
+  if(NOT actual STREQUAL PHASE8_DECLARATIONS_SHA256)
+    set(${out_error} "public declaration stream changed (expected ${PHASE8_DECLARATIONS_SHA256}, found ${actual})" PARENT_SCOPE)
   else()
     set(${out_error} "" PARENT_SCOPE)
   endif()
