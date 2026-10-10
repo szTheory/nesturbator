@@ -330,6 +330,16 @@ add_test(NAME vectors.api_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_api_policy.cmake)
 
+# Tests never skip: a test that cannot run on a platform or without a host app
+# is not registered there (wrap it in if()), and a check that needs a host app
+# lives in a required CI job such as retroarch-e2e. This policy fails when any
+# registered test could report itself skipped or is disabled.
+add_test(NAME policy.no-skip
+  COMMAND ${CMAKE_COMMAND}
+    -DCTEST=${CMAKE_CTEST_COMMAND}
+    -DBUILD_DIR=${PROJECT_BINARY_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/skip_policy.cmake)
+
 # Exact opcode inventories come from CTest's machine-readable metadata. The
 # policy configures the full preset but never runs its network-backed fixture.
 add_test(NAME vectors.registration_policy
