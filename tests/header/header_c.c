@@ -23,8 +23,12 @@ int main(void)
 {
     /* The initialiser lists every member: no missing-initializer warning. */
     nesturbator_config c = NESTURBATOR_CONFIG_INIT;
-    return c.abi == NESTURBATOR_ABI_VERSION && c.size == sizeof c && get_memory_fn != NULL &&
-                   save_generation_fn != NULL && save_kind == NESTURBATOR_MEMORY_SAVE_RAM
+    /* The typed initialisers above prove both signatures; a null test on a
+       const function pointer is always true and gcc -Waddress may reject it. */
+    (void)get_memory_fn;
+    (void)save_generation_fn;
+    return c.abi == NESTURBATOR_ABI_VERSION && c.size == sizeof c &&
+                   save_kind == NESTURBATOR_MEMORY_SAVE_RAM
                ? 0
                : 1;
 }

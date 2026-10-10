@@ -24,8 +24,12 @@ int main()
     // Brace initialisation from the macro must not narrow (01-RESEARCH
     // Pitfall 6).
     nesturbator_config c = NESTURBATOR_CONFIG_INIT;
-    return c.abi == NESTURBATOR_ABI_VERSION && c.size == sizeof c && get_memory_fn != nullptr &&
-                   save_generation_fn != nullptr && save_kind == NESTURBATOR_MEMORY_SAVE_RAM
+    // The typed initialisers above prove both signatures; a null test on a
+    // const function pointer is always true and g++ -Waddress rejects it.
+    (void)get_memory_fn;
+    (void)save_generation_fn;
+    return c.abi == NESTURBATOR_ABI_VERSION && c.size == sizeof c &&
+                   save_kind == NESTURBATOR_MEMORY_SAVE_RAM
                ? 0
                : 1;
 }
