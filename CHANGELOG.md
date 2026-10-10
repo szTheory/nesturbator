@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/szTheory/nesturbator/compare/v0.1.6...v0.1.7) (2026-10-10)
+
+
+### Features
+
+* soft reset, parallel CI and closed v1 debt ([#25](https://github.com/szTheory/nesturbator/issues/25)) ([0bc9cdb](https://github.com/szTheory/nesturbator/commit/0bc9cdb78c824d433ac12133d43f511401a2c730))
+
 ## [0.1.6](https://github.com/szTheory/nesturbator/compare/v0.1.5...v0.1.6) (2026-10-10)
 
 
