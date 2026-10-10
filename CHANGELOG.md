@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/szTheory/nesturbator/compare/v0.1.5...v0.1.6) (2026-10-10)
+
+
+### Features
+
+* close remaining v1 milestone gaps ([#22](https://github.com/szTheory/nesturbator/issues/22)) ([58ca4be](https://github.com/szTheory/nesturbator/commit/58ca4be137bf0e54fc6ec26fd4377de08b96be5d))
+
 ## [0.1.5](https://github.com/szTheory/nesturbator/compare/v0.1.4...v0.1.5) (2026-10-09)
 
 
