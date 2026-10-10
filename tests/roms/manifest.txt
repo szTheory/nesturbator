@@ -42,3 +42,4 @@ tests/roms/hm/M3_P32K_C32K_H.nes	https://github.com/pinobatch/holy-mapperel/rele
 tests/roms/hm/M7_P128K_CR8K.nes	https://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z	c022622274ca8b83d214dea97e4388a6b0e92d8a	Zlib	4aa0050f36ae17e17701506821e5147df5b843bcdf2827468fa9c66e4b7ac1ba
 tests/fuzz/corpus/valid-mmc1	https://github.com/szTheory/nesturbator	87afe8dfa420f957ea0d9cdace9a5c3b8aa9cc0e	MIT	327effc4c95863847b86119c23314f30b87db431b586b3ec46a2849efb69c3cb
 tests/fuzz/corpus/valid-mmc1-sorom	https://github.com/szTheory/nesturbator	87afe8dfa420f957ea0d9cdace9a5c3b8aa9cc0e	MIT	1b12ba67b1c114316e9e2a34136e5ea6b819959c3e3105b573c3145959511496
+tests/fuzz/corpus/mapper-155	https://github.com/szTheory/nesturbator	ac72d0559c2f48f74132131fadbc7a974c0d53c0	MIT	ea29830af7a33011b259588396c48ed8eb62238f7cd90245fa1ce82e1b559451

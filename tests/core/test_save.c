@@ -239,6 +239,39 @@ static void test_sorom_span_offset(void)
     nesturbator_destroy(inst);
 }
 
+/* Research open question 3: a trainer on a mapper 1 image with no declared RAM maps its 8 KiB
+   at $6000 as work RAM (trainer at $7000), and there is no span. */
+static void test_trainer_without_declared_ram(void)
+{
+    static uint8_t image[IMAGE_CAP];
+    static uint8_t trainer[INES_TRAINER_SIZE];
+    struct ines_spec spec;
+    size_t size;
+    nesturbator *inst = make_instance();
+    struct nesturbator *nes = inst;
+    uint8_t *data = &trainer[0];
+    size_t n = 5u;
+    for (size_t i = 0u; i < sizeof trainer; ++i)
+        trainer[i] = (uint8_t)(i * 7u + 0x31u);
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 2u;
+    spec.nes2 = 1u;
+    spec.mapper = 1u;
+    spec.trainer = trainer;
+    spec.reset_vector = 0x8000u;
+    size = ines_build(image, IMAGE_CAP, &spec);
+    CHECK(size != 0u);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nes->cart.prg_ram_size, 8192u);
+    CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x7000u), trainer[0]);
+    CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x71ffu), trainer[511]);
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_OK);
+    CHECK(data == NULL);
+    CHECK_EQ_U64(n, 0u);
+    nesturbator_destroy(inst);
+}
+
 int main(void)
 {
     test_span_and_generation();
@@ -246,5 +279,6 @@ int main(void)
     test_arguments_and_empty_cases();
     test_lifetime_and_generation();
     test_sorom_span_offset();
+    test_trainer_without_declared_ram();
     CHECK_DONE();
 }
