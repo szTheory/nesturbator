@@ -110,14 +110,14 @@ Plans:
   2. Synthetic CTest cases show the submapper-0 bus-conflict defaults: the written value ANDed with the ROM byte on mappers 2 and 3, and no conflict on mapper 7.
   3. Synthetic CTest cases show the NES 2.0 submapper 1 and 2 overrides, and that CNROM ignores writes to CHR-ROM.
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 Plans:
 **Wave 1**
 - [x] 07-01-PLAN.md — Loader through one probed board switch with power-on PC through the pages (NROM tracer), then the UxROM board with its synthetic cases and wording (BOARD-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 07-02-PLAN.md — CNROM and AxROM boards, one per task with their synthetic cases and wording (BOARD-01)
+- [x] 07-02-PLAN.md — CNROM and AxROM boards, one per task with their synthetic cases and wording (BOARD-01)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 07-03-PLAN.md — D-13 loader accept/reject matrix, D-10 id walk, six fuzz seeds, BOARD-01 edge classification (BOARD-01)
@@ -187,7 +187,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 4.2. Close gap: SND-01 | v1 | 1/1 | Complete | 2026-10-09 |
 | 5. Tune-up and v1 debt | v2 | 8/8 | Complete    | 2026-10-10 |
 | 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | Complete    | 2026-10-10 |
-| 7. UxROM, CNROM and AxROM | v2 | 1/4 | In Progress | - |
+| 7. UxROM, CNROM and AxROM | v2 | 2/4 | In Progress | - |
 | 8. MMC1 and battery saves | v2 | 0/TBD | Not started | - |
 | 9. MMC3 | v2 | 0/TBD | Not started | - |
 | 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
