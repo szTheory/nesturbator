@@ -4,7 +4,7 @@
  * N:FILE]... nesturbator-run --movie FILE [--rom FILE] [--hash-audio] [--dump-frame N:FILE]...
  *   nesturbator-run --accuracycoin-page N --rom FILE --scoreboard FILE
  *
- * Runs N frames, with optional cartridge content (mappers 0, 2 and 3). A movie supplies the
+ * Runs N frames, with optional cartridge content (mappers 0, 2, 3 and 7). A movie supplies the
  * two port masks for every frame and prints the native hash of every replayed frame.
  * For each --hash-frame N it prints, after frame N has run:
  *
@@ -43,7 +43,7 @@ static int usage(const char *why)
             "[--hash-audio] [--dump-frame N:FILE]...\n"
             "  --frames N           run N frames (N >= 1)\n"
             "  --movie FILE         replay a validated two-port movie\n"
-            "  --rom FILE           load an iNES image (mapper 0, 2 or 3)\n"
+            "  --rom FILE           load an iNES image (mapper 0, 2, 3 or 7)\n"
             "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
             "  --hash-audio         print SHA-256 of canonical transitions and signed PCM\n"
             "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n");
@@ -656,7 +656,7 @@ int main(int argc, char **argv)
         free(bytes);
         if (st != NESTURBATOR_OK) {
             fprintf(stderr,
-                    "nesturbator-run: malformed or unsupported cartridge (status %d); supported mappers are 0, 2 and 3\n",
+                    "nesturbator-run: malformed or unsupported cartridge (status %d); supported mappers are 0, 2, 3 and 7\n",
                     (int)st);
             nesturbator_destroy(inst);
             nesturbator_movie_free(&movie);

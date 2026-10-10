@@ -67,7 +67,7 @@ enum nesturbator_status {
     NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5,
     /* The loaded cartridge executed a JAM opcode; the instance is latched. */
     NESTURBATOR_STOP_JAM = 6,
-    /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 2 UxROM and 3 CNROM). */
+    /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 2 UxROM, 3 CNROM and 7 AxROM). */
     NESTURBATOR_ERR_CARTRIDGE = 7
 };
 typedef enum nesturbator_status nesturbator_status;
@@ -243,8 +243,12 @@ void nesturbator_destroy(nesturbator *inst);
    ROM byte under that write for submappers 0 and 2, raw for submapper 1) and
    mapper 3 (CNROM: 16 or 32 KiB PRG and 8, 16 or 32 KiB CHR ROM, submappers
    0 to 2; a write to $8000-$FFFF selects the 8 KiB CHR bank, with the same
-   AND rule; writes to CHR ROM are ignored). NROM and UxROM take either
-   8 KiB CHR ROM or 8 KiB declared CHR RAM.
+   AND rule; writes to CHR ROM are ignored) and mapper 7 (AxROM: 32 to 256 KiB
+   PRG and 8 KiB declared CHR RAM; a write to $8000-$FFFF selects the 32 KiB
+   bank with bits 0 to 2 and the single-screen nametable page with bit 4,
+   ignoring the header mirroring bit; ANDed with the ROM byte under the write
+   for submapper 2 only; the reset vector is read from bank 0). NROM and UxROM
+   take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
    A trainer initializes the writable 8 KiB PRG RAM at CPU $7000-$71FF;
    other addresses in $6000-$7FFF start at zero. Other mappers, unsupported console/region/RAM
    profiles, malformed headers, truncation, extra payload, and images above

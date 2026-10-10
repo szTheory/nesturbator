@@ -286,6 +286,97 @@ static void test_cnrom_power_on(void)
     release(nes);
 }
 
+/* AxROM: 32 KiB bank b begins at 16 KiB bank 2b, so $8010 reads 0x10 + 2b. */
+static void test_axrom_no_and_submapper0_and_1(void)
+{
+    static const uint8_t seeds[16] = {0x03u};
+    for (uint8_t sub = 0u; sub <= 1u; ++sub) {
+        struct nesturbator *nes = load_board(7u, sub, 1, 16u, 0u, 0, 0, seeds);
+        static const uint8_t ones[4] = {1u, 1u, 1u, 1u};
+        nesturbator__bus_write(nes, 0x8000u, 0x17u);
+        CHECK_EQ_HEX(peek(nes, 0x8010u), 0x1eu);
+        CHECK(memcmp(nes->map.nt, ones, 4u) == 0);
+        release(nes);
+    }
+}
+
+static void test_axrom_and_submapper2(void)
+{
+    static const uint8_t seeds[16] = {0x03u};
+    static const uint8_t zeros[4] = {0u, 0u, 0u, 0u};
+    struct nesturbator *nes = load_board(7u, 2u, 1, 16u, 0u, 0, 0, seeds);
+    nesturbator__bus_write(nes, 0x8000u, 0x17u);
+    CHECK_EQ_HEX(peek(nes, 0x8010u), 0x16u);
+    CHECK(memcmp(nes->map.nt, zeros, 4u) == 0);
+    release(nes);
+}
+
+static void test_axrom_single_screen_ciram(void)
+{
+    static const uint8_t zeros[4] = {0u, 0u, 0u, 0u};
+    static const uint8_t ones[4] = {1u, 1u, 1u, 1u};
+    struct nesturbator *nes = load_board(7u, 1u, 1, 4u, 0u, 0, 0, NULL);
+    /* (a) the write lands: the control for the page-selection steps below */
+    CHECK_EQ_U64(nes->ppu.reset_flag, 0u);
+    CHECK(memcmp(nes->map.nt, zeros, 4u) == 0);
+    ppu_poke(nes, 0x2000u, 0x5au);
+    CHECK_EQ_HEX(nes->ppu.nametable[0x000], 0x5au);
+    /* (b) page selection */
+    nesturbator__bus_write(nes, 0x8000u, 0x10u);
+    CHECK(memcmp(nes->map.nt, ones, 4u) == 0);
+    ppu_poke(nes, 0x2000u, 0xc3u);
+    CHECK_EQ_HEX(nes->ppu.nametable[0x400], 0xc3u);
+    CHECK_EQ_HEX(nes->ppu.nametable[0x000], 0x5au);
+    nesturbator__bus_write(nes, 0x2006u, 0x2cu);
+    nesturbator__bus_write(nes, 0x2006u, 0x00u);
+    (void)nesturbator__bus_read(nes, 0x2007u);
+    CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x2007u), 0xc3u);
+    /* (c) back to page 0 */
+    nesturbator__bus_write(nes, 0x8000u, 0x00u);
+    CHECK(memcmp(nes->map.nt, zeros, 4u) == 0);
+    nesturbator__bus_write(nes, 0x2006u, 0x24u);
+    nesturbator__bus_write(nes, 0x2006u, 0x00u);
+    (void)nesturbator__bus_read(nes, 0x2007u);
+    CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x2007u), 0x5au);
+    release(nes);
+}
+
+static void test_axrom_ignores_header_mirroring(void)
+{
+    static const uint8_t zeros[4] = {0u, 0u, 0u, 0u};
+    struct nesturbator *nes = load_board(7u, 1u, 1, 4u, 0u, 1, 0, NULL);
+    CHECK(memcmp(nes->map.nt, zeros, 4u) == 0);
+    release(nes);
+}
+
+static void test_axrom_prg_wrap(void)
+{
+    struct nesturbator *nes = load_board(7u, 1u, 1, 4u, 0u, 0, 0, NULL);
+    nesturbator__bus_write(nes, 0x8000u, 0x03u);
+    CHECK_EQ_HEX(peek(nes, 0x8010u), 0x12u);
+    release(nes);
+}
+
+static void test_board_power_on_registers(void)
+{
+    struct nesturbator *nes = load_board(2u, 0u, 0, 2u, 0u, 0, 0, NULL);
+    CHECK_EQ_U64(nes->mapper.reg.uxrom.bank, 0u);
+    release(nes);
+    nes = load_board(3u, 0u, 1, 2u, 2u, 0, 0, NULL);
+    CHECK_EQ_U64(nes->mapper.reg.cnrom.bank, 0u);
+    release(nes);
+    nes = load_board(7u, 0u, 1, 4u, 0u, 0, 0, NULL);
+    CHECK_EQ_U64(nes->mapper.reg.axrom.bank, 0u);
+    release(nes);
+}
+
+static void test_axrom_power_on_pc(void)
+{
+    struct nesturbator *nes = load_board_ex(7u, 0u, 1, 8u, 0u, 0, 0, NULL, 0x8123u);
+    CHECK_EQ_HEX(nes->cpu.pc, 0x8123u);
+    release(nes);
+}
+
 int main(void)
 {
     test_uxrom_power_on();
@@ -306,5 +397,12 @@ int main(void)
     test_cnrom_chr_rom_write_dropped();
     test_cnrom_prg_as_nrom();
     test_cnrom_power_on();
+    test_axrom_no_and_submapper0_and_1();
+    test_axrom_and_submapper2();
+    test_axrom_single_screen_ciram();
+    test_axrom_ignores_header_mirroring();
+    test_axrom_prg_wrap();
+    test_board_power_on_registers();
+    test_axrom_power_on_pc();
     CHECK_DONE();
 }

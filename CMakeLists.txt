@@ -55,6 +55,7 @@ add_library(nesturbator STATIC
   src/mapper_nrom.c
   src/mapper_uxrom.c
   src/mapper_cnrom.c
+  src/mapper_axrom.c
   src/frame.c
   src/bus.c
   src/apu.c

@@ -72,6 +72,10 @@ static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size,
         /* CNROM: 16 or 32 KiB PRG and 8, 16 or 32 KiB of CHR ROM, never CHR RAM. */
         return !chr_is_ram && submapper <= 2u && (prg_size == 16384u || prg_size == 32768u) &&
                (chr_size == 8192u || chr_size == 16384u || chr_size == 32768u);
+    case 7u:
+        /* AxROM: 32 to 256 KiB of PRG in 32 KiB banks and 8 KiB of CHR RAM. */
+        return chr_is_ram && submapper <= 2u && prg_size >= 32768u && prg_size <= 262144u &&
+               prg_size % 32768u == 0u;
     default:
         return 0;
     }
@@ -177,6 +181,9 @@ int nesturbator__mapper_ops_for(uint16_t id, struct nesturbator__mapper_ops *out
         return 1;
     case 3u:
         nesturbator__mapper_cnrom_ops(out);
+        return 1;
+    case 7u:
+        nesturbator__mapper_axrom_ops(out);
         return 1;
     default:
         return 0;
