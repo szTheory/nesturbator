@@ -4,9 +4,16 @@
 cmake_minimum_required(VERSION 3.25)
 
 include("${CMAKE_CURRENT_LIST_DIR}/../holymapperel/roms.cmake")
-# 36 game and movie rows, plus one frame row per Holy Mapperel ROM.
+# 36 game and movie rows, plus one frame row per Holy Mapperel ROM and one more
+# (the .saved key) for each ROM whose entry ends in :save.
 list(LENGTH NESTURBATOR_HOLYMAPPEREL_ROMS holymapperel_count)
-math(EXPR expected_rows "36 + ${holymapperel_count}")
+set(holymapperel_saved_count 0)
+foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
+  if(entry MATCHES ":save$")
+    math(EXPR holymapperel_saved_count "${holymapperel_saved_count} + 1")
+  endif()
+endforeach()
+math(EXPR expected_rows "36 + ${holymapperel_count} + ${holymapperel_saved_count}")
 
 function(validate_hash_inventory root out_ok out_error)
   file(GLOB candidates LIST_DIRECTORIES true "${root}/hashes-*")
@@ -41,6 +48,9 @@ function(validate_hash_inventory root out_ok out_error)
     list(GET parts 0 hm_key)
     list(GET parts 2 hm_n)
     list(APPEND expected_keys "holymapperel/${hm_key}/frame ${hm_n}")
+    if(entry MATCHES ":save$")
+      list(APPEND expected_keys "holymapperel/${hm_key}.saved/frame ${hm_n}")
+    endif()
   endforeach()
   list(SORT expected_keys)
 
@@ -139,6 +149,9 @@ function(write_hash_fixture root digest)
       list(GET parts 0 hm_key)
       list(GET parts 2 hm_n)
       list(APPEND rows "holymapperel/${hm_key}/frame ${hm_n} ticks 714792 sha256 ${digest}")
+      if(entry MATCHES ":save$")
+        list(APPEND rows "holymapperel/${hm_key}.saved/frame ${hm_n} ticks 714792 sha256 ${digest}")
+      endif()
     endforeach()
     list(SORT rows)
     list(JOIN rows "\n" contents)

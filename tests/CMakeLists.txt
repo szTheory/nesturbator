@@ -177,22 +177,71 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
   if(hm_parts GREATER 4)
     list(GET parts 4 hm_save)
   endif()
-  nesturbator_runner_test(NAME holymapperel.${hm_key}.dump
-    ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
-      --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm"
-    EXIT 0 IGNORE_STDOUT)
-  set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES
-    FIXTURES_SETUP holymapperel_${hm_key} TIMEOUT 120)
-  add_test(NAME holymapperel.${hm_key}.decode
-    COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
-  set_tests_properties(holymapperel.${hm_key}.decode PROPERTIES
-    FIXTURES_REQUIRED holymapperel_${hm_key}
-    PASS_REGULAR_EXPRESSION "^holymapperel: code 0000 \\(")
-  add_test(NAME holymapperel.${hm_key}.prgram
-    COMMAND holymapperel-decode --prg-ram ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
-  set_tests_properties(holymapperel.${hm_key}.prgram PROPERTIES
-    FIXTURES_REQUIRED holymapperel_${hm_key}
-    PASS_REGULAR_EXPRESSION "prg ram \"${hm_text}\"")
+  if(hm_save STREQUAL "save")
+    # SAVE-02 (D-04): the same battery ROM runs twice against one save
+    # directory. Run 1 starts empty and must not show + BATTERY; it leaves a
+    # 32 KiB save carrying Holy Mapperel's SAVEDATA marker at offset 0x100.
+    # Run 2 loads that save and must show + BATTERY.
+    get_filename_component(hm_stem ${hm_file} NAME_WE)
+    set(hm_savedir ${NESTURBATOR_HM_DIR}/${hm_key}-save)
+    add_test(NAME holymapperel.${hm_key}.clean
+      COMMAND ${CMAKE_COMMAND} -DDIR=${hm_savedir}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/clean_dir.cmake)
+    set_tests_properties(holymapperel.${hm_key}.clean PROPERTIES
+      FIXTURES_SETUP holymapperel_${hm_key}_clean)
+    foreach(hm_run IN ITEMS run1 run2)
+      nesturbator_runner_test(NAME holymapperel.${hm_key}.${hm_run}.dump
+        ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
+          --save-dir ${hm_savedir}
+          --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}-${hm_run}.ppm"
+        EXIT 0 IGNORE_STDOUT)
+      add_test(NAME holymapperel.${hm_key}.${hm_run}.decode
+        COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}-${hm_run}.ppm)
+      add_test(NAME holymapperel.${hm_key}.${hm_run}.prgram
+        COMMAND holymapperel-decode --prg-ram ${NESTURBATOR_HM_DIR}/${hm_key}-${hm_run}.ppm)
+      set_tests_properties(holymapperel.${hm_key}.${hm_run}.dump PROPERTIES
+        FIXTURES_SETUP holymapperel_${hm_key}_${hm_run} TIMEOUT 120)
+      set_tests_properties(holymapperel.${hm_key}.${hm_run}.decode PROPERTIES
+        FIXTURES_REQUIRED holymapperel_${hm_key}_${hm_run}
+        PASS_REGULAR_EXPRESSION "^holymapperel: code 0000 \\(")
+    endforeach()
+    # Run 1: no + BATTERY after the closing quote; the save it leaves is checked.
+    set_tests_properties(holymapperel.${hm_key}.run1.dump PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_clean)
+    set_tests_properties(holymapperel.${hm_key}.run1.prgram PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_run1
+      PASS_REGULAR_EXPRESSION "prg ram \"${hm_text}\"")
+    add_test(NAME holymapperel.${hm_key}.run1.sav
+      COMMAND ${CMAKE_COMMAND} -DFILE=${hm_savedir}/${hm_stem}.sav -DSIZE=32768
+        -DOFFSET=256 -DHEX=5341564544415441
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_sav.cmake)
+    set_tests_properties(holymapperel.${hm_key}.run1.sav PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_run1
+      FIXTURES_SETUP holymapperel_${hm_key}_run1_sav)
+    # Run 2 starts only after run 1 and its save check.
+    set_tests_properties(holymapperel.${hm_key}.run2.dump PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_run1_sav)
+    set_tests_properties(holymapperel.${hm_key}.run2.prgram PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_run2
+      PASS_REGULAR_EXPRESSION "prg ram \"${hm_text} \\+ BATTERY\"")
+  else()
+    nesturbator_runner_test(NAME holymapperel.${hm_key}.dump
+      ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
+        --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm"
+      EXIT 0 IGNORE_STDOUT)
+    set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES
+      FIXTURES_SETUP holymapperel_${hm_key} TIMEOUT 120)
+    add_test(NAME holymapperel.${hm_key}.decode
+      COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
+    set_tests_properties(holymapperel.${hm_key}.decode PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}
+      PASS_REGULAR_EXPRESSION "^holymapperel: code 0000 \\(")
+    add_test(NAME holymapperel.${hm_key}.prgram
+      COMMAND holymapperel-decode --prg-ram ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
+    set_tests_properties(holymapperel.${hm_key}.prgram PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}
+      PASS_REGULAR_EXPRESSION "prg ram \"${hm_text}\"")
+  endif()
 endforeach()
 
 # The decoder's unit cases and font table, and the branches that must exit 2:
