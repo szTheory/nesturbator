@@ -31,7 +31,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
 
 - [x] **Phase 5: Tune-up and v1 debt** - CI runs in parallel without flakes, the v1 debt is closed, and a loaded game soft-resets (completed 2026-10-10)
 - [x] **Phase 6: Mapper seam and PPU fetch pipeline** - NROM moves onto a per-board mapper interface with v1 hashes unchanged, then mid-frame scroll writes render as on the console and A12 rises on the documented dots (completed 2026-10-10)
-- [ ] **Phase 7: UxROM, CNROM and AxROM** - Discrete-logic board games run, with bus conflicts where the board has them
+- [x] **Phase 7: UxROM, CNROM and AxROM** - Discrete-logic board games run, with bus conflicts where the board has them (completed 2026-10-10)
 - [ ] **Phase 8: MMC1 and battery saves** - MMC1 games run, and battery saves persist through the runner and RetroArch
 - [ ] **Phase 9: MMC3** - MMC3 games run with the A12-clocked scanline IRQ, and the loader accepts exactly the six v2 mappers
 - [ ] **Phase 10: Close-out and boot-to-play** - Every board's hashes match on six platforms, and a game is proven to play from boot
@@ -110,7 +110,7 @@ Plans:
   2. Synthetic CTest cases show the submapper-0 bus-conflict defaults: the written value ANDed with the ROM byte on mappers 2 and 3, and no conflict on mapper 7.
   3. Synthetic CTest cases show the NES 2.0 submapper 1 and 2 overrides, and that CNROM ignores writes to CHR-ROM.
 
-**Plans**: 4/4 plans executed
+**Plans**: 4/4 plans complete
 
 Plans:
 **Wave 1**
@@ -187,7 +187,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 4.2. Close gap: SND-01 | v1 | 1/1 | Complete | 2026-10-09 |
 | 5. Tune-up and v1 debt | v2 | 8/8 | Complete    | 2026-10-10 |
 | 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | Complete    | 2026-10-10 |
-| 7. UxROM, CNROM and AxROM | v2 | 4/4 | In Progress | - |
+| 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
 | 8. MMC1 and battery saves | v2 | 0/TBD | Not started | - |
 | 9. MMC3 | v2 | 0/TBD | Not started | - |
 | 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
