@@ -339,6 +339,13 @@ add_test(NAME policy.no-skip
     -DCTEST=${CMAKE_CTEST_COMMAND}
     -DBUILD_DIR=${PROJECT_BINARY_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/skip_policy.cmake)
+add_test(NAME policy.no-skip.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DCTEST=${CMAKE_CTEST_COMMAND}
+    -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/no-skip
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    -DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/skip_policy.cmake)
 
 # Exact opcode inventories come from CTest's machine-readable metadata. The
 # policy configures the full preset but never runs its network-backed fixture.
