@@ -894,22 +894,25 @@ Windows branch: `_commit(_fileno(f))`, then `MoveFileExA(tmp, path, MOVEFILE_REP
 | A5 | The six D-20 config key names are accepted by RetroArch 1.22.2 | Verified Inputs | Low. The e2e asserts the outcome (empty `saves/`, one `.srm` at the stem), so a wrong key shows as a failure; the probe worked with defaults. |
 | A6 | Windows `MoveFileExA` with the D-19 flags replaces an existing file on the CI runners | Code Examples | Low. Documented to replace; Windows legs of `ci` run the save tests. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Total RAM of 24 KiB (C5).**
    - What we know: D-08 as worded admits V + N = 24 KiB; no board has it.
    - What's unclear: whether the owner wants it rejected.
    - Recommendation: reject any total outside {0, 8, 16, 32} KiB and add a fuzz seed row `mmc1-ram-24k` and a cartridge-test row. This is within the spirit of D-08 and does not touch a locked value.
+   - RESOLVED: rejected. 08-01 records the decision and implements the sum rule in `board_profile_ok`; 08-02 Task 2 adds the `mmc1-ram-24k` cartridge row; 08-04 Task 1 commits the `mmc1-ram-24k` seed.
 
 2. **Fold Phase 7 WR-01/WR-02 into plan 1?**
    - What we know: they are open, PR #32 is a draft, and Phase 8 adds hash rows that depend on `hash_inventory.cmake` (WR-02).
    - What's unclear: the owner's preference (CONTEXT leaves it open).
    - Recommendation: fold WR-02 into plan 1 only if the planner finds the new SXROM keys cannot be compared across platforms without it; otherwise leave both for `/gsd-quick`.
+   - RESOLVED: not folded. CONTEXT.md lists both under Deferred Ideas, and the byte-equality check against the first artifact already compares the new rows on all six platforms. 08-07 records the decision and only adds keys and counts to `hash_inventory.cmake`.
 
 3. **Trainer plus mapper 1 plus no declared RAM.**
    - What we know: the trainer path allocates 8 KiB regardless; D-06 says it still does.
    - What's unclear: whether MMC1 should map that 8 KiB at `$6000` when the NES 2.0 header declares none.
    - Recommendation: yes (the allocation exists, so the page maps); add a one-line test. It is a corner no real dump has.
+   - RESOLVED: yes, the trainer's 8 KiB maps at `$6000` as work RAM and the span is NULL/0. 08-01 records the decision and allocates `max(V + N, trainer ? 8 KiB : 0)`; 08-02 Task 2 adds the `core.save` case.
 
 ## Environment Availability
 

@@ -139,23 +139,28 @@ Plans:
   4. A CTest case stops `nesturbator-run --save-interval N` after a flush and finds the span's current bytes on disk.
   5. The libretro core returns the span for `RETRO_MEMORY_SAVE_RAM`, and the `retroarch-e2e` job shows RetroArch writing a `.srm` of the span's size and a second session loading it back.
 
-**Plans**: 5 plans
+**Plans**: 8 plans
 
 Plans:
 **Wave 1**
-- [ ] 08-01-PLAN.md — Battery span end to end on mapper 1 at power-on, public save API and guards, D-07/D-08 loader rows, fifteen fuzz seeds (SAVE-01, BOARD-02)
+- [ ] 08-01-PLAN.md — Battery span end to end on mapper 1 at power-on, [V][N] allocation, public save API and its argument cases (SAVE-01, BOARD-02)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 08-02-PLAN.md — Zero-based write stamp (WR-01, WR-03), MMC1 serial port, banking, mirroring and SxROM variants with hook- and CPU-level tests (BOARD-02)
+- [ ] 08-02-PLAN.md — D-07/D-08 loader rows as tests, SOROM offset, accepting seeds and mapper-155, header guards, README save-API text (SAVE-01, BOARD-02)
+- [ ] 08-03-PLAN.md — Holy Mapperel PRG RAM row reader (--prg-ram, letter glyphs) proven on the M2/M3/M7 ROMs (BOARD-02, SAVE-02)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 08-03-PLAN.md — Runner --save-dir and --save-interval in runner/save.c, status 4, atomic write, kill test (SAVE-02, SAVE-03, SAVE-04)
+- [ ] 08-04-PLAN.md — Twelve mapper 1 reject fuzz seeds with manifest lines (BOARD-02, SAVE-01)
+- [ ] 08-05-PLAN.md — Zero-based write stamp (WR-01, WR-03), MMC1 serial port, banking, mirroring and SxROM variants with hook- and CPU-level tests (BOARD-02)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 08-04-PLAN.md — Five Holy Mapperel MMC1 ROMs, PRG RAM row decoder, SXROM two-run + BATTERY chain, 45 pinned hashes (BOARD-02, SAVE-02)
+- [ ] 08-06-PLAN.md — Runner --save-dir and --save-interval in runner/save.c, status 4, atomic write, kill test (SAVE-02, SAVE-03, SAVE-04)
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 08-05-PLAN.md — RETRO_MEMORY_SAVE_RAM, two-session RetroArch save proof, push and green CI (SAVE-05)
+- [ ] 08-07-PLAN.md — Five Holy Mapperel MMC1 ROMs, SXROM two-run + BATTERY chain, 45 pinned hashes (BOARD-02, SAVE-02)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [ ] 08-08-PLAN.md — RETRO_MEMORY_SAVE_RAM, two-session RetroArch save proof, push and green CI (SAVE-05)
 
 **Research flag**: MEDIUM — the SxROM bits, the NES 2.0 RAM sizes in header bytes 10 and 11, RetroArch's SRAM load and save ordering, and how the pinned RetroArch binary handles a `.srm` of the wrong size.
 **Ships**: a release that plays MMC1 games and keeps their saves.
