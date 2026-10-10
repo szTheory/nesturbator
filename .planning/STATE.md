@@ -4,18 +4,18 @@ milestone: v2
 milestone_name: Most of the library plays
 current_phase: 05
 current_phase_name: Tune-up and v1 debt
-status: executing
-stopped_at: Completed 05-06-PLAN.md
-last_updated: "2026-10-10T13:39:44.666Z"
+status: verifying
+stopped_at: Completed 05-07-PLAN.md
+last_updated: "2026-10-10T13:44:41.521Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 05 execution started
-state_head: a9c83215491fd4efc14a812e2b23a670e67b63c1
+state_head: 0ff0fbc97cfb6b3cb3db519e72cab823883f9cf5
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 7
-  completed_plans: 6
-  percent: 86
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -31,10 +31,10 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 
 Phase: 05 (Tune-up and v1 debt) — EXECUTING
 Plan: 7 of 7
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-10 — Phase 05 execution started
 
-Progress: [█████████░] 86% of v2
+Progress: [██████████] 100% of v2
 
 ## Performance Metrics
 
@@ -112,6 +112,7 @@ Progress: [█████████░] 86% of v2
 | Phase 05 P04 | 12 min | 3 tasks | 10 files |
 | Phase 05 P05 | 20 min | 2 tasks | 8 files |
 | Phase 05 P06 | 25 min | 3 tasks | 7 files |
+| Phase 05 P07 | 15 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -135,6 +136,7 @@ Recent decisions affecting current work:
 - [Phase 05]: Parallel CTest uses execution.jobs 4 with COST on the three long tests; no ccache (compile share 4 to 22 percent)
 - [Phase 05]: nesturbator_reset clears the CPU poll latch after the last reset cycle because each bus cycle resamples the IRQ line
 - [Phase 05]: Soft reset: vblank_suppress cleared with the PPU position; $4017 re-applied via frame_reset_delay (phase ? 2 : 1)
+- [Phase 05]: retro_reset only calls nesturbator_reset; no unload or reload path
 
 ### Pending Todos
 
@@ -175,8 +177,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T13:39:44.630Z
-Stopped at: Completed 05-06-PLAN.md
+Last session: 2026-10-10T13:44:41.503Z
+Stopped at: Completed 05-07-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-plan-phase 5`.

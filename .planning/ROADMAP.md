@@ -50,7 +50,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
   4. A CI job fails when a test that its preset expects to run reports itself skipped; the local RetroArch tests either pass on the owner's Mac or are removed, so the hosted `retroarch-e2e` job carries the RetroArch evidence alone.
   5. A CTest case shows that `nesturbator_reset()` keeps CPU RAM and cartridge RAM, enters the reset vector with SP lowered by 3, silences the APU and makes the PPU ignore register writes for the documented interval; `retro_reset()` calls it, the libretro test program's frames after a reset equal those of a direct-API instance of the core given the same frames, reset and frames, and the README and the public header's comments describe the released behaviour.
 
-**Plans**: 6/7 plans executed
+**Plans**: 7/7 plans executed
 
 Plans:
 **Wave 1**
@@ -68,7 +68,7 @@ Plans:
 - [x] 05-06-PLAN.md — PPU write-ignore window from the top of the picture, APU silence, full D-18 coverage and docs (TUNE-06, TUNE-02)
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 05-07-PLAN.md — retro_reset wired to the soft reset, libretro parity with a direct-API instance, README status (TUNE-06, TUNE-02)
+- [x] 05-07-PLAN.md — retro_reset wired to the soft reset, libretro parity with a direct-API instance, README status (TUNE-06, TUNE-02)
 
 **Ships**: a release with parallel CI, the exact release-policy check and a working soft reset.
 
@@ -160,7 +160,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 4. Sound | v1 | 4/4 | Complete | 2026-10-09 |
 | 4.1. Close gap: GAME-01 | v1 | 1/1 | Complete | 2026-10-09 |
 | 4.2. Close gap: SND-01 | v1 | 1/1 | Complete | 2026-10-09 |
-| 5. Tune-up and v1 debt | v2 | 6/7 | In Progress | - |
+| 5. Tune-up and v1 debt | v2 | 7/7 | In Progress | - |
 | 6. Mapper seam and PPU fetch pipeline | v2 | 0/TBD | Not started | - |
 | 7. UxROM, CNROM and AxROM | v2 | 0/TBD | Not started | - |
 | 8. MMC1 and battery saves | v2 | 0/TBD | Not started | - |
