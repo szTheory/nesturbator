@@ -25,7 +25,8 @@ struct nesturbator;
 #define NESTURBATOR_WATCH_PPU_A12 4u
 
 struct nesturbator__mapper_ops {
-    /* Power-on registers; sets map.watch. */
+    /* Sets map.watch. Registers are zero from the loader's memset and kept by a
+       state load, so init does not touch them. */
     void (*init)(struct nesturbator *nes);
     /* Page tables and nt[] from the bank registers. */
     void (*rebuild)(struct nesturbator *nes);
@@ -66,8 +67,14 @@ struct nesturbator__map {
     uint8_t a12; /* last A12 level seen on the PPU address bus */
 };
 
-/* Chooses the board from nes->mapper.id, then runs init and rebuild (src/cartridge.c). */
-void nesturbator__mapper_load(struct nesturbator *nes);
+/* The only switch on the board id: fills out and returns 1 when a board
+   exists, else 0 (src/cartridge.c). */
+int nesturbator__mapper_ops_for(uint16_t id, struct nesturbator__mapper_ops *out);
+
+/* Chooses the board from nes->mapper.id, then runs init and rebuild
+   (src/cartridge.c). Returns 1, or 0 when no board matches the id; registers
+   are kept, so a state load can call it. */
+int nesturbator__mapper_load(struct nesturbator *nes);
 
 /* Fills out with the NROM board (src/mapper_nrom.c). */
 void nesturbator__mapper_nrom_ops(struct nesturbator__mapper_ops *out);

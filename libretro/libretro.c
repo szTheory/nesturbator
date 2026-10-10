@@ -2,8 +2,9 @@
  * client of nesturbator.h. "Lnnn" is a line of the vendored libretro.h
  * (RetroArch v1.22.2, see PROVENANCE.md).
  *
- * Without content the core shows its built-in test card; mapper-0 content is
- * copied into the instance before the frontend's buffer expires. */
+ * Without content the core shows its built-in test card; cartridge content is
+ * copied into the instance before the frontend's buffer expires; nesturbator.h
+ * lists the supported boards. */
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

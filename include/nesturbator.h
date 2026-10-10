@@ -243,9 +243,9 @@ void nesturbator_destroy(nesturbator *inst);
    profiles, malformed headers, truncation, extra payload, and images above
    64 MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and
    leave a previously loaded cartridge untouched. Allocation failure returns
-   NESTURBATOR_ERR_NO_MEMORY. A loaded image resets the CPU from its PRG reset
-   vector at the end of the PRG data (including the upper bank of 32 KiB NROM).
-   Unload releases cartridge state. */
+   NESTURBATOR_ERR_NO_MEMORY. A loaded image starts the CPU at the reset vector
+   read through the board's power-on banks. An image whose mapper has no board
+   is refused before any allocation. Unload releases cartridge state. */
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
 void nesturbator_unload_cartridge(nesturbator *inst);
 

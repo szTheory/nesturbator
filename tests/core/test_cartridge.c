@@ -5,6 +5,7 @@
 #include "internal.h"
 #include "nesturbator.h"
 #include "../check.h"
+#include "../ines.h"
 
 typedef struct counts {
     unsigned allocs, frees;
@@ -250,6 +251,66 @@ static void test_trainer_is_visible_through_cpu_bus(void)
         free(rom);
     }
 }
+/* D-10: an image whose mapper has no board is refused before any allocation
+   and leaves the loaded cartridge, the CPU and the allocator count alone. */
+static void test_unboarded_id_leaves_instance(void)
+{
+    nesturbator_config cfg;
+    nesturbator *inst = NULL;
+    counts c = {0, 0, 0};
+    uint8_t good[16u + 16384u + 8192u];
+    uint8_t other[16u + 16384u + 8192u];
+    struct ines_spec spec;
+    struct nesturbator *nes;
+    const uint8_t *bytes;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    cfg.allocator.alloc = count_alloc;
+    cfg.allocator.free = count_free;
+    cfg.allocator.user = &c;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+    nes = (struct nesturbator *)inst;
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.reset_vector = 0x8123u;
+    CHECK_EQ_U64(ines_build(good, sizeof good, &spec), sizeof good);
+    spec.mapper = 1u;
+    CHECK_EQ_U64(ines_build(other, sizeof other, &spec), sizeof other);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, good, sizeof good), NESTURBATOR_OK);
+    bytes = nes->cart.bytes;
+    {
+        unsigned allocs = c.allocs;
+        uint16_t pc = nes->cpu.pc;
+        CHECK_EQ_HEX(pc, 0x8123u);
+        CHECK_EQ_U64(nesturbator_load_cartridge(inst, other, sizeof other),
+                     NESTURBATOR_ERR_CARTRIDGE);
+        CHECK(nes->cart.bytes == bytes);
+        CHECK_EQ_HEX(nes->cpu.pc, pc);
+        CHECK_EQ_U64(c.allocs, allocs);
+    }
+    nesturbator_destroy(inst);
+}
+/* A NES 2.0 mapper 0 image with 8 KiB declared CHR-RAM loads. */
+static void test_nes2_chr_ram_nrom_loads(void)
+{
+    nesturbator_config cfg;
+    nesturbator *inst = NULL;
+    uint8_t img[16u + 16384u];
+    struct ines_spec spec;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.nes2 = 1u;
+    CHECK_EQ_U64(ines_build(img, sizeof img, &spec), sizeof img);
+    CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, img, sizeof img), NESTURBATOR_OK);
+    CHECK_EQ_U64(((struct nesturbator *)inst)->cart.chr_size, 8192u);
+    nesturbator_destroy(inst);
+}
 int main(void)
 {
     test_formats_and_lifetime();
@@ -257,5 +318,7 @@ int main(void)
     test_32k_reset_vector_comes_from_upper_prg_bank();
     test_trainer_is_visible_through_cpu_bus();
     test_trainerless_ram_stays_unmapped();
+    test_unboarded_id_leaves_instance();
+    test_nes2_chr_ram_nrom_loads();
     CHECK_DONE();
 }

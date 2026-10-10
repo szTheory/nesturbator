@@ -1,6 +1,8 @@
-/* Mapper-0 cartridge ownership and PRG access. */
+/* Cartridge ownership, validation and board choice. */
 #include <string.h>
 #include <stdint.h>
+
+#include "internal.h"
 
 #define NESTURBATOR_CART_MAX_SIZE (64u * 1024u * 1024u)
 
@@ -53,10 +55,28 @@ static int nes2_ram_size(uint8_t shift, size_t *out)
     return 1;
 }
 
+/* The accepted shapes of each board (BOARD-01): submapper range, PRG size and
+   CHR kind. Every other id has no row and is refused. */
+static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size, size_t chr_size,
+                            int chr_is_ram)
+{
+    if (!chr_is_ram && chr_size != 8192u)
+        return 0;
+    switch (mapper) {
+    case 0u:
+        return submapper == 0u && (prg_size == 16384u || prg_size == 32768u);
+    default:
+        return 0;
+    }
+}
+
 static int validate_image(const uint8_t *image, size_t size, struct cartridge_layout *layout)
 {
     size_t total;
     int nes2;
+    uint16_t mapper;
+    uint8_t submapper = 0u;
+    struct nesturbator__mapper_ops probe;
     if (size < 16u || size > NESTURBATOR_CART_MAX_SIZE || image[0] != 'N' || image[1] != 'E' ||
         image[2] != 'S' || image[3] != 0x1au)
         return 0;
@@ -68,11 +88,12 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
         return 0;
     layout->trainer_size = (image[6] & 4u) != 0u ? 512u : 0u;
     layout->chr_is_ram = 0;
+    mapper = (uint16_t)((image[6] >> 4) | (image[7] & 0xf0u));
     if (nes2) {
         size_t prg_ram, prg_nvram, chr_ram, chr_nvram;
-        uint16_t mapper =
-            (uint16_t)((image[6] >> 4) | (image[7] & 0xf0u) | ((image[8] & 0x0fu) << 8));
-        if (mapper != 0u || (image[8] >> 4) != 0u || image[7] & 3u || image[13] != 0u ||
+        mapper = (uint16_t)(mapper | ((image[8] & 0x0fu) << 8));
+        submapper = (uint8_t)(image[8] >> 4);
+        if (image[7] & 3u || image[13] != 0u ||
             image[14] != 0u || image[15] != 0u || image[12] != 0u)
             return 0;
         if (!nes2_rom_size(image[4], image[9] & 0x0fu, 16384u, &layout->prg_size) ||
@@ -86,12 +107,12 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
             return 0;
         if (layout->chr_size == 0u && chr_ram == 8192u)
             layout->chr_is_ram = 1;
-        else if (layout->chr_size != 8192u || chr_ram != 0u)
+        else if (chr_ram != 0u)
             return 0;
         if (image[6] & 2u)
             return 0;
     } else {
-        if ((image[6] >> 4) != 0u || (image[7] & 0xf3u) != 0u)
+        if ((image[7] & 0xf3u) != 0u)
             return 0;
         for (size_t i = 8u; i < 16u; ++i)
             if (image[i] != 0u)
@@ -99,25 +120,22 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
         if (!checked_mul(image[4], 16384u, &layout->prg_size) ||
             !checked_mul(image[5], 8192u, &layout->chr_size))
             return 0;
-        if (image[4] == 0u || (image[4] != 1u && image[4] != 2u))
-            return 0;
         if (image[5] == 0u)
             layout->chr_is_ram = 1;
-        else if (image[5] != 1u)
-            return 0;
     }
-    if (layout->prg_size != 16384u && layout->prg_size != 32768u)
-        return 0;
-    if (!layout->chr_is_ram && layout->chr_size != 8192u)
+    if (!board_profile_ok(mapper, submapper, layout->prg_size, layout->chr_size,
+                          layout->chr_is_ram))
         return 0;
     if (!checked_add(16u, layout->trainer_size, &total) ||
         !checked_add(total, layout->prg_size, &total) ||
         !checked_add(total, layout->chr_size, &total) || total != size)
         return 0;
+    /* Probe the board switch before anything is allocated, so an image whose
+       mapper has no board leaves the instance as it was (D-10). */
+    if (!nesturbator__mapper_ops_for(mapper, &probe))
+        return 0;
     return 1;
 }
-
-#include "internal.h"
 
 void nesturbator_unload_cartridge(nesturbator *inst)
 {
@@ -139,21 +157,29 @@ void nesturbator_unload_cartridge(nesturbator *inst)
     inst->audio_rem = 0;
 }
 
-/* The only place a board is chosen: later boards add a case. A state load
-   calls this too, because the pages are derived and never serialised
-   (ARCHITECTURE section 6). */
-void nesturbator__mapper_load(struct nesturbator *nes)
+/* The only place a board is chosen; each board adds a case. validate_image
+   probes it before allocating (D-10). */
+int nesturbator__mapper_ops_for(uint16_t id, struct nesturbator__mapper_ops *out)
+{
+    switch (id) {
+    case 0u:
+        nesturbator__mapper_nrom_ops(out);
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+/* A state load calls this too, because the pages are derived and never
+   serialised (ARCHITECTURE section 6). */
+int nesturbator__mapper_load(struct nesturbator *nes)
 {
     memset(&nes->map, 0, sizeof nes->map);
-    switch (nes->mapper.id) {
-    case 0u:
-        nesturbator__mapper_nrom_ops(&nes->map.ops);
-        break;
-    default:
-        return;
-    }
+    if (!nesturbator__mapper_ops_for(nes->mapper.id, &nes->map.ops))
+        return 0;
     nes->map.ops.init(nes);
     nes->map.ops.rebuild(nes);
+    return 1;
 }
 
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size)
@@ -198,7 +224,7 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
         memset(inst->cart.prg_ram, 0, 8192u);
         memcpy(inst->cart.prg_ram + 0x1000u, image + 16u, 512u);
     }
-    inst->cart.chr_size = 8192u;
+    inst->cart.chr_size = layout.chr_is_ram ? 8192u : layout.chr_size;
     inst->cart.chr_is_ram = (uint8_t)layout.chr_is_ram;
     if (layout.chr_is_ram)
         inst->cart.chr = copy + chr_ram_offset;
@@ -212,17 +238,12 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     memset(&inst->cpu, 0, sizeof inst->cpu);
     inst->cpu.s = 0xfdu;
     inst->cpu.p = 0x24u;
-    /* The reset vector is at the end of PRG ROM; 16 KiB NROM mirrors its
-       single bank, while 32 KiB NROM stores the vectors in the upper bank.
-       [HWP.14] */
-    inst->cpu.pc = (uint16_t)(inst->cart.prg[layout.prg_size - 4u] |
-                              ((uint16_t)inst->cart.prg[layout.prg_size - 3u] << 8));
     inst->ticks = 0;
     inst->frame_number = 0;
     inst->audio_rem = 0;
     inst->cpu_cycle = 0;
     /* iNES: mapper number from flags 6 and 7; NES2: bits 8-11 in byte 8 and the
-       submapper in its high nibble. The validator accepts mapper 0 only today. */
+       submapper in its high nibble. The per-board profile decides what the validator accepts. */
     memset(&inst->mapper, 0, sizeof inst->mapper);
     inst->mapper.id = (uint16_t)((image[6] >> 4) | (image[7] & 0xf0u));
     if ((image[7] & 0x0cu) == 0x08u) {
@@ -230,6 +251,15 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
         inst->mapper.submapper = (uint8_t)(image[8] >> 4);
     }
     /* Last, so the pages see the final cartridge pointers. */
-    nesturbator__mapper_load(inst);
+    if (!nesturbator__mapper_load(inst)) {
+        /* Unreachable: validate_image probed the same switch. */
+        nesturbator_unload_cartridge(inst);
+        return NESTURBATOR_ERR_CARTRIDGE;
+    }
+    /* The reset vector is read through the board's power-on pages, not the
+       file's last bytes: AxROM powers on in bank 0 (D-11). No bus cycle, no
+       time. */
+    inst->cpu.pc = (uint16_t)(nesturbator__map_cpu_read(inst, 0xfffcu) |
+                              ((uint16_t)nesturbator__map_cpu_read(inst, 0xfffdu) << 8));
     return NESTURBATOR_OK;
 }
