@@ -1,5 +1,6 @@
-/* D-01: bounded mapper-0 image validation through the public API. */
+/* Per-board image validation through the public API (D-01, D-09, D-10, D-13). */
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "internal.h"
@@ -311,6 +312,154 @@ static void test_nes2_chr_ram_nrom_loads(void)
     CHECK_EQ_U64(((struct nesturbator *)inst)->cart.chr_size, 8192u);
     nesturbator_destroy(inst);
 }
+
+/* D-13: one row per accepted or refused image shape. Each row loads on a fresh instance and a
+   mismatch prints the row's label. */
+struct board_row {
+    const char *label;
+    uint16_t mapper;
+    uint8_t nes2, submapper;
+    uint16_t prg_banks; /* 16 KiB units; above 255 the NES 2.0 MSB nibble is used */
+    uint8_t chr_8k;     /* 0 is CHR-RAM */
+    uint8_t or_idx, or_val; /* header byte patch, OR-ed in; or_idx 0 means none */
+    int size_delta;         /* +1 trailing byte, -1 missing byte */
+    int diskdude;
+    nesturbator_status want;
+};
+#define OK_ NESTURBATOR_OK
+#define BAD_ NESTURBATOR_ERR_CARTRIDGE
+static const struct board_row board_rows[] = {
+    /* accept */
+    {"uxrom-8-sub0", 2, 1, 0, 8, 0, 0, 0, 0, 0, OK_},
+    {"uxrom-8-sub1", 2, 1, 1, 8, 0, 0, 0, 0, 0, OK_},
+    {"uxrom-8-sub2", 2, 1, 2, 8, 0, 0, 0, 0, 0, OK_},
+    {"uxrom-16-sub0", 2, 1, 0, 16, 0, 0, 0, 0, 0, OK_},
+    {"uxrom-16-sub1", 2, 1, 1, 16, 0, 0, 0, 0, 0, OK_},
+    {"uxrom-16-sub2", 2, 1, 2, 16, 0, 0, 0, 0, 0, OK_},
+    {"uxrom-8-ines1", 2, 0, 0, 8, 0, 0, 0, 0, 0, OK_},
+    {"uxrom-16-ines1", 2, 0, 0, 16, 0, 0, 0, 0, 0, OK_},
+    {"uxrom-4mib", 2, 1, 0, 256, 0, 0, 0, 0, 0, OK_},
+    {"cnrom-chr-1", 3, 0, 0, 1, 1, 0, 0, 0, 0, OK_},
+    {"cnrom-chr-2", 3, 0, 0, 1, 2, 0, 0, 0, 0, OK_},
+    {"cnrom-chr-4", 3, 0, 0, 2, 4, 0, 0, 0, 0, OK_},
+    {"cnrom-sub2", 3, 1, 2, 1, 1, 0, 0, 0, 0, OK_},
+    {"axrom-1", 7, 0, 0, 2, 0, 0, 0, 0, 0, OK_},
+    {"axrom-2", 7, 0, 0, 4, 0, 0, 0, 0, 0, OK_},
+    {"axrom-4", 7, 0, 0, 8, 0, 0, 0, 0, 0, OK_},
+    {"axrom-8", 7, 0, 0, 16, 0, 0, 0, 0, 0, OK_},
+    {"axrom-vertical", 7, 0, 0, 4, 0, 6, 1, 0, 0, OK_},
+    {"axrom-sub2", 7, 1, 2, 2, 0, 0, 0, 0, 0, OK_},
+    /* refuse: mappers without a board */
+    {"mapper-1", 1, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
+    {"mapper-4", 4, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
+    {"mapper-5", 5, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
+    {"mapper-6", 6, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
+    {"mapper-8", 8, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
+    {"nes2-mapper-256", 256, 1, 0, 1, 0, 0, 0, 0, 0, BAD_},
+    {"nes2-mapper-4095", 4095, 1, 0, 1, 0, 0, 0, 0, 0, BAD_},
+    /* refuse: submappers */
+    {"uxrom-sub3", 2, 1, 3, 2, 0, 0, 0, 0, 0, BAD_},
+    {"cnrom-sub3", 3, 1, 3, 1, 1, 0, 0, 0, 0, BAD_},
+    {"axrom-sub3", 7, 1, 3, 2, 0, 0, 0, 0, 0, BAD_},
+    {"nrom-sub1", 0, 1, 1, 1, 1, 0, 0, 0, 0, BAD_},
+    /* refuse: sizes and CHR kinds */
+    {"cnrom-chr-ram", 3, 0, 0, 1, 0, 0, 0, 0, 0, BAD_},
+    {"cnrom-chr-64k", 3, 0, 0, 1, 8, 0, 0, 0, 0, BAD_},
+    {"cnrom-prg-64k", 3, 0, 0, 4, 1, 0, 0, 0, 0, BAD_},
+    {"uxrom-chr-rom-16k", 2, 0, 0, 2, 2, 0, 0, 0, 0, BAD_},
+    {"uxrom-4mib-plus-16k", 2, 1, 0, 257, 0, 0, 0, 0, 0, BAD_},
+    {"axrom-chr-rom", 7, 0, 0, 2, 1, 0, 0, 0, 0, BAD_},
+    {"axrom-prg-48k", 7, 0, 0, 3, 0, 0, 0, 0, 0, BAD_},
+    {"axrom-prg-16k", 7, 0, 0, 1, 0, 0, 0, 0, 0, BAD_},
+    {"axrom-512k", 7, 0, 0, 32, 0, 0, 0, 0, 0, BAD_},
+    {"prg-ram", 2, 1, 0, 2, 0, 10, 0x07, 0, 0, BAD_},
+    /* refuse: four-screen, battery, trailing and missing bytes, DiskDude */
+    {"uxrom-four-screen", 2, 0, 0, 2, 0, 6, 0x08, 0, 0, BAD_},
+    {"cnrom-four-screen", 3, 0, 0, 1, 1, 6, 0x08, 0, 0, BAD_},
+    {"axrom-four-screen", 7, 0, 0, 2, 0, 6, 0x08, 0, 0, BAD_},
+    {"uxrom-battery", 2, 0, 0, 2, 0, 6, 0x02, 0, 0, BAD_},
+    {"cnrom-battery", 3, 0, 0, 1, 1, 6, 0x02, 0, 0, BAD_},
+    {"axrom-battery", 7, 0, 0, 2, 0, 6, 0x02, 0, 0, BAD_},
+    {"uxrom-trailing", 2, 0, 0, 2, 0, 0, 0, 1, 0, BAD_},
+    {"cnrom-trailing", 3, 0, 0, 1, 1, 0, 0, 1, 0, BAD_},
+    {"axrom-trailing", 7, 0, 0, 2, 0, 0, 0, 1, 0, BAD_},
+    {"uxrom-truncated", 2, 0, 0, 2, 0, 0, 0, -1, 0, BAD_},
+    {"cnrom-truncated", 3, 0, 0, 1, 1, 0, 0, -1, 0, BAD_},
+    {"axrom-truncated", 7, 0, 0, 2, 0, 0, 0, -1, 0, BAD_},
+    {"diskdude", 2, 0, 0, 2, 0, 0, 0, 0, 1, BAD_},
+};
+static void test_board_profiles(void)
+{
+    const size_t cap = 16u + (size_t)257u * INES_PRG_BANK + 8u * INES_CHR_BANK + 8u;
+    uint8_t *img = malloc(cap);
+    CHECK(img != NULL);
+    if (img == NULL)
+        return;
+    for (size_t i = 0u; i < sizeof board_rows / sizeof board_rows[0]; ++i) {
+        const struct board_row *r = &board_rows[i];
+        nesturbator_config cfg;
+        nesturbator *inst = NULL;
+        size_t size;
+        nesturbator_status got;
+        if (r->prg_banks > 255u) {
+            size = 16u + (size_t)r->prg_banks * INES_PRG_BANK;
+            memset(img, 0, size);
+            memcpy(img, "NES\032", 4u);
+            img[4] = (uint8_t)(r->prg_banks & 0xffu);
+            img[7] = 0x08u | (uint8_t)(r->mapper & 0xf0u);
+            img[6] = (uint8_t)((r->mapper & 0x0fu) << 4);
+            img[8] = (uint8_t)(((unsigned)r->submapper << 4) | ((r->mapper >> 8) & 0x0fu));
+            img[9] = (uint8_t)(r->prg_banks >> 8);
+            img[11] = 0x07u;
+        } else {
+            struct ines_spec spec;
+            memset(&spec, 0, sizeof spec);
+            spec.prg_16k = (uint8_t)r->prg_banks;
+            spec.chr_8k = r->chr_8k;
+            spec.nes2 = r->nes2;
+            spec.mapper = r->mapper;
+            spec.submapper = r->submapper;
+            spec.reset_vector = 0x8000u;
+            size = ines_build(img, cap, &spec);
+            CHECK(size != 0u);
+        }
+        if (r->or_idx != 0u)
+            img[r->or_idx] |= r->or_val;
+        if (r->diskdude)
+            memcpy(img + 7, "DiskDude!", 9u);
+        if (r->size_delta > 0)
+            img[size++] = 0u;
+        else if (r->size_delta < 0)
+            size--;
+        memset(&cfg, 0, sizeof cfg);
+        cfg.size = (uint32_t)sizeof cfg;
+        cfg.abi = NESTURBATOR_ABI_VERSION;
+        CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+        got = nesturbator_load_cartridge(inst, img, size);
+        if (got != r->want)
+            fprintf(stderr, "board row %s: got %d want %d\n", r->label, (int)got, (int)r->want);
+        CHECK_EQ_U64(got, r->want);
+        nesturbator_destroy(inst);
+    }
+    free(img);
+}
+/* D-10: the board switch and the profiles agree on exactly the ids with a board. */
+static void test_board_switch_matches_profiles(void)
+{
+    unsigned boarded = 0u;
+    for (unsigned id = 0u; id <= 4095u; ++id) {
+        struct nesturbator__mapper_ops ops;
+        int has = nesturbator__mapper_ops_for((uint16_t)id, &ops);
+        int want = id == 0u || id == 2u || id == 3u || id == 7u;
+        CHECK_EQ_U64(has, want);
+        if (has) {
+            boarded++;
+            CHECK(ops.init != NULL);
+            CHECK(ops.rebuild != NULL);
+        }
+    }
+    CHECK_EQ_U64(boarded, 4u);
+}
 int main(void)
 {
     test_formats_and_lifetime();
@@ -320,5 +469,7 @@ int main(void)
     test_trainerless_ram_stays_unmapped();
     test_unboarded_id_leaves_instance();
     test_nes2_chr_ram_nrom_loads();
+    test_board_profiles();
+    test_board_switch_matches_profiles();
     CHECK_DONE();
 }
