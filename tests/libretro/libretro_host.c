@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "../check.h"
+#include "../ines.h"
 #include "../../src/internal.h"
 #include "libretro.h"
 #include "nesturbator.h"
@@ -359,6 +360,61 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size, co
     }
     p_unload_game();
     memset(host_buttons, 0, sizeof host_buttons);
+}
+
+static void check_trainer_frame_parity(const char *runner, const char *rom_path,
+                                       const char *ppm_path)
+{
+    /* The trainer is copied to $7000 by the loader; only its code sets the backdrop to $16 and
+       turns the background on. PRG just jumps there. */
+    static const uint8_t trainer_code[23] = {0xa9, 0x3f, 0x8d, 0x06, 0x20, 0xa9, 0x00, 0x8d,
+                                             0x06, 0x20, 0xa9, 0x16, 0x8d, 0x07, 0x20, 0xa9,
+                                             0x0a, 0x8d, 0x01, 0x20, 0x4c, 0x14, 0x70};
+    static const uint8_t prg_code[3] = {0x4c, 0x00, 0x70};
+    static uint8_t trainer[INES_TRAINER_SIZE];
+    static uint8_t image[16u + INES_TRAINER_SIZE + INES_PRG_BANK + INES_CHR_BANK];
+    struct ines_spec spec;
+    struct retro_game_info game;
+    size_t image_size;
+    FILE *rom;
+    char frame_argument[4096];
+    const char *const command[] = {runner, "--rom", rom_path, "--frames", "1", "--dump-frame",
+                                   frame_argument, NULL};
+
+    memcpy(trainer, trainer_code, sizeof trainer_code);
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.trainer = trainer;
+    spec.prg_code = prg_code;
+    spec.prg_code_len = sizeof prg_code;
+    spec.nmi_vector = 0x8000u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    image_size = ines_build(image, sizeof image, &spec);
+    CHECK(image_size != 0u);
+    if (image_size == 0u) {
+        return;
+    }
+
+    p_unload_game();
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = image_size;
+    CHECK(p_load_game(&game));
+    p_run();
+    CHECK_EQ_HEX(frame[0], 0xBA3100u);
+
+    rom = fopen(rom_path, "wb");
+    CHECK(rom != NULL);
+    if (rom != NULL) {
+        CHECK(fwrite(image, 1, image_size, rom) == image_size);
+        CHECK(fclose(rom) == 0);
+    }
+    CHECK(snprintf(frame_argument, sizeof frame_argument, "1:%s", ppm_path) > 0);
+    CHECK_EQ_U64(test_process_run(command, NULL), 0u);
+    compare_with_ppm(ppm_path);
+    p_unload_game();
 }
 
 static void check_sound_frame_parity(unsigned char *image, size_t image_size)
@@ -761,6 +817,7 @@ int main(int argc, char **argv)
     CHECK(memcmp(frame, first_content_frame, sizeof frame) == 0);
     p_unload_game();
     check_input_frame_parity(dummy_bytes, sizeof dummy_bytes, argv[4], argv[5], argv[3]);
+    check_trainer_frame_parity(argv[4], argv[5], argv[3]);
     check_sound_frame_parity(dummy_bytes, sizeof dummy_bytes);
     video_calls = 0;
     sample_calls = 0;
