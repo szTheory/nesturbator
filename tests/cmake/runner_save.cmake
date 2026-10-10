@@ -133,6 +133,32 @@ elseif(CASE STREQUAL "unwritable")
   if(NOT run_err MATCHES "battery\\.sav\\.tmp")
     message(FATAL_ERROR "runner_save unwritable: stderr does not name the temp file\n${run_err}")
   endif()
+elseif(CASE STREQUAL "interval")
+  # The run never ends by itself; the timeout kills it. Frame 1 already
+  # changed the span, so the interval flush must have left the bytes behind.
+  execute_process(COMMAND "${RUNNER}" --rom "${battery}" --frames 4294967295
+      --save-dir "${WORK}" --save-interval 1
+    TIMEOUT 4 OUTPUT_QUIET ERROR_QUIET RESULT_VARIABLE rc)
+  if(NOT rc MATCHES "timeout")
+    message(FATAL_ERROR "runner_save interval: the run ended with '${rc}', not a timeout")
+  endif()
+  expect_size("${sav}" 8192)
+  expect_bytes("${sav}" 0 "53415645")
+elseif(CASE STREQUAL "interval_long")
+  # No interval flush falls inside three frames; the exit flush writes the file.
+  run_runner(--rom "${battery}" --frames 3 --save-dir "${WORK}" --save-interval 5)
+  expect_exit(0)
+  expect_size("${sav}" 8192)
+  expect_bytes("${sav}" 0 "5341564500")
+elseif(CASE STREQUAL "jam")
+  # The exit flush runs after a JAM, so the byte stored before it is kept.
+  run_runner(--rom "${FIXTURE}/jam.nes" --frames 5 --save-dir "${WORK}")
+  expect_exit(1)
+  if(NOT run_err MATCHES "JAM")
+    message(FATAL_ERROR "runner_save jam: stderr does not report the JAM\n${run_err}")
+  endif()
+  expect_size("${WORK}/jam.sav" 8192)
+  expect_bytes("${WORK}/jam.sav" 0 "4a")
 else()
   message(FATAL_ERROR "runner_save: unknown CASE ${CASE}")
 endif()

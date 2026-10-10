@@ -129,6 +129,10 @@ runner_save_case(unchanged)
 runner_save_case(nodir)
 runner_save_case(batteryless)
 runner_save_case(unwritable)
+runner_save_case(interval)
+runner_save_case(interval_long)
+runner_save_case(jam)
+set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
 
 # D-18: save flag usage errors exit 2.
 set(save_rom_arg ${PROJECT_SOURCE_DIR}/tests/roms/none.nes)

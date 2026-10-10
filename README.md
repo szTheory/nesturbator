@@ -688,6 +688,7 @@ runner prints a diagnostic and exits nonzero for rejected content.
 
 ```sh
 nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
+                [--save-dir DIR [--save-interval N]]
 ```
 
 - `--frames N` runs N frames (N is 1 or more). It is required; without it
@@ -734,6 +735,36 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   in the RGB of the colour table. N follows the `--hash-frame` rules, and the
   option can be repeated. The image is converted by `host/convert.c`, the same
   loop the libretro adapter uses, so both show the same colours.
+- `--save-dir DIR` keeps the battery RAM of a mapper 1 cartridge in
+  `DIR/<name>.sav`. It needs `--rom` and cannot be combined with
+  `--accuracycoin-page`. `<name>` is the last component of the `--rom` path
+  (split at `/` or `\` on every platform) without its last extension, so
+  `roms/game.v1.nes` uses `DIR/game.v1.sav`. After the cartridge loads and
+  before the first frame the runner reads that file into the battery RAM; with
+  no file the RAM starts zeroed. When the run ends, including after a JAM, it
+  writes the RAM back if the CPU wrote to it and the bytes changed. The write
+  goes to `DIR/<name>.sav.tmp`, is synced, and is renamed over the save, so a
+  kill leaves the previous save and at most a stale `.tmp`. A run that writes
+  the same bytes leaves the file and its modification time alone. A `.sav` is
+  the RAM's raw bytes with no header, the same bytes as RetroArch's `.srm`. A
+  cartridge without battery RAM reads and writes nothing, and without
+  `--save-dir` no save file is read or written anywhere. A save or rename
+  failure, or a `DIR` that does not exist, exits 1. A `.sav` whose length is
+  not the battery RAM's size (a 0-byte file included) is never padded,
+  truncated or rewritten: the runner prints
+  `<path> is <a> bytes; the cartridge's battery RAM is <b> bytes`, runs no
+  frames and exits 4. The runner takes no lock: two runners on one directory,
+  or two ROMs with the same name, share one save file, and the size check
+  catches a clash of different sizes.
+- `--save-interval N` (N of 1 or more, needs `--save-dir`) also writes a
+  changed save after every Nth frame, counted from 1, so a runner stopped
+  after a flush leaves the RAM as it was then. With `--frames 3
+  --save-interval 5` no interval write falls inside the run, and the write at
+  exit still happens. `--save-interval 0`, a repeated or empty `--save-dir`,
+  and `--save-dir` without `--rom` exit 2.
+
+Exit status: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch; 3 and
+77 are reserved.
 
 Each hashed frame prints one line:
 
