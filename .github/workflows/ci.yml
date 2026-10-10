@@ -218,15 +218,37 @@ jobs:
           -DEXPECTED_VERSION=1.22.2
           -DVERSION_PLIST="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/Info.plist"
           -P tests/retroarch/run_retroarch.cmake
+      - name: Compare the RetroArch battery save round trip
+        run: >-
+          cmake
+          -DCORE="$GITHUB_WORKSPACE/build/ci/libretro/nesturbator_libretro.dylib"
+          -DINFO="$GITHUB_WORKSPACE/libretro/nesturbator_libretro.info"
+          -DRUNNER="$GITHUB_WORKSPACE/build/ci/runner/nesturbator-run"
+          -DCOMPARE="$GITHUB_WORKSPACE/build/ci/tests/retroarch/compare_frame"
+          -DRA_DIR="$GITHUB_WORKSPACE/build/retroarch-e2e/run-save"
+          -DTEMPLATE="$GITHUB_WORKSPACE/tests/retroarch/test.cfg.in"
+          -DSAVE_ROM="$GITHUB_WORKSPACE/tests/roms/hm/M1_P512K_CR8K_S32K.nes"
+          -DSAVE_FRAME=400
+          -DRETROARCH="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/MacOS/RetroArch"
+          -DEXPECTED_VERSION=1.22.2
+          -DVERSION_PLIST="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/Info.plist"
+          -P tests/retroarch/run_retroarch.cmake
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: retroarch-e2e-frames
           path: |
             build/retroarch-e2e/asset-evidence.txt
-            build/retroarch-e2e/run/runner.ppm
-            build/retroarch-e2e/run/shot.png
-            build/retroarch-e2e/run/shot.bmp
+            build/retroarch-e2e/run/runner-game.ppm
+            build/retroarch-e2e/run/shot-game.png
+            build/retroarch-e2e/run/shot-game.bmp
+            build/retroarch-e2e/run-save/runner-s1.ppm
+            build/retroarch-e2e/run-save/runner-s2.ppm
+            build/retroarch-e2e/run-save/shot-s1.png
+            build/retroarch-e2e/run-save/shot-s1.bmp
+            build/retroarch-e2e/run-save/shot-s2.png
+            build/retroarch-e2e/run-save/shot-s2.bmp
+            build/retroarch-e2e/run-save/saves/M1_P512K_CR8K_S32K.srm
           if-no-files-found: error
 
   # The one required check. GitHub reports a skipped job as success and skips
