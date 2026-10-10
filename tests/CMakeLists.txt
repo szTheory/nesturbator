@@ -154,6 +154,8 @@ nesturbator_runner_test(NAME runner.usage.save_interval.nodir
 add_executable(runner.save_path runner/test_save.c ${PROJECT_SOURCE_DIR}/runner/save.c)
 target_include_directories(runner.save_path PRIVATE ${PROJECT_SOURCE_DIR}/runner)
 nesturbator_warnings(runner.save_path)
+target_compile_definitions(runner.save_path PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 add_test(NAME runner.save_path COMMAND runner.save_path)
 
 # Holy Mapperel (BOARD-01): each ROM in roms.cmake is run to its frame N, the
