@@ -203,7 +203,8 @@ typedef struct nesturbator_frame {
     uint32_t audio_count;    /* out: samples written to audio */
     uint64_t frame_number;   /* out: frames run by this instance, 1 after the first */
     uint64_t ticks;          /* out: emulated time in half master-clock periods
-                                since create; instructions may carry residual
+                                since create, including the 7 CPU cycles of
+                                each nesturbator_reset; instructions may carry residual
                                 ticks across the nominal 714732-tick boundary.
                                 PPU vblank begins at scanline 241 dot 1 and ends
                                 at scanline 261 dot 1; a status read just before
@@ -221,8 +222,8 @@ void nesturbator_get_version(nesturbator_version *out);
  * gives NESTURBATOR_ERR_ARGUMENT; a failed allocation gives
  * NESTURBATOR_ERR_NO_MEMORY. *out is written only on NESTURBATOR_OK.
  * An instance holds a 2A03 CPU, a 6502 without decimal mode, that matches
- * the public 65x02 test vectors on every opcode and bus cycle. The CPU does
- * not yet run during frames.
+ * the public 65x02 test vectors on every opcode and bus cycle. The CPU runs
+ * during every frame.
  * A new instance has no cartridge: each frame is a fixed test pattern and
  * silence. */
 nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator **out);
@@ -286,6 +287,16 @@ nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *i
  * min(count, 512) entries; out NULL or count 0 does nothing. inst is reserved
  * for per-PPU-revision tables and may be NULL. */
 void nesturbator_get_palette(const nesturbator *inst, uint32_t *out_xrgb8888, uint32_t count);
+
+/* Soft reset: the console's Reset button. Call it between frames.
+ * inst NULL gives NESTURBATOR_ERR_ARGUMENT. With no cartridge loaded it
+ * returns NESTURBATOR_OK and changes nothing. It never allocates or frees.
+ * CPU RAM, cartridge RAM (PRG RAM and CHR RAM), the registers A, X and Y and
+ * the host's input state are kept, so battery saves survive. The controller
+ * strobe and shift registers and a pending OAM DMA are cleared. The CPU sets
+ * the I flag, clears a JAM latch, lowers S by 3 and takes the reset vector in
+ * 7 bus cycles, which count in ticks; frame_number does not change. */
+nesturbator_status nesturbator_reset(nesturbator *inst);
 
 #ifdef __cplusplus
 }
