@@ -139,7 +139,24 @@ Plans:
   4. A CTest case stops `nesturbator-run --save-interval N` after a flush and finds the span's current bytes on disk.
   5. The libretro core returns the span for `RETRO_MEMORY_SAVE_RAM`, and the `retroarch-e2e` job shows RetroArch writing a `.srm` of the span's size and a second session loading it back.
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+- [ ] 08-01-PLAN.md — Battery span end to end on mapper 1 at power-on, public save API and guards, D-07/D-08 loader rows, fifteen fuzz seeds (SAVE-01, BOARD-02)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 08-02-PLAN.md — Zero-based write stamp (WR-01, WR-03), MMC1 serial port, banking, mirroring and SxROM variants with hook- and CPU-level tests (BOARD-02)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 08-03-PLAN.md — Runner --save-dir and --save-interval in runner/save.c, status 4, atomic write, kill test (SAVE-02, SAVE-03, SAVE-04)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 08-04-PLAN.md — Five Holy Mapperel MMC1 ROMs, PRG RAM row decoder, SXROM two-run + BATTERY chain, 45 pinned hashes (BOARD-02, SAVE-02)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 08-05-PLAN.md — RETRO_MEMORY_SAVE_RAM, two-session RetroArch save proof, push and green CI (SAVE-05)
+
 **Research flag**: MEDIUM — the SxROM bits, the NES 2.0 RAM sizes in header bytes 10 and 11, RetroArch's SRAM load and save ordering, and how the pinned RetroArch binary handles a `.srm` of the wrong size.
 **Ships**: a release that plays MMC1 games and keeps their saves.
 
@@ -188,7 +205,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 5. Tune-up and v1 debt | v2 | 8/8 | Complete    | 2026-10-10 |
 | 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | Complete    | 2026-10-10 |
 | 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
-| 8. MMC1 and battery saves | v2 | 0/TBD | Not started | - |
+| 8. MMC1 and battery saves | v2 | 0/5 | Planned | - |
 | 9. MMC3 | v2 | 0/TBD | Not started | - |
 | 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
 
