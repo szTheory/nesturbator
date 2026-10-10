@@ -6,17 +6,16 @@
 
 static struct nesturbator nes;
 static uint8_t chr[8192];
-static uint8_t header[16];
 static uint16_t pixels[NESTURBATOR_WIDTH * NESTURBATOR_HEIGHT];
 
 static void setup(void)
 {
     memset(&nes, 0, sizeof nes);
     memset(chr, 0, sizeof chr);
-    memset(header, 0, sizeof header);
     memset(pixels, 0, sizeof pixels);
-    nes.cart.bytes = header;
-    nes.cart.chr = chr;
+    /* The PPU reads pattern data through the board's page map. */
+    for (unsigned i = 0u; i < 8u; ++i)
+        nes.map.chr_r[i] = chr + i * 1024u;
     nes.ppu.mask = 0x0au; /* background plus leftmost 8 pixels */
     nes.ppu.scanline = 0u;
     nes.ppu.video_output = pixels;
