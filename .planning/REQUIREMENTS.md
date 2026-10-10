@@ -15,7 +15,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. "Holy
 - [ ] **TUNE-02**: Action pins and runner labels are current, the phase verification records the AccuracyCoin pin as reviewed, and the README and the public header's comments describe the released code.
 - [x] **TUNE-03**: The release-policy self-test fails when the publish gate has any extra condition, such as an appended `|| always()`.
 - [x] **TUNE-04**: A synthetic trainer-bearing image runs through the runner and through the libretro test program, and both deliver equal frames.
-- [ ] **TUNE-05**: The local RetroArch tests either run on the owner's Mac or are removed, so the hosted `retroarch-e2e` job carries that evidence alone. A CI job fails when a test that its preset expects to run reports itself skipped.
+- [x] **TUNE-05**: The local RetroArch tests either run on the owner's Mac or are removed, so the hosted `retroarch-e2e` job carries that evidence alone. A CI job fails when a test that its preset expects to run reports itself skipped.
 - [ ] **TUNE-06**: `nesturbator_reset()` soft-resets a loaded game. A test shows that CPU RAM, battery RAM and mapper registers are kept. It also shows that the CPU enters the reset vector with SP lowered by 3, that the APU is silenced, and that the PPU ignores register writes for the documented interval. `retro_reset()` calls it, and the libretro test program's frames after a reset equal those of a direct-API instance of the core given the same frames, reset and frames.
 
 ### Mapper interface and PPU
@@ -104,7 +104,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TUNE-02 | Phase 5 | Pending |
 | TUNE-03 | Phase 5 | Complete |
 | TUNE-04 | Phase 5 | Complete |
-| TUNE-05 | Phase 5 | Pending |
+| TUNE-05 | Phase 5 | Complete |
 | TUNE-06 | Phase 5 | Pending |
 | MAP-01 | Phase 6 | Pending |
 | MAP-02 | Phase 6 | Pending |

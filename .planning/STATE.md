@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 05
 current_phase_name: Tune-up and v1 debt
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-10-10T13:13:24.802Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-10-10T13:19:55.996Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 05 execution started
-state_head: 231e96b394c1541721285b2f4ac568c696335f6a
+state_head: ba02b6dfc921e7d9582a99b4278a85e0a951041c
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 7
-  completed_plans: 2
-  percent: 29
+  completed_plans: 3
+  percent: 43
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 ## Current Position
 
 Phase: 05 (Tune-up and v1 debt) — EXECUTING
-Plan: 3 of 7
+Plan: 4 of 7
 Status: Ready to execute
 Last activity: 2026-10-10 — Phase 05 execution started
 
-Progress: [███░░░░░░░] 29% of v2
+Progress: [████░░░░░░] 43% of v2
 
 ## Performance Metrics
 
@@ -108,6 +108,7 @@ Progress: [███░░░░░░░] 29% of v2
 | Phase 04.2 P01 | 6 min | 2 tasks | 4 files |
 | Phase 05 P01 | 15 min | 2 tasks | 1 files |
 | Phase 05 P02 | 10 min | 2 tasks | 2 files |
+| Phase 05 P03 | 15 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -127,6 +128,7 @@ Recent decisions affecting current work:
 - [Phase 03]: Keep behavior revision 4 because generated frame and audio hashes are byte-identical.
 - [Phase 04.2]: Preserve batch audio as the primary libretro path; use the single-sample callback only when batch audio is unavailable. — Batch delivery remains efficient for capable hosts, while the mutually exclusive fallback supports sample-only frontends without dropping PCM or duplicating output.
 - [Phase 05]: Release publish gate compared by exact job-scoped line equality to canonical CMake variables
+- [Phase 05]: policy.no-skip has no allowlist; unrunnable tests are not registered and host-app checks live in retroarch-e2e
 
 ### Pending Todos
 
@@ -167,8 +169,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T13:13:24.776Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-10-10T13:19:55.972Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-plan-phase 5`.
