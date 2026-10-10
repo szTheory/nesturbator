@@ -182,8 +182,6 @@ jobs:
       - name: Prepare protected-main scoreboard baseline
         run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake
       - name: Build and run the local test suite
-        env:
-          NESTURBATOR_RETROARCH: /tmp/retroarch-e2e-not-installed-yet
         run: cmake --workflow --preset ci
       - name: Install and verify the pinned RetroArch candidate
         env:
@@ -216,7 +214,6 @@ jobs:
           -DTEMPLATE="$GITHUB_WORKSPACE/tests/retroarch/test.cfg.in"
           -DROM="$GITHUB_WORKSPACE/tests/roms/nesteroids.nes"
           -DFRAME=60
-          -DREQUIRED=ON
           -DRETROARCH="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/MacOS/RetroArch"
           -DEXPECTED_VERSION=1.22.2
           -DVERSION_PLIST="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/Info.plist"

@@ -1,4 +1,4 @@
-# RetroArch configuration for retroarch.testframe (D-18). run_retroarch.cmake
+# RetroArch configuration for the hosted retroarch-e2e job (D-18). run_retroarch.cmake
 # writes it to <build>/retroarch/test.cfg with @RA_DIR@ replaced, and starts
 # RetroArch with -c on it, so the user's own retroarch.cfg is never read.
 #

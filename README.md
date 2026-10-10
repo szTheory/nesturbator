@@ -184,10 +184,14 @@ Each lane is one command, `cmake --workflow --preset <lane>`.
 |---|---|
 | `ci` | Release build with warnings as errors; every test passes, the library installs and builds a separate consumer, and the three release archives are written |
 | `ci-msvc` | The same as `ci`, built with MSVC on Windows |
-| `asan` | Every test except the RetroArch launch passes under AddressSanitizer and UBSan, with any report fatal |
+| `asan` | Every test passes under AddressSanitizer and UBSan, with any report fatal |
 | `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
 | `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
+
+Tests never skip: a test that cannot run somewhere is not registered there, and
+`policy.no-skip` fails when any registered test could report itself skipped or
+is disabled.
 
 `fuzz.regress` replays checked-in malformed cartridge seeds through the public
 cartridge load/unload lifecycle on every CI platform. The Linux nightly builds
@@ -265,7 +269,7 @@ checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
 `libretro.host` loads the built libretro core at run time, calls it in the
 order RetroArch does, and checks that the frame it receives equals the
 runner's dumped image pixel for pixel, plus four colours written into the
-test. `retroarch.compare` checks `compare_frame`, the tool the RetroArch test
+test. `retroarch.compare` checks `compare_frame`, the tool the hosted `retroarch-e2e` job
 uses to compare a screenshot with the runner's frame. It writes one picture as
 a P6 image and as BMPs in each layout `sips` can produce (40, 108 and
 124-byte headers, 24 and 32 bits per pixel, either row order), and requires
@@ -717,38 +721,10 @@ the test card:
 /Applications/RetroArch.app/Contents/MacOS/RetroArch -L build/ci/libretro/nesturbator_libretro.dylib
 ```
 
-To check RetroArch's picture without looking at it:
-
-```sh
-ctest --preset ci -L retroarch
-```
-
-This runs `retroarch.testframe` and `retroarch.game`. The first starts RetroArch with the
-configuration `build/ci/retroarch/test.cfg`, generated from
-`tests/retroarch/test.cfg.in`, so your own RetroArch settings are never read.
-That configuration points every directory and file RetroArch uses under
-`build/ci/retroarch`, turns off content history, and stops the macOS app
-unpacking its bundled assets into your RetroArch directory. Its first-run
-configuration and support files also use a temporary home under that build
-directory, so the test leaves your home untouched. RetroArch runs the core for
-5 frames and writes a screenshot of the core's frame. `sips` converts it
-to BMP, and `compare_frame` requires it to equal the runner's frame 5 at
-exactly 256x240, pixel for pixel. The test also lists RetroArch's directory
-in your home folder before and after the run, and fails if anything in it was
-created, changed or removed. RetroArch opens a window, so the test needs a
-logged-in desktop session. Set `NESTURBATOR_RETROARCH` to use a RetroArch
-binary somewhere else. On other systems, or when RetroArch is not installed,
-the test reports itself skipped. If RetroArch exits unsuccessfully, CMake
-reports its captured stdout and stderr separately. On a local macOS GUI
-session, an abort with no captured output is also skipped in optional mode;
-required hosted mode treats the same abort as a failure.
-
-`retroarch.game` loads the manifest-listed Nesteroids image from the build
-tree, runs through frame 60, and compares RetroArch's captured image with the
-runner's frame 60. The selected frame shows the game's title screen. The
-required-mode driver also rejects missing RetroArch, game content, screenshots
-and launch failures instead of skipping; the local CTest remains optional when
-RetroArch is not installed or the GUI session aborts without output.
+RetroArch's picture is checked by the hosted `retroarch-e2e` CI job, not by a
+local test. It installs the pinned RetroArch 1.22.2 on a macOS runner, runs the
+core on the manifest-listed Nesteroids image, and compares RetroArch's
+screenshot with the runner's frame; this is where RetroArch is checked.
 
 The official RetroArch v1.22.2 macOS release is
 [`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),

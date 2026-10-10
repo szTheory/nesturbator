@@ -90,7 +90,6 @@
       "name": "asan",
       "configurePreset": "asan",
       "output": { "outputOnFailure": true },
-      "filter": { "exclude": { "label": "retroarch" } },
       "execution": { "noTestsAction": "error" },
       "environment": { "UBSAN_OPTIONS": "print_stacktrace=1" }
     },
