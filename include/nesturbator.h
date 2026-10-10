@@ -338,12 +338,12 @@ nesturbator_status nesturbator_reset(nesturbator *inst);
  * NVRAM], work RAM first. The save span is the N battery bytes; a SOROM image
  * with a work half exposes only its battery half. The size comes from the
  * header: iNES 1 gives 8 KiB (32 KiB above 256 KiB of PRG), all of it battery
- * when flag 6 bit 1 is set and none otherwise; NES 2.0 gives V from the low
+ * when flag 6 bit 1 is set and none otherwise; NES 2 gives V from the low
  * and N from the high nibble of byte 10, and its battery bit must equal N != 0.
  * Sizes for iNES 1 mapper 1: PRG up to 256 KiB with battery, an 8 KiB span;
  * above 256 KiB, 32 KiB; without battery, the RAM is work RAM and there is no
  * span. V = N = 0 leaves $6000-$7FFF as open bus. An iNES 1 SOROM dump gets
- * 8 KiB (its work half cannot be told apart); a true SOROM needs a NES 2.0
+ * 8 KiB (its work half cannot be told apart); a true SOROM needs a NES 2
  * header.
  *
  * nesturbator_get_memory writes the span to *data and *size. A NULL inst, data
