@@ -50,7 +50,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
   4. A CI job fails when a test that its preset expects to run reports itself skipped; the local RetroArch tests either pass on the owner's Mac or are removed, so the hosted `retroarch-e2e` job carries the RetroArch evidence alone.
   5. A CTest case shows that `nesturbator_reset()` keeps CPU RAM and cartridge RAM, enters the reset vector with SP lowered by 3, silences the APU and makes the PPU ignore register writes for the documented interval; `retro_reset()` calls it, the libretro test program's frames after a reset equal those of a direct-API instance of the core given the same frames, reset and frames, and the README and the public header's comments describe the released behaviour.
 
-**Plans**: 7/7 plans executed
+**Plans**: 7/8 plans executed
 
 Plans:
 **Wave 1**
@@ -69,6 +69,9 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 - [x] 05-07-PLAN.md — retro_reset wired to the soft reset, libretro parity with a direct-API instance, README status (TUNE-06, TUNE-02)
+
+**Gap closure** *(UAT G-05-2, G-05-3)*
+- [ ] 05-08-PLAN.md — gcc-14 conversion fix in test_reset.c with a gcc-14 sweep of phase 5 sources; suite-flake timeout 30 min (TUNE-01, TUNE-02, TUNE-06)
 
 **Ships**: a release with parallel CI, the exact release-policy check and a working soft reset.
 
