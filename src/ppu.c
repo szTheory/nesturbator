@@ -199,21 +199,17 @@ uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr)
 {
     addr &= 0x3fffu;
     if (addr < 0x2000u) {
-        if (nes->cart.bytes == NULL)
-            return 0;
-        return nes->cart.chr[addr & 0x1fffu];
+        const uint8_t *page = nes->map.chr_r[addr >> 10];
+        return page != NULL ? page[addr & 0x3ffu] : 0u;
     }
     if (addr < 0x3f00u) {
         uint16_t offset = (uint16_t)((addr - 0x2000u) & 0x0fffu);
         uint16_t table = (uint16_t)(offset >> 10);
         uint16_t within = (uint16_t)(offset & 0x03ffu);
-        uint16_t ciram;
-        /* iNES flags 6 bit 0 selects vertical (1) or horizontal (0)
-           mirroring for mapper 0. Four-screen boards are rejected at load. [HWP.14] */
-        if (nes->cart.bytes != NULL && (nes->cart.bytes[6] & 1u) != 0u)
-            ciram = (uint16_t)((table & 1u) * 0x400u + within);
-        else
-            ciram = (uint16_t)((table >> 1) * 0x400u + within);
+        /* Mirroring is the board's nt[] map: one 1 KiB CIRAM bank per nametable.
+           For NROM it comes from iNES flags 6 bit 0. Four-screen boards are
+           rejected at load. [HWP.14] */
+        uint16_t ciram = (uint16_t)(nes->map.nt[table] * 0x400u + within);
         return nes->ppu.nametable[ciram];
     }
     addr = (uint16_t)((addr - 0x3f00u) & 0x1fu);
@@ -226,17 +222,14 @@ void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
 {
     addr &= 0x3fffu;
     if (addr < 0x2000u) {
-        if (nes->cart.chr_is_ram)
-            nes->cart.chr[addr & 0x1fffu] = value;
+        uint8_t *page = nes->map.chr_w[addr >> 10];
+        if (page != NULL)
+            page[addr & 0x3ffu] = value;
     } else if (addr < 0x3f00u) {
         uint16_t offset = (uint16_t)((addr - 0x2000u) & 0x0fffu);
         uint16_t table = (uint16_t)(offset >> 10);
         uint16_t within = (uint16_t)(offset & 0x03ffu);
-        uint16_t ciram;
-        if (nes->cart.bytes != NULL && (nes->cart.bytes[6] & 1u) != 0u)
-            ciram = (uint16_t)((table & 1u) * 0x400u + within);
-        else
-            ciram = (uint16_t)((table >> 1) * 0x400u + within);
+        uint16_t ciram = (uint16_t)(nes->map.nt[table] * 0x400u + within);
         nes->ppu.nametable[ciram] = value;
     } else {
         addr = (uint16_t)((addr - 0x3f00u) & 0x1fu);

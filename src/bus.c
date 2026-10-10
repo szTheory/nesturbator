@@ -27,6 +27,8 @@ static void cycle(struct nesturbator *nes)
     nesturbator__apu_clock(nes);
     nes->ticks += 15u;
     ppu_catch_up(nes);
+    /* The index of the cycle that just ran, for mapper write stamps (D-04). */
+    nes->cpu_cycle++;
 }
 
 static uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr)
@@ -52,10 +54,8 @@ static uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr)
     } else if (addr < 0x4000u) {
         uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
         nes->bus.open_bus = nesturbator__ppu_register_read(nes, reg);
-    } else if (addr >= 0x6000u && addr < 0x8000u && nes->cart.prg_ram != NULL) {
-        nes->bus.open_bus = nes->cart.prg_ram[addr - 0x6000u];
-    } else if (addr >= 0x8000u && nes->cart.bytes != NULL) {
-        nes->bus.open_bus = nesturbator__cart_read(nes, addr);
+    } else if (addr >= 0x4020u) {
+        nes->bus.open_bus = nesturbator__map_cpu_read(nes, addr);
     }
     return nes->bus.open_bus;
 }
@@ -78,7 +78,7 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read)
         (void)bus_read_data(nes, parked_read);
     }
     cycle(nes); /* DMC memory get. [HWC.01, HWC.09] */
-    dmc->sample_buffer = nesturbator__cart_read(nes, dmc->address);
+    dmc->sample_buffer = nesturbator__map_cpu_read(nes, dmc->address);
     nes->bus.open_bus = dmc->sample_buffer;
     dmc->buffer_empty = 0u;
     dmc->dma_pending = 0u;
@@ -90,7 +90,7 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read)
             dmc->remaining = (uint16_t)(((uint32_t)dmc->reg[3] << 4) | 1u);
         } else if ((dmc->reg[0] & 0x80u) != 0u) {
             dmc->irq = 1u;
-            nes->cpu.irq_line = 1u;
+            nesturbator__irq_update(nes);
         }
     }
     return 1u;
@@ -146,8 +146,6 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
     } else if (addr < 0x4000u) {
         uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
         nesturbator__ppu_register_write(nes, reg, value);
-    } else if (addr >= 0x6000u && addr < 0x8000u && nes->cart.prg_ram != NULL) {
-        nes->cart.prg_ram[addr - 0x6000u] = value;
     } else if (addr == 0x4014u) {
         nes->bus.oam_dma_page = value;
         nes->bus.oam_dma_pending = 1u;
@@ -162,5 +160,19 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         nes->bus.controller_strobe = strobe;
     } else if (addr >= 0x4000u && addr <= 0x4017u) {
         nesturbator__apu_write(nes, addr, value);
+    } else if (addr >= 0x4020u) {
+        uint8_t *page = nes->map.cpu_w[(addr - 0x4000u) >> 10];
+        if (page != NULL)
+            page[addr & 0x3ffu] = value;
+        /* The hook follows the store and is not part of it, so a write that
+           lands on a NULL page (NROM's ROM) still reaches the board. With bus
+           conflicts the ROM drives the bus too, so the board sees the AND of
+           both (NESdev "Bus conflict"). */
+        if ((nes->map.watch & NESTURBATOR_WATCH_CPU_WRITE) != 0u) {
+            uint8_t v = value;
+            if ((nes->map.watch & NESTURBATOR_WATCH_BUS_CONFLICT) != 0u)
+                v = (uint8_t)(value & nesturbator__map_cpu_read(nes, addr));
+            nes->map.ops.cpu_write(nes, addr, v, nes->cpu_cycle);
+        }
     }
 }

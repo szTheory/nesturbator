@@ -4,6 +4,7 @@
 #define NESTURBATOR_INTERNAL_H
 
 #include "nesturbator.h"
+#include "mapper.h"
 
 /* Time unit: one tick is half a master-clock period; NTSC has 24 ticks per
    CPU cycle and 8 per PPU dot (ARCHITECTURE section 2). An average NTSC frame
@@ -152,6 +153,7 @@ struct nesturbator__cartridge {
     size_t prg_size;
     uint8_t *chr;
     uint8_t *prg_ram;
+    size_t chr_size; /* CHR size the loader validated (8192) */
     uint8_t chr_is_ram;
 };
 
@@ -182,10 +184,36 @@ struct nesturbator {
     void *transition_sink_context;
     struct nesturbator__ppu ppu;
     struct nesturbator__cartridge cart;
+    struct nesturbator__mapper mapper; /* board registers: kept by a soft reset */
+    struct nesturbator__map map;       /* derived pages, rebuilt by mapper_load */
+    /* CPU bus cycles since load: kept by nesturbator_reset, zeroed by load and
+       unload. Unlike ticks / 24 it is correct on every region (D-04). */
+    uint64_t cpu_cycle;
     struct nesturbator__profile profile; /* chip-dependent constants */
     uint32_t audio_rem;                  /* sample fraction carried over, in units
                                             of 1/315000 sample per tick */
 };
+
+/* A 1 KiB PRG page by bank number. A true modulo against the loader-validated
+   size, because NES 2.0 sizes need not be powers of two, so a register value
+   cannot point outside the allocation (D-03). */
+static inline const uint8_t *nesturbator__map_prg(const struct nesturbator *nes, uint32_t bank_1k)
+{
+    return nes->cart.prg + (size_t)(bank_1k % (uint32_t)(nes->cart.prg_size / 1024u)) * 1024u;
+}
+
+/* A 1 KiB CHR page by bank number; the same modulo rule. */
+static inline uint8_t *nesturbator__map_chr(const struct nesturbator *nes, uint32_t bank_1k)
+{
+    return nes->cart.chr + (size_t)(bank_1k % (uint32_t)(nes->cart.chr_size / 1024u)) * 1024u;
+}
+
+/* A CPU read of $4020-$FFFF through the page table. A NULL page is open bus (D-03). */
+static inline uint8_t nesturbator__map_cpu_read(struct nesturbator *nes, uint16_t addr)
+{
+    const uint8_t *page = nes->map.cpu_r[(addr - 0x4000u) >> 10];
+    return page != NULL ? page[addr & 0x3ffu] : nes->bus.open_bus;
+}
 
 /* One CPU read cycle at addr: advances time by one CPU cycle and returns the
    value on the data bus (src/bus.c in the library). */
@@ -194,6 +222,10 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
 /* One CPU write cycle of value to addr (src/bus.c in the library). */
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
 void nesturbator__apu_clock(struct nesturbator *nes);
+
+/* The one writer of cpu.irq_line: the frame IRQ (unless inhibited), the DMC IRQ
+   and the board's IRQ ORed. Every source calls it when it changes (NESdev "IRQ"). */
+void nesturbator__irq_update(struct nesturbator *nes);
 void nesturbator__apu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
 void nesturbator__apu_set_transition_sink(struct nesturbator *nes,
                                           nesturbator__transition_sink sink, void *context);
@@ -214,7 +246,6 @@ uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr);
 void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
 uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg);
 void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint8_t value);
-uint8_t nesturbator__cart_read(struct nesturbator *nes, uint16_t addr);
 
 /* Runs one whole instruction, opcode fetch to last cycle (D-11). */
 void nesturbator__cpu_step(struct nesturbator *nes);

@@ -103,10 +103,12 @@ void nesturbator__apu_set_transition_sink(struct nesturbator *nes,
     nes->transition_sink_context = context;
 }
 
-static void update_irq_line(struct nesturbator *nes)
+/* The one writer of the CPU IRQ line. Every source calls it when it changes,
+   so the line stays event-driven (NESdev "IRQ"). */
+void nesturbator__irq_update(struct nesturbator *nes)
 {
     nes->cpu.irq_line = (uint8_t)((nes->apu.frame_irq != 0u && nes->apu.frame_irq_inhibit == 0u) ||
-                                  nes->apu.dmc.irq != 0u);
+                                  nes->apu.dmc.irq != 0u || nes->mapper.irq != 0u);
 }
 
 static void envelope_clock(uint8_t control, uint8_t *divider, uint8_t *decay, uint8_t *start);
@@ -326,7 +328,7 @@ void nesturbator__apu_clock(struct nesturbator *nes)
             (nes->apu.frame_mode != 0u && nes->apu.frame_cycle >= 37282u))
             nes->apu.frame_cycle = 0u;
     }
-    update_irq_line(nes);
+    nesturbator__irq_update(nes);
     update_mixed_level(nes);
     nes->apu.sample_phase += 24u * NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD;
     if (nes->apu.sample_phase >= NESTURBATOR_AUDIO_TICKS_PER_PERIOD) {
@@ -355,7 +357,7 @@ void nesturbator__apu_reset(struct nesturbator *nes)
     nes->apu.dmc.dma_pending = 0u;
     nes->apu.dmc.dma_halt_phase = 0u;
     nes->apu.frame_reset_delay = (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 2u : 1u);
-    update_irq_line(nes);
+    nesturbator__irq_update(nes);
 }
 
 uint8_t nesturbator__apu_status_read(struct nesturbator *nes)
@@ -368,7 +370,7 @@ uint8_t nesturbator__apu_status_read(struct nesturbator *nes)
                   (nes->apu.dmc.remaining != 0u ? 0x10u : 0u) |
                   (nes->apu.frame_irq != 0u ? 0x40u : 0u) | (nes->apu.dmc.irq != 0u ? 0x80u : 0u));
     nes->apu.frame_irq_clear_pending = 1u;
-    update_irq_line(nes);
+    nesturbator__irq_update(nes);
     return status;
 }
 
@@ -383,7 +385,7 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
            writes take four subsequent cycles and PUT writes take three;
            AccuracyCoin page 14 exercises both edges. */
         nes->apu.frame_reset_delay = (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 4u : 3u);
-        update_irq_line(nes);
+        nesturbator__irq_update(nes);
         return;
     }
     if (addr == 0x4015u) {
@@ -422,7 +424,7 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
             nes->apu.dmc.enable_delay = (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 4u : 3u);
         }
         nes->apu.dmc.irq = 0u;
-        update_irq_line(nes);
+        nesturbator__irq_update(nes);
         return;
     }
     if (addr >= 0x4008u && addr <= 0x400bu) {
@@ -464,7 +466,7 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
             dmc->timer = (uint16_t)(dmc_period[value & 0x0fu] / 2u);
             if ((value & 0x80u) == 0u)
                 dmc->irq = 0u;
-            update_irq_line(nes);
+            nesturbator__irq_update(nes);
         } else if (reg == 1u)
             dmc->output = (uint8_t)(value & 0x7fu);
         return;

@@ -131,9 +131,29 @@ void nesturbator_unload_cartridge(nesturbator *inst)
     nesturbator__synth_reset(inst);
     memset(&inst->ppu, 0, sizeof inst->ppu);
     memset(&inst->cpu, 0, sizeof inst->cpu);
+    memset(&inst->mapper, 0, sizeof inst->mapper);
+    memset(&inst->map, 0, sizeof inst->map);
+    inst->cpu_cycle = 0;
     inst->ticks = 0;
     inst->frame_number = 0;
     inst->audio_rem = 0;
+}
+
+/* The only place a board is chosen: later boards add a case. A state load
+   calls this too, because the pages are derived and never serialised
+   (ARCHITECTURE section 6). */
+void nesturbator__mapper_load(struct nesturbator *nes)
+{
+    memset(&nes->map, 0, sizeof nes->map);
+    switch (nes->mapper.id) {
+    case 0u:
+        nesturbator__mapper_nrom_ops(&nes->map.ops);
+        break;
+    default:
+        return;
+    }
+    nes->map.ops.init(nes);
+    nes->map.ops.rebuild(nes);
 }
 
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size)
@@ -178,6 +198,7 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
         memset(inst->cart.prg_ram, 0, 8192u);
         memcpy(inst->cart.prg_ram + 0x1000u, image + 16u, 512u);
     }
+    inst->cart.chr_size = 8192u;
     inst->cart.chr_is_ram = (uint8_t)layout.chr_is_ram;
     if (layout.chr_is_ram)
         inst->cart.chr = copy + chr_ram_offset;
@@ -199,10 +220,16 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     inst->ticks = 0;
     inst->frame_number = 0;
     inst->audio_rem = 0;
+    inst->cpu_cycle = 0;
+    /* iNES: mapper number from flags 6 and 7; NES 2.0: bits 8-11 in byte 8 and the
+       submapper in its high nibble. The validator accepts mapper 0 only today. */
+    memset(&inst->mapper, 0, sizeof inst->mapper);
+    inst->mapper.id = (uint16_t)((image[6] >> 4) | (image[7] & 0xf0u));
+    if ((image[7] & 0x0cu) == 0x08u) {
+        inst->mapper.id = (uint16_t)(inst->mapper.id | ((image[8] & 0x0fu) << 8));
+        inst->mapper.submapper = (uint8_t)(image[8] >> 4);
+    }
+    /* Last, so the pages see the final cartridge pointers. */
+    nesturbator__mapper_load(inst);
     return NESTURBATOR_OK;
-}
-
-uint8_t nesturbator__cart_read(struct nesturbator *nes, uint16_t addr)
-{
-    return nes->cart.prg[(addr - 0x8000u) & (nes->cart.prg_size == 32768u ? 0x7fffu : 0x3fffu)];
 }
