@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "../check.h"
+#include "../ines.h"
 #include "../../src/internal.h"
 #include "libretro.h"
 #include "nesturbator.h"
@@ -359,6 +360,228 @@ static void check_input_frame_parity(unsigned char *image, size_t image_size, co
     }
     p_unload_game();
     memset(host_buttons, 0, sizeof host_buttons);
+}
+
+static void check_ines_builder(void)
+{
+    static uint8_t buf[16u + INES_TRAINER_SIZE + 2u * INES_PRG_BANK + INES_CHR_BANK];
+    struct ines_spec spec;
+    size_t size;
+
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 2u;
+    spec.chr_8k = 1u;
+    spec.mapper = 0x102u;
+    spec.submapper = 1u;
+    spec.nes2 = 1u;
+    spec.mirroring_vertical = 1u;
+    size = ines_build(buf, sizeof buf, &spec);
+    CHECK_EQ_U64(size, 16u + 32768u + 8192u);
+    CHECK_EQ_U64(size, ines_size(&spec));
+    CHECK_EQ_HEX(buf[6], 0x21u);
+    CHECK_EQ_HEX(buf[7], 0x08u);
+    CHECK_EQ_HEX(buf[8], 0x11u);
+    CHECK_EQ_U64(ines_build(buf, size - 1u, &spec), 0u);
+    spec.prg_16k = 0u;
+    CHECK_EQ_U64(ines_build(buf, sizeof buf, &spec), 0u);
+}
+
+static void check_trainer_frame_parity(const char *runner, const char *rom_path,
+                                       const char *ppm_path)
+{
+    /* The trainer is copied to $7000 by the loader; only its code sets the backdrop to $16 and
+       turns the background on. PRG just jumps there. */
+    static const uint8_t trainer_code[23] = {0xa9, 0x3f, 0x8d, 0x06, 0x20, 0xa9, 0x00, 0x8d,
+                                             0x06, 0x20, 0xa9, 0x16, 0x8d, 0x07, 0x20, 0xa9,
+                                             0x0a, 0x8d, 0x01, 0x20, 0x4c, 0x14, 0x70};
+    static const uint8_t prg_code[3] = {0x4c, 0x00, 0x70};
+    static uint8_t trainer[INES_TRAINER_SIZE];
+    static uint8_t image[16u + INES_TRAINER_SIZE + INES_PRG_BANK + INES_CHR_BANK];
+    struct ines_spec spec;
+    struct retro_game_info game;
+    size_t image_size;
+    FILE *rom;
+    char frame_argument[4096];
+    const char *const command[] = {runner, "--rom",        rom_path,       "--frames",
+                                   "1",    "--dump-frame", frame_argument, NULL};
+
+    memcpy(trainer, trainer_code, sizeof trainer_code);
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.trainer = trainer;
+    spec.prg_code = prg_code;
+    spec.prg_code_len = sizeof prg_code;
+    spec.nmi_vector = 0x8000u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    image_size = ines_build(image, sizeof image, &spec);
+    CHECK(image_size != 0u);
+    if (image_size == 0u) {
+        return;
+    }
+
+    p_unload_game();
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = image_size;
+    CHECK(p_load_game(&game));
+    p_run();
+    CHECK_EQ_HEX(frame[0], 0xBA3100u);
+
+    rom = fopen(rom_path, "wb");
+    CHECK(rom != NULL);
+    if (rom != NULL) {
+        CHECK(fwrite(image, 1, image_size, rom) == image_size);
+        CHECK(fclose(rom) == 0);
+    }
+    CHECK(snprintf(frame_argument, sizeof frame_argument, "1:%s", ppm_path) > 0);
+    CHECK_EQ_U64(test_process_run(command, NULL), 0u);
+    compare_with_ppm(ppm_path);
+
+    /* Negative control: without the trainer the same PRG jumps into empty RAM, so the colour
+       came from the trainer and not from the PRG. */
+    p_unload_game();
+    spec.trainer = NULL;
+    image_size = ines_build(image, sizeof image, &spec);
+    CHECK(image_size != 0u);
+    game.data = image;
+    game.size = image_size;
+    CHECK(p_load_game(&game));
+    p_run();
+    CHECK(frame[0] != 0xBA3100u);
+    p_unload_game();
+}
+
+/* Reset parity (TUNE-06, D-18): the module's frames after retro_reset equal a direct-API
+   instance given the same frames, reset and frames. The reset handler counts resets in RAM $10
+   (RAM survives a soft reset) and uses the count to pick the backdrop colour, so the post-reset
+   frames differ from the pre-reset ones only if the reset ran the program again. The handler
+   follows the NESdev Wiki "PPU power up state" init: an unconditional BIT $2002 clears a vblank
+   flag kept from before the reset, then two vblank waits; the second vblank falls about 57,165
+   CPU cycles in, after the write-ignore window (29,667 cycles). Three frames after the reset
+   (about 89,000 cycles) are enough for the palette write and the $2001 write to land. */
+#define RESET_FRAMES 3u
+static uint32_t reset_before[W * H];
+static uint32_t reset_after[RESET_FRAMES][W * H];
+
+static void check_reset_frame_parity(void)
+{
+    static const uint8_t handler[] = {
+        0x78,             /* 8000 SEI */
+        0xe6, 0x10,       /* 8001 INC $10: count resets */
+        0x2c, 0x02, 0x20, /* 8003 BIT $2002: clear a kept vblank flag */
+        0x2c, 0x02, 0x20, /* 8006 wait1: BIT $2002 */
+        0x10, 0xfb,       /* 8009 BPL wait1 */
+        0x2c, 0x02, 0x20, /* 800B wait2: BIT $2002 */
+        0x10, 0xfb,       /* 800E BPL wait2 */
+        0xa9, 0x3f,       /* 8010 LDA #$3F */
+        0x8d, 0x06, 0x20, /* 8012 STA $2006 */
+        0xa9, 0x00,       /* 8015 LDA #$00 */
+        0x8d, 0x06, 0x20, /* 8017 STA $2006 */
+        0xa5, 0x10,       /* 801A LDA $10 */
+        0x29, 0x03,       /* 801C AND #3 */
+        0x18,             /* 801E CLC */
+        0x69, 0x11,       /* 801F ADC #$11: backdrop = count + $11 */
+        0x8d, 0x07, 0x20, /* 8021 STA $2007 */
+        0xa9, 0x0a,       /* 8024 LDA #$0A */
+        0x8d, 0x01, 0x20, /* 8026 STA $2001: background on */
+        0x4c, 0x29, 0x80  /* 8029 JMP $8029 */
+    };
+    static uint8_t trainer[INES_TRAINER_SIZE];
+    static uint8_t image[16u + INES_TRAINER_SIZE + INES_PRG_BANK + INES_CHR_BANK];
+    static uint16_t native[W * H];
+    static int16_t audio[1024];
+    static uint32_t palette[512];
+    struct ines_spec spec;
+    struct retro_game_info game;
+    nesturbator_config cfg;
+    nesturbator_frame io;
+    nesturbator *nes = NULL;
+    size_t image_size;
+    uint8_t counter_before = 0u;
+    uint8_t counter_after = 0u;
+    uint32_t mismatches = 0u;
+
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.trainer = trainer;
+    spec.prg_code = handler;
+    spec.prg_code_len = sizeof handler;
+    spec.nmi_vector = 0x8000u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    image_size = ines_build(image, sizeof image, &spec);
+    CHECK(image_size != 0u);
+    if (image_size == 0u) {
+        return;
+    }
+
+    p_unload_game();
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = image_size;
+    CHECK(p_load_game(&game));
+    for (unsigned i = 0; i < 3u; i++) {
+        p_run();
+    }
+    memcpy(reset_before, frame, sizeof frame);
+    p_reset();
+    for (unsigned i = 0; i < RESET_FRAMES; i++) {
+        p_run();
+        memcpy(reset_after[i], frame, sizeof frame);
+    }
+    p_unload_game();
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &nes), NESTURBATOR_OK);
+    if (nes == NULL) {
+        return;
+    }
+    CHECK_EQ_U64(nesturbator_load_cartridge(nes, image, image_size), NESTURBATOR_OK);
+    memset(&io, 0, sizeof io);
+    io.size = (uint32_t)sizeof io;
+    io.video = native;
+    io.video_pitch = W;
+    io.audio = audio;
+    io.audio_capacity = 1024u;
+    nesturbator_get_palette(nes, palette, 512u);
+    for (unsigned i = 0; i < 3u; i++) {
+        CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+    }
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(nes, 0x0010u, &counter_before), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_reset(nes), NESTURBATOR_OK);
+    for (unsigned i = 0; i < RESET_FRAMES; i++) {
+        CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+        for (uint32_t pixel = 0; pixel < W * H; pixel++) {
+            if (reset_after[i][pixel] != palette[native[pixel] & 0x1ffu]) {
+                mismatches++;
+            }
+        }
+    }
+    CHECK_EQ_U64(mismatches, 0u);
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(nes, 0x0010u, &counter_after), NESTURBATOR_OK);
+    CHECK_EQ_U64(counter_after, (uint64_t)counter_before + 1u);
+    CHECK(reset_after[RESET_FRAMES - 1u][0] != reset_before[0]);
+    nesturbator_destroy(nes);
+}
+
+/* With no game loaded, retro_reset leaves the next frame equal to the one before it. */
+static void check_test_card_reset(void)
+{
+    static uint32_t before[W * H];
+
+    p_unload_game();
+    CHECK(p_load_game(NULL));
+    p_run();
+    memcpy(before, frame, sizeof frame);
+    p_reset();
+    p_run();
+    CHECK(memcmp(before, frame, sizeof frame) == 0);
+    p_unload_game();
 }
 
 static void check_sound_frame_parity(unsigned char *image, size_t image_size)
@@ -761,6 +984,10 @@ int main(int argc, char **argv)
     CHECK(memcmp(frame, first_content_frame, sizeof frame) == 0);
     p_unload_game();
     check_input_frame_parity(dummy_bytes, sizeof dummy_bytes, argv[4], argv[5], argv[3]);
+    check_ines_builder();
+    check_trainer_frame_parity(argv[4], argv[5], argv[3]);
+    check_reset_frame_parity();
+    check_test_card_reset();
     check_sound_frame_parity(dummy_bytes, sizeof dummy_bytes);
     video_calls = 0;
     sample_calls = 0;

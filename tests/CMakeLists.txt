@@ -105,7 +105,11 @@ add_test(NAME runner.write_hashes
     -DOUT=${CMAKE_CURRENT_BINARY_DIR}/hashes.txt
     -DMOVIE_WRITER=$<TARGET_FILE:runner.game_movie>
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/write_hashes.cmake)
-set_tests_properties(runner.write_hashes PROPERTIES FIXTURES_SETUP hashes_txt)
+# In parallel mode CTest starts tests in descending COST and a fresh build has
+# no cost history. On CI run 38011892333 runner.write_hashes and the two
+# vectors.registration_policy tests took up to 48 s, 107 s and 21 s of the
+# macos-15-intel and asan legs, so they start first.
+set_tests_properties(runner.write_hashes PROPERTIES FIXTURES_SETUP hashes_txt COST 50)
 add_test(NAME runner.write_hashes.content
   COMMAND ${CMAKE_COMMAND} -E compare_files
     ${CMAKE_CURRENT_BINARY_DIR}/hashes.txt ${CMAKE_CURRENT_SOURCE_DIR}/runner/hashes.txt)
@@ -153,6 +157,9 @@ nesturbator_core_test(core.synth core/test_synth.c)
 target_include_directories(core.synth PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_core_test(core.cartridge core/test_cartridge.c)
 target_include_directories(core.cartridge PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# D-18: soft reset on a synthetic NROM image with a trainer.
+nesturbator_core_test(core.reset core/test_reset.c)
+target_include_directories(core.reset PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -330,6 +337,23 @@ add_test(NAME vectors.api_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_api_policy.cmake)
 
+# Tests never skip: a test that cannot run on a platform or without a host app
+# is not registered there (wrap it in if()), and a check that needs a host app
+# lives in a required CI job such as retroarch-e2e. This policy fails when any
+# registered test could report itself skipped or is disabled.
+add_test(NAME policy.no-skip
+  COMMAND ${CMAKE_COMMAND}
+    -DCTEST=${CMAKE_CTEST_COMMAND}
+    -DBUILD_DIR=${PROJECT_BINARY_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/skip_policy.cmake)
+add_test(NAME policy.no-skip.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DCTEST=${CMAKE_CTEST_COMMAND}
+    -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/no-skip
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    -DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/skip_policy.cmake)
+
 # Exact opcode inventories come from CTest's machine-readable metadata. The
 # policy configures the full preset but never runs its network-backed fixture.
 add_test(NAME vectors.registration_policy
@@ -339,9 +363,11 @@ add_test(NAME vectors.registration_policy
     -DFULL_BUILD=${PROJECT_BINARY_DIR}/../vectors-full
     -DCTEST=${CMAKE_CTEST_COMMAND}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
+set_tests_properties(vectors.registration_policy PROPERTIES COST 1000)
 add_test(NAME vectors.registration_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
+set_tests_properties(vectors.registration_policy.self_test PROPERTIES COST 200)
 
 # Run-bound full-vector evidence contains the CTest inventory, including tests
 # outside the vector label. Only the 258 full-vector entries define this lane.

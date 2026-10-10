@@ -271,6 +271,10 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
         if (nes->ppu.scanline == 261u && nes->ppu.dot == 1u) {
             nes->ppu.status &= 0x1fu;
             nes->cpu.nmi_pending = 0u;
+            /* The reset signal "is set on reset and cleared at the end of VBlank, by the
+               same signal that clears the VBlank, sprite 0, and overflow flags". [NESdev
+               Wiki, PPU power up state] */
+            nes->ppu.reset_flag = 0u;
         }
         sprite_evaluate(nes);
         sprite_fetch(nes);
@@ -337,11 +341,42 @@ uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg)
     return value;
 }
 
+/* Soft reset. NESdev Wiki "PPU power up state": "The PPU comes out of power and reset at the
+   top of the picture", so the position becomes scanline 0 dot 0. Writes to PPUCTRL, PPUMASK,
+   PPUSCROLL and PPUADDR "are ignored if earlier than ~29658 CPU clocks after reset"; this
+   implementation ignores them until scanline 261 dot 1, which is 29,667 CPU cycles from the
+   start of the reset (29,660 from the first instruction). The VBL flag is "unchanged by reset"
+   and so are v, OAM address and video memory. Control, mask, the w latch, t, fine X, the read
+   buffer and the NMI latches are cleared. vblank_suppress belongs to the position left behind
+   and is cleared with it. The caller catches the PPU up to the CPU first. */
+void nesturbator__ppu_reset(struct nesturbator *nes)
+{
+    nes->ppu.scanline = 0u;
+    nes->ppu.dot = 0u;
+    nes->ppu.control = 0u;
+    nes->ppu.mask = 0u;
+    nes->ppu.address_latch = 0u;
+    nes->ppu.t = 0u;
+    nes->ppu.fine_x = 0u;
+    nes->ppu.read_buffer = 0u;
+    nes->ppu.odd_frame = 0u;
+    nes->ppu.vblank_suppress = 0u;
+    /* The PPU file may not call cpu.c (bus.unit link trap), so the CPU's latches are set here. */
+    nes->cpu.nmi_pending = 0u;
+    nes->cpu.nmi_prev = 0u;
+    nes->ppu.reset_flag = 1u;
+}
+
 void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint8_t value)
 {
     /* PPU I/O retains its last register write independently of CPU bus traffic. [HWP.04] */
     nes->ppu.io_bus = value;
     nes->ppu.io_bus_age = 0u;
+    /* After a reset these four registers ignore writes, without touching the w latch. [NESdev
+       Wiki, PPU registers and PPU power up state] */
+    if (nes->ppu.reset_flag != 0u &&
+        (reg == 0x2000u || reg == 0x2001u || reg == 0x2005u || reg == 0x2006u))
+        return;
     if (reg == 0x2000u) {
         nes->ppu.control = value;
         nes->ppu.t = (uint16_t)((nes->ppu.t & 0xf3ffu) | ((value & 3u) << 10));

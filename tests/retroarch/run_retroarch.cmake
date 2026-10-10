@@ -1,90 +1,53 @@
-# retroarch.testframe (FRAME-05, D-17 to D-20): RetroArch runs the built core
-# unattended, and its screenshot must equal the runner's frame exactly.
+# Hosted RetroArch check (FRAME-05, D-17 to D-20, TUNE-05): RetroArch runs the
+# built core on a pinned game, and its screenshot must equal the runner's frame
+# exactly. Only the hosted retroarch-e2e job runs this script; it fails rather
+# than skips, and no CTest case launches it.
 #
 #   cmake -DCORE=<core module> -DINFO=<.info file> -DRUNNER=<nesturbator-run>
 #         -DCOMPARE=<compare_frame> -DRA_DIR=<build>/retroarch
-#         -DTEMPLATE=<test.cfg.in> -P run_retroarch.cmake
+#         -DTEMPLATE=<test.cfg.in> -DROM=<game.nes> -DFRAME=<frame>
+#         -DRETROARCH=<app executable> -DEXPECTED_VERSION=<version>
+#         -DVERSION_PLIST=<app>/Contents/Info.plist -P run_retroarch.cmake
 #
-# For a real-game required run, also pass -DREQUIRED=ON -DROM=<game.nes>
-# -DFRAME=<frame> -DRETROARCH=<app executable> -DEXPECTED_VERSION=<version>
-# and -DVERSION_PLIST=<app>/Contents/Info.plist. Required mode fails closed;
-# local runs preserve skip-if-unavailable behavior.
-#
-# Where it cannot run (not macOS, or no RetroArch) it prints a line starting
-# "nesturbator-skip:" and reports itself skipped: exit 77 on CMake 3.29 and
-# newer, which have cmake_language(EXIT); on 3.25 to 3.28 it exits 0 and the
-# test's SKIP_REGULAR_EXPRESSION matches the line. Needs a logged-in GUI
-# session, because RetroArch opens a window.
+# Needs a logged-in GUI session, because RetroArch opens a window.
 cmake_minimum_required(VERSION 3.25)
 
-macro(skip reason)
-  message("nesturbator-skip: ${reason}")
-  if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.29)
-    cmake_language(EXIT 77)
-  endif()
-  return()
-endmacro()
-
-foreach(var CORE INFO RUNNER COMPARE RA_DIR TEMPLATE)
-  if(NOT DEFINED ${var})
+foreach(var CORE INFO RUNNER COMPARE RA_DIR TEMPLATE RETROARCH ROM FRAME
+    EXPECTED_VERSION VERSION_PLIST)
+  if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
     message(FATAL_ERROR "run_retroarch.cmake needs -D${var}=...")
   endif()
 endforeach()
 
-# 1. The test is written for the macOS RetroArch app and sips.
+# 1. The script is written for the macOS RetroArch app and sips.
 if(NOT CMAKE_HOST_APPLE)
-  if(REQUIRED)
-    message(FATAL_ERROR "required RetroArch E2E test must run on macOS")
-  endif()
-  skip("RetroArch test runs on macOS only")
+  message(FATAL_ERROR
+    "run_retroarch.cmake runs only on macOS (hosted retroarch-e2e job)")
 endif()
 
-# 2. RetroArch: an override from the environment, else the DMG's location.
-if(DEFINED RETROARCH AND NOT RETROARCH STREQUAL "")
-  set(retroarch "${RETROARCH}")
-elseif(DEFINED ENV{NESTURBATOR_RETROARCH})
-  set(retroarch "$ENV{NESTURBATOR_RETROARCH}")
-else()
-  set(retroarch "/Applications/RetroArch.app/Contents/MacOS/RetroArch")
-endif()
+# 2. The pinned RetroArch app, its version, the ROM and the frame number.
+set(retroarch "${RETROARCH}")
 if(NOT EXISTS "${retroarch}")
-  if(REQUIRED)
-    message(FATAL_ERROR "required RetroArch executable is missing at ${retroarch}")
-  endif()
-  skip("RetroArch not found at ${retroarch}")
+  message(FATAL_ERROR "RetroArch executable is missing at ${retroarch}")
 endif()
+if(NOT EXISTS "${ROM}" OR IS_DIRECTORY "${ROM}")
+  message(FATAL_ERROR "RetroArch test ROM is missing: ${ROM}")
+endif()
+if(NOT FRAME MATCHES "^[1-9][0-9]*$")
+  message(FATAL_ERROR "RetroArch game test needs a positive -DFRAME")
+endif()
+set(frame "${FRAME}")
 
-if(REQUIRED AND (NOT DEFINED ROM OR ROM STREQUAL ""))
-  message(FATAL_ERROR "required RetroArch E2E test needs a pinned game ROM")
+if(NOT EXISTS "${VERSION_PLIST}")
+  message(FATAL_ERROR "RetroArch version plist is missing: ${VERSION_PLIST}")
 endif()
-if(REQUIRED AND (NOT DEFINED EXPECTED_VERSION OR EXPECTED_VERSION STREQUAL ""))
-  message(FATAL_ERROR "required RetroArch E2E test needs an exact expected version")
+execute_process(COMMAND /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${VERSION_PLIST}"
+  RESULT_VARIABLE version_result OUTPUT_VARIABLE measured_version ERROR_VARIABLE version_error)
+string(STRIP "${measured_version}" measured_version)
+if(NOT version_result EQUAL 0 OR NOT measured_version STREQUAL EXPECTED_VERSION)
+  message(FATAL_ERROR "RetroArch version mismatch: expected ${EXPECTED_VERSION}, got '${measured_version}': ${version_error}")
 endif()
-
-if(DEFINED ROM AND NOT ROM STREQUAL "")
-  if(NOT EXISTS "${ROM}" OR IS_DIRECTORY "${ROM}")
-    message(FATAL_ERROR "RetroArch test ROM is missing: ${ROM}")
-  endif()
-  if(NOT DEFINED FRAME OR NOT FRAME MATCHES "^[1-9][0-9]*$")
-    message(FATAL_ERROR "RetroArch game test needs a positive -DFRAME")
-  endif()
-  set(frame "${FRAME}")
-else()
-  set(frame 5)
-endif()
-
-if(DEFINED EXPECTED_VERSION AND NOT EXPECTED_VERSION STREQUAL "")
-  if(NOT DEFINED VERSION_PLIST OR NOT EXISTS "${VERSION_PLIST}")
-    message(FATAL_ERROR "RetroArch version plist is missing: ${VERSION_PLIST}")
-  endif()
-  execute_process(COMMAND /usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "${VERSION_PLIST}"
-    RESULT_VARIABLE version_result OUTPUT_VARIABLE measured_version ERROR_VARIABLE version_error)
-  string(STRIP "${measured_version}" measured_version)
-  if(NOT version_result EQUAL 0 OR NOT measured_version STREQUAL EXPECTED_VERSION)
-    message(FATAL_ERROR "RetroArch version mismatch: expected ${EXPECTED_VERSION}, got '${measured_version}': ${version_error}")
-  endif()
-  message(STATUS "RetroArch version: ${measured_version}")
-endif()
+message(STATUS "RetroArch version: ${measured_version}")
 
 # 3. A fresh directory with the configuration and the core's .info file.
 # Every directory test.cfg names exists, so RetroArch never falls back to a
@@ -100,13 +63,9 @@ configure_file("${TEMPLATE}" "${RA_DIR}/test.cfg" @ONLY)
 file(COPY "${INFO}" DESTINATION "${RA_DIR}/info")
 
 # 4. Keep content under the build tree and use the runner's matching frame.
-set(ra_content_args)
-if(DEFINED ROM AND NOT ROM STREQUAL "")
-  file(COPY_FILE "${ROM}" "${RA_DIR}/content/game.nes")
-  set(ra_content "${RA_DIR}/content/game.nes")
-  list(APPEND ra_content_args --rom "${ra_content}")
-endif()
-execute_process(COMMAND "${RUNNER}" --frames "${frame}" ${ra_content_args}
+file(COPY_FILE "${ROM}" "${RA_DIR}/content/game.nes")
+set(ra_content "${RA_DIR}/content/game.nes")
+execute_process(COMMAND "${RUNNER}" --frames "${frame}" --rom "${ra_content}"
     --dump-frame "${frame}:${RA_DIR}/runner.ppm"
   RESULT_VARIABLE result)
 if(NOT result EQUAL 0)
@@ -145,10 +104,6 @@ snapshot(before)
 # 6. RetroArch with only test.cfg, the core by absolute path and pinned content
 # when supplied. It writes the selected core frame to shot.png.
 file(REAL_PATH "${CORE}" core)
-set(ra_args)
-if(DEFINED ROM AND NOT ROM STREQUAL "")
-  list(APPEND ra_args "${ra_content}")
-endif()
 # RetroArch's macOS app creates first-run directories under its home folder
 # even when every config path is redirected. Give the child an isolated home
 # inside RA_DIR while snapshotting the real user's directory above.
@@ -161,7 +116,7 @@ execute_process(
     "XDG_CONFIG_HOME=${ra_home}/.config"
     "XDG_DATA_HOME=${ra_home}/.local/share"
     "XDG_CACHE_HOME=${ra_home}/.cache"
-    "${retroarch}" -c "${RA_DIR}/test.cfg" -L "${core}" ${ra_args}
+    "${retroarch}" -c "${RA_DIR}/test.cfg" -L "${core}" "${ra_content}"
     "--max-frames=${frame}" --max-frames-ss "--max-frames-ss-path=${RA_DIR}/shot.png"
   RESULT_VARIABLE ra_result
   OUTPUT_VARIABLE ra_stdout
@@ -190,22 +145,6 @@ if(NOT before STREQUAL after)
 endif()
 
 if(NOT ra_result EQUAL 0)
-  # A local GUI-less session can make macOS abort the app before it writes
-  # anything. Keep that environment limitation optional; required hosted
-  # runs still fail closed, and any failure with diagnostics remains visible.
-  set(local_gui_abort FALSE)
-  if(ra_stdout STREQUAL "" AND ra_result STREQUAL "Subprocess aborted" AND
-      ra_stderr STREQUAL "")
-    set(local_gui_abort TRUE)
-  elseif(ra_stdout STREQUAL "" AND ra_result EQUAL 1)
-    string(STRIP "${ra_stderr}" ra_stderr_trimmed)
-    if(ra_stderr_trimmed STREQUAL "Subprocess aborted")
-      set(local_gui_abort TRUE)
-    endif()
-  endif()
-  if(NOT REQUIRED AND local_gui_abort)
-    skip("RetroArch aborted before startup in the local GUI session")
-  endif()
   message(FATAL_ERROR "RetroArch exited with ${ra_result}:\n${ra_output}")
 endif()
 if(NOT EXISTS "${RA_DIR}/shot.png")

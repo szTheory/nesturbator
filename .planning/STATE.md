@@ -1,19 +1,21 @@
 ---
 gsd_state_version: "1.0"
-status: Awaiting next milestone
-stopped_at: Milestone v1 archived — next milestone not started
-last_updated: "2026-10-10T00:59:41.085Z"
+milestone: v2
+milestone_name: Most of the library plays
+current_phase: 6
+current_phase_name: Mapper seam and PPU fetch pipeline
+status: planning
+stopped_at: Phase 05 complete, ready to plan Phase 6
+last_updated: "2026-10-10T15:11:13.962Z"
 last_activity: 2026-10-10
-last_activity_desc: Milestone v1 completed and archived
-state_head: 5c082c1cd04f3ba1df95f182e070f3910ff7cd77
+last_activity_desc: Phase 05 shipped, PR #25 squash-merged into main
+state_head: fdc435e493f26e12d63966b8bf13feb73acf2181
 progress:
   total_phases: 6
-  completed_phases: 6
-  total_plans: 44
-  completed_plans: 44
-  percent: 100
-current_phase: null
-current_phase_name: null
+  completed_phases: 7
+  total_plans: 8
+  completed_plans: 8
+  percent: 58
 ---
 
 # Project State
@@ -23,19 +25,21 @@ current_phase_name: null
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Planning the next milestone. v1 (NROM games with sound) shipped and is archived in `.planning/milestones/`.
+**Current focus:** Phase 6 — Mapper seam and PPU fetch pipeline
 
 ## Current Position
 
-Phase: Milestone v1 complete
-Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-10-10 — Milestone v1 completed and archived
+Phase: 6 — Mapper seam and PPU fetch pipeline
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-10 — Phase 05 shipped, PR #25 squash-merged into main
+
+Progress: [██████░░░░] 58% of v2
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 44
+- Total plans completed: 52
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -49,6 +53,7 @@ Last activity: 2026-10-10 — Milestone v1 completed and archived
 | 04 | 4 | - | - |
 | 04.1 | 1 | - | - |
 | 04.2 | 1 | - | - |
+| 05 | 8 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -102,6 +107,14 @@ Last activity: 2026-10-10 — Milestone v1 completed and archived
 | Phase 04.1 P01 | 11 min | 2 tasks | 6 files |
 | Phase 03 P15 | 13min | 2 tasks | 5 files |
 | Phase 04.2 P01 | 6 min | 2 tasks | 4 files |
+| Phase 05 P01 | 15 min | 2 tasks | 1 files |
+| Phase 05 P02 | 10 min | 2 tasks | 2 files |
+| Phase 05 P03 | 15 min | 3 tasks | 9 files |
+| Phase 05 P04 | 12 min | 3 tasks | 10 files |
+| Phase 05 P05 | 20 min | 2 tasks | 8 files |
+| Phase 05 P06 | 25 min | 3 tasks | 7 files |
+| Phase 05 P07 | 15 min | 2 tasks | 3 files |
+| Phase 05 P08 | 6 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -120,6 +133,13 @@ Recent decisions affecting current work:
 - [Phase 03]: Copy selected sprite bytes over odd-read/even-write pairs; after eight selections, follow the 2C02 diagonal n/m overflow scan and keep pre-render row-zero preparation intact.
 - [Phase 03]: Keep behavior revision 4 because generated frame and audio hashes are byte-identical.
 - [Phase 04.2]: Preserve batch audio as the primary libretro path; use the single-sample callback only when batch audio is unavailable. — Batch delivery remains efficient for capable hosts, while the mutually exclusive fallback supports sample-only frontends without dropping PCM or duplicating output.
+- [Phase 05]: Release publish gate compared by exact job-scoped line equality to canonical CMake variables
+- [Phase 05]: policy.no-skip has no allowlist; unrunnable tests are not registered and host-app checks live in retroarch-e2e
+- [Phase 05]: Parallel CTest uses execution.jobs 4 with COST on the three long tests; no ccache (compile share 4 to 22 percent)
+- [Phase 05]: nesturbator_reset clears the CPU poll latch after the last reset cycle because each bus cycle resamples the IRQ line
+- [Phase 05]: Soft reset: vblank_suppress cleared with the PPU position; $4017 re-applied via frame_reset_delay (phase ? 2 : 1)
+- [Phase 05]: retro_reset only calls nesturbator_reset; no unload or reload path
+- [Phase 05]: Suite-flake timeout 30 minutes (WR-02 ceiling); first cold run measured 172 s, lowering it is backlog 999.1
 
 ### Pending Todos
 
@@ -127,7 +147,7 @@ None.
 
 ### Blockers/Concerns
 
-None open. v1 closed with an override closeout. Its deferred tech debt (release-policy substring check, trainer host-path coverage, local RetroArch self-skip on the owner's Mac, no-op `retro_reset()`) is listed in `.planning/MILESTONES.md` and `.planning/milestones/v1-MILESTONE-AUDIT.md`.
+Research flags for v2: Phase 6 (HIGH, PPU fetch timing), Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
 
 ### Quick Tasks Completed
 
@@ -140,6 +160,7 @@ None open. v1 closed with an override closeout. Its deferred tech debt (release-
 
 - Phase 04.1 inserted after Phase 4: Close gap: GAME-01 — initialize accepted iNES trainers (URGENT)
 - Phase 04.2 inserted after Phase 4: Close gap: SND-01 — deliver single-sample libretro audio (URGENT)
+- v2 roadmap created 2026-10-09: Phases 5–10 (tune-up, mapper seam and PPU fetch pipeline merged into one phase so every phase releases, UxROM/CNROM/AxROM, MMC1 and battery saves, MMC3, close-out and boot-to-play)
 
 ## Deferred Items
 
@@ -160,11 +181,11 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-10
-Stopped at: Milestone v1 archived — next milestone not started
+Stopped at: Phase 05 complete, ready to plan Phase 6
 Resume file: None
 
-Next GSD command: `/gsd-new-milestone`.
+Next GSD command: `/gsd-discuss-phase 6`.
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Discuss Phase 6 with /gsd-discuss-phase 6

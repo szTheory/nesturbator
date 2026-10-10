@@ -103,7 +103,7 @@ if(SELFTEST)
     string(APPEND cases "<testcase name=\"${name}\"></testcase>")
   endforeach()
   string(SUBSTRING "${items}" 1 -1 items)
-  set(inventory "{\"tests\":[${items},{\"name\":\"retroarch.testframe\",\"properties\":[{\"name\":\"SKIP_RETURN_CODE\",\"value\":77}]}]}")
+  set(inventory "{\"tests\":[${items},{\"name\":\"example.skipping\",\"properties\":[{\"name\":\"SKIP_RETURN_CODE\",\"value\":77}]}]}")
   # Match CTest's JUnit format: it reports disabled="0" but omits errors="0".
   set(junit "<testsuite tests=\"258\" failures=\"0\" disabled=\"0\" skipped=\"0\">${cases}</testsuite>")
   validate("${inventory}" "${junit}" error)

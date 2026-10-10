@@ -154,3 +154,23 @@ nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t ad
     *value = inst->bus.ram[address & 0x07ffu];
     return NESTURBATOR_OK;
 }
+
+nesturbator_status nesturbator_reset(nesturbator *inst)
+{
+    if (inst == NULL) {
+        return NESTURBATOR_ERR_ARGUMENT;
+    }
+    if (inst->cart.bytes == NULL) {
+        return NESTURBATOR_OK;
+    }
+    nesturbator__ppu_run_until(inst, inst->ticks);
+    /* Host input state (input_pending, input_buttons, controller_latch) stays. */
+    inst->bus.controller_strobe = 0u;
+    inst->bus.controller_shift[0] = 0u;
+    inst->bus.controller_shift[1] = 0u;
+    inst->bus.oam_dma_pending = 0u;
+    nesturbator__ppu_reset(inst);
+    nesturbator__apu_reset(inst);
+    nesturbator__cpu_reset(inst);
+    return NESTURBATOR_OK;
+}

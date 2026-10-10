@@ -110,12 +110,12 @@ jobs:
       # Quote each -D argument for PowerShell; the movie writer's executable
       # suffix is platform-specific.
       - run: cmake "-DBUILD=build/${{ matrix.preset }}" "-DOUT=hashes.txt" "-DMOVIE_WRITER=build/${{ matrix.preset }}/tests/runner.game_movie${{ runner.os == 'Windows' && '.exe' || '' }}" -P tests/cmake/write_hashes.cmake
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: archives-${{ matrix.os }}-${{ matrix.arch }}
           path: build/${{ matrix.preset }}/packages/*.zip
           if-no-files-found: error
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hashes-${{ matrix.os }}-${{ matrix.arch }}
           path: hashes.txt
@@ -163,7 +163,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: hashes-*
           path: hashes
@@ -182,8 +182,6 @@ jobs:
       - name: Prepare protected-main scoreboard baseline
         run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake
       - name: Build and run the local test suite
-        env:
-          NESTURBATOR_RETROARCH: /tmp/retroarch-e2e-not-installed-yet
         run: cmake --workflow --preset ci
       - name: Install and verify the pinned RetroArch candidate
         env:
@@ -216,12 +214,11 @@ jobs:
           -DTEMPLATE="$GITHUB_WORKSPACE/tests/retroarch/test.cfg.in"
           -DROM="$GITHUB_WORKSPACE/tests/roms/nesteroids.nes"
           -DFRAME=60
-          -DREQUIRED=ON
           -DRETROARCH="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/MacOS/RetroArch"
           -DEXPECTED_VERSION=1.22.2
           -DVERSION_PLIST="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/Info.plist"
           -P tests/retroarch/run_retroarch.cmake
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: retroarch-e2e-frames

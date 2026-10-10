@@ -3,7 +3,10 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: Phase 4, NTSC sound timing.** The 6502 core matches the public
+**Status: v1 shipped; milestone v2 starts with a tune-up.** v1 plays
+mapper-0 games with picture and sound. Phase 5 adds parallel CI, a policy that
+no registered test may skip, and the soft reset (`nesturbator_reset()`, which
+RetroArch's Reset button runs). The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded mapper-0 iNES 1.0 and NES 2.0 images with 16 or
 32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the PPU renders backgrounds
@@ -15,10 +18,9 @@ tile, attribute or X byte; an in-range Y skipped by that scan does not set it.
 Overflow remains in PPU status until pre-render dot 1. The first eight
 sprites are copied one byte per odd/even OAM pair, so their final X bytes are
 copied before the ninth Y comparison at dot 130; `$2002` reads before that
-comparison still see overflow clear. This is an initial tracer,
-not full game compatibility. Other cartridge geometries and later sound work
-remain planned. With no cartridge, the fixed test
-card and silence remain available. The plan lives in [`.planning/`](.planning/).
+comparison still see overflow clear. This is
+not full game compatibility: mapper 0 is the only cartridge board so far.
+With no cartridge, the fixed test card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
 The runner accepts content with `--rom FILE`, for example:
 
@@ -184,10 +186,14 @@ Each lane is one command, `cmake --workflow --preset <lane>`.
 |---|---|
 | `ci` | Release build with warnings as errors; every test passes, the library installs and builds a separate consumer, and the three release archives are written |
 | `ci-msvc` | The same as `ci`, built with MSVC on Windows |
-| `asan` | Every test except the RetroArch launch passes under AddressSanitizer and UBSan, with any report fatal |
+| `asan` | Every test passes under AddressSanitizer and UBSan, with any report fatal |
 | `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
 | `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
+
+Tests never skip: a test that cannot run somewhere is not registered there, and
+`policy.no-skip` fails when any registered test could report itself skipped or
+is disabled.
 
 `fuzz.regress` replays checked-in malformed cartridge seeds through the public
 cartridge load/unload lifecycle on every CI platform. The Linux nightly builds
@@ -265,7 +271,7 @@ checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
 `libretro.host` loads the built libretro core at run time, calls it in the
 order RetroArch does, and checks that the frame it receives equals the
 runner's dumped image pixel for pixel, plus four colours written into the
-test. `retroarch.compare` checks `compare_frame`, the tool the RetroArch test
+test. `retroarch.compare` checks `compare_frame`, the tool the hosted `retroarch-e2e` job
 uses to compare a screenshot with the runner's frame. It writes one picture as
 a P6 image and as BMPs in each layout `sips` can produce (40, 108 and
 124-byte headers, 24 and 32 bits per pixel, either row order), and requires
@@ -398,6 +404,11 @@ extra keys and malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
 
+The `dev`, `ci`, `ci-msvc` and `asan` test presets run CTest four tests at a
+time (`execution.jobs`). The three long tests, `vectors.registration_policy`,
+its self test and `runner.write_hashes`, carry a CTest `COST`, so a cold build
+with no timing history starts them first.
+
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
 04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
 requests that change a file that can change what its tests run: the workflow,
@@ -419,7 +430,11 @@ from `tests/vectors/pins.txt`, it fails rather than skips. Scheduled and
 main-push runs share one open issue labelled `nightly`: a failure opens it,
 or updates it with the event, head SHA, run URL and failing keys
 (`65x02/<xx>`, `fetch`, `sample-match`), and the next passing run closes it.
-The ROM loader fuzz outcome is recorded in the job summary and included in
+The `suite-flake` job builds the `ci` preset on Ubuntu 24.04 and runs its
+suite three times in random order with
+`ctest --preset ci --repeat until-fail:3 --schedule-random`; any failure fails
+the job, and its outcome is reported in the same `nightly` issue. The ROM
+loader fuzz outcome is recorded in the job summary and included in
 scheduled and main-push failure issues. It uses GitHub's per-job token: the
 full-run job has only `contents: read`, and only the report job has
 `issues: write`. Checkout credentials are not persisted and the workflow
@@ -505,6 +520,21 @@ fills the other fields. For `nesturbator_config` that is `size` and `abi`
 Zeroing first keeps padding and the bytes a newer header appends at zero, so
 a host built against a newer header still runs with an older library.
 
+Soft reset: `nesturbator_reset()` is the console's Reset button. Call it
+between frames. It keeps CPU RAM and cartridge RAM (PRG RAM and CHR RAM), so
+saves survive, and keeps A, X, Y and the host's input state. The controller
+strobe and shift registers and a pending OAM DMA are cleared. The CPU sets the
+I flag, lowers S by 3 and takes the reset vector in 7 CPU cycles, which count
+in `ticks`. The PPU restarts at the top of the picture and ignores writes to
+`$2000`, `$2001`, `$2005` and `$2006` until the end of the next vblank, 29,667
+CPU cycles from the reset (the NESdev Wiki documents about 29,658); it keeps
+`v`, the status flags, the OAM address and video memory. The APU is silenced as
+by a write of 0 to `$4015`, its IRQs are cleared and the last `$4017` mode is
+re-applied. Load is unchanged: there is no write-ignore window and no startup
+sequence at power-on, so frame and audio hashes from load do not change and
+the behaviour revision stays 4. With no cartridge it does nothing and returns
+`NESTURBATOR_OK`.
+
 ## Downloads and archives
 
 Each release has three zip archives per platform, named
@@ -544,6 +574,10 @@ build-provenance attestation that covers every archive. To check a download:
 ```sh
 gh attestation verify FILE --repo szTheory/nesturbator
 ```
+
+The `release.nonbehavioral_policy` check requires the `needs:` and `if:` lines
+of the publish and ci jobs to equal fixed strings, so an added condition such
+as `|| always()` fails the suite.
 
 Before publishing, the workflow requires exactly the 18 expected archive
 names, verifies each archive this way, and confirms that a copy with one byte
@@ -657,6 +691,12 @@ callbacks are registered, only the batch callback receives audio.
 `libretro.host` checks both callback paths against direct core PCM without an
 audio device.
 
+RetroArch's Reset (`retro_reset`) runs `nesturbator_reset()`, the console's
+soft reset, which keeps RAM and cartridge RAM; it does not unload or reload the
+game. With no content it changes nothing. `libretro.host` compares the frames
+after a reset with those of a direct-API instance given the same frames, reset
+and frames.
+
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares
 `supports_no_game = "true"`, which lets RetroArch start the core without
@@ -717,38 +757,10 @@ the test card:
 /Applications/RetroArch.app/Contents/MacOS/RetroArch -L build/ci/libretro/nesturbator_libretro.dylib
 ```
 
-To check RetroArch's picture without looking at it:
-
-```sh
-ctest --preset ci -L retroarch
-```
-
-This runs `retroarch.testframe` and `retroarch.game`. The first starts RetroArch with the
-configuration `build/ci/retroarch/test.cfg`, generated from
-`tests/retroarch/test.cfg.in`, so your own RetroArch settings are never read.
-That configuration points every directory and file RetroArch uses under
-`build/ci/retroarch`, turns off content history, and stops the macOS app
-unpacking its bundled assets into your RetroArch directory. Its first-run
-configuration and support files also use a temporary home under that build
-directory, so the test leaves your home untouched. RetroArch runs the core for
-5 frames and writes a screenshot of the core's frame. `sips` converts it
-to BMP, and `compare_frame` requires it to equal the runner's frame 5 at
-exactly 256x240, pixel for pixel. The test also lists RetroArch's directory
-in your home folder before and after the run, and fails if anything in it was
-created, changed or removed. RetroArch opens a window, so the test needs a
-logged-in desktop session. Set `NESTURBATOR_RETROARCH` to use a RetroArch
-binary somewhere else. On other systems, or when RetroArch is not installed,
-the test reports itself skipped. If RetroArch exits unsuccessfully, CMake
-reports its captured stdout and stderr separately. On a local macOS GUI
-session, an abort with no captured output is also skipped in optional mode;
-required hosted mode treats the same abort as a failure.
-
-`retroarch.game` loads the manifest-listed Nesteroids image from the build
-tree, runs through frame 60, and compares RetroArch's captured image with the
-runner's frame 60. The selected frame shows the game's title screen. The
-required-mode driver also rejects missing RetroArch, game content, screenshots
-and launch failures instead of skipping; the local CTest remains optional when
-RetroArch is not installed or the GUI session aborts without output.
+RetroArch's picture is checked by the hosted `retroarch-e2e` CI job, not by a
+local test. It installs the pinned RetroArch 1.22.2 on a macOS runner, runs the
+core on the manifest-listed Nesteroids image, and compares RetroArch's
+screenshot with the runner's frame; this is where RetroArch is checked.
 
 The official RetroArch v1.22.2 macOS release is
 [`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),

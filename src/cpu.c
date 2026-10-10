@@ -1348,3 +1348,34 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         break;
     }
 }
+
+/* Soft reset, the console's Reset button. Per the NESdev Wiki "CPU power up
+   state" (After Reset: S -= 3, I = 1, A, X and Y unchanged, "the 2A03
+   prohibits writes during reset") and "CPU interrupts" (the reset sequence
+   is the interrupt sequence with its three pushes turned into reads): seven
+   bus cycles, five reads of the stack page that leave S three lower and
+   write nothing, then the vector at $FFFC/$FFFD. Stack-page reads touch only
+   internal RAM, so they have no side effects. The other bits of P, A, X, Y
+   and all memory are kept; a JAM latch and the interrupt poll latch are
+   cleared. */
+void nesturbator__cpu_reset(struct nesturbator *nes)
+{
+    uint8_t lo;
+    uint8_t hi;
+    nes->cpu.p = (uint8_t)(nes->cpu.p | FLAG_I);
+    nes->cpu.jammed = 0u;
+    nesturbator__bus_read(nes, (uint16_t)(0x0100u | nes->cpu.s));
+    nesturbator__bus_read(nes, (uint16_t)(0x0100u | nes->cpu.s));
+    nesturbator__bus_read(nes, (uint16_t)(0x0100u | nes->cpu.s));
+    nes->cpu.s = (uint8_t)(nes->cpu.s - 1u);
+    nesturbator__bus_read(nes, (uint16_t)(0x0100u | nes->cpu.s));
+    nes->cpu.s = (uint8_t)(nes->cpu.s - 1u);
+    nesturbator__bus_read(nes, (uint16_t)(0x0100u | nes->cpu.s));
+    nes->cpu.s = (uint8_t)(nes->cpu.s - 1u);
+    lo = nesturbator__bus_read(nes, 0xfffcu);
+    hi = nesturbator__bus_read(nes, 0xfffdu);
+    nes->cpu.pc = (uint16_t)(((uint16_t)hi << 8) | lo);
+    /* The last cycle's IRQ sample is dropped: I is set, and the first
+       instruction polls the line afresh. */
+    nes->cpu.poll_latch = 0u;
+}

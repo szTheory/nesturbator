@@ -35,16 +35,16 @@
    writes touch only their own bits, so bits 4 and 5 change only on a pull.
    The interrupt fields and halted_in_read are unused until the bus samples
    the lines and stalls reads.
-   The power-up state is not set yet: nesturbator_create zeroes the instance,
-   so a new CPU has P, S and PC equal to 0 and no reset vector fetch. Nothing
-   runs the CPU during a frame yet; the phase that does adds the reset
-   sequence, which sets S, P and PC and clears jammed. */
+   The power-on state comes from cartridge load, which sets S, P and PC from
+   the reset vector. The CPU runs during every frame. nesturbator__cpu_reset
+   runs the soft-reset sequence (I set, S lowered by 3, PC from the vector)
+   and clears jammed. */
 struct nesturbator__cpu {
     uint16_t pc;
     uint8_t a, x, y, s, p;
     uint8_t nmi_prev, nmi_pending, irq_line, poll_latch;
     uint8_t halted_in_read; /* nonzero while the current read is stalled */
-    uint8_t jammed;         /* set by a JAM opcode; nothing clears it yet */
+    uint8_t jammed;         /* set by a JAM opcode; cleared by cpu_reset */
 };
 
 /* Bus-side state: 2048 bytes of internal RAM and the open-bus latch, the
@@ -139,6 +139,10 @@ struct nesturbator__ppu {
     uint16_t scanline;
     uint16_t dot;
     uint8_t odd_frame;
+    /* Set by a soft reset, cleared at scanline 261 dot 1: while set, writes to
+       $2000, $2001, $2005 and $2006 are dropped. Load and unload zero the PPU,
+       so power-on has no such window (D-17). */
+    uint8_t reset_flag;
 };
 
 struct nesturbator__cartridge {
@@ -214,6 +218,18 @@ uint8_t nesturbator__cart_read(struct nesturbator *nes, uint16_t addr);
 
 /* Runs one whole instruction, opcode fetch to last cycle (D-11). */
 void nesturbator__cpu_step(struct nesturbator *nes);
+
+/* Soft reset of the CPU: I set, seven bus cycles, S lowered by 3, PC from
+   $FFFC/$FFFD, jammed and the poll latch cleared (src/cpu.c). */
+void nesturbator__cpu_reset(struct nesturbator *nes);
+
+/* Soft reset of the PPU (src/ppu.c): top of the picture, registers and latches
+   cleared, write-ignore flag set. Run nesturbator__ppu_run_until first. */
+void nesturbator__ppu_reset(struct nesturbator *nes);
+
+/* Soft reset of the APU (src/apu.c): silenced, IRQs and DMC DMA latches cleared,
+   the last $4017 write re-applied. */
+void nesturbator__apu_reset(struct nesturbator *nes);
 
 /* Validates an input struct's size tag before any other field is read.
    's' points at the struct; 'first' is its first released size; 'ours' is

@@ -72,26 +72,25 @@
       "name": "dev",
       "configurePreset": "dev",
       "output": { "outputOnFailure": true },
-      "execution": { "noTestsAction": "error" }
+      "execution": { "noTestsAction": "error", "jobs": 4 }
     },
     {
       "name": "ci",
       "configurePreset": "ci",
       "output": { "outputOnFailure": true },
-      "execution": { "noTestsAction": "error" }
+      "execution": { "noTestsAction": "error", "jobs": 4 }
     },
     {
       "name": "ci-msvc",
       "configurePreset": "ci-msvc",
       "output": { "outputOnFailure": true },
-      "execution": { "noTestsAction": "error" }
+      "execution": { "noTestsAction": "error", "jobs": 4 }
     },
     {
       "name": "asan",
       "configurePreset": "asan",
       "output": { "outputOnFailure": true },
-      "filter": { "exclude": { "label": "retroarch" } },
-      "execution": { "noTestsAction": "error" },
+      "execution": { "noTestsAction": "error", "jobs": 4 },
       "environment": { "UBSAN_OPTIONS": "print_stacktrace=1" }
     },
     {

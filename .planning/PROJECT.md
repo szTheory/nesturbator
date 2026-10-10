@@ -12,16 +12,19 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 v1 "NROM games with sound" shipped on 2026-10-09 (final release v0.1.6). NROM games render, take input from two controller ports and play with sound in RetroArch. Frame and audio hashes match on Linux, macOS and Windows on x64 and arm64. The code is 13,642 lines of C, 5,964 of them in the core library. The milestone record is in `.planning/MILESTONES.md`, and the roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-## Next Milestone Goals
+## Current Milestone: v2 Most of the library plays
 
-Not chosen yet; `/gsd-new-milestone` sets them. Candidates are the v1 deferral seeds in `.planning/seeds/`:
-- SEED-001: most of the licensed library plays (MMC1, MMC3, UxROM, CNROM, AxROM, battery saves).
-- SEED-002: save states, rewind and run-ahead in RetroArch, plus the runner contract Playstead needs.
-- SEED-003: every AccuracyCoin test passes; PAL and Dendy timing.
-- SEED-004: hostile-input robustness and speed with unchanged hashes.
-- SEED-005: Famicom hardware (expansion audio, Disk System, peripherals).
-- SEED-006: faster CI, no flaky tests and docs that match each release.
-- SEED-261009-zs2: one supported NROM game proven from boot through interactive play.
+**Goal:** Games on the six common board families play in RetroArch with battery saves, with frame and audio hashes identical on every supported platform.
+
+**Target features:**
+- A tune-up phase (SEED-006): faster CI, no flaky test, current pins, docs that match the release, and the v1 debt closed — an exact release-policy gate check, a trainer-bearing image through the full host path, a working `retro_reset()`, and local RetroArch tests that run or are retired instead of self-skipping.
+- MMC1 games run, and battery saves persist across runs as raw `.sav` bytes through the runner and libretro (SEED-001).
+- MMC3 games run with the scanline IRQ counter (SEED-001).
+- UxROM, CNROM and AxROM games run, with bus conflicts where the board has them (SEED-001).
+- Holy Mapperel and per-board frame hashes are pinned in CI.
+- One supported game is proven from boot through interactive play: a defined game-state change, a visible response to input, and non-silent audio (SEED-261009-zs2).
+
+Later milestones remain seeds in `.planning/seeds/`: save states and the runner contract (SEED-002), accuracy and PAL/Dendy (SEED-003), robustness and speed (SEED-004), Famicom hardware (SEED-005).
 
 ## Requirements
 
@@ -34,10 +37,13 @@ Not chosen yet; `/gsd-new-milestone` sets them. Candidates are the v1 deferral s
 - ✓ The pinned full 65x02 vector set passes, with CI scheduled to run it nightly. — v1, Phase 2 (scheduled runs passed 2026-10-07 to 2026-10-09)
 - ✓ NROM games render, take controller input and play with sound in RetroArch. — v1, Phases 3–4.2 (frame, controller, APU, and libretro callback behavior have automated coverage)
 - ✓ Frame and audio hashes are identical on every supported platform. — v1, Phases 3–4 (pinned outputs run in the six-platform CI matrix)
+- ✓ CI runs CTest in parallel with a nightly flake job, and the v1 debt is closed: exact release-policy gate check, trainer image through the full host path, a soft-resetting `retro_reset()`, and no self-skipping tests. — v2, Phase 5 (PR #25 CI and nightly green; asan leg 171 s to 56 s)
 
 ### Active
 
-None until the next milestone defines its requirements; see Next Milestone Goals.
+- [ ] MMC1, MMC3, UxROM, CNROM and AxROM games run, shown by Holy Mapperel, mapper test ROMs and frame hashes.
+- [ ] Battery saves persist across runs as raw bytes compatible with existing `.sav` files.
+- [ ] One supported game is proven from boot through interactive play by an automated check.
 
 ### Out of Scope
 
@@ -48,14 +54,15 @@ None until the next milestone defines its requirements; see Next Milestone Goals
 - A separate fast or low-accuracy mode — one accurate core keeps one set of bugs and one set of hashes.
 - Signed or notarized macOS artifacts — the script install path does not need them.
 - A test framework dependency — plain CTest executables with an in-repo `check.h` cover the need.
-- PAL and Dendy timing, mappers beyond NROM, save states, expansion audio, FDS, extra peripherals — planned for later milestones; see `.planning/seeds/`.
+- PAL and Dendy timing, mappers beyond the six common families, save states, expansion audio, FDS, extra peripherals — planned for later milestones; see `.planning/seeds/`.
+- Submitting the core to the libretro buildbot — an outward-facing step the owner decides on separately.
 
 ## Context
 
 - **Ecosystem.** Every mainstream libretro NES core is GPL or LGPL. The most accurate emulators are GPL applications or permissive C# and Java programs. A permissive, accuracy-class, embeddable C core does not exist yet. AccuracyCoin, an MIT test ROM with 144 tests, is today's public measure of accuracy.
 - **Sibling projects.** A Neo Geo core with the same three deliverables and the same API conventions. Playstead, a host that launches emulator processes and needs deterministic input replay and safe battery saves from them.
-- **How releases are tried.** In RetroArch on an Apple Silicon Mac, installed by script. The local RetroArch tests currently self-skip on that Mac because RetroArch does not start from the test session; the hosted `retroarch-e2e` job carries the screenshot evidence.
-- **Known debt after v1.** The release-policy self-test matches by substring; no trainer-bearing fixture runs the full host path; `retro_reset()` does nothing for a loaded game. Details are in `.planning/milestones/v1-MILESTONE-AUDIT.md`.
+- **How releases are tried.** In RetroArch on an Apple Silicon Mac, installed by script. The local RetroArch tests were removed in Phase 5; the hosted `retroarch-e2e` job carries the screenshot evidence, and `policy.no-skip` fails any CI job whose expected test reports itself skipped.
+- **Known debt after v1.** Closed in Phase 5. The audit that listed it is `.planning/milestones/v1-MILESTONE-AUDIT.md`.
 - **Reference material.** Each file below states facts with their sources. Open the one that matches the work before designing or building.
   - `.planning/preparation/README.md` — index of the files below
   - `.planning/preparation/ARCHITECTURE.md` — time model, CPU, PPU, audio, mappers, public API
@@ -102,6 +109,9 @@ None until the next milestone defines its requirements; see Next Milestone Goals
 | Allocate instance-owned PRG RAM for accepted trainer-bearing mapper-0 images and copy the trainer before reset-vector setup | The CPU must observe the accepted image's initial state through the normal bus, with no cross-instance state | ✓ Good — Phase 4.1 byte-exact bus, ownership, reload, and rejection regressions pass in CI |
 | Copy each selected sprite's four OAM bytes over odd-read/even-write pairs; after eight selections, use the 2C02 diagonal n/m overflow scan | `$2002` overflow timing and false-positive outcomes depend on the documented per-dot OAM sequence | ✓ Good — dot-129/130 boundary, non-Y false positives, skipped-Y cases, pre-render behavior, and cross-platform CI are covered |
 | Preserve batch audio as the primary libretro path; use the single-sample callback only when batch audio is unavailable | Batch delivery remains efficient for capable hosts, while the mutually exclusive fallback supports sample-only frontends without dropping PCM or duplicating output | ✓ Good — Phase 4.2 host tests compare sample-only and batch output with direct core PCM |
+| Soft reset keeps CPU RAM, battery RAM and mapper registers; `retro_reset()` only calls `nesturbator_reset()` | The console's reset line does not clear memory, and one reset path keeps libretro and direct-API frames equal | ✓ Good — Phase 5 `core.reset` and `libretro.host` frame parity pass |
+| No skip allowlist: a test that cannot run is not registered, or a required CI job carries it | A self-skipping test reads as green while proving nothing | ✓ Good — Phase 5 `policy.no-skip` passes on every leg |
+| Parallel CTest (jobs 4, COST on long tests), no ccache | Compile share measured at 4 to 22 percent, under the 40 percent rule | ✓ Good — Phase 5 slowest-leg CTest 152 s to 140 s; wall time within runner noise |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -123,4 +133,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-10 after the v1 milestone*
+*Last updated: 2026-10-10 after Phase 5*
