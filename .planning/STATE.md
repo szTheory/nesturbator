@@ -6,10 +6,10 @@ current_phase: 6
 current_phase_name: Mapper seam and PPU fetch pipeline
 status: planning
 stopped_at: Phase 05 complete, ready to plan Phase 6
-last_updated: "2026-10-10T15:04:16.934Z"
+last_updated: "2026-10-10T15:11:13.962Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 05 complete, transitioned to Phase 6
-state_head: 7baff0c8a7cdfe1c66e48411f0f461b7d9761084
+last_activity_desc: Phase 05 shipped, PR #25 squash-merged into main
+state_head: fdc435e493f26e12d63966b8bf13feb73acf2181
 progress:
   total_phases: 6
   completed_phases: 7
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 Phase: 6 — Mapper seam and PPU fetch pipeline
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-10-10 — Phase 05 complete, transitioned to Phase 6
+Last activity: 2026-10-10 — Phase 05 shipped, PR #25 squash-merged into main
 
 Progress: [██████░░░░] 58% of v2
 
@@ -147,7 +147,7 @@ None.
 
 ### Blockers/Concerns
 
-Research flags for v2: Phase 6 (HIGH, PPU fetch timing), Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 is green but not merged yet.
+Research flags for v2: Phase 6 (HIGH, PPU fetch timing), Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
 
 ### Quick Tasks Completed
 
@@ -184,9 +184,8 @@ Last session: 2026-10-10
 Stopped at: Phase 05 complete, ready to plan Phase 6
 Resume file: None
 
-Next GSD command: `/gsd-ship 05` (merge PR #25), then `/gsd-discuss-phase 6`.
+Next GSD command: `/gsd-discuss-phase 6`.
 
 ## Operator Next Steps
 
-- Merge PR #25 with /gsd-ship 05
-- Then discuss Phase 6 with /gsd-discuss-phase 6
+- Discuss Phase 6 with /gsd-discuss-phase 6
