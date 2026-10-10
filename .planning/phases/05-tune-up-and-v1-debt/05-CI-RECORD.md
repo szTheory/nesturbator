@@ -31,14 +31,22 @@ Compile share (configure, compile and package time as the workflow step minus CT
 
 ## After
 
-After: pending the phase PR's CI run
+Run 38061698752 (CI on PR #25, head e853abe, 2026-10-10). Every job passed. Job wall time read with the same command as Before.
 
-No completed CI run exists yet for this branch (the branch is not pushed). Exact commands:
+| Leg | Job wall (s) | CTest total (s) |
+|---|---|---|
+| build (macos-15-intel, ci, macos, x64) | 191 | 140.37 (358 tests) |
+| build (windows-2025, ci-msvc, windows, x64) | 128 | n/a |
+| build (windows-11-arm, ci-msvc, windows, arm64) | 113 | n/a |
+| retroarch-e2e | 88 | n/a |
+| build (macos-15, ci, macos, arm64) | 78 | n/a |
+| build (ubuntu-24.04-arm, ci, linux, arm64) | 64 | n/a |
+| asan | 56 | n/a |
+| build (ubuntu-24.04, ci, linux, x64) | 48 | n/a |
 
-1. `gh run list --workflow ci.yml --branch "$(git branch --show-current)" --json databaseId,status,conclusion,headSha`
-2. `gh run view <databaseId> --json jobs -q '.jobs[] | "\(.name)\t\((.completedAt|fromdateiso8601)-(.startedAt|fromdateiso8601))"'`
+Slowest leg after: `build (macos-15-intel, ci, macos, x64)`, 191 s job wall against 181 s before. Its CTest total fell from 152.21 s (355 tests) to 140.37 s (358 tests). The extra wall time is in configure and compile, which this phase did not change. The same leg's job wall on the six latest green `main` runs was 181, 182, 257, 182, 314 and 201 s, so 191 s is within runner noise. Verdict: no regression. asan fell from 171 s to 56 s.
 
-Filled by `/gsd-verify-work 5` after the phase PR's CI run completes (post-PR gate).
+Nightly run 38061698773 (same head): suite-flake passed in 172 s job wall, inside its 30-minute timeout. vectors-full took 122 s and rom-loader-fuzz 74 s.
 
 ## Action pins
 
