@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v2
 milestone_name: Most of the library plays
-current_phase: 5
+current_phase: 05
 current_phase_name: Tune-up and v1 debt
 status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-10-10T13:01:27.510Z"
-last_activity: 2026-10-09
-last_activity_desc: v2 roadmap created (6 phases, 19/19 requirements mapped)
-state_head: d1167e1f978620411b11f8de6ab72a0dd41483f7
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-10-10T13:09:51.421Z"
+last_activity: 2026-10-10
+last_activity_desc: Phase 05 execution started
+state_head: 970ece57207b83c205cd431c1932a65dc0092be6
 progress:
   total_phases: 6
   completed_phases: 6
   total_plans: 7
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 14
 ---
 
 # Project State
@@ -25,16 +25,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Milestone v2 (Most of the library plays), Phase 5: Tune-up and v1 debt. v1 shipped and is archived in `.planning/milestones/`.
+**Current focus:** Phase 05 — Tune-up and v1 debt
 
 ## Current Position
 
-Phase: 5 (Tune-up and v1 debt) — READY TO EXECUTE
-Plan: —
+Phase: 05 (Tune-up and v1 debt) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
-Last activity: 2026-10-09 — v2 roadmap created (6 phases, 19/19 requirements mapped)
+Last activity: 2026-10-10 — Phase 05 execution started
 
-Progress: [░░░░░░░░░░] 0% of v2
+Progress: [█░░░░░░░░░] 14% of v2
 
 ## Performance Metrics
 
@@ -106,6 +106,7 @@ Progress: [░░░░░░░░░░] 0% of v2
 | Phase 04.1 P01 | 11 min | 2 tasks | 6 files |
 | Phase 03 P15 | 13min | 2 tasks | 5 files |
 | Phase 04.2 P01 | 6 min | 2 tasks | 4 files |
+| Phase 05 P01 | 15 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,7 @@ Recent decisions affecting current work:
 - [Phase 03]: Copy selected sprite bytes over odd-read/even-write pairs; after eight selections, follow the 2C02 diagonal n/m overflow scan and keep pre-render row-zero preparation intact.
 - [Phase 03]: Keep behavior revision 4 because generated frame and audio hashes are byte-identical.
 - [Phase 04.2]: Preserve batch audio as the primary libretro path; use the single-sample callback only when batch audio is unavailable. — Batch delivery remains efficient for capable hosts, while the mutually exclusive fallback supports sample-only frontends without dropping PCM or duplicating output.
+- [Phase 05]: Release publish gate compared by exact job-scoped line equality to canonical CMake variables
 
 ### Pending Todos
 
@@ -164,9 +166,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T11:46:01.665Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-tune-up-and-v1-debt/05-CONTEXT.md
+Last session: 2026-10-10T13:09:51.394Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
 
 Next GSD command: `/gsd-plan-phase 5`.
 
