@@ -25,7 +25,7 @@ static inline struct nesturbator *ppu_fixture_load(uint8_t mirroring_vertical, u
     size_t size;
     memset(&spec, 0, sizeof spec);
     spec.prg_16k = 1u;
-    spec.chr_8k = chr_ram != 0u ? 0u : 1u;
+    spec.chr_8k = (uint8_t)(chr_ram != 0u ? 0u : 1u);
     spec.mirroring_vertical = mirroring_vertical;
     spec.prg_code = jmp_self;
     spec.prg_code_len = sizeof jmp_self;
