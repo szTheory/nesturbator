@@ -2,7 +2,8 @@
 
 nesturbator is MIT-licensed (see [LICENSE](LICENSE)). Two things in this
 repository come from elsewhere: the vendored `libretro/libretro.h`, and the
-CPU test data under `tests/vectors/`.
+CPU test data under `tests/vectors/`. Holy Mapperel's test ROMs under
+`tests/roms/hm/` are listed below too.
 
 ## libretro.h
 
@@ -73,4 +74,47 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+## Holy Mapperel
+
+Test ROMs for the mapper 2, 3 and 7 boards, unmodified, under `tests/roms/hm/`.
+
+- Upstream: https://github.com/pinobatch/holy-mapperel (c) Damian Yerrick
+- Release: v0.02, asset `holy-mapperel-bin-0.02.7z`, 17964 bytes
+- Asset SHA-256: 70f85671e21f293599baebb662faeb06a4c04e9c9ceb283d96d4197f09e4ce7a
+- Commit: c022622274ca8b83d214dea97e4388a6b0e92d8a
+- Files, each byte-identical to the one in the asset:
+  - `M2_P128K_CR8K_V.nes` SHA-256 c7e83755bd9adbb7c705ea9f29535442af7390444632f9f824fcf4c00632069b
+  - `M3_P32K_C32K_H.nes` SHA-256 499891c6d8c7a1e7631bdc601d9d624938842735f92fe1fda7b19ef9fae514b7
+  - `M7_P128K_CR8K.nes` SHA-256 4aa0050f36ae17e17701506821e5147df5b843bcdf2827468fa9c66e4b7ac1ba
+
+The test decoder in `tests/holymapperel/` carries the ROM's 8x8 font as a
+table (tiles $30-$39 and $01-$06); the font is Holy Mapperel's.
+
+Its licence, from the LICENSE file at that commit:
+
+```
+The zlib License
+================
+
+Copyright (c) 2017 Damian Yerrick
+
+This software is provided 'as-is', without any express or implied warranty. In
+no event will the authors be held liable for any damages arising from the use of
+this software.
+
+Permission is granted to anyone to use this software for any purpose, including
+commercial applications, and to alter it and redistribute it freely, subject to
+the following restrictions:
+
+1.  The origin of this software must not be misrepresented; you must not claim
+    that you wrote the original software. If you use this software in a product,
+    an acknowledgment in the product documentation would be appreciated but is
+    not required.
+
+2.  Altered source versions must be plainly marked as such, and must not be
+    misrepresented as being the original software.
+
+3.  This notice may not be removed or altered from any source distribution.
 ```

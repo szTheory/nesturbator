@@ -11,33 +11,14 @@ static void nrom_init(struct nesturbator *nes)
 static void nrom_rebuild(struct nesturbator *nes)
 {
     struct nesturbator__map *map = &nes->map;
-    for (uint32_t i = 8u; i < 16u; ++i) {
-        /* $6000-$7FFF is PRG RAM when the loader allocated it (a trainer image). */
-        uint8_t *ram = nes->cart.prg_ram != NULL ? nes->cart.prg_ram + (i - 8u) * 1024u : NULL;
-        map->cpu_r[i] = ram;
-        map->cpu_w[i] = ram;
-    }
+    nesturbator__map_prg_ram(nes);
     for (uint32_t i = 16u; i < 48u; ++i) {
         /* A 16 KiB ROM appears at both $8000 and $C000: the bank number wraps. */
         map->cpu_r[i] = nesturbator__map_prg(nes, i - 16u);
         map->cpu_w[i] = NULL;
     }
-    for (uint32_t i = 0u; i < 8u; ++i) {
-        map->chr_r[i] = nesturbator__map_chr(nes, i);
-        map->chr_w[i] = nes->cart.chr_is_ram != 0u ? nesturbator__map_chr(nes, i) : NULL;
-    }
-    /* iNES flags 6 bit 0: vertical (1) or horizontal (0) mirroring. [HWP.14] */
-    if ((nes->cart.bytes[6] & 1u) != 0u) {
-        map->nt[0] = 0u;
-        map->nt[1] = 1u;
-        map->nt[2] = 0u;
-        map->nt[3] = 1u;
-    } else {
-        map->nt[0] = 0u;
-        map->nt[1] = 0u;
-        map->nt[2] = 1u;
-        map->nt[3] = 1u;
-    }
+    nesturbator__map_chr_8k(nes, 0u);
+    nesturbator__map_header_mirroring(nes);
 }
 
 void nesturbator__mapper_nrom_ops(struct nesturbator__mapper_ops *out)

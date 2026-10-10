@@ -31,7 +31,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
 
 - [x] **Phase 5: Tune-up and v1 debt** - CI runs in parallel without flakes, the v1 debt is closed, and a loaded game soft-resets (completed 2026-10-10)
 - [x] **Phase 6: Mapper seam and PPU fetch pipeline** - NROM moves onto a per-board mapper interface with v1 hashes unchanged, then mid-frame scroll writes render as on the console and A12 rises on the documented dots (completed 2026-10-10)
-- [ ] **Phase 7: UxROM, CNROM and AxROM** - Discrete-logic board games run, with bus conflicts where the board has them
+- [x] **Phase 7: UxROM, CNROM and AxROM** - Discrete-logic board games run, with bus conflicts where the board has them (completed 2026-10-10)
 - [ ] **Phase 8: MMC1 and battery saves** - MMC1 games run, and battery saves persist through the runner and RetroArch
 - [ ] **Phase 9: MMC3** - MMC3 games run with the A12-clocked scanline IRQ, and the loader accepts exactly the six v2 mappers
 - [ ] **Phase 10: Close-out and boot-to-play** - Every board's hashes match on six platforms, and a game is proven to play from boot
@@ -110,20 +110,21 @@ Plans:
   2. Synthetic CTest cases show the submapper-0 bus-conflict defaults: the written value ANDed with the ROM byte on mappers 2 and 3, and no conflict on mapper 7.
   3. Synthetic CTest cases show the NES 2.0 submapper 1 and 2 overrides, and that CNROM ignores writes to CHR-ROM.
 
-**Plans**: 4 plans
+**Plans**: 4/4 plans complete
 
 Plans:
 **Wave 1**
-- [ ] 07-01-PLAN.md — Loader through one probed board switch with power-on PC through the pages (NROM tracer), then the UxROM board with its synthetic cases and wording (BOARD-01)
+- [x] 07-01-PLAN.md — Loader through one probed board switch with power-on PC through the pages (NROM tracer), then the UxROM board with its synthetic cases and wording (BOARD-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 07-02-PLAN.md — CNROM and AxROM boards, one per task with their synthetic cases and wording (BOARD-01)
+- [x] 07-02-PLAN.md — CNROM and AxROM boards, one per task with their synthetic cases and wording (BOARD-01)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 07-03-PLAN.md — D-13 loader accept/reject matrix, D-10 id walk, six fuzz seeds, BOARD-01 edge classification (BOARD-01)
+- [x] 07-03-PLAN.md — D-13 loader accept/reject matrix, D-10 id walk, six fuzz seeds, BOARD-01 edge classification (BOARD-01)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 07-04-PLAN.md — Holy Mapperel mapper 2/3/7 ROMs read as 0000 from the frame, one frame hash per ROM pinned from one shared list, push and green CI (BOARD-01)
+- [x] 07-04-PLAN.md — Holy Mapperel mapper 2/3/7 ROMs read as 0000 from the frame, one frame hash per ROM pinned from one shared list, push and green CI (BOARD-01)
+
 **Ships**: a release that plays UxROM, CNROM and AxROM games.
 
 ### Phase 8: MMC1 and battery saves
@@ -138,7 +139,29 @@ Plans:
   4. A CTest case stops `nesturbator-run --save-interval N` after a flush and finds the span's current bytes on disk.
   5. The libretro core returns the span for `RETRO_MEMORY_SAVE_RAM`, and the `retroarch-e2e` job shows RetroArch writing a `.srm` of the span's size and a second session loading it back.
 
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+**Wave 1**
+- [ ] 08-01-PLAN.md — Battery span end to end on mapper 1 at power-on, [V][N] allocation, public save API and its argument cases (SAVE-01, BOARD-02)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 08-02-PLAN.md — D-07/D-08 loader rows as tests, SOROM offset, accepting seeds and mapper-155, header guards, README save-API text (SAVE-01, BOARD-02)
+- [ ] 08-03-PLAN.md — Holy Mapperel PRG RAM row reader (--prg-ram, letter glyphs) proven on the M2/M3/M7 ROMs (BOARD-02, SAVE-02)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 08-04-PLAN.md — Twelve mapper 1 reject fuzz seeds with manifest lines (BOARD-02, SAVE-01)
+- [ ] 08-05-PLAN.md — Zero-based write stamp (WR-01, WR-03), MMC1 serial port, banking, mirroring and SxROM variants with hook- and CPU-level tests (BOARD-02)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 08-06-PLAN.md — Runner --save-dir and --save-interval in runner/save.c, status 4, atomic write, kill test (SAVE-02, SAVE-03, SAVE-04)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 08-07-PLAN.md — Five Holy Mapperel MMC1 ROMs, SXROM two-run + BATTERY chain, 45 pinned hashes (BOARD-02, SAVE-02)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [ ] 08-08-PLAN.md — RETRO_MEMORY_SAVE_RAM, two-session RetroArch save proof, push and green CI (SAVE-05)
+
 **Research flag**: MEDIUM — the SxROM bits, the NES 2.0 RAM sizes in header bytes 10 and 11, RetroArch's SRAM load and save ordering, and how the pinned RetroArch binary handles a `.srm` of the wrong size.
 **Ships**: a release that plays MMC1 games and keeps their saves.
 
@@ -186,8 +209,8 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 4.2. Close gap: SND-01 | v1 | 1/1 | Complete | 2026-10-09 |
 | 5. Tune-up and v1 debt | v2 | 8/8 | Complete    | 2026-10-10 |
 | 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | Complete    | 2026-10-10 |
-| 7. UxROM, CNROM and AxROM | v2 | 0/TBD | Not started | - |
-| 8. MMC1 and battery saves | v2 | 0/TBD | Not started | - |
+| 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
+| 8. MMC1 and battery saves | v2 | 0/5 | Planned | - |
 | 9. MMC3 | v2 | 0/TBD | Not started | - |
 | 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
 

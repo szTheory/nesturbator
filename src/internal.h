@@ -162,7 +162,7 @@ struct nesturbator__cartridge {
     size_t prg_size;
     uint8_t *chr;
     uint8_t *prg_ram;
-    size_t chr_size; /* CHR size the loader validated (8192) */
+    size_t chr_size; /* CHR-ROM size the loader validated, or 8192 for CHR-RAM */
     uint8_t chr_is_ram;
 };
 
@@ -215,6 +215,45 @@ static inline const uint8_t *nesturbator__map_prg(const struct nesturbator *nes,
 static inline uint8_t *nesturbator__map_chr(const struct nesturbator *nes, uint32_t bank_1k)
 {
     return nes->cart.chr + (size_t)(bank_1k % (uint32_t)(nes->cart.chr_size / 1024u)) * 1024u;
+}
+
+/* Nametable mirroring from the header bit: flags 6 bit 0 set is vertical
+   {0,1,0,1}, clear is horizontal {0,0,1,1}. Source: NESdev Wiki "INES"
+   [HWP.14]. */
+static inline void nesturbator__map_header_mirroring(struct nesturbator *nes)
+{
+    struct nesturbator__map *map = &nes->map;
+    if ((nes->cart.bytes[6] & 1u) != 0u) {
+        map->nt[0] = 0u;
+        map->nt[1] = 1u;
+        map->nt[2] = 0u;
+        map->nt[3] = 1u;
+    } else {
+        map->nt[0] = 0u;
+        map->nt[1] = 0u;
+        map->nt[2] = 1u;
+        map->nt[3] = 1u;
+    }
+}
+
+/* $6000-$7FFF is PRG RAM when the loader allocated it (a trainer image). */
+static inline void nesturbator__map_prg_ram(struct nesturbator *nes)
+{
+    for (uint32_t i = 8u; i < 16u; ++i) {
+        uint8_t *ram = nes->cart.prg_ram != NULL ? nes->cart.prg_ram + (i - 8u) * 1024u : NULL;
+        nes->map.cpu_r[i] = ram;
+        nes->map.cpu_w[i] = ram;
+    }
+}
+
+/* One 8 KiB CHR bank into the pattern-table pages; writable only for CHR-RAM. */
+static inline void nesturbator__map_chr_8k(struct nesturbator *nes, uint32_t bank_8k)
+{
+    for (uint32_t i = 0u; i < 8u; ++i) {
+        nes->map.chr_r[i] = nesturbator__map_chr(nes, bank_8k * 8u + i);
+        nes->map.chr_w[i] =
+            nes->cart.chr_is_ram != 0u ? nesturbator__map_chr(nes, bank_8k * 8u + i) : NULL;
+    }
 }
 
 /* A CPU read of $4020-$FFFF through the page table. A NULL page is open bus (D-03). */

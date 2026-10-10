@@ -2,8 +2,8 @@
  *
  * Header layout: NESdev Wiki "INES" (flags 6 and 7) and "NES 2.0" (byte 8 carries the submapper in
  * its high nibble and mapper bits 8-11 in its low nibble). What the loader accepts today is
- * decided by validate_image in src/cartridge.c (mapper 0 only); this builder can encode other
- * mappers so later phases can reuse it, and tests choose what to feed the loader.
+ * decided by validate_image's per-board profile in src/cartridge.c; this builder encodes any mapper
+ * and NES 2.0 CHR-RAM, and tests choose what to feed the loader.
  *
  * Every byte is authored here; no commercial or third-party data is embedded.
  */
@@ -66,6 +66,9 @@ static inline size_t ines_build(uint8_t *out, size_t cap, const struct ines_spec
     out[7] = (uint8_t)((s->mapper & 0xf0u) | (s->nes2 != 0u ? 0x08u : 0x00u));
     if (s->nes2 != 0u) {
         out[8] = (uint8_t)(((unsigned)s->submapper << 4) | ((s->mapper >> 8) & 0x0fu));
+        if (s->chr_8k == 0u) {
+            out[11] = 0x07u; /* 64 << 7 = 8 KiB of CHR-RAM */
+        }
     }
     if (s->trainer != NULL) {
         memcpy(out + pos, s->trainer, INES_TRAINER_SIZE);

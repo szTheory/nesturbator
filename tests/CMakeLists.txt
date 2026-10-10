@@ -98,6 +98,64 @@ nesturbator_runner_test(NAME runner.dump.unwritable
   ARGS --frames 1 --dump-frame "1:${CMAKE_BINARY_DIR}/no-such-dir/frame1.ppm"
   EXIT 1)
 
+# Holy Mapperel (BOARD-01): each ROM in roms.cmake is run to its frame N, the
+# runner dumps that frame, and holymapperel-decode reads the result code from
+# the pixels. The decoder is test-only; the runner knows nothing of the ROMs.
+include(${CMAKE_CURRENT_SOURCE_DIR}/holymapperel/roms.cmake)
+set(NESTURBATOR_HM_DIR ${CMAKE_CURRENT_BINARY_DIR}/holymapperel)
+file(MAKE_DIRECTORY ${NESTURBATOR_HM_DIR})
+add_executable(holymapperel-decode holymapperel/decode.c)
+nesturbator_warnings(holymapperel-decode)
+target_compile_definitions(holymapperel-decode PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
+  string(REPLACE ":" ";" parts "${entry}")
+  list(GET parts 0 hm_key)
+  list(GET parts 1 hm_file)
+  list(GET parts 2 hm_frames)
+  nesturbator_runner_test(NAME holymapperel.${hm_key}.dump
+    ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
+      --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm"
+    EXIT 0 IGNORE_STDOUT)
+  set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES
+    FIXTURES_SETUP holymapperel_${hm_key} TIMEOUT 120)
+  add_test(NAME holymapperel.${hm_key}.decode
+    COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
+  set_tests_properties(holymapperel.${hm_key}.decode PROPERTIES
+    FIXTURES_REQUIRED holymapperel_${hm_key}
+    PASS_REGULAR_EXPRESSION "^holymapperel: code 0000 \\(")
+endforeach()
+
+# The decoder's unit cases and font table, and the branches that must exit 2:
+# the test card, a frame taken before the result screen exists, and a file that
+# is not a 256x240 P6 image.
+add_executable(holymapperel.test_decode holymapperel/test_decode.c)
+nesturbator_warnings(holymapperel.test_decode)
+target_compile_definitions(holymapperel.test_decode PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+add_test(NAME holymapperel.decode.unit COMMAND holymapperel.test_decode)
+add_test(NAME holymapperel.glyphs
+  COMMAND holymapperel.test_decode --glyphs ${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes)
+nesturbator_runner_test(NAME holymapperel.early.dump
+  ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes --frames 1
+    --dump-frame "1:${NESTURBATOR_HM_DIR}/early.ppm"
+  EXIT 0 IGNORE_STDOUT)
+set_tests_properties(holymapperel.early.dump PROPERTIES FIXTURES_SETUP holymapperel_early)
+file(WRITE ${NESTURBATOR_HM_DIR}/badsize.ppm "P6\n16 16\n255\n")
+function(holymapperel_exit2 name file)
+  add_test(NAME ${name}
+    COMMAND ${CMAKE_COMMAND}
+      "-DCMD=$<TARGET_FILE:holymapperel-decode>;${file}"
+      -DEXPECT_EXIT=2
+      -DIGNORE_STDOUT=ON
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+endfunction()
+holymapperel_exit2(holymapperel.decode.testcard ${NESTURBATOR_TESTFRAME_PPM})
+set_tests_properties(holymapperel.decode.testcard PROPERTIES FIXTURES_REQUIRED testframe_ppm)
+holymapperel_exit2(holymapperel.decode.early ${NESTURBATOR_HM_DIR}/early.ppm)
+set_tests_properties(holymapperel.decode.early PROPERTIES FIXTURES_REQUIRED holymapperel_early)
+holymapperel_exit2(holymapperel.decode.badsize ${NESTURBATOR_HM_DIR}/badsize.ppm)
+
 # CI's hash-equality job compares every game boot and DABG movie milestone
 # written by write_hashes.cmake on each platform.
 add_test(NAME runner.write_hashes
@@ -163,6 +221,8 @@ target_include_directories(core.reset PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # MAP-01, D-04, D-05, D-06, D-08: cycle-stamped mapper writes, the IRQ OR, the nametable map and reset.
 nesturbator_core_test(core.mapper core/test_mapper.c)
 target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_core_test(core.mapper_discrete core/test_mapper_discrete.c)
+target_include_directories(core.mapper_discrete PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -518,6 +578,9 @@ add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/synth.c
   ${PROJECT_SOURCE_DIR}/src/cartridge.c
   ${PROJECT_SOURCE_DIR}/src/mapper_nrom.c
+  ${PROJECT_SOURCE_DIR}/src/mapper_uxrom.c
+  ${PROJECT_SOURCE_DIR}/src/mapper_cnrom.c
+  ${PROJECT_SOURCE_DIR}/src/mapper_axrom.c
   ${PROJECT_SOURCE_DIR}/src/ppu.c)
 target_include_directories(bus.unit PRIVATE
   ${PROJECT_SOURCE_DIR}/src

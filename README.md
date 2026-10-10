@@ -4,12 +4,12 @@ A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
 **Status: v1 shipped; milestone v2 starts with a tune-up.** v1 plays
-mapper-0 games with picture and sound. Phase 5 adds parallel CI, a policy that
+NROM games with picture and sound; milestone v2 adds UxROM (mapper 2). Phase 5 adds parallel CI, a policy that
 no registered test may skip, and the soft reset (`nesturbator_reset()`, which
 RetroArch's Reset button runs). The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
-libretro core accept bounded mapper-0 iNES 1.0 and NES 2.0 images with 16 or
-32 KiB PRG and 8 KiB CHR ROM or declared CHR RAM; the PPU renders backgrounds
+libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM,
+16 or 32 KiB PRG) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
 clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
 includes OAM Y=$FF sprites on visible framebuffer row 0. After eight sprites
@@ -22,7 +22,7 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM the only board so far. The behaviour revision is 5: the PPU
+board), with NROM, UxROM, CNROM and AxROM as the boards so far. The behaviour revision is 5: the PPU
 fetch pipeline changed the frames of games that write the scroll or PPUCTRL
 while rendering. Mid-frame scroll writes render as on
 the console, which a split-scroll test shows scanline by scanline.
@@ -30,7 +30,7 @@ With no cartridge, the fixed test card and silence remain available. The plan li
 
 The runner accepts content with `--rom FILE`, for example:
 
-A trainer-bearing mapper-0 image copies its 512 trainer bytes into writable
+A trainer-bearing NROM, UxROM, CNROM or AxROM image copies its 512 trainer bytes into writable
 instance-owned PRG RAM at CPU `$7000-$71FF` before the reset vector is used.
 The full `$6000-$7FFF` 8 KiB window is writable and starts at zero outside the
 trainer span. Trainerless images keep `$6000-$7FFF` unmapped. Invalid images
@@ -43,7 +43,8 @@ nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.pp
 
 The CI suite pins three redistributable mapper-0 games: MIT-licensed
 Nesteroids, zlib-licensed Double Action Blaster Guys, and all-permissive RHDE.
-Their boot hashes and scripted DABG two-port movie hashes are checked against
+It also runs Holy Mapperel's mapper 2, 3 and 7 test ROMs (zlib) and requires
+each to report the result code 0000. Their boot hashes and scripted DABG two-port movie hashes are checked against
 `tests/runner/hashes.txt` on every platform; the hashes use native pixels
 before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
 banks and uses the 8 KiB CHR RAM it fills during startup.
@@ -142,7 +143,7 @@ The PPU sets vblank at scanline 241 dot 1 and clears it at scanline 261 dot 1.
 A `$2002` read immediately before the vblank start dot suppresses the flag and
 NMI edge for that frame; reads on or after the start dot observe and clear the
 flag. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
-Nametable accesses use the cartridge's horizontal or vertical mapper-0
+Nametable accesses use the cartridge's horizontal or vertical
 mirroring bit. Register accesses retain the CPU open-bus value in un-driven
 bits, and `$2007` reads are buffered outside palette space.
 Visible native pixels are written to the caller's frame buffer as PPU dots advance. The
@@ -266,8 +267,27 @@ brightness never falls down a column.
 two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
 180, plus transition and PCM hashes for each game's boot run. It fails if any
 requested frame or audio hash is missing or duplicated;
-`runner.write_hashes.content` requires all 36 sorted keys to equal
+`runner.write_hashes.content` requires all 39 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
+The 39 keys are the 36 game and movie keys plus one
+`holymapperel/<key>/frame N` key per Holy Mapperel ROM; `runner.write_hashes`
+hashes frame N and frame 2N of each and fails if they differ, so a pinned
+result screen is known to be static.
+The `holymapperel.*` tests read Holy Mapperel's result from the frame, not
+from RAM. `holymapperel.<key>.dump` runs a ROM to frame N (100) and writes the
+frame with `--dump-frame`; `holymapperel.<key>.decode` runs the test-only
+`holymapperel-decode` on that image and passes only on the line
+`holymapperel: code 0000 (`. The decoder exits 0 for the code 0000, 1 for any
+other code (it prints what each digit means: WRAM, PRG window bitmask, IRQ,
+CHR; C0DE means the driver never finished) and 2 when the image has no result
+screen, a digit cannot be read, or the file is not a 256x240 P6 image.
+`holymapperel.decode.unit` paints frames to test every decoder branch,
+`holymapperel.glyphs` checks the decoder's font against the M3 ROM's CHR, and
+`holymapperel.decode.testcard`, `.early` and `.badsize` check that the test
+card, frame 1 and a wrong-size file exit 2. A new board ROM is one entry and
+one manifest line in `tests/holymapperel/roms.cmake`, which the tests,
+`tests/cmake/write_hashes.cmake` and `tests/cmake/hash_inventory.cmake` all
+read.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
 `runner.usage.noargs` checks that a run without `--frames` is a usage error.
@@ -414,7 +434,7 @@ and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
 a different frame fails the run. It also requires six nonempty artifacts with
-the exact 30-key game and movie inventory, rejecting duplicates, missing keys,
+the exact 39-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
 extra keys and malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
@@ -621,7 +641,7 @@ at `build/ci/runner/nesturbator-run`. The public header is
 
 ## The runner
 
-`nesturbator-run` runs the core without a window and accepts a mapper-0 image
+`nesturbator-run` runs the core without a window and accepts a mapper 0, 2, 3 or 7 image
 with `--rom FILE`. The loader validates the entire image before allocating
 cartridge state. It rejects unsupported mapper, console, region, RAM and ROM
 geometries, truncation, trailing bytes, and images larger than 64 MiB; the
@@ -633,9 +653,22 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
 
 - `--frames N` runs N frames (N is 1 or more). It is required; without it
   the runner prints its usage and exits 2.
-- `--rom FILE` loads a bounded mapper-0 iNES 1.0 or NES 2.0 image. Accepted
-  geometry is 16 or 32 KiB PRG with 8 KiB CHR ROM or declared 8 KiB CHR RAM;
-  optional trainers are included in the validated file length.
+- `--rom FILE` loads a bounded iNES 1.0 or NES 2.0 image. Accepted
+  geometry is 8 KiB CHR ROM or declared 8 KiB CHR RAM with 16 or 32 KiB PRG
+  for mapper 0 (NROM), or PRG in 16 KiB banks up to 4 MiB for mapper 2
+  (UxROM, submappers 0 to 2), or 16 or 32 KiB PRG with 8, 16 or 32 KiB CHR ROM
+  for mapper 3 (CNROM, submappers 0 to 2), or 32 to 256 KiB PRG in 32 KiB banks
+  with 8 KiB declared CHR RAM for mapper 7 (AxROM, submappers 0 to 2); optional trainers are included in the validated
+  file length. UxROM writes to `$8000-$FFFF` select the bank at `$8000`; the
+  last bank stays at `$C000`. Submappers 0 and 2 AND the written value with
+  the ROM byte under the write (submapper 0 is the project default), and
+  submapper 1 takes it raw. CNROM writes to `$8000-$FFFF` select the 8 KiB
+  CHR bank with the same bus-conflict rule (submappers 0 and 2 AND, submapper
+  1 raw); writes to CHR ROM are ignored. AxROM writes to `$8000-$FFFF` select the
+  32 KiB PRG bank (bits 0 to 2) and the single-screen nametable page (bit 4);
+  the header mirroring bit is ignored, the reset vector comes from bank 0, and
+  only submapper 2 ANDs the value with the ROM byte under the write (submapper
+  0 has no bus conflict).
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
 - `--hash-audio` prints one hash for all mixed-level transitions and one for
@@ -801,6 +834,11 @@ required CI check. No manual screenshot or gameplay check is needed.
 This repository contains no commercial ROM or BIOS data and never will. You
 supply your own legally obtained game images. See
 [ASSET_POLICY.md](ASSET_POLICY.md).
+
+Holy Mapperel's mapper 2, 3 and 7 test ROMs under `tests/roms/hm/` are zlib
+licensed, byte-identical to the v0.02 release, and listed in
+`tests/roms/manifest.txt`; their licence is in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 The CPU test data under `tests/vectors/` is MIT data from
 [SingleStepTests 65x02](https://github.com/SingleStepTests/65x02): the sample

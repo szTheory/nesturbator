@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v2
 milestone_name: Most of the library plays
-current_phase: 07
-current_phase_name: UxROM, CNROM and AxROM
+current_phase: 08
+current_phase_name: MMC1 and battery saves
 status: executing
-stopped_at: Phase 7 context gathered
-last_updated: "2026-10-10T19:34:06.294Z"
+stopped_at: Phase 8 context gathered
+last_updated: "2026-10-10T22:37:00.118Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 06 complete, transitioned to Phase 7
-state_head: 29327b4ae6c9a44fc80889eb24c3c96cdd69d8d5
+last_activity_desc: Phase 07 complete, transitioned to Phase 8
+state_head: 9cc4eaf73458c39e5ee704c1314e7556545cb6d5
 progress:
   total_phases: 6
-  completed_phases: 8
-  total_plans: 14
-  completed_plans: 10
-  percent: 71
+  completed_phases: 9
+  total_plans: 22
+  completed_plans: 14
+  percent: 64
 ---
 
 # Project State
@@ -25,21 +25,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 7 — UxROM, CNROM and AxROM
+**Current focus:** Phase 8 — MMC1 and battery saves
 
 ## Current Position
 
-Phase: 07 (UxROM, CNROM and AxROM) — READY TO EXECUTE
+Phase: 08 (MMC1 and battery saves) — READY TO EXECUTE
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-10-10 — Phase 06 complete, transitioned to Phase 7
+Last activity: 2026-10-10 — Phase 07 complete, transitioned to Phase 8
 
-Progress: [███████░░░] 71% of v2
+Progress: [██████░░░░] 64% of v2
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 54
+- Total plans completed: 58
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -55,6 +55,7 @@ Progress: [███████░░░] 71% of v2
 | 04.2 | 1 | - | - |
 | 05 | 8 | - | - |
 | 06 | 2 | - | - |
+| 07 | 4 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -118,6 +119,10 @@ Progress: [███████░░░] 71% of v2
 | Phase 05 P08 | 6 min | 2 tasks | 2 files |
 | Phase 06 P01 | 60 min | 3 tasks | 14 files |
 | Phase 06 P02 | 90 min | 3 tasks | 12 files |
+| Phase 07 P01 | 30m | 2 tasks | 14 files |
+| Phase 07 P02 | 20min | 2 tasks | 10 files |
+| Phase 07 P03 | 20 min | 2 tasks | 8 files |
+| Phase 07 P04 | 35 min | 3 tasks | 17 files |
 
 ## Accumulated Context
 
@@ -148,6 +153,10 @@ Recent decisions affecting current work:
 - [Phase 06]: Dot 0 of a rendering line drives the BG-lo address of the pending tile; the odd-frame skip keeps the dot-339 NT address on the bus, so with PPUCTRL bit 4 set odd frames log no rise at line 0 dot 0 (Phase 9 input)
 - [Phase 06]: A $2007 access while rendering applies coarse X and Y increments together; empty sprite slots fetch tile $FF with the slot row masked to the sprite height and load transparent zeros
 - [Phase 06]: Behaviour revision bumped to 5 once (commit 9389198); eight nesteroids and rhde frame hashes re-pinned, ticks and audio unchanged; PPU fetch cost about 23 percent frame time on the Mac
+- [Phase 07]: Board lookup is probed in validate_image via nesturbator__mapper_ops_for before allocation (D-10); submapper-0 UxROM AND is a project default
+- [Phase 07]: Phase 7 plan 02: board_profile_ok checks CHR geometry per board; AxROM ANDs on submapper 2 only, CNROM on 0 and 2
+- [Phase 07]: Plan 03 seeds pin dc01ae8; clang-format lives at /opt/homebrew/opt/llvm@18/bin/clang-format
+- [Phase 07]: Holy Mapperel result pinned at N=100 for M2, M3 and M7; frame N and 2N must hash alike when hashes are written
 
 ### Pending Todos
 
@@ -156,7 +165,8 @@ None.
 ### Blockers/Concerns
 
 Research flags for v2: Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
-- [Phase 06] Draft PR #30 (phase branch) is green in CI at 62fb2bb; local docs commits after it are unpushed; the PR still needs to leave draft and merge.
+- [Phase 07] Draft PR #32 (phase branch) is green in CI at 214a118 (run 38082253437); later commits touch only .planning/ and are unpushed; the PR still needs to leave draft and merge.
+- [Phase 07] Code review left 2 warnings and 3 info open (07-REVIEW-DISPOSITION.md): WR-01 header, README and mapper_axrom.c say the AxROM reset vector comes from bank 0, true only at power-on (soft reset keeps the bank; add "at power-on" and a reset test), WR-02 hash_inventory.cmake compares only the last platform's keys.
 - [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-01 the write stamp is one above the documented zero-based index (settle before Phases 8 and 9 use absolute stamps), WR-02 `$2007` palette test on unmasked `v`, WR-03 `nesturbator__map_cpu_read` has no range guard below $4000.
 - [Phase 06] Odd frames with PPUCTRL bit 4 set log no A12 rise at line 0 dot 0 (input for the Phase 9 MMC3 filter).
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
@@ -192,13 +202,14 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T18:17:37.263Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-uxrom-cnrom-and-axrom/07-CONTEXT.md
+Last session: 2026-10-10T20:29:20.881Z
+Stopped at: Phase 8 context gathered
+Resume file: .planning/phases/08-mmc1-and-battery-saves/08-CONTEXT.md
 
-Next GSD command: `/gsd-discuss-phase 7`.
+Next GSD command: `/gsd-discuss-phase 8`.
 
 ## Operator Next Steps
 
-- Take draft PR #30 out of draft and merge it once its CI is green
-- Discuss Phase 7 with /gsd-discuss-phase 7
+- Take draft PR #32 out of draft and merge it (CI run 38082253437 is green)
+- Optionally fix Phase 7 WR-01 (AxROM reset-vector wording) with /gsd-quick before merging
+- Discuss Phase 8 with /gsd-discuss-phase 8

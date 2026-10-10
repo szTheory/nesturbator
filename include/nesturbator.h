@@ -67,7 +67,8 @@ enum nesturbator_status {
     NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5,
     /* The loaded cartridge executed a JAM opcode; the instance is latched. */
     NESTURBATOR_STOP_JAM = 6,
-    /* Cartridge bytes are malformed or outside the supported mapper-0 profile. */
+    /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 2 UxROM,
+       3 CNROM and 7 AxROM). */
     NESTURBATOR_ERR_CARTRIDGE = 7
 };
 typedef enum nesturbator_status nesturbator_status;
@@ -160,7 +161,7 @@ typedef struct nesturbator_info {
  * with OAM Y=$FF can wrap into row 0. Row y starts at
  * video[y * video_pitch]. A pixel is a palette entry 0-63 in bits 0-5 and
  * the three PPUMASK emphasis bits in bits 6-8; bits 9-15 are zero. Background
- * pixels reflect mapper-0 nametable mirroring, pattern/attribute data, scroll,
+ * pixels reflect the cartridge's nametable mirroring, pattern/attribute data, scroll,
  * grayscale and emphasis. Sprite pixels use OAM order, transparency, palette,
  * horizontal/vertical flip, 8x8 or 8x16 pattern selection and the priority bit;
  * `$2001` controls left-edge clipping. Sprite-zero hit and overflow are
@@ -181,7 +182,7 @@ typedef struct nesturbator_info {
  * adapter duplicates each sample into left and right channels, preferring its
  * batch callback and using the single-sample callback only when batch is
  * unavailable (libretro.h L7453, L7465). A frame yields
- * 798 or 799 samples; the fraction carries over to the next frame. Mapper-0
+ * 798 or 799 samples; the fraction carries over to the next frame. The
  * pulse, triangle, noise and DMC state advances on CPU bus cycles and
  * contributes its DAC level to PCM. With no cartridge loaded, every sample is
  * zero. Channel timer, sequence, envelope/sweep/linear-counter and gating
@@ -236,16 +237,27 @@ nesturbator_status nesturbator_set_input(nesturbator *inst, const nesturbator_in
 /* Frees an instance through the allocator it was created with. Accepts NULL. */
 void nesturbator_destroy(nesturbator *inst);
 
-/* Copies one bounded mapper-0 iNES v1 or NES 2 image into the instance.
-   Accepts 16 or 32 KiB PRG and either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
+/* Copies one bounded iNES v1 or NES 2 image into the instance. Supported
+   boards are mapper 0 (NROM: 16 or 32 KiB PRG), mapper 2 (UxROM: PRG in
+   16 KiB banks up to 4 MiB, submappers 0 to 2; the last bank is fixed at
+   $C000 and a write to $8000-$FFFF selects the bank at $8000, ANDed with the
+   ROM byte under that write for submappers 0 and 2, raw for submapper 1) and
+   mapper 3 (CNROM: 16 or 32 KiB PRG and 8, 16 or 32 KiB CHR ROM, submappers
+   0 to 2; a write to $8000-$FFFF selects the 8 KiB CHR bank, with the same
+   AND rule; writes to CHR ROM are ignored) and mapper 7 (AxROM: 32 to 256 KiB
+   PRG and 8 KiB declared CHR RAM; a write to $8000-$FFFF selects the 32 KiB
+   bank with bits 0 to 2 and the single-screen nametable page with bit 4,
+   ignoring the header mirroring bit; ANDed with the ROM byte under the write
+   for submapper 2 only; the reset vector is read from bank 0). NROM and UxROM
+   take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
    A trainer initializes the writable 8 KiB PRG RAM at CPU $7000-$71FF;
    other addresses in $6000-$7FFF start at zero. Other mappers, unsupported console/region/RAM
    profiles, malformed headers, truncation, extra payload, and images above
    64 MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and
    leave a previously loaded cartridge untouched. Allocation failure returns
-   NESTURBATOR_ERR_NO_MEMORY. A loaded image resets the CPU from its PRG reset
-   vector at the end of the PRG data (including the upper bank of 32 KiB NROM).
-   Unload releases cartridge state. */
+   NESTURBATOR_ERR_NO_MEMORY. A loaded image starts the CPU at the reset vector
+   read through the board's power-on banks. An image whose mapper has no board
+   is refused before any allocation. Unload releases cartridge state. */
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
 void nesturbator_unload_cartridge(nesturbator *inst);
 
