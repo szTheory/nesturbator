@@ -402,6 +402,11 @@ extra keys and malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
 
+The `dev`, `ci`, `ci-msvc` and `asan` test presets run CTest four tests at a
+time (`execution.jobs`). The three long tests, `vectors.registration_policy`,
+its self test and `runner.write_hashes`, carry a CTest `COST`, so a cold build
+with no timing history starts them first.
+
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
 04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
 requests that change a file that can change what its tests run: the workflow,
@@ -423,7 +428,11 @@ from `tests/vectors/pins.txt`, it fails rather than skips. Scheduled and
 main-push runs share one open issue labelled `nightly`: a failure opens it,
 or updates it with the event, head SHA, run URL and failing keys
 (`65x02/<xx>`, `fetch`, `sample-match`), and the next passing run closes it.
-The ROM loader fuzz outcome is recorded in the job summary and included in
+The `suite-flake` job builds the `ci` preset on Ubuntu 24.04 and runs its
+suite three times in random order with
+`ctest --preset ci --repeat until-fail:3 --schedule-random`; any failure fails
+the job, and its outcome is reported in the same `nightly` issue. The ROM
+loader fuzz outcome is recorded in the job summary and included in
 scheduled and main-push failure issues. It uses GitHub's per-job token: the
 full-run job has only `contents: read`, and only the report job has
 `issues: write`. Checkout credentials are not persisted and the workflow
@@ -548,6 +557,10 @@ build-provenance attestation that covers every archive. To check a download:
 ```sh
 gh attestation verify FILE --repo szTheory/nesturbator
 ```
+
+The `release.nonbehavioral_policy` check requires the `needs:` and `if:` lines
+of the publish and ci jobs to equal fixed strings, so an added condition such
+as `|| always()` fails the suite.
 
 Before publishing, the workflow requires exactly the 18 expected archive
 names, verifies each archive this way, and confirms that a copy with one byte
