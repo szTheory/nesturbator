@@ -26,7 +26,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. "Holy
 
 ### Boards
 
-- [x] **BOARD-01**: UxROM, CNROM and AxROM games run:
+- [ ] **BOARD-01**: UxROM, CNROM and AxROM games run:
   - Holy Mapperel's mapper 2, 3 and 7 ROMs pass, and their frame hashes are pinned.
   - Synthetic tests show the submapper-0 bus-conflict defaults: the written value ANDed with the ROM byte on mappers 2 and 3, and no conflicts on mapper 7.
   - Synthetic tests also show the NES 2.0 submapper 1 and 2 overrides, and that CNROM ignores writes to CHR-ROM.
@@ -109,7 +109,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MAP-01 | Phase 6 | Complete |
 | MAP-02 | Phase 6 | Complete |
 | MAP-03 | Phase 9 | Pending |
-| BOARD-01 | Phase 7 | Complete |
+| BOARD-01 | Phase 7 | Pending |
 | BOARD-02 | Phase 8 | Pending |
 | BOARD-03 | Phase 9 | Pending |
 | BOARD-04 | Phase 10 | Pending |
