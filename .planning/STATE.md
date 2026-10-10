@@ -168,8 +168,8 @@ Last session: 2026-10-10T11:46:01.665Z
 Stopped at: Phase 5 context gathered
 Resume file: .planning/phases/05-tune-up-and-v1-debt/05-CONTEXT.md
 
-Next GSD command: `/gsd-discuss-phase 5`.
+Next GSD command: `/gsd-plan-phase 5`.
 
 ## Operator Next Steps
 
-- Discuss Phase 5 with /gsd-discuss-phase 5, then plan it with /gsd-plan-phase 5
+- Plan Phase 5 with /gsd-plan-phase 5
