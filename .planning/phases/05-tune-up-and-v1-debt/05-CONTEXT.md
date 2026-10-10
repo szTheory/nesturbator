@@ -86,6 +86,10 @@ accuracy belong to later phases.
 - **D-13:** Kept: CPU RAM, PRG-RAM, CHR-RAM, nametable and palette RAM, OAM,
   A/X/Y, the PPU's scanline and dot, and host input state. Cleared: controller
   strobe and shift, pending OAM DMA, and the DMC DMA latches.
+  Revised at plan review 2026-10-10 by the owner: PPU restarts at the top of
+  the picture per NESdev; window = documented interval. (The PPU's scanline
+  and dot are no longer kept: reset sets them to scanline 0, dot 0, as load
+  does.)
 - **D-14:** CPU: `I` set, then a 7-cycle reset sequence through the bus. Five
   side-effect-free stack-page reads take S down by 3, then `$FFFC`/`$FFFD` are
   read through `nesturbator__bus_read`. `jammed` is cleared. There is no dummy
@@ -97,6 +101,11 @@ accuracy belong to later phases.
   writes until scanline 261 dot 1, the same point where vblank clears. The
   window is 0 to about 29,780 CPU cycles depending on where reset lands. Other
   registers work normally.
+  Revised at plan review 2026-10-10 by the owner: PPU restarts at the top of
+  the picture per NESdev; window = documented interval. (Reset sets the PPU to
+  scanline 0, dot 0, so the window is fixed: 29,667 CPU cycles from the start
+  of the reset, 29,660 from the first instruction, against the NESdev Wiki's
+  ~29,658.)
 - **D-16:** APU: write `$4015 = 0` through the existing path, clear the frame
   and DMC IRQs, `dmc.output &= 1`, and set triangle phase to 0. Re-apply the
   last `$4017` mode near the reset sequence. The synth and filter history are
