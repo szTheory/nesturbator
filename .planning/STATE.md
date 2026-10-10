@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v2
 milestone_name: Most of the library plays
-current_phase: 6
+current_phase: 06
 current_phase_name: Mapper seam and PPU fetch pipeline
 status: executing
-stopped_at: Phase 6 context gathered
-last_updated: "2026-10-10T16:51:14.697Z"
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-10-10T17:11:50.138Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 6 context gathered (06-CONTEXT.md)
-state_head: d2fd34892cfa3a1f5d10487db8131e3fed8dafba
+last_activity_desc: Phase 06 execution started
+state_head: 861b41fe520b395fec89e1edafb139c2d9b4223f
 progress:
   total_phases: 6
   completed_phases: 7
   total_plans: 10
-  completed_plans: 8
-  percent: 80
+  completed_plans: 9
+  percent: 90
 ---
 
 # Project State
@@ -25,16 +25,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 6 — Mapper seam and PPU fetch pipeline
+**Current focus:** Phase 06 — Mapper seam and PPU fetch pipeline
 
 ## Current Position
 
-Phase: 6 (Mapper seam and PPU fetch pipeline) — READY TO EXECUTE
-Plan: Not started
+Phase: 06 (Mapper seam and PPU fetch pipeline) — EXECUTING
+Plan: 2 of 2
 Status: Ready to execute
-Last activity: 2026-10-10 — Phase 6 context gathered (06-CONTEXT.md)
+Last activity: 2026-10-10 — Phase 06 execution started
 
-Progress: [████████░░] 80% of v2
+Progress: [█████████░] 90% of v2
 
 ## Performance Metrics
 
@@ -115,6 +115,7 @@ Progress: [████████░░] 80% of v2
 | Phase 05 P06 | 25 min | 3 tasks | 7 files |
 | Phase 05 P07 | 15 min | 2 tasks | 3 files |
 | Phase 05 P08 | 6 min | 2 tasks | 2 files |
+| Phase 06 P01 | 60 min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,8 @@ Recent decisions affecting current work:
 - [Phase 05]: Soft reset: vblank_suppress cleared with the PPU position; $4017 re-applied via frame_reset_delay (phase ? 2 : 1)
 - [Phase 05]: retro_reset only calls nesturbator_reset; no unload or reload path
 - [Phase 05]: Suite-flake timeout 30 minutes (WR-02 ceiling); first cold run measured 172 s, lowering it is backlog 999.1
+- [Phase 06]: Ops struct held by value in nes->map.ops and filled by code, so abi.global_symbols passes on ELF
+- [Phase 06]: Mapper resolver lives in cartridge.c and page helpers are static inline in internal.h; no src/mapper.c
 
 ### Pending Todos
 
@@ -180,9 +183,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T15:48:57.887Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-mapper-seam-and-ppu-fetch-pipeline/06-CONTEXT.md
+Last session: 2026-10-10T17:11:50.112Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: None
 
 Next GSD command: `/gsd-plan-phase 6`.
 

@@ -88,11 +88,11 @@ Plans:
   4. The behaviour revision is bumped exactly once; the phase verification lists each re-pinned frame and audio hash with the reason it changed, the six-platform matrix agrees on every new hash, and the protected AccuracyCoin scoreboard loses no passing test.
   5. `cmake --workflow --preset asan`, `--preset nofp` and `--preset hygiene` pass, and the core still links only the C memory functions.
 
-**Plans**: 2 plans
+**Plans**: 1/2 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 06-01-PLAN.md — Mapper seam: NROM on page tables, nametable map, cycle-stamped write hook and IRQ OR; v1 hashes unchanged, six-platform gate (MAP-01)
+- [x] 06-01-PLAN.md — Mapper seam: NROM on page tables, nametable map, cycle-stamped write hook and IRQ OR; v1 hashes unchanged, six-platform gate (MAP-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 06-02-PLAN.md — PPU fetch pipeline from v with A12 on the bus, ppu.fetch and ppu.split_scroll, revision 5 and one re-pin (MAP-02)
@@ -172,7 +172,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 4.1. Close gap: GAME-01 | v1 | 1/1 | Complete | 2026-10-09 |
 | 4.2. Close gap: SND-01 | v1 | 1/1 | Complete | 2026-10-09 |
 | 5. Tune-up and v1 debt | v2 | 8/8 | Complete    | 2026-10-10 |
-| 6. Mapper seam and PPU fetch pipeline | v2 | 0/TBD | Not started | - |
+| 6. Mapper seam and PPU fetch pipeline | v2 | 1/2 | In Progress | - |
 | 7. UxROM, CNROM and AxROM | v2 | 0/TBD | Not started | - |
 | 8. MMC1 and battery saves | v2 | 0/TBD | Not started | - |
 | 9. MMC3 | v2 | 0/TBD | Not started | - |

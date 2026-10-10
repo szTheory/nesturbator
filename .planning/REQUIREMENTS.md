@@ -20,7 +20,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. "Holy
 
 ### Mapper interface and PPU
 
-- [ ] **MAP-01**: NROM loads through the per-board mapper interface (page tables, a four-entry nametable map, a write hook stamped with the CPU cycle, mapper IRQ ORed with the APU sources), and every v1 frame and audio hash stays byte-identical.
+- [x] **MAP-01**: NROM loads through the per-board mapper interface (page tables, a four-entry nametable map, a write hook stamped with the CPU cycle, mapper IRQ ORed with the APU sources), and every v1 frame and audio hash stays byte-identical.
 - [ ] **MAP-02**: The PPU advances `v` with coarse-X and Y increments and the dot-257 and dot-280-to-304 copies, and fetches background and sprite patterns on their documented dots. A synthetic split-scroll test that writes `$2005` and `$2006` mid-frame matches its expected frame. The behaviour revision is bumped once, and each re-pinned hash is listed with the reason it changed.
 - [ ] **MAP-03**: The loader accepts mappers 0, 1, 2, 3, 4 and 7. It rejects other mappers, MMC6 (mapper 4, submapper 1) and four-screen boards with a message and a non-zero exit status. The fuzz corpus and the cartridge tests reflect the new rules.
 
@@ -106,7 +106,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TUNE-04 | Phase 5 | Complete |
 | TUNE-05 | Phase 5 | Complete |
 | TUNE-06 | Phase 5 | Complete |
-| MAP-01 | Phase 6 | Pending |
+| MAP-01 | Phase 6 | Complete |
 | MAP-02 | Phase 6 | Pending |
 | MAP-03 | Phase 9 | Pending |
 | BOARD-01 | Phase 7 | Pending |
