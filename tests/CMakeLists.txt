@@ -98,6 +98,32 @@ nesturbator_runner_test(NAME runner.dump.unwritable
   ARGS --frames 1 --dump-frame "1:${CMAKE_BINARY_DIR}/no-such-dir/frame1.ppm"
   EXIT 1)
 
+# SAVE-02 to SAVE-04: --save-dir on synthetic cartridges. runner.save_rom writes
+# them under the build tree; each runner.save.<case> runs the case in its own
+# scratch directory, so the cases are safe under ctest -j.
+add_executable(runner.save_rom runner/save_rom.c)
+nesturbator_warnings(runner.save_rom)
+target_compile_definitions(runner.save_rom PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+set(NESTURBATOR_SAVE_FIXTURE ${CMAKE_CURRENT_BINARY_DIR}/save_fixture)
+file(MAKE_DIRECTORY ${NESTURBATOR_SAVE_FIXTURE})
+add_test(NAME runner.save.fixture
+  COMMAND runner.save_rom ${NESTURBATOR_SAVE_FIXTURE})
+set_tests_properties(runner.save.fixture PROPERTIES FIXTURES_SETUP runner_save)
+function(runner_save_case case)
+  add_test(NAME runner.save.${case}
+    COMMAND ${CMAKE_COMMAND}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      "-DFIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
+      "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/save_work/${case}"
+      "-DCASE=${case}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_save.cmake")
+  set_tests_properties(runner.save.${case} PROPERTIES
+    FIXTURES_REQUIRED runner_save TIMEOUT 30)
+endfunction()
+runner_save_case(roundtrip)
+runner_save_case(fresh)
+
 # Holy Mapperel (BOARD-01): each ROM in roms.cmake is run to its frame N, the
 # runner dumps that frame, and holymapperel-decode reads the result code from
 # the pixels. The decoder is test-only; the runner knows nothing of the ROMs.

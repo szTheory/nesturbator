@@ -29,6 +29,7 @@
 #include "movie.h"
 #include "nesturbator.h"
 #include "ppm.h"
+#include "save.h"
 #include "sha256.h"
 
 #define WIDTH 256u
@@ -135,6 +136,8 @@ typedef struct options {
     const char **dump_paths;
     uint32_t dump_count;
     int hash_audio;
+    const char *save_dir;
+    uint32_t save_interval;
 } options;
 
 static void free_options(options *o)
@@ -180,6 +183,14 @@ static int parse_options(int argc, char **argv, options *o)
             if (!parse_count(value, &n) || o->accuracy_page != 0u)
                 return usage("--accuracycoin-page needs one page number");
             o->accuracy_page = n;
+        } else if (strcmp(arg, "--save-dir") == 0) {
+            if (value == NULL || value[0] == '\0' || o->save_dir != NULL)
+                return usage("--save-dir needs one directory");
+            o->save_dir = value;
+        } else if (strcmp(arg, "--save-interval") == 0) {
+            if (!parse_count(value, &n) || o->save_interval != 0u)
+                return usage("--save-interval needs one whole number of 1 or more");
+            o->save_interval = n;
         } else if (strcmp(arg, "--movie") == 0) {
             if (value == NULL || value[0] == '\0' || o->movie_path != NULL)
                 return usage("--movie needs one file path");
@@ -215,10 +226,39 @@ static int parse_options(int argc, char **argv, options *o)
     } else if (o->scoreboard_path != NULL) {
         return usage("--scoreboard requires --accuracycoin-page");
     }
+    if (o->save_dir != NULL && (o->rom_path == NULL || o->accuracy_page != 0u))
+        return usage("--save-dir needs --rom and cannot be used with --accuracycoin-page");
+    if (o->save_interval != 0u && o->save_dir == NULL)
+        return usage("--save-interval requires --save-dir");
     if (o->frames == 0u && o->movie_path == NULL) {
         return usage("--frames N is required");
     }
     return 0;
+}
+
+/* The battery span of the loaded cartridge and what was last written for it. */
+typedef struct save_state {
+    char path[4096];
+    uint8_t *span;
+    size_t size;
+    uint8_t *shadow;
+    uint64_t generation;
+} save_state;
+
+/* Writes the span when a CPU write reached it since the last look and the
+   bytes differ from the last written copy. Returns 0, or 1 after a failure. */
+static int save_if_changed(nesturbator *inst, save_state *sv)
+{
+    uint64_t gen;
+    if (sv->shadow == NULL)
+        return 0;
+    gen = nesturbator_save_generation(inst);
+    if (gen == sv->generation)
+        return 0;
+    sv->generation = gen;
+    if (memcmp(sv->span, sv->shadow, sv->size) == 0)
+        return 0;
+    return nesturbator_run_save_flush(sv->path, sv->span, sv->size, sv->shadow);
 }
 
 static int listed(const uint32_t *list, uint32_t count, uint32_t f)
@@ -573,10 +613,12 @@ int main(int argc, char **argv)
     options opt;
     nesturbator_movie movie;
     nesturbator_run_audio_hash audio_hash;
+    save_state save;
     int status;
 
     memset(&opt, 0, sizeof opt);
     memset(&movie, 0, sizeof movie);
+    memset(&save, 0, sizeof save);
     status = parse_options(argc, argv, &opt);
     if (status != 0) {
         free_options(&opt);
@@ -657,12 +699,41 @@ int main(int argc, char **argv)
         if (st != NESTURBATOR_OK) {
             fprintf(stderr,
                     "nesturbator-run: malformed or unsupported cartridge (status %d); supported "
-                    "mappers are 0, 2, 3 and 7\n",
+                    "mappers are 0, 1, 2, 3 and 7\n",
                     (int)st);
             nesturbator_destroy(inst);
             nesturbator_movie_free(&movie);
             free_options(&opt);
             return 1;
+        }
+        if (opt.save_dir != NULL) {
+            nesturbator_status mst =
+                nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &save.span, &save.size);
+            if (mst == NESTURBATOR_OK && save.span != NULL && save.size != 0u) {
+                enum nesturbator_run_save_status ls = NESTURBATOR_RUN_SAVE_ERROR;
+                if (!nesturbator_run_save_path(save.path, sizeof save.path, opt.save_dir,
+                                               opt.rom_path)) {
+                    fprintf(stderr, "nesturbator-run: save path is too long\n");
+                } else {
+                    ls = nesturbator_run_save_load(save.path, save.span, save.size);
+                }
+                if (ls == NESTURBATOR_RUN_SAVE_MISMATCH || ls == NESTURBATOR_RUN_SAVE_ERROR) {
+                    nesturbator_destroy(inst);
+                    nesturbator_movie_free(&movie);
+                    free_options(&opt);
+                    return ls == NESTURBATOR_RUN_SAVE_MISMATCH ? 4 : 1;
+                }
+                save.shadow = (uint8_t *)malloc(save.size);
+                if (save.shadow == NULL) {
+                    fprintf(stderr, "nesturbator-run: out of memory\n");
+                    nesturbator_destroy(inst);
+                    nesturbator_movie_free(&movie);
+                    free_options(&opt);
+                    return 1;
+                }
+                memcpy(save.shadow, save.span, save.size);
+                save.generation = nesturbator_save_generation(inst);
+            }
         }
     }
     if (opt.dump_count > 0u) {
@@ -736,9 +807,13 @@ int main(int argc, char **argv)
         }
     }
 
+    /* The exit flush runs whatever ended the loop, including a JAM. */
+    if (save_if_changed(inst, &save) != 0 && status == 0)
+        status = 1;
     if (status == 0 && opt.hash_audio != 0)
         print_audio_hash(&audio_hash);
 
+    free(save.shadow);
     nesturbator_destroy(inst);
     nesturbator_movie_free(&movie);
     free_options(&opt);
