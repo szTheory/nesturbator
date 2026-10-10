@@ -110,12 +110,12 @@ jobs:
       # Quote each -D argument for PowerShell; the movie writer's executable
       # suffix is platform-specific.
       - run: cmake "-DBUILD=build/${{ matrix.preset }}" "-DOUT=hashes.txt" "-DMOVIE_WRITER=build/${{ matrix.preset }}/tests/runner.game_movie${{ runner.os == 'Windows' && '.exe' || '' }}" -P tests/cmake/write_hashes.cmake
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: archives-${{ matrix.os }}-${{ matrix.arch }}
           path: build/${{ matrix.preset }}/packages/*.zip
           if-no-files-found: error
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hashes-${{ matrix.os }}-${{ matrix.arch }}
           path: hashes.txt
@@ -221,7 +221,7 @@ jobs:
           -DEXPECTED_VERSION=1.22.2
           -DVERSION_PLIST="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/Info.plist"
           -P tests/retroarch/run_retroarch.cmake
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: retroarch-e2e-frames
