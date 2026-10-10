@@ -1,49 +1,52 @@
 ---
-status: diagnosed
+status: complete
 phase: 05-tune-up-and-v1-debt
 source: [05-VERIFICATION.md]
 started: 2026-10-10T13:50:59Z
-updated: 2026-10-10T14:06:00Z
+updated: 2026-10-10T15:03:11.524Z
 ---
 
 ## Current Test
 
-[testing paused — 3 items outstanding]
+[testing complete]
 
 ## Tests
 
 ### 1. PR CI run "After" timing recorded in 05-CI-RECORD.md
 expected: Slowest leg's job wall time from the phase PR's CI run is recorded and shows no regression against 181 s. Scripted gh query, not a manual test.
-result: blocked
-blocked_by: other
-reason: "PR #25 CI run 38058075941: both Linux build legs failed to compile in under 10 s, so the run has no complete set of leg times to measure. Re-measure after G-05-2 is fixed."
+result: pass
+note: "Run 38061698752: slowest leg macos-15-intel 191 s wall vs 181 s; CTest 140.37 s vs 152.21 s. Extra time is compile; main's spread for this leg is 181-314 s. Recorded in 05-CI-RECORD.md After."
 
 ### 2. Six build legs, asan and retroarch-e2e green on the PR run
 expected: All six platform legs and asan pass with CTest jobs 4; retroarch-e2e passes with no ***Skipped line; policy.no-skip and retroarch.compare pass.
-result: issue
-reported: "PR #25 CI run 38058075941 failed: build (ubuntu-24.04) and build (ubuntu-24.04-arm), plus both nofp legs, fail to compile tests/core/test_reset.c:32:19: error: conversion from 'unsigned int' to 'uint8_t' may change value [-Werror=conversion] (gcc-14). macOS, Windows, asan and retroarch-e2e pass."
+result: pass
+note: "Re-run 38061698752 after 05-08: all jobs green, no ***Skipped line."
+previously_reported: "PR #25 CI run 38058075941 failed: build (ubuntu-24.04) and build (ubuntu-24.04-arm), plus both nofp legs, fail to compile tests/core/test_reset.c:32:19: error: conversion from 'unsigned int' to 'uint8_t' may change value [-Werror=conversion] (gcc-14). macOS, Windows, asan and retroarch-e2e pass."
 severity: blocker
 
 ### 3. First nightly suite-flake run passes inside its timeout
 expected: ctest --preset ci --repeat until-fail:3 --schedule-random passes inside the job timeout (see WR-02 in 05-REVIEW.md).
-result: issue
-reported: "Nightly run 38058075997 failed: suite-flake and vectors-full stop at the same gcc-14 -Werror=conversion error in tests/core/test_reset.c:32; the suite never ran, so the timeout is unmeasured."
+result: pass
+note: "Re-run 38061698773 after 05-08: suite-flake passed in 172 s, vectors-full in 122 s."
+previously_reported: "Nightly run 38058075997 failed: suite-flake and vectors-full stop at the same gcc-14 -Werror=conversion error in tests/core/test_reset.c:32; the suite never ran, so the timeout is unmeasured."
 severity: blocker
 
 ## Summary
 
 total: 3
-passed: 0
-issues: 2
+passed: 3
+issues: 0
 pending: 0
 skipped: 0
-blocked: 1
+blocked: 0
 
 ## Gaps
 
 - gap_id: G-05-2
   truth: "Six build legs, asan and retroarch-e2e green on the PR run"
-  status: failed
+  status: resolved
+  resolved_by: 05-08-PLAN.md
+  resolved_at: 2026-10-10
   reason: "PR #25 CI: gcc-14 rejects tests/core/test_reset.c:32 under -Werror=conversion on both Linux build legs and both nofp legs"
   severity: blocker
   test: 2
@@ -58,7 +61,9 @@ blocked: 1
 
 - gap_id: G-05-3
   truth: "First nightly suite-flake run passes inside its timeout"
-  status: failed
+  status: resolved
+  resolved_by: 05-08-PLAN.md
+  resolved_at: 2026-10-10
   reason: "Nightly run 38058075997: suite-flake and vectors-full fail at the same compile error as G-05-2; the suite never ran"
   severity: blocker
   test: 3
@@ -72,3 +77,9 @@ blocked: 1
     - "Fix the compile error (shared with G-05-2)"
     - "Make sure suite-flake's timeout cannot fail a correct run on time alone (WR-02)"
   debug_session: ""
+
+## Deferred Follow-Ups
+
+- test: 3
+  idea: "Lower nightly suite-flake timeout-minutes from the 30-minute ceiling to about twice the measured cold run (172 s job wall, so 6 to 10 minutes)"
+  deferred_at: 2026-10-10
