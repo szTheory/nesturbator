@@ -49,8 +49,11 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 5
+   the same inputs. Revision 6 is the PPUCTRL NMI edge: a $2000 write raises
+   an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
+   game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
+   Revision 5 was the PPU fetch pipeline. */
+#define NESTURBATOR_BEHAVIOUR_REVISION 6
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -210,7 +213,11 @@ typedef struct nesturbator_frame {
                                 ticks across the nominal 714732-tick boundary.
                                 PPU vblank begins at scanline 241 dot 1 and ends
                                 at scanline 261 dot 1; a status read just before
-                                the start dot suppresses that frame's NMI edge. */
+                                the start dot suppresses that frame's NMI edge.
+                                A $2000 write raises an NMI only when bit 7
+                                changes from 0 to 1 while vblank is set;
+                                rewriting it with bit 7 still set does not,
+                                and clearing bit 7 suppresses a pending NMI. */
 } nesturbator_frame;
 
 /* Writes the library's version into *out. Writes nothing when out is NULL or

@@ -22,9 +22,10 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 5: the PPU
-fetch pipeline changed the frames of games that write the scroll or PPUCTRL
-while rendering. Mid-frame scroll writes render as on
+board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 6: the PPUCTRL NMI edge
+changed the frames of games that rewrite `$2000` inside their NMI handler
+(revision 5's PPU fetch pipeline changed the frames of games that write the
+scroll or PPUCTRL while rendering). Mid-frame scroll writes render as on
 the console, which a split-scroll test shows scanline by scanline.
 With no cartridge, the fixed test card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
@@ -147,7 +148,9 @@ CPU stays latched until the cartridge is unloaded or reloaded.
 The PPU sets vblank at scanline 241 dot 1 and clears it at scanline 261 dot 1.
 A `$2002` read immediately before the vblank start dot suppresses the flag and
 NMI edge for that frame; reads on or after the start dot observe and clear the
-flag. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
+flag. A `$2000` write raises an NMI only when bit 7 changes from 0 to 1 while
+the vblank flag is set; rewriting it with bit 7 still set does not, and
+clearing bit 7 suppresses a pending NMI. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
 Nametable accesses use the cartridge's horizontal or vertical
 mirroring bit. Register accesses retain the CPU open-bus value in un-driven
 bits, and `$2007` reads are buffered outside palette space.
