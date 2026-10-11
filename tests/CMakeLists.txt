@@ -785,7 +785,7 @@ add_test(NAME libretro.vendored
 # RetroArch does, and compares its frame with the runner's image (fixture
 # testframe_ppm) and with four hard-coded pixels (D-05). The module is a
 # run-time input, so the test program depends on it to build it first.
-add_executable(libretro.host libretro/libretro_host.c)
+add_executable(libretro.host libretro/libretro_host.c ${PROJECT_SOURCE_DIR}/runner/movie.c)
 target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro
   ${CMAKE_CURRENT_SOURCE_DIR}/runner)
 target_link_libraries(libretro.host PRIVATE nesturbator ${CMAKE_DL_LIBS})
@@ -798,6 +798,21 @@ add_test(NAME libretro.host
     ${NESTURBATOR_TESTFRAME_PPM} ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.ppm
     $<TARGET_FILE:nesturbator-run> ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.nes)
 set_tests_properties(libretro.host PROPERTIES FIXTURES_REQUIRED testframe_ppm)
+
+# D-18: --rom-parity runs a whole ROM through the module and compares its last
+# frame with the image the runner dumped (fixture rundump_<key>).
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/parity)
+nesturbator_runner_test(NAME runner.dump.nesteroids
+  ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes --frames 180
+    --dump-frame "180:${CMAKE_CURRENT_BINARY_DIR}/parity/nesteroids.ppm"
+  EXIT 0 IGNORE_STDOUT)
+set_tests_properties(runner.dump.nesteroids PROPERTIES FIXTURES_SETUP rundump_nesteroids)
+add_test(NAME libretro.parity.nesteroids
+  COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+    ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes 180
+    ${CMAKE_CURRENT_BINARY_DIR}/parity/nesteroids.ppm --testcard ${NESTURBATOR_TESTFRAME_PPM})
+set_tests_properties(libretro.parity.nesteroids PROPERTIES
+  FIXTURES_REQUIRED "rundump_nesteroids;testframe_ppm" TIMEOUT 120)
 
 # D-14: palgen regenerates src/palette_ntsc.c byte for byte, ignoring line
 # endings.
