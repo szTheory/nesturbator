@@ -126,7 +126,8 @@ int nesturbator_run_file_replace(const char *path, const uint8_t *data, size_t s
     }
     f = fopen(tmp, "wbx");
     if (f == NULL) {
-        report_failure(path, errno, 0u);
+        /* Name the temporary file: it is what blocks the save. */
+        report_failure(tmp, errno, 0u);
         return 1;
     }
     ok = fwrite(data, 1, size, f) == size;

@@ -202,6 +202,18 @@ int main(int argc, char **argv)
     CHECK(read_equals(other, old_data, 64u));
     CHECK(read_equals(target, new_data, DATA_SIZE));
     CHECK(!path_exists(tmp));
+
+    /* (i) a dangling symlink at .tmp: cleared like any stale leftover, the save succeeds. */
+    case_dir(dir, sizeof dir, "symlink_dangling");
+    snprintf(target, sizeof target, "%s/a.sav", dir);
+    snprintf(tmp, sizeof tmp, "%s.tmp", target);
+    snprintf(other, sizeof other, "%s/nowhere", dir);
+    write_file(target, old_data, DATA_SIZE);
+    CHECK(symlink(other, tmp) == 0);
+    CHECK(nesturbator_run_file_replace(target, new_data, DATA_SIZE) == 0);
+    CHECK(read_equals(target, new_data, DATA_SIZE));
+    CHECK(!path_exists(tmp));
+    CHECK(!path_exists(other));
 #endif
     CHECK_DONE();
 }

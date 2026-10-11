@@ -970,7 +970,7 @@ nesturbator-run --version
 The save writer is tested under failure. `runner.save_replace` runs the shared
 replace helper against a directory at the save path, a missing parent, a
 regular file as a parent, an empty and a non-empty directory at `.tmp`, a stale
-`.tmp`, and (Linux and macOS) a read-only directory and a symlink at `.tmp`;
+`.tmp`, and (Linux and macOS) a read-only directory and a symlink (also a dangling one) at `.tmp`;
 each leaves the old save intact and no `.tmp` behind. `runner.save_fsize`
 (Linux and macOS) repeats that under a file size limit.
 `runner.save.dir_at_tmp` runs the runner itself with a directory at
