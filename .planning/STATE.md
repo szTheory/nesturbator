@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 10
 current_phase_name: Close-out and boot-to-play
 status: executing
-stopped_at: Phase 10 context gathered
-last_updated: "2026-10-11T14:15:11.561Z"
-last_activity: 2026-10-10
-last_activity_desc: Phase 09 complete, transitioned to Phase 10
-state_head: 880fe90ab5ad71723cc65f048a1aadd489c5628c
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-10-11T14:22:01.763Z"
+last_activity: 2026-10-11
+last_activity_desc: Phase 10 execution started
+state_head: 27add48be94131c52201de72a61433daff882d37
 progress:
   total_phases: 6
   completed_phases: 11
   total_plans: 41
-  completed_plans: 34
-  percent: 83
+  completed_plans: 35
+  percent: 85
 ---
 
 # Project State
@@ -29,12 +29,12 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 
 ## Current Position
 
-Phase: 10 (Close-out and boot-to-play) — READY TO EXECUTE
-Plan: Not started
+Phase: 10 (Close-out and boot-to-play) — EXECUTING
+Plan: 2 of 7
 Status: Ready to execute
-Last activity: 2026-10-10 — Phase 09 complete, transitioned to Phase 10
+Last activity: 2026-10-11 — Phase 10 execution started
 
-Progress: [████████░░] 83% of v2
+Progress: [█████████░] 85% of v2
 
 ## Performance Metrics
 
@@ -145,6 +145,7 @@ Progress: [████████░░] 83% of v2
 | Phase 09 P10 | 25 min | 2 tasks | 10 files |
 | Phase 09 P11 | 40min | 3 tasks | 7 files |
 | Phase 09 P12 | 20 min | 2 tasks | 3 files |
+| Phase 10 P01 | 25 min | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -197,6 +198,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-10: mmc3_test_2/1-clocking passes at frame 27; oracle.txt budget 120
 - [Phase 09]: 09-11: no IRQ delay; 4-scanline_timing failure was a PPU defect (pre-render dot 0 drove A12), fixed in ppu.c. NEC rows 6-MMC3_alt (0x02) and 5.MMC3_rev_A (0x03) unsupported.
 - [Phase 09]: Plan 09-12: mmc3-oracle nightly job timeout is 8 minutes (300 s fetch plus twice the 69 s cold ci build); no cold run of the lane measured yet
+- [Phase 10]: 10-01: $2000 raises NMI only on bit 7 0-to-1 in vblank; revision 6 raised once, 24 hash rows re-pinned; CR-01 closed by sentinel test with no core change
 
 ### Pending Todos
 
@@ -242,9 +244,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T11:39:42.957Z
-Stopped at: Phase 10 context gathered
-Resume file: .planning/phases/10-close-out-and-boot-to-play/10-CONTEXT.md
+Last session: 2026-10-11T14:22:01.698Z
+Stopped at: Completed 10-01-PLAN.md
+Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 10`.
 
