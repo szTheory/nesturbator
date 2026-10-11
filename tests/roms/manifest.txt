@@ -65,3 +65,4 @@ tests/fuzz/corpus/valid-mmc3-ines1	https://github.com/szTheory/nesturbator	0d332
 tests/fuzz/corpus/valid-mmc3-tgrom	https://github.com/szTheory/nesturbator	0d332633e56ed8d0c8d88e88483389c01044742e	MIT	32539f8a6a701b3dc64ab4ab3eeb24b4b967a0805aec407198e1b051dddae90d
 tests/fuzz/corpus/valid-mmc3-sub4	https://github.com/szTheory/nesturbator	0d332633e56ed8d0c8d88e88483389c01044742e	MIT	83adc3b560016e5cba230984ee9f1be35ce76dc542a8e07d455aaaf6834c5edb
 tests/fuzz/corpus/valid-mmc3-prg16k	https://github.com/szTheory/nesturbator	0d332633e56ed8d0c8d88e88483389c01044742e	MIT	e3bbb97c066705fa6c4fcf5ea496fcac31a287f981303be90e478a3f50ed4deb
+tests/fuzz/corpus/mmc3-submapper-1	https://github.com/szTheory/nesturbator	47fa6df2c9d8d84aa617ca20167e4de6329ec2f0	MIT	7fd51dfdb59306ea7cf05f2434393f01124a284c4d3d8bc8e9c8fac6e344fef9
