@@ -385,6 +385,12 @@ target_link_libraries(ppu.split_scroll PRIVATE nesturbator::nesturbator)
 target_include_directories(ppu.split_scroll PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_warnings(ppu.split_scroll)
 add_test(NAME ppu.split_scroll COMMAND ppu.split_scroll)
+# BOARD-03, D-04, D-09: the MMC3 counter clocked by real PPU A12 edges.
+add_executable(ppu.mmc3 ppu/test_mmc3.c)
+target_link_libraries(ppu.mmc3 PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.mmc3 PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.mmc3)
+add_test(NAME ppu.mmc3 COMMAND ppu.mmc3)
 
 # The same entry point is linked into the Linux libFuzzer binary and replayed
 # from checked-in seeds on every CI platform. Refuse an empty corpus at configure

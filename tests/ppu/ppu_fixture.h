@@ -42,6 +42,37 @@ static inline struct nesturbator *ppu_fixture_load(uint8_t mirroring_vertical, u
     return (struct nesturbator *)inst;
 }
 
+/* The same program and vectors on an NES 2.0 mapper 4 image: 32 KiB of PRG and 8 KiB of CHR RAM,
+   with the given submapper (0 Sharp, 4 NEC). The loader installs the MMC3 board. */
+static inline struct nesturbator *ppu_fixture_load_mmc3(uint8_t submapper)
+{
+    static uint8_t image[PPU_FIXTURE_IMAGE_CAP];
+    static const uint8_t jmp_self[3] = {0x4cu, 0x00u, 0x80u};
+    nesturbator_config cfg;
+    nesturbator *inst = NULL;
+    struct ines_spec spec;
+    size_t size;
+    memset(&spec, 0, sizeof spec);
+    spec.nes2 = 1u;
+    spec.mapper = 4u;
+    spec.submapper = submapper;
+    spec.prg_16k = 2u;
+    spec.chr_8k = 0u;
+    spec.prg_code = jmp_self;
+    spec.prg_code_len = sizeof jmp_self;
+    spec.nmi_vector = 0x8000u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    size = ines_build(image, PPU_FIXTURE_IMAGE_CAP, &spec);
+    CHECK(size != 0u);
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
+    return (struct nesturbator *)inst;
+}
+
 static inline void ppu_fixture_free(struct nesturbator *nes)
 {
     nesturbator_destroy((nesturbator *)nes);
