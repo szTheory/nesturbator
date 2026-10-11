@@ -120,6 +120,24 @@ static void mmc3_cpu_write(struct nesturbator *nes, uint16_t addr, uint8_t value
     case 0xa000u:
         m->reg.mmc3.mirror = value;
         break;
+    case 0xc000u:
+        m->reg.mmc3.latch = value; /* the latch only: no reload, no IRQ change */
+        return;
+    case 0xc001u:
+        /* Clears the counter and sets the reload flag; the next clock loads the latch. */
+        m->reg.mmc3.counter = 0u;
+        m->reg.mmc3.reload = 1u;
+        return;
+    case 0xe000u:
+        /* Disables and acknowledges the board's IRQ; the counter keeps running. Only the
+           board's own source is cleared: nesturbator__irq_update ORs in the APU's. */
+        m->reg.mmc3.irq_enable = 0u;
+        m->irq = 0u;
+        nesturbator__irq_update(nes);
+        return;
+    case 0xe001u:
+        m->reg.mmc3.irq_enable = 1u;
+        return;
     case 0xa001u:
         /* Stored XOR $80 so a zeroed block is RAM enabled and writable (D-08); NESdev
            Wiki "MMC3" leaves the $A001 power-on state unspecified. */
@@ -131,10 +149,48 @@ static void mmc3_cpu_write(struct nesturbator *nes, uint16_t addr, uint8_t value
     nes->map.ops.rebuild(nes);
 }
 
+/* One counter clock (NESdev Wiki "MMC3", "IRQ Specifics"; blargg 5-MMC3 and 6-MMC3_alt).
+   The counter reloads from the latch when it is zero or the reload flag is set, else it
+   decrements. It fires when it reaches zero with the IRQ enabled. The Sharp revision (submapper
+   0, and every iNES 1 image) fires on that rule alone, so a latch of 0 fires on every clock. The
+   NEC revision (submapper 4) fires only if the counter was not already zero or the reload flag
+   was set, so a reload to 0 from a zero counter stays silent. */
+static void clock_counter(struct nesturbator *nes)
+{
+    struct nesturbator__mapper *m = &nes->mapper;
+    const uint8_t old = m->reg.mmc3.counter;
+    const uint8_t reload_seen = m->reg.mmc3.reload;
+    const int nec = m->submapper == 4u;
+    if (old == 0u || reload_seen != 0u)
+        m->reg.mmc3.counter = m->reg.mmc3.latch;
+    else
+        m->reg.mmc3.counter = (uint8_t)(old - 1u);
+    m->reg.mmc3.reload = 0u;
+    if (m->reg.mmc3.counter == 0u && m->reg.mmc3.irq_enable != 0u &&
+        (!nec || old != 0u || reload_seen != 0u)) {
+        m->irq = 1u;
+        nesturbator__irq_update(nes);
+    }
+}
+
+/* The counter clocks on a rise of A12 only after A12 has "remained low for three falling edges
+   of M2" (NESdev Wiki "MMC3"), which filters the short low windows between sprite fetches. The
+   M2 fall clock is nes->cpu_cycle, correct on every region: inside a hook it counts the M2
+   falls strictly before the dot, so cpu_cycle(rise) - cpu_cycle(A12 fall) is the number of M2
+   falls between the two edges and three or more clocks (D-05). The board keeps its own A12
+   level and fall record, never map.a12; a repeated level is ignored, so only the A12 falling
+   edge sets the record. The tick argument is not used (it is NTSC-only arithmetic). */
 static void mmc3_ppu_a12(struct nesturbator *nes, uint8_t level, uint64_t tick)
 {
+    struct nesturbator__mapper *m = &nes->mapper;
     (void)tick;
-    nes->mapper.reg.mmc3.a12 = level;
+    if (level == m->reg.mmc3.a12)
+        return;
+    m->reg.mmc3.a12 = level;
+    if (level == 0u)
+        m->reg.mmc3.low_cycle = nes->cpu_cycle;
+    else if (nes->cpu_cycle - m->reg.mmc3.low_cycle >= 3u)
+        clock_counter(nes);
 }
 
 void nesturbator__mapper_mmc3_ops(struct nesturbator__mapper_ops *out)

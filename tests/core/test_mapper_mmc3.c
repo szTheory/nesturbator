@@ -322,6 +322,263 @@ static void test_power_on_and_reset(void)
     nesturbator_destroy(inst);
 }
 
+/* The A12 hook at CPU cycle cycle, as the PPU would call it. The tick argument is consistent but
+   the board must not use it. */
+static void a12_at(struct nesturbator *nes, uint8_t level, uint64_t cycle)
+{
+    nes->cpu_cycle = cycle;
+    nes->map.ops.ppu_a12(nes, level, 24u * cycle);
+}
+
+/* Puts the board in "A12 high, counter 100, no reload" so one filtered rise shows as 99. */
+static void arm(struct nesturbator *nes)
+{
+    nes->mapper.reg.mmc3.a12 = 1u;
+    nes->mapper.reg.mmc3.counter = 100u;
+    nes->mapper.reg.mmc3.reload = 0u;
+    nes->mapper.reg.mmc3.latch = 100u;
+    nes->mapper.reg.mmc3.irq_enable = 0u;
+}
+
+static int clocked(const struct nesturbator *nes)
+{
+    return nes->mapper.reg.mmc3.counter == 99u;
+}
+
+/* D-05, D-09 as amended 2026-10-10: the filter boundary in CPU cycles, on both sides. */
+static void test_filter_boundary(void)
+{
+    nesturbator *inst = load_board(PRG_16K_UNITS, 4u, 0u, 0u, 7u, 1u, NULL, 0u);
+    struct nesturbator *nes = inst;
+    arm(nes);
+    a12_at(nes, 0u, 1000u);
+    a12_at(nes, 1u, 1002u);
+    CHECK(!clocked(nes)); /* 2 cycles low: filtered */
+    arm(nes);
+    a12_at(nes, 0u, 1000u);
+    a12_at(nes, 1u, 1003u);
+    CHECK(clocked(nes)); /* exactly 3 clocks */
+    arm(nes);
+    a12_at(nes, 0u, 1000u);
+    a12_at(nes, 1u, 1004u);
+    CHECK(clocked(nes));
+    nesturbator_destroy(inst);
+}
+
+/* A short high pulse restarts the low count: the record is the A12 falling edge. */
+static void test_filter_restart_and_record(void)
+{
+    nesturbator *inst = load_board(PRG_16K_UNITS, 4u, 0u, 0u, 7u, 1u, NULL, 0u);
+    struct nesturbator *nes = inst;
+    arm(nes);
+    a12_at(nes, 0u, 1000u);
+    a12_at(nes, 1u, 1003u);
+    CHECK(clocked(nes));
+    a12_at(nes, 0u, 1004u);
+    a12_at(nes, 1u, 1005u); /* low for one cycle only */
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, 99u);
+    /* A long low window: no A12 change between, the record stays the fall. */
+    arm(nes);
+    a12_at(nes, 0u, 2000u);
+    nes->cpu_cycle = 2010u;
+    a12_at(nes, 1u, 2010u);
+    CHECK(clocked(nes));
+    /* Repeated low reports keep the record at the first fall. */
+    arm(nes);
+    a12_at(nes, 0u, 3000u);
+    a12_at(nes, 0u, 3001u);
+    a12_at(nes, 0u, 3002u);
+    a12_at(nes, 1u, 3003u);
+    CHECK(clocked(nes));
+    /* A duplicate rise is ignored. */
+    a12_at(nes, 1u, 3010u);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, 99u);
+    nesturbator_destroy(inst);
+}
+
+/* D-05: a zeroed block is "low since load": a first rise at cycle 2 is filtered, 3 clocks. */
+static void test_filter_first_rise_after_load(void)
+{
+    for (unsigned cycle = 2u; cycle <= 3u; ++cycle) {
+        nesturbator *inst = load_board(PRG_16K_UNITS, 4u, 0u, 0u, 7u, 1u, NULL, 0u);
+        struct nesturbator *nes = inst;
+        nes->mapper.reg.mmc3.latch = 5u;
+        a12_at(nes, 1u, cycle);
+        CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, cycle == 3u ? 5u : 0u);
+        nesturbator_destroy(inst);
+    }
+}
+
+/* One filtered clock: A12 low for ten cycles starting at *t, then a rise; advances *t. */
+static void clock_once(struct nesturbator *nes, uint64_t *t)
+{
+    a12_at(nes, 0u, *t);
+    a12_at(nes, 1u, *t + 10u);
+    *t += 20u;
+}
+
+static void setup_counter(struct nesturbator *nes, uint8_t latch)
+{
+    hook(nes, 0xc000u, latch);
+    hook(nes, 0xc001u, 0u);
+    hook(nes, 0xe001u, 0u);
+}
+
+/* D-06: Sharp (submapper 0) with latch 3: 3, 2, 1, 0 and an IRQ, then reload 3 without one. */
+static void test_sharp_latch_3(void)
+{
+    nesturbator *inst = load_board(PRG_16K_UNITS, 4u, 0u, 0u, 7u, 1u, NULL, 0u);
+    struct nesturbator *nes = inst;
+    uint64_t t = 100u;
+    const uint8_t expect[5] = {3u, 2u, 1u, 0u, 3u};
+    setup_counter(nes, 3u);
+    nes->mapper.reg.mmc3.a12 = 1u;
+    for (unsigned i = 0u; i < 5u; ++i) {
+        clock_once(nes, &t);
+        CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, expect[i]);
+        CHECK_EQ_U64(nes->mapper.irq, i >= 3u ? 1u : 0u);
+        CHECK_EQ_U64(nes->cpu.irq_line, i >= 3u ? 1u : 0u);
+    }
+    nesturbator_destroy(inst);
+}
+
+/* D-06: Sharp with latch 0 fires on every clock, and again after an ack and a $C001. */
+static void test_sharp_latch_0(void)
+{
+    nesturbator *inst = load_board(PRG_16K_UNITS, 4u, 0u, 0u, 7u, 1u, NULL, 0u);
+    struct nesturbator *nes = inst;
+    uint64_t t = 100u;
+    nes->mapper.reg.mmc3.a12 = 1u;
+    setup_counter(nes, 0u);
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.irq, 1u);
+    hook(nes, 0xe000u, 0u);
+    CHECK_EQ_U64(nes->mapper.irq, 0u);
+    hook(nes, 0xe001u, 0u);
+    clock_once(nes, &t); /* counter 0 reloads to 0 and fires */
+    CHECK_EQ_U64(nes->mapper.irq, 1u);
+    hook(nes, 0xe000u, 0u);
+    hook(nes, 0xe001u, 0u);
+    hook(nes, 0xc001u, 0u);
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.irq, 1u);
+    nesturbator_destroy(inst);
+}
+
+/* D-06, BOARD-03 NEC criterion: submapper 4 does not fire on a reload to 0 from a zero counter. */
+static void test_nec_revision(void)
+{
+    nesturbator *inst = load_board(PRG_16K_UNITS, 4u, 4u, 0u, 7u, 1u, NULL, 0u);
+    struct nesturbator *nes = inst;
+    uint64_t t = 100u;
+    nes->mapper.reg.mmc3.a12 = 1u;
+    /* Latch 1: reload 1 no IRQ, 0 IRQ, reload 1 no IRQ, 0 IRQ. */
+    setup_counter(nes, 1u);
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, 1u);
+    CHECK_EQ_U64(nes->mapper.irq, 0u);
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.irq, 1u);
+    hook(nes, 0xe000u, 0u);
+    hook(nes, 0xe001u, 0u);
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, 1u);
+    CHECK_EQ_U64(nes->mapper.irq, 0u);
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.irq, 1u);
+    /* Latch 0: fires on the first clock after $C001, then never on a reload to 0. */
+    hook(nes, 0xe000u, 0u);
+    setup_counter(nes, 0u);
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.irq, 1u);
+    hook(nes, 0xe000u, 0u);
+    hook(nes, 0xe001u, 0u);
+    for (unsigned i = 0u; i < 3u; ++i) {
+        clock_once(nes, &t);
+        CHECK_EQ_U64(nes->mapper.irq, 0u);
+    }
+    hook(nes, 0xc001u, 0u);
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.irq, 1u);
+    nesturbator_destroy(inst);
+}
+
+/* D-06: an iNES 1 image is the Sharp revision. */
+static void test_ines1_is_sharp(void)
+{
+    static uint8_t image[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
+    struct ines_spec spec;
+    nesturbator *inst = make_instance();
+    struct nesturbator *nes = inst;
+    uint64_t t = 100u;
+    size_t size;
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 2u;
+    spec.chr_8k = 1u;
+    spec.mapper = 4u;
+    spec.reset_vector = 0xe000u;
+    size = ines_build(image, sizeof image, &spec);
+    CHECK(size != 0u);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nes->mapper.submapper, 0u);
+    nes->mapper.reg.mmc3.a12 = 1u;
+    setup_counter(nes, 0u);
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.irq, 1u);
+    hook(nes, 0xe000u, 0u);
+    hook(nes, 0xe001u, 0u);
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.irq, 1u);
+    nesturbator_destroy(inst);
+}
+
+/* D-07: what each of $C000-$E001 changes and what it leaves alone, with even/odd mirrors. */
+static void test_irq_registers(void)
+{
+    nesturbator *inst = load_board(PRG_16K_UNITS, 4u, 0u, 0u, 7u, 1u, NULL, 0u);
+    struct nesturbator *nes = inst;
+    uint64_t t = 100u;
+    nes->mapper.reg.mmc3.counter = 5u;
+    nes->mapper.irq = 1u;
+    hook(nes, 0xdffeu, 0x21u); /* $C000 */
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.latch, 0x21u);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, 5u);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.reload, 0u);
+    CHECK_EQ_U64(nes->mapper.irq, 1u);
+    hook(nes, 0xdfffu, 0xffu); /* $C001 */
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, 0u);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.reload, 1u);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.latch, 0x21u);
+    CHECK_EQ_U64(nes->mapper.irq, 1u); /* no ack, no IRQ either */
+    hook(nes, 0xffffu, 0u); /* $E001 */
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.irq_enable, 1u);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, 0u);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.latch, 0x21u);
+    /* $E000 acknowledges and the counter keeps counting. */
+    nes->mapper.reg.mmc3.reload = 0u;
+    nes->mapper.reg.mmc3.counter = 9u;
+    nes->mapper.irq = 1u;
+    nesturbator__irq_update(nes);
+    CHECK_EQ_U64(nes->cpu.irq_line, 1u);
+    hook(nes, 0xfffeu, 0u); /* $E000 */
+    CHECK_EQ_U64(nes->mapper.irq, 0u);
+    CHECK_EQ_U64(nes->cpu.irq_line, 0u);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.irq_enable, 0u);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, 9u);
+    nes->mapper.reg.mmc3.a12 = 1u;
+    clock_once(nes, &t);
+    CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, 8u);
+    /* Clearing the board's line leaves an asserted APU frame IRQ asserted. */
+    nes->apu.frame_irq = 1u;
+    nes->apu.frame_irq_inhibit = 0u;
+    nes->mapper.irq = 1u;
+    nesturbator__irq_update(nes);
+    hook(nes, 0xe000u, 0u);
+    CHECK_EQ_U64(nes->mapper.irq, 0u);
+    CHECK_EQ_U64(nes->cpu.irq_line, 1u);
+    nesturbator_destroy(inst);
+}
+
 int main(void)
 {
     test_tracer_bank_switch_through_cpu();
@@ -333,5 +590,13 @@ int main(void)
     test_ram_gating();
     test_no_ram_is_open_bus();
     test_power_on_and_reset();
+    test_filter_boundary();
+    test_filter_restart_and_record();
+    test_filter_first_rise_after_load();
+    test_sharp_latch_3();
+    test_sharp_latch_0();
+    test_nec_revision();
+    test_ines1_is_sharp();
+    test_irq_registers();
     CHECK_DONE();
 }
