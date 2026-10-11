@@ -1,5 +1,39 @@
 # Milestones
 
+## v2 Most of the library plays (Shipped: 2026-10-11)
+
+**Delivered:** Games on the six common board families (mappers 0, 1, 2, 3, 4 and 7, about 91% of the North American licensed library) play through the runner and RetroArch with battery saves, with frame and audio hashes identical on Linux, macOS and Windows on x64 and arm64, and one game proven to play from boot by an automated check.
+
+**Phases completed:** 6 phases (05 to 10), 41 plans, 99 tasks
+**Timeline:** 2026-10-10 → 2026-10-11 (2 days), releases v0.1.7 to v0.1.9, with v0.1.10 in release PR #35
+**Code:** 22,419 lines of C (7,801 in the core library and public header), excluding the vendored `libretro.h`; 481 CTest tests in `ci`
+**Requirements:** 19/19 v2 requirements satisfied ([audit](milestones/v2-MILESTONE-AUDIT.md), status tech_debt)
+
+**Key accomplishments:**
+- CI runs CTest in parallel with a nightly flake job, the v1 debt is closed (exact release-policy gate, trainer image through every host path, no self-skipping tests), and `retro_reset()` performs the console's soft reset.
+- Every cartridge loads through one per-board mapper ops table, and the PPU runs the 2C02 fetch pipeline from `v` with A12 on the bus, so mid-frame scroll splits render as on the console.
+- UxROM, CNROM, AxROM, MMC1 and MMC3 boards run, with bus conflicts by submapper and the MMC3 scanline IRQ clocked by M2-filtered A12 rises; Holy Mapperel reports `0000` on every board, and 10 of 12 blargg MMC3 ROMs pass nightly (the two NEC-revision ROMs are recorded unsupported).
+- Battery saves persist as raw `.sav` bytes through a library span with a write generation, the runner's atomic `--save-dir` writes, and RetroArch's `.srm`.
+- One 95-key hash list pins every board on six platforms, the libretro adapter matches the runner's frames and saves for every ROM in scope, and `runner.boot_to_play` proves nes-runner plays from boot against four negative controls and eight mutants.
+
+**Closed after the audit:** G1 reset-retention tests (PR #38), 07 WR-01 AxROM reset-vector wording (PR #38), 08 WR-01 interval-flush retry at exit (PR #39), and the asan timeout, now 10 minutes against a measured 4m52s run (PR #39).
+
+**Closeout:** override closeout. All six phase verifications passed, but GSD marked them stale because later phases and quick tasks #38 and #39 changed files they cover. CI passed on every job at `493b995`, and the milestone audit covers the phases.
+
+Known verification overrides: 0 newly acknowledged, 9 carried forward from the v1 close (see STATE.md Deferred Items)
+
+**Deferred tech debt:**
+- G2: retroarch-e2e round-trips a `.srm` for MMC1 only; MMC3 saves are covered by the simulated host.
+- G3: the MMC3 IRQ is checked against the blargg ROMs only in the nightly mmc3-oracle lane.
+- G4: AccuracyCoin has no libretro parity test, by design (D-14).
+- G6: `nesturbator_get_version` and `nesturbator_unload_cartridge` have no runner or libretro consumer and no README mention.
+- Backlog 999.1: the nightly suite-flake timeout is a 30-minute ceiling, not twice a measured run.
+- 08 IN-02: a failed save write can leave a stale `.tmp` file.
+- Open review items in phases 05 to 10 (listed in the audit), most of them in test code.
+- The PPU fetch pipeline cost about 19 percent frame rate; measured, not gated.
+
+---
+
 ## v1 NROM games with sound (Shipped: 2026-10-09)
 
 **Delivered:** NROM games render, take controller input and play with sound in RetroArch, with frame and audio hashes identical on Linux, macOS and Windows on x64 and arm64.

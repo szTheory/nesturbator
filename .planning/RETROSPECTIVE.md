@@ -43,6 +43,49 @@
 
 ---
 
+## Milestone: v2 — Most of the library plays
+
+**Shipped:** 2026-10-11
+**Phases:** 6 | **Plans:** 41 | **Tasks:** 99 | **Releases:** v0.1.7 to v0.1.9, v0.1.10 pending in release PR #35
+
+### What Was Built
+- A tune-up: parallel CTest with a nightly flake job, an exact release-policy gate check, `policy.no-skip`, and a soft reset shared by the library and `retro_reset()`.
+- One per-board mapper ops table, and a 2C02 fetch pipeline driven from `v` with A12 on the PPU bus.
+- UxROM, CNROM, AxROM, MMC1 and MMC3 boards, with bus conflicts by submapper and the M2-filtered A12 scanline IRQ.
+- Battery saves through a library span with a write generation, atomic runner writes and RetroArch `.srm`.
+- One 95-key hash list on six platforms, libretro parity with the runner for every ROM in scope, and `runner.boot_to_play` with negative controls and mutants.
+
+### What Worked
+- Landing the mapper seam first as its own plan with every v1 hash unchanged, so the later PPU re-pin had a clean baseline.
+- Building the boards from cheapest to hardest: by MMC3, the loader, seeds, Holy Mapperel reader and hash list were all in place.
+- Seed lesson SEED-261009-zs2 paid off: the boot-to-play check found the PPUCTRL NMI edge bug (1086 NMIs in 10 frames), which no seam test had caught.
+- The milestone audit before close-out turned review leftovers into small quick tasks (#38, #39) instead of a gap phase.
+
+### What Was Inefficient
+- Long hash tests were run again in full under asan, which pushed that job to about 15 minutes; it took two quick tasks (a timeout raise, then a short-run option) to fix.
+- Quick tasks after the phases left all six verifications marked stale again, forcing a second override closeout.
+- Review leftovers were spread across six disposition files; the audit had to gather them by hand.
+- Phase 9 took 12 plans, mostly fuzz seeds split across waves for size.
+
+### Patterns Established
+- One key list (`tests/cmake/hash_keys.cmake`) that the writer, validator, fixtures and drift guard all read.
+- Sanitizer lanes check the first frames, not full-length runs; full-length hashes stay on the build jobs.
+- Nightly oracle lanes for suites that are fetched cold (blargg MMC3), with unsupported rows recorded rather than skipped.
+- CI timeouts are set to twice a measured hosted run and cite it.
+
+### Key Lessons
+1. Measure a new test's cost under each preset, asan included, before merging it; asan multiplies run time.
+2. A play check from boot catches bugs that unit-level tests miss; keep one per milestone.
+3. Do post-audit fixes before the last phase verification, or accept that close-out will be an override.
+4. Gather review leftovers into one place at each phase transition, not at the audit.
+
+### Cost Observations
+- Model mix: planning on opus, execution mostly on sonnet; not measured.
+- Sessions: not tracked.
+- Notable: two days for six phases and 41 plans; Phase 9 (12 plans) was the longest.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -50,13 +93,16 @@
 | Milestone | Sessions | Phases | Key Change |
 |-----------|----------|--------|------------|
 | v1 | — | 6 | Automation-first verification; zero manual UAT for product behaviour |
+| v2 | — | 6 | Milestone audit before close-out; post-audit quick tasks; per-preset CI cost |
 
 ### Cumulative Quality
 
 | Milestone | Tests | Coverage | Zero-Dep Additions |
 |-----------|-------|----------|-------------------|
 | v1 | 357 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
+| v2 | 481 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. (Needs a second milestone to cross-validate.)
+1. Prove playability with one integrated check from boot; both milestones found real bugs this way (v1 gap phases, v2 NMI edge).
+2. Fixes landing after phase verification make the close an override; plan for it or re-verify in one batch.

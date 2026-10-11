@@ -10,21 +10,15 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 ## Current State
 
-v1 "NROM games with sound" shipped on 2026-10-09 (final release v0.1.6). NROM games render, take input from two controller ports and play with sound in RetroArch. Frame and audio hashes match on Linux, macOS and Windows on x64 and arm64. The code is 13,642 lines of C, 5,964 of them in the core library. The milestone record is in `.planning/MILESTONES.md`, and the roadmap, requirements, audit and phase history are in `.planning/milestones/`.
+v2 "Most of the library plays" shipped on 2026-10-11 (releases v0.1.7 to v0.1.9, with v0.1.10 in release PR #35). Games on mappers 0, 1, 2, 3, 4 and 7, about 91% of the North American licensed library, play through the runner and RetroArch with battery saves. Frame and audio hashes for every board match on Linux, macOS and Windows on x64 and arm64, and `runner.boot_to_play` proves a game plays from boot. The code is 22,419 lines of C, 7,801 of them in the core library and public header, with 481 CTest tests in `ci`.
 
-## Current Milestone: v2 Most of the library plays
+v1 "NROM games with sound" shipped on 2026-10-09 (v0.1.6). The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-**Goal:** Games on the six common board families play in RetroArch with battery saves, with frame and audio hashes identical on every supported platform.
+## Next Milestone Goals
 
-**Target features:**
-- A tune-up phase (SEED-006): faster CI, no flaky test, current pins, docs that match the release, and the v1 debt closed — an exact release-policy gate check, a trainer-bearing image through the full host path, a working `retro_reset()`, and local RetroArch tests that run or are retired instead of self-skipping.
-- MMC1 games run, and battery saves persist across runs as raw `.sav` bytes through the runner and libretro (SEED-001).
-- MMC3 games run with the scanline IRQ counter (SEED-001).
-- UxROM, CNROM and AxROM games run, with bus conflicts where the board has them (SEED-001).
-- Holy Mapperel and per-board frame hashes are pinned in CI.
-- One supported game is proven from boot through interactive play: a defined game-state change, a visible response to input, and non-silent audio (SEED-261009-zs2).
-
-Later milestones remain seeds in `.planning/seeds/`: save states and the runner contract (SEED-002), accuracy and PAL/Dendy (SEED-003), robustness and speed (SEED-004), Famicom hardware (SEED-005).
+Not yet defined; `/gsd-new-milestone` sets them. The candidates are:
+- The v2 debt in `.planning/milestones/v2-MILESTONE-AUDIT.md` and MILESTONES.md: an MMC3 `.srm` round trip in retroarch-e2e (G2), consumers or README text for `nesturbator_get_version` and `nesturbator_unload_cartridge` (G6), the stale `.tmp` after a failed save (08 IN-02), the nightly suite-flake timeout (Backlog 999.1), and the open review items.
+- Seeds in `.planning/seeds/`: save states and the runner contract (SEED-002), accuracy and PAL/Dendy (SEED-003), robustness and speed (SEED-004), Famicom hardware (SEED-005).
 
 ## Requirements
 
@@ -48,7 +42,7 @@ Later milestones remain seeds in `.planning/seeds/`: save states and the runner 
 
 ### Active
 
-(none — all v2 requirements validated; next is milestone close-out)
+(none — the next milestone's requirements come from `/gsd-new-milestone`)
 
 ### Out of Scope
 
@@ -68,6 +62,8 @@ Later milestones remain seeds in `.planning/seeds/`: save states and the runner 
 - **Sibling projects.** A Neo Geo core with the same three deliverables and the same API conventions. Playstead, a host that launches emulator processes and needs deterministic input replay and safe battery saves from them.
 - **How releases are tried.** In RetroArch on an Apple Silicon Mac, installed by script. The local RetroArch tests were removed in Phase 5; the hosted `retroarch-e2e` job carries the screenshot evidence, and `policy.no-skip` fails any CI job whose expected test reports itself skipped.
 - **Known debt after v1.** Closed in Phase 5. The audit that listed it is `.planning/milestones/v1-MILESTONE-AUDIT.md`.
+- **Known debt after v2.** Listed in `.planning/milestones/v2-MILESTONE-AUDIT.md` and the v2 entry of `.planning/MILESTONES.md`. None of it blocks play; G1, 07 WR-01, 08 WR-01 and the asan timeout were closed after the audit.
+- **CI cost.** The asan job skips or shortens the long hash tests (`NESTURBATOR_SHORT_RUNS`), whose full-length hashes the build jobs and hash-equality still check; it runs in about 5 minutes against a 10-minute timeout.
 - **Reference material.** Each file below states facts with their sources. Open the one that matches the work before designing or building.
   - `.planning/preparation/README.md` — index of the files below
   - `.planning/preparation/ARCHITECTURE.md` — time model, CPU, PPU, audio, mappers, public API
@@ -124,6 +120,7 @@ Later milestones remain seeds in `.planning/seeds/`: save states and the runner 
 | A `$2000` write raises NMI only on a bit-7 0-to-1 edge while vblank is set; behaviour revision 6 | Re-raising on every write with bit 7 set fired 1086 NMIs in 10 frames | ✓ Good — Phase 10 `core.nmi_edge` and `ppu.registers` pass; exactly 24 hash rows moved |
 | Boot-to-play is judged by a pure `judge()` over a recorded trace: one allowlisted RAM byte, scene change and audio variation, with negative controls and synthetic mutants pinning every threshold | A play check that a broken core can pass proves nothing | ✓ Good — Phase 10 positive run passes; controls and mutants return their exact masks |
 | The MMC3 A12 filter counts CPU cycles from the A12 fall (a gap of 3 or more clocks), with no extra IRQ delay; the 2C02 shows `v`, not the pattern address, at pre-render dot 0 | blargg scanline timing passes without the conditional one-cycle delay once the pre-render dot-0 address is right | ✓ Good — Phase 9 `ppu.mmc3`, blargg `4-scanline_timing` and `4.Scanline_timing` pass; no frame hash moved |
+| Under asan, long hash tests are dropped or run with a short frame budget (`NESTURBATOR_SHORT_RUNS`); full-length hashes stay on the build jobs and hash-equality | Sanitizers find memory errors in the first frames, not the thousandth; repeating full runs under asan took about 15 minutes | ✓ Good — hosted asan 15 min to 4m52s, timeout 10 min, `ci` test list unchanged (PR #39) |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -145,4 +142,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-11 after Phase 10*
+*Last updated: 2026-10-11 after v2 milestone*
