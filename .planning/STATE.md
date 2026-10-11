@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 09
 current_phase_name: MMC3
 status: executing
-stopped_at: Completed 09-08-PLAN.md
-last_updated: "2026-10-11T02:51:35.682Z"
+stopped_at: Completed 09-09-PLAN.md
+last_updated: "2026-10-11T02:57:50.077Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 09 execution started
-state_head: 1886049a9140547c7d83ec0fbdaeb7e005460951
+state_head: 63c44efa5782e466ec08b0d3778a5c8c7d4247fb
 progress:
   total_phases: 6
   completed_phases: 10
   total_plans: 34
-  completed_plans: 30
-  percent: 88
+  completed_plans: 31
+  percent: 91
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 ## Current Position
 
 Phase: 09 (MMC3) — EXECUTING
-Plan: 9 of 12
+Plan: 10 of 12
 Status: Ready to execute
 Last activity: 2026-10-10 — Phase 09 execution started
 
-Progress: [█████████░] 88% of v2
+Progress: [█████████░] 91% of v2
 
 ## Performance Metrics
 
@@ -140,6 +140,7 @@ Progress: [█████████░] 88% of v2
 | Phase 09 P06 | 5 min | 2 tasks | 9 files |
 | Phase 09 P07 | 10 min | 2 tasks | 4 files |
 | Phase 09 P08 | 15 min | 2 tasks | 7 files |
+| Phase 09 P09 | 25 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -188,6 +189,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-05: oversize reject seeds are bare 16-byte headers; manifest pins f88d7cf and e70b611
 - [Phase 09]: 09-06: RAM and CHR shape reject seeds pinned at ceead30; 31 D-16 seeds complete
 - [Phase 09]: Mapper 4 Holy Mapperel ROMs pinned at N=600
+- [Phase 09]: 09-09: m4tkrom save byte 0 measured 0xB6; derived ROMs built at build time from sha256-checked base
 
 ### Pending Todos
 
@@ -234,8 +236,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T02:51:35.606Z
-Stopped at: Completed 09-08-PLAN.md
+Last session: 2026-10-11T02:57:50.024Z
+Stopped at: Completed 09-09-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 9`.
