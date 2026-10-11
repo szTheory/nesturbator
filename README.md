@@ -287,6 +287,21 @@ The 50 keys are the 36 game and movie keys plus one
 `holymapperel/<key>.saved/frame N` key for each second run (`m1sxrom`, `m4tkrom`); `runner.write_hashes`
 hashes frame N and frame 2N of each and fails if they differ, so a pinned
 result screen is known to be static.
+`runner.boot_to_play` is the boot-to-play proof for nes-runner v1 (MIT,
+mapper 1). It replays generated NMOVIE1 movies through the library, reads
+`$3E` (game state) and the score bytes `$5D` to `$60` with
+`nesturbator_peek_cpu_ram`, and judges three predicates: RAM (the game is in
+state 2, the score rises and reaches 36, and RAM first differs from a no-input
+run no earlier than the first input frame and at most one frame after it),
+scene (changed pixels and at least half the picture differ from the no-input
+run) and audio (every window is loud and differs from the no-input run). The
+no-input, menu-navigation, failed-load and Start-only controls must each fail
+it with an exact mask. Synthetic mutants (silence, constant tone, a click then
+silence, a static picture with a ticking RAM counter, a rainbow-only title, an
+NMI-alive hang, early death, input latched late) and boundary traces on both
+sides of every threshold are judged without running the emulator and must each
+return their expected mask. The check also reads its save: the battery span
+starts `5A 6F` and the save generation advances.
 The `holymapperel.*` tests read Holy Mapperel's result from the frame, not
 from RAM. `holymapperel.<key>.dump` runs a ROM to its frame N and writes the
 frame with `--dump-frame`; `holymapperel.<key>.decode` runs the test-only
