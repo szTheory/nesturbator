@@ -45,7 +45,11 @@ The CI suite pins three redistributable mapper-0 games: MIT-licensed
 Nesteroids, zlib-licensed Double Action Blaster Guys, and all-permissive RHDE.
 It also runs Holy Mapperel's mapper 1, 2, 3, 4 and 7 test ROMs (zlib), among them the
 mapper 4 ROMs `M4_P128K_CR8K` (TNROM-like) and `M4_P256K_C256K` (TxROM-like),
-and requires each to report the result code 0000 with `PRG RAM MISSING`. Their boot hashes and scripted DABG two-port movie hashes are checked against
+and requires each to report the result code 0000 with `PRG RAM MISSING`. Two derived
+copies of `M4_P128K_CR8K` (header byte 10 patched, plus the battery bit for the second)
+prove the MMC3 `$A001` PRG RAM enable and write protect: they report `8K PRG RAM OK`,
+the battery copy also `+ BATTERY` on its second run. The derived files are built at
+build time from the committed ROM after its sha256 is checked, and are never committed. Their boot hashes and scripted DABG two-port movie hashes are checked against
 `tests/runner/hashes.txt` on every platform; the hashes use native pixels
 before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
 banks and uses the 8 KiB CHR RAM it fills during startup.
@@ -268,11 +272,11 @@ brightness never falls down a column.
 two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
 180, plus transition and PCM hashes for each game's boot run. It fails if any
 requested frame or audio hash is missing or duplicated;
-`runner.write_hashes.content` requires all 47 sorted keys to equal
+`runner.write_hashes.content` requires all 50 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
-The 47 keys are the 36 game and movie keys plus one
-`holymapperel/<key>/frame N` key per Holy Mapperel ROM (ten) and one
-`holymapperel/m1sxrom.saved/frame N` key for the SXROM ROM's second run; `runner.write_hashes`
+The 50 keys are the 36 game and movie keys plus one
+`holymapperel/<key>/frame N` key per Holy Mapperel ROM (twelve) and one
+`holymapperel/<key>.saved/frame N` key for each second run (`m1sxrom`, `m4tkrom`); `runner.write_hashes`
 hashes frame N and frame 2N of each and fails if they differ, so a pinned
 result screen is known to be static.
 The `holymapperel.*` tests read Holy Mapperel's result from the frame, not
@@ -302,7 +306,15 @@ BATTERY`, which shows the board loaded its own save. The two runs' screens hash
 differently and both are pinned. A new board ROM is one entry and one manifest
 line in `tests/holymapperel/roms.cmake`, whose entry is
 `<key>:<file>:<N>:<PRG RAM text>` with an optional `:save` field for the
-two-run chain; the tests, `tests/cmake/write_hashes.cmake` and
+two-run chain, then an optional save span size (default 32768) and an optional
+`<offset>=<hex>` that adds a `run1.sav_byte` check on the first run's save;
+a `<file>` written `derived/<name>` names a copy that `holymapperel-derive`
+builds at build time from a committed ROM listed in
+`NESTURBATOR_HOLYMAPPEREL_DERIVED`, with `tests/cmake/hm_derive.cmake`
+refusing a base whose sha256 differs from the manifest
+(`holymapperel.derive.refuse`). `m4tkrom` is the battery copy: its 8,192 byte
+save must hold the write-protected byte 0xB6 at offset 0 (an emulator that
+ignored write protect would leave 0x6B) and `SAVEDATA` at 0x100; the tests, `tests/cmake/write_hashes.cmake` and
 `tests/cmake/hash_inventory.cmake` all read it.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
@@ -450,7 +462,7 @@ and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
 a different frame fails the run. It also requires six nonempty artifacts with
-the exact 47-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
+the exact 50-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
 extra keys and malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.

@@ -261,6 +261,16 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
     # 32 KiB save carrying Holy Mapperel's SAVEDATA marker at offset 0x100.
     # Run 2 loads that save and must show + BATTERY. Run 1 empties the save
     # directory itself, so it still starts empty when ctest repeats it.
+    # Optional field 6 is the save span size (default 32768) and field 7 an
+    # extra <offset>=<hex> check on run 1's save (the MMC3 write protect byte).
+    set(hm_sav_size 32768)
+    if(hm_parts GREATER 5)
+      list(GET parts 5 hm_sav_size)
+    endif()
+    set(hm_sav_byte "")
+    if(hm_parts GREATER 6)
+      list(GET parts 6 hm_sav_byte)
+    endif()
     get_filename_component(hm_stem ${hm_file} NAME_WE)
     set(hm_savedir ${NESTURBATOR_HM_DIR}/${hm_key}-save)
     foreach(hm_run IN ITEMS run1 run2)
@@ -288,12 +298,26 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
       FIXTURES_REQUIRED holymapperel_${hm_key}_run1
       PASS_REGULAR_EXPRESSION "prg ram \"${hm_text}\"")
     add_test(NAME holymapperel.${hm_key}.run1.sav
-      COMMAND ${CMAKE_COMMAND} -DFILE=${hm_savedir}/${hm_stem}.sav -DSIZE=32768
+      COMMAND ${CMAKE_COMMAND} -DFILE=${hm_savedir}/${hm_stem}.sav -DSIZE=${hm_sav_size}
         -DOFFSET=256 -DHEX=5341564544415441
         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_sav.cmake)
     set_tests_properties(holymapperel.${hm_key}.run1.sav PROPERTIES
       FIXTURES_REQUIRED holymapperel_${hm_key}_run1
       FIXTURES_SETUP holymapperel_${hm_key}_run1_sav)
+    if(NOT hm_sav_byte STREQUAL "")
+      string(REPLACE "=" ";" hm_sav_byte_parts "${hm_sav_byte}")
+      list(GET hm_sav_byte_parts 0 hm_byte_offset)
+      list(GET hm_sav_byte_parts 1 hm_byte_hex)
+      add_test(NAME holymapperel.${hm_key}.run1.sav_byte
+        COMMAND ${CMAKE_COMMAND} -DFILE=${hm_savedir}/${hm_stem}.sav -DSIZE=${hm_sav_size}
+          -DOFFSET=${hm_byte_offset} -DHEX=${hm_byte_hex}
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_sav.cmake)
+      set_tests_properties(holymapperel.${hm_key}.run1.sav_byte PROPERTIES
+        FIXTURES_REQUIRED holymapperel_${hm_key}_run1
+        FIXTURES_SETUP holymapperel_${hm_key}_run1_sav_byte)
+      set_tests_properties(holymapperel.${hm_key}.run2.dump PROPERTIES
+        FIXTURES_REQUIRED holymapperel_${hm_key}_run1_sav_byte)
+    endif()
     # Run 2 starts only after run 1 and its save check.
     set_tests_properties(holymapperel.${hm_key}.run2.dump PROPERTIES
       FIXTURES_REQUIRED holymapperel_${hm_key}_run1_sav)

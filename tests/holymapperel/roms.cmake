@@ -24,7 +24,8 @@ set(NESTURBATOR_HOLYMAPPEREL_ROMS
   "m1skrom:M1_P128K_C128K_S8K.nes:100:8K PRG RAM OK"
   "m1surom:M1_P512K_CR8K_S8K.nes:200:8K PRG RAM OK"
   "m1sxrom:M1_P512K_CR8K_S32K.nes:400:32K PRG RAM OK:save"
-  "m4w8k:derived/m4w8k.nes:600:8K PRG RAM OK")
+  "m4w8k:derived/m4w8k.nes:600:8K PRG RAM OK"
+  "m4tkrom:derived/m4tkrom.nes:600:8K PRG RAM OK:save:8192:0=b6")
 
 # Derived ROMs: <key>:<base file in tests/roms/hm>:<patch>[,<patch>]. A patch is
 # set@<offset>=<hh> or or@<offset>=<hh> on the iNES header (colons separate
