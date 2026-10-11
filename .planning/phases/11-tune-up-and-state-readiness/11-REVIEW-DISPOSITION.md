@@ -5,19 +5,19 @@ titles: json
 findings:
   - id: WR-01
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "save.h promises a symlink at the .tmp name is \"never removed\", but the helper removes it"
   - id: WR-02
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "A dangling symlink at the .tmp name fails every save permanently"
   - id: WR-03
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "\"sync\" is not a durable flush on macOS, and the CI RetroArch job runs only on macOS"
   - id: WR-04
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "The chmod sub-case and the symlink sub-case in test_save_replace.c can pass without testing anything"
   - id: IN-01
     severity: info
@@ -31,19 +31,19 @@ findings:
     severity: info
     disposition: open
     title: "Over-long comment line in runner/main.c"
-open: 7
+open: 3
 total: 7
-recorded: 2026-10-11T21:09:19.233Z
+recorded: 2026-10-11T21:52:05.800Z
 ---
 
 # Phase 11: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | open | - |
-| WR-02 | warning | open | - |
-| WR-03 | warning | open | - |
-| WR-04 | warning | open | - |
+| WR-01 | warning | fixed | 11-REVIEW-FIX.md |
+| WR-02 | warning | fixed | 11-REVIEW-FIX.md |
+| WR-03 | warning | fixed | 11-REVIEW-FIX.md |
+| WR-04 | warning | fixed | 11-REVIEW-FIX.md |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |
