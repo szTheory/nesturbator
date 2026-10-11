@@ -302,13 +302,42 @@ static int rom_matches(const uint8_t *rom, size_t size)
     return size == 81936u && strcmp(hex, ROM_SHA256) == 0;
 }
 
+/* Predicates (D-11, D-12). */
+enum { P1_RAM = 1u, P2_SCENE = 2u, P3_AUDIO = 4u };
+#define ALL_PREDICATES (P1_RAM | P2_SCENE | P3_AUDIO)
+
+/* RED stub: no predicate checks anything yet. */
+static unsigned judge(const struct trace *t, const struct trace *n)
+{
+    (void)t;
+    (void)n;
+    return 0u;
+}
+
+static uint32_t distinct_frames(const struct trace *t)
+{
+    uint32_t distinct = 0u;
+    for (uint32_t i = 1u; i <= FRAMES; i++) {
+        uint32_t j = 1u;
+        while (j < i && t->frame_digest[j] != t->frame_digest[i])
+            j++;
+        distinct += j == i;
+    }
+    return distinct;
+}
+
 static struct trace pos_trace;
+static struct trace none_trace;
+static struct trace attract_trace;
+static struct trace startonly_trace;
+static struct trace failed_trace;
 
 int main(int argc, char **argv)
 {
     size_t rom_size = 0u;
     uint8_t *rom;
-    nesturbator_movie pos;
+    uint8_t *truncated;
+    nesturbator_movie pos, none, attract, startonly;
 
     if (argc != 3) {
         fprintf(stderr, "usage: runner.boot_to_play <rom> <movie dir>\n");
@@ -323,28 +352,57 @@ int main(int argc, char **argv)
     if (check_failures != 0)
         CHECK_DONE();
     CHECK(read_scenario(argv[2], "pos", &pos));
+    CHECK(read_scenario(argv[2], "none", &none));
+    CHECK(read_scenario(argv[2], "attract", &attract));
+    CHECK(read_scenario(argv[2], "startonly", &startonly));
     if (check_failures != 0)
         CHECK_DONE();
 
     CHECK_EQ_U64(collect_run(rom, rom_size, &pos, 1, &pos_trace), NESTURBATOR_OK);
+    CHECK_EQ_U64(collect_run(rom, rom_size, &none, 0, &none_trace), NESTURBATOR_OK);
+    CHECK_EQ_U64(collect_run(rom, rom_size, &attract, 0, &attract_trace), NESTURBATOR_OK);
+    CHECK_EQ_U64(collect_run(rom, rom_size, &startonly, 0, &startonly_trace), NESTURBATOR_OK);
 
-    /* P1 facts on the positive run. */
-    for (uint32_t c = 150u; c <= FRAMES; c += WINDOW) {
-        uint32_t i = c / WINDOW - 1u;
-        CHECK_EQ_U64(pos_trace.state[i], STATE_GAME);
-        if (c >= 210u)
-            CHECK(pos_trace.score[i] > pos_trace.score[i - 2u]);
+    /* Failed-load control: a truncated copy is refused, and the instance keeps
+       running the way a host that ignores the error would. */
+    truncated = (uint8_t *)malloc(16u + 16384u);
+    CHECK(truncated != NULL);
+    if (truncated != NULL) {
+        memcpy(truncated, rom, 16u + 16384u);
+        CHECK_EQ_U64(collect_run(truncated, 16u + 16384u, NULL, 0, &failed_trace),
+                     NESTURBATOR_ERR_CARTRIDGE);
+        free(truncated);
     }
-    printf("positive final score %u\n", (unsigned)pos_trace.score[CHECKPOINTS - 1u]);
-    CHECK(pos_trace.score[CHECKPOINTS - 1u] >= 36u);
+
+    CHECK_EQ_U64(judge(&pos_trace, &none_trace), 0u);
+    CHECK_EQ_U64(judge(&none_trace, &none_trace), ALL_PREDICATES);
+    CHECK_EQ_U64(judge(&attract_trace, &none_trace), P1_RAM | P2_SCENE);
+    CHECK_EQ_U64(judge(&failed_trace, &none_trace), ALL_PREDICATES);
+    CHECK_EQ_U64(judge(&startonly_trace, &none_trace), P1_RAM | P2_SCENE);
 
     /* D-07: the game wrote its save from fresh SRAM. */
     CHECK_EQ_U64(pos_trace.sram_valid, 1u);
     CHECK_EQ_HEX(pos_trace.sram[0], 0x5Au);
     CHECK_EQ_HEX(pos_trace.sram[1], 0x6Fu);
     CHECK(pos_trace.generation[CHECKPOINTS - 1u] >= 2u);
+    CHECK(startonly_trace.generation[CHECKPOINTS - 1u] > pos_trace.generation[CHECKPOINTS - 1u]);
+
+    /* Information only; distinct frame hashes are not a predicate. */
+    printf("distinct frames: pos %u none %u attract %u startonly %u failed %u\n",
+           (unsigned)distinct_frames(&pos_trace), (unsigned)distinct_frames(&none_trace),
+           (unsigned)distinct_frames(&attract_trace), (unsigned)distinct_frames(&startonly_trace),
+           (unsigned)distinct_frames(&failed_trace));
+    printf("positive final score %u, startonly final score %u\n",
+           (unsigned)pos_trace.score[CHECKPOINTS - 1u],
+           (unsigned)startonly_trace.score[CHECKPOINTS - 1u]);
+    printf("save generation: pos %u startonly %u\n",
+           (unsigned)pos_trace.generation[CHECKPOINTS - 1u],
+           (unsigned)startonly_trace.generation[CHECKPOINTS - 1u]);
 
     nesturbator_movie_free(&pos);
+    nesturbator_movie_free(&none);
+    nesturbator_movie_free(&attract);
+    nesturbator_movie_free(&startonly);
     free(rom);
     CHECK_DONE();
 }
