@@ -22,7 +22,7 @@
  * component of the --rom path, split at '/' or '\\', without its last extension. A write goes
  * to DIR/<name>.sav.tmp and is renamed over the save, so a kill leaves the old save. The
  * runner writes at the end of the run (also after a JAM) and, with --save-interval N, after every
- * Nth frame. A save whose size is not the battery RAM's is never touched. Without --save-dir
+ * Nth frame; a write that fails at an interval is tried once more at exit. A save whose size is not the battery RAM's is never touched. Without --save-dir
  * no save file is read or written, and neither is one for a cartridge without battery RAM.
  *
  * Exit status (LIBRETRO-AND-RUNNER section 5): 0 done, 1 failure, 2 usage, 4 .sav size mismatch;
@@ -257,7 +257,9 @@ typedef struct save_state {
 } save_state;
 
 /* Writes the span when a CPU write reached it since the last look and the
-   bytes differ from the last written copy. Returns 0, or 1 after a failure. */
+   bytes differ from the last written copy. Returns 0, or 1 after a failure.
+   A failed write leaves the generation unrecorded, so the next look (the exit
+   flush) writes again. */
 static int save_if_changed(nesturbator *inst, save_state *sv)
 {
     uint64_t gen;
@@ -266,10 +268,11 @@ static int save_if_changed(nesturbator *inst, save_state *sv)
     gen = nesturbator_save_generation(inst);
     if (gen == sv->generation)
         return 0;
+    if (memcmp(sv->span, sv->shadow, sv->size) != 0 &&
+        nesturbator_run_save_flush(sv->path, sv->span, sv->size, sv->shadow) != 0)
+        return 1;
     sv->generation = gen;
-    if (memcmp(sv->span, sv->shadow, sv->size) == 0)
-        return 0;
-    return nesturbator_run_save_flush(sv->path, sv->span, sv->size, sv->shadow);
+    return 0;
 }
 
 static int listed(const uint32_t *list, uint32_t count, uint32_t f)

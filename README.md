@@ -921,7 +921,9 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   catches a clash of different sizes.
 - `--save-interval N` (N of 1 or more, needs `--save-dir`) also writes a
   changed save after every Nth frame, counted from 1, so a runner stopped
-  after a flush leaves the RAM as it was then. With `--frames 3
+  after a flush leaves the RAM as it was then. A failed interval write ends
+  the run with exit 1, and the runner tries the write once more before it
+  exits. With `--frames 3
   --save-interval 5` no interval write falls inside the run, and the write at
   exit still happens. `--save-interval 0`, a repeated or empty `--save-dir`,
   and `--save-dir` without `--rom` exit 2.
