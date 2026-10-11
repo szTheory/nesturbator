@@ -22,8 +22,9 @@
  * component of the --rom path, split at '/' or '\\', without its last extension. A write goes
  * to DIR/<name>.sav.tmp and is renamed over the save, so a kill leaves the old save. The
  * runner writes at the end of the run (also after a JAM) and, with --save-interval N, after every
- * Nth frame; a write that fails at an interval is tried once more at exit. A save whose size is not the battery RAM's is never touched. Without --save-dir
- * no save file is read or written, and neither is one for a cartridge without battery RAM.
+ * Nth frame; a write that fails at an interval is tried once more at exit. A save whose size is
+ * not the battery RAM's is never touched. Without --save-dir no save file is read or written, and
+ * neither is one for a cartridge without battery RAM.
  *
  * Exit status (LIBRETRO-AND-RUNNER section 5): 0 done, 1 failure, 2 usage, 4 .sav size mismatch;
  * 3 and 77 are reserved.
