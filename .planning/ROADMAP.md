@@ -34,7 +34,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
 - [x] **Phase 7: UxROM, CNROM and AxROM** - Discrete-logic board games run, with bus conflicts where the board has them (completed 2026-10-10)
 - [x] **Phase 8: MMC1 and battery saves** - MMC1 games run, and battery saves persist through the runner and RetroArch (completed 2026-10-10)
 - [x] **Phase 9: MMC3** - MMC3 games run with the A12-clocked scanline IRQ, and the loader accepts exactly the six v2 mappers (completed 2026-10-10)
-- [ ] **Phase 10: Close-out and boot-to-play** - Every board's hashes match on six platforms, and a game is proven to play from boot
+- [x] **Phase 10: Close-out and boot-to-play** - Every board's hashes match on six platforms, and a game is proven to play from boot (completed 2026-10-11)
 
 ## Phase Details
 
@@ -224,7 +224,7 @@ Plans:
   2. A CI test replays a recorded input movie on nes-runner from boot into gameplay: a RAM byte with meaning in the game differs between runs with and without input, the scene's frames change visibly, and the audio keeps varying past a threshold.
   3. The same check fails, in the same test, for each negative control: no input, an attract-mode-only run, and a failed load that falls back to the test frame.
 
-**Plans**: 7/7 plans executed
+**Plans**: 7/7 plans complete
 
 Plans:
 **Wave 1**
@@ -269,7 +269,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
 | 8. MMC1 and battery saves | v2 | 8/8 | Complete    | 2026-10-10 |
 | 9. MMC3 | v2 | 12/12 | Complete    | 2026-10-10 |
-| 10. Close-out and boot-to-play | v2 | 7/7 | In Progress | - |
+| 10. Close-out and boot-to-play | v2 | 7/7 | Complete    | 2026-10-11 |
 
 ## Backlog
 
