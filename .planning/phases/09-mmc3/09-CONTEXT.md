@@ -180,6 +180,13 @@ code and reconciled two conflicts:
   - **Hook level** (`tests/core/`, through `tests/mapper_test.h`):
     - The filter boundary on both sides, including a 72-tick gap that spans
       only two falls and does not clock.
+      - **Amended 2026-10-10 (research-driven correction, recorded at plan
+        revision):** the 72-tick case does not hold under the locked D-05
+        derivation, because inside a hook `cpu_cycle` counts the M2 falls
+        strictly before the dot (09-RESEARCH.md Summary item 2 and open
+        question 2, RESOLVED). The boundary is pinned in CPU-cycle units
+        instead: a rise 2 CPU cycles after the fall is filtered, and 3 and 4
+        clock. D-05 is unchanged. Implemented by 09-01 Task 3.
     - A rise after a short high pulse restarts the low count.
     - A duplicate rise is ignored, and the first rise after load is
       filtered.

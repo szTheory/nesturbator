@@ -793,14 +793,17 @@ Not a rename or migration phase. Omitted.
 | A6 | Frame budget N = 600 is enough for M4 Holy Mapperel ROMs | 4 | Executor measures per Phase 7 D-08 |
 | A7 | The 16 KiB `mmc3_irq_tests` boot correctly with true-modulo bank aliasing (fixed banks are bank 0 and bank 1 of two) | 2, 5 | Oracle rows fail; check reset vector and bank layout first |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Will `4-scanline_timing` / `4.Scanline_timing` pass with zero extra IRQ delay?**
    - Known: the A12 hook fires inside the PPU catch-up and `cycle()` samples `irq_line` into `poll_latch` at the next cycle's +9 ticks.
    - Unclear: whether real hardware's filtered-A12 propagation shifts the assertion by a cycle.
    - Recommendation: build without a delay, run the nightly lane locally once, and record the codes; only add a delay if both timing tests fail by one cycle.
+   - **RESOLVED (2026-10-10, planning): a measured-at-execution decision with a fixed rule.** The board ships with no extra IRQ delay (09-01). 09-11 Task 2 runs both scanline-timing ROMs through the `mmc3-oracle` lane and records their codes. Rule: add a one-CPU-cycle assertion delay, pinned by a `core.mapper_mmc3` case, only if both `mmc3_test_2/4-scanline_timing` and `mmc3_irq_tests/4.Scanline_timing` fail and their codes show the IRQ one cycle early or late; any other failure pattern is diagnosed as a different defect (A7 bank aliasing first) and never patched with a delay, and a Sharp-revision row is never recorded unsupported. No question remains open at planning time; only the measured value is left to execution.
 2. **D-09 tick wording.** Resolve in favour of CPU-cycle units (Summary item 2); keep D-05 as locked.
+   - **RESOLVED (2026-10-10):** the hook-level boundary tests are written in CPU cycles (rise 2 cycles after the fall is filtered, 3 and 4 clock), implemented by 09-01 Task 3. D-09 in 09-CONTEXT.md carries a dated amendment recording the correction; D-05 is unchanged.
 3. **`ppu_a12` reading `nes->cpu_cycle`.** The header rule says hooks do not read `nes->ticks`. Amend the comment, do not add a new argument (no ABI change).
+   - **RESOLVED (2026-10-10):** 09-01 Task 3 amends the hook-rules comment in `src/mapper.h` to say `ppu_a12` may read `nes->cpu_cycle`, the count of completed CPU cycles, as its M2 fall clock; no hook argument is added.
 
 ## Environment Availability
 
