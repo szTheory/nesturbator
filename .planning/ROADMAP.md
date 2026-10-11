@@ -176,7 +176,7 @@ Plans:
   3. A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit, checks their SHA-256s and passes the Sharp-revision tests; the NEC-revision tests `mmc3_test_2/6-MMC3_alt` and `mmc3_irq_tests/5.MMC3_rev_A` are recorded as unsupported.
   4. The loader accepts mappers 0, 1, 2, 3, 4 and 7, and `nesturbator-run` rejects any other mapper, MMC6 (mapper 4, submapper 1) and four-screen boards with a message and a non-zero exit status; the fuzz corpus and the cartridge tests reflect the new rules.
 
-**Plans**: 3/12 plans executed
+**Plans**: 4/12 plans executed
 
 Plans:
 **Wave 1**
@@ -187,7 +187,7 @@ Plans:
 - [x] 09-03-PLAN.md — Through-the-PPU clock tests: 241 clocks per frame, empty sprite slots, $2006/$2007 edges, non-MMC3 control (BOARD-03)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 09-04-PLAN.md — Reject seeds: submappers, four-screen, mappers 118 and 119 (MAP-03)
+- [x] 09-04-PLAN.md — Reject seeds: submappers, four-screen, mappers 118 and 119 (MAP-03)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 09-05-PLAN.md — Reject seeds: mappers 206 and 249, PRG and CHR-ROM sizes (MAP-03)
@@ -245,7 +245,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | Complete    | 2026-10-10 |
 | 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
 | 8. MMC1 and battery saves | v2 | 8/8 | Complete    | 2026-10-10 |
-| 9. MMC3 | v2 | 3/12 | In Progress | - |
+| 9. MMC3 | v2 | 4/12 | In Progress | - |
 | 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
 
 ## Backlog
