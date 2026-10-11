@@ -1,7 +1,7 @@
 ---
 phase: 08-mmc1-and-battery-saves
 source: 08-REVIEW.md
-open: 5
+open: 4
 ---
 
 # Phase 08 code review disposition
@@ -10,7 +10,7 @@ One row per finding in 08-REVIEW.md. Every row starts as `open`. Set a row to `f
 
 | ID | Severity | Disposition | Source |
 |----|----------|-------------|--------|
-| WR-01 | warning | open | 08-REVIEW.md: A failed interval flush is never retried, so the exit flush can silently skip the save |
+| WR-01 | warning | fixed | 08-REVIEW.md: A failed interval flush is never retried, so the exit flush can silently skip the save; fixed in quick 261011-inm (runner.save.interval_retry) |
 | WR-02 | warning | open | 08-REVIEW.md: NES 2.0 MMC1 submapper 5 (fixed 32 KiB PRG) is accepted but emulated as ordinary MMC1 |
 | WR-03 | warning | open | 08-REVIEW.md: A directory at the .sav location reports a size mismatch |
 | IN-01 | info | open | 08-REVIEW.md: Interval test depends on a wall-clock timeout |
