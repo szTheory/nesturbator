@@ -1,6 +1,7 @@
 /* TUNE-06 (D-12 to D-14, D-18): soft reset through nesturbator_reset on a synthetic NROM image
    with a trainer, so PRG RAM exists. One function per D-18 item. */
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "internal.h"
 #include "nesturbator.h"
@@ -555,12 +556,12 @@ static void run_one_into(struct nesturbator *nes, uint16_t *video)
    its video buffer. 0xFFFF is never a valid pixel (palette entry in bits 0-5, emphasis in bits
    6-8, bits 9-15 zero), so any 0xFFFF left after a frame is an unwritten pixel. This proves
    host-buffer independence only; it does not claim the pixels are hardware-exact after reset. */
-static void check_reset_sentinel_frame(void)
+static void check_reset_sentinel_frame(unsigned step)
 {
     static uint16_t video[256u * 240u];
     static uint16_t video_a[256u * 240u];
     static uint16_t video_b[256u * 240u];
-    for (unsigned pre = 0u; pre <= 120u; ++pre) {
+    for (unsigned pre = 0u; pre <= 120u; pre += step) {
         struct nesturbator *nes = make_instance(0);
         run_frames(nes, pre);
         CHECK_EQ_U64(nesturbator_reset((nesturbator *)nes), NESTURBATOR_OK);
@@ -594,8 +595,17 @@ static void check_reset_sentinel_frame(void)
     }
 }
 
-int main(void)
+/* --short steps the reset point by 20 frames (0, 20, ..., 120, both ends kept). The asan preset
+   uses it; the ci legs sweep every frame. */
+int main(int argc, char **argv)
 {
+    unsigned step = 1u;
+    if (argc == 2 && strcmp(argv[1], "--short") == 0) {
+        step = 20u;
+    } else if (argc != 1) {
+        fprintf(stderr, "usage: core.reset [--short]\n");
+        return 2;
+    }
     check_null_and_empty();
     check_cpu_and_bus();
     check_cartridge_state_kept();
@@ -613,6 +623,6 @@ int main(void)
     check_apu_through_reset(0u, 6u);
     check_no_cartridge_state();
     check_two_instances();
-    check_reset_sentinel_frame();
+    check_reset_sentinel_frame(step);
     CHECK_DONE();
 }

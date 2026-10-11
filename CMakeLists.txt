@@ -25,6 +25,10 @@ endfunction()
 # Preset nofp: the core gets no floating-point or vector registers, and the
 # abi tests check it (ENGINEERING section 1).
 option(NESTURBATOR_NOFP "Build the core with -mgeneral-regs-only and run the abi tests" OFF)
+# Preset asan sets NESTURBATOR_SHORT_RUNS. It shortens or leaves out the long tests whose
+# full-length results the ci legs and the hash-equality job already check, so ASan exercises
+# the same code paths in less time.
+option(NESTURBATOR_SHORT_RUNS "Shorten or leave out the long tests (preset asan)" OFF)
 if(NESTURBATOR_NOFP AND MSVC)
   message(FATAL_ERROR "NESTURBATOR_NOFP needs GCC or Clang (-mgeneral-regs-only)")
 endif()
