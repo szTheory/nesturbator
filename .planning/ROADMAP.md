@@ -176,7 +176,7 @@ Plans:
   3. A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit, checks their SHA-256s and passes the Sharp-revision tests; the NEC-revision tests `mmc3_test_2/6-MMC3_alt` and `mmc3_irq_tests/5.MMC3_rev_A` are recorded as unsupported.
   4. The loader accepts mappers 0, 1, 2, 3, 4 and 7, and `nesturbator-run` rejects any other mapper, MMC6 (mapper 4, submapper 1) and four-screen boards with a message and a non-zero exit status; the fuzz corpus and the cartridge tests reflect the new rules.
 
-**Plans**: 6/12 plans executed
+**Plans**: 7/12 plans executed
 
 Plans:
 **Wave 1**
@@ -194,7 +194,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 - [x] 09-06-PLAN.md — Reject seeds: CHR-RAM, CHR-NVRAM and PRG-RAM shapes; all 31 D-16 seeds (MAP-03)
-- [ ] 09-07-PLAN.md — Runner rejection messages (four-screen, MMC6, unsupported mapper, generic) with EXPECT_ERR CTests (MAP-03)
+- [x] 09-07-PLAN.md — Runner rejection messages (four-screen, MMC6, unsupported mapper, generic) with EXPECT_ERR CTests (MAP-03)
 
 **Wave 6** *(blocked on Wave 5 completion)*
 - [ ] 09-08-PLAN.md — Holy Mapperel mapper 4 ROMs committed, 0000 with PRG RAM MISSING, 47 pinned hashes (BOARD-03)
@@ -245,7 +245,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | Complete    | 2026-10-10 |
 | 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
 | 8. MMC1 and battery saves | v2 | 8/8 | Complete    | 2026-10-10 |
-| 9. MMC3 | v2 | 6/12 | In Progress | - |
+| 9. MMC3 | v2 | 7/12 | In Progress | - |
 | 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
 
 ## Backlog
