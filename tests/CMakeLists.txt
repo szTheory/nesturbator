@@ -264,6 +264,7 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
     list(GET parts 4 hm_save)
   endif()
   if(hm_save STREQUAL "save")
+    # Plan 07 adds this key's libretro.parity.<key>.run1 and .run2 tests.
     # SAVE-02 (D-04): the same battery ROM runs twice against one save
     # directory. Run 1 starts empty and must not show + BATTERY; it leaves a
     # 32 KiB save carrying Holy Mapperel's SAVEDATA marker at offset 0x100.
@@ -339,6 +340,13 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
       EXIT 0 IGNORE_STDOUT)
     set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES
       FIXTURES_SETUP holymapperel_${hm_key} TIMEOUT 120)
+    # D-18: the module shows the same result screen as the runner.
+    add_test(NAME libretro.parity.${hm_key}
+      COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+        ${hm_rom} ${hm_frames} ${NESTURBATOR_HM_DIR}/${hm_key}.ppm
+        --testcard ${NESTURBATOR_TESTFRAME_PPM})
+    set_tests_properties(libretro.parity.${hm_key} PROPERTIES
+      FIXTURES_REQUIRED "holymapperel_${hm_key};testframe_ppm" TIMEOUT 120)
     add_test(NAME holymapperel.${hm_key}.decode
       COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
     set_tests_properties(holymapperel.${hm_key}.decode PROPERTIES
@@ -799,20 +807,61 @@ add_test(NAME libretro.host
     $<TARGET_FILE:nesturbator-run> ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.nes)
 set_tests_properties(libretro.host PROPERTIES FIXTURES_REQUIRED testframe_ppm)
 
-# D-18: --rom-parity runs a whole ROM through the module and compares its last
-# frame with the image the runner dumped (fixture rundump_<key>).
+# D-18 / D-14 / D-09: --rom-parity runs a whole ROM through the libretro module
+# and compares its last frame with the image the runner dumped (fixture
+# rundump_<key>, so the runner is not run twice). Scope is every ROM in the hash
+# inventory that needs no save file: the games at frame 180, nes-runner's boot
+# at 180 and its played nesrunner-pos movie at 600, and each non-save Holy
+# Mapperel ROM at its N (registered in the Holy Mapperel loop above). Each key
+# is its own CTest so a failure names the ROM. The empty-list stops mean zero
+# parity tests cannot pass vacuously (D-17).
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/parity)
-nesturbator_runner_test(NAME runner.dump.nesteroids
-  ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes --frames 180
-    --dump-frame "180:${CMAKE_CURRENT_BINARY_DIR}/parity/nesteroids.ppm"
-  EXIT 0 IGNORE_STDOUT)
-set_tests_properties(runner.dump.nesteroids PROPERTIES FIXTURES_SETUP rundump_nesteroids)
-add_test(NAME libretro.parity.nesteroids
-  COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
-    ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes 180
-    ${CMAKE_CURRENT_BINARY_DIR}/parity/nesteroids.ppm --testcard ${NESTURBATOR_TESTFRAME_PPM})
-set_tests_properties(libretro.parity.nesteroids PROPERTIES
-  FIXTURES_REQUIRED "rundump_nesteroids;testframe_ppm" TIMEOUT 120)
+set(NESTURBATOR_PARITY_DIR ${CMAKE_CURRENT_BINARY_DIR}/parity)
+set(parity_keys)
+foreach(game_entry IN LISTS NESTURBATOR_HASH_GAMES)
+  string(REPLACE ":" ";" game_parts "${game_entry}")
+  list(GET game_parts 0 game_key)
+  list(GET game_parts 1 game_file)
+  set(game_rom ${PROJECT_SOURCE_DIR}/tests/roms/${game_file})
+  if(game_key STREQUAL "nesrunner")
+    set(parity_key nesrunner.boot)
+  else()
+    set(parity_key ${game_key})
+  endif()
+  nesturbator_runner_test(NAME runner.dump.${parity_key}
+    ARGS --rom ${game_rom} --frames 180
+      --dump-frame "180:${NESTURBATOR_PARITY_DIR}/${parity_key}.ppm"
+    EXIT 0 IGNORE_STDOUT)
+  set_tests_properties(runner.dump.${parity_key} PROPERTIES
+    FIXTURES_SETUP rundump_${parity_key})
+  add_test(NAME libretro.parity.${parity_key}
+    COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+      ${game_rom} 180 ${NESTURBATOR_PARITY_DIR}/${parity_key}.ppm
+      --testcard ${NESTURBATOR_TESTFRAME_PPM})
+  set_tests_properties(libretro.parity.${parity_key} PROPERTIES
+    FIXTURES_REQUIRED "rundump_${parity_key};testframe_ppm" TIMEOUT 120)
+  list(APPEND parity_keys ${parity_key})
+  if(game_key STREQUAL "nesrunner")
+    # PLAY-01: the played movie, 600 frames, held by the runner and the module.
+    set(play_movie ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies/nesrunner-pos.nmovie)
+    nesturbator_runner_test(NAME runner.dump.nesrunner.play
+      ARGS --rom ${game_rom} --movie ${play_movie}
+        --dump-frame "600:${NESTURBATOR_PARITY_DIR}/nesrunner.play.ppm"
+      EXIT 0 IGNORE_STDOUT)
+    set_tests_properties(runner.dump.nesrunner.play PROPERTIES
+      FIXTURES_SETUP rundump_nesrunner.play FIXTURES_REQUIRED nesrunner_movies)
+    add_test(NAME libretro.parity.nesrunner.play
+      COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+        ${game_rom} 600 ${NESTURBATOR_PARITY_DIR}/nesrunner.play.ppm
+        --movie ${play_movie} --testcard ${NESTURBATOR_TESTFRAME_PPM})
+    set_tests_properties(libretro.parity.nesrunner.play PROPERTIES
+      FIXTURES_REQUIRED "rundump_nesrunner.play;nesrunner_movies;testframe_ppm" TIMEOUT 120)
+    list(APPEND parity_keys nesrunner.play)
+  endif()
+endforeach()
+if(NOT parity_keys)
+  message(FATAL_ERROR "no libretro parity tests: NESTURBATOR_HASH_GAMES is empty")
+endif()
 
 # D-14: palgen regenerates src/palette_ntsc.c byte for byte, ignoring line
 # endings.
