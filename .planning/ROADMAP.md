@@ -176,7 +176,27 @@ Plans:
   3. A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit, checks their SHA-256s and passes the Sharp-revision tests; `6-MMC3_alt` is recorded as unsupported.
   4. The loader accepts mappers 0, 1, 2, 3, 4 and 7, and `nesturbator-run` rejects any other mapper, MMC6 (mapper 4, submapper 1) and four-screen boards with a message and a non-zero exit status; the fuzz corpus and the cartridge tests reflect the new rules.
 
-**Plans**: TBD
+**Plans**: 7 plans
+
+Plans:
+**Wave 1**
+- [ ] 09-01-PLAN.md — MMC3 board and mapper 4 loader row: registers, banking, $A001 gating, M2-filtered A12 counter, Sharp and NEC IRQ, hook-level tests (BOARD-03, MAP-03)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 09-02-PLAN.md — D-12 loader rows, 30 D-16 fuzz seeds, README and header text for the six mappers (MAP-03, BOARD-03)
+- [ ] 09-03-PLAN.md — Through-the-PPU clock tests: 241 clocks per frame, empty sprite slots, $2006/$2007 edges, non-MMC3 control (BOARD-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 09-04-PLAN.md — Runner rejection messages (four-screen, MMC6, unsupported mapper, generic) with EXPECT_ERR CTests (MAP-03)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 09-05-PLAN.md — Holy Mapperel mapper 4 ROMs, build-time derived RAM copies proving $A001, save chain, 50 pinned hashes (BOARD-03)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 09-06-PLAN.md — blargg MMC3 oracle lane: pins, guarded fetch, oracle, oracle.txt, mmc3-oracle presets (BOARD-03)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [ ] 09-07-PLAN.md — Nightly mmc3-oracle job, report wiring, per-lane workflow policy, phase gate (BOARD-03)
 **Research flag**: HIGH — the A12 M2-filter threshold, counter reload and IRQ semantics, the `$A000` mirroring polarity, and submapper 4.
 **Ships**: a release that plays MMC3 games.
 
