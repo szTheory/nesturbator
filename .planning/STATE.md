@@ -21,10 +21,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-10)
+See: .planning/PROJECT.md (updated 2026-10-11)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 10 — Close-out and boot-to-play
+**Current focus:** Ship Phase 10, then close milestone v2
 
 ## Current Position
 
@@ -222,8 +222,9 @@ None.
 Research flags for v2: Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
 - [Phase 08] Code review left 3 warnings and 2 info open (08-REVIEW-DISPOSITION.md): WR-01 runner `save_if_changed` advances the generation before the flush, so a failed interval flush is not retried at exit (confirmed by the verifier); WR-02 NES 2 MMC1 submapper 5 accepted but not emulated as fixed 32 KiB PRG; WR-03 a directory at the `.sav` path exits 4 instead of a read error.
 - [Phase 09] Code review left 1 warning and 2 info (09-REVIEW-DISPOSITION.md): WR-01 accepted by the verifier (MMC3 ignores the header mirroring bit per D-07/D-08; a header sentence and pinning test are an optional quick follow-up); IN-01 duplicate CHR pointer computation; IN-02 runner `describe_rejection` repeats header decoding and the mapper list.
-- [Phase 07] Code review left 2 warnings and 3 info open (07-REVIEW-DISPOSITION.md): WR-01 header, README and mapper_axrom.c say the AxROM reset vector comes from bank 0, true only at power-on (soft reset keeps the bank; add "at power-on" and a reset test), WR-02 hash_inventory.cmake compares only the last platform's keys.
+- [Phase 07] Code review left 2 warnings and 3 info open (07-REVIEW-DISPOSITION.md): WR-01 header, README and mapper_axrom.c say the AxROM reset vector comes from bank 0, true only at power-on (soft reset keeps the bank; add "at power-on" and a reset test), WR-02 (hash_inventory.cmake compared only the last platform's keys) fixed in 10-05.
 - [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-02 `$2007` palette test on unmasked `v` stays open; WR-01 (write stamp) and WR-03 (`map_cpu_read` range guard) were fixed in 08-05.
+- [Phase 10] Code review left 3 warnings and 3 info open, all in test code (10-REVIEW-DISPOSITION.md): WR-01 `libretro.host --rom-parity` continues after a failed load; WR-02 boot-to-play audio window min/max not re-seeded when a window's first frame has no samples (latent); WR-03 the frame-written sentinel is weaker than its comment.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
 ### Quick Tasks Completed
@@ -261,9 +262,9 @@ Last session: 2026-10-11T14:59:47.466Z
 Stopped at: Phase 10 complete — all phases complete
 Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 10`.
+Next GSD command: `/gsd-ship 10`.
 
 ## Operator Next Steps
 
 - Phase 9 PR #36 squash-merged into main (CI run 38108996110 green on all jobs); `gsd/phase-10-close-out-and-boot-to-play` created from main
-- Discuss Phase 10 with /gsd-discuss-phase 10
+- Phase 10 executed and verified (passed 4/4); ship it with /gsd-ship 10 (PR title: feat: NMI edge fix, board parity close-out and nes-runner boot-to-play), then audit and complete milestone v2
