@@ -618,6 +618,38 @@ target_compile_definitions(runner.game_movie PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(runner.game_movie)
 
+# PLAY-01 / D-05: the build writes the four nes-runner movies (no movie bytes
+# are committed); runner.boot_to_play reads them through the nesrunner_movies
+# fixture.
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies)
+foreach(scenario pos none attract startonly)
+  add_test(NAME runner.nesrunner_movie.${scenario}
+    COMMAND runner.game_movie
+      ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies/nesrunner-${scenario}.nmovie
+      nesrunner-${scenario})
+  set_tests_properties(runner.nesrunner_movie.${scenario} PROPERTIES
+    FIXTURES_SETUP nesrunner_movies)
+endforeach()
+
+# PLAY-01 / D-08: one program replays the movies through the library, reads
+# nes-runner's RAM and judges the positive run and every control.
+add_executable(runner.boot_to_play runner/test_boot_to_play.c
+  ${PROJECT_SOURCE_DIR}/runner/sha256.c ${PROJECT_SOURCE_DIR}/runner/audio_hash.c
+  ${PROJECT_SOURCE_DIR}/runner/movie.c)
+target_link_libraries(runner.boot_to_play PRIVATE nesturbator::nesturbator)
+target_include_directories(runner.boot_to_play PRIVATE ${PROJECT_SOURCE_DIR}/runner
+  ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(runner.boot_to_play PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(runner.boot_to_play)
+# About 3,000 emulated frames. ASan measured about 55 s locally, so TIMEOUT 300
+# (10-RESEARCH Pitfall 8); COST 45 starts it beside runner.write_hashes.
+add_test(NAME runner.boot_to_play
+  COMMAND runner.boot_to_play ${PROJECT_SOURCE_DIR}/tests/roms/runner.nes
+    ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies)
+set_tests_properties(runner.boot_to_play PROPERTIES
+  FIXTURES_REQUIRED nesrunner_movies TIMEOUT 300 COST 45)
+
 # version.txt equals the header's version macros.
 add_test(NAME version.consistency
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
