@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 09
 current_phase_name: MMC3
 status: executing
-stopped_at: Completed 09-05-PLAN.md
-last_updated: "2026-10-11T02:38:14.393Z"
+stopped_at: Completed 09-06-PLAN.md
+last_updated: "2026-10-11T02:40:36.414Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 09 execution started
-state_head: 104731bcae140619fd51bb8a4d114950c8c074ca
+state_head: ebaf961e7bca9a7579bb48f98c295b52fa908bc1
 progress:
   total_phases: 6
   completed_phases: 10
   total_plans: 34
-  completed_plans: 27
-  percent: 79
+  completed_plans: 28
+  percent: 82
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 ## Current Position
 
 Phase: 09 (MMC3) — EXECUTING
-Plan: 6 of 12
+Plan: 7 of 12
 Status: Ready to execute
 Last activity: 2026-10-10 — Phase 09 execution started
 
-Progress: [████████░░] 79% of v2
+Progress: [████████░░] 82% of v2
 
 ## Performance Metrics
 
@@ -137,6 +137,7 @@ Progress: [████████░░] 79% of v2
 | Phase 09 P03 | 15 min | 2 tasks | 3 files |
 | Phase 09 P04 | 6 min | 2 tasks | 10 files |
 | Phase 09 P05 | 5 min | 2 tasks | 10 files |
+| Phase 09 P06 | 5 min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -183,6 +184,7 @@ Recent decisions affecting current work:
 - [Phase 09]: BG at $1000 and sprites at $0000: a frame holds 242 MMC3 clocks (pre-render clocks at dot 5 and 325)
 - [Phase 09]: 09-04 reject seeds pinned at 47fa6df (HEAD at creation); each seed name equals its mmc3_rows BAD_ label
 - [Phase 09]: 09-05: oversize reject seeds are bare 16-byte headers; manifest pins f88d7cf and e70b611
+- [Phase 09]: 09-06: RAM and CHR shape reject seeds pinned at ceead30; 31 D-16 seeds complete
 
 ### Pending Todos
 
@@ -229,8 +231,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T02:38:14.331Z
-Stopped at: Completed 09-05-PLAN.md
+Last session: 2026-10-11T02:40:36.364Z
+Stopped at: Completed 09-06-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 9`.
