@@ -302,16 +302,162 @@ static int rom_matches(const uint8_t *rom, size_t size)
     return size == 81936u && strcmp(hex, ROM_SHA256) == 0;
 }
 
-/* Predicates (D-11, D-12). */
+/* Predicates (D-11, D-12). judge is pure: it reads two traces and returns the
+   mask of predicates that failed. Every constant carries the evidence it was
+   pinned from (10-RESEARCH.md "Measured values on the fixed core"). */
 enum { P1_RAM = 1u, P2_SCENE = 2u, P3_AUDIO = 4u };
 #define ALL_PREDICATES (P1_RAM | P2_SCENE | P3_AUDIO)
 
-/* RED stub: no predicate checks anything yet. */
+/* First checkpoint at which play must show: the first score appears at frame
+   145, so frame 150 is the first checkpoint in play. */
+#define PLAY_FIRST_FRAME 150u
+/* Score floor: the positive run ends at 52, so K is about 70% of that. The
+   score has a plateau (37 at frames 450 and 480), so progress is compared 60
+   frames apart. */
+#define K_SCORE 36u
+#define SCORE_SPAN 60u
+/* Pixels changed between frames 30 apart inside the play window (frames 180 to
+   600): the play minimum is 11209 and the idle title is 735, so F is the
+   largest power of two at or below half the play minimum. */
+#define PLAY_WINDOW_FIRST 180u
+#define F_PIXELS 4096u
+/* Share of the 61,440 native pixels that must differ from N at frames 300 and
+   600 (compared as changed * 2 >= PIXELS): the positive run differs in at
+   least 69.2% and the attract stand-in in at most 30.8%, so 50% separates
+   them where 25% would not. */
+#define SHARE_FRAMES_A 300u
+#define SHARE_FRAMES_B 600u
+/* Audio: peak-to-peak per 30-frame window from frame 90 on, minimum 10364 in
+   the positive run, so a 2048 floor leaves a 5x margin. The title music is
+   loud, so loudness alone cannot separate title from play. */
+#define AUDIO_FIRST_FRAME 90u
+#define AUDIO_FLOOR 2048
+/* At least 75% (differing * 4 >= windows * 3) of the windows ending at frames
+   150 to 600 hash differently from the same window in N: the positive run
+   differs in 18 of 18 post-start windows. This catches a constant tone. */
+#define AUDIO_AB_FIRST_FRAME 150u
+/* Causality (D-12): the first frame whose 2 KiB RAM differs from N's must lie
+   in [first input frame, first input frame + LATCH_SLACK]. Measured on the
+   positive run: the first input is frame 61 (movie index 60) and RAM first
+   differs at frame 61, an offset of 0, so LATCH_SLACK is 0 + 1. A core that
+   latches input late diverges after the upper bound. */
+#define LATCH_SLACK 1u
+
+/* Failure lines are printed for the positive run, where any failure is a defect.
+   The controls are meant to fail, so main prints their masks instead. */
+static int report_failures = 1;
+
+static void fail(const char *predicate, uint32_t frame, long value, long threshold)
+{
+    if (!report_failures)
+        return;
+    fprintf(stderr, "judge: %s failed at frame %u: value %ld, threshold %ld\n", predicate,
+            (unsigned)frame, value, threshold);
+}
+
+/* First frame at which the two runs' RAM digests differ, 0 when they never do. */
+static uint32_t first_divergence(const struct trace *t, const struct trace *n)
+{
+    for (uint32_t frame = 1u; frame <= FRAMES; frame++)
+        if (t->ram_digest[frame] != n->ram_digest[frame])
+            return frame;
+    return 0u;
+}
+
+static unsigned judge_ram(const struct trace *t, const struct trace *n)
+{
+    unsigned failed = 0u;
+    uint32_t start = t->first_input;
+    uint32_t diverged = first_divergence(t, n);
+
+    for (uint32_t c = PLAY_FIRST_FRAME; c <= FRAMES; c += WINDOW) {
+        uint32_t i = c / WINDOW - 1u;
+        if (t->state[i] != STATE_GAME) {
+            fail("P1 state is game", c, t->state[i], STATE_GAME);
+            failed = 1u;
+        }
+        if (c >= PLAY_FIRST_FRAME + SCORE_SPAN &&
+            t->score[i] <= t->score[i - SCORE_SPAN / WINDOW]) {
+            fail("P1 score rises", c, (long)t->score[i], (long)t->score[i - SCORE_SPAN / WINDOW]);
+            failed = 1u;
+        }
+    }
+    if (t->score[CHECKPOINTS - 1u] < K_SCORE) {
+        fail("P1 final score", FRAMES, (long)t->score[CHECKPOINTS - 1u], K_SCORE);
+        failed = 1u;
+    }
+    for (uint32_t i = 0u; i < CHECKPOINTS; i++) {
+        if (n->state[i] != 0u || n->score[i] != 0u) {
+            fail("P1 baseline stays idle", (i + 1u) * WINDOW, (long)(n->state[i] | n->score[i]), 0);
+            failed = 1u;
+        }
+    }
+    if (start == 0u || diverged == 0u || diverged < start || diverged > start + LATCH_SLACK) {
+        fail("P1 first RAM divergence", diverged, (long)diverged, (long)(start + LATCH_SLACK));
+        failed = 1u;
+    }
+    return failed != 0u ? P1_RAM : 0u;
+}
+
+static unsigned judge_scene(const struct trace *t, const struct trace *n)
+{
+    unsigned failed = 0u;
+    for (uint32_t c = PLAY_WINDOW_FIRST; c <= FRAMES; c += WINDOW) {
+        uint32_t i = c / WINDOW - 1u;
+        if (t->changed[i] < F_PIXELS) {
+            fail("P2 changed pixels", c, (long)t->changed[i], F_PIXELS);
+            failed = 1u;
+        }
+    }
+    for (unsigned k = 0u; k < 2u; k++) {
+        uint32_t differing = 0u;
+        for (uint32_t p = 0u; p < PIXELS; p++)
+            differing += t->snap[k][p] != n->snap[k][p];
+        if (differing * 2u < PIXELS) {
+            fail("P2 pixels differ from baseline", k == 0u ? SHARE_FRAMES_A : SHARE_FRAMES_B,
+                 (long)differing, PIXELS / 2u);
+            failed = 1u;
+        }
+    }
+    return failed != 0u ? P2_SCENE : 0u;
+}
+
+static unsigned judge_audio(const struct trace *t, const struct trace *n)
+{
+    unsigned failed = 0u;
+    uint32_t windows = 0u;
+    uint32_t differing = 0u;
+    uint32_t first = AUDIO_FIRST_FRAME / WINDOW - 1u;
+
+    for (uint32_t i = first; i < CHECKPOINTS; i++) {
+        if (t->p2p[i] < AUDIO_FLOOR) {
+            fail("P3 peak-to-peak", (i + 1u) * WINDOW, t->p2p[i], AUDIO_FLOOR);
+            failed = 1u;
+        }
+        for (uint32_t j = first; j < i; j++) {
+            if (strcmp(t->window_hash[i], t->window_hash[j]) == 0) {
+                fail("P3 windows distinct", (i + 1u) * WINDOW, (long)((j + 1u) * WINDOW), 0);
+                failed = 1u;
+                break;
+            }
+        }
+    }
+    for (uint32_t i = AUDIO_AB_FIRST_FRAME / WINDOW - 1u; i < CHECKPOINTS; i++) {
+        windows++;
+        differing += strcmp(t->window_hash[i], n->window_hash[i]) != 0;
+    }
+    if (differing * 4u < windows * 3u) {
+        fail("P3 windows differ from baseline", FRAMES, (long)differing, (long)windows);
+        failed = 1u;
+    }
+    return failed != 0u ? P3_AUDIO : 0u;
+}
+
 static unsigned judge(const struct trace *t, const struct trace *n)
 {
-    (void)t;
-    (void)n;
-    return 0u;
+    if (t->frame_count != FRAMES || n->frame_count != FRAMES)
+        return ALL_PREDICATES;
+    return judge_ram(t, n) | judge_scene(t, n) | judge_audio(t, n);
 }
 
 static uint32_t distinct_frames(const struct trace *t)
@@ -375,10 +521,17 @@ int main(int argc, char **argv)
     }
 
     CHECK_EQ_U64(judge(&pos_trace, &none_trace), 0u);
+    /* The exact mask is the assertion: a predicate that stops checking shows up
+       as an expected failure that did not fail. */
+    report_failures = 0;
     CHECK_EQ_U64(judge(&none_trace, &none_trace), ALL_PREDICATES);
     CHECK_EQ_U64(judge(&attract_trace, &none_trace), P1_RAM | P2_SCENE);
     CHECK_EQ_U64(judge(&failed_trace, &none_trace), ALL_PREDICATES);
     CHECK_EQ_U64(judge(&startonly_trace, &none_trace), P1_RAM | P2_SCENE);
+    printf("failed predicates: none 0x%x attract 0x%x failed load 0x%x start-only 0x%x\n",
+           judge(&none_trace, &none_trace), judge(&attract_trace, &none_trace),
+           judge(&failed_trace, &none_trace), judge(&startonly_trace, &none_trace));
+    report_failures = 1;
 
     /* D-07: the game wrote its save from fresh SRAM. */
     CHECK_EQ_U64(pos_trace.sram_valid, 1u);
@@ -387,6 +540,9 @@ int main(int argc, char **argv)
     CHECK(pos_trace.generation[CHECKPOINTS - 1u] >= 2u);
     CHECK(startonly_trace.generation[CHECKPOINTS - 1u] > pos_trace.generation[CHECKPOINTS - 1u]);
 
+    printf("latch: first input frame %u, first RAM divergence frame %u, slack %u\n",
+           (unsigned)pos_trace.first_input, (unsigned)first_divergence(&pos_trace, &none_trace),
+           (unsigned)LATCH_SLACK);
     /* Information only; distinct frame hashes are not a predicate. */
     printf("distinct frames: pos %u none %u attract %u startonly %u failed %u\n",
            (unsigned)distinct_frames(&pos_trace), (unsigned)distinct_frames(&none_trace),
