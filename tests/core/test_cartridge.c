@@ -790,6 +790,100 @@ static void test_board_switch_matches_profiles(void)
     }
     CHECK_EQ_U64(boarded, 6u);
 }
+/* D-08, D-09, C3: unload returns the instance to the state create gave it. */
+#define UF_W 256u
+#define UF_H 240u
+static uint16_t uf_video[UF_W * UF_H];
+static int16_t uf_audio[1024];
+
+static void uf_frame(nesturbator *nes, uint16_t *video_out, int16_t *audio_out, size_t *count)
+{
+    nesturbator_frame io;
+    memset(&io, 0, sizeof io);
+    io.size = (uint32_t)sizeof io;
+    io.video = uf_video;
+    io.video_pitch = UF_W;
+    io.audio = uf_audio;
+    io.audio_capacity = 1024u;
+    CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+    memcpy(video_out, uf_video, sizeof uf_video);
+    memcpy(audio_out, uf_audio, sizeof uf_audio);
+    *count = io.audio_count;
+}
+
+static void uf_same_state(const nesturbator *a, const nesturbator *b)
+{
+    CHECK(memcmp(&a->bus, &b->bus, sizeof a->bus) == 0);
+    CHECK(memcmp(&a->apu, &b->apu, sizeof a->apu) == 0);
+    CHECK(memcmp(&a->synth, &b->synth, sizeof a->synth) == 0);
+    CHECK(memcmp(&a->ppu, &b->ppu, sizeof a->ppu) == 0);
+    CHECK(memcmp(&a->cpu, &b->cpu, sizeof a->cpu) == 0);
+    CHECK(memcmp(&a->mapper, &b->mapper, sizeof a->mapper) == 0);
+    CHECK(memcmp(&a->map, &b->map, sizeof a->map) == 0);
+    CHECK(memcmp(&a->cart, &b->cart, sizeof a->cart) == 0);
+    CHECK_EQ_U64(a->cpu_cycle, b->cpu_cycle);
+    CHECK_EQ_U64(a->ticks, b->ticks);
+    CHECK_EQ_U64(a->frame_number, b->frame_number);
+    CHECK_EQ_U64(a->audio_rem, b->audio_rem);
+}
+
+static void uf_same_frames(nesturbator *a, nesturbator *b, unsigned n)
+{
+    static uint16_t va[UF_W * UF_H], vb[UF_W * UF_H];
+    static int16_t aa[1024], ab[1024];
+    for (unsigned i = 0; i < n; i++) {
+        size_t ca, cb;
+        uf_frame(a, va, aa, &ca);
+        uf_frame(b, vb, ab, &cb);
+        CHECK(memcmp(va, vb, sizeof va) == 0);
+        CHECK_EQ_U64(ca, cb);
+        CHECK(ca <= 1024u && memcmp(aa, ab, ca * sizeof aa[0]) == 0);
+        CHECK_EQ_U64(a->ticks, b->ticks);
+        CHECK_EQ_U64(a->frame_number, b->frame_number);
+    }
+}
+
+static void test_unload_equals_fresh(void)
+{
+    static uint16_t v[UF_W * UF_H];
+    static int16_t au[1024];
+    nesturbator_config cfg;
+    nesturbator *a = NULL, *b = NULL, *c = NULL;
+    uint8_t *rom = malloc(16u + 16384u + 8192u);
+    size_t n;
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &a), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_create(&cfg, &b), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_create(&cfg, &c), NESTURBATOR_OK);
+    make_image(rom, 16u + 16384u + 8192u, 0, 0);
+    CHECK_EQ_U64(nesturbator_load_cartridge(b, rom, 16u + 16384u + 8192u), NESTURBATOR_OK);
+    for (unsigned i = 0; i < 10u; i++)
+        uf_frame(b, v, au, &n);
+    nesturbator_unload_cartridge(b);
+    uf_same_state(a, b);
+    uf_same_frames(a, b, 4u);
+
+    /* Only the test card ran, then unload with no cartridge. */
+    for (unsigned i = 0; i < 5u; i++)
+        uf_frame(c, v, au, &n);
+    nesturbator_unload_cartridge(c);
+    nesturbator_destroy(a);
+    CHECK_EQ_U64(nesturbator_create(&cfg, &a), NESTURBATOR_OK);
+    uf_same_state(a, c);
+
+    /* A second unload changes nothing; NULL is a no-op. */
+    nesturbator_unload_cartridge(c);
+    uf_same_state(a, c);
+    nesturbator_unload_cartridge(NULL);
+
+    nesturbator_destroy(a);
+    nesturbator_destroy(b);
+    nesturbator_destroy(c);
+    free(rom);
+}
 int main(void)
 {
     test_formats_and_lifetime();
@@ -804,5 +898,6 @@ int main(void)
     test_mmc1_ines1_sizes();
     test_mmc3_rows();
     test_board_switch_matches_profiles();
+    test_unload_equals_fresh();
     CHECK_DONE();
 }
