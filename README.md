@@ -301,6 +301,19 @@ fails if they differ, so a pinned result screen is known to be static.
 empty, and `policy.rom_hash_coverage.self_test` proves both rejections.
 AccuracyCoin is the one exemption: its NROM board is hashed through three
 games and its scoreboard runs on every leg.
+Every other committed ROM (Holy Mapperel's ten files and two derived copies,
+Nesteroids, DABG, RHDE and nes-runner) has frame and audio rows that must be
+byte-identical on six platforms. `libretro.parity.<key>` runs each of them
+through the libretro adapter and requires its last frame to equal the runner's,
+for nes-runner both the boot and its played movie. For the two battery boards,
+`libretro.parity.m1sxrom.run1`, `.run2`, `libretro.parity.m4tkrom.run1` and
+`.run2` also round-trip the save: run 1's save span must equal the runner's
+`.sav`, and run 2 loads that file into the span before its first frame and
+must end with the span the runner's second run saved. The fuzz seeds are exempt
+because they are crash inputs, not pinned pictures, and AccuracyCoin is exempt
+as above. Six-platform equality proves the platforms agree with each other, not
+that the emulation is right; correctness comes from Holy Mapperel's result
+codes, the AccuracyCoin scoreboard and the nightly blargg lane.
 `runner.boot_to_play` is the boot-to-play proof for nes-runner v1 (MIT,
 mapper 1). It replays generated NMOVIE1 movies through the library, reads
 `$3E` (game state) and the score bytes `$5D` to `$60` with
