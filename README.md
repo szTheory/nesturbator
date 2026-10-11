@@ -1006,6 +1006,15 @@ callbacks are registered, only the batch callback receives audio.
 `libretro.host` checks both callback paths against direct core PCM without an
 audio device.
 
+One library instance lives from `retro_init` to `retro_deinit`. Each
+`retro_load_game` first calls `nesturbator_unload_cartridge`, and
+`retro_unload_game` calls it, so a reloaded game starts exactly as a fresh one.
+`libretro.host` loads, unloads and reloads content without `retro_deinit` and
+requires the same frames and audio each time, the test card after an unload,
+and a NULL save span after a double unload or a rejected image. The
+`core.cartridge` check compares an unloaded instance with a fresh one, field by
+field and frame by frame.
+
 RetroArch's Reset (`retro_reset`) runs `nesturbator_reset()`, the console's
 soft reset, which keeps RAM and cartridge RAM; it does not unload or reload the
 game. With no content it changes nothing. `libretro.host` compares the frames
@@ -1016,7 +1025,8 @@ and frames.
 for `RETRO_MEMORY_SAVE_RAM`, the same span as
 `nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, ...)`; every other
 id, no content and a cartridge without battery RAM give NULL and 0. The adapter
-fetches the span once in `retro_load_game` and does no file I/O: the host
+fetches the span at each successful `retro_load_game`, drops it at unload (NULL
+and 0 afterwards) and does no file I/O: the host
 writes the `.srm` and copies it back in after `retro_load_game` and before the
 first frame. The `.srm` and the runner's `.sav` are the same raw bytes, so a
 save moves between RetroArch and `nesturbator-run --save-dir` by renaming it.
