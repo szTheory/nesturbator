@@ -1,7 +1,7 @@
 /* Mapper 4, MMC3 (Sharp and NEC revisions): eight bank registers behind a
    select/data pair at $8000-$9FFF, mirroring and RAM control at $A000-$BFFF,
    and a scanline counter at $C000-$FFFF that is clocked by rises of PPU A12.
-   Source: NESdev Wiki "MMC3" (oldid 24268), "NES 2.0 submappers" (mapper 004)
+   Source: NESdev Wiki "MMC3" (oldid 24268), "NES 2 submappers" (mapper 004)
    and "Mirroring". MMC3 has no bus conflict, so the watch is the CPU write and
    the PPU A12 edge only.
 

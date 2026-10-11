@@ -129,7 +129,7 @@ static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size,
         /* MMC3: Sharp (submapper 0) or NEC (submapper 4); 16 to 512 KiB of PRG,
            8 to 256 KiB of CHR ROM or 8 KiB of CHR RAM, and no PRG RAM or exactly
            8 KiB of it, work or battery-backed (D-12). NESdev Wiki "MMC3" and
-           "NES 2.0 submappers". */
+           "NES 2 submappers". */
         if (submapper != 0u && submapper != 4u)
             return 0;
         if (!is_pow2(prg_size) || prg_size < 16384u || prg_size > 524288u)
