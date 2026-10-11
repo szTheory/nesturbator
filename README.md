@@ -1135,7 +1135,13 @@ first writes `saves/M1_P512K_CR8K_S32K.srm` (32,768 bytes, `SAVEDATA` at 0x100)
 when RetroArch unloads the content, and the second loads it back. Each
 screenshot must equal the runner's frame for the same save state (the runner
 reads the first session's `.srm` as `.sav`), the two screenshots must differ,
-and exactly one `.srm` must exist at the end.
+and exactly one `.srm` must exist at the end. A third step does the same for
+the MMC3 battery ROM `m4tkrom`, derived at build time from a manifest-listed
+Holy Mapperel ROM (MMC3 with battery and 8 KiB of save RAM): two sessions to
+frame 600, an 8192-byte `.srm` with `SAVEDATA` at 0x100, screenshots equal to
+the runner's frames and different from each other. `run_retroarch.cmake` takes
+`-DSAVE_SIZE=<bytes>` for the exact `.srm` size (default 32768); anything but
+a positive integer is an error.
 
 The official RetroArch v1.22.2 macOS release is
 [`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),
@@ -1145,8 +1151,8 @@ required `retroarch-e2e` job downloads this asset on `macos-15`, verifies its
 checksum and exact version, loads Nesteroids, and compares the nonempty frame-60
 screenshot pixel for pixel with the runner's output. It isolates RetroArch's
 first-run home under the build tree and retains the asset evidence, screenshot,
-and runner frame, and the save round trip's screenshots, runner frames and
-`.srm`, in the `retroarch-e2e-frames` artifact. Missing assets, changes
+and runner frame, and both save round trips' screenshots, runner frames and
+`.srm` files (`M1_P512K_CR8K_S32K.srm` and `m4tkrom.srm`), in the `retroarch-e2e-frames` artifact. Missing assets, changes
 to the real home directory, startup errors, and frame mismatches fail the
 required CI check. No manual screenshot or gameplay check is needed.
 
