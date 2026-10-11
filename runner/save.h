@@ -24,7 +24,8 @@ enum nesturbator_run_save_status nesturbator_run_save_load(const char *path, uin
 /* Replaces `path` with `size` bytes of `data` through "<path>.tmp": a stale
    regular file or symlink at the temporary name is removed (a link is
    unlinked, its target is never touched), then exclusive create, write,
-   flush, sync, checked close, rename (MoveFileExA with write-through on
+   flush, sync (F_FULLFSYNC on Apple platforms, where fsync alone does not
+   flush the drive cache), checked close, rename (MoveFileExA with write-through on
    Windows). Returns 0, or 1 after printing one line:
    "nesturbator-run: cannot save <path> (<reason>); the previous save is kept".
    On failure the old file is untouched and the .tmp this call created is

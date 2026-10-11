@@ -939,7 +939,7 @@ nesturbator-run --version
   before the first frame the runner reads that file into the battery RAM; with
   no file the RAM starts zeroed. When the run ends, including after a JAM, it
   writes the RAM back if the CPU wrote to it and the bytes changed. The write
-  goes to `DIR/<name>.sav.tmp`, is synced, and is renamed over the save, so the
+  goes to `DIR/<name>.sav.tmp`, is synced (with `F_FULLFSYNC` on macOS), and is renamed over the save, so the
   save is the old one or the new one and never torn. A failed write removes its
   `.tmp`, prints `nesturbator-run: cannot save <path> (<reason>); the previous
   save is kept`, and the runner keeps the newest bytes in memory for the next

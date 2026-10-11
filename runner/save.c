@@ -1,4 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
+#ifdef __APPLE__
+#define _DARWIN_C_SOURCE /* exposes F_FULLFSYNC */
+#endif
 #include "save.h"
 
 #include <errno.h>
@@ -17,6 +20,7 @@
 #define stat _stat
 #define lstat _stat
 #else
+#include <fcntl.h>
 #include <unistd.h>
 #endif
 
@@ -97,6 +101,13 @@ static int sync_stream(FILE *f)
 {
 #ifdef _WIN32
     return _commit(_fileno(f));
+#elif defined(F_FULLFSYNC)
+    /* Apple documents that fsync() does not flush the drive's write cache; F_FULLFSYNC does
+       (fcntl(2), fsync(2) on macOS). Fall back to fsync() where the filesystem refuses it. */
+    if (fcntl(fileno(f), F_FULLFSYNC) == 0) {
+        return 0;
+    }
+    return fsync(fileno(f));
 #else
     return fsync(fileno(f));
 #endif
