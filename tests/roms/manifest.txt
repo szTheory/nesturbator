@@ -83,3 +83,4 @@ tests/fuzz/corpus/mmc3-prg-1m	https://github.com/szTheory/nesturbator	e70b61106d
 tests/fuzz/corpus/mmc3-chr-512k	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	39a4f915c0e08e3728b5762be211039bb77f04f0e7ee7ed1f4cc777128e4e16a
 tests/fuzz/corpus/mmc3-chr-24k	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	e9bf424d6c69ae63f60ca93132bebb0bff355f61a9eb0257887ad9cf3cfe015e
 tests/fuzz/corpus/mmc3-chr-ram-16k	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	f72266ec36b2d2a6434c2fc62b7aec17800e3e55e2b5a01bfd49735df4d33737
+tests/fuzz/corpus/mmc3-work-and-nv	https://github.com/szTheory/nesturbator	ceead30a878e8f08ff82131127d20efb03a7cd34	MIT	0c0b713d2c16a58ad35cd4ed398d2ea5d5532bb94a2d7469c4b4425e246f22bd
