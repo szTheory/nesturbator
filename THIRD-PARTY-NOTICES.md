@@ -3,7 +3,8 @@
 nesturbator is MIT-licensed (see [LICENSE](LICENSE)). Two things in this
 repository come from elsewhere: the vendored `libretro/libretro.h`, and the
 CPU test data under `tests/vectors/`. Holy Mapperel's test ROMs under
-`tests/roms/hm/` are listed below too.
+`tests/roms/hm/` and the nes-runner game ROM `tests/roms/runner.nes` are listed
+below too.
 
 ## libretro.h
 
@@ -124,4 +125,46 @@ the following restrictions:
     misrepresented as being the original software.
 
 3.  This notice may not be removed or altered from any source distribution.
+```
+
+## nes-runner
+
+A small NES game, used as the boot-to-play test ROM: `tests/roms/runner.nes`, unmodified.
+
+- Upstream: https://github.com/zorchenhimer/nes-runner
+- Release: v1, asset `runner.nes`, 81936 bytes
+- Commit: 47537be0ccb8baeb8462547a1c08888ee2a6cfac (47537be)
+- SHA-256: 1a67bfabdde2d96eacb04eb7f9d17e8da6c082d4976c318315fe31e2d19b4384
+
+The game's credits screen shows contributor handles as game text. That text is
+part of the MIT-licensed game and is not repeated here.
+
+The game embeds the FamiTracker NSF music driver, version 2.11, by jsr, as its
+source file `sound/driver.s` states in its header comment (lines 2 to 4).
+
+Provenance of the licence: the upstream `LICENSE.md` arrived in commit
+e2d70cfcc64b947a26e7c05d3db55c240686169b (e2d70cf, 2019-06-28), three days after
+the v1 tag, so the v1 tag itself carries no licence file. GitHub reports the
+repository as MIT. The text below is that `LICENSE.md`:
+
+```
+Copyright 2019 Zorchenhimer
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
