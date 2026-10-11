@@ -93,9 +93,9 @@ static uint8_t peek(struct nesturbator *nes, uint16_t addr)
 static void test_tracer_bank_switch_through_cpu(void)
 {
     /* LDA #$06; STA $8000; LDA #$03; STA $8001; LDA $8020; STA $0010; JMP $E011 (spin) */
-    static const uint8_t boot[] = {0xa9u, 0x06u, 0x8du, 0x00u, 0x80u, 0xa9u, 0x03u, 0x8du,
-                                   0x01u, 0x80u, 0xadu, 0x20u, 0x80u, 0x8du, 0x10u, 0x00u,
-                                   0x4cu, 0x10u, 0xe0u};
+    static const uint8_t boot[] = {0xa9u, 0x06u, 0x8du, 0x00u, 0x80u, 0xa9u, 0x03u,
+                                   0x8du, 0x01u, 0x80u, 0xadu, 0x20u, 0x80u, 0x8du,
+                                   0x10u, 0x00u, 0x4cu, 0x10u, 0xe0u};
     nesturbator *inst = load_board(PRG_16K_UNITS, 1u, 0u, 0u, 7u, 1u, boot, sizeof boot);
     struct nesturbator *nes = inst;
     /* Power-on: $8000 is bank 0, $A000 bank 0, $C000 the second-last, $E000 the last. */
@@ -550,7 +550,7 @@ static void test_irq_registers(void)
     CHECK_EQ_U64(nes->mapper.reg.mmc3.reload, 1u);
     CHECK_EQ_U64(nes->mapper.reg.mmc3.latch, 0x21u);
     CHECK_EQ_U64(nes->mapper.irq, 1u); /* no ack, no IRQ either */
-    hook(nes, 0xffffu, 0u); /* $E001 */
+    hook(nes, 0xffffu, 0u);            /* $E001 */
     CHECK_EQ_U64(nes->mapper.reg.mmc3.irq_enable, 1u);
     CHECK_EQ_U64(nes->mapper.reg.mmc3.counter, 0u);
     CHECK_EQ_U64(nes->mapper.reg.mmc3.latch, 0x21u);

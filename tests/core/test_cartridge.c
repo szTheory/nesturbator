@@ -581,7 +581,7 @@ struct mmc3_row {
     uint16_t chr_kib; /* 0 is CHR-RAM unless chr_ram is 0xff */
     uint8_t h4, h5;   /* raw byte 4 / byte 5 override, 0 for none */
     uint8_t h9;
-    uint8_t flags6;   /* bit 1 battery, bit 3 four-screen */
+    uint8_t flags6; /* bit 1 battery, bit 3 four-screen */
     uint8_t v_shift, n_shift, chr_ram, chr_nv_shift;
     nesturbator_status want;
 };
