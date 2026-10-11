@@ -345,6 +345,9 @@ target_include_directories(core.mapper_discrete PRIVATE ${PROJECT_SOURCE_DIR}/sr
 # BOARD-02 (D-10, D-14 to D-17): the MMC1 board on synthetic images.
 nesturbator_core_test(core.mapper_mmc1 core/test_mapper_mmc1.c)
 target_include_directories(core.mapper_mmc1 PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# BOARD-03 (D-04 to D-09): the MMC3 board, hook level and through the CPU.
+nesturbator_core_test(core.mapper_mmc3 core/test_mapper_mmc3.c)
+target_include_directories(core.mapper_mmc3 PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # SAVE-01 (D-06, D-11, D-12): the battery span, its address and the write counter.
 nesturbator_core_test(core.save core/test_save.c)
 target_include_directories(core.save PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -707,6 +710,7 @@ add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/mapper_uxrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_cnrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_axrom.c
+  ${PROJECT_SOURCE_DIR}/src/mapper_mmc3.c
   ${PROJECT_SOURCE_DIR}/src/ppu.c)
 target_include_directories(bus.unit PRIVATE
   ${PROJECT_SOURCE_DIR}/src
