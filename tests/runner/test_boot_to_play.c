@@ -491,9 +491,51 @@ static struct trace *mutant_from(const struct trace *source)
     return &mutant_trace;
 }
 
+#define IDX(frame) ((frame) / WINDOW - 1u)
+
+/* The ladder must not underflow at checkpoint 150: score(150) = final - 15. */
+_Static_assert(K_SCORE >= 16u, "score ladder would underflow at frame 150");
+
+/* The score at every checkpoint from 150 to 600 becomes final - (600 - c) / 30,
+   which rises by 2 every 60 frames, so the 60-frame ordering holds and only
+   the final-score threshold is exercised. */
+static void set_score_ladder(struct trace *t, uint32_t final_score)
+{
+    for (uint32_t c = PLAY_FIRST_FRAME; c <= FRAMES; c += WINDOW)
+        t->score[IDX(c)] = final_score - (FRAMES - c) / WINDOW;
+}
+
+/* Makes the first frame whose RAM digest differs from N's exactly `frame`:
+   earlier digests are copied from N, and the digest at `frame` is bent by one
+   bit if it happened to match. */
+static void set_first_divergence(struct trace *t, const struct trace *n, uint32_t frame)
+{
+    for (uint32_t f = 1u; f < frame; f++)
+        t->ram_digest[f] = n->ram_digest[f];
+    if (t->ram_digest[frame] == n->ram_digest[frame])
+        t->ram_digest[frame] ^= 1u;
+}
+
+static void expect_mask(const char *name, const struct trace *t, const struct trace *n,
+                        unsigned mask)
+{
+    unsigned got = judge(t, n);
+    CHECK_EQ_U64(got, mask);
+    printf("mutant/boundary %s: mask 0x%x\n", name, got);
+}
+
+static void expect_contains(const char *name, const struct trace *t, const struct trace *n,
+                            unsigned bits)
+{
+    unsigned got = judge(t, n);
+    CHECK_EQ_U64(got & bits, bits);
+    printf("mutant %s: mask 0x%x\n", name, got);
+}
+
 static void run_mutants(const struct trace *pos, const struct trace *n)
 {
     struct trace *m;
+    uint32_t start = pos->first_input;
 
     /* silence: every window quiet and identical to the baseline's */
     m = mutant_from(pos);
@@ -501,8 +543,131 @@ static void run_mutants(const struct trace *pos, const struct trace *n)
         m->p2p[i] = 0;
         memcpy(m->window_hash[i], n->window_hash[i], sizeof m->window_hash[i]);
     }
-    CHECK(judge(m, n) & P3_AUDIO);
-    printf("mutant silence: mask 0x%x\n", judge(m, n));
+    expect_contains("silence", m, n, P3_AUDIO);
+
+    /* constant tone: loud, but every window identical */
+    m = mutant_from(pos);
+    for (uint32_t i = 0u; i < CHECKPOINTS; i++)
+        memcpy(m->window_hash[i], pos->window_hash[IDX(AUDIO_FIRST_FRAME)],
+               sizeof m->window_hash[i]);
+    expect_contains("constant tone", m, n, P3_AUDIO);
+
+    /* click then silence: the first window after the start is loud, the rest zero */
+    m = mutant_from(pos);
+    for (uint32_t i = 0u; i < CHECKPOINTS; i++)
+        if (i != IDX(AUDIO_FIRST_FRAME))
+            m->p2p[i] = 0;
+    expect_contains("click then silence", m, n, P3_AUDIO);
+
+    /* static picture with a ticking RAM counter: right RAM and score, no motion */
+    m = mutant_from(pos);
+    memset(m->changed, 0, sizeof m->changed);
+    memcpy(m->snap, n->snap, sizeof m->snap);
+    expect_contains("static picture, ticking counter", m, n, P2_SCENE);
+
+    /* rainbow-only title: the baseline with the idle title's 735 changed pixels */
+    m = mutant_from(n);
+    for (uint32_t i = 0u; i < CHECKPOINTS; i++)
+        m->changed[i] = 735u;
+    expect_contains("rainbow-only title", m, n, P1_RAM | P2_SCENE);
+
+    /* NMI-alive hang: the baseline's RAM ($3E 0) with the positive audio */
+    m = mutant_from(pos);
+    memset(m->state, 0, sizeof m->state);
+    memset(m->score, 0, sizeof m->score);
+    memcpy(m->ram_digest, n->ram_digest, sizeof m->ram_digest);
+    expect_contains("NMI-alive hang", m, n, P1_RAM);
+
+    /* early death: $3E 3 and a frozen score from frame 300 */
+    m = mutant_from(pos);
+    for (uint32_t c = 300u; c <= FRAMES; c += WINDOW) {
+        m->state[IDX(c)] = 3u;
+        m->score[IDX(c)] = pos->score[IDX(300u)];
+    }
+    expect_contains("early death", m, n, P1_RAM);
+
+    /* input latched late: first RAM divergence one frame past the slack */
+    m = mutant_from(pos);
+    set_first_divergence(m, n, start + LATCH_SLACK + 1u);
+    expect_mask("input latched late", m, n, P1_RAM);
+
+    /* latch boundary pair */
+    m = mutant_from(pos);
+    set_first_divergence(m, n, start + LATCH_SLACK);
+    expect_mask("latch at slack", m, n, 0u);
+    m = mutant_from(pos);
+    set_first_divergence(m, n, start + LATCH_SLACK + 1u);
+    expect_mask("latch past slack", m, n, P1_RAM);
+
+    /* ordering: RAM differs at frame 60, before the first input frame */
+    m = mutant_from(pos);
+    CHECK(start == 61u);
+    m->ram_digest[start - 1u] = n->ram_digest[start - 1u] ^ 1u;
+    expect_mask("RAM differs before input", m, n, P1_RAM);
+
+    /* K pair: final score 35 fails, 36 passes */
+    m = mutant_from(pos);
+    set_score_ladder(m, K_SCORE - 1u);
+    expect_mask("K - 1", m, n, P1_RAM);
+    m = mutant_from(pos);
+    set_score_ladder(m, K_SCORE);
+    expect_mask("K", m, n, 0u);
+
+    /* F pair: changed pixels 4095 fails, 4096 passes (window ending at 390) */
+    m = mutant_from(pos);
+    m->changed[IDX(390u)] = F_PIXELS - 1u;
+    expect_mask("F - 1", m, n, P2_SCENE);
+    m = mutant_from(pos);
+    m->changed[IDX(390u)] = F_PIXELS;
+    expect_mask("F", m, n, 0u);
+
+    /* audio floor pair: 2047 fails, 2048 passes */
+    m = mutant_from(pos);
+    m->p2p[IDX(390u)] = AUDIO_FLOOR - 1;
+    expect_mask("audio floor - 1", m, n, P3_AUDIO);
+    m = mutant_from(pos);
+    m->p2p[IDX(390u)] = AUDIO_FLOOR;
+    expect_mask("audio floor", m, n, 0u);
+
+    /* A/B share pair at frame 300: 30719 differing pixels fails, 30720 passes */
+    m = mutant_from(pos);
+    memcpy(m->snap[0], n->snap[0], sizeof m->snap[0]);
+    for (uint32_t p = 0u; p < PIXELS / 2u - 1u; p++)
+        m->snap[0][p] ^= 0x01u;
+    expect_mask("A/B share - 1", m, n, P2_SCENE);
+    m = mutant_from(pos);
+    memcpy(m->snap[0], n->snap[0], sizeof m->snap[0]);
+    for (uint32_t p = 0u; p < PIXELS / 2u; p++)
+        m->snap[0][p] ^= 0x01u;
+    expect_mask("A/B share", m, n, 0u);
+
+    /* window share pair: 11 of 16 differ from N fails, 12 of 16 passes */
+    m = mutant_from(pos);
+    for (uint32_t c = 480u; c <= FRAMES; c += WINDOW)
+        memcpy(m->window_hash[IDX(c)], n->window_hash[IDX(c)], sizeof m->window_hash[0]);
+    expect_mask("window share 11 of 16", m, n, P3_AUDIO);
+    m = mutant_from(pos);
+    for (uint32_t c = 510u; c <= FRAMES; c += WINDOW)
+        memcpy(m->window_hash[IDX(c)], n->window_hash[IDX(c)], sizeof m->window_hash[0]);
+    expect_mask("window share 12 of 16", m, n, 0u);
+
+    /* adjacency: equal scores 30 frames apart pass, 60 frames apart fail */
+    m = mutant_from(pos);
+    for (uint32_t c = PLAY_FIRST_FRAME; c <= FRAMES; c += WINDOW)
+        m->score[IDX(c)] = 52u - (FRAMES - c) / SCORE_SPAN;
+    expect_mask("plateau ladder", m, n, 0u);
+    m = mutant_from(pos);
+    CHECK_EQ_U64(m->score[IDX(450u)], 37u);
+    m->score[IDX(510u)] = m->score[IDX(450u)];
+    expect_mask("equal scores 60 frames apart", m, n, P1_RAM);
+
+    /* empty and short traces */
+    m = mutant_from(pos);
+    m->frame_count = 0u;
+    expect_mask("0 frames", m, n, ALL_PREDICATES);
+    m = mutant_from(pos);
+    m->frame_count = FRAMES - 1u;
+    expect_mask("599 frames", m, n, ALL_PREDICATES);
 }
 
 int main(int argc, char **argv)
