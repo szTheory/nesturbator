@@ -36,7 +36,7 @@
 
 Players save and load states, rewind and use run-ahead in RetroArch. Playstead can launch nes-runner and rely on its saves and exit statuses. No frame or audio hash changes, and speed is measured on every pull request. Each phase ends in a release.
 
-- [ ] **Phase 11: Tune-up and state readiness** - One atomic-write helper with no stale `.tmp`, MMC3 `.srm` round trip in RetroArch, a caller and README text for every public function
+- [x] **Phase 11: Tune-up and state readiness** - One atomic-write helper with no stale `.tmp`, MMC3 `.srm` round trip in RetroArch, a caller and README text for every public function (completed 2026-10-11)
 - [ ] **Phase 12: Save states in the library** - Fixed-size, checked, all-or-nothing states on six boards, pinned on six platforms through the runner's state options
 - [ ] **Phase 13: Rewind and run-ahead in RetroArch** - libretro serialize, staged `.info` claims, RetroArch e2e for states, rewind and run-ahead, and a state-loader fuzz target
 - [ ] **Phase 14: Runner process contract** - Signal-safe save flush and one documented exit-status table for launchers
@@ -54,7 +54,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   2. The `retroarch-e2e` job round-trips an MMC3 battery game's `.srm` across two RetroArch sessions, as it does for MMC1, waiting on markers rather than sleeps.
   3. The runner or the libretro adapter calls `nesturbator_get_version` and `nesturbator_unload_cartridge`, a `ci` test exercises each call, and the README describes both.
 
-**Plans**: 4/4 plans executed
+**Plans**: 4/4 plans complete
 **Wave 1**
 - [x] 11-01-PLAN.md — One atomic-replace helper for battery saves, failure-injection tests, `battery_save` rename (TUNE-07)
 
@@ -134,7 +134,7 @@ Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured col
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 11. Tune-up and state readiness | v3 | 4/4 | In Progress | - |
+| 11. Tune-up and state readiness | v3 | 4/4 | Complete    | 2026-10-11 |
 | 12. Save states in the library | v3 | 0/TBD | Not started | - |
 | 13. Rewind and run-ahead in RetroArch | v3 | 0/TBD | Not started | - |
 | 14. Runner process contract | v3 | 0/TBD | Not started | - |

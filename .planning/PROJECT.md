@@ -45,6 +45,7 @@ Left for later milestones: fuzzing the state loader and arbitrary ROM bytes (SEE
 
 - ✓ Every board's frames and audio are pinned by one 95-key hash list on six platforms, and the libretro adapter receives frames and save spans equal to the runner's for every ROM in scope (19 parity tests); a drift guard rejects any committed ROM that is neither hashed nor exempt. — v2, Phase 10 (BOARD-04; six-platform equality shown by the PR's CI matrix)
 - ✓ One supported game is proven from boot through interactive play by an automated check: `runner.boot_to_play` replays a nes-runner movie and requires a RAM, scene and audio change that four negative controls and eight synthetic mutants fail. — v2, Phase 10 (PLAY-01)
+- ✓ Battery saves are replaced atomically (temp file, full flush, checked close, rename; a stale `.tmp` file or link is cleared and a directory refused), the `retroarch-e2e` job round-trips an MMC3 `.srm` beside MMC1, and `nesturbator_get_version` and `nesturbator_unload_cartridge` have callers and README text. — v3, Phase 11 (TUNE-07, TUNE-08, TUNE-09; PR #42 CI run 38179044953 green on all jobs)
 
 ### Active
 
@@ -132,6 +133,8 @@ The numbered requirements are in `.planning/REQUIREMENTS.md`.
 | Boot-to-play is judged by a pure `judge()` over a recorded trace: one allowlisted RAM byte, scene change and audio variation, with negative controls and synthetic mutants pinning every threshold | A play check that a broken core can pass proves nothing | ✓ Good — Phase 10 positive run passes; controls and mutants return their exact masks |
 | The MMC3 A12 filter counts CPU cycles from the A12 fall (a gap of 3 or more clocks), with no extra IRQ delay; the 2C02 shows `v`, not the pattern address, at pre-render dot 0 | blargg scanline timing passes without the conditional one-cycle delay once the pre-render dot-0 address is right | ✓ Good — Phase 9 `ppu.mmc3`, blargg `4-scanline_timing` and `4.Scanline_timing` pass; no frame hash moved |
 | Under asan, long hash tests are dropped or run with a short frame budget (`NESTURBATOR_SHORT_RUNS`); full-length hashes stay on the build jobs and hash-equality | Sanitizers find memory errors in the first frames, not the thousandth; repeating full runs under asan took about 15 minutes | ✓ Good — hosted asan 15 min to 4m52s, timeout 10 min, `ci` test list unchanged (PR #39) |
+| Unloading a cartridge always runs the power-on helper; loading never does; the libretro adapter keeps one instance for the whole session | One instance means no allocation churn across games, and unload leaves a clean machine without moving any pinned hash | ✓ Good — Phase 11 `core.cartridge` unload tests and libretro parity pass; no hash row moved |
+| `nesturbator --version` prints the library's run-time version; the libretro version string stays compile-time | The runner reports the library actually linked, while libretro hosts read a static string | ✓ Good — Phase 11 `runner.version` passes |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -153,4 +156,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-11 after starting milestone v3*
+*Last updated: 2026-10-11 after Phase 11*
