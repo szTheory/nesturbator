@@ -40,11 +40,11 @@ Later milestones remain seeds in `.planning/seeds/`: save states and the runner 
 - ✓ CI runs CTest in parallel with a nightly flake job, and the v1 debt is closed: exact release-policy gate check, trainer image through the full host path, a soft-resetting `retro_reset()`, and no self-skipping tests. — v2, Phase 5 (PR #25 CI and nightly green; asan leg 171 s to 56 s)
 - ✓ Every cartridge loads through one per-board mapper interface with cycle-stamped CPU writes and one IRQ OR, and the PPU runs the 2C02 fetch pipeline with A12 reported to the board, so mid-frame scroll splits render as on the console. — v2, Phase 6 (MAP-01, MAP-02; CI runs 38070510500 and 38072045594 green on all jobs)
 - ✓ UxROM, CNROM and AxROM games run, with bus conflicts where the board has them; Holy Mapperel M2, M3 and M7 report `0000` and pin one frame hash each on six platforms. — v2, Phase 7 (BOARD-01; CI run 38082253437 green on all jobs)
+- ✓ MMC1 games run, and battery saves persist across runs as raw `.sav` bytes through the library span, the runner's `--save-dir` and RetroArch's `.srm`; Holy Mapperel's five mapper 1 ROMs report `0000` and the SXROM ROM reads its own save back. — v2, Phase 8 (BOARD-02, SAVE-01 to SAVE-05; CI run 38096603810 and Nightly run 38096603867 green on all jobs)
 
 ### Active
 
-- [ ] MMC1 and MMC3 games run, shown by Holy Mapperel, mapper test ROMs and frame hashes.
-- [ ] Battery saves persist across runs as raw bytes compatible with existing `.sav` files.
+- [ ] MMC3 games run, shown by Holy Mapperel, mapper test ROMs and frame hashes.
 - [ ] One supported game is proven from boot through interactive play by an automated check.
 
 ### Out of Scope
@@ -117,6 +117,7 @@ Later milestones remain seeds in `.planning/seeds/`: save states and the runner 
 | One mapper ops table held by value per instance; bus and PPU read 1 KiB page tables and a four-entry nametable map; CPU writes reach the board stamped with the CPU cycle | No board switch in the bus or PPU, no file-scope data, and every board serialises as registers plus derived pages | ✓ Good — Phase 6 seam landed with every v1 hash byte-identical on six platforms |
 | Background and sprite patterns come from the `v`-driven 2C02 fetch pipeline, with A12 as literal PPU-bus state | Mid-frame scroll and MMC3's scanline counter depend on the real fetch dots | ✓ Good — Phase 6 `ppu.fetch` and `ppu.split_scroll` pass; revision 5 re-pinned eight frame hashes; costs about 20 percent frame time |
 | Board chosen by one switch that the loader probes before allocating; per-board CHR/PRG geometry profile; bus-conflict AND by NES 2 submapper with submapper 0 defaulting to AND on UxROM and CNROM | An unknown mapper id is refused instead of loading empty, and every board decides conflicts from the header alone | ✓ Good — Phase 7 boards pass 19 accept / 35 reject loader rows and Holy Mapperel M2, M3, M7 |
+| PRG RAM is one `[work][NVRAM]` allocation; the battery half is exposed as one span with a write-generation counter; hosts write it only when the generation changed, and the runner writes through temp file, fsync and rename | Raw bytes stay compatible with existing `.sav` files, a host never polls memory, and a crash never leaves a torn save | ✓ Good — Phase 8 `core.save`, `runner.save.*` and the two-session RetroArch round trip pass |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -138,4 +139,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-10 after Phase 7*
+*Last updated: 2026-10-10 after Phase 8*
