@@ -157,6 +157,7 @@ runner_save_case(batteryless)
 runner_save_case(unwritable)
 runner_save_case(interval)
 runner_save_case(interval_long)
+runner_save_case(interval_retry)
 runner_save_case(jam)
 set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
 

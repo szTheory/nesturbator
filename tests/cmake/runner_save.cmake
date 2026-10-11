@@ -133,6 +133,16 @@ elseif(CASE STREQUAL "unwritable")
   if(NOT run_err MATCHES "battery\\.sav\\.tmp")
     message(FATAL_ERROR "runner_save unwritable: stderr does not name the temp file\n${run_err}")
   endif()
+elseif(CASE STREQUAL "interval_retry")
+  # A failed interval flush must be tried again at exit (08 WR-01): the missing
+  # directory fails the write after frame 1 and again at exit, so two attempts.
+  run_runner(--rom "${battery}" --frames 3 --save-dir "${WORK}/missing/dir" --save-interval 1)
+  expect_exit(1)
+  string(REGEX MATCHALL "battery\\.sav\\.tmp" attempts "${run_err}")
+  list(LENGTH attempts attempt_count)
+  if(NOT attempt_count EQUAL 2)
+    message(FATAL_ERROR "runner_save interval_retry: ${attempt_count} failed attempts, not 2\n${run_err}")
+  endif()
 elseif(CASE STREQUAL "interval")
   # The run never ends by itself; the timeout kills it. Frame 1 already
   # changed the span, so the interval flush must have left the bytes behind.
