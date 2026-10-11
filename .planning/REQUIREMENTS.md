@@ -39,7 +39,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. "Holy
   - Holy Mapperel's mapper 4 ROMs pass, including `$A001` PRG-RAM enable and write protect.
   - A synthetic test shows the NEC behaviour on submapper 4.
   - A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit and passes the Sharp-revision tests. `mmc3_test_2/6-MMC3_alt` and `mmc3_irq_tests/5.MMC3_rev_A`, the NEC-revision tests, are recorded as unsupported.
-- [ ] **BOARD-04**: Frame and audio hashes for every board's committed ROMs are identical on all six platforms, and the libretro test program receives equal frames.
+- [x] **BOARD-04**: Frame and audio hashes for every board's committed ROMs are identical on all six platforms, and the libretro test program receives equal frames.
 
 ### Battery saves
 
@@ -54,7 +54,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. "Holy
 
 ### Playability
 
-- [ ] **PLAY-01**: A CI test proves nes-runner plays from boot through interactive play:
+- [x] **PLAY-01**: A CI test proves nes-runner plays from boot through interactive play:
   - A recorded input movie reaches gameplay.
   - A RAM byte that has meaning in the game differs between runs with and without input.
   - The scene visibly changes.
@@ -112,13 +112,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BOARD-01 | Phase 7 | Complete |
 | BOARD-02 | Phase 8 | Complete |
 | BOARD-03 | Phase 9 | Complete |
-| BOARD-04 | Phase 10 | Pending |
+| BOARD-04 | Phase 10 | Complete |
 | SAVE-01 | Phase 8 | Complete |
 | SAVE-02 | Phase 8 | Complete |
 | SAVE-03 | Phase 8 | Complete |
 | SAVE-04 | Phase 8 | Complete |
 | SAVE-05 | Phase 8 | Complete |
-| PLAY-01 | Phase 10 | Pending |
+| PLAY-01 | Phase 10 | Complete |
 
 **Coverage:**
 - v2 requirements: 19 total

@@ -4,18 +4,18 @@ milestone: v2
 milestone_name: Most of the library plays
 current_phase: 10
 current_phase_name: Close-out and boot-to-play
-status: executing
-stopped_at: Completed 10-06-PLAN.md
-last_updated: "2026-10-11T14:52:49.072Z"
+status: verifying
+stopped_at: Completed 10-07-PLAN.md
+last_updated: "2026-10-11T14:59:47.518Z"
 last_activity: 2026-10-11
 last_activity_desc: Phase 10 execution started
-state_head: 56580d9d22dfe416f5570dea7f9dab09d4888cb9
+state_head: 6ba0a2707fdfbeaf6f1ecee0a988b063e52ed773
 progress:
   total_phases: 6
   completed_phases: 11
   total_plans: 41
-  completed_plans: 40
-  percent: 98
+  completed_plans: 41
+  percent: 100
 ---
 
 # Project State
@@ -31,10 +31,10 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 
 Phase: 10 (Close-out and boot-to-play) — EXECUTING
 Plan: 7 of 7
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-11 — Phase 10 execution started
 
-Progress: [█████████░] 98% of v2
+Progress: [██████████] 100% of v2
 
 ## Performance Metrics
 
@@ -151,6 +151,7 @@ Progress: [█████████░] 98% of v2
 | Phase 10 P04 | 20 min | 3 tasks | 2 files |
 | Phase 10 P05 | 25 min | 3 tasks | 9 files |
 | Phase 10 P06 | 15 min | 2 tasks | 2 files |
+| Phase 10 P07 | 25 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -209,6 +210,8 @@ Recent decisions affecting current work:
 - [Phase 10]: 10-04: mutants and boundary traces are in-memory edits of recorded traces inside runner.boot_to_play; no judge threshold changed
 - [Phase 10]: Hash key list lives once in tests/cmake/hash_keys.cmake; writer, validator, fixture and drift guard read it (10-05)
 - [Phase 10]: 10-06: parity not-the-test-card check compares against the runner test-card image (testframe_ppm); --rom-parity option loop left open for Plan 07 --sav-in/--sav-expect
+- [Phase 10]: Run 2's runner dump requires the run-1 save copy fixture so no parity test reads a save run 2 may still be writing
+- [Phase 10]: ASan timeout stays 10 min: local 216 s gives CI estimate 297 s, twice 593 s under 600 s
 
 ### Pending Todos
 
@@ -254,8 +257,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T14:52:49.028Z
-Stopped at: Completed 10-06-PLAN.md
+Last session: 2026-10-11T14:59:47.466Z
+Stopped at: Completed 10-07-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 10`.
