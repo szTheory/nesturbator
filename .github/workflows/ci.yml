@@ -123,7 +123,10 @@ jobs:
 
   asan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20 # provisional until a complete measured run (ENGINEERING §5: twice a measured cold run); run 38150104151 hit the 10-minute cap at 477/480 with no failures after Phase 10 added runner.boot_to_play (about 235 s) and libretro.parity mapper 4 runs (about 55 s each) under ASan; earlier baseline run 38097794967 took 4m14s
+    # NESTURBATOR_SHORT_RUNS (preset asan) drops or shortens the long hash tests that made this job
+    # about 15 minutes; their hashes are checked at full length by the build jobs and hash-equality.
+    # Twice the measured hosted run: 4m52s on PR #39 (ENGINEERING section 5).
+    timeout-minutes: 10
     env:
       CC: clang-18
       CXX: clang++-18

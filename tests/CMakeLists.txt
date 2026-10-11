@@ -157,6 +157,7 @@ runner_save_case(batteryless)
 runner_save_case(unwritable)
 runner_save_case(interval)
 runner_save_case(interval_long)
+runner_save_case(interval_retry)
 runner_save_case(jam)
 set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
 
@@ -364,16 +365,26 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
       FIXTURES_REQUIRED holymapperel_${hm_key}_run2
       PASS_REGULAR_EXPRESSION "prg ram \"${hm_text} \\+ BATTERY\"")
   else()
+    # NESTURBATOR_SHORT_RUNS: parity compares module and runner frames, not committed hashes,
+    # so a run longer than 100 frames compares frame 100; the ci legs compare the full run.
+    set(hm_parity_frames ${hm_frames})
+    set(hm_parity_ppm ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
+    set(hm_extra_dump)
+    if(NESTURBATOR_SHORT_RUNS AND hm_frames GREATER 100)
+      set(hm_parity_frames 100)
+      set(hm_parity_ppm ${NESTURBATOR_HM_DIR}/${hm_key}-f100.ppm)
+      set(hm_extra_dump --dump-frame "100:${hm_parity_ppm}")
+    endif()
     nesturbator_runner_test(NAME holymapperel.${hm_key}.dump
       ARGS --rom ${hm_rom} --frames ${hm_frames}
-        --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm"
+        --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm" ${hm_extra_dump}
       EXIT 0 IGNORE_STDOUT)
     set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES
       FIXTURES_SETUP holymapperel_${hm_key} TIMEOUT 120)
     # D-18: the module shows the same result screen as the runner.
     add_test(NAME libretro.parity.${hm_key}
       COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
-        ${hm_rom} ${hm_frames} ${NESTURBATOR_HM_DIR}/${hm_key}.ppm
+        ${hm_rom} ${hm_parity_frames} ${hm_parity_ppm}
         --testcard ${NESTURBATOR_TESTFRAME_PPM})
     set_tests_properties(libretro.parity.${hm_key} PROPERTIES
       FIXTURES_REQUIRED "holymapperel_${hm_key};testframe_ppm" TIMEOUT 120)
@@ -421,7 +432,11 @@ set_tests_properties(holymapperel.decode.early PROPERTIES FIXTURES_REQUIRED holy
 holymapperel_exit2(holymapperel.decode.badsize ${NESTURBATOR_HM_DIR}/badsize.ppm)
 
 # CI's hash-equality job compares every game boot and DABG movie milestone
-# written by write_hashes.cmake on each platform.
+# written by write_hashes.cmake on each platform. NESTURBATOR_SHORT_RUNS (preset asan) leaves
+# both tests out: the movies have a fixed length, the asan job uploads no hashes, and the same
+# ROMs and runner paths run under ASan through runner.dump.*, holymapperel.*.dump and
+# runner.hash_audio.*. The ci legs run them.
+if(NOT NESTURBATOR_SHORT_RUNS)
 add_test(NAME runner.write_hashes
   COMMAND ${CMAKE_COMMAND} -DBUILD=${PROJECT_BINARY_DIR}
     -DOUT=${CMAKE_CURRENT_BINARY_DIR}/hashes.txt
@@ -436,6 +451,7 @@ add_test(NAME runner.write_hashes.content
   COMMAND ${CMAKE_COMMAND} -E compare_files
     ${CMAKE_CURRENT_BINARY_DIR}/hashes.txt ${CMAKE_CURRENT_SOURCE_DIR}/runner/hashes.txt)
 set_tests_properties(runner.write_hashes.content PROPERTIES FIXTURES_REQUIRED hashes_txt)
+endif()
 
 # Keep the CI cross-platform hash inventory contract executable locally.
 add_test(NAME hash.inventory.self_test
@@ -466,7 +482,7 @@ function(nesturbator_core_test name source)
   add_executable(${name} ${source})
   target_link_libraries(${name} PRIVATE nesturbator::nesturbator)
   nesturbator_warnings(${name})
-  add_test(NAME ${name} COMMAND ${name})
+  add_test(NAME ${name} COMMAND ${name} ${ARGN})
 endfunction()
 
 # D-11: version, info, create, every create status and the allocators.
@@ -480,7 +496,12 @@ target_include_directories(core.synth PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_core_test(core.cartridge core/test_cartridge.c)
 target_include_directories(core.cartridge PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # D-18: soft reset on a synthetic NROM image with a trainer.
-nesturbator_core_test(core.reset core/test_reset.c)
+# NESTURBATOR_SHORT_RUNS (preset asan): the reset-point sweep steps by 20 frames; ci sweeps all.
+if(NESTURBATOR_SHORT_RUNS)
+  nesturbator_core_test(core.reset core/test_reset.c --short)
+else()
+  nesturbator_core_test(core.reset core/test_reset.c)
+endif()
 target_include_directories(core.reset PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # D-02: the PPUCTRL NMI edge, one NMI per frame from a handler that rewrites $2000.
 nesturbator_core_test(core.nmi_edge core/test_nmi_edge.c)
@@ -690,11 +711,16 @@ target_compile_definitions(runner.boot_to_play PRIVATE
 nesturbator_warnings(runner.boot_to_play)
 # About 3,000 emulated frames. ASan measured about 55 s locally, so TIMEOUT 300
 # (10-RESEARCH Pitfall 8); COST 45 starts it beside runner.write_hashes.
+# NESTURBATOR_SHORT_RUNS (preset asan) leaves it out: its predicates need the whole 600-frame
+# movie, and runner.dump.nesrunner.play and libretro.parity.nesrunner.play run the same movie
+# under ASan.
+if(NOT NESTURBATOR_SHORT_RUNS)
 add_test(NAME runner.boot_to_play
   COMMAND runner.boot_to_play ${PROJECT_SOURCE_DIR}/tests/roms/runner.nes
     ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies)
 set_tests_properties(runner.boot_to_play PROPERTIES
   FIXTURES_REQUIRED nesrunner_movies TIMEOUT 300 COST 45)
+endif()
 
 # version.txt equals the header's version macros.
 add_test(NAME version.consistency
@@ -744,6 +770,9 @@ add_test(NAME policy.no-skip.self_test
 
 # Exact opcode inventories come from CTest's machine-readable metadata. The
 # policy configures the full preset but never runs its network-backed fixture.
+# NESTURBATOR_SHORT_RUNS (preset asan) leaves both out: they check CTest metadata, sanitizers
+# add nothing, and every ci leg runs them.
+if(NOT NESTURBATOR_SHORT_RUNS)
 add_test(NAME vectors.registration_policy
   COMMAND ${CMAKE_COMMAND}
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
@@ -756,6 +785,7 @@ add_test(NAME vectors.registration_policy.self_test
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
 set_tests_properties(vectors.registration_policy.self_test PROPERTIES COST 200)
+endif()
 
 # Run-bound full-vector evidence contains the CTest inventory, including tests
 # outside the vector label. Only the 258 full-vector entries define this lane.

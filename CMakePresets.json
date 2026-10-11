@@ -33,6 +33,7 @@
       "name": "asan",
       "inherits": "base",
       "cacheVariables": {
+        "NESTURBATOR_SHORT_RUNS": "ON",
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_COMPILE_WARNING_AS_ERROR": "ON",
         "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer",

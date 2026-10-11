@@ -214,7 +214,7 @@ Each lane is one command, `cmake --workflow --preset <lane>`.
 |---|---|
 | `ci` | Release build with warnings as errors; every test passes, the library installs and builds a separate consumer, and the three release archives are written |
 | `ci-msvc` | The same as `ci`, built with MSVC on Windows |
-| `asan` | Every test passes under AddressSanitizer and UBSan, with any report fatal |
+| `asan` | The same tests pass under AddressSanitizer and UBSan, with any report fatal, except that `NESTURBATOR_SHORT_RUNS` leaves `runner.write_hashes`, `runner.boot_to_play` and the two `vectors.registration_policy` tests to the `ci` lanes, sweeps fewer reset points in `core.reset`, and compares the non-save Holy Mapperel parity runs longer than 100 frames at frame 100 |
 | `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
 | `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
@@ -564,7 +564,8 @@ action is pinned to a commit SHA, and Dependabot proposes updates weekly.
 The `dev`, `ci`, `ci-msvc` and `asan` test presets run CTest four tests at a
 time (`execution.jobs`). The three long tests, `vectors.registration_policy`,
 its self test and `runner.write_hashes`, carry a CTest `COST`, so a cold build
-with no timing history starts them first.
+with no timing history starts them first. The `asan` lane does not register them
+(`NESTURBATOR_SHORT_RUNS`, which only that preset sets).
 
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
 04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
@@ -921,7 +922,9 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   catches a clash of different sizes.
 - `--save-interval N` (N of 1 or more, needs `--save-dir`) also writes a
   changed save after every Nth frame, counted from 1, so a runner stopped
-  after a flush leaves the RAM as it was then. With `--frames 3
+  after a flush leaves the RAM as it was then. A failed interval write ends
+  the run with exit 1, and the runner tries the write once more before it
+  exits. With `--frames 3
   --save-interval 5` no interval write falls inside the run, and the write at
   exit still happens. `--save-interval 0`, a repeated or empty `--save-dir`,
   and `--save-dir` without `--rom` exit 2.
