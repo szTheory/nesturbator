@@ -2,7 +2,7 @@
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| CR-01 | critical | open | 05-REVIEW.md |
+| CR-01 | critical | fixed | 05-REVIEW.md; no longer reproduces at the phase 10 core; guarded by core.reset check_reset_sentinel_frame (0xFFFF pre-fill, pre-reset frames 0-120); evidence in 10-RESEARCH.md |
 | WR-01 | warning | open | 05-REVIEW.md |
 | WR-02 | warning | fixed | 05-REVIEW.md; fixed by 1a8fc55 (05-08) |
 | WR-03 | warning | open | 05-REVIEW.md |

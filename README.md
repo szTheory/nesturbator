@@ -22,9 +22,10 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 5: the PPU
-fetch pipeline changed the frames of games that write the scroll or PPUCTRL
-while rendering. Mid-frame scroll writes render as on
+board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 6: the PPUCTRL NMI edge
+changed the frames of games that rewrite `$2000` inside their NMI handler
+(revision 5's PPU fetch pipeline changed the frames of games that write the
+scroll or PPUCTRL while rendering). Mid-frame scroll writes render as on
 the console, which a split-scroll test shows scanline by scanline.
 With no cartridge, the fixed test card and silence remain available. The plan lives in [`.planning/`](.planning/).
 
@@ -147,7 +148,9 @@ CPU stays latched until the cartridge is unloaded or reloaded.
 The PPU sets vblank at scanline 241 dot 1 and clears it at scanline 261 dot 1.
 A `$2002` read immediately before the vblank start dot suppresses the flag and
 NMI edge for that frame; reads on or after the start dot observe and clear the
-flag. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
+flag. A `$2000` write raises an NMI only when bit 7 changes from 0 to 1 while
+the vblank flag is set; rewriting it with bit 7 still set does not, and
+clearing bit 7 suppresses a pending NMI. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
 Nametable accesses use the cartridge's horizontal or vertical
 mirroring bit. Register accesses retain the CPU open-bus value in un-driven
 bits, and `$2007` reads are buffered outside palette space.
@@ -273,17 +276,59 @@ period, the test card's edge pixels, and that two instances run apart.
 table's invariants: `$20` and `$30` are white, `$xE` and `$xF` are black under
 every emphasis, an emphasis bit raises no colour channel but its own, and
 brightness never falls down a column.
-`runner.write_hashes` runs each pinned game and the three scripted DABG
-two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
-180, plus transition and PCM hashes for each game's boot run. It fails if any
-requested frame or audio hash is missing or duplicated;
-`runner.write_hashes.content` requires all 50 sorted keys to equal
+`runner.write_hashes` runs each pinned game (Nesteroids, DABG, RHDE and
+nes-runner), the three scripted DABG two-port movies, the scripted nes-runner
+play movie and every Holy Mapperel ROM. It writes ordered native hashes at
+frames 1, 30, 60, 120 and 180 plus transition and PCM hashes for each game's
+boot run, nes-runner play frames 1, 30, 60, 120, 180, 300, 450 and 600 plus
+their audio hashes, and for each Holy Mapperel ROM the result-screen frame and
+both audio hashes from the same run. It fails if any requested frame or audio
+hash is missing or duplicated, and unless the keys it generated equal the
+expected list exactly, naming the missing and the extra keys.
+`runner.write_hashes.content` requires all 95 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
-The 50 keys are the 36 game and movie keys plus one
-`holymapperel/<key>/frame N` key per Holy Mapperel ROM (twelve) and one
-`holymapperel/<key>.saved/frame N` key for each second run (`m1sxrom`, `m4tkrom`); `runner.write_hashes`
-hashes frame N and frame 2N of each and fails if they differ, so a pinned
-result screen is known to be static.
+The 95 keys are 28 game boot keys (four games, five frames and two audio keys
+each), 15 DABG movie keys, 10 nes-runner play keys, and for Holy Mapperel one
+`holymapperel/<key>/frame N` key plus two `holymapperel/<key>/audio/...` keys
+per ROM (twelve) and per second run (`<key>.saved` for `m1sxrom`, `m4tkrom`),
+which is 14 frame keys and 28 audio keys. The list is written once, in
+`tests/cmake/hash_keys.cmake`, which the writer, the CI hash-equality
+validator and its self-test all read, so no row count is spelled out anywhere.
+`runner.write_hashes` hashes frame N and frame 2N of each Holy Mapperel ROM and
+fails if they differ, so a pinned result screen is known to be static.
+`policy.rom_hash_coverage` fails when a committed ROM under `tests/roms` or
+`tests/roms/hm` is neither hashed nor exempt, or when a ROM glob or list is
+empty, and `policy.rom_hash_coverage.self_test` proves both rejections.
+AccuracyCoin is the one exemption: its NROM board is hashed through three
+games and its scoreboard runs on every leg.
+Every other committed ROM (Holy Mapperel's ten files and two derived copies,
+Nesteroids, DABG, RHDE and nes-runner) has frame and audio rows that must be
+byte-identical on six platforms. `libretro.parity.<key>` runs each of them
+through the libretro adapter and requires its last frame to equal the runner's,
+for nes-runner both the boot and its played movie. For the two battery boards,
+`libretro.parity.m1sxrom.run1`, `.run2`, `libretro.parity.m4tkrom.run1` and
+`.run2` also round-trip the save: run 1's save span must equal the runner's
+`.sav`, and run 2 loads that file into the span before its first frame and
+must end with the span the runner's second run saved. The fuzz seeds are exempt
+because they are crash inputs, not pinned pictures, and AccuracyCoin is exempt
+as above. Six-platform equality proves the platforms agree with each other, not
+that the emulation is right; correctness comes from Holy Mapperel's result
+codes, the AccuracyCoin scoreboard and the nightly blargg lane.
+`runner.boot_to_play` is the boot-to-play proof for nes-runner v1 (MIT,
+mapper 1). It replays generated NMOVIE1 movies through the library, reads
+`$3E` (game state) and the score bytes `$5D` to `$60` with
+`nesturbator_peek_cpu_ram`, and judges three predicates: RAM (the game is in
+state 2, the score rises and reaches 36, and RAM first differs from a no-input
+run no earlier than the first input frame and at most one frame after it),
+scene (changed pixels and at least half the picture differ from the no-input
+run) and audio (every window is loud and differs from the no-input run). The
+no-input, menu-navigation, failed-load and Start-only controls must each fail
+it with an exact mask. Synthetic mutants (silence, constant tone, a click then
+silence, a static picture with a ticking RAM counter, a rainbow-only title, an
+NMI-alive hang, early death, input latched late) and boundary traces on both
+sides of every threshold are judged without running the emulator and must each
+return their expected mask. The check also reads its save: the battery span
+starts `5A 6F` and the save generation advances.
 The `holymapperel.*` tests read Holy Mapperel's result from the frame, not
 from RAM. `holymapperel.<key>.dump` runs a ROM to its frame N and writes the
 frame with `--dump-frame`; `holymapperel.<key>.decode` runs the test-only
@@ -510,8 +555,9 @@ and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
 a different frame fails the run. It also requires six nonempty artifacts with
-the exact 50-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
-extra keys and malformed hashes. The branch rules require one check,
+the exact 95-key inventory from `tests/cmake/hash_keys.cmake`, checking the key
+set of every artifact, and rejecting duplicates, missing keys, extra keys and
+malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
 

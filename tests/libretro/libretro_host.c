@@ -27,6 +27,7 @@
 #include "nesturbator.h"
 #include "movie_fixture.h"
 #include "../test_process.h"
+#include "../../runner/movie.h"
 
 #define W 256u
 #define H 240u
@@ -990,6 +991,212 @@ static void check_ppu_frame_edges(unsigned char *image, size_t image_size)
     nesturbator_destroy(probe);
 }
 
+/* ---- --rom-parity: a whole ROM through the module, compared with the runner (D-18) ---- */
+
+#define PARITY_SENTINEL 0xA5A5A5A5u
+
+static int read_file(const char *path, unsigned char **data, size_t *size)
+{
+    FILE *f = fopen(path, "rb");
+    long end;
+    *data = NULL;
+    *size = 0u;
+    if (f == NULL) {
+        return 0;
+    }
+    if (fseek(f, 0, SEEK_END) != 0 || (end = ftell(f)) <= 0 || fseek(f, 0, SEEK_SET) != 0) {
+        fclose(f);
+        return 0;
+    }
+    *data = (unsigned char *)malloc((size_t)end);
+    if (*data == NULL || fread(*data, 1, (size_t)end, f) != (size_t)end) {
+        free(*data);
+        *data = NULL;
+        fclose(f);
+        return 0;
+    }
+    fclose(f);
+    *size = (size_t)end;
+    return 1;
+}
+
+/* True when every pixel of the captured frame equals the P6 image. */
+static int frame_equals_ppm(const char *path)
+{
+    static unsigned char rgb[W * H * 3u];
+    static const char header[] = "P6\n256 240\n255\n";
+    unsigned char head[sizeof header - 1u];
+    uint32_t i;
+    FILE *f = fopen(path, "rb");
+    if (f == NULL) {
+        return 0;
+    }
+    if (fread(head, 1, sizeof head, f) != sizeof head || memcmp(head, header, sizeof head) != 0 ||
+        fread(rgb, 1, sizeof rgb, f) != sizeof rgb) {
+        fclose(f);
+        return 0;
+    }
+    fclose(f);
+    for (i = 0; i < W * H; i++) {
+        uint32_t want = ((uint32_t)rgb[3u * i] << 16) | ((uint32_t)rgb[3u * i + 1u] << 8) |
+                        (uint32_t)rgb[3u * i + 2u];
+        if ((frame[i] & 0xFFFFFFu) != want) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* After the last frame, the battery span must be the file's size and bytes (D-18). */
+static void check_sav_expect(const char *path)
+{
+    unsigned char *want = NULL;
+    size_t want_size = 0u, span_size, i;
+    const unsigned char *span;
+
+    CHECK(read_file(path, &want, &want_size));
+    span = (const unsigned char *)p_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+    span_size = p_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+    CHECK(span != NULL);
+    CHECK_EQ_U64(span_size, want_size);
+    if (want != NULL && span != NULL && span_size == want_size) {
+        for (i = 0u; i < want_size; i++) {
+            if (span[i] != want[i]) {
+                fprintf(stderr, "libretro.host: save span differs from %s at offset %lu\n", path,
+                        (unsigned long)i);
+                CHECK(span[i] == want[i]);
+                break;
+            }
+        }
+    }
+    free(want);
+}
+
+/* libretro.host --rom-parity <module> <rom> <frames> <ppm> [--movie FILE] [--testcard PPM]
+ *                            [--sav-in FILE] [--sav-expect FILE]
+ * --sav-in copies FILE into the battery span before the first frame (its size must
+ * equal the span); --sav-expect compares the span with FILE after the last frame.
+ * Runs the ROM for <frames> frames through the module, feeding the movie's
+ * masks as joypad state, and requires the last frame to equal the runner's
+ * image <ppm>. The sentinel fill before each retro_run proves the module wrote
+ * the frame; --testcard fails a frame that is just the test card. */
+static int rom_parity(int argc, char **argv)
+{
+    const char *movie_path = NULL, *testcard_path = NULL;
+    const char *sav_in_path = NULL, *sav_expect_path = NULL;
+    nesturbator_movie movie;
+    struct retro_game_info game;
+    unsigned char *rom = NULL;
+    size_t rom_size = 0u;
+    unsigned long frames;
+    unsigned long f;
+    uint32_t i, unwritten = 0u;
+    char *end = NULL;
+    int a;
+
+    memset(&movie, 0, sizeof movie);
+    frames = strtoul(argv[4], &end, 10);
+    if (end == argv[4] || *end != '\0' || frames == 0ul) {
+        fprintf(stderr, "libretro.host: bad frame count %s\n", argv[4]);
+        return 2;
+    }
+    for (a = 6; a < argc; a++) {
+        if (strcmp(argv[a], "--movie") == 0 && a + 1 < argc) {
+            movie_path = argv[++a];
+        } else if (strcmp(argv[a], "--testcard") == 0 && a + 1 < argc) {
+            testcard_path = argv[++a];
+        } else if (strcmp(argv[a], "--sav-in") == 0 && a + 1 < argc) {
+            sav_in_path = argv[++a];
+        } else if (strcmp(argv[a], "--sav-expect") == 0 && a + 1 < argc) {
+            sav_expect_path = argv[++a];
+        } else {
+            fprintf(stderr, "libretro.host: unknown --rom-parity option %s\n", argv[a]);
+            return 2;
+        }
+    }
+    if (!module_open(argv[2])) {
+        fprintf(stderr, "cannot load %s\n", argv[2]);
+        return 1;
+    }
+    resolve_all();
+    CHECK_EQ_U64(missing, 0);
+    if (missing != 0) {
+        module_close();
+        CHECK_DONE();
+    }
+    if (movie_path != NULL) {
+        CHECK(nesturbator_movie_read(movie_path, &movie));
+        CHECK(movie.frame_count >= frames);
+        if (movie.masks == NULL || movie.frame_count < frames) {
+            module_close();
+            CHECK_DONE();
+        }
+    }
+    CHECK(read_file(argv[3], &rom, &rom_size));
+    if (rom == NULL) {
+        nesturbator_movie_free(&movie);
+        module_close();
+        CHECK_DONE();
+    }
+
+    p_set_environment(env);
+    p_init();
+    p_set_video_refresh(video);
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
+    p_set_input_poll(on_poll);
+    p_set_input_state(input);
+
+    memset(&game, 0, sizeof game);
+    game.data = rom;
+    game.size = rom_size;
+    CHECK(p_load_game(&game));
+    if (sav_in_path != NULL) {
+        unsigned char *sav = NULL;
+        size_t sav_size = 0u;
+        void *span = p_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+        CHECK(read_file(sav_in_path, &sav, &sav_size));
+        CHECK(span != NULL);
+        CHECK_EQ_U64(sav_size, p_get_memory_size(RETRO_MEMORY_SAVE_RAM));
+        if (sav != NULL && span != NULL && sav_size == p_get_memory_size(RETRO_MEMORY_SAVE_RAM)) {
+            memcpy(span, sav, sav_size);
+        }
+        free(sav);
+    }
+    video_calls = 0;
+    for (f = 0; f < frames; f++) {
+        for (i = 0; i < W * H; i++) {
+            frame[i] = PARITY_SENTINEL;
+        }
+        if (movie_path != NULL) {
+            host_buttons[0] = movie.masks[f * 2u];
+            host_buttons[1] = movie.masks[f * 2u + 1u];
+        } else {
+            host_buttons[0] = 0u;
+            host_buttons[1] = 0u;
+        }
+        p_run();
+    }
+    CHECK_EQ_U64(video_calls, frames);
+    for (i = 0; i < W * H; i++) {
+        unwritten += (frame[i] == PARITY_SENTINEL) ? 1u : 0u;
+    }
+    CHECK(unwritten < W * H);
+    compare_with_ppm(argv[5]);
+    if (testcard_path != NULL) {
+        CHECK(!frame_equals_ppm(testcard_path));
+    }
+    if (sav_expect_path != NULL) {
+        check_sav_expect(sav_expect_path);
+    }
+    p_unload_game();
+    p_deinit();
+    module_close();
+    free(rom);
+    nesturbator_movie_free(&movie);
+    CHECK_DONE();
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
@@ -999,8 +1206,13 @@ int main(int argc, char **argv)
     static uint32_t first_content_frame[W * H];
     double fps_diff;
 
+    if (argc >= 6 && strcmp(argv[1], "--rom-parity") == 0) {
+        return rom_parity(argc, argv);
+    }
     if (argc != 6) {
-        fprintf(stderr, "usage: libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
+        fprintf(stderr, "usage: libretro.host --rom-parity <module> <rom> <frames> <ppm> "
+                        "[--movie FILE] [--testcard PPM] [--sav-in FILE] [--sav-expect FILE]\n"
+                        "       libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
                         "<generated.nes>\n");
         return 2;
     }

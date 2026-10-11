@@ -11,7 +11,7 @@ One row per finding in 07-REVIEW.md. Every row starts as `open`. Set a row to `f
 | ID | Severity | Disposition | Source |
 |----|----------|-------------|--------|
 | WR-01 | warning | open | 07-REVIEW.md: AxROM reset vector from bank 0 holds only at power-on |
-| WR-02 | warning | open | 07-REVIEW.md: hash_inventory compares only the last platform's keys |
+| WR-02 | warning | fixed | 07-REVIEW.md: hash_inventory compared only the last platform's keys; fixed by phase 10 plan 05, which compares every artifact's key set with tests/cmake/hash_keys.cmake and covers it in hash.inventory.self_test |
 | IN-01 | info | open | 07-REVIEW.md: README status paragraph stale and garbled |
 | IN-02 | info | open | 07-REVIEW.md: bus-conflict AND computed for $4020-$7FFF writes |
 | IN-03 | info | open | 07-REVIEW.md: magic board-size limits in board_profile_ok |

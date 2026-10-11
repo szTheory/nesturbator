@@ -123,7 +123,7 @@ jobs:
 
   asan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10 # run 38097794967 took 4m14s; run 38108603663 hit the old 5-minute cap at 444/446 after Phase 9 added five mapper 4 ROM runs of about 45 s each under ASan
+    timeout-minutes: 20 # provisional until a complete measured run (ENGINEERING §5: twice a measured cold run); run 38150104151 hit the 10-minute cap at 477/480 with no failures after Phase 10 added runner.boot_to_play (about 235 s) and libretro.parity mapper 4 runs (about 55 s each) under ASan; earlier baseline run 38097794967 took 4m14s
     env:
       CC: clang-18
       CXX: clang++-18

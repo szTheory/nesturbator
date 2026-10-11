@@ -56,6 +56,35 @@ static void test_status_read_on_vblank_dot_observes_then_clears_flag(void)
     CHECK_EQ_U64(nes.cpu.nmi_pending, 0u);
 }
 
+static void test_ppuctrl_nmi_edge(void)
+{
+    /* D-02, NESdev Wiki "PPU registers": only a 0-to-1 change of bit 7 inside vblank raises NMI. */
+    reset();
+    nes.ppu.status = 0x80u;
+    nesturbator__ppu_register_write(&nes, 0x2000u, 0x80u);
+    CHECK_EQ_U64(nes.cpu.nmi_pending, 1u);
+    nes.cpu.nmi_pending = 0u;
+    nesturbator__ppu_register_write(&nes, 0x2000u, 0x80u);
+    CHECK_EQ_U64(nes.cpu.nmi_pending, 0u);
+
+    reset();
+    nes.ppu.status = 0x80u;
+    nes.cpu.nmi_pending = 1u;
+    nesturbator__ppu_register_write(&nes, 0x2000u, 0x00u);
+    CHECK_EQ_U64(nes.cpu.nmi_pending, 0u);
+
+    reset();
+    nesturbator__ppu_register_write(&nes, 0x2000u, 0x80u);
+    CHECK_EQ_U64(nes.cpu.nmi_pending, 0u);
+
+    reset();
+    nes.ppu.status = 0x80u;
+    nes.ppu.control = 0x80u;
+    nes.cpu.nmi_pending = 1u;
+    nesturbator__ppu_register_write(&nes, 0x2000u, 0x80u);
+    CHECK_EQ_U64(nes.cpu.nmi_pending, 1u);
+}
+
 static void test_nametable_reads_follow_board_map(void)
 {
     static const uint8_t horizontal[4] = {0u, 0u, 1u, 1u};
@@ -113,6 +142,7 @@ int main(void)
     test_register_latches_and_palette_aliases();
     test_status_read_just_before_vblank_suppresses_flag();
     test_status_read_on_vblank_dot_observes_then_clears_flag();
+    test_ppuctrl_nmi_edge();
     test_nametable_reads_follow_board_map();
     test_register_open_bus_and_ppudata_buffer();
     CHECK_DONE();

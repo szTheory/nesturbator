@@ -34,7 +34,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
 - [x] **Phase 7: UxROM, CNROM and AxROM** - Discrete-logic board games run, with bus conflicts where the board has them (completed 2026-10-10)
 - [x] **Phase 8: MMC1 and battery saves** - MMC1 games run, and battery saves persist through the runner and RetroArch (completed 2026-10-10)
 - [x] **Phase 9: MMC3** - MMC3 games run with the A12-clocked scanline IRQ, and the loader accepts exactly the six v2 mappers (completed 2026-10-10)
-- [ ] **Phase 10: Close-out and boot-to-play** - Every board's hashes match on six platforms, and a game is proven to play from boot
+- [x] **Phase 10: Close-out and boot-to-play** - Every board's hashes match on six platforms, and a game is proven to play from boot (completed 2026-10-11)
 
 ## Phase Details
 
@@ -224,8 +224,31 @@ Plans:
   2. A CI test replays a recorded input movie on nes-runner from boot into gameplay: a RAM byte with meaning in the game differs between runs with and without input, the scene's frames change visibly, and the audio keeps varying past a threshold.
   3. The same check fails, in the same test, for each negative control: no input, an attract-mode-only run, and a failed load that falls back to the test frame.
 
-**Plans**: TBD
-**Research flag**: MEDIUM — confirm nes-runner reaches gameplay on this core and writes its save RAM.
+**Plans**: 7/7 plans complete
+
+Plans:
+**Wave 1**
+- [x] 10-01-PLAN.md — PPUCTRL NMI edge fix with core.nmi_edge, CR-01 sentinel test, revision 6 and the 24-row re-pin (BOARD-04, PLAY-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 10-02-PLAN.md — nes-runner v1 ROM intake: manifest line and notices (PLAY-01, BOARD-04)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 10-03-PLAN.md — nes-runner movies and runner.boot_to_play: judge and the four controls with exact masks (PLAY-01)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [x] 10-04-PLAN.md — boot_to_play mutants and threshold boundary traces, ASan run, README boot-to-play text (PLAY-01)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [x] 10-05-PLAN.md — One hash key list, Holy Mapperel audio rows, nes-runner boot and play rows, 07-WR-02, ROM drift guard (BOARD-04, PLAY-01)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [x] 10-06-PLAN.md — --rom-parity mode and libretro.parity per key for games, nes-runner and Holy Mapperel without saves (BOARD-04, PLAY-01)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [x] 10-07-PLAN.md — Save round-trip parity with the race fix, ASan budget, coverage docs, checked feat: PR title (BOARD-04, PLAY-01)
+
+**Research flag**: MEDIUM — confirm nes-runner reaches gameplay on this core and writes its save RAM. Answered in 10-RESEARCH.md: yes, after the NMI edge fix.
 **Ships**: the milestone's final release.
 
 ## Progress
@@ -246,7 +269,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
 | 8. MMC1 and battery saves | v2 | 8/8 | Complete    | 2026-10-10 |
 | 9. MMC3 | v2 | 12/12 | Complete    | 2026-10-10 |
-| 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
+| 10. Close-out and boot-to-play | v2 | 7/7 | Complete    | 2026-10-11 |
 
 ## Backlog
 

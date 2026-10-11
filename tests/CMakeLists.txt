@@ -187,7 +187,15 @@ add_test(NAME runner.save_path COMMAND runner.save_path)
 # Holy Mapperel (BOARD-01): each ROM in roms.cmake is run to its frame N, the
 # runner dumps that frame, and holymapperel-decode reads the result code from
 # the pixels. The decoder is test-only; the runner knows nothing of the ROMs.
-include(${CMAKE_CURRENT_SOURCE_DIR}/holymapperel/roms.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/hash_keys.cmake)
+# A guard over an empty list passes for any tree, so an empty list stops the
+# configure (D-17). Plans 06 and 07 reuse these lists for parity registration.
+if(NOT NESTURBATOR_HASH_GAMES)
+  message(FATAL_ERROR "NESTURBATOR_HASH_GAMES is empty (tests/cmake/hash_keys.cmake)")
+endif()
+if(NOT NESTURBATOR_HOLYMAPPEREL_ROMS)
+  message(FATAL_ERROR "NESTURBATOR_HOLYMAPPEREL_ROMS is empty (tests/holymapperel/roms.cmake)")
+endif()
 set(NESTURBATOR_HM_DIR ${CMAKE_CURRENT_BINARY_DIR}/holymapperel)
 file(MAKE_DIRECTORY ${NESTURBATOR_HM_DIR})
 add_executable(holymapperel-decode holymapperel/decode.c)
@@ -256,6 +264,14 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
     list(GET parts 4 hm_save)
   endif()
   if(hm_save STREQUAL "save")
+    # D-18 / D-09: libretro.parity.<key>.run1 and .run2 round-trip the save
+    # through the module. Run 1 compares the module's battery span with the
+    # runner's run-1 .sav; run 2 loads that file into the span before the first
+    # frame (--sav-in) and compares its frame and span with run 2's. Run 2's
+    # runner dump rewrites <stem>.sav, so a parity test must never read that
+    # file while run 2 can still be writing it: holymapperel.<key>.run1.sav_copy
+    # takes a private copy, and run2.dump requires the copy's fixture, so
+    # every reader of the run-1 bytes has them before run 2 starts.
     # SAVE-02 (D-04): the same battery ROM runs twice against one save
     # directory. Run 1 starts empty and must not show + BATTERY; it leaves a
     # 32 KiB save carrying Holy Mapperel's SAVEDATA marker at offset 0x100.
@@ -318,9 +334,32 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
       set_tests_properties(holymapperel.${hm_key}.run2.dump PROPERTIES
         FIXTURES_REQUIRED holymapperel_${hm_key}_run1_sav_byte)
     endif()
-    # Run 2 starts only after run 1 and its save check.
+    add_test(NAME holymapperel.${hm_key}.run1.sav_copy
+      COMMAND ${CMAKE_COMMAND} -E copy ${hm_savedir}/${hm_stem}.sav
+        ${NESTURBATOR_HM_DIR}/${hm_key}-run1.sav)
+    set_tests_properties(holymapperel.${hm_key}.run1.sav_copy PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_run1
+      FIXTURES_SETUP holymapperel_${hm_key}_run1_savcopy)
+    # Run 2 starts only after run 1, its save check and the private copy.
     set_tests_properties(holymapperel.${hm_key}.run2.dump PROPERTIES
-      FIXTURES_REQUIRED holymapperel_${hm_key}_run1_sav)
+      FIXTURES_REQUIRED "holymapperel_${hm_key}_run1_sav;holymapperel_${hm_key}_run1_savcopy")
+    add_test(NAME libretro.parity.${hm_key}.run1
+      COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+        ${hm_rom} ${hm_frames} ${NESTURBATOR_HM_DIR}/${hm_key}-run1.ppm
+        --sav-expect ${NESTURBATOR_HM_DIR}/${hm_key}-run1.sav
+        --testcard ${NESTURBATOR_TESTFRAME_PPM})
+    set_tests_properties(libretro.parity.${hm_key}.run1 PROPERTIES
+      FIXTURES_REQUIRED "holymapperel_${hm_key}_run1;holymapperel_${hm_key}_run1_savcopy;testframe_ppm"
+      TIMEOUT 120)
+    add_test(NAME libretro.parity.${hm_key}.run2
+      COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+        ${hm_rom} ${hm_frames} ${NESTURBATOR_HM_DIR}/${hm_key}-run2.ppm
+        --sav-in ${NESTURBATOR_HM_DIR}/${hm_key}-run1.sav
+        --sav-expect ${hm_savedir}/${hm_stem}.sav
+        --testcard ${NESTURBATOR_TESTFRAME_PPM})
+    set_tests_properties(libretro.parity.${hm_key}.run2 PROPERTIES
+      FIXTURES_REQUIRED "holymapperel_${hm_key}_run2;holymapperel_${hm_key}_run1_savcopy;testframe_ppm"
+      TIMEOUT 120)
     set_tests_properties(holymapperel.${hm_key}.run2.prgram PROPERTIES
       FIXTURES_REQUIRED holymapperel_${hm_key}_run2
       PASS_REGULAR_EXPRESSION "prg ram \"${hm_text} \\+ BATTERY\"")
@@ -331,6 +370,13 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
       EXIT 0 IGNORE_STDOUT)
     set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES
       FIXTURES_SETUP holymapperel_${hm_key} TIMEOUT 120)
+    # D-18: the module shows the same result screen as the runner.
+    add_test(NAME libretro.parity.${hm_key}
+      COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+        ${hm_rom} ${hm_frames} ${NESTURBATOR_HM_DIR}/${hm_key}.ppm
+        --testcard ${NESTURBATOR_TESTFRAME_PPM})
+    set_tests_properties(libretro.parity.${hm_key} PROPERTIES
+      FIXTURES_REQUIRED "holymapperel_${hm_key};testframe_ppm" TIMEOUT 120)
     add_test(NAME holymapperel.${hm_key}.decode
       COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
     set_tests_properties(holymapperel.${hm_key}.decode PROPERTIES
@@ -436,6 +482,8 @@ target_include_directories(core.cartridge PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # D-18: soft reset on a synthetic NROM image with a trainer.
 nesturbator_core_test(core.reset core/test_reset.c)
 target_include_directories(core.reset PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# D-02: the PPUCTRL NMI edge, one NMI per frame from a handler that rewrites $2000.
+nesturbator_core_test(core.nmi_edge core/test_nmi_edge.c)
 # MAP-01, D-04, D-05, D-06, D-08: cycle-stamped mapper writes, the IRQ OR, the nametable map and reset.
 nesturbator_core_test(core.mapper core/test_mapper.c)
 target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -616,6 +664,38 @@ target_compile_definitions(runner.game_movie PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(runner.game_movie)
 
+# PLAY-01 / D-05: the build writes the four nes-runner movies (no movie bytes
+# are committed); runner.boot_to_play reads them through the nesrunner_movies
+# fixture.
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies)
+foreach(scenario pos none attract startonly)
+  add_test(NAME runner.nesrunner_movie.${scenario}
+    COMMAND runner.game_movie
+      ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies/nesrunner-${scenario}.nmovie
+      nesrunner-${scenario})
+  set_tests_properties(runner.nesrunner_movie.${scenario} PROPERTIES
+    FIXTURES_SETUP nesrunner_movies)
+endforeach()
+
+# PLAY-01 / D-08: one program replays the movies through the library, reads
+# nes-runner's RAM and judges the positive run and every control.
+add_executable(runner.boot_to_play runner/test_boot_to_play.c
+  ${PROJECT_SOURCE_DIR}/runner/sha256.c ${PROJECT_SOURCE_DIR}/runner/audio_hash.c
+  ${PROJECT_SOURCE_DIR}/runner/movie.c)
+target_link_libraries(runner.boot_to_play PRIVATE nesturbator::nesturbator)
+target_include_directories(runner.boot_to_play PRIVATE ${PROJECT_SOURCE_DIR}/runner
+  ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_definitions(runner.boot_to_play PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(runner.boot_to_play)
+# About 3,000 emulated frames. ASan measured about 55 s locally, so TIMEOUT 300
+# (10-RESEARCH Pitfall 8); COST 45 starts it beside runner.write_hashes.
+add_test(NAME runner.boot_to_play
+  COMMAND runner.boot_to_play ${PROJECT_SOURCE_DIR}/tests/roms/runner.nes
+    ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies)
+set_tests_properties(runner.boot_to_play PROPERTIES
+  FIXTURES_REQUIRED nesrunner_movies TIMEOUT 300 COST 45)
+
 # version.txt equals the header's version macros.
 add_test(NAME version.consistency
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
@@ -743,7 +823,7 @@ add_test(NAME libretro.vendored
 # RetroArch does, and compares its frame with the runner's image (fixture
 # testframe_ppm) and with four hard-coded pixels (D-05). The module is a
 # run-time input, so the test program depends on it to build it first.
-add_executable(libretro.host libretro/libretro_host.c)
+add_executable(libretro.host libretro/libretro_host.c ${PROJECT_SOURCE_DIR}/runner/movie.c)
 target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro
   ${CMAKE_CURRENT_SOURCE_DIR}/runner)
 target_link_libraries(libretro.host PRIVATE nesturbator ${CMAKE_DL_LIBS})
@@ -756,6 +836,62 @@ add_test(NAME libretro.host
     ${NESTURBATOR_TESTFRAME_PPM} ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.ppm
     $<TARGET_FILE:nesturbator-run> ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.nes)
 set_tests_properties(libretro.host PROPERTIES FIXTURES_REQUIRED testframe_ppm)
+
+# D-18 / D-14 / D-09: --rom-parity runs a whole ROM through the libretro module
+# and compares its last frame with the image the runner dumped (fixture
+# rundump_<key>, so the runner is not run twice). Scope is every ROM in the hash
+# inventory that needs no save file: the games at frame 180, nes-runner's boot
+# at 180 and its played nesrunner-pos movie at 600, and each non-save Holy
+# Mapperel ROM at its N (registered in the Holy Mapperel loop above). Each key
+# is its own CTest so a failure names the ROM. The empty-list stops mean zero
+# parity tests cannot pass vacuously (D-17).
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/parity)
+set(NESTURBATOR_PARITY_DIR ${CMAKE_CURRENT_BINARY_DIR}/parity)
+set(parity_keys)
+foreach(game_entry IN LISTS NESTURBATOR_HASH_GAMES)
+  string(REPLACE ":" ";" game_parts "${game_entry}")
+  list(GET game_parts 0 game_key)
+  list(GET game_parts 1 game_file)
+  set(game_rom ${PROJECT_SOURCE_DIR}/tests/roms/${game_file})
+  if(game_key STREQUAL "nesrunner")
+    set(parity_key nesrunner.boot)
+  else()
+    set(parity_key ${game_key})
+  endif()
+  nesturbator_runner_test(NAME runner.dump.${parity_key}
+    ARGS --rom ${game_rom} --frames 180
+      --dump-frame "180:${NESTURBATOR_PARITY_DIR}/${parity_key}.ppm"
+    EXIT 0 IGNORE_STDOUT)
+  set_tests_properties(runner.dump.${parity_key} PROPERTIES
+    FIXTURES_SETUP rundump_${parity_key})
+  add_test(NAME libretro.parity.${parity_key}
+    COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+      ${game_rom} 180 ${NESTURBATOR_PARITY_DIR}/${parity_key}.ppm
+      --testcard ${NESTURBATOR_TESTFRAME_PPM})
+  set_tests_properties(libretro.parity.${parity_key} PROPERTIES
+    FIXTURES_REQUIRED "rundump_${parity_key};testframe_ppm" TIMEOUT 120)
+  list(APPEND parity_keys ${parity_key})
+  if(game_key STREQUAL "nesrunner")
+    # PLAY-01: the played movie, 600 frames, held by the runner and the module.
+    set(play_movie ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies/nesrunner-pos.nmovie)
+    nesturbator_runner_test(NAME runner.dump.nesrunner.play
+      ARGS --rom ${game_rom} --movie ${play_movie}
+        --dump-frame "600:${NESTURBATOR_PARITY_DIR}/nesrunner.play.ppm"
+      EXIT 0 IGNORE_STDOUT)
+    set_tests_properties(runner.dump.nesrunner.play PROPERTIES
+      FIXTURES_SETUP rundump_nesrunner.play FIXTURES_REQUIRED nesrunner_movies)
+    add_test(NAME libretro.parity.nesrunner.play
+      COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+        ${game_rom} 600 ${NESTURBATOR_PARITY_DIR}/nesrunner.play.ppm
+        --movie ${play_movie} --testcard ${NESTURBATOR_TESTFRAME_PPM})
+    set_tests_properties(libretro.parity.nesrunner.play PROPERTIES
+      FIXTURES_REQUIRED "rundump_nesrunner.play;nesrunner_movies;testframe_ppm" TIMEOUT 120)
+    list(APPEND parity_keys nesrunner.play)
+  endif()
+endforeach()
+if(NOT parity_keys)
+  message(FATAL_ERROR "no libretro parity tests: NESTURBATOR_HASH_GAMES is empty")
+endif()
 
 # D-14: palgen regenerates src/palette_ntsc.c byte for byte, ignoring line
 # endings.
@@ -954,6 +1090,18 @@ add_test(NAME manifest.sha256
 add_test(NAME manifest.sha256.selftest
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/manifest_sha256.cmake)
+
+# D-17: every committed ROM is hashed or exempt (hash_keys.cmake). The
+# self-test builds scratch trees with an unlisted ROM, an empty hm directory
+# and a missing game ROM and passes only if each is rejected.
+add_test(NAME policy.rom_hash_coverage
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/rom_coverage.cmake)
+add_test(NAME policy.rom_hash_coverage.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/rom_coverage.cmake)
+set_tests_properties(policy.rom_hash_coverage policy.rom_hash_coverage.self_test
+  PROPERTIES TIMEOUT 30)
 
 # D-20: tests/vectors/pins.txt, offline: the pin line, 256 lines in path
 # order, the upstream tree's total size, and the sample's commit. The
