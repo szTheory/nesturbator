@@ -195,6 +195,7 @@ cmake --workflow --preset asan  # the same tests under AddressSanitizer and UBSa
 cmake --workflow --preset nofp  # core built with -mgeneral-regs-only; the abi checks
 cmake --workflow --preset hygiene  # tree contents, action pins and formatting
 cmake --workflow --preset vectors-full  # the full 65x02 vector set, fetched at its pin (network)
+cmake --workflow --preset mmc3-oracle  # blargg's MMC3 test ROMs, fetched at their pin (network)
 ```
 
 On Windows with MSVC, use `ci-msvc` from a developer command prompt.
@@ -211,6 +212,7 @@ Each lane is one command, `cmake --workflow --preset <lane>`.
 | `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
 | `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
+| `mmc3-oracle` | blargg's `mmc3_test_2` and `mmc3_irq_tests` ROMs, fetched by git at the commit in `tests/mmc3/pins.txt` and checked by SHA-256, give the result `tests/mmc3/oracle.txt` records for each; needs the network and fails without it |
 
 Tests never skip: a test that cannot run somewhere is not registered there, and
 `policy.no-skip` fails when any registered test could report itself skipped or
@@ -416,6 +418,36 @@ otherwise. That is all 2,560,000 upstream tests. `cpu.vectors-full.sample-match`
 converts the first 100 tests of every fetched file and requires them to equal
 the committed sample chunk by chunk, byte for byte, which proves where the
 sample came from; a difference names the chunk and the blob offset.
+The `mmc3-oracle` lane registers its tests only when the CMake option
+`NESTURBATOR_MMC3_ORACLE` is on, which its preset sets, so `ci` never touches
+the network. It uses blargg's MMC3 ROMs from
+`https://github.com/christopherpow/nes-test-roms` at commit
+`95d8f621ae55cee0d09b91519a8989ae0e64753b` (`95d8f62`). That repository states
+no licence, so the ROMs are fetched and never committed, and no text of theirs
+is in the tree. `mmc3.oracle.fetch` runs `tests/cmake/fetch_blargg_mmc3.cmake`:
+a sparse, blobless, depth-1 fetch of `mmc3_test_2` and `mmc3_irq_tests`, then a
+size and SHA-256 check of the 12 ROMs listed in `tests/mmc3/pins.txt` and a
+check that no other `.nes` file is there. It deletes only a directory it
+created, which holds the marker `.nesturbator-mmc3`; `mmc3.fetch.guard`, in
+`ci` and offline, shows it refuses a foreign directory, a symlink into the
+source tree and an upper-case spelling of it. The test-only program
+`mmc3-oracle` (`tests/mmc3/oracle.c`) judges a ROM by one of blargg's two
+result protocols. `mmc3_test_2` writes the signature `DE B0 61` at
+`$6001-$6003`, `$80` at `$6000` while it runs, then a result there (`0` is a
+pass) and text from `$6004`; the oracle passes it only after it has seen `$80`,
+read `0` and found `Passed` in the text. `mmc3_irq_tests` leave `1` in zero page
+`$F8` when they pass; the oracle requires `1` at the frame budget and again 60
+frames later. Its exit status is 0 for a pass, the reported value for a
+failure, 120 for a ROM that never reported, 121 for no signature, 122 for an
+image that does not load and 123 for bad usage; it never exits 77.
+`tests/mmc3/oracle.txt` has one tab-separated row per ROM,
+`key status code frames hash`: the key is the suite and ROM name such as
+`mmc3_test_2/1-clocking`, the status is `pass` or `unsupported`, the code is
+the expected exit status as `0xNN`, and frames is the budget; the hash is `-`.
+Each row becomes the test `mmc3.oracle.<key>`, which passes when the exit
+status equals the code, and an `unsupported` row that exits 0 fails until the
+row is edited. These rows are not part of `tests/accuracy/scoreboard.txt`.
+Run it with `cmake --workflow --preset mmc3-oracle`.
 `vectors.pins`, in `ci` and offline, checks `tests/vectors/pins.txt`: its pin
 line, 256 lines in order from `00.json` to `ff.json`, sizes summing to
 1,081,529,097 bytes, and a commit equal to the sample's manifest pin.
