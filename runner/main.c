@@ -3,6 +3,9 @@
  *   nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame
  * N:FILE]... nesturbator-run --movie FILE [--rom FILE] [--hash-audio] [--dump-frame N:FILE]...
  *   nesturbator-run --accuracycoin-page N --rom FILE --scoreboard FILE
+ *   nesturbator-run --version
+ *
+ * --version prints "nesturbator-run X.Y.Z" from nesturbator_get_version and exits 0.
  *
  * Runs N frames, with optional cartridge content (mappers 0, 1, 2, 3, 4 and 7). A movie supplies
  * the two port masks for every frame and prints the native hash of every replayed frame. For each
@@ -20,11 +23,12 @@
  * With --save-dir DIR a cartridge that has battery RAM reads DIR/<name>.sav after it loads and
  * before the first frame, and writes the raw bytes back when they changed. <name> is the last
  * component of the --rom path, split at '/' or '\\', without its last extension. A write goes
- * to DIR/<name>.sav.tmp and is renamed over the save, so a kill leaves the old save. The
- * runner writes at the end of the run (also after a JAM) and, with --save-interval N, after every
- * Nth frame; a write that fails at an interval is tried once more at exit. A save whose size is
- * not the battery RAM's is never touched. Without --save-dir no save file is read or written, and
- * neither is one for a cartridge without battery RAM.
+ * to DIR/<name>.sav.tmp and is renamed over the save, so the save is the old one or the new one,
+ * never torn. A failed write removes its .tmp and keeps the previous save. The runner writes at the
+ * end of the run (also after a JAM) and, with --save-interval N, after every Nth frame; a write
+ * that fails at an interval is tried once more at exit. A save whose size is not the battery RAM's
+ * is never touched. Without --save-dir no save file is read or written, and neither is one for a
+ * cartridge without battery RAM.
  *
  * Exit status (LIBRETRO-AND-RUNNER section 5): 0 done, 1 failure, 2 usage, 4 .sav size mismatch;
  * 3 and 77 are reserved.
@@ -52,6 +56,7 @@ static int usage(const char *why)
     fprintf(stderr,
             "usage: nesturbator-run (--frames N | --movie FILE) [--rom FILE] [--hash-frame N]... "
             "[--hash-audio] [--dump-frame N:FILE]... [--save-dir DIR [--save-interval N]]\n"
+            "       nesturbator-run --version\n"
             "  --frames N           run N frames (N >= 1)\n"
             "  --movie FILE         replay a validated two-port movie\n"
             "  --rom FILE           load an iNES image (mapper 0, 1, 2, 3, 4 or 7)\n"
@@ -59,7 +64,8 @@ static int usage(const char *why)
             "  --hash-audio         print SHA-256 of canonical transitions and signed PCM\n"
             "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n"
             "  --save-dir DIR       load and keep DIR/<rom name>.sav (needs --rom)\n"
-            "  --save-interval N    with --save-dir, also write a changed save every N frames\n");
+            "  --save-interval N    with --save-dir, also write a changed save every N frames\n"
+            "  --version            print the version and exit\n");
     return 2;
 }
 
@@ -148,6 +154,7 @@ typedef struct options {
     const char **dump_paths;
     uint32_t dump_count;
     int hash_audio;
+    int show_version;
     const char *save_dir;
     uint32_t save_interval;
 } options;
@@ -176,6 +183,10 @@ static int parse_options(int argc, char **argv, options *o)
         const char *arg = argv[i++];
         const char *value;
         uint32_t n;
+        if (strcmp(arg, "--version") == 0) {
+            o->show_version = 1;
+            return 0;
+        }
         if (strcmp(arg, "--hash-audio") == 0) {
             if (o->hash_audio != 0)
                 return usage("--hash-audio may be specified once");
@@ -249,19 +260,19 @@ static int parse_options(int argc, char **argv, options *o)
 }
 
 /* The battery span of the loaded cartridge and what was last written for it. */
-typedef struct save_state {
+typedef struct battery_save {
     char path[4096];
     uint8_t *span;
     size_t size;
     uint8_t *shadow;
     uint64_t generation;
-} save_state;
+} battery_save;
 
 /* Writes the span when a CPU write reached it since the last look and the
    bytes differ from the last written copy. Returns 0, or 1 after a failure.
    A failed write leaves the generation unrecorded, so the next look (the exit
    flush) writes again. */
-static int save_if_changed(nesturbator *inst, save_state *sv)
+static int save_if_changed(nesturbator *inst, battery_save *sv)
 {
     uint64_t gen;
     if (sv->shadow == NULL)
@@ -664,7 +675,7 @@ int main(int argc, char **argv)
     options opt;
     nesturbator_movie movie;
     nesturbator_run_audio_hash audio_hash;
-    save_state save;
+    battery_save save;
     int status;
 
     memset(&opt, 0, sizeof opt);
@@ -674,6 +685,16 @@ int main(int argc, char **argv)
     if (status != 0) {
         free_options(&opt);
         return status;
+    }
+    if (opt.show_version) {
+        nesturbator_version ver;
+        memset(&ver, 0, sizeof ver);
+        ver.size = (uint32_t)sizeof ver;
+        nesturbator_get_version(&ver);
+        printf("nesturbator-run %u.%u.%u\n", (unsigned)ver.major, (unsigned)ver.minor,
+               (unsigned)ver.patch);
+        free_options(&opt);
+        return fflush(stdout) == 0 ? 0 : 1;
     }
     nesturbator_run_audio_hash_init(&audio_hash);
 

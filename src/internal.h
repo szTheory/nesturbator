@@ -314,6 +314,10 @@ uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes);
 void nesturbator__apu_begin_frame(struct nesturbator *nes, int16_t *samples, uint32_t count);
 void nesturbator__apu_end_frame(struct nesturbator *nes);
 void nesturbator__synth_reset(struct nesturbator *nes);
+
+/* The no-cartridge power-on state, shared by create and unload (src/instance.c).
+   Leaves allocator, profile, transition sink, cart and save_generation alone. */
+void nesturbator__power_on_no_cartridge(struct nesturbator *nes);
 void nesturbator__synth_transition(struct nesturbator *nes, int32_t level);
 void nesturbator__synth_sample(struct nesturbator *nes);
 uint32_t nesturbator__synth_drain(struct nesturbator *nes, int16_t *out, uint32_t count);

@@ -376,7 +376,13 @@ table entry, and the input and output row pitches are honoured.
 C++ with warnings as errors and check its struct layout. `runner.sha256`
 checks the runner's SHA-256 against the FIPS 180-4 example digests, and
 `version.consistency` checks that `version.txt` matches the header's version
-macros and the libretro `.info` file's `display_version`.
+macros and the libretro `.info` file's `display_version`. `runner.version`
+runs `nesturbator-run --version` and requires stdout to be exactly
+`nesturbator-run` and the text of `version.txt` (read at test time), empty
+stderr and exit 0. `core.boundary` checks, after every frame, that the
+instance holds no video or audio pointer of the caller and no buffered PCM,
+over test-card frames, 60 frames with sound, a JAM, a too-small buffer and an
+unload and reload.
 `cmake.script_policy` checks that every script in `tests/cmake` sets
 `cmake_minimum_required(VERSION 3.25)`, so each CMake release reads it the
 same way. `libretro.vendored`
@@ -690,6 +696,24 @@ fills the other fields. For `nesturbator_config` that is `size` and `abi`
 Zeroing first keeps padding and the bytes a newer header appends at zero, so
 a host built against a newer header still runs with an older library.
 
+The public functions are:
+
+- `nesturbator_create` and `nesturbator_destroy` make and free an instance.
+- `nesturbator_get_version` writes the library's version; a host compares it
+  with `NESTURBATOR_VERSION_*` when the library may differ from the header.
+  `nesturbator-run` calls it for `--version`.
+- `nesturbator_get_info` writes the video and audio format.
+- `nesturbator_get_palette` writes the palette as XRGB8888.
+- `nesturbator_load_cartridge` loads an iNES image;
+  `nesturbator_unload_cartridge` removes it and restores the state of a new
+  instance. The libretro adapter calls the unload.
+- `nesturbator_set_input` sets the next frame's controller state and
+  `nesturbator_run_frame` runs one frame.
+- `nesturbator_reset` is the soft reset below.
+- `nesturbator_get_memory` and `nesturbator_save_generation` give the
+  battery span and its write counter (Battery saves, below).
+- `nesturbator_peek_cpu_ram` reads CPU RAM for test harnesses.
+
 Soft reset: `nesturbator_reset()` is the console's Reset button. Call it
 between frames. It keeps CPU RAM and cartridge RAM (PRG RAM and CHR RAM), so
 saves survive, and keeps A, X, Y and the host's input state. The controller
@@ -838,10 +862,18 @@ mappers.
 ```sh
 nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
                 [--save-dir DIR [--save-interval N]]
+nesturbator-run --version
 ```
 
 - `--frames N` runs N frames (N is 1 or more). It is required; without it
   the runner prints its usage and exits 2.
+- `--version` prints one line to stdout, `nesturbator-run X.Y.Z`, formatted at
+  run time from `nesturbator_get_version`, and exits 0. It needs no other
+  option and nothing else is printed. It is handled where the option loop
+  reaches it, so options before it are still checked:
+  `nesturbator-run --version --bogus` prints the version, while
+  `nesturbator-run --bogus --version` is a usage error with exit 2. It prints
+  no ABI or behaviour revision.
 - `--rom FILE` loads a bounded iNES 1.0 or NES 2.0 image. Accepted
   geometry is 8 KiB CHR ROM or declared 8 KiB CHR RAM with 16 or 32 KiB PRG
   for mapper 0 (NROM), or PRG in 16 KiB banks up to 4 MiB for mapper 2
@@ -907,12 +939,18 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   before the first frame the runner reads that file into the battery RAM; with
   no file the RAM starts zeroed. When the run ends, including after a JAM, it
   writes the RAM back if the CPU wrote to it and the bytes changed. The write
-  goes to `DIR/<name>.sav.tmp`, is synced, and is renamed over the save, so a
-  kill leaves the previous save and at most a stale `.tmp`. A run that writes
+  goes to `DIR/<name>.sav.tmp`, is synced (with `F_FULLFSYNC` on macOS), and is renamed over the save, so the
+  save is the old one or the new one and never torn. A failed write removes its
+  `.tmp`, prints `nesturbator-run: cannot save <path> (<reason>); the previous
+  save is kept`, and the runner keeps the newest bytes in memory for the next
+  attempt. A kill during a write can leave a stale `.tmp` (a regular file or a
+  symlink, even a dangling one), which the next write clears without touching a
+  link's target; a directory at that name is never removed. There is no directory
+  sync, so a power cut just after the rename may still show the previous save. A run that writes
   the same bytes leaves the file and its modification time alone. A `.sav` is
   the RAM's raw bytes with no header, the same bytes as RetroArch's `.srm`. A
   cartridge without battery RAM reads and writes nothing, and without
-  `--save-dir` no save file is read or written anywhere. A save or rename
+  `--save-dir` no save file is read or written anywhere. A save
   failure, or a `DIR` that does not exist, exits 1. A `.sav` whose length is
   not the battery RAM's size (a 0-byte file included) is never padded,
   truncated or rewritten: the runner prints
@@ -928,6 +966,16 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   --save-interval 5` no interval write falls inside the run, and the write at
   exit still happens. `--save-interval 0`, a repeated or empty `--save-dir`,
   and `--save-dir` without `--rom` exit 2.
+
+The save writer is tested under failure. `runner.save_replace` runs the shared
+replace helper against a directory at the save path, a missing parent, a
+regular file as a parent, an empty and a non-empty directory at `.tmp`, a stale
+`.tmp`, and (Linux and macOS) a read-only directory and a symlink (also a dangling one) at `.tmp`;
+each leaves the old save intact and no `.tmp` behind. `runner.save_fsize`
+(Linux and macOS) repeats that under a file size limit.
+`runner.save.dir_at_tmp` runs the runner itself with a directory at
+`battery.sav.tmp` and expects exit 1, the `cannot save` message and the
+directory left alone.
 
 Exit status: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch; 3 and
 77 are reserved.
@@ -991,6 +1039,15 @@ callbacks are registered, only the batch callback receives audio.
 `libretro.host` checks both callback paths against direct core PCM without an
 audio device.
 
+One library instance lives from `retro_init` to `retro_deinit`. Each
+`retro_load_game` first calls `nesturbator_unload_cartridge`, and
+`retro_unload_game` calls it, so a reloaded game starts exactly as a fresh one.
+`libretro.host` loads, unloads and reloads content without `retro_deinit` and
+requires the same frames and audio each time, the test card after an unload,
+and a NULL save span after a double unload or a rejected image. The
+`core.cartridge` check compares an unloaded instance with a fresh one, field by
+field and frame by frame.
+
 RetroArch's Reset (`retro_reset`) runs `nesturbator_reset()`, the console's
 soft reset, which keeps RAM and cartridge RAM; it does not unload or reload the
 game. With no content it changes nothing. `libretro.host` compares the frames
@@ -1001,7 +1058,8 @@ and frames.
 for `RETRO_MEMORY_SAVE_RAM`, the same span as
 `nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, ...)`; every other
 id, no content and a cartridge without battery RAM give NULL and 0. The adapter
-fetches the span once in `retro_load_game` and does no file I/O: the host
+fetches the span at each successful `retro_load_game`, drops it at unload (NULL
+and 0 afterwards) and does no file I/O: the host
 writes the `.srm` and copies it back in after `retro_load_game` and before the
 first frame. The `.srm` and the runner's `.sav` are the same raw bytes, so a
 save moves between RetroArch and `nesturbator-run --save-dir` by renaming it.
@@ -1078,7 +1136,13 @@ first writes `saves/M1_P512K_CR8K_S32K.srm` (32,768 bytes, `SAVEDATA` at 0x100)
 when RetroArch unloads the content, and the second loads it back. Each
 screenshot must equal the runner's frame for the same save state (the runner
 reads the first session's `.srm` as `.sav`), the two screenshots must differ,
-and exactly one `.srm` must exist at the end.
+and exactly one `.srm` must exist at the end. A third step does the same for
+the MMC3 battery ROM `m4tkrom`, derived at build time from a manifest-listed
+Holy Mapperel ROM (MMC3 with battery and 8 KiB of save RAM): two sessions to
+frame 600, an 8192-byte `.srm` with `SAVEDATA` at 0x100, screenshots equal to
+the runner's frames and different from each other. `run_retroarch.cmake` takes
+`-DSAVE_SIZE=<bytes>` for the exact `.srm` size (default 32768); anything but
+a positive integer is an error.
 
 The official RetroArch v1.22.2 macOS release is
 [`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),
@@ -1088,8 +1152,8 @@ required `retroarch-e2e` job downloads this asset on `macos-15`, verifies its
 checksum and exact version, loads Nesteroids, and compares the nonempty frame-60
 screenshot pixel for pixel with the runner's output. It isolates RetroArch's
 first-run home under the build tree and retains the asset evidence, screenshot,
-and runner frame, and the save round trip's screenshots, runner frames and
-`.srm`, in the `retroarch-e2e-frames` artifact. Missing assets, changes
+and runner frame, and both save round trips' screenshots, runner frames and
+`.srm` files (`M1_P512K_CR8K_S32K.srm` and `m4tkrom.srm`), in the `retroarch-e2e-frames` artifact. Missing assets, changes
 to the real home directory, startup errors, and frame mismatches fail the
 required CI check. No manual screenshot or gameplay check is needed.
 

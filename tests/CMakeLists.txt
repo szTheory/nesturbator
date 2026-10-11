@@ -66,6 +66,10 @@ nesturbator_runner_test(NAME runner.usage.unknown
   ARGS --bogus EXIT 2 IGNORE_STDOUT)
 # A cartridge path arrives in Phase 3; until then a positional argument is a
 # usage error.
+# D-10: --version is handled where the option loop reaches it, so a bad option
+# before it is still a usage error.
+nesturbator_runner_test(NAME runner.usage.version_after_bad
+  ARGS --bogus --version EXIT 2 IGNORE_STDOUT)
 nesturbator_runner_test(NAME runner.usage.positional
   ARGS cartridge EXIT 2 IGNORE_STDOUT)
 
@@ -159,6 +163,7 @@ runner_save_case(interval)
 runner_save_case(interval_long)
 runner_save_case(interval_retry)
 runner_save_case(jam)
+runner_save_case(dir_at_tmp)
 set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
 
 # D-18: save flag usage errors exit 2.
@@ -184,6 +189,30 @@ nesturbator_warnings(runner.save_path)
 target_compile_definitions(runner.save_path PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 add_test(NAME runner.save_path COMMAND runner.save_path)
+
+# D-06 (TUNE-07): failure injection for the atomic replace. The scratch trees
+# are removed before each run so a rerun starts clean.
+add_test(NAME runner.save_scratch
+  COMMAND ${CMAKE_COMMAND} -E rm -rf
+    ${CMAKE_CURRENT_BINARY_DIR}/save_replace_work
+    ${CMAKE_CURRENT_BINARY_DIR}/save_fsize_work)
+set_tests_properties(runner.save_scratch PROPERTIES FIXTURES_SETUP runner_save_scratch)
+add_executable(runner.save_replace runner/test_save_replace.c ${PROJECT_SOURCE_DIR}/runner/save.c)
+target_include_directories(runner.save_replace PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+nesturbator_warnings(runner.save_replace)
+target_compile_definitions(runner.save_replace PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+add_test(NAME runner.save_replace
+  COMMAND runner.save_replace ${CMAKE_CURRENT_BINARY_DIR}/save_replace_work)
+set_tests_properties(runner.save_replace PROPERTIES FIXTURES_REQUIRED runner_save_scratch)
+if(UNIX)
+  add_executable(runner.save_fsize runner/test_save_fsize.c ${PROJECT_SOURCE_DIR}/runner/save.c)
+  target_include_directories(runner.save_fsize PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+  nesturbator_warnings(runner.save_fsize)
+  add_test(NAME runner.save_fsize
+    COMMAND runner.save_fsize ${CMAKE_CURRENT_BINARY_DIR}/save_fsize_work)
+  set_tests_properties(runner.save_fsize PROPERTIES FIXTURES_REQUIRED runner_save_scratch)
+endif()
 
 # Holy Mapperel (BOARD-01): each ROM in roms.cmake is run to its frame N, the
 # runner dumps that frame, and holymapperel-decode reads the result code from
@@ -519,6 +548,9 @@ target_include_directories(core.mapper_mmc3 PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # SAVE-01 (D-06, D-11, D-12): the battery span, its address and the write counter.
 nesturbator_core_test(core.save core/test_save.c)
 target_include_directories(core.save PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# D-16: frame-boundary invariants (no frame-scoped pointer, empty PCM ring); white box.
+nesturbator_core_test(core.boundary core/test_boundary.c)
+target_include_directories(core.boundary PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -726,6 +758,13 @@ endif()
 add_test(NAME version.consistency
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_consistency.cmake)
+
+# D-12: the runner prints exactly "nesturbator-run <version.txt>", nothing on
+# stderr, exit 0; --version before a bad option still succeeds.
+add_test(NAME runner.version
+  COMMAND ${CMAKE_COMMAND} "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_version.cmake)
 
 # Every script in tests/cmake sets its policy version, so CMake reads it the
 # same way on every runner.
@@ -973,6 +1012,8 @@ add_test(NAME core.profile COMMAND core.profile)
 # mirrored over 0x0000-0x1FFF, the open-bus latch for unmapped reads.
 add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/bus.c
+  ${PROJECT_SOURCE_DIR}/src/instance.c
+  ${PROJECT_SOURCE_DIR}/src/cpu.c
   ${PROJECT_SOURCE_DIR}/src/apu.c
   ${PROJECT_SOURCE_DIR}/src/synth.c
   ${PROJECT_SOURCE_DIR}/src/cartridge.c

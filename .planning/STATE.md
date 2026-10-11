@@ -2,15 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v3
 milestone_name: Save states and rewind
-status: ready_to_plan
-last_updated: "2026-10-11T18:50:07.464Z"
+current_phase: 12
+current_phase_name: Save states in the library
+status: planning
+stopped_at: Phase 11 complete, ready to plan Phase 12
+last_updated: "2026-10-11T22:13:17.670Z"
 last_activity: 2026-10-11
+last_activity_desc: Phase 11 complete, transitioned to Phase 12
+state_head: cf8c1971716e51b2de9ce8e31052ac23eb10c03a
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 4
+  completed_plans: 4
+  percent: 20
 ---
 
 # Project State
@@ -20,21 +25,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-11)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** v3 Save states and rewind — Phase 11, Tune-up and state readiness
+**Current focus:** Phase 12 — Save states in the library
 
 ## Current Position
 
-Phase: 11 of 15 (Tune-up and state readiness) — v3 runs Phases 11 to 15
+Phase: 12 — Save states in the library
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-10-11 — v3 roadmap created
+Last activity: 2026-10-11 — Phase 11 complete, transitioned to Phase 12
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 85
+- Total plans completed: 89
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -54,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | 08 | 8 | - | - |
 | 09 | 12 | - | - |
 | 10 | 7 | - | - |
+| 11 | 4 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -148,6 +154,9 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 10 P05 | 25 min | 3 tasks | 9 files |
 | Phase 10 P06 | 15 min | 2 tasks | 2 files |
 | Phase 10 P07 | 25 min | 2 tasks | 3 files |
+| Phase 11 P02 | 30min | 3 tasks | 9 files |
+| Phase 11 P03 | 20m | 3 tasks | 6 files |
+| Phase 11 P04 | 15 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -208,6 +217,9 @@ Recent decisions affecting current work:
 - [Phase 10]: 10-06: parity not-the-test-card check compares against the runner test-card image (testframe_ppm); --rom-parity option loop left open for Plan 07 --sav-in/--sav-expect
 - [Phase 10]: Run 2's runner dump requires the run-1 save copy fixture so no parity test reads a save run 2 may still be writing
 - [Phase 10]: ASan timeout stays 10 min: local 216 s gives CI estimate 297 s, twice 593 s under 600 s
+- [Phase 11]: C3: unload always runs the power-on helper; load never does
+- [Phase 11]: 11-03: --version formatted at run time from nesturbator_get_version; libretro version string stays compile-time
+- [Phase 11]: D-14 SAVE_SIZE parameter; MMC3 m4tkrom save round trip in retroarch-e2e
 
 ### Pending Todos
 
@@ -221,6 +233,7 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - [Phase 07] Code review left 3 info open (07-REVIEW-DISPOSITION.md): WR-01 AxROM reset-vector wording fixed by quick task 261011-h5x (PR #38), WR-02 (hash_inventory.cmake compared only the last platform's keys) fixed in 10-05.
 - [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-02 `$2007` palette test on unmasked `v` stays open; WR-01 (write stamp) and WR-03 (`map_cpu_read` range guard) were fixed in 08-05.
 - [Phase 10] Code review left 3 warnings and 3 info open, all in test code (10-REVIEW-DISPOSITION.md): WR-01 `libretro.host --rom-parity` continues after a failed load; WR-02 boot-to-play audio window min/max not re-seeded when a window's first frame has no samples (latent); WR-03 the frame-written sentinel is weaker than its comment.
+- [Phase 11] Code review left 3 info open (11-REVIEW-DISPOSITION.md; WR-01 to WR-04 fixed): IN-01 load_cartridge repeats the power-on reset; IN-02 a failed libretro load leaves the instance NULL so AV info is zeroed; IN-03 one over-long comment line in `runner/main.c`.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
 ### Quick Tasks Completed
@@ -253,12 +266,13 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T14:59:47.466Z
-Stopped at: v3 roadmap created
+Last session: 2026-10-11T22:15:00Z
+Stopped at: Phase 11 complete, ready to plan Phase 12
 Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 11`.
+Next GSD command: `/gsd-discuss-phase 12`.
 
 ## Operator Next Steps
 
-- Discuss Phase 11 with /gsd-discuss-phase 11, then plan it with /gsd-plan-phase 11
+- Phase 11 PR #42 is green and in draft; squash-merge it, then create the Phase 12 branch from main
+- Discuss Phase 12 with /gsd-discuss-phase 12, then plan it with /gsd-plan-phase 12

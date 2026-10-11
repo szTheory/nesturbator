@@ -221,7 +221,10 @@ typedef struct nesturbator_frame {
 } nesturbator_frame;
 
 /* Writes the library's version into *out. Writes nothing when out is NULL or
-   out->size is 0; otherwise writes min(out->size, sizeof) bytes. */
+   out->size is 0; otherwise writes min(out->size, sizeof) bytes. A host
+   compares the result with NESTURBATOR_VERSION_* when the library it runs may
+   differ from the header it was built with, as with a shared library;
+   nesturbator-run --version prints it. */
 void nesturbator_get_version(nesturbator_version *out);
 
 /* Creates an instance and stores it in *out.
@@ -292,6 +295,10 @@ void nesturbator_destroy(nesturbator *inst);
    NESTURBATOR_ERR_CARTRIDGE with the instance unchanged. Unload releases
    cartridge state. */
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
+/* Releases the cartridge and returns the instance to its just-created state with no
+   cartridge: the test card, counters at zero, the PPU at the pre-render line. Safe with no
+   cartridge loaded and with NULL. It does not change nesturbator_save_generation. After it the
+   save span from nesturbator_get_memory is NULL and 0. */
 void nesturbator_unload_cartridge(nesturbator *inst);
 
 /* Reads CPU internal RAM without changing emulator state. Addresses $0000-$1FFF

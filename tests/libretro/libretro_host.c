@@ -680,6 +680,159 @@ static void check_save_memory(void)
     p_unload_game();
 }
 
+/* D-07, D-09: the adapter keeps one instance, so load, unload and reload run on the same
+   instance without retro_deinit. Each pass collects a hash of every video frame and of its
+   batch audio, and the audio is also compared with a direct-API instance. */
+#define LIFE_FRAMES 8u
+
+static uint64_t fnv_add(uint64_t h, const void *data, size_t len)
+{
+    const unsigned char *p = (const unsigned char *)data;
+    for (size_t i = 0; i < len; i++) {
+        h = (h ^ p[i]) * 1099511628211ull;
+    }
+    return h;
+}
+
+static void life_pass(const struct retro_game_info *game, uint64_t *video_hash,
+                      uint64_t *audio_hash)
+{
+    CHECK(p_load_game(game));
+    for (unsigned i = 0; i < LIFE_FRAMES; i++) {
+        p_run();
+        video_hash[i] = fnv_add(14695981039346656037ull, frame, sizeof frame);
+        audio_hash[i] = fnv_add(14695981039346656037ull, batch_samples,
+                                batch_frames * 2u * sizeof batch_samples[0]);
+    }
+}
+
+static void check_lifecycle_reuse(void)
+{
+    static uint8_t image[16u + 2u * INES_PRG_BANK];
+    static uint16_t native[W * H];
+    static int16_t audio[1024];
+    uint64_t v1[LIFE_FRAMES], a1[LIFE_FRAMES], v2[LIFE_FRAMES], a2[LIFE_FRAMES];
+    struct retro_game_info game;
+    nesturbator_config cfg;
+    nesturbator_frame io;
+    nesturbator *nes = NULL;
+    size_t size = build_save_image(image, sizeof image, 1u, 0u, 7u);
+
+    CHECK(size != 0u);
+    if (size == 0u) {
+        return;
+    }
+    p_unload_game();
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = size;
+    life_pass(&game, v1, a1);
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) != NULL);
+    p_unload_game();
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 0u);
+    life_pass(&game, v2, a2);
+    CHECK(memcmp(v1, v2, sizeof v1) == 0);
+    CHECK(memcmp(a1, a2, sizeof a1) == 0);
+    p_unload_game();
+
+    /* A direct-API instance gives the same audio on every frame of the second pass. */
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &nes), NESTURBATOR_OK);
+    if (nes != NULL) {
+        CHECK_EQ_U64(nesturbator_load_cartridge(nes, image, size), NESTURBATOR_OK);
+        memset(&io, 0, sizeof io);
+        io.size = (uint32_t)sizeof io;
+        io.video = native;
+        io.video_pitch = W;
+        io.audio = audio;
+        io.audio_capacity = 1024u;
+        for (unsigned i = 0; i < LIFE_FRAMES; i++) {
+            uint64_t h = 14695981039346656037ull;
+            CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+            for (size_t k = 0; k < io.audio_count && k < 1024u; k++) {
+                h = fnv_add(h, &audio[k], sizeof audio[k]);
+                h = fnv_add(h, &audio[k], sizeof audio[k]);
+            }
+            CHECK(h == a2[i]);
+        }
+        nesturbator_destroy(nes);
+    }
+}
+
+/* D-09: load, unload, then no content gives the test card of a fresh start. */
+static int frame_equals_ppm(const char *path);
+static void check_unload_then_no_content(const char *testframe_path)
+{
+    static uint8_t image[16u + 2u * INES_PRG_BANK];
+    struct retro_game_info game;
+    size_t size = build_save_image(image, sizeof image, 1u, 0u, 7u);
+
+    CHECK(size != 0u);
+    if (size == 0u) {
+        return;
+    }
+    memset(&game, 0, sizeof game);
+    game.data = image;
+    game.size = size;
+    CHECK(p_load_game(&game));
+    p_run();
+    p_unload_game();
+    CHECK(p_load_game(NULL));
+    batch_frames = 0u;
+    p_run();
+    CHECK_EQ_U64(batch_frames, 798u);
+    CHECK(frame_equals_ppm(testframe_path));
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 0u);
+    p_unload_game();
+}
+
+/* D-09: double unload, a rejected image after an unload, and a battery image after a plain one. */
+static void check_unload_edges(void)
+{
+    static uint8_t image[16u + 2u * INES_PRG_BANK];
+    static const uint8_t bad[1] = {0x4eu};
+    struct retro_game_info game;
+    size_t size;
+
+    p_unload_game();
+    p_unload_game();
+    memset(&game, 0, sizeof game);
+    game.data = bad;
+    game.size = sizeof bad;
+    CHECK(!p_load_game(&game));
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 0u);
+
+    size = build_save_image(image, sizeof image, 0u, 7u, 0u);
+    game.data = image;
+    game.size = size;
+    CHECK(p_load_game(&game));
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
+    video_calls = 0;
+    p_run();
+    CHECK_EQ_U64(video_calls, 1);
+
+    /* A rejected image after a good load drops the old span. */
+    game.data = bad;
+    game.size = sizeof bad;
+    CHECK(!p_load_game(&game));
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 0u);
+
+    size = build_save_image(image, sizeof image, 1u, 0u, 7u);
+    game.data = image;
+    game.size = size;
+    CHECK(p_load_game(&game));
+    CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) != NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 8192u);
+    p_run();
+    p_unload_game();
+}
+
 /* With no game loaded, retro_reset leaves the next frame equal to the one before it. */
 static void check_test_card_reset(void)
 {
@@ -1311,6 +1464,9 @@ int main(int argc, char **argv)
     check_reset_frame_parity();
     check_test_card_reset();
     check_save_memory();
+    check_lifecycle_reuse();
+    check_unload_then_no_content(argv[2]);
+    check_unload_edges();
     check_sound_frame_parity(dummy_bytes, sizeof dummy_bytes);
     video_calls = 0;
     sample_calls = 0;
