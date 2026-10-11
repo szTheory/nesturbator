@@ -53,6 +53,7 @@ static int usage(const char *why)
     fprintf(stderr,
             "usage: nesturbator-run (--frames N | --movie FILE) [--rom FILE] [--hash-frame N]... "
             "[--hash-audio] [--dump-frame N:FILE]... [--save-dir DIR [--save-interval N]]\n"
+            "       nesturbator-run --version\n"
             "  --frames N           run N frames (N >= 1)\n"
             "  --movie FILE         replay a validated two-port movie\n"
             "  --rom FILE           load an iNES image (mapper 0, 1, 2, 3, 4 or 7)\n"
@@ -60,7 +61,8 @@ static int usage(const char *why)
             "  --hash-audio         print SHA-256 of canonical transitions and signed PCM\n"
             "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n"
             "  --save-dir DIR       load and keep DIR/<rom name>.sav (needs --rom)\n"
-            "  --save-interval N    with --save-dir, also write a changed save every N frames\n");
+            "  --save-interval N    with --save-dir, also write a changed save every N frames\n"
+            "  --version            print the version and exit\n");
     return 2;
 }
 
@@ -149,6 +151,7 @@ typedef struct options {
     const char **dump_paths;
     uint32_t dump_count;
     int hash_audio;
+    int show_version;
     const char *save_dir;
     uint32_t save_interval;
 } options;
@@ -177,6 +180,10 @@ static int parse_options(int argc, char **argv, options *o)
         const char *arg = argv[i++];
         const char *value;
         uint32_t n;
+        if (strcmp(arg, "--version") == 0) {
+            o->show_version = 1;
+            return 0;
+        }
         if (strcmp(arg, "--hash-audio") == 0) {
             if (o->hash_audio != 0)
                 return usage("--hash-audio may be specified once");
@@ -675,6 +682,16 @@ int main(int argc, char **argv)
     if (status != 0) {
         free_options(&opt);
         return status;
+    }
+    if (opt.show_version) {
+        nesturbator_version ver;
+        memset(&ver, 0, sizeof ver);
+        ver.size = (uint32_t)sizeof ver;
+        nesturbator_get_version(&ver);
+        printf("nesturbator-run %u.%u.%u\n", (unsigned)ver.major, (unsigned)ver.minor,
+               (unsigned)ver.patch);
+        free_options(&opt);
+        return fflush(stdout) == 0 ? 0 : 1;
     }
     nesturbator_run_audio_hash_init(&audio_hash);
 

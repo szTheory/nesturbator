@@ -66,6 +66,10 @@ nesturbator_runner_test(NAME runner.usage.unknown
   ARGS --bogus EXIT 2 IGNORE_STDOUT)
 # A cartridge path arrives in Phase 3; until then a positional argument is a
 # usage error.
+# D-10: --version is handled where the option loop reaches it, so a bad option
+# before it is still a usage error.
+nesturbator_runner_test(NAME runner.usage.version_after_bad
+  ARGS --bogus --version EXIT 2 IGNORE_STDOUT)
 nesturbator_runner_test(NAME runner.usage.positional
   ARGS cartridge EXIT 2 IGNORE_STDOUT)
 
@@ -751,6 +755,13 @@ endif()
 add_test(NAME version.consistency
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/version_consistency.cmake)
+
+# D-12: the runner prints exactly "nesturbator-run <version.txt>", nothing on
+# stderr, exit 0; --version before a bad option still succeeds.
+add_test(NAME runner.version
+  COMMAND ${CMAKE_COMMAND} "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_version.cmake)
 
 # Every script in tests/cmake sets its policy version, so CMake reads it the
 # same way on every runner.
