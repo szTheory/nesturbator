@@ -54,7 +54,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   2. The `retroarch-e2e` job round-trips an MMC3 battery game's `.srm` across two RetroArch sessions, as it does for MMC1, waiting on markers rather than sleeps.
   3. The runner or the libretro adapter calls `nesturbator_get_version` and `nesturbator_unload_cartridge`, a `ci` test exercises each call, and the README describes both.
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 **Wave 1**
 - [x] 11-01-PLAN.md — One atomic-replace helper for battery saves, failure-injection tests, `battery_save` rename (TUNE-07)
 
@@ -62,7 +62,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 - [x] 11-02-PLAN.md — One libretro instance per init, unload restores power-on state, lifecycle tests (TUNE-09)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 11-03-PLAN.md — Runner `--version`, frame-boundary white-box test, status-number confirmation (TUNE-09)
+- [x] 11-03-PLAN.md — Runner `--version`, frame-boundary white-box test, status-number confirmation (TUNE-09)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 11-04-PLAN.md — MMC3 `.srm` round trip in `retroarch-e2e` (TUNE-08)
@@ -134,7 +134,7 @@ Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured col
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 11. Tune-up and state readiness | v3 | 2/4 | In Progress | - |
+| 11. Tune-up and state readiness | v3 | 3/4 | In Progress | - |
 | 12. Save states in the library | v3 | 0/TBD | Not started | - |
 | 13. Rewind and run-ahead in RetroArch | v3 | 0/TBD | Not started | - |
 | 14. Runner process contract | v3 | 0/TBD | Not started | - |
