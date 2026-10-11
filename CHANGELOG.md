@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.10](https://github.com/szTheory/nesturbator/compare/v0.1.9...v0.1.10) (2026-10-11)
+
+
+### Features
+
+* MMC1 boards and battery saves ([#34](https://github.com/szTheory/nesturbator/issues/34)) ([1bc8c7b](https://github.com/szTheory/nesturbator/commit/1bc8c7b5590a3bd68c084a9a52ed55109b008596))
+* MMC3 board and A12 scanline IRQ ([#36](https://github.com/szTheory/nesturbator/issues/36)) ([35817f0](https://github.com/szTheory/nesturbator/commit/35817f0b2045867d4277e70a325020b968fc4ba5))
+
 ## [0.1.9](https://github.com/szTheory/nesturbator/compare/v0.1.8...v0.1.9) (2026-10-10)
 
 
