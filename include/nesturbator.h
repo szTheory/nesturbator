@@ -221,7 +221,10 @@ typedef struct nesturbator_frame {
 } nesturbator_frame;
 
 /* Writes the library's version into *out. Writes nothing when out is NULL or
-   out->size is 0; otherwise writes min(out->size, sizeof) bytes. */
+   out->size is 0; otherwise writes min(out->size, sizeof) bytes. A host
+   compares the result with NESTURBATOR_VERSION_* when the library it runs may
+   differ from the header it was built with, as with a shared library;
+   nesturbator-run --version prints it. */
 void nesturbator_get_version(nesturbator_version *out);
 
 /* Creates an instance and stores it in *out.

@@ -3,6 +3,9 @@
  *   nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame
  * N:FILE]... nesturbator-run --movie FILE [--rom FILE] [--hash-audio] [--dump-frame N:FILE]...
  *   nesturbator-run --accuracycoin-page N --rom FILE --scoreboard FILE
+ *   nesturbator-run --version
+ *
+ * --version prints "nesturbator-run X.Y.Z" from nesturbator_get_version and exits 0.
  *
  * Runs N frames, with optional cartridge content (mappers 0, 1, 2, 3, 4 and 7). A movie supplies
  * the two port masks for every frame and prints the native hash of every replayed frame. For each

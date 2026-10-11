@@ -376,7 +376,13 @@ table entry, and the input and output row pitches are honoured.
 C++ with warnings as errors and check its struct layout. `runner.sha256`
 checks the runner's SHA-256 against the FIPS 180-4 example digests, and
 `version.consistency` checks that `version.txt` matches the header's version
-macros and the libretro `.info` file's `display_version`.
+macros and the libretro `.info` file's `display_version`. `runner.version`
+runs `nesturbator-run --version` and requires stdout to be exactly
+`nesturbator-run` and the text of `version.txt` (read at test time), empty
+stderr and exit 0. `core.boundary` checks, after every frame, that the
+instance holds no video or audio pointer of the caller and no buffered PCM,
+over test-card frames, 60 frames with sound, a JAM, a too-small buffer and an
+unload and reload.
 `cmake.script_policy` checks that every script in `tests/cmake` sets
 `cmake_minimum_required(VERSION 3.25)`, so each CMake release reads it the
 same way. `libretro.vendored`
@@ -690,6 +696,24 @@ fills the other fields. For `nesturbator_config` that is `size` and `abi`
 Zeroing first keeps padding and the bytes a newer header appends at zero, so
 a host built against a newer header still runs with an older library.
 
+The public functions are:
+
+- `nesturbator_create` and `nesturbator_destroy` make and free an instance.
+- `nesturbator_get_version` writes the library's version; a host compares it
+  with `NESTURBATOR_VERSION_*` when the library may differ from the header.
+  `nesturbator-run` calls it for `--version`.
+- `nesturbator_get_info` writes the video and audio format.
+- `nesturbator_get_palette` writes the palette as XRGB8888.
+- `nesturbator_load_cartridge` loads an iNES image;
+  `nesturbator_unload_cartridge` removes it and restores the state of a new
+  instance. The libretro adapter calls the unload.
+- `nesturbator_set_input` sets the next frame's controller state and
+  `nesturbator_run_frame` runs one frame.
+- `nesturbator_reset` is the soft reset below.
+- `nesturbator_get_memory` and `nesturbator_save_generation` give the
+  battery span and its write counter (Battery saves, below).
+- `nesturbator_peek_cpu_ram` reads CPU RAM for test harnesses.
+
 Soft reset: `nesturbator_reset()` is the console's Reset button. Call it
 between frames. It keeps CPU RAM and cartridge RAM (PRG RAM and CHR RAM), so
 saves survive, and keeps A, X, Y and the host's input state. The controller
@@ -838,10 +862,18 @@ mappers.
 ```sh
 nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
                 [--save-dir DIR [--save-interval N]]
+nesturbator-run --version
 ```
 
 - `--frames N` runs N frames (N is 1 or more). It is required; without it
   the runner prints its usage and exits 2.
+- `--version` prints one line to stdout, `nesturbator-run X.Y.Z`, formatted at
+  run time from `nesturbator_get_version`, and exits 0. It needs no other
+  option and nothing else is printed. It is handled where the option loop
+  reaches it, so options before it are still checked:
+  `nesturbator-run --version --bogus` prints the version, while
+  `nesturbator-run --bogus --version` is a usage error with exit 2. It prints
+  no ABI or behaviour revision.
 - `--rom FILE` loads a bounded iNES 1.0 or NES 2.0 image. Accepted
   geometry is 8 KiB CHR ROM or declared 8 KiB CHR RAM with 16 or 32 KiB PRG
   for mapper 0 (NROM), or PRG in 16 KiB banks up to 4 MiB for mapper 2
