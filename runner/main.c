@@ -20,7 +20,8 @@
  * With --save-dir DIR a cartridge that has battery RAM reads DIR/<name>.sav after it loads and
  * before the first frame, and writes the raw bytes back when they changed. <name> is the last
  * component of the --rom path, split at '/' or '\\', without its last extension. A write goes
- * to DIR/<name>.sav.tmp and is renamed over the save, so a kill leaves the old save. The
+ * to DIR/<name>.sav.tmp and is renamed over the save, so the save is the old one or the new one, never torn. A failed write
+ * removes its .tmp and keeps the previous save. The
  * runner writes at the end of the run (also after a JAM) and, with --save-interval N, after every
  * Nth frame; a write that fails at an interval is tried once more at exit. A save whose size is
  * not the battery RAM's is never touched. Without --save-dir no save file is read or written, and
@@ -249,19 +250,19 @@ static int parse_options(int argc, char **argv, options *o)
 }
 
 /* The battery span of the loaded cartridge and what was last written for it. */
-typedef struct save_state {
+typedef struct battery_save {
     char path[4096];
     uint8_t *span;
     size_t size;
     uint8_t *shadow;
     uint64_t generation;
-} save_state;
+} battery_save;
 
 /* Writes the span when a CPU write reached it since the last look and the
    bytes differ from the last written copy. Returns 0, or 1 after a failure.
    A failed write leaves the generation unrecorded, so the next look (the exit
    flush) writes again. */
-static int save_if_changed(nesturbator *inst, save_state *sv)
+static int save_if_changed(nesturbator *inst, battery_save *sv)
 {
     uint64_t gen;
     if (sv->shadow == NULL)
@@ -664,7 +665,7 @@ int main(int argc, char **argv)
     options opt;
     nesturbator_movie movie;
     nesturbator_run_audio_hash audio_hash;
-    save_state save;
+    battery_save save;
     int status;
 
     memset(&opt, 0, sizeof opt);

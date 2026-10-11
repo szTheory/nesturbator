@@ -907,12 +907,17 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   before the first frame the runner reads that file into the battery RAM; with
   no file the RAM starts zeroed. When the run ends, including after a JAM, it
   writes the RAM back if the CPU wrote to it and the bytes changed. The write
-  goes to `DIR/<name>.sav.tmp`, is synced, and is renamed over the save, so a
-  kill leaves the previous save and at most a stale `.tmp`. A run that writes
+  goes to `DIR/<name>.sav.tmp`, is synced, and is renamed over the save, so the
+  save is the old one or the new one and never torn. A failed write removes its
+  `.tmp`, prints `nesturbator-run: cannot save <path> (<reason>); the previous
+  save is kept`, and the runner keeps the newest bytes in memory for the next
+  attempt. A kill during a write can leave a stale `.tmp`, which the next write
+  clears; a directory at that name is never removed. There is no directory
+  sync, so a power cut just after the rename may still show the previous save. A run that writes
   the same bytes leaves the file and its modification time alone. A `.sav` is
   the RAM's raw bytes with no header, the same bytes as RetroArch's `.srm`. A
   cartridge without battery RAM reads and writes nothing, and without
-  `--save-dir` no save file is read or written anywhere. A save or rename
+  `--save-dir` no save file is read or written anywhere. A save
   failure, or a `DIR` that does not exist, exits 1. A `.sav` whose length is
   not the battery RAM's size (a 0-byte file included) is never padded,
   truncated or rewritten: the runner prints
@@ -928,6 +933,16 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   --save-interval 5` no interval write falls inside the run, and the write at
   exit still happens. `--save-interval 0`, a repeated or empty `--save-dir`,
   and `--save-dir` without `--rom` exit 2.
+
+The save writer is tested under failure. `runner.save_replace` runs the shared
+replace helper against a directory at the save path, a missing parent, a
+regular file as a parent, an empty and a non-empty directory at `.tmp`, a stale
+`.tmp`, and (Linux and macOS) a read-only directory and a symlink at `.tmp`;
+each leaves the old save intact and no `.tmp` behind. `runner.save_fsize`
+(Linux and macOS) repeats that under a file size limit.
+`runner.save.dir_at_tmp` runs the runner itself with a directory at
+`battery.sav.tmp` and expects exit 1, the `cannot save` message and the
+directory left alone.
 
 Exit status: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch; 3 and
 77 are reserved.
