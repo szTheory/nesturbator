@@ -90,8 +90,17 @@ static void mmc3_rebuild(struct nesturbator *nes)
         map->nt[2] = 1u;
         map->nt[3] = 1u;
     }
-    /* PRG RAM at $6000-$7FFF. Done in Task 2. */
-    nesturbator__map_prg_ram_8k(nes, nes->cart.prg_ram);
+    /* PRG RAM at $6000-$7FFF. $A001 bit 7 enables it and bit 6 write-protects
+       it; the field holds the byte XOR $80 (D-08), so here bit 7 set means
+       disabled and bit 6 set means protected. A disabled RAM is NULL pages in
+       both directions (open bus reads, dropped writes) and a protected RAM is
+       NULL write pages only, so the bus needs no branch (NESdev Wiki "MMC3",
+       "PRG RAM protect"). Bits 5-0 are not read. */
+    nesturbator__map_prg_ram_8k(nes, (m->reg.mmc3.a001_x & 0x80u) == 0u ? nes->cart.prg_ram : NULL);
+    if ((m->reg.mmc3.a001_x & 0x40u) != 0u) {
+        for (uint32_t i = 8u; i < 16u; ++i)
+            map->cpu_w[i] = NULL;
+    }
 }
 
 static void mmc3_cpu_write(struct nesturbator *nes, uint16_t addr, uint8_t value,
@@ -110,6 +119,11 @@ static void mmc3_cpu_write(struct nesturbator *nes, uint16_t addr, uint8_t value
         break;
     case 0xa000u:
         m->reg.mmc3.mirror = value;
+        break;
+    case 0xa001u:
+        /* Stored XOR $80 so a zeroed block is RAM enabled and writable (D-08); NESdev
+           Wiki "MMC3" leaves the $A001 power-on state unspecified. */
+        m->reg.mmc3.a001_x = (uint8_t)(value ^ 0x80u);
         break;
     default:
         return;

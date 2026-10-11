@@ -68,7 +68,8 @@ enum nesturbator_status {
     /* The loaded cartridge executed a JAM opcode; the instance is latched. */
     NESTURBATOR_STOP_JAM = 6,
     /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 1 MMC1,
-       2 UxROM, 3 CNROM and 7 AxROM). */
+       2 UxROM, 3 CNROM, 4 MMC3 and 7 AxROM). Every rejected image returns this status with
+       the instance unchanged. */
     NESTURBATOR_ERR_CARTRIDGE = 7
 };
 typedef enum nesturbator_status nesturbator_status;
@@ -254,6 +255,15 @@ void nesturbator_destroy(nesturbator *inst);
    ignoring the header mirroring bit; ANDed with the ROM byte under the write
    for submapper 2 only; the reset vector is read from bank 0). NROM and UxROM
    take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
+   The supported mappers are 0, 1, 2, 3, 4 and 7. Mapper 4 is the MMC3 in its
+   Sharp (submapper 0, and every iNES 1 image) or NEC (submapper 4) revision:
+   PRG a power of two from 16 to 512 KiB; 8 to 256 KiB CHR ROM or 8 KiB CHR
+   RAM; PRG RAM none, 8 KiB work or 8 KiB battery, the battery bit equal to
+   "battery RAM present"; an iNES 1 image gets 8 KiB (battery when flag 6
+   bit 1 is set). $A001 enables (bit 7) and write-protects (bit 6) the RAM,
+   which is enabled and writable at power-on; nesturbator_reset keeps the
+   registers. MMC6, other submappers, four-screen and mappers 118, 119, 206
+   and 249 are refused.
    Mapper 1 is the MMC1B chip: its serial port at $8000-$FFFF takes five
    writes, a write on the CPU cycle right after another write is ignored
    unless bit 7 is set (the reset), PRG RAM is enabled at power-on and bit 4
@@ -269,7 +279,9 @@ void nesturbator_destroy(nesturbator *inst);
    MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and leave a previously loaded
    cartridge untouched. Allocation failure returns NESTURBATOR_ERR_NO_MEMORY. A loaded image starts
    the CPU at the reset vector read through the board's power-on banks. An image whose mapper has no
-   board is refused before any allocation. Unload releases cartridge state. */
+   board is refused before any allocation. Every rejection returns
+   NESTURBATOR_ERR_CARTRIDGE with the instance unchanged. Unload releases
+   cartridge state. */
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
 void nesturbator_unload_cartridge(nesturbator *inst);
 
@@ -344,7 +356,9 @@ nesturbator_status nesturbator_reset(nesturbator *inst);
  * above 256 KiB, 32 KiB; without battery, the RAM is work RAM and there is no
  * span. V = N = 0 leaves $6000-$7FFF as open bus. An iNES 1 SOROM dump gets
  * 8 KiB (its work half cannot be told apart); a true SOROM needs a NES 2
- * header.
+ * header. Mapper 4 (MMC3) uses the same layout with V and N each 0 or 8 KiB;
+ * an iNES 1 MMC3 image always gets 8 KiB (battery when flag 6 bit 1 is set), so
+ * a game that expects no RAM needs a NES 2 header with V = N = 0.
  *
  * nesturbator_get_memory writes the span to *data and *size. A NULL inst, data
  * or size, or a kind other than NESTURBATOR_MEMORY_SAVE_RAM, returns

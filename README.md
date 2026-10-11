@@ -4,12 +4,12 @@ A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
 **Status: v1 shipped; milestone v2 is under way.** v1 played
-NROM games with picture and sound; milestone v2 now plays mappers 0, 1, 2, 3 and 7 with battery saves. Phase 5 adds parallel CI, a policy that
+NROM games with picture and sound; milestone v2 now plays mappers 0, 1, 2, 3, 4 and 7 with battery saves. Phase 5 adds parallel CI, a policy that
 no registered test may skip, and the soft reset (`nesturbator_reset()`, which
 RetroArch's Reset button runs). The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM,
-16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
+16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM), mapper 4 (MMC3; see below) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
 clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
 includes OAM Y=$FF sprites on visible framebuffer row 0. After eight sprites
@@ -22,7 +22,7 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, MMC1, UxROM, CNROM and AxROM as the boards so far. The behaviour revision is 5: the PPU
+board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 5: the PPU
 fetch pipeline changed the frames of games that write the scroll or PPUCTRL
 while rendering. Mid-frame scroll writes render as on
 the console, which a split-scroll test shows scanline by scanline.
@@ -614,6 +614,8 @@ header gives the sizes:
 | iNES 1, mapper 1, PRG up to 256 KiB, battery | 0 | 8 KiB | 8 KiB |
 | iNES 1, mapper 1, PRG above 256 KiB, no battery | 32 KiB | 0 | none |
 | iNES 1, mapper 1, PRG above 256 KiB, battery | 0 | 32 KiB | 32 KiB |
+| iNES 1, mapper 4, no battery | 8 KiB | 0 | none |
+| iNES 1, mapper 4, battery | 0 | 8 KiB | 8 KiB |
 | NES 2.0 | byte 10 low nibble | byte 10 high nibble | N bytes at offset V |
 
 With V = N = 0, `$6000-$7FFF` reads as open bus. A trainer on a mapper 1
@@ -623,6 +625,11 @@ and has no span.
 Known gap: an iNES 1 SOROM dump gets one 8 KiB battery block, because that
 header cannot say that half of the RAM is volatile; use a NES 2.0 header
 (V = 8 KiB, N = 8 KiB) for a true SOROM. An iNES 1 SUROM save is 32 KiB.
+
+Mapper 4 (MMC3) takes the same layout with one rule: V and N are each 0 or
+8 KiB, never both (NES 2.0: none, 8 KiB work, or 8 KiB NVRAM). Known gap: an
+iNES 1 MMC3 image always gets 8 KiB of RAM, so games that expect no RAM at
+all, such as Low G Man, need a NES 2.0 header with V = N = 0.
 
 ## Downloads and archives
 
@@ -714,7 +721,7 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   (UxROM, submappers 0 to 2), or 16 or 32 KiB PRG with 8, 16 or 32 KiB CHR ROM
   for mapper 3 (CNROM, submappers 0 to 2), or 32 to 256 KiB PRG in 32 KiB banks
   with 8 KiB declared CHR RAM for mapper 7 (AxROM, submappers 0 to 2), or the
-  mapper 1 shapes below; optional trainers are included in the validated
+  mapper 1 and mapper 4 shapes below; optional trainers are included in the validated
   file length. UxROM writes to `$8000-$FFFF` select the bank at `$8000`; the
   last bank stays at `$C000`. Submappers 0 and 2 AND the written value with
   the ROM byte under the write (submapper 0 is the project default), and
@@ -740,6 +747,20 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   follow from the header sizes (hardware: NESdev Wiki "MMC1" and "SxROM").
   `nesturbator_reset` keeps the MMC1 registers and the battery RAM, because
   the cartridge sees no reset line.
+- Mapper 4 (MMC3) is accepted with submapper 0 (the Sharp revision, also used
+  for every iNES 1 image) or submapper 4 (the NEC revision). PRG is a power of
+  two from 16 to 512 KiB, CHR is a power of two from 8 to 256 KiB of ROM or
+  8 KiB of RAM, and PRG RAM is none, 8 KiB of work RAM or 8 KiB of battery
+  RAM (the battery bit must match). Refused: MMC6 (submapper 1), submappers
+  2, 3, 5 and 6 to 15, four-screen images, CHR NVRAM, other RAM sizes, and
+  mappers 118, 119, 206 and 249. Registers decode by `addr & $E001`: `$8000`
+  selects a bank register, the PRG mode and the CHR inversion, `$8001`
+  writes it, `$A000` picks the mirroring (bit 0 clear is vertical), and
+  `$A001` enables (bit 7) and write-protects (bit 6) the RAM at
+  `$6000-$7FFF`, which reads as open bus when disabled. At power-on the RAM
+  is enabled and writable. Banks wrap modulo the file size, so 16 KiB of PRG
+  repeats. `nesturbator_reset` keeps the registers and the battery RAM
+  (hardware: NESdev Wiki "MMC3").
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
 - `--hash-audio` prints one hash for all mixed-level transitions and one for
