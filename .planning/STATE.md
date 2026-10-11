@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v2
 milestone_name: Most of the library plays
-current_phase: 08
-current_phase_name: MMC1 and battery saves
-status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-10-10T22:37:00.118Z"
+current_phase: 9
+current_phase_name: MMC3
+status: planning
+stopped_at: Phase 08 complete, ready to plan Phase 9
+last_updated: "2026-10-11T00:02:15.084Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 07 complete, transitioned to Phase 8
-state_head: 9cc4eaf73458c39e5ee704c1314e7556545cb6d5
+last_activity_desc: Phase 08 complete, transitioned to Phase 9
+state_head: 838bf97fa67f43e1b23fa5d7a12f33332ead5a16
 progress:
   total_phases: 6
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 22
-  completed_plans: 14
-  percent: 64
+  completed_plans: 22
+  percent: 83
 ---
 
 # Project State
@@ -25,21 +25,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 8 — MMC1 and battery saves
+**Current focus:** Phase 9 — MMC3
 
 ## Current Position
 
-Phase: 08 (MMC1 and battery saves) — READY TO EXECUTE
+Phase: 9 — MMC3
 Plan: Not started
-Status: Ready to execute
-Last activity: 2026-10-10 — Phase 07 complete, transitioned to Phase 8
+Status: Ready to plan
+Last activity: 2026-10-10 — Phase 08 complete, transitioned to Phase 9
 
-Progress: [██████░░░░] 64% of v2
+Progress: [████████░░] 83% of v2
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 58
+- Total plans completed: 66
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -56,6 +56,7 @@ Progress: [██████░░░░] 64% of v2
 | 05 | 8 | - | - |
 | 06 | 2 | - | - |
 | 07 | 4 | - | - |
+| 08 | 8 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -123,6 +124,14 @@ Progress: [██████░░░░] 64% of v2
 | Phase 07 P02 | 20min | 2 tasks | 10 files |
 | Phase 07 P03 | 20 min | 2 tasks | 8 files |
 | Phase 07 P04 | 35 min | 3 tasks | 17 files |
+| Phase 08 P01 | 40 min | 2 tasks | 13 files |
+| Phase 08 P02 | 30min | 3 tasks | 13 files |
+| Phase 08 P03 | 15 min | 2 tasks | 5 files |
+| Phase 08 P04 | 10min | 2 tasks | 14 files |
+| Phase 08 P05 | 25 min | 3 tasks | 10 files |
+| Phase 08 P06 | 30 min | 3 tasks | 9 files |
+| Phase 08 P07 | 20 min | 3 tasks | 15 files |
+| Phase 08 P08 | 45min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -157,6 +166,13 @@ Recent decisions affecting current work:
 - [Phase 07]: Phase 7 plan 02: board_profile_ok checks CHR geometry per board; AxROM ANDs on submapper 2 only, CNROM on 0 and 2
 - [Phase 07]: Plan 03 seeds pin dc01ae8; clang-format lives at /opt/homebrew/opt/llvm@18/bin/clang-format
 - [Phase 07]: Holy Mapperel result pinned at N=100 for M2, M3 and M7; frame N and 2N must hash alike when hashes are written
+- [Phase 08]: Zero-means-power-on MMC1 registers: control_x = Control XOR 0x0C, last_write = stamp + 1; PHASE8_DECLARATIONS_SHA256 = 7ec4ca9a124042f9a64d090c4362af019c2b9773cb2aaf901683c0daade2d7f0
+- [Phase 08]: Seed pins: valid-mmc1, valid-mmc1-sorom at 87afe8d; mapper-155 at ac72d05
+- [Phase 08]: 08-03: text glyphs in a second table beside the hex table; O and 0 share a glyph so a 0 in row text reads as O
+- [Phase 08]: 08-05: MMC1 RAM bank chosen by PRG-RAM allocation size; PRG outer bit only above 256 KiB and moves the fixed bank; hook stamp is cpu_cycle - 1
+- [Phase 08]: 08-06: exit flush runs after the frame loop on every path (JAM included); battery-less cartridges do no save I/O
+- [Phase 08]: 08-07: Holy Mapperel mapper 1 pinned N: m1sgrom/m1sjrom/m1skrom 100, m1surom 200, m1sxrom 400; :save field selects the two-run chain
+- [Phase 08]: 08-08: libretro adapter fetches the battery span once in retro_load_game; game mode e2e files renamed per tag
 
 ### Pending Todos
 
@@ -165,9 +181,10 @@ None.
 ### Blockers/Concerns
 
 Research flags for v2: Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
-- [Phase 07] Draft PR #32 (phase branch) is green in CI at 214a118 (run 38082253437); later commits touch only .planning/ and are unpushed; the PR still needs to leave draft and merge.
+- [Phase 08] Draft PR #34 (phase branch) is green at 838bf97: CI run 38096603810 and Nightly run 38096603867 pass every job; it still needs to leave draft and squash-merge.
+- [Phase 08] Code review left 3 warnings and 2 info open (08-REVIEW-DISPOSITION.md): WR-01 runner `save_if_changed` advances the generation before the flush, so a failed interval flush is not retried at exit (confirmed by the verifier); WR-02 NES 2 MMC1 submapper 5 accepted but not emulated as fixed 32 KiB PRG; WR-03 a directory at the `.sav` path exits 4 instead of a read error.
 - [Phase 07] Code review left 2 warnings and 3 info open (07-REVIEW-DISPOSITION.md): WR-01 header, README and mapper_axrom.c say the AxROM reset vector comes from bank 0, true only at power-on (soft reset keeps the bank; add "at power-on" and a reset test), WR-02 hash_inventory.cmake compares only the last platform's keys.
-- [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-01 the write stamp is one above the documented zero-based index (settle before Phases 8 and 9 use absolute stamps), WR-02 `$2007` palette test on unmasked `v`, WR-03 `nesturbator__map_cpu_read` has no range guard below $4000.
+- [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-02 `$2007` palette test on unmasked `v` stays open; WR-01 (write stamp) and WR-03 (`map_cpu_read` range guard) were fixed in 08-05.
 - [Phase 06] Odd frames with PPUCTRL bit 4 set log no A12 rise at line 0 dot 0 (input for the Phase 9 MMC3 filter).
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
@@ -202,14 +219,14 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T20:29:20.881Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-mmc1-and-battery-saves/08-CONTEXT.md
+Last session: 2026-10-10T23:38:45.736Z
+Stopped at: Phase 08 complete, ready to plan Phase 9
+Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 8`.
+Next GSD command: `/gsd-discuss-phase 9`.
 
 ## Operator Next Steps
 
-- Take draft PR #32 out of draft and merge it (CI run 38082253437 is green)
-- Optionally fix Phase 7 WR-01 (AxROM reset-vector wording) with /gsd-quick before merging
-- Discuss Phase 8 with /gsd-discuss-phase 8
+- Take draft PR #34 out of draft and squash-merge it (CI run 38096603810 and Nightly run 38096603867 are green), then create `gsd/phase-9-mmc3` from the fresh main
+- Optionally fix Phase 8 WR-01 (retry a failed interval flush at exit) with /gsd-quick before merging
+- Discuss Phase 9 with /gsd-discuss-phase 9

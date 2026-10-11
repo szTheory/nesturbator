@@ -6,7 +6,7 @@
 #
 # Without EXPECT and IGNORE_STDOUT the output must be empty.
 function(nesturbator_runner_test)
-  cmake_parse_arguments(T "IGNORE_STDOUT" "NAME;EXIT" "ARGS;EXPECT" ${ARGN})
+  cmake_parse_arguments(T "IGNORE_STDOUT" "NAME;EXIT;CLEAN_DIR" "ARGS;EXPECT" ${ARGN})
   # A quoted add_test argument keeps its semicolons, so each list arrives
   # whole as one -D value.
   set(cmd "$<TARGET_FILE:nesturbator-run>" ${T_ARGS})
@@ -16,6 +16,7 @@ function(nesturbator_runner_test)
       "-DEXPECT=${T_EXPECT}"
       "-DEXPECT_EXIT=${T_EXIT}"
       "-DIGNORE_STDOUT=${T_IGNORE_STDOUT}"
+      "-DCLEAN_DIR=${T_CLEAN_DIR}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
 endfunction()
 
@@ -98,6 +99,66 @@ nesturbator_runner_test(NAME runner.dump.unwritable
   ARGS --frames 1 --dump-frame "1:${CMAKE_BINARY_DIR}/no-such-dir/frame1.ppm"
   EXIT 1)
 
+# SAVE-02 to SAVE-04: --save-dir on synthetic cartridges. runner.save_rom writes
+# them under the build tree; each runner.save.<case> runs the case in its own
+# scratch directory, so the cases are safe under ctest -j.
+add_executable(runner.save_rom runner/save_rom.c)
+nesturbator_warnings(runner.save_rom)
+target_compile_definitions(runner.save_rom PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+set(NESTURBATOR_SAVE_FIXTURE ${CMAKE_CURRENT_BINARY_DIR}/save_fixture)
+file(MAKE_DIRECTORY ${NESTURBATOR_SAVE_FIXTURE})
+add_test(NAME runner.save.fixture
+  COMMAND runner.save_rom ${NESTURBATOR_SAVE_FIXTURE})
+set_tests_properties(runner.save.fixture PROPERTIES FIXTURES_SETUP runner_save)
+function(runner_save_case case)
+  add_test(NAME runner.save.${case}
+    COMMAND ${CMAKE_COMMAND}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      "-DFIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
+      "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/save_work/${case}"
+      "-DCASE=${case}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_save.cmake")
+  set_tests_properties(runner.save.${case} PROPERTIES
+    FIXTURES_REQUIRED runner_save TIMEOUT 30)
+endfunction()
+runner_save_case(roundtrip)
+runner_save_case(fresh)
+runner_save_case(mismatch)
+runner_save_case(mismatch_empty)
+runner_save_case(unchanged)
+runner_save_case(nodir)
+runner_save_case(batteryless)
+runner_save_case(unwritable)
+runner_save_case(interval)
+runner_save_case(interval_long)
+runner_save_case(jam)
+set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
+
+# D-18: save flag usage errors exit 2.
+set(save_rom_arg ${PROJECT_SOURCE_DIR}/tests/roms/none.nes)
+nesturbator_runner_test(NAME runner.usage.save_dir.norom
+  ARGS --frames 1 --save-dir d EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.save_dir.empty
+  ARGS --frames 1 --rom ${save_rom_arg} --save-dir "" EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.save_dir.twice
+  ARGS --frames 1 --rom ${save_rom_arg} --save-dir a --save-dir b EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.save_dir.accuracycoin
+  ARGS --accuracycoin-page 2 --rom ${save_rom_arg} --scoreboard s --save-dir d
+  EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.save_interval.zero
+  ARGS --frames 1 --rom ${save_rom_arg} --save-dir d --save-interval 0 EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.save_interval.nodir
+  ARGS --frames 1 --rom ${save_rom_arg} --save-interval 5 EXIT 2 IGNORE_STDOUT)
+
+# D-18: the save name rule.
+add_executable(runner.save_path runner/test_save.c ${PROJECT_SOURCE_DIR}/runner/save.c)
+target_include_directories(runner.save_path PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+nesturbator_warnings(runner.save_path)
+target_compile_definitions(runner.save_path PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+add_test(NAME runner.save_path COMMAND runner.save_path)
+
 # Holy Mapperel (BOARD-01): each ROM in roms.cmake is run to its frame N, the
 # runner dumps that frame, and holymapperel-decode reads the result code from
 # the pixels. The decoder is test-only; the runner knows nothing of the ROMs.
@@ -113,17 +174,75 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
   list(GET parts 0 hm_key)
   list(GET parts 1 hm_file)
   list(GET parts 2 hm_frames)
-  nesturbator_runner_test(NAME holymapperel.${hm_key}.dump
-    ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
-      --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm"
-    EXIT 0 IGNORE_STDOUT)
-  set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES
-    FIXTURES_SETUP holymapperel_${hm_key} TIMEOUT 120)
-  add_test(NAME holymapperel.${hm_key}.decode
-    COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
-  set_tests_properties(holymapperel.${hm_key}.decode PROPERTIES
-    FIXTURES_REQUIRED holymapperel_${hm_key}
-    PASS_REGULAR_EXPRESSION "^holymapperel: code 0000 \\(")
+  list(GET parts 3 hm_text)
+  list(LENGTH parts hm_parts)
+  set(hm_save "")
+  if(hm_parts GREATER 4)
+    list(GET parts 4 hm_save)
+  endif()
+  if(hm_save STREQUAL "save")
+    # SAVE-02 (D-04): the same battery ROM runs twice against one save
+    # directory. Run 1 starts empty and must not show + BATTERY; it leaves a
+    # 32 KiB save carrying Holy Mapperel's SAVEDATA marker at offset 0x100.
+    # Run 2 loads that save and must show + BATTERY. Run 1 empties the save
+    # directory itself, so it still starts empty when ctest repeats it.
+    get_filename_component(hm_stem ${hm_file} NAME_WE)
+    set(hm_savedir ${NESTURBATOR_HM_DIR}/${hm_key}-save)
+    foreach(hm_run IN ITEMS run1 run2)
+      set(hm_clean "")
+      if(hm_run STREQUAL "run1")
+        set(hm_clean ${hm_savedir})
+      endif()
+      nesturbator_runner_test(NAME holymapperel.${hm_key}.${hm_run}.dump
+        ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
+          --save-dir ${hm_savedir}
+          --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}-${hm_run}.ppm"
+        EXIT 0 IGNORE_STDOUT CLEAN_DIR ${hm_clean})
+      add_test(NAME holymapperel.${hm_key}.${hm_run}.decode
+        COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}-${hm_run}.ppm)
+      add_test(NAME holymapperel.${hm_key}.${hm_run}.prgram
+        COMMAND holymapperel-decode --prg-ram ${NESTURBATOR_HM_DIR}/${hm_key}-${hm_run}.ppm)
+      set_tests_properties(holymapperel.${hm_key}.${hm_run}.dump PROPERTIES
+        FIXTURES_SETUP holymapperel_${hm_key}_${hm_run} TIMEOUT 120)
+      set_tests_properties(holymapperel.${hm_key}.${hm_run}.decode PROPERTIES
+        FIXTURES_REQUIRED holymapperel_${hm_key}_${hm_run}
+        PASS_REGULAR_EXPRESSION "^holymapperel: code 0000 \\(")
+    endforeach()
+    # Run 1: no + BATTERY after the closing quote; the save it leaves is checked.
+    set_tests_properties(holymapperel.${hm_key}.run1.prgram PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_run1
+      PASS_REGULAR_EXPRESSION "prg ram \"${hm_text}\"")
+    add_test(NAME holymapperel.${hm_key}.run1.sav
+      COMMAND ${CMAKE_COMMAND} -DFILE=${hm_savedir}/${hm_stem}.sav -DSIZE=32768
+        -DOFFSET=256 -DHEX=5341564544415441
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_sav.cmake)
+    set_tests_properties(holymapperel.${hm_key}.run1.sav PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_run1
+      FIXTURES_SETUP holymapperel_${hm_key}_run1_sav)
+    # Run 2 starts only after run 1 and its save check.
+    set_tests_properties(holymapperel.${hm_key}.run2.dump PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_run1_sav)
+    set_tests_properties(holymapperel.${hm_key}.run2.prgram PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_run2
+      PASS_REGULAR_EXPRESSION "prg ram \"${hm_text} \\+ BATTERY\"")
+  else()
+    nesturbator_runner_test(NAME holymapperel.${hm_key}.dump
+      ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
+        --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm"
+      EXIT 0 IGNORE_STDOUT)
+    set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES
+      FIXTURES_SETUP holymapperel_${hm_key} TIMEOUT 120)
+    add_test(NAME holymapperel.${hm_key}.decode
+      COMMAND holymapperel-decode ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
+    set_tests_properties(holymapperel.${hm_key}.decode PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}
+      PASS_REGULAR_EXPRESSION "^holymapperel: code 0000 \\(")
+    add_test(NAME holymapperel.${hm_key}.prgram
+      COMMAND holymapperel-decode --prg-ram ${NESTURBATOR_HM_DIR}/${hm_key}.ppm)
+    set_tests_properties(holymapperel.${hm_key}.prgram PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}
+      PASS_REGULAR_EXPRESSION "prg ram \"${hm_text}\"")
+  endif()
 endforeach()
 
 # The decoder's unit cases and font table, and the branches that must exit 2:
@@ -223,6 +342,12 @@ nesturbator_core_test(core.mapper core/test_mapper.c)
 target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_core_test(core.mapper_discrete core/test_mapper_discrete.c)
 target_include_directories(core.mapper_discrete PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# BOARD-02 (D-10, D-14 to D-17): the MMC1 board on synthetic images.
+nesturbator_core_test(core.mapper_mmc1 core/test_mapper_mmc1.c)
+target_include_directories(core.mapper_mmc1 PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# SAVE-01 (D-06, D-11, D-12): the battery span, its address and the write counter.
+nesturbator_core_test(core.save core/test_save.c)
+target_include_directories(core.save PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -578,6 +703,7 @@ add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/synth.c
   ${PROJECT_SOURCE_DIR}/src/cartridge.c
   ${PROJECT_SOURCE_DIR}/src/mapper_nrom.c
+  ${PROJECT_SOURCE_DIR}/src/mapper_mmc1.c
   ${PROJECT_SOURCE_DIR}/src/mapper_uxrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_cnrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_axrom.c

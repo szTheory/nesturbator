@@ -1,7 +1,10 @@
 # Runs a command and checks its exact standard output and exit status.
 #
 #   cmake -DCMD=<program;arg;...> -DEXPECT=<line;line;...> -DEXPECT_EXIT=<code>
-#         [-DIGNORE_STDOUT=ON] -P expect_output.cmake
+#         [-DIGNORE_STDOUT=ON] [-DCLEAN_DIR=<directory>] -P expect_output.cmake
+#
+# CLEAN_DIR, when set, is emptied (removed and created again) before the
+# command runs, so a test that writes there can be repeated.
 #
 # EXPECT lists the expected output lines; each line ends with a newline, and
 # an empty EXPECT means no output at all. With IGNORE_STDOUT=ON only the exit
@@ -15,6 +18,10 @@ if(NOT DEFINED CMD OR CMD STREQUAL "")
 endif()
 if(NOT DEFINED EXPECT_EXIT)
   set(EXPECT_EXIT 0)
+endif()
+if(DEFINED CLEAN_DIR AND NOT CLEAN_DIR STREQUAL "")
+  file(REMOVE_RECURSE "${CLEAN_DIR}")
+  file(MAKE_DIRECTORY "${CLEAN_DIR}")
 endif()
 
 execute_process(

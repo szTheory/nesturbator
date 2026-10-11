@@ -1,4 +1,4 @@
-add_executable(nesturbator-run main.c movie.c sha256.c audio_hash.c ppm.c)
+add_executable(nesturbator-run main.c movie.c sha256.c audio_hash.c ppm.c save.c)
 target_link_libraries(nesturbator-run PRIVATE nesturbator::nesturbator nesturbator_host)
 target_include_directories(nesturbator-run PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(nesturbator-run PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)

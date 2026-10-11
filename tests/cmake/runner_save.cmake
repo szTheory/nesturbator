@@ -1,0 +1,164 @@
+# The runner.save.* cases: nesturbator-run with --save-dir on synthetic
+# cartridges from runner.save_rom.
+#
+#   cmake -DRUNNER=<nesturbator-run> -DFIXTURE=<runner.save_rom output dir>
+#         -DWORK=<scratch dir, recreated> -DCASE=<case> -P runner_save.cmake
+
+cmake_minimum_required(VERSION 3.25)
+
+foreach(var RUNNER FIXTURE WORK CASE)
+  if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
+    message(FATAL_ERROR "runner_save: -D${var}=... is required")
+  endif()
+endforeach()
+
+file(REMOVE_RECURSE "${WORK}")
+file(MAKE_DIRECTORY "${WORK}")
+
+# Runs the runner with ARGN; sets run_exit and run_err in the caller.
+function(run_runner)
+  execute_process(COMMAND "${RUNNER}" ${ARGN}
+    OUTPUT_QUIET ERROR_VARIABLE err RESULT_VARIABLE rc)
+  set(run_exit "${rc}" PARENT_SCOPE)
+  set(run_err "${err}" PARENT_SCOPE)
+endfunction()
+
+function(expect_exit want)
+  if(NOT "${run_exit}" STREQUAL "${want}")
+    message(FATAL_ERROR "runner_save ${CASE}: exit ${run_exit}, wanted ${want}\n${run_err}")
+  endif()
+endfunction()
+
+function(expect_size path want)
+  file(SIZE "${path}" got)
+  if(NOT got EQUAL want)
+    message(FATAL_ERROR "runner_save ${CASE}: ${path} is ${got} bytes, wanted ${want}")
+  endif()
+endfunction()
+
+# Hex of LIMIT bytes of path from OFFSET.
+function(expect_bytes path offset want)
+  string(LENGTH "${want}" hexlen)
+  math(EXPR limit "${hexlen} / 2")
+  file(READ "${path}" got HEX OFFSET ${offset} LIMIT ${limit})
+  if(NOT "${got}" STREQUAL "${want}")
+    message(FATAL_ERROR "runner_save ${CASE}: ${path} at ${offset} is ${got}, wanted ${want}")
+  endif()
+endfunction()
+
+function(expect_absent path)
+  if(EXISTS "${path}")
+    message(FATAL_ERROR "runner_save ${CASE}: ${path} must not exist")
+  endif()
+endfunction()
+
+set(sav "${WORK}/battery.sav")
+set(battery "${FIXTURE}/battery.nes")
+
+if(CASE STREQUAL "roundtrip")
+  # The ROM copies $6100 to $6004, so the seeded $42 at offset 0x100 can only
+  # reach offset 4 if the file was loaded before the first frame.
+  file(COPY_FILE "${FIXTURE}/seed.sav" "${sav}")
+  run_runner(--rom "${battery}" --frames 2 --save-dir "${WORK}")
+  expect_exit(0)
+  expect_size("${sav}" 8192)
+  expect_bytes("${sav}" 0 "5341564542")
+  expect_bytes("${sav}" 256 "42")
+  expect_absent("${sav}.tmp")
+elseif(CASE STREQUAL "fresh")
+  run_runner(--rom "${battery}" --frames 2 --save-dir "${WORK}")
+  expect_exit(0)
+  expect_size("${sav}" 8192)
+  expect_bytes("${sav}" 0 "5341564500")
+  expect_absent("${sav}.tmp")
+elseif(CASE STREQUAL "mismatch" OR CASE STREQUAL "mismatch_empty")
+  # A wrong-sized file is refused with status 4 before any frame and is left
+  # byte-identical (SAVE-03).
+  if(CASE STREQUAL "mismatch")
+    file(COPY_FILE "${FIXTURE}/short.sav" "${sav}")
+    set(want_size 100)
+  else()
+    file(WRITE "${sav}" "")
+    set(want_size 0)
+  endif()
+  file(SHA256 "${sav}" before)
+  run_runner(--rom "${battery}" --frames 2 --save-dir "${WORK}")
+  expect_exit(4)
+  if(NOT run_err MATCHES "is ${want_size} bytes" OR NOT run_err MATCHES "is 8192 bytes")
+    message(FATAL_ERROR "runner_save ${CASE}: stderr lacks both sizes\n${run_err}")
+  endif()
+  file(SHA256 "${sav}" after)
+  if(NOT before STREQUAL after)
+    message(FATAL_ERROR "runner_save ${CASE}: the refused file changed")
+  endif()
+  expect_size("${sav}" ${want_size})
+  expect_absent("${sav}.tmp")
+elseif(CASE STREQUAL "unchanged")
+  # The second run writes the same bytes, so the file is not touched.
+  run_runner(--rom "${battery}" --frames 2 --save-dir "${WORK}")
+  expect_exit(0)
+  file(SHA256 "${sav}" first_sum)
+  file(TIMESTAMP "${sav}" first_time "%Y-%m-%dT%H:%M:%S.%f" UTC)
+  execute_process(COMMAND "${CMAKE_COMMAND}" -E sleep 1.1)
+  run_runner(--rom "${battery}" --frames 2 --save-dir "${WORK}")
+  expect_exit(0)
+  file(SHA256 "${sav}" second_sum)
+  file(TIMESTAMP "${sav}" second_time "%Y-%m-%dT%H:%M:%S.%f" UTC)
+  if(NOT first_sum STREQUAL second_sum OR NOT first_time STREQUAL second_time)
+    message(FATAL_ERROR "runner_save unchanged: the file was rewritten "
+      "(${first_time} then ${second_time})")
+  endif()
+elseif(CASE STREQUAL "nodir")
+  # Without --save-dir nothing is read or written, beside the ROM or elsewhere.
+  file(MAKE_DIRECTORY "${WORK}/rom")
+  file(COPY_FILE "${battery}" "${WORK}/rom/battery.nes")
+  execute_process(COMMAND "${RUNNER}" --rom "${WORK}/rom/battery.nes" --frames 2
+    WORKING_DIRECTORY "${WORK}" OUTPUT_QUIET ERROR_VARIABLE run_err RESULT_VARIABLE run_exit)
+  expect_exit(0)
+  file(GLOB_RECURSE found RELATIVE "${WORK}" "${WORK}/*")
+  if(NOT "${found}" STREQUAL "rom/battery.nes")
+    message(FATAL_ERROR "runner_save nodir: unexpected files: ${found}")
+  endif()
+elseif(CASE STREQUAL "batteryless")
+  file(MAKE_DIRECTORY "${WORK}/saves")
+  run_runner(--rom "${FIXTURE}/plain.nes" --frames 2 --save-dir "${WORK}/saves")
+  expect_exit(0)
+  file(GLOB found "${WORK}/saves/*")
+  if(found)
+    message(FATAL_ERROR "runner_save batteryless: wrote ${found}")
+  endif()
+elseif(CASE STREQUAL "unwritable")
+  run_runner(--rom "${battery}" --frames 2 --save-dir "${WORK}/missing/dir")
+  expect_exit(1)
+  if(NOT run_err MATCHES "battery\\.sav\\.tmp")
+    message(FATAL_ERROR "runner_save unwritable: stderr does not name the temp file\n${run_err}")
+  endif()
+elseif(CASE STREQUAL "interval")
+  # The run never ends by itself; the timeout kills it. Frame 1 already
+  # changed the span, so the interval flush must have left the bytes behind.
+  execute_process(COMMAND "${RUNNER}" --rom "${battery}" --frames 4294967295
+      --save-dir "${WORK}" --save-interval 1
+    TIMEOUT 4 OUTPUT_QUIET ERROR_QUIET RESULT_VARIABLE rc)
+  if(NOT rc MATCHES "timeout")
+    message(FATAL_ERROR "runner_save interval: the run ended with '${rc}', not a timeout")
+  endif()
+  expect_size("${sav}" 8192)
+  expect_bytes("${sav}" 0 "53415645")
+elseif(CASE STREQUAL "interval_long")
+  # No interval flush falls inside three frames; the exit flush writes the file.
+  run_runner(--rom "${battery}" --frames 3 --save-dir "${WORK}" --save-interval 5)
+  expect_exit(0)
+  expect_size("${sav}" 8192)
+  expect_bytes("${sav}" 0 "5341564500")
+elseif(CASE STREQUAL "jam")
+  # The exit flush runs after a JAM, so the byte stored before it is kept.
+  run_runner(--rom "${FIXTURE}/jam.nes" --frames 5 --save-dir "${WORK}")
+  expect_exit(1)
+  if(NOT run_err MATCHES "JAM")
+    message(FATAL_ERROR "runner_save jam: stderr does not report the JAM\n${run_err}")
+  endif()
+  expect_size("${WORK}/jam.sav" 8192)
+  expect_bytes("${WORK}/jam.sav" 0 "4a")
+else()
+  message(FATAL_ERROR "runner_save: unknown CASE ${CASE}")
+endif()

@@ -83,3 +83,14 @@ runtime_log_directory = "@RA_DIR@/runtime"
 # (measured with v1.22.2: 5494 files under assets/ozone and assets/xmb
 # rewritten per run). Not in the template; measured to stop the unpacking.
 bundle_assets_extract_enable = "false"
+
+# Battery saves (D-20). With these six keys RetroArch writes SRAM only at content
+# unload, to savefile_directory/<content stem>.srm, and loads it back from the same
+# place. RetroArch ignores a misspelled key, so the e2e asserts the outcome (one
+# .srm of the span's size in saves/) rather than trusting the keys.
+sort_savefiles_enable = "false"
+sort_savefiles_by_content_enable = "false"
+savefiles_in_content_dir = "false"
+autosave_interval = "0"
+savestate_auto_load = "false"
+savestate_auto_save = "false"

@@ -27,7 +27,8 @@ static void cycle(struct nesturbator *nes)
     nesturbator__apu_clock(nes);
     nes->ticks += 15u;
     ppu_catch_up(nes);
-    /* The index of the cycle that just ran, for mapper write stamps (D-04). */
+    /* Count the cycle that just ran. A mapper write stamp is this count minus
+       one: the zero-based index of the write's own cycle (D-14). */
     nes->cpu_cycle++;
 }
 
@@ -162,8 +163,16 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         nesturbator__apu_write(nes, addr, value);
     } else if (addr >= 0x4020u) {
         uint8_t *page = nes->map.cpu_w[(addr - 0x4000u) >> 10];
-        if (page != NULL)
+        if (page != NULL) {
             page[addr & 0x3ffu] = value;
+            /* D-12: count every write that reaches the battery span, changed
+               byte or not. The NULL test comes first because a relational
+               compare against a null pointer is undefined in C17; every
+               non-NULL page here lies inside the cart.bytes allocation. */
+            if (nes->cart.save_size != 0u && page >= nes->cart.save &&
+                page < nes->cart.save + nes->cart.save_size)
+                nes->save_generation++;
+        }
         /* The hook follows the store and is not part of it, so a write that
            lands on a NULL page (NROM's ROM) still reaches the board. With bus
            conflicts the ROM drives the bus too, so the board sees the AND of
@@ -172,7 +181,10 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
             uint8_t v = value;
             if ((nes->map.watch & NESTURBATOR_WATCH_BUS_CONFLICT) != 0u)
                 v = (uint8_t)(value & nesturbator__map_cpu_read(nes, addr));
-            nes->map.ops.cpu_write(nes, addr, v, nes->cpu_cycle);
+            /* cycle() has already counted this write's cycle, so the stamp is
+               the zero-based index of that cycle: the first write after load
+               carries 0 plus the cycles run before it (D-14, Phase 6 WR-01). */
+            nes->map.ops.cpu_write(nes, addr, v, nes->cpu_cycle - 1u);
         }
     }
 }

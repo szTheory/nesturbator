@@ -6,12 +6,31 @@
 
 #define NESTURBATOR_CART_MAX_SIZE (64u * 1024u * 1024u)
 
+/* MMC1 profile limits (D-08): NESdev Wiki "MMC1" and "SxROM". */
+#define MMC1_PRG_MIN 32768u
+#define MMC1_PRG_MAX 524288u
+#define MMC1_PRG_FOR_32K_RAM 262144u /* PRG above this is SUROM-sized: 32 KiB of RAM */
+#define MMC1_CHR_MIN 8192u
+#define MMC1_CHR_MAX 131072u
+#define MMC1_RAM_UNIT 8192u
+#define MMC1_RAM_MAX 32768u
+#define TRAINER_RAM_SIZE 8192u
+
 struct cartridge_layout {
     size_t prg_size;
     size_t chr_size;
     size_t trainer_size;
+    size_t ram_work; /* volatile PRG RAM, V */
+    size_t ram_nv;   /* battery PRG RAM, N */
+    size_t chr_nv;
+    int battery;
     int chr_is_ram;
 };
+
+static int is_pow2(size_t n)
+{
+    return n != 0u && (n & (n - 1u)) == 0u;
+}
 
 static int checked_add(size_t a, size_t b, size_t *out)
 {
@@ -58,9 +77,14 @@ static int nes2_ram_size(uint8_t shift, size_t *out)
 /* The accepted shapes of each board (BOARD-01): submapper range, PRG size and
    CHR kind. Every other id has no row and is refused. */
 static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size, size_t chr_size,
-                            int chr_is_ram)
+                            int chr_is_ram, size_t ram_work, size_t ram_nv, size_t chr_nv,
+                            int battery)
 {
     const int chr_8k_ok = chr_is_ram || chr_size == 8192u;
+    const int no_ram = !battery && ram_work == 0u && ram_nv == 0u && chr_nv == 0u;
+    /* Boards without RAM rows keep refusing the battery bit and every RAM size. */
+    if (mapper != 1u && !no_ram)
+        return 0;
     switch (mapper) {
     case 0u:
         return chr_8k_ok && submapper == 0u && (prg_size == 16384u || prg_size == 32768u);
@@ -76,6 +100,31 @@ static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size,
         /* AxROM: 32 to 256 KiB of PRG in 32 KiB banks and 8 KiB of CHR RAM. */
         return chr_is_ram && submapper <= 2u && prg_size >= 32768u && prg_size <= 262144u &&
                prg_size % 32768u == 0u;
+    case 1u: {
+        /* MMC1: 32 to 512 KiB of PRG (512 KiB only with 8 KiB of CHR), 8 to
+           128 KiB of CHR ROM or 8 KiB of CHR RAM, and 0, 8, 16 or 32 KiB of
+           PRG RAM in total, work first (D-08; research C5 refuses 24 KiB). */
+        const size_t ram_total = ram_work + ram_nv;
+        if (submapper != 0u && !(submapper == 5u && prg_size == MMC1_PRG_MIN))
+            return 0;
+        if (!is_pow2(prg_size) || prg_size < MMC1_PRG_MIN || prg_size > MMC1_PRG_MAX)
+            return 0;
+        if (prg_size == MMC1_PRG_MAX && !chr_8k_ok)
+            return 0;
+        if (!chr_is_ram &&
+            (!is_pow2(chr_size) || chr_size < MMC1_CHR_MIN || chr_size > MMC1_CHR_MAX))
+            return 0;
+        if (chr_nv != 0u)
+            return 0;
+        if (ram_work % MMC1_RAM_UNIT != 0u || ram_nv % MMC1_RAM_UNIT != 0u ||
+            ram_work > MMC1_RAM_MAX || ram_nv > MMC1_RAM_MAX)
+            return 0;
+        if (ram_total != 0u && !is_pow2(ram_total))
+            return 0;
+        if (ram_total > MMC1_RAM_MAX || (ram_total > MMC1_RAM_UNIT && !chr_8k_ok))
+            return 0;
+        return battery == (ram_nv != 0u);
+    }
     default:
         return 0;
     }
@@ -95,7 +144,7 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
     nes2 = (image[7] & 0x0cu) == 0x08u;
     if ((image[7] & 0x0cu) == 0x04u || (image[7] & 0x0cu) == 0x0cu)
         return 0;
-    if ((image[6] & 0x0au) != 0u || (image[7] & 0xf0u) != 0u)
+    if ((image[6] & 0x08u) != 0u || (image[7] & 0xf0u) != 0u)
         return 0;
     layout->trainer_size = (image[6] & 4u) != 0u ? 512u : 0u;
     layout->chr_is_ram = 0;
@@ -114,13 +163,12 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
             !nes2_ram_size(image[11] & 0x0fu, &chr_ram) ||
             !nes2_ram_size(image[11] >> 4, &chr_nvram))
             return 0;
-        if (prg_ram != 0u || prg_nvram != 0u || chr_nvram != 0u)
-            return 0;
+        layout->ram_work = prg_ram;
+        layout->ram_nv = prg_nvram;
+        layout->chr_nv = chr_nvram;
         if (layout->chr_size == 0u && chr_ram == 8192u)
             layout->chr_is_ram = 1;
         else if (chr_ram != 0u)
-            return 0;
-        if (image[6] & 2u)
             return 0;
     } else {
         if ((image[7] & 0xf3u) != 0u)
@@ -133,9 +181,19 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
             return 0;
         if (image[5] == 0u)
             layout->chr_is_ram = 1;
+        /* D-07: iNES 1 gives MMC1 8 KiB of RAM, or 32 KiB above 256 KiB of PRG,
+           all of it battery-backed when the battery bit is set. */
+        if (mapper == 1u) {
+            size_t ram = layout->prg_size > MMC1_PRG_FOR_32K_RAM ? MMC1_RAM_MAX : MMC1_RAM_UNIT;
+            if ((image[6] & 2u) != 0u)
+                layout->ram_nv = ram;
+            else
+                layout->ram_work = ram;
+        }
     }
-    if (!board_profile_ok(mapper, submapper, layout->prg_size, layout->chr_size,
-                          layout->chr_is_ram))
+    layout->battery = (image[6] & 2u) != 0u;
+    if (!board_profile_ok(mapper, submapper, layout->prg_size, layout->chr_size, layout->chr_is_ram,
+                          layout->ram_work, layout->ram_nv, layout->chr_nv, layout->battery))
         return 0;
     if (!checked_add(16u, layout->trainer_size, &total) ||
         !checked_add(total, layout->prg_size, &total) ||
@@ -176,6 +234,9 @@ int nesturbator__mapper_ops_for(uint16_t id, struct nesturbator__mapper_ops *out
     case 0u:
         nesturbator__mapper_nrom_ops(out);
         return 1;
+    case 1u:
+        nesturbator__mapper_mmc1_ops(out);
+        return 1;
     case 2u:
         nesturbator__mapper_uxrom_ops(out);
         return 1;
@@ -206,7 +267,7 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
 {
     const uint8_t *image = (const uint8_t *)data;
     struct cartridge_layout layout;
-    size_t offset, allocation_size, chr_ram_offset;
+    size_t offset, allocation_size, chr_ram_offset, ram_total;
     uint8_t *copy;
     if (inst == NULL || data == NULL) {
         return NESTURBATOR_ERR_ARGUMENT;
@@ -217,11 +278,14 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     offset = 16u + layout.trainer_size;
     allocation_size = size;
     chr_ram_offset = size;
-    if (layout.trainer_size != 0u) {
-        if (!checked_add(allocation_size, 8192u, &allocation_size))
-            return NESTURBATOR_ERR_CARTRIDGE;
-        chr_ram_offset += 8192u;
-    }
+    /* One PRG-RAM allocation laid out [V work][N NVRAM] (D-06); a trainer
+       needs 8 KiB even when no RAM is declared. */
+    ram_total = layout.ram_work + layout.ram_nv;
+    if (layout.trainer_size != 0u && ram_total < TRAINER_RAM_SIZE)
+        ram_total = TRAINER_RAM_SIZE;
+    if (!checked_add(allocation_size, ram_total, &allocation_size))
+        return NESTURBATOR_ERR_CARTRIDGE;
+    chr_ram_offset += ram_total;
     if (layout.chr_is_ram && !checked_add(allocation_size, 8192u, &allocation_size))
         return NESTURBATOR_ERR_CARTRIDGE;
     copy = (uint8_t *)inst->allocator.alloc(inst->allocator.user, allocation_size);
@@ -238,11 +302,18 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
     inst->cart.prg = copy + offset;
     inst->cart.prg_size = layout.prg_size;
     inst->cart.chr = inst->cart.prg + layout.prg_size;
-    if (layout.trainer_size != 0u) {
-        /* HWP.14 places the 512-byte trainer at CPU $7000-$71FF. */
+    if (ram_total != 0u) {
         inst->cart.prg_ram = copy + size;
-        memset(inst->cart.prg_ram, 0, 8192u);
-        memcpy(inst->cart.prg_ram + 0x1000u, image + 16u, 512u);
+        inst->cart.prg_ram_size = ram_total;
+        memset(inst->cart.prg_ram, 0, ram_total);
+        if (layout.trainer_size != 0u) {
+            /* HWP.14 places the 512-byte trainer at CPU $7000-$71FF. */
+            memcpy(inst->cart.prg_ram + 0x1000u, image + 16u, 512u);
+        }
+        if (layout.ram_nv != 0u) {
+            inst->cart.save = inst->cart.prg_ram + layout.ram_work;
+            inst->cart.save_size = layout.ram_nv;
+        }
     }
     inst->cart.chr_size = layout.chr_is_ram ? 8192u : layout.chr_size;
     inst->cart.chr_is_ram = (uint8_t)layout.chr_is_ram;

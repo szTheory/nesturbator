@@ -162,7 +162,10 @@ struct nesturbator__cartridge {
     size_t prg_size;
     uint8_t *chr;
     uint8_t *prg_ram;
-    size_t chr_size; /* CHR-ROM size the loader validated, or 8192 for CHR-RAM */
+    size_t prg_ram_size; /* the whole PRG-RAM allocation, laid out [V work][N NVRAM] (D-06) */
+    uint8_t *save;       /* the battery span: prg_ram + V, or NULL */
+    size_t save_size;    /* N */
+    size_t chr_size;     /* CHR-ROM size the loader validated, or 8192 for CHR-RAM */
     uint8_t chr_is_ram;
 };
 
@@ -184,9 +187,13 @@ struct nesturbator__profile {
 struct nesturbator {
     nesturbator_allocator allocator; /* copy of the config's, defaults filled in */
     uint64_t frame_number;           /* frames run since create */
-    uint64_t ticks;                  /* ticks run since create */
-    struct nesturbator__cpu cpu;     /* the 6502 */
-    struct nesturbator__bus bus;     /* RAM and the open-bus latch */
+    /* CPU bus writes that reached the battery span since create (D-12). Only
+       create zeroes it: load, reset and unload leave it, so a host cache cannot
+       miss a change after a reload. */
+    uint64_t save_generation;
+    uint64_t ticks;              /* ticks run since create */
+    struct nesturbator__cpu cpu; /* the 6502 */
+    struct nesturbator__bus bus; /* RAM and the open-bus latch */
     struct nesturbator__apu apu;
     struct nesturbator__synth synth;
     nesturbator__transition_sink transition_sink;
@@ -195,8 +202,10 @@ struct nesturbator {
     struct nesturbator__cartridge cart;
     struct nesturbator__mapper mapper; /* board registers: kept by a soft reset */
     struct nesturbator__map map;       /* derived pages, rebuilt by mapper_load */
-    /* CPU bus cycles since load: kept by nesturbator_reset, zeroed by load and
-       unload. Unlike ticks / 24 it is correct on every region (D-04). */
+    /* CPU bus cycles run since load: kept by nesturbator_reset, zeroed by load
+       and unload. Unlike ticks / 24 it is correct on every region (D-04). A
+       write's stamp for the mapper hook is this count minus one, the zero-based
+       index of the write's own cycle (D-14). */
     uint64_t cpu_cycle;
     struct nesturbator__profile profile; /* chip-dependent constants */
     uint32_t audio_rem;                  /* sample fraction carried over, in units
@@ -236,14 +245,21 @@ static inline void nesturbator__map_header_mirroring(struct nesturbator *nes)
     }
 }
 
-/* $6000-$7FFF is PRG RAM when the loader allocated it (a trainer image). */
-static inline void nesturbator__map_prg_ram(struct nesturbator *nes)
+/* $6000-$7FFF as one 8 KiB bank of PRG RAM, or as NULL pages (open bus reads,
+   dropped writes) when ram_8k is NULL. */
+static inline void nesturbator__map_prg_ram_8k(struct nesturbator *nes, uint8_t *ram_8k)
 {
     for (uint32_t i = 8u; i < 16u; ++i) {
-        uint8_t *ram = nes->cart.prg_ram != NULL ? nes->cart.prg_ram + (i - 8u) * 1024u : NULL;
+        uint8_t *ram = ram_8k != NULL ? ram_8k + (i - 8u) * 1024u : NULL;
         nes->map.cpu_r[i] = ram;
         nes->map.cpu_w[i] = ram;
     }
+}
+
+/* $6000-$7FFF is bank 0 of PRG RAM when the loader allocated any. */
+static inline void nesturbator__map_prg_ram(struct nesturbator *nes)
+{
+    nesturbator__map_prg_ram_8k(nes, nes->cart.prg_ram);
 }
 
 /* One 8 KiB CHR bank into the pattern-table pages; writable only for CHR-RAM. */
@@ -256,10 +272,25 @@ static inline void nesturbator__map_chr_8k(struct nesturbator *nes, uint32_t ban
     }
 }
 
-/* A CPU read of $4020-$FFFF through the page table. A NULL page is open bus (D-03). */
+/* One 4 KiB CHR bank into pattern-table half 0 ($0000) or 1 ($1000); writable
+   only for CHR-RAM, as the 8 KiB helper is. */
+static inline void nesturbator__map_chr_4k(struct nesturbator *nes, uint32_t half, uint32_t bank_4k)
+{
+    for (uint32_t i = 0u; i < 4u; ++i) {
+        nes->map.chr_r[half * 4u + i] = nesturbator__map_chr(nes, bank_4k * 4u + i);
+        nes->map.chr_w[half * 4u + i] =
+            nes->cart.chr_is_ram != 0u ? nesturbator__map_chr(nes, bank_4k * 4u + i) : NULL;
+    }
+}
+
+/* A CPU read of $4020-$FFFF through the page table. A NULL page is open bus
+   (D-03), and so is everything below $4020, which has no page (WR-03). */
 static inline uint8_t nesturbator__map_cpu_read(struct nesturbator *nes, uint16_t addr)
 {
-    const uint8_t *page = nes->map.cpu_r[(addr - 0x4000u) >> 10];
+    const uint8_t *page;
+    if (addr < 0x4020u)
+        return nes->bus.open_bus;
+    page = nes->map.cpu_r[(addr - 0x4000u) >> 10];
     return page != NULL ? page[addr & 0x3ffu] : nes->bus.open_bus;
 }
 

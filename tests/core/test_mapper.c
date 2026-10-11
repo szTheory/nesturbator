@@ -48,7 +48,7 @@ static struct nesturbator *make_plain(void)
 }
 
 /* Writes to $8000, $8001 and $FFFF land on NULL write pages (ROM) and still reach the hook, in
-   order, each stamped one cycle after the last. */
+   order, each stamped one cycle after the last (D-14: the stamp is the write's own cycle index). */
 static void check_write_stamps(void)
 {
     struct nesturbator *nes = make_plain();
@@ -56,11 +56,11 @@ static void check_write_stamps(void)
     CHECK(nes->map.cpu_w[47] == NULL);
     mapper_test_install(nes, NESTURBATOR_WATCH_CPU_WRITE);
     nesturbator__bus_write(nes, 0x8000u, 0x11u);
-    uint64_t c0 = nes->cpu_cycle;
+    uint64_t c0 = nes->cpu_cycle - 1u; /* the write's own zero-based cycle index */
     nesturbator__bus_write(nes, 0x8001u, 0x22u);
-    uint64_t c1 = nes->cpu_cycle;
+    uint64_t c1 = nes->cpu_cycle - 1u; /* the write's own zero-based cycle index */
     nesturbator__bus_write(nes, 0xffffu, 0x33u);
-    uint64_t c2 = nes->cpu_cycle;
+    uint64_t c2 = nes->cpu_cycle - 1u; /* the write's own zero-based cycle index */
     CHECK_EQ_U64(mapper_test_write_count, 3u);
     CHECK_EQ_HEX(mapper_test_writes[0].addr, 0x8000u);
     CHECK_EQ_HEX(mapper_test_writes[1].addr, 0x8001u);
@@ -73,6 +73,33 @@ static void check_write_stamps(void)
     CHECK_EQ_U64(mapper_test_writes[2].cpu_cycle, c2);
     CHECK_EQ_U64(c1, c0 + 1u);
     CHECK_EQ_U64(c2, c1 + 1u);
+    nesturbator_destroy((nesturbator *)nes);
+}
+
+/* D-14: after a load cpu_cycle is 0 and the first write reaches the hook with stamp 0; the next
+   carries 1. */
+static void check_stamp_is_cycle_index(void)
+{
+    struct nesturbator *nes = make_plain();
+    CHECK_EQ_U64(nes->cpu_cycle, 0u);
+    mapper_test_install(nes, NESTURBATOR_WATCH_CPU_WRITE);
+    nesturbator__bus_write(nes, 0x8000u, 0x11u);
+    nesturbator__bus_write(nes, 0x8001u, 0x22u);
+    CHECK_EQ_U64(mapper_test_write_count, 2u);
+    CHECK_EQ_U64(mapper_test_writes[0].cpu_cycle, 0u);
+    CHECK_EQ_U64(mapper_test_writes[1].cpu_cycle, 1u);
+    CHECK_EQ_U64(nes->cpu_cycle, 2u);
+    nesturbator_destroy((nesturbator *)nes);
+}
+
+/* WR-03: below $4020 there is no cartridge page; a read through the table is the open-bus latch. */
+static void check_map_cpu_read_below_4020(void)
+{
+    struct nesturbator *nes = make_plain();
+    nes->bus.open_bus = 0x9du;
+    CHECK_EQ_HEX(nesturbator__map_cpu_read(nes, 0x4018u), 0x9du);
+    CHECK_EQ_HEX(nesturbator__map_cpu_read(nes, 0x401fu), 0x9du);
+    CHECK_EQ_HEX(nesturbator__map_cpu_read(nes, 0x0000u), 0x9du);
     nesturbator_destroy((nesturbator *)nes);
 }
 
@@ -261,6 +288,8 @@ static void check_reset_keeps_board(void)
 int main(void)
 {
     check_write_stamps();
+    check_stamp_is_cycle_index();
+    check_map_cpu_read_below_4020();
     check_hook_on_writable_page();
     check_cpu_stamps();
     check_dma_stamps();

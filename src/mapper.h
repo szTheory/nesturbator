@@ -30,7 +30,9 @@ struct nesturbator__mapper_ops {
     void (*init)(struct nesturbator *nes);
     /* Page tables and nt[] from the bank registers. */
     void (*rebuild)(struct nesturbator *nes);
-    /* A CPU write to $4020-$FFFF; cpu_cycle is the index of the write's cycle. */
+    /* A CPU write to $4020-$FFFF; cpu_cycle is the zero-based index of the write's own cycle,
+       counted from load (nes->cpu_cycle - 1 once the cycle has run). Consecutive writes differ
+       by one. */
     void (*cpu_write)(struct nesturbator *nes, uint16_t addr, uint8_t value, uint64_t cpu_cycle);
     /* The PPU address bus bit 12 changed to level at PPU tick tick. */
     void (*ppu_a12)(struct nesturbator *nes, uint8_t level, uint64_t tick);
@@ -56,6 +58,16 @@ struct nesturbator__mapper {
         struct {
             uint8_t bank; /* xxxM xPPP: the raw written byte */
         } axrom;
+        /* Zero is the power-on state, so the loader's memset needs no init write
+           (D-16). control_x holds Control XOR $0C, so zero is the power-on Control
+           $0C: PRG mode 3, one-screen lower, 8 KiB CHR (NESdev Wiki "MMC1").
+           last_write holds the last hook stamp plus one, so zero means never
+           written. nesturbator_reset keeps every field, because the cartridge
+           sees no reset line. */
+        struct {
+            uint8_t shift, count, control_x, chr0, chr1, prg;
+            uint64_t last_write;
+        } mmc1;
     } reg;
 };
 
@@ -96,5 +108,8 @@ void nesturbator__mapper_cnrom_ops(struct nesturbator__mapper_ops *out);
 
 /* Fills out with the AxROM board (src/mapper_axrom.c). */
 void nesturbator__mapper_axrom_ops(struct nesturbator__mapper_ops *out);
+
+/* Fills out with the MMC1 board (src/mapper_mmc1.c). */
+void nesturbator__mapper_mmc1_ops(struct nesturbator__mapper_ops *out);
 
 #endif /* NESTURBATOR_MAPPER_H */

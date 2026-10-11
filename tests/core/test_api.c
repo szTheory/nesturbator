@@ -160,6 +160,24 @@ static void test_info(void)
     nesturbator_destroy(NULL);
 }
 
+/* D-13: the save API through the public header only, with no cartridge. */
+static void test_save_api_without_cartridge(void)
+{
+    nesturbator_config cfg;
+    nesturbator *inst = NULL;
+    uint8_t byte = 0u;
+    uint8_t *data = &byte;
+    size_t n = 9u;
+    default_config(&cfg);
+    CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                 NESTURBATOR_OK);
+    CHECK(data == NULL);
+    CHECK_EQ_U64(n, 0u);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 0u);
+    nesturbator_destroy(inst);
+}
+
 static void test_create_sizes(void)
 {
     nesturbator *inst = NULL;
@@ -277,6 +295,7 @@ int main(void)
     test_version();
     test_info();
     test_create_sizes();
+    test_save_api_without_cartridge();
     test_create_arguments();
     test_allocators();
     test_cpu_ram_peek_is_read_only_and_mirrored();

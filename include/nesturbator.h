@@ -67,8 +67,8 @@ enum nesturbator_status {
     NESTURBATOR_ERR_BUFFER_TOO_SMALL = 5,
     /* The loaded cartridge executed a JAM opcode; the instance is latched. */
     NESTURBATOR_STOP_JAM = 6,
-    /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 2 UxROM,
-       3 CNROM and 7 AxROM). */
+    /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 1 MMC1,
+       2 UxROM, 3 CNROM and 7 AxROM). */
     NESTURBATOR_ERR_CARTRIDGE = 7
 };
 typedef enum nesturbator_status nesturbator_status;
@@ -238,7 +238,11 @@ nesturbator_status nesturbator_set_input(nesturbator *inst, const nesturbator_in
 void nesturbator_destroy(nesturbator *inst);
 
 /* Copies one bounded iNES v1 or NES 2 image into the instance. Supported
-   boards are mapper 0 (NROM: 16 or 32 KiB PRG), mapper 2 (UxROM: PRG in
+   boards are mapper 0 (NROM: 16 or 32 KiB PRG), mapper 1 (MMC1, submapper 0,
+   or 5 with 32 KiB PRG: PRG a power of two from 32 to 512 KiB, 512 KiB only
+   with 8 KiB CHR; 8 to 128 KiB CHR ROM or 8 KiB CHR RAM; PRG RAM of 0, 8, 16
+   or 32 KiB in total, above 8 KiB only with 8 KiB CHR; the battery bit equal
+   to "battery RAM present"; no CHR NVRAM; see the battery notes below), mapper 2 (UxROM: PRG in
    16 KiB banks up to 4 MiB, submappers 0 to 2; the last bank is fixed at
    $C000 and a write to $8000-$FFFF selects the bank at $8000, ANDed with the
    ROM byte under that write for submappers 0 and 2, raw for submapper 1) and
@@ -250,14 +254,22 @@ void nesturbator_destroy(nesturbator *inst);
    ignoring the header mirroring bit; ANDed with the ROM byte under the write
    for submapper 2 only; the reset vector is read from bank 0). NROM and UxROM
    take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
-   A trainer initializes the writable 8 KiB PRG RAM at CPU $7000-$71FF;
-   other addresses in $6000-$7FFF start at zero. Other mappers, unsupported console/region/RAM
-   profiles, malformed headers, truncation, extra payload, and images above
-   64 MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and
-   leave a previously loaded cartridge untouched. Allocation failure returns
-   NESTURBATOR_ERR_NO_MEMORY. A loaded image starts the CPU at the reset vector
-   read through the board's power-on banks. An image whose mapper has no board
-   is refused before any allocation. Unload releases cartridge state. */
+   Mapper 1 is the MMC1B chip: its serial port at $8000-$FFFF takes five
+   writes, a write on the CPU cycle right after another write is ignored
+   unless bit 7 is set (the reset), PRG RAM is enabled at power-on and bit 4
+   of the PRG register disables it, and the SNROM, SOROM, SUROM and SXROM
+   variants are derived from the header sizes. The registers and the battery
+   RAM are kept by nesturbator_reset. MMC1A, mapper 155 and 2ME are not
+   emulated.
+   A trainer initializes the writable 8 KiB PRG RAM at CPU $7000-$71FF
+   (on a mapper 1 image with no declared RAM the trainer's 8 KiB is work RAM
+   with no save span); other addresses in $6000-$7FFF start at zero. Mappers
+   0, 2, 3 and 7 refuse the battery bit and every RAM size. Other mappers, unsupported
+   console/region/RAM profiles, malformed headers, truncation, extra payload, and images above 64
+   MiB return NESTURBATOR_ERR_CARTRIDGE before cartridge allocation and leave a previously loaded
+   cartridge untouched. Allocation failure returns NESTURBATOR_ERR_NO_MEMORY. A loaded image starts
+   the CPU at the reset vector read through the board's power-on banks. An image whose mapper has no
+   board is refused before any allocation. Unload releases cartridge state. */
 nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *data, size_t size);
 void nesturbator_unload_cartridge(nesturbator *inst);
 
@@ -317,6 +329,44 @@ void nesturbator_get_palette(const nesturbator *inst, uint32_t *out_xrgb8888, ui
  * output filters are kept. Load is unchanged: no write-ignore window and no
  * startup sequence at power-on, so frame and audio hashes from load stay. */
 nesturbator_status nesturbator_reset(nesturbator *inst);
+
+/* Battery-backed memory. The core does no file I/O: it hands the host a span
+ * of its own memory and counts the CPU writes that reach it, and the host
+ * keeps the file.
+ *
+ * Mapper 1 (MMC1) cartridges carry PRG RAM laid out as [V bytes work][N bytes
+ * NVRAM], work RAM first. The save span is the N battery bytes; a SOROM image
+ * with a work half exposes only its battery half. The size comes from the
+ * header: iNES 1 gives 8 KiB (32 KiB above 256 KiB of PRG), all of it battery
+ * when flag 6 bit 1 is set and none otherwise; NES 2 gives V from the low
+ * and N from the high nibble of byte 10, and its battery bit must equal N != 0.
+ * Sizes for iNES 1 mapper 1: PRG up to 256 KiB with battery, an 8 KiB span;
+ * above 256 KiB, 32 KiB; without battery, the RAM is work RAM and there is no
+ * span. V = N = 0 leaves $6000-$7FFF as open bus. An iNES 1 SOROM dump gets
+ * 8 KiB (its work half cannot be told apart); a true SOROM needs a NES 2
+ * header.
+ *
+ * nesturbator_get_memory writes the span to *data and *size. A NULL inst, data
+ * or size, or a kind other than NESTURBATOR_MEMORY_SAVE_RAM, returns
+ * NESTURBATOR_ERR_ARGUMENT and writes nothing. No cartridge, or a cartridge
+ * without a span, returns NESTURBATOR_OK with NULL and 0. The pointer is valid
+ * from a successful load until unload, the next successful load or destroy;
+ * nesturbator_reset and a refused load keep it. The host copies a saved file
+ * in after load and before the first frame, and may read the span at any time
+ * between calls.
+ *
+ * nesturbator_save_generation counts CPU bus writes that reached the span
+ * while the board had that RAM enabled and writable, whether or not the byte
+ * changed; a read-modify-write counts both of its writes. It runs from
+ * nesturbator_create and never resets or decreases, so hosts compare it with
+ * != . Load (including trainer bytes), reset, unload and writes the host makes
+ * through the pointer do not count. nesturbator_save_generation(NULL) is 0. */
+enum nesturbator_memory { NESTURBATOR_MEMORY_SAVE_RAM = 0 };
+typedef enum nesturbator_memory nesturbator_memory;
+
+nesturbator_status nesturbator_get_memory(nesturbator *inst, nesturbator_memory kind,
+                                          uint8_t **data, size_t *size);
+uint64_t nesturbator_save_generation(const nesturbator *inst);
 
 #ifdef __cplusplus
 }

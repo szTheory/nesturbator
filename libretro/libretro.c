@@ -35,6 +35,8 @@ static retro_audio_sample_batch_t audio_batch_cb;
 static retro_input_poll_t input_poll_cb;
 static retro_input_state_t input_state_cb;
 static nesturbator *inst;
+static uint8_t *save_data;
+static size_t save_size;
 static uint32_t palette[512];
 static uint16_t video[NT_PIXELS];
 static uint32_t xrgb[NT_PIXELS];
@@ -84,6 +86,8 @@ void retro_deinit(void)
 {
     nesturbator_destroy(inst);
     inst = NULL;
+    save_data = NULL;
+    save_size = 0u;
     env_cb = NULL;
     video_cb = NULL;
     audio_cb = NULL;
@@ -279,6 +283,15 @@ bool retro_load_game(const struct retro_game_info *game)
         return false;
     }
     nesturbator_get_palette(inst, palette, 512u);
+    /* The span is fetched once, here: the host reads and writes it directly (L498-517), and
+       its address stays the same for the life of the instance. */
+    save_data = NULL;
+    save_size = 0u;
+    if (game != NULL && nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &save_data,
+                                               &save_size) != NESTURBATOR_OK) {
+        save_data = NULL;
+        save_size = 0u;
+    }
     return true;
 }
 
@@ -295,6 +308,8 @@ void retro_unload_game(void)
 {
     nesturbator_destroy(inst);
     inst = NULL;
+    save_data = NULL;
+    save_size = 0u;
 }
 
 /* L7812: 0 is NTSC. */
@@ -303,15 +318,16 @@ unsigned retro_get_region(void)
     return RETRO_REGION_NTSC;
 }
 
-/* L7826: NULL and 0 are allowed (L498); no memory is exposed yet. */
+/* L7826, L498-517: RETRO_MEMORY_SAVE_RAM is the battery span. The host reads it to write the
+   .srm and writes a loaded .srm into it after retro_load_game and before the first retro_run;
+   the adapter does no file I/O. Every other id, no game and a board without battery RAM give
+   NULL and 0 (L498 allows it). */
 void *retro_get_memory_data(unsigned id)
 {
-    (void)id;
-    return NULL;
+    return id == RETRO_MEMORY_SAVE_RAM ? save_data : NULL;
 }
 
 size_t retro_get_memory_size(unsigned id)
 {
-    (void)id;
-    return 0;
+    return id == RETRO_MEMORY_SAVE_RAM ? save_size : 0u;
 }

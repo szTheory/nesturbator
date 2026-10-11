@@ -3,8 +3,10 @@
    c022622274ca8b83d214dea97e4388a6b0e92d8a (zlib, (c) Damian Yerrick): the
    line "DETAILED TEST RESULT: " is on nametable row 8, so the anchor "DE" of
    the word DETAILED sits at pixels x 16 and 24, y 64, and the four result
-   digits at x 192, 200, 208 and 216, y 64. The shipped runner knows nothing
-   of this; the frame is the only input. */
+   digits at x 192, 200, 208 and 216, y 64. The PRG RAM line is nametable row 6
+   (y 48), whose text starts at column 2 (x 16): "<N>K PRG RAM OK" with
+   " + BATTERY" when the save survived, or "PRG RAM MISSING". The shipped
+   runner knows nothing of this; the frame is the only input. */
 #ifndef NESTURBATOR_HM_DECODE_H
 #define NESTURBATOR_HM_DECODE_H
 
@@ -22,6 +24,9 @@
 #define HM_ANCHOR_D_X 16
 #define HM_ANCHOR_E_X 24
 #define HM_DIGIT_X 192
+#define HM_PRG_RAM_Y 48
+#define HM_TEXT_X 16
+#define HM_TEXT_CELLS 28
 
 /* Holy Mapperel font, zlib, (c) Damian Yerrick. Index 0-9 then A-F. Bit 7 is
    the leftmost pixel. Rows 5-7 are blank. These are the combined bit planes of
@@ -56,31 +61,114 @@ static inline int hm_read_ppm(const uint8_t *buf, size_t size, const uint8_t **r
     return 1;
 }
 
-/* The 8x8 cell at (x, y): a pixel is lit when its colour differs from the
-   cell's (0,0) pixel, so the palette does not matter. Returns the glyph index
-   0-15 the cell matches, or -1. */
-static inline int hm_cell(const uint8_t *rgb, int x, int y)
+/* Letters, space and '+' of the PRG RAM line, from tile (ASCII & $3F) of
+   M3_P32K_C32K_H.nes, combined bit planes. The digits 1-9 and the letters C, D,
+   F come from hm_glyph. The font draws O and 0 alike, so a 0 reads as O. */
+struct hm_char {
+    char c;
+    uint8_t rows[8];
+};
+
+static const struct hm_char hm_text_glyph[] = {
+    {' ', {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}},
+    {'+', {0x18, 0x18, 0x7e, 0x18, 0x18, 0x00, 0x00, 0x00}},
+    {'A', {0x3c, 0x66, 0x7e, 0x66, 0x66, 0x00, 0x00, 0x00}},
+    {'B', {0x7c, 0x66, 0x7c, 0x66, 0x7c, 0x00, 0x00, 0x00}},
+    {'E', {0x7e, 0x60, 0x7c, 0x60, 0x7e, 0x00, 0x00, 0x00}},
+    {'G', {0x3e, 0x60, 0x6e, 0x66, 0x3e, 0x00, 0x00, 0x00}},
+    {'I', {0x18, 0x18, 0x18, 0x18, 0x18, 0x00, 0x00, 0x00}},
+    {'K', {0x66, 0x6c, 0x78, 0x6c, 0x66, 0x00, 0x00, 0x00}},
+    {'L', {0x60, 0x60, 0x60, 0x60, 0x7e, 0x00, 0x00, 0x00}},
+    {'M', {0xc6, 0xee, 0xfe, 0xd6, 0xc6, 0x00, 0x00, 0x00}},
+    {'N', {0x66, 0x76, 0x7e, 0x6e, 0x66, 0x00, 0x00, 0x00}},
+    {'O', {0x3c, 0x66, 0x66, 0x66, 0x3c, 0x00, 0x00, 0x00}},
+    {'P', {0x7c, 0x66, 0x7c, 0x60, 0x60, 0x00, 0x00, 0x00}},
+    {'R', {0x7c, 0x66, 0x7c, 0x6c, 0x66, 0x00, 0x00, 0x00}},
+    {'S', {0x3e, 0x60, 0x3c, 0x06, 0x7c, 0x00, 0x00, 0x00}},
+    {'T', {0x7e, 0x18, 0x18, 0x18, 0x18, 0x00, 0x00, 0x00}},
+    {'Y', {0x66, 0x3c, 0x18, 0x18, 0x18, 0x00, 0x00, 0x00}},
+};
+#define HM_TEXT_GLYPHS (sizeof hm_text_glyph / sizeof hm_text_glyph[0])
+
+/* The 8x8 cell at (x, y) as eight row masks, bit 7 leftmost. A pixel is lit
+   when its colour differs from the cell's pixel (0,7), row 7 column 0, which
+   is blank in every glyph used (the letter M lights pixel (0,0)), so the
+   palette does not matter. */
+static inline void hm_cell_mask(const uint8_t *rgb, int x, int y, uint8_t mask[8])
 {
     const uint8_t *base = rgb + ((size_t)y * HM_WIDTH + (size_t)x) * 3u;
-    uint8_t mask[8];
+    const uint8_t *ref = base + (size_t)7 * HM_WIDTH * 3u;
     int row;
     int col;
-    int g;
     for (row = 0; row < 8; row++) {
         mask[row] = 0;
         for (col = 0; col < 8; col++) {
             const uint8_t *p = base + ((size_t)row * HM_WIDTH + (size_t)col) * 3u;
-            if (memcmp(p, base, 3) != 0) {
+            if (memcmp(p, ref, 3) != 0) {
                 mask[row] = (uint8_t)(mask[row] | (0x80u >> col));
             }
         }
     }
+}
+
+/* Returns the glyph index 0-15 the cell at (x, y) matches, or -1. */
+static inline int hm_cell(const uint8_t *rgb, int x, int y)
+{
+    uint8_t mask[8];
+    int g;
+    hm_cell_mask(rgb, x, y, mask);
     for (g = 0; g < 16; g++) {
         if (memcmp(mask, hm_glyph[g], 8) == 0) {
             return g;
         }
     }
     return -1;
+}
+
+/* Returns the character of the cell at (x, y): a letter, space or '+' from
+   hm_text_glyph, else a digit 1-9 or C, D, F from hm_glyph, else '?'. */
+static inline char hm_text_cell(const uint8_t *rgb, int x, int y)
+{
+    uint8_t mask[8];
+    size_t i;
+    int g;
+    hm_cell_mask(rgb, x, y, mask);
+    for (i = 0; i < HM_TEXT_GLYPHS; i++) {
+        if (memcmp(mask, hm_text_glyph[i].rows, 8) == 0) {
+            return hm_text_glyph[i].c;
+        }
+    }
+    for (g = 1; g < 16; g++) {
+        if (memcmp(mask, hm_glyph[g], 8) == 0) {
+            return "0123456789ABCDEF"[g];
+        }
+    }
+    return '?';
+}
+
+/* Reads up to HM_TEXT_CELLS cells of text from x = HM_TEXT_X on pixel row y
+   into out (NUL-terminated, at most cap - 1 characters), trailing spaces
+   trimmed. An unknown cell is '?'. Returns 1 when no cell is '?', else 0. */
+static inline int hm_read_text_row(const uint8_t *rgb, unsigned y, char *out, size_t cap)
+{
+    size_t n = 0;
+    int k;
+    int ok = 1;
+    if (cap == 0) {
+        return 0;
+    }
+    for (k = 0; k < HM_TEXT_CELLS && n + 1 < cap; k++) {
+        char c = hm_text_cell(rgb, HM_TEXT_X + 8 * k, (int)y);
+        if (c == '?') {
+            ok = 0;
+        }
+        out[n++] = c;
+    }
+    while (n > 0 && out[n - 1] == ' ') {
+        n--;
+    }
+    out[n] = '\0';
+    return ok;
 }
 
 /* Reads the result screen. Returns 2 when the anchor D, E is missing or a

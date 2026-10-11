@@ -3,13 +3,13 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: v1 shipped; milestone v2 starts with a tune-up.** v1 plays
-NROM games with picture and sound; milestone v2 adds UxROM (mapper 2). Phase 5 adds parallel CI, a policy that
+**Status: v1 shipped; milestone v2 is under way.** v1 played
+NROM games with picture and sound; milestone v2 now plays mappers 0, 1, 2, 3 and 7 with battery saves. Phase 5 adds parallel CI, a policy that
 no registered test may skip, and the soft reset (`nesturbator_reset()`, which
 RetroArch's Reset button runs). The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM,
-16 or 32 KiB PRG) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
+16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
 clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
 includes OAM Y=$FF sprites on visible framebuffer row 0. After eight sprites
@@ -22,7 +22,7 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, UxROM, CNROM and AxROM as the boards so far. The behaviour revision is 5: the PPU
+board), with NROM, MMC1, UxROM, CNROM and AxROM as the boards so far. The behaviour revision is 5: the PPU
 fetch pipeline changed the frames of games that write the scroll or PPUCTRL
 while rendering. Mid-frame scroll writes render as on
 the console, which a split-scroll test shows scanline by scanline.
@@ -43,7 +43,7 @@ nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.pp
 
 The CI suite pins three redistributable mapper-0 games: MIT-licensed
 Nesteroids, zlib-licensed Double Action Blaster Guys, and all-permissive RHDE.
-It also runs Holy Mapperel's mapper 2, 3 and 7 test ROMs (zlib) and requires
+It also runs Holy Mapperel's mapper 1, 2, 3 and 7 test ROMs (zlib) and requires
 each to report the result code 0000. Their boot hashes and scripted DABG two-port movie hashes are checked against
 `tests/runner/hashes.txt` on every platform; the hashes use native pixels
 before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
@@ -267,14 +267,15 @@ brightness never falls down a column.
 two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
 180, plus transition and PCM hashes for each game's boot run. It fails if any
 requested frame or audio hash is missing or duplicated;
-`runner.write_hashes.content` requires all 39 sorted keys to equal
+`runner.write_hashes.content` requires all 45 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
-The 39 keys are the 36 game and movie keys plus one
-`holymapperel/<key>/frame N` key per Holy Mapperel ROM; `runner.write_hashes`
+The 45 keys are the 36 game and movie keys plus one
+`holymapperel/<key>/frame N` key per Holy Mapperel ROM (eight) and one
+`holymapperel/m1sxrom.saved/frame N` key for the SXROM ROM's second run; `runner.write_hashes`
 hashes frame N and frame 2N of each and fails if they differ, so a pinned
 result screen is known to be static.
 The `holymapperel.*` tests read Holy Mapperel's result from the frame, not
-from RAM. `holymapperel.<key>.dump` runs a ROM to frame N (100) and writes the
+from RAM. `holymapperel.<key>.dump` runs a ROM to its frame N and writes the
 frame with `--dump-frame`; `holymapperel.<key>.decode` runs the test-only
 `holymapperel-decode` on that image and passes only on the line
 `holymapperel: code 0000 (`. The decoder exits 0 for the code 0000, 1 for any
@@ -284,10 +285,24 @@ screen, a digit cannot be read, or the file is not a 256x240 P6 image.
 `holymapperel.decode.unit` paints frames to test every decoder branch,
 `holymapperel.glyphs` checks the decoder's font against the M3 ROM's CHR, and
 `holymapperel.decode.testcard`, `.early` and `.badsize` check that the test
-card, frame 1 and a wrong-size file exit 2. A new board ROM is one entry and
-one manifest line in `tests/holymapperel/roms.cmake`, which the tests,
-`tests/cmake/write_hashes.cmake` and `tests/cmake/hash_inventory.cmake` all
-read.
+card, frame 1 and a wrong-size file exit 2.
+The five MMC1 ROMs are `M1_P128K_CR8K` (SGROM, `PRG RAM MISSING`),
+`M1_P128K_C32K_W8K` (SJROM) and `M1_P128K_C128K_S8K` (SKROM) and
+`M1_P512K_CR8K_S8K` (SUROM), all `8K PRG RAM OK`, and `M1_P512K_CR8K_S32K`
+(SXROM). Each ROM also has a `holymapperel.<key>.prgram` test: the decoder's
+`--prg-ram` mode reads the PRG RAM row of the result screen and the test
+passes only on its exact text, with the closing quote as the anchor. The SXROM
+ROM runs a two-run chain on one save directory with `nesturbator-run
+--save-dir`: run 1 empties the directory before it starts, then reads
+`0000` and `32K PRG RAM OK` without `+ BATTERY`, `run1.sav` checks the 32,768
+byte save for Holy Mapperel's `SAVEDATA` text at offset 0x100
+(`tests/cmake/check_sav.cmake`), and run 2 reads `0000` and `32K PRG RAM OK +
+BATTERY`, which shows the board loaded its own save. The two runs' screens hash
+differently and both are pinned. A new board ROM is one entry and one manifest
+line in `tests/holymapperel/roms.cmake`, whose entry is
+`<key>:<file>:<N>:<PRG RAM text>` with an optional `:save` field for the
+two-run chain; the tests, `tests/cmake/write_hashes.cmake` and
+`tests/cmake/hash_inventory.cmake` all read it.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
 `runner.usage.noargs` checks that a run without `--frames` is a usage error.
@@ -434,7 +449,7 @@ and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
 a different frame fails the run. It also requires six nonempty artifacts with
-the exact 39-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
+the exact 45-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
 extra keys and malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
@@ -570,6 +585,45 @@ sequence at power-on, so the soft-reset work leaves frame and audio hashes from
 load unchanged. With no cartridge it does nothing and returns
 `NESTURBATOR_OK`.
 
+### Battery saves
+
+`nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &size)`
+writes a pointer to the cartridge's battery RAM and its size. The core does no
+file I/O: the host keeps the save file. A NULL `inst`, `data` or `size`, or any
+other kind, returns `NESTURBATOR_ERR_ARGUMENT` and writes nothing. With no
+cartridge, or a cartridge without battery RAM, it returns `NESTURBATOR_OK` with
+`NULL` and 0. The pointer stays valid from a successful load until unload, the
+next successful load or destroy; `nesturbator_reset()` and a refused load keep
+it. Copy a saved file in after load and before the first frame; read the span
+whenever you are between calls.
+
+`nesturbator_save_generation(inst)` counts CPU bus writes that reached the
+span while the board had that RAM enabled and writable, whether or not the
+byte changed. A read-modify-write counts both of its writes. It runs from
+`nesturbator_create()` and never resets or decreases, so compare it with `!=`
+and write the file when it moves. Load (including trainer bytes), reset,
+unload and writes through the pointer do not count. `NULL` gives 0.
+
+PRG RAM is one block laid out `[V work][N NVRAM]`, work RAM first, and the
+save span is the N battery bytes (hardware: NESdev Wiki "MMC1", SOROM). The
+header gives the sizes:
+
+| Header | V (work) | N (battery) | Span |
+|---|---|---|---|
+| iNES 1, mapper 1, PRG up to 256 KiB, no battery | 8 KiB | 0 | none |
+| iNES 1, mapper 1, PRG up to 256 KiB, battery | 0 | 8 KiB | 8 KiB |
+| iNES 1, mapper 1, PRG above 256 KiB, no battery | 32 KiB | 0 | none |
+| iNES 1, mapper 1, PRG above 256 KiB, battery | 0 | 32 KiB | 32 KiB |
+| NES 2.0 | byte 10 low nibble | byte 10 high nibble | N bytes at offset V |
+
+With V = N = 0, `$6000-$7FFF` reads as open bus. A trainer on a mapper 1
+image with no declared RAM maps its 8 KiB as work RAM (the trainer at `$7000`)
+and has no span.
+
+Known gap: an iNES 1 SOROM dump gets one 8 KiB battery block, because that
+header cannot say that half of the RAM is volatile; use a NES 2.0 header
+(V = 8 KiB, N = 8 KiB) for a true SOROM. An iNES 1 SUROM save is 32 KiB.
+
 ## Downloads and archives
 
 Each release has three zip archives per platform, named
@@ -641,7 +695,7 @@ at `build/ci/runner/nesturbator-run`. The public header is
 
 ## The runner
 
-`nesturbator-run` runs the core without a window and accepts a mapper 0, 2, 3 or 7 image
+`nesturbator-run` runs the core without a window and accepts a mapper 0, 1, 2, 3 or 7 image
 with `--rom FILE`. The loader validates the entire image before allocating
 cartridge state. It rejects unsupported mapper, console, region, RAM and ROM
 geometries, truncation, trailing bytes, and images larger than 64 MiB; the
@@ -649,6 +703,7 @@ runner prints a diagnostic and exits nonzero for rejected content.
 
 ```sh
 nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
+                [--save-dir DIR [--save-interval N]]
 ```
 
 - `--frames N` runs N frames (N is 1 or more). It is required; without it
@@ -658,7 +713,8 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   for mapper 0 (NROM), or PRG in 16 KiB banks up to 4 MiB for mapper 2
   (UxROM, submappers 0 to 2), or 16 or 32 KiB PRG with 8, 16 or 32 KiB CHR ROM
   for mapper 3 (CNROM, submappers 0 to 2), or 32 to 256 KiB PRG in 32 KiB banks
-  with 8 KiB declared CHR RAM for mapper 7 (AxROM, submappers 0 to 2); optional trainers are included in the validated
+  with 8 KiB declared CHR RAM for mapper 7 (AxROM, submappers 0 to 2), or the
+  mapper 1 shapes below; optional trainers are included in the validated
   file length. UxROM writes to `$8000-$FFFF` select the bank at `$8000`; the
   last bank stays at `$C000`. Submappers 0 and 2 AND the written value with
   the ROM byte under the write (submapper 0 is the project default), and
@@ -669,6 +725,21 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   the header mirroring bit is ignored, the reset vector comes from bank 0, and
   only submapper 2 ANDs the value with the ROM byte under the write (submapper
   0 has no bus conflict).
+- Mapper 1 (MMC1) is accepted with submapper 0, or submapper 5 with 32 KiB
+  PRG. PRG is a power of two from 32 to 512 KiB, and 512 KiB only with 8 KiB
+  CHR. CHR is 8 to 128 KiB of ROM or 8 KiB of RAM. PRG RAM is 0, 8, 16 or 32
+  KiB in total (work plus battery), and more than 8 KiB only with 8 KiB CHR.
+  The battery bit must be set exactly when battery RAM is declared. CHR NVRAM,
+  other submappers, mapper 155 and a 24 KiB or 64 KiB total are refused.
+  Mappers 0, 2, 3 and 7 still refuse the battery bit and every RAM size.
+  The board is the MMC1B chip: five writes to `$8000-$FFFF` fill the serial
+  port, and a write on the CPU cycle right after another write is ignored
+  unless its bit 7 is set, which always resets the port (this is what makes
+  `INC $8000` shift one bit, not two). PRG RAM is enabled at power-on and bit 4
+  of the PRG register disables it. The SNROM, SOROM, SUROM and SXROM variants
+  follow from the header sizes (hardware: NESdev Wiki "MMC1" and "SxROM").
+  `nesturbator_reset` keeps the MMC1 registers and the battery RAM, because
+  the cartridge sees no reset line.
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
 - `--hash-audio` prints one hash for all mixed-level transitions and one for
@@ -679,6 +750,36 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   in the RGB of the colour table. N follows the `--hash-frame` rules, and the
   option can be repeated. The image is converted by `host/convert.c`, the same
   loop the libretro adapter uses, so both show the same colours.
+- `--save-dir DIR` keeps the battery RAM of a mapper 1 cartridge in
+  `DIR/<name>.sav`. It needs `--rom` and cannot be combined with
+  `--accuracycoin-page`. `<name>` is the last component of the `--rom` path
+  (split at `/` or `\` on every platform) without its last extension, so
+  `roms/game.v1.nes` uses `DIR/game.v1.sav`. After the cartridge loads and
+  before the first frame the runner reads that file into the battery RAM; with
+  no file the RAM starts zeroed. When the run ends, including after a JAM, it
+  writes the RAM back if the CPU wrote to it and the bytes changed. The write
+  goes to `DIR/<name>.sav.tmp`, is synced, and is renamed over the save, so a
+  kill leaves the previous save and at most a stale `.tmp`. A run that writes
+  the same bytes leaves the file and its modification time alone. A `.sav` is
+  the RAM's raw bytes with no header, the same bytes as RetroArch's `.srm`. A
+  cartridge without battery RAM reads and writes nothing, and without
+  `--save-dir` no save file is read or written anywhere. A save or rename
+  failure, or a `DIR` that does not exist, exits 1. A `.sav` whose length is
+  not the battery RAM's size (a 0-byte file included) is never padded,
+  truncated or rewritten: the runner prints
+  `<path> is <a> bytes; the cartridge's battery RAM is <b> bytes`, runs no
+  frames and exits 4. The runner takes no lock: two runners on one directory,
+  or two ROMs with the same name, share one save file, and the size check
+  catches a clash of different sizes.
+- `--save-interval N` (N of 1 or more, needs `--save-dir`) also writes a
+  changed save after every Nth frame, counted from 1, so a runner stopped
+  after a flush leaves the RAM as it was then. With `--frames 3
+  --save-interval 5` no interval write falls inside the run, and the write at
+  exit still happens. `--save-interval 0`, a repeated or empty `--save-dir`,
+  and `--save-dir` without `--rom` exit 2.
+
+Exit status: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch; 3 and
+77 are reserved.
 
 Each hashed frame prints one line:
 
@@ -745,10 +846,22 @@ game. With no content it changes nothing. `libretro.host` compares the frames
 after a reset with those of a direct-API instance given the same frames, reset
 and frames.
 
+`retro_get_memory_data` and `retro_get_memory_size` return the battery span
+for `RETRO_MEMORY_SAVE_RAM`, the same span as
+`nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, ...)`; every other
+id, no content and a cartridge without battery RAM give NULL and 0. The adapter
+fetches the span once in `retro_load_game` and does no file I/O: the host
+writes the `.srm` and copies it back in after `retro_load_game` and before the
+first frame. The `.srm` and the runner's `.sav` are the same raw bytes, so a
+save moves between RetroArch and `nesturbator-run --save-dir` by renaming it.
+`libretro.host` checks the span's size, that its address survives `retro_run`
+and `retro_reset`, and that its bytes equal those of a direct-API instance run
+for the same frames.
+
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares
 `supports_no_game = "true"`, which lets RetroArch start the core without
-content.
+content, and `libretro_saves = "true"`.
 
 `libretro/libretro.h` is the libretro API header, copied unchanged from
 RetroArch; its source and licence are in
@@ -808,7 +921,13 @@ the test card:
 RetroArch's picture is checked by the hosted `retroarch-e2e` CI job, not by a
 local test. It installs the pinned RetroArch 1.22.2 on a macOS runner, runs the
 core on the manifest-listed Nesteroids image, and compares RetroArch's
-screenshot with the runner's frame; this is where RetroArch is checked.
+screenshot with the runner's frame; this is where RetroArch is checked. A
+second step runs two RetroArch sessions of the Holy Mapperel SXROM ROM: the
+first writes `saves/M1_P512K_CR8K_S32K.srm` (32,768 bytes, `SAVEDATA` at 0x100)
+when RetroArch unloads the content, and the second loads it back. Each
+screenshot must equal the runner's frame for the same save state (the runner
+reads the first session's `.srm` as `.sav`), the two screenshots must differ,
+and exactly one `.srm` must exist at the end.
 
 The official RetroArch v1.22.2 macOS release is
 [`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),
@@ -818,7 +937,8 @@ required `retroarch-e2e` job downloads this asset on `macos-15`, verifies its
 checksum and exact version, loads Nesteroids, and compares the nonempty frame-60
 screenshot pixel for pixel with the runner's output. It isolates RetroArch's
 first-run home under the build tree and retains the asset evidence, screenshot,
-and runner frame in the `retroarch-e2e-frames` artifact. Missing assets, changes
+and runner frame, and the save round trip's screenshots, runner frames and
+`.srm`, in the `retroarch-e2e-frames` artifact. Missing assets, changes
 to the real home directory, startup errors, and frame mismatches fail the
 required CI check. No manual screenshot or gameplay check is needed.
 
@@ -835,7 +955,7 @@ This repository contains no commercial ROM or BIOS data and never will. You
 supply your own legally obtained game images. See
 [ASSET_POLICY.md](ASSET_POLICY.md).
 
-Holy Mapperel's mapper 2, 3 and 7 test ROMs under `tests/roms/hm/` are zlib
+Holy Mapperel's mapper 1, 2, 3 and 7 test ROMs under `tests/roms/hm/` are zlib
 licensed, byte-identical to the v0.02 release, and listed in
 `tests/roms/manifest.txt`; their licence is in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
