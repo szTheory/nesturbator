@@ -123,8 +123,10 @@ jobs:
 
   asan:
     runs-on: ubuntu-24.04
-    # Provisional: NESTURBATOR_SHORT_RUNS (preset asan) dropped the long tests that made this job about 15 minutes (runner.write_hashes 830 s, core.reset 422 s, runner.boot_to_play 262 s, vectors.registration_policy 131 s on the last main run); the shortened asan workflow took 78 s locally (231 s of tests before). Set this to twice the measured hosted run from this PR (ENGINEERING section 5). 15 keeps the first hosted run from being cut off while below the old 20.
-    timeout-minutes: 15 # provisional
+    # NESTURBATOR_SHORT_RUNS (preset asan) drops or shortens the long hash tests that made this job
+    # about 15 minutes; their hashes are checked at full length by the build jobs and hash-equality.
+    # Twice the measured hosted run: 4m52s on PR #39 (ENGINEERING section 5).
+    timeout-minutes: 10
     env:
       CC: clang-18
       CXX: clang++-18
