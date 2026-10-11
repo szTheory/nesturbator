@@ -74,3 +74,4 @@ tests/fuzz/corpus/mmc3-four-screen	https://github.com/szTheory/nesturbator	47fa6
 tests/fuzz/corpus/mmc3-four-screen-nes2	https://github.com/szTheory/nesturbator	47fa6df2c9d8d84aa617ca20167e4de6329ec2f0	MIT	246f3a24dbff709aa628038d8e1882ee0533dd77dcde34068f7047a32c4c2b9c
 tests/fuzz/corpus/mapper-118	https://github.com/szTheory/nesturbator	47fa6df2c9d8d84aa617ca20167e4de6329ec2f0	MIT	9cc3ac6fed8c24a167c763e7c7bdefabbbbf83538807820d23705a6498b3e24e
 tests/fuzz/corpus/mapper-119	https://github.com/szTheory/nesturbator	47fa6df2c9d8d84aa617ca20167e4de6329ec2f0	MIT	04d34acee5a9ba1bd38d6d0c79a164066bb09f27da16fdb6aa74f068d8c5077e
+tests/fuzz/corpus/mmc3-prg-exp-huge	https://github.com/szTheory/nesturbator	f88d7cfc068ac428c9f433f8a68372fcf600d828	MIT	b82e123d1f5f08b1c37ef8eb1c81738461524ca9d640d453f4b3050549fd2bb7
