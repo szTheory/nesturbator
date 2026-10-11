@@ -537,6 +537,63 @@ static void check_two_instances(void)
     nesturbator_destroy((nesturbator *)b);
 }
 
+/* One frame into a caller-owned buffer that the caller pre-filled. */
+static void run_one_into(struct nesturbator *nes, uint16_t *video)
+{
+    static int16_t audio[2048];
+    nesturbator_frame io;
+    memset(&io, 0, sizeof io);
+    io.size = (uint32_t)sizeof io;
+    io.video = video;
+    io.video_pitch = 256u;
+    io.audio = audio;
+    io.audio_capacity = 2048u;
+    CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+}
+
+/* 05-CR-01 (D-19): the first frames after a soft reset must not depend on what the host left in
+   its video buffer. 0xFFFF is never a valid pixel (palette entry in bits 0-5, emphasis in bits
+   6-8, bits 9-15 zero), so any 0xFFFF left after a frame is an unwritten pixel. This proves
+   host-buffer independence only; it does not claim the pixels are hardware-exact after reset. */
+static void check_reset_sentinel_frame(void)
+{
+    static uint16_t video[256u * 240u];
+    static uint16_t video_a[256u * 240u];
+    static uint16_t video_b[256u * 240u];
+    for (unsigned pre = 0u; pre <= 120u; ++pre) {
+        struct nesturbator *nes = make_instance(0);
+        run_frames(nes, pre);
+        CHECK_EQ_U64(nesturbator_reset((nesturbator *)nes), NESTURBATOR_OK);
+        for (unsigned f = 0u; f < 2u; ++f) {
+            unsigned bad = 0u;
+            memset(video, 0xff, sizeof video);
+            run_one_into(nes, video);
+            for (size_t i = 0u; i < sizeof video / sizeof video[0]; ++i)
+                bad += (unsigned)(video[i] == 0xffffu);
+            CHECK_EQ_U64(bad, 0u);
+        }
+        nesturbator_destroy((nesturbator *)nes);
+    }
+    static const unsigned pres[3] = {0u, 1u, 60u};
+    for (unsigned k = 0u; k < 3u; ++k) {
+        struct nesturbator *a = make_instance(0);
+        struct nesturbator *b = make_instance(0);
+        run_frames(a, pres[k]);
+        run_frames(b, pres[k]);
+        CHECK_EQ_U64(nesturbator_reset((nesturbator *)a), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_reset((nesturbator *)b), NESTURBATOR_OK);
+        for (unsigned f = 0u; f < 3u; ++f) {
+            memset(video_a, 0x00, sizeof video_a);
+            memset(video_b, 0xff, sizeof video_b);
+            run_one_into(a, video_a);
+            run_one_into(b, video_b);
+            CHECK(memcmp(video_a, video_b, sizeof video_a) == 0);
+        }
+        nesturbator_destroy((nesturbator *)a);
+        nesturbator_destroy((nesturbator *)b);
+    }
+}
+
 int main(void)
 {
     check_null_and_empty();
@@ -556,5 +613,6 @@ int main(void)
     check_apu_through_reset(0u, 6u);
     check_no_cartridge_state();
     check_two_instances();
+    check_reset_sentinel_frame();
     CHECK_DONE();
 }
