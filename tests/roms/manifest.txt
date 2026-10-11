@@ -84,3 +84,10 @@ tests/fuzz/corpus/mmc3-chr-512k	https://github.com/szTheory/nesturbator	e70b6110
 tests/fuzz/corpus/mmc3-chr-24k	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	e9bf424d6c69ae63f60ca93132bebb0bff355f61a9eb0257887ad9cf3cfe015e
 tests/fuzz/corpus/mmc3-chr-ram-16k	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	f72266ec36b2d2a6434c2fc62b7aec17800e3e55e2b5a01bfd49735df4d33737
 tests/fuzz/corpus/mmc3-work-and-nv	https://github.com/szTheory/nesturbator	ceead30a878e8f08ff82131127d20efb03a7cd34	MIT	0c0b713d2c16a58ad35cd4ed398d2ea5d5532bb94a2d7469c4b4425e246f22bd
+tests/fuzz/corpus/mmc3-chr-none	https://github.com/szTheory/nesturbator	353ccef9360bed3a220ef1b668bf4c43e306a6c2	MIT	02cf130e6ec315e91205242c44ee9ce0073c4d2338759c13f12f2f4b63e2f52c
+tests/fuzz/corpus/mmc3-chr-nvram	https://github.com/szTheory/nesturbator	353ccef9360bed3a220ef1b668bf4c43e306a6c2	MIT	172b36059ae4c7c46387f697eeeb5a9c356b0eee8387002cbe59f24f6d678c8a
+tests/fuzz/corpus/mmc3-ram-1k	https://github.com/szTheory/nesturbator	353ccef9360bed3a220ef1b668bf4c43e306a6c2	MIT	73e2dade69ad550fd53b1bdb36bce6217981db72c2baef999f9c46aa81935b89
+tests/fuzz/corpus/mmc3-ram-2k	https://github.com/szTheory/nesturbator	353ccef9360bed3a220ef1b668bf4c43e306a6c2	MIT	231b7e1dbd8d8d552b77e62e3d6e4cefc74987540174f1dee14cf84cc89eaa60
+tests/fuzz/corpus/mmc3-ram-16k	https://github.com/szTheory/nesturbator	353ccef9360bed3a220ef1b668bf4c43e306a6c2	MIT	46e7399911e19520c33257495c676249f9e95c2dcf331b544910fcea43553d27
+tests/fuzz/corpus/mmc3-battery-no-nvram	https://github.com/szTheory/nesturbator	353ccef9360bed3a220ef1b668bf4c43e306a6c2	MIT	5e86892678fa7a3648c1af273b37aec7d56807ba57bef675c75916c1ec31726f
+tests/fuzz/corpus/mmc3-nvram-no-battery	https://github.com/szTheory/nesturbator	353ccef9360bed3a220ef1b668bf4c43e306a6c2	MIT	4657af7869e305827b8b7fb5c779ea9e124273564a58c4b4f0d0b4d04f96d808
