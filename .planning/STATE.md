@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 11
 current_phase_name: Tune-up and state readiness
 status: executing
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-10-11T20:50:40.213Z"
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-10-11T20:56:57.493Z"
 last_activity: 2026-10-11
 last_activity_desc: Phase 11 execution started
-state_head: 87482e088d31e26d37fde5434d2581f7ac6f1d9f
+state_head: c4733bcfc830986d7cd0a1e7a276ee1f922cc6b8
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-11)
 ## Current Position
 
 Phase: 11 (Tune-up and state readiness) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-10-11 — Phase 11 execution started
 
@@ -153,6 +153,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 10 P05 | 25 min | 3 tasks | 9 files |
 | Phase 10 P06 | 15 min | 2 tasks | 2 files |
 | Phase 10 P07 | 25 min | 2 tasks | 3 files |
+| Phase 11 P02 | 30min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -213,6 +214,7 @@ Recent decisions affecting current work:
 - [Phase 10]: 10-06: parity not-the-test-card check compares against the runner test-card image (testframe_ppm); --rom-parity option loop left open for Plan 07 --sav-in/--sav-expect
 - [Phase 10]: Run 2's runner dump requires the run-1 save copy fixture so no parity test reads a save run 2 may still be writing
 - [Phase 10]: ASan timeout stays 10 min: local 216 s gives CI estimate 297 s, twice 593 s under 600 s
+- [Phase 11]: C3: unload always runs the power-on helper; load never does
 
 ### Pending Todos
 
@@ -258,8 +260,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T20:50:40.199Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-10-11T20:56:57.479Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 11`.
