@@ -2,11 +2,11 @@
 # checks the exact standard output and exit status.
 #
 #   nesturbator_runner_test(NAME <test> ARGS <arg>... EXIT <code>
-#                           [IGNORE_STDOUT] [EXPECT <line>...])
+#                           [IGNORE_STDOUT] [EXPECT <line>...] [EXPECT_ERR <text>])
 #
 # Without EXPECT and IGNORE_STDOUT the output must be empty.
 function(nesturbator_runner_test)
-  cmake_parse_arguments(T "IGNORE_STDOUT" "NAME;EXIT;CLEAN_DIR" "ARGS;EXPECT" ${ARGN})
+  cmake_parse_arguments(T "IGNORE_STDOUT" "NAME;EXIT;CLEAN_DIR;EXPECT_ERR" "ARGS;EXPECT" ${ARGN})
   # A quoted add_test argument keeps its semicolons, so each list arrives
   # whole as one -D value.
   set(cmd "$<TARGET_FILE:nesturbator-run>" ${T_ARGS})
@@ -17,6 +17,7 @@ function(nesturbator_runner_test)
       "-DEXPECT_EXIT=${T_EXIT}"
       "-DIGNORE_STDOUT=${T_IGNORE_STDOUT}"
       "-DCLEAN_DIR=${T_CLEAN_DIR}"
+      "-DEXPECT_ERR=${T_EXPECT_ERR}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
 endfunction()
 
@@ -67,6 +68,30 @@ nesturbator_runner_test(NAME runner.usage.unknown
 # usage error.
 nesturbator_runner_test(NAME runner.usage.positional
   ARGS cartridge EXIT 2 IGNORE_STDOUT)
+
+# MAP-03 / D-15: a refused cartridge gets one named reason on stderr and exit 1.
+set(NESTURBATOR_REJECT_SEEDS ${PROJECT_SOURCE_DIR}/tests/fuzz/corpus)
+set(NESTURBATOR_MAPPER_LIST "supported mappers are 0, 1, 2, 3, 4 and 7")
+nesturbator_runner_test(NAME runner.reject.four_screen
+  ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/mmc3-four-screen --frames 1
+  EXIT 1 IGNORE_STDOUT
+  EXPECT_ERR "nesturbator-run: four-screen cartridges are not supported")
+nesturbator_runner_test(NAME runner.reject.mmc6
+  ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/mmc3-submapper-1 --frames 1
+  EXIT 1 IGNORE_STDOUT
+  EXPECT_ERR "nesturbator-run: MMC6 (mapper 4, submapper 1) is not supported")
+nesturbator_runner_test(NAME runner.reject.mapper
+  ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/mapper-118 --frames 1
+  EXIT 1 IGNORE_STDOUT
+  EXPECT_ERR "nesturbator-run: mapper 118 is not supported; ${NESTURBATOR_MAPPER_LIST}")
+nesturbator_runner_test(NAME runner.reject.generic
+  ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/mmc3-prg-8k --frames 1
+  EXIT 1 IGNORE_STDOUT
+  EXPECT_ERR "${NESTURBATOR_MAPPER_LIST}")
+nesturbator_runner_test(NAME runner.reject.truncated
+  ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/truncated-header --frames 1
+  EXIT 1 IGNORE_STDOUT
+  EXPECT_ERR "${NESTURBATOR_MAPPER_LIST}")
 
 # FRAME-03 / D-16: --dump-frame writes the test card as a 256x240 P6 image
 # (15 header bytes + 256*240*3) while the hash line stays over the native

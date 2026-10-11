@@ -702,11 +702,17 @@ at `build/ci/runner/nesturbator-run`. The public header is
 
 ## The runner
 
-`nesturbator-run` runs the core without a window and accepts a mapper 0, 1, 2, 3 or 7 image
+`nesturbator-run` runs the core without a window and accepts a mapper 0, 1, 2, 3, 4 or 7 image
 with `--rom FILE`. The loader validates the entire image before allocating
 cartridge state. It rejects unsupported mapper, console, region, RAM and ROM
 geometries, truncation, trailing bytes, and images larger than 64 MiB; the
-runner prints a diagnostic and exits nonzero for rejected content.
+runner prints a diagnostic on stderr and exits 1 for rejected content. It names the
+reason: `nesturbator-run: four-screen cartridges are not supported`,
+`nesturbator-run: MMC6 (mapper 4, submapper 1) is not supported`, or
+`nesturbator-run: mapper N is not supported; supported mappers are 0, 1, 2, 3, 4 and 7`.
+Any other refusal (a supported mapper with a refused size, or a file shorter than the
+16-byte header) gets the generic `malformed or unsupported cartridge` line naming the same six
+mappers.
 
 ```sh
 nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
