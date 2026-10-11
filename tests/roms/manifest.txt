@@ -75,3 +75,11 @@ tests/fuzz/corpus/mmc3-four-screen-nes2	https://github.com/szTheory/nesturbator	
 tests/fuzz/corpus/mapper-118	https://github.com/szTheory/nesturbator	47fa6df2c9d8d84aa617ca20167e4de6329ec2f0	MIT	9cc3ac6fed8c24a167c763e7c7bdefabbbbf83538807820d23705a6498b3e24e
 tests/fuzz/corpus/mapper-119	https://github.com/szTheory/nesturbator	47fa6df2c9d8d84aa617ca20167e4de6329ec2f0	MIT	04d34acee5a9ba1bd38d6d0c79a164066bb09f27da16fdb6aa74f068d8c5077e
 tests/fuzz/corpus/mmc3-prg-exp-huge	https://github.com/szTheory/nesturbator	f88d7cfc068ac428c9f433f8a68372fcf600d828	MIT	b82e123d1f5f08b1c37ef8eb1c81738461524ca9d640d453f4b3050549fd2bb7
+tests/fuzz/corpus/mapper-206	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	be882af55f2d70b3be9f6032cbddd6ee9dde2b7bdad033273e0f06f0d0439182
+tests/fuzz/corpus/mapper-249	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	ef9c3f147b6f4a79d9adfce18c9fb8360c0d1881359a7ea7da31ba5bc09dc44c
+tests/fuzz/corpus/mmc3-prg-8k	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	db715c6dcd69e494c90d839838ee41b46f395faf1fb258e8a9e063baeecc0d2d
+tests/fuzz/corpus/mmc3-prg-24k	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	ea396d4696be41d123615dff0aebb8fdd0be1980c0febb077b7339a719c1815f
+tests/fuzz/corpus/mmc3-prg-1m	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	b434154a1bf7e0961a54fed2af915285a7d7833853ec320479b16d40db327b03
+tests/fuzz/corpus/mmc3-chr-512k	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	39a4f915c0e08e3728b5762be211039bb77f04f0e7ee7ed1f4cc777128e4e16a
+tests/fuzz/corpus/mmc3-chr-24k	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	e9bf424d6c69ae63f60ca93132bebb0bff355f61a9eb0257887ad9cf3cfe015e
+tests/fuzz/corpus/mmc3-chr-ram-16k	https://github.com/szTheory/nesturbator	e70b61106df977517b5c1549a1f32a489ab42f01	MIT	f72266ec36b2d2a6434c2fc62b7aec17800e3e55e2b5a01bfd49735df4d33737
