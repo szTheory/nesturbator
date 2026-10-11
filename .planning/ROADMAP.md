@@ -224,8 +224,25 @@ Plans:
   2. A CI test replays a recorded input movie on nes-runner from boot into gameplay: a RAM byte with meaning in the game differs between runs with and without input, the scene's frames change visibly, and the audio keeps varying past a threshold.
   3. The same check fails, in the same test, for each negative control: no input, an attract-mode-only run, and a failed load that falls back to the test frame.
 
-**Plans**: TBD
-**Research flag**: MEDIUM — confirm nes-runner reaches gameplay on this core and writes its save RAM.
+**Plans**: 5 plans
+
+Plans:
+**Wave 1**
+- [ ] 10-01-PLAN.md — PPUCTRL NMI edge fix with core.nmi_edge, CR-01 sentinel test, revision 6 and the 24-row re-pin (BOARD-04, PLAY-01)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 10-02-PLAN.md — nes-runner v1 ROM intake: manifest line and notices (PLAY-01, BOARD-04)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 10-03-PLAN.md — nes-runner movies and runner.boot_to_play: judge, controls with exact masks, mutants (PLAY-01)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 10-04-PLAN.md — One hash key list, Holy Mapperel audio rows, nes-runner boot and play rows, 07-WR-02, ROM drift guard (BOARD-04, PLAY-01)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 10-05-PLAN.md — libretro.parity per key with save round trips, ASan budget, coverage docs, feat: PR title (BOARD-04, PLAY-01)
+
+**Research flag**: MEDIUM — confirm nes-runner reaches gameplay on this core and writes its save RAM. Answered in 10-RESEARCH.md: yes, after the NMI edge fix.
 **Ships**: the milestone's final release.
 
 ## Progress
