@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v2
 milestone_name: Most of the library plays
-current_phase: 9
+current_phase: 09
 current_phase_name: MMC3
 status: executing
-stopped_at: Phase 9 context gathered
-last_updated: "2026-10-11T01:10:40.166Z"
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-10-11T02:15:46.222Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 08 complete, transitioned to Phase 9
-state_head: d4356e1c072939a9a22c8a441d862d6d98b15f7e
+last_activity_desc: Phase 09 execution started
+state_head: 4cf751ae26b1aa5328524f25de151eef40209d35
 progress:
   total_phases: 6
   completed_phases: 10
   total_plans: 34
-  completed_plans: 22
-  percent: 65
+  completed_plans: 23
+  percent: 68
 ---
 
 # Project State
@@ -25,16 +25,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 9 — MMC3
+**Current focus:** Phase 09 — MMC3
 
 ## Current Position
 
-Phase: 9 (MMC3) — READY TO EXECUTE
-Plan: Not started
+Phase: 09 (MMC3) — EXECUTING
+Plan: 2 of 12
 Status: Ready to execute
-Last activity: 2026-10-10 — Phase 08 complete, transitioned to Phase 9
+Last activity: 2026-10-10 — Phase 09 execution started
 
-Progress: [███████░░░] 65% of v2
+Progress: [███████░░░] 68% of v2
 
 ## Performance Metrics
 
@@ -132,6 +132,7 @@ Progress: [███████░░░] 65% of v2
 | Phase 08 P06 | 30 min | 3 tasks | 9 files |
 | Phase 08 P07 | 20 min | 3 tasks | 15 files |
 | Phase 08 P08 | 45min | 3 tasks | 8 files |
+| Phase 09 P01 | 40 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -173,6 +174,7 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-06: exit flush runs after the frame loop on every path (JAM included); battery-less cartridges do no save I/O
 - [Phase 08]: 08-07: Holy Mapperel mapper 1 pinned N: m1sgrom/m1sjrom/m1skrom 100, m1surom 200, m1sxrom 400; :save field selects the two-run chain
 - [Phase 08]: 08-08: libretro adapter fetches the battery span once in retro_load_game; game mode e2e files renamed per tag
+- [Phase 09]: 09-01: MMC3 A12 filter clocks iff nes->cpu_cycle - fall >= 3; $A001 stored XOR 0x80 so zeroed block is power-on
 
 ### Pending Todos
 
@@ -219,9 +221,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T00:15:29.075Z
-Stopped at: Phase 9 context gathered
-Resume file: .planning/phases/09-mmc3/09-CONTEXT.md
+Last session: 2026-10-11T02:15:46.185Z
+Stopped at: Completed 09-01-PLAN.md
+Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 9`.
 
