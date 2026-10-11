@@ -60,3 +60,8 @@ tests/roms/hm/M1_P128K_CR8K.nes	https://github.com/pinobatch/holy-mapperel/relea
 tests/roms/hm/M1_P128K_C32K_W8K.nes	https://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z	c022622274ca8b83d214dea97e4388a6b0e92d8a	Zlib	3d330d32bb45d41ce6c9666b80f580ff2912444b44f833ee89d062794abdfe32
 tests/roms/hm/M1_P128K_C128K_S8K.nes	https://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z	c022622274ca8b83d214dea97e4388a6b0e92d8a	Zlib	2263d212fe9c8e857f89c846962e7e78f3ba885e1413644b94e50cfff65ecd08
 tests/roms/hm/M1_P512K_CR8K_S8K.nes	https://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z	c022622274ca8b83d214dea97e4388a6b0e92d8a	Zlib	c3f239ea8f2fa1023a272b5e1b5add884b583e79ffd6487771cc53a1f4566b5c
+tests/fuzz/corpus/valid-mmc3	https://github.com/szTheory/nesturbator	0d332633e56ed8d0c8d88e88483389c01044742e	MIT	ebfd56c2230e41a32e3a706525eb66f4de0ba2f0f2b42cc49f46f3b0b80007da
+tests/fuzz/corpus/valid-mmc3-ines1	https://github.com/szTheory/nesturbator	0d332633e56ed8d0c8d88e88483389c01044742e	MIT	a01d0c6b12191cac4f349a88892860d4dc7bf6415e1685fdcf7a2aac52b84cd9
+tests/fuzz/corpus/valid-mmc3-tgrom	https://github.com/szTheory/nesturbator	0d332633e56ed8d0c8d88e88483389c01044742e	MIT	32539f8a6a701b3dc64ab4ab3eeb24b4b967a0805aec407198e1b051dddae90d
+tests/fuzz/corpus/valid-mmc3-sub4	https://github.com/szTheory/nesturbator	0d332633e56ed8d0c8d88e88483389c01044742e	MIT	83adc3b560016e5cba230984ee9f1be35ce76dc542a8e07d455aaaf6834c5edb
+tests/fuzz/corpus/valid-mmc3-prg16k	https://github.com/szTheory/nesturbator	0d332633e56ed8d0c8d88e88483389c01044742e	MIT	e3bbb97c066705fa6c4fcf5ea496fcac31a287f981303be90e478a3f50ed4deb
