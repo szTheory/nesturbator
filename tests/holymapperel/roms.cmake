@@ -11,6 +11,7 @@ set(NESTURBATOR_HOLYMAPPEREL_ROMS
   "m2:M2_P128K_CR8K_V.nes:100:PRG RAM MISSING"
   "m3:M3_P32K_C32K_H.nes:100:PRG RAM MISSING"
   "m7:M7_P128K_CR8K.nes:100:PRG RAM MISSING"
+  "m4tnrom:M4_P128K_CR8K.nes:600:PRG RAM MISSING"
   "m1sgrom:M1_P128K_CR8K.nes:100:PRG RAM MISSING"
   "m1sjrom:M1_P128K_C32K_W8K.nes:100:8K PRG RAM OK"
   "m1skrom:M1_P128K_C128K_S8K.nes:100:8K PRG RAM OK"
@@ -26,4 +27,5 @@ set(NESTURBATOR_HOLYMAPPEREL_MANIFEST
   "tests/roms/hm/M1_P512K_CR8K_S32K.nes\thttps://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z\tc022622274ca8b83d214dea97e4388a6b0e92d8a\tZlib\t7db5b5191ce842d44a5a8cb132a58d7116741053d4bd0f8a5def832be80e655a"
   "tests/roms/hm/M2_P128K_CR8K_V.nes\thttps://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z\tc022622274ca8b83d214dea97e4388a6b0e92d8a\tZlib\tc7e83755bd9adbb7c705ea9f29535442af7390444632f9f824fcf4c00632069b"
   "tests/roms/hm/M3_P32K_C32K_H.nes\thttps://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z\tc022622274ca8b83d214dea97e4388a6b0e92d8a\tZlib\t499891c6d8c7a1e7631bdc601d9d624938842735f92fe1fda7b19ef9fae514b7"
-  "tests/roms/hm/M7_P128K_CR8K.nes\thttps://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z\tc022622274ca8b83d214dea97e4388a6b0e92d8a\tZlib\t4aa0050f36ae17e17701506821e5147df5b843bcdf2827468fa9c66e4b7ac1ba")
+  "tests/roms/hm/M7_P128K_CR8K.nes\thttps://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z\tc022622274ca8b83d214dea97e4388a6b0e92d8a\tZlib\t4aa0050f36ae17e17701506821e5147df5b843bcdf2827468fa9c66e4b7ac1ba"
+  "tests/roms/hm/M4_P128K_CR8K.nes\thttps://github.com/pinobatch/holy-mapperel/releases/download/v0.02/holy-mapperel-bin-0.02.7z\tc022622274ca8b83d214dea97e4388a6b0e92d8a\tZlib\tedb301630dae50a8470c1fb914f436434a150c886d9537d072275b751a9b4125")

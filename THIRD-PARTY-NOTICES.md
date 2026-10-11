@@ -78,7 +78,7 @@ SOFTWARE.
 
 ## Holy Mapperel
 
-Test ROMs for the mapper 1, 2, 3 and 7 boards, unmodified, under `tests/roms/hm/`.
+Test ROMs for the mapper 1, 2, 3, 4 and 7 boards, unmodified, under `tests/roms/hm/`.
 
 - Upstream: https://github.com/pinobatch/holy-mapperel (c) Damian Yerrick
 - Release: v0.02, asset `holy-mapperel-bin-0.02.7z`, 17964 bytes
@@ -93,6 +93,7 @@ Test ROMs for the mapper 1, 2, 3 and 7 boards, unmodified, under `tests/roms/hm/
   - `M1_P128K_C32K_W8K.nes` SHA-256 3d330d32bb45d41ce6c9666b80f580ff2912444b44f833ee89d062794abdfe32
   - `M1_P128K_C128K_S8K.nes` SHA-256 2263d212fe9c8e857f89c846962e7e78f3ba885e1413644b94e50cfff65ecd08
   - `M1_P512K_CR8K_S8K.nes` SHA-256 c3f239ea8f2fa1023a272b5e1b5add884b583e79ffd6487771cc53a1f4566b5c
+  - `M4_P128K_CR8K.nes` SHA-256 edb301630dae50a8470c1fb914f436434a150c886d9537d072275b751a9b4125
 
 The test decoder in `tests/holymapperel/` carries the ROM's 8x8 font as a
 table (tiles $30-$39 and $01-$06); the font is Holy Mapperel's.
