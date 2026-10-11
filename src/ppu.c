@@ -627,12 +627,19 @@ void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint
         (reg == 0x2000u || reg == 0x2001u || reg == 0x2005u || reg == 0x2006u))
         return;
     if (reg == 0x2000u) {
+        uint8_t old = nes->ppu.control;
         nes->ppu.control = value;
         nes->ppu.t = (uint16_t)((nes->ppu.t & 0xf3ffu) | ((value & 3u) << 10));
-        if ((value & 0x80u) != 0u && (nes->ppu.status & 0x80u) != 0u)
-            nes->cpu.nmi_pending = 1u;
-        else
+        /* NESdev Wiki, PPU registers: "Changing NMI enable from 0 to 1 while the vblank flag
+           in PPUSTATUS is 1 will immediately trigger an NMI." Only that 0-to-1 change raises
+           the edge; a write that keeps bit 7 set leaves the pending state as it was, and a
+           write that clears bit 7 suppresses a pending NMI. */
+        if ((value & 0x80u) != 0u) {
+            if ((old & 0x80u) == 0u && (nes->ppu.status & 0x80u) != 0u)
+                nes->cpu.nmi_pending = 1u;
+        } else {
             nes->cpu.nmi_pending = 0u;
+        }
     } else if (reg == 0x2001u) {
         nes->ppu.mask = value;
     } else if (reg == 0x2003u) {

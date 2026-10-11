@@ -436,6 +436,8 @@ target_include_directories(core.cartridge PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # D-18: soft reset on a synthetic NROM image with a trainer.
 nesturbator_core_test(core.reset core/test_reset.c)
 target_include_directories(core.reset PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# D-02: the PPUCTRL NMI edge, one NMI per frame from a handler that rewrites $2000.
+nesturbator_core_test(core.nmi_edge core/test_nmi_edge.c)
 # MAP-01, D-04, D-05, D-06, D-08: cycle-stamped mapper writes, the IRQ OR, the nametable map and reset.
 nesturbator_core_test(core.mapper core/test_mapper.c)
 target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
