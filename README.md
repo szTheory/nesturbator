@@ -43,8 +43,9 @@ nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.pp
 
 The CI suite pins three redistributable mapper-0 games: MIT-licensed
 Nesteroids, zlib-licensed Double Action Blaster Guys, and all-permissive RHDE.
-It also runs Holy Mapperel's mapper 1, 2, 3 and 7 test ROMs (zlib) and requires
-each to report the result code 0000. Their boot hashes and scripted DABG two-port movie hashes are checked against
+It also runs Holy Mapperel's mapper 1, 2, 3, 4 and 7 test ROMs (zlib), among them the
+mapper 4 ROMs `M4_P128K_CR8K` (TNROM-like) and `M4_P256K_C256K` (TxROM-like),
+and requires each to report the result code 0000 with `PRG RAM MISSING`. Their boot hashes and scripted DABG two-port movie hashes are checked against
 `tests/runner/hashes.txt` on every platform; the hashes use native pixels
 before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
 banks and uses the 8 KiB CHR RAM it fills during startup.
@@ -267,10 +268,10 @@ brightness never falls down a column.
 two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
 180, plus transition and PCM hashes for each game's boot run. It fails if any
 requested frame or audio hash is missing or duplicated;
-`runner.write_hashes.content` requires all 45 sorted keys to equal
+`runner.write_hashes.content` requires all 47 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
-The 45 keys are the 36 game and movie keys plus one
-`holymapperel/<key>/frame N` key per Holy Mapperel ROM (eight) and one
+The 47 keys are the 36 game and movie keys plus one
+`holymapperel/<key>/frame N` key per Holy Mapperel ROM (ten) and one
 `holymapperel/m1sxrom.saved/frame N` key for the SXROM ROM's second run; `runner.write_hashes`
 hashes frame N and frame 2N of each and fails if they differ, so a pinned
 result screen is known to be static.
@@ -449,7 +450,7 @@ and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
 a different frame fails the run. It also requires six nonempty artifacts with
-the exact 45-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
+the exact 47-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
 extra keys and malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
@@ -982,7 +983,7 @@ This repository contains no commercial ROM or BIOS data and never will. You
 supply your own legally obtained game images. See
 [ASSET_POLICY.md](ASSET_POLICY.md).
 
-Holy Mapperel's mapper 1, 2, 3 and 7 test ROMs under `tests/roms/hm/` are zlib
+Holy Mapperel's mapper 1, 2, 3, 4 and 7 test ROMs under `tests/roms/hm/` are zlib
 licensed, byte-identical to the v0.02 release, and listed in
 `tests/roms/manifest.txt`; their licence is in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

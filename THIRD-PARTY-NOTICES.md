@@ -94,6 +94,7 @@ Test ROMs for the mapper 1, 2, 3, 4 and 7 boards, unmodified, under `tests/roms/
   - `M1_P128K_C128K_S8K.nes` SHA-256 2263d212fe9c8e857f89c846962e7e78f3ba885e1413644b94e50cfff65ecd08
   - `M1_P512K_CR8K_S8K.nes` SHA-256 c3f239ea8f2fa1023a272b5e1b5add884b583e79ffd6487771cc53a1f4566b5c
   - `M4_P128K_CR8K.nes` SHA-256 edb301630dae50a8470c1fb914f436434a150c886d9537d072275b751a9b4125
+  - `M4_P256K_C256K.nes` SHA-256 278041824af3a0530d6a1367fa1a1d3bb544d2dd1e97ad8372673f7fe0379b17
 
 The test decoder in `tests/holymapperel/` carries the ROM's 8x8 font as a
 table (tiles $30-$39 and $01-$06); the font is Holy Mapperel's.
