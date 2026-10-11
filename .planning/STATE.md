@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 09
 current_phase_name: MMC3
 status: executing
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-10-11T02:24:42.704Z"
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-10-11T02:29:36.811Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 09 execution started
-state_head: 308b261d5cd3c6fb7fd0451250cdec78be4c59ad
+state_head: 35589ccd7fdc33ac3f0afc9604c106bb4c4a8835
 progress:
   total_phases: 6
   completed_phases: 10
   total_plans: 34
-  completed_plans: 24
-  percent: 71
+  completed_plans: 25
+  percent: 74
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 ## Current Position
 
 Phase: 09 (MMC3) — EXECUTING
-Plan: 3 of 12
+Plan: 4 of 12
 Status: Ready to execute
 Last activity: 2026-10-10 — Phase 09 execution started
 
-Progress: [███████░░░] 71% of v2
+Progress: [███████░░░] 74% of v2
 
 ## Performance Metrics
 
@@ -134,6 +134,7 @@ Progress: [███████░░░] 71% of v2
 | Phase 08 P08 | 45min | 3 tasks | 8 files |
 | Phase 09 P01 | 40 min | 3 tasks | 9 files |
 | Phase 09 P02 | 20 min | 3 tasks | 8 files |
+| Phase 09 P03 | 15 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -177,6 +178,7 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-08: libretro adapter fetches the battery span once in retro_load_game; game mode e2e files renamed per tag
 - [Phase 09]: 09-01: MMC3 A12 filter clocks iff nes->cpu_cycle - fall >= 3; $A001 stored XOR 0x80 so zeroed block is power-on
 - [Phase 09]: 09-02 seed pin SHA 0d332633e56ed8d0c8d88e88483389c01044742e; mmc3_rows names match D-16 seeds
+- [Phase 09]: BG at $1000 and sprites at $0000: a frame holds 242 MMC3 clocks (pre-render clocks at dot 5 and 325)
 
 ### Pending Todos
 
@@ -223,8 +225,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T02:24:42.629Z
-Stopped at: Completed 09-02-PLAN.md
+Last session: 2026-10-11T02:29:36.760Z
+Stopped at: Completed 09-03-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 9`.
