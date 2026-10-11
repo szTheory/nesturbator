@@ -173,7 +173,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Synthetic CTest cases show the IRQ counter clocked by an A12 rise only after A12 has been low for three M2 falls, sprite fetches clocking it even for empty slots, and the NEC behaviour on submapper 4.
   2. Holy Mapperel's mapper 4 ROMs report `0000`, including `$A001` PRG-RAM enable and write protect.
-  3. A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit, checks their SHA-256s and passes the Sharp-revision tests; `6-MMC3_alt` is recorded as unsupported.
+  3. A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit, checks their SHA-256s and passes the Sharp-revision tests; the NEC-revision tests `mmc3_test_2/6-MMC3_alt` and `mmc3_irq_tests/5.MMC3_rev_A` are recorded as unsupported.
   4. The loader accepts mappers 0, 1, 2, 3, 4 and 7, and `nesturbator-run` rejects any other mapper, MMC6 (mapper 4, submapper 1) and four-screen boards with a message and a non-zero exit status; the fuzz corpus and the cartridge tests reflect the new rules.
 
 **Plans**: 12 plans

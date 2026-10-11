@@ -144,6 +144,15 @@ code and reconciled two conflicts:
   One routine; `nec = (nes->mapper.submapper == 4u)`. Firing sets
   `mapper.irq = 1` and calls `nesturbator__irq_update`. The "$C001 written
   twice" pathology is not modelled.
+  - **Amended 2026-10-10 (research-driven, recorded at plan revision):**
+    firing has no extra IRQ assertion delay by default. A one-CPU-cycle
+    assertion delay is added only if both `mmc3_test_2/4-scanline_timing`
+    and `mmc3_irq_tests/4.Scanline_timing` fail and their codes show the IRQ
+    one cycle early or late; it is then pinned by a `core.mapper_mmc3` case.
+    Any other failure pattern is diagnosed as a different defect, never
+    patched with a delay (09-RESEARCH.md open question 1, RESOLVED as
+    measured at execution). The counter and revision rules above are
+    unchanged. Implemented by 09-11 Task 2.
 - **D-07:** Registers, decoded by `addr & 0xE001`:
   - **`$8000`:** stores the select byte and rebuilds. Bits 2-0 pick R0-R7,
     bit 6 is the PRG mode and bit 7 is CHR inversion.

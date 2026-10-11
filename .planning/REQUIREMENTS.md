@@ -38,7 +38,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. "Holy
   - The IRQ counter is clocked by PPU A12 rises after A12 has been low for three M2 falls, and sprite fetches clock it even for empty slots.
   - Holy Mapperel's mapper 4 ROMs pass, including `$A001` PRG-RAM enable and write protect.
   - A synthetic test shows the NEC behaviour on submapper 4.
-  - A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit and passes the Sharp-revision tests. `6-MMC3_alt` is recorded as unsupported.
+  - A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit and passes the Sharp-revision tests. `mmc3_test_2/6-MMC3_alt` and `mmc3_irq_tests/5.MMC3_rev_A`, the NEC-revision tests, are recorded as unsupported.
 - [ ] **BOARD-04**: Frame and audio hashes for every board's committed ROMs are identical on all six platforms, and the libretro test program receives equal frames.
 
 ### Battery saves
