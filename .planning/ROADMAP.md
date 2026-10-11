@@ -33,7 +33,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
 - [x] **Phase 6: Mapper seam and PPU fetch pipeline** - NROM moves onto a per-board mapper interface with v1 hashes unchanged, then mid-frame scroll writes render as on the console and A12 rises on the documented dots (completed 2026-10-10)
 - [x] **Phase 7: UxROM, CNROM and AxROM** - Discrete-logic board games run, with bus conflicts where the board has them (completed 2026-10-10)
 - [x] **Phase 8: MMC1 and battery saves** - MMC1 games run, and battery saves persist through the runner and RetroArch (completed 2026-10-10)
-- [ ] **Phase 9: MMC3** - MMC3 games run with the A12-clocked scanline IRQ, and the loader accepts exactly the six v2 mappers
+- [x] **Phase 9: MMC3** - MMC3 games run with the A12-clocked scanline IRQ, and the loader accepts exactly the six v2 mappers (completed 2026-10-10)
 - [ ] **Phase 10: Close-out and boot-to-play** - Every board's hashes match on six platforms, and a game is proven to play from boot
 
 ## Phase Details
@@ -176,7 +176,7 @@ Plans:
   3. A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit, checks their SHA-256s and passes the Sharp-revision tests; the NEC-revision tests `mmc3_test_2/6-MMC3_alt` and `mmc3_irq_tests/5.MMC3_rev_A` are recorded as unsupported.
   4. The loader accepts mappers 0, 1, 2, 3, 4 and 7, and `nesturbator-run` rejects any other mapper, MMC6 (mapper 4, submapper 1) and four-screen boards with a message and a non-zero exit status; the fuzz corpus and the cartridge tests reflect the new rules.
 
-**Plans**: 12/12 plans executed
+**Plans**: 12/12 plans complete
 
 Plans:
 **Wave 1**
@@ -245,7 +245,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | Complete    | 2026-10-10 |
 | 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
 | 8. MMC1 and battery saves | v2 | 8/8 | Complete    | 2026-10-10 |
-| 9. MMC3 | v2 | 12/12 | In Progress | - |
+| 9. MMC3 | v2 | 12/12 | Complete    | 2026-10-10 |
 | 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
 
 ## Backlog
