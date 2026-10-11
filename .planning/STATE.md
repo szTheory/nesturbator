@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 10
 current_phase_name: Close-out and boot-to-play
 status: executing
-stopped_at: Completed 10-04-PLAN.md
-last_updated: "2026-10-11T14:41:40.769Z"
+stopped_at: Completed 10-05-PLAN.md
+last_updated: "2026-10-11T14:48:17.122Z"
 last_activity: 2026-10-11
 last_activity_desc: Phase 10 execution started
-state_head: 31acd9f1bd7701f2ba7894a7f80fed7cdaa8f9b1
+state_head: c06d820dc027bb1c321e864c758d3ee85e2bde2a
 progress:
   total_phases: 6
   completed_phases: 11
   total_plans: 41
-  completed_plans: 38
-  percent: 93
+  completed_plans: 39
+  percent: 95
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 ## Current Position
 
 Phase: 10 (Close-out and boot-to-play) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
 Last activity: 2026-10-11 — Phase 10 execution started
 
-Progress: [█████████░] 93% of v2
+Progress: [█████████░] 95% of v2
 
 ## Performance Metrics
 
@@ -149,6 +149,7 @@ Progress: [█████████░] 93% of v2
 | Phase 10 P02 | 10 min | 2 tasks | 3 files |
 | Phase 10 P03 | 25 min | 2 tasks | 3 files |
 | Phase 10 P04 | 20 min | 3 tasks | 2 files |
+| Phase 10 P05 | 25 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -205,6 +206,7 @@ Recent decisions affecting current work:
 - [Phase 10]: nes-runner v1 ROM committed byte-for-byte; driver attribution limited to sound/driver.s header (FamiTracker NSF driver 2.11), email omitted
 - [Phase 10]: Pinned mid-window nes-runner jump list {251,21} {303,21} {351,21} {408,23} {463,21} {558,25}; LATCH_SLACK = 1 (measured offset 0 plus 1)
 - [Phase 10]: 10-04: mutants and boundary traces are in-memory edits of recorded traces inside runner.boot_to_play; no judge threshold changed
+- [Phase 10]: Hash key list lives once in tests/cmake/hash_keys.cmake; writer, validator, fixture and drift guard read it (10-05)
 
 ### Pending Todos
 
@@ -250,8 +252,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T14:41:40.702Z
-Stopped at: Completed 10-04-PLAN.md
+Last session: 2026-10-11T14:48:17.063Z
+Stopped at: Completed 10-05-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 10`.

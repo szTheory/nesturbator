@@ -224,7 +224,7 @@ Plans:
   2. A CI test replays a recorded input movie on nes-runner from boot into gameplay: a RAM byte with meaning in the game differs between runs with and without input, the scene's frames change visibly, and the audio keeps varying past a threshold.
   3. The same check fails, in the same test, for each negative control: no input, an attract-mode-only run, and a failed load that falls back to the test frame.
 
-**Plans**: 4/7 plans executed
+**Plans**: 5/7 plans executed
 
 Plans:
 **Wave 1**
@@ -240,7 +240,7 @@ Plans:
 - [x] 10-04-PLAN.md — boot_to_play mutants and threshold boundary traces, ASan run, README boot-to-play text (PLAY-01)
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 10-05-PLAN.md — One hash key list, Holy Mapperel audio rows, nes-runner boot and play rows, 07-WR-02, ROM drift guard (BOARD-04, PLAY-01)
+- [x] 10-05-PLAN.md — One hash key list, Holy Mapperel audio rows, nes-runner boot and play rows, 07-WR-02, ROM drift guard (BOARD-04, PLAY-01)
 
 **Wave 6** *(blocked on Wave 5 completion)*
 - [ ] 10-06-PLAN.md — --rom-parity mode and libretro.parity per key for games, nes-runner and Holy Mapperel without saves (BOARD-04, PLAY-01)
@@ -269,7 +269,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
 | 8. MMC1 and battery saves | v2 | 8/8 | Complete    | 2026-10-10 |
 | 9. MMC3 | v2 | 12/12 | Complete    | 2026-10-10 |
-| 10. Close-out and boot-to-play | v2 | 4/7 | In Progress | - |
+| 10. Close-out and boot-to-play | v2 | 5/7 | In Progress | - |
 
 ## Backlog
 
