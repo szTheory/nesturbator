@@ -276,17 +276,26 @@ period, the test card's edge pixels, and that two instances run apart.
 table's invariants: `$20` and `$30` are white, `$xE` and `$xF` are black under
 every emphasis, an emphasis bit raises no colour channel but its own, and
 brightness never falls down a column.
-`runner.write_hashes` runs each pinned game and the three scripted DABG
-two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
-180, plus transition and PCM hashes for each game's boot run. It fails if any
-requested frame or audio hash is missing or duplicated;
-`runner.write_hashes.content` requires all 50 sorted keys to equal
+`runner.write_hashes` runs each pinned game (Nesteroids, DABG, RHDE and
+nes-runner), the three scripted DABG two-port movies, the scripted nes-runner
+play movie and every Holy Mapperel ROM. It writes ordered native hashes at
+frames 1, 30, 60, 120 and 180 plus transition and PCM hashes for each game's
+boot run, nes-runner play frames 1, 30, 60, 120, 180, 300, 450 and 600 plus
+their audio hashes, and for each Holy Mapperel ROM the result-screen frame and
+both audio hashes from the same run. It fails if any requested frame or audio
+hash is missing or duplicated, and unless the keys it generated equal the
+expected list exactly, naming the missing and the extra keys.
+`runner.write_hashes.content` requires all 95 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
-The 50 keys are the 36 game and movie keys plus one
-`holymapperel/<key>/frame N` key per Holy Mapperel ROM (twelve) and one
-`holymapperel/<key>.saved/frame N` key for each second run (`m1sxrom`, `m4tkrom`); `runner.write_hashes`
-hashes frame N and frame 2N of each and fails if they differ, so a pinned
-result screen is known to be static.
+The 95 keys are 28 game boot keys (four games, five frames and two audio keys
+each), 15 DABG movie keys, 10 nes-runner play keys, and for Holy Mapperel one
+`holymapperel/<key>/frame N` key plus two `holymapperel/<key>/audio/...` keys
+per ROM (twelve) and per second run (`<key>.saved` for `m1sxrom`, `m4tkrom`),
+which is 14 frame keys and 28 audio keys. The list is written once, in
+`tests/cmake/hash_keys.cmake`, which the writer, the CI hash-equality
+validator and its self-test all read, so no row count is spelled out anywhere.
+`runner.write_hashes` hashes frame N and frame 2N of each Holy Mapperel ROM and
+fails if they differ, so a pinned result screen is known to be static.
 `runner.boot_to_play` is the boot-to-play proof for nes-runner v1 (MIT,
 mapper 1). It replays generated NMOVIE1 movies through the library, reads
 `$3E` (game state) and the score bytes `$5D` to `$60` with
@@ -528,8 +537,9 @@ and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
 a different frame fails the run. It also requires six nonempty artifacts with
-the exact 50-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
-extra keys and malformed hashes. The branch rules require one check,
+the exact 95-key inventory from `tests/cmake/hash_keys.cmake`, checking the key
+set of every artifact, and rejecting duplicates, missing keys, extra keys and
+malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
 
