@@ -224,14 +224,14 @@ Plans:
   2. A CI test replays a recorded input movie on nes-runner from boot into gameplay: a RAM byte with meaning in the game differs between runs with and without input, the scene's frames change visibly, and the audio keeps varying past a threshold.
   3. The same check fails, in the same test, for each negative control: no input, an attract-mode-only run, and a failed load that falls back to the test frame.
 
-**Plans**: 1/7 plans executed
+**Plans**: 2/7 plans executed
 
 Plans:
 **Wave 1**
 - [x] 10-01-PLAN.md — PPUCTRL NMI edge fix with core.nmi_edge, CR-01 sentinel test, revision 6 and the 24-row re-pin (BOARD-04, PLAY-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 10-02-PLAN.md — nes-runner v1 ROM intake: manifest line and notices (PLAY-01, BOARD-04)
+- [x] 10-02-PLAN.md — nes-runner v1 ROM intake: manifest line and notices (PLAY-01, BOARD-04)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 10-03-PLAN.md — nes-runner movies and runner.boot_to_play: judge and the four controls with exact masks (PLAY-01)
@@ -269,7 +269,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
 | 8. MMC1 and battery saves | v2 | 8/8 | Complete    | 2026-10-10 |
 | 9. MMC3 | v2 | 12/12 | Complete    | 2026-10-10 |
-| 10. Close-out and boot-to-play | v2 | 1/7 | In Progress | - |
+| 10. Close-out and boot-to-play | v2 | 2/7 | In Progress | - |
 
 ## Backlog
 

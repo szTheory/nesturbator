@@ -5,17 +5,17 @@ milestone_name: Most of the library plays
 current_phase: 10
 current_phase_name: Close-out and boot-to-play
 status: executing
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-10-11T14:22:01.763Z"
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-10-11T14:25:43.530Z"
 last_activity: 2026-10-11
 last_activity_desc: Phase 10 execution started
-state_head: 27add48be94131c52201de72a61433daff882d37
+state_head: 096a071da40ccd51789fdcd819378ff60938d429
 progress:
   total_phases: 6
   completed_phases: 11
   total_plans: 41
-  completed_plans: 35
-  percent: 85
+  completed_plans: 36
+  percent: 88
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 ## Current Position
 
 Phase: 10 (Close-out and boot-to-play) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-10-11 — Phase 10 execution started
 
-Progress: [█████████░] 85% of v2
+Progress: [█████████░] 88% of v2
 
 ## Performance Metrics
 
@@ -146,6 +146,7 @@ Progress: [█████████░] 85% of v2
 | Phase 09 P11 | 40min | 3 tasks | 7 files |
 | Phase 09 P12 | 20 min | 2 tasks | 3 files |
 | Phase 10 P01 | 25 min | 3 tasks | 11 files |
+| Phase 10 P02 | 10 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -199,6 +200,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-11: no IRQ delay; 4-scanline_timing failure was a PPU defect (pre-render dot 0 drove A12), fixed in ppu.c. NEC rows 6-MMC3_alt (0x02) and 5.MMC3_rev_A (0x03) unsupported.
 - [Phase 09]: Plan 09-12: mmc3-oracle nightly job timeout is 8 minutes (300 s fetch plus twice the 69 s cold ci build); no cold run of the lane measured yet
 - [Phase 10]: 10-01: $2000 raises NMI only on bit 7 0-to-1 in vblank; revision 6 raised once, 24 hash rows re-pinned; CR-01 closed by sentinel test with no core change
+- [Phase 10]: nes-runner v1 ROM committed byte-for-byte; driver attribution limited to sound/driver.s header (FamiTracker NSF driver 2.11), email omitted
 
 ### Pending Todos
 
@@ -244,8 +246,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T14:22:01.698Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-10-11T14:25:43.476Z
+Stopped at: Completed 10-02-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 10`.
