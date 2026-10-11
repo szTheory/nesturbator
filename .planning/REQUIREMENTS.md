@@ -96,12 +96,30 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| TUNE-07 | Phase 11 | Pending |
+| TUNE-08 | Phase 11 | Pending |
+| TUNE-09 | Phase 11 | Pending |
+| STATE-01 | Phase 12 | Pending |
+| STATE-02 | Phase 12 | Pending |
+| STATE-03 | Phase 12 | Pending |
+| STATE-04 | Phase 12 | Pending |
+| STATE-05 | Phase 12 | Pending |
+| RUN-01 | Phase 12 | Pending |
+| LR-01 | Phase 13 | Pending |
+| LR-02 | Phase 13 | Pending |
+| LR-03 | Phase 13 | Pending |
+| LR-04 | Phase 13 | Pending |
+| RUN-02 | Phase 14 | Pending |
+| RUN-03 | Phase 14 | Pending |
+| PERF-02 | Phase 15 | Pending |
+| PERF-03 | Phase 15 | Pending |
+| TUNE-10 | Phase 15 | Pending |
 
 **Coverage:**
 - v3 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-10-11*
-*Last updated: 2026-10-11 after initial definition*
+*Last updated: 2026-10-11 after v3 roadmap creation*
