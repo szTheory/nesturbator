@@ -4,18 +4,18 @@ milestone: v2
 milestone_name: Most of the library plays
 current_phase: 09
 current_phase_name: MMC3
-status: executing
-stopped_at: Completed 09-11-PLAN.md
-last_updated: "2026-10-11T03:13:39.540Z"
+status: verifying
+stopped_at: Completed 09-12-PLAN.md
+last_updated: "2026-10-11T03:23:32.499Z"
 last_activity: 2026-10-10
 last_activity_desc: Phase 09 execution started
-state_head: 06de06db25f1285bfb1891cd1edf174ea4491185
+state_head: 64c9e0030ea0e96b12de3ad938cae9d1294a9ca5
 progress:
   total_phases: 6
   completed_phases: 10
   total_plans: 34
-  completed_plans: 33
-  percent: 97
+  completed_plans: 34
+  percent: 100
 ---
 
 # Project State
@@ -31,10 +31,10 @@ See: .planning/PROJECT.md (updated 2026-10-10)
 
 Phase: 09 (MMC3) — EXECUTING
 Plan: 12 of 12
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-10 — Phase 09 execution started
 
-Progress: [█████████░] 97% of v2
+Progress: [██████████] 100% of v2
 
 ## Performance Metrics
 
@@ -143,6 +143,7 @@ Progress: [█████████░] 97% of v2
 | Phase 09 P09 | 25 min | 2 tasks | 8 files |
 | Phase 09 P10 | 25 min | 2 tasks | 10 files |
 | Phase 09 P11 | 40min | 3 tasks | 7 files |
+| Phase 09 P12 | 20 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -194,6 +195,7 @@ Recent decisions affecting current work:
 - [Phase 09]: 09-09: m4tkrom save byte 0 measured 0xB6; derived ROMs built at build time from sha256-checked base
 - [Phase 09]: 09-10: mmc3_test_2/1-clocking passes at frame 27; oracle.txt budget 120
 - [Phase 09]: 09-11: no IRQ delay; 4-scanline_timing failure was a PPU defect (pre-render dot 0 drove A12), fixed in ppu.c. NEC rows 6-MMC3_alt (0x02) and 5.MMC3_rev_A (0x03) unsupported.
+- [Phase 09]: Plan 09-12: mmc3-oracle nightly job timeout is 8 minutes (300 s fetch plus twice the 69 s cold ci build); no cold run of the lane measured yet
 
 ### Pending Todos
 
@@ -240,8 +242,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T03:13:39.482Z
-Stopped at: Completed 09-11-PLAN.md
+Last session: 2026-10-11T03:23:32.443Z
+Stopped at: Completed 09-12-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 9`.
