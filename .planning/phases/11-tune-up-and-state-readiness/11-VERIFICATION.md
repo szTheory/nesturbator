@@ -1,6 +1,6 @@
 ---
 phase: 11-tune-up-and-state-readiness
-verified: 2026-10-11T22:00:00Z
+verified: 2026-10-11T23:00:00Z
 status: human_needed
 score: 7/8 must-haves verified
 covered_files:
@@ -13,46 +13,66 @@ covered_files:
   - ".planning/phases/11-tune-up-and-state-readiness/11-03-SUMMARY.md"
   - ".planning/phases/11-tune-up-and-state-readiness/11-04-PLAN.md"
   - ".planning/phases/11-tune-up-and-state-readiness/11-04-SUMMARY.md"
+  - "README.md"
   - "libretro/libretro.c"
   - "runner/main.c"
   - "runner/save.c"
   - "runner/save.h"
   - "src/cartridge.c"
   - "src/instance.c"
+  - "tests/core/test_boundary.c"
   - "tests/retroarch/run_retroarch.cmake"
-covered_digest: "v3:sha256:d9c19853b73c6dbaef644f9709891572ab2a788106d4dc6ce000fa2bd35d2632"
+  - "tests/runner/test_save_replace.c"
+covered_digest: "v3:sha256:0e865bc834bafc196e70f83d4a624f84c0dc9ecd798f2272788a1918f231033a"
 behavior_unverified: 1
 behavior_unverified_items:
   - truth: "The retroarch-e2e job on the phase pull request passes the MMC1 and MMC3 save round trips inside RetroArch"
     test: "Open the phase PR and let the hosted retroarch-e2e job run (automated gate, no person needed)"
     expected: "Both save legs pass; saves/m4tkrom.srm is 8192 bytes with SAVEDATA at 0x100; artifact upload finds every file"
-    why_human: "Runs only on hosted macOS runners on a PR; cannot run locally"
+    why_human: "Runs only on hosted macOS runners on a PR; no local ctest case launches RetroArch"
 human_verification:
-  - test: "PR retroarch-e2e job (automated hosted gate)"
+  - test: "PR retroarch-e2e job (automated hosted gate, recorded in 11-UAT.md)"
     expected: "MMC3 round trip green alongside MMC1"
-    why_human: "Not yet executed; the gate the plan designated"
+    why_human: "Not yet executed; the gate the plan designated. Not a manual test"
 ---
 
 # Phase 11: Tune-up and state readiness Verification Report
 
-**Phase Goal:** Battery saves can never be left torn or stale, MMC3 saves survive RetroArch sessions, and every public function has a caller and README text.
+**Phase Goal:** Battery saves can never be left torn or stale, MMC3 saves survive RetroArch sessions, and every public function has a caller and README text, so state work inherits no v2 debt.
+**Verified:** 2026-10-11
 **Status:** human_needed (one pending automated hosted gate; no gaps)
-**Re-verification:** No
+**Re-verification:** Yes, after review fixes WR-01..WR-04 and the clang-format pass (previous report was stale; no gaps were open)
 
 ## Observable Truths
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | SC1: failure-injection test in ci: unwritable dir and dir at target leave old .sav intact, no .tmp | VERIFIED | `runner/save.c` `nesturbator_run_file_replace`: stat .tmp (refuses directory), `fopen "wbx"`, fwrite, fflush, fsync, checked fclose, rename/MoveFileExA, remove .tmp on failure. `ctest --preset ci`: runner.save_replace, runner.save_fsize, runner.save.dir_at_tmp, runner.save.interval_retry, runner.save.unchanged pass. Full `cmake --workflow --preset ci` ran here: 488 tests, all passed |
-| 2 | Flush wrapper updates shadow on success only; single call site | VERIFIED | `nesturbator_run_save_flush` memcpy after success only; `battery_save` struct rename present in runner/main.c |
-| 3 | SC2: retroarch-e2e has MMC3 `.srm` round trip, marker-based, no sleeps | VERIFIED (wiring) | ci.yml step "Compare the RetroArch MMC3 battery save round trip" with SAVE_ROM=m4tkrom.nes, SAVE_FRAME=600, SAVE_SIZE=8192, own RA_DIR; artifacts added with `if-no-files-found: error`; `SAVE_SIZE` validated in run_retroarch.cmake; no `sleep` in script or workflow. m4tkrom is built by the ci preset (holymapperel derive) |
-| 4 | MMC3 round trip actually passes inside RetroArch | PRESENT_BEHAVIOR_UNVERIFIED | Only runs in hosted `retroarch-e2e` on the PR (not yet opened). Local evidence: script validation and workflow wiring only. The designated automated gate is pending |
-| 5 | SC3: `nesturbator_unload_cartridge` has a caller, a ci test, README text | VERIFIED | libretro/libretro.c lines 292 and 322 call it; adapter keeps one instance init..deinit; src/cartridge.c unload runs the shared power-on helper in src/instance.c; core.cartridge and libretro.host pass; README lines ~708 describe it |
-| 6 | SC3: `nesturbator_get_version` has a caller, a ci test, README text | VERIFIED | runner/main.c `--version` calls it; `build/ci/runner/nesturbator-run --version` prints `nesturbator-run 0.1.9`, exit 0, equals version.txt; runner.version and runner.usage.version_after_bad pass; README line ~702 |
-| 7 | Every public function has a README mention and a runner/libretro call site | VERIFIED | Loop over all 13 declarations in include/nesturbator.h: each has readme >= 1 and >= 1 caller file |
-| 8 | Frame-boundary white-box checks; exit 3 unused | VERIFIED | core.boundary passes; no "exit 3" in runner or runner tests |
+| 1 | SC1: failure injection (unwritable dir, dir at target, dir at .tmp) leaves old .sav intact and no .tmp | VERIFIED | runner/save.c `nesturbator_run_file_replace`: lstat of .tmp (directory refused with EISDIR, regular file or symlink removed), `fopen "wbx"`, fwrite, fflush, sync, checked fclose, rename or MoveFileExA, `remove(tmp)` on any failure. Tests runner.save_replace, runner.save_fsize, runner.save.dir_at_tmp pass in this run |
+| 2 | Flush wrapper updates shadow on success only | VERIFIED | `nesturbator_run_save_flush` memcpy follows a zero return only |
+| 3 | SC2: retroarch-e2e has an MMC3 `.srm` round trip, marker-based, no sleeps | VERIFIED (wiring) | ci.yml MMC3 step with SAVE_ROM m4tkrom.nes, SAVE_SIZE 8192, SAVE_FRAME 600; run_retroarch.cmake validates SAVE_SIZE; covered by the unchanged files since the last report |
+| 4 | MMC3 round trip passes inside RetroArch | PRESENT_BEHAVIOR_UNVERIFIED | Only the hosted `retroarch-e2e` job on the PR runs it. RetroArch.app exists locally, but no ctest case launches it (tests/retroarch/CMakeLists.txt: 488 tests, only retroarch.compare and retroarch.compare.cli), and the script needs the pinned version and a GUI session; not run locally. Recorded as an automated hosted gate in 11-UAT.md |
+| 5 | SC3: `nesturbator_unload_cartridge` has a caller, a ci test, README text | VERIFIED | libretro/libretro.c calls it; core.cartridge and libretro.host pass; README mentions it |
+| 6 | SC3: `nesturbator_get_version` has a caller, a ci test, README text | VERIFIED | `build/ci/runner/nesturbator-run --version` prints `nesturbator-run 0.1.9`, equals version.txt; runner.version passes |
+| 7 | Every public function has a README mention and a runner or libretro caller | VERIFIED | Loop over all 13 header functions: README count >= 1 and caller file count >= 1 for each |
+| 8 | Frame-boundary white-box checks; exit 3 unused | VERIFIED | core.boundary passes |
 
-**Score:** 7/8 truths verified (1 present, behavior-unverified: the hosted RetroArch run)
+**Score:** 7/8 truths verified (1 present and wired, behavior-unverified: the hosted RetroArch run)
+
+## Contract Agreement After Review Fixes
+
+| Point | runner/save.h | README.md (~942-949, 972-977) | runner/save.c / tests | Agree |
+|-------|---------------|-------------------------------|-----------------------|-------|
+| Symlink at .tmp (WR-01, WR-02) | stale regular file or symlink removed, link unlinked, target untouched | regular file or symlink, even dangling, cleared by next write | lstat then `remove()` (unlinks a link, never follows); tests (h) victim unchanged, (i) dangling link cleared and save succeeds | Yes |
+| Directory at .tmp | refused and left alone | covered by `.tmp` directory cases | S_ISDIR returns EISDIR, nothing removed; runner.save.dir_at_tmp | Yes |
+| Apple sync (WR-03) | F_FULLFSYNC on Apple, fsync elsewhere | "synced (with F_FULLFSYNC on macOS)" | `sync_stream`: F_FULLFSYNC with fsync fallback; `_DARWIN_C_SOURCE` set under `__APPLE__`; `_commit` on Windows | Yes |
+| Never torn, no dir sync | old or new, never torn; power cut may show previous | same statement | no directory fsync | Yes |
+| chmod case (WR-04) | n/a | n/a | test prints `note:` and checks the privileged write when chmod does not block | Yes |
+
+Windows branch (`#define lstat _stat`) cannot be compiled on this host; it is exercised by the Windows CI runners.
+
+## Local Verification Run
+
+`cmake --workflow --preset ci` from the repo root: exit 0, configure, build, test (100% tests passed out of 488, 42.7 s), package. Spot checks passing individually: runner.save_replace, runner.save_fsize, runner.save.dir_at_tmp, core.boundary, core.cartridge, libretro.host, runner.version.
 
 ## Requirements Coverage
 
@@ -66,17 +86,10 @@ All three IDs are claimed by plans and mapped to Phase 11 in REQUIREMENTS.md. No
 
 ## Anti-Patterns / Review
 
-11-REVIEW-DISPOSITION.md lists 7 open advisory findings, none a goal blocker:
-- WR-01: `save.h` says a symlink at `.tmp` is "never removed" but the helper removes a regular-file or symlink-to-file there (documentation/contract mismatch; the symlink target is never written, so the prohibition on touching victims holds, as the test shows).
-- WR-02: a dangling symlink at `.tmp` makes saves fail permanently (fails closed, old save kept).
-- WR-03: `fsync` on macOS is not a full durable flush (F_FULLFSYNC); the torn-file guarantee still holds.
-- WR-04: chmod and symlink sub-cases can pass without testing (e.g. as root).
-- IN-01..03: duplication, zeroed av info on failed create, long comment line.
-
-No TBD/FIXME/XXX markers were checked beyond the review; none were reported.
+11-REVIEW-DISPOSITION.md: WR-01..WR-04 fixed. IN-01..IN-03 remain open (info only: power-on duplication in load_cartridge, zeroed av info on failed create, long comment line); none blocks the goal. No TBD/FIXME/XXX markers in the phase's modified source files.
 
 ## Gaps Summary
 
-No gaps. The one remaining item is TUNE-08's real RetroArch MMC3 round trip, which only the hosted `retroarch-e2e` job on the phase pull request can prove. It is an automated gate, so the phase moves on once that job is green. The MMC3 truth is not counted as verified until then. Resolve the open WR-01 to WR-04 findings or record dispositions before merge.
+No gaps. The one remaining item is TUNE-08's real RetroArch MMC3 round trip, provable only by the hosted `retroarch-e2e` job when the phase pull request opens. It is an automated gate, not a human test.
 
 _Verifier: Claude (gsd-verifier)_
