@@ -3,12 +3,11 @@ gsd_state_version: "1.0"
 milestone: v2
 milestone_name: Most of the library plays
 current_phase: 10
-status: completed
+status: "Phase 10 shipped — PR #37"
 stopped_at: Phase 10 complete — all phases complete
-last_updated: "2026-10-11T15:04:46.814Z"
+last_updated: "2026-10-11T15:09:22.239Z"
 last_activity: 2026-10-11
-last_activity_desc: Phase 10 complete
-state_head: 7c884955766dfd89d425483864174511f7ff06ff
+state_head: 084dfe32a7bebbde68c3a0898571e92c70e48993
 progress:
   total_phases: 6
   completed_phases: 12
@@ -30,8 +29,8 @@ See: .planning/PROJECT.md (updated 2026-10-11)
 
 Phase: 10
 Plan: Not started
-Status: All phases complete
-Last activity: 2026-10-11 — Phase 10 complete
+Status: Phase 10 shipped — PR #37
+Last activity: 2026-10-11
 
 Progress: [██████████] 100% of v2
 
