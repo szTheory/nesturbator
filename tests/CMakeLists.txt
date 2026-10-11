@@ -187,7 +187,15 @@ add_test(NAME runner.save_path COMMAND runner.save_path)
 # Holy Mapperel (BOARD-01): each ROM in roms.cmake is run to its frame N, the
 # runner dumps that frame, and holymapperel-decode reads the result code from
 # the pixels. The decoder is test-only; the runner knows nothing of the ROMs.
-include(${CMAKE_CURRENT_SOURCE_DIR}/holymapperel/roms.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/hash_keys.cmake)
+# A guard over an empty list passes for any tree, so an empty list stops the
+# configure (D-17). Plans 06 and 07 reuse these lists for parity registration.
+if(NOT NESTURBATOR_HASH_GAMES)
+  message(FATAL_ERROR "NESTURBATOR_HASH_GAMES is empty (tests/cmake/hash_keys.cmake)")
+endif()
+if(NOT NESTURBATOR_HOLYMAPPEREL_ROMS)
+  message(FATAL_ERROR "NESTURBATOR_HOLYMAPPEREL_ROMS is empty (tests/holymapperel/roms.cmake)")
+endif()
 set(NESTURBATOR_HM_DIR ${CMAKE_CURRENT_BINARY_DIR}/holymapperel)
 file(MAKE_DIRECTORY ${NESTURBATOR_HM_DIR})
 add_executable(holymapperel-decode holymapperel/decode.c)
@@ -988,6 +996,18 @@ add_test(NAME manifest.sha256
 add_test(NAME manifest.sha256.selftest
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/manifest_sha256.cmake)
+
+# D-17: every committed ROM is hashed or exempt (hash_keys.cmake). The
+# self-test builds scratch trees with an unlisted ROM, an empty hm directory
+# and a missing game ROM and passes only if each is rejected.
+add_test(NAME policy.rom_hash_coverage
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/rom_coverage.cmake)
+add_test(NAME policy.rom_hash_coverage.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON -DWORK=${CMAKE_CURRENT_BINARY_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/rom_coverage.cmake)
+set_tests_properties(policy.rom_hash_coverage policy.rom_hash_coverage.self_test
+  PROPERTIES TIMEOUT 30)
 
 # D-20: tests/vectors/pins.txt, offline: the pin line, 256 lines in path
 # order, the upstream tree's total size, and the sample's commit. The

@@ -296,6 +296,11 @@ which is 14 frame keys and 28 audio keys. The list is written once, in
 validator and its self-test all read, so no row count is spelled out anywhere.
 `runner.write_hashes` hashes frame N and frame 2N of each Holy Mapperel ROM and
 fails if they differ, so a pinned result screen is known to be static.
+`policy.rom_hash_coverage` fails when a committed ROM under `tests/roms` or
+`tests/roms/hm` is neither hashed nor exempt, or when a ROM glob or list is
+empty, and `policy.rom_hash_coverage.self_test` proves both rejections.
+AccuracyCoin is the one exemption: its NROM board is hashed through three
+games and its scoreboard runs on every leg.
 `runner.boot_to_play` is the boot-to-play proof for nes-runner v1 (MIT,
 mapper 1). It replays generated NMOVIE1 movies through the library, reads
 `$3E` (game state) and the score bytes `$5D` to `$60` with
