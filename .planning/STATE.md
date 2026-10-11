@@ -250,5 +250,5 @@ Next GSD command: `/gsd-discuss-phase 10`.
 
 ## Operator Next Steps
 
-- Phase 9 PR: squash-merge once CI is green, then create `gsd/phase-10-close-out-and-boot-to-play` from the fresh main
+- Phase 9 PR #36 squash-merged into main (CI run 38108996110 green on all jobs); `gsd/phase-10-close-out-and-boot-to-play` created from main
 - Discuss Phase 10 with /gsd-discuss-phase 10
