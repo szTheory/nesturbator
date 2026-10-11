@@ -1,0 +1,1 @@
+mmc3_test_2/1-clocking	pass	0x00	120	-

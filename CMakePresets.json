@@ -56,6 +56,11 @@
       "name": "vectors-full",
       "inherits": "ci",
       "cacheVariables": { "NESTURBATOR_VECTORS_FULL": "ON" }
+    },
+    {
+      "name": "mmc3-oracle",
+      "inherits": "ci",
+      "cacheVariables": { "NESTURBATOR_MMC3_ORACLE": "ON" }
     }
   ],
   "buildPresets": [
@@ -65,7 +70,8 @@
     { "name": "asan", "configurePreset": "asan" },
     { "name": "nofp", "configurePreset": "nofp" },
     { "name": "hygiene", "configurePreset": "hygiene" },
-    { "name": "vectors-full", "configurePreset": "vectors-full" }
+    { "name": "vectors-full", "configurePreset": "vectors-full" },
+    { "name": "mmc3-oracle", "configurePreset": "mmc3-oracle" }
   ],
   "testPresets": [
     {
@@ -115,6 +121,16 @@
         "outputJUnitFile": "${sourceDir}/build/vectors-full/vectors-full.junit.xml"
       },
       "filter": { "include": { "label": "vectors-full" } },
+      "execution": { "noTestsAction": "error" }
+    },
+    {
+      "name": "mmc3-oracle",
+      "configurePreset": "mmc3-oracle",
+      "output": {
+        "outputOnFailure": true,
+        "outputJUnitFile": "${sourceDir}/build/mmc3-oracle/mmc3-oracle.junit.xml"
+      },
+      "filter": { "include": { "label": "mmc3-oracle" } },
       "execution": { "noTestsAction": "error" }
     }
   ],
@@ -179,6 +195,14 @@
         { "type": "configure", "name": "vectors-full" },
         { "type": "build", "name": "vectors-full" },
         { "type": "test", "name": "vectors-full" }
+      ]
+    },
+    {
+      "name": "mmc3-oracle",
+      "steps": [
+        { "type": "configure", "name": "mmc3-oracle" },
+        { "type": "build", "name": "mmc3-oracle" },
+        { "type": "test", "name": "mmc3-oracle" }
       ]
     }
   ]

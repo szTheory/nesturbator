@@ -975,6 +975,69 @@ add_test(NAME vectors.fetch.guard
     -DWORK=${CMAKE_CURRENT_BINARY_DIR}/fetch-guard
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_guard.cmake)
 
+# The blargg MMC3 fetch has the same guards, with its own directory and marker.
+add_test(NAME mmc3.fetch.guard
+  COMMAND ${CMAKE_COMMAND}
+    -DSCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_blargg_mmc3.cmake
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/mmc3-fetch-guard
+    -DSUBDIR=nes-test-roms
+    -DMARKER=.nesturbator-mmc3
+    -DPINS=${CMAKE_CURRENT_SOURCE_DIR}/mmc3/pins.txt
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_guard.cmake)
+
+# 09 D-11: the blargg MMC3 oracle, a test-only helper like holymapperel-decode.
+# It is always built so mmc3.oracle.unit can share its header; the lane below
+# runs it on fetched ROMs.
+add_executable(mmc3-oracle mmc3/oracle.c)
+target_link_libraries(mmc3-oracle PRIVATE nesturbator::nesturbator)
+target_include_directories(mmc3-oracle PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_compile_definitions(mmc3-oracle PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(mmc3-oracle)
+
+# 09 D-10: blargg's mmc3_test_2 and mmc3_irq_tests at the pin in
+# tests/mmc3/pins.txt, one test per row of tests/mmc3/oracle.txt. They need the
+# network, so they are registered only when NESTURBATOR_MMC3_ORACLE is ON (the
+# mmc3-oracle preset); ci never fetches. Offline the fetch fails; nothing skips.
+option(NESTURBATOR_MMC3_ORACLE "Register the blargg MMC3 oracle tests (network)" OFF)
+set(NESTURBATOR_MMC3_DIR ${CMAKE_BINARY_DIR}/mmc3-oracle CACHE PATH
+  "Where mmc3.oracle.fetch keeps the fetched blargg ROMs (not in the source tree outside build/)")
+if(NESTURBATOR_MMC3_ORACLE)
+  find_program(NESTURBATOR_GIT git REQUIRED)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/mmc3/oracle.txt)
+  add_test(NAME mmc3.oracle.fetch
+    COMMAND ${CMAKE_COMMAND}
+      -DDIR=${NESTURBATOR_MMC3_DIR}
+      -DPINS=${CMAKE_CURRENT_SOURCE_DIR}/mmc3/pins.txt
+      -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DGIT=${NESTURBATOR_GIT}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_blargg_mmc3.cmake)
+  set_tests_properties(mmc3.oracle.fetch PROPERTIES
+    FIXTURES_SETUP mmc3_oracle TIMEOUT 300 LABELS mmc3-oracle)
+  file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/mmc3/oracle.txt mmc3_oracle_rows)
+  foreach(row IN LISTS mmc3_oracle_rows)
+    string(REPLACE "\t" ";" cols "${row}")
+    list(GET cols 0 key)
+    if(key MATCHES "^mmc3_test_2/(.*)$")
+      set(rom ${NESTURBATOR_MMC3_DIR}/nes-test-roms/mmc3_test_2/rom_singles/${CMAKE_MATCH_1}.nes)
+    elseif(key MATCHES "^mmc3_irq_tests/(.*)$")
+      set(rom ${NESTURBATOR_MMC3_DIR}/nes-test-roms/mmc3_irq_tests/${CMAKE_MATCH_1}.nes)
+    else()
+      message(FATAL_ERROR "tests/mmc3/oracle.txt: unknown suite in key ${key}")
+    endif()
+    add_test(NAME mmc3.oracle.${key}
+      COMMAND ${CMAKE_COMMAND}
+        -DORACLE=$<TARGET_FILE:mmc3-oracle>
+        -DROM=${rom}
+        -DKEY=${key}
+        -DTABLE=${CMAKE_CURRENT_SOURCE_DIR}/mmc3/oracle.txt
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mmc3_oracle_run.cmake)
+    set_tests_properties(mmc3.oracle.${key} PROPERTIES
+      FIXTURES_REQUIRED mmc3_oracle TIMEOUT 120 LABELS mmc3-oracle)
+  endforeach()
+endif()
+
 # CPU-02, D-22: the full 65x02 set, fetched by git at the pin in
 # tests/vectors/pins.txt. These tests need the network, so they are registered
 # only when NESTURBATOR_VECTORS_FULL is ON (the vectors-full preset) and the

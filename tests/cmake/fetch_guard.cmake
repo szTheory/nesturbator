@@ -4,9 +4,13 @@
 # git call instead of fetching.
 #
 #   cmake -DSCRIPT=<fetch_vectors.cmake> -DSOURCE_DIR=<repo> -DWORK=<dir>
-#         -P fetch_guard.cmake
+#         [-DSUBDIR=<65x02-src>] [-DMARKER=<.nesturbator-vectors>]
+#         [-DPINS=<tests/vectors/pins.txt>] -P fetch_guard.cmake
 #
-# 1. DIR/65x02-src exists without the marker file: the script refuses and the
+# SUBDIR, MARKER and PINS name the script's checkout directory, marker file and
+# pins file, so one guard serves fetch_vectors.cmake and fetch_blargg_mmc3.cmake.
+#
+# 1. DIR/SUBDIR exists without the marker file: the script refuses and the
 #    directory's file survives.
 # 2. DIR is a symbolic link to the source tree (not on Windows, where making
 #    one needs a privilege): the script refuses it as inside the source tree.
@@ -24,6 +28,17 @@ foreach(var SCRIPT SOURCE_DIR WORK)
     message(FATAL_ERROR "fetch_guard: ${var} is not set")
   endif()
 endforeach()
+# The script's checkout directory and marker; the defaults are those of
+# fetch_vectors.cmake. PINS names the pins file the script is given.
+if(NOT DEFINED SUBDIR)
+  set(SUBDIR "65x02-src")
+endif()
+if(NOT DEFINED MARKER)
+  set(MARKER ".nesturbator-vectors")
+endif()
+if(NOT DEFINED PINS)
+  set(PINS "${SOURCE_DIR}/tests/vectors/pins.txt")
+endif()
 
 # file(REMOVE) deletes the link itself, never the tree it points to.
 file(REMOVE "${WORK}/link")
@@ -34,7 +49,7 @@ file(MAKE_DIRECTORY "${WORK}")
 function(expect_refusal dir want)
   execute_process(
     COMMAND "${CMAKE_COMMAND}" -DDIR=${dir}
-      -DPINS=${SOURCE_DIR}/tests/vectors/pins.txt
+      -DPINS=${PINS}
       -DSOURCE_DIR=${SOURCE_DIR} -DGIT=${WORK}/no-such-git
       -P "${SCRIPT}"
     OUTPUT_VARIABLE out
@@ -52,10 +67,10 @@ function(expect_refusal dir want)
 endfunction()
 
 set(foreign "${WORK}/foreign")
-file(WRITE "${foreign}/65x02-src/keep.txt" "not the script's\n")
+file(WRITE "${foreign}/${SUBDIR}/keep.txt" "not the script's\n")
 expect_refusal("${foreign}" "was not created by this script; refusing to delete it")
-if(NOT EXISTS "${foreign}/65x02-src/keep.txt")
-  message(FATAL_ERROR "fetch_guard: ${foreign}/65x02-src/keep.txt was deleted")
+if(NOT EXISTS "${foreign}/${SUBDIR}/keep.txt")
+  message(FATAL_ERROR "fetch_guard: ${foreign}/${SUBDIR}/keep.txt was deleted")
 endif()
 
 if(NOT CMAKE_HOST_WIN32)
