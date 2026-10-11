@@ -349,8 +349,8 @@ static const struct board_row board_rows[] = {
     {"axrom-8", 7, 0, 0, 16, 0, 0, 0, 0, 0, OK_},
     {"axrom-vertical", 7, 0, 0, 4, 0, 6, 1, 0, 0, OK_},
     {"axrom-sub2", 7, 1, 2, 2, 0, 0, 0, 0, 0, OK_},
+    {"mapper-4-ines1-16k", 4, 0, 0, 1, 1, 0, 0, 0, 0, OK_},
     /* refuse: mappers without a board */
-    {"mapper-4", 4, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
     {"mapper-5", 5, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
     {"mapper-6", 6, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
     {"mapper-8", 8, 0, 0, 1, 1, 0, 0, 0, 0, BAD_},
@@ -566,6 +566,158 @@ static void test_mmc1_ines1_sizes(void)
     }
     free(img);
 }
+/* D-12, D-16: mapper 4 rows. Sizes are in KiB. h4 and h9 override the PRG size field and byte 9
+   (the NES 2.0 exponent form: byte 4 is exponent << 2 | multiplier, byte 9 low nibble 0xF); an h4
+   of 0 means "derive from prg_kib". chr_ram: 0 is the usual 8 KiB for CHR-RAM, 0xff is none, any
+   other value is the byte 11 low nibble. A refuse row's label is its D-16 fuzz seed name; an
+   accept row's label is either a D-16 valid seed or a limit of the accepted range. nes2 0 is an
+   iNES 1 image (RAM fields ignored). */
+struct mmc3_row {
+    const char *label;
+    uint16_t mapper;
+    uint8_t submapper;
+    uint8_t nes2;
+    uint16_t prg_kib;
+    uint16_t chr_kib; /* 0 is CHR-RAM unless chr_ram is 0xff */
+    uint8_t h4, h5;   /* raw byte 4 / byte 5 override, 0 for none */
+    uint8_t h9;
+    uint8_t flags6; /* bit 1 battery, bit 3 four-screen */
+    uint8_t v_shift, n_shift, chr_ram, chr_nv_shift;
+    nesturbator_status want;
+};
+#define M3_BAT 0x02u
+#define M3_FOUR 0x08u
+/* clang-format off */
+static const struct mmc3_row mmc3_rows[] = {
+    /* accept: the five D-16 valid seeds */
+    {"valid-mmc3",         4, 0, 1, 128, 128, 0, 0, 0, M3_BAT, 0, 7, 0, 0, OK_},
+    {"valid-mmc3-ines1",   4, 0, 0,  64,  64, 0, 0, 0, M3_BAT, 0, 0, 0, 0, OK_},
+    {"valid-mmc3-tgrom",   4, 0, 1, 512,   0, 0, 0, 0, 0,      0, 0, 0, 0, OK_},
+    {"valid-mmc3-sub4",    4, 4, 1, 128, 128, 0, 0, 0, M3_BAT, 0, 7, 0, 0, OK_},
+    {"valid-mmc3-prg16k",  4, 0, 0,  16,   8, 0, 0, 0, 0,      0, 0, 0, 0, OK_},
+    /* accept: the limits of PRG and CHR, and the (V, N) pairs */
+    {"mmc3-prg-16k-nes2",  4, 0, 1,  16,   8, 0, 0, 0, 0,      0, 0, 0, 0, OK_},
+    {"mmc3-prg-512k",      4, 0, 1, 512, 256, 0, 0, 0, 0,      0, 0, 0, 0, OK_},
+    {"mmc3-prg-32k-exp",   4, 0, 1,  32,   8, 60, 0, 0x0f, 0,  0, 0, 0, 0, OK_},
+    {"mmc3-chr-8k",        4, 0, 1, 128,   8, 0, 0, 0, 0,      0, 0, 0, 0, OK_},
+    {"mmc3-chr-256k",      4, 0, 1, 128, 256, 0, 0, 0, 0,      0, 0, 0, 0, OK_},
+    {"mmc3-chr-ram-8k",    4, 0, 1, 128,   0, 0, 0, 0, 0,      0, 0, 0, 0, OK_},
+    {"mmc3-ram-0-0",       4, 0, 1, 128, 128, 0, 0, 0, 0,      0, 0, 0, 0, OK_},
+    {"mmc3-ram-8-0",       4, 0, 1, 128, 128, 0, 0, 0, 0,      7, 0, 0, 0, OK_},
+    {"mmc3-ram-0-8",       4, 0, 1, 128, 128, 0, 0, 0, M3_BAT, 0, 7, 0, 0, OK_},
+    {"mmc3-sub4-ram-0-8",  4, 4, 1, 128,   0, 0, 0, 0, M3_BAT, 0, 7, 0, 0, OK_},
+    /* refuse: submappers (D-12 allows 0 and 4) */
+    {"mmc3-submapper-1",   4, 1,  1, 128, 128, 0, 0, 0, M3_BAT, 0, 7, 0, 0, BAD_},
+    {"mmc3-submapper-2",   4, 2,  1, 128, 128, 0, 0, 0, M3_BAT, 0, 7, 0, 0, BAD_},
+    {"mmc3-submapper-3",   4, 3,  1, 128, 128, 0, 0, 0, M3_BAT, 0, 7, 0, 0, BAD_},
+    {"mmc3-submapper-5",   4, 5,  1, 128, 128, 0, 0, 0, M3_BAT, 0, 7, 0, 0, BAD_},
+    {"mmc3-submapper-15",  4, 15, 1, 128, 128, 0, 0, 0, M3_BAT, 0, 7, 0, 0, BAD_},
+    /* refuse: four-screen boards */
+    {"mmc3-four-screen",      4, 0, 0, 128, 128, 0, 0, 0, M3_FOUR, 0, 0, 0, 0, BAD_},
+    {"mmc3-four-screen-nes2", 4, 0, 1, 128, 128, 0, 0, 0, M3_FOUR, 0, 0, 0, 0, BAD_},
+    /* refuse: the MMC3 neighbours, which stay out */
+    {"mapper-118",         118, 0, 1, 128, 128, 0, 0, 0, 0, 0, 0, 0, 0, BAD_},
+    {"mapper-119",         119, 0, 1, 128, 128, 0, 0, 0, 0, 0, 0, 0, 0, BAD_},
+    {"mapper-206",         206, 0, 1, 128, 128, 0, 0, 0, 0, 0, 0, 0, 0, BAD_},
+    {"mapper-249",         249, 0, 1, 128, 128, 0, 0, 0, 0, 0, 0, 0, 0, BAD_},
+    /* refuse: PRG sizes (8 KiB and 24 KiB in the exponent form, 1 MiB, and one that overflows) */
+    {"mmc3-prg-8k",        4, 0, 1,   8, 128, 52, 0, 0x0f, 0, 0, 0, 0, 0, BAD_},
+    {"mmc3-prg-24k",       4, 0, 1,  24, 128, 53, 0, 0x0f, 0, 0, 0, 0, 0, BAD_},
+    {"mmc3-prg-1m",        4, 0, 1, 1024, 128, 0, 0, 0, 0,    0, 0, 0, 0, BAD_},
+    {"mmc3-prg-exp-huge",  4, 0, 1,   0,   0, 248, 0, 0x0f, 0, 0, 0, 0, 0, BAD_},
+    /* refuse: CHR shapes */
+    {"mmc3-chr-512k",      4, 0, 1, 128, 512, 0, 0, 0, 0,    0, 0, 0, 0, BAD_},
+    {"mmc3-chr-24k",       4, 0, 1, 128,  24, 0, 53, 0xf0, 0, 0, 0, 0, 0, BAD_},
+    {"mmc3-chr-ram-16k",   4, 0, 1, 128,   0, 0, 0, 0, 0,    0, 0, 8, 0, BAD_},
+    {"mmc3-chr-none",      4, 0, 1, 128,   0, 0, 0, 0, 0,    0, 0, 0xff, 0, BAD_},
+    {"mmc3-chr-nvram",     4, 0, 1, 128,   0, 0, 0, 0, 0,    0, 0, 0, 7, BAD_},
+    /* refuse: PRG RAM shapes */
+    {"mmc3-ram-1k",        4, 0, 1, 128, 128, 0, 0, 0, 0,    4, 0, 0, 0, BAD_},
+    {"mmc3-ram-2k",        4, 0, 1, 128, 128, 0, 0, 0, 0,    5, 0, 0, 0, BAD_},
+    {"mmc3-ram-16k",       4, 0, 1, 128, 128, 0, 0, 0, 0,    8, 0, 0, 0, BAD_},
+    {"mmc3-battery-no-nvram", 4, 0, 1, 128, 128, 0, 0, 0, M3_BAT, 7, 0, 0, 0, BAD_},
+    {"mmc3-nvram-no-battery", 4, 0, 1, 128, 128, 0, 0, 0, 0,      0, 7, 0, 0, BAD_},
+    {"mmc3-work-and-nv",   4, 0, 1, 128, 128, 0, 0, 0, M3_BAT, 7, 7, 0, 0, BAD_},
+};
+/* clang-format on */
+/* Builds the header and a zeroed body for a row; returns the image size. */
+static size_t mmc3_build(uint8_t *img, const struct mmc3_row *r)
+{
+    const size_t prg = (size_t)r->prg_kib * 1024u;
+    const size_t chr = (size_t)r->chr_kib * 1024u;
+    const size_t size = 16u + prg + chr;
+    memset(img, 0, size);
+    memcpy(img, "NES\032", 4u);
+    img[4] = r->h4 != 0u ? r->h4 : (uint8_t)(prg / 16384u);
+    img[5] = r->h5 != 0u ? r->h5 : (uint8_t)(chr / 8192u);
+    img[6] = (uint8_t)(((r->mapper & 0x0fu) << 4) | r->flags6);
+    img[7] = (uint8_t)((r->nes2 ? 0x08u : 0u) | (r->mapper & 0xf0u));
+    if (r->nes2) {
+        img[8] = (uint8_t)(((unsigned)r->submapper << 4) | ((r->mapper >> 8) & 0x0fu));
+        img[9] = r->h9;
+        img[10] = (uint8_t)(((unsigned)r->n_shift << 4) | r->v_shift);
+        img[11] = (uint8_t)(((unsigned)r->chr_nv_shift << 4) |
+                            (chr != 0u || r->chr_ram == 0xffu
+                                 ? 0u
+                                 : (r->chr_ram != 0u ? (unsigned)r->chr_ram : 7u)));
+    }
+    if (prg >= 4u) {
+        img[16u + prg - 4u] = 0x00u;
+        img[16u + prg - 3u] = 0x80u;
+    }
+    return size;
+}
+/* D-12, D-14, D-16: the loader accepts exactly the mapper 4 shapes, and a refused image
+   leaves a previously loaded cartridge untouched. */
+static void test_mmc3_rows(void)
+{
+    const size_t cap = 16u + 1024u * 1024u + 512u * 1024u;
+    uint8_t *img = malloc(cap);
+    uint8_t *good = malloc(cap);
+    CHECK(img != NULL && good != NULL);
+    if (img == NULL || good == NULL) {
+        free(img);
+        free(good);
+        return;
+    }
+    const size_t good_size = mmc3_build(good, &mmc3_rows[0]);
+    for (size_t i = 0u; i < sizeof mmc3_rows / sizeof mmc3_rows[0]; ++i) {
+        const struct mmc3_row *r = &mmc3_rows[i];
+        const size_t size = mmc3_build(img, r);
+        nesturbator_config cfg;
+        nesturbator *inst = NULL;
+        nesturbator_status got;
+        memset(&cfg, 0, sizeof cfg);
+        cfg.size = (uint32_t)sizeof cfg;
+        cfg.abi = NESTURBATOR_ABI_VERSION;
+        CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_load_cartridge(inst, good, good_size), NESTURBATOR_OK);
+        {
+            const struct nesturbator *nes = (const struct nesturbator *)inst;
+            const uint8_t *bytes = nes->cart.bytes;
+            const size_t held = nes->cart.size;
+            const size_t ram = nes->cart.prg_ram_size;
+            const uint16_t id = nes->mapper.id;
+            got = nesturbator_load_cartridge(inst, img, size);
+            if (got != r->want)
+                fprintf(stderr, "mmc3 row %s: got %d want %d\n", r->label, (int)got, (int)r->want);
+            CHECK_EQ_U64(got, r->want);
+            if (r->want != NESTURBATOR_OK) {
+                CHECK(nes->cart.bytes == bytes);
+                CHECK_EQ_U64(nes->cart.size, held);
+                CHECK_EQ_U64(nes->cart.prg_ram_size, ram);
+                CHECK_EQ_U64(nes->mapper.id, id);
+                CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0xfffcu), 0x00u);
+                CHECK_EQ_HEX(nesturbator__bus_read((struct nesturbator *)inst, 0xfffdu), 0x80u);
+            } else {
+                CHECK_EQ_U64(nes->mapper.id, r->mapper);
+            }
+        }
+        nesturbator_destroy(inst);
+    }
+    free(img);
+    free(good);
+}
 static void test_board_profiles(void)
 {
     const size_t cap = 16u + (size_t)257u * INES_PRG_BANK + 8u * INES_CHR_BANK + 8u;
@@ -628,7 +780,7 @@ static void test_board_switch_matches_profiles(void)
     for (unsigned id = 0u; id <= 4095u; ++id) {
         struct nesturbator__mapper_ops ops;
         int has = nesturbator__mapper_ops_for((uint16_t)id, &ops);
-        int want = id == 0u || id == 1u || id == 2u || id == 3u || id == 7u;
+        int want = id == 0u || id == 1u || id == 2u || id == 3u || id == 4u || id == 7u;
         CHECK_EQ_U64(has, want);
         if (has) {
             boarded++;
@@ -636,7 +788,7 @@ static void test_board_switch_matches_profiles(void)
             CHECK(ops.rebuild != NULL);
         }
     }
-    CHECK_EQ_U64(boarded, 5u);
+    CHECK_EQ_U64(boarded, 6u);
 }
 int main(void)
 {
@@ -650,6 +802,7 @@ int main(void)
     test_board_profiles();
     test_mmc1_rows();
     test_mmc1_ines1_sizes();
+    test_mmc3_rows();
     test_board_switch_matches_profiles();
     CHECK_DONE();
 }

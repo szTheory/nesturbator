@@ -4,12 +4,12 @@ A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
 **Status: v1 shipped; milestone v2 is under way.** v1 played
-NROM games with picture and sound; milestone v2 now plays mappers 0, 1, 2, 3 and 7 with battery saves. Phase 5 adds parallel CI, a policy that
+NROM games with picture and sound; milestone v2 now plays mappers 0, 1, 2, 3, 4 and 7 with battery saves. Phase 5 adds parallel CI, a policy that
 no registered test may skip, and the soft reset (`nesturbator_reset()`, which
 RetroArch's Reset button runs). The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM,
-16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
+16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM), mapper 4 (MMC3; see below) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
 and evaluated sprites, including palette priority, flips, 8x16 selection,
 clipping, sprite-zero hit and the eight-sprite limit. Pre-render evaluation
 includes OAM Y=$FF sprites on visible framebuffer row 0. After eight sprites
@@ -22,7 +22,7 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, MMC1, UxROM, CNROM and AxROM as the boards so far. The behaviour revision is 5: the PPU
+board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 5: the PPU
 fetch pipeline changed the frames of games that write the scroll or PPUCTRL
 while rendering. Mid-frame scroll writes render as on
 the console, which a split-scroll test shows scanline by scanline.
@@ -43,8 +43,13 @@ nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.pp
 
 The CI suite pins three redistributable mapper-0 games: MIT-licensed
 Nesteroids, zlib-licensed Double Action Blaster Guys, and all-permissive RHDE.
-It also runs Holy Mapperel's mapper 1, 2, 3 and 7 test ROMs (zlib) and requires
-each to report the result code 0000. Their boot hashes and scripted DABG two-port movie hashes are checked against
+It also runs Holy Mapperel's mapper 1, 2, 3, 4 and 7 test ROMs (zlib), among them the
+mapper 4 ROMs `M4_P128K_CR8K` (TNROM-like) and `M4_P256K_C256K` (TxROM-like),
+and requires each to report the result code 0000 with `PRG RAM MISSING`. Two derived
+copies of `M4_P128K_CR8K` (header byte 10 patched, plus the battery bit for the second)
+prove the MMC3 `$A001` PRG RAM enable and write protect: they report `8K PRG RAM OK`,
+the battery copy also `+ BATTERY` on its second run. The derived files are built at
+build time from the committed ROM after its sha256 is checked, and are never committed. Their boot hashes and scripted DABG two-port movie hashes are checked against
 `tests/runner/hashes.txt` on every platform; the hashes use native pixels
 before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
 banks and uses the 8 KiB CHR RAM it fills during startup.
@@ -155,7 +160,10 @@ writes take effect at the dot-257 horizontal copy and the pre-render dots
 280-304 vertical copies, not at the pixel being drawn, and a `$2007` access
 while rendering increments coarse X and Y together. The PPU address bus and
 its A12 line are reported to the cartridge board on every change, with the
-tick of the dot, including `v` itself while rendering is off. Sprites are evaluated into secondary OAM
+tick of the dot, including `v` itself while rendering is off; on a visible
+rendering line dot 0 shows the first tile's pattern address, and on the
+pre-render line it shows `v`, so with the background at `$1000` the first
+rise there is at dot 5. Sprites are evaluated into secondary OAM
 and fetched for the following scanline, one slot at a time on dots 257-320
 (two garbage nametable accesses, then the pattern low and high bytes), with
 an empty slot fetching tile `$FF` as the console does; transparent pixels reveal the
@@ -190,6 +198,7 @@ cmake --workflow --preset asan  # the same tests under AddressSanitizer and UBSa
 cmake --workflow --preset nofp  # core built with -mgeneral-regs-only; the abi checks
 cmake --workflow --preset hygiene  # tree contents, action pins and formatting
 cmake --workflow --preset vectors-full  # the full 65x02 vector set, fetched at its pin (network)
+cmake --workflow --preset mmc3-oracle  # blargg's MMC3 test ROMs, fetched at their pin (network)
 ```
 
 On Windows with MSVC, use `ci-msvc` from a developer command prompt.
@@ -206,6 +215,7 @@ Each lane is one command, `cmake --workflow --preset <lane>`.
 | `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
 | `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
+| `mmc3-oracle` | blargg's `mmc3_test_2` and `mmc3_irq_tests` ROMs, fetched by git at the commit in `tests/mmc3/pins.txt` and checked by SHA-256, give the result `tests/mmc3/oracle.txt` records for each; needs the network and fails without it |
 
 Tests never skip: a test that cannot run somewhere is not registered there, and
 `policy.no-skip` fails when any registered test could report itself skipped or
@@ -267,11 +277,11 @@ brightness never falls down a column.
 two-port movies. It writes ordered native hashes at frames 1, 30, 60, 120 and
 180, plus transition and PCM hashes for each game's boot run. It fails if any
 requested frame or audio hash is missing or duplicated;
-`runner.write_hashes.content` requires all 45 sorted keys to equal
+`runner.write_hashes.content` requires all 50 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
-The 45 keys are the 36 game and movie keys plus one
-`holymapperel/<key>/frame N` key per Holy Mapperel ROM (eight) and one
-`holymapperel/m1sxrom.saved/frame N` key for the SXROM ROM's second run; `runner.write_hashes`
+The 50 keys are the 36 game and movie keys plus one
+`holymapperel/<key>/frame N` key per Holy Mapperel ROM (twelve) and one
+`holymapperel/<key>.saved/frame N` key for each second run (`m1sxrom`, `m4tkrom`); `runner.write_hashes`
 hashes frame N and frame 2N of each and fails if they differ, so a pinned
 result screen is known to be static.
 The `holymapperel.*` tests read Holy Mapperel's result from the frame, not
@@ -301,7 +311,15 @@ BATTERY`, which shows the board loaded its own save. The two runs' screens hash
 differently and both are pinned. A new board ROM is one entry and one manifest
 line in `tests/holymapperel/roms.cmake`, whose entry is
 `<key>:<file>:<N>:<PRG RAM text>` with an optional `:save` field for the
-two-run chain; the tests, `tests/cmake/write_hashes.cmake` and
+two-run chain, then an optional save span size (default 32768) and an optional
+`<offset>=<hex>` that adds a `run1.sav_byte` check on the first run's save;
+a `<file>` written `derived/<name>` names a copy that `holymapperel-derive`
+builds at build time from a committed ROM listed in
+`NESTURBATOR_HOLYMAPPEREL_DERIVED`, with `tests/cmake/hm_derive.cmake`
+refusing a base whose sha256 differs from the manifest
+(`holymapperel.derive.refuse`). `m4tkrom` is the battery copy: its 8,192 byte
+save must hold the write-protected byte 0xB6 at offset 0 (an emulator that
+ignored write protect would leave 0x6B) and `SAVEDATA` at 0x100; the tests, `tests/cmake/write_hashes.cmake` and
 `tests/cmake/hash_inventory.cmake` all read it.
 `runner.dump` runs the command above and checks the image's size, header and
 pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
@@ -403,6 +421,49 @@ otherwise. That is all 2,560,000 upstream tests. `cpu.vectors-full.sample-match`
 converts the first 100 tests of every fetched file and requires them to equal
 the committed sample chunk by chunk, byte for byte, which proves where the
 sample came from; a difference names the chunk and the blob offset.
+The `mmc3-oracle` lane registers its tests only when the CMake option
+`NESTURBATOR_MMC3_ORACLE` is on, which its preset sets, so `ci` never touches
+the network. It uses blargg's MMC3 ROMs from
+`https://github.com/christopherpow/nes-test-roms` at commit
+`95d8f621ae55cee0d09b91519a8989ae0e64753b` (`95d8f62`). That repository states
+no licence, so the ROMs are fetched and never committed, and no text of theirs
+is in the tree. `mmc3.oracle.fetch` runs `tests/cmake/fetch_blargg_mmc3.cmake`:
+a sparse, blobless, depth-1 fetch of `mmc3_test_2` and `mmc3_irq_tests`, then a
+size and SHA-256 check of the 12 ROMs listed in `tests/mmc3/pins.txt` and a
+check that no other `.nes` file is there. It deletes only a directory it
+created, which holds the marker `.nesturbator-mmc3`; `mmc3.fetch.guard`, in
+`ci` and offline, shows it refuses a foreign directory, a symlink into the
+source tree and an upper-case spelling of it. The test-only program
+`mmc3-oracle` (`tests/mmc3/oracle.c`) judges a ROM by one of blargg's two
+result protocols. `mmc3_test_2` writes the signature `DE B0 61` at
+`$6001-$6003`, `$80` at `$6000` while it runs, then a result there (`0` is a
+pass) and text from `$6004`; the oracle passes it only after it has seen `$80`,
+read `0` and found `Passed` in the text. `mmc3_irq_tests` leave `1` in zero page
+`$F8` when they pass; the oracle requires `1` at the frame budget and again 60
+frames later. Its exit status is 0 for a pass, the reported value for a
+failure, 120 for a ROM that never reported, 121 for no signature, 122 for an
+image that does not load and 123 for bad usage; it never exits 77.
+`tests/mmc3/oracle.txt` has one tab-separated row per ROM,
+`key status code frames hash`: the key is the suite and ROM name such as
+`mmc3_test_2/1-clocking`, the status is `pass` or `unsupported`, the code is
+the expected exit status as `0xNN`, and frames is the budget; the hash is `-`.
+Each row becomes the test `mmc3.oracle.<key>`, which passes when the exit
+status equals the code, and an `unsupported` row that exits 0 fails until the
+row is edited. These rows are not part of `tests/accuracy/scoreboard.txt`.
+The table holds the 12 ROMs, 10 `pass` and two `unsupported`. All six
+`mmc3_test_2` ROMs and the four Sharp-revision `mmc3_irq_tests` ROMs pass: `1-clocking`,
+`2-details`, `3-A12_clocking`, `4-scanline_timing`, `5-MMC3`, and `1.Clocking`, `2.Details`,
+`3.A12_clocking`, `4.Scanline_timing`, `6.MMC3_rev_B`. `mmc3_test_2/6-MMC3_alt` (exit
+`0x02`) and `mmc3_irq_tests/5.MMC3_rev_A` (exit `0x03`) are recorded `unsupported`: they test
+the NEC revision, and the core models the Sharp revision unless the cartridge header says
+submapper 4. The board adds no IRQ delay beyond the A12 edge. In `ci`, offline,
+`mmc3.pins` checks `tests/mmc3/pins.txt` (a header with a 40-hex commit and `none-stated`, then 12
+lines of a 64-hex hash, path and decimal size, LF only), `mmc3.oracle.inventory` checks that
+`oracle.txt` holds exactly the 12 pinned keys in the five-field form with exactly the two
+NEC-revision keys `unsupported`, and `mmc3.oracle.unit` runs the oracle's judgement on
+synthetic memory (a pass, a timeout, no signature, a result with `$80` never seen, text
+without `Passed`, and a `$F8` that changes within 60 frames).
+Run it with `cmake --workflow --preset mmc3-oracle`.
 `vectors.pins`, in `ci` and offline, checks `tests/vectors/pins.txt`: its pin
 line, 256 lines in order from `00.json` to `ff.json`, sizes summing to
 1,081,529,097 bytes, and a commit equal to the sample's manifest pin.
@@ -449,7 +510,7 @@ and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
 a different frame fails the run. It also requires six nonempty artifacts with
-the exact 45-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
+the exact 50-key game, movie and Holy Mapperel inventory, rejecting duplicates, missing keys,
 extra keys and malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
@@ -483,7 +544,19 @@ or updates it with the event, head SHA, run URL and failing keys
 The `suite-flake` job builds the `ci` preset on Ubuntu 24.04 and runs its
 suite three times in random order with
 `ctest --preset ci --repeat until-fail:3 --schedule-random`; any failure fails
-the job, and its outcome is reported in the same `nightly` issue. The ROM
+the job, and its outcome is reported in the same `nightly` issue.
+
+The same workflow runs the `mmc3-oracle` lane (`cmake --workflow --preset
+mmc3-oracle`) as a second job, built like `vectors-full`: `contents: read`
+only, pinned actions, no cache and no skip code. It saves its CTest inventory
+first, runs the 12 blargg MMC3 rows, uploads the inventory and its JUnit file as
+`mmc3-oracle-evidence-<run ID>`, and feeds the same `nightly` issue, whose body
+lists its failing keys (`mmc3_test_2/<name>`, `mmc3_irq_tests/<name>`,
+`mmc3.oracle.fetch`). Pull requests that change `tests/mmc3/`, its fetch, run
+and inventory scripts, `src/mapper_mmc3.c`, `src/mapper.h`, `src/ppu.c`,
+`src/cartridge.c` or `src/bus.c` run it too. The hygiene test
+`hygiene.nightly_workflow_policy` checks each lane on its own job text, and its
+self test mutates both lanes. The ROM
 loader fuzz outcome is recorded in the job summary and included in
 scheduled and main-push failure issues. It uses GitHub's per-job token: the
 full-run job has only `contents: read`, and only the report job has
@@ -614,6 +687,8 @@ header gives the sizes:
 | iNES 1, mapper 1, PRG up to 256 KiB, battery | 0 | 8 KiB | 8 KiB |
 | iNES 1, mapper 1, PRG above 256 KiB, no battery | 32 KiB | 0 | none |
 | iNES 1, mapper 1, PRG above 256 KiB, battery | 0 | 32 KiB | 32 KiB |
+| iNES 1, mapper 4, no battery | 8 KiB | 0 | none |
+| iNES 1, mapper 4, battery | 0 | 8 KiB | 8 KiB |
 | NES 2.0 | byte 10 low nibble | byte 10 high nibble | N bytes at offset V |
 
 With V = N = 0, `$6000-$7FFF` reads as open bus. A trainer on a mapper 1
@@ -623,6 +698,11 @@ and has no span.
 Known gap: an iNES 1 SOROM dump gets one 8 KiB battery block, because that
 header cannot say that half of the RAM is volatile; use a NES 2.0 header
 (V = 8 KiB, N = 8 KiB) for a true SOROM. An iNES 1 SUROM save is 32 KiB.
+
+Mapper 4 (MMC3) takes the same layout with one rule: V and N are each 0 or
+8 KiB, never both (NES 2.0: none, 8 KiB work, or 8 KiB NVRAM). Known gap: an
+iNES 1 MMC3 image always gets 8 KiB of RAM, so games that expect no RAM at
+all, such as Low G Man, need a NES 2.0 header with V = N = 0.
 
 ## Downloads and archives
 
@@ -695,11 +775,17 @@ at `build/ci/runner/nesturbator-run`. The public header is
 
 ## The runner
 
-`nesturbator-run` runs the core without a window and accepts a mapper 0, 1, 2, 3 or 7 image
+`nesturbator-run` runs the core without a window and accepts a mapper 0, 1, 2, 3, 4 or 7 image
 with `--rom FILE`. The loader validates the entire image before allocating
 cartridge state. It rejects unsupported mapper, console, region, RAM and ROM
 geometries, truncation, trailing bytes, and images larger than 64 MiB; the
-runner prints a diagnostic and exits nonzero for rejected content.
+runner prints a diagnostic on stderr and exits 1 for rejected content. It names the
+reason: `nesturbator-run: four-screen cartridges are not supported`,
+`nesturbator-run: MMC6 (mapper 4, submapper 1) is not supported`, or
+`nesturbator-run: mapper N is not supported; supported mappers are 0, 1, 2, 3, 4 and 7`.
+Any other refusal (a supported mapper with a refused size, or a file shorter than the
+16-byte header) gets the generic `malformed or unsupported cartridge` line naming the same six
+mappers.
 
 ```sh
 nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
@@ -714,7 +800,7 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   (UxROM, submappers 0 to 2), or 16 or 32 KiB PRG with 8, 16 or 32 KiB CHR ROM
   for mapper 3 (CNROM, submappers 0 to 2), or 32 to 256 KiB PRG in 32 KiB banks
   with 8 KiB declared CHR RAM for mapper 7 (AxROM, submappers 0 to 2), or the
-  mapper 1 shapes below; optional trainers are included in the validated
+  mapper 1 and mapper 4 shapes below; optional trainers are included in the validated
   file length. UxROM writes to `$8000-$FFFF` select the bank at `$8000`; the
   last bank stays at `$C000`. Submappers 0 and 2 AND the written value with
   the ROM byte under the write (submapper 0 is the project default), and
@@ -740,6 +826,20 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   follow from the header sizes (hardware: NESdev Wiki "MMC1" and "SxROM").
   `nesturbator_reset` keeps the MMC1 registers and the battery RAM, because
   the cartridge sees no reset line.
+- Mapper 4 (MMC3) is accepted with submapper 0 (the Sharp revision, also used
+  for every iNES 1 image) or submapper 4 (the NEC revision). PRG is a power of
+  two from 16 to 512 KiB, CHR is a power of two from 8 to 256 KiB of ROM or
+  8 KiB of RAM, and PRG RAM is none, 8 KiB of work RAM or 8 KiB of battery
+  RAM (the battery bit must match). Refused: MMC6 (submapper 1), submappers
+  2, 3, 5 and 6 to 15, four-screen images, CHR NVRAM, other RAM sizes, and
+  mappers 118, 119, 206 and 249. Registers decode by `addr & $E001`: `$8000`
+  selects a bank register, the PRG mode and the CHR inversion, `$8001`
+  writes it, `$A000` picks the mirroring (bit 0 clear is vertical), and
+  `$A001` enables (bit 7) and write-protects (bit 6) the RAM at
+  `$6000-$7FFF`, which reads as open bus when disabled. At power-on the RAM
+  is enabled and writable. Banks wrap modulo the file size, so 16 KiB of PRG
+  repeats. `nesturbator_reset` keeps the registers and the battery RAM
+  (hardware: NESdev Wiki "MMC3").
 - `--hash-frame N` prints a line after frame N has run. N must be between 1
   and the `--frames` value. The option can be repeated.
 - `--hash-audio` prints one hash for all mixed-level transitions and one for
@@ -955,7 +1055,7 @@ This repository contains no commercial ROM or BIOS data and never will. You
 supply your own legally obtained game images. See
 [ASSET_POLICY.md](ASSET_POLICY.md).
 
-Holy Mapperel's mapper 1, 2, 3 and 7 test ROMs under `tests/roms/hm/` are zlib
+Holy Mapperel's mapper 1, 2, 3, 4 and 7 test ROMs under `tests/roms/hm/` are zlib
 licensed, byte-identical to the v0.02 release, and listed in
 `tests/roms/manifest.txt`; their licence is in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

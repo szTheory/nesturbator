@@ -33,7 +33,7 @@ Milestone v2 takes nesturbator from NROM to the six common board families, which
 - [x] **Phase 6: Mapper seam and PPU fetch pipeline** - NROM moves onto a per-board mapper interface with v1 hashes unchanged, then mid-frame scroll writes render as on the console and A12 rises on the documented dots (completed 2026-10-10)
 - [x] **Phase 7: UxROM, CNROM and AxROM** - Discrete-logic board games run, with bus conflicts where the board has them (completed 2026-10-10)
 - [x] **Phase 8: MMC1 and battery saves** - MMC1 games run, and battery saves persist through the runner and RetroArch (completed 2026-10-10)
-- [ ] **Phase 9: MMC3** - MMC3 games run with the A12-clocked scanline IRQ, and the loader accepts exactly the six v2 mappers
+- [x] **Phase 9: MMC3** - MMC3 games run with the A12-clocked scanline IRQ, and the loader accepts exactly the six v2 mappers (completed 2026-10-10)
 - [ ] **Phase 10: Close-out and boot-to-play** - Every board's hashes match on six platforms, and a game is proven to play from boot
 
 ## Phase Details
@@ -173,10 +173,44 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Synthetic CTest cases show the IRQ counter clocked by an A12 rise only after A12 has been low for three M2 falls, sprite fetches clocking it even for empty slots, and the NEC behaviour on submapper 4.
   2. Holy Mapperel's mapper 4 ROMs report `0000`, including `$A001` PRG-RAM enable and write protect.
-  3. A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit, checks their SHA-256s and passes the Sharp-revision tests; `6-MMC3_alt` is recorded as unsupported.
+  3. A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit, checks their SHA-256s and passes the Sharp-revision tests; the NEC-revision tests `mmc3_test_2/6-MMC3_alt` and `mmc3_irq_tests/5.MMC3_rev_A` are recorded as unsupported.
   4. The loader accepts mappers 0, 1, 2, 3, 4 and 7, and `nesturbator-run` rejects any other mapper, MMC6 (mapper 4, submapper 1) and four-screen boards with a message and a non-zero exit status; the fuzz corpus and the cartridge tests reflect the new rules.
 
-**Plans**: TBD
+**Plans**: 12/12 plans complete
+
+Plans:
+**Wave 1**
+- [x] 09-01-PLAN.md — MMC3 board and mapper 4 loader row: registers, banking, $A001 gating, M2-filtered A12 counter, Sharp and NEC IRQ, hook-level tests, README and header text (BOARD-03, MAP-03)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 09-02-PLAN.md — D-12 loader rows named after every D-16 seed, mapper 4 span sizing, five valid seeds (MAP-03, BOARD-03)
+- [x] 09-03-PLAN.md — Through-the-PPU clock tests: 241 clocks per frame, empty sprite slots, $2006/$2007 edges, non-MMC3 control (BOARD-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 09-04-PLAN.md — Reject seeds: submappers, four-screen, mappers 118 and 119 (MAP-03)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [x] 09-05-PLAN.md — Reject seeds: mappers 206 and 249, PRG and CHR-ROM sizes (MAP-03)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [x] 09-06-PLAN.md — Reject seeds: CHR-RAM, CHR-NVRAM and PRG-RAM shapes; all 31 D-16 seeds (MAP-03)
+- [x] 09-07-PLAN.md — Runner rejection messages (four-screen, MMC6, unsupported mapper, generic) with EXPECT_ERR CTests (MAP-03)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [x] 09-08-PLAN.md — Holy Mapperel mapper 4 ROMs committed, 0000 with PRG RAM MISSING, 47 pinned hashes (BOARD-03)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [x] 09-09-PLAN.md — Build-time derived RAM copies proving $A001 enable and protect, save chain, 50 pinned hashes (BOARD-03)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- [x] 09-10-PLAN.md — blargg MMC3 oracle lane end to end: pins, guarded fetch and its guard test, oracle, mmc3-oracle presets (BOARD-03)
+
+**Wave 9** *(blocked on Wave 8 completion)*
+- [x] 09-11-PLAN.md — All 12 oracle rows measured, NEC rows unsupported, scanline-timing rule, offline inventory and unit checks (BOARD-03)
+
+**Wave 10** *(blocked on Wave 9 completion)*
+- [x] 09-12-PLAN.md — Nightly mmc3-oracle job, report wiring, per-lane workflow policy, phase gate (BOARD-03)
+
 **Research flag**: HIGH — the A12 M2-filter threshold, counter reload and IRQ semantics, the `$A000` mirroring polarity, and submapper 4.
 **Ships**: a release that plays MMC3 games.
 
@@ -211,7 +245,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8 → 9 → 10
 | 6. Mapper seam and PPU fetch pipeline | v2 | 2/2 | Complete    | 2026-10-10 |
 | 7. UxROM, CNROM and AxROM | v2 | 4/4 | Complete    | 2026-10-10 |
 | 8. MMC1 and battery saves | v2 | 8/8 | Complete    | 2026-10-10 |
-| 9. MMC3 | v2 | 0/TBD | Not started | - |
+| 9. MMC3 | v2 | 12/12 | Complete    | 2026-10-10 |
 | 10. Close-out and boot-to-play | v2 | 0/TBD | Not started | - |
 
 ## Backlog

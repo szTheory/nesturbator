@@ -123,7 +123,7 @@ jobs:
 
   asan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5 # hosted run 37857200684 exceeded the old 2-minute cap; retain margin above the observed 2m14s
+    timeout-minutes: 10 # run 38097794967 took 4m14s; run 38108603663 hit the old 5-minute cap at 444/446 after Phase 9 added five mapper 4 ROM runs of about 45 s each under ASan
     env:
       CC: clang-18
       CXX: clang++-18

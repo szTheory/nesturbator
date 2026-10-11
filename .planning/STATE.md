@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v2
 milestone_name: Most of the library plays
-current_phase: 9
-current_phase_name: MMC3
+current_phase: 10
+current_phase_name: Close-out and boot-to-play
 status: planning
-stopped_at: Phase 08 complete, ready to plan Phase 9
-last_updated: "2026-10-11T00:02:15.084Z"
+stopped_at: Phase 09 complete, ready to plan Phase 10
+last_updated: "2026-10-11T03:29:27.270Z"
 last_activity: 2026-10-10
-last_activity_desc: Phase 08 complete, transitioned to Phase 9
-state_head: 838bf97fa67f43e1b23fa5d7a12f33332ead5a16
+last_activity_desc: Phase 09 complete, transitioned to Phase 10
+state_head: 42c7fa943a9cf0fb33977787d80a0a93d2b7c458
 progress:
   total_phases: 6
-  completed_phases: 10
-  total_plans: 22
-  completed_plans: 22
-  percent: 83
+  completed_phases: 11
+  total_plans: 34
+  completed_plans: 34
+  percent: 92
 ---
 
 # Project State
@@ -25,21 +25,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 9 — MMC3
+**Current focus:** Phase 10 — Close-out and boot-to-play
 
 ## Current Position
 
-Phase: 9 — MMC3
+Phase: 10 — Close-out and boot-to-play
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-10-10 — Phase 08 complete, transitioned to Phase 9
+Last activity: 2026-10-10 — Phase 09 complete, transitioned to Phase 10
 
-Progress: [████████░░] 83% of v2
+Progress: [█████████░] 92% of v2
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 66
+- Total plans completed: 78
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -57,6 +57,7 @@ Progress: [████████░░] 83% of v2
 | 06 | 2 | - | - |
 | 07 | 4 | - | - |
 | 08 | 8 | - | - |
+| 09 | 12 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -132,6 +133,18 @@ Progress: [████████░░] 83% of v2
 | Phase 08 P06 | 30 min | 3 tasks | 9 files |
 | Phase 08 P07 | 20 min | 3 tasks | 15 files |
 | Phase 08 P08 | 45min | 3 tasks | 8 files |
+| Phase 09 P01 | 40 min | 3 tasks | 9 files |
+| Phase 09 P02 | 20 min | 3 tasks | 8 files |
+| Phase 09 P03 | 15 min | 2 tasks | 3 files |
+| Phase 09 P04 | 6 min | 2 tasks | 10 files |
+| Phase 09 P05 | 5 min | 2 tasks | 10 files |
+| Phase 09 P06 | 5 min | 2 tasks | 9 files |
+| Phase 09 P07 | 10 min | 2 tasks | 4 files |
+| Phase 09 P08 | 15 min | 2 tasks | 7 files |
+| Phase 09 P09 | 25 min | 2 tasks | 8 files |
+| Phase 09 P10 | 25 min | 2 tasks | 10 files |
+| Phase 09 P11 | 40min | 3 tasks | 7 files |
+| Phase 09 P12 | 20 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -173,6 +186,17 @@ Recent decisions affecting current work:
 - [Phase 08]: 08-06: exit flush runs after the frame loop on every path (JAM included); battery-less cartridges do no save I/O
 - [Phase 08]: 08-07: Holy Mapperel mapper 1 pinned N: m1sgrom/m1sjrom/m1skrom 100, m1surom 200, m1sxrom 400; :save field selects the two-run chain
 - [Phase 08]: 08-08: libretro adapter fetches the battery span once in retro_load_game; game mode e2e files renamed per tag
+- [Phase 09]: 09-01: MMC3 A12 filter clocks iff nes->cpu_cycle - fall >= 3; $A001 stored XOR 0x80 so zeroed block is power-on
+- [Phase 09]: 09-02 seed pin SHA 0d332633e56ed8d0c8d88e88483389c01044742e; mmc3_rows names match D-16 seeds
+- [Phase 09]: BG at $1000 and sprites at $0000: a frame holds 242 MMC3 clocks (pre-render clocks at dot 5 and 325)
+- [Phase 09]: 09-04 reject seeds pinned at 47fa6df (HEAD at creation); each seed name equals its mmc3_rows BAD_ label
+- [Phase 09]: 09-05: oversize reject seeds are bare 16-byte headers; manifest pins f88d7cf and e70b611
+- [Phase 09]: 09-06: RAM and CHR shape reject seeds pinned at ceead30; 31 D-16 seeds complete
+- [Phase 09]: Mapper 4 Holy Mapperel ROMs pinned at N=600
+- [Phase 09]: 09-09: m4tkrom save byte 0 measured 0xB6; derived ROMs built at build time from sha256-checked base
+- [Phase 09]: 09-10: mmc3_test_2/1-clocking passes at frame 27; oracle.txt budget 120
+- [Phase 09]: 09-11: no IRQ delay; 4-scanline_timing failure was a PPU defect (pre-render dot 0 drove A12), fixed in ppu.c. NEC rows 6-MMC3_alt (0x02) and 5.MMC3_rev_A (0x03) unsupported.
+- [Phase 09]: Plan 09-12: mmc3-oracle nightly job timeout is 8 minutes (300 s fetch plus twice the 69 s cold ci build); no cold run of the lane measured yet
 
 ### Pending Todos
 
@@ -180,12 +204,11 @@ None.
 
 ### Blockers/Concerns
 
-Research flags for v2: Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
-- [Phase 08] Draft PR #34 (phase branch) is green at 838bf97: CI run 38096603810 and Nightly run 38096603867 pass every job; it still needs to leave draft and squash-merge.
+Research flags for v2: Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
 - [Phase 08] Code review left 3 warnings and 2 info open (08-REVIEW-DISPOSITION.md): WR-01 runner `save_if_changed` advances the generation before the flush, so a failed interval flush is not retried at exit (confirmed by the verifier); WR-02 NES 2 MMC1 submapper 5 accepted but not emulated as fixed 32 KiB PRG; WR-03 a directory at the `.sav` path exits 4 instead of a read error.
+- [Phase 09] Code review left 1 warning and 2 info (09-REVIEW-DISPOSITION.md): WR-01 accepted by the verifier (MMC3 ignores the header mirroring bit per D-07/D-08; a header sentence and pinning test are an optional quick follow-up); IN-01 duplicate CHR pointer computation; IN-02 runner `describe_rejection` repeats header decoding and the mapper list.
 - [Phase 07] Code review left 2 warnings and 3 info open (07-REVIEW-DISPOSITION.md): WR-01 header, README and mapper_axrom.c say the AxROM reset vector comes from bank 0, true only at power-on (soft reset keeps the bank; add "at power-on" and a reset test), WR-02 hash_inventory.cmake compares only the last platform's keys.
 - [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-02 `$2007` palette test on unmasked `v` stays open; WR-01 (write stamp) and WR-03 (`map_cpu_read` range guard) were fixed in 08-05.
-- [Phase 06] Odd frames with PPUCTRL bit 4 set log no A12 rise at line 0 dot 0 (input for the Phase 9 MMC3 filter).
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
 ### Quick Tasks Completed
@@ -219,14 +242,13 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-10T23:38:45.736Z
-Stopped at: Phase 08 complete, ready to plan Phase 9
+Last session: 2026-10-11T03:23:32.443Z
+Stopped at: Phase 09 complete, ready to plan Phase 10
 Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 9`.
+Next GSD command: `/gsd-discuss-phase 10`.
 
 ## Operator Next Steps
 
-- Take draft PR #34 out of draft and squash-merge it (CI run 38096603810 and Nightly run 38096603867 are green), then create `gsd/phase-9-mmc3` from the fresh main
-- Optionally fix Phase 8 WR-01 (retry a failed interval flush at exit) with /gsd-quick before merging
-- Discuss Phase 9 with /gsd-discuss-phase 9
+- Phase 9 PR: squash-merge once CI is green, then create `gsd/phase-10-close-out-and-boot-to-play` from the fresh main
+- Discuss Phase 10 with /gsd-discuss-phase 10

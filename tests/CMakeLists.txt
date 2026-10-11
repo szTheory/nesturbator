@@ -2,11 +2,11 @@
 # checks the exact standard output and exit status.
 #
 #   nesturbator_runner_test(NAME <test> ARGS <arg>... EXIT <code>
-#                           [IGNORE_STDOUT] [EXPECT <line>...])
+#                           [IGNORE_STDOUT] [EXPECT <line>...] [EXPECT_ERR <text>])
 #
 # Without EXPECT and IGNORE_STDOUT the output must be empty.
 function(nesturbator_runner_test)
-  cmake_parse_arguments(T "IGNORE_STDOUT" "NAME;EXIT;CLEAN_DIR" "ARGS;EXPECT" ${ARGN})
+  cmake_parse_arguments(T "IGNORE_STDOUT" "NAME;EXIT;CLEAN_DIR;EXPECT_ERR" "ARGS;EXPECT" ${ARGN})
   # A quoted add_test argument keeps its semicolons, so each list arrives
   # whole as one -D value.
   set(cmd "$<TARGET_FILE:nesturbator-run>" ${T_ARGS})
@@ -17,6 +17,7 @@ function(nesturbator_runner_test)
       "-DEXPECT_EXIT=${T_EXIT}"
       "-DIGNORE_STDOUT=${T_IGNORE_STDOUT}"
       "-DCLEAN_DIR=${T_CLEAN_DIR}"
+      "-DEXPECT_ERR=${T_EXPECT_ERR}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
 endfunction()
 
@@ -67,6 +68,30 @@ nesturbator_runner_test(NAME runner.usage.unknown
 # usage error.
 nesturbator_runner_test(NAME runner.usage.positional
   ARGS cartridge EXIT 2 IGNORE_STDOUT)
+
+# MAP-03 / D-15: a refused cartridge gets one named reason on stderr and exit 1.
+set(NESTURBATOR_REJECT_SEEDS ${PROJECT_SOURCE_DIR}/tests/fuzz/corpus)
+set(NESTURBATOR_MAPPER_LIST "supported mappers are 0, 1, 2, 3, 4 and 7")
+nesturbator_runner_test(NAME runner.reject.four_screen
+  ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/mmc3-four-screen --frames 1
+  EXIT 1 IGNORE_STDOUT
+  EXPECT_ERR "nesturbator-run: four-screen cartridges are not supported")
+nesturbator_runner_test(NAME runner.reject.mmc6
+  ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/mmc3-submapper-1 --frames 1
+  EXIT 1 IGNORE_STDOUT
+  EXPECT_ERR "nesturbator-run: MMC6 (mapper 4, submapper 1) is not supported")
+nesturbator_runner_test(NAME runner.reject.mapper
+  ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/mapper-118 --frames 1
+  EXIT 1 IGNORE_STDOUT
+  EXPECT_ERR "nesturbator-run: mapper 118 is not supported; ${NESTURBATOR_MAPPER_LIST}")
+nesturbator_runner_test(NAME runner.reject.generic
+  ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/mmc3-prg-8k --frames 1
+  EXIT 1 IGNORE_STDOUT
+  EXPECT_ERR "${NESTURBATOR_MAPPER_LIST}")
+nesturbator_runner_test(NAME runner.reject.truncated
+  ARGS --rom ${NESTURBATOR_REJECT_SEEDS}/truncated-header --frames 1
+  EXIT 1 IGNORE_STDOUT
+  EXPECT_ERR "${NESTURBATOR_MAPPER_LIST}")
 
 # FRAME-03 / D-16: --dump-frame writes the test card as a 256x240 P6 image
 # (15 header bytes + 256*240*3) while the hash line stays over the native
@@ -169,10 +194,60 @@ add_executable(holymapperel-decode holymapperel/decode.c)
 nesturbator_warnings(holymapperel-decode)
 target_compile_definitions(holymapperel-decode PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+
+# Derived ROMs (D-02): header-patched copies of a committed base, built with
+# the build so they exist for CTest and for CI's bare write_hashes.cmake step.
+# The base's sha256 comes from its manifest line; the copies are never committed.
+add_executable(holymapperel-derive holymapperel/derive.c)
+nesturbator_warnings(holymapperel-derive)
+target_compile_definitions(holymapperel-derive PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+set(hm_derived_outputs)
+foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_DERIVED)
+  string(REPLACE ":" ";" parts "${entry}")
+  list(GET parts 0 hm_key)
+  list(GET parts 1 hm_base)
+  list(GET parts 2 hm_patches)
+  string(REPLACE "," ";" hm_patches "${hm_patches}")
+  set(hm_base_sha256 "")
+  foreach(line IN LISTS NESTURBATOR_HOLYMAPPEREL_MANIFEST)
+    if(line MATCHES "^tests/roms/hm/${hm_base}\t.*\t([0-9a-f]+)$")
+      set(hm_base_sha256 ${CMAKE_MATCH_1})
+    endif()
+  endforeach()
+  if(hm_base_sha256 STREQUAL "")
+    message(FATAL_ERROR "no manifest line for derived base ${hm_base}")
+  endif()
+  set(hm_out ${NESTURBATOR_HM_DIR}/derived/${hm_key}.nes)
+  add_custom_command(OUTPUT ${hm_out}
+    COMMAND ${CMAKE_COMMAND} -DTOOL=$<TARGET_FILE:holymapperel-derive>
+      -DBASE=${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_base}
+      -DBASE_SHA256=${hm_base_sha256} -DOUT=${hm_out} "-DPATCHES=${hm_patches}"
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hm_derive.cmake
+    DEPENDS holymapperel-derive ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_base}
+      ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hm_derive.cmake
+    VERBATIM)
+  list(APPEND hm_derived_outputs ${hm_out})
+endforeach()
+add_custom_target(holymapperel-derived ALL DEPENDS ${hm_derived_outputs})
+# The derive step refuses a base whose sha256 is not the manifest's.
+add_test(NAME holymapperel.derive.refuse
+  COMMAND ${CMAKE_COMMAND} -DTOOL=$<TARGET_FILE:holymapperel-derive>
+    -DBASE=${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P128K_CR8K.nes
+    -DBASE_SHA256=0000000000000000000000000000000000000000000000000000000000000000
+    -DOUT=${NESTURBATOR_HM_DIR}/derived/refused.nes "-DPATCHES=set@10=07"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hm_derive.cmake)
+set_tests_properties(holymapperel.derive.refuse PROPERTIES WILL_FAIL TRUE)
+
 foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
   string(REPLACE ":" ";" parts "${entry}")
   list(GET parts 0 hm_key)
   list(GET parts 1 hm_file)
+  if(hm_file MATCHES "^derived/")
+    set(hm_rom ${NESTURBATOR_HM_DIR}/${hm_file})
+  else()
+    set(hm_rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file})
+  endif()
   list(GET parts 2 hm_frames)
   list(GET parts 3 hm_text)
   list(LENGTH parts hm_parts)
@@ -186,6 +261,16 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
     # 32 KiB save carrying Holy Mapperel's SAVEDATA marker at offset 0x100.
     # Run 2 loads that save and must show + BATTERY. Run 1 empties the save
     # directory itself, so it still starts empty when ctest repeats it.
+    # Optional field 6 is the save span size (default 32768) and field 7 an
+    # extra <offset>=<hex> check on run 1's save (the MMC3 write protect byte).
+    set(hm_sav_size 32768)
+    if(hm_parts GREATER 5)
+      list(GET parts 5 hm_sav_size)
+    endif()
+    set(hm_sav_byte "")
+    if(hm_parts GREATER 6)
+      list(GET parts 6 hm_sav_byte)
+    endif()
     get_filename_component(hm_stem ${hm_file} NAME_WE)
     set(hm_savedir ${NESTURBATOR_HM_DIR}/${hm_key}-save)
     foreach(hm_run IN ITEMS run1 run2)
@@ -194,7 +279,7 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
         set(hm_clean ${hm_savedir})
       endif()
       nesturbator_runner_test(NAME holymapperel.${hm_key}.${hm_run}.dump
-        ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
+        ARGS --rom ${hm_rom} --frames ${hm_frames}
           --save-dir ${hm_savedir}
           --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}-${hm_run}.ppm"
         EXIT 0 IGNORE_STDOUT CLEAN_DIR ${hm_clean})
@@ -213,12 +298,26 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
       FIXTURES_REQUIRED holymapperel_${hm_key}_run1
       PASS_REGULAR_EXPRESSION "prg ram \"${hm_text}\"")
     add_test(NAME holymapperel.${hm_key}.run1.sav
-      COMMAND ${CMAKE_COMMAND} -DFILE=${hm_savedir}/${hm_stem}.sav -DSIZE=32768
+      COMMAND ${CMAKE_COMMAND} -DFILE=${hm_savedir}/${hm_stem}.sav -DSIZE=${hm_sav_size}
         -DOFFSET=256 -DHEX=5341564544415441
         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_sav.cmake)
     set_tests_properties(holymapperel.${hm_key}.run1.sav PROPERTIES
       FIXTURES_REQUIRED holymapperel_${hm_key}_run1
       FIXTURES_SETUP holymapperel_${hm_key}_run1_sav)
+    if(NOT hm_sav_byte STREQUAL "")
+      string(REPLACE "=" ";" hm_sav_byte_parts "${hm_sav_byte}")
+      list(GET hm_sav_byte_parts 0 hm_byte_offset)
+      list(GET hm_sav_byte_parts 1 hm_byte_hex)
+      add_test(NAME holymapperel.${hm_key}.run1.sav_byte
+        COMMAND ${CMAKE_COMMAND} -DFILE=${hm_savedir}/${hm_stem}.sav -DSIZE=${hm_sav_size}
+          -DOFFSET=${hm_byte_offset} -DHEX=${hm_byte_hex}
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_sav.cmake)
+      set_tests_properties(holymapperel.${hm_key}.run1.sav_byte PROPERTIES
+        FIXTURES_REQUIRED holymapperel_${hm_key}_run1
+        FIXTURES_SETUP holymapperel_${hm_key}_run1_sav_byte)
+      set_tests_properties(holymapperel.${hm_key}.run2.dump PROPERTIES
+        FIXTURES_REQUIRED holymapperel_${hm_key}_run1_sav_byte)
+    endif()
     # Run 2 starts only after run 1 and its save check.
     set_tests_properties(holymapperel.${hm_key}.run2.dump PROPERTIES
       FIXTURES_REQUIRED holymapperel_${hm_key}_run1_sav)
@@ -227,7 +326,7 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
       PASS_REGULAR_EXPRESSION "prg ram \"${hm_text} \\+ BATTERY\"")
   else()
     nesturbator_runner_test(NAME holymapperel.${hm_key}.dump
-      ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
+      ARGS --rom ${hm_rom} --frames ${hm_frames}
         --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm"
       EXIT 0 IGNORE_STDOUT)
     set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES
@@ -345,6 +444,9 @@ target_include_directories(core.mapper_discrete PRIVATE ${PROJECT_SOURCE_DIR}/sr
 # BOARD-02 (D-10, D-14 to D-17): the MMC1 board on synthetic images.
 nesturbator_core_test(core.mapper_mmc1 core/test_mapper_mmc1.c)
 target_include_directories(core.mapper_mmc1 PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# BOARD-03 (D-04 to D-09): the MMC3 board, hook level and through the CPU.
+nesturbator_core_test(core.mapper_mmc3 core/test_mapper_mmc3.c)
+target_include_directories(core.mapper_mmc3 PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # SAVE-01 (D-06, D-11, D-12): the battery span, its address and the write counter.
 nesturbator_core_test(core.save core/test_save.c)
 target_include_directories(core.save PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -382,6 +484,12 @@ target_link_libraries(ppu.split_scroll PRIVATE nesturbator::nesturbator)
 target_include_directories(ppu.split_scroll PRIVATE ${PROJECT_SOURCE_DIR}/src)
 nesturbator_warnings(ppu.split_scroll)
 add_test(NAME ppu.split_scroll COMMAND ppu.split_scroll)
+# BOARD-03, D-04, D-09: the MMC3 counter clocked by real PPU A12 edges.
+add_executable(ppu.mmc3 ppu/test_mmc3.c)
+target_link_libraries(ppu.mmc3 PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.mmc3 PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.mmc3)
+add_test(NAME ppu.mmc3 COMMAND ppu.mmc3)
 
 # The same entry point is linked into the Linux libFuzzer binary and replayed
 # from checked-in seeds on every CI platform. Refuse an empty corpus at configure
@@ -707,6 +815,7 @@ add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/mapper_uxrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_cnrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_axrom.c
+  ${PROJECT_SOURCE_DIR}/src/mapper_mmc3.c
   ${PROJECT_SOURCE_DIR}/src/ppu.c)
 target_include_directories(bus.unit PRIVATE
   ${PROJECT_SOURCE_DIR}/src
@@ -865,6 +974,81 @@ add_test(NAME vectors.fetch.guard
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -DWORK=${CMAKE_CURRENT_BINARY_DIR}/fetch-guard
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_guard.cmake)
+
+# The blargg MMC3 fetch has the same guards, with its own directory and marker.
+add_test(NAME mmc3.fetch.guard
+  COMMAND ${CMAKE_COMMAND}
+    -DSCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_blargg_mmc3.cmake
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/mmc3-fetch-guard
+    -DSUBDIR=nes-test-roms
+    -DMARKER=.nesturbator-mmc3
+    -DPINS=${CMAKE_CURRENT_SOURCE_DIR}/mmc3/pins.txt
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_guard.cmake)
+
+# 09 D-11: the blargg MMC3 oracle, a test-only helper like holymapperel-decode.
+# It is always built so mmc3.oracle.unit can share its header; the lane below
+# runs it on fetched ROMs.
+add_executable(mmc3-oracle mmc3/oracle.c)
+target_link_libraries(mmc3-oracle PRIVATE nesturbator::nesturbator)
+target_include_directories(mmc3-oracle PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_compile_definitions(mmc3-oracle PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(mmc3-oracle)
+
+# 09 D-11: the oracle's judgement on synthetic memory, and the pins and result table, offline.
+add_executable(mmc3.oracle.unit mmc3/test_oracle.c)
+target_include_directories(mmc3.oracle.unit PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/mmc3)
+nesturbator_warnings(mmc3.oracle.unit)
+add_test(NAME mmc3.oracle.unit COMMAND mmc3.oracle.unit)
+add_test(NAME mmc3.pins
+  COMMAND ${CMAKE_COMMAND} -DMODE=pins -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mmc3_oracle_inventory.cmake)
+add_test(NAME mmc3.oracle.inventory
+  COMMAND ${CMAKE_COMMAND} -DMODE=inventory -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mmc3_oracle_inventory.cmake)
+
+# 09 D-10: blargg's mmc3_test_2 and mmc3_irq_tests at the pin in
+# tests/mmc3/pins.txt, one test per row of tests/mmc3/oracle.txt. They need the
+# network, so they are registered only when NESTURBATOR_MMC3_ORACLE is ON (the
+# mmc3-oracle preset); ci never fetches. Offline the fetch fails; nothing skips.
+option(NESTURBATOR_MMC3_ORACLE "Register the blargg MMC3 oracle tests (network)" OFF)
+set(NESTURBATOR_MMC3_DIR ${CMAKE_BINARY_DIR}/mmc3-oracle CACHE PATH
+  "Where mmc3.oracle.fetch keeps the fetched blargg ROMs (not in the source tree outside build/)")
+if(NESTURBATOR_MMC3_ORACLE)
+  find_program(NESTURBATOR_GIT git REQUIRED)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/mmc3/oracle.txt)
+  add_test(NAME mmc3.oracle.fetch
+    COMMAND ${CMAKE_COMMAND}
+      -DDIR=${NESTURBATOR_MMC3_DIR}
+      -DPINS=${CMAKE_CURRENT_SOURCE_DIR}/mmc3/pins.txt
+      -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DGIT=${NESTURBATOR_GIT}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_blargg_mmc3.cmake)
+  set_tests_properties(mmc3.oracle.fetch PROPERTIES
+    FIXTURES_SETUP mmc3_oracle TIMEOUT 300 LABELS mmc3-oracle)
+  file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/mmc3/oracle.txt mmc3_oracle_rows)
+  foreach(row IN LISTS mmc3_oracle_rows)
+    string(REPLACE "\t" ";" cols "${row}")
+    list(GET cols 0 key)
+    if(key MATCHES "^mmc3_test_2/(.*)$")
+      set(rom ${NESTURBATOR_MMC3_DIR}/nes-test-roms/mmc3_test_2/rom_singles/${CMAKE_MATCH_1}.nes)
+    elseif(key MATCHES "^mmc3_irq_tests/(.*)$")
+      set(rom ${NESTURBATOR_MMC3_DIR}/nes-test-roms/mmc3_irq_tests/${CMAKE_MATCH_1}.nes)
+    else()
+      message(FATAL_ERROR "tests/mmc3/oracle.txt: unknown suite in key ${key}")
+    endif()
+    add_test(NAME mmc3.oracle.${key}
+      COMMAND ${CMAKE_COMMAND}
+        -DORACLE=$<TARGET_FILE:mmc3-oracle>
+        -DROM=${rom}
+        -DKEY=${key}
+        -DTABLE=${CMAKE_CURRENT_SOURCE_DIR}/mmc3/oracle.txt
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mmc3_oracle_run.cmake)
+    set_tests_properties(mmc3.oracle.${key} PROPERTIES
+      FIXTURES_REQUIRED mmc3_oracle TIMEOUT 120 LABELS mmc3-oracle)
+  endforeach()
+endif()
 
 # CPU-02, D-22: the full 65x02 set, fetched by git at the pin in
 # tests/vectors/pins.txt. These tests need the network, so they are registered

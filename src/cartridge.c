@@ -83,7 +83,7 @@ static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size,
     const int chr_8k_ok = chr_is_ram || chr_size == 8192u;
     const int no_ram = !battery && ram_work == 0u && ram_nv == 0u && chr_nv == 0u;
     /* Boards without RAM rows keep refusing the battery bit and every RAM size. */
-    if (mapper != 1u && !no_ram)
+    if (mapper != 1u && mapper != 4u && !no_ram)
         return 0;
     switch (mapper) {
     case 0u:
@@ -122,6 +122,24 @@ static int board_profile_ok(uint16_t mapper, uint8_t submapper, size_t prg_size,
         if (ram_total != 0u && !is_pow2(ram_total))
             return 0;
         if (ram_total > MMC1_RAM_MAX || (ram_total > MMC1_RAM_UNIT && !chr_8k_ok))
+            return 0;
+        return battery == (ram_nv != 0u);
+    }
+    case 4u: {
+        /* MMC3: Sharp (submapper 0) or NEC (submapper 4); 16 to 512 KiB of PRG,
+           8 to 256 KiB of CHR ROM or 8 KiB of CHR RAM, and no PRG RAM or exactly
+           8 KiB of it, work or battery-backed (D-12). NESdev Wiki "MMC3" and
+           "NES 2 submappers". */
+        if (submapper != 0u && submapper != 4u)
+            return 0;
+        if (!is_pow2(prg_size) || prg_size < 16384u || prg_size > 524288u)
+            return 0;
+        if (!chr_is_ram && (!is_pow2(chr_size) || chr_size < 8192u || chr_size > 262144u))
+            return 0;
+        if (chr_nv != 0u)
+            return 0;
+        if (!((ram_work == 0u && ram_nv == 0u) || (ram_work == 8192u && ram_nv == 0u) ||
+              (ram_work == 0u && ram_nv == 8192u)))
             return 0;
         return battery == (ram_nv != 0u);
     }
@@ -190,6 +208,13 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
             else
                 layout->ram_work = ram;
         }
+        /* D-12: iNES 1 gives MMC3 8 KiB of RAM, battery-backed with the battery bit. */
+        if (mapper == 4u) {
+            if ((image[6] & 2u) != 0u)
+                layout->ram_nv = 8192u;
+            else
+                layout->ram_work = 8192u;
+        }
     }
     layout->battery = (image[6] & 2u) != 0u;
     if (!board_profile_ok(mapper, submapper, layout->prg_size, layout->chr_size, layout->chr_is_ram,
@@ -242,6 +267,9 @@ int nesturbator__mapper_ops_for(uint16_t id, struct nesturbator__mapper_ops *out
         return 1;
     case 3u:
         nesturbator__mapper_cnrom_ops(out);
+        return 1;
+    case 4u:
+        nesturbator__mapper_mmc3_ops(out);
         return 1;
     case 7u:
         nesturbator__mapper_axrom_ops(out);

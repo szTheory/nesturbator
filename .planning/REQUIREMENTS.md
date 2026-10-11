@@ -22,7 +22,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. "Holy
 
 - [x] **MAP-01**: NROM loads through the per-board mapper interface (page tables, a four-entry nametable map, a write hook stamped with the CPU cycle, mapper IRQ ORed with the APU sources), and every v1 frame and audio hash stays byte-identical.
 - [x] **MAP-02**: The PPU advances `v` with coarse-X and Y increments and the dot-257 and dot-280-to-304 copies, and fetches background and sprite patterns on their documented dots. A synthetic split-scroll test that writes `$2005` and `$2006` mid-frame matches its expected frame. The behaviour revision is bumped once, and each re-pinned hash is listed with the reason it changed.
-- [ ] **MAP-03**: The loader accepts mappers 0, 1, 2, 3, 4 and 7. It rejects other mappers, MMC6 (mapper 4, submapper 1) and four-screen boards with a message and a non-zero exit status. The fuzz corpus and the cartridge tests reflect the new rules.
+- [x] **MAP-03**: The loader accepts mappers 0, 1, 2, 3, 4 and 7. It rejects other mappers, MMC6 (mapper 4, submapper 1) and four-screen boards with a message and a non-zero exit status. The fuzz corpus and the cartridge tests reflect the new rules.
 
 ### Boards
 
@@ -34,11 +34,11 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. "Holy
   - Holy Mapperel's mapper 1 ROMs pass.
   - Synthetic tests show a write on the cycle after another write is ignored, unless it sets the reset bit.
   - They also show the reset bit's effect on the control register, PRG-RAM enabled at power-on, and the SNROM, SOROM, SUROM and SXROM variants derived from ROM and RAM sizes.
-- [ ] **BOARD-03**: MMC3 games run:
+- [x] **BOARD-03**: MMC3 games run:
   - The IRQ counter is clocked by PPU A12 rises after A12 has been low for three M2 falls, and sprite fetches clock it even for empty slots.
   - Holy Mapperel's mapper 4 ROMs pass, including `$A001` PRG-RAM enable and write protect.
   - A synthetic test shows the NEC behaviour on submapper 4.
-  - A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit and passes the Sharp-revision tests. `6-MMC3_alt` is recorded as unsupported.
+  - A nightly job fetches blargg's `mmc3_test_2` and `mmc3_irq_tests` at their pinned commit and passes the Sharp-revision tests. `mmc3_test_2/6-MMC3_alt` and `mmc3_irq_tests/5.MMC3_rev_A`, the NEC-revision tests, are recorded as unsupported.
 - [ ] **BOARD-04**: Frame and audio hashes for every board's committed ROMs are identical on all six platforms, and the libretro test program receives equal frames.
 
 ### Battery saves
@@ -108,10 +108,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TUNE-06 | Phase 5 | Complete |
 | MAP-01 | Phase 6 | Complete |
 | MAP-02 | Phase 6 | Complete |
-| MAP-03 | Phase 9 | Pending |
+| MAP-03 | Phase 9 | Complete |
 | BOARD-01 | Phase 7 | Complete |
 | BOARD-02 | Phase 8 | Complete |
-| BOARD-03 | Phase 9 | Pending |
+| BOARD-03 | Phase 9 | Complete |
 | BOARD-04 | Phase 10 | Pending |
 | SAVE-01 | Phase 8 | Complete |
 | SAVE-02 | Phase 8 | Complete |

@@ -4,6 +4,11 @@
 # pin in tests/vectors/pins.txt, checks every file's SHA-256, and runs all
 # 2,560,000 tests. There is no cache (Phase 2 D-21): a cache used every night
 # stays warm forever, and the fetch at the pin would stop being tested.
+# `cmake --workflow --preset mmc3-oracle` is the second lane (09 D-10): it
+# fetches blargg's mmc3_test_2 and mmc3_irq_tests at the pin in
+# tests/mmc3/pins.txt, checks every ROM's SHA-256, and runs the 12 rows of
+# tests/mmc3/oracle.txt. It has no cache, no write permission and no skip code
+# either, and it is not part of ci.yml or the CI required set.
 name: Nightly
 
 on:
@@ -36,6 +41,15 @@ on:
       - src/internal.h
       - tests/fuzz/**
       - tests/roms/manifest.txt
+      - tests/mmc3/**
+      - tests/cmake/fetch_blargg_mmc3.cmake
+      - tests/cmake/mmc3_oracle_run.cmake
+      - tests/cmake/mmc3_oracle_inventory.cmake
+      - src/mapper_mmc3.c
+      - src/mapper.h
+      - src/ppu.c
+      - src/cartridge.c
+      - src/bus.c
 
 permissions: {}
 
@@ -104,6 +118,72 @@ jobs:
         if: always()
         env:
           ARTIFACT: vectors-full-evidence-${{ github.run_id }}
+        run: |
+          printf 'event: %s\nhead SHA: %s\nrun: %s/%s/actions/runs/%s\nartifact: %s\n' \
+            "$GITHUB_EVENT_NAME" "$GITHUB_SHA" "$GITHUB_SERVER_URL" \
+            "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$ARTIFACT" >> "$GITHUB_STEP_SUMMARY"
+
+  mmc3-oracle:
+    runs-on: ubuntu-24.04
+    # No cold run of this lane has been measured yet. The fetch is a network
+    # transfer, so it gets its own allowance, the 300 s TIMEOUT of
+    # mmc3.oracle.fetch in tests/CMakeLists.txt; the rest gets twice the 69 s
+    # that the ci job's cold build took (this lane builds the same tree; its 13
+    # tests ran in 2.3 s locally). 300 + 138 = 438 s, rounded up to 8 minutes.
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    outputs:
+      failed: ${{ steps.keys.outputs.failed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # GCC 14, as in ci.yml; the image's default gcc is 13.
+      - name: Linux toolchain
+        run: |
+          echo "CC=gcc-14" >> "$GITHUB_ENV"
+          echo "CXX=g++-14" >> "$GITHUB_ENV"
+          command -v ninja || { sudo apt-get update && sudo apt-get install -y ninja-build; }
+      # Configure without running the fetch fixture, then preserve the exact
+      # inventory checked before the network-backed workflow starts.
+      - name: Record full-lane inventory
+        run: |
+          cmake --preset mmc3-oracle
+          ctest --test-dir build/mmc3-oracle --show-only=json-v1 > build/mmc3-oracle/registered-tests.json
+      - run: cmake --workflow --preset mmc3-oracle
+      # The failed tests as report keys: mmc3.oracle.<key> becomes <key>;
+      # the fetch test keeps its name.
+      - name: Failed keys
+        id: keys
+        if: always()
+        run: |
+          log=build/mmc3-oracle/Testing/Temporary/LastTestsFailed.log
+          keys=""
+          if [ -f "$log" ]; then
+            keys=$(cut -d: -f2- "$log" \
+              | sed -E 's/^mmc3\.oracle\.(mmc3_)/\1/' \
+              | sort | tr '\n' ' ' | sed 's/ $//')
+          fi
+          printf 'failed: %s\n' "${keys:-none}"
+          echo "failed=$keys" >> "$GITHUB_OUTPUT"
+      - name: Verify run evidence
+        if: always()
+        run: |
+          test -s build/mmc3-oracle/registered-tests.json
+          test -s build/mmc3-oracle/mmc3-oracle.junit.xml
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: mmc3-oracle-evidence-${{ github.run_id }}
+          path: |
+            build/mmc3-oracle/registered-tests.json
+            build/mmc3-oracle/mmc3-oracle.junit.xml
+          if-no-files-found: error
+      - name: Record run identity
+        if: always()
+        env:
+          ARTIFACT: mmc3-oracle-evidence-${{ github.run_id }}
         run: |
           printf 'event: %s\nhead SHA: %s\nrun: %s/%s/actions/runs/%s\nartifact: %s\n' \
             "$GITHUB_EVENT_NAME" "$GITHUB_SHA" "$GITHUB_SERVER_URL" \
@@ -184,7 +264,7 @@ jobs:
   # opened or updated on failure and closed on success. No checkout, so gh is
   # given the repository.
   report:
-    needs: [vectors-full, rom-loader-fuzz, suite-flake]
+    needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, suite-flake]
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-24.04
     timeout-minutes: 1
@@ -194,8 +274,9 @@ jobs:
       - name: Rolling issue
         env:
           GH_TOKEN: ${{ github.token }}
-          RESULT: ${{ needs.vectors-full.result == 'success' && needs.rom-loader-fuzz.result == 'success' && needs.suite-flake.result == 'success' && 'success' || 'failure' }}
+          RESULT: ${{ needs.vectors-full.result == 'success' && needs.mmc3-oracle.result == 'success' && needs.rom-loader-fuzz.result == 'success' && needs.suite-flake.result == 'success' && 'success' || 'failure' }}
           FAILED: ${{ needs.vectors-full.outputs.failed }}
+          MMC3: ${{ needs.mmc3-oracle.outputs.failed }}
           FUZZ: ${{ needs.rom-loader-fuzz.outputs.outcome }}
           FLAKE: ${{ needs.suite-flake.outputs.outcome }}
           HEAD_SHA: ${{ github.sha }}
@@ -203,7 +284,7 @@ jobs:
         run: |
           url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           gh label create nightly --force --repo "$GITHUB_REPOSITORY" \
-            --description "Nightly vectors-full run"
+            --description "Nightly lanes"
           issue=$(gh issue list --repo "$GITHUB_REPOSITORY" --label nightly --state open \
             --json number -q '.[0].number // empty')
           if [ "$RESULT" = "success" ]; then
@@ -213,11 +294,11 @@ jobs:
             fi
             exit 0
           fi
-          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nOverall result: %s\n\nFailed vector keys: %s\n\nROM loader fuzz outcome: %s\n\nSuite flake hunt outcome: %s\n' \
-            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-none recorded; see the run}" "${FUZZ:-not recorded; see the run}" "${FLAKE:-not recorded; see the run}")
+          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nOverall result: %s\n\nFailed vector keys: %s\n\nFailed MMC3 oracle keys: %s\n\nROM loader fuzz outcome: %s\n\nSuite flake hunt outcome: %s\n' \
+            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-none recorded; see the run}" "${MMC3:-none recorded; see the run}" "${FUZZ:-not recorded; see the run}" "${FLAKE:-not recorded; see the run}")
           if [ -n "$issue" ]; then
             gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" --body "$body"
           else
-            gh issue create --repo "$GITHUB_REPOSITORY" --title "Nightly vectors-full failed" \
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "Nightly failed" \
               --label nightly --body "$body"
           fi
