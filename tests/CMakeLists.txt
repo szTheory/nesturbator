@@ -194,10 +194,60 @@ add_executable(holymapperel-decode holymapperel/decode.c)
 nesturbator_warnings(holymapperel-decode)
 target_compile_definitions(holymapperel-decode PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+
+# Derived ROMs (D-02): header-patched copies of a committed base, built with
+# the build so they exist for CTest and for CI's bare write_hashes.cmake step.
+# The base's sha256 comes from its manifest line; the copies are never committed.
+add_executable(holymapperel-derive holymapperel/derive.c)
+nesturbator_warnings(holymapperel-derive)
+target_compile_definitions(holymapperel-derive PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+set(hm_derived_outputs)
+foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_DERIVED)
+  string(REPLACE ":" ";" parts "${entry}")
+  list(GET parts 0 hm_key)
+  list(GET parts 1 hm_base)
+  list(GET parts 2 hm_patches)
+  string(REPLACE "," ";" hm_patches "${hm_patches}")
+  set(hm_base_sha256 "")
+  foreach(line IN LISTS NESTURBATOR_HOLYMAPPEREL_MANIFEST)
+    if(line MATCHES "^tests/roms/hm/${hm_base}\t.*\t([0-9a-f]+)$")
+      set(hm_base_sha256 ${CMAKE_MATCH_1})
+    endif()
+  endforeach()
+  if(hm_base_sha256 STREQUAL "")
+    message(FATAL_ERROR "no manifest line for derived base ${hm_base}")
+  endif()
+  set(hm_out ${NESTURBATOR_HM_DIR}/derived/${hm_key}.nes)
+  add_custom_command(OUTPUT ${hm_out}
+    COMMAND ${CMAKE_COMMAND} -DTOOL=$<TARGET_FILE:holymapperel-derive>
+      -DBASE=${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_base}
+      -DBASE_SHA256=${hm_base_sha256} -DOUT=${hm_out} "-DPATCHES=${hm_patches}"
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hm_derive.cmake
+    DEPENDS holymapperel-derive ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_base}
+      ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hm_derive.cmake
+    VERBATIM)
+  list(APPEND hm_derived_outputs ${hm_out})
+endforeach()
+add_custom_target(holymapperel-derived ALL DEPENDS ${hm_derived_outputs})
+# The derive step refuses a base whose sha256 is not the manifest's.
+add_test(NAME holymapperel.derive.refuse
+  COMMAND ${CMAKE_COMMAND} -DTOOL=$<TARGET_FILE:holymapperel-derive>
+    -DBASE=${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P128K_CR8K.nes
+    -DBASE_SHA256=0000000000000000000000000000000000000000000000000000000000000000
+    -DOUT=${NESTURBATOR_HM_DIR}/derived/refused.nes "-DPATCHES=set@10=07"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hm_derive.cmake)
+set_tests_properties(holymapperel.derive.refuse PROPERTIES WILL_FAIL TRUE)
+
 foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
   string(REPLACE ":" ";" parts "${entry}")
   list(GET parts 0 hm_key)
   list(GET parts 1 hm_file)
+  if(hm_file MATCHES "^derived/")
+    set(hm_rom ${NESTURBATOR_HM_DIR}/${hm_file})
+  else()
+    set(hm_rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file})
+  endif()
   list(GET parts 2 hm_frames)
   list(GET parts 3 hm_text)
   list(LENGTH parts hm_parts)
@@ -219,7 +269,7 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
         set(hm_clean ${hm_savedir})
       endif()
       nesturbator_runner_test(NAME holymapperel.${hm_key}.${hm_run}.dump
-        ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
+        ARGS --rom ${hm_rom} --frames ${hm_frames}
           --save-dir ${hm_savedir}
           --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}-${hm_run}.ppm"
         EXIT 0 IGNORE_STDOUT CLEAN_DIR ${hm_clean})
@@ -252,7 +302,7 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
       PASS_REGULAR_EXPRESSION "prg ram \"${hm_text} \\+ BATTERY\"")
   else()
     nesturbator_runner_test(NAME holymapperel.${hm_key}.dump
-      ARGS --rom ${PROJECT_SOURCE_DIR}/tests/roms/hm/${hm_file} --frames ${hm_frames}
+      ARGS --rom ${hm_rom} --frames ${hm_frames}
         --dump-frame "${hm_frames}:${NESTURBATOR_HM_DIR}/${hm_key}.ppm"
       EXIT 0 IGNORE_STDOUT)
     set_tests_properties(holymapperel.${hm_key}.dump PROPERTIES

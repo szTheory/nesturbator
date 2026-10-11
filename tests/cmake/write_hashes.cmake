@@ -139,12 +139,17 @@ endforeach()
 # key <key>.saved, and it has to differ from the first run's screen.
 function(holymapperel_hash_run key file n save_dir out_row out_digest)
   math(EXPR n2 "${n} * 2")
+  if(file MATCHES "^derived/")
+    set(rom "${BUILD}/tests/holymapperel/${file}")
+  else()
+    set(rom "${source_dir}/tests/roms/hm/${file}")
+  endif()
   set(save_args)
   if(NOT save_dir STREQUAL "")
     set(save_args --save-dir "${save_dir}")
   endif()
   execute_process(
-    COMMAND "${runner}" --frames ${n2} --rom "${source_dir}/tests/roms/hm/${file}"
+    COMMAND "${runner}" --frames ${n2} --rom "${rom}"
       ${save_args} --hash-frame ${n} --hash-frame ${n2}
     OUTPUT_VARIABLE hashes ERROR_VARIABLE errors RESULT_VARIABLE rc)
   if(NOT rc EQUAL 0)

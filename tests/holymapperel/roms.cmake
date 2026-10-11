@@ -1,12 +1,18 @@
 # The Holy Mapperel ROMs that tests/CMakeLists.txt, write_hashes.cmake and
 # hash_inventory.cmake all read. Each entry is
-# <key>:<file in tests/roms/hm>:<N>:<prg ram text>[:save]. N is the frame whose
+# <key>:<file in tests/roms/hm>:<N>:<prg ram text>[:save[:<span size>[:<offset>=<hex>]]].
+# A file written derived/<name> is a copy built at build time by
+# tests/cmake/hm_derive.cmake from a committed base (see
+# NESTURBATOR_HOLYMAPPEREL_DERIVED below), never committed. N is the frame whose
 # result screen is read and hashed. The prg ram text is the exact text of the
 # screen's PRG RAM row (nametable row 6), asserted by holymapperel.<key>.prgram
 # with holymapperel-decode --prg-ram. An entry ending in :save runs the ROM
 # twice against one save directory: run 1 starts empty and shows no BATTERY,
-# run 2 loads the save run 1 wrote and shows "+ BATTERY". Phases 8 and 9 add
-# one entry here and one line to the manifest list below per ROM.
+# run 2 loads the save run 1 wrote and shows "+ BATTERY". The optional span size
+# (default 32768) is the byte size run 1's .sav must have, and the optional
+# <decimal offset>=<lowercase hex> adds a second .sav check of those bytes.
+# Phases 8 and 9 add one entry here and one line to the manifest list below
+# per committed ROM; derived copies get no manifest line.
 set(NESTURBATOR_HOLYMAPPEREL_ROMS
   "m2:M2_P128K_CR8K_V.nes:100:PRG RAM MISSING"
   "m3:M3_P32K_C32K_H.nes:100:PRG RAM MISSING"
@@ -17,7 +23,16 @@ set(NESTURBATOR_HOLYMAPPEREL_ROMS
   "m1sjrom:M1_P128K_C32K_W8K.nes:100:8K PRG RAM OK"
   "m1skrom:M1_P128K_C128K_S8K.nes:100:8K PRG RAM OK"
   "m1surom:M1_P512K_CR8K_S8K.nes:200:8K PRG RAM OK"
-  "m1sxrom:M1_P512K_CR8K_S32K.nes:400:32K PRG RAM OK:save")
+  "m1sxrom:M1_P512K_CR8K_S32K.nes:400:32K PRG RAM OK:save"
+  "m4w8k:derived/m4w8k.nes:600:8K PRG RAM OK")
+
+# Derived ROMs: <key>:<base file in tests/roms/hm>:<patch>[,<patch>]. A patch is
+# set@<offset>=<hh> or or@<offset>=<hh> on the iNES header (colons separate
+# list fields, so patches use @ and =). m4w8k sets byte 10 to 0x07 (8 KiB work
+# RAM) and m4tkrom also sets the battery bit in byte 6, both on M4_P128K_CR8K.
+set(NESTURBATOR_HOLYMAPPEREL_DERIVED
+  "m4w8k:M4_P128K_CR8K.nes:set@10=07"
+  "m4tkrom:M4_P128K_CR8K.nes:or@6=02,set@10=70")
 
 # The manifest.txt line of each ROM, so write_hashes.cmake can check provenance.
 set(NESTURBATOR_HOLYMAPPEREL_MANIFEST
