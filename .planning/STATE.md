@@ -1,20 +1,16 @@
 ---
 gsd_state_version: "1.0"
-milestone: v2
-milestone_name: Most of the library plays
-status: Awaiting next milestone
-stopped_at: Milestone v2 archived
-last_updated: "2026-10-11T18:33:32.045Z"
+milestone: v3
+milestone_name: Save states and rewind
+status: ready_to_plan
+last_updated: "2026-10-11T18:50:07.464Z"
 last_activity: 2026-10-11
-last_activity_desc: Milestone v2 completed and archived
-state_head: 493b9957fc0bde8ab895926d02e9d7b11efc9058
 progress:
-  total_phases: 6
-  completed_phases: 12
-  total_plans: 41
-  completed_plans: 41
-  percent: 100
-current_phase: 10
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -24,14 +20,16 @@ current_phase: 10
 See: .planning/PROJECT.md (updated 2026-10-11)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Planning the next milestone (v2 shipped 2026-10-11)
+**Current focus:** v3 Save states and rewind — Phase 11, Tune-up and state readiness
 
 ## Current Position
 
-Phase: Milestone v2 complete
-Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-10-11 — Milestone v2 completed and archived
+Phase: 11 of 15 (Tune-up and state readiness) — v3 runs Phases 11 to 15
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-11 — v3 roadmap created
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -235,6 +233,7 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - Phase 04.1 inserted after Phase 4: Close gap: GAME-01 — initialize accepted iNES trainers (URGENT)
 - Phase 04.2 inserted after Phase 4: Close gap: SND-01 — deliver single-sample libretro audio (URGENT)
 - v2 roadmap created 2026-10-09: Phases 5–10 (tune-up, mapper seam and PPU fetch pipeline merged into one phase so every phase releases, UxROM/CNROM/AxROM, MMC1 and battery saves, MMC3, close-out and boot-to-play)
+- v3 roadmap created 2026-10-11: Phases 11–15 (tune-up and state readiness, save states in the library with the runner state options, rewind and run-ahead in RetroArch, runner process contract, speed and close-out); Backlog 999.1 moved into Phase 15 as TUNE-10
 
 ## Deferred Items
 
@@ -255,11 +254,11 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-11T14:59:47.466Z
-Stopped at: Milestone v2 archived
+Stopped at: v3 roadmap created
 Resume file: None
 
-Next GSD command: `/gsd-new-milestone`.
+Next GSD command: `/gsd-discuss-phase 11`.
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Discuss Phase 11 with /gsd-discuss-phase 11, then plan it with /gsd-plan-phase 11

@@ -1,481 +1,242 @@
-# Pitfalls Research
+# Domain Pitfalls
 
-**Domain:** Adding mappers (MMC1, MMC3, UxROM, CNROM, AxROM), battery saves, CI tune-up and a boot-to-play proof to an existing deterministic, accuracy-first NES core (nesturbator v2)
-**Researched:** 2026-10-09
-**Confidence:** MEDIUM-HIGH. MMC1 and MMC3 behaviour was re-read on the NESdev wiki today. Bus conflicts, iNES/NES 2.0 header rules, libretro SRAM behaviour and test-ROM quirks come from the project's own preparation files plus prior knowledge of the NESdev wiki and libretro docs; items marked (unverified) were not re-fetched. No GPL or LGPL emulator source was opened.
+**Domain:** Adding save states, rewind, run-ahead, a signal-safe runner contract and per-PR performance gating to an existing deterministic, integer-only NES core (nesturbator v3)
+**Researched:** 2026-10-11
+**Confidence:** MEDIUM-HIGH. The project's own preparation files (NES-ECOSYSTEM section 4 and 5, LIBRETRO-AND-RUNNER section 2 and 5, ENGINEERING section 4 and 5), the v2 audit and the current source layout (opaque instance, per-board ops table holding page-table pointers, `save_generation` counter, runner exit flush) were read today. Hardware and POSIX/Windows signal behaviour comes from NESdev wiki knowledge, libretro documentation, POSIX and Microsoft documentation as remembered; items marked (unverified) were not re-fetched. No GPL or LGPL emulator source was opened; user-visible failures are cited from issue titles already recorded in NES-ECOSYSTEM.
 
-Phase labels used below (suggested, the roadmapper may rename):
-- **P1 Tune-up**: CI speed, flakiness, pins, v1 debt (release-policy gate, trainer host path, `retro_reset()`, local RetroArch tests).
-- **P2 MMC1 + saves**: MMC1, PRG-RAM generalisation, battery saves in library, runner, libretro.
-- **P3 MMC3**: MMC3, A12 filter, scanline IRQ.
-- **P4 Discrete boards**: UxROM, CNROM, AxROM, bus conflicts.
-- **P5 Conformance pins**: Holy Mapperel and per-board hashes. Recommendation: start the pin for each board in the phase that adds it, and use P5 only to close gaps. v1 lesson: late gap-closure phases cost a re-verification.
-- **P6 Boot-to-play**: one game proven from boot through interactive play.
-
----
+Phase labels below assume the milestone's four parts: **P-Tune** (tune-up and v2 debt), **P-State** (state format and library API), **P-Host** (libretro serialize, rewind, run-ahead, netplay declaration), **P-Runner** (runner states, signals, exit statuses), **P-Perf** (FPS mode and per-PR instruction counts). If the roadmap merges or splits them, keep the ordering constraint: P-State precedes P-Host and P-Runner; P-Perf is independent but should land before P-Host's rewind cost claims.
 
 ## Critical Pitfalls
 
-### Pitfall 1: A stale or shared `.sav` file silently changes a "deterministic" run
-
-**What goes wrong:**
-The runner derives `<rom>.sav` next to the ROM and loads it if present. A hash test for a battery game then depends on whatever file the previous run left behind. It passes on a clean CI checkout and fails locally, or flips between platforms. Parallel `ctest -j` runs of two tests on the same ROM race on one `.sav`. Tests also write files into `tests/roms/`, dirtying the tree, which `scripts/hygiene.sh` then flags.
-
-**Why it happens:**
-v1 had no persistent state outside the instance, so every harness assumed "same inputs, same hash". A `.sav` is a new, hidden input.
-
-**How to avoid:**
-- Make persistence explicit in the runner: no implicit `<rom>.sav` in test mode. Either a `--save <path>` flag the user passes, or a default that every test overrides with `--no-save`.
-- Give every battery test its own temporary directory named after the test, and never write beside committed ROMs.
-- State in the README that the save file is an input to the frame hash, and hash-pin tests with the save path recorded in the manifest.
-- Add a test that runs a battery ROM twice, once with no file and once with a pre-seeded file, and asserts the hashes differ for a game that reads its RAM. This proves the file path is wired.
-
-**Warning signs:**
-"Works the second time"; a hash that changes after a local run; `git status` dirty after `ctest`; different results with `-j1` and `-j8`.
-
-**Phase to address:** P2 (design the flag), enforced in P1's CI cleanup rules.
-
----
-
-### Pitfall 2: Reporting the wrong save size, or a save size that moves
-
-**What goes wrong:**
-Existing `.sav`/`.srm` files from other cores are raw bytes whose size depends on the board: 8 KiB for most MMC1 and MMC3 games, 32 KiB for SXROM-class boards, 1 KiB for MMC6 (StarTropics), 2 KiB on a few oddities (unverified). If the core allocates 32 KiB for every MMC1 game (the prep doc says 32 KiB "covers all known titles") and exposes all of it as save RAM, every ordinary MMC1 save becomes a 32 KiB file that other cores cannot read, and hosts that compare sizes complain or truncate.
-
-**Why it happens:**
-Conflating "RAM the cartridge might need" (allocation) with "bytes that are battery-backed" (what the save contract exposes). iNES 1.0 headers give only byte 8 (units of 8 KiB, 0 meaning 8 KiB for compatibility); NES 2.0 gives separate volatile and non-volatile sizes.
-
-**How to avoid:**
-- Allocate generously inside the instance, but expose only the battery-backed span: iNES 1.0 with battery flag gives byte 8 (or 8 KiB if 0); NES 2.0 gives the non-volatile field only. Volatile PRG-RAM is never part of save data.
-- Freeze this rule as a public contract (README and header comment) and commit fixtures: a synthetic 8 KiB `.sav`, a 32 KiB one, an MMC6 1 KiB one.
-- Define the load policy for a file of the wrong size: copy `min(file, core)` bytes, leave the rest at the documented fill, never read past either buffer, and report a warning. Define the save policy: never silently shrink a longer user file (write beside it or refuse). Test sizes 0, short, exact, long.
-- Treat the policy as frozen after the first release: changing it later corrupts saves already in users' hands.
-
-**Warning signs:**
-A `.sav` that is 32768 bytes after playing Zelda; a save that "loads" but the game says "no save"; asan reports on a long file.
-
-**Phase to address:** P2.
-
----
-
-### Pitfall 3: Battery flag or RAM size wrong in the header, and no database to fix it
-
-**What goes wrong:**
-Dumps with the battery bit missing lose saves with no error. Dumps with it set but byte 8 = 0 or NES 2.0 non-volatile size = 0 contradict each other. iNES 1.0 images that use WRAM without declaring it (common for MMC1 and MMC3) get no RAM at `$6000`, and the game hangs or loses its state. Conversely, giving NES 2.0 images that declare no RAM a readable `$6000` hides the open-bus behaviour Holy Mapperel checks.
-
-**Why it happens:**
-The project decided not to ship a header database (nes20db has no stated licence), so the header is the only truth.
-
-**How to avoid:**
-- iNES 1.0: always provide 8 KiB WRAM at `$6000-$7FFF` for mappers that can have it (1, 4 and, from v1, 0). The battery bit only decides whether it is persisted. NES 2.0: exactly what the header says; absent RAM reads as open bus.
-- Battery bit set with zero battery bytes: treat as 8 KiB iNES 1.0 style, log a warning, add to a loader test.
-- Expose the existing header-override path (host-supplied) so a user can fix a bad dump; document it for the runner (`--header-override` or equivalent).
-- Reject unsupported mappers with a distinct error that the runner prints and libretro reports through its log callback. Do not fall through to a black screen. Examples that look like supported mappers but are not: 155 (MMC1A), 118/119 (TxSROM, TQROM, which take mirroring or CHR-RAM from CHR bit 7), 185 (CNROM with copy protection), 180 (UxROM with the fixed bank first), 30 (UNROM 512), 34 and 66.
-- Keep the DiskDude! garbage-header case in the loader corpus: a mapper-1 image with text in bytes 7-15 must not become mapper 65.
-
-**Warning signs:**
-Games with a title screen but "save failed" messages; black screen for an unsupported board; Holy Mapperel WRAM rows failing only in NES 2.0 variants.
-
-**Phase to address:** P2 (RAM rules), P4 (unsupported-mapper error covers 180/185), loader fuzz corpus in every mapper phase.
-
----
-
-### Pitfall 4: MMC1 consecutive-write ignore implemented as a hack
-
-**What goes wrong:**
-On hardware the serial port ignores the second write when two writes land on consecutive CPU cycles. This happens with read-modify-write instructions (`INC $8000` writes the old value, then the new value one cycle later). Bill & Ted's Excellent Adventure, among others, depends on it. Implementations either omit it (the game resets banks wrongly and crashes) or approximate it with "previous opcode was RMW" or "ignore a write if the previous write was within N ticks" using the project's half-master-clock units. Both misfire on DMA-stolen cycles, on two ordinary `STA` writes separated by a stolen cycle, or on the bit-7 reset, which is never ignored.
-
-**Why it happens:**
-The mapper write callback has no CPU-cycle argument; the wiki notes the effect may apply even if the first write does not target the serial port, so a "last mapper write" timestamp is subtly wrong too.
-
-**How to avoid:**
-- Pass the CPU cycle index (cycles, not half-ticks) to the mapper write hook, and track "cycle of the most recent CPU write of any address".
-- Count cycles stolen by DMC and OAM DMA as ordinary cycles so they break adjacency.
-- Reset (bit 7) bypasses the ignore; only the data write is ignored.
-- Soft reset must not clear the shift register's adjacency state in a way the cycle counter contradicts; if the cycle counter restarts at zero, restart the "last write" marker with it.
-- Prove it with a synthetic hand-assembled test ROM generated in test code (no licence issues): `INC` on ROM vs two `STA`s; plus Bill & Ted locally if available.
-
-**Warning signs:**
-A mapper hook with no cycle parameter; "if opcode is RMW" anywhere in mapper code; a bank register changing twice from one `INC`.
-
-**Phase to address:** P2 (change the mapper interface before MMC1 code lands; later mappers reuse it).
-
----
-
-### Pitfall 5: MMC1 reset bit, power-on state and register decode errors
-
-**What goes wrong:**
-- Bit 7 clears the shift register and ORs control with `$0C` (PRG mode 3, last bank fixed at `$C000`). It does not zero control, does not touch CHR or PRG registers, and does not change CHR mode or mirroring. Zeroing control instead selects 32 KiB mode and a wrong reset vector.
-- The fifth write selects the register by address bits 14-13 of that fifth write, not the first.
-- Power-on state is not guaranteed on hardware. Starting control at 0 breaks the reset vector when the last bank is not at `$8000-$FFFF` in 32 KiB mode.
-- PRG modes 0/1 (32 KiB) ignore the low bank bit; CHR 8 KiB mode ignores the low bit of CHR bank 0 and all of bank 1; with 8 KiB CHR the bank is effectively ANDed with 1.
-- Mirroring encoding: MMC1 control bits 0-1: 0 and 1 are one-screen (lower, upper), 2 vertical, 3 horizontal. MMC3's `$A000` bit 0 is the opposite sense (0 vertical, 1 horizontal). Mixing them inverts every title screen.
-- PRG-RAM enable: MMC1A (mapper 155) keeps RAM always on; MMC1B honours bit 4 of the PRG register as a disable; on SNROM the CHR register bit 4 acts as the RAM disable. iNES cannot distinguish A, B and C, so choose the B behaviour for mapper 1, 155 for A, default RAM enabled at power-on, and let tests pin the choice. Honouring disable bits too eagerly breaks games that set stray bits.
-- SUROM, SOROM, SXROM reuse CHR bank bits for the 256 KiB PRG half and the RAM bank; in 4 KiB CHR mode the two CHR registers should hold matching high bits, otherwise PRG can switch with PPU A12 mid-frame. Use CHR register 0 and document that choice.
-
-**How to avoid:**
-Table-driven unit tests of every register (feed 5 bits LSB first through the port, assert the decoded banks, modes and mirroring); reset-bit test asserts PRG mode becomes 3 and CHR registers unchanged; a test per mirroring value that checks all four nametable mappings.
-
-**Warning signs:**
-Title screens mirrored wrongly; a game boots only after pressing reset; Final Fantasy or Zelda lose RAM.
-
-**Phase to address:** P2.
-
----
-
-### Pitfall 6: PPU nametable mapping is H/V-only, latched, or cached per frame
-
-**What goes wrong:**
-NROM needed only a fixed horizontal or vertical choice. MMC1 (one-screen lower/upper), AxROM (one-screen with a page bit), MMC3 (`$A000`; ignored with four-screen), and four-screen carts (Gauntlet, Rad Racer II class, mapper 4 with the header four-screen bit) need a general four-entry nametable map. A change made by a register write mid-frame must apply on the very next nametable fetch, including `$2007` accesses. Implementations that latch the mapping at frame or scanline start, or keep an enum {H, V, FOUR}, miss single-screen modes and split-screen effects.
-
-**How to avoid:**
-Replace the mirroring enum with a four-entry source table (CIRAM page 0, CIRAM page 1, extra RAM 0-3) that the mapper updates at write time and the PPU reads at fetch time. Add a four-screen RAM block in the instance only when the header says so. Test: write `$A000`/`$8000`/`$8000` AxROM bit between two nametable reads on consecutive dots and assert the second read sees the new page.
-
-**Warning signs:**
-`enum mirroring`; a cached `nt_base[4]` copied at vblank; AxROM games showing both screens identical for the wrong reason.
-
-**Phase to address:** P2 (the interface), P4 (AxROM exercise).
-
----
-
-### Pitfall 7: MMC3 clocked without the A12 M2 filter, or with a PPU that skips unused-slot fetches
-
-**What goes wrong:**
-The MMC3 counter is clocked by a rising edge of PPU A12 only after A12 has been low for three falling edges of M2 (roughly three CPU cycles). Without the filter, the garbage nametable fetches between sprite pattern fetches (A12 low for about 4 dots) clock the counter up to eight times per line. The result is IRQs at the wrong lines and games like Mega Man 3-6, Kirby's Adventure and SMB3 splitting wrongly. The filter must be measured in M2 cycles derived from the project's half-tick base; an off-by-one rounding at 3 versus 2.67 CPU cycles is exactly the kind of boundary mmc3_test_2 probes.
-
-Related traps:
-- The PPU must actually perform the sprite-slot fetches of dots 257-320 whenever rendering is enabled, including empty slots (tile `$FF`) and the 8x16 case where the slot's pattern table comes from bit 0 of tile `$FF`. If v1 skips empty slots for speed or accuracy shortcuts, the counter never clocks on lines without sprites.
-- With 8x16 sprites, A12 depends on each sprite's tile index bit 0 (BG at `$0000`, sprites mixed between tables), and the number of clocks per line depends on the sprite set; IRQs arrive early or late by multiples of 8 pixels.
-- A12 also changes outside rendering through `$2006` writes and `$2007` accesses; games clock the counter by hand this way, so A12 tracking must observe the VRAM address bus at all times, not only during rendering. Rendering disabled means no fetches and no clocks.
-- Dummy fetch addresses must be shown to the mapper (as a cheap `a12` notification or flag) not only the pattern fetches the renderer uses.
-
-**How to avoid:**
-Expose a single "PPU bus address changed" hook gated by a mapper capability bit so NROM pays nothing and v1 hashes cannot move. Keep the last-A12-low timestamp in the instance in a unit derived from the time base, with named constants. Write boundary tests that hold A12 low for 2, 3 and 4 M2 cycles and assert clocked / not clocked.
-
-**Warning signs:**
-IRQ count per frame is a multiple of expected; status bars wobble by a few lines; mmc3_test_2 tests 1-3 fail; v1 NROM hashes change after the hook lands.
-
-**Phase to address:** P3. Its plan must start with the hook and a v1-hash-unchanged check.
-
----
-
-### Pitfall 8: MMC3 IRQ revision, reload and ack semantics
-
-**What goes wrong:**
-- Counter logic: on each clock, if the counter is 0 or the reload flag is set, reload from the latch (`$C000`), otherwise decrement. The IRQ fires when the counter is zero and IRQs are enabled. The "new" (Sharp) behaviour fires whenever the result is zero, so latch 0 gives an IRQ every line; the "old" (NEC) behaviour fires on the 1 to 0 transition only, giving one IRQ for latch 0, plus another if `$C001` is written while the latch is 0. NES 2.0 submapper 4 selects NEC; MC-ACC (submapper 3) differs again.
-- `$E000` disables and acknowledges; the counter keeps running while IRQs are disabled. `$E001` enables and does not touch the counter. `$C001` clears the counter and sets the reload flag, so the reload happens on the next clock.
-- IRQ must be a source OR-ed into the CPU's IRQ line with the APU frame IRQ and DMC IRQ. A single `irq_pending` bool that APU code overwrites or clears loses MMC3 IRQs.
-- Register decode uses only A0 and the upper bits of the range (even/odd pairs mirrored across `$8000-$FFFF`); decoding the full address makes `$8002` a no-op.
-- Recompute banks on writes to `$8000` too, because bits 6 and 7 (PRG swap, CHR inversion) change the mapping without a new `$8001` write. R6/R7 use 6 bits; R0/R1 ignore the low bit.
-- Default revision choice: Sharp/"new" for plain mapper 4 (most games run on either; a few are sensitive); NEC for submapper 4. Document the choice.
-- `$A001` RAM protect (bit 7 enable, bit 6 write-protect): default RAM enabled and writable at power-on; honour the bits only after a write. Treat MMC6 (submapper 1, 1 KiB, different `$A001` meaning) as separate or unsupported; do not blend.
-- After the IRQ line goes active the CPU takes it after the current instruction under the project's existing polling rules; an A12 edge landing one dot early or late relative to the CPU's M2 cycle shifts the IRQ by a CPU cycle, which is visible as one-line jitter.
-
-**How to avoid:**
-Model the counter as a small struct with a `rev` field; unit-test the table of (latch, reload flag, enabled, revision) to expected IRQ pattern; test line-sharing with the APU frame IRQ (both asserted, ack one, other persists).
-
-**Phase to address:** P3.
-
----
-
-### Pitfall 9: Bus conflicts applied to the wrong boards, or read from the wrong bank
-
-**What goes wrong:**
-On discrete boards with ROM and CPU both driving the data bus, the written value is ANDed with the ROM byte at that address (read through the currently selected bank). Wrong choices:
-- Applying AND to every UxROM, CNROM and AxROM image. Boards without conflicts (ANROM variants; some AxROM dumps) then select wrong banks when a game writes a value that differs from the ROM byte. The wiki's counts: all licensed UxROM and CNROM dumps in nes20db are submapper 2 (conflicts); AxROM splits roughly 27 without to 31 with.
-- Never applying it to any, so the conflict-dependent behaviour Holy Mapperel and a few titles probe is wrong.
-- Reading the ROM byte from the wrong bank (the pre-write mapping is the right one, since the write has not taken effect).
-- Treating submapper 0 as "conflicts" by default. Unspecified headers are everywhere in the wild; a no-conflict default cannot crash games that wrote matching values, while a conflict default can crash games written for non-conflict boards.
-
-**How to avoid:**
-Submapper 2: AND. Submapper 1: none. Submapper 0 (iNES 1.0): choose and document a default, with a recommendation of no conflicts for AxROM and conflicts for UxROM/CNROM only if Holy Mapperel and the manifest show it is safe (decide in the P4 plan; this is an open decision, see Gaps). Test the AND with a hand-built ROM in test code, reading through both bank positions.
-
-**Phase to address:** P4.
-
----
-
-### Pitfall 10: Battery flush timing, atomicity and platform I/O
-
-**What goes wrong:**
-- The runner writes only at exit; a crash, kill or Ctrl-C loses the session. Writing on every RAM write thrashes the disk.
-- A truncated write (power loss, kill during `fwrite`) leaves a zero-length or partial `.sav`, which the next run loads as a valid, nearly empty save, then overwrites the only good copy.
-- C `rename()` on Windows fails if the target exists, so the usual "write temp then rename" pattern is not portable with the standard library alone. The platform call (`MoveFileEx` with replace) is needed, or a documented fallback.
-- Text mode on Windows corrupts bytes `$0A`/`$1A`: always `"rb"`/`"wb"`.
-- Writing a save that was never modified, or when load failed, wastes writes and can replace a good file with default-filled RAM after a failed read.
-
-**How to avoid:**
-Core: no I/O (rule: core links only memory functions). Core exposes the span, size, and a dirty indicator (instance counter incremented when a battery byte actually changes). Runner: flush on exit and on signal, only when dirty and only when the load phase succeeded; write temp, sync, replace; never overwrite on a size-policy refusal. Libretro: expose the span; the host flushes (RetroArch autosaves on an interval and at close).
-
-**Warning signs:**
-`.sav` of size zero; save missing after `kill`; Windows CI failing the "replace" test; hosts that cannot tell when to save (Playstead needs "safe battery saves").
-
-**Phase to address:** P2.
-
----
-
-### Pitfall 11: Libretro SRAM contract violations
-
-**What goes wrong:**
-- `retro_get_memory_data(RETRO_MEMORY_SAVE_RAM)` returns a pointer that moves or dangles (reallocated at reload, freed before the host's close-time save), or returns a non-zero size for a game without battery.
-- Hosts restore the `.srm` after `retro_load_game()` and before the first `retro_run()`. If the core zeroes or re-initialises PRG-RAM on the first frame, on reset, or in a late power-on step, restored data disappears.
-- `retro_reset()` is a v1 no-op for loaded games. The naive fix, rebuilding the instance, wipes volatile and battery RAM and clears mapper registers. A console reset leaves PRG-RAM and mapper state alone; MMC1's shift register is exactly why games write `$80` at startup. Reset must preserve cartridge RAM and not reset mapper registers other than any adjacency markers tied to the cycle counter.
-- The size changes between `retro_get_memory_size` calls (derived from state rather than header).
-- The save span includes volatile WRAM (see Pitfall 2) so `.srm` files from other cores load wrongly.
-
-**How to avoid:**
-Pointer stable from `retro_load_game()` until `retro_unload_game()` returns; size constant; both zero for no battery; `retro_reset()` calls the core's soft reset, not reload; a libretro host test (extend `tests/libretro/libretro_host.c`) that sets SRAM after load, runs frames, resets, runs frames and reads SRAM back. Document in the adapter's comments.
-
-**Phase to address:** P1 (`retro_reset()`), P2 (SRAM).
-
----
-
-### Pitfall 12: Boot-to-play predicates that pass without the game playing
-
-**What goes wrong:**
-Predicates that look like proof but can pass on a hung, idle or fallback run:
-- "Frame hash changed after input": attract-mode animation, a blinking cursor, palette cycling or timer text also change it. Fix: run the same timeline with and without the input and require the first divergence to occur after the input frame; repeat with two different inputs and require different results.
-- "Game-state byte changed": a frame counter or RNG byte always changes. Pick a semantic byte from the game's symbol map (open-source game: position, lives, score, selected menu item) and assert before and after values, not only inequality.
-- "Audio non-silent": any non-zero sample passes, including DMC DC offset, a stuck noise channel or APU power-on click. Require sustained variation (min and max over a window above a threshold, or distinct sample counts) across at least N frames.
-- Cartridge not actually loaded: the runner's no-cartridge path emits the built-in test frame and audio, so a failed or unsupported load can pass a lax predicate. Assert exit status, mapper id and a non-test-frame hash.
-- Stuck in a loop with NMI still running: the picture is static but status counters tick. Require scene transitions (title to gameplay).
-- Input latched too late: hold input over several frames and across controller strobes; verify bit order and that an unpressed run differs.
-- Passing on the runner but not through libretro: v1's flows show both; require both to agree.
-- Choosing a licensed game that cannot be committed, so the check is local-only. The only committable open-licence game on a v2 mapper in the prep list is nes-runner (MMC1, MIT); Nesteroids, DABG and RHDE are mapper 0 (already supported). Do not use Battletoads or other timing-sensitive titles as the proof game.
-
-**How to avoid:**
-Define the predicate as a short script (movie file) with three assertions and one negative control, stored with the manifest. Mutation self-test: replace input with neutral input, and the check must fail; point the runner at a missing ROM, and the check must fail.
-
-**Phase to address:** P6, with the negative controls added in the same plan.
-
----
-
-### Pitfall 13: Test ROMs that mislead
-
-**What goes wrong:**
-- Blargg `$6000` protocol: `$6000` is 0 before the ROM writes `$80`. A harness reading it at frame 1 sees 0 and reports pass. Require the `$DE $B0 $61` signature at `$6001-$6003` and an observed `$80` first. Before v2, mapper-0 ROMs had no RAM there, so these harness paths were never exercised on real hardware semantics.
-- Mixed polarities: `$6000` code 0 is pass; the older screen-text suites using zero-page `$F8` mean 1 is pass. A scoreboard that decodes both with one rule marks half of them wrongly.
-- mmc3_test_2 and mmc3_irq_tests: the last two ROMs of each target different chip revisions (Sharp versus NEC), so no single implementation passes both. Record the other as `unsupported` or a distinct revision row; do not call it a regression and do not "fix" the chip logic to pass both.
-- Holy Mapperel: a PCB test with no memory result channel; the result is a screen code (0000 normal) plus beeps. A hash pinned from the current output without decoding the code can pin a failing screen. Decode the code from the nametable and require it, then also pin the hash. Variants include NES 2.0 RAM-size combinations; the loader must honour them. It also covers mappers not in v2 (9, 10, 11, 28, 34, 66, 69, 118, 180 and more); those rows are `unsupported`, not failing. Verify the digit semantics at the pinned v0.02 README (unverified here).
-- Holy Mapperel and the blargg ROMs differ in redistribution: Holy Mapperel is zlib and committable; the blargg suites have no licence, so they are fetched nightly at the pin and checked by SHA-256. Per-PR coverage of fine MMC3 IRQ timing is therefore thin, which makes hand-built test ROMs in the repo's own tests important.
-- ROMs that need a reset (`$81`) require the P1 `retro_reset()` and runner reset to be real first.
-
-**How to avoid:**
-Per-protocol decoders in the harness, each with a known-fail and known-pass fixture; scoreboard keys per revision; unsupported mappers listed by id.
-
-**Phase to address:** P1 (harness decoders, reset), P3 and P5 (scoreboard rows).
-
----
-
-### Pitfall 14: Pinned hashes that are fragile or taken from unverified output
-
-**What goes wrong:**
-- Hashes recorded from the first output and never visually checked.
-- Hashes taken in a transitional frame (fade, scroll, attract animation) that change with any legitimate timing fix and force a pin storm.
-- Mapper hooks added to the shared PPU/CPU path move v1 NROM hashes (extra dots, changed fetch order, an uninitialised field).
-- Uninitialised mapper state, struct padding or pointer values entering a hashed or serialised blob make hashes differ per platform. Power-on register values of MMC1/MMC3 are undefined on hardware; pick fixed values in the instance and write them down.
-- CHR-RAM and volatile PRG-RAM power-on pattern: choose a fixed fill (zero) rather than random or sanitiser-dependent memory. First-frame hashes depend on it.
-- Non-power-of-two PRG or CHR sizes with a mask (`& (size-1)`) instead of a modulo give wrong banks and out-of-range reads.
-
-**How to avoid:**
-Pin at a stable idle frame after a scripted input, record the frame count, input script and save-file state in the manifest; re-run the v1 hash inventory on every mapper phase and require it unchanged; run `asan` and `nofp` on each new mapper; compare the six-platform inventories byte for byte as v1 did.
-
-**Phase to address:** P2-P5, each with the v1-unchanged check.
-
----
-
-### Pitfall 15: Mapper state not reachable by fuzzing and sanitisers
-
-**What goes wrong:**
-v1 fuzzes the ROM loader only. New attack surface: NES 2.0 RAM size fields (64 << n, up to 2 MiB each), bank calculations on tiny or odd-sized PRG/CHR (a 16 KiB PRG with MMC3 or a 24 KiB CHR), the `.sav` loader (size taken from a file), and mapper register writes combined with PPU fetches. Allocation before comparing sizes with the file length is the known hostile-input trap.
-
-**How to avoid:**
-Per-mapper minimum sizes or modulo bank math validated in the loader; save-file reads bounded by the instance span; extend the corpus with one image per mapper id and odd sizes; add a fuzz target that loads a header-valid image, writes random bytes to `$4020-$FFFF`, and steps a few frames.
-
-**Phase to address:** P2 (first), each mapper phase adds seeds.
-
----
+Mistakes that cause a rewrite, a re-pin of the format, or a silent determinism break.
+
+### Pitfall 1: Hidden state left out of the state (the "forgotten latch" class)
+**What goes wrong:** Save, load and continue differs from running straight through, but only in some games, some frames, or after a particular instruction. Typical omissions in a per-dot, cycle-stamped core like this one: CPU open-bus / data-bus latch; PPU open-bus decay latch and `$2007` read buffer; PPU `t`, `v`, fine-x, write toggle `w`; the PPU's literal shift registers and the in-flight fetch latches (nametable, attribute, pattern low/high); OAM address counters and the secondary-OAM sprite-evaluation sub-state (n, m, overflow phase, copy flag); sprite output units' counters/shifters; the odd-frame dot skip flag; DMA phase (OAM DMA page, halt/dummy/align cycle position, DMC DMA stolen-cycle state and the pending-DMC-request flag); controller shift registers, strobe and the read-after-8 behaviour; NMI edge detector and pending-NMI/IRQ latches with their one-instruction delay (the "interrupt poll at the penultimate cycle" bit); the `$2000` write NMI-edge state (behaviour revision 6 depends on previous bit 7); IRQ line sources (APU frame IRQ, DMC IRQ, mapper IRQ) and the shared IRQ OR; the APU frame-counter reset delay after a `$4017` write (3 or 4 cycle delay) and its step position; DMC sample buffer, shift register, bits remaining and silence flag; channel length/envelope/sweep reload flags; the audio synthesiser's bounded transition history, last-level register, and the sample scheduler's fractional accumulator; MMC3 A12 low-time filter counter and last-A12 level, its reload flag and counter; MMC1 serial shift register, write-count, and the "consecutive write ignored" cycle stamp (the last-write CPU cycle is state, because the seam stamps writes); mapper `cpu_cycle` stamps.
+**Why it happens:** State is gathered by reading struct definitions once, then new fields are added in later phases. v2 added exactly this kind of field (A12 filter, write stamps, `last_write_cycle`) and v3 will not catch up on its own. Tests that compare only frame hashes at one save point miss latches that only matter 2 frames later.
+**Consequences:** Rewind drifts; run-ahead desynchronises and produces visible stutter; netplay desyncs; a "deterministic" claim in the `.info` file becomes false.
+**Prevention:**
+- Make the state a **field-by-field codec over every member of `struct nesturbator`**, driven by one table or one ordered function per module (cpu, ppu, apu, synth, bus, mapper), not a memcpy of the whole struct.
+- Add a compile-time guard: a test that includes `internal.h` and asserts `sizeof` of each serialised sub-struct against a recorded constant, so adding a field fails the build until the codec and the format version are touched. Sub-structs with pointers or derived data are listed explicitly as "derived, rebuilt".
+- Property test (ENG section 4 already plans it): for N frames, `run(N+M)` hash equals `run(N); save; load into a fresh instance; run(M)` hash, at many N including **mid-instruction** boundaries (save at every PPU dot offset inside a frame, not only at frame ends) and at DMA, NMI, IRQ and sprite-evaluation boundaries. Use the in-repo PRNG and print the seed.
+- Run the property test on all six boards and on the long hash ROMs, including one MMC3 mid-frame IRQ game and one DMC-heavy audio ROM; compare **audio hash as well as frame hash** (the synth history is the commonest miss).
+- A "poison fresh instance" check: load the state into an instance that has first run a different ROM for 1000 frames, so any field not overwritten shows up as a difference.
+**Detection:** Frame hash equal but audio hash differs after load; divergence appears only after the first NMI or DMA following the load; MMC3 games lose a split after load.
+**Phase:** P-State (codec and round-trip property test). Re-check in P-Host (rewind soak).
+
+### Pitfall 2: State layout by struct dump (padding, endianness, ABI, pointers)
+**What goes wrong:** `memcpy` of the instance or of sub-structs gives states that differ between compilers and platforms (padding bytes with indeterminate values, `long`/enum size, alignment, bitfield order), contain raw pointers (`cpu_r[48]`, `chr_r[8]`, `video_output`, `sample_output`, `transition_sink_context`, `prg_ram`, `save`) that are meaningless after load, and fail on big-endian. Even a deterministic hash of padding makes netplay state hashes disagree between platforms.
+**Why it happens:** The fastest first implementation is `memcpy(buf, nes, sizeof *nes)`. The instance already holds page-table pointers into the cartridge allocation, so a raw dump "works" in a single process and fails everywhere else.
+**Consequences:** States written on one platform fail on another; ASLR makes states from one run unusable in the next; sanitizer or MSan reads of padding; netplay checksum mismatch between macOS arm64 and Windows x64 although emulation is identical.
+**Prevention:**
+- Serialise **explicit little-endian, fixed-width fields** through tiny `put_u8/u16/u32/u64` and `get_*` helpers (the project already did this for audio transitions). No `sizeof(struct)`-derived sizes in the format; no pointers, no enums wider than a byte, no bools as `_Bool` bytes without normalising to 0 or 1.
+- Pointers become **offsets or bank indices**; page tables and `cpu_r`/`chr_r`/nametable map are **derived** and rebuilt on load through the existing mapper `rebuild` op. Serialise the mapper's registers only. Test: load, then compare the rebuilt page tables with the originals.
+- Zero the whole state buffer before writing so reserved bytes are deterministic, and require reserved bytes to be zero when loading (rejecting nonzero reserved bytes makes later fields unambiguous).
+- Pin one **state hash per board on all six platforms** in the existing hash list. If the six legs produce the same bytes the format is portable; this is the cheapest endianness and padding test and it costs nothing extra.
+- Run the state round trip under the `asan` preset and add an MSan-style check (zero-initialised buffer compare) on Linux if available.
+**Detection:** `hash-equality` job shows the state hash differing between legs; ASan/UBSan reports on unaligned access in the codec; state size differs by compiler.
+**Phase:** P-State.
+
+### Pitfall 3: State size varies with ROM, board, options or build
+**What goes wrong:** libretro requires `retro_serialize_size()` to be stable after load and never to grow; rewind buffers, run-ahead and netplay allocate once. If the size depends on PRG RAM size, CHR RAM size, battery presence, trainer, mapper, option values or whether a cartridge is loaded at all (the no-content test frame), the size drifts. Another core's tracker recorded the same class: size changing with a sound option and a fixed-size array overflowing on option count (NES-ECOSYSTEM section 4).
+**Why it happens:** CHR RAM (8 KiB), PRG RAM (8 or 32 KiB, MMC3/MMC1 variants, the `[work][NVRAM]` allocation), nametable RAM, and mapper-specific registers vary; the temptation is to size the state to what the current cartridge needs.
+**Consequences:** `retro_serialize` fails for some games; RetroArch sizes its rewind ring from the first call and later states overflow or are rejected; run-ahead silently disables itself; states from a 32 KiB-PRG-RAM game cannot load into the same core with another game (see pitfall 5).
+**Prevention:**
+- Decide the policy once and write it in the header: **one fixed size for all boards**, the maximum over every supported board and geometry (work RAM plus NVRAM at the largest allowed, CHR RAM at the largest), with unused regions zero. State size is a compile-time constant exported as `nesturbator_state_size()` independent of the instance, so a host may call it before load. Header comment states it never changes within a format version.
+- Test: size is identical for the no-ROM test frame, NROM, MMC1 SXROM-sized, MMC3 with 8 KiB and 32 KiB RAM; and identical across the six platforms.
+- If the fixed maximum is too big for rewind memory (a few tens of KiB is typical for this system; the dominant cost is RAM and CHR RAM), revisit via a trailing-zero-run compression in P-Host, not by varying the size.
+- Never let a core option change what is serialised or its length; remember that options that alter emulation affect state, replay and netplay compatibility (LIBRETRO-AND-RUNNER section 2). v3 should add **no** emulation-altering option.
+**Detection:** `retro_serialize_size` differs between two loads; a test that serialises on every board fails the equality assertion.
+**Phase:** P-State (decide and test), P-Host (assert in the host test).
+
+### Pitfall 4: Version and compatibility policy decided too late
+**What goes wrong:** The first release ships states with no version, or one version number tied to the package version, or a header that cannot say "this layout changed". Later core changes (any new APU or PPU field; there will be accuracy work in later milestones) break all users' states. The ecosystem's recorded complaints: states from 2016 not loading answered "this is not a bug"; an APU struct change forcing a choice between losing states or never updating; "no longer compatible" notes in a README (NES-ECOSYSTEM section 4 and 5).
+**Why it happens:** The first version works and nobody pays for the format until the second.
+**Consequences:** Every future accuracy fix that adds state bumps the format and invalidates users' states, or developers avoid fixes to keep states valid. Netplay requires equal core versions anyway.
+**Prevention:**
+- A header with **magic, state format version (own counter, not the package version), total size, a behaviour revision (the project already has "behaviour revision 6"), and a CRC or length**, and a ROM fingerprint (pitfall 5). Validate everything **before any byte is applied** (project requirement: "checked in full before it is applied"): magic, version, size, fingerprint, reserved bytes zero, every field range (e.g. PPU dot < 341, scanline < 262, bank indices < bank counts, DMA phase enum in range, history length within the synth bound), then apply atomically. Loading must never leave a half-applied instance: decode into a scratch struct on the stack or validate-then-commit, and prove it with a test that feeds corrupted states and compares the instance bytes before and after a rejected load.
+- Define policy now: loads of **older format versions** are either supported by an explicit upgrade function with a test fixture, or rejected with a distinct status code. Commit a **golden state fixture per format version** (generated by CI, stored in `tests/`) and a test that the current core loads it and reaches the pinned hash after N frames; this makes any accidental layout change a red test. Because states are small and the fixture is licensed test-ROM output, this does not violate the ROM-bytes rule (the state holds CHR/PRG RAM, not ROM; verify that the fixture contains no ROM bytes: only the cartridge fingerprint, not PRG/CHR ROM. CHR RAM contents written by a game from a test ROM are the project's own test material. Check with `scripts/hygiene.sh` before committing).
+- Separate **format version** from **behaviour revision**: a revision bump that changes timing makes old states resume on a differently-behaving core. State whether such states load (recommended: load, because the state is complete; but netplay and replay hashes pin revision).
+- Return distinct error codes (bad magic, version, size, fingerprint, range) so hosts can show a useful message rather than "failed".
+**Detection:** A PR adds a field to `internal.h` and no test fails; the golden fixture is missing; a corrupted-state test sees a modified instance after rejection.
+**Phase:** P-State (format and fixture), P-Host (message mapping).
+
+### Pitfall 5: Loading a state from another ROM (or another cartridge geometry)
+**What goes wrong:** The state contains mapper registers, bank indices and RAM contents for cartridge A, is loaded while cartridge B is inserted. Bank indices exceed B's PRG size (out-of-bounds page-table pointers: a memory-safety bug, not just wrong output), PRG RAM sizes differ, mapper id differs, so the ops table differs.
+**Why it happens:** A state holds no PRG/CHR ROM (rightly), so nothing ties it to the cartridge unless the format does. Hosts also load a state file chosen by name (a rename, a hack of the same game).
+**Consequences:** Out-of-range reads through rebuilt page tables (sanitizer finding or crash); a state file from a Mario ROM corrupting a Zelda session; fuzzing later (SEED-004) finds it immediately.
+**Prevention:**
+- Include a **cartridge fingerprint** in the header: a 64-bit or 128-bit hash of PRG ROM plus CHR ROM plus mapper id, submapper, mirroring, PRG RAM / NVRAM / CHR RAM sizes. Compute it once at load and keep it in the instance (no per-save cost). Reject mismatches with a distinct error. Do **not** use a CRC of just the header.
+- Independently of the fingerprint, **range-check every bank register against the loaded cartridge's geometry before the rebuild**; the fingerprint is not a security boundary because a hand-built state can carry the right fingerprint (this is the point of the later fuzzing seed). Rebuild pages only from checked indices.
+- The no-ROM test frame state is its own fingerprint (zero/constant); a state taken with a cartridge must not load without one.
+- Expose the fingerprint through the runner's planned `--capabilities` preflight (LIBRETRO-AND-RUNNER section 5: "state fingerprint (state format plus ROM hash)") so Playstead can decide before loading.
+- Tests: load a state from each board into each other board and into the no-ROM instance (a 6x7 matrix of rejections); a state with the right fingerprint but an out-of-range bank number is rejected, not clamped.
+**Detection:** ASan heap-buffer-overflow in `mapper_*.c` during a load test; a loaded state shows another game's graphics for a frame.
+**Phase:** P-State.
+
+### Pitfall 6: Battery-save generation counter interacts badly with state load and rewind
+**What goes wrong:** The v2 design (decision in PROJECT.md): hosts write the battery span "only when the generation changed". A state load replaces the battery half of PRG RAM, so the content changes without a CPU write. Three failures: (a) load does not bump the generation, so the host never writes the restored bytes, and a later exit leaves the file on disk disagreeing with the in-memory save, or the reverse (the host keeps writing stale content); (b) load restores the generation counter from the state, moving it **backwards** or equal to a value the host already recorded, so a change goes unseen (the host compares for inequality, but a restored value that equals an earlier recorded value hides a change); (c) rewind loads a state every frame, so a naive "bump on load" writes `.srm` or `.sav` at 60 Hz, or (d) a rewind to before the game saved silently rewrites the user's real save with the old data.
+**Why it happens:** The generation counter counts CPU bus writes that reached the span; state load is a new write path nobody considered. The design question "do states contain battery RAM" is not answered.
+**Consequences:** Lost saves, or an old save overwritten by rewind; excessive disk I/O during rewind; a flaky `runner.save` test.
+**Prevention:**
+- Decide and document: **the generation counter is never serialised and never decreases**. Load sets `generation = generation + 1` **only if the span bytes actually changed** (compare before overwrite, a 8 to 32 KiB memcmp on load, which is cheap and keeps rewind of a game that is not saving free).
+- Decide explicitly whether states carry battery RAM. Recommended: **yes** (a state must restore the game exactly, since the game's progress is in that RAM and play may depend on it) and note in the README that loading a state also loads the in-game save RAM, as every emulator users know. Rewind and run-ahead then follow the same rule; run-ahead's internal save/load must not change the span in the visible instance at all (see pitfall 11).
+- The host-side write rule stays "write when the generation changed, rate-limited" (runner `--save-interval`, RetroArch's own `autosave_interval`); add a test that 600 consecutive rewind loads that alter nothing do not change the generation, and that a load which changes the span changes it exactly once.
+- For rewind specifically: RetroArch's rewind restores state and does not by itself re-save `.srm`; document that rewinding past an in-game save can revert save RAM. This is user-visible and standard; document, do not engineer around it.
+**Detection:** `nesturbator_save_generation` goes backwards in a test; many `.sav` writes in a rewind soak; a test that loads a state and exits sees an unchanged file.
+**Phase:** P-State (counter semantics and tests), P-Runner (flush at exit after a load), P-Host (rewind soak).
 
 ## Moderate Pitfalls
 
-### Pitfall 16: CI flakiness sources the tune-up should remove
+### Pitfall 7: Rewind cost and the "clean and fast enough" requirement
+**What goes wrong:** Run-ahead and rewind call serialise (and for run-ahead, unserialise) every frame; libretro's guidance is that run-ahead works only with states that are "clean and fast enough". The v2 PPU fetch pipeline already cost about 19 to 20 percent frame time (v2 audit). A state codec that is table-driven with per-byte helper calls, a CRC computed on every save, an allocation, or a 200 KiB payload can cost more than a frame.
+**Prevention:** Serialise into a **caller-provided buffer**, no allocation in the codec. Skip the checksum in the per-frame path (or use a cheap integer-only one) and keep full validation in the load path only for foreign data; the "checked in full before applied" rule applies to load, and the host's own just-saved buffer can use a trusted fast-load or the same loader if measured fast enough. Copy large arrays (RAM, CHR RAM, OAM, palette, nametable) with `memcpy` (little-endian bytes are already bytes) and use field helpers only for multi-byte scalars. Measure with the new FPS mode: report `serialize` and `unserialize` time as a fraction of frame time, in the runner's FPS output, and set a budget (suggest under 5 percent of a frame each; decide after measuring). Avoid per-frame allocation in the libretro adapter. Consider trailing-zero or sparse encoding only if measured necessary, and never in a way that varies the size (pitfall 3).
+**Warning signs:** Rewind with a large buffer stutters; run-ahead at one frame halves the frame rate; frame-time p99 jumps in the FPS output.
+**Phase:** P-Perf (measure), P-Host (budget test).
 
-**What goes wrong:**
-- Floating runner labels (`macos-latest`, `windows-latest`) change images under the gate; pin labels or record the image version in logs.
-- Sleep-based waits in RetroArch end-to-end screenshots; replace with polled conditions and bounded timeouts.
-- A local test that self-skips with exit 0 hides rot. Make the skip return code explicit and make CI fail when any test skips; retire what cannot run (matches the v1 debt item).
-- Parallel tests sharing temp paths, `.sav` files, ports or screenshot locations (see Pitfall 1).
-- Cache keys that omit the compiler, preset or pin, so a stale cache hides a build break; caching test results.
-- Speed-ups that quietly drop coverage: moving `asan`, `nofp` or the six-platform hash comparison off the required path. Keep them on PR, trim by other means (ccache, fetch only changed pins).
-- Downloaded vector sets (1 GB) on nightly: network flake. Retry with the checksum and keep the nightly separate from the required check.
-- Release-policy gate: the substring check can be defeated by an appended `|| always()`. A stronger regex can be defeated again; add several mutation cases (appended condition, moved condition, a comment containing the string) and parse the `needs:` and `if:` lines of the publish job structurally in CMake script.
-- Windows: `long` is 32-bit, shifts of signed values, bitfields, path separators and `fopen` text mode; the MSVC preset catches some of these.
+### Pitfall 8: Run-ahead audio and video side effects
+**What goes wrong:** Run-ahead runs the core N+1 frames, then loads back. Each speculative frame emits video and audio through callbacks; if the adapter forwards them all, the user sees/hears duplicates, or audio is queued twice. Also: the save-RAM generation counter and host-visible side effects (runner/adapter save flush) happen inside the speculative frames; controller input polled differently across the speculative frames breaks determinism.
+**Prevention:** Remember RetroArch's run-ahead calls `retro_run` multiple times itself and mutes audio/video for the speculative ones using its own mechanism; the core must simply be **deterministic, side-effect free in serialise (no instance mutation in `retro_serialize`), and call the video/audio/input callbacks exactly once per `retro_run`** (batch audio once per run, no leftover samples between runs). The adapter must not keep cross-frame buffers outside the instance (a static audio ring in the adapter would survive the load and double up). Make the adapter's buffers part of the deterministic story: either derive from the instance or reset at load. Test with a mock host that does N+1 speculative runs and a load back, and requires the visible frame and audio hash sequence to equal an uninterrupted run. Declare `savestate_features = "deterministic"` only after that test (the `.info` key, and `RETRO_SERIALIZATION_QUIRKS` left at zero).
+**Warning signs:** Crackle on enabling run-ahead; the adapter's own `--rom-parity` test fails after a load; `retro_run` calls the input callback twice per call.
+**Phase:** P-Host.
 
-**Phase to address:** P1.
+### Pitfall 9: The "deterministic" declaration claimed without evidence
+**What goes wrong:** `.info` declares `deterministic`, which enables run-ahead and netplay in RetroArch (it has disabled features above the declared level since 1.10.1). A latent nondeterminism (uninitialised memory in a rarely used path, state omitted in pitfall 1, host-dependent time, `rand`, stack garbage in the sprite evaluation) then appears only as intermittent desyncs reported by users.
+**Prevention:** A CI test lane that makes the claim true: run each pinned ROM twice from a fresh instance with differing **allocation fill patterns** (zero versus 0xA5 poison; the instance is allocated by the library, so add an internal/test hook or run the test in a harness that pre-fills the heap) and require identical frame and audio hashes **and identical serialised state bytes at every 100th frame**. Compare the state bytes between all six platforms through the existing hash list. Netplay compares per-frame state hashes, so state-bytes equality across platforms (pitfall 2) is the thing that must hold. Under the `asan` preset use `ASAN_OPTIONS=malloc_fill_byte` variants where available. Keep netplay declared but out of scope for hosting; the claim only needs the determinism proof.
+**Warning signs:** A state differs between two runs of the same input on one machine.
+**Phase:** P-State (state bytes equal), P-Host (declaration and mock host test).
 
-### Pitfall 17: Trainer path generalised badly
+### Pitfall 10: Library API shape leaks into every consumer
+**What goes wrong:** The state API is added carelessly: `nesturbator_save_state(inst, buf, size)` with no size query, no distinct errors, buffers kept by the library, or an output that implies ownership. The sibling core shares API conventions and a future shared host loads every core.
+**Prevention:** Follow the existing opaque-instance conventions: `size_t nesturbator_state_size(void)`, `int nesturbator_save_state(const nesturbator *, uint8_t *buf, size_t size)` and `nesturbator_load_state(nesturbator *, const uint8_t *buf, size_t size)` with an error enum that does not collide with the existing statuses; `const` correctness; document in the public header comments in the same change (project rule 6); update the declaration-baseline guard test. A test in the public-header consumer compiles and runs the API from C only. Keep the header free of internal struct names.
+**Phase:** P-State.
 
-**What goes wrong:**
-v1 allocates PRG-RAM for trainer-bearing mapper-0 images. With MMC1/MMC3 the RAM comes from the new unified allocation; two allocation paths mean double free or a missed free on reload. The trainer lands at `$7000-$71FF`; a host loading `.sav` after load overwrites it for battery games (RetroArch restores SRAM after `retro_load_game()`). The v1 audit notes no trainer image goes through the runner and libretro host path.
+### Pitfall 11: Run-ahead and rewind mutate the visible instance through the save path
+**What goes wrong:** If `save_state` normalises or flushes anything (for example rebuilds page tables, drains the audio synth, resets a pending-frame flag), taking a state perturbs the emulation, so a save at frame N changes frame N+1.
+**Prevention:** `save_state` takes `const nesturbator *`. Test: hash with a state taken every frame equals hash with none (this is a required test and it catches the synth drain bug, the commonest one). The synth's bounded history and the sample scheduler fraction are saved as-is, never flushed.
+**Phase:** P-State.
 
-**How to avoid:** One RAM allocation function used by all mappers; reload test under asan; define precedence (trainer first, `.sav` over it) and test with a trainer + battery fixture through both hosts.
+### Pitfall 12: Mid-frame saves and the frame boundary
+**What goes wrong:** libretro serialises between `retro_run` calls (frame boundary), but the runner and library users may save at arbitrary points, and the core's frame boundary may be placed mid-CPU-instruction or mid-sample batch. States taken at a boundary that are not a legal resume point (partially filled output buffers `video_output` / `sample_output`, an unflushed batch of audio samples) drop samples on load.
+**Prevention:** Define the supported save points in the header ("between frames, as returned by `nesturbator_run_frame`" and, if allowed, "anywhere"); if anywhere, serialise the **count of samples already produced for the current frame** or define that output buffers are not part of state and the caller drains them first. Test both the in-frame save point (property test in pitfall 1) and the audio sample count continuity across a load (no gap, no duplicate sample: compare the concatenated PCM). Output buffers (`video_output`, `sample_output`) are not state; the frame buffer is rebuilt by the next frame, so after a load the first returned frame must be defined (render it? repeat? documented).
+**Phase:** P-State, P-Host.
 
-**Phase to address:** P1 (host-path fixture) and P2 (precedence).
+### Pitfall 13: Signal handlers that do too much (non-async-signal-safe work)
+**What goes wrong:** The v2 runner flushes saves with temp file, fsync and rename. A handler that calls that code directly uses `malloc`, `fopen`, `printf`, `fsync`, non-reentrant library state, or the emulator instance while the main loop is in the middle of a frame or inside the same flush. Result: deadlocks, torn saves (the exact thing the temp-rename design prevents), or a signal arriving mid-flush corrupting `.tmp` state.
+**Prevention:**
+- The handler sets a single `volatile sig_atomic_t` flag (plus `SA_RESTART` off or checked), nothing else. The main loop checks the flag **at frame boundaries**, runs the normal exit flush path and exits with the documented status. The current structure already has "the exit flush runs whatever ended the loop" (runner main.c), so this is a reuse, not a rewrite.
+- Install with `sigaction`, not `signal`; block signals (`sigprocmask`) around the flush's rename sequence or, simpler, do the flush only from the main loop so no signal-time code runs it at all; a second signal during the flush must not abort it (ignore repeated SIGTERM once the flag is set, or make the flag count and only escalate to `_exit` on the third).
+- A hung emulator (a ROM that jams the loop inside a single frame) is not an infinite risk because a frame is bounded, but a **blocking `fsync` on a slow disk** can exceed the 2 s the launcher allows before SIGKILL: measure flush time of 8 and 32 KiB saves on the six runners; the design is already one flush per signal, small file. Write the temp file and rename only if the generation changed since the last flush, so most terminations flush nothing.
+- Test deterministically: a CTest that spawns the runner on a looping movie, waits for a "ready" line on stdout (not a sleep), sends SIGTERM, and asserts exit status, a valid `.sav`, no `.tmp`, and total latency below 2 s. Also SIGINT, a second SIGTERM during flush (test hook that delays the flush), SIGTERM before the first frame, and SIGTERM after the movie finished.
+- Do not install handlers for crash signals (SIGSEGV, SIGABRT); the contract already leaves them unhandled, and a handler that tries to save RAM from a crashed process is the classic way to overwrite a good save with garbage.
+**Warning signs:** Sporadic hangs on exit under load in CI; `.tmp` files left by a killed run; Valgrind/ASan reports about reentrancy in `printf`.
+**Phase:** P-Runner.
 
-### Pitfall 18: Cached CHR/PRG pointers and mid-scanline bank swaps
+### Pitfall 14: Windows has no POSIX signals worth the name
+**What goes wrong:** On Windows (two of six CI legs: x64 and arm64), `SIGTERM` is not delivered to console programs by anything a launcher does; `SIGINT` from the C runtime maps to Ctrl+C, run on a **different thread** created by the system for the event; `SetConsoleCtrlHandler` events (`CTRL_C_EVENT`, `CTRL_BREAK_EVENT`, `CTRL_CLOSE_EVENT`, `CTRL_LOGOFF_EVENT`, `CTRL_SHUTDOWN_EVENT`) get only a short time (documented as about 5 seconds for close; the process is terminated when the handler returns for close/logoff/shutdown) and `TerminateProcess` gives no notification at all. A flag read by the main loop without atomics is a data race on the handler thread; a launcher that "terminates" a Windows child with `TerminateProcess` kills the runner with no flush at all (unverified details; verify against Microsoft documentation at P-Runner research time).
+**Prevention:** Use `SetConsoleCtrlHandler` with a handler that sets an atomic flag (C17 `<stdatomic.h>` is available in MSVC from VS 2022 17.5 with `/experimental:c11atomics` or later without; check the pinned toolchain on both Windows legs, or use `volatile LONG` with `InterlockedExchange`) and for `CTRL_CLOSE_EVENT` and shutdown **wait** (bounded, under the platform limit) for the main loop to finish its flush before returning TRUE. Map Ctrl+C and Ctrl+Break the same way as SIGINT and SIGTERM. Document in the README that on Windows the contract is "Ctrl+C, Ctrl+Break and console close flush; `TerminateProcess` cannot be handled, so the periodic `--save-interval` is the guarantee". Testing needs a way to send the event: spawn the runner with `CREATE_NEW_PROCESS_GROUP` and send `GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid)` from the test harness; a plain `taskkill` without `/F` on a console process sends nothing a console process can see (unverified). Keep all of this in the runner (platform glue in a small file), never in the library.
+**Warning signs:** The signal test passes on POSIX legs and has to be excluded on Windows (violates `policy.no-skip`: a test that cannot run must not be registered, so the Windows leg needs its own registered equivalent test, not a skip).
+**Phase:** P-Runner (needs a short research step; mark for deeper research).
 
-**What goes wrong:**
-MMC3 games change CHR banks in the IRQ handler between background and sprite fetches. A PPU that resolves the CHR page once per scanline reads the old bank. v1's per-dot PPU is probably safe; a mapper that caches an eight-entry CHR pointer table is safe only if every register write, including `$8000`, rebuilds it.
+### Pitfall 15: Exit status collisions and unstable contract
+**What goes wrong:** The proposal in LIBRETRO-AND-RUNNER section 5 lists 0 done, 1 failure, 2 usage, 3 hash mismatch, 77 unsupported capability; v2 already added **4** (a save failure at exit, SAVE-04) which is not in that proposal; v3 adds codes for state load failures, signal-induced exit and perhaps "state fingerprint mismatch". Collisions: shells map `128+n` to "killed by signal n", Windows uses 32-bit codes, `0xC000013A` for Ctrl+C termination, and 3 hash mismatch versus a crash status; Playstead's own gate uses 0, 77, 1. Changing an existing code's meaning silently breaks a launcher.
+**Prevention:** Write the **complete exit-status table in one place** (README plus a single header `runner/exit_codes.h`) and a test that parses the README table and compares it to the constants, and a test that runs one scenario per code and asserts it (the project's drift-guard style). Keep codes 0 to 4 as shipped; allocate new ones from 5 upward below 64, keep 77 for capability refusal, never use 126, 127 and 128+ (shell conventions), and keep 130 and 143 unassigned so a signalled-death is distinguishable. Decide the SIGTERM case once: exit 0 after a successful flush (as proposed; Playstead treats 0 as clean) and a distinct nonzero code only if the flush failed (the existing 4). Add a regression test for "SIGTERM with a save failure gives 4, not 0". Avoid `exit()` calls scattered through the code; return statuses from `main` through the one cleanup path.
+**Warning signs:** An exit status appears in the code that is not in the README; a test asserts "nonzero" rather than the value.
+**Phase:** P-Runner.
 
-**How to avoid:** Resolve CHR addresses at fetch time from the table; add a test with a bank write between the two pattern fetches of a tile.
+### Pitfall 16: Runner states (save-state files) and the battery `.sav` mix up in one directory
+**What goes wrong:** Playstead watches `{saveDir}/{romBaseName}.sav` and treats it as the battery save. A state file named similarly (`.sav`, `.state`) in the same directory is picked up as a battery file, or a state load by the runner is treated as the save changing, triggering the launcher's sync.
+**Prevention:** Distinct extension (for example `.nss` or `.state`), documented, never matching `.sav`; written with the same temp-rename-fsync routine and the same stale-`.tmp` cleanup (08 IN-02 is in this milestone); a failed state write must not alter the `.sav`; test that saving a state does not touch the `.sav` bytes or mtime. State slot numbering, if any, is part of the contract table. A state load at startup (`--load-state`) verifies fingerprint and fails with its own status (pitfall 15) before running a frame.
+**Phase:** P-Runner.
 
-**Phase to address:** P3.
+### Pitfall 17: Stale `.tmp` and failed-write cleanup (carry-over debt that grows with state files)
+**What goes wrong:** v2 left "a failed interval flush leaves a stale `.tmp`" (08 IN-02) and "a directory at the `.sav` path reports a size mismatch" (08 WR-03). Adding state files multiplies the paths; a signal arriving between temp write and rename leaves `.tmp`; a launcher watching the directory sees them.
+**Prevention:** One shared write-atomic helper used by both save kinds; on any failure, `unlink` the temp file (best effort) and report; on startup, remove a stale temp file for **this ROM's own** names only (never glob the directory). Test with injected failures (write error through a full file or read-only directory, rename target is a directory) asserting no `.tmp` remains. This is the P-Tune item; do it **before** adding state files so both inherit the helper.
+**Phase:** P-Tune first, reuse in P-Runner.
 
-### Pitfall 19: Public API and declaration baseline drift
+### Pitfall 18: Tune-up items that are quietly sensitive to the milestone
+**What goes wrong:** (a) The MMC3 `.srm` round trip in hosted RetroArch (G2) depends on a screenshot and timing; MMC3 games differ from MMC1 in when they write the save RAM and in battery presence, so a naive copy of the MMC1 test is flaky. (b) Lowering the nightly suite-flake timeout (Backlog 999.1) to "twice the measured cold run" while adding new, slower tests (state round trips, signal tests) turns a measurement into a trap. (c) `nesturbator_get_version` and `nesturbator_unload_cartridge` (G6) get a consumer: unloading a cartridge now must interact with states (an instance with no cartridge has the test-frame fingerprint; pitfall 5).
+**Prevention:** (a) The e2e must wait for a **deterministic marker** (a RAM byte or the save file content), never a sleep; compare `.srm` bytes after the second session, and assert the generation-driven write happened. (b) Set timeouts after the milestone's tests exist, last in P-Tune's sequence or re-measure at milestone close; record the run in a comment per the CI rule. (c) Test unload then load state, and unload then save state, both defined.
+**Phase:** P-Tune; revisit timeout at the end of P-Perf.
 
-**What goes wrong:**
-The v1 public API baseline guard fails when the header changes; a quick refresh hides an accidental ABI change. Save access added to the opaque-instance API must stay compatible with the sibling core's conventions, and the README and header comments must change in the same commit (rule 6).
+## Performance gating pitfalls
 
-**How to avoid:** Add save span access, size and dirty indicator as one change, refresh the baseline deliberately, document ownership and lifetime of the pointer.
+### Pitfall 19: Wall-clock noise on shared runners makes FPS a bad gate
+**What goes wrong:** GitHub-hosted runners share hardware; frames per second varies by tens of percent between jobs and even within a job, and the six legs are different CPUs (macOS arm64 runners versus Intel versus Windows arm64). A gate on FPS flakes red or, after being loosened, never catches anything.
+**Prevention:** Use the **instruction count (`Ir`) as the gate** and FPS/percentiles as *reported, never gating* telemetry (this matches the milestone's description: FPS mode prints, the PR comparison counts instructions). Put FPS and percentile numbers in the job summary with the runner label and CPU model so a human reading a trend does not compare unlike machines. No threshold on wall time anywhere. In the FPS mode itself: warm-up frames discarded, fixed frame count, monotonic clock (`clock_gettime(CLOCK_MONOTONIC)` / `QueryPerformanceCounter`, wrapped in the runner only; the library stays clock-free and integer-only), percentiles computed with integer math from a sorted array of frame times in nanoseconds so the runner itself needs no floating point (consistent with the `nofp` preset: check the runner is covered by it, otherwise decide explicitly). The FPS mode must not change the emulation or the hashes; test that hashes with and without FPS mode are equal.
+**Warning signs:** The performance check is red on a documentation-only PR; reruns flip its result.
+**Phase:** P-Perf.
 
-**Phase to address:** P2.
+### Pitfall 20: Cachegrind availability and architecture (arm64, macOS)
+**What goes wrong:** Valgrind (Cachegrind/Callgrind) runs on Linux x64 and arm64; it is **not usable on current macOS** (arm64 macOS is unsupported, and Intel macOS support has been unreliable for recent releases; unverified, check at P-Perf) and it does not exist for Windows. The plan in ENGINEERING section 5 puts the `perf` job on `ubuntu-24.04` only, which is right. Pitfalls: (a) counts differ between x64 and arm64 and between compilers, so a base measured on one and head on another is meaningless; (b) the instruction count includes the C library and startup, and depends on the glibc version on the runner image (an image update moves the baseline with no code change); (c) ASLR and environment size influence few instructions but not zero; (d) optimisation level: measure the same preset (`ci` release-ish build), not the asan or dev build; (e) the build flags `-march=native` or LTO would make counts machine-dependent, check the `ci` preset uses none; (f) Cachegrind slows execution 20 to 50 times, so the benchmark workload must be small and fixed (a few hundred frames of two or three ROMs, each exercising a different path: an NROM scroll game, an MMC3 IRQ game, an audio-heavy one, plus state save and load in a loop).
+**Prevention:** Run **both head and merge-base in the same job, on the same runner, same image, same compiler and flags**, back to back; compare only the two numbers from that job (a relative change), never to a stored absolute baseline from an earlier job (image drift). Restrict to the Linux x64 runner for the gate; if an arm64 gate is wanted, `ubuntu-24.04-arm` has Valgrind packages and can be a second independent comparison, not a combined one (unverified). On macOS, the runner's FPS and percentiles are informational only. Count instructions only for the benchmark region by running the runner in a mode that executes N frames and exits, and subtract the zero-frame startup run so loader/CRT cost does not dilute the signal. Use `--cache-sim=no` to speed up and avoid cache-model noise, or keep `Ir` only; use `cg_annotate` output stored as an artifact for diagnosis. Pin Valgrind's version by package version or a checked-in note and record it in the output.
+**Warning signs:** An image update shifts both numbers equally (the relative method hides it, an absolute one would not); Valgrind aborts on an unhandled instruction (the compiler used newer instruction-set extensions: build with a conservative `-march`; check on GCC 14).
+**Phase:** P-Perf (needs a short research step on the pinned runner image).
 
-### Pitfall 20: Release-please versioning for behaviour changes
+### Pitfall 21: Flaky thresholds and gate design
+**What goes wrong:** Instruction counts are deterministic for a given binary and workload, so the gate can be tight, but too tight blocks legitimate accuracy work (the project already accepted a 19 to 20 percent cost at the PPU fetch seam). Threshold set by guess leads to either constant overrides or ignored warnings. Also, rebuilding the head against a base whose benchmark workload differs (the PR adds a ROM to the workload) compares unlike things.
+**Prevention:** Report always (a PR comment or job summary table: Ir base, Ir head, percent, per benchmark), **fail only above a threshold** measured from the repeated-run spread (it should be nearly zero; set the fail line at, say, 5 percent per benchmark and 2 percent total, tuned from the first ten merged PRs rather than guessed), and provide an explicit, reviewed override: a PR label or a Conventional Commit footer, and let a deliberate accuracy trade-off pass with a recorded reason (the "perf" file gets a line). The workload definition (list of ROMs and frame counts) lives in the repo, and the base is measured with the **head's workload definition** (same inputs, built from each side's source). Handle the first PR (no merge-base benchmark exists): treat as report-only. Make the job not a required check at first (`CI required` aggregates results; a skipped or informational job must be handled in the `jq` rule: an advisory job's result must not enter the success-equality check, or it must report success with a message) and move it to required only after a stable fortnight. Do not put the perf job behind a path filter (a required skipped workflow stays Pending: ENGINEERING section 5).
+**Warning signs:** The job fails on a rerun with no change; two builds of the same commit differ in `Ir` (build not reproducible: timestamps, paths, `__FILE__` strings and `__DATE__` in the library are suspicious).
+**Phase:** P-Perf.
 
-**What goes wrong:**
-Each mapper merges as `feat:`; a save-format change is a user-visible compatibility change and belongs in the changelog. A `fix:` for something that alters hashes of existing games is invisible to pinned-hash users.
-
-**How to avoid:** Conventional Commit titles that say when hashes or save compatibility change; keep `release.one_version_per_line` guarded.
-
-**Phase to address:** all.
-
----
+### Pitfall 22: The perf harness itself perturbs hashes or rules
+**What goes wrong:** FPS mode adds timing code to the runner, which the hash tests rely on; the benchmark ROMs are test material and must stay in `tests/roms/manifest.txt`; per-PR job output must not include runner hostnames, user names or paths (hygiene).
+**Prevention:** Use only ROMs already in the manifest; run `scripts/hygiene.sh` on any generated report committed (preferably nothing is committed: output goes to the job summary). Keep the FPS code path out of the library. The fixed workload is part of the hash-equality guard (a benchmark run's frame hash must equal the pinned hash, so the benchmark verifies it measured the right thing).
+**Phase:** P-Perf.
 
 ## Minor Pitfalls
 
-### Pitfall 21: Unused-bit and mask details
-**What goes wrong:** CNROM CHR bank uses only the low bits and wraps by CHR size; AxROM bank bits 0-2 plus bit 4; UxROM fixes the last bank at `$C000` (mapper 180 fixes the first); MMC3 PRG fixed banks swap with the mode bit.
-**Prevention:** Mask/modulo against actual bank counts; table-driven tests for each board.
+### Pitfall 23: `.info` and core-option drift
+**What goes wrong:** `savestate = "true"`, `savestate_features = "deterministic"` and `libretro_saves` keys missing or wrong; RetroArch silently disables rewind/run-ahead (behaviour with the file or key missing is recorded as untested in LIBRETRO-AND-RUNNER).
+**Prevention:** A test that parses `nesturbator_libretro.info` and asserts the keys against the adapter's capabilities (serialize size nonzero, quirks zero); a hosted retroarch-e2e step that saves a state and loads it in RetroArch via its network command interface or a hotkey script and compares screenshot hashes; the `.info` is installed by the install script (check it copies the updated file). Rewind in RetroArch is a host setting (off by default); the e2e can only prove that save/load works and that `retro_serialize_size` is stable; document how a user enables rewind.
+**Phase:** P-Host.
 
-### Pitfall 22: Games that are known to expose timing bugs used as acceptance
-**What goes wrong:** Choosing Battletoads, Kirby, Marble Madness or Bill & Ted as the headline proof couples the mapper milestone to PPU/CPU alignment accuracy that is v3 scope.
-**Prevention:** Use these locally as bug finders, not as gates.
+### Pitfall 24: The state buffer length handshake in libretro
+**What goes wrong:** `retro_serialize` is called with a buffer of the size reported earlier; some hosts pass a larger buffer, some call `retro_serialize_size` before a ROM is loaded (returning 0 disables states for that session), some call `retro_unserialize` with a size larger or smaller than expected (a state file from a previous version).
+**Prevention:** `retro_serialize_size` returns the constant even with no content loaded (pitfall 3); `retro_unserialize` accepts a larger buffer only if the trailing bytes are zero or ignores them per documented policy, rejects smaller; both return `false` on any error with no instance change. Test with sizes -1, +1, 0 and NULL buffers.
+**Phase:** P-Host.
 
-### Pitfall 23: Non-battery PRG-RAM treated as save data
-**What goes wrong:** Persisting volatile RAM makes games load stale data.
-**Prevention:** Persist only the battery span (Pitfall 2).
+### Pitfall 25: Documentation and header comments lag (rule 6)
+**What goes wrong:** The rule "README and the public header's comments are updated in the same change" is violated by the new API; the AxROM comment (07 WR-01) shows the failure mode.
+**Prevention:** Each plan that adds an API or behaviour lists the README and header sentence as a task; the declaration-guard test updates in the same commit; a doc-drift test greps the exit-status table and `.info` keys (pitfalls 15 and 23).
+**Phase:** every phase.
 
-### Pitfall 24: Copying code or logic from reference emulators
-**What goes wrong:** Breaks the clean-room rule.
-**Prevention:** Implement from the wiki and test behaviour; reference emulators only as released binaries; keep wiki citations in hardware comments.
+## Phase-Specific Warnings
 
----
+| Phase topic | Likely pitfall | Mitigation |
+|-------------|---------------|------------|
+| P-Tune: MMC3 .srm e2e | Timing-based flake; copy of MMC1 test (18) | Wait on a marker, compare bytes; no sleeps |
+| P-Tune: stale `.tmp` | Cleanup fixed per call site, not shared (17) | One atomic-write helper first, state files reuse it |
+| P-Tune: nightly timeout | Measured before new slow tests land (18) | Re-measure at milestone end |
+| P-Tune: get_version / unload consumers | Unload interacts with states (5, 18) | Define and test unload-then-save/load |
+| P-State: format | Struct dump, padding, pointers (2); no version/fingerprint (4, 5) | Explicit LE codec, header, fingerprint, golden fixture |
+| P-State: coverage of hidden state | Forgotten latches (1) | Property test at random dot offsets, audio hash included |
+| P-State: size | Varies with board (3) | Fixed maximum size, constant exported |
+| P-State: save generation | Backwards or double counting (6) | Never serialised, bump on changed span only |
+| P-State: validation | Half-applied loads, out-of-range banks (4, 5) | Validate fully, then commit; corrupted-state test |
+| P-State: determinism | Padding/uninitialised memory in state (2, 9) | Poison-fill runs, six-platform state hash |
+| P-Host: serialize/unserialize | Size handshake, cost per frame (7, 24) | Caller buffer, no allocation, budget measured by FPS mode |
+| P-Host: run-ahead | Doubled audio/video, adapter-side buffers (8, 11) | Mock-host test with speculative runs; once-per-run callbacks |
+| P-Host: declaration | `deterministic` claimed unproven (9, 23) | Evidence lane, `.info` test, retroarch-e2e state round trip |
+| P-Runner: signals | Work in handler (13); Windows events (14) | Flag-only handler, main-loop flush, Windows console-event handler, dedicated Windows test (no skips) |
+| P-Runner: exit statuses | Collisions, drift (15) | One table, one header, one test per code |
+| P-Runner: state files | Confused with `.sav` (16) | Distinct extension, same atomic helper |
+| P-Perf: FPS mode | Wall time noise (19) | Report-only; integer percentiles; no gate |
+| P-Perf: instruction count | Valgrind platform and image drift (20) | Linux job only, head and base in one job, relative compare |
+| P-Perf: gating | Thresholds guessed, required check semantics (21) | Report first, tune from spread, override with reason, advisory until stable |
 
-## Technical Debt Patterns
+## Research Flags for the Roadmap
 
-| Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|----------------|-----------------|
-| "Previous opcode was RMW" for MMC1 write ignore | No cycle plumbing | Wrong with DMA and non-RMW adjacency | Never |
-| Pin hash from first output | Fast green CI | Pins a wrong picture | Never; decode result or inspect |
-| Mirroring enum | Smaller change | Single-screen and four-screen require a rewrite | Never past P2 |
-| 32 KiB save for all MMC1 | One code path | Incompatible `.sav` files | Never |
-| Ignore MMC3 `$A001` entirely | Matches common practice | Fails Holy Mapperel RAM-protect rows; MMC6 conflict | Acceptable in P3 if documented and pinned as `unsupported` |
-| Per-frame blanket skip of mapper hook | Speed | A12 misses | Only via capability bit |
-| Default conflicts on for submapper 0 | Looks accurate | Can break non-conflict dumps | Only if evidence in P4 supports it |
-| Reload instance to implement reset | Easy | Wipes RAM and registers | Never |
-
-## Integration Gotchas
-
-| Integration | Common Mistake | Correct Approach |
-|-------------|----------------|------------------|
-| RetroArch SRAM | Pointer moves; RAM re-initialised after the host restored it | Stable pointer, constant size, init only at load |
-| RetroArch reset | Rebuild instance | Soft reset keeps RAM and mapper registers |
-| Runner `.sav` | Implicit file beside ROM | Explicit path; tests use temp dirs |
-| Windows file replace | `rename` over existing | Platform replace call or documented fallback |
-| Windows file mode | Text mode | Binary mode always |
-| Hosted macOS/Windows runners | Floating labels | Pin or log image version |
-| Playstead-style host | Pointer only, no dirty signal | Dirty counter in the instance |
-| Scoreboard | One decode rule for all protocols | Per-protocol decoders |
-
-## Performance Traps
-
-| Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|----------------|
-| Per-fetch mapper function pointer for every board | Slower NROM, hash-gate time up | Capability bit; no hook for NROM/UxROM/CNROM/AxROM | Visible from the first MMC3 merge |
-| Per-write save-file I/O | Stutter | Dirty flag; host flushes | Games that write RAM every frame |
-| Fetching full vector sets on PR | CI minutes | Keep nightly | Already a v1 split |
-
-## Security Mistakes
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Allocating from NES 2.0 RAM fields before checking limits | Memory exhaustion | Cap and compare with file length |
-| Reading `.sav` into a fixed buffer without bound | Overflow | Bounded copy of `min` bytes |
-| Writing `.sav` through a predictable temp name in a shared directory | Clobber or symlink | Temp file in the same directory with a unique name |
-| Paths and user names in saved metadata or test artifacts | Privacy rule | Hygiene script covers new artifacts |
-
-## UX Pitfalls
-
-| Pitfall | User Impact | Better Approach |
-|---------|-------------|-----------------|
-| Unsupported mapper shows black screen | User thinks core is broken | Clear error message through runner/libretro log |
-| Save loaded with wrong size silently | Lost progress | Warning naming expected and actual size |
-| Reset deletes save | Lost progress | Soft reset preserves RAM |
-
-## "Looks Done But Isn't" Checklist
-
-- [ ] **MMC1:** consecutive-write ignore tested with an RMW and a DMA-separated pair — verify bank unchanged after `INC`.
-- [ ] **MMC1:** reset bit leaves CHR/PRG registers untouched — verify PRG mode 3 only.
-- [ ] **MMC3:** IRQ per line count over a frame with 8x8 and 8x16 sprites; empty-slot fetches present.
-- [ ] **MMC3:** both revisions selectable; the test table includes latch 0.
-- [ ] **Battery:** round trip across two instances, wrong-size files, no-battery game returns size 0.
-- [ ] **Battery:** `retro_reset()` leaves SRAM intact; first `retro_run()` does not clear restored data.
-- [ ] **Bus conflicts:** submapper 1 vs 2 differ in a test; ROM byte read from pre-write bank.
-- [ ] **Mirroring:** all four-entry modes tested; mid-frame write seen on the next fetch.
-- [ ] **Holy Mapperel:** result code decoded and required, not only the hash; unsupported mappers listed.
-- [ ] **Hashes:** v1 inventory unchanged; six-platform comparison identical.
-- [ ] **Boot-to-play:** negative controls fail (no input, missing ROM).
-- [ ] **CI:** no test self-skips with success; no test writes into the source tree.
-- [ ] **Docs:** README and header comments describe save contract, mapper list and defaults in the same change.
-
-## Recovery Strategies
-
-| Pitfall | Recovery Cost | Recovery Steps |
-|---------|---------------|----------------|
-| Wrong save size policy released | HIGH | Add a migration rule for old files, publish in release notes, keep both-size fixtures |
-| MMC3 off-by-one IRQ timing | MEDIUM | Adjust constants with boundary tests; re-pin only the affected rows with reasons |
-| Mirroring enum too small | MEDIUM | Introduce the source table, migrate NROM first, compare v1 hashes |
-| Pinned a wrong picture | LOW | Decode and fix, re-pin in its own change |
-| Flaky test | LOW | Quarantine with an issue, fix root cause, do not retry-loop |
-
-## Pitfall-to-Phase Mapping
-
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| 1 Stale/shared `.sav` | P2, P1 rules | Clean-tree check after `ctest -j`; seeded vs unseeded hash differ |
-| 2 Save size | P2 | Fixture sizes 8K/32K/1K, short/long |
-| 3 Header errors | P2, P4 | Loader corpus; unsupported error test |
-| 4 MMC1 consecutive writes | P2 | Synthetic RMW ROM |
-| 5 MMC1 reset/decode | P2 | Register table test |
-| 6 Mirroring table | P2 | Mid-frame mirroring test |
-| 7 A12 filter | P3 | M2 boundary test; v1 hashes unchanged |
-| 8 MMC3 IRQ revisions | P3 | Latch/reload table; shared IRQ line test |
-| 9 Bus conflicts | P4 | Submapper 1 vs 2 test |
-| 10 Flush atomicity | P2 | Kill-during-write test; Windows replace |
-| 11 Libretro SRAM | P1, P2 | Host test with restore/reset |
-| 12 Boot-to-play | P6 | Negative controls |
-| 13 Misleading ROMs | P1, P3, P5 | Decoder fixtures |
-| 14 Fragile hashes | P2-P5 | Inventory diff |
-| 15 Fuzz/sanitiser | P2-P4 | Corpus seeds per mapper; asan green |
-| 16 CI flakiness | P1 | Skips fail CI; mutation self-tests |
-| 17 Trainer path | P1, P2 | Trainer + battery fixture through both hosts |
+- **P-Runner (Windows signals):** needs a brief research step on `SetConsoleCtrlHandler` timing, `GenerateConsoleCtrlEvent` in tests, and C11 atomics support on the two pinned MSVC toolchains.
+- **P-Perf (Cachegrind):** needs a brief check of the Valgrind version in the `ubuntu-24.04` and `ubuntu-24.04-arm` images and its behaviour with GCC 14 output.
+- **P-State:** no new research required; the work is design discipline plus tests. The golden-fixture and fingerprint ideas should be decided in discuss-phase.
+- **P-Host:** confirm in the hosted retroarch-e2e how to trigger a state save/load deterministically (network command interface versus hotkey), and the run-ahead behaviour of the pinned RetroArch version.
 
 ## Sources
 
-- NESdev Wiki MMC1 and MMC3 (fetched 2026-10-09): consecutive-write ignore, bit-7 reset, `$0C` OR, RAM-enable differences, SUROM/SOROM/SXROM bits, A12 filter of three M2 falling edges, Sharp versus NEC reload, 8x16 notes, `$E000/$E001`, `$A001` (HIGH). Note that a summariser garbled the MMC3 mirroring polarity; confirm 0 = vertical on the wiki page before coding.
-- Project files: `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md` (mapper table, header rules), `CONFORMANCE.md` (suites, protocols, licences, scoreboard), `NES-ECOSYSTEM.md` (user complaints on mapper coverage and saves), `.planning/RETROSPECTIVE.md`, `.planning/milestones/v1-MILESTONE-AUDIT.md` (HIGH for project facts).
-- NESdev Wiki Bus conflict, INES, NES 2.0 and submapper pages, Tricky-to-emulate games, Holy Mapperel README, blargg mmc3_test_2 readmes (MEDIUM, from prior reading and the project's prep files; not re-fetched).
-- libretro documentation for `RETRO_MEMORY_SAVE_RAM` and `retro_get_memory_data` (MEDIUM, from memory; RetroArch's exact load/save ordering and size-mismatch handling should be confirmed with the existing libretro host test).
-
----
-*Pitfalls research for: NES emulator mapper and battery-save additions (nesturbator v2)*
-*Researched: 2026-10-09*
+- `.planning/preparation/NES-ECOSYSTEM.md` sections 4 and 5: Nestopia state break, FCEUmm state-size and Game Genie reports, puNES compatibility note, libretro issues on cross-version states and run-ahead guidance (MEDIUM, project-gathered with issue links)
+- `.planning/preparation/LIBRETRO-AND-RUNNER.md` sections 2 and 5: serialization rules and quirks, `.info` keys, Playstead's quit behaviour (SIGTERM then SIGKILL after 2 s), proposed exit statuses and preflight (MEDIUM-HIGH)
+- `.planning/preparation/ENGINEERING.md` sections 4 and 5: property-test plan, CI design, perf job plan, required-check semantics (HIGH, project decisions)
+- `.planning/milestones/v2-MILESTONE-AUDIT.md` and `.planning/PROJECT.md`: v2 debt, battery-generation design, 19 to 20 percent seam cost, existing exit status 4 (HIGH)
+- Source layout read for this research: `src/internal.h`, `src/mapper.h` (pointer page tables, `rebuild` op), `include/nesturbator.h` (`nesturbator_save_generation`), `runner/main.c` (exit flush) (HIGH)
+- NESdev wiki hardware behaviour for the listed latches (MEDIUM, from memory, not re-fetched)
+- POSIX async-signal-safety and Microsoft console control handler documentation, Valgrind platform support (LOW-MEDIUM, from memory; flagged "unverified" inline and for phase-time research)

@@ -14,11 +14,17 @@ v2 "Most of the library plays" shipped on 2026-10-11 (releases v0.1.7 to v0.1.9,
 
 v1 "NROM games with sound" shipped on 2026-10-09 (v0.1.6). The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-## Next Milestone Goals
+## Current Milestone: v3 Save states and rewind
 
-Not yet defined; `/gsd-new-milestone` sets them. The candidates are:
-- The v2 debt in `.planning/milestones/v2-MILESTONE-AUDIT.md` and MILESTONES.md: an MMC3 `.srm` round trip in retroarch-e2e (G2), consumers or README text for `nesturbator_get_version` and `nesturbator_unload_cartridge` (G6), the stale `.tmp` after a failed save (08 IN-02), the nightly suite-flake timeout (Backlog 999.1), and the open review items.
-- Seeds in `.planning/seeds/`: save states and the runner contract (SEED-002), accuracy and PAL/Dendy (SEED-003), robustness and speed (SEED-004), Famicom hardware (SEED-005).
+**Goal:** Players save and load states, rewind and use run-ahead in RetroArch, and Playstead can launch nes-runner and rely on its saves and exit statuses, with no frame or audio hash changing and speed measured on every pull request.
+
+**Target features:**
+- Tune-up (SEED-006) and v2 debt: CI time, flaky tests, pins and README drift; an MMC3 `.srm` round trip in retroarch-e2e (G2); a consumer or README text for `nesturbator_get_version` and `nesturbator_unload_cartridge` (G6); no stale `.tmp` after a failed save (08 IN-02); a measured nightly suite-flake timeout (Backlog 999.1).
+- Save states (SEED-002): a fixed-size state with its own format version, checked in full before it is applied, through the library API; RetroArch save and load state, rewind and run-ahead, declared deterministic so netplay can use it.
+- Runner contract (SEED-002): save states in nes-runner, saves flushed on a termination signal, and documented exit statuses for Playstead.
+- Speed (SEED-004, speed half): a runner mode that prints frames per second and frame-time percentiles, and an instruction-count comparison on every pull request.
+
+Left for later milestones: fuzzing the state loader and arbitrary ROM bytes (SEED-004), accuracy and PAL/Dendy (SEED-003), Famicom hardware (SEED-005).
 
 ## Requirements
 
@@ -42,7 +48,12 @@ Not yet defined; `/gsd-new-milestone` sets them. The candidates are:
 
 ### Active
 
-(none — the next milestone's requirements come from `/gsd-new-milestone`)
+- [ ] v2 debt closed and the pipeline tuned up (SEED-006)
+- [ ] Save states through the library API, and in RetroArch with rewind and run-ahead
+- [ ] nes-runner save states, signal-safe save flush and documented exit statuses
+- [ ] Speed measured by the runner and compared on every pull request
+
+The numbered requirements are in `.planning/REQUIREMENTS.md`.
 
 ### Out of Scope
 
@@ -53,7 +64,7 @@ Not yet defined; `/gsd-new-milestone` sets them. The candidates are:
 - A separate fast or low-accuracy mode — one accurate core keeps one set of bugs and one set of hashes.
 - Signed or notarized macOS artifacts — the script install path does not need them.
 - A test framework dependency — plain CTest executables with an in-repo `check.h` cover the need.
-- PAL and Dendy timing, mappers beyond the six common families, save states, expansion audio, FDS, extra peripherals — planned for later milestones; see `.planning/seeds/`.
+- PAL and Dendy timing, mappers beyond the six common families, expansion audio, FDS, extra peripherals — planned for later milestones; see `.planning/seeds/`.
 - Submitting the core to the libretro buildbot — an outward-facing step the owner decides on separately.
 
 ## Context
@@ -142,4 +153,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-11 after v2 milestone*
+*Last updated: 2026-10-11 after starting milestone v3*
