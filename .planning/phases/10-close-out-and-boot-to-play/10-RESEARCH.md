@@ -913,21 +913,26 @@ libretro.host --rom-parity <module> <rom> <frames> <ppm> [--movie F] [--sav-in F
 | A4 | Pinned positive movie hashes and the jump list stay valid on all six platforms because the core is integer-only; only the Mac was exercised | Measured values | A platform difference would show as a `hash-equality` failure, not a silent pass |
 | A5 | The hardware-correct content of the 21 top-left pixels after a soft reset is the first PPU frame's, not the following frame's tail | 05-CR-01 | Only matters if the owner wants hardware-exact reset pixels; outside the stated CR-01 claim |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Start-only expected mask (`P1|P2` versus D-11's `P1`).**
    - What we know: measured P2 fails after the death at frame 265.
    - What's unclear: whether the owner wants the table in CONTEXT changed or P2's window clipped.
    - Recommendation: use `P1|P2`; it is inside the stated rule and keeps the full window.
+   - RESOLVED: the Start-only expected mask is `P1|P2`.
 2. **A/B pixel threshold: 25% (D-12) versus 50%.**
    - Recommendation: 50%; D-12 says the exact values are pinned by procedure.
+   - RESOLVED: the A/B pixel threshold is 50%.
 3. **CR-01 disposition.**
    - What we know: not reproducible at `HEAD`.
    - Recommendation: sentinel test; close the finding with evidence; change the core only if the test fails.
+   - RESOLVED: the CR-01 sentinel test comes first; the core changes only if it fails.
 4. **Whether to keep `TIMEOUT 120`.**
    - Recommendation: 300 for the boot-to-play test; measure on the first CI run.
+   - RESOLVED: TIMEOUT is 300.
 5. **Extra `nesrunner/play` frame rows (300, 450, 600).**
    - Recommendation: add them; otherwise the rows pin only the title and transition.
+   - RESOLVED: nes-runner play rows at frames 300, 450 and 600.
 
 ## Environment Availability
 
