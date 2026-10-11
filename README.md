@@ -160,7 +160,10 @@ writes take effect at the dot-257 horizontal copy and the pre-render dots
 280-304 vertical copies, not at the pixel being drawn, and a `$2007` access
 while rendering increments coarse X and Y together. The PPU address bus and
 its A12 line are reported to the cartridge board on every change, with the
-tick of the dot, including `v` itself while rendering is off. Sprites are evaluated into secondary OAM
+tick of the dot, including `v` itself while rendering is off; on a visible
+rendering line dot 0 shows the first tile's pattern address, and on the
+pre-render line it shows `v`, so with the background at `$1000` the first
+rise there is at dot 5. Sprites are evaluated into secondary OAM
 and fetched for the following scanline, one slot at a time on dots 257-320
 (two garbage nametable accesses, then the pattern low and high bytes), with
 an empty slot fetching tile `$FF` as the console does; transparent pixels reveal the
@@ -447,6 +450,19 @@ the expected exit status as `0xNN`, and frames is the budget; the hash is `-`.
 Each row becomes the test `mmc3.oracle.<key>`, which passes when the exit
 status equals the code, and an `unsupported` row that exits 0 fails until the
 row is edited. These rows are not part of `tests/accuracy/scoreboard.txt`.
+The table holds the 12 ROMs, 10 `pass` and two `unsupported`. All six
+`mmc3_test_2` ROMs and the four Sharp-revision `mmc3_irq_tests` ROMs pass: `1-clocking`,
+`2-details`, `3-A12_clocking`, `4-scanline_timing`, `5-MMC3`, and `1.Clocking`, `2.Details`,
+`3.A12_clocking`, `4.Scanline_timing`, `6.MMC3_rev_B`. `mmc3_test_2/6-MMC3_alt` (exit
+`0x02`) and `mmc3_irq_tests/5.MMC3_rev_A` (exit `0x03`) are recorded `unsupported`: they test
+the NEC revision, and the core models the Sharp revision unless the cartridge header says
+submapper 4. The board adds no IRQ delay beyond the A12 edge. In `ci`, offline,
+`mmc3.pins` checks `tests/mmc3/pins.txt` (a header with a 40-hex commit and `none-stated`, then 12
+lines of a 64-hex hash, path and decimal size, LF only), `mmc3.oracle.inventory` checks that
+`oracle.txt` holds exactly the 12 pinned keys in the five-field form with exactly the two
+NEC-revision keys `unsupported`, and `mmc3.oracle.unit` runs the oracle's judgement on
+synthetic memory (a pass, a timeout, no signature, a result with `$80` never seen, text
+without `Passed`, and a `$F8` that changes within 60 frames).
 Run it with `cmake --workflow --preset mmc3-oracle`.
 `vectors.pins`, in `ci` and offline, checks `tests/vectors/pins.txt`: its pin
 line, 256 lines in order from `00.json` to `ff.json`, sizes summing to

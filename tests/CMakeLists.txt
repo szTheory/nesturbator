@@ -995,6 +995,18 @@ target_include_directories(mmc3-oracle PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(mmc3-oracle PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(mmc3-oracle)
 
+# 09 D-11: the oracle's judgement on synthetic memory, and the pins and result table, offline.
+add_executable(mmc3.oracle.unit mmc3/test_oracle.c)
+target_include_directories(mmc3.oracle.unit PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/mmc3)
+nesturbator_warnings(mmc3.oracle.unit)
+add_test(NAME mmc3.oracle.unit COMMAND mmc3.oracle.unit)
+add_test(NAME mmc3.pins
+  COMMAND ${CMAKE_COMMAND} -DMODE=pins -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mmc3_oracle_inventory.cmake)
+add_test(NAME mmc3.oracle.inventory
+  COMMAND ${CMAKE_COMMAND} -DMODE=inventory -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mmc3_oracle_inventory.cmake)
+
 # 09 D-10: blargg's mmc3_test_2 and mmc3_irq_tests at the pin in
 # tests/mmc3/pins.txt, one test per row of tests/mmc3/oracle.txt. They need the
 # network, so they are registered only when NESTURBATOR_MMC3_ORACLE is ON (the
