@@ -14,10 +14,9 @@
 /* LDA #$0F; STA $4015; pulse 1: LDA #$BF; STA $4000; LDA #$40; STA $4002; LDA #$08; STA $4003;
    triangle: LDA #$FF; STA $4008; LDA #$40; STA $400A; LDA #$08; STA $400B; JMP * (at $8023). */
 static const uint8_t apu_code[] = {
-    0xa9u, 0x0fu, 0x8du, 0x15u, 0x40u, 0xa9u, 0xbfu, 0x8du, 0x00u, 0x40u, 0xa9u, 0x40u,
-    0x8du, 0x02u, 0x40u, 0xa9u, 0x08u, 0x8du, 0x03u, 0x40u, 0xa9u, 0xffu, 0x8du, 0x08u,
-    0x40u, 0xa9u, 0x40u, 0x8du, 0x0au, 0x40u, 0xa9u, 0x08u, 0x8du, 0x0bu, 0x40u, 0x4cu,
-    0x23u, 0x80u};
+    0xa9u, 0x0fu, 0x8du, 0x15u, 0x40u, 0xa9u, 0xbfu, 0x8du, 0x00u, 0x40u, 0xa9u, 0x40u, 0x8du,
+    0x02u, 0x40u, 0xa9u, 0x08u, 0x8du, 0x03u, 0x40u, 0xa9u, 0xffu, 0x8du, 0x08u, 0x40u, 0xa9u,
+    0x40u, 0x8du, 0x0au, 0x40u, 0xa9u, 0x08u, 0x8du, 0x0bu, 0x40u, 0x4cu, 0x23u, 0x80u};
 static const uint8_t jam_code[] = {0x02u};
 
 static size_t build(uint8_t *out, const uint8_t *code, size_t len)
@@ -48,9 +47,9 @@ static nesturbator *make_instance(void)
 static int boundary_clean(const nesturbator *n)
 {
     return n->ppu.video_output == NULL && n->ppu.video_pitch == 0u &&
-           n->apu.sample_output == NULL && n->apu.sample_limit == 0u &&
-           n->apu.sample_count == 0u && n->synth.pcm_count == 0u &&
-           n->synth.pcm_read == n->synth.pcm_write && n->synth.overflow == 0u;
+           n->apu.sample_output == NULL && n->apu.sample_limit == 0u && n->apu.sample_count == 0u &&
+           n->synth.pcm_count == 0u && n->synth.pcm_read == n->synth.pcm_write &&
+           n->synth.overflow == 0u;
 }
 
 /* Runs one frame with the given audio capacity and returns its status. */

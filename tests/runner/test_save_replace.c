@@ -13,7 +13,7 @@
 #include <direct.h>
 #define MKDIR(p) _mkdir(p)
 #define STAT _stat
-#define IS_DIR(m) (((m)&_S_IFMT) == _S_IFDIR)
+#define IS_DIR(m) (((m) & _S_IFMT) == _S_IFDIR)
 #else
 #include <unistd.h>
 #define MKDIR(p) mkdir((p), 0755)

@@ -23,12 +23,12 @@
  * With --save-dir DIR a cartridge that has battery RAM reads DIR/<name>.sav after it loads and
  * before the first frame, and writes the raw bytes back when they changed. <name> is the last
  * component of the --rom path, split at '/' or '\\', without its last extension. A write goes
- * to DIR/<name>.sav.tmp and is renamed over the save, so the save is the old one or the new one, never torn. A failed write
- * removes its .tmp and keeps the previous save. The
- * runner writes at the end of the run (also after a JAM) and, with --save-interval N, after every
- * Nth frame; a write that fails at an interval is tried once more at exit. A save whose size is
- * not the battery RAM's is never touched. Without --save-dir no save file is read or written, and
- * neither is one for a cartridge without battery RAM.
+ * to DIR/<name>.sav.tmp and is renamed over the save, so the save is the old one or the new one,
+ * never torn. A failed write removes its .tmp and keeps the previous save. The runner writes at the
+ * end of the run (also after a JAM) and, with --save-interval N, after every Nth frame; a write
+ * that fails at an interval is tried once more at exit. A save whose size is not the battery RAM's
+ * is never touched. Without --save-dir no save file is read or written, and neither is one for a
+ * cartridge without battery RAM.
  *
  * Exit status (LIBRETRO-AND-RUNNER section 5): 0 done, 1 failure, 2 usage, 4 .sav size mismatch;
  * 3 and 77 are reserved.

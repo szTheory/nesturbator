@@ -15,7 +15,7 @@
 #include <io.h>
 #include <windows.h>
 #ifndef S_ISDIR
-#define S_ISDIR(m) (((m)&_S_IFMT) == _S_IFDIR)
+#define S_ISDIR(m) (((m) & _S_IFMT) == _S_IFDIR)
 #endif
 #define stat _stat
 #define lstat _stat
@@ -89,7 +89,8 @@ enum nesturbator_run_save_status nesturbator_run_save_load(const char *path, uin
 static void report_failure(const char *path, int err, unsigned long winerr)
 {
     if (winerr != 0u) {
-        fprintf(stderr, "nesturbator-run: cannot save %s (Windows error %lu); the previous save is kept\n",
+        fprintf(stderr,
+                "nesturbator-run: cannot save %s (Windows error %lu); the previous save is kept\n",
                 path, winerr);
     } else {
         fprintf(stderr, "nesturbator-run: cannot save %s (%s); the previous save is kept\n", path,
