@@ -544,7 +544,19 @@ or updates it with the event, head SHA, run URL and failing keys
 The `suite-flake` job builds the `ci` preset on Ubuntu 24.04 and runs its
 suite three times in random order with
 `ctest --preset ci --repeat until-fail:3 --schedule-random`; any failure fails
-the job, and its outcome is reported in the same `nightly` issue. The ROM
+the job, and its outcome is reported in the same `nightly` issue.
+
+The same workflow runs the `mmc3-oracle` lane (`cmake --workflow --preset
+mmc3-oracle`) as a second job, built like `vectors-full`: `contents: read`
+only, pinned actions, no cache and no skip code. It saves its CTest inventory
+first, runs the 12 blargg MMC3 rows, uploads the inventory and its JUnit file as
+`mmc3-oracle-evidence-<run ID>`, and feeds the same `nightly` issue, whose body
+lists its failing keys (`mmc3_test_2/<name>`, `mmc3_irq_tests/<name>`,
+`mmc3.oracle.fetch`). Pull requests that change `tests/mmc3/`, its fetch, run
+and inventory scripts, `src/mapper_mmc3.c`, `src/mapper.h`, `src/ppu.c`,
+`src/cartridge.c` or `src/bus.c` run it too. The hygiene test
+`hygiene.nightly_workflow_policy` checks each lane on its own job text, and its
+self test mutates both lanes. The ROM
 loader fuzz outcome is recorded in the job summary and included in
 scheduled and main-push failure issues. It uses GitHub's per-job token: the
 full-run job has only `contents: read`, and only the report job has
