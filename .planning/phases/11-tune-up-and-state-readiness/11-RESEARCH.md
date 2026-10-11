@@ -609,14 +609,17 @@ All run under the asan preset because `libretro.host` is a normal CTest.
 | A7 | macOS `fsync` limits (no `F_FULLFSYNC`) are acceptable | TUNE-07 behaviours | Covered by D-05 |
 | A8 | The CI path of the derived ROM is `build/ci/tests/holymapperel/derived/m4tkrom.nes` | TUNE-08 | Step fails fast (`-DSAVE_ROM` existence check at `run_retroarch.cmake:73-75`) |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **C1: interval-flush behaviour vs D-04 wording.**
    - Known: code, README and `interval_retry` all say a failed interval flush ends the run with exit 1.
    - Unclear: whether the owner intended to change it.
    - Recommendation: keep behaviour; treat D-04's first sentence as a wording error; record in PLAN and README unchanged.
+   - **RESOLVED (C1):** keep today's behaviour; only the message text changes (plan 11-01).
 2. **C2: dir at `.sav` path (WR-03).** The runner reports exit 4 (macOS) or something platform-dependent. Out of scope; use the `.tmp`-directory runner test. If the owner wants WR-03 fixed, it is a separate change to `nesturbator_run_save_load` (`fstat`/`S_ISDIR`).
+   - **RESOLVED (C2):** the runner-level case uses a non-empty directory at `<save-dir>/battery.sav.tmp` (`runner.save.dir_at_tmp`); the helper-level test covers a directory at the target; WR-03 stays out of scope.
 3. **Where the D-09 library equality test lives:** extend `core.cartridge` (already has `src/` include) or add it to `core.boundary`. Either works; choose one file to avoid duplicated image builders.
+   - **RESOLVED:** the D-09 equality test extends `core.cartridge` (`tests/core/test_cartridge.c`).
 
 ## Environment Availability
 

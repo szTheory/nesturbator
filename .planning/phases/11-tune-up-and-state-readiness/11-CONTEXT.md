@@ -29,7 +29,7 @@ Requirements: TUNE-07, TUNE-08, TUNE-09.
   - The library still does no file I/O.
 
 - **D-02: Write sequence.**
-  1. `remove("<path>.tmp")` to clear a stale leftover.
+  1. Stat `<path>.tmp`. If it is a directory, empty or not, refuse with `EISDIR` and return 1. Only a non-directory stale leftover is removed with `remove`. (Corrected at planning: POSIX `remove()` deletes an empty directory, which D-03 forbids.)
   2. `fopen(tmp, "wbx")`. This is C11 exclusive create: it never writes through a symlink or a racing file.
   3. Write, `fflush`, then fsync (`_commit` on Windows), then a checked `fclose`.
   4. `rename` on POSIX, or `MoveFileExA(REPLACE_EXISTING|WRITE_THROUGH)` on Windows.
@@ -43,7 +43,7 @@ Requirements: TUNE-07, TUNE-08, TUNE-09.
 
 - **D-04: Message and exit status.**
   - The message is one line: `nesturbator-run: cannot save <path> (<reason>); the previous save is kept`. Save `errno` before cleanup.
-  - Exit statuses do not change. A failed interval flush warns and the run continues; it is retried at exit. A failed exit flush gives exit 1.
+  - Exit statuses do not change. A failed interval flush ends the run with status 1 and the exit flush retries once, as today (`runner/main.c:858-860`, `runner.save.interval_retry`). A failed exit flush gives exit 1. (Corrected at planning: the earlier wording "warns and the run continues" contradicted the code; see RESEARCH C1.)
 
 - **D-05: No parent-directory fsync.**
   - The documented guarantee is "the save is the old one or the new one, never torn".

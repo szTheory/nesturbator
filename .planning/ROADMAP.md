@@ -45,6 +45,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 ## Phase Details
 
 ### Phase 11: Tune-up and state readiness
+
 **Goal**: Battery saves can never be left torn or stale, MMC3 saves survive RetroArch sessions, and every public function has a caller and README text, so state work inherits no v2 debt.
 **Depends on**: Phase 10 (v2 shipped)
 **Requirements**: TUNE-07, TUNE-08, TUNE-09
@@ -52,10 +53,24 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   1. A failure-injection test in `cmake --workflow --preset ci`, with an unwritable directory and with a directory at the target path, finds the old `.sav` intact and no `.tmp` left behind.
   2. The `retroarch-e2e` job round-trips an MMC3 battery game's `.srm` across two RetroArch sessions, as it does for MMC1, waiting on markers rather than sleeps.
   3. The runner or the libretro adapter calls `nesturbator_get_version` and `nesturbator_unload_cartridge`, a `ci` test exercises each call, and the README describes both.
-**Plans**: TBD
+
+**Plans**: 4 plans
+**Wave 1**
+- [ ] 11-01-PLAN.md — One atomic-replace helper for battery saves, failure-injection tests, `battery_save` rename (TUNE-07)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 11-02-PLAN.md — One libretro instance per init, unload restores power-on state, lifecycle tests (TUNE-09)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 11-03-PLAN.md — Runner `--version`, frame-boundary white-box test, status-number confirmation (TUNE-09)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 11-04-PLAN.md — MMC3 `.srm` round trip in `retroarch-e2e` (TUNE-08)
+
 **Notes**: State readiness from research rides here without its own requirement: white-box checks that frame-scoped output pointers are NULL and the PCM ring is empty at every frame boundary, the existing status numbers and the absence of exit 3 confirmed, and the runner's `save_state` struct renamed `battery_save`.
 
 ### Phase 12: Save states in the library
+
 **Goal**: A host can save the whole machine at a frame boundary and load it back, getting exactly the run it would have had, on every board and every platform.
 **Depends on**: Phase 11
 **Requirements**: STATE-01, STATE-02, STATE-03, STATE-04, STATE-05, RUN-01
@@ -65,10 +80,12 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   3. Loads of a state from another game or board, another format version, cut short at every length, with any flipped byte, or with a recomputed CRC over out-of-range fields return distinct status codes and leave the instance byte-identical, under `ci` and the ASan and UBSan presets.
   4. A test shows the state size fixed from cartridge load to unload and 0 with no cartridge, and a save that never allocates and leaves the instance unchanged; the status codes are appended to the public header and the README has a "Save states" section.
   5. A test loads the same state 600 times with no change to `nesturbator_save_generation()`, and a load that changes battery bytes raises it exactly once; the README says rewinding past an in-game save reverts the save RAM.
+
 **Plans**: TBD
 **Notes**: RUN-01 lands here as test tooling, so the six-platform state hash pins run in this phase. Research flag: short spike on instruction boundaries in `src/frame.c` and the save and load cost.
 
 ### Phase 13: Rewind and run-ahead in RetroArch
+
 **Goal**: Players save and load states, rewind and use run-ahead in RetroArch, and every `.info` claim is backed by a test on the same commit.
 **Depends on**: Phase 12
 **Requirements**: LR-01, LR-02, LR-03, LR-04
@@ -77,10 +94,12 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   2. A simulated host that runs ahead one to three frames, with a save and load per frame, gives visible frame and audio hashes equal to an uninterrupted run on all six platforms, and a test checks that the `.info` file claims `serialized` and `deterministic`, and nothing else.
   3. The `retroarch-e2e` job saves and loads a state, rewinds, and runs with run-ahead enabled through RetroArch's network commands, and ends with no core error and the expected screenshot.
   4. A nightly libFuzzer target feeds the state loader, and its committed corpus is replayed as a test in `ci`.
+
 **Plans**: TBD
 **Notes**: `serialized` is claimed first, after the round trip is green on six platforms; `deterministic` only in the last commit, after the run-ahead host is green.
 
 ### Phase 14: Runner process contract
+
 **Goal**: A launcher such as Playstead can stop nes-runner at any time without losing a save, and can read every outcome from one documented exit status.
 **Depends on**: Phase 12 (exit 5); runs after Phase 13 under the one-step rule
 **Requirements**: RUN-02, RUN-03
@@ -89,10 +108,12 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   2. On Linux and macOS an external SIGTERM test sees exit 0 within 2 s with the whole `.sav` and no `.tmp`, and a second signal ends the runner at once.
   3. The exit-status table (0, 1, 2, 4, 5; 3 and 77 reserved) is the same in one header, `--help` and the README, a test checks that, and each status has its own test.
   4. The README says Ctrl+Break and console close are handled on Windows and that a forced termination cannot be.
+
 **Plans**: TBD
 **Notes**: Research flag: Windows console-event delivery on hosted runners and fsync latency against 2 s need a look before planning.
 
 ### Phase 15: Speed and close-out
+
 **Goal**: Speed is visible on every pull request, a slowdown cannot land unseen, and the milestone closes with a measured nightly timeout and docs that describe the released code.
 **Depends on**: Phase 14
 **Requirements**: PERF-02, PERF-03, TUNE-10
@@ -101,6 +122,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   2. Every pull request runs a Cachegrind job that compares instructions per frame between head and merge base on the committed NROM, MMC1 and MMC3 ROMs and writes the table to the job summary, without failing the CI roll-up while in report mode.
   3. The +1% per-ROM gate is armed only after identical builds show zero spread, and a deliberate slowdown passes with a reviewed line in the allow file.
   4. The nightly suite-flake timeout is about twice a measured cold run of the v3 suite, action pins, runner labels and the AccuracyCoin pin are reviewed, and the README and public header describe the released code.
+
 **Plans**: TBD
 **Notes**: TUNE-10 sits last so its cold run includes every v3 test. This absorbs Backlog 999.1 (nightly suite-flake timeout).
 
