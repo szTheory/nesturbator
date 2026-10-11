@@ -1047,7 +1047,35 @@ static int frame_equals_ppm(const char *path)
     return 1;
 }
 
+/* After the last frame, the battery span must be the file's size and bytes (D-18). */
+static void check_sav_expect(const char *path)
+{
+    unsigned char *want = NULL;
+    size_t want_size = 0u, span_size, i;
+    const unsigned char *span;
+
+    CHECK(read_file(path, &want, &want_size));
+    span = (const unsigned char *)p_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+    span_size = p_get_memory_size(RETRO_MEMORY_SAVE_RAM);
+    CHECK(span != NULL);
+    CHECK_EQ_U64(span_size, want_size);
+    if (want != NULL && span != NULL && span_size == want_size) {
+        for (i = 0u; i < want_size; i++) {
+            if (span[i] != want[i]) {
+                fprintf(stderr, "libretro.host: save span differs from %s at offset %lu\n", path,
+                        (unsigned long)i);
+                CHECK(span[i] == want[i]);
+                break;
+            }
+        }
+    }
+    free(want);
+}
+
 /* libretro.host --rom-parity <module> <rom> <frames> <ppm> [--movie FILE] [--testcard PPM]
+ *                            [--sav-in FILE] [--sav-expect FILE]
+ * --sav-in copies FILE into the battery span before the first frame (its size must
+ * equal the span); --sav-expect compares the span with FILE after the last frame.
  * Runs the ROM for <frames> frames through the module, feeding the movie's
  * masks as joypad state, and requires the last frame to equal the runner's
  * image <ppm>. The sentinel fill before each retro_run proves the module wrote
@@ -1055,6 +1083,7 @@ static int frame_equals_ppm(const char *path)
 static int rom_parity(int argc, char **argv)
 {
     const char *movie_path = NULL, *testcard_path = NULL;
+    const char *sav_in_path = NULL, *sav_expect_path = NULL;
     nesturbator_movie movie;
     struct retro_game_info game;
     unsigned char *rom = NULL;
@@ -1076,6 +1105,10 @@ static int rom_parity(int argc, char **argv)
             movie_path = argv[++a];
         } else if (strcmp(argv[a], "--testcard") == 0 && a + 1 < argc) {
             testcard_path = argv[++a];
+        } else if (strcmp(argv[a], "--sav-in") == 0 && a + 1 < argc) {
+            sav_in_path = argv[++a];
+        } else if (strcmp(argv[a], "--sav-expect") == 0 && a + 1 < argc) {
+            sav_expect_path = argv[++a];
         } else {
             fprintf(stderr, "libretro.host: unknown --rom-parity option %s\n", argv[a]);
             return 2;
@@ -1118,6 +1151,18 @@ static int rom_parity(int argc, char **argv)
     game.data = rom;
     game.size = rom_size;
     CHECK(p_load_game(&game));
+    if (sav_in_path != NULL) {
+        unsigned char *sav = NULL;
+        size_t sav_size = 0u;
+        void *span = p_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+        CHECK(read_file(sav_in_path, &sav, &sav_size));
+        CHECK(span != NULL);
+        CHECK_EQ_U64(sav_size, p_get_memory_size(RETRO_MEMORY_SAVE_RAM));
+        if (sav != NULL && span != NULL && sav_size == p_get_memory_size(RETRO_MEMORY_SAVE_RAM)) {
+            memcpy(span, sav, sav_size);
+        }
+        free(sav);
+    }
     video_calls = 0;
     for (f = 0; f < frames; f++) {
         for (i = 0; i < W * H; i++) {
@@ -1141,6 +1186,9 @@ static int rom_parity(int argc, char **argv)
     if (testcard_path != NULL) {
         CHECK(!frame_equals_ppm(testcard_path));
     }
+    if (sav_expect_path != NULL) {
+        check_sav_expect(sav_expect_path);
+    }
     p_unload_game();
     p_deinit();
     module_close();
@@ -1163,7 +1211,7 @@ int main(int argc, char **argv)
     }
     if (argc != 6) {
         fprintf(stderr, "usage: libretro.host --rom-parity <module> <rom> <frames> <ppm> "
-                        "[--movie FILE] [--testcard PPM]\n"
+                        "[--movie FILE] [--testcard PPM] [--sav-in FILE] [--sav-expect FILE]\n"
                         "       libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
                         "<generated.nes>\n");
         return 2;

@@ -264,7 +264,14 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
     list(GET parts 4 hm_save)
   endif()
   if(hm_save STREQUAL "save")
-    # Plan 07 adds this key's libretro.parity.<key>.run1 and .run2 tests.
+    # D-18 / D-09: libretro.parity.<key>.run1 and .run2 round-trip the save
+    # through the module. Run 1 compares the module's battery span with the
+    # runner's run-1 .sav; run 2 loads that file into the span before the first
+    # frame (--sav-in) and compares its frame and span with run 2's. Run 2's
+    # runner dump rewrites <stem>.sav, so a parity test must never read that
+    # file while run 2 can still be writing it: holymapperel.<key>.run1.sav_copy
+    # takes a private copy, and run2.dump requires the copy's fixture, so
+    # every reader of the run-1 bytes has them before run 2 starts.
     # SAVE-02 (D-04): the same battery ROM runs twice against one save
     # directory. Run 1 starts empty and must not show + BATTERY; it leaves a
     # 32 KiB save carrying Holy Mapperel's SAVEDATA marker at offset 0x100.
@@ -327,9 +334,32 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
       set_tests_properties(holymapperel.${hm_key}.run2.dump PROPERTIES
         FIXTURES_REQUIRED holymapperel_${hm_key}_run1_sav_byte)
     endif()
-    # Run 2 starts only after run 1 and its save check.
+    add_test(NAME holymapperel.${hm_key}.run1.sav_copy
+      COMMAND ${CMAKE_COMMAND} -E copy ${hm_savedir}/${hm_stem}.sav
+        ${NESTURBATOR_HM_DIR}/${hm_key}-run1.sav)
+    set_tests_properties(holymapperel.${hm_key}.run1.sav_copy PROPERTIES
+      FIXTURES_REQUIRED holymapperel_${hm_key}_run1
+      FIXTURES_SETUP holymapperel_${hm_key}_run1_savcopy)
+    # Run 2 starts only after run 1, its save check and the private copy.
     set_tests_properties(holymapperel.${hm_key}.run2.dump PROPERTIES
-      FIXTURES_REQUIRED holymapperel_${hm_key}_run1_sav)
+      FIXTURES_REQUIRED "holymapperel_${hm_key}_run1_sav;holymapperel_${hm_key}_run1_savcopy")
+    add_test(NAME libretro.parity.${hm_key}.run1
+      COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+        ${hm_rom} ${hm_frames} ${NESTURBATOR_HM_DIR}/${hm_key}-run1.ppm
+        --sav-expect ${NESTURBATOR_HM_DIR}/${hm_key}-run1.sav
+        --testcard ${NESTURBATOR_TESTFRAME_PPM})
+    set_tests_properties(libretro.parity.${hm_key}.run1 PROPERTIES
+      FIXTURES_REQUIRED "holymapperel_${hm_key}_run1;holymapperel_${hm_key}_run1_savcopy;testframe_ppm"
+      TIMEOUT 120)
+    add_test(NAME libretro.parity.${hm_key}.run2
+      COMMAND libretro.host --rom-parity $<TARGET_FILE:nesturbator_libretro>
+        ${hm_rom} ${hm_frames} ${NESTURBATOR_HM_DIR}/${hm_key}-run2.ppm
+        --sav-in ${NESTURBATOR_HM_DIR}/${hm_key}-run1.sav
+        --sav-expect ${hm_savedir}/${hm_stem}.sav
+        --testcard ${NESTURBATOR_TESTFRAME_PPM})
+    set_tests_properties(libretro.parity.${hm_key}.run2 PROPERTIES
+      FIXTURES_REQUIRED "holymapperel_${hm_key}_run2;holymapperel_${hm_key}_run1_savcopy;testframe_ppm"
+      TIMEOUT 120)
     set_tests_properties(holymapperel.${hm_key}.run2.prgram PROPERTIES
       FIXTURES_REQUIRED holymapperel_${hm_key}_run2
       PASS_REGULAR_EXPRESSION "prg ram \"${hm_text} \\+ BATTERY\"")
