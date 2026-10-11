@@ -1,1 +1,12 @@
 mmc3_test_2/1-clocking	pass	0x00	120	-
+mmc3_test_2/2-details	pass	0x00	120	-
+mmc3_test_2/3-A12_clocking	pass	0x00	120	-
+mmc3_test_2/4-scanline_timing	pass	0x00	480	-
+mmc3_test_2/5-MMC3	pass	0x00	120	-
+mmc3_test_2/6-MMC3_alt	unsupported	0x02	120	-
+mmc3_irq_tests/1.Clocking	pass	0x00	120	-
+mmc3_irq_tests/2.Details	pass	0x00	120	-
+mmc3_irq_tests/3.A12_clocking	pass	0x00	120	-
+mmc3_irq_tests/4.Scanline_timing	pass	0x00	240	-
+mmc3_irq_tests/5.MMC3_rev_A	unsupported	0x03	120	-
+mmc3_irq_tests/6.MMC3_rev_B	pass	0x00	120	-
