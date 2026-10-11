@@ -180,7 +180,12 @@ int main(int argc, char **argv)
         if (probe != NULL) {
             fclose(probe);
             remove(other);
-            printf("note: chmod 0555 does not block this user; the chmod sub-case passes\n");
+            /* Privileged user (root, CAP_DAC_OVERRIDE): the failure cannot be forced here, so
+               check the success path in this mode instead; the other cases cover the failures. */
+            printf("note: chmod 0555 does not block this user; checking the privileged write\n");
+            CHECK(nesturbator_run_file_replace(target, new_data, DATA_SIZE) == 0);
+            CHECK(read_equals(target, new_data, DATA_SIZE));
+            CHECK(!path_exists(tmp));
         } else {
             int rc = nesturbator_run_file_replace(target, new_data, DATA_SIZE);
             CHECK(rc == 1);
