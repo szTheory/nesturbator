@@ -22,7 +22,11 @@
    time: every single-address read goes through ram_read, which accepts only
    addresses in ram_reads, and check_read_table rejects a table entry that is
    in never_read or in the stack page. The one bulk read is ram_digest, the
-   whole-RAM equality digest that the D-12 causality check needs. */
+   whole-RAM equality digest that the D-12 causality check needs.
+
+   D-13: the mutants and boundary traces at the end of main are synthetic. Each
+   is a copy of a recorded trace with fields edited in memory; none runs the
+   emulator, and each asserts the mask judge returns for it. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -477,6 +481,29 @@ static struct trace none_trace;
 static struct trace attract_trace;
 static struct trace startonly_trace;
 static struct trace failed_trace;
+static struct trace mutant_trace;
+
+/* Copies a recorded trace into the scratch trace; the mutant is then edited in
+   memory (D-13), never re-run. */
+static struct trace *mutant_from(const struct trace *source)
+{
+    memcpy(&mutant_trace, source, sizeof mutant_trace);
+    return &mutant_trace;
+}
+
+static void run_mutants(const struct trace *pos, const struct trace *n)
+{
+    struct trace *m;
+
+    /* silence: every window quiet and identical to the baseline's */
+    m = mutant_from(pos);
+    for (uint32_t i = 0u; i < CHECKPOINTS; i++) {
+        m->p2p[i] = 0;
+        memcpy(m->window_hash[i], n->window_hash[i], sizeof m->window_hash[i]);
+    }
+    CHECK(judge(m, n) & P3_AUDIO);
+    printf("mutant silence: mask 0x%x\n", judge(m, n));
+}
 
 int main(int argc, char **argv)
 {
@@ -539,6 +566,10 @@ int main(int argc, char **argv)
     CHECK_EQ_HEX(pos_trace.sram[1], 0x6Fu);
     CHECK(pos_trace.generation[CHECKPOINTS - 1u] >= 2u);
     CHECK(startonly_trace.generation[CHECKPOINTS - 1u] > pos_trace.generation[CHECKPOINTS - 1u]);
+
+    report_failures = 0;
+    run_mutants(&pos_trace, &none_trace);
+    report_failures = 1;
 
     printf("latch: first input frame %u, first RAM divergence frame %u, slack %u\n",
            (unsigned)pos_trace.first_input, (unsigned)first_divergence(&pos_trace, &none_trace),
