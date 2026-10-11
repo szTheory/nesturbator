@@ -1,20 +1,16 @@
 ---
 gsd_state_version: "1.0"
-milestone: v2
-milestone_name: Most of the library plays
-status: Awaiting next milestone
-stopped_at: Milestone v2 archived
-last_updated: "2026-10-11T18:33:32.045Z"
+milestone: v3
+milestone_name: Save states and rewind
+status: planning
+last_updated: "2026-10-11T18:50:07.464Z"
 last_activity: 2026-10-11
-last_activity_desc: Milestone v2 completed and archived
-state_head: 493b9957fc0bde8ab895926d02e9d7b11efc9058
 progress:
-  total_phases: 6
-  completed_phases: 12
-  total_plans: 41
-  completed_plans: 41
-  percent: 100
-current_phase: 10
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-10-11)
 
 ## Current Position
 
-Phase: Milestone v2 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-10-11 — Milestone v2 completed and archived
+Status: Defining requirements
+Last activity: 2026-10-11 — Milestone v3 started
 
 ## Performance Metrics
 
