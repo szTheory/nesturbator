@@ -24,26 +24,26 @@ Verification ran in the main checkout (workflow.use_worktrees is false), not a w
 
 ## Fixed Issues
 
-### WR-01: save.h promised a symlink at .tmp is never removed
+### WR-01: save.h promises a symlink at the .tmp name is "never removed", but the helper removes it
 
 **Files modified:** `runner/save.c`, `runner/save.h`, `tests/runner/test_save_replace.c`, `README.md`
 **Commit:** e5544fa
 **Applied fix:** The stale-file probe uses `lstat` (mapped to `_stat` on Windows), so a symlink is judged as a link. The header, test header and README now say a regular file or symlink at `.tmp` is removed (a link is unlinked, never its target) and a directory is refused. Case (h) asserts return 0, the new bytes, an intact victim and no `.tmp`. The concurrent-runner race is documented as unsupported rather than changed, because dropping the pre-remove would make a stale `.tmp` wedge saves.
 Status: fixed (logic change; a human may want to confirm the lstat semantics).
 
-### WR-02: A dangling symlink at .tmp failed every save
+### WR-02: A dangling symlink at the .tmp name fails every save permanently
 
 **Files modified:** `runner/save.c`, `tests/runner/test_save_replace.c`, `README.md`
 **Commit:** a331a6d
 **Applied fix:** `lstat` from WR-01 clears a dangling link. New case (i) shows the save succeeds and nothing is created at the link's target. The `fopen` failure message now names the `.tmp` path.
 
-### WR-03: macOS sync was not a durable flush
+### WR-03: "sync" is not a durable flush on macOS, and the CI RetroArch job runs only on macOS
 
 **Files modified:** `runner/save.c`, `runner/save.h`, `README.md`
 **Commit:** 98dd4af
 **Applied fix:** Under `#elif defined(F_FULLFSYNC)` the sync calls `fcntl(F_FULLFSYNC)` and falls back to `fsync` if that fails. `_DARWIN_C_SOURCE` is defined on Apple so the constant is visible under strict POSIX. The header and README mention it. The happy-path test exercises the call on macOS.
 
-### WR-04: chmod and symlink sub-cases could pass vacuously
+### WR-04: The chmod sub-case and the symlink sub-case in test_save_replace.c can pass without testing anything
 
 **Files modified:** `tests/runner/test_save_replace.c`
 **Commit:** f26cbca
