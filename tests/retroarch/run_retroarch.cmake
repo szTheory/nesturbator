@@ -9,7 +9,8 @@
 #         -DEXPECTED_VERSION=<version> -DVERSION_PLIST=<app>/Contents/Info.plist
 #         -P run_retroarch.cmake
 #
-# Save mode (-DSAVE_ROM=<battery game.nes> -DSAVE_FRAME=<frame> instead of -DROM and -DFRAME):
+# Save mode (-DSAVE_ROM=<battery game.nes> -DSAVE_FRAME=<frame> [-DSAVE_SIZE=<bytes>] instead of
+# -DROM and -DFRAME; SAVE_SIZE is the exact .srm size, default 32768):
 # two RetroArch sessions of one battery ROM. Session 1 starts with no save and RetroArch writes
 # saves/<stem>.srm at content unload; session 2 starts with that file, which the runner also
 # loads as <stem>.sav. Each screenshot must equal the runner's frame for the same save state,
@@ -64,6 +65,13 @@ if(NOT EXISTS "${mode_rom}" OR IS_DIRECTORY "${mode_rom}")
 endif()
 if(NOT mode_frame MATCHES "^[1-9][0-9]*$")
   message(FATAL_ERROR "RetroArch test needs a positive -D${mode_frame_name}")
+endif()
+set(save_size 32768)
+if(have_save AND DEFINED SAVE_SIZE AND NOT "${SAVE_SIZE}" STREQUAL "")
+  set(save_size "${SAVE_SIZE}")
+endif()
+if(have_save AND NOT save_size MATCHES "^[1-9][0-9]*$")
+  message(FATAL_ERROR "RetroArch save test needs a positive -DSAVE_SIZE")
 endif()
 
 if(NOT EXISTS "${VERSION_PLIST}")
@@ -237,8 +245,8 @@ function(check_one_srm context)
     message(FATAL_ERROR "${context}: expected ${RA_DIR}/saves/${stem}.srm, found ${found}")
   endif()
   file(SIZE "${RA_DIR}/saves/${stem}.srm" srm_size)
-  if(NOT srm_size EQUAL 32768)
-    message(FATAL_ERROR "${context}: ${stem}.srm is ${srm_size} bytes, expected 32768")
+  if(NOT srm_size EQUAL save_size)
+    message(FATAL_ERROR "${context}: ${stem}.srm is ${srm_size} bytes, expected ${save_size}")
   endif()
 endfunction()
 
@@ -249,7 +257,8 @@ endif()
 
 ra_session(s1 "${ra_content}" "${mode_frame}" "")
 check_one_srm("after session 1")
-# SAVEDATA at 0x100 is the pattern the SXROM test ROM writes in its first run.
+# Every Holy Mapperel battery ROM writes SAVEDATA at 0x100 on its first run (the shared run1.sav
+# check in tests/CMakeLists.txt).
 file(READ "${RA_DIR}/saves/${stem}.srm" marker HEX OFFSET 256 LIMIT 8)
 if(NOT marker STREQUAL "5341564544415441")
   message(FATAL_ERROR "session 1's ${stem}.srm has ${marker} at 0x100, expected 5341564544415441 (SAVEDATA)")
