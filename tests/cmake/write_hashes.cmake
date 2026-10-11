@@ -26,12 +26,13 @@ if(NOT EXISTS "${MOVIE_WRITER}")
 endif()
 
 set(source_dir "${CMAKE_CURRENT_LIST_DIR}/../..")
-include("${CMAKE_CURRENT_LIST_DIR}/../holymapperel/roms.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/hash_keys.cmake")
 file(STRINGS "${source_dir}/tests/roms/manifest.txt" manifest_lines)
 set(required_manifest
   "tests/roms/dabg.nes\thttps://github.com/NovaSquirrel/DABG/tree/5ecc60b6af3f726851bfeb1c2555388c5953e0c0\t5ecc60b6af3f726851bfeb1c2555388c5953e0c0\tZlib\teca79b9d0b546e96c1bc73099e239539fb9c7773ff10a431bb3a9cd6763208ca"
   "tests/roms/nesteroids.nes\thttps://github.com/battlelinegames/nesteroids/tree/ae65d78048af68f3e735c49d77a7f37e976a7afe\tae65d78048af68f3e735c49d77a7f37e976a7afe\tMIT\ta30dcfb12c1447dc121619c93b4083d2b83c7405a883ed490c3a59e52ce74f36"
-  "tests/roms/rhde.nes\thttps://github.com/pinobatch/rhde-nes/tree/71b18aeb54fefa16373cb3ad2996a2aff90181b5\t71b18aeb54fefa16373cb3ad2996a2aff90181b5\tFSFAP\tb2c4748a5b3651e393572046daf126213653b58b55472cdfdf4b863834dd0241")
+  "tests/roms/rhde.nes\thttps://github.com/pinobatch/rhde-nes/tree/71b18aeb54fefa16373cb3ad2996a2aff90181b5\t71b18aeb54fefa16373cb3ad2996a2aff90181b5\tFSFAP\tb2c4748a5b3651e393572046daf126213653b58b55472cdfdf4b863834dd0241"
+  "tests/roms/runner.nes\thttps://github.com/zorchenhimer/nes-runner/tree/47537be0ccb8baeb8462547a1c08888ee2a6cfac\t47537be0ccb8baeb8462547a1c08888ee2a6cfac\tMIT\t1a67bfabdde2d96eacb04eb7f9d17e8da6c082d4976c318315fe31e2d19b4384")
 list(APPEND required_manifest ${NESTURBATOR_HOLYMAPPEREL_MANIFEST})
 foreach(required IN LISTS required_manifest)
   if(NOT required IN_LIST manifest_lines)
@@ -50,8 +51,11 @@ endif()
 
 set(output_lines)
 set(frame_args --hash-frame 1 --hash-frame 30 --hash-frame 60 --hash-frame 120 --hash-frame 180)
-foreach(game IN ITEMS nesteroids dabg rhde)
-  set(rom "${source_dir}/tests/roms/${game}.nes")
+foreach(game_entry IN LISTS NESTURBATOR_HASH_GAMES)
+  string(REPLACE ":" ";" game_parts "${game_entry}")
+  list(GET game_parts 0 game)
+  list(GET game_parts 1 game_file)
+  set(rom "${source_dir}/tests/roms/${game_file}")
   execute_process(
     COMMAND "${runner}" --frames 180 --rom "${rom}" ${frame_args} --hash-audio
     OUTPUT_VARIABLE hashes
@@ -211,11 +215,33 @@ foreach(entry IN LISTS NESTURBATOR_HOLYMAPPEREL_ROMS)
 endforeach()
 
 list(SORT output_lines)
-list(LENGTH output_lines output_count)
-list(LENGTH NESTURBATOR_HOLYMAPPEREL_ROMS hm_count)
-math(EXPR expected_count "36 + ${hm_count} + ${hm_saved_count}")
-if(NOT output_count EQUAL expected_count)
-  message(FATAL_ERROR "write_hashes: expected 30 game/movie frame hashes, 6 game audio hashes, ${hm_count} Holy Mapperel hashes and ${hm_saved_count} saved-run hashes, got ${output_count}")
+
+# The generated keys must equal the one expected list (hash_keys.cmake), so a
+# row cannot go missing, appear twice or be added here without it.
+set(generated_keys)
+foreach(row IN LISTS output_lines)
+  if(row MATCHES "^(.*) ticks [0-9]+ sha256 [0-9a-f]+$")
+    list(APPEND generated_keys "${CMAKE_MATCH_1}")
+  elseif(row MATCHES "^(.* sha256) [0-9a-f]+$")
+    list(APPEND generated_keys "${CMAKE_MATCH_1}")
+  else()
+    message(FATAL_ERROR "write_hashes: malformed row: ${row}")
+  endif()
+endforeach()
+list(SORT generated_keys)
+nesturbator_expected_hash_keys(expected_keys)
+if(NOT "${generated_keys}" STREQUAL "${expected_keys}")
+  set(missing_keys ${expected_keys})
+  set(extra_keys ${generated_keys})
+  foreach(key IN LISTS generated_keys)
+    list(REMOVE_ITEM missing_keys "${key}")
+  endforeach()
+  foreach(key IN LISTS expected_keys)
+    list(REMOVE_ITEM extra_keys "${key}")
+  endforeach()
+  list(JOIN missing_keys ", " missing_text)
+  list(JOIN extra_keys ", " extra_text)
+  message(FATAL_ERROR "write_hashes: generated keys differ from tests/cmake/hash_keys.cmake; missing: [${missing_text}] extra: [${extra_text}]")
 endif()
 list(JOIN output_lines "\n" hashes)
 file(CONFIGURE OUTPUT "${OUT}" CONTENT "@hashes@" @ONLY NEWLINE_STYLE LF)
