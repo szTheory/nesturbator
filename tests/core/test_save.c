@@ -2,6 +2,7 @@
    its address, its write counter and the empty edges. Images are built from
    zeros, a header, a reset vector and a few instructions (no ROM bytes). */
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include "internal.h"
 #include "nesturbator.h"
@@ -272,6 +273,87 @@ static void test_trainer_without_declared_ram(void)
     nesturbator_destroy(inst);
 }
 
+/* D-12, D-13: mapper 4 sizing. iNES 1 always has 8 KiB of PRG RAM: the span is all of it with the
+   battery bit and absent without it. NES 2.0 declares the RAM, either 0 or 8 KiB. */
+static void test_mmc3_spans(void)
+{
+    static uint8_t image[IMAGE_CAP];
+    static uint8_t trainer[INES_TRAINER_SIZE];
+    static const struct {
+        const char *label;
+        uint8_t nes2, battery, v_shift, n_shift;
+        size_t ram, save;
+    } rows[] = {
+        {"ines1-battery", 0, 1, 0, 0, SPAN_8K, SPAN_8K},
+        {"ines1-work", 0, 0, 0, 0, SPAN_8K, 0u},
+        {"nes2-0-8k", 1, 1, 0, 7, SPAN_8K, SPAN_8K},
+        {"nes2-8k-0", 1, 0, 7, 0, SPAN_8K, 0u},
+        {"nes2-0-0", 1, 0, 0, 0, 0u, 0u},
+    };
+    for (size_t i = 0u; i < sizeof rows / sizeof rows[0]; ++i) {
+        struct ines_spec spec;
+        size_t size, n = 1u;
+        uint8_t *data = image;
+        nesturbator *inst = make_instance();
+        struct nesturbator *nes = inst;
+        memset(&spec, 0, sizeof spec);
+        spec.prg_16k = 2u;
+        spec.chr_8k = 1u;
+        spec.nes2 = rows[i].nes2;
+        spec.mapper = 4u;
+        spec.battery = rows[i].battery;
+        spec.prg_ram_shift = rows[i].v_shift;
+        spec.prg_nvram_shift = rows[i].n_shift;
+        spec.reset_vector = 0x8000u;
+        size = ines_build(image, IMAGE_CAP, &spec);
+        CHECK(size != 0u);
+        CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
+        if (nes->cart.prg_ram_size != rows[i].ram || nes->cart.save_size != rows[i].save)
+            fprintf(stderr, "mmc3 span row %s\n", rows[i].label);
+        CHECK_EQ_U64(nes->cart.prg_ram_size, rows[i].ram);
+        CHECK_EQ_U64(nes->cart.save_size, rows[i].save);
+        CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                     NESTURBATOR_OK);
+        if (rows[i].save != 0u) {
+            CHECK(nes->cart.save == nes->cart.prg_ram);
+            CHECK(data == nes->cart.prg_ram);
+            CHECK_EQ_U64(n, rows[i].save);
+        } else {
+            CHECK(nes->cart.save == NULL);
+            CHECK(data == NULL);
+            CHECK_EQ_U64(n, 0u);
+        }
+        nesturbator_destroy(inst);
+    }
+    /* A trainer with no declared RAM still gets 8 KiB of work RAM and no span. */
+    {
+        struct ines_spec spec;
+        size_t size, n = 1u;
+        uint8_t *data = image;
+        nesturbator *inst = make_instance();
+        struct nesturbator *nes = inst;
+        for (size_t i = 0u; i < sizeof trainer; ++i)
+            trainer[i] = (uint8_t)(i * 5u + 0x17u);
+        memset(&spec, 0, sizeof spec);
+        spec.prg_16k = 2u;
+        spec.chr_8k = 1u;
+        spec.nes2 = 1u;
+        spec.mapper = 4u;
+        spec.trainer = trainer;
+        spec.reset_vector = 0x8000u;
+        size = ines_build(image, IMAGE_CAP, &spec);
+        CHECK(size != 0u);
+        CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nes->cart.prg_ram_size, SPAN_8K);
+        CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x7000u), trainer[0]);
+        CHECK_EQ_U64(nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &n),
+                     NESTURBATOR_OK);
+        CHECK(data == NULL);
+        CHECK_EQ_U64(n, 0u);
+        nesturbator_destroy(inst);
+    }
+}
+
 int main(void)
 {
     test_span_and_generation();
@@ -280,5 +362,6 @@ int main(void)
     test_lifetime_and_generation();
     test_sorom_span_offset();
     test_trainer_without_declared_ram();
+    test_mmc3_spans();
     CHECK_DONE();
 }
