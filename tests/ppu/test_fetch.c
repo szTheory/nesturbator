@@ -425,6 +425,31 @@ static void test_dot_zero_and_odd_frame(void)
     ppu_fixture_free(nes);
 }
 
+/* The pre-render line starts after lines that show v, so its dot 0 shows v too: with PPUCTRL bit
+   4 set no rise is logged there and the first rise is dot 5, the first tile's pattern-low
+   address. blargg mmc3_test_2 4-scanline_timing tests 8 and 9 hold the first clock for that
+   setting at dot 5, neither earlier nor later. */
+static void test_pre_render_dot_zero_shows_v(void)
+{
+    struct nesturbator *nes = start(0u, 0x10u, 0x18u, 260u, 330u);
+    watch_a12(nes);
+    nes->ppu.v = 0x0123u;
+    step_to(nes, 260u, 340u);
+    unsigned before = mapper_test_edge_count;
+    step(nes);
+    CHECK_EQ_U64(nes->ppu.scanline, 261u);
+    CHECK_EQ_U64(nes->ppu.dot, 0u);
+    CHECK_EQ_HEX(nes->ppu.bus_addr, nes->ppu.v & 0x3fffu);
+    CHECK_EQ_U64(mapper_test_edge_count, before);
+    for (unsigned dot = 1u; dot <= 4u; dot++) {
+        step(nes);
+        CHECK_EQ_U64(mapper_test_edge_count, before);
+    }
+    step(nes); /* dot 5 */
+    check_new_edge(nes, before, 1u);
+    ppu_fixture_free(nes);
+}
+
 /* PPU rendering, sprite fetches: dots 257-320 are eight slots of eight dots, two garbage
    nametable accesses then the pattern low (address dot 261 + 8s) and high bytes. A slot with no
    sprite fetches tile $FF, so with sprites at $1000 (or in 8x16 mode, which uses $1FE0-$1FFF)
@@ -524,6 +549,7 @@ int main(void)
     test_2006_adjacency();
     test_2007_while_rendering();
     test_dot_zero_and_odd_frame();
+    test_pre_render_dot_zero_shows_v();
     test_empty_slot_fetches();
     test_sprite_slot_order();
     test_hybrid_garbage_nametable_read();

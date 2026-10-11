@@ -519,9 +519,12 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
                 nes->ppu.scanline = 0;
                 nes->ppu.odd_frame ^= 1u;
             }
-            /* Dot 0 is idle; on a rendering line the bus shows the low-plane address of the
-               pending tile, otherwise v. [NESdev Wiki, PPU rendering] */
-            if (rendering_active(nes))
+            /* Dot 0 is idle; on a visible rendering line the bus shows the low-plane address
+               of the pending tile, otherwise v. The pre-render line is excluded: it follows
+               lines that show v, and blargg's mmc3_test_2 4-scanline_timing (tests 8 and 9) puts
+               the first clock for PPUCTRL bit 4 at dot 5, not dot 0. [NESdev Wiki, PPU
+               rendering; blargg mmc3_test_2] */
+            if (rendering_active(nes) && nes->ppu.scanline != 261u)
                 set_bus(nes, bg_pattern_address(nes, 0u));
             else
                 set_bus(nes, nes->ppu.v);
