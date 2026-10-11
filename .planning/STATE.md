@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-10)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 09 — MMC3
+**Current focus:** Phase 10 — Close-out and boot-to-play
 
 ## Current Position
 
@@ -204,12 +204,11 @@ None.
 
 ### Blockers/Concerns
 
-Research flags for v2: Phase 9 (HIGH, MMC3 A12 filter), Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
-- [Phase 08] Draft PR #34 (phase branch) is green at 838bf97: CI run 38096603810 and Nightly run 38096603867 pass every job; it still needs to leave draft and squash-merge.
+Research flags for v2: Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering), Phase 10 (MEDIUM, nes-runner reaching gameplay). The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
 - [Phase 08] Code review left 3 warnings and 2 info open (08-REVIEW-DISPOSITION.md): WR-01 runner `save_if_changed` advances the generation before the flush, so a failed interval flush is not retried at exit (confirmed by the verifier); WR-02 NES 2 MMC1 submapper 5 accepted but not emulated as fixed 32 KiB PRG; WR-03 a directory at the `.sav` path exits 4 instead of a read error.
+- [Phase 09] Code review left 1 warning and 2 info (09-REVIEW-DISPOSITION.md): WR-01 accepted by the verifier (MMC3 ignores the header mirroring bit per D-07/D-08; a header sentence and pinning test are an optional quick follow-up); IN-01 duplicate CHR pointer computation; IN-02 runner `describe_rejection` repeats header decoding and the mapper list.
 - [Phase 07] Code review left 2 warnings and 3 info open (07-REVIEW-DISPOSITION.md): WR-01 header, README and mapper_axrom.c say the AxROM reset vector comes from bank 0, true only at power-on (soft reset keeps the bank; add "at power-on" and a reset test), WR-02 hash_inventory.cmake compares only the last platform's keys.
 - [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-02 `$2007` palette test on unmasked `v` stays open; WR-01 (write stamp) and WR-03 (`map_cpu_read` range guard) were fixed in 08-05.
-- [Phase 06] Odd frames with PPUCTRL bit 4 set log no A12 rise at line 0 dot 0 (input for the Phase 9 MMC3 filter).
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
 ### Quick Tasks Completed
@@ -247,10 +246,9 @@ Last session: 2026-10-11T03:23:32.443Z
 Stopped at: Phase 09 complete, ready to plan Phase 10
 Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 9`.
+Next GSD command: `/gsd-discuss-phase 10`.
 
 ## Operator Next Steps
 
-- Take draft PR #34 out of draft and squash-merge it (CI run 38096603810 and Nightly run 38096603867 are green), then create `gsd/phase-9-mmc3` from the fresh main
-- Optionally fix Phase 8 WR-01 (retry a failed interval flush at exit) with /gsd-quick before merging
-- Discuss Phase 9 with /gsd-discuss-phase 9
+- Phase 9 PR: squash-merge once CI is green, then create `gsd/phase-10-close-out-and-boot-to-play` from the fresh main
+- Discuss Phase 10 with /gsd-discuss-phase 10
