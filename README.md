@@ -692,8 +692,9 @@ a host built against a newer header still runs with an older library.
 Soft reset: `nesturbator_reset()` is the console's Reset button. Call it
 between frames. It keeps CPU RAM and cartridge RAM (PRG RAM and CHR RAM), so
 saves survive, and keeps A, X, Y and the host's input state. The controller
-strobe and shift registers and a pending OAM DMA are cleared. The CPU sets the
-I flag, lowers S by 3 and takes the reset vector in 7 CPU cycles, which count
+strobe and shift registers and a pending OAM DMA are cleared. Mapper registers
+are kept, so the reset vector is read through the board's current banks. The
+CPU sets the I flag, lowers S by 3 and takes the reset vector in 7 CPU cycles, which count
 in `ticks`. The PPU restarts at the top of the picture and ignores writes to
 `$2000`, `$2001`, `$2005` and `$2006` until the end of the next vblank, 29,667
 CPU cycles from the reset (the NESdev Wiki documents about 29,658); it keeps
@@ -854,7 +855,8 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
   CHR bank with the same bus-conflict rule (submappers 0 and 2 AND, submapper
   1 raw); writes to CHR ROM are ignored. AxROM writes to `$8000-$FFFF` select the
   32 KiB PRG bank (bits 0 to 2) and the single-screen nametable page (bit 4);
-  the header mirroring bit is ignored, the reset vector comes from bank 0, and
+  the header mirroring bit is ignored, the reset vector comes from bank 0 at power-on (a soft reset
+  keeps the bank register, so it then comes from the selected bank), and
   only submapper 2 ANDs the value with the ROM byte under the write (submapper
   0 has no bus conflict).
 - Mapper 1 (MMC1) is accepted with submapper 0, or submapper 5 with 32 KiB

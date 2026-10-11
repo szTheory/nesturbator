@@ -260,7 +260,9 @@ void nesturbator_destroy(nesturbator *inst);
    PRG and 8 KiB declared CHR RAM; a write to $8000-$FFFF selects the 32 KiB
    bank with bits 0 to 2 and the single-screen nametable page with bit 4,
    ignoring the header mirroring bit; ANDed with the ROM byte under the write
-   for submapper 2 only; the reset vector is read from bank 0). NROM and UxROM
+   for submapper 2 only; at power-on the reset vector is read from bank 0, and
+   nesturbator_reset keeps the bank register, so a soft reset reads it from the
+   selected bank). NROM and UxROM
    take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
    The supported mappers are 0, 1, 2, 3, 4 and 7. Mapper 4 is the MMC3 in its
    Sharp (submapper 0, and every iNES 1 image) or NEC (submapper 4) revision:
@@ -336,9 +338,11 @@ void nesturbator_get_palette(const nesturbator *inst, uint32_t *out_xrgb8888, ui
  * returns NESTURBATOR_OK and changes nothing. It never allocates or frees.
  * CPU RAM, cartridge RAM (PRG RAM and CHR RAM), the registers A, X and Y and
  * the host's input state are kept, so battery saves survive. The controller
- * strobe and shift registers and a pending OAM DMA are cleared. The CPU sets
- * the I flag, clears a JAM latch, lowers S by 3 and takes the reset vector in
- * 7 bus cycles, which count in ticks; frame_number does not change.
+ * strobe and shift registers and a pending OAM DMA are cleared. Mapper
+ * registers are kept, so the reset vector is read through the board's current
+ * banks. The CPU sets the I flag, clears a JAM latch, lowers S by 3 and takes
+ * the reset vector in 7 bus cycles, which count in ticks; frame_number does
+ * not change.
  * The PPU restarts at the top of the picture (scanline 0, dot 0) and ignores
  * writes to $2000, $2001, $2005 and $2006 until the end of the next vblank:
  * 29,667 CPU cycles from the reset (NESdev documents about 29,658). Its

@@ -377,6 +377,50 @@ static void test_axrom_power_on_pc(void)
     release(nes);
 }
 
+/* WR-01: the AxROM register is not cleared by the console's Reset button (NESdev Wiki "AxROM"),
+   so after a soft reset the vector is fetched through the selected bank. */
+static void test_axrom_reset_keeps_bank(void)
+{
+    struct nesturbator *nes = load_board_ex(7u, 0u, 1, 8u, 0u, 0, 0, NULL, 0x8123u);
+    CHECK_EQ_HEX(nes->cpu.pc, 0x8123u);
+    nesturbator__bus_write(nes, 0x8000u, 0x03u);
+    CHECK_EQ_U64(nes->mapper.reg.axrom.bank, 3u);
+    CHECK_EQ_U64(nesturbator_reset((nesturbator *)nes), NESTURBATOR_OK);
+    CHECK_EQ_U64(nes->mapper.reg.axrom.bank, 3u);
+    CHECK_EQ_HEX(peek(nes, 0x8010u), 0x16u);
+    CHECK_EQ_HEX(nes->cpu.pc, RESET_VECTOR);
+    release(nes);
+}
+
+/* G1: UxROM keeps its bank register across the Reset button; the last bank stays fixed. */
+static void test_uxrom_reset_keeps_bank(void)
+{
+    struct nesturbator *nes = load_board(2u, 1u, 1, 8u, 0u, 0, 0, NULL);
+    nesturbator__bus_write(nes, 0x8000u, 0x05u);
+    CHECK_EQ_U64(nes->mapper.reg.uxrom.bank, 5u);
+    CHECK_EQ_HEX(peek(nes, 0x8010u), 0x15u);
+    CHECK_EQ_U64(nesturbator_reset((nesturbator *)nes), NESTURBATOR_OK);
+    CHECK_EQ_U64(nes->mapper.reg.uxrom.bank, 5u);
+    CHECK_EQ_HEX(peek(nes, 0x8010u), 0x15u);
+    CHECK_EQ_HEX(peek(nes, 0xc010u), 0x17u);
+    CHECK_EQ_HEX(nes->cpu.pc, RESET_VECTOR);
+    release(nes);
+}
+
+/* G1: CNROM keeps its CHR bank register across the Reset button. */
+static void test_cnrom_reset_keeps_bank(void)
+{
+    struct nesturbator *nes = load_board(3u, 1u, 1, 2u, 4u, 0, 0, NULL);
+    nesturbator__bus_write(nes, 0x8000u, 0x03u);
+    CHECK_EQ_U64(nes->mapper.reg.cnrom.bank, 3u);
+    CHECK_EQ_HEX(chr_marker(nes), 0x23u);
+    CHECK_EQ_U64(nesturbator_reset((nesturbator *)nes), NESTURBATOR_OK);
+    CHECK_EQ_U64(nes->mapper.reg.cnrom.bank, 3u);
+    CHECK(nes->map.chr_r[0] == nes->cart.chr + 3u * 8192u);
+    CHECK_EQ_HEX(chr_marker(nes), 0x23u);
+    release(nes);
+}
+
 int main(void)
 {
     test_uxrom_power_on();
@@ -389,6 +433,7 @@ int main(void)
     test_uxrom_chr_ram_write_sticks();
     test_uxrom_trainer_visible();
     test_uxrom_mirroring_follows_header();
+    test_uxrom_reset_keeps_bank();
     test_cnrom_and_submapper0_and_2();
     test_cnrom_no_and_submapper1();
     test_cnrom_chr_size_and_wrap();
@@ -397,6 +442,7 @@ int main(void)
     test_cnrom_chr_rom_write_dropped();
     test_cnrom_prg_as_nrom();
     test_cnrom_power_on();
+    test_cnrom_reset_keeps_bank();
     test_axrom_no_and_submapper0_and_1();
     test_axrom_and_submapper2();
     test_axrom_single_screen_ciram();
@@ -404,5 +450,6 @@ int main(void)
     test_axrom_prg_wrap();
     test_board_power_on_registers();
     test_axrom_power_on_pc();
+    test_axrom_reset_keeps_bank();
     CHECK_DONE();
 }
