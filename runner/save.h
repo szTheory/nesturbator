@@ -25,15 +25,15 @@ enum nesturbator_run_save_status nesturbator_run_save_load(const char *path, uin
    regular file or symlink at the temporary name is removed (a link is
    unlinked, its target is never touched), then exclusive create, write,
    flush, sync (F_FULLFSYNC on Apple platforms, where fsync alone does not
-   flush the drive cache), checked close, rename (MoveFileExA with write-through on
-   Windows). Returns 0, or 1 after printing one line:
+   flush the drive cache), checked close, rename (MoveFileExA with write-through
+   on Windows). Returns 0, or 1 after printing one line:
    "nesturbator-run: cannot save <path> (<reason>); the previous save is kept".
    On failure the old file is untouched and the .tmp this call created is
    removed; a directory at the temporary name is refused and left alone. Two
    runners sharing one save directory are not supported. The result is the old
-   file or the new file, never torn. There is no directory sync, so a power cut just after the rename
-   may still show the previous save. Used by the battery flush and, later, by
-   state writes. */
+   file or the new file, never torn. There is no directory sync, so a power cut
+   just after the rename may still show the previous save. Used by the battery
+   flush and, later, by state writes. */
 int nesturbator_run_file_replace(const char *path, const uint8_t *data, size_t size);
 
 /* The helper plus the shadow copy: on success the span is copied to `shadow`
