@@ -1,6 +1,6 @@
 /* The runner's atomic file replace (TUNE-07, D-06): every failure leaves the
-   old file intact and no .tmp behind, and a directory, a symlink target or a
-   file the call did not create is never removed or written through.
+   old file intact and no .tmp behind, and a directory at .tmp is never
+   removed, and a symlink at .tmp is unlinked without writing through it.
    argv[1] is a scratch base directory; each case uses its own subdirectory. */
 #define _POSIX_C_SOURCE 200809L
 #include <stdint.h>
@@ -198,9 +198,10 @@ int main(int argc, char **argv)
     write_file(target, old_data, DATA_SIZE);
     write_file(other, old_data, 64u);
     CHECK(symlink(other, tmp) == 0);
-    (void)nesturbator_run_file_replace(target, new_data, DATA_SIZE);
+    CHECK(nesturbator_run_file_replace(target, new_data, DATA_SIZE) == 0);
     CHECK(read_equals(other, old_data, 64u));
-    CHECK(read_equals(target, old_data, DATA_SIZE) || read_equals(target, new_data, DATA_SIZE));
+    CHECK(read_equals(target, new_data, DATA_SIZE));
+    CHECK(!path_exists(tmp));
 #endif
     CHECK_DONE();
 }

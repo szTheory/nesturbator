@@ -943,8 +943,9 @@ nesturbator-run --version
   save is the old one or the new one and never torn. A failed write removes its
   `.tmp`, prints `nesturbator-run: cannot save <path> (<reason>); the previous
   save is kept`, and the runner keeps the newest bytes in memory for the next
-  attempt. A kill during a write can leave a stale `.tmp`, which the next write
-  clears; a directory at that name is never removed. There is no directory
+  attempt. A kill during a write can leave a stale `.tmp` (a regular file or a
+  symlink, even a dangling one), which the next write clears without touching a
+  link's target; a directory at that name is never removed. There is no directory
   sync, so a power cut just after the rename may still show the previous save. A run that writes
   the same bytes leaves the file and its modification time alone. A `.sav` is
   the RAM's raw bytes with no header, the same bytes as RetroArch's `.srm`. A

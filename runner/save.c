@@ -15,6 +15,7 @@
 #define S_ISDIR(m) (((m)&_S_IFMT) == _S_IFDIR)
 #endif
 #define stat _stat
+#define lstat _stat
 #else
 #include <unistd.h>
 #endif
@@ -113,13 +114,14 @@ int nesturbator_run_file_replace(const char *path, const uint8_t *data, size_t s
         report_failure(path, ENAMETOOLONG, 0u);
         return 1;
     }
-    if (stat(tmp, &st) == 0) {
+    /* lstat: a symlink here (even a dangling one) is judged as a link, never followed. */
+    if (lstat(tmp, &st) == 0) {
         /* A directory here is not ours: refuse it (POSIX remove() would delete an empty one). */
         if (S_ISDIR(st.st_mode)) {
             report_failure(path, EISDIR, 0u);
             return 1;
         }
-        /* A regular file is a leftover from a killed write. */
+        /* A regular file or a symlink is a leftover; remove() unlinks a link, not its target. */
         (void)remove(tmp);
     }
     f = fopen(tmp, "wbx");
