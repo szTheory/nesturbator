@@ -322,6 +322,24 @@ static void test_power_on_and_reset(void)
     nesturbator_destroy(inst);
 }
 
+/* TUNE-06: the battery span survives the Reset button, with $A001 enabled or write-protected. */
+static void test_reset_keeps_prg_ram(void)
+{
+    nesturbator *inst = load_board(PRG_16K_UNITS, 4u, 0u, 0u, 7u, 1u, NULL, 0u);
+    struct nesturbator *nes = inst;
+    nesturbator__bus_write(nes, 0x6000u, 0x5au);
+    nesturbator__bus_write(nes, 0x7fffu, 0xa5u);
+    CHECK_EQ_U64(nesturbator_reset(inst), NESTURBATOR_OK);
+    CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x6000u), 0x5au);
+    CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x7fffu), 0xa5u);
+    nesturbator__bus_write(nes, 0xa001u, 0xc0u);
+    CHECK_EQ_U64(nesturbator_reset(inst), NESTURBATOR_OK);
+    nesturbator__bus_write(nes, 0xa001u, 0x80u);
+    CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x6000u), 0x5au);
+    CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x7fffu), 0xa5u);
+    nesturbator_destroy(inst);
+}
+
 /* The A12 hook at CPU cycle cycle, as the PPU would call it. The tick argument is consistent but
    the board must not use it. */
 static void a12_at(struct nesturbator *nes, uint8_t level, uint64_t cycle)
@@ -590,6 +608,7 @@ int main(void)
     test_ram_gating();
     test_no_ram_is_open_bus();
     test_power_on_and_reset();
+    test_reset_keeps_prg_ram();
     test_filter_boundary();
     test_filter_restart_and_record();
     test_filter_first_rise_after_load();

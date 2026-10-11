@@ -5,9 +5,10 @@ milestone_name: Most of the library plays
 current_phase: 10
 status: "Phase 10 shipped — PR #37"
 stopped_at: Phase 10 complete — all phases complete
-last_updated: "2026-10-11T15:28:24.326Z"
+last_updated: "2026-10-11T16:30:14.463Z"
 last_activity: 2026-10-11
-state_head: 1a5eac5ea25e736271e3c3ea1656dd564c6a739e
+last_activity_desc: "Completed quick task 261011-fwe: raise asan CI timeout to 20 minutes (provisional)"
+state_head: d05fc7d0c8284145cd2447a1592c9ade3a3982be
 progress:
   total_phases: 6
   completed_phases: 12
@@ -30,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-10-11)
 Phase: 10
 Plan: Not started
 Status: Phase 10 shipped — PR #37
-Last activity: 2026-10-11 - Completed quick task 261011-fwe: raise asan CI timeout to 20 minutes (provisional)
+Last activity: 2026-10-11 - Completed quick task 261011-h5x: reset retention tests for UxROM, CNROM, AxROM and MMC3 PRG RAM; AxROM docs say at power-on
 
 Progress: [██████████] 100% of v2
 
@@ -233,6 +234,7 @@ Research flags for v2: Phase 8 (MEDIUM, SxROM bits and RetroArch SRAM ordering),
 | 261002-uu0 | Fix WR-03: callers zero size-tagged structs with memset; big-frame test; disposition marks WR-03 fixed | 2026-10-03 | 922a56f | [261002-uu0-fix-wr-03-from-planning-phases-01-a-test](./quick/261002-uu0-fix-wr-03-from-planning-phases-01-a-test/) |
 | 261003-9tb | Fix README install block so release-please bumps every version: NESTURBATOR_VERSION line, check_install_line update, one-version-per-line ctest; PR #3 | 2026-10-03 | 36a971f | [261003-9tb-fix-the-readme-install-block-so-release-](./quick/261003-9tb-fix-the-readme-install-block-so-release-/) |
 | 261011-fwe | Raise asan CI timeout to 20 min (provisional) after Phase 10 tests pushed it past 10 | 2026-10-11 | 1a5eac5 | [261011-fwe-raise-the-asan-ci-job-timeout-in-github-](./quick/261011-fwe-raise-the-asan-ci-job-timeout-in-github-/) |
+| 261011-h5x | nesturbator_reset retention tests for UxROM, CNROM, AxROM and MMC3 PRG RAM; AxROM reset-vector docs say at power-on | 2026-10-11 | d05fc7d | [261011-h5x-add-nesturbator-reset-retention-tests-fo](./quick/261011-h5x-add-nesturbator-reset-retention-tests-fo/) |
 
 ### Roadmap Evolution
 

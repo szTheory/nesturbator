@@ -7,7 +7,9 @@
 
    The power-on register is 0, which NESdev leaves unspecified, so bank 0 and
    page 0 are an implementation choice (D-16); the reset vector is therefore
-   read from bank 0. */
+   read from bank 0 at power-on. A soft reset keeps the register, as the
+   console's Reset button does, so the vector then comes from the selected
+   bank. */
 #include "internal.h"
 
 static void axrom_init(struct nesturbator *nes)
