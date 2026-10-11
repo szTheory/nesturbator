@@ -76,6 +76,25 @@ static void default_free(void *user, void *ptr, size_t size)
     free(ptr);
 }
 
+void nesturbator__power_on_no_cartridge(struct nesturbator *nes)
+{
+    memset(&nes->bus, 0, sizeof nes->bus);
+    memset(&nes->apu, 0, sizeof nes->apu);
+    nes->apu.dmc.buffer_empty = 1u;
+    nesturbator__synth_reset(nes);
+    memset(&nes->ppu, 0, sizeof nes->ppu);
+    /* Start before visible line zero so the pre-render PPU work can populate
+       its first background and sprite state. [HWP.03][HWP.06] */
+    nes->ppu.scanline = 261u;
+    memset(&nes->cpu, 0, sizeof nes->cpu);
+    memset(&nes->mapper, 0, sizeof nes->mapper);
+    memset(&nes->map, 0, sizeof nes->map);
+    nes->cpu_cycle = 0;
+    nes->ticks = 0;
+    nes->frame_number = 0;
+    nes->audio_rem = 0;
+}
+
 nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator **out)
 {
     if (cfg == NULL || out == NULL) {
@@ -102,10 +121,7 @@ nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator
     }
     memset(inst, 0, sizeof *inst);
     inst->allocator = a;
-    /* Start before visible line zero so the pre-render PPU work can populate
-       its first background and sprite state. [HWP.03][HWP.06] */
-    inst->ppu.scanline = 261u;
-    inst->apu.dmc.buffer_empty = 1u;
+    nesturbator__power_on_no_cartridge(inst);
     inst->profile.ane_magic = NESTURBATOR_RP2A03G_ANE_MAGIC; /* D-14 */
     inst->profile.lxa_magic = NESTURBATOR_RP2A03G_LXA_MAGIC;
     *out = inst;

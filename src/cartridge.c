@@ -233,22 +233,14 @@ static int validate_image(const uint8_t *image, size_t size, struct cartridge_la
 
 void nesturbator_unload_cartridge(nesturbator *inst)
 {
-    if (inst == NULL || inst->cart.bytes == NULL) {
+    if (inst == NULL) {
         return;
     }
-    inst->allocator.free(inst->allocator.user, inst->cart.bytes, inst->cart.size);
+    if (inst->cart.bytes != NULL) {
+        inst->allocator.free(inst->allocator.user, inst->cart.bytes, inst->cart.size);
+    }
     memset(&inst->cart, 0, sizeof inst->cart);
-    memset(&inst->apu, 0, sizeof inst->apu);
-    inst->apu.dmc.buffer_empty = 1u;
-    nesturbator__synth_reset(inst);
-    memset(&inst->ppu, 0, sizeof inst->ppu);
-    memset(&inst->cpu, 0, sizeof inst->cpu);
-    memset(&inst->mapper, 0, sizeof inst->mapper);
-    memset(&inst->map, 0, sizeof inst->map);
-    inst->cpu_cycle = 0;
-    inst->ticks = 0;
-    inst->frame_number = 0;
-    inst->audio_rem = 0;
+    nesturbator__power_on_no_cartridge(inst);
 }
 
 /* The only place a board is chosen; each board adds a case. validate_image

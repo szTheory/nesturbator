@@ -2,6 +2,9 @@
  * client of nesturbator.h. "Lnnn" is a line of the vendored libretro.h
  * (RetroArch v1.22.2, see PROVENANCE.md).
  *
+ * One instance lives from retro_init to retro_deinit; retro_load_game and
+ * retro_unload_game call nesturbator_unload_cartridge.
+ *
  * Without content the core shows its built-in test card; cartridge content is
  * copied into the instance before the frontend's buffer expires; nesturbator.h
  * lists the supported boards. */
@@ -77,8 +80,20 @@ void retro_set_input_state(retro_input_state_t cb)
     input_state_cb = cb;
 }
 
+/* L7580: one instance lives from here to retro_deinit. A failed create leaves
+   inst NULL and retro_load_game then returns false. */
 void retro_init(void)
 {
+    nesturbator_config cfg;
+
+    nesturbator_destroy(inst);
+    inst = NULL;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    if (nesturbator_create(&cfg, &inst) != NESTURBATOR_OK) {
+        inst = NULL;
+    }
 }
 
 /* L7594: reset every global; the module may be used again. */
@@ -261,32 +276,27 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code)
 bool retro_load_game(const struct retro_game_info *game)
 {
     enum retro_pixel_format format = RETRO_PIXEL_FORMAT_XRGB8888;
-    nesturbator_config cfg;
 
-    if (inst != NULL || (game != NULL && (game->data == NULL || game->size == 0u))) {
+    if (game != NULL && (game->data == NULL || game->size == 0u)) {
         return false;
     }
     if (env_cb == NULL || !env_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &format)) {
         return false;
     }
-    memset(&cfg, 0, sizeof cfg);
-    cfg.size = (uint32_t)sizeof cfg;
-    cfg.abi = NESTURBATOR_ABI_VERSION;
-    if (nesturbator_create(&cfg, &inst) != NESTURBATOR_OK) {
-        inst = NULL;
+    if (inst == NULL) {
         return false;
     }
+    /* Drop the cached span before the cartridge it points into is released. */
+    save_data = NULL;
+    save_size = 0u;
+    nesturbator_unload_cartridge(inst);
     if (game != NULL &&
         nesturbator_load_cartridge(inst, game->data, game->size) != NESTURBATOR_OK) {
-        nesturbator_destroy(inst);
-        inst = NULL;
         return false;
     }
     nesturbator_get_palette(inst, palette, 512u);
-    /* The span is fetched once, here: the host reads and writes it directly (L498-517), and
-       its address stays the same for the life of the instance. */
-    save_data = NULL;
-    save_size = 0u;
+    /* The span is fetched at each successful load and dropped at unload: the host reads and
+       writes it directly (L498-517). */
     if (game != NULL && nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &save_data,
                                                &save_size) != NESTURBATOR_OK) {
         save_data = NULL;
@@ -304,12 +314,12 @@ bool retro_load_game_special(unsigned game_type, const struct retro_game_info *i
     return false;
 }
 
+/* L7790: the instance stays; the cartridge goes and the span with it. */
 void retro_unload_game(void)
 {
-    nesturbator_destroy(inst);
-    inst = NULL;
     save_data = NULL;
     save_size = 0u;
+    nesturbator_unload_cartridge(inst);
 }
 
 /* L7812: 0 is NTSC. */
