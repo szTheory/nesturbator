@@ -1,343 +1,408 @@
 # Architecture Patterns
 
-**Domain:** NES emulator core in C17 (library, headless runner, libretro adapter), milestone v2: MMC1, MMC3, UxROM, CNROM, AxROM, battery saves, `reset`, Holy Mapperel and per-board hashes
-**Researched:** 2026-10-09
-**Scope:** only what the new features change. Read from the repo at branch `docs/milestone-v2` (src/, include/, runner/, libretro/, tests/) and `.planning/preparation/` (ARCHITECTURE sections 6-7, DECISIONS DEC.15-17, LIBRETRO-AND-RUNNER sections 1 and 5, NES-HARDWARE-PPU-CARTRIDGE). No GPL or LGPL emulator source was opened.
-**Overall confidence:** HIGH for the integration points (read directly from the code); MEDIUM for hardware details taken from the preparation files (each cites its NESdev revision); the per-board bus-conflict defaults and the exact MMC3 sprite-fetch timing are flagged below for verification against test ROMs.
+**Domain:** NES emulator core in C17 (library, headless runner, libretro adapter), milestone v3 "Save states and rewind"
+**Researched:** 2026-10-11
+**Scope:** only what the new features need: fixed-size save states, libretro serialize / rewind / run-ahead / netplay, the runner process contract (state flags, signal flush, exit statuses) and speed measurement. The v2 architecture (time, mapper seam, PPU fetch pipeline) is unchanged and is not repeated here.
+**Overall confidence:** HIGH for the inventory and the serialization design (read from the source); MEDIUM for the Windows signal test and the exact size figures (to be confirmed by measurement in the phase).
 
-## Headline Findings
+## 1. Recommended architecture in one paragraph
 
-1. **The NROM path is hard-wired in six places** (table below). All six move behind one mapper seam before any new board is added. The seam is also the cheapest place to prove "NROM hashes did not change".
-2. **The PPU does not yet have the state MMC3 needs, and it is not only A12.** `src/ppu.c` renders every background pixel from `t` plus the absolute scanline (`background_pixel`), and calls `nesturbator__ppu_read` twice per pixel for pattern bytes. Nothing in `nesturbator__ppu_run_until` advances `v` (no coarse-X increment, no Y increment at dot 256, no horizontal copy at 257, no vertical copy at 280-304). Consequences: (a) A12 would toggle at pixel rate, not at the hardware fetch schedule, so the MMC3 counter cannot be driven from `ppu_read` as it stands; (b) any mid-frame `$2005`/`$2006` write (the split-scroll status bar used by most MMC3 games and many MMC1 games) renders wrongly. The PPU fetch pipeline is a prerequisite for MMC3 and for the boot-to-play proof, not a mapper detail. Plan it as its own phase or plan, ahead of MMC3.
-3. **`cpu.irq_line` is a single byte that `apu.c` overwrites** (`update_irq_line`). A mapper IRQ needs a second source, so the line must become the OR of sources.
-4. **Battery RAM should cross the API as a stable pointer plus a generation counter**, not as copy-in/copy-out functions: libretro's `retro_get_memory_data` requires a pointer that stays valid from load to unload, and the runner can use the same pointer. One new function replaces four.
-5. **Reset needs an API call (`nesturbator_reset`) and a mapper hook.** `retro_reset` is an empty function today and `nesturbator_load_cartridge` is the only place the reset state is built.
+Add one new core module, `src/state.c`, that owns the state format. It contains **one field list per state struct, written once as a visitor** (`sio`), driven in three modes: SIZE (count bytes), WRITE (emit canonical little-endian bytes) and READ with a VALIDATE pass before an APPLY pass. Because the same list serves all modes, the size query, the writer and the loader cannot drift apart, and every field carries its legal range in the list, so "validated in full before any of it is applied" costs no staging copy. The mapper seam gets one new op (`state`) so each board declares its own register fields next to its own code. The cartridge gets one new derived field (a CRC-32 of the ROM identity, computed at load). The public header gets three functions and three appended status codes. The libretro adapter and the runner are thin clients of those functions. Nothing in the deterministic core gains a clock, a global, a float or an allocation.
 
-## Where NROM Is Hard-Wired Today
+## 2. State inventory (what is state, derived, or host-owned)
 
-| # | Location | What is hard-wired | Needed instead |
-|---|----------|--------------------|----------------|
-| 1 | `src/cartridge.c` `validate_image` | Mapper must be 0 in both iNES and NES 2.0 branches; PRG must be 16 or 32 KiB; CHR must be 8 KiB; iNES flag bits 1 and 3 (battery, four-screen) and trainer-less PRG-RAM rejected; NES 2.0 PRG-RAM/NVRAM sizes must be zero | Header parse produces a layout record (mapper, submapper, sizes, mirroring, battery, trainer); the board then accepts or rejects the layout |
-| 2 | `src/cartridge.c` `nesturbator__cart_read` | `prg[(addr - 0x8000) & (prg_size == 32768 ? 0x7fff : 0x3fff)]`; also reached by the DMC fetch in `src/bus.c` `dmc_dma` | One page-table lookup shared by CPU reads and DMC |
-| 3 | `src/cartridge.c` `nesturbator_load_cartridge` | Reset vector read as `prg[prg_size - 4]`; PRG-RAM allocated only when a trainer is present (8 KiB at `copy + size`); CHR-RAM fixed at 8 KiB; one allocation laid out by hand-computed offsets | Vector read through the page table after the board builds power-on mapping; named regions (image, PRG-RAM, CHR-RAM) laid out by one helper |
-| 4 | `src/ppu.c` `nesturbator__ppu_read` and `nesturbator__ppu_write` (nametable branch, twice) | Mirroring read from `nes->cart.bytes[6] & 1` on every nametable access; CHR read as `chr[addr & 0x1fff]`; CHR writes allowed only if `chr_is_ram` | Per-instance `nt_map[4]` and `chr_off[8]` tables set by the board |
-| 5 | `src/bus.c` `bus_read_data` and `nesturbator__bus_write` | `$6000-$7FFF` is flat `prg_ram[addr - 0x6000]` whenever `prg_ram != NULL`; `$8000+` writes fall through unhandled; no `$4020-$5FFF` route; no write-protect or enable | `$8000-$FFFF` writes (and optionally `$4020-$7FFF`) call the board; PRG-RAM goes through enable and protect flags and bumps the save generation |
-| 6 | `src/apu.c` `update_irq_line` and `src/bus.c` `dmc_dma` | `cpu.irq_line` is assigned from APU flags only; `dmc_dma` also sets it directly | `irq_line` = APU frame IRQ OR DMC IRQ OR mapper IRQ, recomputed in one place |
+Read from `src/internal.h`, `src/mapper.h`, `src/cartridge.c`, `src/instance.c`, `src/frame.c`. "Serialize" means the field is in the state; "derive" means it is rebuilt after load; "host" means the host owns it and a load must leave it alone.
 
-Other fixed points that the work touches but that need no redesign: `src/frame.c` only checks `cart.bytes == NULL` for the test card; `nesturbator_unload_cartridge` and `nesturbator_destroy` free `cart.bytes`; the libretro adapter and runner call only `nesturbator_load_cartridge`, so they gain boards for free. Runner message text "malformed or unsupported mapper-0 cartridge" and the header comments for `NESTURBATOR_ERR_CARTRIDGE`, `nesturbator_load_cartridge` and `nesturbator_frame` ("mapper-0") must be reworded (CLAUDE.md rule 6: docs change with behaviour).
+### 2.1 `struct nesturbator` (top level)
 
-## Recommended Architecture
+| Field | Class | Note |
+|-------|-------|------|
+| `allocator` | host | Never serialized; load must not touch it. |
+| `frame_number` | serialize | Reported to the host in `nesturbator_frame`; a rewound state must report the frame it was taken at. |
+| `ticks`, `cpu_cycle`, `audio_rem` | serialize | `ticks` can exceed a frame boundary by residual ticks of the crossing instruction; that residue is part of the state. `cpu_cycle` is compared against MMC1/MMC3 `last_write`/`low_cycle`, so it must be saved with them. |
+| `save_generation` | host-monotonic | NOT serialized (rewinding it would break the "never decreases, compare with `!=`" contract). A load bumps it by one when the battery span's bytes changed (see 4.4). |
+| `transition_sink`, `transition_sink_context` | host | Test hook owned by the runner's audio hash; untouched by load. |
+| `profile` (`ane_magic`, `lxa_magic`) | serialize | Constants today. Serialize them so a future per-console profile does not silently change a loaded state. |
+| `cpu`, `bus`, `apu`, `synth`, `ppu`, `mapper` | serialize (field by field) | See below. Never `memcpy` a struct: padding bytes are indeterminate and would leak into state hashes, and `uint64_t`/`int64_t` alignment differs between targets. |
+| `cart` | mixed | Pointers and sizes are derived from the loaded image; the contents of the RAM regions are state (2.3). |
+| `map` | derive | Entirely rebuilt by `nesturbator__mapper_load` (it memsets then runs `init` and `rebuild`). `map.a12` is a dead field today (no reader found in `src/`; MMC3 keeps its own `reg.mmc3.a12`): delete it in the tune-up phase so nobody serializes it by mistake. |
 
-```
-                       nesturbator.h  (append-only: reset, memory regions, save generation)
-                                   |
-  runner/main.c  ---------------- + ---------------  libretro/libretro.c
-  (--save-dir, flush)                               (get_memory_data, retro_reset)
-                                   |
-                           src/instance.c, src/frame.c
-                                   |
-        +--------------------------+---------------------------+
-        |                          |                           |
-   src/cpu.c  <--- src/bus.c ---> src/apu.c              src/ppu.c
-     |   irq_line = OR(sources)      |                      |  fetch schedule: every PPU
-     |                               | $4020-$FFFF          |  bus access calls
-     |                               | writes, PRG reads    |  nesturbator__ppu_bus_access
-     |                               v                      v
-     +------------------> src/mapper.c  (registry, page tables, dispatch)
-                                   |
-        +---------+---------+------+------+----------+----------+
-   mapper_nrom  mapper_    mapper_  mapper_    mapper_    mapper_
-        .c     uxrom.c    cnrom.c  axrom.c    mmc1.c     mmc3.c
-                                   |
-                          src/ines.c (header parse, layout)  <- src/cartridge.c (ownership, load/unload)
-```
+### 2.2 Component structs
 
-### Component Boundaries
+| Struct | Serialize | Not serialized | Validation needed to keep a corrupt file memory-safe |
+|--------|-----------|----------------|------------------------------------------------------|
+| `cpu` | all 14 bytes: `pc a x y s p nmi_prev nmi_pending irq_line poll_latch halted_in_read jammed` | none | Booleans 0/1. `halted_in_read` must be 0 at a frame boundary (no mid-instruction state exists: run calls stop at instruction boundaries). |
+| `bus` | `ram[2048]`, `open_bus`, `apu_get_put_phase`, `oam_dma_pending`, `oam_dma_page`, `input_buttons[2]`, `controller_latch[2]`, `controller_shift[2]`, `controller_strobe` | `input_pending[2]` (host-owned: the host sets it with `nesturbator_set_input` before every frame; `begin_frame` copies it to `input_buttons` before any CPU step) | Booleans. |
+| `apu` and its channel structs | every field | `sample_output`, `sample_limit`, `sample_count` (frame-scoped caller-buffer bookkeeping; NULL/0 between frames, which is the only time the API can be called) | `pulse.phase` < 8, `triangle.phase` < 32, `dmc.bits` <= 8, `frame_mode` <= 1, `frame_cycle` below the sequence length, `sample_phase` below the sample period; all booleans 0/1. |
+| `synth` | `mixed_level`, `impulse[16]`, `impulse_head`, `integrator_q15`, `hp_input_q30[2]`, `hp_output_q30[2]`, `lp_output_q30`, `overflow` | `pcm[1024]` ring content (see below) | `impulse_head` < 16, `pcm_count` == 0 (see below). 64-bit fields are written as two's-complement little-endian. |
+| `ppu` | every field including `nametable[2048]`, `palette[32]`, `oam[256]`, `secondary_oam[32]`, the fetch pipeline latches and shifters, `ppu_ticks`, `scanline`, `dot`, `odd_frame`, `reset_flag` | `video_output`, `video_pitch` (frame-scoped caller buffer; NULL/0 between frames) | `scanline` < 262, `dot` < 341, `sprite_count` <= 8, `eval_*` indices within their 8/32-byte arrays, booleans. |
+| `mapper` | `id`, `submapper`, `irq`, plus the board's union members, via the board's own `state` op | none | `id` and `submapper` must equal the loaded cartridge's; per-board ranges (MMC1 `count` < 5; MMC3 `select` and `r[]` are masked at rebuild but validate anyway). |
+| `cart` | PRG RAM bytes (`prg_ram`, whole `[work][NVRAM]` allocation, including trainer-initialised bytes) and CHR RAM bytes when `chr_is_ram` | `bytes`, `prg`, `chr`, `prg_ram`, `save`, all sizes: pointers into the single allocation, derived from the image | Raw bytes: nothing to validate. ROM bytes are never in the state; the header's identity check (3.2) ties the state to the ROM. |
 
-| Component | Status | Responsibility | Communicates With |
-|-----------|--------|---------------|-------------------|
-| `src/internal.h` | MODIFIED | New `struct nesturbator__cartridge` fields, `struct nesturbator__mapper_ops`, per-board state union, `NESTURBATOR_MEMORY_*` internal helpers | everything |
-| `src/ines.c` | NEW | Parse iNES 1 and NES 2.0 into `struct nesturbator__layout`; size arithmetic stays checked (`checked_add`, `checked_mul` move here); no allocation | `cartridge.c`, fuzz target via `nesturbator_load_cartridge` |
-| `src/cartridge.c` | MODIFIED | Allocation of the single owned buffer (image copy, PRG-RAM, CHR-RAM), trainer copy, calls the board's `init`, unload; exposes `nesturbator__cart_read` unchanged in name | `ines.c`, `mapper.c`, `instance.c` |
-| `src/mapper.c` | NEW | Registry keyed by mapper number (static const table of ops, no mutable statics), page-table helpers `map_prg(slot_kb, bank, size_kb)`, `map_chr(...)`, `set_mirroring(...)`, `nesturbator__cart_write`, `nesturbator__ppu_bus_access`, `nesturbator__irq_recompute` | `bus.c`, `ppu.c`, boards |
-| `src/mapper_nrom.c` | NEW | The current behaviour, expressed through the seam; no register writes | `mapper.c` |
-| `src/mapper_uxrom.c`, `mapper_cnrom.c`, `mapper_axrom.c` | NEW | Mapper 2, 3, 7: one latch each, optional bus conflict, AxROM single-screen select | `mapper.c` |
-| `src/mapper_mmc1.c` | NEW | Serial shift register, consecutive-write filter, four registers, PRG-RAM enable, SxROM variants | `mapper.c`, `bus.c` (cycle count in write call) |
-| `src/mapper_mmc3.c` | NEW | Bank registers, mirroring, PRG-RAM enable/protect, scanline counter driven by A12 with the M2 filter, IRQ output | `mapper.c`, `ppu.c` (A12), `bus.c` (IRQ line) |
-| `src/bus.c` | MODIFIED | `$8000+` writes dispatch to the board; `$6000-$7FFF` through `cart` flags; DMC read via page table; call `nesturbator__irq_recompute` | `mapper.c`, `apu.c` |
-| `src/apu.c` | MODIFIED (one line) | `update_irq_line` calls `nesturbator__irq_recompute` | `mapper.c` |
-| `src/ppu.c` | MODIFIED (large for MMC3) | Mirroring and CHR through tables; one `ppu_bus_access` chokepoint; fetch schedule and `v` pipeline (see below) | `mapper.c` |
-| `src/instance.c` | MODIFIED | `nesturbator_reset`, `nesturbator_get_memory`, `nesturbator_save_generation`; destroy unchanged | `cartridge.c` |
-| `include/nesturbator.h` | MODIFIED (append only) | See "Public Header Changes" | all hosts |
-| `runner/main.c` | MODIFIED | `--save-dir`, load `.sav` after cartridge load, flush on exit/interval; rewords the mapper-0 message | library API only |
-| `libretro/libretro.c` | MODIFIED | `retro_get_memory_data/size`, `retro_reset` | library API only |
-| `tests/...` | NEW and MODIFIED | See "Tests and CI" | |
+**Audio ring invariant to confirm first.** `apu_end_frame` drains exactly the frame's sample count, and `run_frame` refuses a frame whose audio capacity is below that count, so `synth.pcm_count` should be 0 at every call boundary. If a test proves that (assert it in the tune-up phase), the 2 KiB `pcm` ring and its read/write indices drop out of the state entirely (`pcm_read` = `pcm_write` = 0 on load, `pcm_count` validated as 0). If the invariant does not hold, serialize the ring in logical order (oldest first, zero-padded to capacity) and reset the indices on load, so two instances with the same behaviour produce identical bytes regardless of ring rotation. Either way, the write side must be **normalised**: state bytes must be a function of observable state, not of how the ring happens to be rotated.
 
-### The Mapper Interface
+### 2.3 Size
 
-Per-instance state only. The ops table is `static const` (read-only data is fine under "no mutable static"); per-board registers live in a union inside the instance, so a later save state is a memcpy of the union and a rebuild of the tables.
+Fixed per loaded cartridge, independent of options and of history: about 5 KiB of core state (2 KiB CPU RAM + 2 KiB nametable RAM + 256 OAM + registers, shifters and synthesis history) + `prg_ram_size` (0, 8, 16 or 32 KiB; 8 KiB when a trainer forces RAM) + 8 KiB when the board has CHR RAM. Largest case is around 45 KiB; typical games 13 to 21 KiB. Libretro requires the size never to grow between load and unload (L7699); this design satisfies it because the size is a pure function of the cartridge layout.
 
-```c
-/* Resolved cartridge header, produced by src/ines.c. */
-struct nesturbator__layout {
-    uint16_t mapper; uint8_t submapper;
-    size_t prg_size, chr_size, chr_ram_size;
-    size_t prg_ram_size, prg_nvram_size;   /* nvram is the battery part */
-    uint8_t trainer, battery, mirror_vertical, four_screen;
-};
+## 3. The serialization format
 
-struct nesturbator__mapper_ops {
-    uint16_t id;
-    /* Accept or refuse the layout (sizes, submapper); decide PRG-RAM size. */
-    int  (*accept)(struct nesturbator__layout *layout);
-    /* Power-on: set registers, then call the rebuild helpers. */
-    void (*power_on)(struct nesturbator *nes);
-    /* Warm reset: registers a real reset clears. NULL: nothing changes. */
-    void (*reset)(struct nesturbator *nes);
-    /* CPU write to $4020-$FFFF; cpu_cycle = nes->ticks / 24 at this access. */
-    void (*cpu_write)(struct nesturbator *nes, uint16_t addr, uint8_t value, uint64_t cpu_cycle);
-    /* Every PPU bus address, tagged with PPU time. NULL when the board
-       watches nothing: the PPU pays one pointer test per access. */
-    void (*ppu_bus)(struct nesturbator *nes, uint16_t addr, uint64_t ppu_ticks);
-};
-```
+### 3.1 Principles
 
-Cartridge-side view used by the buses (replaces `prg`/`chr` arithmetic):
+1. Explicit little-endian, written byte by byte (`out[0] = v & 0xff; ...`), so the bytes are identical on every platform and the core needs no byte-order test.
+2. No pointers, no padding, no struct images, no floating point, no host sizes (`size_t`) in the stream.
+3. Fixed size per cartridge; no optional sections; no variable-length fields.
+4. Layout stable across frames: the same field is at the same offset in every state of a given cartridge. That matters for RetroArch's rewind, which stores deltas between consecutive states; small, aligned, stable layout keeps those deltas small.
+5. Format version is separate from the library version, ABI version and behaviour revision. Any change to the field set bumps `format_version`. Older formats are refused with a distinct status rather than half-loaded; add migration only if a real saved-state population exists to protect.
+
+### 3.2 Header (64 bytes, all little-endian)
+
+| Offset | Size | Field | Rule on load |
+|--------|------|-------|--------------|
+| 0 | 8 | `magic` = `"NTSTATE"` + `0x1A` (any fixed 8 bytes with a non-text byte) | exact match, else `ERR_STATE_FORMAT` |
+| 8 | 2 | `format_version` (starts at 1) | exact match |
+| 10 | 2 | `header_size` (64) | exact match |
+| 12 | 4 | `total_size` | equals `nesturbator_state_size(inst)` and the buffer length |
+| 16 | 4 | `behaviour_revision` at save time | recorded, **not enforced** (see 3.4) |
+| 20 | 2 | `mapper_id` | equals loaded cartridge |
+| 22 | 1 | `submapper` | equals loaded cartridge |
+| 23 | 1 | `region` (0 = NTSC; PAL/Dendy reserved) | exact match |
+| 24 | 4 | `rom_crc32` over header bytes 0..15 of the image, PRG ROM and CHR ROM | equals the value computed at load, else `ERR_STATE_CARTRIDGE` |
+| 28 | 4 | `prg_rom_size` | equals loaded |
+| 32 | 4 | `chr_rom_size` (0 for CHR RAM) | equals loaded |
+| 36 | 4 | `prg_ram_size` | equals loaded |
+| 40 | 4 | `chr_ram_size` (0 or 8192) | equals loaded |
+| 44 | 4 | `checksum`: CRC-32 of the whole state with this field read as zero | mismatch gives `ERR_STATE_CORRUPT` |
+| 48 | 16 | reserved, must be zero | non-zero gives `ERR_STATE_FORMAT` (leaves room to append header fields under a new format version) |
+
+Why a CRC-32 and not a SHA: the core links only the C memory functions and must not grow a hash library; a 1 KiB const table is the cheapest integrity primitive that catches truncation and bit rot. It is **not** a security boundary: memory safety comes from the per-field range checks in the validate pass, not from the checksum (a fuzzer, or an attacker, can recompute a CRC).
+
+Cartridge identity is computed **once at load** and stored as a new derived field (`cart.rom_crc32`, zeroed with the rest of `cart` on unload). Do not recompute at save: `cart.bytes` holds the image followed by mutable RAM, and only `[0, 16)` + PRG + CHR-ROM are immutable, which is exactly the hashed range. The runner's SHA-256 stays in the runner for the Playstead fingerprint; the core does not need it.
+
+### 3.3 Body layout
+
+After the header, nine sections in fixed order, each prefixed by a `u32 tag` and `u32 length` (8 bytes; they cost nothing and turn a field-list drift into an immediate, named load failure instead of silent mis-parsing):
+
+`CORE` (frame_number, ticks, cpu_cycle, audio_rem, profile) | `CPU ` | `BUS ` | `APU ` | `SYNT` | `PPU ` | `MAPR` (id, submapper, irq, then board registers padded to a fixed 32 bytes so the section length does not depend on the board) | `PRGR` (prg_ram bytes) | `CHRR` (chr ram bytes).
+
+Lengths are checked against the SIZE-mode result before any field is parsed. Boards pad their register block to the fixed `MAPR` length with zeros, which the loader requires to be zero.
+
+### 3.4 Compatibility policy (opinionated)
+
+- **Reject** on a different `format_version`, `region`, cartridge identity or sizes.
+- **Accept** a different `behaviour_revision`. The revision says that emulation of the same inputs changed, not that the state layout changed. Rejecting on it would invalidate every user's saved states at each accuracy fix, which is the complaint users feel most in other cores. Expose the stored revision to hosts that want to warn or refuse (a small `nesturbator_state_info` query is cheap to add later; not needed for v3). Netplay peers must run the same library version anyway, and libretro netplay already compares core version.
+- No migration code in v3. State format 1 is the first.
+
+## 4. The visitor and the load algorithm
+
+### 4.1 One field list, three modes
 
 ```c
-struct nesturbator__cartridge {
-    uint8_t *bytes; size_t size;          /* one owned allocation, as today */
-    uint8_t *prg, *chr, *prg_ram;         /* region bases inside it */
-    size_t prg_size, chr_size, prg_ram_size, prg_nvram_size;
-    uint32_t prg_off[32];                 /* 1 KiB pages, $8000-$FFFF, offset into prg */
-    uint32_t chr_off[8];                  /* 1 KiB pages, $0000-$1FFF, offset into chr */
-    uint8_t  nt_page[4];                  /* CIRAM 1 KiB page 0/1 for each nametable */
-    uint8_t  chr_is_ram, prg_ram_enabled, prg_ram_writable;
-    uint8_t  irq;                         /* board IRQ output level */
-    uint64_t save_generation;
-    const struct nesturbator__mapper_ops *ops;
-    union { struct nesturbator__mmc1 mmc1; struct nesturbator__mmc3 mmc3; uint8_t latch; } m;
+/* src/state.c (internal). One list per struct; the same list sizes, writes and reads. */
+enum { SIO_SIZE, SIO_WRITE, SIO_VALIDATE, SIO_APPLY };
+
+struct sio {
+    int mode;
+    uint8_t *w;          /* WRITE: output cursor */
+    const uint8_t *r;    /* VALIDATE and APPLY: input cursor */
+    size_t n;            /* SIZE: running byte count */
+    int bad;             /* VALIDATE: first range failure */
 };
-```
 
-Decisions inside this shape:
+/* v points at the field; max is the largest legal value (UINT32_MAX when any value is legal). */
+static void sio_u8 (struct sio *io, uint8_t  *v, uint32_t max);
+static void sio_u16(struct sio *io, uint16_t *v, uint32_t max);
+static void sio_u32(struct sio *io, uint32_t *v, uint32_t max);
+static void sio_u64(struct sio *io, uint64_t *v);
+static void sio_i32(struct sio *io, int32_t  *v);   /* two's complement, LE */
+static void sio_i64(struct sio *io, int64_t  *v);
+static void sio_bytes(struct sio *io, uint8_t *p, size_t len);
 
-- **Offsets, not pointers, in the page tables.** `uint32_t` offsets into `prg` and `chr` are rebuilt from the board registers, never serialised, and avoid pointer-width differences in anything later hashed or saved. DEC.15 (1 KiB pages) is kept: MMC3 banks CHR at 1 KiB and PRG at 8 KiB. 32 + 8 entries is 160 bytes.
-- **Mirroring is a four-entry table**, set by helpers `mirror_horizontal/vertical/single(0|1)` plus a header default. This removes `cart.bytes[6]` from `ppu.c`, and makes AxROM single-screen and MMC1/MMC3 runtime mirroring the same code path. Four-screen stays rejected at load (it needs 4 KiB of cartridge VRAM); say so in the header comment.
-- **PRG-RAM is allocated by the layout, not by the trainer.** Allocate when: battery, trainer, NES 2.0 declares PRG-RAM/NVRAM, or the board is MMC1/MMC3 and the header is iNES 1 (default 8 KiB; 32 KiB only when NES 2.0 says so, as SUROM/SXROM need). PRG RAM is one region laid out `[ work | nvram ]` (D-06; NESdev "MMC1" on SOROM): the battery bytes are the last `prg_nvram_size` bytes, the save span starts at offset V, and the pointer handed to hosts is stable and file-compatible.
-- **Reads.** `nesturbator__cart_read(nes, addr)` becomes `prg[prg_off[(addr >> 10) & 31] + (addr & 0x3ff)]`. `dmc_dma` keeps calling it, so DMC reads follow the banks with no extra code. The `cart.prg == NULL` guard in `dmc_dma` stays valid.
-- **Writes.** `nesturbator__bus_write` adds `else if (addr >= 0x8000u) nesturbator__cart_write(nes, addr, value)` after the PRG-RAM branch. `nesturbator__cart_write` computes `cpu_cycle = nes->ticks / 24u` (the same expression `oam_dma` already uses) and calls the board. Because `cpu.c` performs the 6502's read-modify-write dummy write, MMC1's "ignore a write on the cycle right after another write" rule works from this one number.
-- **Bus conflicts** are a shared helper `nesturbator__bus_conflict(nes, addr, value)` returning `value & nesturbator__cart_read(nes, addr)`, called by the board only when its conflict flag is set. The flag comes from the NES 2.0 submapper (mapper 2 and 3: 1 none, 2 AND; mapper 7: per the NESdev table). For submapper 0 (all iNES 1 files): AND for mappers 2 and 3 (preparation notes all licensed dumps are submapper 2), none for mapper 7 because the dump split is 27 without to 31 with. MEDIUM confidence; Holy Mapperel and a synthetic conflict test settle it.
-- **Open bus.** Reads of disabled PRG-RAM (MMC1 RAM-disable, MMC3 `$A001` bit 7) must return the open-bus latch. Today's `bus_read_data` already falls through to `open_bus` when `prg_ram == NULL`; make the condition `prg_ram != NULL && prg_ram_enabled`.
-
-### IRQ Line
-
-Replace the single assignment with a recompute:
-
-```c
-/* src/mapper.c */
-void nesturbator__irq_recompute(struct nesturbator *nes)
+static void cpu_io(struct sio *io, struct nesturbator__cpu *c)
 {
-    nes->cpu.irq_line = (uint8_t)(((nes->apu.frame_irq != 0u && nes->apu.frame_irq_inhibit == 0u) ||
-                                   nes->apu.dmc.irq != 0u) || nes->cart.irq != 0u);
+    sio_u16(io, &c->pc, 0xffff);
+    sio_u8(io, &c->a, 255); sio_u8(io, &c->x, 255); sio_u8(io, &c->y, 255);
+    sio_u8(io, &c->s, 255); sio_u8(io, &c->p, 255);
+    sio_u8(io, &c->nmi_prev, 1); sio_u8(io, &c->nmi_pending, 1);
+    sio_u8(io, &c->irq_line, 1); sio_u8(io, &c->poll_latch, 1);
+    sio_u8(io, &c->halted_in_read, 0); sio_u8(io, &c->jammed, 1);
 }
 ```
 
-`apu.c`'s `update_irq_line` and `dmc_dma` call it. The mapper sets `cart.irq` and calls it when the counter fires or is acknowledged (`$E000` write on MMC3). Timing needs no new mechanism: `cycle()` in `bus.c` runs the PPU to the M2 rising edge and only then latches `poll_latch = irq_line`, so an A12 edge detected during PPU catch-up is seen by the CPU's poll in that same cycle, which is the hardware ordering the existing APU IRQ already relies on. `cpu_step` samples `poll_latch`; no CPU change.
+In SIZE and WRITE modes the destination field is only read; in VALIDATE the field is not touched (the value comes from the buffer and is range-checked); in APPLY it is stored. VALIDATE and APPLY run the **same** `*_io` functions over the instance, so validation needs no staging struct and no extra memory, and APPLY cannot fail because VALIDATE already walked identical bytes with identical ranges.
 
-### PPU Bus Observation and the MMC3 Counter
-
-Add one chokepoint, `nesturbator__ppu_bus_access(nes, addr)`, which does `if (nes->cart.ops->ppu_bus) ops->ppu_bus(nes, addr, nes->ppu.ppu_ticks)`. Call it from every real PPU bus access:
-
-- fetches from the (new) hardware fetch schedule in `ppu_run_until` (background: nametable, attribute, pattern low, pattern high; sprites: eight slots per line, including the unused-slot dummy fetches);
-- `$2007` reads and writes (address `v`);
-- the `$2006` second write when rendering is off (this is how games clock the MMC3 counter by hand; prep file HWP.12).
-
-Pixel composition must stop calling the notifying read. Split `nesturbator__ppu_read` into a side-effect-free `ppu_peek` (used for pixel generation and by the `$2007` path's data lookup) and `ppu_fetch` (peek + `ppu_bus_access`). If the fetch pipeline is rebuilt with shift registers, pixel composition reads only the registers and the question disappears.
-
-MMC3 counter, using only integer PPU time:
+Each board adds one op to `struct nesturbator__mapper_ops`:
 
 ```c
-static void mmc3_ppu_bus(struct nesturbator *nes, uint16_t addr, uint64_t ppu_ticks)
-{
-    struct nesturbator__mmc3 *m = &nes->cart.m.mmc3;
-    uint8_t a12 = (uint8_t)((addr >> 12) & 1u);
-    if (a12 == 0u) {
-        if (m->a12_high != 0u) { m->a12_high = 0u; m->a12_low_since = ppu_ticks; }
-        return;
-    }
-    if (m->a12_high == 0u) {            /* rising edge */
-        m->a12_high = 1u;
-        /* The counter ignores a rise unless A12 stayed low for three M2 falling
-           edges, i.e. about three CPU cycles. [HWP.12] */
-        if (ppu_ticks - m->a12_low_since >= 3u * 24u)
-            mmc3_clock_counter(nes);
-    }
-}
+/* Visits this board's registers, in a fixed order, at most 32 bytes in total. */
+void (*state)(struct nesturbator__mapper *m, struct sio *io);
 ```
 
-`mmc3_clock_counter` reloads from the latch when the counter is zero or a reload is pending, otherwise decrements, and raises `cart.irq` when the result is zero and IRQs are enabled. The reload-on-zero versus new-behaviour distinction (Sharp versus NEC, submapper 4) is a one-flag difference chosen at `power_on`; implement the Sharp/"every line when latch is 0" behaviour first and pin it with the `mmc3_test_2` ROMs (HWP.20), then decide on submapper 4.
+`struct sio` must be visible to the mapper files, so declare it in `mapper.h` (or a small `state.h`) and keep the helpers `static inline` or in `state.c` behind `internal.h`. Six boards today (NROM, UxROM, CNROM, AxROM, MMC1, MMC3), a few lines each. A future board that forgets the op fails the "every board round-trips" test (7.2) because its registers would not be restored.
 
-**Required PPU change for correct edges.** With rendering on, real A12 follows: background pattern fetches at dots 5-6 and 7-8 of each 8-dot group (1-256 and 321-336), sprite pattern fetches for slots 0-7 at dots 261-320 (8 dots per slot, low byte then high byte), nametable "garbage" fetches in between. With the usual configuration (background `$0000`, sprites `$1000`) A12 rises once per line at the first sprite fetch, around dot 260, which is where the counter clocks. The cheapest faithful implementation:
+### 4.2 Save
 
-1. Keep sprite evaluation as is.
-2. Replace the `dot == 257` bulk `sprite_fetch` with eight per-slot fetches at their hardware dots, always eight (an unused slot fetches tile `$FF` with the current sprite-size and pattern-table bits), each via `ppu_fetch`.
-3. Add the background fetch schedule and the `v` machinery (coarse-X increment per 8 dots, Y increment at dot 256, horizontal copy at 257, vertical copy at 280-304 of pre-render when rendering is on), and drive pixels from `v` and shift registers rather than from `t` plus `y`.
+`nesturbator_save_state(inst, buf, capacity, &written)`: check args, `capacity >= size` else `ERR_BUFFER_TOO_SMALL`, write the header and sections in WRITE mode, `memcpy` the RAM regions, compute the CRC over the finished buffer (with the field zeroed), store it. `inst` is `const`: saving changes nothing. No allocation.
 
-Step 3 is also what makes split-scroll and mid-frame `$2006` tricks work. It will change frame output for any pinned ROM that relied on the old behaviour, so bump `NESTURBATOR_BEHAVIOUR_REVISION` and re-pin `tests/runner/hashes.txt` in the same change, with AccuracyCoin (`tests/accuracy/scoreboard.txt`) as the regression guard (a passing test must stay passing). If the roadmap wants a smaller first step, an A12-schedule-only shim (emit the right addresses at the right dots, leave pixel generation alone) is possible, but it leaves the scroll bug and costs rework; recommended against. LOW confidence on how many v1 hashes move; run the three NROM games before and after.
-
-### Battery RAM Across the API
+### 4.3 Load (all-or-nothing)
 
 ```
-cart load ──> nesturbator__cartridge: prg_ram [ work | nvram ]  (span at offset V, D-06)  (stable for load..unload)
-                    │ CPU write accepted (enabled, not protected, inside nvram)
-                    ▼
-            cart.save_generation += 1
-                    │
-   nesturbator_get_memory(SAVE_RAM) -> (ptr, size)      nesturbator_save_generation()
-        │                                    │
- runner: after load, memcpy .sav -> ptr      runner: after each frame, if generation changed
-         (size must equal); on exit/interval  and interval elapsed -> write temp file, rename
- libretro: retro_get_memory_data returns ptr; RetroArch itself reads/writes .srm via ptr
+1. args, length, header checks         -> ERR_STATE_FORMAT / ERR_STATE_CARTRIDGE
+2. checksum                            -> ERR_STATE_CORRUPT
+3. VALIDATE pass over every section    -> ERR_STATE_CORRUPT   (instance untouched so far)
+4. APPLY pass: core scalars, cpu, bus (except input_pending), apu (except frame-scoped
+   pointers), synth, ppu (except frame-scoped pointers), mapper registers
+5. memcpy prg_ram and chr ram bytes into the existing allocation (pointers do not move)
+6. nesturbator__mapper_load(inst)  -> map zeroed, ops/watch/pages/nt[] derived from the registers
+7. save_generation bump if the battery span changed
 ```
 
-- The library never touches files (core rule: links only the C memory functions).
-- **Load order matters:** trainer bytes are copied into PRG-RAM at load; a `.sav` copied in afterwards overwrites them, as on hardware. libretro does the same: RetroArch fills the save-RAM pointer after `retro_load_game` returns.
-- Size is the iNES 1 default of 8 KiB when the battery bit is set and no NES 2.0 size is given, or the NES 2.0 `prg_nvram` size. File compatibility with existing `.sav` files holds when the byte order and size match (raw bytes, no header).
-- A write counts toward `save_generation` only when it lands in the nvram span while the RAM is enabled and writable; MMC3's `$A001` protect bit and MMC1's enable bit therefore need no separate dirty logic.
-- Generation is a monotonic counter the host compares with its last seen value. The preparation text mentions a host acknowledgement; skip the acknowledge call in v2 (nothing needs it, and the runner can compare locally). Revisit with SEED-002.
-- Determinism: loading a `.sav` changes behaviour only when the host chooses to. The runner reads a file only when `--save-dir` is given, so existing hash commands are unaffected.
-- Flush in the runner: temp file in the same directory, `fflush`, rename over the target (on Windows `rename` fails if the target exists; use the platform replace call in the runner, which may use the platform, not the core).
+Step 6 is already designed for this: the `init` comment in `mapper.h` says registers are "kept by a state load, so init does not touch them", and `mapper_load` is documented as callable after a load. After step 6 every page-table pointer is recomputed from bank registers and the cartridge pointers, which never change.
 
-### Reset
+An error status changes no state, matching the header's existing convention: all failure paths are before step 4.
 
-`nesturbator_reset(inst)`: valid with or without a cartridge (no cartridge: no-op returning `NESTURBATOR_OK`).
+### 4.4 Battery RAM interaction (a pitfall decision)
 
-| State | Warm reset |
-|-------|-----------|
-| CPU RAM, PRG-RAM, CHR-RAM, nametable RAM, palette, OAM | kept |
-| CPU | `s -= 3`, `I` set, `pc` from `$FFFC/$FFFD` read through the page table after the board's `reset` hook; jammed cleared |
-| APU | `$4015` equivalent (channels silenced), frame counter as after the last `$4017` write, synth history reset or kept (choose and document; keep `frame_number` and `ticks` monotonic "since create", as the header already says) |
-| PPU | `control`, `mask`, scroll latch and `$2005/$2006` toggle cleared; dot position policy documented |
-| Mapper | board `reset` hook: MMC1 shift register cleared and control OR `$0C`; MMC3 IRQ disabled and counters cleared; discrete boards keep or clear their latch per documented hardware (UxROM/CNROM boards keep it in real hardware only by luck; clear it to bank 0 to be deterministic and document) |
-| Input, controller shift | cleared |
+The state contains PRG RAM including the NVRAM span, as a console save state does. A load therefore overwrites battery bytes and the host's `.sav` cache must notice. Rule: after step 5, compare the span with its previous contents (one `memcmp` before the copy) and add 1 to `save_generation` only if they differ. Bumping unconditionally would make a run-ahead host (one load per displayed frame) rewrite the `.sav` every frame; not bumping would let the runner's `--save-interval` miss a change. `nesturbator_get_memory` pointers stay valid because step 5 copies into the existing allocation.
 
-Implement it in two steps so v1 debt closes early: an NROM-only version in the tune-up phase that fixes the API shape (the `reset` ops pointer is NULL for NROM), then the board hooks arrive with each board. `retro_reset()` becomes `nesturbator_reset(inst)`. The reset vector fetch through the page table (instead of `prg[prg_size - 4]`) is part of the seam refactor, so power-on and reset share one code path.
+### 4.5 Frame-scoped pointers
 
-### Data Flow Changes
+`ppu.video_output`, `ppu.video_pitch`, `apu.sample_output`, `apu.sample_limit`, `apu.sample_count` are set inside `run_frame` and reset to NULL/0 before it returns, and the state API can only be called between frames (single-threaded instance). Save never writes them; load never touches them. A test asserts they are NULL/0 after every frame.
 
-CPU write to `$8000+`: `cpu.c` -> `bus_write` (cycle advance, PPU caught up to both M2 edges) -> `cart_write` -> board `cpu_write` (optional bus conflict) -> board updates registers -> board calls `map_prg/map_chr/set_mirroring` -> tables change. The very next PPU fetch or CPU read sees the new tables, because PPU catch-up completes before each access.
+## 5. Public API additions (`include/nesturbator.h`)
 
-PPU fetch: `ppu_run_until` dot loop -> `ppu_fetch(addr)` -> `chr_off[addr >> 10]` or `nt_page[...]` -> byte; `ppu_bus_access(addr)` -> board `ppu_bus` (MMC3 only) -> maybe `cart.irq = 1` -> `irq_recompute` -> `cpu.irq_line` -> latched into `poll_latch` at the next M2 rise.
+All appended; no ABI version bump (the header's own rule: appending functions and status codes does not raise `NESTURBATOR_ABI_VERSION`).
 
-Save RAM: described above.
+```c
+#define NESTURBATOR_STATE_FORMAT_VERSION 1
 
-## Patterns to Follow
+enum {  /* appended to nesturbator_status */
+    NESTURBATOR_ERR_STATE_FORMAT    = 8,   /* magic, format version, header, size or reserved bytes wrong */
+    NESTURBATOR_ERR_STATE_CARTRIDGE = 9,   /* state belongs to a different cartridge, or none is loaded */
+    NESTURBATOR_ERR_STATE_CORRUPT   = 10   /* checksum mismatch or a field out of range */
+};
 
-### Pattern 1: Seam first, with a no-change proof
-**What:** Route NROM through the new seam as mapper 0 before adding a board. **When:** first mapper phase. **Proof:** `tests/runner/hashes.txt` frame and audio hashes, AccuracyCoin scoreboard and the libretro host test do not change, and `NESTURBATOR_BEHAVIOUR_REVISION` is not bumped.
+/* Bytes of one state for the loaded cartridge; 0 with no cartridge (the test card has no state).
+   Constant from a successful load until unload, the next successful load or destroy. */
+size_t nesturbator_state_size(const nesturbator *inst);
 
-### Pattern 2: Boards declare what they watch
-**What:** `ppu_bus == NULL` for every board except MMC3 means the PPU loop pays a pointer test per access and nothing else (DEC.15). **When:** always; do not add a generic per-dot callback.
+/* Writes exactly nesturbator_state_size() bytes to buf. ERR_ARGUMENT (NULL, no cartridge),
+   ERR_BUFFER_TOO_SMALL. Does not change the instance. Call between frames. */
+nesturbator_status nesturbator_save_state(const nesturbator *inst, void *buf, size_t capacity,
+                                          size_t *written);
 
-### Pattern 3: Rebuild tables from registers
-**What:** Each board has one `rebuild(nes)` that reads its registers and fills `prg_off`, `chr_off`, `nt_page`. Writes only update registers, then call `rebuild`. **Why:** the same function serves power-on, reset and a later state load.
+/* Replaces the emulated machine's state. Checks everything before changing anything; any error
+   leaves the instance unchanged. Keeps host-owned data: allocator, pending input, the audio
+   transition hook, nesturbator_save_generation's monotonic count. The next frame needs a fresh
+   nesturbator_set_input from the host. */
+nesturbator_status nesturbator_load_state(nesturbator *inst, const void *buf, size_t size);
+```
 
-### Pattern 4: Synthetic cartridges in tests
-**What:** Tests build iNES images in code (a few bytes of 6502 program, banks filled with marker bytes) instead of committing ROMs. **Why:** CLAUDE.md rule 3 allows no ROM bytes beyond `tests/roms/manifest.txt`; this needs no manifest line and tests register writes, conflicts, mirroring, the MMC1 serial protocol and the MMC3 counter precisely. Real ROMs (Holy Mapperel, an open-licence game per board) add frame-hash coverage on top.
+Header comments must document: byte order, that the format version is separate, that a state loads across behaviour revisions, what the battery span does on load, "set input again", the layout guarantee (size constant per cartridge, identical bytes on all platforms). README gets a "Save states" section in the same change (project rule 6).
 
-## Anti-Patterns to Avoid
+Naming note: the file/format name for hosts is "state"; leave `.state` extension to adapters/runner flags.
 
-### Anti-Pattern 1: Notifying the mapper from pixel composition
-**What:** Leaving `nesturbator__ppu_read` as the single read path and adding the mapper call inside it. **Why bad:** A12 would be sampled twice per pixel at the wrong times; the MMC3 counter would clock wildly or never. **Instead:** peek for composition, fetch-with-notify only from the dot schedule and the CPU-driven `$2006/$2007` paths.
+## 6. Integration points: new versus modified
 
-### Anti-Pattern 2: Per-mapper `if (mapper == N)` in `bus.c` and `ppu.c`
-**What:** Switch statements spread across the buses. **Why bad:** every board touches the hottest files; merge conflicts and regressions. **Instead:** the ops table; `bus.c` and `ppu.c` know only the page tables and two hooks.
+### 6.1 Library (`src/`, `include/`)
 
-### Anti-Pattern 3: Timestamps from wall clock or host calls
-**What:** The MMC3 A12 filter or MMC1 consecutive-write rule using anything but emulated ticks. **Why bad:** breaks determinism. **Instead:** `nes->ticks / 24` and `ppu.ppu_ticks`, both already in the instance.
+| Item | New / Modified | Detail |
+|------|----------------|--------|
+| `src/state.c` | **New** | `sio`, `*_io` per struct, header, CRC-32 table, three public functions. Depends on `internal.h` and `mapper.h` only. |
+| `include/nesturbator.h` | Modified (append) | 3 functions, 3 status codes, 1 version macro, doc comments. |
+| `src/mapper.h` | Modified | New op `state`; declare `struct sio` access. |
+| `src/mapper_*.c` (6) | Modified | One small `state` function each. |
+| `src/cartridge.c` | Modified | Compute `rom_crc32` at the end of load; `cart` struct gets the field (`internal.h`). |
+| `src/internal.h` | Modified | `rom_crc32` in `nesturbator__cartridge`; state helpers declared. Remove dead `map.a12`. |
+| `src/instance.c`, `frame.c`, `cpu.c`, `bus.c`, `ppu.c`, `apu.c`, `synth.c` | **Unchanged** if the audio ring invariant holds and every field is already in the instance | State must be a pure read of the existing structs. If an inventory step finds hidden state outside the instance (a function-local static, a derived cache), that is a v3 tune-up bug to fix first, because it breaks determinism, not only states. |
+| `CMakeLists.txt` | Modified | Add `state.c` to the library. |
 
-### Anti-Pattern 4: Separate dirty tracking per board
-**What:** Each board sets a dirty flag when it thinks RAM changed. **Why bad:** missed or spurious saves. **Instead:** one write path for PRG-RAM in `bus.c` that bumps the generation.
+### 6.2 libretro adapter (`libretro/libretro.c`, `.info`)
 
-### Anti-Pattern 5: Growing the allocation at runtime
-**What:** Allocating on reset or bank change. **Why bad:** header says allocation happens only at create and load. **Instead:** everything sized at load from the layout; reset reuses it.
+Currently `retro_serialize_size` returns 0 and the other two return false; `nesturbator_libretro.info` has `savestate = "false"`. Changes, all in the adapter, none in the core:
 
-## Public Header Changes (`include/nesturbator.h`, append only, ABI stays 1)
+| Entry point | Change |
+|-------------|--------|
+| `retro_serialize_size` | `nesturbator_state_size(inst)`; 0 when `inst` is NULL or the test card is running (states unsupported there, which is accurate). |
+| `retro_serialize(data, len)` | return false if `inst` NULL or `len < size`; else `nesturbator_save_state(inst, data, len, &w)`; return `st == OK`. Allocation-free, so RetroArch can call it every frame for run-ahead. |
+| `retro_unserialize(data, len)` | `nesturbator_load_state(inst, data, len)` with `len` clamped to the core's size when the frontend passes a larger buffer (frontends may pad); a shorter buffer is refused. Return `st == OK`. |
+| `.info` | `savestate = "true"` and `savestate_features = "deterministic"` (this level adds rewind-friendly serialized states, run-ahead and netplay; claim it only after the determinism tests in section 7 pass in CI). |
+| Quirks | Call nothing: a fixed-size, pointer-free, fixed-byte-order state sets no quirk bit. Do not call `SET_SERIALIZATION_QUIRKS`. |
+| Adapter-owned buffers | `video[]`, `xrgb[]`, `mono[]`, `stereo[]` are not in the core state and need no handling: every `retro_run` regenerates them. Not carrying the last frame in the state is correct because a load is always followed by a run. The adapter's `retro_reset`/`input` path is unchanged: input is polled and set on every `retro_run`, so the pending-input rule (4.3) is satisfied. |
 
-| Change | Detail |
-|--------|--------|
-| `nesturbator_status nesturbator_reset(nesturbator *inst)` | Warm reset as the table above; NULL gives `NESTURBATOR_ERR_ARGUMENT`. Comment states what is kept and cleared. |
-| `enum nesturbator_memory { NESTURBATOR_MEMORY_SAVE_RAM = 0, NESTURBATOR_MEMORY_SYSTEM_RAM = 1 }` | Values fixed once published. SAVE_RAM is the battery span only. SYSTEM_RAM (the 2 KiB `bus.ram`) is free to add and is what `RETRO_MEMORY_SYSTEM_RAM` and cheat/achievement tools read; include it only if the plan wants it (one `case`). |
-| `nesturbator_status nesturbator_get_memory(nesturbator *inst, enum nesturbator_memory kind, uint8_t **data, size_t *size)` | Pointer valid from successful load until unload or destroy; `size` 0 and `*data` NULL when absent (no cartridge, no battery). Supersedes read/write-save functions: hosts copy to and from the pointer. |
-| `uint64_t nesturbator_save_generation(const nesturbator *inst)` | Increments when battery RAM changes; 0 without a cartridge. |
-| Reworded comments | `NESTURBATOR_ERR_CARTRIDGE` ("outside the supported profile": mappers 0-4 and 7), `nesturbator_load_cartridge` (mappers, battery, PRG-RAM sizes, trainer, four-screen still refused), `nesturbator_frame` ("Mapper-0 ..." sentences), `nesturbator_create` ("The CPU does not yet run during frames" is already stale). |
-| `NESTURBATOR_BEHAVIOUR_REVISION` | Bump with the PPU pipeline change (and any reset behaviour that alters output), not with adding boards that change no existing output. |
-| Not needed in v2 | A new status code (use `NESTURBATOR_ERR_ARGUMENT` for a wrong-sized save by the host's own check), a battery-layout version constant (raw bytes have no layout), an `nesturbator_info` extension. |
+`tests/libretro/libretro_host.c` already resolves `retro_serialize_size/serialize/unserialize` via `dlsym`; extend it to exercise them (7.4). The RetroArch smoke job (`tests/retroarch/`) can add a config with `rewind_enable` / `run_ahead_enabled` as an optional later step; the library-level tests carry the proof.
 
-Guards to update in the same change: the public API declaration baseline (refreshed in v1 phase 3; look under `tests/` for the declaration-guard test in `tests/core/test_api.c` and `tests/cmake/vector_api_policy.cmake`), `tests/header/header_c.c` and `header_cxx.cpp` (new declarations must compile in both languages), `tests/cmake/global_symbols.cmake` and `undefined_symbols.cmake` (every non-static new symbol is `nesturbator__`-prefixed), and the `nofp` source scan (no floating point in the mapper code).
+### 6.3 Runner (`runner/main.c` and new small files)
 
-## Runner and libretro Changes
+The runner already has a frame loop, an options struct, a `save_state` struct (battery flush bookkeeping, not to be confused with emulator states; rename it `battery_save` when touched to avoid the collision), and exit codes 0, 1, 2 and 4.
 
-**Runner (`runner/main.c`, `usage`, README):**
-- New option `--save-dir DIR`. After `nesturbator_load_cartridge`, derive `<rom basename>.sav`; if the file exists and `nesturbator_get_memory(SAVE_RAM)` has a matching size, copy it in; a size mismatch is exit 1 with a message (never silently accept).
-- Flush when `nesturbator_save_generation` has changed: at exit, and every `--save-interval N` frames if given (default: exit only, keeping hash runs fast). Atomic temp-and-rename. Exit status unchanged (0, 1, 2).
-- Without `--save-dir` nothing is read or written, so every existing hash command behaves as before.
-- Reword "unsupported mapper-0 cartridge". A `--reset-at N` option is not needed: `nesturbator_reset` is tested from a C test calling the API, and the movie format is out of scope until SEED-002.
+| Item | New / Modified | Detail |
+|------|----------------|--------|
+| `--state-save N:FILE` | New (phase with the core API) | After frame N completes, `nesturbator_save_state` into a malloc'd buffer, write through the existing temp-file-and-rename helper `nesturbator_run_save_flush` (generalise it: it already does write, flush, sync, checked close, rename). |
+| `--state-load FILE` | New | After cartridge load and battery load, before frame 1: `nesturbator_load_state`; any state error gives a distinct exit status. The load should happen after battery `.sav` load so the state, which carries the span, wins as the user expects. |
+| `--hash-state N` | New | Prints `state N sha256 <hex>` using the existing `sha256.c`. This is the cross-platform proof that state bytes are identical on the six runners (7.3). |
+| Signal handling | New (`runner/signals.c`) | See 6.4. |
+| Exit status table | Modified | See 6.5. |
+| `--capabilities` | New, optional | JSON: version, state format version, mappers, save media; writes nothing. Only if the Playstead requirement is accepted into v3 scope. |
+| `--fps` mode | New | See 6.6. |
 
-**libretro (`libretro/libretro.c`):**
-- `retro_get_memory_data(RETRO_MEMORY_SAVE_RAM)` returns the pointer from `nesturbator_get_memory`, `retro_get_memory_size` its size; NULL and 0 with no battery or no game (L498 permits). Optionally `RETRO_MEMORY_SYSTEM_RAM` (id 2).
-- `retro_reset` calls `nesturbator_reset(inst)` when `inst != NULL`.
-- No file code in the adapter; RetroArch writes the `.srm` (LIBRETRO-AND-RUNNER section 1).
-- `retro_unload_game`/`retro_deinit` already destroy the instance; the pointer must not be used after, which RetroArch guarantees.
-- The existing `tests/libretro/libretro_host.c` gains: save RAM pointer non-NULL and size 8192 for a battery image, write through the pointer then read via CPU; `retro_reset` restarts execution (frame hash after reset equals a fresh instance's first-frame hash when RAM contents are cleared in the test image).
+### 6.4 Signal flush design
 
-## Tests and CI Hooks
+- Handlers do exactly one thing: set a `volatile sig_atomic_t` flag. No file I/O, no `malloc`, no `printf` in a handler (async-signal-safety), and no flush from the handler.
+- Install with `sigaction` on POSIX (`SA_RESTART` off is fine; no blocking reads exist) for SIGTERM and SIGINT, and SIGUSR1 as "flush now" where `SIGUSR1` is defined. On Windows, `signal(SIGINT/SIGTERM/SIGBREAK, ...)`; ordinary `signal()` is C17 and sufficient for the flag pattern.
+- The frame loop checks the flag **between frames** (the same safe point where `--save-interval` flushes, "after frame f has completed and before frame f + 1 starts"). A frame takes milliseconds, so the 2 s budget Playstead gives between SIGTERM and SIGKILL is safe, with one caveat below.
+- On the flag: break the loop, run the existing exit flush (`save_if_changed`, which already runs "whatever ended the loop, including a JAM"), print any pending hash lines, free, exit with the documented status. SIGUSR1 clears its flag, runs `save_if_changed`, and continues.
+- Caveat: `fsync` on a slow or contended disk can exceed 2 s. The flush is one small write (a battery span is at most 32 KiB). Document the bound; do not add a second thread.
+- Also handle "signal arrived before the loop started" (flag already set at loop entry), and "signal during the exit flush" (second signal ignored, flag already set; do not restart the flush).
+- Crash signals (SIGSEGV, SIGBUS, SIGABRT) stay unhandled, as the preparation notes propose.
 
-| Test | Location | Notes |
-|------|----------|-------|
-| Seam no-change | existing `tests/runner`, `tests/accuracy`, `tests/core/test_cartridge.c` | Must pass untouched before any board lands |
-| Loader | `tests/core/test_cartridge.c`, `tests/fuzz/corpus/*` | The `mapper-bits` corpus entry changes meaning; regenerate corpus for new valid and invalid headers; keep the fuzz target unchanged |
-| Board register tests | `tests/mappers/test_<board>.c` (new dir, registered in `tests/CMakeLists.txt`) | Synthetic images; MMC1 serial and consecutive-write case; MMC3 counter with scripted PPU addresses plus an end-to-end run; bus-conflict AND |
-| Holy Mapperel | `tests/roms/holy-mapperel-*.nes` plus `tests/roms/manifest.txt` line (zlib, pinned commit, SHA-256) | It reports by on-screen code and beeps, not memory: pin frame hashes, and decode the 4-digit code from a dumped frame only if a hash proves too opaque |
-| Per-board frame hashes | `tests/runner/hashes.txt` | One open-licence game or test ROM per board, six-platform matrix |
-| Battery | `tests/runner` and `tests/libretro` | Write through game or test image, flush file, restart runner with same `--save-dir`, assert RAM equal; atomic rename covered on Windows runner |
-| Reset | `tests/core` | After `nesturbator_reset`, RAM kept, CPU at reset vector, MMC1 control register `|= $0C` |
-| Trainer through host | `tests/runner` and `tests/libretro` | Trainer-bearing image via `--rom` and via `retro_load_game`; the load path is already shared |
+Test seam: a deterministic way to deliver a signal at a known frame without sleeping. Preferred: the test harness spawns the runner with a ROM that plays forever (`--frames 4294967295`, a battery game or the save ROM fixtures in `tests/runner/save_rom.c`), waits for its first interval-flush file to appear, sends the signal, and asserts exit status, that the `.sav` equals the in-memory span, and that no `.tmp` file remains. On Windows, graceful delivery needs `CreateProcess` with a new process group plus `GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT)`; if that proves flaky on hosted runners, cover Windows with a runner-internal `--raise-signal-after N` test option (compiled into the runner only, never the library) that calls `raise(SIGTERM)` and keep the real-process test on POSIX. This is the one item in this milestone with real uncertainty; flag it for phase research.
 
-## Build Order
+### 6.5 Exit status table (documented in README and `--help`)
 
-Dependencies drive it: everything needs the seam; MMC3 needs the PPU pipeline; battery needs a board that has PRG-RAM (MMC1); reset needs per-board hooks only for MMC1/MMC3.
+Existing: 0 done, 1 failure, 2 usage, 4 save-file size mismatch. Preparation proposes 3 (hash mismatch, with `--expect`) and 77 (unsupported capability). Recommended complete table:
 
-1. **Tune-up inputs that touch architecture**: `nesturbator_reset` (NROM version) and `retro_reset`; the trainer-bearing host-path test. No dependency on later work and it fixes the API shape early.
-2. **Mapper seam, NROM through it** (`ines.c`, `mapper.c`, `mapper_nrom.c`, page tables, mirroring and CHR via tables, IRQ OR, `$8000+` write route). No hash change. Highest risk of silent regression, so it goes first and alone.
-3. **UxROM, CNROM, AxROM** (`mapper_uxrom.c`, `mapper_cnrom.c`, `mapper_axrom.c`): about 30-50 lines each; exercises PRG and CHR bank switching, single-screen mirroring and bus conflicts; first Holy Mapperel and per-board hashes. Cheap and validates the seam before the hard boards. (The seeds list MMC1 first; the order of these two phases is the roadmap's choice and does not change dependencies.)
-4. **MMC1 plus battery saves** (`mapper_mmc1.c`, PRG-RAM allocation rules, `get_memory`, `save_generation`, runner `--save-dir`, libretro memory hooks, relax the header rejections for battery and NVRAM). Delivers the first end-to-end user-visible feature (saves in RetroArch).
-5. **PPU fetch pipeline** (`v` machinery, hardware fetch schedule, `ppu_peek` versus `ppu_fetch`, per-slot sprite fetch). Behaviour revision bump, re-pin hashes. Do not combine with a board in the same plan.
-6. **MMC3** (`mapper_mmc3.c`, A12 filter, IRQ, PRG-RAM protect, `mmc3_test_2` suite or the Holy Mapperel IRQ screens). Needs 5.
-7. **Boot-to-play proof**: choose the game after steps 4-6 using what actually renders correctly; prefer a game that exists as an open-licence or user-supplied test under the "no ROM bytes" rule (CLAUDE.md rule 3). A scripted input movie (existing `runner/movie.c`) plus RAM peek (`nesturbator_peek_cpu_ram`) can assert the "defined game-state change" without a human.
+| Status | Meaning |
+|--------|---------|
+| 0 | Completed, or stopped by SIGTERM/SIGINT after a successful flush (Playstead sent the signal; no distinct status needed) |
+| 1 | Failure (I/O error, JAM, frame error, failed flush) |
+| 2 | Usage error |
+| 3 | Hash mismatch (only if `--expect` is in scope) |
+| 4 | Battery save file has the wrong size (already shipped) |
+| 5 | State file rejected (maps from the three state statuses; the stderr message names which) |
+| 77 | Capability refused (only if `--capabilities` is in scope) |
 
-**Research flags for phases:**
-- Step 5 (PPU fetch pipeline): needs phase-level research against the PPU timing sections of NES-HARDWARE-PPU-CARTRIDGE.md and AccuracyCoin results; highest uncertainty and highest regression risk.
-- Step 6 (MMC3): needs the exact IRQ reload semantics, M2 filter threshold and submapper variants verified against `mmc3_test_2`.
-- Steps 2-4: standard patterns once the preparation docs are open.
-- Step 4: check the SxROM family (CHR-bank bits reused for PRG-RAM enable and 256 KiB PRG half) and the NES 2.0 size fields for the chosen test game.
+Exit 0 on SIGTERM is an explicit choice (alternative: a dedicated status such as 128+15). Choose 0 because the host that sent the signal knows it did, and a clean flush is a clean exit; a requirement that the host must distinguish them would change this. Keep the table in one `enum` in the runner and one test per row.
 
-## Scalability Considerations
+### 6.6 Speed measurement
 
-| Concern | One board family | All six + later tiers | Notes |
-|---------|------------------|-----------------------|-------|
-| CPU read cost | one table lookup | same | `prg_off` is two loads; measure if the vector suite slows |
-| PPU cost | pointer test per access (NULL) | MMC3 adds a compare per access | Only rendering-enabled lines have accesses |
-| State size | union sized to the largest board | MMC5/VRC add fields | Union is `memset`-able; save-state layout is SEED-002 |
-| Next mappers (MMC2/4, VRC, FME-7) | add an ops table row | page-table tweaks, `cpu_cycle` hook | Ops needs one more optional hook (CPU-cycle clock) when the first IRQ-by-CPU-cycle board arrives; do not add it now |
+- **Runner FPS mode** (`--fps`, frames per second and frame-time percentiles): the runner, not the core, reads a monotonic clock (`clock_gettime(CLOCK_MONOTONIC)` / `QueryPerformanceCounter`; wrapped in one small `runner/clock.c`). The core stays free of time sources. Skip video conversion and PPM dumping; time only `nesturbator_run_frame` per frame into a preallocated `uint64_t` array (no allocation inside the loop), then sort once at the end for p50/p95/p99. Print fps as an integer ratio or one decimal; the output is explicitly non-deterministic and must never be asserted in CI except for presence/shape. Run with a committed test ROM from `tests/roms/manifest.txt` and a movie so the workload is fixed.
+- **Per-PR instruction-count comparison**: a `perf` job (Linux x64 only) runs `valgrind --tool=cachegrind` on `nesturbator-run --frames N --rom <fixed ROM> --movie <fixed movie>` for the PR head and for the merge base (both built with the same flags), compares total instructions (`I refs`) with a script under `scripts/`, and fails above a threshold (start at +3%, not 0; instruction counts are stable but compilers shift). Instruction counts, not wall time, because hosted runners are noisy. The job also checks the frame hash printed by the same run equals the merge base's, which makes "faster without changing a single hash" a CI property.
+- **State cost belongs in the benchmark**: add one fixed workload that does save, run 1 frame, load per iteration (the run-ahead pattern). Targets to measure, not to assume: a save or load of about 20 KiB should cost far less than 1% of a frame (a frame is about 0.7 million ticks of work, several milliseconds). If the CRC-32 or the two-pass load shows up in the profile, the cheap fixes are a slicing-by-4 CRC table or skipping the checksum for loads of a buffer the same instance just produced (an internal flag, not public API).
+
+## 7. How determinism is tested
+
+All of these run under `cmake --workflow --preset ci` (and the same binaries under `asan`), with no human step.
+
+### 7.1 Core test file `tests/core/test_state.c`
+
+1. **Size and shape**: `nesturbator_state_size` is 0 for a fresh instance and for the test card; after loading each fixture ROM it is constant across 1000 frames and equals bytes written; `save` into a buffer 1 byte short returns `ERR_BUFFER_TOO_SMALL` and writes nothing.
+2. **Idempotence**: save, load into the same instance, save again: byte-identical. Save from instance A, load into a *fresh* instance B with the same ROM, save from B: byte-identical.
+3. **Fork test (the central one)**: run A for N frames driven by a movie, save S. Continue A for M frames, recording per-frame video hash, per-frame audio hash, ticks, and the final state bytes. Create B, load the ROM, `load_state(S)`, run the same M frames with the same inputs: every frame hash, audio hash, tick count and the final state bytes equal A's. Pre-poison B's output buffers (fill 0xFF) and run B a few unrelated frames before the load, so any field missing from the state shows as a divergence.
+4. **Rewind**: with one instance, save at N, run M, load, run M again: identical to the first M. Repeat for several N including N = 0 (right after load) and a frame inside heavy PPU activity.
+5. **Run-ahead pattern**: loop for K frames: save; set input; run one frame; (optionally run a second frame with a different speculative input); load; set the real input; run the real frame. The sequence of real-frame video/audio hashes and the final state bytes equal an uninterrupted run with the same inputs. Include a variant that does 2 or 3 save/load cycles per real frame.
+6. **Every board**: the above for NROM, UxROM, CNROM, AxROM, MMC1 (battery) and MMC3 (battery, IRQ-heavy) using the ROMs already in `tests/roms`, plus a battery span check (4.4): a load that changes the span bumps the generation by exactly one; a load that does not, leaves it unchanged.
+7. **State-save round trip across behaviours that exercise hidden state**: save mid-OAM-DMA, mid-DMC-DMA, with a pending NMI/IRQ, right after `nesturbator_reset` (PPU write-ignore window active), after a JAM (state loads and the instance is still latched). The frame-boundary-only rule makes these reachable through frame-step positions chosen by scanning for them with `nesturbator_peek_cpu_ram`-free instrumentation; where a case cannot be reached from the API, test it at the `sio` level on a hand-built struct.
+8. **Frame-scoped pointers**: after each frame `ppu.video_output`, `apu.sample_output` are NULL (white-box test with `internal.h`, like the existing core tests).
+
+### 7.2 Negative tests
+
+- Truncation at every length from 0 to size, wrong magic, wrong format version, non-zero reserved bytes, wrong total size, other cartridge, other board, each returns the intended status and **leaves the instance byte-identical** (compare `save_state` output before and after).
+- **Flip-every-byte sweep**: for each byte offset of a good state, flip one bit, call `load_state`. Result is either `OK` (the flip landed in RAM bytes that are legal... which the checksum would catch, so expect `ERR_STATE_CORRUPT` for every flip outside the checksum field and for the checksum field itself) and **never** a crash or sanitizer report. A second variant recomputes the CRC after the flip (a test-only helper in `tests/`), so range validation is what is exercised: then `OK` or `ERR_STATE_CORRUPT`, never a crash, and on OK the instance must survive a few frames under ASan/UBSan without out-of-bounds access.
+- A board with a missing `state` op fails a table-driven test that iterates `nesturbator__mapper_ops_for` ids 0..N.
+
+### 7.3 Cross-platform byte identity
+
+Runner prints `state N sha256 <hex>` for a fixed ROM and movie; the expected hashes are committed in `tests/runner/hashes.txt` alongside the existing frame hashes, and all six hosted runners must match. This is what proves explicit little-endian and the absence of padding or alignment leakage. It also pins the format: an accidental layout change shows up as a hash diff and forces a deliberate `format_version` decision.
+
+### 7.4 Field-drift guards
+
+- `tests/core/test_state_layout.c`: compile-time `sizeof` assertions for every state struct (`cpu`, `bus`, `apu` and channels, `synth`, `ppu`, `mapper`), guarded to 64-bit targets, with a comment pointing at `state.c`. Adding a field to a struct changes its `sizeof` (or the author consciously updates the number), which sends the author to `state.c`. This is a tripwire, not a proof; the fork test is the proof.
+- Section `tag`/`length` pairs fail loudly when a `*_io` function changes without the layout constant.
+
+### 7.5 libretro host test (`tests/libretro/libretro_host.c`)
+
+Load game; `retro_serialize_size` > 0 and unchanged after frames; `retro_serialize` into an exact buffer succeeds, into a short buffer fails; run frames; `retro_unserialize` restores and the next frame's video hash equals the uninterrupted run's (reuse the host's frame hashing); a corrupted buffer returns false and the next frame still matches; a larger buffer is accepted; no-game (test card) reports size 0. Then the `.info` file's `savestate` and `savestate_features` lines are checked by an existing/added file-content test.
+
+### 7.6 Fuzzing
+
+Add `fuzz.state_loader` next to `fuzz.rom_loader` in `tests/fuzz`, built into the existing nightly libFuzzer job. The harness loads a fixed ROM per board (embedded or from the corpus selector byte), builds a valid state, XORs the fuzz input over it, **recomputes the CRC**, and calls `load_state`, then runs one frame if it returned OK (so a range-check gap becomes a sanitizer crash instead of a latent bug). Seed the corpus with real states. Add the replay build to the regular `ci` run as `fuzz.regress` already does for the ROM loader.
+
+## 8. Patterns to follow
+
+### Pattern 1: one field list, many modes
+**What:** the `sio` visitor in 4.1. **When:** every serialized struct. **Why:** removes the classic three-copy bug (size function, save function and load function that disagree), documents each field's legal range where the field is listed, and keeps boards' register layouts beside their code.
+
+### Pattern 2: validate, then apply
+**What:** two passes over the same bytes, no mutation in the first. **When:** `load_state`. **Why:** the header contract "an error status changes no state" holds by construction, with zero staging memory.
+
+### Pattern 3: derive, never save, anything the cartridge can recompute
+**What:** page tables, nametable map, watch bits, ops table, cart pointers. **Why:** pointers would break across platforms and processes; the mapper seam was built for exactly this (`mapper_load` after a state load).
+
+### Pattern 4: host-owned stays host-owned
+**What:** allocator, pending input, transition hook, save generation are untouched by load. **Why:** run-ahead calls load every frame; any host data a load overwrote would corrupt the host's own bookkeeping.
+
+## 9. Anti-patterns to avoid
+
+| Anti-pattern | Why bad | Instead |
+|--------------|---------|---------|
+| `memcpy(&inst->ppu, ...)` of whole structs | Padding is indeterminate; `uint64_t` alignment differs by target; pointers inside; byte order | Field-by-field explicit LE |
+| Serializing `map` or `cart` pointers | Dangling after load, differ per process | Derive via `mapper_load`; pointers never leave the instance |
+| Serializing ROM bytes | Legal exposure (no ROM bytes in saved artefacts), size, pointless | Identity CRC and sizes in header; require the ROM loaded |
+| Variable-size state (omit empty RAM, grow with options) | RetroArch needs a constant size for the session; rewind deltas | Size a pure function of the cartridge layout |
+| Bumping `save_generation` on every load | Run-ahead would rewrite `.sav` each frame | Bump only when the span's bytes differ |
+| Saving `save_generation` | Rewinding would make a monotonic counter go backwards | Host-monotonic, not state |
+| Rejecting on `behaviour_revision` | Every accuracy fix would invalidate user states | Record, don't enforce |
+| Doing I/O in the signal handler | Not async-signal-safe | Flag in handler, flush at the frame boundary |
+| Putting a clock in the core for FPS | Breaks determinism rule and the "links only memory functions" rule | Measure in the runner |
+| Wall-clock thresholds in CI | Hosted runners are noisy | Instruction counts under Cachegrind, hash equality as the correctness gate |
+| A checksum as the only safety | Fuzzers and attackers can recompute it | Range checks on every field that indexes memory |
+
+## 10. Data flow changes
+
+```
+host/runner/libretro                     core
+-------------------                      ----
+run_frame(io) ---------------------->    frame boundary reached, all frame-scoped pointers NULL
+save_state(buf) -------------------->    sio WRITE over cpu,bus,apu,synth,ppu,mapper + RAM copies + CRC
+        (bytes live with the host)
+load_state(buf) -------------------->    header -> CRC -> VALIDATE -> APPLY -> RAM copy -> mapper_load
+                                         (pages, ops, nt[] derived) -> save_generation maybe +1
+set_input(...) --------------------->    pending input (host-owned, not touched by load)
+run_frame(io) ---------------------->    begin_frame copies pending -> buttons; emulation continues
+```
+
+No new data flows from core to host except the three function results. No callbacks, no threads.
+
+## 11. Scalability considerations
+
+| Concern | Typical play | Rewind (10 s at 60 fps) | Run-ahead (1 to 2 frames) |
+|---------|--------------|-------------------------|----------------------------|
+| State size | 13 to 21 KiB | 600 states, about 8 to 13 MB uncompressed; fixed offsets let the frontend's delta compression work | same state, 1 save + 1 load per frame |
+| Save/load cost | n/a | about 20 KiB copy + CRC, microseconds | must stay far below one frame; measured in the benchmark (6.6) |
+| Allocation | none | none (caller-owned buffers) | none |
+| Netplay | n/a | n/a | peers need identical bytes: guaranteed by LE + normalised ring + stable layout; checked by cross-platform state hash |
+
+## 12. Suggested build order across phases
+
+Phase numbers continue from v2 (which ended at Phase 10). Dependencies drive the order; the library API is the only hard prerequisite for the two adapters.
+
+1. **Phase 11: Tune-up and state readiness.** The v2 debt items from the milestone scope, plus the items that make the state work small: delete dead `map.a12`; add the white-box assertions (frame-scoped pointers NULL after a frame; `synth.pcm_count` == 0 at a frame boundary); audit that no state lives outside the instance (grep for function-local `static` non-const objects; the core already claims none); rename the runner's `save_state` struct to `battery_save`. Standard patterns; no research needed.
+2. **Phase 12: State format in the library.** `src/state.c`, `sio`, mapper `state` ops, `rom_crc32` at load, three API functions, status codes, header docs, README section, tests 7.1, 7.2, 7.4, plus the minimal runner flags `--state-save`, `--state-load`, `--hash-state` as test tooling so 7.3 (cross-platform hashes) runs in the same phase. **Ends with something to download and run**: the runner can write and resume a state. This is the largest phase and the one with real design weight; everything else depends on it.
+3. **Phase 13: libretro serialize, rewind, run-ahead, netplay readiness.** Adapter entry points, `.info` flags, libretro host tests (7.5), the nightly state-loader fuzz target (7.6), optional RetroArch smoke with rewind/run-ahead enabled. Depends only on Phase 12. Claim `savestate_features = "deterministic"` only in the commit where the fork/run-ahead tests are green on all six runners.
+4. **Phase 14: Runner process contract.** Signal flag and flush at frame boundary, SIGUSR1, exit status table (add 5, and 3/77 if scoped), README process-contract section, `--capabilities` if scoped. Independent of Phase 13; can be swapped with it if Playstead timing demands, since its only dependency on Phase 12 is the exit-5 state rejection. Needs research for the Windows signal test (6.4).
+5. **Phase 15: Speed.** Runner FPS mode with percentiles, the Cachegrind `perf` job against merge base, state save/load microbenchmark workload, and only then any optimisation (CRC slicing, PPU hot paths). Last because it measures everything else, and because any optimisation is accepted only if every frame, audio and state hash is unchanged, which Phases 12 and 13 now make cheap to check.
+
+## 13. Research flags for phases
+
+| Phase | Flag |
+|-------|------|
+| 11 | Standard. Confirm the audio ring invariant first; it decides state layout (2.2). |
+| 12 | Design is settled here; still needs a short spike to measure save/load cost and to confirm the field inventory is complete by running the fork test on all six boards. Highest value test: the poisoned-fresh-instance fork test. |
+| 13 | Standard once Phase 12 lands. Verify exact `.info` key names and the levels they unlock against the pinned RetroArch docs at planning time (the preparation file lists them; I did not re-fetch them). |
+| 14 | Needs deeper research: Windows graceful-signal delivery in CI, fsync latency bound against the 2 s budget, and whether SIGTERM exit 0 is acceptable to the host. |
+| 15 | Needs a short spike: Cachegrind availability on the hosted Linux runner image and a stable threshold; whether the instruction count of a 5-second workload is stable enough across merge-base builds. |
+
+## 14. Open questions
+
+- Is `synth.pcm_count` always 0 at a frame boundary? (Decides whether the PCM ring is in the state; 2.2.)
+- Is `behaviour_revision` mismatch really acceptable to the owner? (3.4: recommended accept-and-record.)
+- Are `--capabilities` and `--expect` (exit 3, 77) in scope for v3, or only the signal flush and documented existing statuses? The table in 6.5 is complete either way; the rows are cheap to defer.
+- Should the state of a no-cartridge instance exist? Recommended no (size 0): the test card has nothing worth saving, and libretro treats 0 as "no states", which is what a test-card session should report.
 
 ## Sources
 
-- `.planning/preparation/ARCHITECTURE.md` sections 6 and 7 (banking, events a mapper watches, memory regions, battery RAM) - HIGH, project decision record
-- `.planning/preparation/DECISIONS.md` DEC.15-17, DEC.19 - HIGH
-- `.planning/preparation/LIBRETRO-AND-RUNNER.md` sections 1 and 5 (save RAM ids, runner `--save-dir`, temp-and-rename flush) - HIGH
-- `.planning/preparation/NES-HARDWARE-PPU-CARTRIDGE.md` section 2 (MMC3 A12 rule after three M2 falling edges, HWP.12), bus conflicts (HWP.13), submappers and battery counts (HWP.22) - MEDIUM (documentation summary citing NESdev wiki revisions)
-- `.planning/preparation/CONFORMANCE.md` (Holy Mapperel zlib, boards covered, reporting method; `mmc3_test_2` HWP.20) - MEDIUM
-- Code read directly: `src/internal.h`, `src/bus.c`, `src/cartridge.c`, `src/instance.c`, `src/ppu.c`, `src/frame.c`, `src/apu.c` (`update_irq_line`), `src/cpu.c` (IRQ and NMI sampling), `include/nesturbator.h`, `runner/main.c`, `libretro/libretro.c` - HIGH
-- libretro.h memory and `retro_reset` contracts, as cited in LIBRETRO-AND-RUNNER (L498, L509, L3591, L7812-7826) - HIGH
+- Source files read for this document (HIGH confidence, local): `include/nesturbator.h`, `src/internal.h`, `src/mapper.h`, `src/instance.c`, `src/frame.c`, `src/cartridge.c`, `libretro/libretro.c`, `libretro/nesturbator_libretro.info`, `runner/main.c`, `runner/save.h`, `tests/CMakeLists.txt`, `tests/libretro/libretro_host.c`, `tests/fuzz/rom_loader.c`.
+- Project preparation notes (HIGH, local): `.planning/preparation/ARCHITECTURE.md` sections 2, 6, 7 and 8 (state requirements: fixed size, canonical byte order, no pointers, validated in full before apply; page tables rebuilt after load); `.planning/preparation/LIBRETRO-AND-RUNNER.md` sections 2 and 5 (serialization rules, `.info` levels, quirk bits, Playstead process contract and proposed exit statuses); `.planning/seeds/SEED-002-save-states-and-runner-contract.md`; `.planning/seeds/SEED-004-robustness-and-speed.md`.
+- libretro serialization rules cited by line (L7699, L7707) come from the preparation notes' reading of the pinned `libretro.h` (MEDIUM; not re-read in this pass).
+- Design choices not cited above (visitor pattern, CRC-32 integrity, two-pass load, Cachegrind instruction counts) are the author's recommendations from the code read, not external findings.

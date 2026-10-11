@@ -1,177 +1,191 @@
-# Technology Stack - Milestone v2 (mappers, battery saves, CI tune-up, boot-to-play)
+# Technology Stack - Milestone v3 (save states, rewind, runner contract, speed)
 
 **Project:** nesturbator
-**Researched:** 2026-10-09
-**Scope:** only what is NEW for v2. The v1 stack (C17, CMake 3.25+ presets, Ninja, CTest with `check.h`, GitHub Actions on six runners, release-please v5, libFuzzer nightly, vendored `libretro.h`) is validated and unchanged; v1 text is in git history.
-**Overall confidence:** HIGH for licences, hashes and API facts (fetched and measured today); MEDIUM for CI tuning payoff (compile/test split not yet measured); LOW where marked.
+**Researched:** 2026-10-11
+**Scope:** only what is NEW for v3. The validated stack (C17 with extensions off, CMake 3.25+ presets, Ninja, CTest with `check.h`, GitHub Actions on six runners, release-please v5, libFuzzer nightly, vendored `libretro.h` at the RetroArch v1.22.2 pin) is unchanged. The v2 research is in git history.
+**Overall confidence:** HIGH for libretro.h facts (read in the vendored header), Windows signal and console-handler facts (Microsoft Learn, fetched today) and Cachegrind semantics (Valgrind manual, fetched today); MEDIUM for hosted-runner behaviour of Valgrind on arm64 and for RetroArch's internal rewind buffer (not verifiable without GPL source); LOW where marked.
 
 ## Headline
 
-**No new dependency of any kind.** No library, no vendored file, no new GitHub Action, no new toolchain. The additions are (a) committed test ROMs with explicit licences, (b) two nightly-fetched blargg suites that cannot be committed, (c) three small API/behaviour contracts (save RAM in the C API, libretro and the runner), and (d) CI configuration changes inside files that already exist.
+**No new dependency of any kind.** No library, no vendored file, no new GitHub Action, no new language. Three items need an installed tool, and only one is outside the image: `valgrind` from `apt` on `ubuntu-24.04` (not preinstalled; image 20261004.327.1 lists neither Valgrind nor perf). Everything else is C17 plus platform calls inside the runner (never the core), `.info` and adapter changes, and shell in existing workflows.
 
-## Core Stack Changes
+## 1. Save states in the library and the libretro adapter
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| C / CMake / CTest / `check.h` | unchanged | Mapper code, tests | Mappers are page-table setups plus register handlers; nothing here needs a new tool. |
-| In-repo synthetic ROM builder (test code, no files) | new, ~100 lines in `tests/` | UxROM/CNROM/AxROM bus-conflict and banking tests; MMC1 serial-port and MMC3 IRQ unit tests | No open-licence UxROM or AxROM game was found (see below), and no public ROM tests bus conflicts directly. A test builds an iNES image in memory (header + hand-assembled 6502 bytes). This is owned code, adds no binary to the tree, and stays clear of `hygiene.sh`. Follows the ladder: reuse (the fuzz corpus already builds `valid-nrom` images) before adding a cc65/ca65 toolchain. |
-| `libretro.h` | unchanged pin (RetroArch v1.22.2 is still the latest release, published 2025-11-20) | `RETRO_MEMORY_SAVE_RAM` | Already vendored; no bump needed. |
-
-## Test ROMs
-
-### Committable (explicit licence, verified from the repository `LICENSE`/API today)
-
-Add each to `tests/roms/manifest.txt` with path, source, pin, SPDX licence and SHA-256. A fetch-time hash is the only identity: the upstream `.nes` files are release assets, not tracked files.
-
-| ROM | Source and pin | Licence | Mapper / role | SHA-256 |
-|-----|----------------|---------|---------------|---------|
-| Holy Mapperel v0.02 (subset, see below) | `pinobatch/holy-mapperel`, tag v0.02, commit `c022622274ca8b83d214dea97e4388a6b0e92d8a`; asset `holy-mapperel-bin-0.02.7z`, archive SHA-256 `70f85671e21f293599baebb662faeb06a4c04e9c9ceb283d96d4197f09e4ce7a` | Zlib (GitHub API `spdx_id` = Zlib) | Banking, CHR RAM/ROM, WRAM, battery, gross IRQ for m1, m2, m3/66, m4, m7 | per file, below |
-| nes-runner v1 (`runner.nes`) | `zorchenhimer/nes-runner`, tag v1, commit `47537be0ccb8baeb8462547a1c08888ee2a6cfac` | MIT (`LICENSE.md`) | MMC1, NES 2.0, 64 KiB PRG, 16 KiB CHR ROM, 8 KiB PRG-NVRAM (header byte 10 = `$70`). The boot-to-play game for the MMC1 phase. | `1a67bfabdde2d96eacb04eb7f9d17e8da6c082d4976c318315fe31e2d19b4384` |
-| Stallar 0.1.0 (`stallar.nes`) | `wendelscardua/stallar`, tag 0.1.0, commit `0188c66b8aac4c76b3a86b3ca58e3ad3fe52ab52` | MIT (repo); README states the music and SFX are public domain | MMC3, iNES 1, battery flag, 64 KiB PRG, 8 KiB CHR; the source has an IRQ buffer, so it uses the scanline counter. MMC3 "real game" check. | `b5584e142db178fc356b70d635cb290f250a85569461b5915969617740c551f0` |
-
-The README's earlier remark that nes-runner is already a candidate stands; it is not yet in the manifest.
-
-**Holy Mapperel subset to commit** (15 files, 2.44 MB with the 512 KiB one; 1.92 MB without). The full 40 ROMs unpack to over 8 MB, which is not worth committing. SHA-256s verified today for the ones marked (h); compute the rest at commit time.
-
-| File | Size | Covers | SHA-256 |
-|------|------|--------|---------|
-| `M1_P128K_C32K_S8K.nes` | 163,856 | MMC1 with 8 KiB battery RAM (header byte 10 = `$70`); the battery-save test: the ROM writes `SAVEDATA` at `$6100`, so a run, `.sav` round trip, second run reports `has_savedata` | `c6101b411ee99f6b0c8e6ec0abe32b9fcfa5c32cef8017dd728bb3c992d16efd` (h) |
-| `M1_P128K_C32K_W8K.nes` | 163,856 | MMC1 with volatile 8 KiB WRAM (byte 10 = `$07`); must not appear as save RAM | compute |
-| `M1_P128K_CR8K.nes`, `M1_P128K_C128K.nes`, `M1_P128K.nes` | 131,088 / 262,160 / 131,088 | MMC1 CHR RAM and CHR ROM sizes | compute |
-| `M2_P128K_V.nes`, `M2_P128K_CR8K_V.nes` | 131,088 each | UxROM (7432 variant, vertical mirroring) | `M2_P128K_CR8K_V` = `c7e83755bd9adbb7c705ea9f29535442af7390444632f9f824fcf4c00632069b` (h); `M2_P128K_V` compute |
-| `M3_P32K_C32K_H.nes` | 65,552 | CNROM | `499891c6d8c7a1e7631bdc601d9d624938842735f92fe1fda7b19ef9fae514b7` (h) |
-| `M66_P64K_C16K_V.nes` | 81,936 | Detected as mapper 66; Holy Mapperel's README says NROM and CNROM report as 66 when sizes match. Keep as the GxROM case, not a CNROM proof. | `e62c4e897063fbf71e5bd3901dfb39fe04082150d0fb9291cc6756e08a688496` (h) |
-| `M4_P128K.nes`, `M4_P128K_CR8K.nes`, `M4_P128K_CR32K.nes` | 131,088 each | MMC3: banking, CHR RAM, gross IRQ, WRAM protect | `M4_P128K` = `b145558f6d301fd294e3e7641a7a1c414d9f743b1f89aace324c61b72c082e36` (h); others compute |
-| `M7_P128K.nes`, `M7_P128K_CR8K.nes` | 131,088 each | AxROM (single-screen select) | `M7_P128K_CR8K` = `4aa0050f36ae17e17701506821e5147df5b843bcdf2827468fa9c66e4b7ac1ba` (h); other compute |
-| `M4_P256K_C256K.nes` | 524,304 | MMC3 at maximum PRG/CHR; optional | compute |
-| Leave out | | m0 (already covered), m9, m10, m11, m28, m34, m69, m78.3, m118, m180, and the 512 KiB SxROM ROMs (`M1_P512K_*`) for this milestone | |
-
-Notes that change implementation:
-
-- **Result protocol.** No memory channel; the result is a 4-digit code on screen (WRAM, PRG, IRQ, CHR; `0000` is normal) plus beeps. The per-frame text must be read from the nametable (tile = ASCII per the existing blargg screen-text approach) or by frame hash. Result addresses are not documented (CONFORMANCE gap). Recommended: frame hash of the final screen per ROM, recorded in the scoreboard after the first correct run, plus a decoded-text assertion once the nametable layout is read from the running ROM. Frames needed to reach the result: not measured (CHR-RAM tests run 8 passes while buzzing); measure before setting `timeout` values.
-- **Expected non-zero codes.** README documents `1xxx` / `4xxx` for MMC1 WRAM-disable rules and `2xxx` for MMC3 read-only mode; the MMC3 test warns about missing WRAM write-protect on iNES 1 environments. Decide per ROM whether `0000` is required or an accepted code is recorded.
-- **Header dependence.** The ROMs are NES 2.0 and carry PRG-RAM, PRG-NVRAM and CHR-RAM sizes in header bytes 10 and 11. The NES 2.0 parser must therefore honour those (v1 loader accepts NES 2.0; confirm bytes 10/11 are read, not only `flags 6`).
-- **Extraction.** The archive is `.7z`. macOS/Linux `bsdtar -xf` (libarchive) extracted it with no extra install (tested); `p7zip-full` is on `ubuntu-24.04`; 7-Zip 26.03 is on the Windows image. Extraction is a one-time maintainer step, not a CI step, because the files are committed. Record the archive hash in the manifest `pin` field.
-- **Save fixtures.** The archive also holds `2k.sav`, `8k.sav`, `32k.sav` (all 0xFF-filled, tested). Do not commit them: `hygiene.sh` rejects save files and the tests can generate them.
-
-### Not committable, fetch nightly at a pin (no licence)
-
-| Suite | Pin | Why | Use |
-|-------|-----|-----|-----|
-| `mmc3_test_2/rom_singles/*.nes` (blargg) | `christopherpow/nes-test-roms` @ `95d8f621ae55cee0d09b91519a8989ae0e64753b` (the pin CF.06 already uses) | The repository and the tests state no licence (CONFORMANCE: 589 files checked); cannot be redistributed. Same rule as the existing 65x02-style fetch. | `$6000` result protocol; RAM at `$6000` required. SHA-256 (fetched today): `1-clocking` `b06d8a97f0ca672be92c841d6af7d1e650696e86e9cc0cf6eeb90d67a6ab499b`; `2-details` `e7af16c764b119e60effb7b1cfeec3dd8e2e657041283693cdbbeedb4081f1e3`; `3-A12_clocking` `b375f15b9f9d372c8084b9c50928be9e41a3ac48be831ce82d203c18891433ad`; `4-scanline_timing` `14a220b9d1272acc7a820ab38e9762a7cdf2d54c65e753be87f23dfcaf1bb845`; `5-MMC3` `e0824123d60b83868dac1189b28250f8e10376a01be468a5a74aa59937cb32ca`; `6-MMC3_alt` `56698b6918453d161a8d4e51f66e363d6966b054939c8176c53c401a6b55269b`. All 40,976 bytes, mapper 4, header battery 0. |
-| `mmc3_irq_tests/*.nes` (blargg) | same pin | Same | Screen text, result in `$F8`. Files 1-6 are 16,400 bytes each. |
-
-Rules for these two: pick **MMC3 revision B behaviour** (the SMB3 / Mega Man 3 chip) as the single emulated behaviour; `5-MMC3` must pass and `6-MMC3_alt` (revision A) is recorded `unsupported` in the scoreboard. This follows the readme (the last two ROMs target different chip revisions) and avoids a core option, which would enter state, replay and netplay compatibility (LIBRETRO-AND-RUNNER section 2). Whether NES 2.0 submapper numbers should select the revision: not researched; LOW, leave to the MMC3 phase.
-
-### Games that exist but are excluded
-
-| Game | Reason |
-|------|--------|
-| `wendelscardua/signos` (MMC3, Unlicense repo) | README: assets (graphics and music) are copyrighted, redistribution needs permission. |
-| `captain-http/flappy-paratroopa-nes` (MMC1, MIT) | Appears to reuse a Nintendo franchise's characters; the repository licence cannot grant that. |
-| `mhughson/mbh-cart` Minekart Madness (m28 and MMC1 builds, MIT) | Franchise-derived title; provenance not verified. |
-| `AnthonyBongers/GhostsAndGraves` (mapper 3, battery flag, Unlicense) | CNROM with a battery flag is not a real board (header: 32 KiB PRG, 40 KiB CHR, battery set). Useful only as a robustness case; asset licence not stated. LOW. |
-| Games with `GPL`, `CC BY-NC`, or "do not distribute" terms | Already listed in CONFORMANCE "Excluded". |
-| `CleverCatGames/nes-platformer-template` (MMC1, CHR RAM, 128 KiB, battery, BSD-3-Clause) | Licensable, but it is a template; the art/music provenance is not stated. Keep as a fallback second MMC1 game, not a fixture. MEDIUM. |
-| `wendelscardua/file-fixers` (MMC3, iNES 1, battery, MIT) | Usable as an extra MMC3 game; asset terms not read. Fallback only. |
-
-**UxROM and AxROM have no open-licence commercial-quality game fixture.** A search of GitHub (licence filter MIT, Zlib, Unlicense, Apache, BSD, CC0, ISC, WTFPL) for homebrew `.nes` release assets found games on mappers 0, 1, 3, 4 and 28 only. Cover UxROM, CNROM and AxROM with Holy Mapperel plus the in-repo synthetic builder, and state it in the roadmap rather than hunting further.
-
-## Libretro Integration (no new API beyond what v1 already vendors)
+### libretro.h surface (all already vendored; no header bump)
 
 | Item | Decision | Why |
 |------|----------|-----|
-| `retro_get_memory_data(RETRO_MEMORY_SAVE_RAM)` / `retro_get_memory_size` | Return the cartridge's battery-backed PRG-NVRAM buffer and its exact byte length; `NULL`/0 when the cartridge has no battery. | `libretro.h` L498-509: save RAM is the battery-backed cartridge RAM; NULL/0 means "does not apply". RetroArch stores it as `<content>.srm` in `savefile_directory` (LR.03). The adapter writes no file (current stub at `libretro/libretro.c` returns NULL/0). |
-| Pointer and size stability | Fixed at `retro_load_game`, unchanged until `retro_unload_game`. | The host reads/writes the buffer directly; RetroArch loads the `.srm` into it after load. A fixed size also avoids unverified size-mismatch behaviour (see Gaps). |
-| Volatile PRG-RAM (e.g. `M1_P128K_C32K_W8K`) | Never exposed as `SAVE_RAM`. | Would make RetroArch write `.srm` for games with no battery. Expose through `SET_MEMORY_MAPS` for RetroAchievements, per the existing decision (LIBRETRO-AND-RUNNER section 2). |
-| Reset and power cycle | `retro_reset` must not clear NVRAM; `retro_deinit`/unload leaves the host buffer valid until unload completes. | The host loads save data once, after content load. |
-| Header sizing | Battery size from NES 2.0 byte 10 high nibble (`64 << n` bytes); for iNES 1 with battery and byte 8 = 0, use 8 KiB. Non-battery iNES 1 mappers that tests need at `$6000` (blargg MMC3 suites) also need 8 KiB RAM when byte 8 = 0. | `runner.nes` and the Holy Mapperel S8K ROM declare `$70` = 8 KiB; `stallar.nes` and the platformer template are iNES 1 with battery and zero in byte 8. |
-| Autosave | None in the core. RetroArch decides (`autosave_interval`, `SAVE_FILES` UDP command; defaults vary by version and platform, so do not rely on them). | Core stays free of file I/O (rule 2). |
-| E2E proof | Extend the existing `retroarch-e2e` job (macos-15, 111 s today, pinned RetroArch 1.22.2, SHA-256 `81b79121...b434`) to run the S8K ROM, quit, assert a non-empty `.srm` of exactly 8192 bytes, then relaunch and compare the screen. | "No check waits on a person"; RetroArch 1.22.2 remains the latest stable. |
+| `retro_serialize_size` / `retro_serialize` / `retro_unserialize` (stubs in `libretro/libretro.c` return 0/false today) | Return the library's fixed state size after a successful `retro_load_game`; the same value for the whole session, and also in the no-cartridge test-frame mode. Before load: 0. | Header (L7699): between load and unload the size must never grow, so a frontend allocates once. A fixed size is already the architecture's rule. |
+| `retro_unserialize(data, len)` | Reject `len != size` (not "less than"), validate the whole buffer before touching the instance, return false on any failure with the instance unchanged. | Rewind and run-ahead feed it arbitrary old buffers; netplay feeds it remote bytes. Matches ARCHITECTURE section 7 ("validated in full before any of it is applied"). |
+| `RETRO_ENVIRONMENT_SET_SERIALIZATION_QUIRKS` (44) | **Do not call it.** Zero quirks is the default and is the truthful value for a fixed-size, pointer-free, fixed-byte-order state. | Each quirk bit (INCOMPLETE 1<<0, MUST_INITIALIZE 1<<1, VARIABLE_SIZE 1<<2, SINGLE_SESSION 1<<4, ENDIAN_DEPENDENT 1<<5, PLATFORM_DEPENDENT 1<<6) is a way for a frontend to switch features off. INCOMPLETE in particular tells frontends not to use the state for netplay or rerecording. Setting none is the claim "complete". |
+| `RETRO_ENVIRONMENT_GET_SAVESTATE_CONTEXT` (72, experimental) | **Do not depend on it.** The core produces byte-identical state in all four contexts (NORMAL 0, RUNAHEAD_SAME_INSTANCE 1, RUNAHEAD_SAME_BINARY 2, ROLLBACK_NETPLAY 3). | The contexts exist so cores may use pointers (context 1) or omit data (context 3). A pointer-free full state satisfies every context at once, which keeps one format, one test and one hash. The header says the netplay context wants integers in big-endian; ours are written byte-wise in one fixed order regardless of host, which gives the property that matters (same bytes on every platform). Document the choice (little-endian, byte-wise) in the public header; do not branch on context. |
+| `RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE` (47, experimental; bit `RETRO_AV_ENABLE_FAST_SAVESTATES` 1<<2) | **Defer.** Do not read it in v3. | It lets a frontend ask for skipped video/audio during run-ahead. Skipping output is an optimisation that must provably not change state; measure first (section 3), then decide. Reading it changes nothing about correctness. |
+| `SET_CORE_OPTIONS_V2` | Still none. | Options enter state, replay and netplay compatibility (existing decision). |
 
-## Runner (`nesturbator-run`) save handling
+### `.info` file (`libretro/nesturbator_libretro.info`)
 
-Build on the existing proposal (LIBRETRO-AND-RUNNER section 5) rather than re-deciding it; the research changes only the details below.
+Change two keys, in one commit with the adapter change (CLAUDE.md rule 6):
+
+```
+savestate = "true"
+savestate_features = "deterministic"
+```
+
+`savestate_features` allowed values (libretro-super `00_example_libretro.info`): `basic`, `serialized` (adds rewind), `deterministic` (adds run-ahead and netplay). RetroArch disables features above the declared level since 1.10.1 (LIBRETRO-AND-RUNNER section 2), so `deterministic` is what turns on run-ahead and netplay for users; it is a claim the CI must back, which is why the determinism tests below are not optional. `memory_descriptors` stays as is (separate decision). Do not add `cheats` or `input_descriptors` in this milestone.
+
+Ship-order rule: the `.info` file must not say `deterministic` in any release whose determinism tests are not green on all six runners. Make the info key flip the last commit of the state phase.
+
+### Netplay and run-ahead contract (what "deterministic" must mean here)
+
+- Netplay compares core version and per-frame state hashes, so `library_version` (from `version.txt`) and state bytes must be equal across platforms. This is already the project's hash-pinning claim; v3 extends it to state bytes.
+- Run-ahead in RetroArch (single instance) saves a state, runs N frames, loads the state back every frame; "second instance" mode loads the core twice. Both require no mutable globals (already enforced by the `nm` check) and `retro_run` free of side effects outside the instance.
+- Tests that back the claim (all run by `cmake --workflow --preset ci`, no framework): (a) save at frame N, run M frames, hash; load, run M frames, hash; hashes equal; (b) N then M frames equals N+M; (c) two instances in one process, interleaved, produce unchanged hashes; (d) the saved bytes themselves are hashed and pinned in `hashes.txt`, so `hash-equality` compares them across the six legs; (e) the same state loaded after `reset` and after a different ROM is rejected with no change to the instance; (f) a libFuzzer target for the state loader (already planned as PERF-01 in ENGINEERING section 4) with a committed corpus replayed as `fuzz.regress.state` on legs without libFuzzer.
+- Rewind efficiency (MEDIUM, from RetroArch behaviour I could not verify in source): RetroArch rewinds by taking a state every frame and delta-compressing it. Keep the state a multiple of 4 bytes, put fast-changing fields (CPU/PPU registers, counters) in fixed positions, zero all padding explicitly and never store anything that changes without game-visible meaning (host timestamps, pointers, allocation addresses). Then consecutive states differ in few bytes. A state of roughly 50 KB (RAM 2 KB, VRAM 2 KB, OAM 256 B, palette 32 B, CHR RAM up to 32 KB, PRG RAM up to 8 KB, registers) is cheap at 60 Hz.
+
+### Format (library, not libretro)
 
 | Item | Decision | Why |
 |------|----------|-----|
-| Option and file | `--save-dir DIR`; file `DIR/<rom basename>.sav`, raw bytes, exactly the length the core reports. | Matches the proposal and the owner's "raw .sav bytes". A RetroArch `.srm` is the same raw bytes, so a file can be copied between host and runner (LOW until tested together). |
-| Load | If the file exists and its length equals the core's size, copy it in before frame 1. Any other length: warn on stderr, start from the power-on fill, and do not overwrite on exit unless the game changed it. | A silent truncation/pad would corrupt a save. Decision for the roadmap: mismatch is an error with a distinct exit status, or a warning; pick one. Recommended: error, status 4, no write. |
-| Write | Temp file in the same directory, `rename`, on exit, on SIGTERM, on SIGUSR1, and every `--save-interval` frames when dirty. Dirty detection: a flag set by any CPU write to the NVRAM range. | Atomic replace matches the proposal; a 8 KiB `memcmp` against a snapshot is the simpler alternative and costs one compare per interval. |
-| Hashes | Frame/audio hashes must not depend on whether a save file exists unless the test passes one. | Determinism rule 5. |
-| Fresh NVRAM fill | Choose one value (suggest `0x00`) and document it in the header. Real boards are unspecified; Holy Mapperel looks for the `SAVEDATA` string, not for a fill. | Same hash on every platform. |
-| Tests | New CTest cases: write on exit, reload equals, wrong-length refused, kill-and-recover leaves either old or new file but never a partial one. | Rule 6. |
+| Header | magic, state-format version, behaviour revision, body length, ROM fingerprint | Versions are separate fields (ARCHITECTURE section 7). The fingerprint is how the runner and `--capabilities` tell a state belongs to a ROM (LIBRETRO-AND-RUNNER section 5). |
+| Fingerprint | A small owned hash computed once at `load_cartridge` (CRC-32 or FNV-1a 64 over PRG+CHR), not SHA-256 | It guards against loading a state into the wrong game, not against an attacker. SHA-256 exists in the runner only; the core links only C memory functions and should not grow a crypto module for this. |
+| Integrity | Structural validation (ranges of every index, mapper register bounds, enum values), **no** per-state checksum in the core | A checksum over 50 KB per frame is a cost on every rewind step and does not make a load safe; range checks do. The runner's state file may add a SHA-256 trailer, since the runner is not on the per-frame path. |
+| Byte order | Byte-wise little-endian helpers; no struct dumps, no packed structs, no bit-fields | ENGINEERING section 1 rule; makes the bytes platform-independent. |
+| Battery RAM | Included in the state, and also exposed separately as save RAM | A state is complete; loading one over a different `.srm` is the user's choice. `retro_unserialize` must not mark the battery as clean-synced; bump the dirty generation so the host flushes. |
 
-## CI and Build Tooling Changes
+## 2. Runner (`nesturbator-run`) signals, exit statuses, state files
 
-Measured on the latest successful `main` run (job wall seconds): macos-15-intel build 181, asan 171, windows-11-arm 144, macos-15 arm64 113, retroarch-e2e 111, windows-2025 92, ubuntu x64 78, ubuntu arm64 77, nofp 16-21, hygiene 19. Local `ctest -j1` over 357 tests takes 49 s on this Mac. The pipeline is already about three minutes end to end; the CI tune-up is about trimming and hardening, not rescuing.
+### Signal handling: use C17 `signal()` and a `volatile sig_atomic_t`
 
-| Change | Decision | Why |
-|--------|----------|-----|
-| Compiler cache (ccache) | **Do not add in v2 unless a measurement says so.** ccache is on none of the runner images (checked Ubuntu 24.04, macOS 15, Windows 2025 image readmes); `hendrikmuhs/ccache-action` v1.2.24 (2026-08-31) or `actions/cache` v6.1.0 (2026-06-26) would be a new third-party `uses:` for an unknown win. First step of the tune-up phase: print the compile share of the slowest legs (`ninja -d stats` or ctest `Test time` vs build time). Adopt only if compile exceeds about 40% of macos-15-intel or windows-11-arm; if so use `actions/cache` keyed by preset, runner label and compiler version (existing ENGINEERING rule), and SHA-pin it. | Owned-code, minimal-dependency stance; every new action must also pass `sha_pinning_required` and the `hygiene` `uses:` scan. |
-| Parallel tests | Add `"execution": { "jobs": 4 }` (CMake 3.25 preset field) to the `ci`, `ci-msvc`, `dev` and `asan` test presets. Check first that no test shares a fixed temp path (runner `.sav` tests will need per-test directories). | Largest cheap lever as ROM tests grow (Holy Mapperel adds about 14 ROM runs). The 357 tests currently run serially. |
-| Flake hunt | Nightly job (existing `nightly.yml`): `ctest --repeat until-fail:3 --schedule-random` on the `ci` preset. | Finds order-dependent and shared-path tests that PR runs hide, supporting "a test that failed without a code change is fixed or removed" (SEED-006). |
-| Job splitting | Do not split `build`. Consider moving `asan` to start in parallel (already is) and giving `retroarch-e2e` its own build so it does not run the full suite a second time: its "Build and run the local test suite" step is 89 of its 111 seconds and duplicates `build (macos-15)`. Upload the built core/runner as an artifact from `build` and let the e2e job download it. | Saves about 80 s of runner time; the e2e job's critical path is not the wall-clock bottleneck, so this is optional. MEDIUM. |
-| Timeouts | Recompute as twice the new cold time, per the existing rule. `retroarch-e2e` is 30 min for a 111 s job. | Keeps stuck jobs cheap. |
-| Intel macOS leg | Keep for v2; schedule its removal or demotion to `main`-only. `macos-15-intel` is the last Intel image; GitHub says Intel macOS is unsupported after the macOS 15 image is retired in fall 2027. It is also the slowest leg. | Hash-equality across x64 and arm64 is still covered by Linux and Windows x64/arm64. |
-| Action pins | Bump `actions/upload-artifact` v7.0.1 to **v7.0.2** and `actions/download-artifact` v8.0.1 to **v8.0.2** (both released 2026-10-07); `actions/checkout` v7.0.1 is current; `actions/attest` is v4.2.2; `googleapis/release-please-action` v5.0.0 is current. Dependabot (`github-actions`, weekly) will propose the first two; merge them in the tune-up phase. SHAs must be resolved from the tag, not copied from this file. | Pins are one patch behind today. |
-| Runner labels | Keep `ubuntu-24.04`, `ubuntu-24.04-arm`, `macos-15`, `macos-15-intel`, `windows-2025`, `windows-11-arm`. `ubuntu-26.04` and `macos-26` exist; do not move in v2 (no feature needs it). `macos-14` is retired on 2026-11-02 and is not used. The `windows-11-arm` label moved to the Visual Studio 2026 image (runner-images issue 14602); the MSVC step uses `vswhere -latest`, so it should hold, and the log of the next run will confirm. | Image churn is a cost without a benefit. |
-| AccuracyCoin pin | Re-check upstream HEAD during the tune-up; a pin move is its own change. | SEED-006. |
-| New ctest labels | Add `mappers` (Holy Mapperel + unit tests) and `games` (nes-runner, stallar) so the tune-up phase can time them separately and `asan` can exclude slow ones if needed. | Same mechanism as the existing `retroarch`, `abi`, `hygiene` labels. |
-| Scoreboard | Add `holymapperel/<file>` and `mmc3/<name>` keys to `tests/accuracy/scoreboard.txt`; blargg MMC3 keys are `unavailable` in PR runs and filled by the nightly. | Existing "may only improve" rule. |
-| Boot-to-play check | A movie (existing `--movie` / `--expect` machinery) for `runner.nes`: Start press on the title screen, jumps over several obstacles, frame hash at a fixed frame, plus a save written and reloaded across two runs. | Automated, deterministic, no person in the loop. Whether the movie reaches visible "play" has not been run; LOW until done. |
+| Item | Decision | Why |
+|------|----------|-----|
+| API | `signal(SIGINT, h)` and `signal(SIGTERM, h)` from `<signal.h>`, handler only stores to `static volatile sig_atomic_t g_stop` | This is the whole of what C17 allows a handler to do (access `volatile sig_atomic_t`, lock-free atomics, call `abort`, `_Exit`, `quick_exit`, `signal`). `fwrite`, `rename`, `malloc` and `printf` are forbidden inside a handler; Microsoft's page lists the same restrictions. The main loop polls the flag once per frame (about a millisecond of work), flushes saves and states through the existing temp-file-and-rename path, and exits. That gives the 2 s budget Playstead allows (SIGTERM, then SIGKILL after 2 s) a large margin. |
+| `sigaction` | **Not needed.** Skip it. | `sigaction` is POSIX, not C17, and with `-std=c17` the headers hide it unless `_POSIX_C_SOURCE` is defined (`runner/save.c` already does this for `fsync`). The flag-only handler does not need `SA_RESTART` control because the runner makes no blocking calls between frames. One portable code path beats two. |
+| Re-arming | In the handler, call `signal(sig, SIG_DFL)` first | A second SIGTERM or Ctrl+C then kills a runner stuck in a flush. It is also required on Windows: Microsoft documents that "before the specified function is executed, the value of func is set to SIG_DFL". On POSIX BSD semantics (glibc, macOS) keep the handler installed; setting SIG_DFL deliberately gives the same behaviour on both. |
+| Windows | `signal(SIGINT, h)` works for Ctrl+C in a console. `SIGTERM` is **never generated** by Windows (Microsoft: SIGILL and SIGTERM "aren't generated under Windows"; only `raise` delivers them). For console close use `SetConsoleCtrlHandler` behind `#ifdef _WIN32` for `CTRL_BREAK_EVENT` and `CTRL_CLOSE_EVENT` only. | The handler runs on a **new thread** the system creates (HandlerRoutine docs), so write a `volatile LONG` or use `InterlockedExchange`, never touch the instance. `CTRL_CLOSE_EVENT` gives about 5 s (`SPI_GETHUNGAPPTIMEOUT`, 5000 ms); Ctrl+C and Ctrl+Break have no timeout. Logoff and shutdown events reach services only; ignore them. `windows.h` is already used in `runner/save.c`. Playstead is a macOS app, so this is best-effort and tested by `GenerateConsoleCtrlEvent` only if cheap; do not spend a phase on it. |
+| `SIGUSR1` flush | `#ifdef SIGUSR1` (POSIX only); same flag pattern with a second flag `g_flush` | Existing proposal. Not defined on MSVC, so the guard keeps the file portable. |
+| Crash signals | Unhandled (as proposed) | A handler for SIGSEGV cannot safely flush and would hide bugs from ASan. |
+| Exit status after SIGTERM/SIGINT | 0 after a successful flush; 1 if the flush failed | Playstead reads 0 as clean and sent the signal itself. 128+n is the shell convention for death by signal, which a handled signal is not. |
+| Exit status table | 0 done; 1 failure; 2 usage; 3 hash mismatch; 4 save file of the wrong length (v2 recommendation; check it shipped); 5 state rejected (wrong version, wrong ROM, bad length); 77 unsupported capability | Keep one `enum` in `runner/` and print the table in `--help` and the README. A test per status. Do not renumber existing ones. |
+
+Test it with a CTest case that starts the runner on a long `--frames`, sends the signal through a small helper (`kill` from a test process on POSIX; `GenerateConsoleCtrlEvent` or `raise` via a test-only flag on Windows), and checks: exit status 0 inside 2 s, the save file is whole, and no `.tmp` remains. `tests/test_process.h` is the existing seam.
+
+### State files in the runner
+
+| Item | Decision | Why |
+|------|----------|-----|
+| Options | `--save-state FILE`, `--load-state FILE`, plus `--state-at-frame N:FILE` for tests | Mirrors `--dump-frame N:FILE`. Load before frame 1; refuse with status 5 and no file written if validation fails. |
+| Write | Same temp file, sync, rename path as `.sav` (`runner/save.c`) | One implementation of atomic replace, already correct on POSIX (`fsync`, `rename`) and Windows (`_commit`, `MoveFileExA` with replace). Fixes nothing new; reuse. |
+| `--capabilities` | Add state format version, state size and behaviour revision to the JSON | Already specified: "state fingerprint". |
+
+## 3. Speed: runner timing mode and per-PR instruction counts
+
+### Runner FPS and frame-time percentiles (informational, never a gate)
+
+| Item | Decision | Why |
+|------|----------|-----|
+| Flag | `--bench N` (frames), optional `--bench-state` (serialize+unserialize each frame, which models rewind cost) | One mode serves both wall-clock and Cachegrind. No hashing, no dumping inside it, because SHA-256 would dominate the Ir. |
+| Clock | `clock_gettime(CLOCK_MONOTONIC)` on Linux and macOS (macOS 10.12+), `QueryPerformanceCounter` on Windows, behind a ten-line wrapper in the runner | C17 `timespec_get(TIME_UTC)` is a wall clock and can step; C17 has no monotonic clock. Runner only: the core never reads time, so determinism is untouched. Needs `_POSIX_C_SOURCE 200809L` like `save.c`. |
+| Statistics | Preallocate a `uint64_t` nanosecond array of N, `qsort`, nearest-rank p50, p90, p99, p99.9 and max; integer frames-per-second as `frames * 1000000000 / total_ns` (also milli-fps) | `qsort` is standard library, no float is needed, and it keeps the runner as integer-only as the core. Print one stable `key=value` line per statistic so a script can parse it. |
+| Use | Print in the `perf` job summary and nightly logs; **never fail on it** | Hosted-runner wall time varies by several percent between runs (Valgrind manual's own comparison), and noisy neighbours add more. |
+
+### Per-PR instruction counts: Cachegrind, `Ir` only, on `ubuntu-24.04` x64
+
+**Recommendation: `valgrind --tool=cachegrind --cache-sim=no`, one job, `ubuntu-24.04` x64, `apt-get install -y --no-install-recommends valgrind`.** Version in the Ubuntu 24.04 repository is 3.22.0-0ubuntu3 (amd64 and arm64 builds exist). It is not preinstalled on the image (checked image 20261004.327.1). It is not a GitHub Action, so no new `uses:` pin and nothing for the `hygiene` scan to resist.
+
+Why this tool:
+
+| Candidate | Verdict | Why |
+|-----------|---------|-----|
+| **Cachegrind (`Ir`)** | **Use** | Counts executed instructions in user space, needs no hardware counters, runs inside any VM. The manual: instruction counts are "highly reproducible", execution time varies "several percent". Rustls' `ci-bench` and the Rust compiler's builtins repo gate CI on the same method. `--cache-sim=no` is the default and the fastest. |
+| `perf stat -e instructions` | Reject | Hosted runners are VMs; `perf` is not on the image, `linux-tools` would need to match the kernel, and the runner-images issue 4974 reports the PMU counters as unsupported on hosted images (2022 data; no current GitHub statement found, so MEDIUM). Even where counters work they vary run to run and by CPU model. |
+| Callgrind | Optional drill-down only | Same determinism, 2 to 3 times slower, adds call graphs. Use it by hand when the Cachegrind summary shows a regression; do not run it in CI. |
+| `cg_annotate --diff`, `cg_diff` | Artifact only | `cg_annotate --diff a b` computes b minus a (negative means b is cheaper); `cg_diff` is described as deprecated in the manual. Upload both outputs as an artifact for humans. Do not parse them for the gate. |
+| arm64 (`ubuntu-24.04-arm`) | Skip for the gate | The Ubuntu package exists for arm64, but no source I found confirms behaviour on the hosted arm runner, and `Ir` is ISA-specific, so one x64 baseline is enough. If wanted later, add a separate leg with its own baseline and expect to debug (LOW). |
+| CodSpeed, iai-callgrind, hyperfine | Reject | Hosted service, Rust-only, and wall-clock respectively. |
+
+### How to compare head and merge-base deterministically
+
+Cachegrind totals are exactly repeatable for the same binary, same arguments, same environment and same path. The manual warns that results depend on executable and shared-library sizes, file-name lengths, and ASLR, so isolate those variables:
+
+1. `actions/checkout` with `fetch-depth: 0` (existing pinned action; no new one). Compute `BASE=$(git merge-base origin/main HEAD)` on `pull_request`. Use the merge-base, not the base branch tip, so unrelated `main` commits do not appear as this PR's change. Create it with `git worktree add` into a sibling directory.
+2. Build **only the runner target** in both trees with the **same preset** (`ci`, Release) and the runner's default compiler (GCC 13.3 on the image; do not use `-march=native`). Same compiler, same flags, build dirs of equal-length names.
+3. **Copy each binary in turn to one fixed path** (for example `$RUNNER_TEMP/perf/bin`) and run it from the same working directory with `env -i` (empty environment). This removes argv[0], path-length and environment-size noise, which is the main way two builds of one program can differ by a few hundred instructions.
+4. Run each of a **fixed list of workloads**: `--bench N` on three committed ROMs (an NROM test ROM, an MMC1 game, the MMC3 game) plus one run with `--bench-state`, and the same with N = 0 (`--bench 0` loads, runs no frame). Per-frame cost = Ir(N) minus Ir(0) divided by N, which removes startup and loader cost from the signal.
+5. Command: `valgrind --tool=cachegrind --cache-sim=no --cachegrind-out-file=OUT ./bin --bench N --rom ROM`. Read the total from the `summary:` line of `OUT` (format: an `events: Ir` header and a `summary: <number>` line) with `awk`; no Python or `cg_annotate` is involved in the gate. Keep `OUT` files as an artifact and run `cg_annotate --diff` once for the job summary (needs `python3`, present on the image; cg_annotate's language is not stated in the manual, so treat its availability as MEDIUM and make the gate independent of it).
+6. Report a table (workload, base Ir/frame, head Ir/frame, change in percent) in `$GITHUB_STEP_SUMMARY`. **No PR comment**: it needs `pull-requests: write`, which a fork's `pull_request` token does not have, and the rule against `pull_request_target` stands (ENGINEERING section 6).
+7. Gate: report-only for the first week of runs, to confirm in practice that two runs of the same binary give identical totals (expected: identical; any difference means an uncontrolled input). Then fail the job when any workload's per-frame Ir grows more than **1 percent** (start; tighten to 0.5 once stable). A threshold that low is only possible because the measure is deterministic. An intended slowdown is accepted by editing a tracked `tests/perf/baseline-allowed.txt` line with a reason, in the same PR, so the exception is reviewed and nothing waits on a person.
+8. Timeout: twice a measured cold run, per the existing rule; expect a few minutes (two Release builds of one target plus Valgrind at roughly 20 to 50 times slowdown over a fixed, small frame count). Choose N so that the whole job stays near 5 minutes.
+
+Join it to the `CI required` roll-up like any other job (the roll-up accepts only `success`). The ENGINEERING table already has a `perf` row on `ubuntu-24.04`.
+
+Gaps for the speed phase: the compile time of two builds (could reuse the `build` job's artifact for head; measure first); the real Ir repeatability on the hosted runner (step 7 proves it); whether `apt-get update` flakes need a retry wrapper (add one if the first weeks show it).
+
+## 4. Tune-up phase tooling
+
+| Item | Decision | Why |
+|------|----------|-----|
+| RetroArch e2e for the MMC3 `.srm` round trip, state, rewind and run-ahead | Extend the existing pinned RetroArch 1.22.2 job; drive it over the UDP network-control interface | The interface (`network_cmd_enable`, default port 55355, documented in libretro/docs) offers `SAVE_FILES`, `SAVE_STATE`, `LOAD_STATE`, `LOAD_STATE_SLOT <n>`, `REWIND`, `RUNAHEAD_TOGGLE`, `PAUSE_TOGGLE`, `FRAMEADVANCE`, `READ_CORE_MEMORY`, `GET_STATUS`, `QUIT`. All of it is scriptable with `nc -u` or the shell's `/dev/udp`, so "no check waits on a person" holds. |
+| State e2e assertions | After `SAVE_STATE`, assert a state file exists in `savestate_directory`; `LOAD_STATE`, then compare a `--max-frames-ss` screenshot or `READ_CORE_MEMORY` bytes with the pre-save values | RetroArch compresses states by default and wraps them in its own container, so assert existence, non-zero size and behaviour, not the bytes. Byte-level checks belong to the library tests. |
+| Rewind and run-ahead e2e | `rewind_enable = "true"` in the appended config; `REWIND` while running; `RUNAHEAD_TOGGLE` with `run_ahead_enabled`; assert the process runs for N frames without a core error and the screenshot hash is stable | Proves the `.info` claim end to end. Whether RetroArch prints a distinct log line when it disables run-ahead for a core is unverified (LOW); read the `-v` log in the first run. |
+| Nightly timeout | Set `timeout-minutes` to twice the first measured cold run | Existing rule. |
+| Stale `.tmp` after a failed save | Already addressed by the temp-file path; add a failure-injection test (target is a directory, or an unwritable path) that asserts no `.tmp` remains | Pure C test through `tests/test_process.h`; no tooling. |
 
 ## Alternatives Considered
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| UxROM/AxROM fixtures | Holy Mapperel + in-repo synthetic images | cc65/ca65 toolchain to build homebrew | A toolchain is a new dependency, and building from source reintroduces a "ROM bytes from elsewhere" audit for each build. |
-| MMC3 IRQ proof | Nightly fetched blargg suites | Committing blargg ROMs | No licence stated anywhere; cannot redistribute. |
-| MMC3 IRQ proof | Nightly fetched blargg suites | `Fixatron/MMC3_Rom`, `Atomfusion1/NES_MMC3_CA65_*` | Banking demos, no stated licence or no IRQ result protocol. |
-| Compiler cache | None, measure first | ccache + `ccache-action` | New action, no image support, unknown payoff on a 3-minute pipeline. |
-| Battery path | `retro_get_memory_*` | Writing `.srm` from the adapter | Violates rule 2 (no file I/O in the adapter) and fights RetroArch's own save-directory logic. |
-| MMC3 revision | One fixed behaviour (rev B), rev A recorded unsupported | Core option | Options alter state, replay and netplay; the header asks for few. |
-| Test ROM storage | Commit 15 Holy Mapperel files (about 2 MB) | Fetch at pin each run | A fetch makes PR CI depend on the network; Zlib permits committing. |
+| Handler API | C17 `signal` plus `volatile sig_atomic_t` | `sigaction` + `sigaltstack`, `signalfd`, self-pipe | Not C17 / not portable to MSVC and macOS; the runner has no blocking call to interrupt. |
+| Windows close | `SetConsoleCtrlHandler` for Break and Close only | Hook everything, services API | Playstead is macOS; Windows gets Ctrl+C and nothing more. |
+| State context | One byte-identical state for all contexts | Branch on `GET_SAVESTATE_CONTEXT` (smaller netplay state, pointers for run-ahead) | Four formats to test and hash; the state is about 50 KB, so the saving is negligible. |
+| State integrity | Structural validation | CRC or SHA over every state | Per-frame cost for rewind with no safety gain. |
+| Quirks | None set | `INCOMPLETE` to be cautious | Turns off netplay and rerecording features users expect from `deterministic`. |
+| Instruction counter | Cachegrind `Ir` | `perf stat`, `qemu` plugins, wall-clock `hyperfine` | No PMU in hosted VMs; noise of several percent. |
+| Comparison input | Merge-base, same fixed path, empty environment | Base branch tip, or separate paths per tree | Tip adds unrelated changes; path and env differences shift Ir. |
+| Windows runner count for perf | One `ubuntu-24.04` x64 leg | Six legs | `Ir` is per-ISA; six legs multiply cost for no new signal. |
+| Valgrind source | Ubuntu 3.22.0 via apt | Build 3.26 from source, a Valgrind action | New dependency or a new `uses:` with no need; 3.22 is enough for `Ir`. |
 
 ## Installation
 
-Nothing to install. Maintainer one-time steps:
+Only in the `perf` job:
 
 ```bash
-# Extract the Holy Mapperel subset (bsdtar reads 7z on macOS and Linux)
-bsdtar -xf holy-mapperel-bin-0.02.7z testroms/M1_P128K_C32K_S8K.nes ...
-shasum -a 256 testroms/*.nes     # fill the manifest sha256 column
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends valgrind   # 3.22.0 on ubuntu-24.04
 ```
+
+Nothing to install locally; the dev presets are unchanged. A maintainer on macOS has no usable Valgrind for arm64 macOS; reproduce a perf finding by pushing the branch or in a Linux container.
 
 ## What NOT to Add
 
-- No cc65/ca65, Python or other ROM-building toolchain in CI.
-- No `ccache` / third-party cache action before a measurement justifies it.
-- No save-file I/O in the library or libretro adapter; only the runner touches the file system.
-- No `.sav`/`.srm` files in the tree (hygiene rejects them); generate in tests.
-- No GPL or LGPL emulator source or its test-ROM sets (Mesen's, etc.); MesenCE stays a released-binary oracle.
-- No copyrighted-asset games (signOS, franchise-derived hacks) even when the code licence is permissive.
-- No second RetroArch version in e2e; stay on 1.22.2 until a newer stable exists.
+- No library for compression, hashing or serialization (zlib, protobuf, cereal-style helpers) in the core. States are raw bytes with byte-wise helpers.
+- No state checksum in the core's per-frame path.
+- No call to `SET_SERIALIZATION_QUIRKS`, no `GET_SAVESTATE_CONTEXT` branching, no variable-size state.
+- No signal handler that does I/O; no `sigaction`, threads, `signalfd`; no SIGSEGV/SIGABRT handler.
+- No `perf`, `linux-tools`, `hyperfine`, CodSpeed or other perf SaaS; no PR-comment bot; no `pull_request_target`.
+- No wall-clock performance gate. Wall-clock output is information only.
+- No timing code in the core or the library; time stays in the runner.
+- No new GitHub Action for Valgrind; no ccache (v2 decision stands).
+- No floating point for percentiles or FPS in the runner; integer nanoseconds.
+- No GPL/LGPL emulator source for state-format or rewind ideas; RetroArch behaviour is learned from the pinned released binary and the documentation only.
 
 ## Gaps to Address in Phase Research
 
-- RetroArch's behaviour when a `.srm` length differs from `retro_get_memory_size` (not verifiable without reading its GPL source; test against the pinned binary in e2e).
-- Frames and exact on-screen layout needed for Holy Mapperel results; whether the S8K ROM keeps `SAVEDATA` across a cold start with the 8 KiB `.sav` fixture.
-- Whether `runner.nes` really writes its battery RAM during play (header declares it; not run).
-- iNES 1 vs NES 2.0 RAM defaults for mapper 4 and mapper 1 on the blargg MMC3 ROMs (they need `$6000` RAM yet declare none).
-- MMC3 NES 2.0 submapper handling and which revision the nightly MMC3 suites should expect.
-- Compile-versus-test time split on the slowest CI legs.
+- Hosted arm64 Valgrind behaviour (only needed if an arm64 perf leg is wanted).
+- Whether the RetroArch 1.22.2 binary disables run-ahead or rewind for cores whose `.info` claims `deterministic` but whose behaviour it cannot verify (observe via `-v`).
+- RetroArch rewind buffer sizing for a core whose state is not a multiple of 4 (avoided by sizing it as one).
+- Exact Ir noise floor across runs on the hosted runner (step 7 above measures it).
+- Whether `windows-11-arm`'s console delivers `CTRL_CLOSE_EVENT` in a CI session (best-effort, test only if cheap).
+- Playstead's rule for state files (path, naming, when it asks for one); `--state-dir` may be wanted once its contract is known.
 
 ## Sources
 
-- Holy Mapperel: `github.com/pinobatch/holy-mapperel` (README, LICENSE = Zlib, tag v0.02 at `c022622`, asset hash computed 2026-10-09). HIGH.
-- nes-runner: `github.com/zorchenhimer/nes-runner` (MIT, tag v1 at `47537be`, release asset hash computed). HIGH for licence; ROM behaviour not yet run.
-- Stallar: `github.com/wendelscardua/stallar` (MIT, README public-domain note, tag 0.1.0 at `0188c66`). MEDIUM for art provenance.
-- signOS README (asset restriction): `github.com/wendelscardua/signos`. HIGH.
-- blargg MMC3 suites: `github.com/christopherpow/nes-test-roms` @ `95d8f62` (readme in `mmc3_test_2`; file hashes computed; no licence). HIGH on facts, no redistribution.
-- `libretro.h` in this repository, L498-520 (memory ids); `libretro/libretro.c` stub; existing `.planning/preparation/LIBRETRO-AND-RUNNER.md` sections 1, 2, 5; CONFORMANCE.md "Classic suites" and "ROMs that can be committed". HIGH.
-- Runner image inventories: `github.com/actions/runner-images` (README label table, Ubuntu 24.04, macOS 15, Windows 2025 readmes: no ccache; CMake 3.31.x / 4.x; Ninja 1.13.2). HIGH.
-- Action releases fetched via the GitHub API on 2026-10-09: checkout v7.0.1, upload-artifact v7.0.2, download-artifact v8.0.2, cache v6.1.0, attest v4.2.2, release-please-action v5.0.0, ccache-action v1.2.24, RetroArch v1.22.2. HIGH.
-- GitHub changelog on macOS 13 closing and Intel runner support ending after the macOS 15 image (fall 2027); macOS 14 retirement notice dated 2026-10-01. MEDIUM (secondhand via search summary).
-- Job timings: `actions/runs/38011892333` on `main`; local `ctest -j1` timing on this machine. HIGH.
-- RetroArch autosave defaults: forum and wiki posts that disagree by version. LOW; do not depend on a default.
+- `libretro/libretro.h` in this repository (RetroArch v1.22.2 pin): L1683-1696 (`SET_SERIALIZATION_QUIRKS`), L1767 and L3226-3288 (audio/video enable), L2430 and L5649-5713 (`GET_SAVESTATE_CONTEXT`, `retro_savestate_context`), L3437-3470 (quirk bits), L7690-7740 (`retro_serialize_size`, `retro_serialize`, `retro_unserialize`). HIGH.
+- libretro-super `dist/info/00_example_libretro.info` (raw, master, fetched 2026-10-11): `savestate`, `savestate_features` values `basic`, `serialized`, `deterministic`. HIGH.
+- libretro docs `development/retroarch/network-control-interface.md` (master, fetched 2026-10-11): command list and defaults. HIGH.
+- Microsoft Learn, `signal` (CRT) and `HandlerRoutine` callback pages (fetched 2026-10-11): SIGINT thread behaviour, SIGTERM not generated, handler reset to SIG_DFL, forbidden calls, console event timeouts. HIGH.
+- Valgrind manual, Cachegrind chapter (valgrind.org, fetched 2026-10-11): `--cache-sim` default, `--cachegrind-out-file`, `cg_annotate --diff`, reproducibility and sensitivity notes. HIGH.
+- Ubuntu package page for `valgrind` in noble: 1:3.22.0-0ubuntu3, architectures include amd64 and arm64 (fetched 2026-10-11). HIGH.
+- actions/runner-images `Ubuntu2404-Readme.md`, image 20261004.327.1: GCC 12/13/14, Clang 16/17/18, CMake 3.31.6, Ninja 1.13.2, no Valgrind, no perf (fetched 2026-10-11). HIGH.
+- actions/runner-images issue 4974 (perf counters unavailable on hosted images, 2022) via search summary. MEDIUM.
+- rustls `ci-bench` and rust-lang compiler-builtins CI (Cachegrind on hosted runners via apt), via search summary. MEDIUM.
+- Project files: `.planning/preparation/LIBRETRO-AND-RUNNER.md` sections 2, 5, 7; `ENGINEERING.md` section 5; `ARCHITECTURE.md` section 7; `runner/save.c`, `runner/main.c`, `libretro/libretro.c`. HIGH.
