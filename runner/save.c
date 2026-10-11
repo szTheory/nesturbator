@@ -5,9 +5,16 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <sys/stat.h>
+#include <sys/types.h>
+
 #ifdef _WIN32
 #include <io.h>
 #include <windows.h>
+#ifndef S_ISDIR
+#define S_ISDIR(m) (((m)&_S_IFMT) == _S_IFDIR)
+#endif
+#define stat _stat
 #else
 #include <unistd.h>
 #endif
@@ -73,40 +80,93 @@ enum nesturbator_run_save_status nesturbator_run_save_load(const char *path, uin
     return NESTURBATOR_RUN_SAVE_LOADED;
 }
 
-int nesturbator_run_save_flush(const char *path, const uint8_t *span, size_t size, uint8_t *shadow)
+/* One stderr line for a failed save; `winerr` is a GetLastError() code, or 0 to use errno. */
+static void report_failure(const char *path, int err, unsigned long winerr)
+{
+    if (winerr != 0u) {
+        fprintf(stderr, "nesturbator-run: cannot save %s (Windows error %lu); the previous save is kept\n",
+                path, winerr);
+    } else {
+        fprintf(stderr, "nesturbator-run: cannot save %s (%s); the previous save is kept\n", path,
+                strerror(err));
+    }
+}
+
+static int sync_stream(FILE *f)
+{
+#ifdef _WIN32
+    return _commit(_fileno(f));
+#else
+    return fsync(fileno(f));
+#endif
+}
+
+int nesturbator_run_file_replace(const char *path, const uint8_t *data, size_t size)
 {
     char tmp[4096];
     FILE *f;
+    struct stat st;
+    int err = 0;
+    unsigned long winerr = 0u;
     int ok;
     if (snprintf(tmp, sizeof tmp, "%s.tmp", path) >= (int)sizeof tmp) {
-        fprintf(stderr, "nesturbator-run: cannot write %s.tmp\n", path);
+        report_failure(path, ENAMETOOLONG, 0u);
         return 1;
     }
-    f = fopen(tmp, "wb");
+    if (stat(tmp, &st) == 0) {
+        /* A directory here is not ours: refuse it (POSIX remove() would delete an empty one). */
+        if (S_ISDIR(st.st_mode)) {
+            report_failure(path, EISDIR, 0u);
+            return 1;
+        }
+        /* A regular file is a leftover from a killed write. */
+        (void)remove(tmp);
+    }
+    f = fopen(tmp, "wbx");
     if (f == NULL) {
-        fprintf(stderr, "nesturbator-run: cannot write %s\n", tmp);
+        report_failure(path, errno, 0u);
         return 1;
     }
-    ok = fwrite(span, 1, size, f) == size && fflush(f) == 0;
-#ifdef _WIN32
-    ok = ok && _commit(_fileno(f)) == 0;
-#else
-    ok = ok && fsync(fileno(f)) == 0;
-#endif
-    if (fclose(f) != 0) {
+    ok = fwrite(data, 1, size, f) == size;
+    if (!ok) {
+        err = errno;
+    }
+    if (ok && fflush(f) != 0) {
         ok = 0;
+        err = errno;
+    }
+    if (ok && sync_stream(f) != 0) {
+        ok = 0;
+        err = errno;
+    }
+    if (fclose(f) != 0 && ok) {
+        ok = 0;
+        err = errno;
+    }
+    if (ok) {
+#ifdef _WIN32
+        if (MoveFileExA(tmp, path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == 0) {
+            ok = 0;
+            winerr = (unsigned long)GetLastError();
+        }
+#else
+        if (rename(tmp, path) != 0) {
+            ok = 0;
+            err = errno;
+        }
+#endif
     }
     if (!ok) {
-        fprintf(stderr, "nesturbator-run: cannot write %s\n", tmp);
+        (void)remove(tmp);
+        report_failure(path, err, winerr);
         return 1;
     }
-#ifdef _WIN32
-    ok = MoveFileExA(tmp, path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
-#else
-    ok = rename(tmp, path) == 0;
-#endif
-    if (!ok) {
-        fprintf(stderr, "nesturbator-run: cannot replace %s; the new save is in %s\n", path, tmp);
+    return 0;
+}
+
+int nesturbator_run_save_flush(const char *path, const uint8_t *span, size_t size, uint8_t *shadow)
+{
+    if (nesturbator_run_file_replace(path, span, size) != 0) {
         return 1;
     }
     memcpy(shadow, span, size);

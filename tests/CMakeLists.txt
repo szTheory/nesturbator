@@ -159,6 +159,7 @@ runner_save_case(interval)
 runner_save_case(interval_long)
 runner_save_case(interval_retry)
 runner_save_case(jam)
+runner_save_case(dir_at_tmp)
 set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
 
 # D-18: save flag usage errors exit 2.
@@ -184,6 +185,30 @@ nesturbator_warnings(runner.save_path)
 target_compile_definitions(runner.save_path PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 add_test(NAME runner.save_path COMMAND runner.save_path)
+
+# D-06 (TUNE-07): failure injection for the atomic replace. The scratch trees
+# are removed before each run so a rerun starts clean.
+add_test(NAME runner.save_scratch
+  COMMAND ${CMAKE_COMMAND} -E rm -rf
+    ${CMAKE_CURRENT_BINARY_DIR}/save_replace_work
+    ${CMAKE_CURRENT_BINARY_DIR}/save_fsize_work)
+set_tests_properties(runner.save_scratch PROPERTIES FIXTURES_SETUP runner_save_scratch)
+add_executable(runner.save_replace runner/test_save_replace.c ${PROJECT_SOURCE_DIR}/runner/save.c)
+target_include_directories(runner.save_replace PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+nesturbator_warnings(runner.save_replace)
+target_compile_definitions(runner.save_replace PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+add_test(NAME runner.save_replace
+  COMMAND runner.save_replace ${CMAKE_CURRENT_BINARY_DIR}/save_replace_work)
+set_tests_properties(runner.save_replace PROPERTIES FIXTURES_REQUIRED runner_save_scratch)
+if(UNIX)
+  add_executable(runner.save_fsize runner/test_save_fsize.c ${PROJECT_SOURCE_DIR}/runner/save.c)
+  target_include_directories(runner.save_fsize PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+  nesturbator_warnings(runner.save_fsize)
+  add_test(NAME runner.save_fsize
+    COMMAND runner.save_fsize ${CMAKE_CURRENT_BINARY_DIR}/save_fsize_work)
+  set_tests_properties(runner.save_fsize PROPERTIES FIXTURES_REQUIRED runner_save_scratch)
+endif()
 
 # Holy Mapperel (BOARD-01): each ROM in roms.cmake is run to its frame N, the
 # runner dumps that frame, and holymapperel-decode reads the result code from
