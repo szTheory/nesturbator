@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 12
 current_phase_name: Save states in the library
 status: executing
-stopped_at: Completed 12-04-PLAN.md
-last_updated: "2026-10-12T02:51:05.683Z"
+stopped_at: Completed 12-05-PLAN.md
+last_updated: "2026-10-12T03:26:49.535Z"
 last_activity: 2026-10-11
 last_activity_desc: Phase 12 execution started
-state_head: 4aebf11413694a6065fa60d50ee4b0d29125c06d
+state_head: a33714f4ec4fe9f356151a54c59595e143a78089
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 14
-  completed_plans: 8
+  completed_plans: 9
   percent: 20
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-11)
 ## Current Position
 
 Phase: 12 (Save states in the library) — EXECUTING
-Plan: 5 of 10
+Plan: 6 of 10
 Status: Ready to execute
 Last activity: 2026-10-11 — Phase 12 execution started
 
@@ -161,6 +161,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 12 P02 | 30 min | 2 tasks | 10 files |
 | Phase 12 P03 | 25 min | 2 tasks | 7 files |
 | Phase 12 P04 | 15 min | 2 tasks | 3 files |
+| Phase 12 P05 | 45 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -231,6 +232,7 @@ Recent decisions affecting current work:
 - [Phase 12]: Status table checker is a -P script comparing sorted n:NAME pairs of the README and the enum
 - [Phase 12]: JAM tests use a gated image (loop on RAM $10, JAM when non-zero) so a clean state of the same image keeps running
 - [Phase 12]: state_test.h helpers are static inline; save-every-frame kept under asan --short (core.state_fork asan 42 s, ci 77 s)
+- [Phase 12]: Stress straddles come from a timed NMI handler (Y=1, X=220, G=5) that exploits the frame end drifting against the PPU; DMC sample restarts each frame with IRQ enabled
 
 ### Pending Todos
 
@@ -277,8 +279,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T02:51:05.663Z
-Stopped at: Completed 12-04-PLAN.md
+Last session: 2026-10-12T03:26:49.515Z
+Stopped at: Completed 12-05-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 12`.
