@@ -1260,8 +1260,11 @@ every savestate context, and a load every frame on a battery ROM. A load
 counts once in `nesturbator_save_generation` when it changes the battery bytes
 and never when loading the same state again. `libretro.no_quirks` fails if
 `libretro/libretro.c` names the quirks command or the context query.
-`libretro/nesturbator_libretro.info` does not yet claim save states
-(`savestate = "false"`).
+`libretro/nesturbator_libretro.info` declares `savestate = "true"` with
+`savestate_features = "serialized"`, which lets RetroArch keep a rewind buffer.
+RetroArch applies that level only when the core sits in its `cores` directory
+beside the info file. Run-ahead needs the deterministic level, which is not
+claimed yet.
 
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares
