@@ -38,7 +38,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 
 - [x] **Phase 11: Tune-up and state readiness** - One atomic-write helper with no stale `.tmp`, MMC3 `.srm` round trip in RetroArch, a caller and README text for every public function (completed 2026-10-11)
 - [x] **Phase 12: Save states in the library** - Fixed-size, checked, all-or-nothing states on six boards, pinned on six platforms through the runner's state options (completed 2026-10-12)
-- [ ] **Phase 13: Rewind and run-ahead in RetroArch** - libretro serialize, staged `.info` claims, RetroArch e2e for states, rewind and run-ahead, and a state-loader fuzz target
+- [x] **Phase 13: Rewind and run-ahead in RetroArch** - libretro serialize, staged `.info` claims, RetroArch e2e for states, rewind and run-ahead, and a state-loader fuzz target (completed 2026-10-12)
 - [ ] **Phase 14: Runner process contract** - Signal-safe save flush and one documented exit-status table for launchers
 - [ ] **Phase 15: Speed and close-out** - Frame-time report, per-PR instruction-count comparison, measured nightly timeout and a final pin and docs review
 
@@ -125,7 +125,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   3. The `retroarch-e2e` job saves and loads a state, rewinds, and runs with run-ahead enabled through RetroArch's network commands, and ends with no core error and the expected screenshot.
   4. A nightly libFuzzer target feeds the state loader, and its committed corpus is replayed as a test in `ci`.
 
-**Plans**: 8/8 plans executed
+**Plans**: 8/8 plans complete
 
 **Wave 1**
 - [x] 13-01-PLAN.md — Adapter serialize, `libretro.serialize` (D-01..D-09), claim guard, `libretro.info_claims`, `libretro.no_quirks` (LR-01, LR-02)
@@ -191,6 +191,6 @@ Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured col
 |-------|-----------|----------------|--------|-----------|
 | 11. Tune-up and state readiness | v3 | 4/4 | Complete    | 2026-10-11 |
 | 12. Save states in the library | v3 | 10/10 | Complete    | 2026-10-12 |
-| 13. Rewind and run-ahead in RetroArch | v3 | 8/8 | In Progress | - |
+| 13. Rewind and run-ahead in RetroArch | v3 | 8/8 | Complete    | 2026-10-12 |
 | 14. Runner process contract | v3 | 0/TBD | Not started | - |
 | 15. Speed and close-out | v3 | 0/TBD | Not started | - |
