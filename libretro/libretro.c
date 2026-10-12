@@ -246,8 +246,13 @@ void retro_run(void)
    cartridge to save; with content it is constant for the loaded board. Only the exact size
    loads, and a refused load leaves the running game unchanged. The core sets no serialization
    quirks and ignores the savestate context and the audio/video enable flags, so the bytes are
-   the same whichever the frontend reports. inst is NULL before retro_init, which both library
-   calls accept. */
+   the same whichever the frontend reports. The same bytes serve RetroArch's rewind and its
+   single-instance run-ahead (save, run ahead, load every frame); because the savestate context
+   is ignored, run-ahead's second instance, rollback netplay and every other context get them
+   too. The format is fixed little-endian and byte-identical on every platform, while
+   libretro.h L5695-5707 asks the rollback-netplay context for big-endian integers, and netplay
+   has no end-to-end test here. inst is NULL before retro_init, which both library calls
+   accept. */
 size_t retro_serialize_size(void)
 {
     return nesturbator_state_size(inst);

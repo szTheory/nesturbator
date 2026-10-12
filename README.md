@@ -1288,10 +1288,15 @@ counts once in `nesturbator_save_generation` when it changes the battery bytes
 and never when loading the same state again. `libretro.no_quirks` fails if
 `libretro/libretro.c` names the quirks command or the context query.
 `libretro/nesturbator_libretro.info` declares `savestate = "true"` with
-`savestate_features = "serialized"`, which lets RetroArch keep a rewind buffer.
-RetroArch applies that level only when the core sits in its `cores` directory
-beside the info file. Run-ahead needs the deterministic level, which is not
-claimed yet.
+`savestate_features = "deterministic"`, the highest of RetroArch's levels
+(`basic`, `serialized` for rewind, `deterministic` for run-ahead). RetroArch
+applies it only when the core sits in its `cores` directory beside the info
+file. The level is backed by `libretro.serialize`, `libretro.runahead` and
+`core.state_runahead`, and configuring the tests fails if the info file claims a
+level whose tests are not registered. RetroArch uses the deterministic level for
+run-ahead and netplay. Run-ahead is proven by the simulated host and the
+RetroArch end-to-end run. The state format is fixed little-endian and
+byte-identical on all six platforms. Netplay itself has no end-to-end test here.
 
 `libretro.runahead` runs the built module as a run-ahead host: per displayed
 frame it runs the real frame, saves, runs one to three frames ahead, shows the
@@ -1307,8 +1312,8 @@ the real stream) run through the same comparison and each must differ.
 `core.state_runahead` checks RetroArch's second-instance mode as a library
 property: one instance runs the real timeline, a second loads its state each
 frame and runs ahead, and the shown frames equal a single instance that saves,
-runs ahead and loads. Neither test is a claim: the deterministic level stays
-unclaimed.
+runs ahead and loads. Together with `libretro.serialize` they back the
+deterministic claim.
 
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares
