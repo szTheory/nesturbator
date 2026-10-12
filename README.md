@@ -979,7 +979,7 @@ mappers.
 ```sh
 nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
                 [--save-dir DIR [--save-interval N]]
-                [--state-at-frame N:FILE]... [--load-state FILE]
+                [--state-at-frame N:FILE]... [--hash-state N]... [--load-state FILE]
 nesturbator-run --version
 ```
 
@@ -1092,7 +1092,16 @@ nesturbator-run --version
   FILE holds the old file or one complete new one; the runner writes no other
   path and leaves no `.tmp` after a successful write. Running the same command
   twice replaces the file with identical bytes. Two runners writing one path
-  at the same time are not supported. A write failure exits 1.
+  at the same time are not supported. A write failure exits 1. The same N
+  given twice exits 2.
+- `--hash-state N` (repeatable; N is 0 or more) prints one line after frame N,
+  and for the loaded frame before the first frame runs:
+  `state <N> ticks <T> size <S> sha256 <64 lowercase hex digits>`. The hash is the SHA-256 of
+  the bytes `nesturbator_save_state` writes, `S` is their length and `T` the
+  emulated time after frame N (0 at power-on). Per frame the order is the
+  `frame` line, then the `state` line, then the dump files. A run that saves at
+  60 and a run that loads that state print the same `state 120` line. The same
+  N given twice exits 2.
 - `--load-state FILE` (once; a second one exits 2) resumes from a save state
   after the cartridge, and the battery save when `--save-dir` is given, are
   loaded. Frame numbers stay absolute from power-on: a state saved after frame
@@ -1108,6 +1117,16 @@ nesturbator-run --version
   With `--save-dir`, a state whose battery bytes differ from the loaded `.sav`
   counts as a change, so the write at exit puts the state's battery bytes in
   the `.sav`.
+
+  After a load at frame K, `--frames N` is the last frame to run (an end frame,
+  not a count of further frames), so the run computes frames K + 1 to N. The
+  ranges are checked after the load and before any frame runs, and a breach
+  exits 2 with a message that names K: `--frames` must be at least K;
+  `--hash-frame` and `--dump-frame` need K < N <= `--frames`;
+  `--state-at-frame` and `--hash-state` need K <= N <= `--frames`. Without a
+  load K is 0. `--movie` cannot be combined with `--load-state` (exit 2), and
+  any of `--state-at-frame`, `--load-state` and `--hash-state` without `--rom`,
+  or with `--accuracycoin-page`, exits 2.
 
 The save writer is tested under failure. `runner.save_replace` runs the shared
 replace helper against a directory at the save path, a missing parent, a
