@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-12)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 13 — Rewind and run-ahead in RetroArch
+**Current focus:** Phase 14 — Runner process contract
 
 ## Current Position
 
@@ -278,6 +278,7 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - [Phase 10] Code review left 3 warnings and 3 info open, all in test code (10-REVIEW-DISPOSITION.md): WR-01 `libretro.host --rom-parity` continues after a failed load; WR-02 boot-to-play audio window min/max not re-seeded when a window's first frame has no samples (latent); WR-03 the frame-written sentinel is weaker than its comment.
 - [Phase 11] Code review left 3 info open (11-REVIEW-DISPOSITION.md; WR-01 to WR-04 fixed): IN-01 load_cartridge repeats the power-on reset; IN-02 a failed libretro load leaves the instance NULL so AV info is zeroed; IN-03 one over-long comment line in `runner/main.c`.
 - [Phase 12] Code review closed (12-REVIEW-DISPOSITION.md): CR-01 tick ceiling, WR-01 runner exit 2 before ROM load and IN-01 fixed; WR-02 skipped, as `halted_in_read` is never written and its bound must widen if stalled reads are modelled. Six-platform state hash equality is shown only by the Phase 12 PR's CI matrix.
+- [Phase 13] Code review left 3 warnings and 5 info open, all in test code (13-REVIEW-DISPOSITION.md): WR-01 state-net frame-chain checks tolerate a dropped or doubled FRAMEADVANCE; WR-02 state_session.sh resends only the second SAVE_STATE; WR-03 special-case ROMs matched by substring of the full path. PR #44 is green and still a draft; merge it before Phase 14 work starts.
 - [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
@@ -315,7 +316,7 @@ Last session: 2026-10-12T19:51:35.444Z
 Stopped at: Phase 13 complete, ready to plan Phase 14
 Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 13`.
+Next GSD command: `/gsd-discuss-phase 14`.
 
 ## Operator Next Steps
 

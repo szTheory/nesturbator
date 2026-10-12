@@ -24,7 +24,7 @@ v1 "NROM games with sound" shipped on 2026-10-09 (v0.1.6). The milestone records
 - Runner contract (SEED-002): save states in nes-runner, saves flushed on a termination signal, and documented exit statuses for Playstead.
 - Speed (SEED-004, speed half): a runner mode that prints frames per second and frame-time percentiles, and an instruction-count comparison on every pull request.
 
-Left for later milestones: fuzzing the state loader and arbitrary ROM bytes (SEED-004), accuracy and PAL/Dendy (SEED-003), Famicom hardware (SEED-005).
+Left for later milestones: fuzzing arbitrary ROM bytes beyond the loader (SEED-004; the state loader is fuzzed nightly since Phase 13), accuracy and PAL/Dendy (SEED-003), Famicom hardware (SEED-005).
 
 ## Requirements
 
@@ -47,11 +47,11 @@ Left for later milestones: fuzzing the state loader and arbitrary ROM bytes (SEE
 - ✓ One supported game is proven from boot through interactive play by an automated check: `runner.boot_to_play` replays a nes-runner movie and requires a RAM, scene and audio change that four negative controls and eight synthetic mutants fail. — v2, Phase 10 (PLAY-01)
 - ✓ Battery saves are replaced atomically (temp file, full flush, checked close, rename; a stale `.tmp` file or link is cleared and a directory refused), the `retroarch-e2e` job round-trips an MMC3 `.srm` beside MMC1, and `nesturbator_get_version` and `nesturbator_unload_cartridge` have callers and README text. — v3, Phase 11 (TUNE-07, TUNE-08, TUNE-09; PR #42 CI run 38179044953 green on all jobs)
 - ✓ A host saves the whole machine at a frame boundary into a fixed-size, versioned, CRC-checked state and loads it back to the same run on all six boards; every field is validated before anything is applied, a refused load leaves the instance unchanged, and nes-runner has `--save-state` and `--load-state`. — v3, Phase 12 (STATE-01 to STATE-05, RUN-01; six-platform hash equality shown by the PR's CI matrix)
+- ✓ RetroArch saves and loads states, rewinds and runs ahead with the core: the adapter's serialize calls delegate to the library state API, the `.info` claims `deterministic`, and a configure-time guard refuses any `.info` claim whose proving tests are not registered; retroarch-e2e drives save, load, rewind and run-ahead in RetroArch 1.22.2 with a log check, and the state loader is fuzzed nightly with a replayed committed corpus. — v3, Phase 13 (LR-01 to LR-04; PR #44 CI run 38297707729 and Nightly run 38297707605 green on all jobs)
 
 ### Active
 
 - [ ] v2 debt closed and the pipeline tuned up (SEED-006)
-- [ ] Save states in RetroArch with rewind and run-ahead (the library API shipped in Phase 12)
 - [ ] nes-runner signal-safe save flush and documented exit statuses (runner save states shipped in Phase 12)
 - [ ] Speed measured by the runner and compared on every pull request
 
@@ -138,6 +138,8 @@ The numbered requirements are in `.planning/REQUIREMENTS.md`.
 | `nesturbator --version` prints the library's run-time version; the libretro version string stays compile-time | The runner reports the library actually linked, while libretro hosts read a static string | ✓ Good — Phase 11 `runner.version` passes |
 | A save state is a 64-byte header (format version, CRC-32 of the state and of the ROM, frame number, ticks) plus every field written by one visitor in SIZE, WRITE, VALIDATE, APPLY and RECORD modes, with a mandatory `state` op per board; VALIDATE checks the whole state before APPLY changes anything | One field list cannot drift between save, load and size; a refused load cannot leave a half-applied machine | ✓ Good — Phase 12 `core.state_fork.*` forks every board and the rejection sweep refuses each out-of-range field; no frame or audio hash moved |
 | A loaded state's ticks are capped at 2^62 and its PPU clock must trail the CPU clock by less than one frame | A CRC-valid state with ticks near 2^64 made the next frame loop about 2^61 times (Phase 12 CR-01) | ✓ Good — `core.state_reject` refuses `UINT64_MAX` and 2^62+1 and runs a frame from 2^62 |
+| Each `.info` save-state level maps to the CTests that prove it; configuring the tests fails if the `.info` claims a level whose tests are not registered, and a level is claimed only in a commit whose six build jobs are green | A libretro claim RetroArch acts on (rewind, run-ahead, netplay) must never outrun its evidence | ✓ Good — Phase 13 `serialized` then `deterministic` claimed on green CI; RetroArch state-ahead moves from frame 120 to 121 |
+| CI job timeouts are twice the slowest measured hosted run, re-measured when a phase adds test cost (build 22 min, asan 14 min) | A guessed limit cancelled the macOS Intel build on every Phase 13 head | ✓ Good — Phase 13 run 38297707729 green with Intel at 9m20s |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -159,4 +161,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-12 after Phase 12*
+*Last updated: 2026-10-12 after Phase 13*
