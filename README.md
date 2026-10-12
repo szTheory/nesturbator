@@ -979,6 +979,7 @@ mappers.
 ```sh
 nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
                 [--save-dir DIR [--save-interval N]]
+                [--state-at-frame N:FILE]... [--load-state FILE]
 nesturbator-run --version
 ```
 
@@ -1084,6 +1085,30 @@ nesturbator-run --version
   exit still happens. `--save-interval 0`, a repeated or empty `--save-dir`,
   and `--save-dir` without `--rom` exit 2.
 
+- `--state-at-frame N:FILE` (repeatable; N is 0 or more) writes the save state
+  of the machine after frame N to FILE, split at the first colon. N of 0 is
+  the state at power-on, or the loaded state itself when `--load-state` is
+  given. The file is written through the same atomic replace as a `.sav`, so
+  FILE holds the old file or one complete new one; the runner writes no other
+  path and leaves no `.tmp` after a successful write. Running the same command
+  twice replaces the file with identical bytes. Two runners writing one path
+  at the same time are not supported. A write failure exits 1.
+- `--load-state FILE` (once; a second one exits 2) resumes from a save state
+  after the cartridge, and the battery save when `--save-dir` is given, are
+  loaded. Frame numbers stay absolute from power-on: a state saved after frame
+  K (read from the state's header) makes the run continue at frame K + 1 up to
+  `--frames`, and `--hash-frame` and `--state-at-frame` use the same numbers,
+  so a run that saves at 60 and a run that loads that state print the same
+  line for frame 120. A rejected state exits 5 and prints one line,
+  `nesturbator-run: cannot load state <path> (<word>)`, where the word is
+  `another format version`, `wrong game`, `wrong length`, `damaged` or
+  `invalid contents`, for `NESTURBATOR_ERR_STATE_FORMAT`, `_CARTRIDGE`, `_SIZE`,
+  `_CHECKSUM` and `_INVALID`. A file that is missing, is a directory or cannot
+  be read exits 1 with `nesturbator-run: cannot read state <path> (<reason>)`.
+  With `--save-dir`, a state whose battery bytes differ from the loaded `.sav`
+  counts as a change, so the write at exit puts the state's battery bytes in
+  the `.sav`.
+
 The save writer is tested under failure. `runner.save_replace` runs the shared
 replace helper against a directory at the save path, a missing parent, a
 regular file as a parent, an empty and a non-empty directory at `.tmp`, a stale
@@ -1094,8 +1119,8 @@ each leaves the old save intact and no `.tmp` behind. `runner.save_fsize`
 `battery.sav.tmp` and expects exit 1, the `cannot save` message and the
 directory left alone.
 
-Exit status: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch; 3 and
-77 are reserved.
+Exit status: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch,
+5 state rejected; 3 and 77 are reserved.
 
 Each hashed frame prints one line:
 
@@ -1131,7 +1156,7 @@ frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a
 writes `frame1.ppm` (184335 bytes) and prints the same line as before.
 
 Exit status: 0 done, 1 failure (including a FILE that cannot be written),
-2 usage error.
+2 usage error, 5 state rejected.
 
 ## The libretro core
 

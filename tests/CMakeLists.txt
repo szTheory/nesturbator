@@ -166,6 +166,41 @@ runner_save_case(jam)
 runner_save_case(dir_at_tmp)
 set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
 
+# RUN-01 (D-07, D-09 to D-11): --state-at-frame and --load-state. runner.state_mutate makes the
+# corrupt copies at test time (CMake cannot compute a CRC-32); no state file is committed. Each
+# runner.state.<case> runs in its own scratch directory, so the cases are safe under ctest -j.
+add_executable(runner.state_mutate runner/state_mutate.c ${PROJECT_SOURCE_DIR}/src/crc32.c)
+target_include_directories(runner.state_mutate PRIVATE ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/include)
+nesturbator_warnings(runner.state_mutate)
+target_compile_definitions(runner.state_mutate PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+function(runner_state_case case)
+  add_test(NAME runner.state.${case}
+    COMMAND ${CMAKE_COMMAND}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      "-DMUTATE=$<TARGET_FILE:runner.state_mutate>"
+      "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes"
+      "-DOTHER_ROM=${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes"
+      "-DSAVE_FIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
+      "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/state_work/${case}"
+      "-DCASE=${case}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_state.cmake")
+  set_tests_properties(runner.state.${case} PROPERTIES
+    FIXTURES_REQUIRED runner_save TIMEOUT 60)
+endfunction()
+runner_state_case(roundtrip)
+runner_state_case(reject_game)
+runner_state_case(reject_size)
+runner_state_case(reject_checksum)
+runner_state_case(reject_format)
+runner_state_case(reject_invalid)
+runner_state_case(missing_file)
+runner_state_case(directory)
+runner_state_case(idempotent)
+runner_state_case(save_dir)
+nesturbator_runner_test(NAME runner.usage.load_state.twice
+  ARGS --frames 1 --load-state a.state --load-state b.state EXIT 2 IGNORE_STDOUT)
+
 # D-18: save flag usage errors exit 2.
 set(save_rom_arg ${PROJECT_SOURCE_DIR}/tests/roms/none.nes)
 nesturbator_runner_test(NAME runner.usage.save_dir.norom
