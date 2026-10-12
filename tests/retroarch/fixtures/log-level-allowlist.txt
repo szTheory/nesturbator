@@ -1,0 +1,5 @@
+# Test fixture: measured nowhere; a level-scoped allowlist for the matcher tests.
+# Audio driver line, benign on a headless host (any level).
+any	^\[ERROR\] failed_to_start_audio_driver
+# Fixture only: the rewind example warning is allowed at the serialized level alone.
+serialized	^\[WARN\] \[Rewind\] example warning

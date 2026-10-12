@@ -428,6 +428,16 @@ each to read back equal. It also requires a 257x240 or 256x239 image to fail
 on size, one colour channel of pixel (17,200) off by one to be reported as
 `first difference at 17,200`, and truncated or malformed files to be
 rejected. `retroarch.compare.cli` runs `compare_frame` on an equal pair.
+`retroarch.frame_index` dumps frame 37 of Nesteroids with the runner and requires
+`frame_index`, the tool that finds a screenshot among the runner's frames 1..W
+by RGB, to report 37; `retroarch.frame_index.dups` requires every repeated
+frame in 1..1200 to have its partner at most 3 frames before it.
+`retroarch.log_check` and its `.serialized`, `.unlisted_error`, `.rewind_warn`,
+`.level_serialized`, `.level`, `.no_netcmd`, `.failed_load` and `.uncommented`
+variants run `tests/retroarch/log_check.cmake` on fixture logs: a clean log
+passes, and an unlisted `[ERROR]` line, a `[Rewind]` warning, a line allowlisted
+only for `serialized` when checked at `deterministic`, a missing `[NetCMD]` line,
+a failed state load and an allowlist entry without its comment all fail.
 `palette.regen` rebuilds the colour table with `tools/palgen` and
 checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
 `vecconv.a9` converts the first three upstream `a9` (LDA immediate) tests in
@@ -1376,6 +1386,21 @@ frame 600, an 8192-byte `.srm` with `SAVEDATA` at 0x100, screenshots equal to
 the runner's frames and different from each other. `run_retroarch.cmake` takes
 `-DSAVE_SIZE=<bytes>` for the exact `.srm` size (default 32768); anything but
 a positive integer is an error.
+
+`run_retroarch.cmake` also has a state mode (`-DSTATE_ROM`, with `-DFRAME_INDEX`
+and `-DSTATE_TEMPLATE`) for the rewind and run-ahead claim. It copies the core
+into RetroArch's cores directory beside the `.info`, because RetroArch applies
+the `.info` savestate level only to a core found there, and loads that copy. The
+expected run-ahead lead comes from the `.info` under test (the
+`run_ahead_frames` value for `deterministic`, 0 for `serialized`), and the
+screenshot must show it: lane `state-base` shows the runner's frame 120, lane
+`state-ahead` shows frame 120 plus the lead. `frame_index` identifies each
+screenshot among the runner's frames. After every lane the mode checks that no
+thumbnail was written and that no second core instance was set up, and it fails
+on any RetroArch `[ERROR]` line, or any rewind or run-ahead warning, that is not
+in the measured allowlist `tests/retroarch/log_allowlist.txt`. Each allowlist
+entry names the savestate level it is valid for and carries a comment saying
+where it was measured on RetroArch 1.22.2.
 
 The official RetroArch v1.22.2 macOS release is
 [`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),

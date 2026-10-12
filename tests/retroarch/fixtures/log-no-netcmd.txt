@@ -1,0 +1,4 @@
+[INFO] RetroArch 1.22.2 starting
+[INFO] [Rewind] Initializing rewind buffer with size: 20 MB
+[ERROR] failed_to_start_audio_driver
+[INFO] [Core] Loading dynamic libretro core

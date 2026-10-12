@@ -309,6 +309,7 @@ if(have_state)
   # A lane config: test.cfg, then state.cfg.in, then each override ("key=value") replacing the
   # existing `key = "value"` line. A key that ends up on two lines is an error, because
   # RetroArch would take one of them without saying which.
+  include("${CMAKE_CURRENT_LIST_DIR}/log_check.cmake")
   function(ra_write_lane_cfg out)
     file(READ "${RA_DIR}/test.cfg" base_cfg)
     file(READ "${STATE_TEMPLATE}" state_cfg)
@@ -394,9 +395,13 @@ if(have_state)
 
   ra_state_lane(state-base 120)
   ra_state_outcome_checks(state-base "${RA_DIR}/retroarch-state-base.log")
+  nesturbator_ra_log_check("${RA_DIR}/retroarch-state-base.log"
+    "${CMAKE_CURRENT_LIST_DIR}/log_allowlist.txt" "${claim_level}" ON)
   math(EXPR ahead_frame "120 + ${k_eff}")
   ra_state_lane(state-ahead ${ahead_frame} "run_ahead_enabled=true")
   ra_state_outcome_checks(state-ahead "${RA_DIR}/retroarch-state-ahead.log")
+  nesturbator_ra_log_check("${RA_DIR}/retroarch-state-ahead.log"
+    "${CMAKE_CURRENT_LIST_DIR}/log_allowlist.txt" "${claim_level}" ON)
   if(k_eff GREATER 0)
     # The lane must tell the levels apart: the runner's frames 120 and 120 + k_eff differ.
     file(SHA256 "${RA_DIR}/runner-state-base.ppm" base_sha)

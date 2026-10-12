@@ -43,3 +43,40 @@ set_tests_properties(retroarch.frame_index PROPERTIES
   FIXTURES_REQUIRED fi_dump PASS_REGULAR_EXPRESSION " 37[ \n]" TIMEOUT 60)
 add_test(NAME retroarch.frame_index.dups COMMAND frame_index --dups ${fi_rom} 1200)
 set_tests_properties(retroarch.frame_index.dups PROPERTIES TIMEOUT 60)
+
+# D-28 as amended at planning: log_check.cmake fails on an unexplained RetroArch [ERROR] line or
+# rewind/run-ahead warning. These tests run it on fixture logs on every platform (no labels), so
+# a clean log is shown to pass and each kind of bad line is shown to fail; the expected-failure
+# tests match the matcher's own message, so a script crash cannot pass them.
+set(lc_dir ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
+set(lc_script ${CMAKE_CURRENT_SOURCE_DIR}/log_check.cmake)
+function(nesturbator_log_check_test name log level)
+  cmake_parse_arguments(PARSE_ARGV 3 LC "" "ALLOWLIST;EXPECT" "")
+  set(args -DLOG=${lc_dir}/${log} -DLEVEL=${level} -DREQUIRE_NETCMD=ON)
+  if(LC_ALLOWLIST)
+    list(APPEND args -DALLOWLIST=${lc_dir}/${LC_ALLOWLIST})
+  endif()
+  add_test(NAME ${name} COMMAND ${CMAKE_COMMAND} ${args} -P ${lc_script})
+  set_tests_properties(${name} PROPERTIES TIMEOUT 30)
+  if(LC_EXPECT)
+    set_tests_properties(${name} PROPERTIES PASS_REGULAR_EXPRESSION "${LC_EXPECT}")
+  endif()
+endfunction()
+
+nesturbator_log_check_test(retroarch.log_check log-clean.txt deterministic)
+nesturbator_log_check_test(retroarch.log_check.serialized log-clean.txt serialized)
+nesturbator_log_check_test(retroarch.log_check.unlisted_error log-unlisted-error.txt deterministic
+  EXPECT "un-allowlisted line: \\[(ERROR|WARN)\\]")
+nesturbator_log_check_test(retroarch.log_check.rewind_warn log-rewind-warn.txt deterministic
+  EXPECT "un-allowlisted line: \\[(ERROR|WARN)\\]")
+# A line allowlisted for serialized only: it passes at serialized and fails at deterministic.
+nesturbator_log_check_test(retroarch.log_check.level_serialized log-rewind-warn.txt serialized
+  ALLOWLIST log-level-allowlist.txt)
+nesturbator_log_check_test(retroarch.log_check.level log-rewind-warn.txt deterministic
+  ALLOWLIST log-level-allowlist.txt EXPECT "un-allowlisted line:")
+nesturbator_log_check_test(retroarch.log_check.no_netcmd log-no-netcmd.txt serialized
+  EXPECT "missing \\[NetCMD\\] line")
+nesturbator_log_check_test(retroarch.log_check.failed_load log-failed-load.txt serialized
+  ALLOWLIST allow-failed-load.txt EXPECT "failed state operation")
+nesturbator_log_check_test(retroarch.log_check.uncommented log-clean.txt serialized
+  ALLOWLIST allow-uncommented.txt EXPECT "no comment line directly above it")

@@ -1,0 +1,20 @@
+# Allowlist for tests/retroarch/log_check.cmake (D-28 as amended at planning).
+#
+# Format: `<level><TAB><regex>`, level any, serialized or deterministic. The level is the
+# savestate_features value the core claims; an entry applies when its level is any or equals
+# the claimed level. Every entry sits directly below a comment saying where it was measured on
+# RetroArch 1.22.2 and why the line is benign; the matcher rejects an entry without that comment.
+# No entry may match `Failed to save state` or `Failed to load state`, and the adapter gains no
+# log interface to excuse a core error.
+
+# Allowed by D-28. Measured on RetroArch 1.22.2 in lanes state-base and state-ahead, both
+# levels, 4 times per lane. RetroArch logs it when no audio device opens on a headless or CI
+# host (audio_driver = "null" here); the core's audio is checked by hashes, not by RetroArch's
+# driver.
+any	^\[ERROR\] failed_to_start_audio_driver
+
+# Measured on RetroArch 1.22.2 in lane state-ahead with the .info claiming serialized (twice per
+# lane, run_ahead_enabled = true). RetroArch refuses run-ahead for a core that does not claim
+# deterministic savestates, which is the correct answer to a serialized claim and shows the
+# claim is applied. Scoped serialized: it must not be excused once deterministic is claimed.
+serialized	^\[WARN\] \[Run-Ahead\] Run-Ahead unavailable because this core lacks deterministic save state support\.$
