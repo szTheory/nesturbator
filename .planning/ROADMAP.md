@@ -81,7 +81,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   4. A test shows the state size fixed from cartridge load to unload and 0 with no cartridge, and a save that never allocates and leaves the instance unchanged; the status codes are appended to the public header and the README has a "Save states" section.
   5. A test loads the same state 600 times with no change to `nesturbator_save_generation()`, and a load that changes battery bytes raises it exactly once; the README says rewinding past an in-game save reverts the save RAM.
 
-**Plans**: 9/10 plans executed
+**Plans**: 10/10 plans executed
 **Wave 1**
 - [x] 12-01-PLAN.md — State API, 64-byte header, CRC-32, visitor and load pipeline; NROM round trip, header layout and check-order tests (STATE-01, STATE-02)
 
@@ -110,7 +110,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 - [x] 12-09-PLAN.md — Runner `--hash-state`, absolute frame ranges and refusals (RUN-01)
 
 **Wave 10** *(blocked on Wave 9 completion)*
-- [ ] 12-10-PLAN.md — Six-platform state pins and `state.format_pin` (STATE-02, STATE-03)
+- [x] 12-10-PLAN.md — Six-platform state pins and `state.format_pin` (STATE-02, STATE-03)
 
 **Notes**: RUN-01 lands here as test tooling, so the six-platform state hash pins run in this phase. Research flag: short spike on instruction boundaries in `src/frame.c` and the save and load cost.
 
@@ -165,7 +165,7 @@ Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured col
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 11. Tune-up and state readiness | v3 | 4/4 | Complete    | 2026-10-11 |
-| 12. Save states in the library | v3 | 9/10 | In Progress | - |
+| 12. Save states in the library | v3 | 10/10 | In Progress | - |
 | 13. Rewind and run-ahead in RetroArch | v3 | 0/TBD | Not started | - |
 | 14. Runner process contract | v3 | 0/TBD | Not started | - |
 | 15. Speed and close-out | v3 | 0/TBD | Not started | - |

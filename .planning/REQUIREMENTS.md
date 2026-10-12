@@ -26,7 +26,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
   - a CRC-32 of the ROM and a CRC-32 of the state
   
   The same game and inputs give byte-identical states on all six platforms, and the state hashes are pinned in `tests/runner/hashes.txt`.
-- [ ] **STATE-03**: Saving, loading and continuing gives the same result as an uninterrupted run, for a committed ROM on each of the six boards. The check runs at several frames, including frame 0, and loads into a fresh instance pre-filled with another game. It compares every later frame hash, every audio hash, the tick count and the final state bytes. Saving every frame changes no pinned hash.
+- [x] **STATE-03**: Saving, loading and continuing gives the same result as an uninterrupted run, for a committed ROM on each of the six boards. The check runs at several frames, including frame 0, and loads into a fresh instance pre-filled with another game. It compares every later frame hash, every audio hash, the tick count and the final state bytes. Saving every frame changes no pinned hash.
 - [x] **STATE-04**: A load either applies the whole state or changes nothing. It rejects the following with distinct status codes and leaves the instance byte-identical:
   - a state from another game or board
   - a state from another format version
@@ -101,7 +101,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 | TUNE-09 | Phase 11 | Complete |
 | STATE-01 | Phase 12 | Complete |
 | STATE-02 | Phase 12 | Complete |
-| STATE-03 | Phase 12 | Pending |
+| STATE-03 | Phase 12 | Complete |
 | STATE-04 | Phase 12 | Complete |
 | STATE-05 | Phase 12 | Complete |
 | RUN-01 | Phase 12 | Complete |

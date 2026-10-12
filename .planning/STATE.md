@@ -4,17 +4,17 @@ milestone: v3
 milestone_name: Save states and rewind
 current_phase: 12
 current_phase_name: Save states in the library
-status: executing
-stopped_at: Completed 12-09-PLAN.md
-last_updated: "2026-10-12T11:44:23.252Z"
+status: verifying
+stopped_at: Completed 12-10-PLAN.md
+last_updated: "2026-10-12T12:36:58.997Z"
 last_activity: 2026-10-11
 last_activity_desc: Phase 12 execution started
-state_head: 9e4d11e294f1998370fc037dc561ac4c27569400
+state_head: 326a0b3cd98dec5465d7db86ed7c51d6a11d9381
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
   percent: 20
 ---
 
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-10-11)
 
 Phase: 12 (Save states in the library) — EXECUTING
 Plan: 10 of 10
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-11 — Phase 12 execution started
 
 Progress: [██░░░░░░░░] 20%
@@ -166,6 +166,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 12 P07 | 25 min | 2 tasks | 5 files |
 | Phase 12 P08 | 40 min | 2 tasks | 8 files |
 | Phase 12 P09 | 25 min | 2 tasks | 4 files |
+| Phase 12 P10 | 40 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -241,6 +242,7 @@ Recent decisions affecting current work:
 - [Phase 12]: 12-07: state load bumps save_generation once via a memcmp of the battery span before the PRG-RAM copy; refused loads never count
 - [Phase 12]: 12-08: runner --load-state follows the battery load, so a state's differing battery bytes reach the .sav at exit; only K is read from the header, ticks is left to Plan 09
 - [Phase 12]: Runner range checks are one check_ranges() after the state load; state ticks for N == K come from the header
+- [Phase 12]: State pins: state_format, state/<board> 0 and 60 hashes and state/<board>/size rows for six boards; hashes.txt now 114 keys
 
 ### Pending Todos
 
@@ -287,8 +289,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T11:44:23.233Z
-Stopped at: Completed 12-09-PLAN.md
+Last session: 2026-10-12T12:36:58.978Z
+Stopped at: Completed 12-10-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 12`.
