@@ -40,7 +40,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 ### libretro: rewind and run-ahead
 
 - [x] **LR-01**: The libretro core implements `retro_serialize_size`, `retro_serialize` and `retro_unserialize` over the library state, accepting only the exact size and setting no serialization quirks. With no content loaded the size is 0. A rejected buffer returns false, and the next frame equals one with no load.
-- [ ] **LR-02**: The `.info` file claims `serialized` (rewind) once the serialize round trip passes on all six platforms. It claims `deterministic` (run-ahead and netplay) only once a simulated host passes. That host runs ahead by one to three frames with a save and load per frame, and its visible frame and audio hashes must equal an uninterrupted run. A test checks that the `.info` keys match these claims.
+- [x] **LR-02**: The `.info` file claims `serialized` (rewind) once the serialize round trip passes on all six platforms. It claims `deterministic` (run-ahead and netplay) only once a simulated host passes. That host runs ahead by one to three frames with a save and load per frame, and its visible frame and audio hashes must equal an uninterrupted run. A test checks that the `.info` keys match these claims.
 - [x] **LR-03**: The `retroarch-e2e` job saves and loads a state, rewinds, and runs with run-ahead enabled in RetroArch. It drives these through RetroArch's network command interface, and the run must finish with no core error and the expected screenshot.
 - [x] **LR-04**: A nightly libFuzzer target feeds the state loader, and its committed corpus is replayed in `ci`.
 
@@ -106,7 +106,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 | STATE-05 | Phase 12 | Complete |
 | RUN-01 | Phase 12 | Complete |
 | LR-01 | Phase 13 | Complete |
-| LR-02 | Phase 13 | Pending |
+| LR-02 | Phase 13 | Complete |
 | LR-03 | Phase 13 | Complete |
 | LR-04 | Phase 13 | Complete |
 | RUN-02 | Phase 14 | Pending |
