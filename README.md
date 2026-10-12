@@ -639,7 +639,10 @@ lists its failing keys (`mmc3_test_2/<name>`, `mmc3_irq_tests/<name>`,
 and inventory scripts, `src/mapper_mmc3.c`, `src/mapper.h`, `src/ppu.c`,
 `src/cartridge.c` or `src/bus.c` run it too. The hygiene test
 `hygiene.nightly_workflow_policy` checks each lane on its own job text, and its
-self test mutates both lanes. The ROM
+self test mutates both lanes. The nightly `state-fuzz` job runs
+`fuzz.state.libfuzzer` for 60 s on the committed `tests/fuzz/corpus_state` and
+reports in the rolling nightly issue; a crash it finds becomes a `regress-`
+seed in the fixing PR. The ROM
 loader fuzz outcome is recorded in the job summary and included in
 scheduled and main-push failure issues. It uses GitHub's per-job token: the
 full-run job has only `contents: read`, and only the report job has
