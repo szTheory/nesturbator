@@ -156,6 +156,14 @@ other.
   UDP sender and no new dependency. Fence: `GET_CONFIG_PARAM savestate_directory`, which
   replies. Never use `GET_STATUS`: it segfaulted 1.22.2 in a probe. Don't use `READ_CORE_*`:
   the core has no memory map.
+  (Amended at planning, 2026-10-12: the transport lives in a POSIX sh driver,
+  `tests/retroarch/state_session.sh`, not in a CMake function, because `execute_process`
+  blocks and RetroArch must run in the background while commands are sent (RESEARCH
+  "Launching RetroArch in the background from CMake"). Commands use `nc -u -w0`; `-w1` is kept
+  only for the `GET_CONFIG_PARAM savestate_directory` readiness probe, because `-w1` blocks 1 s
+  per command even when no reply comes, while `-w0` returns at once and still delivers
+  (RESEARCH flag 3e, Pitfall 6). Commands act as per-loop flags, so every step is confirmed
+  by a screenshot, not by the fence reply (RESEARCH flag 3e).)
 - **D-25:** The sequence runs in one session:
   1. Boot without `--max-frames`, and fence on the `[NetCMD]` log line.
   2. `PAUSE_TOGGLE`, then two identical screenshots more than 1 s apart, which proves the pause.
@@ -165,6 +173,10 @@ other.
   4. `FRAMEADVANCE` x5, then a screenshot, which must be m0+5.
   5. `LOAD_STATE`, then `FRAMEADVANCE` x1, then a screenshot, which must be the saved frame
      plus the measured offset.
+     (Amended at planning, 2026-10-12: `LOAD_STATE_SLOT 0`, not `LOAD_STATE`. RESEARCH flag 3b
+     measured bare `LOAD_STATE` doing nothing while paused (no `retro_unserialize` in 3 of 3
+     tries), while `LOAD_STATE_SLOT 0` loads once while paused; the measured offset is zero,
+     so the first advance shows saved+1 (RESEARCH flag 3b, Pitfall 2).)
   6. Resume and run about 3 s (frame m1). Send a `REWIND` burst, pause and take a screenshot:
      the frame must be at most m1 minus 60. Then `FRAMEADVANCE` x3 must give m2+3.
      (Amended at planning, 2026-10-12: the bound is 20, not 60. RESEARCH flag 3a measured
@@ -172,6 +184,18 @@ other.
      the loose bound: the rewound frame is at most the pre-rewind frame minus 20.)
   7. Run-ahead. With `run_ahead_enabled`, a stepped frame must equal m3+1+k, where k is the
      measured, pinned display offset.
+
+  (Amended at planning, 2026-10-12, steps 6-7, owner-approved after the plan check: after the
+  load steps the session sends `PAUSE_TOGGLE` and runs about 3 s with run-ahead still off,
+  which is safe because commands drop only while run-ahead is active and content is running
+  (RESEARCH flags 3a, 3c). It pauses again, proves the pause with two equal screenshots, and
+  the second is m1, the frame shown just before `REWIND`. A paced `REWIND` burst (40 at 50 ms)
+  must give a rewound set whose maximum is at most min(m1) - 20; three `FRAMEADVANCE` chain
+  from it to m3. Step 7 then runs `SAVE_STATE` at m3, `RUNAHEAD_TOGGLE` while paused,
+  `LOAD_STATE_SLOT 0` and `FRAMEADVANCE`; the shown set must contain m3 + 1 + k_eff, with
+  k_eff from the claimed `.info` level (0 at `serialized`, 1 at `deterministic`;
+  `run_ahead_frames = "1"`). The session never unpauses after `RUNAHEAD_TOGGLE` and sends
+  `QUIT` while paused (RESEARCH flag 3c, Pitfall 3).)
   8. `QUIT`, sent twice (or with `quit_press_twice = "false"`).
 
   Offsets that depend on RetroArch are measured once in a spike and pinned with a comment.
@@ -189,6 +213,15 @@ other.
   identify mode that hashes the BMP's RGB bytes against the runner's `--hash-frame` values,
   provided both hash the same bytes. If they don't, it uses `--dump-frame` with a pixel compare
   per candidate.
+  (Amended at planning, 2026-10-12: they do not hash the same bytes; `--hash-frame` hashes the
+  native 16-bit buffer and a screenshot is RGB, and dumping 1..W as PPM is about 166 MB for
+  W = 900 (RESEARCH "Frame identification for the RetroArch session"). A separate test tool,
+  `tests/retroarch/frame_index`, runs the ROM once through the library and
+  `nesturbator_host_convert` and prints the set of matching frame indices per screenshot;
+  `compare_frame` keeps its pixel compare for the fixed-frame lanes. The screenshot polling runs
+  in the sh driver with `sleep 0.1` under a deadline, since the session runs there and not in
+  CMake (RESEARCH "Launching RetroArch in the background from CMake"); it is still a polled
+  deadline, never a fixed sleep for an outcome.)
 - **D-28:** The session fails on any of:
   - a non-zero exit;
   - a WARN or ERROR line tagged `[Rewind]` or `[Run-Ahead]`;
