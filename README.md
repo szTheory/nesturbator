@@ -285,13 +285,22 @@ their audio hashes, and for each Holy Mapperel ROM the result-screen frame and
 both audio hashes from the same run. It fails if any requested frame or audio
 hash is missing or duplicated, and unless the keys it generated equal the
 expected list exactly, naming the missing and the extra keys.
-`runner.write_hashes.content` requires all 95 sorted keys to equal
+`runner.write_hashes.content` requires all 114 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
-The 95 keys are 28 game boot keys (four games, five frames and two audio keys
+The 114 keys are 28 game boot keys (four games, five frames and two audio keys
 each), 15 DABG movie keys, 10 nes-runner play keys, and for Holy Mapperel one
 `holymapperel/<key>/frame N` key plus two `holymapperel/<key>/audio/...` keys
 per ROM (twelve) and per second run (`<key>.saved` for `m1sxrom`, `m4tkrom`),
-which is 14 frame keys and 28 audio keys. The list is written once, in
+which is 14 frame keys and 28 audio keys, plus 19 state keys: the
+`state_format` row, and for `dabg`, `m1sxrom`, `m2`, `m3`, `m4tkrom` and `m7`
+the state hash at frames 0 and 60 (`state/<board> N ticks T sha256 H`, from
+`--hash-state`) and the state size (`state/<board>/size S`). The state pins
+make a change to the saved state's bytes, size or format version show as a
+changed row. `state.format_pin` fails unless the `state_format` row equals
+`NESTURBATOR_STATE_FORMAT_VERSION` in `include/nesturbator.h`, and
+`runner.state.every_frame` saves a state after every frame from 0 to 180 of
+`dabg` and requires frames 1, 30, 60, 120 and 180 to keep their pinned hashes.
+The list is written once, in
 `tests/cmake/hash_keys.cmake`, which the writer, the CI hash-equality
 validator and its self-test all read, so no row count is spelled out anywhere.
 `runner.write_hashes` hashes frame N and frame 2N of each Holy Mapperel ROM and
@@ -560,8 +569,8 @@ The `hygiene` job runs the `hygiene` lane, `asan` runs `asan` with Clang 18,
 and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
-a different frame fails the run. It also requires six nonempty artifacts with
-the exact 95-key inventory from `tests/cmake/hash_keys.cmake`, checking the key
+a different frame, or a different state, fails the run. It also requires six nonempty artifacts with
+the exact 114-key inventory, state pins included, from `tests/cmake/hash_keys.cmake`, checking the key
 set of every artifact, and rejecting duplicates, missing keys, extra keys and
 malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every

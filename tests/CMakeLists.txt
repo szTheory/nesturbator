@@ -184,6 +184,7 @@ function(runner_state_case case)
       "-DSAVE_FIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
       "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/state_work/${case}"
       "-DCASE=${case}"
+      "-DHASHES=${CMAKE_CURRENT_SOURCE_DIR}/runner/hashes.txt"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_state.cmake")
   set_tests_properties(runner.state.${case} PROPERTIES
     FIXTURES_REQUIRED runner_save TIMEOUT 60)
@@ -204,6 +205,7 @@ runner_state_case(continue_hash)
 runner_state_case(range_frames)
 runner_state_case(range_hash_frame)
 runner_state_case(range_state)
+runner_state_case(every_frame)
 nesturbator_runner_test(NAME runner.usage.load_state.twice
   ARGS --frames 1 --load-state a.state --load-state b.state EXIT 2 IGNORE_STDOUT)
 # D-11, D-12 and Open Question 3: repetition and combination refusals exit 2.

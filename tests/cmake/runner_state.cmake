@@ -2,7 +2,8 @@
 #
 #   cmake -DRUNNER=<nesturbator-run> -DMUTATE=<runner.state_mutate> -DROM=<dabg.nes>
 #         -DOTHER_ROM=<another game> -DSAVE_FIXTURE=<runner.save_rom output dir>
-#         -DWORK=<scratch dir, recreated> -DCASE=<case> -P runner_state.cmake
+#         -DWORK=<scratch dir, recreated> -DCASE=<case> [-DHASHES=<tests/runner/hashes.txt>]
+#         -P runner_state.cmake
 
 cmake_minimum_required(VERSION 3.25)
 
@@ -212,6 +213,36 @@ elseif(CASE STREQUAL "range_state")
   expect_err("frame 60")
   run_runner(--rom "${ROM}" --load-state "${WORK}/good.state" --frames 70 --hash-state 71)
   expect_exit(2)
+elseif(CASE STREQUAL "every_frame")
+  # STATE-03: saving a state after every frame from 0 to 180 changes no pinned hash.
+  if(NOT DEFINED HASHES OR "${HASHES}" STREQUAL "")
+    message(FATAL_ERROR "runner_state every_frame: -DHASHES=<hashes.txt> is required")
+  endif()
+  set(state_args)
+  foreach(n RANGE 0 180)
+    list(APPEND state_args --hash-state ${n})
+  endforeach()
+  run_runner(--rom "${ROM}" --frames 180
+    --hash-frame 1 --hash-frame 30 --hash-frame 60 --hash-frame 120 --hash-frame 180
+    ${state_args})
+  expect_exit(0)
+  foreach(n IN ITEMS 1 30 60 120 180)
+    frame_line(${n} line)
+    file(STRINGS "${HASHES}" pinned REGEX "^dabg/boot/frame ${n} ticks ")
+    list(LENGTH pinned pinned_count)
+    if(NOT pinned_count EQUAL 1)
+      message(FATAL_ERROR "runner_state every_frame: ${pinned_count} pinned rows for dabg frame ${n}")
+    endif()
+    if(NOT "dabg/boot/${line}" STREQUAL "${pinned}")
+      message(FATAL_ERROR "runner_state every_frame: '${line}' differs from the pinned '${pinned}'")
+    endif()
+  endforeach()
+  # One state line per N, none missing.
+  string(REGEX MATCHALL "(^|\n)state [0-9]+ ticks" state_matches "${run_out}")
+  list(LENGTH state_matches state_count)
+  if(NOT state_count EQUAL 181)
+    message(FATAL_ERROR "runner_state every_frame: ${state_count} state lines; expected 181")
+  endif()
 else()
   message(FATAL_ERROR "runner_state: unknown case ${CASE}")
 endif()
