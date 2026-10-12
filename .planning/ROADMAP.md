@@ -164,9 +164,9 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   3. The exit-status table (0, 1, 2, 4, 5; 3 and 77 reserved) is the same in one header, `--help` and the README, a test checks that, and each status has its own test.
   4. The README says Ctrl+Break and console close are handled on Windows and that a forced termination cannot be.
 
-**Plans**: 8 plans
+**Plans**: 1/8 plans executed
 **Wave 1**
-- [ ] 14-01-PLAN.md — One exit-status table in `runner/exit_status.h`, `--help`, README section, `runner.exit.*` tests (RUN-03)
+- [x] 14-01-PLAN.md — One exit-status table in `runner/exit_status.h`, `--help`, README section, `runner.exit.*` tests (RUN-03)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 14-02-PLAN.md — Stop module, frame-exact stop with exit flush, `--raise-after` (RUN-02)
@@ -188,6 +188,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 
 **Wave 8** *(blocked on Wave 7 completion)*
 - [ ] 14-08-PLAN.md — Hosted signal timings under the D-15 rule (asan included), measured timeouts, final green head (RUN-02, RUN-03)
+
 **Notes**: Research flag: Windows console-event delivery on hosted runners and fsync latency against 2 s need a look before planning.
 
 ### Phase 15: Speed and close-out
@@ -215,5 +216,5 @@ Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured col
 | 11. Tune-up and state readiness | v3 | 4/4 | Complete    | 2026-10-11 |
 | 12. Save states in the library | v3 | 10/10 | Complete    | 2026-10-12 |
 | 13. Rewind and run-ahead in RetroArch | v3 | 8/8 | Complete    | 2026-10-12 |
-| 14. Runner process contract | v3 | 0/TBD | Not started | - |
+| 14. Runner process contract | v3 | 1/8 | In Progress | - |
 | 15. Speed and close-out | v3 | 0/TBD | Not started | - |

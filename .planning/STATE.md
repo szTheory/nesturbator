@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 14
 current_phase_name: Runner process contract
 status: executing
-stopped_at: Phase 14 context gathered
-last_updated: "2026-10-12T22:03:58.954Z"
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-10-12T22:10:06.101Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 14 execution started
-state_head: 5d4ac7eed378e41e529cb38a0cdfb2e73887abd3
+state_head: 8c6f58991d3d363c60088c42e3332a877b3a1e22
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 30
-  completed_plans: 22
+  completed_plans: 23
   percent: 60
 ---
 
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 14 (Runner process contract) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 14
+Plan: 2 of 8
+Status: Ready to execute
 Last activity: 2026-10-12 — Phase 14 execution started
 
 Progress: [██████░░░░] 60%
@@ -177,6 +177,7 @@ Progress: [██████░░░░] 60%
 | Phase 13 P06 | 11 min | 2 tasks | 14 files |
 | Phase 13 P07 | 40m | 2 tasks | 5 files |
 | Phase 13 P08 | 2h | 2 tasks | 4 files |
+| Phase 14 P01 | 20 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -263,6 +264,7 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-06: allowlist holds the audio-driver line (any) and the Run-Ahead refusal warning scoped serialized
 - [Phase 13]: 13-07: RetroArch 1.22.2 names state files after the content stem and ignores SAVE_STATE after FRAMEADVANCE; the network session saves its second state at rew-0
 - [Phase 13]: CI timeouts: build 22 min, asan 14 min, twice the slowest measured hosted run (13-08)
+- [Phase 14]: Runner exit statuses are defined once in runner/exit_status.h (RUNNER_EXIT_TABLE); --help and the README are checked against it by runner.exit.table
 
 ### Pending Todos
 
@@ -312,9 +314,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T20:44:02.355Z
-Stopped at: Phase 14 planned (8 plans, waves 1-8)
-Resume file: .planning/phases/14-runner-process-contract/14-01-PLAN.md
+Last session: 2026-10-12T22:10:06.059Z
+Stopped at: Completed 14-01-PLAN.md
+Resume file: None
 
 Next GSD command: `/gsd-execute-phase 14`.
 
