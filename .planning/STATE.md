@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 12
 current_phase_name: Save states in the library
 status: executing
-stopped_at: Completed 12-03-PLAN.md
-last_updated: "2026-10-12T02:42:55.712Z"
+stopped_at: Completed 12-04-PLAN.md
+last_updated: "2026-10-12T02:51:05.683Z"
 last_activity: 2026-10-11
 last_activity_desc: Phase 12 execution started
-state_head: 352c2b1ec79cb6d76d4ce77bc15ddd4beb97b665
+state_head: 4aebf11413694a6065fa60d50ee4b0d29125c06d
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 14
-  completed_plans: 7
+  completed_plans: 8
   percent: 20
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-11)
 ## Current Position
 
 Phase: 12 (Save states in the library) — EXECUTING
-Plan: 4 of 10
+Plan: 5 of 10
 Status: Ready to execute
 Last activity: 2026-10-11 — Phase 12 execution started
 
@@ -160,6 +160,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 12 P01 | 70min | 2 tasks | 10 files |
 | Phase 12 P02 | 30 min | 2 tasks | 10 files |
 | Phase 12 P03 | 25 min | 2 tasks | 7 files |
+| Phase 12 P04 | 15 min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -229,6 +230,7 @@ Recent decisions affecting current work:
 - [Phase 12]: Board registers travel through a mandatory state op per board; the round trip is tested whitebox
 - [Phase 12]: Status table checker is a -P script comparing sorted n:NAME pairs of the README and the enum
 - [Phase 12]: JAM tests use a gated image (loop on RAM $10, JAM when non-zero) so a clean state of the same image keeps running
+- [Phase 12]: state_test.h helpers are static inline; save-every-frame kept under asan --short (core.state_fork asan 42 s, ci 77 s)
 
 ### Pending Todos
 
@@ -275,8 +277,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T02:42:55.689Z
-Stopped at: Completed 12-03-PLAN.md
+Last session: 2026-10-12T02:51:05.663Z
+Stopped at: Completed 12-04-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 12`.
