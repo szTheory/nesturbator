@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 12
 current_phase_name: Save states in the library
 status: executing
-stopped_at: Completed 12-07-PLAN.md
-last_updated: "2026-10-12T08:06:39.232Z"
+stopped_at: Completed 12-08-PLAN.md
+last_updated: "2026-10-12T09:42:16.913Z"
 last_activity: 2026-10-11
 last_activity_desc: Phase 12 execution started
-state_head: ed340f10ff7934bde63cc02ce48ed9d72fd80096
+state_head: d0f9001856118c1a16f6aec036a186fb8f1b23df
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
   percent: 20
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-11)
 ## Current Position
 
 Phase: 12 (Save states in the library) — EXECUTING
-Plan: 8 of 10
+Plan: 9 of 10
 Status: Ready to execute
 Last activity: 2026-10-11 — Phase 12 execution started
 
@@ -164,6 +164,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 12 P05 | 45 min | 2 tasks | 4 files |
 | Phase 12 P06 | 90 min | 2 tasks | 8 files |
 | Phase 12 P07 | 25 min | 2 tasks | 5 files |
+| Phase 12 P08 | 40 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -237,6 +238,7 @@ Recent decisions affecting current work:
 - [Phase 12]: Stress straddles come from a timed NMI handler (Y=1, X=220, G=5) that exploits the frame end drifting against the PPU; DMC sample restarts each frame with IRQ enabled
 - [Phase 12]: 12-06: state_bound.hi is int64_t; ppu.v and ppu.t validated to 0x7fff; RECORD visitor mode feeds the rejection sweep
 - [Phase 12]: 12-07: state load bumps save_generation once via a memcmp of the battery span before the PRG-RAM copy; refused loads never count
+- [Phase 12]: 12-08: runner --load-state follows the battery load, so a state's differing battery bytes reach the .sav at exit; only K is read from the header, ticks is left to Plan 09
 
 ### Pending Todos
 
@@ -283,8 +285,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T08:06:39.212Z
-Stopped at: Completed 12-07-PLAN.md
+Last session: 2026-10-12T09:42:16.895Z
+Stopped at: Completed 12-08-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 12`.
