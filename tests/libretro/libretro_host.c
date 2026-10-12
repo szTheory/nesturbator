@@ -23,6 +23,7 @@
 #include "../check.h"
 #include "../ines.h"
 #include "../runahead_model.h"
+#include "../state_test.h"
 #include "../../src/internal.h"
 #include "libretro.h"
 #include "nesturbator.h"
@@ -2069,6 +2070,8 @@ enum rah_control {
     RAH_AUDIO_LEAK  /* keep the speculative frame's audio in the real stream */
 };
 
+#define RAH_MIN_ROMS 7u /* D-20: a pass over fewer ROMs than this cannot succeed */
+
 struct rah_result {
     unsigned ticks;      /* ticks run */
     unsigned states;     /* states compared with the oracle */
@@ -2204,17 +2207,148 @@ out:
     p_unload_game();
 }
 
-/* libretro.host --runahead <module> <rom>... */
+/* Tallies over the whole run. expected_ticks is what the calls asked for, so a pass that
+   returned early cannot reach the counts. */
+struct rah_totals {
+    unsigned roms, ticks, states, repeat_ticks, expected_ticks, expected_repeat;
+    unsigned controls_tripped;
+};
+
+static void rah_add(struct rah_totals *tot, const struct rah_result *res, int repeat)
+{
+    if (repeat) {
+        tot->repeat_ticks += res->ticks;
+    } else {
+        tot->ticks += res->ticks;
+    }
+    tot->states += res->states;
+}
+
+/* One script over one ROM, at the depths in depth_mask (bit N is depth N; depth 0 is the
+   uninterrupted run itself and must match trivially). Each depth runs the module in real-input
+   mode against the oracle; with repeat set, depths above 0 also run in repeat mode against the
+   library's two-instance model. */
+static void rah_matrix(const struct ser_rom *rom, uint32_t T, unsigned script, unsigned depth_mask,
+                       int repeat, struct rah_totals *tot)
+{
+    uint16_t *in = ra_script_make(script, script == 1u ? RA_SEED_1 : RA_SEED_2, T + RA_MAX_DEPTH);
+    uint64_t *visible = (uint64_t *)malloc((size_t)T * sizeof *visible);
+    struct ra_oracle oracle;
+
+    CHECK(in != NULL && visible != NULL);
+    if (in == NULL || visible == NULL ||
+        !ra_run_uninterrupted(rom->data, rom->size, in, T + RA_MAX_DEPTH, &oracle)) {
+        CHECK(0);
+        free(in);
+        free(visible);
+        return;
+    }
+    for (unsigned N = 0u; N <= RA_MAX_DEPTH; N++) {
+        struct rah_result res;
+        struct ra_oracle model;
+
+        if ((depth_mask & (1u << N)) == 0u) {
+            continue;
+        }
+        memset(&res, 0, sizeof res);
+        res.report = 1;
+        rah_run(rom, N, in, T, &oracle, NULL, RAH_NORMAL, &res);
+        if (res.mismatches != 0u) {
+            fprintf(stderr, "libretro.runahead: %s script %u depth %u: %u mismatches\n", rom->path,
+                    script, N, res.mismatches);
+        }
+        CHECK_EQ_U64(res.mismatches, 0u);
+        if (N == 0u) {
+            continue;
+        }
+        rah_add(tot, &res, 0);
+        tot->expected_ticks += T;
+        if (!repeat) {
+            continue;
+        }
+        memset(&res, 0, sizeof res);
+        res.report = 1;
+        if (ra_run_two_instance(rom->data, rom->size, in, T, N, &model, visible)) {
+            rah_run(rom, N, in, T, &oracle, visible, RAH_NORMAL, &res);
+            ra_oracle_free(&model);
+        } else {
+            CHECK(0);
+        }
+        if (res.mismatches != 0u) {
+            fprintf(stderr, "libretro.runahead: %s script %u depth %u repeat: %u mismatches\n",
+                    rom->path, script, N, res.mismatches);
+        }
+        CHECK_EQ_U64(res.mismatches, 0u);
+        rah_add(tot, &res, 1);
+        tot->expected_repeat += T;
+    }
+    ra_oracle_free(&oracle);
+    free(visible);
+    free(in);
+}
+
+/* D-16: four broken hosts run through the same comparator and each must differ from the
+   uninterrupted run. A control that matches would mean the comparator proves nothing. */
+static unsigned rah_controls(const struct ser_rom *rom, uint32_t T)
+{
+    static const struct {
+        enum rah_control ctl;
+        const char *name;
+    } controls[] = {{RAH_SKIP_LOAD, "skip-load"},
+                    {RAH_STALE_LOAD, "stale-load"},
+                    {RAH_LATE_INPUT, "late-input"},
+                    {RAH_AUDIO_LEAK, "audio-leak"}};
+    unsigned tripped = 0u;
+    uint16_t *in = ra_script_make(1u, RA_SEED_1, T + RA_MAX_DEPTH);
+    struct ra_oracle oracle;
+
+    CHECK(in != NULL);
+    if (in == NULL || !ra_run_uninterrupted(rom->data, rom->size, in, T + RA_MAX_DEPTH, &oracle)) {
+        CHECK(0);
+        free(in);
+        return 0u;
+    }
+    for (unsigned i = 0u; i < sizeof controls / sizeof controls[0]; i++) {
+        struct rah_result res;
+        memset(&res, 0, sizeof res);
+        rah_run(rom, 2u, in, T, &oracle, NULL, controls[i].ctl, &res);
+        if (res.mismatches == 0u) {
+            fprintf(stderr, "libretro.runahead: control %s matched the uninterrupted run\n",
+                    controls[i].name);
+            CHECK(res.mismatches != 0u);
+        } else {
+            tripped++;
+            printf("libretro.runahead: control %s tripped (%u mismatches)\n", controls[i].name,
+                   res.mismatches);
+        }
+    }
+    ra_oracle_free(&oracle);
+    free(in);
+    return tripped;
+}
+
+/* libretro.host --runahead <module> [--short] <rom>... */
 static int runahead_mode(int argc, char **argv)
 {
-    static const uint32_t T = 180u;
-    struct ser_rom rom;
-    struct ra_oracle oracle;
-    struct rah_result res;
-    uint16_t *in;
+    struct rah_totals tot;
+    uint32_t T = 180u;
+    int first = 3, a;
+    unsigned depth, covered_depths = 0u, control_roms = 0u;
+    struct ser_rom *roms;
+    unsigned count = 0u, stress_images = 0u;
+    int stress = 0;
+    uint16_t *s1, *s2;
 
-    if (argc < 4) {
-        fprintf(stderr, "usage: libretro.host --runahead <module> <rom>...\n");
+    if (argc > first && strcmp(argv[first], "--short") == 0) {
+        T = 60u;
+        first++;
+    }
+    if (argc > first && strcmp(argv[first], "--stress") == 0) {
+        stress = 1;
+        first++;
+    }
+    if (argc <= first) {
+        fprintf(stderr, "usage: libretro.host --runahead <module> [--short] [--stress] <rom>...\n");
         return 2;
     }
     if (!module_open(argv[2])) {
@@ -2235,26 +2369,80 @@ static int runahead_mode(int argc, char **argv)
     p_set_input_poll(on_poll);
     p_set_input_state(input);
 
-    memset(&rom, 0, sizeof rom);
-    memset(&res, 0, sizeof res);
-    res.report = 1;
-    rom.path = argv[3];
-    CHECK(read_file(rom.path, &rom.data, &rom.size));
-    in = ra_script_make(1u, RA_SEED_1, T + RA_MAX_DEPTH);
-    CHECK(in != NULL);
-    if (rom.data != NULL && in != NULL &&
-        ra_run_uninterrupted(rom.data, rom.size, in, T + RA_MAX_DEPTH, &oracle)) {
-        rah_run(&rom, 1u, in, T, &oracle, NULL, RAH_NORMAL, &res);
-        ra_oracle_free(&oracle);
-    } else {
-        CHECK(0);
+    /* D-13: the two scripts together put a change at every alignment of every depth. */
+    s1 = ra_script_make(1u, RA_SEED_1, T + RA_MAX_DEPTH);
+    s2 = ra_script_make(2u, RA_SEED_2, T + RA_MAX_DEPTH);
+    CHECK(s1 != NULL && s2 != NULL);
+    for (depth = 1u; depth <= RA_MAX_DEPTH && s1 != NULL && s2 != NULL; depth++) {
+        int covered = ra_alignment_covered(s1, s2, T, depth);
+        CHECK(covered);
+        covered_depths += covered ? 1u : 0u;
     }
-    CHECK_EQ_U64(res.mismatches, 0u);
-    CHECK(res.ticks >= T);
-    printf("libretro.runahead: order=\"%s\" rom=%s ticks=%u states=%u mismatches=%u\n",
-           RA_SPECULATIVE_ORDER, rom.path, res.ticks, res.states, res.mismatches);
-    free(in);
-    free(rom.data);
+    free(s1);
+    free(s2);
+
+    memset(&tot, 0, sizeof tot);
+    roms = (struct ser_rom *)calloc((size_t)(argc - first), sizeof roms[0]);
+    CHECK(roms != NULL);
+    for (a = first; a < argc && roms != NULL; a++) {
+        struct ser_rom *r = &roms[count];
+        r->path = argv[a];
+        CHECK(read_file(r->path, &r->data, &r->size));
+        if (r->data == NULL) {
+            continue;
+        }
+        count++;
+        if (strstr(r->path, "nesteroids") != NULL) {
+            /* The full matrix: both scripts, depths 0 to 3, repeat mode on script 1, and the
+               four controls. */
+            rah_matrix(r, T, 1u, 0xfu, 1, &tot);
+            rah_matrix(r, T, 2u, 0xeu, 0, &tot);
+            tot.controls_tripped += rah_controls(r, T);
+            control_roms++;
+        } else {
+            /* One script per board (alternating) at the claimed bounds, depths 1 and 3. */
+            rah_matrix(r, T, 1u + (count & 1u), 0xau, 0, &tot);
+        }
+        tot.roms++;
+    }
+    /* The Phase 12 stress images keep DMA and interrupts in flight across frame boundaries. */
+    for (unsigned m = 0u; stress && m < 2u; m++) {
+        static const uint16_t mappers[2] = {0u, 4u};
+        static const char *const names[2] = {"stress-nrom", "stress-mmc3"};
+        static uint8_t image[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
+        struct ser_rom sr;
+
+        memset(&sr, 0, sizeof sr);
+        sr.path = names[m];
+        sr.size = st_stress_image(image, sizeof image, mappers[m]);
+        CHECK(sr.size != 0u);
+        sr.data = (unsigned char *)malloc(sr.size != 0u ? sr.size : 1u);
+        if (sr.data != NULL && sr.size != 0u) {
+            memcpy(sr.data, image, sr.size);
+            rah_matrix(&sr, T, 1u + m, 0xau, 0, &tot);
+            stress_images++;
+        }
+        free(sr.data);
+    }
+    /* D-20: counts that rule out a pass that did nothing. */
+    CHECK(count >= RAH_MIN_ROMS);
+    CHECK_EQ_U64(stress_images, stress ? 2u : 0u);
+    CHECK_EQ_U64(control_roms, 1u);
+    CHECK_EQ_U64(tot.controls_tripped, 4u);
+    CHECK_EQ_U64(covered_depths, RA_MAX_DEPTH);
+    CHECK_EQ_U64(tot.ticks, tot.expected_ticks);
+    CHECK_EQ_U64(tot.repeat_ticks, tot.expected_repeat);
+    CHECK(tot.ticks >= (RA_MAX_DEPTH * 2u + 2u * (count - 1u + stress_images)) * T);
+    CHECK(tot.repeat_ticks >= RA_MAX_DEPTH * T);
+    CHECK(tot.states >= tot.ticks + tot.repeat_ticks);
+    printf("libretro.runahead: order=\"%s\" roms=%u stress=%u ticks=%u repeat_ticks=%u states=%u "
+           "controls_tripped=%u\n",
+           RA_SPECULATIVE_ORDER, count, stress_images, tot.ticks, tot.repeat_ticks, tot.states,
+           tot.controls_tripped);
+    for (a = 0; a < (int)count; a++) {
+        free(roms[a].data);
+    }
+    free(roms);
     p_deinit();
     module_close();
     CHECK_DONE();
@@ -2282,7 +2470,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "usage: libretro.host --rom-parity <module> <rom> <frames> <ppm> "
                         "[--movie FILE] [--testcard PPM] [--sav-in FILE] [--sav-expect FILE]\n"
                         "       libretro.host --serialize <module> <rom>...\n"
-                        "       libretro.host --runahead <module> <rom>...\n"
+                        "       libretro.host --runahead <module> [--short] <rom>...\n"
                         "       libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
                         "<generated.nes>\n");
         return 2;

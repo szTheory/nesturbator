@@ -1018,7 +1018,7 @@ add_test(NAME libretro.vendored
 # run-time input, so the test program depends on it to build it first.
 add_executable(libretro.host libretro/libretro_host.c ${PROJECT_SOURCE_DIR}/runner/movie.c)
 target_include_directories(libretro.host PRIVATE ${PROJECT_SOURCE_DIR}/libretro
-  ${CMAKE_CURRENT_SOURCE_DIR}/runner)
+  ${PROJECT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/runner)
 target_link_libraries(libretro.host PRIVATE nesturbator ${CMAKE_DL_LIBS})
 target_compile_definitions(libretro.host PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
@@ -1042,11 +1042,25 @@ add_test(NAME libretro.serialize
 # The asan job on a hosted runner ran past 120 s while other tests shared the CPU.
 set_tests_properties(libretro.serialize PROPERTIES TIMEOUT 600)
 
-# LR-02: --runahead drives the module as a run-ahead host (D-10, D-11).
+# LR-02: --runahead drives the module as a run-ahead host at one to three frames over two input
+# scripts, against an uninterrupted run, and four broken hosts must fail the same comparison
+# (D-10 to D-16). NESTURBATOR_SHORT_RUNS (preset asan) runs 60 ticks instead of 180.
+set(RUNAHEAD_MODE)
+if(NESTURBATOR_SHORT_RUNS)
+  set(RUNAHEAD_MODE --short)
+endif()
 add_test(NAME libretro.runahead
-  COMMAND libretro.host --runahead $<TARGET_FILE:nesturbator_libretro>
-    ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes)
-set_tests_properties(libretro.runahead PROPERTIES TIMEOUT 300)
+  COMMAND libretro.host --runahead $<TARGET_FILE:nesturbator_libretro> ${RUNAHEAD_MODE} --stress
+    ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes
+    ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes
+    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M1_P128K_C128K_S8K.nes
+    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M2_P128K_CR8K_V.nes
+    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes
+    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P128K_CR8K.nes
+    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M7_P128K_CR8K.nes)
+# TIMEOUT 600: under asan on a hosted runner this test runs several times slower than locally
+# (libretro.serialize needed the same ceiling).
+set_tests_properties(libretro.runahead PROPERTIES TIMEOUT 600 COST 30)
 
 # D-18 / D-14 / D-09: --rom-parity runs a whole ROM through the libretro module
 # and compares its last frame with the image the runner dumped (fixture
