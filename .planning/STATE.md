@@ -5,11 +5,11 @@ milestone_name: Save states and rewind
 current_phase: 14
 current_phase_name: Runner process contract
 status: planning
-stopped_at: Phase 13 complete, ready to plan Phase 14
-last_updated: "2026-10-12T20:01:55.347Z"
+stopped_at: Phase 14 context gathered
+last_updated: "2026-10-12T20:44:02.401Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 13 complete, transitioned to Phase 14
-state_head: e5e35e610f90d438f97fdbb5258eeff9436c94ed
+state_head: e42216436d7cc1b9bbf12e29bf1aa6b605fde06d
 progress:
   total_phases: 5
   completed_phases: 3
@@ -278,7 +278,7 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - [Phase 10] Code review left 3 warnings and 3 info open, all in test code (10-REVIEW-DISPOSITION.md): WR-01 `libretro.host --rom-parity` continues after a failed load; WR-02 boot-to-play audio window min/max not re-seeded when a window's first frame has no samples (latent); WR-03 the frame-written sentinel is weaker than its comment.
 - [Phase 11] Code review left 3 info open (11-REVIEW-DISPOSITION.md; WR-01 to WR-04 fixed): IN-01 load_cartridge repeats the power-on reset; IN-02 a failed libretro load leaves the instance NULL so AV info is zeroed; IN-03 one over-long comment line in `runner/main.c`.
 - [Phase 12] Code review closed (12-REVIEW-DISPOSITION.md): CR-01 tick ceiling, WR-01 runner exit 2 before ROM load and IN-01 fixed; WR-02 skipped, as `halted_in_read` is never written and its bound must widen if stalled reads are modelled. Six-platform state hash equality is shown only by the Phase 12 PR's CI matrix.
-- [Phase 13] Code review left 3 warnings and 5 info open, all in test code (13-REVIEW-DISPOSITION.md): WR-01 state-net frame-chain checks tolerate a dropped or doubled FRAMEADVANCE; WR-02 state_session.sh resends only the second SAVE_STATE; WR-03 special-case ROMs matched by substring of the full path. PR #44 is green and still a draft; merge it before Phase 14 work starts.
+- [Phase 13] Code review left 3 warnings and 5 info open, all in test code (13-REVIEW-DISPOSITION.md): WR-01 state-net frame-chain checks tolerate a dropped or doubled FRAMEADVANCE; WR-02 state_session.sh resends only the second SAVE_STATE; WR-03 special-case ROMs matched by substring of the full path. PR #44 squash-merged as db0f21c after the asan run-ahead budget fix (6fbfa5a).
 - [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
@@ -312,11 +312,11 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T19:51:35.444Z
-Stopped at: Phase 13 complete, ready to plan Phase 14
-Resume file: None
+Last session: 2026-10-12T20:44:02.355Z
+Stopped at: Phase 14 context gathered
+Resume file: .planning/phases/14-runner-process-contract/14-CONTEXT.md
 
-Next GSD command: `/gsd-discuss-phase 14`.
+Next GSD command: `/gsd-plan-phase 14`.
 
 ## Operator Next Steps
 
