@@ -1,4 +1,4 @@
-/* CRC-32 as in IEEE 802.3: reflected polynomial 0xEDB88320, initial value and final XOR 0xFFFFFFFF.
+/* CRC-32 as in Ethernet: reflected polynomial 0xEDB88320, initial value and final XOR 0xFFFFFFFF.
    The state checksum and the ROM identity use it (STATE-02). The table is const data, so the core
    keeps no writable global. */
 #include "internal.h"

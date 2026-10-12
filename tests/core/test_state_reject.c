@@ -314,6 +314,8 @@ struct row {
     nesturbator_status next;
 };
 
+/* clang-format 18.1.3 and 18.1.8 lay out a braced initializer in a macro differently. */
+/* clang-format off */
 #define ROW(m, hi_)                                                                                \
     {#m,                                                                                           \
      offsetof(struct nesturbator, m),                                                              \
@@ -350,6 +352,7 @@ struct row {
      (b_),                                                                                         \
      0,                                                                                            \
      NESTURBATOR_OK}
+/* clang-format on */
 #define PULSE(i)                                                                                   \
     ROW(apu.pulse[i].timer, 0x7ff), ROW(apu.pulse[i].counter, 0x7ff), ROW(apu.pulse[i].phase, 7),  \
         ROW(apu.pulse[i].env_divider, 15), ROW(apu.pulse[i].env_decay, 15),                        \
