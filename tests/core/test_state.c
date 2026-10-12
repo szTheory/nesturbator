@@ -480,6 +480,182 @@ static void position_restored(const struct fixture *fx, const uint8_t *rom, size
     nesturbator_destroy(t);
 }
 
+/* ---- Board registers (STATE-02, STATE-03) ---- */
+
+#define BOARD_PAGES (48u + 48u + 8u + 8u)
+
+/* Where every page pointer lands, as an offset: -1 for NULL, the PRG, CHR or PRG-RAM offset with a
+   tag in the high bits otherwise, so two instances holding the same image compare equal. */
+static void board_pages(const nesturbator *inst, int64_t *out)
+{
+    const uint8_t *p[BOARD_PAGES];
+    size_t n = 0u;
+    for (size_t i = 0u; i < 48u; ++i)
+        p[n++] = inst->map.cpu_r[i];
+    for (size_t i = 0u; i < 48u; ++i)
+        p[n++] = inst->map.cpu_w[i];
+    for (size_t i = 0u; i < 8u; ++i)
+        p[n++] = inst->map.chr_r[i];
+    for (size_t i = 0u; i < 8u; ++i)
+        p[n++] = inst->map.chr_w[i];
+    for (size_t i = 0u; i < n; ++i) {
+        if (p[i] == NULL)
+            out[i] = -1;
+        else if (p[i] >= inst->cart.prg && p[i] < inst->cart.prg + inst->cart.prg_size)
+            out[i] = (int64_t)(p[i] - inst->cart.prg);
+        else if (p[i] >= inst->cart.chr && p[i] < inst->cart.chr + inst->cart.chr_size)
+            out[i] = ((int64_t)1 << 40) + (int64_t)(p[i] - inst->cart.chr);
+        else if (inst->cart.prg_ram_size != 0u && p[i] >= inst->cart.prg_ram &&
+                 p[i] < inst->cart.prg_ram + inst->cart.prg_ram_size)
+            out[i] = ((int64_t)2 << 40) + (int64_t)(p[i] - inst->cart.prg_ram);
+        else
+            out[i] = ((int64_t)3 << 40);
+    }
+    for (size_t i = 0u; i < 4u; ++i)
+        out[n + i] = inst->map.nt[i];
+}
+
+#define BOARD_SLOTS (BOARD_PAGES + 4u)
+
+static uint8_t board_image[16u + 16384u * 16u + 8192u * 16u];
+
+static size_t board_build(uint16_t mapper, uint8_t prg_16k, uint8_t chr_8k, uint8_t ram_shift)
+{
+    struct ines_spec spec;
+    memset(&spec, 0, sizeof spec);
+    spec.mapper = mapper;
+    spec.prg_16k = prg_16k;
+    spec.chr_8k = chr_8k;
+    spec.nes2 = ram_shift != 0u ? 1u : 0u;
+    spec.prg_ram_shift = ram_shift;
+    spec.reset_vector = 0x8000u;
+    return ines_build(board_image, sizeof board_image, &spec);
+}
+
+/* Registers set by the case, before the save. */
+typedef void (*board_set_fn)(struct nesturbator__mapper *m);
+
+/* Saves A with set() applied, loads into a fresh B holding the same image, and requires the
+   registers and the rebuilt page tables to be equal. extra is the register bytes the board adds
+   and the 8 KiB of PRG RAM a board has to the state over an NROM image with the same CHR kind. Returns A for the caller to destroy. */
+static void board_case(uint16_t mapper, uint8_t prg_16k, uint8_t chr_8k, uint8_t ram_shift,
+                       board_set_fn set, size_t extra)
+{
+    static int64_t pages_a[BOARD_SLOTS], pages_b[BOARD_SLOTS], pages_0[BOARD_SLOTS];
+    nesturbator *a = st_make_instance();
+    nesturbator *b = st_make_instance();
+    nesturbator *twin = st_make_instance();
+    nesturbator *fresh = st_make_instance();
+    size_t image = board_build(mapper, prg_16k, chr_8k, ram_shift), size, twin_size;
+    uint8_t *state;
+    CHECK(image != 0u);
+    st_load(a, board_image, image);
+    st_load(fresh, board_image, image);
+    set(&a->mapper);
+    CHECK(nesturbator__mapper_load(a) == 1);
+    size = nesturbator_state_size(a);
+    state = (uint8_t *)malloc(size);
+    CHECK_EQ_U64(nesturbator_save_state(a, state, size), NESTURBATOR_OK);
+    st_load(b, board_image, image);
+    CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+    CHECK(memcmp(&a->mapper, &b->mapper, sizeof a->mapper) == 0);
+    board_pages(a, pages_a);
+    board_pages(b, pages_b);
+    CHECK(memcmp(pages_a, pages_b, sizeof pages_a) == 0);
+    if (mapper != 0u) {
+        /* The case moved the pages: a load that dropped the registers would differ. */
+        board_pages(fresh, pages_0);
+        CHECK(memcmp(pages_a, pages_0, sizeof pages_a) != 0);
+    }
+    /* The state is the NROM state of the same shape plus the board's register bytes. */
+    image = board_build(0u, 2u, chr_8k != 0u ? 1u : 0u, 0u);
+    st_load(twin, board_image, image);
+    twin_size = nesturbator_state_size(twin);
+    CHECK_EQ_U64(size - twin_size, extra);
+    free(state);
+    nesturbator_destroy(a);
+    nesturbator_destroy(b);
+    nesturbator_destroy(twin);
+    nesturbator_destroy(fresh);
+}
+
+static void set_uxrom(struct nesturbator__mapper *m) { m->reg.uxrom.bank = 0xa7u; }
+static void set_cnrom(struct nesturbator__mapper *m) { m->reg.cnrom.bank = 0xa7u; }
+static void set_axrom(struct nesturbator__mapper *m) { m->reg.axrom.bank = 0xa7u; }
+static void set_nrom(struct nesturbator__mapper *m) { (void)m; }
+
+static void set_mmc1(struct nesturbator__mapper *m)
+{
+    m->reg.mmc1.shift = 0x13u;
+    m->reg.mmc1.count = 3u;
+    m->reg.mmc1.control_x = 0x1fu;
+    m->reg.mmc1.chr0 = 0x05u;
+    m->reg.mmc1.chr1 = 0x1eu;
+    m->reg.mmc1.prg = 0x0cu;
+    m->reg.mmc1.last_write = 0x0123456789abcdefu;
+}
+
+static void set_mmc3(struct nesturbator__mapper *m)
+{
+    m->irq = 1u;
+    m->reg.mmc3.select = 0xc5u;
+    for (unsigned i = 0u; i < 8u; ++i)
+        m->reg.mmc3.r[i] = (uint8_t)(0x11u * (i + 1u) + 3u);
+    m->reg.mmc3.mirror = 0xfdu;
+    m->reg.mmc3.a001_x = 0x40u;
+    m->reg.mmc3.latch = 0x6bu;
+    m->reg.mmc3.counter = 0x2eu;
+    m->reg.mmc3.reload = 1u;
+    m->reg.mmc3.irq_enable = 1u;
+    m->reg.mmc3.a12 = 1u;
+    m->reg.mmc3.low_cycle = 0xfedcba9876543210u;
+}
+
+/* STATE-02: all six boards of the loader provide the mandatory state op. */
+static void ops_table(void)
+{
+    static const uint16_t ids[6] = {0u, 1u, 2u, 3u, 4u, 7u};
+    for (size_t i = 0u; i < 6u; ++i) {
+        struct nesturbator__mapper_ops ops;
+        memset(&ops, 0, sizeof ops);
+        CHECK(nesturbator__mapper_ops_for(ids[i], &ops) == 1);
+        CHECK(ops.state != NULL);
+    }
+}
+
+/* NROM adds nothing after irq: the twin is the NROM, so the extra is 0. */
+static void board_nrom(void) { board_case(0u, 2u, 1u, 0u, set_nrom, 0u); }
+static void board_uxrom(void) { board_case(2u, 8u, 0u, 0u, set_uxrom, 1u); }
+static void board_cnrom(void) { board_case(3u, 2u, 4u, 0u, set_cnrom, 1u); }
+static void board_axrom(void) { board_case(7u, 8u, 0u, 0u, set_axrom, 1u); }
+static void board_mmc1(void) { board_case(1u, 16u, 0u, 7u, set_mmc1, 14u + 8192u); }
+static void board_mmc3(void) { board_case(4u, 8u, 16u, 0u, set_mmc3, 24u + 8192u); }
+
+/* Pitfall P1: map.a12 is derived from ppu.bus_addr, not saved. */
+static void mmc3_a12_derived(void)
+{
+    static const uint16_t addrs[2] = {0x1000u, 0x0000u};
+    for (size_t i = 0u; i < 2u; ++i) {
+        nesturbator *a = st_make_instance();
+        nesturbator *b = st_make_instance();
+        size_t image = board_build(4u, 8u, 16u, 0u), size;
+        uint8_t *state;
+        st_load(a, board_image, image);
+        a->ppu.bus_addr = addrs[i];
+        size = nesturbator_state_size(a);
+        state = (uint8_t *)malloc(size);
+        CHECK_EQ_U64(nesturbator_save_state(a, state, size), NESTURBATOR_OK);
+        st_load(b, board_image, image);
+        b->map.a12 = (uint8_t)(1u - ((addrs[i] >> 12) & 1u));
+        CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(b->map.a12, (b->ppu.bus_addr >> 12) & 1u);
+        CHECK_EQ_U64(b->map.a12, addrs[i] >> 12);
+        free(state);
+        nesturbator_destroy(a);
+        nesturbator_destroy(b);
+    }
+}
+
 int main(int argc, char **argv)
 {
     uint8_t *rom = NULL;
@@ -500,6 +676,14 @@ int main(int argc, char **argv)
         position_restored(&fx, rom, rom_size);
         fixture_free(&fx);
     }
+    ops_table();
+    board_nrom();
+    board_uxrom();
+    board_cnrom();
+    board_axrom();
+    board_mmc1();
+    board_mmc3();
+    mmc3_a12_derived();
     free(rom);
     CHECK_DONE();
 }
