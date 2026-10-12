@@ -250,6 +250,17 @@ if(NOT WIN32)
     PROPERTIES LABELS exit_status)
 endif()
 
+# D-14: the Windows console handler called directly; no console is needed (never a skip).
+if(WIN32)
+  add_executable(runner.stop_win runner/test_stop_win.c ${PROJECT_SOURCE_DIR}/runner/stop.c)
+  target_include_directories(runner.stop_win PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+  nesturbator_warnings(runner.stop_win)
+  target_compile_definitions(runner.stop_win PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+  add_test(NAME runner.stop.win_handler COMMAND runner.stop_win)
+  set_tests_properties(runner.stop.win_handler PROPERTIES TIMEOUT 30 LABELS exit_status)
+endif()
+
 # D-04, D-11: --raise-after usage errors exit 2 and name the option.
 if(WIN32)
   set(raise_foreign_sig term)
