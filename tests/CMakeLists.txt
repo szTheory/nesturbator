@@ -223,6 +223,26 @@ runner_stop_case(unmet_order)
 runner_stop_case(met_at_stop)
 runner_stop_case(late)
 
+# D-15: real SIGTERM and SIGINT from another process (never a skip: policy.no-skip).
+# runner.signal prints "signal-to-exit <ms> ms" for every timed case.
+if(NOT WIN32)
+  add_executable(runner.signal runner/test_signal.c)
+  nesturbator_warnings(runner.signal)
+  add_test(NAME runner.signal.scratch
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_CURRENT_BINARY_DIR}/signal_work)
+  set_tests_properties(runner.signal.scratch PROPERTIES FIXTURES_SETUP runner_signal_scratch)
+  set(NESTURBATOR_SIGNAL_TIMEOUT 60)  # runner_signal_case timeout: Plan 08 sets twice the slowest hosted run (ENGINEERING section 5)
+  function(runner_signal_case case)
+    add_test(NAME runner.signal.${case}
+      COMMAND runner.signal $<TARGET_FILE:nesturbator-run> ${NESTURBATOR_SAVE_FIXTURE}
+        ${CMAKE_CURRENT_BINARY_DIR}/signal_work/${case} ${case})
+    set_tests_properties(runner.signal.${case} PROPERTIES
+      FIXTURES_REQUIRED "runner_save;runner_signal_scratch"
+      RUN_SERIAL TRUE TIMEOUT ${NESTURBATOR_SIGNAL_TIMEOUT})
+  endfunction()
+  runner_signal_case(term)
+endif()
+
 # D-04, D-11: --raise-after usage errors exit 2 and name the option.
 if(WIN32)
   set(raise_foreign_sig term)
