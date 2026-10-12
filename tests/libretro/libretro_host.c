@@ -1350,6 +1350,132 @@ static int rom_parity(int argc, char **argv)
     CHECK_DONE();
 }
 
+/* ---- --serialize: the save-state entry points through the module (LR-01) ---- */
+
+#define SER_FNV_BASIS 14695981039346656037ull
+
+/* The input for frame t: a fixed-seed integer pattern on both ports, so every pass of a ROM
+   sees the same buttons at the same frame. */
+static void ser_set_input(uint32_t t)
+{
+    uint32_t x = t * 2654435761u + 12345u;
+    host_buttons[0] = (uint8_t)(x >> 13);
+    host_buttons[1] = (uint8_t)(x >> 5);
+}
+
+/* Runs frame t and returns the video and audio hashes the frontend saw. */
+static void ser_frame(uint32_t t, uint64_t *video_hash, uint64_t *audio_hash)
+{
+    ser_set_input(t);
+    batch_frames = 0u;
+    p_run();
+    *video_hash = fnv_add(SER_FNV_BASIS, frame, sizeof frame);
+    *audio_hash =
+        fnv_add(SER_FNV_BASIS, batch_samples, batch_frames * 2u * sizeof batch_samples[0]);
+}
+
+/* The state size of the same bytes loaded straight into the library. */
+static size_t ser_direct_size(const unsigned char *rom, size_t rom_size)
+{
+    nesturbator_config cfg;
+    nesturbator *nes = NULL;
+    size_t size = 0u;
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &nes), NESTURBATOR_OK);
+    if (nes != NULL) {
+        CHECK_EQ_U64(nesturbator_load_cartridge(nes, rom, rom_size), NESTURBATOR_OK);
+        size = nesturbator_state_size(nes);
+        nesturbator_destroy(nes);
+    }
+    return size;
+}
+
+#define SER_TRACER_FRAMES 60u
+
+/* Save after 60 frames, run 60 more, load, and require the same 60 frames again. */
+static void check_serialize_round_trip(const unsigned char *rom, size_t rom_size)
+{
+    struct retro_game_info game;
+    uint64_t video_hash[SER_TRACER_FRAMES], audio_hash[SER_TRACER_FRAMES];
+    uint64_t v, a;
+    unsigned char *buf;
+    size_t size;
+    uint32_t t;
+
+    memset(&game, 0, sizeof game);
+    game.data = rom;
+    game.size = rom_size;
+    CHECK(p_load_game(&game));
+    size = p_serialize_size();
+    CHECK(size != 0u);
+    CHECK_EQ_U64(size, ser_direct_size(rom, rom_size));
+    buf = (unsigned char *)malloc(size != 0u ? size : 1u);
+    CHECK(buf != NULL);
+    if (buf == NULL) {
+        p_unload_game();
+        return;
+    }
+    for (t = 0u; t < SER_TRACER_FRAMES; t++) {
+        ser_frame(t, &v, &a);
+    }
+    CHECK(p_serialize(buf, size));
+    for (t = 0u; t < SER_TRACER_FRAMES; t++) {
+        ser_frame(SER_TRACER_FRAMES + t, &video_hash[t], &audio_hash[t]);
+    }
+    CHECK(p_unserialize(buf, size));
+    for (t = 0u; t < SER_TRACER_FRAMES; t++) {
+        ser_frame(SER_TRACER_FRAMES + t, &v, &a);
+        CHECK_EQ_HEX(v, video_hash[t]);
+        CHECK_EQ_HEX(a, audio_hash[t]);
+    }
+    free(buf);
+    p_unload_game();
+}
+
+/* libretro.host --serialize <module> <rom>... */
+static int serialize_mode(int argc, char **argv)
+{
+    int a;
+
+    if (argc < 4) {
+        fprintf(stderr, "usage: libretro.host --serialize <module> <rom>...\n");
+        return 2;
+    }
+    if (!module_open(argv[2])) {
+        fprintf(stderr, "cannot load %s\n", argv[2]);
+        return 1;
+    }
+    resolve_all();
+    CHECK_EQ_U64(missing, 0);
+    if (missing != 0) {
+        module_close();
+        CHECK_DONE();
+    }
+    p_set_environment(env);
+    p_init();
+    p_set_video_refresh(video);
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
+    p_set_input_poll(on_poll);
+    p_set_input_state(input);
+    for (a = 3; a < argc; a++) {
+        unsigned char *rom = NULL;
+        size_t rom_size = 0u;
+        CHECK(read_file(argv[a], &rom, &rom_size));
+        if (rom == NULL) {
+            continue;
+        }
+        check_serialize_round_trip(rom, rom_size);
+        free(rom);
+    }
+    p_deinit();
+    module_close();
+    CHECK_DONE();
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
@@ -1362,9 +1488,13 @@ int main(int argc, char **argv)
     if (argc >= 6 && strcmp(argv[1], "--rom-parity") == 0) {
         return rom_parity(argc, argv);
     }
+    if (argc >= 2 && strcmp(argv[1], "--serialize") == 0) {
+        return serialize_mode(argc, argv);
+    }
     if (argc != 6) {
         fprintf(stderr, "usage: libretro.host --rom-parity <module> <rom> <frames> <ppm> "
                         "[--movie FILE] [--testcard PPM] [--sav-in FILE] [--sav-expect FILE]\n"
+                        "       libretro.host --serialize <module> <rom>...\n"
                         "       libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
                         "<generated.nes>\n");
         return 2;

@@ -1030,6 +1030,13 @@ add_test(NAME libretro.host
     $<TARGET_FILE:nesturbator-run> ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.nes)
 set_tests_properties(libretro.host PROPERTIES FIXTURES_REQUIRED testframe_ppm)
 
+# LR-01: --serialize drives retro_serialize_size, retro_serialize and retro_unserialize of
+# the built module and checks each against the library state API.
+add_test(NAME libretro.serialize
+  COMMAND libretro.host --serialize $<TARGET_FILE:nesturbator_libretro>
+    ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes)
+set_tests_properties(libretro.serialize PROPERTIES TIMEOUT 120)
+
 # D-18 / D-14 / D-09: --rom-parity runs a whole ROM through the libretro module
 # and compares its last frame with the image the runner dumped (fixture
 # rundump_<key>, so the runner is not run twice). Scope is every ROM in the hash
