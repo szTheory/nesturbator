@@ -191,7 +191,7 @@ The milestone research (SUMMARY.md, ARCHITECTURE.md) is sound and the CONTEXT de
 1. `map.a12` is **not** dead. `src/ppu.c:16-20` reads and writes it as the edge filter in front of the board's `ppu_a12` hook. `nesturbator__mapper_load` zeroes `map`, so a load that forgets to rebuild it from `ppu.bus_addr` makes MMC3 miss an A12 fall and diverge. Do not delete it; derive it.
 2. ARCH's three statuses (`CORRUPT = 10`) are replaced by D-03's five (8 to 12); ARCH's `size_t *written` out-parameter is gone (D-01); ARCH's per-section tags conflict with D-13 and are dropped; the CRC covers every byte except the CRC field (D-16), not "the field read as zero".
 3. `cpu` has 13 serializable bytes, not 14, and `nmi_prev` and `halted_in_read` are never read anywhere in `src/`.
-4. A hostile `ppu.ppu_ticks` far below `ticks` makes the next `run_frame` loop for hours (`src/ppu.c:472`). VALIDATE needs one cross-section check (`ppu_ticks == ticks` at a boundary, probe-verified) to prevent a denial of service.
+4. A hostile `ppu.ppu_ticks` far below `ticks` makes the next `run_frame` loop for hours (`src/ppu.c:472`). VALIDATE needs one cross-section check (`ppu_ticks == ticks` at a boundary, probe-verified) to prevent a denial of service. **Superseded in planning (12-01):** the adopted rule is `ppu_ticks <= ticks` and `ticks - ppu_ticks < NESTURBATOR_TICKS_PER_FRAME`, because a state saved after `nesturbator_reset` (7 CPU cycles without a PPU catch-up) must load; 12-06 pins both sides of the gap boundary.
 5. Several bounds are memory-safety or UB bounds, not hygiene: `ppu.fine_x <= 7`, `ppu.eval_*` and `sprite_count`, `apu.dmc.output <= 127`, `env_decay <= 15`, `synth.impulse_head <= 15`, and int64 bounds on the synthesis history (Section 3).
 
 **Cost.** A save or load is dominated by one CRC-32 pass: 9 to 80 microseconds for 5 to 45 KiB with a plain 256-entry table (measured), against a measured emulation cost of about 0.8 to 1.1 ms per frame in the Release build. Fixed per-cartridge state is cheap enough for rewind at 60 Hz (under 1% of the 16.7 ms real-time budget per save).
@@ -382,7 +382,7 @@ Legend: **S** = needed for memory safety or defined behaviour (a wrong value rea
 | `eval_n` | `<= 64` | **S** | guarded by `if (ppu->eval_n >= 64u) return;` (`ppu.c:195`) but 64 is the true maximum (probe: 64) |
 | `scanline` | `<= 261` | I (safe either way: pixel store guarded by `< 240`) | `ppu.c:518-519` |
 | `dot` | `<= 340` | I | `fetch_step` returns for `dot > 340` (`ppu.c:342`) |
-| `ppu_ticks` | `== ticks` (or `ticks - ppu_ticks < 8`) | **L** | `while (nes->ppu.ppu_ticks + 8u <= ticks)` (`ppu.c:472`): with `ppu_ticks` far below `ticks` the next frame iterates up to `(ticks - ppu_ticks)/8` times, effectively forever. Needs the CORE section's `ticks`, so VALIDATE keeps it in a context field |
+| `ppu_ticks` | `== ticks` (or `ticks - ppu_ticks < 8`). **Superseded (12-01):** `ppu_ticks <= ticks` and `ticks - ppu_ticks < NESTURBATOR_TICKS_PER_FRAME`; 12-06 tests gap TPF - 1 (OK) and TPF (INVALID) | **L** | `while (nes->ppu.ppu_ticks + 8u <= ticks)` (`ppu.c:472`): with `ppu_ticks` far below `ticks` the next frame iterates up to `(ticks - ppu_ticks)/8` times, effectively forever. Needs the CORE section's `ticks`, so VALIDATE keeps it in a context field |
 | `io_bus_age` | `<= 160000` | I | `ppu.c:476-479` |
 | `v`, `t` | `<= 0x7fff` | I | 15-bit; all uses are masked, so safe |
 | `bus_addr` | `<= 0x3fff` | I | `set_bus` masks (`ppu.c:13`) |
@@ -673,7 +673,7 @@ static void cpu_io(struct nesturbator__sio *io, struct nesturbator__cpu *c)
 
 ### P5: Hostile `ppu_ticks` hangs the next frame
 **What goes wrong:** `while (nes->ppu.ppu_ticks + 8u <= ticks)` (`ppu.c:472`) runs `(ticks - ppu_ticks)/8` iterations; a CRC-valid state with `ppu_ticks = 0`, `ticks = 2^50` never finishes.
-**Avoid:** VALIDATE `ppu_ticks == ticks` (probe-verified at boundaries) using `io->ticks_seen`; add a sweep case that must return INVALID within the test timeout.
+**Avoid:** VALIDATE `ppu_ticks == ticks` (probe-verified at boundaries) using `io->ticks_seen`; add a sweep case that must return INVALID within the test timeout. **Superseded (12-01):** the equality is relaxed to `ppu_ticks <= ticks` and `ticks - ppu_ticks < NESTURBATOR_TICKS_PER_FRAME` so a post-reset state loads; the catch-up stays under one frame. 12-06 asserts gap TPF - 1 loads and gap TPF is refused with ERR_STATE_INVALID.
 
 ### P6: Signed overflow in the synthesis history
 **What goes wrong:** `integrator_q15 * INT64_C(32768)` and `multiply_q30` overflow for large inputs, and `level - mixed_level` overflows `int32_t` (`synth.c:2724,2755,2673-2678`); UBSan aborts the next frame after a CRC-valid hostile load.
@@ -792,25 +792,31 @@ inst->map.a12 = (uint8_t)((inst->ppu.bus_addr >> 12) & 1u);
 | A7 | MSVC and clang give identical `sizeof` for the pointer-free structs used in tripwires | P14 | Tripwire constants would differ per platform; fall back to `offsetof` of the last field or a visited-byte count test |
 | A8 | Dropping the four geometry fields from the header loses no protection | 2.3 #8 | A CRC-32 collision on the ROM could pass identity; sizes are still exact via `state_size`, so memory safety is unaffected |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **`--frames N` smaller than K after a load.**
    - Known: D-09 says `--frames N` is the last frame and an out-of-range index exits 2 naming K; N == K must work (it gives the `--hash-state K` round trip).
    - Unclear: N < K is not stated.
    - Recommendation: exit 2 with `--frames N is before the loaded state's frame K`.
+   - RESOLVED: adopted as recommended; recorded in 12-09 (`range_frames` case).
 
 2. **`--save-dir` together with `--load-state`.**
    - Known: the battery shadow and generation are captured before the state load (D-10 order); a state with different battery bytes bumps the generation, so the exit flush writes the state's battery bytes to `<name>.sav`.
    - Unclear: whether a diagnostic `--load-state` run should be allowed to overwrite the user's `.sav`.
    - Recommendation: follow the library contract (let it write), document it in the README runner section, and add a runner test. Re-capturing the shadow after the load would hide the state's save RAM from the `.sav` and contradict "the state includes battery RAM".
+   - RESOLVED: adopted as recommended (let it write, document, test); recorded in 12-08 (`save_dir` case and README runner text).
 
 3. **State flags without `--rom`.** A no-cartridge instance has size 0 and `save_state` returns `ERR_STATE_CARTRIDGE`. Recommendation: refuse at parse time with exit 2 (`--state-at-frame needs --rom`), mirroring `--save-dir`.
+   - RESOLVED: adopted; 12-09 refuses any state flag without `--rom` (or with `--accuracycoin-page`) with exit 2 and the message `--state-at-frame, --load-state and --hash-state need --rom`.
 
 4. **Row shapes in `hashes.txt`** (7.3). Recommendation: `state <N> ticks <T> size <S> sha256 <hex>` from the runner, a shape-2 row plus a shape-3 `<key> <integer>` row in the file.
+   - RESOLVED: adopted as recommended; the runner line is recorded in 12-09 and the pin rows in 12-10.
 
 5. **`nesturbator_version` reporting the format version.** Appending is not free: `internal.h:29` defines `NESTURBATOR_VERSION_SIZE_V1 ((uint32_t)sizeof(nesturbator_version))`, which would silently grow, and `tests/header/header_c.c` asserts `sizeof(nesturbator_version) == 24`. The library is static-only, so the compile-time macro is enough. Recommendation: do not add it in Phase 12.
+   - RESOLVED: adopted; 12-01 records that `nesturbator_version` is unchanged.
 
 6. **Whether the sum invariant and `ticks == 24 * cpu_cycle` belong in VALIDATE.** Both are exact today and probe-verified; they tighten what an attacker can load but become format commitments. Recommendation: include `ppu_ticks == ticks` (required, P5) and the synthesis sum invariant; skip `ticks == 24 * cpu_cycle` (a PAL/Dendy region would break it).
+   - RESOLVED: adopted with one change, recorded in 12-01: the synthesis sum invariant is validated and `ticks == 24 * cpu_cycle` is skipped, but `ppu_ticks == ticks` is relaxed to `ppu_ticks <= ticks` and `ticks - ppu_ticks < NESTURBATOR_TICKS_PER_FRAME` (supersedes the equality above) so a state saved after `nesturbator_reset` loads; 12-06 pins both sides of the boundary.
 
 ## Environment Availability
 
