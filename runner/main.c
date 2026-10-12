@@ -4,8 +4,11 @@
  * N:FILE]... nesturbator-run --movie FILE [--rom FILE] [--hash-audio] [--dump-frame N:FILE]...
  *   nesturbator-run --accuracycoin-page N --rom FILE --scoreboard FILE
  *   nesturbator-run --version
+ *   nesturbator-run --help
  *
- * --version prints "nesturbator-run X.Y.Z" from nesturbator_get_version and exits 0.
+ * --help prints the usage text and the exit statuses to stdout and exits 0; a bad command line
+ * prints the same text to stderr and exits 2. --version prints "nesturbator-run X.Y.Z" from
+ * nesturbator_get_version and exits 0.
  *
  * Runs N frames, with optional cartridge content (mappers 0, 1, 2, 3, 4 and 7). A movie supplies
  * the two port masks for every frame and prints the native hash of every replayed frame. For each
@@ -30,8 +33,9 @@
  * is never touched. Without --save-dir no save file is read or written, and neither is one for a
  * cartridge without battery RAM.
  *
- * Exit status (LIBRETRO-AND-RUNNER section 5): 0 done, 1 failure, 2 usage, 4 .sav size mismatch;
- * 3 and 77 are reserved.
+ * Exit statuses are defined once in exit_status.h (0 done, 1 failure, 2 usage error, 4 .sav size
+ * mismatch, 5 state rejected; 3 and 77 are reserved), printed by --help and listed in the README
+ * section Exit status (LIBRETRO-AND-RUNNER section 5).
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -244,7 +248,7 @@ static int parse_options(int argc, char **argv, options *o)
     if (o->hash_states == NULL || o->hash_frames == NULL || o->dump_frames == NULL ||
         o->dump_paths == NULL || o->state_frames == NULL || o->state_paths == NULL) {
         fprintf(stderr, "nesturbator-run: out of memory\n");
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     /* Most options take a value; --hash-audio is a standalone switch. */
     for (int i = 1; i < argc;) {
@@ -253,7 +257,7 @@ static int parse_options(int argc, char **argv, options *o)
         uint32_t n;
         if (strcmp(arg, "--version") == 0) {
             o->show_version = 1;
-            return 0;
+            return RUNNER_EXIT_DONE;
         }
         if (strcmp(arg, "--help") == 0) {
             o->show_help = 1;
@@ -360,7 +364,7 @@ static int parse_options(int argc, char **argv, options *o)
     if (o->frames == 0u && o->movie_path == NULL) {
         return usage("--frames N is required");
     }
-    return 0;
+    return RUNNER_EXIT_DONE;
 }
 
 /* The battery span of the loaded cartridge and what was last written for it. */
@@ -599,18 +603,18 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
     uint8_t value = 0u;
     if (!accuracy_page_tests(opt->rom_path, opt->accuracy_page, tests, &count)) {
         fprintf(stderr, "nesturbator-run: invalid or missing AccuracyCoin directory\n");
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     qsort(tests, count, sizeof tests[0], compare_accuracy_test);
     if (opt->accuracy_page == 14u && !accuracy_page_has_required_apu_tests(tests, count)) {
         fprintf(stderr, "nesturbator-run: AccuracyCoin page 14 is missing required APU tests\n");
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     for (size_t i = 1u; i < count; i++) {
         if (strcmp(tests[i - 1u].name, tests[i].name) == 0) {
             fprintf(stderr, "nesturbator-run: duplicate AccuracyCoin test name '%s'\n",
                     tests[i].name);
-            return 1;
+            return RUNNER_EXIT_FAILURE;
         }
     }
     /* The menu reports ready at $00EC. Boot and every input pulse are bounded. */
@@ -618,28 +622,28 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
         nesturbator_status st = accuracy_frame(inst, 0u, video, audio, audio_hash);
         frames++;
         if (st != NESTURBATOR_OK || !accuracy_ram(inst, 0x00ecu, &value))
-            return 1;
+            return RUNNER_EXIT_FAILURE;
         if (value == 0x0au)
             break;
     }
     if (value != 0x0au) {
         fprintf(stderr,
                 "nesturbator-run: AccuracyCoin menu did not become ready within 120 frames\n");
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     for (uint32_t p = 1u; p < opt->accuracy_page; p++) {
         if (accuracy_frame(inst, NESTURBATOR_BUTTON_RIGHT, video, audio, audio_hash) !=
                 NESTURBATOR_OK ||
             accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK) {
             fprintf(stderr, "nesturbator-run: AccuracyCoin page navigation failed\n");
-            return 1;
+            return RUNNER_EXIT_FAILURE;
         }
         frames += 2u;
         /* DrawNewSuiteTable disables NMI while it replaces the page. Give it
            several frame boundaries before sending the next edge-sensitive key. */
         for (uint32_t settle = 0u; settle < 3u; settle++) {
             if (accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK)
-                return 1;
+                return RUNNER_EXIT_FAILURE;
             frames++;
         }
     }
@@ -651,16 +655,16 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
             stderr,
             "nesturbator-run: AccuracyCoin menu selection mismatch (page-index=%u cursor=0x%02x)\n",
             selected_page, cursor);
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     if (accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio, audio_hash) != NESTURBATOR_OK ||
         accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio, audio_hash) != NESTURBATOR_OK) {
         fprintf(stderr, "nesturbator-run: AccuracyCoin page start press failed\n");
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     if (accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK) {
         fprintf(stderr, "nesturbator-run: AccuracyCoin page start failed\n");
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     frames += 3u;
     int complete = 0;
@@ -668,14 +672,14 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
         complete = 1;
         for (size_t i = 0; i < count; i++) {
             if (!accuracy_ram(inst, tests[i].result_address, &results[i]))
-                return 1;
+                return RUNNER_EXIT_FAILURE;
             if (results[i] == 0u || (results[i] & 3u) == 3u)
                 complete = 0;
         }
         if (complete)
             break;
         if (accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK)
-            return 1;
+            return RUNNER_EXIT_FAILURE;
         frames++;
     }
     if (!complete || frames >= opt->frames) {
@@ -696,7 +700,7 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
         fprintf(stderr,
                 "nesturbator-run: menu $00ec=0x%02x page-index=%u cursor=0x%02x suite-running=%u\n",
                 value, selected_page, cursor, page_running);
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     int all_passed = 1;
     accuracy_test required_tests[ACCURACY_MAX_TESTS];
@@ -704,7 +708,7 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
     size_t required_count = 0u;
     for (size_t i = 0; i < count; i++) {
         if (!accuracy_ram(inst, tests[i].result_address, &results[i]))
-            return 1;
+            return RUNNER_EXIT_FAILURE;
         uint8_t code = results[i] & 3u;
         const char *status = code == 1u ? "pass" : (results[i] == 0xffu ? "skip" : "fail");
         printf("accuracycoin/%s\t%s\t0x%02x\t-\t-\n", tests[i].name, status, results[i]);
@@ -721,17 +725,17 @@ static int run_accuracycoin(nesturbator *inst, const options *opt, uint16_t *vid
         }
     }
     if (!all_passed)
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     if (!accuracy_compare_scoreboard(opt->scoreboard_path, required_tests, required_results,
                                      required_count, opt->accuracy_page)) {
         fprintf(stderr,
                 "nesturbator-run: AccuracyCoin page %u RAM results differ from scoreboard\n",
                 opt->accuracy_page);
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     printf("accuracycoin page %u PASS (%lu tests, %u frames)\n", opt->accuracy_page,
            (unsigned long)count, frames);
-    return 0;
+    return RUNNER_EXIT_DONE;
 }
 
 /* Prints why a cartridge was refused (D-15). Reads only the 16 header bytes the caller already
@@ -799,19 +803,19 @@ static int load_state_file(nesturbator *inst, const char *path, uint64_t *frame,
     nesturbator_status st;
     if (buf == NULL) {
         fprintf(stderr, "nesturbator-run: out of memory\n");
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     /* One byte beyond the state size, so a longer file is a length rejection. */
     if (nesturbator_run_state_read(path, buf, size + 1u, &got) != 0) {
         free(buf);
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     st = nesturbator_load_state(inst, buf, got);
     if (st != NESTURBATOR_OK) {
         fprintf(stderr, "nesturbator-run: cannot load state %s (%s)\n", path,
                 state_rejection_word((int)st));
         free(buf);
-        return 5;
+        return RUNNER_EXIT_STATE_REJECTED;
     }
     *frame = 0u;
     for (unsigned k = 0; k < 8u; k++)
@@ -820,7 +824,7 @@ static int load_state_file(nesturbator *inst, const char *path, uint64_t *frame,
     for (unsigned k = 0; k < 8u; k++)
         *ticks |= (uint64_t)buf[40u + k] << (8u * k);
     free(buf);
-    return 0;
+    return RUNNER_EXIT_DONE;
 }
 
 /* Prints the state line for every --hash-state whose N is frame. Returns 0, or 1 after a
@@ -902,7 +906,7 @@ static int check_frame_limits(const options *o)
             return usage(why);
         }
     }
-    return 0;
+    return RUNNER_EXIT_DONE;
 }
 
 /* The checks that need K, the loaded state's frame (0 without a load): frame indices are
@@ -935,7 +939,7 @@ static int check_ranges(const options *o, uint64_t k_frame)
             return usage(why);
         }
     }
-    return 0;
+    return RUNNER_EXIT_DONE;
 }
 
 int main(int argc, char **argv)
@@ -981,13 +985,13 @@ int main(int argc, char **argv)
         if (!nesturbator_movie_read(opt.movie_path, &movie)) {
             fprintf(stderr, "nesturbator-run: malformed or unreadable movie %s\n", opt.movie_path);
             free_options(&opt);
-            return 1;
+            return RUNNER_EXIT_FAILURE;
         }
         if (opt.frames != 0u && opt.frames != movie.frame_count) {
             fprintf(stderr, "nesturbator-run: --frames must match the movie frame count\n");
             nesturbator_movie_free(&movie);
             free_options(&opt);
-            return 2;
+            return RUNNER_EXIT_USAGE;
         }
         opt.frames = movie.frame_count;
     }
@@ -1007,7 +1011,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "nesturbator-run: nesturbator_create failed with status %d\n", (int)st);
         nesturbator_movie_free(&movie);
         free_options(&opt);
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     if (opt.rom_path != NULL) {
         FILE *rom = fopen(opt.rom_path, "rb");
@@ -1021,7 +1025,7 @@ int main(int argc, char **argv)
             nesturbator_destroy(inst);
             nesturbator_movie_free(&movie);
             free_options(&opt);
-            return 1;
+            return RUNNER_EXIT_FAILURE;
         }
         bytes = (uint8_t *)malloc((size_t)length);
         if (bytes == NULL || fread(bytes, 1, (size_t)length, rom) != (size_t)length) {
@@ -1031,7 +1035,7 @@ int main(int argc, char **argv)
             nesturbator_destroy(inst);
             nesturbator_movie_free(&movie);
             free_options(&opt);
-            return 1;
+            return RUNNER_EXIT_FAILURE;
         }
         fclose(rom);
         st = nesturbator_load_cartridge(inst, bytes, (size_t)length);
@@ -1041,7 +1045,7 @@ int main(int argc, char **argv)
             nesturbator_destroy(inst);
             nesturbator_movie_free(&movie);
             free_options(&opt);
-            return 1;
+            return RUNNER_EXIT_FAILURE;
         }
         free(bytes);
         if (opt.save_dir != NULL) {
@@ -1059,7 +1063,8 @@ int main(int argc, char **argv)
                     nesturbator_destroy(inst);
                     nesturbator_movie_free(&movie);
                     free_options(&opt);
-                    return ls == NESTURBATOR_RUN_SAVE_MISMATCH ? 4 : 1;
+                    return ls == NESTURBATOR_RUN_SAVE_MISMATCH ? RUNNER_EXIT_SAVE_SIZE
+                                                               : RUNNER_EXIT_FAILURE;
                 }
                 save.shadow = (uint8_t *)malloc(save.size);
                 if (save.shadow == NULL) {
@@ -1067,7 +1072,7 @@ int main(int argc, char **argv)
                     nesturbator_destroy(inst);
                     nesturbator_movie_free(&movie);
                     free_options(&opt);
-                    return 1;
+                    return RUNNER_EXIT_FAILURE;
                 }
                 memcpy(save.shadow, save.span, save.size);
                 save.generation = nesturbator_save_generation(inst);
@@ -1116,7 +1121,7 @@ int main(int argc, char **argv)
     /* A 64-bit count, so the loop ends when --frames is 4294967295. */
     if (print_state_hashes(inst, &opt, start_frame, cur_ticks) != 0 ||
         write_states(inst, &opt, start_frame) != 0)
-        status = 1;
+        status = RUNNER_EXIT_FAILURE;
     for (uint64_t n = start_frame + 1u; n <= opt.frames && status == 0; n++) {
         uint32_t f = (uint32_t)n;
         nesturbator_frame io;
@@ -1135,7 +1140,7 @@ int main(int argc, char **argv)
             st = nesturbator_set_input(inst, &input);
             if (st != NESTURBATOR_OK) {
                 fprintf(stderr, "nesturbator-run: cannot set movie input at frame %u\n", f);
-                status = 1;
+                status = RUNNER_EXIT_FAILURE;
                 break;
             }
         }
@@ -1145,7 +1150,7 @@ int main(int argc, char **argv)
                 fprintf(stderr, "nesturbator-run: JAM stopped replay at frame %u\n", f);
             else
                 fprintf(stderr, "nesturbator-run: frame %u failed with status %d\n", f, (int)st);
-            status = 1;
+            status = RUNNER_EXIT_FAILURE;
             break;
         }
         cur_ticks = io.ticks;
@@ -1158,28 +1163,28 @@ int main(int argc, char **argv)
                    (unsigned long long)io.ticks, hex);
         }
         if (print_state_hashes(inst, &opt, n, cur_ticks) != 0)
-            status = 1;
+            status = RUNNER_EXIT_FAILURE;
         if (status == 0 && listed(opt.dump_frames, opt.dump_count, f)) {
             nesturbator_host_convert(palette, video, WIDTH, image, WIDTH);
             for (uint32_t k = 0; k < opt.dump_count; k++) {
                 if (opt.dump_frames[k] == f &&
                     nesturbator_run_write_ppm(opt.dump_paths[k], image, WIDTH) != 0) {
                     fprintf(stderr, "nesturbator-run: cannot write %s\n", opt.dump_paths[k]);
-                    status = 1;
+                    status = RUNNER_EXIT_FAILURE;
                 }
             }
         }
         if (status == 0 && write_states(inst, &opt, n) != 0)
-            status = 1;
+            status = RUNNER_EXIT_FAILURE;
         /* After frame f has completed and before frame f + 1 starts. */
         if (status == 0 && opt.save_interval != 0u && f % opt.save_interval == 0u &&
             save_if_changed(inst, &save) != 0)
-            status = 1;
+            status = RUNNER_EXIT_FAILURE;
     }
 
     /* The exit flush runs whatever ended the loop, including a JAM. */
     if (save_if_changed(inst, &save) != 0 && status == 0)
-        status = 1;
+        status = RUNNER_EXIT_FAILURE;
     if (status == 0 && opt.hash_audio != 0)
         print_audio_hash(&audio_hash);
 
@@ -1189,7 +1194,7 @@ int main(int argc, char **argv)
     free_options(&opt);
     if (fflush(stdout) != 0) {
         fprintf(stderr, "nesturbator-run: cannot write output\n");
-        return 1;
+        return RUNNER_EXIT_FAILURE;
     }
     return status;
 }

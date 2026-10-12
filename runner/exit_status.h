@@ -3,8 +3,8 @@
  * This header is runner-internal: it is not installed and nothing from it is part of
  * nesturbator.h. --help prints the table below and the README section "Exit status" repeats it;
  * the test runner.exit.table keeps the three in step. 3 and 77 are reserved and have no
- * enumerator. Boolean helpers in the runner sources keep returning 0/1 as truth values; only a value that
- * becomes the process status uses these names.
+ * enumerator. Boolean helpers in the runner sources keep returning 0/1 as truth values; only a
+ * value that becomes the process status uses these names.
  */
 #ifndef NESTURBATOR_RUNNER_EXIT_STATUS_H
 #define NESTURBATOR_RUNNER_EXIT_STATUS_H

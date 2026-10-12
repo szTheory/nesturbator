@@ -73,6 +73,18 @@ nesturbator_runner_test(NAME runner.usage.version_after_bad
 nesturbator_runner_test(NAME runner.usage.positional
   ARGS cartridge EXIT 2 IGNORE_STDOUT)
 
+# RUN-03: one test per exit status. 4 and 5 are runner.save.mismatch and runner.state.reject_game
+# below; --help is runner.exit.help. Options before --help are validated, as with --version.
+nesturbator_runner_test(NAME runner.exit.done ARGS --frames 1 EXIT 0)
+nesturbator_runner_test(NAME runner.exit.failure
+  ARGS --frames 1 --rom ${CMAKE_CURRENT_BINARY_DIR}/no-such-rom.nes
+  EXIT 1 EXPECT_ERR "no-such-rom.nes")
+nesturbator_runner_test(NAME runner.exit.usage EXPECT_ERR "usage: nesturbator-run" EXIT 2)
+nesturbator_runner_test(NAME runner.usage.help_after_bad
+  ARGS --bogus --help EXIT 2 IGNORE_STDOUT)
+set_tests_properties(runner.exit.done runner.exit.failure runner.exit.usage
+  PROPERTIES LABELS exit_status)
+
 # MAP-03 / D-15: a refused cartridge gets one named reason on stderr and exit 1.
 set(NESTURBATOR_REJECT_SEEDS ${PROJECT_SOURCE_DIR}/tests/fuzz/corpus)
 set(NESTURBATOR_MAPPER_LIST "supported mappers are 0, 1, 2, 3, 4 and 7")
@@ -211,6 +223,8 @@ runner_state_case(range_frames)
 runner_state_case(range_hash_frame)
 runner_state_case(range_state)
 runner_state_case(every_frame)
+set_tests_properties(runner.save.mismatch runner.save.unwritable runner.state.reject_game
+  PROPERTIES LABELS exit_status)
 nesturbator_runner_test(NAME runner.usage.load_state.twice
   ARGS --frames 1 --load-state a.state --load-state b.state EXIT 2 IGNORE_STDOUT)
 # D-11, D-12 and Open Question 3: repetition and combination refusals exit 2.
