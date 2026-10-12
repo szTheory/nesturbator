@@ -14,7 +14,7 @@
 
 /* ---- Helpers ---- */
 
-static nesturbator *st_make_instance(void)
+static inline nesturbator *st_make_instance(void)
 {
     nesturbator_config cfg;
     nesturbator *inst = NULL;
@@ -26,7 +26,7 @@ static nesturbator *st_make_instance(void)
 }
 
 /* Reads a whole file; returns 1 on success. The caller frees *data. */
-static int st_read_file(const char *path, uint8_t **data, size_t *size)
+static inline int st_read_file(const char *path, uint8_t **data, size_t *size)
 {
     FILE *f = fopen(path, "rb");
     uint8_t *buf;
@@ -49,14 +49,14 @@ static int st_read_file(const char *path, uint8_t **data, size_t *size)
     return 1;
 }
 
-static void st_load(nesturbator *inst, const uint8_t *rom, size_t size)
+static inline void st_load(nesturbator *inst, const uint8_t *rom, size_t size)
 {
     CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, size), NESTURBATOR_OK);
 }
 
 /* One frame with a 256-pitch video buffer and a 1024-sample audio buffer. The digests are the
    CRC-32 of the video pixels and of the audio samples, each serialised little-endian. */
-static nesturbator_status st_frame(nesturbator *inst, uint16_t buttons, uint32_t *video_crc,
+static inline nesturbator_status st_frame(nesturbator *inst, uint16_t buttons, uint32_t *video_crc,
                                    uint32_t *audio_crc, uint64_t *ticks, uint64_t *frame_number)
 {
     static uint16_t video[256u * 240u];
@@ -112,7 +112,7 @@ struct st_snap {
     size_t chr_ram_size;
 };
 
-static void st_snapshot(const nesturbator *inst, struct st_snap *s)
+static inline void st_snapshot(const nesturbator *inst, struct st_snap *s)
 {
     memcpy(&s->nes, inst, sizeof s->nes);
     s->prg_ram_size = inst->cart.prg_ram_size;
@@ -130,7 +130,7 @@ static void st_snapshot(const nesturbator *inst, struct st_snap *s)
 }
 
 /* 1 when the instance is byte for byte what the snapshot recorded. */
-static int st_same(const nesturbator *inst, const struct st_snap *s)
+static inline int st_same(const nesturbator *inst, const struct st_snap *s)
 {
     if (memcmp(&s->nes, inst, sizeof s->nes) != 0)
         return 0;
@@ -141,7 +141,7 @@ static int st_same(const nesturbator *inst, const struct st_snap *s)
     return 1;
 }
 
-static void st_snap_free(struct st_snap *s)
+static inline void st_snap_free(struct st_snap *s)
 {
     free(s->prg_ram);
     free(s->chr_ram);
@@ -150,29 +150,29 @@ static void st_snap_free(struct st_snap *s)
 }
 
 /* The button pattern both runs use for frame n. */
-static uint16_t st_buttons(uint32_t n)
+static inline uint16_t st_buttons(uint32_t n)
 {
     return (uint16_t)((n * 37u + (n >> 3)) & 0xffu);
 }
 
 
 /* Little-endian readers for the documented header, independent of the library's own code. */
-static uint32_t le16(const uint8_t *p)
+static inline uint32_t le16(const uint8_t *p)
 {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8);
 }
 
-static uint32_t le32(const uint8_t *p)
+static inline uint32_t le32(const uint8_t *p)
 {
     return le16(p) | (le16(p + 2) << 16);
 }
 
-static uint64_t le64(const uint8_t *p)
+static inline uint64_t le64(const uint8_t *p)
 {
     return (uint64_t)le32(p) | ((uint64_t)le32(p + 4) << 32);
 }
 
-static void put32(uint8_t *p, uint32_t v)
+static inline void put32(uint8_t *p, uint32_t v)
 {
     for (unsigned i = 0u; i < 4u; ++i)
         p[i] = (uint8_t)(v >> (8u * i));
@@ -180,7 +180,7 @@ static void put32(uint8_t *p, uint32_t v)
 
 /* Recomputes the state CRC-32 (every byte but offsets 28 to 31) and stores it at 28, so a test
    can change a field and still pass the checksum step. */
-static void st_recrc(uint8_t *state, size_t size)
+static inline void st_recrc(uint8_t *state, size_t size)
 {
     uint32_t crc = nesturbator__crc32(0u, state, 28u);
     crc = nesturbator__crc32(crc, state + 32, size - 32u);
@@ -193,14 +193,14 @@ struct st_counting_allocator {
     unsigned frees;
 };
 
-static void *st_counting_alloc(void *user, size_t size)
+static inline void *st_counting_alloc(void *user, size_t size)
 {
     struct st_counting_allocator *c = (struct st_counting_allocator *)user;
     c->allocs++;
     return malloc(size);
 }
 
-static void st_counting_free(void *user, void *ptr, size_t size)
+static inline void st_counting_free(void *user, void *ptr, size_t size)
 {
     struct st_counting_allocator *c = (struct st_counting_allocator *)user;
     (void)size;
@@ -209,7 +209,7 @@ static void st_counting_free(void *user, void *ptr, size_t size)
 }
 
 /* An instance whose allocator is the counting one; the counts include create. */
-static nesturbator *st_make_instance_counting(struct st_counting_allocator *c)
+static inline nesturbator *st_make_instance_counting(struct st_counting_allocator *c)
 {
     nesturbator_config cfg;
     nesturbator *inst = NULL;
@@ -221,6 +221,39 @@ static nesturbator *st_make_instance_counting(struct st_counting_allocator *c)
     cfg.allocator.user = c;
     CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
     return inst;
+}
+
+/* Fills every field the state visitor saves with 0xA5, so a field the visitor misses keeps the
+   pattern after a load and shows up as a divergence. Kept: the identity fields mapper.id and
+   mapper.submapper, the cartridge pointers and sizes, the map page tables, ops and watch mask,
+   the allocator, and the host or frame-scoped fields (input_pending, the sample and video output
+   pointers). map.a12 is derived and poisoned so the APPLY rebuild is exercised. */
+static inline void st_poison(nesturbator *inst)
+{
+    uint8_t pending[2];
+    memcpy(pending, inst->bus.input_pending, sizeof pending);
+    memset(&inst->cpu, 0xA5, sizeof inst->cpu);
+    memset(&inst->bus, 0xA5, sizeof inst->bus);
+    memcpy(inst->bus.input_pending, pending, sizeof pending);
+    memset(&inst->apu, 0xA5, sizeof inst->apu);
+    inst->apu.sample_output = NULL;
+    inst->apu.sample_limit = 0u;
+    inst->apu.sample_count = 0u;
+    memset(&inst->synth, 0xA5, sizeof inst->synth);
+    inst->synth.pcm_read = 0u;
+    inst->synth.pcm_write = 0u;
+    inst->synth.pcm_count = 0u;
+    inst->synth.overflow = 0u;
+    memset(&inst->ppu, 0xA5, sizeof inst->ppu);
+    inst->ppu.video_output = NULL;
+    inst->ppu.video_pitch = 0u;
+    memset(&inst->mapper.irq, 0xA5, sizeof inst->mapper.irq);
+    memset(&inst->mapper.reg, 0xA5, sizeof inst->mapper.reg);
+    inst->map.a12 = 0xA5u;
+    if (inst->cart.prg_ram_size != 0u)
+        memset(inst->cart.prg_ram, 0xA5, inst->cart.prg_ram_size);
+    if (inst->cart.chr_is_ram != 0u)
+        memset(inst->cart.chr, 0xA5, inst->cart.chr_size);
 }
 
 #endif /* NESTURBATOR_TESTS_STATE_TEST_H */

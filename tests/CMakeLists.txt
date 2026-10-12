@@ -555,6 +555,18 @@ target_include_directories(core.boundary PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # the CRC vector and the D-04 and D-05 check orders; white box.
 nesturbator_core_test(core.state core/test_state.c ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes)
 target_include_directories(core.state PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# STATE-03 (D-08): the fork matrix. Every fork point of eight committed ROMs on six boards loads
+# into an instance pre-filled with nesteroids.nes and poisoned, then continues identically; saving
+# every frame changes nothing. NESTURBATOR_SHORT_RUNS (preset asan) uses forks {0, 1, 30} over 60 frames.
+set(FORK_ROMS
+  ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes)
+if(NESTURBATOR_SHORT_RUNS)
+  nesturbator_core_test(core.state_fork core/test_state_fork.c --short ${FORK_ROMS})
+else()
+  nesturbator_core_test(core.state_fork core/test_state_fork.c ${FORK_ROMS})
+endif()
+target_include_directories(core.state_fork PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
