@@ -35,7 +35,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
   - a state whose CRC was recomputed but whose fields are out of range
   
   The ASan and UBSan presets run these checks.
-- [ ] **STATE-05**: The state includes battery RAM. A load raises `nesturbator_save_generation()` only when the battery bytes actually change, so repeated loads of the same state never trigger a `.sav` write. The README says that rewinding past an in-game save reverts the save RAM.
+- [x] **STATE-05**: The state includes battery RAM. A load raises `nesturbator_save_generation()` only when the battery bytes actually change, so repeated loads of the same state never trigger a `.sav` write. The README says that rewinding past an in-game save reverts the save RAM.
 
 ### libretro: rewind and run-ahead
 
@@ -103,7 +103,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 | STATE-02 | Phase 12 | Complete |
 | STATE-03 | Phase 12 | Pending |
 | STATE-04 | Phase 12 | Complete |
-| STATE-05 | Phase 12 | Pending |
+| STATE-05 | Phase 12 | Complete |
 | RUN-01 | Phase 12 | Pending |
 | LR-01 | Phase 13 | Pending |
 | LR-02 | Phase 13 | Pending |
