@@ -742,7 +742,8 @@ other kind, returns `NESTURBATOR_ERR_ARGUMENT` and writes nothing. With no
 cartridge, or a cartridge without battery RAM, it returns `NESTURBATOR_OK` with
 `NULL` and 0. The pointer stays valid from a successful load until unload, the
 next successful load or destroy; `nesturbator_reset()` and a refused load keep
-it. Copy a saved file in after load and before the first frame; read the span
+it, as does `nesturbator_load_state`, which copies into the same allocation.
+Copy a saved file in after load and before the first frame; read the span
 whenever you are between calls.
 
 `nesturbator_save_generation(inst)` counts CPU bus writes that reached the
@@ -750,7 +751,9 @@ span while the board had that RAM enabled and writable, whether or not the
 byte changed. A read-modify-write counts both of its writes. It runs from
 `nesturbator_create()` and never resets or decreases, so compare it with `!=`
 and write the file when it moves. Load (including trainer bytes), reset,
-unload and writes through the pointer do not count. `NULL` gives 0.
+unload and writes through the pointer do not count. A state load counts once
+when it changes the battery bytes and not at all when it leaves them
+unchanged; a refused load never counts (Save states, below). `NULL` gives 0.
 
 PRG RAM is one block laid out `[V work][N NVRAM]`, work RAM first, and the
 save span is the N battery bytes (hardware: NESdev Wiki "MMC1", SOROM). The
@@ -827,10 +830,16 @@ The header is 64 bytes, every multi-byte field little-endian:
 | 40 | 8 | ticks |
 | 48 | 16 | reserved, zero |
 
-The machine fields, the whole PRG RAM and the 8 KiB CHR RAM (when the board has
-it) follow. The frame buffer and the audio are not in a state. Frame numbers
+The machine fields, the whole PRG RAM (battery RAM included) and the 8 KiB CHR
+RAM (when the board has it) follow. The frame buffer and the audio are not in a state. Frame numbers
 and ticks continue from the saved point: the first frame after a load reports
 the number and ticks of the uninterrupted run.
+
+Battery RAM and the save generation: a state includes the battery RAM. Loading
+a state whose battery bytes differ from the instance's raises `nesturbator_save_generation`
+once, so the host writes the `.sav`. Loading a state whose battery bytes match,
+however many times, never moves it, and neither does a refused load, so
+repeated loads such as rewind never trigger a write.
 
 Another format version is refused, never converted. Keep rewind buffers in
 memory, and expect user-kept states to need re-creating after a release that

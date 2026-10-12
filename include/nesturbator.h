@@ -410,7 +410,8 @@ nesturbator_status nesturbator_reset(nesturbator *inst);
  * NESTURBATOR_ERR_ARGUMENT and writes nothing. No cartridge, or a cartridge
  * without a span, returns NESTURBATOR_OK with NULL and 0. The pointer is valid
  * from a successful load until unload, the next successful load or destroy;
- * nesturbator_reset and a refused load keep it. The host copies a saved file
+ * nesturbator_reset, nesturbator_load_state (it copies into the same
+ * allocation) and a refused load keep it. The host copies a saved file
  * in after load and before the first frame, and may read the span at any time
  * between calls.
  *
@@ -419,7 +420,11 @@ nesturbator_status nesturbator_reset(nesturbator *inst);
  * changed; a read-modify-write counts both of its writes. It runs from
  * nesturbator_create and never resets or decreases, so hosts compare it with
  * != . Load (including trainer bytes), reset, unload and writes the host makes
- * through the pointer do not count. nesturbator_save_generation(NULL) is 0. */
+ * through the pointer do not count. A state load counts once when it changes
+ * the battery bytes (the state's span differs from the instance's) and not at
+ * all when it leaves them unchanged; a refused load never counts. So loading
+ * the same state again, as rewind does, never moves it. See
+ * nesturbator_load_state. nesturbator_save_generation(NULL) is 0. */
 enum nesturbator_memory { NESTURBATOR_MEMORY_SAVE_RAM = 0 };
 typedef enum nesturbator_memory nesturbator_memory;
 

@@ -104,8 +104,116 @@ static void test_changed_span_counts_once(void)
     nesturbator_destroy(inst);
 }
 
+/* (a) Success criterion 5: 600 loads of a state whose span matches the instance's leave the
+   generation unchanged after every load, the first included. */
+static void test_matching_span_600_loads(void)
+{
+    static uint8_t image[IMAGE_CAP];
+    size_t size = build_image(image, 1u, 0u, 7u, 1u);
+    nesturbator *inst = make_loaded(image, size);
+    uint8_t *s;
+    size_t len;
+    uint64_t g;
+    run_frame(inst);
+    s = save_of(inst, &len);
+    g = nesturbator_save_generation(inst);
+    CHECK(g != 0u);
+    for (uint32_t i = 0u; i < LOADS; ++i) {
+        CHECK_EQ_U64(nesturbator_load_state(inst, s, len), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_save_generation(inst), g);
+    }
+    free(s);
+    nesturbator_destroy(inst);
+}
+
+/* (c) Work RAM outside the span differs, the span matches: no count. The span, not the PRG-RAM
+   allocation, is compared. */
+static void test_work_ram_outside_span(void)
+{
+    static uint8_t image[IMAGE_CAP];
+    size_t size = build_image(image, 1u, 7u, 7u, 1u);
+    nesturbator *inst = make_loaded(image, size);
+    struct nesturbator *nes = inst;
+    uint8_t *s;
+    size_t len;
+    uint64_t g;
+    CHECK_EQ_U64((uint64_t)(nes->cart.save - nes->cart.prg_ram), SPAN_8K);
+    CHECK_EQ_U64(nes->cart.save_size, SPAN_8K);
+    s = save_of(inst, &len);
+    g = nesturbator_save_generation(inst);
+    nes->cart.prg_ram[3] = 0x77u;
+    CHECK_EQ_U64(nesturbator_load_state(inst, s, len), NESTURBATOR_OK);
+    CHECK_EQ_HEX(nes->cart.prg_ram[3], 0x00u);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), g);
+    free(s);
+    nesturbator_destroy(inst);
+}
+
+/* (d) A battery-less NROM cartridge has no span: loads never count. */
+static void test_batteryless(void)
+{
+    static uint8_t image[IMAGE_CAP];
+    size_t size = build_image(image, 0u, 0u, 0u, 0u);
+    nesturbator *inst = make_loaded(image, size);
+    uint8_t *s;
+    size_t len;
+    run_frame(inst);
+    s = save_of(inst, &len);
+    run_frame(inst);
+    CHECK_EQ_U64(nesturbator_load_state(inst, s, len), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), 0u);
+    free(s);
+    nesturbator_destroy(inst);
+}
+
+/* (e) A refused load never counts, even when its span differs from the instance's. */
+static void test_refused_load(void)
+{
+    static uint8_t image[IMAGE_CAP];
+    size_t size = build_image(image, 1u, 0u, 7u, 1u);
+    nesturbator *inst = make_loaded(image, size);
+    struct nesturbator *nes = inst;
+    uint8_t *s;
+    size_t len;
+    uint64_t g;
+    s = save_of(inst, &len);
+    nes->cart.save[0] = 0x42u;
+    g = nesturbator_save_generation(inst);
+    s[len - 1u] ^= 0x01u; /* the checksum no longer matches */
+    CHECK_EQ_U64(nesturbator_load_state(inst, s, len), NESTURBATOR_ERR_STATE_CHECKSUM);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), g);
+    CHECK_EQ_HEX(nes->cart.save[0], 0x42u);
+    free(s);
+    nesturbator_destroy(inst);
+}
+
+/* (f) The instance's own writes raise the generation; a later changed-span load keeps counting
+   up from there and never lowers it. */
+static void test_counts_up_from_own_writes(void)
+{
+    static uint8_t image[IMAGE_CAP];
+    size_t size = build_image(image, 1u, 0u, 7u, 1u);
+    nesturbator *inst = make_loaded(image, size);
+    uint8_t *s;
+    size_t len;
+    uint64_t g;
+    s = save_of(inst, &len); /* before the program runs: span all zero */
+    run_frame(inst);
+    g = nesturbator_save_generation(inst);
+    CHECK_EQ_U64(g, 2u);
+    CHECK_EQ_U64(nesturbator_load_state(inst, s, len), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_generation(inst), g + 1u);
+    free(s);
+    nesturbator_destroy(inst);
+}
+
 int main(void)
 {
     test_changed_span_counts_once();
+    test_matching_span_600_loads();
+    test_work_ram_outside_span();
+    test_batteryless();
+    test_refused_load();
+    test_counts_up_from_own_writes();
     CHECK_DONE();
 }
