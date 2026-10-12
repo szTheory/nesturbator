@@ -433,7 +433,7 @@ static int nt_write_seeds(const char *dir, const char *pin)
     unsigned count;
     nt_seeds(seeds, &count);
     for (unsigned i = 0u; i < count; ++i) {
-        char path[512], sha[65];
+        char path[1024], sha[65];
         FILE *f;
         (void)snprintf(path, sizeof path, "%s/%s", dir, seeds[i].name);
         f = fopen(path, "wb");
@@ -465,7 +465,7 @@ static int nt_check_seeds(const char *dir, int argc, char **argv)
     int bad = 0;
     nt_seeds(seeds, &count);
     for (unsigned i = 0u; i < count; ++i) {
-        char path[512];
+        char path[1024];
         uint8_t got[16];
         size_t got_n;
         FILE *f;
