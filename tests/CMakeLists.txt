@@ -231,7 +231,7 @@ if(NOT WIN32)
   add_test(NAME runner.signal.scratch
     COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_CURRENT_BINARY_DIR}/signal_work)
   set_tests_properties(runner.signal.scratch PROPERTIES FIXTURES_SETUP runner_signal_scratch)
-  set(NESTURBATOR_SIGNAL_TIMEOUT 2)  # runner_signal_case timeout: twice the slowest hosted run: CI run 38322038900 (build (macos-15, ci, macos, arm64)), ENGINEERING section 5
+set(NESTURBATOR_SIGNAL_TIMEOUT 2)  # runner_signal_case timeout: twice the slowest hosted run: CI run 38322038900 (build (macos-15, ci, macos, arm64)), ENGINEERING section 5
   function(runner_signal_case case)
     add_test(NAME runner.signal.${case}
       COMMAND runner.signal $<TARGET_FILE:nesturbator-run> ${NESTURBATOR_SAVE_FIXTURE}
