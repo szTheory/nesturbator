@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 13
 current_phase_name: Rewind and run-ahead in RetroArch
 status: executing
-stopped_at: Phase 13 context gathered
-last_updated: "2026-10-12T16:19:57.933Z"
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-10-12T16:42:36.745Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 13 execution started
-state_head: 8296ffa0c4a42abcf535bfeb104e9e174c699399
+state_head: 6533c1e7f592cf7a668fffb4cfc18ef4182e0103
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 22
-  completed_plans: 14
+  completed_plans: 15
   percent: 40
 ---
 
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 13 (Rewind and run-ahead in RetroArch) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 13
+Plan: 2 of 8
+Status: Ready to execute
 Last activity: 2026-10-12 — Phase 13 execution started
 
 Progress: [████░░░░░░] 40%
@@ -168,6 +168,7 @@ Progress: [████░░░░░░] 40%
 | Phase 12 P08 | 40 min | 2 tasks | 8 files |
 | Phase 12 P09 | 25 min | 2 tasks | 4 files |
 | Phase 12 P10 | 40 min | 2 tasks | 8 files |
+| Phase 13 P01 | 45 min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -244,6 +245,8 @@ Recent decisions affecting current work:
 - [Phase 12]: 12-08: runner --load-state follows the battery load, so a state's differing battery bytes reach the .sav at exit; only K is read from the header, ticks is left to Plan 09
 - [Phase 12]: Runner range checks are one check_ranges() after the state load; state ticks for N == K come from the header
 - [Phase 12]: State pins: state_format, state/<board> 0 and 60 hashes and state/<board>/size rows for six boards; hashes.txt now 114 keys
+- [Phase 13]: 13-01: D-09 battery check follows the documented save-generation rule (a load counts once when it changes battery bytes, never on reloading the same state)
+- [Phase 13]: 13-01: libretro.serialize runs five ROMs, trimmed from seven to keep asan under 60 s (56.5-57.1 s measured)
 
 ### Pending Todos
 
@@ -292,9 +295,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T14:21:10.521Z
-Stopped at: Phase 13 context gathered
-Resume file: .planning/phases/13-rewind-and-run-ahead-in-retroarch/13-CONTEXT.md
+Last session: 2026-10-12T16:42:36.710Z
+Stopped at: Completed 13-01-PLAN.md
+Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 13`.
 
