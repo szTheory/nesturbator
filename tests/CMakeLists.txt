@@ -737,6 +737,23 @@ add_test(NAME fuzz.regress
   COMMAND fuzz.rom_loader ${NESTURBATOR_ROM_LOADER_CORPUS})
 set_tests_properties(fuzz.regress PROPERTIES TIMEOUT 30)
 
+# Phase 13, D-30 to D-35: the state loader fuzz target. Tracer step: one cart, seeds written into
+# the build tree by a fixture test and replayed by fuzz.state.regress.
+add_executable(fuzz.state_loader fuzz/state_loader.c)
+target_link_libraries(fuzz.state_loader PRIVATE nesturbator::nesturbator)
+target_compile_definitions(fuzz.state_loader PRIVATE NESTURBATOR_FUZZ_REPLAY=1)
+nesturbator_warnings(fuzz.state_loader)
+if(MSVC)
+  target_compile_definitions(fuzz.state_loader PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/state-seeds")
+add_test(NAME fuzz.state.seeds
+  COMMAND fuzz.state_loader --write-seeds "${CMAKE_CURRENT_BINARY_DIR}/state-seeds")
+add_test(NAME fuzz.state.regress
+  COMMAND fuzz.state_loader "${CMAKE_CURRENT_BINARY_DIR}/state-seeds/valid-m0-small")
+set_tests_properties(fuzz.state.seeds PROPERTIES TIMEOUT 30 FIXTURES_SETUP state_seeds)
+set_tests_properties(fuzz.state.regress PROPERTIES TIMEOUT 30 FIXTURES_REQUIRED state_seeds)
+
 # Linux nightly only: the same source/entry point and sanitized library, with
 # Clang's libFuzzer main and runtime instrumentation.
 option(NESTURBATOR_LIBFUZZER "Build the ROM loader libFuzzer target" OFF)
