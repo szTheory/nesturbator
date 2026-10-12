@@ -805,7 +805,9 @@ below the 64-byte header, the magic and format version, the cartridge identity
 (mapper, submapper, region and ROM CRC-32), the length against the state size
 and the header's total size, the CRC-32, and then the contents. A header size
 other than 64, a reserved byte other than zero and any field out of range are
-content checks and report `NESTURBATOR_ERR_STATE_INVALID`.
+content checks and report `NESTURBATOR_ERR_STATE_INVALID`. So does a PPU
+position ahead of the header's tick count or one whole frame or more behind it,
+which keeps the first frame after a load to about one frame of work.
 
 The header is 64 bytes, every multi-byte field little-endian:
 
@@ -852,6 +854,15 @@ interrupt stress program (on NROM and on MMC3) at many frames, including frame
 then poisoned, and it requires every later frame, sample, tick count and the
 final state to match an uninterrupted run. It also shows that saving every
 frame changes nothing.
+
+The `core.state_reject` test shows the refusals. It loads each game's state into
+every other game, flips every byte of a state and expects the status of the
+first failing check, truncates the state to every shorter length, and sets every
+bounded field just past each of its bounds (with the CRC-32 recomputed) and at
+the type's limits, expecting `NESTURBATOR_ERR_STATE_INVALID`. Fields at their
+bounds are loaded and run for a frame. After every refusal the instance and
+`nesturbator_save_generation` are unchanged. The same test runs under the
+address and undefined-behaviour sanitizers in the `asan` preset.
 
 ### Status codes
 

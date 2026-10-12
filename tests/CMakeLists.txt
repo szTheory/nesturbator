@@ -575,6 +575,17 @@ else()
 endif()
 target_include_directories(core.state_fork PRIVATE ${PROJECT_SOURCE_DIR}/src)
 set_tests_properties(core.state_fork PROPERTIES TIMEOUT 300 COST 100)
+# STATE-04 (D-03, D-04): all-or-nothing load. Cross-ROM, version, header_size, truncation, a flip of
+# every byte, the CRC-recomputed field sweep, the at-bound table and the ppu_ticks gap, each checked
+# for the D-04 status and a byte-identical instance. NESTURBATOR_SHORT_RUNS (preset asan) strides
+# the cartridge-RAM flips.
+if(NESTURBATOR_SHORT_RUNS)
+  nesturbator_core_test(core.state_reject core/test_state_reject.c --short ${FORK_ROMS})
+else()
+  nesturbator_core_test(core.state_reject core/test_state_reject.c ${FORK_ROMS})
+endif()
+target_include_directories(core.state_reject PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set_tests_properties(core.state_reject PROPERTIES TIMEOUT 300 COST 60)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)

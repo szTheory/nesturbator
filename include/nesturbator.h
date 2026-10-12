@@ -457,7 +457,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  *     NESTURBATOR_ERR_STATE_SIZE.
  *  6. A CRC-32 mismatch gives NESTURBATOR_ERR_STATE_CHECKSUM.
  *  7. A header size other than 64, a reserved header byte other than zero, or any field out of
- *     range gives NESTURBATOR_ERR_STATE_INVALID.
+ *     range gives NESTURBATOR_ERR_STATE_INVALID. Out of range includes a PPU position that is
+ *     ahead of the header's ticks or a whole frame or more behind them, so a hostile state cannot
+ *     make the next frame run for longer than about one frame of emulated work.
  * A flipped byte therefore reports the first check it breaks: the magic or version gives
  * FORMAT, an identity field gives CARTRIDGE, the total size gives SIZE, and any other byte,
  * including the recorded behaviour revision, gives CHECKSUM. The behaviour revision is recorded

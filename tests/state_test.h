@@ -150,6 +150,45 @@ static inline void st_snap_free(struct st_snap *s)
     s->chr_ram = NULL;
 }
 
+/* A refused load against a snapshot taken earlier (the instance must not have changed since):
+   the status must be want, the instance byte-identical and nesturbator_save_generation unchanged
+   (STATE-04, all-or-nothing). what names the case in the failure output. Returns 1 on success. */
+static inline int st_refused_with(nesturbator *inst, const struct st_snap *snap, uint64_t gen,
+                                  const uint8_t *buf, size_t size, nesturbator_status want,
+                                  const char *what)
+{
+    nesturbator_status got = nesturbator_load_state(inst, buf, size);
+    int ok = 1;
+    if (got != want) {
+        fprintf(stderr, "refused %s: status %d, wanted %d\n", what, (int)got, (int)want);
+        ok = 0;
+    }
+    if (!st_same(inst, snap)) {
+        fprintf(stderr, "refused %s: the instance changed\n", what);
+        ok = 0;
+    }
+    if (nesturbator_save_generation(inst) != gen) {
+        fprintf(stderr, "refused %s: save_generation changed\n", what);
+        ok = 0;
+    }
+    if (!ok)
+        check_failures++;
+    return ok;
+}
+
+/* Snapshots the instance and its save generation, loads, and checks the refusal. */
+static inline int st_refused(nesturbator *inst, const uint8_t *buf, size_t size,
+                             nesturbator_status want)
+{
+    struct st_snap snap;
+    int ok;
+    st_snapshot(inst, &snap);
+    ok = st_refused_with(inst, &snap, nesturbator_save_generation(inst), buf, size, want,
+                         "st_refused");
+    st_snap_free(&snap);
+    return ok;
+}
+
 /* The button pattern both runs use for frame n. */
 static inline uint16_t st_buttons(uint32_t n)
 {
