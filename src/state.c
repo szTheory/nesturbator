@@ -25,6 +25,8 @@
 
 #define STATE_HEADER_SIZE 64u
 #define STATE_CHR_RAM_SIZE 8192u
+/* Ceiling on the header's ticks: thousands of years of emulated time, far from 2^64 wrapping. */
+#define STATE_TICKS_MAX (UINT64_C(1) << 62)
 
 /* Header offsets. */
 #define H_MAGIC 0u
@@ -318,8 +320,12 @@ static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
        frame (the `while (nes->ppu.ppu_ticks + 8u <= ticks)` loop in src/ppu.c), so a hostile gap
        would not finish. A running core leaves the PPU within one dot of the CPU; a state saved
        right after nesturbator_reset is up to 7 CPU cycles behind. A gap below one frame loads and
-       costs at most one frame of catch-up (Pitfall P5). */
-    nesturbator__sio_check(io, ppu_ticks <= io->ticks &&
+       costs at most one frame of catch-up (Pitfall P5). The header ticks is also capped at
+       STATE_TICKS_MAX: `ppu_ticks + 8u <= ticks` and `ticks + NESTURBATOR_TICKS_PER_FRAME` wrap
+       near 2^64 and would then never finish. ppu_ticks <= ticks, so it is capped too. The other
+       64-bit stamps (cpu_cycle, the MMC1 and MMC3 write stamps) are only compared by equality or
+       by wrapping difference, never used as a loop bound. */
+    nesturbator__sio_check(io, ppu_ticks <= io->ticks && io->ticks <= STATE_TICKS_MAX &&
                                    io->ticks - ppu_ticks < NESTURBATOR_TICKS_PER_FRAME);
     nesturbator__sio_u16(io, &p->scanline, 261u);
     nesturbator__sio_u16(io, &p->dot, 340u);

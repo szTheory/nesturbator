@@ -11,7 +11,7 @@
         type's limits gives INVALID; reserved bytes 48-63 and status bits 0-4 as well
      7. at-bound table: every bounded field at its bound loads (or is refused for the named
         cross-field reason) and the next frame returns the named status
-     8. the ppu_ticks catch-up bound on both sides
+     8. the ppu_ticks catch-up bound on both sides, and the 2^62 ceiling on ticks
    Every refusal is checked against a snapshot of the whole instance and save_generation.
    The fields come from nesturbator__state_bounds, which walks the same field list the load uses,
    so this file keeps no second copy of the layout; only the names of the rows are written here.
@@ -678,6 +678,16 @@ static void case_ppu_gap(struct rom *r)
     put_raw(b + H_TICKS, UINT64_C(1) << 50, 8u);
     load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK,
                 "ppu_ticks = 0, ticks = 2^50");
+    /* CR-01: ticks near 2^64 wrapped the frame loop and never returned. */
+    put_raw(b + pt_off, UINT64_MAX, 8u);
+    put_raw(b + H_TICKS, UINT64_MAX, 8u);
+    load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK, "ticks = ppu_ticks = 2^64-1");
+    put_raw(b + pt_off, (UINT64_C(1) << 62) + 1u, 8u);
+    put_raw(b + H_TICKS, (UINT64_C(1) << 62) + 1u, 8u);
+    load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK, "ticks = ppu_ticks = 2^62 + 1");
+    put_raw(b + pt_off, UINT64_C(1) << 62, 8u);
+    put_raw(b + H_TICKS, UINT64_C(1) << 62, 8u);
+    load_expect(r, b, NESTURBATOR_OK, NESTURBATOR_OK, "ticks = ppu_ticks = 2^62");
     free(b);
 }
 

@@ -819,6 +819,7 @@ and the header's total size, the CRC-32, and then the contents. A header size
 other than 64, a reserved byte other than zero and any field out of range are
 content checks and report `NESTURBATOR_ERR_STATE_INVALID`. So does a PPU
 position ahead of the header's tick count or one whole frame or more behind it,
+and so does a tick count above 2^62 (counters near 2^64 would wrap and never finish),
 which keeps the first frame after a load to about one frame of work.
 
 The header is 64 bytes, every multi-byte field little-endian:
