@@ -355,6 +355,26 @@ void nesturbator__apu_reset(struct nesturbator *nes);
 nesturbator_status nesturbator__check_size_in(const void *s, uint32_t first, uint32_t ours);
 void nesturbator__controller_begin_frame(struct nesturbator *nes);
 
+/* One field of the state whose value range is narrower than its type, or that takes part in a
+   cross-field rule (src/state.c, test entry point for tests/core/test_state_reject.c). offset is
+   the field's byte offset in the state, width its size in bytes. lo and hi are the inclusive legal
+   range; hi is signed so a signed field's upper bound compares correctly, and an unsigned 64-bit
+   field, which has no bound, records INT64_MAX. cross is 1 for a participant in a cross-field
+   rule (the synthesis sum, ppu_ticks, status bits, eval_count and eval_copy_remaining). */
+struct nesturbator__state_bound {
+    size_t offset;
+    uint8_t width;
+    uint8_t is_signed;
+    uint8_t cross;
+    int64_t lo;
+    int64_t hi;
+};
+
+/* Writes up to cap records of the loaded cartridge's state layout to out (out may be NULL) and
+   returns the number of records, which may exceed cap; 0 without a cartridge. Changes nothing. */
+size_t nesturbator__state_bounds(const struct nesturbator *inst,
+                                 struct nesturbator__state_bound *out, size_t cap);
+
 /* CRC-32 (IEEE 802.3, reflected polynomial 0xEDB88320) as an update function: feeding a then b
    gives the CRC of a followed by b. Start with crc 0. Accepts a NULL p when n is 0 (src/crc32.c). */
 uint32_t nesturbator__crc32(uint32_t crc, const uint8_t *p, size_t n);

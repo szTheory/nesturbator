@@ -219,15 +219,19 @@ static void synth_io(struct nesturbator__sio *io, struct nesturbator__synth *s)
     int32_t level;
     int64_t integrator;
     /* S: the mixer clamps at 32767; level - mixed_level must not overflow int32_t. */
+    nesturbator__sio_cross(io);
     level = nesturbator__sio_i32(io, &s->mixed_level, 0, 32767);
     for (size_t i = 0u; i < NESTURBATOR_SYNTH_TAPS; ++i) {
-        int64_t v = nesturbator__sio_i64(io, &s->impulse[i], SYNTH_HISTORY_BOUND);
+        int64_t v;
+        nesturbator__sio_cross(io);
+        v = nesturbator__sio_i64(io, &s->impulse[i], SYNTH_HISTORY_BOUND);
         /* Only VALIDATE sums: its values are in range, so the sum cannot overflow. */
         if (io->mode == NESTURBATOR__SIO_VALIDATE)
             sum += v;
     }
     /* S: indexes impulse[]. */
     nesturbator__sio_u8(io, &s->impulse_head, (uint8_t)(NESTURBATOR_SYNTH_TAPS - 1u));
+    nesturbator__sio_cross(io);
     integrator = nesturbator__sio_i64(io, &s->integrator_q15, SYNTH_HISTORY_BOUND);
     /* The kernel coefficients sum to 32768, so the integrator and the impulses always add up to
        the mixed level in Q15. Every term is bounded above, so the sum cannot overflow. */
@@ -254,6 +258,7 @@ static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
     nesturbator__sio_u8(io, &p->control, 255u);
     nesturbator__sio_u8(io, &p->mask, 255u);
     /* Only bits 7 to 5 are ever set. */
+    nesturbator__sio_cross(io);
     status = nesturbator__sio_u8(io, &p->status, 255u);
     nesturbator__sio_check(io, (status & 0x1fu) == 0u);
     nesturbator__sio_u8(io, &p->oam_addr, 255u);
@@ -264,8 +269,9 @@ static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
     nesturbator__sio_u8(io, &p->io_bus, 255u);
     nesturbator__sio_u32(io, &p->io_bus_age, 160000u);
     nesturbator__sio_u8(io, &p->vblank_suppress, 1u);
-    nesturbator__sio_u16(io, &p->v, 0xffffu);
-    nesturbator__sio_u16(io, &p->t, 0xffffu);
+    /* 15 bits; the core masks v with 0x7fff on every increment. */
+    nesturbator__sio_u16(io, &p->v, 0x7fffu);
+    nesturbator__sio_u16(io, &p->t, 0x7fffu);
     nesturbator__sio_bytes(io, p->nametable, sizeof p->nametable);
     /* A palette entry is six bits: pixel bits 9 to 15 stay zero. */
     flags_io(io, p->palette, sizeof p->palette, 0x3fu);
@@ -274,6 +280,7 @@ static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
     /* S: sprite_count bounds the loop over the eight sprite slots. */
     nesturbator__sio_u8(io, &p->sprite_count, 8u);
     /* S: eval_count indexes secondary_oam and eval_sprite_zero. */
+    nesturbator__sio_cross(io);
     eval_count = nesturbator__sio_u8(io, &p->eval_count, 8u);
     /* S: eval_n indexes oam (64 sprites, 64 is the finished scan). */
     nesturbator__sio_u8(io, &p->eval_n, 64u);
@@ -281,6 +288,7 @@ static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
     nesturbator__sio_u8(io, &p->eval_m, 3u);
     nesturbator__sio_u8(io, &p->eval_remaining, 3u);
     /* S: eval_copy_remaining pairs with eval_count - 1 as a slot index, so it needs a slot. */
+    nesturbator__sio_cross(io);
     eval_copy_remaining = nesturbator__sio_u8(io, &p->eval_copy_remaining, 3u);
     nesturbator__sio_check(io, eval_copy_remaining == 0u || eval_count >= 1u);
     nesturbator__sio_u8(io, &p->eval_latch, 255u);
@@ -304,6 +312,7 @@ static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
     nesturbator__sio_u8(io, &p->at_latch_lo, 1u);
     nesturbator__sio_u8(io, &p->at_latch_hi, 1u);
     /* video_output and video_pitch belong to the frame: not saved. */
+    nesturbator__sio_cross(io);
     ppu_ticks = nesturbator__sio_u64(io, &p->ppu_ticks);
     /* L: nesturbator__ppu_run_until loops (ticks - ppu_ticks) / 8 times at the start of the next
        frame (the `while (nes->ppu.ppu_ticks + 8u <= ticks)` loop in src/ppu.c), so a hostile gap
@@ -373,6 +382,21 @@ size_t nesturbator_state_size(const nesturbator *inst)
     body_io(&io, (struct nesturbator *)inst);
     return STATE_HEADER_SIZE + io.n + inst->cart.prg_ram_size +
            (inst->cart.chr_is_ram != 0u ? STATE_CHR_RAM_SIZE : 0u);
+}
+
+size_t nesturbator__state_bounds(const struct nesturbator *inst,
+                                 struct nesturbator__state_bound *out, size_t cap)
+{
+    struct nesturbator__sio io;
+    if (inst == NULL || inst->cart.bytes == NULL)
+        return 0u;
+    memset(&io, 0, sizeof io);
+    io.mode = NESTURBATOR__SIO_RECORD;
+    io.rec = out;
+    io.rec_cap = cap;
+    /* RECORD only reads through the field pointers, as SIZE does. */
+    body_io(&io, (struct nesturbator *)inst);
+    return io.rec_n;
 }
 
 nesturbator_status nesturbator_save_state(const nesturbator *inst, void *buf, size_t capacity)
