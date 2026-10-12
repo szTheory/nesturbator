@@ -164,21 +164,24 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   3. The exit-status table (0, 1, 2, 4, 5; 3 and 77 reserved) is the same in one header, `--help` and the README, a test checks that, and each status has its own test.
   4. The README says Ctrl+Break and console close are handled on Windows and that a forced termination cannot be.
 
-**Plans**: 5 plans
+**Plans**: 6 plans
 **Wave 1**
 - [ ] 14-01-PLAN.md — One exit-status table in `runner/exit_status.h`, `--help`, README section, `runner.exit.*` tests (RUN-03)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 14-02-PLAN.md — Stop module, frame-exact stop with exit flush, `--raise-after`, in-process stop tests, README stop contract (RUN-02)
+- [ ] 14-02-PLAN.md — Stop module, frame-exact stop with exit flush, `--raise-after`, README stop contract (RUN-02)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 14-03-PLAN.md — Unmet requested outputs give exit 1 with a `not reached` line; no audio hash on a stop (RUN-02, RUN-03)
+- [ ] 14-03-PLAN.md — Flush-failure, empty, second-signal, load-state and `--raise-after` usage stop tests (RUN-02, RUN-03)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 14-04-PLAN.md — External SIGTERM/SIGINT and second-signal tests on Linux and macOS (RUN-02)
+- [ ] 14-04-PLAN.md — Unmet requested outputs give exit 1 with a `not reached` line; no audio hash on a stop (RUN-02, RUN-03)
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 14-05-PLAN.md — Windows handler and console tests, push, six-platform CI evidence, measured timeouts (RUN-02, RUN-03)
+- [ ] 14-05-PLAN.md — External SIGTERM/SIGINT and second-signal tests on Linux and macOS (RUN-02)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [ ] 14-06-PLAN.md — Windows handler and console tests, push, six-platform CI evidence, measured timeouts (RUN-02, RUN-03)
 **Notes**: Research flag: Windows console-event delivery on hosted runners and fsync latency against 2 s need a look before planning.
 
 ### Phase 15: Speed and close-out
