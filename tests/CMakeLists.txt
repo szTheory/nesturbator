@@ -1039,7 +1039,8 @@ add_test(NAME libretro.serialize
     ${PROJECT_SOURCE_DIR}/tests/roms/hm/M1_P128K_C128K_S8K.nes
     ${PROJECT_SOURCE_DIR}/tests/roms/hm/M2_P128K_CR8K_V.nes
     ${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes)
-set_tests_properties(libretro.serialize PROPERTIES TIMEOUT 120)
+# The asan job on a hosted runner ran past 120 s while other tests shared the CPU.
+set_tests_properties(libretro.serialize PROPERTIES TIMEOUT 600)
 
 # D-18 / D-14 / D-09: --rom-parity runs a whole ROM through the libretro module
 # and compares its last frame with the image the runner dumped (fixture
