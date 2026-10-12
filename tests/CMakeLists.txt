@@ -669,6 +669,17 @@ else()
 endif()
 target_include_directories(core.state_reject PRIVATE ${PROJECT_SOURCE_DIR}/src)
 set_tests_properties(core.state_reject PROPERTIES TIMEOUT 300 COST 60)
+# LR-02 (D-12): RetroArch's second-instance run-ahead mode as a library property. Instance A runs
+# the real timeline, B loads A's state each tick and runs N frames; the visible frames equal the
+# one-instance model's, A equals an uninterrupted run, and the nine ROMs and two stress images
+# pass. NESTURBATOR_SHORT_RUNS (preset asan) runs 60 ticks instead of 180.
+if(NESTURBATOR_SHORT_RUNS)
+  nesturbator_core_test(core.state_runahead core/test_state_runahead.c --short ${FORK_ROMS})
+else()
+  nesturbator_core_test(core.state_runahead core/test_state_runahead.c ${FORK_ROMS})
+endif()
+target_include_directories(core.state_runahead PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set_tests_properties(core.state_runahead PROPERTIES TIMEOUT 600 COST 30)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)

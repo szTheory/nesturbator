@@ -1266,6 +1266,23 @@ RetroArch applies that level only when the core sits in its `cores` directory
 beside the info file. Run-ahead needs the deterministic level, which is not
 claimed yet.
 
+`libretro.runahead` runs the built module as a run-ahead host: per displayed
+frame it runs the real frame, saves, runs one to three frames ahead, shows the
+last and loads the saved state, through the real `retro_*` entry points on seven
+ROMs and the two synthetic stress programs. Two fixed-seed input scripts change
+the buttons on every alignment of the cycle, including the frame right after a
+load. The shown frames, the real frames' audio, the last speculative frame's
+audio, the state bytes at every frame boundary and the final state must equal an
+uninterrupted run, and a repeat mode that gives the speculative frames the
+current input, as RetroArch does, must equal a two-instance library model. Four
+broken hosts (no load, a stale load, input one frame late, speculative audio in
+the real stream) run through the same comparison and each must differ.
+`core.state_runahead` checks RetroArch's second-instance mode as a library
+property: one instance runs the real timeline, a second loads its state each
+frame and runs ahead, and the shown frames equal a single instance that saves,
+runs ahead and loads. Neither test is a claim: the deterministic level stays
+unclaimed.
+
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares
 `supports_no_game = "true"`, which lets RetroArch start the core without
