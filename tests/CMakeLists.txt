@@ -1042,6 +1042,12 @@ add_test(NAME libretro.serialize
 # The asan job on a hosted runner ran past 120 s while other tests shared the CPU.
 set_tests_properties(libretro.serialize PROPERTIES TIMEOUT 600)
 
+# LR-02: --runahead drives the module as a run-ahead host (D-10, D-11).
+add_test(NAME libretro.runahead
+  COMMAND libretro.host --runahead $<TARGET_FILE:nesturbator_libretro>
+    ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes)
+set_tests_properties(libretro.runahead PROPERTIES TIMEOUT 300)
+
 # D-18 / D-14 / D-09: --rom-parity runs a whole ROM through the libretro module
 # and compares its last frame with the image the runner dumped (fixture
 # rundump_<key>, so the runner is not run twice). Scope is every ROM in the hash

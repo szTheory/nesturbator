@@ -22,6 +22,7 @@
 
 #include "../check.h"
 #include "../ines.h"
+#include "../runahead_model.h"
 #include "../../src/internal.h"
 #include "libretro.h"
 #include "nesturbator.h"
@@ -2051,6 +2052,214 @@ done:
     CHECK_DONE();
 }
 
+/* ---- --runahead: a run-ahead host through the module's entry points (LR-02) ---- */
+
+/* RetroArch's single-instance run-ahead order, from docs.libretro.com/guides/runahead: run the
+   real frame, save the state, run N frames ahead, show the last of them, load the state. The
+   guide does not say whose audio is kept, so both streams are asserted: the real frames' audio
+   equals the uninterrupted run, and the last speculative frame's audio equals the uninterrupted
+   run shifted by N frames. */
+#define RA_SPECULATIVE_ORDER "run, save, run ahead, show last, load"
+
+enum rah_control {
+    RAH_NORMAL,
+    RAH_SKIP_LOAD,  /* never load the saved state */
+    RAH_STALE_LOAD, /* load the state saved one tick earlier */
+    RAH_LATE_INPUT, /* apply every input one frame late */
+    RAH_AUDIO_LEAK  /* keep the speculative frame's audio in the real stream */
+};
+
+struct rah_result {
+    unsigned ticks;      /* ticks run */
+    unsigned states;     /* states compared with the oracle */
+    unsigned mismatches; /* comparisons that differed */
+    int report;          /* print the first mismatch */
+};
+
+static void rah_mismatch(struct rah_result *r, const char *what, uint32_t t)
+{
+    if (r->mismatches == 0u && r->report) {
+        fprintf(stderr, "libretro.runahead: %s differs at tick %u\n", what, (unsigned)t);
+    }
+    r->mismatches++;
+}
+
+static void rah_set_buttons(uint16_t b)
+{
+    host_buttons[0] = (uint8_t)(b & 0xffu);
+    host_buttons[1] = (uint8_t)(b >> 8);
+}
+
+/* The input the host applies at frame k of the script; the late-input control shifts it. */
+static uint16_t rah_input(const uint16_t *in, enum rah_control ctl, uint32_t k)
+{
+    if (ctl == RAH_LATE_INPUT) {
+        return k == 0u ? 0u : in[k - 1u];
+    }
+    return in[k];
+}
+
+/* The video the host showed, hashed the way the oracle hashes a frame. */
+static uint64_t rah_frame_hash(void)
+{
+    return ra_hash_words(frame, W * H);
+}
+
+static uint64_t rah_audio_hash(void)
+{
+    return ra_audio_hash_stereo(batch_samples, batch_frames);
+}
+
+/* Runs T displayed ticks of the module at depth N over the script in (T + RA_MAX_DEPTH
+   entries) and compares every tick with the oracle o (T + RA_MAX_DEPTH frames). two is NULL in
+   real-input mode, where the speculative frames get the script's real future inputs and the
+   visible frame must equal the oracle's frame t+N; otherwise it is the two-instance model's
+   visible hash per tick, and the speculative frames repeat in[t] as RetroArch does. */
+static void rah_run(const struct ser_rom *rom, unsigned N, const uint16_t *in, uint32_t T,
+                    const struct ra_oracle *o, const uint64_t *two, enum rah_control ctl,
+                    struct rah_result *res)
+{
+    size_t ss;
+    unsigned char *r_now = NULL, *r_prev = NULL, *pre = NULL;
+
+    if (!ser_load(rom->data, rom->size)) {
+        CHECK(0);
+        return;
+    }
+    ss = p_serialize_size();
+    CHECK_EQ_U64(ss, o->state_size);
+    r_now = (unsigned char *)malloc(ss);
+    r_prev = (unsigned char *)malloc(ss);
+    pre = (unsigned char *)malloc(ss);
+    if (r_now == NULL || r_prev == NULL || pre == NULL || ss != o->state_size) {
+        CHECK(0);
+        goto out;
+    }
+    CHECK(p_serialize(r_prev, ss));
+    for (uint32_t t = 0u; t < T; t++) {
+        uint64_t real_video, real_audio, spec_audio = 0u, visible;
+
+        /* The real frame: its video is dropped, its audio kept. */
+        rah_set_buttons(rah_input(in, ctl, t));
+        batch_frames = 0u;
+        p_run();
+        real_video = rah_frame_hash();
+        real_audio = rah_audio_hash();
+        if (real_video != o->video[t]) {
+            rah_mismatch(res, "real video", t);
+        }
+        CHECK(p_serialize(r_now, ss));
+        res->states++;
+        if (memcmp(r_now, o->state + (size_t)t * ss, ss) != 0) {
+            rah_mismatch(res, "saved state", t);
+        }
+
+        /* N speculative frames: their audio is dropped; the last one's video is shown. */
+        visible = real_video;
+        for (unsigned j = 1u; j <= N; j++) {
+            rah_set_buttons(rah_input(in, ctl, two != NULL ? t : t + j));
+            batch_frames = 0u;
+            p_run();
+        }
+        if (N > 0u) {
+            visible = rah_frame_hash();
+            spec_audio = rah_audio_hash();
+        }
+        if (ctl == RAH_AUDIO_LEAK) {
+            real_audio = ra_fnv_bytes(real_audio, &spec_audio, sizeof spec_audio);
+        }
+        if (real_audio != o->audio[t]) {
+            rah_mismatch(res, "real audio", t);
+        }
+        if (visible != (two != NULL ? two[t] : o->video[t + N])) {
+            rah_mismatch(res, "visible video", t);
+        }
+        if (N > 0u && two == NULL && spec_audio != o->audio[t + N]) {
+            rah_mismatch(res, "speculative audio", t);
+        }
+
+        /* The load has work to do: the state after the speculative frames is not R(t+1). */
+        if (N > 0u && ctl == RAH_NORMAL) {
+            CHECK(p_serialize(pre, ss));
+            CHECK(memcmp(pre, r_now, ss) != 0);
+        }
+        if (ctl == RAH_STALE_LOAD) {
+            CHECK(p_unserialize(r_prev, ss));
+        } else if (ctl != RAH_SKIP_LOAD) {
+            CHECK(p_unserialize(r_now, ss));
+        }
+        memcpy(r_prev, r_now, ss);
+        res->ticks++;
+    }
+    /* The final state is the uninterrupted run's. */
+    CHECK(p_serialize(r_now, ss));
+    res->states++;
+    if (memcmp(r_now, o->state + (size_t)(T - 1u) * ss, ss) != 0) {
+        rah_mismatch(res, "final state", T);
+    }
+out:
+    free(r_now);
+    free(r_prev);
+    free(pre);
+    p_unload_game();
+}
+
+/* libretro.host --runahead <module> <rom>... */
+static int runahead_mode(int argc, char **argv)
+{
+    static const uint32_t T = 180u;
+    struct ser_rom rom;
+    struct ra_oracle oracle;
+    struct rah_result res;
+    uint16_t *in;
+
+    if (argc < 4) {
+        fprintf(stderr, "usage: libretro.host --runahead <module> <rom>...\n");
+        return 2;
+    }
+    if (!module_open(argv[2])) {
+        fprintf(stderr, "cannot load %s\n", argv[2]);
+        return 1;
+    }
+    resolve_all();
+    CHECK_EQ_U64(missing, 0);
+    if (missing != 0) {
+        module_close();
+        CHECK_DONE();
+    }
+    p_set_environment(env);
+    p_init();
+    p_set_video_refresh(video);
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
+    p_set_input_poll(on_poll);
+    p_set_input_state(input);
+
+    memset(&rom, 0, sizeof rom);
+    memset(&res, 0, sizeof res);
+    res.report = 1;
+    rom.path = argv[3];
+    CHECK(read_file(rom.path, &rom.data, &rom.size));
+    in = ra_script_make(1u, RA_SEED_1, T + RA_MAX_DEPTH);
+    CHECK(in != NULL);
+    if (rom.data != NULL && in != NULL &&
+        ra_run_uninterrupted(rom.data, rom.size, in, T + RA_MAX_DEPTH, &oracle)) {
+        rah_run(&rom, 1u, in, T, &oracle, NULL, RAH_NORMAL, &res);
+        ra_oracle_free(&oracle);
+    } else {
+        CHECK(0);
+    }
+    CHECK_EQ_U64(res.mismatches, 0u);
+    CHECK(res.ticks >= T);
+    printf("libretro.runahead: order=\"%s\" rom=%s ticks=%u states=%u mismatches=%u\n",
+           RA_SPECULATIVE_ORDER, rom.path, res.ticks, res.states, res.mismatches);
+    free(in);
+    free(rom.data);
+    p_deinit();
+    module_close();
+    CHECK_DONE();
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
@@ -2066,10 +2275,14 @@ int main(int argc, char **argv)
     if (argc >= 2 && strcmp(argv[1], "--serialize") == 0) {
         return serialize_mode(argc, argv);
     }
+    if (argc >= 2 && strcmp(argv[1], "--runahead") == 0) {
+        return runahead_mode(argc, argv);
+    }
     if (argc != 6) {
         fprintf(stderr, "usage: libretro.host --rom-parity <module> <rom> <frames> <ppm> "
                         "[--movie FILE] [--testcard PPM] [--sav-in FILE] [--sav-expect FILE]\n"
                         "       libretro.host --serialize <module> <rom>...\n"
+                        "       libretro.host --runahead <module> <rom>...\n"
                         "       libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
                         "<generated.nes>\n");
         return 2;
