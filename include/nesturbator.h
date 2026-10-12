@@ -55,6 +55,17 @@ extern "C" {
    Revision 5 was the PPU fetch pipeline. */
 #define NESTURBATOR_BEHAVIOUR_REVISION 6
 
+/* The layout of the bytes nesturbator_save_state writes, and the only layout
+   nesturbator_load_state reads. Any other version is refused with
+   NESTURBATOR_ERR_STATE_FORMAT; there is no converter. Before the first release that contains
+   save states it stays 1 and the layout may change. After that release, any change to the state
+   bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
+   same commit. A fix that changes only emulated output raises
+   NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a load does not enforce.
+   Raising it is not a breaking change to the C interface and leaves NESTURBATOR_ABI_VERSION as it
+   is. */
+#define NESTURBATOR_STATE_FORMAT_VERSION 1
+
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
     NESTURBATOR_OK = 0,
@@ -73,7 +84,21 @@ enum nesturbator_status {
     /* Cartridge bytes are malformed or outside a supported board profile (mappers 0 NROM, 1 MMC1,
        2 UxROM, 3 CNROM, 4 MMC3 and 7 AxROM). Every rejected image returns this status with
        the instance unchanged. */
-    NESTURBATOR_ERR_CARTRIDGE = 7
+    NESTURBATOR_ERR_CARTRIDGE = 7,
+    /* Not a state this library reads: the magic is wrong or the format version is not
+       NESTURBATOR_STATE_FORMAT_VERSION. */
+    NESTURBATOR_ERR_STATE_FORMAT = 8,
+    /* No cartridge is loaded, or the state's mapper, submapper, region or ROM CRC-32 differs from
+       the loaded cartridge's: the state belongs to another game or board. */
+    NESTURBATOR_ERR_STATE_CARTRIDGE = 9,
+    /* The length is wrong: shorter than the 64-byte header, unequal to nesturbator_state_size, or
+       unequal to the total size in the header. Truncation at any length gives this status. */
+    NESTURBATOR_ERR_STATE_SIZE = 10,
+    /* The state's CRC-32 does not match its bytes: they were damaged. */
+    NESTURBATOR_ERR_STATE_CHECKSUM = 11,
+    /* The CRC-32 matches, but a field is out of range, the header size is not 64 or a reserved
+       byte is not zero: the state did not come from this library. */
+    NESTURBATOR_ERR_STATE_INVALID = 12
 };
 typedef enum nesturbator_status nesturbator_status;
 
@@ -206,9 +231,11 @@ typedef struct nesturbator_frame {
                                 NULL only when audio_capacity is 0 */
     uint32_t audio_capacity; /* in: samples that fit in audio */
     uint32_t audio_count;    /* out: samples written to audio */
-    uint64_t frame_number;   /* out: frames run by this instance, 1 after the first */
+    uint64_t frame_number;   /* out: frames run since power-on, 1 after the first;
+                                restored by nesturbator_load_state */
     uint64_t ticks;          /* out: emulated time in half master-clock periods
-                                since create, including the 7 CPU cycles of
+                                since power-on, restored by nesturbator_load_state,
+                                including the 7 CPU cycles of
                                 each nesturbator_reset; instructions may carry residual
                                 ticks across the nominal 714732-tick boundary.
                                 PPU vblank begins at scanline 241 dot 1 and ends
@@ -399,6 +426,71 @@ typedef enum nesturbator_memory nesturbator_memory;
 nesturbator_status nesturbator_get_memory(nesturbator *inst, nesturbator_memory kind,
                                           uint8_t **data, size_t *size);
 uint64_t nesturbator_save_generation(const nesturbator *inst);
+
+/* Save states. A state is the whole machine at a frame boundary, in a fixed-size byte string
+ * that is the same on every platform: save, load into any instance holding the same cartridge,
+ * and every later frame, audio sample and tick equals the uninterrupted run's. The library does
+ * no file I/O and never allocates for a state; the host owns the buffer.
+ *
+ * nesturbator_state_size returns the exact length of a state of the loaded cartridge: 0 for a
+ * NULL instance or with no cartridge, otherwise constant from a successful load until unload. It
+ * does not change the instance.
+ *
+ * nesturbator_save_state writes exactly nesturbator_state_size bytes to buf and leaves any bytes
+ * beyond them alone. It changes nothing in the instance and writes buf only when it returns
+ * NESTURBATOR_OK. A NULL buf is never a size query; call nesturbator_state_size for that.
+ * Checks in order: inst or buf NULL gives NESTURBATOR_ERR_ARGUMENT; no cartridge gives
+ * NESTURBATOR_ERR_STATE_CARTRIDGE; capacity below the state size gives
+ * NESTURBATOR_ERR_BUFFER_TOO_SMALL. Saving a jammed instance succeeds.
+ *
+ * nesturbator_load_state replaces the instance's machine state with the state's, all or nothing:
+ * every refusal leaves the instance byte for byte as it was. size must equal
+ * nesturbator_state_size exactly; padded or truncated input is refused. Checks in order:
+ *  1. inst or buf NULL gives NESTURBATOR_ERR_ARGUMENT.
+ *  2. size below the 64-byte header gives NESTURBATOR_ERR_STATE_SIZE.
+ *  3. A bad magic, or a format version other than NESTURBATOR_STATE_FORMAT_VERSION, gives
+ *     NESTURBATOR_ERR_STATE_FORMAT.
+ *  4. No cartridge loaded, or a mapper, submapper, region or ROM CRC-32 that differs from the
+ *     loaded cartridge's, gives NESTURBATOR_ERR_STATE_CARTRIDGE. Identity comes before length
+ *     because the length depends on the cartridge.
+ *  5. size other than nesturbator_state_size, or other than the header's total size, gives
+ *     NESTURBATOR_ERR_STATE_SIZE.
+ *  6. A CRC-32 mismatch gives NESTURBATOR_ERR_STATE_CHECKSUM.
+ *  7. A header size other than 64, a reserved header byte other than zero, or any field out of
+ *     range gives NESTURBATOR_ERR_STATE_INVALID.
+ * A flipped byte therefore reports the first check it breaks: the magic or version gives
+ * FORMAT, an identity field gives CARTRIDGE, the total size gives SIZE, and any other byte,
+ * including the recorded behaviour revision, gives CHECKSUM. The behaviour revision is recorded
+ * and not enforced, so a state saved before an emulation fix loads but may diverge.
+ * Loading restores frame_number and ticks, so the first frame after a load reports the frame
+ * number and ticks of the uninterrupted run. The frame buffer and the audio are not in a state.
+ * Load never returns NESTURBATOR_STOP_JAM: a state saved after a JAM opcode restores the latch
+ * and the next nesturbator_run_frame returns NESTURBATOR_STOP_JAM, and a state saved before one
+ * clears it.
+ *
+ * Layout (every length and offset is in bytes; every multi-byte field is little-endian, written
+ * one byte at a time, never as a struct copy):
+ *    0  8  magic 89 4E 54 53 0D 0A 1A 0A, so text-mode transfers break it
+ *    8  2  format version, NESTURBATOR_STATE_FORMAT_VERSION
+ *   10  2  header size, 64
+ *   12  4  total size, equal to nesturbator_state_size
+ *   16  4  behaviour revision, NESTURBATOR_BEHAVIOUR_REVISION of the saving library
+ *   20  2  mapper id
+ *   22  1  submapper
+ *   23  1  region, 0 for NTSC
+ *   24  4  ROM CRC-32 (IEEE, reflected polynomial 0xEDB88320) of the 16 iNES header bytes, the
+ *          PRG ROM and the CHR ROM; not CHR RAM, not the trainer
+ *   28  4  state CRC-32 of every byte of the state except these four
+ *   32  8  frame_number
+ *   40  8  ticks
+ *   48 16  reserved, zero
+ * The machine fields follow, then the whole PRG RAM, then the 8 KiB CHR RAM when the board has
+ * it. A state carries no pointer, host path, time stamp or padding.
+ * Battery RAM is part of the PRG RAM, so a load replaces it; rewinding past an in-game save
+ * reverts the save RAM. */
+size_t nesturbator_state_size(const nesturbator *inst);
+nesturbator_status nesturbator_save_state(const nesturbator *inst, void *buf, size_t capacity);
+nesturbator_status nesturbator_load_state(nesturbator *inst, const void *buf, size_t size);
 
 #ifdef __cplusplus
 }

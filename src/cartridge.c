@@ -361,6 +361,14 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
         inst->mapper.id = (uint16_t)(inst->mapper.id | ((image[8] & 0x0fu) << 8));
         inst->mapper.submapper = (uint8_t)(image[8] >> 4);
     }
+    /* The ROM's identity for save states: the header, PRG ROM and CHR ROM, computed once from
+       bytes that never change. The trainer only seeds RAM and CHR RAM starts zeroed, so neither
+       is hashed. */
+    inst->cart.rom_crc32 = nesturbator__crc32(0u, copy, 16u);
+    inst->cart.rom_crc32 = nesturbator__crc32(inst->cart.rom_crc32, inst->cart.prg, layout.prg_size);
+    if (!layout.chr_is_ram)
+        inst->cart.rom_crc32 =
+            nesturbator__crc32(inst->cart.rom_crc32, inst->cart.chr, layout.chr_size);
     /* Last, so the pages see the final cartridge pointers. */
     if (!nesturbator__mapper_load(inst)) {
         /* Unreachable: validate_image probed the same switch. */

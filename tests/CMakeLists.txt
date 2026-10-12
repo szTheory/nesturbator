@@ -551,6 +551,10 @@ target_include_directories(core.save PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # D-16: frame-boundary invariants (no frame-scoped pointer, empty PCM ring); white box.
 nesturbator_core_test(core.boundary core/test_boundary.c)
 target_include_directories(core.boundary PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# STATE-01, STATE-02 (D-01 to D-08, D-16): save states. The dabg round trip, the header layout,
+# the CRC vector and the D-04 and D-05 check orders; white box.
+nesturbator_core_test(core.state core/test_state.c ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes)
+target_include_directories(core.state PRIVATE ${PROJECT_SOURCE_DIR}/src)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -1017,6 +1021,7 @@ add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/apu.c
   ${PROJECT_SOURCE_DIR}/src/synth.c
   ${PROJECT_SOURCE_DIR}/src/cartridge.c
+  ${PROJECT_SOURCE_DIR}/src/crc32.c
   ${PROJECT_SOURCE_DIR}/src/mapper_nrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_mmc1.c
   ${PROJECT_SOURCE_DIR}/src/mapper_uxrom.c
