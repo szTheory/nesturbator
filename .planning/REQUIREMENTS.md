@@ -18,16 +18,16 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 
 ### Save states in the library
 
-- [ ] **STATE-01**: A host can call `nesturbator_state_size`, `nesturbator_save_state` and `nesturbator_load_state`. The size is fixed from cartridge load to unload, and is 0 with no cartridge. A save writes into the caller's buffer, never allocates, and does not change the instance. Status codes are appended to the public header, and a "Save states" section is added to the README.
-- [ ] **STATE-02**: A state is canonical little-endian bytes. It starts with a header that carries:
+- [x] **STATE-01**: A host can call `nesturbator_state_size`, `nesturbator_save_state` and `nesturbator_load_state`. The size is fixed from cartridge load to unload, and is 0 with no cartridge. A save writes into the caller's buffer, never allocates, and does not change the instance. Status codes are appended to the public header, and a "Save states" section is added to the README.
+- [x] **STATE-02**: A state is canonical little-endian bytes. It starts with a header that carries:
   - a magic and the state's own format version
   - the total size and the behaviour revision (recorded, not enforced)
   - the mapper, submapper and region
   - a CRC-32 of the ROM and a CRC-32 of the state
   
   The same game and inputs give byte-identical states on all six platforms, and the state hashes are pinned in `tests/runner/hashes.txt`.
-- [ ] **STATE-03**: Saving, loading and continuing gives the same result as an uninterrupted run, for a committed ROM on each of the six boards. The check runs at several frames, including frame 0, and loads into a fresh instance pre-filled with another game. It compares every later frame hash, every audio hash, the tick count and the final state bytes. Saving every frame changes no pinned hash.
-- [ ] **STATE-04**: A load either applies the whole state or changes nothing. It rejects the following with distinct status codes and leaves the instance byte-identical:
+- [x] **STATE-03**: Saving, loading and continuing gives the same result as an uninterrupted run, for a committed ROM on each of the six boards. The check runs at several frames, including frame 0, and loads into a fresh instance pre-filled with another game. It compares every later frame hash, every audio hash, the tick count and the final state bytes. Saving every frame changes no pinned hash.
+- [x] **STATE-04**: A load either applies the whole state or changes nothing. It rejects the following with distinct status codes and leaves the instance byte-identical:
   - a state from another game or board
   - a state from another format version
   - a state cut short at any length
@@ -35,7 +35,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
   - a state whose CRC was recomputed but whose fields are out of range
   
   The ASan and UBSan presets run these checks.
-- [ ] **STATE-05**: The state includes battery RAM. A load raises `nesturbator_save_generation()` only when the battery bytes actually change, so repeated loads of the same state never trigger a `.sav` write. The README says that rewinding past an in-game save reverts the save RAM.
+- [x] **STATE-05**: The state includes battery RAM. A load raises `nesturbator_save_generation()` only when the battery bytes actually change, so repeated loads of the same state never trigger a `.sav` write. The README says that rewinding past an in-game save reverts the save RAM.
 
 ### libretro: rewind and run-ahead
 
@@ -46,7 +46,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 
 ### Runner process contract
 
-- [ ] **RUN-01**: The runner has these state options, and a rejected state exits with status 5:
+- [x] **RUN-01**: The runner has these state options, and a rejected state exits with status 5:
   - `--state-at-frame N:FILE` writes a state after frame N.
   - `--load-state FILE` resumes from a state after the battery save loads.
   - `--hash-state N` prints the state hash.
@@ -99,12 +99,12 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 | TUNE-07 | Phase 11 | Complete |
 | TUNE-08 | Phase 11 | Complete |
 | TUNE-09 | Phase 11 | Complete |
-| STATE-01 | Phase 12 | Pending |
-| STATE-02 | Phase 12 | Pending |
-| STATE-03 | Phase 12 | Pending |
-| STATE-04 | Phase 12 | Pending |
-| STATE-05 | Phase 12 | Pending |
-| RUN-01 | Phase 12 | Pending |
+| STATE-01 | Phase 12 | Complete |
+| STATE-02 | Phase 12 | Complete |
+| STATE-03 | Phase 12 | Complete |
+| STATE-04 | Phase 12 | Complete |
+| STATE-05 | Phase 12 | Complete |
+| RUN-01 | Phase 12 | Complete |
 | LR-01 | Phase 13 | Pending |
 | LR-02 | Phase 13 | Pending |
 | LR-03 | Phase 13 | Pending |

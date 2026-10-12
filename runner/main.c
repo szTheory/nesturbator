@@ -45,6 +45,7 @@
 #include "ppm.h"
 #include "save.h"
 #include "sha256.h"
+#include "state_file.h"
 
 #define WIDTH 256u
 #define HEIGHT 240u
@@ -56,6 +57,8 @@ static int usage(const char *why)
     fprintf(stderr,
             "usage: nesturbator-run (--frames N | --movie FILE) [--rom FILE] [--hash-frame N]... "
             "[--hash-audio] [--dump-frame N:FILE]... [--save-dir DIR [--save-interval N]]\n"
+            "                      [--state-at-frame N:FILE]... [--hash-state N]... "
+            "[--load-state FILE]\n"
             "       nesturbator-run --version\n"
             "  --frames N           run N frames (N >= 1)\n"
             "  --movie FILE         replay a validated two-port movie\n"
@@ -65,6 +68,9 @@ static int usage(const char *why)
             "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n"
             "  --save-dir DIR       load and keep DIR/<rom name>.sav (needs --rom)\n"
             "  --save-interval N    with --save-dir, also write a changed save every N frames\n"
+            "  --state-at-frame N:FILE  write the save state after frame N (N >= 0) to FILE\n"
+            "  --load-state FILE    resume from a save state; frame numbers stay absolute\n"
+            "  --hash-state N       print the SHA-256 of the save state after frame N (N >= 0)\n"
             "  --version            print the version and exit\n");
     return 2;
 }
@@ -94,6 +100,27 @@ static int parse_count_n(const char *text, size_t len, uint32_t *out)
     return 1;
 }
 
+/* Like parse_count_n, but 0 is a valid frame index (the state at power-on). */
+static int parse_frame_index(const char *text, size_t len, uint32_t *out)
+{
+    uint64_t v = 0;
+    if (text == NULL || len == 0u) {
+        return 0;
+    }
+    for (size_t k = 0; k < len; k++) {
+        char c = text[k];
+        if (c < '0' || c > '9') {
+            return 0;
+        }
+        v = v * 10u + (uint64_t)(c - '0');
+        if (v > 0xffffffffu) {
+            return 0;
+        }
+    }
+    *out = (uint32_t)v;
+    return 1;
+}
+
 static int parse_count(const char *text, uint32_t *out)
 {
     return text != NULL && parse_count_n(text, strlen(text), out);
@@ -107,6 +134,20 @@ static int parse_dump(const char *text, uint32_t *frame, const char **path)
         return 0;
     }
     if (!parse_count_n(text, (size_t)(colon - text), frame)) {
+        return 0;
+    }
+    *path = colon + 1;
+    return 1;
+}
+
+/* Parses N:FILE for --state-at-frame, where N may be 0. */
+static int parse_state_at(const char *text, uint32_t *frame, const char **path)
+{
+    const char *colon = text != NULL ? strchr(text, ':') : NULL;
+    if (colon == NULL || colon[1] == '\0') {
+        return 0;
+    }
+    if (!parse_frame_index(text, (size_t)(colon - text), frame)) {
         return 0;
     }
     *path = colon + 1;
@@ -153,6 +194,12 @@ typedef struct options {
     uint32_t *dump_frames;
     const char **dump_paths;
     uint32_t dump_count;
+    uint32_t *state_frames;
+    const char **state_paths;
+    uint32_t state_count;
+    uint32_t *hash_states;
+    uint32_t hash_state_count;
+    const char *load_state_path;
     int hash_audio;
     int show_version;
     const char *save_dir;
@@ -164,6 +211,9 @@ static void free_options(options *o)
     free(o->hash_frames);
     free(o->dump_frames);
     free((void *)o->dump_paths);
+    free(o->state_frames);
+    free((void *)o->state_paths);
+    free(o->hash_states);
 }
 
 /* Returns 0 when the options are valid, 2 after a usage message, 1 when out of
@@ -174,7 +224,11 @@ static int parse_options(int argc, char **argv, options *o)
     o->hash_frames = (uint32_t *)malloc(n_args * sizeof *o->hash_frames);
     o->dump_frames = (uint32_t *)malloc(n_args * sizeof *o->dump_frames);
     o->dump_paths = (const char **)malloc(n_args * sizeof *o->dump_paths);
-    if (o->hash_frames == NULL || o->dump_frames == NULL || o->dump_paths == NULL) {
+    o->state_frames = (uint32_t *)malloc(n_args * sizeof *o->state_frames);
+    o->state_paths = (const char **)malloc(n_args * sizeof *o->state_paths);
+    o->hash_states = (uint32_t *)malloc(n_args * sizeof *o->hash_states);
+    if (o->hash_states == NULL || o->hash_frames == NULL || o->dump_frames == NULL ||
+        o->dump_paths == NULL || o->state_frames == NULL || o->state_paths == NULL) {
         fprintf(stderr, "nesturbator-run: out of memory\n");
         return 1;
     }
@@ -226,6 +280,32 @@ static int parse_options(int argc, char **argv, options *o)
             o->dump_frames[o->dump_count] = n;
             o->dump_paths[o->dump_count] = path;
             o->dump_count++;
+        } else if (strcmp(arg, "--state-at-frame") == 0) {
+            const char *path;
+            if (!parse_state_at(value, &n, &path)) {
+                return usage("--state-at-frame needs N:FILE with N of 0 or more");
+            }
+            for (uint32_t k = 0; k < o->state_count; k++) {
+                if (o->state_frames[k] == n)
+                    return usage("--state-at-frame N given twice");
+            }
+            o->state_frames[o->state_count] = n;
+            o->state_paths[o->state_count] = path;
+            o->state_count++;
+        } else if (strcmp(arg, "--hash-state") == 0) {
+            if (value == NULL || !parse_frame_index(value, strlen(value), &n))
+                return usage("--hash-state needs a frame number of 0 or more");
+            for (uint32_t k = 0; k < o->hash_state_count; k++) {
+                if (o->hash_states[k] == n)
+                    return usage("--hash-state N given twice");
+            }
+            o->hash_states[o->hash_state_count++] = n;
+        } else if (strcmp(arg, "--load-state") == 0) {
+            if (o->load_state_path != NULL)
+                return usage("--load-state may be specified once");
+            if (value == NULL || value[0] == '\0')
+                return usage("--load-state needs a file path");
+            o->load_state_path = value;
         } else if (strcmp(arg, "--frames") == 0 || strcmp(arg, "--hash-frame") == 0) {
             if (!parse_count(value, &n)) {
                 return usage("option needs a whole number of 1 or more");
@@ -248,6 +328,12 @@ static int parse_options(int argc, char **argv, options *o)
         o->frames = 1800u;
     } else if (o->scoreboard_path != NULL) {
         return usage("--scoreboard requires --accuracycoin-page");
+    }
+    if (o->state_count != 0u || o->hash_state_count != 0u || o->load_state_path != NULL) {
+        if (o->rom_path == NULL || o->accuracy_page != 0u)
+            return usage("--state-at-frame, --load-state and --hash-state need --rom");
+        if (o->movie_path != NULL && o->load_state_path != NULL)
+            return usage("--movie cannot be combined with --load-state");
     }
     if (o->save_dir != NULL && (o->rom_path == NULL || o->accuracy_page != 0u))
         return usage("--save-dir needs --rom and cannot be used with --accuracycoin-page");
@@ -666,6 +752,174 @@ static void describe_rejection(const uint8_t *b, size_t len, int status)
             status);
 }
 
+/* The word for a rejected state (D-07), by nesturbator_status 8 to 12. */
+static const char *state_rejection_word(int st)
+{
+    switch (st) {
+    case NESTURBATOR_ERR_STATE_FORMAT:
+        return "another format version";
+    case NESTURBATOR_ERR_STATE_CARTRIDGE:
+        return "wrong game";
+    case NESTURBATOR_ERR_STATE_SIZE:
+        return "wrong length";
+    case NESTURBATOR_ERR_STATE_CHECKSUM:
+        return "damaged";
+    default:
+        return "invalid contents";
+    }
+}
+
+/* Loads the state file into the instance. On success *frame is the state's
+   frame number K (header offset 32, little-endian). Returns 0, 1 when the file
+   cannot be read or memory runs out, or 5 when the library rejects the state
+   (one line says why). */
+static int load_state_file(nesturbator *inst, const char *path, uint64_t *frame, uint64_t *ticks)
+{
+    size_t size = nesturbator_state_size(inst);
+    size_t got = 0;
+    uint8_t *buf = (uint8_t *)malloc(size + 1u);
+    nesturbator_status st;
+    if (buf == NULL) {
+        fprintf(stderr, "nesturbator-run: out of memory\n");
+        return 1;
+    }
+    /* One byte beyond the state size, so a longer file is a length rejection. */
+    if (nesturbator_run_state_read(path, buf, size + 1u, &got) != 0) {
+        free(buf);
+        return 1;
+    }
+    st = nesturbator_load_state(inst, buf, got);
+    if (st != NESTURBATOR_OK) {
+        fprintf(stderr, "nesturbator-run: cannot load state %s (%s)\n", path,
+                state_rejection_word((int)st));
+        free(buf);
+        return 5;
+    }
+    *frame = 0u;
+    for (unsigned k = 0; k < 8u; k++)
+        *frame |= (uint64_t)buf[32u + k] << (8u * k);
+    *ticks = 0u;
+    for (unsigned k = 0; k < 8u; k++)
+        *ticks |= (uint64_t)buf[40u + k] << (8u * k);
+    free(buf);
+    return 0;
+}
+
+/* Prints the state line for every --hash-state whose N is frame. Returns 0, or 1 after a
+   message. ticks is the emulated time after that frame (0 at power-on). */
+static int print_state_hashes(const nesturbator *inst, const options *o, uint64_t frame,
+                              uint64_t ticks)
+{
+    size_t size = nesturbator_state_size(inst);
+    uint8_t *buf;
+    nesturbator_run_sha256 s;
+    uint8_t digest[32];
+    char hex[65];
+    if (!listed(o->hash_states, o->hash_state_count, (uint32_t)frame))
+        return 0;
+    buf = size != 0u ? (uint8_t *)malloc(size) : NULL;
+    if (buf == NULL || nesturbator_save_state(inst, buf, size) != NESTURBATOR_OK) {
+        free(buf);
+        fprintf(stderr, "nesturbator-run: cannot save state at frame %lu\n", (unsigned long)frame);
+        return 1;
+    }
+    nesturbator_run_sha256_init(&s);
+    nesturbator_run_sha256_update(&s, buf, size);
+    nesturbator_run_sha256_final(&s, digest);
+    nesturbator_run_sha256_hex(digest, hex);
+    free(buf);
+    printf("state %lu ticks %llu size %lu sha256 %s\n", (unsigned long)frame,
+           (unsigned long long)ticks, (unsigned long)size, hex);
+    return 0;
+}
+
+/* Writes the state for every --state-at-frame whose N is frame. Returns 0, or
+   1 after a message. Each file is replaced atomically and no other path is
+   written (PROH-12-08-01). */
+static int write_states(const nesturbator *inst, const options *o, uint64_t frame)
+{
+    size_t size = nesturbator_state_size(inst);
+    uint8_t *buf = NULL;
+    int rc = 0;
+    for (uint32_t k = 0; k < o->state_count && rc == 0; k++) {
+        if (o->state_frames[k] != frame)
+            continue;
+        if (buf == NULL) {
+            buf = size != 0u ? (uint8_t *)malloc(size) : NULL;
+            if (buf == NULL || nesturbator_save_state(inst, buf, size) != NESTURBATOR_OK) {
+                fprintf(stderr, "nesturbator-run: cannot save state at frame %lu\n",
+                        (unsigned long)frame);
+                rc = 1;
+                break;
+            }
+        }
+        if (nesturbator_run_file_replace(o->state_paths[k], buf, size) != 0)
+            rc = 1;
+    }
+    free(buf);
+    return rc;
+}
+
+/* The range checks that do not depend on a loaded state (D-09): no frame index may lie beyond
+   --frames. They run before any file is touched, so a bad command line exits 2 whatever else is
+   wrong with the ROM, the battery save or the state. Returns 0, or 2 after a usage message. */
+static int check_frame_limits(const options *o)
+{
+    char why[160];
+    for (uint32_t k = 0; k < o->hash_count + o->dump_count; k++) {
+        int is_hash = k < o->hash_count;
+        uint32_t n = is_hash ? o->hash_frames[k] : o->dump_frames[k - o->hash_count];
+        if (n > o->frames) {
+            snprintf(why, sizeof why, "%s %lu is beyond the requested frame count",
+                     is_hash ? "--hash-frame" : "--dump-frame", (unsigned long)n);
+            return usage(why);
+        }
+    }
+    for (uint32_t k = 0; k < o->state_count + o->hash_state_count; k++) {
+        int is_file = k < o->state_count;
+        uint32_t n = is_file ? o->state_frames[k] : o->hash_states[k - o->state_count];
+        if (n > o->frames) {
+            snprintf(why, sizeof why, "%s %lu is beyond the requested frame count",
+                     is_file ? "--state-at-frame" : "--hash-state", (unsigned long)n);
+            return usage(why);
+        }
+    }
+    return 0;
+}
+
+/* The checks that need K, the loaded state's frame (0 without a load): frame indices are
+   absolute from power-on. Run after the state load. Returns 0, or 2 after a usage message. */
+static int check_ranges(const options *o, uint64_t k_frame)
+{
+    char why[160];
+    if (o->frames < k_frame) {
+        snprintf(why, sizeof why, "--frames %lu is before the loaded state's frame %lu",
+                 (unsigned long)o->frames, (unsigned long)k_frame);
+        return usage(why);
+    }
+    for (uint32_t k = 0; k < o->hash_count + o->dump_count; k++) {
+        int is_hash = k < o->hash_count;
+        uint32_t n = is_hash ? o->hash_frames[k] : o->dump_frames[k - o->hash_count];
+        if (n <= k_frame) {
+            snprintf(why, sizeof why, "%s %lu is not after the loaded state's frame %lu",
+                     is_hash ? "--hash-frame" : "--dump-frame", (unsigned long)n,
+                     (unsigned long)k_frame);
+            return usage(why);
+        }
+    }
+    for (uint32_t k = 0; k < o->state_count + o->hash_state_count; k++) {
+        int is_file = k < o->state_count;
+        uint32_t n = is_file ? o->state_frames[k] : o->hash_states[k - o->state_count];
+        if (n < k_frame) {
+            snprintf(why, sizeof why, "%s %lu is before the loaded state's frame %lu",
+                     is_file ? "--state-at-frame" : "--hash-state", (unsigned long)n,
+                     (unsigned long)k_frame);
+            return usage(why);
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     static uint16_t video[WIDTH * HEIGHT];
@@ -676,6 +930,8 @@ int main(int argc, char **argv)
     nesturbator_movie movie;
     nesturbator_run_audio_hash audio_hash;
     battery_save save;
+    uint64_t start_frame = 0u;
+    uint64_t cur_ticks = 0u;
     int status;
 
     memset(&opt, 0, sizeof opt);
@@ -712,23 +968,12 @@ int main(int argc, char **argv)
         }
         opt.frames = movie.frame_count;
     }
-    for (uint32_t k = 0; k < opt.hash_count; k++) {
-        if (opt.hash_frames[k] > opt.frames) {
-            status = usage("--hash-frame is beyond the requested frame count");
-            nesturbator_movie_free(&movie);
-            free_options(&opt);
-            return status;
-        }
+    status = check_frame_limits(&opt);
+    if (status != 0) {
+        nesturbator_movie_free(&movie);
+        free_options(&opt);
+        return status;
     }
-    for (uint32_t k = 0; k < opt.dump_count; k++) {
-        if (opt.dump_frames[k] > opt.frames) {
-            status = usage("--dump-frame is beyond the requested frame count");
-            nesturbator_movie_free(&movie);
-            free_options(&opt);
-            return status;
-        }
-    }
-
     nesturbator_config cfg;
     memset(&cfg, 0, sizeof cfg);
     cfg.size = (uint32_t)sizeof cfg;
@@ -806,6 +1051,26 @@ int main(int argc, char **argv)
             }
         }
     }
+    /* D-10: the state load follows the battery load, so the .sav rule below sees the state's
+       battery bytes as a change. */
+    if (opt.load_state_path != NULL) {
+        status = load_state_file(inst, opt.load_state_path, &start_frame, &cur_ticks);
+        if (status != 0) {
+            free(save.shadow);
+            nesturbator_destroy(inst);
+            nesturbator_movie_free(&movie);
+            free_options(&opt);
+            return status;
+        }
+    }
+    status = check_ranges(&opt, start_frame);
+    if (status != 0) {
+        free(save.shadow);
+        nesturbator_destroy(inst);
+        nesturbator_movie_free(&movie);
+        free_options(&opt);
+        return status;
+    }
     if (opt.dump_count > 0u) {
         nesturbator_get_palette(inst, palette, 512u);
     }
@@ -826,7 +1091,10 @@ int main(int argc, char **argv)
     }
 
     /* A 64-bit count, so the loop ends when --frames is 4294967295. */
-    for (uint64_t n = 1; n <= opt.frames && status == 0; n++) {
+    if (print_state_hashes(inst, &opt, start_frame, cur_ticks) != 0 ||
+        write_states(inst, &opt, start_frame) != 0)
+        status = 1;
+    for (uint64_t n = start_frame + 1u; n <= opt.frames && status == 0; n++) {
         uint32_t f = (uint32_t)n;
         nesturbator_frame io;
         memset(&io, 0, sizeof io);
@@ -857,6 +1125,7 @@ int main(int argc, char **argv)
             status = 1;
             break;
         }
+        cur_ticks = io.ticks;
         if (opt.hash_audio != 0)
             nesturbator_run_audio_hash_pcm(&audio_hash, audio, io.audio_count);
         if ((opt.movie_path != NULL || listed(opt.hash_frames, opt.hash_count, f))) {
@@ -865,7 +1134,9 @@ int main(int argc, char **argv)
             printf("frame %lu ticks %llu sha256 %s\n", (unsigned long)f,
                    (unsigned long long)io.ticks, hex);
         }
-        if (listed(opt.dump_frames, opt.dump_count, f)) {
+        if (print_state_hashes(inst, &opt, n, cur_ticks) != 0)
+            status = 1;
+        if (status == 0 && listed(opt.dump_frames, opt.dump_count, f)) {
             nesturbator_host_convert(palette, video, WIDTH, image, WIDTH);
             for (uint32_t k = 0; k < opt.dump_count; k++) {
                 if (opt.dump_frames[k] == f &&
@@ -875,6 +1146,8 @@ int main(int argc, char **argv)
                 }
             }
         }
+        if (status == 0 && write_states(inst, &opt, n) != 0)
+            status = 1;
         /* After frame f has completed and before frame f + 1 starts. */
         if (status == 0 && opt.save_interval != 0u && f % opt.save_interval == 0u &&
             save_if_changed(inst, &save) != 0)

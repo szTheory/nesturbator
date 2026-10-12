@@ -120,6 +120,11 @@ nesturbator_runner_test(NAME runner.usage.dump
   ARGS --dump-frame 2:x.ppm --frames 1 EXIT 2 IGNORE_STDOUT)
 nesturbator_runner_test(NAME runner.usage.dump.colon
   ARGS --frames 1 --dump-frame 1 EXIT 2 IGNORE_STDOUT)
+# A usage error outranks a missing ROM: the K-independent range checks run before any file is read.
+nesturbator_runner_test(NAME runner.usage.beyond.badrom
+  ARGS --rom no-such-file.nes --frames 1 --hash-frame 2 EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.dump.badrom
+  ARGS --rom no-such-file.nes --frames 1 --dump-frame 2:x.ppm EXIT 2 IGNORE_STDOUT)
 nesturbator_runner_test(NAME runner.usage.dump.file
   ARGS --frames 1 --dump-frame 1: EXIT 2 IGNORE_STDOUT)
 
@@ -165,6 +170,61 @@ runner_save_case(interval_retry)
 runner_save_case(jam)
 runner_save_case(dir_at_tmp)
 set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
+
+# RUN-01 (D-07, D-09 to D-11): --state-at-frame and --load-state. runner.state_mutate makes the
+# corrupt copies at test time (CMake cannot compute a CRC-32); no state file is committed. Each
+# runner.state.<case> runs in its own scratch directory, so the cases are safe under ctest -j.
+add_executable(runner.state_mutate runner/state_mutate.c ${PROJECT_SOURCE_DIR}/src/crc32.c)
+target_include_directories(runner.state_mutate PRIVATE ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/include)
+nesturbator_warnings(runner.state_mutate)
+target_compile_definitions(runner.state_mutate PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+function(runner_state_case case)
+  add_test(NAME runner.state.${case}
+    COMMAND ${CMAKE_COMMAND}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      "-DMUTATE=$<TARGET_FILE:runner.state_mutate>"
+      "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes"
+      "-DOTHER_ROM=${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes"
+      "-DSAVE_FIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
+      "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/state_work/${case}"
+      "-DCASE=${case}"
+      "-DHASHES=${CMAKE_CURRENT_SOURCE_DIR}/runner/hashes.txt"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_state.cmake")
+  set_tests_properties(runner.state.${case} PROPERTIES
+    FIXTURES_REQUIRED runner_save TIMEOUT 60)
+endfunction()
+runner_state_case(roundtrip)
+runner_state_case(reject_game)
+runner_state_case(reject_size)
+runner_state_case(reject_checksum)
+runner_state_case(reject_format)
+runner_state_case(reject_invalid)
+runner_state_case(missing_file)
+runner_state_case(directory)
+runner_state_case(idempotent)
+runner_state_case(save_dir)
+runner_state_case(frame0)
+runner_state_case(same_k)
+runner_state_case(continue_hash)
+runner_state_case(range_frames)
+runner_state_case(range_hash_frame)
+runner_state_case(range_state)
+runner_state_case(every_frame)
+nesturbator_runner_test(NAME runner.usage.load_state.twice
+  ARGS --frames 1 --load-state a.state --load-state b.state EXIT 2 IGNORE_STDOUT)
+# D-11, D-12 and Open Question 3: repetition and combination refusals exit 2.
+nesturbator_runner_test(NAME runner.usage.state.twice
+  ARGS --frames 5 --rom ${PROJECT_SOURCE_DIR}/tests/roms/none.nes
+  --state-at-frame 2:a.state --state-at-frame 2:b.state EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.hash_state.twice
+  ARGS --frames 5 --rom ${PROJECT_SOURCE_DIR}/tests/roms/none.nes
+  --hash-state 2 --hash-state 2 EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.state.movie
+  ARGS --movie m.mov --rom ${PROJECT_SOURCE_DIR}/tests/roms/none.nes
+  --load-state a.state EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.state.norom
+  ARGS --frames 5 --hash-state 2 EXIT 2 IGNORE_STDOUT)
 
 # D-18: save flag usage errors exit 2.
 set(save_rom_arg ${PROJECT_SOURCE_DIR}/tests/roms/none.nes)
@@ -482,6 +542,13 @@ add_test(NAME runner.write_hashes.content
 set_tests_properties(runner.write_hashes.content PROPERTIES FIXTURES_REQUIRED hashes_txt)
 endif()
 
+# D-15: the state_format row of runner/hashes.txt equals NESTURBATOR_STATE_FORMAT_VERSION.
+# It reads only source files, so it runs in every preset.
+add_test(NAME state.format_pin
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/state_format_pin.cmake)
+set_tests_properties(state.format_pin PROPERTIES TIMEOUT 30)
+
 # Keep the CI cross-platform hash inventory contract executable locally.
 add_test(NAME hash.inventory.self_test
   COMMAND ${CMAKE_COMMAND}
@@ -548,9 +615,60 @@ target_include_directories(core.mapper_mmc3 PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # SAVE-01 (D-06, D-11, D-12): the battery span, its address and the write counter.
 nesturbator_core_test(core.save core/test_save.c)
 target_include_directories(core.save PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# STATE-05 (D-04 step 8): a state load counts in the save generation only when the battery bytes
+# change; the 600-load case, refused loads and battery-less cartridges.
+nesturbator_core_test(core.state_generation core/test_state_generation.c)
+target_include_directories(core.state_generation PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # D-16: frame-boundary invariants (no frame-scoped pointer, empty PCM ring); white box.
 nesturbator_core_test(core.boundary core/test_boundary.c)
 target_include_directories(core.boundary PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# STATE-01, STATE-02 (D-01 to D-08, D-16): save states. The dabg round trip, the header layout,
+# the CRC vector and the D-04 and D-05 check orders; white box.
+nesturbator_core_test(core.state core/test_state.c ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes)
+target_include_directories(core.state PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# STATE-03 (D-08): the fork matrix. Every fork point of eight committed ROMs on six boards loads
+# into an instance pre-filled with nesteroids.nes and poisoned, then continues identically; saving
+# every frame changes nothing. NESTURBATOR_SHORT_RUNS (preset asan) uses forks {0, 1, 30} over 60 frames.
+set(FORK_ROMS
+  ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/runner.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M1_P512K_CR8K_S32K.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M2_P128K_CR8K_V.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P128K_CR8K.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P256K_C256K.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M7_P128K_CR8K.nes)
+# One CTest entry per ROM plus one for the stress images, so ctest runs them in parallel and no
+# single entry carries the whole matrix (it is about 140 s of CPU in ci).
+add_executable(core.state_fork core/test_state_fork.c)
+target_link_libraries(core.state_fork PRIVATE nesturbator::nesturbator)
+nesturbator_warnings(core.state_fork)
+target_include_directories(core.state_fork PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set(FORK_MODE)
+if(NESTURBATOR_SHORT_RUNS)
+  set(FORK_MODE --short)
+endif()
+list(GET FORK_ROMS 0 FORK_OTHER)
+list(SUBLIST FORK_ROMS 1 -1 FORK_GAMES)
+foreach(rom IN LISTS FORK_GAMES)
+  get_filename_component(rom_name ${rom} NAME_WE)
+  add_test(NAME core.state_fork.${rom_name} COMMAND core.state_fork ${FORK_MODE} ${FORK_OTHER} ${rom})
+  set_tests_properties(core.state_fork.${rom_name} PROPERTIES TIMEOUT 300 COST 20)
+endforeach()
+add_test(NAME core.state_fork.stress COMMAND core.state_fork ${FORK_MODE} --stress ${FORK_OTHER})
+set_tests_properties(core.state_fork.stress PROPERTIES TIMEOUT 300 COST 60)
+# STATE-04 (D-03, D-04): all-or-nothing load. Cross-ROM, version, header_size, truncation, a flip of
+# every byte, the CRC-recomputed field sweep, the at-bound table and the ppu_ticks gap, each checked
+# for the D-04 status and a byte-identical instance. NESTURBATOR_SHORT_RUNS (preset asan) strides
+# the cartridge-RAM flips.
+if(NESTURBATOR_SHORT_RUNS)
+  nesturbator_core_test(core.state_reject core/test_state_reject.c --short ${FORK_ROMS})
+else()
+  nesturbator_core_test(core.state_reject core/test_state_reject.c ${FORK_ROMS})
+endif()
+target_include_directories(core.state_reject PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set_tests_properties(core.state_reject PROPERTIES TIMEOUT 300 COST 60)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -771,6 +889,12 @@ add_test(NAME runner.version
 add_test(NAME cmake.script_policy
   COMMAND ${CMAKE_COMMAND} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/cmake
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/script_policy.cmake)
+
+# D-07: the README status table equals enum nesturbator_status, and the README keeps its Save
+# states section and the rewind sentence (STATE-05).
+add_test(NAME state.status_table
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/status_table.cmake)
 
 # D-01 and D-02: vector conversion and fetch stay implemented by the owned C
 # parser; release configuration scripts are outside this scoped policy.
@@ -1017,6 +1141,7 @@ add_executable(bus.unit cpu/test_bus.c
   ${PROJECT_SOURCE_DIR}/src/apu.c
   ${PROJECT_SOURCE_DIR}/src/synth.c
   ${PROJECT_SOURCE_DIR}/src/cartridge.c
+  ${PROJECT_SOURCE_DIR}/src/crc32.c
   ${PROJECT_SOURCE_DIR}/src/mapper_nrom.c
   ${PROJECT_SOURCE_DIR}/src/mapper_mmc1.c
   ${PROJECT_SOURCE_DIR}/src/mapper_uxrom.c

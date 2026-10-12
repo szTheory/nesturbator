@@ -8,6 +8,7 @@
    The power-on bank register is 0, which NESdev leaves unspecified, so that is
    an implementation choice (D-16). */
 #include "internal.h"
+#include "state.h"
 
 static void uxrom_init(struct nesturbator *nes)
 {
@@ -47,6 +48,12 @@ static void uxrom_cpu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
     nes->map.ops.rebuild(nes);
 }
 
+/* State: NESdev Wiki "UxROM": the bank register. */
+static void uxrom_state(struct nesturbator__mapper *m, struct nesturbator__sio *io)
+{
+    nesturbator__sio_u8(io, &m->reg.uxrom.bank, 0xffu);
+}
+
 void nesturbator__mapper_uxrom_ops(struct nesturbator__mapper_ops *out)
 {
     out->init = uxrom_init;
@@ -54,4 +61,5 @@ void nesturbator__mapper_uxrom_ops(struct nesturbator__mapper_ops *out)
     out->cpu_write = uxrom_cpu_write;
     out->ppu_a12 = NULL;
     out->ppu_read = NULL;
+    out->state = uxrom_state;
 }

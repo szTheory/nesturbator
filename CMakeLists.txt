@@ -56,6 +56,8 @@ nesturbator_core_flags(nesturbator_cpu)
 add_library(nesturbator STATIC
   src/instance.c
   src/cartridge.c
+  src/crc32.c
+  src/state.c
   src/mapper_nrom.c
   src/mapper_mmc1.c
   src/mapper_uxrom.c

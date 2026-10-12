@@ -2,44 +2,44 @@
 gsd_state_version: "1.0"
 milestone: v3
 milestone_name: Save states and rewind
-current_phase: 12
-current_phase_name: Save states in the library
+current_phase: 13
+current_phase_name: Rewind and run-ahead in RetroArch
 status: planning
-stopped_at: Phase 11 complete, ready to plan Phase 12
-last_updated: "2026-10-11T22:13:17.670Z"
-last_activity: 2026-10-11
-last_activity_desc: Phase 11 complete, transitioned to Phase 12
-state_head: cf8c1971716e51b2de9ce8e31052ac23eb10c03a
+stopped_at: Phase 12 complete, ready to plan Phase 13
+last_updated: "2026-10-12T12:55:09.254Z"
+last_activity: 2026-10-12
+last_activity_desc: Phase 12 complete, transitioned to Phase 13
+state_head: 6c9cc7bea8819e07bf74c342d7e928f2e5120fcf
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 20
+  completed_phases: 2
+  total_plans: 14
+  completed_plans: 14
+  percent: 40
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-11)
+See: .planning/PROJECT.md (updated 2026-10-12)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 12 — Save states in the library
+**Current focus:** Phase 13 — Rewind and run-ahead in RetroArch
 
 ## Current Position
 
-Phase: 12 — Save states in the library
+Phase: 13 — Rewind and run-ahead in RetroArch
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-10-11 — Phase 11 complete, transitioned to Phase 12
+Last activity: 2026-10-12 — Phase 12 complete, transitioned to Phase 13
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 89
+- Total plans completed: 99
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -60,6 +60,7 @@ Progress: [██░░░░░░░░] 20%
 | 09 | 12 | - | - |
 | 10 | 7 | - | - |
 | 11 | 4 | - | - |
+| 12 | 10 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -157,6 +158,16 @@ Progress: [██░░░░░░░░] 20%
 | Phase 11 P02 | 30min | 3 tasks | 9 files |
 | Phase 11 P03 | 20m | 3 tasks | 6 files |
 | Phase 11 P04 | 15 min | 2 tasks | 3 files |
+| Phase 12 P01 | 70min | 2 tasks | 10 files |
+| Phase 12 P02 | 30 min | 2 tasks | 10 files |
+| Phase 12 P03 | 25 min | 2 tasks | 7 files |
+| Phase 12 P04 | 15 min | 2 tasks | 3 files |
+| Phase 12 P05 | 45 min | 2 tasks | 4 files |
+| Phase 12 P06 | 90 min | 2 tasks | 8 files |
+| Phase 12 P07 | 25 min | 2 tasks | 5 files |
+| Phase 12 P08 | 40 min | 2 tasks | 8 files |
+| Phase 12 P09 | 25 min | 2 tasks | 4 files |
+| Phase 12 P10 | 40 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -220,6 +231,19 @@ Recent decisions affecting current work:
 - [Phase 11]: C3: unload always runs the power-on helper; load never does
 - [Phase 11]: 11-03: --version formatted at run time from nesturbator_get_version; libretro version string stays compile-time
 - [Phase 11]: D-14 SAVE_SIZE parameter; MMC3 m4tkrom save round trip in retroarch-e2e
+- [Phase 12]: 12-01: header_size is checked in the INVALID stage after the CRC; FORMAT covers only magic and version
+- [Phase 12]: 12-01: ppu_ticks rule is ppu_ticks <= ticks and gap < NESTURBATOR_TICKS_PER_FRAME, so a post-reset state loads
+- [Phase 12]: 12-01: state header holds frame_number (offset 32) and ticks (offset 40); dabg state is 13087 bytes before board registers
+- [Phase 12]: Board registers travel through a mandatory state op per board; the round trip is tested whitebox
+- [Phase 12]: Status table checker is a -P script comparing sorted n:NAME pairs of the README and the enum
+- [Phase 12]: JAM tests use a gated image (loop on RAM $10, JAM when non-zero) so a clean state of the same image keeps running
+- [Phase 12]: state_test.h helpers are static inline; save-every-frame kept under asan --short (core.state_fork asan 42 s, ci 77 s)
+- [Phase 12]: Stress straddles come from a timed NMI handler (Y=1, X=220, G=5) that exploits the frame end drifting against the PPU; DMC sample restarts each frame with IRQ enabled
+- [Phase 12]: 12-06: state_bound.hi is int64_t; ppu.v and ppu.t validated to 0x7fff; RECORD visitor mode feeds the rejection sweep
+- [Phase 12]: 12-07: state load bumps save_generation once via a memcmp of the battery span before the PRG-RAM copy; refused loads never count
+- [Phase 12]: 12-08: runner --load-state follows the battery load, so a state's differing battery bytes reach the .sav at exit; only K is read from the header, ticks is left to Plan 09
+- [Phase 12]: Runner range checks are one check_ranges() after the state load; state ticks for N == K come from the header
+- [Phase 12]: State pins: state_format, state/<board> 0 and 60 hashes and state/<board>/size rows for six boards; hashes.txt now 114 keys
 
 ### Pending Todos
 
@@ -234,6 +258,8 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-02 `$2007` palette test on unmasked `v` stays open; WR-01 (write stamp) and WR-03 (`map_cpu_read` range guard) were fixed in 08-05.
 - [Phase 10] Code review left 3 warnings and 3 info open, all in test code (10-REVIEW-DISPOSITION.md): WR-01 `libretro.host --rom-parity` continues after a failed load; WR-02 boot-to-play audio window min/max not re-seeded when a window's first frame has no samples (latent); WR-03 the frame-written sentinel is weaker than its comment.
 - [Phase 11] Code review left 3 info open (11-REVIEW-DISPOSITION.md; WR-01 to WR-04 fixed): IN-01 load_cartridge repeats the power-on reset; IN-02 a failed libretro load leaves the instance NULL so AV info is zeroed; IN-03 one over-long comment line in `runner/main.c`.
+- [Phase 12] Code review closed (12-REVIEW-DISPOSITION.md): CR-01 tick ceiling, WR-01 runner exit 2 before ROM load and IN-01 fixed; WR-02 skipped, as `halted_in_read` is never written and its bound must widen if stalled reads are modelled. Six-platform state hash equality is shown only by the Phase 12 PR's CI matrix.
+- [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
 ### Quick Tasks Completed
@@ -266,13 +292,13 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T22:15:00Z
-Stopped at: Phase 11 complete, ready to plan Phase 12
+Last session: 2026-10-12T12:36:58.978Z
+Stopped at: Phase 12 complete, ready to plan Phase 13
 Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 12`.
+Next GSD command: `/gsd-discuss-phase 13`.
 
 ## Operator Next Steps
 
-- Phase 11 PR #42 is green and in draft; squash-merge it, then create the Phase 12 branch from main
-- Discuss Phase 12 with /gsd-discuss-phase 12, then plan it with /gsd-plan-phase 12
+- Push gsd/phase-12-save-states-in-the-library, open its PR and squash-merge it once CI is green, then create the Phase 13 branch from main
+- Discuss Phase 13 with /gsd-discuss-phase 13, then plan it with /gsd-plan-phase 13

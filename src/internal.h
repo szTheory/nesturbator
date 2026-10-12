@@ -167,6 +167,9 @@ struct nesturbator__cartridge {
     size_t save_size;    /* N */
     size_t chr_size;     /* CHR-ROM size the loader validated, or 8192 for CHR-RAM */
     uint8_t chr_is_ram;
+    /* CRC-32 of the 16 header bytes, the PRG ROM and the CHR ROM (not CHR RAM, not the trainer),
+       set once by nesturbator_load_cartridge. A state carries it as the ROM's identity. */
+    uint32_t rom_crc32;
 };
 
 /* Machine profile: values that differ between chips of the same model
@@ -186,12 +189,12 @@ struct nesturbator__profile {
 
 struct nesturbator {
     nesturbator_allocator allocator; /* copy of the config's, defaults filled in */
-    uint64_t frame_number;           /* frames run since create */
+    uint64_t frame_number;           /* frames run since power-on, restored by a state load */
     /* CPU bus writes that reached the battery span since create (D-12). Only
        create zeroes it: load, reset and unload leave it, so a host cache cannot
        miss a change after a reload. */
     uint64_t save_generation;
-    uint64_t ticks;              /* ticks run since create */
+    uint64_t ticks;              /* ticks run since power-on, restored by a state load */
     struct nesturbator__cpu cpu; /* the 6502 */
     struct nesturbator__bus bus; /* RAM and the open-bus latch */
     struct nesturbator__apu apu;
@@ -351,6 +354,31 @@ void nesturbator__apu_reset(struct nesturbator *nes);
    NESTURBATOR_ERR_STRUCT_SIZE. */
 nesturbator_status nesturbator__check_size_in(const void *s, uint32_t first, uint32_t ours);
 void nesturbator__controller_begin_frame(struct nesturbator *nes);
+
+/* One field of the state whose value range is narrower than its type, or that takes part in a
+   cross-field rule (src/state.c, test entry point for tests/core/test_state_reject.c). offset is
+   the field's byte offset in the state, width its size in bytes. lo and hi are the inclusive legal
+   range; hi is signed so a signed field's upper bound compares correctly, and an unsigned 64-bit
+   field, which has no bound, records INT64_MAX. cross is 1 for a participant in a cross-field
+   rule (the synthesis sum, ppu_ticks, status bits, eval_count and eval_copy_remaining). */
+struct nesturbator__state_bound {
+    size_t offset;
+    uint8_t width;
+    uint8_t is_signed;
+    uint8_t cross;
+    int64_t lo;
+    int64_t hi;
+};
+
+/* Writes up to cap records of the loaded cartridge's state layout to out (out may be NULL) and
+   returns the number of records, which may exceed cap; 0 without a cartridge. Changes nothing. */
+size_t nesturbator__state_bounds(const struct nesturbator *inst,
+                                 struct nesturbator__state_bound *out, size_t cap);
+
+/* CRC-32 (Ethernet; reflected polynomial 0xEDB88320) as an update function: feeding a then b
+   gives the CRC of a followed by b. Start with crc 0. Accepts a NULL p when n is 0 (src/crc32.c).
+ */
+uint32_t nesturbator__crc32(uint32_t crc, const uint8_t *p, size_t n);
 
 /* The no-cartridge test card: native pixel at column x, row y (D-01, D-02). */
 uint16_t nesturbator__test_pixel(uint32_t x, uint32_t y);

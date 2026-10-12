@@ -46,12 +46,13 @@ Left for later milestones: fuzzing the state loader and arbitrary ROM bytes (SEE
 - ✓ Every board's frames and audio are pinned by one 95-key hash list on six platforms, and the libretro adapter receives frames and save spans equal to the runner's for every ROM in scope (19 parity tests); a drift guard rejects any committed ROM that is neither hashed nor exempt. — v2, Phase 10 (BOARD-04; six-platform equality shown by the PR's CI matrix)
 - ✓ One supported game is proven from boot through interactive play by an automated check: `runner.boot_to_play` replays a nes-runner movie and requires a RAM, scene and audio change that four negative controls and eight synthetic mutants fail. — v2, Phase 10 (PLAY-01)
 - ✓ Battery saves are replaced atomically (temp file, full flush, checked close, rename; a stale `.tmp` file or link is cleared and a directory refused), the `retroarch-e2e` job round-trips an MMC3 `.srm` beside MMC1, and `nesturbator_get_version` and `nesturbator_unload_cartridge` have callers and README text. — v3, Phase 11 (TUNE-07, TUNE-08, TUNE-09; PR #42 CI run 38179044953 green on all jobs)
+- ✓ A host saves the whole machine at a frame boundary into a fixed-size, versioned, CRC-checked state and loads it back to the same run on all six boards; every field is validated before anything is applied, a refused load leaves the instance unchanged, and nes-runner has `--save-state` and `--load-state`. — v3, Phase 12 (STATE-01 to STATE-05, RUN-01; six-platform hash equality shown by the PR's CI matrix)
 
 ### Active
 
 - [ ] v2 debt closed and the pipeline tuned up (SEED-006)
-- [ ] Save states through the library API, and in RetroArch with rewind and run-ahead
-- [ ] nes-runner save states, signal-safe save flush and documented exit statuses
+- [ ] Save states in RetroArch with rewind and run-ahead (the library API shipped in Phase 12)
+- [ ] nes-runner signal-safe save flush and documented exit statuses (runner save states shipped in Phase 12)
 - [ ] Speed measured by the runner and compared on every pull request
 
 The numbered requirements are in `.planning/REQUIREMENTS.md`.
@@ -135,6 +136,8 @@ The numbered requirements are in `.planning/REQUIREMENTS.md`.
 | Under asan, long hash tests are dropped or run with a short frame budget (`NESTURBATOR_SHORT_RUNS`); full-length hashes stay on the build jobs and hash-equality | Sanitizers find memory errors in the first frames, not the thousandth; repeating full runs under asan took about 15 minutes | ✓ Good — hosted asan 15 min to 4m52s, timeout 10 min, `ci` test list unchanged (PR #39) |
 | Unloading a cartridge always runs the power-on helper; loading never does; the libretro adapter keeps one instance for the whole session | One instance means no allocation churn across games, and unload leaves a clean machine without moving any pinned hash | ✓ Good — Phase 11 `core.cartridge` unload tests and libretro parity pass; no hash row moved |
 | `nesturbator --version` prints the library's run-time version; the libretro version string stays compile-time | The runner reports the library actually linked, while libretro hosts read a static string | ✓ Good — Phase 11 `runner.version` passes |
+| A save state is a 64-byte header (format version, CRC-32 of the state and of the ROM, frame number, ticks) plus every field written by one visitor in SIZE, WRITE, VALIDATE, APPLY and RECORD modes, with a mandatory `state` op per board; VALIDATE checks the whole state before APPLY changes anything | One field list cannot drift between save, load and size; a refused load cannot leave a half-applied machine | ✓ Good — Phase 12 `core.state_fork.*` forks every board and the rejection sweep refuses each out-of-range field; no frame or audio hash moved |
+| A loaded state's ticks are capped at 2^62 and its PPU clock must trail the CPU clock by less than one frame | A CRC-valid state with ticks near 2^64 made the next frame loop about 2^61 times (Phase 12 CR-01) | ✓ Good — `core.state_reject` refuses `UINT64_MAX` and 2^62+1 and runs a frame from 2^62 |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -156,4 +159,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-11 after Phase 11*
+*Last updated: 2026-10-12 after Phase 12*

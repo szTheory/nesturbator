@@ -37,7 +37,7 @@
 Players save and load states, rewind and use run-ahead in RetroArch. Playstead can launch nes-runner and rely on its saves and exit statuses. No frame or audio hash changes, and speed is measured on every pull request. Each phase ends in a release.
 
 - [x] **Phase 11: Tune-up and state readiness** - One atomic-write helper with no stale `.tmp`, MMC3 `.srm` round trip in RetroArch, a caller and README text for every public function (completed 2026-10-11)
-- [ ] **Phase 12: Save states in the library** - Fixed-size, checked, all-or-nothing states on six boards, pinned on six platforms through the runner's state options
+- [x] **Phase 12: Save states in the library** - Fixed-size, checked, all-or-nothing states on six boards, pinned on six platforms through the runner's state options (completed 2026-10-12)
 - [ ] **Phase 13: Rewind and run-ahead in RetroArch** - libretro serialize, staged `.info` claims, RetroArch e2e for states, rewind and run-ahead, and a state-loader fuzz target
 - [ ] **Phase 14: Runner process contract** - Signal-safe save flush and one documented exit-status table for launchers
 - [ ] **Phase 15: Speed and close-out** - Frame-time report, per-PR instruction-count comparison, measured nightly timeout and a final pin and docs review
@@ -81,7 +81,37 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   4. A test shows the state size fixed from cartridge load to unload and 0 with no cartridge, and a save that never allocates and leaves the instance unchanged; the status codes are appended to the public header and the README has a "Save states" section.
   5. A test loads the same state 600 times with no change to `nesturbator_save_generation()`, and a load that changes battery bytes raises it exactly once; the README says rewinding past an in-game save reverts the save RAM.
 
-**Plans**: TBD
+**Plans**: 10/10 plans complete
+**Wave 1**
+- [x] 12-01-PLAN.md — State API, 64-byte header, CRC-32, visitor and load pipeline; NROM round trip, header layout and check-order tests (STATE-01, STATE-02)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 12-02-PLAN.md — Board `state` op on all six boards with register round trips (STATE-02, STATE-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 12-03-PLAN.md — API contract tests, header bindings, README "Save states" and status table (STATE-01, STATE-05)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [x] 12-04-PLAN.md — Six-board fork matrix with poisoned pre-fill and save-every-frame (STATE-03)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [x] 12-05-PLAN.md — DMA/IRQ stress image forked at every boundary through the same driver (STATE-03)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [x] 12-06-PLAN.md — Rejection sweeps under ci and ASan/UBSan, at-bound table, PPU catch-up bound (STATE-04)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [x] 12-07-PLAN.md — Battery generation on load (STATE-05)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- [x] 12-08-PLAN.md — Runner `--state-at-frame`, `--load-state`, exit 5 and every rejection class (RUN-01)
+
+**Wave 9** *(blocked on Wave 8 completion)*
+- [x] 12-09-PLAN.md — Runner `--hash-state`, absolute frame ranges and refusals (RUN-01)
+
+**Wave 10** *(blocked on Wave 9 completion)*
+- [x] 12-10-PLAN.md — Six-platform state pins and `state.format_pin` (STATE-02, STATE-03)
+
 **Notes**: RUN-01 lands here as test tooling, so the six-platform state hash pins run in this phase. Research flag: short spike on instruction boundaries in `src/frame.c` and the save and load cost.
 
 ### Phase 13: Rewind and run-ahead in RetroArch
@@ -135,7 +165,7 @@ Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured col
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 11. Tune-up and state readiness | v3 | 4/4 | Complete    | 2026-10-11 |
-| 12. Save states in the library | v3 | 0/TBD | Not started | - |
+| 12. Save states in the library | v3 | 10/10 | Complete    | 2026-10-12 |
 | 13. Rewind and run-ahead in RetroArch | v3 | 0/TBD | Not started | - |
 | 14. Runner process contract | v3 | 0/TBD | Not started | - |
 | 15. Speed and close-out | v3 | 0/TBD | Not started | - |

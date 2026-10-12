@@ -33,6 +33,7 @@
    On every board the PRG register's bit 4 disables the RAM (MMC1B: "PRG-RAM
    is enabled by default but can by disabled by bit 4 of $E000"). */
 #include "internal.h"
+#include "state.h"
 
 #define MMC1_PRG_256K (256u * 1024u)
 
@@ -184,6 +185,18 @@ static void mmc1_cpu_write(struct nesturbator *nes, uint16_t addr, uint8_t value
     nes->map.ops.rebuild(nes);
 }
 
+/* State: NESdev Wiki "MMC1": shift register, write count, Control, CHR and PRG banks. */
+static void mmc1_state(struct nesturbator__mapper *m, struct nesturbator__sio *io)
+{
+    nesturbator__sio_u8(io, &m->reg.mmc1.shift, 0x1fu);
+    nesturbator__sio_u8(io, &m->reg.mmc1.count, 4u);
+    nesturbator__sio_u8(io, &m->reg.mmc1.control_x, 0x1fu);
+    nesturbator__sio_u8(io, &m->reg.mmc1.chr0, 0x1fu);
+    nesturbator__sio_u8(io, &m->reg.mmc1.chr1, 0x1fu);
+    nesturbator__sio_u8(io, &m->reg.mmc1.prg, 0x1fu);
+    nesturbator__sio_u64(io, &m->reg.mmc1.last_write);
+}
+
 void nesturbator__mapper_mmc1_ops(struct nesturbator__mapper_ops *out)
 {
     out->init = mmc1_init;
@@ -191,4 +204,5 @@ void nesturbator__mapper_mmc1_ops(struct nesturbator__mapper_ops *out)
     out->cpu_write = mmc1_cpu_write;
     out->ppu_a12 = NULL;
     out->ppu_read = NULL;
+    out->state = mmc1_state;
 }

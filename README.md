@@ -285,13 +285,22 @@ their audio hashes, and for each Holy Mapperel ROM the result-screen frame and
 both audio hashes from the same run. It fails if any requested frame or audio
 hash is missing or duplicated, and unless the keys it generated equal the
 expected list exactly, naming the missing and the extra keys.
-`runner.write_hashes.content` requires all 95 sorted keys to equal
+`runner.write_hashes.content` requires all 114 sorted keys to equal
 `tests/runner/hashes.txt` byte for byte, with LF line endings only.
-The 95 keys are 28 game boot keys (four games, five frames and two audio keys
+The 114 keys are 28 game boot keys (four games, five frames and two audio keys
 each), 15 DABG movie keys, 10 nes-runner play keys, and for Holy Mapperel one
 `holymapperel/<key>/frame N` key plus two `holymapperel/<key>/audio/...` keys
 per ROM (twelve) and per second run (`<key>.saved` for `m1sxrom`, `m4tkrom`),
-which is 14 frame keys and 28 audio keys. The list is written once, in
+which is 14 frame keys and 28 audio keys, plus 19 state keys: the
+`state_format` row, and for `dabg`, `m1sxrom`, `m2`, `m3`, `m4tkrom` and `m7`
+the state hash at frames 0 and 60 (`state/<board> N ticks T sha256 H`, from
+`--hash-state`) and the state size (`state/<board>/size S`). The state pins
+make a change to the saved state's bytes, size or format version show as a
+changed row. `state.format_pin` fails unless the `state_format` row equals
+`NESTURBATOR_STATE_FORMAT_VERSION` in `include/nesturbator.h`, and
+`runner.state.every_frame` saves a state after every frame from 0 to 180 of
+`dabg` and requires frames 1, 30, 60, 120 and 180 to keep their pinned hashes.
+The list is written once, in
 `tests/cmake/hash_keys.cmake`, which the writer, the CI hash-equality
 validator and its self-test all read, so no row count is spelled out anywhere.
 `runner.write_hashes` hashes frame N and frame 2N of each Holy Mapperel ROM and
@@ -560,8 +569,8 @@ The `hygiene` job runs the `hygiene` lane, `asan` runs `asan` with Clang 18,
 and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
 the six `hashes.txt` files to be byte-identical, so a platform that computes
-a different frame fails the run. It also requires six nonempty artifacts with
-the exact 95-key inventory from `tests/cmake/hash_keys.cmake`, checking the key
+a different frame, or a different state, fails the run. It also requires six nonempty artifacts with
+the exact 114-key inventory, state pins included, from `tests/cmake/hash_keys.cmake`, checking the key
 set of every artifact, and rejecting duplicates, missing keys, extra keys and
 malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
@@ -713,6 +722,9 @@ The public functions are:
 - `nesturbator_get_memory` and `nesturbator_save_generation` give the
   battery span and its write counter (Battery saves, below).
 - `nesturbator_peek_cpu_ram` reads CPU RAM for test harnesses.
+- `nesturbator_state_size`, `nesturbator_save_state` and
+  `nesturbator_load_state` save and restore the whole machine (Save states,
+  below).
 
 Soft reset: `nesturbator_reset()` is the console's Reset button. Call it
 between frames. It keeps CPU RAM and cartridge RAM (PRG RAM and CHR RAM), so
@@ -739,7 +751,8 @@ other kind, returns `NESTURBATOR_ERR_ARGUMENT` and writes nothing. With no
 cartridge, or a cartridge without battery RAM, it returns `NESTURBATOR_OK` with
 `NULL` and 0. The pointer stays valid from a successful load until unload, the
 next successful load or destroy; `nesturbator_reset()` and a refused load keep
-it. Copy a saved file in after load and before the first frame; read the span
+it, as does `nesturbator_load_state`, which copies into the same allocation.
+Copy a saved file in after load and before the first frame; read the span
 whenever you are between calls.
 
 `nesturbator_save_generation(inst)` counts CPU bus writes that reached the
@@ -747,7 +760,9 @@ span while the board had that RAM enabled and writable, whether or not the
 byte changed. A read-modify-write counts both of its writes. It runs from
 `nesturbator_create()` and never resets or decreases, so compare it with `!=`
 and write the file when it moves. Load (including trainer bytes), reset,
-unload and writes through the pointer do not count. `NULL` gives 0.
+unload and writes through the pointer do not count. A state load counts once
+when it changes the battery bytes and not at all when it leaves them
+unchanged; a refused load never counts (Save states, below). `NULL` gives 0.
 
 PRG RAM is one block laid out `[V work][N NVRAM]`, work RAM first, and the
 save span is the N battery bytes (hardware: NESdev Wiki "MMC1", SOROM). The
@@ -775,6 +790,118 @@ Mapper 4 (MMC3) takes the same layout with one rule: V and N are each 0 or
 8 KiB, never both (NES 2.0: none, 8 KiB work, or 8 KiB NVRAM). Known gap: an
 iNES 1 MMC3 image always gets 8 KiB of RAM, so games that expect no RAM at
 all, such as Low G Man, need a NES 2.0 header with V = N = 0.
+
+### Save states
+
+A state is an exact snapshot of the whole machine at a frame boundary. It is
+valid for the same format version, ROM and board, and it is byte-identical on
+every platform. The library does no file I/O and never allocates for a state;
+the host owns the buffer and decides where states live.
+
+1. `nesturbator_state_size(inst)` returns the exact length of a state of the
+   loaded cartridge. It is 0 for a NULL instance or with no cartridge, and the
+   same value from a successful load until unload.
+2. `nesturbator_save_state(inst, buf, capacity)` writes exactly that many
+   bytes. A larger buffer is fine and the bytes past the size are not touched;
+   a smaller one returns `NESTURBATOR_ERR_BUFFER_TOO_SMALL` and writes nothing.
+   A NULL `buf` is never a size query. Saving changes nothing in the instance,
+   and saving a jammed instance succeeds.
+3. `nesturbator_load_state(inst, buf, size)` needs `size` to equal the state
+   size exactly. A load is all or nothing: every refusal leaves the instance
+   byte for byte as it was. Loading a state saved after a JAM opcode makes the
+   next frame return `NESTURBATOR_STOP_JAM`; loading a clean state clears the
+   latch.
+
+Load checks in this order and reports the first failure: arguments, a length
+below the 64-byte header, the magic and format version, the cartridge identity
+(mapper, submapper, region and ROM CRC-32), the length against the state size
+and the header's total size, the CRC-32, and then the contents. A header size
+other than 64, a reserved byte other than zero and any field out of range are
+content checks and report `NESTURBATOR_ERR_STATE_INVALID`. So does a PPU
+position ahead of the header's tick count or one whole frame or more behind it,
+and so does a tick count above 2^62 (counters near 2^64 would wrap and never finish),
+which keeps the first frame after a load to about one frame of work.
+
+The header is 64 bytes, every multi-byte field little-endian:
+
+| Offset | Bytes | Field |
+|---|---|---|
+| 0 | 8 | magic `89 4E 54 53 0D 0A 1A 0A` |
+| 8 | 2 | format version |
+| 10 | 2 | header size, 64 |
+| 12 | 4 | total size |
+| 16 | 4 | behaviour revision of the saving library |
+| 20 | 2 | mapper id |
+| 22 | 1 | submapper |
+| 23 | 1 | region, 0 for NTSC |
+| 24 | 4 | ROM CRC-32 of the 16 header bytes, PRG ROM and CHR ROM |
+| 28 | 4 | state CRC-32 of every byte except these four |
+| 32 | 8 | frame number |
+| 40 | 8 | ticks |
+| 48 | 16 | reserved, zero |
+
+The machine fields, the whole PRG RAM (battery RAM included) and the 8 KiB CHR
+RAM (when the board has it) follow. The frame buffer and the audio are not in a state. Frame numbers
+and ticks continue from the saved point: the first frame after a load reports
+the number and ticks of the uninterrupted run.
+
+Battery RAM and the save generation: a state includes the battery RAM. Loading
+a state whose battery bytes differ from the instance's raises `nesturbator_save_generation`
+once, so the host writes the `.sav`. Loading a state whose battery bytes match,
+however many times, never moves it, and neither does a refused load, so
+repeated loads such as rewind never trigger a write.
+
+Another format version is refused, never converted. Keep rewind buffers in
+memory, and expect user-kept states to need re-creating after a release that
+raises the format version. The behaviour revision is recorded and not
+enforced: after an emulation fix an old state still loads, but its later frames
+may differ from the run that saved it.
+
+| Format version | Introduced |
+|---|---|
+| 1 | first release that contains save states |
+
+A format bump ships under a `feat:` title with a changelog line saying older
+states are refused. It does not change `NESTURBATOR_ABI_VERSION`, because the
+C interface is the same.
+
+Battery RAM is part of the PRG RAM, so a load replaces it. Rewinding past an in-game save reverts the save RAM.
+
+The `core.state_fork.*` tests (one per committed game, plus
+`core.state_fork.stress`) fork games on all six boards and a DMA and interrupt
+stress program (on NROM and on MMC3) at many frames, including frame 0. Each fork loads into an instance that was pre-filled with other state and
+then poisoned, and it requires every later frame, sample, tick count and the
+final state to match an uninterrupted run. It also shows that saving every
+frame changes nothing.
+
+The `core.state_reject` test shows the refusals. It loads each game's state into
+every other game, flips every byte of a state and expects the status of the
+first failing check, truncates the state to every shorter length, and sets every
+bounded field just past each of its bounds (with the CRC-32 recomputed) and at
+the type's limits, expecting `NESTURBATOR_ERR_STATE_INVALID`. Fields at their
+bounds are loaded and run for a frame. After every refusal the instance and
+`nesturbator_save_generation` are unchanged. The same test runs under the
+address and undefined-behaviour sanitizers in the `asan` preset.
+
+### Status codes
+
+Every call returns one of these. An error changes no state.
+
+| Value | Status | Meaning |
+|---|---|---|
+| 0 | `NESTURBATOR_OK` | The call succeeded. |
+| 1 | `NESTURBATOR_ERR_ARGUMENT` | A required pointer is NULL, or an argument is out of range. |
+| 2 | `NESTURBATOR_ERR_STRUCT_SIZE` | A struct's size field is 0, too small, or larger with a non-zero tail. |
+| 3 | `NESTURBATOR_ERR_ABI` | The config's abi field differs from `NESTURBATOR_ABI_VERSION`. |
+| 4 | `NESTURBATOR_ERR_NO_MEMORY` | The allocator returned NULL. |
+| 5 | `NESTURBATOR_ERR_BUFFER_TOO_SMALL` | A caller-owned buffer is too small for the output. |
+| 6 | `NESTURBATOR_STOP_JAM` | The cartridge executed a JAM opcode; the instance is latched. |
+| 7 | `NESTURBATOR_ERR_CARTRIDGE` | Cartridge bytes are malformed or outside a supported board. |
+| 8 | `NESTURBATOR_ERR_STATE_FORMAT` | The magic is wrong or the format version is not the library's. |
+| 9 | `NESTURBATOR_ERR_STATE_CARTRIDGE` | No cartridge is loaded, or the state belongs to another game or board. |
+| 10 | `NESTURBATOR_ERR_STATE_SIZE` | The length is wrong, including any truncation. |
+| 11 | `NESTURBATOR_ERR_STATE_CHECKSUM` | The state's CRC-32 does not match: the bytes were damaged. |
+| 12 | `NESTURBATOR_ERR_STATE_INVALID` | The CRC-32 matches but a field is out of range or a reserved byte is set. |
 
 ## Downloads and archives
 
@@ -862,6 +989,7 @@ mappers.
 ```sh
 nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
                 [--save-dir DIR [--save-interval N]]
+                [--state-at-frame N:FILE]... [--hash-state N]... [--load-state FILE]
 nesturbator-run --version
 ```
 
@@ -967,6 +1095,49 @@ nesturbator-run --version
   exit still happens. `--save-interval 0`, a repeated or empty `--save-dir`,
   and `--save-dir` without `--rom` exit 2.
 
+- `--state-at-frame N:FILE` (repeatable; N is 0 or more) writes the save state
+  of the machine after frame N to FILE, split at the first colon. N of 0 is
+  the state at power-on, or the loaded state itself when `--load-state` is
+  given. The file is written through the same atomic replace as a `.sav`, so
+  FILE holds the old file or one complete new one; the runner writes no other
+  path and leaves no `.tmp` after a successful write. Running the same command
+  twice replaces the file with identical bytes. Two runners writing one path
+  at the same time are not supported. A write failure exits 1. The same N
+  given twice exits 2.
+- `--hash-state N` (repeatable; N is 0 or more) prints one line after frame N,
+  and for the loaded frame before the first frame runs:
+  `state <N> ticks <T> size <S> sha256 <64 lowercase hex digits>`. The hash is the SHA-256 of
+  the bytes `nesturbator_save_state` writes, `S` is their length and `T` the
+  emulated time after frame N (0 at power-on). Per frame the order is the
+  `frame` line, then the `state` line, then the dump files. A run that saves at
+  60 and a run that loads that state print the same `state 120` line. The same
+  N given twice exits 2.
+- `--load-state FILE` (once; a second one exits 2) resumes from a save state
+  after the cartridge, and the battery save when `--save-dir` is given, are
+  loaded. Frame numbers stay absolute from power-on: a state saved after frame
+  K (read from the state's header) makes the run continue at frame K + 1 up to
+  `--frames`, and `--hash-frame` and `--state-at-frame` use the same numbers,
+  so a run that saves at 60 and a run that loads that state print the same
+  line for frame 120. A rejected state exits 5 and prints one line,
+  `nesturbator-run: cannot load state <path> (<word>)`, where the word is
+  `another format version`, `wrong game`, `wrong length`, `damaged` or
+  `invalid contents`, for `NESTURBATOR_ERR_STATE_FORMAT`, `_CARTRIDGE`, `_SIZE`,
+  `_CHECKSUM` and `_INVALID`. A file that is missing, is a directory or cannot
+  be read exits 1 with `nesturbator-run: cannot read state <path> (<reason>)`.
+  With `--save-dir`, a state whose battery bytes differ from the loaded `.sav`
+  counts as a change, so the write at exit puts the state's battery bytes in
+  the `.sav`.
+
+  After a load at frame K, `--frames N` is the last frame to run (an end frame,
+  not a count of further frames), so the run computes frames K + 1 to N. The
+  ranges are checked after the load and before any frame runs, and a breach
+  exits 2 with a message that names K: `--frames` must be at least K;
+  `--hash-frame` and `--dump-frame` need K < N <= `--frames`;
+  `--state-at-frame` and `--hash-state` need K <= N <= `--frames`. Without a
+  load K is 0. `--movie` cannot be combined with `--load-state` (exit 2), and
+  any of `--state-at-frame`, `--load-state` and `--hash-state` without `--rom`,
+  or with `--accuracycoin-page`, exits 2.
+
 The save writer is tested under failure. `runner.save_replace` runs the shared
 replace helper against a directory at the save path, a missing parent, a
 regular file as a parent, an empty and a non-empty directory at `.tmp`, a stale
@@ -977,8 +1148,8 @@ each leaves the old save intact and no `.tmp` behind. `runner.save_fsize`
 `battery.sav.tmp` and expects exit 1, the `cannot save` message and the
 directory left alone.
 
-Exit status: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch; 3 and
-77 are reserved.
+Exit status: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch,
+5 state rejected; 3 and 77 are reserved.
 
 Each hashed frame prints one line:
 
@@ -1014,7 +1185,7 @@ frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a
 writes `frame1.ppm` (184335 bytes) and prints the same line as before.
 
 Exit status: 0 done, 1 failure (including a FILE that cannot be written),
-2 usage error.
+2 usage error, 5 state rejected.
 
 ## The libretro core
 

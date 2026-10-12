@@ -67,6 +67,13 @@ static inline void mapper_test_ppu_a12(struct nesturbator *nes, uint8_t level, u
     }
 }
 
+/* The test board has no registers. */
+static inline void mapper_test_state(struct nesturbator__mapper *m, struct nesturbator__sio *io)
+{
+    (void)m;
+    (void)io;
+}
+
 static inline void mapper_test_fill(struct nesturbator__mapper_ops *out)
 {
     out->init = mapper_test_init;
@@ -74,6 +81,7 @@ static inline void mapper_test_fill(struct nesturbator__mapper_ops *out)
     out->cpu_write = mapper_test_cpu_write;
     out->ppu_a12 = mapper_test_ppu_a12;
     out->ppu_read = NULL;
+    out->state = mapper_test_state;
 }
 
 /* Clears the logs and makes nes use the test board with the given watch mask. */

@@ -15,6 +15,7 @@
    Power-on is a zeroed block (see mapper.h): PRG mode 0, no CHR inversion,
    vertical mirroring, IRQ disabled, and RAM enabled and writable. */
 #include "internal.h"
+#include "state.h"
 
 #define MMC3_PRG_PAGES 8u /* 1 KiB pages in one 8 KiB window */
 
@@ -193,6 +194,23 @@ static void mmc3_ppu_a12(struct nesturbator *nes, uint8_t level, uint64_t tick)
         clock_counter(nes);
 }
 
+/* State: NESdev Wiki "MMC3": bank select, R0-R7, mirroring, PRG RAM protect and the scanline
+ * counter. */
+static void mmc3_state(struct nesturbator__mapper *m, struct nesturbator__sio *io)
+{
+    nesturbator__sio_u8(io, &m->reg.mmc3.select, 0xffu);
+    for (unsigned i = 0u; i < 8u; ++i)
+        nesturbator__sio_u8(io, &m->reg.mmc3.r[i], 0xffu);
+    nesturbator__sio_u8(io, &m->reg.mmc3.mirror, 0xffu);
+    nesturbator__sio_u8(io, &m->reg.mmc3.a001_x, 0xffu);
+    nesturbator__sio_u8(io, &m->reg.mmc3.latch, 0xffu);
+    nesturbator__sio_u8(io, &m->reg.mmc3.counter, 0xffu);
+    nesturbator__sio_u8(io, &m->reg.mmc3.reload, 1u);
+    nesturbator__sio_u8(io, &m->reg.mmc3.irq_enable, 1u);
+    nesturbator__sio_u8(io, &m->reg.mmc3.a12, 1u);
+    nesturbator__sio_u64(io, &m->reg.mmc3.low_cycle);
+}
+
 void nesturbator__mapper_mmc3_ops(struct nesturbator__mapper_ops *out)
 {
     out->init = mmc3_init;
@@ -200,4 +218,5 @@ void nesturbator__mapper_mmc3_ops(struct nesturbator__mapper_ops *out)
     out->cpu_write = mmc3_cpu_write;
     out->ppu_a12 = mmc3_ppu_a12;
     out->ppu_read = NULL;
+    out->state = mmc3_state;
 }
