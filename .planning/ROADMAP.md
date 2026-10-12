@@ -164,24 +164,30 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   3. The exit-status table (0, 1, 2, 4, 5; 3 and 77 reserved) is the same in one header, `--help` and the README, a test checks that, and each status has its own test.
   4. The README says Ctrl+Break and console close are handled on Windows and that a forced termination cannot be.
 
-**Plans**: 6 plans
+**Plans**: 8 plans
 **Wave 1**
 - [ ] 14-01-PLAN.md — One exit-status table in `runner/exit_status.h`, `--help`, README section, `runner.exit.*` tests (RUN-03)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 14-02-PLAN.md — Stop module, frame-exact stop with exit flush, `--raise-after`, README stop contract (RUN-02)
+- [ ] 14-02-PLAN.md — Stop module, frame-exact stop with exit flush, `--raise-after` (RUN-02)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 14-03-PLAN.md — Flush-failure, empty, second-signal, load-state and `--raise-after` usage stop tests (RUN-02, RUN-03)
+- [ ] 14-03-PLAN.md — README stop contract with Windows launcher recipe and guard, runner header comment (RUN-02, RUN-03)
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 14-04-PLAN.md — Unmet requested outputs give exit 1 with a `not reached` line; no audio hash on a stop (RUN-02, RUN-03)
+- [ ] 14-04-PLAN.md — Flush-failure, empty, second-signal, load-state and `--raise-after` usage stop tests (RUN-02, RUN-03)
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 14-05-PLAN.md — External SIGTERM/SIGINT and second-signal tests on Linux and macOS (RUN-02)
+- [ ] 14-05-PLAN.md — Unmet requested outputs give exit 1 with a `not reached` line; no audio hash on a stop (RUN-02, RUN-03)
 
 **Wave 6** *(blocked on Wave 5 completion)*
-- [ ] 14-06-PLAN.md — Windows handler and console tests, push, six-platform CI evidence, measured timeouts (RUN-02, RUN-03)
+- [ ] 14-06-PLAN.md — External SIGTERM/SIGINT and second-signal tests on Linux and macOS (RUN-02)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [ ] 14-07-PLAN.md — Windows handler and console tests, push, draft PR, six green build jobs (RUN-02, RUN-03)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- [ ] 14-08-PLAN.md — Hosted signal timings under the D-15 rule (asan included), measured timeouts, final green head (RUN-02, RUN-03)
 **Notes**: Research flag: Windows console-event delivery on hosted runners and fsync latency against 2 s need a look before planning.
 
 ### Phase 15: Speed and close-out

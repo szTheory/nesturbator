@@ -104,7 +104,7 @@ between frames, at the point `--save-interval` uses, through `runner/save.c`.
     unreached `--hash-frame N+1` makes a stopped run exit 1, not 0. D-12's intent is kept by two
     tests: `runner.stop.frame_exact.<sig>` (Plan 02) runs the happy path without
     `--hash-frame N+1` and asserts exit 0, equal stdout and `.sav`, no `.tmp` and the stop line;
-    `runner.stop.unmet_hash_frame` (Plan 04) runs `--hash-frame N --hash-frame N+1` and asserts
+    `runner.stop.unmet_hash_frame` (Plan 05) runs `--hash-frame N --hash-frame N+1` and asserts
     stdout equal to the unstopped run (so frame N+1 never ran), exit 1 and the not-reached line
     (research Pitfall 2). The decision itself is unchanged.
 - **D-13:** The other in-process stop tests, all on six platforms:

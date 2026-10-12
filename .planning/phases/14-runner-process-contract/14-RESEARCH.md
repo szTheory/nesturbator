@@ -656,13 +656,13 @@ WaitForSingleObject(pi.hProcess, 5000);  GetExitCodeProcess(...); /* expect 0, w
    - What we know: D-07 says "after the loop ends on the flag"; D-09 withholds `--hash-audio` on "any stop".
    - What's unclear: whether a signal that arrives after all work finished is "a stop".
    - Recommendation: only a loop-head or pre-loop observation with frames remaining is a stop; otherwise complete normally. Add a test (`runner.stop.late`).
-   - RESOLVED: adopted. Plan 02 Task 1 checks the flag only at the loop head; Plan 04 Task 1 tests it as `runner.stop.late` (`--frames 3 --hash-audio --raise-after 3` exits 0 with the audio hash and no stop line).
+   - RESOLVED: adopted. Plan 02 Task 1 checks the flag only at the loop head; Plan 05 Task 1 tests it as `runner.stop.late` (`--frames 3 --hash-audio --raise-after 3` exits 0 with the audio hash and no stop line).
 2. **`--raise-after N` below a loaded state's frame.** Recommendation: usage error (exit 2) in `check_ranges`, tested.
-   - RESOLVED: adopted. Plan 02 Task 1 rejects it in `check_ranges`; Plan 03 Task 2 tests it as `runner.stop.load_state_below` (exit 2) beside `runner.stop.load_state_at` (exit 0).
+   - RESOLVED: adopted. Plan 02 Task 1 rejects it in `check_ranges`; Plan 04 Task 2 tests it as `runner.stop.load_state_below` (exit 2) beside `runner.stop.load_state_at` (exit 0).
 3. **Hosted Windows console delivery** (A1): answered only by CI. Plan a task that pushes the branch, reads both Windows legs, and records the outcome and the keep/remove decision in the SUMMARY (D-16).
-   - RESOLVED: planned. Plan 06 Task 2 adds `runner.stop.win_console`, reads both Windows legs and keeps or removes it by the D-16 rule, recording the evidence in 14-06-SUMMARY.md.
+   - RESOLVED: planned. Plan 07 Task 2 adds `runner.stop.win_console`, reads both Windows legs and keeps or removes it by the D-16 rule, recording the evidence in 14-07-SUMMARY.md.
 4. **Stdout flush order** (Pitfall 12): leave as decided; confirm the README tells launchers to drain or discard stdout.
-   - RESOLVED: adopted. Plan 02 Task 2 puts the drain-or-discard sentence in README `### Stopping the runner`.
+   - RESOLVED: adopted. Plan 03 Task 1 puts the drain-or-discard sentence in README `### Stopping the runner`.
 
 ## Environment Availability
 
