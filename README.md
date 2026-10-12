@@ -1182,8 +1182,7 @@ each leaves the old save intact and no `.tmp` behind. `runner.save_fsize`
 `battery.sav.tmp` and expects exit 1, the `cannot save` message and the
 directory left alone.
 
-Exit status: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch,
-5 state rejected; 3 and 77 are reserved.
+Exit status: see [Exit status](#exit-status).
 
 Each hashed frame prints one line:
 
@@ -1218,8 +1217,22 @@ frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a
 
 writes `frame1.ppm` (184335 bytes) and prints the same line as before.
 
-Exit status: 0 done, 1 failure (including a FILE that cannot be written),
-2 usage error, 5 state rejected.
+Exit status: see [Exit status](#exit-status).
+
+### Exit status
+
+`nesturbator-run --help` prints the usage text and this table to standard output and
+exits 0. A bad command line prints the same text to standard error and exits 2.
+
+| Status | Meaning | When |
+|---|---|---|
+| 0 | done | The run finished, or `--version` or `--help` printed its text. |
+| 1 | failure | A file cannot be read or written, a save fails, or a frame fails or hits a JAM. |
+| 2 | usage error | The command line is wrong. |
+| 4 | .sav size mismatch | The `.sav` file's length differs from the cartridge's battery RAM. |
+| 5 | state rejected | `--load-state` refused the file. |
+
+3 and 77 are reserved; the runner never returns them.
 
 ## The libretro core
 

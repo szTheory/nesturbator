@@ -935,6 +935,15 @@ add_test(NAME state.status_table
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/status_table.cmake)
 
+# RUN-03: the exit table is the same in runner/exit_status.h, --help and the README.
+foreach(mode table help)
+  add_test(NAME runner.exit.${mode}
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>" -DMODE=${mode}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_exit_table.cmake)
+  set_tests_properties(runner.exit.${mode} PROPERTIES LABELS exit_status)
+endforeach()
+
 # D-01 and D-02: vector conversion and fetch stay implemented by the owned C
 # parser; release configuration scripts are outside this scoped policy.
 add_test(NAME vectors.source_policy

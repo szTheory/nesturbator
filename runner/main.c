@@ -39,6 +39,7 @@
 
 #include "convert.h"
 #include "audio_hash.h"
+#include "exit_status.h"
 #include "internal.h"
 #include "movie.h"
 #include "nesturbator.h"
@@ -51,15 +52,15 @@
 #define HEIGHT 240u
 #define AUDIO_CAPACITY 1024u
 
-static int usage(const char *why)
+static void print_usage(FILE *out)
 {
-    fprintf(stderr, "nesturbator-run: %s\n", why);
-    fprintf(stderr,
+    fprintf(out,
             "usage: nesturbator-run (--frames N | --movie FILE) [--rom FILE] [--hash-frame N]... "
             "[--hash-audio] [--dump-frame N:FILE]... [--save-dir DIR [--save-interval N]]\n"
             "                      [--state-at-frame N:FILE]... [--hash-state N]... "
             "[--load-state FILE]\n"
             "       nesturbator-run --version\n"
+            "       nesturbator-run --help\n"
             "  --frames N           run N frames (N >= 1)\n"
             "  --movie FILE         replay a validated two-port movie\n"
             "  --rom FILE           load an iNES image (mapper 0, 1, 2, 3, 4 or 7)\n"
@@ -71,8 +72,20 @@ static int usage(const char *why)
             "  --state-at-frame N:FILE  write the save state after frame N (N >= 0) to FILE\n"
             "  --load-state FILE    resume from a save state; frame numbers stay absolute\n"
             "  --hash-state N       print the SHA-256 of the save state after frame N (N >= 0)\n"
-            "  --version            print the version and exit\n");
-    return 2;
+            "  --version            print the version and exit\n"
+            "  --help               print this text and the exit statuses, and exit 0\n"
+            "Exit status:\n");
+#define RUNNER_EXIT_PRINT(name, value, text) fprintf(out, "  %d  %s\n", value, text);
+    RUNNER_EXIT_TABLE(RUNNER_EXIT_PRINT)
+#undef RUNNER_EXIT_PRINT
+    fprintf(out, "  %s\n", RUNNER_EXIT_RESERVED_TEXT);
+}
+
+static int usage(const char *why)
+{
+    fprintf(stderr, "nesturbator-run: %s\n", why);
+    print_usage(stderr);
+    return RUNNER_EXIT_USAGE;
 }
 
 /* Parses the first len characters of text as a decimal number from 1 to
@@ -202,6 +215,7 @@ typedef struct options {
     const char *load_state_path;
     int hash_audio;
     int show_version;
+    int show_help;
     const char *save_dir;
     uint32_t save_interval;
 } options;
@@ -240,6 +254,10 @@ static int parse_options(int argc, char **argv, options *o)
         if (strcmp(arg, "--version") == 0) {
             o->show_version = 1;
             return 0;
+        }
+        if (strcmp(arg, "--help") == 0) {
+            o->show_help = 1;
+            return RUNNER_EXIT_DONE;
         }
         if (strcmp(arg, "--hash-audio") == 0) {
             if (o->hash_audio != 0)
@@ -951,6 +969,11 @@ int main(int argc, char **argv)
                (unsigned)ver.patch);
         free_options(&opt);
         return fflush(stdout) == 0 ? 0 : 1;
+    }
+    if (opt.show_help) {
+        print_usage(stdout);
+        free_options(&opt);
+        return fflush(stdout) == 0 ? RUNNER_EXIT_DONE : RUNNER_EXIT_FAILURE;
     }
     nesturbator_run_audio_hash_init(&audio_hash);
 
