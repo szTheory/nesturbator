@@ -1034,7 +1034,11 @@ set_tests_properties(libretro.host PROPERTIES FIXTURES_REQUIRED testframe_ppm)
 # the built module and checks each against the library state API.
 add_test(NAME libretro.serialize
   COMMAND libretro.host --serialize $<TARGET_FILE:nesturbator_libretro>
-    ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes)
+    ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes
+    ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes
+    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M1_P128K_C128K_S8K.nes
+    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M2_P128K_CR8K_V.nes
+    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes)
 set_tests_properties(libretro.serialize PROPERTIES TIMEOUT 120)
 
 # D-18 / D-14 / D-09: --rom-parity runs a whole ROM through the libretro module
