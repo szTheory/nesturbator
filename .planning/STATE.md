@@ -4,17 +4,17 @@ milestone: v3
 milestone_name: Save states and rewind
 current_phase: 14
 current_phase_name: Runner process contract
-status: executing
-stopped_at: Completed 14-07-PLAN.md
-last_updated: "2026-10-12T23:25:03.769Z"
+status: verifying
+stopped_at: Completed 14-08-PLAN.md
+last_updated: "2026-10-12T23:56:51.653Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 14 execution started
-state_head: d4b749c43ba1d13a9595630f57e1abf7cffdffc6
+state_head: 803560fc7468cd0376fd9a01ab816a278f118e3e
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 30
-  completed_plans: 29
+  completed_plans: 30
   percent: 60
 ---
 
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 
 Phase: 14 (Runner process contract) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-12 — Phase 14 execution started
 
 Progress: [██████░░░░] 60%
@@ -184,6 +184,7 @@ Progress: [██████░░░░] 60%
 | Phase 14 P05 | 12 min | 2 tasks | 6 files |
 | Phase 14 P06 | 50 min | 3 tasks | 5 files |
 | Phase 14 P07 | 75 min | 2 tasks | 4 files |
+| Phase 14 P08 | 20 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -276,6 +277,7 @@ Recent decisions affecting current work:
 - [Phase 14]: 14-06: second signal test fills the stdout pipe before spawning; macOS grows pipes in timed steps so an external stall check is unreliable
 - [Phase 14]: 14-06: --load-state open and read retry on EINTR so a stop never aborts a load
 - [Phase 14]: 14-07: runner.stop.win_console (real Ctrl+Break through the runner's own console) passed on both hosted Windows legs and is kept; draft PR #45
+- [Phase 14]: 14-08: signal TIMEOUT 2 s and win_console TIMEOUT 1 s from CI run 38322038900; D-15 2000 ms held on all legs, no fix needed
 
 ### Pending Todos
 
@@ -325,8 +327,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T23:25:03.738Z
-Stopped at: Completed 14-07-PLAN.md
+Last session: 2026-10-12T23:56:51.612Z
+Stopped at: Completed 14-08-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-execute-phase 14`.
