@@ -44,6 +44,7 @@
 #include "convert.h"
 #include "audio_hash.h"
 #include "exit_status.h"
+#include "stop.h"
 #include "internal.h"
 #include "movie.h"
 #include "nesturbator.h"
@@ -63,6 +64,7 @@ static void print_usage(FILE *out)
             "[--hash-audio] [--dump-frame N:FILE]... [--save-dir DIR [--save-interval N]]\n"
             "                      [--state-at-frame N:FILE]... [--hash-state N]... "
             "[--load-state FILE]\n"
+            "                      [--raise-after N[:SIG[:K]]]\n"
             "       nesturbator-run --version\n"
             "       nesturbator-run --help\n"
             "  --frames N           run N frames (N >= 1)\n"
@@ -76,6 +78,8 @@ static void print_usage(FILE *out)
             "  --state-at-frame N:FILE  write the save state after frame N (N >= 0) to FILE\n"
             "  --load-state FILE    resume from a save state; frame numbers stay absolute\n"
             "  --hash-state N       print the SHA-256 of the save state after frame N (N >= 0)\n"
+            "  --raise-after N[:SIG[:K]]  test aid: after frame N, signal this process K times (1 "
+            "or 2); SIG int or term (default term), on Windows int or break (default break)\n"
             "  --version            print the version and exit\n"
             "  --help               print this text and the exit statuses, and exit 0\n"
             "Exit status:\n");
@@ -222,6 +226,10 @@ typedef struct options {
     int show_help;
     const char *save_dir;
     uint32_t save_interval;
+    int raise_after_set;
+    uint32_t raise_after_frame;
+    int raise_after_kind;
+    uint32_t raise_after_count;
 } options;
 
 static void free_options(options *o)
@@ -232,6 +240,40 @@ static void free_options(options *o)
     free(o->state_frames);
     free((void *)o->state_paths);
     free(o->hash_states);
+}
+
+/* Parses N[:SIG[:K]] for --raise-after into o. Returns 1, or 0 on any other text. */
+static int parse_raise_after(const char *text, options *o)
+{
+    const char *c1;
+    const char *c2 = NULL;
+    size_t n_len;
+    int kind = nesturbator_run_stop_default_kind();
+    uint32_t count = 1u;
+    uint32_t frame;
+    if (text == NULL || o->raise_after_set != 0)
+        return 0;
+    c1 = strchr(text, ':');
+    n_len = c1 != NULL ? (size_t)(c1 - text) : strlen(text);
+    if (!parse_frame_index(text, n_len, &frame))
+        return 0;
+    if (c1 != NULL) {
+        const char *sig = c1 + 1;
+        c2 = strchr(sig, ':');
+        if (!nesturbator_run_stop_parse_kind(sig, c2 != NULL ? (size_t)(c2 - sig) : strlen(sig),
+                                             &kind))
+            return 0;
+    }
+    if (c2 != NULL) {
+        if (c2[1] < '1' || c2[1] > '2' || c2[2] != '\0')
+            return 0;
+        count = (uint32_t)(c2[1] - '0');
+    }
+    o->raise_after_set = 1;
+    o->raise_after_frame = frame;
+    o->raise_after_kind = kind;
+    o->raise_after_count = count;
+    return 1;
 }
 
 /* Returns 0 when the options are valid, 2 after a usage message, 1 when out of
@@ -328,6 +370,10 @@ static int parse_options(int argc, char **argv, options *o)
             if (value == NULL || value[0] == '\0')
                 return usage("--load-state needs a file path");
             o->load_state_path = value;
+        } else if (strcmp(arg, "--raise-after") == 0) {
+            if (!parse_raise_after(value, o))
+                return usage("--raise-after needs N[:SIG[:K]]; SIG int or term (POSIX), int or "
+                             "break (Windows); K 1 or 2");
         } else if (strcmp(arg, "--frames") == 0 || strcmp(arg, "--hash-frame") == 0) {
             if (!parse_count(value, &n)) {
                 return usage("option needs a whole number of 1 or more");
@@ -361,6 +407,8 @@ static int parse_options(int argc, char **argv, options *o)
         return usage("--save-dir needs --rom and cannot be used with --accuracycoin-page");
     if (o->save_interval != 0u && o->save_dir == NULL)
         return usage("--save-interval requires --save-dir");
+    if (o->raise_after_set != 0 && o->accuracy_page != 0u)
+        return usage("--raise-after cannot be used with --accuracycoin-page");
     if (o->frames == 0u && o->movie_path == NULL) {
         return usage("--frames N is required");
     }
@@ -888,6 +936,8 @@ static int write_states(const nesturbator *inst, const options *o, uint64_t fram
 static int check_frame_limits(const options *o)
 {
     char why[160];
+    if (o->raise_after_set != 0 && o->raise_after_frame > o->frames)
+        return usage("--raise-after N is beyond --frames");
     for (uint32_t k = 0; k < o->hash_count + o->dump_count; k++) {
         int is_hash = k < o->hash_count;
         uint32_t n = is_hash ? o->hash_frames[k] : o->dump_frames[k - o->hash_count];
@@ -914,6 +964,11 @@ static int check_frame_limits(const options *o)
 static int check_ranges(const options *o, uint64_t k_frame)
 {
     char why[160];
+    if (o->raise_after_set != 0 && o->raise_after_frame < k_frame) {
+        snprintf(why, sizeof why, "--raise-after %lu is before the loaded state's frame %lu",
+                 (unsigned long)o->raise_after_frame, (unsigned long)k_frame);
+        return usage(why);
+    }
     if (o->frames < k_frame) {
         snprintf(why, sizeof why, "--frames %lu is before the loaded state's frame %lu",
                  (unsigned long)o->frames, (unsigned long)k_frame);
@@ -954,6 +1009,8 @@ int main(int argc, char **argv)
     battery_save save;
     uint64_t start_frame = 0u;
     uint64_t cur_ticks = 0u;
+    uint64_t done_frame;
+    int stopped = 0;
     int status;
 
     memset(&opt, 0, sizeof opt);
@@ -1001,6 +1058,8 @@ int main(int argc, char **argv)
         free_options(&opt);
         return status;
     }
+    if (opt.accuracy_page == 0u)
+        nesturbator_run_stop_install();
     nesturbator_config cfg;
     memset(&cfg, 0, sizeof cfg);
     cfg.size = (uint32_t)sizeof cfg;
@@ -1119,11 +1178,19 @@ int main(int argc, char **argv)
     }
 
     /* A 64-bit count, so the loop ends when --frames is 4294967295. */
+    done_frame = start_frame;
     if (print_state_hashes(inst, &opt, start_frame, cur_ticks) != 0 ||
         write_states(inst, &opt, start_frame) != 0)
         status = RUNNER_EXIT_FAILURE;
+    if (status == RUNNER_EXIT_DONE && opt.raise_after_set != 0 &&
+        opt.raise_after_frame == start_frame)
+        nesturbator_run_stop_raise(opt.raise_after_kind, opt.raise_after_count);
     for (uint64_t n = start_frame + 1u; n <= opt.frames && status == 0; n++) {
         uint32_t f = (uint32_t)n;
+        if (nesturbator_run_stop_requested()) {
+            stopped = 1;
+            break;
+        }
         nesturbator_frame io;
         memset(&io, 0, sizeof io);
         io.size = (uint32_t)sizeof io;
@@ -1180,13 +1247,27 @@ int main(int argc, char **argv)
         if (status == 0 && opt.save_interval != 0u && f % opt.save_interval == 0u &&
             save_if_changed(inst, &save) != 0)
             status = RUNNER_EXIT_FAILURE;
+        done_frame = n;
+        if (status == RUNNER_EXIT_DONE && opt.raise_after_set != 0 && n == opt.raise_after_frame)
+            nesturbator_run_stop_raise(opt.raise_after_kind, opt.raise_after_count);
     }
 
+    /* D-07: on a stop, stdout is flushed first, then the exit flush runs, then the stop line. */
+    if (stopped != 0 && fflush(stdout) != 0) {
+        fprintf(stderr, "nesturbator-run: cannot write output\n");
+        if (status == RUNNER_EXIT_DONE)
+            status = RUNNER_EXIT_FAILURE;
+    }
     /* The exit flush runs whatever ended the loop, including a JAM. */
     if (save_if_changed(inst, &save) != 0 && status == 0)
         status = RUNNER_EXIT_FAILURE;
-    if (status == 0 && opt.hash_audio != 0)
+    if (stopped != 0) {
+        fprintf(stderr, "nesturbator-run: stopped by signal after frame %llu\n",
+                (unsigned long long)done_frame);
+    } else if (status == 0 && opt.hash_audio != 0) {
         print_audio_hash(&audio_hash);
+    }
+    nesturbator_run_stop_done();
 
     free(save.shadow);
     nesturbator_destroy(inst);

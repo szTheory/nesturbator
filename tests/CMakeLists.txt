@@ -183,6 +183,28 @@ runner_save_case(jam)
 runner_save_case(dir_at_tmp)
 set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
 
+# RUN-02: a signal finishes the current frame, flushes and exits 0. --raise-after signals the
+# runner's own process after frame N, so each case is deterministic. The signal names differ by
+# platform: int and term on POSIX, int and break on Windows.
+function(runner_stop_case case)
+  add_test(NAME runner.stop.${case}
+    COMMAND ${CMAKE_COMMAND}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      "-DFIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
+      "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/stop_work/${case}"
+      "-DCASE=${case}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_stop.cmake")
+  set_tests_properties(runner.stop.${case} PROPERTIES
+    FIXTURES_REQUIRED runner_save TIMEOUT 30 LABELS exit_status)
+endfunction()
+if(WIN32)
+  runner_stop_case(frame_exact.break)
+  runner_stop_case(frame_exact.int)
+else()
+  runner_stop_case(frame_exact.term)
+  runner_stop_case(frame_exact.int)
+endif()
+
 # RUN-01 (D-07, D-09 to D-11): --state-at-frame and --load-state. runner.state_mutate makes the
 # corrupt copies at test time (CMake cannot compute a CRC-32); no state file is committed. Each
 # runner.state.<case> runs in its own scratch directory, so the cases are safe under ctest -j.
