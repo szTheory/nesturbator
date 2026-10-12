@@ -1502,3 +1502,28 @@ add_test(NAME embed.subdirectory
 
 # FRAME-05: the RetroArch screenshot comparison and its comparator's tests.
 add_subdirectory(retroarch)
+
+# D-06, D-07: the adapter sets no serialization quirks and asks for no savestate context.
+add_test(NAME libretro.no_quirks
+  COMMAND ${CMAKE_COMMAND}
+    -DFILE=${PROJECT_SOURCE_DIR}/libretro/libretro.c
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/libretro_no_quirks.cmake)
+set_tests_properties(libretro.no_quirks PROPERTIES TIMEOUT 60)
+
+# D-18, D-19: the .info's save-state claim and the tests that back it. The claim-to-tests table
+# lives only in cmake/info_claims.cmake. The guard runs once every add_test of this directory
+# has run, so configuring fails if the .info claims a level whose tests are not registered.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/info_claims.cmake)
+cmake_language(DEFER CALL nesturbator_info_claim_guard
+  "${PROJECT_SOURCE_DIR}/libretro/nesturbator_libretro.info")
+add_test(NAME libretro.info_claims
+  COMMAND ${CMAKE_COMMAND}
+    -DINFO=${PROJECT_SOURCE_DIR}/libretro/nesturbator_libretro.info
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/info_claims.cmake)
+add_test(NAME libretro.info_claims.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/info-claims
+    "-DGENERATOR=${CMAKE_GENERATOR}"
+    -DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/info_claims.cmake)
+set_tests_properties(libretro.info_claims libretro.info_claims.self_test PROPERTIES TIMEOUT 60)

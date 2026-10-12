@@ -396,6 +396,13 @@ unload and reload.
 `cmake_minimum_required(VERSION 3.25)`, so each CMake release reads it the
 same way. `libretro.vendored`
 checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
+`libretro.info_claims` parses `libretro/nesturbator_libretro.info` and requires
+the exact capability keys and pinned values, a `savestate_features` whenever
+`savestate = "true"`, and no duplicate or unknown key; its self-test feeds it
+bad files. `libretro.info_claims.self_test` also configures a scratch project to
+show the guard in `tests/CMakeLists.txt`: configuring fails when the `.info`
+claims a save-state level whose proving tests are not registered.
+`libretro.no_quirks` is described with the libretro core above.
 `libretro.host` loads the built libretro core at run time, calls it in the
 order RetroArch does, and checks that the frame it receives equals the
 runner's dumped image pixel for pixel, plus four colours written into the
@@ -1237,6 +1244,24 @@ save moves between RetroArch and `nesturbator-run --save-dir` by renaming it.
 `libretro.host` checks the span's size, that its address survives `retro_run`
 and `retro_reset`, and that its bytes equal those of a direct-API instance run
 for the same frames.
+
+`retro_serialize_size`, `retro_serialize` and `retro_unserialize` use the
+library's save state (`nesturbator_state_size`, `nesturbator_save_state`,
+`nesturbator_load_state`). The size is 0 with no content and for the test card,
+and otherwise the fixed size of the loaded board. Only a buffer of exactly that
+size loads, and a refused load changes nothing: the next frame and the next
+state equal those of a run that never made the call. The core sets no
+serialization quirks, ignores the savestate context and the audio/video enable
+flags, and keeps no state of its own for these calls, so the bytes are the same
+whatever the frontend reports. `libretro.serialize` checks this through the
+built module on five ROMs: the sizes, the exact write length, thirteen refused
+buffers, a load straight after `retro_load_game` and after `retro_reset`,
+every savestate context, and a load every frame on a battery ROM. A load
+counts once in `nesturbator_save_generation` when it changes the battery bytes
+and never when loading the same state again. `libretro.no_quirks` fails if
+`libretro/libretro.c` names the quirks command or the context query.
+`libretro/nesturbator_libretro.info` does not yet claim save states
+(`savestate = "false"`).
 
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares
