@@ -561,11 +561,14 @@ Outcome checks that confirm the otherwise-unverifiable keys (RetroArch ignores u
 | A5 | The "no canonicalisation" result is empirical for mutated non-cross unsigned fields. | Flag 4 | An assert would trip in the nightly; downgrade the oracle to ignore the named bytes then. |
 | A6 | Linux libFuzzer build of the new target mirrors `rom-loader-fuzz`. | LR-04 | Not run here (Apple clang has no libFuzzer; Docker has `gcc:14` only). Verify in a `ubuntu:24.04` container with `apt install clang` before the first push, or accept the first nightly as the check. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does the hosted runner reproduce the paused-load / run-ahead command-drop behaviour?** Known: same RetroArch binary. Unknown: runner display timing. Recommendation: the first PR run of the new step is the check; upload screenshots, state file and verbose log on failure (D-29).
+   RESOLVED: checked by the first hosted run of the new e2e step (13-07-PLAN.md Task 2, the hosted-run task); failure artifacts are uploaded; the assertions stay loose (set-valued chains, deadlines) per A1/A3.
 2. **Which audio stream should the production run-ahead host treat as visible?** Recommendation: assert both (flag 2).
+   RESOLVED: the host asserts both audio mappings (13-03-PLAN.md), so the answer is not needed.
 3. **Fuzz `-timeout`:** D-36 says 5; the sibling job uses 2. Recommendation: 5 (instance creation plus 2 frames costs about 15 ms worst measured).
+   RESOLVED: `-timeout=5` per D-36.
 
 ## Environment Availability
 

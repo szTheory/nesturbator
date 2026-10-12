@@ -55,6 +55,8 @@ other.
   trivial.
 - **D-09:** A load-per-frame loop on the battery ROM `M1_P128K_C32K_W8K` must not raise the save
   generation, and `retro_get_memory_data`/`_size` stay unchanged across loads.
+  (Amended at planning, 2026-10-12: M1_P128K_C32K_W8K has no battery bit; M1_P128K_C128K_S8K
+  is used, and its 8192-byte save span is asserted non-NULL before the loop.)
 
 ### Run-ahead host (LR-02 gate for `deterministic`)
 - **D-10:** The gating host runs in `libretro_host.c` through the real `retro_*` entry points
@@ -122,6 +124,12 @@ other.
      adapter comments.
 
   A revert of that last commit leaves an honest tree.
+
+  (Note at planning, 2026-10-12: the README says the `.info` claims `deterministic`, which
+  RetroArch uses for run-ahead and netplay; run-ahead is proven by the simulated host and the
+  RetroArch e2e; the state format is fixed little-endian and byte-identical on all six
+  platforms; netplay itself has no end-to-end test here. LR-02's "(run-ahead and netplay)"
+  describes what the level enables and is unchanged.)
 - **D-22:** Push cadence:
   - Draft PR after step 1. Push after each claim commit and at the end.
   - Merge only when every check on the final head is green.
@@ -183,6 +191,15 @@ other.
   The benign `[ERROR] failed_to_start_audio_driver` line is allowed. The existing check that
   nothing changes in the user's directory is kept, with `$TMPDIR` added if second-instance
   mode is ever enabled.
+
+  (Amended at planning, 2026-10-12: the adapter requests no log interface, so a core
+  `RETRO_LOG_ERROR` line cannot appear. "No core error" is enforced instead by failing every
+  state lane on any line-start `[ERROR]` line in the RetroArch log, and on any
+  `[WARN]`/`[ERROR]` line tagged `[Rewind]` or `[Run-Ahead]`, unless the line matches an
+  explicit allowlist committed in `tests/retroarch/`. Each allowlist entry is measured on
+  RetroArch 1.22.2 and carries a comment saying why it is benign. The failed-save and
+  failed-load strings and the `[NetCMD]` requirement stay. A CTest feeds the matcher a fixture
+  log with an un-allowlisted `[ERROR]` line and requires the check to fail.)
 - **D-29:** CI: a new step "Run the RetroArch state, rewind and run-ahead commands" in the
   `retroarch-e2e` job, with its own `RA_DIR` (`build/retroarch-e2e/run-state`). It uploads
   `shot-*.png`, the state file and the verbose log on failure. The existing game and battery
