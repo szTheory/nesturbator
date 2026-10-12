@@ -22,10 +22,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-11)
+See: .planning/PROJECT.md (updated 2026-10-12)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 12 — Save states in the library
+**Current focus:** Phase 13 — Rewind and run-ahead in RetroArch
 
 ## Current Position
 
@@ -258,6 +258,8 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - [Phase 06] Code review left 3 warnings and 2 info open (06-REVIEW-DISPOSITION.md): WR-02 `$2007` palette test on unmasked `v` stays open; WR-01 (write stamp) and WR-03 (`map_cpu_read` range guard) were fixed in 08-05.
 - [Phase 10] Code review left 3 warnings and 3 info open, all in test code (10-REVIEW-DISPOSITION.md): WR-01 `libretro.host --rom-parity` continues after a failed load; WR-02 boot-to-play audio window min/max not re-seeded when a window's first frame has no samples (latent); WR-03 the frame-written sentinel is weaker than its comment.
 - [Phase 11] Code review left 3 info open (11-REVIEW-DISPOSITION.md; WR-01 to WR-04 fixed): IN-01 load_cartridge repeats the power-on reset; IN-02 a failed libretro load leaves the instance NULL so AV info is zeroed; IN-03 one over-long comment line in `runner/main.c`.
+- [Phase 12] Code review closed (12-REVIEW-DISPOSITION.md): CR-01 tick ceiling, WR-01 runner exit 2 before ROM load and IN-01 fixed; WR-02 skipped, as `halted_in_read` is never written and its bound must widen if stalled reads are modelled. Six-platform state hash equality is shown only by the Phase 12 PR's CI matrix.
+- [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
 ### Quick Tasks Completed
@@ -294,9 +296,9 @@ Last session: 2026-10-12T12:36:58.978Z
 Stopped at: Phase 12 complete, ready to plan Phase 13
 Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 12`.
+Next GSD command: `/gsd-discuss-phase 13`.
 
 ## Operator Next Steps
 
-- Phase 11 PR #42 is green and in draft; squash-merge it, then create the Phase 12 branch from main
-- Discuss Phase 12 with /gsd-discuss-phase 12, then plan it with /gsd-plan-phase 12
+- Push gsd/phase-12-save-states-in-the-library, open its PR and squash-merge it once CI is green, then create the Phase 13 branch from main
+- Discuss Phase 13 with /gsd-discuss-phase 13, then plan it with /gsd-plan-phase 13
