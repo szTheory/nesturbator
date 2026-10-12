@@ -320,5 +320,5 @@ Next GSD command: `/gsd-plan-phase 14`.
 
 ## Operator Next Steps
 
-- Push gsd/phase-12-save-states-in-the-library, open its PR and squash-merge it once CI is green, then create the Phase 13 branch from main
-- Discuss Phase 13 with /gsd-discuss-phase 13, then plan it with /gsd-plan-phase 13
+- Plan Phase 14 with /gsd-plan-phase 14 on gsd/phase-14-runner-process-contract
+- After execution, open the Phase 14 PR and squash-merge it once CI is green
