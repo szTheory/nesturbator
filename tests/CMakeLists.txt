@@ -568,13 +568,25 @@ set(FORK_ROMS
   ${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P128K_CR8K.nes
   ${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P256K_C256K.nes
   ${PROJECT_SOURCE_DIR}/tests/roms/hm/M7_P128K_CR8K.nes)
-if(NESTURBATOR_SHORT_RUNS)
-  nesturbator_core_test(core.state_fork core/test_state_fork.c --short --stress ${FORK_ROMS})
-else()
-  nesturbator_core_test(core.state_fork core/test_state_fork.c --stress ${FORK_ROMS})
-endif()
+# One CTest entry per ROM plus one for the stress images, so ctest runs them in parallel and no
+# single entry carries the whole matrix (it is about 140 s of CPU in ci).
+add_executable(core.state_fork core/test_state_fork.c)
+target_link_libraries(core.state_fork PRIVATE nesturbator::nesturbator)
+nesturbator_warnings(core.state_fork)
 target_include_directories(core.state_fork PRIVATE ${PROJECT_SOURCE_DIR}/src)
-set_tests_properties(core.state_fork PROPERTIES TIMEOUT 300 COST 100)
+set(FORK_MODE)
+if(NESTURBATOR_SHORT_RUNS)
+  set(FORK_MODE --short)
+endif()
+list(GET FORK_ROMS 0 FORK_OTHER)
+list(SUBLIST FORK_ROMS 1 -1 FORK_GAMES)
+foreach(rom IN LISTS FORK_GAMES)
+  get_filename_component(rom_name ${rom} NAME_WE)
+  add_test(NAME core.state_fork.${rom_name} COMMAND core.state_fork ${FORK_MODE} ${FORK_OTHER} ${rom})
+  set_tests_properties(core.state_fork.${rom_name} PROPERTIES TIMEOUT 300 COST 20)
+endforeach()
+add_test(NAME core.state_fork.stress COMMAND core.state_fork ${FORK_MODE} --stress ${FORK_OTHER})
+set_tests_properties(core.state_fork.stress PROPERTIES TIMEOUT 300 COST 60)
 # STATE-04 (D-03, D-04): all-or-nothing load. Cross-ROM, version, header_size, truncation, a flip of
 # every byte, the CRC-recomputed field sweep, the at-bound table and the ppu_ticks gap, each checked
 # for the D-04 status and a byte-identical instance. NESTURBATOR_SHORT_RUNS (preset asan) strides

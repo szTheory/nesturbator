@@ -848,9 +848,9 @@ C interface is the same.
 
 Battery RAM is part of the PRG RAM, so a load replaces it. Rewinding past an in-game save reverts the save RAM.
 
-The `core.state_fork` test forks committed games on all six boards and a DMA and
-interrupt stress program (on NROM and on MMC3) at many frames, including frame
-0. Each fork loads into an instance that was pre-filled with other state and
+The `core.state_fork.*` tests (one per committed game, plus
+`core.state_fork.stress`) fork games on all six boards and a DMA and interrupt
+stress program (on NROM and on MMC3) at many frames, including frame 0. Each fork loads into an instance that was pre-filled with other state and
 then poisoned, and it requires every later frame, sample, tick count and the
 final state to match an uninterrupted run. It also shows that saving every
 frame changes nothing.

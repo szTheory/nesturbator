@@ -4,7 +4,8 @@
    different input, then whitebox-poisoned, loads the state and must continue exactly as A: every
    digest equal, and the final state bytes equal. A second uninterrupted run saves after every
    frame and must match the run that never saves. Usage:
-   core.state_fork [--short] [--stress] <other.nes> <rom>...   (the first path is the pre-fill game).
+   core.state_fork [--short] [--stress] <other.nes> [<rom>...]   (the first path is the pre-fill
+   game; at least one ROM is needed unless --stress is given).
    --stress adds two synthetic DMA and interrupt programs (NROM and MMC3) forked at every frame
    0 to 120 (0, 1, 2, 3, 30 with --short); the run must see OAM DMA, DMC DMA and the IRQ poll
    latch pending at frame boundaries, so those states straddle the cut points. */
@@ -200,8 +201,8 @@ int main(int argc, char **argv)
         stress = 1;
         first++;
     }
-    if (argc - first < 2) {
-        fprintf(stderr, "usage: core.state_fork [--short] [--stress] <other.nes> <rom>...\n");
+    if (argc - first < (stress ? 1 : 2)) {
+        fprintf(stderr, "usage: core.state_fork [--short] [--stress] <other.nes> [<rom>...]\n");
         return 2;
     }
     if (!st_read_file(argv[first], &g_other, &g_other_size)) {
