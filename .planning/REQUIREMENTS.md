@@ -46,7 +46,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 
 ### Runner process contract
 
-- [ ] **RUN-01**: The runner has these state options, and a rejected state exits with status 5:
+- [x] **RUN-01**: The runner has these state options, and a rejected state exits with status 5:
   - `--state-at-frame N:FILE` writes a state after frame N.
   - `--load-state FILE` resumes from a state after the battery save loads.
   - `--hash-state N` prints the state hash.
@@ -104,7 +104,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 | STATE-03 | Phase 12 | Pending |
 | STATE-04 | Phase 12 | Complete |
 | STATE-05 | Phase 12 | Complete |
-| RUN-01 | Phase 12 | Pending |
+| RUN-01 | Phase 12 | Complete |
 | LR-01 | Phase 13 | Pending |
 | LR-02 | Phase 13 | Pending |
 | LR-03 | Phase 13 | Pending |
