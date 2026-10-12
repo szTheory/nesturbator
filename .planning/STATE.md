@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 13
 current_phase_name: Rewind and run-ahead in RetroArch
 status: executing
-stopped_at: Completed 13-06-PLAN.md
-last_updated: "2026-10-12T18:15:48.825Z"
+stopped_at: Completed 13-07-PLAN.md
+last_updated: "2026-10-12T18:52:15.703Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 13 execution started
-state_head: cb3a4103ab23605f68a60c2914816ef5da028428
+state_head: f2fb739acaf9987f6515a659ee9ccbb3fad620ac
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 22
-  completed_plans: 20
+  completed_plans: 21
   percent: 40
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 13 (Rewind and run-ahead in RetroArch) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-10-12 — Phase 13 execution started
 
@@ -174,6 +174,7 @@ Progress: [████░░░░░░] 40%
 | Phase 13 P04 | 30 min | 2 tasks | 9 files |
 | Phase 13 P05 | 12 min | 2 tasks | 3 files |
 | Phase 13 P06 | 11 min | 2 tasks | 14 files |
+| Phase 13 P07 | 40m | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -258,6 +259,7 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-05: state-fuzz nightly job copies rom-loader-fuzz with -timeout=5; timeout-minutes 3 unmeasured
 - [Phase 13]: 13-06: secondary-instance marker is a line count (more than 2 SET_SUPPORT_NO_GAME lines), measured on RetroArch 1.22.2; no distinct line text and no core copy appears on macOS
 - [Phase 13]: 13-06: allowlist holds the audio-driver line (any) and the Run-Ahead refusal warning scoped serialized
+- [Phase 13]: 13-07: RetroArch 1.22.2 names state files after the content stem and ignores SAVE_STATE after FRAMEADVANCE; the network session saves its second state at rew-0
 
 ### Pending Todos
 
@@ -306,8 +308,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T18:15:48.790Z
-Stopped at: Completed 13-06-PLAN.md
+Last session: 2026-10-12T18:52:15.642Z
+Stopped at: Completed 13-07-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 13`.
