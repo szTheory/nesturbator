@@ -776,6 +776,12 @@ add_test(NAME cmake.script_policy
   COMMAND ${CMAKE_COMMAND} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/cmake
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/script_policy.cmake)
 
+# D-07: the README status table equals enum nesturbator_status, and the README keeps its Save
+# states section and the rewind sentence (STATE-05).
+add_test(NAME state.status_table
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/status_table.cmake)
+
 # D-01 and D-02: vector conversion and fetch stay implemented by the owned C
 # parser; release configuration scripts are outside this scoped policy.
 add_test(NAME vectors.source_policy

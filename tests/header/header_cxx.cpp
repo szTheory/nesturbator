@@ -19,6 +19,15 @@ static nesturbator_status (*const get_memory_fn)(nesturbator *, nesturbator_memo
 static uint64_t (*const save_generation_fn)(const nesturbator *) = nesturbator_save_generation;
 static const nesturbator_memory save_kind = NESTURBATOR_MEMORY_SAVE_RAM;
 
+// The save-state API is declared with its format version and last status.
+static size_t (*const state_size_fn)(const nesturbator *) = nesturbator_state_size;
+static nesturbator_status (*const save_state_fn)(const nesturbator *, void *,
+                                                 size_t) = nesturbator_save_state;
+static nesturbator_status (*const load_state_fn)(nesturbator *, const void *,
+                                                 size_t) = nesturbator_load_state;
+static_assert(NESTURBATOR_STATE_FORMAT_VERSION == 1, "state format version");
+static_assert(NESTURBATOR_ERR_STATE_INVALID == 12, "last status value");
+
 int main()
 {
     // Brace initialisation from the macro must not narrow (01-RESEARCH
@@ -28,6 +37,9 @@ int main()
     // const function pointer is always true and g++ -Waddress rejects it.
     (void)get_memory_fn;
     (void)save_generation_fn;
+    (void)state_size_fn;
+    (void)save_state_fn;
+    (void)load_state_fn;
     return c.abi == NESTURBATOR_ABI_VERSION && c.size == sizeof c &&
                    save_kind == NESTURBATOR_MEMORY_SAVE_RAM
                ? 0

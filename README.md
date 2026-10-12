@@ -713,6 +713,9 @@ The public functions are:
 - `nesturbator_get_memory` and `nesturbator_save_generation` give the
   battery span and its write counter (Battery saves, below).
 - `nesturbator_peek_cpu_ram` reads CPU RAM for test harnesses.
+- `nesturbator_state_size`, `nesturbator_save_state` and
+  `nesturbator_load_state` save and restore the whole machine (Save states,
+  below).
 
 Soft reset: `nesturbator_reset()` is the console's Reset button. Call it
 between frames. It keeps CPU RAM and cartridge RAM (PRG RAM and CHR RAM), so
@@ -775,6 +778,93 @@ Mapper 4 (MMC3) takes the same layout with one rule: V and N are each 0 or
 8 KiB, never both (NES 2.0: none, 8 KiB work, or 8 KiB NVRAM). Known gap: an
 iNES 1 MMC3 image always gets 8 KiB of RAM, so games that expect no RAM at
 all, such as Low G Man, need a NES 2.0 header with V = N = 0.
+
+### Save states
+
+A state is an exact snapshot of the whole machine at a frame boundary. It is
+valid for the same format version, ROM and board, and it is byte-identical on
+every platform. The library does no file I/O and never allocates for a state;
+the host owns the buffer and decides where states live.
+
+1. `nesturbator_state_size(inst)` returns the exact length of a state of the
+   loaded cartridge. It is 0 for a NULL instance or with no cartridge, and the
+   same value from a successful load until unload.
+2. `nesturbator_save_state(inst, buf, capacity)` writes exactly that many
+   bytes. A larger buffer is fine and the bytes past the size are not touched;
+   a smaller one returns `NESTURBATOR_ERR_BUFFER_TOO_SMALL` and writes nothing.
+   A NULL `buf` is never a size query. Saving changes nothing in the instance,
+   and saving a jammed instance succeeds.
+3. `nesturbator_load_state(inst, buf, size)` needs `size` to equal the state
+   size exactly. A load is all or nothing: every refusal leaves the instance
+   byte for byte as it was. Loading a state saved after a JAM opcode makes the
+   next frame return `NESTURBATOR_STOP_JAM`; loading a clean state clears the
+   latch.
+
+Load checks in this order and reports the first failure: arguments, a length
+below the 64-byte header, the magic and format version, the cartridge identity
+(mapper, submapper, region and ROM CRC-32), the length against the state size
+and the header's total size, the CRC-32, and then the contents. A header size
+other than 64, a reserved byte other than zero and any field out of range are
+content checks and report `NESTURBATOR_ERR_STATE_INVALID`.
+
+The header is 64 bytes, every multi-byte field little-endian:
+
+| Offset | Bytes | Field |
+|---|---|---|
+| 0 | 8 | magic `89 4E 54 53 0D 0A 1A 0A` |
+| 8 | 2 | format version |
+| 10 | 2 | header size, 64 |
+| 12 | 4 | total size |
+| 16 | 4 | behaviour revision of the saving library |
+| 20 | 2 | mapper id |
+| 22 | 1 | submapper |
+| 23 | 1 | region, 0 for NTSC |
+| 24 | 4 | ROM CRC-32 of the 16 header bytes, PRG ROM and CHR ROM |
+| 28 | 4 | state CRC-32 of every byte except these four |
+| 32 | 8 | frame number |
+| 40 | 8 | ticks |
+| 48 | 16 | reserved, zero |
+
+The machine fields, the whole PRG RAM and the 8 KiB CHR RAM (when the board has
+it) follow. The frame buffer and the audio are not in a state. Frame numbers
+and ticks continue from the saved point: the first frame after a load reports
+the number and ticks of the uninterrupted run.
+
+Another format version is refused, never converted. Keep rewind buffers in
+memory, and expect user-kept states to need re-creating after a release that
+raises the format version. The behaviour revision is recorded and not
+enforced: after an emulation fix an old state still loads, but its later frames
+may differ from the run that saved it.
+
+| Format version | Introduced |
+|---|---|
+| 1 | first release that contains save states |
+
+A format bump ships under a `feat:` title with a changelog line saying older
+states are refused. It does not change `NESTURBATOR_ABI_VERSION`, because the
+C interface is the same.
+
+Battery RAM is part of the PRG RAM, so a load replaces it. Rewinding past an in-game save reverts the save RAM.
+
+### Status codes
+
+Every call returns one of these. An error changes no state.
+
+| Value | Status | Meaning |
+|---|---|---|
+| 0 | `NESTURBATOR_OK` | The call succeeded. |
+| 1 | `NESTURBATOR_ERR_ARGUMENT` | A required pointer is NULL, or an argument is out of range. |
+| 2 | `NESTURBATOR_ERR_STRUCT_SIZE` | A struct's size field is 0, too small, or larger with a non-zero tail. |
+| 3 | `NESTURBATOR_ERR_ABI` | The config's abi field differs from `NESTURBATOR_ABI_VERSION`. |
+| 4 | `NESTURBATOR_ERR_NO_MEMORY` | The allocator returned NULL. |
+| 5 | `NESTURBATOR_ERR_BUFFER_TOO_SMALL` | A caller-owned buffer is too small for the output. |
+| 6 | `NESTURBATOR_STOP_JAM` | The cartridge executed a JAM opcode; the instance is latched. |
+| 7 | `NESTURBATOR_ERR_CARTRIDGE` | Cartridge bytes are malformed or outside a supported board. |
+| 8 | `NESTURBATOR_ERR_STATE_FORMAT` | The magic is wrong or the format version is not the library's. |
+| 9 | `NESTURBATOR_ERR_STATE_CARTRIDGE` | No cartridge is loaded, or the state belongs to another game or board. |
+| 10 | `NESTURBATOR_ERR_STATE_SIZE` | The length is wrong, including any truncation. |
+| 11 | `NESTURBATOR_ERR_STATE_CHECKSUM` | The state's CRC-32 does not match: the bytes were damaged. |
+| 12 | `NESTURBATOR_ERR_STATE_INVALID` | The CRC-32 matches but a field is out of range or a reserved byte is set. |
 
 ## Downloads and archives
 
