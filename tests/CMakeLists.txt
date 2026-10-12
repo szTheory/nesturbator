@@ -212,6 +212,16 @@ runner_stop_case(double)
 runner_stop_case(double.int)
 runner_stop_case(load_state_at)
 runner_stop_case(load_state_below)
+# D-08 to D-10: a stop that missed a requested output exits 1 and names it.
+runner_stop_case(unmet_hash_frame)
+runner_stop_case(unmet_hash_state)
+runner_stop_case(unmet_state_at_frame)
+runner_stop_case(unmet_dump_frame)
+runner_stop_case(unmet_hash_audio)
+runner_stop_case(unmet_movie)
+runner_stop_case(unmet_order)
+runner_stop_case(met_at_stop)
+runner_stop_case(late)
 
 # D-04, D-11: --raise-after usage errors exit 2 and name the option.
 if(WIN32)

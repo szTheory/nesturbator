@@ -43,7 +43,11 @@
  * failed. A second signal ends it at once. --raise-after N[:SIG[:K]] signals this process K times
  * after frame N (a test aid); SIG is int or term on POSIX (default term), int or break on Windows
  * (default break). --accuracycoin-page installs no stop handlers; a signal there has its default
- * action. See runner/stop.h and the README section Stopping the runner.
+ * action. A stop that missed a requested output (a --hash-frame, --hash-state, --state-at-frame
+ * or --dump-frame beyond the last finished frame, --hash-audio, the end of a --movie) exits 1,
+ * names the first such option on stderr after "not reached:" and prints no audio hash; a
+ * --frames count not reached is not a failure. See runner/stop.h and the README section Stopping
+ * the runner.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -228,6 +232,13 @@ typedef struct options {
     uint32_t state_count;
     uint32_t *hash_states;
     uint32_t hash_state_count;
+    /* Command-line position of each request, so a stop names the first unmet one. */
+    int *hash_frame_argi;
+    int *dump_argi;
+    int *state_argi;
+    int *hash_state_argi;
+    int hash_audio_argi;
+    int movie_argi;
     const char *load_state_path;
     int hash_audio;
     int show_version;
@@ -248,6 +259,10 @@ static void free_options(options *o)
     free(o->state_frames);
     free((void *)o->state_paths);
     free(o->hash_states);
+    free(o->hash_frame_argi);
+    free(o->dump_argi);
+    free(o->state_argi);
+    free(o->hash_state_argi);
 }
 
 /* Parses N[:SIG[:K]] for --raise-after into o. Returns 1, or 0 on any other text. */
@@ -295,8 +310,14 @@ static int parse_options(int argc, char **argv, options *o)
     o->state_frames = (uint32_t *)malloc(n_args * sizeof *o->state_frames);
     o->state_paths = (const char **)malloc(n_args * sizeof *o->state_paths);
     o->hash_states = (uint32_t *)malloc(n_args * sizeof *o->hash_states);
+    o->hash_frame_argi = (int *)malloc(n_args * sizeof *o->hash_frame_argi);
+    o->dump_argi = (int *)malloc(n_args * sizeof *o->dump_argi);
+    o->state_argi = (int *)malloc(n_args * sizeof *o->state_argi);
+    o->hash_state_argi = (int *)malloc(n_args * sizeof *o->hash_state_argi);
     if (o->hash_states == NULL || o->hash_frames == NULL || o->dump_frames == NULL ||
-        o->dump_paths == NULL || o->state_frames == NULL || o->state_paths == NULL) {
+        o->dump_paths == NULL || o->state_frames == NULL || o->state_paths == NULL ||
+        o->hash_frame_argi == NULL || o->dump_argi == NULL || o->state_argi == NULL ||
+        o->hash_state_argi == NULL) {
         fprintf(stderr, "nesturbator-run: out of memory\n");
         return RUNNER_EXIT_FAILURE;
     }
@@ -317,6 +338,7 @@ static int parse_options(int argc, char **argv, options *o)
             if (o->hash_audio != 0)
                 return usage("--hash-audio may be specified once");
             o->hash_audio = 1;
+            o->hash_audio_argi = i - 1;
             continue;
         }
         value = i < argc ? argv[i++] : NULL;
@@ -344,6 +366,7 @@ static int parse_options(int argc, char **argv, options *o)
             if (value == NULL || value[0] == '\0' || o->movie_path != NULL)
                 return usage("--movie needs one file path");
             o->movie_path = value;
+            o->movie_argi = i - 2;
         } else if (strcmp(arg, "--dump-frame") == 0) {
             const char *path;
             if (!parse_dump(value, &n, &path)) {
@@ -351,6 +374,7 @@ static int parse_options(int argc, char **argv, options *o)
             }
             o->dump_frames[o->dump_count] = n;
             o->dump_paths[o->dump_count] = path;
+            o->dump_argi[o->dump_count] = i - 2;
             o->dump_count++;
         } else if (strcmp(arg, "--state-at-frame") == 0) {
             const char *path;
@@ -363,6 +387,7 @@ static int parse_options(int argc, char **argv, options *o)
             }
             o->state_frames[o->state_count] = n;
             o->state_paths[o->state_count] = path;
+            o->state_argi[o->state_count] = i - 2;
             o->state_count++;
         } else if (strcmp(arg, "--hash-state") == 0) {
             if (value == NULL || !parse_frame_index(value, strlen(value), &n))
@@ -371,6 +396,7 @@ static int parse_options(int argc, char **argv, options *o)
                 if (o->hash_states[k] == n)
                     return usage("--hash-state N given twice");
             }
+            o->hash_state_argi[o->hash_state_count] = i - 2;
             o->hash_states[o->hash_state_count++] = n;
         } else if (strcmp(arg, "--load-state") == 0) {
             if (o->load_state_path != NULL)
@@ -389,6 +415,7 @@ static int parse_options(int argc, char **argv, options *o)
             if (strcmp(arg, "--frames") == 0) {
                 o->frames = n;
             } else {
+                o->hash_frame_argi[o->hash_count] = i - 2;
                 o->hash_frames[o->hash_count++] = n;
             }
         } else {
@@ -1005,6 +1032,51 @@ static int check_ranges(const options *o, uint64_t k_frame)
     return RUNNER_EXIT_DONE;
 }
 
+/* D-08, D-10: after a stop, returns 1 and names the first request (by command-line position)
+   that was not produced, or returns 0 when everything requested was. A --frames count not
+   reached is not a request. */
+static int report_unmet(const options *o, uint64_t done_frame)
+{
+    int best = -1;
+    uint32_t k;
+    char text[1024];
+    text[0] = '\0';
+#define UNMET_PICK(argi, ...)                                                                      \
+    do {                                                                                           \
+        if (best < 0 || (argi) < best) {                                                           \
+            best = (argi);                                                                         \
+            (void)snprintf(text, sizeof text, __VA_ARGS__);                                        \
+        }                                                                                          \
+    } while (0)
+    for (k = 0; k < o->hash_count; k++) {
+        if (o->hash_frames[k] > done_frame)
+            UNMET_PICK(o->hash_frame_argi[k], "--hash-frame %lu", (unsigned long)o->hash_frames[k]);
+    }
+    for (k = 0; k < o->hash_state_count; k++) {
+        if (o->hash_states[k] > done_frame)
+            UNMET_PICK(o->hash_state_argi[k], "--hash-state %lu", (unsigned long)o->hash_states[k]);
+    }
+    for (k = 0; k < o->state_count; k++) {
+        if (o->state_frames[k] > done_frame)
+            UNMET_PICK(o->state_argi[k], "--state-at-frame %lu:%s",
+                       (unsigned long)o->state_frames[k], o->state_paths[k]);
+    }
+    for (k = 0; k < o->dump_count; k++) {
+        if (o->dump_frames[k] > done_frame)
+            UNMET_PICK(o->dump_argi[k], "--dump-frame %lu:%s", (unsigned long)o->dump_frames[k],
+                       o->dump_paths[k]);
+    }
+    if (o->hash_audio != 0)
+        UNMET_PICK(o->hash_audio_argi, "--hash-audio");
+    if (o->movie_path != NULL && done_frame < o->frames)
+        UNMET_PICK(o->movie_argi, "--movie %s", o->movie_path);
+#undef UNMET_PICK
+    if (best < 0)
+        return 0;
+    fprintf(stderr, "nesturbator-run: not reached: %s\n", text);
+    return 1;
+}
+
 int main(int argc, char **argv)
 {
     static uint16_t video[WIDTH * HEIGHT];
@@ -1272,6 +1344,8 @@ int main(int argc, char **argv)
     if (stopped != 0) {
         fprintf(stderr, "nesturbator-run: stopped by signal after frame %llu\n",
                 (unsigned long long)done_frame);
+        if (report_unmet(&opt, done_frame) != 0 && status == RUNNER_EXIT_DONE)
+            status = RUNNER_EXIT_FAILURE;
     } else if (status == 0 && opt.hash_audio != 0) {
         print_audio_hash(&audio_hash);
     }
