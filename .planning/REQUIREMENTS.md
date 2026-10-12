@@ -52,7 +52,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
   - `--hash-state N` prints the state hash.
   
   State files are written only to the path given.
-- [ ] **RUN-02**: On SIGTERM or SIGINT the runner finishes the current frame, flushes the battery save, and exits 0, or 1 if the flush failed. The signal handler only sets a flag. A second signal kills it immediately. On Windows, Ctrl+Break and console close are handled the same way, and the README says that a forced termination cannot be handled.
+- [ ] **RUN-02**: On SIGTERM or SIGINT the runner finishes the current frame, flushes the battery save, and exits 0, or 1 if the flush failed or a requested output (a --hash-frame, --hash-state, --state-at-frame or --dump-frame frame, --hash-audio, or the end of a --movie) was not reached. The signal handler only sets a flag. A second signal kills it immediately. On Windows, Ctrl+Break and console close are handled the same way, and the README says that a forced termination cannot be handled.
 - [ ] **RUN-03**: Exit statuses are one table, in one header, `--help` and the README:
   - 0 done
   - 1 failure

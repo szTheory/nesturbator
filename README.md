@@ -1228,6 +1228,8 @@ Exit status: see [Exit status](#exit-status).
 
 On SIGTERM or SIGINT the runner finishes the current frame, writes the battery save and exits 0, or 1 if the save could not be written. It prints one stop line on standard error and adds nothing to standard output. The stop is seen between frames, also before the first frame when the request arrives while the cartridge loads; a load error keeps its own exit status. The save goes through the same temp-and-rename write as any other, so it is never torn. A second signal at any time, including during the flush, ends the runner at once.
 
+A stopped run exits 1 when something requested was not produced: a `--hash-frame`, `--hash-state`, `--state-at-frame` or `--dump-frame` beyond the last finished frame, `--hash-audio`, or a movie that did not reach its end. The line after the stop line names the first such option on the command line, for example `nesturbator-run: not reached: --hash-frame 6`, and standard output gains nothing. A stopped run prints no audio hash, because it would cover a truncated run. A `--frames` count not reached is not a failure, so a launcher that runs open-ended (`--frames 4294967295 --save-dir DIR`, no hash or dump options) and stops it gets 0. A signal that arrives after the last frame changes nothing: the run is complete, exits 0 and prints its audio hash.
+
 On Windows the runner handles Ctrl+C, Ctrl+Break and console close the same way. SIGTERM is not a Windows mechanism. A forced termination (TerminateProcess, taskkill /F, power loss) cannot be handled; the last committed .sav survives it. Logoff and shutdown are not handled. `--accuracycoin-page` installs no stop handlers.
 
 A Windows launcher stops the runner with a console event, in one of two cases.
@@ -1245,7 +1247,7 @@ exits 0. A bad command line prints the same text to standard error and exits 2.
 | Status | Meaning | When |
 |---|---|---|
 | 0 | done | The run finished, or `--version` or `--help` printed its text. |
-| 1 | failure | A file cannot be read or written, a save fails, a stop whose save could not be written, or a frame fails or hits a JAM. |
+| 1 | failure | A file cannot be read or written, a save fails, a stop whose save could not be written, a stopped run that missed a requested output, or a frame fails or hits a JAM. |
 | 2 | usage error | The command line is wrong. |
 | 4 | .sav size mismatch | The `.sav` file's length differs from the cartridge's battery RAM. |
 | 5 | state rejected | `--load-state` refused the file. |
