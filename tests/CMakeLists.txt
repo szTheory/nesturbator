@@ -241,6 +241,11 @@ if(NOT WIN32)
       RUN_SERIAL TRUE TIMEOUT ${NESTURBATOR_SIGNAL_TIMEOUT})
   endfunction()
   runner_signal_case(term)
+  runner_signal_case(int)
+  runner_signal_case(term_exitflush)
+  runner_signal_case(second)
+  set_tests_properties(runner.signal.term runner.signal.int runner.signal.term_exitflush
+    PROPERTIES LABELS exit_status)
 endif()
 
 # D-04, D-11: --raise-after usage errors exit 2 and name the option.

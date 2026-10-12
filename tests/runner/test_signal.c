@@ -244,29 +244,6 @@ static int wait_file(const char *path, int64_t size, int64_t deadline)
     }
 }
 
-/* Stalled: bytes sit in the pipe and the count is the same on three polls 50 ms apart. */
-static int wait_stalled(int read_fd, int64_t deadline)
-{
-    int last = -1;
-    int same = 0;
-    for (;;) {
-        int n = 0;
-        if (ioctl(read_fd, FIONREAD, &n) == 0 && n > 0 && n == last) {
-            same++;
-        } else {
-            same = 0;
-        }
-        last = n;
-        if (same >= 2) {
-            return 1;
-        }
-        if (now_ms() >= deadline) {
-            return 0;
-        }
-        pause_ms(50);
-    }
-}
-
 /* Polls for ms milliseconds; returns 1 when the child is still running afterwards. */
 static int still_alive_for(pid_t pid, long ms, int *status)
 {
@@ -354,12 +331,33 @@ static void case_graceful(int sig, int interval)
     CHECK(!exists(tmp));
 }
 
+/* Fills the pipe's write end with non-blocking writes; returns bytes queued, 0 on trouble. */
+static int fill_pipe(int wfd, int rfd)
+{
+    char block[4096];
+    int n = 0;
+    memset(block, 'F', sizeof block);
+    (void)fcntl(wfd, F_SETFL, fcntl(wfd, F_GETFL) | O_NONBLOCK);
+    while (write(wfd, block, sizeof block) > 0) {
+    }
+    while (write(wfd, block, 1) > 0) {
+    }
+    if (ioctl(rfd, FIONREAD, &n) != 0) {
+        n = 0;
+    }
+    /* O_NONBLOCK lives on the open file description, which the child will share. */
+    (void)fcntl(wfd, F_SETFL, fcntl(wfd, F_GETFL) & ~O_NONBLOCK);
+    return n;
+}
+
 /* A first SIGTERM to a runner blocked in a write to a full pipe changes nothing (the write
    restarts); a later SIGTERM ends it by the default action. */
 static void case_second(void)
 {
     char rom[PATH_LEN], movie[PATH_LEN], seed[PATH_LEN], sav[PATH_LEN], tmp[PATH_LEN];
-    char *argv[] = {g_runner, "--movie", movie, "--rom", rom, "--save-dir", g_work, NULL};
+    char ready[PATH_LEN], state_arg[PATH_LEN + 8u];
+    char *argv[] = {g_runner, "--movie",          movie,     "--rom", rom, "--save-dir",
+                    g_work,   "--state-at-frame", state_arg, NULL};
     int fds[2];
     int status = 0;
     pid_t pid;
@@ -368,8 +366,18 @@ static void case_second(void)
     in_fixture(seed, "seed.sav");
     in_work(sav, "battery.sav");
     in_work(tmp, "battery.sav.tmp");
+    in_work(ready, "ready.state");
+    (void)snprintf(state_arg, sizeof state_arg, "1:%s", ready);
     if (!copy_file(seed, sav) || pipe(fds) != 0) {
         fprintf(stderr, "cannot prepare the seed save or the pipe\n");
+        check_failures++;
+        return;
+    }
+    /* The pipe is full before the runner starts, so its first stdio flush (the movie prints a
+       line per frame) blocks without a timing assumption. The kernel grows a pipe in steps,
+       so a stall seen from outside cannot be told from a pause between steps. */
+    if (fill_pipe(fds[1], fds[0]) <= 0) {
+        fprintf(stderr, "the pipe could not be filled\n");
         check_failures++;
         return;
     }
@@ -379,8 +387,9 @@ static void case_second(void)
     if (pid <= 0) {
         return;
     }
-    if (!wait_stalled(fds[0], now_ms() + READY_DEADLINE_MS)) {
-        kill_and_fail(pid, "the runner never stalled on a full stdout pipe");
+    /* ready.state is written after frame 1, which is after the handlers are installed. */
+    if (!wait_file(ready, 0, now_ms() + READY_DEADLINE_MS)) {
+        kill_and_fail(pid, "runner never reached frame 1");
         (void)close(fds[0]);
         return;
     }
@@ -477,25 +486,6 @@ static void case_load_error(void)
     CHECK(same_as(sav, seed));
     CHECK(!exists(tmp));
     (void)unlink(fifo);
-}
-
-/* Fills the pipe's write end with non-blocking writes; returns bytes queued, 0 on trouble. */
-static int fill_pipe(int wfd, int rfd)
-{
-    char block[4096];
-    int n = 0;
-    memset(block, 'F', sizeof block);
-    (void)fcntl(wfd, F_SETFL, fcntl(wfd, F_GETFL) | O_NONBLOCK);
-    while (write(wfd, block, sizeof block) > 0) {
-    }
-    while (write(wfd, block, 1) > 0) {
-    }
-    if (ioctl(rfd, FIONREAD, &n) != 0) {
-        n = 0;
-    }
-    /* O_NONBLOCK lives on the open file description, which the child will share. */
-    (void)fcntl(wfd, F_SETFL, fcntl(wfd, F_GETFL) & ~O_NONBLOCK);
-    return n;
 }
 
 /* D-06: after a first SIGTERM has started the stop, a runner held in the exit sequence's
