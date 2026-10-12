@@ -146,6 +146,11 @@ other.
   timing only shifts the starting index. Content: `nesteroids.nes`, after asserting that its
   runner frame hashes for 1..W (W of about 900) are pairwise distinct. No input commands are
   needed.
+  (Amended at planning, 2026-10-12: nesteroids frames are not pairwise distinct; RESEARCH
+  flag 4 measured adjacent duplicate pairs, one pair 3 apart. Each screenshot is matched to a
+  set of runner frame indices, and assertions are set-valued chains across consecutive
+  screenshots. The pairwise-distinct assertion is replaced by `frame_index --dups`: every
+  repeated frame has its earlier partner at most 3 frames before it.)
 - **D-24:** Transport: `printf %s CMD | nc -u -w1 127.0.0.1 55355` (macOS `/usr/bin/nc`),
   wrapped in one CMake function `ra_cmd` in `tests/retroarch/run_retroarch.cmake`. No owned
   UDP sender and no new dependency. Fence: `GET_CONFIG_PARAM savestate_directory`, which
@@ -162,6 +167,9 @@ other.
      plus the measured offset.
   6. Resume and run about 3 s (frame m1). Send a `REWIND` burst, pause and take a screenshot:
      the frame must be at most m1 minus 60. Then `FRAMEADVANCE` x3 must give m2+3.
+     (Amended at planning, 2026-10-12: the bound is 20, not 60. RESEARCH flag 3a measured
+     40 `REWIND` commands at 50 ms moving about 36 frames, so 60 would fail; RESEARCH A3 keeps
+     the loose bound: the rewound frame is at most the pre-rewind frame minus 20.)
   7. Run-ahead. With `run_ahead_enabled`, a stepped frame must equal m3+1+k, where k is the
      measured, pinned display offset.
   8. `QUIT`, sent twice (or with `quit_press_twice = "false"`).
