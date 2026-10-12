@@ -198,8 +198,26 @@ runner_state_case(missing_file)
 runner_state_case(directory)
 runner_state_case(idempotent)
 runner_state_case(save_dir)
+runner_state_case(frame0)
+runner_state_case(same_k)
+runner_state_case(continue_hash)
+runner_state_case(range_frames)
+runner_state_case(range_hash_frame)
+runner_state_case(range_state)
 nesturbator_runner_test(NAME runner.usage.load_state.twice
   ARGS --frames 1 --load-state a.state --load-state b.state EXIT 2 IGNORE_STDOUT)
+# D-11, D-12 and Open Question 3: repetition and combination refusals exit 2.
+nesturbator_runner_test(NAME runner.usage.state.twice
+  ARGS --frames 5 --rom ${PROJECT_SOURCE_DIR}/tests/roms/none.nes
+  --state-at-frame 2:a.state --state-at-frame 2:b.state EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.hash_state.twice
+  ARGS --frames 5 --rom ${PROJECT_SOURCE_DIR}/tests/roms/none.nes
+  --hash-state 2 --hash-state 2 EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.state.movie
+  ARGS --movie m.mov --rom ${PROJECT_SOURCE_DIR}/tests/roms/none.nes
+  --load-state a.state EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.state.norom
+  ARGS --frames 5 --hash-state 2 EXIT 2 IGNORE_STDOUT)
 
 # D-18: save flag usage errors exit 2.
 set(save_rom_arg ${PROJECT_SOURCE_DIR}/tests/roms/none.nes)
