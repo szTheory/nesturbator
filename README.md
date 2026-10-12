@@ -230,6 +230,20 @@ that same entry point with Clang libFuzzer and ASan/UBSan, then runs it for a
 bounded minute. The corpus is manifest-listed and local; CI does not download
 ROMs or fuzz seeds.
 
+`fuzz.state.regress` does the same for the save-state loader: it replays the
+committed seeds in `tests/fuzz/corpus_state` through `nesturbator_load_state` on
+every CI platform. Each seed is a few bytes, not a state. The harness picks one
+of twelve synthetic carts (six boards, each with its smallest and largest PRG and
+CHR) built from an integer generator, so the corpus holds no ROM bytes, saves a
+state, patches it, repairs the fields a load checks first and its checksum, and
+loads the result. A refused load must leave the instance unchanged; an accepted
+one must run, save and reload, give the same frames and audio in two instances,
+and save back to the loaded bytes with the library's behaviour revision.
+`fuzz.state` requires every committed seed to equal what the harness generates
+(`fuzz.state_loader --write-seeds DIR` writes them and prints their manifest
+lines) and every `valid-*` seed to load. The same source builds as the libFuzzer
+target `fuzz.state.libfuzzer` when `NESTURBATOR_LIBFUZZER` is on.
+
 The `abi` tests hold the core to integer arithmetic and the C memory
 functions: a text scan of `src/` and `include/` for `float`, `double` and
 decimal or hex floating literals, with a self-test that it finds `1.5`,
