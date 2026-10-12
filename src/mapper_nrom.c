@@ -1,6 +1,7 @@
 /* Mapper 0, NROM: 16 or 32 KiB of PRG ROM at $8000-$FFFF, 8 KiB of CHR ROM
    or RAM, no registers. Source: NESdev Wiki "NROM" and "INES" [HWP.14]. */
 #include "internal.h"
+#include "state.h"
 
 static void nrom_init(struct nesturbator *nes)
 {
@@ -21,6 +22,13 @@ static void nrom_rebuild(struct nesturbator *nes)
     nesturbator__map_header_mirroring(nes);
 }
 
+/* State: NESdev Wiki "NROM": no registers. */
+static void nrom_state(struct nesturbator__mapper *m, struct nesturbator__sio *io)
+{
+    (void)m;
+    (void)io;
+}
+
 void nesturbator__mapper_nrom_ops(struct nesturbator__mapper_ops *out)
 {
     out->init = nrom_init;
@@ -28,4 +36,5 @@ void nesturbator__mapper_nrom_ops(struct nesturbator__mapper_ops *out)
     out->cpu_write = NULL;
     out->ppu_a12 = NULL;
     out->ppu_read = NULL;
+    out->state = nrom_state;
 }

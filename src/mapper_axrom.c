@@ -11,6 +11,7 @@
    console's Reset button does, so the vector then comes from the selected
    bank. */
 #include "internal.h"
+#include "state.h"
 
 static void axrom_init(struct nesturbator *nes)
 {
@@ -47,6 +48,12 @@ static void axrom_cpu_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
     nes->map.ops.rebuild(nes);
 }
 
+/* State: NESdev Wiki "AxROM": the bank register. */
+static void axrom_state(struct nesturbator__mapper *m, struct nesturbator__sio *io)
+{
+    nesturbator__sio_u8(io, &m->reg.axrom.bank, 0xffu);
+}
+
 void nesturbator__mapper_axrom_ops(struct nesturbator__mapper_ops *out)
 {
     out->init = axrom_init;
@@ -54,4 +61,5 @@ void nesturbator__mapper_axrom_ops(struct nesturbator__mapper_ops *out)
     out->cpu_write = axrom_cpu_write;
     out->ppu_a12 = NULL;
     out->ppu_read = NULL;
+    out->state = axrom_state;
 }

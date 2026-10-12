@@ -19,6 +19,8 @@
 #include <stdint.h>
 
 struct nesturbator;
+struct nesturbator__sio;
+struct nesturbator__mapper;
 
 /* Events a board asks the core to report. 8u (PPU_READ, for MMC2 and MMC5) and
    16u (CPU_CLOCK, for FME-7 and Namco 163) are reserved numbers with no code
@@ -41,6 +43,11 @@ struct nesturbator__mapper_ops {
     void (*ppu_a12)(struct nesturbator *nes, uint8_t level, uint64_t tick);
     /* Reserved for MMC2 and MMC5; never called. */
     uint8_t (*ppu_read)(struct nesturbator *nes, uint16_t addr);
+    /* Visits the board's registers in struct field order through the state primitives of
+       state.h (SIZE, WRITE, VALIDATE and APPLY), each with its legal maximum. Mandatory on every
+       board: a board without registers visits nothing. A state save carries these bytes after
+       mapper.irq; the page tables are derived and rebuilt after a load. */
+    void (*state)(struct nesturbator__mapper *m, struct nesturbator__sio *io);
 };
 
 /* Serialisable board state: no pointers. */

@@ -318,10 +318,12 @@ static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
     nesturbator__sio_u8(io, &p->reset_flag, 1u);
 }
 
-static void mapper_io(struct nesturbator__sio *io, struct nesturbator__mapper *m)
+static void mapper_io(struct nesturbator__sio *io, struct nesturbator *nes)
 {
     /* id and submapper are the cartridge's identity, in the header: not repeated here. */
-    nesturbator__sio_u8(io, &m->irq, 1u);
+    nesturbator__sio_u8(io, &nes->mapper.irq, 1u);
+    /* The board registers, in struct field order; the page tables are rebuilt after APPLY. */
+    nes->map.ops.state(&nes->mapper, io);
 }
 
 /* The body, in the order the format fixes. */
@@ -333,7 +335,7 @@ static void body_io(struct nesturbator__sio *io, struct nesturbator *nes)
     apu_io(io, &nes->apu);
     synth_io(io, &nes->synth);
     ppu_io(io, &nes->ppu);
-    mapper_io(io, &nes->mapper);
+    mapper_io(io, nes);
 }
 
 /* ---- Header bytes ---- */
