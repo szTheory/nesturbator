@@ -560,13 +560,21 @@ target_include_directories(core.state PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # every frame changes nothing. NESTURBATOR_SHORT_RUNS (preset asan) uses forks {0, 1, 30} over 60 frames.
 set(FORK_ROMS
   ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes
-  ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes)
+  ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/runner.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M1_P512K_CR8K_S32K.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M2_P128K_CR8K_V.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P128K_CR8K.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P256K_C256K.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M7_P128K_CR8K.nes)
 if(NESTURBATOR_SHORT_RUNS)
   nesturbator_core_test(core.state_fork core/test_state_fork.c --short ${FORK_ROMS})
 else()
   nesturbator_core_test(core.state_fork core/test_state_fork.c ${FORK_ROMS})
 endif()
 target_include_directories(core.state_fork PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set_tests_properties(core.state_fork PROPERTIES TIMEOUT 300 COST 100)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
 target_include_directories(core.controller PRIVATE ${PROJECT_SOURCE_DIR}/src)

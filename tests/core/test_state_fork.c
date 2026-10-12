@@ -128,8 +128,8 @@ static void fork_image(const char *name, const uint8_t *img, size_t n, const uin
         done++;
     }
 
-    /* Save-every-frame neutrality (skipped under --short, see the plan's asan fallback). */
-    if (!g_short) {
+    /* Save-every-frame neutrality; runs under --short too (asan measured well under 120 s). */
+    {
         nesturbator *c = st_make_instance();
         st_load(c, img, n);
         for (uint32_t f = 1u; f <= end; ++f) {
