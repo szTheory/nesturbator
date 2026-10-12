@@ -1415,6 +1415,15 @@ and runner frame, and both save round trips' screenshots, runner frames and
 to the real home directory, startup errors, and frame mismatches fail the
 required CI check. No manual screenshot or gameplay check is needed.
 
+The job's state step saves and loads with RetroArch's auto-save and auto-load,
+then drives one paused session over RetroArch's network commands to save, load,
+rewind and step with run-ahead. A network command is a per-loop flag, not a
+queue, so the session sends one command at a time and confirms each by a new
+screenshot. It checks every screenshot against the runner's frames (a screenshot
+identifies the set of runner frames it equals, and each step must follow from the
+last), the saved state file's container and size, and every RetroArch log. On
+failure the `retroarch-e2e-state` artifact keeps the screenshots, states and logs.
+
 ## What it will be
 
 - An accuracy-class, deterministic NES core with no GUI of its own.
