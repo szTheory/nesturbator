@@ -18,8 +18,8 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 
 ### Save states in the library
 
-- [ ] **STATE-01**: A host can call `nesturbator_state_size`, `nesturbator_save_state` and `nesturbator_load_state`. The size is fixed from cartridge load to unload, and is 0 with no cartridge. A save writes into the caller's buffer, never allocates, and does not change the instance. Status codes are appended to the public header, and a "Save states" section is added to the README.
-- [ ] **STATE-02**: A state is canonical little-endian bytes. It starts with a header that carries:
+- [x] **STATE-01**: A host can call `nesturbator_state_size`, `nesturbator_save_state` and `nesturbator_load_state`. The size is fixed from cartridge load to unload, and is 0 with no cartridge. A save writes into the caller's buffer, never allocates, and does not change the instance. Status codes are appended to the public header, and a "Save states" section is added to the README.
+- [x] **STATE-02**: A state is canonical little-endian bytes. It starts with a header that carries:
   - a magic and the state's own format version
   - the total size and the behaviour revision (recorded, not enforced)
   - the mapper, submapper and region
@@ -99,8 +99,8 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 | TUNE-07 | Phase 11 | Complete |
 | TUNE-08 | Phase 11 | Complete |
 | TUNE-09 | Phase 11 | Complete |
-| STATE-01 | Phase 12 | Pending |
-| STATE-02 | Phase 12 | Pending |
+| STATE-01 | Phase 12 | Complete |
+| STATE-02 | Phase 12 | Complete |
 | STATE-03 | Phase 12 | Pending |
 | STATE-04 | Phase 12 | Pending |
 | STATE-05 | Phase 12 | Pending |

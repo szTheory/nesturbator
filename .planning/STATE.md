@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 12
 current_phase_name: Save states in the library
 status: executing
-stopped_at: Phase 12 context gathered
-last_updated: "2026-10-12T01:21:44.046Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-10-12T02:31:36.044Z"
 last_activity: 2026-10-11
-last_activity_desc: Phase 11 complete, transitioned to Phase 12
-state_head: 413d28a66f3402737b46f5f144a1cd2baf1a9631
+last_activity_desc: Phase 12 execution started
+state_head: 5c5f5b19a527ebd31b2fcaa08e67699c04374ab8
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 14
-  completed_plans: 4
+  completed_plans: 5
   percent: 20
 ---
 
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-10-11)
 
 ## Current Position
 
-Phase: 12 (Save states in the library) — READY TO EXECUTE
-Plan: Not started
+Phase: 12 (Save states in the library) — EXECUTING
+Plan: 2 of 10
 Status: Ready to execute
-Last activity: 2026-10-11 — Phase 11 complete, transitioned to Phase 12
+Last activity: 2026-10-11 — Phase 12 execution started
 
 Progress: [██░░░░░░░░] 20%
 
@@ -157,6 +157,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 11 P02 | 30min | 3 tasks | 9 files |
 | Phase 11 P03 | 20m | 3 tasks | 6 files |
 | Phase 11 P04 | 15 min | 2 tasks | 3 files |
+| Phase 12 P01 | 70min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -220,6 +221,9 @@ Recent decisions affecting current work:
 - [Phase 11]: C3: unload always runs the power-on helper; load never does
 - [Phase 11]: 11-03: --version formatted at run time from nesturbator_get_version; libretro version string stays compile-time
 - [Phase 11]: D-14 SAVE_SIZE parameter; MMC3 m4tkrom save round trip in retroarch-e2e
+- [Phase 12]: 12-01: header_size is checked in the INVALID stage after the CRC; FORMAT covers only magic and version
+- [Phase 12]: 12-01: ppu_ticks rule is ppu_ticks <= ticks and gap < NESTURBATOR_TICKS_PER_FRAME, so a post-reset state loads
+- [Phase 12]: 12-01: state header holds frame_number (offset 32) and ticks (offset 40); dabg state is 13087 bytes before board registers
 
 ### Pending Todos
 
@@ -266,9 +270,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-11T22:22:38.403Z
-Stopped at: Phase 12 context gathered
-Resume file: .planning/phases/12-save-states-in-the-library/12-CONTEXT.md
+Last session: 2026-10-12T02:31:36.023Z
+Stopped at: Completed 12-01-PLAN.md
+Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 12`.
 
