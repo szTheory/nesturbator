@@ -204,6 +204,36 @@ else()
   runner_stop_case(frame_exact.term)
   runner_stop_case(frame_exact.int)
 endif()
+runner_stop_case(flush_missing_dir)
+runner_stop_case(flush_dir_at_tmp)
+runner_stop_case(at_zero)
+runner_stop_case(nodir)
+runner_stop_case(double)
+runner_stop_case(double.int)
+runner_stop_case(load_state_at)
+runner_stop_case(load_state_below)
+
+# D-04, D-11: --raise-after usage errors exit 2 and name the option.
+if(WIN32)
+  set(raise_foreign_sig term)
+else()
+  set(raise_foreign_sig break)
+endif()
+nesturbator_runner_test(NAME runner.usage.raise_after.bad_sig
+  ARGS --frames 2 --raise-after 1:kill EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.foreign_sig
+  ARGS --frames 2 --raise-after 1:${raise_foreign_sig} EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.bad_k
+  ARGS --frames 2 --raise-after 1:int:3 EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.twice
+  ARGS --frames 2 --raise-after 1 --raise-after 1 EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.beyond
+  ARGS --frames 2 --raise-after 3 EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.malformed
+  ARGS --frames 2 --raise-after 1: EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.accuracycoin
+  ARGS --accuracycoin-page 2 --rom ${PROJECT_SOURCE_DIR}/tests/roms/none.nes --scoreboard s
+  --raise-after 1 EXIT 2 EXPECT_ERR "--raise-after")
 
 # RUN-01 (D-07, D-09 to D-11): --state-at-frame and --load-state. runner.state_mutate makes the
 # corrupt copies at test time (CMake cannot compute a CRC-32); no state file is committed. Each
