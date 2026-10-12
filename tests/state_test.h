@@ -11,6 +11,7 @@
 #include "internal.h"
 #include "nesturbator.h"
 #include "check.h"
+#include "ines.h"
 
 /* ---- Helpers ---- */
 
@@ -255,5 +256,122 @@ static inline void st_poison(nesturbator *inst)
     if (inst->cart.chr_is_ram != 0u)
         memset(inst->cart.chr, 0xA5, inst->cart.chr_size);
 }
+
+/* ---- Stress image (STATE-03, Pitfall P16) ----
+   A synthetic program that keeps OAM DMA, DMC DMA, the APU frame IRQ, the NMI edge and (mapper 4)
+   the MMC3 scanline IRQ in flight across frame boundaries. Mapper 0 puts the code at $8000 in a
+   32 KiB NROM; mapper 4 puts it in the last 8 KiB, which MMC3 fixes at $E000. The DMC sample is
+   read from $C000. Every byte is authored here. Returns the image size, or 0 if cap is too small.
+   Register facts: NESdev Wiki "APU DMC" ($4010-$4013: loop, rate, address, length), "APU"
+   ($4015 enables channels and reading it acknowledges the frame IRQ; writing it with the DMC bit
+   clear then set restarts the sample and requests a DMA), "APU Frame Counter" ($4017 = 0: 4-step
+   mode, frame IRQ enabled), "PPU registers" ($2000 bit 7 enables NMI, $2001 enables rendering),
+   "PPU OAM" ($4014 copies a CPU page to OAM and stalls the CPU), "MMC3" ($C000 latch, $C001
+   reload, $E000 disable and acknowledge, $E001 enable the scanline IRQ).
+
+   A frame ends at the first instruction end at or after a fixed tick count, so the end drifts
+   against the PPU frame by the overshoot of each frame. The NMI handler waits a counted delay
+   (about 2400 CPU cycles, where that drift starts) and then does its DMC restart and its $4014
+   write at two instants a few cycles apart; the DMC sample ends with its IRQ enabled and is
+   restarted by that same handler, so the IRQ line is high for most of each frame. As the frame end drifts forward it passes each
+   instant in turn, so on one frame it follows the restart and on another the $4014 write: those
+   are the frames where DMC DMA or OAM DMA is still pending at the boundary. The delay counts
+   below were chosen by measuring both boards (test_state_fork reports what it saw). */
+#ifndef ST_STRESS_Y
+#define ST_STRESS_Y 1
+#endif
+#ifndef ST_STRESS_X
+#define ST_STRESS_X 220
+#endif
+#ifndef ST_STRESS_N
+#define ST_STRESS_N 0
+#endif
+#ifndef ST_STRESS_G
+#define ST_STRESS_G 5
+#endif
+#define ST_E(buf, idx, ...)                                                \
+    do {                                                                    \
+        static const uint8_t b_[] = {__VA_ARGS__};                          \
+        memcpy((buf) + (idx), b_, sizeof b_);                               \
+        (idx) += sizeof b_;                                                 \
+    } while (0)
+static inline size_t st_stress_image(uint8_t *out, size_t cap, uint16_t mapper)
+{
+    uint8_t main_code[160], nmi[96], irq[64];
+    size_t m = 0u, n = 0u, q = 0u;
+    uint16_t base = mapper == 4u ? 0xE000u : 0x8000u;
+    uint32_t off = mapper == 4u ? 0x6000u : 0x0000u;
+    uint16_t nmi_addr = (uint16_t)(base + 0x100u), irq_addr = (uint16_t)(base + 0x180u);
+    uint16_t loop_addr;
+    struct ines_segment seg[3];
+    struct ines_spec spec;
+    ST_E(main_code, m, 0x78, 0xD8, 0xA2, 0xFF, 0x9A);          /* SEI CLD LDX #$FF TXS */
+    ST_E(main_code, m, 0xA9, 0x8F, 0x8D, 0x10, 0x40);          /* $4010: IRQ at the end, fastest rate */
+    ST_E(main_code, m, 0xA9, 0x00, 0x8D, 0x12, 0x40);          /* $4012: sample at $C000 */
+    ST_E(main_code, m, 0xA9, 0x01, 0x8D, 0x13, 0x40);          /* $4013: 17 bytes */
+    ST_E(main_code, m, 0xA9, 0x1F, 0x8D, 0x15, 0x40);          /* $4015: all channels, DMC on */
+    ST_E(main_code, m, 0xA9, 0x00, 0x8D, 0x17, 0x40);          /* $4017: frame IRQ enabled */
+    if (mapper == 4u) {
+        ST_E(main_code, m, 0xA9, 0x07, 0x8D, 0x00, 0xC0);      /* $C000: latch 7 */
+        ST_E(main_code, m, 0x8D, 0x01, 0xC0, 0x8D, 0x01, 0xE0); /* $C001 reload, $E001 enable */
+    }
+    ST_E(main_code, m, 0xA9, 0x1E, 0x8D, 0x01, 0x20);          /* $2001: show background, sprites */
+    ST_E(main_code, m, 0xA9, 0x80, 0x8D, 0x00, 0x20);          /* $2000: NMI on */
+    ST_E(main_code, m, 0x58);                                  /* CLI */
+    loop_addr = (uint16_t)(base + m);
+    ST_E(main_code, m, 0xE6, 0x10, 0xA5, 0x11, 0xE6, 0x13);   /* INC $10, LDA $11, INC $13 */
+    main_code[m++] = 0x4C;                                      /* JMP loop */
+    main_code[m++] = (uint8_t)(loop_addr & 0xffu);
+    main_code[m++] = (uint8_t)(loop_addr >> 8);
+    /* NMI: a delay of Y passes of 255 DEX/BNE pairs plus X more pairs, then NOPs, then the DMC
+       restart; a gap of G pairs; then the OAM DMA from page 2 after changing a byte of it. */
+    ST_E(nmi, n, 0x48, 0xEE, 0x00, 0x02);                      /* PHA, INC $0200 */
+    nmi[n++] = 0xA0;                                            /* LDY #Y */
+    nmi[n++] = (uint8_t)ST_STRESS_Y;
+    ST_E(nmi, n, 0xA2, 0xFF, 0xCA, 0xD0, 0xFD, 0x88, 0xD0, 0xF8); /* LDX #$FF; DEX BNE; DEY BNE */
+    nmi[n++] = 0xA2;                                            /* LDX #X */
+    nmi[n++] = (uint8_t)ST_STRESS_X;
+    ST_E(nmi, n, 0xCA, 0xD0, 0xFD);                            /* DEX BNE */
+    for (unsigned i = 0u; i < ST_STRESS_N; ++i)
+        ST_E(nmi, n, 0xEA);                                     /* NOP */
+    ST_E(nmi, n, 0xA9, 0x0F, 0x8D, 0x15, 0x40);                /* $4015: DMC off */
+    ST_E(nmi, n, 0xA9, 0x1F, 0x8D, 0x15, 0x40);                /* $4015: DMC on, restart, DMA */
+    nmi[n++] = 0xA2;                                            /* LDX #G */
+    nmi[n++] = (uint8_t)ST_STRESS_G;
+    ST_E(nmi, n, 0xCA, 0xD0, 0xFD);                            /* DEX BNE */
+    ST_E(nmi, n, 0xA9, 0x02, 0x8D, 0x14, 0x40);                /* $4014: OAM DMA from page 2 */
+    ST_E(nmi, n, 0x68, 0x40);                                  /* PLA, RTI */
+    ST_E(irq, q, 0x48);                                        /* PHA */
+    if (mapper == 4u) {
+        ST_E(irq, q, 0x8D, 0x00, 0xE0);                        /* $E000: ack the scanline IRQ */
+        ST_E(irq, q, 0xA9, 0x07, 0x8D, 0x00, 0xC0);            /* $C000: latch 7 */
+        ST_E(irq, q, 0x8D, 0x01, 0xC0, 0x8D, 0x01, 0xE0);      /* $C001 reload, $E001 enable */
+    }
+    /* The frame IRQ is acknowledged only on every 64th entry, so the line stays asserted across
+       many instruction ends and the IRQ poll latch is set at frame boundaries. */
+    ST_E(irq, q, 0xE6, 0x12, 0xA5, 0x12, 0x29, 0x3F, 0xD0, 0x03); /* INC $12, LDA, AND #$3F, BNE +3 */
+    ST_E(irq, q, 0xAD, 0x15, 0x40);                            /* LDA $4015: ack frame IRQ */
+    ST_E(irq, q, 0x68, 0x40);                                  /* PLA, RTI */
+    seg[0].prg_offset = off;
+    seg[0].bytes = main_code;
+    seg[0].len = m;
+    seg[1].prg_offset = off + 0x100u;
+    seg[1].bytes = nmi;
+    seg[1].len = n;
+    seg[2].prg_offset = off + 0x180u;
+    seg[2].bytes = irq;
+    seg[2].len = q;
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 2u;
+    spec.chr_8k = 1u;
+    spec.mapper = mapper;
+    spec.segments = seg;
+    spec.segment_count = 3u;
+    spec.nmi_vector = nmi_addr;
+    spec.reset_vector = base;
+    spec.irq_vector = irq_addr;
+    return ines_build(out, cap, &spec);
+}
+#undef ST_E
 
 #endif /* NESTURBATOR_TESTS_STATE_TEST_H */

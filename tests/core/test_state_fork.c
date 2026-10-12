@@ -4,7 +4,10 @@
    different input, then whitebox-poisoned, loads the state and must continue exactly as A: every
    digest equal, and the final state bytes equal. A second uninterrupted run saves after every
    frame and must match the run that never saves. Usage:
-   core.state_fork [--short] <other.nes> <rom>...   (the first path is the pre-fill game). */
+   core.state_fork [--short] [--stress] <other.nes> <rom>...   (the first path is the pre-fill game).
+   --stress adds two synthetic DMA and interrupt programs (NROM and MMC3) forked at every frame
+   0 to 120 (0, 1, 2, 3, 30 with --short); the run must see OAM DMA, DMC DMA and the IRQ poll
+   latch pending at frame boundaries, so those states straddle the cut points. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,8 +29,19 @@ static const uint32_t FORKS_FULL[] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10
                                       12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
                                       24, 25, 26, 27, 28, 29, 30, 60, 150};
 static const uint32_t FORKS_SHORT[] = {0, 1, 30};
+/* Stress images: every frame 0 to 120 over 150 frames; the fixed asan set over 60 frames. */
+static uint32_t g_stress_full[121];
+static const uint32_t STRESS_SHORT[] = {0, 1, 2, 3, 30};
+
+/* Frame-boundary observation of the reference run, set for the stress images only. */
+struct straddle {
+    uint32_t oam, dmc, poll;       /* boundaries where the flag was non-zero */
+    uint32_t first_oam, first_dmc, first_poll;
+};
 
 static int g_short;
+static int g_observe;
+static struct straddle g_seen;
 static uint8_t *g_other;
 static size_t g_other_size;
 
@@ -88,6 +102,14 @@ static void fork_image(const char *name, const uint8_t *img, size_t n, const uin
                                   &ref[f].frame_number),
                          NESTURBATOR_OK);
         }
+        if (g_observe) {
+            if (a->bus.oam_dma_pending != 0u && g_seen.oam++ == 0u)
+                g_seen.first_oam = f;
+            if (a->apu.dmc.dma_pending != 0u && g_seen.dmc++ == 0u)
+                g_seen.first_dmc = f;
+            if (a->cpu.poll_latch != 0u && g_seen.poll++ == 0u)
+                g_seen.first_poll = f;
+        }
         if (fi < nforks && forks[fi] == f) {
             CHECK_EQ_U64(nesturbator_save_state(a, fork_state[fi], size), NESTURBATOR_OK);
             fi++;
@@ -143,6 +165,16 @@ static void fork_image(const char *name, const uint8_t *img, size_t n, const uin
         nesturbator_destroy(c);
     }
 
+    if (g_observe) {
+        printf("straddle %s: oam_dma_pending %u (first %u), dmc.dma_pending %u (first %u), "
+               "poll_latch %u (first %u) of %u boundaries\n",
+               name, (unsigned)g_seen.oam, (unsigned)g_seen.first_oam, (unsigned)g_seen.dmc,
+               (unsigned)g_seen.first_dmc, (unsigned)g_seen.poll, (unsigned)g_seen.first_poll,
+               (unsigned)end + 1u);
+        CHECK(g_seen.oam != 0u);
+        CHECK(g_seen.dmc != 0u);
+        CHECK(g_seen.poll != 0u);
+    }
     printf("forks %s %u\n", name, (unsigned)done);
     CHECK_EQ_U64(done, nforks);
     for (size_t i = 0u; i < nforks; ++i)
@@ -156,7 +188,7 @@ static void fork_image(const char *name, const uint8_t *img, size_t n, const uin
 
 int main(int argc, char **argv)
 {
-    int first = 1;
+    int first = 1, stress = 0;
     const uint32_t *forks;
     size_t nforks;
     uint32_t end;
@@ -164,8 +196,12 @@ int main(int argc, char **argv)
         g_short = 1;
         first = 2;
     }
+    if (argc > first && strcmp(argv[first], "--stress") == 0) {
+        stress = 1;
+        first++;
+    }
     if (argc - first < 2) {
-        fprintf(stderr, "usage: core.state_fork [--short] <other.nes> <rom>...\n");
+        fprintf(stderr, "usage: core.state_fork [--short] [--stress] <other.nes> <rom>...\n");
         return 2;
     }
     if (!st_read_file(argv[first], &g_other, &g_other_size)) {
@@ -185,6 +221,23 @@ int main(int argc, char **argv)
         }
         fork_image(argv[i], rom, size, forks, nforks, end);
         free(rom);
+    }
+    if (stress) {
+        static uint8_t buf[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
+        static const uint16_t mappers[] = {0u};
+        static const char *const names[] = {"stress-nrom"};
+        const uint32_t *sf = g_short ? STRESS_SHORT : g_stress_full;
+        size_t ns = g_short ? sizeof STRESS_SHORT / sizeof STRESS_SHORT[0] : 121u;
+        for (uint32_t k = 0u; k < 121u; ++k)
+            g_stress_full[k] = k;
+        for (size_t i = 0u; i < sizeof mappers / sizeof mappers[0]; ++i) {
+            size_t n = st_stress_image(buf, sizeof buf, mappers[i]);
+            CHECK(n != 0u);
+            memset(&g_seen, 0, sizeof g_seen);
+            g_observe = 1;
+            fork_image(names[i], buf, n, sf, ns, g_short ? 60u : 150u);
+            g_observe = 0;
+        }
     }
     free(g_other);
     CHECK_DONE();

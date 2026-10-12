@@ -569,9 +569,9 @@ set(FORK_ROMS
   ${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P256K_C256K.nes
   ${PROJECT_SOURCE_DIR}/tests/roms/hm/M7_P128K_CR8K.nes)
 if(NESTURBATOR_SHORT_RUNS)
-  nesturbator_core_test(core.state_fork core/test_state_fork.c --short ${FORK_ROMS})
+  nesturbator_core_test(core.state_fork core/test_state_fork.c --short --stress ${FORK_ROMS})
 else()
-  nesturbator_core_test(core.state_fork core/test_state_fork.c ${FORK_ROMS})
+  nesturbator_core_test(core.state_fork core/test_state_fork.c --stress ${FORK_ROMS})
 endif()
 target_include_directories(core.state_fork PRIVATE ${PROJECT_SOURCE_DIR}/src)
 set_tests_properties(core.state_fork PROPERTIES TIMEOUT 300 COST 100)
