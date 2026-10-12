@@ -21,3 +21,25 @@ set_tests_properties(retroarch.compare.cli PROPERTIES FIXTURES_REQUIRED cmp_file
 
 # RetroArch itself is exercised only by the hosted retroarch-e2e job, which
 # runs run_retroarch.cmake directly; no local test launches it (TUNE-05).
+
+# D-27 as corrected: frame_index identifies a RetroArch screenshot among the runner's frames
+# 1..W (RGB, not the native hash). Its two tests run on every platform; the tool needs the
+# library and the host converter. nesteroids repeats frames in adjacent pairs, so a screenshot
+# can name two indices.
+add_executable(frame_index frame_index.c bmp_ppm.c)
+target_link_libraries(frame_index PRIVATE nesturbator nesturbator_host)
+target_compile_definitions(frame_index PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(frame_index)
+
+set(fi_rom ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes)
+set(fi_ppm ${CMAKE_CURRENT_BINARY_DIR}/fi-37.ppm)
+add_test(NAME retroarch.frame_index.setup
+  COMMAND nesturbator-run --rom ${fi_rom} --frames 37 --dump-frame 37:${fi_ppm})
+set_tests_properties(retroarch.frame_index.setup PROPERTIES
+  FIXTURES_SETUP fi_dump TIMEOUT 60)
+add_test(NAME retroarch.frame_index COMMAND frame_index ${fi_rom} 60 ${fi_ppm})
+set_tests_properties(retroarch.frame_index PROPERTIES
+  FIXTURES_REQUIRED fi_dump PASS_REGULAR_EXPRESSION " 37[ \n]" TIMEOUT 60)
+add_test(NAME retroarch.frame_index.dups COMMAND frame_index --dups ${fi_rom} 1200)
+set_tests_properties(retroarch.frame_index.dups PROPERTIES TIMEOUT 60)

@@ -16,6 +16,15 @@
 # loads as <stem>.sav. Each screenshot must equal the runner's frame for the same save state,
 # and the two screenshots must differ.
 #
+# State mode (-DSTATE_ROM=<game.nes> -DFRAME_INDEX=<frame_index> -DSTATE_TEMPLATE=<state.cfg.in>
+# instead of -DROM and -DFRAME): the core is copied into RA_DIR/cores and that copy is loaded
+# with -L, because RetroArch applies the .info savestate level only to a core in its cores
+# directory (13-RESEARCH flag 1). The expected run-ahead lead k_eff comes from the .info under
+# test: run_ahead_frames when savestate_features is deterministic, 0 when serialized. Lanes with
+# --max-frames=120: state-base shows the runner's frame 120, state-ahead (run_ahead_enabled) shows
+# frame 120 + k_eff. Every lane's verbose log is kept at RA_DIR/retroarch-<lane>.log and passes
+# log_check.cmake, and ra_state_outcome_checks confirms the thumbnail and secondary-instance keys.
+#
 # Needs a logged-in GUI session, because RetroArch opens a window.
 cmake_minimum_required(VERSION 3.25)
 
@@ -47,11 +56,31 @@ if(DEFINED SAVE_ROM AND NOT "${SAVE_ROM}" STREQUAL "")
 else()
   set(have_save FALSE)
 endif()
-if((have_game AND have_save) OR (NOT have_game AND NOT have_save))
-  message(FATAL_ERROR
-    "run_retroarch.cmake needs exactly one of -DROM with -DFRAME, or -DSAVE_ROM with -DSAVE_FRAME")
+if(DEFINED STATE_ROM AND NOT "${STATE_ROM}" STREQUAL "")
+  set(have_state TRUE)
+else()
+  set(have_state FALSE)
 endif()
-if(have_game)
+set(mode_count 0)
+foreach(flag have_game have_save have_state)
+  if(${flag})
+    math(EXPR mode_count "${mode_count} + 1")
+  endif()
+endforeach()
+if(NOT mode_count EQUAL 1)
+  message(FATAL_ERROR
+    "run_retroarch.cmake needs exactly one of -DROM with -DFRAME, -DSAVE_ROM with -DSAVE_FRAME, or -DSTATE_ROM")
+endif()
+if(have_state)
+  foreach(var FRAME_INDEX STATE_TEMPLATE)
+    if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
+      message(FATAL_ERROR "run_retroarch.cmake's state mode needs -D${var}=...")
+    endif()
+  endforeach()
+  set(mode_rom "${STATE_ROM}")
+  set(mode_frame 120)
+  set(mode_frame_name STATE_FRAME)
+elseif(have_game)
   set(mode_rom "${ROM}")
   set(mode_frame "${FRAME}")
   set(mode_frame_name FRAME)
@@ -107,6 +136,15 @@ endif()
 file(COPY_FILE "${mode_rom}" "${RA_DIR}/content/${stem}.nes")
 set(ra_content "${RA_DIR}/content/${stem}.nes")
 file(REAL_PATH "${CORE}" core)
+# The config file and the core every session uses; state lanes set their own before ra_session.
+set(ra_cfg "${RA_DIR}/test.cfg")
+set(ra_core "${core}")
+if(have_state)
+  # RetroArch applies the .info level only to a core it finds in its cores directory, next to
+  # the .info in RA_DIR/info (13-RESEARCH flag 1, Pitfall 1), so -L names this copy.
+  file(COPY_FILE "${core}" "${RA_DIR}/cores/nesturbator_libretro.dylib")
+  set(ra_core "${RA_DIR}/cores/nesturbator_libretro.dylib")
+endif()
 
 # The user's RetroArch directory, read only: each entry with its size and
 # modification time, relative to the directory. Built from HOME at run time,
@@ -160,6 +198,17 @@ function(ra_session tag content frame runner_extra)
 
   snapshot(before)
 
+  # State lanes set ra_max_frames (RetroArch stops earlier than the runner's frame when run-ahead
+  # shows a later frame) and ra_verbose (keep the log for log_check.cmake).
+  set(max_frames "${frame}")
+  if(DEFINED ra_max_frames)
+    set(max_frames "${ra_max_frames}")
+  endif()
+  set(verbose_flag)
+  if(DEFINED ra_verbose)
+    set(verbose_flag --verbose)
+  endif()
+
   # RetroArch with only test.cfg, the core by absolute path and the pinned content. It writes
   # the selected core frame to shot-<tag>.png.
   # RetroArch's macOS app creates first-run directories under its home folder even when every
@@ -174,13 +223,16 @@ function(ra_session tag content frame runner_extra)
       "XDG_CONFIG_HOME=${ra_home}/.config"
       "XDG_DATA_HOME=${ra_home}/.local/share"
       "XDG_CACHE_HOME=${ra_home}/.cache"
-      "${retroarch}" -c "${RA_DIR}/test.cfg" -L "${core}" "${content}"
-      "--max-frames=${frame}" --max-frames-ss "--max-frames-ss-path=${RA_DIR}/shot-${tag}.png"
+      "${retroarch}" -c "${ra_cfg}" -L "${ra_core}" "${content}" ${verbose_flag}
+      "--max-frames=${max_frames}" --max-frames-ss "--max-frames-ss-path=${RA_DIR}/shot-${tag}.png"
     RESULT_VARIABLE ra_result
     OUTPUT_VARIABLE ra_stdout
     ERROR_VARIABLE ra_stderr
     TIMEOUT 50)
   set(ra_output "stdout:\n${ra_stdout}\nstderr:\n${ra_stderr}")
+  if(DEFINED ra_verbose)
+    file(WRITE "${RA_DIR}/retroarch-${tag}.log" "${ra_stdout}${ra_stderr}")
+  endif()
 
   # Nothing in the user's directory was created, changed or removed. Checked before
   # RetroArch's own result, so a failed run is still checked.
@@ -230,6 +282,130 @@ endfunction()
 
 if(have_game)
   ra_session(game "${ra_content}" "${mode_frame}" "")
+  return()
+endif()
+
+if(have_state)
+  # State mode (D-26, D-27, D-23): the claim-level lanes. Game and battery modes below are
+  # unchanged (D-29).
+
+  # The expected run-ahead lead from the .info under test: run_ahead_frames when the .info
+  # claims deterministic, 0 when it claims serialized. An .info that claims neither is refused.
+  file(STRINGS "${INFO}" feature_lines REGEX "^savestate_features *= *\"")
+  string(REGEX REPLACE "^savestate_features *= *\"([^\"]*)\".*$" "\\1" claim_level
+    "${feature_lines}")
+  file(STRINGS "${STATE_TEMPLATE}" ahead_lines REGEX "^run_ahead_frames *= *\"[0-9]+\"")
+  string(REGEX REPLACE "^run_ahead_frames *= *\"([0-9]+)\".*$" "\\1" lead_frames "${ahead_lines}")
+  if(claim_level STREQUAL "deterministic")
+    set(k_eff "${lead_frames}")
+  elseif(claim_level STREQUAL "serialized")
+    set(k_eff 0)
+  else()
+    message(FATAL_ERROR
+      "${INFO} claims savestate_features '${claim_level}'; the state mode needs serialized or deterministic")
+  endif()
+  message(STATUS "State mode: the .info claims '${claim_level}', expected run-ahead lead ${k_eff}")
+
+  # A lane config: test.cfg, then state.cfg.in, then each override ("key=value") replacing the
+  # existing `key = "value"` line. A key that ends up on two lines is an error, because
+  # RetroArch would take one of them without saying which.
+  function(ra_write_lane_cfg out)
+    file(READ "${RA_DIR}/test.cfg" base_cfg)
+    file(READ "${STATE_TEMPLATE}" state_cfg)
+    set(cfg "${base_cfg}\n${state_cfg}")
+    foreach(override IN LISTS ARGN)
+      string(REGEX MATCH "^([a-z0-9_]+)=(.*)$" matched "${override}")
+      set(key "${CMAKE_MATCH_1}")
+      set(value "${CMAKE_MATCH_2}")
+      if(key STREQUAL "")
+        message(FATAL_ERROR "ra_write_lane_cfg: bad override '${override}'")
+      endif()
+      string(REGEX MATCHALL "(^|\n)${key} = \"[^\"]*\"" present "${cfg}")
+      list(LENGTH present present_count)
+      if(NOT present_count EQUAL 1)
+        message(FATAL_ERROR "ra_write_lane_cfg: ${key} appears ${present_count} times, expected 1")
+      endif()
+      string(REGEX REPLACE "(^|\n)${key} = \"[^\"]*\"" "\\1${key} = \"${value}\"" cfg "${cfg}")
+    endforeach()
+    string(REGEX MATCHALL "(^|\n)[a-z0-9_]+ = " key_lines "${cfg}")
+    list(LENGTH key_lines key_count)
+    list(REMOVE_DUPLICATES key_lines)
+    list(LENGTH key_lines unique_count)
+    if(NOT key_count EQUAL unique_count)
+      message(FATAL_ERROR "ra_write_lane_cfg: a key appears on two lines of ${out}")
+    endif()
+    file(WRITE "${out}" "${cfg}")
+  endfunction()
+
+  # D-26: the outcomes that confirm the two keys that otherwise have none.
+  function(ra_state_outcome_checks lane log)
+    # savestate_thumbnail_enable = "false": no thumbnail was written beside any state.
+    file(GLOB_RECURSE thumbnails "${RA_DIR}/states/*.png")
+    if(thumbnails)
+      message(FATAL_ERROR "[${lane}] savestate_thumbnail_enable = false, but thumbnails exist: ${thumbnails}")
+    endif()
+    # run_ahead_secondary_instance = "false": a second core instance could be loaded from a copy
+    # of the core library, so a library outside RA_DIR/cores is a failure. Measured on 1.22.2
+    # with the key true: no copy appears on macOS, so the log check below is the effective one
+    # here. The .info under RA_DIR/info is not a library and is not matched.
+    file(GLOB_RECURSE core_copies
+      "${RA_DIR}/*nesturbator_libretro.dylib"
+      "${RA_DIR}/*nesturbator_libretro.so"
+      "${RA_DIR}/*nesturbator_libretro.dll")
+    foreach(copy IN LISTS core_copies)
+      cmake_path(IS_PREFIX RA_DIR_cores "${copy}" NORMALIZE inside_cores)
+      if(NOT inside_cores)
+        message(FATAL_ERROR "[${lane}] run_ahead_secondary_instance = false, but a core copy exists outside ${RA_DIR}/cores: ${copy}")
+      endif()
+    endforeach()
+    # Measured on RetroArch 1.22.2 (macOS), lane state-ahead with .info deterministic: with
+    # run_ahead_secondary_instance = "true" the log has no line that is absent with the key
+    # false and no core library copy outside RA_DIR/cores, but the second instance repeats the
+    # core's environment calls: `[INFO] [Environ] SET_SUPPORT_NO_GAME: yes.` appears 4 times, with
+    # the key false it appears 2 times in every lane, state-base and state-ahead alike. A count
+    # above 2 is therefore the marker.
+    file(STRINGS "${log}" no_game_lines REGEX "^\\[INFO\\] \\[Environ\\] SET_SUPPORT_NO_GAME")
+    list(LENGTH no_game_lines no_game_count)
+    if(no_game_count GREATER 2)
+      message(FATAL_ERROR "[${lane}] run_ahead_secondary_instance = false, but ${log} shows the core set up ${no_game_count} times (a second instance), expected 2")
+    endif()
+  endfunction()
+  set(RA_DIR_cores "${RA_DIR}/cores")
+
+  # One lane: its own config (overrides are "key=value" items), a verbose log kept at
+  # RA_DIR/retroarch-<lane>.log, RetroArch stopping at --max-frames=120 and its screenshot equal
+  # to the runner's frame `expected`, which frame_index also finds among frames 1..expected+8.
+  function(ra_state_lane lane expected)
+    ra_write_lane_cfg("${RA_DIR}/${lane}.cfg" ${ARGN})
+    set(ra_cfg "${RA_DIR}/${lane}.cfg")
+    set(ra_verbose ON)
+    set(ra_max_frames 120)
+    ra_session(${lane} "${ra_content}" "${expected}" "")
+    math(EXPR index_limit "${expected} + 8")
+    execute_process(COMMAND "${FRAME_INDEX}" "${mode_rom}" "${index_limit}"
+        "${RA_DIR}/shot-${lane}.bmp"
+      RESULT_VARIABLE index_result OUTPUT_VARIABLE index_output ERROR_VARIABLE index_output)
+    string(STRIP "${index_output}" index_output)
+    if(NOT index_result EQUAL 0 OR NOT index_output MATCHES " ${expected}( |$)")
+      message(FATAL_ERROR "[${lane}] frame_index did not find the runner's frame ${expected}: ${index_output}")
+    endif()
+    message(STATUS "[${lane}] frame_index: ${index_output}")
+  endfunction()
+
+  ra_state_lane(state-base 120)
+  ra_state_outcome_checks(state-base "${RA_DIR}/retroarch-state-base.log")
+  math(EXPR ahead_frame "120 + ${k_eff}")
+  ra_state_lane(state-ahead ${ahead_frame} "run_ahead_enabled=true")
+  ra_state_outcome_checks(state-ahead "${RA_DIR}/retroarch-state-ahead.log")
+  if(k_eff GREATER 0)
+    # The lane must tell the levels apart: the runner's frames 120 and 120 + k_eff differ.
+    file(SHA256 "${RA_DIR}/runner-state-base.ppm" base_sha)
+    file(SHA256 "${RA_DIR}/runner-state-ahead.ppm" ahead_sha)
+    if(base_sha STREQUAL ahead_sha)
+      message(FATAL_ERROR "runner frames 120 and ${ahead_frame} are identical; the lane cannot show run-ahead")
+    endif()
+  endif()
+  message(STATUS "RetroArch applied the .info level '${claim_level}': state-ahead showed frame ${ahead_frame}")
   return()
 endif()
 
