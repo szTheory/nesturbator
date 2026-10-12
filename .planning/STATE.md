@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 13
 current_phase_name: Rewind and run-ahead in RetroArch
 status: executing
-stopped_at: Completed 13-02-PLAN.md
-last_updated: "2026-10-12T17:29:15.228Z"
+stopped_at: Completed 13-03-PLAN.md
+last_updated: "2026-10-12T17:49:16.618Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 13 execution started
-state_head: 568f766fa0cabcfea78286a4fed50638ecee030b
+state_head: 6f1af29b6f7644e566afd44bceef8784ebfc6b24
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 22
-  completed_plans: 16
+  completed_plans: 17
   percent: 40
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 13 (Rewind and run-ahead in RetroArch) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-10-12 — Phase 13 execution started
 
@@ -170,6 +170,7 @@ Progress: [████░░░░░░] 40%
 | Phase 12 P10 | 40 min | 2 tasks | 8 files |
 | Phase 13 P01 | 45 min | 3 tasks | 7 files |
 | Phase 13 P02 | 95 min | 2 tasks | 3 files |
+| Phase 13 P03 | 50 min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -249,6 +250,7 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-01: D-09 battery check follows the documented save-generation rule (a load counts once when it changes battery bytes, never on reloading the same state)
 - [Phase 13]: 13-01: libretro.serialize runs five ROMs, trimmed from seven to keep asan under 60 s (56.5-57.1 s measured)
 - [Phase 13]: Serialized claim committed only after six green build jobs; libretro.serialize TIMEOUT raised to 600 for asan on hosted runners
+- [Phase 13]: Plan 13-03: both audio mappings asserted in the run-ahead host; matrix trimmed (full on nesteroids, one script and depths 1 and 3 elsewhere); TIMEOUT 600 for libretro.runahead and core.state_runahead
 
 ### Pending Todos
 
@@ -297,8 +299,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T17:29:15.198Z
-Stopped at: Completed 13-02-PLAN.md
+Last session: 2026-10-12T17:49:16.591Z
+Stopped at: Completed 13-03-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-discuss-phase 13`.

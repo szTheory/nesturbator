@@ -125,7 +125,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   3. The `retroarch-e2e` job saves and loads a state, rewinds, and runs with run-ahead enabled through RetroArch's network commands, and ends with no core error and the expected screenshot.
   4. A nightly libFuzzer target feeds the state loader, and its committed corpus is replayed as a test in `ci`.
 
-**Plans**: 2/8 plans executed
+**Plans**: 3/8 plans executed
 
 **Wave 1**
 - [x] 13-01-PLAN.md — Adapter serialize, `libretro.serialize` (D-01..D-09), claim guard, `libretro.info_claims`, `libretro.no_quirks` (LR-01, LR-02)
@@ -134,7 +134,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 - [x] 13-02-PLAN.md — Draft PR, six green build jobs, then the `serialized` claim (LR-02)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 13-03-PLAN.md — Run-ahead host `libretro.runahead`, controls, `core.state_runahead` (LR-02)
+- [x] 13-03-PLAN.md — Run-ahead host `libretro.runahead`, controls, `core.state_runahead` (LR-02)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 13-04-PLAN.md — State-loader fuzz harness, generated corpus, `fuzz.state`/`fuzz.state.regress`, `fuzz.state.libfuzzer` (LR-04)
@@ -191,6 +191,6 @@ Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured col
 |-------|-----------|----------------|--------|-----------|
 | 11. Tune-up and state readiness | v3 | 4/4 | Complete    | 2026-10-11 |
 | 12. Save states in the library | v3 | 10/10 | Complete    | 2026-10-12 |
-| 13. Rewind and run-ahead in RetroArch | v3 | 2/8 | In Progress | - |
+| 13. Rewind and run-ahead in RetroArch | v3 | 3/8 | In Progress | - |
 | 14. Runner process contract | v3 | 0/TBD | Not started | - |
 | 15. Speed and close-out | v3 | 0/TBD | Not started | - |
