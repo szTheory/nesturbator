@@ -313,12 +313,12 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-12T20:44:02.355Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-runner-process-contract/14-CONTEXT.md
+Stopped at: Phase 14 planned (8 plans, waves 1-8)
+Resume file: .planning/phases/14-runner-process-contract/14-01-PLAN.md
 
-Next GSD command: `/gsd-plan-phase 14`.
+Next GSD command: `/gsd-execute-phase 14`.
 
 ## Operator Next Steps
 
-- Plan Phase 14 with /gsd-plan-phase 14 on gsd/phase-14-runner-process-contract
+- Execute Phase 14 with /gsd-execute-phase 14 on gsd/phase-14-runner-process-contract
 - After execution, open the Phase 14 PR and squash-merge it once CI is green
