@@ -861,8 +861,35 @@ static int write_states(const nesturbator *inst, const options *o, uint64_t fram
     return rc;
 }
 
-/* The one range check (D-09): frame indices are absolute from power-on, K is the loaded state's
-   frame (0 without a load). Returns 0, or 2 after a usage message. */
+/* The range checks that do not depend on a loaded state (D-09): no frame index may lie beyond
+   --frames. They run before any file is touched, so a bad command line exits 2 whatever else is
+   wrong with the ROM, the battery save or the state. Returns 0, or 2 after a usage message. */
+static int check_frame_limits(const options *o)
+{
+    char why[160];
+    for (uint32_t k = 0; k < o->hash_count + o->dump_count; k++) {
+        int is_hash = k < o->hash_count;
+        uint32_t n = is_hash ? o->hash_frames[k] : o->dump_frames[k - o->hash_count];
+        if (n > o->frames) {
+            snprintf(why, sizeof why, "%s %lu is beyond the requested frame count",
+                     is_hash ? "--hash-frame" : "--dump-frame", (unsigned long)n);
+            return usage(why);
+        }
+    }
+    for (uint32_t k = 0; k < o->state_count + o->hash_state_count; k++) {
+        int is_file = k < o->state_count;
+        uint32_t n = is_file ? o->state_frames[k] : o->hash_states[k - o->state_count];
+        if (n > o->frames) {
+            snprintf(why, sizeof why, "%s %lu is beyond the requested frame count",
+                     is_file ? "--state-at-frame" : "--hash-state", (unsigned long)n);
+            return usage(why);
+        }
+    }
+    return 0;
+}
+
+/* The checks that need K, the loaded state's frame (0 without a load): frame indices are
+   absolute from power-on. Run after the state load. Returns 0, or 2 after a usage message. */
 static int check_ranges(const options *o, uint64_t k_frame)
 {
     char why[160];
@@ -874,30 +901,20 @@ static int check_ranges(const options *o, uint64_t k_frame)
     for (uint32_t k = 0; k < o->hash_count + o->dump_count; k++) {
         int is_hash = k < o->hash_count;
         uint32_t n = is_hash ? o->hash_frames[k] : o->dump_frames[k - o->hash_count];
-        const char *name = is_hash ? "--hash-frame" : "--dump-frame";
-        if (n > o->frames) {
-            snprintf(why, sizeof why, "%s %lu is beyond the requested frame count", name,
-                     (unsigned long)n);
-            return usage(why);
-        }
         if (n <= k_frame) {
-            snprintf(why, sizeof why, "%s %lu is not after the loaded state's frame %lu", name,
-                     (unsigned long)n, (unsigned long)k_frame);
+            snprintf(why, sizeof why, "%s %lu is not after the loaded state's frame %lu",
+                     is_hash ? "--hash-frame" : "--dump-frame", (unsigned long)n,
+                     (unsigned long)k_frame);
             return usage(why);
         }
     }
     for (uint32_t k = 0; k < o->state_count + o->hash_state_count; k++) {
         int is_file = k < o->state_count;
         uint32_t n = is_file ? o->state_frames[k] : o->hash_states[k - o->state_count];
-        const char *name = is_file ? "--state-at-frame" : "--hash-state";
-        if (n > o->frames) {
-            snprintf(why, sizeof why, "%s %lu is beyond the requested frame count", name,
-                     (unsigned long)n);
-            return usage(why);
-        }
         if (n < k_frame) {
-            snprintf(why, sizeof why, "%s %lu is before the loaded state's frame %lu", name,
-                     (unsigned long)n, (unsigned long)k_frame);
+            snprintf(why, sizeof why, "%s %lu is before the loaded state's frame %lu",
+                     is_file ? "--state-at-frame" : "--hash-state", (unsigned long)n,
+                     (unsigned long)k_frame);
             return usage(why);
         }
     }
@@ -951,6 +968,12 @@ int main(int argc, char **argv)
             return 2;
         }
         opt.frames = movie.frame_count;
+    }
+    status = check_frame_limits(&opt);
+    if (status != 0) {
+        nesturbator_movie_free(&movie);
+        free_options(&opt);
+        return status;
     }
     nesturbator_config cfg;
     memset(&cfg, 0, sizeof cfg);

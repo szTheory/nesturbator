@@ -120,6 +120,11 @@ nesturbator_runner_test(NAME runner.usage.dump
   ARGS --dump-frame 2:x.ppm --frames 1 EXIT 2 IGNORE_STDOUT)
 nesturbator_runner_test(NAME runner.usage.dump.colon
   ARGS --frames 1 --dump-frame 1 EXIT 2 IGNORE_STDOUT)
+# A usage error outranks a missing ROM: the K-independent range checks run before any file is read.
+nesturbator_runner_test(NAME runner.usage.beyond.badrom
+  ARGS --rom no-such-file.nes --frames 1 --hash-frame 2 EXIT 2 IGNORE_STDOUT)
+nesturbator_runner_test(NAME runner.usage.dump.badrom
+  ARGS --rom no-such-file.nes --frames 1 --dump-frame 2:x.ppm EXIT 2 IGNORE_STDOUT)
 nesturbator_runner_test(NAME runner.usage.dump.file
   ARGS --frames 1 --dump-frame 1: EXIT 2 IGNORE_STDOUT)
 
