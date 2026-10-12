@@ -535,6 +535,13 @@ add_test(NAME runner.write_hashes.content
 set_tests_properties(runner.write_hashes.content PROPERTIES FIXTURES_REQUIRED hashes_txt)
 endif()
 
+# D-15: the state_format row of runner/hashes.txt equals NESTURBATOR_STATE_FORMAT_VERSION.
+# It reads only source files, so it runs in every preset.
+add_test(NAME state.format_pin
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/state_format_pin.cmake)
+set_tests_properties(state.format_pin PROPERTIES TIMEOUT 30)
+
 # Keep the CI cross-platform hash inventory contract executable locally.
 add_test(NAME hash.inventory.self_test
   COMMAND ${CMAKE_COMMAND}
