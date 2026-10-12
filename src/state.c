@@ -103,7 +103,8 @@ static void cpu_io(struct nesturbator__sio *io, struct nesturbator__cpu *c)
     nesturbator__sio_u8(io, &c->nmi_pending, 1u);
     nesturbator__sio_u8(io, &c->irq_line, 1u);
     nesturbator__sio_u8(io, &c->poll_latch, 1u);
-    /* Never read anywhere, but visited so every field of the struct is accounted for. */
+    /* Never read or written anywhere, but visited so every field of the struct is accounted for.
+       The bound is 0 because it is always 0 today; widen it when stalled reads are modelled. */
     nesturbator__sio_u8(io, &c->halted_in_read, 0u);
     nesturbator__sio_u8(io, &c->jammed, 1u);
 }
@@ -475,8 +476,9 @@ nesturbator_status nesturbator_load_state(nesturbator *inst, const void *buf, si
         if (b[i] != 0u)
             return NESTURBATOR_ERR_STATE_INVALID;
     }
-    /* VALIDATE walks the same field lists over the same bytes that APPLY reads, and reads
-       nothing of the instance, so a refused load has written nothing. */
+    /* VALIDATE walks the same field lists over the same bytes that APPLY reads, and changes
+       nothing in the instance (the primitives pass the field's value along but ignore it), so a
+       refused load has written nothing. */
     memset(&io, 0, sizeof io);
     io.mode = NESTURBATOR__SIO_VALIDATE;
     io.r = b + STATE_HEADER_SIZE;
