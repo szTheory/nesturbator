@@ -66,7 +66,7 @@ jobs:
 
   build:
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 25 # temporary while the build job duration is re-measured (13-08)
+    timeout-minutes: 19 # twice the slowest observed build job, 558 s on macOS Intel in run 38293977124 (PR #44, serialize and run-ahead tests included); rounded up (ENGINEERING §5)
     strategy:
       fail-fast: false
       matrix:
