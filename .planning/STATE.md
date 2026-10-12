@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 14
 current_phase_name: Runner process contract
 status: executing
-stopped_at: Completed 14-05-PLAN.md
-last_updated: "2026-10-12T22:31:44.276Z"
+stopped_at: Completed 14-06-PLAN.md
+last_updated: "2026-10-12T22:48:07.653Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 14 execution started
-state_head: 8bb18b42e2cab74457bedb81859f6326643c4410
+state_head: 5b460e5db6c9e43fbe66465492a93665ae1e1f24
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 30
-  completed_plans: 27
+  completed_plans: 28
   percent: 60
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 14 (Runner process contract) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-10-12 — Phase 14 execution started
 
@@ -182,6 +182,7 @@ Progress: [██████░░░░] 60%
 | Phase 14 P03 | 8 min | 2 tasks | 3 files |
 | Phase 14 P04 | 6 min | 2 tasks | 2 files |
 | Phase 14 P05 | 12 min | 2 tasks | 6 files |
+| Phase 14 P06 | 50 min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -271,6 +272,8 @@ Recent decisions affecting current work:
 - [Phase 14]: Runner exit statuses are defined once in runner/exit_status.h (RUNNER_EXIT_TABLE); --help and the README are checked against it by runner.exit.table
 - [Phase 14]: Option-list README guard matches the bullet text, not the synopsis block
 - [Phase 14]: 14-05: a stopped run that missed a requested output exits 1 and names the first one by command-line position (not reached: line); --frames not reached and --hash-audio-free open-ended runs stay 0
+- [Phase 14]: 14-06: second signal test fills the stdout pipe before spawning; macOS grows pipes in timed steps so an external stall check is unreliable
+- [Phase 14]: 14-06: --load-state open and read retry on EINTR so a stop never aborts a load
 
 ### Pending Todos
 
@@ -320,8 +323,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T22:31:44.242Z
-Stopped at: Completed 14-05-PLAN.md
+Last session: 2026-10-12T22:48:07.613Z
+Stopped at: Completed 14-06-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-execute-phase 14`.
