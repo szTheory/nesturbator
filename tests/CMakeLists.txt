@@ -259,6 +259,17 @@ if(WIN32)
     $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
   add_test(NAME runner.stop.win_handler COMMAND runner.stop_win)
   set_tests_properties(runner.stop.win_handler PROPERTIES TIMEOUT 30 LABELS exit_status)
+
+  # D-16: a real Ctrl+Break through the runner's own console. Kept or removed by hosted evidence.
+  add_executable(runner.stop_console runner/test_console.c)
+  nesturbator_warnings(runner.stop_console)
+  target_compile_definitions(runner.stop_console PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+  add_test(NAME runner.stop.win_console
+    COMMAND runner.stop_console $<TARGET_FILE:nesturbator-run> ${NESTURBATOR_SAVE_FIXTURE}
+      ${CMAKE_CURRENT_BINARY_DIR}/console_work)
+  set_tests_properties(runner.stop.win_console PROPERTIES
+    FIXTURES_REQUIRED runner_save TIMEOUT 60 LABELS exit_status)
 endif()
 
 # D-04, D-11: --raise-after usage errors exit 2 and name the option.
