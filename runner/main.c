@@ -36,6 +36,14 @@
  * Exit statuses are defined once in exit_status.h (0 done, 1 failure, 2 usage error, 4 .sav size
  * mismatch, 5 state rejected; 3 and 77 are reserved), printed by --help and listed in the README
  * section Exit status (LIBRETRO-AND-RUNNER section 5).
+ *
+ * Stopping: SIGINT and SIGTERM (POSIX signal) and, on Windows, Ctrl+C, Ctrl+Break and console
+ * close (Microsoft Learn: HandlerRoutine, SetConsoleCtrlHandler) make the runner finish the
+ * current frame, write the battery save, print a stop line on stderr and exit 0, or 1 if the save
+ * failed. A second signal ends it at once. --raise-after N[:SIG[:K]] signals this process K times
+ * after frame N (a test aid); SIG is int or term on POSIX (default term), int or break on Windows
+ * (default break). --accuracycoin-page installs no stop handlers; a signal there has its default
+ * action. See runner/stop.h and the README section Stopping the runner.
  */
 #include <stdio.h>
 #include <stdlib.h>
