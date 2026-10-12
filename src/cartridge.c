@@ -365,7 +365,8 @@ nesturbator_status nesturbator_load_cartridge(nesturbator *inst, const void *dat
        bytes that never change. The trainer only seeds RAM and CHR RAM starts zeroed, so neither
        is hashed. */
     inst->cart.rom_crc32 = nesturbator__crc32(0u, copy, 16u);
-    inst->cart.rom_crc32 = nesturbator__crc32(inst->cart.rom_crc32, inst->cart.prg, layout.prg_size);
+    inst->cart.rom_crc32 =
+        nesturbator__crc32(inst->cart.rom_crc32, inst->cart.prg, layout.prg_size);
     if (!layout.chr_is_ram)
         inst->cart.rom_crc32 =
             nesturbator__crc32(inst->cart.rom_crc32, inst->cart.chr, layout.chr_size);

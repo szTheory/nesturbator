@@ -22,7 +22,8 @@ enum {
     NESTURBATOR__SIO_WRITE,
     NESTURBATOR__SIO_VALIDATE,
     NESTURBATOR__SIO_APPLY,
-    NESTURBATOR__SIO_RECORD /* test entry point: emits one record per bounded or cross-field field */
+    NESTURBATOR__SIO_RECORD /* test entry point: emits one record per bounded or cross-field field
+                             */
 };
 
 struct nesturbator__sio {
@@ -33,9 +34,9 @@ struct nesturbator__sio {
     int bad;          /* VALIDATE: a range or cross-field rule failed */
     uint64_t ticks;   /* VALIDATE: the header's ticks, for the cross-field rule on ppu_ticks */
     struct nesturbator__state_bound *rec; /* RECORD: output, or NULL to only count */
-    size_t rec_cap;   /* RECORD: capacity of rec */
-    size_t rec_n;     /* RECORD: records seen, which may exceed rec_cap */
-    int cross;        /* RECORD: the next field takes part in a cross-field rule */
+    size_t rec_cap;                       /* RECORD: capacity of rec */
+    size_t rec_n;                         /* RECORD: records seen, which may exceed rec_cap */
+    int cross; /* RECORD: the next field takes part in a cross-field rule */
 };
 
 /* RECORD: marks the next field as a cross-field participant. */
@@ -47,8 +48,8 @@ static inline void nesturbator__sio_cross(struct nesturbator__sio *io)
 
 /* RECORD: emits a record for a field whose bounds are below the type's or that is a cross-field
    participant. The offset is the field's offset in the state (the body starts at 64). */
-static inline void nesturbator__sio_note(struct nesturbator__sio *io, unsigned width,
-                                         int is_signed, int64_t lo, int64_t hi, int restrictive)
+static inline void nesturbator__sio_note(struct nesturbator__sio *io, unsigned width, int is_signed,
+                                         int64_t lo, int64_t hi, int restrictive)
 {
     if (io->mode != NESTURBATOR__SIO_RECORD)
         return;

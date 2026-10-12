@@ -26,9 +26,9 @@ struct digest {
 };
 
 /* ci fork set (E = 180) and the fixed asan set (E = 60); frame 0 is the power-on state. */
-static const uint32_t FORKS_FULL[] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11,
-                                      12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
-                                      24, 25, 26, 27, 28, 29, 30, 60, 150};
+static const uint32_t FORKS_FULL[] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10,
+                                      11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+                                      22, 23, 24, 25, 26, 27, 28, 29, 30, 60, 150};
 static const uint32_t FORKS_SHORT[] = {0, 1, 30};
 /* Stress images: every frame 0 to 120 over 150 frames; the fixed asan set over 60 frames. */
 static uint32_t g_stress_full[121];
@@ -36,7 +36,7 @@ static const uint32_t STRESS_SHORT[] = {0, 1, 2, 3, 30};
 
 /* Frame-boundary observation of the reference run, set for the stress images only. */
 struct straddle {
-    uint32_t oam, dmc, poll;       /* boundaries where the flag was non-zero */
+    uint32_t oam, dmc, poll; /* boundaries where the flag was non-zero */
     uint32_t first_oam, first_dmc, first_poll;
 };
 
@@ -52,7 +52,6 @@ static uint16_t other_buttons(uint32_t n)
     return (uint16_t)((uint32_t)(st_buttons(n + 1000u) ^ 0xffu) & 0xffu);
 }
 
-
 static int digest_same(const char *name, const char *what, uint32_t k, uint32_t frame,
                        const struct digest *a, const struct digest *b)
 {
@@ -66,8 +65,8 @@ static int digest_same(const char *name, const char *what, uint32_t k, uint32_t 
         printf("mismatch %s %s fork %u frame %u: ticks %llu vs %llu\n", name, what, k, frame,
                (unsigned long long)a->ticks, (unsigned long long)b->ticks);
     else if (a->frame_number != b->frame_number)
-        printf("mismatch %s %s fork %u frame %u: frame_number %llu vs %llu\n", name, what, k,
-               frame, (unsigned long long)a->frame_number, (unsigned long long)b->frame_number);
+        printf("mismatch %s %s fork %u frame %u: frame_number %llu vs %llu\n", name, what, k, frame,
+               (unsigned long long)a->frame_number, (unsigned long long)b->frame_number);
     else
         return 1;
     check_failures++;
@@ -79,7 +78,7 @@ static void fork_image(const char *name, const uint8_t *img, size_t n, const uin
                        size_t nforks, uint32_t end)
 {
     static struct digest ref[MAX_END + 1u];
-    struct digest d;
+    struct digest d = {0};
     nesturbator *a = st_make_instance();
     nesturbator *b = st_make_instance();
     size_t size;
@@ -136,8 +135,7 @@ static void fork_image(const char *name, const uint8_t *img, size_t n, const uin
             check_failures++;
         }
         for (uint32_t f = k + 1u; f <= end && ok; ++f) {
-            CHECK_EQ_U64(st_frame(b, st_buttons(f), &d.video, &d.audio, &d.ticks,
-                                  &d.frame_number),
+            CHECK_EQ_U64(st_frame(b, st_buttons(f), &d.video, &d.audio, &d.ticks, &d.frame_number),
                          NESTURBATOR_OK);
             ok = digest_same(name, "continue", k, f, &ref[f], &d);
         }
@@ -156,8 +154,7 @@ static void fork_image(const char *name, const uint8_t *img, size_t n, const uin
         nesturbator *c = st_make_instance();
         st_load(c, img, n);
         for (uint32_t f = 1u; f <= end; ++f) {
-            CHECK_EQ_U64(st_frame(c, st_buttons(f), &d.video, &d.audio, &d.ticks,
-                                  &d.frame_number),
+            CHECK_EQ_U64(st_frame(c, st_buttons(f), &d.video, &d.audio, &d.ticks, &d.frame_number),
                          NESTURBATOR_OK);
             CHECK_EQ_U64(nesturbator_save_state(c, scratch, size), NESTURBATOR_OK);
             if (!digest_same(name, "save-every-frame", 0u, f, &ref[f], &d))

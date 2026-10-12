@@ -194,7 +194,8 @@ static void mmc3_ppu_a12(struct nesturbator *nes, uint8_t level, uint64_t tick)
         clock_counter(nes);
 }
 
-/* State: NESdev Wiki "MMC3": bank select, R0-R7, mirroring, PRG RAM protect and the scanline counter. */
+/* State: NESdev Wiki "MMC3": bank select, R0-R7, mirroring, PRG RAM protect and the scanline
+ * counter. */
 static void mmc3_state(struct nesturbator__mapper *m, struct nesturbator__sio *io)
 {
     nesturbator__sio_u8(io, &m->reg.mmc3.select, 0xffu);

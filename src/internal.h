@@ -376,7 +376,8 @@ size_t nesturbator__state_bounds(const struct nesturbator *inst,
                                  struct nesturbator__state_bound *out, size_t cap);
 
 /* CRC-32 (IEEE 802.3, reflected polynomial 0xEDB88320) as an update function: feeding a then b
-   gives the CRC of a followed by b. Start with crc 0. Accepts a NULL p when n is 0 (src/crc32.c). */
+   gives the CRC of a followed by b. Start with crc 0. Accepts a NULL p when n is 0 (src/crc32.c).
+ */
 uint32_t nesturbator__crc32(uint32_t crc, const uint8_t *p, size_t n);
 
 /* The no-cartridge test card: native pixel at column x, row y (D-01, D-02). */

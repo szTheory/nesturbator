@@ -49,11 +49,11 @@ static void tracer_round_trip(const uint8_t *rom, size_t rom_size)
     st_load(b, rom, rom_size);
     CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
     for (uint32_t i = 0u; i < TRACER_FRAMES; ++i) {
-        uint32_t video, audio;
-        uint64_t ticks, frame_number;
-        CHECK_EQ_U64(st_frame(b, st_buttons(TRACER_FRAMES + 1u + i), &video, &audio, &ticks,
-                              &frame_number),
-                     NESTURBATOR_OK);
+        uint32_t video = 0u, audio = 0u;
+        uint64_t ticks = 0u, frame_number = 0u;
+        CHECK_EQ_U64(
+            st_frame(b, st_buttons(TRACER_FRAMES + 1u + i), &video, &audio, &ticks, &frame_number),
+            NESTURBATOR_OK);
         CHECK_EQ_HEX(video, video_a[i]);
         CHECK_EQ_HEX(audio, audio_a[i]);
         CHECK_EQ_U64(ticks, ticks_a[i]);
@@ -291,14 +291,14 @@ static void position_restored(const struct fixture *fx, const uint8_t *rom, size
     uint64_t ticks_resumed, frame_resumed, ticks_next, frame_next;
     st_load(t, rom, rom_size);
     CHECK_EQ_U64(nesturbator_load_state(t, fx->state, fx->size), NESTURBATOR_OK);
-    CHECK_EQ_U64(st_frame(t, st_buttons(TRACER_FRAMES + 1u), NULL, NULL, &ticks_resumed,
-                          &frame_resumed),
-                 NESTURBATOR_OK);
+    CHECK_EQ_U64(
+        st_frame(t, st_buttons(TRACER_FRAMES + 1u), NULL, NULL, &ticks_resumed, &frame_resumed),
+        NESTURBATOR_OK);
     CHECK_EQ_U64(frame_resumed, fx->frame_number + 1u);
     CHECK_EQ_U64(fx->frame_number, TRACER_FRAMES);
-    CHECK_EQ_U64(st_frame(fx->inst, st_buttons(TRACER_FRAMES + 1u), NULL, NULL, &ticks_next,
-                          &frame_next),
-                 NESTURBATOR_OK);
+    CHECK_EQ_U64(
+        st_frame(fx->inst, st_buttons(TRACER_FRAMES + 1u), NULL, NULL, &ticks_next, &frame_next),
+        NESTURBATOR_OK);
     CHECK_EQ_U64(ticks_resumed, ticks_next);
     CHECK_EQ_U64(frame_resumed, frame_next);
     nesturbator_destroy(t);
@@ -361,7 +361,8 @@ typedef void (*board_set_fn)(struct nesturbator__mapper *m);
 
 /* Saves A with set() applied, loads into a fresh B holding the same image, and requires the
    registers and the rebuilt page tables to be equal. extra is the register bytes the board adds
-   and the 8 KiB of PRG RAM a board has to the state over an NROM image with the same CHR kind. Returns A for the caller to destroy. */
+   and the 8 KiB of PRG RAM a board has to the state over an NROM image with the same CHR kind.
+   Returns A for the caller to destroy. */
 static void board_case(uint16_t mapper, uint8_t prg_16k, uint8_t chr_8k, uint8_t ram_shift,
                        board_set_fn set, size_t extra)
 {
@@ -403,10 +404,22 @@ static void board_case(uint16_t mapper, uint8_t prg_16k, uint8_t chr_8k, uint8_t
     nesturbator_destroy(fresh);
 }
 
-static void set_uxrom(struct nesturbator__mapper *m) { m->reg.uxrom.bank = 0xa7u; }
-static void set_cnrom(struct nesturbator__mapper *m) { m->reg.cnrom.bank = 0xa7u; }
-static void set_axrom(struct nesturbator__mapper *m) { m->reg.axrom.bank = 0xa7u; }
-static void set_nrom(struct nesturbator__mapper *m) { (void)m; }
+static void set_uxrom(struct nesturbator__mapper *m)
+{
+    m->reg.uxrom.bank = 0xa7u;
+}
+static void set_cnrom(struct nesturbator__mapper *m)
+{
+    m->reg.cnrom.bank = 0xa7u;
+}
+static void set_axrom(struct nesturbator__mapper *m)
+{
+    m->reg.axrom.bank = 0xa7u;
+}
+static void set_nrom(struct nesturbator__mapper *m)
+{
+    (void)m;
+}
 
 static void set_mmc1(struct nesturbator__mapper *m)
 {
@@ -448,12 +461,30 @@ static void ops_table(void)
 }
 
 /* NROM adds nothing after irq: the twin is the NROM, so the extra is 0. */
-static void board_nrom(void) { board_case(0u, 2u, 1u, 0u, set_nrom, 0u); }
-static void board_uxrom(void) { board_case(2u, 8u, 0u, 0u, set_uxrom, 1u); }
-static void board_cnrom(void) { board_case(3u, 2u, 4u, 0u, set_cnrom, 1u); }
-static void board_axrom(void) { board_case(7u, 8u, 0u, 0u, set_axrom, 1u); }
-static void board_mmc1(void) { board_case(1u, 16u, 0u, 7u, set_mmc1, 14u + 8192u); }
-static void board_mmc3(void) { board_case(4u, 8u, 16u, 0u, set_mmc3, 24u + 8192u); }
+static void board_nrom(void)
+{
+    board_case(0u, 2u, 1u, 0u, set_nrom, 0u);
+}
+static void board_uxrom(void)
+{
+    board_case(2u, 8u, 0u, 0u, set_uxrom, 1u);
+}
+static void board_cnrom(void)
+{
+    board_case(3u, 2u, 4u, 0u, set_cnrom, 1u);
+}
+static void board_axrom(void)
+{
+    board_case(7u, 8u, 0u, 0u, set_axrom, 1u);
+}
+static void board_mmc1(void)
+{
+    board_case(1u, 16u, 0u, 7u, set_mmc1, 14u + 8192u);
+}
+static void board_mmc3(void)
+{
+    board_case(4u, 8u, 16u, 0u, set_mmc3, 24u + 8192u);
+}
 
 /* Pitfall P1: map.a12 is derived from ppu.bus_addr, not saved. */
 static void mmc3_a12_derived(void)
@@ -759,8 +790,8 @@ static void after_reset(const uint8_t *rom, size_t rom_size)
     CHECK_EQ_U64(nesturbator_save_state(a, state, size), NESTURBATOR_OK);
     CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
     for (uint32_t i = 0u; i < 5u; ++i) {
-        uint32_t va, aa, vb, ab;
-        uint64_t ta, fa, tb, fb;
+        uint32_t va = 0u, aa = 0u, vb = 0u, ab = 0u;
+        uint64_t ta = 0u, fa = 0u, tb = 0u, fb = 0u;
         CHECK_EQ_U64(st_frame(a, st_buttons(i), &va, &aa, &ta, &fa), NESTURBATOR_OK);
         CHECK_EQ_U64(st_frame(b, st_buttons(i), &vb, &ab, &tb, &fb), NESTURBATOR_OK);
         CHECK_EQ_HEX(va, vb);

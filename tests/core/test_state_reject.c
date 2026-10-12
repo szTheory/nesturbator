@@ -16,7 +16,8 @@
    The fields come from nesturbator__state_bounds, which walks the same field list the load uses,
    so this file keeps no second copy of the layout; only the names of the rows are written here.
    Usage: core.state_reject [--short] <rom>...  (dabg.nes, M1_P512K_CR8K_S32K.nes and
-   M4_P128K_CR8K.nes among them supply the at-bound rows; two NROM ROMs give the same-board pair). */
+   M4_P128K_CR8K.nes among them supply the at-bound rows; two NROM ROMs give the same-board pair).
+ */
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -266,8 +267,7 @@ static void case_two_faults(struct rom *r)
     b[H_ROM_CRC] ^= 0xffu;
     refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "version + ROM CRC", r->path);
     put_raw(b + H_VERSION, 1u, 2u);
-    refuse(&g, b, r->state_size - 1u, NESTURBATOR_ERR_STATE_CARTRIDGE, "ROM CRC + short",
-           r->path);
+    refuse(&g, b, r->state_size - 1u, NESTURBATOR_ERR_STATE_CARTRIDGE, "ROM CRC + short", r->path);
     b[H_ROM_CRC] ^= 0xffu;
     b[HEADER + 3u] ^= 0xffu;
     refuse(&g, b, r->state_size - 1u, NESTURBATOR_ERR_STATE_SIZE, "short + bad CRC", r->path);
@@ -315,59 +315,128 @@ struct row {
 };
 
 #define ROW(m, hi_)                                                                                \
-    {#m, offsetof(struct nesturbator, m), sizeof(((struct nesturbator *)0)->m), 1u, (hi_), 0, 0,  \
+    {#m,                                                                                           \
+     offsetof(struct nesturbator, m),                                                              \
+     sizeof(((struct nesturbator *)0)->m),                                                         \
+     1u,                                                                                           \
+     (hi_),                                                                                        \
+     0,                                                                                            \
+     0,                                                                                            \
      NESTURBATOR_OK}
 #define ARR(m, n_, hi_)                                                                            \
-    {#m, offsetof(struct nesturbator, m[0]), sizeof(((struct nesturbator *)0)->m[0]), (n_),       \
-     (hi_), 0, 0, NESTURBATOR_OK}
+    {#m,                                                                                           \
+     offsetof(struct nesturbator, m[0]),                                                           \
+     sizeof(((struct nesturbator *)0)->m[0]),                                                      \
+     (n_),                                                                                         \
+     (hi_),                                                                                        \
+     0,                                                                                            \
+     0,                                                                                            \
+     NESTURBATOR_OK}
 #define SGN(m, n_, hi_)                                                                            \
-    {#m, offsetof(struct nesturbator, m[0]), sizeof(((struct nesturbator *)0)->m[0]), (n_),       \
-     (hi_), 0, 1, NESTURBATOR_OK}
+    {#m,                                                                                           \
+     offsetof(struct nesturbator, m[0]),                                                           \
+     sizeof(((struct nesturbator *)0)->m[0]),                                                      \
+     (n_),                                                                                         \
+     (hi_),                                                                                        \
+     0,                                                                                            \
+     1,                                                                                            \
+     NESTURBATOR_OK}
 #define BROW(b_, m, hi_)                                                                           \
-    {#m, offsetof(struct nesturbator, m), sizeof(((struct nesturbator *)0)->m), 1u, (hi_), (b_),  \
-     0, NESTURBATOR_OK}
+    {#m,                                                                                           \
+     offsetof(struct nesturbator, m),                                                              \
+     sizeof(((struct nesturbator *)0)->m),                                                         \
+     1u,                                                                                           \
+     (hi_),                                                                                        \
+     (b_),                                                                                         \
+     0,                                                                                            \
+     NESTURBATOR_OK}
 #define PULSE(i)                                                                                   \
-    ROW(apu.pulse[i].timer, 0x7ff), ROW(apu.pulse[i].counter, 0x7ff),                             \
-        ROW(apu.pulse[i].phase, 7), ROW(apu.pulse[i].env_divider, 15),                            \
-        ROW(apu.pulse[i].env_decay, 15), ROW(apu.pulse[i].env_start, 1),                          \
-        ROW(apu.pulse[i].sweep_divider, 7), ROW(apu.pulse[i].sweep_reload, 1)
+    ROW(apu.pulse[i].timer, 0x7ff), ROW(apu.pulse[i].counter, 0x7ff), ROW(apu.pulse[i].phase, 7),  \
+        ROW(apu.pulse[i].env_divider, 15), ROW(apu.pulse[i].env_decay, 15),                        \
+        ROW(apu.pulse[i].env_start, 1), ROW(apu.pulse[i].sweep_divider, 7),                        \
+        ROW(apu.pulse[i].sweep_reload, 1)
 
 static const struct row ROWS[] = {
-    ROW(audio_rem, 314999), ROW(apu.sample_phase, 314999),
-    ROW(cpu.nmi_prev, 1), ROW(cpu.nmi_pending, 1), ROW(cpu.irq_line, 1), ROW(cpu.poll_latch, 1),
+    ROW(audio_rem, 314999),
+    ROW(apu.sample_phase, 314999),
+    ROW(cpu.nmi_prev, 1),
+    ROW(cpu.nmi_pending, 1),
+    ROW(cpu.irq_line, 1),
+    ROW(cpu.poll_latch, 1),
     ROW(cpu.halted_in_read, 0),
     {"cpu.jammed", offsetof(struct nesturbator, cpu.jammed), 1u, 1u, 1, 0, 0, NESTURBATOR_STOP_JAM},
-    ROW(bus.apu_get_put_phase, 1), ROW(bus.oam_dma_pending, 1), ROW(bus.controller_strobe, 1),
-    PULSE(0), PULSE(1),
-    ROW(apu.triangle.timer, 0x7ff), ROW(apu.triangle.counter, 0x7ff), ROW(apu.triangle.phase, 31),
-    ROW(apu.triangle.linear, 0x7f), ROW(apu.triangle.linear_reload, 0x7f),
+    ROW(bus.apu_get_put_phase, 1),
+    ROW(bus.oam_dma_pending, 1),
+    ROW(bus.controller_strobe, 1),
+    PULSE(0),
+    PULSE(1),
+    ROW(apu.triangle.timer, 0x7ff),
+    ROW(apu.triangle.counter, 0x7ff),
+    ROW(apu.triangle.phase, 31),
+    ROW(apu.triangle.linear, 0x7f),
+    ROW(apu.triangle.linear_reload, 0x7f),
     ROW(apu.triangle.linear_reload_flag, 1),
-    ROW(apu.noise.lfsr, 0x7fff), ROW(apu.noise.counter, 0xfff), ROW(apu.noise.env_divider, 15),
-    ROW(apu.noise.env_decay, 15), ROW(apu.noise.env_start, 1),
-    ROW(apu.dmc.timer, 214), ROW(apu.dmc.counter, 214), ROW(apu.dmc.remaining, 4081),
-    ROW(apu.dmc.output, 127), ROW(apu.dmc.bits, 8), ROW(apu.dmc.buffer_empty, 1),
-    ROW(apu.dmc.irq, 1), ROW(apu.dmc.dma_pending, 1), ROW(apu.dmc.dma_halt_phase, 1),
-    ROW(apu.dmc.dma_load_waiting, 1), ROW(apu.dmc.enable_delay, 4),
-    ROW(apu.enabled, 0x1f), ROW(apu.pulse_clock_phase, 1), ROW(apu.frame_mode, 1),
-    ROW(apu.frame_pending_mode, 1), ROW(apu.frame_irq_inhibit, 1), ROW(apu.frame_irq, 1),
-    ROW(apu.frame_irq_clear_pending, 1), ROW(apu.frame_reset_delay, 4),
+    ROW(apu.noise.lfsr, 0x7fff),
+    ROW(apu.noise.counter, 0xfff),
+    ROW(apu.noise.env_divider, 15),
+    ROW(apu.noise.env_decay, 15),
+    ROW(apu.noise.env_start, 1),
+    ROW(apu.dmc.timer, 214),
+    ROW(apu.dmc.counter, 214),
+    ROW(apu.dmc.remaining, 4081),
+    ROW(apu.dmc.output, 127),
+    ROW(apu.dmc.bits, 8),
+    ROW(apu.dmc.buffer_empty, 1),
+    ROW(apu.dmc.irq, 1),
+    ROW(apu.dmc.dma_pending, 1),
+    ROW(apu.dmc.dma_halt_phase, 1),
+    ROW(apu.dmc.dma_load_waiting, 1),
+    ROW(apu.dmc.enable_delay, 4),
+    ROW(apu.enabled, 0x1f),
+    ROW(apu.pulse_clock_phase, 1),
+    ROW(apu.frame_mode, 1),
+    ROW(apu.frame_pending_mode, 1),
+    ROW(apu.frame_irq_inhibit, 1),
+    ROW(apu.frame_irq, 1),
+    ROW(apu.frame_irq_clear_pending, 1),
+    ROW(apu.frame_reset_delay, 4),
     ROW(apu.frame_cycle, 37281),
     ROW(synth.impulse_head, 15),
-    SGN(synth.hp_input_q30, 2u, INT64_C(1) << 52), SGN(synth.hp_output_q30, 2u, INT64_C(1) << 52),
+    SGN(synth.hp_input_q30, 2u, INT64_C(1) << 52),
+    SGN(synth.hp_output_q30, 2u, INT64_C(1) << 52),
     {"synth.lp_output_q30", offsetof(struct nesturbator, synth.lp_output_q30), 8u, 1u,
      INT64_C(1) << 52, 0, 1, NESTURBATOR_OK},
-    ROW(ppu.address_latch, 1), ROW(ppu.fine_x, 7), ROW(ppu.io_bus_age, 160000),
-    ROW(ppu.vblank_suppress, 1), ROW(ppu.v, 0x7fff), ROW(ppu.t, 0x7fff),
-    ARR(ppu.palette, 32u, 0x3f), ROW(ppu.sprite_count, 8), ROW(ppu.eval_count, 8),
-    ROW(ppu.eval_n, 64), ROW(ppu.eval_m, 3), ROW(ppu.eval_remaining, 3),
-    ARR(ppu.eval_sprite_zero, 8u, 1), ARR(ppu.sprite_zero, 8u, 1),
-    ROW(ppu.bus_addr, 0x3fff), ROW(ppu.bg_at, 3), ROW(ppu.at_latch_lo, 1), ROW(ppu.at_latch_hi, 1),
-    ROW(ppu.scanline, 261), ROW(ppu.dot, 340), ROW(ppu.odd_frame, 1), ROW(ppu.reset_flag, 1),
+    ROW(ppu.address_latch, 1),
+    ROW(ppu.fine_x, 7),
+    ROW(ppu.io_bus_age, 160000),
+    ROW(ppu.vblank_suppress, 1),
+    ROW(ppu.v, 0x7fff),
+    ROW(ppu.t, 0x7fff),
+    ARR(ppu.palette, 32u, 0x3f),
+    ROW(ppu.sprite_count, 8),
+    ROW(ppu.eval_count, 8),
+    ROW(ppu.eval_n, 64),
+    ROW(ppu.eval_m, 3),
+    ROW(ppu.eval_remaining, 3),
+    ARR(ppu.eval_sprite_zero, 8u, 1),
+    ARR(ppu.sprite_zero, 8u, 1),
+    ROW(ppu.bus_addr, 0x3fff),
+    ROW(ppu.bg_at, 3),
+    ROW(ppu.at_latch_lo, 1),
+    ROW(ppu.at_latch_hi, 1),
+    ROW(ppu.scanline, 261),
+    ROW(ppu.dot, 340),
+    ROW(ppu.odd_frame, 1),
+    ROW(ppu.reset_flag, 1),
     ROW(mapper.irq, 1),
-    BROW(1, mapper.reg.mmc1.shift, 0x1f), BROW(1, mapper.reg.mmc1.count, 4),
-    BROW(1, mapper.reg.mmc1.control_x, 0x1f), BROW(1, mapper.reg.mmc1.chr0, 0x1f),
-    BROW(1, mapper.reg.mmc1.chr1, 0x1f), BROW(1, mapper.reg.mmc1.prg, 0x1f),
-    BROW(4, mapper.reg.mmc3.reload, 1), BROW(4, mapper.reg.mmc3.irq_enable, 1),
+    BROW(1, mapper.reg.mmc1.shift, 0x1f),
+    BROW(1, mapper.reg.mmc1.count, 4),
+    BROW(1, mapper.reg.mmc1.control_x, 0x1f),
+    BROW(1, mapper.reg.mmc1.chr0, 0x1f),
+    BROW(1, mapper.reg.mmc1.chr1, 0x1f),
+    BROW(1, mapper.reg.mmc1.prg, 0x1f),
+    BROW(4, mapper.reg.mmc3.reload, 1),
+    BROW(4, mapper.reg.mmc3.irq_enable, 1),
     BROW(4, mapper.reg.mmc3.a12, 1),
 };
 #define NROWS (sizeof ROWS / sizeof ROWS[0])
@@ -408,8 +477,8 @@ static int hex_name(char *dst, size_t n, size_t off, const char *side, int64_t v
     return snprintf(dst, n, "offset %zu %s value %lld", off, side, (long long)v);
 }
 
-static void sweep_value(struct rom *r, struct guard *g, uint8_t *b, const struct nesturbator__state_bound *f,
-                        const char *side, int64_t v)
+static void sweep_value(struct rom *r, struct guard *g, uint8_t *b,
+                        const struct nesturbator__state_bound *f, const char *side, int64_t v)
 {
     char what[120];
     uint8_t old[8];
@@ -472,7 +541,8 @@ static void case_coverage(struct rom *r, const struct nesturbator__state_bound *
             size_t off = locate(r, ROWS[i].member + k * ROWS[i].width, ROWS[i].width);
             if (off != 0u && nk < MAX_BOUNDS)
                 known[nk++] = off;
-            else if (off == 0u && (ROWS[i].board == 0 || ROWS[i].board == (int)r->inst->mapper.id)) {
+            else if (off == 0u &&
+                     (ROWS[i].board == 0 || ROWS[i].board == (int)r->inst->mapper.id)) {
                 fprintf(stderr, "row %s is not in the state of %s\n", ROWS[i].name, r->path);
                 check_failures++;
             }
@@ -666,25 +736,23 @@ static void case_ppu_gap(struct rom *r)
     put_raw(b + H_TICKS, pt + tpf - 1u, 8u);
     load_expect(r, b, NESTURBATOR_OK, NESTURBATOR_OK, "ticks - ppu_ticks = TPF - 1");
     put_raw(b + H_TICKS, pt + tpf, 8u);
-    load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK,
-                "ticks - ppu_ticks = TPF");
+    load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK, "ticks - ppu_ticks = TPF");
     put_raw(b + H_TICKS, pt + tpf + 1u, 8u);
-    load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK,
-                "ticks - ppu_ticks = TPF + 1");
+    load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK, "ticks - ppu_ticks = TPF + 1");
     put_raw(b + H_TICKS, pt, 8u);
     put_raw(b + pt_off, pt + 1u, 8u);
     load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK, "ppu_ticks = ticks + 1");
     put_raw(b + pt_off, 0u, 8u);
     put_raw(b + H_TICKS, UINT64_C(1) << 50, 8u);
-    load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK,
-                "ppu_ticks = 0, ticks = 2^50");
+    load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK, "ppu_ticks = 0, ticks = 2^50");
     /* CR-01: ticks near 2^64 wrapped the frame loop and never returned. */
     put_raw(b + pt_off, UINT64_MAX, 8u);
     put_raw(b + H_TICKS, UINT64_MAX, 8u);
     load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK, "ticks = ppu_ticks = 2^64-1");
     put_raw(b + pt_off, (UINT64_C(1) << 62) + 1u, 8u);
     put_raw(b + H_TICKS, (UINT64_C(1) << 62) + 1u, 8u);
-    load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK, "ticks = ppu_ticks = 2^62 + 1");
+    load_expect(r, b, NESTURBATOR_ERR_STATE_INVALID, NESTURBATOR_OK,
+                "ticks = ppu_ticks = 2^62 + 1");
     put_raw(b + pt_off, UINT64_C(1) << 62, 8u);
     put_raw(b + H_TICKS, UINT64_C(1) << 62, 8u);
     load_expect(r, b, NESTURBATOR_OK, NESTURBATOR_OK, "ticks = ppu_ticks = 2^62");

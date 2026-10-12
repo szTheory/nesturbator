@@ -227,8 +227,8 @@ static int parse_options(int argc, char **argv, options *o)
     o->state_frames = (uint32_t *)malloc(n_args * sizeof *o->state_frames);
     o->state_paths = (const char **)malloc(n_args * sizeof *o->state_paths);
     o->hash_states = (uint32_t *)malloc(n_args * sizeof *o->hash_states);
-    if (o->hash_states == NULL || o->hash_frames == NULL || o->dump_frames == NULL || o->dump_paths == NULL ||
-        o->state_frames == NULL || o->state_paths == NULL) {
+    if (o->hash_states == NULL || o->hash_frames == NULL || o->dump_frames == NULL ||
+        o->dump_paths == NULL || o->state_frames == NULL || o->state_paths == NULL) {
         fprintf(stderr, "nesturbator-run: out of memory\n");
         return 1;
     }
@@ -846,8 +846,7 @@ static int write_states(const nesturbator *inst, const options *o, uint64_t fram
             continue;
         if (buf == NULL) {
             buf = size != 0u ? (uint8_t *)malloc(size) : NULL;
-            if (buf == NULL ||
-                nesturbator_save_state(inst, buf, size) != NESTURBATOR_OK) {
+            if (buf == NULL || nesturbator_save_state(inst, buf, size) != NESTURBATOR_OK) {
                 fprintf(stderr, "nesturbator-run: cannot save state at frame %lu\n",
                         (unsigned long)frame);
                 rc = 1;
