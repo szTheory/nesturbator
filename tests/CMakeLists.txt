@@ -548,6 +548,10 @@ target_include_directories(core.mapper_mmc3 PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # SAVE-01 (D-06, D-11, D-12): the battery span, its address and the write counter.
 nesturbator_core_test(core.save core/test_save.c)
 target_include_directories(core.save PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# STATE-05 (D-04 step 8): a state load counts in the save generation only when the battery bytes
+# change; the 600-load case, refused loads and battery-less cartridges.
+nesturbator_core_test(core.state_generation core/test_state_generation.c)
+target_include_directories(core.state_generation PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # D-16: frame-boundary invariants (no frame-scoped pointer, empty PCM ring); white box.
 nesturbator_core_test(core.boundary core/test_boundary.c)
 target_include_directories(core.boundary PRIVATE ${PROJECT_SOURCE_DIR}/src)

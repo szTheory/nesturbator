@@ -443,6 +443,7 @@ nesturbator_status nesturbator_load_state(nesturbator *inst, const void *buf, si
     struct nesturbator__sio io;
     const uint8_t *b = (const uint8_t *)buf;
     const uint8_t *ram;
+    int save_changed = 0;
     if (inst == NULL || buf == NULL)
         return NESTURBATOR_ERR_ARGUMENT;
     if (size < STATE_HEADER_SIZE)
@@ -480,6 +481,12 @@ nesturbator_status nesturbator_load_state(nesturbator *inst, const void *buf, si
 
     /* APPLY cannot fail. */
     ram = io.r;
+    /* STATE-05: the battery span inside the state's PRG RAM block is compared before the copy, so
+       a load that changes the battery bytes counts once and every other load counts nothing. The
+       span sits at the same offset in the instance's allocation and in the state. */
+    if (inst->cart.save_size != 0u)
+        save_changed = memcmp(inst->cart.save, ram + (size_t)(inst->cart.save - inst->cart.prg_ram),
+                              inst->cart.save_size) != 0;
     inst->frame_number = get_le(b + H_FRAME, 8u);
     inst->ticks = io.ticks;
     io.mode = NESTURBATOR__SIO_APPLY;
@@ -503,5 +510,7 @@ nesturbator_status nesturbator_load_state(nesturbator *inst, const void *buf, si
     /* map.a12 is the edge filter in front of the board's A12 hook; mapper_load zeroed it. It is
        derived from the PPU address bus, not saved (Pitfall P1). */
     inst->map.a12 = (uint8_t)((inst->ppu.bus_addr >> 12) & 1u);
+    if (save_changed != 0)
+        inst->save_generation++;
     return NESTURBATOR_OK;
 }
