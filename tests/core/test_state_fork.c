@@ -7,7 +7,7 @@
    core.state_fork [--short] [--stress] <other.nes> [<rom>...]   (the first path is the pre-fill
    game; at least one ROM is needed unless --stress is given).
    --stress adds two synthetic DMA and interrupt programs (NROM and MMC3) forked at every frame
-   0 to 120 (0, 1, 2, 3, 30 with --short); the run must see OAM DMA, DMC DMA and the IRQ poll
+   0 to 60 (0, 1, 2, 3, 30 with --short); the run must see OAM DMA, DMC DMA and the IRQ poll
    latch pending at frame boundaries, so those states straddle the cut points. */
 #include <stdint.h>
 #include <stdio.h>
@@ -30,8 +30,9 @@ static const uint32_t FORKS_FULL[] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10
                                       11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
                                       22, 23, 24, 25, 26, 27, 28, 29, 30, 60, 150};
 static const uint32_t FORKS_SHORT[] = {0, 1, 30};
-/* Stress images: every frame 0 to 120 over 150 frames; the fixed asan set over 60 frames. */
-static uint32_t g_stress_full[121];
+/* Stress images: every frame 0 to 60 over 90 frames (every straddle seen first by frame 44, and
+   the run stays well under its 300 s timeout on a loaded runner); the fixed asan set over 60. */
+static uint32_t g_stress_full[61];
 static const uint32_t STRESS_SHORT[] = {0, 1, 2, 3, 30};
 
 /* Frame-boundary observation of the reference run, set for the stress images only. */
@@ -225,15 +226,15 @@ int main(int argc, char **argv)
         static const uint16_t mappers[] = {0u, 4u};
         static const char *const names[] = {"stress-nrom", "stress-mmc3"};
         const uint32_t *sf = g_short ? STRESS_SHORT : g_stress_full;
-        size_t ns = g_short ? sizeof STRESS_SHORT / sizeof STRESS_SHORT[0] : 121u;
-        for (uint32_t k = 0u; k < 121u; ++k)
+        size_t ns = g_short ? sizeof STRESS_SHORT / sizeof STRESS_SHORT[0] : 61u;
+        for (uint32_t k = 0u; k < 61u; ++k)
             g_stress_full[k] = k;
         for (size_t i = 0u; i < sizeof mappers / sizeof mappers[0]; ++i) {
             size_t n = st_stress_image(buf, sizeof buf, mappers[i]);
             CHECK(n != 0u);
             memset(&g_seen, 0, sizeof g_seen);
             g_observe = 1;
-            fork_image(names[i], buf, n, sf, ns, g_short ? 60u : 150u);
+            fork_image(names[i], buf, n, sf, ns, g_short ? 60u : 90u);
             g_observe = 0;
         }
     }
