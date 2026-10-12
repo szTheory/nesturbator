@@ -2340,7 +2340,7 @@ static int runahead_mode(int argc, char **argv)
     uint16_t *s1, *s2;
 
     if (argc > first && strcmp(argv[first], "--short") == 0) {
-        T = 60u;
+        T = 30u;
         first++;
     }
     if (argc > first && strcmp(argv[first], "--stress") == 0) {

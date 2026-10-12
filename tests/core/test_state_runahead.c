@@ -15,7 +15,7 @@
        frame t+N.
    nesteroids runs both input scripts at depths 1 to 3; every other image runs one script at one
    depth, both rotating with the image, so the run stays within its time budget. T is 180 ticks
-   (60 with --short). */
+   (30 with --short). */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
     unsigned full_images = 0u;
 
     if (argc > first && strcmp(argv[first], "--short") == 0) {
-        T = 60u;
+        T = 30u;
         first++;
     }
     if (argc <= first) {

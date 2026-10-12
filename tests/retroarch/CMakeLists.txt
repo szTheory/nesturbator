@@ -42,7 +42,8 @@ add_test(NAME retroarch.frame_index COMMAND frame_index ${fi_rom} 60 ${fi_ppm})
 set_tests_properties(retroarch.frame_index PROPERTIES
   FIXTURES_REQUIRED fi_dump PASS_REGULAR_EXPRESSION " 37[ \n]" TIMEOUT 60)
 add_test(NAME retroarch.frame_index.dups COMMAND frame_index --dups ${fi_rom} 1200)
-set_tests_properties(retroarch.frame_index.dups PROPERTIES TIMEOUT 60)
+# TIMEOUT 180: 24 s locally under asan, 38 s on a hosted asan runner, over 60 s on a slow one.
+set_tests_properties(retroarch.frame_index.dups PROPERTIES TIMEOUT 180)
 
 # D-28 as amended at planning: log_check.cmake fails on an unexplained RetroArch [ERROR] line or
 # rewind/run-ahead warning. These tests run it on fixture logs on every platform (no labels), so

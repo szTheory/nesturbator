@@ -672,13 +672,14 @@ set_tests_properties(core.state_reject PROPERTIES TIMEOUT 300 COST 60)
 # LR-02 (D-12): RetroArch's second-instance run-ahead mode as a library property. Instance A runs
 # the real timeline, B loads A's state each tick and runs N frames; the visible frames equal the
 # one-instance model's, A equals an uninterrupted run, and the nine ROMs and two stress images
-# pass. NESTURBATOR_SHORT_RUNS (preset asan) runs 60 ticks instead of 180.
+# pass. NESTURBATOR_SHORT_RUNS (preset asan) runs 30 ticks instead of 180.
 if(NESTURBATOR_SHORT_RUNS)
   nesturbator_core_test(core.state_runahead core/test_state_runahead.c --short ${FORK_ROMS})
 else()
   nesturbator_core_test(core.state_runahead core/test_state_runahead.c ${FORK_ROMS})
 endif()
 target_include_directories(core.state_runahead PRIVATE ${PROJECT_SOURCE_DIR}/src)
+# TIMEOUT 600 and 30 ticks under asan, for the reason given at libretro.runahead.
 set_tests_properties(core.state_runahead PROPERTIES TIMEOUT 600 COST 30)
 add_executable(core.controller core/test_controller.c)
 target_link_libraries(core.controller PRIVATE nesturbator::nesturbator)
@@ -1082,7 +1083,7 @@ set_tests_properties(libretro.serialize PROPERTIES TIMEOUT 600)
 
 # LR-02: --runahead drives the module as a run-ahead host at one to three frames over two input
 # scripts, against an uninterrupted run, and four broken hosts must fail the same comparison
-# (D-10 to D-16). NESTURBATOR_SHORT_RUNS (preset asan) runs 60 ticks instead of 180.
+# (D-10 to D-16). NESTURBATOR_SHORT_RUNS (preset asan) runs 30 ticks instead of 180.
 set(RUNAHEAD_MODE)
 if(NESTURBATOR_SHORT_RUNS)
   set(RUNAHEAD_MODE --short)
@@ -1097,7 +1098,8 @@ add_test(NAME libretro.runahead
     ${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P128K_CR8K.nes
     ${PROJECT_SOURCE_DIR}/tests/roms/hm/M7_P128K_CR8K.nes)
 # TIMEOUT 600: under asan on a hosted runner this test runs several times slower than locally
-# (libretro.serialize needed the same ceiling).
+# (libretro.serialize needed the same ceiling). At 60 ticks a hosted asan run took 292 s and a slow
+# runner passed 600 s, so asan runs 30 ticks: 52 s locally, about half the hosted time.
 set_tests_properties(libretro.runahead PROPERTIES TIMEOUT 600 COST 30)
 
 # D-18 / D-14 / D-09: --rom-parity runs a whole ROM through the libretro module
