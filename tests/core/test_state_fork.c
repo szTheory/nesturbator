@@ -224,8 +224,8 @@ int main(int argc, char **argv)
     }
     if (stress) {
         static uint8_t buf[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
-        static const uint16_t mappers[] = {0u};
-        static const char *const names[] = {"stress-nrom"};
+        static const uint16_t mappers[] = {0u, 4u};
+        static const char *const names[] = {"stress-nrom", "stress-mmc3"};
         const uint32_t *sf = g_short ? STRESS_SHORT : g_stress_full;
         size_t ns = g_short ? sizeof STRESS_SHORT / sizeof STRESS_SHORT[0] : 121u;
         for (uint32_t k = 0u; k < 121u; ++k)
