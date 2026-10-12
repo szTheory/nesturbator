@@ -22,6 +22,8 @@
 
 #include "../check.h"
 #include "../ines.h"
+#include "../runahead_model.h"
+#include "../state_test.h"
 #include "../../src/internal.h"
 #include "libretro.h"
 #include "nesturbator.h"
@@ -163,8 +165,28 @@ static size_t batch_frames;
 static int batch_nonzero;
 static int16_t batch_samples[AUDIO_CAPTURE_CAPACITY * 2u];
 
+static int env_calls;
+static int savestate_context_queries, av_enable_queries;
+static int host_savestate_context = RETRO_SAVESTATE_CONTEXT_NORMAL;
+static int host_av_enable = 3; /* bit 0 video, bit 1 audio (L1767) */
+
 static bool RETRO_CALLCONV env(unsigned cmd, void *data)
 {
+    env_calls++;
+    if (cmd == RETRO_ENVIRONMENT_GET_SAVESTATE_CONTEXT) {
+        savestate_context_queries++;
+        if (data != NULL) {
+            *(int *)data = host_savestate_context;
+        }
+        return true;
+    }
+    if (cmd == RETRO_ENVIRONMENT_GET_AUDIO_VIDEO_ENABLE) {
+        av_enable_queries++;
+        if (data != NULL) {
+            *(int *)data = host_av_enable;
+        }
+        return true;
+    }
     if (cmd == RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME) {
         no_game_calls++;
         no_game_value = *(const bool *)data ? 1 : 0;
@@ -1350,6 +1372,1082 @@ static int rom_parity(int argc, char **argv)
     CHECK_DONE();
 }
 
+/* ---- --serialize: the save-state entry points through the module (LR-01) ---- */
+
+#define SER_FNV_BASIS 14695981039346656037ull
+#define SER_PRE 20u /* frames run before the reference state is taken */
+#define SER_ROUND_TRIP 30u
+#define SER_PAD 16u /* sentinel bytes past a buffer */
+#define SER_SENTINEL 0xCCu
+#define SER_MIN_ROMS 5u /* D-20: a pass over fewer ROMs than this cannot succeed */
+#define SER_MIN_REFUSALS 12u
+#define SER_MIN_FRAMES 120u
+
+static unsigned ser_frames_compared;
+
+/* The input for frame t: a fixed integer pattern on both ports, so every pass of a ROM sees
+   the same buttons at the same frame. */
+static void ser_set_input(uint32_t t)
+{
+    uint32_t x = t * 2654435761u + 12345u;
+    host_buttons[0] = (uint8_t)(x >> 13);
+    host_buttons[1] = (uint8_t)(x >> 5);
+}
+
+/* FNV-1a over 32-bit words: the frame is a whole number of pixels, so one multiply per pixel
+   instead of per byte gives the same discrimination at a quarter of the cost. */
+static uint64_t ser_hash_words(const uint32_t *words, size_t count)
+{
+    uint64_t h = SER_FNV_BASIS;
+    size_t i;
+    for (i = 0u; i < count; i++) {
+        h = (h ^ words[i]) * 1099511628211ull;
+    }
+    return h;
+}
+
+/* Runs frame t and returns the video and audio hashes the frontend saw. */
+static void ser_frame(uint32_t t, uint64_t *video_hash, uint64_t *audio_hash)
+{
+    ser_set_input(t);
+    batch_frames = 0u;
+    p_run();
+    *video_hash = ser_hash_words(frame, W * H);
+    *audio_hash =
+        fnv_add(SER_FNV_BASIS, batch_samples, batch_frames * 2u * sizeof batch_samples[0]);
+}
+
+/* Frames with the input of frame t and no hashing, for the stretches nothing compares. */
+static void ser_run(uint32_t from, uint32_t to)
+{
+    uint32_t t;
+    for (t = from; t < to; t++) {
+        ser_set_input(t);
+        p_run();
+    }
+}
+
+static bool ser_load(const unsigned char *rom, size_t size)
+{
+    struct retro_game_info game;
+    memset(&game, 0, sizeof game);
+    game.data = rom;
+    game.size = size;
+    return p_load_game(&game);
+}
+
+/* The callbacks the core made, so a refused call can be shown to have made none. */
+struct ser_calls {
+    int video, batch, sample, env, poll, input;
+};
+
+static struct ser_calls ser_calls_now(void)
+{
+    struct ser_calls c;
+    c.video = video_calls;
+    c.batch = batch_calls;
+    c.sample = sample_calls;
+    c.env = env_calls;
+    c.poll = poll_calls;
+    c.input = input_calls;
+    return c;
+}
+
+static int ser_calls_equal(struct ser_calls a, struct ser_calls b)
+{
+    return a.video == b.video && a.batch == b.batch && a.sample == b.sample && a.env == b.env &&
+           a.poll == b.poll && a.input == b.input;
+}
+
+/* The state size of the same bytes loaded straight into the library. */
+static size_t ser_direct_size(const unsigned char *rom, size_t rom_size)
+{
+    nesturbator_config cfg;
+    nesturbator *nes = NULL;
+    size_t size = 0u;
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &nes), NESTURBATOR_OK);
+    if (nes != NULL) {
+        CHECK_EQ_U64(nesturbator_load_cartridge(nes, rom, rom_size), NESTURBATOR_OK);
+        size = nesturbator_state_size(nes);
+        nesturbator_destroy(nes);
+    }
+    return size;
+}
+
+/* One ROM argument, with the module's state after SER_PRE frames. */
+struct ser_rom {
+    const char *path;
+    unsigned char *data;
+    size_t size;
+    size_t state_size;
+    unsigned char *state;
+};
+
+static int ser_prepare(struct ser_rom *r)
+{
+    CHECK(read_file(r->path, &r->data, &r->size));
+    if (r->data == NULL) {
+        return 0;
+    }
+    CHECK(ser_load(r->data, r->size));
+    ser_run(0u, SER_PRE);
+    r->state_size = p_serialize_size();
+    CHECK(r->state_size != 0u);
+    CHECK_EQ_U64(r->state_size, ser_direct_size(r->data, r->size));
+    r->state = (unsigned char *)malloc(r->state_size != 0u ? r->state_size : 1u);
+    if (r->state == NULL || r->state_size < 64u + 2u) {
+        return 0;
+    }
+    CHECK(p_serialize(r->state, r->state_size));
+    p_unload_game();
+    return 1;
+}
+
+/* D-01, D-04: the size is the library's for the loaded board, constant while the game runs,
+   and 0 with no content. */
+static void check_serialize_size(const struct ser_rom *r, const struct ser_rom *other)
+{
+    size_t size;
+    uint32_t t;
+
+    CHECK(ser_load(r->data, r->size));
+    size = p_serialize_size();
+    CHECK_EQ_U64(size, r->state_size);
+    for (t = 0u; t < 120u; t++) {
+        ser_run(t, t + 1u);
+        CHECK_EQ_U64(p_serialize_size(), size);
+    }
+    ser_frames_compared += 120u;
+    p_reset();
+    CHECK_EQ_U64(p_serialize_size(), size);
+    p_set_controller_port_device(0u, RETRO_DEVICE_JOYPAD);
+    CHECK_EQ_U64(p_serialize_size(), size);
+    p_set_controller_port_device(1u, RETRO_DEVICE_NONE);
+    CHECK_EQ_U64(p_serialize_size(), size);
+    p_unload_game();
+    CHECK_EQ_U64(p_serialize_size(), 0u);
+    CHECK(ser_load(other->data, other->size));
+    CHECK_EQ_U64(p_serialize_size(), other->state_size);
+    p_unload_game();
+    CHECK_EQ_U64(p_serialize_size(), 0u);
+}
+
+/* D-02: serialize writes exactly size bytes, or nothing. */
+static void check_serialize_writes(const struct ser_rom *r)
+{
+    size_t n = r->state_size, i;
+    unsigned char *a = (unsigned char *)malloc(n + SER_PAD);
+    unsigned char *b = (unsigned char *)malloc(n);
+    uint64_t v1, a1, v2, a2;
+
+    CHECK(a != NULL && b != NULL);
+    if (a == NULL || b == NULL) {
+        free(a);
+        free(b);
+        return;
+    }
+    CHECK(ser_load(r->data, r->size));
+    ser_run(0u, SER_PRE);
+
+    memset(a, SER_SENTINEL, n + SER_PAD);
+    CHECK(!p_serialize(a, n - 1u));
+    CHECK(!p_serialize(a, 0u));
+    CHECK(!p_serialize(NULL, n));
+    for (i = 0u; i < n + SER_PAD; i++) {
+        if (a[i] != SER_SENTINEL) {
+            CHECK_EQ_HEX(a[i], SER_SENTINEL);
+            break;
+        }
+    }
+    CHECK(p_serialize(a, n + SER_PAD));
+    for (i = n; i < n + SER_PAD; i++) {
+        if (a[i] != SER_SENTINEL) {
+            CHECK_EQ_HEX(a[i], SER_SENTINEL);
+            break;
+        }
+    }
+    CHECK(memcmp(a, r->state, n) == 0);
+    CHECK(p_serialize(b, n));
+    CHECK(memcmp(a, b, n) == 0);
+
+    /* Loading the same state twice gives the same next frame. */
+    CHECK(p_unserialize(a, n));
+    ser_frame(SER_PRE, &v1, &a1);
+    CHECK(p_unserialize(a, n));
+    ser_frame(SER_PRE, &v2, &a2);
+    CHECK_EQ_HEX(v1, v2);
+    CHECK_EQ_HEX(a1, a2);
+    ser_frames_compared += 1u;
+
+    /* The tracer: 30 frames after the state, then the state again and the same 30 frames. */
+    {
+        uint64_t rv[SER_ROUND_TRIP], ra[SER_ROUND_TRIP];
+        uint32_t t;
+        CHECK(p_unserialize(a, n));
+        for (t = 0u; t < SER_ROUND_TRIP; t++) {
+            ser_frame(SER_PRE + t, &rv[t], &ra[t]);
+        }
+        CHECK(p_unserialize(a, n));
+        for (t = 0u; t < SER_ROUND_TRIP; t++) {
+            ser_frame(SER_PRE + t, &v1, &a1);
+            CHECK_EQ_HEX(v1, rv[t]);
+            CHECK_EQ_HEX(a1, ra[t]);
+        }
+        ser_frames_compared += SER_ROUND_TRIP;
+    }
+    p_unload_game();
+    free(a);
+    free(b);
+}
+
+/* D-03: every refusal returns false, makes no callback and changes nothing: the next frame
+   and the next state equal a control that never made the call. Returns the cases run. */
+static unsigned check_unserialize_rejects(const struct ser_rom *r, const struct ser_rom *other)
+{
+    size_t n = r->state_size;
+    unsigned char *buf = (unsigned char *)malloc(2u * n + 1u);
+    unsigned char *control = (unsigned char *)malloc(n);
+    unsigned char *post = (unsigned char *)malloc(n);
+    uint64_t cv, ca, tv, ta;
+    unsigned cases = 0u, c;
+
+    CHECK(buf != NULL && control != NULL && post != NULL);
+    if (buf == NULL || control == NULL || post == NULL) {
+        free(buf);
+        free(control);
+        free(post);
+        return 0u;
+    }
+    CHECK(ser_load(r->data, r->size));
+    ser_run(0u, SER_PRE);
+    ser_frame(SER_PRE, &cv, &ca);
+    CHECK(p_serialize(control, n));
+    p_unload_game();
+
+    for (c = 0u; c < 13u; c++) {
+        const void *arg = buf;
+        size_t len = n;
+        struct ser_calls before, after;
+        bool ok;
+
+        memcpy(buf, r->state, n);
+        buf[n] = 0u;
+        switch (c) {
+        case 0:
+            arg = NULL;
+            break;
+        case 1:
+            len = 0u;
+            break;
+        case 2:
+            len = 63u;
+            break;
+        case 3:
+            len = n - 1u;
+            break;
+        case 4:
+            len = n + 1u;
+            break;
+        case 5:
+            memcpy(buf + n, r->state, n);
+            len = 2u * n;
+            break;
+        case 6:
+            buf[0] ^= 0x01u;
+            break;
+        case 7:
+            buf[8] ^= 0x01u;
+            break;
+        case 8:
+            buf[10] ^= 0x01u;
+            break;
+        case 9:
+            buf[20] ^= 0x01u;
+            break;
+        case 10:
+            buf[28] ^= 0x01u;
+            break;
+        case 11:
+            buf[64u + (n - 64u) / 2u] ^= 0x01u;
+            break;
+        default:
+            if (other == r) {
+                continue;
+            }
+            arg = other->state;
+            len = other->state_size;
+            break;
+        }
+        if (c == 0u) {
+            CHECK(ser_load(r->data, r->size));
+        }
+        /* The reference state puts the module at frame SER_PRE; the call under test follows. */
+        CHECK(p_unserialize(r->state, n));
+        before = ser_calls_now();
+        ok = p_unserialize(arg, len);
+        after = ser_calls_now();
+        CHECK(!ok);
+        CHECK(ser_calls_equal(before, after));
+        ser_frame(SER_PRE, &tv, &ta);
+        CHECK_EQ_HEX(tv, cv);
+        CHECK_EQ_HEX(ta, ca);
+        CHECK(p_serialize(post, n));
+        CHECK(memcmp(post, control, n) == 0);
+        ser_frames_compared += 1u;
+        cases++;
+    }
+    p_unload_game();
+    free(buf);
+    free(control);
+    free(post);
+    return cases;
+}
+
+/* D-05: a state loaded straight after load, and straight after reset, continues as saved. */
+static void check_unserialize_before_run(const struct ser_rom *r)
+{
+    enum { N = 12 };
+    size_t n = r->state_size;
+    unsigned char *s_load = (unsigned char *)malloc(n);
+    unsigned char *s_mid = (unsigned char *)malloc(n);
+    uint64_t v1[N], a1[N], v3[N], a3[N], v, a;
+    uint32_t t;
+
+    CHECK(s_load != NULL && s_mid != NULL);
+    if (s_load == NULL || s_mid == NULL) {
+        free(s_load);
+        free(s_mid);
+        return;
+    }
+    CHECK(ser_load(r->data, r->size));
+    CHECK(p_serialize(s_load, n));
+    for (t = 0u; t < N; t++) {
+        ser_frame(t, &v1[t], &a1[t]);
+    }
+    CHECK(p_serialize(s_mid, n));
+    CHECK(memcmp(s_load, s_mid, n) != 0);
+    for (t = N; t < 2u * N; t++) {
+        ser_frame(t, &v3[t - N], &a3[t - N]);
+    }
+
+    CHECK(ser_load(r->data, r->size));
+    CHECK(p_unserialize(s_load, n));
+    for (t = 0u; t < N; t++) {
+        ser_frame(t, &v, &a);
+        CHECK_EQ_HEX(v, v1[t]);
+        CHECK_EQ_HEX(a, a1[t]);
+    }
+
+    CHECK(ser_load(r->data, r->size));
+    ser_run(0u, N);
+    ser_run(N, N + 10u);
+    p_reset();
+    CHECK(p_unserialize(s_mid, n));
+    for (t = N; t < 2u * N; t++) {
+        ser_frame(t, &v, &a);
+        CHECK_EQ_HEX(v, v3[t - N]);
+        CHECK_EQ_HEX(a, a3[t - N]);
+    }
+    ser_frames_compared += 2u * N;
+    p_unload_game();
+    free(s_load);
+    free(s_mid);
+}
+
+/* D-07, D-08: the bytes are the same whichever savestate context and audio/video flags the
+   host reports. The core queries neither, so the host's query counters stay zero. */
+static void check_serialize_contexts(const struct ser_rom *r)
+{
+    static const int contexts[6] = {RETRO_SAVESTATE_CONTEXT_NORMAL,
+                                    RETRO_SAVESTATE_CONTEXT_RUNAHEAD_SAME_INSTANCE,
+                                    RETRO_SAVESTATE_CONTEXT_RUNAHEAD_SAME_BINARY,
+                                    RETRO_SAVESTATE_CONTEXT_ROLLBACK_NETPLAY,
+                                    RETRO_SAVESTATE_CONTEXT_NORMAL,
+                                    RETRO_SAVESTATE_CONTEXT_ROLLBACK_NETPLAY};
+    static const int av_flags[6] = {3, 3, 3, 3, 0, 0};
+    size_t n = r->state_size;
+    unsigned char *ref = (unsigned char *)malloc(3u * n);
+    unsigned char *got = (unsigned char *)malloc(n);
+    unsigned pass;
+
+    CHECK(ref != NULL && got != NULL);
+    if (ref == NULL || got == NULL) {
+        free(ref);
+        free(got);
+        return;
+    }
+    for (pass = 0u; pass < 6u; pass++) {
+        unsigned k;
+        host_savestate_context = contexts[pass];
+        host_av_enable = av_flags[pass];
+        CHECK(ser_load(r->data, r->size));
+        for (k = 0u; k < 3u; k++) {
+            ser_run(k * 3u, (k + 1u) * 3u);
+            if (pass == 0u) {
+                CHECK(p_serialize(ref + k * n, n));
+            } else {
+                CHECK(p_serialize(got, n));
+                CHECK(memcmp(got, ref + k * n, n) == 0);
+            }
+        }
+        p_unload_game();
+    }
+    host_savestate_context = RETRO_SAVESTATE_CONTEXT_NORMAL;
+    host_av_enable = 3;
+    ser_frames_compared += 9u;
+    free(ref);
+    free(got);
+}
+
+/* D-09: a load every frame leaves the battery span where it was, and loading the same state
+   again never moves the save generation. */
+static void check_unserialize_battery(const struct ser_rom *r)
+{
+    static uint16_t native[W * H];
+    static int16_t audio[1024];
+    nesturbator_config cfg;
+    nesturbator_frame io;
+    nesturbator *nes = NULL;
+    size_t n = r->state_size;
+    unsigned char *buf = (unsigned char *)malloc(n);
+    void *span;
+    unsigned i, loads = 0u;
+
+    CHECK(buf != NULL);
+    if (buf == NULL) {
+        return;
+    }
+    CHECK(ser_load(r->data, r->size));
+    span = p_get_memory_data(RETRO_MEMORY_SAVE_RAM);
+    CHECK(span != NULL);
+    CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 8192u);
+    ser_run(0u, 5u);
+    CHECK(p_serialize(buf, n));
+    for (i = 0u; i < 60u; i++) {
+        ser_run(5u + i, 6u + i);
+        CHECK(p_unserialize(buf, n));
+        loads++;
+        CHECK(p_get_memory_data(RETRO_MEMORY_SAVE_RAM) == span);
+        CHECK_EQ_U64(p_get_memory_size(RETRO_MEMORY_SAVE_RAM), 8192u);
+    }
+    CHECK_EQ_U64(loads, 60u);
+    p_unload_game();
+
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &nes), NESTURBATOR_OK);
+    if (nes != NULL) {
+        CHECK_EQ_U64(nesturbator_load_cartridge(nes, r->data, r->size), NESTURBATOR_OK);
+        memset(&io, 0, sizeof io);
+        io.size = (uint32_t)sizeof io;
+        io.video = native;
+        io.video_pitch = W;
+        io.audio = audio;
+        io.audio_capacity = 1024u;
+        for (i = 0u; i < 5u; i++) {
+            CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+        }
+        CHECK_EQ_U64(nesturbator_save_state(nes, buf, n), NESTURBATOR_OK);
+        loads = 0u;
+        for (i = 0u; i < 60u; i++) {
+            uint64_t before, after;
+            CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+            before = nesturbator_save_generation(nes);
+            CHECK_EQ_U64(nesturbator_load_state(nes, buf, n), NESTURBATOR_OK);
+            after = nesturbator_save_generation(nes);
+            /* nesturbator.h: a load counts once when it changes the battery bytes and not at
+               all when it leaves them alone, so the frames since the save may cost one. */
+            CHECK(after == before || after == before + 1u);
+            /* The same state again, as rewind does, never moves it. */
+            CHECK_EQ_U64(nesturbator_load_state(nes, buf, n), NESTURBATOR_OK);
+            CHECK_EQ_U64(nesturbator_save_generation(nes), after);
+            loads++;
+        }
+        CHECK_EQ_U64(loads, 60u);
+        nesturbator_destroy(nes);
+    }
+    free(buf);
+}
+
+/* D-01, D-02, D-03 with nothing to save: no content, the test card, a refused load, unload. */
+static void check_serialize_no_content(const struct ser_rom *r)
+{
+    static unsigned char bad[1] = {0x4eu};
+    unsigned char *buf = (unsigned char *)malloc(r->state_size + SER_PAD);
+    uint64_t cv[4], ca[4], tv, ta;
+    uint32_t t;
+    unsigned pass;
+    size_t i;
+
+    CHECK(buf != NULL);
+    if (buf == NULL) {
+        return;
+    }
+    for (pass = 0u; pass < 4u; pass++) {
+        bool ok;
+        p_unload_game();
+        switch (pass) {
+        case 0:
+            break;
+        case 1:
+            CHECK(p_load_game(NULL));
+            break;
+        case 2:
+            CHECK(ser_load(r->data, r->size));
+            CHECK(!ser_load(bad, sizeof bad));
+            break;
+        default:
+            CHECK(ser_load(r->data, r->size));
+            p_unload_game();
+            break;
+        }
+        CHECK_EQ_U64(p_serialize_size(), 0u);
+        memset(buf, SER_SENTINEL, r->state_size + SER_PAD);
+        ok = p_serialize(buf, r->state_size + SER_PAD);
+        CHECK(!ok);
+        for (i = 0u; i < r->state_size + SER_PAD; i++) {
+            if (buf[i] != SER_SENTINEL) {
+                CHECK_EQ_HEX(buf[i], SER_SENTINEL);
+                break;
+            }
+        }
+        CHECK(!p_unserialize(r->state, r->state_size));
+        CHECK(!p_unserialize(NULL, r->state_size));
+    }
+
+    /* The test card's frames are unchanged by the refused calls. */
+    p_unload_game();
+    CHECK(p_load_game(NULL));
+    for (t = 0u; t < 4u; t++) {
+        ser_frame(t, &cv[t], &ca[t]);
+    }
+    CHECK(p_load_game(NULL));
+    ser_run(0u, 2u);
+    {
+        struct ser_calls before = ser_calls_now(), after;
+        CHECK(!p_serialize(buf, r->state_size));
+        CHECK(!p_unserialize(r->state, r->state_size));
+        after = ser_calls_now();
+        CHECK(ser_calls_equal(before, after));
+    }
+    for (t = 2u; t < 4u; t++) {
+        ser_frame(t, &tv, &ta);
+        CHECK_EQ_HEX(tv, cv[t]);
+        CHECK_EQ_HEX(ta, ca[t]);
+    }
+    ser_frames_compared += 2u;
+    p_unload_game();
+    free(buf);
+}
+
+/* D-04: a jammed CPU does not change the size. */
+static void check_serialize_jam(void)
+{
+    static unsigned char image[16u + 16384u + 8192u];
+    size_t size;
+
+    memset(image, 0, sizeof image);
+    memcpy(image, "NES\x1a", 4u);
+    image[4] = 1u;
+    image[5] = 1u;
+    image[16] = 0x02u; /* JAM */
+    image[16u + 0x3ffau] = 0x00u;
+    image[16u + 0x3ffbu] = 0x80u;
+    image[16u + 0x3ffcu] = 0x00u;
+    image[16u + 0x3ffdu] = 0x80u;
+    image[16u + 0x3ffeu] = 0x00u;
+    image[16u + 0x3fffu] = 0x80u;
+    CHECK(ser_load(image, sizeof image));
+    size = p_serialize_size();
+    CHECK_EQ_U64(size, ser_direct_size(image, sizeof image));
+    CHECK(size != 0u);
+    p_run();
+    p_run();
+    CHECK_EQ_U64(p_serialize_size(), size);
+    p_unload_game();
+}
+
+/* libretro.host --serialize <module> <rom>... */
+static int serialize_mode(int argc, char **argv)
+{
+    struct ser_rom *roms;
+    unsigned count, i, min_refusals = 1000u, battery_roms = 0u;
+
+    if (argc < 4) {
+        fprintf(stderr, "usage: libretro.host --serialize <module> <rom>...\n");
+        return 2;
+    }
+    if (!module_open(argv[2])) {
+        fprintf(stderr, "cannot load %s\n", argv[2]);
+        return 1;
+    }
+    resolve_all();
+    CHECK_EQ_U64(missing, 0);
+    if (missing != 0) {
+        module_close();
+        CHECK_DONE();
+    }
+    count = (unsigned)(argc - 3);
+    roms = (struct ser_rom *)calloc(count, sizeof roms[0]);
+    CHECK(roms != NULL);
+    if (roms == NULL) {
+        module_close();
+        CHECK_DONE();
+    }
+    p_set_environment(env);
+    p_init();
+    p_set_video_refresh(video);
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
+    p_set_input_poll(on_poll);
+    p_set_input_state(input);
+
+    for (i = 0u; i < count; i++) {
+        roms[i].path = argv[3u + i];
+        if (!ser_prepare(&roms[i])) {
+            CHECK(0);
+            goto done;
+        }
+    }
+    check_serialize_no_content(&roms[0]);
+    check_serialize_jam();
+    for (i = 0u; i < count; i++) {
+        unsigned refusals;
+        check_serialize_size(&roms[i], &roms[(i + 1u) % count]);
+        check_serialize_writes(&roms[i]);
+        refusals = check_unserialize_rejects(&roms[i], &roms[(i + 1u) % count]);
+        if (refusals < min_refusals) {
+            min_refusals = refusals;
+        }
+        check_unserialize_before_run(&roms[i]);
+        check_serialize_contexts(&roms[i]);
+        if (strstr(roms[i].path, "M1_P128K_C128K_S8K") != NULL) {
+            check_unserialize_battery(&roms[i]);
+            battery_roms++;
+        }
+    }
+    /* D-20: counts that rule out a pass that did nothing. */
+    CHECK(count >= SER_MIN_ROMS);
+    CHECK(min_refusals >= SER_MIN_REFUSALS);
+    CHECK(ser_frames_compared >= SER_MIN_FRAMES * count);
+    CHECK_EQ_U64(battery_roms, 1u);
+    CHECK_EQ_U64(savestate_context_queries, 0u);
+    CHECK_EQ_U64(av_enable_queries, 0u);
+    printf("libretro.serialize: roms=%u min_refusals=%u frames_compared=%u battery_roms=%u "
+           "context_queries=%d av_queries=%d\n",
+           count, min_refusals, ser_frames_compared, battery_roms, savestate_context_queries,
+           av_enable_queries);
+done:
+    for (i = 0u; i < count; i++) {
+        free(roms[i].data);
+        free(roms[i].state);
+    }
+    free(roms);
+    p_deinit();
+    module_close();
+    CHECK_DONE();
+}
+
+/* ---- --runahead: a run-ahead host through the module's entry points (LR-02) ---- */
+
+/* RetroArch's single-instance run-ahead order, from docs.libretro.com/guides/runahead: run the
+   real frame, save the state, run N frames ahead, show the last of them, load the state. The
+   guide does not say whose audio is kept, so both streams are asserted: the real frames' audio
+   equals the uninterrupted run, and the last speculative frame's audio equals the uninterrupted
+   run shifted by N frames. */
+#define RA_SPECULATIVE_ORDER "run, save, run ahead, show last, load"
+
+enum rah_control {
+    RAH_NORMAL,
+    RAH_SKIP_LOAD,  /* never load the saved state */
+    RAH_STALE_LOAD, /* load the state saved one tick earlier */
+    RAH_LATE_INPUT, /* apply every input one frame late */
+    RAH_AUDIO_LEAK  /* keep the speculative frame's audio in the real stream */
+};
+
+#define RAH_MIN_ROMS 7u /* D-20: a pass over fewer ROMs than this cannot succeed */
+
+struct rah_result {
+    unsigned ticks;      /* ticks run */
+    unsigned states;     /* states compared with the oracle */
+    unsigned mismatches; /* comparisons that differed */
+    int report;          /* print the first mismatch */
+};
+
+static void rah_mismatch(struct rah_result *r, const char *what, uint32_t t)
+{
+    if (r->mismatches == 0u && r->report) {
+        fprintf(stderr, "libretro.runahead: %s differs at tick %u\n", what, (unsigned)t);
+    }
+    r->mismatches++;
+}
+
+static void rah_set_buttons(uint16_t b)
+{
+    host_buttons[0] = (uint8_t)(b & 0xffu);
+    host_buttons[1] = (uint8_t)(b >> 8);
+}
+
+/* The input the host applies at frame k of the script; the late-input control shifts it. */
+static uint16_t rah_input(const uint16_t *in, enum rah_control ctl, uint32_t k)
+{
+    if (ctl == RAH_LATE_INPUT) {
+        return k == 0u ? 0u : in[k - 1u];
+    }
+    return in[k];
+}
+
+/* The video the host showed, hashed the way the oracle hashes a frame. */
+static uint64_t rah_frame_hash(void)
+{
+    return ra_hash_words(frame, W * H);
+}
+
+static uint64_t rah_audio_hash(void)
+{
+    return ra_audio_hash_stereo(batch_samples, batch_frames);
+}
+
+/* Runs T displayed ticks of the module at depth N over the script in (T + RA_MAX_DEPTH
+   entries) and compares every tick with the oracle o (T + RA_MAX_DEPTH frames). two is NULL in
+   real-input mode, where the speculative frames get the script's real future inputs and the
+   visible frame must equal the oracle's frame t+N; otherwise it is the two-instance model's
+   visible hash per tick, and the speculative frames repeat in[t] as RetroArch does. */
+static void rah_run(const struct ser_rom *rom, unsigned N, const uint16_t *in, uint32_t T,
+                    const struct ra_oracle *o, const uint64_t *two, enum rah_control ctl,
+                    struct rah_result *res)
+{
+    size_t ss;
+    unsigned char *r_now = NULL, *r_prev = NULL, *pre = NULL;
+
+    if (!ser_load(rom->data, rom->size)) {
+        CHECK(0);
+        return;
+    }
+    ss = p_serialize_size();
+    CHECK_EQ_U64(ss, o->state_size);
+    r_now = (unsigned char *)malloc(ss);
+    r_prev = (unsigned char *)malloc(ss);
+    pre = (unsigned char *)malloc(ss);
+    if (r_now == NULL || r_prev == NULL || pre == NULL || ss != o->state_size) {
+        CHECK(0);
+        goto out;
+    }
+    CHECK(p_serialize(r_prev, ss));
+    for (uint32_t t = 0u; t < T; t++) {
+        uint64_t real_video, real_audio, spec_audio = 0u, visible;
+
+        /* The real frame: its video is dropped, its audio kept. */
+        rah_set_buttons(rah_input(in, ctl, t));
+        batch_frames = 0u;
+        p_run();
+        real_video = rah_frame_hash();
+        real_audio = rah_audio_hash();
+        if (real_video != o->video[t]) {
+            rah_mismatch(res, "real video", t);
+        }
+        CHECK(p_serialize(r_now, ss));
+        res->states++;
+        if (memcmp(r_now, o->state + (size_t)t * ss, ss) != 0) {
+            rah_mismatch(res, "saved state", t);
+        }
+
+        /* N speculative frames: their audio is dropped; the last one's video is shown. */
+        visible = real_video;
+        for (unsigned j = 1u; j <= N; j++) {
+            rah_set_buttons(rah_input(in, ctl, two != NULL ? t : t + j));
+            batch_frames = 0u;
+            p_run();
+        }
+        if (N > 0u) {
+            visible = rah_frame_hash();
+            spec_audio = rah_audio_hash();
+        }
+        if (ctl == RAH_AUDIO_LEAK) {
+            real_audio = ra_fnv_bytes(real_audio, &spec_audio, sizeof spec_audio);
+        }
+        if (real_audio != o->audio[t]) {
+            rah_mismatch(res, "real audio", t);
+        }
+        if (visible != (two != NULL ? two[t] : o->video[t + N])) {
+            rah_mismatch(res, "visible video", t);
+        }
+        if (N > 0u && two == NULL && spec_audio != o->audio[t + N]) {
+            rah_mismatch(res, "speculative audio", t);
+        }
+
+        /* The load has work to do: the state after the speculative frames is not R(t+1). */
+        if (N > 0u && ctl == RAH_NORMAL) {
+            CHECK(p_serialize(pre, ss));
+            CHECK(memcmp(pre, r_now, ss) != 0);
+        }
+        if (ctl == RAH_STALE_LOAD) {
+            CHECK(p_unserialize(r_prev, ss));
+        } else if (ctl != RAH_SKIP_LOAD) {
+            CHECK(p_unserialize(r_now, ss));
+        }
+        memcpy(r_prev, r_now, ss);
+        res->ticks++;
+    }
+    /* The final state is the uninterrupted run's. */
+    CHECK(p_serialize(r_now, ss));
+    res->states++;
+    if (memcmp(r_now, o->state + (size_t)(T - 1u) * ss, ss) != 0) {
+        rah_mismatch(res, "final state", T);
+    }
+out:
+    free(r_now);
+    free(r_prev);
+    free(pre);
+    p_unload_game();
+}
+
+/* Tallies over the whole run. expected_ticks is what the calls asked for, so a pass that
+   returned early cannot reach the counts. */
+struct rah_totals {
+    unsigned roms, ticks, states, repeat_ticks, expected_ticks, expected_repeat;
+    unsigned controls_tripped;
+};
+
+static void rah_add(struct rah_totals *tot, const struct rah_result *res, int repeat)
+{
+    if (repeat) {
+        tot->repeat_ticks += res->ticks;
+    } else {
+        tot->ticks += res->ticks;
+    }
+    tot->states += res->states;
+}
+
+/* One script over one ROM, at the depths in depth_mask (bit N is depth N; depth 0 is the
+   uninterrupted run itself and must match trivially). Each depth runs the module in real-input
+   mode against the oracle; with repeat set, depths above 0 also run in repeat mode against the
+   library's two-instance model. */
+static void rah_matrix(const struct ser_rom *rom, uint32_t T, unsigned script, unsigned depth_mask,
+                       int repeat, struct rah_totals *tot)
+{
+    uint16_t *in = ra_script_make(script, script == 1u ? RA_SEED_1 : RA_SEED_2, T + RA_MAX_DEPTH);
+    uint64_t *visible = (uint64_t *)malloc((size_t)T * sizeof *visible);
+    struct ra_oracle oracle;
+
+    CHECK(in != NULL && visible != NULL);
+    if (in == NULL || visible == NULL ||
+        !ra_run_uninterrupted(rom->data, rom->size, in, T + RA_MAX_DEPTH, &oracle)) {
+        CHECK(0);
+        free(in);
+        free(visible);
+        return;
+    }
+    for (unsigned N = 0u; N <= RA_MAX_DEPTH; N++) {
+        struct rah_result res;
+        struct ra_oracle model;
+
+        if ((depth_mask & (1u << N)) == 0u) {
+            continue;
+        }
+        memset(&res, 0, sizeof res);
+        res.report = 1;
+        rah_run(rom, N, in, T, &oracle, NULL, RAH_NORMAL, &res);
+        if (res.mismatches != 0u) {
+            fprintf(stderr, "libretro.runahead: %s script %u depth %u: %u mismatches\n", rom->path,
+                    script, N, res.mismatches);
+        }
+        CHECK_EQ_U64(res.mismatches, 0u);
+        if (N == 0u) {
+            continue;
+        }
+        rah_add(tot, &res, 0);
+        tot->expected_ticks += T;
+        if (!repeat) {
+            continue;
+        }
+        memset(&res, 0, sizeof res);
+        res.report = 1;
+        if (ra_run_two_instance(rom->data, rom->size, in, T, N, &model, visible)) {
+            rah_run(rom, N, in, T, &oracle, visible, RAH_NORMAL, &res);
+            ra_oracle_free(&model);
+        } else {
+            CHECK(0);
+        }
+        if (res.mismatches != 0u) {
+            fprintf(stderr, "libretro.runahead: %s script %u depth %u repeat: %u mismatches\n",
+                    rom->path, script, N, res.mismatches);
+        }
+        CHECK_EQ_U64(res.mismatches, 0u);
+        rah_add(tot, &res, 1);
+        tot->expected_repeat += T;
+    }
+    ra_oracle_free(&oracle);
+    free(visible);
+    free(in);
+}
+
+/* D-16: four broken hosts run through the same comparator and each must differ from the
+   uninterrupted run. A control that matches would mean the comparator proves nothing. */
+static unsigned rah_controls(const struct ser_rom *rom, uint32_t T)
+{
+    static const struct {
+        enum rah_control ctl;
+        const char *name;
+    } controls[] = {{RAH_SKIP_LOAD, "skip-load"},
+                    {RAH_STALE_LOAD, "stale-load"},
+                    {RAH_LATE_INPUT, "late-input"},
+                    {RAH_AUDIO_LEAK, "audio-leak"}};
+    unsigned tripped = 0u;
+    uint16_t *in = ra_script_make(1u, RA_SEED_1, T + RA_MAX_DEPTH);
+    struct ra_oracle oracle;
+
+    CHECK(in != NULL);
+    if (in == NULL || !ra_run_uninterrupted(rom->data, rom->size, in, T + RA_MAX_DEPTH, &oracle)) {
+        CHECK(0);
+        free(in);
+        return 0u;
+    }
+    for (unsigned i = 0u; i < sizeof controls / sizeof controls[0]; i++) {
+        struct rah_result res;
+        memset(&res, 0, sizeof res);
+        rah_run(rom, 2u, in, T, &oracle, NULL, controls[i].ctl, &res);
+        if (res.mismatches == 0u) {
+            fprintf(stderr, "libretro.runahead: control %s matched the uninterrupted run\n",
+                    controls[i].name);
+            CHECK(res.mismatches != 0u);
+        } else {
+            tripped++;
+            printf("libretro.runahead: control %s tripped (%u mismatches)\n", controls[i].name,
+                   res.mismatches);
+        }
+    }
+    ra_oracle_free(&oracle);
+    free(in);
+    return tripped;
+}
+
+/* libretro.host --runahead <module> [--short] <rom>... */
+static int runahead_mode(int argc, char **argv)
+{
+    struct rah_totals tot;
+    uint32_t T = 180u;
+    int first = 3, a;
+    unsigned depth, covered_depths = 0u, control_roms = 0u;
+    struct ser_rom *roms;
+    unsigned count = 0u, stress_images = 0u;
+    int stress = 0;
+    uint16_t *s1, *s2;
+
+    if (argc > first && strcmp(argv[first], "--short") == 0) {
+        T = 30u;
+        first++;
+    }
+    if (argc > first && strcmp(argv[first], "--stress") == 0) {
+        stress = 1;
+        first++;
+    }
+    if (argc <= first) {
+        fprintf(stderr, "usage: libretro.host --runahead <module> [--short] [--stress] <rom>...\n");
+        return 2;
+    }
+    if (!module_open(argv[2])) {
+        fprintf(stderr, "cannot load %s\n", argv[2]);
+        return 1;
+    }
+    resolve_all();
+    CHECK_EQ_U64(missing, 0);
+    if (missing != 0) {
+        module_close();
+        CHECK_DONE();
+    }
+    p_set_environment(env);
+    p_init();
+    p_set_video_refresh(video);
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
+    p_set_input_poll(on_poll);
+    p_set_input_state(input);
+
+    /* D-13: the two scripts together put a change at every alignment of every depth. */
+    s1 = ra_script_make(1u, RA_SEED_1, T + RA_MAX_DEPTH);
+    s2 = ra_script_make(2u, RA_SEED_2, T + RA_MAX_DEPTH);
+    CHECK(s1 != NULL && s2 != NULL);
+    for (depth = 1u; depth <= RA_MAX_DEPTH && s1 != NULL && s2 != NULL; depth++) {
+        int covered = ra_alignment_covered(s1, s2, T, depth);
+        CHECK(covered);
+        covered_depths += covered ? 1u : 0u;
+    }
+    free(s1);
+    free(s2);
+
+    memset(&tot, 0, sizeof tot);
+    roms = (struct ser_rom *)calloc((size_t)(argc - first), sizeof roms[0]);
+    CHECK(roms != NULL);
+    for (a = first; a < argc && roms != NULL; a++) {
+        struct ser_rom *r = &roms[count];
+        r->path = argv[a];
+        CHECK(read_file(r->path, &r->data, &r->size));
+        if (r->data == NULL) {
+            continue;
+        }
+        count++;
+        if (strstr(r->path, "nesteroids") != NULL) {
+            /* The full matrix: both scripts, depths 0 to 3, repeat mode on script 1, and the
+               four controls. */
+            rah_matrix(r, T, 1u, 0xfu, 1, &tot);
+            rah_matrix(r, T, 2u, 0xeu, 0, &tot);
+            tot.controls_tripped += rah_controls(r, T);
+            control_roms++;
+        } else {
+            /* One script per board (alternating) at the claimed bounds, depths 1 and 3. */
+            rah_matrix(r, T, 1u + (count & 1u), 0xau, 0, &tot);
+        }
+        tot.roms++;
+    }
+    /* The Phase 12 stress images keep DMA and interrupts in flight across frame boundaries. */
+    for (unsigned m = 0u; stress && m < 2u; m++) {
+        static const uint16_t mappers[2] = {0u, 4u};
+        static const char *const names[2] = {"stress-nrom", "stress-mmc3"};
+        static uint8_t image[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
+        struct ser_rom sr;
+
+        memset(&sr, 0, sizeof sr);
+        sr.path = names[m];
+        sr.size = st_stress_image(image, sizeof image, mappers[m]);
+        CHECK(sr.size != 0u);
+        sr.data = (unsigned char *)malloc(sr.size != 0u ? sr.size : 1u);
+        if (sr.data != NULL && sr.size != 0u) {
+            memcpy(sr.data, image, sr.size);
+            rah_matrix(&sr, T, 1u + m, 0xau, 0, &tot);
+            stress_images++;
+        }
+        free(sr.data);
+    }
+    /* D-20: counts that rule out a pass that did nothing. */
+    CHECK(count >= RAH_MIN_ROMS);
+    CHECK_EQ_U64(stress_images, stress ? 2u : 0u);
+    CHECK_EQ_U64(control_roms, 1u);
+    CHECK_EQ_U64(tot.controls_tripped, 4u);
+    CHECK_EQ_U64(covered_depths, RA_MAX_DEPTH);
+    CHECK_EQ_U64(tot.ticks, tot.expected_ticks);
+    CHECK_EQ_U64(tot.repeat_ticks, tot.expected_repeat);
+    CHECK(tot.ticks >= (RA_MAX_DEPTH * 2u + 2u * (count - 1u + stress_images)) * T);
+    CHECK(tot.repeat_ticks >= RA_MAX_DEPTH * T);
+    CHECK(tot.states >= tot.ticks + tot.repeat_ticks);
+    printf("libretro.runahead: order=\"%s\" roms=%u stress=%u ticks=%u repeat_ticks=%u states=%u "
+           "controls_tripped=%u\n",
+           RA_SPECULATIVE_ORDER, count, stress_images, tot.ticks, tot.repeat_ticks, tot.states,
+           tot.controls_tripped);
+    for (a = 0; a < (int)count; a++) {
+        free(roms[a].data);
+    }
+    free(roms);
+    p_deinit();
+    module_close();
+    CHECK_DONE();
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
@@ -1362,9 +2460,17 @@ int main(int argc, char **argv)
     if (argc >= 6 && strcmp(argv[1], "--rom-parity") == 0) {
         return rom_parity(argc, argv);
     }
+    if (argc >= 2 && strcmp(argv[1], "--serialize") == 0) {
+        return serialize_mode(argc, argv);
+    }
+    if (argc >= 2 && strcmp(argv[1], "--runahead") == 0) {
+        return runahead_mode(argc, argv);
+    }
     if (argc != 6) {
         fprintf(stderr, "usage: libretro.host --rom-parity <module> <rom> <frames> <ppm> "
                         "[--movie FILE] [--testcard PPM] [--sav-in FILE] [--sav-expect FILE]\n"
+                        "       libretro.host --serialize <module> <rom>...\n"
+                        "       libretro.host --runahead <module> [--short] <rom>...\n"
                         "       libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
                         "<generated.nes>\n");
         return 2;

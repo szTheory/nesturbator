@@ -1,0 +1,3 @@
+# Fixture only: the second entry has no comment line above it.
+any	^\[ERROR\] failed_to_start_audio_driver
+any	^\[WARN\] example

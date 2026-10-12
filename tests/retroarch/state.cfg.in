@@ -1,0 +1,36 @@
+# State-session keys, appended to test.cfg.in by run_retroarch.cmake's state mode (D-26).
+# RetroArch ignores a key it does not know, so each key names the outcome check that confirms
+# it took effect. Key names are those of the retroarch.cfg template in RetroArch v1.22.2.
+
+# The command interface on its default port: the log check requires the [NetCMD] line in every
+# state lane, which shows the key took effect.
+network_cmd_enable = "true"
+network_cmd_port = "55355"
+
+# Fixes the language the network-command replies and the menu use; confirmed by the replies the
+# network lanes parse.
+user_language = "0"
+
+# Rewind is on at one frame per step. Confirmed by the rewind lanes, which require the frame
+# counter to move back by about one frame per REWIND command.
+rewind_enable = "true"
+rewind_granularity = "1"
+# rewind_buffer_size is deliberately not set: the default rewind buffer initialises on RetroArch
+# 1.22.2 (13-RESEARCH 3a), and the rewind lanes prove rewind works.
+
+# Run-ahead is off in the config; a lane turns it on with an override of the next key, and the
+# screenshot frame (120 plus the lead) confirms the setting and the .info level.
+run_ahead_enabled = "false"
+run_ahead_frames = "1"
+# Confirmed by ra_state_outcome_checks: no core library copy exists outside RA_DIR/cores and the
+# lane log has no secondary-instance marker.
+run_ahead_secondary_instance = "false"
+
+# Confirmed by the state file's core magic at offset 16 (an uncompressed state file).
+savestate_file_compression = "false"
+
+# Confirmed by the network lanes: one QUIT exits.
+quit_press_twice = "false"
+
+# Confirmed by ra_state_outcome_checks: no .png exists under RA_DIR/states.
+savestate_thumbnail_enable = "false"

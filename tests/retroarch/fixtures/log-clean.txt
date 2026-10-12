@@ -1,0 +1,5 @@
+[INFO] RetroArch 1.22.2 starting
+[INFO] [NetCMD] bringing_up_command_interface_at_port 55355.
+[INFO] [Rewind] Initializing rewind buffer with size: 20 MB
+[ERROR] failed_to_start_audio_driver
+[INFO] [Core] Loading dynamic libretro core

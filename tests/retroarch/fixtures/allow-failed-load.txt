@@ -1,0 +1,4 @@
+# Fixture only: an entry that would excuse a failed load, to show it is never excused.
+any	^\[ERROR\] Failed to load state
+# Audio driver line.
+any	^\[ERROR\] failed_to_start_audio_driver

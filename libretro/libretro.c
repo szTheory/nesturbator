@@ -239,24 +239,33 @@ void retro_run(void)
     }
 }
 
-/* L7707: size 0 means no save states. */
+/* L7707 retro_serialize_size, followed by retro_serialize and retro_unserialize. The state is
+   the library's fixed-size, platform-independent save state (nesturbator.h, "Save states"), so
+   the three entry points only translate its status codes to the size and bool the frontend
+   expects. The size is 0 with no content and for the test card, because neither has a
+   cartridge to save; with content it is constant for the loaded board. Only the exact size
+   loads, and a refused load leaves the running game unchanged. The core sets no serialization
+   quirks and ignores the savestate context and the audio/video enable flags, so the bytes are
+   the same whichever the frontend reports. The same bytes serve RetroArch's rewind and its
+   single-instance run-ahead (save, run ahead, load every frame); because the savestate context
+   is ignored, run-ahead's second instance, rollback netplay and every other context get them
+   too. The format is fixed little-endian and byte-identical on every platform, while
+   libretro.h L5695-5707 asks the rollback-netplay context for big-endian integers, and netplay
+   has no end-to-end test here. inst is NULL before retro_init, which both library calls
+   accept. */
 size_t retro_serialize_size(void)
 {
-    return 0;
+    return nesturbator_state_size(inst);
 }
 
 bool retro_serialize(void *data, size_t len)
 {
-    (void)data;
-    (void)len;
-    return false;
+    return nesturbator_save_state(inst, data, len) == NESTURBATOR_OK;
 }
 
 bool retro_unserialize(const void *data, size_t len)
 {
-    (void)data;
-    (void)len;
-    return false;
+    return nesturbator_load_state(inst, data, len) == NESTURBATOR_OK;
 }
 
 void retro_cheat_reset(void)

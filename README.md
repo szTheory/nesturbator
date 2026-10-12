@@ -230,6 +230,20 @@ that same entry point with Clang libFuzzer and ASan/UBSan, then runs it for a
 bounded minute. The corpus is manifest-listed and local; CI does not download
 ROMs or fuzz seeds.
 
+`fuzz.state.regress` does the same for the save-state loader: it replays the
+committed seeds in `tests/fuzz/corpus_state` through `nesturbator_load_state` on
+every CI platform. Each seed is a few bytes, not a state. The harness picks one
+of twelve synthetic carts (six boards, each with its smallest and largest PRG and
+CHR) built from an integer generator, so the corpus holds no ROM bytes, saves a
+state, patches it, repairs the fields a load checks first and its checksum, and
+loads the result. A refused load must leave the instance unchanged; an accepted
+one must run, save and reload, give the same frames and audio in two instances,
+and save back to the loaded bytes with the library's behaviour revision.
+`fuzz.state` requires every committed seed to equal what the harness generates
+(`fuzz.state_loader --write-seeds DIR` writes them and prints their manifest
+lines) and every `valid-*` seed to load. The same source builds as the libFuzzer
+target `fuzz.state.libfuzzer` when `NESTURBATOR_LIBFUZZER` is on.
+
 The `abi` tests hold the core to integer arithmetic and the C memory
 functions: a text scan of `src/` and `include/` for `float`, `double` and
 decimal or hex floating literals, with a self-test that it finds `1.5`,
@@ -396,6 +410,13 @@ unload and reload.
 `cmake_minimum_required(VERSION 3.25)`, so each CMake release reads it the
 same way. `libretro.vendored`
 checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
+`libretro.info_claims` parses `libretro/nesturbator_libretro.info` and requires
+the exact capability keys and pinned values, a `savestate_features` whenever
+`savestate = "true"`, and no duplicate or unknown key; its self-test feeds it
+bad files. `libretro.info_claims.self_test` also configures a scratch project to
+show the guard in `tests/CMakeLists.txt`: configuring fails when the `.info`
+claims a save-state level whose proving tests are not registered.
+`libretro.no_quirks` is described with the libretro core above.
 `libretro.host` loads the built libretro core at run time, calls it in the
 order RetroArch does, and checks that the frame it receives equals the
 runner's dumped image pixel for pixel, plus four colours written into the
@@ -407,6 +428,16 @@ each to read back equal. It also requires a 257x240 or 256x239 image to fail
 on size, one colour channel of pixel (17,200) off by one to be reported as
 `first difference at 17,200`, and truncated or malformed files to be
 rejected. `retroarch.compare.cli` runs `compare_frame` on an equal pair.
+`retroarch.frame_index` dumps frame 37 of Nesteroids with the runner and requires
+`frame_index`, the tool that finds a screenshot among the runner's frames 1..W
+by RGB, to report 37; `retroarch.frame_index.dups` requires every repeated
+frame in 1..1200 to have its partner at most 3 frames before it.
+`retroarch.log_check` and its `.serialized`, `.unlisted_error`, `.rewind_warn`,
+`.level_serialized`, `.level`, `.no_netcmd`, `.failed_load` and `.uncommented`
+variants run `tests/retroarch/log_check.cmake` on fixture logs: a clean log
+passes, and an unlisted `[ERROR]` line, a `[Rewind]` warning, a line allowlisted
+only for `serialized` when checked at `deterministic`, a missing `[NetCMD]` line,
+a failed state load and an allowlist entry without its comment all fail.
 `palette.regen` rebuilds the colour table with `tools/palgen` and
 checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
 `vecconv.a9` converts the first three upstream `a9` (LDA immediate) tests in
@@ -618,7 +649,10 @@ lists its failing keys (`mmc3_test_2/<name>`, `mmc3_irq_tests/<name>`,
 and inventory scripts, `src/mapper_mmc3.c`, `src/mapper.h`, `src/ppu.c`,
 `src/cartridge.c` or `src/bus.c` run it too. The hygiene test
 `hygiene.nightly_workflow_policy` checks each lane on its own job text, and its
-self test mutates both lanes. The ROM
+self test mutates both lanes. The nightly `state-fuzz` job runs
+`fuzz.state.libfuzzer` for 60 s on the committed `tests/fuzz/corpus_state` and
+reports in the rolling nightly issue; a crash it finds becomes a `regress-`
+seed in the fixing PR. The ROM
 loader fuzz outcome is recorded in the job summary and included in
 scheduled and main-push failure issues. It uses GitHub's per-job token: the
 full-run job has only `contents: read`, and only the report job has
@@ -1238,6 +1272,49 @@ save moves between RetroArch and `nesturbator-run --save-dir` by renaming it.
 and `retro_reset`, and that its bytes equal those of a direct-API instance run
 for the same frames.
 
+`retro_serialize_size`, `retro_serialize` and `retro_unserialize` use the
+library's save state (`nesturbator_state_size`, `nesturbator_save_state`,
+`nesturbator_load_state`). The size is 0 with no content and for the test card,
+and otherwise the fixed size of the loaded board. Only a buffer of exactly that
+size loads, and a refused load changes nothing: the next frame and the next
+state equal those of a run that never made the call. The core sets no
+serialization quirks, ignores the savestate context and the audio/video enable
+flags, and keeps no state of its own for these calls, so the bytes are the same
+whatever the frontend reports. `libretro.serialize` checks this through the
+built module on five ROMs: the sizes, the exact write length, thirteen refused
+buffers, a load straight after `retro_load_game` and after `retro_reset`,
+every savestate context, and a load every frame on a battery ROM. A load
+counts once in `nesturbator_save_generation` when it changes the battery bytes
+and never when loading the same state again. `libretro.no_quirks` fails if
+`libretro/libretro.c` names the quirks command or the context query.
+`libretro/nesturbator_libretro.info` declares `savestate = "true"` with
+`savestate_features = "deterministic"`, the highest of RetroArch's levels
+(`basic`, `serialized` for rewind, `deterministic` for run-ahead). RetroArch
+applies it only when the core sits in its `cores` directory beside the info
+file. The level is backed by `libretro.serialize`, `libretro.runahead` and
+`core.state_runahead`, and configuring the tests fails if the info file claims a
+level whose tests are not registered. RetroArch uses the deterministic level for
+run-ahead and netplay. Run-ahead is proven by the simulated host and the
+RetroArch end-to-end run. The state format is fixed little-endian and
+byte-identical on all six platforms. Netplay itself has no end-to-end test here.
+
+`libretro.runahead` runs the built module as a run-ahead host: per displayed
+frame it runs the real frame, saves, runs one to three frames ahead, shows the
+last and loads the saved state, through the real `retro_*` entry points on seven
+ROMs and the two synthetic stress programs. Two fixed-seed input scripts change
+the buttons on every alignment of the cycle, including the frame right after a
+load. The shown frames, the real frames' audio, the last speculative frame's
+audio, the state bytes at every frame boundary and the final state must equal an
+uninterrupted run, and a repeat mode that gives the speculative frames the
+current input, as RetroArch does, must equal a two-instance library model. Four
+broken hosts (no load, a stale load, input one frame late, speculative audio in
+the real stream) run through the same comparison and each must differ.
+`core.state_runahead` checks RetroArch's second-instance mode as a library
+property: one instance runs the real timeline, a second loads its state each
+frame and runs ahead, and the shown frames equal a single instance that saves,
+runs ahead and loads. Together with `libretro.serialize` they back the
+deterministic claim.
+
 `libretro/nesturbator_libretro.info` is the core information file. It goes in
 RetroArch's `info` directory beside the core in `cores`, and declares
 `supports_no_game = "true"`, which lets RetroArch start the core without
@@ -1315,6 +1392,21 @@ the runner's frames and different from each other. `run_retroarch.cmake` takes
 `-DSAVE_SIZE=<bytes>` for the exact `.srm` size (default 32768); anything but
 a positive integer is an error.
 
+`run_retroarch.cmake` also has a state mode (`-DSTATE_ROM`, with `-DFRAME_INDEX`
+and `-DSTATE_TEMPLATE`) for the rewind and run-ahead claim. It copies the core
+into RetroArch's cores directory beside the `.info`, because RetroArch applies
+the `.info` savestate level only to a core found there, and loads that copy. The
+expected run-ahead lead comes from the `.info` under test (the
+`run_ahead_frames` value for `deterministic`, 0 for `serialized`), and the
+screenshot must show it: lane `state-base` shows the runner's frame 120, lane
+`state-ahead` shows frame 120 plus the lead. `frame_index` identifies each
+screenshot among the runner's frames. After every lane the mode checks that no
+thumbnail was written and that no second core instance was set up, and it fails
+on any RetroArch `[ERROR]` line, or any rewind or run-ahead warning, that is not
+in the measured allowlist `tests/retroarch/log_allowlist.txt`. Each allowlist
+entry names the savestate level it is valid for and carries a comment saying
+where it was measured on RetroArch 1.22.2.
+
 The official RetroArch v1.22.2 macOS release is
 [`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),
 universal for arm64 and x86_64, with measured SHA-256
@@ -1327,6 +1419,15 @@ and runner frame, and both save round trips' screenshots, runner frames and
 `.srm` files (`M1_P512K_CR8K_S32K.srm` and `m4tkrom.srm`), in the `retroarch-e2e-frames` artifact. Missing assets, changes
 to the real home directory, startup errors, and frame mismatches fail the
 required CI check. No manual screenshot or gameplay check is needed.
+
+The job's state step saves and loads with RetroArch's auto-save and auto-load,
+then drives one paused session over RetroArch's network commands to save, load,
+rewind and step with run-ahead. A network command is a per-loop flag, not a
+queue, so the session sends one command at a time and confirms each by a new
+screenshot. It checks every screenshot against the runner's frames (a screenshot
+identifies the set of runner frames it equals, and each step must follow from the
+last), the saved state file's container and size, and every RetroArch log. On
+failure the `retroarch-e2e-state` artifact keeps the screenshots, states and logs.
 
 ## What it will be
 
