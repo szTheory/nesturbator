@@ -36,7 +36,7 @@ Verification ran in the main checkout (`workflow.use_worktrees` is false): `cmak
 **Commit:** 68f8f44
 **Applied fix:** The allow file is read with `file(READ)`, the characters `[`, `]` and `;` are replaced with `_`, then it is split on newlines. Added selftests `allow_reason_semicolon`, `allow_reason_bracket` and `allow_bracket_then_malformed`. The last one checks that line numbers stay right after a line with `[`. The selftest writes these characters through `@SEMI@`, `@LB@` and `@RB@` placeholders because macro arguments would split on them.
 
-### WR-03: An inherited SIG_IGN is honoured but not documented
+### WR-03: An inherited SIG_IGN is honoured but not documented, and it can hang the stop tests
 
 **Files modified:** `README.md`, `runner/stop.h`
 **Commit:** 5845467
