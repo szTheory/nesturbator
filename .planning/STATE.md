@@ -5,17 +5,17 @@ milestone_name: Save states and rewind
 current_phase: 15
 current_phase_name: Speed and close-out
 status: executing
-stopped_at: Phase 15 context gathered
-last_updated: "2026-10-13T02:32:03.521Z"
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-10-13T02:35:59.542Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 15 execution started
-state_head: 4277205597c0fefccbe92ca7a1f3f260710c9526
+state_head: f6e20a0083ddf12c91c02e20ae87dbada435c789
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 38
-  completed_plans: 30
-  percent: 79
+  completed_plans: 31
+  percent: 80
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 15 (Speed and close-out) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 15
+Plan: 2 of 8
+Status: Ready to execute
 Last activity: 2026-10-12 — Phase 15 execution started
 
-Progress: [████████░░] 79%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -186,6 +186,7 @@ Progress: [████████░░] 79%
 | Phase 14 P06 | 50 min | 3 tasks | 5 files |
 | Phase 14 P07 | 75 min | 2 tasks | 4 files |
 | Phase 14 P08 | 20 min | 2 tasks | 1 files |
+| Phase 15 P01 | 25m | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -279,6 +280,7 @@ Recent decisions affecting current work:
 - [Phase 14]: 14-06: --load-state open and read retry on EINTR so a stop never aborts a load
 - [Phase 14]: 14-07: runner.stop.win_console (real Ctrl+Break through the runner's own console) passed on both hosted Windows legs and is kept; draft PR #45
 - [Phase 14]: 14-08: signal TIMEOUT 2 s and win_console TIMEOUT 1 s from CI run 38322038900; D-15 2000 ms held on all legs, no fix needed
+- [Phase 15]: Signal-test TIMEOUTs are 30 s hang detectors, not 10 s (10 s fires inside helper deadlines)
 
 ### Pending Todos
 
@@ -329,9 +331,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T00:53:09.794Z
-Stopped at: Phase 15 context gathered
-Resume file: .planning/phases/15-speed-and-close-out/15-CONTEXT.md
+Last session: 2026-10-13T02:35:59.498Z
+Stopped at: Completed 15-01-PLAN.md
+Resume file: None
 
 Next GSD command: `/gsd-execute-phase 15`.
 

@@ -202,9 +202,9 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   3. The +1% per-ROM gate is armed only after identical builds show zero spread, and a deliberate slowdown passes with a reviewed line in the allow file.
   4. The nightly suite-flake timeout is about twice a measured cold run of the v3 suite, action pins, runner labels and the AccuracyCoin pin are reviewed, and the README and public header describe the released code.
 
-**Plans**: 8 plans
+**Plans**: 1/8 plans executed
 **Wave 1**
-- [ ] 15-01-PLAN.md — Two-way `--help`/README option check, Phase 14 WR-01 to WR-03 fixed, disposition closed (TUNE-10)
+- [x] 15-01-PLAN.md — Two-way `--help`/README option check, Phase 14 WR-01 to WR-03 fixed, disposition closed (TUNE-10)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 15-02-PLAN.md — `--bench N`: clock and percentile modules, report helper, no-hash-change, format and percentile tests (PERF-03)
@@ -226,6 +226,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 
 **Wave 8** *(blocked on Wave 7 completion)*
 - [ ] 15-08-PLAN.md — Final tree settled, three nightly cold runs, measured timeouts, timeout lint, final green head (TUNE-10)
+
 **Notes**: TUNE-10 sits last so its cold run includes every v3 test. This absorbs Backlog 999.1 (nightly suite-flake timeout).
 
 ## Backlog
@@ -240,4 +241,4 @@ Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured col
 | 12. Save states in the library | v3 | 10/10 | Complete    | 2026-10-12 |
 | 13. Rewind and run-ahead in RetroArch | v3 | 8/8 | Complete    | 2026-10-12 |
 | 14. Runner process contract | v3 | 8/8 | Complete    | 2026-10-12 |
-| 15. Speed and close-out | v3 | 0/8 | Planned | - |
+| 15. Speed and close-out | v3 | 1/8 | In Progress | - |
