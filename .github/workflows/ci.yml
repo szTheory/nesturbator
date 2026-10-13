@@ -10,6 +10,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      control:
+        description: "perf control run: build this commit twice and compare it with itself (D-15)"
+        type: boolean
+        default: false
   workflow_call:
 
 # No trigger-level path filter: a workflow skipped by paths leaves the
@@ -303,6 +308,101 @@ jobs:
             build/retroarch-e2e/run-save-mmc3/shot-s2.bmp
             build/retroarch-e2e/run-save-mmc3/saves/m4tkrom.srm
           if-no-files-found: error
+
+  # Instruction-count comparison (PERF-02, D-08 to D-13), report mode (D-13).
+  # It compares the pull request's merge commit with its first parent under
+  # Cachegrind and writes the table to the job summary and the log.
+  # To arm it: remove the job-level continue-on-error, switch the compare step
+  # to MODE=gate and add perf to ci-required's needs with the push/workflow_call
+  # exception (see 15-PERF-PROOF.md). In report mode a failure shows a red
+  # check but does not fail CI required.
+  perf:
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.control)
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    timeout-minutes: 15 # provisional (research estimate 5-8 min); set to twice the first measured cold run in 15-08
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Toolchain and valgrind
+        run: |
+          echo "CC=gcc-14" >> "$GITHUB_ENV"
+          echo "CXX=g++-14" >> "$GITHUB_ENV"
+          command -v ninja || { sudo apt-get update && sudo apt-get install -y ninja-build; }
+          sudo apt-get update
+          sudo apt-get install -y valgrind
+      - name: Build base and head
+        env:
+          CC: gcc-14
+          CXX: g++-14
+        run: |
+          set -u
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            base=$(git rev-parse HEAD)
+          elif [ "$(git rev-list --parents -n1 HEAD | wc -w)" -eq 3 ]; then
+            base=$(git rev-parse 'HEAD^1')
+          else
+            base=
+          fi
+          echo "HEAD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/bin/base" "$RUNNER_TEMP/bin/head" "$RUNNER_TEMP/perf"
+          cmake --preset ci
+          cmake --build --preset ci --target nesturbator-run
+          cp build/ci/runner/nesturbator-run "$RUNNER_TEMP/bin/head/nesturbator-run"
+          base_failed=1
+          if [ -n "$base" ]; then
+            echo "BASE_SHA=$base" >> "$GITHUB_ENV"
+            git worktree add --detach "$RUNNER_TEMP/base" "$base"
+            if (cd "$RUNNER_TEMP/base" && cmake --preset ci && cmake --build --preset ci --target nesturbator-run) &&
+               cp "$RUNNER_TEMP/base/build/ci/runner/nesturbator-run" "$RUNNER_TEMP/bin/base/nesturbator-run"; then
+              base_failed=0
+            fi
+          fi
+          if [ "$base_failed" -eq 1 ]; then
+            echo "::warning::base build unavailable; rows will be n/a"
+          fi
+          echo "BASE_FAILED=$base_failed" >> "$GITHUB_ENV"
+      # Both binaries run from equal-length paths and an empty environment so
+      # the instruction counts do not depend on path or environment size.
+      - name: Measure under Cachegrind
+        run: |
+          set -u
+          for rom in nesteroids:tests/roms/nesteroids.nes runner:tests/roms/runner.nes M4_P256K_C256K:tests/roms/hm/M4_P256K_C256K.nes; do
+            name=${rom%%:*}
+            path="$GITHUB_WORKSPACE/${rom#*:}"
+            for who in base_a base_b head; do
+              case "$who" in
+                base_*) [ "$BASE_FAILED" = 0 ] || continue; bin="$RUNNER_TEMP/bin/base/nesturbator-run" ;;
+                *) bin="$RUNNER_TEMP/bin/head/nesturbator-run" ;;
+              esac
+              for n in 60 360; do
+                out="$RUNNER_TEMP/perf/${who}_${name}_${n}.out"
+                err="$RUNNER_TEMP/perf/${who}_${name}_${n}.err"
+                if ! env -i PATH=/usr/bin:/bin valgrind --tool=cachegrind --cache-sim=no \
+                    --cachegrind-out-file="$out" "$bin" --rom "$path" --frames "$n" >/dev/null 2>"$err"; then
+                  echo "::warning::valgrind failed for $who $name $n"
+                  tail -n 20 "$err"
+                  rm -f "$out"
+                fi
+              done
+            done
+          done
+      - name: Compare
+        run: |
+          set +e
+          cmake -DMODE=report -DDIR="$RUNNER_TEMP/perf" -DALLOW=tests/perf/allow.txt \
+            -DOUT="$RUNNER_TEMP/perf/summary.md" -DBASE_SHA="${BASE_SHA:-}" -DHEAD_SHA="$HEAD_SHA" \
+            -DVALGRIND_VERSION="$(valgrind --version)" -DGCC_VERSION="$(gcc-14 --version | head -n1)" \
+            -P tests/cmake/perf_compare.cmake
+          status=$?
+          if [ -f "$RUNNER_TEMP/perf/summary.md" ]; then
+            tee -a "$GITHUB_STEP_SUMMARY" < "$RUNNER_TEMP/perf/summary.md"
+          fi
+          exit "$status"
 
   # The one required check. GitHub reports a skipped job as success and skips
   # a job whose dependency failed, so this runs always and requires every
