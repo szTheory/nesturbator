@@ -1,0 +1,7 @@
+jobs:
+  first:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3 # not yet measured
+  second:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5

@@ -1,0 +1,9 @@
+jobs:
+  first:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1 # twice run 38329002573 (5 s)
+  second:
+    runs-on: ubuntu-24.04
+    # Twice the slowest of two cold runs: 30 s in run 38329002573
+    # (runs 38329002573, 38329002574).
+    timeout-minutes: 2

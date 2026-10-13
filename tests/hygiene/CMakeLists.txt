@@ -26,6 +26,17 @@ add_test(NAME hygiene.action_pins.good
   COMMAND ${CMAKE_COMMAND} -DROOT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures
     -DFILE=pins_good.yml -P ${pins})
 
+# Every timeout-minutes line names the run it was measured from. The two
+# fixtures show the check fails on a bare value and passes on a run ID.
+set(timeouts ${PROJECT_SOURCE_DIR}/tests/cmake/timeout_comments.cmake)
+add_test(NAME hygiene.timeout_comments.bad
+  COMMAND ${CMAKE_COMMAND} -DROOT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures
+    -DFILE=timeouts_bad.yml -P ${timeouts})
+set_tests_properties(hygiene.timeout_comments.bad PROPERTIES WILL_FAIL TRUE)
+add_test(NAME hygiene.timeout_comments.good
+  COMMAND ${CMAKE_COMMAND} -DROOT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures
+    -DFILE=timeouts_good.yml -P ${timeouts})
+
 # The nightly full-vector lane must remain cold, non-skippable and least
 # privileged. Synthetic mutations exercise the same classifier as the file.
 add_test(NAME hygiene.nightly_workflow_policy
@@ -53,6 +64,7 @@ add_test(NAME hygiene.format
 
 set_tests_properties(
   hygiene.tree hygiene.scan_selftest hygiene.action_pins hygiene.action_pins.bad hygiene.action_pins.good
+  hygiene.timeout_comments.bad hygiene.timeout_comments.good
   hygiene.nightly_workflow_policy hygiene.nightly_workflow_policy.selftest hygiene.format
   hygiene.ci_required_rollup
   PROPERTIES LABELS hygiene)
