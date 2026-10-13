@@ -312,7 +312,7 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - [Phase 12] Code review closed (12-REVIEW-DISPOSITION.md): CR-01 tick ceiling, WR-01 runner exit 2 before ROM load and IN-01 fixed; WR-02 skipped, as `halted_in_read` is never written and its bound must widen if stalled reads are modelled. Six-platform state hash equality is shown only by the Phase 12 PR's CI matrix.
 - [Phase 13] Code review left 3 warnings and 5 info open, all in test code (13-REVIEW-DISPOSITION.md): WR-01 state-net frame-chain checks tolerate a dropped or doubled FRAMEADVANCE; WR-02 state_session.sh resends only the second SAVE_STATE; WR-03 special-case ROMs matched by substring of the full path. PR #44 squash-merged as db0f21c after the asan run-ahead budget fix (6fbfa5a).
 - [Phase 14] Code review closed (14-REVIEW-DISPOSITION.md): WR-01 to WR-03 fixed in 15-01 (`sigaction`-style handler honouring an inherited SIG_IGN, 30 s signal TIMEOUTs, README stdout-drain advice). PR #45 squash-merged as 6f08c6c.
-- [Phase 15] Code review left 4 warnings and 3 info open (15-REVIEW-DISPOSITION.md): WR-01 `perf_compare.cmake` gate mode passes a missing head as n/a when the base is also missing (contradicts the documented rule; no selftest); WR-02 `file(STRINGS)` splits allow-file reasons on `;` and mangles `[`/`]`; WR-03 README and `stop.h` do not say an inherited SIG_IGN stays ignored (rule 6); WR-04 one-minute timeouts on network jobs rest on one sample. Verifier passed 4/4 and judged WR-01 a warning. PR #46 is draft and green.
+- [Phase 15] Code review closed except WR-04 (15-REVIEW-DISPOSITION.md, 15-REVIEW-FIX.md): WR-01 gate fails a missing head even without a base and WR-02 allow-file reasons survive `;` and `[`/`]` (68f8f44, four new selftests); WR-03 README and `stop.h` document the inherited SIG_IGN (5845467). WR-04 skipped: one-minute network-job timeouts rest on one sample and need more measured runs; IN-01 to IN-03 open.
 - [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
@@ -350,10 +350,10 @@ Last session: 2026-10-13
 Stopped at: Phase 15 complete, milestone v3 ready to close (review fixes first)
 Resume file: None
 
-Next GSD command: `/gsd-code-review 15 --fix`.
+Next GSD command: `/gsd-audit-milestone` (after PR #46 is squash-merged).
 
 ## Operator Next Steps
 
 - Phase 15 executed and verified (8/8 plans, 15-VERIFICATION.md passed); PR #46 left draft on gsd/phase-15-speed-and-close-out
-- Fix the four open review warnings on the phase branch with /gsd-code-review 15 --fix, then squash-merge PR #46
+- Review fixes landed (WR-01..03; WR-04 needs more timeout samples); squash-merge PR #46 once CI is green
 - Then audit and close milestone v3 (/gsd-audit-milestone, /gsd-complete-milestone v3)
