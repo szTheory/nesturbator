@@ -237,7 +237,7 @@ if(NOT WIN32)
   add_test(NAME runner.signal.scratch
     COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_CURRENT_BINARY_DIR}/signal_work)
   set_tests_properties(runner.signal.scratch PROPERTIES FIXTURES_SETUP runner_signal_scratch)
-set(NESTURBATOR_SIGNAL_TIMEOUT 2)  # runner_signal_case timeout: twice the slowest hosted run: CI run 38322038900 (build (macos-15, ci, macos, arm64)), ENGINEERING section 5
+  set(NESTURBATOR_SIGNAL_TIMEOUT 30)  # hang detector, not a performance budget: above the helper's 10 s ready and 5 s exit deadlines; the 2 s stop bound is the helper's STOP_LIMIT_MS (D-20, 14-REVIEW WR-02)
   function(runner_signal_case case)
     add_test(NAME runner.signal.${case}
       COMMAND runner.signal $<TARGET_FILE:nesturbator-run> ${NESTURBATOR_SAVE_FIXTURE}
@@ -275,7 +275,7 @@ if(WIN32)
     COMMAND runner.stop_console $<TARGET_FILE:nesturbator-run> ${NESTURBATOR_SAVE_FIXTURE}
       ${CMAKE_CURRENT_BINARY_DIR}/console_work)
   set_tests_properties(runner.stop.win_console PROPERTIES
-    FIXTURES_REQUIRED runner_save TIMEOUT 1 LABELS exit_status)  # twice the slowest hosted run: CI run 38322038900 (build (windows-2025, ci-msvc, windows, x64)), ENGINEERING section 5
+    FIXTURES_REQUIRED runner_save TIMEOUT 30 LABELS exit_status)  # hang detector, not a performance budget: above the helper's 20 s save, 2 s attach and 5 s exit waits (D-20, 14-REVIEW WR-02)
 endif()
 
 # D-04, D-11: --raise-after usage errors exit 2 and name the option.

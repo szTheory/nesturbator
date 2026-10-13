@@ -1235,7 +1235,7 @@ Exit status: see [Exit status](#exit-status).
 
 ### Stopping the runner
 
-On SIGTERM or SIGINT the runner finishes the current frame, writes the battery save and exits 0, or 1 if the save could not be written. It prints one stop line on standard error and adds nothing to standard output. The stop is seen between frames, also before the first frame when the request arrives while the cartridge loads; a load error keeps its own exit status. The save goes through the same temp-and-rename write as any other, so it is never torn. A second signal at any time, including during the flush, ends the runner at once.
+On SIGTERM or SIGINT the runner finishes the current frame, writes the battery save and exits 0, or 1 if the save could not be written. It prints one stop line on standard error and adds nothing to standard output. The stop is seen between frames, also before the first frame when the request arrives while the cartridge loads; a load error keeps its own exit status. The save goes through the same temp-and-rename write as any other, so it is never torn. A second signal at any time, including during the flush, ends the runner at once. A launcher on Linux or macOS must keep reading the runner's standard output, or redirect it to a file, because a full pipe holds the runner in a write and delays the stop until the write returns.
 
 On Linux and macOS the `runner.signal.*` tests send real SIGTERM and SIGINT from another process and require exit 0 within 2 s with the whole save and no temp file, and a second SIGTERM to end a runner that is blocked writing to a full pipe. They also show that a signal during loading leaves a load error's status in charge, and that a second SIGTERM ends a runner held inside its exit flush.
 
