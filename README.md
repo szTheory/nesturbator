@@ -1527,14 +1527,18 @@ and runner frame, and both save round trips' screenshots, runner frames and
 to the real home directory, startup errors, and frame mismatches fail the
 required CI check. No manual screenshot or gameplay check is needed.
 
-The job's state step saves and loads with RetroArch's auto-save and auto-load,
-then drives one paused session over RetroArch's network commands to save, load,
-rewind and step with run-ahead. A network command is a per-loop flag, not a
-queue, so the session sends one command at a time and confirms each by a new
-screenshot. It checks every screenshot against the runner's frames (a screenshot
-identifies the set of runner frames it equals, and each step must follow from the
-last), the saved state file's container and size, and every RetroArch log. On
-failure the `retroarch-e2e-state` artifact keeps the screenshots, states and logs.
+The job's state step saves and loads with RetroArch's auto-save and auto-load.
+The network evidence driver starts with a bounded tracer: it pauses, attributes
+two captures to that paused state, retains and validates the native origin, sends
+one frame advance, and checks the next capture with the shared production
+progression verdict. Each attempt has a unique owned tree and exclusive local
+command-port lock. Only an exact read-only readiness response may retry; action
+and screenshot requests are one-shot. Monotonic elapsed deadlines supervise
+child processes and image publication. The readiness response names the
+attempt's isolated save directory, and screenshots are evidence of displayed
+frames rather than proof of UDP delivery. `PREFIX_OK` qualifies this observed
+slice only; complete session success requires the separate full progression
+verdict. The `retroarch-e2e-state` artifact keeps screenshots, states and logs.
 
 The separate `MARKER_GATE=ON` state invocation qualifies an owned generated NROM
 counter before exact network assertions are expanded. `retroarch.marker.qualify`
