@@ -1,12 +1,12 @@
 ---
 gsd_state_version: "1.0"
 milestone: v3
-status: Awaiting release verification
-stopped_at: Quick task 261013-g9z shipped in PR 48; release verification follows
-last_updated: "2026-10-13T16:09:17.191Z"
+status: Awaiting next milestone
+stopped_at: Quick task 261013-hpi reconciled historical records; v0.1.10 publication verified
+last_updated: "2026-10-13T17:01:48.354Z"
 last_activity: 2026-10-13
-last_activity_desc: Opened PR 48 for release formatting and Codex routing
-state_head: fc8686d63cca896c2fe16bcb535e9381e66e5e03
+last_activity_desc: Completed historical planning cleanup and verified v0.1.10 publication
+state_head: 5337afb6e750dc340c71b4f66ce37a5aaf6884b5
 milestone_name: Save states and rewind
 current_phase: 15
 progress:
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Track the release-format fix in PR #48 and automated release PR #35 (v0.1.10), then plan the next milestone
+**Current focus:** Start the next milestone after the historical planning cleanup lands
 
 ## Current Position
 
 Phase: Milestone v3 complete
 Plan: —
-Status: Awaiting release verification
-Last activity: 2026-10-13 — Shipped quick task 261013-g9z and Codex routing in PR #48
+Status: Awaiting next milestone
+Last activity: 2026-10-13 — Completed quick task 261013-hpi: historical planning cleanup and release-readiness verification
 
 ## Performance Metrics
 
@@ -300,7 +300,8 @@ None.
 
 ### Blockers/Concerns
 
-- **Release follow-up (found at the v3 close):** release PR #35 (v0.1.10) failed `hygiene.format` because the bumped patch number shifted the aligned `x-release-please` comments. [PR #48](https://github.com/szTheory/nesturbator/pull/48) ships quick task 261013-g9z (`c79fca3`) and the requested Codex routing. Fresh ship preflight passed 634/634 CI tests and 13/13 hygiene tests; the fingerprinted quick verification report is `passed`. Required hosted checks gate the squash merge. The release workflow refreshes and auto-merges #35 after this fix lands and its checks pass; inspect hosted outcomes before starting the next milestone.
+- **Release blocker resolved — 2026-10-13:** [PR #48](https://github.com/szTheory/nesturbator/pull/48) fixed version-comment formatting and shipped Codex routing as `b8e2824`. [Release PR #35](https://github.com/szTheory/nesturbator/pull/35) merged as `da2bf97` after all 15 CI jobs passed. [Publication run 38432194730](https://github.com/szTheory/nesturbator/actions/runs/38432194730) succeeded on the exact release commit; [v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10) published at 2026-10-13T16:53:40Z with exactly 18 nonempty platform ZIPs plus `SHA256SUMS`.
+- **Historical forensic records reconciled:** quick task 261013-hpi leaves the ledger at 0 open, 7 fixed and 3 waived with evidence and original observations preserved. Archived deferred-item audit debt is zero; the completed automation-first debug record is in `debug/resolved/`. Substantive technical debt remains below and in the milestone audits.
 
 v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and MILESTONES.md. v2 debt is in `.planning/milestones/v2-MILESTONE-AUDIT.md`. The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
 - [Phase 08] Code review left 2 warnings and 2 info open (08-REVIEW-DISPOSITION.md; WR-01 interval-flush retry fixed by quick task 261011-inm, PR #39): WR-02 NES 2 MMC1 submapper 5 accepted but not emulated as fixed 32 KiB PRG; WR-03 a directory at the `.sav` path exits 4 instead of a read error.
@@ -312,7 +313,7 @@ v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` a
 - [Phase 12] Code review closed (12-REVIEW-DISPOSITION.md): CR-01 tick ceiling, WR-01 runner exit 2 before ROM load and IN-01 fixed; WR-02 skipped, as `halted_in_read` is never written and its bound must widen if stalled reads are modelled. Six-platform state hash equality is shown only by the Phase 12 PR's CI matrix.
 - [Phase 13] Code review left 3 warnings and 5 info open, all in test code (13-REVIEW-DISPOSITION.md): WR-01 state-net frame-chain checks tolerate a dropped or doubled FRAMEADVANCE; WR-02 state_session.sh resends only the second SAVE_STATE; WR-03 special-case ROMs matched by substring of the full path. PR #44 squash-merged as db0f21c after the asan run-ahead budget fix (6fbfa5a).
 - [Phase 14] Code review closed (14-REVIEW-DISPOSITION.md): WR-01 to WR-03 fixed in 15-01 (`sigaction`-style handler honouring an inherited SIG_IGN, 30 s signal TIMEOUTs, README stdout-drain advice). PR #45 squash-merged as 6f08c6c.
-- [Phase 15] Code review closed except WR-04 (15-REVIEW-DISPOSITION.md, 15-REVIEW-FIX.md): WR-01 gate fails a missing head even without a base and WR-02 allow-file reasons survive `;` and `[`/`]` (68f8f44, four new selftests); WR-03 README and `stop.h` document the inherited SIG_IGN (5845467). WR-04 skipped: one-minute network-job timeouts rest on one sample and need more measured runs; IN-01 to IN-03 open.
+- [Phase 15] Code review warnings WR-01 through WR-04 are closed (15-REVIEW-DISPOSITION.md, 15-REVIEW-FIX.md): WR-01 gate fails a missing head even without a base and WR-02 allow-file reasons survive `;` and `[`/`]` (68f8f44, four new selftests); WR-03 README and `stop.h` document the inherited SIG_IGN (5845467). Quick task 261013-cvm closed WR-04 with sampled run history and a five-minute floor for network-bound jobs; IN-01 to IN-03 remain open.
 - [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
@@ -321,6 +322,7 @@ v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` a
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 261013-g9z | Keep release version macros format-stable across digit widths | 2026-10-13 | c79fca3 | [261013-g9z-make-the-release-pr-pass-hygiene-format-](./quick/261013-g9z-make-the-release-pr-pass-hygiene-format-/) |
+| 261013-hpi | Reconcile historical planning records and confirm release readiness before the next milestone | 2026-10-13 | 5337afb | [261013-hpi-reconcile-historical-planning-records-an](./quick/261013-hpi-reconcile-historical-planning-records-an/) |
 
 ### Roadmap Evolution
 
@@ -335,7 +337,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 | Category | Item | Status | Deferred At | Milestone |
 |----------|------|--------|-------------|-----------|
-| debug_sessions | DEBUG-automation-first-uat | diagnosed (addressed by plans 02-09 to 02-11) | 2026-10-10 | v1 |
+| debug_sessions | DEBUG-automation-first-uat | resolved 2026-10-13; evidence in debug/resolved/ (plans 02-09 to 02-11) | 2026-10-10 | v1 |
 | seeds | SEED-001 | dormant | 2026-10-10 | v1 |
 | seeds | SEED-002 | dormant | 2026-10-10 | v1 |
 | seeds | SEED-003 | dormant | 2026-10-10 | v1 |
@@ -343,17 +345,17 @@ Items acknowledged and deferred at milestone close, most recent first:
 | seeds | SEED-005 | dormant | 2026-10-10 | v1 |
 | seeds | SEED-006 | dormant | 2026-10-10 | v1 |
 | seeds | SEED-261009-zs2 | dormant | 2026-10-10 | v1 |
-| deferred_items | 03/deferred-items.md: local `retroarch.testframe` harness aborts on the owner's Mac | acknowledged | 2026-10-10 | v1 |
+| deferred_items | 03/deferred-items.md: historical local `retroarch.testframe` abort | resolved 2026-10-13; local tests superseded by required hosted coverage in Phase 05 | 2026-10-10 | v1 |
 
 ## Session Continuity
 
 Last session: 2026-10-13
-Stopped at: Quick task 261013-g9z shipped in PR #48 from gsd/phase-config-codex; automated release verification follows
+Stopped at: Quick task 261013-hpi completed on gsd/phase-planning-tidy; v0.1.10 publication verified
 Resume file: None
 
-Next GSD command: `/gsd-progress` after the shipping and release workflows settle
+Next GSD command: `/gsd-new-milestone` after the cleanup pull request merges
 
 ## Operator Next Steps
 
-- Track PR #48's required checks and squash merge, followed by the automatic refresh and merge of release PR #35
-- Confirm the v0.1.10 release workflow outcome, then start the next milestone with /gsd-new-milestone
+- Merge the historical planning cleanup through its pull request after required checks pass
+- Start the next milestone with /gsd-new-milestone; retain the substantive debt recorded above
