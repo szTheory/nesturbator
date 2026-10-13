@@ -614,6 +614,14 @@ its self test and `runner.write_hashes`, carry a CTest `COST`, so a cold build
 with no timing history starts them first. The `asan` lane does not register them
 (`NESTURBATOR_SHORT_RUNS`, which only that preset sets).
 
+The `perf` job runs on every pull request on ubuntu-24.04. It builds the pull request's merge
+commit and its first parent (the tip of `main`, which ENGINEERING section 5 calls the merge
+base) with the `ci` preset, runs each under Cachegrind for 60 and 360 frames on nesteroids
+(NROM), runner (MMC1) and M4_P256K_C256K (MMC3), and reports instructions per frame as
+(Ir(360) - Ir(60)) / 300 in the job summary and the job log. It is a report and does not fail
+`CI required` yet. Wall time is never measured or gated. The `perf.roms_render` test shows that
+all three ROMs draw a non-blank frame 60, so the job never measures an idle PPU.
+
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
 04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
 requests that change a file that can change what its tests run: the workflow,
