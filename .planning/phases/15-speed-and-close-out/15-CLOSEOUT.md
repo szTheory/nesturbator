@@ -46,6 +46,25 @@ Kept. A bump re-baselines the ROM sha256, the scoreboard and the hashes, which d
 
 Before the first dispatch the four never-measured nightly ceilings were raised so that no counted run is cut off (commit f200df9, `ci(15-08): raise nightly measurement ceilings`): suite-flake 30 to 60, mmc3-oracle 8 to 20, rom-loader-fuzz 3 to 15, state-fuzz 3 to 15 minutes. vectors-full (16, measured in run 37136095512) and report keep their values.
 
+### Nightly samples (Task 2)
+
+Measured head: `4fa0c23f01286d89e997b7c0bb4b5b4c110a911f` (phase branch, origin/main already an ancestor, no Dependabot merge). Three `workflow_dispatch` runs of nightly.yml, one after the other. Every job in every run ended in `success` below its measurement ceiling, so no run is excluded. Whole-job durations in seconds (`completedAt - startedAt`).
+
+| Job | Ceiling | [38346572174](https://github.com/szTheory/nesturbator/actions/runs/38346572174) | [38347773803](https://github.com/szTheory/nesturbator/actions/runs/38347773803) | [38349314234](https://github.com/szTheory/nesturbator/actions/runs/38349314234) |
+|---|---|---|---|---|
+| suite-flake | 60 min (3600 s) | 871 | 1112 | 959 |
+| vectors-full | 16 min (960 s) | 134 | 162 | 136 |
+| mmc3-oracle | 20 min (1200 s) | 29 | 28 | 25 |
+| rom-loader-fuzz | 15 min (900 s) | 73 | 71 | 76 |
+| state-fuzz | 15 min (900 s) | 81 | 76 | 82 |
+| report | 1 min | skipped | skipped | skipped |
+
+Fetch tests read from the job logs: `cpu.vectors-full.fetch` 59.49, 66.35, 60.81 s; `mmc3.oracle.fetch` 1.03, 0.34, 0.31 s. The rest of vectors-full is therefore 74.5, 95.7 and 75.2 s (slowest 95.7 s, run 38347773803), and the rest of mmc3-oracle is 28.0, 27.7 and 24.7 s (slowest 28.0 s, run 38346572174).
+
+report is skipped on a dispatch. The latest nightly run on schedule or main push where it completed is [38347599457](https://github.com/szTheory/nesturbator/actions/runs/38347599457) (schedule, main): report took 4 s.
+
+Excluded runs: none.
+
 ## Allow file
 
 2026-10-13 sweep of `tests/perf/allow.txt` (D-17), after the main merge check and before any dispatch. The file holds only its comment header.
