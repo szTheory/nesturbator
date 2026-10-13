@@ -186,6 +186,9 @@ set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
 # RUN-02: a signal finishes the current frame, flushes and exits 0. --raise-after signals the
 # runner's own process after frame N, so each case is deterministic. The signal names differ by
 # platform: int and term on POSIX, int and break on Windows.
+if(NOT WIN32)
+  find_program(NESTURBATOR_SH sh REQUIRED)
+endif()
 function(runner_stop_case case)
   add_test(NAME runner.stop.${case}
     COMMAND ${CMAKE_COMMAND}
@@ -193,6 +196,7 @@ function(runner_stop_case case)
       "-DFIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
       "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/stop_work/${case}"
       "-DCASE=${case}"
+      "-DSH=${NESTURBATOR_SH}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_stop.cmake")
   set_tests_properties(runner.stop.${case} PROPERTIES
     FIXTURES_REQUIRED runner_save TIMEOUT 30 LABELS exit_status)
@@ -203,6 +207,8 @@ if(WIN32)
 else()
   runner_stop_case(frame_exact.term)
   runner_stop_case(frame_exact.int)
+  # D-20 WR-01: an inherited SIG_IGN for SIGTERM stays in force.
+  runner_stop_case(inherited_ignore)
 endif()
 runner_stop_case(flush_missing_dir)
 runner_stop_case(flush_dir_at_tmp)
