@@ -17,7 +17,7 @@ findings:
     title: "An inherited SIG_IGN is honoured but not documented, and it can hang the stop tests"
   - id: WR-04
     severity: warning
-    disposition: skipped
+    disposition: fixed
     title: "One-minute job timeouts sit at about 2 to 3 times a single sample"
   - id: IN-01
     severity: info
@@ -43,7 +43,7 @@ recorded: 2026-10-13T12:39:04.673Z
 | WR-01 | warning | fixed | 15-REVIEW-FIX.md |
 | WR-02 | warning | fixed | 15-REVIEW-FIX.md |
 | WR-03 | warning | fixed | 15-REVIEW-FIX.md |
-| WR-04 | warning | skipped | 15-REVIEW-FIX.md |
+| WR-04 | warning | fixed | 15-REVIEW-FIX.md |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |

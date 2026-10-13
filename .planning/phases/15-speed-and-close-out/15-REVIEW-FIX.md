@@ -4,9 +4,9 @@ fixed_at: 2026-10-13T00:00:00Z
 review_path: .planning/phases/15-speed-and-close-out/15-REVIEW.md
 iteration: 1
 findings_in_scope: 4
-fixed: 3
-skipped: 1
-status: partial
+fixed: 4
+skipped: 0
+status: all_fixed
 ---
 
 # Phase 15: Code Review Fix Report
@@ -17,8 +17,8 @@ status: partial
 
 **Summary:**
 - Findings in scope: 4
-- Fixed: 3
-- Skipped: 1
+- Fixed: 4
+- Skipped: 0
 
 Verification ran in the main checkout (`workflow.use_worktrees` is false): `cmake --workflow --preset ci` passed 633 of 633 tests, and `scripts/hygiene.sh` exited 0.
 
@@ -42,13 +42,10 @@ Verification ran in the main checkout (`workflow.use_worktrees` is false): `cmak
 **Commit:** 5845467
 **Applied fix:** Both now say that a SIGINT or SIGTERM the runner inherited as ignored stays ignored. The README also says the `runner.signal.*` and `runner.stop.*` tests need those signals at their default. I did not change the test harness. POSIX shells cannot reset a signal that was ignored on entry (`trap - INT TERM` has no effect), and CMake cannot read the disposition, so there is no clean fail-fast or reset.
 
-## Skipped Issues
-
 ### WR-04: One-minute job timeouts sit at about 2 to 3 times a single sample
 
-**File:** `.github/workflows/release.yml:25`, `.github/workflows/ci.yml`
-**Reason:** There is no measured run ID to back a new margin. Hosted CI cannot be run from here, and the review's fix (a 5-minute floor) would break the rule that every timeout carries a measured run and a "twice a measured run" comment, or it would require inventing evidence. The owner should collect further run samples, or decide on an explicit floor policy for network-bound jobs and update `hygiene.timeout_comments`.
-**Original issue:** The `release-please`, `hygiene`, `title` and `ci-required` timeouts come from a single sample each, and the tail latency of network calls on hosted runners may exceed them.
+**Files modified:** `.github/workflows/ci.yml`, `.github/workflows/nightly.yml`, `.github/workflows/release.yml`, `.planning/preparation/ENGINEERING.md`, `tests/cmake/timeout_comments.cmake`
+**Applied fix:** Sampled the last 40 completed runs of each workflow. Every timeout is now twice the slowest successful sample, with the run ID and sample count in its comment. Short network-bound jobs (`hygiene`, `title`, `hash-equality`, `CI required`, `release-please`, `publish`, the nightly `report`) have a 5-minute floor. The rule is written into ENGINEERING section 5. The `asan` timeout rose from 12 to 26 minutes after run 38398904814 was killed at 12.
 
 ---
 
