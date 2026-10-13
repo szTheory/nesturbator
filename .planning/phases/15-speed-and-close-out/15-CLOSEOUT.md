@@ -41,3 +41,33 @@ Kept. A bump re-baselines the ROM sha256, the scoreboard and the hashes, which d
 ## Timeouts
 
 Filled in by Plan 08.
+
+## Docs audit
+
+One-off audit of README.md and include/nesturbator.h against the Phase 12 to 15 code (D-22). Comments only; no behaviour changed.
+
+| Location | Claim | Evidence | Result |
+|---|---|---|---|
+| README.md:6-13 | status paragraph says v2 shipped and v3 is closing | all of Phases 12 to 15 are built; the text described v3 as future | fixed in a3a89c4 |
+| README.md:1532 | section "What it will be" in the future tense | the three deliverables exist (library, runner, libretro core) | fixed in a3a89c4 |
+| README.md:857-1000 (Save states) | state header is 64 bytes, fields at offsets 0 to 48 | include/nesturbator.h:481-491 layout comment lists the same offsets | matches |
+| README.md "Status codes" | statuses 0 to 12, state refusals 8 to 12 | include/nesturbator.h:71-101 enum; test `state.status_table` | matches |
+| include/nesturbator.h:436-495 | load checks in order, all or nothing | `core.state_reject` test; README lists the same order | matches |
+| include/nesturbator.h:67 | NESTURBATOR_STATE_FORMAT_VERSION 1 | README format table "1: first release that contains save states"; `state_format_pin.cmake` | matches |
+| include/nesturbator.h:56 and README.md:25 | behaviour revision is 6 | `#define NESTURBATOR_BEHAVIOUR_REVISION 6` | matches |
+| include/nesturbator.h:43-45 | version 0.1.9 on release-please marker lines | `x-release-please-*` markers; test `version_consistency` | matches |
+| README.md "The runner" `--state-at-frame`, `--hash-state`, `--load-state` | option semantics and exit 5 on a refused state | runner/main.c option parsing; runner/exit_status.h `RUNNER_EXIT_STATE_REJECTED`; `runner_state.cmake` | matches |
+| README.md "The runner" `--bench`, `--bench-state` | range 1 to 1000000, conflicts exit 2, stderr line shapes | runner/main.c:396 bound; `runner_bench.cmake`; `runner.options.readme` | matches |
+| README.md "Stopping the runner" | finish the frame, write the save, exit 0, second signal ends at once | runner/stop.c handler; `runner_stop.cmake`, `runner.signal.*` | matches |
+| README.md "Stopping the runner" | an inherited ignore is honoured; errno preserved (WR-01) | runner/stop.c:5,23-34 `SIG_IGN` put back, errno saved | matches |
+| README.md "Stopping the runner" | launcher must keep reading stdout (WR-03) | README paragraph present at "A launcher on Linux or macOS must keep reading" | matches |
+| README.md "Exit status" | table 0, 1, 2, 4, 5; 3 and 77 reserved | runner/exit_status.h `RUNNER_EXIT_TABLE`; test `runner.exit.table` | matches |
+| README.md "The libretro core" | serialize size, no quirks, `savestate_features = "deterministic"` | libretro/nesturbator_libretro.info; tests `libretro.serialize`, `libretro.no_quirks`, `libretro.info_claims` | matches |
+| README.md "The libretro core" | module exports only the 25 `retro_*` functions | `RETRO_API` count in libretro/libretro.h is 25 | matches |
+| README.md "Continuous integration" | `perf` job: Cachegrind, 60 and 360 frames, 1.00% gate, part of CI required | .github/workflows/ci.yml `perf` job, `needs: [... perf]` at line 417, `-DMODE=gate` at line 397 | matches |
+| README.md "Performance allow file" | line format, expiry within 60 days, UNSTABLE fails | tests/cmake/perf_compare.cmake; `perf.gate_selftest.*` | matches |
+| README.md "Continuous integration" | hash-equality inventory is 114 keys | `grep -c . tests/runner/hashes.txt` is 114 | matches |
+
+Findings not fixed (outside README and header comments):
+
+- `libretro/nesturbator_libretro.info` `description` lists "NROM, MMC1, UxROM, CNROM and AxROM" and omits MMC3 (mapper 4), which the core supports. Text only, no behaviour; left for a later change because this plan edits README and header comments only.
