@@ -341,10 +341,25 @@ static const char *marker_anchor(nesturbator *inst, const uint8_t *bytes, size_t
     return NULL;
 }
 
+/* The qualification transition verdict is also consumed by independently authored controls. */
+static const char *marker_progress(uint32_t before, uint32_t after, uint32_t steps)
+{
+    (void)before;
+    (void)after;
+    (void)steps;
+    return NULL;
+}
+
 static int marker_selftest(void)
 {
     if (marker_pixel_control() != 0)
         return 1;
+    const char *duplicate = marker_progress(255u, 255u, 1u);
+    if (duplicate == NULL || strcmp(duplicate, "duplicate-identity") != 0) {
+        fprintf(stderr, "ASSERT duplicate qualification identity: expected duplicate-identity, "
+                        "actual %s\n", duplicate != NULL ? duplicate : "accepted");
+        return 1;
+    }
     static uint8_t rom[MARKER_ROM_SIZE];
     static uint8_t rgb[NESTURBATOR_TEST_RGB_SIZE];
     marker_rom(rom);
