@@ -1,6 +1,6 @@
 # Checks that every `timeout-minutes:` line in the GitHub workflow files carries
 # the ID of the run it was measured from (ENGINEERING section 5: a timeout is
-# twice a measured cold run).
+# twice the slowest sampled run).
 #
 #   cmake -DROOT=<dir> [-DFILE=<name>] -P timeout_comments.cmake
 #
@@ -48,7 +48,7 @@ foreach(f IN LISTS files)
         set(own "${CMAKE_MATCH_1}")
       endif()
       if(NOT "${own}" MATCHES "${id_re}" AND NOT "${above}" MATCHES "${id_re}")
-        message(STATUS "${f}:${n}: timeout-minutes without a measured run ID (twice a measured cold run, ENGINEERING section 5)")
+        message(STATUS "${f}:${n}: timeout-minutes without a measured run ID (twice the slowest sampled run, ENGINEERING section 5)")
         set(bad 1)
       endif()
     endif()

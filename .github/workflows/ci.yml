@@ -35,7 +35,8 @@ concurrency:
 jobs:
   hygiene:
     runs-on: ubuntu-24.04
-    timeout-minutes: 1 # twice the cold run 37084642541 (21 s), rounded up to whole minutes (ENGINEERING §5)
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 34 sampled successful runs (58 s in run 38288411183) is 2 minutes.
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,7 +46,8 @@ jobs:
 
   title:
     runs-on: ubuntu-24.04
-    timeout-minutes: 1 # twice the cold run 37084642541 (2 s), rounded up to whole minutes (ENGINEERING §5)
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 37 sampled successful runs (8 s in run 38345355652) is 1 minutes.
+    timeout-minutes: 5
     permissions:
       pull-requests: read
     steps:
@@ -71,7 +73,9 @@ jobs:
 
   build:
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 22 # twice the slowest observed build job, 640 s on macOS Intel in run 38295163207 (PR #44, serialize and run-ahead tests included); rounded up (ENGINEERING §5)
+    # Twice the slowest of the sampled successful build runs (30 to 35 per runner): 679 s on macos-15-intel in run 38345355652,
+    # rounded up to 23 minutes, ENGINEERING section 5.
+    timeout-minutes: 23
     strategy:
       fail-fast: false
       matrix:
@@ -130,8 +134,9 @@ jobs:
     runs-on: ubuntu-24.04
     # NESTURBATOR_SHORT_RUNS (preset asan) drops or shortens the long hash tests that made this job
     # about 15 minutes; their hashes are checked at full length by the build jobs and hash-equality.
-    # Twice the measured hosted run: 340 s in run 38346573845 (phase 15 PR), ENGINEERING section 5.
-    timeout-minutes: 12
+    # Twice the slowest of 27 sampled successful runs: 756 s in run 38341228969, rounded up to 26 minutes, ENGINEERING section 5.
+    # Run 38398904814 was killed at the old 12-minute limit after its tests passed in 730 s.
+    timeout-minutes: 26
     env:
       CC: clang-18
       CXX: clang++-18
@@ -145,7 +150,9 @@ jobs:
 
   nofp:
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 2 # twice the slowest measured run 37084642541 (38 s, ubuntu-24.04), rounded up to two minutes (ENGINEERING §5)
+    # Twice the slowest of the sampled successful runs (35 per runner): 43 s on ubuntu-24.04 in run 38342366027,
+    # rounded up to 2 minutes, ENGINEERING section 5.
+    timeout-minutes: 2
     strategy:
       fail-fast: false
       matrix:
@@ -166,7 +173,8 @@ jobs:
   hash-equality:
     needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 1 # twice the cold run 37084642541 (5 s), rounded up to whole minutes (ENGINEERING §5)
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 28 sampled successful runs (9 s in run 38398904814) is 1 minutes.
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -182,8 +190,8 @@ jobs:
   # game. Its screenshot is retained for diagnosis and reproducibility.
   retroarch-e2e:
     runs-on: macos-15
-    # Twice the measured hosted run: 307 s in run 38346573845 (phase 15 PR), ENGINEERING section 5.
-    timeout-minutes: 11
+    # Twice the slowest of 33 sampled successful runs: 346 s in run 38359109704, rounded up to 12 minutes, ENGINEERING section 5.
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -321,8 +329,8 @@ jobs:
   perf:
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.control)
     runs-on: ubuntu-24.04
-    # Twice the measured hosted run: 241 s in run 38346573845 (phase 15 PR), ENGINEERING section 5.
-    timeout-minutes: 9
+    # Twice the slowest of 13 sampled successful runs: 286 s in run 38398904814, rounded up to 10 minutes, ENGINEERING section 5.
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -418,7 +426,8 @@ jobs:
     if: always()
     needs: [hygiene, title, build, asan, nofp, hash-equality, retroarch-e2e, perf]
     runs-on: ubuntu-24.04
-    timeout-minutes: 1 # twice the cold run 37084642541 (4 s), rounded up to whole minutes (ENGINEERING §5)
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 23 sampled successful runs (4 s in run 38359109704) is 1 minutes.
+    timeout-minutes: 5
     steps:
       - name: Every job succeeded
         env:

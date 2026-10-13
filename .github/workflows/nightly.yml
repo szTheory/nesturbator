@@ -58,10 +58,9 @@ jobs:
     runs-on: ubuntu-24.04
     # The fetch is a network transfer, so it gets its own allowance, the 900 s
     # TIMEOUT of cpu.vectors-full.fetch in tests/CMakeLists.txt; the rest gets
-    # twice the slowest of three cold runs (runs 38346572174, 38347773803, 38349314234): 162 s whole job
-    # minus a 66.35 s fetch = 95.7 s in run 38347773803. 900 + 192 = 1092 s,
-    # rounded up to 19 minutes.
-    timeout-minutes: 19
+    # twice the slowest whole job of 36 sampled successful runs, 166 s in run 38341228998,
+    # so TIMEOUT + 2S = 900 + 332 = 1232 s, rounded up to 21 minutes, ENGINEERING section 5.
+    timeout-minutes: 21
     permissions:
       contents: read
     outputs:
@@ -128,10 +127,9 @@ jobs:
     runs-on: ubuntu-24.04
     # The fetch is a network transfer, so it gets its own allowance, the 300 s
     # TIMEOUT of mmc3.oracle.fetch in tests/CMakeLists.txt; the rest gets twice
-    # the slowest of three cold runs (runs 38346572174, 38347773803, 38349314234): 29 s whole job
-    # minus a 1.03 s fetch = 28.0 s in run 38346572174. 300 + 56 = 356 s,
-    # rounded up to 6 minutes.
-    timeout-minutes: 6
+    # the slowest whole job of 39 sampled successful runs, 41 s in run 38398904800,
+    # so TIMEOUT + 2S = 300 + 82 = 382 s, rounded up to 7 minutes, ENGINEERING section 5.
+    timeout-minutes: 7
     permissions:
       contents: read
     outputs:
@@ -192,7 +190,7 @@ jobs:
 
   rom-loader-fuzz:
     runs-on: ubuntu-24.04
-    # Twice the slowest of three cold runs: 76 s in run 38349314234 (runs 38346572174, 38347773803, 38349314234), ENGINEERING section 5.
+    # Twice the slowest of 40 sampled successful runs: 85 s in run 38347599457, rounded up to 3 minutes, ENGINEERING section 5.
     timeout-minutes: 3
     permissions:
       contents: read
@@ -237,8 +235,8 @@ jobs:
 
   state-fuzz:
     runs-on: ubuntu-24.04
-    # Twice the slowest of three cold runs: 82 s in run 38349314234 (runs 38346572174, 38347773803, 38349314234), ENGINEERING section 5.
-    timeout-minutes: 3
+    # Twice the slowest of 37 sampled successful runs: 99 s in run 38289608338, rounded up to 4 minutes, ENGINEERING section 5.
+    timeout-minutes: 4
     permissions:
       contents: read
     outputs:
@@ -303,8 +301,8 @@ jobs:
   # six-platform CI run covers the other hosts once.
   suite-flake:
     runs-on: ubuntu-24.04
-    # Twice the slowest of three cold runs: 1112 s in run 38347773803 (runs 38346572174, 38347773803, 38349314234), ENGINEERING section 5.
-    timeout-minutes: 38
+    # Twice the slowest of 39 sampled successful runs: 1173 s in run 38324782531, rounded up to 40 minutes, ENGINEERING section 5.
+    timeout-minutes: 40
     permissions:
       contents: read
     outputs:
@@ -333,8 +331,8 @@ jobs:
     needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, state-fuzz, suite-flake]
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-24.04
-    # Twice the report job of the latest nightly schedule run: 4 s in run 38347599457, ENGINEERING section 5.
-    timeout-minutes: 1
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 3 sampled successful runs (5 s in run 38329002573) is 1 minutes.
+    timeout-minutes: 5
     permissions:
       issues: write
     steps:
