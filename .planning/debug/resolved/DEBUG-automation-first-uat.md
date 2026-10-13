@@ -1,8 +1,9 @@
 ---
-status: diagnosed
+status: resolved
 trigger: "Phase 02 UAT test 2: automate machine-checkable prohibitions and post-merge evidence; persist an automation-first verification default"
 created: 2026-10-06
-updated: 2026-10-06
+updated: 2026-10-13
+resolved: 2026-10-13
 audit_acknowledged:
   milestone: v1
   at: 2026-10-09
@@ -80,3 +81,29 @@ root_cause: "The Phase 2 plan and implementation lacked a direct machine-checkab
 fix: "Add focused, dependency-free assertions for the machine-verifiable Phase 2 prohibitions; capture release and main-push/nightly workflow evidence automatically; codify the automation-first verification rule in GSD-HANDOFF.md without duplicating PROJECT.md. Keep clean-room provenance as a judgment-tier claim."
 verification:
   files_changed: []
+
+## Closure evidence — 2026-10-13
+
+The diagnosis and milestone acknowledgement above describe the original state.
+All three requested remedies were implemented:
+
+1. [02-09-SUMMARY.md](../../milestones/v1-phases/02-the-cpu-matches-the-public-vectors/02-09-SUMMARY.md)
+   records parser/API/JSON-size/registration gates, including the shared live
+   classifier fix `08c1df4`. The vector policy tests remain registered in
+   `tests/CMakeLists.txt`; the tracked JSON limit remains in `scripts/hygiene.sh`.
+2. [02-10-SUMMARY.md](../../milestones/v1-phases/02-the-cpu-matches-the-public-vectors/02-10-SUMMARY.md)
+   records nightly trust/cold-fetch policy gates, main-push full-vector runs and
+   run-bound inventory/JUnit artifacts (`7aea01b`, `70e73a8`). The workflow policy
+   and mutation checks remain in `tests/hygiene/CMakeLists.txt`.
+3. [02-11-SUMMARY.md](../../milestones/v1-phases/02-the-cpu-matches-the-public-vectors/02-11-SUMMARY.md)
+   records the read-only `scripts/phase2_outcomes.sh` collector, exact result
+   policy, release-asset assertion (`fe21b93`), finite retries and pending exit 2
+   (`c1f1c3c`), and the durable automation-first rule (`bbc3f57`) in
+   [GSD-HANDOFF.md](../../preparation/GSD-HANDOFF.md), section 3.
+
+The collector and result-policy self-tests remain registered. Fresh hygiene
+verification accompanies this reconciliation. These remedies close the process
+gap; they do not assert that a future release has already published. External
+events stay pending until exact-run and asset evidence exists. Clean-room source
+provenance remains an irreducible judgment claim, as the original diagnosis and
+handoff rule require.

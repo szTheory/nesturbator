@@ -5,7 +5,7 @@
 **Delivered:** Hosts save and load the whole machine through the library, players save and load states, rewind and use run-ahead in RetroArch, and a launcher can stop nes-runner at any time without losing a save and read every outcome from one documented exit-status table. No frame or audio hash moved, and speed is measured on every pull request.
 
 **Phases completed:** 5 phases (11 to 15), 38 plans, merged as PRs #42 to #46
-**Timeline:** 2026-10-11 → 2026-10-13 (3 days); the release is v0.1.10 in release PR #35, which is blocked (see below)
+**Timeline:** 2026-10-11 → 2026-10-13 (3 days); v0.1.10 published on 2026-10-13 after release PR #35 merged (dated closure below)
 **Code:** 32,949 lines of C (8,804 in the core library and public header), excluding the vendored `libretro.h`; 633 CTest tests in `ci`
 **Requirements:** 18/18 v3 requirements satisfied ([audit](milestones/v3-MILESTONE-AUDIT.md), status tech_debt)
 
@@ -23,6 +23,21 @@
 Known verification overrides: 0 newly acknowledged, 9 carried forward from the v1 close (see STATE.md Deferred Items)
 
 **Release blocker found at close:** release PR #35 (v0.1.10) has not merged since v2 because its `hygiene.format` check fails on `include/nesturbator.h:43-44`. The bumped patch number shifts the aligned `x-release-please` version comments, so no release has gone out since v0.1.9 and none of v3 has been published.
+
+**Release-blocker closure — 2026-10-13:** The paragraph above retains the
+milestone-close observation. [PR #48](https://github.com/szTheory/nesturbator/pull/48)
+fixed version-comment formatting and merged as `b8e2824`.
+[Release PR #35](https://github.com/szTheory/nesturbator/pull/35) then merged at
+2026-10-13T16:38:38Z as `da2bf973813530cb9561a004e7b774011a0a7867` after
+15 successful CI checks. Publication was pending independently of that merge.
+Read-only evidence at 2026-10-13T16:53:46Z now confirms
+[run 38432194730](https://github.com/szTheory/nesturbator/actions/runs/38432194730)
+completed successfully on the exact release SHA, including `publish`.
+[v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10) is non-draft,
+published at 2026-10-13T16:53:40Z, with exactly the 18 expected library, runner
+and libretro ZIPs across Linux/macOS/Windows x64/arm64 plus `SHA256SUMS`, all
+with nonzero sizes. Publication is complete; the deferred technical debt below
+is unchanged.
 
 **Deferred tech debt:**
 - Phase 13 WR-01: the state-net frame-chain check cannot detect a dropped or doubled FRAMEADVANCE.
