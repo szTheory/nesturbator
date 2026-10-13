@@ -995,6 +995,73 @@ add_test(NAME runner.bench.format_state
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_bench.cmake)
 set_tests_properties(runner.bench.format_state PROPERTIES LABELS bench)
 
+# --bench refusals (15-CONTEXT D-01, D-02, D-03): each exits 2 with its own message.
+set(bench_rom ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes)
+nesturbator_runner_test(NAME runner.usage.bench.accuracycoin-page
+  ARGS --rom ${bench_rom} --bench 2 --accuracycoin-page 2
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --accuracycoin-page")
+set_tests_properties(runner.usage.bench.accuracycoin-page PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.raise-after
+  ARGS --rom ${bench_rom} --bench 2 --raise-after 1
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --raise-after")
+set_tests_properties(runner.usage.bench.raise-after PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.dump-frame
+  ARGS --rom ${bench_rom} --bench 2 --dump-frame 1:x.ppm
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --dump-frame")
+set_tests_properties(runner.usage.bench.dump-frame PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.state-at-frame
+  ARGS --rom ${bench_rom} --bench 2 --state-at-frame 1:x.sta
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --state-at-frame")
+set_tests_properties(runner.usage.bench.state-at-frame PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.hash-state
+  ARGS --rom ${bench_rom} --bench 2 --hash-state 1
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --hash-state")
+set_tests_properties(runner.usage.bench.hash-state PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.save-dir
+  ARGS --rom ${bench_rom} --bench 2 --save-dir d
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --save-dir")
+set_tests_properties(runner.usage.bench.save-dir PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.save-interval
+  ARGS --rom ${bench_rom} --bench 2 --save-interval 1
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --save-interval")
+set_tests_properties(runner.usage.bench.save-interval PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.load-state
+  ARGS --rom ${bench_rom} --bench 2 --load-state x.sta
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --load-state")
+set_tests_properties(runner.usage.bench.load-state PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.frames
+  ARGS --rom ${bench_rom} --bench 2 --frames 2
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --frames or --movie")
+set_tests_properties(runner.usage.bench.frames PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.movie
+  ARGS --rom ${bench_rom} --bench 2 --movie m.mov
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --frames or --movie")
+set_tests_properties(runner.usage.bench.movie PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.zero
+  ARGS --rom ${bench_rom} --bench 0
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench needs one whole number")
+set_tests_properties(runner.usage.bench.zero PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.over_cap
+  ARGS --rom ${bench_rom} --bench 1000001
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench needs one whole number")
+set_tests_properties(runner.usage.bench.over_cap PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.twice
+  ARGS --rom ${bench_rom} --bench 2 --bench 2
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench may be specified once")
+set_tests_properties(runner.usage.bench.twice PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.no_rom
+  ARGS --bench 2
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench needs --rom")
+set_tests_properties(runner.usage.bench.no_rom PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.state_without_bench
+  ARGS --rom ${bench_rom} --frames 2 --bench-state
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench-state requires --bench")
+set_tests_properties(runner.usage.bench.state_without_bench PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.state_twice
+  ARGS --rom ${bench_rom} --bench 2 --bench-state --bench-state
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench-state may be specified once")
+set_tests_properties(runner.usage.bench.state_twice PROPERTIES LABELS exit_status)
+
 # --bench percentile, formatting and zero-sample report rules (15-CONTEXT D-05, D-06, D-03).
 add_executable(runner.bench_unit runner/test_bench.c ${PROJECT_SOURCE_DIR}/runner/bench.c)
 target_include_directories(runner.bench_unit PRIVATE ${PROJECT_SOURCE_DIR}/runner)

@@ -1038,7 +1038,10 @@ nesturbator-run --version
   readings (a monotonic clock: `CLOCK_MONOTONIC`, or `QueryPerformanceCounter` on Windows), so the
   timer's own overhead is included in each sample. There is no warm-up: the first frames show in
   `max`. `--bench` cannot be combined with `--frames` or `--movie` and needs `--rom`; any other
-  misuse (0, above 1000000, given twice) exits 2. Example stderr:
+  misuse (0, above 1000000, given twice) exits 2. It also refuses `--accuracycoin-page`,
+  `--raise-after`, `--dump-frame`, `--state-at-frame`, `--hash-state`, `--save-dir`,
+  `--save-interval` and `--load-state`, each with exit 2 and its own message, because file I/O and
+  loaded starts would pollute the timing. Example stderr:
 
   ```
   nesturbator-run: bench frames=600 time_ms=701.367 fps=855.47

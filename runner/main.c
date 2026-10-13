@@ -463,6 +463,22 @@ static int parse_options(int argc, char **argv, options *o)
             return usage("--bench cannot be combined with --frames or --movie");
         if (o->rom_path == NULL)
             return usage("--bench needs --rom");
+        if (o->accuracy_page != 0u)
+            return usage("--bench cannot be combined with --accuracycoin-page");
+        if (o->raise_after_set != 0)
+            return usage("--bench cannot be combined with --raise-after");
+        if (o->dump_count != 0u)
+            return usage("--bench cannot be combined with --dump-frame");
+        if (o->state_count != 0u)
+            return usage("--bench cannot be combined with --state-at-frame");
+        if (o->hash_state_count != 0u)
+            return usage("--bench cannot be combined with --hash-state");
+        if (o->save_dir != NULL)
+            return usage("--bench cannot be combined with --save-dir");
+        if (o->save_interval != 0u)
+            return usage("--bench cannot be combined with --save-interval");
+        if (o->load_state_path != NULL)
+            return usage("--bench cannot be combined with --load-state");
         o->frames = o->bench_frames;
     }
     if (o->accuracy_page != 0u) {
