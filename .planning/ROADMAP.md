@@ -40,7 +40,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 - [x] **Phase 12: Save states in the library** - Fixed-size, checked, all-or-nothing states on six boards, pinned on six platforms through the runner's state options (completed 2026-10-12)
 - [x] **Phase 13: Rewind and run-ahead in RetroArch** - libretro serialize, staged `.info` claims, RetroArch e2e for states, rewind and run-ahead, and a state-loader fuzz target (completed 2026-10-12)
 - [x] **Phase 14: Runner process contract** - Signal-safe save flush and one documented exit-status table for launchers (completed 2026-10-12)
-- [ ] **Phase 15: Speed and close-out** - Frame-time report, per-PR instruction-count comparison, measured nightly timeout and a final pin and docs review
+- [x] **Phase 15: Speed and close-out** - Frame-time report, per-PR instruction-count comparison, measured nightly timeout and a final pin and docs review (completed 2026-10-13)
 
 ## Phase Details
 
@@ -202,7 +202,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   3. The +1% per-ROM gate is armed only after identical builds show zero spread, and a deliberate slowdown passes with a reviewed line in the allow file.
   4. The nightly suite-flake timeout is about twice a measured cold run of the v3 suite, action pins, runner labels and the AccuracyCoin pin are reviewed, and the README and public header describe the released code.
 
-**Plans**: 8/8 plans executed
+**Plans**: 8/8 plans complete
 **Wave 1**
 - [x] 15-01-PLAN.md — Two-way `--help`/README option check, Phase 14 WR-01 to WR-03 fixed, disposition closed (TUNE-10)
 
@@ -246,4 +246,4 @@ Compare: https://github.com/100thCoin/AccuracyCoin/compare/673ef550...main
 | 12. Save states in the library | v3 | 10/10 | Complete    | 2026-10-12 |
 | 13. Rewind and run-ahead in RetroArch | v3 | 8/8 | Complete    | 2026-10-12 |
 | 14. Runner process contract | v3 | 8/8 | Complete    | 2026-10-12 |
-| 15. Speed and close-out | v3 | 8/8 | In Progress | - |
+| 15. Speed and close-out | v3 | 8/8 | Complete    | 2026-10-13 |
