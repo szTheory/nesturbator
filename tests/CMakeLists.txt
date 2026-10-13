@@ -989,6 +989,11 @@ foreach(mode nohash format)
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_bench.cmake)
   set_tests_properties(runner.bench.${mode} PROPERTIES LABELS bench)
 endforeach()
+add_test(NAME runner.bench.format_state
+  COMMAND ${CMAKE_COMMAND} "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DROM=${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes -DMODE=format -DSTATE=1
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_bench.cmake)
+set_tests_properties(runner.bench.format_state PROPERTIES LABELS bench)
 
 # --bench percentile, formatting and zero-sample report rules (15-CONTEXT D-05, D-06, D-03).
 add_executable(runner.bench_unit runner/test_bench.c ${PROJECT_SOURCE_DIR}/runner/bench.c)

@@ -1051,6 +1051,10 @@ nesturbator-run --version
   finished, then the stop line; a stop before the first frame prints only
   `nesturbator-run: bench frames=0`. Wall time is never gated in CI: the tests check the shape of
   these lines, never a number.
+- `--bench-state` needs `--bench`. After every timed frame it saves the state and loads it back,
+  timing the save and the load separately from the frame, so `frame_us` stays comparable. It adds
+  the `save_us` and `load_us` lines after `frame_us`. A save or load failure exits 1. Standard
+  output is unchanged.
 - `--raise-after N[:SIG[:K]]` is a test aid: after frame N the runner signals its own
   process K times (K defaults to 1) with SIG, so a stop lands at a known frame. SIG is `int`
   or `term` on POSIX (default `term`) and `int` or `break` on Windows (default `break`). It

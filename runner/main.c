@@ -88,6 +88,8 @@ static void print_usage(FILE *out)
         "  --movie FILE         replay a validated two-port movie\n"
         "  --bench N            time N frames (1 to 1000000) and print frame-time statistics to "
         "stderr; needs --rom\n"
+        "  --bench-state        with --bench, also save and load the state after every frame and "
+        "time each\n"
         "  --rom FILE           load an iNES image (mapper 0, 1, 2, 3, 4 or 7)\n"
         "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
         "  --hash-audio         print SHA-256 of canonical transitions and signed PCM\n"
@@ -230,6 +232,10 @@ typedef struct options {
     uint32_t frames;
     uint32_t bench_frames;
     uint64_t *bench_frame_ns;
+    int bench_state;
+    uint64_t *bench_save_ns;
+    uint64_t *bench_load_ns;
+    uint8_t *bench_state_buf;
     const char *movie_path;
     const char *rom_path;
     const char *scoreboard_path;
@@ -276,6 +282,9 @@ static void free_options(options *o)
     free(o->state_argi);
     free(o->hash_state_argi);
     free(o->bench_frame_ns);
+    free(o->bench_save_ns);
+    free(o->bench_load_ns);
+    free(o->bench_state_buf);
 }
 
 /* Parses N[:SIG[:K]] for --raise-after into o. Returns 1, or 0 on any other text. */
@@ -352,6 +361,12 @@ static int parse_options(int argc, char **argv, options *o)
                 return usage("--hash-audio may be specified once");
             o->hash_audio = 1;
             o->hash_audio_argi = i - 1;
+            continue;
+        }
+        if (strcmp(arg, "--bench-state") == 0) {
+            if (o->bench_state != 0)
+                return usage("--bench-state may be specified once");
+            o->bench_state = 1;
             continue;
         }
         value = i < argc ? argv[i++] : NULL;
@@ -441,6 +456,8 @@ static int parse_options(int argc, char **argv, options *o)
             return usage(arg[0] == '-' ? "unknown option" : "unexpected argument");
         }
     }
+    if (o->bench_state != 0 && o->bench_frames == 0u)
+        return usage("--bench-state requires --bench");
     if (o->bench_frames != 0u) {
         if (o->frames != 0u || o->movie_path != NULL)
             return usage("--bench cannot be combined with --frames or --movie");
@@ -1299,6 +1316,17 @@ int main(int argc, char **argv)
             status = RUNNER_EXIT_FAILURE;
         }
     }
+    size_t bench_state_size = 0u;
+    if (opt.bench_state != 0 && status == 0) {
+        bench_state_size = nesturbator_state_size(inst);
+        opt.bench_state_buf = (uint8_t *)malloc(bench_state_size);
+        opt.bench_save_ns = (uint64_t *)malloc((size_t)opt.bench_frames * sizeof(uint64_t));
+        opt.bench_load_ns = (uint64_t *)malloc((size_t)opt.bench_frames * sizeof(uint64_t));
+        if (opt.bench_state_buf == NULL || opt.bench_save_ns == NULL || opt.bench_load_ns == NULL) {
+            fprintf(stderr, "nesturbator-run: out of memory\n");
+            status = RUNNER_EXIT_FAILURE;
+        }
+    }
     for (uint64_t n = start_frame + 1u; n <= opt.frames && status == 0; n++) {
         uint32_t f = (uint32_t)n;
         if (nesturbator_run_stop_requested()) {
@@ -1375,6 +1403,27 @@ int main(int argc, char **argv)
         if (status == 0 && opt.save_interval != 0u && f % opt.save_interval == 0u &&
             save_if_changed(inst, &save) != 0)
             status = RUNNER_EXIT_FAILURE;
+        /* D-02: the state round trip is timed on its own, after the frame's work. */
+        if (status == 0 && opt.bench_state != 0) {
+            uint64_t s0 = nesturbator_run_clock_now_ns();
+            st = nesturbator_save_state(inst, opt.bench_state_buf, bench_state_size);
+            uint64_t s1 = nesturbator_run_clock_now_ns();
+            if (st != NESTURBATOR_OK) {
+                fprintf(stderr, "nesturbator-run: bench save failed at frame %u\n", f);
+                status = RUNNER_EXIT_FAILURE;
+            } else {
+                uint64_t l0 = nesturbator_run_clock_now_ns();
+                st = nesturbator_load_state(inst, opt.bench_state_buf, bench_state_size);
+                uint64_t l1 = nesturbator_run_clock_now_ns();
+                if (st != NESTURBATOR_OK) {
+                    fprintf(stderr, "nesturbator-run: bench load failed at frame %u\n", f);
+                    status = RUNNER_EXIT_FAILURE;
+                } else {
+                    opt.bench_save_ns[bench_timed - 1u] = s1 - s0;
+                    opt.bench_load_ns[bench_timed - 1u] = l1 - l0;
+                }
+            }
+        }
         done_frame = n;
         if (status == RUNNER_EXIT_DONE && opt.raise_after_set != 0 && n == opt.raise_after_frame)
             nesturbator_run_stop_raise(opt.raise_after_kind, opt.raise_after_count);
@@ -1384,8 +1433,9 @@ int main(int argc, char **argv)
        the helper, which alone decides what zero timed frames print. */
     if (opt.bench_frames != 0u && status == 0) {
         char report[512];
-        nesturbator_run_bench_report(report, sizeof report, bench_timed, opt.bench_frame_ns, NULL,
-                                     NULL);
+        nesturbator_run_bench_report(report, sizeof report, bench_timed, opt.bench_frame_ns,
+                                     opt.bench_state != 0 ? opt.bench_save_ns : NULL,
+                                     opt.bench_state != 0 ? opt.bench_load_ns : NULL);
         fputs(report, stderr);
     }
     /* D-07: on a stop, stdout is flushed first, then the exit flush runs, then the stop line. */

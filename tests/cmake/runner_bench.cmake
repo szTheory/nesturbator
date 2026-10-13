@@ -23,8 +23,14 @@ if(MODE STREQUAL "nohash")
     --hash-frame ${FRAMES} --hash-audio)
   run_runner(bench_out bench_err bench_rc --rom "${ROM}" --bench ${FRAMES}
     --hash-frame ${FRAMES} --hash-audio)
-  if(NOT plain_rc EQUAL 0 OR NOT bench_rc EQUAL 0)
-    message(FATAL_ERROR "exit status: --frames ${plain_rc}, --bench ${bench_rc}\n${bench_err}")
+  run_runner(state_out state_err state_rc --rom "${ROM}" --bench ${FRAMES} --bench-state
+    --hash-frame ${FRAMES} --hash-audio)
+  if(NOT plain_rc EQUAL 0 OR NOT bench_rc EQUAL 0 OR NOT state_rc EQUAL 0)
+    message(FATAL_ERROR "exit status: --frames ${plain_rc}, --bench ${bench_rc}, "
+      "--bench-state ${state_rc}\n${bench_err}\n${state_err}")
+  endif()
+  if(NOT plain_out STREQUAL state_out)
+    message(FATAL_ERROR "stdout differs\n--frames:\n${plain_out}\n--bench-state:\n${state_out}")
   endif()
   if(NOT plain_out STREQUAL bench_out)
     message(FATAL_ERROR "stdout differs\n--frames:\n${plain_out}\n--bench:\n${bench_out}")
