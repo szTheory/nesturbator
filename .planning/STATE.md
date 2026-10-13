@@ -1,20 +1,20 @@
 ---
 gsd_state_version: "1.0"
 milestone: v3
-milestone_name: Save states and rewind
 status: Awaiting next milestone
-stopped_at: Milestone v3 archived; release PR #35 blocked by hygiene.format
-last_updated: "2026-10-13T14:22:24.785Z"
+stopped_at: Quick task 261013-g9z complete; release-format fix awaits shipping
+last_updated: "2026-10-13T15:59:15.054Z"
 last_activity: 2026-10-13
-last_activity_desc: Milestone v3 completed and archived
-state_head: b0ec7fb9d31d0593d6e7c288af8d350e22f7b4c2
+last_activity_desc: Completed quick task 261013-g9z to preserve release version formatting
+state_head: c79fca3ba3c1fb573d8ca3ab0d3530183b6d7272
+milestone_name: Save states and rewind
+current_phase: 15
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 38
   completed_plans: 38
   percent: 100
-current_phase: 15
 ---
 
 # Project State
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 Phase: Milestone v3 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-10-13 — Milestone v3 completed and archived
+Last activity: 2026-10-13 — Completed quick task 261013-g9z: preserve release version formatting across digit widths
 
 ## Performance Metrics
 
@@ -300,7 +300,7 @@ None.
 
 ### Blockers/Concerns
 
-- **Release blocker (found at the v3 close):** release PR #35 (v0.1.10) fails `hygiene.format` on `include/nesturbator.h:43-44`; the bumped patch number shifts the aligned `x-release-please` comments. v0.1.9 is still the latest release, so none of v3 is published.
+- **Release blocker (found at the v3 close):** release PR #35 (v0.1.10) failed `hygiene.format` because the bumped patch number shifted the aligned `x-release-please` comments. Quick task 261013-g9z fixes this in `c79fca3`; local CI passed 634/634 tests and hygiene passed 13/13. Ship the fix through a pull request and refresh the release PR before declaring the hosted blocker resolved.
 
 v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and MILESTONES.md. v2 debt is in `.planning/milestones/v2-MILESTONE-AUDIT.md`. The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
 - [Phase 08] Code review left 2 warnings and 2 info open (08-REVIEW-DISPOSITION.md; WR-01 interval-flush retry fixed by quick task 261011-inm, PR #39): WR-02 NES 2 MMC1 submapper 5 accepted but not emulated as fixed 32 KiB PRG; WR-03 a directory at the `.sav` path exits 4 instead of a read error.
@@ -320,6 +320,7 @@ v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` a
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 261013-g9z | Keep release version macros format-stable across digit widths | 2026-10-13 | c79fca3 | [261013-g9z-make-the-release-pr-pass-hygiene-format-](./quick/261013-g9z-make-the-release-pr-pass-hygiene-format-/) |
 
 ### Roadmap Evolution
 
@@ -347,12 +348,12 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-13
-Stopped at: Milestone v3 archived on branch chore/archive-v3 (PR pending); release PR #35 blocked by hygiene.format
+Stopped at: Quick task 261013-g9z complete on gsd/phase-config-codex; release-format fix awaits shipping
 Resume file: None
 
-Next GSD command: `/gsd-quick make the release PR pass hygiene.format: keep the x-release-please version lines in include/nesturbator.h stable when the patch number gains a digit`
+Next GSD command: `/gsd-ship` to ship the release-format fix through a pull request
 
 ## Operator Next Steps
 
-- Unblock release PR #35 with the /gsd-quick above, so v0.1.10 publishes v3
+- Ship quick task 261013-g9z through a pull request, then refresh release PR #35 so v0.1.10 can publish v3
 - Then start the next milestone with /gsd-new-milestone
