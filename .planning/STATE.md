@@ -5,16 +5,16 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: Phase 16 planned; six plans ready; next $gsd-execute-phase 16
-last_updated: "2026-10-13T19:08:51.779Z"
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-10-13T21:24:08.425Z"
 last_activity: 2026-10-13
-last_activity_desc: Phase 16 research and six plans complete; independent plan checker and coverage gates passed; next gsd-execute-phase 16
-state_head: 426b052fcefb57aa5fbc5b21dedbb4673f16916b
+last_activity_desc: Phase 16 execution started
+state_head: "0bd8b7d4f243f034add10250ecd8ac2c86e38c9a"
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 6
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 planning complete; six plans ready to execute host evidence and roadmap
+**Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
-Plan: 0 of 6 (ready to execute)
+Phase: 16 (Host evidence and roadmap) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-10-13 — Phase 16 research and six plans complete; independent plan checker and coverage gates passed; next gsd-execute-phase 16
+Last activity: 2026-10-13 — Phase 16 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -195,6 +195,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 15 P06 | 50m | 2 tasks | 6 files |
 | Phase 15 P07 | 20min | 2 tasks | 4 files |
 | Phase 15 P08 | hosted nightly waits | 3 tasks | 9 files |
+| Phase 16 P01 | 121 min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -298,6 +299,10 @@ Recent decisions affecting current work:
 - [Phase 15]: Every workflow timeout-minutes line carries a measured run ID, enforced by hygiene.timeout_comments
 - [v4 opening]: Approved three phases: host evidence/recurring roadmap contract, complete pinned conformance baseline, and accepted-program execution/lifecycle robustness. The baseline is not an all-pass promise; Phase 18 does not depend on passing conformance.
 - [v4 opening]: Backlog 999.2 is promoted into Phase 17 / CONF-01 through CONF-04 / RM-001. Historical pin decisions remain above; no implementation or pin migration is complete yet.
+- [Phase 16]: Marker qualification permits absolute frames 4..10000; final guest-to-absolute offset 3 and hosted display lead 1 are measured, with out-of-window evidence rejected.
+- [Phase 16]: Native anchors bind the exact observed RASTATE1 envelope, same content, current format/revision, intended absolute origin and calibrated continuation; loader acceptance alone is insufficient.
+- [Phase 16]: The additional required pinned marker gate proves qualification only; shared exact-network evidence remains in Plans 02/03 and portable state/audio proofs remain separate.
+- [Phase 16]: Set the hosted job ceiling to 14 minutes from the latest 40 completed workflow histories: 29 successful host jobs, maximum 402 seconds in run 38457185699.
 
 ### Pending Todos
 
@@ -355,9 +360,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T19:08:51.757Z
-Stopped at: Phase 16 planned; six plans ready; next $gsd-execute-phase 16
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-01-PLAN.md
+Last session: 2026-10-13T21:24:08.410Z
+Stopped at: Completed 16-01-PLAN.md
+Resume file: None
 
 Next GSD command: $gsd-execute-phase 16
 
