@@ -233,6 +233,11 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 
 Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured cold run) moved into Phase 15 as TUNE-10.
 
+### Phase 999.2: Bump AccuracyCoin past 673ef550 (BACKLOG)
+
+**Goal:** Re-baseline the AccuracyCoin ROM sha256, scoreboard and hashes at a newer upstream commit; upstream added tests and an OAM fix.
+Compare: https://github.com/100thCoin/AccuracyCoin/compare/673ef550...main
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
