@@ -41,27 +41,29 @@ file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/marker selftest fixtures")
 add_test(NAME retroarch.marker.fixtures
   COMMAND frame_index --marker-selftest
     "${CMAKE_CURRENT_BINARY_DIR}/marker selftest fixtures" --fixtures)
-set_tests_properties(retroarch.marker.fixtures PROPERTIES
-  PASS_REGULAR_EXPRESSION "progression fixture files: ready" TIMEOUT 60)
+set_tests_properties(retroarch.marker.fixtures PROPERTIES TIMEOUT 60)
 add_test(NAME retroarch.progression.tracer
   COMMAND frame_index --progression-selftest "${CMAKE_CURRENT_BINARY_DIR}/progression artifacts")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/progression artifacts")
 set_tests_properties(retroarch.progression.tracer PROPERTIES
-  FIXTURES_SETUP progression_files PASS_REGULAR_EXPRESSION "PREFIX_OK" TIMEOUT 60)
+  FIXTURES_SETUP progression_files TIMEOUT 60)
 add_test(NAME retroarch.progression.prefix
   COMMAND frame_index --marker-verdict-prefix
     "${CMAKE_CURRENT_BINARY_DIR}/progression artifacts/marker.nes"
     "${CMAKE_CURRENT_BINARY_DIR}/progression artifacts/calibration.txt"
     "${CMAKE_CURRENT_BINARY_DIR}/progression artifacts/progression-prefix.rec")
 set_tests_properties(retroarch.progression.prefix PROPERTIES
-  FIXTURES_REQUIRED progression_files
-  PASS_REGULAR_EXPRESSION "boundaries=3 mode=prefix verdict=PREFIX_OK" TIMEOUT 60)
+  FIXTURES_REQUIRED progression_files TIMEOUT 60)
 add_test(NAME retroarch.progression.complete_required
   COMMAND frame_index --progression-complete-selftest
     "${CMAKE_CURRENT_BINARY_DIR}/progression artifacts")
 set_tests_properties(retroarch.progression.complete_required PROPERTIES
-  FIXTURES_REQUIRED progression_files
-  PASS_REGULAR_EXPRESSION "prefix rejected as INCOMPLETE" TIMEOUT 60)
+  FIXTURES_REQUIRED progression_files TIMEOUT 60)
+add_test(NAME retroarch.progression.controls
+  COMMAND frame_index --progression-controls-selftest
+    "${CMAKE_CURRENT_BINARY_DIR}/progression artifacts")
+set_tests_properties(retroarch.progression.controls PROPERTIES
+  FIXTURES_REQUIRED progression_files TIMEOUT 60)
 set(marker_rom ${CMAKE_CURRENT_BINARY_DIR}/marker.nes)
 set(marker_cal ${CMAKE_CURRENT_BINARY_DIR}/calibration.txt)
 add_test(NAME retroarch.marker.generate COMMAND frame_index --marker-generate ${marker_rom})

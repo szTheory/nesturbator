@@ -879,6 +879,27 @@ static int progression_complete_required_selftest(const char *work)
     return 0;
 }
 
+static int progression_controls_selftest(const char *work)
+{
+    char rom[PROGRESSION_PATH_CAP], calibration[PROGRESSION_PATH_CAP];
+    char record[PROGRESSION_PATH_CAP];
+    if (!progression_make_path(rom, sizeof rom, work, "marker.nes") ||
+        !progression_make_path(calibration, sizeof calibration, work, "calibration.txt") ||
+        !progression_make_path(record, sizeof record, work, "progression-prefix.rec"))
+        return 2;
+    if (marker_progression_cli(rom, calibration, record, 1) != 0)
+        return 1;
+    progression_session session;
+    if (progression_read_record(record, &session) != NULL)
+        return 2;
+    session.boundaries[2].candidate_count = 0u;
+    unsigned count = 0u;
+    int ok = marker_expect("zero-candidate-identity", progression_verdict(&session, 0),
+                           "IDENTITY", &count);
+    printf("progression controls: %u cases\n", count);
+    return ok ? 0 : 1;
+}
+
 static int progression_tracer_selftest(const char *work)
 {
     char rom[PROGRESSION_PATH_CAP], calibration[PROGRESSION_PATH_CAP];
@@ -1281,6 +1302,8 @@ int main(int argc, char **argv)
         return progression_tracer_selftest(argv[2]);
     if (argc == 3 && strcmp(argv[1], "--progression-complete-selftest") == 0)
         return progression_complete_required_selftest(argv[2]);
+    if (argc == 3 && strcmp(argv[1], "--progression-controls-selftest") == 0)
+        return progression_controls_selftest(argv[2]);
     if (argc >= 2 && strncmp(argv[1], "--marker-", 9u) == 0)
         return marker_cli(argc, argv);
     int dups = argc >= 2 && strcmp(argv[1], "--dups") == 0;
