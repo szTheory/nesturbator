@@ -5,10 +5,10 @@ milestone_name: Save states and rewind
 current_phase: 15
 status: completed
 stopped_at: Phase 15 complete — all phases complete
-last_updated: "2026-10-13T12:23:16.207Z"
+last_updated: "2026-10-13T13:28:20.604Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 15 complete
-state_head: ab49a88adf1b250d4ff0ed2d85a8fcb671c3fe7a
+state_head: 461402cadd8958006d15db502f9e855dbbf3c4ef
 progress:
   total_phases: 5
   completed_phases: 5
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 Phase: 15
 Plan: Not started
 Status: All phases complete
-Last activity: 2026-10-13 — Phase 15 complete
+Last activity: 2026-10-13 - Completed quick task 261013-cvm: CI job timeouts set from sampled run history (asan 26 min, WR-04 5-minute floor)
 
 Progress: [██████████] 100%
 
@@ -320,6 +320,7 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 261013-cvm | widen the asan job timeout from the slow-runner samples (run 38398904814) and resample the WR-04 network-job timeouts from run history | 2026-10-13 | 461402c | [261013-cvm-widen-the-asan-job-timeout-from-the-slow](./quick/261013-cvm-widen-the-asan-job-timeout-from-the-slow/) |
 
 ### Roadmap Evolution
 
@@ -347,13 +348,13 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-13
-Stopped at: Phase 15 complete, milestone v3 ready to close (review fixes first)
+Stopped at: Phase 15 complete, review fixes WR-01..04 landed; waiting on PR #46 CI
 Resume file: None
 
-Next GSD command: `/gsd-quick` to widen the asan job timeout (12 min failed run 38398904814: 730 s of tests on a slow runner; hosted asan is bimodal, 325 s or 570-730 s) and resample WR-04's network timeouts from run history; then squash-merge PR #46 and `/gsd-audit-milestone`.
+Next GSD command: squash-merge PR #46 once CI run 38405115822 is green, then `/gsd-audit-milestone`.
 
 ## Operator Next Steps
 
 - Phase 15 executed and verified (8/8 plans, 15-VERIFICATION.md passed); PR #46 left draft on gsd/phase-15-speed-and-close-out
-- Review fixes landed (WR-01..03; WR-04 needs more timeout samples); squash-merge PR #46 once CI is green
+- Review fixes landed (WR-01..04; WR-04 via quick task 261013-cvm); squash-merge PR #46 once CI is green
 - Then audit and close milestone v3 (/gsd-audit-milestone, /gsd-complete-milestone v3)
