@@ -5,11 +5,11 @@ titles: json
 findings:
   - id: WR-01
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Perf gate passes silently when the head measurement is missing and the base is also missing"
   - id: WR-02
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "`file(STRINGS)` on the allow file mangles reasons that contain `;` or `[` `]`"
   - id: WR-03
     severity: warning
@@ -17,7 +17,7 @@ findings:
     title: "An inherited SIG_IGN is honoured but not documented, and it can hang the stop tests"
   - id: WR-04
     severity: warning
-    disposition: open
+    disposition: skipped
     title: "One-minute job timeouts sit at about 2 to 3 times a single sample"
   - id: IN-01
     severity: info
@@ -31,19 +31,19 @@ findings:
     severity: info
     disposition: open
     title: "Fixed 512-byte report buffer truncates silently"
-open: 7
+open: 4
 total: 7
-recorded: 2026-10-13T12:20:13.831Z
+recorded: 2026-10-13T12:38:56.730Z
 ---
 
 # Phase 15: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | open | - |
-| WR-02 | warning | open | - |
+| WR-01 | warning | fixed | 15-REVIEW-FIX.md |
+| WR-02 | warning | fixed | 15-REVIEW-FIX.md |
 | WR-03 | warning | open | - |
-| WR-04 | warning | open | - |
+| WR-04 | warning | skipped | 15-REVIEW-FIX.md |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
 | IN-03 | info | open | - |
