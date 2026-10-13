@@ -86,6 +86,49 @@
 
 ---
 
+## Milestone: v3 — Save states and rewind
+
+**Shipped:** 2026-10-13
+**Phases:** 5 | **Plans:** 38 | **Releases:** none yet; v0.1.10 in release PR #35 is blocked by its `hygiene.format` check
+
+### What Was Built
+- One atomic-replace helper for battery saves, an MMC3 `.srm` round trip in RetroArch, and callers for every public function.
+- A fixed-size, CRC-checked save state on all six boards from one visitor, validated in full before it is applied, with fork tests at every frame and six-platform state pins.
+- libretro serialize, rewind and run-ahead under a `deterministic` claim tied to its tests, a RetroArch state e2e and a nightly state-loader fuzz target.
+- A signal-safe runner stop and one exit-status table shared by `--help`, the code and the README.
+- `--bench` frame-time percentiles and a per-PR Cachegrind instruction gate.
+
+### What Worked
+- One visitor for size, write, validate, apply and record: save and load never drifted, and the rejection sweep came almost free.
+- Staging the `.info` claim (`serialized`, then `deterministic`) behind a configure-time guard kept every claim behind green evidence.
+- Real-signal and real-Ctrl+Break tests found an EINTR abort in the state read that a simulated stop would have missed.
+- Instruction counts, not wall time, made the perf gate deterministic; two zero-spread control runs justified arming it.
+
+### What Was Inefficient
+- Guessed CI timeouts cancelled the macOS Intel build on every Phase 13 head; it took three measured runs and a rule (`hygiene.timeout_comments`) to stop it.
+- Release PR #35 has stayed open since v2 and was failing `hygiene.format` at the milestone close; the release path was not checked at each phase close.
+- Plan summaries used `requirements:` or no key instead of `requirements-completed:`, so the audit cross-checked five requirements by hand.
+- Phase 12 needed 10 plans; the fork and rejection matrices were split across waves for size.
+
+### Patterns Established
+- A save state's field list lives in one visitor; a board without a `state` op does not build.
+- Every libretro `.info` capability maps to the CTests that prove it, enforced at configure time.
+- Every `timeout-minutes` line carries the ID of the run it doubles.
+- Process outcomes come from one X-macro table checked against the README.
+
+### Key Lessons
+1. Check that the release PR is green at every phase close; "each phase ends in a release" needs a test, not an assumption.
+2. Formatting rules that align comments break on release-tool version bumps; keep machine-edited lines out of aligned blocks.
+3. Use the `requirements-completed` key in every summary so the audit's three-source check stays automatic.
+4. Measure timeouts before guessing them; a guessed limit fails healthy jobs.
+
+### Cost Observations
+- Model mix: planning and execution on opus; not measured in detail.
+- Sessions: not tracked.
+- Notable: three days for five phases and 38 plans; Phase 12 (10 plans) was the longest.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -94,6 +137,7 @@
 |-----------|----------|--------|------------|
 | v1 | — | 6 | Automation-first verification; zero manual UAT for product behaviour |
 | v2 | — | 6 | Milestone audit before close-out; post-audit quick tasks; per-preset CI cost |
+| v3 | — | 5 | Measured timeouts with run IDs; claims tied to tests at configure time; per-PR perf gate |
 
 ### Cumulative Quality
 
@@ -101,8 +145,10 @@
 |-----------|-------|----------|-------------------|
 | v1 | 357 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 | v2 | 481 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
+| v3 | 633 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 
 ### Top Lessons (Verified Across Milestones)
 
-1. Prove playability with one integrated check from boot; both milestones found real bugs this way (v1 gap phases, v2 NMI edge).
+1. Prove behaviour with one integrated check against the real host or process; every milestone found real bugs this way (v1 gap phases, v2 NMI edge, v3 EINTR in the state read).
 2. Fixes landing after phase verification make the close an override; plan for it or re-verify in one batch.
+3. Every limit or claim needs its measurement or test beside it (timeouts with run IDs, `.info` levels with CTests, exit statuses with the README).

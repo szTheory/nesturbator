@@ -10,21 +10,16 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 ## Current State
 
-v2 "Most of the library plays" shipped on 2026-10-11 (releases v0.1.7 to v0.1.9, with v0.1.10 in release PR #35). Games on mappers 0, 1, 2, 3, 4 and 7, about 91% of the North American licensed library, play through the runner and RetroArch with battery saves. Frame and audio hashes for every board match on Linux, macOS and Windows on x64 and arm64, and `runner.boot_to_play` proves a game plays from boot. The code is 22,419 lines of C, 7,801 of them in the core library and public header, with 481 CTest tests in `ci`.
+v3 "Save states and rewind" shipped on 2026-10-13; its five phases merged as PRs #42 to #46. Their release, v0.1.10 in release PR #35, is blocked: the PR's `hygiene.format` check fails on the bumped version lines in `include/nesturbator.h`, so v0.1.9 is still the latest release. Hosts save and load the whole machine through the library, RetroArch saves and loads states, rewinds and runs ahead with the core under a `deterministic` claim, and nes-runner writes and reads states, flushes its save on a stop signal and reports every outcome through one documented exit-status table. Speed is measured on every pull request by a Cachegrind instruction-count gate, and `--bench` prints frame-time percentiles. No frame or audio hash moved. The code is 32,949 lines of C, 8,804 of them in the core library and public header, with 633 CTest tests in `ci`.
 
-v1 "NROM games with sound" shipped on 2026-10-09 (v0.1.6). The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
+v2 "Most of the library plays" shipped on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-## Current Milestone: v3 Save states and rewind
+## Next Milestone Goals
 
-**Goal:** Players save and load states, rewind and use run-ahead in RetroArch, and Playstead can launch nes-runner and rely on its saves and exit statuses, with no frame or audio hash changing and speed measured on every pull request.
-
-**Target features:**
-- Tune-up (SEED-006) and v2 debt: CI time, flaky tests, pins and README drift; an MMC3 `.srm` round trip in retroarch-e2e (G2); a consumer or README text for `nesturbator_get_version` and `nesturbator_unload_cartridge` (G6); no stale `.tmp` after a failed save (08 IN-02); a measured nightly suite-flake timeout (Backlog 999.1).
-- Save states (SEED-002): a fixed-size state with its own format version, checked in full before it is applied, through the library API; RetroArch save and load state, rewind and run-ahead, declared deterministic so netplay can use it.
-- Runner contract (SEED-002): save states in nes-runner, saves flushed on a termination signal, and documented exit statuses for Playstead.
-- Speed (SEED-004, speed half): a runner mode that prints frames per second and frame-time percentiles, and an instruction-count comparison on every pull request.
-
-Left for later milestones: fuzzing arbitrary ROM bytes beyond the loader (SEED-004; the state loader is fuzzed nightly since Phase 13), accuracy and PAL/Dendy (SEED-003), Famicom hardware (SEED-005).
+Not yet defined; `/gsd-new-milestone` sets them. The candidates are:
+- The v3 debt in `.planning/milestones/v3-MILESTONE-AUDIT.md`: the Phase 13 RetroArch test-robustness warnings (WR-01 frame-chain check, WR-02 single-send commands, WR-03 substring ROM match), the `.info` description that omits MMC3, the macOS-only RetroArch state e2e, and the open info findings.
+- Backlog 999.2: bump AccuracyCoin past `673ef550`.
+- Seeds in `.planning/seeds/`: accuracy and PAL/Dendy (SEED-003), fuzzing arbitrary ROM bytes beyond the loader (SEED-004, robustness half), Famicom hardware (SEED-005), and the tune-up that opens each milestone (SEED-006).
 
 ## Requirements
 
@@ -53,9 +48,7 @@ Left for later milestones: fuzzing arbitrary ROM bytes beyond the loader (SEED-0
 
 ### Active
 
-None. Milestone v3's requirements are all validated; the tune-up (SEED-006) closed in Phases 11 and 15 and speed measurement in Phase 15.
-
-The numbered requirements are in `.planning/REQUIREMENTS.md`.
+(none — the next milestone's requirements come from `/gsd-new-milestone`)
 
 ### Out of Scope
 
@@ -75,8 +68,9 @@ The numbered requirements are in `.planning/REQUIREMENTS.md`.
 - **Sibling projects.** A Neo Geo core with the same three deliverables and the same API conventions. Playstead, a host that launches emulator processes and needs deterministic input replay and safe battery saves from them.
 - **How releases are tried.** In RetroArch on an Apple Silicon Mac, installed by script. The local RetroArch tests were removed in Phase 5; the hosted `retroarch-e2e` job carries the screenshot evidence, and `policy.no-skip` fails any CI job whose expected test reports itself skipped.
 - **Known debt after v1.** Closed in Phase 5. The audit that listed it is `.planning/milestones/v1-MILESTONE-AUDIT.md`.
-- **Known debt after v2.** Listed in `.planning/milestones/v2-MILESTONE-AUDIT.md` and the v2 entry of `.planning/MILESTONES.md`. None of it blocks play; G1, 07 WR-01, 08 WR-01 and the asan timeout were closed after the audit.
-- **CI cost.** The asan job skips or shortens the long hash tests (`NESTURBATOR_SHORT_RUNS`), whose full-length hashes the build jobs and hash-equality still check; it runs in about 5 minutes against a 10-minute timeout.
+- **Known debt after v2.** Listed in `.planning/milestones/v2-MILESTONE-AUDIT.md` and the v2 entry of `.planning/MILESTONES.md`; Phase 11 and Phase 15 closed G2, G6, 08 IN-02 and Backlog 999.1.
+- **Known debt after v3.** Listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and the v3 entry of `.planning/MILESTONES.md`. None of it changes released behaviour; the most substantive items are the three Phase 13 RetroArch test-robustness warnings.
+- **CI cost.** The asan job skips or shortens the long hash tests (`NESTURBATOR_SHORT_RUNS`), whose full-length hashes the build jobs and hash-equality still check. Every `timeout-minutes` is twice a measured hosted run whose ID sits beside it, and `hygiene.timeout_comments` enforces that.
 - **Reference material.** Each file below states facts with their sources. Open the one that matches the work before designing or building.
   - `.planning/preparation/README.md` — index of the files below
   - `.planning/preparation/ARCHITECTURE.md` — time model, CPU, PPU, audio, mappers, public API
@@ -165,4 +159,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-13 after Phase 15*
+*Last updated: 2026-10-13 after v3 milestone*
