@@ -155,6 +155,7 @@ option(NESTURBATOR_HYGIENE "Register the hygiene tests" OFF)
 if(NESTURBATOR_HYGIENE)
   find_program(NESTURBATOR_SH sh REQUIRED)
   find_program(NESTURBATOR_GIT git REQUIRED)
+  find_program(NESTURBATOR_JQ jq REQUIRED)
   find_program(NESTURBATOR_CLANG_FORMAT NAMES clang-format-18 clang-format
     HINTS /opt/homebrew/opt/llvm@18/bin /usr/local/opt/llvm@18/bin REQUIRED)
   execute_process(COMMAND ${NESTURBATOR_CLANG_FORMAT} --version

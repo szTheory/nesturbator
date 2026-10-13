@@ -37,6 +37,14 @@ add_test(NAME hygiene.nightly_workflow_policy.selftest
   COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
     -P ${PROJECT_SOURCE_DIR}/tests/cmake/nightly_workflow_policy.cmake)
 
+# ci-required lists every other job, and its jq roll-up accepts a skipped perf
+# only off pull requests. The script runs the expression taken from ci.yml.
+add_test(NAME hygiene.ci_required_rollup
+  COMMAND ${CMAKE_COMMAND}
+    -DCI_YML=${PROJECT_SOURCE_DIR}/.github/workflows/ci.yml -DJQ=${NESTURBATOR_JQ}
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/ci_required_rollup
+    -P ${PROJECT_SOURCE_DIR}/tests/cmake/ci_required_rollup.cmake)
+
 # Every tracked C source but the vendored libretro.h is formatted as
 # .clang-format says, checked with clang-format 18.
 add_test(NAME hygiene.format
@@ -46,4 +54,5 @@ add_test(NAME hygiene.format
 set_tests_properties(
   hygiene.tree hygiene.scan_selftest hygiene.action_pins hygiene.action_pins.bad hygiene.action_pins.good
   hygiene.nightly_workflow_policy hygiene.nightly_workflow_policy.selftest hygiene.format
+  hygiene.ci_required_rollup
   PROPERTIES LABELS hygiene)

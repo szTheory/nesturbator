@@ -618,8 +618,11 @@ The `perf` job runs on every pull request on ubuntu-24.04. It builds the pull re
 commit and its first parent (the tip of `main`, which ENGINEERING section 5 calls the merge
 base) with the `ci` preset, runs each under Cachegrind for 60 and 360 frames on nesteroids
 (NROM), runner (MMC1) and M4_P256K_C256K (MMC3), and reports instructions per frame as
-(Ir(360) - Ir(60)) / 300 in the job summary and the job log. It is a report and does not fail
-`CI required` yet. Wall time is never measured or gated. The `perf.roms_render` test shows that
+(Ir(360) - Ir(60)) / 300 in the job summary and the job log. The job is part of CI required and fails a
+pull request when any ROM's instructions per frame rise by more than 1.00%, unless
+tests/perf/allow.txt carries a valid line for that ROM; an unstable base (two base measurements
+differ) always fails; a base that cannot be built or run shows `n/a` and does not fail the pull
+request. Wall time is never measured or gated. The `perf.roms_render` test shows that
 all three ROMs draw a non-blank frame 60, so the job never measures an idle PPU.
 
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
