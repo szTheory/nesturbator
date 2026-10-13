@@ -9,7 +9,7 @@ provides:
   - Reconciliation of both milestone-boundary instructions with seed, debt and release records
 affects: [Phase 16 verification, future milestone opening and closeout]
 actuals:
-  tokens: 5138
+  tokens: 5194
   tasks: 2
   commits: 2
 plan_head_before: 48482deb4048654eeb6009a8561d316844ef4b0f
@@ -93,7 +93,7 @@ None — plan executed exactly as written.
 
 ## Issues Encountered
 
-None.
+The SDK warned that the pre-existing, untouched .planning/config.json contains an unknown preferences key and ignored global model settings. Tracking updates completed; the local config change remains uncommitted.
 
 ## User Setup Required
 

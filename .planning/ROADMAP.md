@@ -68,12 +68,12 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans**: 1/6 plans executed
+**Plans**: 2/6 plans executed
 
 Plans:
 **Wave 1**
 - [x] 16-01-PLAN.md — Qualify the generated marker and native save origins on the pinned host.
-- [ ] 16-06-PLAN.md — Verify installed rolling direction and actual v4 opening evidence once.
+- [x] 16-06-PLAN.md — Verify installed rolling direction and actual v4 opening evidence once.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 16-02-PLAN.md — Share an exact progression verdict with independent semantic controls.
@@ -128,7 +128,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 1/6 | In Progress | - |
+| 16. Host evidence and roadmap | v4 | 2/6 | In Progress | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

@@ -31,9 +31,8 @@ The user approved these requirements with the v4 proposal on 2026-10-13. The new
 
 ### Product direction
 
-- [ ] **DIR-01**: The repository has a product roadmap with Immediate/Near/Mid/Long horizons, stable outcome IDs, evidence and promotion triggers linked from the project instructions and preparation handoff.
-- [ ] **DIR-02**: New-milestone and complete-milestone instructions require the agent to reconcile and refresh that roadmap within the invoked step, preserving delivered seed evidence and unresolved debt.
-
+- [x] **DIR-01**: The repository has a product roadmap with Immediate/Near/Mid/Long horizons, stable outcome IDs, evidence and promotion triggers linked from the project instructions and preparation handoff.
+- [x] **DIR-02**: New-milestone and complete-milestone instructions require the agent to reconcile and refresh that roadmap within the invoked step, preserving delivered seed evidence and unresolved debt.
 
 ## Acceptance boundaries
 
@@ -88,8 +87,8 @@ Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.
 | ROB-02 | Phase 18 | Pending |
 | ROB-03 | Phase 18 | Pending |
 | ROB-04 | Phase 18 | Pending |
-| DIR-01 | Phase 16 | Pending |
-| DIR-02 | Phase 16 | Pending |
+| DIR-01 | Phase 16 | Complete |
+| DIR-02 | Phase 16 | Complete |
 
 **Coverage:**
 - v4 requirements: 14 total
