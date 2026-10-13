@@ -694,6 +694,21 @@ cmake -DDIR=build/pins -DSOURCE_DIR=. -DGIT=git -DCOMMIT=<40-digit upstream comm
       -DWRITE_PINS=tests/vectors/pins.txt -P tests/cmake/fetch_vectors.cmake
 ```
 
+
+### Performance allow file
+
+`tests/perf/allow.txt` lists reviewed exceptions to the performance gate, which fails a ROM whose
+instructions per frame grow by more than 1.00%. A line reads
+`<rom> <max_percent_x100> <expires YYYY-MM-DD> <reason...>`, for example
+`nesteroids 350 2026-12-31 PPU timing fix, see #NN`. The cap is a percent times 100 (350 is
+3.50%), and the expiry is at most 60 days after the day the check runs; an expired line, a
+malformed line, a duplicate, an unknown ROM and an empty reason each fail with their own message.
+A line is reviewed in the pull request that adds it and is removed after that pull request
+merges. The summary table prints the ROM, the cap and the expiry of an applied line, never the
+reason. A base measurement that differs between its two runs prints `UNSTABLE` and fails whatever
+the allow file says. The `perf.gate_selftest.*` tests run the comparison on synthetic data and
+show that a slowdown above 1% fails without a line and passes with one.
+
 ## Using the library
 
 Install the library, its header and its package files:

@@ -137,6 +137,8 @@ if(EXISTS "${WORK}/summary.md")
   file(READ "${WORK}/summary.md" summary)
 endif()
 set(all "${out}${err}${summary}")
+# Show the comparison output unwrapped in the test log.
+execute_process(COMMAND ${CMAKE_COMMAND} -E echo "${all}")
 
 if(${p}_EXIT EQUAL 0 AND NOT rc EQUAL 0)
   message(FATAL_ERROR "${CASE}: expected exit 0, got ${rc}\n${all}")
