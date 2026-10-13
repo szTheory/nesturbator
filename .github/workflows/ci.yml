@@ -220,6 +220,29 @@ jobs:
             "$dir/RetroArch.app/Contents/Info.plist")
           printf 'RetroArch version: %s\n' "$version" | tee -a "$dir/asset-evidence.txt"
           test "$version" = 1.22.2
+      - name: Qualify the generated marker and native origin in pinned RetroArch
+        run: >-
+          cmake
+          -DCORE="$GITHUB_WORKSPACE/build/ci/libretro/nesturbator_libretro.dylib"
+          -DINFO="$GITHUB_WORKSPACE/libretro/nesturbator_libretro.info"
+          -DRUNNER="$GITHUB_WORKSPACE/build/ci/runner/nesturbator-run"
+          -DCOMPARE="$GITHUB_WORKSPACE/build/ci/tests/retroarch/compare_frame"
+          -DFRAME_INDEX="$GITHUB_WORKSPACE/build/ci/tests/retroarch/frame_index"
+          -DRA_DIR="$GITHUB_WORKSPACE/build/retroarch-e2e/marker-gate"
+          -DTEMPLATE="$GITHUB_WORKSPACE/tests/retroarch/test.cfg.in"
+          -DSTATE_TEMPLATE="$GITHUB_WORKSPACE/tests/retroarch/state.cfg.in"
+          -DSTATE_ROM="$GITHUB_WORKSPACE/build/ci/tests/retroarch/marker.nes"
+          -DMARKER_GATE=ON
+          -DRETROARCH="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/MacOS/RetroArch"
+          -DEXPECTED_VERSION=1.22.2
+          -DVERSION_PLIST="$GITHUB_WORKSPACE/build/retroarch-e2e/RetroArch.app/Contents/Info.plist"
+          -P tests/retroarch/run_retroarch.cmake
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: retroarch-marker-gate
+          path: build/retroarch-e2e/marker-gate/
+          if-no-files-found: error
       - name: Compare the hosted RetroArch game frame
         run: >-
           cmake

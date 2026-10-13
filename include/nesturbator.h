@@ -474,6 +474,11 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * FORMAT, an identity field gives CARTRIDGE, the total size gives SIZE, and any other byte,
  * including the recorded behaviour revision, gives CHECKSUM. The behaviour revision is recorded
  * and not enforced, so a state saved before an emulation fix loads but may diverge.
+ * Test oracles that require the current behavior must explicitly bind the recorded revision,
+ * content and intended absolute frame in addition to successful native loading. A displayed
+ * frame (including a host's run-ahead lead) does not prove committed state or speculative audio.
+ * Host containers are outside this native API; the test-only RetroArch reader qualifies one
+ * measured uncompressed released-binary envelope and a bounded visible-marker window.
  * Loading restores frame_number and ticks, so the first frame after a load reports the frame
  * number and ticks of the uninterrupted run. The frame buffer and the audio are not in a state.
  * Load never returns NESTURBATOR_STOP_JAM: a state saved after a JAM opcode restores the latch

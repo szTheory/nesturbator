@@ -28,6 +28,7 @@ set_tests_properties(retroarch.compare.cli PROPERTIES FIXTURES_REQUIRED cmp_file
 # can name two indices.
 add_executable(frame_index frame_index.c bmp_ppm.c)
 target_link_libraries(frame_index PRIVATE nesturbator nesturbator_host)
+target_include_directories(frame_index PRIVATE ${PROJECT_SOURCE_DIR}/tests ${PROJECT_SOURCE_DIR}/src)
 target_compile_definitions(frame_index PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(frame_index)
@@ -35,6 +36,14 @@ nesturbator_warnings(frame_index)
 add_test(NAME retroarch.marker.controls
   COMMAND frame_index --marker-selftest ${CMAKE_CURRENT_BINARY_DIR})
 set_tests_properties(retroarch.marker.controls PROPERTIES TIMEOUT 60)
+set(marker_rom ${CMAKE_CURRENT_BINARY_DIR}/marker.nes)
+set(marker_cal ${CMAKE_CURRENT_BINARY_DIR}/calibration.txt)
+add_test(NAME retroarch.marker.generate COMMAND frame_index --marker-generate ${marker_rom})
+set_tests_properties(retroarch.marker.generate PROPERTIES FIXTURES_SETUP marker_content TIMEOUT 30)
+add_test(NAME retroarch.marker.qualify COMMAND frame_index --marker-qualify ${marker_rom} ${marker_cal})
+# 10000-frame exhaustive window: bounds the later 150 s attempt at 61 fps plus startup/lead.
+set_tests_properties(retroarch.marker.qualify PROPERTIES FIXTURES_REQUIRED marker_content
+  PASS_REGULAR_EXPRESSION "marker qualification: 9997 frames" TIMEOUT 600)
 
 set(fi_rom ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes)
 set(fi_ppm ${CMAKE_CURRENT_BINARY_DIR}/fi-37.ppm)

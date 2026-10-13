@@ -1536,6 +1536,29 @@ identifies the set of runner frames it equals, and each step must follow from th
 last), the saved state file's container and size, and every RetroArch log. On
 failure the `retroarch-e2e-state` artifact keeps the screenshots, states and logs.
 
+The separate `MARKER_GATE=ON` state invocation qualifies an owned generated NROM
+counter before exact network assertions are expanded. `retroarch.marker.qualify`
+runs every absolute library frame 4 through 10000 (9997 frames), checks every
+pixel of all counter cells and complementary guards, and measures the guest
+counter's mapping to the absolute frame, including startup latency. The interval
+covers a 150-second attempt at at most 61 frames per second, startup and display
+lead; evidence outside that qualified interval fails. The marker is near the
+bottom of the picture so instruction-boundary drift cannot split it in this
+window. Generated ROMs and calibration records stay in the build tree.
+
+The pinned-host gate checks distinct base/run-ahead and auto-save/load pictures,
+measures the display lead, and retains the native origin at frame 150. Its narrow
+reader accepts only the measured uncompressed RetroArch 1.22.2 `RASTATE` version
+1 envelope: one `MEM ` chunk of the exact native size, zero padding to eight
+bytes and one zero-length `END ` chunk, with no trailer. The public loader on an
+isolated same-content instance validates the payload; the oracle additionally
+binds current format, behavior revision, absolute origin and the next marker.
+SHA-256 identities bind supplied/generated content, copied core, metadata and
+each host configuration. A missing image/state, crash or failed launch fails
+qualification. This is bounded marker/anchor qualification, not completed exact
+network progression or proof of speculative audio: portable whole-state and
+audio tests retain those separate proofs.
+
 ## What it is
 
 - An accuracy-class, deterministic NES core with no GUI of its own.

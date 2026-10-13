@@ -151,6 +151,54 @@ if(have_state)
   set(ra_core "${RA_DIR}/cores/nesturbator_libretro.dylib")
 endif()
 
+if(MARKER_GATE)
+  if(NOT have_state)
+    message(FATAL_ERROR "MARKER_GATE requires state mode")
+  endif()
+  # Bind the supplied bytes, not merely a source fixture with the same basename.
+  execute_process(COMMAND "${FRAME_INDEX}" --marker-generate "${RA_DIR}/expected-marker.nes"
+    RESULT_VARIABLE generated)
+  execute_process(COMMAND "${FRAME_INDEX}" --marker-generate "${RA_DIR}/regenerated-marker.nes"
+    RESULT_VARIABLE regenerated)
+  if(NOT generated EQUAL 0 OR NOT regenerated EQUAL 0)
+    message(FATAL_ERROR "marker generation failed")
+  endif()
+  file(SHA256 "${RA_DIR}/expected-marker.nes" expected_marker_sha)
+  file(SHA256 "${RA_DIR}/regenerated-marker.nes" regenerated_marker_sha)
+  file(SHA256 "${mode_rom}" supplied_marker_sha)
+  file(SHA256 "${ra_content}" copied_marker_sha)
+  if(NOT expected_marker_sha STREQUAL regenerated_marker_sha OR
+      NOT expected_marker_sha STREQUAL supplied_marker_sha OR
+      NOT expected_marker_sha STREQUAL copied_marker_sha)
+    message(FATAL_ERROR "marker content SHA-256 mismatch")
+  endif()
+  execute_process(COMMAND "${FRAME_INDEX}" --marker-qualify "${ra_content}"
+      "${RA_DIR}/calibration.txt" RESULT_VARIABLE qualified
+    OUTPUT_VARIABLE qualification_output ERROR_VARIABLE qualification_error TIMEOUT 600)
+  file(WRITE "${RA_DIR}/qualification.txt" "${qualification_output}${qualification_error}")
+  if(NOT qualified EQUAL 0)
+    message(FATAL_ERROR "marker qualification failed: ${qualification_output}${qualification_error}")
+  endif()
+  # The pin is an asset observation, not just an app plist's version string.
+  if(NOT DEFINED ASSET_EVIDENCE)
+    cmake_path(GET VERSION_PLIST PARENT_PATH asset_parent)
+    cmake_path(GET asset_parent PARENT_PATH asset_parent)
+    cmake_path(GET asset_parent PARENT_PATH asset_parent)
+    set(ASSET_EVIDENCE "${asset_parent}/asset-evidence.txt")
+  endif()
+  if(NOT EXISTS "${ASSET_EVIDENCE}")
+    message(FATAL_ERROR "marker gate needs the verified pinned asset-evidence.txt")
+  endif()
+  file(READ "${ASSET_EVIDENCE}" asset_text)
+  set(pin_sha "81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434")
+  if(NOT asset_text MATCHES "expected SHA-256: ${pin_sha}" OR
+      NOT asset_text MATCHES "actual SHA-256: ${pin_sha}" OR
+      NOT asset_text MATCHES "RetroArch version: 1.22.2")
+    message(FATAL_ERROR "marker gate asset evidence does not match the required pin")
+  endif()
+  file(COPY_FILE "${ASSET_EVIDENCE}" "${RA_DIR}/asset-evidence.txt")
+endif()
+
 # The user's RetroArch directory, read only: each entry with its size and
 # modification time, relative to the directory. Built from HOME at run time,
 # so no personal path is written anywhere.
@@ -481,6 +529,9 @@ if(have_state)
     message(FATAL_ERROR "[state-save] expected one ${stem}.state.auto under ${RA_DIR}/states, found: ${auto_states}")
   endif()
   ra_state_container(state-save "${auto_states}" 150)
+  if(MARKER_GATE)
+    file(COPY_FILE "${auto_states}" "${RA_DIR}/retained-origin.state")
+  endif()
   ra_state_outcome_checks(state-save "${RA_DIR}/retroarch-state-save.log")
   nesturbator_ra_log_check("${RA_DIR}/retroarch-state-save.log"
     "${CMAKE_CURRENT_LIST_DIR}/log_allowlist.txt" "${claim_level}" ON)
@@ -494,6 +545,58 @@ if(have_state)
   ra_state_outcome_checks(state-load-ahead "${RA_DIR}/retroarch-state-load-ahead.log")
   nesturbator_ra_log_check("${RA_DIR}/retroarch-state-load-ahead.log"
     "${CMAKE_CURRENT_LIST_DIR}/log_allowlist.txt" "${claim_level}" ON)
+
+  if(MARKER_GATE)
+    set(marker_observations)
+    foreach(lane state-base state-ahead state-save state-load state-load-ahead)
+      execute_process(COMMAND "${FRAME_INDEX}" --marker-observe "${ra_content}"
+          "${RA_DIR}/calibration.txt" "${RA_DIR}/shot-${lane}.bmp"
+        RESULT_VARIABLE observed OUTPUT_VARIABLE observation ERROR_VARIABLE observation_error)
+      if(NOT observed EQUAL 0 OR NOT observation MATCHES "marker frame=([0-9]+) guest=")
+        message(FATAL_ERROR "[${lane}] unqualified marker: ${observation}${observation_error}")
+      endif()
+      set(marker_${lane} "${CMAKE_MATCH_1}")
+      string(APPEND marker_observations "${lane}: ${observation}")
+    endforeach()
+    math(EXPR measured_lead "${marker_state-ahead} - ${marker_state-base}")
+    if(NOT marker_state-base EQUAL 120 OR NOT marker_state-save EQUAL 150 OR
+        NOT marker_state-load EQUAL 179 OR NOT marker_state-load-ahead EQUAL load_ahead_frame OR
+        NOT measured_lead EQUAL k_eff)
+      message(FATAL_ERROR "marker host calibration disagrees with base/save/load/display lead")
+    endif()
+    execute_process(COMMAND "${FRAME_INDEX}" --marker-anchor "${ra_content}"
+        "${RA_DIR}/calibration.txt" "${RA_DIR}/retained-origin.state" 150
+      RESULT_VARIABLE anchored OUTPUT_VARIABLE anchor_output ERROR_VARIABLE anchor_error)
+    file(WRITE "${RA_DIR}/anchor.txt" "${anchor_output}${anchor_error}")
+    if(NOT anchored EQUAL 0)
+      message(FATAL_ERROR "marker host native anchor failed: ${anchor_output}${anchor_error}")
+    endif()
+    file(SHA256 "${ra_core}" marker_core_sha)
+    file(SHA256 "${INFO}" marker_info_sha)
+    file(SHA256 "${RA_DIR}/retained-origin.state" marker_anchor_sha)
+    file(READ "${RA_DIR}/calibration.txt" marker_calibration)
+    execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
+      RESULT_VARIABLE revision_result OUTPUT_VARIABLE source_revision OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(NOT revision_result EQUAL 0)
+      message(FATAL_ERROR "marker gate cannot bind source commit identity")
+    endif()
+    set(config_identities)
+    foreach(lane state-base state-ahead state-save state-load state-load-ahead)
+      file(SHA256 "${RA_DIR}/${lane}.cfg" config_sha)
+      string(APPEND config_identities "${lane}_config_sha256=${config_sha}\n")
+      file(READ "${RA_DIR}/${lane}.cfg" cfg_text)
+      string(REPLACE "${RA_DIR}" "<attempt>" cfg_text "${cfg_text}")
+      file(WRITE "${RA_DIR}/${lane}-sanitized.cfg" "${cfg_text}")
+    endforeach()
+    file(WRITE "${RA_DIR}/marker-gate-success.txt"
+      "marker-gate=pass\nsource_commit=${source_revision}\nversion=${measured_version}\ncontent_sha256=${supplied_marker_sha}\n"
+      "core_sha256=${marker_core_sha}\ninfo_sha256=${marker_info_sha}\n"
+      "anchor_sha256=${marker_anchor_sha}\ndisplay_lead=${measured_lead}\n"
+      "${marker_calibration}${config_identities}${qualification_output}${marker_observations}${anchor_output}"
+      "scope=qualification; exact network progression and speculative audio are separate proofs\n")
+    message(STATUS "marker-gate pass: native origin 150, interval 4..10000, measured lead ${measured_lead}")
+    return()
+  endif()
 
   # --- The network-command session (D-24, D-25 as amended) ---
   if(NOT DEFINED SESSION_SCRIPT OR NOT EXISTS "${SESSION_SCRIPT}")
