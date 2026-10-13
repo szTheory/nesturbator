@@ -4,17 +4,17 @@ milestone: v3
 milestone_name: Save states and rewind
 current_phase: 15
 current_phase_name: Speed and close-out
-status: executing
-stopped_at: Completed 15-07-PLAN.md
-last_updated: "2026-10-13T04:12:37.819Z"
+status: verifying
+stopped_at: Completed 15-08-PLAN.md
+last_updated: "2026-10-13T06:51:13.491Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 15 execution started
-state_head: 438ceab37443ef32d12960fd0794a78a8b789ce0
+state_head: 03cc5df9a89dfb034377c6efaad132172497530f
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 38
-  completed_plans: 37
+  completed_plans: 38
   percent: 80
 ---
 
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 
 Phase: 15 (Speed and close-out) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-10-12 — Phase 15 execution started
 
 Progress: [████████░░] 80%
@@ -193,6 +193,7 @@ Progress: [████████░░] 80%
 | Phase 15 P05 | 45m | 2 tasks | 4 files |
 | Phase 15 P06 | 50m | 2 tasks | 6 files |
 | Phase 15 P07 | 20min | 2 tasks | 4 files |
+| Phase 15 P08 | hosted nightly waits | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -293,6 +294,7 @@ Recent decisions affecting current work:
 - [Phase 15]: perf job copies base and head binaries to equal-length paths and runs them under env -i; report mode via continue-on-error
 - [Phase 15]: Perf gate armed after two zero-spread control runs (15-PERF-PROOF.md); CI required accepts skipped perf only off pull_request
 - [Phase 15]: AccuracyCoin stays at 673ef550; bump is backlog 999.2
+- [Phase 15]: Every workflow timeout-minutes line carries a measured run ID, enforced by hygiene.timeout_comments
 
 ### Pending Todos
 
@@ -343,8 +345,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T04:12:37.783Z
-Stopped at: Completed 15-07-PLAN.md
+Last session: 2026-10-13T06:51:13.457Z
+Stopped at: Completed 15-08-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-execute-phase 15`.
