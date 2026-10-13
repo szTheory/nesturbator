@@ -67,7 +67,26 @@ Every phase ships a tested result through the existing library, runner or adapte
   3. Exact content identity/basename selects each fixture, and automated adversarial parent-directory cases cannot redirect that selection.
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
-**Plans**: TBD
+
+**Plans**: 6 plans
+
+Plans:
+**Wave 1**
+- [ ] 16-01-PLAN.md — Qualify the generated marker and native save origins on the pinned host.
+- [ ] 16-06-PLAN.md — Verify installed rolling direction and actual v4 opening evidence once.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 16-02-PLAN.md — Share an exact progression verdict with independent semantic controls.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 16-03-PLAN.md — Bound one-shot commands, attribute artifacts and require real-host progression.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 16-04-PLAN.md — Select exact fixture names and authenticate actual supplied bytes.
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 16-05-PLAN.md — Protect truthful MMC3 descriptions through staged and packaged metadata.
+
 **UI hint**: no
 **Canonical refs**: [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md), [GSD-HANDOFF.md](preparation/GSD-HANDOFF.md); current scope evidence in [research/SUMMARY.md](research/SUMMARY.md).
 
@@ -81,6 +100,7 @@ Every phase ships a tested result through the existing library, runner or adapte
   2. The runner inventories all 146 scored tests and five separate DRAW entries at that pin; missing/duplicate entries and malformed result tables fail automated validation, and DRAW never enters the score denominator.
   3. A bounded automated run retains raw results and diagnostics and classifies every scored test as pass, fail, skip, not-run or timeout; not-run/timeout records explain their causes and never imply execution or a passing score.
   4. All 17 previously protected passing keys remain mapped and accounted for. Automated gates reject same-pin pass regressions; upstream meaning or denominator changes have an explicit reviewed disposition and preserved comparison evidence.
+
 **Plans**: TBD
 **UI hint**: no
 **Canonical refs**: [CONFORMANCE.md](preparation/CONFORMANCE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md); pin/encoding updates in [research/v4-scope/accuracy.md](research/v4-scope/accuracy.md) supersede the older preparation pin for this phase.
@@ -95,6 +115,7 @@ Every phase ships a tested result through the existing library, runner or adapte
   2. Automated replay exercises reset, save/load and unload/reload, rejects cross-instance interference and compares deterministic continuations against the existing API contracts.
   3. Normal CI replays a fixed permitted/generated corpus, while finite nightly sanitizer campaigns retain deterministic crash/timeout reproducers under measured time, memory and execution budgets selected from throughput/coverage evidence. Findings are minimized; a zero-finding campaign is reported only as finite evidence.
   4. Automated guest-loop and JAM cases demonstrate the documented progress/stop outcomes, including the adapter's observable halt policy. Every reproduced library/host contract violation has a minimized regression and correction or an explicit scope amendment; unexpected major repair/architecture scope is never silently absorbed or waived.
+
 **Plans**: TBD
 **UI hint**: no
 **Canonical refs**: [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [ENGINEERING.md](preparation/ENGINEERING.md), [CONFORMANCE.md](preparation/CONFORMANCE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md); current reach and discovery limits in [research/v4-scope/reliability.md](research/v4-scope/reliability.md).
@@ -107,7 +128,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 0/TBD | Not started | - |
+| 16. Host evidence and roadmap | v4 | 0/6 | Planned | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 
