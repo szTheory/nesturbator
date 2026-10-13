@@ -738,16 +738,21 @@ ENGINEERING.md lines to update with the phase: 74 (`windows-11-arm` VS note), 77
 | A7 | mawk integer printing risk for the rejected awk alternative | Alternatives | None; CMake chosen anyway |
 | A8 | macOS `CLOCK_MONOTONIC` resolution is fine for ~1 ms frames (prints 3 decimals of microseconds, trailing digits may be 000) | Pattern 1 | Cosmetic |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **WR-02 timeout value (10 s vs 30 s).**
    - Known: D-20 says "about 10 s"; helpers have 10 s + 5 s (POSIX) and 20 s + 2 s + 5 s (Windows) internal deadlines; 14-REVIEW.md recommends 30 s.
    - Unclear: whether "about 10 s" is meant literally.
    - Recommendation: use 30 s (matches `runner.stop.*` at tests/CMakeLists.txt:198) with the required "hang detector, not a performance budget" comment; or lower the helper constants under 10 s in the same commit.
+   - **RESOLVED:** 30 s hang detectors with the comment; 10 s would fire inside the helpers' own deadlines and can orphan the runner (Plan 15-01, recorded in 14-REVIEW-DISPOSITION.md).
 2. **`mmc3-oracle` timeout under the `ceil(2 x measured)` rule.** It measured 20 s whole-job, giving 1 minute, but nightly.yml:128-133 deliberately adds the 300 s fetch allowance (`mmc3.oracle.fetch` CTest TIMEOUT, tests/CMakeLists.txt:1579). Recommendation: keep the established formula (fetch allowance + 2 x measured rest, as `vectors-full` does) and put the run IDs in that comment; the lint only needs a run ID.
+   - **RESOLVED:** `mmc3-oracle` and `vectors-full` keep the fetch allowance (300 s and 900 s) plus ceil(2 x measured rest), with the three run IDs in the comment (Plan 15-08 Task 3).
 3. **Cost of control dispatches.** Dispatching `ci.yml` runs all jobs. Either accept two full CI runs, or add `if: inputs.control != true` to the heavy jobs. Recommend accepting the cost (two runs) unless queueing matters; fewer moving parts.
+   - **RESOLVED:** accept the full control-run cost; no job gets an `inputs.control` skip (Plan 15-06 Task 1).
 4. **`--bench` stopped before the first frame.** CONTEXT does not say what prints with zero samples. Recommend `nesturbator-run: bench frames=0` only, exit 0.
+   - **RESOLVED:** only `nesturbator-run: bench frames=0` is printed, then the Phase 14 stop line, with the Phase 14 stop exit status (0, or 1 for an unmet `--hash-frame`). `nesturbator_run_bench_report` builds it and `runner.bench.percentile` pins it without a signal (Plan 15-02).
 5. **`--bench` with `--hash-audio` on a stopped run** follows the Phase 14 rule: no audio hash printed on a stop, and an unmet `--hash-frame` exits 1. No new decision needed.
+   - **RESOLVED:** the plans keep the Phase 14 rule unchanged: no audio hash on a stop, and an unmet `--hash-frame` exits 1 (Plan 15-03 Task 3).
 
 ## Environment Availability
 
