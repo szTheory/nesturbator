@@ -14,7 +14,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 - [x] **TUNE-07**: Battery saves and state files are written by one helper that uses a temporary file, an fsync, a checked close and a rename. A failure-injection test, with an unwritable directory or a directory at the target path, finds the old file intact and no `.tmp` left behind. This closes v2 debt 08 IN-02.
 - [x] **TUNE-08**: The `retroarch-e2e` job round-trips an MMC3 battery game's `.srm` across two RetroArch sessions, as it already does for MMC1. This closes v2 debt G2.
 - [x] **TUNE-09**: `nesturbator_get_version` and `nesturbator_unload_cartridge` each have a caller in the runner or the libretro adapter and are described in the README. This closes v2 debt G6.
-- [x] **TUNE-10**: The nightly suite-flake timeout is about twice a measured cold run, taken after the v3 tests exist. Action pins, runner labels and the AccuracyCoin pin are reviewed, and the README and the public header describe the released code. This closes Backlog 999.1 and SEED-006.
+- [ ] **TUNE-10**: The nightly suite-flake timeout is about twice a measured cold run, taken after the v3 tests exist. Action pins, runner labels and the AccuracyCoin pin are reviewed, and the README and the public header describe the released code. This closes Backlog 999.1 and SEED-006.
 
 ### Save states in the library
 
@@ -113,7 +113,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 | RUN-03 | Phase 14 | Complete |
 | PERF-02 | Phase 15 | Complete |
 | PERF-03 | Phase 15 | Complete |
-| TUNE-10 | Phase 15 | Complete |
+| TUNE-10 | Phase 15 | Pending |
 
 **Coverage:**
 - v3 requirements: 18 total
