@@ -130,7 +130,7 @@ jobs:
     # mmc3.oracle.fetch in tests/CMakeLists.txt; the rest gets twice the 69 s
     # that the ci job's cold build took (this lane builds the same tree; its 13
     # tests ran in 2.3 s locally). 300 + 138 = 438 s, rounded up to 8 minutes.
-    timeout-minutes: 8
+    timeout-minutes: 20 # measurement ceiling until three cold runs are recorded (15-08 Task 2); set from them in Task 3
     permissions:
       contents: read
     outputs:
@@ -191,7 +191,7 @@ jobs:
 
   rom-loader-fuzz:
     runs-on: ubuntu-24.04
-    timeout-minutes: 3
+    timeout-minutes: 15 # measurement ceiling until three cold runs are recorded (15-08 Task 2); set from them in Task 3
     permissions:
       contents: read
     outputs:
@@ -235,7 +235,7 @@ jobs:
 
   state-fuzz:
     runs-on: ubuntu-24.04
-    timeout-minutes: 3 # not yet measured; set to twice the first measured cold run
+    timeout-minutes: 15 # measurement ceiling until three cold runs are recorded (15-08 Task 2); set from them in Task 3
     permissions:
       contents: read
     outputs:
@@ -300,7 +300,7 @@ jobs:
   # six-platform CI run covers the other hosts once.
   suite-flake:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30 # WR-02 ceiling until a cold run is measured; then set to twice the first measured cold run (ENGINEERING §5)
+    timeout-minutes: 60 # measurement ceiling until three cold runs are recorded (15-08 Task 2); set from them in Task 3
     permissions:
       contents: read
     outputs:
