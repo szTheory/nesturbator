@@ -1,20 +1,16 @@
 ---
 gsd_state_version: "1.0"
-milestone: v3
-status: Awaiting next milestone
-stopped_at: Quick task 261013-hpi reconciled historical records; v0.1.10 publication verified
-last_updated: "2026-10-13T17:01:48.354Z"
+milestone: v4
+milestone_name: Measured NTSC accuracy and robustness
+status: planning
+last_updated: "2026-10-13T17:37:23.960Z"
 last_activity: 2026-10-13
-last_activity_desc: Completed historical planning cleanup and verified v0.1.10 publication
-state_head: 5337afb6e750dc340c71b4f66ce37a5aaf6884b5
-milestone_name: Save states and rewind
-current_phase: 15
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 38
-  completed_plans: 38
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: Milestone v3 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-10-13 — Completed quick task 261013-hpi: historical planning cleanup and release-readiness verification
+Status: Defining requirements
+Last activity: 2026-10-13 — Milestone v4 started
 
 ## Performance Metrics
 

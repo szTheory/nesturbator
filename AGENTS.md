@@ -33,9 +33,25 @@ or building a subsystem.
    routine confirmations. Work on a phase branch; merge by pull request with a
    Conventional Commit title.
 
+8. **Rolling direction.** Before each new-milestone and complete-milestone
+   step, read `.planning/PRODUCT-ROADMAP.md` alongside project state, the
+   latest audit, seeds and release evidence. Within that same step, reconcile
+   delivered and partial outcomes, preserve unresolved debt, refresh all four
+   horizons and promotion triggers, and record why ordering changed or stayed.
+   Present the preferred next scope and important alternatives. Commit the
+   refreshed product roadmap with the step's artifacts. Only approved scope
+   is Immediate/committed; future direction remains proposed. At closeout,
+   archive the agreed direction with the milestone. Do not run another
+   lifecycle command to perform this upkeep.
+
 ## Style
 
 Small modules, plain control flow, fixed-width integer types. A hardware comment
 says what the hardware does and cites its source. To decide how to do something,
 follow the ladder at ponytail.dev: remove the need, reuse what is here, use the
 standard library, use the platform, and only then write the minimum new code.
+
+Prefer a small owned helper or justified local duplication to another
+dependency. Add a dependency only when existing code, the standard library
+and the platform cannot handle a demonstrated need simply; keep its tree
+small and its abstraction local. The ownership and clean-room rules apply.

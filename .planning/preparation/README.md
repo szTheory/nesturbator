@@ -2,7 +2,7 @@
 title: "Preparation index"
 summary: "Which reference file answers which question, and the conventions the files share."
 read_when: "First, before opening any other file in this directory."
-updated: 2026-10-02
+updated: 2026-10-13
 ---
 
 # Preparation index
@@ -21,6 +21,7 @@ Reference material gathered before the first line of code. Each file states fact
 | [LIBRETRO-AND-RUNNER.md](LIBRETRO-AND-RUNNER.md) | What libretro requires of a core, how a core reaches RetroArch on an Apple Silicon Mac, and the runner's command line | Building the libretro adapter, packaging a release, or designing the runner |
 | [ENGINEERING.md](ENGINEERING.md) | C rules, CMake presets, tests, fuzzing, CI jobs, release configuration, repository hygiene | Creating or changing the build, tests, CI, repository settings or the release pipeline |
 | [NES-ECOSYSTEM.md](NES-ECOSYSTEM.md) | Existing emulators: licence, score, timing model and speed; what users report; the slot this project fills | Choosing a timing design, ranking features, or checking what another emulator already does |
+| [../PRODUCT-ROADMAP.md](../PRODUCT-ROADMAP.md) | Rolling Immediate/Near/Mid/Long direction, evidence and promotion triggers | Before selecting or closing a milestone; when findings change product priorities |
 | [GSD-HANDOFF.md](GSD-HANDOFF.md) | The kickoff text, the settings that make GSD stop after each step, the per-phase steps, and the owner's tasks | Before starting the GSD project, before each phase, and when a GSD step behaves unexpectedly |
 
 ## Where to look
