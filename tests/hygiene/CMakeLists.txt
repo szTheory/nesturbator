@@ -64,9 +64,15 @@ add_test(NAME hygiene.format
   COMMAND ${CMAKE_COMMAND} -DCLANG_FORMAT=${NESTURBATOR_CLANG_FORMAT} -DGIT=${NESTURBATOR_GIT}
     -DROOT=${PROJECT_SOURCE_DIR} -P ${PROJECT_SOURCE_DIR}/tests/cmake/format_check.cmake)
 
+add_test(NAME hygiene.release_version_format
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DCLANG_FORMAT=${NESTURBATOR_CLANG_FORMAT}
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/release_version_format
+    -P ${PROJECT_SOURCE_DIR}/tests/cmake/release_version_format.cmake)
+
 set_tests_properties(
   hygiene.tree hygiene.scan_selftest hygiene.action_pins hygiene.action_pins.bad hygiene.action_pins.good
   hygiene.timeout_comments hygiene.timeout_comments.bad hygiene.timeout_comments.good
   hygiene.nightly_workflow_policy hygiene.nightly_workflow_policy.selftest hygiene.format
-  hygiene.ci_required_rollup
+  hygiene.ci_required_rollup hygiene.release_version_format
   PROPERTIES LABELS hygiene)
