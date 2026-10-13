@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.10](https://github.com/szTheory/nesturbator/compare/v0.1.9...v0.1.10) (2026-10-13)
+
+
+### Features
+
+* atomic battery saves, MMC3 RetroArch round trip and API tune-up ([14fab5d](https://github.com/szTheory/nesturbator/commit/14fab5d5b6b868c1860a6566a5ce10f0d2c6c837))
+* frame-time bench and per-PR instruction counts ([#46](https://github.com/szTheory/nesturbator/issues/46)) ([b0ec7fb](https://github.com/szTheory/nesturbator/commit/b0ec7fb9d31d0593d6e7c288af8d350e22f7b4c2))
+* MMC1 boards and battery saves ([#34](https://github.com/szTheory/nesturbator/issues/34)) ([1bc8c7b](https://github.com/szTheory/nesturbator/commit/1bc8c7b5590a3bd68c084a9a52ed55109b008596))
+* MMC3 board and A12 scanline IRQ ([#36](https://github.com/szTheory/nesturbator/issues/36)) ([35817f0](https://github.com/szTheory/nesturbator/commit/35817f0b2045867d4277e70a325020b968fc4ba5))
+* NMI edge fix, board parity close-out and nes-runner boot-to-play ([#37](https://github.com/szTheory/nesturbator/issues/37)) ([d9084bf](https://github.com/szTheory/nesturbator/commit/d9084bfe0a43f38978fb172fcd405110bc71dbcc))
+* rewind and run-ahead in RetroArch ([db0f21c](https://github.com/szTheory/nesturbator/commit/db0f21c020c40567f6b17e89c60d00441bb08cb3))
+* safe runner stop and one exit-status table ([#45](https://github.com/szTheory/nesturbator/issues/45)) ([6f08c6c](https://github.com/szTheory/nesturbator/commit/6f08c6cd7ba12308623c915ff6f0060dfcf503c6))
+* save states in the library and the runner ([#43](https://github.com/szTheory/nesturbator/issues/43)) ([e1317d2](https://github.com/szTheory/nesturbator/commit/e1317d2351714654d018540c6f4d892bbb51e8a6))
+
+
+### Bug Fixes
+
+* **release:** keep version macros stable across digit widths ([b8e2824](https://github.com/szTheory/nesturbator/commit/b8e28249c2acdc934967e91b94fca54ebd137345))
+* **runner:** retry a failed interval save flush at exit; shorter asan runs ([#39](https://github.com/szTheory/nesturbator/issues/39)) ([493b995](https://github.com/szTheory/nesturbator/commit/493b9957fc0bde8ab895926d02e9d7b11efc9058))
+
 ## [0.1.9](https://github.com/szTheory/nesturbator/compare/v0.1.8...v0.1.9) (2026-10-10)
 
 
