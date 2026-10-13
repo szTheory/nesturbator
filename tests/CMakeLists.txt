@@ -1832,7 +1832,8 @@ set_tests_properties(libretro.info_claims libretro.info_claims.self_test PROPERT
 # cmake/perf_gate_selftest.cmake.
 foreach(perf_case identical plus_100 plus_101 improvement unstable missing_head report_na
     missing_base_gate allow_ok allow_ok_boundary allow_today allow_cap_low allow_malformed
-    allow_duplicate allow_unknown allow_no_reason allow_too_far allow_expired unstable_allowed)
+    allow_duplicate allow_unknown allow_no_reason allow_too_far allow_expired unstable_allowed
+    missing_head_and_base allow_reason_semicolon allow_reason_bracket allow_bracket_then_malformed)
   add_test(NAME perf.gate_selftest.${perf_case}
     COMMAND ${CMAKE_COMMAND} -DCASE=${perf_case} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
       -DWORK=${CMAKE_CURRENT_BINARY_DIR}/perf_selftest/${perf_case}

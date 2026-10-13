@@ -31,6 +31,8 @@ define_case(improvement EXIT 0 DS head:nesteroids:2000000
   EXPECT "| nesteroids | 0 | 10000 | 6666 | -3333 | -33.33% | ok |")
 define_case(unstable EXIT 1 DS base_b:runner:3000001 EXPECT "UNSTABLE")
 define_case(missing_head EXIT 1 MISSING head:M4_P256K_C256K EXPECT "missing head for M4_P256K_C256K")
+define_case(missing_head_and_base EXIT 1 MISSING head:runner base:runner
+  EXPECT "missing head for runner")
 define_case(report_na EXIT 0 MODE report MISSING head:M4_P256K_C256K
   EXPECT "| M4_P256K_C256K | 4 | 10000 | n/a | n/a | n/a | n/a |")
 define_case(missing_base_gate EXIT 0 MISSING base:nesteroids base:runner base:M4_P256K_C256K
@@ -55,6 +57,16 @@ define_allow_case(allow_cap_low "nesteroids 100 2026-11-30 cap below delta" 1
   EXPECT "exceeds its allow cap")
 define_allow_case(allow_malformed "nesteroids 1.5 2026-11-30 bad cap" 1
   EXPECT "malformed allow line")
+# A reason may hold ';' and '[' ']' (written as @SEMI@, @LB@, @RB@ because a macro argument
+# would split on them); the line must still parse, and the next line keeps its number.
+define_allow_case(allow_reason_semicolon "nesteroids 150 2026-11-30 PPU fix@SEMI@ see #12" 0
+  EXPECT "| nesteroids | 0 | 10000 | 10101 | +101 | +1.01% | ALLOWED |"
+    "(tests/perf/allow.txt line 2)")
+define_allow_case(allow_reason_bracket "nesteroids 150 2026-11-30 see @LB@issue 12 and more" 0
+  EXPECT "| ALLOWED |")
+define_case(allow_bracket_then_malformed EXIT 1 DS head:nesteroids:3030300
+  ALLOW_TEXT "# c\nnesteroids 150 2026-11-30 open @LB@ here\nbad line\n"
+  EXPECT "malformed allow line: 3 of")
 define_case(allow_duplicate EXIT 1 DS head:nesteroids:3030300
   ALLOW_TEXT "# allow_duplicate\nnesteroids 150 2026-11-30 one\nnesteroids 150 2026-11-30 two\n"
   EXPECT "duplicate allow line for nesteroids")
@@ -120,7 +132,11 @@ endforeach()
 set(allow "${SOURCE_DIR}/tests/perf/allow.txt")
 if(DEFINED ${p}_ALLOW_TEXT)
   set(allow "${WORK}/allow.txt")
-  file(WRITE "${allow}" "${${p}_ALLOW_TEXT}")
+  set(allow_text "${${p}_ALLOW_TEXT}")
+  string(REPLACE "@SEMI@" ";" allow_text "${allow_text}")
+  string(REPLACE "@LB@" "[" allow_text "${allow_text}")
+  string(REPLACE "@RB@" "]" allow_text "${allow_text}")
+  file(WRITE "${allow}" "${allow_text}")
 endif()
 set(mode gate)
 if(DEFINED ${p}_MODE)

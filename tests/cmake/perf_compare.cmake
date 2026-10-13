@@ -13,6 +13,7 @@ cmake_minimum_required(VERSION 3.25)
 # never fails. Status words: ok, ALLOWED, FAIL, n/a, UNSTABLE.
 #   UNSTABLE   base_a and base_b differ; fails in every mode and no allow line excuses it.
 #   n/a        no base measurement (never fails); no head measurement in report mode.
+#              In gate mode a missing head fails even when the base is missing too.
 #   FAIL       in gate mode a missing head also fails.
 
 foreach(var MODE DIR ALLOW OUT)
@@ -149,7 +150,13 @@ days_from_civil(today_days ${ty} ${tm} ${td})
 foreach(rom IN LISTS roms)
   set(cap_${rom} "")
 endforeach()
-file(STRINGS "${ALLOW}" allow_lines)
+# file(STRINGS) returns a list, so a ';' or an unbalanced '[' ']' in a reason would split or
+# swallow lines. Read the text, replace those characters (the reason is never printed), then
+# split on newlines.
+file(READ "${ALLOW}" allow_text)
+string(REGEX REPLACE "[][;]" "_" allow_text "${allow_text}")
+string(REPLACE "\r" "" allow_text "${allow_text}")
+string(REPLACE "\n" ";" allow_lines "${allow_text}")
 set(allow_n 0)
 foreach(line IN LISTS allow_lines)
   math(EXPR allow_n "${allow_n} + 1")
@@ -218,15 +225,13 @@ foreach(rom IN LISTS roms)
     set(status "UNSTABLE")
     message(STATUS "UNSTABLE: ${rom} base_a ${base_a} base_b ${base_b}")
     list(APPEND errors "UNSTABLE: ${rom} base_a ${base_a} base_b ${base_b}")
-  elseif(base_a STREQUAL "" OR base_b STREQUAL "")
+  elseif(head STREQUAL "" AND MODE STREQUAL "gate")
+    # A missing head fails the gate even when the base is also missing (a runner that breaks
+    # under Cachegrind must not pass because the base build failed too).
+    set(status "FAIL")
+    list(APPEND errors "perf gate: missing head for ${rom}")
+  elseif(base_a STREQUAL "" OR base_b STREQUAL "" OR head STREQUAL "")
     set(status "n/a")
-  elseif(head STREQUAL "")
-    if(MODE STREQUAL "gate")
-      set(status "FAIL")
-      list(APPEND errors "perf gate: missing head for ${rom}")
-    else()
-      set(status "n/a")
-    endif()
   else()
     math(EXPR delta "${head} - ${base_a}")
     math(EXPR scaled "${delta} * 100")
