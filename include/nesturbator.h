@@ -485,10 +485,14 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * native origin and rejects ambiguous frame candidates. A valid prefix is evidence only for that
  * declared continuation; the complete host path separately checks its load-plus-one-frame probe,
  * fixed original and rewound origins, paced coarse rewind and measured run-ahead display lead.
- * The network driver gives each attempt a private local tree and monotonic child/operation
- * deadlines. Only an exact read-only readiness reply retries; action and screenshot requests are
- * one-shot. A UDP send accepted by the local socket is not proof that RetroArch received it; the
- * retained marker image and native origin are checked by the shared progression verdict.
+ * The network driver gives each attempt a private local tree and monotonic child, operation and
+ * attempt deadlines. It validates all sixteen displayed-state boundaries against the generated
+ * absolute-frame marker window, retaining native origins before slot reuse. Only the exact
+ * read-only readiness reply retries; actions, state saves/loads, screenshots and QUIT are
+ * one-shot, except for the prescribed forty individually paced rewind sends. A UDP send accepted
+ * by the local socket is not proof that RetroArch received it; each retained image and native
+ * origin is checked by the shared progression verdict. The journal records both attempt and
+ * operation timing, and generated host config/log paths are sanitized.
  * Portable whole-state and audio tests retain their broader proofs.
  * Loading restores frame_number and ticks, so the first frame after a load reports the frame
  * number and ticks of the uninterrupted run. The frame buffer and the audio are not in a state.

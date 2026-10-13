@@ -1527,18 +1527,34 @@ and runner frame, and both save round trips' screenshots, runner frames and
 to the real home directory, startup errors, and frame mismatches fail the
 required CI check. No manual screenshot or gameplay check is needed.
 
-The job's state step saves and loads with RetroArch's auto-save and auto-load.
-The network evidence driver starts with a bounded tracer: it pauses, attributes
-two captures to that paused state, retains and validates the native origin, sends
-one frame advance, and checks the next capture with the shared production
-progression verdict. Each attempt has a unique owned tree and exclusive local
-command-port lock. Only an exact read-only readiness response may retry; action
-and screenshot requests are one-shot. Monotonic elapsed deadlines supervise
-child processes and image publication. The readiness response names the
-attempt's isolated save directory, and screenshots are evidence of displayed
-frames rather than proof of UDP delivery. `PREFIX_OK` qualifies this observed
-slice only; complete session success requires the separate full progression
-verdict. The `retroarch-e2e-state` artifact keeps screenshots, states and logs.
+The job's state step retains the existing auto-save/auto-load, game, battery,
+portable state and audio evidence. Its separate marker network session exercises
+the full displayed-state progression: two paused captures, five exact advances,
+one state-load-plus-advance probe, two post-load advances, resume until forward
+progress is observed and pause, forty individually paced rewind sends, three
+rewound advances, then a paused run-ahead toggle and load-plus-advance probe.
+Each of the sixteen captures is decoded within absolute marker frames 4..10000
+and checked by the same production prefix verdict; only a clean host exit after
+all boundaries earns the complete verdict. Original and rewound native state
+containers are retained and validated before their slots are reused.
+
+Each attempt has a unique owned tree and exclusive local command-port lock. The
+only retryable request is the read-only readiness query with its exact isolated
+save-directory reply; every action, state save/load, screenshot and QUIT request
+is one-shot. Monotonic timers bound the 30-second readiness and operation
+windows, 5-second artifact publication window, 120-second attempt and 5-second
+cleanup reserve. On the portable synthetic host, the full sixteen-boundary
+session took 53.2 seconds, including every intermediate production verdict. The
+POSIX control runs the actual shell driver through the successful full sequence
+and reason-specific loss, duplication, stale/partial artifact, wrong-origin,
+host-death, stalled-child and deadline cases. Its stalled-read check measures
+elapsed time and confirms that the blocked child and owned host are reaped.
+The journal records attempt and operation time separately, request counts,
+expected/observed relations and relative artifact identities. Generated config
+and host logs are retained only in sanitized form. A local UDP send is not proof
+of host receipt; the retained images and native anchors are checked by the
+shared progression verdict. `PREFIX_OK` qualifies a declared continuation
+only; complete success requires all sixteen boundaries and terminal exit zero.
 
 The separate `MARKER_GATE=ON` state invocation qualifies an owned generated NROM
 counter before exact network assertions are expanded. `retroarch.marker.qualify`
