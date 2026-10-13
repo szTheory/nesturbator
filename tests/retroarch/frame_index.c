@@ -15,6 +15,7 @@
 #include "bmp_ppm.h"
 #include "convert.h"
 #include "nesturbator.h"
+#include "progression.h"
 #include "state_test.h"
 
 #include <stdint.h>
@@ -391,6 +392,71 @@ static int marker_expect(const char *name, const char *actual, const char *expec
     return ok;
 }
 
+static int progression_tracer_selftest(const char *work)
+{
+    static uint8_t rom[MARKER_ROM_SIZE];
+    static uint8_t rgb[NESTURBATOR_TEST_RGB_SIZE];
+    marker_rom(rom);
+    uint32_t offset = 0;
+    if (!marker_offset(rom, &offset))
+        return 2;
+
+    nesturbator *inst = marker_instance(rom);
+    if (inst == NULL)
+        return 2;
+    size_t size = nesturbator_state_size(inst);
+    size_t padded = (size + 7u) & ~(size_t)7u;
+    size_t length = 16u + padded + 8u;
+    uint8_t *envelope = (uint8_t *)calloc(length, 1u);
+    uint8_t *native = (uint8_t *)malloc(size);
+    if (envelope == NULL || native == NULL)
+        return 2;
+    uint32_t palette[512];
+    nesturbator_get_palette(inst, palette, 512u);
+    uint64_t absolute = 0;
+    for (unsigned n = 1; n <= 150u; ++n) {
+        if (!marker_frame(inst, rgb, &absolute))
+            return 2;
+    }
+    if (absolute != 150u || nesturbator_save_state(inst, native, size) != NESTURBATOR_OK)
+        return 2;
+    memcpy(envelope, "RASTATE\001MEM ", 12u);
+    put32(envelope + 12u, (uint32_t)size);
+    memcpy(envelope + 16u, native, size);
+    memcpy(envelope + 16u + padded, "END ", 4u);
+    char anchor_path[2048];
+    int path_size = snprintf(anchor_path, sizeof anchor_path, "%s/marker-progression-origin.ra", work);
+    if (path_size < 0 || (size_t)path_size >= sizeof anchor_path ||
+        !marker_write(anchor_path, envelope, length))
+        return 2;
+
+    nesturbator *validator = marker_instance(rom);
+    if (validator == NULL || marker_anchor(validator, envelope, length, 150u, offset) != NULL)
+        return 2;
+    nesturbator_destroy(validator);
+    if (nesturbator_load_state(inst, native, size) != NESTURBATOR_OK ||
+        !marker_frame(inst, rgb, &absolute) || absolute != 151u)
+        return 2;
+    uint32_t observed = 0;
+    if (marker_pixels(rgb, palette, offset, &observed) != NULL || observed != 151u)
+        return 2;
+
+    const progression_session session = {.anchor_frame = 150u,
+                                         .observed_frame = observed,
+                                         .boundary_count = 1u};
+    const char *reason = progression_verdict(&session, 1);
+    if (reason == NULL || strcmp(reason, "PREFIX_OK") != 0) {
+        fprintf(stderr, "ASSERT progression tracer: expected PREFIX_OK, actual %s\n",
+                reason != NULL ? reason : "pass");
+        return 1;
+    }
+    printf("progression tracer: validated native origin 150 -> frame %u\n", observed);
+    free(envelope);
+    free(native);
+    nesturbator_destroy(inst);
+    return 0;
+}
+
 static int marker_selftest(const char *work)
 {
     if (marker_pixel_control() != 0)
@@ -736,6 +802,8 @@ static uint64_t fnv1a(const uint8_t *p, size_t n)
 
 int main(int argc, char **argv)
 {
+    if (argc == 3 && strcmp(argv[1], "--progression-selftest") == 0)
+        return progression_tracer_selftest(argv[2]);
     if (argc >= 2 && strncmp(argv[1], "--marker-", 9u) == 0)
         return marker_cli(argc, argv);
     int dups = argc >= 2 && strcmp(argv[1], "--dups") == 0;

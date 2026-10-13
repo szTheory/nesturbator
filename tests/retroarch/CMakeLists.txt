@@ -37,6 +37,9 @@ add_test(NAME retroarch.marker.controls
   COMMAND frame_index --marker-selftest ${CMAKE_CURRENT_BINARY_DIR})
 set_tests_properties(retroarch.marker.controls PROPERTIES
   PASS_REGULAR_EXPRESSION "marker controls: 36 cases" TIMEOUT 60)
+add_test(NAME retroarch.progression.tracer
+  COMMAND frame_index --progression-selftest ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(retroarch.progression.tracer PROPERTIES TIMEOUT 60)
 set(marker_rom ${CMAKE_CURRENT_BINARY_DIR}/marker.nes)
 set(marker_cal ${CMAKE_CURRENT_BINARY_DIR}/calibration.txt)
 add_test(NAME retroarch.marker.generate COMMAND frame_index --marker-generate ${marker_rom})
