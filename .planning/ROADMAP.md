@@ -39,7 +39,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 - [x] **Phase 11: Tune-up and state readiness** - One atomic-write helper with no stale `.tmp`, MMC3 `.srm` round trip in RetroArch, a caller and README text for every public function (completed 2026-10-11)
 - [x] **Phase 12: Save states in the library** - Fixed-size, checked, all-or-nothing states on six boards, pinned on six platforms through the runner's state options (completed 2026-10-12)
 - [x] **Phase 13: Rewind and run-ahead in RetroArch** - libretro serialize, staged `.info` claims, RetroArch e2e for states, rewind and run-ahead, and a state-loader fuzz target (completed 2026-10-12)
-- [ ] **Phase 14: Runner process contract** - Signal-safe save flush and one documented exit-status table for launchers
+- [x] **Phase 14: Runner process contract** - Signal-safe save flush and one documented exit-status table for launchers (completed 2026-10-12)
 - [ ] **Phase 15: Speed and close-out** - Frame-time report, per-PR instruction-count comparison, measured nightly timeout and a final pin and docs review
 
 ## Phase Details
@@ -164,7 +164,31 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   3. The exit-status table (0, 1, 2, 4, 5; 3 and 77 reserved) is the same in one header, `--help` and the README, a test checks that, and each status has its own test.
   4. The README says Ctrl+Break and console close are handled on Windows and that a forced termination cannot be.
 
-**Plans**: TBD
+**Plans**: 8/8 plans complete
+**Wave 1**
+- [x] 14-01-PLAN.md — One exit-status table in `runner/exit_status.h`, `--help`, README section, `runner.exit.*` tests (RUN-03)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 14-02-PLAN.md — Stop module, frame-exact stop with exit flush, `--raise-after` (RUN-02)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 14-03-PLAN.md — README stop contract with Windows launcher recipe and guard, runner header comment (RUN-02, RUN-03)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [x] 14-04-PLAN.md — Flush-failure, empty, second-signal, load-state and `--raise-after` usage stop tests (RUN-02, RUN-03)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [x] 14-05-PLAN.md — Unmet requested outputs give exit 1 with a `not reached` line; no audio hash on a stop (RUN-02, RUN-03)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [x] 14-06-PLAN.md — External SIGTERM/SIGINT and second-signal tests on Linux and macOS (RUN-02)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [x] 14-07-PLAN.md — Windows handler and console tests, push, draft PR, six green build jobs (RUN-02, RUN-03)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- [x] 14-08-PLAN.md — Hosted signal timings under the D-15 rule (asan included), measured timeouts, final green head (RUN-02, RUN-03)
+
 **Notes**: Research flag: Windows console-event delivery on hosted runners and fsync latency against 2 s need a look before planning.
 
 ### Phase 15: Speed and close-out
@@ -192,5 +216,5 @@ Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured col
 | 11. Tune-up and state readiness | v3 | 4/4 | Complete    | 2026-10-11 |
 | 12. Save states in the library | v3 | 10/10 | Complete    | 2026-10-12 |
 | 13. Rewind and run-ahead in RetroArch | v3 | 8/8 | Complete    | 2026-10-12 |
-| 14. Runner process contract | v3 | 0/TBD | Not started | - |
+| 14. Runner process contract | v3 | 8/8 | Complete    | 2026-10-12 |
 | 15. Speed and close-out | v3 | 0/TBD | Not started | - |

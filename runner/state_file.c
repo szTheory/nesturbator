@@ -23,12 +23,24 @@ int nesturbator_run_state_read(const char *path, uint8_t *buf, size_t cap, size_
         fprintf(stderr, "nesturbator-run: cannot read state %s (is a directory)\n", path);
         return 1;
     }
-    f = fopen(path, "rb");
+    /* A stop signal can interrupt the open of a FIFO or a slow file; the load is never aborted
+       by it (RUN-02, D-05), so an interrupted open or read is retried. */
+    do {
+        f = fopen(path, "rb");
+    } while (f == NULL && errno == EINTR);
     if (f == NULL) {
         fprintf(stderr, "nesturbator-run: cannot read state %s (%s)\n", path, strerror(errno));
         return 1;
     }
-    n = fread(buf, 1, cap, f);
+    n = 0;
+    for (;;) {
+        n += fread(buf + n, 1, cap - n, f);
+        if (ferror(f) != 0 && errno == EINTR) {
+            clearerr(f);
+            continue;
+        }
+        break;
+    }
     if (ferror(f) != 0) {
         fprintf(stderr, "nesturbator-run: cannot read state %s (read error)\n", path);
         fclose(f);

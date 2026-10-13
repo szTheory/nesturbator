@@ -73,6 +73,18 @@ nesturbator_runner_test(NAME runner.usage.version_after_bad
 nesturbator_runner_test(NAME runner.usage.positional
   ARGS cartridge EXIT 2 IGNORE_STDOUT)
 
+# RUN-03: one test per exit status. 4 and 5 are runner.save.mismatch and runner.state.reject_game
+# below; --help is runner.exit.help. Options before --help are validated, as with --version.
+nesturbator_runner_test(NAME runner.exit.done ARGS --frames 1 EXIT 0)
+nesturbator_runner_test(NAME runner.exit.failure
+  ARGS --frames 1 --rom ${CMAKE_CURRENT_BINARY_DIR}/no-such-rom.nes
+  EXIT 1 EXPECT_ERR "no-such-rom.nes")
+nesturbator_runner_test(NAME runner.exit.usage EXPECT_ERR "usage: nesturbator-run" EXIT 2)
+nesturbator_runner_test(NAME runner.usage.help_after_bad
+  ARGS --bogus --help EXIT 2 IGNORE_STDOUT)
+set_tests_properties(runner.exit.done runner.exit.failure runner.exit.usage
+  PROPERTIES LABELS exit_status)
+
 # MAP-03 / D-15: a refused cartridge gets one named reason on stderr and exit 1.
 set(NESTURBATOR_REJECT_SEEDS ${PROJECT_SOURCE_DIR}/tests/fuzz/corpus)
 set(NESTURBATOR_MAPPER_LIST "supported mappers are 0, 1, 2, 3, 4 and 7")
@@ -171,6 +183,117 @@ runner_save_case(jam)
 runner_save_case(dir_at_tmp)
 set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
 
+# RUN-02: a signal finishes the current frame, flushes and exits 0. --raise-after signals the
+# runner's own process after frame N, so each case is deterministic. The signal names differ by
+# platform: int and term on POSIX, int and break on Windows.
+function(runner_stop_case case)
+  add_test(NAME runner.stop.${case}
+    COMMAND ${CMAKE_COMMAND}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      "-DFIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
+      "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/stop_work/${case}"
+      "-DCASE=${case}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_stop.cmake")
+  set_tests_properties(runner.stop.${case} PROPERTIES
+    FIXTURES_REQUIRED runner_save TIMEOUT 30 LABELS exit_status)
+endfunction()
+if(WIN32)
+  runner_stop_case(frame_exact.break)
+  runner_stop_case(frame_exact.int)
+else()
+  runner_stop_case(frame_exact.term)
+  runner_stop_case(frame_exact.int)
+endif()
+runner_stop_case(flush_missing_dir)
+runner_stop_case(flush_dir_at_tmp)
+runner_stop_case(at_zero)
+runner_stop_case(nodir)
+runner_stop_case(double)
+runner_stop_case(double.int)
+runner_stop_case(load_state_at)
+runner_stop_case(load_state_below)
+# D-08 to D-10: a stop that missed a requested output exits 1 and names it.
+runner_stop_case(unmet_hash_frame)
+runner_stop_case(unmet_hash_state)
+runner_stop_case(unmet_state_at_frame)
+runner_stop_case(unmet_dump_frame)
+runner_stop_case(unmet_hash_audio)
+runner_stop_case(unmet_movie)
+runner_stop_case(unmet_order)
+runner_stop_case(met_at_stop)
+runner_stop_case(late)
+
+# D-15: real SIGTERM and SIGINT from another process (never a skip: policy.no-skip).
+# runner.signal prints "signal-to-exit <ms> ms" for every timed case.
+if(NOT WIN32)
+  add_executable(runner.signal runner/test_signal.c)
+  nesturbator_warnings(runner.signal)
+  add_test(NAME runner.signal.scratch
+    COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_CURRENT_BINARY_DIR}/signal_work)
+  set_tests_properties(runner.signal.scratch PROPERTIES FIXTURES_SETUP runner_signal_scratch)
+set(NESTURBATOR_SIGNAL_TIMEOUT 2)  # runner_signal_case timeout: twice the slowest hosted run: CI run 38322038900 (build (macos-15, ci, macos, arm64)), ENGINEERING section 5
+  function(runner_signal_case case)
+    add_test(NAME runner.signal.${case}
+      COMMAND runner.signal $<TARGET_FILE:nesturbator-run> ${NESTURBATOR_SAVE_FIXTURE}
+        ${CMAKE_CURRENT_BINARY_DIR}/signal_work/${case} ${case})
+    set_tests_properties(runner.signal.${case} PROPERTIES
+      FIXTURES_REQUIRED "runner_save;runner_signal_scratch"
+      RUN_SERIAL TRUE TIMEOUT ${NESTURBATOR_SIGNAL_TIMEOUT})
+  endfunction()
+  runner_signal_case(term)
+  runner_signal_case(int)
+  runner_signal_case(term_exitflush)
+  runner_signal_case(second)
+  runner_signal_case(load_error)
+  runner_signal_case(second_in_flush)
+  set_tests_properties(runner.signal.term runner.signal.int runner.signal.term_exitflush
+    PROPERTIES LABELS exit_status)
+endif()
+
+# D-14: the Windows console handler called directly; no console is needed (never a skip).
+if(WIN32)
+  add_executable(runner.stop_win runner/test_stop_win.c ${PROJECT_SOURCE_DIR}/runner/stop.c)
+  target_include_directories(runner.stop_win PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+  nesturbator_warnings(runner.stop_win)
+  target_compile_definitions(runner.stop_win PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+  add_test(NAME runner.stop.win_handler COMMAND runner.stop_win)
+  set_tests_properties(runner.stop.win_handler PROPERTIES TIMEOUT 30 LABELS exit_status)
+
+  # D-16: a real Ctrl+Break through the runner's own console. Kept or removed by hosted evidence.
+  add_executable(runner.stop_console runner/test_console.c)
+  nesturbator_warnings(runner.stop_console)
+  target_compile_definitions(runner.stop_console PRIVATE
+    $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+  add_test(NAME runner.stop.win_console
+    COMMAND runner.stop_console $<TARGET_FILE:nesturbator-run> ${NESTURBATOR_SAVE_FIXTURE}
+      ${CMAKE_CURRENT_BINARY_DIR}/console_work)
+  set_tests_properties(runner.stop.win_console PROPERTIES
+    FIXTURES_REQUIRED runner_save TIMEOUT 1 LABELS exit_status)  # twice the slowest hosted run: CI run 38322038900 (build (windows-2025, ci-msvc, windows, x64)), ENGINEERING section 5
+endif()
+
+# D-04, D-11: --raise-after usage errors exit 2 and name the option.
+if(WIN32)
+  set(raise_foreign_sig term)
+else()
+  set(raise_foreign_sig break)
+endif()
+nesturbator_runner_test(NAME runner.usage.raise_after.bad_sig
+  ARGS --frames 2 --raise-after 1:kill EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.foreign_sig
+  ARGS --frames 2 --raise-after 1:${raise_foreign_sig} EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.bad_k
+  ARGS --frames 2 --raise-after 1:int:3 EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.twice
+  ARGS --frames 2 --raise-after 1 --raise-after 1 EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.beyond
+  ARGS --frames 2 --raise-after 3 EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.malformed
+  ARGS --frames 2 --raise-after 1: EXIT 2 EXPECT_ERR "--raise-after")
+nesturbator_runner_test(NAME runner.usage.raise_after.accuracycoin
+  ARGS --accuracycoin-page 2 --rom ${PROJECT_SOURCE_DIR}/tests/roms/none.nes --scoreboard s
+  --raise-after 1 EXIT 2 EXPECT_ERR "--raise-after")
+
 # RUN-01 (D-07, D-09 to D-11): --state-at-frame and --load-state. runner.state_mutate makes the
 # corrupt copies at test time (CMake cannot compute a CRC-32); no state file is committed. Each
 # runner.state.<case> runs in its own scratch directory, so the cases are safe under ctest -j.
@@ -211,6 +334,8 @@ runner_state_case(range_frames)
 runner_state_case(range_hash_frame)
 runner_state_case(range_state)
 runner_state_case(every_frame)
+set_tests_properties(runner.save.mismatch runner.save.unwritable runner.state.reject_game
+  PROPERTIES LABELS exit_status)
 nesturbator_runner_test(NAME runner.usage.load_state.twice
   ARGS --frames 1 --load-state a.state --load-state b.state EXIT 2 IGNORE_STDOUT)
 # D-11, D-12 and Open Question 3: repetition and combination refusals exit 2.
@@ -934,6 +1059,15 @@ add_test(NAME cmake.script_policy
 add_test(NAME state.status_table
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/status_table.cmake)
+
+# RUN-03: the exit table is the same in runner/exit_status.h, --help and the README.
+foreach(mode table help)
+  add_test(NAME runner.exit.${mode}
+    COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>" -DMODE=${mode}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_exit_table.cmake)
+  set_tests_properties(runner.exit.${mode} PROPERTIES LABELS exit_status)
+endforeach()
 
 # D-01 and D-02: vector conversion and fetch stay implemented by the owned C
 # parser; release configuration scripts are outside this scoped policy.

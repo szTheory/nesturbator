@@ -10,7 +10,8 @@
    file as one byte too many, without allocating from the file's length. A
    directory, a missing file or a read error prints
    "nesturbator-run: cannot read state <path> (<reason>)" and returns 1;
-   otherwise returns 0. The file is opened read-only and never changed. */
+   otherwise returns 0. The file is opened read-only and never changed. An open or read
+   interrupted by a signal is retried, so a stop request never aborts a load. */
 int nesturbator_run_state_read(const char *path, uint8_t *buf, size_t cap, size_t *got);
 
 #endif /* NESTURBATOR_RUN_STATE_FILE_H */

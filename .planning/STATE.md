@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v3
 milestone_name: Save states and rewind
-current_phase: 14
-current_phase_name: Runner process contract
+current_phase: 15
+current_phase_name: Speed and close-out
 status: planning
-stopped_at: Phase 13 complete, ready to plan Phase 14
-last_updated: "2026-10-12T20:01:55.347Z"
+stopped_at: Phase 14 complete, ready to plan Phase 15
+last_updated: "2026-10-13T00:16:16.645Z"
 last_activity: 2026-10-12
-last_activity_desc: Phase 13 complete, transitioned to Phase 14
-state_head: e5e35e610f90d438f97fdbb5258eeff9436c94ed
+last_activity_desc: Phase 14 complete, transitioned to Phase 15
+state_head: 710b37cbe87aa5ccf11f12deab68d612088c9f5f
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 22
-  completed_plans: 22
-  percent: 60
+  completed_phases: 4
+  total_plans: 30
+  completed_plans: 30
+  percent: 80
 ---
 
 # Project State
@@ -25,21 +25,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-12)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 14 — Runner process contract
+**Current focus:** Phase 15 — Speed and close-out
 
 ## Current Position
 
-Phase: 14 — Runner process contract
+Phase: 15 — Speed and close-out
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-10-12 — Phase 13 complete, transitioned to Phase 14
+Last activity: 2026-10-12 — Phase 14 complete, transitioned to Phase 15
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 107
+- Total plans completed: 115
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -62,6 +62,7 @@ Progress: [██████░░░░] 60%
 | 11 | 4 | - | - |
 | 12 | 10 | - | - |
 | 13 | 8 | - | - |
+| 14 | 8 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -177,6 +178,14 @@ Progress: [██████░░░░] 60%
 | Phase 13 P06 | 11 min | 2 tasks | 14 files |
 | Phase 13 P07 | 40m | 2 tasks | 5 files |
 | Phase 13 P08 | 2h | 2 tasks | 4 files |
+| Phase 14 P01 | 20 min | 2 tasks | 5 files |
+| Phase 14 P02 | 15min | 1 tasks | 7 files |
+| Phase 14 P03 | 8 min | 2 tasks | 3 files |
+| Phase 14 P04 | 6 min | 2 tasks | 2 files |
+| Phase 14 P05 | 12 min | 2 tasks | 6 files |
+| Phase 14 P06 | 50 min | 3 tasks | 5 files |
+| Phase 14 P07 | 75 min | 2 tasks | 4 files |
+| Phase 14 P08 | 20 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -263,6 +272,13 @@ Recent decisions affecting current work:
 - [Phase 13]: 13-06: allowlist holds the audio-driver line (any) and the Run-Ahead refusal warning scoped serialized
 - [Phase 13]: 13-07: RetroArch 1.22.2 names state files after the content stem and ignores SAVE_STATE after FRAMEADVANCE; the network session saves its second state at rew-0
 - [Phase 13]: CI timeouts: build 22 min, asan 14 min, twice the slowest measured hosted run (13-08)
+- [Phase 14]: Runner exit statuses are defined once in runner/exit_status.h (RUNNER_EXIT_TABLE); --help and the README are checked against it by runner.exit.table
+- [Phase 14]: Option-list README guard matches the bullet text, not the synopsis block
+- [Phase 14]: 14-05: a stopped run that missed a requested output exits 1 and names the first one by command-line position (not reached: line); --frames not reached and --hash-audio-free open-ended runs stay 0
+- [Phase 14]: 14-06: second signal test fills the stdout pipe before spawning; macOS grows pipes in timed steps so an external stall check is unreliable
+- [Phase 14]: 14-06: --load-state open and read retry on EINTR so a stop never aborts a load
+- [Phase 14]: 14-07: runner.stop.win_console (real Ctrl+Break through the runner's own console) passed on both hosted Windows legs and is kept; draft PR #45
+- [Phase 14]: 14-08: signal TIMEOUT 2 s and win_console TIMEOUT 1 s from CI run 38322038900; D-15 2000 ms held on all legs, no fix needed
 
 ### Pending Todos
 
@@ -278,7 +294,8 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - [Phase 10] Code review left 3 warnings and 3 info open, all in test code (10-REVIEW-DISPOSITION.md): WR-01 `libretro.host --rom-parity` continues after a failed load; WR-02 boot-to-play audio window min/max not re-seeded when a window's first frame has no samples (latent); WR-03 the frame-written sentinel is weaker than its comment.
 - [Phase 11] Code review left 3 info open (11-REVIEW-DISPOSITION.md; WR-01 to WR-04 fixed): IN-01 load_cartridge repeats the power-on reset; IN-02 a failed libretro load leaves the instance NULL so AV info is zeroed; IN-03 one over-long comment line in `runner/main.c`.
 - [Phase 12] Code review closed (12-REVIEW-DISPOSITION.md): CR-01 tick ceiling, WR-01 runner exit 2 before ROM load and IN-01 fixed; WR-02 skipped, as `halted_in_read` is never written and its bound must widen if stalled reads are modelled. Six-platform state hash equality is shown only by the Phase 12 PR's CI matrix.
-- [Phase 13] Code review left 3 warnings and 5 info open, all in test code (13-REVIEW-DISPOSITION.md): WR-01 state-net frame-chain checks tolerate a dropped or doubled FRAMEADVANCE; WR-02 state_session.sh resends only the second SAVE_STATE; WR-03 special-case ROMs matched by substring of the full path. PR #44 is green and still a draft; merge it before Phase 14 work starts.
+- [Phase 13] Code review left 3 warnings and 5 info open, all in test code (13-REVIEW-DISPOSITION.md): WR-01 state-net frame-chain checks tolerate a dropped or doubled FRAMEADVANCE; WR-02 state_session.sh resends only the second SAVE_STATE; WR-03 special-case ROMs matched by substring of the full path. PR #44 squash-merged as db0f21c after the asan run-ahead budget fix (6fbfa5a).
+- [Phase 14] Code review left 3 warnings and 4 info open (14-REVIEW-DISPOSITION.md): WR-01 `signal()` installed over an inherited SIG_IGN with no saved errno (suggest `sigaction` with SA_RESTART|SA_RESETHAND); WR-02 signal-test TIMEOUT 2 s and win_console 1 s rest on one CI sample and may flake; WR-03 README lacks the POSIX advice to drain stdout. PR #45 is draft and green.
 - [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
@@ -312,13 +329,13 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T19:51:35.444Z
-Stopped at: Phase 13 complete, ready to plan Phase 14
+Last session: 2026-10-12T23:56:51.612Z
+Stopped at: Phase 14 complete, ready to plan Phase 15
 Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 14`.
+Next GSD command: `/gsd-discuss-phase 15`.
 
 ## Operator Next Steps
 
-- Push gsd/phase-12-save-states-in-the-library, open its PR and squash-merge it once CI is green, then create the Phase 13 branch from main
-- Discuss Phase 13 with /gsd-discuss-phase 13, then plan it with /gsd-plan-phase 13
+- Take PR #45 out of draft and squash-merge it once CI is green, then create gsd/phase-15-speed-and-close-out from the updated main
+- Discuss Phase 15 with /gsd-discuss-phase 15

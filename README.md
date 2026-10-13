@@ -1024,11 +1024,16 @@ mappers.
 nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
                 [--save-dir DIR [--save-interval N]]
                 [--state-at-frame N:FILE]... [--hash-state N]... [--load-state FILE]
+                [--raise-after N[:SIG[:K]]]
 nesturbator-run --version
 ```
 
 - `--frames N` runs N frames (N is 1 or more). It is required; without it
   the runner prints its usage and exits 2.
+- `--raise-after N[:SIG[:K]]` is a test aid: after frame N the runner signals its own
+  process K times (K defaults to 1) with SIG, so a stop lands at a known frame. SIG is `int`
+  or `term` on POSIX (default `term`) and `int` or `break` on Windows (default `break`). It
+  cannot be combined with `--accuracycoin-page`.
 - `--version` prints one line to stdout, `nesturbator-run X.Y.Z`, formatted at
   run time from `nesturbator_get_version`, and exits 0. It needs no other
   option and nothing else is printed. It is handled where the option loop
@@ -1182,8 +1187,7 @@ each leaves the old save intact and no `.tmp` behind. `runner.save_fsize`
 `battery.sav.tmp` and expects exit 1, the `cannot save` message and the
 directory left alone.
 
-Exit status: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch,
-5 state rejected; 3 and 77 are reserved.
+Exit status: see [Exit status](#exit-status).
 
 Each hashed frame prints one line:
 
@@ -1218,8 +1222,39 @@ frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a
 
 writes `frame1.ppm` (184335 bytes) and prints the same line as before.
 
-Exit status: 0 done, 1 failure (including a FILE that cannot be written),
-2 usage error, 5 state rejected.
+Exit status: see [Exit status](#exit-status).
+
+### Stopping the runner
+
+On SIGTERM or SIGINT the runner finishes the current frame, writes the battery save and exits 0, or 1 if the save could not be written. It prints one stop line on standard error and adds nothing to standard output. The stop is seen between frames, also before the first frame when the request arrives while the cartridge loads; a load error keeps its own exit status. The save goes through the same temp-and-rename write as any other, so it is never torn. A second signal at any time, including during the flush, ends the runner at once.
+
+On Linux and macOS the `runner.signal.*` tests send real SIGTERM and SIGINT from another process and require exit 0 within 2 s with the whole save and no temp file, and a second SIGTERM to end a runner that is blocked writing to a full pipe. They also show that a signal during loading leaves a load error's status in charge, and that a second SIGTERM ends a runner held inside its exit flush.
+
+A stopped run exits 1 when something requested was not produced: a `--hash-frame`, `--hash-state`, `--state-at-frame` or `--dump-frame` beyond the last finished frame, `--hash-audio`, or a movie that did not reach its end. The line after the stop line names the first such option on the command line, for example `nesturbator-run: not reached: --hash-frame 6`, and standard output gains nothing. A stopped run prints no audio hash, because it would cover a truncated run. A `--frames` count not reached is not a failure, so a launcher that runs open-ended (`--frames 4294967295 --save-dir DIR`, no hash or dump options) and stops it gets 0. A signal that arrives after the last frame changes nothing: the run is complete, exits 0 and prints its audio hash.
+
+On Windows the runner handles Ctrl+C, Ctrl+Break and console close the same way. SIGTERM is not a Windows mechanism. A forced termination (TerminateProcess, taskkill /F, power loss) cannot be handled; the last committed .sav survives it. Logoff and shutdown are not handled. `--accuracycoin-page` installs no stop handlers. On Windows `runner.stop.win_handler` calls the console handler directly (Ctrl+C and Ctrl+Break handled once and declined after, logoff and shutdown declined, a close event held until the exit sequence is done or its cap passes), and `runner.stop.win_console` sends a real Ctrl+Break through the runner's own console and requires exit 0 with a whole save and no temp file.
+
+A Windows launcher stops the runner with a console event, in one of two cases.
+
+- The launcher shares the runner's console. It starts the runner with `CREATE_NEW_PROCESS_GROUP` (and without `CREATE_NEW_CONSOLE`, `DETACHED_PROCESS` or `CREATE_NO_WINDOW`) and calls `GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid)`, the runner's process id being its group id, so only the runner's group gets the event.
+- The launcher has no console or a different one. It starts the runner with `CREATE_NEW_CONSOLE`, detaches from its own console (`FreeConsole`), attaches to the runner's (`AttachConsole` with the runner's process id), registers its own handler with `SetConsoleCtrlHandler`, and only then sends `GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, 0)`. Group 0 reaches every process on that console, the launcher included. A launcher that sends the event to group 0 first registers its own handler that returns TRUE for CTRL_BREAK_EVENT, after attaching and before sending, or the event ends the launcher too. Attaching resets the handler list, so the handler goes in after it.
+
+Never send CTRL_C_EVENT to a process group. No event reaches a runner started with `DETACHED_PROCESS` or `CREATE_NO_WINDOW`. The launcher must read or discard the runner's standard output, because the runner flushes it before the save.
+
+### Exit status
+
+`nesturbator-run --help` prints the usage text and this table to standard output and
+exits 0. A bad command line prints the same text to standard error and exits 2.
+
+| Status | Meaning | When |
+|---|---|---|
+| 0 | done | The run finished, or `--version` or `--help` printed its text. |
+| 1 | failure | A file cannot be read or written, a save fails, a stop whose save could not be written, a stopped run that missed a requested output, or a frame fails or hits a JAM. |
+| 2 | usage error | The command line is wrong. |
+| 4 | .sav size mismatch | The `.sav` file's length differs from the cartridge's battery RAM. |
+| 5 | state rejected | `--load-state` refused the file. |
+
+3 and 77 are reserved; the runner never returns them.
 
 ## The libretro core
 
