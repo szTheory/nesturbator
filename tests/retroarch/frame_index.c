@@ -19,6 +19,7 @@
 #include "state_test.h"
 
 #include <stdint.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -139,6 +140,11 @@ static int marker_write(const char *path, const void *data, size_t size)
         return 0;
     int ok = fwrite(data, 1u, size, f) == size;
     return fclose(f) == 0 && ok;
+}
+
+static int progression_anchor_reason(const char *reason)
+{
+    return reason != NULL && strncmp(reason, "container-", 10u) == 0 ? 2 : 1;
 }
 
 static uint8_t *marker_read(const char *path, size_t limit, size_t *size)
@@ -392,69 +398,528 @@ static int marker_expect(const char *name, const char *actual, const char *expec
     return ok;
 }
 
-static int progression_tracer_selftest(const char *work)
+static int progression_make_path(char *path, size_t capacity, const char *work,
+                                 const char *name)
+{
+    int length = snprintf(path, capacity, "%s/%s", work, name);
+    return length >= 0 && (size_t)length < capacity;
+}
+
+static int progression_write_ppm(const char *path, const uint8_t *rgb)
+{
+    static const char header[] = "P6\n256 240\n255\n";
+    FILE *file = fopen(path, "wb");
+    if (file == NULL)
+        return 0;
+    int ok = fwrite(header, 1u, sizeof header - 1u, file) == sizeof header - 1u &&
+             fwrite(rgb, 1u, NESTURBATOR_TEST_RGB_SIZE, file) == NESTURBATOR_TEST_RGB_SIZE;
+    return fclose(file) == 0 && ok;
+}
+
+static int progression_write_path(FILE *file, const char *length_key, const char *path_key,
+                                  const char *path)
+{
+    size_t length = strlen(path);
+    return strchr(path, '\n') == NULL && strchr(path, '\r') == NULL &&
+           fprintf(file, "%s=%zu\n%s=%s\n", length_key, length, path_key, path) >= 0;
+}
+
+static int progression_write_record(const char *path, const progression_session *session)
+{
+    FILE *file = fopen(path, "wb");
+    if (file == NULL)
+        return 0;
+    int ok = 1;
+#define PROGRESSION_PRINT(...)                                                                     \
+    do {                                                                                           \
+        if (ok && fprintf(file, __VA_ARGS__) < 0)                                                   \
+            ok = 0;                                                                                \
+    } while (0)
+    PROGRESSION_PRINT("NESTURBATOR-PROGRESSION 1\nmode=%s\ncontent_identity=%016" PRIx64
+                      "\ncalibration_identity=%016" PRIx64 "\nterminal_exit=",
+                      session->mode == PROGRESSION_PREFIX ? "prefix" : "complete",
+                      session->content_identity, session->calibration_identity);
+    PROGRESSION_PRINT("%s\n", session->terminal_exit < 0 ? "running" : "0");
+    if (session->terminal_exit > 0 && ok) {
+        /* Test fixtures only use a live prefix or a clean completed session. */
+        ok = 0;
+    }
+    if (ok)
+        ok = progression_write_path(file, "original_anchor_path_length", "original_anchor_path",
+                                    session->original_anchor_path);
+    PROGRESSION_PRINT("original_anchor_identity=%016" PRIx64 "\noriginal_anchor_frame=%" PRIu64
+                      "\n",
+                      session->original_anchor_identity, session->original_anchor_frame);
+    if (ok)
+        ok = progression_write_path(file, "rewound_anchor_path_length", "rewound_anchor_path",
+                                    session->rewound_anchor_path);
+    PROGRESSION_PRINT("rewound_anchor_identity=%016" PRIx64 "\nrewound_anchor_frame=%" PRIu64
+                      "\nboundary_count=%u\n",
+                      session->rewound_anchor_identity, session->rewound_anchor_frame,
+                      session->boundary_count);
+    for (uint32_t i = 0; ok && i < session->boundary_count; ++i) {
+        const progression_boundary *b = &session->boundaries[i];
+        const char *operation = progression_operation_name(b->operation);
+        const char *relation = progression_relation_name(b->relation);
+        const char *origin = progression_origin_name(b->origin);
+        if (operation == NULL || relation == NULL || origin == NULL) {
+            ok = 0;
+            break;
+        }
+        PROGRESSION_PRINT("boundary\nid=%u\noperation=%s\nrelation=%s\norigin=%s\n"
+                          "command_count=%u\nsend_count=%u\nartifact_identity=%" PRIu64 "\n",
+                          b->id, operation, relation, origin, b->command_count, b->send_count,
+                          b->artifact_identity);
+        if (ok)
+            ok = progression_write_path(file, "artifact_path_length", "artifact_path",
+                                        b->artifact_path);
+        PROGRESSION_PRINT("artifact_hash=%016" PRIx64 "\ndisplay_frame=%" PRIu64
+                          "\ncandidate_count=%u\ncandidate_first=%" PRIu64
+                          "\ncandidate_last=%" PRIu64 "\nanchor_identity=%016" PRIx64
+                          "\nanchor_frame=%" PRIu64 "\ndisplay_lead=%d\nexpected_delta=%u\n"
+                          "elapsed_ms=%" PRIu64 "\ndeadline_ms=%" PRIu64
+                          "\nprocess_alive=%d\nboundary_end\n",
+                          b->artifact_hash, b->display_frame, b->candidate_count,
+                          b->candidate_first, b->candidate_last, b->anchor_identity,
+                          b->anchor_frame, b->display_lead, b->expected_delta, b->elapsed_ms,
+                          b->deadline_ms, b->process_alive);
+    }
+    PROGRESSION_PRINT("END\n");
+#undef PROGRESSION_PRINT
+    if (fclose(file) != 0)
+        ok = 0;
+    return ok;
+}
+
+static int marker_progression_fixtures(const char *work)
 {
     static uint8_t rom[MARKER_ROM_SIZE];
     static uint8_t rgb[NESTURBATOR_TEST_RGB_SIZE];
+    static uint8_t pause_rgb[NESTURBATOR_TEST_RGB_SIZE];
+    static uint8_t advance_rgb[NESTURBATOR_TEST_RGB_SIZE];
+    char rom_path[PROGRESSION_PATH_CAP], calibration_path[PROGRESSION_PATH_CAP];
+    char anchor_path[PROGRESSION_PATH_CAP], pause_one[PROGRESSION_PATH_CAP];
+    char pause_two[PROGRESSION_PATH_CAP], advance_path[PROGRESSION_PATH_CAP];
+    char wrong_anchor_path[PROGRESSION_PATH_CAP];
+    char record_path[PROGRESSION_PATH_CAP];
+    if (!progression_make_path(rom_path, sizeof rom_path, work, "marker.nes") ||
+        !progression_make_path(calibration_path, sizeof calibration_path, work,
+                               "calibration.txt") ||
+        !progression_make_path(anchor_path, sizeof anchor_path, work,
+                               "retained original anchor.ra") ||
+        !progression_make_path(wrong_anchor_path, sizeof wrong_anchor_path, work,
+                               "valid wrong origin.ra") ||
+        !progression_make_path(pause_one, sizeof pause_one, work, "pause capture one.ppm") ||
+        !progression_make_path(pause_two, sizeof pause_two, work, "pause capture two.ppm") ||
+        !progression_make_path(advance_path, sizeof advance_path, work, "advance one.ppm") ||
+        !progression_make_path(record_path, sizeof record_path, work, "progression-prefix.rec"))
+        return 0;
+
     marker_rom(rom);
     uint32_t offset = 0;
-    if (!marker_offset(rom, &offset))
-        return 2;
+    if (!marker_offset(rom, &offset) || !marker_write(rom_path, rom, sizeof rom))
+        return 0;
+    char calibration[256];
+    marker_calibration(calibration, sizeof calibration, offset);
+    if (!marker_write(calibration_path, calibration, strlen(calibration)))
+        return 0;
 
     nesturbator *inst = marker_instance(rom);
     if (inst == NULL)
-        return 2;
-    size_t size = nesturbator_state_size(inst);
-    size_t padded = (size + 7u) & ~(size_t)7u;
-    size_t length = 16u + padded + 8u;
-    uint8_t *envelope = (uint8_t *)calloc(length, 1u);
-    uint8_t *native = (uint8_t *)malloc(size);
-    if (envelope == NULL || native == NULL)
-        return 2;
-    uint32_t palette[512];
-    nesturbator_get_palette(inst, palette, 512u);
+        return 0;
+    size_t native_size = nesturbator_state_size(inst);
+    size_t padded_size = (native_size + 7u) & ~(size_t)7u;
+    size_t envelope_size = 16u + padded_size + 8u;
+    uint8_t *native = (uint8_t *)malloc(native_size);
+    uint8_t *wrong_native = (uint8_t *)malloc(native_size);
+    uint8_t *envelope = (uint8_t *)calloc(envelope_size, 1u);
+    uint8_t *wrong_envelope = (uint8_t *)calloc(envelope_size, 1u);
+    if (native == NULL || wrong_native == NULL || envelope == NULL || wrong_envelope == NULL)
+        return 0;
     uint64_t absolute = 0;
-    for (unsigned n = 1; n <= 150u; ++n) {
-        if (!marker_frame(inst, rgb, &absolute))
-            return 2;
+    for (unsigned frame = 1; frame <= 150u; ++frame) {
+        if (!marker_frame(inst, rgb, &absolute) || absolute != frame)
+            return 0;
+        if (frame == 149u &&
+            nesturbator_save_state(inst, wrong_native, native_size) != NESTURBATOR_OK)
+            return 0;
+        if (frame == 150u) {
+            memcpy(pause_rgb, rgb, sizeof pause_rgb);
+            if (nesturbator_save_state(inst, native, native_size) != NESTURBATOR_OK)
+                return 0;
+        }
     }
-    if (absolute != 150u || nesturbator_save_state(inst, native, size) != NESTURBATOR_OK)
-        return 2;
     memcpy(envelope, "RASTATE\001MEM ", 12u);
-    put32(envelope + 12u, (uint32_t)size);
-    memcpy(envelope + 16u, native, size);
-    memcpy(envelope + 16u + padded, "END ", 4u);
-    char anchor_path[2048];
-    int path_size = snprintf(anchor_path, sizeof anchor_path, "%s/marker-progression-origin.ra", work);
-    if (path_size < 0 || (size_t)path_size >= sizeof anchor_path ||
-        !marker_write(anchor_path, envelope, length))
-        return 2;
+    put32(envelope + 12u, (uint32_t)native_size);
+    memcpy(envelope + 16u, native, native_size);
+    memcpy(envelope + 16u + padded_size, "END ", 4u);
+    memcpy(wrong_envelope, "RASTATE\001MEM ", 12u);
+    put32(wrong_envelope + 12u, (uint32_t)native_size);
+    memcpy(wrong_envelope + 16u, wrong_native, native_size);
+    memcpy(wrong_envelope + 16u + padded_size, "END ", 4u);
+    uint64_t anchor_identity = progression_hash64(envelope, envelope_size);
+    if (!marker_write(anchor_path, envelope, envelope_size) ||
+        !marker_write(wrong_anchor_path, wrong_envelope, envelope_size) ||
+        !progression_write_ppm(pause_one, pause_rgb) ||
+        !progression_write_ppm(pause_two, pause_rgb))
+        return 0;
 
+    nesturbator *anchor_validator = marker_instance(rom);
+    if (anchor_validator == NULL ||
+        marker_anchor(anchor_validator, envelope, envelope_size, 150u, offset) != NULL)
+        return 0;
+    nesturbator_destroy(anchor_validator);
+    anchor_validator = marker_instance(rom);
+    if (anchor_validator == NULL ||
+        marker_anchor(anchor_validator, wrong_envelope, envelope_size, 149u, offset) != NULL)
+        return 0;
+    nesturbator_destroy(anchor_validator);
+    nesturbator *continuation = marker_instance(rom);
+    if (continuation == NULL ||
+        nesturbator_load_state(continuation, native, native_size) != NESTURBATOR_OK ||
+        !marker_frame(continuation, rgb, &absolute) || absolute != 151u)
+        return 0;
+    uint32_t continuation_palette[512], observed = 0;
+    nesturbator_get_palette(continuation, continuation_palette, 512u);
+    const char *continuation_reason = marker_pixels(rgb, continuation_palette, offset, &observed);
+    if (continuation_reason != NULL || observed != 151u) {
+        fprintf(stderr, "progression fixture continuation: expected 151, got %u (%s)\n",
+                observed, continuation_reason != NULL ? continuation_reason : "frame");
+        return 0;
+    }
+    memcpy(advance_rgb, rgb, sizeof advance_rgb);
+    if (!progression_write_ppm(advance_path, advance_rgb) ||
+        marker_image(advance_path, continuation_palette, offset, &observed) != NULL ||
+        observed != 151u) {
+        fprintf(stderr, "progression fixture image: expected decoded 151, got %u\n", observed);
+        return 0;
+    }
+    nesturbator_destroy(continuation);
+    nesturbator_destroy(inst);
+    free(native);
+    free(wrong_native);
+    free(envelope);
+    free(wrong_envelope);
+
+    progression_session session;
+    memset(&session, 0, sizeof session);
+    session.mode = PROGRESSION_PREFIX;
+    session.content_identity = progression_hash64(rom, sizeof rom);
+    session.calibration_identity = progression_hash64(calibration, strlen(calibration));
+    session.terminal_exit = -1;
+    snprintf(session.original_anchor_path, sizeof session.original_anchor_path, "%s", anchor_path);
+    session.original_anchor_identity = anchor_identity;
+    session.original_anchor_frame = 150u;
+    session.boundary_count = 3u;
+    const char *artifact_paths[] = {pause_one, pause_two, advance_path};
+    const uint64_t frames[] = {150u, 150u, 151u};
+    for (uint32_t i = 0; i < session.boundary_count; ++i) {
+        progression_boundary *b = &session.boundaries[i];
+        b->id = i + 1u;
+        b->operation = i < 2u ? PROGRESSION_CAPTURE : PROGRESSION_ADVANCE;
+        b->relation = i < 2u ? PROGRESSION_PAUSE_EQUAL_ORIGINAL : PROGRESSION_ORIGINAL_PLUS;
+        b->origin = PROGRESSION_ORIGIN_ORIGINAL;
+        b->command_count = 1u;
+        b->send_count = 1u;
+        b->artifact_identity = i + 1u;
+        snprintf(b->artifact_path, sizeof b->artifact_path, "%s", artifact_paths[i]);
+        if (!progression_hash_file(b->artifact_path, &b->artifact_hash))
+            return 0;
+        b->display_frame = frames[i];
+        b->candidate_count = 1u;
+        b->candidate_first = frames[i];
+        b->candidate_last = frames[i];
+        b->anchor_identity = anchor_identity;
+        b->anchor_frame = 150u;
+        b->expected_delta = i == 2u ? 1u : 0u;
+        b->elapsed_ms = 1u;
+        b->deadline_ms = 1000u;
+        b->process_alive = 1;
+    }
+    if (!progression_write_record(record_path, &session))
+        return 0;
+    printf("progression fixture files: ready (3 decoded boundaries, retained native origin 150)\n");
+    return 1;
+}
+
+static int marker_progression_fixtures(const char *work);
+static int marker_progression_cli(const char *rom_path, const char *calibration_path,
+                                  const char *record_path, int prefix);
+
+static const char *progression_validate_anchor(nesturbator *inst, const char *path,
+                                               uint64_t identity, uint64_t frame,
+                                               uint32_t offset)
+{
+    uint64_t actual_identity = 0;
+    if (path[0] == '\0' || identity == 0u)
+        return "ORIGIN";
+    if (!progression_hash_file(path, &actual_identity))
+        return "IO";
+    if (actual_identity != identity)
+        return "ORIGIN";
+    size_t state_size = nesturbator_state_size(inst);
+    size_t limit = 16u + ((state_size + 7u) & ~(size_t)7u) + 8u;
+    size_t size = 0;
+    uint8_t *bytes = marker_read(path, limit, &size);
+    if (bytes == NULL)
+        return "IO";
+    const char *reason = marker_anchor(inst, bytes, size, frame, offset);
+    free(bytes);
+    return reason == NULL ? NULL : progression_anchor_reason(reason) == 2 ? "PARSE" : "ORIGIN";
+}
+
+static const char *progression_palette_for_frame(const uint8_t *rom, const char *path,
+                                                 uint64_t identity, uint64_t anchor_frame,
+                                                 uint64_t target_frame, uint32_t offset,
+                                                 uint32_t *palette)
+{
+    uint64_t actual_identity = 0;
+    if (target_frame < anchor_frame)
+        return "PROGRESSION";
+    if (target_frame > MARKER_LAST)
+        return "IDENTITY";
+    if (!progression_hash_file(path, &actual_identity))
+        return "IO";
+    if (actual_identity != identity)
+        return "ORIGIN";
+    nesturbator *shape = marker_instance(rom);
+    if (shape == NULL)
+        return "IO";
+    size_t state_size = nesturbator_state_size(shape);
+    size_t limit = 16u + ((state_size + 7u) & ~(size_t)7u) + 8u;
+    nesturbator_destroy(shape);
+    size_t size = 0;
+    uint8_t *bytes = marker_read(path, limit, &size);
+    if (bytes == NULL)
+        return "IO";
     nesturbator *validator = marker_instance(rom);
-    if (validator == NULL || marker_anchor(validator, envelope, length, 150u, offset) != NULL)
-        return 2;
+    if (validator == NULL) {
+        free(bytes);
+        return "IO";
+    }
+    const char *reason = marker_anchor(validator, bytes, size, anchor_frame, offset);
     nesturbator_destroy(validator);
-    if (nesturbator_load_state(inst, native, size) != NESTURBATOR_OK ||
-        !marker_frame(inst, rgb, &absolute) || absolute != 151u)
-        return 2;
+    if (reason != NULL) {
+        free(bytes);
+        return progression_anchor_reason(reason) == 2 ? "PARSE" : "ORIGIN";
+    }
+    nesturbator *simulator = marker_instance(rom);
+    if (simulator == NULL) {
+        free(bytes);
+        return "IO";
+    }
+    static uint8_t rgb[NESTURBATOR_TEST_RGB_SIZE];
+    uint64_t absolute = 0;
+    for (uint64_t frame = 1u; frame <= anchor_frame; ++frame) {
+        if (!marker_frame(simulator, rgb, &absolute) || absolute != frame) {
+            nesturbator_destroy(simulator);
+            free(bytes);
+            return "PROCESS";
+        }
+    }
+    if (nesturbator_load_state(simulator, bytes + 16u, state_size) != NESTURBATOR_OK) {
+        nesturbator_destroy(simulator);
+        free(bytes);
+        return "ORIGIN";
+    }
+    free(bytes);
+    nesturbator_get_palette(simulator, palette, 512u);
+    absolute = anchor_frame;
+    while (absolute < target_frame) {
+        if (!marker_frame(simulator, rgb, &absolute)) {
+            nesturbator_destroy(simulator);
+            return "PROCESS";
+        }
+    }
+    nesturbator_get_palette(simulator, palette, 512u);
     uint32_t observed = 0;
-    if (marker_pixels(rgb, palette, offset, &observed) != NULL || observed != 151u)
-        return 2;
+    reason = marker_pixels(rgb, palette, offset, &observed);
+    nesturbator_destroy(simulator);
+    if (reason != NULL)
+        return "IDENTITY";
+    return observed == target_frame ? NULL : "PROGRESSION";
+}
 
-    const progression_session session = {.anchor_frame = 150u,
-                                         .observed_frame = observed,
-                                         .boundary_count = 1u};
-    const char *reason = progression_verdict(&session, 1);
-    if (reason == NULL || strcmp(reason, "PREFIX_OK") != 0) {
-        fprintf(stderr, "ASSERT progression tracer: expected PREFIX_OK, actual %s\n",
-                reason != NULL ? reason : "pass");
+static int marker_progression_cli(const char *rom_path, const char *calibration_path,
+                                  const char *record_path, int prefix)
+{
+    static uint8_t expected_rom[MARKER_ROM_SIZE];
+    marker_rom(expected_rom);
+    uint32_t offset = 0;
+    if (!marker_offset(expected_rom, &offset)) {
+        fprintf(stderr, "marker: IDENTITY (startup calibration)\n");
+        return 2;
+    }
+    char expected_calibration[256];
+    marker_calibration(expected_calibration, sizeof expected_calibration, offset);
+
+    size_t rom_size = 0;
+    uint8_t *rom = marker_read(rom_path, sizeof expected_rom, &rom_size);
+    if (rom == NULL) {
+        fprintf(stderr, "marker: IO (content)\n");
+        return 2;
+    }
+    uint64_t content_identity = progression_hash64(rom, rom_size);
+    int valid_rom = rom_size == sizeof expected_rom &&
+                    memcmp(rom, expected_rom, sizeof expected_rom) == 0;
+    free(rom);
+    if (!valid_rom) {
+        fprintf(stderr, "marker: IDENTITY (content)\n");
         return 1;
     }
-    printf("progression tracer: validated native origin 150 -> frame %u\n", observed);
-    free(envelope);
-    free(native);
+
+    size_t calibration_size = 0;
+    uint8_t *calibration = marker_read(calibration_path, sizeof expected_calibration,
+                                       &calibration_size);
+    if (calibration == NULL) {
+        fprintf(stderr, "marker: IO (calibration)\n");
+        return 2;
+    }
+    uint64_t calibration_identity = progression_hash64(calibration, calibration_size);
+    int valid_calibration = calibration_size == strlen(expected_calibration) &&
+                            memcmp(calibration, expected_calibration, calibration_size) == 0;
+    free(calibration);
+    if (!valid_calibration) {
+        fprintf(stderr, "marker: IDENTITY (calibration)\n");
+        return 1;
+    }
+
+    progression_session session;
+    const char *reason = progression_read_record(record_path, &session);
+    if (reason != NULL) {
+        fprintf(stderr, "marker: %s (record)\n", reason);
+        return strcmp(reason, "IO") == 0 || strcmp(reason, "PARSE") == 0 ? 2 : 1;
+    }
+    if (session.content_identity != content_identity ||
+        session.calibration_identity != calibration_identity) {
+        fprintf(stderr, "marker: IDENTITY (record binding)\n");
+        return 1;
+    }
+    nesturbator *inst = marker_instance(expected_rom);
+    if (inst == NULL) {
+        fprintf(stderr, "marker: IO (core instance)\n");
+        return 2;
+    }
+    reason = progression_validate_anchor(inst, session.original_anchor_path,
+                                         session.original_anchor_identity,
+                                         session.original_anchor_frame, offset);
+    if (reason == NULL && session.boundary_count > 11u)
+        reason = progression_validate_anchor(inst, session.rewound_anchor_path,
+                                             session.rewound_anchor_identity,
+                                             session.rewound_anchor_frame, offset);
+    for (uint32_t i = 0; reason == NULL && i < session.boundary_count; ++i) {
+        const progression_boundary *b = &session.boundaries[i];
+        uint64_t actual_hash = 0;
+        if (b->artifact_path[0] == '\0' || b->artifact_identity == 0u) {
+            reason = "ATTRIBUTION";
+            break;
+        }
+        if (!progression_hash_file(b->artifact_path, &actual_hash)) {
+            reason = "IO";
+            break;
+        }
+        if (actual_hash != b->artifact_hash) {
+            reason = "ATTRIBUTION";
+            break;
+        }
+        const char *anchor_path = b->origin == PROGRESSION_ORIGIN_REWOUND
+                                      ? session.rewound_anchor_path
+                                      : session.original_anchor_path;
+        uint64_t anchor_identity = b->origin == PROGRESSION_ORIGIN_REWOUND
+                                       ? session.rewound_anchor_identity
+                                       : session.original_anchor_identity;
+        uint64_t anchor_frame = b->origin == PROGRESSION_ORIGIN_REWOUND
+                                    ? session.rewound_anchor_frame
+                                    : session.original_anchor_frame;
+        uint32_t palette[512];
+        reason = progression_palette_for_frame(expected_rom, anchor_path, anchor_identity,
+                                               anchor_frame, b->display_frame, offset, palette);
+        if (reason != NULL)
+            break;
+        uint32_t decoded = 0;
+        const char *image_reason = marker_image(b->artifact_path, palette, offset, &decoded);
+        if (image_reason != NULL) {
+            fprintf(stderr, "marker: image boundary=%u reason=%s\n", b->id, image_reason);
+            reason = strcmp(image_reason, "image-geometry-or-format") == 0 ? "PARSE" : "IDENTITY";
+        } else if (decoded != b->display_frame) {
+            fprintf(stderr, "marker: image boundary=%u expected=%" PRIu64 " actual=%u\n",
+                    b->id, b->display_frame, decoded);
+            reason = "PROGRESSION";
+        }
+    }
     nesturbator_destroy(inst);
+    if (reason == NULL)
+        reason = progression_verdict(&session, !prefix);
+    printf("progression boundaries=%u mode=%s verdict=%s\n", session.boundary_count,
+           prefix ? "prefix" : "complete", reason);
+    if (reason == NULL)
+        return 2;
+    if (strcmp(reason, "PREFIX_OK") == 0 || strcmp(reason, "VERDICT_OK") == 0)
+        return 0;
+    if (strcmp(reason, "IO") == 0 || strcmp(reason, "PARSE") == 0)
+        return 2;
+    return 1;
+}
+
+static int progression_complete_required_selftest(const char *work)
+{
+    char rom[PROGRESSION_PATH_CAP], calibration[PROGRESSION_PATH_CAP];
+    char record[PROGRESSION_PATH_CAP];
+    if (!progression_make_path(rom, sizeof rom, work, "marker.nes") ||
+        !progression_make_path(calibration, sizeof calibration, work, "calibration.txt") ||
+        !progression_make_path(record, sizeof record, work, "progression-prefix.rec"))
+        return 2;
+    int result = marker_progression_cli(rom, calibration, record, 0);
+    if (result != 1) {
+        fprintf(stderr, "ASSERT complete verdict rejects a prefix: expected exit 1, actual %d\n",
+                result);
+        return 1;
+    }
+    printf("complete verdict control: prefix rejected as INCOMPLETE\n");
     return 0;
+}
+
+static int progression_tracer_selftest(const char *work)
+{
+    char rom[PROGRESSION_PATH_CAP], calibration[PROGRESSION_PATH_CAP];
+    char record[PROGRESSION_PATH_CAP];
+    char wrong_anchor[PROGRESSION_PATH_CAP];
+    if (!marker_progression_fixtures(work) ||
+        !progression_make_path(rom, sizeof rom, work, "marker.nes") ||
+        !progression_make_path(calibration, sizeof calibration, work, "calibration.txt") ||
+        !progression_make_path(record, sizeof record, work, "progression-prefix.rec") ||
+        !progression_make_path(wrong_anchor, sizeof wrong_anchor, work, "valid wrong origin.ra"))
+        return 2;
+    int result = marker_progression_cli(rom, calibration, record, 1);
+    if (result != 0)
+        return result;
+    progression_session session;
+    if (progression_read_record(record, &session) != NULL)
+        return 2;
+    uint64_t wrong_identity = 0;
+    uint32_t offset = 0;
+    static uint8_t marker[MARKER_ROM_SIZE];
+    marker_rom(marker);
+    if (!progression_hash_file(wrong_anchor, &wrong_identity) ||
+        !marker_offset(marker, &offset))
+        return 2;
+    nesturbator *inst = marker_instance(marker);
+    if (inst == NULL)
+        return 2;
+    const char *anchor_reason = progression_validate_anchor(inst, wrong_anchor, wrong_identity,
+                                                           149u, offset);
+    nesturbator_destroy(inst);
+    progression_session wrong_origin = session;
+    wrong_origin.boundaries[2].anchor_identity = wrong_identity;
+    wrong_origin.boundaries[2].anchor_frame = 149u;
+    unsigned count = 0;
+    int ok = marker_expect("valid-same-content-wrong-origin",
+                           anchor_reason == NULL
+                               ? progression_verdict(&wrong_origin, 0)
+                               : "NATIVE_INVALID",
+                           "ORIGIN", &count);
+    printf("progression origin controls: %u case\n", count);
+    return ok ? 0 : 1;
 }
 
 static int marker_selftest(const char *work)
@@ -676,6 +1141,16 @@ static int marker_cli(int argc, char **argv)
         return marker_write(argv[2], expected_rom, sizeof expected_rom) ? 0 : 2;
     if (argc == 3 && strcmp(argv[1], "--marker-selftest") == 0)
         return marker_selftest(argv[2]);
+    if (argc == 4 && strcmp(argv[1], "--marker-selftest") == 0 &&
+        strcmp(argv[3], "--fixtures") == 0) {
+        if (marker_selftest(argv[2]) != 0)
+            return 1;
+        return marker_progression_fixtures(argv[2]) ? 0 : 2;
+    }
+    if (argc == 5 && strcmp(argv[1], "--marker-verdict-prefix") == 0)
+        return marker_progression_cli(argv[2], argv[3], argv[4], 1);
+    if (argc == 5 && strcmp(argv[1], "--marker-verdict") == 0)
+        return marker_progression_cli(argv[2], argv[3], argv[4], 0);
     if (argc < 4)
         return 2;
     size_t size = 0;
@@ -804,6 +1279,8 @@ int main(int argc, char **argv)
 {
     if (argc == 3 && strcmp(argv[1], "--progression-selftest") == 0)
         return progression_tracer_selftest(argv[2]);
+    if (argc == 3 && strcmp(argv[1], "--progression-complete-selftest") == 0)
+        return progression_complete_required_selftest(argv[2]);
     if (argc >= 2 && strncmp(argv[1], "--marker-", 9u) == 0)
         return marker_cli(argc, argv);
     int dups = argc >= 2 && strcmp(argv[1], "--dups") == 0;

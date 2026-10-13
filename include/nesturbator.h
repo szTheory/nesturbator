@@ -481,6 +481,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * measured uncompressed released-binary envelope and a bounded visible-marker window.
  * Its negative controls distinguish native-valid wrong origins and stale revisions from parse
  * or checksum failures; screenshots qualify displayed identity, not every saved machine field.
+ * The separate private progression verdict binds each displayed observation to one retained
+ * native origin and rejects ambiguous frame candidates. A valid prefix is evidence only for that
+ * declared continuation; portable whole-state and audio tests retain their broader proofs.
  * Loading restores frame_number and ticks, so the first frame after a load reports the frame
  * number and ticks of the uninterrupted run. The frame buffer and the audio are not in a state.
  * Load never returns NESTURBATOR_STOP_JAM: a state saved after a JAM opcode restores the latch

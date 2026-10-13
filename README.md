@@ -1560,6 +1560,18 @@ qualification. This is bounded marker/anchor qualification, not completed exact
 network progression or proof of speculative audio: portable whole-state and
 audio tests retain those separate proofs.
 
+`frame_index --marker-verdict-prefix ROM CALIBRATION EVIDENCE` applies the
+same versioned, bounded relation verdict to a declared prefix of decoded host
+images. It binds the record to the exact marker ROM and measured calibration,
+checks each image hash and marker, and validates its retained native anchor on
+an isolated same-content instance. `PREFIX_OK` means only that this observed
+prefix is consistent with the declared continuation; it is not a complete
+session verdict. `--marker-verdict` requires all prescribed boundaries and a
+clean terminal host exit. The evidence format preserves paths with spaces and
+rejects ambiguous frame candidates instead of selecting whichever candidate
+makes a relation fit. `--marker-selftest WORK --fixtures` leaves build-owned
+marker images, calibration and native anchors for offline controls.
+
 `retroarch.marker.controls` runs 36 independently specified cases: first/last
 frames, startup and end plus one, counter carry, zero/one/two steps and duplicate
 identity, invalid colors and partial cells/guards, image geometry, bounded
