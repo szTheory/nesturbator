@@ -5,16 +5,16 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: Completed 16-06-PLAN.md
-last_updated: "2026-10-13T21:37:30.534Z"
+stopped_at: Completed 16-02-PLAN.md
+last_updated: "2026-10-13T22:24:11.354Z"
 last_activity: 2026-10-13
 last_activity_desc: Phase 16 execution started
-state_head: 8c6af3169b61a9d1514986032d4d6d9a681b85b5
+state_head: 7dcf5a1c048c51b62c796a79b73a7a9588660654
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 6
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 ## Current Position
 
 Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-10-13 — Phase 16 execution started
 
@@ -197,6 +197,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 15 P08 | hosted nightly waits | 3 tasks | 9 files |
 | Phase 16 P01 | 121 min | 2 tasks | 6 files |
 | Phase 16 P06 | 6min | 2 tasks | 1 files |
+| Phase 16 P02 | 34min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -304,6 +305,9 @@ Recent decisions affecting current work:
 - [Phase 16]: Native anchors bind the exact observed RASTATE1 envelope, same content, current format/revision, intended absolute origin and calibrated continuation; loader acceptance alone is insufficient.
 - [Phase 16]: The additional required pinned marker gate proves qualification only; shared exact-network evidence remains in Plans 02/03 and portable state/audio proofs remain separate.
 - [Phase 16]: Set the hosted job ceiling to 14 minutes from the latest 40 completed workflow histories: 29 successful host jobs, maximum 402 seconds in run 38457185699.
+- [Phase 16]: Keep the evidence parser and progression semantics private to test tooling; no dependency, public API, native state format or emulator behavior changed.
+- [Phase 16]: Reject multiple frame candidates as AMBIGUOUS, and zero or mismatched candidates as IDENTITY; no candidate selection can make an observation fit a relation.
+- [Phase 16]: EVID-01 remains pending for Plan 16-03 real-host network acceptance.
 
 ### Pending Todos
 
@@ -361,8 +365,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T21:37:30.513Z
-Stopped at: Completed 16-06-PLAN.md
+Last session: 2026-10-13T22:24:11.334Z
+Stopped at: Completed 16-02-PLAN.md
 Resume file: None
 
 Next GSD command: $gsd-execute-phase 16

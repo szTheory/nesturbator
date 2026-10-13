@@ -2,9 +2,9 @@
 schema_version: 1
 open_count: 0
 waived_count: 3
-fixed_count: 10
-total_count: 13
-last_updated: 2026-10-13T19:49:09.830Z
+fixed_count: 11
+total_count: 14
+last_updated: 2026-10-13T22:23:50.741Z
 ---
 
 # Broken Windows Ledger
@@ -28,6 +28,7 @@ last_updated: 2026-10-13T19:49:09.830Z
 | 11 | 16 | deviation | tests/retroarch/frame_index.c |  | Moved the generated marker to scanline 224 after exhaustive qualification exposed a split cell at frame 1467; final frames 4..10000 pass. | fixed |  | 2026-10-13T19:48:51.579Z | 2026-10-13T19:48:59.476Z |
 | 12 | 16 | deviation | .github/workflows/ci.yml |  | Wired the required hosted marker invocation and retention during Task 1 so its tracer gate could run before Task 2 expansion. | fixed |  | 2026-10-13T19:48:59.550Z | 2026-10-13T19:49:05.056Z |
 | 13 | 16 | deviation | README.md |  | Replaced the unsupported 61-fps wall-time bound with the enforced absolute marker window 4..10000; out-of-window evidence fails. | fixed |  | 2026-10-13T19:49:05.121Z | 2026-10-13T19:49:09.830Z |
+| 14 | 16 | deviation | tests/retroarch/CMakeLists.txt | 59 | Removed output-only CTest pass regexes so process exit status governs progression test success | fixed |  | 2026-10-13T22:23:37.344Z | 2026-10-13T22:23:50.741Z |
 
 ````json
 [
@@ -198,6 +199,19 @@ last_updated: 2026-10-13T19:49:09.830Z
     "reason": "",
     "recorded_at": "2026-10-13T19:49:05.121Z",
     "resolved_at": "2026-10-13T19:49:09.830Z",
+    "milestone": null
+  },
+  {
+    "id": 14,
+    "kind": "deviation",
+    "phase": "16",
+    "file": "tests/retroarch/CMakeLists.txt",
+    "line": 59,
+    "description": "Removed output-only CTest pass regexes so process exit status governs progression test success",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-10-13T22:23:37.344Z",
+    "resolved_at": "2026-10-13T22:23:50.741Z",
     "milestone": null
   }
 ]
