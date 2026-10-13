@@ -1,3 +1,12 @@
+# Requirements Archive: v3 Save states and rewind
+
+**Archived:** 2026-10-13
+**Status:** SHIPPED
+
+For current requirements, see `.planning/REQUIREMENTS.md`.
+
+---
+
 # Requirements: nesturbator
 
 **Defined:** 2026-10-11

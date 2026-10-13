@@ -2,19 +2,19 @@
 gsd_state_version: "1.0"
 milestone: v3
 milestone_name: Save states and rewind
-current_phase: 15
-status: completed
-stopped_at: Phase 15 complete — all phases complete
-last_updated: "2026-10-13T13:28:20.604Z"
+status: Awaiting next milestone
+stopped_at: Milestone v3 archived; release PR #35 blocked by hygiene.format
+last_updated: "2026-10-13T14:22:24.785Z"
 last_activity: 2026-10-13
-last_activity_desc: Phase 15 complete
-state_head: 461402cadd8958006d15db502f9e855dbbf3c4ef
+last_activity_desc: Milestone v3 completed and archived
+state_head: b0ec7fb9d31d0593d6e7c288af8d350e22f7b4c2
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 38
   completed_plans: 38
   percent: 100
+current_phase: 15
 ---
 
 # Project State
@@ -24,16 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Milestone v3 close-out (all five phases complete)
+**Current focus:** Unblock release PR #35 (v0.1.10), then plan the next milestone
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-10-13 - Completed quick task 261013-cvm: CI job timeouts set from sampled run history (asan 26 min, WR-04 5-minute floor)
-
-Progress: [██████████] 100%
+Phase: Milestone v3 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-10-13 — Milestone v3 completed and archived
 
 ## Performance Metrics
 
@@ -302,7 +300,9 @@ None.
 
 ### Blockers/Concerns
 
-v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-AUDIT.md` and MILESTONES.md. The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
+- **Release blocker (found at the v3 close):** release PR #35 (v0.1.10) fails `hygiene.format` on `include/nesturbator.h:43-44`; the bumped patch number shifts the aligned `x-release-please` comments. v0.1.9 is still the latest release, so none of v3 is published.
+
+v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and MILESTONES.md. v2 debt is in `.planning/milestones/v2-MILESTONE-AUDIT.md`. The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
 - [Phase 08] Code review left 2 warnings and 2 info open (08-REVIEW-DISPOSITION.md; WR-01 interval-flush retry fixed by quick task 261011-inm, PR #39): WR-02 NES 2 MMC1 submapper 5 accepted but not emulated as fixed 32 KiB PRG; WR-03 a directory at the `.sav` path exits 4 instead of a read error.
 - [Phase 09] Code review left 1 warning and 2 info (09-REVIEW-DISPOSITION.md): WR-01 accepted by the verifier (MMC3 ignores the header mirroring bit per D-07/D-08; a header sentence and pinning test are an optional quick follow-up); IN-01 duplicate CHR pointer computation; IN-02 runner `describe_rejection` repeats header decoding and the mapper list.
 - [Phase 07] Code review left 3 info open (07-REVIEW-DISPOSITION.md): WR-01 AxROM reset-vector wording fixed by quick task 261011-h5x (PR #38), WR-02 (hash_inventory.cmake compared only the last platform's keys) fixed in 10-05.
@@ -320,7 +320,6 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 261013-cvm | widen the asan job timeout from the slow-runner samples (run 38398904814) and resample the WR-04 network-job timeouts from run history | 2026-10-13 | 461402c | [261013-cvm-widen-the-asan-job-timeout-from-the-slow](./quick/261013-cvm-widen-the-asan-job-timeout-from-the-slow/) |
 
 ### Roadmap Evolution
 
@@ -348,13 +347,12 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-13
-Stopped at: Phase 15 complete, review fixes WR-01..04 landed; waiting on PR #46 CI
+Stopped at: Milestone v3 archived on branch chore/archive-v3 (PR pending); release PR #35 blocked by hygiene.format
 Resume file: None
 
-Next GSD command: squash-merge PR #46 once CI run 38405115822 is green, then `/gsd-audit-milestone`.
+Next GSD command: `/gsd-quick make the release PR pass hygiene.format: keep the x-release-please version lines in include/nesturbator.h stable when the patch number gains a digit`
 
 ## Operator Next Steps
 
-- Phase 15 executed and verified (8/8 plans, 15-VERIFICATION.md passed); PR #46 left draft on gsd/phase-15-speed-and-close-out
-- Review fixes landed (WR-01..04; WR-04 via quick task 261013-cvm); squash-merge PR #46 once CI is green
-- Then audit and close milestone v3 (/gsd-audit-milestone, /gsd-complete-milestone v3)
+- Unblock release PR #35 with the /gsd-quick above, so v0.1.10 publishes v3
+- Then start the next milestone with /gsd-new-milestone
