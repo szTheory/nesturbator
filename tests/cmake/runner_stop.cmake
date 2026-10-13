@@ -265,6 +265,25 @@ elseif(CASE STREQUAL "late")
   if(NOT at LESS 0)
     message(FATAL_ERROR "runner_stop ${CASE}: a stop line was printed:\n${run_err}")
   endif()
+elseif(CASE STREQUAL "inherited_ignore")
+  # D-20 WR-01: a runner started with SIGTERM ignored (as a POSIX shell does for a background
+  # job) keeps ignoring it, so --raise-after 2:term does not stop it.
+  if(NOT DEFINED SH OR "${SH}" STREQUAL "")
+    message(FATAL_ERROR "runner_stop ${CASE}: -DSH=... is required")
+  endif()
+  execute_process(
+    COMMAND "${SH}" -c "trap '' TERM; exec \"$0\" \"$@\"" "${RUNNER}"
+      --rom "${battery}" --frames 5 --hash-frame 5 --raise-after 2:term
+    OUTPUT_VARIABLE run_out ERROR_VARIABLE run_err RESULT_VARIABLE run_exit)
+  expect_exit(0)
+  string(FIND "${run_out}" "frame 5 ticks " at)
+  if(at LESS 0)
+    message(FATAL_ERROR "runner_stop ${CASE}: no frame 5 line in:\n${run_out}")
+  endif()
+  string(FIND "${run_err}" "stopped by signal" at)
+  if(NOT at LESS 0)
+    message(FATAL_ERROR "runner_stop ${CASE}: the ignored signal stopped the runner:\n${run_err}")
+  endif()
 else()
   message(FATAL_ERROR "runner_stop: unknown case ${CASE}")
 endif()

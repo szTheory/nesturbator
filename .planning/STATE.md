@@ -3,43 +3,42 @@ gsd_state_version: "1.0"
 milestone: v3
 milestone_name: Save states and rewind
 current_phase: 15
-current_phase_name: Speed and close-out
-status: planning
-stopped_at: Phase 14 complete, ready to plan Phase 15
-last_updated: "2026-10-13T00:16:16.645Z"
-last_activity: 2026-10-12
-last_activity_desc: Phase 14 complete, transitioned to Phase 15
-state_head: 710b37cbe87aa5ccf11f12deab68d612088c9f5f
+status: completed
+stopped_at: Phase 15 complete — all phases complete
+last_updated: "2026-10-13T13:28:20.604Z"
+last_activity: 2026-10-13
+last_activity_desc: Phase 15 complete
+state_head: 461402cadd8958006d15db502f9e855dbbf3c4ef
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 30
-  completed_plans: 30
-  percent: 80
+  completed_phases: 5
+  total_plans: 38
+  completed_plans: 38
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-12)
+See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 15 — Speed and close-out
+**Current focus:** Milestone v3 close-out (all five phases complete)
 
 ## Current Position
 
-Phase: 15 — Speed and close-out
+Phase: 15
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-10-12 — Phase 14 complete, transitioned to Phase 15
+Status: All phases complete
+Last activity: 2026-10-13 - Completed quick task 261013-cvm: CI job timeouts set from sampled run history (asan 26 min, WR-04 5-minute floor)
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 115
+- Total plans completed: 123
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -63,6 +62,7 @@ Progress: [████████░░] 80%
 | 12 | 10 | - | - |
 | 13 | 8 | - | - |
 | 14 | 8 | - | - |
+| 15 | 8 | - | - |
 
 **Recent Trend:**
 - Last 5 plans: -
@@ -186,6 +186,14 @@ Progress: [████████░░] 80%
 | Phase 14 P06 | 50 min | 3 tasks | 5 files |
 | Phase 14 P07 | 75 min | 2 tasks | 4 files |
 | Phase 14 P08 | 20 min | 2 tasks | 1 files |
+| Phase 15 P01 | 25m | 3 tasks | 7 files |
+| Phase 15 P02 | 25m | 2 tasks | 10 files |
+| Phase 15 P03 | 25m | 3 tasks | 5 files |
+| Phase 15 P04 | 20m | 2 tasks | 6 files |
+| Phase 15 P05 | 45m | 2 tasks | 4 files |
+| Phase 15 P06 | 50m | 2 tasks | 6 files |
+| Phase 15 P07 | 20min | 2 tasks | 4 files |
+| Phase 15 P08 | hosted nightly waits | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -279,6 +287,14 @@ Recent decisions affecting current work:
 - [Phase 14]: 14-06: --load-state open and read retry on EINTR so a stop never aborts a load
 - [Phase 14]: 14-07: runner.stop.win_console (real Ctrl+Break through the runner's own console) passed on both hosted Windows legs and is kept; draft PR #45
 - [Phase 14]: 14-08: signal TIMEOUT 2 s and win_console TIMEOUT 1 s from CI run 38322038900; D-15 2000 ms held on all legs, no fix needed
+- [Phase 15]: Signal-test TIMEOUTs are 30 s hang detectors, not 10 s (10 s fires inside helper deadlines)
+- [Phase 15]: Bench report is one helper; main passes the timed count ungated so the helper decides the zero-sample output.
+- [Phase 15]: 15-03: bench signal test readiness is the flushed frame 1 hash line on the stdout pipe, flushed only under --bench outside the timed region
+- [Phase 15]: Allow-file reason text is validated but never printed in the perf summary; UNSTABLE fails in every mode
+- [Phase 15]: perf job copies base and head binaries to equal-length paths and runs them under env -i; report mode via continue-on-error
+- [Phase 15]: Perf gate armed after two zero-spread control runs (15-PERF-PROOF.md); CI required accepts skipped perf only off pull_request
+- [Phase 15]: AccuracyCoin stays at 673ef550; bump is backlog 999.2
+- [Phase 15]: Every workflow timeout-minutes line carries a measured run ID, enforced by hygiene.timeout_comments
 
 ### Pending Todos
 
@@ -295,7 +311,8 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - [Phase 11] Code review left 3 info open (11-REVIEW-DISPOSITION.md; WR-01 to WR-04 fixed): IN-01 load_cartridge repeats the power-on reset; IN-02 a failed libretro load leaves the instance NULL so AV info is zeroed; IN-03 one over-long comment line in `runner/main.c`.
 - [Phase 12] Code review closed (12-REVIEW-DISPOSITION.md): CR-01 tick ceiling, WR-01 runner exit 2 before ROM load and IN-01 fixed; WR-02 skipped, as `halted_in_read` is never written and its bound must widen if stalled reads are modelled. Six-platform state hash equality is shown only by the Phase 12 PR's CI matrix.
 - [Phase 13] Code review left 3 warnings and 5 info open, all in test code (13-REVIEW-DISPOSITION.md): WR-01 state-net frame-chain checks tolerate a dropped or doubled FRAMEADVANCE; WR-02 state_session.sh resends only the second SAVE_STATE; WR-03 special-case ROMs matched by substring of the full path. PR #44 squash-merged as db0f21c after the asan run-ahead budget fix (6fbfa5a).
-- [Phase 14] Code review left 3 warnings and 4 info open (14-REVIEW-DISPOSITION.md): WR-01 `signal()` installed over an inherited SIG_IGN with no saved errno (suggest `sigaction` with SA_RESTART|SA_RESETHAND); WR-02 signal-test TIMEOUT 2 s and win_console 1 s rest on one CI sample and may flake; WR-03 README lacks the POSIX advice to drain stdout. PR #45 is draft and green.
+- [Phase 14] Code review closed (14-REVIEW-DISPOSITION.md): WR-01 to WR-03 fixed in 15-01 (`sigaction`-style handler honouring an inherited SIG_IGN, 30 s signal TIMEOUTs, README stdout-drain advice). PR #45 squash-merged as 6f08c6c.
+- [Phase 15] Code review closed except WR-04 (15-REVIEW-DISPOSITION.md, 15-REVIEW-FIX.md): WR-01 gate fails a missing head even without a base and WR-02 allow-file reasons survive `;` and `[`/`]` (68f8f44, four new selftests); WR-03 README and `stop.h` document the inherited SIG_IGN (5845467). WR-04 skipped: one-minute network-job timeouts rest on one sample and need more measured runs; IN-01 to IN-03 open.
 - [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
@@ -303,6 +320,7 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 261013-cvm | widen the asan job timeout from the slow-runner samples (run 38398904814) and resample the WR-04 network-job timeouts from run history | 2026-10-13 | 461402c | [261013-cvm-widen-the-asan-job-timeout-from-the-slow](./quick/261013-cvm-widen-the-asan-job-timeout-from-the-slow/) |
 
 ### Roadmap Evolution
 
@@ -329,13 +347,14 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-12T23:56:51.612Z
-Stopped at: Phase 14 complete, ready to plan Phase 15
+Last session: 2026-10-13
+Stopped at: Phase 15 complete, review fixes WR-01..04 landed; waiting on PR #46 CI
 Resume file: None
 
-Next GSD command: `/gsd-discuss-phase 15`.
+Next GSD command: squash-merge PR #46 once CI run 38405115822 is green, then `/gsd-audit-milestone`.
 
 ## Operator Next Steps
 
-- Take PR #45 out of draft and squash-merge it once CI is green, then create gsd/phase-15-speed-and-close-out from the updated main
-- Discuss Phase 15 with /gsd-discuss-phase 15
+- Phase 15 executed and verified (8/8 plans, 15-VERIFICATION.md passed); PR #46 left draft on gsd/phase-15-speed-and-close-out
+- Review fixes landed (WR-01..04; WR-04 via quick task 261013-cvm); squash-merge PR #46 once CI is green
+- Then audit and close milestone v3 (/gsd-audit-milestone, /gsd-complete-milestone v3)

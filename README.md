@@ -3,10 +3,14 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: v1 shipped; milestone v2 is under way.** v1 played
-NROM games with picture and sound; milestone v2 now plays mappers 0, 1, 2, 3, 4 and 7 with battery saves. Phase 5 adds parallel CI, a policy that
-no registered test may skip, and the soft reset (`nesturbator_reset()`, which
-RetroArch's Reset button runs). The 6502 core matches the public
+**Status: v3.** The core plays mappers 0, 1, 2, 3, 4 and 7 with battery saves and the soft reset
+(`nesturbator_reset()`, which RetroArch's Reset button runs). v3 adds save states in the library
+and the runner (`nesturbator_save_state`, `--state-at-frame`, `--load-state`, `--hash-state`),
+rewind and run-ahead in RetroArch (the core declares the `deterministic` save state level), a
+runner stop contract (SIGINT and SIGTERM, Ctrl+C and Ctrl+Break finish the frame and the save,
+and an exit table), frame timing (`--bench`, `--bench-state`) and a `perf` gate that fails a pull
+request whose per-frame instruction count rises by more than 1%. A policy still forbids any
+registered test to skip. The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM,
 16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM), mapper 4 (MMC3; see below) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
@@ -613,6 +617,17 @@ its self test and `runner.write_hashes`, carry a CTest `COST`, so a cold build
 with no timing history starts them first. The `asan` lane does not register them
 (`NESTURBATOR_SHORT_RUNS`, which only that preset sets).
 
+The `perf` job runs on every pull request on ubuntu-24.04. It builds the pull request's merge
+commit and its first parent (the tip of `main`, which ENGINEERING section 5 calls the merge
+base) with the `ci` preset, runs each under Cachegrind for 60 and 360 frames on nesteroids
+(NROM), runner (MMC1) and M4_P256K_C256K (MMC3), and reports instructions per frame as
+(Ir(360) - Ir(60)) / 300 in the job summary and the job log. The job is part of CI required and fails a
+pull request when any ROM's instructions per frame rise by more than 1.00%, unless
+tests/perf/allow.txt carries a valid line for that ROM; an unstable base (two base measurements
+differ) always fails; a base that cannot be built or run shows `n/a` and does not fail the pull
+request. Wall time is never measured or gated. The `perf.roms_render` test shows that
+all three ROMs draw a non-blank frame 60, so the job never measures an idle PPU.
+
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
 04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
 requests that change a file that can change what its tests run: the workflow,
@@ -692,6 +707,21 @@ command below prints the new total size, which replaces 1,081,529,097 in
 cmake -DDIR=build/pins -DSOURCE_DIR=. -DGIT=git -DCOMMIT=<40-digit upstream commit> \
       -DWRITE_PINS=tests/vectors/pins.txt -P tests/cmake/fetch_vectors.cmake
 ```
+
+
+### Performance allow file
+
+`tests/perf/allow.txt` lists reviewed exceptions to the performance gate, which fails a ROM whose
+instructions per frame grow by more than 1.00%. A line reads
+`<rom> <max_percent_x100> <expires YYYY-MM-DD> <reason...>`, for example
+`nesteroids 350 2026-12-31 PPU timing fix, see #NN`. The cap is a percent times 100 (350 is
+3.50%), and the expiry is at most 60 days after the day the check runs; an expired line, a
+malformed line, a duplicate, an unknown ROM and an empty reason each fail with their own message.
+A line is reviewed in the pull request that adds it and is removed after that pull request
+merges. The summary table prints the ROM, the cap and the expiry of an applied line, never the
+reason. A base measurement that differs between its two runs prints `UNSTABLE` and fails whatever
+the allow file says. The `perf.gate_selftest.*` tests run the comparison on synthetic data and
+show that a slowdown above 1% fails without a line and passes with one.
 
 ## Using the library
 
@@ -1028,12 +1058,47 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
 nesturbator-run --version
 ```
 
-- `--frames N` runs N frames (N is 1 or more). It is required; without it
-  the runner prints its usage and exits 2.
+- `--frames N` runs N frames (N is 1 or more). One of `--frames`, `--movie` or `--bench` is
+  required; without one the runner prints its usage and exits 2.
+- `--bench N` runs frames 1 to N (N from 1 to 1000000) with `--rom`, times each frame, and prints
+  frame-time statistics to stderr. Standard output and every hash are exactly as with
+  `--frames N` (each hash line is flushed as it is printed), so `--hash-frame K` (1 to N) and `--hash-audio` work the same, and a test shows
+  the output is byte-identical. Only the `nesturbator_run_frame` call sits between the two clock
+  readings (a monotonic clock: `CLOCK_MONOTONIC`, or `QueryPerformanceCounter` on Windows), so the
+  timer's own overhead is included in each sample. There is no warm-up: the first frames show in
+  `max`. `--bench` cannot be combined with `--frames` or `--movie` and needs `--rom`; any other
+  misuse (0, above 1000000, given twice) exits 2. It also refuses `--accuracycoin-page`,
+  `--raise-after`, `--dump-frame`, `--state-at-frame`, `--hash-state`, `--save-dir`,
+  `--save-interval` and `--load-state`, each with exit 2 and its own message, because file I/O and
+  loaded starts would pollute the timing. Example stderr:
+
+  ```
+  nesturbator-run: bench frames=600 time_ms=701.367 fps=855.47
+  nesturbator-run: bench frame_us p50=1163.000 p90=1235.000 p99=1339.000 p99.9=1616.000 max=1616.000
+  ```
+
+  Every value is a measured frame time in microseconds, truncated from nanoseconds, by the
+  nearest-rank method with no interpolation; p99.9 equals max below 1000 frames, and `fps` is
+  frames over the summed frame time. A signal stop prints the statistics over the frames
+  finished, then the stop line; a stop before the first frame prints only
+  `nesturbator-run: bench frames=0`. Wall time is never gated in CI: the tests check the shape of
+  these lines, never a number.
+- `--bench-state` needs `--bench`. After every timed frame it saves the state and loads it back,
+  timing the save and the load separately from the frame, so `frame_us` stays comparable. It adds
+  the `save_us` and `load_us` lines after `frame_us`. A save or load failure exits 1. Standard
+  output is unchanged.
 - `--raise-after N[:SIG[:K]]` is a test aid: after frame N the runner signals its own
   process K times (K defaults to 1) with SIG, so a stop lands at a known frame. SIG is `int`
   or `term` on POSIX (default `term`) and `int` or `break` on Windows (default `break`). It
   cannot be combined with `--accuracycoin-page`.
+- `--movie FILE` replays a validated two-port movie (see above) instead of running `--frames N`,
+  and prints a SHA-256 line for every frame.
+- `--help` prints the usage and the exit statuses to stdout and exits 0.
+- `--accuracycoin-page N` runs AccuracyCoin page N (2, 14 or 17) for 1800 frames and compares its
+  RAM results to the scoreboard. It needs `--rom` and `--scoreboard` and installs no stop
+  handlers.
+- `--scoreboard FILE` names the scoreboard that `--accuracycoin-page` compares against; it is
+  an error without `--accuracycoin-page`.
 - `--version` prints one line to stdout, `nesturbator-run X.Y.Z`, formatted at
   run time from `nesturbator_get_version`, and exits 0. It needs no other
   option and nothing else is printed. It is handled where the option loop
@@ -1226,7 +1291,7 @@ Exit status: see [Exit status](#exit-status).
 
 ### Stopping the runner
 
-On SIGTERM or SIGINT the runner finishes the current frame, writes the battery save and exits 0, or 1 if the save could not be written. It prints one stop line on standard error and adds nothing to standard output. The stop is seen between frames, also before the first frame when the request arrives while the cartridge loads; a load error keeps its own exit status. The save goes through the same temp-and-rename write as any other, so it is never torn. A second signal at any time, including during the flush, ends the runner at once.
+On SIGTERM or SIGINT the runner finishes the current frame, writes the battery save and exits 0, or 1 if the save could not be written. It prints one stop line on standard error and adds nothing to standard output. The stop is seen between frames, also before the first frame when the request arrives while the cartridge loads; a load error keeps its own exit status. The save goes through the same temp-and-rename write as any other, so it is never torn. A second signal at any time, including during the flush, ends the runner at once. A signal the runner inherited as ignored stays ignored: a runner started as a shell background job (`cmd &` in a non-interactive shell) or under `nohup` does not stop on SIGINT or SIGTERM, so a launcher that needs the stop starts it with those signals at their default. The `runner.signal.*` and `runner.stop.*` tests need the same, and fail or run to their timeout when ctest itself is started with SIGINT or SIGTERM ignored. A launcher on Linux or macOS must keep reading the runner's standard output, or redirect it to a file, because a full pipe holds the runner in a write and delays the stop until the write returns.
 
 On Linux and macOS the `runner.signal.*` tests send real SIGTERM and SIGINT from another process and require exit 0 within 2 s with the whole save and no temp file, and a second SIGTERM to end a runner that is blocked writing to a full pipe. They also show that a signal during loading leaves a load error's status in charge, and that a second SIGTERM ends a runner held inside its exit flush.
 
@@ -1464,7 +1529,7 @@ identifies the set of runner frames it equals, and each step must follow from th
 last), the saved state file's container and size, and every RetroArch log. On
 failure the `retroarch-e2e-state` artifact keeps the screenshots, states and logs.
 
-## What it will be
+## What it is
 
 - An accuracy-class, deterministic NES core with no GUI of its own.
 - Three deliverables: a C library, a command-line runner, and a libretro core

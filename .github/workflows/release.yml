@@ -21,7 +21,9 @@ concurrency:
 jobs:
   release-please:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30 # initial; set to twice the first measured cold run (ENGINEERING §5)
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 39 sampled successful runs (24 s in run 38306108774) is 1 minutes.
+    # A kill can leave a release half made.
+    timeout-minutes: 5
     permissions:
       contents: write
       pull-requests: write
@@ -66,7 +68,9 @@ jobs:
     needs: [release-please, ci]
     if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30 # initial; set to twice the first measured cold run (ENGINEERING §5)
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 9 sampled successful runs (90 s in run 38081193284) is 3 minutes.
+    # A release job that uploads assets; a kill can leave a release half made.
+    timeout-minutes: 5
     permissions:
       contents: write
       id-token: write

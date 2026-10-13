@@ -1,0 +1,122 @@
+# Phase 15 close-out record
+
+Date: 2026-10-13
+
+Review means confirm and record (D-21). Nothing here was bumped by hand.
+
+## Pins
+
+Every `uses:` line in `.github/workflows/*.yml`, compared with the latest release found with `gh api repos/<owner>/<repo>/releases/latest` on 2026-10-13.
+
+| Action | Pinned version | Pinned SHA | Latest release | Status | Source |
+|---|---|---|---|---|---|
+| actions/attest | v4.2.2 | 1e69f48acb82 | v4.2.2 (2026-08-04) | latest | https://github.com/actions/attest/releases |
+| actions/checkout | v7.0.1 | 3d3c42e5aac5 | v7.0.1 (2026-07-20) | latest | https://github.com/actions/checkout/releases |
+| actions/create-github-app-token | v3.2.0 | bcd2ba492189 | v3.3.0 (2026-10-12) | behind | https://github.com/actions/create-github-app-token/releases |
+| actions/download-artifact | v8.0.2 | 9000827ccba6 | v8.0.2 (2026-10-07) | latest | https://github.com/actions/download-artifact/releases |
+| actions/upload-artifact | v7.0.2 | cf430e030ddb | v7.0.2 (2026-10-07) | latest | https://github.com/actions/upload-artifact/releases |
+| googleapis/release-please-action | v5.0.0 | 45996ed1f6d0 | v5.0.0 (2026-04-22) | latest | https://github.com/googleapis/release-please-action/releases |
+
+Behind: `actions/create-github-app-token` only. v3.3.0 was published the day before this review. `gh pr list --author app/dependabot --state open` shows no open Dependabot pull request yet, so there is nothing for Plan 08 to merge now; Dependabot owns the bump and its pull request is merged when it appears. Nothing is hand-bumped.
+
+Plan 08, 2026-10-13: `gh pr list --author app/dependabot --state open` still lists no Dependabot pull request, so no Dependabot merge was made and the pin stays at v3.2.0. origin/main is already an ancestor of the phase branch head.
+
+## Runner labels
+
+| Label | Status | Next retirement | Source |
+|---|---|---|---|
+| ubuntu-24.04 | current | none announced | https://github.com/actions/runner-images |
+| ubuntu-24.04-arm | current | none announced | https://github.com/actions/runner-images |
+| macos-15 | current | leaves at the macOS 27 GA | https://github.com/actions/runner-images |
+| macos-15-intel | current, the last x86_64 image | available until August 2027 | https://github.com/actions/runner-images/issues/13046 |
+| windows-2025 | current, Visual Studio 2026 | none announced | https://github.com/actions/runner-images |
+| windows-11-arm | current, now on the Visual Studio 2026 image `windows-11-vs2026-arm64` | none announced | https://github.com/actions/runner-images/issues/14602 |
+
+Evidence for `windows-11-arm`: our own run 38329002566, job 115074198221, printed `Image: windows-11-vs2026-arm64`, `Version: 20261004.176.1` and a `DevEnvDir` under `Visual Studio\18`. Issue 14602 is still open without a closing notice, so the job log is the completion evidence.
+
+## AccuracyCoin
+
+Pinned: `673ef550db296136d52229961e7d39366116882a` (`tests/roms/manifest.txt`). Upstream is 9 commits ahead (`gh api repos/100thCoin/AccuracyCoin/compare/673ef550...main --jq .ahead_by`). Compare: https://github.com/100thCoin/AccuracyCoin/compare/673ef550...main
+
+Kept. A bump re-baselines the ROM sha256, the scoreboard and the hashes, which does not serve closing the milestone. The bump is backlog item Phase 999.2 in ROADMAP.md.
+
+## Timeouts
+
+### Measurement ceilings (Task 1)
+
+Before the first dispatch the four never-measured nightly ceilings were raised so that no counted run is cut off (commit f200df9, `ci(15-08): raise nightly measurement ceilings`): suite-flake 30 to 60, mmc3-oracle 8 to 20, rom-loader-fuzz 3 to 15, state-fuzz 3 to 15 minutes. vectors-full (16, measured in run 37136095512) and report keep their values.
+
+### Nightly samples (Task 2)
+
+Measured head: `4fa0c23f01286d89e997b7c0bb4b5b4c110a911f` (phase branch, origin/main already an ancestor, no Dependabot merge). Three `workflow_dispatch` runs of nightly.yml, one after the other. Every job in every run ended in `success` below its measurement ceiling, so no run is excluded. Whole-job durations in seconds (`completedAt - startedAt`).
+
+| Job | Ceiling | [38346572174](https://github.com/szTheory/nesturbator/actions/runs/38346572174) | [38347773803](https://github.com/szTheory/nesturbator/actions/runs/38347773803) | [38349314234](https://github.com/szTheory/nesturbator/actions/runs/38349314234) |
+|---|---|---|---|---|
+| suite-flake | 60 min (3600 s) | 871 | 1112 | 959 |
+| vectors-full | 16 min (960 s) | 134 | 162 | 136 |
+| mmc3-oracle | 20 min (1200 s) | 29 | 28 | 25 |
+| rom-loader-fuzz | 15 min (900 s) | 73 | 71 | 76 |
+| state-fuzz | 15 min (900 s) | 81 | 76 | 82 |
+| report | 1 min | skipped | skipped | skipped |
+
+Fetch tests read from the job logs: `cpu.vectors-full.fetch` 59.49, 66.35, 60.81 s; `mmc3.oracle.fetch` 1.03, 0.34, 0.31 s. The rest of vectors-full is therefore 74.5, 95.7 and 75.2 s (slowest 95.7 s, run 38347773803), and the rest of mmc3-oracle is 28.0, 27.7 and 24.7 s (slowest 28.0 s, run 38346572174).
+
+report is skipped on a dispatch. The latest nightly run on schedule or main push where it completed is [38347599457](https://github.com/szTheory/nesturbator/actions/runs/38347599457) (schedule, main): report took 4 s.
+
+Excluded runs: none.
+
+### Set timeouts (Task 3)
+
+Rule: minutes = ceil(2 x slowest counted sample / 60). Enforced by `hygiene.timeout_comments`.
+
+| Job | Old | Samples (s) | New | Run IDs |
+|---|---|---|---|---|
+| nightly suite-flake | 30 (ceiling 60) | 871, 1112, 959 | 38 | 38346572174, 38347773803, 38349314234 |
+| nightly vectors-full | 16 | rest 74.5, 95.7, 75.2 plus fetch allowance 900 | 19 | same three |
+| nightly mmc3-oracle | 8 (ceiling 20) | rest 28.0, 27.7, 24.7 plus fetch allowance 300 | 6 | same three |
+| nightly rom-loader-fuzz | 3 (ceiling 15) | 73, 71, 76 | 3 | same three |
+| nightly state-fuzz | 3 (ceiling 15) | 81, 76, 82 | 3 | same three |
+| nightly report | 1 | 4 | 1 | 38347599457 |
+| ci asan | 14 | 340 | 12 | 38346573845 |
+| ci retroarch-e2e | 30 | 307 | 11 | 38346573845 |
+| ci perf | 15 | 241 | 9 | 38346573845 |
+| release release-please | 30 | 22 | 1 | 38329002725 |
+| release publish | 30 | 73 | 3 | 38093301725 (latest run where publish ran) |
+
+## Allow file
+
+2026-10-13 sweep of `tests/perf/allow.txt` (D-17), after the main merge check and before any dispatch. The file holds only its comment header.
+
+No entries.
+
+Justified entries: 0
+
+## Docs audit
+
+One-off audit of README.md and include/nesturbator.h against the Phase 12 to 15 code (D-22). Comments only; no behaviour changed.
+
+| Location | Claim | Evidence | Result |
+|---|---|---|---|
+| README.md:6-13 | status paragraph says v2 shipped and v3 is closing | all of Phases 12 to 15 are built; the text described v3 as future | fixed in a3a89c4 |
+| README.md:1532 | section "What it will be" in the future tense | the three deliverables exist (library, runner, libretro core) | fixed in a3a89c4 |
+| README.md:857-1000 (Save states) | state header is 64 bytes, fields at offsets 0 to 48 | include/nesturbator.h:481-491 layout comment lists the same offsets | matches |
+| README.md "Status codes" | statuses 0 to 12, state refusals 8 to 12 | include/nesturbator.h:71-101 enum; test `state.status_table` | matches |
+| include/nesturbator.h:436-495 | load checks in order, all or nothing | `core.state_reject` test; README lists the same order | matches |
+| include/nesturbator.h:67 | NESTURBATOR_STATE_FORMAT_VERSION 1 | README format table "1: first release that contains save states"; `state_format_pin.cmake` | matches |
+| include/nesturbator.h:56 and README.md:25 | behaviour revision is 6 | `#define NESTURBATOR_BEHAVIOUR_REVISION 6` | matches |
+| include/nesturbator.h:43-45 | version 0.1.9 on release-please marker lines | `x-release-please-*` markers; test `version_consistency` | matches |
+| README.md "The runner" `--state-at-frame`, `--hash-state`, `--load-state` | option semantics and exit 5 on a refused state | runner/main.c option parsing; runner/exit_status.h `RUNNER_EXIT_STATE_REJECTED`; `runner_state.cmake` | matches |
+| README.md "The runner" `--bench`, `--bench-state` | range 1 to 1000000, conflicts exit 2, stderr line shapes | runner/main.c:396 bound; `runner_bench.cmake`; `runner.options.readme` | matches |
+| README.md "Stopping the runner" | finish the frame, write the save, exit 0, second signal ends at once | runner/stop.c handler; `runner_stop.cmake`, `runner.signal.*` | matches |
+| README.md "Stopping the runner" | an inherited ignore is honoured; errno preserved (WR-01) | runner/stop.c:5,23-34 `SIG_IGN` put back, errno saved | matches |
+| README.md "Stopping the runner" | launcher must keep reading stdout (WR-03) | README paragraph present at "A launcher on Linux or macOS must keep reading" | matches |
+| README.md "Exit status" | table 0, 1, 2, 4, 5; 3 and 77 reserved | runner/exit_status.h `RUNNER_EXIT_TABLE`; test `runner.exit.table` | matches |
+| README.md "The libretro core" | serialize size, no quirks, `savestate_features = "deterministic"` | libretro/nesturbator_libretro.info; tests `libretro.serialize`, `libretro.no_quirks`, `libretro.info_claims` | matches |
+| README.md "The libretro core" | module exports only the 25 `retro_*` functions | `RETRO_API` count in libretro/libretro.h is 25 | matches |
+| README.md "Continuous integration" | `perf` job: Cachegrind, 60 and 360 frames, 1.00% gate, part of CI required | .github/workflows/ci.yml `perf` job, `needs: [... perf]` at line 417, `-DMODE=gate` at line 397 | matches |
+| README.md "Performance allow file" | line format, expiry within 60 days, UNSTABLE fails | tests/cmake/perf_compare.cmake; `perf.gate_selftest.*` | matches |
+| README.md "Continuous integration" | hash-equality inventory is 114 keys | `grep -c . tests/runner/hashes.txt` is 114 | matches |
+
+Findings not fixed (outside README and header comments):
+
+- `libretro/nesturbator_libretro.info` `description` lists "NROM, MMC1, UxROM, CNROM and AxROM" and omits MMC3 (mapper 4), which the core supports. Text only, no behaviour; left for a later change because this plan edits README and header comments only.

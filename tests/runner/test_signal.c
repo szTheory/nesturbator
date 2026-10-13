@@ -8,7 +8,7 @@
 
    Usage: runner.signal RUNNER FIXTURE_DIR WORK_DIR CASE
 
-   Cases: term, int, term_exitflush, second, load_error, second_in_flush.
+   Cases: term, int, term_exitflush, second, load_error, second_in_flush, bench, bench_int.
 
    Rules of the helper: it never sleeps to wait for readiness (a sleep appears only as the
    poll interval inside a deadline loop), no wait is unbounded, and every failure SIGKILLs
@@ -549,6 +549,85 @@ static void case_second_in_flush(void)
     CHECK(strstr(err_text(), "stopped by signal") == NULL);
 }
 
+/* A real signal during --bench. Readiness is the "frame 1 " hash line on the stdout pipe: under
+   --bench the runner flushes each hash line as it prints it, after the timed call. The statistics
+   over the finished frames must reach stderr before the stop line, and the exit status is 0. */
+static void case_bench(int sig)
+{
+    char rom[PATH_LEN];
+    char *argv[] = {g_runner, "--rom", rom, "--bench", "1000000", "--hash-frame", "1", NULL};
+    char line[256];
+    size_t have = 0u;
+    int fds[2];
+    int status = 0;
+    int64_t t0;
+    int64_t deadline;
+    const char *err;
+    const char *frames;
+    const char *series;
+    const char *stop;
+    pid_t pid;
+    in_fixture(rom, "battery.nes");
+    CHECK(pipe(fds) == 0);
+    pid = spawn(argv, fds[1]);
+    CHECK(pid > 0);
+    (void)close(fds[1]);
+    if (pid <= 0) {
+        return;
+    }
+    (void)fcntl(fds[0], F_SETFL, fcntl(fds[0], F_GETFL) | O_NONBLOCK);
+    deadline = now_ms() + READY_DEADLINE_MS;
+    for (;;) {
+        ssize_t r = read(fds[0], line + have, sizeof line - 1u - have);
+        if (r > 0) {
+            have += (size_t)r;
+            line[have] = '\0';
+            if (strncmp(line, "frame 1 ", 8) == 0 && strchr(line, '\n') != NULL) {
+                break;
+            }
+        }
+        if (now_ms() >= deadline || have >= sizeof line - 1u) {
+            kill_and_fail(pid, "no frame 1 line before the deadline");
+            (void)close(fds[0]);
+            return;
+        }
+        pause_ms(5);
+    }
+    t0 = now_ms();
+    (void)kill(pid, sig);
+    for (;;) {
+        char drain[256];
+        while (read(fds[0], drain, sizeof drain) > 0) {
+        }
+        if (reap(pid, now_ms() + 20, &status)) {
+            break;
+        }
+        if (now_ms() >= t0 + EXIT_DEADLINE_MS) {
+            kill_and_fail(pid, "runner did not exit after the signal");
+            (void)close(fds[0]);
+            return;
+        }
+    }
+    (void)close(fds[0]);
+    CHECK(WIFEXITED(status));
+    if (WIFEXITED(status)) {
+        CHECK_EQ_U64(WEXITSTATUS(status), 0);
+    } else {
+        fprintf(stderr, "runner ended by signal %d\n%s\n", WTERMSIG(status), err_text());
+    }
+    err = err_text();
+    frames = strstr(err, "nesturbator-run: bench frames=");
+    series = strstr(err, "nesturbator-run: bench frame_us ");
+    stop = strstr(err, "nesturbator-run: stopped by signal after frame");
+    CHECK(frames != NULL);
+    CHECK(series != NULL);
+    CHECK(stop != NULL);
+    if (frames != NULL && series != NULL && stop != NULL) {
+        CHECK(frames < series);
+        CHECK(series < stop);
+    }
+}
+
 int main(int argc, char **argv)
 {
     const char *name;
@@ -575,6 +654,10 @@ int main(int argc, char **argv)
         case_load_error();
     } else if (strcmp(name, "second_in_flush") == 0) {
         case_second_in_flush();
+    } else if (strcmp(name, "bench") == 0) {
+        case_bench(SIGTERM);
+    } else if (strcmp(name, "bench_int") == 0) {
+        case_bench(SIGINT);
     } else {
         fprintf(stderr, "unknown case %s\n", name);
         return 2;

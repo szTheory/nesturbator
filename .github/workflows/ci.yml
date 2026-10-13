@@ -10,6 +10,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      control:
+        description: "perf control run: build this commit twice and compare it with itself (D-15)"
+        type: boolean
+        default: false
   workflow_call:
 
 # No trigger-level path filter: a workflow skipped by paths leaves the
@@ -30,7 +35,8 @@ concurrency:
 jobs:
   hygiene:
     runs-on: ubuntu-24.04
-    timeout-minutes: 1 # twice the cold run 37084642541 (21 s), rounded up to whole minutes (ENGINEERING §5)
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 34 sampled successful runs (58 s in run 38288411183) is 2 minutes.
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,7 +46,8 @@ jobs:
 
   title:
     runs-on: ubuntu-24.04
-    timeout-minutes: 1 # twice the cold run 37084642541 (2 s), rounded up to whole minutes (ENGINEERING §5)
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 37 sampled successful runs (8 s in run 38345355652) is 1 minutes.
+    timeout-minutes: 5
     permissions:
       pull-requests: read
     steps:
@@ -66,7 +73,9 @@ jobs:
 
   build:
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 22 # twice the slowest observed build job, 640 s on macOS Intel in run 38295163207 (PR #44, serialize and run-ahead tests included); rounded up (ENGINEERING §5)
+    # Twice the slowest of the sampled successful build runs (30 to 35 per runner): 679 s on macos-15-intel in run 38345355652,
+    # rounded up to 23 minutes, ENGINEERING section 5.
+    timeout-minutes: 23
     strategy:
       fail-fast: false
       matrix:
@@ -125,8 +134,9 @@ jobs:
     runs-on: ubuntu-24.04
     # NESTURBATOR_SHORT_RUNS (preset asan) drops or shortens the long hash tests that made this job
     # about 15 minutes; their hashes are checked at full length by the build jobs and hash-equality.
-    # Twice the measured hosted run: 6m45s on PR #44 run 38295163207 (ENGINEERING section 5).
-    timeout-minutes: 14
+    # Twice the slowest of 27 sampled successful runs: 756 s in run 38341228969, rounded up to 26 minutes, ENGINEERING section 5.
+    # Run 38398904814 was killed at the old 12-minute limit after its tests passed in 730 s.
+    timeout-minutes: 26
     env:
       CC: clang-18
       CXX: clang++-18
@@ -140,7 +150,9 @@ jobs:
 
   nofp:
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 2 # twice the slowest measured run 37084642541 (38 s, ubuntu-24.04), rounded up to two minutes (ENGINEERING §5)
+    # Twice the slowest of the sampled successful runs (35 per runner): 43 s on ubuntu-24.04 in run 38342366027,
+    # rounded up to 2 minutes, ENGINEERING section 5.
+    timeout-minutes: 2
     strategy:
       fail-fast: false
       matrix:
@@ -161,7 +173,8 @@ jobs:
   hash-equality:
     needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 1 # twice the cold run 37084642541 (5 s), rounded up to whole minutes (ENGINEERING §5)
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 28 sampled successful runs (9 s in run 38398904814) is 1 minutes.
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -177,7 +190,8 @@ jobs:
   # game. Its screenshot is retained for diagnosis and reproducibility.
   retroarch-e2e:
     runs-on: macos-15
-    timeout-minutes: 30
+    # Twice the slowest of 33 sampled successful runs: 346 s in run 38359109704, rounded up to 12 minutes, ENGINEERING section 5.
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -304,17 +318,119 @@ jobs:
             build/retroarch-e2e/run-save-mmc3/saves/m4tkrom.srm
           if-no-files-found: error
 
+  # Instruction-count comparison (PERF-02, D-08 to D-13), gate mode (D-16).
+  # It compares the pull request's merge commit with its first parent under
+  # Cachegrind, writes the table to the job summary and the log, and fails the
+  # job when a ROM's instructions per frame rise by more than 1.00% and
+  # tests/perf/allow.txt has no valid line for it. A base that cannot be built
+  # or run shows n/a and does not fail (D-10, D-14); a missing head or an
+  # UNSTABLE base (two base measurements differ) does. 15-PERF-PROOF.md holds
+  # the zero-spread evidence for arming. To disarm, revert the arming commit.
+  perf:
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.control)
+    runs-on: ubuntu-24.04
+    # Twice the slowest of 13 sampled successful runs: 286 s in run 38398904814, rounded up to 10 minutes, ENGINEERING section 5.
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Toolchain and valgrind
+        run: |
+          echo "CC=gcc-14" >> "$GITHUB_ENV"
+          echo "CXX=g++-14" >> "$GITHUB_ENV"
+          command -v ninja || { sudo apt-get update && sudo apt-get install -y ninja-build; }
+          sudo apt-get update
+          sudo apt-get install -y valgrind
+      - name: Build base and head
+        env:
+          CC: gcc-14
+          CXX: g++-14
+        run: |
+          set -u
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            base=$(git rev-parse HEAD)
+          elif [ "$(git rev-list --parents -n1 HEAD | wc -w)" -eq 3 ]; then
+            base=$(git rev-parse 'HEAD^1')
+          else
+            base=
+          fi
+          echo "HEAD_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/bin/base" "$RUNNER_TEMP/bin/head" "$RUNNER_TEMP/perf"
+          cmake --preset ci
+          cmake --build --preset ci --target nesturbator-run
+          cp build/ci/runner/nesturbator-run "$RUNNER_TEMP/bin/head/nesturbator-run"
+          base_failed=1
+          if [ -n "$base" ]; then
+            echo "BASE_SHA=$base" >> "$GITHUB_ENV"
+            git worktree add --detach "$RUNNER_TEMP/base" "$base"
+            if (cd "$RUNNER_TEMP/base" && cmake --preset ci && cmake --build --preset ci --target nesturbator-run) &&
+               cp "$RUNNER_TEMP/base/build/ci/runner/nesturbator-run" "$RUNNER_TEMP/bin/base/nesturbator-run"; then
+              base_failed=0
+            fi
+          fi
+          if [ "$base_failed" -eq 1 ]; then
+            echo "::warning::base build unavailable; rows will be n/a"
+          fi
+          echo "BASE_FAILED=$base_failed" >> "$GITHUB_ENV"
+      # Both binaries run from equal-length paths and an empty environment so
+      # the instruction counts do not depend on path or environment size.
+      - name: Measure under Cachegrind
+        run: |
+          set -u
+          for rom in nesteroids:tests/roms/nesteroids.nes runner:tests/roms/runner.nes M4_P256K_C256K:tests/roms/hm/M4_P256K_C256K.nes; do
+            name=${rom%%:*}
+            path="$GITHUB_WORKSPACE/${rom#*:}"
+            for who in base_a base_b head; do
+              case "$who" in
+                base_*) [ "$BASE_FAILED" = 0 ] || continue; bin="$RUNNER_TEMP/bin/base/nesturbator-run" ;;
+                *) bin="$RUNNER_TEMP/bin/head/nesturbator-run" ;;
+              esac
+              for n in 60 360; do
+                out="$RUNNER_TEMP/perf/${who}_${name}_${n}.out"
+                err="$RUNNER_TEMP/perf/${who}_${name}_${n}.err"
+                if ! env -i PATH=/usr/bin:/bin valgrind --tool=cachegrind --cache-sim=no \
+                    --cachegrind-out-file="$out" "$bin" --rom "$path" --frames "$n" >/dev/null 2>"$err"; then
+                  echo "::warning::valgrind failed for $who $name $n"
+                  tail -n 20 "$err"
+                  rm -f "$out"
+                fi
+              done
+            done
+          done
+      - name: Compare
+        run: |
+          set +e
+          cmake -DMODE=gate -DDIR="$RUNNER_TEMP/perf" -DALLOW=tests/perf/allow.txt \
+            -DOUT="$RUNNER_TEMP/perf/summary.md" -DBASE_SHA="${BASE_SHA:-}" -DHEAD_SHA="$HEAD_SHA" \
+            -DVALGRIND_VERSION="$(valgrind --version)" -DGCC_VERSION="$(gcc-14 --version | head -n1)" \
+            -P tests/cmake/perf_compare.cmake
+          status=$?
+          if [ -f "$RUNNER_TEMP/perf/summary.md" ]; then
+            tee -a "$GITHUB_STEP_SUMMARY" < "$RUNNER_TEMP/perf/summary.md"
+          fi
+          exit "$status"
+
   # The one required check. GitHub reports a skipped job as success and skips
   # a job whose dependency failed, so this runs always and requires every
-  # result to be success.
+  # result to be success. The exception is perf, which runs only on pull
+  # requests and control dispatches: a push, or a release.yml workflow_call
+  # (whose event is the caller's push), accepts its skip. On a pull request a
+  # skipped perf fails. tests/cmake/ci_required_rollup.cmake runs this
+  # expression on synthetic needs.
   ci-required:
     name: CI required
     if: always()
-    needs: [hygiene, title, build, asan, nofp, hash-equality, retroarch-e2e]
+    needs: [hygiene, title, build, asan, nofp, hash-equality, retroarch-e2e, perf]
     runs-on: ubuntu-24.04
-    timeout-minutes: 1 # twice the cold run 37084642541 (4 s), rounded up to whole minutes (ENGINEERING §5)
+    # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 23 sampled successful runs (4 s in run 38359109704) is 1 minutes.
+    timeout-minutes: 5
     steps:
       - name: Every job succeeded
         env:
           NEEDS: ${{ toJSON(needs) }}
-        run: echo "$NEEDS" | jq -e 'to_entries | all(.value.result == "success")'
+          EVENT: ${{ github.event_name }}
+        run: echo "$NEEDS" | jq -e --arg event "$EVENT" 'to_entries | all(.value.result == "success" or (.key == "perf" and .value.result == "skipped" and $event != "pull_request"))'

@@ -186,6 +186,9 @@ set_tests_properties(runner.save.interval PROPERTIES TIMEOUT 60)
 # RUN-02: a signal finishes the current frame, flushes and exits 0. --raise-after signals the
 # runner's own process after frame N, so each case is deterministic. The signal names differ by
 # platform: int and term on POSIX, int and break on Windows.
+if(NOT WIN32)
+  find_program(NESTURBATOR_SH sh REQUIRED)
+endif()
 function(runner_stop_case case)
   add_test(NAME runner.stop.${case}
     COMMAND ${CMAKE_COMMAND}
@@ -193,6 +196,7 @@ function(runner_stop_case case)
       "-DFIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
       "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/stop_work/${case}"
       "-DCASE=${case}"
+      "-DSH=${NESTURBATOR_SH}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_stop.cmake")
   set_tests_properties(runner.stop.${case} PROPERTIES
     FIXTURES_REQUIRED runner_save TIMEOUT 30 LABELS exit_status)
@@ -203,6 +207,8 @@ if(WIN32)
 else()
   runner_stop_case(frame_exact.term)
   runner_stop_case(frame_exact.int)
+  # D-20 WR-01: an inherited SIG_IGN for SIGTERM stays in force.
+  runner_stop_case(inherited_ignore)
 endif()
 runner_stop_case(flush_missing_dir)
 runner_stop_case(flush_dir_at_tmp)
@@ -231,7 +237,7 @@ if(NOT WIN32)
   add_test(NAME runner.signal.scratch
     COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_CURRENT_BINARY_DIR}/signal_work)
   set_tests_properties(runner.signal.scratch PROPERTIES FIXTURES_SETUP runner_signal_scratch)
-set(NESTURBATOR_SIGNAL_TIMEOUT 2)  # runner_signal_case timeout: twice the slowest hosted run: CI run 38322038900 (build (macos-15, ci, macos, arm64)), ENGINEERING section 5
+  set(NESTURBATOR_SIGNAL_TIMEOUT 30)  # hang detector, not a performance budget: above the helper's 10 s ready and 5 s exit deadlines; the 2 s stop bound is the helper's STOP_LIMIT_MS (D-20, 14-REVIEW WR-02)
   function(runner_signal_case case)
     add_test(NAME runner.signal.${case}
       COMMAND runner.signal $<TARGET_FILE:nesturbator-run> ${NESTURBATOR_SAVE_FIXTURE}
@@ -246,6 +252,8 @@ set(NESTURBATOR_SIGNAL_TIMEOUT 2)  # runner_signal_case timeout: twice the slowe
   runner_signal_case(second)
   runner_signal_case(load_error)
   runner_signal_case(second_in_flush)
+  runner_signal_case(bench)
+  runner_signal_case(bench_int)
   set_tests_properties(runner.signal.term runner.signal.int runner.signal.term_exitflush
     PROPERTIES LABELS exit_status)
 endif()
@@ -269,7 +277,7 @@ if(WIN32)
     COMMAND runner.stop_console $<TARGET_FILE:nesturbator-run> ${NESTURBATOR_SAVE_FIXTURE}
       ${CMAKE_CURRENT_BINARY_DIR}/console_work)
   set_tests_properties(runner.stop.win_console PROPERTIES
-    FIXTURES_REQUIRED runner_save TIMEOUT 1 LABELS exit_status)  # twice the slowest hosted run: CI run 38322038900 (build (windows-2025, ci-msvc, windows, x64)), ENGINEERING section 5
+    FIXTURES_REQUIRED runner_save TIMEOUT 30 LABELS exit_status)  # hang detector, not a performance budget: above the helper's 20 s save, 2 s attach and 5 s exit waits (D-20, 14-REVIEW WR-02)
 endif()
 
 # D-04, D-11: --raise-after usage errors exit 2 and name the option.
@@ -974,6 +982,96 @@ target_link_libraries(runner.sha256 PRIVATE nesturbator::nesturbator)
 nesturbator_warnings(runner.sha256)
 add_test(NAME runner.sha256 COMMAND runner.sha256)
 
+# --bench (15-CONTEXT D-07): stdout and every hash equal --frames N's; stderr has the D-06 lines.
+# Only shapes are checked, never a measured number.
+foreach(mode nohash format)
+  add_test(NAME runner.bench.${mode}
+    COMMAND ${CMAKE_COMMAND} "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      -DROM=${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes -DMODE=${mode}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_bench.cmake)
+  set_tests_properties(runner.bench.${mode} PROPERTIES LABELS bench)
+endforeach()
+add_test(NAME runner.bench.format_state
+  COMMAND ${CMAKE_COMMAND} "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DROM=${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes -DMODE=format -DSTATE=1
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_bench.cmake)
+set_tests_properties(runner.bench.format_state PROPERTIES LABELS bench)
+
+# --bench refusals (15-CONTEXT D-01, D-02, D-03): each exits 2 with its own message.
+set(bench_rom ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes)
+nesturbator_runner_test(NAME runner.usage.bench.accuracycoin-page
+  ARGS --rom ${bench_rom} --bench 2 --accuracycoin-page 2
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --accuracycoin-page")
+set_tests_properties(runner.usage.bench.accuracycoin-page PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.raise-after
+  ARGS --rom ${bench_rom} --bench 2 --raise-after 1
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --raise-after")
+set_tests_properties(runner.usage.bench.raise-after PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.dump-frame
+  ARGS --rom ${bench_rom} --bench 2 --dump-frame 1:x.ppm
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --dump-frame")
+set_tests_properties(runner.usage.bench.dump-frame PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.state-at-frame
+  ARGS --rom ${bench_rom} --bench 2 --state-at-frame 1:x.sta
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --state-at-frame")
+set_tests_properties(runner.usage.bench.state-at-frame PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.hash-state
+  ARGS --rom ${bench_rom} --bench 2 --hash-state 1
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --hash-state")
+set_tests_properties(runner.usage.bench.hash-state PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.save-dir
+  ARGS --rom ${bench_rom} --bench 2 --save-dir d
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --save-dir")
+set_tests_properties(runner.usage.bench.save-dir PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.save-interval
+  ARGS --rom ${bench_rom} --bench 2 --save-interval 1
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --save-interval")
+set_tests_properties(runner.usage.bench.save-interval PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.load-state
+  ARGS --rom ${bench_rom} --bench 2 --load-state x.sta
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --load-state")
+set_tests_properties(runner.usage.bench.load-state PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.frames
+  ARGS --rom ${bench_rom} --bench 2 --frames 2
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --frames or --movie")
+set_tests_properties(runner.usage.bench.frames PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.movie
+  ARGS --rom ${bench_rom} --bench 2 --movie m.mov
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench cannot be combined with --frames or --movie")
+set_tests_properties(runner.usage.bench.movie PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.zero
+  ARGS --rom ${bench_rom} --bench 0
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench needs one whole number")
+set_tests_properties(runner.usage.bench.zero PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.over_cap
+  ARGS --rom ${bench_rom} --bench 1000001
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench needs one whole number")
+set_tests_properties(runner.usage.bench.over_cap PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.twice
+  ARGS --rom ${bench_rom} --bench 2 --bench 2
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench may be specified once")
+set_tests_properties(runner.usage.bench.twice PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.no_rom
+  ARGS --bench 2
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench needs --rom")
+set_tests_properties(runner.usage.bench.no_rom PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.state_without_bench
+  ARGS --rom ${bench_rom} --frames 2 --bench-state
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench-state requires --bench")
+set_tests_properties(runner.usage.bench.state_without_bench PROPERTIES LABELS exit_status)
+nesturbator_runner_test(NAME runner.usage.bench.state_twice
+  ARGS --rom ${bench_rom} --bench 2 --bench-state --bench-state
+  EXIT 2 IGNORE_STDOUT EXPECT_ERR "--bench-state may be specified once")
+set_tests_properties(runner.usage.bench.state_twice PROPERTIES LABELS exit_status)
+
+# --bench percentile, formatting and zero-sample report rules (15-CONTEXT D-05, D-06, D-03).
+add_executable(runner.bench_unit runner/test_bench.c ${PROJECT_SOURCE_DIR}/runner/bench.c)
+target_include_directories(runner.bench_unit PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+target_compile_definitions(runner.bench_unit PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(runner.bench_unit)
+add_test(NAME runner.bench.percentile COMMAND runner.bench_unit)
+set_tests_properties(runner.bench.percentile PROPERTIES LABELS bench)
+
 add_executable(runner.audio_hash runner/test_audio_hash.c
   ${PROJECT_SOURCE_DIR}/runner/audio_hash.c ${PROJECT_SOURCE_DIR}/runner/sha256.c)
 target_include_directories(runner.audio_hash PRIVATE ${PROJECT_SOURCE_DIR}/runner)
@@ -1068,6 +1166,12 @@ foreach(mode table help)
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_exit_table.cmake)
   set_tests_properties(runner.exit.${mode} PROPERTIES LABELS exit_status)
 endforeach()
+
+# D-22: the options printed by --help and the README runner bullets name the same set.
+add_test(NAME runner.options.readme
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_options.cmake)
 
 # D-01 and D-02: vector conversion and fetch stay implemented by the owned C
 # parser; release configuration scripts are outside this scoped policy.
@@ -1722,3 +1826,24 @@ add_test(NAME libretro.info_claims.self_test
     -DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/info_claims.cmake)
 set_tests_properties(libretro.info_claims libretro.info_claims.self_test PROPERTIES TIMEOUT 60)
+
+# D-18: perf_compare.cmake on synthetic Cachegrind files, so the +1% rule, the UNSTABLE stop
+# and the deliberate-slowdown path are shown by a ci command. Each case is defined in
+# cmake/perf_gate_selftest.cmake.
+foreach(perf_case identical plus_100 plus_101 improvement unstable missing_head report_na
+    missing_base_gate allow_ok allow_ok_boundary allow_today allow_cap_low allow_malformed
+    allow_duplicate allow_unknown allow_no_reason allow_too_far allow_expired unstable_allowed
+    missing_head_and_base allow_reason_semicolon allow_reason_bracket allow_bracket_then_malformed)
+  add_test(NAME perf.gate_selftest.${perf_case}
+    COMMAND ${CMAKE_COMMAND} -DCASE=${perf_case} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DWORK=${CMAKE_CURRENT_BINARY_DIR}/perf_selftest/${perf_case}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/perf_gate_selftest.cmake)
+  set_tests_properties(perf.gate_selftest.${perf_case} PROPERTIES LABELS perf)
+endforeach()
+
+# D-09: the three ROMs the perf job measures each draw a non-blank frame 60.
+add_test(NAME perf.roms_render
+  COMMAND ${CMAKE_COMMAND} "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -DWORK=${CMAKE_CURRENT_BINARY_DIR}/perf_roms_render
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/perf_roms_render.cmake)
+set_tests_properties(perf.roms_render PROPERTIES LABELS perf TIMEOUT 60)

@@ -2,11 +2,13 @@
 /* _DEFAULT_SOURCE is a feature-test macro: it only makes POSIX and BSD declarations visible in the
    system headers, so the compiler mode stays -std=c17 without extensions. glibc gives signal()
    BSD (SA_RESTART) semantics only with it (signal(2)); without it a blocking call can fail with
-   EINTR instead of resuming. */
+   EINTR instead of resuming. An inherited SIG_IGN is honoured, as POSIX shells set it for
+   background jobs (14-REVIEW.md WR-01). */
 #include "stop.h"
 
 #include "stop_internal.h"
 
+#include <errno.h>
 #include <signal.h>
 #include <string.h>
 
@@ -18,14 +20,24 @@ static volatile sig_atomic_t stop_flag;
 
 static void on_signal(int sig)
 {
+    int saved_errno = errno;
     (void)signal(sig, SIG_DFL);
     stop_flag = 1;
+    errno = saved_errno;
+}
+
+/* Installs the handler, then puts back a SIG_IGN the process inherited (a shell starts a
+   background job with SIGINT ignored; a launcher may ignore SIGTERM). */
+static void install_one(int sig)
+{
+    if (signal(sig, on_signal) == SIG_IGN)
+        (void)signal(sig, SIG_IGN);
 }
 
 void nesturbator_run_stop_install(void)
 {
-    (void)signal(SIGINT, on_signal);
-    (void)signal(SIGTERM, on_signal);
+    install_one(SIGINT);
+    install_one(SIGTERM);
 }
 
 int nesturbator_run_stop_requested(void)

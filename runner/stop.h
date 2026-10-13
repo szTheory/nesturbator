@@ -8,6 +8,8 @@
    POSIX: SIGINT and SIGTERM, through the C17 signal function (ISO C17 7.14.1.1; POSIX.1-2017
    signal). The handler resets the disposition to the default and stores a flag, so a second signal
    of the same kind ends the process at once.
+   A SIGINT or SIGTERM the process inherited as ignored (a shell background job, nohup) stays
+   ignored, so the runner does not stop on it.
    Windows: Ctrl+C, Ctrl+Break and the console close event, through SetConsoleCtrlHandler
    (Microsoft Learn: SetConsoleCtrlHandler, HandlerRoutine). The CRT signal and raise functions are
    not used there.

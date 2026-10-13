@@ -40,7 +40,7 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
 - [x] **Phase 12: Save states in the library** - Fixed-size, checked, all-or-nothing states on six boards, pinned on six platforms through the runner's state options (completed 2026-10-12)
 - [x] **Phase 13: Rewind and run-ahead in RetroArch** - libretro serialize, staged `.info` claims, RetroArch e2e for states, rewind and run-ahead, and a state-loader fuzz target (completed 2026-10-12)
 - [x] **Phase 14: Runner process contract** - Signal-safe save flush and one documented exit-status table for launchers (completed 2026-10-12)
-- [ ] **Phase 15: Speed and close-out** - Frame-time report, per-PR instruction-count comparison, measured nightly timeout and a final pin and docs review
+- [x] **Phase 15: Speed and close-out** - Frame-time report, per-PR instruction-count comparison, measured nightly timeout and a final pin and docs review (completed 2026-10-13)
 
 ## Phase Details
 
@@ -202,12 +202,41 @@ Players save and load states, rewind and use run-ahead in RetroArch. Playstead c
   3. The +1% per-ROM gate is armed only after identical builds show zero spread, and a deliberate slowdown passes with a reviewed line in the allow file.
   4. The nightly suite-flake timeout is about twice a measured cold run of the v3 suite, action pins, runner labels and the AccuracyCoin pin are reviewed, and the README and public header describe the released code.
 
-**Plans**: TBD
+**Plans**: 8/8 plans complete
+**Wave 1**
+- [x] 15-01-PLAN.md — Two-way `--help`/README option check, Phase 14 WR-01 to WR-03 fixed, disposition closed (TUNE-10)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 15-02-PLAN.md — `--bench N`: clock and percentile modules, report helper, no-hash-change, format and percentile tests (PERF-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 15-03-PLAN.md — `--bench-state`, D-03 refusals with usage tests, real-signal bench stop (PERF-03)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [x] 15-04-PLAN.md — One CMake comparison script, allow file and `perf.gate_selftest.*` cases (PERF-02)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [x] 15-05-PLAN.md — `perf` Cachegrind job in report mode with a control dispatch, frame-60 render check, draft PR (PERF-02)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [x] 15-06-PLAN.md — Zero-spread proof from two control runs, then the arming commit and roll-up test (PERF-02)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [x] 15-07-PLAN.md — Pin, runner-label and AccuracyCoin review, README and header audit (TUNE-10)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- [x] 15-08-PLAN.md — Final tree settled, three nightly cold runs, measured timeouts, timeout lint, final green head (TUNE-10)
+
 **Notes**: TUNE-10 sits last so its cold run includes every v3 test. This absorbs Backlog 999.1 (nightly suite-flake timeout).
 
 ## Backlog
 
 Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured cold run) moved into Phase 15 as TUNE-10.
+
+### Phase 999.2: Bump AccuracyCoin past 673ef550 (BACKLOG)
+
+**Goal:** Re-baseline the AccuracyCoin ROM sha256, scoreboard and hashes at a newer upstream commit; upstream added tests and an OAM fix.
+Compare: https://github.com/100thCoin/AccuracyCoin/compare/673ef550...main
 
 ## Progress
 
@@ -217,4 +246,4 @@ Phase 999.1 (lower the nightly suite-flake timeout to about twice a measured col
 | 12. Save states in the library | v3 | 10/10 | Complete    | 2026-10-12 |
 | 13. Rewind and run-ahead in RetroArch | v3 | 8/8 | Complete    | 2026-10-12 |
 | 14. Runner process contract | v3 | 8/8 | Complete    | 2026-10-12 |
-| 15. Speed and close-out | v3 | 0/TBD | Not started | - |
+| 15. Speed and close-out | v3 | 8/8 | Complete    | 2026-10-13 |

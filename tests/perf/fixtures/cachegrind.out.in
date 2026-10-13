@@ -1,0 +1,9 @@
+desc: I1 cache: none
+cmd: nesturbator-run --rom ROM --frames @FRAMES@
+events: Ir
+
+fl=main.c
+fn=main
+1 @IR@
+
+summary: @IR@

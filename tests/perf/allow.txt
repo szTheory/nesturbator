@@ -1,0 +1,8 @@
+# Reviewed exceptions to the performance gate (15-CONTEXT D-17).
+# Line format: <rom> <max_percent_x100> <expires YYYY-MM-DD> <reason...>
+#   rom               nesteroids, runner or M4_P256K_C256K
+#   max_percent_x100  the most the ROM may slow down, as a percent times 100 (350 = 3.50%)
+#   expires           at most 60 days after the day the check runs
+#   reason            free text, read by the reviewer in the pull request diff
+# A line is reviewed in the pull request that needs it and is removed after that
+# pull request merges.
