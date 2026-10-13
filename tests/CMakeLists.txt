@@ -1839,3 +1839,10 @@ foreach(perf_case identical plus_100 plus_101 improvement unstable missing_head 
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/perf_gate_selftest.cmake)
   set_tests_properties(perf.gate_selftest.${perf_case} PROPERTIES LABELS perf)
 endforeach()
+
+# D-09: the three ROMs the perf job measures each draw a non-blank frame 60.
+add_test(NAME perf.roms_render
+  COMMAND ${CMAKE_COMMAND} "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -DWORK=${CMAKE_CURRENT_BINARY_DIR}/perf_roms_render
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/perf_roms_render.cmake)
+set_tests_properties(perf.roms_render PROPERTIES LABELS perf TIMEOUT 60)
