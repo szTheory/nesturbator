@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-12)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 14 — Runner process contract
+**Current focus:** Phase 15 — Speed and close-out
 
 ## Current Position
 
@@ -295,6 +295,7 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - [Phase 11] Code review left 3 info open (11-REVIEW-DISPOSITION.md; WR-01 to WR-04 fixed): IN-01 load_cartridge repeats the power-on reset; IN-02 a failed libretro load leaves the instance NULL so AV info is zeroed; IN-03 one over-long comment line in `runner/main.c`.
 - [Phase 12] Code review closed (12-REVIEW-DISPOSITION.md): CR-01 tick ceiling, WR-01 runner exit 2 before ROM load and IN-01 fixed; WR-02 skipped, as `halted_in_read` is never written and its bound must widen if stalled reads are modelled. Six-platform state hash equality is shown only by the Phase 12 PR's CI matrix.
 - [Phase 13] Code review left 3 warnings and 5 info open, all in test code (13-REVIEW-DISPOSITION.md): WR-01 state-net frame-chain checks tolerate a dropped or doubled FRAMEADVANCE; WR-02 state_session.sh resends only the second SAVE_STATE; WR-03 special-case ROMs matched by substring of the full path. PR #44 squash-merged as db0f21c after the asan run-ahead budget fix (6fbfa5a).
+- [Phase 14] Code review left 3 warnings and 4 info open (14-REVIEW-DISPOSITION.md): WR-01 `signal()` installed over an inherited SIG_IGN with no saved errno (suggest `sigaction` with SA_RESTART|SA_RESETHAND); WR-02 signal-test TIMEOUT 2 s and win_console 1 s rest on one CI sample and may flake; WR-03 README lacks the POSIX advice to drain stdout. PR #45 is draft and green.
 - [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
@@ -332,9 +333,9 @@ Last session: 2026-10-12T23:56:51.612Z
 Stopped at: Phase 14 complete, ready to plan Phase 15
 Resume file: None
 
-Next GSD command: `/gsd-execute-phase 14`.
+Next GSD command: `/gsd-discuss-phase 15`.
 
 ## Operator Next Steps
 
-- Execute Phase 14 with /gsd-execute-phase 14 on gsd/phase-14-runner-process-contract
-- After execution, open the Phase 14 PR and squash-merge it once CI is green
+- Take PR #45 out of draft and squash-merge it once CI is green, then create gsd/phase-15-speed-and-close-out from the updated main
+- Discuss Phase 15 with /gsd-discuss-phase 15

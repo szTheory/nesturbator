@@ -48,11 +48,11 @@ Left for later milestones: fuzzing arbitrary ROM bytes beyond the loader (SEED-0
 - ✓ Battery saves are replaced atomically (temp file, full flush, checked close, rename; a stale `.tmp` file or link is cleared and a directory refused), the `retroarch-e2e` job round-trips an MMC3 `.srm` beside MMC1, and `nesturbator_get_version` and `nesturbator_unload_cartridge` have callers and README text. — v3, Phase 11 (TUNE-07, TUNE-08, TUNE-09; PR #42 CI run 38179044953 green on all jobs)
 - ✓ A host saves the whole machine at a frame boundary into a fixed-size, versioned, CRC-checked state and loads it back to the same run on all six boards; every field is validated before anything is applied, a refused load leaves the instance unchanged, and nes-runner has `--save-state` and `--load-state`. — v3, Phase 12 (STATE-01 to STATE-05, RUN-01; six-platform hash equality shown by the PR's CI matrix)
 - ✓ RetroArch saves and loads states, rewinds and runs ahead with the core: the adapter's serialize calls delegate to the library state API, the `.info` claims `deterministic`, and a configure-time guard refuses any `.info` claim whose proving tests are not registered; retroarch-e2e drives save, load, rewind and run-ahead in RetroArch 1.22.2 with a log check, and the state loader is fuzzed nightly with a replayed committed corpus. — v3, Phase 13 (LR-01 to LR-04; PR #44 CI run 38297707729 and Nightly run 38297707605 green on all jobs)
+- ✓ A launcher can stop nes-runner at any time without losing a save: SIGINT and SIGTERM (Ctrl+C, Ctrl+Break and console close on Windows) finish the current frame, flush the battery save and exit 0, or 1 if the flush failed or a requested output was not reached; a second signal kills at once. Every exit status is one table in `runner/exit_status.h`, printed by `--help` and checked against the README. — v3, Phase 14 (RUN-02, RUN-03; PR #45 CI run 38324782351 green on all 14 jobs)
 
 ### Active
 
 - [ ] v2 debt closed and the pipeline tuned up (SEED-006)
-- [ ] nes-runner signal-safe save flush and documented exit statuses (runner save states shipped in Phase 12)
 - [ ] Speed measured by the runner and compared on every pull request
 
 The numbered requirements are in `.planning/REQUIREMENTS.md`.
@@ -140,6 +140,8 @@ The numbered requirements are in `.planning/REQUIREMENTS.md`.
 | A loaded state's ticks are capped at 2^62 and its PPU clock must trail the CPU clock by less than one frame | A CRC-valid state with ticks near 2^64 made the next frame loop about 2^61 times (Phase 12 CR-01) | ✓ Good — `core.state_reject` refuses `UINT64_MAX` and 2^62+1 and runs a frame from 2^62 |
 | Each `.info` save-state level maps to the CTests that prove it; configuring the tests fails if the `.info` claims a level whose tests are not registered, and a level is claimed only in a commit whose six build jobs are green | A libretro claim RetroArch acts on (rewind, run-ahead, netplay) must never outrun its evidence | ✓ Good — Phase 13 `serialized` then `deterministic` claimed on green CI; RetroArch state-ahead moves from frame 120 to 121 |
 | CI job timeouts are twice the slowest measured hosted run, re-measured when a phase adds test cost (build 22 min, asan 14 min) | A guessed limit cancelled the macOS Intel build on every Phase 13 head | ✓ Good — Phase 13 run 38297707729 green with Intel at 9m20s |
+| Runner exit statuses are one X-macro table (`RUNNER_EXIT_TABLE`) in `runner/exit_status.h`; `--help` prints it and `runner.exit.table` fails if the README disagrees | A launcher reads outcomes from one documented list that cannot drift | ✓ Good — Phase 14 statuses 0, 1, 2, 4 and 5 each have a test |
+| A stop signal only sets a flag; the main loop checks it before each frame, then flushes stdout and the save; the handler resets to the default action so a second signal kills; `--raise-after` raises the stop in-process at a chosen frame | A frame-exact, testable stop with no work in the handler, identical on every platform | ✓ Good — Phase 14 stopped runs match unstopped ones byte for byte; real-signal and real Ctrl+Break tests pass on six platforms |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -161,4 +163,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-12 after Phase 13*
+*Last updated: 2026-10-12 after Phase 14*
