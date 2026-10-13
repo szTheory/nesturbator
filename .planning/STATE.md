@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 15
 current_phase_name: Speed and close-out
 status: executing
-stopped_at: Completed 15-01-PLAN.md
-last_updated: "2026-10-13T02:35:59.542Z"
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-10-13T02:48:25.873Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 15 execution started
-state_head: f6e20a0083ddf12c91c02e20ae87dbada435c789
+state_head: 78646f5fddd7b385331c179920217990f7c074c8
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 38
-  completed_plans: 31
+  completed_plans: 32
   percent: 80
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 15 (Speed and close-out) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-10-12 — Phase 15 execution started
 
@@ -187,6 +187,7 @@ Progress: [████████░░] 80%
 | Phase 14 P07 | 75 min | 2 tasks | 4 files |
 | Phase 14 P08 | 20 min | 2 tasks | 1 files |
 | Phase 15 P01 | 25m | 3 tasks | 7 files |
+| Phase 15 P02 | 25m | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -281,6 +282,7 @@ Recent decisions affecting current work:
 - [Phase 14]: 14-07: runner.stop.win_console (real Ctrl+Break through the runner's own console) passed on both hosted Windows legs and is kept; draft PR #45
 - [Phase 14]: 14-08: signal TIMEOUT 2 s and win_console TIMEOUT 1 s from CI run 38322038900; D-15 2000 ms held on all legs, no fix needed
 - [Phase 15]: Signal-test TIMEOUTs are 30 s hang detectors, not 10 s (10 s fires inside helper deadlines)
+- [Phase 15]: Bench report is one helper; main passes the timed count ungated so the helper decides the zero-sample output.
 
 ### Pending Todos
 
@@ -331,8 +333,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T02:35:59.498Z
-Stopped at: Completed 15-01-PLAN.md
+Last session: 2026-10-13T02:48:25.836Z
+Stopped at: Completed 15-02-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-execute-phase 15`.
