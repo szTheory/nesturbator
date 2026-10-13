@@ -13,7 +13,7 @@ findings:
     title: "`file(STRINGS)` on the allow file mangles reasons that contain `;` or `[` `]`"
   - id: WR-03
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "An inherited SIG_IGN is honoured but not documented, and it can hang the stop tests"
   - id: WR-04
     severity: warning
@@ -31,9 +31,9 @@ findings:
     severity: info
     disposition: open
     title: "Fixed 512-byte report buffer truncates silently"
-open: 4
+open: 3
 total: 7
-recorded: 2026-10-13T12:38:56.730Z
+recorded: 2026-10-13T12:39:04.673Z
 ---
 
 # Phase 15: Code Review Disposition
@@ -42,7 +42,7 @@ recorded: 2026-10-13T12:38:56.730Z
 |---------|----------|-------------|--------|
 | WR-01 | warning | fixed | 15-REVIEW-FIX.md |
 | WR-02 | warning | fixed | 15-REVIEW-FIX.md |
-| WR-03 | warning | open | - |
+| WR-03 | warning | fixed | 15-REVIEW-FIX.md |
 | WR-04 | warning | skipped | 15-REVIEW-FIX.md |
 | IN-01 | info | open | - |
 | IN-02 | info | open | - |
