@@ -32,6 +32,10 @@ target_compile_definitions(frame_index PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(frame_index)
 
+add_test(NAME retroarch.marker.controls
+  COMMAND frame_index --marker-selftest ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(retroarch.marker.controls PROPERTIES TIMEOUT 60)
+
 set(fi_rom ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes)
 set(fi_ppm ${CMAKE_CURRENT_BINARY_DIR}/fi-37.ppm)
 add_test(NAME retroarch.frame_index.setup

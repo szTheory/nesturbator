@@ -26,6 +26,58 @@
 #define MAX_PARTNER_GAP 3u
 #define MAX_W 100000u
 
+/* Phase 16's test-only encoding: 16 little-endian bit cells between four checker guards.
+   All 8x8 pixels of each cell are checked; the counter never wraps in this window. */
+#define MARKER_FIRST 4u
+#define MARKER_LAST 10000u
+#define MARKER_ROM_SIZE (16u + 16384u + 8192u)
+
+static const char *marker_decode(const uint8_t *rgb, const uint32_t *palette,
+                                 uint32_t *counter)
+{
+    (void)rgb;
+    (void)palette;
+    (void)counter;
+    return "guard";
+}
+
+/* Independent expected pixels, unrelated to the guest's CHR/nametable writer. */
+static void marker_pattern(uint8_t *rgb, const uint32_t *palette, uint32_t value)
+{
+    memset(rgb, 0, NESTURBATOR_TEST_RGB_SIZE);
+    for (unsigned cell = 0; cell < 20u; ++cell) {
+        for (unsigned y = 0; y < 8u; ++y) {
+            for (unsigned x = 0; x < 8u; ++x) {
+                unsigned on = cell < 2u || cell >= 18u
+                                  ? ((x + y + (cell >= 18u ? 1u : 0u)) & 1u)
+                                  : ((value >> (cell - 2u)) & 1u);
+                uint32_t color = palette[on ? 0x30u : 0x0fu];
+                size_t p = ((32u + y) * W_PX + 32u + cell * 8u + x) * 3u;
+                rgb[p] = (uint8_t)(color >> 16);
+                rgb[p + 1u] = (uint8_t)(color >> 8);
+                rgb[p + 2u] = (uint8_t)color;
+            }
+        }
+    }
+}
+
+static int marker_selftest(void)
+{
+    uint32_t palette[512] = {0};
+    static uint8_t rgb[NESTURBATOR_TEST_RGB_SIZE];
+    uint32_t value = 0;
+    palette[0x30] = 0xffffffu;
+    marker_pattern(rgb, palette, 257u);
+    const char *reason = marker_decode(rgb, palette, &value);
+    if (reason != NULL || value != 257u) {
+        fprintf(stderr, "ASSERT marker identity: expected 257, actual %u reason %s\n", value,
+                reason != NULL ? reason : "none");
+        return 1;
+    }
+    printf("marker controls: 1 cases\n");
+    return 0;
+}
+
 static uint8_t *read_file(const char *path, size_t *size)
 {
     FILE *f = fopen(path, "rb");
@@ -69,6 +121,8 @@ static uint64_t fnv1a(const uint8_t *p, size_t n)
 
 int main(int argc, char **argv)
 {
+    if (argc == 3 && strcmp(argv[1], "--marker-selftest") == 0)
+        return marker_selftest();
     int dups = argc >= 2 && strcmp(argv[1], "--dups") == 0;
     int first = dups ? 2 : 1;
     if (argc < 4 || (dups && argc != 4)) {
