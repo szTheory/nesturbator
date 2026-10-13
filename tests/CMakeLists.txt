@@ -1256,6 +1256,13 @@ add_test(NAME release.one_version_per_line.self_test
 set_tests_properties(release.one_version_per_line.self_test PROPERTIES
   PASS_REGULAR_EXPRESSION "tests/release/two_versions\\.md:3: 2 versions")
 
+# Numeric-only release updates preserve the three public-header markers and
+# their narrow formatting guard, even when version components gain digits.
+add_test(NAME release.version_format
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/release_version_format
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/release_version_format.cmake)
+
 # A one-time release-as pin in release-please-config.json must not stay
 # behind, or every later release reuses its version.
 add_test(NAME release.no_release_as

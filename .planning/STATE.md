@@ -1,20 +1,20 @@
 ---
 gsd_state_version: "1.0"
 milestone: v3
-milestone_name: Save states and rewind
-status: Awaiting next milestone
-stopped_at: Milestone v3 archived; release PR #35 blocked by hygiene.format
-last_updated: "2026-10-13T14:22:24.785Z"
+status: Awaiting release verification
+stopped_at: Quick task 261013-g9z shipped in PR 48; release verification follows
+last_updated: "2026-10-13T16:09:17.191Z"
 last_activity: 2026-10-13
-last_activity_desc: Milestone v3 completed and archived
-state_head: b0ec7fb9d31d0593d6e7c288af8d350e22f7b4c2
+last_activity_desc: Opened PR 48 for release formatting and Codex routing
+state_head: fc8686d63cca896c2fe16bcb535e9381e66e5e03
+milestone_name: Save states and rewind
+current_phase: 15
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 38
   completed_plans: 38
   percent: 100
-current_phase: 15
 ---
 
 # Project State
@@ -24,14 +24,14 @@ current_phase: 15
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Unblock release PR #35 (v0.1.10), then plan the next milestone
+**Current focus:** Track the release-format fix in PR #48 and automated release PR #35 (v0.1.10), then plan the next milestone
 
 ## Current Position
 
 Phase: Milestone v3 complete
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-10-13 — Milestone v3 completed and archived
+Status: Awaiting release verification
+Last activity: 2026-10-13 — Shipped quick task 261013-g9z and Codex routing in PR #48
 
 ## Performance Metrics
 
@@ -300,7 +300,7 @@ None.
 
 ### Blockers/Concerns
 
-- **Release blocker (found at the v3 close):** release PR #35 (v0.1.10) fails `hygiene.format` on `include/nesturbator.h:43-44`; the bumped patch number shifts the aligned `x-release-please` comments. v0.1.9 is still the latest release, so none of v3 is published.
+- **Release follow-up (found at the v3 close):** release PR #35 (v0.1.10) failed `hygiene.format` because the bumped patch number shifted the aligned `x-release-please` comments. [PR #48](https://github.com/szTheory/nesturbator/pull/48) ships quick task 261013-g9z (`c79fca3`) and the requested Codex routing. Fresh ship preflight passed 634/634 CI tests and 13/13 hygiene tests; the fingerprinted quick verification report is `passed`. Required hosted checks gate the squash merge. The release workflow refreshes and auto-merges #35 after this fix lands and its checks pass; inspect hosted outcomes before starting the next milestone.
 
 v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and MILESTONES.md. v2 debt is in `.planning/milestones/v2-MILESTONE-AUDIT.md`. The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
 - [Phase 08] Code review left 2 warnings and 2 info open (08-REVIEW-DISPOSITION.md; WR-01 interval-flush retry fixed by quick task 261011-inm, PR #39): WR-02 NES 2 MMC1 submapper 5 accepted but not emulated as fixed 32 KiB PRG; WR-03 a directory at the `.sav` path exits 4 instead of a read error.
@@ -320,6 +320,7 @@ v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` a
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 261013-g9z | Keep release version macros format-stable across digit widths | 2026-10-13 | c79fca3 | [261013-g9z-make-the-release-pr-pass-hygiene-format-](./quick/261013-g9z-make-the-release-pr-pass-hygiene-format-/) |
 
 ### Roadmap Evolution
 
@@ -347,12 +348,12 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-13
-Stopped at: Milestone v3 archived on branch chore/archive-v3 (PR pending); release PR #35 blocked by hygiene.format
+Stopped at: Quick task 261013-g9z shipped in PR #48 from gsd/phase-config-codex; automated release verification follows
 Resume file: None
 
-Next GSD command: `/gsd-quick make the release PR pass hygiene.format: keep the x-release-please version lines in include/nesturbator.h stable when the patch number gains a digit`
+Next GSD command: `/gsd-progress` after the shipping and release workflows settle
 
 ## Operator Next Steps
 
-- Unblock release PR #35 with the /gsd-quick above, so v0.1.10 publishes v3
-- Then start the next milestone with /gsd-new-milestone
+- Track PR #48's required checks and squash merge, followed by the automatic refresh and merge of release PR #35
+- Confirm the v0.1.10 release workflow outcome, then start the next milestone with /gsd-new-milestone

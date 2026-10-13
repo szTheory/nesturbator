@@ -39,10 +39,14 @@
 extern "C" {
 #endif
 
-/* Library version of this header. Updated by the release tooling. */
+/* Library version of this header. Release tooling changes only the numbers,
+   without realigning neighbouring comments. This narrow formatting guard
+   preserves formatting when a version component gains a digit. */
+/* clang-format off */
 #define NESTURBATOR_VERSION_MAJOR 0 /* x-release-please-major */
 #define NESTURBATOR_VERSION_MINOR 1 /* x-release-please-minor */
 #define NESTURBATOR_VERSION_PATCH 9 /* x-release-please-patch */
+/* clang-format on */
 
 /* Binary interface number. nesturbator_create refuses a config whose abi
    field differs from the library's. A shared library's SOVERSION equals it. */

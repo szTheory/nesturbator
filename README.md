@@ -992,6 +992,13 @@ cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake
 
 ## Releases
 
+Release tooling changes only the numbers in the public header's three version
+macros. A narrow `clang-format off/on` region keeps their inline release-please
+markers stable when a number gains a digit, such as patch 9 becoming 10.
+`release.version_format` checks the guard, markers and numeric-only mutations
+in CI; `hygiene.release_version_format` also checks the full mutated headers
+with clang-format 18. Formatting resumes before the ABI macro.
+
 Merging a behaviour-changing pull request publishes a GitHub release.
 release-please reads the Conventional Commit titles on `main`, opens a release
 pull request that sets the version and the changelog, and merges it once CI
