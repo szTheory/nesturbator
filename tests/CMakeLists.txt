@@ -980,6 +980,14 @@ target_link_libraries(runner.sha256 PRIVATE nesturbator::nesturbator)
 nesturbator_warnings(runner.sha256)
 add_test(NAME runner.sha256 COMMAND runner.sha256)
 
+# --bench percentile, formatting and zero-sample report rules (15-CONTEXT D-05, D-06, D-03).
+add_executable(runner.bench_unit runner/test_bench.c ${PROJECT_SOURCE_DIR}/runner/bench.c)
+target_include_directories(runner.bench_unit PRIVATE ${PROJECT_SOURCE_DIR}/runner)
+target_compile_definitions(runner.bench_unit PRIVATE $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(runner.bench_unit)
+add_test(NAME runner.bench.percentile COMMAND runner.bench_unit)
+set_tests_properties(runner.bench.percentile PROPERTIES LABELS bench)
+
 add_executable(runner.audio_hash runner/test_audio_hash.c
   ${PROJECT_SOURCE_DIR}/runner/audio_hash.c ${PROJECT_SOURCE_DIR}/runner/sha256.c)
 target_include_directories(runner.audio_hash PRIVATE ${PROJECT_SOURCE_DIR}/runner)
