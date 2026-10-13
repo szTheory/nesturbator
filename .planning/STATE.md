@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 status: planning
-last_updated: "2026-10-13T17:37:23.960Z"
+last_updated: "2026-10-13T17:46:58Z"
 last_activity: 2026-10-13
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Start the next milestone after the historical planning cleanup lands
+**Current focus:** v4 initialized; Phase 16 Host evidence and roadmap is ready for discussion and planning
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-10-13 — Milestone v4 started
+Phase: 16 (1 of 3 in v4) — Host evidence and roadmap
+Plan: 0 (not yet planned)
+Status: Ready to plan
+Last activity: 2026-10-13 — Approved v4 roadmap initialized with Phases 16–18 and 14 mapped requirements
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -289,6 +291,8 @@ Recent decisions affecting current work:
 - [Phase 15]: Perf gate armed after two zero-spread control runs (15-PERF-PROOF.md); CI required accepts skipped perf only off pull_request
 - [Phase 15]: AccuracyCoin stays at 673ef550; bump is backlog 999.2
 - [Phase 15]: Every workflow timeout-minutes line carries a measured run ID, enforced by hygiene.timeout_comments
+- [v4 opening]: Approved three phases: host evidence/recurring roadmap contract, complete pinned conformance baseline, and accepted-program execution/lifecycle robustness. The baseline is not an all-pass promise; Phase 18 does not depend on passing conformance.
+- [v4 opening]: Backlog 999.2 is promoted into Phase 17 / CONF-01 through CONF-04 / RM-001. Historical pin decisions remain above; no implementation or pin migration is complete yet.
 
 ### Pending Todos
 
@@ -326,6 +330,7 @@ v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` a
 - Phase 04.2 inserted after Phase 4: Close gap: SND-01 — deliver single-sample libretro audio (URGENT)
 - v2 roadmap created 2026-10-09: Phases 5–10 (tune-up, mapper seam and PPU fetch pipeline merged into one phase so every phase releases, UxROM/CNROM/AxROM, MMC1 and battery saves, MMC3, close-out and boot-to-play)
 - v3 roadmap created 2026-10-11: Phases 11–15 (tune-up and state readiness, save states in the library with the runner state options, rewind and run-ahead in RetroArch, runner process contract, speed and close-out); Backlog 999.1 moved into Phase 15 as TUNE-10
+- v4 roadmap created 2026-10-13: Phases 16–18 (host evidence and roadmap, complete pinned conformance baseline, execution and lifecycle robustness), 14 requirements mapped exactly once. Backlog 999.2 promoted into Phase 17; future direction remains in PRODUCT-ROADMAP.md. Planning v4 is distinct from published package v0.1.10.
 
 ## Deferred Items
 
@@ -346,12 +351,12 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-13
-Stopped at: Quick task 261013-hpi completed on gsd/phase-planning-tidy; v0.1.10 publication verified
+Stopped at: v4 initialized with approved requirements and execution roadmap; Phase 16 discussion is next
 Resume file: None
 
-Next GSD command: `/gsd-new-milestone` after the cleanup pull request merges
+Next GSD command: `$gsd-discuss-phase 16`
 
 ## Operator Next Steps
 
-- Merge the historical planning cleanup through its pull request after required checks pass
-- Start the next milestone with /gsd-new-milestone; retain the substantive debt recorded above
+- Run `$gsd-discuss-phase 16` as the next separate GSD step, then plan Phase 16 in a later command.
+- Retain the historical performance, publication evidence and substantive debt above. SEED-003's baseline portion, SEED-004's remaining execution robustness and recurring SEED-006 upkeep are selected for v4; original deferred seed records remain historical, with current dispositions in PRODUCT-ROADMAP.md.

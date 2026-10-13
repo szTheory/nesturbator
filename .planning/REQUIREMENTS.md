@@ -72,29 +72,30 @@ These are direction, not committed v4 scope. [PRODUCT-ROADMAP.md](PRODUCT-ROADMA
 
 ## Traceability
 
-The roadmapper fills phase links from the approved three-phase proposal.
+Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.md).
 
 | Requirement | Phase | Status |
 |---|---|---|
-| EVID-01 | — | Pending |
-| EVID-02 | — | Pending |
-| EVID-03 | — | Pending |
-| EVID-04 | — | Pending |
-| CONF-01 | — | Pending |
-| CONF-02 | — | Pending |
-| CONF-03 | — | Pending |
-| CONF-04 | — | Pending |
-| ROB-01 | — | Pending |
-| ROB-02 | — | Pending |
-| ROB-03 | — | Pending |
-| ROB-04 | — | Pending |
-| DIR-01 | — | Pending |
-| DIR-02 | — | Pending |
+| EVID-01 | Phase 16 | Pending |
+| EVID-02 | Phase 16 | Pending |
+| EVID-03 | Phase 16 | Pending |
+| EVID-04 | Phase 16 | Pending |
+| CONF-01 | Phase 17 | Pending |
+| CONF-02 | Phase 17 | Pending |
+| CONF-03 | Phase 17 | Pending |
+| CONF-04 | Phase 17 | Pending |
+| ROB-01 | Phase 18 | Pending |
+| ROB-02 | Phase 18 | Pending |
+| ROB-03 | Phase 18 | Pending |
+| ROB-04 | Phase 18 | Pending |
+| DIR-01 | Phase 16 | Pending |
+| DIR-02 | Phase 16 | Pending |
 
 **Coverage:**
 - v4 requirements: 14 total
-- Mapped to phases: 0 (roadmap generation pending)
-- Unmapped: 14
+- Mapped to phases: 14
+- Unmapped: 0
+- Duplicate mappings: 0
 
 ---
 *Requirements defined and approved: 2026-10-13*
