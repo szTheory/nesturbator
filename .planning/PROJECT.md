@@ -49,11 +49,11 @@ Left for later milestones: fuzzing arbitrary ROM bytes beyond the loader (SEED-0
 - ✓ A host saves the whole machine at a frame boundary into a fixed-size, versioned, CRC-checked state and loads it back to the same run on all six boards; every field is validated before anything is applied, a refused load leaves the instance unchanged, and nes-runner has `--save-state` and `--load-state`. — v3, Phase 12 (STATE-01 to STATE-05, RUN-01; six-platform hash equality shown by the PR's CI matrix)
 - ✓ RetroArch saves and loads states, rewinds and runs ahead with the core: the adapter's serialize calls delegate to the library state API, the `.info` claims `deterministic`, and a configure-time guard refuses any `.info` claim whose proving tests are not registered; retroarch-e2e drives save, load, rewind and run-ahead in RetroArch 1.22.2 with a log check, and the state loader is fuzzed nightly with a replayed committed corpus. — v3, Phase 13 (LR-01 to LR-04; PR #44 CI run 38297707729 and Nightly run 38297707605 green on all jobs)
 - ✓ A launcher can stop nes-runner at any time without losing a save: SIGINT and SIGTERM (Ctrl+C, Ctrl+Break and console close on Windows) finish the current frame, flush the battery save and exit 0, or 1 if the flush failed or a requested output was not reached; a second signal kills at once. Every exit status is one table in `runner/exit_status.h`, printed by `--help` and checked against the README. — v3, Phase 14 (RUN-02, RUN-03; PR #45 CI run 38324782351 green on all 14 jobs)
+- ✓ Speed is visible on every pull request: `nesturbator-run --bench N` prints frames per second and p50, p90, p99, p99.9 and max frame times (`--bench-state` adds a save and load per frame) without changing a hash, and a Cachegrind `perf` job compares instructions per frame between the head and its merge base on NROM, MMC1 and MMC3, gating at +1% per ROM after two zero-spread control runs, with a reviewed, expiring allow file. Every workflow timeout is twice a measured run whose ID sits beside it (nightly suite-flake 38 min), and action pins, runner labels, the AccuracyCoin pin and the README were reviewed. — v3, Phase 15 (PERF-02, PERF-03, TUNE-10; PR #46 CI run 38357342480 green on all jobs)
 
 ### Active
 
-- [ ] v2 debt closed and the pipeline tuned up (SEED-006)
-- [ ] Speed measured by the runner and compared on every pull request
+None. Milestone v3's requirements are all validated; the tune-up (SEED-006) closed in Phases 11 and 15 and speed measurement in Phase 15.
 
 The numbered requirements are in `.planning/REQUIREMENTS.md`.
 
@@ -142,6 +142,8 @@ The numbered requirements are in `.planning/REQUIREMENTS.md`.
 | CI job timeouts are twice the slowest measured hosted run, re-measured when a phase adds test cost (build 22 min, asan 14 min) | A guessed limit cancelled the macOS Intel build on every Phase 13 head | ✓ Good — Phase 13 run 38297707729 green with Intel at 9m20s |
 | Runner exit statuses are one X-macro table (`RUNNER_EXIT_TABLE`) in `runner/exit_status.h`; `--help` prints it and `runner.exit.table` fails if the README disagrees | A launcher reads outcomes from one documented list that cannot drift | ✓ Good — Phase 14 statuses 0, 1, 2, 4 and 5 each have a test |
 | A stop signal only sets a flag; the main loop checks it before each frame, then flushes stdout and the save; the handler resets to the default action so a second signal kills; `--raise-after` raises the stop in-process at a chosen frame | A frame-exact, testable stop with no work in the handler, identical on every platform | ✓ Good — Phase 14 stopped runs match unstopped ones byte for byte; real-signal and real Ctrl+Break tests pass on six platforms |
+| The per-PR `perf` gate fails a ROM whose Cachegrind instructions per frame rise more than 1% over the merge base, fails UNSTABLE measurements outright, and accepts a slowdown only through a dated `tests/perf/allow.txt` line capped at 60 days | Instruction counts are deterministic where wall time is not, so a slowdown cannot land unseen while a deliberate one still can | ✓ Good — Phase 15 two control runs showed zero spread on all three ROMs before the gate was armed |
+| Every `timeout-minutes` line carries the ID of the measured run it doubles, and `hygiene.timeout_comments` fails a line without one | A limit with no measurement behind it is a guess, and guessed limits cancelled healthy jobs in Phase 13 | ✓ Good — Phase 15 nightly suite-flake set to 38 min from three cold runs |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -163,4 +165,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-12 after Phase 14*
+*Last updated: 2026-10-13 after Phase 15*

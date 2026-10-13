@@ -21,10 +21,10 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-12)
+See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 15 — Speed and close-out
+**Current focus:** Milestone v3 close-out (all five phases complete)
 
 ## Current Position
 
@@ -311,7 +311,8 @@ v2 shipped; the remaining debt is listed in `.planning/milestones/v2-MILESTONE-A
 - [Phase 11] Code review left 3 info open (11-REVIEW-DISPOSITION.md; WR-01 to WR-04 fixed): IN-01 load_cartridge repeats the power-on reset; IN-02 a failed libretro load leaves the instance NULL so AV info is zeroed; IN-03 one over-long comment line in `runner/main.c`.
 - [Phase 12] Code review closed (12-REVIEW-DISPOSITION.md): CR-01 tick ceiling, WR-01 runner exit 2 before ROM load and IN-01 fixed; WR-02 skipped, as `halted_in_read` is never written and its bound must widen if stalled reads are modelled. Six-platform state hash equality is shown only by the Phase 12 PR's CI matrix.
 - [Phase 13] Code review left 3 warnings and 5 info open, all in test code (13-REVIEW-DISPOSITION.md): WR-01 state-net frame-chain checks tolerate a dropped or doubled FRAMEADVANCE; WR-02 state_session.sh resends only the second SAVE_STATE; WR-03 special-case ROMs matched by substring of the full path. PR #44 squash-merged as db0f21c after the asan run-ahead budget fix (6fbfa5a).
-- [Phase 14] Code review left 3 warnings and 4 info open (14-REVIEW-DISPOSITION.md): WR-01 `signal()` installed over an inherited SIG_IGN with no saved errno (suggest `sigaction` with SA_RESTART|SA_RESETHAND); WR-02 signal-test TIMEOUT 2 s and win_console 1 s rest on one CI sample and may flake; WR-03 README lacks the POSIX advice to drain stdout. PR #45 is draft and green.
+- [Phase 14] Code review closed (14-REVIEW-DISPOSITION.md): WR-01 to WR-03 fixed in 15-01 (`sigaction`-style handler honouring an inherited SIG_IGN, 30 s signal TIMEOUTs, README stdout-drain advice). PR #45 squash-merged as 6f08c6c.
+- [Phase 15] Code review left 4 warnings and 3 info open (15-REVIEW-DISPOSITION.md): WR-01 `perf_compare.cmake` gate mode passes a missing head as n/a when the base is also missing (contradicts the documented rule; no selftest); WR-02 `file(STRINGS)` splits allow-file reasons on `;` and mangles `[`/`]`; WR-03 README and `stop.h` do not say an inherited SIG_IGN stays ignored (rule 6); WR-04 one-minute timeouts on network jobs rest on one sample. Verifier passed 4/4 and judged WR-01 a warning. PR #46 is draft and green.
 - [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 
@@ -345,13 +346,14 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T06:51:13.457Z
-Stopped at: Phase 15 complete — all phases complete
+Last session: 2026-10-13
+Stopped at: Phase 15 complete, milestone v3 ready to close (review fixes first)
 Resume file: None
 
-Next GSD command: `/gsd-execute-phase 15`.
+Next GSD command: `/gsd-code-review 15 --fix`.
 
 ## Operator Next Steps
 
-- PR #45 squash-merged (6f08c6c); phase branch gsd/phase-15-speed-and-close-out created from main
-- Execute Phase 15 (8 plans, 8 sequential waves) with /gsd-execute-phase 15
+- Phase 15 executed and verified (8/8 plans, 15-VERIFICATION.md passed); PR #46 left draft on gsd/phase-15-speed-and-close-out
+- Fix the four open review warnings on the phase branch with /gsd-code-review 15 --fix, then squash-merge PR #46
+- Then audit and close milestone v3 (/gsd-audit-milestone, /gsd-complete-milestone v3)
