@@ -3,10 +3,11 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: v1 shipped; milestone v2 is under way.** v1 played
-NROM games with picture and sound; milestone v2 now plays mappers 0, 1, 2, 3, 4 and 7 with battery saves. Phase 5 adds parallel CI, a policy that
-no registered test may skip, and the soft reset (`nesturbator_reset()`, which
-RetroArch's Reset button runs). The 6502 core matches the public
+**Status: v2 shipped; milestone v3 is closing.** v1 played NROM games with picture and sound; v2
+plays mappers 0, 1, 2, 3, 4 and 7 with battery saves, parallel CI, a policy that no registered
+test may skip, and the soft reset (`nesturbator_reset()`, which RetroArch's Reset button runs).
+Milestone v3 adds save states, rewind and run-ahead in RetroArch, a runner stop contract, frame
+timing and per-PR instruction counts. The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM,
 16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM), mapper 4 (MMC3; see below) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
@@ -1034,6 +1035,14 @@ nesturbator-run --version
   process K times (K defaults to 1) with SIG, so a stop lands at a known frame. SIG is `int`
   or `term` on POSIX (default `term`) and `int` or `break` on Windows (default `break`). It
   cannot be combined with `--accuracycoin-page`.
+- `--movie FILE` replays a validated two-port movie (see above) instead of running `--frames N`,
+  and prints a SHA-256 line for every frame.
+- `--help` prints the usage and the exit statuses to stdout and exits 0.
+- `--accuracycoin-page N` runs AccuracyCoin page N (2, 14 or 17) for 1800 frames and compares its
+  RAM results to the scoreboard. It needs `--rom` and `--scoreboard` and installs no stop
+  handlers.
+- `--scoreboard FILE` names the scoreboard that `--accuracycoin-page` compares against; it is
+  an error without `--accuracycoin-page`.
 - `--version` prints one line to stdout, `nesturbator-run X.Y.Z`, formatted at
   run time from `nesturbator_get_version`, and exits 0. It needs no other
   option and nothing else is printed. It is handled where the option loop

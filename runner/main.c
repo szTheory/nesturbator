@@ -77,6 +77,7 @@ static void print_usage(FILE *out)
             "                      [--state-at-frame N:FILE]... [--hash-state N]... "
             "[--load-state FILE]\n"
             "                      [--raise-after N[:SIG[:K]]]\n"
+            "       nesturbator-run --accuracycoin-page N --rom FILE --scoreboard FILE\n"
             "       nesturbator-run --version\n"
             "       nesturbator-run --help\n"
             "  --frames N           run N frames (N >= 1)\n"
@@ -92,6 +93,9 @@ static void print_usage(FILE *out)
             "  --hash-state N       print the SHA-256 of the save state after frame N (N >= 0)\n"
             "  --raise-after N[:SIG[:K]]  test aid: after frame N, signal this process K times (1 "
             "or 2); SIG int or term (default term), on Windows int or break (default break)\n"
+            "  --accuracycoin-page N  run AccuracyCoin page N (2, 14 or 17) for 1800 frames; needs "
+            "--rom and --scoreboard\n"
+            "  --scoreboard FILE    with --accuracycoin-page, the scoreboard to compare against\n"
             "  --version            print the version and exit\n"
             "  --help               print this text and the exit statuses, and exit 0\n"
             "Exit status:\n");

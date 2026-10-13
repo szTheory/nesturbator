@@ -1069,6 +1069,12 @@ foreach(mode table help)
   set_tests_properties(runner.exit.${mode} PROPERTIES LABELS exit_status)
 endforeach()
 
+# D-22: the options printed by --help and the README runner bullets name the same set.
+add_test(NAME runner.options.readme
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_options.cmake)
+
 # D-01 and D-02: vector conversion and fetch stay implemented by the owned C
 # parser; release configuration scripts are outside this scoped policy.
 add_test(NAME vectors.source_policy
