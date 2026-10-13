@@ -3,11 +3,14 @@
 A NES emulator core in C: a library you can embed, a headless runner for
 automation, and a libretro adapter.
 
-**Status: v2 shipped; milestone v3 is closing.** v1 played NROM games with picture and sound; v2
-plays mappers 0, 1, 2, 3, 4 and 7 with battery saves, parallel CI, a policy that no registered
-test may skip, and the soft reset (`nesturbator_reset()`, which RetroArch's Reset button runs).
-Milestone v3 adds save states, rewind and run-ahead in RetroArch, a runner stop contract, frame
-timing and per-PR instruction counts. The 6502 core matches the public
+**Status: v3.** The core plays mappers 0, 1, 2, 3, 4 and 7 with battery saves and the soft reset
+(`nesturbator_reset()`, which RetroArch's Reset button runs). v3 adds save states in the library
+and the runner (`nesturbator_save_state`, `--state-at-frame`, `--load-state`, `--hash-state`),
+rewind and run-ahead in RetroArch (the core declares the `deterministic` save state level), a
+runner stop contract (SIGINT and SIGTERM, Ctrl+C and Ctrl+Break finish the frame and the save,
+and an exit table), frame timing (`--bench`, `--bench-state`) and a `perf` gate that fails a pull
+request whose per-frame instruction count rises by more than 1%. A policy still forbids any
+registered test to skip. The 6502 core matches the public
 65x02 test vectors on every opcode and bus cycle. The library, runner and
 libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM,
 16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves; see below) and mapper 2 (UxROM), with 8 KiB CHR ROM or declared CHR RAM, mapper 3 (CNROM, 8 to 32 KiB CHR ROM), mapper 4 (MMC3; see below) and mapper 7 (AxROM, CHR RAM); the PPU renders backgrounds
@@ -1526,7 +1529,7 @@ identifies the set of runner frames it equals, and each step must follow from th
 last), the saved state file's container and size, and every RetroArch log. On
 failure the `retroarch-e2e-state` artifact keeps the screenshots, states and logs.
 
-## What it will be
+## What it is
 
 - An accuracy-class, deterministic NES core with no GUI of its own.
 - Three deliverables: a C library, a command-line runner, and a libretro core
