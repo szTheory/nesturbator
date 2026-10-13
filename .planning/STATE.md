@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 15
 current_phase_name: Speed and close-out
 status: executing
-stopped_at: Completed 15-03-PLAN.md
-last_updated: "2026-10-13T03:00:10.764Z"
+stopped_at: Completed 15-04-PLAN.md
+last_updated: "2026-10-13T03:05:56.926Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 15 execution started
-state_head: 7d80d8bbc26ab0affbc936debb8f560de0d52956
+state_head: d4215d8ba85e90dbebc6f44bbdcdcaf56c62fcd8
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 38
-  completed_plans: 33
+  completed_plans: 34
   percent: 80
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 15 (Speed and close-out) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
 Last activity: 2026-10-12 — Phase 15 execution started
 
@@ -189,6 +189,7 @@ Progress: [████████░░] 80%
 | Phase 15 P01 | 25m | 3 tasks | 7 files |
 | Phase 15 P02 | 25m | 2 tasks | 10 files |
 | Phase 15 P03 | 25m | 3 tasks | 5 files |
+| Phase 15 P04 | 20m | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -285,6 +286,7 @@ Recent decisions affecting current work:
 - [Phase 15]: Signal-test TIMEOUTs are 30 s hang detectors, not 10 s (10 s fires inside helper deadlines)
 - [Phase 15]: Bench report is one helper; main passes the timed count ungated so the helper decides the zero-sample output.
 - [Phase 15]: 15-03: bench signal test readiness is the flushed frame 1 hash line on the stdout pipe, flushed only under --bench outside the timed region
+- [Phase 15]: Allow-file reason text is validated but never printed in the perf summary; UNSTABLE fails in every mode
 
 ### Pending Todos
 
@@ -335,8 +337,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T03:00:10.706Z
-Stopped at: Completed 15-03-PLAN.md
+Last session: 2026-10-13T03:05:56.875Z
+Stopped at: Completed 15-04-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-execute-phase 15`.
