@@ -2,9 +2,14 @@
 gsd_state_version: "1.0"
 milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
+current_phase: 16
+current_phase_name: Host evidence and roadmap
 status: planning
-last_updated: "2026-10-13T17:46:58Z"
+stopped_at: Phase 16 context gathered; next $gsd-plan-phase 16
+last_updated: "2026-10-13T18:20:41.143Z"
 last_activity: 2026-10-13
+last_activity_desc: Phase 16 discussion captured after specialist research and adversarial cross-review; next gsd-plan-phase 16
+state_head: a450820b41ed49ee6915a4fd5efacf059a84e4a3
 progress:
   total_phases: 3
   completed_phases: 0
@@ -20,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** v4 initialized; Phase 16 Host evidence and roadmap is ready for discussion and planning
+**Current focus:** Phase 16 context gathered; ready for planning host evidence and roadmap
 
 ## Current Position
 
 Phase: 16 (1 of 3 in v4) — Host evidence and roadmap
 Plan: 0 (not yet planned)
 Status: Ready to plan
-Last activity: 2026-10-13 — Approved v4 roadmap initialized with Phases 16–18 and 14 mapped requirements
+Last activity: 2026-10-13 — Phase 16 discussion captured after specialist research and adversarial cross-review; next gsd-plan-phase 16
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -350,11 +355,11 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13
-Stopped at: v4 initialized with approved requirements and execution roadmap; Phase 16 discussion is next
-Resume file: None
+Last session: 2026-10-13T18:20:01.291Z
+Stopped at: Phase 16 context gathered; next $gsd-plan-phase 16
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-CONTEXT.md
 
-Next GSD command: `$gsd-discuss-phase 16`
+Next GSD command: `$gsd-plan-phase 16`
 
 ## Operator Next Steps
 
