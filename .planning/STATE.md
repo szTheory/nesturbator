@@ -350,7 +350,7 @@ Last session: 2026-10-13
 Stopped at: Phase 15 complete, milestone v3 ready to close (review fixes first)
 Resume file: None
 
-Next GSD command: `/gsd-audit-milestone` (after PR #46 is squash-merged).
+Next GSD command: `/gsd-quick` to widen the asan job timeout (12 min failed run 38398904814: 730 s of tests on a slow runner; hosted asan is bimodal, 325 s or 570-730 s) and resample WR-04's network timeouts from run history; then squash-merge PR #46 and `/gsd-audit-milestone`.
 
 ## Operator Next Steps
 
