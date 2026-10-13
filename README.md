@@ -1541,8 +1541,9 @@ counter before exact network assertions are expanded. `retroarch.marker.qualify`
 runs every absolute library frame 4 through 10000 (9997 frames), checks every
 pixel of all counter cells and complementary guards, and measures the guest
 counter's mapping to the absolute frame, including startup latency. The interval
-covers a 150-second attempt at at most 61 frames per second, startup and display
-lead; evidence outside that qualified interval fails. The marker is near the
+is the permitted absolute capture, rewind and display-lead excursion; wall time
+alone cannot bound a host's frame rate. Evidence outside the qualified interval
+fails. The marker is near the
 bottom of the picture so instruction-boundary drift cannot split it in this
 window. Generated ROMs and calibration records stay in the build tree.
 
@@ -1558,6 +1559,18 @@ each host configuration. A missing image/state, crash or failed launch fails
 qualification. This is bounded marker/anchor qualification, not completed exact
 network progression or proof of speculative audio: portable whole-state and
 audio tests retain those separate proofs.
+
+`retroarch.marker.controls` runs 36 independently specified cases: first/last
+frames, startup and end plus one, counter carry, zero/one/two steps and duplicate
+identity, invalid colors and partial cells/guards, image geometry, bounded
+container length/header/padding/end checks, wrong native content/format/checksum,
+and native-valid stale revision and same-ROM wrong origin. Every negative must
+reach its named terminal reason. CRC-valid semantic negatives first pass the
+public loader, so a parse error or crash cannot masquerade as their rejection.
+Unrelated background RGB, top-down 24-bit BMP and bottom-up 32-bit BMP with
+unused alpha preserve marker identity. The required hosted
+marker gate retains its entire owned evidence tree on success and failure in
+`retroarch-marker-gate`, alongside the unchanged game/battery/state artifacts.
 
 ## What it is
 

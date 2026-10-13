@@ -35,13 +35,15 @@ nesturbator_warnings(frame_index)
 
 add_test(NAME retroarch.marker.controls
   COMMAND frame_index --marker-selftest ${CMAKE_CURRENT_BINARY_DIR})
-set_tests_properties(retroarch.marker.controls PROPERTIES TIMEOUT 60)
+set_tests_properties(retroarch.marker.controls PROPERTIES
+  PASS_REGULAR_EXPRESSION "marker controls: 36 cases" TIMEOUT 60)
 set(marker_rom ${CMAKE_CURRENT_BINARY_DIR}/marker.nes)
 set(marker_cal ${CMAKE_CURRENT_BINARY_DIR}/calibration.txt)
 add_test(NAME retroarch.marker.generate COMMAND frame_index --marker-generate ${marker_rom})
 set_tests_properties(retroarch.marker.generate PROPERTIES FIXTURES_SETUP marker_content TIMEOUT 30)
 add_test(NAME retroarch.marker.qualify COMMAND frame_index --marker-qualify ${marker_rom} ${marker_cal})
-# 10000-frame exhaustive window: bounds the later 150 s attempt at 61 fps plus startup/lead.
+# The permitted absolute capture/rewind/display-lead excursion is 4..10000.
+# A wall-clock deadline alone cannot bound the host's frame rate; later observations fail outside it.
 set_tests_properties(retroarch.marker.qualify PROPERTIES FIXTURES_REQUIRED marker_content
   PASS_REGULAR_EXPRESSION "marker qualification: 9997 frames" TIMEOUT 600)
 

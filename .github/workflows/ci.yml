@@ -190,8 +190,8 @@ jobs:
   # game. Its screenshot is retained for diagnosis and reproducibility.
   retroarch-e2e:
     runs-on: macos-15
-    # Twice the slowest of 33 sampled successful runs: 346 s in run 38359109704, rounded up to 12 minutes, ENGINEERING section 5.
-    timeout-minutes: 12
+    # Twice the slowest of 33 sampled successful runs: 366 s in run 38455439227, rounded up to 13 minutes, ENGINEERING section 5.
+    timeout-minutes: 13
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

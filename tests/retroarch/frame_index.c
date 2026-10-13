@@ -344,20 +344,63 @@ static const char *marker_anchor(nesturbator *inst, const uint8_t *bytes, size_t
 /* The qualification transition verdict is also consumed by independently authored controls. */
 static const char *marker_progress(uint32_t before, uint32_t after, uint32_t steps)
 {
-    (void)before;
-    (void)after;
-    (void)steps;
+    if (steps > 0u && after == before)
+        return "duplicate-identity";
+    if (after < before || after - before != steps)
+        return "progression";
     return NULL;
 }
 
-static int marker_selftest(void)
+static const char *marker_pixels(const uint8_t *rgb, const uint32_t *palette, uint32_t offset,
+                                 uint32_t *absolute)
+{
+    uint32_t value = 0;
+    const char *reason = marker_decode(rgb, palette, &value);
+    if (reason != NULL)
+        return reason;
+    if (value + offset < MARKER_FIRST || value + offset > MARKER_LAST)
+        return "window";
+    *absolute = value + offset;
+    return NULL;
+}
+
+static const char *marker_image(const char *path, const uint32_t *palette, uint32_t offset,
+                                uint32_t *absolute)
+{
+    static uint8_t rgb[NESTURBATOR_TEST_RGB_SIZE];
+    int read_result;
+    if (has_suffix(path, ".ppm"))
+        read_result = nesturbator_test_read_ppm(path, rgb);
+    else {
+        uint32_t w = 0, h = 0;
+        read_result = nesturbator_test_read_bmp(path, &w, &h, rgb, sizeof rgb);
+        if (w != W_PX || h != H_PX)
+            read_result = 1;
+    }
+    return read_result != 0 ? "image-geometry-or-format"
+                            : marker_pixels(rgb, palette, offset, absolute);
+}
+
+static int marker_expect(const char *name, const char *actual, const char *expected,
+                         unsigned *count)
+{
+    int ok = actual == NULL ? expected == NULL : expected != NULL && strcmp(actual, expected) == 0;
+    printf("control %s expected=%s actual=%s %s\n", name, expected != NULL ? expected : "pass",
+           actual != NULL ? actual : "pass", ok ? "PASS" : "FAIL");
+    ++*count;
+    return ok;
+}
+
+static int marker_selftest(const char *work)
 {
     if (marker_pixel_control() != 0)
         return 1;
     const char *duplicate = marker_progress(255u, 255u, 1u);
     if (duplicate == NULL || strcmp(duplicate, "duplicate-identity") != 0) {
-        fprintf(stderr, "ASSERT duplicate qualification identity: expected duplicate-identity, "
-                        "actual %s\n", duplicate != NULL ? duplicate : "accepted");
+        fprintf(stderr,
+                "ASSERT duplicate qualification identity: expected duplicate-identity, "
+                "actual %s\n",
+                duplicate != NULL ? duplicate : "accepted");
         return 1;
     }
     static uint8_t rom[MARKER_ROM_SIZE];
@@ -368,39 +411,195 @@ static int marker_selftest(void)
     uint64_t absolute = 0;
     if (inst == NULL || !marker_offset(rom, &offset))
         return 2;
-    for (unsigned n = 1; n <= 150u; ++n)
-        if (!marker_frame(inst, rgb, &absolute))
-            return 2;
+    uint32_t palette[512];
+    nesturbator_get_palette(inst, palette, 512u);
     size_t size = nesturbator_state_size(inst);
     size_t padded = (size + 7u) & ~(size_t)7u;
     size_t length = 16u + padded + 8u;
-    uint8_t *bytes = (uint8_t *)calloc(length, 1u);
-    if (bytes == NULL)
+    uint8_t *bytes = (uint8_t *)calloc(length + 1u, 1u);
+    uint8_t *base = (uint8_t *)calloc(length + 1u, 1u);
+    uint8_t *earlier = (uint8_t *)malloc(size);
+    uint8_t *first = (uint8_t *)malloc(size);
+    if (bytes == NULL || base == NULL || earlier == NULL || first == NULL)
         return 2;
+    for (unsigned n = 1; n <= 150u; ++n) {
+        if (!marker_frame(inst, rgb, &absolute))
+            return 2;
+        if (n == MARKER_FIRST && nesturbator_save_state(inst, first, size) != NESTURBATOR_OK)
+            return 2;
+        if (n == 149u && nesturbator_save_state(inst, earlier, size) != NESTURBATOR_OK)
+            return 2;
+    }
     memcpy(bytes, "RASTATE\001MEM ", 12u);
     put32(bytes + 12u, (uint32_t)size);
     memcpy(bytes + 16u + padded, "END ", 4u);
     if (nesturbator_save_state(inst, bytes + 16u, size) != NESTURBATOR_OK)
         return 2;
-    const char *reason = marker_anchor(inst, bytes, length, 150u, offset);
-    if (reason != NULL) {
-        fprintf(stderr, "ASSERT valid native origin: %s\n", reason);
-        return 1;
-    }
+    memcpy(base, bytes, length);
+    unsigned count = 1u;
+    int ok = marker_expect("native-origin", marker_anchor(inst, bytes, length, 150u, offset), NULL,
+                           &count);
+    memcpy(bytes + 16u, first, size);
+    ok &=
+        marker_expect("first-anchor", marker_anchor(inst, bytes, length, 4u, offset), NULL, &count);
+    memcpy(bytes, base, length);
+    memcpy(bytes + 16u, earlier, size);
+    /* A real saved same-ROM wrong origin must pass the native loader before semantic rejection. */
+    if (nesturbator_load_state(inst, bytes + 16u, size) != NESTURBATOR_OK)
+        return 2;
+    ok &= marker_expect("valid-wrong-origin", marker_anchor(inst, bytes, length, 150u, offset),
+                        "native-origin", &count);
+    memcpy(bytes, base, length);
     put32(bytes + 32u, NESTURBATOR_BEHAVIOUR_REVISION - 1u);
     st_recrc(bytes + 16u, size);
     if (nesturbator_load_state(inst, bytes + 16u, size) != NESTURBATOR_OK)
         return 2;
-    reason = marker_anchor(inst, bytes, length, 150u, offset);
-    if (reason == NULL || strcmp(reason, "native-revision") != 0) {
-        fprintf(stderr, "ASSERT native-valid stale revision: expected native-revision, got %s\n",
-                reason != NULL ? reason : "accepted");
-        return 1;
+    ok &= marker_expect("valid-stale-revision", marker_anchor(inst, bytes, length, 150u, offset),
+                        "native-revision", &count);
+    const char *native_names[] = {"wrong-content", "wrong-format", "crc-corruption"};
+    const char *native_reasons[] = {"native-content", "native-format", "native-checksum"};
+    const unsigned native_offsets[] = {24u, 8u, 64u};
+    for (unsigned i = 0; i < 3u; ++i) {
+        memcpy(bytes, base, length);
+        bytes[16u + native_offsets[i]] ^= 1u;
+        if (i < 2u)
+            st_recrc(bytes + 16u, size);
+        ok &= marker_expect(native_names[i], marker_anchor(inst, bytes, length, 150u, offset),
+                            native_reasons[i], &count);
+    }
+    memcpy(bytes, base, length);
+    ok &= marker_expect("truncated", marker_anchor(inst, bytes, length - 1u, 150u, offset),
+                        "container-size", &count);
+    ok &= marker_expect("trailer", marker_anchor(inst, bytes, length + 1u, 150u, offset),
+                        "container-size", &count);
+    ok &= marker_expect("oversized", marker_anchor(inst, bytes, SIZE_MAX, 150u, offset),
+                        "container-size", &count);
+    bytes[0] ^= 1u;
+    ok &= marker_expect("compression-or-magic", marker_anchor(inst, bytes, length, 150u, offset),
+                        "container-header", &count);
+    memcpy(bytes, base, length);
+    put32(bytes + 12u, UINT32_MAX);
+    ok &= marker_expect("oversized-MEM", marker_anchor(inst, bytes, length, 150u, offset),
+                        "container-header", &count);
+    memcpy(bytes, base, length);
+    if (padded == size)
+        return 2;
+    bytes[16u + size] = 1u;
+    ok &= marker_expect("nonzero-padding", marker_anchor(inst, bytes, length, 150u, offset),
+                        "container-padding", &count);
+    memcpy(bytes, base, length);
+    memcpy(bytes + 16u + padded, "MEM ", 4u);
+    ok &= marker_expect("duplicate-MEM", marker_anchor(inst, bytes, length, 150u, offset),
+                        "container-end", &count);
+    memcpy(bytes, base, length);
+    bytes[16u + padded + 4u] = 1u;
+    ok &= marker_expect("nonzero-END", marker_anchor(inst, bytes, length, 150u, offset),
+                        "container-end", &count);
+    memcpy(bytes, base, length);
+    bytes[16u + 10u] ^= 1u;
+    st_recrc(bytes + 16u, size);
+    ok &= marker_expect("CRC-valid-invalid-native",
+                        marker_anchor(inst, bytes, length, 150u, offset), "native-invalid", &count);
+
+    const uint32_t counters[] = {0u, 1u, 9997u, 9998u, 255u, 256u, 257u};
+    const uint32_t frames[] = {0u, 4u, 10000u, 0u, 258u, 259u, 260u};
+    const char *names[] = {"startup",      "first", "last",       "end-plus-one",
+                           "carry-before", "carry", "carry-after"};
+    for (unsigned i = 0; i < 7u; ++i) {
+        uint32_t observed = 0;
+        marker_pattern(rgb, palette, counters[i]);
+        const char *reason = marker_pixels(rgb, palette, offset, &observed);
+        ok &= marker_expect(names[i], reason, frames[i] == 0u ? "window" : NULL, &count);
+        if (frames[i] != 0u && observed != frames[i])
+            ok = 0;
+    }
+    marker_pattern(rgb, palette, 257u);
+    /* Background RGB is irrelevant to identity. Complete marker pixels still must match. */
+    rgb[0] = 127u;
+    uint32_t observed = 0;
+    ok &=
+        marker_expect("harmless-RGB", marker_pixels(rgb, palette, offset, &observed), NULL, &count);
+    size_t guard_pixel = ((MARKER_Y + 7u) * W_PX + 32u) * 3u;
+    rgb[guard_pixel] ^= 1u;
+    ok &= marker_expect("invalid-color", marker_pixels(rgb, palette, offset, &observed), "color",
+                        &count);
+    marker_pattern(rgb, palette, 257u);
+    memset(rgb + guard_pixel, 0, 3u);
+    ok &= marker_expect("partial-guard", marker_pixels(rgb, palette, offset, &observed), "guard",
+                        &count);
+    marker_pattern(rgb, palette, 257u);
+    size_t cell_pixel = ((MARKER_Y + 7u) * W_PX + 48u) * 3u;
+    memset(rgb + cell_pixel, 0, 3u);
+    ok &= marker_expect("partial-cell", marker_pixels(rgb, palette, offset, &observed), "cell",
+                        &count);
+    const uint32_t before[] = {255u, 255u, 255u, 255u, 255u};
+    const uint32_t after[] = {255u, 256u, 257u, 255u, 257u};
+    const uint32_t steps[] = {0u, 1u, 2u, 1u, 1u};
+    const char *progress_names[] = {"zero", "one", "two", "duplicate-identity", "double"};
+    for (unsigned i = 0; i < 5u; ++i)
+        ok &= marker_expect(progress_names[i], marker_progress(before[i], after[i], steps[i]),
+                            i < 3u    ? NULL
+                            : i == 3u ? "duplicate-identity"
+                                      : "progression",
+                            &count);
+    char path[2048];
+    int path_size = snprintf(path, sizeof path, "%s/marker-wrong-geometry.ppm", work);
+    if (path_size < 0 || (size_t)path_size >= sizeof path ||
+        !marker_write(path, "P6\n255 240\n255\n", 15u))
+        return 2;
+    ok &= marker_expect("wrong-dimensions", marker_image(path, palette, offset, &observed),
+                        "image-geometry-or-format", &count);
+    /* Independently encode equivalent BMP pixels: top-down 24-bit and bottom-up 32-bit,
+       with arbitrary unused alpha. The existing reader normalizes both to the same RGB. */
+    marker_pattern(rgb, palette, 257u);
+    for (unsigned representation = 0; representation < 2u; ++representation) {
+        size_t stride = representation == 0u ? 3u : 4u;
+        size_t bmp_size = 54u + W_PX * H_PX * stride;
+        uint8_t *bmp = (uint8_t *)calloc(bmp_size, 1u);
+        if (bmp == NULL)
+            return 2;
+        bmp[0] = 'B';
+        bmp[1] = 'M';
+        put32(bmp + 2u, (uint32_t)bmp_size);
+        put32(bmp + 10u, 54u);
+        put32(bmp + 14u, 40u);
+        put32(bmp + 18u, W_PX);
+        put32(bmp + 22u, representation == 0u ? (uint32_t)(0u - H_PX) : H_PX);
+        bmp[26] = 1u;
+        bmp[28] = representation == 0u ? 24u : 32u;
+        for (unsigned y = 0; y < H_PX; ++y) {
+            unsigned source_y = representation == 0u ? y : H_PX - 1u - y;
+            for (unsigned x = 0; x < W_PX; ++x) {
+                size_t dst = 54u + ((size_t)y * W_PX + x) * stride;
+                size_t src = ((size_t)source_y * W_PX + x) * 3u;
+                bmp[dst] = rgb[src + 2u];
+                bmp[dst + 1u] = rgb[src + 1u];
+                bmp[dst + 2u] = rgb[src];
+                if (stride == 4u)
+                    bmp[dst + 3u] = 127u;
+            }
+        }
+        path_size =
+            snprintf(path, sizeof path, "%s/marker-representation-%u.bmp", work, representation);
+        if (path_size < 0 || (size_t)path_size >= sizeof path || !marker_write(path, bmp, bmp_size))
+            return 2;
+        free(bmp);
+        ok &= marker_expect(representation == 0u ? "BMP-top-down-24" : "BMP-bottom-up-32-alpha",
+                            marker_image(path, palette, offset, &observed), NULL, &count);
+        if (observed != 260u)
+            ok = 0;
     }
     free(bytes);
+    free(base);
+    free(earlier);
+    free(first);
     nesturbator_destroy(inst);
-    printf("marker controls: 3 cases (identity, native origin, native-valid stale revision)\n");
-    return 0;
+    if (ok && count == 36u) {
+        printf("marker controls: %u cases\n", count);
+        return 0;
+    }
+    fprintf(stderr, "marker controls failed after %u cases\n", count);
+    return 1;
 }
 
 static int marker_cli(int argc, char **argv)
@@ -410,7 +609,7 @@ static int marker_cli(int argc, char **argv)
     if (argc == 3 && strcmp(argv[1], "--marker-generate") == 0)
         return marker_write(argv[2], expected_rom, sizeof expected_rom) ? 0 : 2;
     if (argc == 3 && strcmp(argv[1], "--marker-selftest") == 0)
-        return marker_selftest();
+        return marker_selftest(argv[2]);
     if (argc < 4)
         return 2;
     size_t size = 0;
@@ -457,8 +656,8 @@ static int marker_cli(int argc, char **argv)
                 continue;
             }
             if (reason != NULL || value + offset != absolute ||
-                (count > 0u && value != previous + 1u) ||
-                (count > 1u && value != before_previous + 2u)) {
+                (count > 0u && marker_progress(previous, value, 1u) != NULL) ||
+                (count > 1u && marker_progress(before_previous, value, 2u) != NULL)) {
                 fprintf(stderr, "marker: qualification frame %u counter %u reason %s offset %u\n",
                         n, value, reason != NULL ? reason : "mapping", offset);
                 reason = "qualification";
@@ -484,22 +683,10 @@ static int marker_cli(int argc, char **argv)
         if (!valid_cal)
             reason = "calibration";
         else if (argc == 5 && strcmp(argv[1], "--marker-observe") == 0) {
-            int read_result;
-            if (has_suffix(argv[4], ".ppm"))
-                read_result = nesturbator_test_read_ppm(argv[4], rgb);
-            else {
-                uint32_t w = 0, h = 0;
-                read_result = nesturbator_test_read_bmp(argv[4], &w, &h, rgb, sizeof rgb);
-                if (w != W_PX || h != H_PX)
-                    read_result = 1;
-            }
             uint32_t value = 0;
-            reason =
-                read_result != 0 ? "image-geometry-or-format" : marker_decode(rgb, palette, &value);
-            if (reason == NULL && (value + offset < MARKER_FIRST || value + offset > MARKER_LAST))
-                reason = "window";
+            reason = marker_image(argv[4], palette, offset, &value);
             if (reason == NULL) {
-                printf("marker frame=%u guest=%u\n", value + offset, value);
+                printf("marker frame=%u guest=%u\n", value, value - offset);
                 result = 0;
             }
         } else if (argc == 6 && strcmp(argv[1], "--marker-anchor") == 0) {
