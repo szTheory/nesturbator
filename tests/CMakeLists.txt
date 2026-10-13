@@ -1826,3 +1826,15 @@ add_test(NAME libretro.info_claims.self_test
     -DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/info_claims.cmake)
 set_tests_properties(libretro.info_claims libretro.info_claims.self_test PROPERTIES TIMEOUT 60)
+
+# D-18: perf_compare.cmake on synthetic Cachegrind files, so the +1% rule, the UNSTABLE stop
+# and the deliberate-slowdown path are shown by a ci command. Each case is defined in
+# cmake/perf_gate_selftest.cmake.
+foreach(perf_case identical plus_100 plus_101 improvement unstable missing_head report_na
+    missing_base_gate)
+  add_test(NAME perf.gate_selftest.${perf_case}
+    COMMAND ${CMAKE_COMMAND} -DCASE=${perf_case} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DWORK=${CMAKE_CURRENT_BINARY_DIR}/perf_selftest/${perf_case}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/perf_gate_selftest.cmake)
+  set_tests_properties(perf.gate_selftest.${perf_case} PROPERTIES LABELS perf)
+endforeach()
