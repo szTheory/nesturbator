@@ -38,6 +38,38 @@ define_case(missing_base_gate EXIT 0 MISSING base:nesteroids base:runner base:M4
          "| runner | 1 | n/a | 10000 | n/a | n/a | n/a |"
          "| M4_P256K_C256K | 4 | n/a | 10000 | n/a | n/a | n/a |")
 
+# D-17: the allow file. Line 1 is a comment naming the case, so the line under test is line 2.
+macro(define_allow_case name line exit)
+  define_case(${name} EXIT ${exit} DS head:nesteroids:3030300
+    ALLOW_TEXT "# ${name}\n${line}\n" ${ARGN})
+endmacro()
+define_allow_case(allow_ok "nesteroids 150 2026-11-30 deliberate slowdown fixture" 0
+  EXPECT "| nesteroids | 0 | 10000 | 10101 | +101 | +1.01% | ALLOWED |"
+    "ALLOWED nesteroids cap 1.50% expires 2026-11-30 (tests/perf/allow.txt line 2)"
+  FORBID "deliberate")
+define_allow_case(allow_ok_boundary "nesteroids 150 2026-12-11 sixty days" 0
+  EXPECT "| ALLOWED |")
+define_allow_case(allow_today "nesteroids 150 2026-10-12 expires today" 0
+  EXPECT "| ALLOWED |")
+define_allow_case(allow_cap_low "nesteroids 100 2026-11-30 cap below delta" 1
+  EXPECT "exceeds its allow cap")
+define_allow_case(allow_malformed "nesteroids 1.5 2026-11-30 bad cap" 1
+  EXPECT "malformed allow line")
+define_case(allow_duplicate EXIT 1 DS head:nesteroids:3030300
+  ALLOW_TEXT "# allow_duplicate\nnesteroids 150 2026-11-30 one\nnesteroids 150 2026-11-30 two\n"
+  EXPECT "duplicate allow line for nesteroids")
+define_allow_case(allow_unknown "zelda 150 2026-11-30 not ours" 1
+  EXPECT "unknown ROM in allow line: zelda")
+define_allow_case(allow_no_reason "nesteroids 150 2026-11-30" 1
+  EXPECT "allow line has no reason")
+define_allow_case(allow_too_far "nesteroids 150 2026-12-12 too far" 1
+  EXPECT "expires more than 60 days after 2026-10-12")
+define_allow_case(allow_expired "nesteroids 150 2026-10-11 old" 1
+  EXPECT "allow line expired")
+define_case(unstable_allowed EXIT 1 DS base_b:nesteroids:3000001 head:nesteroids:3030300
+  ALLOW_TEXT "# unstable_allowed\nnesteroids 150 2026-11-30 reason\n"
+  EXPECT "UNSTABLE")
+
 # The names of all cases, for tests/CMakeLists.txt.
 if(CASE STREQUAL "--list")
   message("${cases}")
