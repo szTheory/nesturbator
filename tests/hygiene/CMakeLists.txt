@@ -29,6 +29,8 @@ add_test(NAME hygiene.action_pins.good
 # Every timeout-minutes line names the run it was measured from. The two
 # fixtures show the check fails on a bare value and passes on a run ID.
 set(timeouts ${PROJECT_SOURCE_DIR}/tests/cmake/timeout_comments.cmake)
+add_test(NAME hygiene.timeout_comments
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR}/.github/workflows -P ${timeouts})
 add_test(NAME hygiene.timeout_comments.bad
   COMMAND ${CMAKE_COMMAND} -DROOT=${CMAKE_CURRENT_SOURCE_DIR}/fixtures
     -DFILE=timeouts_bad.yml -P ${timeouts})
@@ -64,7 +66,7 @@ add_test(NAME hygiene.format
 
 set_tests_properties(
   hygiene.tree hygiene.scan_selftest hygiene.action_pins hygiene.action_pins.bad hygiene.action_pins.good
-  hygiene.timeout_comments.bad hygiene.timeout_comments.good
+  hygiene.timeout_comments hygiene.timeout_comments.bad hygiene.timeout_comments.good
   hygiene.nightly_workflow_policy hygiene.nightly_workflow_policy.selftest hygiene.format
   hygiene.ci_required_rollup
   PROPERTIES LABELS hygiene)

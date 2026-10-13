@@ -65,6 +65,24 @@ report is skipped on a dispatch. The latest nightly run on schedule or main push
 
 Excluded runs: none.
 
+### Set timeouts (Task 3)
+
+Rule: minutes = ceil(2 x slowest counted sample / 60). Enforced by `hygiene.timeout_comments`.
+
+| Job | Old | Samples (s) | New | Run IDs |
+|---|---|---|---|---|
+| nightly suite-flake | 30 (ceiling 60) | 871, 1112, 959 | 38 | 38346572174, 38347773803, 38349314234 |
+| nightly vectors-full | 16 | rest 74.5, 95.7, 75.2 plus fetch allowance 900 | 19 | same three |
+| nightly mmc3-oracle | 8 (ceiling 20) | rest 28.0, 27.7, 24.7 plus fetch allowance 300 | 6 | same three |
+| nightly rom-loader-fuzz | 3 (ceiling 15) | 73, 71, 76 | 3 | same three |
+| nightly state-fuzz | 3 (ceiling 15) | 81, 76, 82 | 3 | same three |
+| nightly report | 1 | 4 | 1 | 38347599457 |
+| ci asan | 14 | 340 | 12 | 38346573845 |
+| ci retroarch-e2e | 30 | 307 | 11 | 38346573845 |
+| ci perf | 15 | 241 | 9 | 38346573845 |
+| release release-please | 30 | 22 | 1 | 38329002725 |
+| release publish | 30 | 73 | 3 | 38093301725 (latest run where publish ran) |
+
 ## Allow file
 
 2026-10-13 sweep of `tests/perf/allow.txt` (D-17), after the main merge check and before any dispatch. The file holds only its comment header.

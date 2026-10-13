@@ -130,8 +130,8 @@ jobs:
     runs-on: ubuntu-24.04
     # NESTURBATOR_SHORT_RUNS (preset asan) drops or shortens the long hash tests that made this job
     # about 15 minutes; their hashes are checked at full length by the build jobs and hash-equality.
-    # Twice the measured hosted run: 6m45s on PR #44 run 38295163207 (ENGINEERING section 5).
-    timeout-minutes: 14
+    # Twice the measured hosted run: 340 s in run 38346573845 (phase 15 PR), ENGINEERING section 5.
+    timeout-minutes: 12
     env:
       CC: clang-18
       CXX: clang++-18
@@ -182,7 +182,8 @@ jobs:
   # game. Its screenshot is retained for diagnosis and reproducibility.
   retroarch-e2e:
     runs-on: macos-15
-    timeout-minutes: 30
+    # Twice the measured hosted run: 307 s in run 38346573845 (phase 15 PR), ENGINEERING section 5.
+    timeout-minutes: 11
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -320,7 +321,8 @@ jobs:
   perf:
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.control)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15 # provisional (research estimate 5-8 min); set to twice the first measured cold run in 15-08
+    # Twice the measured hosted run: 241 s in run 38346573845 (phase 15 PR), ENGINEERING section 5.
+    timeout-minutes: 9
     permissions:
       contents: read
     steps:

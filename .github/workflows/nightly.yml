@@ -56,11 +56,12 @@ permissions: {}
 jobs:
   vectors-full:
     runs-on: ubuntu-24.04
-    # Cold run 37136095512 took 88 s: 65 s in the fetch, 23 s in everything else.
     # The fetch is a network transfer, so it gets its own allowance, the 900 s
     # TIMEOUT of cpu.vectors-full.fetch in tests/CMakeLists.txt; the rest gets
-    # twice its measured 23 s. 900 + 46 = 946 s, rounded up to whole minutes.
-    timeout-minutes: 16
+    # twice the slowest of three cold runs (runs 38346572174, 38347773803, 38349314234): 162 s whole job
+    # minus a 66.35 s fetch = 95.7 s in run 38347773803. 900 + 192 = 1092 s,
+    # rounded up to 19 minutes.
+    timeout-minutes: 19
     permissions:
       contents: read
     outputs:
@@ -125,12 +126,12 @@ jobs:
 
   mmc3-oracle:
     runs-on: ubuntu-24.04
-    # No cold run of this lane has been measured yet. The fetch is a network
-    # transfer, so it gets its own allowance, the 300 s TIMEOUT of
-    # mmc3.oracle.fetch in tests/CMakeLists.txt; the rest gets twice the 69 s
-    # that the ci job's cold build took (this lane builds the same tree; its 13
-    # tests ran in 2.3 s locally). 300 + 138 = 438 s, rounded up to 8 minutes.
-    timeout-minutes: 20 # measurement ceiling until three cold runs are recorded (15-08 Task 2); set from them in Task 3
+    # The fetch is a network transfer, so it gets its own allowance, the 300 s
+    # TIMEOUT of mmc3.oracle.fetch in tests/CMakeLists.txt; the rest gets twice
+    # the slowest of three cold runs (runs 38346572174, 38347773803, 38349314234): 29 s whole job
+    # minus a 1.03 s fetch = 28.0 s in run 38346572174. 300 + 56 = 356 s,
+    # rounded up to 6 minutes.
+    timeout-minutes: 6
     permissions:
       contents: read
     outputs:
@@ -191,7 +192,8 @@ jobs:
 
   rom-loader-fuzz:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15 # measurement ceiling until three cold runs are recorded (15-08 Task 2); set from them in Task 3
+    # Twice the slowest of three cold runs: 76 s in run 38349314234 (runs 38346572174, 38347773803, 38349314234), ENGINEERING section 5.
+    timeout-minutes: 3
     permissions:
       contents: read
     outputs:
@@ -235,7 +237,8 @@ jobs:
 
   state-fuzz:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15 # measurement ceiling until three cold runs are recorded (15-08 Task 2); set from them in Task 3
+    # Twice the slowest of three cold runs: 82 s in run 38349314234 (runs 38346572174, 38347773803, 38349314234), ENGINEERING section 5.
+    timeout-minutes: 3
     permissions:
       contents: read
     outputs:
@@ -300,7 +303,8 @@ jobs:
   # six-platform CI run covers the other hosts once.
   suite-flake:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60 # measurement ceiling until three cold runs are recorded (15-08 Task 2); set from them in Task 3
+    # Twice the slowest of three cold runs: 1112 s in run 38347773803 (runs 38346572174, 38347773803, 38349314234), ENGINEERING section 5.
+    timeout-minutes: 38
     permissions:
       contents: read
     outputs:
@@ -329,6 +333,7 @@ jobs:
     needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, state-fuzz, suite-flake]
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-24.04
+    # Twice the report job of the latest nightly schedule run: 4 s in run 38347599457, ENGINEERING section 5.
     timeout-minutes: 1
     permissions:
       issues: write
