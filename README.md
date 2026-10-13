@@ -1033,7 +1033,7 @@ nesturbator-run --version
   required; without one the runner prints its usage and exits 2.
 - `--bench N` runs frames 1 to N (N from 1 to 1000000) with `--rom`, times each frame, and prints
   frame-time statistics to stderr. Standard output and every hash are exactly as with
-  `--frames N`, so `--hash-frame K` (1 to N) and `--hash-audio` work the same, and a test shows
+  `--frames N` (each hash line is flushed as it is printed), so `--hash-frame K` (1 to N) and `--hash-audio` work the same, and a test shows
   the output is byte-identical. Only the `nesturbator_run_frame` call sits between the two clock
   readings (a monotonic clock: `CLOCK_MONOTONIC`, or `QueryPerformanceCounter` on Windows), so the
   timer's own overhead is included in each sample. There is no warm-up: the first frames show in

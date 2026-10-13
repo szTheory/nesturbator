@@ -1400,6 +1400,12 @@ int main(int argc, char **argv)
             hash_frame(video, hex);
             printf("frame %lu ticks %llu sha256 %s\n", (unsigned long)f,
                    (unsigned long long)io.ticks, hex);
+            /* D-03, D-04: under --bench each line is flushed as it is printed, after the timed
+               call, so a reader of a pipe sees it at once; bytes are unchanged. */
+            if (opt.bench_frames != 0u && fflush(stdout) != 0) {
+                fprintf(stderr, "nesturbator-run: cannot write output\n");
+                status = RUNNER_EXIT_FAILURE;
+            }
         }
         if (print_state_hashes(inst, &opt, n, cur_ticks) != 0)
             status = RUNNER_EXIT_FAILURE;

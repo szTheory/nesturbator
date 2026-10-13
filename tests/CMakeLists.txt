@@ -252,6 +252,8 @@ if(NOT WIN32)
   runner_signal_case(second)
   runner_signal_case(load_error)
   runner_signal_case(second_in_flush)
+  runner_signal_case(bench)
+  runner_signal_case(bench_int)
   set_tests_properties(runner.signal.term runner.signal.int runner.signal.term_exitflush
     PROPERTIES LABELS exit_status)
 endif()
