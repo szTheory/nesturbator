@@ -59,11 +59,11 @@ add_test(NAME retroarch.progression.complete_required
     "${CMAKE_CURRENT_BINARY_DIR}/progression artifacts")
 set_tests_properties(retroarch.progression.complete_required PROPERTIES
   FIXTURES_REQUIRED progression_files TIMEOUT 60)
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/progression control artifacts")
 add_test(NAME retroarch.progression.controls
-  COMMAND frame_index --progression-controls-selftest
-    "${CMAKE_CURRENT_BINARY_DIR}/progression artifacts")
-set_tests_properties(retroarch.progression.controls PROPERTIES
-  FIXTURES_REQUIRED progression_files TIMEOUT 60)
+  COMMAND frame_index --progression-selftest
+    "${CMAKE_CURRENT_BINARY_DIR}/progression control artifacts" --controls)
+set_tests_properties(retroarch.progression.controls PROPERTIES TIMEOUT 120)
 set(marker_rom ${CMAKE_CURRENT_BINARY_DIR}/marker.nes)
 set(marker_cal ${CMAKE_CURRENT_BINARY_DIR}/calibration.txt)
 add_test(NAME retroarch.marker.generate COMMAND frame_index --marker-generate ${marker_rom})

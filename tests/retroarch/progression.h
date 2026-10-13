@@ -549,9 +549,11 @@ static inline const char *progression_verdict(const progression_session *session
         if (b->id != i + 1u || b->artifact_identity == 0u || b->artifact_hash == 0u ||
             b->artifact_path[0] == '\0')
             return "ATTRIBUTION";
-        if (b->candidate_count != 1u || b->candidate_first != b->display_frame ||
-            b->candidate_last != b->display_frame)
+        if (b->candidate_count > 1u)
             return "AMBIGUOUS";
+        if (b->candidate_count == 0u || b->candidate_first != b->display_frame ||
+            b->candidate_last != b->display_frame)
+            return "IDENTITY";
         if (b->display_frame < PROGRESSION_FRAME_FIRST ||
             b->display_frame > PROGRESSION_FRAME_LAST)
             return "IDENTITY";

@@ -1569,8 +1569,15 @@ prefix is consistent with the declared continuation; it is not a complete
 session verdict. `--marker-verdict` requires all prescribed boundaries and a
 clean terminal host exit. The evidence format preserves paths with spaces and
 rejects ambiguous frame candidates instead of selecting whichever candidate
-makes a relation fit. `--marker-selftest WORK --fixtures` leaves build-owned
-marker images, calibration and native anchors for offline controls.
+makes a relation fit. Its 16 boundaries keep one original anchor across two
+pause captures, five advances and the load/post-load/resume branch, and one
+rewound anchor across the coarse rewind, three advances and run-ahead probe.
+Load-plus-probe records two sends; the rewind records forty paced sends and
+requires at least twenty frames of backward movement. The run-ahead display
+lead is recorded separately. `retroarch.progression.controls` checks this
+complete path and 40 independent reason-specific controls, including the
+same-image A,A,B ambiguity case. `--marker-selftest WORK --fixtures` leaves
+build-owned marker images, calibration and native anchors for offline controls.
 
 `retroarch.marker.controls` runs 36 independently specified cases: first/last
 frames, startup and end plus one, counter carry, zero/one/two steps and duplicate

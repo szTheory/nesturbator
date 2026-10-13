@@ -491,6 +491,47 @@ static int progression_write_record(const char *path, const progression_session 
     return ok;
 }
 
+static int progression_write_anchor(const char *path, const uint8_t *native, size_t native_size,
+                                    uint64_t *identity)
+{
+    if (native_size > UINT32_MAX)
+        return 0;
+    size_t padded_size = (native_size + 7u) & ~(size_t)7u;
+    size_t envelope_size = 16u + padded_size + 8u;
+    uint8_t *envelope = (uint8_t *)calloc(envelope_size, 1u);
+    if (envelope == NULL)
+        return 0;
+    memcpy(envelope, "RASTATE\001MEM ", 12u);
+    put32(envelope + 12u, (uint32_t)native_size);
+    memcpy(envelope + 16u, native, native_size);
+    memcpy(envelope + 16u + padded_size, "END ", 4u);
+    int ok = marker_write(path, envelope, envelope_size) &&
+             ((*identity = progression_hash64(envelope, envelope_size)) != 0u);
+    free(envelope);
+    return ok;
+}
+
+static int progression_check_current_image(nesturbator *inst, const uint8_t *rgb,
+                                           uint64_t expected_frame, uint32_t offset)
+{
+    uint32_t palette[512], observed = 0;
+    nesturbator_get_palette(inst, palette, 512u);
+    const char *reason = marker_pixels(rgb, palette, offset, &observed);
+    if (reason != NULL || observed != expected_frame) {
+        fprintf(stderr, "progression fixture image: expected=%" PRIu64 " actual=%u reason=%s\n",
+                expected_frame, observed, reason != NULL ? reason : "frame");
+        return 0;
+    }
+    return 1;
+}
+
+static int progression_save_current_image(nesturbator *inst, const uint8_t *rgb, const char *path,
+                                          uint64_t expected_frame, uint32_t offset)
+{
+    return progression_check_current_image(inst, rgb, expected_frame, offset) &&
+           progression_write_ppm(path, rgb);
+}
+
 static int marker_progression_fixtures(const char *work)
 {
     static uint8_t rom[MARKER_ROM_SIZE];
@@ -740,6 +781,259 @@ static const char *progression_palette_for_frame(const uint8_t *rom, const char 
     return observed == target_frame ? NULL : "PROGRESSION";
 }
 
+static int progression_run_to(nesturbator *inst, uint64_t target, uint8_t *rgb)
+{
+    uint64_t absolute = 0;
+    for (uint64_t frame = 1u; frame <= target; ++frame)
+        if (!marker_frame(inst, rgb, &absolute) || absolute != frame)
+            return 0;
+    return 1;
+}
+
+static int progression_full_fixtures(const char *work)
+{
+    static uint8_t rom[MARKER_ROM_SIZE];
+    static uint8_t rgb[NESTURBATOR_TEST_RGB_SIZE];
+    static const uint64_t frames[PROGRESSION_REQUIRED_BOUNDARIES] = {
+        150u, 150u, 151u, 152u, 153u, 154u, 155u, 151u,
+        152u, 153u, 154u, 130u, 131u, 132u, 133u, 132u};
+    static const char *const names[PROGRESSION_REQUIRED_BOUNDARIES] = {
+        "boundary 01 pause a.ppm", "boundary 02 pause b.ppm", "boundary 03 advance 1.ppm",
+        "boundary 04 advance 2.ppm", "boundary 05 advance 3.ppm", "boundary 06 advance 4.ppm",
+        "boundary 07 advance 5.ppm", "boundary 08 load probe.ppm",
+        "boundary 09 post load 2.ppm", "boundary 10 post load 3.ppm",
+        "boundary 11 resume forward.ppm", "boundary 12 rewind coarse.ppm",
+        "boundary 13 rewound advance 1.ppm", "boundary 14 rewound advance 2.ppm",
+        "boundary 15 rewound advance 3.ppm", "boundary 16 runahead probe.ppm"};
+    char rom_path[PROGRESSION_PATH_CAP], calibration_path[PROGRESSION_PATH_CAP];
+    char original_path[PROGRESSION_PATH_CAP], rewound_path[PROGRESSION_PATH_CAP];
+    char alternative_path[PROGRESSION_PATH_CAP], alternative_image_path[PROGRESSION_PATH_CAP];
+    char wrong_path[PROGRESSION_PATH_CAP], record_path[PROGRESSION_PATH_CAP];
+    char artifact_paths[PROGRESSION_REQUIRED_BOUNDARIES][PROGRESSION_PATH_CAP];
+    if (!marker_progression_fixtures(work) ||
+        !progression_make_path(rom_path, sizeof rom_path, work, "marker.nes") ||
+        !progression_make_path(calibration_path, sizeof calibration_path, work,
+                               "calibration.txt") ||
+        !progression_make_path(original_path, sizeof original_path, work,
+                               "retained original anchor.ra") ||
+        !progression_make_path(rewound_path, sizeof rewound_path, work,
+                               "retained rewound anchor.ra") ||
+        !progression_make_path(alternative_path, sizeof alternative_path, work,
+                               "alternative same content anchor.ra") ||
+        !progression_make_path(alternative_image_path, sizeof alternative_image_path, work,
+                               "alternative frame 101.ppm") ||
+        !progression_make_path(wrong_path, sizeof wrong_path, work, "valid wrong origin.ra") ||
+        !progression_make_path(record_path, sizeof record_path, work,
+                               "progression-complete.rec"))
+        return 0;
+    for (uint32_t i = 0; i < PROGRESSION_REQUIRED_BOUNDARIES; ++i)
+        if (!progression_make_path(artifact_paths[i], sizeof artifact_paths[i], work, names[i]))
+            return 0;
+
+    marker_rom(rom);
+    uint32_t offset = 0;
+    if (!marker_offset(rom, &offset))
+        return 0;
+    char calibration[256];
+    marker_calibration(calibration, sizeof calibration, offset);
+    uint64_t original_identity = 0, wrong_identity = 0, rewound_identity = 0;
+    uint64_t alternative_identity = 0;
+    if (!progression_hash_file(original_path, &original_identity) ||
+        !progression_hash_file(wrong_path, &wrong_identity))
+        return 0;
+
+    nesturbator *inst = marker_instance(rom);
+    if (inst == NULL)
+        return 0;
+    size_t native_size = nesturbator_state_size(inst);
+    uint8_t *original_native = (uint8_t *)malloc(native_size);
+    uint8_t *rewound_native = (uint8_t *)malloc(native_size);
+    uint8_t *alternative_native = (uint8_t *)malloc(native_size);
+    if (original_native == NULL || rewound_native == NULL || alternative_native == NULL)
+        return 0;
+    uint64_t absolute = 0;
+    for (uint64_t frame = 1u; frame <= 155u; ++frame) {
+        if (!marker_frame(inst, rgb, &absolute) || absolute != frame)
+            return 0;
+        if (frame == 130u && nesturbator_save_state(inst, rewound_native, native_size) !=
+                                 NESTURBATOR_OK)
+            return 0;
+        if (frame == 100u &&
+            nesturbator_save_state(inst, alternative_native, native_size) != NESTURBATOR_OK)
+            return 0;
+        if (frame == 150u &&
+            nesturbator_save_state(inst, original_native, native_size) != NESTURBATOR_OK)
+            return 0;
+        if ((frame >= 151u && frame <= 155u) || frame == 130u || frame == 150u || frame == 101u) {
+            uint32_t palette[512], observed = 0;
+            nesturbator_get_palette(inst, palette, 512u);
+            const char *reason = marker_pixels(rgb, palette, offset, &observed);
+            if (reason != NULL || observed != frame) {
+                fprintf(stderr, "progression full fixture frame=%" PRIu64 " reason=%s\n", frame,
+                        reason != NULL ? reason : "identity");
+                return 0;
+            }
+            if (frame == 130u && !progression_write_ppm(artifact_paths[11], rgb))
+                return 0;
+            if (frame == 101u && !progression_write_ppm(alternative_image_path, rgb))
+                return 0;
+            if (frame == 150u &&
+                (!progression_write_ppm(artifact_paths[0], rgb) ||
+                 !progression_write_ppm(artifact_paths[1], rgb)))
+                return 0;
+            if (frame >= 151u && frame <= 155u &&
+                !progression_write_ppm(artifact_paths[(uint32_t)(frame - 149u)], rgb))
+                return 0;
+        }
+    }
+    nesturbator_destroy(inst);
+    if (!progression_write_anchor(rewound_path, rewound_native, native_size, &rewound_identity) ||
+        !progression_write_anchor(alternative_path, alternative_native, native_size,
+                                  &alternative_identity))
+        return 0;
+
+    nesturbator *validator = marker_instance(rom);
+    if (validator == NULL)
+        return 0;
+    const char *origin_reason = progression_validate_anchor(validator, original_path,
+                                                            original_identity, 150u, offset);
+    if (origin_reason == NULL)
+        origin_reason = progression_validate_anchor(validator, rewound_path, rewound_identity,
+                                                    130u, offset);
+    if (origin_reason == NULL)
+        origin_reason = progression_validate_anchor(validator, wrong_path, wrong_identity, 149u,
+                                                    offset);
+    if (origin_reason == NULL)
+        origin_reason = progression_validate_anchor(validator, alternative_path,
+                                                    alternative_identity, 100u, offset);
+    nesturbator_destroy(validator);
+    if (origin_reason != NULL) {
+        fprintf(stderr, "progression full fixture native precondition: %s\n", origin_reason);
+        return 0;
+    }
+
+    nesturbator *probe = marker_instance(rom);
+    if (probe == NULL || !progression_run_to(probe, 150u, rgb) ||
+        nesturbator_load_state(probe, original_native, native_size) != NESTURBATOR_OK)
+        return 0;
+    for (uint32_t i = 0; i < 4u; ++i) {
+        uint64_t expected = 151u + i;
+        if (!marker_frame(probe, rgb, &absolute) || absolute != expected ||
+            !progression_save_current_image(probe, rgb, artifact_paths[7u + i], expected,
+                                            offset))
+            return 0;
+    }
+    nesturbator_destroy(probe);
+
+    nesturbator *rewind = marker_instance(rom);
+    if (rewind == NULL || !progression_run_to(rewind, 130u, rgb) ||
+        nesturbator_load_state(rewind, rewound_native, native_size) != NESTURBATOR_OK)
+        return 0;
+    for (uint32_t i = 0; i < 3u; ++i) {
+        uint64_t expected = 131u + i;
+        if (!marker_frame(rewind, rgb, &absolute) || absolute != expected ||
+            !progression_save_current_image(rewind, rgb, artifact_paths[12u + i], expected,
+                                            offset))
+            return 0;
+    }
+    nesturbator_destroy(rewind);
+
+    nesturbator *ahead = marker_instance(rom);
+    if (ahead == NULL || !progression_run_to(ahead, 130u, rgb) ||
+        nesturbator_load_state(ahead, rewound_native, native_size) != NESTURBATOR_OK ||
+        !marker_frame(ahead, rgb, &absolute) || absolute != 131u ||
+        !progression_check_current_image(ahead, rgb, 131u, offset) ||
+        !marker_frame(ahead, rgb, &absolute) || absolute != 132u ||
+        !progression_save_current_image(ahead, rgb, artifact_paths[15], 132u, offset))
+        return 0;
+    nesturbator_destroy(ahead);
+
+    progression_session session;
+    memset(&session, 0, sizeof session);
+    session.mode = PROGRESSION_COMPLETE;
+    session.content_identity = progression_hash64(rom, sizeof rom);
+    session.calibration_identity = progression_hash64(calibration, strlen(calibration));
+    session.terminal_exit = 0;
+    snprintf(session.original_anchor_path, sizeof session.original_anchor_path, "%s", original_path);
+    session.original_anchor_identity = original_identity;
+    session.original_anchor_frame = 150u;
+    snprintf(session.rewound_anchor_path, sizeof session.rewound_anchor_path, "%s", rewound_path);
+    session.rewound_anchor_identity = rewound_identity;
+    session.rewound_anchor_frame = 130u;
+    session.boundary_count = PROGRESSION_REQUIRED_BOUNDARIES;
+    static const progression_operation operations[PROGRESSION_REQUIRED_BOUNDARIES] = {
+        PROGRESSION_CAPTURE, PROGRESSION_CAPTURE, PROGRESSION_ADVANCE, PROGRESSION_ADVANCE,
+        PROGRESSION_ADVANCE, PROGRESSION_ADVANCE, PROGRESSION_ADVANCE, PROGRESSION_LOAD_PROBE,
+        PROGRESSION_ADVANCE, PROGRESSION_ADVANCE, PROGRESSION_RESUME_AND_PAUSE,
+        PROGRESSION_REWIND_BURST, PROGRESSION_ADVANCE, PROGRESSION_ADVANCE,
+        PROGRESSION_ADVANCE, PROGRESSION_RUNAHEAD_LOAD_PROBE};
+    static const progression_relation relations[PROGRESSION_REQUIRED_BOUNDARIES] = {
+        PROGRESSION_PAUSE_EQUAL_ORIGINAL, PROGRESSION_PAUSE_EQUAL_ORIGINAL,
+        PROGRESSION_ORIGINAL_PLUS, PROGRESSION_ORIGINAL_PLUS, PROGRESSION_ORIGINAL_PLUS,
+        PROGRESSION_ORIGINAL_PLUS, PROGRESSION_ORIGINAL_PLUS, PROGRESSION_ORIGINAL_LOAD_PROBE,
+        PROGRESSION_ORIGINAL_POST_LOAD, PROGRESSION_ORIGINAL_POST_LOAD,
+        PROGRESSION_RESUME_FORWARD, PROGRESSION_REWIND_COARSE, PROGRESSION_REWOUND_PLUS,
+        PROGRESSION_REWOUND_PLUS, PROGRESSION_REWOUND_PLUS, PROGRESSION_REWOUND_LOAD_PROBE};
+    static const progression_origin origins[PROGRESSION_REQUIRED_BOUNDARIES] = {
+        PROGRESSION_ORIGIN_ORIGINAL, PROGRESSION_ORIGIN_ORIGINAL, PROGRESSION_ORIGIN_ORIGINAL,
+        PROGRESSION_ORIGIN_ORIGINAL, PROGRESSION_ORIGIN_ORIGINAL, PROGRESSION_ORIGIN_ORIGINAL,
+        PROGRESSION_ORIGIN_ORIGINAL, PROGRESSION_ORIGIN_ORIGINAL, PROGRESSION_ORIGIN_ORIGINAL,
+        PROGRESSION_ORIGIN_ORIGINAL, PROGRESSION_ORIGIN_ORIGINAL, PROGRESSION_ORIGIN_REWOUND,
+        PROGRESSION_ORIGIN_REWOUND, PROGRESSION_ORIGIN_REWOUND, PROGRESSION_ORIGIN_REWOUND,
+        PROGRESSION_ORIGIN_REWOUND};
+    static const uint32_t commands[PROGRESSION_REQUIRED_BOUNDARIES] = {
+        1u, 1u, 1u, 1u, 1u, 1u, 1u, 2u, 1u, 1u, 2u, 40u, 1u, 1u, 1u, 2u};
+    static const uint32_t deltas[PROGRESSION_REQUIRED_BOUNDARIES] = {
+        0u, 0u, 1u, 2u, 3u, 4u, 5u, 1u, 2u, 3u, 0u, 0u, 1u, 2u, 3u, 1u};
+    for (uint32_t i = 0; i < PROGRESSION_REQUIRED_BOUNDARIES; ++i) {
+        progression_boundary *b = &session.boundaries[i];
+        b->id = i + 1u;
+        b->operation = operations[i];
+        b->relation = relations[i];
+        b->origin = origins[i];
+        b->command_count = commands[i];
+        b->send_count = commands[i];
+        b->artifact_identity = i + 1u;
+        snprintf(b->artifact_path, sizeof b->artifact_path, "%s", artifact_paths[i]);
+        if (!progression_hash_file(b->artifact_path, &b->artifact_hash))
+            return 0;
+        b->display_frame = frames[i];
+        b->candidate_count = 1u;
+        b->candidate_first = frames[i];
+        b->candidate_last = frames[i];
+        b->anchor_identity = origins[i] == PROGRESSION_ORIGIN_ORIGINAL ? original_identity
+                                                                        : rewound_identity;
+        b->anchor_frame = origins[i] == PROGRESSION_ORIGIN_ORIGINAL ? 150u : 130u;
+        b->display_lead = i == 15u ? 1 : 0;
+        b->expected_delta = deltas[i];
+        b->elapsed_ms = 1u;
+        b->deadline_ms = 1000u;
+        b->process_alive = 1;
+    }
+    free(original_native);
+    free(rewound_native);
+    free(alternative_native);
+    if (!progression_write_record(record_path, &session))
+        return 0;
+    printf("progression full fixture: ready (16 decoded boundaries, retained anchors 150 and 130)\n");
+    return 1;
+}
+
+static int progression_control_expect(const char *name, const progression_session *session,
+                                      const char *expected, unsigned *count)
+{
+    return marker_expect(name, progression_verdict(session, 1), expected, count);
+}
+
+static int progression_control_exit_expect(const char *name, int actual, int expected,
+                                            unsigned *count)
+{
+    char actual_text[32], expected_text[32];
+    snprintf(actual_text, sizeof actual_text, "exit %d", actual);
+    snprintf(expected_text, sizeof expected_text, "exit %d", expected);
+    return marker_expect(name, actual_text, expected_text, count);
+}
+
 static int marker_progression_cli(const char *rom_path, const char *calibration_path,
                                   const char *record_path, int prefix)
 {
@@ -869,33 +1163,421 @@ static int progression_complete_required_selftest(const char *work)
         !progression_make_path(calibration, sizeof calibration, work, "calibration.txt") ||
         !progression_make_path(record, sizeof record, work, "progression-prefix.rec"))
         return 2;
+    progression_session session;
+    if (progression_read_record(record, &session) != NULL)
+        return 2;
+    const char *expected_reason = progression_verdict(&session, 1);
     int result = marker_progression_cli(rom, calibration, record, 0);
-    if (result != 1) {
-        fprintf(stderr, "ASSERT complete verdict rejects a prefix: expected exit 1, actual %d\n",
-                result);
+    if (strcmp(expected_reason, "INCOMPLETE") != 0 || result != 1) {
+        fprintf(stderr, "ASSERT complete verdict rejects a prefix: expected INCOMPLETE/exit 1, "
+                        "actual %s/exit %d\n",
+                expected_reason, result);
         return 1;
     }
     printf("complete verdict control: prefix rejected as INCOMPLETE\n");
     return 0;
 }
 
+static int progression_replace_once(uint8_t *data, size_t size, const char *before,
+                                    const char *after)
+{
+    size_t length = strlen(before);
+    if (length != strlen(after) || length > size)
+        return 0;
+    for (size_t i = 0; i <= size - length; ++i) {
+        if (memcmp(data + i, before, length) == 0) {
+            memcpy(data + i, after, length);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static uint8_t *progression_insert_after(const uint8_t *data, size_t size, const char *needle,
+                                         const char *insert, size_t *new_size)
+{
+    size_t needle_size = strlen(needle), insert_size = strlen(insert);
+    if (needle_size == 0u || needle_size > size || size > PROGRESSION_RECORD_CAP - insert_size)
+        return NULL;
+    for (size_t i = 0; i <= size - needle_size; ++i) {
+        if (memcmp(data + i, needle, needle_size) == 0) {
+            size_t split = i + needle_size;
+            uint8_t *result = (uint8_t *)malloc(size + insert_size);
+            if (result == NULL)
+                return NULL;
+            memcpy(result, data, split);
+            memcpy(result + split, insert, insert_size);
+            memcpy(result + split + insert_size, data + split, size - split);
+            *new_size = size + insert_size;
+            return result;
+        }
+    }
+    return NULL;
+}
+
 static int progression_controls_selftest(const char *work)
 {
     char rom[PROGRESSION_PATH_CAP], calibration[PROGRESSION_PATH_CAP];
-    char record[PROGRESSION_PATH_CAP];
-    if (!progression_make_path(rom, sizeof rom, work, "marker.nes") ||
+    char record[PROGRESSION_PATH_CAP], wrong_anchor[PROGRESSION_PATH_CAP];
+    char alternative_anchor[PROGRESSION_PATH_CAP], alternative_image[PROGRESSION_PATH_CAP];
+    char ambiguous_image[PROGRESSION_PATH_CAP], ambiguous_record[PROGRESSION_PATH_CAP];
+    char malformed_record[PROGRESSION_PATH_CAP], missing_record[PROGRESSION_PATH_CAP];
+    char missing_artifact[PROGRESSION_PATH_CAP], missing_artifact_record[PROGRESSION_PATH_CAP];
+    char missing_anchor[PROGRESSION_PATH_CAP], missing_anchor_record[PROGRESSION_PATH_CAP];
+    if (!progression_full_fixtures(work) ||
+        !progression_make_path(rom, sizeof rom, work, "marker.nes") ||
         !progression_make_path(calibration, sizeof calibration, work, "calibration.txt") ||
-        !progression_make_path(record, sizeof record, work, "progression-prefix.rec"))
+        !progression_make_path(record, sizeof record, work, "progression-complete.rec") ||
+        !progression_make_path(wrong_anchor, sizeof wrong_anchor, work, "valid wrong origin.ra") ||
+        !progression_make_path(alternative_anchor, sizeof alternative_anchor, work,
+                               "alternative same content anchor.ra") ||
+        !progression_make_path(alternative_image, sizeof alternative_image, work,
+                               "alternative frame 101.ppm") ||
+        !progression_make_path(ambiguous_image, sizeof ambiguous_image, work,
+                               "A A A actual image.ppm") ||
+        !progression_make_path(ambiguous_record, sizeof ambiguous_record, work,
+                               "A A B ambiguous.rec") ||
+        !progression_make_path(malformed_record, sizeof malformed_record, work,
+                               "malformed record control.rec") ||
+        !progression_make_path(missing_record, sizeof missing_record, work,
+                               "must remain absent record.rec") ||
+        !progression_make_path(missing_artifact, sizeof missing_artifact, work,
+                               "must remain absent image.ppm") ||
+        !progression_make_path(missing_artifact_record, sizeof missing_artifact_record, work,
+                               "missing artifact control.rec") ||
+        !progression_make_path(missing_anchor, sizeof missing_anchor, work,
+                               "must remain absent anchor.ra") ||
+        !progression_make_path(missing_anchor_record, sizeof missing_anchor_record, work,
+                               "missing anchor control.rec"))
         return 2;
-    if (marker_progression_cli(rom, calibration, record, 1) != 0)
-        return 1;
-    progression_session session;
-    if (progression_read_record(record, &session) != NULL)
+    if (marker_progression_cli(rom, calibration, record, 0) != 0) {
+        fprintf(stderr, "progression controls: actual complete fixture failed its CLI precondition\n");
         return 2;
-    session.boundaries[2].candidate_count = 0u;
+    }
+    progression_session baseline;
+    if (progression_read_record(record, &baseline) != NULL)
+        return 2;
+    uint64_t wrong_identity = 0, alternative_identity = 0;
+    if (!progression_hash_file(wrong_anchor, &wrong_identity) ||
+        !progression_hash_file(alternative_anchor, &alternative_identity))
+        return 2;
+    static uint8_t marker[MARKER_ROM_SIZE];
+    marker_rom(marker);
+    uint32_t offset = 0;
+    if (!marker_offset(marker, &offset))
+        return 2;
+    nesturbator *validator = marker_instance(marker);
+    if (validator == NULL)
+        return 2;
+    const char *wrong_reason = progression_validate_anchor(validator, wrong_anchor, wrong_identity,
+                                                          149u, offset);
+    nesturbator_destroy(validator);
+    if (wrong_reason != NULL) {
+        fprintf(stderr, "progression controls: wrong-origin native precondition failed: %s\n",
+                wrong_reason);
+        return 2;
+    }
+
     unsigned count = 0u;
-    int ok = marker_expect("zero-candidate-identity", progression_verdict(&session, 0),
-                           "IDENTITY", &count);
+    int ok = 1;
+    ok &= progression_control_expect("intended-complete-history", &baseline, "VERDICT_OK", &count);
+
+    progression_session bad = baseline;
+    bad.boundaries[2].display_frame = 150u;
+    bad.boundaries[2].candidate_first = 150u;
+    bad.boundaries[2].candidate_last = 150u;
+    ok &= progression_control_expect("isolated-drop-one", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[2].display_frame = 152u;
+    bad.boundaries[2].candidate_first = 152u;
+    bad.boundaries[2].candidate_last = 152u;
+    ok &= progression_control_expect("isolated-double-one", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[2].display_frame = 150u;
+    bad.boundaries[2].candidate_first = 150u;
+    bad.boundaries[2].candidate_last = 150u;
+    bad.boundaries[3].display_frame = 152u;
+    bad.boundaries[3].candidate_first = 152u;
+    bad.boundaries[3].candidate_last = 152u;
+    ok &= progression_control_expect("compensated-drop-then-double", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[7].display_frame = 156u;
+    bad.boundaries[7].candidate_first = 156u;
+    bad.boundaries[7].candidate_last = 156u;
+    ok &= progression_control_expect("load-probe-dropped-load", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[7].display_frame = 152u;
+    bad.boundaries[7].candidate_first = 152u;
+    bad.boundaries[7].candidate_last = 152u;
+    ok &= progression_control_expect("load-probe-doubled-advance", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[7].command_count = 1u;
+    ok &= progression_control_expect("load-probe-command-count", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[7].send_count = 1u;
+    ok &= progression_control_expect("load-probe-send-count", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[15].command_count = 3u;
+    bad.boundaries[15].send_count = 3u;
+    ok &= progression_control_expect("runahead-load-probe-extra-command", &bad, "PROGRESSION",
+                                     &count);
+
+    /* A,A,B: the intended 150,151,152 sequence saw A,A,B. A is both 150 and 151;
+       reject it as ambiguous rather than choosing the candidate that fits the next row. */
+    uint64_t a_hash = 0u, b_hash = 0u, duplicate_a_hash = 0u;
+    size_t a_size = 0u;
+    uint8_t *a_image = marker_read(baseline.boundaries[0].artifact_path,
+                                   PROGRESSION_ARTIFACT_CAP, &a_size);
+    if (a_image == NULL || !progression_hash_file(baseline.boundaries[0].artifact_path, &a_hash) ||
+        !progression_hash_file(baseline.boundaries[1].artifact_path, &b_hash) || a_hash != b_hash ||
+        !marker_write(ambiguous_image, a_image, a_size) ||
+        !progression_hash_file(ambiguous_image, &duplicate_a_hash)) {
+        free(a_image);
+        return 2;
+    }
+    free(a_image);
+    uint64_t final_picture_hash = 0u;
+    if (!progression_hash_file(baseline.boundaries[3].artifact_path, &final_picture_hash) ||
+        duplicate_a_hash != a_hash || duplicate_a_hash == final_picture_hash)
+        return 2;
+    bad = baseline;
+    bad.boundaries[2].artifact_identity = 17u;
+    snprintf(bad.boundaries[2].artifact_path, sizeof bad.boundaries[2].artifact_path, "%s",
+             ambiguous_image);
+    bad.boundaries[2].artifact_hash = duplicate_a_hash;
+    bad.boundaries[2].display_frame = 150u;
+    bad.boundaries[2].candidate_count = 2u;
+    bad.boundaries[2].candidate_first = 150u;
+    bad.boundaries[2].candidate_last = 151u;
+    if (!progression_write_record(ambiguous_record, &bad))
+        return 2;
+    int ambiguous_cli = marker_progression_cli(rom, calibration, ambiguous_record, 0);
+    ok &= marker_expect("A,A,B-actual-images-rejected", ambiguous_cli == 1 ? "rejected" : "accepted",
+                        "rejected", &count);
+    ok &= progression_control_expect("A,A,B-candidate-ambiguity", &bad, "AMBIGUOUS", &count);
+
+    bad = baseline;
+    bad.boundaries[2].candidate_count = 0u;
+    ok &= progression_control_expect("zero-candidate-identity", &bad, "IDENTITY", &count);
+
+    bad = baseline;
+    bad.boundaries[2].candidate_first = 150u;
+    bad.boundaries[2].candidate_last = 150u;
+    ok &= progression_control_expect("single-candidate-frame-mismatch", &bad, "IDENTITY", &count);
+
+    bad = baseline;
+    bad.boundaries[4].id = 2u;
+    ok &= progression_control_expect("stale-boundary-id", &bad, "ATTRIBUTION", &count);
+
+    bad = baseline;
+    bad.boundaries[2].id = 4u;
+    ok &= progression_control_expect("out-of-order-boundary-id", &bad, "ATTRIBUTION", &count);
+
+    bad = baseline;
+    bad.boundaries[2].artifact_identity = bad.boundaries[1].artifact_identity;
+    ok &= progression_control_expect("repeated-artifact-identity", &bad, "ATTRIBUTION", &count);
+
+    bad = baseline;
+    snprintf(bad.boundaries[2].artifact_path, sizeof bad.boundaries[2].artifact_path, "%s",
+             bad.boundaries[1].artifact_path);
+    ok &= progression_control_expect("repeated-artifact-path", &bad, "ATTRIBUTION", &count);
+
+    bad = baseline;
+    bad.boundary_count = 15u;
+    ok &= progression_control_expect("missing-final-observation", &bad, "INCOMPLETE", &count);
+
+    bad = baseline;
+    bad.boundary_count = 17u;
+    ok &= progression_control_expect("extra-observation", &bad, "ATTRIBUTION", &count);
+
+    bad = baseline;
+    bad.boundaries[7].artifact_identity = 17u;
+    snprintf(bad.boundaries[7].artifact_path, sizeof bad.boundaries[7].artifact_path, "%s",
+             alternative_image);
+    bad.boundaries[7].anchor_identity = alternative_identity;
+    bad.boundaries[7].anchor_frame = 100u;
+    bad.boundaries[7].display_frame = 101u;
+    bad.boundaries[7].candidate_first = 101u;
+    bad.boundaries[7].candidate_last = 101u;
+    if (!progression_hash_file(alternative_image, &bad.boundaries[7].artifact_hash))
+        return 2;
+    ok &= progression_control_expect("valid-same-content-wrong-load", &bad, "ORIGIN", &count);
+
+    bad = baseline;
+    snprintf(bad.original_anchor_path, sizeof bad.original_anchor_path, "%s", alternative_anchor);
+    bad.original_anchor_identity = alternative_identity;
+    bad.original_anchor_frame = 100u;
+    ok &= progression_control_expect("original-branch-wrong-retained-anchor", &bad, "ORIGIN",
+                                     &count);
+
+    bad = baseline;
+    bad.boundaries[11].anchor_identity = baseline.original_anchor_identity;
+    bad.boundaries[11].anchor_frame = baseline.original_anchor_frame;
+    ok &= progression_control_expect("original-rewound-anchor-swap", &bad, "ORIGIN", &count);
+
+    bad = baseline;
+    bad.boundaries[12].anchor_identity = alternative_identity;
+    bad.boundaries[12].anchor_frame = 100u;
+    ok &= progression_control_expect("incompatible-rewound-branch-origin", &bad, "ORIGIN",
+                                     &count);
+
+    bad = baseline;
+    bad.boundaries[15].display_lead = 0;
+    ok &= progression_control_expect("wrong-runahead-display-lead", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[15].display_frame = 133u;
+    bad.boundaries[15].candidate_first = 133u;
+    bad.boundaries[15].candidate_last = 133u;
+    ok &= progression_control_expect("wrong-runahead-displayed-frame", &bad, "PROGRESSION",
+                                     &count);
+
+    bad = baseline;
+    bad.boundaries[10].display_frame = 153u;
+    bad.boundaries[10].candidate_first = 153u;
+    bad.boundaries[10].candidate_last = 153u;
+    ok &= progression_control_expect("resume-not-beyond-load-three", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[11].display_frame = 140u;
+    bad.boundaries[11].candidate_first = 140u;
+    bad.boundaries[11].candidate_last = 140u;
+    ok &= progression_control_expect("rewind-under-twenty-frames", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[11].command_count = 39u;
+    bad.boundaries[11].send_count = 39u;
+    ok &= progression_control_expect("rewind-burst-not-forty", &bad, "PROGRESSION", &count);
+
+    bad = baseline;
+    bad.boundaries[5].elapsed_ms = 1001u;
+    ok &= progression_control_expect("deadline-overrun", &bad, "DEADLINE", &count);
+
+    bad = baseline;
+    bad.boundaries[5].deadline_ms = 0u;
+    ok &= progression_control_expect("deadline-missing", &bad, "DEADLINE", &count);
+
+    bad = baseline;
+    bad.boundaries[5].process_alive = 0;
+    ok &= progression_control_expect("host-process-dead", &bad, "PROCESS", &count);
+
+    bad = baseline;
+    bad.terminal_exit = 1;
+    ok &= progression_control_expect("nonzero-terminal-exit", &bad, "PROCESS", &count);
+
+    bad = baseline;
+    bad.terminal_exit = -1;
+    ok &= progression_control_expect("terminal-exit-unobserved", &bad, "INCOMPLETE", &count);
+
+    bad = baseline;
+    bad.mode = PROGRESSION_PREFIX;
+    ok &= progression_control_expect("prefix-cannot-pass-complete", &bad, "INCOMPLETE", &count);
+
+    bad = baseline;
+    bad.content_identity = 0u;
+    ok &= progression_control_expect("content-identity-missing", &bad, "IDENTITY", &count);
+
+    bad = baseline;
+    bad.calibration_identity = 0u;
+    ok &= progression_control_expect("calibration-identity-missing", &bad, "IDENTITY", &count);
+
+    size_t record_size = 0u;
+    uint8_t *record_bytes = marker_read(record, PROGRESSION_RECORD_CAP, &record_size);
+    if (record_bytes == NULL)
+        return 2;
+    progression_session parsed;
+    int replaced = progression_replace_once(record_bytes, record_size, "operation=capture",
+                                             "operation=unknown");
+    const char *parse_reason = replaced ? progression_parse_record(record_bytes, record_size, &parsed)
+                                        : "TEST_SETUP";
+    ok &= marker_expect("unknown-operation-record", parse_reason, "PARSE", &count);
+    free(record_bytes);
+
+    record_bytes = marker_read(record, PROGRESSION_RECORD_CAP, &record_size);
+    if (record_bytes == NULL)
+        return 2;
+    replaced = progression_replace_once(record_bytes, record_size, "NESTURBATOR-PROGRESSION 1",
+                                       "NESTURBATOR-PROGRESSION 2");
+    parse_reason = replaced ? progression_parse_record(record_bytes, record_size, &parsed)
+                            : "TEST_SETUP";
+    ok &= marker_expect("unknown-record-version", parse_reason, "PARSE", &count);
+    free(record_bytes);
+
+    record_bytes = marker_read(record, PROGRESSION_RECORD_CAP, &record_size);
+    if (record_bytes == NULL)
+        return 2;
+    replaced = progression_replace_once(record_bytes, record_size, "mode=complete",
+                                         "xode=complete");
+    parse_reason = replaced ? progression_parse_record(record_bytes, record_size, &parsed)
+                            : "TEST_SETUP";
+    ok &= marker_expect("unknown-record-field", parse_reason, "PARSE", &count);
+    free(record_bytes);
+
+    record_bytes = marker_read(record, PROGRESSION_RECORD_CAP, &record_size);
+    if (record_bytes == NULL)
+        return 2;
+    size_t duplicate_size = 0u;
+    uint8_t *duplicate_record = progression_insert_after(record_bytes, record_size,
+                                                         "mode=complete\n",
+                                                         "mode=complete\n", &duplicate_size);
+    parse_reason = duplicate_record != NULL
+                       ? progression_parse_record(duplicate_record, duplicate_size, &parsed)
+                       : "TEST_SETUP";
+    ok &= marker_expect("duplicate-record-field", parse_reason, "PARSE", &count);
+    free(duplicate_record);
+    free(record_bytes);
+
+    record_bytes = marker_read(record, PROGRESSION_RECORD_CAP, &record_size);
+    if (record_bytes == NULL ||
+        !progression_replace_once(record_bytes, record_size, "NESTURBATOR-PROGRESSION 1",
+                                  "NESTURBATOR-PROGRESSION 2") ||
+        !marker_write(malformed_record, record_bytes, record_size)) {
+        free(record_bytes);
+        return 2;
+    }
+    free(record_bytes);
+    ok &= progression_control_exit_expect("malformed-record-exit-status",
+                                          marker_progression_cli(rom, calibration,
+                                                                 malformed_record, 0),
+                                          2, &count);
+
+    uint64_t absent_identity = 0u;
+    if (progression_hash_file(missing_record, &absent_identity) ||
+        progression_hash_file(missing_artifact, &absent_identity) ||
+        progression_hash_file(missing_anchor, &absent_identity))
+        return 2;
+    ok &= progression_control_exit_expect("missing-record-exit-status",
+                                          marker_progression_cli(rom, calibration, missing_record,
+                                                                 0),
+                                          2, &count);
+
+    bad = baseline;
+    bad.boundaries[0].artifact_identity = 17u;
+    snprintf(bad.boundaries[0].artifact_path, sizeof bad.boundaries[0].artifact_path, "%s",
+             missing_artifact);
+    if (!progression_write_record(missing_artifact_record, &bad))
+        return 2;
+    ok &= progression_control_exit_expect("missing-artifact-exit-status",
+                                          marker_progression_cli(rom, calibration,
+                                                                 missing_artifact_record, 0),
+                                          2, &count);
+
+    bad = baseline;
+    snprintf(bad.original_anchor_path, sizeof bad.original_anchor_path, "%s", missing_anchor);
+    if (!progression_write_record(missing_anchor_record, &bad))
+        return 2;
+    ok &= progression_control_exit_expect("missing-anchor-exit-status",
+                                          marker_progression_cli(rom, calibration,
+                                                                 missing_anchor_record, 0),
+                                          2, &count);
+
     printf("progression controls: %u cases\n", count);
     return ok ? 0 : 1;
 }
@@ -1300,10 +1982,11 @@ int main(int argc, char **argv)
 {
     if (argc == 3 && strcmp(argv[1], "--progression-selftest") == 0)
         return progression_tracer_selftest(argv[2]);
+    if (argc == 4 && strcmp(argv[1], "--progression-selftest") == 0 &&
+        strcmp(argv[3], "--controls") == 0)
+        return progression_controls_selftest(argv[2]);
     if (argc == 3 && strcmp(argv[1], "--progression-complete-selftest") == 0)
         return progression_complete_required_selftest(argv[2]);
-    if (argc == 3 && strcmp(argv[1], "--progression-controls-selftest") == 0)
-        return progression_controls_selftest(argv[2]);
     if (argc >= 2 && strncmp(argv[1], "--marker-", 9u) == 0)
         return marker_cli(argc, argv);
     int dups = argc >= 2 && strcmp(argv[1], "--dups") == 0;
