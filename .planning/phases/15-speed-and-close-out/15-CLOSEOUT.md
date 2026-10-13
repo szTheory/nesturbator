@@ -19,6 +19,8 @@ Every `uses:` line in `.github/workflows/*.yml`, compared with the latest releas
 
 Behind: `actions/create-github-app-token` only. v3.3.0 was published the day before this review. `gh pr list --author app/dependabot --state open` shows no open Dependabot pull request yet, so there is nothing for Plan 08 to merge now; Dependabot owns the bump and its pull request is merged when it appears. Nothing is hand-bumped.
 
+Plan 08, 2026-10-13: `gh pr list --author app/dependabot --state open` still lists no Dependabot pull request, so no Dependabot merge was made and the pin stays at v3.2.0. origin/main is already an ancestor of the phase branch head.
+
 ## Runner labels
 
 | Label | Status | Next retirement | Source |
@@ -40,7 +42,17 @@ Kept. A bump re-baselines the ROM sha256, the scoreboard and the hashes, which d
 
 ## Timeouts
 
-Filled in by Plan 08.
+### Measurement ceilings (Task 1)
+
+Before the first dispatch the four never-measured nightly ceilings were raised so that no counted run is cut off (commit f200df9, `ci(15-08): raise nightly measurement ceilings`): suite-flake 30 to 60, mmc3-oracle 8 to 20, rom-loader-fuzz 3 to 15, state-fuzz 3 to 15 minutes. vectors-full (16, measured in run 37136095512) and report keep their values.
+
+## Allow file
+
+2026-10-13 sweep of `tests/perf/allow.txt` (D-17), after the main merge check and before any dispatch. The file holds only its comment header.
+
+No entries.
+
+Justified entries: 0
 
 ## Docs audit
 
