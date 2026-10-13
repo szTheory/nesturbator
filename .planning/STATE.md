@@ -5,16 +5,16 @@ milestone_name: Save states and rewind
 current_phase: 15
 current_phase_name: Speed and close-out
 status: executing
-stopped_at: Completed 15-05-PLAN.md
-last_updated: "2026-10-13T03:33:44.111Z"
+stopped_at: Completed 15-06-PLAN.md
+last_updated: "2026-10-13T04:08:21.654Z"
 last_activity: 2026-10-12
 last_activity_desc: Phase 15 execution started
-state_head: 2812859ed7dcc217d2b06c78ea9304a5e72cb06c
+state_head: cb0d5295e52ade61908b923e5e5ae42ce81c25f6
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 38
-  completed_plans: 35
+  completed_plans: 36
   percent: 80
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-12)
 ## Current Position
 
 Phase: 15 (Speed and close-out) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-10-12 — Phase 15 execution started
 
@@ -191,6 +191,7 @@ Progress: [████████░░] 80%
 | Phase 15 P03 | 25m | 3 tasks | 5 files |
 | Phase 15 P04 | 20m | 2 tasks | 6 files |
 | Phase 15 P05 | 45m | 2 tasks | 4 files |
+| Phase 15 P06 | 50m | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -289,6 +290,7 @@ Recent decisions affecting current work:
 - [Phase 15]: 15-03: bench signal test readiness is the flushed frame 1 hash line on the stdout pipe, flushed only under --bench outside the timed region
 - [Phase 15]: Allow-file reason text is validated but never printed in the perf summary; UNSTABLE fails in every mode
 - [Phase 15]: perf job copies base and head binaries to equal-length paths and runs them under env -i; report mode via continue-on-error
+- [Phase 15]: Perf gate armed after two zero-spread control runs (15-PERF-PROOF.md); CI required accepts skipped perf only off pull_request
 
 ### Pending Todos
 
@@ -339,8 +341,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T03:33:44.071Z
-Stopped at: Completed 15-05-PLAN.md
+Last session: 2026-10-13T04:08:21.618Z
+Stopped at: Completed 15-06-PLAN.md
 Resume file: None
 
 Next GSD command: `/gsd-execute-phase 15`.

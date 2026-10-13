@@ -64,7 +64,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 
 ### Speed
 
-- [ ] **PERF-02**: On every pull request, a CI job uses Cachegrind to compare instructions per frame between the PR head and its merge base on three committed ROMs (NROM, MMC1 and MMC3), and writes the table to the job summary. It starts as a report. It becomes a gate at +1% per ROM only after identical builds show zero spread, and a deliberate slowdown passes with a reviewed line in an allow file.
+- [x] **PERF-02**: On every pull request, a CI job uses Cachegrind to compare instructions per frame between the PR head and its merge base on three committed ROMs (NROM, MMC1 and MMC3), and writes the table to the job summary. It starts as a report. It becomes a gate at +1% per ROM only after identical builds show zero spread, and a deliberate slowdown passes with a reviewed line in an allow file.
 - [x] **PERF-03**: `nesturbator-run --bench N` prints frames per second and the p50, p90, p99, p99.9 and max frame times. `--bench-state` adds the cost of a save and load per frame. A test shows that benchmarking changes no hash, and wall time is never gated.
 
 ## Future Requirements
@@ -111,7 +111,7 @@ A platform is one of six: Linux, macOS and Windows, each on x64 and arm64. A "st
 | LR-04 | Phase 13 | Complete |
 | RUN-02 | Phase 14 | Complete |
 | RUN-03 | Phase 14 | Complete |
-| PERF-02 | Phase 15 | Pending |
+| PERF-02 | Phase 15 | Complete |
 | PERF-03 | Phase 15 | Complete |
 | TUNE-10 | Phase 15 | Complete |
 
