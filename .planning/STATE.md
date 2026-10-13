@@ -1,12 +1,12 @@
 ---
 gsd_state_version: "1.0"
 milestone: v3
-status: Awaiting next milestone
-stopped_at: Quick task 261013-g9z complete; release-format fix awaits shipping
-last_updated: "2026-10-13T15:59:15.054Z"
+status: Awaiting release verification
+stopped_at: Quick task 261013-g9z shipped in PR 48; release verification follows
+last_updated: "2026-10-13T16:09:17.191Z"
 last_activity: 2026-10-13
-last_activity_desc: Completed quick task 261013-g9z to preserve release version formatting
-state_head: c79fca3ba3c1fb573d8ca3ab0d3530183b6d7272
+last_activity_desc: Opened PR 48 for release formatting and Codex routing
+state_head: fc8686d63cca896c2fe16bcb535e9381e66e5e03
 milestone_name: Save states and rewind
 current_phase: 15
 progress:
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Unblock release PR #35 (v0.1.10), then plan the next milestone
+**Current focus:** Track the release-format fix in PR #48 and automated release PR #35 (v0.1.10), then plan the next milestone
 
 ## Current Position
 
 Phase: Milestone v3 complete
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-10-13 — Completed quick task 261013-g9z: preserve release version formatting across digit widths
+Status: Awaiting release verification
+Last activity: 2026-10-13 — Shipped quick task 261013-g9z and Codex routing in PR #48
 
 ## Performance Metrics
 
@@ -300,7 +300,7 @@ None.
 
 ### Blockers/Concerns
 
-- **Release blocker (found at the v3 close):** release PR #35 (v0.1.10) failed `hygiene.format` because the bumped patch number shifted the aligned `x-release-please` comments. Quick task 261013-g9z fixes this in `c79fca3`; local CI passed 634/634 tests and hygiene passed 13/13. Ship the fix through a pull request and refresh the release PR before declaring the hosted blocker resolved.
+- **Release follow-up (found at the v3 close):** release PR #35 (v0.1.10) failed `hygiene.format` because the bumped patch number shifted the aligned `x-release-please` comments. [PR #48](https://github.com/szTheory/nesturbator/pull/48) ships quick task 261013-g9z (`c79fca3`) and the requested Codex routing. Fresh ship preflight passed 634/634 CI tests and 13/13 hygiene tests; the fingerprinted quick verification report is `passed`. Required hosted checks gate the squash merge. The release workflow refreshes and auto-merges #35 after this fix lands and its checks pass; inspect hosted outcomes before starting the next milestone.
 
 v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and MILESTONES.md. v2 debt is in `.planning/milestones/v2-MILESTONE-AUDIT.md`. The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
 - [Phase 08] Code review left 2 warnings and 2 info open (08-REVIEW-DISPOSITION.md; WR-01 interval-flush retry fixed by quick task 261011-inm, PR #39): WR-02 NES 2 MMC1 submapper 5 accepted but not emulated as fixed 32 KiB PRG; WR-03 a directory at the `.sav` path exits 4 instead of a read error.
@@ -348,12 +348,12 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-10-13
-Stopped at: Quick task 261013-g9z complete on gsd/phase-config-codex; release-format fix awaits shipping
+Stopped at: Quick task 261013-g9z shipped in PR #48 from gsd/phase-config-codex; automated release verification follows
 Resume file: None
 
-Next GSD command: `/gsd-ship` to ship the release-format fix through a pull request
+Next GSD command: `/gsd-progress` after the shipping and release workflows settle
 
 ## Operator Next Steps
 
-- Ship quick task 261013-g9z through a pull request, then refresh release PR #35 so v0.1.10 can publish v3
-- Then start the next milestone with /gsd-new-milestone
+- Track PR #48's required checks and squash merge, followed by the automatic refresh and merge of release PR #35
+- Confirm the v0.1.10 release workflow outcome, then start the next milestone with /gsd-new-milestone
