@@ -49,8 +49,8 @@ void nesturbator_run_bench_series_line(char *buf, size_t cap, const char *key, u
 void nesturbator_run_bench_total_line(char *buf, size_t cap, uint32_t frames, uint64_t total_ns)
 {
     /* fps in hundredths, rounded to nearest: frames * 1e9 / total_ns * 100. */
-    uint64_t x = total_ns == 0u ? 0u
-                                : ((uint64_t)frames * 100u * 1000000000u + total_ns / 2u) / total_ns;
+    uint64_t x =
+        total_ns == 0u ? 0u : ((uint64_t)frames * 100u * 1000000000u + total_ns / 2u) / total_ns;
     (void)snprintf(buf, cap, "bench frames=%lu time_ms=%llu.%03llu fps=%llu.%02llu",
                    (unsigned long)frames, (unsigned long long)(total_ns / 1000000u),
                    (unsigned long long)((total_ns / 1000u) % 1000u), (unsigned long long)(x / 100u),

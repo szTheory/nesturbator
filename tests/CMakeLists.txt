@@ -980,6 +980,16 @@ target_link_libraries(runner.sha256 PRIVATE nesturbator::nesturbator)
 nesturbator_warnings(runner.sha256)
 add_test(NAME runner.sha256 COMMAND runner.sha256)
 
+# --bench (15-CONTEXT D-07): stdout and every hash equal --frames N's; stderr has the D-06 lines.
+# Only shapes are checked, never a measured number.
+foreach(mode nohash format)
+  add_test(NAME runner.bench.${mode}
+    COMMAND ${CMAKE_COMMAND} "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      -DROM=${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes -DMODE=${mode}
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_bench.cmake)
+  set_tests_properties(runner.bench.${mode} PROPERTIES LABELS bench)
+endforeach()
+
 # --bench percentile, formatting and zero-sample report rules (15-CONTEXT D-05, D-06, D-03).
 add_executable(runner.bench_unit runner/test_bench.c ${PROJECT_SOURCE_DIR}/runner/bench.c)
 target_include_directories(runner.bench_unit PRIVATE ${PROJECT_SOURCE_DIR}/runner)

@@ -1029,8 +1029,28 @@ nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--du
 nesturbator-run --version
 ```
 
-- `--frames N` runs N frames (N is 1 or more). It is required; without it
-  the runner prints its usage and exits 2.
+- `--frames N` runs N frames (N is 1 or more). One of `--frames`, `--movie` or `--bench` is
+  required; without one the runner prints its usage and exits 2.
+- `--bench N` runs frames 1 to N (N from 1 to 1000000) with `--rom`, times each frame, and prints
+  frame-time statistics to stderr. Standard output and every hash are exactly as with
+  `--frames N`, so `--hash-frame K` (1 to N) and `--hash-audio` work the same, and a test shows
+  the output is byte-identical. Only the `nesturbator_run_frame` call sits between the two clock
+  readings (a monotonic clock: `CLOCK_MONOTONIC`, or `QueryPerformanceCounter` on Windows), so the
+  timer's own overhead is included in each sample. There is no warm-up: the first frames show in
+  `max`. `--bench` cannot be combined with `--frames` or `--movie` and needs `--rom`; any other
+  misuse (0, above 1000000, given twice) exits 2. Example stderr:
+
+  ```
+  nesturbator-run: bench frames=600 time_ms=701.367 fps=855.47
+  nesturbator-run: bench frame_us p50=1163.000 p90=1235.000 p99=1339.000 p99.9=1616.000 max=1616.000
+  ```
+
+  Every value is a measured frame time in microseconds, truncated from nanoseconds, by the
+  nearest-rank method with no interpolation; p99.9 equals max below 1000 frames, and `fps` is
+  frames over the summed frame time. A signal stop prints the statistics over the frames
+  finished, then the stop line; a stop before the first frame prints only
+  `nesturbator-run: bench frames=0`. Wall time is never gated in CI: the tests check the shape of
+  these lines, never a number.
 - `--raise-after N[:SIG[:K]]` is a test aid: after frame N the runner signals its own
   process K times (K defaults to 1) with SIG, so a stop lands at a known frame. SIG is `int`
   or `term` on POSIX (default `term`) and `int` or `break` on Windows (default `break`). It

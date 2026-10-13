@@ -66,23 +66,21 @@ int main(void)
     {
         uint64_t f[2] = {3000u, 1000u};
         size_t n = nesturbator_run_bench_report(buf, sizeof buf, 2u, f, NULL, NULL);
-        CHECK(same(buf,
-                   "nesturbator-run: bench frames=2 time_ms=0.004 fps=500000.00\n"
-                   "nesturbator-run: bench frame_us p50=1.000 p90=3.000 p99=3.000 p99.9=3.000 "
-                   "max=3.000\n"));
+        CHECK(same(buf, "nesturbator-run: bench frames=2 time_ms=0.004 fps=500000.00\n"
+                        "nesturbator-run: bench frame_us p50=1.000 p90=3.000 p99=3.000 p99.9=3.000 "
+                        "max=3.000\n"));
         CHECK_EQ_U64(n, strlen(buf));
     }
     {
         uint64_t f[1] = {2000u}, sv[1] = {5000u}, ld[1] = {7000u};
         nesturbator_run_bench_report(buf, sizeof buf, 1u, f, sv, ld);
-        CHECK(same(buf,
-                   "nesturbator-run: bench frames=1 time_ms=0.002 fps=500000.00\n"
-                   "nesturbator-run: bench frame_us p50=2.000 p90=2.000 p99=2.000 p99.9=2.000 "
-                   "max=2.000\n"
-                   "nesturbator-run: bench save_us p50=5.000 p90=5.000 p99=5.000 p99.9=5.000 "
-                   "max=5.000\n"
-                   "nesturbator-run: bench load_us p50=7.000 p90=7.000 p99=7.000 p99.9=7.000 "
-                   "max=7.000\n"));
+        CHECK(same(buf, "nesturbator-run: bench frames=1 time_ms=0.002 fps=500000.00\n"
+                        "nesturbator-run: bench frame_us p50=2.000 p90=2.000 p99=2.000 p99.9=2.000 "
+                        "max=2.000\n"
+                        "nesturbator-run: bench save_us p50=5.000 p90=5.000 p99=5.000 p99.9=5.000 "
+                        "max=5.000\n"
+                        "nesturbator-run: bench load_us p50=7.000 p90=7.000 p99=7.000 p99.9=7.000 "
+                        "max=7.000\n"));
     }
     CHECK_DONE();
 }
