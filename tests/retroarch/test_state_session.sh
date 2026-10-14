@@ -27,7 +27,7 @@ fake_nc() {
             if [ "$fault" = readiness-response-stall ]; then
                 printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
                 printf 'GET_CONFIG_PARAM savestate_directory %s' "$STATE_SESSION_TEST_EXPECTED_DIR"
-                exec perl -MTime::HiRes=sleep -e 'sleep 5'
+                exec perl -MTime::HiRes=sleep -e 'sleep 8'
             fi
             if [ "$fault" = readiness-response-delay ]; then
                 printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
@@ -603,9 +603,9 @@ if kill -0 "$readiness_host" 2>/dev/null; then echo "FAIL delayed readiness cont
 assert_sanitized_tree "$readiness_attempt"
 printf 'state session readiness delayed-reply control: exact reply accepted; child reaped; %sms\n' "$readiness_elapsed"
 
-# Some native UDP clients can print a complete response and then remain alive. Accept only those
-# exact bytes, kill and reap the owned child at the 5 s supervision slice, and keep the operation
-# inside its original 30 s deadline.
+# Some native UDP clients can print a complete response and then remain alive. The fake stalls for
+# 8 s so it remains live beyond the 5 s supervision slice; accept only the exact bytes after the
+# owned child is killed and reaped, inside the original 30 s operation deadline.
 readiness_dir="$WORK_ROOT/session-$$-readiness-response-stall"; readiness_ra="$readiness_dir/ra"
 mkdir -p "$readiness_ra/shots" "$readiness_ra/states"
 ln -s "$script_path" "$readiness_dir/fake-nc"; ln -s "$script_path" "$readiness_dir/fake-retroarch"
