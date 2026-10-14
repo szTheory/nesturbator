@@ -1549,7 +1549,8 @@ POSIX control runs the actual shell driver through the successful full sequence
 and reason-specific loss, duplication, stale/partial artifact, wrong-origin,
 host-death, stalled-child and deadline cases. Its stalled-read check measures
 elapsed time and confirms that the blocked child and owned host are reaped.
-The journal records attempt and operation time separately, request counts,
+The journal records operation time through terminal observation and attempt
+time through bounded child/host cleanup, along with request counts,
 expected/observed relations and relative artifact identities. Generated config
 and host logs are retained only in sanitized form. A local UDP send is not proof
 of host receipt; the retained images and native anchors are checked by the

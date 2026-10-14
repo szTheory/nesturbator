@@ -277,7 +277,7 @@ run_fault() {
     ln -s "$script_path" "$case_dir/fake-nc"; ln -s "$script_path" "$case_dir/fake-retroarch"
     : >"$case_dir/config.cfg"; : >"$case_dir/core.so"
     case_started=$(mono_ms); case_status=0
-    if [ "$mode" = complete ]; then stop_after=0; attempt_ms=100000; else stop_after=1; attempt_ms=30000; fi
+    if [ "$mode" = complete ]; then stop_after=0; attempt_ms=120000; else stop_after=1; attempt_ms=30000; fi
     [ -z "$attempt_override" ] || attempt_ms=$attempt_override
     STATE_SESSION_NC="$case_dir/fake-nc" \
     STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
@@ -329,7 +329,12 @@ run_fault() {
             if [ "$expected" = READINESS_DEADLINE ]; then
                 stall_row=$(grep -F 'READINESS_DEADLINE' "$1/journal.tsv" | tail -1)
                 stall_elapsed=$(printf '%s\n' "$stall_row" | cut -f6)
+                stall_attempt_elapsed=$(printf '%s\n' "$stall_row" | cut -f4)
                 [ "$stall_elapsed" -gt 0 ] && [ "$stall_elapsed" -le 800 ] || { echo "FAIL readiness child did not obey measured monotonic budget: ${stall_elapsed}ms" >&2; exit 1; }
+                [ "$stall_attempt_elapsed" -ge "$stall_elapsed" ] && [ "$stall_attempt_elapsed" -lt "$max_ms" ] || {
+                    echo "FAIL readiness cleanup was not bounded separately from operation time: operation=${stall_elapsed}ms attempt=${stall_attempt_elapsed}ms" >&2
+                    exit 1
+                }
                 printf 'state session child deadline: %sms operation elapsed; child reaped\n' "$stall_elapsed"
             else
                 attempt_elapsed=$(grep -F 'ATTEMPT_DEADLINE' "$1/journal.tsv" | tail -1 | cut -f4)
@@ -386,7 +391,7 @@ run_prefix_driver() {
 # The synthetic marker fixtures satisfy each semantic precondition; these controls execute the
 # actual shell driver and its shared production oracle, then require its own exact failure row.
 run_fault wrong-readiness READINESS_REPLY wrong-readiness
-run_fault stalled-read READINESS_DEADLINE stalled-read '' prefix 2500 350
+run_fault stalled-read READINESS_DEADLINE stalled-read '' prefix 5000 350
 run_fault stalled-child-attempt-cap ATTEMPT_DEADLINE stalled-read '' prefix 5000 5000 300 2500
 run_fault pause-send-once pause-original_SEND_FAILED send-error PAUSE_TOGGLE
 run_fault screenshot-send-once SCREENSHOT_SEND_FAILED send-error SCREENSHOT
@@ -402,10 +407,10 @@ run_fault duplicate-state STATE_AMBIGUOUS duplicate-state
 run_fault corrupt-anchor ANCHOR_CONTAINER_SIZE corrupt-state
 run_fault valid-wrong-origin-anchor ANCHOR_NATIVE_ORIGIN wrong-save-origin
 run_fault doubled-advance ADVANCE_NOT_EXACTLY_ONE doubled-advance
-run_fault host-died HOST_DIED host-died '' prefix 10000 30000 300
+run_fault host-died HOST_DIED host-died '' prefix 20000 30000 300
 run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' complete 30000 30000 300
 run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 30000 30000 300
-run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 120000 30000 300
+run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 150000 30000 300
 
 # Repeated sessions keep their own state, image and journal trees. A concurrent session must
 # fail before it reaches the fake host or sends to the occupied fixed command endpoint.

@@ -32,12 +32,13 @@ JOURNAL="$ATTEMPT_DIR/journal.tsv"
 printf 'step\tclass\tsends\tattempt_elapsed_ms\tattempt_remaining_ms\toperation_elapsed_ms\toperation_remaining_ms\texpected\tobserved\tartifact\treason\n' >"$JOURNAL"
 HOST_PID=; CHILD_PID=; FIRST_FAILURE=; LAST_REASON=OK; send_count=0; QUIT_SENT=0
 CURRENT_STEP=setup; CURRENT_CLASS=none; CURRENT_SENDS=0; CURRENT_EXPECTED=none; CURRENT_OBSERVED=none; CURRENT_ARTIFACT=none
-ACTIVE_OPERATION=; OPERATION_START_MS=; OPERATION_DEADLINE_MS=; OPERATION_BUDGET_MS=; OPERATION_DEADLINE_VALUE=0
+ACTIVE_OPERATION=; OPERATION_START_MS=; OPERATION_DEADLINE_MS=; OPERATION_BUDGET_MS=; OPERATION_STOP_MS=; OPERATION_DEADLINE_VALUE=0
 LAST_OP_ELAPSED_MS=0; LAST_OP_REMAINING_MS=0
 elapsed_ms() { _n=$(clock_ms) || return 1; [ "$_n" -ge "$START_MS" ] || return 1; echo $((_n-START_MS)); }
 remaining_ms() { _e=$(elapsed_ms) || return 1; _r=$((TIMEOUT_MS-_e)); [ "$_r" -gt 0 ] || _r=0; echo "$_r"; }
 begin_operation() {
     ACTIVE_OPERATION=$1; OPERATION_BUDGET_MS=$2
+    OPERATION_STOP_MS=
     OPERATION_START_MS=$(clock_ms) || fail MONOTONIC_CLOCK_FAILURE
     OPERATION_DEADLINE_MS=$((OPERATION_START_MS+OPERATION_BUDGET_MS))
     LAST_OP_ELAPSED_MS=0; LAST_OP_REMAINING_MS=$OPERATION_BUDGET_MS
@@ -49,7 +50,7 @@ finish_operation() {
     OPERATION_ELAPSED_MS=$((_now-OPERATION_START_MS))
     LAST_OP_ELAPSED_MS=$OPERATION_ELAPSED_MS; LAST_OP_REMAINING_MS=$((OPERATION_DEADLINE_MS-_now))
     OPERATION_DEADLINE_VALUE=$OPERATION_BUDGET_MS
-    ACTIVE_OPERATION=; OPERATION_START_MS=; OPERATION_DEADLINE_MS=; OPERATION_BUDGET_MS=
+    ACTIVE_OPERATION=; OPERATION_START_MS=; OPERATION_DEADLINE_MS=; OPERATION_BUDGET_MS=; OPERATION_STOP_MS=
 }
 operation_left() {
     [ -n "$ACTIVE_OPERATION" ] || { echo 0; return 0; }
@@ -62,7 +63,9 @@ host_alive() { [ -n "$HOST_PID" ] && kill -0 "$HOST_PID" 2>/dev/null; }
 record_row() {
     _e=$(elapsed_ms 2>/dev/null || echo 0); _r=$(remaining_ms 2>/dev/null || echo 0)
     if [ -n "$ACTIVE_OPERATION" ]; then
-        ROW_NOW=$(clock_ms 2>/dev/null || echo "$OPERATION_START_MS")
+        if [ -n "$OPERATION_STOP_MS" ]; then ROW_NOW=$OPERATION_STOP_MS
+        else ROW_NOW=$(clock_ms 2>/dev/null || echo "$OPERATION_START_MS")
+        fi
         ROW_OP_ELAPSED=$((ROW_NOW-OPERATION_START_MS)); ROW_OP_REMAINING=$((OPERATION_DEADLINE_MS-ROW_NOW))
         [ "$ROW_OP_ELAPSED" -ge 0 ] || ROW_OP_ELAPSED=0; [ "$ROW_OP_REMAINING" -ge 0 ] || ROW_OP_REMAINING=0
     else ROW_OP_ELAPSED=$LAST_OP_ELAPSED_MS; ROW_OP_REMAINING=$LAST_OP_REMAINING_MS
@@ -123,9 +126,16 @@ cleanup() {
     fi
     [ ! -d "$LOCK_DIR" ] || rmdir "$LOCK_DIR" 2>/dev/null || true
 }
-on_signal() { [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE="INTERRUPTED_$1"; LAST_REASON=$FIRST_FAILURE; record_row; cleanup; trap - INT TERM HUP; exit 130; }
+stop_operation_clock() {
+    [ -n "$ACTIVE_OPERATION" ] && [ -n "$OPERATION_START_MS" ] || return 0
+    [ -z "$OPERATION_STOP_MS" ] || return 0
+    OPERATION_STOP_NOW=$(clock_ms) || return 1
+    [ "$OPERATION_STOP_NOW" -ge "$OPERATION_START_MS" ] || return 1
+    OPERATION_STOP_MS=$OPERATION_STOP_NOW
+}
+on_signal() { [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE="INTERRUPTED_$1"; stop_operation_clock || true; LAST_REASON=$FIRST_FAILURE; record_row; cleanup; trap - INT TERM HUP; exit 130; }
 trap cleanup EXIT; trap 'on_signal INT' INT; trap 'on_signal TERM' TERM; trap 'on_signal HUP' HUP
-fail() { [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE=$1; LAST_REASON=$FIRST_FAILURE; record_row; echo "state_session: $FIRST_FAILURE" >&2; exit 1; }
+fail() { stop_operation_clock || true; [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE=$1; LAST_REASON=$FIRST_FAILURE; record_row; echo "state_session: $FIRST_FAILURE" >&2; exit 1; }
 fail_operation_deadline() {
     OPERATION_FAILURE_LABEL=$(printf '%s' "$ACTIVE_OPERATION" | tr '[:lower:]-' '[:upper:]_')
     fail "${OPERATION_FAILURE_LABEL}_DEADLINE"
@@ -142,9 +152,10 @@ run_child() {
     CHILD_START=$(clock_ms) || fail MONOTONIC_CLOCK_FAILURE; CHILD_DEADLINE=$((CHILD_START+CHILD_BUDGET))
     "$@" <"$CHILD_INPUT" >"$CHILD_OUT" 2>"$CHILD_ERR" & CHILD_PID=$!
     while kill -0 "$CHILD_PID" 2>/dev/null; do
-        [ -z "$HOST_PID" ] || host_alive || { reap_one "$CHILD_PID"; CHILD_PID=; fail HOST_DIED; }
+        [ -z "$HOST_PID" ] || host_alive || { stop_operation_clock || fail MONOTONIC_CLOCK_FAILURE; reap_one "$CHILD_PID"; CHILD_PID=; fail HOST_DIED; }
         CHILD_NOW=$(clock_ms) || fail MONOTONIC_CLOCK_FAILURE; [ "$CHILD_NOW" -ge "$CHILD_START" ] || fail CLOCK_MOVED_BACKWARD
         [ "$CHILD_NOW" -lt "$CHILD_DEADLINE" ] || {
+            stop_operation_clock || fail MONOTONIC_CLOCK_FAILURE
             reap_one "$CHILD_PID"; CHILD_PID=
             case "$CHILD_LIMIT_REASON" in
                 attempt) fail ATTEMPT_DEADLINE ;;

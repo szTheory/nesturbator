@@ -491,8 +491,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * read-only readiness reply retries; actions, state saves/loads, screenshots and QUIT are
  * one-shot, except for the prescribed forty individually paced rewind sends. A UDP send accepted
  * by the local socket is not proof that RetroArch received it; each retained image and native
- * origin is checked by the shared progression verdict. The journal records both attempt and
- * operation timing, and generated host config/log paths are sanitized.
+ * origin is checked by the shared progression verdict. The journal records operation time through
+ * terminal observation and attempt time through bounded child/host cleanup; generated host config
+ * and log paths are sanitized.
  * The required pinned-host run uses generated marker content in a distinct session, requires the
  * complete sixteen-boundary verdict, and checks dropped/doubled advances and a native-valid
  * wrong-origin branch through that same verdict. These observations prove the declared displayed
