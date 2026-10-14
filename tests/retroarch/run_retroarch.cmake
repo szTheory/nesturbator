@@ -44,12 +44,7 @@ cleanup() {
     status=$?
     trap - EXIT HUP INT TERM
     if [ -n "$CHILD_PID" ]; then
-        kill -TERM "$CHILD_PID" 2>/dev/null || true
-        _tries=0
-        while kill -0 "$CHILD_PID" 2>/dev/null && [ "$_tries" -lt 5 ]; do
-            /bin/sleep 0.02 || true
-            _tries=$((_tries+1))
-        done
+        # An interrupted mutation must not linger and send after the session fails.
         kill -KILL "$CHILD_PID" 2>/dev/null || true
         wait "$CHILD_PID" 2>/dev/null || true
         CHILD_PID=
