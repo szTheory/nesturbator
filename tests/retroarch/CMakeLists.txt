@@ -73,8 +73,9 @@ if(UNIX)
       "${CMAKE_CURRENT_SOURCE_DIR}/state_session.sh"
       "$<TARGET_FILE:frame_index>"
       "${CMAKE_CURRENT_BINARY_DIR}/session controls")
-  # 313.65 s isolated ASan; the macOS Intel lane measured about 2x local marker qualification.
-  set_tests_properties(retroarch.session.controls PROPERTIES TIMEOUT 540)
+  # Hosted ASan ran past 540 s after its 393.552 s of timed controls and before
+  # the full-control result; keep the aggregate bound finite with measured headroom.
+  set_tests_properties(retroarch.session.controls PROPERTIES TIMEOUT 720)
 endif()
 
 set(marker_rom ${CMAKE_CURRENT_BINARY_DIR}/marker.nes)

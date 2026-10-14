@@ -398,6 +398,15 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
         endif()
       endif()
 
+      # The intended production session needs a longer whole-attempt allowance
+      # for its sixteen qualified boundaries. Keep the production driver's
+      # 120 s default and all per-operation deadlines unchanged elsewhere.
+      set(driver_timeout 150)
+      if("${run_name}" STREQUAL "intended")
+        list(APPEND session_env "STATE_SESSION_ATTEMPT_MS=180000")
+        set(driver_timeout 210)
+      endif()
+
       hosted_monotonic_ms(run_start_ms)
       set(driver_command "${CMAKE_COMMAND}" -E env)
       list(APPEND driver_command ${session_env} sh "${SESSION_SCRIPT}"
@@ -409,7 +418,7 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
       # marker evidence root. The driver records all owned artifacts relatively.
       execute_process(COMMAND ${driver_command}
         RESULT_VARIABLE driver_result OUTPUT_VARIABLE driver_stdout ERROR_VARIABLE driver_stderr
-        TIMEOUT 150 WORKING_DIRECTORY "${project_root}")
+        TIMEOUT "${driver_timeout}" WORKING_DIRECTORY "${project_root}")
       hosted_monotonic_ms(run_end_ms)
       math(EXPR driver_elapsed_ms "${run_end_ms} - ${run_start_ms}")
 
