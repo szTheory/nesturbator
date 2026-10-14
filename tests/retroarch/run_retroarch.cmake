@@ -32,6 +32,90 @@
 # Needs a logged-in GUI session, because RetroArch opens a window.
 cmake_minimum_required(VERSION 3.25)
 
+function(hosted_write_fault_nc output real_nc cat_path)
+  string(REPLACE "@CAT@" "${cat_path}" hosted_nc_source [=[
+#!/bin/sh
+set -u
+CAT="@CAT@"
+REAL_NC="@REAL_NC@"
+REQUEST_FILE="${HOSTED_FAULT_STATE:?}.request.$$"
+CHILD_PID=
+cleanup() {
+    status=$?
+    trap - EXIT HUP INT TERM
+    if [ -n "$CHILD_PID" ]; then
+        kill -TERM "$CHILD_PID" 2>/dev/null || true
+        _tries=0
+        while kill -0 "$CHILD_PID" 2>/dev/null && [ "$_tries" -lt 5 ]; do
+            /bin/sleep 0.02 || true
+            _tries=$((_tries+1))
+        done
+        kill -KILL "$CHILD_PID" 2>/dev/null || true
+        wait "$CHILD_PID" 2>/dev/null || true
+        CHILD_PID=
+    fi
+    /bin/rm -f "$REQUEST_FILE"
+    exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+"$CAT" >"$REQUEST_FILE" || exit 1
+payload=$("$CAT" "$REQUEST_FILE")
+send_real() {
+    "$REAL_NC" "$@" <"$REQUEST_FILE" &
+    CHILD_PID=$!
+    if wait "$CHILD_PID"; then
+        CHILD_PID=
+        return 0
+    else
+        send_status=$?
+        # A trapped signal exits through cleanup while CHILD_PID is still set.
+        # A normal nonzero wait has already reaped this exact child.
+        CHILD_PID=
+        return "$send_status"
+    fi
+}
+
+if [ "$payload" = FRAMEADVANCE ] &&
+   { [ "${HOSTED_MARKER_FAULT:-}" = drop-advance ] ||
+     [ "${HOSTED_MARKER_FAULT:-}" = double-advance ]; } &&
+   /bin/mkdir "${HOSTED_FAULT_STATE:?}" 2>/dev/null; then
+    if [ "$HOSTED_MARKER_FAULT" = drop-advance ]; then
+        /usr/bin/printf 'fault=drop-advance\ntrigger=FRAMEADVANCE\ninjected_count=1\n' >"$HOSTED_FAULT_LOG"
+        exit 0
+    fi
+    /usr/bin/printf 'fault=double-advance\ntrigger=FRAMEADVANCE\ninjected_count=1\n' >"$HOSTED_FAULT_LOG"
+    send_real "$@" || exit $?
+    send_real "$@" || exit $?
+    exit 0
+fi
+send_real "$@"
+]=])
+  string(REPLACE "@REAL_NC@" "${real_nc}" hosted_nc_source "${hosted_nc_source}")
+  file(WRITE "${output}" "${hosted_nc_source}")
+  file(CHMOD "${output}" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+    GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+endfunction()
+
+# A shell control asks for the same generated action wrapper used by the
+# hosted lane, without requiring RetroArch or a GUI session.
+if(DEFINED HOSTED_FAULT_WRAPPER_SELFTEST_OUTPUT)
+  if(NOT DEFINED HOSTED_FAULT_WRAPPER_REAL_NC OR
+      "${HOSTED_FAULT_WRAPPER_REAL_NC}" STREQUAL "")
+    message(FATAL_ERROR "fault wrapper self-test needs HOSTED_FAULT_WRAPPER_REAL_NC")
+  endif()
+  find_program(HOSTED_FAULT_WRAPPER_CAT NAMES cat)
+  if(NOT HOSTED_FAULT_WRAPPER_CAT)
+    message(FATAL_ERROR "fault wrapper self-test needs cat")
+  endif()
+  hosted_write_fault_nc("${HOSTED_FAULT_WRAPPER_SELFTEST_OUTPUT}"
+    "${HOSTED_FAULT_WRAPPER_REAL_NC}" "${HOSTED_FAULT_WRAPPER_CAT}")
+  return()
+endif()
+
 # The required hosted marker job uses one root-relative entry point so it cannot
 # accidentally combine a marker ROM, core, or pinned app from different builds.
 if(HOSTED_MARKER)
@@ -82,6 +166,10 @@ if(HOSTED_MARKER)
   find_program(HOSTED_REAL_NC NAMES nc)
   if(NOT HOSTED_REAL_NC)
     message(FATAL_ERROR "HOSTED_MARKER needs the system nc used by the bounded driver")
+  endif()
+  find_program(HOSTED_CAT NAMES cat)
+  if(NOT HOSTED_CAT)
+    message(FATAL_ERROR "HOSTED_MARKER needs cat to retain the one-shot request")
   endif()
   file(READ "${ASSET_EVIDENCE}" hosted_asset_text)
   if(NOT hosted_asset_text MATCHES "expected SHA-256: ${HOSTED_PIN_SHA}" OR
@@ -295,28 +383,7 @@ if(MARKER_GATE)
     # native anchors and verdict executable remain the pinned production ones.
     set(hosted_fault_tools "${HOSTED_MARKER_ROOT}/fault-tools")
     file(MAKE_DIRECTORY "${hosted_fault_tools}")
-    string(REPLACE "@REAL_NC@" "${HOSTED_REAL_NC}" hosted_nc_source [=[
-#!/bin/sh
-set -eu
-payload=$(cat)
-if [ "$payload" = FRAMEADVANCE ] &&
-   { [ "${HOSTED_MARKER_FAULT:-}" = drop-advance ] ||
-     [ "${HOSTED_MARKER_FAULT:-}" = double-advance ]; } &&
-   /bin/mkdir "${HOSTED_FAULT_STATE:?}" 2>/dev/null; then
-    if [ "$HOSTED_MARKER_FAULT" = drop-advance ]; then
-        /usr/bin/printf 'fault=drop-advance\ntrigger=FRAMEADVANCE\ninjected_count=1\n' >"$HOSTED_FAULT_LOG"
-        exit 0
-    fi
-    /usr/bin/printf 'fault=double-advance\ntrigger=FRAMEADVANCE\ninjected_count=1\n' >"$HOSTED_FAULT_LOG"
-    /usr/bin/printf '%s' "$payload" | "@REAL_NC@" "$@"
-    /usr/bin/printf '%s' "$payload" | "@REAL_NC@" "$@"
-    exit 0
-fi
-/usr/bin/printf '%s' "$payload" | "@REAL_NC@" "$@"
-]=])
-    file(WRITE "${hosted_fault_tools}/nc-one-shot.sh" "${hosted_nc_source}")
-    file(CHMOD "${hosted_fault_tools}/nc-one-shot.sh" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
-      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+    hosted_write_fault_nc("${hosted_fault_tools}/nc-one-shot.sh" "${HOSTED_REAL_NC}" "${HOSTED_CAT}")
     set(hosted_index_source [=[
 #!/bin/sh
 set -eu
@@ -382,7 +449,8 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
       file(COPY_FILE "${ra_content}" "${run_root}/content/marker.nes")
 
       set(session_frame_index "${FRAME_INDEX}")
-      set(session_env "STATE_SESSION_RECORD_ROOT=${project_root}")
+      set(session_env "STATE_SESSION_RECORD_ROOT=${project_root}"
+        "STATE_SESSION_REAL_NC=${HOSTED_REAL_NC}")
       if(NOT fault STREQUAL "")
         list(APPEND session_env
           "HOSTED_MARKER_FAULT=${fault}"

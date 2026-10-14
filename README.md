@@ -1567,6 +1567,10 @@ and host logs are retained only in sanitized form. A local UDP send is not proof
 of host receipt; the retained images and native anchors are checked by the
 shared progression verdict. `PREFIX_OK` qualifies a declared continuation
 only; complete success requires all sixteen boundaries and terminal exit zero.
+Fault injection wraps only prescribed one-shot mutations; readiness reads use
+the real local `nc`. The wrapper supervises and reaps its own send child on
+interruption. This is bounded evidence for the pinned local-host run, not a
+guarantee of UDP delivery.
 
 The portable `retroarch.marker.qualify` control qualifies an owned generated NROM
 counter. It

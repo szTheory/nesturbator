@@ -96,6 +96,15 @@ nc_exec() {
     fi
     exec "$NC" "$@"
 }
+readiness_nc_exec() {
+    if [ -n "${STATE_SESSION_TEST_MODE:-}" ]; then
+        _readiness_nc=${STATE_SESSION_TEST_READINESS_NC:-$NC}
+        exec env "STATE_SESSION_TEST_EXPECTED_DIR=$ATTEMPT_DIR/states" \
+            "STATE_SESSION_TEST_SHOTS=$ATTEMPT_DIR/shots" "$_readiness_nc" "$@"
+    fi
+    _readiness_nc=${STATE_SESSION_REAL_NC:-nc}
+    exec "$_readiness_nc" "$@"
+}
 cleanup_quit() {
     [ -n "$HOST_PID" ] && host_alive || return 0
     [ "$QUIT_SENT" -eq 0 ] || return 0
@@ -207,7 +216,7 @@ probe_ready() {
         _reply="$ATTEMPT_DIR/reply-$_tries.txt"; _reply_err="$ATTEMPT_DIR/readiness-$_tries.err"
         _read_status=0
         run_child readiness "$_left" "$REQUEST" "$_reply" "$_reply_err" \
-            nc_exec -u -w "$_secs" 127.0.0.1 55355 || _read_status=$?
+            readiness_nc_exec -u -w "$_secs" 127.0.0.1 55355 || _read_status=$?
         printf 'GET_CONFIG_PARAM savestate_directory %s\n' "$ATTEMPT_DIR/states" >"$ATTEMPT_DIR/expected.txt"
         printf 'GET_CONFIG_PARAM savestate_directory %s' "$ATTEMPT_DIR/states" >"$ATTEMPT_DIR/expected-no-newline.txt"
         if cmp -s "$_reply" "$ATTEMPT_DIR/expected.txt" || cmp -s "$_reply" "$ATTEMPT_DIR/expected-no-newline.txt"; then

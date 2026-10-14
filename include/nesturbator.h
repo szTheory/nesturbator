@@ -491,7 +491,10 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * read-only readiness reply retries; only a complete exact reply for the isolated path is accepted,
  * even when its receive child reaches its per-read timeout. Actions, state saves/loads, screenshots
  * and QUIT are one-shot, except for the prescribed forty individually paced rewind sends. A
- * separate pair of valid startup captures must show strict forward progress before the first
+ * hosted fault wrapper applies only to those one-shot mutations; readiness reads use the real local
+ * transport, and interruption cleanup reaps the wrapper's owned send child. This is bounded local
+ * test evidence and does not guarantee that UDP sends reach a host. A separate pair of valid
+ * startup captures must show strict forward progress before the first
  * PAUSE_TOGGLE; the next two equal-frame captures prove the toggle held before the original anchor
  * is saved. A host that starts paused or stalls fails closed rather than treating a static image as
  * pause evidence. Those two startup captures are retained outside the sixteen canonical boundaries.

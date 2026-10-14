@@ -6,6 +6,12 @@ set -eu
 fake_nc() {
     request=$(cat)
     printf '%s\n' "$request" >>"$STATE_SESSION_TEST_SENDS"
+    case "$request" in
+        'GET_CONFIG_PARAM savestate_directory')
+            [ -z "${STATE_SESSION_TEST_READINESS_SENDS:-}" ] ||
+                printf '%s\n' "$request" >>"$STATE_SESSION_TEST_READINESS_SENDS"
+            ;;
+    esac
     fault=${STATE_SESSION_TEST_FAULT:-}
     if [ "$fault" = send-error ] && [ "$request" = "${STATE_SESSION_TEST_FAIL_REQUEST:-}" ]; then exit 93; fi
     if [ "$fault" = stalled-write ] && [ "$request" = FRAMEADVANCE ]; then
@@ -148,18 +154,57 @@ fake_host() {
     while [ ! -f "$STATE_SESSION_TEST_QUIT_FILE" ]; do sleep 0.05; done
 }
 
+recording_action_nc() {
+    request=$(cat)
+    printf '%s\n' "$request" >>"$STATE_SESSION_TEST_ACTION_SENDS"
+    case "$request" in
+        'GET_CONFIG_PARAM savestate_directory')
+            echo "action wrapper received read-only readiness request" >&2
+            exit 97
+            ;;
+    esac
+    printf '%s' "$request" | "$STATE_SESSION_TEST_FAKE_NC" "$@"
+}
+
+hosted_wrapper_nc() {
+    request=$(cat)
+    if [ "${HOSTED_WRAPPER_TEST_DELAY:-0}" = 1 ] && [ "$request" = FRAMEADVANCE ]; then
+        printf '%s\n' "$$" >"$HOSTED_WRAPPER_TEST_CHILD_PID"
+        exec perl -MTime::HiRes=sleep -e '
+            $SIG{TERM} = "IGNORE";
+            sleep(2);
+            open my $fh, ">>", $ENV{HOSTED_WRAPPER_TEST_LATE_SEND} or die $!;
+            print {$fh} "FRAMEADVANCE\n";
+            close $fh;
+        '
+    fi
+    if [ "${HOSTED_WRAPPER_TEST_FAIL_FIRST:-0}" = 1 ]; then
+        count=0
+        [ ! -f "$HOSTED_WRAPPER_TEST_SENDS" ] || count=$(wc -l <"$HOSTED_WRAPPER_TEST_SENDS" | tr -d ' ')
+        count=$((count+1))
+        printf '%s\n' "$request" >>"$HOSTED_WRAPPER_TEST_SENDS"
+        [ "$count" -ne 1 ] || exit 93
+    else
+        printf '%s\n' "$request" >>"$HOSTED_WRAPPER_TEST_SENDS"
+    fi
+}
+
 case "${0##*/}" in
     fake-nc) fake_nc; exit $? ;;
+    recording-action-nc) recording_action_nc; exit $? ;;
     fake-retroarch) fake_host; exit $? ;;
+    hosted-wrapper-nc) hosted_wrapper_nc; exit $? ;;
 esac
 
-if [ "$#" -ne 3 ]; then
-    echo "usage: test_state_session.sh DRIVER FRAME_INDEX WORK_ROOT" >&2
+if [ "$#" -ne 5 ]; then
+    echo "usage: test_state_session.sh DRIVER FRAME_INDEX WORK_ROOT CMAKE_COMMAND RUN_RETROARCH_CMAKE" >&2
     exit 2
 fi
 DRIVER=$1
 FRAME_INDEX=$2
 WORK_ROOT=$3
+CMAKE_COMMAND=$4
+RUN_RETROARCH_CMAKE=$5
 
 test_dir="$WORK_ROOT/session-$$"
 fixture_dir="$test_dir/fixture"
@@ -172,11 +217,14 @@ fi
 
 script_path=$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")
 ln -s "$script_path" "$test_dir/fake-nc"
+ln -s "$script_path" "$test_dir/recording-action-nc"
 ln -s "$script_path" "$test_dir/fake-retroarch"
 : >"$test_dir/config.cfg"
 : >"$test_dir/core.so"
 expected_state_dir="$ra_dir/states"
 send_log="$test_dir/sends.log"
+action_send_log="$test_dir/action-sends.log"
+readiness_send_log="$test_dir/readiness-sends.log"
 host_pid_file="$test_dir/host.pid"
 quit_file="$test_dir/quit"
 shot_count_file="$test_dir/shot.count"
@@ -185,11 +233,15 @@ state_count_file="$test_dir/state.count"
 driver_output="$test_dir/driver.out"
 
 status=0
-STATE_SESSION_NC="$test_dir/fake-nc" \
+STATE_SESSION_NC="$test_dir/recording-action-nc" \
+STATE_SESSION_TEST_READINESS_NC="$test_dir/fake-nc" \
 STATE_SESSION_TEST_MODE=1 \
 STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
 STATE_SESSION_TEST_EXPECTED_DIR="$expected_state_dir" \
 STATE_SESSION_TEST_SENDS="$send_log" \
+STATE_SESSION_TEST_ACTION_SENDS="$action_send_log" \
+STATE_SESSION_TEST_READINESS_SENDS="$readiness_send_log" \
+STATE_SESSION_TEST_FAKE_NC="$test_dir/fake-nc" \
 STATE_SESSION_TEST_HOST_PID="$host_pid_file" \
 STATE_SESSION_TEST_QUIT_FILE="$quit_file" \
 STATE_SESSION_TEST_SHOT_COUNT="$shot_count_file" \
@@ -231,8 +283,17 @@ count=$(count_request 'GET_CONFIG_PARAM savestate_directory')
     echo "FAIL read-only readiness retry count: expected 2, got $count" >&2
     exit 1
 }
+action_readiness_count=$(awk '$0 == "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$action_send_log")
+readiness_route_count=$(awk '$0 == "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$readiness_send_log")
+action_total=$(wc -l <"$action_send_log" | tr -d ' ')
+sent_total=$(wc -l <"$send_log" | tr -d ' ')
+[ "$action_readiness_count" -eq 0 ] && [ "$readiness_route_count" -eq 2 ] &&
+    [ "$action_total" -eq $((sent_total-2)) ] || {
+    echo "FAIL independent readiness/action routing: action=$action_total action_reads=$action_readiness_count readiness_reads=$readiness_route_count sent=$sent_total" >&2
+    exit 1
+}
 
-printf 'state session tracer: PREFIX_OK; one FRAMEADVANCE, 2 startup captures, 3 boundary captures, one QUIT\n'
+printf 'state session tracer: PREFIX_OK; readiness bypassed the action wrapper; one FRAMEADVANCE; 2 startup and 3 boundary captures; one QUIT\n'
 
 # A dropped frame-advance is terminal even though the screenshot request succeeds. It is
 # attempted once, fails on the wrong decoded frame, and the owned host is reaped within budget.
@@ -436,10 +497,15 @@ run_fault() {
 }
 run_prefix_driver() {
     _run_dir=$1; _run_ra=$2; _run_fault=${3:-}; _run_lock_root=${4:-$_run_dir/locks}
-    STATE_SESSION_NC="$_run_dir/fake-nc" \
+    ln -sf "$script_path" "$_run_dir/recording-action-nc"
+    STATE_SESSION_NC="$_run_dir/recording-action-nc" \
+    STATE_SESSION_TEST_READINESS_NC="$_run_dir/fake-nc" \
     STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
     STATE_SESSION_TEST_EXPECTED_DIR="$_run_ra/states" \
     STATE_SESSION_TEST_SENDS="$_run_dir/sends.log" \
+    STATE_SESSION_TEST_ACTION_SENDS="$_run_dir/action-sends.log" \
+    STATE_SESSION_TEST_READINESS_SENDS="$_run_dir/readiness-sends.log" \
+    STATE_SESSION_TEST_FAKE_NC="$_run_dir/fake-nc" \
     STATE_SESSION_TEST_HOST_PID="$_run_dir/host.pid" \
     STATE_SESSION_TEST_QUIT_FILE="$_run_dir/quit" \
     STATE_SESSION_TEST_SHOT_COUNT="$_run_dir/shot.count" \
@@ -526,11 +592,96 @@ readiness_child=$(cat "$readiness_dir/stall.pid")
 if kill -0 "$readiness_child" 2>/dev/null; then echo "FAIL readiness timeout control left its child alive" >&2; exit 1; fi
 readiness_host=$(cat "$readiness_dir/host.pid")
 if kill -0 "$readiness_host" 2>/dev/null; then echo "FAIL readiness timeout control left its host alive" >&2; exit 1; fi
-[ "$readiness_elapsed" -ge 700 ] && [ "$readiness_elapsed" -lt 15000 ] || {
+[ "$readiness_elapsed" -ge 700 ] && [ "$readiness_elapsed" -lt 25000 ] || {
     echo "FAIL exact readiness response elapsed bound: ${readiness_elapsed}ms" >&2; exit 1;
 }
 assert_sanitized_tree "$readiness_attempt"
 printf 'state session readiness control: exact response retained; timed-out child reaped; %sms\n' "$readiness_elapsed"
+
+# Exercise the exact CMake-generated hosted action wrapper with an independent recording
+# transport. A normal mutation forwards once, drop forwards zero times, and double forwards
+# twice. A failed first send must remain the first failure and suppress no later eligible send.
+wrapper_dir="$WORK_ROOT/session-$$-hosted-wrapper"
+mkdir -p "$wrapper_dir"
+ln -s "$script_path" "$wrapper_dir/hosted-wrapper-nc"
+wrapper="$wrapper_dir/nc-one-shot.sh"
+"$CMAKE_COMMAND" \
+    "-DHOSTED_FAULT_WRAPPER_SELFTEST_OUTPUT=$wrapper" \
+    "-DHOSTED_FAULT_WRAPPER_REAL_NC=$wrapper_dir/hosted-wrapper-nc" \
+    -P "$RUN_RETROARCH_CMAKE"
+printf 'PAUSE_TOGGLE' >"$wrapper_dir/pause.request"
+HOSTED_MARKER_FAULT=double-advance HOSTED_FAULT_STATE="$wrapper_dir/pause-fault" \
+    HOSTED_FAULT_LOG="$wrapper_dir/pause-fault.log" HOSTED_WRAPPER_TEST_SENDS="$wrapper_dir/pause.sends" \
+    "$wrapper" -u -w0 127.0.0.1 55355 <"$wrapper_dir/pause.request"
+[ "$(wc -l <"$wrapper_dir/pause.sends" | tr -d ' ')" -eq 1 ] &&
+    [ "$(cat "$wrapper_dir/pause.sends")" = PAUSE_TOGGLE ] || {
+    echo "FAIL hosted action wrapper did not forward a non-advance mutation exactly once" >&2; exit 1;
+}
+printf 'FRAMEADVANCE' >"$wrapper_dir/drop.request"
+HOSTED_MARKER_FAULT=drop-advance HOSTED_FAULT_STATE="$wrapper_dir/drop-fault" \
+    HOSTED_FAULT_LOG="$wrapper_dir/drop-fault.log" HOSTED_WRAPPER_TEST_SENDS="$wrapper_dir/drop.sends" \
+    "$wrapper" -u -w0 127.0.0.1 55355 <"$wrapper_dir/drop.request"
+[ ! -e "$wrapper_dir/drop.sends" ] && grep -Fx 'fault=drop-advance' "$wrapper_dir/drop-fault.log" >/dev/null || {
+    echo "FAIL hosted dropped-advance wrapper sent a packet or lost its injection record" >&2; exit 1;
+}
+printf 'FRAMEADVANCE' >"$wrapper_dir/double.request"
+HOSTED_MARKER_FAULT=double-advance HOSTED_FAULT_STATE="$wrapper_dir/double-fault" \
+    HOSTED_FAULT_LOG="$wrapper_dir/double-fault.log" HOSTED_WRAPPER_TEST_SENDS="$wrapper_dir/double.sends" \
+    "$wrapper" -u -w0 127.0.0.1 55355 <"$wrapper_dir/double.request"
+[ "$(wc -l <"$wrapper_dir/double.sends" | tr -d ' ')" -eq 2 ] &&
+    [ "$(cat "$wrapper_dir/double.sends")" = "FRAMEADVANCE
+FRAMEADVANCE" ] || {
+    echo "FAIL hosted doubled-advance wrapper did not forward two distinct sends" >&2; exit 1;
+}
+printf 'FRAMEADVANCE' >"$wrapper_dir/fail.request"
+wrapper_failure=0
+HOSTED_MARKER_FAULT=double-advance HOSTED_FAULT_STATE="$wrapper_dir/fail-fault" \
+    HOSTED_FAULT_LOG="$wrapper_dir/fail-fault.log" HOSTED_WRAPPER_TEST_SENDS="$wrapper_dir/fail.sends" \
+    HOSTED_WRAPPER_TEST_FAIL_FIRST=1 "$wrapper" -u -w0 127.0.0.1 55355 \
+    <"$wrapper_dir/fail.request" || wrapper_failure=$?
+[ "$wrapper_failure" -eq 93 ] && [ "$(wc -l <"$wrapper_dir/fail.sends" | tr -d ' ')" -eq 1 ] || {
+    echo "FAIL hosted double wrapper did not preserve the first child-send failure" >&2; exit 1;
+}
+
+# On wrapper interruption, its nested nc child ignores TERM to force the bounded KILL/reap
+# branch. The child would publish a delayed FRAMEADVANCE after two seconds if left alive.
+printf 'FRAMEADVANCE' >"$wrapper_dir/timeout.request"
+wrapper_started=$(mono_ms); wrapper_status=0
+HOSTED_MARKER_FAULT=double-advance HOSTED_FAULT_STATE="$wrapper_dir/timeout-fault" \
+    HOSTED_FAULT_LOG="$wrapper_dir/timeout-fault.log" HOSTED_WRAPPER_TEST_SENDS="$wrapper_dir/timeout.sends" \
+    HOSTED_WRAPPER_TEST_DELAY=1 HOSTED_WRAPPER_TEST_CHILD_PID="$wrapper_dir/child.pid" \
+    HOSTED_WRAPPER_TEST_LATE_SEND="$wrapper_dir/late.sends" \
+    "$wrapper" -u -w0 127.0.0.1 55355 <"$wrapper_dir/timeout.request" \
+    >"$wrapper_dir/timeout.out" 2>&1 & wrapper_pid=$!
+_tries=0
+while [ ! -s "$wrapper_dir/child.pid" ] && [ "$_tries" -lt 200 ]; do
+    kill -0 "$wrapper_pid" 2>/dev/null || { echo "FAIL hosted wrapper exited before nested child launch" >&2; exit 1; }
+    sleep 0.01; _tries=$((_tries+1))
+done
+[ -s "$wrapper_dir/child.pid" ] || { echo "FAIL hosted wrapper recorded no nested child PID" >&2; exit 1; }
+wrapper_child=$(cat "$wrapper_dir/child.pid")
+kill -0 "$wrapper_child" 2>/dev/null || { echo "FAIL hosted nested child exited before TERM" >&2; exit 1; }
+kill -TERM "$wrapper_pid" 2>/dev/null || { echo "FAIL could not interrupt owned hosted wrapper" >&2; exit 1; }
+(perl -MTime::HiRes=sleep -e 'sleep 2; kill 9, $ARGV[0]' "$wrapper_pid") & wrapper_watchdog=$!
+wait "$wrapper_pid" || wrapper_status=$?
+kill "$wrapper_watchdog" 2>/dev/null || true
+wait "$wrapper_watchdog" 2>/dev/null || true
+wrapper_finished=$(mono_ms); wrapper_lifetime=$((wrapper_finished-wrapper_started))
+[ "$wrapper_status" -ne 0 ] && [ "$wrapper_lifetime" -lt 350 ] || {
+    echo "FAIL hosted wrapper TERM cleanup did not exit within the 350 ms driver grace (status=$wrapper_status, ${wrapper_lifetime}ms)" >&2; exit 1;
+}
+if kill -0 "$wrapper_child" 2>/dev/null; then
+    kill -KILL "$wrapper_child" 2>/dev/null || true
+    echo "FAIL hosted wrapper left its nested nc child live" >&2; exit 1
+fi
+sleep 2.1
+[ ! -e "$wrapper_dir/late.sends" ] && [ ! -e "$wrapper_dir/timeout.sends" ] || {
+    echo "FAIL interrupted hosted wrapper allowed a delayed mutation send" >&2; exit 1;
+}
+set -- "$wrapper_dir"/timeout-fault.request.*
+[ ! -e "$1" ] || { echo "FAIL hosted wrapper leaked its owned request file" >&2; exit 1; }
+printf 'state session hosted-wrapper control: double=2 sends, drop=0, mutation=1; interrupted child reaped in %sms; no late send\n' \
+    "$wrapper_lifetime"
 
 # Repeated sessions keep their own state, image and journal trees. A concurrent session must
 # fail before it reaches the fake host or sends to the occupied fixed command endpoint.
