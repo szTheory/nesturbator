@@ -5,16 +5,16 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-10-13T22:24:11.354Z"
-last_activity: 2026-10-13
-last_activity_desc: Phase 16 execution started
-state_head: 7dcf5a1c048c51b62c796a79b73a7a9588660654
+stopped_at: Completed 16-03-PLAN.md
+last_updated: "2026-10-14T23:28:28.129Z"
+last_activity: 2026-10-14
+last_activity_desc: Completed Phase 16 Plan 03 with exact-head pinned-host evidence
+state_head: 855fa04d3e5ea44284fb3d85e06e268c289b4ead
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 6
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 — Host evidence and roadmap
+**Current focus:** Phase 16 Plan 04 — exact fixture identity and supplied-byte authentication; Plan 03 EVID-01/02 host gates passed
 
 ## Current Position
 
 Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
-Last activity: 2026-10-13 — Phase 16 execution started
+Last activity: 2026-10-14 — Phase 16 Plan 03 completed and EVID-01/02 verified
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -198,6 +198,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 16 P01 | 121 min | 2 tasks | 6 files |
 | Phase 16 P06 | 6min | 2 tasks | 1 files |
 | Phase 16 P02 | 34min | 2 tasks | 5 files |
+| Phase 16 P03 | 24h 52m | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -308,6 +309,9 @@ Recent decisions affecting current work:
 - [Phase 16]: Keep the evidence parser and progression semantics private to test tooling; no dependency, public API, native state format or emulator behavior changed.
 - [Phase 16]: Reject multiple frame candidates as AMBIGUOUS, and zero or mismatched candidates as IDENTITY; no candidate selection can make an observation fit a relation.
 - [Phase 16]: EVID-01 remains pending for Plan 16-03 real-host network acceptance.
+- [Phase 16]: Plan 16-03: EVID-01/02 complete only after exact-head pinned-host intended progression and reason-specific dropped, doubled, and wrong-origin proofs.
+- [Phase 16]: Plan 16-03: preserve one-shot mutations and per-operation deadlines; size only test/job enclosures from measured evidence.
+- [Phase 16]: Plan 16-03: keep timeout calculations tied to the fixed last-40 completed-run audit; later successful durations are observations.
 
 ### Pending Todos
 
@@ -331,6 +335,7 @@ v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` a
 - [Phase 15] Code review warnings WR-01 through WR-04 are closed (15-REVIEW-DISPOSITION.md, 15-REVIEW-FIX.md): WR-01 gate fails a missing head even without a base and WR-02 allow-file reasons survive `;` and `[`/`]` (68f8f44, four new selftests); WR-03 README and `stop.h` document the inherited SIG_IGN (5845467). Quick task 261013-cvm closed WR-04 with sampled run history and a five-minute floor for network-bound jobs; IN-01 to IN-03 remain open.
 - [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
+- **Resolved — 2026-10-14:** Phase 16 Plan 03 completed on exact head 46543ad; workflow 38651381295 passed all required jobs and retained the pinned-host intended, dropped, doubled, and valid wrong-origin proof. EVID-01/02 are complete. Earlier interrupted/failed samples and their diagnoses are recorded in 16-03-SUMMARY.md; the direct push authorization was followed through the normal reviewed path. Plan 16-04 is next.
 
 ### Quick Tasks Completed
 
@@ -365,13 +370,13 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-13T22:24:11.334Z
-Stopped at: Completed 16-02-PLAN.md
+Last session: 2026-10-14T23:28:28.114Z
+Stopped at: Completed 16-03-PLAN.md
 Resume file: None
 
 Next GSD command: $gsd-execute-phase 16
 
 ## Operator Next Steps
 
-- Run `$gsd-discuss-phase 16` as the next separate GSD step, then plan Phase 16 in a later command.
+- Continue the existing gsd-execute-phase 16 step with Plan 16-04 after this Plan 03 result is handed back.
 - Retain the historical performance, publication evidence and substantive debt above. SEED-003's baseline portion, SEED-004's remaining execution robustness and recurring SEED-006 upkeep are selected for v4; original deferred seed records remain historical, with current dispositions in PRODUCT-ROADMAP.md.

@@ -10,8 +10,8 @@ The user approved these requirements with the v4 proposal on 2026-10-13. The new
 
 ### Host evidence
 
-- [ ] **EVID-01**: The real-host progression check rejects dropped, doubled or wrong-load sequences using distinguishable frames or absolute state anchors, including negative controls for identical-image ambiguity.
-- [ ] **EVID-02**: Network-driven checks confirm bounded completion of safely retried requests and fail/restart unconfirmed non-idempotent actions; no blind FRAMEADVANCE or PAUSE_TOGGLE retry.
+- [x] **EVID-01**: The real-host progression check rejects dropped, doubled or wrong-load sequences using distinguishable frames or absolute state anchors, including negative controls for identical-image ambiguity.
+- [x] **EVID-02**: Network-driven checks confirm bounded completion of safely retried requests and fail/restart unconfirmed non-idempotent actions; no blind FRAMEADVANCE or PAUSE_TOGGLE retry.
 - [ ] **EVID-03**: Fixture selection uses exact content identity/basenames, and adversarial parent-directory names cannot change the selected path.
 - [ ] **EVID-04**: Released libretro metadata describes the implemented MMC3 support truthfully and agrees with documented supported profiles.
 
@@ -75,8 +75,8 @@ Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.
 
 | Requirement | Phase | Status |
 |---|---|---|
-| EVID-01 | Phase 16 | Pending |
-| EVID-02 | Phase 16 | Pending |
+| EVID-01 | Phase 16 | Complete |
+| EVID-02 | Phase 16 | Complete |
 | EVID-03 | Phase 16 | Pending |
 | EVID-04 | Phase 16 | Pending |
 | CONF-01 | Phase 17 | Pending |
