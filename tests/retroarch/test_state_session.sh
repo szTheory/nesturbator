@@ -509,7 +509,8 @@ complete_ra="$complete_dir/ra"
 mkdir -p "$complete_ra/shots" "$complete_ra/states"
 ln -s "$script_path" "$complete_dir/fake-nc"
 ln -s "$script_path" "$complete_dir/fake-retroarch"
-: >"$complete_dir/config.cfg"
+printf 'savestate_directory = "%s/states"\nscreenshot_directory = "%s/shots"\n' \
+    "$complete_ra" "$complete_ra" >"$complete_dir/config.cfg"
 : >"$complete_dir/core.so"
 complete_sends="$complete_dir/sends.log"
 complete_host="$complete_dir/host.pid"
@@ -528,6 +529,7 @@ STATE_SESSION_TEST_SHOT_COUNT="$complete_shots" \
 STATE_SESSION_TEST_READ_COUNT="$complete_reads" \
 STATE_SESSION_TEST_STATE_COUNT="$complete_states" \
 STATE_SESSION_TEST_MODE=complete \
+STATE_SESSION_RECORD_ROOT="$PWD" \
 STATE_SESSION_TEST_SHOTS="$complete_ra/shots" \
 STATE_SESSION_LOCK_ROOT="$complete_dir/locks" \
 STATE_SESSION_SETTLE_MS=0 \
@@ -552,4 +554,17 @@ for pair in 'PAUSE_TOGGLE:3' 'SAVE_STATE:2' 'FRAMEADVANCE:12' 'LOAD_STATE_SLOT 0
         exit 1
     }
 done
+set -- "$complete_ra"/attempts/attempt-*
+[ -d "$1" ] || { echo "FAIL complete record has no retained attempt tree" >&2; exit 1; }
+complete_attempt=$1
+assert_sanitized_tree "$complete_attempt"
+grep -Fx 'savestate_directory = "<attempt>/states"' "$complete_attempt/session.sanitized.cfg" >/dev/null || {
+    echo "FAIL complete session config did not replace its nested owned directory exactly once" >&2
+    exit 1
+}
+original_record_path=$(sed -n 's/^original_anchor_path=//p' "$complete_attempt/progression-session.rec")
+case "$original_record_path" in
+    /*) echo "FAIL complete progression record retained an absolute original-anchor path" >&2; exit 1 ;;
+esac
+[ -f "$original_record_path" ] || { echo "FAIL relative progression record path does not resolve from the session root" >&2; exit 1; }
 printf 'state session complete control: VERDICT_OK; sixteen boundaries; forty rewinds; exact one-shot counts\n'

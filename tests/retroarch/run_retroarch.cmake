@@ -438,6 +438,8 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
       file(STRINGS "${attempt_dir}/journal.tsv" journal_rows)
       list(LENGTH journal_rows journal_count)
       if(journal_count LESS 2)
+        file(APPEND "${HOSTED_MARKER_ROOT}/hosted-evidence.txt"
+          "${run_name}=failed result=${driver_result} reason=NO_TERMINAL_JOURNAL elapsed_ms=${driver_elapsed_ms}\n")
         message(FATAL_ERROR "HOSTED_MARKER ${run_name} retained no terminal journal row")
       endif()
       math(EXPR journal_last_index "${journal_count} - 1")

@@ -283,6 +283,7 @@ record_boundary() {
 }
 record_path() {
     _record_path=$1
+    [ -n "$_record_path" ] || { printf '\n'; return 0; }
     if [ -n "${STATE_SESSION_RECORD_ROOT:-}" ]; then
         case "$_record_path" in
             "$STATE_SESSION_RECORD_ROOT"/*) _record_path=${_record_path#"$STATE_SESSION_RECORD_ROOT"/} ;;
@@ -410,7 +411,7 @@ run_child fixture "$OPERATION_MS" "$EMPTY" "$ATTEMPT_DIR/fixture.out" "$ATTEMPT_
     "$FRAME_INDEX" --progression-selftest "$ATTEMPT_DIR/oracle-fixture" || fail ORACLE_FIXTURE
 cmp -s "$CONTENT" "$ATTEMPT_DIR/oracle-fixture/marker.nes" || fail CONTENT_FIXTURE_MISMATCH
 cmp -s "$CALIBRATION" "$ATTEMPT_DIR/oracle-fixture/calibration.txt" || fail CALIBRATION_FIXTURE_MISMATCH
-awk -v old="$RA_DIR" -v new="$ATTEMPT_DIR" '{line=$0;while((at=index(line,old))>0)line=substr(line,1,at-1)new substr(line,at+length(old));print line}' "$CFG" >"$ATTEMPT_DIR/session.cfg" || fail CONFIG_COPY
+awk -v old="$RA_DIR" -v new="$ATTEMPT_DIR" '{line=$0;at=index(line,old);if(at>0)line=substr(line,1,at-1)new substr(line,at+length(old));print line}' "$CFG" >"$ATTEMPT_DIR/session.cfg" || fail CONFIG_COPY
 env "HOME=$ATTEMPT_DIR/profile" "CFFIXED_USER_HOME=$ATTEMPT_DIR/profile" "XDG_CONFIG_HOME=$ATTEMPT_DIR/profile/.config" \
     "XDG_DATA_HOME=$ATTEMPT_DIR/profile/.local/share" "XDG_CACHE_HOME=$ATTEMPT_DIR/profile/.cache" \
     "$RA" --verbose -c "$ATTEMPT_DIR/session.cfg" -L "$CORE" "$CONTENT" >"$ATTEMPT_DIR/retroarch.log" 2>&1 &
