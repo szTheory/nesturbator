@@ -608,6 +608,7 @@ STATE_SESSION_TEST_MODE=complete \
 STATE_SESSION_RECORD_ROOT="$PWD" \
 STATE_SESSION_TEST_SHOTS="$complete_ra/shots" \
 STATE_SESSION_LOCK_ROOT="$complete_dir/locks" \
+STATE_SESSION_ATTEMPT_MS=180000 \
 STATE_SESSION_SETTLE_MS=0 \
 STATE_SESSION_PROGRESS_WAIT_MS=20 \
 sh "$DRIVER" "$complete_dir/fake-retroarch" "$complete_dir/config.cfg" "$complete_dir/core.so" \

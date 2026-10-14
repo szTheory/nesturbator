@@ -390,6 +390,11 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
           "HOSTED_FAULT_LOG=${run_root}/fault-injection.txt")
         if(fault STREQUAL "drop-advance" OR fault STREQUAL "double-advance")
           list(APPEND session_env "STATE_SESSION_NC=${hosted_fault_tools}/nc-one-shot.sh")
+          if(fault STREQUAL "double-advance")
+            # Let the real state file publish under the virtual host before the
+            # negative action; this remains inside the unchanged 30 s operation cap.
+            list(APPEND session_env "STATE_SESSION_PUBLICATION_MS=10000")
+          endif()
         elseif(fault STREQUAL "valid-wrong-origin")
           set(session_frame_index "${hosted_fault_tools}/frame-index-wrong-origin.sh")
           list(APPEND session_env "HOSTED_REAL_FRAME_INDEX=${FRAME_INDEX}")
