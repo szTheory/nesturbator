@@ -467,9 +467,11 @@ while [ "$_n" -le 2 ]; do
 done
 
 begin_operation resume-pause "$OPERATION_MS"; send_once PAUSE_TOGGLE resume
-sleep_ms "$PROGRESS_WAIT_MS" observed-forward-progress; capture boundary-11
+sleep_ms "$PROGRESS_WAIT_MS" observed-forward-progress
+send_once PAUSE_TOGGLE pause-after-progress; sleep_ms "$COMMAND_GAP_MS" pause-after-progress
+capture boundary-11
 [ "$BOUNDARY_FRAME" -gt $((ORIGINAL_ANCHOR_FRAME+3)) ] || fail RESUME_NOT_FORWARD
-send_once PAUSE_TOGGLE pause-after-progress; sleep_ms "$COMMAND_GAP_MS" pause-after-progress; finish_operation
+finish_operation
 record_boundary resume-and-pause resume-forward original 2 2 "$ORIGINAL_ANCHOR_ID" "$ORIGINAL_ANCHOR_FRAME" 0 0 "$OPERATION_ELAPSED_MS" "$OPERATION_DEADLINE_VALUE"; verify_prefix
 
 begin_operation rewind-burst "$OPERATION_MS"; _n=1

@@ -10,7 +10,7 @@ fake_nc() {
     if [ "$fault" = send-error ] && [ "$request" = "${STATE_SESSION_TEST_FAIL_REQUEST:-}" ]; then exit 93; fi
     if [ "$fault" = stalled-write ] && [ "$request" = FRAMEADVANCE ]; then
         printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
-        exec perl -MTime::HiRes=sleep -e 'sleep 20'
+        exec perl -MTime::HiRes=sleep -e 'sleep 60'
     fi
     case "$request" in
         'GET_CONFIG_PARAM savestate_directory')
@@ -298,7 +298,7 @@ assert_sanitized_tree() {
     }
 }
 run_fault() {
-    name=$1; expected=$2; fault=$3; fail_request=${4:-}; mode=${5:-prefix}; max_ms=${6:-20000}; ready_ms=${7:-30000}; publication_ms=${8:-300}; attempt_override=${9:-}
+    name=$1; expected=$2; fault=$3; fail_request=${4:-}; mode=${5:-prefix}; max_ms=${6:-20000}; ready_ms=${7:-30000}; publication_ms=${8:-300}; attempt_override=${9:-}; operation_override=${10:-30000}
     case_dir="$WORK_ROOT/session-$$-$name"; case_ra="$case_dir/ra"
     case_host_die=0; [ "$fault" != host-died ] || case_host_die=1
     mkdir -p "$case_ra/shots" "$case_ra/states"
@@ -325,7 +325,7 @@ run_fault() {
     STATE_SESSION_TEST_HOST_DIE="$case_host_die" \
     STATE_SESSION_LOCK_ROOT="$case_dir/locks" \
     STATE_SESSION_ATTEMPT_MS="$attempt_ms" \
-    STATE_SESSION_OPERATION_MS=30000 \
+    STATE_SESSION_OPERATION_MS="$operation_override" \
     STATE_SESSION_CLEANUP_MS=1000 \
     STATE_SESSION_READY_MS="$ready_ms" \
     STATE_SESSION_PUBLICATION_MS="$publication_ms" \
@@ -427,7 +427,9 @@ run_prefix_driver() {
 # actual shell driver and its shared production oracle, then require its own exact failure row.
 run_fault wrong-readiness READINESS_REPLY wrong-readiness
 run_fault stalled-read READINESS_DEADLINE stalled-read '' prefix 5000 350
-run_fault stalled-child-attempt-cap ATTEMPT_DEADLINE stalled-write FRAMEADVANCE prefix 16000 30000 300 12000
+# Setup must have time to launch the blocked FRAMEADVANCE child. Its 60 s stall and operation
+# ceiling exceed the 30 s attempt cap, so the test proves attempt-deadline cleanup deterministically.
+run_fault stalled-child-attempt-cap ATTEMPT_DEADLINE stalled-write FRAMEADVANCE prefix 45000 30000 300 30000 60000
 run_fault pause-send-once pause-original_SEND_FAILED send-error PAUSE_TOGGLE
 run_fault screenshot-send-once SCREENSHOT_SEND_FAILED send-error SCREENSHOT
 run_fault save-send-once save-original_SEND_FAILED send-error SAVE_STATE
@@ -443,8 +445,10 @@ run_fault corrupt-anchor ANCHOR_CONTAINER_SIZE corrupt-state
 run_fault valid-wrong-origin-anchor ANCHOR_NATIVE_ORIGIN wrong-save-origin
 run_fault doubled-advance ADVANCE_NOT_EXACTLY_ONE doubled-advance
 run_fault host-died HOST_DIED host-died '' prefix 20000 30000 300
-run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' complete 30000 30000 300
-run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 30000 30000 300
+# Hosted complete controls measured 34.879 s under ASan and 30.458 s on macOS arm64. Keep
+# the per-operation limit at 30 s while giving the whole deterministic control a finite 75 s cap.
+run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' complete 75000 30000 300
+run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 75000 30000 300
 run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 190000 30000 300 180000
 
 # Some native UDP clients can print a complete response and then remain alive until the per-read
@@ -626,6 +630,14 @@ for pair in 'PAUSE_TOGGLE:3' 'SAVE_STATE:2' 'FRAMEADVANCE:12' 'LOAD_STATE_SLOT 0
         exit 1
     }
 done
+awk '
+    $0 == "PAUSE_TOGGLE" { pauses++; if (pauses == 3) paused_boundary_line = NR }
+    $0 == "SCREENSHOT" { screenshots++; if (screenshots == 11) resume_boundary_line = NR }
+    END { exit !(paused_boundary_line && resume_boundary_line && paused_boundary_line < resume_boundary_line) }
+' "$complete_sends" || {
+    echo "FAIL resume-forward boundary was captured before the pause transition" >&2
+    exit 1
+}
 set -- "$complete_ra"/attempts/attempt-*
 [ -d "$1" ] || { echo "FAIL complete record has no retained attempt tree" >&2; exit 1; }
 complete_attempt=$1
