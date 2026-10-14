@@ -15,10 +15,7 @@
 #define PROGRESSION_FRAME_LAST 10000u
 #define PROGRESSION_RUNAHEAD_DISPLAY_LEAD 1
 
-typedef enum {
-    PROGRESSION_PREFIX = 1,
-    PROGRESSION_COMPLETE = 2
-} progression_mode;
+typedef enum { PROGRESSION_PREFIX = 1, PROGRESSION_COMPLETE = 2 } progression_mode;
 
 typedef enum {
     PROGRESSION_CAPTURE = 1,
@@ -207,8 +204,8 @@ static inline int progression_expect_line(const uint8_t *data, size_t size, size
     const uint8_t *line;
     size_t line_size;
     size_t expected_size = strlen(expected);
-    return progression_line(data, size, cursor, &line, &line_size) &&
-           line_size == expected_size && memcmp(line, expected, expected_size) == 0;
+    return progression_line(data, size, cursor, &line, &line_size) && line_size == expected_size &&
+           memcmp(line, expected, expected_size) == 0;
 }
 
 static inline int progression_take_value(const uint8_t *data, size_t size, size_t *cursor,
@@ -218,8 +215,8 @@ static inline int progression_take_value(const uint8_t *data, size_t size, size_
     const uint8_t *line;
     size_t line_size;
     size_t key_size = strlen(key);
-    if (!progression_line(data, size, cursor, &line, &line_size) ||
-        line_size < key_size + 1u || memcmp(line, key, key_size) != 0 || line[key_size] != '=')
+    if (!progression_line(data, size, cursor, &line, &line_size) || line_size < key_size + 1u ||
+        memcmp(line, key, key_size) != 0 || line[key_size] != '=')
         return 0;
     size_t n = line_size - key_size - 1u;
     if (n >= capacity)
@@ -354,7 +351,8 @@ static inline const char *progression_parse_record(const uint8_t *data, size_t s
         session->mode = PROGRESSION_COMPLETE;
     else
         return "PARSE";
-    if (!progression_take_hex(data, size, &cursor, "content_identity", &session->content_identity) ||
+    if (!progression_take_hex(data, size, &cursor, "content_identity",
+                              &session->content_identity) ||
         !progression_take_hex(data, size, &cursor, "calibration_identity",
                               &session->calibration_identity) ||
         !progression_take_value(data, size, &cursor, "terminal_exit", text, sizeof text, NULL))
@@ -554,16 +552,15 @@ static inline const char *progression_verdict(const progression_session *session
         if (b->candidate_count == 0u || b->candidate_first != b->display_frame ||
             b->candidate_last != b->display_frame)
             return "IDENTITY";
-        if (b->display_frame < PROGRESSION_FRAME_FIRST ||
-            b->display_frame > PROGRESSION_FRAME_LAST)
+        if (b->display_frame < PROGRESSION_FRAME_FIRST || b->display_frame > PROGRESSION_FRAME_LAST)
             return "IDENTITY";
         if (b->deadline_ms == 0u || b->elapsed_ms > b->deadline_ms)
             return "DEADLINE";
         if (!b->process_alive)
             return "PROCESS";
         if (b->operation != operation || b->relation != relation || b->origin != origin ||
-            b->command_count != commands || b->send_count != sends ||
-            b->expected_delta != delta || b->display_lead != lead)
+            b->command_count != commands || b->send_count != sends || b->expected_delta != delta ||
+            b->display_lead != lead)
             return "PROGRESSION";
         for (uint32_t j = 0; j < i; ++j) {
             const progression_boundary *prior = &session->boundaries[j];
