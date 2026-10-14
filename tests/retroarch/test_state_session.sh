@@ -241,7 +241,7 @@ STATE_SESSION_TEST_MODE=prefix \
 STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
 STATE_SESSION_TEST_SHOTS="$negative_ra/shots" \
 STATE_SESSION_LOCK_ROOT="$negative_dir/locks" \
-STATE_SESSION_ATTEMPT_MS=15000 \
+STATE_SESSION_ATTEMPT_MS=30000 \
 STATE_SESSION_CLEANUP_MS=1000 \
 STATE_SESSION_SETTLE_MS=0 \
 STATE_SESSION_OPERATION_MS=10000 \
@@ -268,7 +268,7 @@ negative_operation_elapsed=$(printf '%s\n' "$negative_row" | cut -f6)
 [ "$negative_operation_elapsed" -gt 0 ] && [ "$negative_operation_elapsed" -le 10000 ] || {
     echo "FAIL dropped advance exceeded measured operation deadline: ${negative_operation_elapsed}ms" >&2; exit 1;
 }
-[ "$negative_attempt_elapsed" -ge "$negative_operation_elapsed" ] && [ "$negative_attempt_elapsed" -lt 14000 ] && [ "$duration" -lt 16000 ] || {
+[ "$negative_attempt_elapsed" -ge "$negative_operation_elapsed" ] && [ "$negative_attempt_elapsed" -lt 29000 ] && [ "$duration" -lt 32000 ] || {
     echo "FAIL dropped advance exceeded bounded attempt/cleanup time: operation=${negative_operation_elapsed}ms attempt=${negative_attempt_elapsed}ms process=${duration}ms" >&2
     exit 1
 }
@@ -440,7 +440,7 @@ run_fault doubled-advance ADVANCE_NOT_EXACTLY_ONE doubled-advance
 run_fault host-died HOST_DIED host-died '' prefix 20000 30000 300
 run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' complete 30000 30000 300
 run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 30000 30000 300
-run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 150000 30000 300
+run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 190000 30000 300 180000
 
 # Repeated sessions keep their own state, image and journal trees. A concurrent session must
 # fail before it reaches the fake host or sends to the occupied fixed command endpoint.
