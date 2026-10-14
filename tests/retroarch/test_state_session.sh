@@ -174,6 +174,10 @@ recording_action_nc() {
 
 hosted_wrapper_nc() {
     request=$(cat)
+    if [ -n "${HOSTED_WRAPPER_TEST_TIMES:-}" ]; then
+        printf '%s\n' "$(perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000')" \
+            >>"$HOSTED_WRAPPER_TEST_TIMES"
+    fi
     if [ "${HOSTED_WRAPPER_TEST_DELAY:-0}" = 1 ] && [ "$request" = FRAMEADVANCE ]; then
         printf '%s\n' "$$" >"$HOSTED_WRAPPER_TEST_CHILD_PID"
         exec perl -MTime::HiRes=sleep -e '
@@ -662,13 +666,27 @@ HOSTED_MARKER_FAULT=drop-advance HOSTED_FAULT_STATE="$wrapper_dir/drop-fault" \
     echo "FAIL hosted dropped-advance wrapper sent a packet or lost its injection record" >&2; exit 1;
 }
 printf 'FRAMEADVANCE' >"$wrapper_dir/double.request"
+wrapper_double_started=$(mono_ms)
 HOSTED_MARKER_FAULT=double-advance HOSTED_FAULT_STATE="$wrapper_dir/double-fault" \
     HOSTED_FAULT_LOG="$wrapper_dir/double-fault.log" HOSTED_WRAPPER_TEST_SENDS="$wrapper_dir/double.sends" \
+    HOSTED_WRAPPER_TEST_TIMES="$wrapper_dir/double.times" \
     "$wrapper" -u -w0 127.0.0.1 55355 <"$wrapper_dir/double.request"
 [ "$(wc -l <"$wrapper_dir/double.sends" | tr -d ' ')" -eq 2 ] &&
     [ "$(cat "$wrapper_dir/double.sends")" = "FRAMEADVANCE
 FRAMEADVANCE" ] || {
     echo "FAIL hosted doubled-advance wrapper did not forward two distinct sends" >&2; exit 1;
+}
+set -- $(cat "$wrapper_dir/double.times")
+[ "$#" -eq 2 ] || { echo "FAIL hosted doubled-advance wrapper did not timestamp both sends" >&2; exit 1; }
+first_double_send_ms=$1; second_double_send_ms=$2
+wrapper_double_gap=$((second_double_send_ms-first_double_send_ms))
+wrapper_double_finished=$(mono_ms)
+wrapper_double_elapsed=$((wrapper_double_finished-wrapper_double_started))
+[ "$wrapper_double_gap" -ge 200 ] && [ "$wrapper_double_gap" -le 2000 ] &&
+    [ "$wrapper_double_elapsed" -ge 200 ] &&
+    grep -Fx 'forwarded_send_count=2' "$wrapper_dir/double-fault.log" >/dev/null &&
+    grep -E '^inter_send_gap_ms=[0-9]+$' "$wrapper_dir/double-fault.log" >/dev/null || {
+    echo "FAIL hosted doubled-advance requests were not separated within the finite host-processing window (${wrapper_double_gap}ms, ${wrapper_double_elapsed}ms)" >&2; exit 1;
 }
 printf 'FRAMEADVANCE' >"$wrapper_dir/fail.request"
 wrapper_failure=0

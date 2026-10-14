@@ -57,19 +57,26 @@ trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+hosted_monotonic_ms() {
+    /usr/bin/perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000'
+}
+
 "$CAT" >"$REQUEST_FILE" || exit 1
 payload=$("$CAT" "$REQUEST_FILE")
 send_real() {
+    SEND_START_MS=$(hosted_monotonic_ms) || return 1
     "$REAL_NC" "$@" <"$REQUEST_FILE" &
     CHILD_PID=$!
     if wait "$CHILD_PID"; then
         CHILD_PID=
+        SEND_END_MS=$(hosted_monotonic_ms) || return 1
         return 0
     else
         send_status=$?
         # A trapped signal exits through cleanup while CHILD_PID is still set.
         # A normal nonzero wait has already reaped this exact child.
         CHILD_PID=
+        SEND_END_MS=$(hosted_monotonic_ms) || return 1
         return "$send_status"
     fi
 }
@@ -84,7 +91,19 @@ if [ "$payload" = FRAMEADVANCE ] &&
     fi
     /usr/bin/printf 'fault=double-advance\ntrigger=FRAMEADVANCE\ninjected_count=1\n' >"$HOSTED_FAULT_LOG"
     send_real "$@" || exit $?
+    first_send_start_ms=$SEND_START_MS
+    first_send_end_ms=$SEND_END_MS
+    # Separate the duplicate beyond several host-frame intervals so the
+    # released host can process each one-shot UDP request independently.
+    /usr/bin/perl -MTime::HiRes=sleep -e 'sleep 0.25' || exit $?
+    second_send_ready_ms=$(hosted_monotonic_ms) || exit 1
     send_real "$@" || exit $?
+    second_send_start_ms=$SEND_START_MS
+    second_send_end_ms=$SEND_END_MS
+    inter_send_gap_ms=$((second_send_start_ms-first_send_end_ms))
+    /usr/bin/printf 'forwarded_send_count=2\nfirst_send_start_ms=%s\nfirst_send_end_ms=%s\nsecond_send_ready_ms=%s\nsecond_send_start_ms=%s\nsecond_send_end_ms=%s\ninter_send_gap_ms=%s\n' \
+        "$first_send_start_ms" "$first_send_end_ms" "$second_send_ready_ms" \
+        "$second_send_start_ms" "$second_send_end_ms" "$inter_send_gap_ms" >>"$HOSTED_FAULT_LOG"
     exit 0
 fi
 send_real "$@"
@@ -673,6 +692,22 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
         file(READ "${run_root}/fault-injection.txt" injection_record)
         if(NOT injection_record MATCHES "injected_count=1")
           message(FATAL_ERROR "HOSTED_MARKER ${run_name} injection count is not exactly one")
+        endif()
+        if(fault STREQUAL "double-advance")
+          file(STRINGS "${run_root}/fault-injection.txt" forwarded_lines
+            REGEX "^forwarded_send_count=[0-9]+$")
+          file(STRINGS "${run_root}/fault-injection.txt" gap_lines
+            REGEX "^inter_send_gap_ms=[0-9]+$")
+          list(LENGTH forwarded_lines forwarded_line_count)
+          list(LENGTH gap_lines gap_line_count)
+          if(NOT forwarded_line_count EQUAL 1 OR NOT gap_line_count EQUAL 1 OR
+              NOT forwarded_lines MATCHES "forwarded_send_count=2")
+            message(FATAL_ERROR "HOSTED_MARKER double-advance did not retain two timed one-shot forwards")
+          endif()
+          string(REGEX REPLACE "^[^=]*=" "" inter_send_gap_ms "${gap_lines}")
+          if(inter_send_gap_ms LESS 200 OR inter_send_gap_ms GREATER 2000)
+            message(FATAL_ERROR "HOSTED_MARKER double-advance send spacing is outside 200-2000 ms: ${inter_send_gap_ms}")
+          endif()
         endif()
         if(fault STREQUAL "valid-wrong-origin")
           if(NOT EXISTS "${attempt_dir}/original-anchor.state" OR
