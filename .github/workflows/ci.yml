@@ -192,10 +192,8 @@ jobs:
   # game. Its screenshot is retained for diagnosis and reproducibility.
   retroarch-e2e:
     runs-on: macos-15
-    # Provisional 36-minute cap from measured components in run 38570294706 plus the projected remaining path;
-    # that run's previous 14-minute cap cancelled the e2e job. After a successful proof, replace the projection
-    # with its actual whole-job duration and confirm the ENGINEERING section 5 two-times timeout, rounded up.
-    timeout-minutes: 36
+    # Twice the successful 1,174 s whole-job duration in run 38641853044 (head 9d2eb0b), rounded up to 40 minutes, ENGINEERING section 5.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

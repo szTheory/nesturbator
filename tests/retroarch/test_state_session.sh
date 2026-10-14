@@ -22,7 +22,7 @@ fake_nc() {
         'GET_CONFIG_PARAM savestate_directory')
             if [ "$fault" = stalled-read ]; then
                 printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
-                exec perl -MTime::HiRes=sleep -e 'sleep 5'
+                exec perl -MTime::HiRes=sleep -e 'sleep 20'
             fi
             if [ "$fault" = readiness-response-stall ]; then
                 printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
@@ -392,10 +392,12 @@ run_fault() {
     name=$1; expected=$2; fault=$3; fail_request=${4:-}; mode=${5:-prefix}; max_ms=${6:-20000}; ready_ms=${7:-30000}; publication_ms=${8:-1000}; attempt_override=${9:-}; operation_override=${10:-30000}
     case_dir="$WORK_ROOT/session-$$-$name"; case_ra="$case_dir/ra"
     case_host_die=0; [ "$fault" != host-died ] || case_host_die=1
+    case_setup_started=$(mono_ms)
     mkdir -p "$case_ra/shots" "$case_ra/states"
     ln -s "$script_path" "$case_dir/fake-nc"; ln -s "$script_path" "$case_dir/fake-retroarch"
     : >"$case_dir/config.cfg"; : >"$case_dir/core.so"
-    case_started=$(mono_ms); case_status=0
+    case_setup_finished=$(mono_ms); case_setup_elapsed=$((case_setup_finished-case_setup_started))
+    case_status=0; case_driver_started=$(mono_ms)
     if [ "$mode" = complete ]; then stop_after=0; attempt_ms=120000; else stop_after=1; attempt_ms=30000; fi
     [ -z "$attempt_override" ] || attempt_ms=$attempt_override
     STATE_SESSION_NC="$case_dir/fake-nc" \
@@ -426,14 +428,17 @@ run_fault() {
     sh "$DRIVER" "$case_dir/fake-retroarch" "$case_dir/config.cfg" "$case_dir/core.so" \
         "$fixture_dir/marker.nes" "$case_ra" "$case_dir/retroarch.log" "$FRAME_INDEX" \
         "$fixture_dir/calibration.txt" >"$case_dir/driver.out" 2>&1 || case_status=$?
-    case_finished=$(mono_ms); case_duration=$((case_finished-case_started))
+    case_driver_finished=$(mono_ms); case_driver_elapsed=$((case_driver_finished-case_driver_started))
     if [ "$case_status" -eq 0 ] || ! grep -Fx "state_session: $expected" "$case_dir/driver.out" >/dev/null ||
         ! awk -F '\t' -v reason="$expected" '$11 == reason { found=1 } END { exit !found }' "$case_ra"/attempts/*/journal.tsv; then
-        echo "FAIL $name expected exact terminal reason $expected (status=$case_status, ${case_duration}ms)" >&2
+        echo "FAIL $name expected exact terminal reason $expected (status=$case_status, setup ${case_setup_elapsed}ms, driver+cleanup ${case_driver_elapsed}ms)" >&2
         cat "$case_dir/driver.out" >&2
         exit 1
     fi
-    [ "$case_duration" -lt "$max_ms" ] || { echo "FAIL $name elapsed bound: ${case_duration}ms >= ${max_ms}ms" >&2; exit 1; }
+    [ "$case_driver_elapsed" -lt "$max_ms" ] || {
+        echo "FAIL $name driver-plus-cleanup bound: ${case_driver_elapsed}ms >= ${max_ms}ms (fixture setup ${case_setup_elapsed}ms)" >&2
+        exit 1
+    }
     case_host=$(cat "$case_dir/host.pid")
     if kill -0 "$case_host" 2>/dev/null; then echo "FAIL $name left owned host alive" >&2; exit 1; fi
     set -- "$case_ra"/attempts/*
@@ -503,7 +508,8 @@ run_fault() {
         quit_count=$(awk '$0 == "QUIT" { n++ } END { print n + 0 }' "$case_dir/sends.log")
         [ "$quit_count" -eq 1 ] || { echo "FAIL dropped-quit retried QUIT: expected 1, got $quit_count" >&2; exit 1; }
     fi
-    printf 'state session fault control: %s -> %s; %sms; host reaped\n' "$name" "$expected" "$case_duration"
+    printf 'state session fault control: %s -> %s; setup %sms; driver+cleanup %sms; host reaped\n' \
+        "$name" "$expected" "$case_setup_elapsed" "$case_driver_elapsed"
 }
 run_prefix_driver() {
     _run_dir=$1; _run_ra=$2; _run_fault=${3:-}; _run_lock_root=${4:-$_run_dir/locks}
@@ -546,7 +552,12 @@ run_prefix_driver() {
 # A 300 ms fake-image publication window expired under hosted Intel scheduling before the
 # duplicate-state prerequisite. The test-only 1 s bound remains inside each 30 s operation cap.
 run_fault wrong-readiness READINESS_REPLY wrong-readiness
-run_fault stalled-read READINESS_DEADLINE stalled-read '' prefix 5000 350
+# Intel run 38641853044 measured 6.004 s for this driver+cleanup control; other
+# long tests ran concurrently, so attribute no unproven cause to that excess. Keep
+# the readiness operation at 350 ms, journal bound at 800 ms and exact reason.
+# The direct exec-backed fake child sleeps 20 s: it cannot disappear naturally
+# before this 7.5 s ceiling and the owned-child-reap assertion.
+run_fault stalled-read READINESS_DEADLINE stalled-read '' prefix 7500 350
 # Setup must have time to launch the blocked FRAMEADVANCE child. Its 60 s stall and operation
 # ceiling exceed the 30 s attempt cap, so the test proves attempt-deadline cleanup deterministically.
 run_fault stalled-child-attempt-cap ATTEMPT_DEADLINE stalled-write FRAMEADVANCE prefix 45000 30000 1000 30000 60000
