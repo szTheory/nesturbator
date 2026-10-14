@@ -488,22 +488,22 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * The network driver gives each attempt a private local tree and monotonic child, operation and
  * attempt deadlines. It validates all sixteen displayed-state boundaries against the generated
  * absolute-frame marker window, retaining native origins before slot reuse. Only the exact
- * read-only readiness reply retries; actions, state saves/loads, screenshots and QUIT are
- * one-shot, except for the prescribed forty individually paced rewind sends. A UDP send accepted
- * by the local socket is not proof that RetroArch received it; each retained image and native
- * origin is checked by the shared progression verdict. The journal records operation time through
- * terminal observation and attempt time through bounded child/host cleanup; generated host config
- * and log paths are sanitized.
- * The required pinned-host run uses generated marker content in a distinct session, requires the
- * complete sixteen-boundary verdict, and checks dropped/doubled advances and a native-valid
- * wrong-origin branch through that same verdict. These observations prove the declared displayed
- * progression and retained origins; they do not prove every committed machine field or audio.
- * Portable whole-state and audio tests retain their broader proofs.
- * Loading restores frame_number and ticks, so the first frame after a load reports the frame
- * number and ticks of the uninterrupted run. The frame buffer and the audio are not in a state.
- * Load never returns NESTURBATOR_STOP_JAM: a state saved after a JAM opcode restores the latch
- * and the next nesturbator_run_frame returns NESTURBATOR_STOP_JAM, and a state saved before one
- * clears it.
+ * read-only readiness reply retries; only a complete exact reply for the isolated path is accepted,
+ * even when its receive child reaches its per-read timeout. Actions, state saves/loads, screenshots
+ * and QUIT are one-shot, except for the prescribed forty individually paced rewind sends. A
+ * UDP send accepted by the local socket is not proof that RetroArch received it; each retained
+ * image and native origin is checked by the shared progression verdict. The journal records
+ * operation time through terminal observation and attempt time through bounded child/host cleanup;
+ * generated host config and log paths are sanitized. The required pinned-host run uses generated
+ * marker content in a distinct session, requires the complete sixteen-boundary verdict, and checks
+ * dropped/doubled advances and a native-valid wrong-origin branch through that same verdict. These
+ * observations prove the declared displayed progression and retained origins; they do not prove
+ * every committed machine field or audio. Portable whole-state and audio tests retain their broader
+ * proofs. Loading restores frame_number and ticks, so the first frame after a load reports the
+ * frame number and ticks of the uninterrupted run. The frame buffer and the audio are not in a
+ * state. Load never returns NESTURBATOR_STOP_JAM: a state saved after a JAM opcode restores the
+ * latch and the next nesturbator_run_frame returns NESTURBATOR_STOP_JAM, and a state saved before
+ * one clears it.
  *
  * Layout (every length and offset is in bytes; every multi-byte field is little-endian, written
  * one byte at a time, never as a struct copy):

@@ -18,6 +18,11 @@ fake_nc() {
                 printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
                 exec perl -MTime::HiRes=sleep -e 'sleep 5'
             fi
+            if [ "$fault" = readiness-response-stall ]; then
+                printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
+                printf 'GET_CONFIG_PARAM savestate_directory %s' "$STATE_SESSION_TEST_EXPECTED_DIR"
+                exec perl -MTime::HiRes=sleep -e 'sleep 5'
+            fi
             if [ "$fault" = stale-publication ]; then
                 cp "$STATE_SESSION_TEST_FIXTURE/pause capture one.ppm" "$STATE_SESSION_TEST_SHOTS/stale.ppm"
             fi
@@ -388,7 +393,7 @@ run_fault() {
     printf 'state session fault control: %s -> %s; %sms; host reaped\n' "$name" "$expected" "$case_duration"
 }
 run_prefix_driver() {
-    _run_dir=$1; _run_ra=$2
+    _run_dir=$1; _run_ra=$2; _run_fault=${3:-}; _run_lock_root=${4:-$_run_dir/locks}
     STATE_SESSION_NC="$_run_dir/fake-nc" \
     STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
     STATE_SESSION_TEST_EXPECTED_DIR="$_run_ra/states" \
@@ -400,12 +405,12 @@ run_prefix_driver() {
     STATE_SESSION_TEST_STATE_COUNT="$_run_dir/state.count" \
     STATE_SESSION_TEST_STALL_PID="$_run_dir/stall.pid" \
     STATE_SESSION_TEST_FAIL_REQUEST='' \
-    STATE_SESSION_TEST_FAULT='' \
+    STATE_SESSION_TEST_FAULT="$_run_fault" \
     STATE_SESSION_TEST_MODE=prefix \
     STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
     STATE_SESSION_TEST_SHOTS="$_run_ra/shots" \
     STATE_SESSION_TEST_HOST_DIE=0 \
-    STATE_SESSION_LOCK_ROOT="$shared_lock_root" \
+    STATE_SESSION_LOCK_ROOT="$_run_lock_root" \
     STATE_SESSION_ATTEMPT_MS=30000 \
     STATE_SESSION_OPERATION_MS=30000 \
     STATE_SESSION_CLEANUP_MS=1000 \
@@ -442,6 +447,38 @@ run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' c
 run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 30000 30000 300
 run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 190000 30000 300 180000
 
+# Some native UDP clients can print a complete response and then remain alive until the per-read
+# timeout. The production parser must validate those exact bytes before treating that child timeout
+# as a lost read, then reap the child and continue once within the readiness operation budget.
+readiness_dir="$WORK_ROOT/session-$$-readiness-response"; readiness_ra="$readiness_dir/ra"
+mkdir -p "$readiness_ra/shots" "$readiness_ra/states"
+ln -s "$script_path" "$readiness_dir/fake-nc"; ln -s "$script_path" "$readiness_dir/fake-retroarch"
+: >"$readiness_dir/config.cfg"; : >"$readiness_dir/core.so"
+readiness_started=$(mono_ms); readiness_status=0
+run_prefix_driver "$readiness_dir" "$readiness_ra" readiness-response-stall >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
+readiness_finished=$(mono_ms); readiness_elapsed=$((readiness_finished-readiness_started))
+[ "$readiness_status" -eq 0 ] && grep -F 'verdict=PREFIX_OK' "$readiness_dir/driver.out" >/dev/null || {
+    echo "FAIL exact response before per-read timeout did not proceed (status=$readiness_status)" >&2
+    cat "$readiness_dir/driver.out" >&2; exit 1;
+}
+set -- "$readiness_ra"/attempts/*; readiness_attempt=$1
+awk -F '\t' 'NR > 1 && $1 == "readiness" { count++; if ($3 != 1 || $10 != "exact-isolated-path" || $11 != "OK") exit 1 } END { exit !(count == 1) }' \
+    "$readiness_attempt/journal.tsv" || { echo "FAIL exact-readiness response was not accepted in one attempt" >&2; exit 1; }
+readiness_operation_ms=$(awk -F '\t' 'NR > 1 && $1 == "readiness" { print $6 }' "$readiness_attempt/journal.tsv")
+[ "$readiness_operation_ms" -gt 0 ] && [ "$readiness_operation_ms" -lt 3000 ] || {
+    echo "FAIL exact readiness response exceeded its measured operation bound: ${readiness_operation_ms}ms" >&2; exit 1;
+}
+[ -s "$readiness_dir/stall.pid" ] || { echo "FAIL readiness timeout control recorded no owned child" >&2; exit 1; }
+readiness_child=$(cat "$readiness_dir/stall.pid")
+if kill -0 "$readiness_child" 2>/dev/null; then echo "FAIL readiness timeout control left its child alive" >&2; exit 1; fi
+readiness_host=$(cat "$readiness_dir/host.pid")
+if kill -0 "$readiness_host" 2>/dev/null; then echo "FAIL readiness timeout control left its host alive" >&2; exit 1; fi
+[ "$readiness_elapsed" -ge 700 ] && [ "$readiness_elapsed" -lt 15000 ] || {
+    echo "FAIL exact readiness response elapsed bound: ${readiness_elapsed}ms" >&2; exit 1;
+}
+assert_sanitized_tree "$readiness_attempt"
+printf 'state session readiness control: exact response retained; timed-out child reaped; %sms\n' "$readiness_elapsed"
+
 # Repeated sessions keep their own state, image and journal trees. A concurrent session must
 # fail before it reaches the fake host or sends to the occupied fixed command endpoint.
 shared_dir="$WORK_ROOT/session-$$-isolation"; shared_lock_root="$shared_dir/locks"
@@ -452,7 +489,7 @@ for _dir in "$first_dir" "$second_dir"; do
     ln -s "$script_path" "$_dir/fake-nc"; ln -s "$script_path" "$_dir/fake-retroarch"
     : >"$_dir/config.cfg"; : >"$_dir/core.so"
 done
-run_prefix_driver "$first_dir" "$first_ra" >"$first_dir/driver.out" 2>&1 & first_driver=$!
+run_prefix_driver "$first_dir" "$first_ra" '' "$shared_lock_root" >"$first_dir/driver.out" 2>&1 & first_driver=$!
 _tries=0
 while [ ! -d "$shared_lock_root/nesturbator-retroarch-55355.lock" ] && [ "$_tries" -lt 200 ]; do
     kill -0 "$first_driver" 2>/dev/null || { echo "FAIL first concurrent session exited before lock acquisition" >&2; cat "$first_dir/driver.out" >&2; exit 1; }
@@ -460,7 +497,7 @@ while [ ! -d "$shared_lock_root/nesturbator-retroarch-55355.lock" ] && [ "$_trie
 done
 [ -d "$shared_lock_root/nesturbator-retroarch-55355.lock" ] || { echo "FAIL first concurrent session never held endpoint lock" >&2; exit 1; }
 second_status=0
-run_prefix_driver "$second_dir" "$second_ra" >"$second_dir/driver.out" 2>&1 || second_status=$?
+run_prefix_driver "$second_dir" "$second_ra" '' "$shared_lock_root" >"$second_dir/driver.out" 2>&1 || second_status=$?
 [ "$second_status" -ne 0 ] && grep -Fx 'state_session: ENDPOINT_BUSY' "$second_dir/driver.out" >/dev/null || {
     echo "FAIL simultaneous attempt did not fail with ENDPOINT_BUSY (status=$second_status)" >&2; cat "$second_dir/driver.out" >&2; exit 1;
 }
@@ -475,7 +512,7 @@ set -- "$first_ra"/attempts/*; [ "$#" -eq 1 ] || { echo "FAIL first attempt tree
 rm -f "$first_dir/sends.log" "$first_dir/host.pid" "$first_dir/quit" "$first_dir/shot.count" \
     "$first_dir/read.count" "$first_dir/state.count"
 second_status=0
-run_prefix_driver "$first_dir" "$first_ra" >"$first_dir/repeat.out" 2>&1 || second_status=$?
+run_prefix_driver "$first_dir" "$first_ra" '' "$shared_lock_root" >"$first_dir/repeat.out" 2>&1 || second_status=$?
 [ "$second_status" -eq 0 ] && grep -F 'verdict=PREFIX_OK' "$first_dir/repeat.out" >/dev/null || {
     echo "FAIL repeated attempt did not independently complete its prefix" >&2; cat "$first_dir/repeat.out" >&2; exit 1;
 }

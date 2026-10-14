@@ -160,7 +160,10 @@ run_child() {
             case "$CHILD_LIMIT_REASON" in
                 attempt) fail ATTEMPT_DEADLINE ;;
                 operation) fail_operation_deadline ;;
-                *) CHILD_DEADLINE_LABEL=$(printf '%s' "$CHILD_LABEL" | tr '[:lower:]-' '[:upper:]_'); fail "${CHILD_DEADLINE_LABEL}_DEADLINE" ;;
+                *)
+                    if [ "$CHILD_LABEL" = readiness ]; then return 124; fi
+                    CHILD_DEADLINE_LABEL=$(printf '%s' "$CHILD_LABEL" | tr '[:lower:]-' '[:upper:]_'); fail "${CHILD_DEADLINE_LABEL}_DEADLINE"
+                    ;;
             esac
         }
         sleep 0.05
@@ -202,19 +205,17 @@ probe_ready() {
         CURRENT_EXPECTED="GET_CONFIG_PARAM savestate_directory $ATTEMPT_DIR/states"; CURRENT_OBSERVED=no-valid-reply
         _left=$((_deadline-_now)); [ "$_left" -le 1000 ] || _left=1000; _secs=$(((_left+999)/1000)); [ "$_secs" -gt 0 ] || _secs=1
         _reply="$ATTEMPT_DIR/reply-$_tries.txt"; _reply_err="$ATTEMPT_DIR/readiness-$_tries.err"
-        if run_child readiness "$_left" "$REQUEST" "$_reply" "$_reply_err" \
-            nc_exec -u -w "$_secs" 127.0.0.1 55355; then
-            printf 'GET_CONFIG_PARAM savestate_directory %s\n' "$ATTEMPT_DIR/states" >"$ATTEMPT_DIR/expected.txt"
-            printf 'GET_CONFIG_PARAM savestate_directory %s' "$ATTEMPT_DIR/states" >"$ATTEMPT_DIR/expected-no-newline.txt"
-            if cmp -s "$_reply" "$ATTEMPT_DIR/expected.txt" || cmp -s "$_reply" "$ATTEMPT_DIR/expected-no-newline.txt"; then
-                CURRENT_OBSERVED=exact-isolated-path; LAST_REASON=OK; finish_operation; record_row; return 0
-            fi
-            if [ -s "$_reply" ]; then CURRENT_OBSERVED=malformed-or-wrong-path; LAST_REASON=READINESS_REPLY; record_row; fail READINESS_REPLY; fi
-            CURRENT_OBSERVED=lost-read; LAST_REASON=READINESS_LOST
-        else
-            _read_status=$?; [ "$_read_status" -eq 124 ] && fail READINESS_DEADLINE
-            fail READINESS_TRANSPORT
+        _read_status=0
+        run_child readiness "$_left" "$REQUEST" "$_reply" "$_reply_err" \
+            nc_exec -u -w "$_secs" 127.0.0.1 55355 || _read_status=$?
+        printf 'GET_CONFIG_PARAM savestate_directory %s\n' "$ATTEMPT_DIR/states" >"$ATTEMPT_DIR/expected.txt"
+        printf 'GET_CONFIG_PARAM savestate_directory %s' "$ATTEMPT_DIR/states" >"$ATTEMPT_DIR/expected-no-newline.txt"
+        if cmp -s "$_reply" "$ATTEMPT_DIR/expected.txt" || cmp -s "$_reply" "$ATTEMPT_DIR/expected-no-newline.txt"; then
+            CURRENT_OBSERVED=exact-isolated-path; LAST_REASON=OK; finish_operation; record_row; return 0
         fi
+        if [ "$_read_status" -ne 0 ] && [ "$_read_status" -ne 124 ]; then fail READINESS_TRANSPORT; fi
+        if [ -s "$_reply" ]; then CURRENT_OBSERVED=malformed-or-wrong-path; LAST_REASON=READINESS_REPLY; record_row; fail READINESS_REPLY; fi
+        CURRENT_OBSERVED=lost-read; LAST_REASON=READINESS_LOST
         record_row; sleep_ms 100 readiness-retry
     done
 }

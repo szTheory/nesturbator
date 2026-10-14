@@ -1540,12 +1540,15 @@ containers are retained and validated before their slots are reused.
 
 Each attempt has a unique owned tree and exclusive local command-port lock. The
 only retryable request is the read-only readiness query with its exact isolated
-save-directory reply; every action, state save/load, screenshot and QUIT request
-is one-shot. Monotonic timers bound the 30-second readiness and operation
-windows, 5-second artifact publication window, 120-second attempt and 5-second
-cleanup reserve. On the portable synthetic host, the full sixteen-boundary
-session took 53.2 seconds, including every intermediate production verdict. The
-POSIX control runs the actual shell driver through the successful full sequence
+save-directory reply; a complete exact reply is accepted even if the native
+receive child remains alive until its bounded per-read timeout. Empty reads may
+retry within the 30-second readiness deadline; every action, state save/load,
+screenshot and QUIT request is one-shot. Monotonic timers bound the 30-second
+readiness and operation windows, 5-second artifact publication window,
+120-second attempt and 5-second cleanup reserve. On the portable synthetic
+host, the full sixteen-boundary session took 53.2 seconds, including every
+intermediate production verdict. The POSIX control runs the actual shell driver
+through the successful full sequence
 and reason-specific loss, duplication, stale/partial artifact, wrong-origin,
 host-death, stalled-child and deadline cases. Its stalled-read check measures
 elapsed time and confirms that the blocked child and owned host are reaped.
