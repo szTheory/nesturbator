@@ -73,9 +73,14 @@ if(UNIX)
       "${CMAKE_CURRENT_SOURCE_DIR}/state_session.sh"
       "$<TARGET_FILE:frame_index>"
       "${CMAKE_CURRENT_BINARY_DIR}/session controls")
-  # Hosted ASan ran past 540 s after its 393.552 s of timed controls and before
-  # the full-control result; keep the aggregate bound finite with measured headroom.
-  set_tests_properties(retroarch.session.controls PROPERTIES TIMEOUT 720)
+  # The full local ASan control matrix passed in 555.02 s. Run 38598006408's
+  # macOS Intel matrix failed at 510.75 s before readiness, isolation, interruption
+  # and full-positive controls: QUIT's 30 s window could not fit after a 179.251 s
+  # arrival at boundary 16. Replacing that case adds about 31 s; the unexecuted
+  # tail projects to 229.426 s from the completed ASan run's same ordered cases.
+  # Projected total is 771.176 s, so retain a finite 900 s cap with about 129 s
+  # margin; the failed 510.75 s run is not treated as a successful sample.
+  set_tests_properties(retroarch.session.controls PROPERTIES TIMEOUT 900)
 endif()
 
 set(marker_rom ${CMAKE_CURRENT_BINARY_DIR}/marker.nes)

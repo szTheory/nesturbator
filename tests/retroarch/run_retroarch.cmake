@@ -403,13 +403,18 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
         endif()
       endif()
 
-      # The intended production session needs a longer whole-attempt allowance
-      # for its sixteen qualified boundaries. Keep the production driver's
+      # Run 38598006408 passed pause/startup and reaches boundary 15 at 168.981 s;
+      # its next prefix verdict hit the 180 s attempt's cleanup reserve at 175.099 s.
+      # The 240 s attempt adds 60 s beyond that cutoff before the same 5 s cleanup
+      # reserve. Remaining prefix verdicts, run-ahead toggle, load/advance/capture,
+      # QUIT and complete verdict each retain 30 s child/operation limits; their
+      # maximum sum is larger, so the exact-head host run must prove this aggregate
+      # budget fits. The enclosing timeout adds 30 s. Keep the production driver's
       # 120 s default and all per-operation deadlines unchanged elsewhere.
       set(driver_timeout 150)
       if("${run_name}" STREQUAL "intended")
-        list(APPEND session_env "STATE_SESSION_ATTEMPT_MS=180000")
-        set(driver_timeout 210)
+        list(APPEND session_env "STATE_SESSION_ATTEMPT_MS=240000")
+        set(driver_timeout 270)
       endif()
 
       hosted_monotonic_ms(run_start_ms)

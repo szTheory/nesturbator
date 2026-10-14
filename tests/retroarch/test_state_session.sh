@@ -494,7 +494,11 @@ run_fault host-died HOST_DIED host-died '' prefix 20000 30000 1000
 # the per-operation limit at 30 s while giving the whole deterministic control a finite 75 s cap.
 run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' complete 75000 30000 1000
 run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 75000 30000 1000
-run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 190000 30000 1000 180000
+# Run 38598006408's macOS Intel control reached boundary 16 at 179.251 s; the
+# 180 s attempt cap left no 30 s operation window to prove QUIT_DEADLINE. Keep
+# the exact negative and operation deadline, with a finite test-only 240/250 s
+# attempt/outer envelope and the same 1 s cleanup reserve.
+run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 250000 30000 1000 240000
 
 # Some native UDP clients can print a complete response and then remain alive until the per-read
 # timeout. The production parser must validate those exact bytes before treating that child timeout
@@ -639,6 +643,8 @@ complete_quit="$complete_dir/quit"
 complete_reads="$complete_dir/read.count"
 complete_shots="$complete_dir/shot.count"
 complete_states="$complete_dir/state.count"
+# The measured macOS Intel path reached boundary 16 at 179.251 s before QUIT.
+# Give this positive fixture its bounded QUIT and complete-verdict windows too.
 complete_status=0
 STATE_SESSION_NC="$complete_dir/fake-nc" \
 STATE_SESSION_TEST_FIXTURE="$complete_fixture" \
@@ -653,7 +659,7 @@ STATE_SESSION_TEST_MODE=complete \
 STATE_SESSION_RECORD_ROOT="$PWD" \
 STATE_SESSION_TEST_SHOTS="$complete_ra/shots" \
 STATE_SESSION_LOCK_ROOT="$complete_dir/locks" \
-STATE_SESSION_ATTEMPT_MS=180000 \
+STATE_SESSION_ATTEMPT_MS=240000 \
 STATE_SESSION_SETTLE_MS=0 \
 STATE_SESSION_PROGRESS_WAIT_MS=20 \
 sh "$DRIVER" "$complete_dir/fake-retroarch" "$complete_dir/config.cfg" "$complete_dir/core.so" \
