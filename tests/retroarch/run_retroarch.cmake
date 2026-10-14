@@ -488,14 +488,20 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
       # Run 38633432440 on f8831c2 reached all 16 prefix boundaries and their
       # production PREFIX_OK verdict at 232.775 s, then exhausted its 240 s attempt
       # while awaiting QUIT (235.161 s elapsed, 4.824 s left). The complete verdict
-      # runs after QUIT and host exit. Project 30 s for QUIT, 30 s for the complete
-      # verdict, and the driver's 5 s cleanup reserve: 300.161 s from the observed
-      # incomplete sample. Use a finite 320 s intended-only attempt, leaving about
-      # 20 s for this measured path; the enclosing timeout adds 30 s. This remains
-      # a projection until an exact-head VERDICT_OK sample. Keep the production
-      # driver's 120 s default and all per-operation deadlines unchanged elsewhere.
+      # runs after QUIT and host exit. That incomplete sample projected 300.161 s
+      # for QUIT, the complete verdict and 5 s cleanup; its 320 s attempt estimate
+      # was subsequently verified by exact-head run 38638052203 on e2397db: the
+      # intended full path returned VERDICT_OK in 225.373 s (225.214 s attempt).
+      # In that run, valid-wrong-origin used the 120 s default and failed at
+      # ATTEMPT_DEADLINE after boundary 11 (97.291 s) and 32 of 40 rewind sends
+      # (115.107 s, 4.885 s remaining). Its required boundary-13 ORIGIN control
+      # needs the remaining rewinds, boundary-12 capture/native anchor/PREFIX_OK,
+      # and one advance/capture/production verdict. Reuse the verified finite
+      # 320 s attempt and 350 s outer driver envelope for this shorter path. Keep
+      # the production driver's 120 s default, 30 s operation limits, exact 70
+      # one-shot sends and semantic prerequisites unchanged in every mode.
       set(driver_timeout 150)
-      if("${run_name}" STREQUAL "intended")
+      if("${run_name}" STREQUAL "intended" OR "${run_name}" STREQUAL "fault-valid-wrong-origin")
         list(APPEND session_env "STATE_SESSION_ATTEMPT_MS=320000")
         set(driver_timeout 350)
       endif()
