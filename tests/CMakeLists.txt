@@ -1314,6 +1314,11 @@ add_test(NAME libretro.host
     $<TARGET_FILE:nesturbator-run> ${CMAKE_CURRENT_BINARY_DIR}/nrom-tracer.nes)
 set_tests_properties(libretro.host PROPERTIES FIXTURES_REQUIRED testframe_ppm)
 
+# Pin the full-path selector boundary before authenticating fixture bytes.
+add_test(NAME libretro.fixture_roles
+  COMMAND libretro.host --fixture-role-selftest)
+set_tests_properties(libretro.fixture_roles PROPERTIES TIMEOUT 30)
+
 # LR-01: --serialize drives retro_serialize_size, retro_serialize and retro_unserialize of
 # the built module and checks each against the library state API.
 add_test(NAME libretro.serialize

@@ -1972,6 +1972,42 @@ static void check_serialize_jam(void)
     p_unload_game();
 }
 
+enum fixture_role {
+    FIXTURE_ROLE_GENERIC,
+    FIXTURE_ROLE_NESTEROIDS,
+    FIXTURE_ROLE_MMC1_BATTERY
+};
+
+/* The exact-name role tests first pin the current full-path selection seam. */
+static enum fixture_role fixture_role_for_path(const char *path)
+{
+    if (path != NULL && strstr(path, "nesteroids") != NULL) {
+        return FIXTURE_ROLE_NESTEROIDS;
+    }
+    if (path != NULL && strstr(path, "M1_P128K_C128K_S8K") != NULL) {
+        return FIXTURE_ROLE_MMC1_BATTERY;
+    }
+    return FIXTURE_ROLE_GENERIC;
+}
+
+static int fixture_role_selftest(void)
+{
+    unsigned cases = 0u;
+
+    CHECK_EQ_U64(fixture_role_for_path("games/nesteroids.nes"), FIXTURE_ROLE_NESTEROIDS);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("roms/M1_P128K_C128K_S8K.nes"),
+                 FIXTURE_ROLE_MMC1_BATTERY);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("nesteroids/generic.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("M1_P128K_C128K_S8K/generic.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    printf("libretro.fixture_roles: cases=%u\n", cases);
+    CHECK_EQ_U64(cases, 4u);
+    CHECK_DONE();
+}
+
 /* libretro.host --serialize <module> <rom>... */
 static int serialize_mode(int argc, char **argv)
 {
@@ -2026,7 +2062,7 @@ static int serialize_mode(int argc, char **argv)
         }
         check_unserialize_before_run(&roms[i]);
         check_serialize_contexts(&roms[i]);
-        if (strstr(roms[i].path, "M1_P128K_C128K_S8K") != NULL) {
+        if (fixture_role_for_path(roms[i].path) == FIXTURE_ROLE_MMC1_BATTERY) {
             check_unserialize_battery(&roms[i]);
             battery_roms++;
         }
@@ -2392,7 +2428,7 @@ static int runahead_mode(int argc, char **argv)
             continue;
         }
         count++;
-        if (strstr(r->path, "nesteroids") != NULL) {
+        if (fixture_role_for_path(r->path) == FIXTURE_ROLE_NESTEROIDS) {
             /* The full matrix: both scripts, depths 0 to 3, repeat mode on script 1, and the
                four controls. */
             rah_matrix(r, T, 1u, 0xfu, 1, &tot);
@@ -2457,6 +2493,9 @@ int main(int argc, char **argv)
     static uint32_t first_content_frame[W * H];
     double fps_diff;
 
+    if (argc == 2 && strcmp(argv[1], "--fixture-role-selftest") == 0) {
+        return fixture_role_selftest();
+    }
     if (argc >= 6 && strcmp(argv[1], "--rom-parity") == 0) {
         return rom_parity(argc, argv);
     }
@@ -2469,6 +2508,7 @@ int main(int argc, char **argv)
     if (argc != 6) {
         fprintf(stderr, "usage: libretro.host --rom-parity <module> <rom> <frames> <ppm> "
                         "[--movie FILE] [--testcard PPM] [--sav-in FILE] [--sav-expect FILE]\n"
+                        "       libretro.host --fixture-role-selftest\n"
                         "       libretro.host --serialize <module> <rom>...\n"
                         "       libretro.host --runahead <module> [--short] <rom>...\n"
                         "       libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
