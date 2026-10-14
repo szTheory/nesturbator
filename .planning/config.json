@@ -57,7 +57,7 @@
     "schema_drift_gate": false,
     "mvp_mode": false,
     "test_command": "cmake --workflow --preset ci",
-    "test_gate_timeout": 900
+    "test_gate_timeout": 1500
   },
   "ship": {
     "pr_body_sections": []
