@@ -12,7 +12,7 @@ CLEANUP_MS=${STATE_SESSION_CLEANUP_MS:-5000}; READY_MS=${STATE_SESSION_READY_MS:
 PUBLICATION_MS=${STATE_SESSION_PUBLICATION_MS:-5000}; LOCK_ROOT=${STATE_SESSION_LOCK_ROOT:-${TMPDIR:-/tmp}}
 SETTLE_MS=${STATE_SESSION_SETTLE_MS:-3000}; PAUSE_GAP_MS=${STATE_SESSION_PAUSE_GAP_MS:-1100}
 PROGRESS_WAIT_MS=${STATE_SESSION_PROGRESS_WAIT_MS:-1000}; COMMAND_GAP_MS=${STATE_SESSION_COMMAND_GAP_MS:-100}
-REWIND_GAP_MS=50
+REWIND_GAP_MS=50; READINESS_CHILD_MS=5000; READINESS_NC_TIMEOUT_SECS=1
 for path in "$RA" "$CFG" "$CORE" "$CONTENT" "$FRAME_INDEX" "$CALIBRATION"; do
     [ -e "$path" ] || { echo "state_session: INPUT_MISSING" >&2; exit 2; }
 done
@@ -212,11 +212,13 @@ probe_ready() {
         _tries=$((_tries+1)); printf 'GET_CONFIG_PARAM savestate_directory' >"$REQUEST"
         CURRENT_STEP=readiness; CURRENT_CLASS=read-only; CURRENT_SENDS=$_tries
         CURRENT_EXPECTED="GET_CONFIG_PARAM savestate_directory $ATTEMPT_DIR/states"; CURRENT_OBSERVED=no-valid-reply
-        _left=$((_deadline-_now)); [ "$_left" -le 1000 ] || _left=1000; _secs=$(((_left+999)/1000)); [ "$_secs" -gt 0 ] || _secs=1
+        # Keep nc's 1 s timeout inside a wider process-supervision slice; run_child also caps it
+        # by live operation and attempt time, including the cleanup reserve.
+        _left=$((_deadline-_now)); [ "$_left" -le "$READINESS_CHILD_MS" ] || _left=$READINESS_CHILD_MS
         _reply="$ATTEMPT_DIR/reply-$_tries.txt"; _reply_err="$ATTEMPT_DIR/readiness-$_tries.err"
         _read_status=0
         run_child readiness "$_left" "$REQUEST" "$_reply" "$_reply_err" \
-            readiness_nc_exec -u -w "$_secs" 127.0.0.1 55355 || _read_status=$?
+            readiness_nc_exec -u -w "$READINESS_NC_TIMEOUT_SECS" 127.0.0.1 55355 || _read_status=$?
         printf 'GET_CONFIG_PARAM savestate_directory %s\n' "$ATTEMPT_DIR/states" >"$ATTEMPT_DIR/expected.txt"
         printf 'GET_CONFIG_PARAM savestate_directory %s' "$ATTEMPT_DIR/states" >"$ATTEMPT_DIR/expected-no-newline.txt"
         if cmp -s "$_reply" "$ATTEMPT_DIR/expected.txt" || cmp -s "$_reply" "$ATTEMPT_DIR/expected-no-newline.txt"; then

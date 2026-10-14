@@ -29,6 +29,12 @@ fake_nc() {
                 printf 'GET_CONFIG_PARAM savestate_directory %s' "$STATE_SESSION_TEST_EXPECTED_DIR"
                 exec perl -MTime::HiRes=sleep -e 'sleep 5'
             fi
+            if [ "$fault" = readiness-response-delay ]; then
+                printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
+                perl -MTime::HiRes=sleep -e 'sleep 1.5' || exit $?
+                printf 'GET_CONFIG_PARAM savestate_directory %s\n' "$STATE_SESSION_TEST_EXPECTED_DIR"
+                exit 0
+            fi
             if [ "$fault" = stale-publication ]; then
                 cp "$STATE_SESSION_TEST_FIXTURE/pause capture one.ppm" "$STATE_SESSION_TEST_SHOTS/stale.ppm"
             fi
@@ -566,10 +572,41 @@ run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 75000 3000
 # attempt/outer envelope and the same 1 s cleanup reserve.
 run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 250000 30000 1000 240000
 
-# Some native UDP clients can print a complete response and then remain alive until the per-read
-# timeout. The production parser must validate those exact bytes before treating that child timeout
-# as a lost read, then reap the child and continue once within the readiness operation budget.
-readiness_dir="$WORK_ROOT/session-$$-readiness-response"; readiness_ra="$readiness_dir/ra"
+# A delayed exact response that completes between the 1 s nc timeout and 5 s child
+# supervision slice remains eligible while the 30 s readiness/operation budgets live.
+readiness_dir="$WORK_ROOT/session-$$-readiness-delayed"; readiness_ra="$readiness_dir/ra"
+mkdir -p "$readiness_ra/shots" "$readiness_ra/states"
+ln -s "$script_path" "$readiness_dir/fake-nc"; ln -s "$script_path" "$readiness_dir/fake-retroarch"
+: >"$readiness_dir/config.cfg"; : >"$readiness_dir/core.so"
+readiness_started=$(mono_ms); readiness_status=0
+run_prefix_driver "$readiness_dir" "$readiness_ra" readiness-response-delay >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
+readiness_finished=$(mono_ms); readiness_elapsed=$((readiness_finished-readiness_started))
+[ "$readiness_status" -eq 0 ] && grep -F 'verdict=PREFIX_OK' "$readiness_dir/driver.out" >/dev/null || {
+    echo "FAIL delayed exact readiness response did not proceed (status=$readiness_status)" >&2
+    cat "$readiness_dir/driver.out" >&2; exit 1;
+}
+set -- "$readiness_ra"/attempts/*; readiness_attempt=$1
+awk -F '\t' 'NR > 1 && $1 == "readiness" { count++; if ($3 != 1 || $10 != "exact-isolated-path" || $11 != "OK") exit 1 } END { exit !(count == 1) }' \
+    "$readiness_attempt/journal.tsv" || { echo "FAIL delayed exact-readiness response was not accepted in one attempt" >&2; exit 1; }
+readiness_operation_ms=$(awk -F '\t' 'NR > 1 && $1 == "readiness" { print $6 }' "$readiness_attempt/journal.tsv")
+[ "$readiness_operation_ms" -gt 1200 ] && [ "$readiness_operation_ms" -lt 4500 ] || {
+    echo "FAIL delayed exact readiness operation duration: ${readiness_operation_ms}ms" >&2; exit 1;
+}
+[ -s "$readiness_dir/stall.pid" ] || { echo "FAIL delayed readiness control recorded no owned child" >&2; exit 1; }
+readiness_child=$(cat "$readiness_dir/stall.pid")
+if kill -0 "$readiness_child" 2>/dev/null; then echo "FAIL delayed readiness control left its child alive" >&2; exit 1; fi
+readiness_host=$(cat "$readiness_dir/host.pid")
+if kill -0 "$readiness_host" 2>/dev/null; then echo "FAIL delayed readiness control left its host alive" >&2; exit 1; fi
+[ "$readiness_elapsed" -gt 1200 ] && [ "$readiness_elapsed" -lt 25000 ] || {
+    echo "FAIL delayed readiness response elapsed bound: ${readiness_elapsed}ms" >&2; exit 1;
+}
+assert_sanitized_tree "$readiness_attempt"
+printf 'state session readiness delayed-reply control: exact reply accepted; child reaped; %sms\n' "$readiness_elapsed"
+
+# Some native UDP clients can print a complete response and then remain alive. Accept only those
+# exact bytes, kill and reap the owned child at the 5 s supervision slice, and keep the operation
+# inside its original 30 s deadline.
+readiness_dir="$WORK_ROOT/session-$$-readiness-response-stall"; readiness_ra="$readiness_dir/ra"
 mkdir -p "$readiness_ra/shots" "$readiness_ra/states"
 ln -s "$script_path" "$readiness_dir/fake-nc"; ln -s "$script_path" "$readiness_dir/fake-retroarch"
 : >"$readiness_dir/config.cfg"; : >"$readiness_dir/core.so"
@@ -577,26 +614,26 @@ readiness_started=$(mono_ms); readiness_status=0
 run_prefix_driver "$readiness_dir" "$readiness_ra" readiness-response-stall >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
 readiness_finished=$(mono_ms); readiness_elapsed=$((readiness_finished-readiness_started))
 [ "$readiness_status" -eq 0 ] && grep -F 'verdict=PREFIX_OK' "$readiness_dir/driver.out" >/dev/null || {
-    echo "FAIL exact response before per-read timeout did not proceed (status=$readiness_status)" >&2
+    echo "FAIL exact response before supervision expiry did not proceed (status=$readiness_status)" >&2
     cat "$readiness_dir/driver.out" >&2; exit 1;
 }
 set -- "$readiness_ra"/attempts/*; readiness_attempt=$1
 awk -F '\t' 'NR > 1 && $1 == "readiness" { count++; if ($3 != 1 || $10 != "exact-isolated-path" || $11 != "OK") exit 1 } END { exit !(count == 1) }' \
     "$readiness_attempt/journal.tsv" || { echo "FAIL exact-readiness response was not accepted in one attempt" >&2; exit 1; }
 readiness_operation_ms=$(awk -F '\t' 'NR > 1 && $1 == "readiness" { print $6 }' "$readiness_attempt/journal.tsv")
-[ "$readiness_operation_ms" -gt 0 ] && [ "$readiness_operation_ms" -lt 3000 ] || {
-    echo "FAIL exact readiness response exceeded its measured operation bound: ${readiness_operation_ms}ms" >&2; exit 1;
+[ "$readiness_operation_ms" -ge 4500 ] && [ "$readiness_operation_ms" -lt 7000 ] || {
+    echo "FAIL exact readiness supervision elapsed bound: ${readiness_operation_ms}ms" >&2; exit 1;
 }
 [ -s "$readiness_dir/stall.pid" ] || { echo "FAIL readiness timeout control recorded no owned child" >&2; exit 1; }
 readiness_child=$(cat "$readiness_dir/stall.pid")
 if kill -0 "$readiness_child" 2>/dev/null; then echo "FAIL readiness timeout control left its child alive" >&2; exit 1; fi
 readiness_host=$(cat "$readiness_dir/host.pid")
 if kill -0 "$readiness_host" 2>/dev/null; then echo "FAIL readiness timeout control left its host alive" >&2; exit 1; fi
-[ "$readiness_elapsed" -ge 700 ] && [ "$readiness_elapsed" -lt 25000 ] || {
+[ "$readiness_elapsed" -ge 4500 ] && [ "$readiness_elapsed" -lt 25000 ] || {
     echo "FAIL exact readiness response elapsed bound: ${readiness_elapsed}ms" >&2; exit 1;
 }
 assert_sanitized_tree "$readiness_attempt"
-printf 'state session readiness control: exact response retained; timed-out child reaped; %sms\n' "$readiness_elapsed"
+printf 'state session readiness supervision control: exact reply retained; timed-out child reaped; %sms\n' "$readiness_elapsed"
 
 # Exercise the exact CMake-generated hosted action wrapper with an independent recording
 # transport. A normal mutation forwards once, drop forwards zero times, and double forwards

@@ -1548,9 +1548,10 @@ their slots are reused.
 
 Each attempt has a unique owned tree and exclusive local command-port lock. The
 only retryable request is the read-only readiness query with its exact isolated
-save-directory reply; a complete exact reply is accepted even if the native
-receive child remains alive until its bounded per-read timeout. Empty reads may
-retry within the 30-second readiness deadline; every action, state save/load,
+save-directory reply; a complete exact reply is accepted after the owned receive
+child exits or is reaped. The 1-second `nc` timeout sits inside a 5-second child
+supervision slice, further capped by live operation and attempt time. Empty reads
+may retry within the 30-second readiness deadline; every action, state save/load,
 screenshot and QUIT request is one-shot. Monotonic timers bound the 30-second
 readiness and operation windows, 5-second artifact publication window,
 120-second attempt and 5-second cleanup reserve. On the portable synthetic

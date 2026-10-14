@@ -80,8 +80,10 @@ if(UNIX)
   # and full-positive controls: QUIT's 30 s window could not fit after a 179.251 s
   # arrival at boundary 16. Replacing that case adds about 31 s; the unexecuted
   # tail projects to 229.426 s from the completed ASan run's same ordered cases.
-  # Projected total is 771.176 s, so retain a finite 900 s cap with about 129 s
-  # margin; the failed 510.75 s run is not treated as a successful sample.
+  # The readiness correction adds about 6 s (one 1.5 s delayed exact reply and the
+  # stalled exact reply's child cap increasing from 1 to 5 s). Projected total is
+  # about 777 s, so retain a finite 900 s cap with about 123 s margin; the failed
+  # 510.75 s run is not treated as a successful sample.
   set_tests_properties(retroarch.session.controls PROPERTIES TIMEOUT 900)
 endif()
 
