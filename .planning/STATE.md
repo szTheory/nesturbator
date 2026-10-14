@@ -308,7 +308,7 @@ Recent decisions affecting current work:
 - [Phase 16]: Set the hosted job ceiling to 14 minutes from the latest 40 completed workflow histories: 29 successful host jobs, maximum 402 seconds in run 38457185699.
 - [Phase 16]: Keep the evidence parser and progression semantics private to test tooling; no dependency, public API, native state format or emulator behavior changed.
 - [Phase 16]: Reject multiple frame candidates as AMBIGUOUS, and zero or mismatched candidates as IDENTITY; no candidate selection can make an observation fit a relation.
-- [Phase 16]: EVID-01 remains pending for Plan 16-03 real-host network acceptance.
+- [Phase 16]: Plan 16-02 recorded EVID-01 as pending Plan 16-03 real-host network acceptance; Plan 16-03 completed EVID-01/02 on exact head 46543ad in run 38651381295.
 - [Phase 16]: Plan 16-03: EVID-01/02 complete only after exact-head pinned-host intended progression and reason-specific dropped, doubled, and wrong-origin proofs.
 - [Phase 16]: Plan 16-03: preserve one-shot mutations and per-operation deadlines; size only test/job enclosures from measured evidence.
 - [Phase 16]: Plan 16-03: keep timeout calculations tied to the fixed last-40 completed-run audit; later successful durations are observations.
