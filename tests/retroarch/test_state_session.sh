@@ -391,6 +391,8 @@ assert_sanitized_tree() {
 run_fault() {
     name=$1; expected=$2; fault=$3; fail_request=${4:-}; mode=${5:-prefix}; max_ms=${6:-20000}; ready_ms=${7:-30000}; publication_ms=${8:-1000}; attempt_override=${9:-}; operation_override=${10:-30000}
     case_dir="$WORK_ROOT/session-$$-$name"; case_ra="$case_dir/ra"
+    command_gap_ms=100
+    [ "$fault" != stalled-write ] || command_gap_ms=0
     case_host_die=0; [ "$fault" != host-died ] || case_host_die=1
     case_setup_started=$(mono_ms)
     mkdir -p "$case_ra/shots" "$case_ra/states"
@@ -423,6 +425,7 @@ run_fault() {
     STATE_SESSION_READY_MS="$ready_ms" \
     STATE_SESSION_PUBLICATION_MS="$publication_ms" \
     STATE_SESSION_SETTLE_MS=0 \
+    STATE_SESSION_COMMAND_GAP_MS="$command_gap_ms" \
     STATE_SESSION_PROGRESS_WAIT_MS=20 \
     STATE_SESSION_QUIT_GRACE_MS=300 \
     sh "$DRIVER" "$case_dir/fake-retroarch" "$case_dir/config.cfg" "$case_dir/core.so" \
@@ -433,6 +436,11 @@ run_fault() {
         ! awk -F '\t' -v reason="$expected" '$11 == reason { found=1 } END { exit !found }' "$case_ra"/attempts/*/journal.tsv; then
         echo "FAIL $name expected exact terminal reason $expected (status=$case_status, setup ${case_setup_elapsed}ms, driver+cleanup ${case_driver_elapsed}ms)" >&2
         cat "$case_dir/driver.out" >&2
+        for failed_journal in "$case_ra"/attempts/*/journal.tsv; do
+            [ -f "$failed_journal" ] || continue
+            printf 'FAIL %s last journal row: ' "$name" >&2
+            tail -n 1 "$failed_journal" >&2
+        done
         exit 1
     fi
     [ "$case_driver_elapsed" -lt "$max_ms" ] || {
@@ -491,6 +499,29 @@ run_fault() {
                     [ "$attempt_remaining" -gt 0 ] || {
                     echo "FAIL child did not hit the measured attempt cap with cleanup reserve: elapsed=${attempt_elapsed}ms remaining=${attempt_remaining}ms budget=${attempt_ms}ms" >&2
                     exit 1
+                }
+                [ -s "$case_attempt/original-anchor.state" ] &&
+                    grep -F 'marker anchor frame=' "$case_attempt/anchor-original.out" >/dev/null || {
+                    echo "FAIL $name reached the blocked action without a native-validated original anchor" >&2; exit 1;
+                }
+                awk -F '\t' 'NR == 2 { first=$4 } NR == 3 { second=$4 } END { exit !(NR == 3 && first < second) }' \
+                    "$case_attempt/startup-captures.tsv" || {
+                    echo "FAIL $name lacked two valid forward startup captures before its pause" >&2; exit 1;
+                }
+                awk -F '\t' 'NR == 1 { first=$11 } NR == 2 { second=$11 } END { exit !(NR == 2 && first == second) }' \
+                    "$case_attempt/boundaries.tsv" || {
+                    echo "FAIL $name lacked its independently published equal pause pair before the blocked action" >&2; exit 1;
+                }
+                pause_count=$(awk '$0 == "PAUSE_TOGGLE" { n++ } END { print n + 0 }' "$case_dir/sends.log")
+                save_count=$(awk '$0 == "SAVE_STATE" { n++ } END { print n + 0 }' "$case_dir/sends.log")
+                screenshot_count=$(awk '$0 == "SCREENSHOT" { n++ } END { print n + 0 }' "$case_dir/sends.log")
+                advance_count=$(awk '$0 == "FRAMEADVANCE" { n++ } END { print n + 0 }' "$case_dir/sends.log")
+                [ "$pause_count" -eq 1 ] && [ "$save_count" -eq 1 ] && [ "$screenshot_count" -eq 4 ] && [ "$advance_count" -eq 1 ] || {
+                    echo "FAIL $name lacked exact pause/anchor/capture prerequisites before its single blocked advance" >&2; exit 1;
+                }
+                awk -F '\t' '$1 == "advance-1" && $11 == "ATTEMPT_DEADLINE" { found=($2 == "advance-1" && $3 == 1 && $8 == "FRAMEADVANCE") } END { exit !found }' \
+                    "$case_attempt/journal.tsv" || {
+                    echo "FAIL $name attempt-deadline row did not attribute the single blocked FRAMEADVANCE" >&2; exit 1;
                 }
             fi
             ;;
@@ -560,6 +591,8 @@ run_fault wrong-readiness READINESS_REPLY wrong-readiness
 run_fault stalled-read READINESS_DEADLINE stalled-read '' prefix 7500 350
 # Setup must have time to launch the blocked FRAMEADVANCE child. Its 60 s stall and operation
 # ceiling exceed the 30 s attempt cap, so the test proves attempt-deadline cleanup deterministically.
+# Skip irrelevant synthetic command gaps in this one long control; their short helper deadlines
+# could preempt the intended fault before the blocked action is launched.
 run_fault stalled-child-attempt-cap ATTEMPT_DEADLINE stalled-write FRAMEADVANCE prefix 45000 30000 1000 30000 60000
 run_fault pause-send-once pause-original_SEND_FAILED send-error PAUSE_TOGGLE
 run_fault screenshot-send-once SCREENSHOT_SEND_FAILED send-error SCREENSHOT
