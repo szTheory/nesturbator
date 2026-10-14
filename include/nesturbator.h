@@ -493,6 +493,10 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * by the local socket is not proof that RetroArch received it; each retained image and native
  * origin is checked by the shared progression verdict. The journal records both attempt and
  * operation timing, and generated host config/log paths are sanitized.
+ * The required pinned-host run uses generated marker content in a distinct session, requires the
+ * complete sixteen-boundary verdict, and checks dropped/doubled advances and a native-valid
+ * wrong-origin branch through that same verdict. These observations prove the declared displayed
+ * progression and retained origins; they do not prove every committed machine field or audio.
  * Portable whole-state and audio tests retain their broader proofs.
  * Loading restores frame_number and ticks, so the first frame after a load reports the frame
  * number and ticks of the uninterrupted run. The frame buffer and the audio are not in a state.

@@ -281,23 +281,36 @@ record_boundary() {
     CURRENT_EXPECTED="$_relation from $_origin"; CURRENT_OBSERVED="frame-$BOUNDARY_FRAME"
     CURRENT_ARTIFACT="$BOUNDARY_NAME:$ORIGINAL_HASH"; LAST_REASON=OK; record_row
 }
+record_path() {
+    _record_path=$1
+    if [ -n "${STATE_SESSION_RECORD_ROOT:-}" ]; then
+        case "$_record_path" in
+            "$STATE_SESSION_RECORD_ROOT"/*) _record_path=${_record_path#"$STATE_SESSION_RECORD_ROOT"/} ;;
+            *) return 1 ;;
+        esac
+    fi
+    printf '%s\n' "$_record_path"
+}
 write_record() {
     _mode=$1; _terminal=$2; _record="$ATTEMPT_DIR/progression-session.rec"
     _content_id=$(awk -F= '$1=="content_identity"{print $2;n++}END{if(n!=1)exit 1}' "$ATTEMPT_DIR/oracle-fixture/progression-prefix.rec") || fail FIXTURE_IDENTITY
     _cal_id=$(awk -F= '$1=="calibration_identity"{print $2;n++}END{if(n!=1)exit 1}' "$ATTEMPT_DIR/oracle-fixture/progression-prefix.rec") || fail FIXTURE_IDENTITY
+    _original_record_path=$(record_path "$ORIGINAL_ANCHOR_PATH") || fail RECORD_PATH
+    _rewound_record_path=$(record_path "$REWOUND_ANCHOR_PATH") || fail RECORD_PATH
     {
         printf 'NESTURBATOR-PROGRESSION 1\nmode=%s\ncontent_identity=%s\ncalibration_identity=%s\nterminal_exit=%s\n' "$_mode" "$_content_id" "$_cal_id" "$_terminal"
         printf 'original_anchor_path_length=%s\noriginal_anchor_path=%s\noriginal_anchor_identity=%s\noriginal_anchor_frame=%s\n' \
-            "${#ORIGINAL_ANCHOR_PATH}" "$ORIGINAL_ANCHOR_PATH" "$ORIGINAL_ANCHOR_ID" "$ORIGINAL_ANCHOR_FRAME"
+            "${#_original_record_path}" "$_original_record_path" "$ORIGINAL_ANCHOR_ID" "$ORIGINAL_ANCHOR_FRAME"
         printf 'rewound_anchor_path_length=%s\nrewound_anchor_path=%s\nrewound_anchor_identity=%s\nrewound_anchor_frame=%s\n' \
-            "${#REWOUND_ANCHOR_PATH}" "$REWOUND_ANCHOR_PATH" "${REWOUND_ANCHOR_ID:-0000000000000000}" "$REWOUND_ANCHOR_FRAME"
+            "${#_rewound_record_path}" "$_rewound_record_path" "${REWOUND_ANCHOR_ID:-0000000000000000}" "$REWOUND_ANCHOR_FRAME"
         printf 'boundary_count=%s\n' "$BOUNDARY_COUNT"
         while IFS="$(printf '\t')" read -r _id _op _rel _origin _commands _sends _artifact_id _path _hash _candidate_count _frame _candidate_first _candidate_last _anchor_id _anchor_frame _lead _delta _elapsed _deadline _alive; do
             [ "$_candidate_count" = 1 ] || fail INTERNAL_CANDIDATE_COUNT
+            _record_artifact_path=$(record_path "$_path") || fail RECORD_PATH
             printf 'boundary\nid=%s\noperation=%s\nrelation=%s\norigin=%s\ncommand_count=%s\nsend_count=%s\nartifact_identity=%s\n' \
                 "$_id" "$_op" "$_rel" "$_origin" "$_commands" "$_sends" "$_artifact_id"
             printf 'artifact_path_length=%s\nartifact_path=%s\nartifact_hash=%s\ndisplay_frame=%s\ncandidate_count=1\ncandidate_first=%s\ncandidate_last=%s\n' \
-                "${#_path}" "$_path" "$_hash" "$_frame" "$_frame" "$_frame"
+                "${#_record_artifact_path}" "$_record_artifact_path" "$_hash" "$_frame" "$_frame" "$_frame"
             printf 'anchor_identity=%s\nanchor_frame=%s\ndisplay_lead=%s\nexpected_delta=%s\nelapsed_ms=%s\ndeadline_ms=%s\nprocess_alive=%s\nboundary_end\n' \
                 "$_anchor_id" "$_anchor_frame" "$_lead" "$_delta" "$_elapsed" "$_deadline" "$_alive"
         done <"$BOUNDARIES"

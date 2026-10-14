@@ -1556,8 +1556,8 @@ of host receipt; the retained images and native anchors are checked by the
 shared progression verdict. `PREFIX_OK` qualifies a declared continuation
 only; complete success requires all sixteen boundaries and terminal exit zero.
 
-The separate `MARKER_GATE=ON` state invocation qualifies an owned generated NROM
-counter before exact network assertions are expanded. `retroarch.marker.qualify`
+The portable `retroarch.marker.qualify` control qualifies an owned generated NROM
+counter. It
 runs every absolute library frame 4 through 10000 (9997 frames), checks every
 pixel of all counter cells and complementary guards, and measures the guest
 counter's mapping to the absolute frame, including startup latency. The interval
@@ -1567,7 +1567,15 @@ fails. The marker is near the
 bottom of the picture so instruction-boundary drift cannot split it in this
 window. Generated ROMs and calibration records stay in the build tree.
 
-The pinned-host gate checks distinct base/run-ahead and auto-save/load pictures,
+The required pinned-host `HOSTED_MARKER=ON` invocation gives generated marker
+content its own state/network session and identity after checking the released
+RetroArch asset pin. It repeats qualification on that content, then runs the
+production session driver and one final production verdict over all sixteen
+boundaries. The separate Nesteroids game, deterministic auto-state and battery
+lanes remain in the hosted job; exact command progression no longer comes from
+set-valued screenshot chains.
+
+The host qualification checks distinct base/run-ahead and auto-save/load pictures,
 measures the display lead, and retains the native origin at frame 150. Its narrow
 reader accepts only the measured uncompressed RetroArch 1.22.2 `RASTATE` version
 1 envelope: one `MEM ` chunk of the exact native size, zero padding to eight
@@ -1576,9 +1584,9 @@ isolated same-content instance validates the payload; the oracle additionally
 binds current format, behavior revision, absolute origin and the next marker.
 SHA-256 identities bind supplied/generated content, copied core, metadata and
 each host configuration. A missing image/state, crash or failed launch fails
-qualification. This is bounded marker/anchor qualification, not completed exact
-network progression or proof of speculative audio: portable whole-state and
-audio tests retain those separate proofs.
+the host gate. This bounds displayed progression and native origins; it does not
+prove every committed machine field or speculative audio. Portable whole-state
+and audio tests retain those separate proofs.
 
 `frame_index --marker-verdict-prefix ROM CALIBRATION EVIDENCE` applies the
 same versioned, bounded relation verdict to a declared prefix of decoded host
@@ -1608,8 +1616,13 @@ reach its named terminal reason. CRC-valid semantic negatives first pass the
 public loader, so a parse error or crash cannot masquerade as their rejection.
 Unrelated background RGB, top-down 24-bit BMP and bottom-up 32-bit BMP with
 unused alpha preserve marker identity. The required hosted
-marker gate retains its entire owned evidence tree on success and failure in
-`retroarch-marker-gate`, alongside the unchanged game/battery/state artifacts.
+progression gate retains its full qualification and owned attempt tree on success
+and failure for seven days in `retroarch-marker-progression`, alongside the
+unchanged game, battery and deterministic auto-state artifacts. Dropped and
+doubled real FRAMEADVANCE sends must reach the production `PROGRESSION` verdict;
+a branch bound to the other native-valid origin must reach `ORIGIN`. Each
+negative follows valid screenshot and native-anchor prerequisites, so a host
+launch or parsing failure cannot count as semantic evidence.
 
 ## What it is
 
