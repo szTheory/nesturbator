@@ -73,9 +73,11 @@ jobs:
 
   build:
     runs-on: ${{ matrix.runner }}
-    # Twice the slowest of the sampled successful build runs (30 to 35 per runner): 679 s on macos-15-intel in run 38345355652,
-    # rounded up to 23 minutes, ENGINEERING section 5.
-    timeout-minutes: 23
+    # Twice the slowest successful build in the latest 40 completed workflow runs: 1,131 s on macos-15-intel
+    # in run 38625107428 (21 successful Intel samples), rounded up from 2,262 s to 38 minutes, ENGINEERING section 5.
+    # Linux x64's maximum was 1,104 s in run 38612400197 (33 samples). In run 38633432440, the Intel job was
+    # cancelled at 24m04s by the old cap after its CI step passed; that incomplete run is not a successful sample.
+    timeout-minutes: 38
     strategy:
       fail-fast: false
       matrix:

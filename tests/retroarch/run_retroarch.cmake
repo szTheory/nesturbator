@@ -485,18 +485,19 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
         endif()
       endif()
 
-      # Run 38598006408 passed pause/startup and reaches boundary 15 at 168.981 s;
-      # its next prefix verdict hit the 180 s attempt's cleanup reserve at 175.099 s.
-      # The 240 s attempt adds 60 s beyond that cutoff before the same 5 s cleanup
-      # reserve. Remaining prefix verdicts, run-ahead toggle, load/advance/capture,
-      # QUIT and complete verdict each retain 30 s child/operation limits; their
-      # maximum sum is larger, so the exact-head host run must prove this aggregate
-      # budget fits. The enclosing timeout adds 30 s. Keep the production driver's
-      # 120 s default and all per-operation deadlines unchanged elsewhere.
+      # Run 38633432440 on f8831c2 reached all 16 prefix boundaries and their
+      # production PREFIX_OK verdict at 232.775 s, then exhausted its 240 s attempt
+      # while awaiting QUIT (235.161 s elapsed, 4.824 s left). The complete verdict
+      # runs after QUIT and host exit. Project 30 s for QUIT, 30 s for the complete
+      # verdict, and the driver's 5 s cleanup reserve: 300.161 s from the observed
+      # incomplete sample. Use a finite 320 s intended-only attempt, leaving about
+      # 20 s for this measured path; the enclosing timeout adds 30 s. This remains
+      # a projection until an exact-head VERDICT_OK sample. Keep the production
+      # driver's 120 s default and all per-operation deadlines unchanged elsewhere.
       set(driver_timeout 150)
       if("${run_name}" STREQUAL "intended")
-        list(APPEND session_env "STATE_SESSION_ATTEMPT_MS=240000")
-        set(driver_timeout 270)
+        list(APPEND session_env "STATE_SESSION_ATTEMPT_MS=320000")
+        set(driver_timeout 350)
       endif()
 
       hosted_monotonic_ms(run_start_ms)
