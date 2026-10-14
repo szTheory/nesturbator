@@ -512,13 +512,50 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
       endif()
       file(STRINGS "${attempt_dir}/boundaries.tsv" boundary_rows)
       list(LENGTH boundary_rows boundary_count)
+      if(fault STREQUAL "" OR fault STREQUAL "drop-advance" OR fault STREQUAL "double-advance" OR
+          fault STREQUAL "valid-wrong-origin")
+        set(startup_evidence "${attempt_dir}/startup-captures.tsv")
+        if(NOT EXISTS "${startup_evidence}")
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} has no retained startup capture evidence")
+        endif()
+        file(STRINGS "${startup_evidence}" startup_rows)
+        list(LENGTH startup_rows startup_row_count)
+        if(NOT startup_row_count EQUAL 3)
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} expected two retained startup observations, got ${startup_row_count} rows")
+        endif()
+        list(GET startup_rows 1 startup_first)
+        list(GET startup_rows 2 startup_second)
+        string(REPLACE "\t" ";" startup_first_fields "${startup_first}")
+        string(REPLACE "\t" ";" startup_second_fields "${startup_second}")
+        list(LENGTH startup_first_fields startup_first_count)
+        list(LENGTH startup_second_fields startup_second_count)
+        if(NOT startup_first_count EQUAL 6 OR NOT startup_second_count EQUAL 6)
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} startup observations are malformed")
+        endif()
+        list(GET startup_first_fields 0 startup_first_tag)
+        list(GET startup_first_fields 1 startup_first_relation)
+        list(GET startup_first_fields 2 startup_first_ordinal)
+        list(GET startup_first_fields 4 startup_first_path)
+        list(GET startup_second_fields 0 startup_second_tag)
+        list(GET startup_second_fields 1 startup_second_relation)
+        list(GET startup_second_fields 2 startup_second_ordinal)
+        list(GET startup_second_fields 4 startup_second_path)
+        if(NOT startup_first_tag STREQUAL "startup-forward-01" OR
+            NOT startup_first_relation STREQUAL "baseline" OR NOT startup_first_ordinal STREQUAL "1" OR
+            NOT startup_second_tag STREQUAL "startup-forward-02" OR
+            NOT startup_second_relation STREQUAL "strictly-forward-from-startup-forward-01" OR
+            NOT startup_second_ordinal STREQUAL "2" OR
+            NOT EXISTS "${attempt_dir}/${startup_first_path}" OR NOT EXISTS "${attempt_dir}/${startup_second_path}")
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} lacks two independently retained startup SCREENSHOT sends")
+        endif()
+      endif()
       file(SHA256 "${attempt_dir}/session.sanitized.cfg" config_sha)
 
       if(fault STREQUAL "")
         if(NOT driver_stdout MATCHES "sends=${driver_sends}")
           message(FATAL_ERROR "HOSTED_MARKER intended output disagrees with its journal send count: ${safe_stdout}")
         endif()
-        if(NOT actual_pause EQUAL 3 OR NOT actual_screenshot EQUAL 16 OR
+        if(NOT actual_pause EQUAL 3 OR NOT actual_screenshot EQUAL 18 OR
             NOT actual_save EQUAL 2 OR NOT actual_advance EQUAL 12 OR
             NOT actual_load EQUAL 2 OR NOT actual_runahead EQUAL 1 OR
             NOT actual_rewind EQUAL 40 OR NOT actual_quit EQUAL 1)
@@ -542,6 +579,7 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
           "intended=pass\nintended_elapsed_ms=${driver_elapsed_ms}\n"
           "intended_attempt_elapsed_ms=${attempt_elapsed_ms}\nintended_boundaries=${boundary_count}\n"
           "intended_terminal_reason=${terminal_reason}\nintended_sends=${driver_sends}\ncleanup_sends=${cleanup_sends}\n"
+          "startup_captures=2\nstartup_screenshot_send_ordinals=1,2\n"
           "intended_commands=PAUSE_TOGGLE:${actual_pause},SCREENSHOT:${actual_screenshot},SAVE_STATE:${actual_save},FRAMEADVANCE:${actual_advance},LOAD_STATE_SLOT_0:${actual_load},RUNAHEAD_TOGGLE:${actual_runahead},REWIND:${actual_rewind},QUIT:${actual_quit}\n"
           "intended_config_sha256=${config_sha}\n")
       else()
@@ -584,16 +622,17 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
         file(APPEND "${HOSTED_MARKER_ROOT}/hosted-evidence.txt"
           "${run_name}=pass\nfault=${fault}\nproduction_verdict=${expected_verdict}\n"
           "terminal_reason=${terminal_reason}\nboundaries_before_rejection=${boundary_count}\n"
+          "startup_captures=2\nstartup_screenshot_send_ordinals=1,2\n"
           "sends=${driver_sends}\ncleanup_sends=${cleanup_sends}\nelapsed_ms=${driver_elapsed_ms}\nattempt_elapsed_ms=${attempt_elapsed_ms}\n"
           "config_sha256=${config_sha}\ninjection=${injection_record}")
       endif()
       message(STATUS "HOSTED_MARKER ${run_name}: ${terminal_reason}, ${boundary_count} boundaries, ${driver_elapsed_ms} ms")
     endfunction()
 
-    hosted_marker_session(intended "" VERDICT_OK VERDICT_OK 16 77)
-    hosted_marker_session(fault-drop-advance drop-advance ADVANCE_NOT_EXACTLY_ONE PROGRESSION 3 6)
-    hosted_marker_session(fault-double-advance double-advance ADVANCE_NOT_EXACTLY_ONE PROGRESSION 3 6)
-    hosted_marker_session(fault-valid-wrong-origin valid-wrong-origin ORIGIN ORIGIN 13 68)
+    hosted_marker_session(intended "" VERDICT_OK VERDICT_OK 16 79)
+    hosted_marker_session(fault-drop-advance drop-advance ADVANCE_NOT_EXACTLY_ONE PROGRESSION 3 8)
+    hosted_marker_session(fault-double-advance double-advance ADVANCE_NOT_EXACTLY_ONE PROGRESSION 3 8)
+    hosted_marker_session(fault-valid-wrong-origin valid-wrong-origin ORIGIN ORIGIN 13 70)
     file(APPEND "${HOSTED_MARKER_ROOT}/hosted-evidence.txt" "hosted_marker=complete\n")
     message(STATUS "HOSTED_MARKER passed: pinned qualification, exact progression and three production-verdict negatives")
     return()

@@ -66,44 +66,64 @@ fake_nc() {
                     printf '%s\n' "$count" >"$STATE_SESSION_TEST_SHOT_COUNT"
                     if [ "${STATE_SESSION_TEST_MODE:-prefix}" = complete ]; then
                         case "$count" in
-                            1) name='boundary 01 pause a.ppm' ;;
-                            2) name='boundary 02 pause b.ppm' ;;
-                            3) name='boundary 03 advance 1.ppm' ;;
-                            4) name='boundary 04 advance 2.ppm' ;;
-                            5) name='boundary 05 advance 3.ppm' ;;
-                            6) name='boundary 06 advance 4.ppm' ;;
-                            7) name='boundary 07 advance 5.ppm' ;;
-                            8) name='boundary 08 load probe.ppm' ;;
-                            9) name='boundary 09 post load 2.ppm' ;;
-                            10) name='boundary 10 post load 3.ppm' ;;
-                            11) name='boundary 11 resume forward.ppm' ;;
-                            12) name='boundary 12 rewind coarse.ppm' ;;
-                            13) name='boundary 13 rewound advance 1.ppm' ;;
-                            14) name='boundary 14 rewound advance 2.ppm' ;;
-                            15) name='boundary 15 rewound advance 3.ppm' ;;
-                            16) name='boundary 16 runahead probe.ppm' ;;
+                            1) name='alternative frame 101.ppm' ;;
+                            2|3|4) name='boundary 01 pause a.ppm' ;;
+                            5) name='boundary 03 advance 1.ppm' ;;
+                            6) name='boundary 04 advance 2.ppm' ;;
+                            7) name='boundary 05 advance 3.ppm' ;;
+                            8) name='boundary 06 advance 4.ppm' ;;
+                            9) name='boundary 07 advance 5.ppm' ;;
+                            10) name='boundary 08 load probe.ppm' ;;
+                            11) name='boundary 09 post load 2.ppm' ;;
+                            12) name='boundary 10 post load 3.ppm' ;;
+                            13) name='boundary 11 resume forward.ppm' ;;
+                            14) name='boundary 12 rewind coarse.ppm' ;;
+                            15) name='boundary 13 rewound advance 1.ppm' ;;
+                            16) name='boundary 14 rewound advance 2.ppm' ;;
+                            17) name='boundary 15 rewound advance 3.ppm' ;;
+                            18) name='boundary 16 runahead probe.ppm' ;;
                             *) exit 91 ;;
                         esac
                         source_image="$STATE_SESSION_TEST_FIXTURE/$name"
                     else
                         case "$count" in
                             1)
-                                if [ "$fault" = dropped-pause ]; then source_image="$STATE_SESSION_TEST_FIXTURE/advance one.ppm"; else source_image="$STATE_SESSION_TEST_FIXTURE/pause capture one.ppm"; fi
+                                source_image="$STATE_SESSION_TEST_FIXTURE/alternative frame 101.ppm"
                                 ;;
-                            2) source_image="$STATE_SESSION_TEST_FIXTURE/pause capture one.ppm" ;;
+                            2)
+                                if [ "$fault" = stalled-startup ]; then
+                                    source_image="$STATE_SESSION_TEST_FIXTURE/alternative frame 101.ppm"
+                                else
+                                    source_image="$STATE_SESSION_TEST_FIXTURE/boundary 01 pause a.ppm"
+                                fi
+                                ;;
                             3)
+                                if [ "$fault" = dropped-pause ]; then
+                                    source_image="$STATE_SESSION_TEST_FIXTURE/boundary 03 advance 1.ppm"
+                                else
+                                    source_image="$STATE_SESSION_TEST_FIXTURE/boundary 01 pause a.ppm"
+                                fi
+                                ;;
+                            4)
+                                if [ "$fault" = dropped-pause ]; then
+                                    source_image="$STATE_SESSION_TEST_FIXTURE/boundary 04 advance 2.ppm"
+                                else
+                                    source_image="$STATE_SESSION_TEST_FIXTURE/boundary 02 pause b.ppm"
+                                fi
+                                ;;
+                            5)
                                 if [ "${STATE_SESSION_TEST_DROP_ADVANCE:-0}" = 1 ] || [ "$fault" = dropped-advance ]; then
-                                    source_image="$STATE_SESSION_TEST_FIXTURE/pause capture one.ppm"
+                                    source_image="$STATE_SESSION_TEST_FIXTURE/boundary 02 pause b.ppm"
                                 elif [ "$fault" = doubled-advance ]; then
                                     source_image="$STATE_SESSION_TEST_FIXTURE/boundary 04 advance 2.ppm"
                                 else
-                                    source_image="$STATE_SESSION_TEST_FIXTURE/advance one.ppm"
+                                    source_image="$STATE_SESSION_TEST_FIXTURE/boundary 03 advance 1.ppm"
                                 fi
                                 ;;
                             *) exit 91 ;;
                         esac
                     fi
-                    if [ "$fault" = wrong-load-origin ] && [ "$count" -eq 8 ]; then
+                    if [ "$fault" = wrong-load-origin ] && [ "$count" -eq 10 ]; then
                         source_image="$STATE_SESSION_TEST_FIXTURE/boundary 09 post load 2.ppm"
                     fi
                     if [ "$fault" = truncated-image ]; then head -c 8 "$source_image" >"$STATE_SESSION_TEST_SHOTS/capture-$count.ppm"; exit 0; fi
@@ -202,8 +222,8 @@ for request in PAUSE_TOGGLE SAVE_STATE FRAMEADVANCE QUIT; do
     }
 done
 count=$(count_request SCREENSHOT)
-[ "$count" -eq 3 ] || {
-    echo "FAIL screenshot publication request count: expected 3, got $count" >&2
+[ "$count" -eq 5 ] || {
+    echo "FAIL screenshot publication request count: expected 5, got $count" >&2
     exit 1
 }
 count=$(count_request 'GET_CONFIG_PARAM savestate_directory')
@@ -212,7 +232,7 @@ count=$(count_request 'GET_CONFIG_PARAM savestate_directory')
     exit 1
 }
 
-printf 'state session tracer: PREFIX_OK; one FRAMEADVANCE, 3 attributed captures, one QUIT\n'
+printf 'state session tracer: PREFIX_OK; one FRAMEADVANCE, 2 startup captures, 3 boundary captures, one QUIT\n'
 
 # A dropped frame-advance is terminal even though the screenshot request succeeds. It is
 # attempted once, fails on the wrong decoded frame, and the owned host is reaped within budget.
@@ -298,7 +318,7 @@ assert_sanitized_tree() {
     }
 }
 run_fault() {
-    name=$1; expected=$2; fault=$3; fail_request=${4:-}; mode=${5:-prefix}; max_ms=${6:-20000}; ready_ms=${7:-30000}; publication_ms=${8:-300}; attempt_override=${9:-}; operation_override=${10:-30000}
+    name=$1; expected=$2; fault=$3; fail_request=${4:-}; mode=${5:-prefix}; max_ms=${6:-20000}; ready_ms=${7:-30000}; publication_ms=${8:-1000}; attempt_override=${9:-}; operation_override=${10:-30000}
     case_dir="$WORK_ROOT/session-$$-$name"; case_ra="$case_dir/ra"
     case_host_die=0; [ "$fault" != host-died ] || case_host_die=1
     mkdir -p "$case_ra/shots" "$case_ra/states"
@@ -349,7 +369,29 @@ run_fault() {
     [ -d "$1" ] || { echo "FAIL $name did not retain its attempt tree" >&2; exit 1; }
     case_attempt=$1
     assert_sanitized_tree "$case_attempt"
+    [ -f "$case_attempt/startup-captures.tsv" ] || { echo "FAIL $name did not retain startup capture evidence" >&2; exit 1; }
     case "$fault" in
+        stalled-startup)
+            startup_rows=$(wc -l <"$case_attempt/startup-captures.tsv" | tr -d ' ')
+            pause_count=$(awk '$0 == "PAUSE_TOGGLE" { n++ } END { print n + 0 }' "$case_dir/sends.log")
+            save_count=$(awk '$0 == "SAVE_STATE" { n++ } END { print n + 0 }' "$case_dir/sends.log")
+            screenshot_count=$(awk '$0 == "SCREENSHOT" { n++ } END { print n + 0 }' "$case_dir/sends.log")
+            [ "$startup_rows" -eq 3 ] && [ "$pause_count" -eq 0 ] && [ "$save_count" -eq 0 ] && [ "$screenshot_count" -eq 2 ] &&
+                awk -F '\t' 'NR == 2 { first=$4; a=$5 } NR == 3 { second=$4; b=$5 } END { exit !(NR == 3 && first == second && a != "" && b != "" && a != b) }' \
+                    "$case_attempt/startup-captures.tsv" || {
+                echo "FAIL stalled startup was not retained as two valid equal captures before any pause or save" >&2; exit 1;
+            }
+            ;;
+        dropped-pause)
+            pause_count=$(awk '$0 == "PAUSE_TOGGLE" { n++ } END { print n + 0 }' "$case_dir/sends.log")
+            save_count=$(awk '$0 == "SAVE_STATE" { n++ } END { print n + 0 }' "$case_dir/sends.log")
+            screenshot_count=$(awk '$0 == "SCREENSHOT" { n++ } END { print n + 0 }' "$case_dir/sends.log")
+            [ "$pause_count" -eq 1 ] && [ "$save_count" -eq 0 ] && [ "$screenshot_count" -eq 4 ] &&
+                awk -F '\t' 'NR == 2 { first=$4 } NR == 3 { second=$4 } END { exit !(NR == 3 && first < second) }' \
+                    "$case_attempt/startup-captures.tsv" || {
+                echo "FAIL dropped pause did not retain an advancing startup pair and one toggle before rejection" >&2; exit 1;
+            }
+            ;;
         stalled-read|stalled-write)
             [ -s "$case_dir/stall.pid" ] || { echo "FAIL $name had no child pid evidence" >&2; exit 1; }
             stall_pid=$(cat "$case_dir/stall.pid")
@@ -425,11 +467,13 @@ run_prefix_driver() {
 
 # The synthetic marker fixtures satisfy each semantic precondition; these controls execute the
 # actual shell driver and its shared production oracle, then require its own exact failure row.
+# A 300 ms fake-image publication window expired under hosted Intel scheduling before the
+# duplicate-state prerequisite. The test-only 1 s bound remains inside each 30 s operation cap.
 run_fault wrong-readiness READINESS_REPLY wrong-readiness
 run_fault stalled-read READINESS_DEADLINE stalled-read '' prefix 5000 350
 # Setup must have time to launch the blocked FRAMEADVANCE child. Its 60 s stall and operation
 # ceiling exceed the 30 s attempt cap, so the test proves attempt-deadline cleanup deterministically.
-run_fault stalled-child-attempt-cap ATTEMPT_DEADLINE stalled-write FRAMEADVANCE prefix 45000 30000 300 30000 60000
+run_fault stalled-child-attempt-cap ATTEMPT_DEADLINE stalled-write FRAMEADVANCE prefix 45000 30000 1000 30000 60000
 run_fault pause-send-once pause-original_SEND_FAILED send-error PAUSE_TOGGLE
 run_fault screenshot-send-once SCREENSHOT_SEND_FAILED send-error SCREENSHOT
 run_fault save-send-once save-original_SEND_FAILED send-error SAVE_STATE
@@ -438,18 +482,19 @@ run_fault missing-screenshot SCREENSHOT_MISSING missing-image
 run_fault extra-screenshot EXTRA_PUBLICATION extra-image
 run_fault stale-screenshot STALE_PUBLICATION stale-publication
 run_fault truncated-screenshot MARKER_OBSERVE truncated-image
-run_fault dropped-pause ANCHOR_NATIVE_ORIGIN dropped-pause
+run_fault stalled-startup STARTUP_NOT_ADVANCING stalled-startup
+run_fault dropped-pause PAUSE_DID_NOT_HOLD dropped-pause
 run_fault missing-state STATE_MISSING missing-state
 run_fault duplicate-state STATE_AMBIGUOUS duplicate-state
 run_fault corrupt-anchor ANCHOR_CONTAINER_SIZE corrupt-state
 run_fault valid-wrong-origin-anchor ANCHOR_NATIVE_ORIGIN wrong-save-origin
 run_fault doubled-advance ADVANCE_NOT_EXACTLY_ONE doubled-advance
-run_fault host-died HOST_DIED host-died '' prefix 20000 30000 300
+run_fault host-died HOST_DIED host-died '' prefix 20000 30000 1000
 # Hosted complete controls measured 34.879 s under ASan and 30.458 s on macOS arm64. Keep
 # the per-operation limit at 30 s while giving the whole deterministic control a finite 75 s cap.
-run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' complete 75000 30000 300
-run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 75000 30000 300
-run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 190000 30000 300 180000
+run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' complete 75000 30000 1000
+run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 75000 30000 1000
+run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 190000 30000 1000 180000
 
 # Some native UDP clients can print a complete response and then remain alive until the per-read
 # timeout. The production parser must validate those exact bytes before treating that child timeout
@@ -622,7 +667,7 @@ if [ "$complete_status" -ne 0 ] || ! grep -Fx 'progression boundaries=16 mode=co
 fi
 complete_count() { awk -v wanted="$1" '$0 == wanted { n++ } END { print n + 0 }' "$complete_sends"; }
 for pair in 'PAUSE_TOGGLE:3' 'SAVE_STATE:2' 'FRAMEADVANCE:12' 'LOAD_STATE_SLOT 0:2' \
-    'RUNAHEAD_TOGGLE:1' 'REWIND:40' 'SCREENSHOT:16' 'QUIT:1'; do
+    'RUNAHEAD_TOGGLE:1' 'REWIND:40' 'SCREENSHOT:18' 'QUIT:1'; do
     request=${pair%:*}
     expected=${pair##*:}
     actual=$(complete_count "$request")
@@ -631,9 +676,22 @@ for pair in 'PAUSE_TOGGLE:3' 'SAVE_STATE:2' 'FRAMEADVANCE:12' 'LOAD_STATE_SLOT 0
         exit 1
     }
 done
+complete_total=$(awk '$0 != "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$complete_sends")
+complete_readiness=$(awk '$0 == "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$complete_sends")
+[ "$complete_total" -eq 79 ] && [ "$complete_readiness" -eq 1 ] || {
+    echo "FAIL complete send accounting: expected 79 one-shot plus one readiness query, got $complete_total one-shot and $complete_readiness readiness" >&2
+    exit 1
+}
+set -- "$complete_ra"/attempts/attempt-*
+complete_attempt=$1
+awk -F '\t' 'NR == 2 { ok1=($1 == "startup-forward-01" && $2 == "baseline" && $3 == 1); previous=$4 }
+    NR == 3 { ok2=($1 == "startup-forward-02" && $2 == "strictly-forward-from-startup-forward-01" && $3 == 2 && $4 > previous) }
+    END { exit !(NR == 3 && ok1 && ok2) }' "$complete_attempt/startup-captures.tsv" || {
+    echo "FAIL complete retained startup captures lack exact send ordinals or strict progress" >&2; exit 1;
+}
 awk '
     $0 == "PAUSE_TOGGLE" { pauses++; if (pauses == 3) paused_boundary_line = NR }
-    $0 == "SCREENSHOT" { screenshots++; if (screenshots == 11) resume_boundary_line = NR }
+    $0 == "SCREENSHOT" { screenshots++; if (screenshots == 13) resume_boundary_line = NR }
     END { exit !(paused_boundary_line && resume_boundary_line && paused_boundary_line < resume_boundary_line) }
 ' "$complete_sends" || {
     echo "FAIL resume-forward boundary was captured before the pause transition" >&2

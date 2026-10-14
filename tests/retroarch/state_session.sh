@@ -277,8 +277,16 @@ capture() {
     CURRENT_OBSERVED="frame-$BOUNDARY_FRAME"; CURRENT_ARTIFACT="$BOUNDARY_NAME:$BOUNDARY_HASH"; LAST_REASON=OK
 }
 BOUNDARIES="$ATTEMPT_DIR/boundaries.tsv"; : >"$BOUNDARIES"; BOUNDARY_COUNT=0
+STARTUP_CAPTURES="$ATTEMPT_DIR/startup-captures.tsv"
+printf 'tag\trelation\tscreenshot_send_ordinal\tdisplay_frame\tartifact_path\tartifact_identity\n' >"$STARTUP_CAPTURES"
 ORIGINAL_ANCHOR_PATH=; ORIGINAL_ANCHOR_ID=; ORIGINAL_ANCHOR_FRAME=0
 REWOUND_ANCHOR_PATH=; REWOUND_ANCHOR_ID=; REWOUND_ANCHOR_FRAME=0
+record_startup_capture() {
+    _tag=$1; _relation=$2
+    _artifact_path="originals/${_tag}-${ORIGINAL_NAME}"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "$_tag" "$_relation" "$send_count" "$BOUNDARY_FRAME" "$_artifact_path" "$BOUNDARY_HASH" >>"$STARTUP_CAPTURES" || fail STARTUP_EVIDENCE_WRITE
+}
 record_boundary() {
     _op=$1; _relation=$2; _origin=$3; _commands=$4; _sends=$5; _anchor_id=$6
     _anchor_frame=$7; _lead=$8; _delta=$9; _elapsed=${10}; _deadline=${11}
@@ -430,16 +438,34 @@ env "HOME=$ATTEMPT_DIR/profile" "CFFIXED_USER_HOME=$ATTEMPT_DIR/profile" "XDG_CO
 HOST_PID=$!
 probe_ready
 sleep_ms "$SETTLE_MS" startup-settle; host_alive || fail HOST_DIED
+
+# Prove that the host was running before toggling pause. A stalled or already-paused
+# startup fails closed; equal marker frames are never accepted as evidence of a pause.
+capture startup-forward-01; STARTUP_FRAME_1=$BOUNDARY_FRAME
+record_startup_capture startup-forward-01 baseline
+capture startup-forward-02
+record_startup_capture startup-forward-02 strictly-forward-from-startup-forward-01
+[ "$BOUNDARY_FRAME" -gt "$STARTUP_FRAME_1" ] || fail STARTUP_NOT_ADVANCING
+
 begin_operation pause-original "$OPERATION_MS"; send_once PAUSE_TOGGLE pause-original; sleep_ms "$COMMAND_GAP_MS" pause-settle; finish_operation
 
-# First capture supplies the exact expected origin; save and validate it before any frame change.
+# The existing pair proves that the single toggle paused an advancing host. Save only
+# after both independently published, valid captures agree on the displayed frame.
 capture boundary-01; FRAME_1=$BOUNDARY_FRAME
-save_anchor original "$FRAME_1" ""
-record_boundary capture pause-equal-original original 1 1 "$ORIGINAL_ANCHOR_ID" "$ORIGINAL_ANCHOR_FRAME" 0 0 "$BOUNDARY_ELAPSED_MS" "$BOUNDARY_DEADLINE_MS"
-verify_prefix
+FRAME_1_PATH=$BOUNDARY_PATH; FRAME_1_NAME=$BOUNDARY_NAME; FRAME_1_HASH=$BOUNDARY_HASH
+FRAME_1_ELAPSED=$BOUNDARY_ELAPSED_MS; FRAME_1_DEADLINE=$BOUNDARY_DEADLINE_MS
 sleep_ms "$PAUSE_GAP_MS" first-pause-gap
 capture boundary-02
 [ "$BOUNDARY_FRAME" -eq "$FRAME_1" ] || fail PAUSE_DID_NOT_HOLD
+FRAME_2_PATH=$BOUNDARY_PATH; FRAME_2_NAME=$BOUNDARY_NAME; FRAME_2_HASH=$BOUNDARY_HASH
+FRAME_2_ELAPSED=$BOUNDARY_ELAPSED_MS; FRAME_2_DEADLINE=$BOUNDARY_DEADLINE_MS
+save_anchor original "$FRAME_1" ""
+BOUNDARY_FRAME=$FRAME_1; BOUNDARY_PATH=$FRAME_1_PATH; BOUNDARY_NAME=$FRAME_1_NAME; BOUNDARY_HASH=$FRAME_1_HASH
+BOUNDARY_ELAPSED_MS=$FRAME_1_ELAPSED; BOUNDARY_DEADLINE_MS=$FRAME_1_DEADLINE
+record_boundary capture pause-equal-original original 1 1 "$ORIGINAL_ANCHOR_ID" "$ORIGINAL_ANCHOR_FRAME" 0 0 "$BOUNDARY_ELAPSED_MS" "$BOUNDARY_DEADLINE_MS"
+verify_prefix
+BOUNDARY_FRAME=$FRAME_1; BOUNDARY_PATH=$FRAME_2_PATH; BOUNDARY_NAME=$FRAME_2_NAME; BOUNDARY_HASH=$FRAME_2_HASH
+BOUNDARY_ELAPSED_MS=$FRAME_2_ELAPSED; BOUNDARY_DEADLINE_MS=$FRAME_2_DEADLINE
 record_boundary capture pause-equal-original original 1 1 "$ORIGINAL_ANCHOR_ID" "$ORIGINAL_ANCHOR_FRAME" 0 0 "$BOUNDARY_ELAPSED_MS" "$BOUNDARY_DEADLINE_MS"
 verify_prefix
 

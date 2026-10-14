@@ -491,7 +491,11 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * read-only readiness reply retries; only a complete exact reply for the isolated path is accepted,
  * even when its receive child reaches its per-read timeout. Actions, state saves/loads, screenshots
  * and QUIT are one-shot, except for the prescribed forty individually paced rewind sends. A
- * UDP send accepted by the local socket is not proof that RetroArch received it; each retained
+ * separate pair of valid startup captures must show strict forward progress before the first
+ * PAUSE_TOGGLE; the next two equal-frame captures prove the toggle held before the original anchor
+ * is saved. A host that starts paused or stalls fails closed rather than treating a static image as
+ * pause evidence. Those two startup captures are retained outside the sixteen canonical boundaries.
+ * A UDP send accepted by the local socket is not proof that RetroArch received it; each retained
  * image and native origin is checked by the shared progression verdict. The journal records
  * operation time through terminal observation and attempt time through bounded child/host cleanup;
  * generated host config and log paths are sanitized. The required pinned-host run uses generated

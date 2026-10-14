@@ -1528,15 +1528,23 @@ to the real home directory, startup errors, and frame mismatches fail the
 required CI check. No manual screenshot or gameplay check is needed.
 
 The job's state step retains the existing auto-save/auto-load, game, battery,
-portable state and audio evidence. Its separate marker network session exercises
-the full displayed-state progression: two paused captures, five exact advances,
-one state-load-plus-advance probe, two post-load advances, resume until forward
-progress is observed and pause, forty individually paced rewind sends, three
-rewound advances, then a paused run-ahead toggle and load-plus-advance probe.
-Each of the sixteen captures is decoded within absolute marker frames 4..10000
-and checked by the same production prefix verdict; only a clean host exit after
-all boundaries earns the complete verdict. Original and rewound native state
-containers are retained and validated before their slots are reused.
+portable state and audio evidence. Its separate marker network session first
+retains two independently published, marker-validated startup captures and
+requires the second frame to advance strictly beyond the first. This proves the
+host is running before the one-shot pause toggle; a host that starts paused or
+stalls fails closed. The next two captures must then show the same frame before
+the original native anchor is saved. These four startup/pause screenshots are
+followed by the sixteen canonical displayed-state boundaries: five exact
+advances, one state-load-plus-advance probe, two post-load advances, resume until
+forward progress is observed and pause, forty individually paced rewind sends,
+three rewound advances, then a paused run-ahead toggle and load-plus-advance
+probe. The two startup captures are retained separately and are not progression
+boundaries; the full session sends 18 one-shot SCREENSHOT requests and records
+79 one-shot sends overall. Each of the sixteen canonical captures is decoded
+within absolute marker frames 4..10000 and checked by the same production prefix
+verdict; only a clean host exit after all boundaries earns the complete verdict.
+Original and rewound native state containers are retained and validated before
+their slots are reused.
 
 Each attempt has a unique owned tree and exclusive local command-port lock. The
 only retryable request is the read-only readiness query with its exact isolated
