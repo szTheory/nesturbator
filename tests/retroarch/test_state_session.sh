@@ -8,6 +8,10 @@ fake_nc() {
     printf '%s\n' "$request" >>"$STATE_SESSION_TEST_SENDS"
     fault=${STATE_SESSION_TEST_FAULT:-}
     if [ "$fault" = send-error ] && [ "$request" = "${STATE_SESSION_TEST_FAIL_REQUEST:-}" ]; then exit 93; fi
+    if [ "$fault" = stalled-write ] && [ "$request" = FRAMEADVANCE ]; then
+        printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
+        exec perl -MTime::HiRes=sleep -e 'sleep 20'
+    fi
     case "$request" in
         'GET_CONFIG_PARAM savestate_directory')
             if [ "$fault" = stalled-read ]; then
@@ -237,6 +241,8 @@ STATE_SESSION_TEST_MODE=prefix \
 STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
 STATE_SESSION_TEST_SHOTS="$negative_ra/shots" \
 STATE_SESSION_LOCK_ROOT="$negative_dir/locks" \
+STATE_SESSION_ATTEMPT_MS=15000 \
+STATE_SESSION_CLEANUP_MS=1000 \
 STATE_SESSION_SETTLE_MS=0 \
 STATE_SESSION_OPERATION_MS=10000 \
 sh "$DRIVER" "$negative_dir/fake-retroarch" "$negative_dir/config.cfg" "$negative_dir/core.so" \
@@ -249,19 +255,36 @@ duration=$((finished - started))
     cat "$negative_dir/driver.out" >&2
     exit 1
 }
-[ "$duration" -lt 10000 ] || { echo "FAIL dropped advance exceeded elapsed bound: ${duration}ms" >&2; exit 1; }
+negative_attempt_dir=
+for _negative_attempt in "$negative_ra"/attempts/attempt-*; do
+    [ -d "$_negative_attempt" ] || continue
+    negative_attempt_dir=$_negative_attempt
+    break
+done
+[ -n "$negative_attempt_dir" ] || { echo "FAIL dropped advance did not retain its attempt tree" >&2; exit 1; }
+negative_row=$(awk -F '\t' '$11 == "ADVANCE_NOT_EXACTLY_ONE" { row=$0 } END { print row }' "$negative_attempt_dir/journal.tsv")
+negative_attempt_elapsed=$(printf '%s\n' "$negative_row" | cut -f4)
+negative_operation_elapsed=$(printf '%s\n' "$negative_row" | cut -f6)
+[ "$negative_operation_elapsed" -gt 0 ] && [ "$negative_operation_elapsed" -le 10000 ] || {
+    echo "FAIL dropped advance exceeded measured operation deadline: ${negative_operation_elapsed}ms" >&2; exit 1;
+}
+[ "$negative_attempt_elapsed" -ge "$negative_operation_elapsed" ] && [ "$negative_attempt_elapsed" -lt 14000 ] && [ "$duration" -lt 16000 ] || {
+    echo "FAIL dropped advance exceeded bounded attempt/cleanup time: operation=${negative_operation_elapsed}ms attempt=${negative_attempt_elapsed}ms process=${duration}ms" >&2
+    exit 1
+}
 advance_count=$(awk '$0 == "FRAMEADVANCE" { n++ } END { print n + 0 }' "$negative_sends")
 [ "$advance_count" -eq 1 ] || { echo "FAIL dropped advance send count: expected 1, got $advance_count" >&2; exit 1; }
 host_pid=$(cat "$negative_host")
 if kill -0 "$host_pid" 2>/dev/null; then echo "FAIL dropped advance left the owned host alive" >&2; exit 1; fi
-printf 'state session missing-action control: ADVANCE_NOT_EXACTLY_ONE; one send; %sms; host reaped\n' "$duration"
+printf 'state session missing-action control: ADVANCE_NOT_EXACTLY_ONE; one send; operation %sms, attempt %sms, process %sms; host reaped\n' \
+    "$negative_operation_elapsed" "$negative_attempt_elapsed" "$duration"
 
 mono_ms() { perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000'; }
 assert_sanitized_tree() {
     _attempt=$1
     for _file in journal.tsv session.sanitized.cfg retroarch.sanitized.log; do
         [ -f "$_attempt/$_file" ] || { echo "FAIL missing sanitized $_file" >&2; exit 1; }
-        if grep -E -F -e "$WORK_ROOT" -e '/Users/' -e '/home/' "$_attempt/$_file" >/dev/null; then
+        if grep -F -e "$WORK_ROOT" -e '/Users/' -e '/home/' "$_attempt/$_file" >/dev/null; then
             echo "FAIL unsanitized path in $_attempt/$_file" >&2; exit 1
         fi
     done
@@ -322,10 +345,10 @@ run_fault() {
     case_attempt=$1
     assert_sanitized_tree "$case_attempt"
     case "$fault" in
-        stalled-read)
-            [ -s "$case_dir/stall.pid" ] || { echo "FAIL stalled-read had no child pid evidence" >&2; exit 1; }
+        stalled-read|stalled-write)
+            [ -s "$case_dir/stall.pid" ] || { echo "FAIL $name had no child pid evidence" >&2; exit 1; }
             stall_pid=$(cat "$case_dir/stall.pid")
-            if kill -0 "$stall_pid" 2>/dev/null; then echo "FAIL stalled-read did not reap the blocked read child" >&2; exit 1; fi
+            if kill -0 "$stall_pid" 2>/dev/null; then echo "FAIL $name did not reap the blocked child" >&2; exit 1; fi
             if [ "$expected" = READINESS_DEADLINE ]; then
                 stall_row=$(grep -F 'READINESS_DEADLINE' "$1/journal.tsv" | tail -1)
                 stall_elapsed=$(printf '%s\n' "$stall_row" | cut -f6)
@@ -337,8 +360,15 @@ run_fault() {
                 }
                 printf 'state session child deadline: %sms operation elapsed; child reaped\n' "$stall_elapsed"
             else
-                attempt_elapsed=$(grep -F 'ATTEMPT_DEADLINE' "$1/journal.tsv" | tail -1 | cut -f4)
-                [ "$attempt_elapsed" -gt 0 ] && [ "$attempt_elapsed" -lt 2000 ] || { echo "FAIL child exceeded attempt budget before cleanup reserve: ${attempt_elapsed}ms" >&2; exit 1; }
+                attempt_row=$(grep -F 'ATTEMPT_DEADLINE' "$1/journal.tsv" | tail -1)
+                attempt_elapsed=$(printf '%s\n' "$attempt_row" | cut -f4)
+                attempt_remaining=$(printf '%s\n' "$attempt_row" | cut -f5)
+                attempt_min=$((attempt_ms - 1500))
+                [ "$attempt_elapsed" -ge "$attempt_min" ] && [ "$attempt_elapsed" -lt "$attempt_ms" ] &&
+                    [ "$attempt_remaining" -gt 0 ] || {
+                    echo "FAIL child did not hit the measured attempt cap with cleanup reserve: elapsed=${attempt_elapsed}ms remaining=${attempt_remaining}ms budget=${attempt_ms}ms" >&2
+                    exit 1
+                }
             fi
             ;;
         wrong-load-origin)
@@ -392,7 +422,7 @@ run_prefix_driver() {
 # actual shell driver and its shared production oracle, then require its own exact failure row.
 run_fault wrong-readiness READINESS_REPLY wrong-readiness
 run_fault stalled-read READINESS_DEADLINE stalled-read '' prefix 5000 350
-run_fault stalled-child-attempt-cap ATTEMPT_DEADLINE stalled-read '' prefix 5000 5000 300 2500
+run_fault stalled-child-attempt-cap ATTEMPT_DEADLINE stalled-write FRAMEADVANCE prefix 16000 30000 300 12000
 run_fault pause-send-once pause-original_SEND_FAILED send-error PAUSE_TOGGLE
 run_fault screenshot-send-once SCREENSHOT_SEND_FAILED send-error SCREENSHOT
 run_fault save-send-once save-original_SEND_FAILED send-error SAVE_STATE
