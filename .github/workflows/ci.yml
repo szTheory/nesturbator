@@ -73,11 +73,11 @@ jobs:
 
   build:
     runs-on: ${{ matrix.runner }}
-    # Twice the slowest successful build in the latest 40 completed workflow runs: 1,131 s on macos-15-intel
-    # in run 38625107428 (21 successful Intel samples), rounded up from 2,262 s to 38 minutes, ENGINEERING section 5.
+    # Fixed last-40-run audit (38346573845..38645462773): 1,151 s on macos-15-intel in run 38645462773
+    # was the slowest of 22 successful Intel samples; 2,302 s rounds up to 39 minutes, ENGINEERING section 5.
     # Linux x64's maximum was 1,104 s in run 38612400197 (33 samples). In run 38633432440, the Intel job was
     # cancelled at 24m04s by the old cap after its CI step passed; that incomplete run is not a successful sample.
-    timeout-minutes: 38
+    timeout-minutes: 39
     strategy:
       fail-fast: false
       matrix:
@@ -192,7 +192,8 @@ jobs:
   # game. Its screenshot is retained for diagnosis and reproducibility.
   retroarch-e2e:
     runs-on: macos-15
-    # Twice the successful 1,174 s whole-job duration in run 38641853044 (head 9d2eb0b), rounded up to 40 minutes, ENGINEERING section 5.
+    # Fixed last-40-run audit (38346573845..38645462773): maximum successful whole-job duration was 1,174 s
+    # in run 38641853044 (versus 1,132 s in run 38645462773), rounded up to 40 minutes, ENGINEERING section 5.
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
