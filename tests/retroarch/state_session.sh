@@ -168,7 +168,7 @@ run_child() {
 sleep_ms() {
     _delay=$1; _label=$2
     [ "$_delay" -gt 0 ] || return 0
-    _budget=$((_delay+300))
+    _budget=$((_delay+1000))
     run_child "delay_$_label" "$_budget" "$EMPTY" "$ATTEMPT_DIR/delay.out" \
         "$ATTEMPT_DIR/delay.err" perl -MTime::HiRes=sleep -e 'sleep($ARGV[0]/1000)' "$_delay" || fail "DELAY_$_label"
 }

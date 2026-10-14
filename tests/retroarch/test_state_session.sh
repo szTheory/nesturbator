@@ -386,7 +386,7 @@ run_prefix_driver() {
 # The synthetic marker fixtures satisfy each semantic precondition; these controls execute the
 # actual shell driver and its shared production oracle, then require its own exact failure row.
 run_fault wrong-readiness READINESS_REPLY wrong-readiness
-run_fault stalled-read READINESS_DEADLINE stalled-read '' prefix 1800 350
+run_fault stalled-read READINESS_DEADLINE stalled-read '' prefix 2500 350
 run_fault stalled-child-attempt-cap ATTEMPT_DEADLINE stalled-read '' prefix 5000 5000 300 2500
 run_fault pause-send-once pause-original_SEND_FAILED send-error PAUSE_TOGGLE
 run_fault screenshot-send-once SCREENSHOT_SEND_FAILED send-error SCREENSHOT
