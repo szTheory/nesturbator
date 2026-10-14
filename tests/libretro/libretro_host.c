@@ -1978,13 +1978,39 @@ enum fixture_role {
     FIXTURE_ROLE_MMC1_BATTERY
 };
 
-/* The exact-name role tests first pin the current full-path selection seam. */
+/* Fixture roles use only the exact final filename; path bytes stay untouched. */
+static const char *fixture_final_component(const char *path)
+{
+    const char *component;
+
+    if (path == NULL) {
+        return NULL;
+    }
+    component = path;
+    for (const char *cursor = path; *cursor != '\0'; cursor++) {
+        if (*cursor == '/') {
+            component = cursor + 1;
+        }
+#if defined(_WIN32)
+        else if (*cursor == '\\') {
+            component = cursor + 1;
+        }
+#endif
+    }
+    if (*component == '\0') {
+        return NULL;
+    }
+    return component;
+}
+
 static enum fixture_role fixture_role_for_path(const char *path)
 {
-    if (path != NULL && strstr(path, "nesteroids") != NULL) {
+    const char *component = fixture_final_component(path);
+
+    if (component != NULL && strcmp(component, "nesteroids.nes") == 0) {
         return FIXTURE_ROLE_NESTEROIDS;
     }
-    if (path != NULL && strstr(path, "M1_P128K_C128K_S8K") != NULL) {
+    if (component != NULL && strcmp(component, "M1_P128K_C128K_S8K.nes") == 0) {
         return FIXTURE_ROLE_MMC1_BATTERY;
     }
     return FIXTURE_ROLE_GENERIC;

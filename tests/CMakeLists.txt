@@ -1320,14 +1320,23 @@ add_test(NAME libretro.fixture_roles
 set_tests_properties(libretro.fixture_roles PROPERTIES TIMEOUT 30)
 
 # LR-01: --serialize drives retro_serialize_size, retro_serialize and retro_unserialize of
-# the built module and checks each against the library state API.
+# the built module and checks each against the library state API. The wrapper copies and hashes
+# the actual special inputs before launching the host.
+set(LIBRETRO_SERIALIZE_ROMS
+  ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M1_P128K_C128K_S8K.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M2_P128K_CR8K_V.nes
+  ${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes)
 add_test(NAME libretro.serialize
-  COMMAND libretro.host --serialize $<TARGET_FILE:nesturbator_libretro>
-    ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes
-    ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes
-    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M1_P128K_C128K_S8K.nes
-    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M2_P128K_CR8K_V.nes
-    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes)
+  COMMAND ${CMAKE_COMMAND}
+    "-DHOST=$<TARGET_FILE:libretro.host>"
+    "-DCORE=$<TARGET_FILE:nesturbator_libretro>"
+    "-DMODE=serialize"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/fixture identity"
+    "-DROMS=${LIBRETRO_SERIALIZE_ROMS}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fixture_identity.cmake)
 # The asan job on a hosted runner ran past 120 s while other tests shared the CPU.
 set_tests_properties(libretro.serialize PROPERTIES TIMEOUT 600)
 
@@ -1339,14 +1348,16 @@ if(NESTURBATOR_SHORT_RUNS)
   set(RUNAHEAD_MODE --short)
 endif()
 add_test(NAME libretro.runahead
-  COMMAND libretro.host --runahead $<TARGET_FILE:nesturbator_libretro> ${RUNAHEAD_MODE} --stress
-    ${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes
-    ${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes
-    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M1_P128K_C128K_S8K.nes
-    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M2_P128K_CR8K_V.nes
-    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes
-    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P128K_CR8K.nes
-    ${PROJECT_SOURCE_DIR}/tests/roms/hm/M7_P128K_CR8K.nes)
+  COMMAND ${CMAKE_COMMAND}
+    "-DHOST=$<TARGET_FILE:libretro.host>"
+    "-DCORE=$<TARGET_FILE:nesturbator_libretro>"
+    "-DMODE=runahead"
+    "-DSHORT=${NESTURBATOR_SHORT_RUNS}"
+    -DSTRESS=ON
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/fixture identity"
+    "-DROMS=${PROJECT_SOURCE_DIR}/tests/roms/nesteroids.nes;${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes;${PROJECT_SOURCE_DIR}/tests/roms/hm/M1_P128K_C128K_S8K.nes;${PROJECT_SOURCE_DIR}/tests/roms/hm/M2_P128K_CR8K_V.nes;${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes;${PROJECT_SOURCE_DIR}/tests/roms/hm/M4_P128K_CR8K.nes;${PROJECT_SOURCE_DIR}/tests/roms/hm/M7_P128K_CR8K.nes"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fixture_identity.cmake)
 # TIMEOUT 600: under asan on a hosted runner this test runs several times slower than locally
 # (libretro.serialize needed the same ceiling). At 60 ticks a hosted asan run took 292 s and a slow
 # runner passed 600 s, so asan runs 30 ticks: 52 s locally, about half the hosted time.

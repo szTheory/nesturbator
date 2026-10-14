@@ -1416,6 +1416,16 @@ uninterrupted run, and a repeat mode that gives the speculative frames the
 current input, as RetroArch does, must equal a two-instance library model. Four
 broken hosts (no load, a stale load, input one frame late, speculative audio in
 the real stream) run through the same comparison and each must differ.
+The registered `libretro.serialize` and `libretro.runahead` tests first copy each
+special ROM into their build directory, then compare that actual supplied file's
+SHA-256 with its exact row in `tests/roms/manifest.txt` before starting the host.
+A mismatch, missing row or duplicate row fails before host launch. The host assigns
+the battery and run-ahead roles only to the case-sensitive final filenames
+`M1_P128K_C128K_S8K.nes` and `nesteroids.nes`; `/` separates path components on all
+platforms, and `\` does so only on Windows. Parent directory text and similar
+filenames select no role. This identity check belongs to the registered CMake tests;
+a direct `libretro.host` call uses exact names but does not authenticate file bytes.
+The marker fixture retains its separate generator identity.
 `core.state_runahead` checks RetroArch's second-instance mode as a library
 property: one instance runs the real timeline, a second loads its state each
 frame and runs ahead, and the shown frames equal a single instance that saves,

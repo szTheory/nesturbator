@@ -479,6 +479,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * frame (including a host's run-ahead lead) does not prove committed state or speculative audio.
  * Host containers are outside this native API; the test-only RetroArch reader qualifies one
  * measured uncompressed released-binary envelope and a bounded visible-marker window.
+ * The registered libretro host tests select their battery and run-ahead fixtures by exact,
+ * case-sensitive final filename; their CMake wrapper hashes the supplied special-file copy
+ * against its manifest record before host launch. Direct host calls do not authenticate files.
  * Its negative controls distinguish native-valid wrong origins and stale revisions from parse
  * or checksum failures; screenshots qualify displayed identity, not every saved machine field.
  * The separate private progression verdict binds each displayed observation to one retained
