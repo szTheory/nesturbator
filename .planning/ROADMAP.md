@@ -68,7 +68,7 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans**: 8 plans; 6 executed, 2 gap-closure plans pending
+**Plans**: 9 plans; 6 executed, 3 gap-closure plans pending
 
 Plans:
 **Wave 1**
@@ -88,12 +88,15 @@ Plans:
 - [x] 16-05-PLAN.md — Protect truthful MMC3 descriptions through staged and packaged metadata.
 
 **Wave 6** *(gap closure; depends on completed Plans 05/06)*
+- [ ] 16-09-PLAN.md — Measure and repair journal overhead while preserving readiness timing, semantic and cleanup bounds; run focused/full CI and fresh source review.
+
+**Wave 7** *(blocked on the bounded repair and review in Plan 09)*
 - [ ] 16-07-PLAN.md — Prepare the checked phase PR, obtain exact-head merge consent and observe the normal release flow.
 
-**Wave 7** *(depends on the actual normal publication from Plan 07)*
+**Wave 8** *(depends on the actual normal publication from Plan 07)*
 - [ ] 16-08-PLAN.md — Verify downloaded six-platform metadata, checksums, attestations and exact-release-commit CI.
 
-**Verification (2026-10-15):** 6/8 plans implemented; [prior source CI](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on `841434b`, and source review is clean. [Phase verification](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) verifies 21/22 truths. EVID-04 remains open: actual published v0.1.10 metadata omits MMC3, while source, staging and packages pass. Gap Plan 07 opened [PR 50](https://github.com/szTheory/nesturbator/pull/50) at `30a0098`, but [native PR CI](https://github.com/szTheory/nesturbator/actions/runs/38740783575) failed the macOS Intel outer elapsed-time control (26,632 ms against less than 25,000 ms; 647/648 CTests passed). Perf and pinned RetroArch passed. Per Plan 07, execution stopped without a rerun or merge-consent request; Plans 07/08 remain incomplete. [Delivery evidence](phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md) records the exact identities and diagnosis. Next: `$gsd-plan-phase 16 --gaps` for a bounded CI repair amendment, then fresh native CI, exact-head consent, actual publication evidence and independent phase verification.
+**Verification (2026-10-15):** 6/9 plans implemented; [prior source CI](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on `841434b`, and the pre-repair source review is clean. [Phase verification](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) retains its 21/22 verdict. EVID-04 remains open: actual published v0.1.10 metadata omits MMC3, while source, staging and packages pass. Gap Plan 07 opened [PR 50](https://github.com/szTheory/nesturbator/pull/50) at `30a0098`, but [native PR CI](https://github.com/szTheory/nesturbator/actions/runs/38740783575) failed the macOS Intel outer elapsed-time control (26,632 ms against less than 25,000 ms; 647/648 CTests passed). Perf and pinned RetroArch passed. Per Plan 07, execution stopped without a rerun or merge-consent request. [Delivery evidence](phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md) retains that diagnosis. The bounded repair amendment is now independently checked: [Plan 09](phases/16-host-evidence-and-roadmap/16-09-PLAN.md) preserves all timing/semantic bounds and requires measured journal-overhead reduction, focused/full CI and fresh source review. Original research questions have evidence-backed dispositions without claiming either unknown runtime cause was fixed. All 6 requirements and 17 decisions are covered; all 9 plan structures pass. Next: `$gsd-execute-phase 16 --gaps-only` for 09 → resumed 07 → 08. Fresh native CI, exact-head consent, actual publication evidence and independent phase verification remain required.
 
 **UI hint**: no
 **Canonical refs**: [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md), [GSD-HANDOFF.md](preparation/GSD-HANDOFF.md); current scope evidence in [research/SUMMARY.md](research/SUMMARY.md).
@@ -136,7 +139,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 6/8 | Gap delivery stopped: native CI failure | - |
+| 16. Host evidence and roadmap | v4 | 6/9 | Gap plans ready: repair before delivery | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

@@ -4,16 +4,16 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: executing
-stopped_at: "Phase 16 Plan 07 stopped at native PR CI failure: PR 50, macOS Intel readiness-response-stall elapsed bound; repair amendment needed before consent"
-last_updated: "2026-10-15T13:42:34Z"
+status: ready_to_execute
+stopped_at: "Phase 16 gap planning passed; Plan 09 timing repair precedes incomplete Plans 07/08; PR 50 remains unmerged"
+last_updated: "2026-10-15T14:21:09.308Z"
 last_activity: 2026-10-15
-last_activity_desc: PR 50 prepared; native CI 38740783575 failed one macOS Intel elapsed-time control; no merge or rerun; Plans 07/08 incomplete
-state_head: 30a009838b741a429863e7cb5143526fbaad8ed7
+last_activity_desc: Gap Plan 09 created and Plans 07/08 amended; independent checker passed after research reconciliation; execution remains pending
+state_head: 7811c4395aece33a3f985655ef2f88604ea885c0
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 8
+  total_plans: 9
   completed_plans: 6
   percent: 0
 ---
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — NATIVE PR CI FAILED
-Plan: 7 of 8 (six implementation plans complete; gap delivery in progress)
-Status: Plan 07 incomplete; stopped under its terminal CI failure gate
-Last activity: 2026-10-15 — PR 50 opened at 30a0098; perf and pinned RetroArch passed; macOS Intel elapsed-time assertion failed; no merge or rerun
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Plan: 09 next of 9 total (six complete; execution order 09, 07, 08)
+Status: Ready to execute bounded timing repair; Plans 07/08 remain incomplete
+Last activity: 2026-10-15 — Gap planning passed independent review; 9/9 plan structures, 6/6 requirements, 17/17 decisions and all 43 verification commands checked; no implementation executed
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -377,14 +377,16 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T13:42:34Z
-Stopped at: Phase 16 Plan 07 native CI failed; PR 50 remains open at 30a009838b741a429863e7cb5143526fbaad8ed7; no merge consent requested
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md
+Last session: 2026-10-15T14:21:09Z
+Stopped at: Phase 16 gap plans verified; Plan 09 ready before incomplete delivery Plans 07/08; prior native failure retained and no merge consent requested
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-09-PLAN.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Run `$gsd-plan-phase 16 --gaps` for a bounded repair amendment using 16-RELEASE-DELIVERY.md and failed native PR CI 38740783575. macOS Intel passed 647/648 CTests: the readiness-response-stall control accepted the exact reply and reaped its child/host, but its total 26,632 ms exceeded the strict 25,000 ms outer guard at tests/retroarch/test_state_session.sh:748. Preserve operation supervision and semantic assertions; investigate the outer timing contract before changing its bound. Retained raw evidence is ignored under build/phase16-release/. Do not blind-rerun failed CI.
+- Run `$gsd-execute-phase 16 --gaps-only`: Plan 09 is wave 6 after completed Plans 05/06; Plan 07 resumes at wave 7; Plan 08 follows actual publication at wave 8. Plan 09 measures and consolidates redundant journal subprocess work, adds focused full-prefix delay/stall controls, and requires normal CI, README/header comments and fresh source-bound review. Preserve every existing timing, exact-response, send-count and cleanup assertion; no bound increase, CI retry or platform-cause claim is selected. If measured repair cannot satisfy the unchanged contracts, stop for a bounded amendment.
+- Prior native PR CI 38740783575 remains failed: macOS Intel passed 647/648 CTests, but readiness-response-stall took 26,632 ms against strict less-than-25,000 ms. Its exact response, inner operation time and child/host reaping passed; the preceding delayed reply passed at 20,728 ms. Native slowdown causation remains unproven. Retained raw evidence is ignored under build/phase16-release/; the source/log correct the inherited diagnosis JSON's delay label. No blind rerun is authorized by the planning pass.
 - PR 50 exists at checked remote head 30a009838b741a429863e7cb5143526fbaad8ed7. Its delivery record commit already exists, but Task 1 and Plans 07/08 remain incomplete; no completed summary was written. Reconcile that partial commit rather than repeat it if safe-resume reports it. Failure/state documentation commits are local only; the existing config preference edit remains unstaged. Reuse this PR for the bounded repair, then obtain fresh native required CI and exact-head owner consent before merge. Actual published-byte evidence and independent phase verification still gate EVID-04 and Phase 17.
+- Planning verification: independent checker passed on the second check after evidence-backed disposition of the five original research questions. All 23 requirement/decision items are covered; all nine plan schemas/structures pass with zero warnings. Command-path probing found no findings (all 43 commands outside its supported path shapes); all 43 commands have explicit failing directions. This validates plans, not repair behavior or publication. The known local launch cause remains unknown under the required hosted-fallback disposition.
 - Retain the historical performance, publication evidence and substantive debt above. SEED-003's baseline portion, SEED-004's remaining execution robustness and recurring SEED-006 upkeep are selected for v4; original deferred seed records remain historical, with current dispositions in PRODUCT-ROADMAP.md.
