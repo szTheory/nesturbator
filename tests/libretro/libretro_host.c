@@ -2562,6 +2562,35 @@ static int runahead_mode(int argc, char **argv)
     CHECK_DONE();
 }
 
+/* Test-only host mode: record the exact argv the CMake fixture wrapper delivers. */
+static int fixture_argv_capture(int argc, char **argv, const char *path)
+{
+    FILE *output = fopen(path, "wb");
+    int index;
+    if (output == NULL) {
+        fprintf(stderr, "cannot create fixture argv capture\n");
+        return 1;
+    }
+    if (fprintf(output, "%d\n", argc - 1) < 0) {
+        fclose(output);
+        return 1;
+    }
+    for (index = 1; index < argc; index++) {
+        size_t length = strlen(argv[index]);
+        if (fprintf(output, "%lu:", (unsigned long)length) < 0
+            || fwrite(argv[index], 1, length, output) != length
+            || fputc('\n', output) == EOF) {
+            fclose(output);
+            return 1;
+        }
+    }
+    if (fclose(output) != 0) {
+        fprintf(stderr, "cannot finish fixture argv capture\n");
+        return 1;
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
@@ -2570,7 +2599,11 @@ int main(int argc, char **argv)
     static unsigned char dummy_bytes[16u + 16384u + 8192u];
     static uint32_t first_content_frame[W * H];
     double fps_diff;
+    const char *fixture_argv_path = getenv("NESTURBATOR_FIXTURE_ARGV_CAPTURE");
 
+    if (fixture_argv_path != NULL) {
+        return fixture_argv_capture(argc, argv, fixture_argv_path);
+    }
     if (argc == 2 && strcmp(argv[1], "--fixture-role-selftest") == 0) {
         return fixture_role_selftest();
     }

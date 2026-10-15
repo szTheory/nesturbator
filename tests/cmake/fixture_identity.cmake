@@ -188,11 +188,55 @@ function(fixture_identity_selftest)
   fixture_expect_reason("${reason}" "FIXTURE_FILE_MISSING:")
   math(EXPR cases "${cases} + 1")
 
-  if(NOT cases EQUAL 9)
-    message(FATAL_ERROR "FIXTURE_SELFTEST: ${cases} cases ran, expected 9")
+  # Exercise the production execute_process boundary with the actual C host in
+  # argv-capture mode. CMake lists need escaped semicolons inside one ROM path.
+  set(argv_work "${work}/argv boundary")
+  set(argv_rom_one "${argv_work}/fixture space;semi/generic one.nes")
+  set(argv_rom_two "${argv_work}/literal\\backslash;semi/other path.nes")
+  set(argv_core "core path;semi\\module")
+  string(REPLACE ";" "\\;" argv_rom_one_list "${argv_rom_one}")
+  string(REPLACE ";" "\\;" argv_rom_two_list "${argv_rom_two}")
+  set(argv_roms "${argv_rom_one_list};${argv_rom_two_list}")
+  set(argv_capture "${argv_work}/captured argv.txt")
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}" -E env
+      "NESTURBATOR_FIXTURE_ARGV_CAPTURE=${argv_capture}"
+      "${CMAKE_COMMAND}"
+      "-DHOST=${HOST}"
+      "-DCORE=${argv_core}"
+      -DMODE=serialize
+      "-DSOURCE_DIR=${SOURCE_DIR}"
+      "-DBUILD_DIR=${argv_work}/nested"
+      "-DROMS=${argv_roms}"
+      -P "${_fixture_identity_script}"
+    RESULT_VARIABLE argv_result
+    OUTPUT_VARIABLE argv_output
+    ERROR_VARIABLE argv_error)
+  if(NOT argv_result STREQUAL "0" OR NOT EXISTS "${argv_capture}")
+    message(FATAL_ERROR
+      "FIXTURE_ARGV_BOUNDARY: production wrapper did not reach the recording host")
+  endif()
+  file(READ "${argv_capture}" delivered_argv)
+  set(expected_argv "4\n")
+  string(LENGTH "--serialize" arg_length)
+  string(APPEND expected_argv "${arg_length}:--serialize\n")
+  string(LENGTH "${argv_core}" arg_length)
+  string(APPEND expected_argv "${arg_length}:${argv_core}\n")
+  string(LENGTH "${argv_rom_one}" arg_length)
+  string(APPEND expected_argv "${arg_length}:${argv_rom_one}\n")
+  string(LENGTH "${argv_rom_two}" arg_length)
+  string(APPEND expected_argv "${arg_length}:${argv_rom_two}\n")
+  if(NOT "${delivered_argv}" STREQUAL "${expected_argv}")
+    message(FATAL_ERROR
+      "FIXTURE_ARGV_BOUNDARY: host received split or altered arguments")
+  endif()
+  math(EXPR cases "${cases} + 1")
+
+  if(NOT cases EQUAL 10)
+    message(FATAL_ERROR "FIXTURE_SELFTEST: ${cases} cases ran, expected 10")
   endif()
   message(STATUS
-    "libretro.fixture_identity: cases=${cases} positive_copies=2 mismatch_controls=2 generic=2 host_launches=0")
+    "libretro.fixture_identity: cases=${cases} positive_copies=2 mismatch_controls=2 generic=2 argv_boundary=1")
 endfunction()
 
 set(_fixture_identity_script "${CMAKE_CURRENT_LIST_FILE}")
