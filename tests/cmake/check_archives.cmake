@@ -37,13 +37,21 @@ function(nesturbator_archive_info_check zip source_info readme header work out_e
     return()
   endif()
   string(REPLACE "\r" "" listing "${listing}")
-  string(REPLACE "\n" ";" entries "${listing}")
+  set(remaining_listing "\n${listing}\n")
+  set(info_entry "\ninfo/nesturbator_libretro.info\n")
   set(info_entries 0)
-  foreach(entry IN LISTS entries)
-    if(entry STREQUAL "info/nesturbator_libretro.info")
-      math(EXPR info_entries "${info_entries} + 1")
+  string(LENGTH "${info_entry}" info_entry_length)
+  while(TRUE)
+    string(FIND "${remaining_listing}" "${info_entry}" info_entry_index)
+    if(info_entry_index LESS 0)
+      break()
     endif()
-  endforeach()
+    math(EXPR info_entries "${info_entries} + 1")
+    math(EXPR info_after_index "${info_entry_index} + ${info_entry_length}")
+    string(SUBSTRING "${remaining_listing}" 0 ${info_entry_index} info_before)
+    string(SUBSTRING "${remaining_listing}" ${info_after_index} -1 info_after)
+    set(remaining_listing "${info_before}\n${info_after}")
+  endwhile()
   if(info_entries EQUAL 0)
     set(${out_error} "archive does not contain info/nesturbator_libretro.info" PARENT_SCOPE)
     return()
@@ -94,6 +102,73 @@ function(nesturbator_archive_info_check zip source_info readme header work out_e
   endif()
   file(REMOVE_RECURSE "${work}")
 endfunction()
+
+function(nesturbator_archive_contents_check zip component out_error)
+  set(${out_error} "" PARENT_SCOPE)
+  execute_process(COMMAND ${CMAKE_COMMAND} -E tar tf "${zip}"
+    OUTPUT_VARIABLE listing ERROR_VARIABLE list_err RESULT_VARIABLE rc)
+  if(NOT rc EQUAL 0)
+    set(${out_error} "cannot list archive: ${list_err}" PARENT_SCOPE)
+    return()
+  endif()
+  string(REPLACE "\r" "" listing "${listing}")
+  if(listing MATCHES ";")
+    set(${out_error} "archive contains a literal semicolon in an entry name" PARENT_SCOPE)
+    return()
+  endif()
+  string(REPLACE "\n" ";" entries "${listing}")
+  set(files "")
+  foreach(entry IN LISTS entries)
+    if(NOT entry STREQUAL "" AND NOT entry MATCHES "/$")
+      list(APPEND files "${entry}")
+    endif()
+  endforeach()
+
+  foreach(re IN LISTS want_${component})
+    set(hit FALSE)
+    foreach(f IN LISTS files)
+      if(f MATCHES "${re}")
+        set(hit TRUE)
+      endif()
+    endforeach()
+    if(NOT hit)
+      set(${out_error} "archive lacks an entry matching ${re}" PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
+  foreach(f IN LISTS files)
+    set(known FALSE)
+    foreach(re IN LISTS want_${component})
+      if(f MATCHES "${re}")
+        set(known TRUE)
+      endif()
+    endforeach()
+    if(NOT known)
+      set(${out_error} "archive holds an extra file ${f}" PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
+endfunction()
+
+# Every file each archive must hold; nothing else may be in it. Directory entries are ignored.
+# A Linux install may use lib64.
+set(want_libretro
+  "^LICENSE$"
+  "^THIRD-PARTY-NOTICES\\.md$"
+  "^cores/nesturbator_libretro\\.(dylib|so|dll)$"
+  "^info/nesturbator_libretro\\.info$")
+set(want_runner
+  "^LICENSE$"
+  "^bin/nesturbator-run(\\.exe)?$")
+set(want_library
+  "^LICENSE$"
+  "^include/nesturbator\\.h$"
+  "^lib(64)?/(libnesturbator\\.a|nesturbator\\.lib)$"
+  "^lib(64)?/cmake/nesturbator/nesturbatorConfig\\.cmake$"
+  "^lib(64)?/cmake/nesturbator/nesturbatorConfigVersion\\.cmake$"
+  "^lib(64)?/cmake/nesturbator/nesturbatorTargets\\.cmake$"
+  "^lib(64)?/cmake/nesturbator/nesturbatorTargets-[a-z]+\\.cmake$"
+  "^lib(64)?/pkgconfig/nesturbator\\.pc$")
 
 if(SELFTEST)
   foreach(required WORK SOURCE_ROOT)
@@ -155,7 +230,36 @@ if(SELFTEST)
   if(error)
     message(FATAL_ERROR "check_archives self-test: current metadata rejected: ${error}")
   endif()
-  message(STATUS "check_archives self-test: absent, stale and current metadata controls passed")
+
+  set(semicolon_root "${selftest_work}/semicolon-root")
+  file(MAKE_DIRECTORY "${semicolon_root}/cores" "${semicolon_root}/info")
+  file(WRITE "${semicolon_root}/LICENSE;THIRD-PARTY-NOTICES.md" "combined allowed names\n")
+  file(WRITE "${semicolon_root}/cores/nesturbator_libretro.so" "synthetic core\n")
+  file(COPY_FILE "${source_info}" "${semicolon_root}/info/nesturbator_libretro.info")
+  file(ARCHIVE_CREATE OUTPUT "${selftest_work}/semicolon.zip"
+    PATHS "LICENSE;THIRD-PARTY-NOTICES.md" "cores/nesturbator_libretro.so"
+      "info/nesturbator_libretro.info"
+    FORMAT zip WORKING_DIRECTORY "${semicolon_root}")
+  execute_process(COMMAND "${CMAKE_COMMAND}" -E tar tf "${selftest_work}/semicolon.zip"
+    OUTPUT_VARIABLE semicolon_listing RESULT_VARIABLE semicolon_list_rc)
+  if(NOT semicolon_list_rc EQUAL 0 OR
+      NOT semicolon_listing MATCHES "LICENSE;THIRD-PARTY-NOTICES\\.md" OR
+      NOT semicolon_listing MATCHES "info/nesturbator_libretro\\.info")
+    message(FATAL_ERROR
+      "check_archives self-test: synthetic semicolon archive lacks its combined path or valid metadata: ${semicolon_listing}")
+  endif()
+  nesturbator_archive_info_check("${selftest_work}/semicolon.zip" "${source_info}" "${readme}"
+    "${header}" "${selftest_work}/extract-semicolon" error)
+  if(error)
+    message(FATAL_ERROR "check_archives self-test: valid metadata control failed: ${error}")
+  endif()
+  nesturbator_archive_contents_check("${selftest_work}/semicolon.zip" libretro error)
+  if(NOT error STREQUAL "archive contains a literal semicolon in an entry name")
+    message(FATAL_ERROR
+      "check_archives self-test: semicolon allowlist control failed for the wrong reason: ${error}")
+  endif()
+  message(STATUS
+    "check_archives self-test: absent, stale, current and semicolon-path metadata controls passed")
   return()
 endif()
 
@@ -176,26 +280,6 @@ if(NOT count EQUAL 3)
   message(FATAL_ERROR "check_archives: ${count} archives of version ${VERSION} in ${PACKAGES}, expected 3: ${zips}")
 endif()
 
-# Every file each archive must hold; nothing else may be in it. Directory
-# entries are ignored. A Linux install may use lib64.
-set(want_libretro
-  "^LICENSE$"
-  "^THIRD-PARTY-NOTICES\\.md$"
-  "^cores/nesturbator_libretro\\.(dylib|so|dll)$"
-  "^info/nesturbator_libretro\\.info$")
-set(want_runner
-  "^LICENSE$"
-  "^bin/nesturbator-run(\\.exe)?$")
-set(want_library
-  "^LICENSE$"
-  "^include/nesturbator\\.h$"
-  "^lib(64)?/(libnesturbator\\.a|nesturbator\\.lib)$"
-  "^lib(64)?/cmake/nesturbator/nesturbatorConfig\\.cmake$"
-  "^lib(64)?/cmake/nesturbator/nesturbatorConfigVersion\\.cmake$"
-  "^lib(64)?/cmake/nesturbator/nesturbatorTargets\\.cmake$"
-  "^lib(64)?/cmake/nesturbator/nesturbatorTargets-[a-z]+\\.cmake$"
-  "^lib(64)?/pkgconfig/nesturbator\\.pc$")
-
 set(name_re "^nesturbator-([0-9]+\\.[0-9]+\\.[0-9]+)-(library|runner|libretro)-(linux|macos|windows)-(x64|arm64)\\.zip$")
 set(platform "")
 set(components "")
@@ -213,42 +297,10 @@ foreach(zip IN LISTS zips)
   endif()
   list(APPEND components ${component})
 
-  execute_process(COMMAND ${CMAKE_COMMAND} -E tar tf "${zip}"
-    OUTPUT_VARIABLE listing RESULT_VARIABLE rc)
-  if(NOT rc EQUAL 0)
-    message(FATAL_ERROR "check_archives: cannot list ${name}")
+  nesturbator_archive_contents_check("${zip}" "${component}" archive_error)
+  if(archive_error)
+    message(FATAL_ERROR "check_archives: ${name}: ${archive_error}")
   endif()
-  string(REPLACE "\r" "" listing "${listing}")
-  string(REPLACE "\n" ";" entries "${listing}")
-  set(files "")
-  foreach(entry IN LISTS entries)
-    if(NOT entry STREQUAL "" AND NOT entry MATCHES "/$")
-      list(APPEND files "${entry}")
-    endif()
-  endforeach()
-
-  foreach(re IN LISTS want_${component})
-    set(hit FALSE)
-    foreach(f IN LISTS files)
-      if(f MATCHES "${re}")
-        set(hit TRUE)
-      endif()
-    endforeach()
-    if(NOT hit)
-      message(FATAL_ERROR "check_archives: ${name} lacks an entry matching ${re}")
-    endif()
-  endforeach()
-  foreach(f IN LISTS files)
-    set(known FALSE)
-    foreach(re IN LISTS want_${component})
-      if(f MATCHES "${re}")
-        set(known TRUE)
-      endif()
-    endforeach()
-    if(NOT known)
-      message(FATAL_ERROR "check_archives: ${name} holds an extra file ${f}")
-    endif()
-  endforeach()
   if(component STREQUAL "libretro")
     string(RANDOM LENGTH 8 ALPHABET 0123456789abcdef archive_nonce)
     set(archive_work "${CMAKE_CURRENT_BINARY_DIR}/.nesturbator-archive-info-${archive_nonce}")
