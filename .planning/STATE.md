@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: executing
+status: blocked
 stopped_at: Stopped during Plan 16-11 after one bounded CI observation; cause unproven
-last_updated: "2026-10-15T19:40:24.238Z"
+last_updated: "2026-10-15T19:43:07.051Z"
 last_activity: 2026-10-15
-last_activity_desc: Phase 16 execution started
-state_head: 89638fd0490a136d67dde4493438f0fdb990bfc0
+last_activity_desc: Plan 11 stopped undiagnosed after one bounded CI observation; no source correction or completion credit
+state_head: 4c47138b763935ae61106e6447dd54bd84b1d18c
 progress:
   total_phases: 3
   completed_phases: 0
@@ -25,15 +25,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 — Host evidence and roadmap
+**Current focus:** Phase 16 — unresolved interruption diagnosis before delivery
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 1 of 10
-Status: Executing Phase 16
+Phase: 16 (Host evidence and roadmap) — INCOMPLETE
+Plan: 11 stopped undiagnosed; 07/08 await predecessors; 7 of 10 live plans complete
+Status: One bounded CI observation passed without reproducing the failure; no correction or success summary. A new discriminating hypothesis and bounded continuation amendment are needed before resuming.
 Delivery gates: Plan 07 depends on actual Plan 11 completion, including current controls, normal CI with packaging, independent source review and all required post-wave gates. Fresh native PR CI on the final repaired head then precedes exact-head owner consent; publication and EVID-04 remain pending.
-Last activity: 2026-10-15 — Phase 16 execution started
+Last activity: 2026-10-15 — retained an incomplete diagnostic checkpoint; temporary instrumentation reverted and historical failure remains open
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -391,11 +391,11 @@ Last session: 2026-10-15T19:40:24.208Z
 Stopped at: Stopped during Plan 16-11 after one bounded CI observation; cause unproven
 Resume file: .planning/phases/16-host-evidence-and-roadmap/16-11-INTERRUPTION-REPAIR.md
 
-Next GSD command: $gsd-execute-phase 16 --gaps-only
+Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Run `$gsd-execute-phase 16 --gaps-only` for successor Plan 11 at wave 7. Installed `phase-plan-index` excludes `status: superseded` Plan 10, shows only 11 ready, and leaves 07 waiting on 11 and 08 waiting on 07. The Plan 11 milestone-bounded evaluation-scope query exited 0 with no matching commits. Recheck index and scope after the planning commit and immediately before dispatch; run the normal safe-resume gate on active 11. Do not borrow Plan 10's execution identity or synthesize its success summary.
+- Run `$gsd-plan-phase 16 --gaps` to amend the bounded diagnosis only when a new discriminating source-bound hypothesis is available. One CI observation is consumed; the one-ASan allowance remains unused. Reconcile the incomplete checkpoint and safe-resume gate before any dispatch: the index still calls 11 DAG-ready, but its scoped history now includes a checkpoint commit without a summary. Do not treat DAG readiness as resume authorization, replay the consumed CI observation, borrow Plan 10's execution identity or synthesize a success summary.
 - Plan 10's timing/reporting/source commits remain reachable. Its completion at `5f899ec` was revoked by `11adf3d` after the required normal workflow failed at the interruption assertion (648/649, packaging not reached). The retained journal and isolated replay do not establish cause. Plan 11 replaces only unfinished obligations, with static audit plus at most two bounded instrumented observations, a reason-specific RED/GREEN regression and smallest justified correction or an explicit incomplete stop. Preserve all timing, semantic, journal, one-shot and owned-process contracts. New successor evidence/review paths keep historical native reports unchanged.
 - The independent plan checker found zero blockers or warnings after revision. All six requirements and 17 trackable decisions remain covered; physical plan count is 11, live count 10, actual completed count 7. No implementation or behavior suite ran in this planning step. Plan 09 remains complete with its source-bound timing/review evidence, and completed Plans 01–06 remain unchanged.
 - Retained native run 38764197994 at PR #50 head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb` failed Intel focused stall at 25,946 ms and ASan focused delay at 26,269 ms against strict less-than-25,000 ms. CI required failed; hash equality skipped; performance, pinned RetroArch and other platform checks passed. These are prior observations, not freshly queried external state. Native causes remain unknown and local evidence cannot close native acceptance.
