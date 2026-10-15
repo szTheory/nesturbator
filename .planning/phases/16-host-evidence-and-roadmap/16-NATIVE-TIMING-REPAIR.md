@@ -1,14 +1,15 @@
 ---
 phase: 16-host-evidence-and-roadmap
 plan: "10"
-status: complete
+status: incomplete
 final_source_commit: 1b1589a49f735195b9dbf89a238dc0518777335c
 reviewed_source_commit: 1b1589a49f735195b9dbf89a238dc0518777335c
+stop_reason: post-wave normal CI failed at retroarch.session.controls
 ---
 
 # Plan 16-10: Native Timing Repair Evidence
 
-The bounded repair removes one overwritten 150-frame pre-load replay from each later-frame prefix verdict, retains all three independent native-prefix judgments, makes failing timing reports visible, and protects that reporting contract in the registered readiness test. Local checks and fresh independent source review pass; the two native timing failures remain unproven until a fresh exact-head hosted run.
+The bounded repair removes one overwritten 150-frame pre-load replay from each later-frame prefix verdict, retains all three independent native-prefix judgments, makes failing timing reports visible, and protects that reporting contract in the registered readiness test. Earlier local checks and an independent source review passed. The required post-wave normal CI gate then failed in the interruption control; its cause is not diagnosed, so this plan remains incomplete and Plan 07 must not start.
 
 ## Native failure identities
 
@@ -45,9 +46,9 @@ The timing reporter now prints available fixture/setup/readiness/later-prefix/at
 
 Both task-level TDD RED records were independently accepted by `gsd_run check tdd-red-evidence` as `RED_EVIDENCE_OK` (exit 8 on the intended assertion). The reporter RED recorded that the synthetic 25,946 ms case emitted no phase report; its evidence is `build/ci/16-10-red-evidence.json` (SHA-256 `e443cbe80571dc4b5e6ca28118e3fa15cf0e7e73d8bb7488bc7bb84a0a96e7e7`) and raw JUnit is `build/ci/16-10-red-report.junit.xml` (`bc157b206a3f86ddb2207e598fe2a77d51b3fa11c4b99fe6ec79035eeedfceb7`). The frame-index RED ran a real three-boundary prefix to `PREFIX_OK` and measured 450 pre-load frames instead of the expected zero for the later target; its record is `build/ci/16-10-frame-index-red-evidence.json` (`d8fe6ef9b8d93581832ac07b565d9314de8a64e72bdef13b891342db1ee03256`) and raw JUnit is `build/phase16-native-timing/repair-red-progression-controls.junit.xml` (`e4a8d1907e84f2342628d653e807ca728688ed9ce97b4b61b9fbbd0100a32e50`). After the corrected frame-index candidate, `retroarch.progression.controls` passed with the two required anchor renders and the redundant later replay removed; raw JUnit is `repair-green-progression-controls.junit.xml` (`5eb9accc481c1e87adfe0a12ef69b16e6e3f736ddeccb323750b11e8ec526411`). The final focused readiness rerun and fresh review independently confirm the reporter selftest passes before both real prefixes.
 
-## Verification and raw outputs
+## Historical verification before the post-wave gate
 
-The final source commit reviewed independently is `1b1589a49f735195b9dbf89a238dc0518777335c`. All commands below exited zero:
+The final source commit reviewed independently is `1b1589a49f735195b9dbf89a238dc0518777335c`. The following checks passed before the additional post-wave workflow; they remain historical evidence and do not override that later failure:
 
 | Command | Result | Retained output |
 | --- | --- | --- |
@@ -66,8 +67,16 @@ Final workflow packages:
 
 The fresh independent review is [16-NATIVE-REVIEW.md](16-NATIVE-REVIEW.md), bound to the final source commit above. It reviewed exactly `tests/retroarch/state_session.sh`, `tests/retroarch/test_state_session.sh`, `tests/retroarch/frame_index.c`, `README.md`, and `include/nesturbator.h`; it records `status: clean`, zero findings, and the ASan/CI/workflow results. [16-NATIVE-REVIEW-DISPOSITION.md](16-NATIVE-REVIEW-DISPOSITION.md) records WR-01 as resolved by the readiness selftest wiring and `open: 0`.
 
+## Post-wave normal CI gate and bounded stop
+
+At source/documentation HEAD `5f899ece5d20c5b8f260c52aee13cabd65054b10`, the orchestrator-required `cmake --workflow --preset ci` exited 8 after 648/649 tests in 234.99 seconds. Test #634, `retroarch.session.controls`, failed at 230.07 seconds with `FAIL interruption first failure was not retained`. Configure/build completed; CPack did not run. The same run's delayed readiness case measured 1,564 ms for the operation and 6,757 ms for driver plus cleanup; the response-stall case measured 5,105 ms and 11,187 ms. Both remained within their existing bounds.
+
+Raw workflow evidence is retained under ignored `build/phase16-native-execute/`: `post-wave-ci.log` (SHA-256 `5a46aa38f4cc5e963d2d28f64e1beb46eabd19d2fb61183ecd5c66344a9a7098`), `post-wave-LastTest.log` (`9a26b048d5334c06627825c7e5bf4535d07284d21d21e488e20420db0dc9beeb`), and `post-wave-head.txt` (`b497d5bf27d4139b725c4e29ee49f1dff4d7b98fd79b0092296a2989b7ca7b29`). The copied failing attempt is `post-wave-interrupt/`; its retained journal SHA-256 is `29c4bc65a2256dec40ad1083b970c1e34218614e684db22697701c90694b3f77`.
+
+The captured journal contains both `readiness ... INTERRUPTED_TERM` and `cleanup-quit ... INTERRUPTED_TERM`. One isolated replay of the interruption control also exited 130 and showed both rows immediately after `wait`. This evidence confirms the retained attempt eventually preserves the reason but does not explain why the full control's assertion failed at that moment. No driver defect or smallest justified source correction was demonstrated. No source, deadline, sleep, registration, or semantic change was made, and the unchanged full suite was not rerun. The earlier 649/649 workflow and package hashes above are historical; the required current-source full workflow and packaging gate is unresolved.
+
 ## Plan 07 and 08 handoff
 
-Plan 07 resumes at Task 1. Reconcile preparation `30a009838b741a429863e7cb5143526fbaad8ed7`, completed repair/preparation through pushed PR head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`, local failure handoff `9b37c9a`, and the later planning, Plan 10 source, test, review, and evidence commits. Reuse open PR #50. Capture all final intended commits before pushing. Require a fresh native pull-request workflow on that exact head, including required, performance, and pinned-host checks; stop on any terminal failure. Local results do not waive the later exact-head owner-consent gate. No merge consent was requested or granted here.
+Plan 07 is blocked and must not start until Plan 10's required normal CI workflow passes with packaging and the bounded interruption-control failure is resolved by source-bound evidence. After that gate passes, Plan 07 resumes at Task 1. Reconcile preparation `30a009838b741a429863e7cb5143526fbaad8ed7`, completed repair/preparation through pushed PR head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`, local failure handoff `9b37c9a`, and the later planning, Plan 10 source, test, review, and evidence commits. Reuse open PR #50. Capture all final intended commits before pushing. Require a fresh native pull-request workflow on that exact head, including required, performance, and pinned-host checks; stop on any terminal failure. Local results do not waive the later exact-head owner-consent gate. No merge consent was requested or granted here.
 
 Plan 08 remains after Plan 07 and must verify actual normal publication: all 18 archive checksums and attestations, all six platform metadata files, and CI for the exact release commit. Plan 10 does not change EVID-04, publication state, or the historical 21/22 verification. Keep EVID-04 and Phase 16 incomplete until actual release publication and independent verification close them.

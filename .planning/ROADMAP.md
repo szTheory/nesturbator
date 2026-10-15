@@ -68,7 +68,7 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans**: 8/10 plans executed; Plans 01–06, 09, and 10 complete; delivery Plans 07/08 pending
+**Plans**: 7/10 plans completed; Plans 01–06 and 09 complete; Plan 10 is incomplete at its post-wave normal CI gate; Plans 07/08 are pending
 
 Plans:
 **Wave 1**
@@ -91,15 +91,15 @@ Plans:
 - [x] 16-09-PLAN.md — Measure and repair journal overhead while preserving readiness timing, semantic and cleanup bounds; run focused/full CI and fresh source review.
 
 **Wave 7** *(gap closure; depends on completed Plan 09)*
-- [x] 16-10-PLAN.md — Attribute both native timing failures and apply a justified bounded repair; preserve all timing/semantic contracts, run ci/asan controls and normal packaging CI, obtain fresh independent source review.
+- [ ] 16-10-PLAN.md — Bounded repair and independent review are recorded, but the required post-wave normal CI failed in `retroarch.session.controls`; the interruption assertion remains unexplained and Plan 10 is incomplete.
 
-**Wave 8** *(Plan 10 is complete; fresh exact-head native PR CI remains required before Plan 07's owner-consent gate)*
+**Wave 8** *(blocked until Plan 10's post-wave normal CI and packaging gate passes; then fresh exact-head native PR CI remains required before Plan 07's owner-consent gate)*
 - [ ] 16-07-PLAN.md — Prepare the checked phase PR, obtain exact-head merge consent and observe the normal release flow.
 
 **Wave 9** *(depends on the actual normal publication from Plan 07)*
 - [ ] 16-08-PLAN.md — Verify downloaded six-platform metadata, checksums, attestations and exact-release-commit CI.
 
-**Verification (2026-10-15):** 8/10 plans completed. [Plan 09](phases/16-host-evidence-and-roadmap/16-09-SUMMARY.md) records the journal repair and its local controls. [Plan 10](phases/16-host-evidence-and-roadmap/16-10-SUMMARY.md) records bounded attribution, the retained native failures, the later-prefix replay correction, focused/full CI and ASan controls, a fresh 649/649 CI workflow with all three packages, and a clean source review at `1b1589a`. These local results do not establish native acceptance: [run 38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) failed at [PR #50](https://github.com/szTheory/nesturbator/pull/50) head `3de23d4` on Intel readiness-response-stall (25,946 ms) and ASan readiness-delayed (26,269 ms), both against strict less-than-25,000 ms; native subintervals and causes remain unknown. Plan 07 resumes at Task 1 and must obtain fresh native pull-request CI on the exact final head before its owner-consent gate. Plan 08 then verifies actual publication bytes. The [existing verifier report](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) remains at its historical 21/22 verdict; EVID-04 remains open pending actual published metadata. Next: `$gsd-execute-phase 16 --gaps-only` resumes Plan 07, with Plans 08 and independent phase verification still required.
+**Verification (2026-10-15):** 7/10 plans completed. [Plan 09](phases/16-host-evidence-and-roadmap/16-09-SUMMARY.md) records the journal repair and its local controls. [Plan 10 evidence](phases/16-host-evidence-and-roadmap/16-NATIVE-TIMING-REPAIR.md) records bounded attribution, the native failures, the later-prefix replay correction, historical focused/full CI and ASan controls, the prior 649/649 workflow/package result, the clean source review at `1b1589a`, and the later required workflow failure: `retroarch.session.controls` failed at 230.07 seconds with `FAIL interruption first failure was not retained`; current packaging was not reached and the cause remains undiagnosed. Plan 10 is incomplete. Do not start Plan 07 until its normal CI/package gate passes after source-bound resolution of that control. The earlier native PR run [38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) failed at [PR #50](https://github.com/szTheory/nesturbator/pull/50) head `3de23d4` on Intel readiness-response-stall (25,946 ms) and ASan readiness-delayed (26,269 ms), both against strict less-than-25,000 ms; native subintervals and causes remain unknown. Plan 08 then verifies actual publication bytes after Plan 07. The [existing verifier report](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) remains at its historical 21/22 verdict; EVID-04 remains open pending actual published metadata. Resume `$gsd-execute-phase 16 --gaps-only` at Plan 10's unresolved post-wave gate; Plans 07/08 and independent phase verification remain pending.
 
 **UI hint**: no
 **Canonical refs**: [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md), [GSD-HANDOFF.md](preparation/GSD-HANDOFF.md); current scope evidence in [research/SUMMARY.md](research/SUMMARY.md).
@@ -142,7 +142,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 8/10 | Plan 10 complete; native PR CI/publication pending | - |
+| 16. Host evidence and roadmap | v4 | 7/10 | Plan 10 post-wave normal CI/package gate incomplete; Plans 07/08 blocked or pending | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 
