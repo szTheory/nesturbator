@@ -1,6 +1,6 @@
 ---
 phase: 16-host-evidence-and-roadmap
-reviewed: 2026-10-15T01:25:19Z
+reviewed: 2026-10-15T01:50:09Z
 depth: standard
 files_reviewed: 16
 files_reviewed_list:
@@ -22,50 +22,43 @@ files_reviewed_list:
   - tests/retroarch/test_state_session.sh
 findings:
   critical: 0
-  warning: 3
+  warning: 2
   info: 0
-  total: 3
+  total: 2
 status: issues_found
 ---
 
 # Phase 16: Code Review Report
 
-**Reviewed:** 2026-10-15T01:25:19Z  
-**Depth:** standard  
-**Files Reviewed:** 16  
+**Reviewed:** 2026-10-15T01:50:09Z
+**Depth:** standard
+**Files Reviewed:** 16
 **Status:** issues_found
 
 ## Summary
 
-The review traced the new RetroArch progression/session checks, fixture identity boundary, metadata guards, and package checks through their callers. Three robustness defects remain in the session lock cleanup and the exactness of archive/documentation validation; each can let a failed setup block later runs or allow the acceptance guards to miss invalid input.
+The three findings from the first review are addressed: setup failures now release the acquired session lock, archive paths containing semicolons are rejected, and duplicate localized support clauses fail the metadata guard. The current three build archives pass the checker. The recheck also found two remaining false-acceptance cases in archive inventory: newline-bearing member names are confused with listing separators, and duplicate expected member names are not rejected.
 
 ## Narrative Findings (AI reviewer)
 
 ## Warnings
 
-### WR-01: Setup failure can strand the RetroArch port lock
+### WR-04: Newline in an archive member name can impersonate multiple expected files
 
-**File:** `tests/retroarch/state_session.sh:29-32,146`
+**File:** `tests/cmake/check_archives.cmake:114-149`
 **Classification:** WARNING
-**Issue:** The script creates the exclusive lock directory at line 29, then creates the attempt tree and journal at lines 30-32. `set -e` exits on a failed `mkdir` or journal redirection, but the EXIT and signal traps that remove the lock are not installed until line 146. A full disk, permission change, or other setup I/O failure therefore leaves `nesturbator-retroarch-55355.lock` behind and causes subsequent attempts to fail as `ENDPOINT_BUSY` even though no host owns the port.
-**Fix:** Install a minimal lock-release EXIT trap immediately after successfully creating `LOCK_DIR`, before any later fallible setup command. Replace it with the full cleanup traps once their state and functions are initialized.
+**Issue:** The checker rejects semicolons, then treats every newline in `cmake -E tar tf` output as an entry separator. A ZIP member whose literal name is `LICENSE\nbin/nesturbator-run` is therefore seen as two allowlisted files. I independently created a three-package synthetic archive set with that single runner entry; the current checker accepted all three packages with exit code 0. The archive can consequently omit distinct required files while passing the exact-content gate.
+**Fix:** Read ZIP central-directory names through an API that returns each member as a structured value, reject control characters in each complete name, and compare those names against the allowlist without line-based splitting.
 
-### WR-02: Semicolons in archive paths bypass the exact file allowlist
+### WR-05: Duplicate allowlisted archive entries pass the exact-content gate
 
-**File:** `tests/cmake/check_archives.cmake:221-249`
+**File:** `tests/cmake/check_archives.cmake:127-149`
 **Classification:** WARNING
-**Issue:** The archive listing is converted to a CMake list by replacing newlines with semicolons. A real archive entry named `LICENSE;THIRD-PARTY-NOTICES.md` is then treated as two entries; both satisfy the anchored allowlist patterns, so the checker can accept an archive missing the two required files while claiming every archive has exactly its expected contents. The subsequent loops validate the split list elements rather than the original listing entries.
-**Fix:** Reject semicolons in the raw archive listing before converting it to a CMake list, or parse entries with an approach that preserves literal semicolons and compare each original entry exactly against the allowlist.
-
-### WR-03: Documentation guard ignores later contradictory support claims
-
-**File:** `tests/cmake/info_claims.cmake:152-165,221-249`
-**Classification:** WARNING
-**Issue:** `nesturbator_info__support_text` finds only the first `Supported NTSC ` occurrence, then validates only through that sentence's first period. The caller passes each complete README/header and metadata description, so a later support clause in the same text can claim a different MMC3 mapper or submapper and still pass as long as the first clause is correct. This leaves the guard unable to enforce the documented support boundary across the whole checked text.
-**Fix:** Scan and validate every occurrence of the support-clause prefix, or reject duplicate support clauses after validating the one canonical clause.
+**Issue:** For each expected pattern, the checker records only whether any match exists; it then accepts every listed file that matches any pattern. It never rejects a repeated path. I independently created a runner ZIP containing two `LICENSE` entries plus its runner binary; the current checker accepted the package set with exit code 0. Duplicate ZIP member names can make extraction select ambiguous content while the checker reports the package as exact.
+**Fix:** Track exact member names and reject duplicates, and require each expected pattern to match exactly one archive entry before accepting the package.
 
 ---
 
-_Reviewed: 2026-10-15T01:25:19Z_  
-_Reviewer: the agent (gsd-code-reviewer)_  
+_Reviewed: 2026-10-15T01:50:09Z_
+_Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
