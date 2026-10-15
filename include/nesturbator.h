@@ -481,7 +481,10 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * measured uncompressed released-binary envelope and a bounded visible-marker window.
  * The registered libretro host tests select their battery and run-ahead fixtures by exact,
  * case-sensitive final filename; their CMake wrapper hashes the supplied special-file copy
- * against its manifest record before host launch. Direct host calls do not authenticate files.
+ * against its manifest record before host launch. Slash always separates components; backslash
+ * also separates them on Windows and is an ordinary filename byte on POSIX. The role self-test
+ * covers adversarial names and path edges, while identity controls reject corrupted copies before
+ * launch. Direct host calls do not authenticate files.
  * Its negative controls distinguish native-valid wrong origins and stale revisions from parse
  * or checksum failures; screenshots qualify displayed identity, not every saved machine field.
  * The separate private progression verdict binds each displayed observation to one retained

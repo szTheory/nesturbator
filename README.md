@@ -1425,7 +1425,12 @@ the battery and run-ahead roles only to the case-sensitive final filenames
 platforms, and `\` does so only on Windows. Parent directory text and similar
 filenames select no role. This identity check belongs to the registered CMake tests;
 a direct `libretro.host` call uses exact names but does not authenticate file bytes.
-The marker fixture retains its separate generator identity.
+`libretro.fixture_roles` covers parent names, prefix/suffix lookalikes, case variants,
+empty and null paths, trailing separators, paths with spaces and platform-specific
+backslashes. `libretro.fixture_identity` checks valid copies of both special files,
+corrupt copies that must fail before host launch, generic inputs under misleading
+parents, and distinct missing-row, duplicate-row and missing-file errors. The marker
+fixture retains its separate generator identity.
 `core.state_runahead` checks RetroArch's second-instance mode as a library
 property: one instance runs the real timeline, a second loads its state each
 frame and runs ahead, and the shown frames equal a single instance that saves,

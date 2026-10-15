@@ -2029,8 +2029,60 @@ static int fixture_role_selftest(void)
     cases++;
     CHECK_EQ_U64(fixture_role_for_path("M1_P128K_C128K_S8K/generic.nes"), FIXTURE_ROLE_GENERIC);
     cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/not-nesteroids.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/nesteroids.nes.bak"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/xM1_P128K_C128K_S8K.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/M1_P128K_C128K_S8K.nes.old"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/Nesteroids.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/m1_P128K_C128K_S8K.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path(""), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path(NULL), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/nesteroids.nes/"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/M1_P128K_C128K_S8K.nes/"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games with spaces/nesteroids.nes"),
+                 FIXTURE_ROLE_NESTEROIDS);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games with spaces/M1_P128K_C128K_S8K.nes"),
+                 FIXTURE_ROLE_MMC1_BATTERY);
+    cases++;
+#if defined(_WIN32)
+    CHECK_EQ_U64(fixture_role_for_path("games\\nesteroids.nes"), FIXTURE_ROLE_NESTEROIDS);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games\\M1_P128K_C128K_S8K.nes"),
+                 FIXTURE_ROLE_MMC1_BATTERY);
+    cases++;
+#else
+    CHECK_EQ_U64(fixture_role_for_path("games\\nesteroids.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games\\M1_P128K_C128K_S8K.nes"),
+                 FIXTURE_ROLE_GENERIC);
+    cases++;
+#endif
+#if defined(_WIN32)
+    CHECK_EQ_U64(fixture_role_for_path("games\\nesteroids.nes\\"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games\\M1_P128K_C128K_S8K.nes\\"),
+                 FIXTURE_ROLE_GENERIC);
+    cases++;
+#else
+    CHECK_EQ_U64(fixture_role_for_path("games/nesteroids.nes\\"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/M1_P128K_C128K_S8K.nes\\"),
+                 FIXTURE_ROLE_GENERIC);
+    cases++;
+#endif
     printf("libretro.fixture_roles: cases=%u\n", cases);
-    CHECK_EQ_U64(cases, 18u);
+    CHECK_EQ_U64(cases, 20u);
     CHECK_DONE();
 }
 

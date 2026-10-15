@@ -1319,6 +1319,17 @@ add_test(NAME libretro.fixture_roles
   COMMAND libretro.host --fixture-role-selftest)
 set_tests_properties(libretro.fixture_roles PROPERTIES TIMEOUT 30)
 
+# Check copied-byte identity controls, including failures that must precede host launch.
+add_test(NAME libretro.fixture_identity
+  COMMAND ${CMAKE_COMMAND}
+    -DSELFTEST=ON
+    "-DHOST=$<TARGET_FILE:libretro.host>"
+    "-DCORE=$<TARGET_FILE:nesturbator_libretro>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}/fixture identity"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fixture_identity.cmake)
+set_tests_properties(libretro.fixture_identity PROPERTIES TIMEOUT 30)
+
 # LR-01: --serialize drives retro_serialize_size, retro_serialize and retro_unserialize of
 # the built module and checks each against the library state API. The wrapper copies and hashes
 # the actual special inputs before launching the host.

@@ -85,6 +85,127 @@ function(fixture_identity_check input manifest out_reason)
   set(${out_reason} "" PARENT_SCOPE)
 endfunction()
 
+function(fixture_expect_reason actual prefix)
+  string(FIND "${actual}" "${prefix}" prefix_pos)
+  if(prefix_pos LESS 0)
+    message(FATAL_ERROR "FIXTURE_SELFTEST: expected ${prefix}, got '${actual}'")
+  endif()
+endfunction()
+
+function(fixture_expect_no_host input expected_reason build_dir)
+  set(probe_host "${build_dir}/host must not launch")
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}"
+      "-DHOST=${probe_host}"
+      "-DCORE=${CORE}"
+      "-DMODE=serialize"
+      "-DSOURCE_DIR=${SOURCE_DIR}"
+      "-DBUILD_DIR=${build_dir}/nested negative"
+      "-DROMS=${input}"
+      -P "${_fixture_identity_script}"
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE output
+    ERROR_VARIABLE error)
+  set(combined "${output}\n${error}")
+  string(FIND "${combined}" "${expected_reason}" reason_pos)
+  if(result STREQUAL "0" OR reason_pos LESS 0 OR combined MATCHES "FIXTURE_HOST_EXIT")
+    message(FATAL_ERROR
+      "FIXTURE_SELFTEST: wrong-copy gate failed for ${input}; result='${result}'\n${combined}")
+  endif()
+endfunction()
+
+function(fixture_identity_selftest)
+  set(work "${BUILD_DIR}/fixture identity selftest")
+  set(manifest "${SOURCE_DIR}/tests/roms/manifest.txt")
+  file(MAKE_DIRECTORY "${work}/positive copies" "${work}/wrong copies"
+    "${work}/generic/nesteroids" "${work}/generic/M1_P128K_C128K_S8K")
+  set(cases 0)
+
+  foreach(basename nesteroids.nes M1_P128K_C128K_S8K.nes)
+    if(basename STREQUAL "nesteroids.nes")
+      set(source "${SOURCE_DIR}/tests/roms/nesteroids.nes")
+    else()
+      set(source "${SOURCE_DIR}/tests/roms/hm/M1_P128K_C128K_S8K.nes")
+    endif()
+    set(copy "${work}/positive copies/${basename}")
+    file(COPY_FILE "${source}" "${copy}" ONLY_IF_DIFFERENT)
+    fixture_identity_check("${copy}" "${manifest}" reason)
+    if(NOT reason STREQUAL "")
+      message(FATAL_ERROR "FIXTURE_SELFTEST: valid copied input rejected: ${reason}")
+    endif()
+    math(EXPR cases "${cases} + 1")
+
+    set(wrong_copy "${work}/wrong copies/${basename}")
+    file(WRITE "${wrong_copy}" "not the listed fixture bytes\n")
+    fixture_identity_check("${wrong_copy}" "${manifest}" reason)
+    fixture_expect_reason("${reason}" "FIXTURE_IDENTITY:")
+    fixture_expect_no_host("${wrong_copy}" "FIXTURE_IDENTITY:" "${work}/${basename}")
+    math(EXPR cases "${cases} + 1")
+  endforeach()
+
+  file(COPY_FILE "${SOURCE_DIR}/tests/roms/dabg.nes"
+    "${work}/generic/nesteroids/generic.nes" ONLY_IF_DIFFERENT)
+  file(COPY_FILE "${SOURCE_DIR}/tests/roms/dabg.nes"
+    "${work}/generic/M1_P128K_C128K_S8K/generic.nes" ONLY_IF_DIFFERENT)
+  foreach(generic_input
+      "${work}/generic/nesteroids/generic.nes"
+      "${work}/generic/M1_P128K_C128K_S8K/generic.nes")
+    fixture_identity_check("${generic_input}" "${manifest}" reason)
+    if(NOT reason STREQUAL "")
+      message(FATAL_ERROR "FIXTURE_SELFTEST: misleading parent changed generic role: ${reason}")
+    endif()
+    math(EXPR cases "${cases} + 1")
+  endforeach()
+
+  file(WRITE "${work}/missing manifest.txt" "# no special fixture row\n")
+  fixture_identity_check("${work}/positive copies/nesteroids.nes"
+    "${work}/missing manifest.txt" reason)
+  fixture_expect_reason("${reason}" "FIXTURE_MANIFEST_MISSING:")
+  math(EXPR cases "${cases} + 1")
+
+  file(STRINGS "${manifest}" manifest_lines)
+  set(nesteroids_row "")
+  foreach(line IN LISTS manifest_lines)
+    string(FIND "${line}" "${_tab}" path_end)
+    if(path_end GREATER_EQUAL 0)
+      string(SUBSTRING "${line}" 0 ${path_end} row_path)
+      if(row_path STREQUAL "tests/roms/nesteroids.nes")
+        set(nesteroids_row "${line}")
+        break()
+      endif()
+    endif()
+  endforeach()
+  if(nesteroids_row STREQUAL "")
+    message(FATAL_ERROR "FIXTURE_SELFTEST: source manifest lacks Nesteroids row")
+  endif()
+  file(WRITE "${work}/duplicate manifest.txt" "${nesteroids_row}\n${nesteroids_row}\n")
+  fixture_identity_check("${work}/positive copies/nesteroids.nes"
+    "${work}/duplicate manifest.txt" reason)
+  fixture_expect_reason("${reason}" "FIXTURE_MANIFEST_DUPLICATE:")
+  math(EXPR cases "${cases} + 1")
+
+  fixture_identity_check("${work}/missing input/nesteroids.nes" "${manifest}" reason)
+  fixture_expect_reason("${reason}" "FIXTURE_FILE_MISSING:")
+  math(EXPR cases "${cases} + 1")
+
+  if(NOT cases EQUAL 9)
+    message(FATAL_ERROR "FIXTURE_SELFTEST: ${cases} cases ran, expected 9")
+  endif()
+  message(STATUS
+    "libretro.fixture_identity: cases=${cases} positive_copies=2 mismatch_controls=2 generic=2 host_launches=0")
+endfunction()
+
+set(_fixture_identity_script "${CMAKE_CURRENT_LIST_FILE}")
+if(SELFTEST)
+  foreach(required HOST CORE SOURCE_DIR BUILD_DIR)
+    if(NOT DEFINED ${required})
+      message(FATAL_ERROR "FIXTURE_ARGUMENT_MISSING: ${required}")
+    endif()
+  endforeach()
+  fixture_identity_selftest()
+  return()
+endif()
+
 foreach(required HOST CORE MODE SOURCE_DIR BUILD_DIR ROMS)
   if(NOT DEFINED ${required})
     message(FATAL_ERROR "FIXTURE_ARGUMENT_MISSING: ${required}")
