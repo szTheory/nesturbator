@@ -2030,7 +2030,7 @@ static int fixture_role_selftest(void)
     CHECK_EQ_U64(fixture_role_for_path("M1_P128K_C128K_S8K/generic.nes"), FIXTURE_ROLE_GENERIC);
     cases++;
     printf("libretro.fixture_roles: cases=%u\n", cases);
-    CHECK_EQ_U64(cases, 4u);
+    CHECK_EQ_U64(cases, 18u);
     CHECK_DONE();
 }
 
