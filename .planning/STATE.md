@@ -5,11 +5,11 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: Completed 16-04-PLAN.md
-last_updated: "2026-10-15T00:11:30.583Z"
+stopped_at: Completed 16-04 argv-boundary follow-up
+last_updated: "2026-10-15T00:34:36.487Z"
 last_activity: 2026-10-15
 last_activity_desc: Completed Phase 16 Plan 04 and verified EVID-03 fixture identity
-state_head: 3331b0f5a4ab496b0c189a0310154f8c9525622c
+state_head: cd9de46cd7c02b38e71d667f4348ed085474d99f
 progress:
   total_phases: 3
   completed_phases: 0
@@ -373,8 +373,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T00:11:30.567Z
-Stopped at: Completed 16-04-PLAN.md
+Last session: 2026-10-15T00:34:36.470Z
+Stopped at: Completed 16-04 argv-boundary follow-up
 Resume file: None
 
 Next GSD command: $gsd-execute-phase 16
