@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: executing
-stopped_at: Plan 16-10 incomplete at the required post-wave normal CI gate.
-last_updated: "2026-10-15T18:32:38.000Z"
+status: ready
+stopped_at: "Gap planning verified; successor Plan 16-11 ready, Plan 10 superseded without completion credit."
+last_updated: "2026-10-15T19:16:36.621Z"
 last_activity: 2026-10-15
-last_activity_desc: Post-wave CI failed in retroarch.session.controls; bounded checkpoint recorded and Plan 07 remains blocked
-state_head: 10694f7da7baed83e3d61dca3f687213dbecb183
+last_activity_desc: Successor interruption gap plan verified with zero blockers or warnings; only Plan 11 is ready
+state_head: ff796cd0983f79c0f75efc2d9c575bbeb93debb9
 progress:
   total_phases: 3
   completed_phases: 0
@@ -25,15 +25,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 — Host evidence and roadmap
+**Current focus:** Phase 16 — execute successor Plan 11 interruption repair before delivery
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 10 of 10
-Status: Incomplete — required post-wave normal CI failed in `retroarch.session.controls`; no source-level cause is established.
-Delivery gates: Do not start Plan 07 until Plan 10's current-source workflow and packaging gate passes. Fresh native PR CI on the final repaired head is then required before exact-head owner consent; publication and EVID-04 remain pending.
-Last activity: 2026-10-15 — post-wave CI evidence retained; bounded interruption-control investigation stopped without a justified source change.
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Plan: 11 ready; 07 incomplete and 08 unstarted; 7 of 10 live plans complete (01–06 and 09); 11 physical plans, including superseded 10
+Status: Ready to execute — bounded interruption diagnosis and correction remain unimplemented; no cause is established.
+Delivery gates: Plan 07 depends on actual Plan 11 completion, including current controls, normal CI with packaging, independent source review and all required post-wave gates. Fresh native PR CI on the final repaired head then precedes exact-head owner consent; publication and EVID-04 remain pending.
+Last activity: 2026-10-15 — gap plan independently verified with zero blockers/warnings; all 6 requirements and 17 decisions covered. Installed supersession excludes partial Plan 10, selects only 11 and leaves 07/08 blocked.
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -333,8 +333,8 @@ None.
 
 ### Blockers/Concerns
 
-- **Current Phase 16 delivery stop — 2026-10-15:** [Native PR CI 38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) failed at PR #50 head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`: Intel readiness-response-stall took 25,946 ms and ASan readiness-delayed took 26,269 ms, both against strict less-than-25,000 ms. CI required failed; performance and pinned RetroArch passed. Plan 09 is complete with local 649/649 CI and clean review at source `e2bed6a`, but it did not close native timing acceptance. Plans 07/08 remain incomplete; no rerun, consent, merge or publication. [Plan 10](phases/16-host-evidence-and-roadmap/16-10-PLAN.md) now provides the bounded attribution/repair contract, ci/asan controls, normal CI/package and fresh independent review before Plan 07 resumes. Actual cause remains unproven; preserve every timing and semantic bound. See the tracked delivery record and ignored raw logs.
-- **Plan 16-10 post-wave gate stop — 2026-10-15:** At HEAD `5f899ece5d20c5b8f260c52aee13cabd65054b10`, the required `cmake --workflow --preset ci` exited 8 after 648/649 tests in 234.99 seconds; `retroarch.session.controls` failed at 230.07 seconds with `FAIL interruption first failure was not retained`, and packaging did not run. Both readiness cases passed their existing bounds. The retained journal later shows `INTERRUPTED_TERM` on readiness and cleanup-quit rows, and one isolated interruption-control replay had both rows immediately after `wait`; this does not diagnose the original assertion failure. No source correction is justified from current evidence. Raw logs and hashes are in [16-NATIVE-TIMING-REPAIR.md](phases/16-host-evidence-and-roadmap/16-NATIVE-TIMING-REPAIR.md). Plan 10 remains incomplete, Plan 07 must not start, and the previous full workflow/package pass is historical.
+- **Current Phase 16 delivery stop — 2026-10-15:** [Native PR CI 38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) failed at PR #50 head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`: Intel readiness-response-stall took 25,946 ms and ASan readiness-delayed took 26,269 ms, both against strict less-than-25,000 ms. CI required failed; performance and pinned RetroArch passed. Plan 09 is complete with local 649/649 CI and clean review at source `e2bed6a`, but it did not close native timing acceptance. Plans 07/08 remain incomplete; no rerun, consent, merge or publication. [Plan 10](phases/16-host-evidence-and-roadmap/16-10-PLAN.md) is superseded without completion credit; its partial timing work is retained. [Plan 11](phases/16-host-evidence-and-roadmap/16-11-PLAN.md) now provides the bounded interruption diagnosis/regression/correction, ci/asan controls, normal CI/package and fresh independent review before Plan 07 resumes. Actual cause remains unproven; preserve every timing and semantic bound. See the tracked delivery record and ignored raw logs.
+- **Plan 16-10 post-wave gate stop — 2026-10-15:** At HEAD `5f899ece5d20c5b8f260c52aee13cabd65054b10`, the required `cmake --workflow --preset ci` exited 8 after 648/649 tests in 234.99 seconds; `retroarch.session.controls` failed at 230.07 seconds with `FAIL interruption first failure was not retained`, and packaging did not run. Both readiness cases passed their existing bounds. The retained journal later shows `INTERRUPTED_TERM` on readiness and cleanup-quit rows, and one isolated interruption-control replay had both rows immediately after `wait`; this does not diagnose the original assertion failure. No source correction is justified from current evidence. Raw logs and hashes are in [16-NATIVE-TIMING-REPAIR.md](phases/16-host-evidence-and-roadmap/16-NATIVE-TIMING-REPAIR.md). Plan 10 remains historical and incomplete under supersession; Plan 11 owns the unfinished repair. Plan 07 must not start, and the previous full workflow/package pass is historical.
 - **Phase 16 publication gap:** EVID-04 remains unmet because actual published v0.1.10 metadata omits MMC3, while source/staged/package checks pass. [Prior source CI 38676328559](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on `841434b`; the source repair now has local CI and fresh review at `e2bed6a`, qualified by the native failures above. Plan 07 must obtain fresh successful native PR CI and exact-head owner consent before the normal release flow; Plan 08 verifies actual six-platform metadata, all 18 archive checksums and attestations against the immutable release commit. Keep the historical verifier gap open until actual publication and independent re-verification.
 - **Release blocker resolved — 2026-10-13:** [PR #48](https://github.com/szTheory/nesturbator/pull/48) fixed version-comment formatting and shipped Codex routing as `b8e2824`. [Release PR #35](https://github.com/szTheory/nesturbator/pull/35) merged as `da2bf97` after all 15 CI jobs passed. [Publication run 38432194730](https://github.com/szTheory/nesturbator/actions/runs/38432194730) succeeded on the exact release commit; [v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10) published at 2026-10-13T16:53:40Z with exactly 18 nonempty platform ZIPs plus `SHA256SUMS`.
 - **Historical forensic records reconciled:** quick task 261013-hpi leaves the ledger at 0 open, 7 fixed and 3 waived with evidence and original observations preserved. Archived deferred-item audit debt is zero; the completed automation-first debug record is in `debug/resolved/`. Substantive technical debt remains below and in the milestone audits.
@@ -387,16 +387,17 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T18:32:38.000Z
-Stopped at: Plan 16-10 incomplete; required post-wave normal CI failed in the interruption control.
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-10-PLAN.md
+Last session: 2026-10-15T19:17:00Z
+Stopped at: Plan 16-11 gap plan verified; superseded Plan 10 retains partial commits and no success summary.
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-11-PLAN.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Run `$gsd-plan-phase 16 --gaps` for a bounded amendment to Plan 10's unresolved interruption-control gate. Its partial implementation commits remain reachable but its success summary was removed, so execution's safe-resume gate must reconcile those commits before any further dispatch. Do not start Plan 07: the required current-source normal workflow failed in `retroarch.session.controls`, packaging did not run, and the assertion cause is not diagnosed. Preserve existing bounds; use source-bound evidence before any correction, then rerun the required current-source checks and fresh review if source changes.
-- Plan 09 is complete: one monotonic sample and one Perl serialization process per journal row, shared focused delay/stall controls, local `cmake --workflow --preset ci` with 649/649 tests and packaging, and clean source-bound review at `e2bed6aeb85b773e44597e8f5d27de94d2dc383f`. Its measurements and limitations are in 16-TIMING-REPAIR.md and 16-09-SUMMARY.md.
-- PR #50 remains open at head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`. Fresh native run 38764197994 failed Intel focused stall at 25,946 ms and ASan focused delay at 26,269 ms, against strict less-than-25,000 ms. CI required failed and hash equality skipped; performance, pinned RetroArch and other platform checks passed. Retained tracked handoff and ignored `build/phase16-release/` evidence identify both failures. The older failed native run 38740783575 remains historical; its JSON mislabels delay, corrected by source/log.
-- Plan 10 has no success summary because the post-wave gate is unresolved. Plan 07 Task 1 is partially prepared and pushed but must remain blocked; no 07 summary exists, and Plan 08 remains unstarted. After Plan 10's gate passes, reconcile preparation commits and actual PR state. No merge consent has been requested or granted. Fresh required native CI on the final repaired head must precede exact-head owner consent, normal publication and Plan 08's actual downloaded-byte checks. Keep EVID-04 and Phase 16 incomplete; do not advance Phase 17.
-- The existing config preference edit remains unchanged and unstaged. Plan 10's local repair/evidence commits and planning commits remain local and are not native CI evidence. Preserve the historical 21/22 verification, EVID-04 publication gap, source fingerprint, completed plan evidence, performance/publication history, and substantive debt above. No merge consent was requested or granted. Do not advance Phase 16 or EVID-04 on local evidence alone.
+- Run `$gsd-execute-phase 16 --gaps-only` for successor Plan 11 at wave 7. Installed `phase-plan-index` excludes `status: superseded` Plan 10, shows only 11 ready, and leaves 07 waiting on 11 and 08 waiting on 07. The Plan 11 milestone-bounded evaluation-scope query exited 0 with no matching commits. Recheck index and scope after the planning commit and immediately before dispatch; run the normal safe-resume gate on active 11. Do not borrow Plan 10's execution identity or synthesize its success summary.
+- Plan 10's timing/reporting/source commits remain reachable. Its completion at `5f899ec` was revoked by `11adf3d` after the required normal workflow failed at the interruption assertion (648/649, packaging not reached). The retained journal and isolated replay do not establish cause. Plan 11 replaces only unfinished obligations, with static audit plus at most two bounded instrumented observations, a reason-specific RED/GREEN regression and smallest justified correction or an explicit incomplete stop. Preserve all timing, semantic, journal, one-shot and owned-process contracts. New successor evidence/review paths keep historical native reports unchanged.
+- The independent plan checker found zero blockers or warnings after revision. All six requirements and 17 trackable decisions remain covered; physical plan count is 11, live count 10, actual completed count 7. No implementation or behavior suite ran in this planning step. Plan 09 remains complete with its source-bound timing/review evidence, and completed Plans 01–06 remain unchanged.
+- Retained native run 38764197994 at PR #50 head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb` failed Intel focused stall at 25,946 ms and ASan focused delay at 26,269 ms against strict less-than-25,000 ms. CI required failed; hash equality skipped; performance, pinned RetroArch and other platform checks passed. These are prior observations, not freshly queried external state. Native causes remain unknown and local evidence cannot close native acceptance.
+- Plan 07 Task 1 remains partially prepared and blocked until Plan 11's genuine completion and all required later gates. Reconcile all preparation, timing repair, revoked completion and successor history with actual PR state then. No merge consent has been requested or granted. Fresh required native CI on the final repaired head precedes exact-head owner consent and normal publication. Plan 08 then checks actual six-platform metadata, all 18 archives/checksums/attestations and exact-release-commit CI.
+- Preserve the unrelated config preference edit unchanged and unstaged. Keep historical 21/22 verification/fingerprint, EVID-04's actual publication gap, completed evidence, performance/publication history and substantive debt above. Keep Phase 16 and EVID-04 incomplete; do not advance Phase 17 or perform milestone/product-roadmap upkeep in this step.
