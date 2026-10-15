@@ -145,6 +145,11 @@ EVID-03 is complete. The original registered matrices, copied-byte controls and 
 *Phase: 16-host-evidence-and-roadmap*
 *Completed: 2026-10-15*
 
+## Parent Wave Verification
+
+- The corrected wave gate passed 645/645 tests in 293.47 seconds and produced all three packages.
+- Parent commit `2addc1f` applies only clang-format 18.1.8 output to the host test. The rebuilt host passed all four focused fixture/matrix tests; hygiene passed 13/13, the explicit formatter check passed, and the original independent semicolon-path argv probe passed.
+
 ## Self-Check: PASSED
 
 - Summary file exists at the required phase path.
