@@ -131,7 +131,7 @@ function(nesturbator_archive_inventory_check zip out_error out_member_hexes)
 
   set(cursor 0)
   set(member_index 0)
-  set(member_hexes "")
+  set(member_hexes "\n")
   while(member_index LESS total_entries)
     math(EXPR fixed_end "${cursor} + 46")
     if(fixed_end GREATER directory_size)
@@ -190,6 +190,13 @@ function(nesturbator_archive_inventory_check zip out_error out_member_hexes)
       endif()
       math(EXPR name_byte "${name_byte} + 1")
     endwhile()
+    string(FIND "${member_hexes}" "\n${member_hex}\n" duplicate_index)
+    if(NOT duplicate_index LESS 0)
+      set(${out_error}
+        "archive contains a duplicate member name (name hex ${member_hex})"
+        PARENT_SCOPE)
+      return()
+    endif()
     string(APPEND member_hexes "${member_hex}\n")
     set(cursor ${next_cursor})
     math(EXPR member_index "${member_index} + 1")
@@ -316,20 +323,38 @@ function(nesturbator_archive_contents_check zip component out_error)
   string(REPLACE "\n" ";" entries "${listing}")
   set(files "")
   foreach(entry IN LISTS entries)
-    if(NOT entry STREQUAL "" AND NOT entry MATCHES "/$")
+    if(entry STREQUAL "")
+      continue()
+    elseif(entry MATCHES "/$")
+      set(known_directory FALSE)
+      foreach(re IN LISTS want_${component}_directories)
+        if(entry MATCHES "${re}")
+          set(known_directory TRUE)
+        endif()
+      endforeach()
+      if(NOT known_directory)
+        set(${out_error} "archive holds an unexpected or aliased directory ${entry}" PARENT_SCOPE)
+        return()
+      endif()
+    else()
       list(APPEND files "${entry}")
     endif()
   endforeach()
 
   foreach(re IN LISTS want_${component})
-    set(hit FALSE)
+    set(hits 0)
     foreach(f IN LISTS files)
       if(f MATCHES "${re}")
-        set(hit TRUE)
+        math(EXPR hits "${hits} + 1")
       endif()
     endforeach()
-    if(NOT hit)
+    if(hits EQUAL 0)
       set(${out_error} "archive lacks an entry matching ${re}" PARENT_SCOPE)
+      return()
+    elseif(NOT hits EQUAL 1)
+      set(${out_error}
+        "archive has ${hits} entries matching ${re}; expected exactly one"
+        PARENT_SCOPE)
       return()
     endif()
   endforeach()
@@ -347,7 +372,7 @@ function(nesturbator_archive_contents_check zip component out_error)
   endforeach()
 endfunction()
 
-# Every file each archive must hold; nothing else may be in it. Directory entries are ignored.
+# Every file and directory in each archive must match its component allowlist.
 # A Linux install may use lib64.
 set(want_libretro
   "^LICENSE$"
@@ -366,6 +391,14 @@ set(want_library
   "^lib(64)?/cmake/nesturbator/nesturbatorTargets\\.cmake$"
   "^lib(64)?/cmake/nesturbator/nesturbatorTargets-[a-z]+\\.cmake$"
   "^lib(64)?/pkgconfig/nesturbator\\.pc$")
+set(want_libretro_directories "^cores/$" "^info/$")
+set(want_runner_directories "^bin/$")
+set(want_library_directories
+  "^include/$"
+  "^lib(64)?/$"
+  "^lib(64)?/cmake/$"
+  "^lib(64)?/cmake/nesturbator/$"
+  "^lib(64)?/pkgconfig/$")
 
 if(SELFTEST)
   foreach(required WORK SOURCE_ROOT)
@@ -475,8 +508,76 @@ if(SELFTEST)
     message(FATAL_ERROR "check_archives self-test: newline member was accepted or failed for the wrong reason: ${error}")
   endif()
 
+  set(duplicate_root "${selftest_work}/duplicate-root")
+  file(MAKE_DIRECTORY "${duplicate_root}/bin")
+  file(WRITE "${duplicate_root}/LICENSE" "synthetic license\n")
+  file(WRITE "${duplicate_root}/bin/nesturbator-run" "synthetic runner\n")
+  file(ARCHIVE_CREATE OUTPUT "${selftest_work}/duplicate.zip"
+    PATHS LICENSE LICENSE bin/nesturbator-run FORMAT zip WORKING_DIRECTORY "${duplicate_root}")
+  execute_process(COMMAND "${CMAKE_COMMAND}" -E tar tf "${selftest_work}/duplicate.zip"
+    OUTPUT_VARIABLE duplicate_listing RESULT_VARIABLE duplicate_list_rc)
+  if(NOT duplicate_list_rc EQUAL 0 OR
+      NOT duplicate_listing STREQUAL "LICENSE${line_feed}LICENSE${line_feed}bin/nesturbator-run${line_feed}")
+    message(FATAL_ERROR
+      "check_archives self-test: duplicate archive fixture was not preserved: ${duplicate_listing}")
+  endif()
+  nesturbator_archive_contents_check("${selftest_work}/duplicate.zip" runner error)
+  if(NOT error MATCHES "archive contains a duplicate member name")
+    message(FATAL_ERROR "check_archives self-test: duplicate LICENSE member was accepted or failed for the wrong reason: ${error}")
+  endif()
+
+  set(duplicate_directory_root "${selftest_work}/duplicate-directory-root")
+  file(MAKE_DIRECTORY "${duplicate_directory_root}/bin")
+  file(WRITE "${duplicate_directory_root}/LICENSE" "synthetic license\n")
+  file(WRITE "${duplicate_directory_root}/bin/nesturbator-run" "synthetic runner\n")
+  file(ARCHIVE_CREATE OUTPUT "${selftest_work}/duplicate-directory.zip"
+    PATHS LICENSE bin bin FORMAT zip WORKING_DIRECTORY "${duplicate_directory_root}")
+  execute_process(COMMAND "${CMAKE_COMMAND}" -E tar tf "${selftest_work}/duplicate-directory.zip"
+    OUTPUT_VARIABLE duplicate_directory_listing RESULT_VARIABLE duplicate_directory_list_rc)
+  if(NOT duplicate_directory_list_rc EQUAL 0)
+    message(FATAL_ERROR
+      "check_archives self-test: could not list duplicate-directory fixture: ${duplicate_directory_listing}")
+  endif()
+  set(remaining_directory_listing "\n${duplicate_directory_listing}")
+  set(directory_entry "\nbin/\n")
+  set(directory_entry_count 0)
+  string(LENGTH "${directory_entry}" directory_entry_length)
+  while(TRUE)
+    string(FIND "${remaining_directory_listing}" "${directory_entry}" directory_entry_index)
+    if(directory_entry_index LESS 0)
+      break()
+    endif()
+    math(EXPR directory_entry_count "${directory_entry_count} + 1")
+    math(EXPR after_directory_index "${directory_entry_index} + ${directory_entry_length}")
+    string(SUBSTRING "${remaining_directory_listing}" 0 ${directory_entry_index} before_directory)
+    string(SUBSTRING "${remaining_directory_listing}" ${after_directory_index} -1 after_directory)
+    set(remaining_directory_listing "${before_directory}\n${after_directory}")
+  endwhile()
+  if(NOT directory_entry_count EQUAL 2)
+    message(FATAL_ERROR
+      "check_archives self-test: duplicate directory fixture was not preserved: ${duplicate_directory_listing}")
+  endif()
+  nesturbator_archive_contents_check("${selftest_work}/duplicate-directory.zip" runner error)
+  if(NOT error MATCHES "archive contains a duplicate member name")
+    message(FATAL_ERROR "check_archives self-test: duplicate directory member was accepted or failed for the wrong reason: ${error}")
+  endif()
+
+  set(multiple_match_root "${selftest_work}/multiple-match-root")
+  file(MAKE_DIRECTORY "${multiple_match_root}/bin")
+  file(WRITE "${multiple_match_root}/LICENSE" "synthetic license\n")
+  file(WRITE "${multiple_match_root}/bin/nesturbator-run" "synthetic runner\n")
+  file(WRITE "${multiple_match_root}/bin/nesturbator-run.exe" "synthetic runner\n")
+  file(ARCHIVE_CREATE OUTPUT "${selftest_work}/multiple-match.zip"
+    PATHS LICENSE bin/nesturbator-run bin/nesturbator-run.exe FORMAT zip
+    WORKING_DIRECTORY "${multiple_match_root}")
+  nesturbator_archive_contents_check("${selftest_work}/multiple-match.zip" runner error)
+  if(NOT error MATCHES "expected exactly one")
+    message(FATAL_ERROR
+      "check_archives self-test: multiple expected-pattern matches were accepted or failed for the wrong reason: ${error}")
+  endif()
+
   message(STATUS
-    "check_archives self-test: absent, stale, current, semicolon and newline controls passed")
+    "check_archives self-test: absent, stale, current, semicolon, newline, duplicate and multiple-match controls passed")
   return()
 endif()
 
