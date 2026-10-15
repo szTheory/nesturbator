@@ -151,6 +151,12 @@ endfunction()
 # D-15: inspect only the localized support fact clause, leaving surrounding prose free to change.
 function(nesturbator_info__support_text text source out_error)
   set(${out_error} "" PARENT_SCOPE)
+  string(REGEX MATCHALL "Supported NTSC " support_prefixes "${text}")
+  list(LENGTH support_prefixes support_count)
+  if(support_count GREATER 1)
+    set(${out_error} "${source}: duplicate localized MMC3 support clause" PARENT_SCOPE)
+    return()
+  endif()
   string(FIND "${text}" "Supported NTSC " start)
   if(start LESS 0)
     set(${out_error} "${source}: missing localized MMC3 support clause" PARENT_SCOPE)
@@ -479,6 +485,8 @@ function(expect_support_ok name info_content readme_content header_content)
 endfunction()
 
 set(support_clause "Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.")
+set(contradictory_clause
+  "Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=yes; four-screen=no.")
 string(REPLACE "${support_clause}" "" no_support_info "${valid_info}")
 expect_support_error(missing_positive_clause "${no_support_info}" "${valid_readme}"
   "${valid_header}" "missing localized MMC3 support clause")
@@ -503,6 +511,18 @@ expect_support_error(contradictory_readme "${valid_info}" "${bad_readme}" "${val
 string(REPLACE "MMC6=no" "MMC6=yes" bad_header "${valid_header}")
 expect_support_error(contradictory_header "${valid_info}" "${valid_readme}" "${bad_header}"
   "header.h: MMC6 must be excluded")
+string(REPLACE "${support_clause}" "${support_clause} ${contradictory_clause}"
+  contradictory_metadata "${valid_info}")
+expect_support_error(later_metadata_contradiction "${contradictory_metadata}" "${valid_readme}"
+  "${valid_header}" "duplicate localized MMC3 support clause")
+string(REPLACE "${support_clause}" "${support_clause}\n${contradictory_clause}"
+  later_readme_contradiction "${valid_readme}")
+expect_support_error(later_readme_contradiction "${valid_info}" "${later_readme_contradiction}"
+  "${valid_header}" "duplicate localized MMC3 support clause")
+string(REPLACE "${support_clause}" "${support_clause}\n * ${contradictory_clause}"
+  later_header_contradiction "${valid_header}")
+expect_support_error(later_header_contradiction "${valid_info}" "${valid_readme}"
+  "${later_header_contradiction}" "duplicate localized MMC3 support clause")
 set(duplicate_description "${valid_info}description = \"duplicate\"\n")
 expect_support_error(duplicate_description "${duplicate_description}" "${valid_readme}"
   "${valid_header}" "duplicate key description")
@@ -511,7 +531,7 @@ set(harmless_readme "${valid_readme}\nSurrounding product prose may change.\n")
 set(harmless_header "${valid_header}\nSurrounding product prose may change.\n")
 expect_support_ok(harmless_surrounding_prose "${harmless_info}" "${harmless_readme}"
   "${harmless_header}")
-message(STATUS "info_claims self-test: MMC3 support controls passed (10 cases)")
+message(STATUS "info_claims self-test: MMC3 support controls passed (13 cases)")
 
 # The configure-time guard in a scratch project: all the tests registered configures, and with
 # one of the claim's tests omitted it fails and names the level and the test.
