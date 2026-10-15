@@ -5,16 +5,16 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: Completed 16-04 argv-boundary follow-up
-last_updated: "2026-10-15T00:34:36.487Z"
+stopped_at: Completed 16-05-PLAN.md
+last_updated: "2026-10-15T01:13:00.768Z"
 last_activity: 2026-10-15
 last_activity_desc: Completed Phase 16 Plan 04 and verified EVID-03 fixture identity
-state_head: cd9de46cd7c02b38e71d667f4348ed085474d99f
+state_head: c50e6962b40ec0f663db43f5860533199618410b
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 ## Current Position
 
 Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 16 Plan 04 completed and EVID-03 fixture identity verified
 
@@ -200,6 +200,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 16 P02 | 34min | 2 tasks | 5 files |
 | Phase 16 P03 | 24h 52m | 3 tasks | 11 files |
 | Phase 16 P04 | 30min | 2 tasks | 5 files |
+| Phase 16 P05 | 25min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -315,6 +316,8 @@ Recent decisions affecting current work:
 - [Phase 16]: Plan 16-03: keep timeout calculations tied to the fixed last-40 completed-run audit; later successful durations are observations.
 - [Phase 16]: Special host roles require exact case-sensitive final filenames, with slash always separating and backslash separating only on Windows.
 - [Phase 16]: Registered CMake tests authenticate copied special-file bytes against exact manifest rows; direct libretro.host calls do not authenticate content.
+- [Phase 16]: Keep the support contract as one narrow localized clause: NTSC MMC3 mapper 4, submappers 0/4, with MMC6 and four-screen excluded.
+- [Phase 16]: Record current staged and package acceptance, but leave EVID-04 pending until ordinary release publication evidence exists.
 
 ### Pending Todos
 
@@ -373,8 +376,8 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T00:34:36.470Z
-Stopped at: Completed 16-04 argv-boundary follow-up
+Last session: 2026-10-15T01:13:00.749Z
+Stopped at: Completed 16-05-PLAN.md
 Resume file: None
 
 Next GSD command: $gsd-execute-phase 16
