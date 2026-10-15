@@ -1859,7 +1859,15 @@ add_test(NAME libretro.info_claims.self_test
     "-DGENERATOR=${CMAKE_GENERATOR}"
     -DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/info_claims.cmake)
-set_tests_properties(libretro.info_claims libretro.info_claims.self_test PROPERTIES TIMEOUT 60)
+add_test(NAME libretro.info_support
+  COMMAND ${CMAKE_COMMAND}
+    "-DINFO=${PROJECT_SOURCE_DIR}/libretro/nesturbator_libretro.info"
+    "-DREADME=${PROJECT_SOURCE_DIR}/README.md"
+    "-DHEADER=${PROJECT_SOURCE_DIR}/include/nesturbator.h"
+    -DSUPPORT_PROBE=ON
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/info_claims.cmake)
+set_tests_properties(libretro.info_claims libretro.info_claims.self_test libretro.info_support
+  PROPERTIES TIMEOUT 60)
 
 # D-18: perf_compare.cmake on synthetic Cachegrind files, so the +1% rule, the UNSTABLE stop
 # and the deliberate-slowdown path are shown by a ci command. Each case is defined in
