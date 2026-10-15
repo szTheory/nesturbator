@@ -578,6 +578,73 @@ run_prefix_driver() {
         "$fixture_dir/calibration.txt"
 }
 
+# A failed attempt-tree setup after lock acquisition must retain mkdir's exact failure status,
+# release only the lock this invocation acquired, and let a later session acquire the endpoint.
+setup_failure_dir="$WORK_ROOT/session-$$-setup-failure"
+setup_failure_ra="$setup_failure_dir/ra"
+setup_failure_locks="$setup_failure_dir/locks"
+setup_failure_bin="$setup_failure_dir/bin"
+setup_failure_lock="$setup_failure_locks/nesturbator-retroarch-55355.lock"
+mkdir -p "$setup_failure_ra/shots" "$setup_failure_ra/states" "$setup_failure_bin"
+ln -s "$script_path" "$setup_failure_dir/fake-nc"
+ln -s "$script_path" "$setup_failure_dir/fake-retroarch"
+: >"$setup_failure_dir/config.cfg"; : >"$setup_failure_dir/core.so"
+real_mkdir=$(command -v mkdir)
+cat >"$setup_failure_bin/mkdir" <<'EOF'
+#!/bin/sh
+for argument do
+    case "$argument" in
+        "${STATE_SESSION_TEST_FAIL_MKDIR_PREFIX}"*)
+            echo 'injected mkdir failure at attempt setup' >&2
+            exit 73
+            ;;
+    esac
+done
+exec "$STATE_SESSION_TEST_REAL_MKDIR" "$@"
+EOF
+chmod +x "$setup_failure_bin/mkdir"
+setup_failure_status=0
+PATH="$setup_failure_bin:$PATH" \
+STATE_SESSION_TEST_FAIL_MKDIR_PREFIX="$setup_failure_ra/attempts/attempt-" \
+STATE_SESSION_TEST_REAL_MKDIR="$real_mkdir" \
+STATE_SESSION_NC="$setup_failure_dir/fake-nc" \
+STATE_SESSION_TEST_READINESS_NC="$setup_failure_dir/fake-nc" \
+STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
+STATE_SESSION_TEST_EXPECTED_DIR="$setup_failure_ra/states" \
+STATE_SESSION_TEST_SENDS="$setup_failure_dir/sends.log" \
+STATE_SESSION_TEST_ACTION_SENDS="$setup_failure_dir/action-sends.log" \
+STATE_SESSION_TEST_READINESS_SENDS="$setup_failure_dir/readiness-sends.log" \
+STATE_SESSION_TEST_FAKE_NC="$setup_failure_dir/fake-nc" \
+STATE_SESSION_TEST_HOST_PID="$setup_failure_dir/host.pid" \
+STATE_SESSION_TEST_QUIT_FILE="$setup_failure_dir/quit" \
+STATE_SESSION_TEST_SHOT_COUNT="$setup_failure_dir/shot.count" \
+STATE_SESSION_TEST_READ_COUNT="$setup_failure_dir/read.count" \
+STATE_SESSION_TEST_STATE_COUNT="$setup_failure_dir/state.count" \
+STATE_SESSION_TEST_STALL_PID="$setup_failure_dir/stall.pid" \
+STATE_SESSION_TEST_MODE=prefix \
+STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
+STATE_SESSION_TEST_SHOTS="$setup_failure_ra/shots" \
+STATE_SESSION_LOCK_ROOT="$setup_failure_locks" \
+STATE_SESSION_SETTLE_MS=0 \
+sh "$DRIVER" "$setup_failure_dir/fake-retroarch" "$setup_failure_dir/config.cfg" \
+    "$setup_failure_dir/core.so" "$fixture_dir/marker.nes" "$setup_failure_ra" \
+    "$setup_failure_dir/retroarch.log" "$FRAME_INDEX" "$fixture_dir/calibration.txt" \
+    >"$setup_failure_dir/driver.out" 2>&1 || setup_failure_status=$?
+[ "$setup_failure_status" -eq 73 ] &&
+    grep -Fx 'injected mkdir failure at attempt setup' "$setup_failure_dir/driver.out" >/dev/null &&
+    [ ! -e "$setup_failure_lock" ] &&
+    [ ! -e "$setup_failure_dir/host.pid" ] && [ ! -e "$setup_failure_dir/sends.log" ] || {
+    echo "FAIL attempt setup failure did not preserve mkdir status and release its owned lock (status=$setup_failure_status)" >&2
+    cat "$setup_failure_dir/driver.out" >&2
+    exit 1
+}
+run_prefix_driver "$setup_failure_dir" "$setup_failure_ra" '' "$setup_failure_locks"
+[ -s "$setup_failure_dir/sends.log" ] && [ ! -e "$setup_failure_lock" ] || {
+    echo 'FAIL later session could not acquire the released endpoint lock' >&2
+    exit 1
+}
+printf 'state session setup-failure control: mkdir status 73 preserved; owned lock released; later acquisition succeeded\n'
+
 # The synthetic marker fixtures satisfy each semantic precondition; these controls execute the
 # actual shell driver and its shared production oracle, then require its own exact failure row.
 # A 300 ms fake-image publication window expired under hosted Intel scheduling before the
