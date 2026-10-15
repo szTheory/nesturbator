@@ -1146,6 +1146,8 @@ nesturbator-run --version
   follow from the header sizes (hardware: NESdev Wiki "MMC1" and "SxROM").
   `nesturbator_reset` keeps the MMC1 registers and the battery RAM, because
   the cartridge sees no reset line.
+Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
+
 - Mapper 4 (MMC3) is accepted with submapper 0 (the Sharp revision, also used
   for every iNES 1 image) or submapper 4 (the NEC revision). PRG is a power of
   two from 16 to 512 KiB, CHR is a power of two from 8 to 256 KiB of ROM or

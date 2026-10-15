@@ -298,6 +298,7 @@ void nesturbator_destroy(nesturbator *inst);
    nesturbator_reset keeps the bank register, so a soft reset reads it from the
    selected bank). NROM and UxROM
    take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
+   Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
    The supported mappers are 0, 1, 2, 3, 4 and 7. Mapper 4 is the MMC3 in its
    Sharp (submapper 0, and every iNES 1 image) or NEC (submapper 4) revision:
    PRG a power of two from 16 to 512 KiB; 8 to 256 KiB CHR ROM or 8 KiB CHR
