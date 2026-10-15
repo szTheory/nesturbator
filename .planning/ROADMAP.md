@@ -68,7 +68,7 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans**: 7/9 plans executed; Plans 01–06 and 09 complete, delivery Plans 07/08 pending
+**Plans**: 7/10 plans executed; Plans 01–06 and 09 complete, bounded repair Plan 10 and delivery Plans 07/08 pending
 
 Plans:
 **Wave 1**
@@ -90,13 +90,16 @@ Plans:
 **Wave 6** *(gap closure; depends on completed Plans 05/06)*
 - [x] 16-09-PLAN.md — Measure and repair journal overhead while preserving readiness timing, semantic and cleanup bounds; run focused/full CI and fresh source review.
 
-**Wave 7** *(blocked on the bounded repair and review in Plan 09)*
+**Wave 7** *(gap closure; depends on completed Plan 09)*
+- [ ] 16-10-PLAN.md — Attribute both native timing failures and apply a justified bounded repair; preserve all timing/semantic contracts, run ci/asan controls and normal packaging CI, obtain fresh independent source review.
+
+**Wave 8** *(blocked on the bounded repair and current independent review in Plan 10)*
 - [ ] 16-07-PLAN.md — Prepare the checked phase PR, obtain exact-head merge consent and observe the normal release flow.
 
-**Wave 8** *(depends on the actual normal publication from Plan 07)*
+**Wave 9** *(depends on the actual normal publication from Plan 07)*
 - [ ] 16-08-PLAN.md — Verify downloaded six-platform metadata, checksums, attestations and exact-release-commit CI.
 
-**Verification (2026-10-15):** 7/9 plans completed. [Plan 09 summary](phases/16-host-evidence-and-roadmap/16-09-SUMMARY.md) records local normal CI with all 649 tests and packaging, focused/full readiness controls, measured journal work reduction and clean source-bound review at `e2bed6a`. Its repair preserved every timing bound but did not establish native acceptance: [fresh PR CI 38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) failed at [PR #50](https://github.com/szTheory/nesturbator/pull/50) head `3de23d4` on Intel focused readiness-response-stall (25,946 ms) and ASan focused readiness-delayed (26,269 ms), both against strict less-than-25,000 ms. CI required failed; performance and pinned RetroArch passed. Execution stopped without a rerun, merge-consent request, merge or publication. [Delivery evidence](phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md) retains the exact identities and both diagnoses; the root cause remains unproven. The [existing verifier report](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) retains its historical 21/22 verdict, and EVID-04 remains open pending actual published metadata. Next: `$gsd-plan-phase 16 --gaps` for a bounded timing amendment. Plans 07/08, exact-head owner consent, actual publication and independent phase verification remain required.
+**Verification (2026-10-15):** 7/10 plans completed. [Plan 09 summary](phases/16-host-evidence-and-roadmap/16-09-SUMMARY.md) records local normal CI with all 649 tests and packaging, focused/full readiness controls, measured journal work reduction and clean source-bound review at `e2bed6a`. Its repair preserved every timing bound but did not establish native acceptance: [fresh PR CI 38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) failed at [PR #50](https://github.com/szTheory/nesturbator/pull/50) head `3de23d4` on Intel focused readiness-response-stall (25,946 ms) and ASan focused readiness-delayed (26,269 ms), both against strict less-than-25,000 ms. CI required failed; performance and pinned RetroArch passed. Execution stopped without a rerun, merge-consent request, merge or publication. [Delivery evidence](phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md) retains the exact identities and both diagnoses; the root cause remains unproven. New [Plan 10](phases/16-host-evidence-and-roadmap/16-10-PLAN.md) requires bounded attribution before a justified owned repair, focused/full ci/asan controls, normal ci with packaging and fresh independent source review before Plan 07 safely resumes at Task 1. Its final pushed head still requires successful native PR CI before exact-head owner merge consent. The [existing verifier report](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) retains its historical 21/22 verdict, and EVID-04 remains open pending actual published metadata. Next: `$gsd-execute-phase 16 --gaps-only` executes Plan 10, then resumes delivery only when its prerequisites pass. Plans 07/08, actual publication and independent phase verification remain required.
 
 **UI hint**: no
 **Canonical refs**: [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md), [GSD-HANDOFF.md](preparation/GSD-HANDOFF.md); current scope evidence in [research/SUMMARY.md](research/SUMMARY.md).
@@ -139,7 +142,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 7/9 | Native PR CI failed; bounded repair needed | - |
+| 16. Host evidence and roadmap | v4 | 7/10 | Plan 10 bounded repair planned; native PR CI/publication pending | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

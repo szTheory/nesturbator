@@ -4,16 +4,16 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: blocked
-stopped_at: "Plan 07 Task 1 stopped on native PR CI 38764197994; Intel and ASan focused readiness exceeded unchanged 25-second bound"
-last_updated: "2026-10-15T16:28:11.586Z"
+status: executing
+stopped_at: "Plan 10 gap plan verified; bounded native timing repair ready before incomplete Plan 07 Task 1"
+last_updated: "2026-10-15T17:02:44.236Z"
 last_activity: 2026-10-15
-last_activity_desc: Plan 09 complete; fresh repaired PR CI failed Intel and ASan readiness timing; bounded gap amendment required
-state_head: 3de23d4aed5d9696dc4020db3b8ef5e8205300fb
+last_activity_desc: Plan 10 gap plan verified with zero blockers/warnings; bounded repair ready, native acceptance and publication pending
+state_head: 9b37c9a8057104ff5e69fed735aa9764bfb36f48
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 9
+  total_plans: 10
   completed_plans: 7
   percent: 0
 ---
@@ -25,14 +25,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 — diagnose native readiness timing failures before delivery
+**Current focus:** Phase 16 — execute Plan 10 bounded native timing repair before delivery
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — STOPPED ON FAILED NATIVE CI
-Plan: 07 incomplete; 7 of 9 complete (01–06 and 09)
-Status: Native PR CI failed; bounded timing amendment required
-Last activity: 2026-10-15 — Plan 09 passed local 649-test CI and fresh review; repaired PR run 38764197994 failed Intel and ASan focused readiness timing
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Plan: 10 ready; 07 incomplete and 08 unstarted; 7 of 10 complete (01–06 and 09)
+Status: Ready to execute
+Delivery gates: Native PR timing and publication remain unmet; Plan 10 is the next executable repair.
+Last activity: 2026-10-15 — Planned 16-10 for both native timing failures; independent checker found zero blockers/warnings, command advisory corrected; 6/6 requirements and 17/17 decisions covered
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -328,7 +329,7 @@ None.
 
 ### Blockers/Concerns
 
-- **Current Phase 16 delivery stop — 2026-10-15:** [Native PR CI 38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) failed at PR #50 head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`: Intel readiness-response-stall took 25,946 ms and ASan readiness-delayed took 26,269 ms, both against strict less-than-25,000 ms. CI required failed; performance and pinned RetroArch passed. Plan 09 is complete with local 649/649 CI and clean review at source `e2bed6a`, but it did not close native timing acceptance. Plans 07/08 remain incomplete; no rerun, consent, merge or publication. Use `$gsd-plan-phase 16 --gaps` for a bounded amendment before resuming delivery. Actual cause remains unproven; preserve every timing and semantic bound. See the tracked delivery record and ignored raw logs.
+- **Current Phase 16 delivery stop — 2026-10-15:** [Native PR CI 38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) failed at PR #50 head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`: Intel readiness-response-stall took 25,946 ms and ASan readiness-delayed took 26,269 ms, both against strict less-than-25,000 ms. CI required failed; performance and pinned RetroArch passed. Plan 09 is complete with local 649/649 CI and clean review at source `e2bed6a`, but it did not close native timing acceptance. Plans 07/08 remain incomplete; no rerun, consent, merge or publication. [Plan 10](phases/16-host-evidence-and-roadmap/16-10-PLAN.md) now provides the bounded attribution/repair contract, ci/asan controls, normal CI/package and fresh independent review before Plan 07 resumes. Actual cause remains unproven; preserve every timing and semantic bound. See the tracked delivery record and ignored raw logs.
 - **Phase 16 publication gap:** EVID-04 remains unmet because actual published v0.1.10 metadata omits MMC3, while source/staged/package checks pass. [Prior source CI 38676328559](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on `841434b`; the source repair now has local CI and fresh review at `e2bed6a`, qualified by the native failures above. Plan 07 must obtain fresh successful native PR CI and exact-head owner consent before the normal release flow; Plan 08 verifies actual six-platform metadata, all 18 archive checksums and attestations against the immutable release commit. Keep the historical verifier gap open until actual publication and independent re-verification.
 - **Release blocker resolved — 2026-10-13:** [PR #48](https://github.com/szTheory/nesturbator/pull/48) fixed version-comment formatting and shipped Codex routing as `b8e2824`. [Release PR #35](https://github.com/szTheory/nesturbator/pull/35) merged as `da2bf97` after all 15 CI jobs passed. [Publication run 38432194730](https://github.com/szTheory/nesturbator/actions/runs/38432194730) succeeded on the exact release commit; [v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10) published at 2026-10-13T16:53:40Z with exactly 18 nonempty platform ZIPs plus `SHA256SUMS`.
 - **Historical forensic records reconciled:** quick task 261013-hpi leaves the ledger at 0 open, 7 fixed and 3 waived with evidence and original observations preserved. Archived deferred-item audit debt is zero; the completed automation-first debug record is in `debug/resolved/`. Substantive technical debt remains below and in the milestone audits.
@@ -381,16 +382,16 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T16:28:11.586Z
-Stopped at: Plan 07 Task 1 — terminal native PR CI failure 38764197994
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md
+Last session: 2026-10-15T17:02:44.236Z
+Stopped at: Plan 10 planning verified; delivery remains stopped at Plan 07 Task 1 native CI failure 38764197994
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-10-PLAN.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Run `$gsd-plan-phase 16 --gaps` for a bounded amendment grounded in both fresh native failures. Do not rerun unchanged CI or relax the existing elapsed, operation, semantic or cleanup limits. The native cause remains unproven.
+- Run `$gsd-execute-phase 16 --gaps-only`: Plan 10 at wave 7 must attribute both failures before one justified owned correction, then pass focused/full ci/asan controls, normal ci/package and fresh independent source review. Stop incomplete for a bounded amendment if evidence cannot justify the repair within all unchanged limits. Plans 07/08 follow at waves 8/9 only after their prerequisites pass; the native cause remains unproven.
 - Plan 09 is complete: one monotonic sample and one Perl serialization process per journal row, shared focused delay/stall controls, local `cmake --workflow --preset ci` with 649/649 tests and packaging, and clean source-bound review at `e2bed6aeb85b773e44597e8f5d27de94d2dc383f`. Its measurements and limitations are in 16-TIMING-REPAIR.md and 16-09-SUMMARY.md.
 - PR #50 remains open at head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`. Fresh native run 38764197994 failed Intel focused stall at 25,946 ms and ASan focused delay at 26,269 ms, against strict less-than-25,000 ms. CI required failed and hash equality skipped; performance, pinned RetroArch and other platform checks passed. Retained tracked handoff and ignored `build/phase16-release/` evidence identify both failures. The older failed native run 38740783575 remains historical; its JSON mislabels delay, corrected by source/log.
 - Plan 07 Task 1 is partially prepared and pushed but incomplete; no 07 summary exists, and Plan 08 remains unstarted. Reconcile the preparation commits and actual PR state when resuming after repair. No merge consent has been requested or granted. Fresh required native CI on the final repaired head must precede exact-head owner consent, normal publication and Plan 08's actual downloaded-byte checks. Keep EVID-04 and Phase 16 incomplete; do not advance Phase 17.
-- The existing config preference edit remains unchanged and unstaged. The current failure/state handoff commit is local only and is not native CI evidence. Preserve existing verification/fingerprint, completed plan evidence, historical performance/publication and substantive debt above. No new GSD lifecycle step ran during this execution command.
+- The existing config preference edit remains unchanged and unstaged. Failure/state handoff 9b37c9a and this planning commit remain local and are not native CI evidence. Preserve existing verification/fingerprint, completed plan evidence, historical performance/publication and substantive debt above. This command completed only gap planning; behavior tests and delivery belong to the next execute step.
