@@ -706,6 +706,8 @@ static const char *progression_validate_anchor(nesturbator *inst, const char *pa
     return reason == NULL ? NULL : progression_anchor_reason(reason) == 2 ? "PARSE" : "ORIGIN";
 }
 
+static uint64_t progression_preload_frames;
+
 static const char *progression_palette_for_frame(const uint8_t *rom, const char *path,
                                                  uint64_t identity, uint64_t anchor_frame,
                                                  uint64_t target_frame, uint32_t offset,
@@ -749,6 +751,7 @@ static const char *progression_palette_for_frame(const uint8_t *rom, const char 
     static uint8_t rgb[NESTURBATOR_TEST_RGB_SIZE];
     uint64_t absolute = 0;
     for (uint64_t frame = 1u; frame <= anchor_frame; ++frame) {
+        ++progression_preload_frames;
         if (!marker_frame(simulator, rgb, &absolute) || absolute != frame) {
             nesturbator_destroy(simulator);
             free(bytes);
@@ -1220,7 +1223,8 @@ static uint8_t *progression_insert_after(const uint8_t *data, size_t size, const
 static int progression_controls_selftest(const char *work)
 {
     char rom[PROGRESSION_PATH_CAP], calibration[PROGRESSION_PATH_CAP];
-    char record[PROGRESSION_PATH_CAP], wrong_anchor[PROGRESSION_PATH_CAP];
+    char record[PROGRESSION_PATH_CAP], prefix_record[PROGRESSION_PATH_CAP];
+    char wrong_anchor[PROGRESSION_PATH_CAP];
     char alternative_anchor[PROGRESSION_PATH_CAP], alternative_image[PROGRESSION_PATH_CAP];
     char ambiguous_image[PROGRESSION_PATH_CAP], ambiguous_record[PROGRESSION_PATH_CAP];
     char malformed_record[PROGRESSION_PATH_CAP], missing_record[PROGRESSION_PATH_CAP];
@@ -1230,6 +1234,8 @@ static int progression_controls_selftest(const char *work)
         !progression_make_path(rom, sizeof rom, work, "marker.nes") ||
         !progression_make_path(calibration, sizeof calibration, work, "calibration.txt") ||
         !progression_make_path(record, sizeof record, work, "progression-complete.rec") ||
+        !progression_make_path(prefix_record, sizeof prefix_record, work,
+                               "progression-prefix.rec") ||
         !progression_make_path(wrong_anchor, sizeof wrong_anchor, work, "valid wrong origin.ra") ||
         !progression_make_path(alternative_anchor, sizeof alternative_anchor, work,
                                "alternative same content anchor.ra") ||
@@ -1257,6 +1263,22 @@ static int progression_controls_selftest(const char *work)
                 "progression controls: actual complete fixture failed its CLI precondition\n");
         return 2;
     }
+    progression_preload_frames = 0u;
+    int prefix_exit = marker_progression_cli(rom, calibration, prefix_record, 1);
+    if (prefix_exit != 0) {
+        fprintf(stderr,
+                "progression controls: actual prefix fixture failed its CLI precondition (exit %d)\n",
+                prefix_exit);
+        return 2;
+    }
+    if (progression_preload_frames != 0u) {
+        fprintf(stderr,
+                "ASSERT prefix-skips-overwritten-replay: expected=0 pre-load frames actual=%" PRIu64
+                "\n",
+                progression_preload_frames);
+        return 1;
+    }
+    printf("progression prefix pre-load replay: 0 frames\n");
     progression_session baseline;
     if (progression_read_record(record, &baseline) != NULL)
         return 2;
