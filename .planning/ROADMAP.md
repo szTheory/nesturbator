@@ -68,7 +68,7 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans**: 6/6 plans executed
+**Plans**: 8 plans; 6 executed, 2 gap-closure plans pending
 
 Plans:
 **Wave 1**
@@ -87,7 +87,13 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 - [x] 16-05-PLAN.md — Protect truthful MMC3 descriptions through staged and packaged metadata.
 
-**Verification (2026-10-15):** 6/6 plans implemented; [required CI](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on source `841434b`, and source review is clean. [Phase verification](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) verifies 21/22 truths. EVID-04 is the sole gap: actual published v0.1.10 metadata omits MMC3, while current source, staging and packages pass. Phase 16 remains pending until normal release evidence closes that requirement. Next: `$gsd-plan-phase 16 --gaps`.
+**Wave 6** *(gap closure; depends on completed Plans 05/06)*
+- [ ] 16-07-PLAN.md — Prepare the checked phase PR, obtain exact-head merge consent and observe the normal release flow.
+
+**Wave 7** *(depends on the actual normal publication from Plan 07)*
+- [ ] 16-08-PLAN.md — Verify downloaded six-platform metadata, checksums, attestations and exact-release-commit CI.
+
+**Verification (2026-10-15):** 6/8 plans implemented; [required CI](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on source `841434b`, and source review is clean. [Phase verification](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) verifies 21/22 truths. EVID-04 is the sole gap: actual published v0.1.10 metadata omits MMC3, while current source, staging and packages pass. Gap Plans 07/08 explicitly prepare delivery, gate the concrete phase PR merge on owner consent and collect actual published-byte evidence through the existing release pipeline. Phase 16 remains pending until that evidence passes independent verification. Next: `$gsd-execute-phase 16 --gaps-only`.
 
 **UI hint**: no
 **Canonical refs**: [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md), [GSD-HANDOFF.md](preparation/GSD-HANDOFF.md); current scope evidence in [research/SUMMARY.md](research/SUMMARY.md).
@@ -130,7 +136,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 6/6 | Verification gaps | - |
+| 16. Host evidence and roadmap | v4 | 6/8 | Gap closure planned | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

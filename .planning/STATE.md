@@ -5,15 +5,15 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: planning
-stopped_at: Phase 16 executed 6/6 plans; verification 21/22; EVID-04 publication gap; required CI 38676328559 passed on source 841434b
-last_updated: "2026-10-15T03:54:54.498Z"
+stopped_at: "Phase 16 gap planning complete: Plans 07/08 ready, 0 plan warnings; execute --gaps-only next; EVID-04 publication remains pending"
+last_updated: "2026-10-15T12:57:37.969Z"
 last_activity: 2026-10-15
-last_activity_desc: Phase 16 executed 6/6 plans; verification 21/22, EVID-04 publication pending; required CI passed
-state_head: 19836469090cb1cdbd3b6767b39a2f8934572f25
+last_activity_desc: Phase 16 gap Plans 07/08 ready; independent checker clean; 6/6 requirements and 17/17 decisions covered; publication remains pending
+state_head: 22f5e326e58d847de834fa745873a4c9e9404129
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 6
+  total_plans: 8
   completed_plans: 6
   percent: 0
 ---
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 gap closure — verify published MMC3 metadata after the normal release process
+**Current focus:** Phase 16 gap Plans 07/08 ready — prepare the checked PR, obtain exact-head merge consent and verify actual published MMC3 metadata
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — VERIFICATION GAPS
-Plan: 6 of 6
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Plan: 7 of 8 (next; six implementation plans complete)
 Status: planning
-Last activity: 2026-10-15 — Phase 16 executed 6/6 plans; verification 21/22, EVID-04 publication pending; required CI passed
+Last activity: 2026-10-15 — Phase 16 gap Plans 07/08 ready; independent checker clean; 6/6 requirements and 17/17 decisions covered; publication remains pending
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -325,7 +325,7 @@ None.
 
 ### Blockers/Concerns
 
-- **Phase 16 publication gap — 2026-10-15:** All six plans are implemented; the independent review is clean with six findings fixed. [Required CI 38676328559](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on source `841434b`, including all six platforms and the complete pinned-host progression proof. Verification is 21/22: EVID-04 remains unmet because the actual published v0.1.10 libretro metadata omits MMC3. Source/staged/package checks pass. Keep Phase 16 pending; use `phases/16-host-evidence-and-roadmap/16-VERIFICATION.md` for gap closure, without rerunning completed plans or weakening the released-metadata requirement.
+- **Phase 16 publication gap — 2026-10-15:** All six implementation plans are complete; the independent source review is clean with six findings fixed. [Required CI 38676328559](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on source `841434b`, including all six platforms and the complete pinned-host progression proof. Verification is 21/22: EVID-04 remains unmet because actual published v0.1.10 metadata omits MMC3; source/staged/package checks pass. Gap Plans 07/08 are ready after independent plan checking (0 blockers, 0 warnings), with 6/6 requirements and 17/17 decisions covered. Plan 07 prepares native PR CI and exact-head owner merge consent before the ordinary release flow; Plan 08 checks actual six-platform metadata, all 18 archive checksums and attestations against the immutable release commit. Keep the original gap open until independent re-verification; do not rerun completed plans or weaken released-metadata acceptance. Planning used `gpt-6.1-sol` at medium effort and independent checking used `gpt-6-luna` at xhigh.
 - **Release blocker resolved — 2026-10-13:** [PR #48](https://github.com/szTheory/nesturbator/pull/48) fixed version-comment formatting and shipped Codex routing as `b8e2824`. [Release PR #35](https://github.com/szTheory/nesturbator/pull/35) merged as `da2bf97` after all 15 CI jobs passed. [Publication run 38432194730](https://github.com/szTheory/nesturbator/actions/runs/38432194730) succeeded on the exact release commit; [v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10) published at 2026-10-13T16:53:40Z with exactly 18 nonempty platform ZIPs plus `SHA256SUMS`.
 - **Historical forensic records reconciled:** quick task 261013-hpi leaves the ledger at 0 open, 7 fixed and 3 waived with evidence and original observations preserved. Archived deferred-item audit debt is zero; the completed automation-first debug record is in `debug/resolved/`. Substantive technical debt remains below and in the milestone audits.
 
@@ -377,13 +377,13 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T03:54:17.746Z
-Stopped at: Phase 16 executed 6/6 plans; verification 21/22; EVID-04 publication gap; required CI 38676328559 passed on source 841434b
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-VERIFICATION.md
+Last session: 2026-10-15T12:57:37.951Z
+Stopped at: Phase 16 gap planning complete: Plans 07/08 ready, 0 plan warnings; execute --gaps-only next; EVID-04 publication remains pending
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-07-PLAN.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Run `$gsd-plan-phase 16 --gaps` to resolve the sole EVID-04 publication gap through the normal release path. No further implementation or manual UAT gap was found; do not advance to Phase 17 until Phase 16 verification is closed.
+- Run `$gsd-execute-phase 16 --gaps-only` for Plans 07/08. Prepare the concrete PR and its native CI before requesting the exact-head merge consent required by the owner merge boundary and Plan 07's one-way decision checkpoint. After approval, use the normal release automation and collect actual published-byte evidence. Do not advance to Phase 17 until independent Phase 16 verification closes EVID-04.
 - Retain the historical performance, publication evidence and substantive debt above. SEED-003's baseline portion, SEED-004's remaining execution robustness and recurring SEED-006 upkeep are selected for v4; original deferred seed records remain historical, with current dispositions in PRODUCT-ROADMAP.md.
