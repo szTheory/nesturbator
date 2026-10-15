@@ -1,6 +1,7 @@
 ---
 phase: 16
 review: 16-REVIEW.md
+reviewed_source_commit: e2bed6aeb85b773e44597e8f5d27de94d2dc383f
 titles: json
 findings:
   - id: WR-01
@@ -29,7 +30,7 @@ findings:
     title: "Unicode path metadata bypasses the raw archive-name inventory"
 open: 0
 total: 6
-recorded: 2026-10-15T02:09:07.562Z
+recorded: 2026-10-15T15:33:23Z
 ---
 
 # Phase 16: Code Review Disposition

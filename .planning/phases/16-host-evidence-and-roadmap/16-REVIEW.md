@@ -1,25 +1,16 @@
 ---
 phase: 16-host-evidence-and-roadmap
-reviewed: 2026-10-15T03:27:54Z
-depth: standard
-files_reviewed: 16
+reviewed: 2026-10-15T15:33:23Z
+reviewed_source_commit: e2bed6aeb85b773e44597e8f5d27de94d2dc383f
+depth: deep
+files_reviewed: 6
 files_reviewed_list:
-  - .github/workflows/ci.yml
-  - CMakePresets.json
-  - README.md
-  - include/nesturbator.h
-  - libretro/nesturbator_libretro.info
-  - tests/CMakeLists.txt
-  - tests/cmake/check_archives.cmake
-  - tests/cmake/fixture_identity.cmake
-  - tests/cmake/info_claims.cmake
-  - tests/libretro/libretro_host.c
-  - tests/retroarch/CMakeLists.txt
-  - tests/retroarch/frame_index.c
-  - tests/retroarch/progression.h
-  - tests/retroarch/run_retroarch.cmake
   - tests/retroarch/state_session.sh
   - tests/retroarch/test_state_session.sh
+  - tests/retroarch/CMakeLists.txt
+  - README.md
+  - include/nesturbator.h
+  - tests/retroarch/run_retroarch.cmake
 findings:
   critical: 0
   warning: 0
@@ -30,23 +21,24 @@ status: clean
 
 # Phase 16: Code Review Report
 
-**Reviewed:** 2026-10-15T03:27:54Z
-**Depth:** standard
-**Files Reviewed:** 16
+**Reviewed:** 2026-10-15T15:33:23Z
+**Depth:** deep
+**Files Reviewed:** 6
+**Reviewed Source Commit:** `e2bed6aeb85b773e44597e8f5d27de94d2dc383f`
 **Status:** clean
 
 ## Summary
 
-All six findings from the prior review iterations are addressed: setup-failure lock cleanup (WR-01), semicolon archive paths (WR-02), duplicate support clauses (WR-03), control-byte archive names (WR-04), duplicate ZIP members and pattern matches (WR-05), and Unicode path aliases (WR-06). The raw central-directory member sequence must match the complete ordered `cmake -E tar tf` listing before content validation or metadata extraction. The exact prior alias-package reproduction now fails with an inventory mismatch; archive controls and the current three-package check pass.
+The six requested source and documentation paths were reviewed at the source commit named above. I traced the driver’s journal serialization and failure guard, active/stopped/inactive operation accounting, first-failure handling through cleanup, exact readiness reply decisions, owned-child deadlines and reaping, and the focused control’s dispatch through its full prefix. The journal keeps its eleven ordered columns and path substitutions; the production timing defaults, fake-child supervision, per-operation and attempt bounds, cleanup reserve, and CTest guards remain unchanged. No actionable bug, security issue, or quality defect was found. This was source inspection; I did not run the test suite.
 
-The clean-build fixture-identity regression is fixed by recreating the owned argv-capture directory before the probe. I ran the 10-case self-test with a fresh separate `BUILD_DIR` and the registered fixture-role/identity controls passed 2/2. The Windows archive self-test skips creating a literal newline filename because the filesystem forbids it; the raw central-directory checker still runs on every production archive and rejects ASCII control bytes.
+The prior review history remains intact: WR-01 through WR-06 are still recorded as fixed in the disposition artifact. This fresh review found no new findings.
 
 ## Narrative Findings (AI reviewer)
 
-All reviewed files meet quality standards. No current issues found.
+No actionable findings.
 
 ---
 
-_Reviewed: 2026-10-15T03:27:54Z_
+_Reviewed: 2026-10-15T15:33:23Z_
 _Reviewer: the agent (gsd-code-reviewer)_
-_Depth: standard_
+_Depth: deep_
