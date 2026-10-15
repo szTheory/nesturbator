@@ -525,7 +525,8 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * order. Its timing line is emitted before the strict full-driver duration assertion, preserving
  * available phase measurements and sanitized driver status/reason on failure; unavailable phases
  * stay explicitly unavailable. Its enclosing test interval includes fixture generation, captures,
- * native validation and cleanup, distinct from each readiness operation interval. The required
+ * native validation and cleanup, distinct from each readiness operation interval. The registered
+ * readiness test also checks the timing report with synthetic over-bound measurements. The required
  * pinned-host run uses generated marker content in a distinct session, requires the complete
  * sixteen-boundary verdict, and checks dropped/doubled
  * advances and a native-valid wrong-origin branch through that same verdict. The test-only

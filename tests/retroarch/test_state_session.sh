@@ -252,7 +252,7 @@ case "$CONTROL" in
     *) echo "state session controls: invalid STATE_SESSION_CONTROL=$CONTROL" >&2; exit 2 ;;
 esac
 
-if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ]; then
+if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ] || [ "$CONTROL" = readiness ]; then
     readiness_name=readiness-response-stall
     readiness_fixture_elapsed=5666; readiness_setup_elapsed=42
     readiness_operation_ms=5460; readiness_later_prefix=16102
@@ -293,7 +293,9 @@ if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ]; then
         *) echo "FAIL early-error timing report invented or lost fields: $early_output" >&2; exit 1 ;;
     esac
     echo "state session timing report selftest: over-bound failure retained measured fields and status"
-    exit 0
+    if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ]; then
+        exit 0
+    fi
 fi
 
 script_path=$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")

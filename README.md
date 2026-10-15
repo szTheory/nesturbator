@@ -1608,8 +1608,10 @@ interval. The per-case timing line is emitted before the strict full-driver
 duration assertion, so an over-bound failure keeps its available phase timings,
 driver status and sanitized reason; phases with no evidence are reported as
 unavailable rather than zero. Generated config and host logs are retained only
-in sanitized form. A local UDP send is not proof of host receipt; the retained
-images and native anchors are checked by the shared progression verdict.
+in sanitized form. Before those prefixes, the registered readiness test checks
+the reporting contract with synthetic over-bound measurements. A local UDP send
+is not proof of host receipt; the retained images and native anchors are checked
+by the shared progression verdict.
 `PREFIX_OK` qualifies a declared continuation only; complete success requires
 all sixteen boundaries and terminal exit zero. Fault injection wraps only
 prescribed one-shot mutations; readiness reads use the real local `nc`. The
