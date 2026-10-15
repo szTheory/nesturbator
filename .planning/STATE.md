@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: planning
+status: executing
 stopped_at: "Phase 16 gap planning complete: Plans 07/08 ready, 0 plan warnings; execute --gaps-only next; EVID-04 publication remains pending"
-last_updated: "2026-10-15T12:57:37.969Z"
+last_updated: "2026-10-15T13:05:22.741Z"
 last_activity: 2026-10-15
-last_activity_desc: Phase 16 gap Plans 07/08 ready; independent checker clean; 6/6 requirements and 17/17 decisions covered; publication remains pending
-state_head: 22f5e326e58d847de834fa745873a4c9e9404129
+last_activity_desc: Phase 16 execution started
+state_head: e7255f2c88449ae6b712a17039863f614e5df2af
 progress:
   total_phases: 3
   completed_phases: 0
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 gap Plans 07/08 ready — prepare the checked PR, obtain exact-head merge consent and verify actual published MMC3 metadata
+**Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
-Plan: 7 of 8 (next; six implementation plans complete)
-Status: planning
-Last activity: 2026-10-15 — Phase 16 gap Plans 07/08 ready; independent checker clean; 6/6 requirements and 17/17 decisions covered; publication remains pending
+Phase: 16 (Host evidence and roadmap) — EXECUTING
+Plan: 7 of 8 (six implementation plans complete; gap delivery in progress)
+Status: Executing Phase 16
+Last activity: 2026-10-15 — Phase 16 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
