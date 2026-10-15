@@ -1604,7 +1604,10 @@ response-stall full prefixes once each, in that order. It reports fixture/setup,
 readiness-operation, later-prefix, driver+cleanup and enclosing CTest time
 separately: each enclosing total includes fixture generation, captures, native
 validation and cleanup, and is distinct from that case's readiness operation
-interval. Generated config and host logs are retained only
+interval. The per-case timing line is emitted before the strict full-driver
+duration assertion, so an over-bound failure keeps its available phase timings,
+driver status and sanitized reason; phases with no evidence are reported as
+unavailable rather than zero. Generated config and host logs are retained only
 in sanitized form. A local UDP send is not proof of host receipt; the retained
 images and native anchors are checked by the shared progression verdict.
 `PREFIX_OK` qualifies a declared continuation only; complete success requires

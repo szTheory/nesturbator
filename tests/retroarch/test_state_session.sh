@@ -3,6 +3,37 @@
 # transport are this same script reached through private test-only symlinks.
 set -eu
 
+report_metric() {
+    case "$1" in
+        ''|*[!0-9]*) printf 'unavailable' ;;
+        *) printf '%s' "$1" ;;
+    esac
+}
+
+report_readiness_timing() {
+    report_case=$1; report_fixture=$2; report_setup=$3; report_operation=$4
+    report_later_prefix=$5; report_attempt=$6; report_driver=$7
+    report_status=$8; report_reason=$9; report_lower=${10}; report_upper=${11}
+    case "$report_case" in readiness-delayed|readiness-response-stall) ;; *) report_case=unknown ;; esac
+    report_fixture=$(report_metric "$report_fixture")
+    report_setup=$(report_metric "$report_setup")
+    report_operation=$(report_metric "$report_operation")
+    report_later_prefix=$(report_metric "$report_later_prefix")
+    report_attempt=$(report_metric "$report_attempt")
+    report_driver=$(report_metric "$report_driver")
+    report_status=$(report_metric "$report_status")
+    report_lower=$(report_metric "$report_lower")
+    report_upper=$(report_metric "$report_upper")
+    case "$report_reason" in
+        unavailable) ;;
+        ''|*[!A-Z0-9_]*) report_reason=unavailable ;;
+    esac
+    printf 'state session readiness case=%s: fixture=%sms setup=%sms operation=%sms later-prefix=%sms attempt-through-cleanup=%sms driver+cleanup=%sms driver-status=%s driver-reason=%s; bounds operation=[%s,%s) driver<25000ms\n' \
+        "$report_case" "$report_fixture" "$report_setup" "$report_operation" \
+        "$report_later_prefix" "$report_attempt" "$report_driver" "$report_status" \
+        "$report_reason" "$report_lower" "$report_upper"
+}
+
 fake_nc() {
     request=$(cat)
     printf '%s\n' "$request" >>"$STATE_SESSION_TEST_SENDS"
@@ -237,11 +268,11 @@ if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ]; then
                 "$readiness_elapsed" "$readiness_status" "$readiness_reason" \
                 "$readiness_lower" "$readiness_upper"
         fi
-        [ "$readiness_elapsed" -ge "$readiness_lower" ] &&
-            [ "$readiness_elapsed" -lt 25000 ] || {
-                echo "FAIL $readiness_name full driver+cleanup bound: ${readiness_elapsed}ms" >&2
-                exit 1
-            }
+        if [ "$readiness_elapsed" -lt 25000 ]; then
+            exit 0
+        fi
+        echo "FAIL $readiness_name full driver+cleanup bound: ${readiness_elapsed}ms"
+        exit 1
     2>&1); then
         selftest_status=0
     else
@@ -255,6 +286,12 @@ if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ]; then
         echo "FAIL over-bound timing assertion returned $selftest_status, expected 1" >&2
         exit 1
     }
+    early_output=$(report_readiness_timing readiness-delayed 5666 42 unavailable \
+        unavailable unavailable 2000 1 READINESS_REPLY 1201 4500)
+    case "$early_output" in
+        *"case=readiness-delayed"*"fixture=5666ms"*"setup=42ms"*"operation=unavailable"*"later-prefix=unavailable"*"attempt-through-cleanup=unavailable"*"driver+cleanup=2000ms"*"driver-status=1"*"driver-reason=READINESS_REPLY"*) ;;
+        *) echo "FAIL early-error timing report invented or lost fields: $early_output" >&2; exit 1 ;;
+    esac
     echo "state session timing report selftest: over-bound failure retained measured fields and status"
     exit 0
 fi
@@ -684,6 +721,49 @@ run_readiness_case() {
     readiness_started=$(mono_ms); readiness_status=0
     run_prefix_driver "$readiness_dir" "$readiness_ra" "$readiness_fault" >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
     readiness_finished=$(mono_ms); readiness_elapsed=$((readiness_finished-readiness_started))
+    readiness_operation_ms=unavailable; readiness_later_prefix=unavailable
+    readiness_attempt_elapsed=unavailable; readiness_reason=unknown
+    set -- "$readiness_ra"/attempts/attempt-*
+    if [ "$#" -eq 1 ] && [ -d "$1" ] && [ -s "$1/journal.tsv" ]; then
+        readiness_attempt=$1
+        readiness_row=$(awk -F '\t' '$1 == "readiness" { print; exit }' "$readiness_attempt/journal.tsv")
+        readiness_oracle_row=$(awk -F '\t' '$1 == "oracle-prefix" && $11 == "OK" { row=$0 } END { print row }' \
+            "$readiness_attempt/journal.tsv")
+        readiness_cleanup_row=$(awk -F '\t' '$1 == "cleanup-quit" { row=$0 } END { print row }' \
+            "$readiness_attempt/journal.tsv")
+        if [ -n "$readiness_row" ]; then
+            readiness_operation_ms=$(printf '%s\n' "$readiness_row" | cut -f6)
+        fi
+        if [ -n "$readiness_row" ] && [ -n "$readiness_oracle_row" ]; then
+            readiness_row_elapsed=$(printf '%s\n' "$readiness_row" | cut -f4)
+            readiness_oracle_elapsed=$(printf '%s\n' "$readiness_oracle_row" | cut -f4)
+            case "$readiness_row_elapsed:$readiness_oracle_elapsed" in
+                *[!0-9:]*|:*|*:) ;;
+                *)
+                    if [ "$readiness_oracle_elapsed" -ge "$readiness_row_elapsed" ]; then
+                        readiness_later_prefix=$((readiness_oracle_elapsed-readiness_row_elapsed))
+                    fi
+                    ;;
+            esac
+        fi
+        if [ -n "$readiness_cleanup_row" ]; then
+            readiness_attempt_elapsed=$(printf '%s\n' "$readiness_cleanup_row" | cut -f4)
+        fi
+        readiness_reason=$(awk -F '\t' 'NR > 1 && NF == 11 { reason=$11 } END { print reason }' \
+            "$readiness_attempt/journal.tsv")
+    fi
+    if [ "$readiness_status" -ne 0 ]; then
+        readiness_driver_reason=$(sed -n 's/^state_session: \([A-Z][A-Z0-9_]*\)$/\1/p' \
+            "$readiness_dir/driver.out" | tail -1)
+        [ -n "$readiness_driver_reason" ] && readiness_reason=$readiness_driver_reason
+        [ "$readiness_reason" != unknown ] || readiness_reason=unavailable
+    else
+        [ "$readiness_reason" != unknown ] || readiness_reason=OK
+    fi
+    report_readiness_timing "$readiness_name" "$fixture_elapsed" "$readiness_setup_elapsed" \
+        "$readiness_operation_ms" "$readiness_later_prefix" "$readiness_attempt_elapsed" \
+        "$readiness_elapsed" "$readiness_status" "$readiness_reason" \
+        "$readiness_lower" "$readiness_upper"
     [ "$readiness_status" -eq 0 ] && grep -F 'verdict=PREFIX_OK' "$readiness_dir/driver.out" >/dev/null || {
         echo "FAIL $readiness_name full prefix did not reach PREFIX_OK (status=$readiness_status)" >&2
         cat "$readiness_dir/driver.out" >&2; exit 1;
@@ -770,10 +850,8 @@ run_readiness_case() {
     assert_sanitized_tree "$readiness_attempt"
     readiness_outer_finished=$(mono_ms)
     readiness_outer_elapsed=$((readiness_outer_finished-test_started))
-    printf 'state session readiness case=%s: fixture=%sms setup=%sms operation=%sms later-prefix=%sms attempt-through-cleanup=%sms driver+cleanup=%sms CTest-process-so-far=%sms; bounds operation=[%s,%s) driver<25000ms; child+host reaped\n' \
-        "$readiness_name" "$fixture_elapsed" "$readiness_setup_elapsed" "$readiness_operation_ms" \
-        "$readiness_later_prefix" "$readiness_cleanup_elapsed" "$readiness_elapsed" \
-        "$readiness_outer_elapsed" "$readiness_lower" "$readiness_upper"
+    printf 'state session readiness enclosing case=%s: CTest-process-so-far=%sms; child+host reaped\n' \
+        "$readiness_name" "$readiness_outer_elapsed"
 }
 
 run_readiness_controls() {

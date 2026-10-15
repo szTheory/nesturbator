@@ -522,10 +522,12 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * A stopped operation uses its captured terminal observation, a live operation uses the row
  * observation, and an inactive row carries the last completed operation values. The focused
  * readiness control runs the delayed exact-reply and response-stall full prefixes once each, in
- * order. Its enclosing test interval includes fixture generation, captures, native validation and
- * cleanup, distinct from each readiness operation interval. The required pinned-host run uses
- * generated marker content in
- * a distinct session, requires the complete sixteen-boundary verdict, and checks dropped/doubled
+ * order. Its timing line is emitted before the strict full-driver duration assertion, preserving
+ * available phase measurements and sanitized driver status/reason on failure; unavailable phases
+ * stay explicitly unavailable. Its enclosing test interval includes fixture generation, captures,
+ * native validation and cleanup, distinct from each readiness operation interval. The required
+ * pinned-host run uses generated marker content in a distinct session, requires the complete
+ * sixteen-boundary verdict, and checks dropped/doubled
  * advances and a native-valid wrong-origin branch through that same verdict. These observations
  * prove the declared displayed progression and retained origins; they do not prove every committed
  * machine field or audio. Portable whole-state and audio tests retain their broader proofs. Loading
