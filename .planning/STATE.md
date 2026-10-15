@@ -5,16 +5,16 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: "Plan 10 gap plan verified; bounded native timing repair ready before incomplete Plan 07 Task 1"
-last_updated: "2026-10-15T17:02:44.236Z"
+stopped_at: Plan 16-10 complete; Plan 07 Task 1 awaits fresh exact-head native PR CI.
+last_updated: "2026-10-15T18:20:42.819Z"
 last_activity: 2026-10-15
-last_activity_desc: Plan 10 gap plan verified with zero blockers/warnings; bounded repair ready, native acceptance and publication pending
-state_head: 9b37c9a8057104ff5e69fed735aa9764bfb36f48
+last_activity_desc: Plan 16-10 local evidence and review completed; Plan 07 native CI gate is next
+state_head: 10694f7da7baed83e3d61dca3f687213dbecb183
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -25,15 +25,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 — execute Plan 10 bounded native timing repair before delivery
+**Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
-Plan: 10 ready; 07 incomplete and 08 unstarted; 7 of 10 complete (01–06 and 09)
+Phase: 16 (Host evidence and roadmap) — EXECUTING
+Plan: 7 of 10
 Status: Ready to execute
-Delivery gates: Native PR timing and publication remain unmet; Plan 10 is the next executable repair.
-Last activity: 2026-10-15 — Planned 16-10 for both native timing failures; independent checker found zero blockers/warnings, command advisory corrected; 6/6 requirements and 17/17 decisions covered
+Delivery gates: Fresh native PR CI on the final repaired head is required before exact-head owner consent; publication and EVID-04 remain pending.
+Last activity: 2026-10-15 — Plan 16-10 completed local timing evidence, CI/package checks, and clean source review.
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -203,6 +203,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 16 P04 | 30min | 2 tasks | 5 files |
 | Phase 16 P05 | 25min | 2 tasks | 6 files |
 | Phase 16 P09 | 38 min | 3 tasks | 8 files |
+| Phase 16 P10 | 67min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -322,6 +323,9 @@ Recent decisions affecting current work:
 - [Phase 16]: Record current staged and package acceptance, but leave EVID-04 pending until ordinary release publication evidence exists.
 - [Phase 16]: Use one monotonic observation and one Perl serialization process per journal row while preserving the eleven-column schema, sanitization, failure reason, and all timing bounds.
 - [Phase 16]: Treat the local process reduction as a bounded repair; native Intel slowdown causation remains unproven and EVID-04 stays pending publication evidence.
+- [Phase 16]: Skip only later-target pre-load replay; retain cold rendering at the native anchor because frame pixels are not serialized.
+- [Phase 16]: Treat the local replay reduction as bounded evidence, not an overall readiness speedup or proven explanation of hosted failures.
+- [Phase 16]: Run the synthetic timing-report selftest through existing registered readiness coverage without changing CTest registration or deadlines.
 
 ### Pending Todos
 
@@ -382,16 +386,16 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T17:02:44.236Z
-Stopped at: Plan 10 planning verified; delivery remains stopped at Plan 07 Task 1 native CI failure 38764197994
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-10-PLAN.md
+Last session: 2026-10-15T18:20:42.735Z
+Stopped at: Completed 16-10 locally; Plan 07 Task 1 requires fresh exact-head native PR CI before owner consent.
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-07-PLAN.md
 
 Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Run `$gsd-execute-phase 16 --gaps-only`: Plan 10 at wave 7 must attribute both failures before one justified owned correction, then pass focused/full ci/asan controls, normal ci/package and fresh independent source review. Stop incomplete for a bounded amendment if evidence cannot justify the repair within all unchanged limits. Plans 07/08 follow at waves 8/9 only after their prerequisites pass; the native cause remains unproven.
+- Run `$gsd-execute-phase 16 --gaps-only`: Plan 10 is complete. Resume Plan 07 Task 1 at wave 8; reconcile the existing PR and require fresh native pull-request CI on the exact final head, stopping on terminal failure. Only then may its exact-head owner-consent gate proceed. Plan 08 follows actual normal publication and checks the downloaded release bytes. The native timing cause remains unproven.
 - Plan 09 is complete: one monotonic sample and one Perl serialization process per journal row, shared focused delay/stall controls, local `cmake --workflow --preset ci` with 649/649 tests and packaging, and clean source-bound review at `e2bed6aeb85b773e44597e8f5d27de94d2dc383f`. Its measurements and limitations are in 16-TIMING-REPAIR.md and 16-09-SUMMARY.md.
 - PR #50 remains open at head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`. Fresh native run 38764197994 failed Intel focused stall at 25,946 ms and ASan focused delay at 26,269 ms, against strict less-than-25,000 ms. CI required failed and hash equality skipped; performance, pinned RetroArch and other platform checks passed. Retained tracked handoff and ignored `build/phase16-release/` evidence identify both failures. The older failed native run 38740783575 remains historical; its JSON mislabels delay, corrected by source/log.
 - Plan 07 Task 1 is partially prepared and pushed but incomplete; no 07 summary exists, and Plan 08 remains unstarted. Reconcile the preparation commits and actual PR state when resuming after repair. No merge consent has been requested or granted. Fresh required native CI on the final repaired head must precede exact-head owner consent, normal publication and Plan 08's actual downloaded-byte checks. Keep EVID-04 and Phase 16 incomplete; do not advance Phase 17.
-- The existing config preference edit remains unchanged and unstaged. Failure/state handoff 9b37c9a and this planning commit remain local and are not native CI evidence. Preserve existing verification/fingerprint, completed plan evidence, historical performance/publication and substantive debt above. This command completed only gap planning; behavior tests and delivery belong to the next execute step.
+- The existing config preference edit remains unchanged and unstaged. Plan 10's local repair/evidence commits and planning commits remain local and are not native CI evidence. Preserve the historical 21/22 verification, EVID-04 publication gap, source fingerprint, completed plan evidence, performance/publication history, and substantive debt above. No merge consent was requested or granted. Do not advance Phase 16 or EVID-04 on local evidence alone.
