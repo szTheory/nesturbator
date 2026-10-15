@@ -87,6 +87,8 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 - [x] 16-05-PLAN.md — Protect truthful MMC3 descriptions through staged and packaged metadata.
 
+**Verification (2026-10-15):** 6/6 plans implemented; [required CI](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on source `841434b`, and source review is clean. [Phase verification](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) verifies 21/22 truths. EVID-04 is the sole gap: actual published v0.1.10 metadata omits MMC3, while current source, staging and packages pass. Phase 16 remains pending until normal release evidence closes that requirement. Next: `$gsd-plan-phase 16 --gaps`.
+
 **UI hint**: no
 **Canonical refs**: [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md), [GSD-HANDOFF.md](preparation/GSD-HANDOFF.md); current scope evidence in [research/SUMMARY.md](research/SUMMARY.md).
 
@@ -128,7 +130,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 6/6 | In Progress | - |
+| 16. Host evidence and roadmap | v4 | 6/6 | Verification gaps | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

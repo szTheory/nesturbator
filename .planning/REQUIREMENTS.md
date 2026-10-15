@@ -10,9 +10,9 @@ The user approved these requirements with the v4 proposal on 2026-10-13. The new
 
 ### Host evidence
 
-- [x] **EVID-01**: The real-host progression check rejects dropped, doubled or wrong-load sequences using distinguishable frames or absolute state anchors, including negative controls for identical-image ambiguity.
-- [x] **EVID-02**: Network-driven checks confirm bounded completion of safely retried requests and fail/restart unconfirmed non-idempotent actions; no blind FRAMEADVANCE or PAUSE_TOGGLE retry.
-- [x] **EVID-03**: Fixture selection uses exact content identity/basenames, and adversarial parent-directory names cannot change the selected path.
+- [ ] **EVID-01**: The real-host progression check rejects dropped, doubled or wrong-load sequences using distinguishable frames or absolute state anchors, including negative controls for identical-image ambiguity.
+- [ ] **EVID-02**: Network-driven checks confirm bounded completion of safely retried requests and fail/restart unconfirmed non-idempotent actions; no blind FRAMEADVANCE or PAUSE_TOGGLE retry.
+- [ ] **EVID-03**: Fixture selection uses exact content identity/basenames, and adversarial parent-directory names cannot change the selected path.
 - [ ] **EVID-04**: Released libretro metadata describes the implemented MMC3 support truthfully and agrees with documented supported profiles.
 
 ### Conformance
@@ -31,8 +31,8 @@ The user approved these requirements with the v4 proposal on 2026-10-13. The new
 
 ### Product direction
 
-- [x] **DIR-01**: The repository has a product roadmap with Immediate/Near/Mid/Long horizons, stable outcome IDs, evidence and promotion triggers linked from the project instructions and preparation handoff.
-- [x] **DIR-02**: New-milestone and complete-milestone instructions require the agent to reconcile and refresh that roadmap within the invoked step, preserving delivered seed evidence and unresolved debt.
+- [ ] **DIR-01**: The repository has a product roadmap with Immediate/Near/Mid/Long horizons, stable outcome IDs, evidence and promotion triggers linked from the project instructions and preparation handoff.
+- [ ] **DIR-02**: New-milestone and complete-milestone instructions require the agent to reconcile and refresh that roadmap within the invoked step, preserving delivered seed evidence and unresolved debt.
 
 ## Acceptance boundaries
 
@@ -75,9 +75,9 @@ Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.
 
 | Requirement | Phase | Status |
 |---|---|---|
-| EVID-01 | Phase 16 | Complete |
-| EVID-02 | Phase 16 | Complete |
-| EVID-03 | Phase 16 | Complete |
+| EVID-01 | Phase 16 | Gaps Found |
+| EVID-02 | Phase 16 | Gaps Found |
+| EVID-03 | Phase 16 | Gaps Found |
 | EVID-04 | Phase 16 | Pending |
 | CONF-01 | Phase 17 | Pending |
 | CONF-02 | Phase 17 | Pending |
@@ -87,8 +87,8 @@ Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.
 | ROB-02 | Phase 18 | Pending |
 | ROB-03 | Phase 18 | Pending |
 | ROB-04 | Phase 18 | Pending |
-| DIR-01 | Phase 16 | Complete |
-| DIR-02 | Phase 16 | Complete |
+| DIR-01 | Phase 16 | Gaps Found |
+| DIR-02 | Phase 16 | Gaps Found |
 
 **Coverage:**
 - v4 requirements: 14 total
@@ -96,6 +96,8 @@ Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.
 - Unmapped: 0
 - Duplicate mappings: 0
 
+**Phase 16 verification (2026-10-15):** [21/22 truths verified](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md); EVID-01/02/03 and DIR-01/02 have passing implementation evidence. The execute-phase gap route reverted this phase's provisional Complete marks while EVID-04 remains open. Its only objective gap is published metadata: source/staging/packages pass, but actual v0.1.10 release metadata omits MMC3. These requirement rows remain provisional until release evidence closes Phase 16; no implementation evidence was discarded.
+
 ---
 *Requirements defined and approved: 2026-10-13*
-*Last updated: 2026-10-13 at v4 initialization*
+*Last updated: 2026-10-15 after Phase 16 verification; release publication pending*
