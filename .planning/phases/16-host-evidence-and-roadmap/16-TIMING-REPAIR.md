@@ -16,6 +16,20 @@ The baseline focused invocation ran the actual stalled-response prefix and faile
 
 All local measurements used the `ci` CMake preset on Darwin arm64 with CMake/CTest 4.4.3, Ninja and Release configuration. The fixture duration is kept separate from driver setup, the readiness operation, later prefix work, cleanup, and the enclosing CTest process. Values below come from the raw JUnit and console output linked at the end of this record. Monotonic journal times are attempt-local; enclosing CTest values include harness setup and, in the full matrix, earlier controls.
 
+### Commands, source and result identities
+
+Commands below are shown relative to the repository root; the captured CTest console records the resolved absolute executable and test-script arguments. The build directory was `build/ci` for every lane.
+
+| Lane | Command and source | Result |
+|---|---|---|
+| Focused RED baseline | `ctest --preset ci -R '^retroarch.session.readiness$' --no-tests=error --output-on-failure --output-junit build/phase16-timing/16-09-task1-red-focused-junit.xml`; source `c5459a096d066574a2c25b5dd85e9ef599a4de62`; Ninja / Release | Exit 8, expected TDD RED on the six-millisecond journal-accounting mismatch; ignored [evidence JSON](../../../build/phase16-timing/16-09-task1-red-focused-evidence.json) records the exact invocation and status. |
+| Repaired-driver serial tracer | Same focused selector with `--output-junit build/phase16-timing/16-09-task1-tracer-junit.xml`; source `526b1e049b4ddf9fde568acb4389b35a2df2cd97`; Ninja / Release | Exit 0; one response-stall case, full prefix and cleanup; [JUnit](../../../build/phase16-timing/16-09-task1-tracer-junit.xml). |
+| Final focused serial lane | `ctest --preset ci -R '^retroarch.session.readiness$' --no-tests=error --output-on-failure --output-junit build/phase16-timing/16-09-task2-green-focused-junit.xml`; source `e2bed6aeb85b773e44597e8f5d27de94d2dc383f`; Ninja / Release | Exit 0; delayed and stalled cases passed in 19.38 seconds; [JUnit](../../../build/phase16-timing/16-09-task2-green-focused-junit.xml). |
+| Final complete session matrix | `ctest --preset ci -R '^retroarch.session.controls$' --verbose --output-on-failure --output-junit build/phase16-timing/16-09-task2-green-full-controls-junit.xml`; source `e2bed6aeb85b773e44597e8f5d27de94d2dc383f`; Ninja / Release | Exit 0 in 284.90 seconds; [JUnit](../../../build/phase16-timing/16-09-task2-green-full-controls-junit.xml) and [console](../../../build/phase16-timing/16-09-task2-green-full-controls-console.log). |
+| Normal jobs=4 workflow | `cmake --workflow --preset ci`; source `e2bed6aeb85b773e44597e8f5d27de94d2dc383f`; CTest preset uses four jobs | Exit 0; focused test 19.44 seconds, complete matrix 292.63 seconds, all 649 tests passed, then all three package archives were generated. Raw [workflow log](../../../build/phase16-timing/16-09-workflow.log). |
+
+The serial focused lane is one CTest process running the two scripted cases sequentially. The normal jobs=4 row is the complete configure/build/test/package workflow, not a second isolated timing probe. The baseline and after runs used the same preset/build identity; the baseline's planned RED assertion prevented its CTest status from being treated as a passing repair result.
+
 | Run | Fixture | Case | Readiness operation | Later prefix | Attempt through cleanup | Driver plus cleanup | Enclosing test |
 |---|---:|---|---:|---:|---:|---:|---:|
 | Focused RED, old driver | generated three-boundary prefix | response stall, full prefix reached `PREFIX_OK` | 5,087 ms | completed | completed | completed | 12.02 s; failed only because elapsed 5,756 + remaining 24,238 = 29,994 ms, six milliseconds short of the 30,000 ms journal invariant |
