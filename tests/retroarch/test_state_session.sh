@@ -482,6 +482,31 @@ run_fault() {
     [ -d "$1" ] || { echo "FAIL $name did not retain its attempt tree" >&2; exit 1; }
     case_attempt=$1
     assert_sanitized_tree "$case_attempt"
+    journal_contract=$(awk -F '\t' -v budget="$attempt_ms" -v reason="$expected" '
+        NR == 1 {
+            if ($0 != "step\tclass\tsends\tattempt_elapsed_ms\tattempt_remaining_ms\toperation_elapsed_ms\toperation_remaining_ms\texpected\tobserved\tartifact\treason" || NF != 11) bad="header"
+            next
+        }
+        NF != 11 { bad="field-count"; next }
+        $4 !~ /^[0-9]+$/ || $5 !~ /^[0-9]+$/ || $6 !~ /^[0-9]+$/ || $7 !~ /^[0-9]+$/ { bad="non-numeric-time"; next }
+        $5 > 0 && ($4 + $5) != budget { bad="incoherent-attempt-budget" }
+        $11 == reason && $1 != "cleanup-quit" {
+            if (first_reason == "") { first_reason=$11; first_elapsed=$4 }
+            terminal_elapsed=$4; terminal_operation_elapsed=$6; terminal_operation_remaining=$7
+        }
+        { last_reason=$11; last_elapsed=$4; last_operation_elapsed=$6; last_operation_remaining=$7; if ($1 == "cleanup-quit") cleanup_seen=1 }
+        END {
+            if (bad != "") { print bad; exit 1 }
+            if (first_reason != reason) { print "missing-first-reason"; exit 1 }
+            if (last_reason != reason) { print "cleanup-replaced-first-reason"; exit 1 }
+            if (last_elapsed < terminal_elapsed || terminal_elapsed < first_elapsed) { print "attempt-time-moved-backward"; exit 1 }
+            if (last_operation_elapsed != terminal_operation_elapsed || last_operation_remaining != terminal_operation_remaining) { print "terminal-operation-time-changed-during-cleanup"; exit 1 }
+            if (cleanup_seen && last_elapsed <= terminal_elapsed) { print "cleanup-attempt-time-not-advanced"; exit 1 }
+            print "ok"
+        }
+    ' "$case_attempt/journal.tsv") || {
+        echo "FAIL $name journal contract: $journal_contract" >&2; exit 1;
+    }
     [ -f "$case_attempt/startup-captures.tsv" ] || { echo "FAIL $name did not retain startup capture evidence" >&2; exit 1; }
     case "$fault" in
         stalled-startup)
@@ -625,6 +650,11 @@ run_readiness_case() {
         echo "FAIL $readiness_name full prefix did not reach PREFIX_OK (status=$readiness_status)" >&2
         cat "$readiness_dir/driver.out" >&2; exit 1;
     }
+    for boundary in 1 2 3; do
+        grep -Fx "progression boundaries=$boundary mode=prefix verdict=PREFIX_OK" "$readiness_dir/driver.out" >/dev/null || {
+            echo "FAIL $readiness_name missing PREFIX_OK boundary $boundary" >&2; exit 1;
+        }
+    done
     set -- "$readiness_ra"/attempts/attempt-*
     [ "$#" -eq 1 ] && [ -d "$1" ] || {
         echo "FAIL $readiness_name did not retain exactly one attempt" >&2; exit 1;
@@ -640,14 +670,17 @@ run_readiness_case() {
     }
     awk -F '\t' '
         NR == 1 { if ($0 != "step\tclass\tsends\tattempt_elapsed_ms\tattempt_remaining_ms\toperation_elapsed_ms\toperation_remaining_ms\texpected\tobserved\tartifact\treason" || NF != 11) exit 1; next }
-        NF != 11 { exit 1 }
-        $1 == "readiness" {
-            count++
-            if (($4 + $5) != 30000) {
-                printf "FAIL readiness journal coherent attempt budget: elapsed=%s remaining=%s budget=30000\\n", $4, $5 > "/dev/stderr"
-                bad=1
-            }
+        NF != 11 { bad=1; next }
+        $4 !~ /^[0-9]+$/ || $5 !~ /^[0-9]+$/ || $6 !~ /^[0-9]+$/ || $7 !~ /^[0-9]+$/ { bad=1; next }
+        $5 > 0 && ($4 + $5) != 30000 {
+            printf "FAIL journal attempt budget: step=%s elapsed=%s remaining=%s budget=30000\n", $1, $4, $5 > "/dev/stderr"
+            bad=1
         }
+        ($6 + $7) != 30000 {
+            printf "FAIL journal operation budget: step=%s elapsed=%s remaining=%s budget=30000\n", $1, $6, $7 > "/dev/stderr"
+            bad=1
+        }
+        $1 == "readiness" { count++ }
         END { if (count != 1 || bad) exit 1 }
     ' "$readiness_attempt/journal.tsv" || {
         echo "FAIL $readiness_name readiness journal row accounting/schema" >&2; exit 1;
@@ -656,8 +689,11 @@ run_readiness_case() {
     readiness_operation_attempt=$(printf '%s\n' "$readiness_row" | cut -f4)
     readiness_later_prefix=$((readiness_verdict_elapsed-readiness_operation_attempt))
     readiness_cleanup_elapsed=$(awk -F '\t' '$1 == "cleanup-quit" { value=$4 } END { print value }' "$readiness_attempt/journal.tsv")
+    readiness_verdict_operation=$(awk -F '\t' '$1 == "oracle-prefix" && $11 == "OK" { value=$6 ":" $7 } END { print value }' "$readiness_attempt/journal.tsv")
+    readiness_cleanup_operation=$(awk -F '\t' '$1 == "cleanup-quit" { value=$6 ":" $7 } END { print value }' "$readiness_attempt/journal.tsv")
     [ -n "$readiness_verdict_elapsed" ] && [ -n "$readiness_cleanup_elapsed" ] &&
-        [ "$readiness_later_prefix" -ge 0 ] && [ "$readiness_cleanup_elapsed" -ge "$readiness_verdict_elapsed" ] || {
+        [ "$readiness_later_prefix" -ge 0 ] && [ "$readiness_cleanup_elapsed" -gt "$readiness_verdict_elapsed" ] &&
+        [ "$readiness_verdict_operation" = "$readiness_cleanup_operation" ] || {
         echo "FAIL $readiness_name readiness/prefix/cleanup journal intervals" >&2; exit 1;
     }
     [ -s "$readiness_dir/stall.pid" ] || { echo "FAIL $readiness_name recorded no readiness child PID" >&2; exit 1; }
@@ -684,6 +720,12 @@ run_readiness_case() {
     [ "$readiness_screenshot_sends" -eq 5 ] && [ "$readiness_screenshot_captures" -eq 5 ] || {
         echo "FAIL $readiness_name capture/send count: sends=$readiness_screenshot_sends captures=$readiness_screenshot_captures" >&2; exit 1;
     }
+    readiness_startup_rows=$(wc -l <"$readiness_attempt/startup-captures.tsv" | tr -d ' ')
+    readiness_boundary_rows=$(wc -l <"$readiness_attempt/boundaries.tsv" | tr -d ' ')
+    readiness_state_count=$(cat "$readiness_dir/state.count")
+    [ "$readiness_startup_rows" -eq 3 ] && [ "$readiness_boundary_rows" -eq 3 ] && [ "$readiness_state_count" -eq 1 ] || {
+        echo "FAIL $readiness_name prefix attribution: startup=$readiness_startup_rows boundaries=$readiness_boundary_rows states=$readiness_state_count" >&2; exit 1;
+    }
     [ "$readiness_elapsed" -ge "$readiness_lower" ] && [ "$readiness_elapsed" -lt 25000 ] || {
         echo "FAIL $readiness_name full driver+cleanup bound: ${readiness_elapsed}ms" >&2; exit 1;
     }
@@ -697,6 +739,7 @@ run_readiness_case() {
 }
 
 run_readiness_controls() {
+    run_readiness_case readiness-delayed readiness-response-delay 1201 4500
     run_readiness_case readiness-response-stall readiness-response-stall 4500 7000
 }
 
@@ -706,6 +749,10 @@ if [ "$CONTROL" = readiness ]; then
         echo "FAIL focused readiness controls: expected delayed and stalled full-prefix cases, got $readiness_cases_run" >&2
         exit 1
     }
+    readiness_lane_finished=$(mono_ms)
+    readiness_lane_elapsed=$((readiness_lane_finished-test_started))
+    printf 'state session readiness lane: cases=%s fixture=%sms enclosing-process=%sms bound=CTest<60000ms\n' \
+        "$readiness_cases_run" "$fixture_elapsed" "$readiness_lane_elapsed"
     exit 0
 fi
 
@@ -817,37 +864,6 @@ run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 75000 3000
 # the exact negative and operation deadline, with a finite test-only 240/250 s
 # attempt/outer envelope and the same 1 s cleanup reserve.
 run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 250000 30000 1000 240000
-
-# A delayed exact response that completes between the 1 s nc timeout and 5 s child
-# supervision slice remains eligible while the 30 s readiness/operation budgets live.
-readiness_dir="$WORK_ROOT/session-$$-readiness-delayed"; readiness_ra="$readiness_dir/ra"
-mkdir -p "$readiness_ra/shots" "$readiness_ra/states"
-ln -s "$script_path" "$readiness_dir/fake-nc"; ln -s "$script_path" "$readiness_dir/fake-retroarch"
-: >"$readiness_dir/config.cfg"; : >"$readiness_dir/core.so"
-readiness_started=$(mono_ms); readiness_status=0
-run_prefix_driver "$readiness_dir" "$readiness_ra" readiness-response-delay >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
-readiness_finished=$(mono_ms); readiness_elapsed=$((readiness_finished-readiness_started))
-[ "$readiness_status" -eq 0 ] && grep -F 'verdict=PREFIX_OK' "$readiness_dir/driver.out" >/dev/null || {
-    echo "FAIL delayed exact readiness response did not proceed (status=$readiness_status)" >&2
-    cat "$readiness_dir/driver.out" >&2; exit 1;
-}
-set -- "$readiness_ra"/attempts/*; readiness_attempt=$1
-awk -F '\t' 'NR > 1 && $1 == "readiness" { count++; if ($3 != 1 || $10 != "exact-isolated-path" || $11 != "OK") exit 1 } END { exit !(count == 1) }' \
-    "$readiness_attempt/journal.tsv" || { echo "FAIL delayed exact-readiness response was not accepted in one attempt" >&2; exit 1; }
-readiness_operation_ms=$(awk -F '\t' 'NR > 1 && $1 == "readiness" { print $6 }' "$readiness_attempt/journal.tsv")
-[ "$readiness_operation_ms" -gt 1200 ] && [ "$readiness_operation_ms" -lt 4500 ] || {
-    echo "FAIL delayed exact readiness operation duration: ${readiness_operation_ms}ms" >&2; exit 1;
-}
-[ -s "$readiness_dir/stall.pid" ] || { echo "FAIL delayed readiness control recorded no owned child" >&2; exit 1; }
-readiness_child=$(cat "$readiness_dir/stall.pid")
-if kill -0 "$readiness_child" 2>/dev/null; then echo "FAIL delayed readiness control left its child alive" >&2; exit 1; fi
-readiness_host=$(cat "$readiness_dir/host.pid")
-if kill -0 "$readiness_host" 2>/dev/null; then echo "FAIL delayed readiness control left its host alive" >&2; exit 1; fi
-[ "$readiness_elapsed" -gt 1200 ] && [ "$readiness_elapsed" -lt 25000 ] || {
-    echo "FAIL delayed readiness response elapsed bound: ${readiness_elapsed}ms" >&2; exit 1;
-}
-assert_sanitized_tree "$readiness_attempt"
-printf 'state session readiness delayed-reply control: exact reply accepted; child reaped; %sms\n' "$readiness_elapsed"
 
 run_readiness_controls
 

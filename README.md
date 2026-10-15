@@ -1599,11 +1599,12 @@ for attempt elapsed and remaining time and applying the existing path
 substitutions in that same write. A stopped operation uses its captured terminal
 observation; an active operation uses the row observation, and an inactive row
 retains the last completed operation values. The focused
-`retroarch.session.readiness` control runs the actual response-stall full prefix.
-It reports fixture/setup, readiness-operation, later-prefix, driver+cleanup and
-enclosing CTest time separately: the enclosing total includes fixture
-generation, captures, native validation and cleanup, and is distinct from the
-readiness operation interval. Generated config and host logs are retained only
+`retroarch.session.readiness` control runs the delayed exact-reply and
+response-stall full prefixes once each, in that order. It reports fixture/setup,
+readiness-operation, later-prefix, driver+cleanup and enclosing CTest time
+separately: each enclosing total includes fixture generation, captures, native
+validation and cleanup, and is distinct from that case's readiness operation
+interval. Generated config and host logs are retained only
 in sanitized form. A local UDP send is not proof of host receipt; the retained
 images and native anchors are checked by the shared progression verdict.
 `PREFIX_OK` qualifies a declared continuation only; complete success requires
