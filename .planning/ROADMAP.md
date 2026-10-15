@@ -146,7 +146,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 7/10 | Plan 10 post-wave normal CI/package gate incomplete; Plans 07/08 blocked or pending | - |
+| 16. Host evidence and roadmap | v4 | 7/10 | Plan 10 post-wave gate failed; Plan 11 stopped undiagnosed after one bounded CI observation; Plans 07/08 blocked | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 
