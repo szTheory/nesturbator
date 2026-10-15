@@ -990,9 +990,10 @@ build machine to `build/ci/packages/`. This checks their names and contents:
 cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake
 ```
 
-The checker rejects semicolons in archive paths before comparing each entry
-with the exact contents above. It also checks packaged libretro metadata
-against the source file and the documented support clause.
+The checker rejects semicolons and ASCII control characters in ZIP member
+names before comparing entries with the exact contents above. It also checks
+packaged libretro metadata against the source file and the documented support
+clause.
 
 ## Releases
 

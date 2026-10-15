@@ -301,8 +301,8 @@ void nesturbator_destroy(nesturbator *inst);
    Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
    Metadata checks require exactly one canonical MMC3 support clause in this
    header, the README and each checked information file, rejecting duplicate
-   clauses. Package checks reject semicolons in archive paths before comparing
-   entries with the exact file allowlist.
+   clauses. Package checks reject semicolons and ASCII control characters in
+   ZIP member names before comparing entries with the exact file allowlist.
    The supported mappers are 0, 1, 2, 3, 4 and 7. Mapper 4 is the MMC3 in its
    Sharp (submapper 0, and every iNES 1 image) or NEC (submapper 4) revision:
    PRG a power of two from 16 to 512 KiB; 8 to 256 KiB CHR ROM or 8 KiB CHR
