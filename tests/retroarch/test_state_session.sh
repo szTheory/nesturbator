@@ -215,17 +215,45 @@ FRAME_INDEX=$2
 WORK_ROOT=$3
 CMAKE_COMMAND=$4
 RUN_RETROARCH_CMAKE=$5
+CONTROL=${STATE_SESSION_CONTROL:-all}
+case "$CONTROL" in
+    all|readiness) ;;
+    *) echo "state session controls: invalid STATE_SESSION_CONTROL=$CONTROL" >&2; exit 2 ;;
+esac
+
+script_path=$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")
+mono_ms() { perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000'; }
+test_started=$(mono_ms)
+fixture_started=$(mono_ms)
 
 test_dir="$WORK_ROOT/session-$$"
 fixture_dir="$test_dir/fixture"
 ra_dir="$test_dir/ra"
 mkdir -p "$fixture_dir" "$ra_dir/shots" "$ra_dir/states"
-if ! "$FRAME_INDEX" --progression-selftest "$fixture_dir" --controls; then
+if [ "$CONTROL" = readiness ]; then
+    NESTURBATOR_RUN=$(cd "$(dirname "$FRAME_INDEX")/../../runner" && pwd -P)/nesturbator-run
+    if ! "$FRAME_INDEX" --progression-selftest "$fixture_dir"; then
+        echo "fixture precondition failed: frame_index --progression-selftest" >&2
+        exit 2
+    fi
+    if [ ! -x "$NESTURBATOR_RUN" ] ||
+        ! "$NESTURBATOR_RUN" --frames 101 --rom "$fixture_dir/marker.nes" \
+            --dump-frame "101:$fixture_dir/alternative frame 101.ppm"; then
+        echo "fixture precondition failed: nesturbator-run marker frame 101" >&2
+        exit 2
+    fi
+    cp "$fixture_dir/pause capture one.ppm" "$fixture_dir/boundary 01 pause a.ppm" &&
+        cp "$fixture_dir/pause capture two.ppm" "$fixture_dir/boundary 02 pause b.ppm" &&
+        cp "$fixture_dir/advance one.ppm" "$fixture_dir/boundary 03 advance 1.ppm" || {
+        echo "fixture precondition failed: readiness prefix aliases" >&2; exit 2;
+    }
+elif ! "$FRAME_INDEX" --progression-selftest "$fixture_dir" --controls; then
     echo "fixture precondition failed: frame_index --progression-selftest --controls" >&2
     exit 2
 fi
+fixture_finished=$(mono_ms)
+fixture_elapsed=$((fixture_finished-fixture_started))
 
-script_path=$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")
 ln -s "$script_path" "$test_dir/fake-nc"
 ln -s "$script_path" "$test_dir/recording-action-nc"
 ln -s "$script_path" "$test_dir/fake-retroarch"
@@ -242,6 +270,7 @@ read_count_file="$test_dir/read.count"
 state_count_file="$test_dir/state.count"
 driver_output="$test_dir/driver.out"
 
+if [ "$CONTROL" = all ]; then
 status=0
 STATE_SESSION_NC="$test_dir/recording-action-nc" \
 STATE_SESSION_TEST_READINESS_NC="$test_dir/fake-nc" \
@@ -374,8 +403,8 @@ host_pid=$(cat "$negative_host")
 if kill -0 "$host_pid" 2>/dev/null; then echo "FAIL dropped advance left the owned host alive" >&2; exit 1; fi
 printf 'state session missing-action control: ADVANCE_NOT_EXACTLY_ONE; one send; operation %sms, attempt %sms, process %sms; host reaped\n' \
     "$negative_operation_elapsed" "$negative_attempt_elapsed" "$duration"
+fi
 
-mono_ms() { perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000'; }
 assert_sanitized_tree() {
     _attempt=$1
     for _file in journal.tsv session.sanitized.cfg retroarch.sanitized.log; do
@@ -578,6 +607,102 @@ run_prefix_driver() {
         "$fixture_dir/calibration.txt"
 }
 
+run_readiness_case() {
+    readiness_name=$1; readiness_fault=$2; readiness_lower=$3; readiness_upper=$4
+    readiness_dir="$WORK_ROOT/session-$$-$readiness_name"; readiness_ra="$readiness_dir/ra"
+    readiness_setup_started=$(mono_ms)
+    mkdir -p "$readiness_ra/shots" "$readiness_ra/states"
+    ln -s "$script_path" "$readiness_dir/fake-nc"; ln -s "$script_path" "$readiness_dir/fake-retroarch"
+    : >"$readiness_dir/config.cfg"; : >"$readiness_dir/core.so"
+    readiness_setup_finished=$(mono_ms)
+    readiness_setup_elapsed=$((readiness_setup_finished-readiness_setup_started))
+    readiness_started=$(mono_ms); readiness_status=0
+    run_prefix_driver "$readiness_dir" "$readiness_ra" "$readiness_fault" >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
+    readiness_finished=$(mono_ms); readiness_elapsed=$((readiness_finished-readiness_started))
+    [ "$readiness_status" -eq 0 ] && grep -F 'verdict=PREFIX_OK' "$readiness_dir/driver.out" >/dev/null || {
+        echo "FAIL $readiness_name full prefix did not reach PREFIX_OK (status=$readiness_status)" >&2
+        cat "$readiness_dir/driver.out" >&2; exit 1;
+    }
+    set -- "$readiness_ra"/attempts/attempt-*
+    [ "$#" -eq 1 ] && [ -d "$1" ] || {
+        echo "FAIL $readiness_name did not retain exactly one attempt" >&2; exit 1;
+    }
+    readiness_attempt=$1
+    readiness_row=$(awk -F '\t' '$1 == "readiness" { count++; if ($3 != 1 || $8 != "GET_CONFIG_PARAM savestate_directory <attempt>/states" || $9 != "exact-isolated-path" || $11 != "OK") exit 1; row=$0 } END { if (count != 1) exit 1; print row }' \
+        "$readiness_attempt/journal.tsv") || {
+        echo "FAIL $readiness_name exact one-send readiness journal row" >&2; exit 1;
+    }
+    readiness_operation_ms=$(printf '%s\n' "$readiness_row" | cut -f6)
+    [ "$readiness_operation_ms" -ge "$readiness_lower" ] && [ "$readiness_operation_ms" -lt "$readiness_upper" ] || {
+        echo "FAIL $readiness_name readiness operation bound: ${readiness_operation_ms}ms not in [${readiness_lower},${readiness_upper})" >&2; exit 1;
+    }
+    awk -F '\t' '
+        NR == 1 { if ($0 != "step\tclass\tsends\tattempt_elapsed_ms\tattempt_remaining_ms\toperation_elapsed_ms\toperation_remaining_ms\texpected\tobserved\tartifact\treason" || NF != 11) exit 1; next }
+        NF != 11 { exit 1 }
+        $1 == "readiness" {
+            count++
+            if (($4 + $5) != 30000) {
+                printf "FAIL readiness journal coherent attempt budget: elapsed=%s remaining=%s budget=30000\\n", $4, $5 > "/dev/stderr"
+                bad=1
+            }
+        }
+        END { if (count != 1 || bad) exit 1 }
+    ' "$readiness_attempt/journal.tsv" || {
+        echo "FAIL $readiness_name readiness journal row accounting/schema" >&2; exit 1;
+    }
+    readiness_verdict_elapsed=$(awk -F '\t' '$1 == "oracle-prefix" && $11 == "OK" { value=$4 } END { print value }' "$readiness_attempt/journal.tsv")
+    readiness_operation_attempt=$(printf '%s\n' "$readiness_row" | cut -f4)
+    readiness_later_prefix=$((readiness_verdict_elapsed-readiness_operation_attempt))
+    readiness_cleanup_elapsed=$(awk -F '\t' '$1 == "cleanup-quit" { value=$4 } END { print value }' "$readiness_attempt/journal.tsv")
+    [ -n "$readiness_verdict_elapsed" ] && [ -n "$readiness_cleanup_elapsed" ] &&
+        [ "$readiness_later_prefix" -ge 0 ] && [ "$readiness_cleanup_elapsed" -ge "$readiness_verdict_elapsed" ] || {
+        echo "FAIL $readiness_name readiness/prefix/cleanup journal intervals" >&2; exit 1;
+    }
+    [ -s "$readiness_dir/stall.pid" ] || { echo "FAIL $readiness_name recorded no readiness child PID" >&2; exit 1; }
+    readiness_child=$(cat "$readiness_dir/stall.pid")
+    if kill -0 "$readiness_child" 2>/dev/null; then echo "FAIL $readiness_name left its readiness child alive" >&2; exit 1; fi
+    readiness_host=$(cat "$readiness_dir/host.pid")
+    if kill -0 "$readiness_host" 2>/dev/null; then echo "FAIL $readiness_name left its host alive" >&2; exit 1; fi
+    readiness_send_count=$(awk '$0 == "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$readiness_dir/sends.log")
+    readiness_route_count=$(awk '$0 == "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$readiness_dir/readiness-sends.log")
+    readiness_action_read_count=$(awk '$0 == "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$readiness_dir/action-sends.log")
+    readiness_action_total=$(wc -l <"$readiness_dir/action-sends.log" | tr -d ' ')
+    readiness_total=$(wc -l <"$readiness_dir/sends.log" | tr -d ' ')
+    [ "$readiness_send_count" -eq 1 ] && [ "$readiness_route_count" -eq 1 ] &&
+        [ "$readiness_action_read_count" -eq 0 ] &&
+        [ "$readiness_action_total" -eq $((readiness_total-1)) ] || {
+        echo "FAIL $readiness_name readiness/action routing: sent=$readiness_send_count routed=$readiness_route_count action-reads=$readiness_action_read_count action=$readiness_action_total total=$readiness_total" >&2; exit 1;
+    }
+    for request in PAUSE_TOGGLE SAVE_STATE FRAMEADVANCE QUIT; do
+        request_count=$(awk -v wanted="$request" '$0 == wanted { n++ } END { print n + 0 }' "$readiness_dir/sends.log")
+        [ "$request_count" -eq 1 ] || { echo "FAIL $readiness_name one-shot $request count=$request_count" >&2; exit 1; }
+    done
+    readiness_screenshot_sends=$(awk '$0 == "SCREENSHOT" { n++ } END { print n + 0 }' "$readiness_dir/sends.log")
+    readiness_screenshot_captures=$(cat "$readiness_dir/shot.count")
+    [ "$readiness_screenshot_sends" -eq 5 ] && [ "$readiness_screenshot_captures" -eq 5 ] || {
+        echo "FAIL $readiness_name capture/send count: sends=$readiness_screenshot_sends captures=$readiness_screenshot_captures" >&2; exit 1;
+    }
+    [ "$readiness_elapsed" -ge "$readiness_lower" ] && [ "$readiness_elapsed" -lt 25000 ] || {
+        echo "FAIL $readiness_name full driver+cleanup bound: ${readiness_elapsed}ms" >&2; exit 1;
+    }
+    assert_sanitized_tree "$readiness_attempt"
+    readiness_outer_finished=$(mono_ms)
+    readiness_outer_elapsed=$((readiness_outer_finished-test_started))
+    printf 'state session readiness case=%s: fixture=%sms setup=%sms operation=%sms later-prefix=%sms attempt-through-cleanup=%sms driver+cleanup=%sms CTest-process-so-far=%sms; bounds operation=[%s,%s) driver<25000ms; child+host reaped\n' \
+        "$readiness_name" "$fixture_elapsed" "$readiness_setup_elapsed" "$readiness_operation_ms" \
+        "$readiness_later_prefix" "$readiness_cleanup_elapsed" "$readiness_elapsed" \
+        "$readiness_outer_elapsed" "$readiness_lower" "$readiness_upper"
+}
+
+run_readiness_controls() {
+    run_readiness_case readiness-response-stall readiness-response-stall 4500 7000
+}
+
+if [ "$CONTROL" = readiness ]; then
+    run_readiness_controls
+    exit 0
+fi
+
 # A failed attempt-tree setup after lock acquisition must retain mkdir's exact failure status,
 # release only the lock this invocation acquired, and let a later session acquire the endpoint.
 setup_failure_dir="$WORK_ROOT/session-$$-setup-failure"
@@ -718,37 +843,7 @@ if kill -0 "$readiness_host" 2>/dev/null; then echo "FAIL delayed readiness cont
 assert_sanitized_tree "$readiness_attempt"
 printf 'state session readiness delayed-reply control: exact reply accepted; child reaped; %sms\n' "$readiness_elapsed"
 
-# Some native UDP clients can print a complete response and then remain alive. The fake stalls for
-# 8 s so it remains live beyond the 5 s supervision slice; accept only the exact bytes after the
-# owned child is killed and reaped, inside the original 30 s operation deadline.
-readiness_dir="$WORK_ROOT/session-$$-readiness-response-stall"; readiness_ra="$readiness_dir/ra"
-mkdir -p "$readiness_ra/shots" "$readiness_ra/states"
-ln -s "$script_path" "$readiness_dir/fake-nc"; ln -s "$script_path" "$readiness_dir/fake-retroarch"
-: >"$readiness_dir/config.cfg"; : >"$readiness_dir/core.so"
-readiness_started=$(mono_ms); readiness_status=0
-run_prefix_driver "$readiness_dir" "$readiness_ra" readiness-response-stall >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
-readiness_finished=$(mono_ms); readiness_elapsed=$((readiness_finished-readiness_started))
-[ "$readiness_status" -eq 0 ] && grep -F 'verdict=PREFIX_OK' "$readiness_dir/driver.out" >/dev/null || {
-    echo "FAIL exact response before supervision expiry did not proceed (status=$readiness_status)" >&2
-    cat "$readiness_dir/driver.out" >&2; exit 1;
-}
-set -- "$readiness_ra"/attempts/*; readiness_attempt=$1
-awk -F '\t' 'NR > 1 && $1 == "readiness" { count++; if ($3 != 1 || $10 != "exact-isolated-path" || $11 != "OK") exit 1 } END { exit !(count == 1) }' \
-    "$readiness_attempt/journal.tsv" || { echo "FAIL exact-readiness response was not accepted in one attempt" >&2; exit 1; }
-readiness_operation_ms=$(awk -F '\t' 'NR > 1 && $1 == "readiness" { print $6 }' "$readiness_attempt/journal.tsv")
-[ "$readiness_operation_ms" -ge 4500 ] && [ "$readiness_operation_ms" -lt 7000 ] || {
-    echo "FAIL exact readiness supervision elapsed bound: ${readiness_operation_ms}ms" >&2; exit 1;
-}
-[ -s "$readiness_dir/stall.pid" ] || { echo "FAIL readiness timeout control recorded no owned child" >&2; exit 1; }
-readiness_child=$(cat "$readiness_dir/stall.pid")
-if kill -0 "$readiness_child" 2>/dev/null; then echo "FAIL readiness timeout control left its child alive" >&2; exit 1; fi
-readiness_host=$(cat "$readiness_dir/host.pid")
-if kill -0 "$readiness_host" 2>/dev/null; then echo "FAIL readiness timeout control left its host alive" >&2; exit 1; fi
-[ "$readiness_elapsed" -ge 4500 ] && [ "$readiness_elapsed" -lt 25000 ] || {
-    echo "FAIL exact readiness response elapsed bound: ${readiness_elapsed}ms" >&2; exit 1;
-}
-assert_sanitized_tree "$readiness_attempt"
-printf 'state session readiness supervision control: exact reply retained; timed-out child reaped; %sms\n' "$readiness_elapsed"
+run_readiness_controls
 
 # Exercise the exact CMake-generated hosted action wrapper with an independent recording
 # transport. A normal mutation forwards once, drop forwards zero times, and double forwards
