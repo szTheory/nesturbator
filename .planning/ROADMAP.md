@@ -68,7 +68,7 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans**: 9 plans; 6 executed, 3 gap-closure plans pending
+**Plans**: 7/9 plans executed; 6 executed, 3 gap-closure plans pending
 
 Plans:
 **Wave 1**
@@ -88,7 +88,7 @@ Plans:
 - [x] 16-05-PLAN.md — Protect truthful MMC3 descriptions through staged and packaged metadata.
 
 **Wave 6** *(gap closure; depends on completed Plans 05/06)*
-- [ ] 16-09-PLAN.md — Measure and repair journal overhead while preserving readiness timing, semantic and cleanup bounds; run focused/full CI and fresh source review.
+- [x] 16-09-PLAN.md — Measure and repair journal overhead while preserving readiness timing, semantic and cleanup bounds; run focused/full CI and fresh source review.
 
 **Wave 7** *(blocked on the bounded repair and review in Plan 09)*
 - [ ] 16-07-PLAN.md — Prepare the checked phase PR, obtain exact-head merge consent and observe the normal release flow.
@@ -139,7 +139,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 6/9 | Gap plans ready: repair before delivery | - |
+| 16. Host evidence and roadmap | v4 | 7/9 | Gap plans ready: repair before delivery | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

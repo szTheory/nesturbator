@@ -4,17 +4,17 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: "Phase 16 gap planning passed; Plan 09 timing repair precedes incomplete Plans 07/08; PR 50 remains unmerged"
-last_updated: "2026-10-15T14:21:09.308Z"
+status: executing
+stopped_at: Completed 16-09-PLAN.md
+last_updated: "2026-10-15T15:41:08.865Z"
 last_activity: 2026-10-15
-last_activity_desc: Gap Plan 09 created and Plans 07/08 amended; independent checker passed after research reconciliation; execution remains pending
-state_head: 7811c4395aece33a3f985655ef2f88604ea885c0
+last_activity_desc: Phase 16 execution started
+state_head: dfc4f66e9b92aa4395096916b5aefaaff20176c3
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 9
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 — repair native PR CI elapsed-time control before exact-head merge consent and actual published MMC3 evidence
+**Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
-Plan: 09 next of 9 total (six complete; execution order 09, 07, 08)
-Status: Ready to execute bounded timing repair; Plans 07/08 remain incomplete
-Last activity: 2026-10-15 — Gap planning passed independent review; 9/9 plan structures, 6/6 requirements, 17/17 decisions and all 43 verification commands checked; no implementation executed
+Phase: 16 (Host evidence and roadmap) — EXECUTING
+Plan: 7 of 9
+Status: Ready to execute
+Last activity: 2026-10-15 — Phase 16 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -201,6 +201,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 16 P03 | 24h 52m | 3 tasks | 11 files |
 | Phase 16 P04 | 30min | 2 tasks | 5 files |
 | Phase 16 P05 | 25min | 2 tasks | 6 files |
+| Phase 16 P09 | 38 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -318,6 +319,8 @@ Recent decisions affecting current work:
 - [Phase 16]: Registered CMake tests authenticate copied special-file bytes against exact manifest rows; direct libretro.host calls do not authenticate content.
 - [Phase 16]: Keep the support contract as one narrow localized clause: NTSC MMC3 mapper 4, submappers 0/4, with MMC6 and four-screen excluded.
 - [Phase 16]: Record current staged and package acceptance, but leave EVID-04 pending until ordinary release publication evidence exists.
+- [Phase 16]: Use one monotonic observation and one Perl serialization process per journal row while preserving the eleven-column schema, sanitization, failure reason, and all timing bounds.
+- [Phase 16]: Treat the local process reduction as a bounded repair; native Intel slowdown causation remains unproven and EVID-04 stays pending publication evidence.
 
 ### Pending Todos
 
@@ -377,9 +380,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T14:21:09Z
-Stopped at: Phase 16 gap plans verified; Plan 09 ready before incomplete delivery Plans 07/08; prior native failure retained and no merge consent requested
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-09-PLAN.md
+Last session: 2026-10-15T15:41:08.847Z
+Stopped at: Completed 16-09-PLAN.md
+Resume file: None
 
 Next GSD command: $gsd-execute-phase 16 --gaps-only
 
