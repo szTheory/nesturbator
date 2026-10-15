@@ -1,7 +1,7 @@
 # Phase 16 release delivery
 
 **Recorded:** 2026-10-15
-**Status:** EVID-04 remains open; the implementation PR is being prepared.
+**Status:** EVID-04 remains open; PR #50 is prepared but native required CI failed. Plan 16-07 Task 1 remains incomplete; no merge consent was requested.
 
 ## Accepted implementation and remaining gap
 
@@ -18,6 +18,25 @@ The clean source review is recorded in [16-REVIEW.md](16-REVIEW.md): zero open f
 The phase branch is prepared for one normal, unmerged pull request to `main`, titled `fix: make host evidence discriminating and describe supported MMC3`. Before any merge, the owner must explicitly approve that PR's presented full head SHA. Prior authorization to push and open a PR, successful automated evidence, silence, or a later changed head does not supply that consent. A changed head requires fresh successful required pull-request CI and renewed consent for its new SHA.
 
 Approval authorizes only a squash merge of the identified PR at the identified checked head, under repository protections. No phase-PR auto-merge is enabled. The exact PR, head, run, and check identities are retained in ignored `build/phase16-release/` evidence so recording consent does not change the approved head.
+
+## Native PR CI failure and recovery
+
+[PR #50](https://github.com/szTheory/nesturbator/pull/50) is open and non-draft, titled `fix: make host evidence discriminating and describe supported MMC3`, against `main`. The normal push and PR creation succeeded; phase auto-merge is disabled. Its checked identities are:
+
+| Identity | Observed value |
+|---|---|
+| PR head | `30a009838b741a429863e7cb5143526fbaad8ed7` |
+| Base commit | `9f9386c661f6fb8f6063bf756655713aedadae77` |
+| `refs/pull/50/merge` | `0bc78b76c3412068e99c050bebe9b49276c7ce83` |
+| Native `pull_request` CI | [38740783575](https://github.com/szTheory/nesturbator/actions/runs/38740783575), concluded failure |
+
+Fresh `gh pr view 50 --repo szTheory/nesturbator` and `gh run view 38740783575 --repo szTheory/nesturbator` queries exited 0 and confirmed the open PR, unchanged head, no merge, and terminal CI failure. Five platform builds, ASan, both no-float legs, hygiene, title, [perf](https://github.com/szTheory/nesturbator/actions/runs/38740783575/job/116441617301), and [pinned RetroArch](https://github.com/szTheory/nesturbator/actions/runs/38740783575/job/116441617155) passed. The macOS Intel build failed, `hash-equality` was consequently skipped, and `CI required` failed.
+
+The [macOS Intel log](https://github.com/szTheory/nesturbator/actions/runs/38740783575/job/116441617204) reports `99% tests passed, 1 tests failed out of 648`; CMake exited 8. The sole failing CTest is `retroarch.session.controls`. Its `readiness-response-stall` control reached `tests/retroarch/test_state_session.sh:748`: the exact response, one-attempt journal, operation supervision time, and child/host cleanup assertions had passed, but the complete prefix-driver elapsed time was 26,632 ms against a strict less-than-25,000 ms assertion. The preceding delayed-reply control passed at 20,728 ms. These observations identify the failing outer elapsed-time assertion; they do not yet establish an adequate replacement bound or a platform-specific root cause.
+
+Raw PR/run/job JSON, exact refs, `failure-diagnosis.json`, and `macos-intel-failed.log` remain in ignored `build/phase16-release/`. The inherited diagnostic JSON mislabeled the control as `readiness-response-delay`; the source assertion and log establish `readiness-response-stall` as the failing control. No failed workflow was rerun. No consent, merge, tag, or publication was initiated. Plan 16-08 remains unstarted, and the existing verification verdict/fingerprint and requirements are unchanged.
+
+Plan 16-07 requires stopping on terminal failed native CI. The next work is a bounded amendment to investigate and repair the elapsed-time control while preserving its exact-response, operation-deadline, send-count, and cleanup assertions, with focused regression, the normal CI preset, review, and fresh native PR CI. Reuse PR #50 and inspect actual state before any mutation. Do not repeat the successful preparation commit or manufacture a completed 16-07 summary: the plan is incomplete, and the safe-resume gate must reconcile its existing commit. These failure/state documentation updates stay local on the phase branch; the failed remote PR head remains the identity above until an authorized repair is pushed.
 
 ## Existing release handoff
 

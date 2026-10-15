@@ -5,11 +5,11 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: "Phase 16 gap planning complete: Plans 07/08 ready, 0 plan warnings; execute --gaps-only next; EVID-04 publication remains pending"
-last_updated: "2026-10-15T13:05:22.741Z"
+stopped_at: "Phase 16 Plan 07 stopped at native PR CI failure: PR 50, macOS Intel readiness-response-stall elapsed bound; repair amendment needed before consent"
+last_updated: "2026-10-15T13:42:34Z"
 last_activity: 2026-10-15
-last_activity_desc: Phase 16 execution started
-state_head: e7255f2c88449ae6b712a17039863f614e5df2af
+last_activity_desc: PR 50 prepared; native CI 38740783575 failed one macOS Intel elapsed-time control; no merge or rerun; Plans 07/08 incomplete
+state_head: 30a009838b741a429863e7cb5143526fbaad8ed7
 progress:
   total_phases: 3
   completed_phases: 0
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 — Host evidence and roadmap
+**Current focus:** Phase 16 — repair native PR CI elapsed-time control before exact-head merge consent and actual published MMC3 evidence
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — EXECUTING
+Phase: 16 (Host evidence and roadmap) — NATIVE PR CI FAILED
 Plan: 7 of 8 (six implementation plans complete; gap delivery in progress)
-Status: Executing Phase 16
-Last activity: 2026-10-15 — Phase 16 execution started
+Status: Plan 07 incomplete; stopped under its terminal CI failure gate
+Last activity: 2026-10-15 — PR 50 opened at 30a0098; perf and pinned RetroArch passed; macOS Intel elapsed-time assertion failed; no merge or rerun
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -377,13 +377,14 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T12:57:37.951Z
-Stopped at: Phase 16 gap planning complete: Plans 07/08 ready, 0 plan warnings; execute --gaps-only next; EVID-04 publication remains pending
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-07-PLAN.md
+Last session: 2026-10-15T13:42:34Z
+Stopped at: Phase 16 Plan 07 native CI failed; PR 50 remains open at 30a009838b741a429863e7cb5143526fbaad8ed7; no merge consent requested
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md
 
-Next GSD command: $gsd-execute-phase 16 --gaps-only
+Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Run `$gsd-execute-phase 16 --gaps-only` for Plans 07/08. Prepare the concrete PR and its native CI before requesting the exact-head merge consent required by the owner merge boundary and Plan 07's one-way decision checkpoint. After approval, use the normal release automation and collect actual published-byte evidence. Do not advance to Phase 17 until independent Phase 16 verification closes EVID-04.
+- Run `$gsd-plan-phase 16 --gaps` for a bounded repair amendment using 16-RELEASE-DELIVERY.md and failed native PR CI 38740783575. macOS Intel passed 647/648 CTests: the readiness-response-stall control accepted the exact reply and reaped its child/host, but its total 26,632 ms exceeded the strict 25,000 ms outer guard at tests/retroarch/test_state_session.sh:748. Preserve operation supervision and semantic assertions; investigate the outer timing contract before changing its bound. Retained raw evidence is ignored under build/phase16-release/. Do not blind-rerun failed CI.
+- PR 50 exists at checked remote head 30a009838b741a429863e7cb5143526fbaad8ed7. Its delivery record commit already exists, but Task 1 and Plans 07/08 remain incomplete; no completed summary was written. Reconcile that partial commit rather than repeat it if safe-resume reports it. Failure/state documentation commits are local only; the existing config preference edit remains unstaged. Reuse this PR for the bounded repair, then obtain fresh native required CI and exact-head owner consent before merge. Actual published-byte evidence and independent phase verification still gate EVID-04 and Phase 17.
 - Retain the historical performance, publication evidence and substantive debt above. SEED-003's baseline portion, SEED-004's remaining execution robustness and recurring SEED-006 upkeep are selected for v4; original deferred seed records remain historical, with current dispositions in PRODUCT-ROADMAP.md.

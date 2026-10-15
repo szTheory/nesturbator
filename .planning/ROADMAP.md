@@ -93,7 +93,7 @@ Plans:
 **Wave 7** *(depends on the actual normal publication from Plan 07)*
 - [ ] 16-08-PLAN.md — Verify downloaded six-platform metadata, checksums, attestations and exact-release-commit CI.
 
-**Verification (2026-10-15):** 6/8 plans implemented; [required CI](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on source `841434b`, and source review is clean. [Phase verification](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) verifies 21/22 truths. EVID-04 is the sole gap: actual published v0.1.10 metadata omits MMC3, while current source, staging and packages pass. Gap Plans 07/08 explicitly prepare delivery, gate the concrete phase PR merge on owner consent and collect actual published-byte evidence through the existing release pipeline. Phase 16 remains pending until that evidence passes independent verification. Next: `$gsd-execute-phase 16 --gaps-only`.
+**Verification (2026-10-15):** 6/8 plans implemented; [prior source CI](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on `841434b`, and source review is clean. [Phase verification](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md) verifies 21/22 truths. EVID-04 remains open: actual published v0.1.10 metadata omits MMC3, while source, staging and packages pass. Gap Plan 07 opened [PR 50](https://github.com/szTheory/nesturbator/pull/50) at `30a0098`, but [native PR CI](https://github.com/szTheory/nesturbator/actions/runs/38740783575) failed the macOS Intel outer elapsed-time control (26,632 ms against less than 25,000 ms; 647/648 CTests passed). Perf and pinned RetroArch passed. Per Plan 07, execution stopped without a rerun or merge-consent request; Plans 07/08 remain incomplete. [Delivery evidence](phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md) records the exact identities and diagnosis. Next: `$gsd-plan-phase 16 --gaps` for a bounded CI repair amendment, then fresh native CI, exact-head consent, actual publication evidence and independent phase verification.
 
 **UI hint**: no
 **Canonical refs**: [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md), [GSD-HANDOFF.md](preparation/GSD-HANDOFF.md); current scope evidence in [research/SUMMARY.md](research/SUMMARY.md).
@@ -136,7 +136,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 6/8 | Gap closure planned | - |
+| 16. Host evidence and roadmap | v4 | 6/8 | Gap delivery stopped: native CI failure | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 
