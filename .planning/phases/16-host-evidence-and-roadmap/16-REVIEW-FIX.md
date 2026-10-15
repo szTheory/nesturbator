@@ -91,6 +91,8 @@ Iteration 3 verification:
 - `scripts/hygiene.sh --tree`, header clang-format 18 dry-run, and `git diff --check` passed.
 - No full-suite or hosted-CI result is claimed for this final source revision yet.
 
+CI follow-up (`841434b`): run `38675505041` exposed a clean-build fixture selftest failure on both Windows targets and Linux ARM64. The argv recording host's output directory had never been created; an old local directory masked the omission. A fresh owned build directory reproduced the failure before the fix. The probe now recreates only its owned argv subtree and includes nested result/stdout/stderr in failures. Both fresh and repeated runs passed all 10 identity cases, the registered role/identity tests passed 2/2, and the independent reviewer confirmed another fresh directory pass. Required hosted CI for corrected source is run `38676328559`; its final result is recorded in the phase verification report when available. The POSIX newline filename fixture is separately guarded on Windows (`d4fe665`), while production ZIP validation remains enabled there.
+
 The README and public-header comments describe the setup-failure cleanup and exact
 metadata/archive guards. The public core API and cartridge admission are unchanged;
 no publication status is claimed.
