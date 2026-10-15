@@ -1439,7 +1439,9 @@ empty and null paths, trailing separators, paths with spaces and platform-specif
 backslashes. `libretro.fixture_identity` checks valid copies of both special files,
 corrupt copies that must fail before host launch, generic inputs under misleading
 parents, and distinct missing-row, duplicate-row and missing-file errors. The marker
-fixture retains its separate generator identity.
+fixture retains its separate generator identity. The wrapper's argv probe recreates
+its owned output directory on every run and checks paths with spaces, semicolons
+and backslashes, so stale local capture files cannot satisfy it.
 `core.state_runahead` checks RetroArch's second-instance mode as a library
 property: one instance runs the real timeline, a second loads its state each
 frame and runs ahead, and the shown frames equal a single instance that saves,

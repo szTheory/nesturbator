@@ -491,7 +491,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * against its manifest record before host launch. Slash always separates components; backslash
  * also separates them on Windows and is an ordinary filename byte on POSIX. The role self-test
  * covers adversarial names and path edges, while identity controls reject corrupted copies before
- * launch. Direct host calls do not authenticate files.
+ * launch. The wrapper's argv probe recreates its owned output directory on every run before
+ * checking paths with spaces, semicolons and backslashes; stale captures cannot satisfy it.
+ * Direct host calls do not authenticate files.
  * Its negative controls distinguish native-valid wrong origins and stale revisions from parse
  * or checksum failures; screenshots qualify displayed identity, not every saved machine field.
  * The separate private progression verdict binds each displayed observation to one retained

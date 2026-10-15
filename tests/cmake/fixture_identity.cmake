@@ -191,6 +191,10 @@ function(fixture_identity_selftest)
   # Exercise the production execute_process boundary with the actual C host in
   # argv-capture mode. CMake lists need escaped semicolons inside one ROM path.
   set(argv_work "${work}/argv boundary")
+  # Start from an empty owned tree: a stale capture or previously created
+  # directory must not make this probe pass only in an incremental checkout.
+  file(REMOVE_RECURSE "${argv_work}")
+  file(MAKE_DIRECTORY "${argv_work}")
   set(argv_rom_one "${argv_work}/fixture space;semi/generic one.nes")
   set(argv_rom_two "${argv_work}/literal\\backslash;semi/other path.nes")
   set(argv_core "core path;semi\\module")
@@ -214,7 +218,7 @@ function(fixture_identity_selftest)
     ERROR_VARIABLE argv_error)
   if(NOT argv_result STREQUAL "0" OR NOT EXISTS "${argv_capture}")
     message(FATAL_ERROR
-      "FIXTURE_ARGV_BOUNDARY: production wrapper did not reach the recording host")
+      "FIXTURE_ARGV_BOUNDARY: production wrapper did not reach the recording host; result='${argv_result}'\n${argv_output}\n${argv_error}")
   endif()
   file(READ "${argv_capture}" delivered_argv)
   set(expected_argv "4\n")
