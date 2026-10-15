@@ -221,6 +221,44 @@ case "$CONTROL" in
     *) echo "state session controls: invalid STATE_SESSION_CONTROL=$CONTROL" >&2; exit 2 ;;
 esac
 
+if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ]; then
+    readiness_name=readiness-response-stall
+    readiness_fixture_elapsed=5666; readiness_setup_elapsed=42
+    readiness_operation_ms=5460; readiness_later_prefix=16102
+    readiness_attempt_elapsed=23104; readiness_elapsed=25946
+    readiness_status=0; readiness_reason=OK
+    readiness_lower=4500; readiness_upper=7000
+    selftest_status=0
+    if selftest_output=$(
+        if command -v report_readiness_timing >/dev/null 2>&1; then
+            report_readiness_timing "$readiness_name" "$readiness_fixture_elapsed" \
+                "$readiness_setup_elapsed" "$readiness_operation_ms" \
+                "$readiness_later_prefix" "$readiness_attempt_elapsed" \
+                "$readiness_elapsed" "$readiness_status" "$readiness_reason" \
+                "$readiness_lower" "$readiness_upper"
+        fi
+        [ "$readiness_elapsed" -ge "$readiness_lower" ] &&
+            [ "$readiness_elapsed" -lt 25000 ] || {
+                echo "FAIL $readiness_name full driver+cleanup bound: ${readiness_elapsed}ms" >&2
+                exit 1
+            }
+    2>&1); then
+        selftest_status=0
+    else
+        selftest_status=$?
+    fi
+    case "$selftest_output" in
+        *"case=readiness-response-stall"*"fixture=5666ms"*"setup=42ms"*"operation=5460ms"*"later-prefix=16102ms"*"attempt-through-cleanup=23104ms"*"driver+cleanup=25946ms"*"driver-status=0"*"driver-reason=OK"*"FAIL readiness-response-stall full driver+cleanup bound: 25946ms"*) ;;
+        *) echo "FAIL over-bound timing report was incomplete: $selftest_output" >&2; exit 1 ;;
+    esac
+    [ "$selftest_status" -eq 1 ] || {
+        echo "FAIL over-bound timing assertion returned $selftest_status, expected 1" >&2
+        exit 1
+    }
+    echo "state session timing report selftest: over-bound failure retained measured fields and status"
+    exit 0
+fi
+
 script_path=$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")
 mono_ms() { perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000'; }
 test_started=$(mono_ms)
