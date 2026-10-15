@@ -528,8 +528,13 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * native validation and cleanup, distinct from each readiness operation interval. The required
  * pinned-host run uses generated marker content in a distinct session, requires the complete
  * sixteen-boundary verdict, and checks dropped/doubled
- * advances and a native-valid wrong-origin branch through that same verdict. These observations
- * prove the declared displayed progression and retained origins; they do not prove every committed
+ * advances and a native-valid wrong-origin branch through that same verdict. The test-only
+ * prefix validator retains cold-start rendering when a displayed image is the native anchor,
+ * because frame pixels are not serialized; for later targets it loads the already validated anchor
+ * before advancing, skipping the overwritten pre-load replay. One bounded local comparison showed
+ * a lower third-prefix process time but no overall readiness improvement, and does not identify
+ * or clear the separate hosted timing failures. These observations prove the declared displayed
+ * progression and retained origins; they do not prove every committed
  * machine field or audio. Portable whole-state and audio tests retain their broader proofs. Loading
  * restores frame_number and ticks, so the first frame after a load reports the frame number and
  * ticks of the uninterrupted run. The frame buffer and the audio are not in a state. Load never

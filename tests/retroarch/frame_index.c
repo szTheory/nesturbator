@@ -29,6 +29,9 @@
 #define MAX_PARTNER_GAP 3u
 #define MAX_W 100000u
 
+static uint64_t progression_preload_frames;
+static int progression_track_preload_frames;
+
 /* Phase 16's test-only encoding: 16 little-endian bit cells between four checker guards.
    All 8x8 pixels of each cell are checked; the counter never wraps in this window. */
 #define MARKER_FIRST 4u
@@ -253,6 +256,8 @@ static int marker_frame(nesturbator *inst, uint8_t *rgb, uint64_t *absolute)
     io.audio_capacity = 4096u;
     if (nesturbator_run_frame(inst, &io) != NESTURBATOR_OK)
         return 0;
+    if (progression_track_preload_frames)
+        ++progression_preload_frames;
     *absolute = io.frame_number;
     nesturbator_get_palette(inst, palette, 512u);
     nesturbator_host_convert(palette, video, W_PX, xrgb, W_PX);
@@ -706,8 +711,6 @@ static const char *progression_validate_anchor(nesturbator *inst, const char *pa
     return reason == NULL ? NULL : progression_anchor_reason(reason) == 2 ? "PARSE" : "ORIGIN";
 }
 
-static uint64_t progression_preload_frames;
-
 static const char *progression_palette_for_frame(const uint8_t *rom, const char *path,
                                                  uint64_t identity, uint64_t anchor_frame,
                                                  uint64_t target_frame, uint32_t offset,
@@ -748,16 +751,20 @@ static const char *progression_palette_for_frame(const uint8_t *rom, const char 
         free(bytes);
         return "IO";
     }
+    progression_track_preload_frames = 1;
     static uint8_t rgb[NESTURBATOR_TEST_RGB_SIZE];
-    uint64_t absolute = 0;
-    for (uint64_t frame = 1u; frame <= anchor_frame; ++frame) {
-        ++progression_preload_frames;
-        if (!marker_frame(simulator, rgb, &absolute) || absolute != frame) {
-            nesturbator_destroy(simulator);
-            free(bytes);
-            return "PROCESS";
+    uint64_t absolute = 0u;
+    if (target_frame == anchor_frame) {
+        for (uint64_t frame = 1u; frame <= anchor_frame; ++frame) {
+            if (!marker_frame(simulator, rgb, &absolute) || absolute != frame) {
+                progression_track_preload_frames = 0;
+                nesturbator_destroy(simulator);
+                free(bytes);
+                return "PROCESS";
+            }
         }
     }
+    progression_track_preload_frames = 0;
     if (nesturbator_load_state(simulator, bytes + 16u, state_size) != NESTURBATOR_OK) {
         nesturbator_destroy(simulator);
         free(bytes);
@@ -1271,14 +1278,13 @@ static int progression_controls_selftest(const char *work)
                 prefix_exit);
         return 2;
     }
-    if (progression_preload_frames != 0u) {
+    if (progression_preload_frames != 300u) {
         fprintf(stderr,
-                "ASSERT prefix-skips-overwritten-replay: expected=0 pre-load frames actual=%" PRIu64
-                "\n",
+                "ASSERT prefix-replays-only-anchor-images: expected=300 pre-load frames actual=%" PRIu64 "\n",
                 progression_preload_frames);
         return 1;
     }
-    printf("progression prefix pre-load replay: 0 frames\n");
+    printf("progression prefix pre-load replay: 300 required anchor-image frames\n");
     progression_session baseline;
     if (progression_read_record(record, &baseline) != NULL)
         return 2;

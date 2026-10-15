@@ -1616,6 +1616,21 @@ prescribed one-shot mutations; readiness reads use the real local `nc`. The
 wrapper supervises and reaps its own send child on interruption. This is bounded
 evidence for the pinned local-host run, not a guarantee of UDP delivery.
 
+The focused prefix profiler found three separately validated prefix processes
+per readiness attempt. In its single baseline pair they took about 0.99–1.01 s
+in ci and 1.97–1.99 s in asan. The validator retains a 150-frame replay when
+the displayed image is the native anchor, because the framebuffer is not saved
+in the state. For a later display frame, it now loads the validated anchor
+before advancing; that removes the overwritten pre-load replay while keeping
+each artifact decode and native check. In the candidate asan trace, the third
+prefix process changed from 962/968 ms to 775/741 ms for delayed/stalled cases.
+The aggregate prefix totals and enclosing case timings varied, and this local
+single pair does not show an overall readiness improvement. Native run
+`38764197994` separately recorded the Intel response-stall at 25946 ms and the
+ASan delayed case at 26269 ms against the strict 25000 ms bound. Those native
+subintervals and causes are unknown; only a fresh exact-head hosted run can
+establish whether the bounded local reduction resolves them.
+
 The portable `retroarch.marker.qualify` control qualifies an owned generated NROM
 counter. It
 runs every absolute library frame 4 through 10000 (9997 frames), checks every
