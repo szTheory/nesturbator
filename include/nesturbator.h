@@ -303,7 +303,8 @@ void nesturbator_destroy(nesturbator *inst);
    header, the README and each checked information file, rejecting duplicate
    clauses. Package checks reject semicolons, ASCII control characters and
    duplicate ZIP members, allow only component directories, and require each
-   file pattern to match once.
+   file pattern to match once. Listed names must agree with raw ZIP names;
+   Unicode path aliases cannot substitute allowed names.
    The supported mappers are 0, 1, 2, 3, 4 and 7. Mapper 4 is the MMC3 in its
    Sharp (submapper 0, and every iNES 1 image) or NEC (submapper 4) revision:
    PRG a power of two from 16 to 512 KiB; 8 to 256 KiB CHR ROM or 8 KiB CHR

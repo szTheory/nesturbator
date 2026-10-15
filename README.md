@@ -993,8 +993,9 @@ cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake
 The checker rejects semicolons, ASCII control characters and duplicate ZIP
 member names, and allows only component directories, before comparing file
 entries with the exact contents above. Each required file pattern must match
-exactly once. It also checks packaged libretro metadata against the source
-file and the documented support clause.
+exactly once, and the listed names must agree with the raw ZIP names so that
+Unicode path aliases cannot substitute allowed names. It also checks packaged
+libretro metadata against the source file and the documented support clause.
 
 ## Releases
 

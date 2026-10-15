@@ -209,6 +209,22 @@ function(nesturbator_archive_inventory_check zip out_error out_member_hexes)
   set(${out_member_hexes} "${member_hexes}" PARENT_SCOPE)
 endfunction()
 
+# Libarchive may honor Unicode path extra fields rather than raw ZIP names.
+# Require its complete ordered listing to agree with the raw inventory before
+# interpreting delimiters or extracting a member. CRLF is a listing delimiter
+# on some hosts; raw CR and LF bytes have already been rejected in member names.
+function(nesturbator_archive_listing_check listing member_hexes out_error)
+  string(SUBSTRING "${member_hexes}" 1 -1 expected_hex)
+  string(REPLACE "\n" "0a" expected_hex "${expected_hex}")
+  string(REPLACE "\r\n" "\n" normalized_listing "${listing}")
+  string(HEX "${normalized_listing}" listed_hex)
+  set(${out_error} "" PARENT_SCOPE)
+  if(NOT listed_hex STREQUAL expected_hex)
+    set(${out_error} "archive listing names differ from the raw ZIP member inventory"
+      PARENT_SCOPE)
+  endif()
+endfunction()
+
 function(nesturbator_archive_info_check zip source_info readme header work out_error)
   set(${out_error} "" PARENT_SCOPE)
   foreach(path IN ITEMS "${zip}" "${source_info}" "${readme}" "${header}" "${work}")
@@ -233,6 +249,11 @@ function(nesturbator_archive_info_check zip source_info readme header work out_e
     OUTPUT_VARIABLE listing ERROR_VARIABLE list_err RESULT_VARIABLE list_rc)
   if(NOT list_rc EQUAL 0)
     set(${out_error} "cannot list archive: ${list_err}" PARENT_SCOPE)
+    return()
+  endif()
+  nesturbator_archive_listing_check("${listing}" "${member_hexes}" listing_error)
+  if(listing_error)
+    set(${out_error} "${listing_error}" PARENT_SCOPE)
     return()
   endif()
   string(REPLACE "\r" "" listing "${listing}")
@@ -313,6 +334,11 @@ function(nesturbator_archive_contents_check zip component out_error)
     OUTPUT_VARIABLE listing ERROR_VARIABLE list_err RESULT_VARIABLE rc)
   if(NOT rc EQUAL 0)
     set(${out_error} "cannot list archive: ${list_err}" PARENT_SCOPE)
+    return()
+  endif()
+  nesturbator_archive_listing_check("${listing}" "${member_hexes}" listing_error)
+  if(listing_error)
+    set(${out_error} "${listing_error}" PARENT_SCOPE)
     return()
   endif()
   string(REPLACE "\r" "" listing "${listing}")
@@ -576,8 +602,27 @@ if(SELFTEST)
       "check_archives self-test: multiple expected-pattern matches were accepted or failed for the wrong reason: ${error}")
   endif()
 
+  # Exercise the raw/listed-name boundary with aliases that would otherwise
+  # satisfy the runner allowlist. The complete inventory includes delimiters,
+  # so missing, repeated and reordered names cannot pass by set membership.
+  string(HEX "odd-license" odd_license_hex)
+  string(HEX "odd-runner" odd_runner_hex)
+  set(alias_inventory "\n${odd_license_hex}\n${odd_runner_hex}\n")
+  nesturbator_archive_listing_check("LICENSE\nbin/nesturbator-run\n"
+    "${alias_inventory}" error)
+  if(NOT error STREQUAL "archive listing names differ from the raw ZIP member inventory")
+    message(FATAL_ERROR "check_archives self-test: path aliases were accepted: ${error}")
+  endif()
+  foreach(delimiter IN ITEMS "\n" "\r\n")
+    nesturbator_archive_listing_check("odd-license${delimiter}odd-runner${delimiter}"
+      "${alias_inventory}" error)
+    if(error)
+      message(FATAL_ERROR "check_archives self-test: matching raw/listed names rejected: ${error}")
+    endif()
+  endforeach()
+
   message(STATUS
-    "check_archives self-test: absent, stale, current, semicolon, newline, duplicate and multiple-match controls passed")
+    "check_archives self-test: absent, stale, current, semicolon, newline, duplicate, multiple-match and name-alias controls passed")
   return()
 endif()
 
