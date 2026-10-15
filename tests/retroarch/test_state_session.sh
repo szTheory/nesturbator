@@ -607,7 +607,9 @@ run_prefix_driver() {
         "$fixture_dir/calibration.txt"
 }
 
+readiness_cases_run=0
 run_readiness_case() {
+    readiness_cases_run=$((readiness_cases_run+1))
     readiness_name=$1; readiness_fault=$2; readiness_lower=$3; readiness_upper=$4
     readiness_dir="$WORK_ROOT/session-$$-$readiness_name"; readiness_ra="$readiness_dir/ra"
     readiness_setup_started=$(mono_ms)
@@ -700,6 +702,10 @@ run_readiness_controls() {
 
 if [ "$CONTROL" = readiness ]; then
     run_readiness_controls
+    [ "$readiness_cases_run" -eq 2 ] || {
+        echo "FAIL focused readiness controls: expected delayed and stalled full-prefix cases, got $readiness_cases_run" >&2
+        exit 1
+    }
     exit 0
 fi
 
