@@ -278,26 +278,29 @@ foreach(rom IN LISTS ROMS)
   else()
     set(actual_rom "${rom}")
   endif()
-  list(APPEND prepared_roms "${actual_rom}")
+  # Keep literal path semicolons inside one argument when expanding this list.
+  string(REPLACE ";" "\\;" list_safe_rom "${actual_rom}")
+  list(APPEND prepared_roms "${list_safe_rom}")
 endforeach()
 
 if(MODE STREQUAL "serialize")
-  set(host_arguments --serialize "${CORE}")
+  set(host_mode --serialize)
+  set(host_options)
 elseif(MODE STREQUAL "runahead")
-  set(host_arguments --runahead "${CORE}")
+  set(host_mode --runahead)
+  set(host_options)
   if(SHORT)
-    list(APPEND host_arguments --short)
+    list(APPEND host_options --short)
   endif()
   if(STRESS)
-    list(APPEND host_arguments --stress)
+    list(APPEND host_options --stress)
   endif()
 else()
   message(FATAL_ERROR "FIXTURE_MODE_INVALID: ${MODE}")
 endif()
-list(APPEND host_arguments ${prepared_roms})
 
 execute_process(
-  COMMAND "${HOST}" ${host_arguments}
+  COMMAND "${HOST}" "${host_mode}" "${CORE}" ${host_options} ${prepared_roms}
   RESULT_VARIABLE host_result
   ECHO_OUTPUT_VARIABLE
   ECHO_ERROR_VARIABLE)
