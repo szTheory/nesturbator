@@ -516,22 +516,28 @@ if(SELFTEST)
   endif()
 
   string(ASCII 10 line_feed)
-  set(newline_root "${selftest_work}/newline-root")
-  file(MAKE_DIRECTORY "${newline_root}/LICENSE${line_feed}bin")
-  file(WRITE "${newline_root}/LICENSE${line_feed}bin/nesturbator-run" "synthetic runner\n")
-  file(ARCHIVE_CREATE OUTPUT "${selftest_work}/newline.zip"
-    PATHS "LICENSE${line_feed}bin/nesturbator-run" FORMAT zip
-    WORKING_DIRECTORY "${newline_root}")
-  execute_process(COMMAND "${CMAKE_COMMAND}" -E tar tf "${selftest_work}/newline.zip"
-    OUTPUT_VARIABLE newline_listing RESULT_VARIABLE newline_list_rc)
-  if(NOT newline_list_rc EQUAL 0 OR
-      NOT newline_listing STREQUAL "LICENSE${line_feed}bin/nesturbator-run${line_feed}")
-    message(FATAL_ERROR
-      "check_archives self-test: synthetic newline member did not produce the split listing: ${newline_listing}")
-  endif()
-  nesturbator_archive_contents_check("${selftest_work}/newline.zip" runner error)
-  if(NOT error MATCHES "archive member name contains an ASCII control byte")
-    message(FATAL_ERROR "check_archives self-test: newline member was accepted or failed for the wrong reason: ${error}")
+  # Windows forbids control bytes in filesystem names; POSIX hosts exercise
+  # this literal-name fixture. The raw ZIP inventory check runs on every host.
+  if(NOT WIN32)
+    set(newline_root "${selftest_work}/newline-root")
+    file(MAKE_DIRECTORY "${newline_root}/LICENSE${line_feed}bin")
+    file(WRITE "${newline_root}/LICENSE${line_feed}bin/nesturbator-run" "synthetic runner\n")
+    file(ARCHIVE_CREATE OUTPUT "${selftest_work}/newline.zip"
+      PATHS "LICENSE${line_feed}bin/nesturbator-run" FORMAT zip
+      WORKING_DIRECTORY "${newline_root}")
+    execute_process(COMMAND "${CMAKE_COMMAND}" -E tar tf "${selftest_work}/newline.zip"
+      OUTPUT_VARIABLE newline_listing RESULT_VARIABLE newline_list_rc)
+    if(NOT newline_list_rc EQUAL 0 OR
+        NOT newline_listing STREQUAL "LICENSE${line_feed}bin/nesturbator-run${line_feed}")
+      message(FATAL_ERROR
+        "check_archives self-test: synthetic newline member did not produce the split listing: ${newline_listing}")
+    endif()
+    nesturbator_archive_contents_check("${selftest_work}/newline.zip" runner error)
+    if(NOT error MATCHES "archive member name contains an ASCII control byte")
+      message(FATAL_ERROR "check_archives self-test: newline member was accepted or failed for the wrong reason: ${error}")
+    endif()
+  else()
+    message(STATUS "check_archives self-test: literal newline filename fixture skipped on Windows")
   endif()
 
   set(duplicate_root "${selftest_work}/duplicate-root")
@@ -622,7 +628,7 @@ if(SELFTEST)
   endforeach()
 
   message(STATUS
-    "check_archives self-test: absent, stale, current, semicolon, newline, duplicate, multiple-match and name-alias controls passed")
+    "check_archives self-test: metadata and archive inventory controls passed")
   return()
 endif()
 
