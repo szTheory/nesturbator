@@ -14,12 +14,12 @@ provides:
 affects: [16-07, 16-08, EVID-02, EVID-04]
 
 actuals:
-  tokens: 11674
+  tokens: 12357
   tasks: 3
-  commits: 5
-commits: 5
+  commits: 7
+commits: 7
 plan_head_before: 5458a6733ad15185521e86fa1bd8aa4becead7c2
-plan_head_after: dfc4f66e9b92aa4395096916b5aefaaff20176c3
+plan_head_after: 909ddc6747cb5830d61b5cd3f669e46787fb173d
 
 tech-stack:
   added: []
@@ -106,7 +106,9 @@ status: complete
 
 1. **Task 1: Prove the response-stall prefix through a cheaper, equivalent journal path** — `c5459a0` (RED test), `526b1e0` (implementation and docs).
 2. **Task 2: Require both readiness timing controls and journal integrity** — `ff6f058` (RED test), `e2bed6a` (implementation and docs).
-3. **Task 3: Record source-bound timing evidence and review** — `dfc4f66`.
+3. **Task 3: Record source-bound timing evidence and review** — `dfc4f66`, `909ddc6` (final command/source/build identity audit).
+
+**Prior plan metadata commit:** `5687384` (summary and sequential state updates; this follow-up evidence audit is included in the final metadata update).
 
 ## Files Created/Modified
 
@@ -135,7 +137,9 @@ status: complete
 - Fresh deep source review at `e2bed6aeb85b773e44597e8f5d27de94d2dc383f`: clean, zero actionable findings; disposition `open: 0`.
 - `git diff --check 30a009838b741a429863e7cb5143526fbaad8ed7 HEAD` and the documentation whitespace checks passed before the evidence commit.
 
-## Auto-fixed Issues
+## Deviations from Plan
+
+### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] Corrected the startup-boundary count for a headerless fixture file.**
 - **Found during:** Task 2
@@ -153,7 +157,15 @@ status: complete
 - **Verification:** Complete session matrix and normal CI workflow passed.
 - **Committed in:** `e2bed6a`
 
-These were inline correctness fixes within the planned test work; no scope or timing-bound deviation was made.
+**3. [Rule 2 - Missing Critical] Added explicit command and jobs=4 identities to the timing record.**
+- **Found during:** Task 3
+- **Issue:** The first evidence draft reported separated measurements and raw logs but did not make every normalized baseline/after invocation and the normal jobs=4 timing comparison easy to audit in one place.
+- **Fix:** Added the baseline, serial tracer, final focused, full-matrix, and full-workflow commands with source/build identities and raw outcomes.
+- **Files modified:** `.planning/phases/16-host-evidence-and-roadmap/16-TIMING-REPAIR.md`
+- **Verification:** Rechecked the raw RED evidence JSON, focused/full CTest JUnit output, normal workflow log, and source-bound review identity.
+- **Committed in:** `909ddc6`
+
+**Total deviations:** 3 auto-fixed (2 Rule 1, 1 Rule 2). No scope or timing-bound deviation was made.
 
 ## User Setup Required
 
@@ -169,4 +181,4 @@ Plan 16-07 can resume at Task 1 by reconciling existing preparation commit `30a0
 
 ## Self-Check: PASSED
 
-All listed plan artifacts exist, all five task commits are ancestors of the current branch head, and the modified source/docs scan found no stubs or whitespace errors.
+All listed plan artifacts exist, all seven plan commits measured at summary write are ancestors of the current branch head, and the modified source/docs scan found no stubs or whitespace errors.

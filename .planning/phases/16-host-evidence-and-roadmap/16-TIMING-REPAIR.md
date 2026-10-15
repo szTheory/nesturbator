@@ -56,7 +56,7 @@ The new registered `retroarch.session.readiness` control selects delayed and sta
 - `cmake --workflow --preset ci` completed all four steps, including packaging. CTest reported `100% tests passed out of 649`, total test time 296.60 seconds; the package step generated the library, runner and libretro archives. Full ignored output: [workflow log](../../../build/phase16-timing/16-09-workflow.log).
 - Fresh deep review covered all six changed repair source/documentation paths at `e2bed6aeb85b773e44597e8f5d27de94d2dc383f`; it reports zero actionable findings. [Review dispositions](16-REVIEW-DISPOSITION.md) retain WR-01 through WR-06 as fixed with `open: 0`.
 
-The four Plan 16-09 task commits are `c5459a0` (focused RED control), `526b1e0` (single-sample journal row and docs), `ff6f058` (delayed/stalled case coverage), and `e2bed6a` (complete assertions and integrity controls). These are local branch commits only; this plan did not mutate PR or release state.
+The four source/test commits are `c5459a0` (focused RED control), `526b1e0` (single-sample journal row and docs), `ff6f058` (delayed/stalled case coverage), and `e2bed6a` (complete assertions and integrity controls). Task 3's evidence/review commits are `dfc4f66` and `909ddc6`. The plan did not mutate PR or release state.
 
 ## Handoff
 
