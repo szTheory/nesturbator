@@ -5,11 +5,11 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: blocked
-stopped_at: Stopped during Plan 16-11 after one bounded CI observation; cause unproven
-last_updated: "2026-10-15T19:43:07.051Z"
+stopped_at: Scoped interruption diagnosis finished inconclusive; capture-first continuation ready for gap planning
+last_updated: "2026-10-15T23:46:24Z"
 last_activity: 2026-10-15
-last_activity_desc: Plan 11 stopped undiagnosed after one bounded CI observation; no source correction or completion credit
-state_head: 4c47138b763935ae61106e6447dd54bd84b1d18c
+last_activity_desc: Diagnosed the planning deadlock and specified durable assertion-boundary capture; historical cause unproven
+state_head: 66ab195df715c3ac6ea9ac2588799f70cb9beb08
 progress:
   total_phases: 3
   completed_phases: 0
@@ -25,15 +25,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-13)
 
 **Core value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
-**Current focus:** Phase 16 — unresolved interruption diagnosis before delivery
+**Current focus:** Phase 16 — plan durable interruption failure capture before evidence-supported repair
 
 ## Current Position
 
 Phase: 16 (Host evidence and roadmap) — INCOMPLETE
 Plan: 11 stopped undiagnosed; 07/08 await predecessors; 7 of 10 live plans complete
-Status: One bounded CI observation passed without reproducing the failure; no correction or success summary. A new discriminating hypothesis and bounded continuation amendment are needed before resuming.
+Status: Scoped debugging could not recover the historical assertion-time facts. A concrete capture-first continuation is specified in debug/phase16-interruption.md; historical-cause proof is not a prerequisite for planning diagnostic coverage. Unchanged Plan 11 execution remains blocked by the installed resume gate.
 Delivery gates: Plan 07 depends on actual Plan 11 completion, including current controls, normal CI with packaging, independent source review and all required post-wave gates. Fresh native PR CI on the final repaired head then precedes exact-head owner consent; publication and EVID-04 remain pending.
-Last activity: 2026-10-15 — retained an incomplete diagnostic checkpoint; temporary instrumentation reverted and historical failure remains open
+Last activity: 2026-10-15 — audited signal/journal ordering and resume gate; two standalone shell checks did not reproduce early wait; no real-driver observation or correction
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -333,6 +333,7 @@ None.
 
 ### Blockers/Concerns
 
+- **Scoped diagnostic result — 2026-10-15:** [Interruption investigation](debug/phase16-interruption.md) establishes that eventual files cannot recover the failed assertion's selected inode/bytes, grep status/stderr or process identity. Two standalone shell checks returned 130 only after handler completion with the child dead; neither reproduces the real failure. No new CI/ASan/driver observation ran. Requiring historical-cause proof before planning the missing capture is circular. The next substantive scope is durable assertion-boundary capture, with deterministic status 0/1/2, pathname-replacement and event-ownership self-tests, then an explicitly bounded observation. Preserve the original assertion and all unfinished repair/acceptance obligations. The current resume gate matches documentation commit `4c47138` despite an empty file union, so unchanged execute-phase is blocked. A capture-first successor must honestly supersede incomplete 11, preserve its history and rebind 07; no success summary or completion credit is justified now.
 - **Current Phase 16 delivery stop — 2026-10-15:** [Native PR CI 38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) failed at PR #50 head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`: Intel readiness-response-stall took 25,946 ms and ASan readiness-delayed took 26,269 ms, both against strict less-than-25,000 ms. CI required failed; performance and pinned RetroArch passed. Plan 09 is complete with local 649/649 CI and clean review at source `e2bed6a`, but it did not close native timing acceptance. Plans 07/08 remain incomplete; no rerun, consent, merge or publication. [Plan 10](phases/16-host-evidence-and-roadmap/16-10-PLAN.md) is superseded without completion credit; its partial timing work is retained. [Plan 11](phases/16-host-evidence-and-roadmap/16-11-PLAN.md) is the active successor for bounded interruption diagnosis before any correction, ci/asan controls, normal CI/package and fresh independent review. Actual cause remains unproven; preserve every timing and semantic bound. See the tracked delivery record and ignored raw logs.
 - **Plan 16-10 post-wave / Plan 16-11 diagnostic stop — 2026-10-15:** At HEAD `5f899ece5d20c5b8f260c52aee13cabd65054b10`, the required `cmake --workflow --preset ci` exited 8 after 648/649 tests in 234.99 seconds; `retroarch.session.controls` failed at 230.07 seconds with `FAIL interruption first failure was not retained`, and packaging did not run. Both readiness cases passed their existing bounds. The retained journal later shows `INTERRUPTED_TERM` on readiness and cleanup-quit rows, and one isolated interruption-control replay had both rows immediately after `wait`; this does not diagnose the original assertion failure. Raw hashes remain in [16-NATIVE-TIMING-REPAIR.md](phases/16-host-evidence-and-roadmap/16-NATIVE-TIMING-REPAIR.md). Plan 11 ran one bounded CI observation on 2026-10-15: one attempt was selected, immediate grep returned 0, wait returned 130, one QUIT was sent, the host was reaped and the lock released. The attempt-selection hypothesis was unsupported; sandbox denial prevented process-tree capture. No cause-specific regression or correction was justified, so Plan 11 stopped incomplete with no summary or completion credit. See [16-11-INTERRUPTION-REPAIR.md](phases/16-host-evidence-and-roadmap/16-11-INTERRUPTION-REPAIR.md) and its ignored raw diagnostics. Plan 07 must not start, and the previous full workflow/package pass remains historical.
 - **Phase 16 publication gap:** EVID-04 remains unmet because actual published v0.1.10 metadata omits MMC3, while source/staged/package checks pass. [Prior source CI 38676328559](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on `841434b`; the source repair now has local CI and fresh review at `e2bed6a`, qualified by the native failures above. Plan 07 must obtain fresh successful native PR CI and exact-head owner consent before the normal release flow; Plan 08 verifies actual six-platform metadata, all 18 archive checksums and attestations against the immutable release commit. Keep the historical verifier gap open until actual publication and independent re-verification.
@@ -387,17 +388,18 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-15T19:40:24.208Z
-Stopped at: Stopped during Plan 16-11 after one bounded CI observation; cause unproven
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-11-INTERRUPTION-REPAIR.md
+Last session: 2026-10-15T23:46:24Z
+Stopped at: Scoped diagnostic deliverable finished inconclusive; concrete capture-first scope ready for planning
+Resume file: .planning/debug/phase16-interruption.md
 
 Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Run `$gsd-plan-phase 16 --gaps` to amend the bounded diagnosis only when a new discriminating source-bound hypothesis is available. One CI observation is consumed; the one-ASan allowance remains unused. Reconcile the incomplete checkpoint and safe-resume gate before any dispatch: the index still calls 11 DAG-ready, but its scoped history now includes a checkpoint commit without a summary. Do not treat DAG readiness as resume authorization, replay the consumed CI observation, borrow Plan 10's execution identity or synthesize a success summary.
+- Run `$gsd-plan-phase 16 --gaps` using [the bounded capture recommendation](debug/phase16-interruption.md). Plan substantive diagnostic coverage first: one shared interruption path and a private recorder that preserves the original single grep, its numeric status, stderr and failure decision. Self-test matching/no-match/execution-error outcomes, exact file snapshots, pathname replacement and invocation ownership before any real-driver observation. Do not require unavailable historical-cause proof to plan capture; require cause-specific evidence before a repair or repair completion claim.
+- Reconcile safe resume through a meaningful capture-first successor: mark 11 superseded/incomplete without a success SUMMARY, preserve its evidence/partial history and carry every unfinished repair, ci/asan, normal CI/package, independent review and post-wave obligation forward; rebind 07 to genuine successor completion. Verify the new index and evaluation-scope before dispatch. This debug step recommends that route but creates no successor or dependency change. One prior CI observation is consumed; the one-ASan allowance remains unused. The continuation must explicitly amend its question to distinguish no-match, file-identity or grep-execution failure, with the same under-60-second and 30000/1000 ms bounds. A passing observation proves neither cause nor repair; stop rather than retry.
 - Plan 10's timing/reporting/source commits remain reachable. Its completion at `5f899ec` was revoked by `11adf3d` after the required normal workflow failed at the interruption assertion (648/649, packaging not reached). The retained journal and isolated replay do not establish cause. Plan 11 replaces only unfinished obligations, with static audit plus at most two bounded instrumented observations, a reason-specific RED/GREEN regression and smallest justified correction or an explicit incomplete stop. Preserve all timing, semantic, journal, one-shot and owned-process contracts. New successor evidence/review paths keep historical native reports unchanged.
-- The independent plan checker found zero blockers or warnings after revision. All six requirements and 17 trackable decisions remain covered; physical plan count is 11, live count 10, actual completed count 7. No implementation or behavior suite ran in this planning step. Plan 09 remains complete with its source-bound timing/review evidence, and completed Plans 01–06 remain unchanged.
+- The prior independent Plan 11 checker found zero blockers or warnings after revision; no new plan/checker result is claimed. All six requirements and 17 trackable decisions remain represented; physical plan count is 11, live count 10, actual completed count 7. This debug step ran static audits and two standalone shell checks, with no behavior suite or real-driver observation. Plan 09 remains complete with its source-bound timing/review evidence, and completed Plans 01–06 remain unchanged.
 - Retained native run 38764197994 at PR #50 head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb` failed Intel focused stall at 25,946 ms and ASan focused delay at 26,269 ms against strict less-than-25,000 ms. CI required failed; hash equality skipped; performance, pinned RetroArch and other platform checks passed. These are prior observations, not freshly queried external state. Native causes remain unknown and local evidence cannot close native acceptance.
 - Plan 07 Task 1 remains partially prepared and blocked until Plan 11's genuine completion and all required later gates. Reconcile all preparation, timing repair, revoked completion and successor history with actual PR state then. No merge consent has been requested or granted. Fresh required native CI on the final repaired head precedes exact-head owner consent and normal publication. Plan 08 then checks actual six-platform metadata, all 18 archives/checksums/attestations and exact-release-commit CI.
 - Preserve the unrelated config preference edit unchanged and unstaged. Keep historical 21/22 verification/fingerprint, EVID-04's actual publication gap, completed evidence, performance/publication history and substantive debt above. Keep Phase 16 and EVID-04 incomplete; do not advance Phase 17 or perform milestone/product-roadmap upkeep in this step.
