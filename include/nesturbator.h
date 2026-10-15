@@ -299,6 +299,10 @@ void nesturbator_destroy(nesturbator *inst);
    selected bank). NROM and UxROM
    take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
    Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
+   Metadata checks require exactly one canonical MMC3 support clause in this
+   header, the README and each checked information file, rejecting duplicate
+   clauses. Package checks reject semicolons in archive paths before comparing
+   entries with the exact file allowlist.
    The supported mappers are 0, 1, 2, 3, 4 and 7. Mapper 4 is the MMC3 in its
    Sharp (submapper 0, and every iNES 1 image) or NEC (submapper 4) revision:
    PRG a power of two from 16 to 512 KiB; 8 to 256 KiB CHR ROM or 8 KiB CHR
@@ -493,7 +497,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * declared continuation; the complete host path separately checks its load-plus-one-frame probe,
  * fixed original and rewound origins, paced coarse rewind and measured run-ahead display lead.
  * The network driver gives each attempt a private local tree and monotonic child, operation and
- * attempt deadlines. It validates all sixteen displayed-state boundaries against the generated
+ * attempt deadlines. Its owned command-port lock is released if attempt-tree or journal setup
+ * fails, preserving the setup status before any host or transport starts. It validates all
+ * sixteen displayed-state boundaries against the generated
  * absolute-frame marker window, retaining native origins before slot reuse. Only the exact
  * read-only readiness reply retries; only a complete exact reply for the isolated path is accepted,
  * after its child exits or is reaped. The 1-second nc timeout sits inside a 5-second supervised

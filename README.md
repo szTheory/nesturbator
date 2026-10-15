@@ -990,6 +990,10 @@ build machine to `build/ci/packages/`. This checks their names and contents:
 cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake
 ```
 
+The checker rejects semicolons in archive paths before comparing each entry
+with the exact contents above. It also checks packaged libretro metadata
+against the source file and the documented support clause.
+
 ## Releases
 
 Release tooling changes only the numbers in the public header's three version
@@ -1444,6 +1448,11 @@ RetroArch's `info` directory beside the core in `cores`, and declares
 `supports_no_game = "true"`, which lets RetroArch start the core without
 content, and `libretro_saves = "true"`.
 
+The metadata checks require one canonical MMC3 support clause in each of the
+information file, README and public header; duplicate clauses are rejected,
+including a later contradictory claim. The same checks cover staged installs
+and the metadata extracted from each libretro archive.
+
 `libretro/libretro.h` is the libretro API header, copied unchanged from
 RetroArch; its source and licence are in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
@@ -1564,6 +1573,8 @@ Original and rewound native state containers are retained and validated before
 their slots are reused.
 
 Each attempt has a unique owned tree and exclusive local command-port lock. The
+owned lock is released if attempt-tree or journal setup fails, preserving the
+setup failure status before any host or transport starts. The
 only retryable request is the read-only readiness query with its exact isolated
 save-directory reply; a complete exact reply is accepted after the owned receive
 child exits or is reaped. The 1-second `nc` timeout sits inside a 5-second child
