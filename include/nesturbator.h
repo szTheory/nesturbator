@@ -517,9 +517,13 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * that starts paused or stalls fails closed rather than treating a static image as pause evidence.
  * Those two startup captures are retained outside the sixteen canonical boundaries. A UDP send
  * accepted by the local socket is not proof that RetroArch received it; each retained image and
- * native origin is checked by the shared progression verdict. The journal records operation time
- * through terminal observation and attempt time through bounded child/host cleanup; generated host
- * config and log paths are sanitized. The required pinned-host run uses generated marker content in
+ * native origin is checked by the shared progression verdict. The journal writes and sanitizes
+ * each row in one Perl process, using one monotonic observation for attempt elapsed/remaining time.
+ * A stopped operation uses its captured terminal observation, a live operation uses the row
+ * observation, and an inactive row carries the last completed operation values. The focused
+ * response-stall control still runs the full prefix; its enclosing test interval includes fixture
+ * generation, captures, native validation and cleanup, distinct from the readiness operation
+ * interval. The required pinned-host run uses generated marker content in
  * a distinct session, requires the complete sixteen-boundary verdict, and checks dropped/doubled
  * advances and a native-valid wrong-origin branch through that same verdict. These observations
  * prove the declared displayed progression and retained origins; they do not prove every committed

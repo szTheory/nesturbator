@@ -1594,17 +1594,23 @@ through the successful full sequence
 and reason-specific loss, duplication, stale/partial artifact, wrong-origin,
 host-death, stalled-child and deadline cases. Its stalled-read check measures
 elapsed time and confirms that the blocked child and owned host are reaped.
-The journal records operation time through terminal observation and attempt
-time through bounded child/host cleanup, along with request counts,
-expected/observed relations and relative artifact identities. Generated config
-and host logs are retained only in sanitized form. A local UDP send is not proof
-of host receipt; the retained images and native anchors are checked by the
-shared progression verdict. `PREFIX_OK` qualifies a declared continuation
-only; complete success requires all sixteen boundaries and terminal exit zero.
-Fault injection wraps only prescribed one-shot mutations; readiness reads use
-the real local `nc`. The wrapper supervises and reaps its own send child on
-interruption. This is bounded evidence for the pinned local-host run, not a
-guarantee of UDP delivery.
+The journal writes each row in one Perl process, taking one monotonic observation
+for attempt elapsed and remaining time and applying the existing path
+substitutions in that same write. A stopped operation uses its captured terminal
+observation; an active operation uses the row observation, and an inactive row
+retains the last completed operation values. The focused
+`retroarch.session.readiness` control runs the actual response-stall full prefix.
+It reports fixture/setup, readiness-operation, later-prefix, driver+cleanup and
+enclosing CTest time separately: the enclosing total includes fixture
+generation, captures, native validation and cleanup, and is distinct from the
+readiness operation interval. Generated config and host logs are retained only
+in sanitized form. A local UDP send is not proof of host receipt; the retained
+images and native anchors are checked by the shared progression verdict.
+`PREFIX_OK` qualifies a declared continuation only; complete success requires
+all sixteen boundaries and terminal exit zero. Fault injection wraps only
+prescribed one-shot mutations; readiness reads use the real local `nc`. The
+wrapper supervises and reaps its own send child on interruption. This is bounded
+evidence for the pinned local-host run, not a guarantee of UDP delivery.
 
 The portable `retroarch.marker.qualify` control qualifies an owned generated NROM
 counter. It

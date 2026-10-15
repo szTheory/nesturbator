@@ -35,7 +35,7 @@ trap 'exit 129' HUP
 mkdir -p "$ATTEMPT_DIR/profile" "$ATTEMPT_DIR/states" "$ATTEMPT_DIR/shots" "$ATTEMPT_DIR/originals" "$ATTEMPT_DIR/observations"
 JOURNAL="$ATTEMPT_DIR/journal.tsv"
 printf 'step\tclass\tsends\tattempt_elapsed_ms\tattempt_remaining_ms\toperation_elapsed_ms\toperation_remaining_ms\texpected\tobserved\tartifact\treason\n' >"$JOURNAL"
-HOST_PID=; CHILD_PID=; FIRST_FAILURE=; LAST_REASON=OK; send_count=0; QUIT_SENT=0
+HOST_PID=; CHILD_PID=; FIRST_FAILURE=; LAST_REASON=OK; send_count=0; QUIT_SENT=0; JOURNAL_FAILED=0
 CURRENT_STEP=setup; CURRENT_CLASS=none; CURRENT_SENDS=0; CURRENT_EXPECTED=none; CURRENT_OBSERVED=none; CURRENT_ARTIFACT=none
 ACTIVE_OPERATION=; OPERATION_START_MS=; OPERATION_DEADLINE_MS=; OPERATION_BUDGET_MS=; OPERATION_STOP_MS=; OPERATION_DEADLINE_VALUE=0
 LAST_OP_ELAPSED_MS=0; LAST_OP_REMAINING_MS=0
@@ -66,23 +66,101 @@ operation_left() {
 }
 host_alive() { [ -n "$HOST_PID" ] && kill -0 "$HOST_PID" 2>/dev/null; }
 record_row() {
-    _e=$(elapsed_ms 2>/dev/null || echo 0); _r=$(remaining_ms 2>/dev/null || echo 0)
-    if [ -n "$ACTIVE_OPERATION" ]; then
-        if [ -n "$OPERATION_STOP_MS" ]; then ROW_NOW=$OPERATION_STOP_MS
-        else ROW_NOW=$(clock_ms 2>/dev/null || echo "$OPERATION_START_MS")
-        fi
-        ROW_OP_ELAPSED=$((ROW_NOW-OPERATION_START_MS)); ROW_OP_REMAINING=$((OPERATION_DEADLINE_MS-ROW_NOW))
-        [ "$ROW_OP_ELAPSED" -ge 0 ] || ROW_OP_ELAPSED=0; [ "$ROW_OP_REMAINING" -ge 0 ] || ROW_OP_REMAINING=0
-    else ROW_OP_ELAPSED=$LAST_OP_ELAPSED_MS; ROW_OP_REMAINING=$LAST_OP_REMAINING_MS
+    [ "$JOURNAL_FAILED" -eq 0 ] || return 0
+    _journal_status=0
+    SESSION_JOURNAL="$JOURNAL" \
+    SESSION_START_MS="$START_MS" SESSION_TIMEOUT_MS="$TIMEOUT_MS" \
+    SESSION_OPERATION_ACTIVE="$ACTIVE_OPERATION" \
+    SESSION_OPERATION_START_MS="$OPERATION_START_MS" \
+    SESSION_OPERATION_DEADLINE_MS="$OPERATION_DEADLINE_MS" \
+    SESSION_OPERATION_STOP_MS="$OPERATION_STOP_MS" \
+    SESSION_LAST_OPERATION_ELAPSED_MS="$LAST_OP_ELAPSED_MS" \
+    SESSION_LAST_OPERATION_REMAINING_MS="$LAST_OP_REMAINING_MS" \
+    SESSION_STEP="$CURRENT_STEP" SESSION_CLASS="$CURRENT_CLASS" \
+    SESSION_SENDS="$CURRENT_SENDS" SESSION_REASON="$LAST_REASON" \
+    SESSION_EXPECTED="$CURRENT_EXPECTED" SESSION_OBSERVED="$CURRENT_OBSERVED" \
+    SESSION_ARTIFACT="$CURRENT_ARTIFACT" SESSION_ATTEMPT_DIR="$ATTEMPT_DIR" \
+    SESSION_PROJECT_ROOT="$PROJECT_ROOT" SESSION_RA_DIR="$RA_DIR" \
+    perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e '
+        use strict;
+        use warnings;
+        sub number {
+            my ($key) = @_;
+            my $value = $ENV{$key};
+            if (!defined $value || $value !~ /\A[0-9]+\z/) {
+                print STDERR "state_session: journal field invalid\n";
+                exit 81;
+            }
+            return 0 + $value;
+        }
+        my $now = sprintf("%.0f", clock_gettime(CLOCK_MONOTONIC) * 1000);
+        if ($now !~ /\A[0-9]+\z/) {
+            print STDERR "state_session: journal clock observation invalid\n";
+            exit 80;
+        }
+        $now = 0 + $now;
+        my $start = number("SESSION_START_MS");
+        my $budget = number("SESSION_TIMEOUT_MS");
+        if ($now < $start) {
+            print STDERR "state_session: journal clock moved backward\n";
+            exit 80;
+        }
+        my $attempt_elapsed = $now - $start;
+        my $attempt_remaining = $budget - $attempt_elapsed;
+        $attempt_remaining = 0 if $attempt_remaining < 0;
+
+        my ($operation_elapsed, $operation_remaining);
+        if (length($ENV{SESSION_OPERATION_ACTIVE} // "") != 0) {
+            my $operation_start = number("SESSION_OPERATION_START_MS");
+            my $operation_deadline = number("SESSION_OPERATION_DEADLINE_MS");
+            my $operation_now = length($ENV{SESSION_OPERATION_STOP_MS} // "") != 0
+                ? number("SESSION_OPERATION_STOP_MS") : $now;
+            if ($operation_now < $operation_start) {
+                print STDERR "state_session: journal operation clock moved backward\n";
+                exit 80;
+            }
+            $operation_elapsed = $operation_now - $operation_start;
+            $operation_remaining = $operation_deadline - $operation_now;
+            $operation_remaining = 0 if $operation_remaining < 0;
+        } else {
+            $operation_elapsed = number("SESSION_LAST_OPERATION_ELAPSED_MS");
+            $operation_remaining = number("SESSION_LAST_OPERATION_REMAINING_MS");
+        }
+
+        my %text;
+        for my $key (qw(EXPECTED OBSERVED ARTIFACT)) {
+            my $value = $ENV{"SESSION_$key"} // "";
+            $value =~ s/\Q$ENV{SESSION_ATTEMPT_DIR}\E/<attempt>/g;
+            $value =~ s/\Q$ENV{SESSION_PROJECT_ROOT}\E/<workspace>/g;
+            $value =~ s/\Q$ENV{SESSION_RA_DIR}\E/<retroarch>/g;
+            $text{$key} = $value;
+        }
+        my @row = (
+            $ENV{SESSION_STEP} // "", $ENV{SESSION_CLASS} // "",
+            $ENV{SESSION_SENDS} // "", $attempt_elapsed, $attempt_remaining,
+            $operation_elapsed, $operation_remaining, $text{EXPECTED},
+            $text{OBSERVED}, $text{ARTIFACT}, $ENV{SESSION_REASON} // ""
+        );
+        open my $journal, ">>", $ENV{SESSION_JOURNAL} or do {
+            print STDERR "state_session: journal open failed\n";
+            exit 82;
+        };
+        binmode $journal;
+        print {$journal} join("\t", @row), "\n" or do {
+            print STDERR "state_session: journal write failed\n";
+            exit 82;
+        };
+        close $journal or do {
+            print STDERR "state_session: journal close failed\n";
+            exit 82;
+        };
+    ' || _journal_status=$?
+    if [ "$_journal_status" -ne 0 ]; then
+        JOURNAL_FAILED=1
+        [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE=JOURNAL_RECORD_FAILURE
+        LAST_REASON=$FIRST_FAILURE
+        return 1
     fi
-    _expected=$(printf '%s' "$CURRENT_EXPECTED" | sanitize_text)
-    _observed=$(printf '%s' "$CURRENT_OBSERVED" | sanitize_text)
-    _artifact=$(printf '%s' "$CURRENT_ARTIFACT" | sanitize_text)
-    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$CURRENT_STEP" "$CURRENT_CLASS" "$CURRENT_SENDS" "$_e" "$_r" "$ROW_OP_ELAPSED" "$ROW_OP_REMAINING" "$_expected" "$_observed" "$_artifact" "$LAST_REASON" >>"$JOURNAL"
-}
-sanitize_text() {
-    SESSION_ATTEMPT_DIR=$ATTEMPT_DIR SESSION_PROJECT_ROOT=$PROJECT_ROOT SESSION_RA_DIR=$RA_DIR perl -pe \
-        's/\Q$ENV{SESSION_ATTEMPT_DIR}\E/<attempt>/g; s/\Q$ENV{SESSION_PROJECT_ROOT}\E/<workspace>/g; s/\Q$ENV{SESSION_RA_DIR}\E/<retroarch>/g'
 }
 sanitize_file() {
     SESSION_ATTEMPT_DIR=$ATTEMPT_DIR SESSION_PROJECT_ROOT=$PROJECT_ROOT SESSION_RA_DIR=$RA_DIR perl -pe \
@@ -123,7 +201,7 @@ cleanup_quit() {
         _now=$(clock_ms) || break; [ "$_now" -lt "$_deadline" ] || break; sleep 0.02
     done
     if kill -0 "$CHILD_PID" 2>/dev/null; then reap_one "$CHILD_PID"; else wait "$CHILD_PID" 2>/dev/null || true; fi
-    CHILD_PID=; LAST_REASON=${FIRST_FAILURE:-$LAST_REASON}; CURRENT_ARTIFACT=cleanup-quit; record_row
+    CHILD_PID=; LAST_REASON=${FIRST_FAILURE:-$LAST_REASON}; CURRENT_ARTIFACT=cleanup-quit; record_row || true
 }
 cleanup() {
     [ -z "$CHILD_PID" ] || { reap_one "$CHILD_PID"; CHILD_PID=; }
@@ -147,7 +225,7 @@ stop_operation_clock() {
     [ "$OPERATION_STOP_NOW" -ge "$OPERATION_START_MS" ] || return 1
     OPERATION_STOP_MS=$OPERATION_STOP_NOW
 }
-on_signal() { [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE="INTERRUPTED_$1"; stop_operation_clock || true; LAST_REASON=$FIRST_FAILURE; record_row; cleanup; trap - INT TERM HUP; exit 130; }
+on_signal() { [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE="INTERRUPTED_$1"; stop_operation_clock || true; LAST_REASON=$FIRST_FAILURE; record_row || true; cleanup; trap - INT TERM HUP; exit 130; }
 trap cleanup EXIT; trap 'on_signal INT' INT; trap 'on_signal TERM' TERM; trap 'on_signal HUP' HUP
 fail() { stop_operation_clock || true; [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE=$1; LAST_REASON=$FIRST_FAILURE; record_row; echo "state_session: $FIRST_FAILURE" >&2; exit 1; }
 fail_operation_deadline() {
