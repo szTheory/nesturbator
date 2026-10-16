@@ -7,8 +7,9 @@ observation_budget:
   ci: consumed-passing-observation
   ci_seconds: 4.18
   asan_allowance: 1
-  asan_state: consumed-before-launch
+  asan_state: observed-once-inconclusive
   asan_remaining: 0
+  asan_exit: 1
 source_commit: 4bfa3a60957b772c3e62c2908eda0af125e2a31a
 ---
 
@@ -61,4 +62,10 @@ The harness retains every expanded attempt candidate and the original first sele
 
 ## Observation outcome
 
-**State before launch:** consumed-before-launch; no further ASan or CI observation is permitted under this plan. Outcome and exact test exit will be appended after the one invocation. A passing observation or unusable evidence ends here as `INCOMPLETE`; no Task 3 acceptance workflow, `16-12-SUMMARY.md`, or Plan 07 handoff follows. Historical cause remains unproven unless the captured evidence demonstrates a compatible current mechanism within the declared files.
+The one permitted ASan interruption command was launched once under the 60-second wrapper and exited 1 after 6.26 seconds. Its stdout and stderr are retained at `build/phase16-capture-execute/asan-observation.stdout` (SHA-256 `87525798c2f494d18f53fd6d5a825773b2b65f4ddf986a9b2dcc68c5be5ec5e0`) and `build/phase16-capture-execute/asan-observation.stderr` (SHA-256 `90dd6b4c766ba59ce32773e7e917e5a94010b0b6c5be83a05c5af3040f484331`). The exit record is `build/phase16-capture-execute/asan-observation.exit` (SHA-256 `4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865`), containing `1`. The run repeated the seven synthetic capture checks, generated and checked all 44 progression controls, and then ended with `FAIL interruption recorder unusable: driver-trace-missing-or-invalid`.
+
+The recorder retained one expanded candidate and selected `build/phase16-capture-execute/asan-observation/session-97127-interrupt/ra/attempts/attempt-451162955-97610`. It recorded TERM send status 0, driver wait status 130, assertion decision status 0, one QUIT send, and lock absent after wait. The harness's post-wait host `kill -0` result was nonzero, which its event explicitly says cannot distinguish process exit from permission denial. Driver PID 97610 and host PID 97743 were observed; the driver trace also recorded child PID 97762 at handler entry. Later trace fields mark unavailable identities/liveness as unavailable.
+
+The assertion snapshots were both 377 bytes, read 377 bytes from device 16777230/inode 615355542, and remained identical around the assertion. Both snapshots and the selected journal have SHA-256 `9f8814ab643f1145b83023ea17b90b5660093f09ad48b49803570f91b5ecd268`. The captured assertion stdout and stderr files are each empty. The three driver trace rows are present in `session-97127-interrupt/ra/interruption-events.tsv`, in the expected handler-entry, journal-close-success, handler-exit order. At handler exit, however, the trace writer recorded `host_alive=unavailable` after its owned host PID was no longer available in the handler state. The trace validator only accepts a numeric value in that field, so it rejected the explicit unavailable marker and made the observation unusable. This is a recorder/validator compatibility defect in the current instrumentation, not evidence explaining the historical first-failure assertion: the current recorded assertion status is 0, and no compatible historical cause was demonstrated.
+
+The one ASan allowance remains exhausted. This observation is therefore terminal for Plan 12: status `INCOMPLETE`, no cause-specific assertion repair or acceptance, no additional CI/ASan observation, no Task 3, no `16-12-SUMMARY.md`, and no Plan 07 handoff. The diagnostic capture coverage and this truthful repair record are retained for replanning.
