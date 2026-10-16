@@ -5,17 +5,17 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: Plan16-07 Task1 stopped on exact-head native CI failure; bounded gap amendment required
-last_updated: "2026-10-16T22:52:48Z"
+stopped_at: Plan16-22 native repair planned and independently checked; ready to execute
+last_updated: "2026-10-16T23:14:31Z"
 last_activity: 2026-10-16
-last_activity_desc: Plan16-07 native run38976400182 failed; diagnostics retained; no consent or publication
-state_head: 65c3a7fb0b320bfe7a51ac486bf922c5ad5872d9
+last_activity_desc: Plan16-22 bounded native repair planned; 07 and 08 remain blocked
+state_head: 3272b9f4f21f67d89c1fb289489cd5c86875cc94
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 11
+  total_plans: 12
   completed_plans: 9
-  percent: 82
+  percent: 75
 ---
 
 # Project State
@@ -29,9 +29,10 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 7 of 11 — Plan 16-07 Task 1
-Status: Native PR CI failed at65c3a7f; Plan07 Task1 incomplete; bounded gap amendment required
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Plan: 22 (next) — 9 of 12 live plans complete
+Status: Ready to execute Plan16-22; native failure38976400182 retained; 07/08 remain blocked
+Current22 planning: One three-task native repair plan passed fresh independent typed checking with zero findings. Diagnose actual shell/refusal proof, readiness enclosure and cleanup-matrix timing separately; repair only demonstrated causes under unchanged approved bounds, then format frame_index.c and obtain fresh committed-source hygiene/CI-and-ASan session/full649/jobs4/threeZIP/review acceptance plus every mandatory parent gate. See22-PLAN and22-CHECK. Chain completed21wave8→22wave9→07wave10→08wave11; only22 is dependency-ready. All6requirements/17decisions/23post-planning items are covered. Planning changes no source or runtime acceptance; original/native causes remainUNKNOWN until proven.
 Current21 accepted source: Source38e14fb fixes failed QUIT request writes without losing owned teardown or original failure/status. Causal RED3166ms and all8GREEN/7endpoint-reacquisitions105367ms bind the same frozen harness. Formal FULL passed649/649/no skips/jobs4/four stages in293.375720s with three fresh checkedZIPs. Independent six-path review atb071e63 is clean/open0 with digest-bound disposition2544b55. Summary11fc2bf records all3tasks; mandatory parent build and separate649-test full-workflow repeat now pass on that source-equivalent snapshot. No native/ownerconsent/publication credit;07/08 remain incomplete.
 Historical21 round5 continuation: Four development pairs are consumed and retained. Round4 causal RED and eight GREEN runtime outcomes are observed but not accepted because saved-proof checks rejected mixed-clock negative elapsed, stale stdout SHA and cleanup diagnostic reason mismatch. Those exact issues are corrected; one final source-bound round5 pair independently passed planning checks. Earlier runs are immutable, formal PREFLIGHT/FULL/REVIEW remain globally unused, and no task/candidate/SUMMARY credit exists yet.
 Historical21 local development: Two invalid local REDs are retained without causal credit. The second ended READINESS_TRANSPORT from a doubled attempts path and its wrapper lost the wait status via zsh readonly status. Both fake transport paths are corrected. Independent checking passed a bounded4round/3600s local development contract requiring diagnosed code changes and preserved failures; one selected round must bind same-harness causal RED/all8GREEN. Formal PREFLIGHT/FULL/REVIEW remain single shared allowances across rounds. Both old roots remain historical. Only the harness is an authorized uncommitted implementation edit; production/docs/config stay exact.
@@ -42,11 +43,11 @@ Retained execution evidence: Plan18 OFFLINE passed in5s, exact registeredCI10/10
 Historical19 stop: Partial0e94f99 and parentdfaa1eb preserve original FAIL/full_started:false/planned FULL. The exact-line parser rejected valid8ordinary+2registered-regex successes in the retained10-test report; no launcher identity/smoke/FULL/review/SUMMARY or formal adoption ran.19 is superseded incomplete, its entire body and raw evidence unchanged.
 Historical20 planning: Shared metadata-bound parser replaces both retained and full exact-line checks. Safe read-only fragments passed actual CI10/ASan2/historical649 reports,4positive categories and20negative controls; historical full is format evidence only. Independent typed checker passed11live plans with zero findings;6/6requirements,17/17decisions and39source groups remain represented. These planning checks confer no runtime acceptance.
 Historical20 execution: Task1 PASS on unchanged candidate: shared parser/controls accepted actual formats; one resolved launcher/smoke led to normal649/649/jobs4/configure/build/test/package and three fresh actualZIPs. Acceptance commit772dbb0 is retained. One fresh independent six-path review at that commit found CR-01 BLOCKER: failed cleanup QUIT request write under set-e can skip host reap and endpoint-lock release. Review/disposition SHA binding and open1 are committed in f609576; previous five review findings appear addressed. No source fix, second review, Task3, SUMMARY or credit.
-Resume safety:21 has genuine source/full/review/parent acceptance and must not be replayed.07 Task1 resumed partialPR50, pushed65c3a7f and observed terminal native CI38976400182 failure. Preserve all partial commits/raw logs; no07SUMMARY or completion credit. Only07 is dependency-ready, but terminal-failure safe resume forbids unchanged reexecution.08 remains blocked on07. Next gap amendment must address the actual formatting/session-control/readiness failures, then refresh relevant source acceptance/review/native gates before exact-head consent and normal publication. Historical native timing causes remain UNKNOWN.
+Resume safety: Completed21 keeps genuine source/full/review/parent acceptance and consumed slots. Preserve07 partial30a0098/3de23d4/65c3a7f/local3272b9f and immutable native38976400182 failure. Execute only dependency-ready22 first; no unchanged07 rerun,21 replay or07SUMMARY. Fresh22 candidate acceptance/review and actual mandatory parent results precede07 safe resume at existingPR50;07 still needs final-head native required/perf/pinned-hostCI, affirmative exact-head owner consent and normal publication.08 requires actual released-byte proof. Protected config remains exact and unstaged.
 Historical17stop: outer60s CI exit124 after9completed passes/controls unfinished; orchestration mistake, not demonstrated session defect. Raw failure/partialwork retained, no17SUMMARY/credit; historical assertion/native causesUNKNOWN. Native exact-headCI/ownerconsent/publication07 and actual18assets/sixinfo/exactreleaseCI08 pending.
-Last activity: 2026-10-16 — Plan16-07 native required CI failed; retained exact diagnostics and local stop handoff
+Last activity: 2026-10-16 — Plan16-22 gap planning passed independent checking; ready for bounded execution
 
-Progress: [░░░░░░░░░░] 0% of milestone phases complete; Phase 16 has 9/11 live plans complete and remains incomplete
+Progress: [░░░░░░░░░░] 0% of milestone phases complete; Phase 16 has 9/12 live plans complete and remains incomplete
 
 ## Performance Metrics
 
@@ -347,7 +348,7 @@ None.
 
 ### Blockers/Concerns
 
-- **Current delivery stop — 2026-10-16:** [Native PR CI38976400182](https://github.com/szTheory/nesturbator/actions/runs/38976400182) failed at PR50 head65c3a7fb0b320bfe7a51ac486bf922c5ad5872d9. Hygiene needs frame_index.c formatting; Linux x64/ARM and ASan fail owner-sidecar noclobber proof; ASan/Intel readiness time out; Intel cleanup matrix exceeds its wall budget (no Intel sidecar diagnostic). Perf/pinnedRetroArch/macOSARM/Windows pass, CIrequired fails. Causes beyond observed assertions remain unproven. See [delivery](phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md) and retained ignored logs/digests. No unchanged rerun, source/config edit, consent, merge or publication. Plan21 remains locally accepted;07/08 remain incomplete,9/11. Next `$gsd-plan-phase 16 --gaps` must substantively amend the bounded repair before fresh delivery acceptance.
+- **Retained native delivery failure — 2026-10-16:** [Native PR CI38976400182](https://github.com/szTheory/nesturbator/actions/runs/38976400182) failed at PR50 head65c3a7fb0b320bfe7a51ac486bf922c5ad5872d9. Hygiene needs frame_index.c formatting; Linux x64/ARM and ASan fail owner-sidecar noclobber proof; ASan/Intel readiness time out; Intel cleanup matrix exceeds its wall budget (no Intel sidecar diagnostic). Perf/pinnedRetroArch/macOSARM/Windows pass, CIrequired fails. Causes beyond observed assertions remain unproven. See [delivery](phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md) and retained ignored logs/digests. No unchanged rerun, source/config edit, consent, merge or publication. Plan21 remains locally accepted;22/07/08 remain incomplete,9/12. The independently checked22 repair prerequisite now blocks07 pending actual execution, fresh source acceptance and mandatory parent gates.
 
 - **Historical Plan20 execution stop — 2026-10-16; resolved by21:** [Acceptance](phases/16-host-evidence-and-roadmap/16-20-SOURCE-ACCEPTANCE.md) adopts verified18 evidence and records one actual normal649/649/jobs4/four-stage workflow with three fresh checkedZIPs. Commit772dbb0 retains that PASS. The fresh exact-commit six-path [review](phases/16-host-evidence-and-roadmap/16-20-REVIEW.md) and digest-bound [disposition](phases/16-host-evidence-and-roadmap/16-20-REVIEW-DISPOSITION.md) report issues_found/open1: CR-01 cleanup QUIT write under set-e can skip owned host reap and lock release. Partialf609576 preserves the blocker; source/config/history unchanged. No automatic fix, second review, Task3/SUMMARY, parent repeat or07dispatch. Next `$gsd-plan-phase 16 --gaps` must substantively authorize and test failure-safe cleanup while reconciling consumed slots/current candidate; normal safe_resume forbids replay.08/publication/native/ownerconsent and every later gate remain pending.
 
@@ -429,15 +430,15 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T22:52:48Z
-Stopped at: Plan16-07 Task1 terminal native CI failure; bounded gap amendment required
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md
+Last session: 2026-10-16T23:14:31Z
+Stopped at: Plan16-22 native gap repair planned; independent checker passed with zero findings
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-22-PLAN.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Run `$gsd-plan-phase 16 --gaps` to amend the bounded repair for the exact native failures recorded in16-RELEASE-DELIVERY; do not rerun the unchanged failed head or replay Plan21's consumed gates.
-- Preserve checked PR50 head65c3a7f and run38976400182 with raw log hashes. Formatting is directly identified; sidecar/readiness/cleanup-budget causes need evidence before correction. Intel's diagnostic is the cleanup matrix budget, not the Linux/ASan sidecar assertion. Ancillary Nightly suite-flake also failed and remains recorded.
-- After an amended correction, refresh affected acceptance and independent review, then fresh exact-final-head native requiredCI/perf/pinned-host evidence. Affirmative exact-head owner consent and normal publication still gate07;08 verifies18released archives/checksums/attestations, six metadata copies and exact-releaseCI.
-- Counts21physical/11live/9complete; completed01–06/09/15/21.07Task1 remains incomplete without SUMMARY;08 is unstarted. No requirement/phase completion, merge consent, publication or PRODUCT-ROADMAP upkeep. Protected user config remains exact and excluded.
+- Run `$gsd-execute-phase 16 --gaps-only`; only22 is dependency-ready. Preserve completed21 acceptance and consumed gates; keep07 partial commits and immutable native failures.
+- 22 diagnoses and repairs sidecar refusal proof, readiness/cleanup timing and formatting under unchanged approved bounds. Require actual regressions, fresh committed-source full/package acceptance, independent six-path review/open0 and all mandatory parent gates before07. No source/runtime acceptance was produced by planning.
+- 07 then reuses existingPR50 and requires fresh exact-final-head native requiredCI/perf/pinned-host results before affirmative exact-head consent and normal publication.08 verifies actual18released archives/checksums/attestations, six metadata copies and exact-releaseCI.
+- Counts22physical/12live/9complete; completed01–06/09/15/21.22 is unstarted,07Task1 remains incomplete without SUMMARY,08 is blocked. No requirement/phase completion, consent, publication or PRODUCT-ROADMAP upkeep. Protected config is unchanged and excluded.

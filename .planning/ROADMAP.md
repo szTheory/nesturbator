@@ -68,7 +68,7 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans**: 9/11 live complete; Plans01–06,09,15 and21 complete. Plan21 repairs CR-01 at38e14fb, with causal same-harness RED/eight-case GREEN, current-source649/649 full workflow, three fresh checked local ZIPs, independent clean six-path review/open0, and mandatory parent build/full-workflow repeat passed. [Summary](phases/16-host-evidence-and-roadmap/16-21-SUMMARY.md) binds the source and evidence.07Task1 pushed65c3a7f but fresh native run38976400182 failed hygiene formatting, Linux/ASan owner-sidecar proof and ASan/Intel readiness/Intel cleanup-matrix timing. Perf/pinned-host passed; causes beyond assertions remain unproven.07stays incomplete pending a bounded gap amendment and fresh source/native acceptance, exact-head consent and normal publication;08 still requires actual released-byte proof. See16-RELEASE-DELIVERY.21physical/11live;10–14/16–20 remain superseded incomplete with every historical failed run preserved. Global requirements, phase verification and historical native timing causes are unchanged.
+**Plans**: 9/12 live complete; Plans01–06,09,15 and21 complete. Plan21 repairs CR-01 at38e14fb, with causal same-harness RED/eight-case GREEN, current-source649/649 full workflow, three fresh checked local ZIPs, independent clean six-path review/open0, and mandatory parent build/full-workflow repeat passed. [Summary](phases/16-host-evidence-and-roadmap/16-21-SUMMARY.md) preserves that genuine evidence; no21slot replays.07Task1 pushed65c3a7f but native38976400182 failed hygiene formatting, Linux/ARM/ASan owner-sidecar proof, ASan/Intel readiness and Intel cleanup-matrix timing. Intel has no sidecar assertion.22 is the new bounded repair prerequisite: diagnose causes, preserve approved bounds/ownership, add deterministic regressions, accept new committed source through hygiene/CI-and-ASan session/full649/jobs4/threefreshZIP gates, fresh independent six-path review/open0 and every mandatory parent gate. Perf/pinned-host passed historically; fresh final-head nativeCI still belongs to07, followed by explicit exact-head consent/normal publication;08 retains actual released-byte proof. See16-RELEASE-DELIVERY.22physical/12live;10–14/16–20 stay superseded incomplete with failed evidence immutable. Global requirements/verifier and unproven historical causes remain unchanged.
 
 Plans:
 **Wave 1**
@@ -104,10 +104,13 @@ Superseded history: [16-10-PLAN.md](phases/16-host-evidence-and-roadmap/16-10-PL
 
 Plan18 is also superseded/incomplete without SUMMARY/credit: two evidence commits and genuine three passed gates plus terminal launcher failure remain immutable. Plan19 changes adoption and command construction substantively; all eight superseded plans10–14/16/17/18 are excluded from live scanning.
 
-**Wave 9** *(21 and mandatory local parent gates passed; native exact-headCI/ownerconsent remain)*
+**Wave 9** *(new native-repair prerequisite; completed21 evidence is preserved)*
+- [ ] 16-22-PLAN.md — Diagnose and repair actual sidecar-refusal, readiness/cleanup timing and formatting failures under unchanged bounds; establish deterministic proof, fresh committed-source full/package acceptance, independent review and mandatory parent gates. No unchanged native retry or21 replay.
+
+**Wave 10** *(depends on22 and all mandatory current-source parent gates)*
 - [ ] 16-07-PLAN.md — Prepare the checked phase PR, require fresh exact-head native PR CI, obtain exact-head owner merge consent and observe the normal release flow.
 
-**Wave 10** *(depends on the actual normal publication from Plan 07)*
+**Wave 11** *(depends on the actual normal publication from Plan 07)*
 - [ ] 16-08-PLAN.md — Verify downloaded six-platform metadata, all 18 archives/checksums/attestations and exact-release-commit CI.
 
 **Historical Plan 11 planning (2026-10-15):** [Plan 11](phases/16-host-evidence-and-roadmap/16-11-PLAN.md) passed independent review with zero blockers/warnings; all 6 requirements and 17 decisions remain covered. Its 3 tasks form one wave-7 continuation. At planning, the installed index excluded superseded 10, reported 10 live plans with 7 complete, selected only 11 as ready and kept 07/08 blocked; Plan 11's evaluation-scope query resolved with no matching commits. Supersession preserved partial source commits and honest incomplete status without fabricating a summary or replaying completed timing work.
@@ -193,7 +196,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 9/11 | Plan07 native CI failed; bounded repair required; no release | - |
+| 16. Host evidence and roadmap | v4 | 9/12 | Plan22 repair planned; 07/08 blocked; no release | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 
