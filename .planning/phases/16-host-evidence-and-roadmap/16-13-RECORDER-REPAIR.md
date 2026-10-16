@@ -1,8 +1,8 @@
 ---
 phase: 16
 plan: "13"
-status: observation-consumed-pending
-evidence_status: pending
+status: incomplete
+evidence_status: observation-unusable
 source_commit: 6454457c37632d6eb90bd463154cc96f743f6b52
 observation_budget:
   prior_ci_seconds: 4.18
@@ -12,14 +12,15 @@ observation_budget:
   new_asan_allowance: 1
   new_asan_state: consumed-before-launch
   new_asan_remaining: 0
-  new_asan_exit: pending
+  new_asan_exit: 1
+  new_asan_elapsed_ms: 6555
 ---
 
 # Phase 16 Plan 13 Recorder Repair Record
 
 ## Scope and current status
 
-This record preserves one bounded current-source recorder compatibility question. The new ASan allowance is consumed before launch and will not be restored if the selector fails, times out, or yields unusable evidence. At this point the selector has not yet launched and no outcome is claimed. A compatible pass can establish only that the corrected actual writer and validator interoperate on this source/build identity. It cannot explain the historical `FAIL interruption first failure was not retained` assertion. Plan 14 still owns current source controls, normal CI and package acceptance, independent review, and its inherited cause-specific conditions; Plans 07 and 08 retain their native/release obligations.
+This record preserves one bounded current-source recorder compatibility question. The new ASan allowance was consumed before launch and will not be restored. Its one selector invocation exited 1 after 6555 ms and produced an unusable observation because the harness-wide event ledger mixed invocation IDs, despite the actual driver trace being accepted. No compatible recorder pass is claimed. The current assertion returned 0, but this does not explain the historical `FAIL interruption first failure was not retained` assertion. Plan 14 still owns current source controls, normal CI and package acceptance, independent review, and its inherited cause-specific conditions; Plans 07 and 08 retain their native/release obligations.
 
 ## Preserved history and exhausted observations
 
@@ -67,10 +68,20 @@ One new ASan interruption-selector allowance is recorded **consumed before launc
 gsd_run run-with-timeout 60 -- cmake -E env STATE_SESSION_CONTROL=interruption sh tests/retroarch/test_state_session.sh tests/retroarch/state_session.sh build/asan/tests/retroarch/frame_index build/phase16-recorder-execute/compatibility-asan cmake tests/retroarch/run_retroarch.cmake
 ```
 
-The actual driver runs with its existing owned fake host and transport and the real ASan `frame_index`; it does not launch the installed GUI RetroArch. The harness sets attempt/operation/readiness bounds to 30000 ms, cleanup to 1000 ms, publication to 5000 ms and settle to 0, preserving its current gaps. The outer wrapper is 60 seconds. The newly created ignored evidence directory is `build/phase16-recorder-execute/compatibility-asan/`. Its `allowance-consumed-before-launch.md` and `launch-state.txt` record the consumed budget and initial `not-started` state before invoking the command; `launch-state.txt` is changed to `started` immediately before invocation. The command may launch only once; on interruption, inspect retained process/output state and do not start it again.
+The actual driver runs with its existing owned fake host and transport and the real ASan `frame_index`; it does not launch the installed GUI RetroArch. The harness sets attempt/operation/readiness bounds to 30000 ms, cleanup to 1000 ms, publication to 5000 ms and settle to 0, preserving its current gaps. The outer wrapper is 60 seconds. The newly created ignored evidence directory is `build/phase16-recorder-execute/compatibility-asan/`. Its `allowance-consumed-before-launch.md` and `launch-state.txt` recorded the consumed budget and initial `not-started` state before invocation; `launch-state.txt` changed to `started` immediately before invocation. It now records one completed launch, exit 1, unusable status, zero retries and zero remaining allowance.
+
+## New ASan observation outcome — terminal and unusable
+
+The exact command in this record launched once from source commit `6454457c37632d6eb90bd463154cc96f743f6b52`. It exited 1 after 6555 ms. The immutable selector outputs are `selector.stdout` SHA-256 `3ec231ebf725c25cabe1a2406a79482c63836c6534f49796664beeee432b75f4`, `selector.stderr` `14c08e3bca38490097038b221cc6ceb0129dea0b2dd192f5ac71d29f36571edd`, `selector.exit` `4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865`, command file `selector.command` `0314372ff3cd50b05f8dda3e7d86fec9a2ab685eeb374f8b8bc898dcc19e4830`, elapsed record `elapsed.txt` `fcd246b425b740ecd04bcac1675c129b00df78f4245a7e465398051faf29f65b`, and final launch state `launch-state.txt` `ef382805d1d5a02ba323df1af58e7ee0da30e7c7085720b38f20fd851486538d`. The recursive recorder/output manifest includes 199 files; its SHA-256 is `dd1eadb52607d88a729a364ceb2d085dd0dd6c9e0ee94677b5501695db19847b`.
+
+All seven capture tests and 36 trace selftests passed first, and the existing 44 progression controls completed. The actual trace file contains exactly three ordered rows for invocation `session-4487-interrupt`, observed driver PID 5142, handler statuses 0/0/130, and the expected cleanup values; host PID 5282 is recorded while observed and `unavailable` after cleanup. The corrected driver-trace validator accepted these rows. The selected attempt is `session-4487-interrupt/ra/attempts/attempt-454860199-5142`; only one candidate was retained. The original assertion returned status 0 and 242 output bytes, with empty stderr. TERM returned 0, driver wait returned 130, QUIT count was one, and the owned lock was absent. Pre/post snapshots each read 377 bytes from the same device/inode and are byte-identical. The eventual journal has the readiness and cleanup-QUIT rows with `INTERRUPTED_TERM`; these facts do not identify the historical assertion failure.
+
+The harness event ledger has 21 rows and is the reason this observation is unusable: rows 1–9 and 18–21 use `session-4487-interrupt`, while rows 10–17 emitted during `capture_interruption_assertion` use the constant directory basename `capture`. The final ownership/order check therefore reports `harness-event-order-or-identity-invalid`. The retained driver trace itself passes; this is a distinct harness-recorder invocation-identity mismatch. The event ledger SHA-256 is `93c48175fc482e9f5c7fbf37862dd6dd858e7bb0faf8a1a889bfc930fd169079`, driver trace SHA-256 is `9e60257ad47743754c7513a96a21e567d6e26f9a681df5c8936e10c6b8ab3196`, and recorder error file SHA-256 is `1b9ed77bffd3ba2dfe824ce12565a635511bf4af4915d9c603482eef86e98a37`. The captured assertion stdout is 242 bytes (SHA-256 `2de18c5b8f2b0585af0f6f2c9474c63cfa6645b55302ff39412790b6449c6f75`); stderr is empty (SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`). The recorder manifest retains hashes of all other generated files, including fixture/control and snapshot outputs.
+
+This is terminal for this plan attempt: the single new allowance remains consumed, with zero remaining. No source fix, selector retry, full workflow, Plan 14 dispatch, or success SUMMARY is authorized by this result. Any further allowance requires a new explicit planning amendment. The mismatch is recorded for that amendment; it does not justify repairing the historical assertion without separate cause-specific evidence.
 
 ## Bounded question and pass conditions
 
-This run asks whether the corrected actual writer is accepted by the real interruption call path through handler entry, journal close, cleanup and handler exit. A usable pass requires unchanged original assertion status and bytes; recorder status usable; exactly three owned ordered trace events with the expected unique invocation and observed driver PID; handler exit 130 with the retained first reason; one QUIT; the existing reap/lock evidence; and complete byte/status records. Any nonzero original assertion, unusable recorder, timeout or missing state is a terminal incomplete result with zero remaining. There is no retry, second real observation, full CI/workflow, Plan 14 dispatch or success summary after such a result.
+The consumed run asked whether the corrected actual writer is accepted by the real interruption call path through handler entry, journal close, cleanup and handler exit. A usable pass would require unchanged original assertion status and bytes; recorder status usable; exactly three owned ordered trace events with the expected unique invocation and observed driver PID; handler exit 130 with the retained first reason; one QUIT; the existing reap/lock evidence; and complete byte/status records. The driver trace met its criteria, but the harness event-identity check did not. There is no retry, second real observation, full CI/workflow, Plan 14 dispatch or success summary after this unusable result.
 
 Even a pass demonstrates only recorder lifecycle compatibility for the exact identities above. It does not explain or repair the historical first-failure assertion. Full current-source acceptance and independent review remain assigned to Plan 14; native hosted verification and owner consent remain assigned to Plan 07; actual publication and release evidence remain assigned to Plan 08.
