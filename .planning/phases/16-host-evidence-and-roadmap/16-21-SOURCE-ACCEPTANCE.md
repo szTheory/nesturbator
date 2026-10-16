@@ -1,16 +1,20 @@
 ---
 phase: 16-host-evidence-and-roadmap
 plan: "21"
-status: blocked-after-invalid-fixture-red
+status: full-passed-review-pending
 date: 2026-10-16
-runtime_acceptance: false
-red_slot: consumed-invalid-fixture
-green_slot: unconsumed
-full_slot: unconsumed
+runtime_acceptance: true
+red_slot: passed-round5-with-retained-invalid-attempts
+green_slot: passed-round5
+full_slot: consumed-passed
 review_slot: unconsumed
 ---
 
-# Plan 21 source acceptance stop
+# Plan 21 source acceptance and retained history
+
+Current result: Task1 causal RED/all8GREEN and Task2 full workflow/packages pass on committed candidate38e14fbc0104038a7eb9ad17d16499c7924c2b9b. Independent source review and mandatory parent gates are pending. The stop records below describe historical attempts; later accepted results do not erase them.
+
+## Historical initial pre-runtime stop
 
 Plan 21 stopped before any source edit or runtime slot was consumed. The task's required `already-quit` case has to drive the existing production session through all sixteen marker boundaries to the ordinary terminal `send_once QUIT` path. The same acceptance criteria cap that case's measured driver-plus-cleanup elapsed time at 5,000 ms.
 
@@ -68,3 +72,13 @@ All eight case bindings, original first reasons, exact statuses, raw role/inode 
 The precommit working-byte proof passed before the paired source commit. After committing, `candidate.json` records the full candidate SHA, ten exact working-tree/committed source blobs and unchanged protected config SHA2560517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e. Only the four authorized paths differ from the baseline; six protected paths are unchanged. GREEN candidate identity was finalized only after verifying its actual saved driver/harness blobs equal the candidate and same frozen RED harness. `green/candidate-equivalence.json` preserves the original run commit and the byte-equivalence assertion; actual run facts were not replaced. The unmodified extracted read-only saved-proof assertions then printed READONLY SAVED PROOF PASS against the committed candidate. Shell syntax, twelve embedded Python compilations and diff checks pass.
 
 Task1 source proof is accepted. Formal PREFLIGHT/FULL and independent source REVIEW remain unconsumed and shared globally. No full workflow, native observation, consent, release action, SUMMARY or whole-plan credit is claimed here. Parent owns Tasks2/3 and subsequent tracking.
+
+## Task2 current committed-source FULL — PASS
+
+The one shared formal launcher preflight passed runtime identity and the15-second version smoke using the same resolved installed launcher. The normal900-second workflow completed with exit0 on source candidate38e14fbc0104038a7eb9ad17d16499c7924c2b9b. Actual elapsed was293.375720seconds; CTest reports291.56seconds. Configure/build/test/package all completed,649 unique tests passed with no skips and jobs4, and registration/source/config identities remained exact. The metadata-bound parser accepted611 ordinary and38 registered-regex result forms, including2 WILL_FAIL outcomes; retained parser controls also passed. The normal CI invocation's new eight-case cleanup matrix independently recorded PASS in107999ms.
+
+All three newly recreated macOS arm64 ZIPs (library, runner and libretro) passed inventory/CRC/digest/freshness checks and the existing archive checker. These are local packages, not published release proof. Full streams, registration metadata, original current CTest report and Temporary tree, package bytes/inventories, source-before/after, launcher/identity/smoke and actual run/PID/timestamps remain under the selected round's full directory. full-result.json binds both regression evidence digests and the complete per-case binding digest.
+
+The formal FULL allowance is consumed/passed. No independent REVIEW has run yet; parent build/full-repeat and enabled gates remain pending. Native exact-final-head CI/perf/pinned-host, affirmative exact-head owner consent, normal publication and actual18released assets/checksums/attestations/sixmetadata remain07/08 obligations. No SUMMARY or phase completion is claimed by this acceptance record.
+
+Full-result SHA256: 49ba951865a9574f0729bc51fff5a64a58bd2706cb71595f54ad2506a2f52020
