@@ -1587,8 +1587,12 @@ supervision slice, further capped by live operation and attempt time. Empty read
 may retry within the 30-second readiness deadline; every action, state save/load,
 screenshot and QUIT request is one-shot. Monotonic timers bound the 30-second
 readiness and operation windows, 5-second artifact publication window,
-120-second attempt and 5-second cleanup reserve. On the portable synthetic
-host, the full sixteen-boundary session took 53.2 seconds, including every
+120-second attempt and 5-second cleanup reserve. Cleanup claims its one-shot
+QUIT before writing the request. A failed request write emits
+`CLEANUP_REQUEST_WRITE_FAILED`, records zero transport sends when the journal
+is writable, and still reaps the owned host and releases its proven endpoint
+lock while preserving the original failure or signal exit status. On the portable
+synthetic host, the full sixteen-boundary session took 53.2 seconds, including every
 intermediate production verdict. The POSIX control runs the actual shell driver
 through the successful full sequence
 and reason-specific loss, duplication, stale/partial artifact, wrong-origin,

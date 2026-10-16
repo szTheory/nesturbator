@@ -52,6 +52,15 @@ report_readiness_timing() {
 fake_nc() {
     request=$(cat)
     printf '%s\n' "$request" >>"$STATE_SESSION_TEST_SENDS"
+    if [ -n "${STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE:-}" ] && [ ! -e "$STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE" ]; then
+        CLEANUP_LOCK_ROOT="${STATE_SESSION_LOCK_ROOT:?}" python3 - "$STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE" <<'PY'
+import json, os, pathlib, sys
+path=pathlib.Path(os.environ["CLEANUP_LOCK_ROOT"])/"nesturbator-retroarch-55355.lock"
+st=path.lstat()
+record={"device":st.st_dev,"inode":st.st_ino,"token":path.read_text().strip()}
+pathlib.Path(sys.argv[1]).write_text(json.dumps(record,sort_keys=True)+"\n")
+PY
+    fi
     case "$request" in
         'GET_CONFIG_PARAM savestate_directory')
             [ -z "${STATE_SESSION_TEST_READINESS_SENDS:-}" ] ||
@@ -59,6 +68,45 @@ fake_nc() {
             ;;
     esac
     fault=${STATE_SESSION_TEST_FAULT:-}
+    if [ "$fault" = dropped-quit ] && [ -n "${STATE_SESSION_TEST_CASE_ROOT:-}" ] && [ "$request" = QUIT ]; then
+        cleanup_root=$STATE_SESSION_TEST_CASE_ROOT
+        cleanup_case=$STATE_SESSION_TEST_CASE_ID
+        cleanup_invocation=$STATE_SESSION_TEST_INVOCATION_ID
+        cleanup_request=${STATE_SESSION_TEST_EXPECTED_DIR%/states}/request.txt
+        printf '%s' "$request" >"$cleanup_root/consumed.request"
+        : >"$cleanup_root/reply.raw"
+        cleanup_driver_pid=$(cat "${STATE_SESSION_TEST_DRIVER_PID_FILE:?}")
+        CLEANUP_CASE_ROOT="$cleanup_root" CLEANUP_CASE_ID="$cleanup_case" \
+        CLEANUP_INVOCATION_ID="$cleanup_invocation" CLEANUP_DRIVER_PID="$cleanup_driver_pid" \
+        CLEANUP_TRANSPORT_PID="$$" CLEANUP_REQUEST_PATH="$cleanup_request" \
+        CLEANUP_HOST_PID_FILE="$STATE_SESSION_TEST_HOST_PID" CLEANUP_LOCK_ROOT="${STATE_SESSION_LOCK_ROOT:?}" \
+        python3 - "$cleanup_root/control.json" <<'PY'
+import json, os, pathlib, sys
+root=pathlib.Path(os.environ["CLEANUP_CASE_ROOT"]).resolve()
+request=pathlib.Path(os.environ["CLEANUP_REQUEST_PATH"]).resolve()
+hostfile=pathlib.Path(os.environ["CLEANUP_HOST_PID_FILE"]); host=int(hostfile.read_text().strip()) if hostfile.is_file() else 0
+try: os.kill(host,0); host_live=host>1
+except (ProcessLookupError,PermissionError,OSError): host_live=False
+transport=int(os.environ["CLEANUP_TRANSPORT_PID"])
+try: os.kill(transport,0); receive_live=True
+except (ProcessLookupError,PermissionError,OSError): receive_live=False
+lock=pathlib.Path(os.environ["CLEANUP_LOCK_ROOT"])/"nesturbator-retroarch-55355.lock"
+try:
+ st=lock.lstat(); lock_before={"device":st.st_dev,"inode":st.st_ino,"token":lock.read_text().strip()}
+except OSError: lock_before=None
+record={"case_id":os.environ["CLEANUP_CASE_ID"],"invocation_id":os.environ["CLEANUP_INVOCATION_ID"],
+ "case_root":"cases/"+os.environ["CLEANUP_CASE_ID"],"producer":"fake-nc","mode":"dropped-quit",
+ "driver_pid":int(os.environ["CLEANUP_DRIVER_PID"]),"transport_pid":int(os.environ["CLEANUP_TRANSPORT_PID"]),
+ "host_pid":host if host>1 else None,"host_live_before_injection":host_live,
+ "owned_live_before_injection":host_live and receive_live,"receive_live_before_injection":receive_live,
+ "owned_lock_before_injection":lock_before,
+ "request_path":request.relative_to(root).as_posix(),"request_before":"regular","request_after":"regular",
+ "request_writable":True,"marker":os.environ["CLEANUP_INVOCATION_ID"]+":dropped-quit",
+ "consumed_file":"cases/"+os.environ["CLEANUP_CASE_ID"]+"/consumed.request",
+ "reply_file":"cases/"+os.environ["CLEANUP_CASE_ID"]+"/reply.raw","signal":None}
+pathlib.Path(sys.argv[1]).write_text(json.dumps(record,sort_keys=True)+"\n")
+PY
+    fi
     if [ "$fault" = send-error ] && [ "$request" = "${STATE_SESSION_TEST_FAIL_REQUEST:-}" ]; then exit 93; fi
     if [ "$fault" = stalled-write ] && [ "$request" = FRAMEADVANCE ]; then
         printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
@@ -69,6 +117,150 @@ fake_nc() {
             if [ "$fault" = stalled-read ]; then
                 printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
                 exec perl -MTime::HiRes=sleep -e 'sleep 20'
+            fi
+            if [ "$fault" = cleanup-request-failure ]; then
+                cleanup_root=${STATE_SESSION_TEST_CASE_ROOT:?}
+                cleanup_case=${STATE_SESSION_TEST_CASE_ID:?}
+                cleanup_invocation=${STATE_SESSION_TEST_INVOCATION_ID:?}
+                cleanup_request=${STATE_SESSION_TEST_EXPECTED_DIR%/states}/request.txt
+                [ -f "$cleanup_request" ] && [ ! -L "$cleanup_request" ] || exit 95
+                cleanup_before=$(CLEANUP_REQUEST_PATH="$cleanup_request" python3 - <<'PY'
+import os, pathlib, stat
+p=pathlib.Path(os.environ["CLEANUP_REQUEST_PATH"]); mode=p.lstat().st_mode
+if not stat.S_ISREG(mode) or p.is_symlink(): raise SystemExit("request was not a regular file before injection")
+print("regular")
+PY
+                ) || exit 96
+                printf '%s' "$request" >"$cleanup_root/consumed.request"
+                cleanup_mode=request-directory
+                cleanup_marker="$cleanup_invocation:$cleanup_mode"
+                case "$cleanup_case" in
+                    exit-failure|signal-INT|signal-TERM|signal-HUP) ;;
+                    writable-cleanup|foreign-owner-replacement)
+                        cleanup_mode=malformed-readiness
+                        cleanup_marker="$cleanup_invocation:$cleanup_mode"
+                        ;;
+                    *) exit 96 ;;
+                esac
+                cleanup_reply="GET_CONFIG_PARAM savestate_directory /wrong/$cleanup_invocation"
+                case "$cleanup_case" in
+                    signal-INT|signal-TERM|signal-HUP) : >"$cleanup_root/reply.raw" ;;
+                    *) printf '%s\n' "$cleanup_reply" >"$cleanup_root/reply.raw" ;;
+                esac
+                if [ "$cleanup_case" = foreign-owner-replacement ]; then
+                    set -- "${STATE_SESSION_LOCK_ROOT:?}"/nesturbator-retroarch-55355.lock.owner.*
+                    cleanup_owner=$1
+                    [ -f "$cleanup_owner" ] && [ ! -L "$cleanup_owner" ] || exit 99
+                    CLEANUP_OWNER_PATH="$cleanup_owner" CLEANUP_CASE_ROOT="$cleanup_root" \
+                    python3 - <<'PY'
+import json, os, pathlib
+owner=pathlib.Path(os.environ["CLEANUP_OWNER_PATH"])
+st=owner.lstat()
+record={"device":st.st_dev,"inode":st.st_ino,"token":owner.read_text().strip()}
+root=pathlib.Path(os.environ["CLEANUP_CASE_ROOT"])
+(root/"owned-sidecar-original.json").write_text(json.dumps(record,sort_keys=True)+"\n")
+PY
+                    cp "$cleanup_root/foreign.sentinel" "$cleanup_root/foreign-owner.tmp" || exit 99
+                    mv "$cleanup_root/foreign-owner.tmp" "$cleanup_owner" || exit 99
+                    CLEANUP_OWNER_PATH="$cleanup_owner" CLEANUP_CASE_ROOT="$cleanup_root" \
+                    CLEANUP_FOREIGN_PID_FILE="$cleanup_root/foreign.pid" \
+                    python3 - <<'PY'
+import json, os, pathlib, shutil
+owner=pathlib.Path(os.environ["CLEANUP_OWNER_PATH"])
+st=owner.lstat(); pid=int(pathlib.Path(os.environ["CLEANUP_FOREIGN_PID_FILE"]).read_text().strip())
+try: os.kill(pid,0); live=True
+except (ProcessLookupError,PermissionError,OSError): live=False
+root=pathlib.Path(os.environ["CLEANUP_CASE_ROOT"])
+record={"pid":pid,"live":live,"lock":{"device":st.st_dev,"inode":st.st_ino,"token":owner.read_text().strip()}}
+(root/"foreign-before.json").write_text(json.dumps(record,sort_keys=True)+"\n")
+shutil.copyfile(owner,root/"foreign-bytes-before")
+PY
+                fi
+                if [ "$cleanup_mode" = request-directory ]; then
+                    rm "$cleanup_request" && mkdir "$cleanup_request" || exit 97
+                fi
+                cleanup_transport_pid=$$
+                cleanup_driver_pid=
+                cleanup_wait=0
+                while [ ! -s "${STATE_SESSION_TEST_DRIVER_PID_FILE:?}" ] && [ "$cleanup_wait" -lt 100 ]; do
+                    sleep 0.01
+                    cleanup_wait=$((cleanup_wait+1))
+                done
+                [ -s "$STATE_SESSION_TEST_DRIVER_PID_FILE" ] || exit 98
+                cleanup_driver_pid=$(cat "$STATE_SESSION_TEST_DRIVER_PID_FILE")
+                CLEANUP_REQUEST_PATH="$cleanup_request" python3 - <<'PY' >"$cleanup_root/request-after.json"
+import json, os, pathlib, stat
+p=pathlib.Path(os.environ["CLEANUP_REQUEST_PATH"]); mode=p.lstat().st_mode
+kind="regular" if stat.S_ISREG(mode) and not p.is_symlink() else "directory" if stat.S_ISDIR(mode) else "other"
+writable=kind=="regular" and os.access(p,os.W_OK)
+print(json.dumps({"kind":kind,"writable":writable},sort_keys=True))
+PY
+                cleanup_after=$(CLEANUP_REQUEST_AFTER_FILE="$cleanup_root/request-after.json" python3 - <<'PY'
+import json, os, pathlib
+print(json.loads(pathlib.Path(os.environ["CLEANUP_REQUEST_AFTER_FILE"]).read_text())["kind"])
+PY
+                ) || exit 96
+                cleanup_writable=$(CLEANUP_REQUEST_AFTER_FILE="$cleanup_root/request-after.json" python3 - <<'PY'
+import json, os, pathlib
+print("true" if json.loads(pathlib.Path(os.environ["CLEANUP_REQUEST_AFTER_FILE"]).read_text())["writable"] else "false")
+PY
+                ) || exit 96
+                CLEANUP_CASE_ROOT="$cleanup_root" CLEANUP_CASE_ID="$cleanup_case" \
+                CLEANUP_INVOCATION_ID="$cleanup_invocation" CLEANUP_DRIVER_PID="$cleanup_driver_pid" \
+                CLEANUP_TRANSPORT_PID="$cleanup_transport_pid" CLEANUP_MODE="$cleanup_mode" \
+                CLEANUP_MARKER="$cleanup_marker" CLEANUP_REQUEST_PATH="$cleanup_request" \
+                CLEANUP_REQUEST_BEFORE="$cleanup_before" CLEANUP_REQUEST_AFTER="$cleanup_after" \
+                CLEANUP_REQUEST_WRITABLE="$cleanup_writable" \
+                CLEANUP_HOST_PID_FILE="$STATE_SESSION_TEST_HOST_PID" \
+                CLEANUP_LOCK_ROOT="${STATE_SESSION_LOCK_ROOT:?}" \
+                python3 - "$cleanup_root/control.json" <<'PY'
+import json, os, pathlib, sys
+root = pathlib.Path(os.environ["CLEANUP_CASE_ROOT"]).resolve()
+request = pathlib.Path(os.environ["CLEANUP_REQUEST_PATH"]).resolve()
+host_file = pathlib.Path(os.environ["CLEANUP_HOST_PID_FILE"])
+host_pid = int(host_file.read_text().strip()) if host_file.is_file() else 0
+try: os.kill(host_pid, 0); host_live = host_pid > 1
+except (ProcessLookupError, PermissionError, OSError): host_live = False
+transport_pid=int(os.environ["CLEANUP_TRANSPORT_PID"])
+try: os.kill(transport_pid,0); transport_live=True
+except (ProcessLookupError, PermissionError, OSError): transport_live=False
+lock = pathlib.Path(os.environ["CLEANUP_LOCK_ROOT"]) / "nesturbator-retroarch-55355.lock"
+try:
+    st = lock.lstat()
+    lock_before = {"device": st.st_dev, "inode": st.st_ino, "token": lock.read_text().strip()}
+except OSError: lock_before = None
+record = {
+    "case_id": os.environ["CLEANUP_CASE_ID"],
+    "invocation_id": os.environ["CLEANUP_INVOCATION_ID"],
+    "case_root": "cases/" + os.environ["CLEANUP_CASE_ID"],
+    "producer": "fake-nc",
+    "mode": os.environ["CLEANUP_MODE"],
+    "driver_pid": int(os.environ["CLEANUP_DRIVER_PID"]),
+    "transport_pid": int(os.environ["CLEANUP_TRANSPORT_PID"]),
+    "host_pid": host_pid if host_pid > 1 else None,
+    "host_live_before_injection": host_live,
+    "owned_live_before_injection": host_live and transport_live,
+    "receive_live_before_injection": transport_live,
+    "owned_lock_before_injection": lock_before,
+    "request_path": request.relative_to(root).as_posix(),
+    "request_before": os.environ["CLEANUP_REQUEST_BEFORE"],
+    "request_after": os.environ["CLEANUP_REQUEST_AFTER"],
+    "request_writable": os.environ["CLEANUP_REQUEST_WRITABLE"] == "true",
+    "marker": os.environ["CLEANUP_MARKER"],
+    "consumed_file": "cases/" + os.environ["CLEANUP_CASE_ID"] + "/consumed.request",
+    "reply_file": "cases/" + os.environ["CLEANUP_CASE_ID"] + "/reply.raw",
+    "signal": None,
+}
+pathlib.Path(sys.argv[1]).write_text(json.dumps(record, sort_keys=True) + "\n")
+PY
+                printf '%s\n' "$cleanup_transport_pid" >"$cleanup_root/receive.pid"
+                case "$cleanup_case" in
+                    signal-INT|signal-TERM|signal-HUP)
+                        printf '%s\n' "$cleanup_marker" >"$cleanup_root/armed"
+                        exec perl -MTime::HiRes=sleep -e 'sleep 60'
+                        ;;
+                    *) printf '%s\n' "$cleanup_reply"; exit 0 ;;
+                esac
             fi
             if [ "$fault" = readiness-response-stall ]; then
                 printf '%s\n' "$$" >"$STATE_SESSION_TEST_STALL_PID"
@@ -265,9 +457,19 @@ TEST_SCRIPT_DIR=$(CDPATH= cd "$(dirname "$DRIVER")" && pwd -P)
 . "$TEST_SCRIPT_DIR/interruption_trace.sh"
 CONTROL=${STATE_SESSION_CONTROL:-all}
 case "$CONTROL" in
-    all|readiness|interruption|interruption-capture-selftest|interruption-trace-lock-selftest) ;;
+    all|readiness|interruption|cleanup-request-failure|interruption-capture-selftest|interruption-trace-lock-selftest) ;;
     *) echo "state session controls: invalid STATE_SESSION_CONTROL=$CONTROL" >&2; exit 2 ;;
 esac
+if [ "$CONTROL" = cleanup-request-failure ]; then
+    mkdir -p "$(dirname "$WORK_ROOT")" || exit 2
+    if ! mkdir "$WORK_ROOT" 2>/dev/null; then
+        echo 'state session cleanup controls: evidence root already exists; refusing re-entry' >&2
+        exit 2
+    fi
+    WORK_ROOT=$(cd "$WORK_ROOT" && pwd -P)
+    CLEANUP_MATRIX_KIND=$(basename "$WORK_ROOT")
+    exec >"$WORK_ROOT/stdout.log" 2>"$WORK_ROOT/stderr.log"
+fi
 
 selftest_counted_grep() {
     printf 'call\n' >>"$INTERRUPTION_TEST_CALLS"
@@ -2413,197 +2615,10 @@ if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ] || [ "$CONTROL" = readiness ]; 
     fi
 fi
 
-script_path=$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")
-test_started=$(mono_ms)
-fixture_started=$(mono_ms)
-
-test_dir="$WORK_ROOT/session-$$"
-fixture_dir="$test_dir/fixture"
-ra_dir="$test_dir/ra"
-mkdir -p "$fixture_dir" "$ra_dir/shots" "$ra_dir/states"
-if [ "$CONTROL" = readiness ]; then
-    NESTURBATOR_RUN=$(cd "$(dirname "$FRAME_INDEX")/../../runner" && pwd -P)/nesturbator-run
-    if ! "$FRAME_INDEX" --progression-selftest "$fixture_dir"; then
-        echo "fixture precondition failed: frame_index --progression-selftest" >&2
-        exit 2
-    fi
-    if [ ! -x "$NESTURBATOR_RUN" ] ||
-        ! "$NESTURBATOR_RUN" --frames 101 --rom "$fixture_dir/marker.nes" \
-            --dump-frame "101:$fixture_dir/alternative frame 101.ppm"; then
-        echo "fixture precondition failed: nesturbator-run marker frame 101" >&2
-        exit 2
-    fi
-    cp "$fixture_dir/pause capture one.ppm" "$fixture_dir/boundary 01 pause a.ppm" &&
-        cp "$fixture_dir/pause capture two.ppm" "$fixture_dir/boundary 02 pause b.ppm" &&
-        cp "$fixture_dir/advance one.ppm" "$fixture_dir/boundary 03 advance 1.ppm" || {
-        echo "fixture precondition failed: readiness prefix aliases" >&2; exit 2;
-    }
-elif ! "$FRAME_INDEX" --progression-selftest "$fixture_dir" --controls; then
-    echo "fixture precondition failed: frame_index --progression-selftest --controls" >&2
-    exit 2
-fi
-fixture_finished=$(mono_ms)
-fixture_elapsed=$((fixture_finished-fixture_started))
-
-if [ "$CONTROL" = interruption ]; then
-    run_interruption_control "$fixture_dir"
-    exit 0
-fi
-
-ln -s "$script_path" "$test_dir/fake-nc"
-ln -s "$script_path" "$test_dir/recording-action-nc"
-ln -s "$script_path" "$test_dir/fake-retroarch"
-: >"$test_dir/config.cfg"
-: >"$test_dir/core.so"
-expected_state_dir="$ra_dir/states"
-send_log="$test_dir/sends.log"
-action_send_log="$test_dir/action-sends.log"
-readiness_send_log="$test_dir/readiness-sends.log"
-host_pid_file="$test_dir/host.pid"
-quit_file="$test_dir/quit"
-shot_count_file="$test_dir/shot.count"
-read_count_file="$test_dir/read.count"
-state_count_file="$test_dir/state.count"
-driver_output="$test_dir/driver.out"
-
-if [ "$CONTROL" = all ]; then
-status=0
-STATE_SESSION_NC="$test_dir/recording-action-nc" \
-STATE_SESSION_TEST_READINESS_NC="$test_dir/fake-nc" \
-STATE_SESSION_TEST_MODE=1 \
-STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
-STATE_SESSION_TEST_EXPECTED_DIR="$expected_state_dir" \
-STATE_SESSION_TEST_SENDS="$send_log" \
-STATE_SESSION_TEST_ACTION_SENDS="$action_send_log" \
-STATE_SESSION_TEST_READINESS_SENDS="$readiness_send_log" \
-STATE_SESSION_TEST_FAKE_NC="$test_dir/fake-nc" \
-STATE_SESSION_TEST_HOST_PID="$host_pid_file" \
-STATE_SESSION_TEST_QUIT_FILE="$quit_file" \
-STATE_SESSION_TEST_SHOT_COUNT="$shot_count_file" \
-STATE_SESSION_TEST_READ_COUNT="$read_count_file" \
-STATE_SESSION_TEST_STATE_COUNT="$state_count_file" \
-STATE_SESSION_TEST_DROP_FIRST_READ=1 \
-STATE_SESSION_TEST_MODE=prefix \
-STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
-STATE_SESSION_TEST_SHOTS="$ra_dir/shots" \
-STATE_SESSION_LOCK_ROOT="$test_dir/locks" \
-STATE_SESSION_SETTLE_MS=0 \
-sh "$DRIVER" "$test_dir/fake-retroarch" "$test_dir/config.cfg" "$test_dir/core.so" \
-    "$fixture_dir/marker.nes" "$ra_dir" "$test_dir/retroarch.log" "$FRAME_INDEX" \
-    "$fixture_dir/calibration.txt" >"$driver_output" 2>&1 || status=$?
-
-if [ "$status" -ne 0 ] || ! grep -F 'verdict=PREFIX_OK' "$driver_output" >/dev/null 2>&1; then
-    echo "FAIL actual shell tracer reaches the production prefix verdict: expected PREFIX_OK, driver exit=$status" >&2
-    cat "$driver_output" >&2
-    exit 1
-fi
-
-count_request() {
-    awk -v wanted="$1" '$0 == wanted { n++ } END { print n + 0 }' "$send_log"
-}
-for request in PAUSE_TOGGLE SAVE_STATE FRAMEADVANCE QUIT; do
-    count=$(count_request "$request")
-    [ "$count" -eq 1 ] || {
-        echo "FAIL one-shot $request send count: expected 1, got $count" >&2
-        exit 1
-    }
-done
-count=$(count_request SCREENSHOT)
-[ "$count" -eq 5 ] || {
-    echo "FAIL screenshot publication request count: expected 5, got $count" >&2
-    exit 1
-}
-count=$(count_request 'GET_CONFIG_PARAM savestate_directory')
-[ "$count" -eq 2 ] || {
-    echo "FAIL read-only readiness retry count: expected 2, got $count" >&2
-    exit 1
-}
-action_readiness_count=$(awk '$0 == "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$action_send_log")
-readiness_route_count=$(awk '$0 == "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$readiness_send_log")
-action_total=$(wc -l <"$action_send_log" | tr -d ' ')
-sent_total=$(wc -l <"$send_log" | tr -d ' ')
-[ "$action_readiness_count" -eq 0 ] && [ "$readiness_route_count" -eq 2 ] &&
-    [ "$action_total" -eq $((sent_total-2)) ] || {
-    echo "FAIL independent readiness/action routing: action=$action_total action_reads=$action_readiness_count readiness_reads=$readiness_route_count sent=$sent_total" >&2
-    exit 1
-}
-
-printf 'state session tracer: PREFIX_OK; readiness bypassed the action wrapper; one FRAMEADVANCE; 2 startup and 3 boundary captures; one QUIT\n'
-
-# A dropped frame-advance is terminal even though the screenshot request succeeds. It is
-# attempted once, fails on the wrong decoded frame, and the owned host is reaped within budget.
-negative_dir="$WORK_ROOT/session-$$-missing-action"
-negative_fixture="$fixture_dir"
-negative_ra="$negative_dir/ra"
-mkdir -p "$negative_ra/shots" "$negative_ra/states"
-ln -s "$script_path" "$negative_dir/fake-nc"
-ln -s "$script_path" "$negative_dir/fake-retroarch"
-: >"$negative_dir/config.cfg"
-: >"$negative_dir/core.so"
-negative_sends="$negative_dir/sends.log"
-negative_host="$negative_dir/host.pid"
-negative_quit="$negative_dir/quit"
-negative_reads="$negative_dir/read.count"
-negative_shots="$negative_dir/shot.count"
-negative_states="$negative_dir/state.count"
-started=$(perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000')
-negative_status=0
-STATE_SESSION_NC="$negative_dir/fake-nc" \
-STATE_SESSION_TEST_FIXTURE="$negative_fixture" \
-STATE_SESSION_TEST_EXPECTED_DIR="$negative_ra/states" \
-STATE_SESSION_TEST_SENDS="$negative_sends" \
-STATE_SESSION_TEST_HOST_PID="$negative_host" \
-STATE_SESSION_TEST_QUIT_FILE="$negative_quit" \
-STATE_SESSION_TEST_SHOT_COUNT="$negative_shots" \
-STATE_SESSION_TEST_READ_COUNT="$negative_reads" \
-STATE_SESSION_TEST_STATE_COUNT="$negative_states" \
-STATE_SESSION_TEST_DROP_ADVANCE=1 \
-STATE_SESSION_TEST_MODE=prefix \
-STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
-STATE_SESSION_TEST_SHOTS="$negative_ra/shots" \
-STATE_SESSION_LOCK_ROOT="$negative_dir/locks" \
-STATE_SESSION_ATTEMPT_MS=30000 \
-STATE_SESSION_CLEANUP_MS=1000 \
-STATE_SESSION_SETTLE_MS=0 \
-STATE_SESSION_OPERATION_MS=10000 \
-sh "$DRIVER" "$negative_dir/fake-retroarch" "$negative_dir/config.cfg" "$negative_dir/core.so" \
-    "$negative_fixture/marker.nes" "$negative_ra" "$negative_dir/retroarch.log" "$FRAME_INDEX" \
-    "$negative_fixture/calibration.txt" >"$negative_dir/driver.out" 2>&1 || negative_status=$?
-finished=$(perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000')
-duration=$((finished - started))
-[ "$negative_status" -ne 0 ] && grep -Fx 'state_session: ADVANCE_NOT_EXACTLY_ONE' "$negative_dir/driver.out" >/dev/null || {
-    echo "FAIL dropped advance reaches its exact terminal reason (status=$negative_status)" >&2
-    cat "$negative_dir/driver.out" >&2
-    exit 1
-}
-negative_attempt_dir=
-for _negative_attempt in "$negative_ra"/attempts/attempt-*; do
-    [ -d "$_negative_attempt" ] || continue
-    negative_attempt_dir=$_negative_attempt
-    break
-done
-[ -n "$negative_attempt_dir" ] || { echo "FAIL dropped advance did not retain its attempt tree" >&2; exit 1; }
-negative_row=$(awk -F '\t' '$11 == "ADVANCE_NOT_EXACTLY_ONE" { row=$0 } END { print row }' "$negative_attempt_dir/journal.tsv")
-negative_attempt_elapsed=$(printf '%s\n' "$negative_row" | cut -f4)
-negative_operation_elapsed=$(printf '%s\n' "$negative_row" | cut -f6)
-[ "$negative_operation_elapsed" -gt 0 ] && [ "$negative_operation_elapsed" -le 10000 ] || {
-    echo "FAIL dropped advance exceeded measured operation deadline: ${negative_operation_elapsed}ms" >&2; exit 1;
-}
-[ "$negative_attempt_elapsed" -ge "$negative_operation_elapsed" ] && [ "$negative_attempt_elapsed" -lt 29000 ] && [ "$duration" -lt 32000 ] || {
-    echo "FAIL dropped advance exceeded bounded attempt/cleanup time: operation=${negative_operation_elapsed}ms attempt=${negative_attempt_elapsed}ms process=${duration}ms" >&2
-    exit 1
-}
-advance_count=$(awk '$0 == "FRAMEADVANCE" { n++ } END { print n + 0 }' "$negative_sends")
-[ "$advance_count" -eq 1 ] || { echo "FAIL dropped advance send count: expected 1, got $advance_count" >&2; exit 1; }
-host_pid=$(cat "$negative_host")
-if kill -0 "$host_pid" 2>/dev/null; then echo "FAIL dropped advance left the owned host alive" >&2; exit 1; fi
-printf 'state session missing-action control: ADVANCE_NOT_EXACTLY_ONE; one send; operation %sms, attempt %sms, process %sms; host reaped\n' \
-    "$negative_operation_elapsed" "$negative_attempt_elapsed" "$duration"
-fi
 
 run_fault() {
     name=$1; expected=$2; fault=$3; fail_request=${4:-}; mode=${5:-prefix}; max_ms=${6:-20000}; ready_ms=${7:-30000}; publication_ms=${8:-1000}; attempt_override=${9:-}; operation_override=${10:-30000}
-    case_dir="$WORK_ROOT/session-$$-$name"; case_ra="$case_dir/ra"
+    case_dir=${STATE_SESSION_TEST_CASE_ROOT_OVERRIDE:-"$WORK_ROOT/session-$$-$name"}; case_ra="$case_dir/ra"
     command_gap_ms=100
     [ "$fault" != stalled-write ] || command_gap_ms=0
     case_host_die=0; [ "$fault" != host-died ] || case_host_die=1
@@ -2615,7 +2630,9 @@ run_fault() {
     case_status=0; case_driver_started=$(mono_ms)
     if [ "$mode" = complete ]; then stop_after=0; attempt_ms=120000; else stop_after=1; attempt_ms=30000; fi
     [ -z "$attempt_override" ] || attempt_ms=$attempt_override
-    STATE_SESSION_NC="$case_dir/fake-nc" \
+    primary_elapsed_file=${STATE_SESSION_TEST_PRIMARY_ELAPSED_FILE:-}
+    (
+    export STATE_SESSION_NC="$case_dir/fake-nc" \
     STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
     STATE_SESSION_TEST_EXPECTED_DIR="$case_ra/states" \
     STATE_SESSION_TEST_SENDS="$case_dir/sends.log" \
@@ -2641,10 +2658,57 @@ run_fault() {
     STATE_SESSION_COMMAND_GAP_MS="$command_gap_ms" \
     STATE_SESSION_PROGRESS_WAIT_MS=20 \
     STATE_SESSION_QUIT_GRACE_MS=300 \
-    sh "$DRIVER" "$case_dir/fake-retroarch" "$case_dir/config.cfg" "$case_dir/core.so" \
-        "$fixture_dir/marker.nes" "$case_ra" "$case_dir/retroarch.log" "$FRAME_INDEX" \
-        "$fixture_dir/calibration.txt" >"$case_dir/driver.out" 2>&1 || case_status=$?
+    STATE_SESSION_TEST_CASE_ID="${STATE_SESSION_TEST_CASE_ID:-}" \
+    STATE_SESSION_TEST_INVOCATION_ID="${STATE_SESSION_TEST_INVOCATION_ID:-}" \
+    STATE_SESSION_TEST_CASE_ROOT="${STATE_SESSION_TEST_CASE_ROOT:-}" \
+    STATE_SESSION_TEST_DRIVER_PID_FILE="${STATE_SESSION_TEST_DRIVER_PID_FILE:-$case_dir/driver.pid}"
+    case_status=0
+    if [ -n "${STATE_SESSION_TEST_CASE_ROOT:-}" ]; then
+        sh "$DRIVER" "$case_dir/fake-retroarch" "$case_dir/config.cfg" "$case_dir/core.so" \
+            "$fixture_dir/marker.nes" "$case_ra" "$case_dir/retroarch.log" "$FRAME_INDEX" \
+            "$fixture_dir/calibration.txt" >"$case_dir/driver.stdout" 2>"$case_dir/driver.stderr" &
+        case_driver_pid=$!
+        printf '%s\n' "$case_driver_pid" >"$STATE_SESSION_TEST_DRIVER_PID_FILE"
+        if [ -n "${STATE_SESSION_TEST_CASE_ID:-}" ]; then
+            CLEANUP_LAUNCH_CASE="$STATE_SESSION_TEST_CASE_ID" CLEANUP_LAUNCH_INVOCATION="$STATE_SESSION_TEST_INVOCATION_ID" \
+            CLEANUP_LAUNCH_ROOT="$STATE_SESSION_TEST_CASE_ROOT" CLEANUP_LAUNCH_PID="$case_driver_pid" \
+            CLEANUP_LAUNCH_DRIVER="$DRIVER" CLEANUP_LAUNCH_SCRIPT="$script_path" CLEANUP_LAUNCH_RA="$case_ra" \
+            CLEANUP_LAUNCH_FRAME="$FRAME_INDEX" CLEANUP_LAUNCH_FIXTURE="$fixture_dir" \
+            CLEANUP_LAUNCH_LOCKS="$case_dir/locks" python3 - "$STATE_SESSION_TEST_CASE_ROOT/invocation.json" <<'PY'
+import json, os, subprocess, sys
+case=os.environ["CLEANUP_LAUNCH_CASE"]
+root=os.path.realpath(os.environ["CLEANUP_LAUNCH_ROOT"])
+driver=os.environ["CLEANUP_LAUNCH_DRIVER"]
+script=os.environ["CLEANUP_LAUNCH_SCRIPT"]
+fixture=os.environ["CLEANUP_LAUNCH_FIXTURE"]
+ra=os.environ["CLEANUP_LAUNCH_RA"]
+argv=["sh",driver,root+"/fake-retroarch",root+"/config.cfg",root+"/core.so",
+      fixture+"/marker.nes",ra,root+"/retroarch.log",os.environ["CLEANUP_LAUNCH_FRAME"],fixture+"/calibration.txt"]
+environment={"STATE_SESSION_TEST_CASE_ID":case,"STATE_SESSION_TEST_INVOCATION_ID":os.environ["CLEANUP_LAUNCH_INVOCATION"],
+ "STATE_SESSION_TEST_CASE_ROOT":root,"STATE_SESSION_LOCK_ROOT":os.environ["CLEANUP_LAUNCH_LOCKS"]}
+record={"case_id":case,"invocation_id":os.environ["CLEANUP_LAUNCH_INVOCATION"],"case_root":"cases/"+case,
+ "driver_pid":int(os.environ["CLEANUP_LAUNCH_PID"]),
+ "driver_blob":subprocess.check_output(["git","hash-object",driver],text=True).strip(),
+ "harness_blob":subprocess.check_output(["git","hash-object",script],text=True).strip(),
+ "argv":argv,"environment":environment,"files":{}}
+open(sys.argv[1],"w").write(json.dumps(record,sort_keys=True)+"\n")
+PY
+        fi
+        wait "$case_driver_pid" || case_status=$?
+        cat "$case_dir/driver.stdout" "$case_dir/driver.stderr" >"$case_dir/driver.out"
+    else
+        sh "$DRIVER" "$case_dir/fake-retroarch" "$case_dir/config.cfg" "$case_dir/core.so" \
+            "$fixture_dir/marker.nes" "$case_ra" "$case_dir/retroarch.log" "$FRAME_INDEX" \
+            "$fixture_dir/calibration.txt" >"$case_dir/driver.out" 2>&1 || case_status=$?
+    fi
+    printf '%s\n' "$case_status" >"$case_dir/driver.status"
     case_driver_finished=$(mono_ms); case_driver_elapsed=$((case_driver_finished-case_driver_started))
+    printf '%s\n' "$case_driver_elapsed" >"$case_dir/driver.elapsed"
+    [ -z "$primary_elapsed_file" ] || printf '%s\n' "$case_driver_elapsed" >"$primary_elapsed_file"
+    )
+    case_status=$(cat "$case_dir/driver.status")
+    case_driver_elapsed=$(cat "$case_dir/driver.elapsed")
+    printf '%s\n' "$case_status" >"$case_dir/driver.status"
     if [ "$case_status" -eq 0 ] || ! grep -Fx "state_session: $expected" "$case_dir/driver.out" >/dev/null ||
         ! awk -F '\t' -v reason="$expected" '$11 == reason { found=1 } END { exit !found }' "$case_ra"/attempts/*/journal.tsv; then
         echo "FAIL $name expected exact terminal reason $expected (status=$case_status, setup ${case_setup_elapsed}ms, driver+cleanup ${case_driver_elapsed}ms)" >&2
@@ -2804,6 +2868,10 @@ run_prefix_driver() {
     STATE_SESSION_TEST_SHOTS="$_run_ra/shots" \
     STATE_SESSION_TEST_HOST_DIE=0 \
     STATE_SESSION_LOCK_ROOT="$_run_lock_root" \
+    STATE_SESSION_TEST_CASE_ID="${STATE_SESSION_TEST_CASE_ID:-}" \
+    STATE_SESSION_TEST_INVOCATION_ID="${STATE_SESSION_TEST_INVOCATION_ID:-}" \
+    STATE_SESSION_TEST_CASE_ROOT="${STATE_SESSION_TEST_CASE_ROOT:-}" \
+    STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE="${STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE:-}" \
     STATE_SESSION_ATTEMPT_MS=30000 \
     STATE_SESSION_OPERATION_MS=30000 \
     STATE_SESSION_CLEANUP_MS=1000 \
@@ -2815,6 +2883,620 @@ run_prefix_driver() {
         "$fixture_dir/marker.nes" "$_run_ra" "$_run_dir/retroarch.log" "$FRAME_INDEX" \
         "$fixture_dir/calibration.txt"
 }
+
+run_cleanup_request_failure_controls() {
+    cleanup_matrix_root=$WORK_ROOT
+    [ "$CONTROL" != all ] || cleanup_matrix_root="$WORK_ROOT/cleanup-request-failure-$$"
+    mkdir -p "$cleanup_matrix_root"
+    cleanup_matrix_root=$(cd "$cleanup_matrix_root" && pwd -P)
+    if [ "$CONTROL" = cleanup-request-failure ]; then cleanup_phase=$CLEANUP_MATRIX_KIND; else cleanup_phase=green; fi
+    if [ "$CONTROL" = all ]; then
+        cp "$DRIVER" "$cleanup_matrix_root/state_session.sh"
+        cp "$script_path" "$cleanup_matrix_root/test_state_session.sh"
+        printf 'planned\n' >"$cleanup_matrix_root/phase-ledger.txt"
+    fi
+    CLEANUP_ROOT="$cleanup_matrix_root" CLEANUP_SCRIPT="$script_path" CLEANUP_DRIVER="$DRIVER" \
+    CLEANUP_FRAME_INDEX="$FRAME_INDEX" CLEANUP_FIXTURE="$fixture_dir" CLEANUP_PHASE="$cleanup_phase" \
+    CLEANUP_LEDGER="$cleanup_matrix_root/phase-ledger.txt" \
+    python3 - <<'PY' || return 2
+import json, os, pathlib, shutil, signal, subprocess, time
+root=pathlib.Path(os.environ["CLEANUP_ROOT"]).resolve()
+script=os.environ["CLEANUP_SCRIPT"]
+driver=os.environ["CLEANUP_DRIVER"]
+frame=os.environ["CLEANUP_FRAME_INDEX"]
+fixture=os.environ["CLEANUP_FIXTURE"]
+phase=os.environ["CLEANUP_PHASE"]
+ledger_path=pathlib.Path(os.environ["CLEANUP_LEDGER"])
+if ledger_path.read_text().splitlines()!=["planned"]: raise RuntimeError("cleanup slot is not fresh")
+with ledger_path.open("a") as ledger: ledger.write("consumed\n")
+names=["exit-failure"] if phase=="red" else ["exit-failure","signal-INT","signal-TERM","signal-HUP","writable-cleanup","foreign-endpoint","foreign-owner-replacement"]
+case_rows=[]
+def lock_record(path):
+    p=pathlib.Path(path)
+    try:
+        st=p.lstat()
+        if not p.is_file() or p.is_symlink(): return None
+        return {"device":st.st_dev,"inode":st.st_ino,"token":p.read_text().strip()}
+    except OSError: return None
+def alive(pid):
+    if not pid: return False
+    try: os.kill(int(pid),0); return True
+    except (ProcessLookupError, PermissionError, OSError): return False
+def reason_from(case):
+    journals=list((case/"ra"/"attempts").glob("attempt-*/journal.tsv"))
+    if journals:
+        for line in journals[0].read_text().splitlines()[1:]:
+            fields=line.split("\t")
+            if len(fields)==11 and fields[10] not in ("","OK"): return fields[10]
+    for line in (case/"driver.stderr").read_text(errors="replace").splitlines():
+        if line.startswith("state_session: "): return line.split(": ",1)[1]
+    return ""
+def foreign_fixture(case,token):
+    (case/"foreign.sentinel").write_bytes((token+"\n").encode())
+    (case/"foreign.sends").write_bytes(b"")
+    (case/"foreign.signals").write_bytes(b"")
+    pidfile=case/"foreign.pid"; done=case/"foreign.done"
+    proc=subprocess.Popen(["sh","-c",'trap \'printf "INT\\n" >>"$3"\' INT; trap \'printf "TERM\\n" >>"$3"\' TERM; trap \'printf "HUP\\n" >>"$3"\' HUP; echo $$ > "$1"; while [ ! -e "$2" ]; do sleep 0.03; done',"foreign",str(pidfile),str(done),str(case/"foreign.signals")])
+    deadline=time.monotonic()+2
+    while not pidfile.exists() and time.monotonic()<deadline: time.sleep(.005)
+    if not pidfile.exists(): raise RuntimeError("foreign fixture failed to publish PID")
+    return proc,int(pidfile.read_text().strip()),done
+for name in names:
+    case=root/"cases"/name; case.mkdir(parents=True,exist_ok=False)
+    case=case.resolve(); ra=case/"ra"; locks=case/"locks"
+    (ra/"shots").mkdir(parents=True); (ra/"states").mkdir(); locks.mkdir()
+    (case/"fake-nc").symlink_to(pathlib.Path(script)); (case/"fake-retroarch").symlink_to(pathlib.Path(script))
+    for f in ["config.cfg","core.so","sends.log","host.pid","shot.count","read.count","state.count"]: (case/f).write_bytes(b"")
+    invocation=f"{phase}:{name}:primary"
+    foreign=None
+    lock=locks/"nesturbator-retroarch-55355.lock"
+    if name in ["foreign-endpoint","foreign-owner-replacement"]:
+        foreign=foreign_fixture(case,"foreign-"+invocation)
+    if name=="foreign-endpoint":
+        lock.write_text("foreign-"+invocation+"\n")
+        before=lock_record(lock)
+        (case/"foreign-before.json").write_text(json.dumps({"pid":foreign[1],"live":alive(foreign[1]),"lock":before},sort_keys=True)+"\n")
+        shutil.copyfile(lock,case/"foreign-bytes-before")
+        control={"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,"producer":"harness-before-launch","mode":"occupied-endpoint","driver_pid":None,"transport_pid":None,"request_path":None,"request_before":None,"request_after":None,"request_writable":None,"marker":invocation+":occupied-endpoint"}
+        (case/"control.json").write_text(json.dumps(control,sort_keys=True)+"\n")
+    env=os.environ.copy()
+    env.update({"STATE_SESSION_NC":str(case/"fake-nc"),"STATE_SESSION_TEST_READINESS_NC":str(case/"fake-nc"),
+      "STATE_SESSION_TEST_FIXTURE":fixture,"STATE_SESSION_TEST_EXPECTED_DIR":str(ra/"states"),
+      "STATE_SESSION_TEST_SENDS":str(case/"sends.log"),"STATE_SESSION_TEST_HOST_PID":str(case/"host.pid"),
+      "STATE_SESSION_TEST_QUIT_FILE":str(case/"quit"),"STATE_SESSION_TEST_SHOT_COUNT":str(case/"shot.count"),
+      "STATE_SESSION_TEST_READ_COUNT":str(case/"read.count"),"STATE_SESSION_TEST_STATE_COUNT":str(case/"state.count"),
+      "STATE_SESSION_TEST_FAULT":"" if name=="foreign-endpoint" else "cleanup-request-failure",
+      "STATE_SESSION_TEST_MODE":"prefix","STATE_SESSION_TEST_STOP_AFTER_PREFIX":"1",
+      "STATE_SESSION_TEST_SHOTS":str(ra/"shots"),"STATE_SESSION_TEST_HOST_DIE":"0","STATE_SESSION_LOCK_ROOT":str(locks),
+      "STATE_SESSION_TEST_CASE_ID":name,"STATE_SESSION_TEST_INVOCATION_ID":invocation,"STATE_SESSION_TEST_CASE_ROOT":str(case),
+      "STATE_SESSION_TEST_DRIVER_PID_FILE":str(case/"driver.pid"),"STATE_SESSION_ATTEMPT_MS":"30000",
+      "STATE_SESSION_OPERATION_MS":"30000","STATE_SESSION_CLEANUP_MS":"1000","STATE_SESSION_READY_MS":"30000",
+      "STATE_SESSION_PUBLICATION_MS":"1000","STATE_SESSION_SETTLE_MS":"0","STATE_SESSION_COMMAND_GAP_MS":"100",
+      "STATE_SESSION_PROGRESS_WAIT_MS":"20"})
+    argv=["sh",driver,str(case/"fake-retroarch"),str(case/"config.cfg"),str(case/"core.so"),str(pathlib.Path(fixture)/"marker.nes"),str(ra),str(case/"retroarch.log"),frame,str(pathlib.Path(fixture)/"calibration.txt")]
+    start=time.monotonic_ns(); proc=subprocess.Popen(argv,env=env,stdout=(case/"driver.stdout").open("wb"),stderr=(case/"driver.stderr").open("wb"))
+    (case/"driver.pid").write_text(str(proc.pid)+"\n")
+    selected_env={k:env[k] for k in ["STATE_SESSION_TEST_CASE_ID","STATE_SESSION_TEST_INVOCATION_ID","STATE_SESSION_TEST_CASE_ROOT","STATE_SESSION_LOCK_ROOT"]}
+    launch={"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,"driver_pid":proc.pid,
+      "driver_blob":subprocess.check_output(["git","hash-object",driver],text=True).strip(),
+      "harness_blob":subprocess.check_output(["git","hash-object",script],text=True).strip(),
+      "argv":argv,"environment":selected_env,"files":{}}
+    (case/"invocation.json").write_text(json.dumps(launch,sort_keys=True)+"\n")
+    watchdog=False; sent_signal=None
+    if name.startswith("signal-"):
+        deadline=time.monotonic()+8
+        while (not (case/"control.json").is_file() or not (case/"armed").is_file()) and proc.poll() is None and time.monotonic()<deadline: time.sleep(.01)
+        if not (case/"control.json").is_file() or not (case/"armed").is_file(): watchdog=True
+        else:
+            control=json.loads((case/"control.json").read_text()); hp=control.get("host_pid"); rp=control.get("transport_pid")
+            time.sleep(.03)
+            if not alive(hp) or not alive(rp) or not lock_record(lock): watchdog=True
+            else:
+                sent_signal=name.split("-",1)[1]
+                proc.send_signal({"INT":signal.SIGINT,"TERM":signal.SIGTERM,"HUP":signal.SIGHUP}[sent_signal])
+                control["signal"]=sent_signal
+                (case/"control.json").write_text(json.dumps(control,sort_keys=True)+"\n")
+    try: status=proc.wait(timeout=20)
+    except subprocess.TimeoutExpired:
+        watchdog=True; proc.send_signal(signal.SIGTERM)
+        try: status=proc.wait(timeout=1)
+        except subprocess.TimeoutExpired: proc.kill(); status=proc.wait()
+    elapsed=(time.monotonic_ns()-start)//1_000_000
+    (case/"driver.status").write_text(str(status)+"\n")
+    if name!="foreign-endpoint":
+        deadline=time.monotonic()+1
+        while not (case/"control.json").is_file() and time.monotonic()<deadline: time.sleep(.005)
+    control=json.loads((case/"control.json").read_text())
+    control["driver_pid"]=proc.pid
+    (case/"control.json").write_text(json.dumps(control,sort_keys=True)+"\n")
+    host_pid=int((case/"host.pid").read_text().strip()) if (case/"host.pid").read_text().strip() else None
+    receive_pid=int((case/"receive.pid").read_text().strip()) if (case/"receive.pid").exists() and (case/"receive.pid").read_text().strip() else control.get("transport_pid")
+    host_live=alive(host_pid); child_live=alive(receive_pid)
+    lock_after=lock_record(lock)
+    journal=next(iter((ra/"attempts").glob("attempt-*/journal.tsv")),None)
+    first=reason_from(case)
+    expected=130 if name.startswith("signal-") else 1
+    expected_reason=("INTERRUPTED_"+name.split("-",1)[1]) if name.startswith("signal-") else "ENDPOINT_BUSY" if name=="foreign-endpoint" else "READINESS_REPLY"
+    if phase=="red":
+        if name!="exit-failure" or first!="READINESS_REPLY" or not control.get("owned_live_before_injection") or \
+           control.get("mode")!="request-directory" or control.get("request_after")!="directory" or \
+           control.get("request_writable") is not False:
+            raise RuntimeError("RED did not exercise the original READINESS_REPLY cleanup-write failure")
+    if name in ["exit-failure","signal-INT","signal-TERM","signal-HUP","writable-cleanup","foreign-owner-replacement"]:
+        received=case/"receive.pid"
+        if not received.exists(): received.write_text(str(control.get("transport_pid") or "")+"\n")
+    foreign_after=None; foreign_path=None
+    if name=="foreign-endpoint": foreign_path=lock
+    elif name=="foreign-owner-replacement":
+        owners=list(locks.glob("*.lock.owner.*")); foreign_path=owners[0] if owners else None
+    if foreign is not None:
+        if name=="foreign-owner-replacement":
+            before_file=case/"foreign-before.json"
+            if not before_file.is_file(): raise RuntimeError("foreign owner replacement did not retain before measurement")
+        if foreign_path is None: raise RuntimeError("foreign lock object missing")
+        foreign_after={"pid":foreign[1],"live":alive(foreign[1]),"lock":lock_record(foreign_path)}
+        (case/"foreign-after.json").write_text(json.dumps(foreign_after,sort_keys=True)+"\n")
+        shutil.copyfile(foreign_path,case/"foreign-bytes-after")
+        foreign[2].write_text("")
+        try: foreign[0].wait(timeout=2)
+        except subprocess.TimeoutExpired: foreign[0].terminate(); foreign[0].wait(timeout=2)
+    foreign_preserved=True
+    if foreign is not None:
+        before=json.loads((case/"foreign-before.json").read_text())
+        foreign_preserved=(foreign_after is not None and before["live"] is True and foreign_after["live"] is True and
+          before["lock"]==foreign_after["lock"] and (case/"foreign-bytes-before").read_bytes()==(case/"foreign-bytes-after").read_bytes())
+    owned_lock_after=None if name=="foreign-endpoint" else lock_after
+    passed=(status==expected and first==expected_reason and not watchdog and not host_live and not child_live and
+      ((lock_after is None) if name!="foreign-endpoint" else foreign_preserved))
+    result={"name":name,"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,"driver_pid":proc.pid,
+      "host_pid":host_pid,"receive_pid":receive_pid,"actual_status":status,"expected_status":expected,"first_reason":first,
+      "elapsed_ms":int(elapsed),"watchdog_intervened":watchdog,"host_alive_before_emergency":host_live,
+      "child_alive_before_emergency":child_live,"lock_owned_before_emergency":lock_after is not None and name!="foreign-endpoint",
+      "owned_live_before_injection":bool(control.get("owned_live_before_injection",False)),
+      "owned_lock_before_injection":control.get("owned_lock_before_injection"),"owned_lock_after":owned_lock_after,
+      "injection_confirmed":name!="foreign-endpoint","request_directory":name in ["exit-failure","signal-INT","signal-TERM","signal-HUP"],
+      "setup_ok":True,"passed":passed,"signal":sent_signal,"foreign_pid":foreign[1] if foreign else None,
+      "foreign_path":str(foreign_path) if foreign_path else None,"journal":str(journal) if journal else None}
+    (case/"primary-result.json").write_text(json.dumps(result,sort_keys=True)+"\n")
+    if phase=="red":
+        if passed or not (host_live or lock_after is not None): raise RuntimeError("RED did not prove the specific CR-01 cleanup failure")
+        for pid in [host_pid,receive_pid]:
+            if alive(pid):
+                try: os.kill(pid,signal.SIGTERM)
+                except OSError: pass
+        token=lock_after.get("token") if lock_after else ""
+        owner=locks/("nesturbator-retroarch-55355.lock.owner."+token) if token else None
+        try:
+            if owner and lock_record(owner) and lock_after and (lock_record(owner)["device"],lock_record(owner)["inode"])==(lock_after["device"],lock_after["inode"]):
+                lock.unlink(missing_ok=True); owner.unlink(missing_ok=True)
+        except OSError: pass
+    elif not passed:
+        raise RuntimeError("cleanup case failed: "+name+" status="+str(status)+" reason="+first)
+    case_rows.append(name)
+(root/"primary-cases.json").write_text(json.dumps(case_rows)+"\n")
+PY
+    if [ "$cleanup_phase" != red ]; then
+        cleanup_already_root="$cleanup_matrix_root/cases/already-quit"
+        mkdir -p "$cleanup_matrix_root/cases"
+        mkdir "$cleanup_already_root" || return 2
+        STATE_SESSION_TEST_CASE_ROOT_OVERRIDE="$cleanup_already_root" STATE_SESSION_TEST_CASE_ID=already-quit \
+        STATE_SESSION_TEST_INVOCATION_ID="green:already-quit:primary" \
+        STATE_SESSION_TEST_CASE_ROOT="$cleanup_already_root" \
+        STATE_SESSION_TEST_DRIVER_PID_FILE="$cleanup_already_root/driver.pid" \
+        STATE_SESSION_TEST_PRIMARY_ELAPSED_FILE="$cleanup_already_root/primary.elapsed" \
+        run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 250000 30000 1000 240000 \
+            >"$cleanup_already_root/harness.stdout" 2>"$cleanup_already_root/harness.stderr" || return 2
+        for cleanup_name in exit-failure signal-INT signal-TERM signal-HUP writable-cleanup already-quit foreign-owner-replacement; do
+            cleanup_case_root="$cleanup_matrix_root/cases/$cleanup_name"
+            cleanup_reacq="$cleanup_case_root/reacquisition"
+            mkdir -p "$cleanup_reacq/ra/shots" "$cleanup_reacq/ra/states" "$cleanup_reacq/locks"
+            ln -s "$script_path" "$cleanup_reacq/fake-nc"
+            ln -s "$script_path" "$cleanup_reacq/fake-retroarch"
+            : >"$cleanup_reacq/config.cfg"; : >"$cleanup_reacq/core.so"; : >"$cleanup_reacq/host.pid"
+            cleanup_reacq_started=$(mono_ms); cleanup_reacq_status=0
+            STATE_SESSION_TEST_CASE_ID="$cleanup_name" \
+            STATE_SESSION_TEST_INVOCATION_ID="green:$cleanup_name:reacquisition" \
+            STATE_SESSION_TEST_CASE_ROOT="$cleanup_case_root" \
+            STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE="$cleanup_reacq/lock.json" \
+            run_prefix_driver "$cleanup_reacq" "$cleanup_reacq/ra" '' "$cleanup_case_root/locks" \
+                >"$cleanup_reacq/stdout.log" 2>"$cleanup_reacq/stderr.log" || cleanup_reacq_status=$?
+            cleanup_reacq_elapsed=$(($(mono_ms)-cleanup_reacq_started))
+            cleanup_reacq_host=$(cat "$cleanup_reacq/host.pid" 2>/dev/null || true)
+            printf '%s\n' "$cleanup_reacq_status" >"$cleanup_reacq/status.txt"
+            printf '%s\n' "$cleanup_reacq_elapsed" >"$cleanup_reacq/elapsed.txt"
+            printf '%s\n' "$cleanup_reacq_host" >"$cleanup_reacq/host-pid.txt"
+            [ "$cleanup_reacq_status" -eq 0 ] && [ "$cleanup_reacq_elapsed" -lt 20000 ] && \
+                [ -s "$cleanup_reacq/lock.json" ] && [ -n "$cleanup_reacq_host" ] && \
+                ! kill -0 "$cleanup_reacq_host" 2>/dev/null || {
+                echo "FAIL $cleanup_name endpoint reacquisition status=$cleanup_reacq_status elapsed=${cleanup_reacq_elapsed}ms" >&2; return 1;
+            }
+        done
+    fi
+    if [ "$cleanup_phase" = red ]; then
+        printf '1\n' >"$cleanup_matrix_root/wait-status.txt"
+    else
+        printf '0\n' >"$cleanup_matrix_root/wait-status.txt"
+    fi
+    if [ "$cleanup_phase" = red ]; then cleanup_source_commit=772dbb0fdaedb3d8af52beeeab854943c867441b
+    else cleanup_source_commit=$(git rev-parse HEAD); fi
+    CLEANUP_ROOT="$cleanup_matrix_root" CLEANUP_PHASE="$cleanup_phase" CLEANUP_MATRIX_STARTED="${CLEANUP_MATRIX_STARTED:-$(mono_ms)}" \
+    CLEANUP_SOURCE_COMMIT="$cleanup_source_commit" CLEANUP_DRIVER="$DRIVER" CLEANUP_FIXTURE="$fixture_dir" \
+    CLEANUP_FRAME_INDEX="$FRAME_INDEX" CLEANUP_DRIVER_SOURCE="tests/retroarch/state_session.sh" \
+    CLEANUP_HARNESS_SOURCE="tests/retroarch/test_state_session.sh" python3 - <<'PY' || return 2
+import hashlib, json, os, pathlib, subprocess, time
+root=pathlib.Path(os.environ["CLEANUP_ROOT"]).resolve(); phase=os.environ["CLEANUP_PHASE"]
+driver=os.environ["CLEANUP_DRIVER"]
+names=["exit-failure","signal-INT","signal-TERM","signal-HUP","writable-cleanup","already-quit","foreign-endpoint","foreign-owner-replacement"]
+if phase=="red": names=names[:1]
+def sha(path): return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+def git(*args): return subprocess.check_output(["git",*args],text=True).strip()
+def rel(p): return pathlib.Path(p).resolve().relative_to(root).as_posix()
+def lock(path):
+    p=pathlib.Path(path)
+    try:
+        st=p.lstat()
+        if not p.is_file() or p.is_symlink(): return None
+        return {"device":st.st_dev,"inode":st.st_ino,"token":p.read_text().strip()}
+    except OSError: return None
+def live(pid):
+    if not pid: return False
+    try: os.kill(int(pid),0); return True
+    except (ProcessLookupError,PermissionError,OSError): return False
+rows=[]; primary={}
+for name in names:
+    case=root/"cases"/name
+    if name=="already-quit":
+        control=json.loads((case/"control.json").read_text()); host_text=(case/"host.pid").read_text().strip()
+        host=int(host_text) if host_text else None; receive=control.get("transport_pid")
+        journal=next(iter((case/"ra"/"attempts").glob("attempt-*/journal.tsv")),None)
+        reason=""
+        if journal:
+            for line in journal.read_text().splitlines()[1:]:
+                f=line.split("\t")
+                if len(f)==11 and f[10] not in ("","OK"): reason=f[10]; break
+        elapsed=int((case/"primary.elapsed").read_text().strip()); status=int((case/"driver.status").read_text().strip())
+        raw={"name":name,"case_id":name,"invocation_id":"green:already-quit:primary","case_root":"cases/"+name,
+          "driver_pid":int((case/"driver.pid").read_text().strip()),"host_pid":host,"receive_pid":receive,
+          "actual_status":status,"expected_status":1,"first_reason":reason,"elapsed_ms":elapsed,"watchdog_intervened":False,
+          "host_alive_before_emergency":live(host),"child_alive_before_emergency":live(receive),
+          "lock_owned_before_emergency":lock(case/"locks"/"nesturbator-retroarch-55355.lock") is not None,
+          "owned_live_before_injection":bool(control.get("owned_live_before_injection")),
+          "owned_lock_before_injection":control.get("owned_lock_before_injection"),
+          "owned_lock_after":lock(case/"locks"/"nesturbator-retroarch-55355.lock"),"injection_confirmed":True,
+          "request_directory":False,"setup_ok":True,"passed":status==1 and reason=="QUIT_DEADLINE",
+          "signal":None,"foreign_pid":None,"journal":str(journal) if journal else None}
+        (case/"primary-result.json").write_text(json.dumps(raw,sort_keys=True)+"\n")
+    else: raw=json.loads((case/"primary-result.json").read_text())
+    primary[name]=raw
+for name in names:
+    case=root/"cases"/name; raw=primary[name]; invocation=raw["invocation_id"]
+    control_path=case/"control.json"; control=json.loads(control_path.read_text())
+    status=int((case/"driver.status").read_text().strip()) if (case/"driver.status").exists() else int(raw["actual_status"])
+    (case/"driver.status").write_text(str(status)+"\n")
+    sends=case/"sends.log"; sends.touch(exist_ok=True)
+    hostfile=case/"host.pid"; hostfile.touch(exist_ok=True)
+    std_out=case/"driver.stdout"; std_err=case/"driver.stderr"
+    for f in [std_out,std_err]: f.touch(exist_ok=True)
+    journal=pathlib.Path(raw["journal"]) if raw.get("journal") else None
+    host=raw.get("host_pid"); receive=raw.get("receive_pid")
+    control_live=json.loads(control_path.read_text())
+    reacq=None
+    if name not in ["foreign-endpoint"] and phase!="red":
+        rd=case/"reacquisition"; lockfile=rd/"lock.json"
+        reacq={"status":int((rd/"status.txt").read_text().strip()),"lock":json.loads(lockfile.read_text()),
+          "host_pid":int((rd/"host-pid.txt").read_text().strip()),"host_live_after":False,
+          "elapsed_ms":int((rd/"elapsed.txt").read_text().strip())}
+        if reacq["status"]!=0 or reacq["elapsed_ms"]>=20000: raise RuntimeError("endpoint reacquisition failed: "+name)
+    owned_before=raw.get("owned_lock_before_injection")
+    if name=="already-quit" and owned_before is None: raise RuntimeError("already-quit lock was not measured")
+    life={"owned_processes":[],"owned_lock_before":owned_before,
+      "owned_lock_after":raw.get("owned_lock_after"),"reacquisition":reacq}
+    if host:
+        life["owned_processes"].append({"pid":host,"live_before":bool(control_live.get("host_live_before_injection")),
+          "live_after":bool(raw["host_alive_before_emergency"])})
+    if receive and name!="already-quit":
+        life["owned_processes"].append({"pid":receive,"live_before":bool(control_live.get("receive_live_before_injection")),
+          "live_after":bool(raw["child_alive_before_emergency"])})
+    if name=="already-quit" and receive:
+        life["owned_processes"].append({"pid":receive,"live_before":bool(control_live.get("receive_live_before_injection")),
+          "live_after":bool(raw["child_alive_before_emergency"])})
+    if name=="foreign-owner-replacement": life["owned_sidecar_original"]=json.loads((case/"owned-sidecar-original.json").read_text())
+    if name in ["foreign-endpoint","foreign-owner-replacement"]:
+        life["owned_lock_before"]=None if name=="foreign-endpoint" else owned_before
+        life["owned_lock_after"]=None
+        life["reacquisition"]=None if name=="foreign-endpoint" else reacq
+        life["foreign_pid"]=raw["foreign_pid"]
+    life_path=case/"lifecycle.json"; life_path.write_text(json.dumps(life,sort_keys=True)+"\n")
+    o={"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,
+      "setup_ok":True,"injection_confirmed":name!="foreign-endpoint",
+      "owned_live_before_injection":bool(raw.get("owned_live_before_injection")),
+      "driver_pid":int(raw["driver_pid"]),"host_pid":host,"receive_pid":receive,
+      "request_directory":bool(raw.get("request_directory")),"expected_status":int(raw["expected_status"]),
+      "actual_status":status,"first_reason":raw["first_reason"],
+      "host_alive_before_emergency":bool(raw["host_alive_before_emergency"]),
+      "child_alive_before_emergency":bool(raw["child_alive_before_emergency"]),
+      "lock_owned_before_emergency":bool(raw["lock_owned_before_emergency"]),
+      "watchdog_intervened":bool(raw["watchdog_intervened"]),"elapsed_ms":int(raw["elapsed_ms"]),
+      "passed":bool(raw["passed"]),"quit_send_count":(case/"sends.log").read_text().splitlines().count("QUIT"),
+      "control_file":rel(control_path),"driver_stdout_file":rel(std_out),"driver_stderr_file":rel(std_err),
+      "driver_status_file":rel(case/"driver.status"),"host_pid_file":rel(hostfile),"sends_file":rel(sends),"lifecycle_file":rel(life_path)}
+    if name!="foreign-endpoint":
+        o["consumed_file"]=control["consumed_file"]; o["reply_file"]=control["reply_file"]
+        if journal: o["cleanup_journal_file"]=rel(journal)
+    if name in ["exit-failure","signal-INT","signal-TERM","signal-HUP"]:
+        o["diagnostic_file"]=rel(std_err)
+        if phase=="green":
+            quit_rows=[line.split("\t") for line in journal.read_text().splitlines()[1:] if line.split("\t")[1]=="QUIT"]
+            if len(quit_rows)!=1 or quit_rows[0][0]!="cleanup-quit" or quit_rows[0][2]!="0" or quit_rows[0][10]!="CLEANUP_REQUEST_WRITE_FAILED":
+                raise RuntimeError("cleanup request failure lacks exact zero-send diagnostic row: "+name)
+            if o["quit_send_count"]!=0 or "CLEANUP_REQUEST_WRITE_FAILED" not in std_err.read_text():
+                raise RuntimeError("cleanup request failure lacks diagnostic or sent QUIT: "+name)
+    if reacq:
+        rd=case/"reacquisition"; o.update({"reacquisition_status_file":rel(rd/"status.txt"),
+          "reacquisition_host_pid_file":rel(rd/"host-pid.txt"),"reacquisition_lock_file":rel(rd/"lock.json")})
+    if name in ["foreign-endpoint","foreign-owner-replacement"]:
+        o.update({"foreign_before_file":rel(case/"foreign-before.json"),"foreign_after_file":rel(case/"foreign-after.json"),
+          "foreign_bytes_before_file":rel(case/"foreign-bytes-before"),"foreign_bytes_after_file":rel(case/"foreign-bytes-after"),
+          "foreign_sends_file":rel(case/"foreign.sends"),"foreign_signals_file":rel(case/"foreign.signals")})
+    observation=case/"observation.json"; observation.write_text(json.dumps(o,sort_keys=True)+"\n")
+    roles={k:v for k,v in o.items() if k.endswith("_file")}; roles["observation_file"]=rel(observation)
+    filemap={role:{"path":ref,"sha256":sha(root/ref)} for role,ref in roles.items()}
+    case_root=root/"cases"/name
+    argv=["sh",driver,str(case_root/"fake-retroarch"),str(case_root/"config.cfg"),str(case_root/"core.so"),
+      str(pathlib.Path(os.environ["CLEANUP_FIXTURE"])/"marker.nes"),str(case_root/"ra"),str(case_root/"retroarch.log"),
+      os.environ["CLEANUP_FRAME_INDEX"],str(pathlib.Path(os.environ["CLEANUP_FIXTURE"])/"calibration.txt")]
+    env={"STATE_SESSION_TEST_CASE_ID":name,"STATE_SESSION_TEST_INVOCATION_ID":invocation,
+      "STATE_SESSION_TEST_CASE_ROOT":str(case_root.resolve()),"STATE_SESSION_LOCK_ROOT":str(case_root/"locks")}
+    launch={"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,"driver_pid":int(raw["driver_pid"]),
+      "driver_blob":git("hash-object",str(root/"state_session.sh")),
+      "harness_blob":git("hash-object",str(root/"test_state_session.sh")),"argv":argv,"environment":env,"files":filemap}
+    invocation_file=case/"invocation.json"
+    existing_launch=json.loads(invocation_file.read_text())
+    if existing_launch["driver_pid"]!=launch["driver_pid"] or existing_launch["argv"]!=argv or existing_launch["environment"]!=env:
+        raise RuntimeError("final invocation record did not match the actual launch: "+name)
+    existing_launch.update({"driver_blob":launch["driver_blob"],"harness_blob":launch["harness_blob"],"files":filemap})
+    invocation_file.write_text(json.dumps(existing_launch,sort_keys=True)+"\n")
+    rows.append({"name":name,"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,
+      "observation_file":rel(observation),"invocation_file":rel(invocation_file)})
+    if phase=="green" and not o["passed"]: raise RuntimeError("saved cleanup case did not pass: "+name)
+for name in names:
+    if name=="foreign-endpoint": continue
+    life=json.loads((root/"cases"/name/"lifecycle.json").read_text())
+    if life["reacquisition"]:
+        old=life["owned_lock_before"]; new=life["reacquisition"]["lock"]
+        if old is None or old["token"]==new["token"] or old==new: raise RuntimeError("reacquired lock identity did not advance: "+name)
+    (root/"cases"/name/"lifecycle.json").write_text(json.dumps(life,sort_keys=True)+"\n")
+if phase!="red":
+    rows.sort(key=lambda x:names.index(x["name"]))
+for row in rows:
+    row["invocation_file"]=row["invocation_file"]
+elapsed=int(subprocess.check_output(["perl","-MTime::HiRes=clock_gettime,CLOCK_MONOTONIC","-e",'printf "%.0f\\n",clock_gettime(CLOCK_MONOTONIC)*1000'],text=True).strip())-int(os.environ["CLEANUP_MATRIX_STARTED"])
+complete=0
+if phase!="red": complete=int((root/"cases"/"already-quit"/"primary.elapsed").read_text().strip())
+if not 0<elapsed<=420000 or not 0<=elapsed-complete<=90000: raise RuntimeError("cleanup matrix exceeded measured wall budget")
+files={}
+for path in sorted(root.rglob("*")):
+    if path.is_file() and path.name!="evidence.json": files[path.relative_to(root).as_posix()]=sha(path)
+ledger=(root/"phase-ledger.txt").read_text().splitlines()
+if ledger!=["planned","consumed"]: raise RuntimeError("cleanup matrix slot ledger did not begin exactly once")
+with (root/"phase-ledger.txt").open("a") as ledger_file: ledger_file.write("completed\n")
+ledger.append("completed")
+files["phase-ledger.txt"]=sha(root/"phase-ledger.txt")
+e={"ledger":ledger,"source_commit":os.environ["CLEANUP_SOURCE_COMMIT"],
+  "driver_blob":git("hash-object",str(root/"state_session.sh")),
+  "harness_blob":git("hash-object",str(root/"test_state_session.sh")),
+  "status":"EXPECTED_CR01_FAILURE" if phase=="red" else "PASS","exit":1 if phase=="red" else 0,
+  "elapsed_ms":elapsed,"cases":rows,"file_sha256":files}
+(root/"evidence.json").write_text(json.dumps(e,sort_keys=True,indent=2)+"\n")
+PY
+    if [ "$cleanup_phase" = red ]; then
+        echo 'state session cleanup request failure controls: CR-01 reproduced; pre-emergency host/lock evidence retained'
+        return 1
+    fi
+    echo 'state session cleanup request failure controls: 8 cases passed.'
+}
+
+
+script_path=$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")
+test_started=$(mono_ms)
+if [ "$CONTROL" = all ] || [ "$CONTROL" = cleanup-request-failure ]; then CLEANUP_MATRIX_STARTED=$(mono_ms); fi
+if [ "$CONTROL" = cleanup-request-failure ]; then
+    cp "$DRIVER" "$WORK_ROOT/state_session.sh"
+    cp "$script_path" "$WORK_ROOT/test_state_session.sh"
+    printf 'planned\n' >"$WORK_ROOT/phase-ledger.txt"
+fi
+fixture_started=$(mono_ms)
+
+test_dir="$WORK_ROOT/session-$$"
+fixture_dir="$test_dir/fixture"
+ra_dir="$test_dir/ra"
+mkdir -p "$fixture_dir" "$ra_dir/shots" "$ra_dir/states"
+if [ "$CONTROL" = readiness ]; then
+    NESTURBATOR_RUN=$(cd "$(dirname "$FRAME_INDEX")/../../runner" && pwd -P)/nesturbator-run
+    if ! "$FRAME_INDEX" --progression-selftest "$fixture_dir"; then
+        echo "fixture precondition failed: frame_index --progression-selftest" >&2
+        exit 2
+    fi
+    if [ ! -x "$NESTURBATOR_RUN" ] ||
+        ! "$NESTURBATOR_RUN" --frames 101 --rom "$fixture_dir/marker.nes" \
+            --dump-frame "101:$fixture_dir/alternative frame 101.ppm"; then
+        echo "fixture precondition failed: nesturbator-run marker frame 101" >&2
+        exit 2
+    fi
+    cp "$fixture_dir/pause capture one.ppm" "$fixture_dir/boundary 01 pause a.ppm" &&
+        cp "$fixture_dir/pause capture two.ppm" "$fixture_dir/boundary 02 pause b.ppm" &&
+        cp "$fixture_dir/advance one.ppm" "$fixture_dir/boundary 03 advance 1.ppm" || {
+        echo "fixture precondition failed: readiness prefix aliases" >&2; exit 2;
+    }
+elif ! "$FRAME_INDEX" --progression-selftest "$fixture_dir" --controls; then
+    echo "fixture precondition failed: frame_index --progression-selftest --controls" >&2
+    exit 2
+fi
+fixture_finished=$(mono_ms)
+fixture_elapsed=$((fixture_finished-fixture_started))
+if [ "$CONTROL" = cleanup-request-failure ]; then
+    cleanup_control_status=0
+    run_cleanup_request_failure_controls || cleanup_control_status=$?
+    exit "$cleanup_control_status"
+fi
+if [ "$CONTROL" = all ]; then run_cleanup_request_failure_controls || exit $?; fi
+
+if [ "$CONTROL" = interruption ]; then
+    run_interruption_control "$fixture_dir"
+    exit 0
+fi
+
+ln -s "$script_path" "$test_dir/fake-nc"
+ln -s "$script_path" "$test_dir/recording-action-nc"
+ln -s "$script_path" "$test_dir/fake-retroarch"
+: >"$test_dir/config.cfg"
+: >"$test_dir/core.so"
+expected_state_dir="$ra_dir/states"
+send_log="$test_dir/sends.log"
+action_send_log="$test_dir/action-sends.log"
+readiness_send_log="$test_dir/readiness-sends.log"
+host_pid_file="$test_dir/host.pid"
+quit_file="$test_dir/quit"
+shot_count_file="$test_dir/shot.count"
+read_count_file="$test_dir/read.count"
+state_count_file="$test_dir/state.count"
+driver_output="$test_dir/driver.out"
+
+if [ "$CONTROL" = all ]; then
+status=0
+STATE_SESSION_NC="$test_dir/recording-action-nc" \
+STATE_SESSION_TEST_READINESS_NC="$test_dir/fake-nc" \
+STATE_SESSION_TEST_MODE=1 \
+STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
+STATE_SESSION_TEST_EXPECTED_DIR="$expected_state_dir" \
+STATE_SESSION_TEST_SENDS="$send_log" \
+STATE_SESSION_TEST_ACTION_SENDS="$action_send_log" \
+STATE_SESSION_TEST_READINESS_SENDS="$readiness_send_log" \
+STATE_SESSION_TEST_FAKE_NC="$test_dir/fake-nc" \
+STATE_SESSION_TEST_HOST_PID="$host_pid_file" \
+STATE_SESSION_TEST_QUIT_FILE="$quit_file" \
+STATE_SESSION_TEST_SHOT_COUNT="$shot_count_file" \
+STATE_SESSION_TEST_READ_COUNT="$read_count_file" \
+STATE_SESSION_TEST_STATE_COUNT="$state_count_file" \
+STATE_SESSION_TEST_DROP_FIRST_READ=1 \
+STATE_SESSION_TEST_MODE=prefix \
+STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
+STATE_SESSION_TEST_SHOTS="$ra_dir/shots" \
+STATE_SESSION_LOCK_ROOT="$test_dir/locks" \
+STATE_SESSION_SETTLE_MS=0 \
+sh "$DRIVER" "$test_dir/fake-retroarch" "$test_dir/config.cfg" "$test_dir/core.so" \
+    "$fixture_dir/marker.nes" "$ra_dir" "$test_dir/retroarch.log" "$FRAME_INDEX" \
+    "$fixture_dir/calibration.txt" >"$driver_output" 2>&1 || status=$?
+
+if [ "$status" -ne 0 ] || ! grep -F 'verdict=PREFIX_OK' "$driver_output" >/dev/null 2>&1; then
+    echo "FAIL actual shell tracer reaches the production prefix verdict: expected PREFIX_OK, driver exit=$status" >&2
+    cat "$driver_output" >&2
+    exit 1
+fi
+
+count_request() {
+    awk -v wanted="$1" '$0 == wanted { n++ } END { print n + 0 }' "$send_log"
+}
+for request in PAUSE_TOGGLE SAVE_STATE FRAMEADVANCE QUIT; do
+    count=$(count_request "$request")
+    [ "$count" -eq 1 ] || {
+        echo "FAIL one-shot $request send count: expected 1, got $count" >&2
+        exit 1
+    }
+done
+count=$(count_request SCREENSHOT)
+[ "$count" -eq 5 ] || {
+    echo "FAIL screenshot publication request count: expected 5, got $count" >&2
+    exit 1
+}
+count=$(count_request 'GET_CONFIG_PARAM savestate_directory')
+[ "$count" -eq 2 ] || {
+    echo "FAIL read-only readiness retry count: expected 2, got $count" >&2
+    exit 1
+}
+action_readiness_count=$(awk '$0 == "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$action_send_log")
+readiness_route_count=$(awk '$0 == "GET_CONFIG_PARAM savestate_directory" { n++ } END { print n + 0 }' "$readiness_send_log")
+action_total=$(wc -l <"$action_send_log" | tr -d ' ')
+sent_total=$(wc -l <"$send_log" | tr -d ' ')
+[ "$action_readiness_count" -eq 0 ] && [ "$readiness_route_count" -eq 2 ] &&
+    [ "$action_total" -eq $((sent_total-2)) ] || {
+    echo "FAIL independent readiness/action routing: action=$action_total action_reads=$action_readiness_count readiness_reads=$readiness_route_count sent=$sent_total" >&2
+    exit 1
+}
+
+printf 'state session tracer: PREFIX_OK; readiness bypassed the action wrapper; one FRAMEADVANCE; 2 startup and 3 boundary captures; one QUIT\n'
+
+# A dropped frame-advance is terminal even though the screenshot request succeeds. It is
+# attempted once, fails on the wrong decoded frame, and the owned host is reaped within budget.
+negative_dir="$WORK_ROOT/session-$$-missing-action"
+negative_fixture="$fixture_dir"
+negative_ra="$negative_dir/ra"
+mkdir -p "$negative_ra/shots" "$negative_ra/states"
+ln -s "$script_path" "$negative_dir/fake-nc"
+ln -s "$script_path" "$negative_dir/fake-retroarch"
+: >"$negative_dir/config.cfg"
+: >"$negative_dir/core.so"
+negative_sends="$negative_dir/sends.log"
+negative_host="$negative_dir/host.pid"
+negative_quit="$negative_dir/quit"
+negative_reads="$negative_dir/read.count"
+negative_shots="$negative_dir/shot.count"
+negative_states="$negative_dir/state.count"
+started=$(perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000')
+negative_status=0
+STATE_SESSION_NC="$negative_dir/fake-nc" \
+STATE_SESSION_TEST_FIXTURE="$negative_fixture" \
+STATE_SESSION_TEST_EXPECTED_DIR="$negative_ra/states" \
+STATE_SESSION_TEST_SENDS="$negative_sends" \
+STATE_SESSION_TEST_HOST_PID="$negative_host" \
+STATE_SESSION_TEST_QUIT_FILE="$negative_quit" \
+STATE_SESSION_TEST_SHOT_COUNT="$negative_shots" \
+STATE_SESSION_TEST_READ_COUNT="$negative_reads" \
+STATE_SESSION_TEST_STATE_COUNT="$negative_states" \
+STATE_SESSION_TEST_DROP_ADVANCE=1 \
+STATE_SESSION_TEST_MODE=prefix \
+STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
+STATE_SESSION_TEST_SHOTS="$negative_ra/shots" \
+STATE_SESSION_LOCK_ROOT="$negative_dir/locks" \
+STATE_SESSION_ATTEMPT_MS=30000 \
+STATE_SESSION_CLEANUP_MS=1000 \
+STATE_SESSION_SETTLE_MS=0 \
+STATE_SESSION_OPERATION_MS=10000 \
+sh "$DRIVER" "$negative_dir/fake-retroarch" "$negative_dir/config.cfg" "$negative_dir/core.so" \
+    "$negative_fixture/marker.nes" "$negative_ra" "$negative_dir/retroarch.log" "$FRAME_INDEX" \
+    "$negative_fixture/calibration.txt" >"$negative_dir/driver.out" 2>&1 || negative_status=$?
+finished=$(perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000')
+duration=$((finished - started))
+[ "$negative_status" -ne 0 ] && grep -Fx 'state_session: ADVANCE_NOT_EXACTLY_ONE' "$negative_dir/driver.out" >/dev/null || {
+    echo "FAIL dropped advance reaches its exact terminal reason (status=$negative_status)" >&2
+    cat "$negative_dir/driver.out" >&2
+    exit 1
+}
+negative_attempt_dir=
+for _negative_attempt in "$negative_ra"/attempts/attempt-*; do
+    [ -d "$_negative_attempt" ] || continue
+    negative_attempt_dir=$_negative_attempt
+    break
+done
+[ -n "$negative_attempt_dir" ] || { echo "FAIL dropped advance did not retain its attempt tree" >&2; exit 1; }
+negative_row=$(awk -F '\t' '$11 == "ADVANCE_NOT_EXACTLY_ONE" { row=$0 } END { print row }' "$negative_attempt_dir/journal.tsv")
+negative_attempt_elapsed=$(printf '%s\n' "$negative_row" | cut -f4)
+negative_operation_elapsed=$(printf '%s\n' "$negative_row" | cut -f6)
+[ "$negative_operation_elapsed" -gt 0 ] && [ "$negative_operation_elapsed" -le 10000 ] || {
+    echo "FAIL dropped advance exceeded measured operation deadline: ${negative_operation_elapsed}ms" >&2; exit 1;
+}
+[ "$negative_attempt_elapsed" -ge "$negative_operation_elapsed" ] && [ "$negative_attempt_elapsed" -lt 29000 ] && [ "$duration" -lt 32000 ] || {
+    echo "FAIL dropped advance exceeded bounded attempt/cleanup time: operation=${negative_operation_elapsed}ms attempt=${negative_attempt_elapsed}ms process=${duration}ms" >&2
+    exit 1
+}
+advance_count=$(awk '$0 == "FRAMEADVANCE" { n++ } END { print n + 0 }' "$negative_sends")
+[ "$advance_count" -eq 1 ] || { echo "FAIL dropped advance send count: expected 1, got $advance_count" >&2; exit 1; }
+host_pid=$(cat "$negative_host")
+if kill -0 "$host_pid" 2>/dev/null; then echo "FAIL dropped advance left the owned host alive" >&2; exit 1; fi
+printf 'state session missing-action control: ADVANCE_NOT_EXACTLY_ONE; one send; operation %sms, attempt %sms, process %sms; host reaped\n' \
+    "$negative_operation_elapsed" "$negative_attempt_elapsed" "$duration"
+fi
+
 
 readiness_cases_run=0
 run_readiness_case() {
@@ -3154,7 +3836,6 @@ run_fault wrong-load-origin PROGRESSION wrong-load-origin '' complete 75000 3000
 # 180 s attempt cap left no 30 s operation window to prove QUIT_DEADLINE. Keep
 # the exact negative and operation deadline, with a finite test-only 240/250 s
 # attempt/outer envelope and the same 1 s cleanup reserve.
-run_fault quit-send-once QUIT_DEADLINE dropped-quit '' complete 250000 30000 1000 240000
 
 run_readiness_controls
 

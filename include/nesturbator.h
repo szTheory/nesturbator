@@ -552,7 +552,10 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * host-after-wait preserves the kill-0 ambiguity. Trace occupancy does not grant ownership;
  * cleanup requires the filesystem identity captured from this invocation's successful noclobber
  * creation as well as the token-bearing hard link. Failed creation or a replaced owner pathname
- * grants no authority to remove a foreign object. The prior corrected candidate
+ * grants no authority to remove a foreign object.
+ * A cleanup QUIT request write failure records zero sends when possible and emits
+ * CLEANUP_REQUEST_WRITE_FAILED; owned teardown still preserves the original exit status.
+ * The prior corrected candidate
  * `0268d3450f64392911a187ce5c040847fda5f8f8` passed focused CI 10/10, ASan 2/2 and normal CI
  * 649/649 with three ZIPs. Its source remained unchanged at review candidate
  * `7a6b1aaa87c9f8eb244aa1e901becc32352ecf4e`, whose independent review left five open findings;

@@ -295,9 +295,19 @@ readiness_nc_exec() {
 cleanup_quit() {
     [ -n "$HOST_PID" ] && host_alive || return 0
     [ "$QUIT_SENT" -eq 0 ] || return 0
-    QUIT_SENT=1; printf 'QUIT' >"$REQUEST"
-    CURRENT_STEP=cleanup-quit; CURRENT_CLASS=QUIT; CURRENT_SENDS=1
+    QUIT_SENT=1
+    CURRENT_STEP=cleanup-quit; CURRENT_CLASS=QUIT; CURRENT_SENDS=0
     CURRENT_EXPECTED=QUIT-at-most-once; CURRENT_OBSERVED=cleanup-send-attempt
+    if ! printf 'QUIT' >"$REQUEST"; then
+        _cleanup_reason=$LAST_REASON
+        CURRENT_OBSERVED=CLEANUP_REQUEST_WRITE_FAILED
+        LAST_REASON=CLEANUP_REQUEST_WRITE_FAILED; CURRENT_ARTIFACT=cleanup-quit
+        printf '%s\n' 'state_session: CLEANUP_REQUEST_WRITE_FAILED' >&2 || true
+        record_row || true
+        LAST_REASON=${FIRST_FAILURE:-$_cleanup_reason}
+        return 0
+    fi
+    CURRENT_SENDS=1
     nc_exec -u -w0 127.0.0.1 55355 <"$REQUEST" >"$ATTEMPT_DIR/cleanup-quit.out" \
         2>"$ATTEMPT_DIR/cleanup-quit.err" &
     CHILD_PID=$!; _deadline=$(( $(clock_ms) + 300 ))
