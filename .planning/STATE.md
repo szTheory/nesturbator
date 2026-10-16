@@ -5,17 +5,17 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: Plan21 Task1 repair and Task2 FULL pass; independent source review pending
-last_updated: "2026-10-16T21:32:50.692Z"
+stopped_at: Plan21 cleanup repair and mandatory local parent gates passed; Plan07 delivery checks next
+last_updated: "2026-10-16T22:18:13.848Z"
 last_activity: 2026-10-16
-last_activity_desc: Cleanup repair committed; coherent RED/GREEN and649-test full workflow pass; review pending
-state_head: 469fa771f093b05a6220f82223c21d8db0a31daa
+last_activity_desc: Cleanup repair accepted with causal regression, two649-test workflows and clean independent review
+state_head: 11fc2bf8cec6ba864240e76d3bd7be85378ef760
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 11
-  completed_plans: 8
-  percent: 0
+  completed_plans: 9
+  percent: 82
 ---
 
 # Project State
@@ -30,9 +30,9 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 ## Current Position
 
 Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 16-21 Task1/Task2 pass; Task3 independent source review pending;8/11 live complete
-Status: Executing Plan21 source review; no SUMMARY or phase completion yet
-Current21 accepted source: Task1 source38e14fb and acceptance2ede710 bind causal RED3166ms and all8GREEN/7endpoint-reacquisitions105367ms with identical frozen harness. Task2 formal FULL passed649/649/no skips/jobs4/four stages in293.375720s with three fresh checkedZIPs, candidate/source/config exact. Formal REVIEW unused; parent repeat and enabled gates pending.07/08 and native/ownerconsent/publication remain blocked. No21SUMMARY or full phase credit yet.
+Plan: 16-21 complete with mandatory local parent gates;9/11 live complete
+Status: Local cleanup blocker resolved; Plan07 delivery checks next; phase incomplete
+Current21 accepted source: Source38e14fb fixes failed QUIT request writes without losing owned teardown or original failure/status. Causal RED3166ms and all8GREEN/7endpoint-reacquisitions105367ms bind the same frozen harness. Formal FULL passed649/649/no skips/jobs4/four stages in293.375720s with three fresh checkedZIPs. Independent six-path review atb071e63 is clean/open0 with digest-bound disposition2544b55. Summary11fc2bf records all3tasks; mandatory parent build and separate649-test full-workflow repeat now pass on that source-equivalent snapshot. No native/ownerconsent/publication credit;07/08 remain incomplete.
 Historical21 round5 continuation: Four development pairs are consumed and retained. Round4 causal RED and eight GREEN runtime outcomes are observed but not accepted because saved-proof checks rejected mixed-clock negative elapsed, stale stdout SHA and cleanup diagnostic reason mismatch. Those exact issues are corrected; one final source-bound round5 pair independently passed planning checks. Earlier runs are immutable, formal PREFLIGHT/FULL/REVIEW remain globally unused, and no task/candidate/SUMMARY credit exists yet.
 Historical21 local development: Two invalid local REDs are retained without causal credit. The second ended READINESS_TRANSPORT from a doubled attempts path and its wrapper lost the wait status via zsh readonly status. Both fake transport paths are corrected. Independent checking passed a bounded4round/3600s local development contract requiring diagnosed code changes and preserved failures; one selected round must bind same-harness causal RED/all8GREEN. Formal PREFLIGHT/FULL/REVIEW remain single shared allowances across rounds. Both old roots remain historical. Only the harness is an authorized uncommitted implementation edit; production/docs/config stay exact.
 Historical21 fixture continuation: The first resumed RED failed before readiness because the harness precreated the quit sentinel; HOST_DIED/empty sends and failed finalization make it invalid. Preserve raw evidence and false ledger/banner with explicit invalid disposition. The concrete fixture/fail-closed-bookkeeping amendment independently passed and authorized one corrected RED in build/phase16-acceptance21-fixture-fix, preserving the consumed invalid run. Exclusive selector-root creation refused re-entry before mutating evidence; its refusal was verified with five byte-identical sentinels. The subsequent corrected RED created its fresh root but the actual driver exited 1/READINESS_TRANSPORT before request-path injection; finalization then failed because control.json was absent. Its ledger remains planned/consumed, evidence.json is absent, and the root is preserved at build/phase16-acceptance21-fixture-fix/red. The owned host is no longer live and the endpoint lock is absent. No causal RED, source correction, GREEN, PREFLIGHT, FULL, review, SUMMARY or requirement credit exists. The finite RED slot is consumed and cannot be rerun without a substantive amendment. The protected config is unchanged; the only implementation edit remains the uncommitted regression harness.
@@ -42,16 +42,16 @@ Retained execution evidence: Plan18 OFFLINE passed in5s, exact registeredCI10/10
 Historical19 stop: Partial0e94f99 and parentdfaa1eb preserve original FAIL/full_started:false/planned FULL. The exact-line parser rejected valid8ordinary+2registered-regex successes in the retained10-test report; no launcher identity/smoke/FULL/review/SUMMARY or formal adoption ran.19 is superseded incomplete, its entire body and raw evidence unchanged.
 Historical20 planning: Shared metadata-bound parser replaces both retained and full exact-line checks. Safe read-only fragments passed actual CI10/ASan2/historical649 reports,4positive categories and20negative controls; historical full is format evidence only. Independent typed checker passed11live plans with zero findings;6/6requirements,17/17decisions and39source groups remain represented. These planning checks confer no runtime acceptance.
 Historical20 execution: Task1 PASS on unchanged candidate: shared parser/controls accepted actual formats; one resolved launcher/smoke led to normal649/649/jobs4/configure/build/test/package and three fresh actualZIPs. Acceptance commit772dbb0 is retained. One fresh independent six-path review at that commit found CR-01 BLOCKER: failed cleanup QUIT request write under set-e can skip host reap and endpoint-lock release. Review/disposition SHA binding and open1 are committed in f609576; previous five review findings appear addressed. No source fix, second review, Task3, SUMMARY or credit.
-Resume safety:20 has partial commits772dbb0/f609576 without SUMMARY and is superseded incomplete by21. Its FULL and review slots remain consumed; do not replay20.21 is the sole remaining DAG-ready plan after completed15. Require the final amendment commit and fresh resolved scope containing only reconciled docs-only stop e4bef04, its exact three-path changed scope, unchanged reviewed source/config and absent fresh runtime root before dispatch. Unexpected source commits without SUMMARY remain blocked; amendment commits use docs(16).07/08 remain blocked; partial07/PR50 still requires reconciliation. All mandatory parent gates including configured full-workflow repeat remain unperformed because20 stopped before plan completion; native exact-final-headCI, affirmative owner consent, publication and release-byte proof remain pending.
+Resume safety:21 has genuine SUMMARY and source/full/review/parent acceptance; do not replay its consumed runtime slots.20 and earlier superseded partial plans remain without success SUMMARY/credit. Installed index has11live/9complete, only07dependency-ready and08blocked on07. Before07 execution reconcile partialPR50 and resolve fresh exact-head scope; native requiredCI/perf/pinned-host, affirmative exact-head owner consent and normal publication remain mandatory.08 retains actual18assets/checksums/attestations/sixmetadata/exactreleaseCI. No07/08 execution occurred in this step.
 Historical17stop: outer60s CI exit124 after9completed passes/controls unfinished; orchestration mistake, not demonstrated session defect. Raw failure/partialwork retained, no17SUMMARY/credit; historical assertion/native causesUNKNOWN. Native exact-headCI/ownerconsent/publication07 and actual18assets/sixinfo/exactreleaseCI08 pending.
-Last activity: 2026-10-16 — Phase 16 execution started
+Last activity: 2026-10-16 — Plan21 cleanup repair and mandatory local parent gates completed
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████░░] 82% of currently planned work (9/11); Phase16 remains incomplete
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 123
+- Total plans completed: 124
 - Average duration: - min
 - Total execution time: 0.0 hours
 
@@ -347,7 +347,9 @@ None.
 
 ### Blockers/Concerns
 
-- **Current Plan20 execution stop — 2026-10-16:** [Acceptance](phases/16-host-evidence-and-roadmap/16-20-SOURCE-ACCEPTANCE.md) adopts verified18 evidence and records one actual normal649/649/jobs4/four-stage workflow with three fresh checkedZIPs. Commit772dbb0 retains that PASS. The fresh exact-commit six-path [review](phases/16-host-evidence-and-roadmap/16-20-REVIEW.md) and digest-bound [disposition](phases/16-host-evidence-and-roadmap/16-20-REVIEW-DISPOSITION.md) report issues_found/open1: CR-01 cleanup QUIT write under set-e can skip owned host reap and lock release. Partialf609576 preserves the blocker; source/config/history unchanged. No automatic fix, second review, Task3/SUMMARY, parent repeat or07dispatch. Next `$gsd-plan-phase 16 --gaps` must substantively authorize and test failure-safe cleanup while reconciling consumed slots/current candidate; normal safe_resume forbids replay.08/publication/native/ownerconsent and every later gate remain pending.
+- **Current delivery boundary — 2026-10-16:** Plan21 repairs CR-01 at38e14fb with causal regression, two649/649 full workflows, checked local packages, clean independent review and mandatory local parent gates passed. Plan07 remains incomplete and owns native exact-final-head requiredCI/perf/pinned-host, partialPR50 reconciliation, affirmative exact-head owner consent and normal publication. Plan08 requires actual released archives/checksums/attestations, six metadata copies and exact-releaseCI. Historical native timing causes remain UNKNOWN.
+
+- **Historical Plan20 execution stop — 2026-10-16; resolved by21:** [Acceptance](phases/16-host-evidence-and-roadmap/16-20-SOURCE-ACCEPTANCE.md) adopts verified18 evidence and records one actual normal649/649/jobs4/four-stage workflow with three fresh checkedZIPs. Commit772dbb0 retains that PASS. The fresh exact-commit six-path [review](phases/16-host-evidence-and-roadmap/16-20-REVIEW.md) and digest-bound [disposition](phases/16-host-evidence-and-roadmap/16-20-REVIEW-DISPOSITION.md) report issues_found/open1: CR-01 cleanup QUIT write under set-e can skip owned host reap and lock release. Partialf609576 preserves the blocker; source/config/history unchanged. No automatic fix, second review, Task3/SUMMARY, parent repeat or07dispatch. Next `$gsd-plan-phase 16 --gaps` must substantively authorize and test failure-safe cleanup while reconciling consumed slots/current candidate; normal safe_resume forbids replay.08/publication/native/ownerconsent and every later gate remain pending.
 
 - **Historical verified Plan20 recovery — 2026-10-16:** [Plan20](phases/16-host-evidence-and-roadmap/16-20-PLAN.md) and [amendment](phases/16-host-evidence-and-roadmap/16-20-AMENDMENT.md) supersede incomplete19, correcting both report checks with one metadata-bound parser. Actual10/2/649-format reports and4positive/20negative controls pass; independent checker returned VERIFICATION PASSED with no findings. All11live plans,6requirements,17decisions and39source items remain covered. Only20ready;07/08blocked. Source/config/history unchanged, no runtime acceptance/credit. Retained18 adoption, one900s full workflow/threefreshZIPs, independent six-path cleanreview/open0 and every mandatory parent/native/consent/publication gate remain. Fresh20 scope is required after commit and before dispatch.
 
@@ -391,8 +393,8 @@ v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` a
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 - **Resolved — 2026-10-14:** Phase 16 Plan 03 completed on exact head 46543ad; workflow 38651381295 passed all required jobs and retained the pinned-host intended, dropped, doubled, and valid wrong-origin proof. EVID-01/02 are complete. Earlier interrupted/failed samples and their diagnoses are recorded in 16-03-SUMMARY.md; the direct push authorization was followed through the normal reviewed path. Plan 16-04 later completed EVID-03; Plan 16-05 is next.
 - Plan 16-17 terminal CI selection timed out at 60 seconds (exit 124; 9/10 passed, retroarch.session.controls unfinished); unchanged candidate was not retried and remaining acceptance gates were not run.
-- Plan 16-21 stopped before runtime: the required complete-path already-quit case is documented at 53.2 seconds while the plan requires <=5000 ms per driver; no slot consumed. Revise and independently check the bound or authorized test route before fresh dispatch.
-- Plan 16-21 corrected RED slot was consumed but unusable: actual driver exited 1/READINESS_TRANSPORT before injection evidence; no control.json or evidence.json, ledger remains planned/consumed. Preserve build/phase16-acceptance21-fixture-fix/red; finite gate forbids rerun without substantive amendment.
+- Historical Plan 16-21 pre-runtime stop, superseded by accepted repair: the required complete-path already-quit case is documented at 53.2 seconds while the plan requires <=5000 ms per driver; no slot consumed. Revise and independently check the bound or authorized test route before fresh dispatch.
+- Historical Plan 16-21 corrected RED slot, retained without causal credit: actual driver exited 1/READINESS_TRANSPORT before injection evidence; no control.json or evidence.json, ledger remains planned/consumed. Preserve build/phase16-acceptance21-fixture-fix/red; finite gate forbids rerun without substantive amendment.
 
 ### Quick Tasks Completed
 
@@ -427,16 +429,15 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T21:32:50.669Z
-Stopped at: Blocked 16-21 after unusable corrected RED slot
-Resume file: build/phase16-acceptance21-fixture-fix/red/stderr.log
+Last session: 2026-10-16T22:18:13.848Z
+Stopped at: Plan21 complete; mandatory local parent gates passed; phase16 remains incomplete
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-21-SUMMARY.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Run `$gsd-plan-phase 16 --gaps` to reconcile partial20 commits772dbb0/f609576 and open CR-01. Do not replay20 or infer an unused acceptance/review allowance from missing SUMMARY.
-- Recommended scope: make cleanup QUIT materialization best-effort and guarantee owned-host reap and endpoint-lock release when that write fails; require a reason-specific regression plus current acceptance/review under a substantive amendment. No source correction or new runtime allowance is authorized by this tracking update.
-- Preserve actual20 Task1PASS/threefreshZIPs, adopted18 passes, failed18launcher/19parser and all17partialhistory. A successor must bind acceptance to its actual source identities; unchanged-candidate evidence alone cannot prove corrected code.
-- Every mandatory parent gate remains, including configured full-workflow repeat; no later gate ran after terminal review failure. Historical assertion/native causes remain UNKNOWN.07 retains exact-final-head nativeCI, affirmative owner consent and normal publication;08 retains actual18archives/checksums/attestations/sixmetadata/exactreleaseCI.
-- Counts20physical/11live/8complete; completed01–06/09/15 and historical21/22verification/fingerprint remain. No requirement/phase completion, release or PRODUCT-ROADMAP upkeep occurred in this execution step.
+- Resume the existing delivery path at Plan07; first reconcile partialPR50 and resolve fresh source/head scope. Plan21 is complete and its finite RED/GREEN/preflight/FULL/review slots are consumed/passed; do not replay it or superseded20.
+- Require current native exact-final-head CI/perf/pinned-host evidence and affirmative consent for the concrete exact-head merge before normal publication. Plan08 then verifies all18released archives/checksums/attestations, six metadata copies and exact-releaseCI.
+- Preserve all invalid development roots and historical20/18/17 failures. The demonstrated cleanup defect is repaired; original assertion/native timing causes remain UNKNOWN.
+- Counts21physical/11live/9complete; completed01–06/09/15/21. No requirement/phase completion,07/08execution, consent request, publication or PRODUCT-ROADMAP upkeep occurred in this execute-phase step. Protected user config remains exact and excluded.

@@ -23,4 +23,4 @@ The fresh separate-context typed reviewer completed the configured standard-dept
 |---|---|---|
 |None|None|No actionable findings|
 
-Mandatory parent build/full-workflow repeat remain pending until observed. Exact-final-head native CI/perf/pinned-host, affirmative owner consent, normal publication and actual release-byte proof remain07/08 obligations. Historical failed and invalid evidence remains retained.
+Mandatory parent build/full-workflow repeat are now observed PASS; see the parent-gates result and final section of21-SOURCE-ACCEPTANCE. The review report and its source/digest binding remain unchanged. Exact-final-head native CI/perf/pinned-host, affirmative owner consent, normal publication and actual release-byte proof remain07/08 obligations. Historical failed and invalid evidence remains retained.

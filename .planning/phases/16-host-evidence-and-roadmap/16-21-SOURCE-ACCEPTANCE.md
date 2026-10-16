@@ -1,7 +1,7 @@
 ---
 phase: 16-host-evidence-and-roadmap
 plan: "21"
-status: local-source-full-review-passed
+status: local-source-full-review-parent-passed
 date: 2026-10-16
 runtime_acceptance: true
 red_slot: passed-round5-with-retained-invalid-attempts
@@ -12,7 +12,7 @@ review_slot: consumed-clean
 
 # Plan 21 source acceptance and retained history
 
-Current result: Task1 causal RED/all8GREEN and Task2 full workflow/packages pass on committed candidate38e14fbc0104038a7eb9ad17d16499c7924c2b9b. Independent source review and mandatory parent gates are pending. The stop records below describe historical attempts; later accepted results do not erase them.
+Current result: All three Plan21 tasks and mandatory local parent gates passed on source candidate38e14fbc0104038a7eb9ad17d16499c7924c2b9b. The causal RED/eight-case GREEN, full workflow/packages, independent clean review and parent build/full-workflow repeat are observed. Native, owner-consent and publication evidence remain07/08 obligations. The stop records below describe historical attempts; later accepted results do not erase them.
 
 ## Historical initial pre-runtime stop
 
@@ -92,3 +92,9 @@ The initial all-inventory recheck rejected39 existing fixture executable symlink
 The single shared independent REVIEW completed at source-equivalent acceptance snapshotb071e63ee0e11c8b944e7f0d8b426867f227dda3, candidate38e14fbc0104038a7eb9ad17d16499c7924c2b9b. A fresh separate-context typed gsd-code-reviewer used the configured gpt-6-luna/xhigh and standard depth over the exact six paths. It reported0critical,0warning,0info findings and statusclean. The disposition binds its complete report SHA256 and six source blobs with open0. No source/config edit or test was performed by the reviewer. The exact Task3 automated source/full/raw/invocation/control/case-binding/review-digest check passed.
 
 All three local plan tasks have now passed, with every invalid earlier run retained. The parent build/full-workflow repeat and post-wave reconciliation remain pending; this record does not discharge them or grant native/consent/publication credit.21-SUMMARY will record local completion after the review commit.
+
+## Parent build and mandatory workflow repeat — PASS
+
+The separately accounted parent build passed in 0.125235 seconds. Its mandatory full-workflow repeat passed in 298.625100 seconds: 649/649 unique tests, zero skips, jobs4 and configure/build/test/package, followed by the existing three-archive checker. Source-before/after matches all ten candidate blobs, the protected config is exact, and the review digest is unchanged. Actual argv, process IDs, consumed/completed ledgers, timings, streams, CTest report and registration validation are retained in build/phase16-acceptance21-development/round-5/parent-gates. The observed parent snapshot is 11fc2bf8cec6ba864240e76d3bd7be85378ef760.
+
+Enabled source review is clean/open0; no additional wave-post hooks are enabled. Plan21 is complete with its local parent obligations discharged. Native exact-final-head CI/perf/pinned-host, affirmative exact-head owner consent, publication and actual release-byte proof remain unperformed. No phase or global requirement completion is claimed. Earlier pending statements above describe their recorded checkpoints.
