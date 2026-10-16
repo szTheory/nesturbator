@@ -1612,8 +1612,15 @@ does not select event identity. The offline selector calls that same boundary
 and final validator for two independent sessions stored under
 `session-A/capture` and `session-B/capture`, then rejects wrong expected IDs,
 mixed outer or inner rows, and another session's ledger. An invalid ID marks
-the recorder unusable while preserving the genuine assertion status. These
-identity checks add to the seven capture and 40 retained trace cases (36 original
+the recorder unusable while preserving the genuine assertion status. The two
+ten-row examples remain generic identity-only checks. Separately, the real
+interruption control passes its observed driver, host and harness PIDs to a strict
+21-row gate before the recorder gate. That gate requires the exact eight-field
+event order, role-specific PIDs, statuses and details, contiguous sequence,
+nondecreasing monotonic time and final newline; recorder rejection remains
+separate from the single genuine assertion decision. Its host-after-wait row
+retains kill-0 ambiguity instead of distinguishing permission denial from a
+live process. These identity checks add to the seven capture and 40 retained trace cases (36 original
 plus four lock controls). Eleven lifecycle and QUIT cases add coverage for stable
 first-two-row host/child PIDs, live observations requiring a PID, unavailable
 observations remaining admissible, cleanup-cleared final observations and
@@ -1639,7 +1646,9 @@ same writer and validator through handler entry, journal close and cleanup. Its
 cleanup clears the owned host or child PID; liveness uses that marker when
 `kill -0` cannot establish a live process. Admission binds the unique session
 invocation and separately observed driver PID, exact event order, numeric
-monotonic samples, statuses and field values. The seven capture cases remain.
+monotonic samples, statuses and field values. The real-control 21-row gate is
+separate from the generic ten-row identity examples and receives observed process
+IDs from the control path. The seven capture cases remain.
 The 36 original trace cases cover lifecycle admission, independent mutation
 failures, invocation separation and writer rejection paths. Four lock cases
 cover regular-file occupancy through cleanup, field-14-only admission mutants

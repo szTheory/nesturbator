@@ -544,7 +544,12 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * launching the driver. Eleven lifecycle/QUIT cases require stable host/child PID observations in
  * the first two rows, live-with-PID consistency, unavailable observations to remain admissible,
  * final PID/liveness clearing and no QUIT before journal close. The retained mixed-ID observation
- * remains unchanged. Trace occupancy does not grant ownership;
+ * remains unchanged. The two-session examples remain generic ten-row identity checks. The actual
+ * interruption control passes observed driver, host and harness PIDs to a separate strict 21-row
+ * admission gate before recorder acceptance. It requires the exact event order, eight fields,
+ * role-specific PIDs, statuses and details, contiguous sequence, nondecreasing monotonic time and
+ * a final newline. Recorder rejection remains separate from the genuine assertion decision, and
+ * host-after-wait preserves the kill-0 ambiguity. Trace occupancy does not grant ownership;
  * cleanup requires the filesystem identity captured from this invocation's successful noclobber
  * creation as well as the token-bearing hard link. Failed creation or a replaced owner pathname
  * grants no authority to remove a foreign object. The prior corrected candidate

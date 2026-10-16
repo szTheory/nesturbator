@@ -917,9 +917,9 @@ run_interruption_trace_selftests() (
         selftest_trace_expect_edit "$trace_lifecycle_case" "$1" "$2" "$3" "$4" TRACE_VALUE \
             "$trace_test_regular" "$trace_test_regular_id" || return 1
     done
-    selftest_trace_non_lock_fields_equal "$trace_test_regular" \
-        "$trace_test_root/cases/row2-quit-before-journal-close.tsv" "$trace_test_root/cases" || {
-        echo 'FAIL row2 QUIT mutant changed non-QUIT fields' >&2; return 1;
+    selftest_trace_only_field_changed "$trace_test_regular" \
+        "$trace_test_root/cases/row2-quit-before-journal-close.tsv" 2 12 || {
+        echo 'FAIL row2 QUIT mutant changed fields outside its target' >&2; return 1;
     }
     trace_test_absent="$trace_test_root/absent-observations/ra/interruption-events.tsv"
     trace_test_absent_id="session-$trace_test_run_id-absent-observations"
@@ -1791,8 +1791,83 @@ verify_interruption_event_file() {
 }
 
 verify_interruption_real_control_events() {
-    # The real-control call site supplies observed process identities; strict checks follow below.
-    verify_interruption_event_file "$1" "$2"
+    perl - "$@" <<'PERL'
+use strict;
+use warnings;
+
+sub reject {
+    my ($reason) = @_;
+    print "$reason\n";
+    exit 1;
+}
+
+sub decimal {
+    return defined($_[0]) && $_[0] =~ /\A[0-9]+\z/;
+}
+
+sub positive_decimal {
+    return decimal($_[0]) && $_[0] =~ /[1-9]/;
+}
+
+sub normalized_decimal {
+    my ($value) = @_;
+    $value =~ s/\A0+//;
+    return length($value) ? $value : "0";
+}
+
+sub decimal_less_than {
+    my ($left, $right) = map { normalized_decimal($_) } @_;
+    return length($left) < length($right) ||
+        (length($left) == length($right) && $left lt $right);
+}
+
+my ($path, $wanted_id, $driver_pid, $host_pid, $harness_pid) = @ARGV;
+reject("EVENT_IDENTITY") if !defined($wanted_id) || $wanted_id eq "" ||
+    !positive_decimal($driver_pid) || !positive_decimal($host_pid) ||
+    !positive_decimal($harness_pid);
+open my $input, "<:raw", $path or reject("EVENT_FIELDS");
+local $/;
+my $bytes = <$input>;
+close $input or reject("EVENT_FIELDS");
+reject("EVENT_FIELDS") if !defined($bytes) || $bytes eq "" || $bytes !~ /\n\z/;
+my @lines = split /\n/, $bytes, -1;
+pop @lines;
+reject("EVENT_FIELDS") if @lines != 21;
+
+my @events = qw(driver-launch-start driver-launch-complete host-observed pre-signal-liveness
+    signal-term wait-driver glob-candidate selected-path before-assertion capture-start
+    snapshot-pre-start snapshot-pre-end assertion-start assertion-end snapshot-post-start
+    snapshot-post-end capture-end assertion-decision quit-send-count host-after-wait lock-after-wait);
+my @statuses = (0, 0, 0, 0, 0, 130, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, undef, 0);
+my @pids = ($harness_pid, $driver_pid, $host_pid, $host_pid, ($driver_pid) x 5,
+    ($harness_pid) x 8, $driver_pid, $driver_pid, $host_pid, $driver_pid);
+my @details = ("none", "none", "none", "driver_pid=$driver_pid driver_liveness=0",
+    "none", "none", "candidate=1", "selected-first-expanded-candidate", "none",
+    ("none") x 10, "kill-0-failure-is-not-distinguished-from-permission-denial", "none");
+reject("EVENT_FIELDS") if @events != 21 || @statuses != 21 || @pids != 21 || @details != 21;
+
+my $previous_time;
+for my $index (0 .. $#lines) {
+    my $row = $index + 1;
+    my @field = split /\t/, $lines[$index], -1;
+    reject("EVENT_FIELDS") if @field != 8;
+    reject("EVENT_IDENTITY") if $field[0] ne $wanted_id || $field[1] ne "harness" ||
+        !positive_decimal($field[6]) || $field[6] ne "$pids[$index]";
+    reject("EVENT_SEQUENCE") if !decimal($field[2]) || $field[2] ne "$row" ||
+        $field[4] ne $events[$index];
+    reject("EVENT_TIME") if !decimal($field[3]);
+    reject("EVENT_TIME") if defined($previous_time) &&
+        decimal_less_than($field[3], $previous_time);
+    $previous_time = $field[3];
+    if ($row == 20) {
+        reject("EVENT_VALUE") if !positive_decimal($field[5]);
+    } else {
+        reject("EVENT_VALUE") if $field[5] ne "$statuses[$index]";
+    }
+    reject("EVENT_VALUE") if $field[7] ne $details[$index];
+}
+print "EVENTS_OK\n";
+PERL
 }
 
 verify_interruption_snapshots() {
