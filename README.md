@@ -990,6 +990,13 @@ build machine to `build/ci/packages/`. This checks their names and contents:
 cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake
 ```
 
+The checker rejects semicolons, ASCII control characters and duplicate ZIP
+member names, and allows only component directories, before comparing file
+entries with the exact contents above. Each required file pattern must match
+exactly once, and the listed names must agree with the raw ZIP names so that
+Unicode path aliases cannot substitute allowed names. It also checks packaged
+libretro metadata against the source file and the documented support clause.
+
 ## Releases
 
 Release tooling changes only the numbers in the public header's three version
@@ -1146,6 +1153,8 @@ nesturbator-run --version
   follow from the header sizes (hardware: NESdev Wiki "MMC1" and "SxROM").
   `nesturbator_reset` keeps the MMC1 registers and the battery RAM, because
   the cartridge sees no reset line.
+Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
+
 - Mapper 4 (MMC3) is accepted with submapper 0 (the Sharp revision, also used
   for every iNES 1 image) or submapper 4 (the NEC revision). PRG is a power of
   two from 16 to 512 KiB, CHR is a power of two from 8 to 256 KiB of ROM or
@@ -1416,6 +1425,23 @@ uninterrupted run, and a repeat mode that gives the speculative frames the
 current input, as RetroArch does, must equal a two-instance library model. Four
 broken hosts (no load, a stale load, input one frame late, speculative audio in
 the real stream) run through the same comparison and each must differ.
+The registered `libretro.serialize` and `libretro.runahead` tests first copy each
+special ROM into their build directory, then compare that actual supplied file's
+SHA-256 with its exact row in `tests/roms/manifest.txt` before starting the host.
+A mismatch, missing row or duplicate row fails before host launch. The host assigns
+the battery and run-ahead roles only to the case-sensitive final filenames
+`M1_P128K_C128K_S8K.nes` and `nesteroids.nes`; `/` separates path components on all
+platforms, and `\` does so only on Windows. Parent directory text and similar
+filenames select no role. This identity check belongs to the registered CMake tests;
+a direct `libretro.host` call uses exact names but does not authenticate file bytes.
+`libretro.fixture_roles` covers parent names, prefix/suffix lookalikes, case variants,
+empty and null paths, trailing separators, paths with spaces and platform-specific
+backslashes. `libretro.fixture_identity` checks valid copies of both special files,
+corrupt copies that must fail before host launch, generic inputs under misleading
+parents, and distinct missing-row, duplicate-row and missing-file errors. The marker
+fixture retains its separate generator identity. The wrapper's argv probe recreates
+its owned output directory on every run and checks paths with spaces, semicolons
+and backslashes, so stale local capture files cannot satisfy it.
 `core.state_runahead` checks RetroArch's second-instance mode as a library
 property: one instance runs the real timeline, a second loads its state each
 frame and runs ahead, and the shown frames equal a single instance that saves,
@@ -1426,6 +1452,11 @@ deterministic claim.
 RetroArch's `info` directory beside the core in `cores`, and declares
 `supports_no_game = "true"`, which lets RetroArch start the core without
 content, and `libretro_saves = "true"`.
+
+The metadata checks require one canonical MMC3 support clause in each of the
+information file, README and public header; duplicate clauses are rejected,
+including a later contradictory claim. The same checks cover staged installs
+and the metadata extracted from each libretro archive.
 
 `libretro/libretro.h` is the libretro API header, copied unchanged from
 RetroArch; its source and licence are in
@@ -1527,14 +1558,217 @@ and runner frame, and both save round trips' screenshots, runner frames and
 to the real home directory, startup errors, and frame mismatches fail the
 required CI check. No manual screenshot or gameplay check is needed.
 
-The job's state step saves and loads with RetroArch's auto-save and auto-load,
-then drives one paused session over RetroArch's network commands to save, load,
-rewind and step with run-ahead. A network command is a per-loop flag, not a
-queue, so the session sends one command at a time and confirms each by a new
-screenshot. It checks every screenshot against the runner's frames (a screenshot
-identifies the set of runner frames it equals, and each step must follow from the
-last), the saved state file's container and size, and every RetroArch log. On
-failure the `retroarch-e2e-state` artifact keeps the screenshots, states and logs.
+The job's state step retains the existing auto-save/auto-load, game, battery,
+portable state and audio evidence. Its separate marker network session first
+retains two independently published, marker-validated startup captures and
+requires the second frame to advance strictly beyond the first. This proves the
+host is running before the one-shot pause toggle; a host that starts paused or
+stalls fails closed. The next two captures must then show the same frame before
+the original native anchor is saved. These four startup/pause screenshots are
+followed by the sixteen canonical displayed-state boundaries: five exact
+advances, one state-load-plus-advance probe, two post-load advances, resume until
+forward progress is observed and pause, forty individually paced rewind sends,
+three rewound advances, then a paused run-ahead toggle and load-plus-advance
+probe. The two startup captures are retained separately and are not progression
+boundaries; the full session sends 18 one-shot SCREENSHOT requests and records
+79 one-shot sends overall. Each of the sixteen canonical captures is decoded
+within absolute marker frames 4..10000 and checked by the same production prefix
+verdict; only a clean host exit after all boundaries earns the complete verdict.
+Original and rewound native state containers are retained and validated before
+their slots are reused.
+
+Each attempt has a unique owned tree and exclusive local command-port lock. The
+owned lock is released if attempt-tree or journal setup fails, preserving the
+setup failure status before any host or transport starts. The
+only retryable request is the read-only readiness query with its exact isolated
+save-directory reply; a complete exact reply is accepted after the owned receive
+child exits or is reaped. The 1-second `nc` timeout sits inside a 5-second child
+supervision slice, further capped by live operation and attempt time. Empty reads
+may retry within the 30-second readiness deadline; every action, state save/load,
+screenshot and QUIT request is one-shot. Monotonic timers bound the 30-second
+readiness and operation windows, 5-second artifact publication window,
+120-second attempt and 5-second cleanup reserve. Cleanup claims its one-shot
+QUIT before writing the request. A failed request write emits
+`CLEANUP_REQUEST_WRITE_FAILED`, records zero transport sends when the journal
+is writable, and still reaps the owned host and releases its proven endpoint
+lock while preserving the original failure or signal exit status. On the portable
+synthetic host, the full sixteen-boundary session took 53.2 seconds, including every
+intermediate production verdict. The POSIX control runs the actual shell driver
+through the successful full sequence
+and reason-specific loss, duplication, stale/partial artifact, wrong-origin,
+host-death, stalled-child and deadline cases. Its stalled-read check measures
+elapsed time and confirms that the blocked child and owned host are reaped.
+The full matrix and the private `STATE_SESSION_CONTROL=interruption` selector
+share one TERM assertion path. That path invokes the genuine `grep -F` once,
+retains its numeric status and exact output bytes, and brackets it with binary
+journal snapshots whose device, inode and size come from each snapshot's open
+handle. `STATE_SESSION_CONTROL=interruption-capture-selftest` checks status 0,
+1 and controlled 2, recorder failures, replacement while the old handle stays
+open, and per-invocation event ownership before any fixture or driver work.
+It also drives an exact foreign owner-sidecar collision through the real startup
+path and verifies refusal preserves its bytes. Another actual-driver control
+replaces the owner pathname after hard-link publication, sends TERM, and checks
+cleanup releases the original lock object while preserving the replacement.
+These nearby snapshots do not identify the bytes read by grep; the tests prove
+the recorder contract, not which bytes grep read. The shared capture boundary
+receives its owned session ID explicitly; the nested `capture` directory name
+does not select event identity. The offline selector calls that same boundary
+and final validator for two independent sessions stored under
+`session-A/capture` and `session-B/capture`, then rejects wrong expected IDs,
+mixed outer or inner rows, and another session's ledger. An invalid ID marks
+the recorder unusable while preserving the genuine assertion status. The two
+ten-row examples remain generic identity-only checks. Separately, the real
+interruption control passes its observed driver, host and harness PIDs to a strict
+21-row gate before the recorder gate. That gate requires the exact eight-field
+event order, role-specific PIDs, statuses and details, contiguous sequence,
+nondecreasing monotonic time and final newline; recorder rejection remains
+separate from the single genuine assertion decision. Its host-after-wait row
+retains kill-0 ambiguity instead of distinguishing permission denial from a
+live process. These identity checks add to the seven capture and 40 retained trace cases (36 original
+plus four lock controls). Eleven lifecycle and QUIT cases add coverage for stable
+first-two-row host/child PIDs, live observations requiring a PID, unavailable
+observations remaining admissible, cleanup-cleared final observations and
+row-two QUIT remaining unsent. The trace writer
+records object occupancy without using it as ownership authority. Cleanup
+requires the filesystem identity captured from this invocation's successful
+noclobber creation as well as the token-bearing hard link; failed creation and a
+replaced owner pathname do not authorize deleting a foreign object. The prior
+corrected candidate `0268d3450f64392911a187ce5c040847fda5f8f8` passed focused CI
+10/10, ASan 2/2 and normal CI 649/649 with three ZIPs. Its source remained
+unchanged at review candidate `7a6b1aaa87c9f8eb244aa1e901becc32352ecf4e`, whose
+independent review left five open findings. Those are immutable historical
+results, not acceptance of this correction. The authoritative candidate/result
+register for corrected-source gates and review is
+`.planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md`.
+The historical assertion and native timing causes remain unknown. Fresh
+native/exact-head acceptance and owner consent, plus actual release publication,
+remain separate work in Plans 07 and 08.
+The source-only `tests/retroarch/interruption_trace.sh` is shared by the real
+driver and harness. Before fixture or driver work, the offline selector runs the
+same writer and validator through handler entry, journal close and cleanup. Its
+16-field rows retain a positive PID while observed and use `unavailable` after
+cleanup clears the owned host or child PID; liveness uses that marker when
+`kill -0` cannot establish a live process. Admission binds the unique session
+invocation and separately observed driver PID, exact event order, numeric
+monotonic samples, statuses and field values. The real-control 21-row gate is
+separate from the generic ten-row identity examples and receives observed process
+IDs from the control path. The seven capture cases remain.
+The 36 original trace cases cover lifecycle admission, independent mutation
+failures, invocation separation and writer rejection paths. Four lock cases
+cover regular-file occupancy through cleanup, field-14-only admission mutants
+and dangling-symlink occupancy; 11 lifecycle cases enforce the observed-PID,
+liveness, cleanup and QUIT ordering rules. These bounded offline recorder checks
+exercise 51 trace cases in total. Corrected-source gates and independent review are tracked in the
+authoritative Plan 17 candidate/result register at
+`.planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md`.
+These checks do not explain the historical assertion, whose cause remains
+unknown.
+The journal writes each row in one Perl process, taking one monotonic observation
+for attempt elapsed and remaining time and applying the existing path
+substitutions in that same write. A stopped operation uses its captured terminal
+observation; an active operation uses the row observation, and an inactive row
+retains the last completed operation values. The focused
+`retroarch.session.readiness` control runs the delayed exact-reply and
+response-stall full prefixes once each, in that order. It reports fixture/setup,
+readiness-operation, later-prefix, driver+cleanup and enclosing CTest time
+separately: each enclosing total includes fixture generation, captures, native
+validation and cleanup, and is distinct from that case's readiness operation
+interval. The per-case timing line is emitted before the strict full-driver
+duration assertion, so an over-bound failure keeps its available phase timings,
+driver status and sanitized reason; phases with no evidence are reported as
+unavailable rather than zero. Generated config and host logs are retained only
+in sanitized form. Before those prefixes, the registered readiness test checks
+the reporting contract with synthetic over-bound measurements. A local UDP send
+is not proof of host receipt; the retained images and native anchors are checked
+by the shared progression verdict.
+`PREFIX_OK` qualifies a declared continuation only; complete success requires
+all sixteen boundaries and terminal exit zero. Fault injection wraps only
+prescribed one-shot mutations; readiness reads use the real local `nc`. The
+wrapper supervises and reaps its own send child on interruption. This is bounded
+evidence for the pinned local-host run, not a guarantee of UDP delivery.
+
+The focused prefix profiler found three separately validated prefix processes
+per readiness attempt. In its single baseline pair they took about 0.99–1.01 s
+in ci and 1.97–1.99 s in asan. The validator retains a 150-frame replay when
+the displayed image is the native anchor, because the framebuffer is not saved
+in the state. For a later display frame, it now loads the validated anchor
+before advancing; that removes the overwritten pre-load replay while keeping
+each artifact decode and native check. In the candidate asan trace, the third
+prefix process changed from 962/968 ms to 775/741 ms for delayed/stalled cases.
+The aggregate prefix totals and enclosing case timings varied, and this local
+single pair does not show an overall readiness improvement. Native run
+`38764197994` separately recorded the Intel response-stall at 25946 ms and the
+ASan delayed case at 26269 ms against the strict 25000 ms bound. Those native
+subintervals and causes are unknown; only a fresh exact-head hosted run can
+establish whether the bounded local reduction resolves them.
+
+The portable `retroarch.marker.qualify` control qualifies an owned generated NROM
+counter. It
+runs every absolute library frame 4 through 10000 (9997 frames), checks every
+pixel of all counter cells and complementary guards, and measures the guest
+counter's mapping to the absolute frame, including startup latency. The interval
+is the permitted absolute capture, rewind and display-lead excursion; wall time
+alone cannot bound a host's frame rate. Evidence outside the qualified interval
+fails. The marker is near the
+bottom of the picture so instruction-boundary drift cannot split it in this
+window. Generated ROMs and calibration records stay in the build tree.
+
+The required pinned-host `HOSTED_MARKER=ON` invocation gives generated marker
+content its own state/network session and identity after checking the released
+RetroArch asset pin. It repeats qualification on that content, then runs the
+production session driver and one final production verdict over all sixteen
+boundaries. The separate Nesteroids game, deterministic auto-state and battery
+lanes remain in the hosted job; exact command progression no longer comes from
+set-valued screenshot chains.
+
+The host qualification checks distinct base/run-ahead and auto-save/load pictures,
+measures the display lead, and retains the native origin at frame 150. Its narrow
+reader accepts only the measured uncompressed RetroArch 1.22.2 `RASTATE` version
+1 envelope: one `MEM ` chunk of the exact native size, zero padding to eight
+bytes and one zero-length `END ` chunk, with no trailer. The public loader on an
+isolated same-content instance validates the payload; the oracle additionally
+binds current format, behavior revision, absolute origin and the next marker.
+SHA-256 identities bind supplied/generated content, copied core, metadata and
+each host configuration. A missing image/state, crash or failed launch fails
+the host gate. This bounds displayed progression and native origins; it does not
+prove every committed machine field or speculative audio. Portable whole-state
+and audio tests retain those separate proofs.
+
+`frame_index --marker-verdict-prefix ROM CALIBRATION EVIDENCE` applies the
+same versioned, bounded relation verdict to a declared prefix of decoded host
+images. It binds the record to the exact marker ROM and measured calibration,
+checks each image hash and marker, and validates its retained native anchor on
+an isolated same-content instance. `PREFIX_OK` means only that this observed
+prefix is consistent with the declared continuation; it is not a complete
+session verdict. `--marker-verdict` requires all prescribed boundaries and a
+clean terminal host exit. The evidence format preserves paths with spaces and
+rejects ambiguous frame candidates instead of selecting whichever candidate
+makes a relation fit. Its 16 boundaries keep one original anchor across two
+pause captures, five advances and the load/post-load/resume branch, and one
+rewound anchor across the coarse rewind, three advances and run-ahead probe.
+Load-plus-probe records two sends; the rewind records forty paced sends and
+requires at least twenty frames of backward movement. The run-ahead display
+lead is recorded separately. `retroarch.progression.controls` checks this
+complete path and 40 independent reason-specific controls, including the
+same-image A,A,B ambiguity case. `--marker-selftest WORK --fixtures` leaves
+build-owned marker images, calibration and native anchors for offline controls.
+
+`retroarch.marker.controls` runs 36 independently specified cases: first/last
+frames, startup and end plus one, counter carry, zero/one/two steps and duplicate
+identity, invalid colors and partial cells/guards, image geometry, bounded
+container length/header/padding/end checks, wrong native content/format/checksum,
+and native-valid stale revision and same-ROM wrong origin. Every negative must
+reach its named terminal reason. CRC-valid semantic negatives first pass the
+public loader, so a parse error or crash cannot masquerade as their rejection.
+Unrelated background RGB, top-down 24-bit BMP and bottom-up 32-bit BMP with
+unused alpha preserve marker identity. The required hosted
+progression gate retains its full qualification and owned attempt tree on success
+and failure for seven days in `retroarch-marker-progression`, alongside the
+unchanged game, battery and deterministic auto-state artifacts. Dropped and
+doubled real FRAMEADVANCE sends must reach the production `PROGRESSION` verdict;
+a branch bound to the other native-valid origin must reach `ORIGIN`. Each
+negative follows valid screenshot and native-anchor prerequisites, so a host
+launch or parsing failure cannot count as semantic evidence.
 
 ## What it is
 

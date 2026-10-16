@@ -1,10 +1,10 @@
 ---
 schema_version: 1
 open_count: 0
-waived_count: 3
-fixed_count: 7
-total_count: 10
-last_updated: 2026-10-13T16:52:44.769Z
+waived_count: 4
+fixed_count: 11
+total_count: 15
+last_updated: 2026-10-15T00:12:58.556Z
 ---
 
 # Broken Windows Ledger
@@ -25,6 +25,11 @@ last_updated: 2026-10-13T16:52:44.769Z
 | 8 | 03 | unrun-verify | .github/workflows/ci.yml |  | The six hosted build lanes were not exercised from the local plan run; observe the GitHub Actions matrix result. | fixed |  | 2026-10-08T19:49:17.206Z | 2026-10-13T16:52:44.395Z |
 | 9 | 03 | skipped-test | tests/retroarch/run_retroarch.cmake |  | Local retroarch.testframe skipped because RetroArch aborted before startup; hosted retroarch-e2e is the existing evidence path. | fixed |  | 2026-10-09T14:02:27.608Z | 2026-10-13T16:52:44.470Z |
 | 10 | 03 | skipped-test | tests/retroarch/run_retroarch.cmake |  | Local retroarch.game skipped because RetroArch aborted before startup; hosted retroarch-e2e is the existing evidence path. | fixed |  | 2026-10-09T14:02:27.707Z | 2026-10-13T16:52:44.545Z |
+| 11 | 16 | deviation | tests/retroarch/frame_index.c |  | Moved the generated marker to scanline 224 after exhaustive qualification exposed a split cell at frame 1467; final frames 4..10000 pass. | fixed |  | 2026-10-13T19:48:51.579Z | 2026-10-13T19:48:59.476Z |
+| 12 | 16 | deviation | .github/workflows/ci.yml |  | Wired the required hosted marker invocation and retention during Task 1 so its tracer gate could run before Task 2 expansion. | fixed |  | 2026-10-13T19:48:59.550Z | 2026-10-13T19:49:05.056Z |
+| 13 | 16 | deviation | README.md |  | Replaced the unsupported 61-fps wall-time bound with the enforced absolute marker window 4..10000; out-of-window evidence fails. | fixed |  | 2026-10-13T19:49:05.121Z | 2026-10-13T19:49:09.830Z |
+| 14 | 16 | deviation | tests/retroarch/CMakeLists.txt | 59 | Removed output-only CTest pass regexes so process exit status governs progression test success | fixed |  | 2026-10-13T22:23:37.344Z | 2026-10-13T22:23:50.741Z |
+| 15 | 16 | deviation | .planning/phases/16-host-evidence-and-roadmap/16-04-SUMMARY.md | 105 | Task 2 RED used a reduced root-equality and branch-protection guard instead of the verbatim supplied pin block. | waived | The pinned root and protected-branch conditions were verified; this was a process-only difference in diagnostics, and later commits used the verbatim guard. | 2026-10-15T00:12:18.425Z | 2026-10-15T00:12:58.556Z |
 
 ````json
 [
@@ -157,10 +162,74 @@ last_updated: 2026-10-13T16:52:44.769Z
     "recorded_at": "2026-10-09T14:02:27.707Z",
     "resolved_at": "2026-10-13T16:52:44.545Z",
     "milestone": null
+  },
+  {
+    "id": 11,
+    "kind": "deviation",
+    "phase": "16",
+    "file": "tests/retroarch/frame_index.c",
+    "line": null,
+    "description": "Moved the generated marker to scanline 224 after exhaustive qualification exposed a split cell at frame 1467; final frames 4..10000 pass.",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-10-13T19:48:51.579Z",
+    "resolved_at": "2026-10-13T19:48:59.476Z",
+    "milestone": null
+  },
+  {
+    "id": 12,
+    "kind": "deviation",
+    "phase": "16",
+    "file": ".github/workflows/ci.yml",
+    "line": null,
+    "description": "Wired the required hosted marker invocation and retention during Task 1 so its tracer gate could run before Task 2 expansion.",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-10-13T19:48:59.550Z",
+    "resolved_at": "2026-10-13T19:49:05.056Z",
+    "milestone": null
+  },
+  {
+    "id": 13,
+    "kind": "deviation",
+    "phase": "16",
+    "file": "README.md",
+    "line": null,
+    "description": "Replaced the unsupported 61-fps wall-time bound with the enforced absolute marker window 4..10000; out-of-window evidence fails.",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-10-13T19:49:05.121Z",
+    "resolved_at": "2026-10-13T19:49:09.830Z",
+    "milestone": null
+  },
+  {
+    "id": 14,
+    "kind": "deviation",
+    "phase": "16",
+    "file": "tests/retroarch/CMakeLists.txt",
+    "line": 59,
+    "description": "Removed output-only CTest pass regexes so process exit status governs progression test success",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-10-13T22:23:37.344Z",
+    "resolved_at": "2026-10-13T22:23:50.741Z",
+    "milestone": null
+  },
+  {
+    "id": 15,
+    "kind": "deviation",
+    "phase": "16",
+    "file": ".planning/phases/16-host-evidence-and-roadmap/16-04-SUMMARY.md",
+    "line": 105,
+    "description": "Task 2 RED used a reduced root-equality and branch-protection guard instead of the verbatim supplied pin block.",
+    "status": "waived",
+    "reason": "The pinned root and protected-branch conditions were verified; this was a process-only difference in diagnostics, and later commits used the verbatim guard.",
+    "recorded_at": "2026-10-15T00:12:18.425Z",
+    "resolved_at": "2026-10-15T00:12:58.556Z",
+    "milestone": null
   }
 ]
 ````
-
 ## Closure evidence — 2026-10-13
 
 The original descriptions, timestamps and historical file references above are

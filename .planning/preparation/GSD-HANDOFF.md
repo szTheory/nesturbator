@@ -2,7 +2,7 @@
 title: "GSD hand-off: kickoff, per-phase steps and owner tasks"
 summary: "How to start and run this project with opengsd one step at a time: the kickoff text, the settings and why, the per-phase steps, and the tasks only the owner can do."
 read_when: "Before starting the GSD project, before each phase, and when a GSD step behaves unexpectedly."
-updated: 2026-10-09
+updated: 2026-10-13
 ---
 
 # GSD hand-off
@@ -10,12 +10,50 @@ updated: 2026-10-09
 ## Why this file exists
 The project is built with opengsd (gsd-core). Preparation wrote the files GSD normally creates by asking questions, so the first command resumes at roadmap creation. This file holds that command, the settings that make GSD stop after every step, and the tasks only the owner can do.
 
-## 1. Before the kickoff
+## Current operating contract (2026-10-13)
+
+The bootstrap instructions in sections 1 and 2 describe the historical
+2026-10-02 preparation. Current project steps use Codex with OpenGSD 1.16.0
+and AGENTS.md as project instructions. The adaptive project profile routes
+heavy planning to `gpt-6-astra`, standard research/execution to
+`gpt-6.1-sol` and light checks to `gpt-6-luna`, with medium effort. Resolve
+and pass each role's model and effort at dispatch; the historical inherit
+setting below is superseded by `.planning/config.json`.
+
+### Rolling roadmap at milestone boundaries
+
+Read [PRODUCT-ROADMAP.md](../PRODUCT-ROADMAP.md) at each new-milestone and
+complete-milestone step alongside PROJECT, STATE, the latest audit, seeds
+and release evidence. The agent performs the refresh within that invoked
+step: reconcile shipped and partial work, retain unresolved debt, update
+Immediate/Near/Mid/Long priorities and triggers, and record why their order
+changed or stayed. Present the preferred next scope and alternatives;
+only approved scope moves to Immediate/committed with requirement and
+phase links. Include this file explicitly in the step's commit lists.
+
+At closeout, mark only acceptance-backed outcomes shipped, retain pending
+publication as pending, refresh future direction and snapshot it as
+`milestones/vN-PRODUCT-ROADMAP.md`. A reconstructed boundary snapshot
+states its actual recording date. Original seeds are preserved during
+new-milestone; their partial/delivered/recurring disposition is recorded
+in the product roadmap. Phase findings update direction only when they
+change priorities, prerequisites or acceptance. This requires no extra
+lifecycle command, dependency, hosted board or global GSD patch.
+
+The active [ROADMAP.md](../ROADMAP.md) is GSD's execution contract.
+PRODUCT-ROADMAP carries product direction; seeds carry source narratives.
+Planning milestone versions and package release versions are distinct.
+Keep future horizons less detailed and conditional. A structural check
+can be added if upkeep is repeatedly missed, but cannot prove priority
+review. Prefer a small owned helper or justified duplication to an extra
+dependency, within the clean-room rules.
+
+## 1. Before the kickoff (historical bootstrap)
 - **GSD version.** `cat ~/.claude/gsd-core/VERSION` should print 1.15.0, the version this package was checked against [GH.01]. Version 1.10.0 has no resume path: it stops with "project already initialized" when `PROJECT.md` exists [GH.02]. To install 1.15.0 for Claude Code: `npx -y @opengsd/gsd-core@1.15.0 --claude --global`, then open a new session. Check the version again before each phase step; on 2026-10-02 a reinstall from a stale npx cache put 1.10.0 back.
 - **Runtime.** Run this project's GSD steps in Claude Code. There GSD writes its generated guide to `.claude/CLAUDE.md`; under Codex it writes to `AGENTS.md`, which holds this project's rules [GH.01].
 - **Read** `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `AGENTS.md`, about ten minutes. Change them now if anything is off: the roadmap is built from them.
 
-## 2. Kickoff
+## 2. Kickoff (historical bootstrap)
 In a new Claude Code session at the repository root, paste this as one message:
 
 ```
@@ -202,7 +240,7 @@ Things an assistant must not decide or cannot do.
 |---|---|
 | Property tests, long fuzz runs, a speed check that blocks merges, tail frame times | SEED-004 (requirements PERF-01 to PERF-03). Milestone 1 has sanitizer builds, the loader's fuzz corpus and cross-platform hash equality |
 | Recurring CI-speed and quality passes | SEED-006, at the start of every milestone |
-| A rolling near, mid and long-term roadmap | `ROADMAP.md` is the near term; SEED-001 to SEED-004 the next milestones; SEED-005 the long term |
+| A rolling Immediate/Near/Mid/Long roadmap | [PRODUCT-ROADMAP.md](../PRODUCT-ROADMAP.md), refreshed at each milestone boundary; ROADMAP.md is execution scope and seeds are source ideas |
 | More mappers, save states, PAL, expansion audio, FDS | SEED-001, SEED-002, SEED-003, SEED-005 |
 | Tracing without run-time cost | A compile-time option; release builds contain no trace code (ARCHITECTURE 7) |
 | What users want from a frontend (shaders, menus, input mapping) | NES-ECOSYSTEM 5, tagged "host", for the shared host project |

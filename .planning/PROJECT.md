@@ -14,12 +14,19 @@ v3 "Save states and rewind" shipped on 2026-10-13; its five phases merged as PRs
 
 v2 "Most of the library plays" shipped on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-## Next Milestone Goals
+## Current Milestone: v4 Measured NTSC accuracy and robustness
 
-Not yet defined; `/gsd-new-milestone` sets them. The candidates are:
-- The v3 debt in `.planning/milestones/v3-MILESTONE-AUDIT.md`: the Phase 13 RetroArch test-robustness warnings (WR-01 frame-chain check, WR-02 single-send commands, WR-03 substring ROM match), the `.info` description that omits MMC3, the macOS-only RetroArch state e2e, and the open info findings.
-- Backlog 999.2: bump AccuracyCoin past `673ef550`.
-- Seeds in `.planning/seeds/`: accuracy and PAL/Dendy (SEED-003), fuzzing arbitrary ROM bytes beyond the loader (SEED-004, robustness half), Famicom hardware (SEED-005), and the tune-up that opens each milestone (SEED-006).
+**Goal:** Establish a complete pinned NTSC conformance inventory, host tests that reject known wrong behavior, and bounded execution robustness evidence for the supported core; use those measurements to choose the next accuracy or regional milestone.
+
+**Target features:**
+- Discriminating RetroArch state/progression checks, safe command confirmation, exact fixture selection and truthful MMC3 metadata.
+- A complete AccuracyCoin inventory and bounded baseline, with the pin, compressed-name decoder and protected-key migration validated together.
+- Accepted-program execution/lifecycle fuzzing with deterministic corpus replay, finite sanitizer campaigns and explicit loop/JAM outcomes.
+- A rolling Immediate/Near/Mid/Long product roadmap refreshed at every milestone start and closeout.
+
+**Direction:** [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md) keeps future priorities, evidence and promotion triggers. The active execution contract remains [ROADMAP.md](ROADMAP.md). User-approved scope is three phases, beginning at Phase 16; PAL/Dendy, new boards, expansion audio, FDS and an all-pass accuracy obligation remain outside v4.
+
+**Selected seeds:** SEED-003's baseline portion, SEED-004's remaining execution-robustness portion and the bounded recurring SEED-006 tune-up. Already shipped seed outcomes remain credited; original seed files are preserved.
 
 ## Requirements
 
@@ -48,7 +55,10 @@ Not yet defined; `/gsd-new-milestone` sets them. The candidates are:
 
 ### Active
 
-(none — the next milestone's requirements come from `/gsd-new-milestone`)
+- [ ] Existing real-host evidence rejects dropped/doubled/wrong-load sequences, confirms bounded commands and selects exact fixtures; MMC3 metadata is truthful. — EVID-01 to EVID-04
+- [ ] The runner inventories the pinned AccuracyCoin suite and records every scored result honestly, preserving protected passes and migration evidence. — CONF-01 to CONF-04
+- [ ] Supported accepted programs and lifecycle transitions receive bounded execution fuzzing, deterministic replay and documented loop/JAM behavior. — ROB-01 to ROB-04
+- [ ] Product direction is recorded and reconciled within each milestone opening and closeout. — DIR-01, DIR-02
 
 ### Out of Scope
 
@@ -159,4 +169,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-13 after v3 milestone*
+*Last updated: 2026-10-13 at v4 milestone initialization*

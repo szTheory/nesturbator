@@ -1972,6 +1972,111 @@ static void check_serialize_jam(void)
     p_unload_game();
 }
 
+enum fixture_role { FIXTURE_ROLE_GENERIC, FIXTURE_ROLE_NESTEROIDS, FIXTURE_ROLE_MMC1_BATTERY };
+
+/* Fixture roles use only the exact final filename; path bytes stay untouched. */
+static const char *fixture_final_component(const char *path)
+{
+    const char *component;
+
+    if (path == NULL) {
+        return NULL;
+    }
+    component = path;
+    for (const char *cursor = path; *cursor != '\0'; cursor++) {
+        if (*cursor == '/') {
+            component = cursor + 1;
+        }
+#if defined(_WIN32)
+        else if (*cursor == '\\') {
+            component = cursor + 1;
+        }
+#endif
+    }
+    if (*component == '\0') {
+        return NULL;
+    }
+    return component;
+}
+
+static enum fixture_role fixture_role_for_path(const char *path)
+{
+    const char *component = fixture_final_component(path);
+
+    if (component != NULL && strcmp(component, "nesteroids.nes") == 0) {
+        return FIXTURE_ROLE_NESTEROIDS;
+    }
+    if (component != NULL && strcmp(component, "M1_P128K_C128K_S8K.nes") == 0) {
+        return FIXTURE_ROLE_MMC1_BATTERY;
+    }
+    return FIXTURE_ROLE_GENERIC;
+}
+
+static int fixture_role_selftest(void)
+{
+    unsigned cases = 0u;
+
+    CHECK_EQ_U64(fixture_role_for_path("games/nesteroids.nes"), FIXTURE_ROLE_NESTEROIDS);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("roms/M1_P128K_C128K_S8K.nes"), FIXTURE_ROLE_MMC1_BATTERY);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("nesteroids/generic.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("M1_P128K_C128K_S8K/generic.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/not-nesteroids.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/nesteroids.nes.bak"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/xM1_P128K_C128K_S8K.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/M1_P128K_C128K_S8K.nes.old"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/Nesteroids.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/m1_P128K_C128K_S8K.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path(""), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path(NULL), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/nesteroids.nes/"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/M1_P128K_C128K_S8K.nes/"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games with spaces/nesteroids.nes"),
+                 FIXTURE_ROLE_NESTEROIDS);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games with spaces/M1_P128K_C128K_S8K.nes"),
+                 FIXTURE_ROLE_MMC1_BATTERY);
+    cases++;
+#if defined(_WIN32)
+    CHECK_EQ_U64(fixture_role_for_path("games\\nesteroids.nes"), FIXTURE_ROLE_NESTEROIDS);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games\\M1_P128K_C128K_S8K.nes"), FIXTURE_ROLE_MMC1_BATTERY);
+    cases++;
+#else
+    CHECK_EQ_U64(fixture_role_for_path("games\\nesteroids.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games\\M1_P128K_C128K_S8K.nes"), FIXTURE_ROLE_GENERIC);
+    cases++;
+#endif
+#if defined(_WIN32)
+    CHECK_EQ_U64(fixture_role_for_path("games\\nesteroids.nes\\"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games\\M1_P128K_C128K_S8K.nes\\"), FIXTURE_ROLE_GENERIC);
+    cases++;
+#else
+    CHECK_EQ_U64(fixture_role_for_path("games/nesteroids.nes\\"), FIXTURE_ROLE_GENERIC);
+    cases++;
+    CHECK_EQ_U64(fixture_role_for_path("games/M1_P128K_C128K_S8K.nes\\"), FIXTURE_ROLE_GENERIC);
+    cases++;
+#endif
+    printf("libretro.fixture_roles: cases=%u\n", cases);
+    CHECK_EQ_U64(cases, 20u);
+    CHECK_DONE();
+}
+
 /* libretro.host --serialize <module> <rom>... */
 static int serialize_mode(int argc, char **argv)
 {
@@ -2026,7 +2131,7 @@ static int serialize_mode(int argc, char **argv)
         }
         check_unserialize_before_run(&roms[i]);
         check_serialize_contexts(&roms[i]);
-        if (strstr(roms[i].path, "M1_P128K_C128K_S8K") != NULL) {
+        if (fixture_role_for_path(roms[i].path) == FIXTURE_ROLE_MMC1_BATTERY) {
             check_unserialize_battery(&roms[i]);
             battery_roms++;
         }
@@ -2392,7 +2497,7 @@ static int runahead_mode(int argc, char **argv)
             continue;
         }
         count++;
-        if (strstr(r->path, "nesteroids") != NULL) {
+        if (fixture_role_for_path(r->path) == FIXTURE_ROLE_NESTEROIDS) {
             /* The full matrix: both scripts, depths 0 to 3, repeat mode on script 1, and the
                four controls. */
             rah_matrix(r, T, 1u, 0xfu, 1, &tot);
@@ -2448,6 +2553,34 @@ static int runahead_mode(int argc, char **argv)
     CHECK_DONE();
 }
 
+/* Test-only host mode: record the exact argv the CMake fixture wrapper delivers. */
+static int fixture_argv_capture(int argc, char **argv, const char *path)
+{
+    FILE *output = fopen(path, "wb");
+    int index;
+    if (output == NULL) {
+        fprintf(stderr, "cannot create fixture argv capture\n");
+        return 1;
+    }
+    if (fprintf(output, "%d\n", argc - 1) < 0) {
+        fclose(output);
+        return 1;
+    }
+    for (index = 1; index < argc; index++) {
+        size_t length = strlen(argv[index]);
+        if (fprintf(output, "%lu:", (unsigned long)length) < 0 ||
+            fwrite(argv[index], 1, length, output) != length || fputc('\n', output) == EOF) {
+            fclose(output);
+            return 1;
+        }
+    }
+    if (fclose(output) != 0) {
+        fprintf(stderr, "cannot finish fixture argv capture\n");
+        return 1;
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     struct retro_system_info sys;
@@ -2456,7 +2589,14 @@ int main(int argc, char **argv)
     static unsigned char dummy_bytes[16u + 16384u + 8192u];
     static uint32_t first_content_frame[W * H];
     double fps_diff;
+    const char *fixture_argv_path = getenv("NESTURBATOR_FIXTURE_ARGV_CAPTURE");
 
+    if (fixture_argv_path != NULL) {
+        return fixture_argv_capture(argc, argv, fixture_argv_path);
+    }
+    if (argc == 2 && strcmp(argv[1], "--fixture-role-selftest") == 0) {
+        return fixture_role_selftest();
+    }
     if (argc >= 6 && strcmp(argv[1], "--rom-parity") == 0) {
         return rom_parity(argc, argv);
     }
@@ -2469,6 +2609,7 @@ int main(int argc, char **argv)
     if (argc != 6) {
         fprintf(stderr, "usage: libretro.host --rom-parity <module> <rom> <frames> <ppm> "
                         "[--movie FILE] [--testcard PPM] [--sav-in FILE] [--sav-expect FILE]\n"
+                        "       libretro.host --fixture-role-selftest\n"
                         "       libretro.host --serialize <module> <rom>...\n"
                         "       libretro.host --runahead <module> [--short] <rom>...\n"
                         "       libretro.host <module> <testframe.ppm> <content.ppm> <runner> "
