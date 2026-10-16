@@ -4,17 +4,17 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready
-stopped_at: Gap amendment verified; Plan 15 offline capture identity repair ready; Plan 14 acceptance and delivery still pending
-last_updated: "2026-10-16T02:09:21.789Z"
+status: executing
+stopped_at: Completed 16-15-PLAN.md
+last_updated: "2026-10-16T02:34:18.299Z"
 last_activity: 2026-10-15
-last_activity_desc: Plan 15 offline identity repair independently verified; zero new observations; current acceptance remains with Plan 14
-state_head: 34d68516a15e31370a33da41ec96b9bdf404aa6b
+last_activity_desc: Phase 16 execution started
+state_head: f99458963dedf4de1529b99c09ed4d21256c9a6e
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 11
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -29,13 +29,13 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE PLAN 15; acceptance incomplete
-Plan: 16-15 planned; 7 of 11 live plans complete; 15 physical plans
-Status: Independent planning verification passed; substantive offline shared capture-identity repair ready; Plans10/11/12/13 remain superseded/incomplete without SUMMARY or credit
-Delivery gates: Plan15 proves the demonstrated recorder identity defect offline and allocates zero new observations. Plan14 remains blocked on15 and owns registered ci/asan actual-driver compatibility, normal CI/all tests/three packages, independent exact-source review and every required later gate. Plans07/08, exact-head native acceptance, owner merge consent and actual publication remain pending. Historical assertion cause remains unknown.
-Last activity: 2026-10-15 — Plan15 plus revisions07/08/13/14 independently verified;6/6 requirements,17/17 decisions and11 live plan structures covered; no implementation/runtime acceptance in this planning step
+Phase: 16 (Host evidence and roadmap) — EXECUTING
+Plan: 2 of 11
+Status: Ready to execute
+Delivery gates: Plan15's offline identity RED/GREEN is complete with zero new observations. The parent-owned post-wave workflow gate remains pending; Plan14 owns registered ci/asan actual-driver compatibility, normal CI/all tests/three packages, independent exact-source review and every required later gate. Plans07/08, exact-head native acceptance, owner merge consent and actual publication remain pending. Historical assertion cause remains unknown.
+Last activity: 2026-10-16 — Plan16-15 offline identity repair completed; post-wave workflow gate pending
 
-Progress: Phase16 plans7/11 complete; milestone phases0/3 complete
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -204,6 +204,7 @@ Progress: Phase16 plans7/11 complete; milestone phases0/3 complete
 | Phase 16 P05 | 25min | 2 tasks | 6 files |
 | Phase 16 P09 | 38 min | 3 tasks | 8 files |
 | Phase 16 P10 | 67min | 3 tasks | 10 files |
+| Phase 16 P15 | 15m | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -326,6 +327,8 @@ Recent decisions affecting current work:
 - [Phase 16]: Skip only later-target pre-load replay; retain cold rendering at the native anchor because frame pixels are not serialized.
 - [Phase 16]: Treat the local replay reduction as bounded evidence, not an overall readiness speedup or proven explanation of hosted failures.
 - [Phase 16]: Run the synthetic timing-report selftest through existing registered readiness coverage without changing CTest registration or deadlines.
+- [Phase 16]: Event ledger identity comes from the owned invocation, never the nested storage basename.
+- [Phase 16]: Offline identity acceptance remains separate from actual-driver, native-host, and publication gates.
 
 ### Pending Todos
 
@@ -392,9 +395,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T02:09:21.789Z
-Stopped at: Plan15 offline identity amendment independently verified; ready for gaps-only execution; Plan14 and delivery acceptance still pending
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-15-PLAN.md
+Last session: 2026-10-16T02:34:18.278Z
+Stopped at: Completed 16-15-PLAN.md
+Resume file: None
 
 Next GSD command: $gsd-execute-phase 16 --gaps-only
 
