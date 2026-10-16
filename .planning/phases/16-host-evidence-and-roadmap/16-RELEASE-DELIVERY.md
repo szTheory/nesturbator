@@ -1,8 +1,8 @@
 # Phase 16 release delivery
 
-**Recorded:** 2026-10-15
+**Recorded:** 2026-10-16
 
-**Status:** EVID-04 remains open. Plan 09 completed its local repair, but Plan 16-07 Task 1 stopped on fresh native PR CI failure at repaired head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`. Plans 07/08 remain incomplete. No merge consent has been requested or granted.
+**Status:** EVID-04 remains open. Plan 21's repaired source has passed its current local acceptance, independent review and mandatory parent gates. Plan 07 Task 1 is resuming from that evidence. PR #50 still points at the older pushed head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`, whose latest native CI failed; the newly accepted source and current delivery preparation have not yet been pushed or checked natively. Plans 07/08 remain incomplete. No merge consent has been requested or granted.
 
 ## Accepted implementation and remaining gap
 
@@ -51,4 +51,18 @@ Both failures were in `retroarch.session.readiness`. The ASan full `retroarch.se
 
 Ignored `build/phase16-release/` retains `failure-summary-38764197994.json`, `poll-state.json`, `run-jobs-38764197994.tsv`, `macos-intel-repaired-failed.log`, `asan-job.log` and `ci-required-failed.log`. No bound, sleep, parallelism, source or workflow was changed after this failure; CI was not rerun. No owner consent, merge, tag or publication occurred. The unrelated config preference edit remains unstaged and byte-identical to its execution baseline.
 
-Plan 07 Task 1 remains incomplete with no summary; Plan 08 is unstarted. Stop for a bounded gap-plan amendment using both native failures and actual logs. Next: `$gsd-plan-phase 16 --gaps`. Resume delivery only after that repair has its required local checks, fresh review and fresh native PR CI on the resulting final head. This failure-handoff commit stays local and is not new CI evidence. Preserve the existing 21/22 verifier report as historical evidence and keep EVID-04 open until actual published-byte verification and independent re-verification.
+## Current accepted source and Plan 07 resume — 2026-10-16
+
+Plan 21 is complete on source candidate `38e14fbc0104038a7eb9ad17d16499c7924c2b9b`. Its accepted actual-helper RED and eight-case GREEN are bound to the same frozen harness; the repair handles a failed cleanup QUIT write while preserving the first failure/status and continuing owned-host teardown and endpoint-lock release. The normal `cmake --workflow --preset ci` passed 649/649 tests with no skips, four jobs and all four workflow stages in 293.375720 seconds, and its three new local library, runner and libretro ZIPs passed the existing package checks. A separate parent build and full-workflow repeat also passed; that repeat passed 649/649 with no skips and four jobs in 298.625100 seconds.
+
+The fresh independent source review is clean with zero findings on the source-equivalent snapshot `b071e63ee0e11c8b944e7f0d8b426867f227dda3`. Its six reviewed blobs match the accepted candidate, and the digest-bound disposition reports `open: 0` with report SHA-256 `2eb2369ab458597ee7aea6875121a27145463faa528861c61e44ca0e270c935d`. The parent-gate result binds the same ten source blobs and protected config hash and records `PASS` at snapshot `11fc2bf8cec6ba864240e76d3bd7be85378ef760`.
+
+At resume, local HEAD was `e8ade4cd77d67664c34107c06975e9fb60d2d70a`. All ten paths in Plan 21's candidate register still match their accepted Git blobs; the difference from the source candidate is planning and state documentation only. Plans 16-01 through 16-06, 16-09, 16-15 and 16-21 are complete; only Plans 07 and 08 remain incomplete, so the live count stays 9/11. The protected config remains byte-identical at SHA-256 `0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e`; its user preference diff is unstaged and excluded. The phase verifier remains `gaps_found`, so the installed `$gsd-ship` preflight would block; this plan follows its expressly authorized delivery path inside execute-phase and does not invoke that workflow.
+
+## Current PR and next native check
+
+The live PR is still [#50](https://github.com/szTheory/nesturbator/pull/50), open and non-draft, titled `fix: make host evidence discriminating and describe supported MMC3`, from `gsd/phase-16-host-evidence-and-roadmap` to `main`. Its remote head is still `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`; its base is `9f9386c661f6fb8f6063bf756655713aedadae77`. No PR auto-merge is configured.
+
+That older head's latest native run [38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) remains failed. The Intel `readiness-response-stall` case took 25,946 ms and ASan's `readiness-delayed` case took 26,269 ms against the strict `<25000 ms` limit; `CI required` failed, while `perf` and pinned RetroArch passed. Neither the source nor platform cause is established. Run 38764179312 was automatically superseded after the previous body edit and was not manually rerun. These old results do not cover the newly accepted Plan 21 source.
+
+The remaining Task 1 preparation is to commit the current delivery record and state pointer, update the structured PR body before pushing, push the existing branch with normal hooks and no force, and observe fresh native `pull_request` checks on the exact final head and merge ref. The final check set must include `CI required`, `perf` and pinned RetroArch. Only a fresh successful set plus the clean current source review permits the exact-head owner-consent checkpoint. No consent, merge, tag, release-please action or publication has occurred. Plan 08 remains responsible for verifying the actual published assets; EVID-04 stays open until that work and independent re-verification pass.

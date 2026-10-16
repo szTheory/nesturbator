@@ -5,11 +5,11 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: Plan21 cleanup repair and mandatory local parent gates passed; Plan07 delivery checks next
-last_updated: "2026-10-16T22:18:13.848Z"
+stopped_at: Plan16-07 Task1 local preparation; final push and fresh native PR checks pending
+last_updated: "2026-10-16T22:30:20.074Z"
 last_activity: 2026-10-16
-last_activity_desc: Cleanup repair accepted with causal regression, two649-test workflows and clean independent review
-state_head: 11fc2bf8cec6ba864240e76d3bd7be85378ef760
+last_activity_desc: Plan16-07 exact-head PR preparation underway
+state_head: e8ade4cd77d67664c34107c06975e9fb60d2d70a
 progress:
   total_phases: 3
   completed_phases: 0
@@ -30,8 +30,8 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 ## Current Position
 
 Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 16-21 complete with mandatory local parent gates;9/11 live complete
-Status: Local cleanup blocker resolved; Plan07 delivery checks next; phase incomplete
+Plan: 7 of 11 — Plan 16-07 Task 1
+Status: Preparing the final PR head; fresh native pull-request checks are pending
 Current21 accepted source: Source38e14fb fixes failed QUIT request writes without losing owned teardown or original failure/status. Causal RED3166ms and all8GREEN/7endpoint-reacquisitions105367ms bind the same frozen harness. Formal FULL passed649/649/no skips/jobs4/four stages in293.375720s with three fresh checkedZIPs. Independent six-path review atb071e63 is clean/open0 with digest-bound disposition2544b55. Summary11fc2bf records all3tasks; mandatory parent build and separate649-test full-workflow repeat now pass on that source-equivalent snapshot. No native/ownerconsent/publication credit;07/08 remain incomplete.
 Historical21 round5 continuation: Four development pairs are consumed and retained. Round4 causal RED and eight GREEN runtime outcomes are observed but not accepted because saved-proof checks rejected mixed-clock negative elapsed, stale stdout SHA and cleanup diagnostic reason mismatch. Those exact issues are corrected; one final source-bound round5 pair independently passed planning checks. Earlier runs are immutable, formal PREFLIGHT/FULL/REVIEW remain globally unused, and no task/candidate/SUMMARY credit exists yet.
 Historical21 local development: Two invalid local REDs are retained without causal credit. The second ended READINESS_TRANSPORT from a doubled attempts path and its wrapper lost the wait status via zsh readonly status. Both fake transport paths are corrected. Independent checking passed a bounded4round/3600s local development contract requiring diagnosed code changes and preserved failures; one selected round must bind same-harness causal RED/all8GREEN. Formal PREFLIGHT/FULL/REVIEW remain single shared allowances across rounds. Both old roots remain historical. Only the harness is an authorized uncommitted implementation edit; production/docs/config stay exact.
@@ -44,9 +44,9 @@ Historical20 planning: Shared metadata-bound parser replaces both retained and f
 Historical20 execution: Task1 PASS on unchanged candidate: shared parser/controls accepted actual formats; one resolved launcher/smoke led to normal649/649/jobs4/configure/build/test/package and three fresh actualZIPs. Acceptance commit772dbb0 is retained. One fresh independent six-path review at that commit found CR-01 BLOCKER: failed cleanup QUIT request write under set-e can skip host reap and endpoint-lock release. Review/disposition SHA binding and open1 are committed in f609576; previous five review findings appear addressed. No source fix, second review, Task3, SUMMARY or credit.
 Resume safety:21 has genuine SUMMARY and source/full/review/parent acceptance; do not replay its consumed runtime slots.20 and earlier superseded partial plans remain without success SUMMARY/credit. Installed index has11live/9complete, only07dependency-ready and08blocked on07. Before07 execution reconcile partialPR50 and resolve fresh exact-head scope; native requiredCI/perf/pinned-host, affirmative exact-head owner consent and normal publication remain mandatory.08 retains actual18assets/checksums/attestations/sixmetadata/exactreleaseCI. No07/08 execution occurred in this step.
 Historical17stop: outer60s CI exit124 after9completed passes/controls unfinished; orchestration mistake, not demonstrated session defect. Raw failure/partialwork retained, no17SUMMARY/credit; historical assertion/native causesUNKNOWN. Native exact-headCI/ownerconsent/publication07 and actual18assets/sixinfo/exactreleaseCI08 pending.
-Last activity: 2026-10-16 — Plan21 cleanup repair and mandatory local parent gates completed
+Last activity: 2026-10-16 — Plan 16-07 final PR preparation underway
 
-Progress: [████████░░] 82% of currently planned work (9/11); Phase16 remains incomplete
+Progress: [░░░░░░░░░░] 0% of milestone phases complete; Phase 16 has 9/11 live plans complete and remains incomplete
 
 ## Performance Metrics
 
@@ -429,9 +429,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T22:18:13.848Z
-Stopped at: Plan21 complete; mandatory local parent gates passed; phase16 remains incomplete
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-21-SUMMARY.md
+Last session: 2026-10-16T22:30:20.049Z
+Stopped at: Plan16-07 Task1 local preparation; final push and fresh native PR checks pending
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-07-PLAN.md
 
 Next GSD command: $gsd-execute-phase 16 --gaps-only
 
