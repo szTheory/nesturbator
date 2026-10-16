@@ -1378,7 +1378,8 @@ run_interruption_control() {
     [ "$interrupt_host_post_live" -ne 0 ] || {
         echo "FAIL interruption left host alive" >&2; return 1;
     }
-    if [ -d "$interrupt_dir/locks/nesturbator-retroarch-55355.lock" ]; then interrupt_lock_post=1; else interrupt_lock_post=0; fi
+    if [ -e "$interrupt_dir/locks/nesturbator-retroarch-55355.lock" ] ||
+        [ -L "$interrupt_dir/locks/nesturbator-retroarch-55355.lock" ]; then interrupt_lock_post=1; else interrupt_lock_post=0; fi
     record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
         harness lock-after-wait "$interrupt_lock_post" "$interrupt_driver" || true
     [ "$interrupt_lock_post" -eq 0 ] || {
@@ -2027,7 +2028,12 @@ exec "$STATE_SESSION_TEST_REAL_MKDIR" "$@"
 EOF
     cat >"$startup_signal_bin/ln" <<'EOF'
 #!/bin/sh
-if [ "$#" -eq 3 ] && [ "$1" = '-s' ] && [ "$3" = "${STATE_SESSION_TEST_SIGNAL_LOCK:-}" ]; then
+signal_lock=0
+case "$#" in
+    2) [ "$2" = "${STATE_SESSION_TEST_SIGNAL_LOCK:-}" ] && signal_lock=1 ;;
+    3) [ "$1" = '-s' ] && [ "$3" = "${STATE_SESSION_TEST_SIGNAL_LOCK:-}" ] && signal_lock=1 ;;
+esac
+if [ "$signal_lock" -eq 1 ]; then
     "$STATE_SESSION_TEST_REAL_LN" "$@" || exit $?
     kill -TERM "$PPID" 2>/dev/null || true
     exit 0
@@ -2299,11 +2305,15 @@ for _dir in "$first_dir" "$second_dir"; do
 done
 run_prefix_driver "$first_dir" "$first_ra" '' "$shared_lock_root" >"$first_dir/driver.out" 2>&1 & first_driver=$!
 _tries=0
-while [ ! -d "$shared_lock_root/nesturbator-retroarch-55355.lock" ] && [ "$_tries" -lt 200 ]; do
+while [ ! -e "$shared_lock_root/nesturbator-retroarch-55355.lock" ] &&
+    [ ! -L "$shared_lock_root/nesturbator-retroarch-55355.lock" ] && [ "$_tries" -lt 200 ]; do
     kill -0 "$first_driver" 2>/dev/null || { echo "FAIL first concurrent session exited before lock acquisition" >&2; cat "$first_dir/driver.out" >&2; exit 1; }
     sleep 0.02; _tries=$((_tries+1))
 done
-[ -d "$shared_lock_root/nesturbator-retroarch-55355.lock" ] || { echo "FAIL first concurrent session never held endpoint lock" >&2; exit 1; }
+[ -e "$shared_lock_root/nesturbator-retroarch-55355.lock" ] ||
+    [ -L "$shared_lock_root/nesturbator-retroarch-55355.lock" ] || {
+    echo "FAIL first concurrent session never held endpoint lock" >&2; exit 1;
+}
 second_status=0
 run_prefix_driver "$second_dir" "$second_ra" '' "$shared_lock_root" >"$second_dir/driver.out" 2>&1 || second_status=$?
 [ "$second_status" -ne 0 ] && grep -Fx 'state_session: ENDPOINT_BUSY' "$second_dir/driver.out" >/dev/null || {

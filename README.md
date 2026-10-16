@@ -1610,9 +1610,10 @@ and final validator for two independent sessions stored under
 mixed outer or inner rows, and another session's ledger. An invalid ID marks
 the recorder unusable while preserving the genuine assertion status. These
 identity checks add to the seven capture and 36 trace cases. The retained
-mixed-ID observation remains unchanged, the historical assertion cause remains
-unknown, and actual-driver compatibility and current-source acceptance remain
-pending Plan 14.
+mixed-ID observation remains unchanged. Plan 14's registered actual-driver CI
+and ASan controls and full 649-test CI workflow passed with all three local ZIP
+packages. The original historical assertion cause remains unknown; fresh native
+acceptance and actual release publication remain pending Plans 07 and 08.
 The source-only `tests/retroarch/interruption_trace.sh` is shared by the real
 driver and harness. Before fixture or driver work, the offline selector runs the
 same writer and validator through handler entry, journal close and cleanup. Its

@@ -27,12 +27,45 @@ START_MS=$(clock_ms) || { echo "state_session: MONOTONIC_CLOCK_UNAVAILABLE" >&2;
 case "$START_MS" in *[!0-9]*|'') echo "state_session: MONOTONIC_CLOCK_UNAVAILABLE" >&2; exit 2 ;; esac
 ATTEMPT_ID="attempt-${START_MS}-$$"; ATTEMPT_DIR="$RA_DIR/attempts/$ATTEMPT_ID"
 LOCK_DIR="$LOCK_ROOT/nesturbator-retroarch-55355.lock"
-mkdir "$LOCK_DIR" 2>/dev/null || { echo "state_session: ENDPOINT_BUSY" >&2; exit 1; }
-release_owned_lock() { [ ! -d "$LOCK_DIR" ] || rmdir "$LOCK_DIR" 2>/dev/null || true; }
+# The token-bearing hard link publishes ownership atomically so signal cleanup can recognize it.
+LOCK_TOKEN=$ATTEMPT_ID
+LOCK_OWNER_FILE="$LOCK_ROOT/nesturbator-retroarch-55355.lock.owner.$ATTEMPT_ID"
+LOCK_OWNER_ALIAS="$LOCK_DIR/${LOCK_OWNER_FILE##*/}"
+release_owned_lock() {
+    trap '' INT TERM HUP
+    if [ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
+        [ "$(cat "$LOCK_DIR" 2>/dev/null)" = "$LOCK_TOKEN" ]; then
+        rm -f "$LOCK_DIR" 2>/dev/null || true
+    fi
+    if [ -d "$LOCK_DIR" ] && [ -f "$LOCK_OWNER_ALIAS" ] && [ ! -L "$LOCK_OWNER_ALIAS" ] &&
+        [ "$(cat "$LOCK_OWNER_ALIAS" 2>/dev/null)" = "$LOCK_TOKEN" ]; then
+        rm -f "$LOCK_OWNER_ALIAS" 2>/dev/null || true
+    fi
+    if [ -f "$LOCK_OWNER_FILE" ] && [ ! -L "$LOCK_OWNER_FILE" ]; then
+        rm -f "$LOCK_OWNER_FILE" 2>/dev/null || true
+    fi
+}
 trap release_owned_lock EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
+(set -C; printf '%s\n' "$LOCK_TOKEN" >"$LOCK_OWNER_FILE") 2>/dev/null || {
+    echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2
+    exit 1
+}
+if [ -d "$LOCK_DIR" ] || [ -L "$LOCK_DIR" ]; then
+    echo "state_session: ENDPOINT_BUSY" >&2
+    exit 1
+fi
+ln "$LOCK_OWNER_FILE" "$LOCK_DIR" 2>/dev/null || {
+    echo "state_session: ENDPOINT_BUSY" >&2
+    exit 1
+}
+[ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
+    [ "$(cat "$LOCK_DIR" 2>/dev/null)" = "$LOCK_TOKEN" ] || {
+    echo "state_session: ENDPOINT_BUSY" >&2
+    exit 1
+}
 mkdir -p "$ATTEMPT_DIR/profile" "$ATTEMPT_DIR/states" "$ATTEMPT_DIR/shots" "$ATTEMPT_DIR/originals" "$ATTEMPT_DIR/observations"
 JOURNAL="$ATTEMPT_DIR/journal.tsv"
 printf 'step\tclass\tsends\tattempt_elapsed_ms\tattempt_remaining_ms\toperation_elapsed_ms\toperation_remaining_ms\texpected\tobserved\tartifact\treason\n' >"$JOURNAL"
@@ -218,7 +251,7 @@ cleanup() {
         [ ! -f "$ATTEMPT_DIR/retroarch.sanitized.log" ] || cp "$ATTEMPT_DIR/retroarch.sanitized.log" "$LOG" 2>/dev/null || true
         rm -f "$ATTEMPT_DIR/retroarch.log" 2>/dev/null || true
     fi
-    [ ! -d "$LOCK_DIR" ] || rmdir "$LOCK_DIR" 2>/dev/null || true
+    release_owned_lock
 }
 stop_operation_clock() {
     [ -n "$ACTIVE_OPERATION" ] && [ -n "$OPERATION_START_MS" ] || return 0
