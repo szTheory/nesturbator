@@ -305,6 +305,156 @@ selftest_assert_events() {
     ' "$selftest_event_file"
 }
 
+selftest_identity_event_skeleton() {
+    selftest_identity_file=$1
+    awk -F '\t' '
+        BEGIN {
+            split("before-assertion capture-start snapshot-pre-start snapshot-pre-end assertion-start assertion-end snapshot-post-start snapshot-post-end capture-end assertion-decision", expected, " ")
+        }
+        NR > 10 { bad = 1 }
+        {
+            if ($1 == "" || $2 != "harness" || $3 != NR || $4 !~ /^[0-9]+$/ ||
+                $5 != expected[NR] || $6 !~ /^[0-9]+$/ || $7 !~ /^[0-9]+$/) bad = 1
+            if (NR > 1 && $4 < previous) bad = 1
+            previous = $4
+        }
+        END { if (NR != 10 || bad) exit 1 }
+    ' "$selftest_identity_file"
+}
+
+selftest_identity_rows_owned() {
+    selftest_identity_file=$1
+    selftest_identity_expected=$2
+    [ "$(awk -F '\t' -v wanted="$selftest_identity_expected" '$1 == wanted { n++ } END { print n + 0 }' \
+        "$selftest_identity_file")" -eq 10 ]
+}
+
+selftest_identity_rejects() {
+    selftest_identity_file=$1
+    selftest_identity_expected=$2
+    [ -f "$selftest_identity_file" ] && selftest_identity_event_skeleton "$selftest_identity_file" || return 1
+    selftest_identity_status=0
+    verify_interruption_event_file "$selftest_identity_file" "$selftest_identity_expected" ||
+        selftest_identity_status=$?
+    [ "$selftest_identity_status" -eq 1 ]
+}
+
+selftest_identity_nonid_equal() {
+    cut -f2- "$1" >"$selftest_root/identity/original-nonidentity.tsv"
+    cut -f2- "$2" >"$selftest_root/identity/copy-nonidentity.tsv"
+    cmp -s "$selftest_root/identity/original-nonidentity.tsv" \
+        "$selftest_root/identity/copy-nonidentity.tsv"
+}
+
+run_interruption_identity_case() {
+    selftest_identity_name=$1
+    selftest_identity_expected=$2
+    selftest_identity_dir="$selftest_root/identity/$selftest_identity_name/capture"
+    mkdir -p "$selftest_identity_dir"
+    printf 'step\tclass\treason\nINTERRUPTED_TERM\tsignal\tTERM\n' \
+        >"$selftest_identity_dir/journal.tsv"
+    printf 'INTERRUPTED_TERM\tsignal\tTERM\n' >"$selftest_identity_dir/expected.stdout"
+    : >"$selftest_identity_dir/expected.stderr"
+    INTERRUPTION_EVENT_SEQUENCE=0
+    INTERRUPTION_RECORDER_STATUS=0
+    INTERRUPTION_RECORDER_REASON=
+    INTERRUPTION_ASSERTION_STATUS=2
+    selftest_identity_boundary_status=0
+    capture_interruption_boundary "$selftest_identity_dir/journal.tsv" \
+        "$selftest_identity_dir" "$selftest_identity_expected" "$$" /dev/null ||
+        selftest_identity_boundary_status=$?
+
+    [ "$selftest_identity_boundary_status" -eq 0 ] &&
+        [ "$INTERRUPTION_ASSERTION_STATUS" -eq 0 ] &&
+        [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] &&
+        cmp -s "$selftest_identity_dir/expected.stdout" "$selftest_identity_dir/assertion.stdout" &&
+        cmp -s "$selftest_identity_dir/expected.stderr" "$selftest_identity_dir/assertion.stderr" &&
+        cmp -s "$selftest_identity_dir/journal.tsv" "$selftest_identity_dir/snapshot-pre.bin" &&
+        cmp -s "$selftest_identity_dir/journal.tsv" "$selftest_identity_dir/snapshot-post.bin" &&
+        verify_interruption_snapshots "$selftest_identity_dir/snapshot-metadata.tsv" &&
+        selftest_identity_event_skeleton "$selftest_identity_dir/events.tsv" || {
+        echo "FAIL nested capture identity prerequisites for $selftest_identity_expected" >&2
+        return 1
+    }
+
+    selftest_identity_validation_status=0
+    verify_interruption_event_file "$selftest_identity_dir/events.tsv" \
+        "$selftest_identity_expected" || selftest_identity_validation_status=$?
+    if [ "$selftest_identity_validation_status" -ne 0 ]; then
+        selftest_identity_owned_rows=$(awk -F '\t' -v wanted="$selftest_identity_expected" \
+            '$1 == wanted { n++ } END { print n + 0 }' "$selftest_identity_dir/events.tsv")
+        selftest_identity_capture_rows=$(awk -F '\t' '$1 == "capture" { n++ } END { print n + 0 }' \
+            "$selftest_identity_dir/events.tsv")
+        [ "$selftest_identity_validation_status" -eq 1 ] &&
+            [ "$selftest_identity_owned_rows" -eq 2 ] &&
+            [ "$selftest_identity_capture_rows" -eq 8 ] || {
+            echo "FAIL nested capture identity validator rejected a non-identity condition" >&2
+            return 1
+        }
+        printf 'TAP version 13\n1..1\nnot ok 1 - nested-capture-session-identity\n'
+        printf '# expected 10 events owned by %s; got 2 owned outer rows and 8 capture-basename rows\n' \
+            "$selftest_identity_expected"
+        return 1
+    fi
+
+    selftest_identity_rows_owned "$selftest_identity_dir/events.tsv" \
+        "$selftest_identity_expected" || {
+        echo "FAIL nested capture identity accepted without every row carrying $selftest_identity_expected" >&2
+        return 1
+    }
+    printf 'identity case %s expected=%s path=%s rows=10 validator=accepted\n' \
+        "$selftest_identity_name" "$selftest_identity_expected" "$selftest_identity_name/capture"
+}
+
+run_interruption_identity_selftests() {
+    selftest_root=$1
+    selftest_identity_root="$selftest_root/identity"
+    mkdir -p "$selftest_identity_root"
+
+    run_interruption_identity_case session-A session-A-owned
+    run_interruption_identity_case session-B session-B-owned
+
+    selftest_identity_a="$selftest_identity_root/session-A/capture/events.tsv"
+    selftest_identity_b="$selftest_identity_root/session-B/capture/events.tsv"
+    selftest_identity_negative="$selftest_identity_root/negative"
+    mkdir -p "$selftest_identity_negative"
+
+    selftest_identity_rejects "$selftest_identity_a" session-A-wrong-expected || {
+        echo 'FAIL wrong expected session ID was accepted' >&2; return 1;
+    }
+    printf 'identity negative wrong-expected-session: rejected after valid positive ledger\n'
+
+    awk -F '\t' -v OFS='\t' 'NR == 5 { $1 = "mixed-inner" } { print }' \
+        "$selftest_identity_a" >"$selftest_identity_negative/mixed-inner.copy.tsv"
+    mv "$selftest_identity_negative/mixed-inner.copy.tsv" "$selftest_identity_negative/mixed-inner.tsv"
+    selftest_identity_nonid_equal "$selftest_identity_a" \
+        "$selftest_identity_negative/mixed-inner.tsv" &&
+        selftest_identity_rejects "$selftest_identity_negative/mixed-inner.tsv" session-A-owned || {
+        echo 'FAIL mixed internal event identity was accepted or changed another field' >&2; return 1;
+    }
+    printf 'identity negative mixed-inner-row: rejected with other fields unchanged\n'
+
+    awk -F '\t' -v OFS='\t' 'NR == 1 { $1 = "mixed-outer" } { print }' \
+        "$selftest_identity_a" >"$selftest_identity_negative/mixed-outer.tsv"
+    selftest_identity_nonid_equal "$selftest_identity_a" \
+        "$selftest_identity_negative/mixed-outer.tsv" &&
+        selftest_identity_rejects "$selftest_identity_negative/mixed-outer.tsv" session-A-owned || {
+        echo 'FAIL mixed outer event identity was accepted or changed another field' >&2; return 1;
+    }
+    printf 'identity negative mixed-outer-row: rejected with other fields unchanged\n'
+
+    selftest_identity_reuse="$selftest_identity_root/reused-as-session-B/capture"
+    mkdir -p "$selftest_identity_reuse"
+    cp "$selftest_identity_a" "$selftest_identity_reuse/events.tsv"
+    selftest_identity_nonid_equal "$selftest_identity_a" \
+        "$selftest_identity_reuse/events.tsv" &&
+        selftest_identity_rejects "$selftest_identity_reuse/events.tsv" session-B-owned || {
+        echo 'FAIL other-session ledger reuse was accepted or changed event fields' >&2; return 1;
+    }
+    printf 'identity negative cross-session-ledger-reuse: rejected with original rows intact\n'
+    printf 'state session interruption identity ledger: 2 positive sessions, 4 ownership negatives passed\n'
+}
+
 selftest_write_trace_lifecycle() {
     trace_writer_base=$1
     trace_writer_id=$2
@@ -778,6 +928,7 @@ run_interruption_capture_selftests() {
         echo "FAIL second recorder invocation mixed event ownership" >&2; return 1;
     }
 
+    run_interruption_identity_selftests "$selftest_root"
     INTERRUPTION_CAPTURE_SELFTEST_ACTIVE=0
     printf 'state session interruption capture selftest: 7 cases passed (status 0/1/2, recorder errors, same-handle replacement, event ownership)\n'
     run_interruption_trace_selftests "$selftest_root"
