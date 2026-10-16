@@ -65,18 +65,99 @@ trace_interruption_event() {
 verify_interruption_driver_trace() {
     interruption_trace_file=$1
     interruption_expected_id=$2
-    [ -s "$interruption_trace_file" ] || return 1
-    awk -F '\t' -v wanted="$interruption_expected_id" '
-        BEGIN { expected[1] = "handler-entry"; expected[2] = "journal-close-success"; expected[3] = "handler-exit" }
-        $1 != wanted || $2 != "driver" || $3 != NR || $3 > 3 || $4 !~ /^[0-9]+$/ ||
-            $5 != expected[NR] || $6 !~ /^[0-9]+$/ || $7 !~ /^[0-9]+$/ ||
-            $8 !~ /^[0-9]+$/ || ($9 != "unavailable" && $9 !~ /^[0-9]+$/) ||
-            ($10 != "unavailable" && $10 !~ /^[0-9]+$/) ||
-            ($11 != "unavailable" && $11 !~ /^[0-9]+$/) ||
-            $12 !~ /^[0-9]+$/ || $13 !~ /^[0-9]+$/ ||
-            $14 !~ /^(present|absent)$/ || $15 !~ /^[0-9]+$/ { bad = 1 }
-        NR > 1 && $4 < previous { bad = 1 }
-        { previous = $4 }
-        END { if (NR != 3 || bad) exit 1 }
-    ' "$interruption_trace_file"
+    interruption_expected_driver_pid=${3:-}
+    perl - "$interruption_trace_file" "$interruption_expected_id" \
+        "$interruption_expected_driver_pid" <<'PERL'
+use strict;
+use warnings;
+
+sub reject {
+    my ($reason) = @_;
+    print "$reason\n";
+    exit 1;
+}
+
+sub decimal {
+    return defined($_[0]) && $_[0] =~ /\A[0-9]+\z/;
+}
+
+sub positive_decimal {
+    return decimal($_[0]) && $_[0] =~ /[1-9]/;
+}
+
+sub normalized_decimal {
+    my ($value) = @_;
+    $value =~ s/\A0+//;
+    return length($value) ? $value : "0";
+}
+
+sub decimal_less_than {
+    my ($left, $right) = map { normalized_decimal($_) } @_;
+    return length($left) < length($right) ||
+        (length($left) == length($right) && $left lt $right);
+}
+
+my ($path, $wanted_id, $wanted_driver_pid) = @ARGV;
+reject("TRACE_INVOCATION") if !defined($wanted_id) || $wanted_id eq "";
+reject("TRACE_DRIVER_PID") if !positive_decimal($wanted_driver_pid);
+open my $trace, "<:raw", $path or reject("TRACE_FIELDS");
+local $/;
+my $bytes = <$trace>;
+close $trace or reject("TRACE_FIELDS");
+reject("TRACE_FIELDS") if !defined($bytes) || $bytes eq "" || $bytes !~ /\n\z/;
+my @lines = split /\n/, $bytes, -1;
+pop @lines;
+reject("TRACE_FIELDS") if !@lines;
+reject("TRACE_EVENT") if @lines != 3;
+
+my @events = qw(handler-entry journal-close-success handler-exit);
+my @statuses = qw(0 0 130);
+my ($previous_time, $previous_send_count, $first_failure);
+for my $index (0 .. $#lines) {
+    my $row_number = $index + 1;
+    my @field = split /\t/, $lines[$index], -1;
+    reject("TRACE_FIELDS") if @field != 16;
+    reject("TRACE_INVOCATION") if $field[0] ne $wanted_id;
+    reject("TRACE_ROLE") if $field[1] ne "driver";
+    reject("TRACE_SEQUENCE") if !decimal($field[2]) || $field[2] ne "$row_number";
+    reject("TRACE_TIME") if !decimal($field[3]);
+    if (defined $previous_time && decimal_less_than($field[3], $previous_time)) {
+        reject("TRACE_TIME");
+    }
+    $previous_time = $field[3];
+    reject("TRACE_EVENT") if $field[4] ne $events[$index];
+    reject("TRACE_VALUE") if $field[5] ne $statuses[$index];
+    reject("TRACE_DRIVER_PID") if !positive_decimal($field[6]) ||
+        normalized_decimal($field[6]) ne normalized_decimal($wanted_driver_pid);
+    for my $pid_index (7, 9) {
+        reject("TRACE_VALUE") if $field[$pid_index] ne "unavailable" &&
+            !positive_decimal($field[$pid_index]);
+    }
+    for my $alive_index (8, 10) {
+        reject("TRACE_VALUE") if $field[$alive_index] ne "unavailable" &&
+            $field[$alive_index] ne "1";
+    }
+    reject("TRACE_VALUE") if $field[11] !~ /\A[01]\z/;
+    reject("TRACE_VALUE") if $field[12] !~ /\A[01]\z/;
+    reject("TRACE_VALUE") if $field[13] ne ($row_number == 3 ? "absent" : "present");
+    reject("TRACE_VALUE") if !decimal($field[14]);
+    if (defined $previous_send_count && decimal_less_than($field[14], $previous_send_count)) {
+        reject("TRACE_VALUE");
+    }
+    $previous_send_count = $field[14];
+    if ($row_number == 1) {
+        reject("TRACE_VALUE") if $field[11] ne "0" || $field[12] ne "0" ||
+            $field[15] ne "none";
+    } else {
+        reject("TRACE_VALUE") if $field[12] ne "0" ||
+            $field[15] !~ /\AINTERRUPTED_(?:INT|TERM|HUP)\z/;
+        if (defined $first_failure && $field[15] ne $first_failure) {
+            reject("TRACE_VALUE");
+        }
+        $first_failure = $field[15];
+    }
+    reject("TRACE_VALUE") if $row_number == 3 && $field[11] ne "1";
+}
+print "TRACE_OK\n";
+PERL
 }

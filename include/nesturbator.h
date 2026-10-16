@@ -526,6 +526,14 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * cover statuses 0, 1 and controlled 2, recorder errors, pathname replacement and event ownership.
  * This establishes diagnostic capture behavior only; it does not attribute an earlier failure
  * or accept a repair.
+ * A source-only interruption trace include is shared by the driver and harness. Before fixture
+ * or driver work, offline checks call the actual writer and validator through handler entry,
+ * journal close and cleanup. The exact 16-field trace admits host/child PIDs as positive decimal
+ * or unavailable after cleanup clears them, while liveness remains unavailable when kill-0 is
+ * inconclusive. Validation binds the unique invocation and observed driver PID, event sequence,
+ * monotonic samples and reason-specific field checks. Seven capture cases and 36 trace cases run
+ * without launching the driver. This proves recorder compatibility only; the historical assertion
+ * cause remains unknown and broader current-source acceptance remains pending Plan 14.
  * A stopped operation uses its captured terminal observation, a live operation uses the row
  * observation, and an inactive row carries the last completed operation values. The focused
  * readiness control runs the delayed exact-reply and response-stall full prefixes once each, in

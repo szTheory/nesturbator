@@ -1603,6 +1603,18 @@ handle. `STATE_SESSION_CONTROL=interruption-capture-selftest` checks status 0,
 open, and per-invocation event ownership before any fixture or driver work.
 These nearby snapshots do not identify the bytes read by grep; the tests prove
 the recorder contract, not a historical failure cause or repair acceptance.
+The source-only `tests/retroarch/interruption_trace.sh` is shared by the real
+driver and harness. Before fixture or driver work, the offline selector runs the
+same writer and validator through handler entry, journal close and cleanup. Its
+16-field rows retain a positive PID while observed and use `unavailable` after
+cleanup clears the owned host or child PID; liveness uses that marker when
+`kill -0` cannot establish a live process. Admission binds the unique session
+invocation and separately observed driver PID, exact event order, numeric
+monotonic samples, statuses and field values. The seven capture cases remain,
+and 36 trace cases cover lifecycle admission, independent mutation failures,
+invocation separation and writer rejection paths. This proves current recorder
+compatibility only; it does not explain the historical assertion or accept the
+broader source controls, which remain assigned to Plan 14.
 The journal writes each row in one Perl process, taking one monotonic observation
 for attempt elapsed and remaining time and applying the existing path
 substitutions in that same write. A stopped operation uses its captured terminal

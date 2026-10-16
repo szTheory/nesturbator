@@ -305,19 +305,15 @@ selftest_assert_events() {
     ' "$selftest_event_file"
 }
 
-run_interruption_trace_selftests() (
-    trace_test_root=$1/trace-lifecycle
-    trace_test_id="trace-$(mono_ms)-$$"
-    RA_DIR="$trace_test_root/owned-a/ra"
-    LOCK_DIR="$trace_test_root/owned-a/locks/driver.lock"
-    trace_test_lock_root=${LOCK_DIR%/*}
-    mkdir -p "$RA_DIR" "$trace_test_lock_root" || {
-        echo "FAIL trace lifecycle setup" >&2; return 1;
-    }
-    mkdir "$LOCK_DIR" || { echo "FAIL trace lifecycle lock setup" >&2; return 1; }
-
+selftest_write_trace_lifecycle() {
+    trace_writer_base=$1
+    trace_writer_id=$2
+    RA_DIR="$trace_writer_base/ra"
+    LOCK_DIR="$trace_writer_base/locks/driver.lock"
+    mkdir -p "$RA_DIR" "${LOCK_DIR%/*}" || return 1
+    mkdir "$LOCK_DIR" || return 1
     STATE_SESSION_TEST_MODE=prefix
-    STATE_SESSION_TEST_INTERRUPT_INVOCATION=$trace_test_id
+    STATE_SESSION_TEST_INTERRUPT_INVOCATION=$trace_writer_id
     STATE_SESSION_TEST_INTERRUPT_TRACE="$RA_DIR/interruption-events.tsv"
     STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS="$RA_DIR/interruption-trace-errors.tsv"
     HOST_PID=$$
@@ -328,46 +324,262 @@ run_interruption_trace_selftests() (
     send_count=0
     INTERRUPTION_TRACE_SEQUENCE=0
     INTERRUPTION_TRACE_FAILED=0
-    [ ! -e "$STATE_SESSION_TEST_INTERRUPT_TRACE" ] || {
-        echo "FAIL trace cleanup-host-pid admission: source trace unexpectedly existed" >&2; return 1;
-    }
-
-    trace_interruption_event handler-entry 0 || {
-        echo "FAIL trace cleanup-host-pid admission: actual writer rejected handler-entry" >&2; return 1;
-    }
+    trace_interruption_event handler-entry 0 || return 1
     FIRST_FAILURE=INTERRUPTED_TERM
-    trace_interruption_event journal-close-success 0 || {
-        echo "FAIL trace cleanup-host-pid admission: actual writer rejected journal-close-success" >&2; return 1;
-    }
+    trace_interruption_event journal-close-success 0 || return 1
     HOST_PID=
     CHILD_PID=
     QUIT_SENT=1
-    rmdir "$LOCK_DIR" || { echo "FAIL trace cleanup-host-pid admission: cleanup lock removal" >&2; return 1; }
-    trace_interruption_event handler-exit 130 || {
-        echo "FAIL trace cleanup-host-pid admission: actual writer rejected handler-exit" >&2; return 1;
-    }
+    rmdir "$LOCK_DIR" || return 1
+    trace_interruption_event handler-exit 130 || return 1
+    [ "$INTERRUPTION_TRACE_FAILED" -eq 0 ]
+}
 
+selftest_trace_edit() {
+    trace_edit_file=$1
+    trace_edit_row=$2
+    trace_edit_action=$3
+    trace_edit_column=${4:-0}
+    trace_edit_value=${5:-}
+    perl - "$trace_edit_file" "$trace_edit_row" "$trace_edit_action" \
+        "$trace_edit_column" "$trace_edit_value" <<'PERL'
+use strict;
+use warnings;
+my ($path, $row_index, $action, $column, $value) = @ARGV;
+open my $input, "<:raw", $path or die "open fixture: $!";
+local $/;
+my $bytes = <$input>;
+close $input or die "close fixture: $!";
+my @rows = split /\n/, $bytes, -1;
+my $had_newline = @rows > 1 && $rows[-1] eq "";
+pop @rows if $had_newline;
+if ($action eq "empty") {
+    @rows = ();
+    $had_newline = 0;
+} elsif ($action eq "remove-row") {
+    splice @rows, $row_index - 1, 1;
+} elsif ($action eq "append-row") {
+    push @rows, $rows[-1];
+} elsif ($action eq "no-final-newline") {
+    $had_newline = 0;
+} else {
+    die "invalid row index" if $row_index < 1 || $row_index > @rows;
+    my @fields = split /\t/, $rows[$row_index - 1], -1;
+    if ($action eq "set") {
+        die "invalid field index" if $column < 1 || $column > @fields;
+        $fields[$column - 1] = $value;
+    } elsif ($action eq "drop-field") {
+        pop @fields;
+    } elsif ($action eq "extra-field") {
+        push @fields, "unexpected";
+    } else {
+        die "invalid action";
+    }
+    $rows[$row_index - 1] = join("\t", @fields);
+}
+my $output = join("\n", @rows);
+$output .= "\n" if $had_newline;
+open my $out, ">:raw", $path or die "open output: $!";
+print {$out} $output or die "write output: $!";
+close $out or die "close output: $!";
+PERL
+}
+
+selftest_trace_expect() {
+    trace_expect_file=$1
+    trace_expect_id=$2
+    trace_expect_driver=$3
+    trace_expect_result=$4
+    trace_expect_name=$5
+    trace_expect_status=0
+    trace_expect_actual=$(verify_interruption_driver_trace \
+        "$trace_expect_file" "$trace_expect_id" "$trace_expect_driver") ||
+        trace_expect_status=$?
+    if [ "$trace_expect_result" = TRACE_OK ]; then
+        [ "$trace_expect_status" -eq 0 ] && [ "$trace_expect_actual" = TRACE_OK ] || {
+            echo "FAIL trace selftest $trace_expect_name: expected TRACE_OK, got $trace_expect_actual (status $trace_expect_status)" >&2
+            return 1
+        }
+    else
+        [ "$trace_expect_status" -ne 0 ] && [ "$trace_expect_actual" = "$trace_expect_result" ] || {
+            echo "FAIL trace selftest $trace_expect_name: expected $trace_expect_result, got $trace_expect_actual (status $trace_expect_status)" >&2
+            return 1
+        }
+    fi
+    trace_selftest_count=$((trace_selftest_count + 1))
+    printf 'trace selftest: PASS %s (%s)\n' "$trace_expect_name" "$trace_expect_result"
+}
+
+selftest_trace_expect_edit() {
+    trace_mutation_name=$1
+    trace_mutation_row=$2
+    trace_mutation_action=$3
+    trace_mutation_column=${4:-0}
+    trace_mutation_value=${5:-}
+    trace_mutation_expected=$6
+    trace_mutation_file="$trace_test_root/cases/$trace_mutation_name.tsv"
+    cp "$trace_test_primary" "$trace_mutation_file" || return 1
+    selftest_trace_edit "$trace_mutation_file" "$trace_mutation_row" \
+        "$trace_mutation_action" "$trace_mutation_column" "$trace_mutation_value" || return 1
+    selftest_trace_expect "$trace_mutation_file" "$trace_test_id" "$$" \
+        "$trace_mutation_expected" "$trace_mutation_name"
+}
+
+selftest_prepare_trace_writer() {
+    trace_writer_base=$1
+    trace_writer_id=$2
+    RA_DIR="$trace_writer_base/ra"
+    LOCK_DIR="$trace_writer_base/locks/driver.lock"
+    mkdir -p "$RA_DIR" "${LOCK_DIR%/*}" || return 1
+    mkdir "$LOCK_DIR" || return 1
+    STATE_SESSION_TEST_MODE=prefix
+    STATE_SESSION_TEST_INTERRUPT_INVOCATION=$trace_writer_id
+    STATE_SESSION_TEST_INTERRUPT_TRACE="$RA_DIR/interruption-events.tsv"
+    STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS="$RA_DIR/interruption-trace-errors.tsv"
+    HOST_PID=$$
+    CHILD_PID=$$
+    FIRST_FAILURE=
+    QUIT_SENT=0
+    JOURNAL_FAILED=0
+    send_count=0
+    INTERRUPTION_TRACE_SEQUENCE=0
+    INTERRUPTION_TRACE_FAILED=0
+}
+
+selftest_trace_writer_gate_tests() {
+    trace_gate_root=$1/writer-gates
+    trace_gate_status=0
+
+    selftest_prepare_trace_writer "$trace_gate_root/alias" trace-alias || return 1
+    STATE_SESSION_TEST_INTERRUPT_TRACE="$RA_DIR/aliased-events.tsv"
+    trace_interruption_event handler-entry 0 || trace_gate_status=$?
+    [ "$trace_gate_status" -ne 0 ] && [ "$INTERRUPTION_TRACE_FAILED" -eq 1 ] &&
+        [ ! -e "$STATE_SESSION_TEST_INTERRUPT_TRACE" ] &&
+        [ -s "$STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS" ] || {
+        echo "FAIL trace selftest writer-alias-gate" >&2; return 1;
+    }
+    trace_selftest_count=$((trace_selftest_count + 1))
+    printf 'trace selftest: PASS writer-alias-gate (TRACE_REJECTED)\n'
+
+    selftest_prepare_trace_writer "$trace_gate_root/symlink" trace-symlink || return 1
+    trace_gate_sentinel="$trace_gate_root/sentinel.tsv"
+    printf 'sentinel\n' >"$trace_gate_sentinel"
+    cp "$trace_gate_sentinel" "$trace_gate_root/sentinel.before"
+    ln -s "$trace_gate_sentinel" "$STATE_SESSION_TEST_INTERRUPT_TRACE" || return 1
+    trace_gate_status=0
+    trace_interruption_event handler-entry 0 || trace_gate_status=$?
+    cmp -s "$trace_gate_root/sentinel.before" "$trace_gate_sentinel" || return 1
+    [ "$trace_gate_status" -ne 0 ] && [ "$INTERRUPTION_TRACE_FAILED" -eq 1 ] &&
+        [ -s "$STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS" ] || {
+        echo "FAIL trace selftest writer-symlink-gate" >&2; return 1;
+    }
+    trace_selftest_count=$((trace_selftest_count + 1))
+    printf 'trace selftest: PASS writer-symlink-gate (TRACE_REJECTED)\n'
+
+    selftest_prepare_trace_writer "$trace_gate_root/reuse" trace-reused || return 1
+    printf 'pre-existing\n' >"$STATE_SESSION_TEST_INTERRUPT_TRACE"
+    cp "$STATE_SESSION_TEST_INTERRUPT_TRACE" "$trace_gate_root/reused.before"
+    trace_gate_status=0
+    trace_interruption_event handler-entry 0 || trace_gate_status=$?
+    cmp -s "$trace_gate_root/reused.before" "$STATE_SESSION_TEST_INTERRUPT_TRACE" || return 1
+    [ "$trace_gate_status" -ne 0 ] && [ "$INTERRUPTION_TRACE_FAILED" -eq 1 ] &&
+        [ -s "$STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS" ] || {
+        echo "FAIL trace selftest writer-reuse-gate" >&2; return 1;
+    }
+    trace_selftest_count=$((trace_selftest_count + 1))
+    printf 'trace selftest: PASS writer-reuse-gate (TRACE_REJECTED)\n'
+
+    selftest_prepare_trace_writer "$trace_gate_root/write-error" trace-write-error || return 1
+    trace_gate_fake_bin="$trace_gate_root/fake-bin"
+    mkdir -p "$trace_gate_fake_bin"
+    printf '#!/bin/sh\nexit 99\n' >"$trace_gate_fake_bin/perl"
+    chmod +x "$trace_gate_fake_bin/perl"
+    trace_gate_status=0
+    PATH="$trace_gate_fake_bin" trace_interruption_event handler-entry 0 || trace_gate_status=$?
+    [ "$trace_gate_status" -ne 0 ] && [ "$INTERRUPTION_TRACE_FAILED" -eq 1 ] &&
+        [ ! -e "$STATE_SESSION_TEST_INTERRUPT_TRACE" ] &&
+        [ -s "$STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS" ] || {
+        echo "FAIL trace selftest writer-failure-gate" >&2; return 1;
+    }
+    trace_selftest_count=$((trace_selftest_count + 1))
+    printf 'trace selftest: PASS writer-failure-gate (TRACE_REJECTED)\n'
+}
+
+run_interruption_trace_selftests() (
+    trace_test_root=$1/trace-lifecycle
+    trace_test_run_id=$(mono_ms)-$$
+    trace_test_id="session-$trace_test_run_id-owned-a"
+    trace_test_id_b="session-$trace_test_run_id-owned-b"
+    trace_test_primary="$trace_test_root/owned-a/ra/interruption-events.tsv"
+    trace_selftest_count=0
+    mkdir -p "$trace_test_root/cases" || { echo "FAIL trace lifecycle setup" >&2; return 1; }
+    selftest_write_trace_lifecycle "$trace_test_root/owned-a" "$trace_test_id" || {
+        echo "FAIL trace lifecycle actual writer setup" >&2; return 1;
+    }
     awk -F '\t' -v wanted="$trace_test_id" '
         NR == 1 && ($1 != wanted || $2 != "driver" || $3 != "1" || $5 != "handler-entry" || $8 !~ /^[1-9][0-9]*$/) { bad = 1 }
         NR == 2 && ($1 != wanted || $2 != "driver" || $3 != "2" || $5 != "journal-close-success" || $8 !~ /^[1-9][0-9]*$/) { bad = 1 }
         NR == 3 && ($1 != wanted || $2 != "driver" || $3 != "3" || $5 != "handler-exit" || $8 != "unavailable" || $10 != "unavailable" || $14 != "absent") { bad = 1 }
         NF != 16 { bad = 1 }
         END { if (NR != 3 || bad) exit 1 }
-    ' "$STATE_SESSION_TEST_INTERRUPT_TRACE" || {
-        echo "FAIL trace cleanup-host-pid admission: actual writer did not emit retained cleanup shape" >&2; return 1;
+    ' "$trace_test_primary" || {
+        echo "FAIL trace lifecycle actual writer did not emit expected cleanup fields" >&2; return 1;
     }
-    trace_test_status=0
-    trace_test_result=$(verify_interruption_driver_trace \
-        "$STATE_SESSION_TEST_INTERRUPT_TRACE" "$trace_test_id" "$$") || trace_test_status=$?
-    if [ "$trace_test_status" -ne 0 ]; then
-        echo "FAIL trace cleanup-host-pid admission: actual writer emitted field 8 unavailable after cleanup, but the validator rejected the valid lifecycle" >&2
-        return 1
-    fi
-    [ "$trace_test_result" = TRACE_OK ] || {
-        echo "FAIL trace cleanup-host-pid admission: expected TRACE_OK, got $trace_test_result" >&2; return 1;
+    selftest_trace_expect "$trace_test_primary" "$trace_test_id" "$$" \
+        TRACE_OK cleanup-host-pid-admission || return 1
+
+    selftest_trace_expect_edit short-field-count 1 drop-field 0 '' TRACE_FIELDS || return 1
+    selftest_trace_expect_edit extra-field-count 1 extra-field 0 '' TRACE_FIELDS || return 1
+    trace_empty="$trace_test_root/cases/empty.tsv"
+    cp "$trace_test_primary" "$trace_empty" || return 1
+    selftest_trace_edit "$trace_empty" 1 empty || return 1
+    selftest_trace_expect "$trace_empty" "$trace_test_id" "$$" TRACE_FIELDS empty-trace || return 1
+    selftest_trace_expect_edit truncated-final-line 0 no-final-newline 0 '' TRACE_FIELDS || return 1
+    selftest_trace_expect_edit wrong-role 2 set 2 harness TRACE_ROLE || return 1
+    selftest_trace_expect_edit wrong-invocation 2 set 1 other-invocation TRACE_INVOCATION || return 1
+    selftest_trace_expect_edit noncontiguous-sequence 2 set 3 3 TRACE_SEQUENCE || return 1
+    selftest_trace_expect_edit malformed-sequence 2 set 3 1.0 TRACE_SEQUENCE || return 1
+    selftest_trace_expect_edit unavailable-sequence 2 set 3 unavailable TRACE_SEQUENCE || return 1
+    selftest_trace_expect_edit nonnumeric-time 1 set 4 unavailable TRACE_TIME || return 1
+    selftest_trace_expect_edit decreasing-time 2 set 4 0 TRACE_TIME || return 1
+    selftest_trace_expect_edit wrong-event-order 2 set 5 handler-exit TRACE_EVENT || return 1
+    selftest_trace_expect_edit invalid-status 2 set 6 unavailable TRACE_VALUE || return 1
+    selftest_trace_expect_edit wrong-driver-pid 2 set 7 0 TRACE_DRIVER_PID || return 1
+    selftest_trace_expect_edit mismatched-driver-pid 2 set 7 "$(( $$ + 1 ))" TRACE_DRIVER_PID || return 1
+    selftest_trace_expect_edit zero-host-pid 3 set 8 0 TRACE_VALUE || return 1
+    selftest_trace_expect_edit signed-child-pid 3 set 10 +1 TRACE_VALUE || return 1
+    selftest_trace_expect_edit invalid-host-liveness 3 set 9 0 TRACE_VALUE || return 1
+    selftest_trace_expect_edit invalid-child-liveness 3 set 11 2 TRACE_VALUE || return 1
+    selftest_trace_expect_edit invalid-quit-flag 2 set 12 2 TRACE_VALUE || return 1
+    selftest_trace_expect_edit invalid-journal-flag 2 set 13 2 TRACE_VALUE || return 1
+    selftest_trace_expect_edit invalid-lock-value 2 set 14 unknown TRACE_VALUE || return 1
+    selftest_trace_expect_edit fractional-send-count 2 set 15 1.0 TRACE_VALUE || return 1
+    selftest_trace_expect_edit unavailable-send-count 2 set 15 unavailable TRACE_VALUE || return 1
+    selftest_trace_expect_edit invalid-first-failure 2 set 16 JOURNAL_RECORD_FAILURE TRACE_VALUE || return 1
+    selftest_trace_expect_edit inconsistent-first-failure 3 set 16 INTERRUPTED_INT TRACE_VALUE || return 1
+    selftest_trace_expect_edit missing-event-row 2 remove-row 0 '' TRACE_EVENT || return 1
+    selftest_trace_expect_edit extra-event-row 0 append-row 0 '' TRACE_EVENT || return 1
+
+    trace_equal="$trace_test_root/cases/equal-monotonic-samples.tsv"
+    cp "$trace_test_primary" "$trace_equal" || return 1
+    trace_first_time=$(awk -F '\t' 'NR == 1 { print $4 }' "$trace_test_primary")
+    selftest_trace_edit "$trace_equal" 2 set 4 "$trace_first_time" || return 1
+    selftest_trace_edit "$trace_equal" 3 set 4 "$trace_first_time" || return 1
+    selftest_trace_expect "$trace_equal" "$trace_test_id" "$$" TRACE_OK equal-monotonic-samples || return 1
+
+    trace_test_second="$trace_test_root/owned-b/ra/interruption-events.tsv"
+    selftest_write_trace_lifecycle "$trace_test_root/owned-b" "$trace_test_id_b" || {
+        echo "FAIL trace lifecycle second owned writer setup" >&2; return 1;
     }
-    printf 'trace selftest: PASS cleanup-host-pid admission\n'
-    printf 'state session interruption trace selftest: 1 case passed\n'
+    selftest_trace_expect "$trace_test_second" "$trace_test_id_b" "$$" TRACE_OK second-owned-invocation || return 1
+    trace_mixed="$trace_test_root/cases/mixed-invocations.tsv"
+    cp "$trace_test_primary" "$trace_mixed" || return 1
+    selftest_trace_edit "$trace_mixed" 2 set 1 "$trace_test_id_b" || return 1
+    selftest_trace_expect "$trace_mixed" "$trace_test_id" "$$" \
+        TRACE_INVOCATION cross-invocation-row || return 1
+
+    selftest_trace_writer_gate_tests "$trace_test_root" || return 1
+    printf 'state session interruption trace selftest: %s cases passed\n' "$trace_selftest_count"
 )
 
 run_interruption_capture_selftests() {
@@ -823,7 +1035,7 @@ run_interruption_control() {
     interrupt_dir="$WORK_ROOT/session-$$-interrupt"
     interrupt_ra="$interrupt_dir/ra"
     interrupt_capture_dir="$interrupt_dir/capture"
-    interrupt_capture_id=${interrupt_capture_dir##*/}
+    interrupt_capture_id=${interrupt_dir##*/}
     interrupt_trace="$interrupt_ra/interruption-events.tsv"
     interrupt_trace_errors="$interrupt_ra/interruption-trace-errors.tsv"
     mkdir -p "$interrupt_ra/shots" "$interrupt_ra/states" "$interrupt_capture_dir"
@@ -934,8 +1146,13 @@ run_interruption_control() {
 
     verify_interruption_snapshots "$interrupt_capture_dir/snapshot-metadata.tsv" ||
         mark_interruption_recorder_error snapshot-metadata-or-stability-invalid
-    verify_interruption_driver_trace "$interrupt_trace" "$interrupt_capture_id" ||
-        mark_interruption_recorder_error driver-trace-missing-or-invalid
+    interrupt_trace_status=0
+    interrupt_trace_result=$(verify_interruption_driver_trace \
+        "$interrupt_trace" "$interrupt_capture_id" "$interrupt_driver") ||
+        interrupt_trace_status=$?
+    if [ "$interrupt_trace_status" -ne 0 ] || [ "$interrupt_trace_result" != TRACE_OK ]; then
+        mark_interruption_recorder_error "driver-trace-${interrupt_trace_result:-TRACE_FIELDS}"
+    fi
     [ ! -s "$interrupt_trace_errors" ] ||
         mark_interruption_recorder_error driver-trace-reported-write-error
     [ -f "$interrupt_capture_dir/assertion.stdout" ] &&
