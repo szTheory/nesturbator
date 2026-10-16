@@ -65,6 +65,26 @@ Positive actual-writer controls also passed before correction: both first-two PI
 
 The validator now returns `TRACE_VALUE` for every named lifecycle/QUIT mutant while preserving both positive cases. Each targeted GREEN report is TAP 1/1, exit 0, under `build/phase16-review-corrections-execute/evidence/trace-green-<target>/`. The correction requires stable first-two PID observations, rejects live-without-PID and absent-PID-with-live-state, permits numeric-PID/unavailable-liveness, requires all final host/child PID and liveness fields unavailable, and requires row-two QUIT=0 while retaining the existing row-one 0 / row-three 1 contract.
 
+## Task 2 real-control ledger causal REDs
+
+The new `verify_interruption_real_control_events` entry is first wired as a behavior-neutral delegate to `verify_interruption_event_file`, and `run_interruption_control` passes it the driver PID, host PID and harness PID observed outside the ledger, before `interruption_recorder_gate`. A valid offline 21-row positive was produced by the actual `record_interruption_event` writer and shared `capture_interruption_boundary`; an independent event/value/PID oracle verified all 21 ordered eight-field rows, final newline and monotonic timestamps before validation. The positive is TAP 1/1, exit 0 at `build/phase16-review-corrections-execute/evidence/real-event-baseline-positive/`.
+
+The actual newly wired helper then accepted each of these independently checked target mutations. Every named TAP failure was machine-validated as `RED_EVIDENCE_OK`:
+
+| Finding | Target | Evidence |
+| --- | --- | --- |
+| WR-03 | `event-omission-resequenced` | `build/phase16-review-corrections-execute/evidence/event-omission-resequenced/` |
+| WR-03 | `event-reorder-valid-sequence` | `build/phase16-review-corrections-execute/evidence/event-reorder-valid-sequence/` |
+| WR-03 | `event-short-row` | `build/phase16-review-corrections-execute/evidence/event-short-row/` |
+| WR-03 | `event-extra-row` | `build/phase16-review-corrections-execute/evidence/event-extra-row/` |
+| WR-03 | `event-missing-field` | `build/phase16-review-corrections-execute/evidence/event-missing-field/` |
+| WR-03 | `event-extra-field` | `build/phase16-review-corrections-execute/evidence/event-extra-field/` |
+| WR-03 | `event-wrong-pid` | `build/phase16-review-corrections-execute/evidence/event-wrong-pid/` |
+| WR-03 | `event-bad-status` | `build/phase16-review-corrections-execute/evidence/event-bad-status/` |
+| WR-03 | `event-bad-detail` | `build/phase16-review-corrections-execute/evidence/event-bad-detail/` |
+
+These failures used no fixture, frame-index or transport work. The generic verifier already rejects some malformed identity/time values, so those are tested for their precise strict-gate reason after implementation but are not claimed as causal REDs.
+
 ## Owner-sidecar transition audit
 
 At baseline, the driver computes `ATTEMPT_ID` from the monotonic start time and its PID, derives `LOCK_OWNER_FILE`, installs EXIT and simple INT/TERM/HUP traps, then creates the sidecar with a noclobber redirection in a subshell. A successful create is hard-linked to the endpoint lock and verified by token contents. Cleanup removes a token-matching endpoint link and then removes any regular non-symlink `LOCK_OWNER_FILE`, regardless of whether this invocation created that file. Consequently a failed noclobber create over a foreign regular file reaches EXIT cleanup and deletes the foreign object. The same path-based cleanup also has no exact-object check if the owner pathname is replaced.

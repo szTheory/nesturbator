@@ -1327,8 +1327,18 @@ run_interruption_capture_selftests() {
     mkdir -p "$selftest_root"
 
     if [ -n "${STATE_SESSION_TDD_CASE:-}" ]; then
-        run_interruption_trace_selftests "$selftest_root"
-        return $?
+        case "${STATE_SESSION_TDD_KIND:-trace}" in
+            trace)
+                run_interruption_trace_selftests "$selftest_root"
+                return $? ;;
+            real-events)
+                selftest_real_control_event_case "$selftest_root" \
+                    "$STATE_SESSION_TDD_CASE" 1
+                return $? ;;
+            *)
+                printf 'TAP version 13\n1..1\nBail out! invalid internal selftest kind\n'
+                return 1 ;;
+        esac
     fi
 
     if selftest_owner_sidecar_collision "$selftest_root"; then
@@ -1539,6 +1549,7 @@ run_interruption_capture_selftests() {
     run_interruption_identity_selftests "$selftest_root"
     INTERRUPTION_CAPTURE_SELFTEST_ACTIVE=0
     printf 'state session interruption capture selftest: 7 cases passed (status 0/1/2, recorder errors, same-handle replacement, event ownership)\n'
+    run_interruption_real_control_event_selftests "$selftest_root"
     run_interruption_trace_selftests "$selftest_root"
 }
 
@@ -1779,6 +1790,11 @@ verify_interruption_event_file() {
     ' "$interruption_events_file"
 }
 
+verify_interruption_real_control_events() {
+    # The real-control call site supplies observed process identities; strict checks follow below.
+    verify_interruption_event_file "$1" "$2"
+}
+
 verify_interruption_snapshots() {
     interruption_metadata_file=$1
     awk -F '\t' '
@@ -1792,6 +1808,287 @@ verify_interruption_snapshots() {
         { seen[$1]++ }
         END { if (NR != 3 || bad || seen["pre"] != 1 || seen["post"] != 1) exit 1 }
     ' "$interruption_metadata_file"
+}
+
+selftest_write_real_control_event_ledger() {
+    real_event_dir=$1
+    real_event_id=$2
+    real_event_driver_pid=$3
+    real_event_host_pid=$4
+    real_event_harness_pid=$5
+    mkdir -p "$real_event_dir" || return 1
+    printf 'step\tclass\treason\nINTERRUPTED_TERM\tsignal\tTERM\n' \
+        >"$real_event_dir/journal.tsv" || return 1
+    INTERRUPTION_RECORDER_DIR=$real_event_dir
+    INTERRUPTION_RECORDER_ID=$real_event_id
+    INTERRUPTION_EVENT_SEQUENCE=0
+    INTERRUPTION_RECORDER_STATUS=0
+    INTERRUPTION_RECORDER_REASON=
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        driver-launch-start 0 "$real_event_harness_pid" || return 1
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        driver-launch-complete 0 "$real_event_driver_pid" || return 1
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        host-observed 0 "$real_event_host_pid" || return 1
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        pre-signal-liveness 0 "$real_event_host_pid" \
+        "driver_pid=$real_event_driver_pid driver_liveness=0" || return 1
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        signal-term 0 "$real_event_driver_pid" || return 1
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        wait-driver 130 "$real_event_driver_pid" || return 1
+    kill "$real_event_driver_pid" 2>/dev/null || return 1
+    wait "$real_event_driver_pid" 2>/dev/null || true
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        glob-candidate 0 "$real_event_driver_pid" candidate=1 || return 1
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        selected-path 0 "$real_event_driver_pid" selected-first-expanded-candidate || return 1
+    capture_interruption_boundary "$real_event_dir/journal.tsv" "$real_event_dir" \
+        "$real_event_id" "$real_event_driver_pid" "$real_event_dir/assertion-reemitted.txt" || return 1
+    [ "$INTERRUPTION_ASSERTION_STATUS" -eq 0 ] &&
+        [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] &&
+        [ -s "$real_event_dir/snapshot-metadata.tsv" ] &&
+        cmp -s "$real_event_dir/journal.tsv" "$real_event_dir/snapshot-pre.bin" &&
+        cmp -s "$real_event_dir/journal.tsv" "$real_event_dir/snapshot-post.bin" || return 1
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        quit-send-count 1 "$real_event_driver_pid" || return 1
+    kill "$real_event_host_pid" 2>/dev/null || return 1
+    wait "$real_event_host_pid" 2>/dev/null || true
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        host-after-wait 1 "$real_event_host_pid" \
+        kill-0-failure-is-not-distinguished-from-permission-denial || return 1
+    record_interruption_event "$real_event_dir" "$real_event_id" harness \
+        lock-after-wait 0 "$real_event_driver_pid" || return 1
+    return 0
+}
+
+selftest_real_control_event_expected_ledger() {
+    perl - "$@" <<'PERL'
+use strict;
+use warnings;
+my ($path, $wanted_id, $driver_pid, $host_pid, $harness_pid) = @ARGV;
+open my $input, "<:raw", $path or exit 1;
+local $/;
+my $bytes = <$input>;
+close $input or exit 1;
+exit 1 if !defined($bytes) || $bytes !~ /\n\z/;
+my @rows = split /\n/, $bytes, -1;
+pop @rows;
+my @events = qw(driver-launch-start driver-launch-complete host-observed pre-signal-liveness
+    signal-term wait-driver glob-candidate selected-path before-assertion capture-start
+    snapshot-pre-start snapshot-pre-end assertion-start assertion-end snapshot-post-start
+    snapshot-post-end capture-end assertion-decision quit-send-count host-after-wait lock-after-wait);
+my @statuses = (0, 0, 0, 0, 0, 130, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0);
+my @pids = ($harness_pid, $driver_pid, $host_pid, $host_pid, $driver_pid, $driver_pid,
+    $driver_pid, $driver_pid, $driver_pid, ($harness_pid) x 8, $driver_pid, $driver_pid,
+    $host_pid, $driver_pid);
+my @details = ("none", "none", "none", "driver_pid=$driver_pid driver_liveness=0",
+    "none", "none", "candidate=1", "selected-first-expanded-candidate", "none",
+    ("none") x 10, "kill-0-failure-is-not-distinguished-from-permission-denial", "none");
+exit 1 unless @rows == 21 && @events == 21 && @statuses == 21 && @pids == 21 && @details == 21;
+my $previous_time;
+for my $index (0 .. $#rows) {
+    my @field = split /\t/, $rows[$index], -1;
+    exit 1 unless @field == 8 && $field[0] eq $wanted_id && $field[1] eq "harness" &&
+        $field[2] eq "" . ($index + 1) && $field[3] =~ /\A[0-9]+\z/ &&
+        $field[4] eq $events[$index] && $field[5] eq "$statuses[$index]" &&
+        $field[6] eq "$pids[$index]" && $field[7] eq $details[$index];
+    exit 1 if defined($previous_time) && $field[3] < $previous_time;
+    $previous_time = $field[3];
+}
+PERL
+}
+
+selftest_event_ledger_mutate() {
+    perl - "$@" <<'PERL'
+use strict;
+use warnings;
+my ($path, $mutation, $wrong_pid) = @ARGV;
+open my $input, "<:raw", $path or die "open event ledger: $!";
+local $/;
+my $bytes = <$input>;
+close $input or die "close event ledger: $!";
+my $newline = defined($bytes) && $bytes =~ s/\n\z//;
+my @rows = split /\n/, defined($bytes) ? $bytes : "", -1;
+my @field = map { [ split /\t/, $_, -1 ] } @rows;
+if ($mutation eq "event-omission-resequenced") {
+    splice @field, 3, 1;
+    $field[$_][2] = "" . ($_ + 1) for 0 .. $#field;
+} elsif ($mutation eq "event-reorder-valid-sequence") {
+    ($field[9][4], $field[10][4]) = ($field[10][4], $field[9][4]);
+} elsif ($mutation eq "event-short-row") {
+    pop @field;
+} elsif ($mutation eq "event-extra-row") {
+    my @extra = @{$field[-1]};
+    $extra[2] = "" . (@field + 1);
+    push @field, \@extra;
+} elsif ($mutation eq "event-missing-field") {
+    pop @{$field[2]};
+} elsif ($mutation eq "event-extra-field") {
+    push @{$field[2]}, "unexpected";
+} elsif ($mutation eq "event-wrong-role") {
+    $field[2][1] = "driver";
+} elsif ($mutation eq "event-wrong-id") {
+    $field[2][0] = "different-session";
+} elsif ($mutation eq "event-wrong-pid") {
+    $field[2][6] = $wrong_pid;
+} elsif ($mutation eq "event-bad-status") {
+    $field[5][5] = "129";
+} elsif ($mutation eq "event-bad-detail") {
+    $field[6][7] = "candidate=2";
+} elsif ($mutation eq "event-decreasing-time") {
+    die "invalid first event time" unless $field[0][3] =~ /\A[0-9]+\z/ && $field[0][3] gt "0";
+    $field[1][3] = "" . ($field[0][3] - 1);
+} else {
+    die "unknown event-ledger mutation";
+}
+my $output = join("\n", map { join("\t", @$_) } @field);
+$output .= "\n" if $newline;
+open my $out, ">:raw", $path or die "open mutant ledger: $!";
+print {$out} $output or die "write mutant ledger: $!";
+close $out or die "close mutant ledger: $!";
+PERL
+}
+
+selftest_event_only_field_changed() {
+    perl - "$@" <<'PERL'
+use strict;
+use warnings;
+my ($original_path, $mutant_path, $target_row, $target_column) = @ARGV;
+sub read_rows {
+    my ($path) = @_;
+    open my $input, "<:raw", $path or return undef;
+    local $/;
+    my $bytes = <$input>;
+    close $input or return undef;
+    return undef if !defined($bytes) || $bytes !~ /\n\z/;
+    my @rows = split /\n/, $bytes, -1;
+    pop @rows;
+    return \@rows;
+}
+my $original = read_rows($original_path);
+my $mutant = read_rows($mutant_path);
+exit 1 unless defined($original) && defined($mutant) && @$original == @$mutant;
+my $changed = 0;
+for my $row (0 .. $#$original) {
+    my @left = split /\t/, $original->[$row], -1;
+    my @right = split /\t/, $mutant->[$row], -1;
+    exit 1 unless @left == 8 && @right == 8;
+    if ($row == $target_row - 1) {
+        exit 1 if $left[$target_column - 1] eq $right[$target_column - 1];
+        $changed = 1;
+    } else {
+        exit 1 unless $original->[$row] eq $mutant->[$row];
+    }
+    splice @left, $target_column - 1, 1;
+    splice @right, $target_column - 1, 1;
+    exit 1 unless join("\t", @left) eq join("\t", @right);
+}
+exit($changed ? 0 : 1);
+PERL
+}
+
+selftest_real_control_event_case() {
+    real_event_root=$1
+    real_event_name=$2
+    real_event_report=${3:-0}
+    real_event_case_dir="$real_event_root/real-control-events/$real_event_name"
+    real_event_id="session-$(mono_ms)-$$-$real_event_name"
+    if [ "$real_event_report" -eq 1 ]; then printf 'TAP version 13\n1..1\n'; fi
+    mkdir -p "$real_event_case_dir" || {
+        [ "$real_event_report" -eq 1 ] && printf 'Bail out! real event setup failed\n'
+        return 1
+    }
+    sleep 60 &
+    real_event_driver_pid=$!
+    sleep 60 &
+    real_event_host_pid=$!
+    real_event_harness_pid=$$
+    real_event_cleanup() {
+        kill "$real_event_driver_pid" "$real_event_host_pid" 2>/dev/null || true
+        wait "$real_event_driver_pid" 2>/dev/null || true
+        wait "$real_event_host_pid" 2>/dev/null || true
+    }
+    if ! selftest_write_real_control_event_ledger "$real_event_case_dir" "$real_event_id" \
+        "$real_event_driver_pid" "$real_event_host_pid" "$real_event_harness_pid" ||
+        ! selftest_real_control_event_expected_ledger "$real_event_case_dir/events.tsv" \
+            "$real_event_id" "$real_event_driver_pid" "$real_event_host_pid" "$real_event_harness_pid"; then
+        real_event_cleanup
+        [ "$real_event_report" -eq 1 ] && printf 'Bail out! actual 21-row recorder or independent positive oracle failed\n'
+        return 1
+    fi
+    real_event_expected=EVENTS_OK
+    case "$real_event_name" in
+        event-valid-21-row-ledger) ;;
+        event-omission-resequenced|event-short-row|event-extra-row|event-missing-field|event-extra-field)
+            real_event_expected=EVENT_FIELDS ;;
+        event-reorder-valid-sequence) real_event_expected=EVENT_SEQUENCE ;;
+        event-wrong-role|event-wrong-id|event-wrong-pid) real_event_expected=EVENT_IDENTITY ;;
+        event-bad-status|event-bad-detail) real_event_expected=EVENT_VALUE ;;
+        event-decreasing-time) real_event_expected=EVENT_TIME ;;
+        *) real_event_cleanup; [ "$real_event_report" -eq 1 ] && printf 'Bail out! unknown real event test\n'; return 1 ;;
+    esac
+    if [ "$real_event_name" != event-valid-21-row-ledger ]; then
+        cp "$real_event_case_dir/events.tsv" "$real_event_case_dir/original.tsv" || {
+            real_event_cleanup
+            [ "$real_event_report" -eq 1 ] && printf 'Bail out! event ledger baseline copy failed\n'
+            return 1
+        }
+        real_event_wrong_pid=$((real_event_driver_pid + 1))
+        while [ "$real_event_wrong_pid" = "$real_event_driver_pid" ] ||
+            [ "$real_event_wrong_pid" = "$real_event_host_pid" ] ||
+            [ "$real_event_wrong_pid" = "$real_event_harness_pid" ]; do
+            real_event_wrong_pid=$((real_event_wrong_pid + 1))
+        done
+        selftest_event_ledger_mutate "$real_event_case_dir/events.tsv" \
+            "$real_event_name" "$real_event_wrong_pid" || {
+            real_event_cleanup
+            [ "$real_event_report" -eq 1 ] && printf 'Bail out! event ledger mutation failed\n'
+            return 1
+        }
+        case "$real_event_name" in
+            event-wrong-role) selftest_event_only_field_changed "$real_event_case_dir/original.tsv" "$real_event_case_dir/events.tsv" 3 2 || { real_event_cleanup; return 1; } ;;
+            event-wrong-id) selftest_event_only_field_changed "$real_event_case_dir/original.tsv" "$real_event_case_dir/events.tsv" 3 1 || { real_event_cleanup; return 1; } ;;
+            event-wrong-pid) selftest_event_only_field_changed "$real_event_case_dir/original.tsv" "$real_event_case_dir/events.tsv" 3 7 || { real_event_cleanup; return 1; } ;;
+            event-bad-status) selftest_event_only_field_changed "$real_event_case_dir/original.tsv" "$real_event_case_dir/events.tsv" 6 6 || { real_event_cleanup; return 1; } ;;
+            event-bad-detail) selftest_event_only_field_changed "$real_event_case_dir/original.tsv" "$real_event_case_dir/events.tsv" 7 8 || { real_event_cleanup; return 1; } ;;
+            event-decreasing-time) selftest_event_only_field_changed "$real_event_case_dir/original.tsv" "$real_event_case_dir/events.tsv" 2 4 || { real_event_cleanup; return 1; } ;;
+        esac
+    fi
+    real_event_status=0
+    real_event_result=$(verify_interruption_real_control_events "$real_event_case_dir/events.tsv" \
+        "$real_event_id" "$real_event_driver_pid" "$real_event_host_pid" \
+        "$real_event_harness_pid") || real_event_status=$?
+    real_event_cleanup
+    if [ "$real_event_expected" = EVENTS_OK ]; then
+        if [ "$real_event_status" -eq 0 ]; then
+            [ "$real_event_report" -eq 1 ] && printf 'ok 1 - %s\n' "$real_event_name" ||
+                printf 'real-control ledger selftest: PASS %s (EVENTS_OK)\n' "$real_event_name"
+            return 0
+        fi
+    elif [ "$real_event_status" -ne 0 ] && [ "$real_event_result" = "$real_event_expected" ]; then
+        [ "$real_event_report" -eq 1 ] && printf 'ok 1 - %s\n' "$real_event_name" ||
+            printf 'real-control ledger selftest: PASS %s (%s)\n' "$real_event_name" "$real_event_expected"
+        return 0
+    fi
+    [ "$real_event_report" -eq 1 ] && {
+        printf '# expected=%s status=%s actual=%s status=%s\n' \
+            "$real_event_expected" "$([ "$real_event_expected" = EVENTS_OK ] && printf 0 || printf 1)" \
+            "$real_event_result" "$real_event_status"
+        printf 'not ok 1 - %s\n' "$real_event_name"
+    } || echo "FAIL real-control ledger $real_event_name: expected $real_event_expected, got $real_event_result (status $real_event_status)" >&2
+    return 1
+}
+
+run_interruption_real_control_event_selftests() {
+    real_event_test_root=$1
+    for real_event_case in event-valid-21-row-ledger event-omission-resequenced \
+        event-reorder-valid-sequence event-short-row event-extra-row event-missing-field \
+        event-extra-field event-wrong-role event-wrong-id event-wrong-pid \
+        event-bad-status event-bad-detail event-decreasing-time; do
+        selftest_real_control_event_case "$real_event_test_root" "$real_event_case" 0 || return 1
+    done
+    printf 'state session real-control ledger selftest: 13 positive/negative cases passed\n'
 }
 
 capture_interruption_boundary() {
@@ -1966,8 +2263,16 @@ run_interruption_control() {
     }
     assert_sanitized_tree "$interrupt_attempt"
 
-    verify_interruption_event_file "$interrupt_capture_dir/events.tsv" "$interrupt_capture_id" ||
-        mark_interruption_recorder_error harness-event-order-or-identity-invalid
+    interrupt_real_control_status=0
+    interrupt_real_control_result=$(verify_interruption_real_control_events \
+        "$interrupt_capture_dir/events.tsv" "$interrupt_capture_id" \
+        "$interrupt_driver" "$interrupt_host" "$$") || interrupt_real_control_status=$?
+    if [ "$interrupt_real_control_status" -ne 0 ]; then
+        case "$interrupt_real_control_result" in
+            EVENT_*) mark_interruption_recorder_error "harness-event-$interrupt_real_control_result" ;;
+            *) mark_interruption_recorder_error harness-event-order-or-identity-invalid ;;
+        esac
+    fi
     interruption_recorder_gate || interrupt_recorder_failure=1
     [ "${interrupt_recorder_failure:-0}" -eq 0 ] && [ "$interrupt_assertion_failure" -eq 0 ] || return 1
     printf 'state session interruption control: TERM retained; one QUIT; host reaped; capture=usable; trace=3 owned events\n'
