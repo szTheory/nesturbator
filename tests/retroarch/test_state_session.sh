@@ -248,9 +248,219 @@ CMAKE_COMMAND=$4
 RUN_RETROARCH_CMAKE=$5
 CONTROL=${STATE_SESSION_CONTROL:-all}
 case "$CONTROL" in
-    all|readiness) ;;
+    all|readiness|interruption|interruption-capture-selftest) ;;
     *) echo "state session controls: invalid STATE_SESSION_CONTROL=$CONTROL" >&2; exit 2 ;;
 esac
+
+selftest_counted_grep() {
+    printf 'call\n' >>"$INTERRUPTION_TEST_CALLS"
+    grep -F "$1" "$2"
+}
+
+selftest_controlled_error() {
+    printf 'call\n' >>"$INTERRUPTION_TEST_CALLS"
+    cat "$INTERRUPTION_TEST_STDOUT"
+    cat "$INTERRUPTION_TEST_STDERR" >&2
+    return 2
+}
+
+selftest_count_calls() {
+    [ ! -f "$1" ] || wc -l <"$1" | tr -d ' '
+    [ -f "$1" ] || printf '0'
+}
+
+selftest_independent_identity() {
+    perl -e 'use strict; use warnings; my @st = stat($ARGV[0]) or die "stat: $!"; print join("\t", @st[0,1,7]), "\n"' "$1"
+}
+
+selftest_assert_events() {
+    selftest_event_file=$1
+    selftest_event_id=$2
+    awk -F '\t' -v wanted="$selftest_event_id" '
+        $1 != wanted || $2 != "harness" || $3 != NR || $4 !~ /^[0-9]+$/ || $7 !~ /^[0-9]+$/ { bad = 1 }
+        NR > 1 && $4 < previous { bad = 1 }
+        { previous = $4 }
+        END { if (NR < 4 || bad) exit 1 }
+    ' "$selftest_event_file"
+}
+
+run_interruption_capture_selftests() {
+    selftest_root=$1
+    mkdir -p "$selftest_root"
+
+    selftest_match="$selftest_root/match"
+    mkdir -p "$selftest_match"
+    printf 'step\tclass\treason\nINTERRUPTED_TERM\tsignal\tTERM\nCOMPLETE\tfinish\tOK\n' >"$selftest_match/journal.tsv"
+    printf 'INTERRUPTED_TERM\tsignal\tTERM\n' >"$selftest_match/expected.stdout"
+    : >"$selftest_match/expected.stderr"
+    INTERRUPTION_TEST_CALLS="$selftest_match/calls"
+    export INTERRUPTION_TEST_CALLS
+    selftest_status=0
+    capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
+        "$selftest_match/journal.tsv" "$selftest_match" /dev/null || selftest_status=$?
+    [ "$selftest_status" -eq 0 ] && [ "$INTERRUPTION_ASSERTION_STATUS" -eq 0 ] &&
+        [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] &&
+        [ "$(selftest_count_calls "$selftest_match/calls")" -eq 1 ] &&
+        cmp -s "$selftest_match/expected.stdout" "$selftest_match/assertion.stdout" &&
+        cmp -s "$selftest_match/expected.stderr" "$selftest_match/assertion.stderr" || {
+        echo "FAIL interruption capture status-0 bytes or one-call contract" >&2; return 1;
+    }
+    selftest_assert_events "$selftest_match/events.tsv" match || {
+        echo "FAIL interruption capture match events are not invocation-owned and ordered" >&2; return 1;
+    }
+    selftest_decision_status=0
+    interruption_assertion_decision 2>"$selftest_match/decision.stderr" || selftest_decision_status=$?
+    [ "$selftest_decision_status" -eq 0 ] && [ ! -s "$selftest_match/decision.stderr" ] || {
+        echo "FAIL interruption status-0 original decision changed" >&2; return 1;
+    }
+
+    selftest_miss="$selftest_root/no-match"
+    mkdir -p "$selftest_miss"
+    printf 'step\tclass\treason\nCOMPLETE\tfinish\tOK\n' >"$selftest_miss/journal.tsv"
+    : >"$selftest_miss/expected.stdout"
+    : >"$selftest_miss/expected.stderr"
+    INTERRUPTION_TEST_CALLS="$selftest_miss/calls"
+    export INTERRUPTION_TEST_CALLS
+    selftest_status=0
+    capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
+        "$selftest_miss/journal.tsv" "$selftest_miss" /dev/null || selftest_status=$?
+    [ "$selftest_status" -eq 1 ] && [ "$INTERRUPTION_ASSERTION_STATUS" -eq 1 ] &&
+        [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] &&
+        [ "$(selftest_count_calls "$selftest_miss/calls")" -eq 1 ] &&
+        cmp -s "$selftest_miss/expected.stdout" "$selftest_miss/assertion.stdout" &&
+        cmp -s "$selftest_miss/expected.stderr" "$selftest_miss/assertion.stderr" || {
+        echo "FAIL interruption capture status-1 bytes or one-call contract" >&2; return 1;
+    }
+    selftest_assert_events "$selftest_miss/events.tsv" no-match || {
+        echo "FAIL interruption capture no-match events are not invocation-owned and ordered" >&2; return 1;
+    }
+    selftest_decision_status=0
+    interruption_assertion_decision 2>"$selftest_miss/decision.stderr" || selftest_decision_status=$?
+    printf 'FAIL interruption first failure was not retained\n' >"$selftest_miss/expected-decision.stderr"
+    [ "$selftest_decision_status" -eq 1 ] &&
+        cmp -s "$selftest_miss/expected-decision.stderr" "$selftest_miss/decision.stderr" || {
+        echo "FAIL interruption status-1 failure decision or message changed" >&2; return 1;
+    }
+
+    selftest_error="$selftest_root/execution-error"
+    mkdir -p "$selftest_error"
+    printf 'controlled stdout\000tail\r\n' >"$selftest_error/expected.stdout"
+    printf 'controlled stderr\tstatus-2\000tail\r\n' >"$selftest_error/expected.stderr"
+    printf 'INTERRUPTED_TERM\tsignal\tTERM\n' >"$selftest_error/journal.tsv"
+    INTERRUPTION_TEST_CALLS="$selftest_error/calls"
+    INTERRUPTION_TEST_STDOUT="$selftest_error/expected.stdout"
+    INTERRUPTION_TEST_STDERR="$selftest_error/expected.stderr"
+    export INTERRUPTION_TEST_CALLS INTERRUPTION_TEST_STDOUT INTERRUPTION_TEST_STDERR
+    selftest_status=0
+    capture_interruption_assertion selftest_controlled_error INTERRUPTED_TERM \
+        "$selftest_error/journal.tsv" "$selftest_error" /dev/null \
+        2>"$selftest_error/original.stderr" || selftest_status=$?
+    [ "$selftest_status" -eq 2 ] && [ "$INTERRUPTION_ASSERTION_STATUS" -eq 2 ] &&
+        [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] &&
+        [ "$(selftest_count_calls "$selftest_error/calls")" -eq 1 ] &&
+        cmp -s "$selftest_error/expected.stdout" "$selftest_error/assertion.stdout" &&
+        cmp -s "$selftest_error/expected.stderr" "$selftest_error/assertion.stderr" &&
+        cmp -s "$selftest_error/expected.stderr" "$selftest_error/original.stderr" || {
+        echo "FAIL interruption capture status-2 exact byte or one-call contract" >&2; return 1;
+    }
+    selftest_decision_status=0
+    interruption_assertion_decision 2>"$selftest_error/decision.stderr" || selftest_decision_status=$?
+    [ "$selftest_decision_status" -eq 1 ] &&
+        cmp -s "$selftest_miss/expected-decision.stderr" "$selftest_error/decision.stderr" || {
+        echo "FAIL interruption status-2 failure decision or message changed" >&2; return 1;
+    }
+
+    for selftest_case in recorder-match recorder-no-match; do
+        selftest_failure="$selftest_root/$selftest_case"
+        mkdir -p "$selftest_failure"
+        printf 'INTERRUPTED_TERM\tsignal\tTERM\n' >"$selftest_failure/match.tsv"
+        printf 'COMPLETE\tfinish\tOK\n' >"$selftest_failure/no-match.tsv"
+        INTERRUPTION_TEST_CALLS="$selftest_failure/calls"
+        export INTERRUPTION_TEST_CALLS
+        if [ "$selftest_case" = recorder-match ]; then
+            selftest_journal="$selftest_failure/match.tsv"
+            selftest_expected_status=0
+        else
+            selftest_journal="$selftest_failure/no-match.tsv"
+            selftest_expected_status=1
+        fi
+        selftest_unwritable="$selftest_failure/missing-parent/invocation"
+        selftest_status=0
+        capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
+            "$selftest_journal" "$selftest_unwritable" /dev/null || selftest_status=$?
+        [ "$selftest_status" -eq "$selftest_expected_status" ] &&
+            [ "$INTERRUPTION_ASSERTION_STATUS" -eq "$selftest_expected_status" ] &&
+            [ "$INTERRUPTION_RECORDER_STATUS" -ne 0 ] &&
+            [ -n "$INTERRUPTION_RECORDER_REASON" ] &&
+            [ "$(selftest_count_calls "$selftest_failure/calls")" -eq 1 ] || {
+            echo "FAIL recorder failure changed original assertion status for $selftest_case" >&2; return 1;
+        }
+    done
+
+    selftest_replace="$selftest_root/replacement"
+    mkdir -p "$selftest_replace"
+    printf 'old-handle\tINTERRUPTED_TERM\n' >"$selftest_replace/journal.tsv"
+    printf 'new-path\tINTERRUPTED_TERM\n' >"$selftest_replace/replacement.tsv"
+    cp "$selftest_replace/journal.tsv" "$selftest_replace/expected-pre.snapshot"
+    cp "$selftest_replace/replacement.tsv" "$selftest_replace/expected-post.snapshot"
+    selftest_pre_identity=$(selftest_independent_identity "$selftest_replace/journal.tsv") || return 1
+    INTERRUPTION_TEST_CALLS="$selftest_replace/calls"
+    export INTERRUPTION_TEST_CALLS
+    selftest_status=0
+    capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
+        "$selftest_replace/journal.tsv" "$selftest_replace" /dev/null \
+        "$selftest_replace/replacement.tsv" || selftest_status=$?
+    selftest_post_identity=$(selftest_independent_identity "$selftest_replace/journal.tsv") || return 1
+    selftest_pre_record=$(awk -F '\t' '$1 == "pre" { print $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" $7 "\t" $8 }' \
+        "$selftest_replace/snapshot-metadata.tsv")
+    selftest_post_record=$(awk -F '\t' '$1 == "post" { print $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" $7 "\t" $8 }' \
+        "$selftest_replace/snapshot-metadata.tsv")
+    selftest_pre_handle=$(printf '%s\n' "$selftest_pre_record" | cut -f1-3)
+    selftest_pre_after=$(printf '%s\n' "$selftest_pre_record" | cut -f4-6)
+    selftest_post_handle=$(printf '%s\n' "$selftest_post_record" | cut -f1-3)
+    selftest_post_after=$(printf '%s\n' "$selftest_post_record" | cut -f4-6)
+    [ "$selftest_status" -eq 0 ] && [ "$INTERRUPTION_ASSERTION_STATUS" -eq 0 ] &&
+        [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] &&
+        [ "$(selftest_count_calls "$selftest_replace/calls")" -eq 1 ] &&
+        cmp -s "$selftest_replace/expected-pre.snapshot" "$selftest_replace/snapshot-pre.bin" &&
+        cmp -s "$selftest_replace/expected-post.snapshot" "$selftest_replace/snapshot-post.bin" &&
+        [ "$selftest_pre_handle" = "$selftest_pre_after" ] &&
+        [ "$selftest_post_handle" = "$selftest_post_after" ] &&
+        [ "$selftest_pre_handle" = "$selftest_pre_identity" ] &&
+        [ "$selftest_post_handle" = "$selftest_post_identity" ] &&
+        [ "$selftest_pre_handle" != "$selftest_post_handle" ] || {
+        echo "FAIL same-handle replacement snapshots lost independent bytes or identity" >&2; return 1;
+    }
+    selftest_assert_events "$selftest_replace/events.tsv" replacement || {
+        echo "FAIL replacement events are not invocation-owned and ordered" >&2; return 1;
+    }
+
+    selftest_second="$selftest_root/second-invocation"
+    mkdir -p "$selftest_second"
+    printf 'INTERRUPTED_TERM\tsecond\n' >"$selftest_second/journal.tsv"
+    INTERRUPTION_TEST_CALLS="$selftest_second/calls"
+    export INTERRUPTION_TEST_CALLS
+    selftest_status=0
+    capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
+        "$selftest_second/journal.tsv" "$selftest_second" /dev/null || selftest_status=$?
+    [ "$selftest_status" -eq 0 ] &&
+        selftest_assert_events "$selftest_second/events.tsv" second-invocation &&
+        ! awk -F '\t' '$1 != "second-invocation" { bad = 1 } END { exit bad }' \
+            "$selftest_second/events.tsv" || {
+        echo "FAIL second recorder invocation mixed event ownership" >&2; return 1;
+    }
+
+    printf 'state session interruption capture selftest: 10 cases passed (status 0/1/2, recorder errors, same-handle replacement, event ownership)\n'
+}
+
+if [ "$CONTROL" = interruption-capture-selftest ]; then
+    run_interruption_capture_selftests "$WORK_ROOT"
+    exit 0
+fi
+
+if [ "$CONTROL" = all ] || [ "$CONTROL" = interruption ]; then
+    run_interruption_capture_selftests "$WORK_ROOT/interruption-capture-selftest"
+fi
 
 if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ] || [ "$CONTROL" = readiness ]; then
     readiness_name=readiness-response-stall
