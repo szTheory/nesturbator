@@ -261,6 +261,8 @@ FRAME_INDEX=$2
 WORK_ROOT=$3
 CMAKE_COMMAND=$4
 RUN_RETROARCH_CMAKE=$5
+TEST_SCRIPT_DIR=$(CDPATH= cd "$(dirname "$DRIVER")" && pwd -P)
+. "$TEST_SCRIPT_DIR/interruption_trace.sh"
 CONTROL=${STATE_SESSION_CONTROL:-all}
 case "$CONTROL" in
     all|readiness|interruption|interruption-capture-selftest) ;;
@@ -733,25 +735,6 @@ verify_interruption_event_file() {
         { previous = $4 }
         END { if (NR < 8 || bad) exit 1 }
     ' "$interruption_events_file"
-}
-
-verify_interruption_driver_trace() {
-    interruption_trace_file=$1
-    interruption_expected_id=$2
-    [ -s "$interruption_trace_file" ] || return 1
-    awk -F '\t' -v wanted="$interruption_expected_id" '
-        BEGIN { expected[1] = "handler-entry"; expected[2] = "journal-close-success"; expected[3] = "handler-exit" }
-        $1 != wanted || $2 != "driver" || $3 != NR || $3 > 3 || $4 !~ /^[0-9]+$/ ||
-            $5 != expected[NR] || $6 !~ /^[0-9]+$/ || $7 !~ /^[0-9]+$/ ||
-            $8 !~ /^[0-9]+$/ || ($9 != "unavailable" && $9 !~ /^[0-9]+$/) ||
-            ($10 != "unavailable" && $10 !~ /^[0-9]+$/) ||
-            ($11 != "unavailable" && $11 !~ /^[0-9]+$/) ||
-            $12 !~ /^[0-9]+$/ || $13 !~ /^[0-9]+$/ ||
-            $14 !~ /^(present|absent)$/ || $15 !~ /^[0-9]+$/ { bad = 1 }
-        NR > 1 && $4 < previous { bad = 1 }
-        { previous = $4 }
-        END { if (NR != 3 || bad) exit 1 }
-    ' "$interruption_trace_file"
 }
 
 verify_interruption_snapshots() {

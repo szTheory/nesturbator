@@ -7,6 +7,7 @@ set -eu
 RA=$1; CFG=$2; CORE=$3; CONTENT=$4; RA_DIR=$5; LOG=$6; FRAME_INDEX=$7; CALIBRATION=$8
 STEM=${CONTENT##*/}; STEM=${STEM%.*}; NC=${STATE_SESSION_NC:-nc}
 PROJECT_ROOT=$(CDPATH= cd "$(dirname "$0")/../.." && pwd -P)
+. "$PROJECT_ROOT/tests/retroarch/interruption_trace.sh"
 TIMEOUT_MS=${STATE_SESSION_ATTEMPT_MS:-120000}; OPERATION_MS=${STATE_SESSION_OPERATION_MS:-30000}
 CLEANUP_MS=${STATE_SESSION_CLEANUP_MS:-5000}; READY_MS=${STATE_SESSION_READY_MS:-30000}
 PUBLICATION_MS=${STATE_SESSION_PUBLICATION_MS:-5000}; LOCK_ROOT=${STATE_SESSION_LOCK_ROOT:-${TMPDIR:-/tmp}}
@@ -162,68 +163,6 @@ record_row() {
         LAST_REASON=$FIRST_FAILURE
         return 1
     fi
-}
-trace_interruption_event() {
-    [ "${STATE_SESSION_TEST_MODE:-}" = prefix ] &&
-        [ -n "${STATE_SESSION_TEST_INTERRUPT_INVOCATION:-}" ] &&
-        [ -n "${STATE_SESSION_TEST_INTERRUPT_TRACE:-}" ] || return 0
-    _trace_path=$STATE_SESSION_TEST_INTERRUPT_TRACE
-    _trace_errors=${STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS:-}
-    _trace_error=0
-    if [ "$_trace_path" != "$RA_DIR/interruption-events.tsv" ] ||
-        [ "$_trace_errors" != "$RA_DIR/interruption-trace-errors.tsv" ] ||
-        [ -L "$_trace_path" ] || [ -L "$_trace_errors" ] ||
-        { [ "$INTERRUPTION_TRACE_SEQUENCE" -eq 0 ] && [ -e "$_trace_path" ]; }; then
-        _trace_error=1
-    fi
-    if [ "$_trace_error" -eq 0 ]; then
-        INTERRUPTION_TRACE_SEQUENCE=$((INTERRUPTION_TRACE_SEQUENCE + 1))
-        _trace_host_pid=${HOST_PID:-unavailable}
-        _trace_host_alive=unavailable
-        if [ -n "$HOST_PID" ]; then
-            if kill -0 "$HOST_PID" 2>/dev/null; then _trace_host_alive=1; else _trace_host_alive=unavailable; fi
-        fi
-        _trace_child_pid=${CHILD_PID:-unavailable}
-        _trace_child_alive=unavailable
-        if [ -n "$CHILD_PID" ]; then
-            if kill -0 "$CHILD_PID" 2>/dev/null; then _trace_child_alive=1; else _trace_child_alive=unavailable; fi
-        fi
-        _trace_lock=absent
-        [ ! -d "$LOCK_DIR" ] || _trace_lock=present
-        _trace_first_failure=${FIRST_FAILURE:-none}
-        STATE_INTERRUPT_TRACE="$_trace_path" STATE_INTERRUPT_ID="$STATE_SESSION_TEST_INTERRUPT_INVOCATION" \
-        STATE_INTERRUPT_SEQUENCE="$INTERRUPTION_TRACE_SEQUENCE" STATE_INTERRUPT_EVENT="$1" \
-        STATE_INTERRUPT_STATUS="$2" STATE_INTERRUPT_DRIVER_PID="$$" \
-        STATE_INTERRUPT_HOST_PID="$_trace_host_pid" STATE_INTERRUPT_HOST_ALIVE="$_trace_host_alive" \
-        STATE_INTERRUPT_CHILD_PID="$_trace_child_pid" STATE_INTERRUPT_CHILD_ALIVE="$_trace_child_alive" \
-        STATE_INTERRUPT_QUIT_SENT="$QUIT_SENT" STATE_INTERRUPT_JOURNAL_FAILED="$JOURNAL_FAILED" \
-        STATE_INTERRUPT_LOCK="$_trace_lock" STATE_INTERRUPT_SEND_COUNT="$send_count" \
-        STATE_INTERRUPT_FIRST_FAILURE="$_trace_first_failure" \
-        perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e '
-            use strict;
-            use warnings;
-            my $now = sprintf("%.0f", clock_gettime(CLOCK_MONOTONIC) * 1000);
-            die "invalid monotonic trace value" unless $now =~ /\A[0-9]+\z/;
-            open my $trace, ">>:raw", $ENV{STATE_INTERRUPT_TRACE} or die "trace open failed: $!";
-            printf {$trace} "%s\tdriver\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-                @ENV{qw(STATE_INTERRUPT_ID STATE_INTERRUPT_SEQUENCE)}, $now,
-                @ENV{qw(STATE_INTERRUPT_EVENT STATE_INTERRUPT_STATUS STATE_INTERRUPT_DRIVER_PID
-                    STATE_INTERRUPT_HOST_PID STATE_INTERRUPT_HOST_ALIVE STATE_INTERRUPT_CHILD_PID
-                    STATE_INTERRUPT_CHILD_ALIVE STATE_INTERRUPT_QUIT_SENT STATE_INTERRUPT_JOURNAL_FAILED
-                    STATE_INTERRUPT_LOCK STATE_INTERRUPT_SEND_COUNT STATE_INTERRUPT_FIRST_FAILURE)};
-            close $trace or die "trace close failed: $!";
-        ' 2>/dev/null || _trace_error=1
-    fi
-    if [ "$_trace_error" -ne 0 ]; then
-        INTERRUPTION_TRACE_FAILED=1
-        if [ -n "$_trace_errors" ]; then
-            printf '%s\t%s\t%s\n' \
-                "${STATE_SESSION_TEST_INTERRUPT_INVOCATION:-unavailable}" "$1" "$$" \
-                >>"$_trace_errors" 2>/dev/null || true
-        fi
-        return 1
-    fi
-    return 0
 }
 sanitize_file() {
     SESSION_ATTEMPT_DIR=$ATTEMPT_DIR SESSION_PROJECT_ROOT=$PROJECT_ROOT SESSION_RA_DIR=$RA_DIR perl -pe \
