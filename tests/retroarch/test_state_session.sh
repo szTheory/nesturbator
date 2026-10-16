@@ -414,6 +414,32 @@ run_interruption_identity_selftests() {
     run_interruption_identity_case session-A session-A-owned
     run_interruption_identity_case session-B session-B-owned
 
+    selftest_identity_invalid="$selftest_identity_root/invalid-owned-id/capture"
+    mkdir -p "$selftest_identity_invalid"
+    printf 'step\tclass\treason\nINTERRUPTED_TERM\tsignal\tTERM\n' \
+        >"$selftest_identity_invalid/journal.tsv"
+    printf 'INTERRUPTED_TERM\tsignal\tTERM\n' >"$selftest_identity_invalid/expected.stdout"
+    : >"$selftest_identity_invalid/expected.stderr"
+    INTERRUPTION_EVENT_SEQUENCE=0
+    INTERRUPTION_RECORDER_STATUS=0
+    INTERRUPTION_RECORDER_REASON=
+    selftest_identity_invalid_boundary_status=0
+    capture_interruption_boundary "$selftest_identity_invalid/journal.tsv" \
+        "$selftest_identity_invalid" '' "$$" /dev/null ||
+        selftest_identity_invalid_boundary_status=$?
+    [ "$selftest_identity_invalid_boundary_status" -eq 0 ] &&
+        [ "$INTERRUPTION_ASSERTION_STATUS" -eq 0 ] &&
+        [ "$INTERRUPTION_RECORDER_STATUS" -eq 1 ] &&
+        [ "$INTERRUPTION_RECORDER_REASON" = session-id-invalid ] &&
+        cmp -s "$selftest_identity_invalid/expected.stdout" \
+            "$selftest_identity_invalid/assertion.stdout" &&
+        cmp -s "$selftest_identity_invalid/expected.stderr" \
+            "$selftest_identity_invalid/assertion.stderr" &&
+        grep -F 'session-id-invalid' "$selftest_identity_invalid/recorder-errors.tsv" >/dev/null || {
+        echo 'FAIL invalid session identity replaced the genuine assertion result' >&2; return 1;
+    }
+    printf 'identity invalid-owned-id: recorder failed separately; assertion status=0\n'
+
     selftest_identity_a="$selftest_identity_root/session-A/capture/events.tsv"
     selftest_identity_b="$selftest_identity_root/session-B/capture/events.tsv"
     selftest_identity_negative="$selftest_identity_root/negative"
@@ -748,7 +774,7 @@ run_interruption_capture_selftests() {
     export INTERRUPTION_TEST_CALLS
     selftest_status=0
     capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
-        "$selftest_match/journal.tsv" "$selftest_match" /dev/null || selftest_status=$?
+        "$selftest_match/journal.tsv" "$selftest_match" /dev/null selftest-match || selftest_status=$?
     [ "$selftest_status" -eq 0 ] && [ "$INTERRUPTION_ASSERTION_STATUS" -eq 0 ] &&
         [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] &&
         [ "$(selftest_count_calls "$selftest_match/calls")" -eq 1 ] &&
@@ -756,7 +782,7 @@ run_interruption_capture_selftests() {
         cmp -s "$selftest_match/expected.stderr" "$selftest_match/assertion.stderr" || {
         echo "FAIL interruption capture status-0 bytes or one-call contract" >&2; return 1;
     }
-    selftest_assert_events "$selftest_match/events.tsv" match || {
+    selftest_assert_events "$selftest_match/events.tsv" selftest-match || {
         echo "FAIL interruption capture match events are not invocation-owned and ordered" >&2; return 1;
     }
     selftest_decision_status=0
@@ -774,7 +800,7 @@ run_interruption_capture_selftests() {
     export INTERRUPTION_TEST_CALLS
     selftest_status=0
     capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
-        "$selftest_miss/journal.tsv" "$selftest_miss" /dev/null || selftest_status=$?
+        "$selftest_miss/journal.tsv" "$selftest_miss" /dev/null selftest-no-match || selftest_status=$?
     [ "$selftest_status" -eq 1 ] && [ "$INTERRUPTION_ASSERTION_STATUS" -eq 1 ] &&
         [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] &&
         [ "$(selftest_count_calls "$selftest_miss/calls")" -eq 1 ] &&
@@ -782,7 +808,7 @@ run_interruption_capture_selftests() {
         cmp -s "$selftest_miss/expected.stderr" "$selftest_miss/assertion.stderr" || {
         echo "FAIL interruption capture status-1 bytes or one-call contract" >&2; return 1;
     }
-    selftest_assert_events "$selftest_miss/events.tsv" no-match || {
+    selftest_assert_events "$selftest_miss/events.tsv" selftest-no-match || {
         echo "FAIL interruption capture no-match events are not invocation-owned and ordered" >&2; return 1;
     }
     selftest_decision_status=0
@@ -805,6 +831,7 @@ run_interruption_capture_selftests() {
     selftest_status=0
     capture_interruption_assertion selftest_controlled_error INTERRUPTED_TERM \
         "$selftest_error/journal.tsv" "$selftest_error" /dev/null \
+        selftest-controlled-error \
         2>"$selftest_error/original.stderr" || selftest_status=$?
     [ "$selftest_status" -eq 2 ] && [ "$INTERRUPTION_ASSERTION_STATUS" -eq 2 ] &&
         [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] &&
@@ -838,7 +865,8 @@ run_interruption_capture_selftests() {
         selftest_unwritable="$selftest_failure/missing-parent/invocation"
         selftest_status=0
         capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
-            "$selftest_journal" "$selftest_unwritable" /dev/null || selftest_status=$?
+            "$selftest_journal" "$selftest_unwritable" /dev/null \
+            "selftest-$selftest_case" || selftest_status=$?
         [ "$selftest_status" -eq "$selftest_expected_status" ] &&
             [ "$INTERRUPTION_ASSERTION_STATUS" -eq "$selftest_expected_status" ] &&
             [ "$INTERRUPTION_RECORDER_STATUS" -ne 0 ] &&
@@ -881,7 +909,7 @@ run_interruption_capture_selftests() {
     selftest_status=0
     capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
         "$selftest_replace/journal.tsv" "$selftest_replace" /dev/null \
-        "$selftest_replace/replacement.tsv" || selftest_status=$?
+        selftest-replacement "$selftest_replace/replacement.tsv" || selftest_status=$?
     selftest_post_identity=$(selftest_independent_identity "$selftest_replace/journal.tsv") || return 1
     selftest_pre_record=$(awk -F '\t' '$1 == "pre" { print $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" $7 "\t" $8 }' \
         "$selftest_replace/snapshot-metadata.tsv")
@@ -911,7 +939,7 @@ run_interruption_capture_selftests() {
         [ "$selftest_pre_handle" != "$selftest_post_handle" ] || {
         echo "FAIL same-handle replacement snapshots lost independent bytes or identity" >&2; return 1;
     }
-    selftest_assert_events "$selftest_replace/events.tsv" replacement || {
+    selftest_assert_events "$selftest_replace/events.tsv" selftest-replacement || {
         echo "FAIL replacement events are not invocation-owned and ordered" >&2; return 1;
     }
 
@@ -922,9 +950,10 @@ run_interruption_capture_selftests() {
     export INTERRUPTION_TEST_CALLS
     selftest_status=0
     capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
-        "$selftest_second/journal.tsv" "$selftest_second" /dev/null || selftest_status=$?
+        "$selftest_second/journal.tsv" "$selftest_second" /dev/null \
+        selftest-second-invocation || selftest_status=$?
     [ "$selftest_status" -eq 0 ] &&
-        selftest_assert_events "$selftest_second/events.tsv" second-invocation || {
+        selftest_assert_events "$selftest_second/events.tsv" selftest-second-invocation || {
         echo "FAIL second recorder invocation mixed event ownership" >&2; return 1;
     }
 
@@ -1039,8 +1068,9 @@ capture_interruption_assertion() {
     interruption_assertion_journal=$3
     INTERRUPTION_RECORDER_DIR=$4
     interruption_assertion_stdout_destination=$5
-    interruption_assertion_replace_from=${6:-}
-    INTERRUPTION_RECORDER_ID=${INTERRUPTION_RECORDER_DIR##*/}
+    interruption_assertion_session_id=${6-}
+    interruption_assertion_replace_from=${7:-}
+    INTERRUPTION_RECORDER_ID=$interruption_assertion_session_id
     INTERRUPTION_ASSERTION_STATUS=2
     if [ ! -e "$INTERRUPTION_RECORDER_DIR/events.tsv" ]; then
         INTERRUPTION_RECORDER_STATUS=0
@@ -1049,6 +1079,10 @@ capture_interruption_assertion() {
     INTERRUPTION_CAPTURE_OUT="$INTERRUPTION_RECORDER_DIR/assertion.stdout"
     INTERRUPTION_CAPTURE_ERR="$INTERRUPTION_RECORDER_DIR/assertion.stderr"
     INTERRUPTION_CAPTURE_META="$INTERRUPTION_RECORDER_DIR/snapshot-metadata.tsv"
+
+    case "$interruption_assertion_session_id" in
+        ''|*[!A-Za-z0-9._-]*) mark_interruption_recorder_error session-id-invalid ;;
+    esac
 
     if [ "$interruption_assertion_command" != interruption_grep ] &&
         [ "${INTERRUPTION_CAPTURE_SELFTEST_ACTIVE:-0}" -ne 1 ]; then
@@ -1194,7 +1228,7 @@ capture_interruption_boundary() {
         "$interruption_boundary_driver_pid" || true
     capture_interruption_assertion interruption_grep INTERRUPTED_TERM \
         "$interruption_boundary_journal" "$interruption_boundary_capture_dir" \
-        "$interruption_boundary_stdout" || true
+        "$interruption_boundary_stdout" "$interruption_boundary_session_id" || true
     interruption_assertion_decision || interruption_boundary_assertion_failure=1
     record_interruption_event "$interruption_boundary_capture_dir" \
         "$interruption_boundary_session_id" harness assertion-decision \

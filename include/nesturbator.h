@@ -531,9 +531,15 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * journal close and cleanup. The exact 16-field trace admits host/child PIDs as positive decimal
  * or unavailable after cleanup clears them, while liveness remains unavailable when kill-0 is
  * inconclusive. Validation binds the unique invocation and observed driver PID, event sequence,
- * monotonic samples and reason-specific field checks. Seven capture cases and 36 trace cases run
- * without launching the driver. This proves recorder compatibility only; the historical assertion
- * cause remains unknown and broader current-source acceptance remains pending Plan 14.
+ * monotonic samples and reason-specific field checks. The shared capture boundary receives the
+ * owned session ID explicitly; its nested `capture` directory name does not choose identity. The
+ * offline selector uses the same boundary and final validator for two independently identified
+ * sessions under `session-A/capture` and `session-B/capture`, rejecting wrong expected IDs, mixed
+ * outer or inner rows and cross-session ledger reuse. An invalid ID marks the recorder unusable
+ * without replacing the genuine assertion status. These identity checks supplement the seven
+ * capture cases and 36 trace cases, all without launching the driver. The retained mixed-ID
+ * observation remains unchanged; the historical assertion cause remains unknown, and actual-driver
+ * compatibility and broader current-source acceptance remain pending Plan 14.
  * A stopped operation uses its captured terminal observation, a live operation uses the row
  * observation, and an inactive row carries the last completed operation values. The focused
  * readiness control runs the delayed exact-reply and response-stall full prefixes once each, in

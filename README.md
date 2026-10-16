@@ -1602,7 +1602,17 @@ handle. `STATE_SESSION_CONTROL=interruption-capture-selftest` checks status 0,
 1 and controlled 2, recorder failures, replacement while the old handle stays
 open, and per-invocation event ownership before any fixture or driver work.
 These nearby snapshots do not identify the bytes read by grep; the tests prove
-the recorder contract, not a historical failure cause or repair acceptance.
+the recorder contract, not which bytes grep read. The shared capture boundary
+receives its owned session ID explicitly; the nested `capture` directory name
+does not select event identity. The offline selector calls that same boundary
+and final validator for two independent sessions stored under
+`session-A/capture` and `session-B/capture`, then rejects wrong expected IDs,
+mixed outer or inner rows, and another session's ledger. An invalid ID marks
+the recorder unusable while preserving the genuine assertion status. These
+identity checks add to the seven capture and 36 trace cases. The retained
+mixed-ID observation remains unchanged, the historical assertion cause remains
+unknown, and actual-driver compatibility and current-source acceptance remain
+pending Plan 14.
 The source-only `tests/retroarch/interruption_trace.sh` is shared by the real
 driver and harness. Before fixture or driver work, the offline selector runs the
 same writer and validator through handler entry, journal close and cleanup. Its
