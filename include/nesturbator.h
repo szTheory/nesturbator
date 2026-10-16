@@ -538,10 +538,11 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * outer or inner rows and cross-session ledger reuse. An invalid ID marks the recorder unusable
  * without replacing the genuine assertion status. These identity checks supplement the seven
  * capture cases and 36 trace cases, all without launching the driver. The retained mixed-ID
- * observation remains unchanged. Plan 14's registered actual-driver CI and ASan controls and full
- * 649-test CI workflow passed with all three local ZIP packages. The original historical assertion
- * cause remains unknown; fresh native acceptance and actual release publication remain pending
- * Plans 07 and 08.
+ * observation remains unchanged. Current-source acceptance remains incomplete: after a startup-lock
+ * correction, registered CI controls rejected the driver trace's lock-presence field. Earlier CI,
+ * ASan and full-workflow passes belong to the pre-correction candidate. The original historical
+ * assertion cause remains unknown; fresh native acceptance and actual release publication remain
+ * pending Plans 07 and 08.
  * A stopped operation uses its captured terminal observation, a live operation uses the row
  * observation, and an inactive row carries the last completed operation values. The focused
  * readiness control runs the delayed exact-reply and response-stall full prefixes once each, in
