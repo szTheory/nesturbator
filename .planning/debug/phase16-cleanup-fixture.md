@@ -1,5 +1,5 @@
 ---
-status: investigating
+status: verifying
 trigger: Phase 16 Plan 21 cleanup request materialization regression
 created: 2026-10-16
 updated: 2026-10-16
@@ -9,7 +9,7 @@ updated: 2026-10-16
 bug_class: Bohrbug
 hypothesis: An unguarded request redirection in cleanup_quit aborts EXIT cleanup under errexit before owned-host reap and lock release.
 test: Run round-1 RED against the exact reviewed production helper with the corrected readiness fixture.
-next_action: Parent must reconcile bounded continuation after four consumed development rounds; corrected source and harness await a new coherent pair.
+next_action: Parent runs the remaining formal Task2 FULL and Task3 independent review using round5 candidate38e14fb; no further local driver run is needed.
 reasoning_checkpoint:
   hypothesis: Unguarded printf redirection aborts EXIT cleanup under errexit before host reap and lock release.
   confirming_evidence:
@@ -33,6 +33,12 @@ started: Reviewed production helper at 772dbb0.
 ## Eliminated
 
 ## Evidence
+- checked: Independently checked round5 continuation at 0a44a5b.
+  found: One additional coherent pair authorized with the prior rounds retained and all formal gates still shared/unused.
+- checked: Round5 causal RED after actual process wait.
+  found: Exact reviewed driver, wait1, EXPECTED_CR01_FAILURE, outer same-clock elapsed3166ms, complete stream digests finalized after wait, no watchdog.
+- checked: Round5 GREEN quick primary cases.
+  found: EXIT1/READINESS_REPLY779ms, INT130/INTERRUPTED_INT969ms, TERM130/INTERRUPTED_TERM872ms, HUP130/INTERRUPTED_HUP841ms, writable1/READINESS_REPLY901ms, foreign endpoint1/ENDPOINT_BUSY55ms, replacement1/READINESS_REPLY869ms; each passed primary teardown assertions.
 - checked: Round-4 actual GREEN and extracted saved-proof assertions.
   found: Harness exited 0 with eight-case banner, but proof rejects negative matrix duration, stale stdout digest and four cleanup reason fields. No accepted GREEN or Task1 commit exists.
 - checked: Clock implementations on macOS.
@@ -53,7 +59,7 @@ started: Reviewed production helper at 772dbb0.
   found: Added actual INT/TERM/HUP traps before publishing fixture PID so the empty signal log is observable evidence.
 
 ## Resolution
-root_cause:
-fix:
-verification:
-files_changed: []
+root_cause: Unguarded cleanup printf redirection triggered errexit before owned host reap and endpoint release when request.txt became a directory.
+fix: Locally guard request write after setting QUIT_SENT; emit and journal CLEANUP_REQUEST_WRITE_FAILED with sends0; restore LAST_REASON from preserved FIRST_FAILURE, then finish owned teardown.
+verification: Round5 exact reviewed-helper RED wait1/3166ms and repaired eight-case GREEN wait0/105367ms; actual final stream hashes after wait; extracted exact committed-source saved proof PASS; seven reacquisitions PASS. Formal FULL/review remain pending.
+files_changed: [tests/retroarch/state_session.sh, tests/retroarch/test_state_session.sh, README.md, include/nesturbator.h]
