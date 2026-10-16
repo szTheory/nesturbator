@@ -1610,12 +1610,16 @@ and final validator for two independent sessions stored under
 mixed outer or inner rows, and another session's ledger. An invalid ID marks
 the recorder unusable while preserving the genuine assertion status. These
 identity checks add to the seven capture and 36 trace cases. The retained
-mixed-ID observation remains unchanged. Current-source acceptance remains
-incomplete: after a startup-lock correction, registered CI controls rejected the
-driver trace's lock-presence field. Earlier CI, ASan and full-workflow passes
-belong to the pre-correction candidate. The original historical assertion cause
-remains unknown; fresh native acceptance and actual release publication remain
-pending Plans 07 and 08.
+mixed-ID observation remains unchanged. The 36 existing trace cases remain; four
+additional cases cover the actual token-bearing regular-lock lifecycle, two
+field-14-only lock mutants and dangling-symlink occupancy. The trace writer
+records object occupancy without using it as ownership authority; the driver
+still releases only token-matched lock state. The prior corrected candidate's
+registered CI rejected its directory-only lock-presence observation. This
+offline writer/validator regression now covers that mismatch, while exact current
+registered CI, ASan and full-workflow acceptance remain required. The historical
+assertion cause remains unknown; fresh native acceptance and actual release
+publication remain pending Plans 07 and 08.
 The source-only `tests/retroarch/interruption_trace.sh` is shared by the real
 driver and harness. Before fixture or driver work, the offline selector runs the
 same writer and validator through handler entry, journal close and cleanup. Its
@@ -1623,11 +1627,14 @@ same writer and validator through handler entry, journal close and cleanup. Its
 cleanup clears the owned host or child PID; liveness uses that marker when
 `kill -0` cannot establish a live process. Admission binds the unique session
 invocation and separately observed driver PID, exact event order, numeric
-monotonic samples, statuses and field values. The seven capture cases remain,
-and 36 trace cases cover lifecycle admission, independent mutation failures,
-invocation separation and writer rejection paths. This proves current recorder
-compatibility only; it does not explain the historical assertion or accept the
-broader source controls, which remain assigned to Plan 14.
+monotonic samples, statuses and field values. The seven capture cases remain.
+The 36 original trace cases cover lifecycle admission, independent mutation
+failures, invocation separation and writer rejection paths. Four additional
+lock cases cover regular-file occupancy through cleanup, field-14-only admission
+mutants and dangling-symlink occupancy. These are bounded offline recorder
+checks; current registered source acceptance remains incomplete until the exact
+CI/ASan/full-workflow selections and independent review pass. They do not explain
+the historical assertion, whose cause remains unknown.
 The journal writes each row in one Perl process, taking one monotonic observation
 for attempt elapsed and remaining time and applying the existing path
 substitutions in that same write. A stopped operation uses its captured terminal

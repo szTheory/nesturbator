@@ -643,11 +643,13 @@ selftest_trace_expect_edit() {
     trace_mutation_column=${4:-0}
     trace_mutation_value=${5:-}
     trace_mutation_expected=$6
+    trace_mutation_source=${7:-$trace_test_primary}
+    trace_mutation_id=${8:-$trace_test_id}
     trace_mutation_file="$trace_test_root/cases/$trace_mutation_name.tsv"
-    cp "$trace_test_primary" "$trace_mutation_file" || return 1
+    cp "$trace_mutation_source" "$trace_mutation_file" || return 1
     selftest_trace_edit "$trace_mutation_file" "$trace_mutation_row" \
         "$trace_mutation_action" "$trace_mutation_column" "$trace_mutation_value" || return 1
-    selftest_trace_expect "$trace_mutation_file" "$trace_test_id" "$$" \
+    selftest_trace_expect "$trace_mutation_file" "$trace_mutation_id" "$$" \
         "$trace_mutation_expected" "$trace_mutation_name"
 }
 
@@ -771,12 +773,14 @@ run_interruption_trace_selftests() (
     }
     selftest_trace_expect "$trace_test_regular" "$trace_test_regular_id" "$$" \
         TRACE_OK regular-hard-link-lifecycle || return 1
-    selftest_trace_expect_edit absent-held-lock 1 set 14 absent TRACE_VALUE || return 1
+    selftest_trace_expect_edit absent-held-lock 1 set 14 absent TRACE_VALUE \
+        "$trace_test_regular" "$trace_test_regular_id" || return 1
     selftest_trace_non_lock_fields_equal "$trace_test_regular" \
         "$trace_test_root/cases/absent-held-lock.tsv" "$trace_test_root/cases" || {
         echo "FAIL absent-held-lock mutant changed a non-lock field" >&2; return 1;
     }
-    selftest_trace_expect_edit present-released-lock 3 set 14 present TRACE_VALUE || return 1
+    selftest_trace_expect_edit present-released-lock 3 set 14 present TRACE_VALUE \
+        "$trace_test_regular" "$trace_test_regular_id" || return 1
     selftest_trace_non_lock_fields_equal "$trace_test_regular" \
         "$trace_test_root/cases/present-released-lock.tsv" "$trace_test_root/cases" || {
         echo "FAIL present-released-lock mutant changed a non-lock field" >&2; return 1;

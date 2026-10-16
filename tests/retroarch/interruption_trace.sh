@@ -25,7 +25,8 @@ trace_interruption_event() {
             if kill -0 "$CHILD_PID" 2>/dev/null; then _trace_child_alive=1; else _trace_child_alive=unavailable; fi
         fi
         _trace_lock=absent
-        [ ! -d "$LOCK_DIR" ] || _trace_lock=present
+        # The local driver publishes a token-bearing hard link; this records object occupancy only.
+        if [ -L "$LOCK_DIR" ] || [ -e "$LOCK_DIR" ]; then _trace_lock=present; fi
         _trace_first_failure=${FIRST_FAILURE:-none}
         STATE_INTERRUPT_TRACE="$_trace_path" STATE_INTERRUPT_ID="$STATE_SESSION_TEST_INTERRUPT_INVOCATION" \
         STATE_INTERRUPT_SEQUENCE="$INTERRUPTION_TRACE_SEQUENCE" STATE_INTERRUPT_EVENT="$1" \
