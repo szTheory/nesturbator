@@ -52,3 +52,16 @@ Latest checked bytes:
 |---|---|
 |16-21-PLAN.md|18e9137d22fdfcd772caf5a96bffdc24775167b87c26e665e073bdfaa7e25939|
 |16-21-AMENDMENT.md|2a41e85978009c7c7c3d45083753b6b895961aacd164db499c63e24fda69a4c7|
+
+## Final source-bound round5 continuation — independently passed
+
+Four local rounds are retained without Task1 acceptance. Round4 runtime observations were positive for all8cases, but the read-only saved-proof check rejected mixed-clock negative elapsed, stale final stdout digest and wrong cleanup journal reasons. The debugger corrected those demonstrated issues and added reason-specific diagnostic-row assertions. The user-authorized repair continuation grants exactly one additional changed-source pair in fresh round5, preserving all earlier failures and the3600-second aggregate local bound. Every formal allowance remains single and shared.
+
+The independent checker found stale initial-dispatch/root-range wording. Both were reconciled: round5 alone must be fresh, rounds1–4 are preserved/consumed, known four-path debugger edits are authorized, and all three automated selectors plus the active finite ledger admit only rounds1–5. Final result VERIFICATION PASSED. No runtime/formal gate was executed during review.
+
+Latest checked bytes:
+
+| Artifact | SHA-256 |
+|---|---|
+|16-21-PLAN.md|f49322cc35d0a59efec9a567bd07e5518ed3e5970cbbb69df0ab7e49a57e55cc|
+|16-21-AMENDMENT.md|2588c3183201e859573e2e53ef00b25bfdccc4bed646db6230b47e09b7531205|
