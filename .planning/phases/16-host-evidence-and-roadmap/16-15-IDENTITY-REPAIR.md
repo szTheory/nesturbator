@@ -70,3 +70,28 @@ Plan 14 must still use its existing registered controls for actual-driver compat
 Only completed Plan 14 acceptance permits Plan 07's fresh native exact-head PR run, including required CI, performance and pinned-host checks, followed by affirmative owner consent bound to that exact head and the normal merge/release path. Plan 08 then verifies the actual published release: all 18 archives, checksums and attestations, six platform metadata files and CI on the exact release commit. No consent, merge, tag or publication occurred here. The prior `v0.1.10` publication omitted MMC3; [16-RELEASE-DELIVERY.md](16-RELEASE-DELIVERY.md) retains the release boundary. EVID-04 remains open and Phase 16 remains incomplete.
 
 The preexisting `.planning/config.json` remains byte-identical to `build/phase16-identity-execute/config-baseline.json` (SHA-256 `0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e`). No CMake registration, preset, wrapper, fixture, oracle, driver, trace include, state-session implementation, network, full workflow or actual-driver observation was changed or run.
+
+## Parent-owned post-wave gate (2026-10-15)
+
+After the offline executor returned, the orchestrator ran the mandatory wave gate once on exact HEAD `ffa59dfdf7c920951a5a6d6d22837ffd0bb8b8ae`, with identity source `bed875eb7a3a8fc4a738e92a00942d431b3b9509` unchanged. `gsd_run run-with-timeout 1500 -- cmake --workflow --preset ci` exited 0: configure, build, all 649 registered tests and all three CPack ZIPs completed. Test wall time was 238.49 seconds; `retroarch.session.controls` passed in 236.92 seconds and its retained output includes the two-session/four-negative identity ledger, seven capture cases and 36 trace cases. No separate build command was configured or detected by the generic gate; the configured workflow performed its own build step. There were no active execute:wave:post hooks.
+
+This was one required orchestrator workflow, separate from the executor's zero-workflow offline tranche and from the exhausted standalone observation ledger. No retry, new standalone observation, ASan run, native PR refresh or Plan 14 execution occurred. It establishes a passing current local CI sample; Plan 14 still owns its registered ci/asan acceptance, required full workflow, independent exact-source six-path review and later gates. The historical assertion cause remains unknown.
+
+Raw output and retained package copies are under `build/phase16-identity-execute/`. The machine-readable register is `postwave-ci.result.json`. The exact output hashes are:
+
+| Artifact | SHA-256 |
+|---|---|
+| `postwave-ci.command` | `407530ddc7e82f4f9092ce74e7a373902bb9c83bb18a53041d4acc0328a3924b` |
+| `postwave-ci.exit` | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+| `postwave-ci.log` | `9837ba1d0d0bf6196862ad363731f004f257591414ed53d8b5cf85a9c190b0ea` |
+| `postwave-ci.LastTest.log` | `62e97a3903b267e6fe3a989b37eee73fbe7eabc859b97caee41855658171bb49` |
+
+All three actual generated archives were copied byte-for-byte before any later workflow can replace their paths:
+
+| Archive | Bytes | SHA-256 |
+|---|---:|---|
+| `nesturbator-0.1.10-library-macos-arm64.zip` | 99518 | `2994eb7e966f1e8053310c2187ba3feffa32ef29f638dcf731f41d8ae7f51433` |
+| `nesturbator-0.1.10-runner-macos-arm64.zip` | 92828 | `4edea02d6bd2eb9c8f6e1cb930059ba8ec09cd8fae96337abbdb7d711f75d0bd` |
+| `nesturbator-0.1.10-libretro-macos-arm64.zip` | 81628 | `754a9c767760dea3c5a0b08295366fdc3df48d4747f113bbf7887ac373c716b0` |
+
+Post-gate scope resolves five reachable Plan 15 commits with its committed summary. The installed DAG now has 15 physical plans, 11 live plans and eight completed live plans; only Plan 14 is ready. Plans 14/07/08 were not ready at initial discovery and were not dispatched in this run. The next command is `$gsd-execute-phase 16 --gaps-only`, starting Plan 14 after a fresh empty-history safe-resume check. No Phase 16 completion or requirement credit is added.

@@ -110,7 +110,7 @@ None — this offline plan required no external service or local setup.
 
 ## Next Phase Readiness
 
-Plan 15's offline identity scope is complete. The parent executor owns the mandatory post-wave workflow gate after this terminal return. Plan 14 remains the next evidence owner after normal safe-resume and readiness checks; this summary does not unlock Plans 07 or 08.
+Plan 15's offline identity scope is complete. After the executor returned, the parent-owned mandatory workflow gate passed on `ffa59dfdf7c920951a5a6d6d22837ffd0bb8b8ae`: 649/649 tests, including actual session controls, and three generated ZIPs. The parent-owned section of the identity repair record preserves exact hashes and scope. This adds no standalone observation or Plan 14 acceptance credit. Only Plan 14 is now DAG-ready for a subsequent execute-phase command after a fresh safe-resume check; Plans 07/08 remain pending.
 
 ## Self-Check: PASSED
 
