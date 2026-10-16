@@ -1613,10 +1613,11 @@ and final validator for two independent sessions stored under
 `session-A/capture` and `session-B/capture`, then rejects wrong expected IDs,
 mixed outer or inner rows, and another session's ledger. An invalid ID marks
 the recorder unusable while preserving the genuine assertion status. These
-identity checks add to the seven capture and 36 trace cases. The retained
-mixed-ID observation remains unchanged. The 36 existing trace cases remain; four
-additional cases cover the actual token-bearing regular-lock lifecycle, two
-field-14-only lock mutants and dangling-symlink occupancy. The trace writer
+identity checks add to the seven capture and 40 retained trace cases (36 original
+plus four lock controls). Eleven lifecycle and QUIT cases add coverage for stable
+first-two-row host/child PIDs, live observations requiring a PID, unavailable
+observations remaining admissible, cleanup-cleared final observations and
+row-two QUIT remaining unsent. The trace writer
 records object occupancy without using it as ownership authority. Cleanup
 requires the filesystem identity captured from this invocation's successful
 noclobber creation as well as the token-bearing hard link; failed creation and a
@@ -1640,10 +1641,11 @@ cleanup clears the owned host or child PID; liveness uses that marker when
 invocation and separately observed driver PID, exact event order, numeric
 monotonic samples, statuses and field values. The seven capture cases remain.
 The 36 original trace cases cover lifecycle admission, independent mutation
-failures, invocation separation and writer rejection paths. Four additional
-lock cases cover regular-file occupancy through cleanup, field-14-only admission
-mutants and dangling-symlink occupancy. These are bounded offline recorder
-checks. Corrected-source gates and independent review are tracked in the
+failures, invocation separation and writer rejection paths. Four lock cases
+cover regular-file occupancy through cleanup, field-14-only admission mutants
+and dangling-symlink occupancy; 11 lifecycle cases enforce the observed-PID,
+liveness, cleanup and QUIT ordering rules. These bounded offline recorder checks
+exercise 51 trace cases in total. Corrected-source gates and independent review are tracked in the
 authoritative Plan 17 candidate/result register at
 `.planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md`.
 These checks do not explain the historical assertion, whose cause remains

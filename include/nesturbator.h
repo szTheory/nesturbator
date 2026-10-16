@@ -540,9 +540,11 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * sessions under `session-A/capture` and `session-B/capture`, rejecting wrong expected IDs, mixed
  * outer or inner rows and cross-session ledger reuse. An invalid ID marks the recorder unusable
  * without replacing the genuine assertion status. These identity checks supplement the seven
- * capture cases and 36 original trace cases, all without launching the driver. Four additional
- * lock cases cover regular-file occupancy, field-14-only mutants and dangling-symlink occupancy.
- * The retained mixed-ID observation remains unchanged. Trace occupancy does not grant ownership;
+ * capture cases and 40 retained trace cases (36 original plus four lock controls), all without
+ * launching the driver. Eleven lifecycle/QUIT cases require stable host/child PID observations in
+ * the first two rows, live-with-PID consistency, unavailable observations to remain admissible,
+ * final PID/liveness clearing and no QUIT before journal close. The retained mixed-ID observation
+ * remains unchanged. Trace occupancy does not grant ownership;
  * cleanup requires the filesystem identity captured from this invocation's successful noclobber
  * creation as well as the token-bearing hard link. Failed creation or a replaced owner pathname
  * grants no authority to remove a foreign object. The prior corrected candidate

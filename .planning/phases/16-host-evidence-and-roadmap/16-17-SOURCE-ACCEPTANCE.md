@@ -63,6 +63,8 @@ The existing actual-writer trace controls were extended with single-field mutant
 
 Positive actual-writer controls also passed before correction: both first-two PID observations absent (`absent-host-child-observations`) and a numeric PID with unavailable kill-0 liveness (`numeric-pid-with-unavailable-liveness`). The mutant helper proves each negative changes only its target field; it does not rewrite report output.
 
+The validator now returns `TRACE_VALUE` for every named lifecycle/QUIT mutant while preserving both positive cases. Each targeted GREEN report is TAP 1/1, exit 0, under `build/phase16-review-corrections-execute/evidence/trace-green-<target>/`. The correction requires stable first-two PID observations, rejects live-without-PID and absent-PID-with-live-state, permits numeric-PID/unavailable-liveness, requires all final host/child PID and liveness fields unavailable, and requires row-two QUIT=0 while retaining the existing row-one 0 / row-three 1 contract.
+
 ## Owner-sidecar transition audit
 
 At baseline, the driver computes `ATTEMPT_ID` from the monotonic start time and its PID, derives `LOCK_OWNER_FILE`, installs EXIT and simple INT/TERM/HUP traps, then creates the sidecar with a noclobber redirection in a subshell. A successful create is hard-linked to the endpoint lock and verified by token contents. Cleanup removes a token-matching endpoint link and then removes any regular non-symlink `LOCK_OWNER_FILE`, regardless of whether this invocation created that file. Consequently a failed noclobber create over a foreign regular file reaches EXIT cleanup and deletes the foreign object. The same path-based cleanup also has no exact-object check if the owner pathname is replaced.

@@ -114,6 +114,7 @@ reject("TRACE_EVENT") if @lines != 3;
 my @events = qw(handler-entry journal-close-success handler-exit);
 my @statuses = qw(0 0 130);
 my ($previous_time, $previous_send_count, $first_failure);
+my @first_observation;
 for my $index (0 .. $#lines) {
     my $row_number = $index + 1;
     my @field = split /\t/, $lines[$index], -1;
@@ -138,6 +139,23 @@ for my $index (0 .. $#lines) {
         reject("TRACE_VALUE") if $field[$alive_index] ne "unavailable" &&
             $field[$alive_index] ne "1";
     }
+    for my $pair ([7, 8], [9, 10]) {
+        my ($pid_index, $alive_index) = @$pair;
+        if ($row_number <= 2) {
+            reject("TRACE_VALUE") if $field[$pid_index] eq "unavailable" &&
+                $field[$alive_index] ne "unavailable";
+            reject("TRACE_VALUE") if $field[$alive_index] eq "1" &&
+                $field[$pid_index] eq "unavailable";
+            if ($row_number == 1) {
+                $first_observation[$pid_index] = $field[$pid_index];
+            } else {
+                reject("TRACE_VALUE") if $field[$pid_index] ne $first_observation[$pid_index];
+            }
+        } else {
+            reject("TRACE_VALUE") if $field[$pid_index] ne "unavailable" ||
+                $field[$alive_index] ne "unavailable";
+        }
+    }
     reject("TRACE_VALUE") if $field[11] !~ /\A[01]\z/;
     reject("TRACE_VALUE") if $field[12] !~ /\A[01]\z/;
     reject("TRACE_VALUE") if $field[13] ne ($row_number == 3 ? "absent" : "present");
@@ -152,6 +170,7 @@ for my $index (0 .. $#lines) {
     } else {
         reject("TRACE_VALUE") if $field[12] ne "0" ||
             $field[15] !~ /\AINTERRUPTED_(?:INT|TERM|HUP)\z/;
+        reject("TRACE_VALUE") if $row_number == 2 && $field[11] ne "0";
         if (defined $first_failure && $field[15] ne $first_failure) {
             reject("TRACE_VALUE");
         }
