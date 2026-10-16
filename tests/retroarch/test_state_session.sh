@@ -265,7 +265,7 @@ TEST_SCRIPT_DIR=$(CDPATH= cd "$(dirname "$DRIVER")" && pwd -P)
 . "$TEST_SCRIPT_DIR/interruption_trace.sh"
 CONTROL=${STATE_SESSION_CONTROL:-all}
 case "$CONTROL" in
-    all|readiness|interruption|interruption-capture-selftest) ;;
+    all|readiness|interruption|interruption-capture-selftest|interruption-trace-lock-selftest) ;;
     *) echo "state session controls: invalid STATE_SESSION_CONTROL=$CONTROL" >&2; exit 2 ;;
 esac
 
@@ -511,6 +511,56 @@ selftest_write_trace_lifecycle() {
     [ "$INTERRUPTION_TRACE_FAILED" -eq 0 ]
 }
 
+selftest_write_trace_regular_lock_lifecycle() {
+    trace_regular_base=$1
+    trace_regular_id=$2
+    RA_DIR="$trace_regular_base/ra"
+    trace_regular_lock_root="$trace_regular_base/locks"
+    LOCK_DIR="$trace_regular_lock_root/driver.lock"
+    trace_regular_owner="$trace_regular_lock_root/driver.lock.owner.$trace_regular_id"
+    mkdir -p "$RA_DIR" "$trace_regular_lock_root" || return 1
+    [ ! -e "$trace_regular_owner" ] && [ ! -L "$trace_regular_owner" ] || return 1
+    printf '%s\n' "$trace_regular_id" >"$trace_regular_owner" || return 1
+    ln "$trace_regular_owner" "$LOCK_DIR" || return 1
+    [ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
+        [ "$(cat "$LOCK_DIR")" = "$trace_regular_id" ] || return 1
+    perl -e '
+        use strict;
+        use warnings;
+        my ($owner, $lock) = @ARGV;
+        my @owner = stat($owner);
+        my @lock = stat($lock);
+        exit 1 unless @owner && @lock && $owner[0] == $lock[0] && $owner[1] == $lock[1];
+    ' "$trace_regular_owner" "$LOCK_DIR" || return 1
+
+    STATE_SESSION_TEST_MODE=prefix
+    STATE_SESSION_TEST_INTERRUPT_INVOCATION=$trace_regular_id
+    STATE_SESSION_TEST_INTERRUPT_TRACE="$RA_DIR/interruption-events.tsv"
+    STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS="$RA_DIR/interruption-trace-errors.tsv"
+    HOST_PID=$$
+    CHILD_PID=$$
+    FIRST_FAILURE=
+    QUIT_SENT=0
+    JOURNAL_FAILED=0
+    send_count=0
+    INTERRUPTION_TRACE_SEQUENCE=0
+    INTERRUPTION_TRACE_FAILED=0
+    trace_interruption_event handler-entry 0 || return 1
+    [ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
+        [ "$(cat "$LOCK_DIR")" = "$trace_regular_id" ] || return 1
+    FIRST_FAILURE=INTERRUPTED_TERM
+    trace_interruption_event journal-close-success 0 || return 1
+    [ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
+        [ "$(cat "$LOCK_DIR")" = "$trace_regular_id" ] || return 1
+    HOST_PID=
+    CHILD_PID=
+    QUIT_SENT=1
+    rm -f "$LOCK_DIR" "$trace_regular_owner" || return 1
+    [ ! -e "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] || return 1
+    trace_interruption_event handler-exit 130 || return 1
+    [ "$INTERRUPTION_TRACE_FAILED" -eq 0 ]
+}
+
 selftest_trace_edit() {
     trace_edit_file=$1
     trace_edit_row=$2
@@ -599,6 +649,15 @@ selftest_trace_expect_edit() {
         "$trace_mutation_action" "$trace_mutation_column" "$trace_mutation_value" || return 1
     selftest_trace_expect "$trace_mutation_file" "$trace_test_id" "$$" \
         "$trace_mutation_expected" "$trace_mutation_name"
+}
+
+selftest_trace_non_lock_fields_equal() {
+    trace_non_lock_original=$1
+    trace_non_lock_mutant=$2
+    trace_non_lock_dir=$3
+    cut -f1-13,15- "$trace_non_lock_original" >"$trace_non_lock_dir/original.tsv" || return 1
+    cut -f1-13,15- "$trace_non_lock_mutant" >"$trace_non_lock_dir/mutant.tsv" || return 1
+    cmp -s "$trace_non_lock_dir/original.tsv" "$trace_non_lock_dir/mutant.tsv"
 }
 
 selftest_prepare_trace_writer() {
@@ -704,6 +763,39 @@ run_interruption_trace_selftests() (
     selftest_trace_expect "$trace_test_primary" "$trace_test_id" "$$" \
         TRACE_OK cleanup-host-pid-admission || return 1
 
+    trace_test_regular="$trace_test_root/regular-owned/ra/interruption-events.tsv"
+    trace_test_regular_id="session-$trace_test_run_id-regular-lock"
+    selftest_write_trace_regular_lock_lifecycle "$trace_test_root/regular-owned" \
+        "$trace_test_regular_id" || {
+        echo "FAIL regular-lock lifecycle actual writer setup" >&2; return 1;
+    }
+    selftest_trace_expect "$trace_test_regular" "$trace_test_regular_id" "$$" \
+        TRACE_OK regular-hard-link-lifecycle || return 1
+    selftest_trace_expect_edit absent-held-lock 1 set 14 absent TRACE_VALUE || return 1
+    selftest_trace_non_lock_fields_equal "$trace_test_regular" \
+        "$trace_test_root/cases/absent-held-lock.tsv" "$trace_test_root/cases" || {
+        echo "FAIL absent-held-lock mutant changed a non-lock field" >&2; return 1;
+    }
+    selftest_trace_expect_edit present-released-lock 3 set 14 present TRACE_VALUE || return 1
+    selftest_trace_non_lock_fields_equal "$trace_test_regular" \
+        "$trace_test_root/cases/present-released-lock.tsv" "$trace_test_root/cases" || {
+        echo "FAIL present-released-lock mutant changed a non-lock field" >&2; return 1;
+    }
+
+    trace_test_dangling="$trace_test_root/dangling-lock/ra/interruption-events.tsv"
+    selftest_prepare_trace_writer "$trace_test_root/dangling-lock" \
+        "session-$trace_test_run_id-dangling-lock" || return 1
+    rmdir "$LOCK_DIR" || return 1
+    trace_test_dangling_target="$trace_test_root/nonexistent-lock-target"
+    ln -s "$trace_test_dangling_target" "$LOCK_DIR" || return 1
+    trace_interruption_event handler-entry 0 || return 1
+    [ -L "$LOCK_DIR" ] && [ ! -e "$trace_test_dangling_target" ] &&
+        [ "$(awk -F '\t' 'NR == 1 { print $14 }' "$trace_test_dangling")" = present ] || {
+        echo "FAIL dangling lock symlink was not recorded as occupied without target creation" >&2; return 1;
+    }
+    trace_selftest_count=$((trace_selftest_count + 1))
+    printf 'trace selftest: PASS dangling-lock-symlink-occupancy (present without target follow)\n'
+
     selftest_trace_expect_edit short-field-count 1 drop-field 0 '' TRACE_FIELDS || return 1
     selftest_trace_expect_edit extra-field-count 1 extra-field 0 '' TRACE_FIELDS || return 1
     trace_empty="$trace_test_root/cases/empty.tsv"
@@ -755,7 +847,60 @@ run_interruption_trace_selftests() (
         TRACE_INVOCATION cross-invocation-row || return 1
 
     selftest_trace_writer_gate_tests "$trace_test_root" || return 1
-    printf 'state session interruption trace selftest: %s cases passed\n' "$trace_selftest_count"
+    printf 'state session interruption trace selftest: %s cases passed (36 original + 4 lock cases)\n' "$trace_selftest_count"
+)
+
+selftest_regular_lock_trace_tap() (
+    trace_tap_id="session-regular-lock-$(mono_ms)-$$"
+    trace_tap_file="$WORK_ROOT/regular-lock-trace-selftest/ra/interruption-events.tsv"
+    trace_tap_target='regular hard-link lifecycle records held occupancy until release'
+    printf 'TAP version 13\n1..1\n'
+    selftest_write_trace_regular_lock_lifecycle \
+        "$WORK_ROOT/regular-lock-trace-selftest" "$trace_tap_id" || {
+        printf 'Bail out! regular-lock writer fixture or event recording failed\n'
+        return 1
+    }
+    trace_tap_rows_ok=0
+    awk -F '\t' -v wanted="$trace_tap_id" -v driver="$$" '
+        function positive(value) { return value ~ /^[0-9]+$/ && value ~ /[1-9]/ }
+        NR == 1 && ($1 != wanted || $2 != "driver" || $3 != "1" || $4 !~ /^[0-9]+$/ ||
+            $5 != "handler-entry" || $6 != "0" || $7 != driver || !positive($8) ||
+            $9 != "1" || $10 != $8 || $11 != "1" || $12 != "0" || $13 != "0" ||
+            $15 != "0" || $16 != "none") { bad = 1 }
+        NR == 2 && ($1 != wanted || $2 != "driver" || $3 != "2" || $4 !~ /^[0-9]+$/ ||
+            $5 != "journal-close-success" || $6 != "0" || $7 != driver || !positive($8) ||
+            $9 != "1" || $10 != $8 || $11 != "1" || $12 != "0" || $13 != "0" ||
+            $15 != "0" || $16 != "INTERRUPTED_TERM") { bad = 1 }
+        NR == 3 && ($1 != wanted || $2 != "driver" || $3 != "3" || $4 !~ /^[0-9]+$/ ||
+            $5 != "handler-exit" || $6 != "130" || $7 != driver || $8 != "unavailable" ||
+            $9 != "unavailable" || $10 != "unavailable" || $11 != "unavailable" ||
+            $12 != "1" || $13 != "0" || $15 != "0" || $16 != "INTERRUPTED_TERM") { bad = 1 }
+        NF != 16 { bad = 1 }
+        END { if (NR != 3 || bad) exit 1 }
+    ' "$trace_tap_file" && trace_tap_rows_ok=1
+    [ "$trace_tap_rows_ok" -eq 1 ] || {
+        printf 'Bail out! regular-lock trace had invalid event, identity, timing, status, PID, journal, QUIT, send, or first-failure fields\n'
+        return 1
+    }
+    trace_tap_status=0
+    trace_tap_result=$(verify_interruption_driver_trace "$trace_tap_file" "$trace_tap_id" "$$") ||
+        trace_tap_status=$?
+    trace_tap_lock_values=$(awk -F '\t' 'NR == 1 { a=$14 } NR == 2 { b=$14 } NR == 3 { c=$14 } END { print a "," b "," c }' "$trace_tap_file")
+    if [ "$trace_tap_status" -eq 1 ] && [ "$trace_tap_result" = TRACE_VALUE ] &&
+        [ "$trace_tap_lock_values" = absent,absent,absent ]; then
+        printf '# expected lock field 14: present,present,absent; validator: TRACE_OK\n'
+        printf '# actual lock field 14: %s; validator: %s\n' "$trace_tap_lock_values" "$trace_tap_result"
+        printf 'not ok 1 - %s\n' "$trace_tap_target"
+        return 1
+    fi
+    if [ "$trace_tap_status" -eq 0 ] && [ "$trace_tap_result" = TRACE_OK ] &&
+        [ "$trace_tap_lock_values" = present,present,absent ]; then
+        printf 'ok 1 - %s\n' "$trace_tap_target"
+        return 0
+    fi
+    printf 'Bail out! unexpected regular-lock result: fields=%s validator=%s status=%s\n' \
+        "$trace_tap_lock_values" "$trace_tap_result" "$trace_tap_status"
+    return 1
 )
 
 run_interruption_capture_selftests() {
@@ -1393,6 +1538,11 @@ run_interruption_control() {
     [ "${interrupt_recorder_failure:-0}" -eq 0 ] && [ "$interrupt_assertion_failure" -eq 0 ] || return 1
     printf 'state session interruption control: TERM retained; one QUIT; host reaped; capture=usable; trace=3 owned events\n'
 }
+
+if [ "$CONTROL" = interruption-trace-lock-selftest ]; then
+    selftest_regular_lock_trace_tap
+    exit $?
+fi
 
 if [ "$CONTROL" = interruption-capture-selftest ]; then
     run_interruption_capture_selftests "$WORK_ROOT"
