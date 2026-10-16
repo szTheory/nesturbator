@@ -37,3 +37,18 @@ Latest checked bytes:
 |---|---|
 |16-21-PLAN.md|4fdff47e6fa50b5805b76148af9d2f637b78b21946ec98fc7116dd95eb5c26c1|
 |16-21-AMENDMENT.md|bfafdb3b7ac4db2468f4d022e724c89fecb409f2c7df1eff646865ec4723fcf8|
+
+## Bounded local-development contract — independently passed
+
+A second local fixture attempt ended READINESS_TRANSPORT before injection because the fake transport looked beneath an extra attempts directory after production rebased STATE_SESSION_TEST_EXPECTED_DIR. It is retained invalid, including unknown harness wait after the zsh readonly-status wrapper error. Parent corrected both transport branches to the actual attempt/request.txt path.
+
+The user-authorized repair now permits at most four source-bound local development pairs within3600seconds, each new round requiring a diagnosed code change and preserved previous failure. Final paired proof still requires identical frozen harness bytes, exact reviewed-helper causal RED and all8GREEN. The single formal PREFLIGHT/FULL/REVIEW allowances remain shared across every round. Existing production/native timing,649 registration,900s CTest/FULL, all mandatory parent gates and release consent remain intact. Exclusive roots preserve failures; unchanged retries remain forbidden.
+
+A fresh independent typed checker caught two stale root instructions. Both were corrected and its final result was VERIFICATION PASSED: RED, GREEN and later proof use one constrained P16_REGRESSION_ROOT, and both older invalid roots are historical only. No driver or formal acceptance ran during that check.
+
+Latest checked bytes:
+
+| Artifact | SHA-256 |
+|---|---|
+|16-21-PLAN.md|18e9137d22fdfcd772caf5a96bffdc24775167b87c26e665e073bdfaa7e25939|
+|16-21-AMENDMENT.md|2a41e85978009c7c7c3d45083753b6b895961aacd164db499c63e24fda69a4c7|

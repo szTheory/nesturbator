@@ -31,3 +31,7 @@ Revise and independently check Plan 21 so its already-quit observation can be bo
 ## Invalid fixture RED and scoped correction
 
 The subsequent resumed execution consumed RED21 at `build/phase16-acceptance21-execute/red` but failed before fault injection: a precreated quit sentinel caused HOST_DIED with an empty transport log. Its reproduction banner and completed ledger were false; control and primary-result evidence were absent and finalization failed. All original raw files remain untouched. The disposition sidecar binds their digests. Production, README and header remain unchanged; only the regression harness is uncommitted. No causal RED, GREEN, PREFLIGHT, FULL, source review, SUMMARY or requirement credit exists. The substantive fixture amendment identifies the corrections and authorizes one distinct corrected RED root, preserving this failed allowance.
+
+## Second invalid local RED
+
+The corrected-fixture root ended READINESS_TRANSPORT before injection because fake_nc looked beneath an extra attempts directory. control.json/evidence.json were absent; ledger planned/consumed. The shell wrapper lost its own wait code by assigning zsh readonly status. No causal proof, production correction or GREEN/FULL/review is credited. Raw bytes and their disposition sidecar remain retained. The bounded development amendment now permits source-bound local fixture corrections in four distinct rounds; formal acceptance counts remain global and unchanged.

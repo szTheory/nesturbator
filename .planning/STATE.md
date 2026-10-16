@@ -5,11 +5,11 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: "Plan 21 fixture correction independently verified; distinct corrected RED authorized"
-last_updated: "2026-10-16T20:44:37.727Z"
+stopped_at: Bounded local fixture development independently checked; continuing cleanup repair
+last_updated: "2026-10-16T21:32:50.692Z"
 last_activity: 2026-10-16
 last_activity_desc: Plan 21 timing and resume amendment independently passed; continuing authorized repair
-state_head: e723210c8526ae9d87e9f4266a7dd46518c3f9eb
+state_head: 469fa771f093b05a6220f82223c21d8db0a31daa
 progress:
   total_phases: 3
   completed_phases: 0
@@ -30,10 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 ## Current Position
 
 Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 16-21 fixture RED consumed invalid; zero tasks complete; remaining GREEN/PREFLIGHT/FULL/REVIEW unused
-Status: User-authorized fixture correction independently passed; continuing with a distinct corrected RED
-Current21 fixture continuation: The first resumed RED failed before readiness because the harness precreated the quit sentinel; HOST_DIED/empty sends and failed finalization make it invalid. Preserve raw evidence and false ledger/banner with explicit invalid disposition. The concrete fixture/fail-closed-bookkeeping amendment independently passed and permits one corrected RED in build/phase16-acceptance21-fixture-fix, preserving the consumed invalid run and all other slot counts. Exclusive selector-root creation refuses re-entry before mutating evidence; its refusal was verified with five byte-identical sentinels. Production remains untouched; only the regression harness is an authorized uncommitted source edit.
-Current21 timing continuation: The user authorized unblocking and implementing the repair. The independent timing/resume recheck passed after reusing the existing complete dropped-QUIT negative control inside the eight-case matrix and removing its duplicate all-selector call. Seven quick primary drivers stay below20000ms; the reused complete primary stays below250000ms; all other matrix time is at most90000ms and the whole matrix at most420000ms. Existing native/production bounds,649 registrations and900s CTest/FULL envelopes remain unchanged. The historical53.2s measurement is a reference, not a universal minimum. See21-TIMING-CHECK.md. Stop e4bef04 remains preserved as documentation-only pre-runtime history; all runtime slots remain unused.
+Plan: 16-21 blocked after corrected RED slot was consumed unusably; zero tasks complete; GREEN/PREFLIGHT/FULL/REVIEW unused
+Status: The corrected RED driver failed before request-path injection; preserve its raw root and do not rerun without a substantive amendment
+Current21 local development: Two invalid local REDs are retained without causal credit. The second ended READINESS_TRANSPORT from a doubled attempts path and its wrapper lost the wait status via zsh readonly status. Both fake transport paths are corrected. Independent checking passed a bounded4round/3600s local development contract requiring diagnosed code changes and preserved failures; one selected round must bind same-harness causal RED/all8GREEN. Formal PREFLIGHT/FULL/REVIEW remain single shared allowances across rounds. Both old roots remain historical. Only the harness is an authorized uncommitted implementation edit; production/docs/config stay exact.
+Current21 fixture continuation: The first resumed RED failed before readiness because the harness precreated the quit sentinel; HOST_DIED/empty sends and failed finalization make it invalid. Preserve raw evidence and false ledger/banner with explicit invalid disposition. The concrete fixture/fail-closed-bookkeeping amendment independently passed and authorized one corrected RED in build/phase16-acceptance21-fixture-fix, preserving the consumed invalid run. Exclusive selector-root creation refused re-entry before mutating evidence; its refusal was verified with five byte-identical sentinels. The subsequent corrected RED created its fresh root but the actual driver exited 1/READINESS_TRANSPORT before request-path injection; finalization then failed because control.json was absent. Its ledger remains planned/consumed, evidence.json is absent, and the root is preserved at build/phase16-acceptance21-fixture-fix/red. The owned host is no longer live and the endpoint lock is absent. No causal RED, source correction, GREEN, PREFLIGHT, FULL, review, SUMMARY or requirement credit exists. The finite RED slot is consumed and cannot be rerun without a substantive amendment. The protected config is unchanged; the only implementation edit remains the uncommitted regression harness.
+Current21 timing continuation: The user authorized unblocking and implementing the repair. The independent timing/resume recheck passed after reusing the existing complete dropped-QUIT negative control inside the eight-case matrix and removing its duplicate all-selector call. Seven quick primary drivers stay below20000ms; the reused complete primary stays below250000ms; all other matrix time is at most90000ms and the whole matrix at most420000ms. Existing native/production bounds,649 registrations and900s CTest/FULL envelopes remain unchanged. The historical53.2s measurement is a reference, not a universal minimum. See21-TIMING-CHECK.md. Stop e4bef04 remains preserved as documentation-only pre-runtime history; at that stop no runtime slot had been consumed. The later corrected RED slot was consumed but failed before injection; all later slots remain unused.
 Current21 planning:21-PLAN/AMENDMENT define the CR-01 cleanup repair, causal actual-helper RED/GREEN, changed-source full workflow and fresh independent review. Live07/08 prerequisites consume21 and all mandatory parent gates; exact18-row released checksum mapping is enforced. Initial checker2blockers/1warning fell to1blocker and then stalled at1. The user chose revision, not override, on2026-10-16. The approved approach binds all8cases to their own canonical roots, case/invocation/launch/control identities and digest-bound raw files; rejects cross-case references/inode aliases; validates both writable malformed-readiness controls; and rechecks the binding through FULL/review handoff. An isolated synthetic causalRED+8GREEN proof passed and34binding mutants rejected. Fresh independent typed checker then passed all11live plans with0findings. Six requirements,17decisions and39source groups remain represented. See21-CHECK.md. The existing user config edit remains exact and excluded. Planning consumed no runtime gate or previous allowance and does not establish the repair or runtime acceptance.
 Retained execution evidence: Plan18 OFFLINE passed in5s, exact registeredCI10/10 in237.84s andASan2/2 in298.65s without sanitizer diagnostics. Evidence commits96ea803 and9e4e2a6 bind unchanged candidate16f7804205afb49459b46b936509e41e8d5566c6 and exact unstaged config. Its failed FULL launcher and all partial17 corrections remain without SUMMARY/credit.20 verified/adopted those passes after byte/status/report/source/environment checks; no renewed selector or diagnostic allowance.
 Historical19 stop: Partial0e94f99 and parentdfaa1eb preserve original FAIL/full_started:false/planned FULL. The exact-line parser rejected valid8ordinary+2registered-regex successes in the retained10-test report; no launcher identity/smoke/FULL/review/SUMMARY or formal adoption ran.19 is superseded incomplete, its entire body and raw evidence unchanged.
@@ -389,6 +390,7 @@ v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` a
 - **Resolved — 2026-10-14:** Phase 16 Plan 03 completed on exact head 46543ad; workflow 38651381295 passed all required jobs and retained the pinned-host intended, dropped, doubled, and valid wrong-origin proof. EVID-01/02 are complete. Earlier interrupted/failed samples and their diagnoses are recorded in 16-03-SUMMARY.md; the direct push authorization was followed through the normal reviewed path. Plan 16-04 later completed EVID-03; Plan 16-05 is next.
 - Plan 16-17 terminal CI selection timed out at 60 seconds (exit 124; 9/10 passed, retroarch.session.controls unfinished); unchanged candidate was not retried and remaining acceptance gates were not run.
 - Plan 16-21 stopped before runtime: the required complete-path already-quit case is documented at 53.2 seconds while the plan requires <=5000 ms per driver; no slot consumed. Revise and independently check the bound or authorized test route before fresh dispatch.
+- Plan 16-21 corrected RED slot was consumed but unusable: actual driver exited 1/READINESS_TRANSPORT before injection evidence; no control.json or evidence.json, ledger remains planned/consumed. Preserve build/phase16-acceptance21-fixture-fix/red; finite gate forbids rerun without substantive amendment.
 
 ### Quick Tasks Completed
 
@@ -423,9 +425,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T20:44:37.700Z
-Stopped at: Blocked 16-21 before runtime: conflicting complete-path timing bound
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-21-SOURCE-ACCEPTANCE.md
+Last session: 2026-10-16T21:32:50.669Z
+Stopped at: Blocked 16-21 after unusable corrected RED slot
+Resume file: build/phase16-acceptance21-fixture-fix/red/stderr.log
 
 Next GSD command: $gsd-plan-phase 16 --gaps
 
