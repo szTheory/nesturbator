@@ -854,11 +854,113 @@ run_interruption_trace_selftests() (
     printf 'state session interruption trace selftest: %s cases passed (36 original + 4 lock cases)\n' "$trace_selftest_count"
 )
 
+selftest_owner_sidecar_collision() {
+    selftest_owner_root=$1
+    selftest_owner_dir="$selftest_owner_root/owner-sidecar-collision"
+    selftest_owner_lock_root="$selftest_owner_dir/locks"
+    selftest_owner_bin="$selftest_owner_dir/bin"
+    selftest_owner_real_perl=$(command -v perl)
+    OWNER_COLLISION_FAILURE=
+    mkdir -p "$selftest_owner_lock_root" "$selftest_owner_bin" "$selftest_owner_dir/ra"
+    : >"$selftest_owner_dir/config.cfg"
+    : >"$selftest_owner_dir/core.so"
+    : >"$selftest_owner_dir/content.nes"
+    : >"$selftest_owner_dir/calibration.txt"
+    printf 'foreign owner-sidecar sentinel bytes\n' >"$selftest_owner_dir/sentinel.expected"
+
+    cat >"$selftest_owner_bin/perl" <<'EOF'
+#!/bin/sh
+if [ "$1" = '-MTime::HiRes=clock_gettime,CLOCK_MONOTONIC' ]; then
+    owner_clock=$("$STATE_SESSION_OWNER_REAL_PERL" "$@") || exit $?
+    owner_driver=$(cat "$STATE_SESSION_OWNER_PID_FILE") || exit 91
+    owner_path="$STATE_SESSION_OWNER_LOCK_ROOT/nesturbator-retroarch-55355.lock.owner.attempt-${owner_clock}-${owner_driver}"
+    cat "$STATE_SESSION_OWNER_SENTINEL_FILE" >"$owner_path" || exit 92
+    printf '%s\n' "$owner_clock" >"$STATE_SESSION_OWNER_CLOCK_FILE" || exit 93
+    printf '%s\n' "$owner_path" >"$STATE_SESSION_OWNER_PATH_FILE" || exit 94
+    "$STATE_SESSION_OWNER_REAL_PERL" -e 'my @s = lstat($ARGV[0]) or exit 1; print join("\t", @s[0,1,2,3,7]), "\n"' \
+        "$owner_path" >"$STATE_SESSION_OWNER_IDENTITY_FILE" || exit 95
+    printf '%s\n' "$owner_clock"
+    exit 0
+fi
+exec "$STATE_SESSION_OWNER_REAL_PERL" "$@"
+EOF
+    cat >"$selftest_owner_dir/driver-runner" <<'EOF'
+#!/bin/sh
+printf '%s\n' "$$" >"$STATE_SESSION_OWNER_PID_FILE"
+exec /bin/sh "$STATE_SESSION_OWNER_DRIVER" "$@"
+EOF
+    cat >"$selftest_owner_dir/fake-retroarch" <<'EOF'
+#!/bin/sh
+: >"$STATE_SESSION_OWNER_HOST_LAUNCH_FILE"
+exit 0
+EOF
+    cat >"$selftest_owner_dir/fake-nc" <<'EOF'
+#!/bin/sh
+: >"$STATE_SESSION_OWNER_TRANSPORT_LAUNCH_FILE"
+exit 0
+EOF
+    chmod +x "$selftest_owner_bin/perl" "$selftest_owner_dir/driver-runner" \
+        "$selftest_owner_dir/fake-retroarch" "$selftest_owner_dir/fake-nc"
+
+    selftest_owner_status=0
+    PATH="$selftest_owner_bin:$PATH" \
+    STATE_SESSION_OWNER_REAL_PERL="$selftest_owner_real_perl" \
+    STATE_SESSION_OWNER_DRIVER="$DRIVER" \
+    STATE_SESSION_OWNER_PID_FILE="$selftest_owner_dir/driver.pid" \
+    STATE_SESSION_OWNER_LOCK_ROOT="$selftest_owner_lock_root" \
+    STATE_SESSION_OWNER_SENTINEL_FILE="$selftest_owner_dir/sentinel.expected" \
+    STATE_SESSION_OWNER_CLOCK_FILE="$selftest_owner_dir/clock.ms" \
+    STATE_SESSION_OWNER_PATH_FILE="$selftest_owner_dir/owner.path" \
+    STATE_SESSION_OWNER_IDENTITY_FILE="$selftest_owner_dir/owner.identity.before" \
+    STATE_SESSION_OWNER_HOST_LAUNCH_FILE="$selftest_owner_dir/host-launched" \
+    STATE_SESSION_OWNER_TRANSPORT_LAUNCH_FILE="$selftest_owner_dir/transport-launched" \
+    STATE_SESSION_NC="$selftest_owner_dir/fake-nc" \
+    STATE_SESSION_LOCK_ROOT="$selftest_owner_lock_root" \
+        "$selftest_owner_dir/driver-runner" \
+        "$selftest_owner_dir/fake-retroarch" "$selftest_owner_dir/config.cfg" \
+        "$selftest_owner_dir/core.so" "$selftest_owner_dir/content.nes" \
+        "$selftest_owner_dir/ra" "$selftest_owner_dir/retroarch.log" \
+        "$FRAME_INDEX" "$selftest_owner_dir/calibration.txt" \
+        >"$selftest_owner_dir/driver.out" 2>&1 &
+    selftest_owner_driver_runner_pid=$!
+    wait "$selftest_owner_driver_runner_pid" || selftest_owner_status=$?
+
+    selftest_owner_driver_pid=$(cat "$selftest_owner_dir/driver.pid" 2>/dev/null || true)
+    selftest_owner_clock=$(cat "$selftest_owner_dir/clock.ms" 2>/dev/null || true)
+    selftest_owner_path=$(cat "$selftest_owner_dir/owner.path" 2>/dev/null || true)
+    selftest_owner_expected_path="$selftest_owner_lock_root/nesturbator-retroarch-55355.lock.owner.attempt-${selftest_owner_clock}-${selftest_owner_driver_pid}"
+    if [ -z "$selftest_owner_driver_pid" ] || [ "$selftest_owner_driver_pid" != "$selftest_owner_driver_runner_pid" ] ||
+        [ -z "$selftest_owner_clock" ] || [ "$selftest_owner_path" != "$selftest_owner_expected_path" ] ||
+        [ ! -s "$selftest_owner_dir/owner.identity.before" ]; then
+        OWNER_COLLISION_FAILURE=owner-collision-exact-path-not-established
+        return 1
+    fi
+    if [ "$selftest_owner_status" -ne 1 ] ||
+        ! grep -Fqx 'state_session: LOCK_OWNER_UNAVAILABLE' "$selftest_owner_dir/driver.out"; then
+        OWNER_COLLISION_FAILURE=actual-driver-noclobber-refusal-not-proven
+        return 1
+    fi
+    if [ -e "$selftest_owner_dir/host-launched" ] || [ -e "$selftest_owner_dir/transport-launched" ]; then
+        OWNER_COLLISION_FAILURE=host-or-transport-launched-before-refusal
+        return 1
+    fi
+    if [ ! -f "$selftest_owner_path" ] || [ -L "$selftest_owner_path" ] ||
+        ! cmp -s "$selftest_owner_dir/sentinel.expected" "$selftest_owner_path" ||
+        ! "$selftest_owner_real_perl" -e 'my @s = lstat($ARGV[0]) or exit 1; print join("\t", @s[0,1,2,3,7]), "\n"' \
+            "$selftest_owner_path" >"$selftest_owner_dir/owner.identity.after" ||
+        ! cmp -s "$selftest_owner_dir/owner.identity.before" "$selftest_owner_dir/owner.identity.after"; then
+        OWNER_COLLISION_FAILURE=foreign-owner-object-not-preserved
+        return 1
+    fi
+    OWNER_COLLISION_FAILURE=
+    return 0
+}
+
 selftest_regular_lock_trace_tap() (
     trace_tap_id="session-regular-lock-$(mono_ms)-$$"
     trace_tap_file="$WORK_ROOT/regular-lock-trace-selftest/ra/interruption-events.tsv"
     trace_tap_target='regular hard-link lifecycle records held occupancy until release'
-    printf 'TAP version 13\n1..1\n'
+    printf 'TAP version 13\n1..2\n'
     selftest_write_trace_regular_lock_lifecycle \
         "$WORK_ROOT/regular-lock-trace-selftest" "$trace_tap_id" || {
         printf 'Bail out! regular-lock writer fixture or event recording failed\n'
@@ -900,10 +1002,22 @@ selftest_regular_lock_trace_tap() (
     if [ "$trace_tap_status" -eq 0 ] && [ "$trace_tap_result" = TRACE_OK ] &&
         [ "$trace_tap_lock_values" = present,present,absent ]; then
         printf 'ok 1 - %s\n' "$trace_tap_target"
-        return 0
+    else
+        printf 'Bail out! unexpected regular-lock result: fields=%s validator=%s status=%s\n' \
+            "$trace_tap_lock_values" "$trace_tap_result" "$trace_tap_status"
+        return 1
     fi
-    printf 'Bail out! unexpected regular-lock result: fields=%s validator=%s status=%s\n' \
-        "$trace_tap_lock_values" "$trace_tap_result" "$trace_tap_status"
+    selftest_owner_sidecar_collision "$WORK_ROOT" && {
+        printf 'ok 2 - actual failed owner-sidecar create preserves foreign object bytes\n'
+        return 0
+    }
+    if [ "$OWNER_COLLISION_FAILURE" = foreign-owner-object-not-preserved ]; then
+        printf '# actual driver refused the exact pre-created path with LOCK_OWNER_UNAVAILABLE\n'
+        printf '# foreign object path and sentinel identity/bytes were changed by EXIT cleanup\n'
+        printf 'not ok 2 - actual failed owner-sidecar create preserves foreign object bytes\n'
+        return 1
+    fi
+    printf 'Bail out! owner-sidecar collision precondition failed: %s\n' "$OWNER_COLLISION_FAILURE"
     return 1
 )
 
@@ -913,6 +1027,13 @@ run_interruption_capture_selftests() {
     selftest_run_id=$(mono_ms)-$$
     selftest_root="$selftest_root/selftest-$selftest_run_id"
     mkdir -p "$selftest_root"
+
+    if selftest_owner_sidecar_collision "$selftest_root"; then
+        printf 'state session owner-sidecar selftest: actual collision preserved foreign object bytes and identity\n'
+    else
+        echo "FAIL owner-sidecar collision: $OWNER_COLLISION_FAILURE" >&2
+        return 1
+    fi
 
     selftest_match="$selftest_root/match"
     mkdir -p "$selftest_match"
