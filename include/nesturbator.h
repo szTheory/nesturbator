@@ -524,9 +524,11 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * from recorder status. Binary pre/post journal snapshots copy through one open handle and bind
  * that handle's device, inode and size; they do not identify the bytes grep read. Synthetic tests
  * cover statuses 0, 1 and controlled 2, recorder errors, pathname replacement and event ownership.
- * Actual-driver startup controls also prove a failed owner-sidecar create preserves a foreign
- * object, and that TERM cleanup releases its original hard link without removing a replacement
- * owner pathname.
+ * Actual-driver startup controls prove a failed owner-sidecar create preserves a foreign object.
+ * They require LOCK_OWNER_UNAVAILABLE when the shell returns control; a shell that terminates on
+ * failed exec redirection counts only for the exact occupied path and nonzero exit. Both require
+ * no host/transport launch and unchanged foreign bytes and filesystem identity. TERM cleanup
+ * releases its original hard link without removing a replacement owner pathname.
  * This establishes diagnostic capture behavior only; it does not attribute an earlier failure
  * or accept a repair.
  * A source-only interruption trace include is shared by the driver and harness. Before fixture

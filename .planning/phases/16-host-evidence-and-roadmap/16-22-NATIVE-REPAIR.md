@@ -1,0 +1,36 @@
+# Phase 16 Plan 22: Native Repair Evidence
+
+This record keeps the failed native run as immutable failure evidence and separates its observed symptoms from local diagnoses. The plan has not established cross-platform native acceptance; that remains Plan 07's exact-final-head gate.
+
+## Baseline native failures
+
+Run `38976400182` was a required pull-request run for head `65c3a7fb0b320bfe7a51ac486bf922c5ad5872d9`, base `9f9386c661f6fb8f6063bf756655713aedadae77`, preview merge `aabd1d940d8deb2dd3c5369eddf074158517b92e`. The retained required-run summary and six raw job logs were copied without modification under `build/phase16-native22/round-1/native-baseline/`; `SHA256SUMS` records their copied digests. The copied hashes match the source logs:
+
+| Job | Observed result | Raw log SHA256 |
+| --- | --- | --- |
+| Hygiene `117227153307` | `frame_index.c` formatting failure at lines 1276–1283 | `75cba0e1cc870298cf7283369a84bb613fa9f23ef1dbb4ce7794f983a3e84bb4` |
+| Linux x64 `117227153269` | `actual-driver-noclobber-refusal-not-proven` | `f203ed23a3eda55981beb6160b3c5a64fb46525bd77c39e6974faa1a3ba3c1f9` |
+| Linux ARM `117227153527` | `actual-driver-noclobber-refusal-not-proven` | `37761b41bd228ce34ccf99321105547de3034ec46be1495cf853ad41ecda81ba` |
+| ASan `117227153348` | Same refusal assertion and the registered readiness process timed out at 60.03s after the delayed case recorded a 20,054ms operation; the second case did not finish | `072d68d6044a237e39b4d13f175823329c9063f29325b2958a570172cbe0113a` |
+| macOS Intel `117227153526` | Cleanup matrix exceeded its recorded wall budget and readiness CTest timed out at 60.26s; this log contains no sidecar assertion | `c0947352f3fa3291e74f8b613e198d3321a9112400c7aaff0fdfbdc93e7dd552` |
+| Required CI `117232139742` | Required CI failed because a hash-equality test was skipped | `d14be368d06847ee7ababf101f2c197ab27263df332424cc2d57b97c0b18ca04` |
+
+The failure-summary SHA256 is `15aceccbd3db78ee4fe9bae51b0a9342b883e2ca6ce7b8a0d18c616d26ca64e8`. The copied run, jobs, poll, context, and PR payload hashes are retained in the same checksum file. These records establish the failures and their measured categories, not their original platform causes.
+
+Nightly run `38976400185` is separate ancillary evidence, not a required-CI failure. Its `suite-flake` job used `ctest --preset ci --repeat until-fail:3 --schedule-random` and failed `retroarch.session.controls` with the same old owner-sidecar assertion; the other nightly jobs passed. Its raw log remains at `build/phase16-release/suite-flake-job-117226779425.log` with SHA256 `b8d962b3f3eb12678a2117fc15727331f98d45824bcbf408cd2660761d651108`. No historical run was rerun.
+
+## Task 1: actual owner-sidecar refusal
+
+The old harness required status 1 plus `state_session: LOCK_OWNER_UNAVAILABLE`. On the host, `/bin/sh` is GNU bash 3.2.57. Its pre-repair actual-driver case returned status 1, retained the explicit message, preserved the injected sidecar, and passed the original checker. An installed `/bin/dash` was also available locally; this is a local shell observation, not native-platform acceptance.
+
+With the original checker and `/bin/dash`, the test drove the real eight-argument `state_session.sh` entry against a foreign file created at the exact clock/PID-bound owner path. The outer selftest returned 1 in 85ms with `actual-driver-noclobber-refusal-not-proven`. The actual driver returned 2 and emitted `tests/retroarch/state_session.sh: 90: cannot create <exact injected path>: File exists`; it did not reach the driver's explicit message. No host or transport launch marker existed. The foreign regular file remained byte-identical, with lstat identity unchanged at device `16777230`, inode `636514809`, mode `33188`, link count `1`, and size `37`. The exact relative fixture path and raw driver output are retained in `build/phase16-native22/round-1/sidecar-dash-old-checker/`.
+
+This reproduces the old assertion failure locally through the actual helper and shows safe refusal on this shell. It does not prove that the historical Linux/ARM jobs had the same cause. The repair changes only the test proof: when the shell returns control, the harness requires one exact `LOCK_OWNER_UNAVAILABLE` line and permits only an exact-path failed-redirection diagnostic; when the shell terminates on the failed `exec`, it accepts status 2 only with the exact occupied-path diagnostic. Both paths independently require the exact injected path, no host/transport launch, and unchanged sentinel bytes and lstat identity. No production lock, trap, cleanup, QUIT, or timing code changed.
+
+The corrected actual-driver selector passed under installed `/bin/dash` in 4,396ms and under host `/bin/sh` in 4,384ms. The dash run classified `PORTABLE_SHELL_OCCUPIED_PATH_REFUSAL`; the host shell classified `LOCK_OWNER_UNAVAILABLE`. Both retained the existing capture and 51 trace cases. Seven proof mutants were rejected: success on an occupied path, changed bytes, removed file, wrong path, host launch, transport launch, and an unrelated `INPUT_MISSING` diagnostic. Launch records, stdout/stderr, exact path, identity, and timing are retained under `build/phase16-native22/round-1/`.
+
+The protected `.planning/config.json` remained unchanged at SHA256 `0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e` throughout these checks.
+
+## Remaining work
+
+Task 1 has a local cause-specific proof correction only. Readiness and cleanup timing diagnoses, registered changed-source acceptance, full CI/package checks, formatting, independent review, and mandatory configured parent gates are still pending. No native CI result or Plan 07 owner-consent gate is replaced by this local evidence.

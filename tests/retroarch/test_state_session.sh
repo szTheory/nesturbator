@@ -49,6 +49,65 @@ report_readiness_timing() {
         "$report_reason" "$report_lower" "$report_upper"
 }
 
+owner_sidecar_refusal_assess() {
+    owner_assess_root=$1
+    owner_assess_status=$2
+    owner_assess_pid=$(cat "$owner_assess_root/driver.pid" 2>/dev/null || true)
+    owner_assess_clock=$(cat "$owner_assess_root/clock.ms" 2>/dev/null || true)
+    owner_assess_path=$(cat "$owner_assess_root/owner.path" 2>/dev/null || true)
+    owner_assess_expected="$owner_assess_root/locks/nesturbator-retroarch-55355.lock.owner.attempt-${owner_assess_clock}-${owner_assess_pid}"
+    OWNER_COLLISION_FAILURE=
+    OWNER_COLLISION_OBSERVATION=
+    if [ -z "$owner_assess_pid" ] || [ -z "$owner_assess_clock" ] ||
+        [ "$owner_assess_path" != "$owner_assess_expected" ] ||
+        [ ! -s "$owner_assess_root/owner.identity.before" ] ||
+        [ ! -f "$owner_assess_root/driver.out" ]; then
+        OWNER_COLLISION_FAILURE=owner-collision-exact-path-not-established
+        return 1
+    fi
+
+    if [ "$owner_assess_status" -eq 1 ] && awk \
+        -v driver="$DRIVER" -v path="$owner_assess_expected" '
+        $0 == "state_session: LOCK_OWNER_UNAVAILABLE" { refusal++; next }
+        NF {
+            if (index($0, driver ": line ") == 1 &&
+                index($0, ": " path ": cannot overwrite existing file") > 0) shell_error++
+            else other++
+        }
+        END { exit refusal == 1 && shell_error <= 1 && other == 0 ? 0 : 1 }
+    ' "$owner_assess_root/driver.out"; then
+        OWNER_COLLISION_OBSERVATION=LOCK_OWNER_UNAVAILABLE
+    elif [ "$owner_assess_status" -eq 2 ] && awk \
+        -v driver="$DRIVER" -v path="$owner_assess_expected" '
+        NF {
+            if (index($0, driver ": ") != 1 ||
+                index($0, ": cannot create " path ": File exists") == 0) other++
+            refusal++
+        }
+        END { exit refusal == 1 && other == 0 ? 0 : 1 }
+    ' "$owner_assess_root/driver.out"; then
+        OWNER_COLLISION_OBSERVATION=PORTABLE_SHELL_OCCUPIED_PATH_REFUSAL
+    else
+        OWNER_COLLISION_FAILURE=actual-driver-refusal-not-proven
+        return 1
+    fi
+
+    if [ -e "$owner_assess_root/host-launched" ] ||
+        [ -e "$owner_assess_root/transport-launched" ]; then
+        OWNER_COLLISION_FAILURE=host-or-transport-launched-before-refusal
+        return 1
+    fi
+    if [ ! -f "$owner_assess_path" ] || [ -L "$owner_assess_path" ] ||
+        ! cmp -s "$owner_assess_root/sentinel.expected" "$owner_assess_path" ||
+        ! "$selftest_owner_real_perl" -e 'my @s = lstat($ARGV[0]) or exit 1; print join("\t", @s[0,1,2,3,7]), "\n"' \
+            "$owner_assess_path" >"$owner_assess_root/owner.identity.after" ||
+        ! cmp -s "$owner_assess_root/owner.identity.before" "$owner_assess_root/owner.identity.after"; then
+        OWNER_COLLISION_FAILURE=foreign-owner-object-not-preserved
+        return 1
+    fi
+    return 0
+}
+
 fake_nc() {
     request=$(cat)
     printf '%s\n' "$request" >>"$STATE_SESSION_TEST_SENDS"
@@ -1248,7 +1307,7 @@ EOF
     cat >"$selftest_owner_dir/driver-runner" <<'EOF'
 #!/bin/sh
 printf '%s\n' "$$" >"$STATE_SESSION_OWNER_PID_FILE"
-exec /bin/sh "$STATE_SESSION_OWNER_DRIVER" "$@"
+exec "${STATE_SESSION_OWNER_SHELL:-/bin/sh}" "$STATE_SESSION_OWNER_DRIVER" "$@"
 EOF
     cat >"$selftest_owner_dir/fake-retroarch" <<'EOF'
 #!/bin/sh
@@ -1267,6 +1326,7 @@ EOF
     PATH="$selftest_owner_bin:$PATH" \
     STATE_SESSION_OWNER_REAL_PERL="$selftest_owner_real_perl" \
     STATE_SESSION_OWNER_DRIVER="$DRIVER" \
+    STATE_SESSION_OWNER_SHELL="${STATE_SESSION_TEST_SHELL:-/bin/sh}" \
     STATE_SESSION_OWNER_PID_FILE="$selftest_owner_dir/driver.pid" \
     STATE_SESSION_OWNER_LOCK_ROOT="$selftest_owner_lock_root" \
     STATE_SESSION_OWNER_SENTINEL_FILE="$selftest_owner_dir/sentinel.expected" \
@@ -1296,24 +1356,76 @@ EOF
         OWNER_COLLISION_FAILURE=owner-collision-exact-path-not-established
         return 1
     fi
-    if [ "$selftest_owner_status" -ne 1 ] ||
-        ! grep -Fqx 'state_session: LOCK_OWNER_UNAVAILABLE' "$selftest_owner_dir/driver.out"; then
-        OWNER_COLLISION_FAILURE=actual-driver-noclobber-refusal-not-proven
+    if ! owner_sidecar_refusal_assess "$selftest_owner_dir" "$selftest_owner_status"; then
         return 1
     fi
-    if [ -e "$selftest_owner_dir/host-launched" ] || [ -e "$selftest_owner_dir/transport-launched" ]; then
-        OWNER_COLLISION_FAILURE=host-or-transport-launched-before-refusal
+    return 0
+}
+
+selftest_owner_sidecar_mutant_fixture() {
+    owner_mutant_root=$1
+    owner_mutant_dir="$owner_mutant_root/owner-sidecar-mutants"
+    mkdir -p "$owner_mutant_dir/locks"
+    printf 'foreign owner-sidecar sentinel bytes\n' >"$owner_mutant_dir/sentinel.expected"
+    printf '1001\n' >"$owner_mutant_dir/driver.pid"
+    printf '2001\n' >"$owner_mutant_dir/clock.ms"
+    owner_mutant_path="$owner_mutant_dir/locks/nesturbator-retroarch-55355.lock.owner.attempt-2001-1001"
+    cp "$owner_mutant_dir/sentinel.expected" "$owner_mutant_path"
+    printf '%s\n' "$owner_mutant_path" >"$owner_mutant_dir/owner.path"
+    "$selftest_owner_real_perl" -e 'my @s = lstat($ARGV[0]) or exit 1; print join("\t", @s[0,1,2,3,7]), "\n"' \
+        "$owner_mutant_path" >"$owner_mutant_dir/owner.identity.before" || return 1
+    printf '%s: 90: cannot create %s: File exists\n' "$DRIVER" "$owner_mutant_path" \
+        >"$owner_mutant_dir/driver.out"
+}
+
+selftest_owner_sidecar_mutant_rejected() {
+    owner_mutant_root=$1
+    owner_mutant_status=$2
+    owner_mutant_expected=$3
+    if owner_sidecar_refusal_assess "$owner_mutant_root/owner-sidecar-mutants" "$owner_mutant_status"; then
+        printf 'FAIL owner-sidecar proof accepted unsafe mutant: %s\n' "$owner_mutant_expected" >&2
         return 1
     fi
-    if [ ! -f "$selftest_owner_path" ] || [ -L "$selftest_owner_path" ] ||
-        ! cmp -s "$selftest_owner_dir/sentinel.expected" "$selftest_owner_path" ||
-        ! "$selftest_owner_real_perl" -e 'my @s = lstat($ARGV[0]) or exit 1; print join("\t", @s[0,1,2,3,7]), "\n"' \
-            "$selftest_owner_path" >"$selftest_owner_dir/owner.identity.after" ||
-        ! cmp -s "$selftest_owner_dir/owner.identity.before" "$selftest_owner_dir/owner.identity.after"; then
-        OWNER_COLLISION_FAILURE=foreign-owner-object-not-preserved
+    [ "$OWNER_COLLISION_FAILURE" = "$owner_mutant_expected" ] || {
+        printf 'FAIL owner-sidecar proof mutant reason: expected=%s actual=%s\n' \
+            "$owner_mutant_expected" "$OWNER_COLLISION_FAILURE" >&2
         return 1
-    fi
-    OWNER_COLLISION_FAILURE=
+    }
+    printf 'owner-sidecar proof mutant rejected: %s\n' "$OWNER_COLLISION_FAILURE"
+}
+
+selftest_owner_sidecar_mutants() {
+    owner_mutants_root=$1
+
+    selftest_owner_sidecar_mutant_fixture "$owner_mutants_root/success" || return 1
+    selftest_owner_sidecar_mutant_rejected "$owner_mutants_root/success" 0 actual-driver-refusal-not-proven || return 1
+
+    selftest_owner_sidecar_mutant_fixture "$owner_mutants_root/clobber" || return 1
+    owner_mutant_path="$owner_mutants_root/clobber/owner-sidecar-mutants/locks/nesturbator-retroarch-55355.lock.owner.attempt-2001-1001"
+    printf 'clobbered foreign bytes\n' >"$owner_mutant_path"
+    selftest_owner_sidecar_mutant_rejected "$owner_mutants_root/clobber" 2 foreign-owner-object-not-preserved || return 1
+
+    selftest_owner_sidecar_mutant_fixture "$owner_mutants_root/removal" || return 1
+    owner_mutant_path="$owner_mutants_root/removal/owner-sidecar-mutants/locks/nesturbator-retroarch-55355.lock.owner.attempt-2001-1001"
+    rm "$owner_mutant_path"
+    selftest_owner_sidecar_mutant_rejected "$owner_mutants_root/removal" 2 foreign-owner-object-not-preserved || return 1
+
+    selftest_owner_sidecar_mutant_fixture "$owner_mutants_root/wrong-path" || return 1
+    printf '%s\n' "$owner_mutants_root/wrong-path/owner-sidecar-mutants/locks/wrong.owner.path" \
+        >"$owner_mutants_root/wrong-path/owner-sidecar-mutants/owner.path"
+    selftest_owner_sidecar_mutant_rejected "$owner_mutants_root/wrong-path" 2 owner-collision-exact-path-not-established || return 1
+
+    selftest_owner_sidecar_mutant_fixture "$owner_mutants_root/host-launch" || return 1
+    : >"$owner_mutants_root/host-launch/owner-sidecar-mutants/host-launched"
+    selftest_owner_sidecar_mutant_rejected "$owner_mutants_root/host-launch" 2 host-or-transport-launched-before-refusal || return 1
+
+    selftest_owner_sidecar_mutant_fixture "$owner_mutants_root/transport-launch" || return 1
+    : >"$owner_mutants_root/transport-launch/owner-sidecar-mutants/transport-launched"
+    selftest_owner_sidecar_mutant_rejected "$owner_mutants_root/transport-launch" 2 host-or-transport-launched-before-refusal || return 1
+
+    selftest_owner_sidecar_mutant_fixture "$owner_mutants_root/precondition" || return 1
+    printf 'state_session: INPUT_MISSING\n' >"$owner_mutants_root/precondition/owner-sidecar-mutants/driver.out"
+    selftest_owner_sidecar_mutant_rejected "$owner_mutants_root/precondition" 2 actual-driver-refusal-not-proven || return 1
     return 0
 }
 
@@ -1544,11 +1656,13 @@ run_interruption_capture_selftests() {
     fi
 
     if selftest_owner_sidecar_collision "$selftest_root"; then
-        printf 'state session owner-sidecar selftest: actual collision preserved foreign object bytes and identity\n'
+        printf 'state session owner-sidecar selftest: %s; foreign object bytes and identity preserved\n' \
+            "$OWNER_COLLISION_OBSERVATION"
     else
         echo "FAIL owner-sidecar collision: $OWNER_COLLISION_FAILURE" >&2
         return 1
     fi
+    selftest_owner_sidecar_mutants "$selftest_root" || return 1
     if selftest_owner_sidecar_replacement "$selftest_root"; then
         printf 'state session owner-sidecar selftest: exact owned hard link released; replacement object and bytes preserved\n'
     else

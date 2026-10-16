@@ -1606,7 +1606,14 @@ handle. `STATE_SESSION_CONTROL=interruption-capture-selftest` checks status 0,
 1 and controlled 2, recorder failures, replacement while the old handle stays
 open, and per-invocation event ownership before any fixture or driver work.
 It also drives an exact foreign owner-sidecar collision through the real startup
-path and verifies refusal preserves its bytes. Another actual-driver control
+path and verifies refusal preserves its bytes and filesystem identity. The
+control requires the driver's `LOCK_OWNER_UNAVAILABLE` when the shell returns
+control; a shell that terminates on failed `exec` redirection counts only when
+its nonzero exit and diagnostic name the exact injected path. Both outcomes
+require no host or transport launch and unchanged foreign bytes and identity.
+Unsafe success, changed or removed foreign objects, wrong paths, premature
+launches, and unrelated precondition errors are rejected by proof mutants.
+Another actual-driver control
 replaces the owner pathname after hard-link publication, sends TERM, and checks
 cleanup releases the original lock object while preserving the replacement.
 These nearby snapshots do not identify the bytes read by grep; the tests prove
