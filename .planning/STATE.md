@@ -5,11 +5,11 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: Plan 18 acceptance-only planning verified; next execute-phase with gaps-only
-last_updated: "2026-10-16T15:10:42.182Z"
+stopped_at: Plan 18 terminal full-workflow launch failure; substantive amendment required
+last_updated: "2026-10-16T15:48:07.886Z"
 last_activity: 2026-10-16
-last_activity_desc: Verified acceptance-only Plan 18; Plan 17 superseded incomplete
-state_head: 228ba4e2fee45910ff86704ad3a15d6872c1b36a
+last_activity_desc: Plan 18 offline, CI and ASan passed; full gate unusable, no retry or completion
+state_head: 9e4e2a697a7d33bd7e709e48e58d5d96ed42ddea
 progress:
   total_phases: 3
   completed_phases: 0
@@ -29,15 +29,15 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Phase: 16 (Host evidence and roadmap) — STOPPED INCOMPLETE
 Plan: 16-18; 8/11 live complete; 18 physical; 10–14/16/17 superseded incomplete
-Status: Ready to execute
-Planning evidence: Independent typed checker passed all 11 live plans with zero findings; 26 tasks valid, 6/6 requirements and 17/17 decisions covered. Both command probes cover 103 entries with zero findings; path not_applicable is not runtime proof. Only 18 is ready; 07/08 remain blocked. Recheck installed index and empty 18 evaluation scope after the planning commit and immediately before normal safe-resume dispatch.
-Delivery gates: Retain corrected16f7804205afb49459b46b936509e41e8d5566c6 and nine17partial commits.18 requires offline60s, exactCI10/10 andASan2/2 under1200s each, normal649/649/jobs4/threeactualZIPs under900s, fresh independent separate-context six-path exact-source cleanreview/open0 and ALL mandatory later parent gates. Source immutable; any failure/finding stops for substantive amendment. No standalone observation/unchanged retry.
+Status: Substantive acceptance orchestration amendment required; do not re-execute unchanged
+Execution evidence: Plan18 OFFLINE passed in5s, exact registeredCI10/10 in237.84s andASan2/2 in298.65s without sanitizer diagnostics. Evidence commits96ea803 and9e4e2a6 bind unchanged candidate16f7804205afb49459b46b936509e41e8d5566c6 and exact unstaged config. FULL's sole attempted Node command omitted /gsd-core/bin/ from the installed CLI path and exited1 immediately; CMake never started. The consumed slot is terminal under18's explicit contract. No fresh full workflow/packages, independent review, parent acceptance,18SUMMARY or07handoff exists.
+Delivery gates: Retain all partial17 work and18 passing/failed evidence without completion credit. Installed18 evaluation-scope now resolves two matching commits withoutSUMMARY; DAG-ready does not authorize unchanged replay. Next gap planning must reconcile this command-path failure and remaining full649/649/jobs4/threeactualZIPs, fresh independent separate-context six-path exact-source cleanreview/open0 and ALL mandatory later parent gates. Source immutable; no retry, standalone observation or source repair is authorized by this execution stop.
 Historical17stop: outer60s CI exit124 after9completed passes/controls unfinished; orchestration mistake, not demonstrated session defect. Raw failure/partialwork retained, no17SUMMARY/credit; historical assertion/native causesUNKNOWN. Native exact-headCI/ownerconsent/publication07 and actual18assets/sixinfo/exactreleaseCI08 pending.
-Last activity: 2026-10-16 — Acceptance-only planning verified; no runtime/source/native/release action.
+Last activity: 2026-10-16 — Plan18 stopped on terminal full-workflow launch error after passing offline/CI/ASan; no source/native/release action.
 
-Progress: Phase 16 plans 8/11 complete; milestone phases 0/3 complete
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -338,6 +338,8 @@ None.
 
 ### Blockers/Concerns
 
+- **Current Plan18 acceptance stop — 2026-10-16:** [Acceptance evidence](phases/16-host-evidence-and-roadmap/16-18-SOURCE-ACCEPTANCE.md) retains OFFLINE exit0/5s, exact CI10/10/237.84s andASan2/2/298.65s with no sanitizer diagnostics. The FULL attempt used the wrong installed Node CLI path, omitted /gsd-core/bin/, and exited1 before CMake started. This is an executor command error, not demonstrated source failure. FULL is consumed/unusable under the approved single-use contract; no unchanged retry, review, new packages, parent post-wave acceptance,18SUMMARY or07dispatch. Evidence commits96ea803/9e4e2a6 and ignored build/phase16-acceptance18-execute remain retained. Source/input/config identities match. Scope18 now has two partial commits/noSUMMARY, so safe resume blocks replay despite DAG readiness. Next `$gsd-plan-phase 16 --gaps` must explicitly reconcile partial18 and command construction while preserving every remaining acceptance/native/consent/publication gate; no new allowance is inferred here.
+
 - **Historical Plan17 acceptance stop — 2026-10-16:** Nine partial execution commits throughaac195c retain causal tests and five-path candidate16f7804. The CI selector used an erroneous outer60s guard, exited124 with9completed passes and controls unfinished. Previous successful equivalentCI247.44s/ASan297.33s and registered controlsTIMEOUT900 show the orchestration mismatch. No retry/ASan/fullCI/packages/currentreview/17SUMMARY/07handoff. Next `$gsd-plan-phase 16 --gaps` must explicitly reconcile partial scope and propose adequate suite guards without changing session or registered timing limits.
 
 - **Historical verified five-finding planning amendment — 2026-10-16:** [Plan17](phases/16-host-evidence-and-roadmap/16-17-PLAN.md) and [amendment](phases/16-host-evidence-and-roadmap/16-17-AMENDMENT.md) reconcile all five partial16 commits and preserve its failed independent review/open5.17 explicitly authorizes foreign-sidecar creation/cleanup ownership, strict PID/liveness and journal-before-QUIT admission, complete real-control21-row ledger admission and immutable candidate-bound public status. Reason-specific actual-helper RED precedes each correction; original7capture/40trace/identity/44progression and all ownership/timing/one-shot contracts remain. Fresh exact ci10/10/asan2/2/normal649/649/jobs4/threeZIPs, independent final six-path clean/open0 review and every required parent gate precede07. Separate-context typed checker passed11live plans with zero issues;6/6requirements,17/17decisions and39source groups covered.97command-probe entries have zero findings; path not_applicable is not runtime proof. Counts17physical/11live/8complete;10–14/16 superseded/incomplete, no SUMMARY or credit. Only17ready;07/08notready. Repeat fresh17 empty evaluation-scope/index after final commit and before dispatch with normal safe resume; partial07 history remains. Config is preserved byte-identical/unstaged. No implementation, application tests, new observation, native or publication action occurred. Next `$gsd-execute-phase 16 --gaps-only`.
@@ -406,17 +408,17 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16
-Stopped at: Plan 18 acceptance-only planning verified
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-18-AMENDMENT.md
+Last session: 2026-10-16T15:48:07.857Z
+Stopped at: Plan 18 terminal full-workflow launch failure; substantive amendment required
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-18-SOURCE-ACCEPTANCE.md
 
-Next GSD command: $gsd-execute-phase 16 --gaps-only
+Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Run `$gsd-execute-phase 16 --gaps-only` after checking the final planning commit, installed index (only 18 ready; 07/08 blocked; 17 excluded) and empty 18 evaluation scope under normal safe resume. Never create a 17 SUMMARY or bypass partial scope.
+- Run `$gsd-plan-phase 16 --gaps` to reconcile partial18 evidence and the terminal command-path failure. Scope18 contains two commits withoutSUMMARY, so do not dispatch18 unchanged even if the dependency index lists it ready. Never fabricate17/18SUMMARY or bypass partial scope.
 
-- Plan 18 accepts immutable 16f7804 with finite prelaunch accounting: offline 60s, exact CI/ASan 1200s each, normal workflow 900s; all registered/session/prefix/cleanup bounds unchanged. Require 10/10 + 2/2 + 649/649 at jobs4, three actual ZIPs and fresh independent six-path clean review/open0, then every mandatory later parent gate before 07. Failure, unusable results or new findings stop for substantive amendment; no unchanged retry, new diagnostic observation or source edit.
+- Preserve18's actual offline/CI/ASan passes and unusable FULL attempt. Full649/649/jobs4/threeactualZIPs, independent exact-source six-path clean review/open0 and every mandatory later parent gate remain unproven. The next planning step must explicitly scope any continuation; this stop authorizes no retry, observation or source change. All registered/session/prefix/cleanup bounds remain unchanged.
 - Preserve completed01–06/09/15, superseded10–14/16/17incomplete, historical21/22verification/fingerprint,6requirements/17decisions and exact unstagedconfig. Counts18physical/11live/8complete; historical assertion/native causesUNKNOWN.
 
-- Plan 07 retains native exact-final-head required/perf/pinned-host CI, affirmative owner consent and normal publication; 08 requires actual 18 archives/checksums/attestations, six metadata files and exact-release CI. No release, phase advancement or PRODUCT-ROADMAP upkeep occurs in planning.
+- Plan 07 retains native exact-final-head required/perf/pinned-host CI, affirmative owner consent and normal publication; 08 requires actual 18 archives/checksums/attestations, six metadata files and exact-release CI. No release, phase advancement or PRODUCT-ROADMAP upkeep occurred in this execution step.
