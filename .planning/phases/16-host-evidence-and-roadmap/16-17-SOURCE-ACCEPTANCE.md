@@ -32,6 +32,37 @@ Git blob IDs captured before production edits at baseline `023f42041f753d474f155
 | `include/nesturbator.h` | `834591b23eba163460c351d542adbda5061df026` |
 | `tests/retroarch/frame_index.c` (read-only) | `204d3ff64cc288176b0e6f47a1788c122a36815c` |
 
+## Task 2 pre-edit source identities
+
+Captured at committed candidate `483bdce` before Task 2 production edits:
+
+| Path | Blob |
+| --- | --- |
+| `tests/retroarch/state_session.sh` | `435a0f5fd1c4444e3b45ca668bd5af0e1a87d7e0` |
+| `tests/retroarch/interruption_trace.sh` | `e1020eba10d88dc4815db53114d986f2514fde62` |
+| `tests/retroarch/test_state_session.sh` | `d596346ce30e235a528b6daacb28353b45a38eca` |
+| `README.md` | `50ca87504b85ba8abe30692b7c30c2e826a9249e` |
+| `include/nesturbator.h` | `7cc60adc256f91f25b3109a3db518eef7d66fb32` |
+| `tests/retroarch/frame_index.c` (read-only) | `204d3ff64cc288176b0e6f47a1788c122a36815c` |
+
+## Task 2 lifecycle and QUIT causal REDs
+
+The existing actual-writer trace controls were extended with single-field mutants. Each starts from the actual three-row writer output, including the regular-file hard-link lifecycle. The test verifies the unchanged bytes and all other fields before checking the production validator's reason. The following actual-helper regressions all returned `RED_EVIDENCE_OK` with the named target as the sole TAP failure:
+
+| Finding | Target | Evidence |
+| --- | --- | --- |
+| WR-01 | `host-live-without-pid` | `build/phase16-review-corrections-execute/evidence/trace-host-live-without-pid/` |
+| WR-01 | `child-live-without-pid` | `build/phase16-review-corrections-execute/evidence/trace-child-live-without-pid/` |
+| WR-01 | `host-pid-changed-before-cleanup` | `build/phase16-review-corrections-execute/evidence/trace-host-pid-changed-before-cleanup/` |
+| WR-01 | `child-pid-changed-before-cleanup` | `build/phase16-review-corrections-execute/evidence/trace-child-pid-changed-before-cleanup/` |
+| WR-01 | `host-pid-retained-after-cleanup` | `build/phase16-review-corrections-execute/evidence/trace-host-pid-retained-after-cleanup/` |
+| WR-01 | `child-pid-retained-after-cleanup` | `build/phase16-review-corrections-execute/evidence/trace-child-pid-retained-after-cleanup/` |
+| WR-01 | `host-live-after-cleanup` | `build/phase16-review-corrections-execute/evidence/trace-host-live-after-cleanup/` |
+| WR-01 | `child-live-after-cleanup` | `build/phase16-review-corrections-execute/evidence/trace-child-live-after-cleanup/` |
+| WR-02 | `row2-quit-before-journal-close` | `build/phase16-review-corrections-execute/evidence/trace-row2-quit-before-journal-close/` |
+
+Positive actual-writer controls also passed before correction: both first-two PID observations absent (`absent-host-child-observations`) and a numeric PID with unavailable kill-0 liveness (`numeric-pid-with-unavailable-liveness`). The mutant helper proves each negative changes only its target field; it does not rewrite report output.
+
 ## Owner-sidecar transition audit
 
 At baseline, the driver computes `ATTEMPT_ID` from the monotonic start time and its PID, derives `LOCK_OWNER_FILE`, installs EXIT and simple INT/TERM/HUP traps, then creates the sidecar with a noclobber redirection in a subshell. A successful create is hard-linked to the endpoint lock and verified by token contents. Cleanup removes a token-matching endpoint link and then removes any regular non-symlink `LOCK_OWNER_FILE`, regardless of whether this invocation created that file. Consequently a failed noclobber create over a foreign regular file reaches EXIT cleanup and deletes the foreign object. The same path-based cleanup also has no exact-object check if the owner pathname is replaced.

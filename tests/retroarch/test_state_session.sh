@@ -492,8 +492,13 @@ selftest_write_trace_lifecycle() {
     STATE_SESSION_TEST_INTERRUPT_INVOCATION=$trace_writer_id
     STATE_SESSION_TEST_INTERRUPT_TRACE="$RA_DIR/interruption-events.tsv"
     STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS="$RA_DIR/interruption-trace-errors.tsv"
-    HOST_PID=$$
-    CHILD_PID=$$
+    if [ "${3:-}" = absent ]; then
+        HOST_PID=
+        CHILD_PID=
+    else
+        HOST_PID=$$
+        CHILD_PID=$$
+    fi
     FIRST_FAILURE=
     QUIT_SENT=0
     JOURNAL_FAILED=0
@@ -611,6 +616,44 @@ close $out or die "close output: $!";
 PERL
 }
 
+selftest_trace_only_field_changed() {
+    perl - "$1" "$2" "$3" "$4" <<'PERL'
+use strict;
+use warnings;
+my ($original_path, $mutant_path, $target_row, $target_column) = @ARGV;
+sub read_rows {
+    my ($path) = @_;
+    open my $input, "<:raw", $path or die "open trace: $!";
+    local $/;
+    my $bytes = <$input>;
+    close $input or die "close trace: $!";
+    return undef if !defined($bytes) || $bytes !~ /\n\z/;
+    my @rows = split /\n/, $bytes, -1;
+    pop @rows;
+    return \@rows;
+}
+my $original = read_rows($original_path);
+my $mutant = read_rows($mutant_path);
+exit 1 unless defined($original) && defined($mutant) && @$original == @$mutant;
+my $changed = 0;
+for my $row (0 .. $#$original) {
+    my @left = split /\t/, $original->[$row], -1;
+    my @right = split /\t/, $mutant->[$row], -1;
+    exit 1 unless @left == 16 && @right == 16;
+    if ($row == $target_row - 1) {
+        exit 1 if $left[$target_column - 1] eq $right[$target_column - 1];
+        $changed = 1;
+    } else {
+        exit 1 unless $original->[$row] eq $mutant->[$row];
+    }
+    splice @left, $target_column - 1, 1;
+    splice @right, $target_column - 1, 1;
+    exit 1 unless join("\t", @left) eq join("\t", @right);
+}
+exit($changed ? 0 : 1);
+PERL
+}
+
 selftest_trace_expect() {
     trace_expect_file=$1
     trace_expect_id=$2
@@ -649,8 +692,86 @@ selftest_trace_expect_edit() {
     cp "$trace_mutation_source" "$trace_mutation_file" || return 1
     selftest_trace_edit "$trace_mutation_file" "$trace_mutation_row" \
         "$trace_mutation_action" "$trace_mutation_column" "$trace_mutation_value" || return 1
+    if [ "$trace_mutation_action" = set ]; then
+        selftest_trace_only_field_changed "$trace_mutation_source" "$trace_mutation_file" \
+            "$trace_mutation_row" "$trace_mutation_column" || {
+            echo "FAIL trace mutant $trace_mutation_name changed fields outside its target" >&2
+            return 1
+        }
+    fi
     selftest_trace_expect "$trace_mutation_file" "$trace_mutation_id" "$$" \
         "$trace_mutation_expected" "$trace_mutation_name"
+}
+
+selftest_trace_tdd_case() {
+    trace_tdd_root=$1
+    trace_tdd_name=$2
+    trace_tdd_case_root="$trace_tdd_root/trace-tdd/$trace_tdd_name"
+    trace_tdd_id="session-$trace_test_run_id-tdd-$trace_tdd_name"
+    printf 'TAP version 13\n1..1\n'
+    mkdir -p "$trace_tdd_case_root" || {
+        printf 'Bail out! trace TDD setup failed\n'
+        return 1
+    }
+    if [ "$trace_tdd_name" = absent-host-child-observations ]; then
+        selftest_write_trace_lifecycle "$trace_tdd_case_root" "$trace_tdd_id" absent || {
+            printf 'Bail out! actual trace writer setup failed\n'
+            return 1
+        }
+        trace_tdd_source="$trace_tdd_case_root/ra/interruption-events.tsv"
+        trace_tdd_expected=TRACE_OK
+    else
+        selftest_write_trace_regular_lock_lifecycle "$trace_tdd_case_root" "$trace_tdd_id" || {
+            printf 'Bail out! actual regular-lock trace writer setup failed\n'
+            return 1
+        }
+        trace_tdd_source="$trace_tdd_case_root/ra/interruption-events.tsv"
+        trace_tdd_original="$trace_tdd_case_root/original.tsv"
+        cp "$trace_tdd_source" "$trace_tdd_original" || {
+            printf 'Bail out! actual trace baseline copy failed\n'
+            return 1
+        }
+        trace_tdd_expected=TRACE_VALUE
+        case "$trace_tdd_name" in
+            host-live-without-pid) set -- 1 set 8 unavailable ;;
+            child-live-without-pid) set -- 1 set 10 unavailable ;;
+            host-pid-changed-before-cleanup) set -- 2 set 8 "$(( $$ + 1 ))" ;;
+            child-pid-changed-before-cleanup) set -- 2 set 10 "$(( $$ + 1 ))" ;;
+            host-pid-retained-after-cleanup) set -- 3 set 8 "$$" ;;
+            child-pid-retained-after-cleanup) set -- 3 set 10 "$$" ;;
+            host-live-after-cleanup) set -- 3 set 9 1 ;;
+            child-live-after-cleanup) set -- 3 set 11 1 ;;
+            row2-quit-before-journal-close) set -- 2 set 12 1 ;;
+            numeric-pid-with-unavailable-liveness) set -- 1 set 9 unavailable; trace_tdd_expected=TRACE_OK ;;
+            *) printf 'Bail out! unknown trace TDD case\n'; return 1 ;;
+        esac
+        selftest_trace_edit "$trace_tdd_source" "$1" "$2" "$3" "$4" || {
+            printf 'Bail out! actual trace mutation failed\n'
+            return 1
+        }
+        selftest_trace_only_field_changed "$trace_tdd_original" "$trace_tdd_source" \
+            "$1" "$3" || {
+            printf 'Bail out! trace mutant changed fields outside its target\n'
+            return 1
+        }
+    fi
+    trace_tdd_status=0
+    trace_tdd_actual=$(verify_interruption_driver_trace \
+        "$trace_tdd_source" "$trace_tdd_id" "$$") || trace_tdd_status=$?
+    if [ "$trace_tdd_expected" = TRACE_OK ]; then
+        if [ "$trace_tdd_status" -eq 0 ] && [ "$trace_tdd_actual" = TRACE_OK ]; then
+            printf 'ok 1 - %s\n' "$trace_tdd_name"
+            return 0
+        fi
+    elif [ "$trace_tdd_status" -ne 0 ] && [ "$trace_tdd_actual" = "$trace_tdd_expected" ]; then
+        printf 'ok 1 - %s\n' "$trace_tdd_name"
+        return 0
+    fi
+    printf '# expected=%s status=%s actual=%s status=%s\n' \
+        "$trace_tdd_expected" "$([ "$trace_tdd_expected" = TRACE_OK ] && printf 0 || printf 1)" \
+        "$trace_tdd_actual" "$trace_tdd_status"
+    printf 'not ok 1 - %s\n' "$trace_tdd_name"
+    return 1
 }
 
 selftest_trace_non_lock_fields_equal() {
@@ -750,6 +871,10 @@ run_interruption_trace_selftests() (
     trace_test_primary="$trace_test_root/owned-a/ra/interruption-events.tsv"
     trace_selftest_count=0
     mkdir -p "$trace_test_root/cases" || { echo "FAIL trace lifecycle setup" >&2; return 1; }
+    if [ -n "${STATE_SESSION_TDD_CASE:-}" ]; then
+        selftest_trace_tdd_case "$trace_test_root" "$STATE_SESSION_TDD_CASE"
+        return $?
+    fi
     selftest_write_trace_lifecycle "$trace_test_root/owned-a" "$trace_test_id" || {
         echo "FAIL trace lifecycle actual writer setup" >&2; return 1;
     }
@@ -773,6 +898,40 @@ run_interruption_trace_selftests() (
     }
     selftest_trace_expect "$trace_test_regular" "$trace_test_regular_id" "$$" \
         TRACE_OK regular-hard-link-lifecycle || return 1
+    for trace_lifecycle_case in \
+        host-live-without-pid child-live-without-pid \
+        host-pid-changed-before-cleanup child-pid-changed-before-cleanup \
+        host-pid-retained-after-cleanup child-pid-retained-after-cleanup \
+        host-live-after-cleanup child-live-after-cleanup row2-quit-before-journal-close; do
+        case "$trace_lifecycle_case" in
+            host-live-without-pid) set -- 1 set 8 unavailable ;;
+            child-live-without-pid) set -- 1 set 10 unavailable ;;
+            host-pid-changed-before-cleanup) set -- 2 set 8 "$(( $$ + 1 ))" ;;
+            child-pid-changed-before-cleanup) set -- 2 set 10 "$(( $$ + 1 ))" ;;
+            host-pid-retained-after-cleanup) set -- 3 set 8 "$$" ;;
+            child-pid-retained-after-cleanup) set -- 3 set 10 "$$" ;;
+            host-live-after-cleanup) set -- 3 set 9 1 ;;
+            child-live-after-cleanup) set -- 3 set 11 1 ;;
+            row2-quit-before-journal-close) set -- 2 set 12 1 ;;
+        esac
+        selftest_trace_expect_edit "$trace_lifecycle_case" "$1" "$2" "$3" "$4" TRACE_VALUE \
+            "$trace_test_regular" "$trace_test_regular_id" || return 1
+    done
+    selftest_trace_non_lock_fields_equal "$trace_test_regular" \
+        "$trace_test_root/cases/row2-quit-before-journal-close.tsv" "$trace_test_root/cases" || {
+        echo 'FAIL row2 QUIT mutant changed non-QUIT fields' >&2; return 1;
+    }
+    trace_test_absent="$trace_test_root/absent-observations/ra/interruption-events.tsv"
+    trace_test_absent_id="session-$trace_test_run_id-absent-observations"
+    selftest_write_trace_lifecycle "$trace_test_root/absent-observations" \
+        "$trace_test_absent_id" absent || return 1
+    selftest_trace_expect "$trace_test_absent" "$trace_test_absent_id" "$$" \
+        TRACE_OK absent-host-child-observations || return 1
+    trace_test_unavailable_liveness="$trace_test_root/cases/numeric-pid-with-unavailable-liveness.tsv"
+    cp "$trace_test_regular" "$trace_test_unavailable_liveness" || return 1
+    selftest_trace_edit "$trace_test_unavailable_liveness" 1 set 9 unavailable || return 1
+    selftest_trace_expect "$trace_test_unavailable_liveness" "$trace_test_regular_id" "$$" \
+        TRACE_OK numeric-pid-with-unavailable-liveness || return 1
     selftest_trace_expect_edit absent-held-lock 1 set 14 absent TRACE_VALUE \
         "$trace_test_regular" "$trace_test_regular_id" || return 1
     selftest_trace_non_lock_fields_equal "$trace_test_regular" \
@@ -851,7 +1010,7 @@ run_interruption_trace_selftests() (
         TRACE_INVOCATION cross-invocation-row || return 1
 
     selftest_trace_writer_gate_tests "$trace_test_root" || return 1
-    printf 'state session interruption trace selftest: %s cases passed (36 original + 4 lock cases)\n' "$trace_selftest_count"
+    printf 'state session interruption trace selftest: %s cases passed (40 retained + 11 lifecycle/QUIT cases)\n' "$trace_selftest_count"
 )
 
 selftest_owner_sidecar_collision() {
@@ -1166,6 +1325,11 @@ run_interruption_capture_selftests() {
     selftest_run_id=$(mono_ms)-$$
     selftest_root="$selftest_root/selftest-$selftest_run_id"
     mkdir -p "$selftest_root"
+
+    if [ -n "${STATE_SESSION_TDD_CASE:-}" ]; then
+        run_interruption_trace_selftests "$selftest_root"
+        return $?
+    fi
 
     if selftest_owner_sidecar_collision "$selftest_root"; then
         printf 'state session owner-sidecar selftest: actual collision preserved foreign object bytes and identity\n'
