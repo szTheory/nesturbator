@@ -8,7 +8,7 @@ open: 5
 
 # Plan 16-16 review disposition — blocked for amendment
 
-The fresh independent review at `7a6b1aaa87c9f8eb244aa1e901becc32352ecf4e` is preserved in `16-16-REVIEW.md` and reports one BLOCKER and four WARNINGs. It was performed in a separate context by `gsd-code-reviewer` resolved to `gpt-6-luna` at `xhigh` effort. The review artifact is committed as `4ea3d716719b12a78fd34c1bf941f166f2a0d6c6` with SHA-256 `f2af860921b2a6e55ea51fc5a420de7ecfe1a1fc13dc06f3defb76d1df4873b5`.
+The fresh independent review at `7a6b1aaa87c9f8eb244aa1e901becc32352ecf4e` is preserved in `16-16-REVIEW.md` and reports one BLOCKER and four WARNINGs. It was performed in a separate context by `gsd-code-reviewer` resolved to `gpt-6-luna` at `xhigh` effort. The review artifact is committed as `4ea3d71475ea8929077a8dda9cfc30253863ad7b` with SHA-256 `f2af860921b2a6e55ea51fc5a420de7ecfe1a1fc13dc06f3defb76d1df4873b5`.
 
 | Finding | Disposition | Evidence / remaining obligation |
 |---|---|---|
