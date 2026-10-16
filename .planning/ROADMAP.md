@@ -68,7 +68,7 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans**: 9/11 live complete; Plans01–06,09,15 and21 complete. Plan21 repairs CR-01 at38e14fb, with causal same-harness RED/eight-case GREEN, current-source649/649 full workflow, three fresh checked local ZIPs, independent clean six-path review/open0, and mandatory parent build/full-workflow repeat passed. [Summary](phases/16-host-evidence-and-roadmap/16-21-SUMMARY.md) binds the source and evidence.07 is next for partialPR50 reconciliation and native exact-head CI/perf/pinned-host, exact-head owner consent and normal publication;08 still requires actual released-byte proof.21physical/11live;10–14/16–20 remain superseded incomplete with every historical failed run preserved. Global requirements, phase verification and historical native timing causes are unchanged.
+**Plans**: 9/11 live complete; Plans01–06,09,15 and21 complete. Plan21 repairs CR-01 at38e14fb, with causal same-harness RED/eight-case GREEN, current-source649/649 full workflow, three fresh checked local ZIPs, independent clean six-path review/open0, and mandatory parent build/full-workflow repeat passed. [Summary](phases/16-host-evidence-and-roadmap/16-21-SUMMARY.md) binds the source and evidence.07Task1 pushed65c3a7f but fresh native run38976400182 failed hygiene formatting, Linux/ASan owner-sidecar proof and ASan/Intel readiness/Intel cleanup-matrix timing. Perf/pinned-host passed; causes beyond assertions remain unproven.07stays incomplete pending a bounded gap amendment and fresh source/native acceptance, exact-head consent and normal publication;08 still requires actual released-byte proof. See16-RELEASE-DELIVERY.21physical/11live;10–14/16–20 remain superseded incomplete with every historical failed run preserved. Global requirements, phase verification and historical native timing causes are unchanged.
 
 Plans:
 **Wave 1**
@@ -193,7 +193,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 9/11 | Plan21 cleanup and local gates passed; native/release evidence pending | - |
+| 16. Host evidence and roadmap | v4 | 9/11 | Plan07 native CI failed; bounded repair required; no release | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 
