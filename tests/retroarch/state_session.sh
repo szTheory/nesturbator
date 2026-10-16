@@ -27,45 +27,114 @@ START_MS=$(clock_ms) || { echo "state_session: MONOTONIC_CLOCK_UNAVAILABLE" >&2;
 case "$START_MS" in *[!0-9]*|'') echo "state_session: MONOTONIC_CLOCK_UNAVAILABLE" >&2; exit 2 ;; esac
 ATTEMPT_ID="attempt-${START_MS}-$$"; ATTEMPT_DIR="$RA_DIR/attempts/$ATTEMPT_ID"
 LOCK_DIR="$LOCK_ROOT/nesturbator-retroarch-55355.lock"
-# The token-bearing hard link publishes ownership atomically so signal cleanup can recognize it.
+# The noclobber-created file identity binds cleanup across hard-link publication and signals.
 LOCK_TOKEN=$ATTEMPT_ID
 LOCK_OWNER_FILE="$LOCK_ROOT/nesturbator-retroarch-55355.lock.owner.$ATTEMPT_ID"
 LOCK_OWNER_ALIAS="$LOCK_DIR/${LOCK_OWNER_FILE##*/}"
+LOCK_OWNER_CREATED=0; LOCK_OWNER_IDENTITY=
+LOCK_ACQUISITION_ACTIVE=0; LOCK_PENDING_SIGNAL=
+lock_owner_path_is_created() {
+    [ "$LOCK_OWNER_CREATED" -eq 1 ] && [ -n "$LOCK_OWNER_IDENTITY" ] || return 1
+    [ -f "$1" ] && [ ! -L "$1" ] || return 1
+    _lock_owner_identity=$(perl -e '
+        my @path = lstat($ARGV[0]);
+        @path or exit 1;
+        print "$path[0]:$path[1]\n";
+    ' "$1" 2>/dev/null) || return 1
+    [ "$_lock_owner_identity" = "$LOCK_OWNER_IDENTITY" ]
+}
 release_owned_lock() {
     trap '' INT TERM HUP
-    if [ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
+    if lock_owner_path_is_created "$LOCK_DIR" &&
         [ "$(cat "$LOCK_DIR" 2>/dev/null)" = "$LOCK_TOKEN" ]; then
         rm -f "$LOCK_DIR" 2>/dev/null || true
     fi
-    if [ -d "$LOCK_DIR" ] && [ -f "$LOCK_OWNER_ALIAS" ] && [ ! -L "$LOCK_OWNER_ALIAS" ] &&
+    if [ -d "$LOCK_DIR" ] && lock_owner_path_is_created "$LOCK_OWNER_ALIAS" &&
         [ "$(cat "$LOCK_OWNER_ALIAS" 2>/dev/null)" = "$LOCK_TOKEN" ]; then
         rm -f "$LOCK_OWNER_ALIAS" 2>/dev/null || true
     fi
-    if [ -f "$LOCK_OWNER_FILE" ] && [ ! -L "$LOCK_OWNER_FILE" ]; then
+    if lock_owner_path_is_created "$LOCK_OWNER_FILE"; then
         rm -f "$LOCK_OWNER_FILE" 2>/dev/null || true
     fi
+    return 0
 }
 trap release_owned_lock EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
-trap 'exit 129' HUP
-(set -C; printf '%s\n' "$LOCK_TOKEN" >"$LOCK_OWNER_FILE") 2>/dev/null || {
+lock_acquisition_signal() {
+    _lock_signal=$1
+    if [ "$LOCK_ACQUISITION_ACTIVE" -eq 1 ]; then
+        [ -n "$LOCK_PENDING_SIGNAL" ] || LOCK_PENDING_SIGNAL=$_lock_signal
+        return 0
+    fi
+    case "$_lock_signal" in
+        INT) exit 130 ;;
+        TERM) exit 143 ;;
+        HUP) exit 129 ;;
+    esac
+}
+lock_acquisition_finish() {
+    LOCK_ACQUISITION_ACTIVE=0
+    _lock_pending_signal=$LOCK_PENDING_SIGNAL
+    LOCK_PENDING_SIGNAL=
+    case "$_lock_pending_signal" in
+        INT) exit 130 ;;
+        TERM) exit 143 ;;
+        HUP) exit 129 ;;
+    esac
+}
+trap 'lock_acquisition_signal INT' INT
+trap 'lock_acquisition_signal TERM' TERM
+trap 'lock_acquisition_signal HUP' HUP
+LOCK_ACQUISITION_ACTIVE=1
+exec 8>&2
+set -C
+if exec 9>"$LOCK_OWNER_FILE" 2>/dev/null; then
+    exec 2>&8 8>&-
+    LOCK_OWNER_CREATED=1
+    set +C
+    if ! printf '%s\n' "$LOCK_TOKEN" >&9; then
+        exec 9>&-
+        lock_acquisition_finish
+        echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2
+        exit 1
+    fi
+    LOCK_OWNER_IDENTITY=$(perl -e '
+        open my $owner, ">&=9" or exit 1;
+        my @owner = stat($owner);
+        @owner or exit 1;
+        print "$owner[0]:$owner[1]\n";
+    ' 2>/dev/null) || LOCK_OWNER_IDENTITY=
+    if [ -z "$LOCK_OWNER_IDENTITY" ] || ! lock_owner_path_is_created "$LOCK_OWNER_FILE"; then
+        exec 9>&-
+        lock_acquisition_finish
+        echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2
+        exit 1
+    fi
+    exec 9>&-
+else
+    exec 2>&8 8>&-
+    set +C
+    lock_acquisition_finish
     echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2
     exit 1
-}
+fi
 if [ -d "$LOCK_DIR" ] || [ -L "$LOCK_DIR" ]; then
+    lock_acquisition_finish
     echo "state_session: ENDPOINT_BUSY" >&2
     exit 1
 fi
 ln "$LOCK_OWNER_FILE" "$LOCK_DIR" 2>/dev/null || {
+    lock_acquisition_finish
     echo "state_session: ENDPOINT_BUSY" >&2
     exit 1
 }
 [ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
+    lock_owner_path_is_created "$LOCK_DIR" &&
     [ "$(cat "$LOCK_DIR" 2>/dev/null)" = "$LOCK_TOKEN" ] || {
+    lock_acquisition_finish
     echo "state_session: ENDPOINT_BUSY" >&2
     exit 1
 }
+lock_acquisition_finish
 mkdir -p "$ATTEMPT_DIR/profile" "$ATTEMPT_DIR/states" "$ATTEMPT_DIR/shots" "$ATTEMPT_DIR/originals" "$ATTEMPT_DIR/observations"
 JOURNAL="$ATTEMPT_DIR/journal.tsv"
 printf 'step\tclass\tsends\tattempt_elapsed_ms\tattempt_remaining_ms\toperation_elapsed_ms\toperation_remaining_ms\texpected\tobserved\tartifact\treason\n' >"$JOURNAL"

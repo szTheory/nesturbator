@@ -1601,6 +1601,10 @@ journal snapshots whose device, inode and size come from each snapshot's open
 handle. `STATE_SESSION_CONTROL=interruption-capture-selftest` checks status 0,
 1 and controlled 2, recorder failures, replacement while the old handle stays
 open, and per-invocation event ownership before any fixture or driver work.
+It also drives an exact foreign owner-sidecar collision through the real startup
+path and verifies refusal preserves its bytes. Another actual-driver control
+replaces the owner pathname after hard-link publication, sends TERM, and checks
+cleanup releases the original lock object while preserving the replacement.
 These nearby snapshots do not identify the bytes read by grep; the tests prove
 the recorder contract, not which bytes grep read. The shared capture boundary
 receives its owned session ID explicitly; the nested `capture` directory name
@@ -1613,13 +1617,20 @@ identity checks add to the seven capture and 36 trace cases. The retained
 mixed-ID observation remains unchanged. The 36 existing trace cases remain; four
 additional cases cover the actual token-bearing regular-lock lifecycle, two
 field-14-only lock mutants and dangling-symlink occupancy. The trace writer
-records object occupancy without using it as ownership authority; the driver
-still releases only token-matched lock state. The prior corrected candidate's
-registered CI rejected its directory-only lock-presence observation. This
-offline writer/validator regression now covers that mismatch, while exact current
-registered CI, ASan and full-workflow acceptance remain required. The historical
-assertion cause remains unknown; fresh native acceptance and actual release
-publication remain pending Plans 07 and 08.
+records object occupancy without using it as ownership authority. Cleanup
+requires the filesystem identity captured from this invocation's successful
+noclobber creation as well as the token-bearing hard link; failed creation and a
+replaced owner pathname do not authorize deleting a foreign object. The prior
+corrected candidate `0268d3450f64392911a187ce5c040847fda5f8f8` passed focused CI
+10/10, ASan 2/2 and normal CI 649/649 with three ZIPs. Its source remained
+unchanged at review candidate `7a6b1aaa87c9f8eb244aa1e901becc32352ecf4e`, whose
+independent review left five open findings. Those are immutable historical
+results, not acceptance of this correction. The authoritative candidate/result
+register for corrected-source gates and review is
+`.planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md`.
+The historical assertion and native timing causes remain unknown. Fresh
+native/exact-head acceptance and owner consent, plus actual release publication,
+remain separate work in Plans 07 and 08.
 The source-only `tests/retroarch/interruption_trace.sh` is shared by the real
 driver and harness. Before fixture or driver work, the offline selector runs the
 same writer and validator through handler entry, journal close and cleanup. Its
@@ -1632,9 +1643,11 @@ The 36 original trace cases cover lifecycle admission, independent mutation
 failures, invocation separation and writer rejection paths. Four additional
 lock cases cover regular-file occupancy through cleanup, field-14-only admission
 mutants and dangling-symlink occupancy. These are bounded offline recorder
-checks; current registered source acceptance remains incomplete until the exact
-CI/ASan/full-workflow selections and independent review pass. They do not explain
-the historical assertion, whose cause remains unknown.
+checks. Corrected-source gates and independent review are tracked in the
+authoritative Plan 17 candidate/result register at
+`.planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md`.
+These checks do not explain the historical assertion, whose cause remains
+unknown.
 The journal writes each row in one Perl process, taking one monotonic observation
 for attempt elapsed and remaining time and applying the existing path
 substitutions in that same write. A stopped operation uses its captured terminal

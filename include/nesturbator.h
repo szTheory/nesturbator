@@ -524,6 +524,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * from recorder status. Binary pre/post journal snapshots copy through one open handle and bind
  * that handle's device, inode and size; they do not identify the bytes grep read. Synthetic tests
  * cover statuses 0, 1 and controlled 2, recorder errors, pathname replacement and event ownership.
+ * Actual-driver startup controls also prove a failed owner-sidecar create preserves a foreign
+ * object, and that TERM cleanup releases its original hard link without removing a replacement
+ * owner pathname.
  * This establishes diagnostic capture behavior only; it does not attribute an earlier failure
  * or accept a repair.
  * A source-only interruption trace include is shared by the driver and harness. Before fixture
@@ -540,11 +543,17 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * capture cases and 36 original trace cases, all without launching the driver. Four additional
  * lock cases cover regular-file occupancy, field-14-only mutants and dangling-symlink occupancy.
  * The retained mixed-ID observation remains unchanged. Trace occupancy does not grant ownership;
- * the driver still releases only token-matched lock state. The prior corrected candidate's
- * registered CI rejected its directory-only lock observation. Offline writer/validator coverage
- * now exercises that mismatch, while exact current registered CI, ASan, full-workflow acceptance
- * and independent review remain required. The original historical assertion cause remains unknown;
- * fresh native acceptance and actual release publication remain pending Plans 07 and 08.
+ * cleanup requires the filesystem identity captured from this invocation's successful noclobber
+ * creation as well as the token-bearing hard link. Failed creation or a replaced owner pathname
+ * grants no authority to remove a foreign object. The prior corrected candidate
+ * `0268d3450f64392911a187ce5c040847fda5f8f8` passed focused CI 10/10, ASan 2/2 and normal CI
+ * 649/649 with three ZIPs. Its source remained unchanged at review candidate
+ * `7a6b1aaa87c9f8eb244aa1e901becc32352ecf4e`, whose independent review left five open findings;
+ * these historical results do not accept this correction. The authoritative corrected-source
+ * candidate/result register for Plan 17 gates and review is
+ * `.planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md`. The original
+ * historical assertion and native timing causes remain unknown. Fresh native/exact-head acceptance
+ * and owner consent, plus actual release publication, remain separate work in Plans 07 and 08.
  * A stopped operation uses its captured terminal observation, a live operation uses the row
  * observation, and an inactive row carries the last completed operation values. The focused
  * readiness control runs the delayed exact-reply and response-stall full prefixes once each, in
