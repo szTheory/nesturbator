@@ -2,7 +2,7 @@
 phase: 16-host-evidence-and-roadmap
 plan: "12"
 status: incomplete
-evidence_status: capture-ready
+evidence_status: observation-inconclusive
 observation_budget:
   ci: consumed-passing-observation
   ci_seconds: 4.18
