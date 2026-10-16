@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plan 20 verified; ready for gap-only execution
-last_updated: "2026-10-16T18:38:03.591Z"
+status: blocked
+stopped_at: Plan 20 stopped after independent review blocker CR-01
+last_updated: "2026-10-16T19:27:03.647Z"
 last_activity: 2026-10-16
-last_activity_desc: Plan 20 report-parser recovery planned and independently verified
-state_head: dfaa1eb242c36ccc70c516621374a03ba4da4b4a
+last_activity_desc: Plan 20 full workflow passed; independent review found one open cleanup blocker
+state_head: f609576dcdbfc486664b9d6d543d8c027ffbb137
 progress:
   total_phases: 3
   completed_phases: 0
@@ -29,15 +29,16 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
-Plan: 16-20 ready; 8/11 live complete; 20 physical; 10–14/16/17/18/19 superseded incomplete
-Status: Plan20 independently verified; only20 DAG-ready,07/08 blocked on remaining gates
-Retained execution evidence: Plan18 OFFLINE passed in5s, exact registeredCI10/10 in237.84s andASan2/2 in298.65s without sanitizer diagnostics. Evidence commits96ea803 and9e4e2a6 bind unchanged candidate16f7804205afb49459b46b936509e41e8d5566c6 and exact unstaged config. Its failed FULL launcher and all partial17 corrections remain without SUMMARY/credit.20 conditionally adopts those passes after byte/status/report/source/environment verification; no renewed selector or diagnostic allowance.
+Phase: 16 (Host evidence and roadmap) — BLOCKED ON GAP PLANNING
+Plan: 16-20 terminal incomplete; 8/11 live complete; 20 physical; 10–14/16/17/18/19 superseded incomplete
+Status: Task1 passed; Task2 issues_found/open1; no Task3/SUMMARY or07handoff
+Retained execution evidence: Plan18 OFFLINE passed in5s, exact registeredCI10/10 in237.84s andASan2/2 in298.65s without sanitizer diagnostics. Evidence commits96ea803 and9e4e2a6 bind unchanged candidate16f7804205afb49459b46b936509e41e8d5566c6 and exact unstaged config. Its failed FULL launcher and all partial17 corrections remain without SUMMARY/credit.20 verified/adopted those passes after byte/status/report/source/environment checks; no renewed selector or diagnostic allowance.
 Historical19 stop: Partial0e94f99 and parentdfaa1eb preserve original FAIL/full_started:false/planned FULL. The exact-line parser rejected valid8ordinary+2registered-regex successes in the retained10-test report; no launcher identity/smoke/FULL/review/SUMMARY or formal adoption ran.19 is superseded incomplete, its entire body and raw evidence unchanged.
-Current20 planning: Shared metadata-bound parser replaces both retained and full exact-line checks. Safe read-only fragments passed actual CI10/ASan2/historical649 reports,4positive categories and20negative controls; historical full is format evidence only. Independent typed checker passed11live plans with zero findings;6/6requirements,17/17decisions and39source groups remain represented. These planning checks confer no runtime acceptance.
-Resume safety:20depends completed15 atwave8;07depends20 atwave9;08depends07 atwave10. Fresh20 scope must resolve no-matching-commits/commits=[] after planning commit and immediately before dispatch under normal safe_resume. Partial07/PR50 still requires reconciliation. Preserve normal649/649/jobs4/threefreshZIPs, fresh independent exact-commit six-path cleanreview/open0 and EVERY mandatory later parent gate, including configured full-workflow repeat; any failure blocks07.
+Historical20 planning: Shared metadata-bound parser replaces both retained and full exact-line checks. Safe read-only fragments passed actual CI10/ASan2/historical649 reports,4positive categories and20negative controls; historical full is format evidence only. Independent typed checker passed11live plans with zero findings;6/6requirements,17/17decisions and39source groups remain represented. These planning checks confer no runtime acceptance.
+Current20 execution: Task1 PASS on unchanged candidate: shared parser/controls accepted actual formats; one resolved launcher/smoke led to normal649/649/jobs4/configure/build/test/package and three fresh actualZIPs. Acceptance commit772dbb0 is retained. One fresh independent six-path review at that commit found CR-01 BLOCKER: failed cleanup QUIT request write under set-e can skip host reap and endpoint-lock release. Review/disposition SHA binding and open1 are committed in f609576; previous five review findings appear addressed. No source fix, second review, Task3, SUMMARY or credit.
+Resume safety:20 has partial commits772dbb0/f609576 without SUMMARY; normal safe_resume blocks unchanged replay even though DAG-ready. FULL and review slots are consumed; a substantive gap amendment must reconcile CR-01 and acceptance identities before any correction/new execution.07/08 remain blocked; partial07/PR50 still requires reconciliation. All mandatory parent gates including configured full-workflow repeat remain unperformed because20 stopped before plan completion; native exact-final-headCI, affirmative owner consent, publication and release-byte proof remain pending.
 Historical17stop: outer60s CI exit124 after9completed passes/controls unfinished; orchestration mistake, not demonstrated session defect. Raw failure/partialwork retained, no17SUMMARY/credit; historical assertion/native causesUNKNOWN. Native exact-headCI/ownerconsent/publication07 and actual18assets/sixinfo/exactreleaseCI08 pending.
-Last activity: 2026-10-16 — Plan20 evidence-only recovery planned and independently verified
+Last activity: 2026-10-16 — Plan20 stopped incomplete after full acceptance passed and independent review found CR-01
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -340,7 +341,9 @@ None.
 
 ### Blockers/Concerns
 
-- **Current verified Plan20 recovery — 2026-10-16:** [Plan20](phases/16-host-evidence-and-roadmap/16-20-PLAN.md) and [amendment](phases/16-host-evidence-and-roadmap/16-20-AMENDMENT.md) supersede incomplete19, correcting both report checks with one metadata-bound parser. Actual10/2/649-format reports and4positive/20negative controls pass; independent checker returned VERIFICATION PASSED with no findings. All11live plans,6requirements,17decisions and39source items remain covered. Only20ready;07/08blocked. Source/config/history unchanged, no runtime acceptance/credit. Retained18 adoption, one900s full workflow/threefreshZIPs, independent six-path cleanreview/open0 and every mandatory parent/native/consent/publication gate remain. Fresh20 scope is required after commit and before dispatch.
+- **Current Plan20 execution stop — 2026-10-16:** [Acceptance](phases/16-host-evidence-and-roadmap/16-20-SOURCE-ACCEPTANCE.md) adopts verified18 evidence and records one actual normal649/649/jobs4/four-stage workflow with three fresh checkedZIPs. Commit772dbb0 retains that PASS. The fresh exact-commit six-path [review](phases/16-host-evidence-and-roadmap/16-20-REVIEW.md) and digest-bound [disposition](phases/16-host-evidence-and-roadmap/16-20-REVIEW-DISPOSITION.md) report issues_found/open1: CR-01 cleanup QUIT write under set-e can skip owned host reap and lock release. Partialf609576 preserves the blocker; source/config/history unchanged. No automatic fix, second review, Task3/SUMMARY, parent repeat or07dispatch. Next `$gsd-plan-phase 16 --gaps` must substantively authorize and test failure-safe cleanup while reconciling consumed slots/current candidate; normal safe_resume forbids replay.08/publication/native/ownerconsent and every later gate remain pending.
+
+- **Historical verified Plan20 recovery — 2026-10-16:** [Plan20](phases/16-host-evidence-and-roadmap/16-20-PLAN.md) and [amendment](phases/16-host-evidence-and-roadmap/16-20-AMENDMENT.md) supersede incomplete19, correcting both report checks with one metadata-bound parser. Actual10/2/649-format reports and4positive/20negative controls pass; independent checker returned VERIFICATION PASSED with no findings. All11live plans,6requirements,17decisions and39source items remain covered. Only20ready;07/08blocked. Source/config/history unchanged, no runtime acceptance/credit. Retained18 adoption, one900s full workflow/threefreshZIPs, independent six-path cleanreview/open0 and every mandatory parent/native/consent/publication gate remain. Fresh20 scope is required after commit and before dispatch.
 
 - **Historical Plan19 execution stop — 2026-10-16:** [Acceptance evidence](phases/16-host-evidence-and-roadmap/16-19-SOURCE-ACCEPTANCE.md) records terminal preflight and the append-only correction: the retained report has8 `Test Passed.` plus2 registered `Test Pass Reason:` successes, consistent with stdout10/10. The exact-line parser rejected valid CTest output. No launcher smoke/FULL/review/SUMMARY/new tests or credit. Partial0e94f99/noSUMMARY blocks unchanged safe resume. Next `$gsd-plan-phase 16 --gaps` should substantively correct both retained/full report checks and validate real-log/negative controls before finite acceptance; keep source/config, history and every later gate intact.
 
@@ -416,15 +419,16 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T18:39:50.364781+00:00
-Stopped at: Plan 20 verified; ready for gap-only execution
+Last session: 2026-10-16T19:27:03.647Z
+Stopped at: Plan20 terminal review blocker CR-01; partial evidence committed; no SUMMARY
 Resume file: .planning/phases/16-host-evidence-and-roadmap/16-20-PLAN.md
 
-Next GSD command: $gsd-execute-phase 16 --gaps-only
+Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Run `$gsd-execute-phase 16 --gaps-only`. Only20 is DAG-ready; recheck its fresh resolved empty scope immediately before dispatch. Preserve superseded19 partial0e94f99/FAIL and all prior evidence without replay or SUMMARY.
-- 20 verifies/adopts actual18 passes, validates the same corrected parser and controls before launcher preflight, then consumes one normal900s full649/649/jobs4/threefreshZIP workflow and one independent exact-commit six-path review. No source/config/test semantic or timing changes, new selected-test or standalone diagnostic allowance.
-- Every mandatory later parent gate remains, including configured full-workflow repeat; any failure revokes handoff before07. Historical assertion/native causes remain UNKNOWN.07 retains exact-final-head native CI, affirmative owner consent and normal publication;08 retains actual18archives/checksums/attestations/sixmetadata/exactreleaseCI.
-- Counts20physical/11live/8complete; completed01–06/09/15 and historical21/22verification/fingerprint remain. No requirement/phase completion, release or PRODUCT-ROADMAP upkeep occurred in this planning step.
+- Run `$gsd-plan-phase 16 --gaps` to reconcile partial20 commits772dbb0/f609576 and open CR-01. Do not replay20 or infer an unused acceptance/review allowance from missing SUMMARY.
+- Recommended scope: make cleanup QUIT materialization best-effort and guarantee owned-host reap and endpoint-lock release when that write fails; require a reason-specific regression plus current acceptance/review under a substantive amendment. No source correction or new runtime allowance is authorized by this tracking update.
+- Preserve actual20 Task1PASS/threefreshZIPs, adopted18 passes, failed18launcher/19parser and all17partialhistory. A successor must bind acceptance to its actual source identities; unchanged-candidate evidence alone cannot prove corrected code.
+- Every mandatory parent gate remains, including configured full-workflow repeat; no later gate ran after terminal review failure. Historical assertion/native causes remain UNKNOWN.07 retains exact-final-head nativeCI, affirmative owner consent and normal publication;08 retains actual18archives/checksums/attestations/sixmetadata/exactreleaseCI.
+- Counts20physical/11live/8complete; completed01–06/09/15 and historical21/22verification/fingerprint remain. No requirement/phase completion, release or PRODUCT-ROADMAP upkeep occurred in this execution step.
