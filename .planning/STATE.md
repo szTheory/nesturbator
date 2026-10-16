@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready
-stopped_at: Plan 21 gap planning verified; ready for execution after normal safe-resume preflight
-last_updated: "2026-10-16T20:21:00.016Z"
+status: executing
+stopped_at: "Blocked 16-21 before runtime: conflicting complete-path timing bound"
+last_updated: "2026-10-16T20:44:37.727Z"
 last_activity: 2026-10-16
-last_activity_desc: Plan 21 gap planning passed independent review with zero findings; six requirements and seventeen decisions covered
-state_head: 43a8e0faf0ecc57f350459314851eb1b319ad3dd
+last_activity_desc: Phase 16 execution started
+state_head: e723210c8526ae9d87e9f4266a7dd46518c3f9eb
 progress:
   total_phases: 3
   completed_phases: 0
@@ -29,9 +29,9 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
-Plan: 16-21 ready; 8/11 live complete; 21 physical; 10–14/16/17/18/19/20 superseded incomplete
-Status: Ready to execute; independent planning check passed with zero findings; no21 execution, SUMMARY, runtime acceptance or07handoff
+Phase: 16 (Host evidence and roadmap) — EXECUTION BLOCKED
+Plan: 16-21 stopped before runtime; no task or acceptance slot consumed
+Status: Waiting for a substantive Plan 21 amendment and fresh independent check
 Current21 planning:21-PLAN/AMENDMENT define the CR-01 cleanup repair, causal actual-helper RED/GREEN, changed-source full workflow and fresh independent review. Live07/08 prerequisites consume21 and all mandatory parent gates; exact18-row released checksum mapping is enforced. Initial checker2blockers/1warning fell to1blocker and then stalled at1. The user chose revision, not override, on2026-10-16. The approved approach binds all8cases to their own canonical roots, case/invocation/launch/control identities and digest-bound raw files; rejects cross-case references/inode aliases; validates both writable malformed-readiness controls; and rechecks the binding through FULL/review handoff. An isolated synthetic causalRED+8GREEN proof passed and34binding mutants rejected. Fresh independent typed checker then passed all11live plans with0findings. Six requirements,17decisions and39source groups remain represented. See21-CHECK.md. The existing user config edit remains exact and excluded. Planning consumed no runtime gate or previous allowance and does not establish the repair or runtime acceptance.
 Retained execution evidence: Plan18 OFFLINE passed in5s, exact registeredCI10/10 in237.84s andASan2/2 in298.65s without sanitizer diagnostics. Evidence commits96ea803 and9e4e2a6 bind unchanged candidate16f7804205afb49459b46b936509e41e8d5566c6 and exact unstaged config. Its failed FULL launcher and all partial17 corrections remain without SUMMARY/credit.20 verified/adopted those passes after byte/status/report/source/environment checks; no renewed selector or diagnostic allowance.
 Historical19 stop: Partial0e94f99 and parentdfaa1eb preserve original FAIL/full_started:false/planned FULL. The exact-line parser rejected valid8ordinary+2registered-regex successes in the retained10-test report; no launcher identity/smoke/FULL/review/SUMMARY or formal adoption ran.19 is superseded incomplete, its entire body and raw evidence unchanged.
@@ -39,7 +39,7 @@ Historical20 planning: Shared metadata-bound parser replaces both retained and f
 Historical20 execution: Task1 PASS on unchanged candidate: shared parser/controls accepted actual formats; one resolved launcher/smoke led to normal649/649/jobs4/configure/build/test/package and three fresh actualZIPs. Acceptance commit772dbb0 is retained. One fresh independent six-path review at that commit found CR-01 BLOCKER: failed cleanup QUIT request write under set-e can skip host reap and endpoint-lock release. Review/disposition SHA binding and open1 are committed in f609576; previous five review findings appear addressed. No source fix, second review, Task3, SUMMARY or credit.
 Resume safety:20 has partial commits772dbb0/f609576 without SUMMARY and is superseded incomplete by21. Its FULL and review slots remain consumed; do not replay20.21 is the sole remaining DAG-ready plan after completed15. Require the final planning commit, normal safe_resume reconciliation and fresh resolved/no-matching-commits/commits=[] evaluation scope before dispatch; planning commits use docs(16), not an execution-scoped21 subject.07/08 remain blocked; partial07/PR50 still requires reconciliation. All mandatory parent gates including configured full-workflow repeat remain unperformed because20 stopped before plan completion; native exact-final-headCI, affirmative owner consent, publication and release-byte proof remain pending.
 Historical17stop: outer60s CI exit124 after9completed passes/controls unfinished; orchestration mistake, not demonstrated session defect. Raw failure/partialwork retained, no17SUMMARY/credit; historical assertion/native causesUNKNOWN. Native exact-headCI/ownerconsent/publication07 and actual18assets/sixinfo/exactreleaseCI08 pending.
-Last activity: 2026-10-16 — Plan21 verified after the approved evidence-binding revision; ready for the next execute-phase step
+Last activity: 2026-10-16 — Phase 16 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -386,6 +386,7 @@ v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` a
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 - **Resolved — 2026-10-14:** Phase 16 Plan 03 completed on exact head 46543ad; workflow 38651381295 passed all required jobs and retained the pinned-host intended, dropped, doubled, and valid wrong-origin proof. EVID-01/02 are complete. Earlier interrupted/failed samples and their diagnoses are recorded in 16-03-SUMMARY.md; the direct push authorization was followed through the normal reviewed path. Plan 16-04 later completed EVID-03; Plan 16-05 is next.
 - Plan 16-17 terminal CI selection timed out at 60 seconds (exit 124; 9/10 passed, retroarch.session.controls unfinished); unchanged candidate was not retried and remaining acceptance gates were not run.
+- Plan 16-21 stopped before runtime: the required complete-path already-quit case is documented at 53.2 seconds while the plan requires <=5000 ms per driver; no slot consumed. Revise and independently check the bound or authorized test route before fresh dispatch.
 
 ### Quick Tasks Completed
 
@@ -420,9 +421,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T19:27:03.647Z
-Stopped at: Plan20 terminal review blocker CR-01; partial evidence committed; no SUMMARY
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-20-PLAN.md
+Last session: 2026-10-16T20:44:37.700Z
+Stopped at: Blocked 16-21 before runtime: conflicting complete-path timing bound
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-21-SOURCE-ACCEPTANCE.md
 
 Next GSD command: $gsd-plan-phase 16 --gaps
 
