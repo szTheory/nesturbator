@@ -1030,6 +1030,28 @@ verify_interruption_snapshots() {
     ' "$interruption_metadata_file"
 }
 
+capture_interruption_boundary() {
+    interruption_boundary_journal=$1
+    interruption_boundary_capture_dir=$2
+    interruption_boundary_session_id=$3
+    interruption_boundary_driver_pid=$4
+    interruption_boundary_stdout=$5
+    interruption_boundary_assertion_failure=0
+
+    record_interruption_event "$interruption_boundary_capture_dir" \
+        "$interruption_boundary_session_id" harness before-assertion 0 \
+        "$interruption_boundary_driver_pid" || true
+    capture_interruption_assertion interruption_grep INTERRUPTED_TERM \
+        "$interruption_boundary_journal" "$interruption_boundary_capture_dir" \
+        "$interruption_boundary_stdout" || true
+    interruption_assertion_decision || interruption_boundary_assertion_failure=1
+    record_interruption_event "$interruption_boundary_capture_dir" \
+        "$interruption_boundary_session_id" harness assertion-decision \
+        "$INTERRUPTION_ASSERTION_STATUS" "$interruption_boundary_driver_pid" || true
+
+    return "$interruption_boundary_assertion_failure"
+}
+
 run_interruption_control() {
     interruption_fixture_dir=$1
     interrupt_dir="$WORK_ROOT/session-$$-interrupt"
@@ -1135,14 +1157,10 @@ run_interruption_control() {
         harness selected-path 0 "$interrupt_driver" selected-first-expanded-candidate || true
 
     interrupt_journal="$interrupt_attempt/journal.tsv"
-    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
-        harness before-assertion 0 "$interrupt_driver" || true
-    capture_interruption_assertion interruption_grep INTERRUPTED_TERM \
-        "$interrupt_journal" "$interrupt_capture_dir" /dev/null || true
     interrupt_assertion_failure=0
-    interruption_assertion_decision || interrupt_assertion_failure=1
-    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
-        harness assertion-decision "$INTERRUPTION_ASSERTION_STATUS" "$interrupt_driver" || true
+    capture_interruption_boundary "$interrupt_journal" "$interrupt_capture_dir" \
+        "$interrupt_capture_id" "$interrupt_driver" /dev/null ||
+        interrupt_assertion_failure=1
 
     verify_interruption_snapshots "$interrupt_capture_dir/snapshot-metadata.tsv" ||
         mark_interruption_recorder_error snapshot-metadata-or-stability-invalid
