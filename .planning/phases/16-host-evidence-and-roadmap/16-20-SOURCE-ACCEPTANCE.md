@@ -4,14 +4,15 @@ plan: "20"
 record: source-acceptance
 status: incomplete
 task1_status: passed
-review_status: pending
+review_status: issues_found
+open_review_findings: 1
 candidate_source_commit: 16f7804205afb49459b46b936509e41e8d5566c6
 execution_head_before_task1: c0f82341033bdf5151ef44da1f150d611b7f6c35
 ---
 
 # Phase 16 Plan 20 Source Acceptance
 
-Task 1 passed on the immutable candidate source. This record distinguishes the retained Plan 18 passes adopted by the amended parser from the one new Plan 20 full workflow. Plan 20 remains incomplete until its fresh independent review and final handoff tasks pass.
+Task 1 passed on the immutable candidate source. This record distinguishes the retained Plan 18 passes adopted by the amended parser from the one new Plan 20 full workflow. The fresh independent Task 2 review found one blocker, so Plan 20 stopped incomplete without source edits, a review loop, Task 3, or a success-only summary.
 
 ## Scope and immutable identity
 
@@ -75,4 +76,10 @@ The full invocation, current report, registration metadata, parser controls, sou
 
 One auxiliary command-extraction wrapper stopped on its own trailing-newline assertion before launching the Task 1 command; it ran no plan gate, test selector, parser, runtime identity check or application. The corrected extractor then launched the exact plan command once. The Task 1 automated command completed once, exited 0 and recorded `status: PASS`; no workflow retry or separate test selector followed.
 
-Plan 17 remains partial; Plans 18 and 19 remain incomplete, with no replacement SUMMARY files. Plan 20's fresh independent exact-committed six-path review and final handoff are still pending. Parent post-wave and execute:post gates, the separate configured full-workflow repeat, native exact-final-head required/performance/pinned-host CI, affirmative exact-head owner consent, normal release publication, and Plan 08 actual release-byte/checksum/attestation/metadata/CI evidence remain distinct unperformed obligations. Historical assertion/native timing causes remain UNKNOWN. Nothing here claims Plan 07 readiness, phase completion, consent or publication.
+Plan 17 remains partial; Plans 18 and 19 remain incomplete, with no replacement SUMMARY files. Plan 20's fresh independent exact-committed six-path review completed with one open BLOCKER; the final handoff was not run. Parent post-wave and execute:post gates, the separate configured full-workflow repeat, native exact-final-head required/performance/pinned-host CI, affirmative exact-head owner consent, normal release publication, and Plan 08 actual release-byte/checksum/attestation/metadata/CI evidence remain distinct unperformed obligations. Historical assertion/native timing causes remain UNKNOWN. Nothing here claims Plan 07 readiness, phase completion, consent or publication.
+
+## Task 2 review failure and terminal stop
+
+The one fresh, independent, separate-context review was completed at the exact committed six-path source commit `772dbb0fdaedb3d8af52beeeab854943c867441b`. The reviewer used the installed resolver result `gpt-6-luna`, configured effort `xhigh`, and configured depth `standard`. The report's six blob entries match the candidate and reviewed commit. Review artifact SHA-256: `f7c6ddc6dfb8824dab1260844083db7a446ad613773c57a494664f0094690040`.
+
+The reviewer reported one BLOCKER, `CR-01`, at `tests/retroarch/state_session.sh:298`: with `set -e`, an unguarded cleanup QUIT request write can abort cleanup before the host reap and owned endpoint-lock release if the request write fails. The exact finding and concrete fix suggestion are retained in `16-20-REVIEW.md`; `16-20-REVIEW-DISPOSITION.md` records it as open. No source, test, README, header, preset, workflow, config, or historical evidence was changed in response. The actionable finding makes Task 2 fail terminally under this plan; no automatic fix, second review, Task 3 handoff, or SUMMARY was created.
