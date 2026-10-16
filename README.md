@@ -1594,6 +1594,15 @@ through the successful full sequence
 and reason-specific loss, duplication, stale/partial artifact, wrong-origin,
 host-death, stalled-child and deadline cases. Its stalled-read check measures
 elapsed time and confirms that the blocked child and owned host are reaped.
+The full matrix and the private `STATE_SESSION_CONTROL=interruption` selector
+share one TERM assertion path. That path invokes the genuine `grep -F` once,
+retains its numeric status and exact output bytes, and brackets it with binary
+journal snapshots whose device, inode and size come from each snapshot's open
+handle. `STATE_SESSION_CONTROL=interruption-capture-selftest` checks status 0,
+1 and controlled 2, recorder failures, replacement while the old handle stays
+open, and per-invocation event ownership before any fixture or driver work.
+These nearby snapshots do not identify the bytes read by grep; the tests prove
+the recorder contract, not a historical failure cause or repair acceptance.
 The journal writes each row in one Perl process, taking one monotonic observation
 for attempt elapsed and remaining time and applying the existing path
 substitutions in that same write. A stopped operation uses its captured terminal

@@ -519,6 +519,13 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * accepted by the local socket is not proof that RetroArch received it; each retained image and
  * native origin is checked by the shared progression verdict. The journal writes and sanitizes
  * each row in one Perl process, using one monotonic observation for attempt elapsed/remaining time.
+ * The POSIX interruption harness and its private selector share one unchanged TERM assertion:
+ * genuine grep runs once, with its numeric status and exact output bytes retained separately
+ * from recorder status. Binary pre/post journal snapshots copy through one open handle and bind
+ * that handle's device, inode and size; they do not identify the bytes grep read. Synthetic tests
+ * cover statuses 0, 1 and controlled 2, recorder errors, pathname replacement and event ownership.
+ * This establishes diagnostic capture behavior only; it does not attribute an earlier failure
+ * or accept a repair.
  * A stopped operation uses its captured terminal observation, a live operation uses the row
  * observation, and an inactive row carries the last completed operation values. The focused
  * readiness control runs the delayed exact-reply and response-stall full prefixes once each, in

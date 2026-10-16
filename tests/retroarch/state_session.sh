@@ -39,6 +39,7 @@ HOST_PID=; CHILD_PID=; FIRST_FAILURE=; LAST_REASON=OK; send_count=0; QUIT_SENT=0
 CURRENT_STEP=setup; CURRENT_CLASS=none; CURRENT_SENDS=0; CURRENT_EXPECTED=none; CURRENT_OBSERVED=none; CURRENT_ARTIFACT=none
 ACTIVE_OPERATION=; OPERATION_START_MS=; OPERATION_DEADLINE_MS=; OPERATION_BUDGET_MS=; OPERATION_STOP_MS=; OPERATION_DEADLINE_VALUE=0
 LAST_OP_ELAPSED_MS=0; LAST_OP_REMAINING_MS=0
+INTERRUPTION_TRACE_SEQUENCE=0; INTERRUPTION_TRACE_FAILED=0
 elapsed_ms() { _n=$(clock_ms) || return 1; [ "$_n" -ge "$START_MS" ] || return 1; echo $((_n-START_MS)); }
 remaining_ms() { _e=$(elapsed_ms) || return 1; _r=$((TIMEOUT_MS-_e)); [ "$_r" -gt 0 ] || _r=0; echo "$_r"; }
 begin_operation() {
@@ -162,6 +163,68 @@ record_row() {
         return 1
     fi
 }
+trace_interruption_event() {
+    [ "${STATE_SESSION_TEST_MODE:-}" = prefix ] &&
+        [ -n "${STATE_SESSION_TEST_INTERRUPT_INVOCATION:-}" ] &&
+        [ -n "${STATE_SESSION_TEST_INTERRUPT_TRACE:-}" ] || return 0
+    _trace_path=$STATE_SESSION_TEST_INTERRUPT_TRACE
+    _trace_errors=${STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS:-}
+    _trace_error=0
+    if [ "$_trace_path" != "$RA_DIR/interruption-events.tsv" ] ||
+        [ "$_trace_errors" != "$RA_DIR/interruption-trace-errors.tsv" ] ||
+        [ -L "$_trace_path" ] || [ -L "$_trace_errors" ] ||
+        { [ "$INTERRUPTION_TRACE_SEQUENCE" -eq 0 ] && [ -e "$_trace_path" ]; }; then
+        _trace_error=1
+    fi
+    if [ "$_trace_error" -eq 0 ]; then
+        INTERRUPTION_TRACE_SEQUENCE=$((INTERRUPTION_TRACE_SEQUENCE + 1))
+        _trace_host_pid=${HOST_PID:-unavailable}
+        _trace_host_alive=unavailable
+        if [ -n "$HOST_PID" ]; then
+            if kill -0 "$HOST_PID" 2>/dev/null; then _trace_host_alive=1; else _trace_host_alive=unavailable; fi
+        fi
+        _trace_child_pid=${CHILD_PID:-unavailable}
+        _trace_child_alive=unavailable
+        if [ -n "$CHILD_PID" ]; then
+            if kill -0 "$CHILD_PID" 2>/dev/null; then _trace_child_alive=1; else _trace_child_alive=unavailable; fi
+        fi
+        _trace_lock=absent
+        [ ! -d "$LOCK_DIR" ] || _trace_lock=present
+        _trace_first_failure=${FIRST_FAILURE:-none}
+        STATE_INTERRUPT_TRACE="$_trace_path" STATE_INTERRUPT_ID="$STATE_SESSION_TEST_INTERRUPT_INVOCATION" \
+        STATE_INTERRUPT_SEQUENCE="$INTERRUPTION_TRACE_SEQUENCE" STATE_INTERRUPT_EVENT="$1" \
+        STATE_INTERRUPT_STATUS="$2" STATE_INTERRUPT_DRIVER_PID="$$" \
+        STATE_INTERRUPT_HOST_PID="$_trace_host_pid" STATE_INTERRUPT_HOST_ALIVE="$_trace_host_alive" \
+        STATE_INTERRUPT_CHILD_PID="$_trace_child_pid" STATE_INTERRUPT_CHILD_ALIVE="$_trace_child_alive" \
+        STATE_INTERRUPT_QUIT_SENT="$QUIT_SENT" STATE_INTERRUPT_JOURNAL_FAILED="$JOURNAL_FAILED" \
+        STATE_INTERRUPT_LOCK="$_trace_lock" STATE_INTERRUPT_SEND_COUNT="$send_count" \
+        STATE_INTERRUPT_FIRST_FAILURE="$_trace_first_failure" \
+        perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e '
+            use strict;
+            use warnings;
+            my $now = sprintf("%.0f", clock_gettime(CLOCK_MONOTONIC) * 1000);
+            die "invalid monotonic trace value" unless $now =~ /\A[0-9]+\z/;
+            open my $trace, ">>:raw", $ENV{STATE_INTERRUPT_TRACE} or die "trace open failed: $!";
+            printf {$trace} "%s\tdriver\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+                @ENV{qw(STATE_INTERRUPT_ID STATE_INTERRUPT_SEQUENCE)}, $now,
+                @ENV{qw(STATE_INTERRUPT_EVENT STATE_INTERRUPT_STATUS STATE_INTERRUPT_DRIVER_PID
+                    STATE_INTERRUPT_HOST_PID STATE_INTERRUPT_HOST_ALIVE STATE_INTERRUPT_CHILD_PID
+                    STATE_INTERRUPT_CHILD_ALIVE STATE_INTERRUPT_QUIT_SENT STATE_INTERRUPT_JOURNAL_FAILED
+                    STATE_INTERRUPT_LOCK STATE_INTERRUPT_SEND_COUNT STATE_INTERRUPT_FIRST_FAILURE)};
+            close $trace or die "trace close failed: $!";
+        ' 2>/dev/null || _trace_error=1
+    fi
+    if [ "$_trace_error" -ne 0 ]; then
+        INTERRUPTION_TRACE_FAILED=1
+        if [ -n "$_trace_errors" ]; then
+            printf '%s\t%s\t%s\n' \
+                "${STATE_SESSION_TEST_INTERRUPT_INVOCATION:-unavailable}" "$1" "$$" \
+                >>"$_trace_errors" 2>/dev/null || true
+        fi
+        return 1
+    fi
+    return 0
+}
 sanitize_file() {
     SESSION_ATTEMPT_DIR=$ATTEMPT_DIR SESSION_PROJECT_ROOT=$PROJECT_ROOT SESSION_RA_DIR=$RA_DIR perl -pe \
         's/\Q$ENV{SESSION_ATTEMPT_DIR}\E/<attempt>/g; s/\Q$ENV{SESSION_PROJECT_ROOT}\E/<workspace>/g; s/\Q$ENV{SESSION_RA_DIR}\E/<retroarch>/g' "$1" >"$2"
@@ -225,7 +288,23 @@ stop_operation_clock() {
     [ "$OPERATION_STOP_NOW" -ge "$OPERATION_START_MS" ] || return 1
     OPERATION_STOP_MS=$OPERATION_STOP_NOW
 }
-on_signal() { [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE="INTERRUPTED_$1"; stop_operation_clock || true; LAST_REASON=$FIRST_FAILURE; record_row || true; cleanup; trap - INT TERM HUP; exit 130; }
+on_signal() {
+    trace_interruption_event handler-entry 0 || true
+    [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE="INTERRUPTED_$1"
+    stop_operation_clock || true
+    LAST_REASON=$FIRST_FAILURE
+    _signal_row_status=0
+    if [ "$JOURNAL_FAILED" -eq 0 ]; then record_row || _signal_row_status=$?; else _signal_row_status=1; fi
+    if [ "$_signal_row_status" -eq 0 ] && [ "$JOURNAL_FAILED" -eq 0 ]; then
+        trace_interruption_event journal-close-success 0 || true
+    else
+        trace_interruption_event journal-close-failed "$_signal_row_status" || true
+    fi
+    cleanup
+    trace_interruption_event handler-exit 130 || true
+    trap - INT TERM HUP
+    exit 130
+}
 trap cleanup EXIT; trap 'on_signal INT' INT; trap 'on_signal TERM' TERM; trap 'on_signal HUP' HUP
 fail() { stop_operation_clock || true; [ -n "$FIRST_FAILURE" ] || FIRST_FAILURE=$1; LAST_REASON=$FIRST_FAILURE; record_row; echo "state_session: $FIRST_FAILURE" >&2; exit 1; }
 fail_operation_deadline() {

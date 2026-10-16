@@ -10,6 +10,21 @@ report_metric() {
     esac
 }
 
+mono_ms() { perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000'; }
+
+assert_sanitized_tree() {
+    _attempt=$1
+    for _file in journal.tsv session.sanitized.cfg retroarch.sanitized.log; do
+        [ -f "$_attempt/$_file" ] || { echo "FAIL missing sanitized $_file" >&2; exit 1; }
+        if grep -F -e "$WORK_ROOT" -e '/Users/' -e '/home/' "$_attempt/$_file" >/dev/null; then
+            echo "FAIL unsanitized path in $_attempt/$_file" >&2; exit 1
+        fi
+    done
+    [ ! -e "$_attempt/session.cfg" ] && [ ! -e "$_attempt/retroarch.log" ] || {
+        echo "FAIL raw generated config/log retained in $_attempt" >&2; exit 1;
+    }
+}
+
 report_readiness_timing() {
     report_case=$1; report_fixture=$2; report_setup=$3; report_operation=$4
     report_later_prefix=$5; report_attempt=$6; report_driver=$7
@@ -257,6 +272,10 @@ selftest_counted_grep() {
     grep -F "$1" "$2"
 }
 
+interruption_grep() {
+    grep -F "$1" "$2"
+}
+
 selftest_controlled_error() {
     printf 'call\n' >>"$INTERRUPTION_TEST_CALLS"
     cat "$INTERRUPTION_TEST_STDOUT"
@@ -286,6 +305,9 @@ selftest_assert_events() {
 
 run_interruption_capture_selftests() {
     selftest_root=$1
+    INTERRUPTION_CAPTURE_SELFTEST_ACTIVE=1
+    selftest_run_id=$(mono_ms)-$$
+    selftest_root="$selftest_root/selftest-$selftest_run_id"
     mkdir -p "$selftest_root"
 
     selftest_match="$selftest_root/match"
@@ -395,6 +417,27 @@ run_interruption_capture_selftests() {
             [ "$(selftest_count_calls "$selftest_failure/calls")" -eq 1 ] || {
             echo "FAIL recorder failure changed original assertion status for $selftest_case" >&2; return 1;
         }
+        selftest_decision_status=0
+        interruption_assertion_decision 2>"$selftest_failure/decision.stderr" ||
+            selftest_decision_status=$?
+        selftest_gate_status=0
+        interruption_recorder_gate 2>"$selftest_failure/recorder-gate.stderr" ||
+            selftest_gate_status=$?
+        [ "$selftest_decision_status" -eq "$selftest_expected_status" ] &&
+            [ "$selftest_gate_status" -eq 1 ] &&
+            grep -F 'FAIL interruption recorder unusable:' "$selftest_failure/recorder-gate.stderr" >/dev/null || {
+            echo "FAIL recorder gate replaced the original assertion decision for $selftest_case" >&2; return 1;
+        }
+        if [ "$selftest_expected_status" -eq 0 ]; then
+            [ ! -s "$selftest_failure/decision.stderr" ] || {
+                echo "FAIL recorder failure turned a matching assertion into failure" >&2; return 1;
+            }
+        else
+            printf 'FAIL interruption first failure was not retained\n' >"$selftest_failure/expected-decision.stderr"
+            cmp -s "$selftest_failure/expected-decision.stderr" "$selftest_failure/decision.stderr" || {
+                echo "FAIL recorder failure changed the no-match failure message" >&2; return 1;
+            }
+        fi
     done
 
     selftest_replace="$selftest_root/replacement"
@@ -419,6 +462,10 @@ run_interruption_capture_selftests() {
     selftest_pre_after=$(printf '%s\n' "$selftest_pre_record" | cut -f4-6)
     selftest_post_handle=$(printf '%s\n' "$selftest_post_record" | cut -f1-3)
     selftest_post_after=$(printf '%s\n' "$selftest_post_record" | cut -f4-6)
+    selftest_pre_bytes=$(printf '%s\n' "$selftest_pre_record" | cut -f7)
+    selftest_post_bytes=$(printf '%s\n' "$selftest_post_record" | cut -f7)
+    selftest_expected_pre_size=$(wc -c <"$selftest_replace/expected-pre.snapshot" | tr -d ' ')
+    selftest_expected_post_size=$(wc -c <"$selftest_replace/expected-post.snapshot" | tr -d ' ')
     [ "$selftest_status" -eq 0 ] && [ "$INTERRUPTION_ASSERTION_STATUS" -eq 0 ] &&
         [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] &&
         [ "$(selftest_count_calls "$selftest_replace/calls")" -eq 1 ] &&
@@ -428,6 +475,10 @@ run_interruption_capture_selftests() {
         [ "$selftest_post_handle" = "$selftest_post_after" ] &&
         [ "$selftest_pre_handle" = "$selftest_pre_identity" ] &&
         [ "$selftest_post_handle" = "$selftest_post_identity" ] &&
+        [ "$(printf '%s\n' "$selftest_pre_handle" | cut -f3)" -eq "$selftest_pre_bytes" ] &&
+        [ "$(printf '%s\n' "$selftest_post_handle" | cut -f3)" -eq "$selftest_post_bytes" ] &&
+        [ "$selftest_pre_bytes" -eq "$selftest_expected_pre_size" ] &&
+        [ "$selftest_post_bytes" -eq "$selftest_expected_post_size" ] &&
         [ "$selftest_pre_handle" != "$selftest_post_handle" ] || {
         echo "FAIL same-handle replacement snapshots lost independent bytes or identity" >&2; return 1;
     }
@@ -444,13 +495,433 @@ run_interruption_capture_selftests() {
     capture_interruption_assertion selftest_counted_grep INTERRUPTED_TERM \
         "$selftest_second/journal.tsv" "$selftest_second" /dev/null || selftest_status=$?
     [ "$selftest_status" -eq 0 ] &&
-        selftest_assert_events "$selftest_second/events.tsv" second-invocation &&
-        ! awk -F '\t' '$1 != "second-invocation" { bad = 1 } END { exit bad }' \
-            "$selftest_second/events.tsv" || {
+        selftest_assert_events "$selftest_second/events.tsv" second-invocation || {
         echo "FAIL second recorder invocation mixed event ownership" >&2; return 1;
     }
 
-    printf 'state session interruption capture selftest: 10 cases passed (status 0/1/2, recorder errors, same-handle replacement, event ownership)\n'
+    INTERRUPTION_CAPTURE_SELFTEST_ACTIVE=0
+    printf 'state session interruption capture selftest: 7 cases passed (status 0/1/2, recorder errors, same-handle replacement, event ownership)\n'
+}
+
+INTERRUPTION_ASSERTION_STATUS=0
+INTERRUPTION_RECORDER_STATUS=0
+INTERRUPTION_RECORDER_REASON=
+INTERRUPTION_EVENT_SEQUENCE=0
+
+mark_interruption_recorder_error() {
+    INTERRUPTION_RECORDER_STATUS=1
+    [ -n "$INTERRUPTION_RECORDER_REASON" ] || INTERRUPTION_RECORDER_REASON=$1
+    if [ -n "${INTERRUPTION_RECORDER_DIR:-}" ] && [ -d "$INTERRUPTION_RECORDER_DIR" ]; then
+        printf '%s\t%s\n' "${INTERRUPTION_RECORDER_ID:-unknown}" "$1" \
+            >>"$INTERRUPTION_RECORDER_DIR/recorder-errors.tsv" 2>/dev/null || true
+    fi
+}
+
+record_interruption_event() {
+    INTERRUPTION_RECORDER_DIR=$1
+    INTERRUPTION_RECORDER_ID=$2
+    interruption_event_role=$3
+    interruption_event_name=$4
+    interruption_event_status=$5
+    interruption_event_pid=$6
+    interruption_event_detail=${7:-none}
+    [ -d "$INTERRUPTION_RECORDER_DIR" ] || {
+        mark_interruption_recorder_error "event-directory-missing:$interruption_event_name"
+        return 1
+    }
+    interruption_event_time=$(mono_ms 2>/dev/null) || {
+        mark_interruption_recorder_error "event-clock-unavailable:$interruption_event_name"
+        return 1
+    }
+    case "$interruption_event_time" in *[!0-9]*|'')
+        mark_interruption_recorder_error "event-clock-invalid:$interruption_event_name"
+        return 1 ;;
+    esac
+    INTERRUPTION_EVENT_SEQUENCE=$((INTERRUPTION_EVENT_SEQUENCE + 1))
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+        "$INTERRUPTION_RECORDER_ID" "$interruption_event_role" \
+        "$INTERRUPTION_EVENT_SEQUENCE" "$interruption_event_time" \
+        "$interruption_event_name" "$interruption_event_status" \
+        "$interruption_event_pid" "$interruption_event_detail" \
+        >>"$INTERRUPTION_RECORDER_DIR/events.tsv" 2>/dev/null || {
+        mark_interruption_recorder_error "event-write-failed:$interruption_event_name"
+        return 1
+    }
+}
+
+snapshot_interruption_file() {
+    interruption_snapshot_label=$1
+    interruption_snapshot_source=$2
+    interruption_snapshot_bytes=$3
+    interruption_snapshot_metadata=$4
+    interruption_snapshot_replacement=${5:-}
+    INTERRUPTION_SNAPSHOT_STATUS=0
+    if [ ! -d "$INTERRUPTION_RECORDER_DIR" ]; then
+        INTERRUPTION_SNAPSHOT_STATUS=1
+        mark_interruption_recorder_error "snapshot-$interruption_snapshot_label-directory-missing"
+        return 1
+    fi
+    if ! INTERRUPTION_SNAPSHOT_LABEL="$interruption_snapshot_label" \
+        INTERRUPTION_SNAPSHOT_SOURCE="$interruption_snapshot_source" \
+        INTERRUPTION_SNAPSHOT_BYTES="$interruption_snapshot_bytes" \
+        INTERRUPTION_SNAPSHOT_METADATA="$interruption_snapshot_metadata" \
+        INTERRUPTION_SNAPSHOT_REPLACEMENT="$interruption_snapshot_replacement" \
+        perl -e '
+            use strict;
+            use warnings;
+            my ($label, $source, $copy, $metadata, $replacement) =
+                @ENV{qw(INTERRUPTION_SNAPSHOT_LABEL INTERRUPTION_SNAPSHOT_SOURCE INTERRUPTION_SNAPSHOT_BYTES INTERRUPTION_SNAPSHOT_METADATA INTERRUPTION_SNAPSHOT_REPLACEMENT)};
+            open my $input, "<:raw", $source or die "open source failed: $!\n";
+            my @before = stat($input);
+            @before or die "stat open handle failed: $!\n";
+            if (length($replacement)) {
+                rename($replacement, $source) or die "replace pathname failed: $!\n";
+            }
+            open my $output, ">:raw", $copy or die "open snapshot output failed: $!\n";
+            my $read_bytes = 0;
+            while (1) {
+                my $count = read($input, my $buffer, 65536);
+                defined $count or die "read open handle failed: $!\n";
+                last if $count == 0;
+                print {$output} $buffer or die "write snapshot failed: $!\n";
+                $read_bytes += $count;
+            }
+            my @after = stat($input);
+            @after or die "restat open handle failed: $!\n";
+            close $output or die "close snapshot output failed: $!\n";
+            close $input or die "close source handle failed: $!\n";
+            open my $record, ">>:raw", $metadata or die "open metadata failed: $!\n";
+            print {$record} join("\t", $label, @before[0,1,7], @after[0,1,7], $read_bytes, "ok"), "\n"
+                or die "write metadata failed: $!\n";
+            close $record or die "close metadata failed: $!\n";
+        ' 2>"$INTERRUPTION_RECORDER_DIR/snapshot-$interruption_snapshot_label.stderr"
+    then
+        INTERRUPTION_SNAPSHOT_STATUS=1
+        mark_interruption_recorder_error "snapshot-$interruption_snapshot_label-failed"
+    fi
+    return "$INTERRUPTION_SNAPSHOT_STATUS"
+}
+
+capture_interruption_assertion() {
+    interruption_assertion_command=$1
+    interruption_assertion_pattern=$2
+    interruption_assertion_journal=$3
+    INTERRUPTION_RECORDER_DIR=$4
+    interruption_assertion_stdout_destination=$5
+    interruption_assertion_replace_from=${6:-}
+    INTERRUPTION_RECORDER_ID=${INTERRUPTION_RECORDER_DIR##*/}
+    INTERRUPTION_ASSERTION_STATUS=2
+    if [ ! -e "$INTERRUPTION_RECORDER_DIR/events.tsv" ]; then
+        INTERRUPTION_RECORDER_STATUS=0
+        INTERRUPTION_RECORDER_REASON=
+    fi
+    INTERRUPTION_CAPTURE_OUT="$INTERRUPTION_RECORDER_DIR/assertion.stdout"
+    INTERRUPTION_CAPTURE_ERR="$INTERRUPTION_RECORDER_DIR/assertion.stderr"
+    INTERRUPTION_CAPTURE_META="$INTERRUPTION_RECORDER_DIR/snapshot-metadata.tsv"
+
+    if [ "$interruption_assertion_command" != interruption_grep ] &&
+        [ "${INTERRUPTION_CAPTURE_SELFTEST_ACTIVE:-0}" -ne 1 ]; then
+        mark_interruption_recorder_error assertion-injection-outside-selftest
+        interruption_assertion_command=interruption_grep
+    fi
+    if [ -n "$interruption_assertion_replace_from" ] &&
+        [ "${INTERRUPTION_CAPTURE_SELFTEST_ACTIVE:-0}" -ne 1 ]; then
+        mark_interruption_recorder_error pathname-replacement-outside-selftest
+        interruption_assertion_replace_from=
+    fi
+
+    if [ -d "$INTERRUPTION_RECORDER_DIR" ]; then
+        if [ ! -e "$INTERRUPTION_RECORDER_DIR/events.tsv" ]; then
+            : >"$INTERRUPTION_RECORDER_DIR/events.tsv" ||
+                mark_interruption_recorder_error events-open-failed
+            INTERRUPTION_EVENT_SEQUENCE=0
+        else
+            INTERRUPTION_EVENT_SEQUENCE=$(awk 'END { print NR + 0 }' \
+                "$INTERRUPTION_RECORDER_DIR/events.tsv") || {
+                INTERRUPTION_EVENT_SEQUENCE=0
+                mark_interruption_recorder_error events-read-failed
+            }
+        fi
+        if [ ! -e "$INTERRUPTION_RECORDER_DIR/snapshot-metadata.tsv" ]; then
+            printf 'label\tdevice\tinode\tsize\tafter_device\tafter_inode\tafter_size\tbytes_read\tstatus\n' \
+                >"$INTERRUPTION_RECORDER_DIR/snapshot-metadata.tsv" ||
+                mark_interruption_recorder_error snapshot-metadata-open-failed
+        fi
+    else
+        INTERRUPTION_EVENT_SEQUENCE=0
+        mark_interruption_recorder_error event-directory-missing
+    fi
+    if [ -e "$INTERRUPTION_CAPTURE_OUT" ] || [ -e "$INTERRUPTION_CAPTURE_ERR" ]; then
+        mark_interruption_recorder_error assertion-output-already-exists
+    fi
+    record_interruption_event "$INTERRUPTION_RECORDER_DIR" "$INTERRUPTION_RECORDER_ID" \
+        harness capture-start 0 "$$" || true
+
+    record_interruption_event "$INTERRUPTION_RECORDER_DIR" "$INTERRUPTION_RECORDER_ID" \
+        harness snapshot-pre-start 0 "$$" || true
+    snapshot_interruption_file pre "$interruption_assertion_journal" \
+        "$INTERRUPTION_RECORDER_DIR/snapshot-pre.bin" "$INTERRUPTION_CAPTURE_META" \
+        "$interruption_assertion_replace_from" || true
+    record_interruption_event "$INTERRUPTION_RECORDER_DIR" "$INTERRUPTION_RECORDER_ID" \
+        harness snapshot-pre-end "$INTERRUPTION_SNAPSHOT_STATUS" "$$" || true
+    record_interruption_event "$INTERRUPTION_RECORDER_DIR" "$INTERRUPTION_RECORDER_ID" \
+        harness assertion-start 0 "$$" || true
+
+    interruption_capture_ready=0
+    if [ -d "$INTERRUPTION_RECORDER_DIR" ] &&
+        [ ! -e "$INTERRUPTION_CAPTURE_OUT" ] && [ ! -e "$INTERRUPTION_CAPTURE_ERR" ] &&
+        ( : >"$INTERRUPTION_CAPTURE_OUT" && : >"$INTERRUPTION_CAPTURE_ERR" ) 2>/dev/null; then
+        interruption_capture_ready=1
+    else
+        mark_interruption_recorder_error assertion-output-open-failed
+    fi
+
+    if [ "$interruption_capture_ready" -eq 1 ]; then
+        if "$interruption_assertion_command" "$interruption_assertion_pattern" \
+            "$interruption_assertion_journal" >"$INTERRUPTION_CAPTURE_OUT" 2>"$INTERRUPTION_CAPTURE_ERR"; then
+            INTERRUPTION_ASSERTION_STATUS=0
+        else
+            INTERRUPTION_ASSERTION_STATUS=$?
+        fi
+        cat "$INTERRUPTION_CAPTURE_OUT" >"$interruption_assertion_stdout_destination" ||
+            mark_interruption_recorder_error assertion-stdout-reemit-failed
+        cat "$INTERRUPTION_CAPTURE_ERR" >&2 ||
+            mark_interruption_recorder_error assertion-stderr-reemit-failed
+    else
+        if "$interruption_assertion_command" "$interruption_assertion_pattern" \
+            "$interruption_assertion_journal" >"$interruption_assertion_stdout_destination"; then
+            INTERRUPTION_ASSERTION_STATUS=0
+        else
+            INTERRUPTION_ASSERTION_STATUS=$?
+        fi
+    fi
+
+    record_interruption_event "$INTERRUPTION_RECORDER_DIR" "$INTERRUPTION_RECORDER_ID" \
+        harness assertion-end "$INTERRUPTION_ASSERTION_STATUS" "$$" || true
+    record_interruption_event "$INTERRUPTION_RECORDER_DIR" "$INTERRUPTION_RECORDER_ID" \
+        harness snapshot-post-start 0 "$$" || true
+    snapshot_interruption_file post "$interruption_assertion_journal" \
+        "$INTERRUPTION_RECORDER_DIR/snapshot-post.bin" "$INTERRUPTION_CAPTURE_META" || true
+    record_interruption_event "$INTERRUPTION_RECORDER_DIR" "$INTERRUPTION_RECORDER_ID" \
+        harness snapshot-post-end "$INTERRUPTION_SNAPSHOT_STATUS" "$$" || true
+    record_interruption_event "$INTERRUPTION_RECORDER_DIR" "$INTERRUPTION_RECORDER_ID" \
+        harness capture-end "$INTERRUPTION_RECORDER_STATUS" "$$" || true
+    return "$INTERRUPTION_ASSERTION_STATUS"
+}
+
+interruption_assertion_decision() {
+    [ "$INTERRUPTION_ASSERTION_STATUS" -eq 0 ] && return 0
+    echo "FAIL interruption first failure was not retained" >&2
+    return 1
+}
+
+interruption_recorder_gate() {
+    [ "$INTERRUPTION_RECORDER_STATUS" -eq 0 ] || {
+        echo "FAIL interruption recorder unusable: ${INTERRUPTION_RECORDER_REASON:-unknown-recorder-error}" >&2
+        return 1
+    }
+    return 0
+}
+
+verify_interruption_event_file() {
+    interruption_events_file=$1
+    interruption_expected_id=$2
+    awk -F '\t' -v wanted="$interruption_expected_id" '
+        $1 != wanted || $2 != "harness" || $3 != NR || $4 !~ /^[0-9]+$/ ||
+            $6 !~ /^[0-9]+$/ || $7 !~ /^[0-9]+$/ { bad = 1 }
+        NR > 1 && $4 < previous { bad = 1 }
+        { previous = $4 }
+        END { if (NR < 8 || bad) exit 1 }
+    ' "$interruption_events_file"
+}
+
+verify_interruption_driver_trace() {
+    interruption_trace_file=$1
+    interruption_expected_id=$2
+    [ -s "$interruption_trace_file" ] || return 1
+    awk -F '\t' -v wanted="$interruption_expected_id" '
+        BEGIN { expected[1] = "handler-entry"; expected[2] = "journal-close-success"; expected[3] = "handler-exit" }
+        $1 != wanted || $2 != "driver" || $3 != NR || $3 > 3 || $4 !~ /^[0-9]+$/ ||
+            $5 != expected[NR] || $6 !~ /^[0-9]+$/ || $7 !~ /^[0-9]+$/ ||
+            $8 !~ /^[0-9]+$/ || ($9 != "unavailable" && $9 !~ /^[0-9]+$/) ||
+            ($10 != "unavailable" && $10 !~ /^[0-9]+$/) ||
+            ($11 != "unavailable" && $11 !~ /^[0-9]+$/) ||
+            $12 !~ /^[0-9]+$/ || $13 !~ /^[0-9]+$/ ||
+            $14 !~ /^(present|absent)$/ || $15 !~ /^[0-9]+$/ { bad = 1 }
+        NR > 1 && $4 < previous { bad = 1 }
+        { previous = $4 }
+        END { if (NR != 3 || bad) exit 1 }
+    ' "$interruption_trace_file"
+}
+
+verify_interruption_snapshots() {
+    interruption_metadata_file=$1
+    awk -F '\t' '
+        NR == 1 { next }
+        NR > 3 { bad = 1 }
+        $1 != "pre" && $1 != "post" { bad = 1 }
+        $2 !~ /^[0-9]+$/ || $3 !~ /^[0-9]+$/ || $4 !~ /^[0-9]+$/ ||
+            $5 !~ /^[0-9]+$/ || $6 !~ /^[0-9]+$/ || $7 !~ /^[0-9]+$/ ||
+            $8 !~ /^[0-9]+$/ || $9 != "ok" || $2 != $5 || $3 != $6 ||
+            $4 != $7 || $4 != $8 { bad = 1 }
+        { seen[$1]++ }
+        END { if (NR != 3 || bad || seen["pre"] != 1 || seen["post"] != 1) exit 1 }
+    ' "$interruption_metadata_file"
+}
+
+run_interruption_control() {
+    interruption_fixture_dir=$1
+    interrupt_dir="$WORK_ROOT/session-$$-interrupt"
+    interrupt_ra="$interrupt_dir/ra"
+    interrupt_capture_dir="$interrupt_dir/capture"
+    interrupt_capture_id=${interrupt_capture_dir##*/}
+    interrupt_trace="$interrupt_ra/interruption-events.tsv"
+    interrupt_trace_errors="$interrupt_ra/interruption-trace-errors.tsv"
+    mkdir -p "$interrupt_ra/shots" "$interrupt_ra/states" "$interrupt_capture_dir"
+    ln -s "$script_path" "$interrupt_dir/fake-nc"
+    ln -s "$script_path" "$interrupt_dir/fake-retroarch"
+    : >"$interrupt_dir/config.cfg"; : >"$interrupt_dir/core.so"
+    INTERRUPTION_RECORDER_DIR=$interrupt_capture_dir
+    INTERRUPTION_RECORDER_ID=$interrupt_capture_id
+    INTERRUPTION_EVENT_SEQUENCE=0
+    INTERRUPTION_RECORDER_STATUS=0
+    INTERRUPTION_RECORDER_REASON=
+    interrupt_recorder_failure=0
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness driver-launch-start 0 "$$" || true
+    STATE_SESSION_NC="$interrupt_dir/fake-nc" \
+    STATE_SESSION_TEST_FIXTURE="$interruption_fixture_dir" \
+    STATE_SESSION_TEST_EXPECTED_DIR="$interrupt_ra/states" \
+    STATE_SESSION_TEST_SENDS="$interrupt_dir/sends.log" \
+    STATE_SESSION_TEST_HOST_PID="$interrupt_dir/host.pid" \
+    STATE_SESSION_TEST_QUIT_FILE="$interrupt_dir/quit" \
+    STATE_SESSION_TEST_SHOT_COUNT="$interrupt_dir/shot.count" \
+    STATE_SESSION_TEST_READ_COUNT="$interrupt_dir/read.count" \
+    STATE_SESSION_TEST_STATE_COUNT="$interrupt_dir/state.count" \
+    STATE_SESSION_TEST_STALL_PID="$interrupt_dir/stall.pid" \
+    STATE_SESSION_TEST_FAIL_REQUEST='' \
+    STATE_SESSION_TEST_FAULT='' \
+    STATE_SESSION_TEST_MODE=prefix \
+    STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
+    STATE_SESSION_TEST_INTERRUPT_INVOCATION="$interrupt_capture_id" \
+    STATE_SESSION_TEST_INTERRUPT_TRACE="$interrupt_trace" \
+    STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS="$interrupt_trace_errors" \
+    STATE_SESSION_TEST_SHOTS="$interrupt_ra/shots" \
+    STATE_SESSION_TEST_HOST_DIE=0 \
+    STATE_SESSION_LOCK_ROOT="$interrupt_dir/locks" \
+    STATE_SESSION_ATTEMPT_MS=30000 \
+    STATE_SESSION_OPERATION_MS=30000 \
+    STATE_SESSION_CLEANUP_MS=1000 \
+    STATE_SESSION_READY_MS=30000 \
+    STATE_SESSION_PUBLICATION_MS=5000 \
+    STATE_SESSION_SETTLE_MS=0 \
+    STATE_SESSION_PROGRESS_WAIT_MS=20 \
+    sh "$DRIVER" "$interrupt_dir/fake-retroarch" "$interrupt_dir/config.cfg" "$interrupt_dir/core.so" \
+        "$interruption_fixture_dir/marker.nes" "$interrupt_ra" "$interrupt_dir/retroarch.log" "$FRAME_INDEX" \
+        "$interruption_fixture_dir/calibration.txt" >"$interrupt_dir/driver.out" 2>&1 &
+    interrupt_driver=$!
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness driver-launch-complete 0 "$interrupt_driver" || true
+    _tries=0
+    while [ ! -s "$interrupt_dir/host.pid" ] && [ "$_tries" -lt 300 ]; do
+        if ! kill -0 "$interrupt_driver" 2>/dev/null; then
+            echo "FAIL interrupt session ended before host setup" >&2
+            cat "$interrupt_dir/driver.out" >&2
+            return 1
+        fi
+        sleep 0.02; _tries=$((_tries+1))
+    done
+    if [ ! -s "$interrupt_dir/host.pid" ]; then
+        echo "FAIL interrupt control never observed owned host" >&2
+        return 1
+    fi
+    interrupt_host=$(cat "$interrupt_dir/host.pid")
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness host-observed 0 "$interrupt_host" || true
+    if kill -0 "$interrupt_driver" 2>/dev/null; then interrupt_driver_live=0; else interrupt_driver_live=$?; fi
+    if kill -0 "$interrupt_host" 2>/dev/null; then interrupt_host_live=0; else interrupt_host_live=$?; fi
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness pre-signal-liveness "$interrupt_host_live" "$interrupt_host" \
+        "driver_pid=$interrupt_driver driver_liveness=$interrupt_driver_live" || true
+    interrupt_signal_status=0
+    kill -TERM "$interrupt_driver" 2>/dev/null || interrupt_signal_status=$?
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness signal-term "$interrupt_signal_status" "$interrupt_driver" || true
+    interrupt_status=0
+    if wait "$interrupt_driver"; then interrupt_status=0; else interrupt_status=$?; fi
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness wait-driver "$interrupt_status" "$interrupt_driver" || true
+    [ "$interrupt_status" -eq 130 ] || {
+        echo "FAIL interrupted driver exit status: expected 130, got $interrupt_status" >&2; return 1;
+    }
+
+    set -- "$interrupt_ra"/attempts/*
+    interrupt_attempt=$1
+    : >"$interrupt_capture_dir/glob-candidates.tsv" 2>/dev/null ||
+        mark_interruption_recorder_error candidate-file-open-failed
+    interrupt_candidate_number=0
+    for interrupt_candidate do
+        interrupt_candidate_number=$((interrupt_candidate_number + 1))
+        printf '%s\t%s\n' "$interrupt_candidate_number" "$interrupt_candidate" \
+            >>"$interrupt_capture_dir/glob-candidates.tsv" 2>/dev/null ||
+            mark_interruption_recorder_error candidate-file-write-failed
+        record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+            harness glob-candidate 0 "$interrupt_driver" "candidate=$interrupt_candidate_number" || true
+    done
+    printf '%s\n' "$interrupt_attempt" >"$interrupt_capture_dir/selected-path.txt" 2>/dev/null ||
+        mark_interruption_recorder_error selected-path-write-failed
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness selected-path 0 "$interrupt_driver" selected-first-expanded-candidate || true
+
+    interrupt_journal="$interrupt_attempt/journal.tsv"
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness before-assertion 0 "$interrupt_driver" || true
+    capture_interruption_assertion interruption_grep INTERRUPTED_TERM \
+        "$interrupt_journal" "$interrupt_capture_dir" /dev/null || true
+    interrupt_assertion_failure=0
+    interruption_assertion_decision || interrupt_assertion_failure=1
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness assertion-decision "$INTERRUPTION_ASSERTION_STATUS" "$interrupt_driver" || true
+
+    verify_interruption_snapshots "$interrupt_capture_dir/snapshot-metadata.tsv" ||
+        mark_interruption_recorder_error snapshot-metadata-or-stability-invalid
+    verify_interruption_driver_trace "$interrupt_trace" "$interrupt_capture_id" ||
+        mark_interruption_recorder_error driver-trace-missing-or-invalid
+    [ ! -s "$interrupt_trace_errors" ] ||
+        mark_interruption_recorder_error driver-trace-reported-write-error
+    [ -f "$interrupt_capture_dir/assertion.stdout" ] &&
+        [ -f "$interrupt_capture_dir/assertion.stderr" ] ||
+        mark_interruption_recorder_error assertion-output-capture-missing
+    [ -s "$interrupt_capture_dir/glob-candidates.tsv" ] &&
+        [ -s "$interrupt_capture_dir/selected-path.txt" ] ||
+        mark_interruption_recorder_error glob-selection-evidence-missing
+
+    interrupt_quit_count=$(awk '$0 == "QUIT" { n++ } END { print n + 0 }' "$interrupt_dir/sends.log")
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness quit-send-count "$interrupt_quit_count" "$interrupt_driver" || true
+    [ "$interrupt_quit_count" -eq 1 ] || {
+        echo "FAIL interruption cleanup did not send exactly one QUIT" >&2; return 1;
+    }
+    if kill -0 "$interrupt_host" 2>/dev/null; then interrupt_host_post_live=0; else interrupt_host_post_live=$?; fi
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness host-after-wait "$interrupt_host_post_live" "$interrupt_host" \
+        "kill-0-failure-is-not-distinguished-from-permission-denial" || true
+    [ "$interrupt_host_post_live" -ne 0 ] || {
+        echo "FAIL interruption left host alive" >&2; return 1;
+    }
+    if [ -d "$interrupt_dir/locks/nesturbator-retroarch-55355.lock" ]; then interrupt_lock_post=1; else interrupt_lock_post=0; fi
+    record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
+        harness lock-after-wait "$interrupt_lock_post" "$interrupt_driver" || true
+    [ "$interrupt_lock_post" -eq 0 ] || {
+        echo "FAIL interruption left endpoint lock behind" >&2; return 1;
+    }
+    assert_sanitized_tree "$interrupt_attempt"
+
+    verify_interruption_event_file "$interrupt_capture_dir/events.tsv" "$interrupt_capture_id" ||
+        mark_interruption_recorder_error harness-event-order-or-identity-invalid
+    interruption_recorder_gate || interrupt_recorder_failure=1
+    [ "${interrupt_recorder_failure:-0}" -eq 0 ] && [ "$interrupt_assertion_failure" -eq 0 ] || return 1
+    printf 'state session interruption control: TERM retained; one QUIT; host reaped; capture=usable; trace=3 owned events\n'
 }
 
 if [ "$CONTROL" = interruption-capture-selftest ]; then
@@ -509,7 +980,6 @@ if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ] || [ "$CONTROL" = readiness ]; 
 fi
 
 script_path=$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")
-mono_ms() { perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000'; }
 test_started=$(mono_ms)
 fixture_started=$(mono_ms)
 
@@ -540,6 +1010,11 @@ elif ! "$FRAME_INDEX" --progression-selftest "$fixture_dir" --controls; then
 fi
 fixture_finished=$(mono_ms)
 fixture_elapsed=$((fixture_finished-fixture_started))
+
+if [ "$CONTROL" = interruption ]; then
+    run_interruption_control "$fixture_dir"
+    exit 0
+fi
 
 ln -s "$script_path" "$test_dir/fake-nc"
 ln -s "$script_path" "$test_dir/recording-action-nc"
@@ -692,18 +1167,6 @@ printf 'state session missing-action control: ADVANCE_NOT_EXACTLY_ONE; one send;
     "$negative_operation_elapsed" "$negative_attempt_elapsed" "$duration"
 fi
 
-assert_sanitized_tree() {
-    _attempt=$1
-    for _file in journal.tsv session.sanitized.cfg retroarch.sanitized.log; do
-        [ -f "$_attempt/$_file" ] || { echo "FAIL missing sanitized $_file" >&2; exit 1; }
-        if grep -F -e "$WORK_ROOT" -e '/Users/' -e '/home/' "$_attempt/$_file" >/dev/null; then
-            echo "FAIL unsanitized path in $_attempt/$_file" >&2; exit 1
-        fi
-    done
-    [ ! -e "$_attempt/session.cfg" ] && [ ! -e "$_attempt/retroarch.log" ] || {
-        echo "FAIL raw generated config/log retained in $_attempt" >&2; exit 1;
-    }
-}
 run_fault() {
     name=$1; expected=$2; fault=$3; fail_request=${4:-}; mode=${5:-prefix}; max_ms=${6:-20000}; ready_ms=${7:-30000}; publication_ms=${8:-1000}; attempt_override=${9:-}; operation_override=${10:-30000}
     case_dir="$WORK_ROOT/session-$$-$name"; case_ra="$case_dir/ra"
@@ -1336,57 +1799,7 @@ set -- "$first_ra"/attempts/*
 assert_sanitized_tree "$1"; assert_sanitized_tree "$2"
 printf 'state session isolation control: concurrent ENDPOINT_BUSY; two unique sequential attempts\n'
 
-# TERM during the owned session must retain the first interruption reason, send one cleanup
-# QUIT, remove the lock and reap the host and active transport child.
-interrupt_dir="$WORK_ROOT/session-$$-interrupt"; interrupt_ra="$interrupt_dir/ra"
-mkdir -p "$interrupt_ra/shots" "$interrupt_ra/states"
-ln -s "$script_path" "$interrupt_dir/fake-nc"; ln -s "$script_path" "$interrupt_dir/fake-retroarch"
-: >"$interrupt_dir/config.cfg"; : >"$interrupt_dir/core.so"
-STATE_SESSION_NC="$interrupt_dir/fake-nc" \
-STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
-STATE_SESSION_TEST_EXPECTED_DIR="$interrupt_ra/states" \
-STATE_SESSION_TEST_SENDS="$interrupt_dir/sends.log" \
-STATE_SESSION_TEST_HOST_PID="$interrupt_dir/host.pid" \
-STATE_SESSION_TEST_QUIT_FILE="$interrupt_dir/quit" \
-STATE_SESSION_TEST_SHOT_COUNT="$interrupt_dir/shot.count" \
-STATE_SESSION_TEST_READ_COUNT="$interrupt_dir/read.count" \
-STATE_SESSION_TEST_STATE_COUNT="$interrupt_dir/state.count" \
-STATE_SESSION_TEST_STALL_PID="$interrupt_dir/stall.pid" \
-STATE_SESSION_TEST_FAIL_REQUEST='' \
-STATE_SESSION_TEST_FAULT='' \
-STATE_SESSION_TEST_MODE=prefix \
-STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
-STATE_SESSION_TEST_SHOTS="$interrupt_ra/shots" \
-STATE_SESSION_TEST_HOST_DIE=0 \
-STATE_SESSION_LOCK_ROOT="$interrupt_dir/locks" \
-STATE_SESSION_ATTEMPT_MS=30000 \
-STATE_SESSION_OPERATION_MS=30000 \
-STATE_SESSION_CLEANUP_MS=1000 \
-STATE_SESSION_READY_MS=30000 \
-STATE_SESSION_PUBLICATION_MS=5000 \
-STATE_SESSION_SETTLE_MS=0 \
-STATE_SESSION_PROGRESS_WAIT_MS=20 \
-sh "$DRIVER" "$interrupt_dir/fake-retroarch" "$interrupt_dir/config.cfg" "$interrupt_dir/core.so" \
-    "$fixture_dir/marker.nes" "$interrupt_ra" "$interrupt_dir/retroarch.log" "$FRAME_INDEX" \
-    "$fixture_dir/calibration.txt" >"$interrupt_dir/driver.out" 2>&1 & interrupt_driver=$!
-_tries=0
-while [ ! -s "$interrupt_dir/host.pid" ] && [ "$_tries" -lt 300 ]; do
-    kill -0 "$interrupt_driver" 2>/dev/null || { echo "FAIL interrupt session ended before host setup" >&2; cat "$interrupt_dir/driver.out" >&2; exit 1; }
-    sleep 0.02; _tries=$((_tries+1))
-done
-[ -s "$interrupt_dir/host.pid" ] || { echo "FAIL interrupt control never observed owned host" >&2; exit 1; }
-kill -TERM "$interrupt_driver" 2>/dev/null || { echo "FAIL could not signal owned driver" >&2; exit 1; }
-interrupt_status=0; wait "$interrupt_driver" || interrupt_status=$?
-[ "$interrupt_status" -eq 130 ] || { echo "FAIL interrupted driver exit status: expected 130, got $interrupt_status" >&2; exit 1; }
-set -- "$interrupt_ra"/attempts/*; interrupt_attempt=$1
-grep -F 'INTERRUPTED_TERM' "$interrupt_attempt/journal.tsv" >/dev/null || { echo "FAIL interruption first failure was not retained" >&2; exit 1; }
-[ "$(awk '$0 == "QUIT" { n++ } END { print n + 0 }' "$interrupt_dir/sends.log")" -eq 1 ] || {
-    echo "FAIL interruption cleanup did not send exactly one QUIT" >&2; exit 1;
-}
-interrupt_host=$(cat "$interrupt_dir/host.pid"); if kill -0 "$interrupt_host" 2>/dev/null; then echo "FAIL interruption left host alive" >&2; exit 1; fi
-[ ! -d "$interrupt_dir/locks/nesturbator-retroarch-55355.lock" ] || { echo "FAIL interruption left endpoint lock behind" >&2; exit 1; }
-assert_sanitized_tree "$interrupt_attempt"
-printf 'state session interruption control: TERM retained; one QUIT; host reaped\n'
+run_interruption_control "$fixture_dir"
 
 # Expansion gate: the same actual driver must now run the full sixteen-boundary plan through
 # complete VERDICT_OK, retaining both native origins and using the prescribed forty rewinds.
