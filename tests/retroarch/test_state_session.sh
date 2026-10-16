@@ -2003,7 +2003,68 @@ run_readiness_controls() {
     run_readiness_case readiness-response-stall readiness-response-stall 4500 7000
 }
 
+run_startup_lock_signal_control() {
+    startup_signal_dir="$WORK_ROOT/session-$$-startup-lock-signal"
+    startup_signal_ra="$startup_signal_dir/ra"
+    startup_signal_locks="$startup_signal_dir/locks"
+    startup_signal_bin="$startup_signal_dir/bin"
+    startup_signal_lock="$startup_signal_locks/nesturbator-retroarch-55355.lock"
+    startup_signal_real_mkdir=$(command -v mkdir)
+    startup_signal_real_ln=$(command -v ln)
+    mkdir -p "$startup_signal_ra/shots" "$startup_signal_ra/states" "$startup_signal_bin"
+    ln -sf "$script_path" "$startup_signal_dir/fake-nc"
+    ln -sf "$script_path" "$startup_signal_dir/fake-retroarch"
+    : >"$startup_signal_dir/config.cfg"
+    : >"$startup_signal_dir/core.so"
+    cat >"$startup_signal_bin/mkdir" <<'EOF'
+#!/bin/sh
+if [ "$#" -eq 1 ] && [ "$1" = "${STATE_SESSION_TEST_SIGNAL_LOCK:-}" ]; then
+    "$STATE_SESSION_TEST_REAL_MKDIR" "$@" || exit $?
+    kill -TERM "$PPID" 2>/dev/null || true
+    exit 0
+fi
+exec "$STATE_SESSION_TEST_REAL_MKDIR" "$@"
+EOF
+    cat >"$startup_signal_bin/ln" <<'EOF'
+#!/bin/sh
+if [ "$#" -eq 3 ] && [ "$1" = '-s' ] && [ "$3" = "${STATE_SESSION_TEST_SIGNAL_LOCK:-}" ]; then
+    "$STATE_SESSION_TEST_REAL_LN" "$@" || exit $?
+    kill -TERM "$PPID" 2>/dev/null || true
+    exit 0
+fi
+exec "$STATE_SESSION_TEST_REAL_LN" "$@"
+EOF
+    chmod +x "$startup_signal_bin/mkdir" "$startup_signal_bin/ln"
+    startup_signal_status=0
+    (
+        PATH="$startup_signal_bin:$PATH"
+        export PATH
+        STATE_SESSION_TEST_SIGNAL_LOCK="$startup_signal_lock"
+        STATE_SESSION_TEST_REAL_MKDIR="$startup_signal_real_mkdir"
+        STATE_SESSION_TEST_REAL_LN="$startup_signal_real_ln"
+        export STATE_SESSION_TEST_SIGNAL_LOCK STATE_SESSION_TEST_REAL_MKDIR STATE_SESSION_TEST_REAL_LN
+        run_prefix_driver "$startup_signal_dir" "$startup_signal_ra" '' "$startup_signal_locks"
+    ) >"$startup_signal_dir/driver.out" 2>&1 || startup_signal_status=$?
+    [ "$startup_signal_status" -eq 143 ] || {
+        echo "FAIL startup TERM status: expected=143 actual=$startup_signal_status" >&2
+        cat "$startup_signal_dir/driver.out" >&2
+        exit 1
+    }
+    [ ! -e "$startup_signal_lock" ] && [ ! -L "$startup_signal_lock" ] || {
+        echo 'FAIL startup TERM left endpoint lock behind' >&2
+        exit 1
+    }
+    run_prefix_driver "$startup_signal_dir" "$startup_signal_ra" '' "$startup_signal_locks"
+    [ -s "$startup_signal_dir/sends.log" ] &&
+        [ ! -e "$startup_signal_lock" ] && [ ! -L "$startup_signal_lock" ] || {
+        echo 'FAIL later session could not acquire the startup-signal lock' >&2
+        exit 1
+    }
+    printf 'state session startup lock signal control: TERM status 143; owned lock released; later acquisition succeeded\n'
+}
+
 if [ "$CONTROL" = readiness ]; then
+    run_startup_lock_signal_control
     run_readiness_controls
     [ "$readiness_cases_run" -eq 2 ] || {
         echo "FAIL focused readiness controls: expected delayed and stalled full-prefix cases, got $readiness_cases_run" >&2
