@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: executing
+status: blocked
 stopped_at: "Plan 16-17 stopped: corrected candidate CI selection timed out at 60 seconds after 9/10 tests; terminal stop recorded; no acceptance retry or completion credit"
-last_updated: "2026-10-16T14:50:55.542Z"
+last_updated: "2026-10-16T14:53:49Z"
 last_activity: 2026-10-16
-last_activity_desc: Phase 16 execution started
-state_head: db0494378d773249ae7fb2cb9155fd7fa46700ab
+last_activity_desc: Preserved Plan17 corrections and terminal outer-guard timeout; acceptance-only gaps amendment required
+state_head: aac195c6bfd7f5f90e966213a109d4c686b68331
 progress:
   total_phases: 3
   completed_phases: 0
@@ -29,13 +29,13 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 1 of 11
-Status: Executing Phase 16
-Delivery gates: Plan16 REDf453617/correction0268d34 and source-bound CI10/10, ASan2/2, full649/649/three ZIPs remain historical evidence. Its independent review at7a6b1aa remains issues_found/open5, unchanged. Plan17 requires causal ownership/trace/real21-row ledger regressions, candidate-bound README/header wording, fresh exact corrected-source ci/asan/normal CI/packages and fresh independent six-path clean review/open0, then every required parent gate. No new implementation, runtime acceptance, SUMMARY or07handoff in this planning step. Historical assertion/native timing causes remainUNKNOWN; native CI/consent/publication pending07/08.
-Last activity: 2026-10-16 — Phase 16 execution started
+Phase: 16 (Host evidence and roadmap) — BLOCKED AT ACCEPTANCE
+Plan: 16-17 incomplete after Tasks1/2; 8/11 live plans complete;17 physical plans;10–14/16 superseded incomplete
+Status: Corrections committed at16f7804; registered CI selection was cut off by a misapplied60s outer guard (exit124;9 completed passes;controls unfinished). No acceptance retry or completion credit.
+Delivery gates: Actual-helper ownership RED/GREEN, strict trace lifecycle/QUIT and real21-row ledger controls are retained in17-SOURCE-ACCEPTANCE. Registered CI10/10 remains unaccepted; ASan2/2, normal649/649/jobs4/threeZIPs, fresh independent six-path clean review/open0 and mandatory parent gates have not run for this candidate. Prior Plan16 passes and issues_found/open5 review remain immutable historical evidence. No17SUMMARY/07handoff. Historical assertion/native timing causes remainUNKNOWN; native/exact-head consent/publication pending07/08.
+Last activity: 2026-10-16 — Preserved nine partial17 commits and timeout evidence; identified orchestration guard mismatch; next acceptance-only gaps planning
 
-Progress: [░░░░░░░░░░] 0%
+Progress: Phase16 plans8/11 complete; milestone phases0/3 complete
 
 ## Performance Metrics
 
@@ -336,6 +336,8 @@ None.
 
 ### Blockers/Concerns
 
+- **Current Plan17 acceptance stop — 2026-10-16:** Nine partial execution commits throughaac195c retain causal tests and five-path candidate16f7804. The CI selector used an erroneous outer60s guard, exited124 with9completed passes and controls unfinished. Previous successful equivalentCI247.44s/ASan297.33s and registered controlsTIMEOUT900 show the orchestration mismatch. No retry/ASan/fullCI/packages/currentreview/17SUMMARY/07handoff. Next `$gsd-plan-phase 16 --gaps` must explicitly reconcile partial scope and propose adequate suite guards without changing session or registered timing limits.
+
 - **Current verified five-finding planning amendment — 2026-10-16:** [Plan17](phases/16-host-evidence-and-roadmap/16-17-PLAN.md) and [amendment](phases/16-host-evidence-and-roadmap/16-17-AMENDMENT.md) reconcile all five partial16 commits and preserve its failed independent review/open5.17 explicitly authorizes foreign-sidecar creation/cleanup ownership, strict PID/liveness and journal-before-QUIT admission, complete real-control21-row ledger admission and immutable candidate-bound public status. Reason-specific actual-helper RED precedes each correction; original7capture/40trace/identity/44progression and all ownership/timing/one-shot contracts remain. Fresh exact ci10/10/asan2/2/normal649/649/jobs4/threeZIPs, independent final six-path clean/open0 review and every required parent gate precede07. Separate-context typed checker passed11live plans with zero issues;6/6requirements,17/17decisions and39source groups covered.97command-probe entries have zero findings; path not_applicable is not runtime proof. Counts17physical/11live/8complete;10–14/16 superseded/incomplete, no SUMMARY or credit. Only17ready;07/08notready. Repeat fresh17 empty evaluation-scope/index after final commit and before dispatch with normal safe resume; partial07 history remains. Config is preserved byte-identical/unstaged. No implementation, application tests, new observation, native or publication action occurred. Next `$gsd-execute-phase 16 --gaps-only`.
 
 - **Historical Plan16 execution stop — 2026-10-16:** [Source acceptance](phases/16-host-evidence-and-roadmap/16-16-SOURCE-ACCEPTANCE.md) preserves REDf453617, correction0268d34, current CI10/10 in247.44s, ASan2/2 in297.33s and normal649/649 in245.69s/three ZIPs. Fresh separate-context [review](phases/16-host-evidence-and-roadmap/16-16-REVIEW.md) of7a6b1aaa87c9f8eb244aa1e901becc32352ecf4e is issues_found/1blocker4warnings; [disposition](phases/16-host-evidence-and-roadmap/16-16-REVIEW-DISPOSITION.md) leaves all5open. CR01 foreign owner-sidecar cleanup, WR01PID/liveness, WR02QUIT order, WR03exact21-row ledger admission and WR04status wording need bounded correction. Task1 explicitly keeps verify_interruption_driver_trace unchanged, so required validator edits need amendment; file membership alone cannot authorize them. No source edits after review, success SUMMARY, parent post-wave acceptance or07handoff. Scope16-16 now has5matching partial commits/noSUMMARY: DAG readiness cannot authorize unchanged reexecution. Reconcile those commits in the next gap-planning step and preserve all existing timing/ownership/identity/gate contracts. Counts16physical/11live/8complete;07/08/native/consent/publication remain pending; all standalone allowances exhausted; historical assertion causeUNKNOWN.
@@ -406,12 +408,12 @@ Last session: 2026-10-16T14:50:55.519Z
 Stopped at: Plan 16-17 stopped: corrected candidate CI selection timed out at 60 seconds after 9/10 tests; terminal stop recorded; no acceptance retry or completion credit
 Resume file: .planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md
 
-Next GSD command: $gsd-execute-phase 16 --gaps-only
+Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Run `$gsd-execute-phase 16 --gaps-only` for new16-17; fresh installed index must select only17 and fresh evaluation-scope must remain resolved/no-matching-commits/commits=[] before normal safe-resume dispatch.16's five partial commits and review/open5 remain immutable, superseded/incomplete with no16SUMMARY or credit.
-- Execute the explicitly authorized five corrections with actual-helper causal RED before edits and GREEN afterward; fresh exact corrected-source ci/asan/full workflow/packages and independent six-path clean review/open0 remain required before all mandatory parent gates and07.
-- Retain Plan16 actual-writer regular-lock RED/GREEN,7capture/40trace cases, nested identity negatives and current passed raw/package evidence. Do not infer historical assertion or native timing causation. No new standalone observations, weakened bounds, unchanged retry-to-green or suppressed parent post-wave gate.
-- Preserve incomplete14/16 source/evidence/review/disposition/reversal without SUMMARY, completed01–06/09/15, superseded10–14/16 history, historical21/22 verification/fingerprint, all6 requirements/17 decisions, config byte-identical and unstaged, and counts17physical/11live/8complete.
-- 07 remains blocked until genuine local acceptance/review and every required later gate, then fresh native exact-head required/performance/pinned-host CI and affirmative exact-head owner consent before normal release.08 requires actual18archives/checksums/attestations/sixinfo/exactreleaseCI. No consent, merge, publication or Phase17 advancement; PRODUCT-ROADMAP upkeep remains outside this step.
+- Run `$gsd-plan-phase 16 --gaps` for a narrow acceptance-only continuation. Preserve all nine partial17 execution commits throughaac195c and current five-path candidate16f7804; do not repeat implementation or create17SUMMARY. Resolve normal safe resume: index17ready is only DAG readiness, while its nonempty execution scope without SUMMARY prohibits unchanged redispatch.
+- Explicitly amend outer orchestration guards: offline60s remains; registered CI/ASan suites need a separately stated adequate outer guard (proposed1200s, existing controlsTIMEOUT900), while normal full-workflow900s and every registered/session/prefix/cleanup bound remain unchanged. Prior CI247.44s/ASan297.33s proves60s suite wrapper inadequate, not current controls success. Retain current timeout/no-retry stop and reauthorize finite fresh acceptance only in a checked plan.
+- Preserve actual-helper causal RED/GREEN ownership, original7capture/40trace plus11lifecycle controls,13real-ledger cases, nested identity negatives and immutable earlier evidence. Fresh exact corrected-source CI10/10,ASan2/2,full649/649/jobs4/threeZIPs and fresh independent six-path clean review/open0 remain required before every mandatory parent gate and07. No standalone observation, softened timing gate or unchanged retry-to-green.
+- Preserve completed01–06/09/15; superseded10–14/16 without SUMMARY/credit; historical21/22verification/fingerprint;6requirements/17decisions; config exact unstaged;17physical/11live/8complete.
+- 07/08 remain blocked. Fresh native exact-head required/performance/pinned-hostCI and affirmative owner consent precede normal merge/release07;08 requires actual18archives/checksums/attestations/sixinfo/exactreleaseCI. No consent, remote mutation, publication, Phase17 advancement or PRODUCT-ROADMAP upkeep in this step.
