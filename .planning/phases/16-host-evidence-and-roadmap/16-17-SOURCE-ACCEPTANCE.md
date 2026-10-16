@@ -116,8 +116,40 @@ The complete Plan 17 offline selector passed after the correction:
 - Existing controls retained: 7 capture cases; 40 trace cases (36 original plus 4 lock cases); two positive identity ledgers; four identity negatives; invalid-ID behavior.
 - The selector returned before fixture/frame-index/transport work; the two owner regressions also assert their host and transport markers remain absent.
 
-README and the public header now describe the tested ownership guarantee and bind the prior CI/ASan/full-workflow result to its historical candidate and its separate five-open-finding review. They identify this file as the authoritative corrected-source candidate/result register. The Task 1 behavior commit and post-commit source identities will be added after commit.
+README and the public header now describe the tested ownership guarantee and bind the prior CI/ASan/full-workflow result to its historical candidate and its separate five-open-finding review. They identify this file as the authoritative corrected-source candidate/result register. Task 1 behavior commit `483bdceb69f8b33d8c9ff3add86f2dbf665be791` and the post-commit source identities are included in the candidate record below.
 
 ## Corrected candidate acceptance
 
-Pending. Record each causal RED, machine validation, GREEN, exact source identities, registered CI and ASan selector evidence, normal `cmake --workflow --preset ci` output, package artifacts, and the independent six-path review here before declaring acceptance. No result for the corrected candidate is implied by the historical rows above.
+### Candidate and registered inputs before finite acceptance
+
+The committed five-path corrected source/doc candidate is `16f7804205afb49459b46b936509e41e8d5566c6` on branch `gsd/phase-16-host-evidence-and-roadmap`. The Task 2 candidate has the same five file blobs in the live checkout. The source-only review will include these five paths and read-only `frame_index.c`:
+
+| Path | Git blob | SHA-256 |
+| --- | --- | --- |
+| `tests/retroarch/state_session.sh` | `435a0f5fd1c4444e3b45ca668bd5af0e1a87d7e0` | `56dabb21e19d4501bd920dc55413e069e3570f8fdd440deb08d5b84920063af0` |
+| `tests/retroarch/interruption_trace.sh` | `2de1af0dce0fb7d1a512b0ca2398f83566070eaa` | `ab11f15c1e77e7d5a9655f37c7a76992222226cf3b550fb8ef805df2f388198a` |
+| `tests/retroarch/test_state_session.sh` | `073f78a061f9bd5d2ca62cc84d8c26e7335ac6a2` | `5d075ae02fd4a266e5b0e028384fae52db6ccd191bbcfd12692ef7e47840c299` |
+| `README.md` | `461b8e8efeab3c30a6b22bfa49ff9d97b4ff8bd0` | `62bad86cd7e1470a9280f7d1d7b92fad2e3ecd68154b74f1c4d526660cd1ac3d` |
+| `include/nesturbator.h` | `a514ec862372f908db60298c4dab010fc22e0312` | `75b9f70dc091c32b59852f0f2c64a151dc194e72002be58a1eed0a0bc394d091` |
+| `tests/retroarch/frame_index.c` (read-only) | `204d3ff64cc288176b0e6f47a1788c122a36815c` | `ecab2d5fbf294596572617759ae55c8494ec9bd95705b70bf21ea90767ea5d8b` |
+
+Read-only registered inputs are bound here too:
+
+| Input | Git blob | SHA-256 |
+| --- | --- | --- |
+| `tests/retroarch/CMakeLists.txt` | `443cbc4b35286f56c9a5c6b29c89e37c14aaa4bf` | `84bbaf464d812c1142e85851203f56e41f04511fee8bc16cf09bcc898400ec0e` |
+| `tests/retroarch/run_retroarch.cmake` | `cfe2e4e7942bc6728a0a41b56d1cf9eee09f1e45` | `6a387dc0ac1c2be498f5375d597e4d84ae69763a471e73e80c6a5400972e9581` |
+| `CMakePresets.json` | `10a19b58652adb634cc0357de5f5cc91cd848409` | `a97957fcd87052b863be85a26609c0c985402b8eac645748907cec6ea237a024` |
+| `cmake/packaging.cmake` | `7afbd7cc89a153ff9397a1bdcc6a913dafd4af96` | `0797be3f2ba69a96076d342174ca4393274719d34d9207ce0acb45cf4a9261e4` |
+
+The CI cache SHA-256 is `af03303ad33e142dde959b50627ec4720d62635c88eeb032de79aacbf1a910d4` and its `frame_index` executable SHA-256 is `10fba3ddd9bdbe01d02f16b7d2938263938533a49d8619aa960f4f44534270f9`. The ASan cache SHA-256 is `875a51bed2081f932dfa23ca0c07f1f3ed7effe8a934c557f8db2e53012cd304` and its `frame_index` executable SHA-256 is `1a137b9ac1f782285ec9ea1362f9cd747bebe0e71362cf3930c7e795ef42b917`. Both configured caches point at this checkout; the existing caches and binaries are present. This correction changes shell controls and documentation only, and the read-only C source is unchanged, so no preliminary build or selector observation was needed. The subsequent normal workflow performs its prescribed configure/build/package steps. Host is Darwin 25.6.0 arm64 with CMake/CTest 4.4.3; CI and ASan test presets each specify four jobs. Config SHA-256 remains the preserved baseline `0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e`.
+
+The current plan-scope resume query resolved the seven commits produced by this active 16-17 executor and no matching async-job manifest exists. The plan is continuing in this executor; no second executor is being dispatched. The parent’s pre-dispatch scope was empty. The recorded source commits are, newest first: `16f7804`, `5f50bbc`, `18ecd15`, `4d1d193`, `483bdce`, `e47917f`, and `b25fd8f`.
+
+The one-time acceptance commands will run on the unchanged five-path candidate, in this order:
+
+1. `gsd_run run-with-timeout 60 -- ctest --preset ci -R '^retroarch.(session.(readiness|controls)|marker[.]|progression[.])' --no-tests=error --output-on-failure` — expected 10/10.
+2. `gsd_run run-with-timeout 60 -- ctest --preset asan -R '^retroarch.session.(readiness|controls)$' --no-tests=error --verbose --output-on-failure` — expected 2/2 with no sanitizer diagnostics.
+3. `gsd_run run-with-timeout 900 -- cmake --workflow --preset ci` — expected 649/649 at four jobs and three component ZIPs: `nesturbator-0.1.10-library-macos-arm64.zip`, `nesturbator-0.1.10-runner-macos-arm64.zip`, and `nesturbator-0.1.10-libretro-macos-arm64.zip`.
+
+Raw commands, status, complete output, CTest logs/reports and all three archive bytes, SHA-256 digests and inventories will be retained under `build/phase16-review-corrections-execute/evidence/`. These gates and the fresh independent six-path exact-source review remain pending; no result from the historical candidates is reused.
