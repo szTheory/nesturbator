@@ -2,7 +2,7 @@
 phase: 16
 plan: 17
 record: source-acceptance
-status: in_progress
+status: terminal_stop
 ---
 
 # Phase 16 Plan 17 Source Acceptance
@@ -152,4 +152,12 @@ The one-time acceptance commands will run on the unchanged five-path candidate, 
 2. `gsd_run run-with-timeout 60 -- ctest --preset asan -R '^retroarch.session.(readiness|controls)$' --no-tests=error --verbose --output-on-failure` — expected 2/2 with no sanitizer diagnostics.
 3. `gsd_run run-with-timeout 900 -- cmake --workflow --preset ci` — expected 649/649 at four jobs and three component ZIPs: `nesturbator-0.1.10-library-macos-arm64.zip`, `nesturbator-0.1.10-runner-macos-arm64.zip`, and `nesturbator-0.1.10-libretro-macos-arm64.zip`.
 
-Raw commands, status, complete output, CTest logs/reports and all three archive bytes, SHA-256 digests and inventories will be retained under `build/phase16-review-corrections-execute/evidence/`. These gates and the fresh independent six-path exact-source review remain pending; no result from the historical candidates is reused.
+Raw commands, status, complete output, CTest logs/reports and all three archive bytes, SHA-256 digests and inventories are to be retained under `build/phase16-review-corrections-execute/evidence/`. No result from the historical candidates is reused.
+
+### Terminal stop: registered CI selection
+
+The exact first CI selection ran once on candidate `16f7804205afb49459b46b936509e41e8d5566c6` and hit the prescribed 60-second bound. `gsd_run run-with-timeout` returned exit `124`; CTest had completed 9/10 tests, with `retroarch.session.controls` still running. The nine completed tests passed: `retroarch.progression.tracer`, `retroarch.marker.generate`, `retroarch.progression.controls`, `retroarch.progression.complete_required`, `retroarch.progression.prefix`, `retroarch.marker.fixtures`, `retroarch.marker.controls`, `retroarch.marker.qualify`, and `retroarch.session.readiness`. The complete raw stdout, empty stderr, exit code, CTest checkpoint and copied temporary logs are retained in `build/phase16-review-corrections-execute/evidence/ci-selection/`.
+
+Evidence digests: stdout SHA-256 `281053d49795d5562228009466d44140dcfcc22c49d844cf79e5fcb0ac85212f`; empty stderr SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`; exit-code file SHA-256 `ca2ebdf97d7469496b1f4b78958f9dc8447efdcb623953fee7b6996b762f6fff`. The copied `LastTest.log` predates this selected run and contains a full-workflow result; it is not treated as current evidence. The current checkpoint lists the nine completed test IDs and the copied `LastTest.log.tmp*` files preserve their per-test output. No completed 10/10 report or JUnit was produced.
+
+This is a terminal acceptance failure under Task 3. The unchanged source candidate was not retried. ASan, the normal full workflow, ZIP production and the fresh independent six-path review were not run. No `16-17-SUMMARY.md`, state/roadmap advancement, phase completion or provisional 07 handoff is claimed. The historical assertion and native timing causes remain UNKNOWN; native exact-head acceptance/consent and publication remain separate Plans 07/08.

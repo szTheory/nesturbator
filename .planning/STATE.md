@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plan17 five-finding amendment independently verified; ready for gaps-only execution
-last_updated: "2026-10-16T13:42:21Z"
+status: executing
+stopped_at: "Plan 16-17 stopped: corrected candidate CI selection timed out at 60 seconds after 9/10 tests; terminal stop recorded; no acceptance retry or completion credit"
+last_updated: "2026-10-16T14:50:55.542Z"
 last_activity: 2026-10-16
-last_activity_desc: Planned bounded Plan17 successor; independent checker passed; Plan16 partial evidence preserved
-state_head: 1390a12d5d1cad897052b90ffbec08c113e8f117
+last_activity_desc: Phase 16 execution started
+state_head: db0494378d773249ae7fb2cb9155fd7fa46700ab
 progress:
   total_phases: 3
   completed_phases: 0
@@ -29,13 +29,13 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
-Plan: 16-17 ready;8 of11 live plans complete;17 physical plans;10–14/16 superseded incomplete
-Status: Independent plan checker passed all11 live plans with zero issues;17 explicitly authorizes the five bounded review corrections and replaces16's unchanged-validator fence for tightening only
+Phase: 16 (Host evidence and roadmap) — EXECUTING
+Plan: 1 of 11
+Status: Executing Phase 16
 Delivery gates: Plan16 REDf453617/correction0268d34 and source-bound CI10/10, ASan2/2, full649/649/three ZIPs remain historical evidence. Its independent review at7a6b1aa remains issues_found/open5, unchanged. Plan17 requires causal ownership/trace/real21-row ledger regressions, candidate-bound README/header wording, fresh exact corrected-source ci/asan/normal CI/packages and fresh independent six-path clean review/open0, then every required parent gate. No new implementation, runtime acceptance, SUMMARY or07handoff in this planning step. Historical assertion/native timing causes remainUNKNOWN; native CI/consent/publication pending07/08.
-Last activity: 2026-10-16 — Verified Plan17 gap amendment; retained all partial16 commits and unresolved source findings without completion credit
+Last activity: 2026-10-16 — Phase 16 execution started
 
-Progress: Phase16 plans8/11 complete; milestone phases0/3 complete
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -350,7 +350,7 @@ None.
 - **Current Phase 16 delivery stop — 2026-10-15:** [Native PR CI 38764197994](https://github.com/szTheory/nesturbator/actions/runs/38764197994) failed at PR #50 head `3de23d4aed5d9696dc4020db3b8ef5e8205300fb`: Intel readiness-response-stall took 25,946 ms and ASan readiness-delayed took 26,269 ms, both against strict less-than-25,000 ms. CI required failed; performance and pinned RetroArch passed. Plan 09 is complete with local 649/649 CI and clean review at source `e2bed6a`, but it did not close native timing acceptance. Plans 07/08 remain incomplete; no rerun, consent, merge or publication. Plans10/11/12/13 retain partial work as superseded/incomplete history without credit.15 plans the demonstrated harness identity repair offline;14 carries actual-driver compatibility and every unfinished current-source acceptance/review/later-gate obligation. Any original assertion correction requires a compatible current cause/reason-specific RED first; passing current acceptance claims no historical repair. Actual cause remains unproven; preserve every timing and semantic bound. See the tracked delivery record and ignored raw logs.
 - **Plan 16-10 post-wave / Plan 16-11 diagnostic stop — 2026-10-15:** At HEAD `5f899ece5d20c5b8f260c52aee13cabd65054b10`, the required `cmake --workflow --preset ci` exited 8 after 648/649 tests in 234.99 seconds; `retroarch.session.controls` failed at 230.07 seconds with `FAIL interruption first failure was not retained`, and packaging did not run. Both readiness cases passed their existing bounds. The retained journal later shows `INTERRUPTED_TERM` on readiness and cleanup-quit rows, and one isolated interruption-control replay had both rows immediately after `wait`; this does not diagnose the original assertion failure. Raw hashes remain in [16-NATIVE-TIMING-REPAIR.md](phases/16-host-evidence-and-roadmap/16-NATIVE-TIMING-REPAIR.md). Plan 11 ran one bounded CI observation on 2026-10-15: one attempt was selected, immediate grep returned 0, wait returned 130, one QUIT was sent, the host was reaped and the lock released. The attempt-selection hypothesis was unsupported; sandbox denial prevented process-tree capture. No cause-specific regression or correction was justified, so Plan 11 stopped incomplete with no summary or completion credit. See [16-11-INTERRUPTION-REPAIR.md](phases/16-host-evidence-and-roadmap/16-11-INTERRUPTION-REPAIR.md) and its ignored raw diagnostics. Plan 07 must not start, and the previous full workflow/package pass remains historical.
 - **Phase 16 publication gap:** EVID-04 remains unmet because actual published v0.1.10 metadata omits MMC3, while source/staged/package checks pass. [Prior source CI 38676328559](https://github.com/szTheory/nesturbator/actions/runs/38676328559) passed on `841434b`; the source repair now has local CI and fresh review at `e2bed6a`, qualified by the native failures above. Plan 07 must obtain fresh successful native PR CI and exact-head owner consent before the normal release flow; Plan 08 verifies actual six-platform metadata, all 18 archive checksums and attestations against the immutable release commit. Keep the historical verifier gap open until actual publication and independent re-verification.
-- **Release blocker resolved — 2026-10-13:** [PR #48](https://github.com/szTheory/nesturbator/pull/48) fixed version-comment formatting and shipped Codex routing as `b8e2824`. [Release PR #35](https://github.com/szTheory/nesturbator/pull/35) merged as `da2bf97` after all 15 CI jobs passed. [Publication run 38432194730](https://github.com/szTheory/nesturbator/actions/runs/38432194730) succeeded on the exact release commit; [v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10) published at 2026-10-13T16:53:40Z with exactly 18 nonempty platform ZIPs plus `SHA256SUMS`.
+- **Release blocker resolved — 2026-10-13:** [PR #48](https://github.com/szTheory/nesturbator/pull/48) fixed version-comment formatting and shipped Codex routing as `b8e2824`. [Release PR #35](https://github.com/szTheory/nesturbator/pull/35) merged as `da2bf97` after all 15 CI jobs passed. [Publication run 38432194730](https://github.com/szTheory/nesturbator/actions/runs/38432194730) succeeded on the exact release commit; [v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10) published at 2026-10-13T16:53:40Z with exactly 18 mpty platform ZIPs plus `SHA256SUMS`.
 - **Historical forensic records reconciled:** quick task 261013-hpi leaves the ledger at 0 open, 7 fixed and 3 waived with evidence and original observations preserved. Archived deferred-item audit debt is zero; the completed automation-first debug record is in `debug/resolved/`. Substantive technical debt remains below and in the milestone audits.
 
 v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and MILESTONES.md. v2 debt is in `.planning/milestones/v2-MILESTONE-AUDIT.md`. The v1 tech debt was closed in Phase 5. [Phase 05] PR #25 squash-merged into main on 2026-10-10.
@@ -367,6 +367,7 @@ v3 shipped; its debt is listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` a
 - [Phase 12] On this Mac, processes started from background shells are throttled to a few percent of a CPU, so long tests time out on wall clock; run `ctest` in the foreground.
 - [Phase 06] Local macOS `nofp` fails `abi.undefined_symbols` on `___stack_chk_*` from src/synth.c; the Linux CI nofp legs pass.
 - **Resolved — 2026-10-14:** Phase 16 Plan 03 completed on exact head 46543ad; workflow 38651381295 passed all required jobs and retained the pinned-host intended, dropped, doubled, and valid wrong-origin proof. EVID-01/02 are complete. Earlier interrupted/failed samples and their diagnoses are recorded in 16-03-SUMMARY.md; the direct push authorization was followed through the normal reviewed path. Plan 16-04 later completed EVID-03; Plan 16-05 is next.
+- Plan 16-17 terminal CI selection timed out at 60 seconds (exit 124; 9/10 passed, retroarch.session.controls unfinished); unchanged candidate was not retried and remaining acceptance gates were not run.
 
 ### Quick Tasks Completed
 
@@ -401,9 +402,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-16T13:42:21Z
-Stopped at: Plan17 bounded five-finding amendment independently verified; ready for gaps-only execution
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-17-PLAN.md
+Last session: 2026-10-16T14:50:55.519Z
+Stopped at: Plan 16-17 stopped: corrected candidate CI selection timed out at 60 seconds after 9/10 tests; terminal stop recorded; no acceptance retry or completion credit
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md
 
 Next GSD command: $gsd-execute-phase 16 --gaps-only
 
