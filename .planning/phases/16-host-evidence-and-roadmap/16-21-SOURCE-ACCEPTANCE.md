@@ -82,3 +82,7 @@ All three newly recreated macOS arm64 ZIPs (library, runner and libretro) passed
 The formal FULL allowance is consumed/passed. No independent REVIEW has run yet; parent build/full-repeat and enabled gates remain pending. Native exact-final-head CI/perf/pinned-host, affirmative exact-head owner consent, normal publication and actual18released assets/checksums/attestations/sixmetadata remain07/08 obligations. No SUMMARY or phase completion is claimed by this acceptance record.
 
 Full-result SHA256: 49ba951865a9574f0729bc51fff5a64a58bd2706cb71595f54ad2506a2f52020
+
+## Review handoff inventory precheck
+
+The initial all-inventory recheck rejected39 existing fixture executable symlinks to the frozen harness, while every raw digest and case binding remained exact. The rejection list is retained. A narrow independently checked read-only consumer correction admits only the exact expected fixture-input link set, never raw-output aliases, and rechecks targets/digests and owned canonical parents. The complete amended handoff prefix now passes on the unchanged accepted FULL evidence and candidate. No runtime rerun, evidence rewrite or additional formal allowance occurred. Independent source REVIEW remains unconsumed until its fresh dispatch.

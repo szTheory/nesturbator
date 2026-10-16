@@ -65,3 +65,16 @@ Latest checked bytes:
 |---|---|
 |16-21-PLAN.md|f49322cc35d0a59efec9a567bd07e5518ed3e5970cbbb69df0ab7e49a57e55cc|
 |16-21-AMENDMENT.md|2588c3183201e859573e2e53ef00b25bfdccc4bed646db6230b47e09b7531205|
+
+## Handoff fixture-input classification — independently passed
+
+The post-FULL all-inventory precheck rejected39 known fixture executable symlinks. The amended consumer recognizes exactly the expected case/reacquisition fake-nc/fake-retroarch/recording-action-nc inputs, requiring canonical owned parents, the exact committed frozen harness target/digest, and no overlap with any raw role or invocation record. Captured output and case-inode checks remain strict. The original rejection list is retained; no source/runtime/evidence byte changed and no new observation allowance was granted.
+
+The corrected full handoff precheck passed on existing evidence. Fresh independent typed checker returned VERIFICATION PASSED for this narrow classification; no runtime/acceptance ran during that review.
+
+Latest checked bytes:
+
+| Artifact | SHA-256 |
+|---|---|
+|16-21-PLAN.md|aac13c22d92ea7352471c2f385e59a3525dd94d7d69b6902738f1aad565ef6eb|
+|16-21-AMENDMENT.md|660c53f173c731c9b243e9c941cde5e3a9e7591e38237f720c14f048574a52d8|
