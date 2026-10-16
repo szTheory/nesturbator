@@ -305,6 +305,71 @@ selftest_assert_events() {
     ' "$selftest_event_file"
 }
 
+run_interruption_trace_selftests() (
+    trace_test_root=$1/trace-lifecycle
+    trace_test_id="trace-$(mono_ms)-$$"
+    RA_DIR="$trace_test_root/owned-a/ra"
+    LOCK_DIR="$trace_test_root/owned-a/locks/driver.lock"
+    trace_test_lock_root=${LOCK_DIR%/*}
+    mkdir -p "$RA_DIR" "$trace_test_lock_root" || {
+        echo "FAIL trace lifecycle setup" >&2; return 1;
+    }
+    mkdir "$LOCK_DIR" || { echo "FAIL trace lifecycle lock setup" >&2; return 1; }
+
+    STATE_SESSION_TEST_MODE=prefix
+    STATE_SESSION_TEST_INTERRUPT_INVOCATION=$trace_test_id
+    STATE_SESSION_TEST_INTERRUPT_TRACE="$RA_DIR/interruption-events.tsv"
+    STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS="$RA_DIR/interruption-trace-errors.tsv"
+    HOST_PID=$$
+    CHILD_PID=$$
+    FIRST_FAILURE=
+    QUIT_SENT=0
+    JOURNAL_FAILED=0
+    send_count=0
+    INTERRUPTION_TRACE_SEQUENCE=0
+    INTERRUPTION_TRACE_FAILED=0
+    [ ! -e "$STATE_SESSION_TEST_INTERRUPT_TRACE" ] || {
+        echo "FAIL trace cleanup-host-pid admission: source trace unexpectedly existed" >&2; return 1;
+    }
+
+    trace_interruption_event handler-entry 0 || {
+        echo "FAIL trace cleanup-host-pid admission: actual writer rejected handler-entry" >&2; return 1;
+    }
+    FIRST_FAILURE=INTERRUPTED_TERM
+    trace_interruption_event journal-close-success 0 || {
+        echo "FAIL trace cleanup-host-pid admission: actual writer rejected journal-close-success" >&2; return 1;
+    }
+    HOST_PID=
+    CHILD_PID=
+    QUIT_SENT=1
+    rmdir "$LOCK_DIR" || { echo "FAIL trace cleanup-host-pid admission: cleanup lock removal" >&2; return 1; }
+    trace_interruption_event handler-exit 130 || {
+        echo "FAIL trace cleanup-host-pid admission: actual writer rejected handler-exit" >&2; return 1;
+    }
+
+    awk -F '\t' -v wanted="$trace_test_id" '
+        NR == 1 && ($1 != wanted || $2 != "driver" || $3 != "1" || $5 != "handler-entry" || $8 !~ /^[1-9][0-9]*$/) { bad = 1 }
+        NR == 2 && ($1 != wanted || $2 != "driver" || $3 != "2" || $5 != "journal-close-success" || $8 !~ /^[1-9][0-9]*$/) { bad = 1 }
+        NR == 3 && ($1 != wanted || $2 != "driver" || $3 != "3" || $5 != "handler-exit" || $8 != "unavailable" || $10 != "unavailable" || $14 != "absent") { bad = 1 }
+        NF != 16 { bad = 1 }
+        END { if (NR != 3 || bad) exit 1 }
+    ' "$STATE_SESSION_TEST_INTERRUPT_TRACE" || {
+        echo "FAIL trace cleanup-host-pid admission: actual writer did not emit retained cleanup shape" >&2; return 1;
+    }
+    trace_test_status=0
+    trace_test_result=$(verify_interruption_driver_trace \
+        "$STATE_SESSION_TEST_INTERRUPT_TRACE" "$trace_test_id" "$$") || trace_test_status=$?
+    if [ "$trace_test_status" -ne 0 ]; then
+        echo "FAIL trace cleanup-host-pid admission: actual writer emitted field 8 unavailable after cleanup, but the validator rejected the valid lifecycle" >&2
+        return 1
+    fi
+    [ "$trace_test_result" = TRACE_OK ] || {
+        echo "FAIL trace cleanup-host-pid admission: expected TRACE_OK, got $trace_test_result" >&2; return 1;
+    }
+    printf 'trace selftest: PASS cleanup-host-pid admission\n'
+    printf 'state session interruption trace selftest: 1 case passed\n'
+)
+
 run_interruption_capture_selftests() {
     selftest_root=$1
     INTERRUPTION_CAPTURE_SELFTEST_ACTIVE=1
@@ -503,6 +568,7 @@ run_interruption_capture_selftests() {
 
     INTERRUPTION_CAPTURE_SELFTEST_ACTIVE=0
     printf 'state session interruption capture selftest: 7 cases passed (status 0/1/2, recorder errors, same-handle replacement, event ownership)\n'
+    run_interruption_trace_selftests "$selftest_root"
 }
 
 INTERRUPTION_ASSERTION_STATUS=0
