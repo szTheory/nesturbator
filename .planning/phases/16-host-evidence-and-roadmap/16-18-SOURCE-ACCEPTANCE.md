@@ -2,7 +2,7 @@
 phase: "16"
 plan: "18"
 record: source-acceptance
-status: in_progress
+status: incomplete
 candidate_source_commit: 16f7804205afb49459b46b936509e41e8d5566c6
 ---
 
@@ -62,9 +62,9 @@ One slot exists for each of OFFLINE, CI, ASAN, FULL, and REVIEW. A slot is consu
 | --- | --- | --- | --- |
 | OFFLINE | passed, exit 0 | exact offline selector / `offline/work` | ownership cases, 7 capture, 51 trace, 13 real-ledger, nested identity controls; 60-second process guard |
 | CI | passed, exit 0 | exact registered CI selector / `ci/` | 10/10, including real controls; 1200-second process guard |
-| ASAN | planned, not consumed | exact ASan selector / `asan/` | 2/2, no sanitizer diagnostics; 1200-second process guard |
-| FULL | planned, not consumed | exact normal workflow / `full/` | 649/649, jobs 4, three actual ZIPs; 900-second process guard |
-| REVIEW | planned, not consumed | fresh independent separate-context review | exact committed six-path review and a matching disposition, only after successful prior gates |
+| ASAN | passed, exit 0 | exact ASan selector / `asan/` | 2/2, no sanitizer diagnostics; 1200-second process guard |
+| FULL | terminal command-path failure, exit 1 | attempted command / `full/`; CMake did not start | No full-run result or fresh ZIPs; slot consumed, no retry |
+| REVIEW | not launched; blocked by terminal FULL failure | fresh independent separate-context review | Requires successful prior gates; no review or disposition is claimed |
 
 ### OFFLINE launch record
 
@@ -108,10 +108,50 @@ One slot exists for each of OFFLINE, CI, ASAN, FULL, and REVIEW. A slot is consu
 - `ci/source-after.txt` SHA-256: `63250637271b79651f8b59baf03cf0719a2d951db9d454bf40fc2eb154fda26a`. Source and registered-input rows still match the candidate, config SHA-256 is unchanged, and candidate diff exit is `0`.
 - Complete raw command output, process metadata, current CTest report, and selected test artifacts are retained under `build/phase16-acceptance18-execute/ci/`.
 
+### ASAN launch record
+
+- Local slot ID: `ASAN-01`; state: consumed before launch, process/session ID pending.
+- Candidate: `16f7804205afb49459b46b936509e41e8d5566c6`.
+- Process deadline: 1200 seconds. Expected completed tests: 2/2, with no sanitizer diagnostics.
+- Exact gate argv: `node "$HOME/.codex/gsd-core/bin/gsd-tools.cjs" run-with-timeout 1200 -- ctest --preset asan -R '^retroarch.session.(readiness|controls)$' --no-tests=error --verbose --output-on-failure`.
+- Captured preexisting `build/asan/Testing/Temporary` reports under `build/phase16-acceptance18-execute/asan/preexisting-ctest/` before this invocation; they are historical only.
+- Prelaunch source/input/config/cache/binary identities are in `asan/source-before.txt`; candidate diff must remain empty.
+- Prelaunch accounting timestamp: `2026-10-16T15:37:21Z`; this is not the process start time. The complete prelaunch source/input/cache/binary snapshot SHA-256 is `d63c7576567111f2136314bc511c6f515b915cb2901cc656c8a46cf019c877bc`; it records candidate diff exit `0` and the exact expected configuration hash.
+
+### ASAN-01 result
+
+- Wrapper PID `94761`; actual start `2026-10-16T15:37:36Z`, end `2026-10-16T15:42:35Z`, elapsed 299 seconds; process status `0`.
+- The exact selector completed both registered tests: session readiness and session controls. CTest reported `100% tests passed out of 2` (test time 298.65 seconds).
+- No AddressSanitizer, UndefinedBehaviorSanitizer, or runtime-error diagnostic appeared in command output or the current `LastTest.log`.
+- Current `LastTest.log` SHA-256: `bdac9ab97fba20d24cee020e7599e213c2050ed638ae5273ebff32bcc2744c80`. The current `LastTestsFailed.log` remained byte-identical to its prelaunch SHA-256 `5da465644ec663cd2574f9de2c508bc7da3bb55c18894c4f19775697b5a648c3`; it is a stale historical report, not the selector result.
+- Complete stdout SHA-256: `77e0e31b79b0515a675c8db278b11d5aca714ed71be14511a8244bc8f2890a69`; empty stderr SHA-256: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`; exit-file SHA-256: `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`.
+- Post-gate identity snapshot `asan/source-after.txt` SHA-256: `02ee4502084bc8d30223d549bc5df6dbc4970619633a081880ac2d81eb954140`. Source/input blobs still match the candidate, config SHA-256 is exact, caches/binaries retain their captured identities, and candidate diff exit is `0`.
+- Full stdout/stderr, status, timing, pre/post identity snapshots, and current CTest reports remain under `build/phase16-acceptance18-execute/asan/`.
+
+### FULL launch record
+
+- Local slot ID: `FULL-01`; state: consumed before launch, process/session ID pending.
+- Candidate: `16f7804205afb49459b46b936509e41e8d5566c6`.
+- Process deadline: 900 seconds. Expected result: normal configure/build/test/package workflow, jobs 4, 649/649 completed tests, no skips/failures, and three current component ZIPs.
+- Exact gate argv: `node "$HOME/.codex/gsd-core/bin/gsd-tools.cjs" run-with-timeout 900 -- cmake --workflow --preset ci`.
+- Preexisting identities for the three expected `0.1.10` component ZIPs and the package inventory are retained under `full/preexisting-packages.txt`; they are not eligible as current outputs. Preexisting CTest reports are separately preserved under `full/preexisting-ctest/`.
+- Prelaunch source/input/config/cache/binary identities are in `full/source-before.txt`; candidate diff must remain empty.
+- Prelaunch accounting timestamp: `2026-10-16T15:43:55Z`; source snapshot SHA-256 `58a9d5bbd912897b223eda1e696f3d2aa874dd98e2aa1e71b8289ef7ce0b1c7c`, candidate diff exit `0`. Expected config SHA-256 remains exact.
+- Preexisting package inventory SHA-256: `9cfa8e55ce8fcd026a80440e06c5671a5bb36e715b5d26d10479c5347064ddf8` (30 ZIPs inventoried across package output and CPack staging); prelaunch CTest report manifest SHA-256: `2b946b530628c7bddcb3773a297c72b4bde4990f2bf497bd0773e0b431e45f1c`.
+- The three preexisting top-level ZIPs had sizes and SHA-256 values: library 99,714 bytes / `b29974d61ec7f84375e2e940900b80d36f9491b7b9c1d1f9a4f9e2147893f70e`; runner 92,828 bytes / `77f41b21f3d1feabdb9c532361b743945f8fd6e077465499d4f7f315f010a366`; libretro 81,628 bytes / `5d62bf3feea7489f15cf365d9c64f9b3ee39461781a91fe8c30ac71cb5cd90bd`. These baseline archives predate FULL-01.
+
+### FULL-01 terminal result
+
+- The single launch attempt used `node "$HOME/.codex/gsd-tools.cjs" run-with-timeout 900 -- cmake --workflow --preset ci`; the configured GSD CLI path omitted `/gsd-core/bin/`.
+- Wrapper PID `96190`; start and end both `2026-10-16T15:44:32Z`; elapsed 0 seconds; status `1`. Node reported `MODULE_NOT_FOUND` for `$HOME/.codex/gsd-tools.cjs`. CMake did not start, so this is a terminal unusable invocation, not a full workflow result.
+- Empty stdout SHA-256: `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`; stderr SHA-256: `225a0557de3d46b165a691c5e34779d574699f6777faa7caf6494793bc677954`; exit-file SHA-256: `4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865`.
+- Post-attempt source snapshot `full/source-after.txt` SHA-256: `bf92bae9e795d348839e6708c4c7d57e6006d0929de723f4cb862f54b5d06c64`. Source/input/checker identities still match candidate; candidate diff exit `0`; config SHA-256 remains exact. Current copied `LastTest.log` SHA-256 matches the prelaunch report, confirming no CTest workflow ran. No ZIP is claimed as a fresh output.
+- The FULL slot is consumed and terminal. Per the single-use plan, no retry, REVIEW, or success-only SUMMARY follows this failure. The first three gates remain passed; full workflow, independent review, and parent acceptance remain unproven.
+
 ## Gate results
 
-The OFFLINE and CI gates are complete as recorded above. ASAN, FULL, and REVIEW remain unconsumed and are not implied by historical Plan 16 or Plan 17 outputs.
+OFFLINE, CI, and ASAN passed. FULL is terminally unusable due to the command-path error above; REVIEW was not launched. Plan 17 remains partial and incomplete, and this Plan 18 record does not grant phase completion, Plan 07 readiness, native acceptance, owner consent, publication, or Plan 08 release proof.
 
 ## Remaining boundaries
 
-Historical assertion and native timing causes remain UNKNOWN. A successful local acceptance and review would still be provisional until every mandatory parent post-wave/post-merge gate passes. Plan 07 retains native exact-head CI, affirmative exact-head owner consent, and the normal release flow. Plan 08 retains proof of the actual 18 published assets, checksums, attestations, six metadata files, and exact-release CI. No local evidence grants consent, publication, phase completion, or Plan 07 readiness.
+Historical assertion and native timing causes remain UNKNOWN. The required full workflow and independent review did not run; parent acceptance remains pending. Plan 07 retains native exact-head CI, affirmative exact-head owner consent, and the normal release flow. Plan 08 retains proof of the actual 18 published assets, checksums, attestations, six metadata files, and exact-release CI. No local evidence grants consent, publication, phase completion, or Plan 07 readiness.
