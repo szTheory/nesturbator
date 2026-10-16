@@ -24,3 +24,16 @@ Checked current bytes:
 |16-21-AMENDMENT.md|11fc0128d88309421d76c46221d10f262d7049c255adafe95fdaee1ded87337a|
 
 Parent fresh plan-structure check: valid,3tasks,0errors,0warnings. Planner command-compilation and17/17decision checks passed. Execution and all later gates remain pending.
+
+## Focused fixture-correction check — passed
+
+After the invalid first RED, the fresh independent typed checker reviewed the substantive fixture correction and distinct corrected-RED authorization. It first caught consumed-root overwrite and a stale active evidence-root reference. Both are fixed: exclusive root creation precedes every redirect/snapshot/ledger mutation; all new evidence uses build/phase16-acceptance21-fixture-fix, while the old root remains immutable invalid history. The final independent result was VERIFICATION PASSED. The current harness hash matches the amendment and all six invalid-run digests match the sidecar.
+
+Parent entry verification used an already existing temporary slot containing five evidence sentinels: selector exit2 before any driver launch, all five byte-identical. Shell syntax, all12 embedded Python blocks and automated plan command compilation passed. These are authoring/entry checks, not causal production or CI acceptance. The concrete new RED remains to run; no GREEN/PREFLIGHT/FULL/REVIEW slot was renewed.
+
+Latest checked bytes:
+
+| Artifact | SHA-256 |
+|---|---|
+|16-21-PLAN.md|4fdff47e6fa50b5805b76148af9d2f637b78b21946ec98fc7116dd95eb5c26c1|
+|16-21-AMENDMENT.md|bfafdb3b7ac4db2468f4d022e724c89fecb409f2c7df1eff646865ec4723fcf8|

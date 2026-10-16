@@ -1,10 +1,10 @@
 ---
 phase: 16-host-evidence-and-roadmap
 plan: "21"
-status: blocked-before-runtime
+status: blocked-after-invalid-fixture-red
 date: 2026-10-16
 runtime_acceptance: false
-red_slot: unconsumed
+red_slot: consumed-invalid-fixture
 green_slot: unconsumed
 full_slot: unconsumed
 review_slot: unconsumed
@@ -27,3 +27,7 @@ The unchanged production path performs the complete sixteen-boundary progression
 ## Required next step
 
 Revise and independently check Plan 21 so its already-quit observation can be both authentic and truthfully bounded. The amendment must reconcile the per-case and matrix limits with the measured complete-path cost, or specify an authorized, production-faithful bounded route to ordinary terminal QUIT. Then obtain a fresh Plan 21 scope check before dispatch. Until then, Plan 21 remains incomplete with no SUMMARY, requirement credit, FULL acceptance, review, or handoff to Plan 07. All mandatory parent, native, owner-consent, and release gates remain pending.
+
+## Invalid fixture RED and scoped correction
+
+The subsequent resumed execution consumed RED21 at `build/phase16-acceptance21-execute/red` but failed before fault injection: a precreated quit sentinel caused HOST_DIED with an empty transport log. Its reproduction banner and completed ledger were false; control and primary-result evidence were absent and finalization failed. All original raw files remain untouched. The disposition sidecar binds their digests. Production, README and header remain unchanged; only the regression harness is uncommitted. No causal RED, GREEN, PREFLIGHT, FULL, source review, SUMMARY or requirement credit exists. The substantive fixture amendment identifies the corrections and authorizes one distinct corrected RED root, preserving this failed allowance.

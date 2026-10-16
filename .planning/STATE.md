@@ -5,7 +5,7 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: executing
-stopped_at: "Plan 21 timing amendment independently verified; authorized execution continuation"
+stopped_at: "Plan 21 fixture correction independently verified; distinct corrected RED authorized"
 last_updated: "2026-10-16T20:44:37.727Z"
 last_activity: 2026-10-16
 last_activity_desc: Plan 21 timing and resume amendment independently passed; continuing authorized repair
@@ -30,8 +30,9 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 ## Current Position
 
 Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan: 16-21 amended and checked; no task or acceptance slot consumed
-Status: User authorized timing amendment and implementation continuation; independent amendment check passed
+Plan: 16-21 fixture RED consumed invalid; zero tasks complete; remaining GREEN/PREFLIGHT/FULL/REVIEW unused
+Status: User-authorized fixture correction independently passed; continuing with a distinct corrected RED
+Current21 fixture continuation: The first resumed RED failed before readiness because the harness precreated the quit sentinel; HOST_DIED/empty sends and failed finalization make it invalid. Preserve raw evidence and false ledger/banner with explicit invalid disposition. The concrete fixture/fail-closed-bookkeeping amendment independently passed and permits one corrected RED in build/phase16-acceptance21-fixture-fix, preserving the consumed invalid run and all other slot counts. Exclusive selector-root creation refuses re-entry before mutating evidence; its refusal was verified with five byte-identical sentinels. Production remains untouched; only the regression harness is an authorized uncommitted source edit.
 Current21 timing continuation: The user authorized unblocking and implementing the repair. The independent timing/resume recheck passed after reusing the existing complete dropped-QUIT negative control inside the eight-case matrix and removing its duplicate all-selector call. Seven quick primary drivers stay below20000ms; the reused complete primary stays below250000ms; all other matrix time is at most90000ms and the whole matrix at most420000ms. Existing native/production bounds,649 registrations and900s CTest/FULL envelopes remain unchanged. The historical53.2s measurement is a reference, not a universal minimum. See21-TIMING-CHECK.md. Stop e4bef04 remains preserved as documentation-only pre-runtime history; all runtime slots remain unused.
 Current21 planning:21-PLAN/AMENDMENT define the CR-01 cleanup repair, causal actual-helper RED/GREEN, changed-source full workflow and fresh independent review. Live07/08 prerequisites consume21 and all mandatory parent gates; exact18-row released checksum mapping is enforced. Initial checker2blockers/1warning fell to1blocker and then stalled at1. The user chose revision, not override, on2026-10-16. The approved approach binds all8cases to their own canonical roots, case/invocation/launch/control identities and digest-bound raw files; rejects cross-case references/inode aliases; validates both writable malformed-readiness controls; and rechecks the binding through FULL/review handoff. An isolated synthetic causalRED+8GREEN proof passed and34binding mutants rejected. Fresh independent typed checker then passed all11live plans with0findings. Six requirements,17decisions and39source groups remain represented. See21-CHECK.md. The existing user config edit remains exact and excluded. Planning consumed no runtime gate or previous allowance and does not establish the repair or runtime acceptance.
 Retained execution evidence: Plan18 OFFLINE passed in5s, exact registeredCI10/10 in237.84s andASan2/2 in298.65s without sanitizer diagnostics. Evidence commits96ea803 and9e4e2a6 bind unchanged candidate16f7804205afb49459b46b936509e41e8d5566c6 and exact unstaged config. Its failed FULL launcher and all partial17 corrections remain without SUMMARY/credit.20 verified/adopted those passes after byte/status/report/source/environment checks; no renewed selector or diagnostic allowance.
