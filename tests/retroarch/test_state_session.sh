@@ -2683,7 +2683,7 @@ if [ "$CONTROL" = all ] || [ "$CONTROL" = interruption ]; then
     run_interruption_capture_selftests "$WORK_ROOT/interruption-capture-selftest"
 fi
 
-if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ] || [ "$CONTROL" = readiness ]; then
+if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ] || [ "$CONTROL" = readiness ] || [ "$CONTROL" = all ]; then
     readiness_name=readiness-response-stall
     readiness_fixture_elapsed=5666; readiness_setup_elapsed=42
     readiness_operation_ms=5460; readiness_later_prefix=16102
@@ -3765,6 +3765,7 @@ run_readiness_controls() {
 }
 
 run_startup_lock_signal_control() {
+    startup_signal_started=$(mono_ms)
     startup_signal_dir="$WORK_ROOT/session-$$-startup-lock-signal"
     startup_signal_ra="$startup_signal_dir/ra"
     startup_signal_locks="$startup_signal_dir/locks"
@@ -3826,11 +3827,13 @@ EOF
         echo 'FAIL later session could not acquire the startup-signal lock' >&2
         exit 1
     }
-    printf 'state session startup lock signal control: TERM status 143; owned lock released; later acquisition succeeded\n'
+    startup_signal_finished=$(mono_ms)
+    startup_signal_elapsed=$((startup_signal_finished-startup_signal_started))
+    printf 'state session startup lock signal control: TERM status 143; owned lock released; later acquisition succeeded; elapsed=%sms\n' \
+        "$startup_signal_elapsed"
 }
 
 if [ "$CONTROL" = readiness ]; then
-    run_startup_lock_signal_control
     run_readiness_controls
     [ "$readiness_cases_run" -eq 2 ] || {
         echo "FAIL focused readiness controls: expected delayed and stalled full-prefix cases, got $readiness_cases_run" >&2
@@ -3842,6 +3845,7 @@ if [ "$CONTROL" = readiness ]; then
         "$readiness_cases_run" "$fixture_elapsed" "$readiness_lane_elapsed"
     exit 0
 fi
+if [ "$CONTROL" = all ]; then run_startup_lock_signal_control; fi
 
 # A failed attempt-tree setup after lock acquisition must retain mkdir's exact failure status,
 # release only the lock this invocation acquired, and let a later session acquire the endpoint.

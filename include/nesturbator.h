@@ -528,7 +528,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * They require LOCK_OWNER_UNAVAILABLE when the shell returns control; a shell that terminates on
  * failed exec redirection counts only for the exact occupied path and nonzero exit. Both require
  * no host/transport launch and unchanged foreign bytes and filesystem identity. TERM cleanup
- * releases its original hard link without removing a replacement owner pathname.
+ * releases its original hard link without removing a replacement owner pathname. The focused
+ * readiness lane measures only its delayed and stalled requests; default-all controls retain the
+ * separate startup-lock TERM race and report its monotonic duration.
  * This establishes diagnostic capture behavior only; it does not attribute an earlier failure
  * or accept a repair.
  * A source-only interruption trace include is shared by the driver and harness. Before fixture

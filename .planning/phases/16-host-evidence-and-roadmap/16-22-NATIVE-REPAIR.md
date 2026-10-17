@@ -31,6 +31,36 @@ The corrected actual-driver selector passed under installed `/bin/dash` in 4,396
 
 The protected `.planning/config.json` remained unchanged at SHA256 `0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e` throughout these checks.
 
+## Task 2: readiness process scope and cleanup matrix
+
+The retained ASan and Intel readiness logs report successful delayed-read operations of 1,624ms and 1,983ms, with later prefix work of 12,887ms and 13,732ms. Their first readiness cases took 20,054ms and 19,004ms driver-plus-cleanup, while fixture generation took 8,549ms and 4,376ms. The registered process had consumed 49,448ms and 41,923ms respectively by the end of the first case, then reached the unchanged 60-second CTest timeout before reporting the second case. These measurements isolate the timeout from the readiness operation window; they do not establish how the unreported second case would have finished.
+
+The readiness selector also ran the independent startup-lock TERM race. Its two actual prefix-driver invocations measured 5,592ms locally. The test now runs that race once in the default `all` controls path and reports its monotonic duration; it remains part of normal CI's registered `retroarch.session.controls` test. The timing-report selftest also stays in the default-all path. The focused readiness path still runs both real delayed and stalled readiness cases with the same assertions and registered 60-second CTest property.
+
+Before moving the unrelated control, the direct readiness lane took 24,085ms. Afterward, it took 18,308ms; the registered readiness CTest passed in 18,447ms. Its fresh direct case measurements were:
+
+| Case | Setup | Readiness operation | Later prefix | Attempt through cleanup | Driver plus cleanup |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `readiness-delayed` | 12ms | 1,564ms | 4,677ms | 6,846ms | 6,898ms |
+| `readiness-response-stall` | 11ms | 5,053ms | 4,807ms | 10,466ms | 10,521ms |
+
+Both replies remain exact one-send readiness operations; the original routing, journal, prefix, child/host reap and sanitizer checks passed. Fixture generation was 576ms and the complete direct lane was 18,308ms. The change recovers the locally measured 5.6-second unrelated control duration. Its effect on slower hosted ASan scheduling is still unverified until the single formal ASan pair.
+
+The original Intel controls log ends after 261.56 seconds with `cleanup matrix exceeded measured wall budget`; it retained no per-case report or matrix evidence bundle, so the log cannot distinguish the 420-second total check from the 90-second non-`already-quit` check. No native per-case cause is inferred and neither bound was changed. A fresh local eight-case matrix after the Task 2 harness edit passed with invocation-bound evidence at `build/phase16-native22/round-1/cleanup-after-move/evidence.json`:
+
+| Measurement | Result |
+| --- | ---: |
+| Matrix elapsed | 104,895ms of 420,000ms |
+| `already-quit` primary | 58,291ms of 250,000ms |
+| Other seven primary invocations combined | 5,355ms; each below 20,000ms |
+| Seven reacquisitions combined | 38,795ms; each below 20,000ms |
+| Matrix elapsed minus only `already-quit` primary | 46,604ms of 90,000ms |
+| Remaining fixture/evidence/finalization time | 2,454ms |
+
+All eight observations passed with no watchdog intervention. The original first reasons and statuses, per-invocation send counts, host/child reaping, foreign endpoint/owner identities and bytes, and cleanup journaling remained checked. Since this local sample is within every unchanged bound and the historical Intel log lacks the breakdown required to identify an optimization target, Task 2 makes no cleanup-driver or matrix-budget change. Native Intel cleanup cause remains unknown for Plan 07 to resolve with fresh exact-head evidence.
+
+Both historical readiness and cleanup failures remain recorded as failures; the local results do not supersede those native results. The 60/900-second CTest timeouts, 120,000/30,000/5,000ms production defaults, 420,000/90,000ms matrix limits, one-QUIT rule, and all eight cleanup cases are unchanged.
+
 ## Remaining work
 
-Task 1 has a local cause-specific proof correction only. Readiness and cleanup timing diagnoses, registered changed-source acceptance, full CI/package checks, formatting, independent review, and mandatory configured parent gates are still pending. No native CI result or Plan 07 owner-consent gate is replaced by this local evidence.
+Task 1 has a local cause-specific proof correction, and Task 2 narrows the focused readiness lane while preserving the moved startup-lock control in default-all. Registered changed-source CI/ASan acceptance, full CI/package checks, formatting, independent review, and mandatory configured parent gates are still pending. No native CI result or Plan 07 owner-consent gate is replaced by this local evidence.
