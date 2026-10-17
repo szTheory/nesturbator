@@ -1273,15 +1273,18 @@ static int progression_controls_selftest(const char *work)
     progression_preload_frames = 0u;
     int prefix_exit = marker_progression_cli(rom, calibration, prefix_record, 1);
     if (prefix_exit != 0) {
-        fprintf(stderr,
-                "progression controls: actual prefix fixture failed its CLI precondition (exit %d)\n",
-                prefix_exit);
+        fprintf(
+            stderr,
+            "progression controls: actual prefix fixture failed its CLI precondition (exit %d)\n",
+            prefix_exit);
         return 2;
     }
     if (progression_preload_frames != 300u) {
-        fprintf(stderr,
-                "ASSERT prefix-replays-only-anchor-images: expected=300 pre-load frames actual=%" PRIu64 "\n",
-                progression_preload_frames);
+        fprintf(
+            stderr,
+            "ASSERT prefix-replays-only-anchor-images: expected=300 pre-load frames actual=%" PRIu64
+            "\n",
+            progression_preload_frames);
         return 1;
     }
     printf("progression prefix pre-load replay: 300 required anchor-image frames\n");

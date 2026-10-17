@@ -61,6 +61,12 @@ All eight observations passed with no watchdog intervention. The original first 
 
 Both historical readiness and cleanup failures remain recorded as failures; the local results do not supersede those native results. The 60/900-second CTest timeouts, 120,000/30,000/5,000ms production defaults, 420,000/90,000ms matrix limits, one-QUIT rule, and all eight cleanup cases are unchanged.
 
+## Task 3: formatting-only candidate change
+
+The installed formatter is `/opt/homebrew/opt/llvm@18/bin/clang-format`, version 18.1.8. At candidate `a957f1cdb23f50a906d4b51f949b5e35562f603f`, `tests/retroarch/frame_index.c` had blob `204d3ff64cc288176b0e6f47a1788c122a36815c`; formatting only lines 1276–1283 took 50ms and produced blob `a014977266d91db6d0cc76895ff51d3c3243f8d8`. The diff changes indentation and wraps an adjacent format-string literal in the two existing diagnostic calls. It changes no expressions or verdicts. `clang-format --dry-run --Werror tests/retroarch/frame_index.c`, `cmake --build build/ci --target frame_index --parallel 4`, and `git diff --check` passed. Raw launch identity and timing are retained under `build/phase16-native22/round-2/`.
+
+An exploratory dry-run across every tracked C/C++ file exited 1 only on the vendored `libretro/libretro.h`; that file is intentionally not reformatted under the project's vendoring rule. Its full diagnostics are retained in `build/phase16-native22/round-2/c-format-preflight.stderr`. This was not the formal hygiene workflow and does not replace it; the plan's changed-source hygiene slot remains unused.
+
 ## Remaining work
 
-Task 1 has a local cause-specific proof correction, and Task 2 narrows the focused readiness lane while preserving the moved startup-lock control in default-all. Registered changed-source CI/ASan acceptance, full CI/package checks, formatting, independent review, and mandatory configured parent gates are still pending. No native CI result or Plan 07 owner-consent gate is replaced by this local evidence.
+Tasks 1 and 2 have local cause-specific proof and timing evidence, and Task 3's formatting correction is locally checked. The corrected candidate and report update still require a commit before formal acceptance. Registered changed-source CI/ASan acceptance, full CI/package checks, independent review, and mandatory configured parent gates are pending. No native CI result or Plan 07 owner-consent gate is replaced by this local evidence.
