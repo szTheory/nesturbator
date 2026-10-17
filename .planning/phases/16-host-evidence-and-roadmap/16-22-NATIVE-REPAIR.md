@@ -67,6 +67,26 @@ The installed formatter is `/opt/homebrew/opt/llvm@18/bin/clang-format`, version
 
 An exploratory dry-run across every tracked C/C++ file exited 1 only on the vendored `libretro/libretro.h`; that file is intentionally not reformatted under the project's vendoring rule. Its full diagnostics are retained in `build/phase16-native22/round-2/c-format-preflight.stderr`. This was not the formal hygiene workflow and does not replace it; the plan's changed-source hygiene slot remains unused.
 
+## Task 3: formatting and current-candidate acceptance
+
+The formatter correction was committed as `3643d6ac04c8c09391a6f2ea68c7217ba4c5ba25`. The candidate's ten-path source manifest is unchanged before and after each formal gate, and `.planning/config.json` retained SHA256 `0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e`. Installed tools were clang-format 18.1.8, CMake/CTest 4.4.3, Apple clang 21.0.0 and Ninja. Full argv, actual wait status, monotonic elapsed, stdout/stderr digests, current CTest registration, raw reports and local package files are retained in `build/phase16-native22/formal/`.
+
+The single hygiene workflow `cmake --workflow --preset hygiene` passed with status 0 in 17.949 seconds. The focused registered CI pair passed once with status 0 and no skips: controls 285.07 seconds, readiness 18.30 seconds. It retained the real driver sidecar refusal and all seven rejected proof mutants, exact foreign identity and replacement preservation, 51 trace cases, 44 progression cases, eight cleanup-write controls and the moved startup-lock race in default controls. The protected source/config identities matched before and after.
+
+After `cmake --preset asan` and `cmake --build --preset asan --parallel 4` both passed, the single focused ASan/UBSan pair passed with status 0 and no skips or sanitizer diagnostics: controls 365.20 seconds and readiness 21.75 seconds. Both CTest registrations and source/config identities remained unchanged. The 900-second controls and 60-second readiness registration bounds were not altered.
+
+The one `cmake --workflow --preset ci` completed with status 0 in 359.898 seconds under the 900-second process guard. Its configure, build, test and package steps all completed. CTest reported 649/649 successes with jobs 4 and no skips. The current registration and report each contain the same 649 unique test names; 611 outcomes use CTest's ordinary pass result and 38 use its registered `PASS_REGULAR_EXPRESSION` pass reason. Both registered `WILL_FAIL` tests were accepted by CTest as passes. The full report parser binds these result forms to current registration metadata instead of treating the ordinary `Test Passed.` marker as the only success form. Registration SHA256 before and after was `ed266d23a352baa9b93c9072ada64e0cfaab07c0a0ef2ab77d4429f905953e79`.
+
+The previous report and ZIP directories were preserved in formal history before this run. Exactly three fresh version `0.1.10` macOS arm64 component ZIPs were generated and checked once with `cmake -DPACKAGES=build/ci/packages -DVERSION=0.1.10 -P tests/cmake/check_archives.cmake`; the checker returned status 0 and reported library, libretro and runner archives `ok`. Their SHA256 digests are:
+
+| Archive | SHA256 |
+| --- | --- |
+| `nesturbator-0.1.10-library-macos-arm64.zip` | `7d066966df499eaa4332d52797a996207be87da324a7c4fcb5809f7e17ac0aad` |
+| `nesturbator-0.1.10-libretro-macos-arm64.zip` | `7e7a84d273a38257d4f5c66758d8b690f2c32cd7e0a15212c58205009d4ca74a` |
+| `nesturbator-0.1.10-runner-macos-arm64.zip` | `897ddc2a4c7816dc7d9d388d78b3e1f0bdae4cf7706f92989d01e869fb51f438` |
+
+These are local package checks, not published release-byte evidence. The historical native run remains failed and immutable. Its owner-sidecar Linux/ARM/ASan assertions, ASan/Intel readiness timeouts and Intel cleanup-budget failure are not converted to passes; native causes remain unknown where the logs do not prove them.
+
 ## Remaining work
 
-Tasks 1 and 2 have local cause-specific proof and timing evidence, and Task 3's formatting correction is locally checked. The corrected candidate and report update still require a commit before formal acceptance. Registered changed-source CI/ASan acceptance, full CI/package checks, independent review, and mandatory configured parent gates are pending. No native CI result or Plan 07 owner-consent gate is replaced by this local evidence.
+The changed candidate's local source, focused CI/ASan, full workflow and package acceptance passed. A fresh independent source review and exact source/report disposition are still required for this plan. The configured parent post-wave/execute:post/review/full-workflow repeat gates are separate parent obligations and remain pending until observed. Plan 07 retains fresh exact-final-head native CI and affirmative owner-consent gates; Plan 08 retains actual release-byte proof for EVID-04. No local result replaces those native, consent or publication checks.
