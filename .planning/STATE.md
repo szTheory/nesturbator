@@ -4,18 +4,18 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plan 16-26 gap planning verified; ready for execution, 0/3 tasks accepted
-last_updated: "2026-10-20T15:47:49Z"
+status: executing
+stopped_at: Plan 16-26 execution stopped at failed-action diagnosis; 0/3 tasks accepted
+last_updated: "2026-10-20T16:35:12.347082+00:00"
 last_activity: 2026-10-20
-last_activity_desc: Planned cwd-admission repair and retained acceptance gates; independent check passed
-state_head: 7690038513fccaa4f04c23e23c638446d2ec8f9b
+last_activity_desc: Plan 26 stopped incomplete; checked-read source-manifest mismatch preserved
+state_head: 6bf4e6ece4e1c4294b4cbbae96307fe4a5ef190e
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 12
   completed_plans: 9
-  percent: 75
+  percent: 0
 ---
 
 # Project State
@@ -29,9 +29,13 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
-Plan: 26 (gap closure; ready to execute, 0/3 tasks accepted) — 9 of 12 live plans complete
-Status: Plan 26 passed independent planning verification; Plans 07/08 await its acceptance and all mandatory parent gates.
+Phase 16 — EXECUTION STOPPED INCOMPLETE. Plan 26: 0/3 accepted; 9/12 live plans complete. Focused cwd RED then narrow predicate PASS retained, but executing-harness anchor, actual finalizers/identity negatives/space-bearing cwd/audit/causal/lifecycle/default-all/formal/CI/commit/review gates remain unaccepted. A docs action changed README before header assertion exit1; checked stderr READ_RESULT_MISMATCH and DIAGNOSIS_PENDING blocked further work. Executor returned checkpoint. Original26 budget stays active/terminal=false unchanged with pending diagnosis; no checked close/reset/replay is claimed. Parent administrative reconciliation verified143prefix rows and19collected results/both streams; failed result source-manifest differs from budget binding. Config preserved. No SUMMARY, task credit, parent/native/consent/publication. See16-26-TERMINAL-CHECKPOINT.md. Next: $gsd-plan-phase 16 --gaps; no new allowance is granted here.
+
+Earlier position/history retained below:
+
+Phase: 16 (Host evidence and roadmap) — EXECUTING
+Plan: 7 of 12
+Status: Executing Phase 16
 Current26 planning: New three-task Plan 26 supersedes terminal incomplete25 only for still-unaccepted work. Static retained nested stderr reports FAIL GREEN does not name the tracked current driver/include, with setup/oracle-not-run and no driver launch: the harness anchors source identity to cwd while registered CTest runs from its binary directory. This establishes the proximate setup rejection, not a production finalizer or historical native cause. Plan26 requires a focused pre-fix cwd regression, canonical tracked source-root correction and root/binary/space-bearing cwd finalizer/identity negatives before remaining39-row audit/frozen common-oracle/both-adapter causal/lifecycle/default-all proof. It reuses25checked-read/strict-metadata implementation and prior caller receipts, then binds the exact26copy before one new7200000ms allowance on the next execute command; at most2material correction cycles including cwd fix and2distinct frozen pairs/side once120s. No old root or consumed formal assignment resets. Six formal assignments transfer only on complete22variant/23/24/25unused-consumption proof. FullCI on working bytes precedes the paired five-path behavior/test/README/header commit; ten committed blobs must match, genuine independent exact-committed standard review/open0 and all mandatory separate parent gates remain. Initial independent check found one fresh-shell command-binding blocker; targeted revision and independent recheck passed with zero findings. Final scheduling reconciliation marks only25frontmatter superseded; its original body/evidence remain exact. Six requirements,17decisions and23post-planning items remain covered; four unclassified assumptions remain flagged. Both command probes have zero findings; path not_applicable provides no runtime proof. Five dirty source files/protected config, historical evidence and checkpoints remain unchanged. No runtime root/clock/application test/source edit/acceptance/SUMMARY/native/push/consent/publication or completion credit. Counts26physical/12live/9complete,26tasks0/3. See16-26-PLAN/CONTINUATION/CHECK. Next: $gsd-execute-phase 16 --gaps-only.
 Historical25 execution stop: The caller-visible output/strict-metadata route passed 47 scratch cases and retained six exit-17 stream reads, twelve refusals and nine transport calls before the sole initializer. The executor started 7200000ms at29879021049291ns/deadline37079021049291ns and first observed the original handoff. Actual-writer preflight, old/current causal classifiers, ownership, cleanup and readiness returned0 as partial evidence. Registered controls returned8/8.221713s with FAIL finalizer fault not cleanly collected: missing-record; cause remains unestablished. The executor received all5849stdout/27stderr bytes through checked reads, recorded strict diagnosis and explicitly stopped at30437962803833ns while time remained. Budget is stopped/terminaltrue; no resume/reset. Parent verified126full-prefix rows,17collected results/stream hashes, unchanged10source inputs/config and1775historical snapshot files. No source edit/commit, formal/root consumption, independent review, accepted closure/SUMMARY, parent/native/consent/publication or task credit. Remaining audit/frozen binding/lifecycle/default-all/formal/test-before-commit/review duties remain;07/08blocked. Counts25physical/12live/9complete,25tasks0/3. See16-25-TERMINAL-CHECKPOINT.md. Next: $gsd-plan-phase 16 --gaps.
 Historical25 planning: Plan 24 is superseded terminal incomplete with its original body, clock, root, 21-row ledger and zero-credit stop preserved. Plan 25 requires a caller-visible checked-output route and strict checkpoint JSON before its sole initializer on the next execute command. Six explicit exit-17 stdout/stderr reads and twelve terminal/invalid refusals prove the actual caller path; collected ordinary nonzero results stay diagnosable only under valid original accounting. The initial review found one blocker and its first revision retained one; the user selected adjust approach, then focused revision and two independent checks passed with zero findings. All current-source audit, actual-writer/finalizer, frozen causal/lifecycle, timing and default-all obligations remain. Six formal assignments transfer only with unused-slot evidence including Plan 24 development children; full CI on working bytes precedes the paired five-path behavior/test/README/header commit, ten committed blobs must match, and a genuine separate-context standard exact-committed source review/open 0 remains mandatory. Local SUMMARY may return with parent gates pending; every actual mandatory parent success still precedes 07 native/exact-head consent/normal publication, then 08 actual released bytes. Static structures, six requirements, 17 decisions, 23 post-planning items and 212 command failure-direction checks pass; command-path not_applicable supplies no runtime proof. Four unclassified assumptions remain flagged unresolved. Five dirty source files, protected config and 1,039 snapshotted files are exact and unstaged. No Plan 25 runtime root/clock, application test, source edit, source acceptance, source review, task credit, native run, push, consent or publication occurred. Counts: 25 physical / 12 live / 9 complete; 25 tasks 0/3. See 16-25-CHECK.md. Next: $gsd-execute-phase 16 --gaps-only.
@@ -65,7 +69,7 @@ Historical20 planning: Shared metadata-bound parser replaces both retained and f
 Historical20 execution: Task1 PASS on unchanged candidate: shared parser/controls accepted actual formats; one resolved launcher/smoke led to normal649/649/jobs4/configure/build/test/package and three fresh actualZIPs. Acceptance commit772dbb0 is retained. One fresh independent six-path review at that commit found CR-01 BLOCKER: failed cleanup QUIT request write under set-e can skip host reap and endpoint-lock release. Review/disposition SHA binding and open1 are committed in f609576; previous five review findings appear addressed. No source fix, second review, Task3, SUMMARY or credit.
 Historical resume safety (superseded by23): Current boot-identity failure is terminal; no redispatch or replacement clock under the unchanged amendment. Reconcile BOOT-IDENTITY-CHECKPOINT and actual OS-query permissions in SAME22 planning first. For the next expressly authorized start, preserve minimal initializer before substantive reads, durable original boot/start/deadline/operation ledger, metered required context and same-clock executor handoff. Required contents stay mandatory. No old-clock reset, stale-PID signal, invented wait/cleanup, fabricated SUMMARY,21 replay or consumed-slot reuse. All source/formal/separate-parent/native/consent/release gates remain; protected config stays exact, unstaged and excluded.
 Historical17stop: outer60s CI exit124 after9completed passes/controls unfinished; orchestration mistake, not demonstrated session defect. Raw failure/partialwork retained, no17SUMMARY/credit; historical assertion/native causesUNKNOWN. Native exact-headCI/ownerconsent/publication07 and actual18assets/sixinfo/exactreleaseCI08 pending.
-Last activity: 2026-10-20 — Plan 26 gap planning verified; execution remains pending
+Last activity: 2026-10-20 — Phase 16 execution started
 
 Progress: [░░░░░░░░░░] 0% of milestone phases complete; Phase 16 has 9/12 live plans complete and remains incomplete
 
