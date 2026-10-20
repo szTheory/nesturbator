@@ -4,16 +4,16 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: blocked
-stopped_at: Plan 16-29 pre-clock stop; frozen helper mismatch; 0/3 tasks accepted
-last_updated: "2026-10-20T23:33:19.542494+00:00"
+status: ready_to_execute
+stopped_at: Phase 16 gap planning complete; Plan30 preparation next, Plan31 fresh acceptance follows
+last_updated: "2026-10-20T23:57:06.055Z"
 last_activity: 2026-10-20
-last_activity_desc: Plan29 pre-clock helper freeze failure independently reconciled
-state_head: e8d3ea03e2cf77fa00236e8e0bb261aa27610984
+last_activity_desc: Plans30/31 split and independently checked; preparation and fresh runtime acceptance remain pending
+state_head: 4d56c74955679c13bc6e82a6b47219bd2714179b
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 12
+  total_plans: 13
   completed_plans: 9
   percent: 0
 ---
@@ -29,10 +29,18 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — PRE-CLOCK STOP
-Status: Blocked; gap planning required
-Total Plans in Phase: 12
-Plan: 29 (0/3 tasks accepted)
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Ready to execute Plan30 preparation; runtime and release acceptance pending
+Total Plans in Phase: 13
+Plan: 30 (0/2 tasks accepted); Plan31 (0/3 tasks accepted) follows
+
+Phase 16 gap planning complete: 31 physical / 13 live / 9 complete. Plan30 prepares a content-addressed finalized helper set with deterministic controls only; Plan31 independently reruns every actual dispatch, history, scratch, caller-memory, elevated boot and frozen-bundle admission proof before its sole runtime initializer. Preparation transfers code only, never runtime acceptance, allowance or formal capacity. Live chain: completed21 wave8 →30 wave9 →31 wave10 →07 wave11 →08 wave12; only30 is dependency-ready.
+
+The original 112,000-token scope warning in16-30-CHECK.md was resolved by genuine preparation/runtime slices estimated at42,000/99,000 tokens, low confidence, factor1 and zero calibration samples. Combined141,000 includes repeated proofs and handoff overhead. Independent16-31-CHECK.md passed with no findings. All6requirements,17decisions and39source groups remain assigned; post-planning coverage23/23. Both296-command probes report zero findings; path not_applicable grants no runtime proof. Four unresolved edge assumptions stay flagged. Failed28/29evidence and Plan26 active/terminal=false pending diagnosis remain immutable;29is superseded incomplete for scheduling only. Existing five source edits and protected config remain exact.
+
+All unaccepted current-source harness/causal/finalizer/cwd/lifecycle/default-all controls, finite formal gates, fullCI-before-paired-commit, ten-blob equality, independent source review, separate parent/native/owner-consent/publication/released-byte duties remain mandatory. No helper/runtime root, source correction, application test, allowance, task acceptance, SUMMARY or release occurred in planning. Next: $gsd-execute-phase 16 --gaps-only. Execute30as its own step and stop at its preparation handoff;31requires genuine30success and administrative parent reconciliation.
+
+Historical Plan29 execution position retained below:
 
 Phase 16 — Plan29 PRE-CLOCK STOP, 0/3 tasks accepted; 29 physical / 12 live / 9 complete. Dispatch ordering/identity passed and the parent performed no shell operations while the sole foreground executor ran. Strict history and scratch/caller controls were exercised, but the executor edited the helper after exclusive bundle freeze. Frozen helper6fbd88ec…5a401e differs from current1edc80b0…da2326; earlier passes cannot accept current bytes. This is an execution evidence-freeze failure, not a demonstrated emulator defect. Preserve all29artifacts unchanged; no overwrite, alternate root, automatic redispatch or initializer is authorized.
 
@@ -491,16 +499,16 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-20T23:33:19.542494+00:00
-Stopped at: Plan29 pre-clock helper freeze failure; 0/3 tasks accepted
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-29-TERMINAL-CHECKPOINT.md
+Last session: 2026-10-20T23:57:06.055Z
+Stopped at: Gap planning complete; Plans30/31 independently checked; no execution started
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-30-PLAN.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Reconcile Plan29's post-freeze helper edit in gap planning; this checkpoint authorizes no new execution, root, allowance or automatic successor.
+- Execute Plan30 preparation as its own step after exact intent-before-spawn and foreground-owner prerequisites; no runtime allowance or source correction belongs to30. Stop at its handoff. Plan31requires genuine30success and parent reconciliation plus its own fresh dispatch and entire admission matrix.
 - Preserve all29bootstrap/preflight/frozen receipts/helper/checkpoint bytes and original29reconciliation as failed evidence; terminal and parent reconciliation control over earlier final-helper/initialize-next labels.
 - Preserve Plan26 active pending-diagnosis history, Plan27/28 pre-clock history, the five existing dirty source/test/comment files and unstaged protected config.
 - Retain every unaccepted harness identity, causal/lifecycle/default-all, finite formal, full-CI-before-commit, exact-blob independent review and separate parent duty. Plans07/08remain blocked on accepted current-source and required parent/native/consent/publication/released-byte evidence.
-- Counts:29physical /12live /9complete; Plan29tasks0/3. Stop after this execution step.
+- Counts:31physical /13live /9complete; Plan30tasks0/2, Plan31tasks0/3, Plan29remains0/3incomplete. Stop after this planning step.
