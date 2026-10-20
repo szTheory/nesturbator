@@ -4,11 +4,11 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready
-stopped_at: Plan 16-28 gap planning independently verified; 0/3 tasks accepted
-last_updated: "2026-10-20T18:16:43.715Z"
+status: stopped
+stopped_at: Plan 16-28 pre-clock immutable-history attestation failure; 0/3 tasks accepted
+last_updated: "2026-10-20T22:38:54.299448+00:00"
 last_activity: 2026-10-20
-last_activity_desc: Plan 28 dispatch recovery planned and independently checked; execution has not started
+last_activity_desc: Plan 28 stopped before initialization; frozen historical action inventory is incomplete
 state_head: b91b0be196ca6716c63e7ad9967dbe86d4bdfc49
 progress:
   total_phases: 3
@@ -28,6 +28,12 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase 16 — Plan 28 PRE-CLOCK STOP, 0/3 tasks accepted; 28 physical / 12 live / 9 complete. The parent saved and verified exclusive intent and the exact prompt before the single canonical executor dispatch, then performed no shell work until its terminal return. Dispatch binding passed. Successor scratch controls and caller receipts are partial route evidence only. The frozen Plan26 attestation incorrectly maps all 19 action IDs and source before/after identities to null and omits status/completion sequence. Historical data is present; this is an evidence-assembly failure. Preserve the failed candidate unchanged; do not backfill, redispatch, choose another root or initialize under this checkpoint.
+
+No Plan28 runtime root/clock, source change, application acceptance, formal gate, source commit, independent review, completion handoff or success SUMMARY exists. Parent read-only reconciliation verified all 14 pre-dispatch source/config/plan/check bindings unchanged, the exact dispatch/prompt/result linkage, all 19 malformed action records, absent runtime/SUMMARY and unchanged Plan27 checkpoint. Plan26 active/terminal=false pending diagnosis remains immutable. Plans07/08 and every parent/native/consent/publication gate remain pending. See16-28-TERMINAL-CHECKPOINT and16-28-PARENT-RECONCILIATION. Next: $gsd-plan-phase 16 --gaps; do not automatically execute another step.
+
+Historical Plan28 planning position retained below:
 
 Phase 16 — Plan 28 ready to execute, 0/3 tasks accepted; 28 physical / 12 live / 9 complete. User selected a focused recovery successor after the Plan 27 pre-clock dispatch failure. Independent typed planning review passed with zero blockers/warnings; all six requirements, 17 decisions and 39 audit rows remain covered. Both 282-entry command probes have zero findings; path not_applicable grants no runtime proof. Four unresolved assumptions remain flagged. The low-confidence estimate is 99,500 tokens against a 100,000-token smart-zone budget, with no calibration samples.
 
@@ -468,16 +474,16 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-20T17:15:52.915416+00:00
-Stopped at: Plan 28 gap planning verified; ready to execute, 0/3 tasks accepted
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-28-PLAN.md
+Last session: 2026-10-20T22:38:54.299448+00:00
+Stopped at: Plan 28 pre-clock attestation failure; 0/3 tasks accepted
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-28-TERMINAL-CHECKPOINT.md
 
-Next GSD command: $gsd-execute-phase 16 --gaps-only
+Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Execute only Plan 28 first, after its parent-owned pre-dispatch protocol. Persist exclusive intent and exact prompt before spawning execute_16_28; preserve actual receipt and wait for terminal return without parent shell work.
-- Preserve 27 pre-clock checkpoint/partial scratch and 26 active pending-diagnosis history. Never backfill old intent, invoke old helpers, clear old metadata or infer a runtime reset.
-- Prove all new bootstrap and transition-bound diagnosis controls before one new initializer; complete independent harness identity, full causal/lifecycle/default-all and finite formal gates. Full CI precedes the paired five-path commit and exact ten-blob independent review.
-- Preserve the five dirty source/test/comment baseline files and unstaged config. Every separate mandatory parent success precedes 07 native/exact-head consent/normal publication, then 08 actual released bytes.
-- Counts: 28 physical / 12 live / 9 complete; Plan 28 tasks 0/3. Stop after this planning step; no automatic execution or other lifecycle command.
+- Run gap planning to reconcile the failed frozen Plan28 action-history attestation before any new execution authority. Historical data is available; the candidate assembly mapped the wrong fields.
+- Preserve all Plan28 scratch/receipts/intent/result/checkpoint bytes. No backfill, overwrite, automatic redispatch, alternate root or initializer is authorized by the stop.
+- Preserve Plan26 active pending-diagnosis history, Plan27 pre-clock history, all five dirty source/test/comment files and unstaged protected config.
+- Retain all unaccepted harness identity, causal/lifecycle/default-all, finite formal, full-CI-before-commit, exact-blob independent-review and separate parent duties. Plans07/08 remain blocked on accepted current-source and required parent/native/consent/publication/released-byte evidence.
+- Counts remain 28 physical / 12 live / 9 complete; Plan28 tasks0/3. Stop after this execution step.
