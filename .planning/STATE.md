@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready
-stopped_at: Plan 16-29 gap planning independently verified; 0/3 tasks accepted
-last_updated: "2026-10-20T23:04:06.810891+00:00"
+status: blocked
+stopped_at: Plan 16-29 pre-clock stop; frozen helper mismatch; 0/3 tasks accepted
+last_updated: "2026-10-20T23:33:19.542494+00:00"
 last_activity: 2026-10-20
-last_activity_desc: Plan 29 strict joined-history admission independently verified
-state_head: b91b0be196ca6716c63e7ad9967dbe86d4bdfc49
+last_activity_desc: Plan29 pre-clock helper freeze failure independently reconciled
+state_head: e8d3ea03e2cf77fa00236e8e0bb261aa27610984
 progress:
   total_phases: 3
   completed_phases: 0
@@ -29,10 +29,16 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap)
-Status: Ready to execute
+Phase: 16 (Host evidence and roadmap) — PRE-CLOCK STOP
+Status: Blocked; gap planning required
 Total Plans in Phase: 12
 Plan: 29 (0/3 tasks accepted)
+
+Phase 16 — Plan29 PRE-CLOCK STOP, 0/3 tasks accepted; 29 physical / 12 live / 9 complete. Dispatch ordering/identity passed and the parent performed no shell operations while the sole foreground executor ran. Strict history and scratch/caller controls were exercised, but the executor edited the helper after exclusive bundle freeze. Frozen helper6fbd88ec…5a401e differs from current1edc80b0…da2326; earlier passes cannot accept current bytes. This is an execution evidence-freeze failure, not a demonstrated emulator defect. Preserve all29artifacts unchanged; no overwrite, alternate root, automatic redispatch or initializer is authorized.
+
+No29runtime root/clock, source correction, application acceptance, formal spend, source commit, independent source review, completion handoff or successSUMMARY exists. Parent fresh read-only reconciliation verified14frozen source/config/planning inputs, unchanged HEAD/index, dispatch/prompt/result linkage, five frozen bundle digests, helper mismatch, original26ledger/budget and failed28candidate. Plan26 active/terminal=false pending diagnosis and27/28checkpoints remain immutable. All current-source/formal/review/parent/native/consent/publication/released-byte duties remain pending;07/08stay blocked. See16-29-TERMINAL-CHECKPOINT and16-29-PARENT-RECONCILIATION. Next: $gsd-plan-phase 16 --gaps. Stop after this execution step.
+
+Historical Plan29 planning position retained below:
 
 Phase 16 — Plan29 gap planning; 29 physical / 12 live / 9 complete. New 16-29-PLAN.md and 16-29-AMENDMENT.md require a unique operation-ID join of all19 historical intent/start/complete/result records, non-null original source identities, completion status/sequence and raw stream bindings. The same pre-clock admission validator must reject the preserved malformed28candidate and mutants before initialization. Plan28 is superseded incomplete for scheduling only; all original failed evidence, Plan26 active/terminal=false pending diagnosis and Plan27 checkpoint remain immutable. Existing source/config edits are preserved.
 
@@ -94,7 +100,7 @@ Historical20 planning: Shared metadata-bound parser replaces both retained and f
 Historical20 execution: Task1 PASS on unchanged candidate: shared parser/controls accepted actual formats; one resolved launcher/smoke led to normal649/649/jobs4/configure/build/test/package and three fresh actualZIPs. Acceptance commit772dbb0 is retained. One fresh independent six-path review at that commit found CR-01 BLOCKER: failed cleanup QUIT request write under set-e can skip host reap and endpoint-lock release. Review/disposition SHA binding and open1 are committed in f609576; previous five review findings appear addressed. No source fix, second review, Task3, SUMMARY or credit.
 Historical resume safety (superseded by23): Current boot-identity failure is terminal; no redispatch or replacement clock under the unchanged amendment. Reconcile BOOT-IDENTITY-CHECKPOINT and actual OS-query permissions in SAME22 planning first. For the next expressly authorized start, preserve minimal initializer before substantive reads, durable original boot/start/deadline/operation ledger, metered required context and same-clock executor handoff. Required contents stay mandatory. No old-clock reset, stale-PID signal, invented wait/cleanup, fabricated SUMMARY,21 replay or consumed-slot reuse. All source/formal/separate-parent/native/consent/release gates remain; protected config stays exact, unstaged and excluded.
 Historical17stop: outer60s CI exit124 after9completed passes/controls unfinished; orchestration mistake, not demonstrated session defect. Raw failure/partialwork retained, no17SUMMARY/credit; historical assertion/native causesUNKNOWN. Native exact-headCI/ownerconsent/publication07 and actual18assets/sixinfo/exactreleaseCI08 pending.
-Last activity: 2026-10-20 — Plan 29 gap planning independently verified
+Last activity: 2026-10-20 — Phase 16 execution started
 
 Progress: [░░░░░░░░░░] 0% of milestone phases complete; Phase 16 has 9/12 live plans complete and remains incomplete
 
@@ -485,16 +491,16 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-20T23:04:06.810891+00:00
-Stopped at: Plan 29 gap planning complete; 0/3 execution tasks accepted
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-29-PLAN.md
+Last session: 2026-10-20T23:33:19.542494+00:00
+Stopped at: Plan29 pre-clock helper freeze failure; 0/3 tasks accepted
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-29-TERMINAL-CHECKPOINT.md
 
-Next GSD command: $gsd-execute-phase 16 --gaps-only
+Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- After final planning checks and commit, execute Plan29 under its exact pre-dispatch intent and sole foreground-owner protocol. Recheck empty29evaluation scope and exclusive target paths before dispatch.
-- Preserve all Plan28 scratch/receipts/intent/result/checkpoint bytes. No backfill, overwrite, automatic redispatch, alternate root or initializer is authorized by the historical stop.
-- Preserve Plan26 active pending-diagnosis history, Plan27 pre-clock history, all five dirty source/test/comment files and unstaged protected config.
-- Retain all unaccepted harness identity, causal/lifecycle/default-all, finite formal, full-CI-before-commit, exact-blob independent-review and separate parent duties. Plans07/08 remain blocked on accepted current-source and required parent/native/consent/publication/released-byte evidence.
-- Counts:29physical /12live /9complete; Plan29tasks0/3. Stop after this planning step.
+- Reconcile Plan29's post-freeze helper edit in gap planning; this checkpoint authorizes no new execution, root, allowance or automatic successor.
+- Preserve all29bootstrap/preflight/frozen receipts/helper/checkpoint bytes and original29reconciliation as failed evidence; terminal and parent reconciliation control over earlier final-helper/initialize-next labels.
+- Preserve Plan26 active pending-diagnosis history, Plan27/28 pre-clock history, the five existing dirty source/test/comment files and unstaged protected config.
+- Retain every unaccepted harness identity, causal/lifecycle/default-all, finite formal, full-CI-before-commit, exact-blob independent review and separate parent duty. Plans07/08remain blocked on accepted current-source and required parent/native/consent/publication/released-byte evidence.
+- Counts:29physical /12live /9complete; Plan29tasks0/3. Stop after this execution step.
