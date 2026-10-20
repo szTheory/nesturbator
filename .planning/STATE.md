@@ -4,11 +4,11 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: stopped
-stopped_at: Plan 16-28 pre-clock immutable-history attestation failure; 0/3 tasks accepted
-last_updated: "2026-10-20T22:38:54.299448+00:00"
+status: ready
+stopped_at: Plan 16-29 gap planning independently verified; 0/3 tasks accepted
+last_updated: "2026-10-20T23:04:06.810891+00:00"
 last_activity: 2026-10-20
-last_activity_desc: Plan 28 stopped before initialization; frozen historical action inventory is incomplete
+last_activity_desc: Plan 29 strict joined-history admission independently verified
 state_head: b91b0be196ca6716c63e7ad9967dbe86d4bdfc49
 progress:
   total_phases: 3
@@ -28,6 +28,17 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap)
+Status: Ready to execute
+Total Plans in Phase: 12
+Plan: 29 (0/3 tasks accepted)
+
+Phase 16 — Plan29 gap planning; 29 physical / 12 live / 9 complete. New 16-29-PLAN.md and 16-29-AMENDMENT.md require a unique operation-ID join of all19 historical intent/start/complete/result records, non-null original source identities, completion status/sequence and raw stream bindings. The same pre-clock admission validator must reject the preserved malformed28candidate and mutants before initialization. Plan28 is superseded incomplete for scheduling only; all original failed evidence, Plan26 active/terminal=false pending diagnosis and Plan27 checkpoint remain immutable. Existing source/config edits are preserved.
+
+Current chain: completed21wave8 →29wave9 →07wave10 →08wave11; only29 is dependency-ready. All unaccepted harness identity, actual old/current causal proof, four-finalizer/cwd/lifecycle/default-all controls, finite formal assignments, fullCI-before-paired-commit, ten-blob equality, real independent standard review and every separate mandatory parent gate remain. Plans07/08 remain blocked on accepted current-source/parent evidence, exact-head native checks, owner consent, normal publication and actual released bytes. No runtime, source correction, task acceptance, SUMMARY, native or publication action occurred in planning. Initial independent checker found one active scheduling-prose warning; focused revision corrected ROADMAP and08to match the live graph. Final independent recheck passed with zero blockers/warnings. Six requirements,17decisions and23post-planning items are covered; four unresolved assumptions remain flagged. Both286-command probes report no findings; not_applicable is not runtime proof. Low-confidence estimate96000tokens,0calibration samples. Next after final checking/commit: $gsd-execute-phase 16 --gaps-only. Stop after this planning step.
+
+Historical Plan28 execution position retained below:
 
 Phase 16 — Plan 28 PRE-CLOCK STOP, 0/3 tasks accepted; 28 physical / 12 live / 9 complete. The parent saved and verified exclusive intent and the exact prompt before the single canonical executor dispatch, then performed no shell work until its terminal return. Dispatch binding passed. Successor scratch controls and caller receipts are partial route evidence only. The frozen Plan26 attestation incorrectly maps all 19 action IDs and source before/after identities to null and omits status/completion sequence. Historical data is present; this is an evidence-assembly failure. Preserve the failed candidate unchanged; do not backfill, redispatch, choose another root or initialize under this checkpoint.
 
@@ -83,7 +94,7 @@ Historical20 planning: Shared metadata-bound parser replaces both retained and f
 Historical20 execution: Task1 PASS on unchanged candidate: shared parser/controls accepted actual formats; one resolved launcher/smoke led to normal649/649/jobs4/configure/build/test/package and three fresh actualZIPs. Acceptance commit772dbb0 is retained. One fresh independent six-path review at that commit found CR-01 BLOCKER: failed cleanup QUIT request write under set-e can skip host reap and endpoint-lock release. Review/disposition SHA binding and open1 are committed in f609576; previous five review findings appear addressed. No source fix, second review, Task3, SUMMARY or credit.
 Historical resume safety (superseded by23): Current boot-identity failure is terminal; no redispatch or replacement clock under the unchanged amendment. Reconcile BOOT-IDENTITY-CHECKPOINT and actual OS-query permissions in SAME22 planning first. For the next expressly authorized start, preserve minimal initializer before substantive reads, durable original boot/start/deadline/operation ledger, metered required context and same-clock executor handoff. Required contents stay mandatory. No old-clock reset, stale-PID signal, invented wait/cleanup, fabricated SUMMARY,21 replay or consumed-slot reuse. All source/formal/separate-parent/native/consent/release gates remain; protected config stays exact, unstaged and excluded.
 Historical17stop: outer60s CI exit124 after9completed passes/controls unfinished; orchestration mistake, not demonstrated session defect. Raw failure/partialwork retained, no17SUMMARY/credit; historical assertion/native causesUNKNOWN. Native exact-headCI/ownerconsent/publication07 and actual18assets/sixinfo/exactreleaseCI08 pending.
-Last activity: 2026-10-20 — Plan 28 recovery planning verified
+Last activity: 2026-10-20 — Plan 29 gap planning independently verified
 
 Progress: [░░░░░░░░░░] 0% of milestone phases complete; Phase 16 has 9/12 live plans complete and remains incomplete
 
@@ -474,16 +485,16 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-20T22:38:54.299448+00:00
-Stopped at: Plan 28 pre-clock attestation failure; 0/3 tasks accepted
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-28-TERMINAL-CHECKPOINT.md
+Last session: 2026-10-20T23:04:06.810891+00:00
+Stopped at: Plan 29 gap planning complete; 0/3 execution tasks accepted
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-29-PLAN.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Run gap planning to reconcile the failed frozen Plan28 action-history attestation before any new execution authority. Historical data is available; the candidate assembly mapped the wrong fields.
-- Preserve all Plan28 scratch/receipts/intent/result/checkpoint bytes. No backfill, overwrite, automatic redispatch, alternate root or initializer is authorized by the stop.
+- After final planning checks and commit, execute Plan29 under its exact pre-dispatch intent and sole foreground-owner protocol. Recheck empty29evaluation scope and exclusive target paths before dispatch.
+- Preserve all Plan28 scratch/receipts/intent/result/checkpoint bytes. No backfill, overwrite, automatic redispatch, alternate root or initializer is authorized by the historical stop.
 - Preserve Plan26 active pending-diagnosis history, Plan27 pre-clock history, all five dirty source/test/comment files and unstaged protected config.
 - Retain all unaccepted harness identity, causal/lifecycle/default-all, finite formal, full-CI-before-commit, exact-blob independent-review and separate parent duties. Plans07/08 remain blocked on accepted current-source and required parent/native/consent/publication/released-byte evidence.
-- Counts remain 28 physical / 12 live / 9 complete; Plan28 tasks0/3. Stop after this execution step.
+- Counts:29physical /12live /9complete; Plan29tasks0/3. Stop after this planning step.
