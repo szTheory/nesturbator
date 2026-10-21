@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: execution_incomplete
-stopped_at: Plan34 terminal incomplete after frozen history-admission refusal;1/2 accepted
-last_updated: "2026-10-21T16:15:05.656410+00:00"
+status: ready_to_execute
+stopped_at: Plans36/37 checked;36 ready;37/07/08 blocked
+last_updated: "2026-10-21T16:54:59.409Z"
 last_activity: 2026-10-21
-last_activity_desc: Plan34 shared regression passed; final preparation incomplete;35 blocked
-state_head: a7cc5e2f3ca22d570e20bbfd2e41a738e4f8f3ae
+last_activity_desc: Recovery plans36/37 passed independent recheck and23/23coverage;36next
+state_head: d675e73789fb742a32b7f3c6e640d100f6ddb555
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,49 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plans36/37 independently checked; Plan36 ready to execute
+Total Plans in Phase: 14
+Plan: 36 (0/2 accepted);37/07/08 blocked
+
+Independent recheck passed with zero blockers/warnings after correcting37write inventory.
+Decision coverage17/17; post-planning coverage23/23. All prior acceptance limits remain.
+
+The user selected ADD recovery plans.36first reproduces unchanged copied34
+history-selector failure, corrects fresh-owned fixture prerequisite/actual
+exported-CLI entry handling, and completes all matrices before exclusive freeze
+with final-byte proof afterward. Strict production admission stays intact.
+19/143,12+5history,55+6preparation,journal and18case shared integration
+remain mandatory. Any postfreeze failure/edit is terminal incomplete.
+36exports helper-preparation/runtime_admission=false code only.
+
+37fully instantiates35PLAN/AMENDMENT with complete36AMENDMENT duty map:
+fresh sameclosure12checks, sole elevated initializer/immediate observe,
+7200000ms/2corrections/2pairs eachsideonce120s, all source/finalizer/cwd/caller/
+lifecycle/default-all controls, six formal slots,649/jobs4/zero skip/threeZIPs
+before fivepathcommit,tenblob equality, independent exactcommitreview and every
+separate parent/native/consent/publication/released-byte gate.
+
+Counts37physical/14live/10complete.34incomplete1/2and35unexecuted0/3are
+scheduling-only superseded; bodies/frozen evidence stay immutable, noSUMMARY
+or credit.34original63-character terminal digest remains with actual64-character
+SHA separately recorded.26active terminal=false/pending diagnosis,
+28/29/31/32/34failure provenance/UNKNOWN and sixdirtypaths remain exact.
+Four mode000files remain metadata-only.6requirements/17decisions/39sourcegroups
+and four flagged unresolved assumptions remain covered in accepted/live graph.
+No36/37roots/helpers/tests/CI/runtime/source/config/evidence mutation in planning.
+
+Chain completed30wave9→36wave10→37wave11→07wave12→08wave13. Only36is
+dependency-ready after independent check/parent final planning commit.
+Execute36as its own step and STOP at genuine preparation/administrative-parent
+handoff.37requires full36PREPARATION/SUMMARY AND actual parent reconciliation,
+then a separately invoked step/prior intent/sole dispatch.
+Estimates65000/99500tokens,factor1/sample0/confidencelow. Parent owns checker
+and planning commit. Next after check/commit: $gsd-execute-phase 16 --gaps-only,
+for36only.
+
+Historical Plan34 terminal position retained below:
 
 Phase: 16 (Host evidence and roadmap)
 Status: Plan34 terminal incomplete after post-freeze history-admission control
