@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plans36/37 checked;36 ready;37/07/08 blocked
-last_updated: "2026-10-21T16:54:59.409Z"
+status: execution_incomplete
+stopped_at: Plan36 terminal incomplete before import;0/2 accepted;37/07/08 blocked
+last_updated: "2026-10-21T17:11:01.494734+00:00"
 last_activity: 2026-10-21
-last_activity_desc: Recovery plans36/37 passed independent recheck and23/23coverage;36next
-state_head: d675e73789fb742a32b7f3c6e640d100f6ddb555
+last_activity_desc: Plan36 stopped on missing actual tool receipt and placeholder expected hash; parent reconciled
+state_head: 90a78c8827090179cf16839929ee73db46e9bf14
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,32 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase:16 (Host evidence and roadmap)
+Status:Plan36 terminal incomplete before helper import;0/2tasks accepted
+Total Plans in Phase:14
+Plan:36 incomplete;37/07/08blocked
+
+The sole executor completed the journal header receipt, then lost the actual
+nested tool result for dispatch_result when outer orchestration raised
+ReferenceError: intent_line is not defined. Existing dispatch bytes and operation
+result match, but actual-tool receipt/completion are absent and expected SHA is
+a literal placeholder. No backfill/repeat/alternate root is authorized.
+No preflight/runtime root, helper import/repair/RED/matrix/freeze/export,
+PREPARATION or SUMMARY exists. No36task or plan completion credit.
+
+Parent stayed passive throughFINAL then independently matched105,687historical
+entries/81,832hashes/fourmetadata-only files,33frozen inputs, tool/workflow/context,
+prompt/intent/HEAD/raw index. Six dirty paths stay exact/unstaged; no index.lock.
+See36TERMINAL-CHECKPOINT/PARENT-RECONCILIATION. Bootstrap evidence unchanged.
+26active terminal=false/pending and all earlier failures/UNKNOWNs preserved.
+Counts37physical/14live/10complete.37/07/08remain blocked; all preparation/runtime/
+source/formal/review/parent/native/consent/publication/released-byte duties pending.
+Verification gaps_found and four flagged assumptions remain. An index-ready label
+cannot authorize occupied36bootstrap reuse. Next:$gsd-plan-phase 16 --gaps.
+Stop after this invoked execution step.
+
+Historical Plans36/37 planning position retained below:
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plans36/37 independently checked; Plan36 ready to execute
