@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: execution_incomplete
-stopped_at: Plan36 terminal incomplete before import;0/2 accepted;37/07/08 blocked
-last_updated: "2026-10-21T17:11:01.494734+00:00"
+status: ready_to_execute
+stopped_at: Plans38/39 planned with accepted scope warning;38 ready;39/07/08 blocked
+last_updated: "2026-10-21T18:04:07.109Z"
 last_activity: 2026-10-21
-last_activity_desc: Plan36 stopped on missing actual tool receipt and placeholder expected hash; parent reconciled
-state_head: 90a78c8827090179cf16839929ee73db46e9bf14
+last_activity_desc: Plans38/39 checked; user accepted Plan39 scope warning;38 ready for separate execution
+state_head: 55ff534d5199ab2bd228a964eb2d0ae12a7f927b
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,53 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plans38/39 verified with user-approved scope warning
+Total Plans in Phase: 14
+Plan: 38 ready after planning commit;39/07/08 blocked
+
+Counts39physical/14live/10complete. New38 preparation and39 runtime replace
+36terminal incomplete0/2 and37unexecuted0/3 by scheduling only; historical
+plan bodies and failed evidence remain unchanged without SUMMARY/credit.
+38 first proves actual orchestration/store/scope/serialization/quote handling,
+then exact prior bytes/digests and durable actual tool receipts before import.
+No placeholder hash, inferred receipt, occupied36 reuse or history repair.
+All copied34 genuine CLI RED/prerequisite/export-entry correction duties,
+19actions/143rows,12+5history,55+6preparation,journal,18case integration,
+full prefrozen rehearsal/exclusive freeze/final-byte replay remain required.
+Any postfreeze failure remains terminal. Export is code-only, runtime false.
+39 fully instantiates fresh12-check admission, one finite runtime authority,
+source/finalizer/lifecycle controls, six formal slots,649/jobs4/zero skip/
+three fresh ZIPs before five-path commit,ten-blob equality, independent exact
+commit review and every separate parent/native/consent/publication/release gate.
+
+Independent review:0blockers/1scope warning, retained after focused revision.
+User asked for the recommendation and authorized it: proceed with warning.
+Plan39's13declared paths (tasks5/5/3) exceed the10-file warning threshold;
+99900/100000estimated tokens is low-confidence/sample0, not a proven fit.
+The explicit ordered-transaction/no-safe-authority-transfer rationale and
+bounded model inspection mitigate risk without reducing machine validation.
+The finding remains warning, not resolved or waived runtime acceptance.
+See16-38-CHECK.md and16-39-PLAN/AMENDMENT scope analysis. Planning accepted
+with override only; no emulator/host/runtime success or new completion credit.
+
+All6requirements/17decisions/39source groups remain represented; four flagged
+unresolved assumptions and historical UNKNOWN remain.26active terminal=false/
+pending diagnosis, fourmode000metadata-only files, raw34digest distinction
+and all36failed bootstrap bytes remain preserved. Original six dirty paths
+stay exact/unstaged. No new recovery root/helper/import/test/source/config or
+runtime mutation occurred in planning. Estimates38=74500,39=99900, factor1,
+sample0/confidence low. Research skipped for --gaps.
+
+Chain completed30wave9→38wave10→39wave11→07wave12→08wave13.
+Only38dependency-ready; execute38and STOP at its preparation/admin-parent
+handoff.39requires genuine38PREPARATION/SUMMARY AND actual parent reconciliation,
+then separate invoked execute step with fresh prior intent/sole dispatch.
+Verification remains gaps_found. Next: $gsd-execute-phase 16 --gaps-only.
+This planning step does not execute or advance any other lifecycle command.
+
+Historical Plan36 execution position retained below:
 
 Phase:16 (Host evidence and roadmap)
 Status:Plan36 terminal incomplete before helper import;0/2tasks accepted
