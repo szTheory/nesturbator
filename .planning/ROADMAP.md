@@ -58,6 +58,17 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
+**Execution update — Plan42 terminal before dispatch:** The parent prewrite
+nonempty-prefix B result exceeded its18000-token output budget (22738original
+tokens), so the receiving oracle refused truncated JSON with OUTPUT_INVALID.
+No42bootstrap write/executor dispatch or task credit;42terminal0/2. All six
+42/43execution roots remain absent, original sixdirtypaths exact/unstaged.
+See[42terminal record](phases/16-host-evidence-and-roadmap/16-42-TERMINAL-CHECKPOINT.md).
+No retry or redispatch is authorized by absent roots or DAG readiness.
+43/07/08 remain blocked;43physical/14live/10complete; verification gaps_found.
+Next invoked step: `$gsd-plan-phase 16 --gaps`. The planning position below
+is historical and supplies no fresh execution authority.
+
 **Goal**: Host builders can trust the current RetroArch state/progression evidence and released MMC3 description, while milestone starts and closeouts preserve evidence-backed product direction.
 **Depends on**: Phase 15 (shipped v3 core, state, host and CI contracts)
 **Requirements**: EVID-01, EVID-02, EVID-03, EVID-04, DIR-01, DIR-02
@@ -295,7 +306,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 10/14 | Plans40/41 ready with accepted scope warning;40 only ready | - |
+| 16. Host evidence and roadmap | v4 | 10/14 | Plan42 terminal prewrite failure;43/07/08 blocked; gap planning next | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

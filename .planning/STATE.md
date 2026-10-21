@@ -4,11 +4,11 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plans42/43 revalidated unchanged; execute42next and stop at preparation handoff
-last_updated: "2026-10-21T23:43:22Z"
+status: needs_planning
+stopped_at: Plan42 terminal parent prewrite OUTPUT_INVALID; no bootstrap or executor dispatch
+last_updated: "2026-10-21T23:54:00Z"
 last_activity: 2026-10-21
-last_activity_desc: Gap plans42/43 revalidated unchanged; zero blockers; existing current43scope acceptance retained
+last_activity_desc: Plan42 parent prewrite B output truncated; terminal0/2;43/07/08 blocked
 state_head: 404c374ea97c925968835524aef4a2a51bde53db
 progress:
   total_phases: 3
@@ -28,6 +28,31 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
+Status: Plan42 parent prewrite verifier stopped on truncated actual tool output
+Total Plans in Phase: 14
+Plan: 42 terminal incomplete (0/2);43 (0/3),07 and08 blocked
+
+Historical mode oracle passed4positive/6negative controls. Nine prospective
+positive controls passed before p42-r-nonempty-B returned tool exit0 with22738
+original tokens against18000requested output tokens. Observed output began
+with a truncation notice and failed the receiving JSON oracle: OUTPUT_INVALID.
+This is a failed parent prewrite gate, not a failed durable B or emulator defect.
+No bootstrap write or executor dispatch occurred; no retry is authorized.
+See16-42-TERMINAL-CHECKPOINT.md for actual identities and provenance limits.
+
+Fresh administrative checks match all six original dirty-path digests, with
+empty index/input HEAD and all six42/43execution roots absent. No helper import,
+repair/CLI RED/matrix/freeze/export/PREPARATION/SUMMARY/runtime/formal/source/
+native/release action occurred. Full historical inventory was not captured;
+no new whole-history byte-comparison is claimed. All prior UNKNOWNs,26pending,
+fourmetadata-only limits and fourflagged assumptions remain unchanged.
+Counts43physical/14live/10complete; verification remains gaps_found. An absent
+root or DAG-ready label does not authorize redispatch after this terminal gate.
+Next: $gsd-plan-phase 16 --gaps. Stop after this invoked execute step.
+
+## Historical Plans42/43 planning position
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plans42/43 independently checked; zero blockers and current43scope warning accepted by owner
