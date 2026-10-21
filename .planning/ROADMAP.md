@@ -68,7 +68,9 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Current execution stop — Plan31 incomplete**: 31 physical / 13 live / 10 complete;31tasks0/3. Ordered checks1–8 passed before --verify-frozen-bundle failed at check9 with undefined `raw_sha`; checks10–12 never ran. The exclusive acceptance freeze and unchanged helper set remain failed evidence, with no post-freeze edit, runtime root, initializer, allowance, source correction, application/CI/formal/review/parent gate or successSUMMARY. [Terminal checkpoint](phases/16-host-evidence-and-roadmap/16-31-TERMINAL-CHECKPOINT.md) and [parent reconciliation](phases/16-host-evidence-and-roadmap/16-31-PARENT-RECONCILIATION.md) retain the failure and fresh equality of20inputs,32bundle files,70transcript rows and21,130historical entries. Original source/config and26active terminal=false pending diagnosis remain exact. Plan30preparation stays accepted;31terminal frozen candidate cannot resume.07/08and every later gate remain blocked. Next `$gsd-plan-phase 16 --gaps`; no automatic redispatch, re-freeze, alternate root or initializer.
+**Current gap-closure planning — Plans32/33**: 33 physical /14 live /10 complete. [Plan32](phases/16-host-evidence-and-roadmap/16-32-PLAN.md) prepares the minimal shared-admission hash repair plus actual nonempty revision-branch RED/GREEN on final exported helpers; code-only success grants no runtime authority. [Plan33](phases/16-host-evidence-and-roadmap/16-33-PLAN.md) freshly proves all12ordered actual checks on one finalized closure before its sole runtime initializer and every retained source/formal/CI-before-commit/tenblob independentreview/separateparent gate.31is superseded incomplete0/3; its unchanged failed freeze/all attempts and26active terminal=false pending diagnosis remain immutable. Independent [check](phases/16-host-evidence-and-roadmap/16-32-CHECK.md) passed after one stale07dependency correction;6requirements/17decisions/39source groups and4flagged assumptions remain.303-command probes0findings, post-planning23/23; unsupported paths are not runtime proof. Estimates44000/99500,factor1/sample0/low. Completed21wave8→30wave9→32wave10→33wave11→07wave12→08wave13; only32ready. No source/config/evidence/helper/runtime edit/test/allowance/acceptance occurred in planning. Next `$gsd-execute-phase 16 --gaps-only` executes32and stops at preparation handoff;33requires genuine32success and administrative parent reconciliation. All native/exact-head consent/normalpublication/actual18asset/sixmetadata duties remain.
+
+**Historical execution stop — Plan31 incomplete**: 31 physical / 13 live / 10 complete;31tasks0/3. Ordered checks1–8 passed before --verify-frozen-bundle failed at check9 with undefined `raw_sha`; checks10–12 never ran. The exclusive acceptance freeze and unchanged helper set remain failed evidence, with no post-freeze edit, runtime root, initializer, allowance, source correction, application/CI/formal/review/parent gate or successSUMMARY. [Terminal checkpoint](phases/16-host-evidence-and-roadmap/16-31-TERMINAL-CHECKPOINT.md) and [parent reconciliation](phases/16-host-evidence-and-roadmap/16-31-PARENT-RECONCILIATION.md) retain the failure and fresh equality of20inputs,32bundle files,70transcript rows and21,130historical entries. Original source/config and26active terminal=false pending diagnosis remain exact. Plan30preparation stays accepted;31terminal frozen candidate cannot resume.07/08and every later gate remain blocked. Next `$gsd-plan-phase 16 --gaps`; no automatic redispatch, re-freeze, alternate root or initializer.
 
 **Historical execution handoff — Plan30 accepted**: 31 physical / 13 live / 10 complete;30tasks2/2and31tasks0/3. All four frozen-byte preparation command families passed, including the19-action/143-row history,12required plus5supplemental history controls, inherited55and6preparation controls. [Parent reconciliation](phases/16-host-evidence-and-roadmap/16-30-PARENT-RECONCILIATION.md) freshly verified exact dispatch linkage,17frozen inputs,17,374historical entries, original HEAD/index during preparation, and byte-exact helper export2b9309df…41013cc5. Source/config and failed historical evidence remain unchanged. Preparation transfers code only/runtime_admission=false. No runtime/source/formal/review/native/publication acceptance occurred. Completed30wave9→31wave10→07wave11→08wave12; only31ready. Every fresh31admission/source/formal/review/separateparent and07/08release gate remains mandatory. Next `$gsd-execute-phase 16 --gaps-only` for31; stop at this preparation handoff.
 
@@ -159,14 +161,19 @@ Plan18 is also superseded/incomplete without SUMMARY/credit: two evidence commit
 **Superseded Plan29**: [16-29-PLAN.md](phases/16-host-evidence-and-roadmap/16-29-PLAN.md) remains pre-clock incomplete0/3 after the post-freeze helper edit. Its original body, failed frozen bundle, helper versions and terminal/parent reconciliations remain immutable without acceptance or executable scheduling authority.
 - [x] 16-30-PLAN.md — Immutable helper preparation accepted2/2; four command families passed and parent reconciled. No runtime authority.
 
-**Wave 10** *(Plan31 terminal pre-clock failure; gap planning required; no redispatch)*
-- [ ] 16-31-PLAN.md — Terminal incomplete0/3 after frozen-bundle verifier NameError; candidate preserved, no runtime authority. Gap planning required.
+**Superseded Plan31**: [16-31-PLAN.md](phases/16-host-evidence-and-roadmap/16-31-PLAN.md) remains terminal incomplete0/3 after frozen-bundle verifier NameError. Its original body, frozen helpers, all attempts and checkpoint/parent evidence remain; no redispatch or re-freeze.
 
-**Wave 11** *(depends on31and all mandatory current-source parent gates)*
+**Wave 10** *(depends on completed30;32 preparation only)*
+- [ ] 16-32-PLAN.md — Repair shared admission and verify actual nonempty revision branch on final exported code; no runtime authority.
+
+**Wave 11** *(depends on genuine32preparation and administrative parent reconciliation)*
+- [ ] 16-33-PLAN.md — Fresh complete12-check admission, current-source acceptance, fullCI-before-commit and independent review under retained finite gates.
+
+**Wave 12** *(depends on33and all mandatory current-source parent gates)*
 - [ ] 16-07-PLAN.md — Prepare the checked phase PR, require fresh exact-head native PR CI, obtain exact-head owner merge consent and observe the normal release flow.
 
-**Wave 12** *(depends on the actual normal publication from Plan 07)*
-- [ ] 16-08-PLAN.md — Verify downloaded six-platform metadata, all 18 archives/checksums/attestations and exact-release-commit CI.
+**Wave 13** *(depends on the actual normal publication from Plan 07)*
+- [ ] 16-08-PLAN.md — Verify downloaded six-platform metadata, all18archives/checksums/attestations and exact-release-commit CI.
 
 **Historical Plan 11 planning (2026-10-15):** [Plan 11](phases/16-host-evidence-and-roadmap/16-11-PLAN.md) passed independent review with zero blockers/warnings; all 6 requirements and 17 decisions remain covered. Its 3 tasks form one wave-7 continuation. At planning, the installed index excluded superseded 10, reported 10 live plans with 7 complete, selected only 11 as ready and kept 07/08 blocked; Plan 11's evaluation-scope query resolved with no matching commits. Supersession preserved partial source commits and honest incomplete status without fabricating a summary or replaying completed timing work.
 
@@ -251,7 +258,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 10/13 | Plan31 terminal pre-clock failure; gap planning required;07/08 blocked | - |
+| 16. Host evidence and roadmap | v4 | 10/14 | Plans32/33 checked;32 preparation ready;33/07/08 blocked | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

@@ -4,16 +4,16 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: needs_planning
-stopped_at: Plan31 post-freeze verifier failure before runtime; 0/3 accepted; gap planning required
-last_updated: "2026-10-21T02:54:12.524Z"
+status: ready_to_execute
+stopped_at: Plans32/33 gap closure checked;32 preparation ready;31 preserved superseded incomplete
+last_updated: "2026-10-21T14:15:05.364Z"
 last_activity: 2026-10-21
-last_activity_desc: Plan31 froze candidate then failed verify-frozen-bundle with undefined raw_sha; parent reconciled unchanged inputs; 0/3 accepted
-state_head: 4d884eed74ab760d89a02590b296dc777508f021
+last_activity_desc: Added checked32 preparation and33 runtime successor; six requirements and17 decisions covered; no execution
+state_head: eaab04ed8f2666783cd282e6b1e96c70323dd5fb
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 13
+  total_plans: 14
   completed_plans: 10
   percent: 0
 ---
@@ -29,9 +29,45 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — GAP PLANNING REQUIRED
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plans32/33 gap closure passed independent review after one dependency correction
+Total Plans in Phase: 14
+Plan: 32 preparation ready (0/2 accepted);33 fresh runtime follows (0/3 accepted)
+
+Plan32 repairs the demonstrated undefined raw_sha calls by reusing launcher's
+existing sha_bytes and tests the real shared nonempty revision branch on adjacent
+and final exported helpers before freeze. It exports code only. Plan33 requires
+genuine32preparation and parent administrative reconciliation, then a fresh complete
+12-check attempt before its sole runtime initializer. No31partial pass or32proof
+transfers runtime acceptance, allowance or formal capacity.31is superseded
+incomplete0/3; every frozen artifact/failed attempt remains preserved.
+
+Counts33physical/14live/10complete. Completed21wave8 → completed30wave9 →
+32wave10 →33wave11 →07wave12 →08wave13; only32is dependency-ready. All retained
+source/causal/finalizer/cwd/lifecycle/default-all, finite formal, full649/jobs4CI
+before paired commit, ten-blob equality, independent exact-commit review,
+separate parent, native exact-headCI, owner consent and publication/released-byte
+duties remain mandatory. Four unresolved assumptions and historical UNKNOWNs stay.
+
+Independent16-32-CHECK passed with zero remaining issues after correcting07's stale
+active29prerequisite to33. Fresh303-command path/failure probes have zero findings;
+path not_applicable is not runtime proof.6/6requirements,17/17decisions and39source
+groups remain assigned; post-planning coverage23/23. Estimates44000/99500,
+factor1/sample0/low, include fresh repeated acceptance. Existing six dirty paths
+remain byte-identical; no helper/runtime/proof/source/config edit, application
+test, task credit, runtime allowance, SUMMARY or release occurred in planning.
+Auto flags were already false and config is preserved without rewrite.
+
+Next: $gsd-execute-phase 16 --gaps-only. Execute32as its own preparation step and
+stop at the genuine preparation/parent reconciliation handoff;33requires that
+success and its own exact prior intent/dispatch. Recheck empty32evaluation scope
+and the installed index after final planning commit and immediately before dispatch.
+
+Historical Plan31 execution stop retained below:
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plan31 terminal pre-clock stop after exclusive acceptance freeze; 0/3 tasks accepted
-Total Plans in Phase: 13
+Total Plans in Phase: 14
 Plan: 31 incomplete; Plans07/08 blocked; preparation30 remains complete
 
 The selected Plan31 attempt passed ordered checks1–8, then --verify-frozen-bundle
