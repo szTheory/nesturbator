@@ -5,10 +5,10 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: ready_to_execute
-stopped_at: Plans42/43 checked; owner accepted current43scope exception; execute42next and stop at preparation handoff
-last_updated: "2026-10-21T23:26:47Z"
+stopped_at: Plans42/43 revalidated unchanged; execute42next and stop at preparation handoff
+last_updated: "2026-10-21T23:43:22Z"
 last_activity: 2026-10-21
-last_activity_desc: Gap plans42/43 checked; dependency blocker resolved; owner accepted current43scope warning
+last_activity_desc: Gap plans42/43 revalidated unchanged; zero blockers; existing current43scope acceptance retained
 state_head: 404c374ea97c925968835524aef4a2a51bde53db
 progress:
   total_phases: 3
@@ -33,6 +33,17 @@ Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plans42/43 independently checked; zero blockers and current43scope warning accepted by owner
 Total Plans in Phase: 14
 Plan: 42 ready (0/2);43 (0/3),07 and08 blocked
+
+Fresh `gsd-plan-phase 16 --gaps` revalidation retained42/43 unchanged:
+no new failure or execution evidence warrants44/45 or renewed authority.
+Independent checker found0blockers/1existing scope warning, with the recorded
+owner acceptance applicable to unchanged43scope. All14live plan structures,
+6requirements/17decisions and23post-planning items pass static checks.
+Both347command probes have0findings/readError:null; path not_applicable
+is not path or runtime proof. See16-42-REVALIDATION.md. Only42is dependency-ready;
+execute42and stop at preparation/actual administrative parent handoff.
+43still requires genuine42success, parent reconciliation and a separate
+invocation. No source/helper/runtime/native/release action occurred here.
 
 Counts43physical/14live/10complete.42/43 replace40/41 for scheduling only;
 40terminal0/2 and41unexecuted0/3 bodies and evidence stay unchanged.42 repairs
