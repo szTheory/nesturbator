@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: blocked
-stopped_at: Plan38 terminal incomplete before dispatch authority/import;0/2 accepted;39/07/08 blocked
-last_updated: "2026-10-21T18:31:29.741Z"
+status: ready
+stopped_at: Plans40/41 checked; current scope warning accepted;40 ready,41/07/08 blocked
+last_updated: "2026-10-21T19:27:10.644Z"
 last_activity: 2026-10-21
-last_activity_desc: Plan38 receipt-closing B failed; parent reconciled immutable history; gap replanning required
-state_head: 9c585ecfe384e1d6601e47261e36aff2dd33407a
+last_activity_desc: Replacement gap plans40/41 finalized with accepted scope warning; no execution
+state_head: 47ffda066a520b56be53d6eafbcd50a5b64fe4ef
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,60 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plans40/41 checked with current scope warning accepted
+Total Plans in Phase: 14
+Plan: 40 ready (0/2);41 (0/3),07 and08 blocked
+
+Plans40/41 supersede38/39 for scheduling only. Counts41physical/14live/
+10complete. Historical bodies, amendments, terminal records and every failed
+root remain unchanged.38 stays terminal incomplete0/2;39 unexecuted0/3.
+
+40 requires exact-source read-only rehearsals before first parent/executor
+write, distinct pre-A P / post-A P+I / final(P+I)+C, and explicit expected
+nonzero exit/reason comparisons. Actual A and B envelopes are retained and
+exposed; any failed B is terminal even when receipt/completion bytes exist.
+The unavailable independent38B envelope remains unavailable; no reconstructed
+receipt, occupied-root reuse or historical success credit is authorized.
+40 then retains genuine copied34 CLI RED/prerequisite/export-entry correction,
+19actions/143rows,12+5history,55+6preparation,journal,18case integration,
+complete prefrozen rehearsal/exclusive freeze/unchanged-final-byte replay.
+Export is code-only, runtime_admission false. Stop after40 preparation and
+actual administrative parent reconciliation.41 requires both success artifacts
+and parent reconciliation, then a separate invoked execute step.
+
+41 retains its own prewrite controls and fresh12-check admission, one finite
+runtime authority, all source/finalizer/lifecycle controls, six formal slots,
+649/jobs4/zero skips/three fresh ZIPs before five-path commit,ten-blob equality,
+independent exact-commit review and every separate parent/native/affirmative
+exact-head owner-consent/publication/released-byte gate. All remain pending.
+
+Independent checker:0blockers/1warning. User asked for the recommendation and
+authorized it; accept the documented current41scope exception.13paths in
+5/5/3tasks exceed the10-path advisory threshold;99900/100000estimated tokens,
+low confidence/factor1/sample0, is not a proven fit. The single-owner ordered
+transaction/no-safe-authority-transfer rationale mitigates, not resolves, the
+warning. This is a current disposition, not inherited39approval. See40CHECK.
+Planning accepted with override; no runtime or emulator acceptance claimed.
+
+Coverage6/6requirements,17/17decisions,39source groups and23/23post-plan items.
+Both336-command probes report0findings/readError:null; path not_applicable
+is not runtime proof. Four flagged assumptions and historical UNKNOWN remain.
+Readonly comparison matched105538historical build entries/81682raw hashes/
+fourmetadata-only files and22frozen38bootstrap files. Original six dirty paths
+stay exact/unstaged. New40/41roots and success artifacts remain absent.
+Research skipped for --gaps; Nyquist/UI/security/pattern/intel inactive.
+Codebase drift skipped(no-structure-md); context-drift unavailableexit1 is
+advisory, not a pass. Estimates40=84500,41=99900; factor1/sample0/low.
+
+Chain: completed30wave9 →40wave10 →41wave11 →07wave12 →08wave13.
+Only40is dependency-ready; scope must remain empty after planning commit and
+immediately before sole dispatch. Verification remains gaps_found. No source,
+config, runtime/helper/test, formal, release or lifecycle advancement occurred.
+Next: $gsd-execute-phase 16 --gaps-only. Execute40and stop at its handoff.
+
+Historical Plan38 execution position retained below:
 
 Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
 Status: Plan38 failed receipt-closing B before dispatch authority/import
