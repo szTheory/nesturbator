@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: execution_incomplete
-stopped_at: Plan32 preparation stopped with unresolved copy provenance; 0/2 accepted
-last_updated: "2026-10-21T14:31:12.612590Z"
+status: ready_to_execute
+stopped_at: Plans34/35 gap planning verified; preparation34 ready,0/2 accepted
+last_updated: "2026-10-21T15:01:29.843818+00:00"
 last_activity: 2026-10-21
-last_activity_desc: Plan32 terminal incomplete; parent immutable-input reconciliation passed;33 blocked
-state_head: e333f88ef2498876b68c65287d2f7aa76549bf55
+last_activity_desc: Plans34/35 verified; fresh preparation authority and durable receipts planned
+state_head: 72ec3c107c23cec775821785d0f8f990ab6ba6c0
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,43 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap)
+Status: Ready to execute Plan34 preparation; Plan35 runtime remains blocked
+Total Plans in Phase: 14
+Plan: 34 (0/2 accepted);35 (0/3 accepted) follows genuine34success and parent reconciliation
+
+Gap planning added34/35, with independent16-34-CHECK passing no findings.
+34 authorizes fresh bootstrap/preflight roots and durable intent-before-write,
+actual-result-before-completion copy receipts; context continuation reconciles
+known operations without inventing32authorship from bytes or mtimes.
+Original31code and30provenance transfer code only.32/33are superseded for
+scheduling with no acceptance credit; all failed evidence remains immutable.
+
+35 retains every fresh ordered admission, integration, caller, boot, frozen
+closure, sole allowance, current-source/causal/lifecycle/default-all, finite
+formal, full649/jobs4 CI-before-paired-commit, ten-blob equality, independent
+exact-commit review and separate parent gate.07/08retain native exact-head CI,
+owner consent, normal publication and actual released-byte verification.
+
+Counts35physical/14live/10complete. Completed30wave9 →34wave10 →35wave11 →
+07wave12 →08wave13; only34dependency-ready. All6requirements/17decisions/
+39sourcegroups remain assigned;4unresolved assumptions stay flagged.
+Fresh310-command path/failure probes have0findings; path not_applicable grants
+no runtime proof. Decision coverage17/17 and post-planning coverage23/23passed.
+Estimates48500/99500tokens, factor1/sample0/low confidence.
+Original six dirty source/config paths remain exact; no helper/runtime/evidence
+mutation, application test, task credit, allowance, SUMMARY or release occurred.
+Auto flags already false; config preserved without rewrite. The state CLI
+reported no-op on the historical Current Position shape; this explicit update
+restores canonical labels while retaining prior history below.
+
+Next: $gsd-execute-phase 16 --gaps-only. Execute34only and stop at genuine
+preparation/admin-reconciliation handoff.35requires its separate invocation,
+prior intent and dispatch. Verify empty34scope and live index immediately
+before dispatch after the final planning commit. Stop after this planning step.
+
+Historical Plan32 execution position retained below:
 
 Phase16 — Plan32 preparation TERMINAL INCOMPLETE,0/2accepted. The sole
 executor returned before integration/matrix/export acceptance because it could
