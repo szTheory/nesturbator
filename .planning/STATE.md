@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plan30 preparation accepted and parent reconciled; Plan31 fresh acceptance next
-last_updated: "2026-10-21T00:33:36.274Z"
+status: needs_planning
+stopped_at: Plan31 post-freeze verifier failure before runtime; 0/3 accepted; gap planning required
+last_updated: "2026-10-21T02:54:12.524Z"
 last_activity: 2026-10-21
-last_activity_desc: Plan30 accepted 2/2 with four passing preparation command families and parent reconciliation; Plan31 pending
-state_head: 57e7b32c3f1a9eefbbafb81584cf57dd78bdf7bd
+last_activity_desc: Plan31 froze candidate then failed verify-frozen-bundle with undefined raw_sha; parent reconciled unchanged inputs; 0/3 accepted
+state_head: 4d884eed74ab760d89a02590b296dc777508f021
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,39 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — GAP PLANNING REQUIRED
+Status: Plan31 terminal pre-clock stop after exclusive acceptance freeze; 0/3 tasks accepted
+Total Plans in Phase: 13
+Plan: 31 incomplete; Plans07/08 blocked; preparation30 remains complete
+
+The selected Plan31 attempt passed ordered checks1–8, then --verify-frozen-bundle
+failed at check9 with NameError: name 'raw_sha' is not defined. Final helper
+manifest87deff450005c1d69f5be33833cd989e49f851ccaf4eac823157103bcae8816d
+and acceptance-freeze7acf3620dbe36df1fba21adec78bde8e12ff4b4e7554014b81277fe53d73f6d3
+remain unchanged. No helper edit followed freeze. Checks10–12 never ran;
+partial strict19/143 history,55scratch/6preparation,29caller/8448byte and
+six-slot/114row proofs grant no task acceptance.
+
+Parent fresh read-only reconciliation after the actual executor FINAL_ANSWER
+verified exact prior intent/prompt/actual receipt,20frozen inputs,5workflows/tool,
+unchanged HEAD/raw index,32frozen bundle files,70transcript rows and all21,130
+historical entries/15,529raw file hashes (one metadata-only mode000 file).
+Parent stayed shell-passive during the foreground handoff. Original six dirty
+source/config paths and all prior failed evidence remain exact; Plan26 stays
+active terminal=false with original pending diagnosis. See31TERMINAL-CHECKPOINT
+and31PARENT-RECONCILIATION.
+
+No31runtime root/initializer/allowance/source correction/application test/formal
+spend/source commit/independent source review/SUMMARY/runtime parent gate exists.
+Counts remain31physical/13live/10complete. The index may still mark31DAG-ready,
+but its terminal frozen candidate is not executable authority. Do not edit or
+re-freeze it, overwrite old evidence, choose another root or automatically
+redispatch. All source/formal/review/parent/native/consent/publication/released-byte
+duties remain pending; verification stays gaps_found and four assumptions flagged.
+Next: $gsd-plan-phase 16 --gaps. Stop after this execution step.
+
+Historical Plan30 execution handoff retained below:
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plan30 preparation accepted and parent reconciled; Plan31 fresh runtime acceptance pending
@@ -514,16 +547,16 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T00:33:36.274Z
-Stopped at: Plan30 preparation accepted 2/2 and parent reconciled; Plan31 pending
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-31-PLAN.md
+Last session: 2026-10-21T02:54:12.524Z
+Stopped at: Plan31 frozen-bundle verifier failed before runtime; 0/3 accepted; parent reconciled
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-31-TERMINAL-CHECKPOINT.md
 
-Next GSD command: $gsd-execute-phase 16 --gaps-only
+Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Plan30 preparation is accepted and parent reconciled. Next execute31with its own prior intent/actual canonical dispatch, new administrative HEAD binding and entire fresh admission matrix. Import only exact content-addressed30code; preparation evidence grants no runtime capacity or acceptance.
-- Preserve all29bootstrap/preflight/frozen receipts/helper/checkpoint bytes and original29reconciliation as failed evidence; terminal and parent reconciliation control over earlier final-helper/initialize-next labels.
-- Preserve Plan26 active pending-diagnosis history, Plan27/28 pre-clock history, the five existing dirty source/test/comment files and unstaged protected config.
-- Retain every unaccepted harness identity, causal/lifecycle/default-all, finite formal, full-CI-before-commit, exact-blob independent review and separate parent duty. Plans07/08remain blocked on accepted current-source and required parent/native/consent/publication/released-byte evidence.
-- Counts:31physical /13live /10complete; Plan30tasks2/2, Plan31tasks0/3, Plan29remains0/3incomplete. Stop after this preparation handoff.
+- Plan31 is terminal incomplete0/3 after exclusive freeze and check9 NameError. Preserve every31bootstrap/preflight/frozen helper/receipt/transcript/checkpoint byte; do not edit/re-freeze, initialize, pick another root or automatically redispatch.
+- Plan30 remains accepted2/2 preparation only. A future planning step must reconcile31's failure and retain every unaccepted fresh admission/source/formal/review/parent gate; no allowance or acceptance transfers from partial checks.
+- Preserve Plan26 active terminal=false pending diagnosis and all27/28/29failed history, original five dirty source/test/comment paths and protected unstaged config.
+- Plans07/08 remain blocked on accepted current-source and required parent/native/exact-head consent/normal publication/actual released-byte evidence. Phase verification remains gaps_found.
+- Counts:31physical/13live/10complete. Administrative metadata commit follows immutable comparisons; no source candidate or runtime acceptance exists. Stop after this execution step.
