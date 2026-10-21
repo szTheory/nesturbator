@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready
-stopped_at: Plans40/41 checked; current scope warning accepted;40 ready,41/07/08 blocked
-last_updated: "2026-10-21T19:27:10.644Z"
+status: blocked
+stopped_at: Plan40 terminal incomplete on executor prewrite verifier assertion; gap planning required
+last_updated: "2026-10-21T20:24:44Z"
 last_activity: 2026-10-21
-last_activity_desc: Replacement gap plans40/41 finalized with accepted scope warning; no execution
-state_head: 47ffda066a520b56be53d6eafbcd50a5b64fe4ef
+last_activity_desc: Plan40 executor terminal before writes; parent independently reconciled preserved evidence
+state_head: 3dfeee9533a0e32f6e4e71ad6efb48a295a54f91
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,41 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
+Status: Plan40 executor stopped on reported prewrite verifier assertion
+Total Plans in Phase: 14
+Plan: 40 terminal incomplete (0/2);41 (0/3),07 and08 blocked
+
+The sole /root/execute_16_40 executor returned FINAL_ANSWER without any
+executor journal/header/write. It reported an executed verifier assertion
+that incorrectly expected authority:false on a parent durable preparation
+result. Parent durable mode correctly reports authority:true for that write;
+this is separate from runtime admission. Any prewrite failure is terminal
+under40AMENDMENT. The original failed verifier request/result is unavailable
+in the child's compacted context; preserve that ceiling, with no invented
+source, exit or raw output. No executor A/B or failed B occurred.
+
+Parent exact-source21-case read-only controls and three pre-dispatch A/B
+operations passed after bounded receipt-transport correction. Parent stayed
+passive throughFINAL, then independently matched441613historical entries/
+357203raw hashes/fourmetadata-only files,57frozen inputs/tool/workflow/context,
+all15bootstrap files, HEAD/raw index and sixdirtypaths exact/unstaged.
+A fourth post-FINAL A/B operation preserved actual exposed messages/FINAL
+and the independent comparison; journal125589bytes/8rows/4closed operations,
+SHA256 ffa71da1d66718ae13e2aa4db5bea5bbd8c5de7924176b92bb6d11322194aead.
+These parent successes do not replace the failed executor gate.
+
+No40preflight/runtime/import/helper repair/CLI RED/matrix/freeze/export/
+PREPARATION/SUMMARY or task credit.41roots remain absent. Source/config,
+Plan26active terminal=false/pending, historical UNKNOWNs and fourassumptions
+remain unchanged. Counts41physical/14live/10complete; verification gaps_found.
+See16-40-TERMINAL-CHECKPOINT and16-40-PARENT-RECONCILIATION.
+The occupied40bootstrap cannot be reused despite a DAG-ready label.
+Next: $gsd-plan-phase 16 --gaps. Stop after this invoked execute step.
+
+Historical Plans40/41 planning position retained below:
+
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plans40/41 checked with current scope warning accepted
