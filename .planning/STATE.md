@@ -5,16 +5,16 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: ready_to_execute
-stopped_at: Phase 16 gap planning complete; Plan30 preparation next, Plan31 fresh acceptance follows
-last_updated: "2026-10-20T23:57:06.055Z"
-last_activity: 2026-10-20
-last_activity_desc: Plans30/31 split and independently checked; preparation and fresh runtime acceptance remain pending
-state_head: 4d56c74955679c13bc6e82a6b47219bd2714179b
+stopped_at: Plan30 preparation accepted and parent reconciled; Plan31 fresh acceptance next
+last_updated: "2026-10-21T00:33:36.274Z"
+last_activity: 2026-10-21
+last_activity_desc: Plan30 accepted 2/2 with four passing preparation command families and parent reconciliation; Plan31 pending
+state_head: 57e7b32c3f1a9eefbbafb81584cf57dd78bdf7bd
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 13
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -28,6 +28,21 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plan30 preparation accepted and parent reconciled; Plan31 fresh runtime acceptance pending
+Total Plans in Phase: 13
+Plan: 30 complete (2/2 preparation tasks); Plan31 next (0/3 tasks accepted)
+
+Plan30's four frozen-byte command families passed: actual 19-action/143-row history, 12 required plus five supplemental history refusals, inherited55 and six preparation controls, and complete export verification. The helper-set manifest SHA256 is 2b9309df897c1ebea988fe25a55f0f56310f18233c8833420e1e619b41013cc5. It declares helper-preparation/runtime_admission=false and transfers code only, never runtime acceptance or capacity.
+
+Parent fresh read-only reconciliation passed after the sole /root/execute_16_30 FINAL_ANSWER: exact prior intent/prompt/actual receipt, 17 frozen inputs, five workflows/tool/context, unchanged HEAD/raw index during preparation, all17,374 historical entries/12,572 raw file hashes and four equal before/after closure transcripts. Parent remained shell-passive during foreground execution. Original six dirty source/config paths, Plan26 active terminal=false pending diagnosis and all failed27/28/29evidence remain unchanged. See16-30-PREPARATION/SUMMARY/PARENT-RECONCILIATION.
+
+Counts:31physical /13live /10complete. Completed30wave9 →31wave10 →07wave11 →08wave12; only31is dependency-ready. No runtime root/clock/boot query, source correction, emulator/application test, allowance/formal spend, source commit/review, native run or publication occurred. Administrative metadata commit follows the immutable-input comparison and advances HEAD/index only after preparation.
+
+Stop at this preparation handoff. Next: $gsd-execute-phase 16 --gaps-only for31under its own exact prior intent/dispatch. Every fresh actual31history/caller/route/boot/import/freeze/admission proof, current-source/causal/lifecycle/default-all, finite formal, fullCI-before-paired-commit, tenblob equality/independentreview/separateparent/native/consent/publication/released-byte duty remains mandatory. Phase verification remains gaps_found; four flagged assumptions and historical UNKNOWNs remain.
+
+Historical Plan30 planning position retained below:
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Ready to execute Plan30 preparation; runtime and release acceptance pending
@@ -499,16 +514,16 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-20T23:57:06.055Z
-Stopped at: Gap planning complete; Plans30/31 independently checked; no execution started
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-30-PLAN.md
+Last session: 2026-10-21T00:33:36.274Z
+Stopped at: Plan30 preparation accepted 2/2 and parent reconciled; Plan31 pending
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-31-PLAN.md
 
 Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Execute Plan30 preparation as its own step after exact intent-before-spawn and foreground-owner prerequisites; no runtime allowance or source correction belongs to30. Stop at its handoff. Plan31requires genuine30success and parent reconciliation plus its own fresh dispatch and entire admission matrix.
+- Plan30 preparation is accepted and parent reconciled. Next execute31with its own prior intent/actual canonical dispatch, new administrative HEAD binding and entire fresh admission matrix. Import only exact content-addressed30code; preparation evidence grants no runtime capacity or acceptance.
 - Preserve all29bootstrap/preflight/frozen receipts/helper/checkpoint bytes and original29reconciliation as failed evidence; terminal and parent reconciliation control over earlier final-helper/initialize-next labels.
 - Preserve Plan26 active pending-diagnosis history, Plan27/28 pre-clock history, the five existing dirty source/test/comment files and unstaged protected config.
 - Retain every unaccepted harness identity, causal/lifecycle/default-all, finite formal, full-CI-before-commit, exact-blob independent review and separate parent duty. Plans07/08remain blocked on accepted current-source and required parent/native/consent/publication/released-byte evidence.
-- Counts:31physical /13live /9complete; Plan30tasks0/2, Plan31tasks0/3, Plan29remains0/3incomplete. Stop after this planning step.
+- Counts:31physical /13live /10complete; Plan30tasks2/2, Plan31tasks0/3, Plan29remains0/3incomplete. Stop after this preparation handoff.
