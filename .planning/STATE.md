@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plans34/35 gap planning verified; preparation34 ready,0/2 accepted
-last_updated: "2026-10-21T15:01:29.843818+00:00"
+status: execution_incomplete
+stopped_at: Plan34 terminal incomplete after frozen history-admission refusal;1/2 accepted
+last_updated: "2026-10-21T16:15:05.656410+00:00"
 last_activity: 2026-10-21
-last_activity_desc: Plans34/35 verified; fresh preparation authority and durable receipts planned
-state_head: 72ec3c107c23cec775821785d0f8f990ab6ba6c0
+last_activity_desc: Plan34 shared regression passed; final preparation incomplete;35 blocked
+state_head: a7cc5e2f3ca22d570e20bbfd2e41a738e4f8f3ae
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,36 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap)
+Status: Plan34 terminal incomplete after post-freeze history-admission control
+Total Plans in Phase: 14
+Plan: 34 (1/2 tasks accepted);35/07/08 blocked
+
+Shared nonempty revision RED/GREEN and actual final export integration passed18cases,
+2acceptances/16refusals with zero sentinels. History verified19actions/143rows.
+After exclusive freeze, --test-history-admission exited2: expected
+HISTORY_JOIN_INVALID, got HELPER_SET_BINDING_INVALID. This fails the intended
+negative control; no post-freeze code edit/retry or remaining preparation acceptance.
+No34PREPARATION/SUMMARY or full plan credit. See34TERMINAL-CHECKPOINT and
+34PARENT-RECONCILIATION; frozen code/export and failed result stay immutable.
+
+Parent stayed passive through FINAL and independently matched101,698historical
+entries/78,638raw hashes/4metadata-only files,26inputs, tool/workflow/context,
+HEAD/index, dispatch,102journal rows/50operations plus header and export bytes.
+Terminal JSON contains a63-character truncated transcript hash; actual raw
+64-character digest is recorded separately without editing frozen evidence.
+Original six dirty paths and every prior failed root remain unchanged.
+Plan26stays active terminal=false pending diagnosis; historical UNKNOWNs remain.
+
+Counts35physical/14live/10complete.34may still be index-DAG-ready but its
+occupied frozen root cannot be redispatched;35requires genuine preparation.
+No runtime boot/clock/allowance/application test/source correction/formal spend,
+source commit/review/runtime parent gate or35work occurred. All later duties,
+gaps_found verification and four assumptions remain pending.
+Next: $gsd-plan-phase 16 --gaps. Preserve34and stop after this execution step.
+
+Historical Plans34/35 planning position retained below:
 
 Phase: 16 (Host evidence and roadmap)
 Status: Ready to execute Plan34 preparation; Plan35 runtime remains blocked
