@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plans32/33 gap closure checked;32 preparation ready;31 preserved superseded incomplete
-last_updated: "2026-10-21T14:15:05.364Z"
+status: execution_incomplete
+stopped_at: Plan32 preparation stopped with unresolved copy provenance; 0/2 accepted
+last_updated: "2026-10-21T14:31:12.612590Z"
 last_activity: 2026-10-21
-last_activity_desc: Added checked32 preparation and33 runtime successor; six requirements and17 decisions covered; no execution
-state_head: eaab04ed8f2666783cd282e6b1e96c70323dd5fb
+last_activity_desc: Plan32 terminal incomplete; parent immutable-input reconciliation passed;33 blocked
+state_head: e333f88ef2498876b68c65287d2f7aa76549bf55
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,30 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase16 — Plan32 preparation TERMINAL INCOMPLETE,0/2accepted. The sole
+executor returned before integration/matrix/export acceptance because it could
+not reconcile preflight creation with its retained copy-attempt transcript.
+Its contradictory absence/existence reports remain unresolved; byte equality
+and mtimes do not establish authorship. No outside writer is demonstrated.
+
+Parent preserved prior intent/prompt and remained shell-passive through FINAL.
+Fresh read-only reconciliation matches101,674historical entries/78,618hashes,
+4mode000metadata-only fixtures,24frozen inputs, tool/workflows and original
+HEAD/raw index. Eight partial import/working files match original31and30bytes;
+no32repair/export/acceptance exists. Original six dirty paths remain exact.
+No runtime root/boot/clock/allowance, application test, source correction,
+formal spend, source commit/review, runtime parent gate or33work occurred.
+See32TERMINAL-CHECKPOINT and32PARENT-RECONCILIATION.
+
+Counts33physical/14live/10complete.32may remain index-DAG-ready but its occupied
+failed root cannot be redispatched;33/07/08remain blocked. Preserve all32and
+historical bytes; Plan26stays active terminal=false pending diagnosis.
+All retained source/runtime/formal/review/parent/native/consent/publication
+and released-byte duties remain pending, verification gaps_found and four
+assumptions flagged. Next: $gsd-plan-phase 16 --gaps. Stop after this step.
+
+Historical Plans32/33 planning position retained below:
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plans32/33 gap closure passed independent review after one dependency correction
