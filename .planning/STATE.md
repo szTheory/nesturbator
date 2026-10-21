@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: blocked
-stopped_at: Plan40 terminal incomplete on executor prewrite verifier assertion; gap planning required
-last_updated: "2026-10-21T20:24:44Z"
+status: ready_to_execute
+stopped_at: Plans42/43 checked; owner accepted current43scope exception; execute42next and stop at preparation handoff
+last_updated: "2026-10-21T23:26:47Z"
 last_activity: 2026-10-21
-last_activity_desc: Plan40 executor terminal before writes; parent independently reconciled preserved evidence
-state_head: 3dfeee9533a0e32f6e4e71ad6efb48a295a54f91
+last_activity_desc: Gap plans42/43 checked; dependency blocker resolved; owner accepted current43scope warning
+state_head: 404c374ea97c925968835524aef4a2a51bde53db
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,35 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plans42/43 independently checked; zero blockers and current43scope warning accepted by owner
+Total Plans in Phase: 14
+Plan: 42 ready (0/2);43 (0/3),07 and08 blocked
+
+Counts43physical/14live/10complete.42/43 replace40/41 for scheduling only;
+40terminal0/2 and41unexecuted0/3 bodies and evidence stay unchanged.42 repairs
+the reported authority-by-mode verifier error with a fresh independent prewrite
+oracle; original40failed source/envelope/exit/raw output remain unavailable.
+42preparation success and actual administrative parent reconciliation must
+precede a separately invoked43runtime step. No42/43root or runtime/source
+acceptance was created by planning. Original sixdirtypaths remain unstaged;
+config unchanged. All26pending/history/UNKNOWN/fourassumption boundaries stay.
+
+Independent16-42-CHECK found a stale35artifact prerequisite in07/08 and the
+current43scope warning. Revision rebinds executable07/08 prerequisites to
+genuine42/43 outputs and every actual separate parent result.16-42-RECHECK
+confirms zero blockers/one warning. Current43declares13paths across5/5/3tasks,
+99900/100000estimated tokens, lowconfidence/factor1/sample0; both reviews found
+no safe independent split under the sole-owner/once-only contract. No old
+scope approval transfers. The owner explicitly answered yes to accepting the
+current43exception; planning passes with that fresh override. Sixrequirements/17decisions and
+39sourcegroups remain covered.347command probes show0findings; path probe
+not_applicable is not path or runtime proof. Verification remains gaps_found;
+all43source/formal/parent,07native/exact-head-consent/publication and08actual
+released-byte gates remain blocking.
+
+## Historical Plan40 execution position
 
 Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
 Status: Plan40 executor stopped on reported prewrite verifier assertion
@@ -915,16 +944,17 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T02:54:12.524Z
-Stopped at: Plan31 frozen-bundle verifier failed before runtime; 0/3 accepted; parent reconciled
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-31-TERMINAL-CHECKPOINT.md
+Last session: 2026-10-21T23:26:47Z
+Stopped at: Plans42/43 checked; owner accepted current43scope exception; execute42next
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-42-RECHECK.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Plan31 is terminal incomplete0/3 after exclusive freeze and check9 NameError. Preserve every31bootstrap/preflight/frozen helper/receipt/transcript/checkpoint byte; do not edit/re-freeze, initialize, pick another root or automatically redispatch.
-- Plan30 remains accepted2/2 preparation only. A future planning step must reconcile31's failure and retain every unaccepted fresh admission/source/formal/review/parent gate; no allowance or acceptance transfers from partial checks.
-- Preserve Plan26 active terminal=false pending diagnosis and all27/28/29failed history, original five dirty source/test/comment paths and protected unstaged config.
+- Owner accepted current43scope warning:13declared paths and99900token low-confidence estimate under the documented single-owner/once-only rationale. No prior approval transfers; no runtime or release gate is waived.
+- After final planning checks/commit, next command is $gsd-execute-phase 16 --gaps-only; execute42and STOP at genuine preparation/administrative handoff.43needs a separate invocation.
+- Preserve occupied40bootstrap,40terminal0/2 and41unexecuted0/3 plus all earlier immutable failures; no retry, invented envelope, acceptance or allowance transfer.
+- Preserve Plan26 active terminal=false pending diagnosis, fourmetadata-only files, all historical UNKNOWNs, original five dirty source/test/comment paths and protected unstaged config.
 - Plans07/08 remain blocked on accepted current-source and required parent/native/exact-head consent/normal publication/actual released-byte evidence. Phase verification remains gaps_found.
-- Counts:31physical/13live/10complete. Administrative metadata commit follows immutable comparisons; no source candidate or runtime acceptance exists. Stop after this execution step.
+- Counts:43physical/14live/10complete. Planning passes with the current scope override; no source candidate or runtime acceptance exists. Stop after this planning step.
