@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plans38/39 planned with accepted scope warning;38 ready;39/07/08 blocked
-last_updated: "2026-10-21T18:04:07.109Z"
+status: blocked
+stopped_at: Plan38 terminal incomplete before dispatch authority/import;0/2 accepted;39/07/08 blocked
+last_updated: "2026-10-21T18:31:29.741Z"
 last_activity: 2026-10-21
-last_activity_desc: Plans38/39 checked; user accepted Plan39 scope warning;38 ready for separate execution
-state_head: 55ff534d5199ab2bd228a964eb2d0ae12a7f927b
+last_activity_desc: Plan38 receipt-closing B failed; parent reconciled immutable history; gap replanning required
+state_head: 9c585ecfe384e1d6601e47261e36aff2dd33407a
 progress:
   total_phases: 3
   completed_phases: 0
@@ -29,10 +29,46 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
-Status: Plans38/39 verified with user-approved scope warning
+Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
+Status: Plan38 failed receipt-closing B before dispatch authority/import
 Total Plans in Phase: 14
-Plan: 38 ready after planning commit;39/07/08 blocked
+Plan: 38 incomplete (0/2 accepted);39/07/08 blocked
+
+The sole /root/execute_16_38 executor returned FINAL_ANSWER after diagnostic
+operation16-38-diagnostic-controls-failure-0006 B exited1 with
+COMPLETION_READBACK_MISMATCH. It reported double-counting the A-appended
+intent in the final expected journal bytes after receipt/completion write.
+Any failed B is terminal under38AMENDMENT: no retry/backfill/repair/redispatch.
+The earlier read-only control also failed REAL_RECEIPT_REFUSAL_CONTROL_FAILED;
+its actual request/result remains in the diagnostic record. Neither failure
+is a passing negative control or demonstrated emulator defect.
+
+Parent stayed passive through FINAL, then independently matched105,704
+historical entries/81,847raw hashes/fourmetadata-only files,50frozen inputs,
+sixworkflows/onetool/fivecontext files, exact bootstrap payloads and HEAD/raw
+index. Journal13,136bytes/12rows/sixAreceipts has SHA256
+5d9dc44bca2c69a9d4e5ac248ae1d9942c4cafd9ee4e208902b6b87695d9b195.
+Durable completion rows bind A results, never override the failed B.
+Full B envelope was reported in executor transcript, not a durable bootstrap
+receipt or separately exposed parent result; no reconstruction is claimed.
+See38TERMINAL-CHECKPOINT/PARENT-RECONCILIATION for provenance and limits.
+
+No dispatch-result authority/preflight/import/helper repair/CLI RED/rehearsal/
+freeze/export/PREPARATION/SUMMARY or task credit. No runtime/boot/allowance/
+application test/source correction/formal/source commit/review occurred.
+Original six dirty paths stay exact/unstaged;26active terminal=false/pending,
+all failed roots/UNKNOWNs/four unresolved assumptions remain unchanged.
+Counts39physical/14live/10complete;38terminal0/2and39unexecuted0/3.
+All preparation/runtime/source/formal/CI/review/parent/native/consent/
+publication/released-byte duties remain pending. Verification gaps_found.
+An index DAG-ready label cannot authorize occupied38bootstrap reuse.
+Next: $gsd-plan-phase 16 --gaps. Stop after this invoked execute step.
+
+Historical Plans38/39 planning position retained below:
+
+Phase:16 (Host evidence and roadmap) — READY TO EXECUTE at planning close
+Status: Plans38/39 checked with accepted scope warning
+Plan:38was ready after planning commit;39/07/08blocked
 
 Counts39physical/14live/10complete. New38 preparation and39 runtime replace
 36terminal incomplete0/2 and37unexecuted0/3 by scheduling only; historical
@@ -399,9 +435,9 @@ Historical20 planning: Shared metadata-bound parser replaces both retained and f
 Historical20 execution: Task1 PASS on unchanged candidate: shared parser/controls accepted actual formats; one resolved launcher/smoke led to normal649/649/jobs4/configure/build/test/package and three fresh actualZIPs. Acceptance commit772dbb0 is retained. One fresh independent six-path review at that commit found CR-01 BLOCKER: failed cleanup QUIT request write under set-e can skip host reap and endpoint-lock release. Review/disposition SHA binding and open1 are committed in f609576; previous five review findings appear addressed. No source fix, second review, Task3, SUMMARY or credit.
 Historical resume safety (superseded by23): Current boot-identity failure is terminal; no redispatch or replacement clock under the unchanged amendment. Reconcile BOOT-IDENTITY-CHECKPOINT and actual OS-query permissions in SAME22 planning first. For the next expressly authorized start, preserve minimal initializer before substantive reads, durable original boot/start/deadline/operation ledger, metered required context and same-clock executor handoff. Required contents stay mandatory. No old-clock reset, stale-PID signal, invented wait/cleanup, fabricated SUMMARY,21 replay or consumed-slot reuse. All source/formal/separate-parent/native/consent/release gates remain; protected config stays exact, unstaged and excluded.
 Historical17stop: outer60s CI exit124 after9completed passes/controls unfinished; orchestration mistake, not demonstrated session defect. Raw failure/partialwork retained, no17SUMMARY/credit; historical assertion/native causesUNKNOWN. Native exact-headCI/ownerconsent/publication07 and actual18assets/sixinfo/exactreleaseCI08 pending.
-Last activity: 2026-10-20 — Phase 16 execution started
+Last activity: 2026-10-21 — Plan38 terminal incomplete; parent immutable comparison passed; gap replanning required
 
-Progress: [░░░░░░░░░░] 0% of milestone phases complete; Phase 16 has 9/12 live plans complete and remains incomplete
+Progress: [░░░░░░░░░░] 0% of milestone phases complete; Phase 16 has 10/14 live plans complete and remains incomplete
 
 ## Performance Metrics
 
