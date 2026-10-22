@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: needs_planning
-stopped_at: Plan44 terminal prewrite inventory bound; no bootstrap or executor dispatch
-last_updated: "2026-10-22T00:45:00Z"
+status: ready_to_execute
+stopped_at: Plans46/47 checked; execute46 preparation next and stop at parent reconciliation
+last_updated: "2026-10-22T01:44:36.271Z"
 last_activity: 2026-10-21
-last_activity_desc: Plan44 inventory121071262 exceeds67108864 decoded limit; terminal0/2
-state_head: a63404b2809fe1788dbb932f5804aaba8e9d1ef2
+last_activity_desc: Approved segmented machine reception planned; independent check has zero blockers/warnings and two INFO advisories
+state_head: ae197eb0ce1b62e80f66a3294d0da2b34fb087b2
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,43 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plans46/47 independently checked; zero blockers/warnings; two visible scope advisories
+Total Plans in Phase: 14
+Plan: 46 ready (0/2);47 (0/3),07 and08 blocked
+
+User approved independent machine reception of complete actual tool results,
+retained full bytes/envelopes and ordered reconstruction/comparison, with bounded
+receipts to the model.46/47 explicitly replace model full-byte retranscription,
+whole-snapshot single publication and repeated full-prefix transport. Existing
+byte limits and every later runtime gate remain. Fresh preparation46 supersedes
+44 scheduling only; runtime47 supersedes unexecuted45 scheduling only. Historical
+bodies and terminal facts stay unchanged;44 remains terminal0/2 with zero writes.
+
+Independent16-46-CHECK found zero blockers/warnings and two INFO scope advisories.
+Current parent16-46-SCOPE-DISPOSITION retains47's13paths/5-5-3tasks and108900
+tokens (+8900 above100000), low confidence/factor1/sample0.46=99500;combined208400.
+No inherited owner approval, fit guarantee, omitted control or extra allowance.
+The real finite operation graph/shape/slot proof remains a prewrite execution
+gate; planning does not establish transport success on the121071262-byte shape.
+
+Coverage6requirements/17decisions/39sourcegroups; eight edge dispositions
+(four resolved/four flagged), four unresolved assumptions and prohibitions:[]
+retained.371-command path/failure probes have zero findings/readError:null;
+path not_applicable provides no runtime proof. Counts47physical/14live/10complete.
+Verification stays gaps_found. All historical UNKNOWNs,26active/pending and
+fourmetadata-only limits remain. No execution/task acceptance was added.
+
+Only46is dependency-ready after completed30. Execute46 and STOP after genuine
+full PREPARATION/SUMMARY and actual administrative parent reconciliation.
+47requires those artifacts AND a separate invocation.07/08 retain all actual
+parent/native/exact-head consent/normal publication/actual-byte release gates.
+Original six dirty paths remain exact and unstaged; no new execution root,
+helper, source, runtime, formal, native or release action occurred in planning.
+Next: $gsd-execute-phase 16 --gaps-only. Stop after this planning step.
+
+## Historical Plan44 terminal execution position
 
 Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
 Status: Plan44 prewrite feasibility stop; retained inventory exceeds decoded-result limit

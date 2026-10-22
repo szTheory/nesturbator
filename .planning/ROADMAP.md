@@ -58,7 +58,30 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current execution — Plan44 terminal before dispatch:** A read-only streaming
+**Current gap planning — Plans46/47:** User approved full actual-result machine
+reception with retained bytes/envelopes, ordered reconstruction/comparison and
+bounded model receipts. The explicit amendment replaces model retranscription,
+whole-inventory single publication and repeated full-prefix transport; existing
+limits and every later runtime gate remain.46preparation replaces44scheduling;
+47runtime replaces45scheduling. Historical bodies/terminal facts stay unchanged.
+Independent[check](phases/16-host-evidence-and-roadmap/16-46-CHECK.md) found zero
+blockers/warnings and two INFO advisories, currently parent-disposed in
+[scope disposition](phases/16-host-evidence-and-roadmap/16-46-SCOPE-DISPOSITION.md).
+47retains13paths/5-5-3tasks and108900tokens vs100000 (+8900), lowconfidence/
+factor1/sample0;46=99500,combined208400. No fit guarantee or inherited approval.
+The fresh finite graph/shape/slot proof must pass before execution writes;
+planning supplies no new transport/runtime proof. Coverage6requirements/
+17decisions/39sourcegroups and371-command probes checked; zero probe findings,
+path not_applicable supplies no runtime evidence. Counts47physical/14live/
+10complete; eight edge dispositions/four flagged assumptions and all historical
+UNKNOWNs/26pending/fourmetadata-only limitations retained; verification gaps_found.
+Only46ready after30. STOP after genuine full46preparation and administrative
+parent reconciliation;47requires a separate invocation.07/08retain all actual
+parent/native/exact-head consent/publication/released-byte gates. Original six
+dirty paths stay exact/unstaged. No execution roots or success artifacts created.
+Next: `$gsd-execute-phase 16 --gaps-only`. Stop after this planning step.
+
+**Historical execution — Plan44 terminal before dispatch:** A read-only streaming
 measurement found the retained bootstrap historical inventory is121071262bytes,
 exceeding the67108864-byte decoded-result closure limit by53962398bytes before
 other bootstrap/receipt bytes. The measurement exited0 with a bounded diagnostic;
@@ -116,7 +139,7 @@ is historical and supplies no fresh execution authority.
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans:** 14 live plans (45 physical; 10 complete)
+**Plans:** 14 live plans (47 physical; 10 complete)
 
 **Historical gap recovery planning — Plans42/43**: [Plan42](phases/16-host-evidence-and-roadmap/16-42-PLAN.md) addresses the reported40mode-expectation error with an independent literal read-only/durable positive/negative oracle BEFORE any parent/executor durable write. Readonly authority=false, successful durable operation authority=true, refusal=false; write authority never grants runtime admission. Original40failed tool envelope/source/exit/raw stay UNKNOWN. All P/P+I/(P+I)+C, expected-refusal, store/quote/actual-result and copied34CLI/prerequisite/export/full-matrix/freeze duties remain. [Plan43](phases/16-host-evidence-and-roadmap/16-43-PLAN.md) retains fresh12row admission and every source/lifecycle/finite formal/full649/jobs4/no-skip/threeZIP/tested-before-commit/tenblob/real1800sindependentreview/open0/separateparent gate.07/08native exacthead, affirmative exactPR/head owner consent, normal publication and18actualarchives/sixmetadata remain separate. Counts43physical/14live/10complete;40terminal0/2and41unexecuted0/3superseded by scheduling metadata only.42sole ready after30,43blocked on genuine42PREPARATION/SUMMARY AND actual administrative parent reconciliation plus separate invocation; execute42and STOP. All6requirements/17decisions/39sourcegroups/fourflagged assumptions and historical UNKNOWNs retained. Original sixdirtypaths/fourmetadata-onlyfiles/26active-pending preserved; planning creates no execution roots, acceptance or source/config edits. Independent check and revision recheck found zero remaining blockers/one scope warning; the owner explicitly answered yes to accepting the current43exception:13paths in5/5/3tasks,99900/100000tokens lowconfidence/factor1/sample0. Both reviews found no safe independent split under the sole-owner/once-only contract. Planning passes with this fresh override; historical41approval does not transfer. Coverage23/23 and347-command probes0findings; path not_applicable is not runtime proof. Estimates42=88500,43=99900; one-owner/once-only authority prevents an independent split without proof/clock/slot transfer. Parent owns final checks and planning commit. Verification remains gaps_found.
 
@@ -251,13 +274,16 @@ Plan18 is also superseded/incomplete without SUMMARY/credit: two evidence commit
 **Superseded Plan42**: Terminal0/2at parent prewrite OUTPUT_INVALID; unavailable untruncated output is not reconstructed. No bootstrap or executor.
 **Superseded Plan43**: Unexecuted0/3; no acceptance transfers.
 
-**Wave 10** *(44 sole ready after30 and final planning commit; no44runtime)*
-- [ ] 16-44-PLAN.md — Bounded transport and complete actual-envelope prewrite proof, all retained preparation/CLI repair/freeze/export duties; stop at actual administrative parent handoff.
+**Superseded Plan44**: Terminal0/2 before bootstrap/dispatch at measured inventory bound; bodies and terminal record unchanged.46 replaces scheduling with the approved segmented machine reception amendment.
+**Superseded Plan45**: Unexecuted0/3;47 retains every pending acceptance duty without proof or allowance transfer.
 
-**Wave 11** *(genuine44PREPARATION/SUMMARY AND actual administrative parent reconciliation; separate invoked step)*
-- [ ] 16-45-PLAN.md — Fresh12row admission and full runtime/source/formal/CI/tenblob/independentreview/separateparent duties; two visible scope advisories parent-disposed.
+**Wave 10** *(46 sole ready after30 and final planning commit; no46runtime)*
+- [ ] 16-46-PLAN.md — Approved segmented snapshot and machine reception; all retained preparation/CLI repair/freeze/export duties; stop at actual administrative parent handoff.
 
-**Wave 12** *(depends on45ANDall mandatory actual current-source parent gates)*
+**Wave 11** *(genuine46PREPARATION/SUMMARY AND actual administrative parent reconciliation; separate invoked step)*
+- [ ] 16-47-PLAN.md — Fresh segmented reception/12row admission and full runtime/source/formal/CI/tenblob/independentreview/separateparent duties; two current INFO scope advisories parent-disposed.
+
+**Wave 12** *(depends on47ANDall mandatory actual current-source parent gates)*
 - [ ] 16-07-PLAN.md — Prepare the checked phase PR, require fresh exact-head native PR CI, obtain exact-head owner merge consent and observe the normal release flow.
 
 **Wave 13** *(depends on the actual normal publication from Plan 07)*
