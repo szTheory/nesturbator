@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plan56 gap planning passed independent revision recheck; execution pending
-last_updated: "2026-10-22T20:22:22.975Z"
+status: context_amendment_required
+stopped_at: Plan56 context checkpoint before prospective binding; 0/2 tasks accepted
+last_updated: "2026-10-22T20:37:04Z"
 last_activity: 2026-10-22
-last_activity_desc: Plan56 large-header payload amendment checked; Plan52 own-context gate wired
-state_head: e74d8ef26958f73cc9936b56ac58a24835ab999b
+last_activity_desc: Plan56 budget probe passed; administrative sizing only; context amendment pending
+state_head: da403131955da74635573524e81c231af861d43b
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,32 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — CONTEXT AMENDMENT REQUIRED
+Status: Plan56 stopped before prospective source binding; no terminal transport failure
+Total Plans in Phase: 17
+Plan: 56 incomplete (0/2);51–54 and07/08 remain dependency-blocked
+
+Exact p56 budget setup/probe passed with actual exit0/ten bytes and explicit
+outer/nested18000. No finalized prospective closure or actual retained38/A-B/
+snapshot/finitegraph/bootstrap/executor/helper/CLI/matrix/export acceptance.
+Administrative census only:70roots/105801entries; compact placeholder-hash
+metadata projection27466734bytes after documented one-comma correction.
+Its2236packets/stream/8944nestedcalls/140outercalls per context are optimistic
+base64-only sizing arithmetic, not actual transport counts or proof of fit.
+Exact actual results and original metadata integers stay in56CONTEXT-PROVENANCE.
+
+The agent could not finish full remaining construction and independently
+repeated preparation within this run's context.56CONTEXT-CHECKPOINT records
+the concrete ordering/compaction alternatives; none is approved by this stop.
+Current56PLAN/AMENDMENT/CHECK/RECHECK remain unchanged, no failed final source,
+terminal successor identity, task credit or PREPARATION/SUMMARY is created.
+Counts56physical/17live/10complete; verification remains gaps_found. Preserve
+sixoriginaldirtypaths/fourmetadata-only records/26active terminal=false and
+pending diagnosis, historical UNKNOWNs and all51–54/07/08later gates.
+Next: $gsd-plan-phase 16 --gaps for the context amendment; stop after this step.
+
+## Historical Plan56 planning position
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plan56 independently checked after revision1; zero blockers or warnings

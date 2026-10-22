@@ -58,7 +58,28 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current gap planning — Plan56 ready after independent revision recheck:**
+**Current execution checkpoint — Plan56 context amendment required, 0/2:**
+[Context checkpoint](phases/16-host-evidence-and-roadmap/16-56-CONTEXT-CHECKPOINT.md)
+and [actual provenance](phases/16-host-evidence-and-roadmap/16-56-CONTEXT-PROVENANCE.json)
+record an initial budget probe PASS and administrative sizing only. The current
+checked prospective program was never finalized or dispatched; no terminal
+transport failure, actual payload/snapshot/graph acceptance, bootstrap, executor,
+helper, PREPARATION/SUMMARY or task credit is claimed. Metadata census found
+70roots/105801entries; its corrected compact placeholder-hash projection is
+27466734bytes. Its optimistic2236packets/stream/8944nestedcalls/140outercalls
+per context are sizing arithmetic, not actual counts/throughput/fit proof.
+
+The agent could not finish remaining full inline construction and independently
+repeated preparation in this run's context.56AMENDMENT's context-stop clause
+applies; checkpoint alternatives are proposed only.56's checked plan stays
+unchanged and incomplete, with no failed finalized source to retry and no new
+terminal successor. All caps/32packet grouping/complete originals/independent
+parent-child gates remain. Counts56physical/17live/10complete;51–54/07/08stay
+blocked, verification gaps_found,26active/terminal=false/pending and historical
+UNKNOWNs/sixoriginaldirtypaths/fourmetadata-only limits remain. Next:
+`$gsd-plan-phase 16 --gaps`; stop after this invoked execute step.
+
+**Historical gap planning — Plan56 ready after independent revision recheck:**
 [Plan56](phases/16-host-evidence-and-roadmap/16-56-PLAN.md) and
 [amendment](phases/16-host-evidence-and-roadmap/16-56-AMENDMENT.md) replace only
 terminal55's preparation identity. Complete actual large header/file inputs
