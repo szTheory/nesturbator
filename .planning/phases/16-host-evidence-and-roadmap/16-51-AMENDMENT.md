@@ -1,5 +1,39 @@
 # Plans50–54: approved split and exact-byte transport contract
 
+## Current special-file capture schema correction
+
+Read16-56-SPECIAL-FILES-AMENDMENT.md with current51/52plans. It amends the
+unfinalized56capture without successor/root/owner changes or retry acceptance.
+Its exact `phase16-snapshot-special-metadata-1` row union admits only FIFO4096,
+socket49152, character8192 and block24576 as metadata-only special kinds;
+independent lossless integer parsing, no special-content access, exact full
+ordered coverage, stable lstat/ancestor/name census and deterministic per-kind
+positive/intended-negative controls are mandatory in capture AND receiver.
+The original four mode000regular-file limitations remain separately exact.
+This substantive current schema addition controls older unsupported-type
+language for these four admitted kinds only; unknown kinds still stop.
+Failed56source/prefix and its earlier budget receipt remain immutable DATA.
+New own51and52capture identities are p51-special-metadata-01 and
+p52-special-metadata-01, each separately bound to actual context and complete
+final source/request/receiver/expected-case closure before its own capture.
+No ancestor proof/source buffer or failed prefix satisfies a new gate.
+Complete inline actual gate remains before51/52firstwrite, including all
+controls and full READ/COMPARE/finite graph. Implement/adapt the schema and
+--test-special-file-snapshot in the same two helpers only after their own
+creation is authorized, before finalization. Fold actual own originals and
+four-kind controls into every full working/exported rehearsal/freeze/replay/
+verify-preparation matrix, no13th runtime row.56-only early construction is
+not granted to51/52. Genuine56success+actual reconciliation then later51;
+genuine51success+actual reconciliation then one later52–54same-child runtime.
+Effective estimates51/52each75000,56=104000,aggregate328000/runtime149000,
+factor1/sample0/confidence low; historical lower projections below grant no
+capacity or fit. Every retained bound/parent/native/consent/release gate stays.
+
+<automated>python3 -B build/phase16-validation51-preflight/assemble-preclock.py --test-special-file-snapshot</automated>
+<fails_when>Nonzero; own51complete fresh exact baseline/source/request/result/READ-COMPARE/finitegraph or four-kind intended controls absent; imported56proof or failed prefix accepted; precision/stability/coverage loss, special content access, changed four unreadable limitations, final working/export bytes differ or pre-gate mutation. Selector verifies prior own inline gate; no retrospective authority or new capture.</fails_when>
+<automated>python3 -B build/phase16-validation52-preflight/assemble-preclock.py --test-special-file-snapshot</automated>
+<fails_when>Nonzero; own52complete fresh exact baseline/source/request/result/READ-COMPARE/finitegraph or four-kind intended controls absent; predecessor proof substitutes; integer/stability/coverage loss, special content access, changed four unreadable limitations, final attempt/source differs or runtime clock/root sampled. No new capture,13throw or early-construction authority.</fails_when>
+
 Current reference:16-56-AMENDMENT maps current preparation A to56;
 16-56-CONTEXT-AMENDMENT permits journaled early construction only for56's
 same twohelpers+untrusted construction journal. No construction record is

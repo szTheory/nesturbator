@@ -58,7 +58,36 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current gap execution — Plan56 preconstruction baseline capture failed, 0/2:**
+**Current gap planning — Plan56 special-file capture amendment checked, 0/2:**
+[Special-file amendment](phases/16-host-evidence-and-roadmap/16-56-SPECIAL-FILES-AMENDMENT.md)
+amends the still-unfinalized56 with fresh attempt p56-special-metadata-01,
+strict FIFO/socket/character/block metadata-only rows, exact integer tokens,
+independent receiver/coverage/stability and type-specific controls. Failed
+source/prefix/checkpoint/provenance stay immutable nonacceptance DATA; no57,
+new root or owner. Four unreadable regular-file limitations remain distinct.
+51/52independently repeat the full gate with their own fresh identities.
+The approved twohelper+journal construction ordering and all transport,
+final-source freeze, final matrices/export and later gates remain unchanged.
+
+[Independent check](phases/16-host-evidence-and-roadmap/16-56-SPECIAL-FILES-CHECK.md)
+found0blockers/2scope warnings. Revision1 retains estimates and adds actual
+whole-duty capacity/usage/reserve review before56dispatch and separately
+before the sole52–54child dispatch. Unknown or insufficient fit stops before
+capture/construction; no child dispatch to probe capacity or implied split,
+reset, compaction or duty reduction. [Fresh recheck](phases/16-host-evidence-and-roadmap/16-56-SPECIAL-FILES-RECHECK.md)
+passes0remaining issues. Estimates104k/75k/75k/43k/31k,total328k/runtime149k,
+factor1/sample0/low; actual capacity/fit/throughput UNKNOWN. Planning checks
+cover6requirements/17decisions/23items;455-command probes0findings/readError:null,
+path not_applicable is not runtime proof.39source groups/eightedges/fourflagged
+assumptions remain. No capture/execution/dispatch/task/PREPARATION/SUMMARY or
+publication credit. Sixdirtyfiles exact/unstaged; historical bodies and26active/
+terminal=false/pending preserved.56physical/17live/10complete,gaps_found.
+Only56is dependency-ready, subject to actual context-fit review; genuine56
+success+actual parent reconciliation then STOP before separately invoked51.
+52–54same-child and07/08allnative/exact-head consent/publication/released-byte
+gates remain pending. Next `$gsd-execute-phase 16 --gaps-only`.
+
+**Historical gap execution — Plan56 preconstruction baseline capture failed, 0/2:**
 [Checkpoint](phases/16-host-evidence-and-roadmap/16-56-BASELINE-CHECKPOINT.md)
 and [actual provenance](phases/16-host-evidence-and-roadmap/16-56-BASELINE-PROVENANCE.json)
 record actual Node isError:true/UNSUPPORTED_TYPE. The new capture omitted a
@@ -553,8 +582,8 @@ Plan18 is also superseded/incomplete without SUMMARY/credit: two evidence commit
 
 **Superseded Plan55**: Terminal0/2before header dispatch/first write;56corrects large file/intent representation without retry or historical body/evidence changes.
 
-**Wave 10** *(56 sole candidate after completed30, independent checks and final planning commit)*
-- [ ] 16-56-PLAN.md — Complete actual large header/file payload transport, sealed bootstrap/copied34CLI repair/code export; STOP after actual administrative parent handoff.
+**Wave 10** *(56 sole candidate after completed30, independent checks, final planning commit and actual context-fit review)*
+- [ ] 16-56-PLAN.md — Fresh special-file metadata-only capture, complete actual large-payload transport, sealed bootstrap/copied34CLI repair/code export; STOP after actual administrative parent handoff.
 
 **Wave 11** *(blocked on genuine56preparation AND actual administrative reconciliation; separate invoked step;56AMENDMENT supplies current source mapping and complete payload gates)*
 - [ ] 16-51-PLAN.md — Full working/exported helper matrices, continuity controls and final code-only preparation/export; STOP after actual administrative parent handoff.

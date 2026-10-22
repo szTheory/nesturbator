@@ -1,5 +1,26 @@
 # Plan56: complete large header/file-payload transport
 
+## Current protected-capture correction
+
+Read16-56-SPECIAL-FILES-AMENDMENT.md for the later substantive correction.
+Plan56remains current/unfinalized0/2: its preconstruction capture failed before
+construction or finalized transport, so no57/successor/root/owner is created.
+The failed source/result/partial prefix remain immutable DATA, not retry or
+acceptance authority. The new planning authority binds exactly one fresh
+p56-special-metadata-01 capture with complete FIFO/socket/character/block
+metadata-only tagged schema, exact integer tokens, independent receiver,
+stable lstat/coverage and deterministic per-kind controls. It controls capture
+schema/attempt identity where inherited sources omit specials, leaving the
+approved CONTEXT-AMENDMENT construction allowance/order intact. Same two
+helpers only; every added API/selector/recipe precedes closed journal/final
+source freeze; Task2validation/export only.51/52own fresh gates repeat it
+independently before firstwrite; none inherits56proof or early construction.
+All39source rows below keep their owners and COVERED obligation status.
+Current additive estimates:56raw/calibrated104000,51/52effective75000each,
+53/54unchanged43000/31000; aggregate328000/runtime149000, factor1/sample0/
+confidence low. Older estimates below are retained history, not current fit
+claims. Failed checkpoint/provenance/check/recheck bodies remain immutable.
+
 ## Current approved ordering overlay
 
 Read16-56-CONTEXT-AMENDMENT.md FIRST. User-approved journaled construction

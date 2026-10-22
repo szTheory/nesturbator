@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: baseline_capture_failed
-stopped_at: Plan56 preconstruction capture omitted retained FIFO; no construction or dispatch; 0/2 tasks accepted
-last_updated: "2026-10-22T21:43:53Z"
+status: ready_to_execute
+stopped_at: Plan56 special-file capture amendment independently checked; actual context-fit review required before dispatch; 0/2 tasks accepted
+last_updated: "2026-10-22T22:17:04Z"
 last_activity: 2026-10-22
-last_activity_desc: Plan56 baseline capture stopped on unsupported FIFO; actual prefix preserved without retry
-state_head: 31a0f497a855e4364638310ceac6d89cc67b8c6d
+last_activity_desc: Plan56 special-file capture planning passed after scope revision; no execution or acceptance credit
+state_head: 8f6989038b704daa41f4bd493a765db28080bd85
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,49 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plan56 special-file amendment checked; execution remains conditional on actual context-fit review
+Total Plans in Phase: 17
+Plan: 56 amended (0/2);51–54 and07/08 remain dependency-blocked
+
+16-56-SPECIAL-FILES-AMENDMENT explicitly authorizes a fresh prospective
+p56-special-metadata-01 capture in the still-unfinalized56; no57/root/owner.
+The failed source, partial prefix and original checkpoint/provenance remain
+immutable nonacceptance DATA. FIFO/socket/character/block entries receive
+strict metadata-only tagged rows, exact integer tokens, independent receiver
+validation, complete ordered coverage, stability checks and type-specific
+controls. The four unreadable regular-file limitations stay separate. Each
+later51/52context independently repeats the complete gate under its own ID.
+No special contents are accessed, no historical entry is removed or changed,
+and no old prefix or receipt supplies acceptance. Construction allowance,
+closed journal/final-source freeze and full actual transport/matrices remain.
+
+Independent SPECIAL-FILES-CHECK found0blockers/2scope warnings; revision1
+retained all estimates and added whole-duty actual-capacity/usage/reserve
+review before56dispatch and separately before the sole52–54child dispatch.
+Missing or insufficient actual telemetry/fit STOPs before capture/construction;
+no child dispatch to probe capacity, split/reset/compaction or dropped duties.
+Fresh SPECIAL-FILES-RECHECK passes0remaining issues. Structural checks pass;
+455-command probes each report0findings/readError:null; path not_applicable
+is not runtime proof. Coverage6/6requirements,17/17decisions and23/23post-plan
+items passes;39source groups/eightedges/fourflagged assumptions remain.
+Estimates56=104k,51/52=75k each,53=43k,54=31k,total328k/runtime149k;
+factor1/sample0/low. Actual capacity, fit and throughput remain UNKNOWN.
+
+Sixoriginaldirtypaths stay exact/unstaged and the index was empty at review.
+Historical checkpoints/checks/provenance and terminal bodies remain DATA;
+26active/terminal=false/pending, fourmetadata-only limitations and UNKNOWNs
+remain. Counts56physical/17live/10complete; verification remains gaps_found.
+No new execution root/helper, capture, runtime test, dispatch, PREPARATION,
+SUMMARY, source/native/publication action or task credit was created.
+Genuine56success AND actual parent reconciliation precede separately invoked51;
+52–54retain one later same-native-child group.07/08retain every parent/native/
+exact-head affirmative consent/normalpublication/18archives/checksums/
+attestations/sixmetadata/exactreleaseCI gate.
+Next: $gsd-execute-phase 16 --gaps-only. Stop after this planning step.
+
+## Historical Plan56 baseline execution position
 
 Phase: 16 (Host evidence and roadmap) — BASELINE CAPTURE FAILED
 Status: Plan56 stopped before construction; source/schema planning correction required
