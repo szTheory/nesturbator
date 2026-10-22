@@ -3,6 +3,12 @@
 **Gathered:** 2026-10-13
 **Status:** Ready for planning
 
+**Current process override:** The user's later request to diagnose and end the
+repeated command loop is implemented by16-RECOVERY.md and current16-56-PLAN.
+Those files replace the agent-selected historical administrative machinery.
+The product boundary and D-01–D-17below remain binding; historical plan/helper
+references are DATA, not an instruction to restore that machinery.
+
 The user requested research across all relevant perspectives, an adversarial pass and a coherent set of recommendations to follow automatically. These are agent-selected decisions under that delegation, within the approved v4 scope. Three Codex advisors used `gpt-6.1-sol` with medium effort, then cross-reviewed each other's recommendations. No host runtime experiment or implementation occurred in this step.
 
 <domain>
