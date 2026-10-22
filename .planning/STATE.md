@@ -4,16 +4,16 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: blocked
-stopped_at: Plan48 terminal parent prewrite nonempty-prefix B bound refusal;0/2 tasks, no bootstrap or executor
-last_updated: "2026-10-22T15:48:59Z"
+status: ready_to_execute
+stopped_at: Plans50-54 split planned and independently rechecked; Plan50 next, no phase execution
+last_updated: "2026-10-22T17:07:43Z"
 last_activity: 2026-10-22
-last_activity_desc: Plan48 actual readonly B returned23/TRANSPORT_BOUND_EXCEEDED; administrative evidence retained
-state_head: 5ff6b3c24541ed751219c24807cd91b72eedb5c7
+last_activity_desc: Approved five-plan split; revision1 passed with zero blockers/warnings and one sizing advisory
+state_head: 92e0ae8d973ad8e7ed4656cd0069a51b1ad98c82
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 14
+  total_plans: 17
   completed_plans: 10
   percent: 0
 ---
@@ -28,6 +28,52 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plans50–54 independently checked after revision1; zero blockers/warnings, one INFO sizing advisory
+Total Plans in Phase: 17
+Plan: 50 ready (0/2);51 (0/2),52 (0/2),53 (0/3),54 (0/2),07 and08 blocked
+
+The user selected the recommended smaller-scope split.50 provides acyclic
+complete actual transport/CLI repair;51 completes code-only helper finalization.
+Each is a separately invoked preparation step requiring genuine success and
+actual administrative parent reconciliation before the next.52/53/54 are
+three scopes inside ONE later invoked runtime-group step with the SAME native
+child /root/execute_16_52 and build/phase16-validation52. Typed continuation
+checkpoints/native followup retain actual originals, source/input closure,
+clocks, ledgers and once-only slots; missing state or expiry stops terminal.
+Only54checked completion-start/group terminal permits actual parent gates.
+
+The acyclic remedy retains complete source/request/result originals once and
+reconstructs byte recipes independently under unchanged bounds. Actual fresh
+nonempty B/full READ/COMPARE/finite graph remain execution gates, not planning
+results. Historical29559segments/4207packets per stream are scale evidence,
+not a fresh count/minimum/throughput. No lost original is reconstructed.
+
+Initial16-50-CHECK found two warnings: terminal end-state verification and a
+stale predecessor label. Revision1 added the explicit checked terminal cursor/
+completion-start operation inside the original review slot/deadline and fixed
+the label. Independent16-50-RECHECK reports0blockers/0warnings/1INFO.
+Projections80k/65k/65k/43k/31k total284k, runtime-group139k, low confidence,
+factor1/sample0; repeated gates/continuity overhead included, no fit guarantee.
+
+Coverage6/6requirements,17/17decisions,39sourcegroups, eightedges/fourflagged
+assumptions and23/23post-planning items.431-command path/failure probes report
+zero findings/readError:null; path not_applicable establishes no runtime proof.
+Counts54physical/17live/10complete.48terminal0/2 and49unexecuted0/3 are
+scheduling-only superseded; historical bodies/provenance,26active/pending,
+fourmetadata-only limitations and UNKNOWNs remain. Original sixdirtypaths stay
+byte-exact/unstaged. No new execution root, helper/source/config/runtime action,
+PREPARATION/SUMMARY or task acceptance was produced. Verification gaps_found.
+
+Only50is dependency-ready after completed30. Execute50and STOP after genuine
+preparation and actual administrative reconciliation.51requires its own next
+invocation;52–54later form one same-owner runtime-group invocation.07/08 retain
+all actual separate parent/native/exact-head consent/normal publication/
+18archives/checksums/attestations/sixmetadata/exact-releaseCI gates.
+Next: $gsd-execute-phase 16 --gaps-only. Stop after this planning step.
+
+## Historical Plan48 terminal execution position
 
 Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
 Status: Plan48 parent prewrite bound refusal; unchanged retry forbidden
@@ -1203,17 +1249,17 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-22T15:48:59Z
-Stopped at: Plan48 terminal parent prewrite nonempty-prefix B bound refusal;0/2, no executor
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-48-TERMINAL-CHECKPOINT.md
+Last session: 2026-10-22T17:07:43Z
+Stopped at: Plans50–54 approved split independently rechecked; Plan50 is the next separately invoked preparation step
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-50-PLAN.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Plan substantive gaps from48's actual nonempty-prefix B bound refusal; do not retry48 or start49.
-- Preserve the complete actual request/result archive, expected0 versus observed23, unavailable candidate size and earlier evaluated-wrapper provenance limits.
-- Keep explicit18000outer/nested budgets and all fixed bounds. No complete snapshot, finite graph or prewrite acceptance exists.
-- Preserve48terminal0/2,49unexecuted0/3, earlier bodies/UNKNOWNs,26active/pending, fourmetadata-only files and six original dirty unstaged paths.
-- Scope advisories remain48=103500/49=112900tokens vs100000;49paths13/5-5-3tasks, unmeasured/lowconfidence. No fit proof or allowance follows.
-- Counts49physical/14live/10complete; verification gaps_found. Every later actual parent/native/consent/publication/released-byte gate remains. Stop after this execute step.
+- Execute only50next and STOP after genuine preparation plus actual administrative parent reconciliation; do not retry48 or start49.
+- 51requires its own later invocation and actual50handoff.52–54then form ONE separately invoked same-native-child/runtime-root group under16-52-AMENDMENT, with continuous clocks and no proof/slot transfer.
+- Keep every full actual original/acyclic reconstruction/full snapshot/finite graph/fixed-bound prewrite gate; planning did not pass those execution gates.
+- Preserve48terminal0/2,49unexecuted0/3, earlier bodies/provenance/UNKNOWNs,26active/pending, fourmetadata-only files and sixdirtypaths exact/unstaged.
+- Estimates80k/65k/65k/43k/31k total284k; runtime139k, uncalibrated lowconfidence/sample0. No fit guarantee or extra allowance follows.
+- Counts54physical/17live/10complete; verification gaps_found. Every later actual parent/native/consent/publication/released-byte gate remains. Stop after this planning step.

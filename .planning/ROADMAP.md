@@ -58,7 +58,34 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current execution — Plan48 terminal before bootstrap/dispatch:** The required
+**Current planning — approved split Plans50–54:** The user selected the
+recommended smaller scopes. [Plan50](phases/16-host-evidence-and-roadmap/16-50-PLAN.md)
+provides acyclic complete actual transport and copied34CLI repair;
+[Plan51](phases/16-host-evidence-and-roadmap/16-51-PLAN.md) finalizes the full
+code-only helper export. Each is a separate invoked preparation step and stops
+after genuine success plus actual administrative parent reconciliation.
+[Plans52–54](phases/16-host-evidence-and-roadmap/16-52-AMENDMENT.md) are one later
+runtime-group invocation with the SAME canonical child/root, complete actual
+receipts, continuous clocks and single-use slots. Native same-child continuation
+and checked cursors do not transfer acceptance or reset deadlines. Only54's
+checked terminal completion permits actual separate parent gates.
+
+Independent [revision recheck](phases/16-host-evidence-and-roadmap/16-50-RECHECK.md)
+reports0blockers/0warnings/1INFO after correcting terminal end-state verification
+and a stale label. Estimates80k/65k/65k/43k/31k total284k; continuous runtime139k,
+factor1/sample0/lowconfidence, repeated admission/continuity costs included.
+Fresh packet cost/context fit remain unknown; no aggregate savings or fit claim.
+Coverage6requirements/17decisions/39sourcegroups/eightedges/fourflagged assumptions
+and23post-plan items;431-command probes report0findings/readError:null, without
+runtime proof. Counts54physical/17live/10complete.48terminal0/2 and49unexecuted0/3
+remain immutable history with scheduling-only supersession. Sixdirtypaths remain
+exact/unstaged; no execution roots/helpers/source/config/runtime or task credit.
+Verification remains gaps_found. Only50is ready;51and the later52–54group retain
+their separate invocation and actual parent gates.07/08retain every native,
+exact-head consent, normal publication and actual released-byte gate.
+Next: `$gsd-execute-phase 16 --gaps-only`; execute50and STOP after its handoff.
+
+**Historical execution — Plan48 terminal before bootstrap/dispatch:** The required
 actual-source nonempty-prefix readonly B expected0/B_PREPARED but returned
 actual23/TRANSPORT_BOUND_EXCEEDED, authority=false and no proposed writes.
 Both outer/nested requests explicitly used18000tokens. Empty A/B and nonempty A
@@ -201,7 +228,7 @@ is historical and supplies no fresh execution authority.
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans:** 14 live plans (49 physical; 10 complete)
+**Plans:** 17 live plans (54 physical; 10 complete)
 
 **Historical gap recovery planning — Plans42/43**: [Plan42](phases/16-host-evidence-and-roadmap/16-42-PLAN.md) addresses the reported40mode-expectation error with an independent literal read-only/durable positive/negative oracle BEFORE any parent/executor durable write. Readonly authority=false, successful durable operation authority=true, refusal=false; write authority never grants runtime admission. Original40failed tool envelope/source/exit/raw stay UNKNOWN. All P/P+I/(P+I)+C, expected-refusal, store/quote/actual-result and copied34CLI/prerequisite/export/full-matrix/freeze duties remain. [Plan43](phases/16-host-evidence-and-roadmap/16-43-PLAN.md) retains fresh12row admission and every source/lifecycle/finite formal/full649/jobs4/no-skip/threeZIP/tested-before-commit/tenblob/real1800sindependentreview/open0/separateparent gate.07/08native exacthead, affirmative exactPR/head owner consent, normal publication and18actualarchives/sixmetadata remain separate. Counts43physical/14live/10complete;40terminal0/2and41unexecuted0/3superseded by scheduling metadata only.42sole ready after30,43blocked on genuine42PREPARATION/SUMMARY AND actual administrative parent reconciliation plus separate invocation; execute42and STOP. All6requirements/17decisions/39sourcegroups/fourflagged assumptions and historical UNKNOWNs retained. Original sixdirtypaths/fourmetadata-onlyfiles/26active-pending preserved; planning creates no execution roots, acceptance or source/config edits. Independent check and revision recheck found zero remaining blockers/one scope warning; the owner explicitly answered yes to accepting the current43exception:13paths in5/5/3tasks,99900/100000tokens lowconfidence/factor1/sample0. Both reviews found no safe independent split under the sole-owner/once-only contract. Planning passes with this fresh override; historical41approval does not transfer. Coverage23/23 and347-command probes0findings; path not_applicable is not runtime proof. Estimates42=88500,43=99900; one-owner/once-only authority prevents an independent split without proof/clock/slot transfer. Parent owns final checks and planning commit. Verification remains gaps_found.
 
@@ -342,16 +369,34 @@ Plan18 is also superseded/incomplete without SUMMARY/credit: two evidence commit
 **Superseded Plan46**: Terminal0/2 before durable bootstrap/dispatch after omitted outer18000setting and interrupted READ; missing actual results remain unavailable.48 corrects scheduling substantively; bodies and terminal record unchanged.
 **Superseded Plan47**: Unexecuted0/3;49 retains every pending acceptance duty without proof/allowance transfer.
 
-**Wave 10** *(48 sole ready after30 and final planning commit; no48runtime)*
-- [ ] 16-48-PLAN.md — Explicit budget and one-result receiver commit/ACK; full fresh segmented snapshot, all preparation/CLI repair/freeze/export duties; stop at actual administrative parent handoff.
+**Superseded Plan48**: Terminal0/2 after actual nonempty readonly B bound refusal, before bootstrap/dispatch.50/51 replace scheduling only; terminal evidence and unavailable provenance remain.
+**Superseded Plan49**: Unexecuted0/3.52/53/54 retain its full duties as one same-owner runtime group, with no proof, clock or slot transfer.
 
-**Wave 11** *(genuine48PREPARATION/SUMMARY AND actual administrative parent reconciliation; separate invoked step)*
-- [ ] 16-49-PLAN.md — Own fresh budget/reception/12row admission and full runtime/source/formal/CI/tenblob/independent review/separate parent duties; two current INFO scope advisories parent-disposed.
+**Wave 10** *(50 sole ready after completed30 and final planning commit)*
+- [ ] 16-50-PLAN.md — Acyclic full actual transport, sealed bootstrap and copied34CLI repair/code export; STOP after actual administrative parent handoff.
 
-**Wave 12** *(depends on49ANDall mandatory actual current-source parent gates)*
+**Wave 11** *(blocked on genuine50preparation AND actual administrative reconciliation; separate invoked step)*
+- [ ] 16-51-PLAN.md — Full working/exported helper matrices, continuity controls and final code-only preparation/export; STOP after actual administrative parent handoff.
+
+**Wave 12** *(blocked on genuine51preparation AND actual administrative reconciliation; one later runtime-group invocation)*
+- [ ] 16-52-PLAN.md — Sole-owner full own12-row admission and checked preclock continuation to53; no early success SUMMARY.
+
+**Wave 13** *(inside the SAME52runtime group, blocked on its actual52stage cursor/ACK)*
+- [ ] 16-53-PLAN.md — Sole initialization/immediate observe, causal source/test/README/header work and complete controls under original clocks; checked continuation to54.
+
+**Wave 14** *(inside the SAME52runtime group, blocked on its actual53stage cursor/ACK)*
+- [ ] 16-54-PLAN.md — Once-only formal CI/packages, tested-byte commit, independent review and checked terminal completion; then every actual separate parent gate.
+
+**Cross-cutting constraints:**
+- Each parent/child independently receives and byte-compares the full actual snapshot and finite graph before its own first write; actual originals and fixed bounds remain mandatory.
+- Parsed readonly retries, one-shot mutations/publication/QUIT, exclusive endpoint refusal and owned-only cleanup remain; fixture equality stays exact basename bytes plus supplied-file SHA256.
+- 52/53/54 share one canonical owner/root and continuous clocks/ledgers; stage checkpoints never unlock parent gates or transfer allowance.
+- Historical failures,26active/pending, fourmetadata-only files, sixdirtypaths, flagged assumptions and UNKNOWNs remain; every later native/consent/publication/released-byte gate is independent.
+
+**Wave 15** *(blocked on54local terminal success AND all mandatory actual current-source parent gates)*
 - [ ] 16-07-PLAN.md — Prepare the checked phase PR, require fresh exact-head native PR CI, obtain exact-head owner merge consent and observe the normal release flow.
 
-**Wave 13** *(depends on the actual normal publication from Plan 07)*
+**Wave 16** *(depends on the actual normal publication from Plan 07)*
 - [ ] 16-08-PLAN.md — Verify downloaded six-platform metadata, all18archives/checksums/attestations and exact-release-commit CI.
 
 **Historical Plan 11 planning (2026-10-15):** [Plan 11](phases/16-host-evidence-and-roadmap/16-11-PLAN.md) passed independent review with zero blockers/warnings; all 6 requirements and 17 decisions remain covered. Its 3 tasks form one wave-7 continuation. At planning, the installed index excluded superseded 10, reported 10 live plans with 7 complete, selected only 11 as ready and kept 07/08 blocked; Plan 11's evaluation-scope query resolved with no matching commits. Supersession preserved partial source commits and honest incomplete status without fabricating a summary or replaying completed timing work.
