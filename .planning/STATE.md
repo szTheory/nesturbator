@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plans50-54 split planned and independently rechecked; Plan50 next, no phase execution
-last_updated: "2026-10-22T17:07:43Z"
+status: in_progress
+stopped_at: Plan50 terminal receive-wrapper syntax failure before nested READ or dispatch; 0/2 accepted
+last_updated: "2026-10-22T17:24:46Z"
 last_activity: 2026-10-22
-last_activity_desc: Approved five-plan split; revision1 passed with zero blockers/warnings and one sizing advisory
-state_head: 92e0ae8d973ad8e7ed4656cd0069a51b1ad98c82
+last_activity_desc: Plan50 prewrite attempt stopped; administrative checkpoint and originals retained, no task credit
+state_head: 783b56d6f96609769476ac79afeb85e902e1f9c6
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,42 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
+Status: Plan50 parent receive-wrapper syntax failure before nested READ/first write/dispatch
+Total Plans in Phase: 17
+Plan: 50 terminal incomplete (0/2);51 (0/2),52 (0/2),53 (0/3),54 (0/2),07 and08 blocked
+
+The parent evaluated a stored source containing top-level await without an
+async-IIFE. The actual outer functions.exec failed with SyntaxError before
+the intended Node retained-prefix READ was invoked. No actual nested READ
+result, receiver commit or ACK exists. No producer refusal/OS exit/failed B
+or bound excess is claimed. Exact failed wrapper and unexecuted drafts stay
+in16-50-TERMINAL-PROVENANCE.json; observed outer error is transcript text,
+not an invented programmatic original or nested receipt. See50TERMINAL-CHECKPOINT.
+
+Exact budget setup/probe passed with outer/nested18000 and actual10bytes;
+Node bigint capability and historical mode4positive/6negative oracle passed.
+These grant no transport acceptance. No complete prospective source closure,
+snapshot/READ/COMPARE/finitegraph/bootstrap/executor/helper/CLI RED/matrix/
+freeze/export/PREPARATION/SUMMARY/runtime/source/formal/native/release action
+or task credit. Archive46008bytes/SHA5f27ed535425188a737fca065a2ed15f86545c1e7716458ddd7f1a738cfa4c5d.
+
+Fresh administrative checks matched input HEAD/branch/rawindex, all original
+sixdirtyhashes exact/unstaged, empty index,15newroots and10successartifacts
+absent. Fourmode000 files remain metadata-only; retained38journal13136bytes
+unchanged. No whole-history before/after comparison is claimed.26active/
+terminal=false/pending diagnosis, all UNKNOWNs and fourflagged assumptions
+remain. Counts54physical/17live/10complete; verification gaps_found.
+
+The prewrite failure is terminal; no wrapper repair/retry/suffix/alternate
+root or DAG-ready redispatch is authorized. Only administrative records
+follow.51and52–54remain blocked on genuine preparation and actual parent
+reconciliation.07/08retain all actual parent/native/exact-head consent/normal
+publication/18archives/checksums/attestations/sixmetadata/exact-releaseCI gates.
+Next: $gsd-plan-phase 16 --gaps. Stop after this invoked execute step.
+
+## Historical Plans50–54 planning position
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plans50–54 independently checked after revision1; zero blockers/warnings, one INFO sizing advisory

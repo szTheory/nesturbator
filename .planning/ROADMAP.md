@@ -58,7 +58,27 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current planning — approved split Plans50–54:** The user selected the
+**Current execution — Plan50 terminal before nested READ/first write/dispatch:**
+The parent put top-level await in a non-async evaluated receive wrapper. Actual
+outer functions.exec returned SyntaxError before the intended Node READ ran;
+no actual nested READ result, packet/receiver commit or ACK exists. This is not
+a producer refusal, OS exit, failed B or bound-excess observation. See the
+[terminal checkpoint](phases/16-host-evidence-and-roadmap/16-50-TERMINAL-CHECKPOINT.md)
+and [retained source/results](phases/16-host-evidence-and-roadmap/16-50-TERMINAL-PROVENANCE.json)
+(46008bytes/SHA5f27ed535425188a737fca065a2ed15f86545c1e7716458ddd7f1a738cfa4c5d).
+Exact18000budget probe/10bytes, Node capability and historical mode4positive/
+6negative oracle passed, granting no transport acceptance. No full prospective
+closure/capture/READ/COMPARE/finitegraph/bootstrap/executor/helper/CLI repair/
+matrix/export/freeze/PREPARATION/SUMMARY/runtime/source/formal/native/release
+action or task credit. Fresh administrative checks preserved sixdirtyhashes/
+unstaged state/input HEAD/branch/rawindex;15newroots/10successartifacts absent,
+fourmode000 metadata-only. No whole-history comparison claimed;26pending and
+all UNKNOWNs/assumptions remain. Counts54physical/17live/10complete,50terminal0/2,
+verification gaps_found. No retry or DAG-ready redispatch;51–54/07/08remain
+blocked on every genuine preparation, actual parent, native, consent and
+published-byte gate. Next: `$gsd-plan-phase 16 --gaps`; stop this execute step.
+
+**Historical planning — approved split Plans50–54:** The user selected the
 recommended smaller scopes. [Plan50](phases/16-host-evidence-and-roadmap/16-50-PLAN.md)
 provides acyclic complete actual transport and copied34CLI repair;
 [Plan51](phases/16-host-evidence-and-roadmap/16-51-PLAN.md) finalizes the full
