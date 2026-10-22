@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: in_progress
-stopped_at: Plan50 terminal receive-wrapper syntax failure before nested READ or dispatch; 0/2 accepted
-last_updated: "2026-10-22T17:24:46Z"
+status: ready_to_execute
+stopped_at: Plan55 gap planning independently checked; fresh preparation ready, no execution credit
+last_updated: "2026-10-22T18:39:45.646Z"
 last_activity: 2026-10-22
-last_activity_desc: Plan50 prewrite attempt stopped; administrative checkpoint and originals retained, no task credit
-state_head: 783b56d6f96609769476ac79afeb85e902e1f9c6
+last_activity_desc: Plan55 replaces terminal50 for scheduling; independent review and coverage gates passed
+state_head: d3b4b1ec5b19158cdf6bc1f78f87514b28275fd6
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,44 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plan55 independently checked; zero blockers, warnings or advisories
+Total Plans in Phase: 17
+Plan: 55 ready (0/2);51 (0/2),52 (0/2),53 (0/3),54 (0/2),07 and08 blocked
+
+Fresh55 replaces only terminal50's preparation scope. It requires complete
+async-IIFE source wrapping before actual tool invocation, independent synthetic
+ordering/refusal controls and fresh actual retained-prefix originals before
+receiver commit and separate ACK. Every full bounded transport, snapshot,
+finite graph, copied34CLI RED/GREEN, helper/export and later gate remains.
+See16-55-PLAN,16-55-AMENDMENT and independent16-55-CHECK.50remains terminal0/2;
+its body/checkpoint/originals are unchanged, with scheduling-only supersession.
+51depends55; the explicit current-reference map preserves51–54/07/08duties.
+
+Only55is dependency-ready after completed30. Execute55and STOP after genuine
+full preparation and actual administrative parent reconciliation.51requires
+its own separate invocation.52–54remain one later same-native-child runtime
+group with original continuous clocks/slots and checked completion-start.
+07/08retain every actual parent/native/exact-head consent/normal publication/
+18archives/checksums/attestations/sixmetadata/exact-releaseCI gate.
+
+Fresh planning checks: valid frontmatter/structure (two tasks);440-command
+path/failure probes report0blockers/0warnings/readError:null. Path status
+not_applicable is not runtime proof.6/6requirements,17/17decisions and23/23
+post-planning items covered;39source groups/eightedges/fourflagged unresolved
+assumptions retained. Prohibitions:[]with canonical-referral breadcrumbs.
+Effective projections84k/67k/67k/43k/31k total292k, runtime141k, factor1/sample0/
+lowconfidence. Packet counts, throughput and actual fit remain UNKNOWN.
+
+Counts55physical/17live/10complete; verification remains gaps_found.26active/
+terminal=false/pending diagnosis, all historical UNKNOWNs and fourmetadata-only
+limitations remain. Sixoriginaldirtypaths stay exact/unstaged. No execution
+root, prospective phase probe/helper/source/config/runtime/native/release
+action, PREPARATION/SUMMARY or task acceptance was produced in planning.
+Next: $gsd-execute-phase 16 --gaps-only. Stop after this planning step.
+
+## Historical Plan50 terminal execution position
 
 Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
 Status: Plan50 parent receive-wrapper syntax failure before nested READ/first write/dispatch
