@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plans46/47 checked; execute46 preparation next and stop at parent reconciliation
-last_updated: "2026-10-22T01:44:36.271Z"
+status: needs_planning
+stopped_at: Plan46 terminal parent prewrite budget omission and interrupted reception; no bootstrap or dispatch
+last_updated: "2026-10-22T02:31:28Z"
 last_activity: 2026-10-21
-last_activity_desc: Approved segmented machine reception planned; independent check has zero blockers/warnings and two INFO advisories
-state_head: ae197eb0ce1b62e80f66a3294d0da2b34fb087b2
+last_activity_desc: Plan46 terminal0/2; explicit outer18000 setting omitted, partial READ interrupted before writes
+state_head: acef92a247773a6197409499330294b6716be981
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,41 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
+Status: Plan46 parent prewrite contract violation; partial reception interrupted
+Total Plans in Phase: 14
+Plan: 46 terminal incomplete (0/2);47 (0/3),07 and08 blocked
+
+The parent started new snapshot calls without the required explicit outer
+functions.exec max_output_tokens18000 pragma. The documented default is10000;
+hidden effective provider budget is unavailable. No actual truncation or
+prospective A/B exit23 is claimed. The active reception cell157 was terminated;
+Plan46's prewrite/missing-result rules forbid retry or continuation.
+See16-46-TERMINAL-CHECKPOINT.md for actual observations and missing provenance.
+
+Fresh in-memory capture:121071262bytes/441632entries/357221rawhashes/fourmetadata-only.
+Frozen READ/COMPARE table:29559segments/4207packets each/8414actual results;
+max designed producer packet14997bytes including LF. Caller store retains21READ
+packets/112segments/458752bytes, no COMPARE. Administrative Node readback reports
+READ49/COMPARE0; complete actual packets21..48 and any in-flight result are
+unavailable. No recovered receipt, full reconstruction/byte comparison or seal.
+A multibyte codec vector and partial packet checks grant no transport acceptance.
+Complete A/B/control/metadata/prompt/header/archive/seal/dispatch gates did not pass.
+
+Before administrative records, six original dirty hashes match and all six paths
+remain unstaged; input HEAD/index checked, index empty,18roots42..47 and12success
+artifacts absent. No bootstrap, executor, import/helper repair/CLI RED/matrix/
+freeze/export/PREPARATION/SUMMARY/runtime/source/formal/native/release action or
+task credit. One capture is not a before/after whole-history immutability proof.
+Historical UNKNOWNs,26active/pending,fourmetadata-only limits/fourflagged assumptions
+and current47's two scope advisories remain. Counts47physical/14live/10complete;
+verification gaps_found. Every later parent/native/consent/publication gate stays.
+
+Only administrative planning records follow this abort. A DAG-ready46label grants
+no redispatch authority. Next: $gsd-plan-phase 16 --gaps. Stop after this execute step.
+
+## Historical Plans46/47 planning position
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plans46/47 independently checked; zero blockers/warnings; two visible scope advisories
@@ -1080,18 +1115,18 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-22T00:45:00Z
-Stopped at: Plan44 terminal prewrite inventory bound; no bootstrap or dispatch
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-44-TERMINAL-CHECKPOINT.md
+Last session: 2026-10-22T02:31:28Z
+Stopped at: Plan46 terminal parent prewrite budget omission and interrupted READ; zero execution writes
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-46-TERMINAL-CHECKPOINT.md
 
 Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Plan44stopped before bootstrap/dispatch:121071262-byte retained inventory exceeds67108864-byte decoded-result limit. No prospective transport control or actual A/B accepted; no44retry from DAG readiness.
-- Next separate command is $gsd-plan-phase 16 --gaps; reconcile measured inventory size and the full lossless bootstrap/result contract. This execution grants no new limit, schema, successor or authority.
-- Current45scope advisories remain parent-disposed and visible:13paths/5-5-3tasks and102900tokens versus100000. No owner approval or fit guarantee is inferred; no runtime or release gate is waived.
-- Preserve42/44terminal0/2,43/45unexecuted0/3, occupied40bootstrap and all earlier immutable failures; no retry, invented envelope, acceptance or allowance transfer.
-- Preserve Plan26 active terminal=false pending diagnosis, fourmetadata-only files, all historical UNKNOWNs, original five dirty source/test/comment paths and protected unstaged config.
-- Plans07/08 remain blocked on accepted current-source and required parent/native/exact-head consent/normal publication/actual released-byte evidence. Phase verification remains gaps_found.
-- Counts:45physical/14live/10complete. No source candidate, runtime acceptance or success artifact exists. Stop after this invoked execute step.
+- Plan46 is terminal0/2 before bootstrap or dispatch. Explicit outer18000 request setting was omitted; stopped partial READ is not resumable authority.
+- Reconcile the missing request parameter and interrupted receiver evidence in a separate $gsd-plan-phase 16 --gaps step. No unchanged46retry or automatic47dispatch.
+- Caller store retains21READ packets/112segments/458752bytes; producer reported49emitted packets. Actual packets21..48 and any in-flight result remain unavailable; do not reconstruct them from expected producer buffers.
+- Preserve historical terminal records,26active terminal=false/pending diagnosis, fourmetadata-only files, every UNKNOWN, original five dirty source/test/comment paths and protected unstaged config.
+- Current47scope advisories remain visible:13paths/5-5-3tasks and108900tokens versus100000, lowconfidence/factor1/sample0. No new approval, fit guarantee or allowance.
+- Plan47 remains unexecuted0/3;07/08 remain blocked on every actual parent/native/exact-head consent/normal publication/actual released-byte gate. Verification remains gaps_found.
+- Counts47physical/14live/10complete. No source candidate or runtime acceptance exists. Stop after this invoked execute step.

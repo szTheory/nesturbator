@@ -58,7 +58,25 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current gap planning — Plans46/47:** User approved full actual-result machine
+**Current execution — Plan46 terminal before bootstrap/dispatch:** Parent snapshot
+calls omitted the required explicit outer functions.exec18000token setting;
+documented default10000, hidden effective budget unavailable. No actual
+truncation, prospective refusal or emulator defect is claimed. The running READ
+cell157 was terminated. Retained receiver position21packets/112segments/458752bytes;
+producer administrative position49packets; actual packets21..48 and any in-flight
+result unavailable. COMPARE0; no full reconstruction/comparison/archive/seal or
+transport acceptance. Fresh capture121071262bytes/441632entries/357221hashes/four
+metadata-only, with29559segments/4207packets per stream and14997-byte largest
+producer packet. See[terminal record](phases/16-host-evidence-and-roadmap/16-46-TERMINAL-CHECKPOINT.md).
+46stops0/2;47unexecuted0/3;07/08blocked. No execution root/receipt/dispatch/helper/
+source/runtime/formal/native/release action or success artifact. Six original
+dirty hashes match/unstaged, index empty,18roots42..47 and12success artifacts absent.
+No whole-history before/after proof. Counts47physical/14live/10complete;
+verification gaps_found; all UNKNOWNs/26pending/metadata-only limits/assumptions
+and47scope advisories remain. No retry from a DAG-ready label. Only administrative
+records follow abort. Next: `$gsd-plan-phase 16 --gaps`; stop this execute step.
+
+**Historical gap planning — Plans46/47:** User approved full actual-result machine
 reception with retained bytes/envelopes, ordered reconstruction/comparison and
 bounded model receipts. The explicit amendment replaces model retranscription,
 whole-inventory single publication and repeated full-prefix transport; existing
