@@ -58,7 +58,29 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current gap planning — Plan56 bounded-capacity strategy checked, 0/2:**
+**Current gap planning — Plan56 bounded-inspection correction checked, 0/2:**
+[Amendment](phases/16-host-evidence-and-roadmap/16-56-SPECIAL-FILES-AMENDMENT.md)
+records the latest preliminary27244byte output-bound failure and subsequent
+undefined-TextEncoder exception as stopped nonacceptance, no recovered
+original/durable checkpoint or capture consumed/finalized. Fresh prospective
+p56-special-metadata-01 is authorized only in the next invoked execution after
+finite allowlisted inspection, verified runtime UTF8 counting and pre-emission
+aggregate receipt bounds with full independent originals retained. No retry,
+new successor/root/helper/owner, limit growth or failure-gate waiver.
+[Independent check](phases/16-host-evidence-and-roadmap/16-56-INSPECTION-CHECK.md)
+found0blockers/1scope warning; revision1 records104k/100k and149k as reviewed
+residual planning risks. [Recheck](phases/16-host-evidence-and-roadmap/16-56-INSPECTION-RECHECK.md)
+passes issues:[]. Estimates104k/75k/75k/43k/31k,total328k/runtime149k and UNKNOWN
+capacity/fit remain; no new user approval or measured fit is inferred.
+All6requirements/17decisions/39source groups/eightedges/fourflagged assumptions,
+full metadata/construction/freeze/transport/matrix/export gates and bounds
+remain.56physical/17live/10complete,gaps_found; six original dirty files and
+historical DATA preserved;26active terminal=false/pending. Planning only,
+no execution or task/PREPARATION/SUMMARY/release credit. Only56ready; genuine
+56success AND actual parent reconciliation then STOP before separately invoked
+51.52–54samechild and all07/08gates remain. Next `$gsd-execute-phase 16 --gaps-only`.
+
+**Historical gap planning — Plan56 bounded-capacity strategy checked, 0/2:**
 [Current amendment](phases/16-host-evidence-and-roadmap/16-56-SPECIAL-FILES-AMENDMENT.md)
 replaces the discretionary exact-telemetry admission rule that stopped the last
 execution before dispatch. Missing telemetry alone no longer blocks normal56

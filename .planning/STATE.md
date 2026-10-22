@@ -5,11 +5,11 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: ready_to_execute
-stopped_at: Plan56 bounded-capacity strategy independently rechecked; 0/2 tasks accepted
-last_updated: "2026-10-22T22:54:47Z"
+stopped_at: Plan56 bounded-inspection correction independently rechecked; 0/2 tasks accepted
+last_updated: "2026-10-22T23:39:33Z"
 last_activity: 2026-10-22
-last_activity_desc: Telemetry admission replaced by bounded operations and complete stores; independent recheck passed; planning only
-state_head: fb0db7d5e4ba11bc85250e7c25bca85da84bd775
+last_activity_desc: Bounded preliminary inspection and UTF8 correction checked; fresh prospective capture authorized; planning only
+state_head: 4bac54bc2816f583d56c8a90b41d3111cc1a68af
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,50 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plan56 bounded inspection correction independently checked
+Total Plans in Phase: 17
+Plan: 56 amended (0/2);51–54 and07/08 remain dependency-blocked
+
+The latest execution stopped during preliminary inspection: Node emitted27244
+UTF8bytes above producer16384/caller8192, then an administrative functions
+check raised undefined-TextEncoder ReferenceError without a returned original.
+This is the supplied stop report, not recovered originals. Volatile values only;
+no durable stop artifact, capture, construction, finalized transport, dispatch,
+repository write or task credit. The earlier failed capture remains separate.
+
+16-56-SPECIAL-FILES-AMENDMENT now requires finite documented scalar inspection,
+verified per-runtime UTF8 counting and aggregate receipt checks BEFORE emission,
+with complete originals retained independently in actual machine stores. It
+records stopped nonacceptance and authorizes only the next invoked execution's
+fresh prospective p56-special-metadata-01 after all fresh checks. No stopped
+operation resumes/retries; no actual failure becomes acceptance. All full
+special metadata, construction/freeze, transport/snapshot/finite-graph and final
+matrix/export gates, bounds, owners and original-store duties remain.
+
+Independent16-56-INSPECTION-CHECK found0blockers/1scope warning. Revision1
+explicitly reviews104k/100k and continuous149k as residual planning risks;
+16-56-INSPECTION-RECHECK passes with issues:[]. No new user approval or measured
+fit is inferred. Estimates104k/75k/75k/43k/31k,total328k/runtime149k remain
+low-confidence factor1/sample0; actual capacity/fit remain UNKNOWN.
+Requirements6/6,decisions17/17,39source groups/eightedges/fourflagged assumptions
+remain. Counts56physical/17live/10complete; verification remains gaps_found.
+Historical checks/checkpoints/provenance and26active terminal=false/pending
+remain immutable DATA. Six original dirty files remain exact and unstaged.
+No execution, capture, construction, project runtime test, PREPARATION/SUMMARY,
+native/release/publication action or task credit occurs in this planning step.
+The state.planned-phase helper reported a no-op; this explicit update records
+planning completion without altering historical state bodies.
+
+Only56is dependency-ready. Complete genuine56preparation AND actual parent
+reconciliation, then STOP;51requires a separate invoked step.52–54retain one
+later continuous original native child with all12rows and every clock/counter/
+slot/original.07/08retain parent/native/exact-head affirmative consent/normal
+publication/18archives/checksums/attestations/sixmetadata/exactreleaseCI gates.
+Next: $gsd-execute-phase 16 --gaps-only. Stop after this planning step.
+
+## Historical bounded-capacity planning position
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plan56 bounded execution/storage amendment independently checked

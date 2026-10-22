@@ -46,6 +46,84 @@ Expected isolated synthetic refusals retain their explicit control identity.
 Another attempt would require a substantive new planning amendment. Terminal
 predecessor identities and their stronger terminal-source rules stay intact.
 
+## Current pre-capture administrative stop and prospective remedy
+
+The most recent execute invocation stopped before capture, construction,
+transport finalization or dispatch, with0/2 tasks accepted. Its preliminary
+Node inspection emitted the entire nodeRepl.requestMeta and historical failed
+capture source as DATA. The reported complete original text was27244 UTF8
+bytes, exceeding producer16384 and caller8192; Node isError:false does not
+make that output compliant or confer capture authority. The subsequent
+administrative functions cell raised ReferenceError: TextEncoder is not
+defined. No returned original exists for that failed functions cell. Original
+inspection/diagnostic values survived only in functions volatile stores;
+there is no durable stop artifact. This paragraph records the supplied stop
+report, not newly recovered originals or a reconstructed checkpoint.
+
+That invocation is stopped nonacceptance. Its administrative output-bound
+failure and exception remain actual failures, never successful gates. It
+neither attempted nor consumed p56-special-metadata-01 and finalized no
+capture or transport. The earlier UNSUPPORTED_TYPE capture remains a separate
+historical failed attempt with its immutable source/prefix and no acceptance.
+Under the existing planning delegation, this narrow substantive inspection/
+emission correction authorizes the NEXT invoked execution to bind the still
+prospective p56-special-metadata-01 after fresh checks. It does not continue
+the stopped invocation, retry/reuse either failed inspection/capture/transport,
+or waive any actual-failure gate. Any new unexpected actual failure stops that
+invocation under the unchanged rules; no automatic restart follows.
+
+Before that fresh capture, freeze exact inline inspection/source/request/
+receiver/expected-case bytes in the existing separate machine stores. Retain
+the complete actual returned object and exact-field serialization internally
+before any parse or model receipt. Inspect only an explicit finite allowlist
+of documented exposed scalar owner/identity, warning/error, truncation and
+terminal-status field paths required by the existing gate. Freeze those
+literal paths before access; use own-property/type checks, not recursive
+enumeration, object spreading or whole-object serialization into output.
+Absent/undocumented fields stay unavailable; their absence proves no capacity.
+Never print whole runtime/requestMeta/policy objects, complete historical
+source or originals. Existing bounded source review uses predeclared finite
+segments and receipts while COMPLETE source and original bytes remain in their
+respective machine stores; no model summary replaces full reception or review.
+
+Verify the byte-count primitive in EACH actual execution runtime before use.
+Do not assume TextEncoder, Buffer, require or any other global exists because
+another runtime has it. In Node use Buffer.byteLength(text,'utf8') only after
+verifying availability from its supported node:buffer import. In functions
+use a small inline UTF8 counter over charCodeAt: ASCII1, through U+07FF2,
+remaining BMP3, valid high/low surrogate pair4 with one cursor advance, lone
+surrogate3 for U+FFFD. This is local inline logic, no new helper/module/root.
+Run literal independent controls for empty0, ASCII1, U+00E9=2, U+4E2D=3,
+U+1F600=4, each lone surrogate=3 and mixed ASCII+U+1F600+U+00E9=7;
+require agreement with the available runtime's actual string-to-UTF8 encoding
+semantics. If that semantics/primitive cannot be verified, stop before
+emission/capture; do not probe an unavailable API by emitting a full object.
+Retain exact sources/control originals and measured results internally.
+
+Construct the entire prospective model receipt first and measure its exact
+UTF8 bytes BEFORE emitting it. Enforce producer stdout+stderr<=16384 and the
+aggregate caller text<=8192, normally<=1024, including framing, labels, LF,
+stderr and all blocks in that call. Do not use character counts, token counts,
+post-emission measurement or a digest in place of retained bytes. Complete
+originals may exceed the receipt bound only inside the existing machine stores;
+actual transport returns themselves still obey every wire/decoded bound.
+Source review segments stay<=4096 raw bytes and must fit the total caller bound;
+use fewer existing packets when needed, never truncate a required original or
+add an unbounded catch-up loop. A receipt contains only fixed schema/version,
+operation identity, checked field availability/status, exact measured counts
+and existing immutable store identities; no raw policy/source/diagnostic dump.
+Unexpected diagnostics are fully retained privately; any emitted diagnostic
+is a separately checked bounded allowed scalar. Failed functions cells with
+no returned original remain explicitly unavailable, never reconstructed.
+
+Acceptance requires fresh availability/UTF8 controls, bounded allowlisted
+inspection and pre-emission receipts with complete independent stores, then
+ALL existing fresh literal budget, special metadata/source/coverage/stability/
+control and capture gates. This section changes only the administrative
+inspection/emission procedure and prospective authorization. Full construction
+ordering, final freeze/no repair, actual transport/snapshot/finite graph,
+matrices/export, downstream identities and all failure/STOP rules remain.
+
 ## Precedence and unchanged construction boundary
 
 16-56-CONTEXT-AMENDMENT remains the sole approved ordering/allowlist authority.
@@ -307,6 +385,17 @@ fit. Keep these estimates and the100000 smart-zone budget unchanged. The
 Actual capacity, current usage, system/tool overhead, whole-duty headroom and
 fit remain UNKNOWN. These unknowns are not a measured refusal or impossibility.
 
+Revision1 reviews16-56-INSPECTION-CHECK's scope_sanity warning under the
+existing delegated planning strategy. Retain the residual planning risk:
+56's104000 projection exceeds100000 by4000 (1.04x), factor1/sample_count0/
+confidence low; the continuous52–54projection remains149000. The planner
+retains this advisory risk with the bounded-operation/complete-store strategy
+already reviewed in TELEMETRY-CHECK/RECHECK; this records no new user approval,
+measured context fit or capacity guarantee. All locked scope, full duties,
+estimates and actual warning/error/truncation/store-loss stops remain unchanged.
+No split, budget growth or capacity-proof prerequisite is introduced. The
+warning remains visible as residual risk, not an execution failure or success.
+
 ### Authority, observed stop and precise replacement
 
 The last execution command stopped BEFORE56dispatch because the effective
@@ -452,5 +541,19 @@ capacity mechanism classification to explicitly discretionary; add-alongside
 the honest UNKNOWN capacity and actual exhaustion/store-loss failure cases.
 No second authority or fallback evidence source is created. No estimate,
 requirement, task count, dependency, wave or acceptance credit changes.
+
+The current inspection correction consumes the freshly repeated scan16
+contribution with the same no-change identity/authority decision. Complete
+originals remain primary; the bounded view is neither another evidence source
+nor an acceptance substitute.39/39source groups (3GOAL/6REQ/13RESEARCH/
+17CONTEXT), eight fallback edges and four flagged unresolved assumptions keep
+their existing owners.56Task1 implements the prospective inspection/UTF8/
+emission correction per D-07–D-12; Task2 retains full validation/export. The
+actual six requirement texts are supplied again to the official spec-less
+gate/edge probe; prohibition recall retains canonical AGENTS/provenance/privacy/
+07consent referrals and prohibitions:[], no silent drops. No deferred scope,
+new threat IDs or estimate/capacity claim is introduced. Parent independently
+checks this planning-only change, reconciles STATE/ROADMAP and commits only
+the checked planning artifacts under commit_docs:true.
 
 <output>Parent checks and commits planning only. Later execute56alone through genuine preparation and actual reconciliation, then STOP. No capture or task acceptance occurs in this planning step.</output>
