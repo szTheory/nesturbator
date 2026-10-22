@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: needs_planning
-stopped_at: Plan42 terminal parent prewrite OUTPUT_INVALID; no bootstrap or executor dispatch
-last_updated: "2026-10-21T23:54:00Z"
+status: ready_to_execute
+stopped_at: Plans44/45 checked;44 preparation ready;45/07/08 gated
+last_updated: "2026-10-22T00:35:33Z"
 last_activity: 2026-10-21
-last_activity_desc: Plan42 parent prewrite B output truncated; terminal0/2;43/07/08 blocked
-state_head: 404c374ea97c925968835524aef4a2a51bde53db
+last_activity_desc: Plans44/45 recovery checked;44 ready;2 scope advisories parent-disposed
+state_head: 64c3509fa17d1a36aba13e518ccd30048a874ce5
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,41 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plans44/45 independently checked; zero unresolved blockers/warnings;2visible scope advisories
+Total Plans in Phase: 14
+Plan: 44 ready (0/2);45 (0/3),07 and08 blocked
+
+Fresh gap planning supersedes42/43 for scheduling only.42terminal0/2 and
+43unexecuted0/3 bodies remain unchanged; their unavailable output is not
+reconstructed.44adds bounded lossless transport and complete actual returned
+payload validation before every first parent/executor write, retaining every
+preparation/CLI RED/export/freeze duty.45retains full fresh runtime/source/
+formal/CI/review/actual-parent acceptance. No old result transfers acceptance.
+
+Independent CHECK found2blockers/1warning; RECHECK resolved transport blockers.
+The parent disposed both advisory45scope warnings within planning; independent
+DISPOSITION-CHECK passes with2INFOadvisories.45declares13paths/5-5-3task
+footprints and102900/100000tokens (+2900), confidence low/factor1/sample0.
+44estimate93500;combined196400. These estimates and warnings remain visible;
+no owner approval or context-fit guarantee is inferred. See44SCOPE-DISPOSITION.
+
+Coverage6requirements/17decisions/39sourcegroups and23post-planitems remains.
+358-command probes have0findings/readError:null; path not_applicable supplies
+no path/runtime proof. Four unresolved flagged assumptions remain. Counts
+45physical/14live/10complete; only44is dependency-ready after completed30.
+Execute44and STOP after genuine preparation and actual administrative parent
+reconciliation.45requires those artifacts AND a separate invocation.07/08
+retain all native/exact-head consent/normal publication/actual-byte gates.
+
+Planning changes only planning artifacts. Original sixdirtypaths exact and
+unstaged; no42–45bootstrap/preflight/runtime root or success artifact created.
+All earlier UNKNOWNs,26active/pending,fourmetadata-only limits remain. No
+helper/control/runtime/source/formal/native/release action occurred. Verification
+remains gaps_found. Next: $gsd-execute-phase 16 --gaps-only. Stop after planning.
+
+## Historical Plan42 terminal execution position
 
 Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
 Status: Plan42 parent prewrite verifier stopped on truncated actual tool output
@@ -127,7 +162,6 @@ The occupied40bootstrap cannot be reused despite a DAG-ready label.
 Next: $gsd-plan-phase 16 --gaps. Stop after this invoked execute step.
 
 Historical Plans40/41 planning position retained below:
-
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plans40/41 checked with current scope warning accepted
