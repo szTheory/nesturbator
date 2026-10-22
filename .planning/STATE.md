@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plan56 approved construction ordering amendment independently rechecked; 0/2 tasks accepted
-last_updated: "2026-10-22T21:28:28Z"
+status: baseline_capture_failed
+stopped_at: Plan56 preconstruction capture omitted retained FIFO; no construction or dispatch; 0/2 tasks accepted
+last_updated: "2026-10-22T21:43:53Z"
 last_activity: 2026-10-22
-last_activity_desc: Plan56 context amendment approved and checked after one revision; execution pending
-state_head: f899a1ba5a5bc93fe3ae8485e75f19b5801653cc
+last_activity_desc: Plan56 baseline capture stopped on unsupported FIFO; actual prefix preserved without retry
+state_head: 31a0f497a855e4364638310ceac6d89cc67b8c6d
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,46 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — BASELINE CAPTURE FAILED
+Status: Plan56 stopped before construction; source/schema planning correction required
+Total Plans in Phase: 17
+Plan: 56 incomplete (0/2);51–54 and07/08 remain dependency-blocked
+
+Exact p56 budget probe passed: explicit outer/nested18000, actual exit0 and
+ten bytes. A new untrusted preconstruction capture then returned actual Node
+isError:true/UNSUPPORTED_TYPE. It omitted retained FIFO handling; the sorted
+first child .continue under build/phase16-lock22/round-1/smoke/gate has type4096.
+Administrative lstat-only diagnosis did not read the FIFO or resume capture.
+Partial11134rows/233384862hashed file bytes from70declared roots are not a
+complete snapshot, reception, coverage or whole-history comparison.
+
+16-56-BASELINE-CHECKPOINT and BASELINE-PROVENANCE retain failed source/request/
+actual result, partial-prefix and metadata diagnosis. Full partial records and
+sensitive originals are privately archived3807830bytes/SHA256
+bbff8aafd2b7ba4cd29bd7985397dcb34cf76318e78750db6210942ed74f9016,
+fsynced and byte-equal readback. No prospective transport closure finalized;
+terminal_transport_failure=false. The unsupported capture still stops this
+run under the inherited contract; no source correction/retry was performed.
+Two preliminary nonacceptance inspection errors are preserved honestly.
+
+No construction operation,56root/helper/journal/bootstrap, executor dispatch,
+transport A/B/fullREAD-COMPARE/finitegraph, CLI/matrix/export/PREPARATION/SUMMARY,
+runtime/source/native/publication action or task credit. Fresh administrative
+checks preserve all six dirty hashes/unstaged status, empty index, four exact
+mode000metadata records,26budget/ledger and38journal identities.26remains
+active/terminal=false/pending diagnosis. All historical UNKNOWNs remain.
+
+Counts56physical/17live/10complete; verification gaps_found. Next planning must
+specify exact metadata-only special-file capture/receiver schema and controls,
+preserve coverage/stability/no-content-read duties, and settle fresh failed-
+source identity without assuming retry authority. No new successor is created.
+51requires genuine56success+actual parent reconciliation, separately invoked;
+52–54same-child runtime and all07/08parent/native/exact-head affirmative consent/
+normalpublication/18archives/sixmetadata/exactreleaseCI gates remain pending.
+Next: $gsd-plan-phase 16 --gaps. Stop after this invoked execute step.
+
+## Historical Plan56 context amendment planning position
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plan56 approved context amendment independently rechecked; zero blockers/warnings

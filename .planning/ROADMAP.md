@@ -58,7 +58,34 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current gap planning — Plan56 approved context amendment ready, 0/2:**
+**Current gap execution — Plan56 preconstruction baseline capture failed, 0/2:**
+[Checkpoint](phases/16-host-evidence-and-roadmap/16-56-BASELINE-CHECKPOINT.md)
+and [actual provenance](phases/16-host-evidence-and-roadmap/16-56-BASELINE-PROVENANCE.json)
+record actual Node isError:true/UNSUPPORTED_TYPE. The new capture omitted a
+retained FIFO: sorted first child .continue in phase16-lock22/round-1/smoke/gate.
+Metadata-only diagnosis did not open it or resume capture. Partial11134rows/
+233384862hashed file bytes over the prefix of70declared roots confer no full
+baseline, snapshot reception, coverage or whole-history comparison. The exact
+outer/nested18000/ten-byte budget probe passed only its first boundary.
+
+No construction,56root/helper/journal/bootstrap, executor, full transport/
+graph/seal/CLI/export/PREPARATION/SUMMARY or task credit. No complete prospective
+transport closure finalized; terminal_transport_failure=false, while unsupported
+capture requires this run to stop. Failed source was not corrected/retried.
+Full prefix and sensitive actual originals were privately archived3807830bytes,
+fsynced/read back exactly; public provenance retains exact safe originals and
+honest unavailable fields. Six original dirty files remain exact/unstaged,
+fourmode000metadata records and26/38identities unchanged,26active/terminal=false/
+pending diagnosis, all historical UNKNOWNs retained. Administrative closeout
+only; counts56physical/17live/10complete and verification gaps_found remain.
+
+Next planning must specify metadata-only handling/schema/controls for retained
+special types and settle fresh failed-capture identity; no retry/new successor
+is authorized here.51–54 and07/08stay dependency-blocked with all own-context,
+same-child, parent/native/exact-head affirmative consent and released-byte gates.
+Next: `$gsd-plan-phase 16 --gaps`. Stop after this invoked execute step.
+
+**Historical gap planning — Plan56 approved context amendment ready, 0/2:**
 [Construction ordering](phases/16-host-evidence-and-roadmap/16-56-CONTEXT-AMENDMENT.md)
 implements user-approved choice1 in the existing unfinalized Plan56. Only the
 same two helpers and untrusted construction journal in the existing56preflight
