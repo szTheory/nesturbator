@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: blocked
-stopped_at: Plan55 terminal header-bound preflight; no bootstrap, dispatch or task credit
-last_updated: "2026-10-22T19:45:20Z"
+status: ready_to_execute
+stopped_at: Plan56 gap planning passed independent revision recheck; execution pending
+last_updated: "2026-10-22T20:22:22.975Z"
 last_activity: 2026-10-22
-last_activity_desc: Plan55 actual prefix and A/B positives passed; frozen header representation exceeds output bound
-state_head: 4d493629d1943e58ecddf899e3423f4329ce85fc
+last_activity_desc: Plan56 large-header payload amendment checked; Plan52 own-context gate wired
+state_head: e74d8ef26958f73cc9936b56ac58a24835ab999b
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,49 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plan56 independently checked after revision1; zero blockers or warnings
+Total Plans in Phase: 17
+Plan: 56 ready (0/2);51 (0/2),52 (0/2),53 (0/3),54 (0/2),07 and08 blocked
+
+Fresh56 replaces only terminal55's preparation identity and corrects complete
+file-data expansion into operation/I/base64(I). Complete actual large inputs
+are independently received before lossless backward-reference use; compact
+operation/I bytes and full logical target bytes remain distinct. Real initial
+header and every largest-shape empty/nonempty A/B, full target readback,
+complete fresh snapshot READ/COMPARE and finite graph precede own firstwrite.
+All fixed caps, complete originals, separate awaited READ/ACK and approved
+at-most32packet outer batching remain. See56PLAN/AMENDMENT and independent
+56CHECK/56RECHECK; no55retry or historical proof transfer is authorized.
+
+Initial independent check found one blocker:52did not expose its own new
+large-payload gate. Revision1 adds56AMENDMENT context/read_first, own actual
+inline prewrite acceptance and --test-large-payload-transport with failure
+conditions and final working/exported matrices. Fresh independent recheck
+reports0blockers/0warnings. Same-child clocks/slots/12rows remain unchanged.
+
+Only56is dependency-ready after completed30. Execute56and STOP after genuine
+full preparation and actual administrative parent reconciliation.51requires
+its own separate invocation.52–54remain one later same-native-child runtime
+group;07/08retain all actual parent/native/exact-head affirmative consent,
+normal publication,18archives/checksums/attestations/sixmetadata/exactreleaseCI.
+
+Planning checks cover6/6requirements,17/17decisions,39sourcegroups and23/23
+post-planning items.451-command path/failure probes report0findings and
+readError:null; path not_applicable is not runtime proof. Eightedges/four
+flagged unresolved assumptions and canonical prohibition referrals remain.
+Estimates92k/71k/71k/43k/31k total308k/runtime145k, factor1/sample0/lowconfidence;
+actual counts, throughput and fit remain UNKNOWN. No execution roots/helpers,
+phase transport/runtime tests, PREPARATION/SUMMARY or task credit were created.
+
+Counts56physical/17live/10complete; verification remains gaps_found.55terminal
+0/2body/evidence remains immutable with scheduling-only supersession;51depends
+56and loads56AMENDMENT.26active/terminal=false/pending diagnosis, historical
+UNKNOWNs/fourmetadata-only limitations and sixoriginaldirtypaths remain.
+Next: $gsd-execute-phase 16 --gaps-only. Stop after this planning step.
+
+## Historical Plan55 terminal execution position
 
 Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
 Status: Plan55 prewrite header-bound failure; administrative closeout only

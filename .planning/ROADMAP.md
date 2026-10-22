@@ -58,7 +58,38 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current execution stop — Plan55 terminal before first write/dispatch:**
+**Current gap planning — Plan56 ready after independent revision recheck:**
+[Plan56](phases/16-host-evidence-and-roadmap/16-56-PLAN.md) and
+[amendment](phases/16-host-evidence-and-roadmap/16-56-AMENDMENT.md) replace only
+terminal55's preparation identity. Complete actual large header/file inputs
+are independently received before compact backward-reference operations/I;
+complete logical target/journal reconstruction and actual target readback
+remain required. Real initial-header/every largest-shape empty/nonempty A/B,
+full fresh snapshot READ/COMPARE and entire finite graph precede own firstwrite.
+All fixed caps, complete originals, separate awaited READ/ACK and approved
+at-most32packet outer batching remain; no55retry or proof transfer.
+
+[Initial check](phases/16-host-evidence-and-roadmap/16-56-CHECK.md) found one
+downstream blocker. Revision1 makes52load56AMENDMENT and execute its own actual
+inline large-payload gate and final working/exported selector before runtime.
+[Fresh recheck](phases/16-host-evidence-and-roadmap/16-56-RECHECK.md) reports
+0blockers/0warnings. Coverage6requirements/17decisions/39sourcegroups/eightedges/
+fourflagged assumptions and23post-plan items remain;451-command probes0findings,
+readError:null, path not_applicable is not runtime proof. Projections92k/71k/71k/
+43k/31k total308k/runtime145k are lowconfidence/factor1/sample0; actual fit UNKNOWN.
+
+Counts56physical/17live/10complete;55terminal0/2superseded scheduling only,
+51depends56, and52retains original same-child/clock/slot/12row duties. Only56is
+ready after30; execute56and STOP after genuine full preparation AND actual
+administrative parent reconciliation.51needs a separate invoked step;52–54one
+later continuous runtime-group invocation.07/08retain every parent/native/
+exact-head affirmative consent/normal publication/actual18archives/checksums/
+attestations/sixmetadata/exactreleaseCI gate. Historical UNKNOWNs,26pending,
+fourmetadata-only limits and sixoriginaldirtypaths remain; no runtime/source/
+helper/execution credit is created by planning. Verification remains gaps_found.
+Next: `$gsd-execute-phase 16 --gaps-only`; stop after this planning step.
+
+**Historical execution stop — Plan55 terminal before first write/dispatch:**
 [Checkpoint](phases/16-host-evidence-and-roadmap/16-55-TERMINAL-CHECKPOINT.md)
 and [public provenance](phases/16-host-evidence-and-roadmap/16-55-TERMINAL-PROVENANCE.json).
 The user approved at most32packets per outer call with all separate READ/ACK,
@@ -293,7 +324,7 @@ is historical and supplies no fresh execution authority.
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans:** 17 live plans (55 physical; 10 complete)
+**Plans:** 17 live plans (56 physical; 10 complete)
 
 **Historical gap recovery planning — Plans42/43**: [Plan42](phases/16-host-evidence-and-roadmap/16-42-PLAN.md) addresses the reported40mode-expectation error with an independent literal read-only/durable positive/negative oracle BEFORE any parent/executor durable write. Readonly authority=false, successful durable operation authority=true, refusal=false; write authority never grants runtime admission. Original40failed tool envelope/source/exit/raw stay UNKNOWN. All P/P+I/(P+I)+C, expected-refusal, store/quote/actual-result and copied34CLI/prerequisite/export/full-matrix/freeze duties remain. [Plan43](phases/16-host-evidence-and-roadmap/16-43-PLAN.md) retains fresh12row admission and every source/lifecycle/finite formal/full649/jobs4/no-skip/threeZIP/tested-before-commit/tenblob/real1800sindependentreview/open0/separateparent gate.07/08native exacthead, affirmative exactPR/head owner consent, normal publication and18actualarchives/sixmetadata remain separate. Counts43physical/14live/10complete;40terminal0/2and41unexecuted0/3superseded by scheduling metadata only.42sole ready after30,43blocked on genuine42PREPARATION/SUMMARY AND actual administrative parent reconciliation plus separate invocation; execute42and STOP. All6requirements/17decisions/39sourcegroups/fourflagged assumptions and historical UNKNOWNs retained. Original sixdirtypaths/fourmetadata-onlyfiles/26active-pending preserved; planning creates no execution roots, acceptance or source/config edits. Independent check and revision recheck found zero remaining blockers/one scope warning; the owner explicitly answered yes to accepting the current43exception:13paths in5/5/3tasks,99900/100000tokens lowconfidence/factor1/sample0. Both reviews found no safe independent split under the sole-owner/once-only contract. Planning passes with this fresh override; historical41approval does not transfer. Coverage23/23 and347-command probes0findings; path not_applicable is not runtime proof. Estimates42=88500,43=99900; one-owner/once-only authority prevents an independent split without proof/clock/slot transfer. Parent owns final checks and planning commit. Verification remains gaps_found.
 
@@ -439,14 +470,16 @@ Plan18 is also superseded/incomplete without SUMMARY/credit: two evidence commit
 
 **Superseded Plan50**: Terminal0/2before nested READ/first write/dispatch.55 replaces only scheduling/preparation identity with an explicit async-wrapper remedy; historical body, terminal archive and absent actual READ remain unchanged, no credit.
 
-**Wave 10** *(55 sole candidate after completed30, independent checks and final planning commit)*
-- [ ] 16-55-PLAN.md — Fresh async receive wrapper, complete actual acyclic transport/sealed bootstrap/copied34CLI repair/code export; STOP after actual administrative parent handoff.
+**Superseded Plan55**: Terminal0/2before header dispatch/first write;56corrects large file/intent representation without retry or historical body/evidence changes.
 
-**Wave 11** *(blocked on genuine55preparation AND actual administrative reconciliation; separate invoked step;55AMENDMENT supplies current source mapping and wrapper checks)*
+**Wave 10** *(56 sole candidate after completed30, independent checks and final planning commit)*
+- [ ] 16-56-PLAN.md — Complete actual large header/file payload transport, sealed bootstrap/copied34CLI repair/code export; STOP after actual administrative parent handoff.
+
+**Wave 11** *(blocked on genuine56preparation AND actual administrative reconciliation; separate invoked step;56AMENDMENT supplies current source mapping and complete payload gates)*
 - [ ] 16-51-PLAN.md — Full working/exported helper matrices, continuity controls and final code-only preparation/export; STOP after actual administrative parent handoff.
 
 **Wave 12** *(blocked on genuine51preparation AND actual administrative reconciliation; one later runtime-group invocation)*
-- [ ] 16-52-PLAN.md — Sole-owner full own12-row admission and checked preclock continuation to53; no early success SUMMARY.
+- [ ] 16-52-PLAN.md — Own actual large-payload prewrite gate, sole-owner full12-row admission and checked preclock continuation to53; no early success SUMMARY.
 
 **Wave 13** *(inside the SAME52runtime group, blocked on its actual52stage cursor/ACK)*
 - [ ] 16-53-PLAN.md — Sole initialization/immediate observe, causal source/test/README/header work and complete controls under original clocks; checked continuation to54.
