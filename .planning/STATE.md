@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plans44/45 checked;44 preparation ready;45/07/08 gated
-last_updated: "2026-10-22T00:35:33Z"
+status: needs_planning
+stopped_at: Plan44 terminal prewrite inventory bound; no bootstrap or executor dispatch
+last_updated: "2026-10-22T00:45:00Z"
 last_activity: 2026-10-21
-last_activity_desc: Plans44/45 recovery checked;44 ready;2 scope advisories parent-disposed
-state_head: 64c3509fa17d1a36aba13e518ccd30048a874ce5
+last_activity_desc: Plan44 inventory121071262 exceeds67108864 decoded limit; terminal0/2
+state_head: a63404b2809fe1788dbb932f5804aaba8e9d1ef2
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,35 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
+Status: Plan44 prewrite feasibility stop; retained inventory exceeds decoded-result limit
+Total Plans in Phase: 14
+Plan: 44 terminal incomplete (0/2);45 (0/3),07 and08 blocked
+
+Historical mode oracle passed4positive/6negative cases. A fresh read-only
+streaming measurement of the retained bootstrap inventory schema found
+121071262bytes against the67108864-byte decoded-result closure limit,
+53962398bytes over before other bootstrap/journal/receipt bytes. The command
+exited0 with TRANSPORT_BOUND_EXCEEDED diagnostic; independent reception check
+confirmed MEASURED_BOUND_NOT_FIT. This is not a prospective A/B exit23 or
+passing transport control. No fresh program/control table, bootstrap write,
+executor dispatch or actual A/B operation occurred. See44TERMINAL-CHECKPOINT.
+
+Inventory:441632entries/357221raw hashes/fourmetadata-only files, observed
+metadata changes0. Bytes were streamed for length/SHA and not retained;
+this is one measurement, not a before/after whole-history comparison.
+Fresh checks match six dirty-path digests, input HEAD/raw index and empty
+index; all twelve42–45execution roots and44/45success artifacts absent.
+No helper/source/runtime/formal/native/release action or task credit.
+
+Counts45physical/14live/10complete; verification gaps_found.45scope advisories,
+all UNKNOWNs,26active/pending,fourmetadata-only limits and fourflagged
+assumptions remain. No retry, larger limit, byte omission, substitute file
+receipt or DAG-ready redispatch. Only administrative records follow abort.
+Next: $gsd-plan-phase 16 --gaps. Stop after this invoked execute step.
+
+## Historical Plans44/45 planning position
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plans44/45 independently checked; zero unresolved blockers/warnings;2visible scope advisories
@@ -1014,17 +1043,18 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-21T23:26:47Z
-Stopped at: Plans42/43 checked; owner accepted current43scope exception; execute42next
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-42-RECHECK.md
+Last session: 2026-10-22T00:45:00Z
+Stopped at: Plan44 terminal prewrite inventory bound; no bootstrap or dispatch
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-44-TERMINAL-CHECKPOINT.md
 
-Next GSD command: $gsd-execute-phase 16 --gaps-only
+Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Owner accepted current43scope warning:13declared paths and99900token low-confidence estimate under the documented single-owner/once-only rationale. No prior approval transfers; no runtime or release gate is waived.
-- After final planning checks/commit, next command is $gsd-execute-phase 16 --gaps-only; execute42and STOP at genuine preparation/administrative handoff.43needs a separate invocation.
-- Preserve occupied40bootstrap,40terminal0/2 and41unexecuted0/3 plus all earlier immutable failures; no retry, invented envelope, acceptance or allowance transfer.
+- Plan44stopped before bootstrap/dispatch:121071262-byte retained inventory exceeds67108864-byte decoded-result limit. No prospective transport control or actual A/B accepted; no44retry from DAG readiness.
+- Next separate command is $gsd-plan-phase 16 --gaps; reconcile measured inventory size and the full lossless bootstrap/result contract. This execution grants no new limit, schema, successor or authority.
+- Current45scope advisories remain parent-disposed and visible:13paths/5-5-3tasks and102900tokens versus100000. No owner approval or fit guarantee is inferred; no runtime or release gate is waived.
+- Preserve42/44terminal0/2,43/45unexecuted0/3, occupied40bootstrap and all earlier immutable failures; no retry, invented envelope, acceptance or allowance transfer.
 - Preserve Plan26 active terminal=false pending diagnosis, fourmetadata-only files, all historical UNKNOWNs, original five dirty source/test/comment paths and protected unstaged config.
 - Plans07/08 remain blocked on accepted current-source and required parent/native/exact-head consent/normal publication/actual released-byte evidence. Phase verification remains gaps_found.
-- Counts:43physical/14live/10complete. Planning passes with the current scope override; no source candidate or runtime acceptance exists. Stop after this planning step.
+- Counts:45physical/14live/10complete. No source candidate, runtime acceptance or success artifact exists. Stop after this invoked execute step.

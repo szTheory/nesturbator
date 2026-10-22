@@ -58,7 +58,22 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current gap planning — Plans44/45:** Fresh preparation44replaces42scheduling
+**Current execution — Plan44 terminal before dispatch:** A read-only streaming
+measurement found the retained bootstrap historical inventory is121071262bytes,
+exceeding the67108864-byte decoded-result closure limit by53962398bytes before
+other bootstrap/receipt bytes. The measurement exited0 with a bounded diagnostic;
+independent reception confirmed MEASURED_BOUND_NOT_FIT. It is not a prospective
+A/B exit23 or passing transport control. Historical mode oracle4positive/6negative
+passed; no fresh A/B program/control table, bootstrap, executor or success artifact
+was created. See[terminal record](phases/16-host-evidence-and-roadmap/16-44-TERMINAL-CHECKPOINT.md).
+44stops0/2,45unexecuted0/3,07/08blocked;45physical/14live/10complete.
+Six original dirty paths remain exact/unstaged; all42–45execution roots absent.
+The inventory measurement is not a before/after whole-history comparison.
+All prior limits and45scope advisories remain; verification gaps_found.
+No retry, larger limit, omitted bytes, file substitute or DAG-ready redispatch.
+Next: `$gsd-plan-phase 16 --gaps`. Stop after this invoked execute step.
+
+**Historical gap planning — Plans44/45:** Fresh preparation44replaces42scheduling
 and acceptance45replaces43scheduling; historical bodies/evidence stay unchanged.
 44adds bounded lossless transport and complete actual received-payload validation
 before every parent/executor first write, retaining all existing preparation,
@@ -331,7 +346,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 10/14 | Plans44/45 checked;44ready;45/07/08 gated;2visible scope advisories | - |
+| 16. Host evidence and roadmap | v4 | 10/14 | Plan44 terminal prewrite bound;45/07/08 blocked;2visible scope advisories | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 
