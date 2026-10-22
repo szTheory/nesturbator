@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plan55 gap planning independently checked; fresh preparation ready, no execution credit
-last_updated: "2026-10-22T18:39:45.646Z"
+status: blocked
+stopped_at: Plan55 terminal header-bound preflight; no bootstrap, dispatch or task credit
+last_updated: "2026-10-22T19:45:20Z"
 last_activity: 2026-10-22
-last_activity_desc: Plan55 replaces terminal50 for scheduling; independent review and coverage gates passed
-state_head: d3b4b1ec5b19158cdf6bc1f78f87514b28275fd6
+last_activity_desc: Plan55 actual prefix and A/B positives passed; frozen header representation exceeds output bound
+state_head: 4d493629d1943e58ecddf899e3423f4329ce85fc
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,46 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
+Status: Plan55 prewrite header-bound failure; administrative closeout only
+Total Plans in Phase: 17
+Plan: 55 terminal incomplete (0/2);51 (0/2),52 (0/2),53 (0/3),54 (0/2),07 and08 blocked
+
+The user approved at most32packets per outer call, preserving separate awaited
+READ/ACK, complete originals, independent reception and all bounds. Actual
+retained38transport received all13136bytes through two READs/two separate ACKs;
+four originals were retained. Actual separate empty/nonempty A/B each passed
+logical0/A_PREPARED and0/B_PREPARED, readonly authority=false. These positives
+do not supply full preparation, snapshot/graph, helper or runtime acceptance.
+
+The frozen parent producer still inlines file base64 data into its operation,
+then into I, then returns base64(I). Exact lower-bound preflight found checked
+plan/amendment/source-closure intent-data strings alone require40268/37928/
+96556bytes versus16384. No header tool was dispatched; no actual producer
+refusal, OS exit, exact oversized full wire, truncation or failed B is claimed.
+The attempt stopped before any bootstrap/helper write, executor dispatch,
+fresh full snapshot, finite graph acceptance or task credit. No source repair,
+retry/suffix/alternate root or DAG-ready redispatch is authorized.
+
+See16-55-TERMINAL-CHECKPOINT and public TERMINAL-PROVENANCE. Complete raw
+evidence is preserved privately outside the repository because the historical
+journal contains personal workspace paths; public projections withhold two
+READ originals/raw P/J caches without redaction or invented originals.
+Fresh administrative checks matched HEAD/branch/rawindex, all six original
+dirty hashes exact/unstaged,18roots/12success artifacts absent, four exact
+metadata-only records and retained38identity. No whole-history comparison.
+Only administrative checkpoint/archive/STATE/ROADMAP repository writes follow.
+
+Counts55physical/17live/10complete; verification remains gaps_found.26active/
+terminal=false/pending diagnosis, all UNKNOWNs/fourflagged assumptions/four
+metadata-only limitations and every later51–54/07/08gate remain. A substantive
+planning amendment must extend acyclic exact-byte references to real large
+header/file-operation payloads and retain every full transport/helper/runtime
+duty. Approved batching neither increases a byte limit nor authorizes retry.
+Next: $gsd-plan-phase 16 --gaps. Stop after this invoked execute step.
+
+## Historical Plan55 planning position
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plan55 independently checked; zero blockers, warnings or advisories

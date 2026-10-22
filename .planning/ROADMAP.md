@@ -58,7 +58,30 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current gap planning — fresh Plan55 replaces terminal50 preparation only:**
+**Current execution stop — Plan55 terminal before first write/dispatch:**
+[Checkpoint](phases/16-host-evidence-and-roadmap/16-55-TERMINAL-CHECKPOINT.md)
+and [public provenance](phases/16-host-evidence-and-roadmap/16-55-TERMINAL-PROVENANCE.json).
+The user approved at most32packets per outer call with all separate READ/ACK,
+original/reception and byte gates retained. Actual13136byte retained-prefix
+transport passed two READ/two separate ACK pairs; actual separate empty and
+nonempty A/B both passed logical0/A_PREPARED and0/B_PREPARED, authority=false.
+The frozen producer's full file data still enters the operation and intent I,
+then base64(I) is returned. Exact preflight lower bounds40268/37928/96556bytes
+for checked plan/amendment/source-closure exceed16384 before output framing.
+No header was dispatched; no actual producer refusal/OS exit/full rejected
+wire size/truncation/failed B is invented. No new execution root, full fresh
+snapshot, finite graph acceptance, executor/helper/CLI/export, PREPARATION/
+SUMMARY, runtime/source/formal/native/release action or task credit.55 remains
+terminal0/2;51–54/07/08blocked;55physical/17live/10complete; gaps_found. Complete
+raw originals remain private because historical journal bytes contain personal
+workspace paths; public projections do not replace withheld originals. Fresh
+administrative HEAD/branch/index/sixdirty/18roots/12success artifacts/four
+metadata-only/retained38checks passed; no whole-history comparison. Historical
+bodies/26active-pending/UNKNOWNs/fourassumptions and every later gate remain.
+No repair/retry/suffix/alternate root or DAG-ready redispatch of this attempt.
+Next: `$gsd-plan-phase 16 --gaps`; stop after this invoked execute step.
+
+**Historical gap planning — fresh Plan55 replaces terminal50 preparation only:**
 [Plan55](phases/16-host-evidence-and-roadmap/16-55-PLAN.md) and its
 [amendment](phases/16-host-evidence-and-roadmap/16-55-AMENDMENT.md) require a
 complete async-IIFE stored-source wrapper before the first actual prospective
