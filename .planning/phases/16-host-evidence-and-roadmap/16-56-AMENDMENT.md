@@ -1,5 +1,19 @@
 # Plan56: complete large header/file-payload transport
 
+## Current approved ordering overlay
+
+Read16-56-CONTEXT-AMENDMENT.md FIRST. User-approved journaled construction
+of exactly the same two56helpers plus their untrusted construction journal
+is the sole exception to inherited all-before-helper ordering here and in
+50/51/55sources. Its exact allowlist, actual originals/readback, construction
+baseline, final-source freeze and independent acceptance contract control.
+All “before any write/firstwrite/inline before helpers” language below remains
+binding for NONCONSTRUCTION writes; malformed controls prove zero NEW
+mutations from construction baseline. No bootstrap/snapshot target is early.
+51/52own firstwrite protocols remain unchanged. Genuine56success and actual
+administrative parent reconciliation still precede51. Historical CHECK/RECHECK/
+checkpoint remain DATA; no terminal predecessor retry or proof transfer.
+
 Planning-only substantive replacement preparation after55's terminal prewrite
 failure.55 remains incomplete0/2; no successful PREPARATION/SUMMARY, bootstrap,
 helper, dispatch, runtime or source acceptance exists. Its historical bodies,
@@ -266,9 +280,9 @@ payload positives must reconstruct exact bytes. A compression win or expected
 
 ## Helper, export and downstream own-context proof
 
-Implement new --test-large-payload-transport ONLY in existing assembler after
-the full inline gate allows creation. It consumes actual own-context raw
-prewrite originals/graph/class ledger plus labeled synthetic negatives. Fold
+Implement new --test-large-payload-transport ONLY in existing assembler during
+approved code-only construction. Acceptance consumes actual own-context raw
+prewrite originals/graph/class ledger, construction baseline and labeled synthetic negatives. Fold
 it into existing acyclic/budget/snapshot/orchestration/async-wrapper/transport
 preparation verification; include actual working AND content-addressed exported
 CLI on same final bytes. Both helper consumers validate complete logical file
@@ -282,12 +296,28 @@ mutants and separate binding refusals, complete actual argv/entry/import/code/
 stdout/stderr/exit proof; original31NameError/sha_bytes and18case2accept16reject
 nonempty revision, pointer/freeze/oldmanifest/rawnewline/symbol/schema/order/
 tuple coverage. No validator relaxation or guard bypass. --rehearse-preparation
-must exist before finalization. All code changes invalidate full earlier
-matrices; finish and rerun before final code export. Only exact helper-preparation/
+must exist before finalization. Task1 completes every helper repair/API/selector
+and verifier under journaled construction, then closes the journal and freezes
+complete final source before finalized actual transport. Any allowed prefreeze
+edit invalidates provisional closure/checks/matrices; bind every actual gate to
+the completed final bytes. No postfreeze source/recipe/journal edit or repair.
+Task2 only materializes declared isolated fixtures, validates, records evidence
+and exports those identical bytes. Retain original34 source/SHA and exact
+--test-history-admission isolated-control recipe as DATA until full gate; run
+that unchanged copied CLI only in the declared fresh isolated topology after
+authorization, never an archived entrypoint or early executable helper. Its
+expected HISTORY_JOIN_INVALID/observed HELPER_SET_BINDING_INVALID RED precedes
+separate coherent final-code fixture GREEN, without repairing either frozen
+helpers or the old-byte RED fixture. All targets/recipes belong to the prefrozen
+finite graph; no extra helper/root or guard bypass. Old-byte RED is a distinct
+negative input, not final-code proof. Every actual final-source matrix, accepted
+transport, bootstrap and export binds Task1's same frozen bytes. Unexpected
+finalized failure remains terminal, without retry or re-freeze. Only exact helper-preparation/
 runtime_admission=false export, no live clock/boot/root/accepted row.
 
 Implement complete52AMENDMENT continuation/completion-start APIs and isolated
-controls in same two helpers before export.51independently imports56CODE ONLY,
+controls in same two helpers during Task1 construction before final-source
+freeze; Task2 runs them unchanged before export.51independently imports56CODE ONLY,
 adapts coherently, repeats OWN full gate/large-payload/wrapper transcripts,
 full19actions/143rawrows,12+5history,55scratch/6preparation/journal/strictJSON/
 transition/dispatch/actualadjacent+exportedCLI and retained18case matrix before
@@ -340,11 +370,12 @@ Prohibition recall/refilter retains canonical authorities AGENTS/D-01..17/
 tests/review/provenance/privacy/07consent; surviving prohibitions:[]; no silent
 drop or fabricated check descriptor. Deferred ideas excluded.
 
-Calibration returns factor1/sample_count0/confidence low.56raw/calibrated92000
-=retained84000+8000 for payload reception/readback/control/consumer work.
+Calibration returns factor1/sample_count0/confidence low. Current56raw/calibrated
+96000=retained92000+4000construction journal/baseline/closure controls.
+Retained92000=84000+8000payload reception/readback/control/consumer duties.
 Effective51/52each71000=prior67000+4000 independent own new payload matrices;
 their historical65000frontmatter remains intact, this amendment supplies
-effective execution projection.53/54remain43000/31000. Total308000, continuous
+effective execution projection.53/54remain43000/31000. Current total312000, continuous
 runtime145000. No lowered estimate for terse prose, no inherited approval to
 exceed scope guidance; actual packet counts/calls/throughput/fit UNKNOWN.
 Existing plan structure has2tasks with<=5modified paths each. If full actual
@@ -397,9 +428,11 @@ execution success. A=56,B=51,C=52,D=53,E=54. All39groups follow:
 
 ## Artifacts this phase produces
 
-Planning creates56PLAN/AMENDMENT and scheduling-only55/51frontmatter changes;
-parent owns STATE/ROADMAP/check/commit. Authorized later56execution creates
-declared56bootstrap/preflight/twohelpers/transport-evidence/admission-integration/
+This amendment updates56PLAN/AMENDMENT, adds56CONTEXT-AMENDMENT and minimally
+updates current51/52references; parent owns STATE/ROADMAP/check/commit.
+Later56construction creates exactly twohelpers+untrusted construction-journal
+in existing56preflight; only full acceptance permits
+declared56bootstrap/preflight/transport-evidence/admission-integration/
 helper-set and genuine56PREPARATION/SUMMARY only. New selector
 --test-large-payload-transport is inside existing assembler, no new module.
 Existing source paths are git-tracked; future ignored build paths are owned

@@ -1,5 +1,12 @@
 # Plans50–54: approved split and exact-byte transport contract
 
+Current reference:16-56-AMENDMENT maps current preparation A to56;
+16-56-CONTEXT-AMENDMENT permits journaled early construction only for56's
+same twohelpers+untrusted construction journal. No construction record is
+accepted evidence.51/52still pass their own full before-write gates and
+receive CODE ONLY after genuine predecessor success and actual administrative
+parent reconciliation; no independent-context proof transfers.
+
 The user selected **Split (recommended)** on2026-10-22. This authorizes these smaller scopes and the same-owner continuity contract in16-52-AMENDMENT.md. No bound, actual proof, clock, formal slot, owner-consent or acceptance duty is waived.16-50-PLAN through16-54-PLAN are the executable decomposition; the earlier split proposal/status in16-50-AMENDMENT is retained as history. Independent checking and parent planning commit still precede dispatch.
 
 ## Authority, roots and precedence

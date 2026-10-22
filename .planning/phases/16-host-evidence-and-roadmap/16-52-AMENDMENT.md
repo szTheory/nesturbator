@@ -1,5 +1,11 @@
 # Runtime group16-52/53/54: one actual owner, continuous clocks and complete duties
 
+Current56preparation reference includes16-56-CONTEXT-AMENDMENT's approved
+56-only code construction ordering. Its untrusted journal/candidate confers
+no52acceptance/import or early-write permission.52retains its complete own
+actual firstwrite/transport/snapshot/finitegraph gates, ordered twelve rows,
+same native child/clocks/counters/slots and later independent parent gates.
+
 The user selected the smaller-scope split. This is the concrete continuation mechanism and complete current command contract. Plans52,53,54 are implementation/context slices INSIDE ONE separately invoked runtime-group execute step. They are not three dispatches, three runtime roots or three allowances. Their wave ordering is12→13→14; they share /root/execute_16_52 and build/phase16-validation52. Main parent must read this BEFORE selecting/spawning work. No automatic next GSD lifecycle command occurs.
 
 ## Native coordinator route and parent passivity

@@ -58,7 +58,40 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current execution checkpoint — Plan56 context amendment required, 0/2:**
+**Current gap planning — Plan56 approved context amendment ready, 0/2:**
+[Construction ordering](phases/16-host-evidence-and-roadmap/16-56-CONTEXT-AMENDMENT.md)
+implements user-approved choice1 in the existing unfinalized Plan56. Only the
+same two helpers and untrusted construction journal in the existing56preflight
+directory may be constructed before full transport acceptance. Every helper
+repair/API/selector/verifier/fixture recipe finishes before final-source freeze;
+Task2 only validates and exports those frozen bytes. No new root/helper,
+bootstrap/snapshot/evidence/export prewrite, limit growth, admission or credit.
+Complete actual originals, separate awaited READ/ACK,32packet grouping,
+independent parent/child gates, fresh full snapshot/COMPARE, finite graph and
+all final-code/working/exported matrices remain. Negatives prove zero additional
+mutations relative to exact construction baseline.51/52own first-write gates
+remain independent; no56proof transfers.
+
+[Independent check](phases/16-host-evidence-and-roadmap/16-56-CONTEXT-CHECK.md)
+found one task-ordering blocker. Revision1 moved all code construction before
+freeze; [fresh recheck](phases/16-host-evidence-and-roadmap/16-56-CONTEXT-RECHECK.md)
+reports0blockers/0warnings/0info. Coverage6requirements/17decisions/39sourcegroups/
+eightedges/fourflagged assumptions and23post-plan items remains;451-command
+path/failure probes0findings/readError:null, path not_applicable is not runtime
+proof. Projections96k/71k/71k/43k/31k total312k/runtime145k are lowconfidence/
+factor1/sample0; actual counts/throughput/fit UNKNOWN.
+
+Counts56physical/17live/10complete, verification gaps_found; no new successor,
+execution root/helper,PREPARATION/SUMMARY or task credit. Historical checkpoint/
+provenance remain intact DATA;26active/terminal=false/pending, all UNKNOWNs,
+sixoriginaldirtypaths/fourmetadata-only limitations and downstream51–54/07/08
+gates remain. Only56is ready after30; genuine56success AND actual administrative
+parent reconciliation precede a separately invoked51step.52–54remain one later
+same-native-child runtime group;07/08full parent/native/exact-head consent/
+normal publication/18archives/sixmetadata/exactreleaseCI gates stay blocking.
+Next: `$gsd-execute-phase 16 --gaps-only`; stop after this planning step.
+
+**Historical execution checkpoint — Plan56 context amendment required, 0/2:**
 [Context checkpoint](phases/16-host-evidence-and-roadmap/16-56-CONTEXT-CHECKPOINT.md)
 and [actual provenance](phases/16-host-evidence-and-roadmap/16-56-CONTEXT-PROVENANCE.json)
 record an initial budget probe PASS and administrative sizing only. The current

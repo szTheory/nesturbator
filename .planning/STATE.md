@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: context_amendment_required
-stopped_at: Plan56 context checkpoint before prospective binding; 0/2 tasks accepted
-last_updated: "2026-10-22T20:37:04Z"
+status: ready_to_execute
+stopped_at: Plan56 approved construction ordering amendment independently rechecked; 0/2 tasks accepted
+last_updated: "2026-10-22T21:28:28Z"
 last_activity: 2026-10-22
-last_activity_desc: Plan56 budget probe passed; administrative sizing only; context amendment pending
-state_head: da403131955da74635573524e81c231af861d43b
+last_activity_desc: Plan56 context amendment approved and checked after one revision; execution pending
+state_head: f899a1ba5a5bc93fe3ae8485e75f19b5801653cc
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,46 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plan56 approved context amendment independently rechecked; zero blockers/warnings
+Total Plans in Phase: 17
+Plan: 56 ready (0/2);51–54 and07/08 remain dependency-blocked
+
+The user approved choice1: exclusive journaled code-only construction of the
+same two56helpers before transport acceptance.16-56-CONTEXT-AMENDMENT is the
+current narrow ordering authority. Only the existing56preflight directory,
+two helpers and untrusted construction journal may precede acceptance; no
+bootstrap/snapshot/evidence/export write or admission/task credit follows.
+All source repairs/APIs/selectors/verifier/fixture recipes finish in Task1
+before closed-journal/final-source freeze and actual full transport. Task2
+validates and exports those same frozen bytes; no late repair is authorized.
+Negatives prove zero additional mutation against exact construction baseline.
+Every original bound, at-most32packet grouping, complete actual original,
+independent parent/child reception, full fresh snapshot/COMPARE, finite graph,
+copied34CLI RED/GREEN and final working/exported matrix remains required.
+
+Independent16-56-CONTEXT-CHECK found one task-ordering blocker. Revision1
+moved every code edit before freeze; fresh16-56-CONTEXT-RECHECK reports
+0blockers/0warnings/0info. Structural checks pass for56/51/52;451-command
+path/failure probes each report0findings/readError:null; path not_applicable
+is not runtime proof. Coverage6/6requirements,17/17decisions,39sourcegroups,
+eightedges/fourflagged assumptions and23/23post-plan items remains intact.
+Projections96k/71k/71k/43k/31k total312k/runtime145k, factor1/sample0/low;
+actual finite counts, throughput, context fit and provider capacity UNKNOWN.
+
+Counts56physical/17live/10complete; no new successor or execution root/helper,
+PREPARATION/SUMMARY, runtime/source/publication action or task credit created.
+Historical checkpoint/provenance/checks and terminal predecessors remain DATA.
+Sixoriginaldirtypaths stay exact/unstaged;26active/terminal=false/pending,
+fourmetadata-only limitations and historical UNKNOWNs remain.51/52own
+before-write gates are unchanged; genuine56success AND actual administrative
+parent reconciliation precede a separately invoked51step.52–54retain one
+later same-native-child runtime group.07/08retain all parent/native/exact-head
+affirmative consent/normal publication/18archives/sixmetadata/exactreleaseCI gates.
+Next: $gsd-execute-phase 16 --gaps-only. Stop after this planning step.
+
+## Historical Plan56 context execution checkpoint
 
 Phase: 16 (Host evidence and roadmap) — CONTEXT AMENDMENT REQUIRED
 Status: Plan56 stopped before prospective source binding; no terminal transport failure
