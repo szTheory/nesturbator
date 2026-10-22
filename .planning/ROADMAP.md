@@ -58,7 +58,23 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current gap planning — Plans48/49:** Fresh[Plan48](phases/16-host-evidence-and-roadmap/16-48-PLAN.md)
+**Current execution — Plan48 terminal before bootstrap/dispatch:** The required
+actual-source nonempty-prefix readonly B expected0/B_PREPARED but returned
+actual23/TRANSPORT_BOUND_EXCEEDED, authority=false and no proposed writes.
+Both outer/nested requests explicitly used18000tokens. Empty A/B and nonempty A
+passed; complete retained38journal13136bytes was DATA only. B's request207129bytes
+fit4194304; its result representation hit the16384output guard. Actual refusal77
+bytes; oversized candidate length unavailable. See[terminal checkpoint](phases/16-host-evidence-and-roadmap/16-48-TERMINAL-CHECKPOINT.md)
+and[original request/result archive](phases/16-host-evidence-and-roadmap/16-48-TERMINAL-PROVENANCE.json).
+No full capture/READ/COMPARE/ACK/finite graph, phase write, executor, helper repair,
+export, runtime or task credit. Original sixdirtypaths exact/unstaged;24roots and
+16successartifacts42..49 absent. No whole-history comparison claimed; historical
+UNKNOWNs/26active-pending/fourmetadata-only limits remain. Counts49physical/14live/
+10complete,48terminal0/2,49unexecuted0/3, verification gaps_found. No retry or
+DAG-ready redispatch;49/07/08 retain all actual later gates. Next:
+`$gsd-plan-phase 16 --gaps`; stop after this invoked execute step.
+
+**Historical gap planning — Plans48/49:** Fresh[Plan48](phases/16-host-evidence-and-roadmap/16-48-PLAN.md)
 corrects46's omitted outer18000budget with copyable literal setup/probe calls,
 visible exact descriptors and independent expected-budget cases; hidden provider
 budget remains unavailable. One actual packet result/source/request is retained,

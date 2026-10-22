@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plans48/49 gap planning verified after revision1; only48 ready for separate execute invocation
-last_updated: "2026-10-22T03:20:27Z"
-last_activity: 2026-10-21
-last_activity_desc: Plans48/49 budget-reception recovery checked; zero blockers/warnings, two scope INFO advisories
-state_head: 0f2094303ef77872d33f55d7bd29270dc166d01f
+status: blocked
+stopped_at: Plan48 terminal parent prewrite nonempty-prefix B bound refusal;0/2 tasks, no bootstrap or executor
+last_updated: "2026-10-22T15:48:59Z"
+last_activity: 2026-10-22
+last_activity_desc: Plan48 actual readonly B returned23/TRANSPORT_BOUND_EXCEEDED; administrative evidence retained
+state_head: 5ff6b3c24541ed751219c24807cd91b72eedb5c7
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,50 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
+Status: Plan48 parent prewrite bound refusal; unchanged retry forbidden
+Total Plans in Phase: 14
+Plan: 48 terminal incomplete (0/2);49 unexecuted (0/3),07 and08 blocked
+
+The mandatory actual-source readonly nonempty-prefix B expected0/B_PREPARED
+but returned actual23/TRANSPORT_BOUND_EXCEEDED, authority=false,proposed_writes=[].
+Its complete bounded stdout is77UTF8bytes including LF; the independent receiver
+reported AB_ACTUAL_ENVELOPE_INVALID against expected exit0. No durable B failed.
+Both actual outer/nested requests explicitly used18000tokens; this differs from
+Plan46's omitted setting. Candidate oversized wire/decoded lengths are unavailable.
+
+Startup budget actual10bytes, historical mode oracle4positive/6negative, actual
+13000-byte codec vector and empty-prefix readonly A/B passed. The complete
+retained38journal13136bytes was used as DATA only; its readonly A passed, then
+B refused. Serialized A/B requests55729/207129bytes fit4194304; this prospective
+result representation hit its16384output guard. No complete inventory capture,
+READ/COMPARE/ACK, full finite graph or remaining control-family acceptance.
+
+16-48-TERMINAL-CHECKPOINT and TERMINAL-PROVENANCE.json retain actual failure,
+four original A/B request/results, prior expectations, literal outer descriptors,
+failed B evaluated source closure and full prospective sources. Archive784063
+bytes/SHAde41b4a95af4e38bb36761b3ae76c0cf9895c1c8b6d8d6b0c4ef52a87b85ceba;
+independent administrative parsing verified bytes/hash/frames/payload/journal
+bindings without executing the program. Earlier overwritten evaluated wrappers
+remain unavailable as originals; no reconstruction. Capability response with a
+personal workspace path stays volatile only; the public archive states its limit.
+
+Fresh checks matched input HEAD/branch/rawindex and original sixdirtyhashes,
+all sixunstaged;24roots42..49 and16successartifacts absent; fourmode000 unchanged.
+No whole-history snapshot/comparison is claimed. No bootstrap/header/diagnostic
+phase write, executor/import/helper repair/CLI RED/matrix/freeze/export,
+PREPARATION/SUMMARY/runtime/source/formal/native/release action or task credit.
+Only administrative planning records follow the stop.26active terminal=false/
+pending diagnosis, all UNKNOWNs/fourflagged assumptions and historical bodies stay.
+Counts49physical/14live/10complete; verification gaps_found.
+
+Prewrite failure is terminal: no retry/resume/backfill/suffix/repair/redispatch.
+A DAG-ready48label grants no renewed authority.49/07/08 stay blocked on every
+actual preparation/parent/native/exact-head consent/publication/released-byte gate.
+Next: $gsd-plan-phase 16 --gaps. Stop after this invoked execute step.
+
+## Historical Plans48/49 planning position
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plans48/49 independently checked after revision1; zero blockers/warnings; two visible scope advisories
@@ -1159,18 +1203,17 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-22T03:20:27Z
-Stopped at: Plans48/49 gap planning verified; only48 dependency-ready
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-48-PLAN.md
+Last session: 2026-10-22T15:48:59Z
+Stopped at: Plan48 terminal parent prewrite nonempty-prefix B bound refusal;0/2, no executor
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-48-TERMINAL-CHECKPOINT.md
 
-Next GSD command: $gsd-execute-phase 16 --gaps-only
+Next GSD command: $gsd-plan-phase 16 --gaps
 
 ## Operator Next Steps
 
-- Execute48only, after fresh safe-resume and exact parent/executor prewrite gates; no48runtime.
-- Use the explicit18000outer pragma and nested budget on every gated call. Copy the checked startup snippets; retain actual visible descriptor/source/results, and never claim hidden provider metadata.
-- One actual packet per call; receiver commit precedes separate ACK. Complete fresh snapshot reception/comparison and entire finite graph before writes; interruption/missing result is terminal, no retry/backfill.
-- Stop after genuine48PREPARATION/SUMMARY and actual administrative parent reconciliation.49needs a separate invocation;07/08stay blocked on all actual later gates.
-- Preserve46terminal0/2,47unexecuted0/3, missing46actual envelopes, all earlier bodies/UNKNOWNs,26active/pending, fourmetadata-only files and six dirty unstaged paths.
-- Two INFO scope advisories remain:48=103500,49=112900tokens vs100000;49has13paths5/5/3tasks. Current disposition is not owner approval, fit proof or a new allowance.
-- Counts49physical/14live/10complete. Verification gaps_found; planning adds no source/runtime/formal/native/publication/task credit. Stop after this invoked planning step.
+- Plan substantive gaps from48's actual nonempty-prefix B bound refusal; do not retry48 or start49.
+- Preserve the complete actual request/result archive, expected0 versus observed23, unavailable candidate size and earlier evaluated-wrapper provenance limits.
+- Keep explicit18000outer/nested budgets and all fixed bounds. No complete snapshot, finite graph or prewrite acceptance exists.
+- Preserve48terminal0/2,49unexecuted0/3, earlier bodies/UNKNOWNs,26active/pending, fourmetadata-only files and six original dirty unstaged paths.
+- Scope advisories remain48=103500/49=112900tokens vs100000;49paths13/5-5-3tasks, unmeasured/lowconfidence. No fit proof or allowance follows.
+- Counts49physical/14live/10complete; verification gaps_found. Every later actual parent/native/consent/publication/released-byte gate remains. Stop after this execute step.
