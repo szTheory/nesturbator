@@ -5,11 +5,11 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: ready_to_execute
-stopped_at: Plan56 special-file capture amendment independently checked; actual context-fit review required before dispatch; 0/2 tasks accepted
-last_updated: "2026-10-22T22:17:04Z"
+stopped_at: Plan56 bounded-capacity strategy independently rechecked; 0/2 tasks accepted
+last_updated: "2026-10-22T22:54:47Z"
 last_activity: 2026-10-22
-last_activity_desc: Plan56 special-file capture planning passed after scope revision; no execution or acceptance credit
-state_head: 8f6989038b704daa41f4bd493a765db28080bd85
+last_activity_desc: Telemetry admission replaced by bounded operations and complete stores; independent recheck passed; planning only
+state_head: fb0db7d5e4ba11bc85250e7c25bca85da84bd775
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,47 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plan56 bounded execution/storage amendment independently checked
+Total Plans in Phase: 17
+Plan: 56 amended (0/2);51–54 and07/08 remain dependency-blocked
+
+The last execution stopped before56dispatch because required effective context
+limit/usage/overhead/projection/reserve were unavailable. That administrative
+memory-only stop earned no credit and ran no capture/construction/executor.
+The current16-56-SPECIAL-FILES-AMENDMENT replaces that agent-selected capacity-
+proof prerequisite under the existing planning delegation. Missing telemetry
+alone no longer blocks dispatch. Actual capacity/fit remain UNKNOWN; unchanged
+104k preparation and149k continuous52–54projections are not capacity evidence.
+
+Complete independent source/request/result/decoded/control originals stay in
+actual persistent in-memory tool stores. Existing finite operations and bounded
+model receipts apply; actual warnings/errors/truncation/store loss stop without
+credit/retry/reset or substituted proof. Valid pending work uses the existing
+bounded wait/poll protocol; checked nonterminal stages use only existing ACK/
+same-child followup with intact originals/clocks/counters/slots. Hard termination
+may prevent volatile preservation; only actual surviving evidence is reported.
+All special metadata, construction/freeze/transport/matrix/export and later
+acceptance duties remain. No new helper/root/owner, split or capacity guarantee.
+
+Independent16-56-TELEMETRY-CHECK found one wording blocker; revision1 narrowed
+failed/nonterminal-return handling.16-56-TELEMETRY-RECHECK passes with issues:[].
+Requirements6/6,decisions17/17 and39source groups/eightedges/fourflagged assumptions
+remain. Counts56physical/17live/10complete; verification stays gaps_found.
+Six original dirty files remain exact/unstaged; historical checkpoints/checks/
+provenance and26active terminal=false/pending remain immutable DATA.
+No execution, capture, construction, runtime test, task credit, PREPARATION,
+SUMMARY, native/release/publication action occurred in this planning step.
+
+Only56is dependency-ready. Complete genuine56preparation AND actual parent
+reconciliation, then STOP;51requires a separate invoked step.52–54retain one
+later continuous original native child with all12rows and every clock/counter/
+slot/original.07/08retain parent/native/exact-head affirmative consent/normal
+publication/18archives/checksums/attestations/sixmetadata/exactreleaseCI gates.
+Next: $gsd-execute-phase 16 --gaps-only. Stop after this planning step.
+
+## Historical special-file planning position
 
 Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
 Status: Plan56 special-file amendment checked; execution remains conditional on actual context-fit review

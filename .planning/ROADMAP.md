@@ -58,7 +58,32 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current gap planning — Plan56 special-file capture amendment checked, 0/2:**
+**Current gap planning — Plan56 bounded-capacity strategy checked, 0/2:**
+[Current amendment](phases/16-host-evidence-and-roadmap/16-56-SPECIAL-FILES-AMENDMENT.md)
+replaces the discretionary exact-telemetry admission rule that stopped the last
+execution before dispatch. Missing telemetry alone no longer blocks normal56
+or later sole52group dispatch; actual total capacity/fit remain UNKNOWN.
+Complete independent persistent-tool-store values, unchanged finite operation/
+packet limits and bounded receipts apply. Actual warning/error/truncation/lost
+original stops without credit, retry, reset or substitute evidence. Existing
+bounded wait/poll and checked nonterminal ACK/same-child continuations remain.
+Hard termination can prevent volatile preservation; no aggregate fit guarantee.
+[First check](phases/16-host-evidence-and-roadmap/16-56-TELEMETRY-CHECK.md) found one
+wording blocker; revision1 clarified valid nonterminal handling.
+[Fresh recheck](phases/16-host-evidence-and-roadmap/16-56-TELEMETRY-RECHECK.md) passes
+with zero issues. All special-file schema/coverage/stability controls and
+construction/freeze/full actual transport/matrix/export duties remain; no new
+successor/root/helper/owner or duty reduction. Estimates104k/75k/75k/43k/31k,
+total328k/runtime149k,factor1/sample0/low unchanged.6requirements/17decisions/
+39source groups/eightedges/fourflagged assumptions retained.56physical/17live/
+10complete,gaps_found. Six original dirty files and historical DATA unchanged;
+26active terminal=false/pending. No execution/capture/construction/test/task/
+PREPARATION/SUMMARY/native/publication credit. Only56is dependency-ready;
+genuine56success AND actual parent reconciliation then STOP before separately
+invoked51.52–54samechild and every07/08release gate remain.
+Next `$gsd-execute-phase 16 --gaps-only`.
+
+**Historical gap planning — Plan56 special-file capture amendment checked, 0/2:**
 [Special-file amendment](phases/16-host-evidence-and-roadmap/16-56-SPECIAL-FILES-AMENDMENT.md)
 amends the still-unfinalized56 with fresh attempt p56-special-metadata-01,
 strict FIFO/socket/character/block metadata-only rows, exact integer tokens,
@@ -582,7 +607,7 @@ Plan18 is also superseded/incomplete without SUMMARY/credit: two evidence commit
 
 **Superseded Plan55**: Terminal0/2before header dispatch/first write;56corrects large file/intent representation without retry or historical body/evidence changes.
 
-**Wave 10** *(56 sole candidate after completed30, independent checks, final planning commit and actual context-fit review)*
+**Wave 10** *(56 sole candidate after completed30, independent checks and final planning commit; bounded strategy with capacity UNKNOWN)*
 - [ ] 16-56-PLAN.md — Fresh special-file metadata-only capture, complete actual large-payload transport, sealed bootstrap/copied34CLI repair/code export; STOP after actual administrative parent handoff.
 
 **Wave 11** *(blocked on genuine56preparation AND actual administrative reconciliation; separate invoked step;56AMENDMENT supplies current source mapping and complete payload gates)*

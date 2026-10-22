@@ -50,7 +50,9 @@ predecessor identities and their stronger terminal-source rules stay intact.
 
 16-56-CONTEXT-AMENDMENT remains the sole approved ordering/allowlist authority.
 This correction changes the fresh capture schema, integer handling, receiver
-and controls only. It does not authorize an earlier durable byte. Before any
+and controls; the final bounded-execution section also replaces the later
+agent-selected telemetry admission policy. Neither authorizes an earlier
+durable byte. Before any
 construction, the parent must complete the new protected baseline read-only in
 memory; it cannot depend on a helper that construction has not yet authorized.
 Use the existing inline standard-library Node producer and independent caller
@@ -294,7 +296,7 @@ continuous52–54runtime149000. Two tasks/plan, same wave10→11→12→13→14�
 not measured execution, provider/context-fit or throughput claims. No scope
 reduction, new split approval or extra owner is inferred from sizing.
 
-## Reviewed advisory overruns and mandatory pre-dispatch context-fit rule
+## Bounded execution with unknown total capacity
 
 The two scope warnings in16-56-SPECIAL-FILES-CHECK have been reviewed as
 planning advisories:56 is104000/100000 (1.04x); the ONE continuous52/53/54
@@ -302,39 +304,99 @@ native-child invocation is75000+43000+31000=149000/100000 (1.49x).
 Factor1/sample_count0/confidence low establishes neither actual capacity nor
 fit. Keep these estimates and the100000 smart-zone budget unchanged. The
 328000 aggregate spans separate invocations and cannot establish group fit.
-This review accepts no execution risk on the user's behalf and gives no
-dispatch admission. Actual capacity/headroom/fit remain UNKNOWN at planning.
+Actual capacity, current usage, system/tool overhead, whole-duty headroom and
+fit remain UNKNOWN. These unknowns are not a measured refusal or impossibility.
 
-Before dispatching56, and separately before the later sole52group dispatch,
-the existing orchestration owner must review a complete context-cost ledger
-against the actual target runtime's exposed effective context limit and used
-context, including its system/tool overhead. Use only available documented
-runtime settings and actual telemetry; a model name, default window, smart-zone
-budget, token estimate or proposed configuration is not capacity evidence.
-Bind the ledger to the exact checked plan/amendment/dispatch source closure
-and target identity. Include all mandatory full source/input/history bytes,
-independent actual reception originals and retained volatile stores, expected
-control/output and reviewer/handoff traffic, construction/edit history,
-generation and final closure/diagnosis headroom. Account for simultaneous
-producer/receiver/decoded copies where required; do not count an archive,
-digest, reference or summary as removal of a required original. Keep explicit
-assumptions and reserves; document how the complete projected demand plus
-unallocated uncertainty reserve fits the exposed available headroom. The
-104000/149000 estimates are the retained planning projections to review, not
-certified bounds; source-size accounting alone cannot prove total fit.
+### Authority, observed stop and precise replacement
 
-If effective capacity, current usage, an adequate whole-duty projection or
-reserve cannot be established, or their comparison does not support the
-complete duty set, STOP BEFORE dispatch/capture/construction/initialization.
-Missing telemetry is a concrete stop condition, not implied capacity. Report
-the exact missing or insufficient quantity for a concrete planning amendment;
-do not dispatch a child just to probe capacity. Even after a supported parent
-review, the actual dispatched child must check its own exposed usage/headroom
-before its first capture or write and refuse if that comparison is unavailable
-or inadequate. This administrative review supplies no transport, capture,
-admission, test or task credit and creates no new helper/root/evidence file.
-Retain its actual inputs/disposition in existing caller memory until the
-existing gates authorize any declared evidence/handoff target.
+The last execution command stopped BEFORE56dispatch because the effective
+target limit, current usage, system/tool overhead and supported complete-duty
+projection plus uncertainty reserve were unavailable. No executor was spawned;
+no new capture, construction, task, file or credit occurred.56remains0/2.
+That administrative stop was retained in caller memory only; this paragraph
+records the reported disposition, not reconstructed runtime telemetry or a
+new actual tool original. Historical checks, checkpoints and provenance stay
+immutable and retain their original evidence ceilings.
+
+Exact-telemetry admission was an agent-selected response to scope advisories,
+not a requirement in EVID-01–04/DIR-01–02 or locked D-01–D-17. CONTEXT delegates
+planning strategy, bounded budgets and artifact representation. Under that
+existing delegation this section REPLACES the earlier mandatory capacity-proof
+admission and its derived stop-on-missing-telemetry clauses in live56/51–54.
+It does not replace any actual transport, reception, preservation or admission
+gate. No numerical context reserve, usage, capacity or percentage is invented;
+a model name/default/configuration is never evidence of available capacity.
+Missing telemetry alone does not block normal authorized56dispatch or later
+sole52group dispatch. Neither dispatch is a capacity probe. All substantive
+prerequisites and existing one-step stopping boundaries still control.
+
+### Concrete operation and storage strategy
+
+Before each authorized dispatch bind the complete exact checked source,
+plan/amendment/input/dispatch closure and duty ledger to its actual target.
+Keep complete byte values in that context's existing persistent in-memory
+tool store: source and request bytes, untouched actual returned objects and
+exact-field serializations, independently received material, decoded buffers,
+construction revision/journal history, control originals and handoff inputs.
+Producer and receiver stores remain distinct; each actual parent and child
+performs its own complete reception/comparison. Do not repeatedly embed those
+same bytes into model narration or nested envelopes. Existing validated
+backward byte recipes may reference complete earlier objects, but every full
+value remains present and independently reconstructible in its original store.
+Model transcript retention is not a capacity guarantee or an original store.
+An archive, digest, cursor, key manifest, prose summary or sender cache never
+replaces an absent required value or independent receiver original.
+
+The duty ledger includes the full preparation/development/formal/reviewer/
+handoff/completion duties, complete sources and simultaneous producer/receiver/
+decoded values, actual output/history and construction revisions. Keep the
+104000/149000 projections unchanged and all unmeasured costs UNKNOWN; do not
+subtract retained values or delete duties to claim savings or a certified fit.
+The ledger is the existing exact source/finite-operation closure in memory,
+not a new file, helper, root, phase or acceptance artifact.
+
+Execute one already-declared bounded operation at a time. Keep explicit
+outer/nested18000, decoded67108864/request4194304/producer16384/caller8192
+(normally1024)/rawsegment4096; at most32 sequential awaited packets per outer
+call, fewer when needed for its aggregate caller-text bound. One outstanding
+packet, immediate full original retention, independent receiver commit and
+SEPARATE awaited ACK precede cursor advancement. Retain full nested objects
+in machine memory before parsing; return only the existing bounded receipt to
+the model, with unavailable provider fields honestly unavailable. Freeze the
+entire finite graph/counts/result slots/cutoffs/readback phases before writes
+as already required; no added catch-up operation or unbounded archival loop.
+Construction retains its separate pre-operation descriptors/journal ordering.
+Every existing genuine header/largest-shape, full snapshot READ/COMPARE,
+metadata schema/stability/control, target readback and final-byte matrix gate
+still runs completely; bounded receipts confer no proof by themselves.
+
+Before the next transport/construction operation, freeze, dispatch, stage
+handoff, initialization or formal/reviewer handoff, inspect the actual exposed
+runtime/tool warning/error/truncation/terminal state and validate the existing
+store's required complete values/keys against its exact source/original ledger.
+Use the existing receiver/orchestration checks, not a new telemetry command or
+selector. An explicitly exposed capacity/exhaustion warning, allocation/store
+failure, lost/truncated original, missing source, actual failed result or
+incomplete result after the required existing await/poll protocol, changed
+owner or broken complete-store continuity stops before further work. Valid
+asynchronous pending results continue ONLY through that existing bounded
+await/poll protocol, retaining each actual return. Genuine checked typed
+transaction_terminal=false 52→53/53→54 stage checkpoints continue ONLY through
+16-52-AMENDMENT's checked ACK to the running child or same-child followup to
+the idle original child, with full original/store/cursor/clock/counter/slot
+continuity. Neither pending work nor a stage checkpoint is terminal success,
+a retry, new dispatch or permission to bypass any warning/error/loss stop.
+Absence of a warning is not proof of capacity. If telemetry is incidentally
+exposed, retain its actual value and meaning without deriving missing fields.
+No extra command may interrupt immediate initialize→observe or timed classes.
+If a tool fails before returning an original, record that original unavailable;
+never reconstruct it from source/request. Preserve the exact available prefix
+under existing diagnosis/terminal rules, no task credit, retry, replacement
+owner/root, clock/counter/slot reset, backfill or success label. No new durable
+diagnostic is authorized before its existing gate. A hard runtime termination
+may prevent a final return or volatile preservation; report only what actually
+survives, without declaring receipt/continuity or success. This residual risk
+is explicit, not a capacity proof or a promise of complete execution.
 
 56's context strategy uses ONLY the approved ordering: complete the fresh
 inline protected baseline, journal all construction of the same two helpers,
@@ -344,10 +406,14 @@ Finish all repairs before freeze to avoid another invalidated proof cycle;
 avoid unrelated exploration and redundant narration, while retaining every
 required exact source, original, journal revision and control. This changes
 neither the estimate nor any input, output, gate, owner or acceptance duty.
-It is not another plan/task split, dispatch or permission to compact.
+It is not another plan/task split or capacity probe. No forced/general
+compaction, reset/resume or replacement owner is authorized as a remedy.
+Native automatic transcript handling cannot replace complete machine-store
+values; the original same-target stage protocol still requires every source,
+original, clock, counter, slot and checked cursor continuously intact.
 
-The later52group review covers ALL52/53/54 duties together, not three separate
-headroom grants. Freeze and provide the complete exact52/53/54 source/dispatch
+The later52group duty ledger covers ALL52/53/54 together, not three separate
+capacity claims. Freeze and provide the complete exact52/53/54 source/dispatch
 closure before its ONE original native-child invocation. Preserve full source,
 independently received actual originals and volatile store continuously in
 that same child through all12admission rows, immediate initialize→observe,
@@ -360,17 +426,31 @@ new root/owner/child, reset/resume as a context remedy or any new split remain
 unapproved. Existing same-target stage protocol continues only with unchanged
 originals, clocks, counters, slots and complete duties; it is no context remedy.
 
-Reconcile actual context growth with the remaining full-duty projection before
-each next bounded transport/construction operation, final freeze/dispatch,
-stage handoff, initialization and formal/reviewer handoff, using existing
-orchestration observations rather than an extra runtime command. Never insert
-a check between required immediate initialize→observe or alter timed classes.
-If headroom becomes unknown or insufficient, stop with the exact available
-prefix under the existing failure/diagnosis/terminal rules; no repair/retry,
-counter/clock reset, evidence reconstruction, omitted gate or success label.
-Do not begin an operation whose full required reception/return cannot fit.
+This strategy bounds operations and model-facing receipts; it does not prove
+aggregate memory, transcript or provider fit. Continuous stored byte demand,
+tool throughput, total context demand and runtime capacity remain UNKNOWN.
+Actual warning/failure/store-loss rules above replace theoretical headroom
+comparison; no absence-of-telemetry refusal is relabeled a passed capacity gate.
 All transport limits, full metadata controls, independent51/52identities,
 six exact unstaged dirty files,26active terminal=false/pending and downstream
 parent/native/exact-head consent/publication/released-byte gates stay binding.
+
+### Source audit and assumption delta for this replacement
+
+39/39 source groups retain the exact owners in16-56-AMENDMENT:3GOAL/6REQ/
+13RESEARCH/17CONTEXT.56Task1 and independent51/52Task1 apply this bounded
+storage/operation strategy per D-07–D-12;56Task2 and51–54 retain every original
+validation/export/continuous-runtime duty. EVID-01–04/DIR-01–02 and D-01–D-17
+have no removed criterion. Eight fallback edges and four flagged unresolved
+unclassified assumptions remain; no SPEC or new taxonomy is invented.
+Deferred ideas and descriptorless prohibition recall stay unchanged/unverified.
+
+Active planner query assumption-delta scan16 detected additional/alternate/
+another/fallback/also/second/optional language. Decision: no-change for primary
+candidate/executor/source/authority and complete original values; promote the
+capacity mechanism classification to explicitly discretionary; add-alongside
+the honest UNKNOWN capacity and actual exhaustion/store-loss failure cases.
+No second authority or fallback evidence source is created. No estimate,
+requirement, task count, dependency, wave or acceptance credit changes.
 
 <output>Parent checks and commits planning only. Later execute56alone through genuine preparation and actual reconciliation, then STOP. No capture or task acceptance occurs in this planning step.</output>
