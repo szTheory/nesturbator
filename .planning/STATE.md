@@ -4,12 +4,12 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-status: needs_planning
-stopped_at: Plan46 terminal parent prewrite budget omission and interrupted reception; no bootstrap or dispatch
-last_updated: "2026-10-22T02:31:28Z"
+status: ready_to_execute
+stopped_at: Plans48/49 gap planning verified after revision1; only48 ready for separate execute invocation
+last_updated: "2026-10-22T03:20:27Z"
 last_activity: 2026-10-21
-last_activity_desc: Plan46 terminal0/2; explicit outer18000 setting omitted, partial READ interrupted before writes
-state_head: acef92a247773a6197409499330294b6716be981
+last_activity_desc: Plans48/49 budget-reception recovery checked; zero blockers/warnings, two scope INFO advisories
+state_head: 0f2094303ef77872d33f55d7bd29270dc166d01f
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,6 +28,50 @@ See: .planning/PROJECT.md (updated 2026-10-13)
 **Current focus:** Phase 16 — Host evidence and roadmap
 
 ## Current Position
+
+Phase: 16 (Host evidence and roadmap) — READY TO EXECUTE
+Status: Plans48/49 independently checked after revision1; zero blockers/warnings; two visible scope advisories
+Total Plans in Phase: 14
+Plan: 48 ready (0/2);49 (0/3),07 and08 blocked
+
+Fresh48/49 correct46's omitted explicit outer18000budget and interrupted
+reception without retrying that terminal attempt. Both contain copyable budget
+setup/probe calls, visible exact outer descriptors, independently checked literal
+budget expectations and hidden effective-provider-budget unavailable. One packet's
+actual result/source/request must be stored, validated and receiver-committed
+before a separate ACK advances the producer; no missing envelope is reconstructed.
+Complete fresh READ/COMPARE/canonical parse/byte comparison and the entire finite
+metadata/prompt/dispatch/header/archive/seal graph remain prewrite gates. No actual
+phase probe, inventory capture, helper or runtime ran during this planning step.
+
+Independent16-48-CHECK initially found one blocker (direct eval of top-level await)
+and one warning (current scope disposition pending). Revision1 wraps the stored
+body in an async IIFE; a fresh independent synthetic in-memory harness confirmed
+both exact snippets, five budget cases and eight reception cases per amendment.
+It proves JavaScript behavior with stub results, not actual phase acceptance.
+Current recheck:0blockers/0warnings/2INFO. Parent16-48-SCOPE-DISPOSITION retains
+48=103500 and49=112900tokens, versus100000guidance (+3500/+12900), combined216400.
+49retains13paths in5/5/3tasks; factor1/sample0/lowconfidence. No inherited owner
+approval, measured fit, omitted duty, extra allowance or limit increase follows.
+
+Coverage6/6requirements,17/17decisions,39sourcegroups; eightedges=fourexplicit
+plusfourflagged unresolved assumptions. Prohibitions:[] retained. Fresh386-command
+path/failure probes report0findings/readError:null; path not_applicable is not
+runtime evidence. Post-planning coverage23/23. Counts49physical/14live/10complete.
+Verification remains gaps_found. Original six dirty paths stay byte-exact and
+unstaged; no new execution roots, PREPARATION/SUMMARY, source/config edits or task
+credit.46remains terminal0/2 and47unexecuted0/3; supersession changes only scheduling
+metadata. All historical bodies,46terminal record,26active terminal=false/pending,
+fourmetadata-only limits, all UNKNOWNs and later gates remain.
+
+Only48is dependency-ready after30. Execute48 and STOP after genuine full
+PREPARATION/SUMMARY and actual administrative parent reconciliation.49requires
+those artifacts AND a separate invoked step and own prior-intent/sole dispatch.
+07/08 retain every actual separate parent/native/exact-head owner consent/normal
+publication/actual18archives/checksums/attestations/sixmetadata/exact-releaseCI gate.
+Next: $gsd-execute-phase 16 --gaps-only. Stop after this planning step.
+
+## Historical Plan46 terminal execution position
 
 Phase: 16 (Host evidence and roadmap) — TERMINAL INCOMPLETE
 Status: Plan46 parent prewrite contract violation; partial reception interrupted
@@ -1115,18 +1159,18 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-10-22T02:31:28Z
-Stopped at: Plan46 terminal parent prewrite budget omission and interrupted READ; zero execution writes
-Resume file: .planning/phases/16-host-evidence-and-roadmap/16-46-TERMINAL-CHECKPOINT.md
+Last session: 2026-10-22T03:20:27Z
+Stopped at: Plans48/49 gap planning verified; only48 dependency-ready
+Resume file: .planning/phases/16-host-evidence-and-roadmap/16-48-PLAN.md
 
-Next GSD command: $gsd-plan-phase 16 --gaps
+Next GSD command: $gsd-execute-phase 16 --gaps-only
 
 ## Operator Next Steps
 
-- Plan46 is terminal0/2 before bootstrap or dispatch. Explicit outer18000 request setting was omitted; stopped partial READ is not resumable authority.
-- Reconcile the missing request parameter and interrupted receiver evidence in a separate $gsd-plan-phase 16 --gaps step. No unchanged46retry or automatic47dispatch.
-- Caller store retains21READ packets/112segments/458752bytes; producer reported49emitted packets. Actual packets21..48 and any in-flight result remain unavailable; do not reconstruct them from expected producer buffers.
-- Preserve historical terminal records,26active terminal=false/pending diagnosis, fourmetadata-only files, every UNKNOWN, original five dirty source/test/comment paths and protected unstaged config.
-- Current47scope advisories remain visible:13paths/5-5-3tasks and108900tokens versus100000, lowconfidence/factor1/sample0. No new approval, fit guarantee or allowance.
-- Plan47 remains unexecuted0/3;07/08 remain blocked on every actual parent/native/exact-head consent/normal publication/actual released-byte gate. Verification remains gaps_found.
-- Counts47physical/14live/10complete. No source candidate or runtime acceptance exists. Stop after this invoked execute step.
+- Execute48only, after fresh safe-resume and exact parent/executor prewrite gates; no48runtime.
+- Use the explicit18000outer pragma and nested budget on every gated call. Copy the checked startup snippets; retain actual visible descriptor/source/results, and never claim hidden provider metadata.
+- One actual packet per call; receiver commit precedes separate ACK. Complete fresh snapshot reception/comparison and entire finite graph before writes; interruption/missing result is terminal, no retry/backfill.
+- Stop after genuine48PREPARATION/SUMMARY and actual administrative parent reconciliation.49needs a separate invocation;07/08stay blocked on all actual later gates.
+- Preserve46terminal0/2,47unexecuted0/3, missing46actual envelopes, all earlier bodies/UNKNOWNs,26active/pending, fourmetadata-only files and six dirty unstaged paths.
+- Two INFO scope advisories remain:48=103500,49=112900tokens vs100000;49has13paths5/5/3tasks. Current disposition is not owner approval, fit proof or a new allowance.
+- Counts49physical/14live/10complete. Verification gaps_found; planning adds no source/runtime/formal/native/publication/task credit. Stop after this invoked planning step.

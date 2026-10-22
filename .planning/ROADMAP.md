@@ -58,7 +58,35 @@ Every phase ships a tested result through the existing library, runner or adapte
 
 ### Phase 16: Host evidence and roadmap
 
-**Current execution — Plan46 terminal before bootstrap/dispatch:** Parent snapshot
+**Current gap planning — Plans48/49:** Fresh[Plan48](phases/16-host-evidence-and-roadmap/16-48-PLAN.md)
+corrects46's omitted outer18000budget with copyable literal setup/probe calls,
+visible exact descriptors and independent expected-budget cases; hidden provider
+budget remains unavailable. One actual packet result/source/request is retained,
+validated and receiver-committed before a separate ACK advances the producer.
+Complete fresh READ/COMPARE/reconstruction/canonical parse/byte comparison and
+entire finite metadata/prompt/dispatch/header/archive/seal preflight still precede
+any durable write. No terminal46retry or missing-envelope reconstruction.
+[Plan49](phases/16-host-evidence-and-roadmap/16-49-PLAN.md) retains fresh12row admission,
+source/lifecycle/finite formal/full649/jobs4/threeZIP/paired-commit/tenblob/real
+independent review and all separately mandatory parent gates in a separate step.
+Independent[check](phases/16-host-evidence-and-roadmap/16-48-CHECK.md) after revision1
+returns0blockers/0warnings/2INFO: async-IIFE startup syntax fixed and synthetically
+checked; current[scope disposition](phases/16-host-evidence-and-roadmap/16-48-SCOPE-DISPOSITION.md)
+retains48=103500/49=112900tokens vs100000 (+3500/+12900),49paths13/5-5-3tasks,
+lowconfidence/factor1/sample0; combined216400. No inherited approval or fit proof.
+6/6requirements,17/17decisions,39sourcegroups,8edges/fourflagged assumptions
+remain;386-command probes0findings and23/23post-planning coverage. Path and
+synthetic harness results are not execution evidence. Counts49physical/14live/
+10complete.46terminal0/2and47unexecuted0/3 superseded by scheduling metadata only.
+Historical bodies/terminal facts/UNKNOWNs,26active-pending,fourmetadata-onlyfiles,
+six original dirty paths and verification gaps_found remain. Only48ready after30;
+STOP after genuine48full preparation and actual administrative parent reconciliation.
+49requires a separate invocation;07/08retain native/exacthead consent/normal
+publication/actual18archives/checksums/attestations/sixmetadata/exact-releaseCI.
+Planning creates no execution root/helper/capture/source/runtime/acceptance.
+Next: `$gsd-execute-phase 16 --gaps-only`; stop after this planning step.
+
+**Historical execution — Plan46 terminal before bootstrap/dispatch:** Parent snapshot
 calls omitted the required explicit outer functions.exec18000token setting;
 documented default10000, hidden effective budget unavailable. No actual
 truncation, prospective refusal or emulator defect is claimed. The running READ
@@ -157,7 +185,7 @@ is historical and supplies no fresh execution authority.
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans:** 14 live plans (47 physical; 10 complete)
+**Plans:** 14 live plans (49 physical; 10 complete)
 
 **Historical gap recovery planning — Plans42/43**: [Plan42](phases/16-host-evidence-and-roadmap/16-42-PLAN.md) addresses the reported40mode-expectation error with an independent literal read-only/durable positive/negative oracle BEFORE any parent/executor durable write. Readonly authority=false, successful durable operation authority=true, refusal=false; write authority never grants runtime admission. Original40failed tool envelope/source/exit/raw stay UNKNOWN. All P/P+I/(P+I)+C, expected-refusal, store/quote/actual-result and copied34CLI/prerequisite/export/full-matrix/freeze duties remain. [Plan43](phases/16-host-evidence-and-roadmap/16-43-PLAN.md) retains fresh12row admission and every source/lifecycle/finite formal/full649/jobs4/no-skip/threeZIP/tested-before-commit/tenblob/real1800sindependentreview/open0/separateparent gate.07/08native exacthead, affirmative exactPR/head owner consent, normal publication and18actualarchives/sixmetadata remain separate. Counts43physical/14live/10complete;40terminal0/2and41unexecuted0/3superseded by scheduling metadata only.42sole ready after30,43blocked on genuine42PREPARATION/SUMMARY AND actual administrative parent reconciliation plus separate invocation; execute42and STOP. All6requirements/17decisions/39sourcegroups/fourflagged assumptions and historical UNKNOWNs retained. Original sixdirtypaths/fourmetadata-onlyfiles/26active-pending preserved; planning creates no execution roots, acceptance or source/config edits. Independent check and revision recheck found zero remaining blockers/one scope warning; the owner explicitly answered yes to accepting the current43exception:13paths in5/5/3tasks,99900/100000tokens lowconfidence/factor1/sample0. Both reviews found no safe independent split under the sole-owner/once-only contract. Planning passes with this fresh override; historical41approval does not transfer. Coverage23/23 and347-command probes0findings; path not_applicable is not runtime proof. Estimates42=88500,43=99900; one-owner/once-only authority prevents an independent split without proof/clock/slot transfer. Parent owns final checks and planning commit. Verification remains gaps_found.
 
@@ -295,13 +323,16 @@ Plan18 is also superseded/incomplete without SUMMARY/credit: two evidence commit
 **Superseded Plan44**: Terminal0/2 before bootstrap/dispatch at measured inventory bound; bodies and terminal record unchanged.46 replaces scheduling with the approved segmented machine reception amendment.
 **Superseded Plan45**: Unexecuted0/3;47 retains every pending acceptance duty without proof or allowance transfer.
 
-**Wave 10** *(46 sole ready after30 and final planning commit; no46runtime)*
-- [ ] 16-46-PLAN.md — Approved segmented snapshot and machine reception; all retained preparation/CLI repair/freeze/export duties; stop at actual administrative parent handoff.
+**Superseded Plan46**: Terminal0/2 before durable bootstrap/dispatch after omitted outer18000setting and interrupted READ; missing actual results remain unavailable.48 corrects scheduling substantively; bodies and terminal record unchanged.
+**Superseded Plan47**: Unexecuted0/3;49 retains every pending acceptance duty without proof/allowance transfer.
 
-**Wave 11** *(genuine46PREPARATION/SUMMARY AND actual administrative parent reconciliation; separate invoked step)*
-- [ ] 16-47-PLAN.md — Fresh segmented reception/12row admission and full runtime/source/formal/CI/tenblob/independentreview/separateparent duties; two current INFO scope advisories parent-disposed.
+**Wave 10** *(48 sole ready after30 and final planning commit; no48runtime)*
+- [ ] 16-48-PLAN.md — Explicit budget and one-result receiver commit/ACK; full fresh segmented snapshot, all preparation/CLI repair/freeze/export duties; stop at actual administrative parent handoff.
 
-**Wave 12** *(depends on47ANDall mandatory actual current-source parent gates)*
+**Wave 11** *(genuine48PREPARATION/SUMMARY AND actual administrative parent reconciliation; separate invoked step)*
+- [ ] 16-49-PLAN.md — Own fresh budget/reception/12row admission and full runtime/source/formal/CI/tenblob/independent review/separate parent duties; two current INFO scope advisories parent-disposed.
+
+**Wave 12** *(depends on49ANDall mandatory actual current-source parent gates)*
 - [ ] 16-07-PLAN.md — Prepare the checked phase PR, require fresh exact-head native PR CI, obtain exact-head owner merge consent and observe the normal release flow.
 
 **Wave 13** *(depends on the actual normal publication from Plan 07)*
