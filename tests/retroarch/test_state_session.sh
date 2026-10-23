@@ -1804,8 +1804,53 @@ lock_race_start_preflight_driver() {
     race_launched_pid=$!
 }
 
+lock_race_start_forged_production_reentry() {
+    race_launch_root=$1
+    mkdir -p "$race_launch_root/ra" "$race_launch_root/locks" || return 1
+    for race_input in config.cfg core.so content.nes calibration.txt retroarch.log; do : >"$race_launch_root/$race_input"; done
+    unset STATE_SESSION_TEST_MODE STATE_SESSION_TEST_GUARD_PORT
+    STATE_SESSION_LOCK_ROOT="$race_launch_root/locks" PATH="$pid_root/bin:$PATH" \
+    "$pid_real_perl" -MSocket -MFcntl=:DEFAULT -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e '
+        use strict;
+        use warnings;
+        my ($driver, @args) = @ARGV;
+        my $protocol = getprotobyname("tcp");
+        defined($protocol) or die "tcp protocol unavailable\n";
+        socket(my $socket, PF_INET, SOCK_STREAM, $protocol) or die "socket: $!\n";
+        setsockopt($socket, SOL_SOCKET, SO_REUSEADDR, pack("i", 0)) or die "reuseaddr: $!\n";
+        if (defined(&SO_REUSEPORT)) {
+            my $set = eval { setsockopt($socket, SOL_SOCKET, SO_REUSEPORT, pack("i", 0)) };
+            die "reuseport: $!\n" unless $set || $! == 42 || $! == 45 || $! == 92;
+        }
+        bind($socket, sockaddr_in(0, inet_aton("127.0.0.1"))) or die "bind: $!\n";
+        my ($port, $address) = sockaddr_in(getsockname($socket));
+        die "unexpected production port\n" if $port == 55355;
+        my $source_fd = fileno($socket);
+        my $guard_fd = $source_fd == 9 ? 9 : fcntl($socket, F_DUPFD, 9);
+        defined($guard_fd) && $guard_fd == 9 or die "descriptor 9 unavailable\n";
+        close($socket) if $source_fd != 9;
+        open my $guard, ">&=9" or die "descriptor 9 reopen: $!\n";
+        my $flags = fcntl($guard, F_GETFD, 0);
+        defined($flags) or die "descriptor flags: $!\n";
+        fcntl($guard, F_SETFD, $flags & ~FD_CLOEXEC) or die "descriptor inherit: $!\n";
+        my @identity = stat($guard);
+        @identity or die "descriptor stat: $!\n";
+        $ENV{STATE_SESSION_LOCK_BOOTSTRAPPED} = "1";
+        $ENV{STATE_SESSION_LOCK_BOOT_PID} = "$$";
+        $ENV{STATE_SESSION_LOCK_START_MS} = int(clock_gettime(CLOCK_MONOTONIC) * 1000);
+        $ENV{STATE_SESSION_LOCK_PORT} = "$port";
+        $ENV{STATE_SESSION_LOCK_DEVICE} = "$identity[0]";
+        $ENV{STATE_SESSION_LOCK_INODE} = "$identity[1]";
+        exec {"/bin/sh"} "/bin/sh", $driver, @args or die "exec driver: $!\n";
+    ' "$DRIVER" "$pid_root/fake-retroarch" "$race_launch_root/config.cfg" "$race_launch_root/core.so" \
+        "$race_launch_root/content.nes" "$race_launch_root/ra" "$race_launch_root/retroarch.log" \
+        "$FRAME_INDEX" "$race_launch_root/calibration.txt" \
+        >"$race_launch_root/driver.stdout" 2>"$race_launch_root/driver.stderr" &
+    race_launched_pid=$!
+}
+
 selftest_lock_entry_controls() (
-    for entry_case in unknown-mode forged-bootstrap forged-pid forged-start forged-port forged-device forged-inode production-override module-unavailable exec-unavailable forged-reentry; do
+    for entry_case in unknown-mode forged-bootstrap forged-pid forged-start forged-port forged-device forged-inode production-override module-unavailable exec-unavailable forged-reentry forged-production-alt-port; do
         entry_root="$pid_root/entry-$entry_case"
         (
             race_lifecycle_root=$entry_root; race_first_reason=$entry_case
@@ -1814,6 +1859,7 @@ selftest_lock_entry_controls() (
                 unknown-mode) pid_launch_mode=typo; lock_race_start_preflight_driver "$entry_root" 0 valid ;;
                 forged-bootstrap) STATE_SESSION_LOCK_BOOTSTRAPPED=2 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
                 forged-reentry) STATE_SESSION_LOCK_BOOTSTRAPPED=1 STATE_SESSION_LOCK_BOOT_PID=1 STATE_SESSION_LOCK_START_MS=1 STATE_SESSION_LOCK_PORT=1 STATE_SESSION_LOCK_DEVICE=0 STATE_SESSION_LOCK_INODE=0 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                forged-production-alt-port) lock_race_start_forged_production_reentry "$entry_root" ;;
                 forged-pid) STATE_SESSION_LOCK_BOOT_PID=1 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
                 forged-start) STATE_SESSION_LOCK_START_MS=1 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
                 forged-port) STATE_SESSION_LOCK_PORT=1 lock_race_start_preflight_driver "$entry_root" 0 valid ;;

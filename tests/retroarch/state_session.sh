@@ -181,6 +181,10 @@ if [ "${STATE_SESSION_LOCK_BOOTSTRAPPED:-}" = 1 ]; then
     START_MS=${STATE_SESSION_LOCK_START_MS:-}
     LOCK_PORT=${STATE_SESSION_LOCK_PORT:-}
     case "$START_MS:$LOCK_PORT" in *[!0-9:]*|::*|:*|*:) echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2; exit 2 ;; esac
+    if [ -z "${STATE_SESSION_TEST_MODE:-}" ] && [ "$LOCK_PORT" != 55355 ]; then
+        echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2
+        exit 2
+    fi
     LOCK_NOW=$(clock_ms) || { echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2; exit 2; }
     if [ "$START_MS" -gt "$LOCK_NOW" ] || [ "$((LOCK_NOW-START_MS))" -ge "$TIMEOUT_MS" ] ||
         ! lock_reservation_is_held; then
