@@ -524,16 +524,29 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * from recorder status. Binary pre/post journal snapshots copy through one open handle and bind
  * that handle's device, inode and size; they do not identify the bytes grep read. Synthetic tests
  * cover statuses 0, 1 and controlled 2, recorder errors, pathname replacement and event ownership.
- * Actual-driver startup controls prove a failed owner-sidecar create preserves a foreign object.
- * They require LOCK_OWNER_UNAVAILABLE when the shell returns control; a shell that terminates on
- * failed exec redirection counts only for the exact occupied path and nonzero exit. Both require
- * no host/transport launch and unchanged foreign bytes and filesystem identity. TERM cleanup
- * releases its original hard link without removing a replacement owner pathname. The focused
- * readiness lane measures only its delayed and stalled requests; default-all controls retain the
- * separate startup-lock TERM race and report its monotonic duration.
- * This establishes diagnostic capture behavior only; it does not attribute an earlier failure
- * or accept a repair.
- * A source-only interruption trace include is shared by the driver and harness. Before fixture
+ * Cooperative local session invocations reserve TCP 127.0.0.1:55355 with a bound, non-listening
+ * SOCK_STREAM descriptor held at FD 9, separate from the host UDP command transport.
+ * Bundled Perl binds and validates the descriptor, then
+ * re-enters the eight-argument shell driver in the same PID while carrying the original monotonic
+ * start sample. Release closes only that descriptor after owned children and the host are reaped;
+ * it never unlinks or renames a shared path. Legacy lock and owner-sidecar paths are read-only
+ * refusal observations, not ownership authority. Test-only port selection and release rendezvous
+ * stay inside the harness; a private lock-reservation.tsv records the observed address, port, PID
+ * and descriptor observations. Device and inode may both be zero and never establish ownership.
+ * The harness observes inherited FD 9 independently before delegating to the real writer, binds
+ * provenance to the actual driver and invocation, and collects launched children once on failure.
+ * Release-gate FIFO reads and writes, including partial lines, share the remaining attempt and
+ * cleanup deadline. The driver closes FD 9 in outliving command children. SIGKILL closes
+ * the driver's descriptor but cannot guarantee cleanup or teardown of a noncooperating host.
+ * The local reservation coordinates cooperating invocations that bind the same address and port;
+ * it does not claim same-UID isolation or control over arbitrary processes that ignore it.
+ * A source-only interruption trace include is shared by the driver and harness. The POSIX test
+ * harness derives its source root from the canonical path of its executing script, then validates
+ * the supplied driver and fixed trace include against that root before sourcing or launching host
+ * or transport work. Its source-root preflight exercises the repository root, CTest binary cwd and
+ * an owned cwd containing spaces, and rejects a copied driver/include before the copied include can
+ * run. Each cwd repeats all four finalizer faults and checks wait 143, the exact first reason,
+ * cleanup_anomaly=0, oracle not-run and exact-port re-entry after owned-child reap. Before fixture
  * or driver work, offline checks call the actual writer and validator through handler entry,
  * journal close and cleanup. The exact 16-field trace admits host/child PIDs as positive decimal
  * or unavailable after cleanup clears them, while liveness remains unavailable when kill-0 is
@@ -553,10 +566,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * admission gate before recorder acceptance. It requires the exact event order, eight fields,
  * role-specific PIDs, statuses and details, contiguous sequence, nondecreasing monotonic time and
  * a final newline. Recorder rejection remains separate from the genuine assertion decision, and
- * host-after-wait preserves the kill-0 ambiguity. Trace occupancy does not grant ownership;
- * cleanup requires the filesystem identity captured from this invocation's successful noclobber
- * creation as well as the token-bearing hard link. Failed creation or a replaced owner pathname
- * grants no authority to remove a foreign object.
+ * host-after-wait preserves the kill-0 ambiguity. Trace field 14 reports the invocation's
+ * validated held socket descriptor, not filesystem occupancy. Occupied, dangling, stale or
+ * replaced legacy paths grant no authority to mutate them; they cause a conservative refusal.
  * A cleanup QUIT request write failure records zero sends when possible and emits
  * CLEANUP_REQUEST_WRITE_FAILED; owned teardown still preserves the original exit status.
  * The prior corrected candidate

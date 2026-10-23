@@ -214,6 +214,15 @@ On Windows with MSVC, use `ci-msvc` from a developer command prompt.
 
 Each lane is one command, `cmake --workflow --preset <lane>`.
 
+The POSIX state-session harness derives its source root from the canonical path
+of the executing test script. Before sourcing the trace include, it checks the
+supplied driver and fixed include against that root, rejecting copied or
+mismatched inputs before any host or transport work. Its `source-root-preflight`
+control exercises the repository root, CTest binary directory and an owned
+working directory with spaces. Each case runs all four finalizer faults and
+requires wait status 143, the exact first reason, no cleanup anomaly, an
+unrun oracle and exact-port re-entry after owned-child reap.
+
 | Lane | What it proves |
 |---|---|
 | `ci` | Release build with warnings as errors; every test passes, the library installs and builds a separate consumer, and the three release archives are written |
@@ -1605,19 +1614,37 @@ journal snapshots whose device, inode and size come from each snapshot's open
 handle. `STATE_SESSION_CONTROL=interruption-capture-selftest` checks status 0,
 1 and controlled 2, recorder failures, replacement while the old handle stays
 open, and per-invocation event ownership before any fixture or driver work.
-It also drives an exact foreign owner-sidecar collision through the real startup
-path and verifies refusal preserves its bytes and filesystem identity. The
-control requires the driver's `LOCK_OWNER_UNAVAILABLE` when the shell returns
-control; a shell that terminates on failed `exec` redirection counts only when
-its nonzero exit and diagnostic name the exact injected path. Both outcomes
-require no host or transport launch and unchanged foreign bytes and identity.
-Unsafe success, changed or removed foreign objects, wrong paths, premature
-launches, and unrelated precondition errors are rejected by proof mutants.
-The focused readiness selector runs only the delayed and stalled readiness
-cases; the separate startup-lock TERM race remains in the default all-controls
-path and reports its own monotonic duration. Another actual-driver control
-replaces the owner pathname after hard-link publication, sends TERM, and checks
-cleanup releases the original lock object while preserving the replacement.
+It drives an exact foreign legacy owner-sidecar collision through the actual
+startup path and requires `LOCK_OWNER_UNAVAILABLE`, unchanged bytes and
+filesystem identity, and no host or transport launch. Proof mutants reject
+unsafe success, changed or removed foreign objects, wrong paths, premature
+launches, and unrelated precondition errors. The focused readiness selector
+runs only the delayed and stalled requests. The default controls use a
+source-bound actual-driver tracer: the prior cleanup reached its final owner
+check, then its actual `rm` removed a replacement foreign object. The corrected
+driver holds a non-listening TCP reservation at `127.0.0.1:55355` in FD 9,
+separate from RetroArch's UDP commands,
+re-enters the eight-argument shell driver in the same PID, and closes only that
+descriptor after owned processes are reaped. A held-port contender is refused;
+after close, a second actual driver can reserve the same exact port. Its
+bounded test rendezvous proves foreign-object preservation at the release
+boundary. Test runs record the bound address, port, PID and FD identity in the
+invocation's private `RA_DIR/lock-reservation.tsv`. Device and inode values are
+nonnegative observations; Darwin may report zero for both, so they establish
+consistency only. The harness independently observes inherited FD 9 before
+calling the real writer, binds its record to the actual driver and invocation,
+and collects each launched child once on assertion failure. Release-gate FIFO
+reads and writes share the remaining attempt and cleanup deadline, including
+partial lines. Legacy endpoint and owner
+paths are read-only refusal observations, not ownership authority.
+The harness derives its source root from the canonical path of its executing
+test script, not from the supplied driver or current working directory. It
+validates the canonical driver and fixed trace include before sourcing or
+launching work; the preflight rejects a copied driver/include pair before the
+include marker, host or transport can run. It repeats the four finalizer faults
+from the repository root, CTest binary directory and an owned cwd with spaces,
+checking wait 143, retained first reason, `cleanup_anomaly=0`, oracle `not-run`
+and exact-port re-entry after owned children are reaped.
 These nearby snapshots do not identify the bytes read by grep; the tests prove
 the recorder contract, not which bytes grep read. The shared capture boundary
 receives its owned session ID explicitly; the nested `capture` directory name
@@ -1637,11 +1664,13 @@ live process. These identity checks add to the seven capture and 40 retained tra
 plus four lock controls). Eleven lifecycle and QUIT cases add coverage for stable
 first-two-row host/child PIDs, live observations requiring a PID, unavailable
 observations remaining admissible, cleanup-cleared final observations and
-row-two QUIT remaining unsent. The trace writer
-records object occupancy without using it as ownership authority. Cleanup
-requires the filesystem identity captured from this invocation's successful
-noclobber creation as well as the token-bearing hard link; failed creation and a
-replaced owner pathname do not authorize deleting a foreign object. The prior
+row-two QUIT remaining unsent. Trace field 14 reports a validated held socket
+descriptor rather than path occupancy. Occupied, dangling, stale or replaced
+legacy paths cause conservative refusal and are never removed or renamed. The
+reservation coordinates cooperating local invocations that bind the same
+address and port. It does not claim same-UID isolation, control arbitrary
+processes that ignore the reservation, or guarantee host teardown after
+SIGKILL. The prior
 corrected candidate `0268d3450f64392911a187ce5c040847fda5f8f8` passed focused CI
 10/10, ASan 2/2 and normal CI 649/649 with three ZIPs. Its source remained
 unchanged at review candidate `7a6b1aaa87c9f8eb244aa1e901becc32352ecf4e`, whose
@@ -1664,8 +1693,8 @@ separate from the generic ten-row identity examples and receives observed proces
 IDs from the control path. The seven capture cases remain.
 The 36 original trace cases cover lifecycle admission, independent mutation
 failures, invocation separation and writer rejection paths. Four lock cases
-cover regular-file occupancy through cleanup, field-14-only admission mutants
-and dangling-symlink occupancy; 11 lifecycle cases enforce the observed-PID,
+cover bound-descriptor occupancy through release, field-14-only admission
+mutants and legacy filesystem-occupancy observations; 11 lifecycle cases enforce the observed-PID,
 liveness, cleanup and QUIT ordering rules. These bounded offline recorder checks
 exercise 51 trace cases in total. Corrected-source gates and independent review are tracked in the
 authoritative Plan 17 candidate/result register at

@@ -1,4 +1,52 @@
 # Shared, source-only interruption trace helpers. Callers own all process state.
+trace_lock_reservation_is_held() {
+    [ "${STATE_SESSION_LOCK_BOOTSTRAPPED:-}" = 1 ] &&
+        [ "${STATE_SESSION_LOCK_BOOT_PID:-}" = "$$" ] || return 1
+    case "${STATE_SESSION_LOCK_START_MS:-}:${STATE_SESSION_LOCK_PORT:-}:${STATE_SESSION_LOCK_DEVICE:-}:${STATE_SESSION_LOCK_INODE:-}" in
+        *[!0-9:]*|::*|:*|*:) return 1 ;;
+    esac
+    STATE_TRACE_LOCK_EXPECT_PID="$$" perl -MSocket -MFcntl -e '
+        use strict;
+        use warnings;
+        my ($expected_pid, $start, $port, $device, $inode) =
+            @ENV{qw(STATE_TRACE_LOCK_EXPECT_PID STATE_SESSION_LOCK_START_MS STATE_SESSION_LOCK_PORT STATE_SESSION_LOCK_DEVICE STATE_SESSION_LOCK_INODE)};
+        exit 1 unless defined($expected_pid) && $expected_pid =~ /\A[0-9]+\z/ &&
+            defined($start) && $start =~ /\A[0-9]+\z/ && $start > 0 &&
+            defined($port) && $port =~ /\A[0-9]+\z/ && $port > 0 && $port <= 65535 &&
+            defined($device) && $device =~ /\A[0-9]+\z/ &&
+            defined($inode) && $inode =~ /\A[0-9]+\z/;
+        open my $guard, ">&=9" or exit 1;
+        my @stat = stat($guard);
+        exit 1 unless @stat && $stat[0] == $device && $stat[1] == $inode;
+        my $type = getsockopt($guard, SOL_SOCKET, SO_TYPE);
+        exit 1 unless defined($type) && unpack("i", $type) == SOCK_STREAM;
+        $! = 0;
+        my $accepting = getsockopt($guard, SOL_SOCKET, SO_ACCEPTCONN);
+        if (defined($accepting)) {
+            exit 1 unless unpack("i", $accepting) == 0;
+        } else {
+            my $error = 0 + $!;
+            exit 1 unless $error == 42 || $error == 45 || $error == 92;
+        }
+        my $reuse = getsockopt($guard, SOL_SOCKET, SO_REUSEADDR);
+        exit 1 unless defined($reuse) && unpack("i", $reuse) == 0;
+        if (defined(&SO_REUSEPORT)) {
+            $! = 0;
+            my $reuse_port = getsockopt($guard, SOL_SOCKET, SO_REUSEPORT);
+            if (defined($reuse_port)) {
+                exit 1 unless unpack("i", $reuse_port) == 0;
+            } else {
+                my $error = 0 + $!;
+                exit 1 unless $error == 42 || $error == 45 || $error == 92;
+            }
+        }
+        my $local = getsockname($guard);
+        exit 1 unless defined($local);
+        my ($actual_port, $address) = sockaddr_in($local);
+        exit 1 unless $actual_port == $port && inet_ntoa($address) eq "127.0.0.1";
+    ' 2>/dev/null
+}
+
 trace_interruption_event() {
     [ "${STATE_SESSION_TEST_MODE:-}" = prefix ] &&
         [ -n "${STATE_SESSION_TEST_INTERRUPT_INVOCATION:-}" ] &&
@@ -25,8 +73,8 @@ trace_interruption_event() {
             if kill -0 "$CHILD_PID" 2>/dev/null; then _trace_child_alive=1; else _trace_child_alive=unavailable; fi
         fi
         _trace_lock=absent
-        # The local driver publishes a token-bearing hard link; this records object occupancy only.
-        if [ -L "$LOCK_DIR" ] || [ -e "$LOCK_DIR" ]; then _trace_lock=present; fi
+        # Presence means the invocation's validated kernel reservation is held, never path occupancy.
+        if trace_lock_reservation_is_held; then _trace_lock=present; fi
         _trace_first_failure=${FIRST_FAILURE:-none}
         STATE_INTERRUPT_TRACE="$_trace_path" STATE_INTERRUPT_ID="$STATE_SESSION_TEST_INTERRUPT_INVOCATION" \
         STATE_INTERRUPT_SEQUENCE="$INTERRUPTION_TRACE_SEQUENCE" STATE_INTERRUPT_EVENT="$1" \

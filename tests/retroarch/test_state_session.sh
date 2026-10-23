@@ -108,17 +108,34 @@ owner_sidecar_refusal_assess() {
     return 0
 }
 
+
+reservation_snapshot() {
+    python3 - "$1" <<'PY'
+import errno,json,os,pathlib,socket,sys
+p=pathlib.Path(sys.argv[1]); rows=p.read_text().splitlines()
+assert len(rows)==2
+f=rows[1].split("\t"); assert len(f)==9
+pid=int(f[2]); port=int(f[1])
+assert pid>0 and f[0]=="127.0.0.1" and f[3]=="9"
+assert pid==int(os.environ["STATE_SESSION_LOCK_BOOT_PID"]) and port==int(os.environ["STATE_SESSION_LOCK_PORT"])
+s=socket.socket(socket.AF_INET,socket.SOCK_STREAM); s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,0)
+try: s.bind(("127.0.0.1",port))
+except OSError as e:
+    assert e.errno==errno.EADDRINUSE
+else: raise RuntimeError("record has no live kernel reservation")
+finally: s.close()
+print(json.dumps({"device":int(f[4]),"inode":int(f[5]),"token":f"driver:{pid}:port:{port}",
+    "driver_pid":pid,"port":port,"address":"127.0.0.1","kernel_exclusion":True},sort_keys=True))
+PY
+}
+
 fake_nc() {
+    perl -e 'open my $held, ">&=9" and exit 99; exit 0' || { echo 'FAIL transport inherited FD 9' >&2; exit 99; }
     request=$(cat)
     printf '%s\n' "$request" >>"$STATE_SESSION_TEST_SENDS"
     if [ -n "${STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE:-}" ] && [ ! -e "$STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE" ]; then
-        CLEANUP_LOCK_ROOT="${STATE_SESSION_LOCK_ROOT:?}" python3 - "$STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE" <<'PY'
-import json, os, pathlib, sys
-path=pathlib.Path(os.environ["CLEANUP_LOCK_ROOT"])/"nesturbator-retroarch-55355.lock"
-st=path.lstat()
-record={"device":st.st_dev,"inode":st.st_ino,"token":path.read_text().strip()}
-pathlib.Path(sys.argv[1]).write_text(json.dumps(record,sort_keys=True)+"\n")
-PY
+        reservation_snapshot "${STATE_SESSION_TEST_EXPECTED_DIR%/states}/../../lock-reservation.tsv" \
+            >"$STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE" || exit 94
     fi
     case "$request" in
         'GET_CONFIG_PARAM savestate_directory')
@@ -135,6 +152,8 @@ PY
         printf '%s' "$request" >"$cleanup_root/consumed.request"
         : >"$cleanup_root/reply.raw"
         cleanup_driver_pid=$(cat "${STATE_SESSION_TEST_DRIVER_PID_FILE:?}")
+        cleanup_reservation=$(reservation_snapshot "${STATE_SESSION_TEST_EXPECTED_DIR%/states}/../../lock-reservation.tsv") || exit 94
+        CLEANUP_RESERVATION="$cleanup_reservation" \
         CLEANUP_CASE_ROOT="$cleanup_root" CLEANUP_CASE_ID="$cleanup_case" \
         CLEANUP_INVOCATION_ID="$cleanup_invocation" CLEANUP_DRIVER_PID="$cleanup_driver_pid" \
         CLEANUP_TRANSPORT_PID="$$" CLEANUP_REQUEST_PATH="$cleanup_request" \
@@ -149,10 +168,7 @@ except (ProcessLookupError,PermissionError,OSError): host_live=False
 transport=int(os.environ["CLEANUP_TRANSPORT_PID"])
 try: os.kill(transport,0); receive_live=True
 except (ProcessLookupError,PermissionError,OSError): receive_live=False
-lock=pathlib.Path(os.environ["CLEANUP_LOCK_ROOT"])/"nesturbator-retroarch-55355.lock"
-try:
- st=lock.lstat(); lock_before={"device":st.st_dev,"inode":st.st_ino,"token":lock.read_text().strip()}
-except OSError: lock_before=None
+lock_before=json.loads(os.environ["CLEANUP_RESERVATION"])
 record={"case_id":os.environ["CLEANUP_CASE_ID"],"invocation_id":os.environ["CLEANUP_INVOCATION_ID"],
  "case_root":"cases/"+os.environ["CLEANUP_CASE_ID"],"producer":"fake-nc","mode":"dropped-quit",
  "driver_pid":int(os.environ["CLEANUP_DRIVER_PID"]),"transport_pid":int(os.environ["CLEANUP_TRANSPORT_PID"]),
@@ -207,8 +223,10 @@ PY
                     *) printf '%s\n' "$cleanup_reply" >"$cleanup_root/reply.raw" ;;
                 esac
                 if [ "$cleanup_case" = foreign-owner-replacement ]; then
-                    set -- "${STATE_SESSION_LOCK_ROOT:?}"/nesturbator-retroarch-55355.lock.owner.*
-                    cleanup_owner=$1
+                    cleanup_attempt="${STATE_SESSION_TEST_EXPECTED_DIR%/states}"
+                    [ -d "$cleanup_attempt" ] || exit 99
+                    cleanup_owner="${STATE_SESSION_LOCK_ROOT:?}/nesturbator-retroarch-55355.lock.owner.${cleanup_attempt##*/}"
+                    (set -C; printf 'test-owned retired sidecar fixture\n' >"$cleanup_owner") || exit 99
                     [ -f "$cleanup_owner" ] && [ ! -L "$cleanup_owner" ] || exit 99
                     CLEANUP_OWNER_PATH="$cleanup_owner" CLEANUP_CASE_ROOT="$cleanup_root" \
                     python3 - <<'PY'
@@ -264,6 +282,8 @@ import json, os, pathlib
 print("true" if json.loads(pathlib.Path(os.environ["CLEANUP_REQUEST_AFTER_FILE"]).read_text())["writable"] else "false")
 PY
                 ) || exit 96
+                cleanup_reservation=$(reservation_snapshot "${STATE_SESSION_TEST_EXPECTED_DIR%/states}/../../lock-reservation.tsv") || exit 94
+                CLEANUP_RESERVATION="$cleanup_reservation" \
                 CLEANUP_CASE_ROOT="$cleanup_root" CLEANUP_CASE_ID="$cleanup_case" \
                 CLEANUP_INVOCATION_ID="$cleanup_invocation" CLEANUP_DRIVER_PID="$cleanup_driver_pid" \
                 CLEANUP_TRANSPORT_PID="$cleanup_transport_pid" CLEANUP_MODE="$cleanup_mode" \
@@ -283,11 +303,7 @@ except (ProcessLookupError, PermissionError, OSError): host_live = False
 transport_pid=int(os.environ["CLEANUP_TRANSPORT_PID"])
 try: os.kill(transport_pid,0); transport_live=True
 except (ProcessLookupError, PermissionError, OSError): transport_live=False
-lock = pathlib.Path(os.environ["CLEANUP_LOCK_ROOT"]) / "nesturbator-retroarch-55355.lock"
-try:
-    st = lock.lstat()
-    lock_before = {"device": st.st_dev, "inode": st.st_ino, "token": lock.read_text().strip()}
-except OSError: lock_before = None
+lock_before = json.loads(os.environ["CLEANUP_RESERVATION"])
 record = {
     "case_id": os.environ["CLEANUP_CASE_ID"],
     "invocation_id": os.environ["CLEANUP_INVOCATION_ID"],
@@ -452,6 +468,7 @@ PY
 }
 
 fake_host() {
+    perl -e 'open my $held, ">&=9" and exit 99; exit 0' || { echo 'FAIL host inherited FD 9' >&2; exit 99; }
     printf '%s\n' "$$" >"$STATE_SESSION_TEST_HOST_PID"
     if [ "${STATE_SESSION_TEST_HOST_DIE:-0}" = 1 ]; then sleep 0.5; exit 0; fi
     while [ ! -f "$STATE_SESSION_TEST_QUIT_FILE" ]; do sleep 0.05; done
@@ -512,13 +529,93 @@ FRAME_INDEX=$2
 WORK_ROOT=$3
 CMAKE_COMMAND=$4
 RUN_RETROARCH_CMAKE=$5
-TEST_SCRIPT_DIR=$(CDPATH= cd "$(dirname "$DRIVER")" && pwd -P)
-. "$TEST_SCRIPT_DIR/interruption_trace.sh"
 CONTROL=${STATE_SESSION_CONTROL:-all}
+test_abs_path() {
+    perl -MCwd=abs_path -e '
+        use strict;
+        use warnings;
+        my $path = abs_path(shift);
+        defined($path) or exit 1;
+        print "$path\n";
+    ' "$1"
+}
+TEST_HARNESS_PATH=$(test_abs_path "$0") || {
+    echo 'state session controls: SOURCE_IDENTITY_HARNESS_UNAVAILABLE' >&2
+    exit 2
+}
+TEST_SCRIPT_DIR=${TEST_HARNESS_PATH%/*}
+TEST_PROJECT_ROOT=$(CDPATH= cd "$TEST_SCRIPT_DIR/../.." && pwd -P) || {
+    echo 'state session controls: SOURCE_IDENTITY_ROOT_UNAVAILABLE' >&2
+    exit 2
+}
+EXPECTED_HARNESS="$TEST_PROJECT_ROOT/tests/retroarch/test_state_session.sh"
+EXPECTED_DRIVER="$TEST_PROJECT_ROOT/tests/retroarch/state_session.sh"
+EXPECTED_TRACE="$TEST_PROJECT_ROOT/tests/retroarch/interruption_trace.sh"
+if [ "$TEST_HARNESS_PATH" != "$EXPECTED_HARNESS" ]; then
+    echo 'state session controls: SOURCE_IDENTITY_HARNESS_MISMATCH' >&2
+    exit 2
+fi
+DRIVER_PATH=$(test_abs_path "$DRIVER") || {
+    echo 'state session controls: SOURCE_IDENTITY_DRIVER_UNAVAILABLE' >&2
+    exit 2
+}
+if [ "$DRIVER_PATH" != "$EXPECTED_DRIVER" ]; then
+    if [ "$CONTROL" = lock-release-race ] &&
+        [ "${STATE_SESSION_TEST_RACE_EXPECT:-}" = old-damage ]; then
+        SOURCE_PAIR=$(CDPATH= cd "$(dirname "$WORK_ROOT")" && pwd -P) || {
+            echo 'state session controls: SOURCE_IDENTITY_OLD_PAIR_UNAVAILABLE' >&2
+            exit 2
+        }
+        EXPECTED_OLD_DRIVER="$SOURCE_PAIR/old-source/tests/retroarch/state_session.sh"
+        EXPECTED_OLD_TRACE="$SOURCE_PAIR/old-source/tests/retroarch/interruption_trace.sh"
+        OLD_DRIVER_BLOB=$(git -C "$TEST_PROJECT_ROOT" rev-parse 3643d6ac04c8c09391a6f2ea68c7217ba4c5ba25:tests/retroarch/state_session.sh 2>/dev/null) || {
+            echo 'state session controls: SOURCE_IDENTITY_OLD_PIN_UNAVAILABLE' >&2
+            exit 2
+        }
+        OLD_TRACE_BLOB=$(git -C "$TEST_PROJECT_ROOT" rev-parse 3643d6ac04c8c09391a6f2ea68c7217ba4c5ba25:tests/retroarch/interruption_trace.sh 2>/dev/null) || {
+            echo 'state session controls: SOURCE_IDENTITY_OLD_PIN_UNAVAILABLE' >&2
+            exit 2
+        }
+        OLD_TRACE_PATH=$(test_abs_path "$EXPECTED_OLD_TRACE") || {
+            echo 'state session controls: SOURCE_IDENTITY_OLD_INCLUDE_UNAVAILABLE' >&2
+            exit 2
+        }
+        [ "$DRIVER_PATH" = "$EXPECTED_OLD_DRIVER" ] &&
+            [ "$OLD_TRACE_PATH" = "$EXPECTED_OLD_TRACE" ] &&
+            [ "$(git -C "$TEST_PROJECT_ROOT" hash-object "$DRIVER_PATH")" = "$OLD_DRIVER_BLOB" ] &&
+            [ "$(git -C "$TEST_PROJECT_ROOT" hash-object "$OLD_TRACE_PATH")" = "$OLD_TRACE_BLOB" ] || {
+            echo 'state session controls: SOURCE_IDENTITY_DRIVER_MISMATCH' >&2
+            exit 2
+        }
+    else
+        echo 'state session controls: SOURCE_IDENTITY_DRIVER_MISMATCH' >&2
+        exit 2
+    fi
+fi
+TRACE_PATH=$(test_abs_path "$EXPECTED_TRACE") || {
+    echo 'state session controls: SOURCE_IDENTITY_TRACE_UNAVAILABLE' >&2
+    exit 2
+}
+if [ "$TRACE_PATH" != "$EXPECTED_TRACE" ]; then
+    echo 'state session controls: SOURCE_IDENTITY_TRACE_MISMATCH' >&2
+    exit 2
+fi
+DRIVER=$DRIVER_PATH
+. "$TRACE_PATH"
 case "$CONTROL" in
-    all|readiness|interruption|cleanup-request-failure|interruption-capture-selftest|interruption-trace-lock-selftest) ;;
+    all|readiness|interruption|cleanup-request-failure|interruption-capture-selftest|interruption-trace-lock-selftest|lock-pid-preflight|lock-release-race|lock-finalizer-cwd|source-root-identity|source-root-preflight) ;;
     *) echo "state session controls: invalid STATE_SESSION_CONTROL=$CONTROL" >&2; exit 2 ;;
 esac
+
+if [ "$CONTROL" = source-root-identity ]; then
+    if [ -n "${STATE_SESSION_ROOT_NEGATIVE_REACHED:-}" ]; then
+        : >"$STATE_SESSION_ROOT_NEGATIVE_REACHED"
+    fi
+    printf 'PASS source-root identity harness=%s driver=%s trace=%s\n' \
+        "$TEST_HARNESS_PATH" "$DRIVER_PATH" "$TRACE_PATH"
+    exit 0
+fi
+
 if [ "$CONTROL" = cleanup-request-failure ]; then
     mkdir -p "$(dirname "$WORK_ROOT")" || exit 2
     if ! mkdir "$WORK_ROOT" 2>/dev/null; then
@@ -526,7 +623,7 @@ if [ "$CONTROL" = cleanup-request-failure ]; then
         exit 2
     fi
     WORK_ROOT=$(cd "$WORK_ROOT" && pwd -P)
-    CLEANUP_MATRIX_KIND=$(basename "$WORK_ROOT")
+    case "$(basename "$WORK_ROOT")" in red) CLEANUP_MATRIX_KIND=red ;; *) CLEANUP_MATRIX_KIND=green ;; esac
     exec >"$WORK_ROOT/stdout.log" 2>"$WORK_ROOT/stderr.log"
 fi
 
@@ -745,86 +842,86 @@ run_interruption_identity_selftests() {
 selftest_write_trace_lifecycle() {
     trace_writer_base=$1
     trace_writer_id=$2
-    RA_DIR="$trace_writer_base/ra"
     LOCK_DIR="$trace_writer_base/locks/driver.lock"
-    mkdir -p "$RA_DIR" "${LOCK_DIR%/*}" || return 1
+    mkdir -p "${LOCK_DIR%/*}" || return 1
     mkdir "$LOCK_DIR" || return 1
-    STATE_SESSION_TEST_MODE=prefix
-    STATE_SESSION_TEST_INTERRUPT_INVOCATION=$trace_writer_id
-    STATE_SESSION_TEST_INTERRUPT_TRACE="$RA_DIR/interruption-events.tsv"
-    STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS="$RA_DIR/interruption-trace-errors.tsv"
-    if [ "${3:-}" = absent ]; then
-        HOST_PID=
-        CHILD_PID=
-    else
-        HOST_PID=$$
-        CHILD_PID=$$
-    fi
-    FIRST_FAILURE=
-    QUIT_SENT=0
-    JOURNAL_FAILED=0
-    send_count=0
-    INTERRUPTION_TRACE_SEQUENCE=0
-    INTERRUPTION_TRACE_FAILED=0
-    trace_interruption_event handler-entry 0 || return 1
-    FIRST_FAILURE=INTERRUPTED_TERM
-    trace_interruption_event journal-close-success 0 || return 1
-    HOST_PID=
-    CHILD_PID=
-    QUIT_SENT=1
-    rmdir "$LOCK_DIR" || return 1
-    trace_interruption_event handler-exit 130 || return 1
-    [ "$INTERRUPTION_TRACE_FAILED" -eq 0 ]
+    selftest_write_trace_regular_lock_lifecycle "$trace_writer_base" "$trace_writer_id" "${3:-present}" || return 1
+    [ -d "$LOCK_DIR" ] || return 1
+    printf 'legacy filesystem path was occupied during descriptor trace writing\n' \
+        >"$trace_writer_base/legacy-path-observation.txt"
 }
 
 selftest_write_trace_regular_lock_lifecycle() {
     trace_regular_base=$1
     trace_regular_id=$2
+    trace_regular_absent=${3:-present}
     RA_DIR="$trace_regular_base/ra"
-    trace_regular_lock_root="$trace_regular_base/locks"
-    LOCK_DIR="$trace_regular_lock_root/driver.lock"
-    trace_regular_owner="$trace_regular_lock_root/driver.lock.owner.$trace_regular_id"
-    mkdir -p "$RA_DIR" "$trace_regular_lock_root" || return 1
-    [ ! -e "$trace_regular_owner" ] && [ ! -L "$trace_regular_owner" ] || return 1
-    printf '%s\n' "$trace_regular_id" >"$trace_regular_owner" || return 1
-    ln "$trace_regular_owner" "$LOCK_DIR" || return 1
-    [ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
-        [ "$(cat "$LOCK_DIR")" = "$trace_regular_id" ] || return 1
-    perl -e '
+    STATE_SESSION_REAL_PERL=$(command -v perl) || return 1
+    mkdir -p "$RA_DIR" || return 1
+    trace_regular_script="$trace_regular_base/trace-fixture.sh"
+    cat >"$trace_regular_script" <<'EOF'
+#!/bin/sh
+set -eu
+. "$STATE_TRACE_FIXTURE_INCLUDE"
+RA_DIR=$STATE_TRACE_FIXTURE_RA
+if [ "$STATE_TRACE_FIXTURE_ABSENT" = 1 ]; then HOST_PID=; CHILD_PID=; else HOST_PID=$$; CHILD_PID=$$; fi
+FIRST_FAILURE=
+QUIT_SENT=0
+JOURNAL_FAILED=0
+send_count=0
+INTERRUPTION_TRACE_SEQUENCE=0
+INTERRUPTION_TRACE_FAILED=0
+STATE_SESSION_TEST_MODE=prefix
+STATE_SESSION_TEST_INTERRUPT_INVOCATION=$STATE_TRACE_FIXTURE_ID
+STATE_SESSION_TEST_INTERRUPT_TRACE="$RA_DIR/interruption-events.tsv"
+STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS="$RA_DIR/interruption-trace-errors.tsv"
+printf '%s\n' "$$" >"$STATE_TRACE_FIXTURE_PID"
+trace_interruption_event handler-entry 0 || exit 1
+FIRST_FAILURE=INTERRUPTED_TERM
+trace_interruption_event journal-close-success 0 || exit 1
+HOST_PID=
+CHILD_PID=
+QUIT_SENT=1
+exec 9>&-
+STATE_SESSION_LOCK_PORT=
+trace_interruption_event handler-exit 130 || exit 1
+[ "$INTERRUPTION_TRACE_FAILED" -eq 0 ]
+EOF
+    chmod +x "$trace_regular_script" || return 1
+    STATE_TRACE_FIXTURE_INCLUDE="$TEST_SCRIPT_DIR/interruption_trace.sh" \
+    STATE_TRACE_FIXTURE_RA="$RA_DIR" STATE_TRACE_FIXTURE_ID="$trace_regular_id" \
+    STATE_TRACE_FIXTURE_ABSENT="$([ "$trace_regular_absent" = absent ] && printf 1 || printf 0)" \
+    STATE_TRACE_FIXTURE_PID="$trace_regular_base/driver.pid" \
+    "$STATE_SESSION_REAL_PERL" -MSocket -MFcntl -e '
         use strict;
         use warnings;
-        my ($owner, $lock) = @ARGV;
-        my @owner = stat($owner);
-        my @lock = stat($lock);
-        exit 1 unless @owner && @lock && $owner[0] == $lock[0] && $owner[1] == $lock[1];
-    ' "$trace_regular_owner" "$LOCK_DIR" || return 1
-
-    STATE_SESSION_TEST_MODE=prefix
-    STATE_SESSION_TEST_INTERRUPT_INVOCATION=$trace_regular_id
-    STATE_SESSION_TEST_INTERRUPT_TRACE="$RA_DIR/interruption-events.tsv"
-    STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS="$RA_DIR/interruption-trace-errors.tsv"
-    HOST_PID=$$
-    CHILD_PID=$$
-    FIRST_FAILURE=
-    QUIT_SENT=0
-    JOURNAL_FAILED=0
-    send_count=0
-    INTERRUPTION_TRACE_SEQUENCE=0
-    INTERRUPTION_TRACE_FAILED=0
-    trace_interruption_event handler-entry 0 || return 1
-    [ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
-        [ "$(cat "$LOCK_DIR")" = "$trace_regular_id" ] || return 1
-    FIRST_FAILURE=INTERRUPTED_TERM
-    trace_interruption_event journal-close-success 0 || return 1
-    [ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
-        [ "$(cat "$LOCK_DIR")" = "$trace_regular_id" ] || return 1
-    HOST_PID=
-    CHILD_PID=
-    QUIT_SENT=1
-    rm -f "$LOCK_DIR" "$trace_regular_owner" || return 1
-    [ ! -e "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] || return 1
-    trace_interruption_event handler-exit 130 || return 1
-    [ "$INTERRUPTION_TRACE_FAILED" -eq 0 ]
+        my ($script) = @ARGV;
+        my $protocol = getprotobyname("tcp");
+        defined($protocol) or die "tcp protocol unavailable\n";
+        socket(my $socket, PF_INET, SOCK_STREAM, $protocol) or die "socket: $!\n";
+        setsockopt($socket, SOL_SOCKET, SO_REUSEADDR, pack("i", 0)) or die "reuseaddr: $!\n";
+        setsockopt($socket, SOL_SOCKET, SO_REUSEPORT, pack("i", 0)) or die "reuseport: $!\n";
+        bind($socket, sockaddr_in(0, inet_aton("127.0.0.1"))) or die "bind: $!\n";
+        my ($port, $address) = sockaddr_in(getsockname($socket));
+        inet_ntoa($address) eq "127.0.0.1" or die "address mismatch\n";
+        my $source_fd = fileno($socket);
+        my $guard_fd = $source_fd == 9 ? 9 : fcntl($socket, F_DUPFD, 9);
+        defined($guard_fd) && $guard_fd == 9 or die "descriptor 9 unavailable\n";
+        close($socket) if $source_fd != 9;
+        open my $guard, ">&=9" or die "descriptor 9 reopen: $!\n";
+        my $flags = fcntl($guard, F_GETFD, 0);
+        defined($flags) or die "descriptor flags: $!\n";
+        fcntl($guard, F_SETFD, $flags & ~FD_CLOEXEC) or die "descriptor inherit: $!\n";
+        my @identity = stat($guard);
+        @identity or die "descriptor stat: $!\n";
+        $ENV{STATE_SESSION_LOCK_BOOTSTRAPPED} = "1";
+        $ENV{STATE_SESSION_LOCK_BOOT_PID} = "$$";
+        $ENV{STATE_SESSION_LOCK_START_MS} = "1";
+        $ENV{STATE_SESSION_LOCK_PORT} = "$port";
+        $ENV{STATE_SESSION_LOCK_DEVICE} = "$identity[0]";
+        $ENV{STATE_SESSION_LOCK_INODE} = "$identity[1]";
+        exec {"/bin/sh"} "/bin/sh", $script or die "exec fixture: $!\n";
+    ' "$trace_regular_script" || return 1
 }
 
 selftest_trace_edit() {
@@ -949,6 +1046,7 @@ selftest_trace_expect_edit() {
     trace_mutation_expected=$6
     trace_mutation_source=${7:-$trace_test_primary}
     trace_mutation_id=${8:-$trace_test_id}
+    trace_mutation_driver=${9:-${TRACE_MUTATION_DRIVER:-$$}}
     trace_mutation_file="$trace_test_root/cases/$trace_mutation_name.tsv"
     cp "$trace_mutation_source" "$trace_mutation_file" || return 1
     selftest_trace_edit "$trace_mutation_file" "$trace_mutation_row" \
@@ -960,7 +1058,7 @@ selftest_trace_expect_edit() {
             return 1
         }
     fi
-    selftest_trace_expect "$trace_mutation_file" "$trace_mutation_id" "$$" \
+    selftest_trace_expect "$trace_mutation_file" "$trace_mutation_id" "$trace_mutation_driver" \
         "$trace_mutation_expected" "$trace_mutation_name"
 }
 
@@ -979,6 +1077,7 @@ selftest_trace_tdd_case() {
             printf 'Bail out! actual trace writer setup failed\n'
             return 1
         }
+        trace_tdd_driver=$(cat "$trace_tdd_case_root/driver.pid") || return 1
         trace_tdd_source="$trace_tdd_case_root/ra/interruption-events.tsv"
         trace_tdd_expected=TRACE_OK
     else
@@ -986,6 +1085,8 @@ selftest_trace_tdd_case() {
             printf 'Bail out! actual regular-lock trace writer setup failed\n'
             return 1
         }
+        trace_tdd_driver=$(cat "$trace_tdd_case_root/driver.pid") || return 1
+        TRACE_MUTATION_DRIVER=$trace_tdd_driver
         trace_tdd_source="$trace_tdd_case_root/ra/interruption-events.tsv"
         trace_tdd_original="$trace_tdd_case_root/original.tsv"
         cp "$trace_tdd_source" "$trace_tdd_original" || {
@@ -996,10 +1097,10 @@ selftest_trace_tdd_case() {
         case "$trace_tdd_name" in
             host-live-without-pid) set -- 1 set 8 unavailable ;;
             child-live-without-pid) set -- 1 set 10 unavailable ;;
-            host-pid-changed-before-cleanup) set -- 2 set 8 "$(( $$ + 1 ))" ;;
-            child-pid-changed-before-cleanup) set -- 2 set 10 "$(( $$ + 1 ))" ;;
-            host-pid-retained-after-cleanup) set -- 3 set 8 "$$" ;;
-            child-pid-retained-after-cleanup) set -- 3 set 10 "$$" ;;
+            host-pid-changed-before-cleanup) set -- 2 set 8 "$(( trace_tdd_driver + 1 ))" ;;
+            child-pid-changed-before-cleanup) set -- 2 set 10 "$(( trace_tdd_driver + 1 ))" ;;
+            host-pid-retained-after-cleanup) set -- 3 set 8 "$trace_tdd_driver" ;;
+            child-pid-retained-after-cleanup) set -- 3 set 10 "$trace_tdd_driver" ;;
             host-live-after-cleanup) set -- 3 set 9 1 ;;
             child-live-after-cleanup) set -- 3 set 11 1 ;;
             row2-quit-before-journal-close) set -- 2 set 12 1 ;;
@@ -1018,7 +1119,7 @@ selftest_trace_tdd_case() {
     fi
     trace_tdd_status=0
     trace_tdd_actual=$(verify_interruption_driver_trace \
-        "$trace_tdd_source" "$trace_tdd_id" "$$") || trace_tdd_status=$?
+        "$trace_tdd_source" "$trace_tdd_id" "$trace_tdd_driver") || trace_tdd_status=$?
     if [ "$trace_tdd_expected" = TRACE_OK ]; then
         if [ "$trace_tdd_status" -eq 0 ] && [ "$trace_tdd_actual" = TRACE_OK ]; then
             printf 'ok 1 - %s\n' "$trace_tdd_name"
@@ -1139,6 +1240,8 @@ run_interruption_trace_selftests() (
     selftest_write_trace_lifecycle "$trace_test_root/owned-a" "$trace_test_id" || {
         echo "FAIL trace lifecycle actual writer setup" >&2; return 1;
     }
+    trace_test_driver=$(cat "$trace_test_root/owned-a/driver.pid") || return 1
+    TRACE_MUTATION_DRIVER=$trace_test_driver
     awk -F '\t' -v wanted="$trace_test_id" '
         NR == 1 && ($1 != wanted || $2 != "driver" || $3 != "1" || $5 != "handler-entry" || $8 !~ /^[1-9][0-9]*$/) { bad = 1 }
         NR == 2 && ($1 != wanted || $2 != "driver" || $3 != "2" || $5 != "journal-close-success" || $8 !~ /^[1-9][0-9]*$/) { bad = 1 }
@@ -1148,7 +1251,7 @@ run_interruption_trace_selftests() (
     ' "$trace_test_primary" || {
         echo "FAIL trace lifecycle actual writer did not emit expected cleanup fields" >&2; return 1;
     }
-    selftest_trace_expect "$trace_test_primary" "$trace_test_id" "$$" \
+    selftest_trace_expect "$trace_test_primary" "$trace_test_id" "$trace_test_driver" \
         TRACE_OK cleanup-host-pid-admission || return 1
 
     trace_test_regular="$trace_test_root/regular-owned/ra/interruption-events.tsv"
@@ -1157,8 +1260,10 @@ run_interruption_trace_selftests() (
         "$trace_test_regular_id" || {
         echo "FAIL regular-lock lifecycle actual writer setup" >&2; return 1;
     }
-    selftest_trace_expect "$trace_test_regular" "$trace_test_regular_id" "$$" \
-        TRACE_OK regular-hard-link-lifecycle || return 1
+    trace_test_regular_driver=$(cat "$trace_test_root/regular-owned/driver.pid") || return 1
+    TRACE_MUTATION_DRIVER=$trace_test_regular_driver
+    selftest_trace_expect "$trace_test_regular" "$trace_test_regular_id" "$trace_test_regular_driver" \
+        TRACE_OK bound-reservation-lifecycle || return 1
     for trace_lifecycle_case in \
         host-live-without-pid child-live-without-pid \
         host-pid-changed-before-cleanup child-pid-changed-before-cleanup \
@@ -1167,10 +1272,10 @@ run_interruption_trace_selftests() (
         case "$trace_lifecycle_case" in
             host-live-without-pid) set -- 1 set 8 unavailable ;;
             child-live-without-pid) set -- 1 set 10 unavailable ;;
-            host-pid-changed-before-cleanup) set -- 2 set 8 "$(( $$ + 1 ))" ;;
-            child-pid-changed-before-cleanup) set -- 2 set 10 "$(( $$ + 1 ))" ;;
-            host-pid-retained-after-cleanup) set -- 3 set 8 "$$" ;;
-            child-pid-retained-after-cleanup) set -- 3 set 10 "$$" ;;
+            host-pid-changed-before-cleanup) set -- 2 set 8 "$(( trace_test_regular_driver + 1 ))" ;;
+            child-pid-changed-before-cleanup) set -- 2 set 10 "$(( trace_test_regular_driver + 1 ))" ;;
+            host-pid-retained-after-cleanup) set -- 3 set 8 "$trace_test_regular_driver" ;;
+            child-pid-retained-after-cleanup) set -- 3 set 10 "$trace_test_regular_driver" ;;
             host-live-after-cleanup) set -- 3 set 9 1 ;;
             child-live-after-cleanup) set -- 3 set 11 1 ;;
             row2-quit-before-journal-close) set -- 2 set 12 1 ;;
@@ -1186,13 +1291,15 @@ run_interruption_trace_selftests() (
     trace_test_absent_id="session-$trace_test_run_id-absent-observations"
     selftest_write_trace_lifecycle "$trace_test_root/absent-observations" \
         "$trace_test_absent_id" absent || return 1
-    selftest_trace_expect "$trace_test_absent" "$trace_test_absent_id" "$$" \
+    trace_test_absent_driver=$(cat "$trace_test_root/absent-observations/driver.pid") || return 1
+    selftest_trace_expect "$trace_test_absent" "$trace_test_absent_id" "$trace_test_absent_driver" \
         TRACE_OK absent-host-child-observations || return 1
     trace_test_unavailable_liveness="$trace_test_root/cases/numeric-pid-with-unavailable-liveness.tsv"
     cp "$trace_test_regular" "$trace_test_unavailable_liveness" || return 1
     selftest_trace_edit "$trace_test_unavailable_liveness" 1 set 9 unavailable || return 1
-    selftest_trace_expect "$trace_test_unavailable_liveness" "$trace_test_regular_id" "$$" \
+    selftest_trace_expect "$trace_test_unavailable_liveness" "$trace_test_regular_id" "$trace_test_regular_driver" \
         TRACE_OK numeric-pid-with-unavailable-liveness || return 1
+    TRACE_MUTATION_DRIVER=$trace_test_regular_driver
     selftest_trace_expect_edit absent-held-lock 1 set 14 absent TRACE_VALUE \
         "$trace_test_regular" "$trace_test_regular_id" || return 1
     selftest_trace_non_lock_fields_equal "$trace_test_regular" \
@@ -1214,18 +1321,19 @@ run_interruption_trace_selftests() (
     ln -s "$trace_test_dangling_target" "$LOCK_DIR" || return 1
     trace_interruption_event handler-entry 0 || return 1
     [ -L "$LOCK_DIR" ] && [ ! -e "$trace_test_dangling_target" ] &&
-        [ "$(awk -F '\t' 'NR == 1 { print $14 }' "$trace_test_dangling")" = present ] || {
-        echo "FAIL dangling lock symlink was not recorded as occupied without target creation" >&2; return 1;
+        [ "$(awk -F '\t' 'NR == 1 { print $14 }' "$trace_test_dangling")" = absent ] || {
+        echo "FAIL dangling legacy symlink was mistaken for a held socket reservation" >&2; return 1;
     }
     trace_selftest_count=$((trace_selftest_count + 1))
-    printf 'trace selftest: PASS dangling-lock-symlink-occupancy (present without target follow)\n'
+    printf 'trace selftest: PASS dangling-legacy-path-is-not-reservation (absent without target follow)\n'
 
+    TRACE_MUTATION_DRIVER=$trace_test_driver
     selftest_trace_expect_edit short-field-count 1 drop-field 0 '' TRACE_FIELDS || return 1
     selftest_trace_expect_edit extra-field-count 1 extra-field 0 '' TRACE_FIELDS || return 1
     trace_empty="$trace_test_root/cases/empty.tsv"
     cp "$trace_test_primary" "$trace_empty" || return 1
     selftest_trace_edit "$trace_empty" 1 empty || return 1
-    selftest_trace_expect "$trace_empty" "$trace_test_id" "$$" TRACE_FIELDS empty-trace || return 1
+    selftest_trace_expect "$trace_empty" "$trace_test_id" "$trace_test_driver" TRACE_FIELDS empty-trace || return 1
     selftest_trace_expect_edit truncated-final-line 0 no-final-newline 0 '' TRACE_FIELDS || return 1
     selftest_trace_expect_edit wrong-role 2 set 2 harness TRACE_ROLE || return 1
     selftest_trace_expect_edit wrong-invocation 2 set 1 other-invocation TRACE_INVOCATION || return 1
@@ -1237,7 +1345,7 @@ run_interruption_trace_selftests() (
     selftest_trace_expect_edit wrong-event-order 2 set 5 handler-exit TRACE_EVENT || return 1
     selftest_trace_expect_edit invalid-status 2 set 6 unavailable TRACE_VALUE || return 1
     selftest_trace_expect_edit wrong-driver-pid 2 set 7 0 TRACE_DRIVER_PID || return 1
-    selftest_trace_expect_edit mismatched-driver-pid 2 set 7 "$(( $$ + 1 ))" TRACE_DRIVER_PID || return 1
+    selftest_trace_expect_edit mismatched-driver-pid 2 set 7 "$(( trace_test_driver + 1 ))" TRACE_DRIVER_PID || return 1
     selftest_trace_expect_edit zero-host-pid 3 set 8 0 TRACE_VALUE || return 1
     selftest_trace_expect_edit signed-child-pid 3 set 10 +1 TRACE_VALUE || return 1
     selftest_trace_expect_edit invalid-host-liveness 3 set 9 0 TRACE_VALUE || return 1
@@ -1257,17 +1365,18 @@ run_interruption_trace_selftests() (
     trace_first_time=$(awk -F '\t' 'NR == 1 { print $4 }' "$trace_test_primary")
     selftest_trace_edit "$trace_equal" 2 set 4 "$trace_first_time" || return 1
     selftest_trace_edit "$trace_equal" 3 set 4 "$trace_first_time" || return 1
-    selftest_trace_expect "$trace_equal" "$trace_test_id" "$$" TRACE_OK equal-monotonic-samples || return 1
+    selftest_trace_expect "$trace_equal" "$trace_test_id" "$trace_test_driver" TRACE_OK equal-monotonic-samples || return 1
 
     trace_test_second="$trace_test_root/owned-b/ra/interruption-events.tsv"
     selftest_write_trace_lifecycle "$trace_test_root/owned-b" "$trace_test_id_b" || {
         echo "FAIL trace lifecycle second owned writer setup" >&2; return 1;
     }
-    selftest_trace_expect "$trace_test_second" "$trace_test_id_b" "$$" TRACE_OK second-owned-invocation || return 1
+    trace_test_driver_b=$(cat "$trace_test_root/owned-b/driver.pid") || return 1
+    selftest_trace_expect "$trace_test_second" "$trace_test_id_b" "$trace_test_driver_b" TRACE_OK second-owned-invocation || return 1
     trace_mixed="$trace_test_root/cases/mixed-invocations.tsv"
     cp "$trace_test_primary" "$trace_mixed" || return 1
     selftest_trace_edit "$trace_mixed" 2 set 1 "$trace_test_id_b" || return 1
-    selftest_trace_expect "$trace_mixed" "$trace_test_id" "$$" \
+    selftest_trace_expect "$trace_mixed" "$trace_test_id" "$trace_test_driver" \
         TRACE_INVOCATION cross-invocation-row || return 1
 
     selftest_trace_writer_gate_tests "$trace_test_root" || return 1
@@ -1429,145 +1538,967 @@ selftest_owner_sidecar_mutants() {
     return 0
 }
 
-selftest_owner_sidecar_replacement() {
-    selftest_replace_root=$1
-    selftest_replace_dir="$selftest_replace_root/owner-sidecar-replacement"
-    selftest_replace_lock_root="$selftest_replace_dir/locks"
-    selftest_replace_bin="$selftest_replace_dir/bin"
-    selftest_replace_real_perl=$(command -v perl)
-    selftest_replace_real_ln=$(command -v ln)
-    OWNER_REPLACEMENT_FAILURE=
-    mkdir -p "$selftest_replace_lock_root" "$selftest_replace_bin" "$selftest_replace_dir/ra"
-    : >"$selftest_replace_dir/config.cfg"
-    : >"$selftest_replace_dir/core.so"
-    : >"$selftest_replace_dir/content.nes"
-    : >"$selftest_replace_dir/calibration.txt"
-    printf 'foreign replacement owner-sidecar bytes\n' >"$selftest_replace_dir/replacement.expected"
+lock_race_record_event() {
+    lock_race_event_file=$1
+    lock_race_event_name=$2
+    lock_race_event_pid=$3
+    lock_race_event_port=$4
+    perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e '
+        my ($path, $name, $pid, $port) = @ARGV;
+        my $now = sprintf("%.0f", clock_gettime(CLOCK_MONOTONIC) * 1000);
+        open my $output, ">>:raw", $path or die "event open: $!\n";
+        print {$output} join("\t", $name, $pid, $port, $now), "\n" or die "event write: $!\n";
+        close $output or die "event close: $!\n";
+    ' "$lock_race_event_file" "$lock_race_event_name" "$lock_race_event_pid" "$lock_race_event_port"
+}
 
-    cat >"$selftest_replace_bin/perl" <<'EOF'
+lock_race_object_snapshot() {
+    perl -MDigest::SHA=sha256_hex -MFcntl=:mode -e '
+        use strict;
+        use warnings;
+        my ($path) = @ARGV;
+        my @entry = lstat($path);
+        if (!@entry) {
+            print "absent\n";
+            exit 0;
+        }
+        my $type = S_ISREG($entry[2]) ? "regular" : S_ISLNK($entry[2]) ? "symlink" : "other";
+        my $bytes = "";
+        if ($type eq "regular") {
+            open my $input, "<:raw", $path or die "snapshot open: $!\n";
+            local $/;
+            $bytes = <$input> // "";
+            close $input or die "snapshot close: $!\n";
+        } elsif ($type eq "symlink") {
+            $bytes = readlink($path);
+            defined($bytes) or die "snapshot readlink: $!\n";
+        }
+        printf "%s\t%d\t%d\t%04o\t%d\t%d\t%s\n", "present", $entry[0], $entry[1],
+            $entry[2] & 07777, $entry[3], $entry[7], sha256_hex($bytes);
+    ' "$1"
+}
+
+lock_release_race_oracle() {
+    lock_race_oracle_root=$1
+    [ "$(cat "$lock_race_oracle_root/driver.status" 2>/dev/null || true)" = 143 ] || {
+        printf 'ORACLE_UNUSABLE\n'; return 2;
+    }
+    [ ! -e "$lock_race_oracle_root/host-launched" ] &&
+        [ ! -e "$lock_race_oracle_root/transport-launched" ] || {
+        printf 'ORACLE_UNUSABLE\n'; return 2;
+    }
+    awk -F '\t' '
+        NR == 1 && ($1 != "release-boundary" || $2 !~ /^[1-9][0-9]*$/ || $3 == "" || $4 !~ /^[0-9]+$/) { bad=1 }
+        NR == 2 && ($1 != "foreign-installed" || $2 != pid || $3 != port || $4 !~ /^[0-9]+$/) { bad=1 }
+        NR == 3 && ($1 != "release-completed" || $2 != pid || $3 != port || $4 !~ /^[0-9]+$/) { bad=1 }
+        NR == 1 { pid=$2; port=$3; previous=$4 }
+        NR > 1 && $4 < previous { bad=1 }
+        NR > 1 { previous=$4 }
+        END { if (NR != 3 || bad) exit 1 }
+    ' "$lock_race_oracle_root/gate/.events" || {
+        printf 'ORACLE_UNUSABLE\n'; return 2;
+    }
+    race_before=$(cat "$lock_race_oracle_root/foreign.before.tsv" 2>/dev/null || true)
+    race_after=$(cat "$lock_race_oracle_root/foreign.after.tsv" 2>/dev/null || true)
+    case "$race_before" in present*) ;; *) printf 'ORACLE_UNUSABLE\n'; return 2 ;; esac
+    if [ "$race_before" = "$race_after" ] &&
+        cmp -s "$lock_race_oracle_root/foreign.before.bytes" "$lock_race_oracle_root/foreign.after.bytes"; then
+        printf 'FOREIGN_OBJECT_PRESERVED\n'
+        return 0
+    fi
+    [ -n "$race_after" ] || { printf 'ORACLE_UNUSABLE\n'; return 2; }
+    printf 'FOREIGN_OBJECT_CHANGED\n'
+    return 1
+}
+
+
+# Every launched role is collected once, including returns from failed assertions.
+lock_race_track() {
+    case "$1" in
+        primary) race_primary_pid=$2; race_primary_root=$3; race_primary_gate=$4; race_primary_waited=0 ;;
+        contender) race_contender_pid=$2; race_contender_root=$3; race_contender_gate=$4; race_contender_waited=0 ;;
+        reacquire) race_reacquire_pid=$2; race_reacquire_root=$3; race_reacquire_gate=$4; race_reacquire_waited=0 ;;
+        *) return 1 ;;
+    esac
+}
+lock_race_collect_owned() {
+    race_collect_role=$1
+    case "$race_collect_role" in
+        primary) race_collect_pid=${race_primary_pid:-}; race_collect_root=${race_primary_root:-}; race_collect_gate=${race_primary_gate:-}; race_collect_waited=${race_primary_waited:-1} ;;
+        contender) race_collect_pid=${race_contender_pid:-}; race_collect_root=${race_contender_root:-}; race_collect_gate=${race_contender_gate:-}; race_collect_waited=${race_contender_waited:-1} ;;
+        reacquire) race_collect_pid=${race_reacquire_pid:-}; race_collect_root=${race_reacquire_root:-}; race_collect_gate=${race_reacquire_gate:-}; race_collect_waited=${race_reacquire_waited:-1} ;;
+    esac
+    [ -n "$race_collect_pid" ] && [ "$race_collect_waited" -eq 0 ] || return 0
+    if [ -n "$race_collect_gate" ] && [ -p "$race_collect_gate/.continue" ]; then
+        lock_race_continue "$race_collect_gate" >/dev/null 2>&1 || race_cleanup_anomaly=1
+    fi
+    # This helper owns no child. It only bounds signals to the explicitly registered child PID.
+    perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC,sleep -e '
+        my ($pid)=@ARGV; my $end=clock_gettime(CLOCK_MONOTONIC)+1;
+        while (kill(0,$pid) && clock_gettime(CLOCK_MONOTONIC)<$end) { sleep .01; }
+        if (kill(0,$pid)) {
+            kill "TERM",$pid; $end=clock_gettime(CLOCK_MONOTONIC)+1;
+            while (kill(0,$pid) && clock_gettime(CLOCK_MONOTONIC)<$end) { sleep .01; }
+            kill "KILL",$pid if kill(0,$pid);
+        }
+    ' "$race_collect_pid" || race_cleanup_anomaly=1
+    race_collect_status=0; wait "$race_collect_pid" || race_collect_status=$?
+    printf '%s\n' "$race_collect_status" >"$race_collect_root/driver.status" || race_cleanup_anomaly=1
+    case "$race_collect_role" in
+        primary) race_primary_waited=1; race_driver_status=$race_collect_status ;;
+        contender) race_contender_waited=1; race_contender_status=$race_collect_status ;;
+        reacquire) race_reacquire_waited=1; race_reacquire_status=$race_collect_status ;;
+    esac
+}
+lock_race_finalize_owned() {
+    race_first_status=$1
+    trap - EXIT INT TERM HUP
+    race_cleanup_anomaly=${race_cleanup_anomaly:-0}
+    lock_race_collect_owned primary
+    lock_race_collect_owned contender
+    lock_race_collect_owned reacquire
+    if [ -n "${race_lifecycle_root:-}" ]; then
+        printf 'status=%s\nreason=%s\ncleanup_anomaly=%s\n' "$race_first_status" \
+            "${race_first_reason:-unclassified}" "$race_cleanup_anomaly" >"$race_lifecycle_root/finalization.env"
+        [ -e "$race_lifecycle_root/oracle.status" ] ||
+            printf 'not-run\t%s\n' "${race_first_reason:-before-oracle}" >"$race_lifecycle_root/oracle.disposition"
+    fi
+    [ "$race_cleanup_anomaly" -eq 0 ] || {
+        [ "$race_first_status" -ne 0 ] || race_first_status=1
+    }
+    exit "$race_first_status"
+}
+lock_race_wait_for_ready() {
+    perl -MFcntl=:DEFAULT -MIO::Select -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e '
+        my ($root,$cap)=@ARGV;
+        my $deadline=clock_gettime(CLOCK_MONOTONIC)*1000+5000;
+        $deadline=$cap if defined($cap) && $cap =~ /\A[0-9]+\z/ && $cap<$deadline;
+        sysopen my $fh,"$root/.ready",O_RDWR|O_NONBLOCK or exit 125;
+        my $line="";
+        while (index($line,"\n")<0) {
+            my $left=($deadline-clock_gettime(CLOCK_MONOTONIC)*1000)/1000;
+            $left>0 && IO::Select->new($fh)->can_read($left) or exit 124;
+            my $n=sysread($fh,my $byte,1);
+            if (!defined($n)) { next if $!{EAGAIN} || $!{EINTR}; exit 125; }
+            $n && length($line)<256 or exit 125; $line.=$byte;
+        }
+        print $line;
+    ' "$1" "${STATE_SESSION_TEST_GATE_DEADLINE_MS:-}"
+}
+lock_race_continue() {
+    perl -MFcntl=:DEFAULT -MIO::Select -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e '
+        my ($root,$cap)=@ARGV;
+        my $deadline=clock_gettime(CLOCK_MONOTONIC)*1000+500;
+        $deadline=$cap if defined($cap) && $cap =~ /\A[0-9]+\z/ && $cap<$deadline;
+        sysopen my $fh,"$root/.continue",O_RDWR|O_NONBLOCK or exit 125;
+        my $bytes="continue\n";
+        while (length($bytes)) {
+            my $left=($deadline-clock_gettime(CLOCK_MONOTONIC)*1000)/1000;
+            $left>0 && IO::Select->new($fh)->can_write($left) or exit 124;
+            my $n=syswrite($fh,$bytes);
+            if (!defined($n)) { next if $!{EAGAIN} || $!{EINTR}; exit 125; }
+            $n or exit 125; substr($bytes,0,$n,"");
+        }
+    ' "$1" "${STATE_SESSION_TEST_GATE_DEADLINE_MS:-}"
+}
+lock_race_write_perl_wrapper() {
+    cat >"$1/perl" <<'EOF'
 #!/bin/sh
-if [ "$1" = '-MTime::HiRes=clock_gettime,CLOCK_MONOTONIC' ]; then
-    owner_clock=$("$STATE_SESSION_OWNER_REAL_PERL" "$@") || exit $?
-    owner_driver=$(cat "$STATE_SESSION_OWNER_PID_FILE") || exit 91
-    printf '%s\n' "$owner_clock" >"$STATE_SESSION_OWNER_CLOCK_FILE" || exit 92
-    printf '%s\n' "$owner_driver" >"$STATE_SESSION_OWNER_CLOCK_PID_FILE" || exit 93
-    printf '%s\n' "$owner_clock"
-    exit 0
+if [ -n "${STATE_LOCK_RESERVATION_PATH:-}" ]; then
+    STATE_LOCK_OBS_WRAPPER_PID=$$ STATE_LOCK_OBS_PARENT_PID=$PPID \
+    "$STATE_SESSION_TEST_REAL_PERL" -MSocket -MJSON::PP -MDigest::SHA=sha256_hex -MFcntl=:DEFAULT -e '
+        use strict; use warnings;
+        open my $guard, ">&=9" or die "independent fd9: $!\n";
+        my @st=stat($guard); @st or die "independent stat\n";
+        my ($port,$address)=sockaddr_in(getsockname($guard));
+        open my $source,"<:raw",$ENV{STATE_SESSION_TEST_OBS_DRIVER} or die "source: $!\n";
+        local $/; my $bytes=<$source>; close $source or die "source close\n";
+        my $o={device=>"$st[0]",inode=>"$st[1]",port=>"$port",address=>inet_ntoa($address),
+            driver_pid=>$ENV{STATE_LOCK_OBS_PARENT_PID},passed_pid=>$ENV{STATE_LOCK_RESERVATION_PID},
+            bootstrap_pid=>$ENV{STATE_SESSION_LOCK_BOOT_PID},helper_pid=>$ENV{STATE_LOCK_OBS_WRAPPER_PID},
+            source=>$ENV{STATE_SESSION_TEST_OBS_DRIVER},source_sha256=>sha256_hex($bytes),
+            start_ms=>$ENV{STATE_SESSION_LOCK_START_MS},
+            invocation=>$ENV{STATE_SESSION_TEST_CASE_ROOT},writer_argv=>[@ARGV],
+            socket_type=>unpack("i",getsockopt($guard,SOL_SOCKET,SO_TYPE)),
+            reuseaddr=>unpack("i",getsockopt($guard,SOL_SOCKET,SO_REUSEADDR))};
+        sysopen my $out,$ENV{STATE_SESSION_TEST_OBSERVATION},O_WRONLY|O_CREAT|O_EXCL,0600 or die "observation: $!\n";
+        print {$out} JSON::PP->new->canonical->encode($o),"\n" or die "observation write\n";
+        close $out or die "observation close\n";
+    ' -- "$@" || exit 97
+    case "${STATE_SESSION_TEST_PID_PREFLIGHT_CASE:-valid}" in
+        valid) ;;
+        helper-as-driver) STATE_LOCK_RESERVATION_PID=$$; export STATE_LOCK_RESERVATION_PID ;;
+        zero) STATE_LOCK_RESERVATION_PID=0; export STATE_LOCK_RESERVATION_PID ;;
+        nondecimal) STATE_LOCK_RESERVATION_PID=helper; export STATE_LOCK_RESERVATION_PID ;;
+        mismatched-bootstrap) STATE_SESSION_LOCK_BOOT_PID=0; export STATE_SESSION_LOCK_BOOT_PID ;;
+        closed-fd) exec 9>&- ;;
+        wrong-device) STATE_LOCK_RESERVATION_DEVICE=$((STATE_LOCK_RESERVATION_DEVICE+1)); export STATE_LOCK_RESERVATION_DEVICE ;;
+        wrong-inode) STATE_LOCK_RESERVATION_INODE=$((STATE_LOCK_RESERVATION_INODE+1)); export STATE_LOCK_RESERVATION_INODE ;;
+        nondecimal-device) STATE_LOCK_RESERVATION_DEVICE=x; export STATE_LOCK_RESERVATION_DEVICE ;;
+        negative-device) STATE_LOCK_RESERVATION_DEVICE=-1; export STATE_LOCK_RESERVATION_DEVICE ;;
+        nondecimal-inode) STATE_LOCK_RESERVATION_INODE=x; export STATE_LOCK_RESERVATION_INODE ;;
+        negative-inode) STATE_LOCK_RESERVATION_INODE=-1; export STATE_LOCK_RESERVATION_INODE ;;
+        *) exit 98 ;;
+    esac
 fi
-exec "$STATE_SESSION_OWNER_REAL_PERL" "$@"
+exec "$STATE_SESSION_TEST_REAL_PERL" "$@"
 EOF
-    cat >"$selftest_replace_bin/ln" <<'EOF'
+    chmod +x "$1/perl"
+}
+lock_race_reservation_matches() {
+    # Stat fields are consistency observations, including valid nonunique zero values.
+    [ "$#" -eq 8 ] || return 1
+    python3 - "$@" <<'PY'
+import hashlib,json,pathlib,re,sys
+try:
+    record,pid,port,device,inode,observation,invocation,source=sys.argv[1:]
+    decimal=lambda s: re.fullmatch(r"[0-9]+",s) is not None
+    assert all(decimal(x) for x in [pid,port,device,inode])
+    assert int(pid)>0 and 0<int(port)<=65535
+    raw=pathlib.Path(record).read_bytes()
+    assert raw.endswith(b"\n")
+    rows=raw.decode("ascii").splitlines()
+    assert len(rows)==2 and rows[0]=="address\tport\tdriver_pid\tfd\tdevice\tinode\tsocket_type\treuseaddr\treuseport"
+    f=rows[1].split("\t"); assert len(f)==9
+    assert all(decimal(x) for x in [f[1],f[2],f[4],f[5]])
+    assert f[:4]==["127.0.0.1",port,pid,"9"] and f[4:8]==[device,inode,"SOCK_STREAM","0"]
+    assert f[8] in ["0","unsupported"]
+    o=json.loads(pathlib.Path(observation).read_text())
+    assert [o[k] for k in ["driver_pid","passed_pid","bootstrap_pid"]]==[pid]*3
+    assert decimal(o["helper_pid"]) and int(o["helper_pid"])>0 and o["helper_pid"]!=pid
+    assert [o["device"],o["inode"],o["port"],o["address"]]==[device,inode,port,"127.0.0.1"]
+    assert o["invocation"]==str(pathlib.Path(invocation).resolve())
+    assert o["source"]==str(pathlib.Path(source).resolve())
+    assert o["source_sha256"]==hashlib.sha256(pathlib.Path(source).read_bytes()).hexdigest()
+    assert o["socket_type"]==1 and o["reuseaddr"]==0
+    assert len(o["writer_argv"])==4 and o["writer_argv"][:3]==["-MSocket","-MFcntl=:DEFAULT","-e"]
+except (AssertionError,OSError,ValueError,KeyError,UnicodeError):
+    sys.exit(1)
+PY
+}
+lock_race_match_observed() {
+    observed_record=$1; observed_pid=$2; observed_port=$3; observed_root=$4; observed_driver=$5
+    observed_values=$(python3 -c 'import json,sys;o=json.load(open(sys.argv[1]));print(o["device"],o["inode"])' "$observed_root/writer-observation.json") || return 1
+    set -- $observed_values
+    lock_race_reservation_matches "$observed_record" "$observed_pid" "$observed_port" "$1" "$2" \
+        "$observed_root/writer-observation.json" "$observed_root" "$observed_driver"
+}
+lock_race_start_preflight_driver() {
+    race_launch_root=$1; race_launch_port=$2; race_launch_case=$3
+    mkdir -p "$race_launch_root/ra" "$race_launch_root/locks" "$race_launch_root/gate" || return 1
+    mkfifo "$race_launch_root/gate/.ready" "$race_launch_root/gate/.continue" || return 1
+    : >"$race_launch_root/gate/.events"
+    for race_input in config.cfg core.so content.nes calibration.txt retroarch.log; do : >"$race_launch_root/$race_input"; done
+    STATE_SESSION_TEST_PID_PREFLIGHT_CASE="$race_launch_case" \
+    STATE_SESSION_TEST_REAL_PERL="$pid_real_perl" \
+    STATE_SESSION_TEST_OBSERVATION="$race_launch_root/writer-observation.json" \
+    STATE_SESSION_TEST_OBS_DRIVER="$pid_driver_source" \
+    STATE_SESSION_TEST_MODE="${pid_launch_mode-lock-release-race}" STATE_SESSION_TEST_GUARD_PORT="$race_launch_port" \
+    STATE_SESSION_TEST_RELEASE_GATE="$race_launch_root/gate" \
+    STATE_SESSION_TEST_CASE_ROOT="$race_launch_root" STATE_SESSION_LOCK_ROOT="${pid_legacy_root:-$race_launch_root/locks}" \
+    STATE_SESSION_CLEANUP_MS="${pid_cleanup_ms:-1000}" STATE_SESSION_NC="$pid_root/fake-nc" PATH="$pid_root/bin:$PATH" \
+    "$DRIVER" "$pid_root/fake-retroarch" "$race_launch_root/config.cfg" "$race_launch_root/core.so" \
+        "$race_launch_root/content.nes" "$race_launch_root/ra" "$race_launch_root/retroarch.log" \
+        "$FRAME_INDEX" "$race_launch_root/calibration.txt" \
+        >"$race_launch_root/driver.stdout" 2>"$race_launch_root/driver.stderr" &
+    race_launched_pid=$!
+}
+
+selftest_lock_entry_controls() (
+    for entry_case in unknown-mode forged-bootstrap forged-pid forged-start forged-port forged-device forged-inode production-override module-unavailable exec-unavailable forged-reentry; do
+        entry_root="$pid_root/entry-$entry_case"
+        (
+            race_lifecycle_root=$entry_root; race_first_reason=$entry_case
+            trap 'lock_race_finalize_owned $?' EXIT
+            case "$entry_case" in
+                unknown-mode) pid_launch_mode=typo; lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                forged-bootstrap) STATE_SESSION_LOCK_BOOTSTRAPPED=2 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                forged-reentry) STATE_SESSION_LOCK_BOOTSTRAPPED=1 STATE_SESSION_LOCK_BOOT_PID=1 STATE_SESSION_LOCK_START_MS=1 STATE_SESSION_LOCK_PORT=1 STATE_SESSION_LOCK_DEVICE=0 STATE_SESSION_LOCK_INODE=0 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                forged-pid) STATE_SESSION_LOCK_BOOT_PID=1 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                forged-start) STATE_SESSION_LOCK_START_MS=1 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                forged-port) STATE_SESSION_LOCK_PORT=1 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                forged-device) STATE_SESSION_LOCK_DEVICE=0 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                forged-inode) STATE_SESSION_LOCK_INODE=0 lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                production-override) pid_launch_mode=; lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                module-unavailable)
+                    mkdir -p "$entry_root/modules"
+                    printf 'die "controlled Socket module load failure\\n";\n' >"$entry_root/modules/Socket.pm"
+                    PERL5LIB="$entry_root/modules" lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+                exec-unavailable)
+                    mkdir -p "$entry_root/modules"
+                    printf '#!/bin/sh\nexit 99\n' >"$entry_root/nonexecutable"
+                    chmod 000 "$entry_root/nonexecutable"
+                    cat >"$entry_root/modules/EntryExecFault.pm" <<'EOF'
+package EntryExecFault;
+BEGIN {
+    *CORE::GLOBAL::exec = sub {
+        CORE::exec { $ENV{STATE_SESSION_TEST_EXEC_TARGET} } $ENV{STATE_SESSION_TEST_EXEC_TARGET};
+        return 0;
+    };
+}
+1;
+EOF
+                    STATE_SESSION_TEST_EXEC_TARGET="$entry_root/nonexecutable" PERL5LIB="$entry_root/modules" \
+                        PERL5OPT=-MEntryExecFault lock_race_start_preflight_driver "$entry_root" 0 valid ;;
+
+            esac
+            lock_race_track primary "$race_launched_pid" "$entry_root" ""
+            lock_race_collect_owned primary
+            [ "$race_driver_status" -eq 2 ] && [ ! -e "$entry_root/ra/lock-reservation.tsv" ] &&
+                [ ! -e "$entry_root/host-launched" ] && [ ! -e "$entry_root/transport-launched" ] &&
+                grep -Fx 'state_session: LOCK_OWNER_UNAVAILABLE' "$entry_root/driver.stderr" >/dev/null
+        ) || { echo "FAIL entry refusal: $entry_case" >&2; return 1; }
+    done
+    for entry_case in regular directory dangling multilink alias unavailable-root; do
+        entry_root="$pid_root/legacy-$entry_case"
+        mkdir -p "$entry_root/locks"
+        entry_path="$entry_root/locks/nesturbator-retroarch-55355.lock"
+        entry_reason=LOCK_OWNER_UNAVAILABLE
+        case "$entry_case" in
+            regular) printf 'foreign regular\n' >"$entry_path" ;;
+            directory) mkdir "$entry_path"; entry_reason=ENDPOINT_BUSY ;;
+            dangling) ln -s missing-foreign-target "$entry_path" ;;
+            multilink) printf 'foreign links\n' >"$entry_path"; ln "$entry_path" "$entry_root/foreign-link" ;;
+            alias)
+                mkdir "$entry_path"; printf 'foreign child\n' >"$entry_path/sentinel"
+                ln -s missing-foreign-target "$entry_path/owner-alias"; entry_reason=ENDPOINT_BUSY ;;
+            unavailable-root) printf 'foreign root object\n' >"$entry_root/unavailable-root"; entry_path="$entry_root/unavailable-root" ;;
+        esac
+        lock_race_object_snapshot "$entry_path" >"$entry_root/foreign.before.tsv"
+        (
+            race_lifecycle_root=$entry_root; race_first_reason=$entry_case
+            trap 'lock_race_finalize_owned $?' EXIT
+            [ "$entry_case" != unavailable-root ] || pid_legacy_root="$entry_root/unavailable-root"
+            lock_race_start_preflight_driver "$entry_root" 0 valid || return 1
+            lock_race_track primary "$race_launched_pid" "$entry_root" "$entry_root/gate"
+            entry_pid=$race_launched_pid
+            entry_ready=$(lock_race_wait_for_ready "$entry_root/gate") || return 1
+            entry_port=$(printf '%s\n' "$entry_ready" | cut -f3)
+            lock_race_collect_owned primary
+            [ "$race_driver_status" -eq 1 ] && grep -Fx "state_session: $entry_reason" "$entry_root/driver.stderr" >/dev/null &&
+                [ ! -e "$entry_root/host-launched" ] && [ ! -e "$entry_root/transport-launched" ] || return 1
+            lock_race_object_snapshot "$entry_path" >"$entry_root/foreign.after.tsv"
+            cmp -s "$entry_root/foreign.before.tsv" "$entry_root/foreign.after.tsv" || return 1
+            pid_legacy_root=
+            lock_race_start_preflight_driver "$entry_root/reacquire" "$entry_port" valid || return 1
+            lock_race_track reacquire "$race_launched_pid" "$entry_root/reacquire" "$entry_root/reacquire/gate"
+            entry_reacquire=$race_launched_pid
+            entry_ready=$(lock_race_wait_for_ready "$entry_root/reacquire/gate") || return 1
+            lock_race_collect_owned reacquire
+            [ "$race_reacquire_status" -eq 143 ] &&
+            lock_race_match_observed "$entry_root/reacquire/ra/lock-reservation.tsv" "$entry_reacquire" "$entry_port" "$entry_root/reacquire" "$pid_driver_source"
+        ) || { echo "FAIL legacy refusal: $entry_case" >&2; return 1; }
+    done
+    for entry_case in partial-line final-write; do
+        entry_root="$pid_root/gate-$entry_case"
+        (
+            race_lifecycle_root=$entry_root; race_first_reason=$entry_case
+            trap 'lock_race_finalize_owned $?' EXIT
+            pid_cleanup_ms=350
+            entry_started=$(mono_ms)
+            lock_race_start_preflight_driver "$entry_root" 0 valid || return 1
+            lock_race_track primary "$race_launched_pid" "$entry_root" "$entry_root/gate"
+            entry_ready=$(lock_race_wait_for_ready "$entry_root/gate") || return 1
+            entry_port=$(printf '%s\n' "$entry_ready" | cut -f3)
+            if [ "$entry_case" = partial-line ]; then
+                perl -MFcntl=:DEFAULT -e 'sysopen my $f,"$ARGV[0]/.continue",O_RDWR|O_NONBLOCK or die; syswrite($f,"x")==1 or die' "$entry_root/gate" || return 1
+                entry_diagnostic=release-continue-timeout
+            else
+                perl -MFcntl=:DEFAULT -e '
+                    sysopen my $f,"$ARGV[0]/.ready",O_RDWR|O_NONBLOCK or die;
+                    while (1) { my $n=syswrite($f,"x"x4096); last if !defined($n) && $!{EAGAIN}; defined($n) && $n>0 or die; }
+                ' "$entry_root/gate" || return 1
+                lock_race_continue "$entry_root/gate" || return 1
+                entry_diagnostic=release-write-timeout
+            fi
+            race_primary_gate=
+            lock_race_collect_owned primary
+            entry_elapsed=$(($(mono_ms)-entry_started))
+            [ "$race_driver_status" -eq 143 ] && [ "$entry_elapsed" -ge 300 ] && [ "$entry_elapsed" -lt 15000 ] &&
+                grep -F "$entry_diagnostic" "$entry_root/ra/lock-release-gate.stderr" >/dev/null || return 1
+            pid_cleanup_ms=1000
+            lock_race_start_preflight_driver "$entry_root/reacquire" "$entry_port" valid || return 1
+            lock_race_track reacquire "$race_launched_pid" "$entry_root/reacquire" "$entry_root/reacquire/gate"
+            entry_reacquire=$race_launched_pid
+            entry_ready=$(lock_race_wait_for_ready "$entry_root/reacquire/gate") || return 1
+            lock_race_collect_owned reacquire
+            [ "$race_reacquire_status" -eq 143 ] &&
+                lock_race_match_observed "$entry_root/reacquire/ra/lock-reservation.tsv" "$entry_reacquire" "$entry_port" "$entry_root/reacquire" "$pid_driver_source"
+        ) || { echo "FAIL bounded gate: $entry_case" >&2; return 1; }
+    done
+)
+
+selftest_lock_pid_finalizers() (
+    finalizer_root=$1
+    for pid_finalizer_fault in missing-record malformed-record gate-setup-after-launch contender-assertion; do
+        pid_fault_root="$finalizer_root/finalizer-$pid_finalizer_fault"
+        pid_fault_status=0
+        STATE_SESSION_TEST_FINALIZER_FAULT="$pid_finalizer_fault" \
+            selftest_lock_release_race current-only "$pid_fault_root" \
+            >"$finalizer_root/finalizer-$pid_finalizer_fault.stdout" \
+            2>"$finalizer_root/finalizer-$pid_finalizer_fault.stderr" || pid_fault_status=$?
+        [ "$pid_fault_status" -eq 1 ] && [ ! -e "$pid_fault_root/result.env" ] &&
+            [ ! -e "$pid_fault_root/oracle.status" ] &&
+            [ "$(cat "$pid_fault_root/oracle.disposition" 2>/dev/null || true)" = "$(printf 'not-run\t%s' "$pid_finalizer_fault")" ] &&
+            grep -Fx "reason=$pid_finalizer_fault" "$pid_fault_root/finalization.env" >/dev/null &&
+            grep -Fx 'cleanup_anomaly=0' "$pid_fault_root/finalization.env" >/dev/null &&
+            [ "$(cat "$pid_fault_root/driver.status")" -eq 143 ] &&
+            [ -f "$pid_fault_root/driver.stdout" ] && [ -f "$pid_fault_root/driver.stderr" ] &&
+            [ ! -e "$pid_fault_root/host-launched" ] && [ ! -e "$pid_fault_root/transport-launched" ] || {
+            echo "FAIL finalizer fault not cleanly collected: $pid_finalizer_fault" >&2; return 1;
+        }
+        pid_fault_port=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["port"])' \
+            "$pid_fault_root/writer-observation.json") || return 1
+        (
+            race_lifecycle_root="$pid_fault_root/post-fault-reacquire"; race_first_reason=post-fault-reacquire
+            trap 'lock_race_finalize_owned $?' EXIT
+            lock_race_start_preflight_driver "$race_lifecycle_root" "$pid_fault_port" valid || return 1
+            lock_race_track reacquire "$race_launched_pid" "$race_lifecycle_root" "$race_lifecycle_root/gate"
+            pid_fault_reacquire=$race_launched_pid
+            pid_ready=$(lock_race_wait_for_ready "$race_lifecycle_root/gate") || return 1
+            [ "$(printf '%s\n' "$pid_ready" | cut -f3)" = "$pid_fault_port" ] || return 1
+            lock_race_collect_owned reacquire
+            [ "$race_reacquire_status" -eq 143 ] &&
+            lock_race_match_observed "$race_lifecycle_root/ra/lock-reservation.tsv" \
+                "$pid_fault_reacquire" "$pid_fault_port" "$race_lifecycle_root" "$pid_driver_source"
+        ) || return 1
+        printf 'PASS finalizer cwd=%s fault=%s wait=143 reason=%s cleanup_anomaly=0 oracle=not-run port_reentry=%s\n' \
+            "${STATE_SESSION_TEST_CWD_LABEL:-current}" "$pid_finalizer_fault" \
+            "$pid_finalizer_fault" "$pid_fault_port"
+    done
+)
+
+selftest_lock_pid_preflight() (
+    pid_root=$1
+    mkdir -p "$(dirname "$pid_root")" || return 1
+    mkdir "$pid_root" 2>/dev/null || { echo 'FAIL lock PID preflight root already exists' >&2; return 1; }
+    pid_root=$(cd "$pid_root" && pwd -P) || return 1
+    pid_driver_source=$(cd "$(dirname "$DRIVER")" && pwd -P)/$(basename "$DRIVER")
+    pid_real_perl=$(command -v perl) || return 1
+    mkdir "$pid_root/bin" || return 1
+    lock_race_write_perl_wrapper "$pid_root/bin" || return 1
+    for pid_fake in fake-retroarch fake-nc; do
+        printf '#!/bin/sh\n: >"$STATE_SESSION_TEST_CASE_ROOT/%s-launched"\n' \
+            "$(if [ "$pid_fake" = fake-nc ]; then printf transport; else printf host; fi)" >"$pid_root/$pid_fake"
+        chmod +x "$pid_root/$pid_fake"
+    done
+    for pid_case in valid helper-as-driver zero nondecimal mismatched-bootstrap closed-fd wrong-device wrong-inode \
+        nondecimal-device negative-device nondecimal-inode negative-inode; do
+        pid_case_root="$pid_root/$pid_case"
+        (
+            race_lifecycle_root=$pid_case_root; race_first_reason=actual-writer-preflight
+            trap 'lock_race_finalize_owned $?' EXIT
+            lock_race_start_preflight_driver "$pid_case_root" 0 "$pid_case" || return 1
+            lock_race_track primary "$race_launched_pid" "$pid_case_root" "$pid_case_root/gate"
+            pid_driver=$race_launched_pid
+            pid_ready=$(lock_race_wait_for_ready "$pid_case_root/gate") || return 1
+            printf '%s\n' "$pid_ready" >"$pid_case_root/ready.tsv"
+            pid_port=$(printf '%s\n' "$pid_ready" | cut -f3)
+            [ "$(printf '%s\n' "$pid_ready" | cut -f2)" = "$pid_driver" ] || return 1
+            lock_race_collect_owned primary
+            if [ "$pid_case" = valid ]; then
+                [ "$race_driver_status" -eq 143 ] &&
+                lock_race_match_observed "$pid_case_root/ra/lock-reservation.tsv" "$pid_driver" "$pid_port" "$pid_case_root" "$pid_driver_source" || return 1
+            else
+                [ "$race_driver_status" -eq 2 ] && [ ! -e "$pid_case_root/ra/lock-reservation.tsv" ] &&
+                grep -Fx 'state_session: LOCK_OWNER_UNAVAILABLE' "$pid_case_root/driver.stderr" >/dev/null || return 1
+            fi
+            [ ! -e "$pid_case_root/host-launched" ] && [ ! -e "$pid_case_root/transport-launched" ] || return 1
+            lock_race_start_preflight_driver "$pid_case_root/reacquire" "$pid_port" valid || return 1
+            lock_race_track reacquire "$race_launched_pid" "$pid_case_root/reacquire" "$pid_case_root/reacquire/gate"
+            pid_reacquire=$race_launched_pid
+            pid_ready=$(lock_race_wait_for_ready "$pid_case_root/reacquire/gate") || return 1
+            [ "$(printf '%s\n' "$pid_ready" | cut -f3)" = "$pid_port" ] || return 1
+            lock_race_collect_owned reacquire
+            [ "$race_reacquire_status" -eq 143 ] &&
+            lock_race_match_observed "$pid_case_root/reacquire/ra/lock-reservation.tsv" "$pid_reacquire" "$pid_port" "$pid_case_root/reacquire" "$pid_driver_source"
+        ) || { echo "FAIL actual writer preflight: $pid_case" >&2; return 1; }
+    done
+    pid_record="$pid_root/valid/ra/lock-reservation.tsv"
+    pid_obs="$pid_root/valid/writer-observation.json"
+    pid_values=$(python3 -c 'import json,sys;o=json.load(open(sys.argv[1]));print(o["driver_pid"],o["port"],o["device"],o["inode"])' "$pid_obs")
+    set -- $pid_values; pid_saved=$1; pid_port_saved=$2; pid_device=$3; pid_inode=$4
+    for pid_mutation in helper-pid zero malformed-pid wrong-address wrong-port wrong-fd wrong-device wrong-inode \
+        nondecimal-device negative-device nondecimal-inode negative-inode wrong-type wrong-reuse wrong-reuseport \
+        missing-row extra-row missing-column partial-final-line wrong-invocation wrong-source wrong-observed-pid; do
+        pid_mutated="$pid_root/validator-$pid_mutation.tsv"; pid_mutated_obs="$pid_root/validator-$pid_mutation.json"
+        python3 - "$pid_record" "$pid_obs" "$pid_mutated" "$pid_mutated_obs" "$pid_mutation" <<'PY'
+import json,pathlib,sys
+record,obs,out,outobs,kind=sys.argv[1:]
+raw=pathlib.Path(record).read_text(); rows=raw.splitlines(); f=rows[1].split("\t")
+o=json.loads(pathlib.Path(obs).read_text())
+changes={"helper-pid":(2,o["helper_pid"]),"zero":(2,"0"),"malformed-pid":(2,"x"),"wrong-address":(0,"0.0.0.0"),
+"wrong-port":(1,str(int(f[1])%65535+1)),"wrong-fd":(3,"8"),"wrong-device":(4,str(int(f[4])+1)),
+"wrong-inode":(5,str(int(f[5])+1)),"nondecimal-device":(4,"x"),"negative-device":(4,"-1"),
+"nondecimal-inode":(5,"x"),"negative-inode":(5,"-1"),"wrong-type":(6,"SOCK_DGRAM"),"wrong-reuse":(7,"1"),
+"wrong-reuseport":(8,"1"),"missing-column":(8,"")}
+if kind in changes: i,v=changes[kind]; f[i]=v
+raw=rows[0]+"\n"+"\t".join(f)+"\n"
+if kind=="missing-row": raw=rows[0]+"\n"
+if kind=="extra-row": raw+="extra\n"
+if kind=="partial-final-line": raw=raw[:-1]
+if kind=="wrong-invocation": o["invocation"]+="/other"
+if kind=="wrong-source": o["source_sha256"]="0"*64
+if kind=="wrong-observed-pid": o["driver_pid"]=str(int(o["driver_pid"])+1)
+pathlib.Path(out).write_text(raw); pathlib.Path(outobs).write_text(json.dumps(o)+"\n")
+PY
+        if lock_race_reservation_matches "$pid_mutated" "$pid_saved" "$pid_port_saved" "$pid_device" "$pid_inode" \
+            "$pid_mutated_obs" "$pid_root/valid" "$pid_driver_source"; then
+            echo "FAIL reservation validator accepted $pid_mutation" >&2; return 1
+        fi
+    done
+    selftest_lock_pid_finalizers "$pid_root" || return 1
+    selftest_lock_entry_controls || return 1
+    selftest_lock_release_suite current-only "$pid_root/current-hazards" || return 1
+    printf 'lock PID preflight: passed\n'
+)
+
+selftest_lock_release_race() (
+    race_mode=${1:-explicit}
+    race_requested_root=${2:-$WORK_ROOT}
+    race_target=${3:-lock-dir}
+    race_source_pair=${4:-$(dirname "$race_requested_root")}
+    case "$race_target" in lock-dir|owner-file|owner-alias|dangling|multilink) ;; *) return 1 ;; esac
+    if [ "$race_mode" = current-only ]; then race_expected=preserved; else race_expected=${STATE_SESSION_TEST_RACE_EXPECT:-}; fi
+    case "$race_expected" in old-damage|preserved) ;; *) echo 'FAIL lock race expectation is invalid' >&2; return 1 ;; esac
+    race_root=$race_requested_root
+    if [ "$race_mode" != current-only ]; then
+        case "$race_expected:$race_root" in
+            old-damage:*/tracer-red|preserved:*/tracer-green) ;;
+            *) echo 'FAIL lock race output root does not match the selected source' >&2; return 1 ;;
+        esac
+    fi
+    mkdir -p "$(dirname "$race_root")" || return 1
+    mkdir "$race_root" 2>/dev/null || { echo 'FAIL lock race root already exists' >&2; return 1; }
+    race_root=$(cd "$race_root" && pwd -P) || return 1
+    race_lifecycle_root=$race_root; race_first_reason=setup
+    trap 'lock_race_finalize_owned $?' EXIT
+    race_fault=${STATE_SESSION_TEST_FINALIZER_FAULT:-}
+    case "$race_fault" in ''|missing-record|malformed-record|gate-setup-after-launch|contender-assertion) ;; *) return 1 ;; esac
+
+    race_harness_sha=$(shasum -a 256 "$0" | awk '{print $1}') || return 1
+    race_oracle_sha=$(sed -n '/^lock_release_race_oracle() {$/,/^}$/p' "$0" | shasum -a 256 | awk '{print $1}') || return 1
+    race_driver=$(cd "$(dirname "$DRIVER")" && pwd -P)/$(basename "$DRIVER")
+    race_trace="$(cd "$(dirname "$DRIVER")" && pwd -P)/interruption_trace.sh"
+    [ -f "$race_trace" ] || { echo 'FAIL lock race source include is missing' >&2; return 1; }
+    if [ "$race_expected" = old-damage ]; then
+        race_expected_driver="$race_source_pair/old-source/tests/retroarch/state_session.sh"
+        race_expected_trace="$race_source_pair/old-source/tests/retroarch/interruption_trace.sh"
+        race_expected_driver_blob=$(git rev-parse 3643d6ac04c8c09391a6f2ea68c7217ba4c5ba25:tests/retroarch/state_session.sh) || return 1
+        race_expected_trace_blob=$(git rev-parse 3643d6ac04c8c09391a6f2ea68c7217ba4c5ba25:tests/retroarch/interruption_trace.sh) || return 1
+        [ "$race_driver" = "$(cd "$(dirname "$race_expected_driver")" && pwd -P)/$(basename "$race_expected_driver")" ] &&
+            [ "$race_trace" = "$(cd "$(dirname "$race_expected_trace")" && pwd -P)/$(basename "$race_expected_trace")" ] &&
+            [ "$(git hash-object "$race_driver")" = "$race_expected_driver_blob" ] &&
+            [ "$(git hash-object "$race_trace")" = "$race_expected_trace_blob" ] || {
+            echo 'FAIL old source is not the exact mirrored 3643 driver/include' >&2; return 1;
+        }
+    else
+        [ "$race_driver" = "$TEST_PROJECT_ROOT/tests/retroarch/state_session.sh" ] &&
+            [ "$race_trace" = "$TEST_PROJECT_ROOT/tests/retroarch/interruption_trace.sh" ] || {
+            echo 'FAIL GREEN does not name the tracked current driver/include' >&2; return 1;
+        }
+    fi
+    race_driver_sha=$(shasum -a 256 "$race_driver" | awk '{print $1}') || return 1
+    race_trace_sha=$(shasum -a 256 "$race_trace" | awk '{print $1}') || return 1
+    race_gate="$race_root/gate"
+    race_lock_root="$race_root/locks"
+    race_bin="$race_root/bin"
+    race_ra="$race_root/ra"
+    mkdir -p "$race_gate" "$race_lock_root" "$race_bin" "$race_ra" || return 1
+    mkfifo "$race_gate/.ready" "$race_gate/.continue" || return 1
+    : >"$race_gate/.events"
+    : >"$race_root/config.cfg"; : >"$race_root/core.so"; : >"$race_root/content.nes"
+    : >"$race_root/calibration.txt"
+    race_real_rm=$(command -v rm) || return 1
+    race_real_ln=$(command -v ln) || return 1
+    race_real_perl=$(command -v perl) || return 1
+    lock_race_write_perl_wrapper "$race_bin" || return 1
+    race_lock_path="$race_lock_root/nesturbator-retroarch-55355.lock"
+    race_foreign_tmp="$race_lock_root/foreign-replacement.tmp"
+    race_source_root=$(cd "$(dirname "$race_driver")/../.." && pwd -P) || return 1
+    printf 'driver=%s\ntrace=%s\nharness_sha256=%s\noracle_sha256=%s\ndriver_sha256=%s\ntrace_sha256=%s\n' \
+        "$race_driver" "$race_trace" "$race_harness_sha" "$race_oracle_sha" \
+        "$race_driver_sha" "$race_trace_sha" >"$race_root/launch.manifest"
+    cat >"$race_bin/driver-runner" <<'EOF'
 #!/bin/sh
-if [ "$#" -eq 2 ] && [ "$2" = "$STATE_SESSION_OWNER_SIGNAL_LOCK" ]; then
-    printf '%s\n' "$1" >"$STATE_SESSION_OWNER_PATH_FILE" || exit 91
-    "$STATE_SESSION_OWNER_REAL_PERL" -e 'my @s = lstat($ARGV[0]) or exit 1; print join("\t", @s[0,1,2,3,7]), "\n"' \
-        "$1" >"$STATE_SESSION_OWNER_IDENTITY_BEFORE" || exit 92
-    "$STATE_SESSION_OWNER_REAL_LN" "$@" || exit $?
-    "$STATE_SESSION_OWNER_REAL_PERL" -e 'my @s = lstat($ARGV[0]) or exit 1; print join("\t", @s[0,1,2,3,7]), "\n"' \
-        "$2" >"$STATE_SESSION_OWNER_LOCK_IDENTITY" || exit 93
-    cp "$STATE_SESSION_OWNER_REPLACEMENT_EXPECTED" "$1.replacement" || exit 94
-    mv -f "$1.replacement" "$1" || exit 95
-    "$STATE_SESSION_OWNER_REAL_PERL" -e 'my @s = lstat($ARGV[0]) or exit 1; print join("\t", @s[0,1,2,3,7]), "\n"' \
-        "$1" >"$STATE_SESSION_OWNER_REPLACEMENT_IDENTITY" || exit 96
+printf '%s\n' "$$" >"$STATE_SESSION_RACE_PID_FILE"
+exec /bin/sh "$STATE_SESSION_RACE_DRIVER" "$@"
+EOF
+    cat >"$race_root/fake-retroarch" <<'EOF'
+#!/bin/sh
+: >"$STATE_SESSION_RACE_HOST_LAUNCHED"
+exit 0
+EOF
+    cat >"$race_root/fake-nc" <<'EOF'
+#!/bin/sh
+: >"$STATE_SESSION_RACE_TRANSPORT_LAUNCHED"
+exit 0
+EOF
+    cat >"$race_bin/ln" <<'EOF'
+#!/bin/sh
+if [ "$#" -eq 2 ] && [ "$2" = "$STATE_SESSION_RACE_LOCK_PATH" ]; then
+    if [ "$STATE_SESSION_RACE_TARGET" = owner-alias ]; then
+        mkdir "$STATE_SESSION_RACE_LOCK_PATH" || exit 96
+        printf 'foreign directory sentinel\n' >"$STATE_SESSION_RACE_LOCK_PATH/sentinel"
+    fi
+    "$STATE_SESSION_RACE_REAL_LN" "$@" || exit $?
+    printf '%s\n' "$1" >"$STATE_SESSION_RACE_PUBLISHED_OWNER"
     kill -TERM "$PPID" 2>/dev/null || exit 97
     exit 0
 fi
-exec "$STATE_SESSION_OWNER_REAL_LN" "$@"
+exec "$STATE_SESSION_RACE_REAL_LN" "$@"
 EOF
-    cat >"$selftest_replace_dir/driver-runner" <<'EOF'
+    cat >"$race_bin/rm" <<'EOF'
 #!/bin/sh
-printf '%s\n' "$$" >"$STATE_SESSION_OWNER_PID_FILE"
-exec /bin/sh "$STATE_SESSION_OWNER_DRIVER" "$@"
+race_target=0
+for race_arg in "$@"; do
+    case "$STATE_SESSION_RACE_TARGET:$race_arg" in
+        owner-file:"$STATE_SESSION_RACE_LOCK_ROOT"/nesturbator-retroarch-55355.lock.owner.*) race_target=1 ;;
+        owner-alias:"$STATE_SESSION_RACE_LOCK_PATH"/nesturbator-retroarch-55355.lock.owner.*) race_target=1 ;;
+        lock-dir:"$STATE_SESSION_RACE_LOCK_PATH"|dangling:"$STATE_SESSION_RACE_LOCK_PATH"|multilink:"$STATE_SESSION_RACE_LOCK_PATH") race_target=1 ;;
+    esac
+done
+if [ "$race_target" -eq 1 ]; then
+    STATE_SESSION_RACE_GATE="$STATE_SESSION_RACE_GATE" \
+    STATE_SESSION_RACE_PID="$PPID" perl -MFcntl=:DEFAULT -MIO::Select -MIO::Handle \
+        -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e '
+            use strict;
+            use warnings;
+            my ($root) = @ARGV;
+            my $pid = $ENV{STATE_SESSION_RACE_PID};
+            sysopen my $ready, "$root/.ready", O_RDWR | O_NONBLOCK or die "ready open: $!\n";
+            sysopen my $continue, "$root/.continue", O_RDWR | O_NONBLOCK or die "continue open: $!\n";
+            $ready->autoflush(1);
+            my $now = sprintf("%.0f", clock_gettime(CLOCK_MONOTONIC) * 1000);
+            open my $events, ">>:raw", "$root/.events" or die "event open: $!\n";
+            print {$events} join("\t", "release-boundary", $pid, "legacy", $now), "\n" or die "event write: $!\n";
+            close $events or die "event close: $!\n";
+            my $deadline=$ENV{STATE_SESSION_TEST_GATE_DEADLINE_MS};
+            my $left=sub {
+                my $n=($deadline-clock_gettime(CLOCK_MONOTONIC)*1000)/1000;
+                die "gate timeout\n" unless $n>0; return $n;
+            };
+            my $write=sub {
+                my ($bytes)=@_;
+                while (length $bytes) {
+                    IO::Select->new($ready)->can_write($left->()) or die "write timeout\n";
+                    my $n=syswrite($ready,$bytes);
+                    if (!defined($n)) { next if $!{EAGAIN} || $!{EINTR}; die "write\n"; }
+                    $n or die "zero write\n"; substr($bytes,0,$n,"");
+                }
+            };
+            $write->("ready\t$pid\tlegacy\n");
+            my $line="";
+            while (index($line,"\n")<0) {
+                IO::Select->new($continue)->can_read($left->()) or die "read timeout\n";
+                my $n=sysread($continue,my $byte,1);
+                if (!defined($n)) { next if $!{EAGAIN} || $!{EINTR}; die "read\n"; }
+                $n && length($line)<32 or die "partial line\n"; $line.=$byte;
+            }
+            $line eq "continue\n" or die "continue invalid\n";
+            $write->("continued\t$pid\tlegacy\n");
+        ' "$STATE_SESSION_RACE_GATE" 9>&- || exit 98
+    "$STATE_SESSION_RACE_REAL_RM" "$@"
+    race_rm_status=$?
+    STATE_SESSION_RACE_GATE="$STATE_SESSION_RACE_GATE" STATE_SESSION_RACE_PID="$PPID" \
+    "$STATE_SESSION_RACE_REAL_PERL" -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e '
+        my ($root) = @ARGV;
+        my $now = sprintf("%.0f", clock_gettime(CLOCK_MONOTONIC) * 1000);
+        open my $events, ">>:raw", "$root/.events" or die "event open: $!\n";
+        print {$events} join("\t", "release-completed", $ENV{STATE_SESSION_RACE_PID}, "legacy", $now), "\n" or die "event write: $!\n";
+        close $events or die "event close: $!\n";
+    ' "$STATE_SESSION_RACE_GATE" || exit 99
+    exit "$race_rm_status"
+fi
+exec "$STATE_SESSION_RACE_REAL_RM" "$@"
 EOF
-    cat >"$selftest_replace_dir/fake-retroarch" <<'EOF'
-#!/bin/sh
-: >"$STATE_SESSION_OWNER_HOST_LAUNCH_FILE"
-exit 0
-EOF
-    cat >"$selftest_replace_dir/fake-nc" <<'EOF'
-#!/bin/sh
-: >"$STATE_SESSION_OWNER_TRANSPORT_LAUNCH_FILE"
-exit 0
-EOF
-    chmod +x "$selftest_replace_bin/perl" "$selftest_replace_bin/ln" \
-        "$selftest_replace_dir/driver-runner" "$selftest_replace_dir/fake-retroarch" \
-        "$selftest_replace_dir/fake-nc"
+    chmod +x "$race_bin/driver-runner" "$race_root/fake-retroarch" "$race_root/fake-nc" \
+        "$race_bin/ln" "$race_bin/rm" || return 1
 
-    selftest_replace_status=0
-    PATH="$selftest_replace_bin:$PATH" \
-    STATE_SESSION_OWNER_REAL_PERL="$selftest_replace_real_perl" \
-    STATE_SESSION_OWNER_REAL_LN="$selftest_replace_real_ln" \
-    STATE_SESSION_OWNER_DRIVER="$DRIVER" \
-    STATE_SESSION_OWNER_PID_FILE="$selftest_replace_dir/driver.pid" \
-    STATE_SESSION_OWNER_LOCK_ROOT="$selftest_replace_lock_root" \
-    STATE_SESSION_OWNER_SIGNAL_LOCK="$selftest_replace_lock_root/nesturbator-retroarch-55355.lock" \
-    STATE_SESSION_OWNER_CLOCK_FILE="$selftest_replace_dir/clock.ms" \
-    STATE_SESSION_OWNER_CLOCK_PID_FILE="$selftest_replace_dir/clock.pid" \
-    STATE_SESSION_OWNER_PATH_FILE="$selftest_replace_dir/owner.path" \
-    STATE_SESSION_OWNER_IDENTITY_BEFORE="$selftest_replace_dir/owner.identity.before" \
-    STATE_SESSION_OWNER_LOCK_IDENTITY="$selftest_replace_dir/lock.identity.after-link" \
-    STATE_SESSION_OWNER_REPLACEMENT_IDENTITY="$selftest_replace_dir/replacement.identity" \
-    STATE_SESSION_OWNER_REPLACEMENT_EXPECTED="$selftest_replace_dir/replacement.expected" \
-    STATE_SESSION_OWNER_HOST_LAUNCH_FILE="$selftest_replace_dir/host-launched" \
-    STATE_SESSION_OWNER_TRANSPORT_LAUNCH_FILE="$selftest_replace_dir/transport-launched" \
-    STATE_SESSION_NC="$selftest_replace_dir/fake-nc" \
-    STATE_SESSION_LOCK_ROOT="$selftest_replace_lock_root" \
-        "$selftest_replace_dir/driver-runner" \
-        "$selftest_replace_dir/fake-retroarch" "$selftest_replace_dir/config.cfg" \
-        "$selftest_replace_dir/core.so" "$selftest_replace_dir/content.nes" \
-        "$selftest_replace_dir/ra" "$selftest_replace_dir/retroarch.log" \
-        "$FRAME_INDEX" "$selftest_replace_dir/calibration.txt" \
-        >"$selftest_replace_dir/driver.out" 2>&1 &
-    selftest_replace_runner_pid=$!
-    wait "$selftest_replace_runner_pid" || selftest_replace_status=$?
-
-    selftest_replace_driver_pid=$(cat "$selftest_replace_dir/driver.pid" 2>/dev/null || true)
-    selftest_replace_clock=$(cat "$selftest_replace_dir/clock.ms" 2>/dev/null || true)
-    selftest_replace_clock_pid=$(cat "$selftest_replace_dir/clock.pid" 2>/dev/null || true)
-    selftest_replace_path=$(cat "$selftest_replace_dir/owner.path" 2>/dev/null || true)
-    selftest_replace_expected_path="$selftest_replace_lock_root/nesturbator-retroarch-55355.lock.owner.attempt-${selftest_replace_clock}-${selftest_replace_driver_pid}"
-    if [ -z "$selftest_replace_driver_pid" ] || [ "$selftest_replace_driver_pid" != "$selftest_replace_runner_pid" ] ||
-        [ "$selftest_replace_clock_pid" != "$selftest_replace_driver_pid" ] ||
-        [ -z "$selftest_replace_clock" ] || [ "$selftest_replace_path" != "$selftest_replace_expected_path" ] ||
-        [ ! -s "$selftest_replace_dir/owner.identity.before" ] ||
-        [ ! -s "$selftest_replace_dir/lock.identity.after-link" ] ||
-        [ ! -s "$selftest_replace_dir/replacement.identity" ]; then
-        OWNER_REPLACEMENT_FAILURE=owner-replacement-lifecycle-not-established
+    race_start=$(mono_ms) || return 1
+    printf 'driver=%s\nframe_index=%s\nconfig=%s\ncore=%s\ncontent=%s\nra=%s\nlog=%s\ncalibration=%s\n' \
+        "$race_driver" "$FRAME_INDEX" "$race_root/config.cfg" "$race_root/core.so" \
+        "$race_root/content.nes" "$race_ra" "$race_root/retroarch.log" \
+        "$race_root/calibration.txt" >"$race_root/actual-launch.txt"
+    race_driver_status=0
+    PATH="$race_bin:$PATH" \
+    STATE_SESSION_TEST_REAL_PERL="$race_real_perl" \
+    STATE_SESSION_TEST_OBSERVATION="$race_root/writer-observation.json" \
+    STATE_SESSION_TEST_OBS_DRIVER="$race_driver" \
+    STATE_SESSION_TEST_FINALIZER_FAULT= STATE_SESSION_CONTROL= \
+    STATE_SESSION_RACE_DRIVER="$race_driver" \
+    STATE_SESSION_RACE_PID_FILE="$race_root/driver.pid" \
+    STATE_SESSION_RACE_TARGET="$race_target" STATE_SESSION_RACE_LOCK_ROOT="$race_lock_root" \
+    STATE_SESSION_RACE_PUBLISHED_OWNER="$race_root/published-owner.path" \
+    STATE_SESSION_TEST_GATE_DEADLINE_MS="$((race_start+10000))" \
+    STATE_SESSION_RACE_LOCK_PATH="$race_lock_path" \
+    STATE_SESSION_RACE_GATE="$race_gate" \
+    STATE_SESSION_RACE_REAL_RM="$race_real_rm" \
+    STATE_SESSION_RACE_REAL_LN="$race_real_ln" \
+    STATE_SESSION_RACE_REAL_PERL="$race_real_perl" \
+    STATE_SESSION_RACE_HOST_LAUNCHED="$race_root/host-launched" \
+    STATE_SESSION_RACE_TRANSPORT_LAUNCHED="$race_root/transport-launched" \
+    STATE_SESSION_TEST_MODE=lock-release-race \
+    STATE_SESSION_TEST_GUARD_PORT=0 \
+    STATE_SESSION_TEST_RELEASE_GATE="$race_gate" \
+    STATE_SESSION_TEST_CASE_ROOT="$race_root" \
+    STATE_SESSION_TEST_RACE_EXPECT= STATE_SESSION_TEST_RACE_BASELINE= \
+    STATE_SESSION_NC="$race_root/fake-nc" STATE_SESSION_LOCK_ROOT="$race_lock_root" \
+        "$race_bin/driver-runner" "$race_root/fake-retroarch" "$race_root/config.cfg" \
+        "$race_root/core.so" "$race_root/content.nes" "$race_ra" "$race_root/retroarch.log" \
+        "$FRAME_INDEX" "$race_root/calibration.txt" >"$race_root/driver.stdout" 2>"$race_root/driver.stderr" &
+    race_runner_pid=$!
+    lock_race_track primary "$race_runner_pid" "$race_root" "$race_gate"
+    race_first_reason=release-ready
+    race_ready=$(lock_race_wait_for_ready "$race_gate") || {
+        echo 'FAIL lock race release boundary did not produce a bounded ready event' >&2
         return 1
+    }
+    race_ready_driver=$(printf '%s\n' "$race_ready" | cut -f2)
+    race_port=$(printf '%s\n' "$race_ready" | cut -f3)
+    race_driver_pid=$(cat "$race_root/driver.pid" 2>/dev/null || true)
+    [ "$race_ready_driver" = "$race_driver_pid" ] && [ "$race_driver_pid" = "$race_runner_pid" ] || {
+        echo 'FAIL lock race gate PID does not identify the actual driver' >&2; return 1;
+    }
+    if [ "$race_expected" = old-damage ]; then
+        [ "$race_port" = legacy ] || { echo 'FAIL old race release boundary is not the actual path rm' >&2; return 1; }
+        race_published=$(cat "$race_root/published-owner.path") || return 1
+        case "$race_published" in "$race_lock_root"/nesturbator-retroarch-55355.lock.owner.attempt-*) ;; *) return 1 ;; esac
+        case "$race_target" in
+            owner-file) race_lock_path=$race_published ;;
+            owner-alias) race_lock_path="$race_lock_path/${race_published##*/}" ;;
+        esac
+        [ -f "$race_lock_path" ] && [ ! -L "$race_lock_path" ] || return 1
+        lock_race_object_snapshot "$race_lock_path" >"$race_root/owned-before.tsv" || return 1
+    else
+        case "$race_port" in ''|*[!0-9]*) echo 'FAIL corrected driver did not report its actual bound port' >&2; return 1 ;; esac
+        race_first_reason=$race_fault
+        case "$race_fault" in
+            missing-record) rm "$race_ra/lock-reservation.tsv" || return 1 ;;
+            malformed-record) printf 'malformed\n' >"$race_ra/lock-reservation.tsv" ;;
+            gate-setup-after-launch)
+                mkdir "$race_gate/.ready" 2>"$race_root/gate-setup.stderr" || return 1
+                return 1 ;;
+        esac
+        [ -n "$race_first_reason" ] || race_first_reason=reservation-match
+        lock_race_match_observed "$race_ra/lock-reservation.tsv" "$race_driver_pid" "$race_port" "$race_root" "$race_driver" || {
+            echo 'FAIL private reservation evidence does not match the held driver descriptor' >&2; return 1;
+        }
+        race_contender="$race_root/contender"
+        mkdir -p "$race_contender/ra" "$race_contender/locks" || return 1
+        : >"$race_contender/config.cfg"; : >"$race_contender/core.so"; : >"$race_contender/content.nes"
+        : >"$race_contender/calibration.txt"
+        race_contender_status=0
+        STATE_SESSION_TEST_MODE=lock-release-race STATE_SESSION_TEST_GUARD_PORT="$race_port" \
+        STATE_SESSION_TEST_CASE_ROOT="$race_contender" STATE_SESSION_TEST_RACE_EXPECT= \
+        STATE_SESSION_TEST_RACE_BASELINE= STATE_SESSION_LOCK_ROOT="$race_contender/locks" \
+        STATE_SESSION_NC="$race_root/fake-nc" \
+        "$race_driver" "$race_root/fake-retroarch" "$race_contender/config.cfg" \
+        "$race_contender/core.so" "$race_contender/content.nes" "$race_contender/ra" \
+        "$race_contender/retroarch.log" "$FRAME_INDEX" "$race_contender/calibration.txt" \
+        >"$race_contender/driver.stdout" 2>"$race_contender/driver.stderr" &
+        lock_race_track contender "$!" "$race_contender" ""
+        lock_race_collect_owned contender
+        printf '%s\n' "$race_contender_status" >"$race_root/contender.status"
+        if [ "$race_fault" = contender-assertion ]; then
+            race_first_reason=contender-assertion
+            [ "$race_contender_status" -eq 0 ] || return 1
+        fi
+        [ "$race_contender_status" -ne 0 ] &&
+            grep -Fx 'state_session: ENDPOINT_BUSY' "$race_contender/driver.stderr" >/dev/null &&
+            [ ! -e "$race_contender/host-launched" ] && [ ! -e "$race_contender/transport-launched" ] || {
+            echo 'FAIL same-port contender was not refused before host/transport' >&2; return 1;
+        }
+        case "$race_target" in
+            owner-file|owner-alias)
+                race_start_observed=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["start_ms"])' "$race_root/writer-observation.json") || return 1
+                race_owner_base="nesturbator-retroarch-55355.lock.owner.attempt-${race_start_observed}-$race_driver_pid"
+                if [ "$race_target" = owner-file ]; then
+                    race_lock_path="$race_lock_root/$race_owner_base"
+                else
+                    mkdir "$race_lock_path" || return 1
+                    printf 'foreign directory sentinel\n' >"$race_lock_path/sentinel"
+                    race_lock_path="$race_lock_path/$race_owner_base"
+                fi ;;
+        esac
     fi
-    if [ "$selftest_replace_status" -ne 143 ] || [ -e "$selftest_replace_dir/host-launched" ] ||
-        [ -e "$selftest_replace_dir/transport-launched" ] ||
-        [ -e "$selftest_replace_lock_root/nesturbator-retroarch-55355.lock" ] ||
-        ! cut -f1-2 "$selftest_replace_dir/owner.identity.before" >"$selftest_replace_dir/owner.inode.before" ||
-        ! cut -f1-2 "$selftest_replace_dir/lock.identity.after-link" >"$selftest_replace_dir/lock.inode.after-link" ||
-        ! cmp -s "$selftest_replace_dir/owner.inode.before" "$selftest_replace_dir/lock.inode.after-link"; then
-        OWNER_REPLACEMENT_FAILURE=owned-hard-link-release-not-proven
-        return 1
+    printf 'foreign replacement bytes for lock release race\n' >"$race_foreign_tmp" || return 1
+    case "$race_target" in
+        dangling) rm "$race_foreign_tmp" && ln -s missing-foreign-target "$race_foreign_tmp" || return 1 ;;
+        multilink) ln "$race_foreign_tmp" "$race_root/foreign-extra-link" || return 1 ;;
+    esac
+    mv -f "$race_foreign_tmp" "$race_lock_path" || return 1
+    lock_race_object_snapshot "$race_lock_path" >"$race_root/foreign.before.tsv" || return 1
+    lock_race_foreign_bytes "$race_lock_path" "$race_root/foreign.before.bytes" || return 1
+    lock_race_record_event "$race_gate/.events" foreign-installed "$race_driver_pid" "$race_port" || return 1
+    lock_race_continue "$race_gate" || return 1
+    race_driver_status=0
+    race_primary_gate=
+    lock_race_collect_owned primary
+    race_end=$(mono_ms) || return 1
+    printf '%s\n' "$((race_end-race_start))" >"$race_root/elapsed-ms"
+    if [ -e "$race_lock_path" ] || [ -L "$race_lock_path" ]; then
+        lock_race_object_snapshot "$race_lock_path" >"$race_root/foreign.after.tsv" || return 1
+        lock_race_foreign_bytes "$race_lock_path" "$race_root/foreign.after.bytes" || return 1
+    else
+        printf 'absent\n' >"$race_root/foreign.after.tsv"
+        : >"$race_root/foreign.after.bytes"
     fi
-    if [ ! -f "$selftest_replace_path" ] || [ -L "$selftest_replace_path" ] ||
-        ! cmp -s "$selftest_replace_dir/replacement.expected" "$selftest_replace_path" ||
-        ! "$selftest_replace_real_perl" -e 'my @s = lstat($ARGV[0]) or exit 1; print join("\t", @s[0,1,2,3,7]), "\n"' \
-            "$selftest_replace_path" >"$selftest_replace_dir/replacement.identity.after-cleanup" ||
-        ! cmp -s "$selftest_replace_dir/replacement.identity" "$selftest_replace_dir/replacement.identity.after-cleanup"; then
-        OWNER_REPLACEMENT_FAILURE=replaced-foreign-owner-object-not-preserved
-        return 1
+    race_oracle_status=0
+    race_oracle_output=$(lock_release_race_oracle "$race_root") || race_oracle_status=$?
+    printf '%s\n' "$race_oracle_status" >"$race_root/oracle.status"
+    printf '%s\n' "$race_oracle_output" >"$race_root/oracle.reason"
+    [ "$race_driver_status" -eq 143 ] || { echo 'FAIL actual startup TERM raw wait was not 143' >&2; return 1; }
+    [ -n "$race_harness_sha" ] && [ "$race_harness_sha" = "$(shasum -a 256 "$0" | awk '{print $1}')" ] || {
+        echo 'FAIL frozen race harness digest changed during actual invocation' >&2; return 1;
+    }
+    [ "$race_oracle_sha" = "$(sed -n '/^lock_release_race_oracle() {$/,/^}$/p' "$0" | shasum -a 256 | awk '{print $1}')" ] || {
+        echo 'FAIL frozen race oracle digest changed during actual invocation' >&2; return 1;
+    }
+    [ "$race_driver_sha" = "$(shasum -a 256 "$race_driver" | awk '{print $1}')" ] &&
+        [ "$race_trace_sha" = "$(shasum -a 256 "$race_trace" | awk '{print $1}')" ] || {
+        echo 'FAIL driver or sourced trace digest changed during actual invocation' >&2; return 1;
+    }
+    if [ "$race_expected" = old-damage ]; then
+        [ "$race_oracle_status" -eq 1 ] && [ "$race_oracle_output" = FOREIGN_OBJECT_CHANGED ] &&
+            [ ! -e "$race_lock_path" ] && [ ! -L "$race_lock_path" ] || {
+            echo 'FAIL actual old rm did not produce the classified in-window foreign damage' >&2; return 1;
+        }
+        race_marker=RED_CONFIRMED
+    else
+        [ "$race_oracle_status" -eq 0 ] && [ "$race_oracle_output" = FOREIGN_OBJECT_PRESERVED ] &&
+            [ "$(cat "$race_root/contender.status")" -ne 0 ] || {
+            echo 'FAIL corrected common oracle or held-port contender proof failed' >&2; return 1;
+        }
+        race_reacquire="$race_root/reacquire"
+        race_reacquire_gate="$race_reacquire/gate"
+        race_reacquire_locks="$race_reacquire/locks"
+        mkdir -p "$race_reacquire_gate" "$race_reacquire_locks" "$race_reacquire/ra" || return 1
+        mkfifo "$race_reacquire_gate/.ready" "$race_reacquire_gate/.continue" || return 1
+        : >"$race_reacquire_gate/.events"
+        : >"$race_reacquire/config.cfg"; : >"$race_reacquire/core.so"
+        : >"$race_reacquire/content.nes"; : >"$race_reacquire/calibration.txt"
+        PATH="$race_bin:$PATH" \
+        STATE_SESSION_TEST_REAL_PERL="$race_real_perl" \
+        STATE_SESSION_TEST_OBSERVATION="$race_reacquire/writer-observation.json" \
+        STATE_SESSION_TEST_OBS_DRIVER="$race_driver" \
+        STATE_SESSION_TEST_FINALIZER_FAULT= STATE_SESSION_CONTROL= \
+        STATE_SESSION_RACE_DRIVER="$race_driver" \
+        STATE_SESSION_RACE_PID_FILE="$race_reacquire/driver.pid" \
+        STATE_SESSION_RACE_HOST_LAUNCHED="$race_reacquire/host-launched" \
+        STATE_SESSION_RACE_TRANSPORT_LAUNCHED="$race_reacquire/transport-launched" \
+        STATE_SESSION_TEST_MODE=lock-release-race STATE_SESSION_TEST_GUARD_PORT="$race_port" \
+        STATE_SESSION_TEST_RELEASE_GATE="$race_reacquire_gate" \
+        STATE_SESSION_TEST_CASE_ROOT="$race_reacquire" STATE_SESSION_TEST_RACE_EXPECT= \
+        STATE_SESSION_TEST_RACE_BASELINE= STATE_SESSION_LOCK_ROOT="$race_reacquire_locks" \
+        STATE_SESSION_NC="$race_root/fake-nc" \
+            "$race_bin/driver-runner" "$race_root/fake-retroarch" "$race_reacquire/config.cfg" \
+            "$race_reacquire/core.so" "$race_reacquire/content.nes" "$race_reacquire/ra" \
+            "$race_reacquire/retroarch.log" "$FRAME_INDEX" "$race_reacquire/calibration.txt" \
+            >"$race_reacquire/driver.stdout" 2>"$race_reacquire/driver.stderr" &
+        race_reacquire_pid=$!
+        lock_race_track reacquire "$race_reacquire_pid" "$race_reacquire" "$race_reacquire_gate"
+        race_first_reason=reacquire-ready
+        race_reacquire_ready=$(lock_race_wait_for_ready "$race_reacquire_gate") || {
+            echo 'FAIL actual driver did not reacquire the released TCP reservation' >&2
+            return 1
+        }
+        race_reacquire_status=0
+        lock_race_continue "$race_reacquire_gate" || return 1
+        race_reacquire_gate=
+        lock_race_collect_owned reacquire
+        printf '%s\n' "$race_reacquire_ready" >"$race_reacquire/ready.tsv"
+        [ "$(printf '%s\n' "$race_reacquire_ready" | cut -f2)" = "$(cat "$race_reacquire/driver.pid")" ] &&
+            [ "$(printf '%s\n' "$race_reacquire_ready" | cut -f3)" = "$race_port" ] &&
+            lock_race_match_observed "$race_reacquire/ra/lock-reservation.tsv" \
+                "$(cat "$race_reacquire/driver.pid")" "$race_port" "$race_reacquire" "$race_driver" &&
+            [ "$race_reacquire_status" -eq 143 ] &&
+            [ ! -e "$race_reacquire/host-launched" ] && [ ! -e "$race_reacquire/transport-launched" ] || {
+            echo 'FAIL exact-port actual-driver reacquisition/release lifecycle did not pass' >&2; return 1;
+        }
+        if [ "$race_mode" = current-only ]; then race_marker=CURRENT_PRESERVED; else race_marker=GREEN_CONFIRMED; fi
     fi
-    OWNER_REPLACEMENT_FAILURE=
+    if [ "$race_expected" = preserved ] && [ "$race_mode" != current-only ]; then
+        race_baseline=${5:-${STATE_SESSION_TEST_RACE_BASELINE:-}}
+        [ -n "$race_baseline" ] && [ -f "$race_baseline/result.env" ] || {
+            echo 'FAIL same-round RED baseline is missing' >&2; return 1;
+        }
+        race_expected_baseline=${5:-"$(dirname "$race_root")/tracer-red"}
+        [ "$(cd "$race_baseline" && pwd -P)" = "$(cd "$race_expected_baseline" && pwd -P)" ] || {
+            echo 'FAIL RED baseline is not from this round' >&2; return 1;
+        }
+        (cd "$race_baseline" && shasum -a 256 -c raw-evidence.sha256 >/dev/null) || return 1
+        race_baseline_status=0
+        race_baseline_reason=$(lock_release_race_oracle "$race_baseline") || race_baseline_status=$?
+        [ "$race_baseline_status" -eq 1 ] && [ "$race_baseline_reason" = FOREIGN_OBJECT_CHANGED ] || return 1
+        grep -Fx 'marker=RED_CONFIRMED' "$race_baseline/result.env" >/dev/null &&
+            grep -Fx 'driver_status=143' "$race_baseline/result.env" >/dev/null &&
+            grep -Fx 'safety_status=1' "$race_baseline/result.env" >/dev/null &&
+            grep -Fx 'reason=FOREIGN_OBJECT_CHANGED' "$race_baseline/result.env" >/dev/null &&
+            grep -Fx "harness=$race_harness_sha" "$race_baseline/result.env" >/dev/null &&
+            grep -Fx "oracle=$race_oracle_sha" "$race_baseline/result.env" >/dev/null || {
+            echo 'FAIL accepted RED raw status or common digest does not match this GREEN' >&2; return 1;
+        }
+    fi
+    (cd "$race_root" && shasum -a 256 driver.stdout driver.stderr driver.status oracle.status oracle.reason \
+        foreign.before.tsv foreign.after.tsv foreign.before.bytes foreign.after.bytes gate/.events >raw-evidence.sha256) || return 1
+    race_first_reason=complete
+    printf 'marker=%s\nsource=%s\ntrace=%s\nharness=%s\noracle=%s\ndriver_status=%s\nsafety_status=%s\nreason=%s\n' \
+        "$race_marker" "$race_driver_sha" "$race_trace_sha" "$race_harness_sha" \
+        "$race_oracle_sha" "$race_driver_status" "$race_oracle_status" "$race_oracle_output" \
+        >"$race_root/result.env"
+    if [ "$race_mode" = current-only ]; then
+        printf 'state session lock release control: reservation-held foreign object preserved; one-port contender refused; startup TERM status=143\n'
+    else
+        printf 'lock release race: %s source=%s harness=%s oracle=%s driver_status=%s safety_status=%s reason=%s\n' \
+            "$race_marker" "$race_driver_sha" "$race_harness_sha" "$race_oracle_sha" \
+            "$race_driver_status" "$race_oracle_status" "$race_oracle_output"
+    fi
     return 0
+)
+
+lock_race_foreign_bytes() {
+    perl -e '
+        my ($in,$out)=@ARGV; my $bytes;
+        if (-l $in) { $bytes=readlink($in); defined($bytes) or die "readlink\n"; }
+        else { open my $fh,"<:raw",$in or die "read\n"; local $/; $bytes=<$fh>; close $fh or die "close\n"; }
+        open my $fh,">:raw",$out or die "write\n"; print {$fh} $bytes or die "write\n"; close $fh or die "close\n";
+    ' "$1" "$2"
 }
+selftest_lock_release_suite() (
+    suite_mode=${1:-explicit}; suite_root=${2:-$WORK_ROOT}; suite_pair=$(dirname "$suite_root")
+    suite_main=$(selftest_lock_release_race "$suite_mode" "$suite_root" lock-dir "$suite_pair") || return 1
+    mv "$suite_root/result.env" "$suite_root/lead-result.env" || return 1
+    for suite_target in owner-file owner-alias dangling multilink; do
+        case "${STATE_SESSION_TEST_RACE_EXPECT:-}:$suite_mode" in
+            old-damage:*) suite_leaf=tracer-red ;;
+            *) suite_leaf=tracer-green ;;
+        esac
+        suite_case="$suite_root/$suite_target/$suite_leaf"
+        suite_baseline=
+        if [ "${STATE_SESSION_TEST_RACE_EXPECT:-}" = preserved ] && [ "$suite_mode" != current-only ]; then
+            suite_baseline="$STATE_SESSION_TEST_RACE_BASELINE/$suite_target/tracer-red"
+        fi
+        suite_output=$(selftest_lock_release_race "$suite_mode" "$suite_case" "$suite_target" "$suite_pair" "$suite_baseline") || return 1
+        printf '%s\n' "$suite_output" >"$suite_root/$suite_target/classifier.out"
+    done
+    mv "$suite_root/lead-result.env" "$suite_root/result.env" || return 1
+    printf '%s\n' "$suite_main"
+)
 
 selftest_regular_lock_trace_tap() (
     trace_tap_id="session-regular-lock-$(mono_ms)-$$"
     trace_tap_file="$WORK_ROOT/regular-lock-trace-selftest/ra/interruption-events.tsv"
-    trace_tap_target='regular hard-link lifecycle records held occupancy until release'
+    trace_tap_target='bound TCP reservation records held occupancy until release'
     printf 'TAP version 13\n1..3\n'
     selftest_write_trace_regular_lock_lifecycle \
         "$WORK_ROOT/regular-lock-trace-selftest" "$trace_tap_id" || {
-        printf 'Bail out! regular-lock writer fixture or event recording failed\n'
+        printf 'Bail out! descriptor reservation writer fixture or event recording failed\n'
         return 1
     }
+    trace_tap_driver=$(cat "$WORK_ROOT/regular-lock-trace-selftest/driver.pid") || return 1
     trace_tap_rows_ok=0
-    awk -F '\t' -v wanted="$trace_tap_id" -v driver="$$" '
+    awk -F '\t' -v wanted="$trace_tap_id" -v driver="$trace_tap_driver" '
         function positive(value) { return value ~ /^[0-9]+$/ && value ~ /[1-9]/ }
         NR == 1 && ($1 != wanted || $2 != "driver" || $3 != "1" || $4 !~ /^[0-9]+$/ ||
             $5 != "handler-entry" || $6 != "0" || $7 != driver || !positive($8) ||
@@ -1585,11 +2516,11 @@ selftest_regular_lock_trace_tap() (
         END { if (NR != 3 || bad) exit 1 }
     ' "$trace_tap_file" && trace_tap_rows_ok=1
     [ "$trace_tap_rows_ok" -eq 1 ] || {
-        printf 'Bail out! regular-lock trace had invalid event, identity, timing, status, PID, journal, QUIT, send, or first-failure fields\n'
+        printf 'Bail out! reservation trace had invalid event, identity, timing, status, PID, journal, QUIT, send, or first-failure fields\n'
         return 1
     }
     trace_tap_status=0
-    trace_tap_result=$(verify_interruption_driver_trace "$trace_tap_file" "$trace_tap_id" "$$") ||
+    trace_tap_result=$(verify_interruption_driver_trace "$trace_tap_file" "$trace_tap_id" "$trace_tap_driver") ||
         trace_tap_status=$?
     trace_tap_lock_values=$(awk -F '\t' 'NR == 1 { a=$14 } NR == 2 { b=$14 } NR == 3 { c=$14 } END { print a "," b "," c }' "$trace_tap_file")
     if [ "$trace_tap_status" -eq 1 ] && [ "$trace_tap_result" = TRACE_VALUE ] &&
@@ -1603,7 +2534,7 @@ selftest_regular_lock_trace_tap() (
         [ "$trace_tap_lock_values" = present,present,absent ]; then
         printf 'ok 1 - %s\n' "$trace_tap_target"
     else
-        printf 'Bail out! unexpected regular-lock result: fields=%s validator=%s status=%s\n' \
+        printf 'Bail out! unexpected reservation trace result: fields=%s validator=%s status=%s\n' \
             "$trace_tap_lock_values" "$trace_tap_result" "$trace_tap_status"
         return 1
     fi
@@ -1620,15 +2551,11 @@ selftest_regular_lock_trace_tap() (
         return 1
     fi
 
-    if selftest_owner_sidecar_replacement "$WORK_ROOT"; then
-        printf 'ok 3 - actual startup cleanup preserves a replaced foreign owner object\n'
-    elif [ "$OWNER_REPLACEMENT_FAILURE" = replaced-foreign-owner-object-not-preserved ]; then
-        printf '# actual driver registered the owned hard link, then cleanup removed the replacement object\n'
-        printf 'not ok 3 - actual startup cleanup preserves a replaced foreign owner object\n'
-        tap_failure=1
+    if selftest_lock_release_race current-only "$WORK_ROOT/regular-lock-trace-selftest/lock-release-race"; then
+        printf 'ok 3 - actual close-only release preserves the foreign endpoint object\n'
     else
-        printf 'Bail out! owner-sidecar replacement precondition failed: %s\n' "$OWNER_REPLACEMENT_FAILURE"
-        return 1
+        printf 'not ok 3 - actual close-only release preserves the foreign endpoint object\n'
+        tap_failure=1
     fi
     return "$tap_failure"
 )
@@ -1663,13 +2590,6 @@ run_interruption_capture_selftests() {
         return 1
     fi
     selftest_owner_sidecar_mutants "$selftest_root" || return 1
-    if selftest_owner_sidecar_replacement "$selftest_root"; then
-        printf 'state session owner-sidecar selftest: exact owned hard link released; replacement object and bytes preserved\n'
-    else
-        echo "FAIL owner-sidecar replacement: $OWNER_REPLACEMENT_FAILURE" >&2
-        return 1
-    fi
-
     selftest_match="$selftest_root/match"
     mkdir -p "$selftest_match"
     printf 'step\tclass\treason\nINTERRUPTED_TERM\tsignal\tTERM\nCOMPLETE\tfinish\tOK\n' >"$selftest_match/journal.tsv"
@@ -2512,7 +3432,8 @@ run_interruption_control() {
     interrupt_capture_id=${interrupt_dir##*/}
     interrupt_trace="$interrupt_ra/interruption-events.tsv"
     interrupt_trace_errors="$interrupt_ra/interruption-trace-errors.tsv"
-    mkdir -p "$interrupt_ra/shots" "$interrupt_ra/states" "$interrupt_capture_dir"
+    interrupt_lock_root="$interrupt_dir/locks"
+    mkdir -p "$interrupt_ra/shots" "$interrupt_ra/states" "$interrupt_lock_root" "$interrupt_capture_dir"
     ln -s "$script_path" "$interrupt_dir/fake-nc"
     ln -s "$script_path" "$interrupt_dir/fake-retroarch"
     : >"$interrupt_dir/config.cfg"; : >"$interrupt_dir/core.so"
@@ -2537,13 +3458,14 @@ run_interruption_control() {
     STATE_SESSION_TEST_FAIL_REQUEST='' \
     STATE_SESSION_TEST_FAULT='' \
     STATE_SESSION_TEST_MODE=prefix \
+    STATE_SESSION_TEST_GUARD_PORT="${STATE_SESSION_TEST_GUARD_PORT:-0}" \
     STATE_SESSION_TEST_STOP_AFTER_PREFIX=1 \
     STATE_SESSION_TEST_INTERRUPT_INVOCATION="$interrupt_capture_id" \
     STATE_SESSION_TEST_INTERRUPT_TRACE="$interrupt_trace" \
     STATE_SESSION_TEST_INTERRUPT_TRACE_ERRORS="$interrupt_trace_errors" \
     STATE_SESSION_TEST_SHOTS="$interrupt_ra/shots" \
     STATE_SESSION_TEST_HOST_DIE=0 \
-    STATE_SESSION_LOCK_ROOT="$interrupt_dir/locks" \
+    STATE_SESSION_LOCK_ROOT="$interrupt_lock_root" \
     STATE_SESSION_ATTEMPT_MS=30000 \
     STATE_SESSION_OPERATION_MS=30000 \
     STATE_SESSION_CLEANUP_MS=1000 \
@@ -2669,8 +3591,158 @@ run_interruption_control() {
     printf 'state session interruption control: TERM retained; one QUIT; host reaped; capture=usable; trace=3 owned events\n'
 }
 
+selftest_lock_finalizer_cwd() (
+    finalizer_root=$1
+    mkdir -p "$(dirname "$finalizer_root")" || return 1
+    mkdir "$finalizer_root" 2>/dev/null || {
+        echo 'FAIL finalizer cwd root already exists' >&2
+        return 1
+    }
+    pid_root=$(cd "$finalizer_root" && pwd -P) || return 1
+    pid_driver_source=$DRIVER_PATH
+    pid_real_perl=$(command -v perl) || return 1
+    mkdir "$pid_root/bin" || return 1
+    lock_race_write_perl_wrapper "$pid_root/bin" || return 1
+    for pid_fake in fake-retroarch fake-nc; do
+        printf '#!/bin/sh\n: >"$STATE_SESSION_TEST_CASE_ROOT/%s-launched"\n' \
+            "$(if [ "$pid_fake" = fake-nc ]; then printf transport; else printf host; fi)" \
+            >"$pid_root/$pid_fake"
+        chmod +x "$pid_root/$pid_fake" || return 1
+    done
+    selftest_lock_pid_finalizers "$pid_root"
+)
+
+source_root_preflight() (
+    source_root_parent=$WORK_ROOT
+    mkdir -p "$source_root_parent" || return 1
+    source_root_parent=$(cd "$source_root_parent" && pwd -P) || return 1
+    source_root_matrix="$source_root_parent/source-root-preflight-$$"
+    mkdir "$source_root_matrix" || return 1
+    source_root_frame=$(test_abs_path "$FRAME_INDEX") || {
+        echo 'FAIL source-root matrix frame_index is unavailable' >&2
+        return 1
+    }
+    case "$source_root_frame" in
+        */tests/retroarch/frame_index) source_root_binary=${source_root_frame%/tests/retroarch/frame_index} ;;
+        *) echo 'FAIL source-root matrix frame_index is outside the expected CTest layout' >&2; return 1 ;;
+    esac
+    source_root_runner=$(test_abs_path "$RUN_RETROARCH_CMAKE") || {
+        echo 'FAIL source-root matrix runner wrapper is unavailable' >&2
+        return 1
+    }
+    source_root_space="$source_root_matrix/owned cwd with spaces"
+    mkdir -p "$source_root_space" || return 1
+
+    for source_root_case in repository-root ctest-binary space-bearing-cwd; do
+        case "$source_root_case" in
+            repository-root) source_root_cwd=$TEST_PROJECT_ROOT ;;
+            ctest-binary) source_root_cwd=$source_root_binary ;;
+            space-bearing-cwd) source_root_cwd=$source_root_space ;;
+        esac
+        mkdir -p "$source_root_matrix/$source_root_case" || return 1
+        source_root_identity_status=0
+        (
+            cd "$source_root_cwd" || exit 90
+            STATE_SESSION_CONTROL=source-root-identity \
+                sh "$TEST_HARNESS_PATH" "$EXPECTED_DRIVER" "$source_root_frame" \
+                "$source_root_matrix/$source_root_case/identity-work" \
+                "$CMAKE_COMMAND" "$source_root_runner"
+        ) >"$source_root_matrix/$source_root_case/identity.stdout" \
+          2>"$source_root_matrix/$source_root_case/identity.stderr" || source_root_identity_status=$?
+        [ "$source_root_identity_status" -eq 0 ] &&
+            grep -F 'PASS source-root identity harness=' \
+                "$source_root_matrix/$source_root_case/identity.stdout" >/dev/null || {
+            echo "FAIL valid source identity from $source_root_case (status=$source_root_identity_status)" >&2
+            return 1
+        }
+
+        source_root_finalizer_status=0
+        (
+            cd "$source_root_cwd" || exit 90
+            STATE_SESSION_CONTROL=lock-finalizer-cwd \
+            STATE_SESSION_TEST_CWD_LABEL="$source_root_case" \
+                sh "$TEST_HARNESS_PATH" "$EXPECTED_DRIVER" "$source_root_frame" \
+                "$source_root_matrix/$source_root_case/finalizers" \
+                "$CMAKE_COMMAND" "$source_root_runner"
+        ) >"$source_root_matrix/$source_root_case/finalizers.stdout" \
+          2>"$source_root_matrix/$source_root_case/finalizers.stderr" || source_root_finalizer_status=$?
+        [ "$source_root_finalizer_status" -eq 0 ] || {
+            echo "FAIL finalizer cwd matrix from $source_root_case (status=$source_root_finalizer_status)" >&2
+            return 1
+        }
+        source_root_fault_count=$(awk -v cwd="$source_root_case" \
+            '$1 == "PASS" && $2 == "finalizer" && $3 == "cwd=" cwd { count++ } END { print count+0 }' \
+            "$source_root_matrix/$source_root_case/finalizers.stdout")
+        [ "$source_root_fault_count" -eq 4 ] || {
+            echo "FAIL expected four finalizer faults from $source_root_case, saw $source_root_fault_count" >&2
+            return 1
+        }
+        for source_root_fault in missing-record malformed-record gate-setup-after-launch contender-assertion; do
+            grep -E "^PASS finalizer cwd=$source_root_case fault=$source_root_fault wait=143 reason=$source_root_fault cleanup_anomaly=0 oracle=not-run port_reentry=[1-9][0-9]*$" \
+                "$source_root_matrix/$source_root_case/finalizers.stdout" >/dev/null || {
+                echo "FAIL exact finalizer evidence from $source_root_case for $source_root_fault" >&2
+                return 1
+            }
+        done
+    done
+
+    source_root_copy="$source_root_matrix/copied-source/tests/retroarch"
+    mkdir -p "$source_root_copy" || return 1
+    cp "$EXPECTED_DRIVER" "$source_root_copy/state_session.sh" || return 1
+    cp "$EXPECTED_TRACE" "$source_root_copy/interruption_trace.sh" || return 1
+    source_root_include_marker="$source_root_matrix/copied-include-sourced"
+    source_root_reached_marker="$source_root_matrix/copied-control-reached"
+    source_root_host_marker="$source_root_matrix/copied-host-launched"
+    source_root_send_marker="$source_root_matrix/copied-send-launched"
+    printf '\n: > "$STATE_SESSION_ROOT_NEGATIVE_INCLUDE_MARKER"\n' \
+        >>"$source_root_copy/interruption_trace.sh" || return 1
+    source_root_copy_status=0
+    (
+        cd "$source_root_binary" || exit 90
+        STATE_SESSION_CONTROL=source-root-identity \
+        STATE_SESSION_ROOT_NEGATIVE_INCLUDE_MARKER="$source_root_include_marker" \
+        STATE_SESSION_ROOT_NEGATIVE_REACHED="$source_root_reached_marker" \
+        STATE_SESSION_ROOT_NEGATIVE_HOST_MARKER="$source_root_host_marker" \
+        STATE_SESSION_ROOT_NEGATIVE_SEND_MARKER="$source_root_send_marker" \
+            sh "$TEST_HARNESS_PATH" "$source_root_copy/state_session.sh" \
+            "$source_root_frame" "$source_root_matrix/copied-work" \
+            "$CMAKE_COMMAND" "$source_root_runner"
+    ) >"$source_root_matrix/copied-input.stdout" 2>"$source_root_matrix/copied-input.stderr" || \
+        source_root_copy_status=$?
+    [ "$source_root_copy_status" -eq 2 ] &&
+        grep -Fx 'state session controls: SOURCE_IDENTITY_DRIVER_MISMATCH' \
+            "$source_root_matrix/copied-input.stderr" >/dev/null &&
+        [ ! -e "$source_root_include_marker" ] && [ ! -e "$source_root_reached_marker" ] &&
+        [ ! -e "$source_root_host_marker" ] && [ ! -e "$source_root_send_marker" ] || {
+        echo 'FAIL copied driver/include were not refused before source, control, host or send' >&2
+        return 1
+    }
+    printf 'PASS source-root preflight cwd_cases=3 finalizer_faults=12 copied_driver_include=refused-before-source-host-send evidence=%s\n' \
+        "$source_root_matrix"
+)
+
+if [ "$CONTROL" = source-root-preflight ]; then
+    source_root_preflight
+    exit $?
+fi
+
+if [ "$CONTROL" = lock-finalizer-cwd ]; then
+    selftest_lock_finalizer_cwd "$WORK_ROOT"
+    exit $?
+fi
+
 if [ "$CONTROL" = interruption-trace-lock-selftest ]; then
     selftest_regular_lock_trace_tap
+    exit $?
+fi
+
+if [ "$CONTROL" = lock-release-race ]; then
+    selftest_lock_release_suite explicit "$WORK_ROOT"
+    exit $?
+fi
+
+if [ "$CONTROL" = lock-pid-preflight ]; then
+    selftest_lock_pid_preflight "$WORK_ROOT"
     exit $?
 fi
 
@@ -2681,6 +3753,11 @@ fi
 
 if [ "$CONTROL" = all ] || [ "$CONTROL" = interruption ]; then
     run_interruption_capture_selftests "$WORK_ROOT/interruption-capture-selftest"
+fi
+
+if [ "$CONTROL" = all ]; then
+    selftest_lock_pid_preflight "$WORK_ROOT/lock-pid-preflight-$$" || exit $?
+    selftest_lock_release_suite current-only "$WORK_ROOT/lock-release-race-$$" || exit $?
 fi
 
 if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ] || [ "$CONTROL" = readiness ] || [ "$CONTROL" = all ]; then
@@ -2737,7 +3814,7 @@ run_fault() {
     [ "$fault" != stalled-write ] || command_gap_ms=0
     case_host_die=0; [ "$fault" != host-died ] || case_host_die=1
     case_setup_started=$(mono_ms)
-    mkdir -p "$case_ra/shots" "$case_ra/states"
+    mkdir -p "$case_ra/shots" "$case_ra/states" "$case_dir/locks"
     ln -s "$script_path" "$case_dir/fake-nc"; ln -s "$script_path" "$case_dir/fake-retroarch"
     : >"$case_dir/config.cfg"; : >"$case_dir/core.so"
     case_setup_finished=$(mono_ms); case_setup_elapsed=$((case_setup_finished-case_setup_started))
@@ -2960,6 +4037,7 @@ PY
 }
 run_prefix_driver() {
     _run_dir=$1; _run_ra=$2; _run_fault=${3:-}; _run_lock_root=${4:-$_run_dir/locks}
+    mkdir -p "$_run_lock_root"
     ln -sf "$script_path" "$_run_dir/recording-action-nc"
     STATE_SESSION_NC="$_run_dir/recording-action-nc" \
     STATE_SESSION_TEST_READINESS_NC="$_run_dir/fake-nc" \
@@ -3025,6 +4103,20 @@ if ledger_path.read_text().splitlines()!=["planned"]: raise RuntimeError("cleanu
 with ledger_path.open("a") as ledger: ledger.write("consumed\n")
 names=["exit-failure"] if phase=="red" else ["exit-failure","signal-INT","signal-TERM","signal-HUP","writable-cleanup","foreign-endpoint","foreign-owner-replacement"]
 case_rows=[]
+def reservation(case):
+    import errno,socket
+    p=case/"ra"/"lock-reservation.tsv"
+    if not p.is_file(): return None
+    f=p.read_text().splitlines()[1].split("\t"); port=int(f[1]); pid=int(f[2])
+    sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,0)
+    try: sock.bind(("127.0.0.1",port))
+    except OSError as e:
+        if e.errno!=errno.EADDRINUSE: raise
+        return {"device":int(f[4]),"inode":int(f[5]),"token":f"driver:{pid}:port:{port}",
+            "driver_pid":pid,"port":port,"address":"127.0.0.1","kernel_exclusion":True}
+    finally: sock.close()
+    return None
 def lock_record(path):
     p=pathlib.Path(path)
     try:
@@ -3050,7 +4142,20 @@ def foreign_fixture(case,token):
     (case/"foreign.sends").write_bytes(b"")
     (case/"foreign.signals").write_bytes(b"")
     pidfile=case/"foreign.pid"; done=case/"foreign.done"
-    proc=subprocess.Popen(["sh","-c",'trap \'printf "INT\\n" >>"$3"\' INT; trap \'printf "TERM\\n" >>"$3"\' TERM; trap \'printf "HUP\\n" >>"$3"\' HUP; echo $$ > "$1"; while [ ! -e "$2" ]; do sleep 0.03; done',"foreign",str(pidfile),str(done),str(case/"foreign.signals")])
+    if case.name=="foreign-endpoint":
+        code="""import os,pathlib,socket,sys,time
+root=pathlib.Path(sys.argv[1])
+sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,0)
+sock.bind(("127.0.0.1",0))
+(root/"foreign.port").write_text(str(sock.getsockname()[1])+"\\n")
+(root/"foreign.pid").write_text(str(os.getpid())+"\\n")
+while not (root/"foreign.done").exists(): time.sleep(.01)
+sock.close()
+"""
+        proc=subprocess.Popen([__import__("sys").executable,"-c",code,str(case)])
+    else:
+        proc=subprocess.Popen(["sh","-c",'trap \'printf "INT\\n" >>"$3"\' INT; trap \'printf "TERM\\n" >>"$3"\' TERM; trap \'printf "HUP\\n" >>"$3"\' HUP; echo $$ > "$1"; while [ ! -e "$2" ]; do sleep 0.03; done',"foreign",str(pidfile),str(done),str(case/"foreign.signals")])
     deadline=time.monotonic()+2
     while not pidfile.exists() and time.monotonic()<deadline: time.sleep(.005)
     if not pidfile.exists(): raise RuntimeError("foreign fixture failed to publish PID")
@@ -3063,130 +4168,147 @@ for name in names:
     for f in ["config.cfg","core.so","sends.log","host.pid","shot.count","read.count","state.count"]: (case/f).write_bytes(b"")
     invocation=f"{phase}:{name}:primary"
     foreign=None
-    lock=locks/"nesturbator-retroarch-55355.lock"
-    if name in ["foreign-endpoint","foreign-owner-replacement"]:
-        foreign=foreign_fixture(case,"foreign-"+invocation)
-    if name=="foreign-endpoint":
-        lock.write_text("foreign-"+invocation+"\n")
-        before=lock_record(lock)
-        (case/"foreign-before.json").write_text(json.dumps({"pid":foreign[1],"live":alive(foreign[1]),"lock":before},sort_keys=True)+"\n")
-        shutil.copyfile(lock,case/"foreign-bytes-before")
-        control={"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,"producer":"harness-before-launch","mode":"occupied-endpoint","driver_pid":None,"transport_pid":None,"request_path":None,"request_before":None,"request_after":None,"request_writable":None,"marker":invocation+":occupied-endpoint"}
-        (case/"control.json").write_text(json.dumps(control,sort_keys=True)+"\n")
-    env=os.environ.copy()
-    env.update({"STATE_SESSION_NC":str(case/"fake-nc"),"STATE_SESSION_TEST_READINESS_NC":str(case/"fake-nc"),
-      "STATE_SESSION_TEST_FIXTURE":fixture,"STATE_SESSION_TEST_EXPECTED_DIR":str(ra/"states"),
-      "STATE_SESSION_TEST_SENDS":str(case/"sends.log"),"STATE_SESSION_TEST_HOST_PID":str(case/"host.pid"),
-      "STATE_SESSION_TEST_QUIT_FILE":str(case/"quit"),"STATE_SESSION_TEST_SHOT_COUNT":str(case/"shot.count"),
-      "STATE_SESSION_TEST_READ_COUNT":str(case/"read.count"),"STATE_SESSION_TEST_STATE_COUNT":str(case/"state.count"),
-      "STATE_SESSION_TEST_FAULT":"" if name=="foreign-endpoint" else "cleanup-request-failure",
-      "STATE_SESSION_TEST_MODE":"prefix","STATE_SESSION_TEST_STOP_AFTER_PREFIX":"1",
-      "STATE_SESSION_TEST_SHOTS":str(ra/"shots"),"STATE_SESSION_TEST_HOST_DIE":"0","STATE_SESSION_LOCK_ROOT":str(locks),
-      "STATE_SESSION_TEST_CASE_ID":name,"STATE_SESSION_TEST_INVOCATION_ID":invocation,"STATE_SESSION_TEST_CASE_ROOT":str(case),
-      "STATE_SESSION_TEST_DRIVER_PID_FILE":str(case/"driver.pid"),"STATE_SESSION_ATTEMPT_MS":"30000",
-      "STATE_SESSION_OPERATION_MS":"30000","STATE_SESSION_CLEANUP_MS":"1000","STATE_SESSION_READY_MS":"30000",
-      "STATE_SESSION_PUBLICATION_MS":"1000","STATE_SESSION_SETTLE_MS":"0","STATE_SESSION_COMMAND_GAP_MS":"100",
-      "STATE_SESSION_PROGRESS_WAIT_MS":"20"})
-    argv=["sh",driver,str(case/"fake-retroarch"),str(case/"config.cfg"),str(case/"core.so"),str(pathlib.Path(fixture)/"marker.nes"),str(ra),str(case/"retroarch.log"),frame,str(pathlib.Path(fixture)/"calibration.txt")]
-    start=time.monotonic_ns(); proc=subprocess.Popen(argv,env=env,stdout=(case/"driver.stdout").open("wb"),stderr=(case/"driver.stderr").open("wb"))
-    (case/"driver.pid").write_text(str(proc.pid)+"\n")
-    selected_env={k:env[k] for k in ["STATE_SESSION_TEST_CASE_ID","STATE_SESSION_TEST_INVOCATION_ID","STATE_SESSION_TEST_CASE_ROOT","STATE_SESSION_LOCK_ROOT"]}
-    launch={"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,"driver_pid":proc.pid,
-      "driver_blob":subprocess.check_output(["git","hash-object",driver],text=True).strip(),
-      "harness_blob":subprocess.check_output(["git","hash-object",script],text=True).strip(),
-      "argv":argv,"environment":selected_env,"files":{}}
-    (case/"invocation.json").write_text(json.dumps(launch,sort_keys=True)+"\n")
-    watchdog=False; sent_signal=None
-    if name.startswith("signal-"):
-        deadline=time.monotonic()+8
-        while (not (case/"control.json").is_file() or not (case/"armed").is_file()) and proc.poll() is None and time.monotonic()<deadline: time.sleep(.01)
-        if not (case/"control.json").is_file() or not (case/"armed").is_file(): watchdog=True
-        else:
-            control=json.loads((case/"control.json").read_text()); hp=control.get("host_pid"); rp=control.get("transport_pid")
-            time.sleep(.03)
-            if not alive(hp) or not alive(rp) or not lock_record(lock): watchdog=True
+    proc=None
+    try:
+        lock=locks/"nesturbator-retroarch-55355.lock"
+        if name in ["foreign-endpoint","foreign-owner-replacement"]:
+            foreign=foreign_fixture(case,"foreign-"+invocation)
+        if name=="foreign-endpoint":
+            lock.write_text("foreign-"+invocation+"\n")
+            before=lock_record(lock)
+            (case/"foreign-before.json").write_text(json.dumps({"pid":foreign[1],"live":alive(foreign[1]),"lock":before},sort_keys=True)+"\n")
+            shutil.copyfile(lock,case/"foreign-bytes-before")
+            control={"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,"producer":"harness-before-launch","mode":"occupied-endpoint","driver_pid":None,"transport_pid":None,"request_path":None,"request_before":None,"request_after":None,"request_writable":None,"marker":invocation+":occupied-endpoint"}
+            (case/"control.json").write_text(json.dumps(control,sort_keys=True)+"\n")
+        env=os.environ.copy()
+        env.update({"STATE_SESSION_NC":str(case/"fake-nc"),"STATE_SESSION_TEST_READINESS_NC":str(case/"fake-nc"),
+          "STATE_SESSION_TEST_FIXTURE":fixture,"STATE_SESSION_TEST_EXPECTED_DIR":str(ra/"states"),
+          "STATE_SESSION_TEST_SENDS":str(case/"sends.log"),"STATE_SESSION_TEST_HOST_PID":str(case/"host.pid"),
+          "STATE_SESSION_TEST_QUIT_FILE":str(case/"quit"),"STATE_SESSION_TEST_SHOT_COUNT":str(case/"shot.count"),
+          "STATE_SESSION_TEST_READ_COUNT":str(case/"read.count"),"STATE_SESSION_TEST_STATE_COUNT":str(case/"state.count"),
+          "STATE_SESSION_TEST_FAULT":"" if name=="foreign-endpoint" else "cleanup-request-failure",
+          "STATE_SESSION_TEST_MODE":"prefix","STATE_SESSION_TEST_GUARD_PORT":(case/"foreign.port").read_text().strip() if name=="foreign-endpoint" else "0","STATE_SESSION_TEST_STOP_AFTER_PREFIX":"1",
+          "STATE_SESSION_TEST_SHOTS":str(ra/"shots"),"STATE_SESSION_TEST_HOST_DIE":"0","STATE_SESSION_LOCK_ROOT":str(locks),
+          "STATE_SESSION_TEST_CASE_ID":name,"STATE_SESSION_TEST_INVOCATION_ID":invocation,"STATE_SESSION_TEST_CASE_ROOT":str(case),
+          "STATE_SESSION_TEST_DRIVER_PID_FILE":str(case/"driver.pid"),"STATE_SESSION_ATTEMPT_MS":"30000",
+          "STATE_SESSION_OPERATION_MS":"30000","STATE_SESSION_CLEANUP_MS":"1000","STATE_SESSION_READY_MS":"30000",
+          "STATE_SESSION_PUBLICATION_MS":"1000","STATE_SESSION_SETTLE_MS":"0","STATE_SESSION_COMMAND_GAP_MS":"100",
+          "STATE_SESSION_PROGRESS_WAIT_MS":"20"})
+        argv=["sh",driver,str(case/"fake-retroarch"),str(case/"config.cfg"),str(case/"core.so"),str(pathlib.Path(fixture)/"marker.nes"),str(ra),str(case/"retroarch.log"),frame,str(pathlib.Path(fixture)/"calibration.txt")]
+        start=time.monotonic_ns(); proc=subprocess.Popen(argv,env=env,stdout=(case/"driver.stdout").open("wb"),stderr=(case/"driver.stderr").open("wb"))
+        (case/"driver.pid").write_text(str(proc.pid)+"\n")
+        selected_env={k:env[k] for k in ["STATE_SESSION_TEST_CASE_ID","STATE_SESSION_TEST_INVOCATION_ID","STATE_SESSION_TEST_CASE_ROOT","STATE_SESSION_LOCK_ROOT"]}
+        launch={"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,"driver_pid":proc.pid,
+          "driver_blob":subprocess.check_output(["git","hash-object",driver],text=True).strip(),
+          "harness_blob":subprocess.check_output(["git","hash-object",script],text=True).strip(),
+          "argv":argv,"environment":selected_env,"files":{}}
+        (case/"invocation.json").write_text(json.dumps(launch,sort_keys=True)+"\n")
+        watchdog=False; sent_signal=None
+        if name.startswith("signal-"):
+            deadline=time.monotonic()+8
+            while (not (case/"control.json").is_file() or not (case/"armed").is_file()) and proc.poll() is None and time.monotonic()<deadline: time.sleep(.01)
+            if not (case/"control.json").is_file() or not (case/"armed").is_file(): watchdog=True
             else:
-                sent_signal=name.split("-",1)[1]
-                proc.send_signal({"INT":signal.SIGINT,"TERM":signal.SIGTERM,"HUP":signal.SIGHUP}[sent_signal])
-                control["signal"]=sent_signal
-                (case/"control.json").write_text(json.dumps(control,sort_keys=True)+"\n")
-    try: status=proc.wait(timeout=20)
-    except subprocess.TimeoutExpired:
-        watchdog=True; proc.send_signal(signal.SIGTERM)
-        try: status=proc.wait(timeout=1)
-        except subprocess.TimeoutExpired: proc.kill(); status=proc.wait()
-    elapsed=(time.monotonic_ns()-start)//1_000_000
-    (case/"driver.status").write_text(str(status)+"\n")
-    if name!="foreign-endpoint":
-        deadline=time.monotonic()+1
-        while not (case/"control.json").is_file() and time.monotonic()<deadline: time.sleep(.005)
-    control=json.loads((case/"control.json").read_text())
-    control["driver_pid"]=proc.pid
-    (case/"control.json").write_text(json.dumps(control,sort_keys=True)+"\n")
-    host_pid=int((case/"host.pid").read_text().strip()) if (case/"host.pid").read_text().strip() else None
-    receive_pid=int((case/"receive.pid").read_text().strip()) if (case/"receive.pid").exists() and (case/"receive.pid").read_text().strip() else control.get("transport_pid")
-    host_live=alive(host_pid); child_live=alive(receive_pid)
-    lock_after=lock_record(lock)
-    journal=next(iter((ra/"attempts").glob("attempt-*/journal.tsv")),None)
-    first=reason_from(case)
-    expected=130 if name.startswith("signal-") else 1
-    expected_reason=("INTERRUPTED_"+name.split("-",1)[1]) if name.startswith("signal-") else "ENDPOINT_BUSY" if name=="foreign-endpoint" else "READINESS_REPLY"
-    if phase=="red":
-        if name!="exit-failure" or first!="READINESS_REPLY" or not control.get("owned_live_before_injection") or \
-           control.get("mode")!="request-directory" or control.get("request_after")!="directory" or \
-           control.get("request_writable") is not False:
-            raise RuntimeError("RED did not exercise the original READINESS_REPLY cleanup-write failure")
-    if name in ["exit-failure","signal-INT","signal-TERM","signal-HUP","writable-cleanup","foreign-owner-replacement"]:
-        received=case/"receive.pid"
-        if not received.exists(): received.write_text(str(control.get("transport_pid") or "")+"\n")
-    foreign_after=None; foreign_path=None
-    if name=="foreign-endpoint": foreign_path=lock
-    elif name=="foreign-owner-replacement":
-        owners=list(locks.glob("*.lock.owner.*")); foreign_path=owners[0] if owners else None
-    if foreign is not None:
-        if name=="foreign-owner-replacement":
-            before_file=case/"foreign-before.json"
-            if not before_file.is_file(): raise RuntimeError("foreign owner replacement did not retain before measurement")
-        if foreign_path is None: raise RuntimeError("foreign lock object missing")
-        foreign_after={"pid":foreign[1],"live":alive(foreign[1]),"lock":lock_record(foreign_path)}
-        (case/"foreign-after.json").write_text(json.dumps(foreign_after,sort_keys=True)+"\n")
-        shutil.copyfile(foreign_path,case/"foreign-bytes-after")
-        foreign[2].write_text("")
-        try: foreign[0].wait(timeout=2)
-        except subprocess.TimeoutExpired: foreign[0].terminate(); foreign[0].wait(timeout=2)
-    foreign_preserved=True
-    if foreign is not None:
-        before=json.loads((case/"foreign-before.json").read_text())
-        foreign_preserved=(foreign_after is not None and before["live"] is True and foreign_after["live"] is True and
-          before["lock"]==foreign_after["lock"] and (case/"foreign-bytes-before").read_bytes()==(case/"foreign-bytes-after").read_bytes())
-    owned_lock_after=None if name=="foreign-endpoint" else lock_after
-    passed=(status==expected and first==expected_reason and not watchdog and not host_live and not child_live and
-      ((lock_after is None) if name!="foreign-endpoint" else foreign_preserved))
-    result={"name":name,"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,"driver_pid":proc.pid,
-      "host_pid":host_pid,"receive_pid":receive_pid,"actual_status":status,"expected_status":expected,"first_reason":first,
-      "elapsed_ms":int(elapsed),"watchdog_intervened":watchdog,"host_alive_before_emergency":host_live,
-      "child_alive_before_emergency":child_live,"lock_owned_before_emergency":lock_after is not None and name!="foreign-endpoint",
-      "owned_live_before_injection":bool(control.get("owned_live_before_injection",False)),
-      "owned_lock_before_injection":control.get("owned_lock_before_injection"),"owned_lock_after":owned_lock_after,
-      "injection_confirmed":name!="foreign-endpoint","request_directory":name in ["exit-failure","signal-INT","signal-TERM","signal-HUP"],
-      "setup_ok":True,"passed":passed,"signal":sent_signal,"foreign_pid":foreign[1] if foreign else None,
-      "foreign_path":str(foreign_path) if foreign_path else None,"journal":str(journal) if journal else None}
-    (case/"primary-result.json").write_text(json.dumps(result,sort_keys=True)+"\n")
-    if phase=="red":
-        if passed or not (host_live or lock_after is not None): raise RuntimeError("RED did not prove the specific CR-01 cleanup failure")
-        for pid in [host_pid,receive_pid]:
-            if alive(pid):
-                try: os.kill(pid,signal.SIGTERM)
-                except OSError: pass
-        token=lock_after.get("token") if lock_after else ""
-        owner=locks/("nesturbator-retroarch-55355.lock.owner."+token) if token else None
-        try:
-            if owner and lock_record(owner) and lock_after and (lock_record(owner)["device"],lock_record(owner)["inode"])==(lock_after["device"],lock_after["inode"]):
-                lock.unlink(missing_ok=True); owner.unlink(missing_ok=True)
-        except OSError: pass
-    elif not passed:
-        raise RuntimeError("cleanup case failed: "+name+" status="+str(status)+" reason="+first)
-    case_rows.append(name)
+                control=json.loads((case/"control.json").read_text()); hp=control.get("host_pid"); rp=control.get("transport_pid")
+                time.sleep(.03)
+                if not alive(hp) or not alive(rp) or not reservation(case): watchdog=True
+                else:
+                    sent_signal=name.split("-",1)[1]
+                    proc.send_signal({"INT":signal.SIGINT,"TERM":signal.SIGTERM,"HUP":signal.SIGHUP}[sent_signal])
+                    control["signal"]=sent_signal
+                    (case/"control.json").write_text(json.dumps(control,sort_keys=True)+"\n")
+        try: status=proc.wait(timeout=20)
+        except subprocess.TimeoutExpired:
+            watchdog=True; proc.send_signal(signal.SIGTERM)
+            try: status=proc.wait(timeout=1)
+            except subprocess.TimeoutExpired: proc.kill(); status=proc.wait()
+        elapsed=(time.monotonic_ns()-start)//1_000_000
+        (case/"driver.status").write_text(str(status)+"\n")
+        if name!="foreign-endpoint":
+            deadline=time.monotonic()+1
+            while not (case/"control.json").is_file() and time.monotonic()<deadline: time.sleep(.005)
+        control=json.loads((case/"control.json").read_text())
+        control["driver_pid"]=proc.pid
+        (case/"control.json").write_text(json.dumps(control,sort_keys=True)+"\n")
+        host_pid=int((case/"host.pid").read_text().strip()) if (case/"host.pid").read_text().strip() else None
+        receive_pid=int((case/"receive.pid").read_text().strip()) if (case/"receive.pid").exists() and (case/"receive.pid").read_text().strip() else control.get("transport_pid")
+        host_live=alive(host_pid); child_live=alive(receive_pid)
+        lock_after=lock_record(lock) if name=="foreign-endpoint" else reservation(case)
+        journal=next(iter((ra/"attempts").glob("attempt-*/journal.tsv")),None)
+        first=reason_from(case)
+        expected=130 if name.startswith("signal-") else 1
+        expected_reason=("INTERRUPTED_"+name.split("-",1)[1]) if name.startswith("signal-") else "ENDPOINT_BUSY" if name=="foreign-endpoint" else "READINESS_REPLY"
+        if phase=="red":
+            if name!="exit-failure" or first!="READINESS_REPLY" or not control.get("owned_live_before_injection") or \
+               control.get("mode")!="request-directory" or control.get("request_after")!="directory" or \
+               control.get("request_writable") is not False:
+                raise RuntimeError("RED did not exercise the original READINESS_REPLY cleanup-write failure")
+        if name in ["exit-failure","signal-INT","signal-TERM","signal-HUP","writable-cleanup","foreign-owner-replacement"]:
+            received=case/"receive.pid"
+            if not received.exists(): received.write_text(str(control.get("transport_pid") or "")+"\n")
+        foreign_after=None; foreign_path=None
+        if name=="foreign-endpoint": foreign_path=lock
+        elif name=="foreign-owner-replacement":
+            owners=list(locks.glob("*.lock.owner.*")); foreign_path=owners[0] if owners else None
+        if foreign is not None:
+            if name=="foreign-owner-replacement":
+                before_file=case/"foreign-before.json"
+                if not before_file.is_file(): raise RuntimeError("foreign owner replacement did not retain before measurement")
+            if foreign_path is None: raise RuntimeError("foreign lock object missing")
+            foreign_after={"pid":foreign[1],"live":alive(foreign[1]),"lock":lock_record(foreign_path)}
+            (case/"foreign-after.json").write_text(json.dumps(foreign_after,sort_keys=True)+"\n")
+            shutil.copyfile(foreign_path,case/"foreign-bytes-after")
+            foreign[2].write_text("")
+            try: foreign[0].wait(timeout=2)
+            except subprocess.TimeoutExpired: foreign[0].terminate(); foreign[0].wait(timeout=2)
+        foreign_preserved=True
+        if foreign is not None:
+            before=json.loads((case/"foreign-before.json").read_text())
+            foreign_preserved=(foreign_after is not None and before["live"] is True and foreign_after["live"] is True and
+              before["lock"]==foreign_after["lock"] and (case/"foreign-bytes-before").read_bytes()==(case/"foreign-bytes-after").read_bytes())
+        owned_lock_after=None if name=="foreign-endpoint" else lock_after
+        passed=(status==expected and first==expected_reason and not watchdog and not host_live and not child_live and
+          ((lock_after is None) if name!="foreign-endpoint" else foreign_preserved))
+        result={"name":name,"case_id":name,"invocation_id":invocation,"case_root":"cases/"+name,"driver_pid":proc.pid,
+          "host_pid":host_pid,"receive_pid":receive_pid,"actual_status":status,"expected_status":expected,"first_reason":first,
+          "elapsed_ms":int(elapsed),"watchdog_intervened":watchdog,"host_alive_before_emergency":host_live,
+          "child_alive_before_emergency":child_live,"lock_owned_before_emergency":lock_after is not None and name!="foreign-endpoint",
+          "owned_live_before_injection":bool(control.get("owned_live_before_injection",False)),
+          "owned_lock_before_injection":control.get("owned_lock_before_injection"),"owned_lock_after":owned_lock_after,
+          "injection_confirmed":name!="foreign-endpoint","request_directory":name in ["exit-failure","signal-INT","signal-TERM","signal-HUP"],
+          "setup_ok":True,"passed":passed,"signal":sent_signal,"foreign_pid":foreign[1] if foreign else None,
+          "foreign_path":str(foreign_path) if foreign_path else None,"journal":str(journal) if journal else None}
+        (case/"primary-result.json").write_text(json.dumps(result,sort_keys=True)+"\n")
+        if phase=="red":
+            if passed or not (host_live or lock_after is not None): raise RuntimeError("RED did not prove the specific CR-01 cleanup failure")
+            for pid in [host_pid,receive_pid]:
+                if alive(pid):
+                    try: os.kill(pid,signal.SIGTERM)
+                    except OSError: pass
+            token=lock_after.get("token") if lock_after else ""
+            owner=locks/("nesturbator-retroarch-55355.lock.owner."+token) if token else None
+            try:
+                if owner and lock_record(owner) and lock_after and (lock_record(owner)["device"],lock_record(owner)["inode"])==(lock_after["device"],lock_after["inode"]):
+                    lock.unlink(missing_ok=True); owner.unlink(missing_ok=True)
+            except OSError: pass
+        elif not passed:
+            raise RuntimeError("cleanup case failed: "+name+" status="+str(status)+" reason="+first)
+        case_rows.append(name)
+    finally:
+        if proc is not None and proc.poll() is None:
+            proc.terminate()
+            try: emergency_status=proc.wait(timeout=1)
+            except subprocess.TimeoutExpired: proc.kill(); emergency_status=proc.wait(timeout=1)
+            (case/"emergency-driver.status").write_text(str(emergency_status)+"\n")
+        if foreign is not None and foreign[0].poll() is None:
+            foreign[2].write_text("")
+            try: foreign_status=foreign[0].wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                foreign[0].terminate()
+                try: foreign_status=foreign[0].wait(timeout=1)
+                except subprocess.TimeoutExpired: foreign[0].kill(); foreign_status=foreign[0].wait(timeout=1)
+            (case/"foreign.status").write_text(str(foreign_status)+"\n")
+
 (root/"primary-cases.json").write_text(json.dumps(case_rows)+"\n")
 PY
     if [ "$cleanup_phase" != red ]; then
@@ -3211,6 +4333,7 @@ PY
             STATE_SESSION_TEST_CASE_ID="$cleanup_name" \
             STATE_SESSION_TEST_INVOCATION_ID="green:$cleanup_name:reacquisition" \
             STATE_SESSION_TEST_CASE_ROOT="$cleanup_case_root" \
+            STATE_SESSION_TEST_GUARD_PORT="$(python3 -c 'import pathlib,sys;print(pathlib.Path(sys.argv[1]).read_text().splitlines()[1].split("\t")[1])' "$cleanup_case_root/ra/lock-reservation.tsv")" \
             STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE="$cleanup_reacq/lock.json" \
             run_prefix_driver "$cleanup_reacq" "$cleanup_reacq/ra" '' "$cleanup_case_root/locks" \
                 >"$cleanup_reacq/stdout.log" 2>"$cleanup_reacq/stderr.log" || cleanup_reacq_status=$?
@@ -3245,13 +4368,19 @@ if phase=="red": names=names[:1]
 def sha(path): return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
 def git(*args): return subprocess.check_output(["git",*args],text=True).strip()
 def rel(p): return pathlib.Path(p).resolve().relative_to(root).as_posix()
-def lock(path):
-    p=pathlib.Path(path)
-    try:
-        st=p.lstat()
-        if not p.is_file() or p.is_symlink(): return None
-        return {"device":st.st_dev,"inode":st.st_ino,"token":p.read_text().strip()}
-    except OSError: return None
+def held_reservation(case):
+    import errno,socket
+    f=(case/"ra"/"lock-reservation.tsv").read_text().splitlines()[1].split("\t")
+    pid=int(f[2]); port=int(f[1]); sock=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,0)
+    try: sock.bind(("127.0.0.1",port))
+    except OSError as e:
+        if e.errno!=errno.EADDRINUSE: raise
+        return {"device":int(f[4]),"inode":int(f[5]),"token":f"driver:{pid}:port:{port}",
+            "driver_pid":pid,"port":port,"address":"127.0.0.1","kernel_exclusion":True}
+    finally: sock.close()
+    return None
+
 def live(pid):
     if not pid: return False
     try: os.kill(int(pid),0); return True
@@ -3273,10 +4402,10 @@ for name in names:
           "driver_pid":int((case/"driver.pid").read_text().strip()),"host_pid":host,"receive_pid":receive,
           "actual_status":status,"expected_status":1,"first_reason":reason,"elapsed_ms":elapsed,"watchdog_intervened":False,
           "host_alive_before_emergency":live(host),"child_alive_before_emergency":live(receive),
-          "lock_owned_before_emergency":lock(case/"locks"/"nesturbator-retroarch-55355.lock") is not None,
+          "lock_owned_before_emergency":held_reservation(case) is not None,
           "owned_live_before_injection":bool(control.get("owned_live_before_injection")),
           "owned_lock_before_injection":control.get("owned_lock_before_injection"),
-          "owned_lock_after":lock(case/"locks"/"nesturbator-retroarch-55355.lock"),"injection_confirmed":True,
+          "owned_lock_after":held_reservation(case),"injection_confirmed":True,
           "request_directory":False,"setup_ok":True,"passed":status==1 and reason=="QUIT_DEADLINE",
           "signal":None,"foreign_pid":None,"journal":str(journal) if journal else None}
         (case/"primary-result.json").write_text(json.dumps(raw,sort_keys=True)+"\n")
@@ -3378,7 +4507,8 @@ for name in names:
     life=json.loads((root/"cases"/name/"lifecycle.json").read_text())
     if life["reacquisition"]:
         old=life["owned_lock_before"]; new=life["reacquisition"]["lock"]
-        if old is None or old["token"]==new["token"] or old==new: raise RuntimeError("reacquired lock identity did not advance: "+name)
+        if old is None or old["driver_pid"]==new["driver_pid"] or old["port"]!=new["port"] or not new["kernel_exclusion"]:
+            raise RuntimeError("same-port reacquisition lacks a distinct live driver invocation: "+name)
     (root/"cases"/name/"lifecycle.json").write_text(json.dumps(life,sort_keys=True)+"\n")
 if phase!="red":
     rows.sort(key=lambda x:names.index(x["name"]))
@@ -3764,74 +4894,42 @@ run_readiness_controls() {
     run_readiness_case readiness-response-stall readiness-response-stall 4500 7000
 }
 
-run_startup_lock_signal_control() {
+run_startup_lock_signal_control() (
     startup_signal_started=$(mono_ms)
-    startup_signal_dir="$WORK_ROOT/session-$$-startup-lock-signal"
-    startup_signal_ra="$startup_signal_dir/ra"
-    startup_signal_locks="$startup_signal_dir/locks"
-    startup_signal_bin="$startup_signal_dir/bin"
-    startup_signal_lock="$startup_signal_locks/nesturbator-retroarch-55355.lock"
-    startup_signal_real_mkdir=$(command -v mkdir)
-    startup_signal_real_ln=$(command -v ln)
-    mkdir -p "$startup_signal_ra/shots" "$startup_signal_ra/states" "$startup_signal_bin"
-    ln -sf "$script_path" "$startup_signal_dir/fake-nc"
-    ln -sf "$script_path" "$startup_signal_dir/fake-retroarch"
-    : >"$startup_signal_dir/config.cfg"
-    : >"$startup_signal_dir/core.so"
-    cat >"$startup_signal_bin/mkdir" <<'EOF'
-#!/bin/sh
-if [ "$#" -eq 1 ] && [ "$1" = "${STATE_SESSION_TEST_SIGNAL_LOCK:-}" ]; then
-    "$STATE_SESSION_TEST_REAL_MKDIR" "$@" || exit $?
-    kill -TERM "$PPID" 2>/dev/null || true
-    exit 0
-fi
-exec "$STATE_SESSION_TEST_REAL_MKDIR" "$@"
-EOF
-    cat >"$startup_signal_bin/ln" <<'EOF'
-#!/bin/sh
-signal_lock=0
-case "$#" in
-    2) [ "$2" = "${STATE_SESSION_TEST_SIGNAL_LOCK:-}" ] && signal_lock=1 ;;
-    3) [ "$1" = '-s' ] && [ "$3" = "${STATE_SESSION_TEST_SIGNAL_LOCK:-}" ] && signal_lock=1 ;;
-esac
-if [ "$signal_lock" -eq 1 ]; then
-    "$STATE_SESSION_TEST_REAL_LN" "$@" || exit $?
-    kill -TERM "$PPID" 2>/dev/null || true
-    exit 0
-fi
-exec "$STATE_SESSION_TEST_REAL_LN" "$@"
-EOF
-    chmod +x "$startup_signal_bin/mkdir" "$startup_signal_bin/ln"
-    startup_signal_status=0
-    (
-        PATH="$startup_signal_bin:$PATH"
-        export PATH
-        STATE_SESSION_TEST_SIGNAL_LOCK="$startup_signal_lock"
-        STATE_SESSION_TEST_REAL_MKDIR="$startup_signal_real_mkdir"
-        STATE_SESSION_TEST_REAL_LN="$startup_signal_real_ln"
-        export STATE_SESSION_TEST_SIGNAL_LOCK STATE_SESSION_TEST_REAL_MKDIR STATE_SESSION_TEST_REAL_LN
-        run_prefix_driver "$startup_signal_dir" "$startup_signal_ra" '' "$startup_signal_locks"
-    ) >"$startup_signal_dir/driver.out" 2>&1 || startup_signal_status=$?
-    [ "$startup_signal_status" -eq 143 ] || {
-        echo "FAIL startup TERM status: expected=143 actual=$startup_signal_status" >&2
-        cat "$startup_signal_dir/driver.out" >&2
-        exit 1
-    }
-    [ ! -e "$startup_signal_lock" ] && [ ! -L "$startup_signal_lock" ] || {
-        echo 'FAIL startup TERM left endpoint lock behind' >&2
-        exit 1
-    }
-    run_prefix_driver "$startup_signal_dir" "$startup_signal_ra" '' "$startup_signal_locks"
-    [ -s "$startup_signal_dir/sends.log" ] &&
-        [ ! -e "$startup_signal_lock" ] && [ ! -L "$startup_signal_lock" ] || {
-        echo 'FAIL later session could not acquire the startup-signal lock' >&2
-        exit 1
-    }
-    startup_signal_finished=$(mono_ms)
-    startup_signal_elapsed=$((startup_signal_finished-startup_signal_started))
+    pid_root="$WORK_ROOT/session-$$-startup-lock-signal"
+    mkdir "$pid_root" || return 1
+    pid_root=$(cd "$pid_root" && pwd -P)
+    pid_driver_source=$(cd "$(dirname "$DRIVER")" && pwd -P)/$(basename "$DRIVER")
+    pid_real_perl=$(command -v perl)
+    mkdir "$pid_root/bin"
+    lock_race_write_perl_wrapper "$pid_root/bin"
+    for pid_fake in fake-retroarch fake-nc; do
+        printf '#!/bin/sh\n: >"$STATE_SESSION_TEST_CASE_ROOT/host-or-transport-launched"\n' >"$pid_root/$pid_fake"
+        chmod +x "$pid_root/$pid_fake"
+    done
+    race_lifecycle_root="$pid_root/startup"; race_first_reason=startup-TERM
+    trap 'lock_race_finalize_owned $?' EXIT
+    lock_race_start_preflight_driver "$race_lifecycle_root" 0 valid || return 1
+    lock_race_track primary "$race_launched_pid" "$race_lifecycle_root" "$race_lifecycle_root/gate"
+    startup_signal_pid=$race_launched_pid
+    startup_signal_ready=$(lock_race_wait_for_ready "$race_lifecycle_root/gate") || return 1
+    startup_signal_port=$(printf '%s\n' "$startup_signal_ready" | cut -f3)
+    lock_race_collect_owned primary
+    [ "$race_driver_status" -eq 143 ] &&
+        [ ! -e "$race_lifecycle_root/host-or-transport-launched" ] &&
+        lock_race_match_observed "$race_lifecycle_root/ra/lock-reservation.tsv" "$startup_signal_pid" \
+            "$startup_signal_port" "$race_lifecycle_root" "$pid_driver_source" || return 1
+    startup_signal_next="$pid_root/later"
+    mkdir -p "$startup_signal_next/ra/shots" "$startup_signal_next/ra/states"
+    ln -s "$script_path" "$startup_signal_next/fake-nc"; ln -s "$script_path" "$startup_signal_next/fake-retroarch"
+    : >"$startup_signal_next/config.cfg"; : >"$startup_signal_next/core.so"
+    STATE_SESSION_TEST_GUARD_PORT="$startup_signal_port" \
+        run_prefix_driver "$startup_signal_next" "$startup_signal_next/ra" '' "$startup_signal_next/locks" || return 1
+    [ -s "$startup_signal_next/sends.log" ] || return 1
+    startup_signal_elapsed=$(($(mono_ms)-startup_signal_started))
     printf 'state session startup lock signal control: TERM status 143; owned lock released; later acquisition succeeded; elapsed=%sms\n' \
         "$startup_signal_elapsed"
-}
+)
 
 if [ "$CONTROL" = readiness ]; then
     run_readiness_controls
@@ -3902,11 +5000,14 @@ sh "$DRIVER" "$setup_failure_dir/fake-retroarch" "$setup_failure_dir/config.cfg"
 [ "$setup_failure_status" -eq 73 ] &&
     grep -Fx 'injected mkdir failure at attempt setup' "$setup_failure_dir/driver.out" >/dev/null &&
     [ ! -e "$setup_failure_lock" ] &&
+    [ -s "$setup_failure_ra/lock-reservation.tsv" ] &&
     [ ! -e "$setup_failure_dir/host.pid" ] && [ ! -e "$setup_failure_dir/sends.log" ] || {
     echo "FAIL attempt setup failure did not preserve mkdir status and release its owned lock (status=$setup_failure_status)" >&2
     cat "$setup_failure_dir/driver.out" >&2
     exit 1
 }
+# Keep the failed invocation's descriptor proof while making the reusable test RA root fresh.
+mv "$setup_failure_ra/lock-reservation.tsv" "$setup_failure_dir/failed-setup-lock-reservation.tsv"
 run_prefix_driver "$setup_failure_dir" "$setup_failure_ra" '' "$setup_failure_locks"
 [ -s "$setup_failure_dir/sends.log" ] && [ ! -e "$setup_failure_lock" ] || {
     echo 'FAIL later session could not acquire the released endpoint lock' >&2
@@ -4068,17 +5169,15 @@ for _dir in "$first_dir" "$second_dir"; do
 done
 run_prefix_driver "$first_dir" "$first_ra" '' "$shared_lock_root" >"$first_dir/driver.out" 2>&1 & first_driver=$!
 _tries=0
-while [ ! -e "$shared_lock_root/nesturbator-retroarch-55355.lock" ] &&
-    [ ! -L "$shared_lock_root/nesturbator-retroarch-55355.lock" ] && [ "$_tries" -lt 200 ]; do
-    kill -0 "$first_driver" 2>/dev/null || { echo "FAIL first concurrent session exited before lock acquisition" >&2; cat "$first_dir/driver.out" >&2; exit 1; }
+while [ ! -s "$first_ra/lock-reservation.tsv" ] && [ "$_tries" -lt 200 ]; do
+    kill -0 "$first_driver" 2>/dev/null || { echo "FAIL first concurrent session exited before reservation" >&2; exit 1; }
     sleep 0.02; _tries=$((_tries+1))
 done
-[ -e "$shared_lock_root/nesturbator-retroarch-55355.lock" ] ||
-    [ -L "$shared_lock_root/nesturbator-retroarch-55355.lock" ] || {
-    echo "FAIL first concurrent session never held endpoint lock" >&2; exit 1;
-}
+[ -s "$first_ra/lock-reservation.tsv" ] || { echo 'FAIL first concurrent reservation record missing' >&2; exit 1; }
+shared_port=$(awk -F '\t' 'NR==2 { print $2 }' "$first_ra/lock-reservation.tsv")
+
 second_status=0
-run_prefix_driver "$second_dir" "$second_ra" '' "$shared_lock_root" >"$second_dir/driver.out" 2>&1 || second_status=$?
+STATE_SESSION_TEST_GUARD_PORT="$shared_port" run_prefix_driver "$second_dir" "$second_ra" '' "$shared_lock_root" >"$second_dir/driver.out" 2>&1 || second_status=$?
 [ "$second_status" -ne 0 ] && grep -Fx 'state_session: ENDPOINT_BUSY' "$second_dir/driver.out" >/dev/null || {
     echo "FAIL simultaneous attempt did not fail with ENDPOINT_BUSY (status=$second_status)" >&2; cat "$second_dir/driver.out" >&2; exit 1;
 }
@@ -4092,8 +5191,9 @@ set -- "$first_ra"/attempts/*; [ "$#" -eq 1 ] || { echo "FAIL first attempt tree
 # fresh private tree and a new fake session. Prior screenshot/state/journal files cannot satisfy it.
 rm -f "$first_dir/sends.log" "$first_dir/host.pid" "$first_dir/quit" "$first_dir/shot.count" \
     "$first_dir/read.count" "$first_dir/state.count"
+mv "$first_ra/lock-reservation.tsv" "$first_dir/first-lock-reservation.tsv"
 second_status=0
-run_prefix_driver "$first_dir" "$first_ra" '' "$shared_lock_root" >"$first_dir/repeat.out" 2>&1 || second_status=$?
+STATE_SESSION_TEST_GUARD_PORT="$shared_port" run_prefix_driver "$first_dir" "$first_ra" '' "$shared_lock_root" >"$first_dir/repeat.out" 2>&1 || second_status=$?
 [ "$second_status" -eq 0 ] && grep -F 'verdict=PREFIX_OK' "$first_dir/repeat.out" >/dev/null || {
     echo "FAIL repeated attempt did not independently complete its prefix" >&2; cat "$first_dir/repeat.out" >&2; exit 1;
 }

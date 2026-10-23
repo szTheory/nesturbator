@@ -10,7 +10,7 @@ PROJECT_ROOT=$(CDPATH= cd "$(dirname "$0")/../.." && pwd -P)
 . "$PROJECT_ROOT/tests/retroarch/interruption_trace.sh"
 TIMEOUT_MS=${STATE_SESSION_ATTEMPT_MS:-120000}; OPERATION_MS=${STATE_SESSION_OPERATION_MS:-30000}
 CLEANUP_MS=${STATE_SESSION_CLEANUP_MS:-5000}; READY_MS=${STATE_SESSION_READY_MS:-30000}
-PUBLICATION_MS=${STATE_SESSION_PUBLICATION_MS:-5000}; LOCK_ROOT=${STATE_SESSION_LOCK_ROOT:-${TMPDIR:-/tmp}}
+PUBLICATION_MS=${STATE_SESSION_PUBLICATION_MS:-5000}
 SETTLE_MS=${STATE_SESSION_SETTLE_MS:-3000}; PAUSE_GAP_MS=${STATE_SESSION_PAUSE_GAP_MS:-1100}
 PROGRESS_WAIT_MS=${STATE_SESSION_PROGRESS_WAIT_MS:-1000}; COMMAND_GAP_MS=${STATE_SESSION_COMMAND_GAP_MS:-100}
 REWIND_GAP_MS=50; READINESS_CHILD_MS=5000; READINESS_NC_TIMEOUT_SECS=1
@@ -21,120 +21,312 @@ case "$TIMEOUT_MS:$OPERATION_MS:$CLEANUP_MS:$READY_MS:$PUBLICATION_MS" in
     *[!0-9:]*|::*|:*|*:) echo "state_session: INVALID_BUDGET" >&2; exit 2 ;;
 esac
     [ "$TIMEOUT_MS" -gt "$CLEANUP_MS" ] && [ "$OPERATION_MS" -gt 0 ] || { echo "state_session: INVALID_BUDGET" >&2; exit 2; }
-mkdir -p "$RA_DIR/attempts" "$LOCK_ROOT"
 clock_ms() { perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000' 2>/dev/null; }
-START_MS=$(clock_ms) || { echo "state_session: MONOTONIC_CLOCK_UNAVAILABLE" >&2; exit 2; }
-case "$START_MS" in *[!0-9]*|'') echo "state_session: MONOTONIC_CLOCK_UNAVAILABLE" >&2; exit 2 ;; esac
-ATTEMPT_ID="attempt-${START_MS}-$$"; ATTEMPT_DIR="$RA_DIR/attempts/$ATTEMPT_ID"
-LOCK_DIR="$LOCK_ROOT/nesturbator-retroarch-55355.lock"
-# The noclobber-created file identity binds cleanup across hard-link publication and signals.
-LOCK_TOKEN=$ATTEMPT_ID
-LOCK_OWNER_FILE="$LOCK_ROOT/nesturbator-retroarch-55355.lock.owner.$ATTEMPT_ID"
-LOCK_OWNER_ALIAS="$LOCK_DIR/${LOCK_OWNER_FILE##*/}"
-LOCK_OWNER_CREATED=0; LOCK_OWNER_IDENTITY=
-LOCK_ACQUISITION_ACTIVE=0; LOCK_PENDING_SIGNAL=
-lock_owner_path_is_created() {
-    [ "$LOCK_OWNER_CREATED" -eq 1 ] && [ -n "$LOCK_OWNER_IDENTITY" ] || return 1
-    [ -f "$1" ] && [ ! -L "$1" ] || return 1
-    _lock_owner_identity=$(perl -e '
-        my @path = lstat($ARGV[0]);
-        @path or exit 1;
-        print "$path[0]:$path[1]\n";
-    ' "$1" 2>/dev/null) || return 1
-    [ "$_lock_owner_identity" = "$LOCK_OWNER_IDENTITY" ]
+lock_reservation_is_held() {
+    trace_lock_reservation_is_held
+}
+record_test_lock_reservation() {
+    [ -n "${STATE_SESSION_TEST_MODE:-}" ] || return 0
+    STATE_LOCK_RESERVATION_PATH="$RA_DIR/lock-reservation.tsv" \
+    STATE_LOCK_RESERVATION_PID="$$" STATE_LOCK_RESERVATION_PORT="$STATE_SESSION_LOCK_PORT" \
+    STATE_LOCK_RESERVATION_DEVICE="$STATE_SESSION_LOCK_DEVICE" \
+    STATE_LOCK_RESERVATION_INODE="$STATE_SESSION_LOCK_INODE" \
+    perl -MSocket -MFcntl=:DEFAULT -e '
+        use strict;
+        use warnings;
+        sub reject {
+            my ($reason) = @_;
+            warn "reservation-writer: $reason\n";
+            exit 1;
+        }
+        my ($path, $pid, $boot_pid, $port, $device, $inode) =
+            @ENV{qw(STATE_LOCK_RESERVATION_PATH STATE_LOCK_RESERVATION_PID STATE_SESSION_LOCK_BOOT_PID STATE_LOCK_RESERVATION_PORT STATE_LOCK_RESERVATION_DEVICE STATE_LOCK_RESERVATION_INODE)};
+        reject("invalid-input") unless defined($path) && length($path) &&
+            defined($pid) && $pid =~ /\A[1-9][0-9]*\z/ &&
+            defined($boot_pid) && $boot_pid =~ /\A[1-9][0-9]*\z/ && $pid == $boot_pid &&
+            defined($port) && $port =~ /\A[1-9][0-9]*\z/ && $port <= 65535 &&
+            defined($device) && $device =~ /\A[0-9]+\z/ &&
+            defined($inode) && $inode =~ /\A[0-9]+\z/;
+        open my $guard, ">&=9" or reject("fd9-open: $!");
+        my @identity = stat($guard);
+        reject("fd9-identity") unless @identity && $identity[0] == $device && $identity[1] == $inode;
+        my $type = getsockopt($guard, SOL_SOCKET, SO_TYPE);
+        reject("socket-type") unless defined($type) && unpack("i", $type) == SOCK_STREAM;
+        $! = 0;
+        my $accepting = getsockopt($guard, SOL_SOCKET, SO_ACCEPTCONN);
+        if (defined($accepting)) {
+            reject("socket-listening") unless unpack("i", $accepting) == 0;
+        } else {
+            my $error = 0 + $!;
+            reject("socket-accept-state-unavailable") unless $error == 42 || $error == 45 || $error == 92;
+        }
+        my $reuse = getsockopt($guard, SOL_SOCKET, SO_REUSEADDR);
+        reject("reuseaddr") unless defined($reuse) && unpack("i", $reuse) == 0;
+        my $local = getsockname($guard);
+        reject("local-address") unless defined($local);
+        my ($actual_port, $address) = sockaddr_in($local);
+        reject("bound-endpoint") unless $actual_port == $port && inet_ntoa($address) eq "127.0.0.1";
+        my $reuse_port = "unsupported";
+        if (defined(&SO_REUSEPORT)) {
+            my $actual = getsockopt($guard, SOL_SOCKET, SO_REUSEPORT);
+            if (defined($actual)) {
+                $reuse_port = unpack("i", $actual);
+                reject("reuseport") unless $reuse_port == 0;
+            } else {
+                my $error = 0 + $!;
+                reject("reuseport-unavailable") unless $error == 42 || $error == 45 || $error == 92;
+            }
+        }
+        my $record = join("\t", qw(address port driver_pid fd device inode socket_type reuseaddr reuseport)) . "\n" .
+            join("\t", "127.0.0.1", $actual_port, $pid, 9, $identity[0], $identity[1], "SOCK_STREAM", 0, $reuse_port) . "\n";
+        sysopen my $output, $path, O_WRONLY | O_CREAT | O_EXCL, 0600 or reject("record-open: $!");
+        print {$output} $record or reject("record-write: $!");
+        close $output or reject("record-close: $!");
+    '
+}
+lock_release_test_gate() {
+    [ -n "${STATE_SESSION_TEST_RELEASE_GATE:-}" ] || return 0
+    [ -n "${STATE_SESSION_TEST_MODE:-}" ] || return 1
+    STATE_LOCK_RELEASE_GATE="$STATE_SESSION_TEST_RELEASE_GATE" \
+    STATE_LOCK_RELEASE_CASE_ROOT="${STATE_SESSION_TEST_CASE_ROOT:-}" \
+    perl -MCwd=abs_path -MFcntl=:mode -e '
+        use strict;
+        use warnings;
+        my ($gate_path, $case_path) = @ENV{qw(STATE_LOCK_RELEASE_GATE STATE_LOCK_RELEASE_CASE_ROOT)};
+        exit 1 unless defined($gate_path) && defined($case_path) && length($case_path);
+        my $gate = abs_path($gate_path);
+        my $case = abs_path($case_path);
+        exit 1 unless defined($gate) && defined($case) && index($gate, "$case/") == 0;
+        my @gate = lstat($gate_path);
+        exit 1 unless @gate && S_ISDIR($gate[2]);
+        for my $name (qw(.ready .continue)) {
+            my @entry = lstat("$gate_path/$name");
+            exit 1 unless @entry && S_ISFIFO($entry[2]);
+        }
+    ' 2>/dev/null || return 1
+    STATE_LOCK_RELEASE_GATE="$STATE_SESSION_TEST_RELEASE_GATE" \
+    STATE_LOCK_RELEASE_CASE_ROOT="${STATE_SESSION_TEST_CASE_ROOT:-}" \
+    STATE_LOCK_RELEASE_START="$START_MS" STATE_LOCK_RELEASE_ATTEMPT="$TIMEOUT_MS" \
+    STATE_LOCK_RELEASE_CLEANUP="$CLEANUP_MS" \
+    STATE_LOCK_RELEASE_PID="$$" STATE_LOCK_RELEASE_PORT="$STATE_SESSION_LOCK_PORT" \
+    perl -MFcntl=:DEFAULT -MIO::Select -MIO::Handle -e '
+        use strict;
+        use warnings;
+        use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
+        my $root = $ENV{STATE_LOCK_RELEASE_GATE};
+        my $pid = $ENV{STATE_LOCK_RELEASE_PID};
+        my $port = $ENV{STATE_LOCK_RELEASE_PORT};
+        my $events = "$root/.events";
+        my $record = sub {
+            my ($name) = @_;
+            my $now = sprintf("%.0f", clock_gettime(CLOCK_MONOTONIC) * 1000);
+            open my $output, ">>:raw", $events or die "release-event-open: $!\n";
+            print {$output} join("\t", $name, $pid, $port, $now), "\n" or die "release-event-write: $!\n";
+            close $output or die "release-event-close: $!\n";
+        };
+        my $now = sub { clock_gettime(CLOCK_MONOTONIC) * 1000 };
+        my $deadline = $ENV{STATE_LOCK_RELEASE_START} + $ENV{STATE_LOCK_RELEASE_ATTEMPT};
+        my $cleanup_end = $now->() + $ENV{STATE_LOCK_RELEASE_CLEANUP};
+        $deadline = $cleanup_end if $cleanup_end < $deadline;
+        if (defined($ENV{STATE_SESSION_TEST_GATE_DEADLINE_MS})) {
+            my $outer = $ENV{STATE_SESSION_TEST_GATE_DEADLINE_MS};
+            die "release-invalid-deadline\n" unless $outer =~ /\A[0-9]+\z/;
+            $deadline = $outer if $outer < $deadline;
+        }
+        my $remaining = sub {
+            my $left = ($deadline - $now->()) / 1000;
+            die "release-gate-timeout\n" unless $left > 0;
+            return $left;
+        };
+        sysopen my $ready, "$root/.ready", O_RDWR | O_NONBLOCK or die "release-ready-open: $!\n";
+        sysopen my $continue, "$root/.continue", O_RDWR | O_NONBLOCK or die "release-continue-open: $!\n";
+        my $write = sub {
+            my ($bytes) = @_;
+            while (length($bytes)) {
+                IO::Select->new($ready)->can_write($remaining->()) or die "release-write-timeout\n";
+                my $n = syswrite($ready, $bytes);
+                if (!defined($n)) { next if $!{EAGAIN} || $!{EINTR}; die "release-write: $!\n"; }
+                die "release-zero-write\n" unless $n;
+                substr($bytes, 0, $n, "");
+            }
+        };
+        $record->("release-boundary");
+        $write->("ready\t$pid\t$port\n");
+        my $line = "";
+        while (index($line, "\n") < 0) {
+            IO::Select->new($continue)->can_read($remaining->()) or die "release-continue-timeout\n";
+            my $n = sysread($continue, my $byte, 1);
+            if (!defined($n)) { next if $!{EAGAIN} || $!{EINTR}; die "release-read: $!\n"; }
+            die "release-invalid-line\n" unless $n && length($line) < 32;
+            $line .= $byte;
+        }
+        $line eq "continue\n" or die "release-continue-invalid\n";
+        $write->("continued\t$pid\t$port\n");
+        $record->("release-completed");
+    ' 9>&- 2>"$RA_DIR/lock-release-gate.stderr"
 }
 release_owned_lock() {
-    trap '' INT TERM HUP
-    if lock_owner_path_is_created "$LOCK_DIR" &&
-        [ "$(cat "$LOCK_DIR" 2>/dev/null)" = "$LOCK_TOKEN" ]; then
-        rm -f "$LOCK_DIR" 2>/dev/null || true
-    fi
-    if [ -d "$LOCK_DIR" ] && lock_owner_path_is_created "$LOCK_OWNER_ALIAS" &&
-        [ "$(cat "$LOCK_OWNER_ALIAS" 2>/dev/null)" = "$LOCK_TOKEN" ]; then
-        rm -f "$LOCK_OWNER_ALIAS" 2>/dev/null || true
-    fi
-    if lock_owner_path_is_created "$LOCK_OWNER_FILE"; then
-        rm -f "$LOCK_OWNER_FILE" 2>/dev/null || true
-    fi
+    [ "${LOCK_RESERVATION_CLOSED:-0}" -eq 0 ] || return 0
+    LOCK_RESERVATION_CLOSED=1
+    lock_release_test_gate || LOCK_RELEASE_GATE_FAILED=1
+    exec 9>&-
+    STATE_SESSION_LOCK_PORT=
     return 0
 }
-trap release_owned_lock EXIT
-lock_acquisition_signal() {
-    _lock_signal=$1
-    if [ "$LOCK_ACQUISITION_ACTIVE" -eq 1 ]; then
-        [ -n "$LOCK_PENDING_SIGNAL" ] || LOCK_PENDING_SIGNAL=$_lock_signal
-        return 0
-    fi
-    case "$_lock_signal" in
-        INT) exit 130 ;;
-        TERM) exit 143 ;;
-        HUP) exit 129 ;;
-    esac
-}
-lock_acquisition_finish() {
-    LOCK_ACQUISITION_ACTIVE=0
-    _lock_pending_signal=$LOCK_PENDING_SIGNAL
-    LOCK_PENDING_SIGNAL=
-    case "$_lock_pending_signal" in
-        INT) exit 130 ;;
-        TERM) exit 143 ;;
-        HUP) exit 129 ;;
-    esac
-}
-trap 'lock_acquisition_signal INT' INT
-trap 'lock_acquisition_signal TERM' TERM
-trap 'lock_acquisition_signal HUP' HUP
-LOCK_ACQUISITION_ACTIVE=1
-exec 8>&2
-set -C
-if exec 9>"$LOCK_OWNER_FILE" 2>/dev/null; then
-    exec 2>&8 8>&-
-    LOCK_OWNER_CREATED=1
-    set +C
-    if ! printf '%s\n' "$LOCK_TOKEN" >&9; then
-        exec 9>&-
-        lock_acquisition_finish
+case "${STATE_SESSION_TEST_MODE:-}" in
+    ''|1|prefix|complete|lock-release-race) ;;
+    *) echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2; exit 2 ;;
+esac
+if [ "${STATE_SESSION_LOCK_BOOTSTRAPPED:-}" = 1 ]; then
+    START_MS=${STATE_SESSION_LOCK_START_MS:-}
+    LOCK_PORT=${STATE_SESSION_LOCK_PORT:-}
+    case "$START_MS:$LOCK_PORT" in *[!0-9:]*|::*|:*|*:) echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2; exit 2 ;; esac
+    LOCK_NOW=$(clock_ms) || { echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2; exit 2; }
+    if [ "$START_MS" -gt "$LOCK_NOW" ] || [ "$((LOCK_NOW-START_MS))" -ge "$TIMEOUT_MS" ] ||
+        ! lock_reservation_is_held; then
         echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2
-        exit 1
+        exit 2
     fi
-    LOCK_OWNER_IDENTITY=$(perl -e '
-        open my $owner, ">&=9" or exit 1;
-        my @owner = stat($owner);
-        @owner or exit 1;
-        print "$owner[0]:$owner[1]\n";
-    ' 2>/dev/null) || LOCK_OWNER_IDENTITY=
-    if [ -z "$LOCK_OWNER_IDENTITY" ] || ! lock_owner_path_is_created "$LOCK_OWNER_FILE"; then
-        exec 9>&-
-        lock_acquisition_finish
-        echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2
-        exit 1
-    fi
-    exec 9>&-
 else
-    exec 2>&8 8>&-
-    set +C
-    lock_acquisition_finish
+    [ -z "${STATE_SESSION_LOCK_BOOTSTRAPPED:-}" ] &&
+        [ -z "${STATE_SESSION_LOCK_DEVICE:-}" ] &&
+        [ -z "${STATE_SESSION_LOCK_INODE:-}" ] &&
+        [ -z "${STATE_SESSION_LOCK_BOOT_PID:-}" ] &&
+        [ -z "${STATE_SESSION_LOCK_START_MS:-}" ] &&
+        [ -z "${STATE_SESSION_LOCK_PORT:-}" ] || {
+            echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2; exit 2;
+        }
+    START_MS=$(clock_ms) || { echo "state_session: MONOTONIC_CLOCK_UNAVAILABLE" >&2; exit 2; }
+    case "$START_MS" in *[!0-9]*|'') echo "state_session: MONOTONIC_CLOCK_UNAVAILABLE" >&2; exit 2 ;; esac
+    trap 'echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2' EXIT
+    exec perl -e '
+        use strict;
+        use warnings;
+
+        sub fail { warn "state_session: LOCK_OWNER_UNAVAILABLE\n"; exit 2; }
+        BEGIN {
+            eval { require Socket; Socket->import(); require Fcntl; Fcntl->import();
+                require Time::HiRes; require Errno; Errno->import("EADDRINUSE"); 1 }
+                or do { warn "state_session: LOCK_OWNER_UNAVAILABLE\n"; exit 2; };
+        }
+        my ($driver, @args) = @ARGV;
+        my $start = shift @args;
+        fail("invalid original start") unless defined($start) && $start =~ /\A[0-9]+\z/ && $start > 0;
+        fail("invalid driver entry") unless defined($driver) && length($driver);
+        fail("argument count") unless @args == 8;
+        my $mode = $ENV{STATE_SESSION_TEST_MODE} // "";
+        fail("unrecognized test mode") unless $mode =~ /\A(?:|1|prefix|complete|lock-release-race)\z/;
+        my $test_mode = length($mode) != 0;
+        my $now = Time::HiRes::clock_gettime(Time::HiRes::CLOCK_MONOTONIC()) * 1000;
+        fail("invalid original start") unless $start <= $now;
+        my $requested;
+        if ($test_mode) {
+            $requested = defined($ENV{STATE_SESSION_TEST_GUARD_PORT})
+                ? $ENV{STATE_SESSION_TEST_GUARD_PORT} : "0";
+            fail("invalid test guard port") unless $requested =~ /\A(?:0|[1-9][0-9]{0,4})\z/ && $requested <= 65535;
+        } else {
+            fail("test port override outside test mode") if defined($ENV{STATE_SESSION_TEST_GUARD_PORT});
+            $requested = "55355";
+        }
+        my $protocol = getprotobyname("tcp");
+        defined($protocol) or fail("TCP protocol unavailable");
+        socket(my $socket, PF_INET, SOCK_STREAM, $protocol) or fail("socket: $!");
+        my @reuse_options = (SO_REUSEADDR);
+        push @reuse_options, SO_REUSEPORT() if defined(&SO_REUSEPORT);
+        for my $option (@reuse_options) {
+            $! = 0;
+            my $set = eval { setsockopt($socket, SOL_SOCKET, $option, pack("i", 0)) };
+            if (!$set) {
+                my $error = 0 + $!;
+                my $unsupported = $error == 42 || $error == 45 || $error == 92;
+                next if $option != SO_REUSEADDR && $unsupported;
+                fail("reuse option unavailable");
+            }
+            $! = 0;
+            my $actual = getsockopt($socket, SOL_SOCKET, $option);
+            if (!defined($actual)) {
+                my $error = 0 + $!;
+                next if $option != SO_REUSEADDR && ($error == 42 || $error == 45 || $error == 92);
+            }
+            fail("reuse option verification") unless defined($actual) && unpack("i", $actual) == 0;
+        }
+        if (!bind($socket, sockaddr_in(0 + $requested, inet_aton("127.0.0.1")))) {
+            my $error = 0 + $!;
+            if ($error == EADDRINUSE) { warn "state_session: ENDPOINT_BUSY\n"; exit 1; }
+            fail("bind 127.0.0.1:$requested: $!");
+        }
+        my $local = getsockname($socket);
+        defined($local) or fail("getsockname: $!");
+        my ($port, $address) = sockaddr_in($local);
+        fail("bound address mismatch") unless inet_ntoa($address) eq "127.0.0.1";
+        fail("bound port mismatch") if $requested != 0 && $port != $requested;
+        my $source_fd = fileno($socket);
+        defined($source_fd) or fail("socket descriptor unavailable");
+        my $guard_fd = $source_fd == 9 ? 9 : fcntl($socket, F_DUPFD, 9);
+        defined($guard_fd) && $guard_fd == 9 or fail("descriptor 9 unavailable");
+        close($socket) or fail("socket duplicate close: $!") if $source_fd != 9;
+        open my $guard, ">&=9" or fail("descriptor 9 reopen: $!");
+        my $fd_flags = fcntl($guard, F_GETFD, 0);
+        defined($fd_flags) or fail("descriptor flags read: $!");
+        fcntl($guard, F_SETFD, $fd_flags & ~FD_CLOEXEC) or fail("descriptor inheritance: $!");
+        my @identity = stat($guard);
+        @identity or fail("descriptor identity: $!");
+        $ENV{STATE_SESSION_LOCK_BOOTSTRAPPED} = "1";
+        $ENV{STATE_SESSION_LOCK_BOOT_PID} = "$$";
+        $ENV{STATE_SESSION_LOCK_START_MS} = $start;
+        $ENV{STATE_SESSION_LOCK_PORT} = "$port";
+        $ENV{STATE_SESSION_LOCK_DEVICE} = "$identity[0]";
+        $ENV{STATE_SESSION_LOCK_INODE} = "$identity[1]";
+        exec "/bin/sh", $driver, @args or fail("exec /bin/sh: $!");
+    ' "$0" "$START_MS" "$@"
+fi
+LOCK_RESERVATION_CLOSED=0; LOCK_RELEASE_GATE_FAILED=0
+trap release_owned_lock EXIT
+trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
+mkdir -p "$RA_DIR/attempts"
+if ! record_test_lock_reservation; then
     echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2
-    exit 1
+    exit 2
 fi
-if [ -d "$LOCK_DIR" ] || [ -L "$LOCK_DIR" ]; then
-    lock_acquisition_finish
-    echo "state_session: ENDPOINT_BUSY" >&2
-    exit 1
+ATTEMPT_ID="attempt-${START_MS}-$$"; ATTEMPT_DIR="$RA_DIR/attempts/$ATTEMPT_ID"
+LOCK_ROOT=${STATE_SESSION_LOCK_ROOT:-${TMPDIR:-/tmp}}
+mkdir -p "$LOCK_ROOT" || { echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2; exit 1; }
+LOCK_DIR="$LOCK_ROOT/nesturbator-retroarch-55355.lock"
+LOCK_OWNER_FILE="$LOCK_ROOT/nesturbator-retroarch-55355.lock.owner.$ATTEMPT_ID"
+LOCK_OWNER_ALIAS="$LOCK_DIR/${LOCK_OWNER_FILE##*/}"
+legacy_lock_path_state() {
+    perl -MFcntl=:mode -e '
+        use strict;
+        use warnings;
+        my $root = shift @ARGV;
+        my @root = lstat($root);
+        if (!@root || !S_ISDIR($root[2]) || !-r $root || !-x $root) {
+            print "unavailable\n"; exit 0;
+        }
+        for my $path (@ARGV) {
+            my @entry = lstat($path);
+            if (@entry) {
+                print S_ISDIR($entry[2]) ? "occupied-directory\n" : "occupied-object\n";
+                exit 0;
+            }
+            if ($! != 2) { print "unavailable\n"; exit 0; }
+        }
+        print "clear\n";
+    ' "$LOCK_ROOT" "$LOCK_DIR" "$LOCK_OWNER_FILE" 2>/dev/null
+}
+LEGACY_LOCK_STATE=$(legacy_lock_path_state) || LEGACY_LOCK_STATE=unavailable
+case "$LEGACY_LOCK_STATE" in
+    occupied-directory) echo "state_session: ENDPOINT_BUSY" >&2; exit 1 ;;
+    occupied-object)
+        echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2
+        exit 1 ;;
+    clear) ;;
+    *) echo "state_session: LOCK_OWNER_UNAVAILABLE" >&2; exit 1 ;;
+esac
+if [ -n "${STATE_SESSION_TEST_RELEASE_GATE:-}" ] &&
+    [ -n "${STATE_SESSION_TEST_MODE:-}" ]; then
+    kill -TERM "$$"
 fi
-ln "$LOCK_OWNER_FILE" "$LOCK_DIR" 2>/dev/null || {
-    lock_acquisition_finish
-    echo "state_session: ENDPOINT_BUSY" >&2
-    exit 1
-}
-[ -f "$LOCK_DIR" ] && [ ! -L "$LOCK_DIR" ] &&
-    lock_owner_path_is_created "$LOCK_DIR" &&
-    [ "$(cat "$LOCK_DIR" 2>/dev/null)" = "$LOCK_TOKEN" ] || {
-    lock_acquisition_finish
-    echo "state_session: ENDPOINT_BUSY" >&2
-    exit 1
-}
-lock_acquisition_finish
 mkdir -p "$ATTEMPT_DIR/profile" "$ATTEMPT_DIR/states" "$ATTEMPT_DIR/shots" "$ATTEMPT_DIR/originals" "$ATTEMPT_DIR/observations"
 JOURNAL="$ATTEMPT_DIR/journal.tsv"
 printf 'step\tclass\tsends\tattempt_elapsed_ms\tattempt_remaining_ms\toperation_elapsed_ms\toperation_remaining_ms\texpected\tobserved\tartifact\treason\n' >"$JOURNAL"
@@ -277,6 +469,7 @@ reap_one() {
     kill -KILL "$_pid" 2>/dev/null || true; wait "$_pid" 2>/dev/null || true
 }
 nc_exec() {
+    exec 9>&-
     if [ -n "${STATE_SESSION_TEST_MODE:-}" ]; then
         exec env "STATE_SESSION_TEST_EXPECTED_DIR=$ATTEMPT_DIR/states" \
             "STATE_SESSION_TEST_SHOTS=$ATTEMPT_DIR/shots" "$NC" "$@"
@@ -284,6 +477,7 @@ nc_exec() {
     exec "$NC" "$@"
 }
 readiness_nc_exec() {
+    exec 9>&-
     if [ -n "${STATE_SESSION_TEST_MODE:-}" ]; then
         _readiness_nc=${STATE_SESSION_TEST_READINESS_NC:-$NC}
         exec env "STATE_SESSION_TEST_EXPECTED_DIR=$ATTEMPT_DIR/states" \
@@ -372,7 +566,7 @@ run_child() {
         if [ "$CHILD_OP_LEFT" -lt "$CHILD_BUDGET" ]; then CHILD_BUDGET=$CHILD_OP_LEFT; CHILD_LIMIT_REASON=operation; fi
     fi
     CHILD_START=$(clock_ms) || fail MONOTONIC_CLOCK_FAILURE; CHILD_DEADLINE=$((CHILD_START+CHILD_BUDGET))
-    "$@" <"$CHILD_INPUT" >"$CHILD_OUT" 2>"$CHILD_ERR" & CHILD_PID=$!
+    ( exec 9>&-; "$@" ) <"$CHILD_INPUT" >"$CHILD_OUT" 2>"$CHILD_ERR" & CHILD_PID=$!
     while kill -0 "$CHILD_PID" 2>/dev/null; do
         [ -z "$HOST_PID" ] || host_alive || { stop_operation_clock || fail MONOTONIC_CLOCK_FAILURE; reap_one "$CHILD_PID"; CHILD_PID=; fail HOST_DIED; }
         CHILD_NOW=$(clock_ms) || fail MONOTONIC_CLOCK_FAILURE; [ "$CHILD_NOW" -ge "$CHILD_START" ] || fail CLOCK_MOVED_BACKWARD
@@ -656,9 +850,10 @@ run_child fixture "$OPERATION_MS" "$EMPTY" "$ATTEMPT_DIR/fixture.out" "$ATTEMPT_
 cmp -s "$CONTENT" "$ATTEMPT_DIR/oracle-fixture/marker.nes" || fail CONTENT_FIXTURE_MISMATCH
 cmp -s "$CALIBRATION" "$ATTEMPT_DIR/oracle-fixture/calibration.txt" || fail CALIBRATION_FIXTURE_MISMATCH
 awk -v old="$RA_DIR" -v new="$ATTEMPT_DIR" '{line=$0;at=index(line,old);if(at>0)line=substr(line,1,at-1)new substr(line,at+length(old));print line}' "$CFG" >"$ATTEMPT_DIR/session.cfg" || fail CONFIG_COPY
-env "HOME=$ATTEMPT_DIR/profile" "CFFIXED_USER_HOME=$ATTEMPT_DIR/profile" "XDG_CONFIG_HOME=$ATTEMPT_DIR/profile/.config" \
-    "XDG_DATA_HOME=$ATTEMPT_DIR/profile/.local/share" "XDG_CACHE_HOME=$ATTEMPT_DIR/profile/.cache" \
-    "$RA" --verbose -c "$ATTEMPT_DIR/session.cfg" -L "$CORE" "$CONTENT" >"$ATTEMPT_DIR/retroarch.log" 2>&1 &
+( exec 9>&-; exec env "HOME=$ATTEMPT_DIR/profile" "CFFIXED_USER_HOME=$ATTEMPT_DIR/profile" \
+    "XDG_CONFIG_HOME=$ATTEMPT_DIR/profile/.config" "XDG_DATA_HOME=$ATTEMPT_DIR/profile/.local/share" \
+    "XDG_CACHE_HOME=$ATTEMPT_DIR/profile/.cache" "$RA" --verbose -c "$ATTEMPT_DIR/session.cfg" \
+    -L "$CORE" "$CONTENT" ) >"$ATTEMPT_DIR/retroarch.log" 2>&1 &
 HOST_PID=$!
 probe_ready
 sleep_ms "$SETTLE_MS" startup-settle; host_alive || fail HOST_DIED
