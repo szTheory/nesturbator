@@ -734,7 +734,12 @@ add_test(NAME accuracycoin.inventory
     ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
 add_test(NAME accuracycoin.classifier
   COMMAND accuracycoin.conformance classifier)
-set_tests_properties(accuracycoin.inventory accuracycoin.classifier PROPERTIES TIMEOUT 30)
+add_test(NAME accuracycoin.migration_source
+  COMMAND accuracycoin.conformance migration
+    ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/migration.tsv
+    ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/old-673ef-scoreboard.txt)
+set_tests_properties(accuracycoin.inventory accuracycoin.classifier
+  accuracycoin.migration_source PROPERTIES TIMEOUT 30)
 
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.

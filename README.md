@@ -100,11 +100,15 @@ CI also runs the inventory decoder against owned mutations of the pinned ROM.
 These controls cover page boundaries, row fields, duplicate decoded identities,
 the shared DRAW sentinel, exact expansion capacity and both retained pin
 fingerprints. The result decoder follows the assembly protocol: `$FF` is skip,
-`$00` is not-run, `$01` is pass, and failure results encode a nonzero error
-index in the upper bits with low bits `10` (`$02` alone is invalid because
-the pinned runner initializes the error index to one). PPU Read Buffer may
-also return `$39` for its pre-revision-G success path or `$41` for revision G
-and later. Those variants are valid only for that key.
+`$00` is not-run, `$01` is pass, and failure results use low bits `10`;
+`$02` is valid where the pinned assembly reports error index zero. Other
+passing variants are accepted only for the named source tests: `$05`/`$09`
+for the pinned DMA, controller, APU activation, scanline-zero and SHA/SHS
+branches; `$0D`/`$11` for the SHA/SHS behavior tests; and `$39`/`$41` for
+PPU Read Buffer and Address `$2004` behavior. These values describe the
+test's source-defined branch, not a generalized emulator result code.
+The five rows whose result address is the shared `$03FF` DRAW sentinel are
+reported as `draw` and excluded from result transitions and scored rows.
 
 The existing strict runner continues to compare its selected page results
 against `tests/accuracy/scoreboard.txt`:
@@ -113,6 +117,14 @@ against `tests/accuracy/scoreboard.txt`:
 nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin.nes \
   --scoreboard tests/accuracy/scoreboard.txt
 ```
+
+The retained old-pin comparison lives in `tests/accuracy/old-673ef-scoreboard.txt`
+and `old-673ef-metadata.txt`. It records 17 measured old-pin protected passes
+from pages 2, 14 and 17, including PPU Read Buffer `$41`; it is not a full
+144-test result and does not establish a new-pin pass. `migration.tsv` maps
+each of those keys to its old/new result and routine symbols, cites both exact
+MIT source pins, records any assertion setup change, and marks new-pin
+observations `unmeasured` until a later campaign retains them.
 
 Before the workflow preset, each of the six CI build lanes fetches protected
 `refs/heads/main` with tags disabled. A cross-platform CMake script exports the

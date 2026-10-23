@@ -78,6 +78,7 @@ typedef enum accuracycoin_result_status {
     ACCURACYCOIN_RESULT_SKIP,
     ACCURACYCOIN_RESULT_NOT_RUN,
     ACCURACYCOIN_RESULT_TIMEOUT,
+    ACCURACYCOIN_RESULT_DRAW,
     ACCURACYCOIN_RESULT_INVALID
 } accuracycoin_result_status;
 
@@ -95,13 +96,18 @@ const char *accuracycoin_reason_text(accuracycoin_reason reason);
 const char *accuracycoin_pin_text(accuracycoin_pin pin);
 int accuracycoin_write_inventory(FILE *out, const accuracycoin_directory *directory);
 
-/* Result protocol: $FF is skip, $00 is not-run, $01 is pass, failures encode a
- * nonzero error index with low bits 10, and $03 is active until an observed
- * guest-frame budget expires. $39 and $41 are source-defined PPU Read Buffer
- * success markers only. */
+/* Result protocol: $FF is skip, $00 is not-run, $01 is pass, failures encode
+ * an error index with low bits 10 (including source-defined $02), and $03 is
+ * active until an observed guest-frame budget expires. Pinned source-defined
+ * pass variants are accepted only for their named tests. */
 accuracycoin_result_status accuracycoin_classify(const char *key, int observed, uint8_t raw,
                                                   int active_budget_expired,
                                                   const char **cause);
+/* DRAW rows carry the shared sentinel as inventory data; return DRAW without
+ * interpreting its arbitrary byte as a scored status. */
+accuracycoin_result_status accuracycoin_classify_row(const accuracycoin_test *row, int observed,
+                                                      uint8_t raw, int active_budget_expired,
+                                                      const char **cause);
 const char *accuracycoin_status_text(accuracycoin_result_status status);
 
 int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32_t page,

@@ -379,11 +379,49 @@ int accuracycoin_write_inventory(FILE *out, const accuracycoin_directory *direct
 
 const char *accuracycoin_status_text(accuracycoin_result_status status)
 {
-    static const char *const text[] = {"pass", "fail", "skip", "not-run", "timeout", "invalid"};
+    static const char *const text[] = {"pass", "fail", "skip", "not-run", "timeout", "draw",
+                                       "invalid"};
     size_t index = (size_t)status;
     if (index >= sizeof text / sizeof text[0])
         return "invalid";
     return text[index];
+}
+
+/* AccuracyCoin sometimes returns a passing result that encodes which
+ * hardware-defined branch was observed. Keep these exceptions tied to the
+ * decoded test key; low bits alone do not make an arbitrary byte a pass.
+ * Source: MIT AccuracyCoin.asm at pins 673ef550 and 6bee919. */
+static int source_pass_variant(const char *key, uint8_t raw)
+{
+    static const char *const sha_shs_keys[] = {
+        "accuracycoin/$93   SHA indirect,Y",
+        "accuracycoin/$9F   SHA absolute,Y",
+        "accuracycoin/$9B   SHS absolute,Y"};
+    static const char *const five_nine_keys[] = {
+        "accuracycoin/DMA + $2002 Read",
+        "accuracycoin/APU Register Activation",
+        "accuracycoin/DMA + $4016 Read",
+        "accuracycoin/Implicit DMA Abort",
+        "accuracycoin/Controller Clocking",
+        "accuracycoin/Sprites On Scanline 0",
+        "accuracycoin/Misaligned OAM2 Address"};
+    if (key == NULL)
+        return 0;
+    if ((raw == 0x39u || raw == 0x41u) &&
+        (strcmp(key, "accuracycoin/PPU Read Buffer") == 0 ||
+         strcmp(key, "accuracycoin/Address $2004 behavior") == 0))
+        return 1;
+    if (raw == 0x05u || raw == 0x09u) {
+        for (size_t i = 0u; i < sizeof five_nine_keys / sizeof five_nine_keys[0]; i++)
+            if (strcmp(key, five_nine_keys[i]) == 0)
+                return 1;
+    }
+    if (raw == 0x05u || raw == 0x09u || raw == 0x0du || raw == 0x11u) {
+        for (size_t i = 0u; i < sizeof sha_shs_keys / sizeof sha_shs_keys[0]; i++)
+            if (strcmp(key, sha_shs_keys[i]) == 0)
+                return 1;
+    }
+    return 0;
 }
 
 accuracycoin_result_status accuracycoin_classify(const char *key, int observed, uint8_t raw,
@@ -423,9 +461,7 @@ accuracycoin_result_status accuracycoin_classify(const char *key, int observed, 
         return ACCURACYCOIN_RESULT_INVALID;
     }
     if ((raw & 3u) == 1u) {
-        if (raw == 0x01u ||
-            ((raw == 0x39u || raw == 0x41u) && key != NULL &&
-             strcmp(key, "accuracycoin/PPU Read Buffer") == 0)) {
+        if (raw == 0x01u || source_pass_variant(key, raw)) {
             if (cause != NULL)
                 *cause = raw == 0x01u ? "terminal-pass" : "source-defined-pass-variant";
             return ACCURACYCOIN_RESULT_PASS;
@@ -435,19 +471,33 @@ accuracycoin_result_status accuracycoin_classify(const char *key, int observed, 
         return ACCURACYCOIN_RESULT_INVALID;
     }
     if ((raw & 3u) == 2u) {
-        /* TEST_Fail returns (ErrorCode << 2) | $02. The runner initializes
-         * ErrorCode to 1 before every test, so $02 cannot be emitted by the
-         * pinned result protocol. */
-        if (raw == 0x02u) {
-            if (cause != NULL)
-                *cause = "zero-error-code";
-            return ACCURACYCOIN_RESULT_INVALID;
-        }
+        /* TEST_Fail returns (ErrorCode << 2) | $02. Some pinned instructions
+         * explicitly return $02 for an invalid instruction length, error 0. */
         if (cause != NULL)
             *cause = "terminal-fail";
         return ACCURACYCOIN_RESULT_FAIL;
     }
     return ACCURACYCOIN_RESULT_INVALID;
+}
+
+accuracycoin_result_status accuracycoin_classify_row(const accuracycoin_test *row, int observed,
+                                                      uint8_t raw, int active_budget_expired,
+                                                      const char **cause)
+{
+    char key[ACCURACYCOIN_NAME_CAPACITY + 16u];
+    if (cause != NULL)
+        *cause = "invalid-row";
+    if (row == NULL)
+        return ACCURACYCOIN_RESULT_INVALID;
+    if (row->kind == (uint8_t)ACCURACYCOIN_KIND_DRAW) {
+        if (cause != NULL)
+            *cause = "inventory-only-draw";
+        return ACCURACYCOIN_RESULT_DRAW;
+    }
+    if (row->kind != (uint8_t)ACCURACYCOIN_KIND_TEST)
+        return ACCURACYCOIN_RESULT_INVALID;
+    (void)snprintf(key, sizeof key, "accuracycoin/%s", row->name);
+    return accuracycoin_classify(key, observed, raw, active_budget_expired, cause);
 }
 
 static int accuracy_ram(const nesturbator *inst, uint16_t address, uint8_t *out)
@@ -752,6 +802,15 @@ static int write_raw_sample(FILE *file, const accuracycoin_test *rows, size_t co
     return fflush(file) == 0;
 }
 
+static int scored_result_transition(const accuracycoin_test *rows, size_t count,
+                                    const uint8_t *before, const uint8_t *after)
+{
+    for (size_t i = 0u; i < count; i++)
+        if (rows[i].kind == (uint8_t)ACCURACYCOIN_KIND_TEST && before[i] != after[i])
+            return 1;
+    return 0;
+}
+
 static int write_diagnostic(FILE *file, const char *stage, uint32_t frame,
                             const accuracycoin_controls *controls, int transition)
 {
@@ -871,8 +930,7 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         goto done;
     frames++;
     saw_run_flag |= controls.automate != 0u || controls.running != 0u;
-    for (size_t i = 0u; i < count; i++)
-        saw_transition |= after_press[i] != before[i];
+    saw_transition |= scored_result_transition(rows, count, before, after_press);
     if (!write_raw_sample(raw_file, rows, count, "a-press", after_press) ||
         !write_diagnostic(diagnostic_file, "a-press", frames, &controls, saw_transition))
         goto done;
@@ -880,8 +938,7 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         goto done;
     frames++;
     saw_run_flag |= controls.automate != 0u || controls.running != 0u;
-    for (size_t i = 0u; i < count; i++)
-        saw_transition |= current[i] != before[i];
+    saw_transition |= scored_result_transition(rows, count, before, current);
     if (!write_raw_sample(raw_file, rows, count, "a-release", current) ||
         !write_diagnostic(diagnostic_file, "a-release", frames, &controls, saw_transition))
         goto done;
@@ -894,8 +951,7 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
             frames++;
             execution_frames++;
             saw_run_flag |= controls.automate != 0u || controls.running != 0u;
-            for (size_t i = 0u; i < count; i++)
-                saw_transition |= current[i] != before[i];
+            saw_transition |= scored_result_transition(rows, count, before, current);
             if (!write_diagnostic(diagnostic_file, "start-wait", frames, &controls,
                                   saw_transition))
                 goto done;
@@ -910,6 +966,8 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         any_active = 0;
         any_not_run = 0;
         for (size_t i = 0u; i < count; i++) {
+            if (rows[i].kind != (uint8_t)ACCURACYCOIN_KIND_TEST)
+                continue;
             any_active |= current[i] == 0x03u;
             any_not_run |= current[i] == 0u;
         }
@@ -920,8 +978,7 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         frames++;
         execution_frames++;
         saw_run_flag |= controls.automate != 0u || controls.running != 0u;
-        for (size_t i = 0u; i < count; i++)
-            saw_transition |= current[i] != before[i];
+        saw_transition |= scored_result_transition(rows, count, before, current);
         if (!write_diagnostic(diagnostic_file, "observe", frames, &controls, saw_transition))
             goto done;
     }
@@ -931,6 +988,8 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
     any_active = 0;
     any_not_run = 0;
     for (size_t i = 0u; i < count; i++) {
+        if (rows[i].kind != (uint8_t)ACCURACYCOIN_KIND_TEST)
+            continue;
         any_active |= current[i] == 0x03u;
         any_not_run |= current[i] == 0u;
     }
@@ -944,12 +1003,11 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         goto done;
     }
     for (size_t i = 0u; i < count; i++) {
-        char key[ACCURACYCOIN_NAME_CAPACITY + 16u];
-        (void)snprintf(key, sizeof key, "accuracycoin/%s", rows[i].name);
-        statuses[i] = accuracycoin_classify(key, 1, current[i], any_active, &causes[i]);
+        statuses[i] = accuracycoin_classify_row(&rows[i], 1, current[i], any_active,
+                                                &causes[i]);
         if (statuses[i] == ACCURACYCOIN_RESULT_INVALID ||
-            fprintf(report_file, "%s\t%u\t%u\t%s\t1\t0x%02x\t%u\t%s\tpage-%02u-cold-01\n",
-                    key, (unsigned)rows[i].page, (unsigned)rows[i].row,
+            fprintf(report_file, "accuracycoin/%s\t%u\t%u\t%s\t1\t0x%02x\t%u\t%s\tpage-%02u-cold-01\n",
+                    rows[i].name, (unsigned)rows[i].page, (unsigned)rows[i].row,
                     accuracycoin_status_text(statuses[i]), (unsigned)current[i], execution_frames,
                     causes[i], (unsigned)page_number) < 0) {
             fprintf(stderr, "nesturbator-run: invalid AccuracyCoin result byte or failed report write\n");

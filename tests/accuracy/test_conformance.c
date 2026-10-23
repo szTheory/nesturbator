@@ -402,6 +402,41 @@ static void check_classification(const char *key, int observed, uint8_t raw, int
 
 static int test_classifier(void)
 {
+    const char *cause = NULL;
+    static const struct {
+        const char *key;
+        uint8_t raw;
+    } pass_variants[] = {
+        {"accuracycoin/DMA + $2002 Read", 0x05u},
+        {"accuracycoin/DMA + $2002 Read", 0x09u},
+        {"accuracycoin/APU Register Activation", 0x05u},
+        {"accuracycoin/APU Register Activation", 0x09u},
+        {"accuracycoin/DMA + $4016 Read", 0x05u},
+        {"accuracycoin/DMA + $4016 Read", 0x09u},
+        {"accuracycoin/Implicit DMA Abort", 0x05u},
+        {"accuracycoin/Implicit DMA Abort", 0x09u},
+        {"accuracycoin/Controller Clocking", 0x05u},
+        {"accuracycoin/Controller Clocking", 0x09u},
+        {"accuracycoin/Sprites On Scanline 0", 0x05u},
+        {"accuracycoin/Sprites On Scanline 0", 0x09u},
+        {"accuracycoin/Misaligned OAM2 Address", 0x05u},
+        {"accuracycoin/Misaligned OAM2 Address", 0x09u},
+        {"accuracycoin/$93   SHA indirect,Y", 0x05u},
+        {"accuracycoin/$93   SHA indirect,Y", 0x09u},
+        {"accuracycoin/$93   SHA indirect,Y", 0x0du},
+        {"accuracycoin/$93   SHA indirect,Y", 0x11u},
+        {"accuracycoin/$9F   SHA absolute,Y", 0x05u},
+        {"accuracycoin/$9F   SHA absolute,Y", 0x09u},
+        {"accuracycoin/$9F   SHA absolute,Y", 0x0du},
+        {"accuracycoin/$9F   SHA absolute,Y", 0x11u},
+        {"accuracycoin/$9B   SHS absolute,Y", 0x05u},
+        {"accuracycoin/$9B   SHS absolute,Y", 0x09u},
+        {"accuracycoin/$9B   SHS absolute,Y", 0x0du},
+        {"accuracycoin/$9B   SHS absolute,Y", 0x11u},
+        {"accuracycoin/PPU Read Buffer", 0x39u},
+        {"accuracycoin/PPU Read Buffer", 0x41u},
+        {"accuracycoin/Address $2004 behavior", 0x39u},
+        {"accuracycoin/Address $2004 behavior", 0x41u}};
     check_classification("accuracycoin/ROM is not writable", 1, 0xffu, 0,
                          ACCURACYCOIN_RESULT_SKIP, "upstream-skip");
     check_classification("accuracycoin/ROM is not writable", 1, 0x00u, 0,
@@ -412,12 +447,15 @@ static int test_classifier(void)
                          ACCURACYCOIN_RESULT_PASS, "source-defined-pass-variant");
     check_classification("accuracycoin/PPU Read Buffer", 1, 0x41u, 0,
                          ACCURACYCOIN_RESULT_PASS, "source-defined-pass-variant");
+    for (size_t i = 0u; i < sizeof pass_variants / sizeof pass_variants[0]; i++)
+        check_classification(pass_variants[i].key, 1, pass_variants[i].raw, 0,
+                             ACCURACYCOIN_RESULT_PASS, "source-defined-pass-variant");
     check_classification("accuracycoin/ROM is not writable", 1, 0x39u, 0,
                          ACCURACYCOIN_RESULT_INVALID, "unsupported-pass-variant");
     check_classification("accuracycoin/ROM is not writable", 1, 0x41u, 0,
                          ACCURACYCOIN_RESULT_INVALID, "unsupported-pass-variant");
     check_classification("accuracycoin/ROM is not writable", 1, 0x02u, 0,
-                         ACCURACYCOIN_RESULT_INVALID, "zero-error-code");
+                         ACCURACYCOIN_RESULT_FAIL, "terminal-fail");
     check_classification("accuracycoin/ROM is not writable", 1, 0x06u, 0,
                          ACCURACYCOIN_RESULT_FAIL, "terminal-fail");
     check_classification("accuracycoin/ROM is not writable", 1, 0x42u, 0,
@@ -425,6 +463,8 @@ static int test_classifier(void)
     check_classification("accuracycoin/ROM is not writable", 1, 0x40u, 0,
                          ACCURACYCOIN_RESULT_INVALID, "invalid-result");
     check_classification("accuracycoin/ROM is not writable", 1, 0x05u, 0,
+                         ACCURACYCOIN_RESULT_INVALID, "unsupported-pass-variant");
+    check_classification("accuracycoin/ROM is not writable", 1, 0x0du, 0,
                          ACCURACYCOIN_RESULT_INVALID, "unsupported-pass-variant");
     check_classification("accuracycoin/ROM is not writable", 1, 0x03u, 0,
                          ACCURACYCOIN_RESULT_INVALID, "active-test");
@@ -436,6 +476,162 @@ static int test_classifier(void)
                          ACCURACYCOIN_RESULT_INVALID, "missing-raw");
     check_classification("accuracycoin/ROM is not writable", 0, 0xffu, 0,
                          ACCURACYCOIN_RESULT_INVALID, "missing-raw");
+    accuracycoin_test draw_row;
+    memset(&draw_row, 0, sizeof draw_row);
+    draw_row.kind = (uint8_t)ACCURACYCOIN_KIND_DRAW;
+    CHECK(accuracycoin_classify_row(&draw_row, 1, 0x7fu, 0, &cause) ==
+          ACCURACYCOIN_RESULT_DRAW);
+    CHECK(cause != NULL && strcmp(cause, "inventory-only-draw") == 0);
+    CHECK(strcmp(accuracycoin_status_text(ACCURACYCOIN_RESULT_DRAW), "draw") == 0);
+    draw_row.kind = 2u;
+    CHECK(accuracycoin_classify_row(&draw_row, 1, 0x01u, 0, &cause) ==
+          ACCURACYCOIN_RESULT_INVALID);
+    CHECK(cause != NULL && strcmp(cause, "invalid-row") == 0);
+    CHECK_DONE();
+}
+
+#define MIGRATION_FIELD_COUNT 12u
+#define PROTECTED_ROW_CAPACITY 24u
+
+static size_t split_tsv(char *line, char **fields, size_t capacity)
+{
+    size_t count = 1u;
+    size_t length = strlen(line);
+    while (length > 0u && (line[length - 1u] == '\n' || line[length - 1u] == '\r'))
+        line[--length] = '\0';
+    fields[0] = line;
+    for (size_t i = 0u; i < length; i++) {
+        if (line[i] == '\t') {
+            line[i] = '\0';
+            if (count >= capacity)
+                return capacity + 1u;
+            fields[count++] = line + i + 1u;
+        }
+    }
+    return count;
+}
+
+static int field_has_prefix(const char *field, const char *prefix)
+{
+    return strncmp(field, prefix, strlen(prefix)) == 0;
+}
+
+static int allowed_disposition(const char *value)
+{
+    static const char *const values[] = {"unchanged", "renamed", "changed-meaning", "removed"};
+    for (size_t i = 0u; i < sizeof values / sizeof values[0]; i++)
+        if (strcmp(value, values[i]) == 0)
+            return 1;
+    return 0;
+}
+
+static int test_migration_source(const char *migration_path, const char *scoreboard_path)
+{
+    static const char expected_header[] =
+        "old_pin\told_key\told_result_symbol\told_routine_symbol\tnew_pin\tnew_key\t"
+        "new_result_symbol\tnew_routine_symbol\tdisposition\tsource_reference\t"
+        "assertion_change\tnew_observation_reference";
+    static const char old_pin[] = "673ef550db296136d52229961e7d39366116882a";
+    static const char new_pin[] = "6bee919529289c555803b612b8c9e4f7eaaeeabb";
+    FILE *migration = fopen(migration_path, "r");
+    FILE *scoreboard = fopen(scoreboard_path, "r");
+    char line[2048];
+    char *fields[MIGRATION_FIELD_COUNT + 1u];
+    char protected_keys[PROTECTED_ROW_CAPACITY][ACCURACYCOIN_NAME_CAPACITY + 16u];
+    char migration_keys[PROTECTED_ROW_CAPACITY][ACCURACYCOIN_NAME_CAPACITY + 16u];
+    size_t protected_count = 0u;
+    size_t migration_count = 0u;
+    CHECK(migration != NULL);
+    CHECK(scoreboard != NULL);
+    if (migration == NULL || scoreboard == NULL) {
+        if (migration != NULL)
+            fclose(migration);
+        if (scoreboard != NULL)
+            fclose(scoreboard);
+        return 1;
+    }
+    if (fgets(line, sizeof line, migration) == NULL) {
+        CHECK(0);
+        goto done;
+    }
+    size_t header_length = strlen(line);
+    while (header_length > 0u &&
+           (line[header_length - 1u] == '\n' || line[header_length - 1u] == '\r'))
+        line[--header_length] = '\0';
+    CHECK(strcmp(line, expected_header) == 0);
+    CHECK(split_tsv(line, fields, MIGRATION_FIELD_COUNT) == MIGRATION_FIELD_COUNT);
+
+    while (fgets(line, sizeof line, scoreboard) != NULL) {
+        char *score_fields[6];
+        char *end = NULL;
+        unsigned long raw;
+        size_t count = split_tsv(line, score_fields, 5u);
+        CHECK(count == 5u);
+        if (count != 5u)
+            continue;
+        CHECK(field_has_prefix(score_fields[0], "accuracycoin/"));
+        CHECK(strcmp(score_fields[1], "pass") == 0);
+        raw = strtoul(score_fields[2], &end, 0);
+        CHECK(end != score_fields[2] && end != NULL && *end == '\0');
+        CHECK(raw == 0x01u || (raw == 0x41u &&
+                              strcmp(score_fields[0], "accuracycoin/PPU Read Buffer") == 0));
+        CHECK(protected_count < PROTECTED_ROW_CAPACITY);
+        if (protected_count >= PROTECTED_ROW_CAPACITY)
+            continue;
+        for (size_t i = 0u; i < protected_count; i++)
+            CHECK(strcmp(protected_keys[i], score_fields[0]) != 0);
+        (void)snprintf(protected_keys[protected_count], sizeof protected_keys[0], "%s",
+                       score_fields[0]);
+        protected_count++;
+    }
+    CHECK(ferror(scoreboard) == 0);
+
+    while (fgets(line, sizeof line, migration) != NULL) {
+        size_t count = split_tsv(line, fields, MIGRATION_FIELD_COUNT);
+        int found_protected = 0;
+        CHECK(count == MIGRATION_FIELD_COUNT);
+        if (count != MIGRATION_FIELD_COUNT)
+            continue;
+        CHECK(strcmp(fields[0], old_pin) == 0);
+        CHECK(strcmp(fields[4], new_pin) == 0);
+        CHECK(field_has_prefix(fields[2], "result_"));
+        CHECK(field_has_prefix(fields[3], "TEST_"));
+        CHECK(field_has_prefix(fields[6], "result_"));
+        CHECK(field_has_prefix(fields[7], "TEST_"));
+        CHECK(allowed_disposition(fields[8]));
+        CHECK(strstr(fields[9], "github.com/100thCoin/AccuracyCoin/blob/") != NULL);
+        CHECK(strstr(fields[9], old_pin) != NULL);
+        CHECK(strstr(fields[9], new_pin) != NULL);
+        CHECK(fields[10][0] != '\0');
+        CHECK(strcmp(fields[11], "unmeasured") == 0);
+        CHECK(strcmp(fields[1], fields[5]) == 0);
+        for (size_t i = 0u; i < protected_count; i++)
+            if (strcmp(fields[1], protected_keys[i]) == 0)
+                found_protected = 1;
+        CHECK(found_protected);
+        CHECK(migration_count < PROTECTED_ROW_CAPACITY);
+        if (migration_count >= PROTECTED_ROW_CAPACITY)
+            continue;
+        for (size_t i = 0u; i < migration_count; i++)
+            CHECK(strcmp(migration_keys[i], fields[1]) != 0);
+        (void)snprintf(migration_keys[migration_count], sizeof migration_keys[0], "%s",
+                       fields[1]);
+        migration_count++;
+    }
+    CHECK(ferror(migration) == 0);
+    CHECK_EQ_U64(protected_count, 17u);
+    CHECK_EQ_U64(migration_count, protected_count);
+    for (size_t i = 0u; i < protected_count; i++) {
+        int found = 0;
+        for (size_t j = 0u; j < migration_count; j++)
+            if (strcmp(protected_keys[i], migration_keys[j]) == 0)
+                found = 1;
+        CHECK(found);
+    }
+
+done:
+    CHECK(fclose(migration) == 0);
+    CHECK(fclose(scoreboard) == 0);
     CHECK_DONE();
 }
 
@@ -445,6 +641,9 @@ int main(int argc, char **argv)
         return test_inventory(argv[2], argv[3]);
     if (argc == 2 && strcmp(argv[1], "classifier") == 0)
         return test_classifier();
-    fprintf(stderr, "usage: accuracycoin.conformance inventory NEW_ROM OLD_ROM | classifier\n");
+    if (argc == 4 && strcmp(argv[1], "migration") == 0)
+        return test_migration_source(argv[2], argv[3]);
+    fprintf(stderr,
+            "usage: accuracycoin.conformance inventory NEW_ROM OLD_ROM | classifier | migration TSV SCOREBOARD\n");
     return 2;
 }
