@@ -1,6 +1,6 @@
 ---
 phase: 16-host-evidence-and-roadmap
-reviewed: 2026-10-23T18:35:39Z
+reviewed: 2026-10-23T18:38:33Z
 depth: standard
 files_reviewed: 6
 files_reviewed_list:
@@ -12,45 +12,56 @@ files_reviewed_list:
   - tests/retroarch/test_state_session.sh
 findings:
   critical: 0
-  warning: 1
+  warning: 0
   info: 0
-  total: 1
-status: issues_found
+  total: 0
+status: clean
 ---
 
 # Phase 16: Code Review Report
 
-**Reviewed:** 2026-10-23T18:35:39Z
+**Reviewed:** 2026-10-23T18:38:33Z
 
 **Depth:** standard
 
 **Files Reviewed:** 6
 
-**Reviewed HEAD:** `d5cce3f86239ac15cedad14b27131d84a2a304b3`
+**Reviewed HEAD:** `baefa5e687f7f0ee5320dededdcc4ed3ad0432e5`, plus the current worktree delta in `tests/retroarch/CMakeLists.txt`, `README.md`, and `include/nesturbator.h`
 
 **Diff base:** `dfc4f66e9b92aa4395096916b5aefaaff20176c3`
-**Status:** issues_found
+
+**Status:** clean
 
 ## Summary
 
-Reviewed the six scoped source and documentation paths at current HEAD. The Plan 16-56 exact-source review and its disposition remain separate historical evidence; this report checks the current tree, including the later Plan 16-07 changes. The current CTest registrations do not execute the new source-root preflight matrix, leaving its copied-input refusal and finalizer working-directory coverage outside the normal CI workflow.
+The initial review found one test-coverage gap, recorded as WR-07 below. The follow-up inspected the exact worktree fix: CTest now registers the source-root preflight as a serial POSIX test, and the README and public header describe its CI and ASan lane coverage. WR-07 is resolved; no current findings remain. The Plan 16-56 exact-source review and disposition remain separate historical evidence.
 
-## Warnings
+## Warnings (Initial Review Snapshot; Resolved in Follow-up)
 
-### WR-07: Source-root preflight is not run by the registered CI tests
+### WR-07: Source-root preflight was not run by the registered CI tests
 
-**Severity:** WARNING
+**Severity:** WARNING (initial review)
 
-**File:** `tests/retroarch/CMakeLists.txt:71-88`; `tests/retroarch/test_state_session.sh:3770-3807`
-**Issue:** CMake registers `retroarch.session.controls` and `retroarch.session.readiness`, but neither sets `STATE_SESSION_CONTROL=source-root-preflight`. The controls test uses the default `CONTROL=all`; that branch runs the interruption, lock PID and lock release checks but never calls `source_root_preflight`. The only call is behind the standalone selector at lines 3770-3772. Consequently, the advertised three-working-directory matrix, its copied-driver/include refusal check, and its twelve CWD-specific finalizer cases are not exercised by `cmake --workflow --preset ci`. A regression that permits a copied or mismatched input can pass the registered session tests.
-**Fix:** Register a `retroarch.session.source_root` CTest entry that runs the harness with `STATE_SESSION_CONTROL=source-root-preflight`, and give it `RUN_SERIAL TRUE` with a bounded timeout. Alternatively, call `source_root_preflight` from the already serial `all` control.
+**Initial source:** `tests/retroarch/CMakeLists.txt:71-88`; `tests/retroarch/test_state_session.sh:3770-3807`
+
+**Initial issue:** At the initial review snapshot, CMake registered `retroarch.session.controls` and `retroarch.session.readiness`, but neither selected `STATE_SESSION_CONTROL=source-root-preflight`. The controls test used the default `CONTROL=all`, which did not call `source_root_preflight`. Thus the copied-input refusal and the three-working-directory matrix with twelve CWD-specific finalizer cases were not part of the registered CI tests.
+
+**Initial fix suggestion:** Register a serial `retroarch.session.source_root` CTest entry using `STATE_SESSION_CONTROL=source-root-preflight` and a bounded timeout, or call the preflight from the serial `all` control.
 
 ## Narrative Findings (AI reviewer)
 
-The finding above is the only actionable issue identified in the reviewed scope. No source behavior blocker was found in the current session driver or trace helper.
+No current findings. WR-07 is closed by the follow-up below.
+
+## Follow-up Review
+
+**Reviewed worktree:** HEAD `baefa5e687f7f0ee5320dededdcc4ed3ad0432e5` plus the current worktree delta.
+
+WR-07 is fixed. `tests/retroarch/CMakeLists.txt:71-79` registers `retroarch.session.source_root` with the same harness arguments, sets `STATE_SESSION_CONTROL=source-root-preflight`, and applies `TIMEOUT 120` and `RUN_SERIAL TRUE`. The existing selector dispatches to the preflight at `tests/retroarch/test_state_session.sh:3770-3772`. Paired documentation now identifies the serial test and its POSIX `ci`/`asan` lane coverage at `README.md:220-225` and `include/nesturbator.h:546-550`.
+
+The focused CTest result provided with the fix was 1/1 passed in 6.46 seconds. The full `ci` workflow was still running when this follow-up was written; this report makes no full-workflow pass claim.
 
 ---
 
-_Reviewed: 2026-10-23T18:35:39Z_
+_Reviewed: 2026-10-23T18:38:33Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_

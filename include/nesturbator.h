@@ -543,7 +543,8 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * A source-only interruption trace include is shared by the driver and harness. The POSIX test
  * harness derives its source root from the canonical path of its executing script, then validates
  * the supplied driver and fixed trace include against that root before sourcing or launching host
- * or transport work. Its source-root preflight exercises the repository root, CTest binary cwd and
+ * or transport work. The serial retroarch.session.source_root test runs its preflight in the
+ * POSIX ci and asan lanes. It exercises the repository root, CTest binary cwd and
  * an owned cwd containing spaces, and rejects a copied driver/include before the copied include can
  * run. Each cwd repeats all four finalizer faults and checks wait 143, the exact first reason,
  * cleanup_anomaly=0, oracle not-run and exact-port re-entry after owned-child reap. Before fixture

@@ -218,7 +218,8 @@ The POSIX state-session harness derives its source root from the canonical path
 of the executing test script. Before sourcing the trace include, it checks the
 supplied driver and fixed include against that root, rejecting copied or
 mismatched inputs before any host or transport work. Its `source-root-preflight`
-control exercises the repository root, CTest binary directory and an owned
+control runs as the serial `retroarch.session.source_root` test in the POSIX
+`ci` and `asan` lanes. It exercises the repository root, CTest binary directory and an owned
 working directory with spaces. Each case runs all four finalizer faults and
 requires wait status 143, the exact first reason, no cleanup anomaly, an
 unrun oracle and exact-port re-entry after owned-child reap.
