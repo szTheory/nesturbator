@@ -1040,7 +1040,12 @@ static int test_migration_source(const char *migration_path, const char *scorebo
         CHECK(strstr(fields[9], old_pin) != NULL);
         CHECK(strstr(fields[9], new_pin) != NULL);
         CHECK(fields[10][0] != '\0');
-        CHECK(strcmp(fields[11], "unmeasured") == 0);
+        CHECK(strncmp(fields[11], "new/page-", 9u) == 0);
+        CHECK(strstr(fields[11], "/report.tsv#attempt=page-") != NULL);
+        CHECK(strstr(fields[11], ";row=") != NULL);
+        CHECK(strstr(fields[11], ";raw=0x") != NULL);
+        CHECK(strstr(fields[11], ";frames=") != NULL);
+        CHECK(strstr(fields[11], ";status=pass") != NULL);
         CHECK(strcmp(fields[1], fields[5]) == 0);
         for (size_t i = 0u; i < protected_count; i++)
             if (strcmp(fields[1], protected_keys[i]) == 0)

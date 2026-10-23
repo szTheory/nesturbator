@@ -159,24 +159,28 @@ nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin.nes \
 The retained old-pin comparison lives in `tests/accuracy/old-673ef-scoreboard.txt`
 and `old-673ef-metadata.txt`. It records 17 measured old-pin protected passes
 from pages 2, 14 and 17, including PPU Read Buffer `$41`; it is not a full
-144-test result and does not establish a new-pin pass. `migration.tsv` maps
-each of those keys to its old/new result and routine symbols, cites both exact
-MIT source pins, records any assertion setup change, and marks new-pin
-observations `unmeasured` until a later campaign retains them.
+144-test result. `migration.tsv` maps every retained key to its old/new result
+and routine symbols, cites both exact MIT source pins, records the four
+source-reviewed setup/meaning changes, and links each new-pin disposition to
+the measured attempt, raw byte, guest frames and status in a page report.
+Those links are checked against fresh cold observations on both pins during
+normal CI; a candidate scoreboard row cannot stand in for a guest result.
 
 Before the workflow preset, each of the six CI build lanes fetches protected
-`refs/heads/main` with tags disabled. A cross-platform CMake script exports the
-exact protected-main scoreboard bytes through
-`NESTURBATOR_SCOREBOARD_BASELINE`; fetch, path inspection, content retrieval,
-and environment handoff errors fail the job. If a successful fetch confirms
-that main has no scoreboard yet, CI supplies an empty baseline for the first
-merge. The scoreboard test requires that CI-provided path and never falls back
-to the candidate snapshot. Detached local runs use the committed
-`tests/accuracy/scoreboard-main.txt` snapshot. In both cases a prior `pass` row
-must remain present and passing; AccuracyCoin results continue to be checked
-against live emulated RAM. Page 14 adds the six required APU results: Length
-Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter
-5-step, and Delta Modulation Channel.
+`refs/heads/main` with tags disabled, resolves its fetched commit once, and
+reads the scoreboard and identity from that exact commit. Until main carries a
+dedicated metadata file, the fetcher strictly parses the canonical AccuracyCoin
+row from that same commit's ROM manifest and records the legacy source. The
+handoff includes scoreboard bytes, pin/hash/schema/denominator metadata and the
+protected revision. Missing, unfetchable, empty, malformed or mismatched
+authority fails the job; CI never falls back to candidate files. Detached local
+runs use the complete 17-row `tests/accuracy/scoreboard-main.txt` snapshot and
+its matching `scoreboard-main-metadata.txt` identity. The protected verdict
+requires each same-pin prior pass to be measured passing in the current cold
+run and checks a cross-pin pass only through the exact source-backed migration
+row and its fresh observation. Page 14 adds the six required APU results:
+Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame
+Counter 5-step, and Delta Modulation Channel.
 
 The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
 mirrors, and rejects other bus addresses without side effects. It is intended

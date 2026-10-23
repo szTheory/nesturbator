@@ -1,0 +1,15 @@
+schema=1
+authority=local-snapshot
+source=protected-main-scoreboard-and-legacy-manifest
+protected_revision=9f9386c661f6fb8f6063bf756655713aedadae77
+rom_pin=673ef550db296136d52229961e7d39366116882a
+rom_sha256=4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839
+inventory_schema=1
+inventory_sha256=3271803cdc63c4b4a83cf65453b817dc66ec65ed97863ad19261b56f36821c84
+inventory_rows=149
+inventory_scored_rows=144
+inventory_draw_rows=5
+scoreboard_schema=1
+scoreboard_rows=17
+scoreboard_denominator=17
+scoreboard_sha256=7a394b78803770cbde2ff047c9bfe0b21226d1c97e8d378e0f322b8754b7b9a4

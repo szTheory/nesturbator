@@ -694,6 +694,7 @@ set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
 # RAM-derived results diverged from the committed scoreboard.
 set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
 set(ACCURACYCOIN_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/scoreboard.txt)
+set(ACCURACYCOIN_PROTECTED_WORK ${PROJECT_BINARY_DIR}/accuracycoin/protected-observations)
 foreach(page IN ITEMS 2 14 17)
   add_test(NAME accuracycoin.page${page}
     COMMAND ${CMAKE_COMMAND}
@@ -779,6 +780,22 @@ if(NESTURBATOR_ACCURACYCOIN_FULL)
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_campaign.cmake)
   set_tests_properties(accuracycoin.campaign PROPERTIES TIMEOUT 150)
 endif()
+
+# Protected scoring is based on six fresh cold invocations: the three old
+# protected pages and their new-pin semantic mappings. The verdict test cannot
+# reuse evidence from a prior CTest invocation.
+add_test(NAME accuracycoin.protected_observation
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DOLD_ROM=${ACCURACYCOIN_ROM}"
+    "-DNEW_ROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${ACCURACYCOIN_PROTECTED_WORK}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_protected.cmake)
+set_tests_properties(accuracycoin.protected_observation PROPERTIES
+  FIXTURES_SETUP accuracycoin_protected_observations TIMEOUT 45)
+add_test(NAME accuracycoin.protected COMMAND accuracy.scoreboard)
+set_tests_properties(accuracycoin.protected PROPERTIES
+  FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 30)
 
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
@@ -996,10 +1013,22 @@ add_test(NAME fuzz.registration
 # D-14: nesturbator_get_palette's copy rules, calibrated sRGB samples and
 # palette invariants.
 nesturbator_core_test(core.palette core/test_palette.c)
-nesturbator_core_test(accuracy.scoreboard accuracy/test_scoreboard.c)
+add_executable(accuracy.scoreboard
+  accuracy/test_scoreboard.c
+  ../runner/accuracycoin.c
+  ../runner/audio_hash.c
+  ../runner/clock.c
+  ../runner/sha256.c)
+target_include_directories(accuracy.scoreboard PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/runner)
+target_link_libraries(accuracy.scoreboard PRIVATE nesturbator::nesturbator)
 target_compile_definitions(accuracy.scoreboard PRIVATE
   NESTURBATOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+  NESTURBATOR_PROTECTED_EVIDENCE_DIR="${ACCURACYCOIN_PROTECTED_WORK}"
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(accuracy.scoreboard)
+add_test(NAME accuracy.scoreboard COMMAND accuracy.scoreboard --scoreboard-syntax)
 
 # The candidate scoreboard must fail if it drops a prior protected-main PASS.
 set(ACCURACYCOIN_REGRESSION_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-regression-baseline.txt)
@@ -1011,18 +1040,20 @@ add_test(NAME accuracy.scoreboard.no_lost_pass
     "-DREGRESSION_BASELINE=${ACCURACYCOIN_REGRESSION_BASELINE}"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
 
-# Exercise the CI-only handoff failure and the confirmed empty first-merge case
-# with isolated, build-directory fixtures rather than the local snapshot.
+# Exercise the CI-only handoff failure and reject empty protected authority.
 add_test(NAME accuracy.scoreboard.ci_missing_baseline
   COMMAND ${CMAKE_COMMAND} -E env --unset=NESTURBATOR_SCOREBOARD_BASELINE CI=true
     $<TARGET_FILE:accuracy.scoreboard>)
 set_tests_properties(accuracy.scoreboard.ci_missing_baseline PROPERTIES WILL_FAIL TRUE)
 set(ACCURACYCOIN_EMPTY_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-empty-baseline.txt)
 file(WRITE ${ACCURACYCOIN_EMPTY_BASELINE} "")
-add_test(NAME accuracy.scoreboard.ci_empty_baseline
+add_test(NAME accuracy.scoreboard.ci_empty_baseline_rejected
   COMMAND ${CMAKE_COMMAND} -E env CI=true
     "NESTURBATOR_SCOREBOARD_BASELINE=${ACCURACYCOIN_EMPTY_BASELINE}"
+    "NESTURBATOR_SCOREBOARD_BASELINE_METADATA=${ACCURACYCOIN_EMPTY_BASELINE}.metadata"
+    "NESTURBATOR_SCOREBOARD_BASELINE_REVISION=9f9386c661f6fb8f6063bf756655713aedadae77"
     $<TARGET_FILE:accuracy.scoreboard>)
+set_tests_properties(accuracy.scoreboard.ci_empty_baseline_rejected PROPERTIES WILL_FAIL TRUE)
 
 # D-15: the shared host conversion indexes the palette by the low 9 bits and
 # honours both pitches.

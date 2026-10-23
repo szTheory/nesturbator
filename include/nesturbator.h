@@ -347,7 +347,10 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    addresses to guest result bytes without bus side effects. AccuracyCoin's
    source-defined result variants remain scoped to the decoded test key in the
    runner; outer process failures are kept separate from guest bytes, and
-   duplicate raw samples remain diagnostics that invalidate campaign trust.
+   duplicate raw samples remain diagnostics that invalidate campaign trust. The
+   bounded observer records a host monotonic start stamp with each report so a
+   protected verdict can distinguish a fresh measured attempt from copied or
+   candidate-asserted status rows.
    This inspection API adds no library ABI or state-format requirement. On
    error, *value is unchanged. */
 nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,

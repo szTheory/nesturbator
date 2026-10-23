@@ -1260,7 +1260,7 @@ done:
         metadata_file = fopen(metadata_path, "w");
     if (metadata_file == NULL ||
         fprintf(metadata_file,
-                "report_schema=1\ninventory_schema=1\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%s\nsource_revision=%s\nsource_dirty=%s\nlibrary_version=%u.%u.%u\nbehaviour_revision=%u\nmode=observe\npage=%u\nattempt_id=page-%02u-cold-01\norigin=cold-page\nrequested_row=all\ninput_start_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release\nboot_frame_budget=%u\nnavigation_frame_budget_per_page=%u\nexecution_frame_budget=%u\ntotal_frame_budget=%llu\nboot_frames_used=%llu\nnavigation_frames_used=%llu\nstart_frames_used=%llu\nexecution_frames=%llu\nframes_used=%llu\nstartup_dmc_pretest_observed=%d\nstartup_dmc_pretest=0x%02x\nstartup_vblank_pretest_observed=%d\nstartup_vblank_pretest=0x%02x\nstartup_ppu_reset_pretest_observed=%d\nstartup_ppu_reset_pretest=0x%02x\nselection_observed=%d\nselected_page=%u\nselected_cursor=%u\na_press_observed=%d\na_release_observed=%d\nrelease_frames=%d\nrun_state_observed=%d\nresult_transition_observed=%d\ndraw_cursor_transition_observed=%d\nmenu_returned_to_header_observed=%d\nstart_attributed=%d\nstop_cause=%s\nactive_key=%s\nactive_raw=%s\nverdict=%s\nhost_elapsed_ns=%llu\n",
+                "report_schema=1\ninventory_schema=1\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%s\nsource_revision=%s\nsource_dirty=%s\nlibrary_version=%u.%u.%u\nbehaviour_revision=%u\nmode=observe\npage=%u\nattempt_id=page-%02u-cold-01\norigin=cold-page\nrequested_row=all\ninput_start_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release\nboot_frame_budget=%u\nnavigation_frame_budget_per_page=%u\nexecution_frame_budget=%u\ntotal_frame_budget=%llu\nboot_frames_used=%llu\nnavigation_frames_used=%llu\nstart_frames_used=%llu\nexecution_frames=%llu\nframes_used=%llu\nstartup_dmc_pretest_observed=%d\nstartup_dmc_pretest=0x%02x\nstartup_vblank_pretest_observed=%d\nstartup_vblank_pretest=0x%02x\nstartup_ppu_reset_pretest_observed=%d\nstartup_ppu_reset_pretest=0x%02x\nselection_observed=%d\nselected_page=%u\nselected_cursor=%u\na_press_observed=%d\na_release_observed=%d\nrelease_frames=%d\nrun_state_observed=%d\nresult_transition_observed=%d\ndraw_cursor_transition_observed=%d\nmenu_returned_to_header_observed=%d\nstart_attributed=%d\nstop_cause=%s\nactive_key=%s\nactive_raw=%s\nverdict=%s\nobservation_started_ns=%llu\nhost_elapsed_ns=%llu\n",
                 directory->pin, directory->rom_sha256, directory->inventory_sha256,
                 NESTURBATOR_SOURCE_REVISION, NESTURBATOR_SOURCE_DIRTY,
                 (unsigned)version.major, (unsigned)version.minor, (unsigned)version.patch,
@@ -1278,6 +1278,7 @@ done:
                 a_release_observed, saw_run_flag, saw_transition,
                 draw_cursor_transition_observed, menu_returned_to_header_observed,
                 start_attributed, stop_cause, active_key, active_raw, verdict,
+                (unsigned long long)started_ns,
                 (unsigned long long)elapsed_ns) < 0 ||
         fflush(metadata_file) != 0) {
         fprintf(stderr, "nesturbator-run: failed writing AccuracyCoin metadata\n");

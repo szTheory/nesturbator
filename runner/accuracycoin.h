@@ -129,6 +129,9 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
                                  const char *scoreboard_path, nesturbator *inst, uint16_t *video,
                                  int16_t *audio, nesturbator_run_audio_hash *audio_hash);
 
+/* Run one cold-selected page and retain inventory-bound raw samples, cursor/start
+ * diagnostics, a classified report and metadata. The host monotonic start stamp
+ * distinguishes this invocation's evidence from a previously copied report. */
 int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint32_t page,
                                   const accuracycoin_run_budgets *budgets,
                                   const char *output_dir,
