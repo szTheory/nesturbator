@@ -344,8 +344,9 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    rejected. This inspection path does not perform bus side effects and is
    intended for conformance harnesses. The runner's pinned AccuracyCoin
    observer uses it to connect decoded ROM result addresses to guest result
-   bytes; it adds no library ABI or state-format requirement. On error,
-   *value is unchanged. */
+   bytes. AccuracyCoin's $39 and $41 PPU Read Buffer success markers remain
+   source-scoped interpretations in the runner; this inspection API adds no
+   library ABI or state-format requirement. On error, *value is unchanged. */
 nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,
                                             uint8_t *value);
 

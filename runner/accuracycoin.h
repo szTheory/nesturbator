@@ -95,9 +95,10 @@ const char *accuracycoin_reason_text(accuracycoin_reason reason);
 const char *accuracycoin_pin_text(accuracycoin_pin pin);
 int accuracycoin_write_inventory(FILE *out, const accuracycoin_directory *directory);
 
-/* Result protocol: $FF is skip, $00 is not-run, low bits 01/10 are pass/fail,
- * and 11 is active until an observed guest-frame budget expires. $41 is the
- * source-defined alternate pass for PPU Read Buffer only. */
+/* Result protocol: $FF is skip, $00 is not-run, $01 is pass, failures encode a
+ * nonzero error index with low bits 10, and $03 is active until an observed
+ * guest-frame budget expires. $39 and $41 are source-defined PPU Read Buffer
+ * success markers only. */
 accuracycoin_result_status accuracycoin_classify(const char *key, int observed, uint8_t raw,
                                                   int active_budget_expired,
                                                   const char **cause);

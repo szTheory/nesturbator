@@ -424,9 +424,10 @@ accuracycoin_result_status accuracycoin_classify(const char *key, int observed, 
     }
     if ((raw & 3u) == 1u) {
         if (raw == 0x01u ||
-            (raw == 0x41u && key != NULL && strcmp(key, "accuracycoin/PPU Read Buffer") == 0)) {
+            ((raw == 0x39u || raw == 0x41u) && key != NULL &&
+             strcmp(key, "accuracycoin/PPU Read Buffer") == 0)) {
             if (cause != NULL)
-                *cause = raw == 0x41u ? "source-defined-pass-variant" : "terminal-pass";
+                *cause = raw == 0x01u ? "terminal-pass" : "source-defined-pass-variant";
             return ACCURACYCOIN_RESULT_PASS;
         }
         if (cause != NULL)
@@ -434,6 +435,14 @@ accuracycoin_result_status accuracycoin_classify(const char *key, int observed, 
         return ACCURACYCOIN_RESULT_INVALID;
     }
     if ((raw & 3u) == 2u) {
+        /* TEST_Fail returns (ErrorCode << 2) | $02. The runner initializes
+         * ErrorCode to 1 before every test, so $02 cannot be emitted by the
+         * pinned result protocol. */
+        if (raw == 0x02u) {
+            if (cause != NULL)
+                *cause = "zero-error-code";
+            return ACCURACYCOIN_RESULT_INVALID;
+        }
         if (cause != NULL)
             *cause = "terminal-fail";
         return ACCURACYCOIN_RESULT_FAIL;

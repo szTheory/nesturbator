@@ -91,9 +91,20 @@ consumed execution frames, cause and attempt ID. Metadata binds it to the ROM
 and inventory digests, source revision and dirty state, behaviour revision,
 input policy, frame budgets and diagnostic host elapsed time. DRAW entries are
 inventory-only and do not enter a scored denominator. `$FF` is skip, `$00` is
-not-run, result low bits `01` and `10` are pass and fail, and an observed active
-test becomes timeout only when its guest-frame budget expires. Observation is
-not an all-pass gate; malformed evidence or output errors still fail.
+not-run, `$01` is pass, and failure values use low bits `10` with a nonzero
+source error index. An observed active test becomes timeout only when its
+guest-frame budget expires. Observation is not an all-pass gate; malformed
+evidence or output errors still fail.
+
+CI also runs the inventory decoder against owned mutations of the pinned ROM.
+These controls cover page boundaries, row fields, duplicate decoded identities,
+the shared DRAW sentinel, exact expansion capacity and both retained pin
+fingerprints. The result decoder follows the assembly protocol: `$FF` is skip,
+`$00` is not-run, `$01` is pass, and failure results encode a nonzero error
+index in the upper bits with low bits `10` (`$02` alone is invalid because
+the pinned runner initializes the error index to one). PPU Read Buffer may
+also return `$39` for its pre-revision-G success path or `$41` for revision G
+and later. Those variants are valid only for that key.
 
 The existing strict runner continues to compare its selected page results
 against `tests/accuracy/scoreboard.txt`:

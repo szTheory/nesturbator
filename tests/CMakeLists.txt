@@ -728,6 +728,13 @@ add_test(NAME accuracycoin.tracer
     "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_tracer.cmake)
 set_tests_properties(accuracycoin.tracer PROPERTIES TIMEOUT 90)
+add_test(NAME accuracycoin.inventory
+  COMMAND accuracycoin.conformance inventory
+    ${ACCURACYCOIN_COMPARISON_ROM}
+    ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
+add_test(NAME accuracycoin.classifier
+  COMMAND accuracycoin.conformance classifier)
+set_tests_properties(accuracycoin.inventory accuracycoin.classifier PROPERTIES TIMEOUT 30)
 
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
