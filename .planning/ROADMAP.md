@@ -98,7 +98,8 @@ Completed:01–06(host/fixture/metadata/direction),09(timing),15(identity),
 acceptance),07(release publication). Source candidate2c356d5 has clean
 independent review, final-source CR-01 RED/GREEN, focused CI/ASan and
 parent649/649/no-skip/four-stage CI plus three fresh packages. Historical
-phase verification remains21/22/gaps_found; released bytes await Plan08.
+phase verification remains21/22/gaps_found; Plan08 now supplies released-byte
+evidence for the independent phase verification.
 
 **Wave 10** — direct current-source acceptance after completed30
 - [x] 16-56-PLAN.md — Fix harness source identity/finalizers; prove current
@@ -110,16 +111,16 @@ phase verification remains21/22/gaps_found; released bytes await Plan08.
   affirmative exactPR/head merge consent and normal protected release flow.
 
 **Wave 12** — ready after actual normal07publication
-- [ ] 16-08-PLAN.md — Verify all18downloaded archives, checksums, attestations,
+- [x] 16-08-PLAN.md — Verify all18downloaded archives, checksums, attestations,
   sixmetadata copies and successful exact-release-commitCI.
 
 Plan16-07 is complete and its actual v0.1.11 publication is observed. Plan16-08
-is now the only ready plan; it validates the downloaded release bytes while
-EVID-04 and Phase16 remain open. The next workflow step is Wave12, but it was not
-started here. Wave11 stopped after completing07; do not launch08 or phase
-verification from this execution. Ordinary diagnosed errors stay within their
-execution step. No new dependency, global workflow/config change, extra host
-platform or milestone upkeep was introduced.
+is complete with downloaded-byte, checksum, attestation and six-platform
+metadata evidence. EVID-04 and Phase16 remain open pending independent
+phase-level verification. Wave12 is complete; this execution did not invoke
+that verification step. Ordinary diagnosed errors stay within their execution
+step. No new dependency, global workflow/config change, extra host platform or
+milestone upkeep was introduced.
 
 ### Phase 17: Complete pinned conformance baseline
 
@@ -159,7 +160,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 12/13 | Plan 16-08 ready; EVID-04 pending downloaded-byte validation | - |
+| 16. Host evidence and roadmap | v4 | 13/13 | Plan 16-08 complete; EVID-04 awaits independent phase verification | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

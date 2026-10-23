@@ -4,19 +4,19 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
-current_plan: 13
+current_plan: 9
 status: ready_to_execute
-stopped_at: Completed 16-07-PLAN.md; Plan 16-08 is ready for release-byte validation
-last_updated: "2026-10-23T17:58:19.888Z"
-state_head: 788cc12123b372570080e5c8bde36861968ec1bf
+stopped_at: Completed 16-08-PLAN.md
+last_updated: "2026-10-23T18:28:45.054Z"
+state_head: 468f687204b9498746e538a3650155cfc9862f5d
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 13
-  completed_plans: 12
-  percent: 92
+  completed_plans: 13
+  percent: 0
 last_activity: 2026-10-23
-last_activity_desc: Plan 16-07 published v0.1.11 on the exact successful release commit; Plan 16-08 is ready to verify downloaded bytes
+last_activity_desc: Plan 16-08 verified the published v0.1.11 bytes; independent phase verification is next
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See PROJECT.md and AGENTS.md. Current phase:16—Host evidence and roadmap.
 
 ## Current Position
 
-Current Plan: 13
+Current Plan: 9
 Total Plans in Phase: 13
 Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan 16-56 complete (3/3); Plan 16-07 complete (3/3) with exact-head consent and published v0.1.11 candidate. Plan 16-08 is ready to verify downloaded release bytes; EVID-04 remains open.
-13 live / 56 physical / 12 completed plans. Phase 16 remains incomplete.
+Plan 16-56 complete (3/3); Plan 16-07 complete (3/3) with exact-head consent and published v0.1.11 candidate. Plan 16-08 complete with actual release-byte evidence; EVID-04 awaits independent phase verification.
+13 live / 56 physical / 13 completed plans. Phase 16 remains incomplete.
 
 Read [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) first.
 Its direct development contract remains active: no retired admission/transport/
@@ -68,11 +68,12 @@ Source commits2e9928b and2c356d5, metadata52f6915. Final tested source candidate
 
 ## Remaining Gates
 
-Plan 16-08 must independently download and validate the actual v0.1.11 release
-archives, checksums, attestations, six metadata copies and exact-release CI.
-Plan 16-07's exact-head PR consent, protected merge, and normal publication
-flow are recorded in 16-RELEASE-DELIVERY.md. EVID-04 and Phase 16 stay open
-until Plan 16-08 and phase verification are complete.
+Plan 16-08 records actual v0.1.11 release archives, checksums, attestations,
+six metadata copies and exact-release CI in
+phases/16-host-evidence-and-roadmap/16-RELEASE-EVIDENCE.md. Plan 16-07's
+exact-head PR consent, protected merge and normal publication flow are recorded
+in 16-RELEASE-DELIVERY.md. EVID-04 and Phase 16 stay open until independent
+phase verification passes.
 
 All six requirements and D-01–D-17remain. EVID-02retains its existing complete
 status; other provisional phase requirement marks are unchanged. Finite test
@@ -94,15 +95,14 @@ same step, rerun affected acceptance and obtain independent review.
 
 ## Next Action
 
-Plan 16-08 is the next ready plan: verify the actual published v0.1.11
-archives and six metadata copies against the recorded release candidate. Do not
-mark EVID-04 or Phase 16 complete until that byte validation and phase-level
-verification pass.
+Independent Phase 16 goal verification is next. It must check the accepted
+phase truths against the completed source work and published-byte evidence.
+EVID-04 and Phase 16 remain open until that verifier passes.
 
 ## Session
 
-**Last session:** 2026-10-23T17:58:19.863Z
-**Stopped at:** Completed 16-07-PLAN.md; Plan 16-08 is ready for release-byte validation
+**Last session:** 2026-10-23T18:28:45.029Z
+**Stopped at:** Completed 16-08-PLAN.md
 **Resume file:** None
 
 ## Performance Metrics
@@ -110,8 +110,11 @@ verification pass.
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 16 P07 | 101m | 3 tasks | 10 files |
+| Phase 16 P08 | 18m | 2 tasks | 1 file |
 
 ## Decisions
 
 - [Phase 16]: Use the existing protected-main release flow without selecting a version; the release PR generated v0.1.11.
 - [Phase 16]: Keep EVID-04 open until Plan 16-08 validates the actual downloaded release bytes.
+- [Phase 16]: Use the non-draft v0.1.11 release and its exact peeled tag commit as the source for all checks.
+- [Phase 16]: Reuse the existing archive inventory and support parser without adding code or changing release assets.
