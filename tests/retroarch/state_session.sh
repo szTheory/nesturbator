@@ -862,6 +862,13 @@ HOST_PID=$!
 probe_ready
 sleep_ms "$SETTLE_MS" startup-settle; host_alive || fail HOST_DIED
 
+# The cleanup-matrix reacquisition probe checks lock ownership and teardown only.
+# Its primary session control covers progression, so this test-only path can stop
+# after readiness without repeating captures and state-anchor validation.
+if [ "${STATE_SESSION_TEST_STOP_AFTER_READY:-0}" = 1 ] && [ -n "${STATE_SESSION_TEST_MODE:-}" ]; then
+    exit 0
+fi
+
 # Prove that the host was running before toggling pause. A stalled or already-paused
 # startup fails closed; equal marker frames are never accepted as evidence of a pause.
 capture startup-forward-01; STARTUP_FRAME_1=$BOUNDARY_FRAME

@@ -4082,7 +4082,7 @@ PY
         "$name" "$expected" "$case_setup_elapsed" "$case_driver_elapsed"
 }
 run_prefix_driver() {
-    _run_dir=$1; _run_ra=$2; _run_fault=${3:-}; _run_lock_root=${4:-$_run_dir/locks}
+    _run_dir=$1; _run_ra=$2; _run_fault=${3:-}; _run_lock_root=${4:-$_run_dir/locks}; _run_stop_after_ready=${5:-0}
     mkdir -p "$_run_lock_root"
     ln -sf "$script_path" "$_run_dir/recording-action-nc"
     STATE_SESSION_NC="$_run_dir/recording-action-nc" \
@@ -4106,6 +4106,7 @@ run_prefix_driver() {
     STATE_SESSION_TEST_SHOTS="$_run_ra/shots" \
     STATE_SESSION_TEST_HOST_DIE=0 \
     STATE_SESSION_LOCK_ROOT="$_run_lock_root" \
+    STATE_SESSION_TEST_STOP_AFTER_READY="$_run_stop_after_ready" \
     STATE_SESSION_TEST_CASE_ID="${STATE_SESSION_TEST_CASE_ID:-}" \
     STATE_SESSION_TEST_INVOCATION_ID="${STATE_SESSION_TEST_INVOCATION_ID:-}" \
     STATE_SESSION_TEST_CASE_ROOT="${STATE_SESSION_TEST_CASE_ROOT:-}" \
@@ -4381,7 +4382,7 @@ PY
             STATE_SESSION_TEST_CASE_ROOT="$cleanup_case_root" \
             STATE_SESSION_TEST_GUARD_PORT="$(python3 -c 'import pathlib,sys;print(pathlib.Path(sys.argv[1]).read_text().splitlines()[1].split("\t")[1])' "$cleanup_case_root/ra/lock-reservation.tsv")" \
             STATE_SESSION_TEST_LOCK_SNAPSHOT_FILE="$cleanup_reacq/lock.json" \
-            run_prefix_driver "$cleanup_reacq" "$cleanup_reacq/ra" '' "$cleanup_case_root/locks" \
+            run_prefix_driver "$cleanup_reacq" "$cleanup_reacq/ra" '' "$cleanup_case_root/locks" 1 \
                 >"$cleanup_reacq/stdout.log" 2>"$cleanup_reacq/stderr.log" || cleanup_reacq_status=$?
             cleanup_reacq_elapsed=$(($(mono_ms)-cleanup_reacq_started))
             cleanup_reacq_host=$(cat "$cleanup_reacq/host.pid" 2>/dev/null || true)
