@@ -4,19 +4,19 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 17
 current_phase_name: Complete pinned conformance baseline
-current_plan: Not started
+current_plan: 2
 status: executing
-stopped_at: "Phase 17 planned and checked; next: gsd-execute-phase 17"
-last_updated: "2026-10-23T20:14:51.058Z"
-state_head: baf802ec42e6f36671dc63137bca8717b5e78cbe
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-10-23T22:02:17.123Z"
+state_head: 125d204bcb2f30d107bb17ac150963dd0e75ee75
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 17
-  completed_plans: 13
+  completed_plans: 14
   percent: 33
 last_activity: 2026-10-23
-last_activity_desc: Phase 17 research and four sequential plans complete; independent plan verification passed
+last_activity_desc: Plan 17-01 passed full CI; comparison tracer and old protected evidence retained
 ---
 
 # Project State
@@ -29,14 +29,19 @@ Current focus: Phase 17 — Complete pinned conformance baseline.
 
 ## Current Position
 
-Phase: 17 (Complete pinned conformance baseline) — READY TO EXECUTE
-Current Plan: Not started
-Status: Ready to execute
+Phase: 17 (Complete pinned conformance baseline) — EXECUTING
+Current Plan: 2
+Total Plans in Phase: 4
+Status: Executing
+Progress: [███░░░░░░░] 33%
 
 Phase 16 is complete: 13/13 live plans, 22/22 verification truths and all six
 requirements (EVID-01–04, DIR-01/02) verified. The normal completion handler
 advanced to Phase 17. Phase 17 research and four plans in four sequential waves
-are complete; implementation has not started.
+are complete. Plan 17-01's comparison fixture, inventory, tracer and old-pin
+evidence now pass full CI; the full new-pin campaign and canonical activation
+remain for Plans 17-02 through 17-04. The planning step itself ran no
+implementation tests.
 
 ## Phase 17 Planning
 
@@ -45,12 +50,14 @@ are complete; implementation has not started.
   outcomes, accepted caps and CI placement remain execution measurements.
 - Plans 17-01 through 17-04 cover the real tracer/inventory, bounded campaign,
   protected-main regression enforcement, then atomic canonical activation and
-  measured CI placement. The old canonical strict checks stay active during
-  comparison staging.
+  measured CI placement. Plan 17-01 now passes full CI with the comparison
+  fixture admitted; the old canonical strict checks stay active through staging.
 - Independent plan checking passed without findings. Four plan structures and
   frontmatters validate; all 10 task verification commands state failure signals;
   all four requirements and 15 tracked decisions are covered.
-- No implementation tests or full conformance campaign ran in this planning step.
+- The planning step ran no implementation tests. Plan 17-01's production
+  tracer, inventory, status and old-page evidence passed full CI; the new-pin
+  campaign remains outstanding.
 
 ## Phase 16 Evidence
 
@@ -100,11 +107,23 @@ are complete; implementation has not started.
 
 ## Next Action
 
-`$gsd-execute-phase 17` — execute the four verified plans in order.
-Do not re-run Phase 16 gap planning or execution for completed work.
+`$gsd-execute-phase 17` — continue with Plan 17-02, the bounded new-pin campaign.
+Keep the phase-level CONF requirements pending until the phase is verified.
 
 ## Session
 
-Last session: 2026-10-23T20:14:51.058Z
-Stopped at: Phase 17 planned and checked; next: gsd-execute-phase 17
-Resume file: .planning/phases/17-complete-pinned-conformance-baseline/17-01-PLAN.md
+Last session: 2026-10-23T22:01:48.372Z
+Stopped at: Completed 17-01-PLAN.md
+Resume file: None
+
+## Performance Metrics
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 17 P01 | 54min | 3 tasks | 15 files |
+
+## Decisions
+
+- [Phase 17]: Keep 673ef550 canonical while admitting 6bee919 as a comparison fixture; do not activate the new pin in Plan 17-01.
+- [Phase 17]: Accept nonstandard pass bytes only for exact source-defined decoded keys; classify $02 as a valid failure and DRAW sentinel rows as inventory-only.
+- [Phase 17]: Retain old protected measurements and mark all corresponding new-pin observations unmeasured until the later campaign.
