@@ -9,8 +9,12 @@ on pushed head `478581a3040cf2acd22ac136b1e1d263c8d63e0e` failed only the macOS
 Intel controls test: its 565 ms launch-through-exit measurement included wrapper
 startup, although the 350 ms assertion is intended to measure TERM-to-exit.
 The corrected interval retains the same threshold and all lifecycle assertions.
-The local correction is awaiting commit and a fresh exact-head native run.
-EVID-04 remains open. No merge consent, merge, tag or publication has occurred.
+The reviewed correction is committed as
+`bf46a5403fb4338113729dd83b0e8ae5288c84e4`. Its refreshed 11-path source
+manifest matched all paths at that commit; 7 remain byte-identical to Plan
+16-56. The remote PR still points to `478581a3040cf2acd22ac136b1e1d263c8d63e0e`;
+the corrected candidate and its fresh native run are pending. EVID-04 remains
+open. No merge consent, merge, tag or publication has occurred.
 
 Plan 16-56 accepted source candidate
 `2c356d574290aef1d57122566f7b81beaaa10027`, with source commits `2e9928b` and
@@ -18,10 +22,10 @@ Plan 16-56 accepted source candidate
 [source acceptance](16-56-SOURCE-ACCEPTANCE.md), [independent review](16-56-REVIEW.md)
 and [disposition](16-56-REVIEW-DISPOSITION.md) record final-source CR-01
 RED/GREEN evidence, focused CI and ASan, 649/649 full CI tests with no skips,
-fresh package checks and the configured parent gates. The last pushed 11-path
-manifest matched head `478581a3040cf2acd22ac136b1e1d263c8d63e0e`; the new local
-test-harness timing correction is not in that manifest yet. The existing four
-source/support differences from 56 remain recorded in that snapshot.
+fresh package checks and the configured parent gates. The current local 11-path
+manifest matches source commit `bf46a5403fb4338113729dd83b0e8ae5288c84e4` in
+all paths; seven paths remain byte-identical to the accepted hashes, and the
+four differences from 56 remain recorded in that snapshot.
 `.planning/config.json` remains byte-identical at SHA-256
 `0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e` and
 unstaged. These are local source acceptance results; they do not establish
@@ -300,11 +304,15 @@ wrapper launch and ended after TERM handling; its 565 ms value therefore did
 not isolate the documented post-TERM grace. The result does not establish that
 wrapper cleanup exceeded 350 ms. No test bound or coverage was relaxed.
 
-The correction begins timing immediately before sending TERM and captures the
-finish immediately after the wrapper wait returns, before watchdog cleanup.
+The correction is committed as
+`bf46a5403fb4338113729dd83b0e8ae5288c84e4`. It begins timing immediately
+before sending TERM and captures the finish immediately after the wrapper wait
+returns, before watchdog cleanup.
 The nonzero exit, unchanged 350 ms threshold, nested-child reap, no-late-send,
 and request-file cleanup checks remain. Independent review of this delta
-returned no findings.
+returned no findings; its ignored review summary is
+`build/phase16-release/independent-review-term-boundary.md` (SHA-256
+`0d57e58d3511f8bb44151ecc632024c625ff8b43959ccce23eb9b2d1bc6cf8c8`).
 
 Full local `cmake --workflow --preset ci` passed all four stages, 649/649 tests
 with no skips, and generated the library, runner, and libretro packages. CTest
@@ -327,7 +335,8 @@ seconds and readiness in 22.49 seconds. The wrapper TERM-to-exit interval was
 - `build/asan/Testing/Temporary/LastTest.log`: SHA-256
   `748c90ab5d387035d55fe8dda50d674fee92469b5e2e288c067aed8017a36010`
 
-These local results do not replace native checks. The corrected source is
-awaiting its preparation commit and a fresh exact-head `CI required`, perf,
-and pinned RetroArch run. No merge consent, merge, or release automation has
+These local results do not replace native checks. The corrected source commit
+is not yet pushed. Before its normal push, update PR #50's body with this latest
+failure and correction; then require fresh exact-head `CI required`, perf, and
+pinned RetroArch success. No merge consent, merge, or release automation has
 occurred; EVID-04 remains open.

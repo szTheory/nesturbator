@@ -5,9 +5,9 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: ready_to_execute
-stopped_at: Plan16-07 corrected local CI and ASan complete; prepare final phase-branch head for fresh native CI and exact-head consent checkpoint
-last_updated: "2026-10-23T16:02:30Z"
-state_head: b8da121dad88280b4a3ad73a453fd6396b73dfea
+stopped_at: Plan16-07 correction committed and local CI/ASan complete; update PR body before fresh native CI
+last_updated: "2026-10-23T16:04:51Z"
+state_head: bf46a5403fb4338113729dd83b0e8ae5288c84e4
 progress:
   total_phases: 3
   completed_phases: 0
@@ -93,7 +93,7 @@ same step, rerun affected acceptance and obtain independent review.
 
 ## Next Action
 
-Finish Plan 16-07 Task 1 by committing the reviewed signal-to-exit timing correction with its updated evidence, updating PR #50's body before the push, then pushing normally and observing fresh native `pull_request` required, perf, and pinned RetroArch checks on the exact final head and merge ref. If all pass, present the PR identity and those checks for explicit owner consent. Do not merge, publish, or advance to Plan 16-08 without that consent and the normal release flow. If a check fails, retain its result and diagnose the first real failure within Plan 16-07.
+Finish Plan 16-07 Task 1 by updating PR #50's body with the current failure and correction, then push the reviewed phase-branch candidate normally and observe fresh native `pull_request` required, perf, and pinned RetroArch checks on the exact final head and merge ref. If all pass, present the PR identity and those checks for explicit owner consent. Do not merge, publish, or advance to Plan 16-08 without that consent and the normal release flow. If a check fails, retain its result and diagnose the first real failure within Plan 16-07.
 
 Plan 16-08 remains blocked until the existing release flow publishes a candidate. Phase 16 stays incomplete until its downloaded-byte acceptance and phase verification are complete.
 
