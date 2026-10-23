@@ -1,33 +1,61 @@
 # Phase 16 release delivery
 
-## Current handoff — 2026-10-23
+## Current handoff — 2026-10-23 (Plan 16-07, Wave 11)
 
-**Next:** `$gsd-execute-phase 16 --gaps-only --wave 11` — existing Plan16-07,
-not another planning round.11/13live plans are complete. Only07is ready;
-08requires actual07publication. The wave filter activates GSD partial-wave
-handling, which stops before phase-level verification while08is incomplete.
+**Status:** Plan 16-07 Task 1 is preparing the existing phase PR. EVID-04 remains
+open. No merge consent, merge, tag or publication has occurred.
 
-Plan56accepted current source2c356d574290aef1d57122566f7b81beaaa10027
-(source commits2e9928b/2c356d5; metadata52f6915). Its SUMMARY, source acceptance,
-independent review and disposition record final causal RED/GREEN, focused
-CI/ASan,649/649fullCI/no skips/fourCTestjobs, fresh packages and independent
-parent gates. All11accepted source/support blobs still match HEAD/worktree.
-Those results establish local source acceptance; fresh native PR CI remains.
+Plan 16-56 accepted source candidate
+`2c356d574290aef1d57122566f7b81beaaa10027`, with source commits `2e9928b` and
+`2c356d5` and metadata commit `52f6915`. Its [summary](16-56-SUMMARY.md),
+[source acceptance](16-56-SOURCE-ACCEPTANCE.md), [independent review](16-56-REVIEW.md)
+and [disposition](16-56-REVIEW-DISPOSITION.md) record final-source CR-01
+RED/GREEN evidence, focused CI and ASan, 649/649 full CI tests with no skips,
+fresh package checks and the configured parent gates. The final parent manifest
+matches all 11 source/support paths in both the accepted commit and current
+worktree. `.planning/config.json` remains byte-identical at SHA-256
+`0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e` and
+unstaged. These are local source acceptance results; they do not establish
+native PR CI or released bytes.
 
-A read-only live GitHub check on2026-10-23found [PR50](https://github.com/szTheory/nesturbator/pull/50)
-open/non-draft/unmerged, base main, head65c3a7fb0b320bfe7a51ac486bf922c5ad5872d9.
-Its CI38976400182and Nightly38976400185are completed failures on that older
-head. Current accepted source is not on the PR yet. Reconcile remote state,
-finish reversible preparation, normally push the phase branch and observe fresh
-required/perf/pinned-host PR CI on the final head. Successful native checks
-precede the exact-head owner merge/release-consent checkpoint. Existing failed
-runs stay failed; no new merge/publication authority is implied.
+The live [PR #50](https://github.com/szTheory/nesturbator/pull/50) is open,
+non-draft and unmerged, titled `fix: make host evidence discriminating and
+describe supported MMC3`, from `gsd/phase-16-host-evidence-and-roadmap` to
+`main`. Its remote head is `65c3a7fb0b320bfe7a51ac486bf922c5ad5872d9`, an
+ancestor of the local phase branch; its current preview merge is
+`aabd1d940d8deb2dd3c5369eddf074158517b92e`. The active `main` ruleset requires
+the `CI required` check and permits squash merges. The PR has no auto-merge
+request or submitted reviews. Its current description still refers to the
+superseded Plan 16-21 source candidate and is being replaced before the normal
+branch push.
 
-The phase verification query's generic plan-phase advice concerns the still-open
-release gap, which already has07/08plans. It does not invalidate56or require
-replanning. Preserve `gaps_found` until actual delivery/byte verification.
-All October16status/count/next-command statements below are historical DATA;
-the current handoff,16-RECOVERY and current07PLAN govern resume.
+The latest native PR result currently on #50 is historical run
+[38976400182](https://github.com/szTheory/nesturbator/actions/runs/38976400182)
+on the old remote head. `CI required` failed after hygiene formatting, Linux
+owner-sidecar assertions and ASan/readiness failures; the Intel leg separately
+reported a cleanup-matrix budget failure and readiness timeout. The `perf` and
+pinned RetroArch jobs passed. Nightly run 38976400185 failed separately. These
+failures remain data and are not acceptance for the current source. The local
+candidate already contains the accepted 56 source commits plus documentation
+only; all 11 tested source/support blobs match exactly.
+
+Before recording the final pushed head, update the PR body and commit the
+delivery preparation with normal hooks, leaving the config preference unstaged.
+Push the existing phase branch normally and require fresh native `pull_request`
+checks on its actual head and merge ref: `CI required`, `perf` and pinned
+RetroArch must all pass. Preserve every old failure. The current run, check and
+merge-ref identities are kept in ignored `build/phase16-release/context.json`
+so later polling cannot change the checked head. Only then present the exact
+PR/head and release consequence for the blocking owner-consent checkpoint.
+
+The existing [release workflow](../../../.github/workflows/release.yml) remains
+the publication path after consent: protected `main` triggers release-please,
+its PR auto-merges only after native required CI, and the resulting exact-tag
+CI must pass before publication. The published `v0.1.10` still omits MMC3;
+EVID-04 stays open until Plan 16-08 verifies the actual downloaded release
+bytes. Wave 11 ends at the consent checkpoint. Plan 16-08 and phase-level
+verification remain separate later work; do not alter the verification status
+or trigger another planning step.
 
 ---
 
