@@ -82,7 +82,28 @@ The first verifier attempts reported that no Sigstore verifier could be initiali
 
 The previously published v0.1.10 archive has SHA-256 9226ddce3e95c4bb0a2b13d910e34c225f67c0a02e24ce550b315e551235142d; it was not used for any v0.1.11 check.
 
-At the end of Task 1, the remaining five libretro platform checks and 17 per-asset attestations were pending expansion in Task 2.
+Task 1 records the macOS arm64 release path. Task 2 below expands the same source-bound checks to all six platforms and all 18 downloaded ZIPs.
+
+## Task 2: six-platform package and attestation matrix
+
+Each platform directory contains exactly its downloaded library, runner and libretro ZIPs, byte-compared with the original download. The immutable release snapshot's existing check_archives.cmake ran separately in each directory. Each call exited 0 and returned exactly three expected archive-ok records. The six libretro metadata entries were extracted from the downloaded archives; each SHA-256 equals the tagged source info digest above. The same checker applied info_claims.cmake to the immutable source README and public header and accepted the supported MMC3 profile and both exclusions on every platform.
+
+| Platform | Library ZIP SHA-256 | Runner ZIP SHA-256 | Libretro ZIP SHA-256 | Tagged info SHA-256 | Archive/support checker |
+| --- | --- | --- | --- | --- | --- |
+| linux-x64 | 58247066cc5b2ee1cf2cf23ec956de956e856c109ffcb2e6bfcd512eafd445e2 | 8dfdb69a70d73931fb003ab23bc3ba9ac9310a2cd47a2231563f5a6c5d0c29ff | f60ae97874094b69a4237d9b17cba0125034390f1e729cbc8d7d8fda567cd02a | 524bb3d0dbfccea4a2ed93316fadbf2b89be1c48b927d7ec007ba3a411fe0711 | pass, 3/3 archives |
+| linux-arm64 | a0a3e244e5abadaea047067af3bae0c7d0e3852e9e726ce555d27485d8aaeaa7 | 57910ba76b89990a967411a95469ea629ee3b497bbd6063e7c370699e119db3b | c4cb1b54749047881feb218bd43c905e810d41b73f4f655c7b7d4e19fd972b93 | 524bb3d0dbfccea4a2ed93316fadbf2b89be1c48b927d7ec007ba3a411fe0711 | pass, 3/3 archives |
+| macos-x64 | c26091b4042e301f740cc925ea52c0ca28ceb832427068a7c022255735917874 | da41fc571f9502dd7eaad3b3483e544230d6a9e62251f76423183bac53b359db | 0309ec832b4eade4219a2cc055a1e1b5f53822dc56fc64d5e2f02145338f85e6 | 524bb3d0dbfccea4a2ed93316fadbf2b89be1c48b927d7ec007ba3a411fe0711 | pass, 3/3 archives |
+| macos-arm64 | 7ccf582590f921da7a3af75795226ce5ad04f8f9840c2cb16f1c9767e6db59a8 | 9381be4f3b9d7c13eed2372b07f89b4728a8c091b0c7b3a5ce270dd610da7943 | fb9c631818d7196d9306f5357f74d281af97ad87dd27066c74e47bbb9bc1dc0f | 524bb3d0dbfccea4a2ed93316fadbf2b89be1c48b927d7ec007ba3a411fe0711 | pass, 3/3 archives |
+| windows-x64 | f85db2e6a9adca6faa37a0e19c8cb7e7c07f281109581389b17b20db0b72ee35 | 6b370a08301cc270b106e951a1ab053ced647293264c16c0283f06798c7e3f8e | 6cba2756660c6d524a46481d63d3a37baef7f23175265e15d178ed039e257b6e | 524bb3d0dbfccea4a2ed93316fadbf2b89be1c48b927d7ec007ba3a411fe0711 | pass, 3/3 archives |
+| windows-arm64 | 72e1f358ee1f2d2aa89ba3884c08f316591d43980e103a2762da26e0773e9c8d | 2a8a6c9bfa3f59eda194d3352ad07ea2b1251524cab0f067b44bc39f5f01fc23 | e6011af5bf696dd073b401fb92b17be0fa56616faab137f93200deb93f6af89a | 524bb3d0dbfccea4a2ed93316fadbf2b89be1c48b927d7ec007ba3a411fe0711 | pass, 3/3 archives |
+
+Attestation verification ran once for each of the 18 actual ZIP files with the same repository, signer workflow, source commit and default SLSA provenance v1 policy. All 18 commands exited 0 and returned a nonempty verified JSON result. Each result contains the requested filename and its SHA-256 computed from the downloaded bytes; each verified certificate identifies source repository https://github.com/szTheory/nesturbator, source digest e47feb3afc34baf1d611ef44153af199424f41a2, and signer workflow szTheory/nesturbator/.github/workflows/release.yml on refs/heads/main. The final check found 18 distinct ZIP identities, six libretro rows, no missing result, and no subject digest mismatch.
+
+The complete local result set remains ignored under build/phase16-release: six logs named checks/archive-<platform>.log, the 18 per-asset checks/<asset>.verified.json responses, manifest-validation.json, downloaded assets and the immutable source snapshot. The downloaded binary assets and local verification output are not committed.
+
+Final requery passed after the matrix: the published release is still non-draft v0.1.11 with the same publication time and all 19 asset identities; the remote tag remains the direct commit e47feb3afc34baf1d611ef44153af199424f41a2; Release run 39993108038 remains the successful push run on that exact SHA.
+
+All planned released-byte conditions are now evidenced for v0.1.11: 19 published assets, 18 checksum-matched downloaded ZIPs, 18 exact-source attestations and six metadata-equal archive trios. This evidence is ready for the normal independent phase verification; this record does not preempt that verifier's verdict.
 
 ## Separate Nightly result
 
@@ -104,5 +125,7 @@ Task 1 platform and attestation commands, both exit 0:
 
     cmake -DPACKAGES=build/phase16-release/platforms/macos-arm64 -DVERSION=0.1.11 -P build/phase16-release/source/tests/cmake/check_archives.cmake
     XDG_CACHE_HOME="$(git rev-parse --show-toplevel)/build/phase16-release/cache" gh attestation verify build/phase16-release/assets/nesturbator-0.1.11-libretro-macos-arm64.zip --repo szTheory/nesturbator --signer-workflow szTheory/nesturbator/.github/workflows/release.yml --source-digest e47feb3afc34baf1d611ef44153af199424f41a2 --format json
+
+Task 2 ran the same archive command separately for linux-x64, linux-arm64, macos-x64, macos-arm64, windows-x64 and windows-arm64, each with its matching build/phase16-release/platforms/<platform> directory; all six exited 0. The attestation command above ran for each of the 18 ZIP paths with the same XDG_CACHE_HOME and identity arguments; all 18 exited 0.
 
 Actual downloaded ZIPs, attestation JSON, source snapshot and checker logs remain ignored under build/phase16-release. No release assets, version, source code, verification fingerprint or phase requirements were changed.
