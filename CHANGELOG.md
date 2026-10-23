@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.11](https://github.com/szTheory/nesturbator/compare/v0.1.10...v0.1.11) (2026-10-23)
+
+
+### Bug Fixes
+
+* make host evidence discriminating and describe supported MMC3 ([#50](https://github.com/szTheory/nesturbator/issues/50)) ([b39a010](https://github.com/szTheory/nesturbator/commit/b39a0106e4cccfe9922e051d5680f1f7f84f5efa))
+
 ## [0.1.10](https://github.com/szTheory/nesturbator/compare/v0.1.9...v0.1.10) (2026-10-13)
 
 
