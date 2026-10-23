@@ -524,7 +524,7 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * from recorder status. Binary pre/post journal snapshots copy through one open handle and bind
  * that handle's device, inode and size; they do not identify the bytes grep read. Synthetic tests
  * cover statuses 0, 1 and controlled 2, recorder errors, pathname replacement and event ownership.
- * Cooperative local session invocations reserve TCP 127.0.0.1:55355 with a bound, non-listening
+ * Cooperative local session invocations reserve loopback TCP port 55355 with a bound, non-listening
  * SOCK_STREAM descriptor held at FD 9, separate from the host UDP command transport.
  * Bundled Perl binds and validates the descriptor, then
  * re-enters the eight-argument shell driver in the same PID while carrying the original monotonic

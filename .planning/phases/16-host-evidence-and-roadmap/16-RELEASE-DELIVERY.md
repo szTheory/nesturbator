@@ -2,8 +2,9 @@
 
 ## Current handoff — 2026-10-23 (Plan 16-07, Wave 11)
 
-**Status:** Plan 16-07 Task 1 is preparing the existing phase PR. EVID-04 remains
-open. No merge consent, merge, tag or publication has occurred.
+**Status:** Plan 16-07 Task 1 is preparing a comment-only correction for a new
+native PR run. EVID-04 remains open. No merge consent, merge, tag or publication
+has occurred.
 
 Plan 16-56 accepted source candidate
 `2c356d574290aef1d57122566f7b81beaaa10027`, with source commits `2e9928b` and
@@ -11,9 +12,11 @@ Plan 16-56 accepted source candidate
 [source acceptance](16-56-SOURCE-ACCEPTANCE.md), [independent review](16-56-REVIEW.md)
 and [disposition](16-56-REVIEW-DISPOSITION.md) record final-source CR-01
 RED/GREEN evidence, focused CI and ASan, 649/649 full CI tests with no skips,
-fresh package checks and the configured parent gates. The final parent manifest
-matches all 11 source/support paths in both the accepted commit and current
-worktree. `.planning/config.json` remains byte-identical at SHA-256
+fresh package checks and the configured parent gates. Before this delivery
+correction, the final parent manifest matched all 11 source/support paths in
+both the accepted commit and worktree. The sole current source delta is one
+public-header comment line; the other ten manifest paths remain byte-identical.
+`.planning/config.json` remains byte-identical at SHA-256
 `0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e` and
 unstaged. These are local source acceptance results; they do not establish
 native PR CI or released bytes.
@@ -21,23 +24,55 @@ native PR CI or released bytes.
 The live [PR #50](https://github.com/szTheory/nesturbator/pull/50) is open,
 non-draft and unmerged, titled `fix: make host evidence discriminating and
 describe supported MMC3`, from `gsd/phase-16-host-evidence-and-roadmap` to
-`main`. Its remote head is `65c3a7fb0b320bfe7a51ac486bf922c5ad5872d9`, an
-ancestor of the local phase branch; its current preview merge is
-`aabd1d940d8deb2dd3c5369eddf074158517b92e`. The active `main` ruleset requires
+`main`. Its current remote head is
+`450ab3b6b30bbd2be2ab6e69524b32d15275553a`, with preview merge
+`d8bc658ea8bbd9b2153d1c161ce776f00e80400f`. Its body now describes the accepted
+Plan 16-56 candidate and pending publication. The active `main` ruleset requires
 the `CI required` check and permits squash merges. The PR has no auto-merge
-request or submitted reviews. Its current description still refers to the
-superseded Plan 16-21 source candidate and is being replaced before the normal
-branch push.
+request or submitted reviews.
 
-The latest native PR result currently on #50 is historical run
+The latest earlier native PR result on #50 is historical run
 [38976400182](https://github.com/szTheory/nesturbator/actions/runs/38976400182)
 on the old remote head. `CI required` failed after hygiene formatting, Linux
 owner-sidecar assertions and ASan/readiness failures; the Intel leg separately
 reported a cleanup-matrix budget failure and readiness timeout. The `perf` and
 pinned RetroArch jobs passed. Nightly run 38976400185 failed separately. These
-failures remain data and are not acceptance for the current source. The local
-candidate already contains the accepted 56 source commits plus documentation
-only; all 11 tested source/support blobs match exactly.
+failures remain data and are not acceptance for the current source. The
+initially pushed candidate contained the accepted 56 source commits plus
+documentation only; all 11 tested source/support blobs matched exactly.
+
+The first refreshed native `pull_request` run for head
+`450ab3b6b30bbd2be2ab6e69524b32d15275553a` is
+[39885096932](https://github.com/szTheory/nesturbator/actions/runs/39885096932).
+Its two Linux `nofp` legs failed in `tests/cmake/float_scan.cmake:81` because
+the public-header comment's IPv4 address `127.0.0.1:55355` was scanned as a
+floating-point token. The exact run is retained as historical evidence; its
+failure is in the comment, not emulator behavior. A local one-line comment
+correction replaces the address literal with “loopback TCP port 55355”; the
+focused local `abi.float_scan` and `abi.float_scan.selftest` passed. Its local
+`cmake --workflow --preset ci` run completed all 649 tests with no skips in
+332.14 seconds and generated the library, runner and libretro ZIPs. A separate
+local macOS no-float workflow reported `abi.undefined_symbols` requiring
+`stack_chk_fail;stack_chk_guard`; that Apple-toolchain result is not Linux
+acceptance.
+
+Run 39885096932 completed with failure. Both Linux `nofp` legs failed on the
+same comment scan. Windows x64/ARM, Linux x64/ARM, hygiene, title and `perf`
+passed. macOS ARM, macOS Intel, ASan and the hosted RetroArch job failed
+`retroarch.session.controls` with `cleanup matrix exceeded measured wall
+budget`; the ASan job also failed `retroarch.session.readiness`, which reported
+`readiness-delayed` driver+cleanup at 26,065 ms against its strict 25,000 ms
+bound. The hosted RetroArch artifact errors followed the failed test suite and
+missing generated evidence. `CI required` failed, and hash equality was
+skipped. The exact native logs/excerpts and job identities are retained under
+ignored `build/phase16-release/`; none of these timing criteria were changed.
+
+The header correction changes only the explanatory comment; no executable
+code or test expectation changed. The accepted Plan 16-56 independent review
+remains applicable to executable source, and a bounded review of this exact
+one-line comment delta found no behavior change. The 450ab3b results cannot
+satisfy native acceptance. After this record and comment are committed, push
+normally for a fresh `pull_request` run on the corrected full head.
 
 Before recording the final pushed head, update the PR body and commit the
 delivery preparation with normal hooks, leaving the config preference unstaged.
