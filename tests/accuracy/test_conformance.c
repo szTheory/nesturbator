@@ -2,6 +2,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
+
+#if defined(_WIN32)
+#include <direct.h>
+#define ACCURACYCOIN_MKDIR(path) _mkdir(path)
+#else
+#include <sys/stat.h>
+#include <sys/types.h>
+#define ACCURACYCOIN_MKDIR(path) mkdir(path, 0700)
+#endif
 
 #include "accuracycoin.h"
 #include "check.h"
@@ -490,6 +500,368 @@ static int test_classifier(void)
     CHECK_DONE();
 }
 
+static int expect_start(const char *expected, uint32_t requested_page, uint8_t menu_ready,
+                       uint8_t selected_page, uint8_t cursor, int a_press, int a_release,
+                       int run_state, int transition)
+{
+    const char *actual = accuracycoin_validate_start(requested_page, menu_ready, selected_page,
+                                                      cursor, a_press, a_release, run_state,
+                                                      transition, 0, 0);
+    return actual != NULL && strcmp(actual, expected) == 0;
+}
+
+static int test_driver(void)
+{
+    CHECK(expect_start("start-attributed", 3u, 0x0au, 2u, 0xffu, 1, 1, 1, 1));
+    CHECK(expect_start("menu-not-ready", 3u, 0u, 2u, 0xffu, 1, 1, 1, 1));
+    CHECK(expect_start("selected-page-mismatch", 3u, 0x0au, 3u, 0xffu, 1, 1, 1, 1));
+    CHECK(expect_start("cursor-not-page-header", 3u, 0x0au, 2u, 0u, 1, 1, 1, 1));
+    CHECK(expect_start("a-press-not-observed", 3u, 0x0au, 2u, 0xffu, 0, 1, 1, 1));
+    CHECK(expect_start("a-release-not-observed", 3u, 0x0au, 2u, 0xffu, 1, 0, 1, 1));
+    CHECK(expect_start("start-not-attributed", 3u, 0x0au, 2u, 0xffu, 1, 1, 1, 0));
+    CHECK(expect_start("start-not-attributed", 3u, 0x0au, 2u, 0xffu, 1, 1, 0, 1));
+    CHECK(expect_start("menu-not-ready", 0u, 0x0au, 0u, 0xffu, 1, 1, 1, 1));
+    CHECK(strcmp(accuracycoin_validate_start(16u, 0x0au, 15u, 0xffu, 1, 1, 1, 0, 1, 1),
+                 "start-attributed") == 0);
+    CHECK(strcmp(accuracycoin_validate_start(16u, 0x0au, 15u, 0xffu, 1, 1, 1, 0, 1, 0),
+                 "start-not-attributed") == 0);
+    CHECK_DONE();
+}
+
+static int make_directory(const char *path)
+{
+    return ACCURACYCOIN_MKDIR(path) == 0 || errno == EEXIST;
+}
+
+static uint8_t fixture_final_raw(const accuracycoin_test *row, const char *mutation)
+{
+    if ((strcmp(mutation, "timeout") == 0 || strcmp(mutation, "multiple-timeout") == 0) &&
+        row->page == 1u) {
+        if (row->row == 1u)
+            return 0xffu;
+        if (row->row == 2u)
+            return 0x03u;
+        if (strcmp(mutation, "multiple-timeout") == 0 && row->row == 3u)
+            return 0x03u;
+        return 0x00u;
+    }
+    if (strcmp(mutation, "cap-minus") == 0)
+        return 0x01u;
+    if (strcmp(row->name, "PPU Read Buffer") == 0)
+        return 0x41u;
+    if (strcmp(row->name, "Controller Clocking") == 0)
+        return 0xffu;
+    if (row->page == 1u && row->row == 1u)
+        return 0x02u;
+    if (strcmp(mutation, "bad-variant") == 0 && row->page == 1u && row->row == 2u)
+        return 0x39u;
+    return 0x01u;
+}
+
+static int write_fixture_raw_stage(FILE *file, const accuracycoin_directory *directory,
+                                   uint32_t page, const char *stage, const char *mutation)
+{
+    const accuracycoin_page *page_info = &directory->pages[page - 1u];
+    for (size_t i = 0u; i < page_info->row_count; i++) {
+        const accuracycoin_test *row = &directory->rows[page_info->first_row + i];
+        int observed = row->kind == (uint8_t)ACCURACYCOIN_KIND_TEST;
+        uint8_t raw = 0u;
+        if (strcmp(stage, "a-press") == 0 && observed != 0)
+            raw = 0x03u;
+        else if (strcmp(stage, "final") == 0 && observed != 0)
+            raw = fixture_final_raw(row, mutation);
+        if (strcmp(mutation, "bad-draw") == 0 && strcmp(stage, "final") == 0 &&
+            row->kind == (uint8_t)ACCURACYCOIN_KIND_DRAW && page == 16u) {
+            observed = 1;
+            raw = 0x01u;
+        }
+        char raw_text[5] = "-";
+        if (observed != 0)
+            (void)snprintf(raw_text, sizeof raw_text, "0x%02x", (unsigned)raw);
+        if (fprintf(file, "%s\t%u\t%u\taccuracycoin/%s\t0x%04x\t%d\t%s\n", stage,
+                    (unsigned)row->page, (unsigned)row->row, row->name,
+                    (unsigned)row->result_address, observed, raw_text) < 0)
+            return 0;
+    }
+    return 1;
+}
+
+static int write_fixture_page(const char *root, const accuracycoin_directory *directory,
+                              uint32_t page, const char *mutation)
+{
+    char page_dir[4096];
+    char raw_path[4096];
+    char diagnostics_path[4096];
+    char report_path[4096];
+    char metadata_path[4096];
+    char source_revision[64] = "fixture-source";
+    uint32_t execution_cap = 3u;
+    uint32_t execution_used = strcmp(mutation, "cap-minus") == 0 ? 2u : 3u;
+    int is_timeout = (strcmp(mutation, "timeout") == 0 ||
+                      strcmp(mutation, "multiple-timeout") == 0) && page == 1u;
+    int release_frames = strcmp(mutation, "held-a") == 0 && page == 3u ? 0 : 1;
+    char rom_sha[65];
+    char inventory_sha[65];
+    char attempt_id[64];
+    (void)snprintf(rom_sha, sizeof rom_sha, "%s", directory->rom_sha256);
+    (void)snprintf(inventory_sha, sizeof inventory_sha, "%s", directory->inventory_sha256);
+    (void)snprintf(attempt_id, sizeof attempt_id, "page-%02u-cold-01", (unsigned)page);
+    if (strcmp(mutation, "wrong-source") == 0 && page == 2u)
+        (void)snprintf(source_revision, sizeof source_revision, "different-source");
+    if (strcmp(mutation, "wrong-rom-sha") == 0 && page == 1u)
+        (void)snprintf(rom_sha, sizeof rom_sha, "different-rom-sha");
+    if (strcmp(mutation, "wrong-inventory-sha") == 0 && page == 1u)
+        (void)snprintf(inventory_sha, sizeof inventory_sha, "different-inventory-sha");
+    if (strcmp(mutation, "wrong-attempt") == 0 && page == 5u)
+        (void)snprintf(attempt_id, sizeof attempt_id, "page-%02u-cold-02", (unsigned)page);
+    if (strcmp(mutation, "cap-plus") == 0 && page == 4u)
+        execution_used = 4u;
+    if (snprintf(page_dir, sizeof page_dir, "%s/page-%02u", root, (unsigned)page) < 0 ||
+        snprintf(raw_path, sizeof raw_path, "%s/raw.tsv", page_dir) < 0 ||
+        snprintf(diagnostics_path, sizeof diagnostics_path, "%s/diagnostics.tsv", page_dir) < 0 ||
+        snprintf(report_path, sizeof report_path, "%s/report.tsv", page_dir) < 0 ||
+        snprintf(metadata_path, sizeof metadata_path, "%s/metadata.txt", page_dir) < 0 ||
+        !make_directory(page_dir))
+        return 0;
+    (void)remove(raw_path);
+    (void)remove(diagnostics_path);
+    (void)remove(report_path);
+    (void)remove(metadata_path);
+
+    FILE *raw_file = NULL;
+    if (!(strcmp(mutation, "missing-raw") == 0 && page == 5u)) {
+        raw_file = fopen(raw_path, "w");
+        if (raw_file == NULL ||
+            fprintf(raw_file, "stage\tpage\trow\tkey\tresult_address\tobserved\traw\n") < 0 ||
+            !write_fixture_raw_stage(raw_file, directory, page, "before-start", mutation) ||
+            !write_fixture_raw_stage(raw_file, directory, page, "a-press", mutation) ||
+            !write_fixture_raw_stage(raw_file, directory, page, "a-release", mutation) ||
+            !write_fixture_raw_stage(raw_file, directory, page, "final", mutation)) {
+            if (raw_file != NULL)
+                (void)fclose(raw_file);
+            return 0;
+        }
+        if (strcmp(mutation, "duplicate-stage") == 0 && page == 1u) {
+            const accuracycoin_test *row = &directory->rows[directory->pages[0].first_row];
+            if (fprintf(raw_file, "a-press\t1\t1\taccuracycoin/%s\t0x%04x\t1\t0x03\n",
+                        row->name, (unsigned)row->result_address) < 0) {
+                (void)fclose(raw_file);
+                return 0;
+            }
+        }
+        if (fclose(raw_file) != 0)
+            return 0;
+    }
+
+    FILE *diagnostics = fopen(diagnostics_path, "w");
+    int is_draw_page = page == 16u;
+    if (diagnostics == NULL ||
+        fprintf(diagnostics,
+                "stage\tframe\tmenu_ready\tpage_index\tcursor\tautomate_test_suite\trunning_all_tests\tresult_transition\n"
+                "boot\t1\t10\t%u\t255\t0\t0\t0\n"
+                "a-press\t2\t10\t%u\t%u\t1\t0\t%u\n"
+                "a-release\t3\t10\t%u\t%u\t1\t0\t%u\n"
+                "observe\t4\t10\t%u\t%u\t%u\t0\t0\n",
+                (unsigned)(page - 1u), (unsigned)(page - 1u), 0u,
+                is_draw_page ? 0u : 1u, (unsigned)(page - 1u), is_draw_page ? 0u : 0u,
+                is_draw_page ? 0u : 1u, (unsigned)(page - 1u),
+                is_timeout ? 1u : 255u, is_timeout ? 1u : 0u) < 0 ||
+        fclose(diagnostics) != 0)
+        return 0;
+
+    FILE *report = fopen(report_path, "w");
+    if (report == NULL ||
+        fprintf(report,
+                "key\tpage\trow\tstatus\tobserved\traw\tframes\tcause\tattempt_id\n") < 0) {
+        if (report != NULL)
+            (void)fclose(report);
+        return 0;
+    }
+    const accuracycoin_page *page_info = &directory->pages[page - 1u];
+    for (size_t i = 0u; i < page_info->row_count; i++) {
+        const accuracycoin_test *row = &directory->rows[page_info->first_row + i];
+        int observed = row->kind == (uint8_t)ACCURACYCOIN_KIND_TEST;
+        uint8_t raw = observed != 0 ? fixture_final_raw(row, mutation) : 0u;
+        if (is_timeout != 0 && observed != 0) {
+            if (row->row == 1u)
+                raw = 0xffu;
+            else if (row->row == 2u)
+                raw = 0x03u;
+            else if (strcmp(mutation, "multiple-timeout") == 0 && row->row == 3u)
+                raw = 0x03u;
+            else
+                raw = 0x00u;
+        }
+        const char *cause = NULL;
+        int current_active_row = is_timeout != 0 && row->row == 2u;
+        accuracycoin_result_status result;
+        if (strcmp(mutation, "multiple-timeout") == 0 && row->row == 3u && raw == 0x03u) {
+            result = ACCURACYCOIN_RESULT_NOT_RUN;
+            cause = "noncurrent-running-marker";
+        } else {
+            result = accuracycoin_classify_row(row, observed, raw, current_active_row, &cause);
+        }
+        char raw_text[5] = "-";
+        if (observed != 0)
+            (void)snprintf(raw_text, sizeof raw_text, "0x%02x", (unsigned)raw);
+        if (fprintf(report,
+                    "accuracycoin/%s\t%u\t%u\t%s\t%d\t%s\t%u\t%s\tpage-%02u-cold-01\n",
+                    row->name, (unsigned)row->page, (unsigned)row->row,
+                    accuracycoin_status_text(result), observed, raw_text, execution_used,
+                    cause != NULL ? cause : "invalid-result", (unsigned)page) < 0) {
+            (void)fclose(report);
+            return 0;
+        }
+    }
+    if (fclose(report) != 0)
+        return 0;
+
+    FILE *metadata = fopen(metadata_path, "w");
+    if (metadata == NULL)
+        return 0;
+    unsigned nav_frames = (unsigned)(page - 1u) * 5u;
+    unsigned total_cap = 120u + nav_frames + 2u + execution_cap;
+    unsigned frames_used = 26u + nav_frames + 2u + execution_used;
+    const char *verdict = is_timeout != 0 ? "guest-timeout" : "complete";
+    const char *stop_cause = is_timeout != 0 ? "execution-cap-active-test" :
+                                                "all-page-results-terminal";
+    char active_key[ACCURACYCOIN_NAME_CAPACITY + 16u] = "-";
+    if (is_timeout != 0) {
+        const accuracycoin_test *active = &directory->rows[page_info->first_row + 1u];
+        (void)snprintf(active_key, sizeof active_key, "accuracycoin/%s", active->name);
+    }
+    if (strcmp(mutation, "wrong-active") == 0 && page == 1u)
+        (void)snprintf(active_key, sizeof active_key, "accuracycoin/not-the-active-row");
+    if (fprintf(metadata,
+                "report_schema=%s\ninventory_schema=1\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%s\nsource_revision=%s\nsource_dirty=0\nlibrary_version=0.1.0\nbehaviour_revision=1\nmode=observe\npage=%u\nattempt_id=%s\norigin=cold-page\nrequested_row=all\ninput_start_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release\nboot_frame_budget=120\nnavigation_frame_budget_per_page=5\nexecution_frame_budget=%u\ntotal_frame_budget=%u\nboot_frames_used=26\nnavigation_frames_used=%u\nstart_frames_used=2\nexecution_frames=%u\nframes_used=%u\nstartup_dmc_pretest_observed=1\nstartup_dmc_pretest=0x00\nstartup_vblank_pretest_observed=1\nstartup_vblank_pretest=0x00\nstartup_ppu_reset_pretest_observed=1\nstartup_ppu_reset_pretest=0x01\nselection_observed=1\nselected_page=%u\nselected_cursor=255\na_press_observed=1\na_release_observed=1\nrelease_frames=%d\nrun_state_observed=1\nresult_transition_observed=%d\ndraw_cursor_transition_observed=%d\nmenu_returned_to_header_observed=%d\nstart_attributed=1\nstop_cause=%s\nactive_key=%s\nactive_raw=%s\nverdict=%s\nhost_elapsed_ns=1000\n",
+                strcmp(mutation, "bad-schema") == 0 && page == 1u ? "2" : "1",
+                directory->pin, rom_sha, inventory_sha, source_revision,
+                (unsigned)page, attempt_id, execution_cap, total_cap,
+                nav_frames, execution_used, frames_used, (unsigned)(page - 1u), release_frames,
+                is_draw_page ? 0 : 1, is_draw_page, !is_timeout, stop_cause, active_key,
+                is_timeout != 0 ? "0x03" : "-", verdict) < 0 ||
+        fclose(metadata) != 0)
+        return 0;
+    return 1;
+}
+
+static int write_campaign_fixture(const char *root, const accuracycoin_directory *directory,
+                                  const char *mutation)
+{
+    char path[4096];
+    if (!make_directory(root) || snprintf(path, sizeof path, "%s/outer-outcomes.tsv", root) < 0)
+        return 0;
+    FILE *outer = fopen(path, "w");
+    if (outer == NULL ||
+        fprintf(outer, "page\toutcome\texit_code\tdeadline_seconds\n") < 0) {
+        if (outer != NULL)
+            (void)fclose(outer);
+        return 0;
+    }
+    for (uint32_t page = 1u; page <= ACCURACYCOIN_PAGE_COUNT; page++)
+        if (fprintf(outer, "%u\tEXIT_ZERO\t0\t30\n", (unsigned)page) < 0) {
+            (void)fclose(outer);
+            return 0;
+        }
+    if (fclose(outer) != 0)
+        return 0;
+    for (uint32_t page = 1u; page <= ACCURACYCOIN_PAGE_COUNT; page++)
+        if (!write_fixture_page(root, directory, page, mutation))
+            return 0;
+    return 1;
+}
+
+static int expect_fixture_rejected(const char *work, const char *case_name,
+                                   const accuracycoin_directory *directory, const char *mutation)
+{
+    char root[4096];
+    if (snprintf(root, sizeof root, "%s/%s", work, case_name) < 0 ||
+        !write_campaign_fixture(root, directory, mutation)) {
+        CHECK(0);
+        return 0;
+    }
+    CHECK(accuracycoin_collect_campaign(directory, root) != 0);
+    return 1;
+}
+
+static int test_report(const char *new_rom_path, const char *old_rom_path, const char *work)
+{
+    fixture_bytes new_bytes = {0};
+    fixture_bytes old_bytes = {0};
+    accuracycoin_directory new_directory;
+    accuracycoin_directory old_directory;
+    accuracycoin_reason reason = ACCURACYCOIN_REASON_OK;
+    char path[4096];
+    CHECK(make_directory(work));
+    CHECK(read_fixture(new_rom_path, &new_bytes));
+    CHECK(read_fixture(old_rom_path, &old_bytes));
+    if (new_bytes.bytes == NULL || old_bytes.bytes == NULL)
+        goto done;
+    CHECK(accuracycoin_parse_pinned(new_bytes.bytes, new_bytes.size, &new_directory, &reason));
+    CHECK(accuracycoin_parse_pinned(old_bytes.bytes, old_bytes.size, &old_directory, &reason));
+    if (snprintf(path, sizeof path, "%s/good", work) < 0 ||
+        !write_campaign_fixture(path, &new_directory, "good")) {
+        CHECK(0);
+        goto done;
+    }
+    CHECK_EQ_U64(accuracycoin_collect_campaign(&new_directory, path), 0u);
+    snprintf(path, sizeof path, "%s/good/summary.txt", work);
+    FILE *summary = fopen(path, "r");
+    char summary_text[2048];
+    size_t summary_size = summary != NULL ? fread(summary_text, 1u, sizeof summary_text - 1u, summary) : 0u;
+    if (summary != NULL)
+        (void)fclose(summary);
+    summary_text[summary_size] = '\0';
+    CHECK(strstr(summary_text, "scored_total=146") != NULL);
+    CHECK(strstr(summary_text, "pass=144/146") != NULL);
+    CHECK(strstr(summary_text, "fail=1") != NULL);
+    CHECK(strstr(summary_text, "skip=1") != NULL);
+    CHECK(strstr(summary_text, "draw_inventory_only=5") != NULL);
+    CHECK(expect_fixture_rejected(work, "bad-schema", &new_directory, "bad-schema"));
+    CHECK(expect_fixture_rejected(work, "held-a", &new_directory, "held-a"));
+    CHECK(expect_fixture_rejected(work, "wrong-source", &new_directory, "wrong-source"));
+    CHECK(expect_fixture_rejected(work, "bad-draw", &new_directory, "bad-draw"));
+    CHECK(expect_fixture_rejected(work, "bad-variant", &new_directory, "bad-variant"));
+    CHECK(expect_fixture_rejected(work, "cap-plus", &new_directory, "cap-plus"));
+    CHECK(expect_fixture_rejected(work, "duplicate-stage", &new_directory, "duplicate-stage"));
+    CHECK(expect_fixture_rejected(work, "wrong-active", &new_directory, "wrong-active"));
+    CHECK(expect_fixture_rejected(work, "wrong-rom-sha", &new_directory, "wrong-rom-sha"));
+    CHECK(expect_fixture_rejected(work, "wrong-inventory-sha", &new_directory,
+                                  "wrong-inventory-sha"));
+    CHECK(expect_fixture_rejected(work, "wrong-attempt", &new_directory, "wrong-attempt"));
+    CHECK(expect_fixture_rejected(work, "missing-raw", &new_directory, "missing-raw"));
+    snprintf(path, sizeof path, "%s/cap-minus", work);
+    CHECK(write_campaign_fixture(path, &new_directory, "cap-minus"));
+    CHECK_EQ_U64(accuracycoin_collect_campaign(&new_directory, path), 0u);
+    snprintf(path, sizeof path, "%s/timeout", work);
+    CHECK(write_campaign_fixture(path, &new_directory, "timeout"));
+    CHECK_EQ_U64(accuracycoin_collect_campaign(&new_directory, path), 0u);
+    snprintf(path, sizeof path, "%s/multiple-timeout", work);
+    CHECK(write_campaign_fixture(path, &new_directory, "multiple-timeout"));
+    CHECK_EQ_U64(accuracycoin_collect_campaign(&new_directory, path), 0u);
+    snprintf(path, sizeof path, "%s/multiple-timeout/report.tsv", work);
+    FILE *multiple_timeout = fopen(path, "r");
+    char multiple_timeout_text[32768];
+    size_t multiple_timeout_size = multiple_timeout != NULL ?
+        fread(multiple_timeout_text, 1u, sizeof multiple_timeout_text - 1u, multiple_timeout) : 0u;
+    if (multiple_timeout != NULL)
+        (void)fclose(multiple_timeout);
+    multiple_timeout_text[multiple_timeout_size] = '\0';
+    CHECK(strstr(multiple_timeout_text,
+                 "accuracycoin/RAM Mirroring\t1\t2\ttest\ttimeout\t1\t0x03\t3\tactive-test-budget-exhausted\tpage-01-cold-01") != NULL);
+    CHECK(strstr(multiple_timeout_text,
+                 "accuracycoin/PC Wraparound\t1\t3\ttest\tnot-run\t1\t0x03\t3\tnoncurrent-running-marker\tpage-01-cold-01") != NULL);
+    snprintf(path, sizeof path, "%s/wrong-pin", work);
+    CHECK(write_campaign_fixture(path, &new_directory, "good"));
+    CHECK(accuracycoin_collect_campaign(&old_directory, path) != 0);
+    snprintf(path, sizeof path, "%s/no-output-directory", work);
+    CHECK(accuracycoin_collect_campaign(&new_directory, path) != 0);
+done:
+    free(new_bytes.bytes);
+    free(old_bytes.bytes);
+    CHECK_DONE();
+}
+
 #define MIGRATION_FIELD_COUNT 12u
 #define PROTECTED_ROW_CAPACITY 24u
 
@@ -641,9 +1013,13 @@ int main(int argc, char **argv)
         return test_inventory(argv[2], argv[3]);
     if (argc == 2 && strcmp(argv[1], "classifier") == 0)
         return test_classifier();
+    if (argc == 2 && strcmp(argv[1], "driver") == 0)
+        return test_driver();
+    if (argc == 5 && strcmp(argv[1], "report") == 0)
+        return test_report(argv[2], argv[3], argv[4]);
     if (argc == 4 && strcmp(argv[1], "migration") == 0)
         return test_migration_source(argv[2], argv[3]);
     fprintf(stderr,
-            "usage: accuracycoin.conformance inventory NEW_ROM OLD_ROM | classifier | migration TSV SCOREBOARD\n");
+            "usage: accuracycoin.conformance inventory NEW_ROM OLD_ROM | classifier | driver | report NEW_ROM OLD_ROM WORK | migration TSV SCOREBOARD\n");
     return 2;
 }

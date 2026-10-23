@@ -72,6 +72,13 @@ typedef struct accuracycoin_directory {
     uint8_t pin_id;
 } accuracycoin_directory;
 
+typedef struct accuracycoin_run_budgets {
+    uint32_t boot_frames;
+    uint32_t navigation_frames_per_page;
+    uint32_t execution_frames;
+    uint64_t total_frames;
+} accuracycoin_run_budgets;
+
 typedef enum accuracycoin_result_status {
     ACCURACYCOIN_RESULT_PASS = 0,
     ACCURACYCOIN_RESULT_FAIL,
@@ -110,12 +117,26 @@ accuracycoin_result_status accuracycoin_classify_row(const accuracycoin_test *ro
                                                       const char **cause);
 const char *accuracycoin_status_text(accuracycoin_result_status status);
 
+/* Driver start evidence uses result transitions for scored pages and the
+ * source-defined row-cursor transition for DRAW-only pages. */
+const char *accuracycoin_validate_start(uint32_t requested_page, uint8_t menu_ready,
+                                       uint8_t selected_page, uint8_t cursor,
+                                       int a_press_observed, int a_release_observed,
+                                       int run_state_observed, int result_transition_observed,
+                                       int draw_only_page, int draw_cursor_transition_observed);
+
 int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32_t page,
                                  const char *scoreboard_path, nesturbator *inst, uint16_t *video,
                                  int16_t *audio, nesturbator_run_audio_hash *audio_hash);
 
 int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint32_t page,
-                                  uint32_t frame_budget, const char *output_dir,
+                                  const accuracycoin_run_budgets *budgets,
+                                  const char *output_dir,
                                   nesturbator *inst, uint16_t *video, int16_t *audio);
+
+/* Collect one bounded campaign under output_dir. Page child outcomes are produced by the
+ * CMake launcher; only validated per-page evidence is classified as complete observation. */
+int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
+                                  const char *output_dir);
 
 #endif /* NESTURBATOR_RUNNER_ACCURACYCOIN_H */

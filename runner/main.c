@@ -5,6 +5,7 @@
  *   nesturbator-run --accuracycoin-page N --rom FILE --scoreboard FILE
  *   nesturbator-run --accuracycoin-inventory --rom FILE
  *   nesturbator-run --accuracycoin-observe PAGE --rom FILE --frames N --accuracycoin-output DIR
+ *   nesturbator-run --accuracycoin-collect DIR --rom FILE
  *   nesturbator-run --version
  *   nesturbator-run --help
  *
@@ -87,6 +88,7 @@ static void print_usage(FILE *out)
         "       nesturbator-run --accuracycoin-page N --rom FILE --scoreboard FILE\n"
         "       nesturbator-run --accuracycoin-inventory --rom FILE\n"
         "       nesturbator-run --accuracycoin-observe PAGE --rom FILE --frames N --accuracycoin-output DIR\n"
+        "       nesturbator-run --accuracycoin-collect DIR --rom FILE\n"
         "       nesturbator-run --version\n"
         "       nesturbator-run --help\n"
         "  --frames N           run N frames (N >= 1)\n"
@@ -112,6 +114,10 @@ static void print_usage(FILE *out)
         "  --accuracycoin-inventory  print the complete verified pinned inventory as TSV\n"
         "  --accuracycoin-observe PAGE  record bounded guest results without an all-pass gate\n"
         "  --accuracycoin-output DIR  with --accuracycoin-observe, write checked evidence files\n"
+        "  --accuracycoin-boot-cap N  with observation, maximum cold-boot frames (default 120)\n"
+        "  --accuracycoin-navigation-cap N  with observation, frames per page switch (default 5)\n"
+        "  --accuracycoin-execution-cap N  with observation, post-release guest frames\n"
+        "  --accuracycoin-collect DIR  validate and classify one 22-page campaign\n"
         "  --version            print the version and exit\n"
         "  --help               print this text and the exit statuses, and exit 0\n"
         "Exit status:\n");
@@ -250,6 +256,10 @@ typedef struct options {
     uint32_t accuracy_page;
     uint32_t accuracy_observe_page;
     const char *accuracy_output_dir;
+    const char *accuracy_collect_dir;
+    uint32_t accuracy_boot_cap;
+    uint32_t accuracy_navigation_cap;
+    uint32_t accuracy_execution_cap;
     int accuracy_inventory;
     uint32_t *hash_frames;
     uint32_t hash_count;
@@ -407,6 +417,22 @@ static int parse_options(int argc, char **argv, options *o)
             if (value == NULL || value[0] == '\0' || o->accuracy_output_dir != NULL)
                 return usage("--accuracycoin-output needs one directory");
             o->accuracy_output_dir = value;
+        } else if (strcmp(arg, "--accuracycoin-collect") == 0) {
+            if (value == NULL || value[0] == '\0' || o->accuracy_collect_dir != NULL)
+                return usage("--accuracycoin-collect needs one campaign directory");
+            o->accuracy_collect_dir = value;
+        } else if (strcmp(arg, "--accuracycoin-boot-cap") == 0) {
+            if (!parse_count(value, &n) || o->accuracy_boot_cap != 0u)
+                return usage("--accuracycoin-boot-cap needs one positive frame count");
+            o->accuracy_boot_cap = n;
+        } else if (strcmp(arg, "--accuracycoin-navigation-cap") == 0) {
+            if (!parse_count(value, &n) || o->accuracy_navigation_cap != 0u)
+                return usage("--accuracycoin-navigation-cap needs one positive frame count");
+            o->accuracy_navigation_cap = n;
+        } else if (strcmp(arg, "--accuracycoin-execution-cap") == 0) {
+            if (!parse_count(value, &n) || o->accuracy_execution_cap != 0u)
+                return usage("--accuracycoin-execution-cap needs one positive frame count");
+            o->accuracy_execution_cap = n;
         } else if (strcmp(arg, "--save-dir") == 0) {
             if (value == NULL || value[0] == '\0' || o->save_dir != NULL)
                 return usage("--save-dir needs one directory");
@@ -489,7 +515,7 @@ static int parse_options(int argc, char **argv, options *o)
         if (o->rom_path == NULL)
             return usage("--bench needs --rom");
         if (o->accuracy_page != 0u || o->accuracy_observe_page != 0u ||
-            o->accuracy_inventory != 0)
+            o->accuracy_inventory != 0 || o->accuracy_collect_dir != NULL)
             return usage("--bench cannot be combined with --accuracycoin-page");
         if (o->raise_after_set != 0)
             return usage("--bench cannot be combined with --raise-after");
@@ -518,13 +544,25 @@ static int parse_options(int argc, char **argv, options *o)
         return usage("--scoreboard requires --accuracycoin-page");
     }
     if (o->accuracy_inventory != 0) {
-        if (o->accuracy_page != 0u || o->accuracy_observe_page != 0u || o->rom_path == NULL ||
+        if (o->accuracy_page != 0u || o->accuracy_observe_page != 0u ||
+            o->accuracy_collect_dir != NULL || o->rom_path == NULL ||
             o->frames != 0u || o->scoreboard_path != NULL || o->accuracy_output_dir != NULL ||
             o->movie_path != NULL || o->bench_frames != 0u || o->save_dir != NULL ||
             o->save_interval != 0u || o->raise_after_set != 0 || o->hash_audio != 0 ||
             o->hash_count != 0u || o->dump_count != 0u || o->state_count != 0u ||
             o->hash_state_count != 0u || o->load_state_path != NULL)
             return usage("AccuracyCoin inventory needs --rom only");
+    }
+    if (o->accuracy_collect_dir != NULL) {
+        if (o->accuracy_page != 0u || o->accuracy_observe_page != 0u ||
+            o->accuracy_inventory != 0 || o->rom_path == NULL || o->frames != 0u ||
+            o->scoreboard_path != NULL || o->accuracy_output_dir != NULL || o->movie_path != NULL ||
+            o->bench_frames != 0u || o->save_dir != NULL || o->save_interval != 0u ||
+            o->raise_after_set != 0 || o->hash_audio != 0 || o->hash_count != 0u ||
+            o->dump_count != 0u || o->state_count != 0u || o->hash_state_count != 0u ||
+            o->load_state_path != NULL || o->accuracy_boot_cap != 0u ||
+            o->accuracy_navigation_cap != 0u || o->accuracy_execution_cap != 0u)
+            return usage("AccuracyCoin collection needs --rom and one campaign directory only");
     }
     if (o->accuracy_observe_page != 0u) {
         if (o->accuracy_observe_page > ACCURACYCOIN_PAGE_COUNT || o->rom_path == NULL ||
@@ -533,11 +571,15 @@ static int parse_options(int argc, char **argv, options *o)
             o->bench_frames != 0u || o->save_dir != NULL || o->save_interval != 0u ||
             o->raise_after_set != 0 || o->hash_audio != 0 || o->hash_count != 0u ||
             o->dump_count != 0u || o->state_count != 0u || o->hash_state_count != 0u ||
-            o->load_state_path != NULL)
+            o->load_state_path != NULL || o->accuracy_collect_dir != NULL)
             return usage("AccuracyCoin observation needs --rom, --frames and --accuracycoin-output only");
     } else if (o->accuracy_output_dir != NULL) {
         return usage("--accuracycoin-output requires --accuracycoin-observe");
     }
+    if (o->accuracy_observe_page == 0u &&
+        (o->accuracy_boot_cap != 0u || o->accuracy_navigation_cap != 0u ||
+         o->accuracy_execution_cap != 0u))
+        return usage("AccuracyCoin stage caps require --accuracycoin-observe");
     if (o->state_count != 0u || o->hash_state_count != 0u || o->load_state_path != NULL) {
         if (o->rom_path == NULL || o->accuracy_page != 0u || o->accuracy_observe_page != 0u ||
             o->accuracy_inventory != 0)
@@ -552,7 +594,8 @@ static int parse_options(int argc, char **argv, options *o)
         return usage("--save-interval requires --save-dir");
     if (o->raise_after_set != 0 && (o->accuracy_page != 0u || o->accuracy_observe_page != 0u))
         return usage("--raise-after cannot be used with --accuracycoin-page");
-    if (o->frames == 0u && o->movie_path == NULL && o->accuracy_inventory == 0) {
+    if (o->frames == 0u && o->movie_path == NULL && o->accuracy_inventory == 0 &&
+        o->accuracy_collect_dir == NULL) {
         return usage("--frames N is required");
     }
     if (o->accuracy_observe_page != 0u && o->frames < 16u)
@@ -948,6 +991,27 @@ int main(int argc, char **argv)
         free_options(&opt);
         return status;
     }
+    if (opt.accuracy_collect_dir != NULL) {
+        uint8_t *bytes = NULL;
+        size_t size = 0u;
+        accuracycoin_reason reason = ACCURACYCOIN_REASON_OK;
+        if (!read_input_file(opt.rom_path, &bytes, &size)) {
+            fprintf(stderr, "nesturbator-run: cannot read AccuracyCoin ROM %s\n", opt.rom_path);
+            free_options(&opt);
+            return RUNNER_EXIT_FAILURE;
+        }
+        if (!accuracycoin_parse_pinned(bytes, size, &accuracy_directory, &reason)) {
+            fprintf(stderr, "nesturbator-run: invalid AccuracyCoin inventory: %s\n",
+                    accuracycoin_reason_text(reason));
+            free(bytes);
+            free_options(&opt);
+            return RUNNER_EXIT_FAILURE;
+        }
+        free(bytes);
+        status = accuracycoin_collect_campaign(&accuracy_directory, opt.accuracy_collect_dir);
+        free_options(&opt);
+        return status;
+    }
     nesturbator_run_audio_hash_init(&audio_hash);
 
     if (opt.movie_path != NULL) {
@@ -1081,9 +1145,32 @@ int main(int argc, char **argv)
                 &accuracy_directory, opt.accuracy_page, opt.scoreboard_path, inst, video, audio,
                 opt.hash_audio != 0 ? &audio_hash : NULL);
         } else {
-            status = accuracycoin_run_observe_page(
-                &accuracy_directory, opt.accuracy_observe_page, opt.frames,
-                opt.accuracy_output_dir, inst, video, audio);
+            accuracycoin_run_budgets budgets;
+            uint64_t navigation_max = 0u;
+            uint64_t required_frames;
+            budgets.boot_frames = opt.accuracy_boot_cap != 0u ? opt.accuracy_boot_cap : 120u;
+            budgets.navigation_frames_per_page =
+                opt.accuracy_navigation_cap != 0u ? opt.accuracy_navigation_cap : 5u;
+            navigation_max =
+                (uint64_t)(opt.accuracy_observe_page - 1u) * budgets.navigation_frames_per_page;
+            required_frames = (uint64_t)budgets.boot_frames + navigation_max + 2u;
+            if (opt.accuracy_execution_cap != 0u) {
+                budgets.execution_frames = opt.accuracy_execution_cap;
+            } else if ((uint64_t)opt.frames > required_frames) {
+                budgets.execution_frames = (uint32_t)((uint64_t)opt.frames - required_frames);
+            } else {
+                budgets.execution_frames = 0u;
+            }
+            budgets.total_frames = opt.frames;
+            if (budgets.execution_frames == 0u ||
+                (uint64_t)budgets.execution_frames + required_frames > budgets.total_frames) {
+                fprintf(stderr, "nesturbator-run: AccuracyCoin stage caps exceed the total frame bound\n");
+                status = RUNNER_EXIT_USAGE;
+            } else {
+                status = accuracycoin_run_observe_page(
+                    &accuracy_directory, opt.accuracy_observe_page, &budgets,
+                    opt.accuracy_output_dir, inst, video, audio);
+            }
         }
         if (status == 0 && opt.hash_audio != 0)
             print_audio_hash(&audio_hash);

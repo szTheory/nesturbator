@@ -708,6 +708,8 @@ endforeach()
 # The comparison tracer runs the actual new-pin fixture through the production
 # runner and validates its page-3 token expansion, start transition and report.
 set(ACCURACYCOIN_COMPARISON_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin-6bee.nes)
+option(NESTURBATOR_ACCURACYCOIN_FULL
+  "Register the measured 22-page AccuracyCoin campaign test" OFF)
 add_executable(accuracycoin.conformance
   accuracy/test_conformance.c
   ../runner/accuracycoin.c
@@ -740,6 +742,43 @@ add_test(NAME accuracycoin.migration_source
     ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/old-673ef-scoreboard.txt)
 set_tests_properties(accuracycoin.inventory accuracycoin.classifier
   accuracycoin.migration_source PROPERTIES TIMEOUT 30)
+add_test(NAME accuracycoin.driver
+  COMMAND ${CMAKE_COMMAND}
+    "-DCONFORMANCE=$<TARGET_FILE:accuracycoin.conformance>"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/driver"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_driver.cmake)
+add_test(NAME accuracycoin.report
+  COMMAND accuracycoin.conformance report
+    ${ACCURACYCOIN_COMPARISON_ROM}
+    ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes
+    ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/report)
+add_test(NAME accuracycoin.outer_failure
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/outer-failure"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -DBOOT_CAP=32 -DNAVIGATION_CAP=5 -DEXECUTION_CAP=1800
+    -DPAGE_TIMEOUT=1 -DCOLLECT_TIMEOUT=20
+    -DTEST_TIMEOUT_PAGE=1 -DTEST_PARTIAL_FAILURE_PAGE=2
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_campaign.cmake)
+set_tests_properties(accuracycoin.driver accuracycoin.report
+  accuracycoin.outer_failure PROPERTIES TIMEOUT 60)
+if(NESTURBATOR_ACCURACYCOIN_FULL)
+  add_test(NAME accuracycoin.campaign
+    COMMAND ${CMAKE_COMMAND}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+      "-DWORK=${PROJECT_BINARY_DIR}/accuracycoin/full"
+      "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+      -DBOOT_CAP=32 -DNAVIGATION_CAP=5 -DEXECUTION_CAP=1800
+      -DPAGE_TIMEOUT=5 -DCOLLECT_TIMEOUT=10
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_campaign.cmake)
+  set_tests_properties(accuracycoin.campaign PROPERTIES TIMEOUT 150)
+endif()
 
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.

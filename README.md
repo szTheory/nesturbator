@@ -96,6 +96,32 @@ source error index. An observed active test becomes timeout only when its
 guest-frame budget expires. Observation is not an all-pass gate; malformed
 evidence or output errors still fail.
 
+Run all 22 pages as independent cold attempts and collect their checked evidence
+with the production parser and classifier:
+
+```sh
+cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=ON
+ctest --preset ci -R '^accuracycoin.campaign$' --no-tests=error
+```
+
+The launcher bounds each child process separately, records `EXIT_ZERO`,
+`CHILD_FAILURE` or `OUTER_TIMEOUT`, and continues to later pages after a failure.
+Guest stage caps apply to cold boot, frames per page-navigation step, and
+execution after the one-frame A press and one-frame release. The campaign
+collector writes `inventory.tsv`, `attempts.tsv`, `observations.tsv`,
+`report.tsv`, `summary.txt` and `metadata.txt` beside per-page raw samples,
+diagnostics, reports, metadata and child logs. It keeps inventory size,
+attempted rows, observed bytes and terminal classifications distinct. Missing
+bytes stay `-`; outer process failure never guesses a timeout or active test. A
+trustworthy completed observation may report guest failures or timeouts without
+passing the hardware tests. Five DRAW rows remain outside the 146-row scored
+total.
+
+`NESTURBATOR_ACCURACYCOIN_FULL` defaults to `OFF`, so normal CI does not yet
+include the full campaign. After an explicit run, restore the ordinary build
+configuration with `cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=OFF`;
+plan 17-04 records its measured recurring CI placement.
+
 CI also runs the inventory decoder against owned mutations of the pinned ROM.
 These controls cover page boundaries, row fields, duplicate decoded identities,
 the shared DRAW sentinel, exact expansion capacity and both retained pin
@@ -1193,6 +1219,19 @@ nesturbator-run --version
 - `--accuracycoin-output DIR` names the existing directory for observation
   evidence (`report.tsv`, `raw.tsv`, `diagnostics.tsv`, and `metadata.txt`); it
   is an error without `--accuracycoin-observe`.
+- `--accuracycoin-collect DIR` validates launcher outcomes and all 22 page
+  outputs, then emits campaign inventory, attempts, raw observations, final
+  classifications, a count summary and provenance metadata. It needs `--rom`
+  and cannot be combined with another run mode.
+- `--accuracycoin-boot-cap N` sets the positive cold-boot guest-frame bound for
+  `--accuracycoin-observe`. The CMake campaign value is in
+  `tests/accuracy/budgets.txt`.
+- `--accuracycoin-navigation-cap N` sets the positive guest-frame bound for each
+  page-navigation step in `--accuracycoin-observe`. The CMake campaign value is
+  in `tests/accuracy/budgets.txt`.
+- `--accuracycoin-execution-cap N` sets the positive post-release guest-frame
+  bound for `--accuracycoin-observe`. The CMake campaign value is in
+  `tests/accuracy/budgets.txt`.
 - `--version` prints one line to stdout, `nesturbator-run X.Y.Z`, formatted at
   run time from `nesturbator_get_version`, and exits 0. It needs no other
   option and nothing else is printed. It is handled where the option loop

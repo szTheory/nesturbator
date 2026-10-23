@@ -343,10 +343,12 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    are accepted and use the NES's 2 KiB RAM mirrors; other addresses are
    rejected. This inspection path does not perform bus side effects and is
    intended for conformance harnesses. The runner's pinned AccuracyCoin
-   observer uses it to connect decoded ROM result addresses to guest result
-   bytes. AccuracyCoin's source-defined result variants remain scoped to the
-   decoded test key in the runner; this inspection API adds no library ABI or
-   state-format requirement. On error, *value is unchanged. */
+   observer and campaign collector use it to connect decoded ROM result
+   addresses to guest result bytes without bus side effects. AccuracyCoin's
+   source-defined result variants remain scoped to the decoded test key in the
+   runner; outer process failures are kept separate from guest bytes. This
+   inspection API adds no library ABI or state-format requirement. On error,
+   *value is unchanged. */
 nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,
                                             uint8_t *value);
 
