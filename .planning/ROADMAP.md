@@ -5,7 +5,7 @@
 - ✅ **v1 NROM games with sound** — Phases 1–4.2 (shipped 2026-10-09) — [archive](milestones/v1-ROADMAP.md)
 - ✅ **v2 Most of the library plays** — Phases 5–10 (shipped 2026-10-11) — [archive](milestones/v2-ROADMAP.md)
 - ✅ **v3 Save states and rewind** — Phases 11–15 (shipped 2026-10-13) — [archive](milestones/v3-ROADMAP.md)
-- 🚧 **v4 Measured NTSC accuracy and robustness** — Phases 16–18 (scope approved 2026-10-13; not started)
+- 🚧 **v4 Measured NTSC accuracy and robustness** — Phases 16–18 (scope approved 2026-10-13; Phase 16 complete)
 
 ## Phases
 
@@ -48,7 +48,7 @@
 
 Establish trustworthy current-host evidence, a complete pinned NTSC conformance inventory and bounded execution robustness evidence. These measurements inform the next accuracy or regional milestone; they do not promise an all-pass score. Planning milestone v4 is distinct from package release v0.1.10. Future direction and promotion triggers remain in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 
-- [ ] **Phase 16: Host evidence and roadmap** — Current RetroArch checks reject known wrong behavior, and milestone direction has a recurring operating contract.
+- [x] **Phase 16: Host evidence and roadmap** — Current RetroArch checks reject known wrong behavior, and milestone direction has a recurring operating contract. (completed 2026-10-23)
 - [ ] **Phase 17: Complete pinned conformance baseline** — Every AccuracyCoin entry is inventoried and each scored test has an honest bounded outcome.
 - [ ] **Phase 18: Execution and lifecycle robustness** — Accepted generated programs exercise all supported board families with bounded replay, sanitizer evidence and explicit stop behavior.
 
@@ -110,17 +110,18 @@ evidence for the independent phase verification.
 - [x] 16-07-PLAN.md — Fresh exact-head native required/perf/pinned-host CI,
   affirmative exactPR/head merge consent and normal protected release flow.
 
-**Wave 12** — ready after actual normal07publication
+**Wave 12** — complete after actual normal07publication
 - [x] 16-08-PLAN.md — Verify all18downloaded archives, checksums, attestations,
   sixmetadata copies and successful exact-release-commitCI.
 
 Plan16-07 is complete and its actual v0.1.11 publication is observed. Plan16-08
 is complete with downloaded-byte, checksum, attestation and six-platform
-metadata evidence. EVID-04 and Phase16 remain open pending independent
-phase-level verification. Wave12 is complete; this execution did not invoke
-that verification step. Ordinary diagnosed errors stay within their execution
-step. No new dependency, global workflow/config change, extra host platform or
-milestone upkeep was introduced.
+metadata evidence. Independent phase-level verification passed 22/22 on
+2026-10-23; all six requirements and Phase 16 are complete. Final review found
+one missing CI registration, corrected and verified within this execution:
+650/650 CI tests with packaging, focused ASan 1/1, clean follow-up review.
+No new dependency, global workflow/config change, extra host platform or
+milestone upkeep was introduced. Phase 17 is next.
 
 ### Phase 17: Complete pinned conformance baseline
 
@@ -160,7 +161,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 13/13 | Plan 16-08 complete; EVID-04 awaits independent phase verification | - |
+| 16. Host evidence and roadmap | v4 | 13/13 | Complete    | 2026-10-23 |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

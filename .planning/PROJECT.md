@@ -14,6 +14,8 @@ v3 "Save states and rewind" shipped on 2026-10-13; its five phases merged as PRs
 
 v2 "Most of the library plays" shipped on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
+Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal v0.1.11 publication. The current source also registers the source-root matrix in normal POSIX CI/ASan; CI passed 650/650 with all three packages, and focused ASan passed 1/1. Nightly vectors-full remains separate unresolved debt. Phase 17 is ready for discussion.
+
 ## Current Milestone: v4 Measured NTSC accuracy and robustness
 
 **Goal:** Establish a complete pinned NTSC conformance inventory, host tests that reject known wrong behavior, and bounded execution robustness evidence for the supported core; use those measurements to choose the next accuracy or regional milestone.
@@ -53,12 +55,13 @@ v2 "Most of the library plays" shipped on 2026-10-11 and v1 "NROM games with sou
 - ✓ A launcher can stop nes-runner at any time without losing a save: SIGINT and SIGTERM (Ctrl+C, Ctrl+Break and console close on Windows) finish the current frame, flush the battery save and exit 0, or 1 if the flush failed or a requested output was not reached; a second signal kills at once. Every exit status is one table in `runner/exit_status.h`, printed by `--help` and checked against the README. — v3, Phase 14 (RUN-02, RUN-03; PR #45 CI run 38324782351 green on all 14 jobs)
 - ✓ Speed is visible on every pull request: `nesturbator-run --bench N` prints frames per second and p50, p90, p99, p99.9 and max frame times (`--bench-state` adds a save and load per frame) without changing a hash, and a Cachegrind `perf` job compares instructions per frame between the head and its merge base on NROM, MMC1 and MMC3, gating at +1% per ROM after two zero-spread control runs, with a reviewed, expiring allow file. Every workflow timeout is twice a measured run whose ID sits beside it (nightly suite-flake 38 min), and action pins, runner labels, the AccuracyCoin pin and the README were reviewed. — v3, Phase 15 (PERF-02, PERF-03, TUNE-10; PR #46 CI run 38357342480 green on all jobs)
 
+- ✓ Real-host progression evidence rejects known wrong sequences, confirms bounded commands and exact fixtures; actual v0.1.11 metadata truthfully describes MMC3. — Phase 16, EVID-01 to EVID-04; 22/22 verification, 18 published archive checksums/attestations and six metadata copies
+- ✓ Four-horizon product direction and the same-step milestone opening/closeout contract are installed and source-linked; the v4 opening demonstrates the contract. — Phase 16, DIR-01/02; future boundary execution remains an ongoing obligation
+
 ### Active
 
-- [ ] Existing real-host evidence rejects dropped/doubled/wrong-load sequences, confirms bounded commands and selects exact fixtures; MMC3 metadata is truthful. — EVID-01 to EVID-04
 - [ ] The runner inventories the pinned AccuracyCoin suite and records every scored result honestly, preserving protected passes and migration evidence. — CONF-01 to CONF-04
 - [ ] Supported accepted programs and lifecycle transitions receive bounded execution fuzzing, deterministic replay and documented loop/JAM behavior. — ROB-01 to ROB-04
-- [ ] Product direction is recorded and reconciled within each milestone opening and closeout. — DIR-01, DIR-02
 
 ### Out of Scope
 
@@ -169,4 +172,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-13 at v4 milestone initialization*
+*Last updated: 2026-10-23 after Phase 16 completion*
