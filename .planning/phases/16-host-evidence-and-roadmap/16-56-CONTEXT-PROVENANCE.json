@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "plan": "16-56",
+  "purpose": "administrative-context-checkpoint",
+  "recorded_at": "2026-10-22 20:37:04 UTC",
+  "status": "context_amendment_required",
+  "tasks_accepted": 0,
+  "terminal_transport_failure": false,
+  "prospective_source_finalized": false,
+  "outer_result_provenance": "Complete outer functions.exec result objects are not programmatically exposed; setup/probe invocations and visible returns are transcript observations.",
+  "budget": {
+    "descriptor": {
+      "tool": "functions.exec",
+      "code": "// @exec: {\"max_output_tokens\": 18000}\nawait eval(load(\"p56-budget-probe-source\"));"
+    },
+    "probe_source": "(async () => {\nconst d=load(\"p56-budget-descriptor\");\nconst q={cmd:\"python3 -B -c 'print(123456789)'\",max_output_tokens:18000,yield_time_ms:10000};\nconst exact=\"// @exec: {\\\"max_output_tokens\\\": 18000}\\nawait eval(load(\\\"p56-budget-probe-source\\\"));\";\nconst check=(o,n)=>!o.code.startsWith(\"// @exec: {\\\"max_output_tokens\\\": 18000}\\n\")?\"OUTER_BUDGET_INVALID\":n.max_output_tokens!==18000?\"NESTED_BUDGET_INVALID\":\"BUDGET_REQUEST_VALID\";\nif(d.code!==exact||d.tool!==\"functions.exec\")throw Error(\"OUTER_SOURCE_INVALID\");\nconst tests=[[d,q,\"BUDGET_REQUEST_VALID\"],[{...d,code:d.code.split(\"\\n\").slice(1).join(\"\\n\")},q,\"OUTER_BUDGET_INVALID\"],[{...d,code:d.code.replace(\"18000\",\"10000\")},q,\"OUTER_BUDGET_INVALID\"],[d,{cmd:q.cmd},\"NESTED_BUDGET_INVALID\"],[d,{...q,max_output_tokens:10000},\"NESTED_BUDGET_INVALID\"]];\nfor(const [o,n,e]of tests)if(check(o,n)!==e)throw Error(\"BUDGET_CASE_FAILED\");\nstore(\"p56-budget-expected-cases\",JSON.stringify(tests));\nconst r=await tools.exec_command(q);\nstore(\"p56-budget-original\",r);\nstore(\"p56-budget-record\",JSON.stringify({outer:d,probe_source:load(\"p56-budget-probe-source\"),nested_request:q,actual_result:r,effective_provider_budget:null}));\nif(r.exit_code!==0||r.session_id!==undefined||r.output!==\"123456789\\n\")throw Error(\"ACTUAL_RECEPTION_INVALID\");\nstore(\"p56-budget-ready\",true);\ntext(JSON.stringify({budget_request:18000,nested_request:18000,actual_exit:0,actual_bytes:10,provider_effective_budget:\"unavailable\",capture_authority:false}));\n})();",
+    "expected_cases": [
+      [
+        {
+          "tool": "functions.exec",
+          "code": "// @exec: {\"max_output_tokens\": 18000}\nawait eval(load(\"p56-budget-probe-source\"));"
+        },
+        {
+          "cmd": "python3 -B -c 'print(123456789)'",
+          "max_output_tokens": 18000,
+          "yield_time_ms": 10000
+        },
+        "BUDGET_REQUEST_VALID"
+      ],
+      [
+        {
+          "tool": "functions.exec",
+          "code": "await eval(load(\"p56-budget-probe-source\"));"
+        },
+        {
+          "cmd": "python3 -B -c 'print(123456789)'",
+          "max_output_tokens": 18000,
+          "yield_time_ms": 10000
+        },
+        "OUTER_BUDGET_INVALID"
+      ],
+      [
+        {
+          "tool": "functions.exec",
+          "code": "// @exec: {\"max_output_tokens\": 10000}\nawait eval(load(\"p56-budget-probe-source\"));"
+        },
+        {
+          "cmd": "python3 -B -c 'print(123456789)'",
+          "max_output_tokens": 18000,
+          "yield_time_ms": 10000
+        },
+        "OUTER_BUDGET_INVALID"
+      ],
+      [
+        {
+          "tool": "functions.exec",
+          "code": "// @exec: {\"max_output_tokens\": 18000}\nawait eval(load(\"p56-budget-probe-source\"));"
+        },
+        {
+          "cmd": "python3 -B -c 'print(123456789)'"
+        },
+        "NESTED_BUDGET_INVALID"
+      ],
+      [
+        {
+          "tool": "functions.exec",
+          "code": "// @exec: {\"max_output_tokens\": 18000}\nawait eval(load(\"p56-budget-probe-source\"));"
+        },
+        {
+          "cmd": "python3 -B -c 'print(123456789)'",
+          "max_output_tokens": 10000,
+          "yield_time_ms": 10000
+        },
+        "NESTED_BUDGET_INVALID"
+      ]
+    ],
+    "record": {
+      "outer": {
+        "tool": "functions.exec",
+        "code": "// @exec: {\"max_output_tokens\": 18000}\nawait eval(load(\"p56-budget-probe-source\"));"
+      },
+      "probe_source": "(async () => {\nconst d=load(\"p56-budget-descriptor\");\nconst q={cmd:\"python3 -B -c 'print(123456789)'\",max_output_tokens:18000,yield_time_ms:10000};\nconst exact=\"// @exec: {\\\"max_output_tokens\\\": 18000}\\nawait eval(load(\\\"p56-budget-probe-source\\\"));\";\nconst check=(o,n)=>!o.code.startsWith(\"// @exec: {\\\"max_output_tokens\\\": 18000}\\n\")?\"OUTER_BUDGET_INVALID\":n.max_output_tokens!==18000?\"NESTED_BUDGET_INVALID\":\"BUDGET_REQUEST_VALID\";\nif(d.code!==exact||d.tool!==\"functions.exec\")throw Error(\"OUTER_SOURCE_INVALID\");\nconst tests=[[d,q,\"BUDGET_REQUEST_VALID\"],[{...d,code:d.code.split(\"\\n\").slice(1).join(\"\\n\")},q,\"OUTER_BUDGET_INVALID\"],[{...d,code:d.code.replace(\"18000\",\"10000\")},q,\"OUTER_BUDGET_INVALID\"],[d,{cmd:q.cmd},\"NESTED_BUDGET_INVALID\"],[d,{...q,max_output_tokens:10000},\"NESTED_BUDGET_INVALID\"]];\nfor(const [o,n,e]of tests)if(check(o,n)!==e)throw Error(\"BUDGET_CASE_FAILED\");\nstore(\"p56-budget-expected-cases\",JSON.stringify(tests));\nconst r=await tools.exec_command(q);\nstore(\"p56-budget-original\",r);\nstore(\"p56-budget-record\",JSON.stringify({outer:d,probe_source:load(\"p56-budget-probe-source\"),nested_request:q,actual_result:r,effective_provider_budget:null}));\nif(r.exit_code!==0||r.session_id!==undefined||r.output!==\"123456789\\n\")throw Error(\"ACTUAL_RECEPTION_INVALID\");\nstore(\"p56-budget-ready\",true);\ntext(JSON.stringify({budget_request:18000,nested_request:18000,actual_exit:0,actual_bytes:10,provider_effective_budget:\"unavailable\",capture_authority:false}));\n})();",
+      "nested_request": {
+        "cmd": "python3 -B -c 'print(123456789)'",
+        "max_output_tokens": 18000,
+        "yield_time_ms": 10000
+      },
+      "actual_result": {
+        "chunk_id": "ef1ae1",
+        "wall_time_seconds": 0.000005834,
+        "exit_code": 0,
+        "original_token_count": 3,
+        "output": "123456789\n"
+      },
+      "effective_provider_budget": null
+    },
+    "actual_original": {
+      "chunk_id": "ef1ae1",
+      "wall_time_seconds": 0.000005834,
+      "exit_code": 0,
+      "original_token_count": 3,
+      "output": "123456789\n"
+    },
+    "actual_original_exact_fields": "{\"chunk_id\":\"ef1ae1\",\"wall_time_seconds\":0.000005834,\"exit_code\":0,\"original_token_count\":3,\"output\":\"123456789\\n\"}"
+  },
+  "sizing": {
+    "source": "import os, stat, json, hashlib, subprocess, math\nfrom pathlib import Path\nroot=Path.cwd()\nroots=sorted([p for p in Path(\"build\").iterdir() if p.name.startswith(\"phase16\") and p.is_dir() and not p.is_symlink()]+[Path(\".planning/phases/16-host-evidence-and-roadmap\")],key=lambda p:p.as_posix())\ncount=0\npath_bytes=0\nmode_zero=[]\ntypes={}\nshape_bytes=3\nfor base in roots:\n    paths=[base]\n    for current, dirs, files in os.walk(base,topdown=True,followlinks=False):\n        dirs.sort()\n        files.sort()\n        for name in dirs+files:\n            paths.append(Path(current)/name)\n        dirs[:]=[n for n in dirs if not (Path(current)/n).is_symlink()]\n    for p in paths:\n        s=p.lstat()\n        t=stat.S_IFMT(s.st_mode)\n        mode=stat.S_IMODE(s.st_mode)\n        types[str(t)]=types.get(str(t),0)+1\n        name=p.as_posix()\n        count+=1\n        path_bytes+=len(json.dumps(name,ensure_ascii=True).encode())\n        row={\"type\":t,\"mode\":mode}\n        if stat.S_ISREG(s.st_mode):\n            row[\"size\"]=s.st_size\n            if mode & 0o444:\n                row[\"sha256\"]=\"0\"*64\n            else:\n                mode_zero.append({\"path\":name,\"type\":t,\"mode\":mode,\"size\":s.st_size,\"mtime_ns\":s.st_mtime_ns,\"ctime_ns\":s.st_ctime_ns})\n        elif stat.S_ISLNK(s.st_mode):\n            row[\"target\"]=os.readlink(p)\n        shape_bytes+=len(json.dumps(name,ensure_ascii=True).encode())+1+len(json.dumps(row,sort_keys=True,separators=(\",\",\":\"),ensure_ascii=True).encode())+1\ndirty=[\".planning/config.json\",\"README.md\",\"include/nesturbator.h\",\"tests/retroarch/interruption_trace.sh\",\"tests/retroarch/state_session.sh\",\"tests/retroarch/test_state_session.sh\"]\nb={\"head\":subprocess.check_output([\"git\",\"rev-parse\",\"HEAD\"],text=True).strip(),\"branch\":subprocess.check_output([\"git\",\"branch\",\"--show-current\"],text=True).strip(),\"index_sha256\":hashlib.sha256(Path(\".git/index\").read_bytes()).hexdigest(),\"staged\":subprocess.check_output([\"git\",\"diff\",\"--cached\",\"--name-only\"],text=True),\"dirty\":{n:hashlib.sha256(Path(n).read_bytes()).hexdigest() for n in dirty}}\nout={\"purpose\":\"administrative-sizing-only\",\"capture_authority\":False,\"root_count\":len(roots),\"entry_count\":count,\"types\":types,\"serialized_path_key_bytes\":path_bytes,\"compact_metadata_shape_bytes_with_placeholder_hashes\":shape_bytes,\"hashes_are_placeholders\":True,\"full_content_inventory\":False,\"metadata_only\":mode_zero,\"minimum_base64_packets_for_shape\":math.ceil(shape_bytes/12288),\"minimum_READ_COMPARE_ACK_calls_for_shape\":4*math.ceil(shape_bytes/12288),\"minimum_32packet_outer_calls_for_shape\":2*math.ceil(math.ceil(shape_bytes/12288)/32),\"limitations\":[\"Metadata projection only; content hashes are zero placeholders\",\"Actual future capture, schema and framing add bytes\",\"No READ/COMPARE/ACK or bound acceptance\",\"No historical byte comparison\"],\"baseline\":b}\nprint(json.dumps(out,sort_keys=True,separators=(\",\",\":\")))\n",
+    "request": {
+      "cmd": "python3 -B - <<'PY'\nimport os, stat, json, hashlib, subprocess, math\nfrom pathlib import Path\nroot=Path.cwd()\nroots=sorted([p for p in Path(\"build\").iterdir() if p.name.startswith(\"phase16\") and p.is_dir() and not p.is_symlink()]+[Path(\".planning/phases/16-host-evidence-and-roadmap\")],key=lambda p:p.as_posix())\ncount=0\npath_bytes=0\nmode_zero=[]\ntypes={}\nshape_bytes=3\nfor base in roots:\n    paths=[base]\n    for current, dirs, files in os.walk(base,topdown=True,followlinks=False):\n        dirs.sort()\n        files.sort()\n        for name in dirs+files:\n            paths.append(Path(current)/name)\n        dirs[:]=[n for n in dirs if not (Path(current)/n).is_symlink()]\n    for p in paths:\n        s=p.lstat()\n        t=stat.S_IFMT(s.st_mode)\n        mode=stat.S_IMODE(s.st_mode)\n        types[str(t)]=types.get(str(t),0)+1\n        name=p.as_posix()\n        count+=1\n        path_bytes+=len(json.dumps(name,ensure_ascii=True).encode())\n        row={\"type\":t,\"mode\":mode}\n        if stat.S_ISREG(s.st_mode):\n            row[\"size\"]=s.st_size\n            if mode & 0o444:\n                row[\"sha256\"]=\"0\"*64\n            else:\n                mode_zero.append({\"path\":name,\"type\":t,\"mode\":mode,\"size\":s.st_size,\"mtime_ns\":s.st_mtime_ns,\"ctime_ns\":s.st_ctime_ns})\n        elif stat.S_ISLNK(s.st_mode):\n            row[\"target\"]=os.readlink(p)\n        shape_bytes+=len(json.dumps(name,ensure_ascii=True).encode())+1+len(json.dumps(row,sort_keys=True,separators=(\",\",\":\"),ensure_ascii=True).encode())+1\ndirty=[\".planning/config.json\",\"README.md\",\"include/nesturbator.h\",\"tests/retroarch/interruption_trace.sh\",\"tests/retroarch/state_session.sh\",\"tests/retroarch/test_state_session.sh\"]\nb={\"head\":subprocess.check_output([\"git\",\"rev-parse\",\"HEAD\"],text=True).strip(),\"branch\":subprocess.check_output([\"git\",\"branch\",\"--show-current\"],text=True).strip(),\"index_sha256\":hashlib.sha256(Path(\".git/index\").read_bytes()).hexdigest(),\"staged\":subprocess.check_output([\"git\",\"diff\",\"--cached\",\"--name-only\"],text=True),\"dirty\":{n:hashlib.sha256(Path(n).read_bytes()).hexdigest() for n in dirty}}\nout={\"purpose\":\"administrative-sizing-only\",\"capture_authority\":False,\"root_count\":len(roots),\"entry_count\":count,\"types\":types,\"serialized_path_key_bytes\":path_bytes,\"compact_metadata_shape_bytes_with_placeholder_hashes\":shape_bytes,\"hashes_are_placeholders\":True,\"full_content_inventory\":False,\"metadata_only\":mode_zero,\"minimum_base64_packets_for_shape\":math.ceil(shape_bytes/12288),\"minimum_READ_COMPARE_ACK_calls_for_shape\":4*math.ceil(shape_bytes/12288),\"minimum_32packet_outer_calls_for_shape\":2*math.ceil(math.ceil(shape_bytes/12288)/32),\"limitations\":[\"Metadata projection only; content hashes are zero placeholders\",\"Actual future capture, schema and framing add bytes\",\"No READ/COMPARE/ACK or bound acceptance\",\"No historical byte comparison\"],\"baseline\":b}\nprint(json.dumps(out,sort_keys=True,separators=(\",\",\":\")))\nPY",
+      "max_output_tokens": 18000,
+      "yield_time_ms": 10000
+    },
+    "actual_original": {
+      "chunk_id": "9018a7",
+      "wall_time_seconds": 2.6715264579999998,
+      "exit_code": 0,
+      "original_token_count": 574,
+      "output": "{\"baseline\":{\"branch\":\"gsd/phase-16-host-evidence-and-roadmap\",\"dirty\":{\".planning/config.json\":\"0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e\",\"README.md\":\"57f275d7ee2dfb1b2c6f2c31393c8620406992aaa8d172b87ab531af8eebf97e\",\"include/nesturbator.h\":\"aa2e65d8ab258a102ff43d8c9ffeac6161b33a469337a8e5b2b1ae4ebb0295f0\",\"tests/retroarch/interruption_trace.sh\":\"a899d87ed398cbfff75b965b01a5575912cb9b0696b048ffdd55732d278ee165\",\"tests/retroarch/state_session.sh\":\"1d9574ff863a0757f5a9cf8818e34c7daf6bda9063fabd78f155bf2b1575d560\",\"tests/retroarch/test_state_session.sh\":\"65e772450f992d16cfdbce6ee86e254b2dbc78f0bf1b84cbce619ba46af86e58\"},\"head\":\"da403131955da74635573524e81c231af861d43b\",\"index_sha256\":\"57f80313fd2f46ea9dcfc80df9cab4c18e9417973f8be5db32ae1a56ca150a9f\",\"staged\":\"\"},\"capture_authority\":false,\"compact_metadata_shape_bytes_with_placeholder_hashes\":27466735,\"entry_count\":105801,\"full_content_inventory\":false,\"hashes_are_placeholders\":true,\"limitations\":[\"Metadata projection only; content hashes are zero placeholders\",\"Actual future capture, schema and framing add bytes\",\"No READ/COMPARE/ACK or bound acceptance\",\"No historical byte comparison\"],\"metadata_only\":[{\"ctime_ns\":1792450649569122398,\"mode\":0,\"mtime_ns\":1792450649567807313,\"path\":\"build/phase16-reboot22/development/attempt-0010/preflight/entry-exec-unavailable/nonexecutable\",\"size\":18,\"type\":32768},{\"ctime_ns\":1792450719958386733,\"mode\":0,\"mtime_ns\":1792450719957053689,\"path\":\"build/phase16-reboot22/development/attempt-0011/preflight/entry-exec-unavailable/nonexecutable\",\"size\":18,\"type\":32768},{\"ctime_ns\":1792450856707887278,\"mode\":0,\"mtime_ns\":1792450856706627814,\"path\":\"build/phase16-reboot22/development/attempt-0012/preflight/entry-exec-unavailable/nonexecutable\",\"size\":18,\"type\":32768},{\"ctime_ns\":1792469845956005675,\"mode\":0,\"mtime_ns\":1792469845954797841,\"path\":\"build/phase16-validation25/development/socket-attempt-0001/preflight/entry-exec-unavailable/nonexecutable\",\"size\":18,\"type\":32768}],\"minimum_32packet_outer_calls_for_shape\":140,\"minimum_READ_COMPARE_ACK_calls_for_shape\":8944,\"minimum_base64_packets_for_shape\":2236,\"purpose\":\"administrative-sizing-only\",\"root_count\":70,\"serialized_path_key_bytes\":17430068,\"types\":{\"16384\":22561,\"32768\":81944,\"4096\":880,\"40960\":416}}\n"
+    },
+    "actual_original_exact_fields": "{\"chunk_id\":\"9018a7\",\"wall_time_seconds\":2.6715264579999998,\"exit_code\":0,\"original_token_count\":574,\"output\":\"{\\\"baseline\\\":{\\\"branch\\\":\\\"gsd/phase-16-host-evidence-and-roadmap\\\",\\\"dirty\\\":{\\\".planning/config.json\\\":\\\"0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e\\\",\\\"README.md\\\":\\\"57f275d7ee2dfb1b2c6f2c31393c8620406992aaa8d172b87ab531af8eebf97e\\\",\\\"include/nesturbator.h\\\":\\\"aa2e65d8ab258a102ff43d8c9ffeac6161b33a469337a8e5b2b1ae4ebb0295f0\\\",\\\"tests/retroarch/interruption_trace.sh\\\":\\\"a899d87ed398cbfff75b965b01a5575912cb9b0696b048ffdd55732d278ee165\\\",\\\"tests/retroarch/state_session.sh\\\":\\\"1d9574ff863a0757f5a9cf8818e34c7daf6bda9063fabd78f155bf2b1575d560\\\",\\\"tests/retroarch/test_state_session.sh\\\":\\\"65e772450f992d16cfdbce6ee86e254b2dbc78f0bf1b84cbce619ba46af86e58\\\"},\\\"head\\\":\\\"da403131955da74635573524e81c231af861d43b\\\",\\\"index_sha256\\\":\\\"57f80313fd2f46ea9dcfc80df9cab4c18e9417973f8be5db32ae1a56ca150a9f\\\",\\\"staged\\\":\\\"\\\"},\\\"capture_authority\\\":false,\\\"compact_metadata_shape_bytes_with_placeholder_hashes\\\":27466735,\\\"entry_count\\\":105801,\\\"full_content_inventory\\\":false,\\\"hashes_are_placeholders\\\":true,\\\"limitations\\\":[\\\"Metadata projection only; content hashes are zero placeholders\\\",\\\"Actual future capture, schema and framing add bytes\\\",\\\"No READ/COMPARE/ACK or bound acceptance\\\",\\\"No historical byte comparison\\\"],\\\"metadata_only\\\":[{\\\"ctime_ns\\\":1792450649569122398,\\\"mode\\\":0,\\\"mtime_ns\\\":1792450649567807313,\\\"path\\\":\\\"build/phase16-reboot22/development/attempt-0010/preflight/entry-exec-unavailable/nonexecutable\\\",\\\"size\\\":18,\\\"type\\\":32768},{\\\"ctime_ns\\\":1792450719958386733,\\\"mode\\\":0,\\\"mtime_ns\\\":1792450719957053689,\\\"path\\\":\\\"build/phase16-reboot22/development/attempt-0011/preflight/entry-exec-unavailable/nonexecutable\\\",\\\"size\\\":18,\\\"type\\\":32768},{\\\"ctime_ns\\\":1792450856707887278,\\\"mode\\\":0,\\\"mtime_ns\\\":1792450856706627814,\\\"path\\\":\\\"build/phase16-reboot22/development/attempt-0012/preflight/entry-exec-unavailable/nonexecutable\\\",\\\"size\\\":18,\\\"type\\\":32768},{\\\"ctime_ns\\\":1792469845956005675,\\\"mode\\\":0,\\\"mtime_ns\\\":1792469845954797841,\\\"path\\\":\\\"build/phase16-validation25/development/socket-attempt-0001/preflight/entry-exec-unavailable/nonexecutable\\\",\\\"size\\\":18,\\\"type\\\":32768}],\\\"minimum_32packet_outer_calls_for_shape\\\":140,\\\"minimum_READ_COMPARE_ACK_calls_for_shape\\\":8944,\\\"minimum_base64_packets_for_shape\\\":2236,\\\"purpose\\\":\\\"administrative-sizing-only\\\",\\\"root_count\\\":70,\\\"serialized_path_key_bytes\\\":17430068,\\\"types\\\":{\\\"16384\\\":22561,\\\"32768\\\":81944,\\\"4096\\\":880,\\\"40960\\\":416}}\\n\"}",
+    "correction": {
+      "field": "compact_metadata_shape_bytes_with_placeholder_hashes",
+      "actual_reported": 27466735,
+      "corrected_projection": 27466734,
+      "reason": "The sizing accumulator includes one comma after every projected entry; a nonempty JSON object has one fewer comma. Original source and returned object are retained unchanged.",
+      "packet_estimates_unchanged": true
+    },
+    "interpretation": "Administrative metadata projection with placeholder hashes, not a content capture, runtime packetization, actual READ/COMPARE result or proof of fit. Base64-only 12288-byte payload capacity ignores all framing; corresponding 2236 packets/stream, 8944 separate nested READ/ACK/COMPARE/ACK calls and 140 grouped outer calls/context are optimistic sizing arithmetic for this projection only. Actual counts and throughput remain UNKNOWN. Parent and child must independently repeat all real gates.",
+    "integer_provenance": "Nanosecond metadata integers are preserved exactly in actual_original.output. Do not recover exact integer metadata from a JavaScript JSON.parse Number projection."
+  },
+  "retained_inputs": {
+    "request": {
+      "cmd": "python3 -B - <<'PY'\nimport json,hashlib,stat,subprocess\nfrom pathlib import Path\npaths=['build/phase16-validation26/development/budget.json','build/phase16-validation26/development/operations.jsonl','build/phase16-validation38-bootstrap/copy-operations.jsonl']\nfor name in paths:\n p=Path(name)\n raw=p.read_bytes()\n d={'path':name,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}\n if name.endswith('budget.json'):\n  value=json.loads(raw)\n  d['status']=value.get('status')\n  d['terminal']=value.get('terminal')\n  d['pending_diagnosis_present']=value.get('pending_diagnosis') is not None\n  d['pending_diagnosis_sha256']=hashlib.sha256(json.dumps(value.get('pending_diagnosis'),sort_keys=True,separators=(',',':')).encode()).hexdigest()\n print(json.dumps(d,sort_keys=True))\nPY",
+      "max_output_tokens": 18000
+    },
+    "result": {
+      "chunk_id": "340fb9",
+      "wall_time_seconds": 0.0000065,
+      "exit_code": 0,
+      "original_token_count": 164,
+      "output": "{\"bytes\": 1556, \"path\": \"build/phase16-validation26/development/budget.json\", \"pending_diagnosis_present\": true, \"pending_diagnosis_sha256\": \"f983b7ad0fb10b90338b0d942ffe22b8bd1b35684c1d45be751e8163d6fb022e\", \"sha256\": \"59504c174250450b278419ef74d7288b7f2c46b673c71097cf807e2642e7e504\", \"status\": \"active\", \"terminal\": false}\n{\"bytes\": 155491, \"path\": \"build/phase16-validation26/development/operations.jsonl\", \"sha256\": \"8af85ca5c1c25441cd47c5191add157a6e4c87e30ea5b23df79bf50aae8c174e\"}\n{\"bytes\": 13136, \"path\": \"build/phase16-validation38-bootstrap/copy-operations.jsonl\", \"sha256\": \"5d9dc44bca2c69a9d4e5ac248ae1d9942c4cafd9ee4e208902b6b87695d9b195\"}\n"
+    }
+  },
+  "limits": {
+    "decoded": 67108864,
+    "request": 4194304,
+    "producer": 16384,
+    "caller": 8192,
+    "normal_caller": 1024,
+    "raw_segment": 4096,
+    "outer_packets": 32,
+    "outer_token_request": 18000,
+    "nested_exec_token_request": 18000
+  },
+  "limitations": [
+    "No finalized prospective source, wrapper/order/blob/payload controls, actual retained-prefix transport, A/B, full fresh content snapshot, finite graph, bootstrap, executor, helper, CLI RED/GREEN, selector matrix, freeze or export was produced.",
+    "No whole-history content comparison occurred.",
+    "Census baseline was taken after initial read-only discovery; it is not a before-invocation whole-tree snapshot.",
+    "Context stop is the agent's capacity judgment, not a measured provider limit, actual transport refusal, proof of impossible execution or new plan-check defect.",
+    "No PREPARATION, SUMMARY, task or phase completion credit."
+  ]
+}

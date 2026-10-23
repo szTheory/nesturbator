@@ -26,12 +26,185 @@
 # log_check.cmake, and ra_state_outcome_checks confirms the thumbnail and secondary-instance keys.
 # Save and load lanes: state-save (auto-save, --max-frames=150, frame 150, and the RASTATE file
 # checked), state-load (auto-load, --max-frames=30, frame 179) and state-load-ahead (the same with
-# run-ahead, 179 + k_eff). Then lane state-net runs -DSESSION_SCRIPT (state_session.sh): one paused
-# session driven over RetroArch's network commands that saves, steps, loads, resumes, rewinds and
-# steps with run-ahead, every screenshot identified by frame_index as a set of runner frames.
+# run-ahead, 179 + k_eff). Exact network progression uses HOSTED_MARKER=ON on generated marker
+# content and the shared production verdict; it does not infer command order from picture sets.
 #
 # Needs a logged-in GUI session, because RetroArch opens a window.
 cmake_minimum_required(VERSION 3.25)
+
+function(hosted_write_fault_nc output real_nc cat_path)
+  string(REPLACE "@CAT@" "${cat_path}" hosted_nc_source [=[
+#!/bin/sh
+set -u
+CAT="@CAT@"
+REAL_NC="@REAL_NC@"
+REQUEST_FILE="${HOSTED_FAULT_STATE:?}.request.$$"
+CHILD_PID=
+cleanup() {
+    status=$?
+    trap - EXIT HUP INT TERM
+    if [ -n "$CHILD_PID" ]; then
+        # An interrupted mutation must not linger and send after the session fails.
+        kill -KILL "$CHILD_PID" 2>/dev/null || true
+        wait "$CHILD_PID" 2>/dev/null || true
+        CHILD_PID=
+    fi
+    /bin/rm -f "$REQUEST_FILE"
+    exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+hosted_monotonic_ms() {
+    /usr/bin/perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000'
+}
+
+"$CAT" >"$REQUEST_FILE" || exit 1
+payload=$("$CAT" "$REQUEST_FILE")
+send_real() {
+    SEND_START_MS=$(hosted_monotonic_ms) || return 1
+    "$REAL_NC" "$@" <"$REQUEST_FILE" &
+    CHILD_PID=$!
+    if wait "$CHILD_PID"; then
+        CHILD_PID=
+        SEND_END_MS=$(hosted_monotonic_ms) || return 1
+        return 0
+    else
+        send_status=$?
+        # A trapped signal exits through cleanup while CHILD_PID is still set.
+        # A normal nonzero wait has already reaped this exact child.
+        CHILD_PID=
+        SEND_END_MS=$(hosted_monotonic_ms) || return 1
+        return "$send_status"
+    fi
+}
+
+if [ "$payload" = FRAMEADVANCE ] &&
+   { [ "${HOSTED_MARKER_FAULT:-}" = drop-advance ] ||
+     [ "${HOSTED_MARKER_FAULT:-}" = double-advance ]; } &&
+   /bin/mkdir "${HOSTED_FAULT_STATE:?}" 2>/dev/null; then
+    if [ "$HOSTED_MARKER_FAULT" = drop-advance ]; then
+        /usr/bin/printf 'fault=drop-advance\ntrigger=FRAMEADVANCE\ninjected_count=1\n' >"$HOSTED_FAULT_LOG"
+        exit 0
+    fi
+    /usr/bin/printf 'fault=double-advance\ntrigger=FRAMEADVANCE\ninjected_count=1\n' >"$HOSTED_FAULT_LOG"
+    send_real "$@" || exit $?
+    first_send_start_ms=$SEND_START_MS
+    first_send_end_ms=$SEND_END_MS
+    # Separate the duplicate beyond several host-frame intervals so the
+    # released host can process each one-shot UDP request independently.
+    /usr/bin/perl -MTime::HiRes=sleep -e 'sleep 0.25' || exit $?
+    second_send_ready_ms=$(hosted_monotonic_ms) || exit 1
+    send_real "$@" || exit $?
+    second_send_start_ms=$SEND_START_MS
+    second_send_end_ms=$SEND_END_MS
+    inter_send_gap_ms=$((second_send_start_ms-first_send_end_ms))
+    /usr/bin/printf 'forwarded_send_count=2\nfirst_send_start_ms=%s\nfirst_send_end_ms=%s\nsecond_send_ready_ms=%s\nsecond_send_start_ms=%s\nsecond_send_end_ms=%s\ninter_send_gap_ms=%s\n' \
+        "$first_send_start_ms" "$first_send_end_ms" "$second_send_ready_ms" \
+        "$second_send_start_ms" "$second_send_end_ms" "$inter_send_gap_ms" >>"$HOSTED_FAULT_LOG"
+    exit 0
+fi
+send_real "$@"
+]=])
+  string(REPLACE "@REAL_NC@" "${real_nc}" hosted_nc_source "${hosted_nc_source}")
+  file(WRITE "${output}" "${hosted_nc_source}")
+  file(CHMOD "${output}" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+    GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+endfunction()
+
+# A shell control asks for the same generated action wrapper used by the
+# hosted lane, without requiring RetroArch or a GUI session.
+if(DEFINED HOSTED_FAULT_WRAPPER_SELFTEST_OUTPUT)
+  if(NOT DEFINED HOSTED_FAULT_WRAPPER_REAL_NC OR
+      "${HOSTED_FAULT_WRAPPER_REAL_NC}" STREQUAL "")
+    message(FATAL_ERROR "fault wrapper self-test needs HOSTED_FAULT_WRAPPER_REAL_NC")
+  endif()
+  find_program(HOSTED_FAULT_WRAPPER_CAT NAMES cat)
+  if(NOT HOSTED_FAULT_WRAPPER_CAT)
+    message(FATAL_ERROR "fault wrapper self-test needs cat")
+  endif()
+  hosted_write_fault_nc("${HOSTED_FAULT_WRAPPER_SELFTEST_OUTPUT}"
+    "${HOSTED_FAULT_WRAPPER_REAL_NC}" "${HOSTED_FAULT_WRAPPER_CAT}")
+  return()
+endif()
+
+# The required hosted marker job uses one root-relative entry point so it cannot
+# accidentally combine a marker ROM, core, or pinned app from different builds.
+if(HOSTED_MARKER)
+  if(NOT CMAKE_HOST_APPLE)
+    message(FATAL_ERROR "HOSTED_MARKER runs only on the pinned macOS host")
+  endif()
+  foreach(var BUILD_DIR HOST_ROOT)
+    if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
+      message(FATAL_ERROR "HOSTED_MARKER needs -D${var}=...")
+    endif()
+  endforeach()
+  get_filename_component(project_root "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+  cmake_path(ABSOLUTE_PATH BUILD_DIR BASE_DIRECTORY "${project_root}" NORMALIZE
+    OUTPUT_VARIABLE hosted_build_root)
+  cmake_path(ABSOLUTE_PATH HOST_ROOT BASE_DIRECTORY "${project_root}" NORMALIZE
+    OUTPUT_VARIABLE hosted_root)
+  set(HOSTED_MARKER_ROOT "${hosted_root}/marker-progression")
+  if(EXISTS "${HOSTED_MARKER_ROOT}")
+    message(FATAL_ERROR
+      "HOSTED_MARKER evidence already exists at ${HOSTED_MARKER_ROOT}; use a fresh HOST_ROOT to preserve the first run")
+  endif()
+  file(MAKE_DIRECTORY "${HOSTED_MARKER_ROOT}")
+  set(HOSTED_BUILD_ROOT "${hosted_build_root}")
+  set(HOSTED_ROOT "${hosted_root}")
+  set(CORE "${hosted_build_root}/libretro/nesturbator_libretro.dylib")
+  set(INFO "${project_root}/libretro/nesturbator_libretro.info")
+  set(RUNNER "${hosted_build_root}/runner/nesturbator-run")
+  set(COMPARE "${hosted_build_root}/tests/retroarch/compare_frame")
+  set(FRAME_INDEX "${hosted_build_root}/tests/retroarch/frame_index")
+  set(STATE_ROM "${hosted_build_root}/tests/retroarch/marker.nes")
+  set(TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/test.cfg.in")
+  set(STATE_TEMPLATE "${CMAKE_CURRENT_LIST_DIR}/state.cfg.in")
+  set(SESSION_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/state_session.sh")
+  set(RETROARCH "${hosted_root}/RetroArch.app/Contents/MacOS/RetroArch")
+  set(VERSION_PLIST "${hosted_root}/RetroArch.app/Contents/Info.plist")
+  set(ASSET_EVIDENCE "${hosted_root}/asset-evidence.txt")
+  set(EXPECTED_VERSION "1.22.2")
+  set(HOSTED_PIN_SHA "81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434")
+  set(RA_DIR "${HOSTED_MARKER_ROOT}/qualification")
+  set(MARKER_GATE ON)
+  file(WRITE "${HOSTED_MARKER_ROOT}/hosted-evidence.txt" "status=started\n")
+  foreach(path CORE INFO RUNNER COMPARE FRAME_INDEX STATE_ROM TEMPLATE STATE_TEMPLATE SESSION_SCRIPT
+      RETROARCH VERSION_PLIST ASSET_EVIDENCE)
+    if(NOT EXISTS "${${path}}" OR IS_DIRECTORY "${${path}}")
+      message(FATAL_ERROR "HOSTED_MARKER input is missing or not a file: ${path}=${${path}}")
+    endif()
+  endforeach()
+  find_program(HOSTED_REAL_NC NAMES nc)
+  if(NOT HOSTED_REAL_NC)
+    message(FATAL_ERROR "HOSTED_MARKER needs the system nc used by the bounded driver")
+  endif()
+  find_program(HOSTED_CAT NAMES cat)
+  if(NOT HOSTED_CAT)
+    message(FATAL_ERROR "HOSTED_MARKER needs cat to retain the one-shot request")
+  endif()
+  file(READ "${ASSET_EVIDENCE}" hosted_asset_text)
+  if(NOT hosted_asset_text MATCHES "expected SHA-256: ${HOSTED_PIN_SHA}" OR
+      NOT hosted_asset_text MATCHES "actual SHA-256: ${HOSTED_PIN_SHA}" OR
+      NOT hosted_asset_text MATCHES "RetroArch version: ${EXPECTED_VERSION}")
+    message(FATAL_ERROR "HOSTED_MARKER asset evidence does not match the required pin")
+  endif()
+endif()
+
+if(HOSTED_MARKER)
+  function(hosted_monotonic_ms out)
+    execute_process(
+      COMMAND perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e "printf \"%.0f\\n\",clock_gettime(CLOCK_MONOTONIC)*1000"
+      RESULT_VARIABLE clock_result OUTPUT_VARIABLE clock_output ERROR_VARIABLE clock_error)
+    string(STRIP "${clock_output}" clock_output)
+    if(NOT clock_result EQUAL 0 OR NOT clock_output MATCHES "^[0-9]+$")
+      message(FATAL_ERROR "HOSTED_MARKER could not read the monotonic timer: ${clock_error}")
+    endif()
+    set(${out} "${clock_output}" PARENT_SCOPE)
+  endfunction()
+endif()
 
 foreach(var CORE INFO RUNNER COMPARE RA_DIR TEMPLATE RETROARCH
     EXPECTED_VERSION VERSION_PLIST)
@@ -122,7 +295,9 @@ message(STATUS "RetroArch version: ${measured_version}")
 # 3. A fresh directory with the configuration and the core's .info file.
 # Every directory test.cfg names exists, so RetroArch never falls back to a
 # default location for a missing one.
-file(REMOVE_RECURSE "${RA_DIR}")
+if(NOT HOSTED_MARKER)
+  file(REMOVE_RECURSE "${RA_DIR}")
+endif()
 foreach(sub assets cache cheats config content cores database/cursors database/rdb
     downloads filters/audio filters/video fonts info logs overlays playlists
     records records_config remaps runtime saves shaders shots states system
@@ -149,6 +324,429 @@ if(have_state)
   # the .info in RA_DIR/info (13-RESEARCH flag 1, Pitfall 1), so -L names this copy.
   file(COPY_FILE "${core}" "${RA_DIR}/cores/nesturbator_libretro.dylib")
   set(ra_core "${RA_DIR}/cores/nesturbator_libretro.dylib")
+endif()
+
+if(MARKER_GATE)
+  if(NOT have_state)
+    message(FATAL_ERROR "MARKER_GATE requires state mode")
+  endif()
+  # Bind the supplied bytes, not merely a source fixture with the same basename.
+  execute_process(COMMAND "${FRAME_INDEX}" --marker-generate "${RA_DIR}/expected-marker.nes"
+    RESULT_VARIABLE generated)
+  execute_process(COMMAND "${FRAME_INDEX}" --marker-generate "${RA_DIR}/regenerated-marker.nes"
+    RESULT_VARIABLE regenerated)
+  if(NOT generated EQUAL 0 OR NOT regenerated EQUAL 0)
+    message(FATAL_ERROR "marker generation failed")
+  endif()
+  file(SHA256 "${RA_DIR}/expected-marker.nes" expected_marker_sha)
+  file(SHA256 "${RA_DIR}/regenerated-marker.nes" regenerated_marker_sha)
+  file(SHA256 "${mode_rom}" supplied_marker_sha)
+  file(SHA256 "${ra_content}" copied_marker_sha)
+  if(NOT expected_marker_sha STREQUAL regenerated_marker_sha OR
+      NOT expected_marker_sha STREQUAL supplied_marker_sha OR
+      NOT expected_marker_sha STREQUAL copied_marker_sha)
+    message(FATAL_ERROR "marker content SHA-256 mismatch")
+  endif()
+  if(HOSTED_MARKER)
+    hosted_monotonic_ms(qualification_start_ms)
+  endif()
+  execute_process(COMMAND "${FRAME_INDEX}" --marker-qualify "${ra_content}"
+      "${RA_DIR}/calibration.txt" RESULT_VARIABLE qualified
+    OUTPUT_VARIABLE qualification_output ERROR_VARIABLE qualification_error TIMEOUT 600)
+  if(HOSTED_MARKER)
+    hosted_monotonic_ms(qualification_end_ms)
+    math(EXPR qualification_elapsed_ms "${qualification_end_ms} - ${qualification_start_ms}")
+  endif()
+  file(WRITE "${RA_DIR}/qualification.txt" "${qualification_output}${qualification_error}")
+  if(NOT qualified EQUAL 0)
+    message(FATAL_ERROR "marker qualification failed: ${qualification_output}${qualification_error}")
+  endif()
+  # The pin is an asset observation, not just an app plist's version string.
+  if(NOT DEFINED ASSET_EVIDENCE)
+    cmake_path(GET VERSION_PLIST PARENT_PATH asset_parent)
+    cmake_path(GET asset_parent PARENT_PATH asset_parent)
+    cmake_path(GET asset_parent PARENT_PATH asset_parent)
+    set(ASSET_EVIDENCE "${asset_parent}/asset-evidence.txt")
+  endif()
+  if(NOT EXISTS "${ASSET_EVIDENCE}")
+    message(FATAL_ERROR "marker gate needs the verified pinned asset-evidence.txt")
+  endif()
+  file(READ "${ASSET_EVIDENCE}" asset_text)
+  set(pin_sha "${HOSTED_PIN_SHA}")
+  if(NOT pin_sha)
+    set(pin_sha "81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434")
+  endif()
+  if(NOT asset_text MATCHES "expected SHA-256: ${pin_sha}" OR
+      NOT asset_text MATCHES "actual SHA-256: ${pin_sha}" OR
+      NOT asset_text MATCHES "RetroArch version: 1.22.2")
+    message(FATAL_ERROR "marker gate asset evidence does not match the required pin")
+  endif()
+  file(COPY_FILE "${ASSET_EVIDENCE}" "${RA_DIR}/asset-evidence.txt")
+
+  if(HOSTED_MARKER)
+    function(hosted_sanitize_value input out)
+      set(value "${input}")
+      string(REPLACE "${HOSTED_BUILD_ROOT}" "<build>" value "${value}")
+      string(REPLACE "${HOSTED_ROOT}" "<retroarch>" value "${value}")
+      string(REPLACE "${project_root}" "<workspace>" value "${value}")
+      set(${out} "${value}" PARENT_SCOPE)
+    endfunction()
+
+    # These wrappers only inject a fault into one real local network send, or
+    # into the declared origin in one real production verdict. The host, images,
+    # native anchors and verdict executable remain the pinned production ones.
+    set(hosted_fault_tools "${HOSTED_MARKER_ROOT}/fault-tools")
+    file(MAKE_DIRECTORY "${hosted_fault_tools}")
+    hosted_write_fault_nc("${hosted_fault_tools}/nc-one-shot.sh" "${HOSTED_REAL_NC}" "${HOSTED_CAT}")
+    set(hosted_index_source [=[
+#!/bin/sh
+set -eu
+if [ "${HOSTED_MARKER_FAULT:-}" = valid-wrong-origin ] &&
+   [ "${1:-}" = --marker-verdict-prefix ]; then
+    record=${4:?}
+    boundary_count=$(/usr/bin/sed -n 's/^boundary_count=//p' "$record")
+    if [ "$boundary_count" = 13 ]; then
+        /bin/cp "$record" "$record.hosted-fault-original"
+        /usr/bin/perl -0pi -e '
+            my ($identity) = /^original_anchor_identity=([0-9a-f]{16})$/m;
+            my ($frame) = /^original_anchor_frame=([0-9]+)$/m;
+            die "missing valid original anchor identity" unless defined $identity;
+            die "missing valid original anchor frame" unless defined $frame;
+            my $changed_identity = s{(boundary\nid=13\n.*?\nanchor_identity=)[0-9a-f]{16}}{${1} . $identity}se;
+            my $changed_frame = s{(boundary\nid=13\n.*?\nanchor_frame=)[0-9]+}{${1} . $frame}se;
+            die "wrong-origin mutation did not affect exactly boundary 13" unless
+                $changed_identity == 1 && $changed_frame == 1;
+        ' "$record"
+        /usr/bin/printf 'fault=valid-wrong-origin\nboundary=13\nanchor=validated-original\ninjected_count=1\n' >"${HOSTED_FAULT_LOG:?}"
+    fi
+fi
+exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
+]=])
+    file(WRITE "${hosted_fault_tools}/frame-index-wrong-origin.sh" "${hosted_index_source}")
+    file(CHMOD "${hosted_fault_tools}/frame-index-wrong-origin.sh" PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+
+    set(marker_core_sha "")
+    set(marker_info_sha "")
+    file(SHA256 "${CORE}" marker_core_sha)
+    file(SHA256 "${INFO}" marker_info_sha)
+    execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY "${project_root}"
+      RESULT_VARIABLE marker_revision_result OUTPUT_VARIABLE marker_revision OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(NOT marker_revision_result EQUAL 0)
+      message(FATAL_ERROR "HOSTED_MARKER cannot bind the source commit identity")
+    endif()
+    file(READ "${RA_DIR}/calibration.txt" marker_calibration)
+    file(APPEND "${HOSTED_MARKER_ROOT}/hosted-evidence.txt"
+      "qualification=pass\nsource_commit=${marker_revision}\npinned_version=${measured_version}\n"
+      "retroarch_dmg_sha256=${pin_sha}\ncontent_sha256=${supplied_marker_sha}\n"
+      "core_sha256=${marker_core_sha}\ninfo_sha256=${marker_info_sha}\n"
+      "frame_window=4..10000\ncalibration_record=${marker_calibration}"
+      "qualification_ms=${qualification_elapsed_ms}\n")
+
+    function(hosted_marker_session run_name fault expected_reason expected_verdict expected_boundaries expected_sends)
+      set(run_root "${HOSTED_MARKER_ROOT}/${run_name}")
+      if(EXISTS "${run_root}")
+        message(FATAL_ERROR "HOSTED_MARKER refuses to replace first-run evidence at ${run_root}")
+      endif()
+      set(RA_DIR "${run_root}")
+      foreach(sub assets cache cheats config content cores database/cursors database/rdb
+          downloads filters/audio filters/video fonts info logs overlays playlists records
+          records_config remaps runtime saves shaders shots states system thumbnails wallpapers autoconfig)
+        file(MAKE_DIRECTORY "${run_root}/${sub}")
+      endforeach()
+      configure_file("${TEMPLATE}" "${run_root}/test.cfg" @ONLY)
+      file(READ "${run_root}/test.cfg" base_config)
+      file(READ "${STATE_TEMPLATE}" state_config)
+      file(WRITE "${run_root}/marker-session.cfg" "${base_config}\n${state_config}")
+      file(COPY "${INFO}" DESTINATION "${run_root}/info")
+      file(COPY_FILE "${CORE}" "${run_root}/cores/nesturbator_libretro.dylib")
+      file(COPY_FILE "${ra_content}" "${run_root}/content/marker.nes")
+
+      set(session_frame_index "${FRAME_INDEX}")
+      set(session_env "STATE_SESSION_RECORD_ROOT=${project_root}"
+        "STATE_SESSION_REAL_NC=${HOSTED_REAL_NC}")
+      if(NOT fault STREQUAL "")
+        list(APPEND session_env
+          "HOSTED_MARKER_FAULT=${fault}"
+          "HOSTED_FAULT_STATE=${run_root}/fault-seen"
+          "HOSTED_FAULT_LOG=${run_root}/fault-injection.txt")
+        if(fault STREQUAL "drop-advance" OR fault STREQUAL "double-advance")
+          list(APPEND session_env "STATE_SESSION_NC=${hosted_fault_tools}/nc-one-shot.sh")
+          if(fault STREQUAL "double-advance")
+            # Let the real state file publish under the virtual host before the
+            # negative action; this remains inside the unchanged 30 s operation cap.
+            list(APPEND session_env "STATE_SESSION_PUBLICATION_MS=10000")
+          endif()
+        elseif(fault STREQUAL "valid-wrong-origin")
+          set(session_frame_index "${hosted_fault_tools}/frame-index-wrong-origin.sh")
+          list(APPEND session_env "HOSTED_REAL_FRAME_INDEX=${FRAME_INDEX}")
+        else()
+          message(FATAL_ERROR "HOSTED_MARKER has no production injection for ${fault}")
+        endif()
+      endif()
+
+      # Run 38633432440 on f8831c2 reached all 16 prefix boundaries and their
+      # production PREFIX_OK verdict at 232.775 s, then exhausted its 240 s attempt
+      # while awaiting QUIT (235.161 s elapsed, 4.824 s left). The complete verdict
+      # runs after QUIT and host exit. That incomplete sample projected 300.161 s
+      # for QUIT, the complete verdict and 5 s cleanup; its 320 s attempt estimate
+      # was subsequently verified by exact-head run 38638052203 on e2397db: the
+      # intended full path returned VERDICT_OK in 225.373 s (225.214 s attempt).
+      # In that run, valid-wrong-origin used the 120 s default and failed at
+      # ATTEMPT_DEADLINE after boundary 11 (97.291 s) and 32 of 40 rewind sends
+      # (115.107 s, 4.885 s remaining). Its required boundary-13 ORIGIN control
+      # needs the remaining rewinds, boundary-12 capture/native anchor/PREFIX_OK,
+      # and one advance/capture/production verdict. Reuse the verified finite
+      # 320 s attempt and 350 s outer driver envelope for this shorter path. Keep
+      # the production driver's 120 s default, 30 s operation limits, exact 70
+      # one-shot sends and semantic prerequisites unchanged in every mode.
+      set(driver_timeout 150)
+      if("${run_name}" STREQUAL "intended" OR "${run_name}" STREQUAL "fault-valid-wrong-origin")
+        list(APPEND session_env "STATE_SESSION_ATTEMPT_MS=320000")
+        set(driver_timeout 350)
+      endif()
+
+      hosted_monotonic_ms(run_start_ms)
+      set(driver_command "${CMAKE_COMMAND}" -E env)
+      list(APPEND driver_command ${session_env} sh "${SESSION_SCRIPT}"
+        "${RETROARCH}" "${run_root}/marker-session.cfg"
+        "${run_root}/cores/nesturbator_libretro.dylib" "${run_root}/content/marker.nes"
+        "${run_root}" "${run_root}/retroarch-state-net.log" "${session_frame_index}"
+        "${RA_DIR}/../qualification/calibration.txt")
+      # The calibration path is stable across every attempt and stays within the
+      # marker evidence root. The driver records all owned artifacts relatively.
+      execute_process(COMMAND ${driver_command}
+        RESULT_VARIABLE driver_result OUTPUT_VARIABLE driver_stdout ERROR_VARIABLE driver_stderr
+        TIMEOUT "${driver_timeout}" WORKING_DIRECTORY "${project_root}")
+      hosted_monotonic_ms(run_end_ms)
+      math(EXPR driver_elapsed_ms "${run_end_ms} - ${run_start_ms}")
+
+      hosted_sanitize_value("${driver_stdout}" safe_stdout)
+      hosted_sanitize_value("${driver_stderr}" safe_stderr)
+      file(WRITE "${run_root}/driver.stdout.txt" "${safe_stdout}")
+      file(WRITE "${run_root}/driver.stderr.txt" "${safe_stderr}")
+      if(EXISTS "${run_root}/marker-session.cfg")
+        file(READ "${run_root}/marker-session.cfg" runtime_config)
+        hosted_sanitize_value("${runtime_config}" safe_config)
+        file(WRITE "${run_root}/marker-session.sanitized.cfg" "${safe_config}")
+        file(REMOVE "${run_root}/marker-session.cfg" "${run_root}/test.cfg")
+      endif()
+
+      file(GLOB attempt_dirs LIST_DIRECTORIES TRUE "${run_root}/attempts/attempt-*")
+      list(LENGTH attempt_dirs attempt_count)
+      if(NOT attempt_count EQUAL 1)
+        file(APPEND "${HOSTED_MARKER_ROOT}/hosted-evidence.txt"
+          "${run_name}=failed result=${driver_result} reason=ATTEMPT_TREE_COUNT count=${attempt_count} elapsed_ms=${driver_elapsed_ms}\n")
+        message(FATAL_ERROR "HOSTED_MARKER ${run_name} expected one retained attempt tree, found ${attempt_count}: ${safe_stderr}")
+      endif()
+      list(GET attempt_dirs 0 attempt_dir)
+      if(NOT EXISTS "${attempt_dir}/journal.tsv" OR NOT EXISTS "${attempt_dir}/boundaries.tsv")
+        message(FATAL_ERROR "HOSTED_MARKER ${run_name} failed before retaining its journal and boundaries: ${safe_stderr}")
+      endif()
+      file(STRINGS "${attempt_dir}/journal.tsv" journal_rows)
+      list(LENGTH journal_rows journal_count)
+      if(journal_count LESS 2)
+        file(APPEND "${HOSTED_MARKER_ROOT}/hosted-evidence.txt"
+          "${run_name}=failed result=${driver_result} reason=NO_TERMINAL_JOURNAL elapsed_ms=${driver_elapsed_ms}\n")
+        message(FATAL_ERROR "HOSTED_MARKER ${run_name} retained no terminal journal row")
+      endif()
+      math(EXPR journal_last_index "${journal_count} - 1")
+      list(GET journal_rows ${journal_last_index} journal_last_row)
+      string(REPLACE "\t" ";" journal_fields "${journal_last_row}")
+      list(LENGTH journal_fields journal_field_count)
+      if(NOT journal_field_count EQUAL 11)
+        message(FATAL_ERROR "HOSTED_MARKER ${run_name} journal row is malformed: ${journal_last_row}")
+      endif()
+      list(GET journal_fields 3 attempt_elapsed_ms)
+      list(GET journal_fields 10 terminal_reason)
+      list(REMOVE_AT journal_rows 0)
+      set(actual_pause 0)
+      set(actual_screenshot 0)
+      set(actual_save 0)
+      set(actual_advance 0)
+      set(actual_load 0)
+      set(actual_runahead 0)
+      set(actual_rewind 0)
+      set(actual_quit 0)
+      set(cleanup_sends 0)
+      set(driver_sends 0)
+      foreach(row IN LISTS journal_rows)
+        string(REPLACE "\t" ";" fields "${row}")
+        list(GET fields 7 command)
+        if(command STREQUAL "PAUSE_TOGGLE")
+          math(EXPR actual_pause "${actual_pause} + 1")
+          math(EXPR driver_sends "${driver_sends} + 1")
+        elseif(command STREQUAL "SCREENSHOT")
+          math(EXPR actual_screenshot "${actual_screenshot} + 1")
+          math(EXPR driver_sends "${driver_sends} + 1")
+        elseif(command STREQUAL "SAVE_STATE")
+          math(EXPR actual_save "${actual_save} + 1")
+          math(EXPR driver_sends "${driver_sends} + 1")
+        elseif(command STREQUAL "FRAMEADVANCE")
+          math(EXPR actual_advance "${actual_advance} + 1")
+          math(EXPR driver_sends "${driver_sends} + 1")
+        elseif(command STREQUAL "LOAD_STATE_SLOT 0")
+          math(EXPR actual_load "${actual_load} + 1")
+          math(EXPR driver_sends "${driver_sends} + 1")
+        elseif(command STREQUAL "RUNAHEAD_TOGGLE")
+          math(EXPR actual_runahead "${actual_runahead} + 1")
+          math(EXPR driver_sends "${driver_sends} + 1")
+        elseif(command STREQUAL "REWIND")
+          math(EXPR actual_rewind "${actual_rewind} + 1")
+          math(EXPR driver_sends "${driver_sends} + 1")
+        elseif(command STREQUAL "QUIT")
+          math(EXPR actual_quit "${actual_quit} + 1")
+          math(EXPR driver_sends "${driver_sends} + 1")
+        elseif(command STREQUAL "QUIT-at-most-once")
+          math(EXPR cleanup_sends "${cleanup_sends} + 1")
+        endif()
+      endforeach()
+      if(NOT driver_sends EQUAL expected_sends)
+        message(FATAL_ERROR "HOSTED_MARKER ${run_name} expected ${expected_sends} one-shot sends, got ${driver_sends}")
+      endif()
+      file(STRINGS "${attempt_dir}/boundaries.tsv" boundary_rows)
+      list(LENGTH boundary_rows boundary_count)
+      if(fault STREQUAL "" OR fault STREQUAL "drop-advance" OR fault STREQUAL "double-advance" OR
+          fault STREQUAL "valid-wrong-origin")
+        set(startup_evidence "${attempt_dir}/startup-captures.tsv")
+        if(NOT EXISTS "${startup_evidence}")
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} has no retained startup capture evidence")
+        endif()
+        file(STRINGS "${startup_evidence}" startup_rows)
+        list(LENGTH startup_rows startup_row_count)
+        if(NOT startup_row_count EQUAL 3)
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} expected two retained startup observations, got ${startup_row_count} rows")
+        endif()
+        list(GET startup_rows 1 startup_first)
+        list(GET startup_rows 2 startup_second)
+        string(REPLACE "\t" ";" startup_first_fields "${startup_first}")
+        string(REPLACE "\t" ";" startup_second_fields "${startup_second}")
+        list(LENGTH startup_first_fields startup_first_count)
+        list(LENGTH startup_second_fields startup_second_count)
+        if(NOT startup_first_count EQUAL 6 OR NOT startup_second_count EQUAL 6)
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} startup observations are malformed")
+        endif()
+        list(GET startup_first_fields 0 startup_first_tag)
+        list(GET startup_first_fields 1 startup_first_relation)
+        list(GET startup_first_fields 2 startup_first_ordinal)
+        list(GET startup_first_fields 4 startup_first_path)
+        list(GET startup_second_fields 0 startup_second_tag)
+        list(GET startup_second_fields 1 startup_second_relation)
+        list(GET startup_second_fields 2 startup_second_ordinal)
+        list(GET startup_second_fields 4 startup_second_path)
+        if(NOT startup_first_tag STREQUAL "startup-forward-01" OR
+            NOT startup_first_relation STREQUAL "baseline" OR NOT startup_first_ordinal STREQUAL "1" OR
+            NOT startup_second_tag STREQUAL "startup-forward-02" OR
+            NOT startup_second_relation STREQUAL "strictly-forward-from-startup-forward-01" OR
+            NOT startup_second_ordinal STREQUAL "2" OR
+            NOT EXISTS "${attempt_dir}/${startup_first_path}" OR NOT EXISTS "${attempt_dir}/${startup_second_path}")
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} lacks two independently retained startup SCREENSHOT sends")
+        endif()
+      endif()
+      file(SHA256 "${attempt_dir}/session.sanitized.cfg" config_sha)
+
+      if(fault STREQUAL "")
+        if(NOT driver_stdout MATCHES "sends=${driver_sends}")
+          message(FATAL_ERROR "HOSTED_MARKER intended output disagrees with its journal send count: ${safe_stdout}")
+        endif()
+        if(NOT actual_pause EQUAL 3 OR NOT actual_screenshot EQUAL 18 OR
+            NOT actual_save EQUAL 2 OR NOT actual_advance EQUAL 12 OR
+            NOT actual_load EQUAL 2 OR NOT actual_runahead EQUAL 1 OR
+            NOT actual_rewind EQUAL 40 OR NOT actual_quit EQUAL 1)
+          message(FATAL_ERROR
+            "HOSTED_MARKER intended send counts differ: pause=${actual_pause}, screenshot=${actual_screenshot}, save=${actual_save}, advance=${actual_advance}, load=${actual_load}, runahead=${actual_runahead}, rewind=${actual_rewind}, quit=${actual_quit}")
+        endif()
+        if(NOT "${driver_result}" STREQUAL "0" OR
+            NOT driver_stdout MATCHES "progression boundaries=16 mode=complete verdict=VERDICT_OK" OR
+            NOT EXISTS "${attempt_dir}/original-anchor.state" OR
+            NOT EXISTS "${attempt_dir}/rewound-anchor.state" OR
+            NOT EXISTS "${attempt_dir}/retroarch.sanitized.log" OR
+            NOT terminal_reason STREQUAL "VERDICT_OK" OR NOT boundary_count EQUAL 16)
+          message(FATAL_ERROR "HOSTED_MARKER intended sequence failed: result=${driver_result} reason=${terminal_reason} boundaries=${boundary_count} elapsed_ms=${driver_elapsed_ms}\n${safe_stdout}\n${safe_stderr}")
+        endif()
+        file(READ "${attempt_dir}/progression-session.rec" complete_record)
+        if(NOT complete_record MATCHES "mode=complete" OR NOT complete_record MATCHES "terminal_exit=0" OR
+            NOT complete_record MATCHES "boundary_count=16")
+          message(FATAL_ERROR "HOSTED_MARKER intended sequence has no complete terminal evidence record")
+        endif()
+        file(APPEND "${HOSTED_MARKER_ROOT}/hosted-evidence.txt"
+          "intended=pass\nintended_elapsed_ms=${driver_elapsed_ms}\n"
+          "intended_attempt_elapsed_ms=${attempt_elapsed_ms}\nintended_boundaries=${boundary_count}\n"
+          "intended_terminal_reason=${terminal_reason}\nintended_sends=${driver_sends}\ncleanup_sends=${cleanup_sends}\n"
+          "startup_captures=2\nstartup_screenshot_send_ordinals=1,2\n"
+          "intended_commands=PAUSE_TOGGLE:${actual_pause},SCREENSHOT:${actual_screenshot},SAVE_STATE:${actual_save},FRAMEADVANCE:${actual_advance},LOAD_STATE_SLOT_0:${actual_load},RUNAHEAD_TOGGLE:${actual_runahead},REWIND:${actual_rewind},QUIT:${actual_quit}\n"
+          "intended_config_sha256=${config_sha}\n")
+      else()
+        if("${driver_result}" STREQUAL "0" OR NOT terminal_reason STREQUAL expected_reason OR
+            NOT boundary_count EQUAL expected_boundaries OR NOT cleanup_sends EQUAL 1)
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} expected ${expected_reason} at ${expected_boundaries} boundaries; got result=${driver_result} reason=${terminal_reason} boundaries=${boundary_count}\n${safe_stdout}\n${safe_stderr}")
+        endif()
+        if(fault STREQUAL "drop-advance" OR fault STREQUAL "double-advance")
+          set(oracle_file "${attempt_dir}/oracle-prefix-3.out")
+        else()
+          set(oracle_file "${attempt_dir}/oracle-prefix-13.out")
+        endif()
+        if(NOT EXISTS "${oracle_file}")
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} did not invoke the production verdict")
+        endif()
+        file(READ "${oracle_file}" oracle_output)
+        if(NOT oracle_output MATCHES "verdict=${expected_verdict}")
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} expected production ${expected_verdict}, got: ${oracle_output}")
+        endif()
+        if(NOT EXISTS "${run_root}/fault-injection.txt")
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} never reached its requested one-shot injection")
+        endif()
+        file(READ "${run_root}/fault-injection.txt" injection_record)
+        if(NOT injection_record MATCHES "injected_count=1")
+          message(FATAL_ERROR "HOSTED_MARKER ${run_name} injection count is not exactly one")
+        endif()
+        if(fault STREQUAL "double-advance")
+          file(STRINGS "${run_root}/fault-injection.txt" forwarded_lines
+            REGEX "^forwarded_send_count=[0-9]+$")
+          file(STRINGS "${run_root}/fault-injection.txt" gap_lines
+            REGEX "^inter_send_gap_ms=[0-9]+$")
+          list(LENGTH forwarded_lines forwarded_line_count)
+          list(LENGTH gap_lines gap_line_count)
+          if(NOT forwarded_line_count EQUAL 1 OR NOT gap_line_count EQUAL 1 OR
+              NOT forwarded_lines MATCHES "forwarded_send_count=2")
+            message(FATAL_ERROR "HOSTED_MARKER double-advance did not retain two timed one-shot forwards")
+          endif()
+          string(REGEX REPLACE "^[^=]*=" "" inter_send_gap_ms "${gap_lines}")
+          if(inter_send_gap_ms LESS 200 OR inter_send_gap_ms GREATER 2000)
+            message(FATAL_ERROR "HOSTED_MARKER double-advance send spacing is outside 200-2000 ms: ${inter_send_gap_ms}")
+          endif()
+        endif()
+        if(fault STREQUAL "valid-wrong-origin")
+          if(NOT EXISTS "${attempt_dir}/original-anchor.state" OR
+              NOT EXISTS "${attempt_dir}/rewound-anchor.state" OR
+              NOT EXISTS "${attempt_dir}/progression-session.rec.hosted-fault-original")
+            message(FATAL_ERROR "HOSTED_MARKER wrong-origin control did not retain both native-valid anchors and its pre-injection record")
+          endif()
+          file(READ "${attempt_dir}/anchor-original.out" original_anchor_output)
+          file(READ "${attempt_dir}/anchor-rewound.out" rewound_anchor_output)
+          if(NOT original_anchor_output MATCHES "native-valid format=1 revision=6 envelope=RASTATE1/MEM/pad8/END" OR
+              NOT rewound_anchor_output MATCHES "native-valid format=1 revision=6 envelope=RASTATE1/MEM/pad8/END")
+            message(FATAL_ERROR "HOSTED_MARKER wrong-origin control lacked two native-valid anchors")
+          endif()
+        endif()
+        file(APPEND "${HOSTED_MARKER_ROOT}/hosted-evidence.txt"
+          "${run_name}=pass\nfault=${fault}\nproduction_verdict=${expected_verdict}\n"
+          "terminal_reason=${terminal_reason}\nboundaries_before_rejection=${boundary_count}\n"
+          "startup_captures=2\nstartup_screenshot_send_ordinals=1,2\n"
+          "sends=${driver_sends}\ncleanup_sends=${cleanup_sends}\nelapsed_ms=${driver_elapsed_ms}\nattempt_elapsed_ms=${attempt_elapsed_ms}\n"
+          "config_sha256=${config_sha}\ninjection=${injection_record}")
+      endif()
+      message(STATUS "HOSTED_MARKER ${run_name}: ${terminal_reason}, ${boundary_count} boundaries, ${driver_elapsed_ms} ms")
+    endfunction()
+
+    hosted_marker_session(intended "" VERDICT_OK VERDICT_OK 16 79)
+    hosted_marker_session(fault-drop-advance drop-advance ADVANCE_NOT_EXACTLY_ONE PROGRESSION 3 8)
+    hosted_marker_session(fault-double-advance double-advance ADVANCE_NOT_EXACTLY_ONE PROGRESSION 3 8)
+    hosted_marker_session(fault-valid-wrong-origin valid-wrong-origin ORIGIN ORIGIN 13 70)
+    file(APPEND "${HOSTED_MARKER_ROOT}/hosted-evidence.txt" "hosted_marker=complete\n")
+    message(STATUS "HOSTED_MARKER passed: pinned qualification, exact progression and three production-verdict negatives")
+    return()
+  endif()
 endif()
 
 # The user's RetroArch directory, read only: each entry with its size and
@@ -481,6 +1079,9 @@ if(have_state)
     message(FATAL_ERROR "[state-save] expected one ${stem}.state.auto under ${RA_DIR}/states, found: ${auto_states}")
   endif()
   ra_state_container(state-save "${auto_states}" 150)
+  if(MARKER_GATE)
+    file(COPY_FILE "${auto_states}" "${RA_DIR}/retained-origin.state")
+  endif()
   ra_state_outcome_checks(state-save "${RA_DIR}/retroarch-state-save.log")
   nesturbator_ra_log_check("${RA_DIR}/retroarch-state-save.log"
     "${CMAKE_CURRENT_LIST_DIR}/log_allowlist.txt" "${claim_level}" ON)
@@ -495,161 +1096,59 @@ if(have_state)
   nesturbator_ra_log_check("${RA_DIR}/retroarch-state-load-ahead.log"
     "${CMAKE_CURRENT_LIST_DIR}/log_allowlist.txt" "${claim_level}" ON)
 
-  # --- The network-command session (D-24, D-25 as amended) ---
-  if(NOT DEFINED SESSION_SCRIPT OR NOT EXISTS "${SESSION_SCRIPT}")
-    message(FATAL_ERROR "run_retroarch.cmake's state mode needs -DSESSION_SCRIPT=<state_session.sh>")
-  endif()
-  file(REMOVE_RECURSE "${RA_DIR}/states")
-  file(MAKE_DIRECTORY "${RA_DIR}/states")
-  ra_write_lane_cfg("${RA_DIR}/state-net.cfg")
-  snapshot(net_before)
-  execute_process(COMMAND sh "${SESSION_SCRIPT}" "${retroarch}" "${RA_DIR}/state-net.cfg"
-      "${ra_core}" "${ra_content}" "${RA_DIR}" "${RA_DIR}/retroarch-state-net.log"
-    RESULT_VARIABLE net_result OUTPUT_VARIABLE net_output ERROR_VARIABLE net_output
-    TIMEOUT 150)
-  snapshot(net_after)
-  if(NOT net_before STREQUAL net_after)
-    message(FATAL_ERROR "[state-net] RetroArch changed the user's RetroArch directory")
-  endif()
-  if(NOT net_result EQUAL 0)
-    message(FATAL_ERROR "[state-net] session exited with ${net_result}:\n${net_output}")
+  if(MARKER_GATE)
+    set(marker_observations)
+    foreach(lane state-base state-ahead state-save state-load state-load-ahead)
+      execute_process(COMMAND "${FRAME_INDEX}" --marker-observe "${ra_content}"
+          "${RA_DIR}/calibration.txt" "${RA_DIR}/shot-${lane}.bmp"
+        RESULT_VARIABLE observed OUTPUT_VARIABLE observation ERROR_VARIABLE observation_error)
+      if(NOT observed EQUAL 0 OR NOT observation MATCHES "marker frame=([0-9]+) guest=")
+        message(FATAL_ERROR "[${lane}] unqualified marker: ${observation}${observation_error}")
+      endif()
+      set(marker_${lane} "${CMAKE_MATCH_1}")
+      string(APPEND marker_observations "${lane}: ${observation}")
+    endforeach()
+    math(EXPR measured_lead "${marker_state-ahead} - ${marker_state-base}")
+    if(NOT marker_state-base EQUAL 120 OR NOT marker_state-save EQUAL 150 OR
+        NOT marker_state-load EQUAL 179 OR NOT marker_state-load-ahead EQUAL load_ahead_frame OR
+        NOT measured_lead EQUAL k_eff)
+      message(FATAL_ERROR "marker host calibration disagrees with base/save/load/display lead")
+    endif()
+    execute_process(COMMAND "${FRAME_INDEX}" --marker-anchor "${ra_content}"
+        "${RA_DIR}/calibration.txt" "${RA_DIR}/retained-origin.state" 150
+      RESULT_VARIABLE anchored OUTPUT_VARIABLE anchor_output ERROR_VARIABLE anchor_error)
+    file(WRITE "${RA_DIR}/anchor.txt" "${anchor_output}${anchor_error}")
+    if(NOT anchored EQUAL 0)
+      message(FATAL_ERROR "marker host native anchor failed: ${anchor_output}${anchor_error}")
+    endif()
+    file(SHA256 "${ra_core}" marker_core_sha)
+    file(SHA256 "${INFO}" marker_info_sha)
+    file(SHA256 "${RA_DIR}/retained-origin.state" marker_anchor_sha)
+    file(READ "${RA_DIR}/calibration.txt" marker_calibration)
+    execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
+      RESULT_VARIABLE revision_result OUTPUT_VARIABLE source_revision OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(NOT revision_result EQUAL 0)
+      message(FATAL_ERROR "marker gate cannot bind source commit identity")
+    endif()
+    set(config_identities)
+    foreach(lane state-base state-ahead state-save state-load state-load-ahead)
+      file(SHA256 "${RA_DIR}/${lane}.cfg" config_sha)
+      string(APPEND config_identities "${lane}_config_sha256=${config_sha}\n")
+      file(READ "${RA_DIR}/${lane}.cfg" cfg_text)
+      string(REPLACE "${RA_DIR}" "<attempt>" cfg_text "${cfg_text}")
+      file(WRITE "${RA_DIR}/${lane}-sanitized.cfg" "${cfg_text}")
+    endforeach()
+    file(WRITE "${RA_DIR}/marker-gate-success.txt"
+      "marker-gate=pass\nsource_commit=${source_revision}\nversion=${measured_version}\ncontent_sha256=${supplied_marker_sha}\n"
+      "core_sha256=${marker_core_sha}\ninfo_sha256=${marker_info_sha}\n"
+      "anchor_sha256=${marker_anchor_sha}\ndisplay_lead=${measured_lead}\n"
+      "${marker_calibration}${config_identities}${qualification_output}${marker_observations}${anchor_output}"
+      "scope=qualification; exact network progression and speculative audio are separate proofs\n")
+    message(STATUS "marker-gate pass: native origin 150, interval 4..10000, measured lead ${measured_lead}")
+    return()
   endif()
 
-  # Every screenshot to a BMP (colour management stripped, as in ra_session), then every
-  # frame index in 1..1200 whose RGB equals it.
-  set(net_tags pause-a pause-b adv-1 adv-2 adv-3 adv-4 adv-5 load-1 load-2 load-3 m1-a m1-b
-    rew-0 rew-1 rew-2 rew-3 ahead-1)
-  set(net_bmps)
-  foreach(tag IN LISTS net_tags)
-    if(NOT EXISTS "${RA_DIR}/shot-net-${tag}.png")
-      message(FATAL_ERROR "[state-net] no screenshot ${tag}")
-    endif()
-    file(COPY_FILE "${RA_DIR}/shot-net-${tag}.png" "${RA_DIR}/shot-net-${tag}-raw.png")
-    sips(--deleteColorManagementProperties shot-net-${tag}-raw.png)
-    sips(-s format bmp shot-net-${tag}-raw.png --out shot-net-${tag}.bmp)
-    list(APPEND net_bmps "${RA_DIR}/shot-net-${tag}.bmp")
-  endforeach()
-  execute_process(COMMAND "${FRAME_INDEX}" "${mode_rom}" 1200 ${net_bmps}
-    RESULT_VARIABLE index_result OUTPUT_VARIABLE index_output ERROR_VARIABLE index_error)
-  if(NOT index_result EQUAL 0)
-    message(FATAL_ERROR "[state-net] frame_index found no frame for a screenshot:\n${index_output}${index_error}")
-  endif()
-  string(REPLACE "\n" ";" index_lines "${index_output}")
-  foreach(line IN LISTS index_lines)
-    if(line MATCHES "^(.*)/shot-net-([a-z0-9-]+)\\.bmp ([0-9 ]+)$")
-      string(REPLACE " " ";" frames "${CMAKE_MATCH_3}")
-      set(set_${CMAKE_MATCH_2} "${frames}")
-    endif()
-  endforeach()
-  set(status_text)
-  foreach(tag IN LISTS net_tags)
-    if("${set_${tag}}" STREQUAL "")
-      message(FATAL_ERROR "[state-net] no frame set parsed for ${tag}:\n${index_output}")
-    endif()
-    string(APPEND status_text " ${tag}={${set_${tag}}}")
-  endforeach()
-  message(STATUS "[state-net] identified sets:${status_text}")
-
-  function(ra_set_min out)
-    set(best "")
-    foreach(x IN LISTS ARGN)
-      if("${best}" STREQUAL "" OR x LESS best)
-        set(best "${x}")
-      endif()
-    endforeach()
-    set(${out} "${best}" PARENT_SCOPE)
-  endfunction()
-  function(ra_set_max out)
-    set(best "")
-    foreach(x IN LISTS ARGN)
-      if("${best}" STREQUAL "" OR x GREATER best)
-        set(best "${x}")
-      endif()
-    endforeach()
-    set(${out} "${best}" PARENT_SCOPE)
-  endfunction()
-  # out = the elements x of `next` for which x - 1 is in `prev`; empty is a failure.
-  function(ra_chain out what prev_name next_name)
-    set(result)
-    foreach(x IN LISTS ${next_name})
-      math(EXPR before "${x} - 1")
-      if(before IN_LIST ${prev_name})
-        list(APPEND result ${x})
-      endif()
-    endforeach()
-    if("${result}" STREQUAL "")
-      message(FATAL_ERROR "[state-net] ${what}: {${${next_name}}} does not follow {${${prev_name}}} by one frame")
-    endif()
-    set(${out} "${result}" PARENT_SCOPE)
-  endfunction()
-
-  # Pause proof: two shots 1.1 s apart are the same picture.
-  file(SHA256 "${RA_DIR}/shot-net-pause-a.bmp" pause_a)
-  file(SHA256 "${RA_DIR}/shot-net-pause-b.bmp" pause_b)
-  if(NOT pause_a STREQUAL pause_b)
-    message(FATAL_ERROR "[state-net] the screen moved while paused: pause-a {${set_pause-a}} pause-b {${set_pause-b}}")
-  endif()
-  set(m0 ${set_pause-a})
-  # Five advances, each one frame after the last.
-  set(prev m0)
-  foreach(n 1 2 3 4 5)
-    ra_chain(chain_${n} "advance ${n}" ${prev} set_adv-${n})
-    set(prev chain_${n})
-  endforeach()
-  # Load slot 0 puts the screen back at M0; each advance after it is one frame on.
-  set(prev m0)
-  foreach(n 1 2 3)
-    ra_chain(load_chain_${n} "load then advance ${n}" ${prev} set_load-${n})
-    set(prev load_chain_${n})
-  endforeach()
-  # Resume proof: the session ran for about 3 s with run-ahead off, then paused again.
-  file(SHA256 "${RA_DIR}/shot-net-m1-a.bmp" m1_a)
-  file(SHA256 "${RA_DIR}/shot-net-m1-b.bmp" m1_b)
-  if(NOT m1_a STREQUAL m1_b)
-    message(FATAL_ERROR "[state-net] the screen moved while paused after the resume: m1-a {${set_m1-a}} m1-b {${set_m1-b}}")
-  endif()
-  set(m1 ${set_m1-b})
-  ra_set_min(m1_min ${m1})
-  ra_set_max(load3_max ${load_chain_3})
-  if(NOT m1_min GREATER load3_max)
-    message(FATAL_ERROR "[state-net] the resume did not run: m1 {${m1}} is not after load-3 {${load_chain_3}}")
-  endif()
-  # Forty paced REWINDs (D-25 step 6 as amended: the bound is 20 frames, from the frame just
-  # before REWIND).
-  ra_set_max(rew0_max ${set_rew-0})
-  math(EXPR rew_bound "${m1_min} - 20")
-  if(rew0_max GREATER rew_bound)
-    message(FATAL_ERROR "[state-net] 40 REWINDs moved the screen from {${m1}} only to {${set_rew-0}}, expected at most ${rew_bound}")
-  endif()
-  set(prev set_rew-0)
-  foreach(n 1 2 3)
-    ra_chain(rew_chain_${n} "rewind then advance ${n}" ${prev} set_rew-${n})
-    set(prev rew_chain_${n})
-  endforeach()
-  set(m3 ${rew_chain_3})
-  # Run-ahead (D-25 step 7 as amended): the second save was taken at rew-0, because RetroArch
-  # 1.22.2 ignores SAVE_STATE after a FRAMEADVANCE (measured), not at m3. After the toggle and the
-  # load, one advance shows m + 1 + k_eff for some m in rew-0.
-  set(ahead_ok FALSE)
-  foreach(m IN LISTS set_rew-0)
-    math(EXPR want "${m} + 1 + ${k_eff}")
-    if(want IN_LIST set_ahead-1)
-      set(ahead_ok TRUE)
-    endif()
-  endforeach()
-  if(NOT ahead_ok)
-    message(FATAL_ERROR "[state-net] ahead-1 {${set_ahead-1}} holds no frame m + 1 + ${k_eff} for m in rew-0 {${set_rew-0}}")
-  endif()
-  file(GLOB_RECURSE net_states "${RA_DIR}/states/*/${stem}.state")
-  list(LENGTH net_states net_state_count)
-  if(NOT net_state_count EQUAL 1)
-    message(FATAL_ERROR "[state-net] expected one ${stem}.state, found: ${net_states}")
-  endif()
-  ra_state_container(state-net "${net_states}" "")
-  ra_state_outcome_checks(state-net "${RA_DIR}/retroarch-state-net.log")
-  nesturbator_ra_log_check("${RA_DIR}/retroarch-state-net.log"
-    "${CMAKE_CURRENT_LIST_DIR}/log_allowlist.txt" "${claim_level}" ON)
-  message(STATUS "[state-net] pause, advance, load, resume, rewind and run-ahead (lead ${k_eff}) hold")
+  # Exact network progression is proved separately on generated marker content by HOSTED_MARKER.
   return()
 endif()
 

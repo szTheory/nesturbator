@@ -298,6 +298,13 @@ void nesturbator_destroy(nesturbator *inst);
    nesturbator_reset keeps the bank register, so a soft reset reads it from the
    selected bank). NROM and UxROM
    take either 8 KiB CHR ROM or 8 KiB declared CHR RAM.
+   Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
+   Metadata checks require exactly one canonical MMC3 support clause in this
+   header, the README and each checked information file, rejecting duplicate
+   clauses. Package checks reject semicolons, ASCII control characters and
+   duplicate ZIP members, allow only component directories, and require each
+   file pattern to match once. Listed names must agree with raw ZIP names;
+   Unicode path aliases cannot substitute allowed names.
    The supported mappers are 0, 1, 2, 3, 4 and 7. Mapper 4 is the MMC3 in its
    Sharp (submapper 0, and every iNES 1 image) or NEC (submapper 4) revision:
    PRG a power of two from 16 to 512 KiB; 8 to 256 KiB CHR ROM or 8 KiB CHR
@@ -474,11 +481,127 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * FORMAT, an identity field gives CARTRIDGE, the total size gives SIZE, and any other byte,
  * including the recorded behaviour revision, gives CHECKSUM. The behaviour revision is recorded
  * and not enforced, so a state saved before an emulation fix loads but may diverge.
- * Loading restores frame_number and ticks, so the first frame after a load reports the frame
- * number and ticks of the uninterrupted run. The frame buffer and the audio are not in a state.
- * Load never returns NESTURBATOR_STOP_JAM: a state saved after a JAM opcode restores the latch
- * and the next nesturbator_run_frame returns NESTURBATOR_STOP_JAM, and a state saved before one
- * clears it.
+ * Test oracles that require the current behavior must explicitly bind the recorded revision,
+ * content and intended absolute frame in addition to successful native loading. A displayed
+ * frame (including a host's run-ahead lead) does not prove committed state or speculative audio.
+ * Host containers are outside this native API; the test-only RetroArch reader qualifies one
+ * measured uncompressed released-binary envelope and a bounded visible-marker window.
+ * The registered libretro host tests select their battery and run-ahead fixtures by exact,
+ * case-sensitive final filename; their CMake wrapper hashes the supplied special-file copy
+ * against its manifest record before host launch. Slash always separates components; backslash
+ * also separates them on Windows and is an ordinary filename byte on POSIX. The role self-test
+ * covers adversarial names and path edges, while identity controls reject corrupted copies before
+ * launch. The wrapper's argv probe recreates its owned output directory on every run before
+ * checking paths with spaces, semicolons and backslashes; stale captures cannot satisfy it.
+ * Direct host calls do not authenticate files.
+ * Its negative controls distinguish native-valid wrong origins and stale revisions from parse
+ * or checksum failures; screenshots qualify displayed identity, not every saved machine field.
+ * The separate private progression verdict binds each displayed observation to one retained
+ * native origin and rejects ambiguous frame candidates. A valid prefix is evidence only for that
+ * declared continuation; the complete host path separately checks its load-plus-one-frame probe,
+ * fixed original and rewound origins, paced coarse rewind and measured run-ahead display lead.
+ * The network driver gives each attempt a private local tree and monotonic child, operation and
+ * attempt deadlines. Its owned command-port lock is released if attempt-tree or journal setup
+ * fails, preserving the setup status before any host or transport starts. It validates all
+ * sixteen displayed-state boundaries against the generated
+ * absolute-frame marker window, retaining native origins before slot reuse. Only the exact
+ * read-only readiness reply retries; only a complete exact reply for the isolated path is accepted,
+ * after its child exits or is reaped. The 1-second nc timeout sits inside a 5-second supervised
+ * child slice, further capped by live operation and attempt time. Actions, state saves/loads,
+ * screenshots and QUIT are one-shot, except for the prescribed forty individually paced rewind
+ * sends. A hosted fault wrapper applies only to those one-shot mutations; readiness reads use the
+ * real local transport, and interruption cleanup reaps the wrapper's owned send child. This is
+ * bounded local test evidence and does not guarantee that UDP sends reach a host. A separate pair
+ * of valid startup captures must show strict forward progress before the first PAUSE_TOGGLE; the
+ * next two equal-frame captures prove the toggle held before the original anchor is saved. A host
+ * that starts paused or stalls fails closed rather than treating a static image as pause evidence.
+ * Those two startup captures are retained outside the sixteen canonical boundaries. A UDP send
+ * accepted by the local socket is not proof that RetroArch received it; each retained image and
+ * native origin is checked by the shared progression verdict. The journal writes and sanitizes
+ * each row in one Perl process, using one monotonic observation for attempt elapsed/remaining time.
+ * The POSIX interruption harness and its private selector share one unchanged TERM assertion:
+ * genuine grep runs once, with its numeric status and exact output bytes retained separately
+ * from recorder status. Binary pre/post journal snapshots copy through one open handle and bind
+ * that handle's device, inode and size; they do not identify the bytes grep read. Synthetic tests
+ * cover statuses 0, 1 and controlled 2, recorder errors, pathname replacement and event ownership.
+ * Cooperative local session invocations reserve loopback TCP port 55355 with a bound, non-listening
+ * SOCK_STREAM descriptor held at FD 9, separate from the host UDP command transport.
+ * Bundled Perl binds and validates the descriptor, then
+ * re-enters the eight-argument shell driver in the same PID while carrying the original monotonic
+ * start sample. Release closes only that descriptor after owned children and the host are reaped;
+ * it never unlinks or renames a shared path. Legacy lock and owner-sidecar paths are read-only
+ * refusal observations, not ownership authority. Test-only port selection and release rendezvous
+ * stay inside the harness; a private lock-reservation.tsv records the observed address, port, PID
+ * and descriptor observations. Device and inode may both be zero and never establish ownership.
+ * The harness observes inherited FD 9 independently before delegating to the real writer, binds
+ * provenance to the actual driver and invocation, and collects launched children once on failure.
+ * Release-gate FIFO reads and writes, including partial lines, share the remaining attempt and
+ * cleanup deadline. The driver closes FD 9 in outliving command children. SIGKILL closes
+ * the driver's descriptor but cannot guarantee cleanup or teardown of a noncooperating host.
+ * The local reservation coordinates cooperating invocations that bind the same address and port;
+ * it does not claim same-UID isolation or control over arbitrary processes that ignore it.
+ * A source-only interruption trace include is shared by the driver and harness. The POSIX test
+ * harness derives its source root from the canonical path of its executing script, then validates
+ * the supplied driver and fixed trace include against that root before sourcing or launching host
+ * or transport work. Its source-root preflight exercises the repository root, CTest binary cwd and
+ * an owned cwd containing spaces, and rejects a copied driver/include before the copied include can
+ * run. Each cwd repeats all four finalizer faults and checks wait 143, the exact first reason,
+ * cleanup_anomaly=0, oracle not-run and exact-port re-entry after owned-child reap. Before fixture
+ * or driver work, offline checks call the actual writer and validator through handler entry,
+ * journal close and cleanup. The exact 16-field trace admits host/child PIDs as positive decimal
+ * or unavailable after cleanup clears them, while liveness remains unavailable when kill-0 is
+ * inconclusive. Validation binds the unique invocation and observed driver PID, event sequence,
+ * monotonic samples and reason-specific field checks. The shared capture boundary receives the
+ * owned session ID explicitly; its nested `capture` directory name does not choose identity. The
+ * offline selector uses the same boundary and final validator for two independently identified
+ * sessions under `session-A/capture` and `session-B/capture`, rejecting wrong expected IDs, mixed
+ * outer or inner rows and cross-session ledger reuse. An invalid ID marks the recorder unusable
+ * without replacing the genuine assertion status. These identity checks supplement the seven
+ * capture cases and 40 retained trace cases (36 original plus four lock controls), all without
+ * launching the driver. Eleven lifecycle/QUIT cases require stable host/child PID observations in
+ * the first two rows, live-with-PID consistency, unavailable observations to remain admissible,
+ * final PID/liveness clearing and no QUIT before journal close. The retained mixed-ID observation
+ * remains unchanged. The two-session examples remain generic ten-row identity checks. The actual
+ * interruption control passes observed driver, host and harness PIDs to a separate strict 21-row
+ * admission gate before recorder acceptance. It requires the exact event order, eight fields,
+ * role-specific PIDs, statuses and details, contiguous sequence, nondecreasing monotonic time and
+ * a final newline. Recorder rejection remains separate from the genuine assertion decision, and
+ * host-after-wait preserves the kill-0 ambiguity. Trace field 14 reports the invocation's
+ * validated held socket descriptor, not filesystem occupancy. Occupied, dangling, stale or
+ * replaced legacy paths grant no authority to mutate them; they cause a conservative refusal.
+ * A cleanup QUIT request write failure records zero sends when possible and emits
+ * CLEANUP_REQUEST_WRITE_FAILED; owned teardown still preserves the original exit status.
+ * The prior corrected candidate
+ * `0268d3450f64392911a187ce5c040847fda5f8f8` passed focused CI 10/10, ASan 2/2 and normal CI
+ * 649/649 with three ZIPs. Its source remained unchanged at review candidate
+ * `7a6b1aaa87c9f8eb244aa1e901becc32352ecf4e`, whose independent review left five open findings;
+ * these historical results do not accept this correction. The authoritative corrected-source
+ * candidate/result register for Plan 17 gates and review is
+ * `.planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md`. The original
+ * historical assertion and native timing causes remain unknown. Fresh native/exact-head acceptance
+ * and owner consent, plus actual release publication, remain separate work in Plans 07 and 08.
+ * A stopped operation uses its captured terminal observation, a live operation uses the row
+ * observation, and an inactive row carries the last completed operation values. The focused
+ * readiness control runs the delayed exact-reply and response-stall full prefixes once each, in
+ * order. Its timing line is emitted before the strict full-driver duration assertion, preserving
+ * available phase measurements and sanitized driver status/reason on failure; unavailable phases
+ * stay explicitly unavailable. Its enclosing test interval includes fixture generation, captures,
+ * native validation and cleanup, distinct from each readiness operation interval. The registered
+ * readiness test also checks the timing report with synthetic over-bound measurements. The required
+ * pinned-host run uses generated marker content in a distinct session, requires the complete
+ * sixteen-boundary verdict, and checks dropped/doubled
+ * advances and a native-valid wrong-origin branch through that same verdict. The test-only
+ * prefix validator retains cold-start rendering when a displayed image is the native anchor,
+ * because frame pixels are not serialized; for later targets it loads the already validated anchor
+ * before advancing, skipping the overwritten pre-load replay. One bounded local comparison showed
+ * a lower third-prefix process time but no overall readiness improvement, and does not identify
+ * or clear the separate hosted timing failures. These observations prove the declared displayed
+ * progression and retained origins; they do not prove every committed
+ * machine field or audio. Portable whole-state and audio tests retain their broader proofs. Loading
+ * restores frame_number and ticks, so the first frame after a load reports the frame number and
+ * ticks of the uninterrupted run. The frame buffer and the audio are not in a state. Load never
+ * returns NESTURBATOR_STOP_JAM: a state saved after a JAM opcode restores the latch and the next
+ * nesturbator_run_frame returns NESTURBATOR_STOP_JAM, and a state saved before one clears it.
  *
  * Layout (every length and offset is in bytes; every multi-byte field is little-endian, written
  * one byte at a time, never as a struct copy):
