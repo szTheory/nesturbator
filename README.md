@@ -119,6 +119,16 @@ total. Structurally valid duplicate raw samples are preserved in the campaign
 observations and make the campaign untrustworthy; the collector does not choose
 one conflicting copy as the final result.
 
+The final measured campaign uses caps of 32 boot frames, 5 navigation frames
+per page change, 2 attributed press/release frames, and 1800 execution frames;
+its page, collection and CTest wall limits are 5, 10 and 150 seconds. The actual
+report and per-page diagnostics are retained under `build/ci/accuracycoin/full/`.
+That run attributed all 22 starts and observed all 146 scored bytes, with 101
+pass, 42 fail, 2 not-run and 1 guest timeout; five DRAW entries remain outside
+the denominator. See [`tests/accuracy/budgets.txt`](tests/accuracy/budgets.txt)
+and [`tests/accuracy/measurements.md`](tests/accuracy/measurements.md) for the
+source identity, cap rationale, timing sensitivity and CI placement input.
+
 `NESTURBATOR_ACCURACYCOIN_FULL` defaults to `OFF`, so normal CI does not yet
 include the full campaign. After an explicit run, restore the ordinary build
 configuration with `cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=OFF`;
