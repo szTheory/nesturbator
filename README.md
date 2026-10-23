@@ -59,10 +59,44 @@ build time from the committed ROM after its sha256 is checked, and are never com
 before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
 banks and uses the 8 KiB CHR RAM it fills during startup.
 
-The pinned MIT AccuracyCoin test ROM is also included for conformance checks.
-The CI runner drives one menu page at a time, reads result bytes from CPU RAM
-through `nesturbator_peek_cpu_ram`, and compares the exact names, order, status,
-and result codes on pages 2 and 17 with `tests/accuracy/scoreboard.txt`:
+The MIT AccuracyCoin ROM at `673ef550db296136d52229961e7d39366116882a` remains
+the canonical fixture for strict page and protected-scoreboard checks. The
+comparison fixture at `6bee919529289c555803b612b8c9e4f7eaaeeabb` is admitted
+separately: its SHA-256 is
+`8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc`, and its
+decoded directory contains 146 scored tests plus five separate DRAW entries.
+The runner authenticates the complete ROM bytes, decodes the in-ROM page and
+row names, and reads observed result bytes from CPU RAM through
+`nesturbator_peek_cpu_ram`. The comparison fixture does not replace the old
+strict-page registrations or imply a passing score.
+
+Print the complete source-order inventory for either retained pin:
+
+```sh
+nesturbator-run --accuracycoin-inventory --rom tests/roms/accuracycoin-6bee.nes
+```
+
+Record bounded guest evidence for one page without treating known failures,
+skips or guest timeouts as infrastructure failures:
+
+```sh
+mkdir -p build/accuracycoin/page3
+nesturbator-run --accuracycoin-observe 3 --rom tests/roms/accuracycoin-6bee.nes \
+  --frames 1800 --accuracycoin-output build/accuracycoin/page3
+```
+
+The output directory receives `report.tsv`, `raw.tsv`, `diagnostics.tsv` and
+`metadata.txt`. The report keeps every row and its status, observed raw byte,
+consumed execution frames, cause and attempt ID. Metadata binds it to the ROM
+and inventory digests, source revision and dirty state, behaviour revision,
+input policy, frame budgets and diagnostic host elapsed time. DRAW entries are
+inventory-only and do not enter a scored denominator. `$FF` is skip, `$00` is
+not-run, result low bits `01` and `10` are pass and fail, and an observed active
+test becomes timeout only when its guest-frame budget expires. Observation is
+not an all-pass gate; malformed evidence or output errors still fail.
+
+The existing strict runner continues to compare its selected page results
+against `tests/accuracy/scoreboard.txt`:
 
 ```sh
 nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin.nes \
@@ -336,8 +370,9 @@ fails if they differ, so a pinned result screen is known to be static.
 `policy.rom_hash_coverage` fails when a committed ROM under `tests/roms` or
 `tests/roms/hm` is neither hashed nor exempt, or when a ROM glob or list is
 empty, and `policy.rom_hash_coverage.self_test` proves both rejections.
-AccuracyCoin is the one exemption: its NROM board is hashed through three
-games and its scoreboard runs on every leg.
+AccuracyCoin is exempt by fixture filename: its NROM board is hashed through
+three games and the canonical scoreboard plus comparison tracer run in normal
+CI.
 Every other committed ROM (Holy Mapperel's ten files and two derived copies,
 Nesteroids, DABG, RHDE and nes-runner) has frame and audio rows that must be
 byte-identical on six platforms. `libretro.parity.<key>` runs each of them
@@ -1118,11 +1153,23 @@ nesturbator-run --version
 - `--movie FILE` replays a validated two-port movie (see above) instead of running `--frames N`,
   and prints a SHA-256 line for every frame.
 - `--help` prints the usage and the exit statuses to stdout and exits 0.
-- `--accuracycoin-page N` runs AccuracyCoin page N (2, 14 or 17) for 1800 frames and compares its
-  RAM results to the scoreboard. It needs `--rom` and `--scoreboard` and installs no stop
-  handlers.
+- `--accuracycoin-page N` runs a strict AccuracyCoin page (2, 14 or 17) for
+  1800 frames and compares its RAM results to the scoreboard. It needs `--rom`
+  and `--scoreboard` and installs no stop handlers.
 - `--scoreboard FILE` names the scoreboard that `--accuracycoin-page` compares against; it is
   an error without `--accuracycoin-page`.
+- `--accuracycoin-inventory` prints the complete verified old or new pinned
+  directory as TSV. It needs `--rom` and no other run mode.
+- `--accuracycoin-observe PAGE` runs one selected page from a cold boot within
+  `--frames N`, writing checked bounded evidence under `--accuracycoin-output DIR`.
+  A real guest timeout or a known failing/skipped result can still produce a
+  trustworthy observation with exit 0; bad inventory, missing output or a
+  result code outside the pinned protocol exits 1. This mode installs no stop
+  handlers and cannot be combined with scoreboards, movies, saves, state files,
+  hashes or frame dumps.
+- `--accuracycoin-output DIR` names the existing directory for observation
+  evidence (`report.tsv`, `raw.tsv`, `diagnostics.tsv`, and `metadata.txt`); it
+  is an error without `--accuracycoin-observe`.
 - `--version` prints one line to stdout, `nesturbator-run X.Y.Z`, formatted at
   run time from `nesturbator_get_version`, and exits 0. It needs no other
   option and nothing else is printed. It is handled where the option loop

@@ -705,6 +705,30 @@ foreach(page IN ITEMS 2 14 17)
   set_tests_properties(accuracycoin.page${page} PROPERTIES TIMEOUT 60)
 endforeach()
 
+# The comparison tracer runs the actual new-pin fixture through the production
+# runner and validates its page-3 token expansion, start transition and report.
+set(ACCURACYCOIN_COMPARISON_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin-6bee.nes)
+add_executable(accuracycoin.conformance
+  accuracy/test_conformance.c
+  ../runner/accuracycoin.c
+  ../runner/audio_hash.c
+  ../runner/clock.c
+  ../runner/sha256.c)
+target_include_directories(accuracycoin.conformance PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/runner)
+target_link_libraries(accuracycoin.conformance PRIVATE nesturbator::nesturbator)
+nesturbator_warnings(accuracycoin.conformance)
+set(ACCURACYCOIN_TRACER_WORK ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/page3-tracer)
+add_test(NAME accuracycoin.tracer
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${ACCURACYCOIN_TRACER_WORK}"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_tracer.cmake)
+set_tests_properties(accuracycoin.tracer PROPERTIES TIMEOUT 90)
+
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
 function(nesturbator_core_test name source)

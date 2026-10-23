@@ -342,7 +342,10 @@ void nesturbator_unload_cartridge(nesturbator *inst);
 /* Reads CPU internal RAM without changing emulator state. Addresses $0000-$1FFF
    are accepted and use the NES's 2 KiB RAM mirrors; other addresses are
    rejected. This inspection path does not perform bus side effects and is
-   intended for conformance harnesses. On error, *value is unchanged. */
+   intended for conformance harnesses. The runner's pinned AccuracyCoin
+   observer uses it to connect decoded ROM result addresses to guest result
+   bytes; it adds no library ABI or state-format requirement. On error,
+   *value is unchanged. */
 nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,
                                             uint8_t *value);
 
