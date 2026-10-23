@@ -5,17 +5,17 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: ready_to_execute
-stopped_at: Plan56complete; stale delivery replan advice superseded; next Wave11/Plan07nativeCI
-last_updated: "2026-10-23T01:24:51Z"
-last_activity: 2026-10-23
-last_activity_desc: Reconciled residual loop routing; verified Plan07only ready and Wave11partial-wave stop; delivery pending
-state_head: c9511d295b7b71de5ff76911c9d11360d2eb6c58
+stopped_at: Plan16-07 local acceptance complete; prepare final phase-branch head for native CI and exact-head consent checkpoint
+last_updated: "2026-10-23T15:16:00.545Z"
+state_head: b8da121dad88280b4a3ad73a453fd6396b73dfea
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 13
   completed_plans: 11
   percent: 85
+last_activity: 2026-10-23
+last_activity_desc: Plan07 readiness timing correction passed full local CI and ASan; final native checks and owner consent remain
 ---
 
 # Project State
@@ -27,9 +27,9 @@ See PROJECT.md and AGENTS.md. Current phase:16—Host evidence and roadmap.
 
 ## Current Position
 
-Phase:16 (Host evidence and roadmap), incomplete.
-Plan56complete (3/3); Plan07ready; Plan08blocked on actual07publication.
-13live/56physical/11completed plans. One step completed, then stopped.
+Phase: 16 (Host evidence and roadmap) — EXECUTING
+Plan 16-56 complete (3/3); Plan 16-07 local acceptance complete; fresh exact-head native CI and owner consent remain. Plan 16-08 is blocked on actual Plan 16-07 publication.
+13 live / 56 physical / 11 completed plans. Phase 16 remains incomplete.
 
 Read [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) first.
 Its direct development contract remains active: no retired admission/transport/
@@ -93,19 +93,12 @@ same step, rerun affected acceptance and obtain independent review.
 
 ## Next Action
 
-$gsd-execute-phase 16 --gaps-only --wave 11
+Finish Plan 16-07 Task 1 by pushing the prepared phase-branch candidate normally and observing fresh native `pull_request` required, perf, and pinned RetroArch checks on its exact head and merge ref. If all pass, present the PR identity and those checks for explicit owner consent. Do not merge, publish, or advance to Plan 16-08 without that consent and the normal release flow. If a check fails, retain its result and diagnose the first real failure within Plan 16-07.
 
-Select only Wave11/Plan16-07. The wave filter activates GSD partial-wave handling:
-while08is unfinished, stop without phase-level verification/completion/replanning.
-Do not re-execute completed56. The old verification query still says
-plan-phase --gaps because it reports phase-level release debt; the planned
-release gap already has07/08, so that generic advice is not the current scheduler.
-Do not clear its gap, spoof a fingerprint or bypass a gate.
+Plan 16-08 remains blocked until the existing release flow publishes a candidate. Phase 16 stays incomplete until its downloaded-byte acceptance and phase verification are complete.
 
-Live PR50was checked on2026-10-23: open/non-draft/unmerged at65c3a7f,
-with its old failed CI38976400182. Accepted source2c356d5is local and not yet
-on that PR. Fresh native CI after the normal push is the next measurable outcome.
-See [routing follow-up](forensics/report-20261023-012451.md).
+## Session
 
-Execute Plan16-07delivery in a separately invoked step; no further planning
-round is needed. Plan16-08released-byte verification follows actual publication.
+**Last session:** 2026-10-23T15:16:00.522Z
+**Stopped at:** Plan16-07 local acceptance complete; prepare final phase-branch head for native CI and exact-head consent checkpoint
+**Resume file:** .planning/phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md

@@ -82,8 +82,10 @@ if(UNIX)
       "${CMAKE_CURRENT_BINARY_DIR}/session readiness"
       "${CMAKE_COMMAND}"
       "${CMAKE_CURRENT_SOURCE_DIR}/run_retroarch.cmake")
+  # This control has a strict driver-plus-cleanup wall bound; isolate its
+  # measurement from concurrent CTest work.
   set_tests_properties(retroarch.session.readiness PROPERTIES
-    ENVIRONMENT "STATE_SESSION_CONTROL=readiness" TIMEOUT 60)
+    ENVIRONMENT "STATE_SESSION_CONTROL=readiness" TIMEOUT 60 RUN_SERIAL TRUE)
   # The full local ASan control matrix passed in 555.02 s. Run 38598006408's
   # macOS Intel matrix failed at 510.75 s before readiness, isolation, interruption
   # and full-positive controls: QUIT's 30 s window could not fit after a 179.251 s
