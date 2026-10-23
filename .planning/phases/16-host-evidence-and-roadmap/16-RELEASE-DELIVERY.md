@@ -1,6 +1,8 @@
 # Phase 16 release delivery
 
-## Current handoff — 2026-10-23 (Plan 16-07, Wave 11)
+**Current status (Plan 16-07, Wave 11, 2026-10-23):** The owner-approved PR #50 was merged at its presented head, the existing release flow published `v0.1.11` on exact release commit `e47feb3afc34baf1d611ef44153af199424f41a2`, and its exact-release `CI required` and `publish` jobs succeeded. See [Observed publication — Plan 16-07 Task 3](#observed-publication--plan-16-07-task-3) for identities and evidence. Plan 16-07 is complete; EVID-04 remains open until Plan 16-08 verifies the downloaded release bytes. Phase 16 verification was not run.
+
+## Historical handoff snapshot at Plan 16-07 start — 2026-10-23
 
 **Status:** Plan 16-07 Task 1 has a reviewed test-harness timing correction and
 fresh full local CI and ASan passes. Native run
@@ -340,3 +342,28 @@ is not yet pushed. Before its normal push, update PR #50's body with this latest
 failure and correction; then require fresh exact-head `CI required`, perf, and
 pinned RetroArch success. No merge consent, merge, or release automation has
 occurred; EVID-04 remains open.
+
+## Observed publication — Plan 16-07 Task 3
+
+**Outcome:** The normal protected-main release flow produced and published the candidate for Plan 16-08. All source acceptance, failure and review history above remains historical evidence; this record adds the exact consent, merge and publication identities. EVID-04 remains open until Plan 16-08 verifies downloaded bytes.
+
+### Exact PR and consent
+
+- Implementation PR [#50](https://github.com/szTheory/nesturbator/pull/50) was presented with title `fix: make host evidence discriminating and describe supported MMC3`, base `main`, and head `82e4686ece0aa8535aa39bbfc06e24d6d6b86af1`.
+- Fresh native `pull_request` run [39984028386](https://github.com/szTheory/nesturbator/actions/runs/39984028386) completed successfully on that head with all 15 jobs successful, including [`CI required`](https://github.com/szTheory/nesturbator/actions/runs/39984028386/job/120530754855), [`perf`](https://github.com/szTheory/nesturbator/actions/runs/39984028386/job/120519097942), and [pinned RetroArch E2E](https://github.com/szTheory/nesturbator/actions/runs/39984028386/job/120519097976). No unresolved review threads were present at the final pre-merge check.
+- The owner explicitly replied `yes i approve` to the displayed PR/head and its normal squash-merge/release consequence at 2026-10-23T16:40:54Z. The approved identity did not change before merge.
+- PR #50 merged by squash at 2026-10-23T16:41:23Z as `b39a0106e4cccfe9922e051d5680f1f7f84f5efa`, whose first parent is protected-main base `9f9386c661f6fb8f6063bf756655713aedadae77`.
+
+### Release PR and exact published candidate
+
+- Main-push Release run [39988866204](https://github.com/szTheory/nesturbator/actions/runs/39988866204) succeeded and created release PR [#52](https://github.com/szTheory/nesturbator/pull/52), titled `chore(main): release 0.1.11`. Its native CI run [39988911356](https://github.com/szTheory/nesturbator/actions/runs/39988911356) passed before the Release App enabled normal squash auto-merge.
+- Release PR #52 merged at 2026-10-23T17:12:00Z as `e47feb3afc34baf1d611ef44153af199424f41a2`, with first parent `b39a0106e4cccfe9922e051d5680f1f7f84f5efa`. The `v0.1.11` tag points directly to this full commit SHA.
+- Exact-release push workflow [39993108038](https://github.com/szTheory/nesturbator/actions/runs/39993108038) completed successfully on `e47feb3afc34baf1d611ef44153af199424f41a2`. Its [CI required](https://github.com/szTheory/nesturbator/actions/runs/39993108038/job/120564939729), [hash equality](https://github.com/szTheory/nesturbator/actions/runs/39993108038/job/120564879167), [pinned RetroArch E2E](https://github.com/szTheory/nesturbator/actions/runs/39993108038/job/120549746791), all six platform builds, ASan, no-float, hygiene and title jobs succeeded. The workflow's perf job was skipped on this push event as allowed by the CI rollup; the required native PR perf job above passed.
+- The same run's [publish job](https://github.com/szTheory/nesturbator/actions/runs/39993108038/job/120564975131) succeeded. It checked exactly 18 archives, wrote `SHA256SUMS`, attested the checksums, uploaded all 19 expected nonempty assets, verified each archive's attestation, rejected a modified archive, published the release and verified published metadata.
+- Release [`v0.1.11`](https://github.com/szTheory/nesturbator/releases/tag/v0.1.11) is non-draft and was published at 2026-10-23T17:45:50Z. GitHub reports the exact tag target above and 19 assets (the 18 library/runner/libretro platform archives plus `SHA256SUMS`).
+
+### Remaining acceptance boundary
+
+Plan 16-07 has supplied the real published candidate required by Plan 16-08. This does not close EVID-04: Plan 16-08 must independently download and validate every released archive, checksum, attestation, and the six metadata copies. Phase 16 remains incomplete, and no phase-level verification or later plan was run here.
+
+The independent Nightly push run [39993108154](https://github.com/szTheory/nesturbator/actions/runs/39993108154) used the same release commit but was not a release-workflow gate. At the final observation, `vectors-full` had failed and `suite-flake` was still in progress; no rerun or repair was triggered, and this separate result does not change the release workflow's successful exact-release CI/publication record.
