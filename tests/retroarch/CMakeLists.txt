@@ -93,7 +93,10 @@ if(UNIX)
   # stalled exact reply's child cap increasing from 1 to 5 s). Projected total is
   # about 777 s, so retain a finite 900 s cap with about 123 s margin; the failed
   # 510.75 s run is not treated as a successful sample.
-  set_tests_properties(retroarch.session.controls PROPERTIES TIMEOUT 900)
+  # This test measures a cleanup matrix against its primary invocation; other
+  # concurrent tests can inflate the measured wall-time delta beyond the fixed
+  # budget without changing the cleanup behavior under test.
+  set_tests_properties(retroarch.session.controls PROPERTIES TIMEOUT 900 RUN_SERIAL TRUE)
 endif()
 
 set(marker_rom ${CMAKE_CURRENT_BINARY_DIR}/marker.nes)

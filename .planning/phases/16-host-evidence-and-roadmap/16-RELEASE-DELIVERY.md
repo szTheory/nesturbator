@@ -185,3 +185,25 @@ The PR body edit triggered run 38976329721 on old head `3de23d4`; it was automat
 Ignored `build/phase16-release/` retains the terminal run/jobs/PR API snapshots, bounded polling state (21/120 snapshots), `failure-summary-38976400182.json`, raw failed-job logs and their SHA-256 digests. Prior native/development evidence is preserved. The protected config stays byte-identical and unstaged. This terminal handoff commit is local documentation only, not a new native candidate; the checked remote head above remains immutable evidence.
 
 Plan 07 Task 1 stops incomplete under its terminal-failure rule; there is no success SUMMARY or completion credit. Plan 08 cannot start. Historical next-command recommendation (superseded by the current handoff above): `$gsd-plan-phase 16 --gaps` for a bounded amendment covering formatting, the actual-driver owner-sidecar assertion, and measured readiness/cleanup timing. Preserve the existing timing/ownership contracts, establish causes before behavioural corrections, refresh affected acceptance/review gates after source changes, then obtain fresh native PR CI on the final exact head. Only successful native required/performance/pinned-host checks permit the exact-head owner-consent checkpoint. EVID-04 and the phase verifier remain open pending actual publication and released-byte verification.
+
+## Latest native attempt and bounded test-scheduling repair — 2026-10-23
+
+After the header-comment no-float correction, PR [#50](https://github.com/szTheory/nesturbator/pull/50) was open and non-draft at head `d11ec889b0f56cb3d8fba8bb2b0b1f46d8f5cc91`, targeting `main` at `9f9386c661f6fb8f6063bf756655713aedadae77`. The fresh [`pull_request` run 39886703971](https://github.com/szTheory/nesturbator/actions/runs/39886703971) used merge ref `refs/pull/50/merge` at `01ae36ff58cb01c3cf72400777c575b466291669` and completed with failure at 2026-10-23T02:10:22Z.
+
+| Native job | Result | Evidence |
+|---|---|---|
+| [`CI required`](https://github.com/szTheory/nesturbator/actions/runs/39886703971/job/120200958752) | Failed because the build aggregate and pinned RetroArch job failed | Required-gate log retained under ignored `build/phase16-release/` |
+| [`perf`](https://github.com/szTheory/nesturbator/actions/runs/39886703971/job/120196433942) | Passed | Native pull-request event |
+| [`retroarch-e2e`](https://github.com/szTheory/nesturbator/actions/runs/39886703971/job/120196433928) | Failed `retroarch.session.controls` at 218.46 seconds | `cleanup matrix exceeded measured wall budget` |
+| [macOS ARM64 build](https://github.com/szTheory/nesturbator/actions/runs/39886703971/job/120196434045) | Failed `retroarch.session.controls` at 243.63 seconds | Same cleanup-matrix assertion |
+| [macOS Intel build](https://github.com/szTheory/nesturbator/actions/runs/39886703971/job/120196434039) | Failed `retroarch.session.controls` at 313.64 seconds | Same cleanup-matrix assertion |
+
+ASan, both no-float jobs, Linux x64/ARM64 builds, both Windows builds, hygiene, and the title check passed. Hash equality was skipped after build failure. The detailed excerpts from the three failed jobs and the failed required-gate log are stored in ignored `build/phase16-release/`; no timing limit or verification assertion was changed.
+
+The failed CTest logs show `retroarch.session.controls` running at the same time as other CTest work. The current error does not print the measured matrix and primary durations, so contention is a diagnosis by inference rather than a directly reported CI measurement. A local controlled run passed after setting CTest's documented `RUN_SERIAL` property on this one test. The change in `tests/retroarch/CMakeLists.txt` only isolates its existing cleanup timing measurement; the 900-second CTest timeout and 420-second total / 90-second-over-primary limits are unchanged.
+
+The corrected local `cmake --workflow --preset ci` passed all 649 tests with no skips and generated library, runner, and libretro packages in 431.51 seconds. `retroarch.session.controls` passed in 339.05 seconds after running alone. Its cleanup-matrix evidence records 117,207 ms elapsed against a 59,875 ms primary invocation, or 57,332 ms overhead, within the existing 90,000 ms bound. The exact ignored evidence and its digest are in `build/phase16-release/context.json`.
+
+The Plan 16-56 source manifest accounts for all 11 source/support paths. Nine remain byte-identical to its accepted hashes. The only path differences are the already-reviewed no-float header-comment correction and this `RUN_SERIAL` scheduling property; the executable implementation and cleanup assertions remain byte-identical to the reviewed candidate.
+
+This scheduling change is a local candidate only until it is committed, pushed normally, and passes fresh native `pull_request` required/perf/pinned-host checks on the resulting exact head and merge ref. The PR remains unmerged, no consent has been requested or granted, and release automation has not started. Do not present a merge-consent checkpoint until the fresh native checks pass. EVID-04 remains open.
