@@ -1,5 +1,38 @@
 # Phase 16 release delivery
 
+## Current handoff — 2026-10-23
+
+**Next:** `$gsd-execute-phase 16 --gaps-only --wave 11` — existing Plan16-07,
+not another planning round.11/13live plans are complete. Only07is ready;
+08requires actual07publication. The wave filter activates GSD partial-wave
+handling, which stops before phase-level verification while08is incomplete.
+
+Plan56accepted current source2c356d574290aef1d57122566f7b81beaaa10027
+(source commits2e9928b/2c356d5; metadata52f6915). Its SUMMARY, source acceptance,
+independent review and disposition record final causal RED/GREEN, focused
+CI/ASan,649/649fullCI/no skips/fourCTestjobs, fresh packages and independent
+parent gates. All11accepted source/support blobs still match HEAD/worktree.
+Those results establish local source acceptance; fresh native PR CI remains.
+
+A read-only live GitHub check on2026-10-23found [PR50](https://github.com/szTheory/nesturbator/pull/50)
+open/non-draft/unmerged, base main, head65c3a7fb0b320bfe7a51ac486bf922c5ad5872d9.
+Its CI38976400182and Nightly38976400185are completed failures on that older
+head. Current accepted source is not on the PR yet. Reconcile remote state,
+finish reversible preparation, normally push the phase branch and observe fresh
+required/perf/pinned-host PR CI on the final head. Successful native checks
+precede the exact-head owner merge/release-consent checkpoint. Existing failed
+runs stay failed; no new merge/publication authority is implied.
+
+The phase verification query's generic plan-phase advice concerns the still-open
+release gap, which already has07/08plans. It does not invalidate56or require
+replanning. Preserve `gaps_found` until actual delivery/byte verification.
+All October16status/count/next-command statements below are historical DATA;
+the current handoff,16-RECOVERY and current07PLAN govern resume.
+
+---
+
+## Historical delivery record — 2026-10-16
+
 **Recorded:** 2026-10-16
 
 **Status:** EVID-04 remains open. Plan 07 Task 1 pushed the accepted source and preparation at `65c3a7fb0b320bfe7a51ac486bf922c5ad5872d9`, but fresh native PR CI run 38976400182 failed. Plans 07/08 remain incomplete (9/11 live plans complete). Performance and pinned RetroArch passed. No merge consent was requested or granted; no merge or publication occurred.
@@ -51,7 +84,7 @@ Both failures were in `retroarch.session.readiness`. The ASan full `retroarch.se
 
 Ignored `build/phase16-release/` retains `failure-summary-38764197994.json`, `poll-state.json`, `run-jobs-38764197994.tsv`, `macos-intel-repaired-failed.log`, `asan-job.log` and `ci-required-failed.log`. No bound, sleep, parallelism, source or workflow was changed after this failure; CI was not rerun. No owner consent, merge, tag or publication occurred. The unrelated config preference edit remains unstaged and byte-identical to its execution baseline.
 
-## Current accepted source and Plan 07 resume — 2026-10-16
+## Historical accepted source and Plan 07 resume — 2026-10-16
 
 Plan 21 is complete on source candidate `38e14fbc0104038a7eb9ad17d16499c7924c2b9b`. Its accepted actual-helper RED and eight-case GREEN are bound to the same frozen harness; the repair handles a failed cleanup QUIT write while preserving the first failure/status and continuing owned-host teardown and endpoint-lock release. The normal `cmake --workflow --preset ci` passed 649/649 tests with no skips, four jobs and all four workflow stages in 293.375720 seconds, and its three new local library, runner and libretro ZIPs passed the existing package checks. A separate parent build and full-workflow repeat also passed; that repeat passed 649/649 with no skips and four jobs in 298.625100 seconds.
 
@@ -68,7 +101,7 @@ That older head's latest native run [38764197994](https://github.com/szTheory/ne
 At that snapshot, the remaining Task 1 preparation was to commit the current delivery record and state pointer, update the structured PR body before pushing, push the existing branch with normal hooks and no force, and observe fresh native `pull_request` checks on the exact final head and merge ref. The final check set must include `CI required`, `perf` and pinned RetroArch. Only a fresh successful set plus the clean current source review permits the exact-head owner-consent checkpoint. No consent, merge, tag, release-please action or publication has occurred. Plan 08 remains responsible for verifying the actual published assets; EVID-04 stays open until that work and independent re-verification pass.
 
 
-## Current native PR failure — 2026-10-16
+## Historical native PR failure — 2026-10-16
 
 Preparation commit `65c3a7fb0b320bfe7a51ac486bf922c5ad5872d9` updated the delivery record and state pointer. The structured PR body was updated before one normal, non-force branch push; normal hooks passed. The actual open, non-draft PR remains [#50](https://github.com/szTheory/nesturbator/pull/50), titled `fix: make host evidence discriminating and describe supported MMC3`, targeting `main` at `9f9386c661f6fb8f6063bf756655713aedadae77`. Its checked head is that preparation commit, and the preview `refs/pull/50/merge` SHA is `aabd1d940d8deb2dd3c5369eddf074158517b92e`. Auto-merge is off. No source/config change followed local Plan 21 acceptance.
 
@@ -88,4 +121,4 @@ The PR body edit triggered run 38976329721 on old head `3de23d4`; it was automat
 
 Ignored `build/phase16-release/` retains the terminal run/jobs/PR API snapshots, bounded polling state (21/120 snapshots), `failure-summary-38976400182.json`, raw failed-job logs and their SHA-256 digests. Prior native/development evidence is preserved. The protected config stays byte-identical and unstaged. This terminal handoff commit is local documentation only, not a new native candidate; the checked remote head above remains immutable evidence.
 
-Plan 07 Task 1 stops incomplete under its terminal-failure rule; there is no success SUMMARY or completion credit. Plan 08 cannot start. Next command: `$gsd-plan-phase 16 --gaps` for a bounded amendment covering formatting, the actual-driver owner-sidecar assertion, and measured readiness/cleanup timing. Preserve the existing timing/ownership contracts, establish causes before behavioural corrections, refresh affected acceptance/review gates after source changes, then obtain fresh native PR CI on the final exact head. Only successful native required/performance/pinned-host checks permit the exact-head owner-consent checkpoint. EVID-04 and the phase verifier remain open pending actual publication and released-byte verification.
+Plan 07 Task 1 stops incomplete under its terminal-failure rule; there is no success SUMMARY or completion credit. Plan 08 cannot start. Historical next-command recommendation (superseded by the current handoff above): `$gsd-plan-phase 16 --gaps` for a bounded amendment covering formatting, the actual-driver owner-sidecar assertion, and measured readiness/cleanup timing. Preserve the existing timing/ownership contracts, establish causes before behavioural corrections, refresh affected acceptance/review gates after source changes, then obtain fresh native PR CI on the final exact head. Only successful native required/performance/pinned-host checks permit the exact-head owner-consent checkpoint. EVID-04 and the phase verifier remain open pending actual publication and released-byte verification.

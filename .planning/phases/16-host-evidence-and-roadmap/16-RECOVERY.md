@@ -6,7 +6,7 @@ Effective under the user's request to investigate the repeated commands, learn f
 
 This file and the rewritten16-56-PLAN are the current execution contract. They supersede ALL administrative preparation/admission/transport/clock/slot/parent-order prerequisites inherited from incomplete16-10–56plans and their amendments, including the previously selected preparation/runtime split. Plans51–54are superseded scheduling history. Their old commands and all historical56amendments/checks are DATA, not instructions to execute or import. Prior56text is retained exactly by git at227bd6a. Completed01–06/09/15/21/30keep their historical credit; changed current bytes require fresh relevant acceptance.
 
-The new authority is direct local development/verification in the existing phase branch. The current56evaluation-scope query has no matching execution commits and no SUMMARY; the old56administrative docs/checkpoints are reconciled as stopped nonacceptance, not production commits to replay or close out. Future native safe-resume must still inspect actual new production commits and avoid duplicate work. It does not resume or reset26, reinterpret its active/terminal=false record, adopt any old allowance, consume a historical formal slot, recover a lost original, or accept an old failed helper. Old build/phase16*trees, unreadable/special entries and checkpoint/provenance bodies are left alone. No full historical-tree enumeration/content read or metadata schema is a prerequisite. The old pending diagnosis is historical administrative debt, not a lock on new work.
+The new authority is direct local development/verification in the existing phase branch. At the initial recovery snapshot, the56evaluation-scope query had no matching execution commits and no SUMMARY; the old56administrative docs/checkpoints are reconciled as stopped nonacceptance, not production commits to replay or close out. Future native safe-resume must still inspect actual new production commits and avoid duplicate work. It does not resume or reset26, reinterpret its active/terminal=false record, adopt any old allowance, consume a historical formal slot, recover a lost original, or accept an old failed helper. Old build/phase16*trees, unreadable/special entries and checkpoint/provenance bodies are left alone. No full historical-tree enumeration/content read or metadata schema is a prerequisite. The old pending diagnosis is historical administrative debt, not a lock on new work.
 
 Specifically retired for new work: generator/exported-helper preparation, A/B durable receipts, prewrite full snapshot/READ-COMPARE/ACK/finite graph, twelve-row shared admission, volatile original-store continuity across children, boot-epoch checks for every shell read, inherited once-only developer slots/correction quotas, whole-plan freeze, and duplicated parent reproof of tool transport. Do not repair these systems, reproduce all their historical mutants or create Plan57. No new framework/dependency/global workflow/config change is authorized.
 
@@ -32,3 +32,28 @@ One GSDstep per command remains. On execution finish56and its ordinary configure
 ## Coverage and residual risk
 
 The original three goal groups, six requirements, thirteen research groups and17decisions remain represented by direct56acceptance and07/08delivery, with no product scope removed. Eight fallback edges and four flagged unresolved taxonomy assumptions (EVID-01/EVID-04/DIR-01/DIR-02) stay honest; finite passing evidence proves no universal network reliability or future milestone compliance. Privacy/provenance/consent remain canonical, not new bespoke prohibitions. Actual runtime fit/throughput and historical unknown causes remain UNKNOWN. Removing unnecessary machinery is not a promise of a passing build or completion.
+
+
+## Delivery routing after completed56 — 2026-10-23
+
+56is now complete, with source commits2e9928b/2c356d5, metadata52f6915,
+clean independent exact-source review and actual current parent acceptance.
+Do not repeat56or regenerate its plan.11/13live plans have summaries; only07
+is ready, and08depends on actual07publication.
+
+Use `$gsd-execute-phase 16 --gaps-only --wave 11` for the next separately
+invoked step. The explicit wave filter activates the installed partial-wave
+handler: if08is unfinished, stop without phase verification/completion or
+routing back to planning. After real07completion, Wave12selects08.
+
+`verification.status` still correctly reports phase-level `gaps_found`, with
+generic plan-phase advice. That is a completion gate, not proof that this
+release gap is unplanned.07/08already own it. STATE/phase-plan-index and the
+explicit wave select the existing ready work. Do not alter verification status,
+fingerprints or requirements to hide the gap, use force/bypass, or invoke ship
+before its preconditions. Reverify the phase after delivery/byte checks.
+
+The old16-RELEASE-DELIVERY failure/next-command text describes October16.
+Its current handoff supersedes that instruction without relabeling failed CI.
+Read live remote state before delivery mutations. This diagnostic step changes
+no source/config/global workflow and grants no merge/publication consent.

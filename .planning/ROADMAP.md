@@ -100,12 +100,14 @@ current source acceptance does not establish released bytes.
 - [ ] 16-08-PLAN.md — Verify all18downloaded archives, checksums, attestations,
   sixmetadata copies and successful exact-release-commitCI.
 
-Only07ready. Next `$gsd-execute-phase 16 --gaps-only` starts delivery:
+Only07ready. Next `$gsd-execute-phase 16 --gaps-only --wave 11` starts delivery:
 fresh exact-head native CI, then concrete owner consent before protected merge.
 56finished and stopped;08remains dependent on actual07publication. Ordinary
 diagnosed errors stay inside execution, without another preparation plan.
 No new dependency, global workflow/config change, extra host platform or
-milestone upkeep. See56SUMMARY/source acceptance/review disposition for evidence.
+milestone upkeep. See56SUMMARY/source acceptance/review disposition for evidence. Wave11selects
+only07and activates partial-wave stopping while08is incomplete; do not route
+its already-planned release gap through another plan-phase invocation.
 
 ### Phase 17: Complete pinned conformance baseline
 

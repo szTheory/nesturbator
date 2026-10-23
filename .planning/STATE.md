@@ -5,11 +5,11 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: ready_to_execute
-stopped_at: Plan16-56complete; current source and parent acceptance passed; Plan16-07deliveryready
-last_updated: "2026-10-23T01:18:36Z"
+stopped_at: Plan56complete; stale delivery replan advice superseded; next Wave11/Plan07nativeCI
+last_updated: "2026-10-23T01:24:51Z"
 last_activity: 2026-10-23
-last_activity_desc: Completed direct source acceptance, CR-01 causal proof, CI/ASan/packages and independent review; stopped before delivery
-state_head: 52f6915
+last_activity_desc: Reconciled residual loop routing; verified Plan07only ready and Wave11partial-wave stop; delivery pending
+state_head: c9511d295b7b71de5ff76911c9d11360d2eb6c58
 progress:
   total_phases: 3
   completed_phases: 0
@@ -93,7 +93,19 @@ same step, rerun affected acceptance and obtain independent review.
 
 ## Next Action
 
-$gsd-execute-phase 16 --gaps-only
+$gsd-execute-phase 16 --gaps-only --wave 11
+
+Select only Wave11/Plan16-07. The wave filter activates GSD partial-wave handling:
+while08is unfinished, stop without phase-level verification/completion/replanning.
+Do not re-execute completed56. The old verification query still says
+plan-phase --gaps because it reports phase-level release debt; the planned
+release gap already has07/08, so that generic advice is not the current scheduler.
+Do not clear its gap, spoof a fingerprint or bypass a gate.
+
+Live PR50was checked on2026-10-23: open/non-draft/unmerged at65c3a7f,
+with its old failed CI38976400182. Accepted source2c356d5is local and not yet
+on that PR. Fresh native CI after the normal push is the next measurable outcome.
+See [routing follow-up](forensics/report-20261023-012451.md).
 
 Execute Plan16-07delivery in a separately invoked step; no further planning
 round is needed. Plan16-08released-byte verification follows actual publication.
