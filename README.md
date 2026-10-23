@@ -182,6 +182,16 @@ row and its fresh observation. Page 14 adds the six required APU results:
 Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame
 Counter 5-step, and Delta Modulation Channel.
 
+Normal CI also mutates the production evidence/verdict inputs to prove that a
+claimed pass cannot hide measured fail, skip, not-run or timeout states, absent
+raw evidence, a removed protected key, a candidate-only pin edit, a mixed
+protected revision or a missing/disguised migration disposition. It retains
+source-defined pass variants such as PPU Read Buffer `$41`, and rejects a
+malformed neighboring code. The fetcher is exercised against owned local Git
+repositories for exact commit handoff, missing/empty authority, invalid
+metadata and the same-revision legacy-manifest fallback; these tests do not
+depend on a network service.
+
 The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
 mirrors, and rejects other bus addresses without side effects. It is intended
 for conformance and debugger integrations.

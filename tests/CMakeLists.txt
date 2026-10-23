@@ -1030,30 +1030,57 @@ target_compile_definitions(accuracy.scoreboard PRIVATE
 nesturbator_warnings(accuracy.scoreboard)
 add_test(NAME accuracy.scoreboard COMMAND accuracy.scoreboard --scoreboard-syntax)
 
-# The candidate scoreboard must fail if it drops a prior protected-main PASS.
-set(ACCURACYCOIN_REGRESSION_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-regression-baseline.txt)
-file(WRITE ${ACCURACYCOIN_REGRESSION_BASELINE}
-  "accuracycoin/Removed PASS\tpass\t0x01\t-\t-\n")
+# Exercise the production verdict, with a complete passing baseline and fresh
+# protected-page evidence, when one candidate key is removed.
+set(ACCURACYCOIN_REGRESSION_WORK ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/regression-controls)
 add_test(NAME accuracy.scoreboard.no_lost_pass
   COMMAND ${CMAKE_COMMAND}
     "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
-    "-DREGRESSION_BASELINE=${ACCURACYCOIN_REGRESSION_BASELINE}"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${ACCURACYCOIN_REGRESSION_WORK}/no-lost-pass"
+    -DMODE=no_lost_pass
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+set_tests_properties(accuracy.scoreboard.no_lost_pass PROPERTIES
+  FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 30)
 
-# Exercise the CI-only handoff failure and reject empty protected authority.
+add_test(NAME accuracycoin.regression_controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DCHECKER=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${ACCURACYCOIN_REGRESSION_WORK}/matrix"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_regression_controls.cmake)
+set_tests_properties(accuracycoin.regression_controls PROPERTIES
+  FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 60)
+
+add_test(NAME accuracycoin.baseline_fetch
+  COMMAND ${CMAKE_COMMAND}
+    "-DPREPARE_SCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/cmake/prepare_scoreboard_baseline.cmake"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/baseline-fetch-controls"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_baseline_fetch.cmake)
+set_tests_properties(accuracycoin.baseline_fetch PROPERTIES TIMEOUT 60)
+
+# Exercise the CI-only handoff failures with specific reasons.
 add_test(NAME accuracy.scoreboard.ci_missing_baseline
-  COMMAND ${CMAKE_COMMAND} -E env --unset=NESTURBATOR_SCOREBOARD_BASELINE CI=true
-    $<TARGET_FILE:accuracy.scoreboard>)
-set_tests_properties(accuracy.scoreboard.ci_missing_baseline PROPERTIES WILL_FAIL TRUE)
-set(ACCURACYCOIN_EMPTY_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-empty-baseline.txt)
-file(WRITE ${ACCURACYCOIN_EMPTY_BASELINE} "")
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/ci-missing-baseline"
+    -DMODE=ci_missing_baseline
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+set_tests_properties(accuracy.scoreboard.ci_missing_baseline PROPERTIES TIMEOUT 30)
 add_test(NAME accuracy.scoreboard.ci_empty_baseline_rejected
-  COMMAND ${CMAKE_COMMAND} -E env CI=true
-    "NESTURBATOR_SCOREBOARD_BASELINE=${ACCURACYCOIN_EMPTY_BASELINE}"
-    "NESTURBATOR_SCOREBOARD_BASELINE_METADATA=${ACCURACYCOIN_EMPTY_BASELINE}.metadata"
-    "NESTURBATOR_SCOREBOARD_BASELINE_REVISION=9f9386c661f6fb8f6063bf756655713aedadae77"
-    $<TARGET_FILE:accuracy.scoreboard>)
-set_tests_properties(accuracy.scoreboard.ci_empty_baseline_rejected PROPERTIES WILL_FAIL TRUE)
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/ci-empty-baseline"
+    -DMODE=ci_empty_baseline
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+set_tests_properties(accuracy.scoreboard.ci_empty_baseline_rejected PROPERTIES TIMEOUT 30)
 
 # D-15: the shared host conversion indexes the palette by the low 9 bits and
 # honours both pitches.

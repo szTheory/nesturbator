@@ -24,8 +24,25 @@ else()
   set(scoreboard_remote origin)
 endif()
 
+if(DEFINED SCOREBOARD_GIT_DIRECTORY AND NOT SCOREBOARD_GIT_DIRECTORY STREQUAL "")
+  set(scoreboard_git_directory "${SCOREBOARD_GIT_DIRECTORY}")
+else()
+  set(scoreboard_git_directory "${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
+execute_process(
+  COMMAND git rev-parse --show-toplevel
+  WORKING_DIRECTORY "${scoreboard_git_directory}"
+  RESULT_VARIABLE git_directory_result
+  OUTPUT_VARIABLE git_directory_root
+  ERROR_VARIABLE git_directory_error
+  OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT "${git_directory_result}" STREQUAL "0" OR git_directory_root STREQUAL "")
+  message(FATAL_ERROR "Protected-main fetch directory is not a git checkout: ${git_directory_error}")
+endif()
+
 execute_process(
   COMMAND git fetch --no-tags "${scoreboard_remote}" refs/heads/main
+  WORKING_DIRECTORY "${scoreboard_git_directory}"
   RESULT_VARIABLE fetch_result
   OUTPUT_VARIABLE fetch_stdout
   ERROR_VARIABLE fetch_stderr)
@@ -37,13 +54,15 @@ endif()
 # object ID, so a branch update cannot mix a scoreboard and identity.
 execute_process(
   COMMAND git rev-parse --verify "FETCH_HEAD^{commit}"
+  WORKING_DIRECTORY "${scoreboard_git_directory}"
   RESULT_VARIABLE revision_result
   OUTPUT_VARIABLE protected_revision
   ERROR_VARIABLE revision_stderr
   OUTPUT_STRIP_TRAILING_WHITESPACE)
+string(LENGTH "${protected_revision}" protected_revision_length)
 if(NOT "${revision_result}" STREQUAL "0" OR
    NOT protected_revision MATCHES "^[0-9a-f]+$" OR
-   NOT protected_revision MATCHES "^.{40}$")
+   NOT protected_revision_length EQUAL 40)
   message(FATAL_ERROR "Could not resolve protected main to one immutable commit: ${revision_stderr}")
 endif()
 
@@ -53,9 +72,19 @@ set(dedicated_metadata_path tests/accuracy/scoreboard-main-metadata.txt)
 set(scoreboard_path tests/accuracy/scoreboard.txt)
 set(manifest_path tests/roms/manifest.txt)
 
+function(is_lower_hex value digits output)
+  string(LENGTH "${value}" value_length)
+  if(value MATCHES "^[0-9a-f]+$" AND value_length EQUAL digits)
+    set(${output} TRUE PARENT_SCOPE)
+  else()
+    set(${output} FALSE PARENT_SCOPE)
+  endif()
+endfunction()
+
 function(read_protected_file relative_path output_path)
   execute_process(
     COMMAND git ls-tree "${protected_revision}" -- "${relative_path}"
+    WORKING_DIRECTORY "${scoreboard_git_directory}"
     RESULT_VARIABLE tree_result
     OUTPUT_VARIABLE tree_entry
     ERROR_VARIABLE tree_stderr)
@@ -70,6 +99,7 @@ function(read_protected_file relative_path output_path)
   endif()
   execute_process(
     COMMAND git show "${protected_revision}:${relative_path}"
+    WORKING_DIRECTORY "${scoreboard_git_directory}"
     RESULT_VARIABLE show_result
     OUTPUT_FILE "${output_path}"
     ERROR_VARIABLE show_stderr)
@@ -105,6 +135,7 @@ endif()
 file(SHA256 "${baseline_file}" scoreboard_sha256)
 execute_process(
   COMMAND git ls-tree "${protected_revision}" -- "${dedicated_metadata_path}"
+  WORKING_DIRECTORY "${scoreboard_git_directory}"
   RESULT_VARIABLE metadata_tree_result
   OUTPUT_VARIABLE metadata_tree_entry
   ERROR_VARIABLE metadata_tree_stderr)
@@ -120,6 +151,7 @@ if(NOT metadata_tree_entry STREQUAL "")
   endif()
   execute_process(
     COMMAND git show "${protected_revision}:${dedicated_metadata_path}"
+    WORKING_DIRECTORY "${scoreboard_git_directory}"
     RESULT_VARIABLE metadata_show_result
     OUTPUT_FILE "${protected_metadata_raw}"
     ERROR_VARIABLE metadata_show_stderr)
@@ -141,12 +173,21 @@ endif()
 if(has_dedicated_metadata)
   file(STRINGS "${protected_metadata_raw}" metadata_lines)
   set(metadata_keys)
+  set(allowed_metadata_keys schema authority source protected_revision rom_pin rom_sha256
+    inventory_schema inventory_sha256 inventory_rows inventory_scored_rows inventory_draw_rows
+    scoreboard_schema scoreboard_rows scoreboard_denominator scoreboard_sha256)
   foreach(line IN LISTS metadata_lines)
-    if(NOT line MATCHES "^([a-z_]+)=([^\r\n]+)$")
+    string(FIND "${line}" "=" separator)
+    if(separator LESS 1)
       message(FATAL_ERROR "Protected-main metadata has an invalid row: ${line}")
     endif()
-    set(key "${CMAKE_MATCH_1}")
-    set(value "${CMAKE_MATCH_2}")
+    string(SUBSTRING "${line}" 0 ${separator} key)
+    math(EXPR value_start "${separator} + 1")
+    string(SUBSTRING "${line}" ${value_start} -1 value)
+    if(value STREQUAL "" OR NOT key IN_LIST allowed_metadata_keys OR
+       value MATCHES "=")
+      message(FATAL_ERROR "Protected-main metadata has an invalid row: ${line}")
+    endif()
     if(key IN_LIST metadata_keys)
       message(FATAL_ERROR "Protected-main metadata has duplicate key: ${key}")
     endif()
@@ -164,10 +205,13 @@ if(has_dedicated_metadata)
      NOT protected_protected_revision STREQUAL protected_revision)
     message(FATAL_ERROR "Protected-main metadata declares a different protected revision")
   endif()
+  is_lower_hex("${protected_rom_pin}" 40 valid_rom_pin)
+  is_lower_hex("${protected_rom_sha256}" 64 valid_rom_sha)
+  is_lower_hex("${protected_inventory_sha256}" 64 valid_inventory_sha)
   if(NOT protected_schema STREQUAL "1" OR
-     NOT protected_rom_pin MATCHES "^[0-9a-f]{40}$" OR
-     NOT protected_rom_sha256 MATCHES "^[0-9a-f]{64}$" OR
-     NOT protected_inventory_sha256 MATCHES "^[0-9a-f]{64}$" OR
+     NOT valid_rom_pin OR
+     NOT valid_rom_sha OR
+     NOT valid_inventory_sha OR
      NOT protected_inventory_schema STREQUAL "1" OR
      NOT protected_scoreboard_schema STREQUAL "1" OR
      NOT protected_scoreboard_rows STREQUAL "${scoreboard_rows}" OR
@@ -211,9 +255,11 @@ else()
       list(GET fields 2 rom_pin)
       list(GET fields 3 license)
       list(GET fields 4 rom_sha256)
+      is_lower_hex("${rom_pin}" 40 valid_manifest_pin)
+      is_lower_hex("${rom_sha256}" 64 valid_manifest_sha)
       if(NOT source_url STREQUAL "https://github.com/100thCoin/AccuracyCoin/tree/${rom_pin}" OR
-         NOT rom_pin MATCHES "^[0-9a-f]{40}$" OR
-         NOT rom_sha256 MATCHES "^[0-9a-f]{64}$" OR
+         NOT valid_manifest_pin OR
+         NOT valid_manifest_sha OR
          NOT license STREQUAL "MIT")
         message(FATAL_ERROR "Protected-main AccuracyCoin manifest row has invalid identity")
       endif()

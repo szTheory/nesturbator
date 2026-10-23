@@ -775,10 +775,11 @@ static int verify_context(protected_context *context, const char *baseline_path,
         !load_directory(candidate_rom_path, &context->candidate_directory, error, error_size))
         return 0;
     if (strcmp(context->old_directory.pin, "673ef550db296136d52229961e7d39366116882a") != 0 ||
-        strcmp(context->new_directory.pin, "6bee919529289c555803b612b8c9e4f7eaaeeabb") != 0 ||
-        !load_manifest_identity(candidate_manifest_path, &context->candidate_directory,
-                                error, error_size))
+        strcmp(context->new_directory.pin, "6bee919529289c555803b612b8c9e4f7eaaeeabb") != 0)
         return set_error(error, error_size, "candidate or comparison ROM pin identity is invalid");
+    if (!load_manifest_identity(candidate_manifest_path, &context->candidate_directory,
+                                error, error_size))
+        return 0;
     (void)snprintf(context->baseline_pin, sizeof context->baseline_pin, "%s",
                    metadata_or_empty(&baseline_meta, "rom_pin"));
     (void)snprintf(context->candidate_pin, sizeof context->candidate_pin, "%s",
@@ -836,8 +837,13 @@ static int verify_context(protected_context *context, const char *baseline_path,
         if (!validate_migration_row(context, migration, new_observation, error, error_size))
             return 0;
         if (old_observation == NULL || old_observation->observed != 1u ||
-            strcmp(old_observation->status, "pass") != 0 || !parse_raw(old_observation->raw, &actual_raw))
-            return set_error(error, error_size, "retained old protected key lacks an actual passing observation");
+            strcmp(old_observation->status, "pass") != 0 || !parse_raw(old_observation->raw, &actual_raw)) {
+            char message[160];
+            const char *status = old_observation == NULL ? "missing" : old_observation->status;
+            (void)snprintf(message, sizeof message,
+                           "retained old protected key lacks an actual passing observation: %s", status);
+            return set_error(error, error_size, message);
+        }
         classified = accuracycoin_classify(migration->old_key, 1, actual_raw, 0, NULL);
         baseline_observation = baseline_is_new ? new_observation : old_observation;
         if (classified != ACCURACYCOIN_RESULT_PASS || baseline_observation == NULL ||
