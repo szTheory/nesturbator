@@ -2,9 +2,15 @@
 
 ## Current handoff — 2026-10-23 (Plan 16-07, Wave 11)
 
-**Status:** Plan 16-07 Task 1 is preparing a comment-only correction for a new
-native PR run. EVID-04 remains open. No merge consent, merge, tag or publication
-has occurred.
+**Status:** Plan 16-07 Task 1 has a reviewed test-harness timing correction and
+fresh full local CI and ASan passes. Native run
+[39977635051](https://github.com/szTheory/nesturbator/actions/runs/39977635051)
+on pushed head `478581a3040cf2acd22ac136b1e1d263c8d63e0e` failed only the macOS
+Intel controls test: its 565 ms launch-through-exit measurement included wrapper
+startup, although the 350 ms assertion is intended to measure TERM-to-exit.
+The corrected interval retains the same threshold and all lifecycle assertions.
+The local correction is awaiting commit and a fresh exact-head native run.
+EVID-04 remains open. No merge consent, merge, tag or publication has occurred.
 
 Plan 16-56 accepted source candidate
 `2c356d574290aef1d57122566f7b81beaaa10027`, with source commits `2e9928b` and
@@ -12,10 +18,10 @@ Plan 16-56 accepted source candidate
 [source acceptance](16-56-SOURCE-ACCEPTANCE.md), [independent review](16-56-REVIEW.md)
 and [disposition](16-56-REVIEW-DISPOSITION.md) record final-source CR-01
 RED/GREEN evidence, focused CI and ASan, 649/649 full CI tests with no skips,
-fresh package checks and the configured parent gates. Before this delivery
-correction, the final parent manifest matched all 11 source/support paths in
-both the accepted commit and worktree. The sole current source delta is one
-public-header comment line; the other ten manifest paths remain byte-identical.
+fresh package checks and the configured parent gates. The last pushed 11-path
+manifest matched head `478581a3040cf2acd22ac136b1e1d263c8d63e0e`; the new local
+test-harness timing correction is not in that manifest yet. The existing four
+source/support differences from 56 remain recorded in that snapshot.
 `.planning/config.json` remains byte-identical at SHA-256
 `0517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e` and
 unstaged. These are local source acceptance results; they do not establish
@@ -25,9 +31,11 @@ The live [PR #50](https://github.com/szTheory/nesturbator/pull/50) is open,
 non-draft and unmerged, titled `fix: make host evidence discriminating and
 describe supported MMC3`, from `gsd/phase-16-host-evidence-and-roadmap` to
 `main`. Its current remote head is
-`450ab3b6b30bbd2be2ab6e69524b32d15275553a`, with preview merge
-`d8bc658ea8bbd9b2153d1c161ce776f00e80400f`. Its body now describes the accepted
-Plan 16-56 candidate and pending publication. The active `main` ruleset requires
+`478581a3040cf2acd22ac136b1e1d263c8d63e0e`, with merge ref
+`14ba539846e22c50637be44cb37012404a17adf3`. Its body records the prior
+readiness timing failure, local results and readiness-test scheduling correction;
+it will be updated with the newer controls-test result before the next push. The
+active `main` ruleset requires
 the `CI required` check and permits squash merges. The PR has no auto-merge
 request or submitted reviews.
 
@@ -270,3 +278,56 @@ After the scheduling correction, local `cmake --workflow --preset ci` completed 
 Local `cmake --workflow --preset asan` completed all three stages and passed 644/644 tests with no skips. CTest took 397.42 seconds; controls passed in 334.48 seconds and readiness in 22.93 seconds. The delayed case measured 9,027 ms driver-plus-cleanup and a 1,576 ms operation. The ignored log is `build/asan/Testing/Temporary/LastTest.log` (SHA-256 `c9ecd6bfe8eef362585f6d02bfedb1cf914654bf05c4903eaea3ef02ec25e293`).
 
 These are local results only. The correction is still a phase-branch candidate until it is pushed normally and receives fresh native required, perf, and pinned-host success on the final exact head and merge ref. No owner consent, merge, release action, or version selection has occurred; EVID-04 remains open.
+
+## Native controls result and signal-to-exit measurement — 2026-10-23
+
+Fresh native pull-request run
+[39977635051](https://github.com/szTheory/nesturbator/actions/runs/39977635051)
+tested head `478581a3040cf2acd22ac136b1e1d263c8d63e0e` with merge ref
+`refs/pull/50/merge` at `14ba539846e22c50637be44cb37012404a17adf3`. It
+finished with one failing job:
+
+| Native job | Result | Evidence |
+|---|---|---|
+| [macOS Intel build](https://github.com/szTheory/nesturbator/actions/runs/39977635051/job/120497035245) | Failed `retroarch.session.controls`; 648/649 tests passed | Hosted-wrapper interruption control reported 565 ms against 350 ms |
+| [`CI required`](https://github.com/szTheory/nesturbator/actions/runs/39977635051/job/120507010539) | Failed; hash equality was skipped | Aggregate result after the Intel build failure |
+| [`perf`](https://github.com/szTheory/nesturbator/actions/runs/39977635051/job/120497035584) | Passed | Fresh pull-request event |
+| [Pinned RetroArch e2e](https://github.com/szTheory/nesturbator/actions/runs/39977635051/job/120497035441) | Passed | Exact progression and deterministic state lanes |
+
+The Intel log shows readiness itself passing at 17,525 ms driver-plus-cleanup,
+with a 1,904 ms operation. The controls assertion's prior timer began before
+wrapper launch and ended after TERM handling; its 565 ms value therefore did
+not isolate the documented post-TERM grace. The result does not establish that
+wrapper cleanup exceeded 350 ms. No test bound or coverage was relaxed.
+
+The correction begins timing immediately before sending TERM and captures the
+finish immediately after the wrapper wait returns, before watchdog cleanup.
+The nonzero exit, unchanged 350 ms threshold, nested-child reap, no-late-send,
+and request-file cleanup checks remain. Independent review of this delta
+returned no findings.
+
+Full local `cmake --workflow --preset ci` passed all four stages, 649/649 tests
+with no skips, and generated the library, runner, and libretro packages. CTest
+took 362.20 seconds; controls passed in 271.20 seconds and readiness in 18.47
+seconds. The wrapper TERM-to-exit interval was 8 ms; the nested child was reaped
+and no late send occurred. Log digests:
+
+- `build/phase16-release/local_ci_after_term_wait.log`: SHA-256
+  `645b602872825f15b7bf30923eae607f68e9ffa46a40f2c4f1e9cb12a2cd3fcf`
+- `build/ci/Testing/Temporary/LastTest.log`: SHA-256
+  `5da34c4471315d8005353ce9fb1a1b9fcda98ec1b056c703f82ab0088b6dc761`
+
+Full local `cmake --workflow --preset asan` passed all three stages, 644/644
+tests with no skips. CTest took 393.74 seconds; controls passed in 330.47
+seconds and readiness in 22.49 seconds. The wrapper TERM-to-exit interval was
+7 ms, the child was reaped, and no late send occurred. Log digests:
+
+- `build/phase16-release/local_asan_after_term_wait.log`: SHA-256
+  `cfa15bf0be8ceb2640dcb7a3b8c809c2e0627c2d8bc0c10030db2cb68836ad10`
+- `build/asan/Testing/Temporary/LastTest.log`: SHA-256
+  `748c90ab5d387035d55fe8dda50d674fee92469b5e2e288c067aed8017a36010`
+
+These local results do not replace native checks. The corrected source is
+awaiting its preparation commit and a fresh exact-head `CI required`, perf,
+and pinned RetroArch run. No merge consent, merge, or release automation has
+occurred; EVID-04 remains open.

@@ -5171,8 +5171,9 @@ HOSTED_MARKER_FAULT=double-advance HOSTED_FAULT_STATE="$wrapper_dir/fail-fault" 
 
 # On wrapper interruption, its nested nc child ignores TERM to force the bounded KILL/reap
 # branch. The child would publish a delayed FRAMEADVANCE after two seconds if left alive.
+# Measure the wrapper grace from the TERM signal; process startup is outside that grace.
 printf 'FRAMEADVANCE' >"$wrapper_dir/timeout.request"
-wrapper_started=$(mono_ms); wrapper_status=0
+wrapper_status=0
 HOSTED_MARKER_FAULT=double-advance HOSTED_FAULT_STATE="$wrapper_dir/timeout-fault" \
     HOSTED_FAULT_LOG="$wrapper_dir/timeout-fault.log" HOSTED_WRAPPER_TEST_SENDS="$wrapper_dir/timeout.sends" \
     HOSTED_WRAPPER_TEST_DELAY=1 HOSTED_WRAPPER_TEST_CHILD_PID="$wrapper_dir/child.pid" \
@@ -5187,12 +5188,13 @@ done
 [ -s "$wrapper_dir/child.pid" ] || { echo "FAIL hosted wrapper recorded no nested child PID" >&2; exit 1; }
 wrapper_child=$(cat "$wrapper_dir/child.pid")
 kill -0 "$wrapper_child" 2>/dev/null || { echo "FAIL hosted nested child exited before TERM" >&2; exit 1; }
+wrapper_term_started=$(mono_ms)
 kill -TERM "$wrapper_pid" 2>/dev/null || { echo "FAIL could not interrupt owned hosted wrapper" >&2; exit 1; }
 (perl -MTime::HiRes=sleep -e 'sleep 2; kill 9, $ARGV[0]' "$wrapper_pid") & wrapper_watchdog=$!
 wait "$wrapper_pid" || wrapper_status=$?
+wrapper_finished=$(mono_ms); wrapper_lifetime=$((wrapper_finished-wrapper_term_started))
 kill "$wrapper_watchdog" 2>/dev/null || true
 wait "$wrapper_watchdog" 2>/dev/null || true
-wrapper_finished=$(mono_ms); wrapper_lifetime=$((wrapper_finished-wrapper_started))
 [ "$wrapper_status" -ne 0 ] && [ "$wrapper_lifetime" -lt 350 ] || {
     echo "FAIL hosted wrapper TERM cleanup did not exit within the 350 ms driver grace (status=$wrapper_status, ${wrapper_lifetime}ms)" >&2; exit 1;
 }
