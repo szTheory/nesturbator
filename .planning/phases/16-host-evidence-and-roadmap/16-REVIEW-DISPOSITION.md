@@ -28,9 +28,13 @@ findings:
     severity: warning
     disposition: fixed
     title: "Unicode path metadata bypasses the raw archive-name inventory"
-open: 0
-total: 6
-recorded: 2026-10-15T15:33:23Z
+  - id: WR-07
+    severity: warning
+    disposition: open
+    title: "Source-root preflight is not run by the registered CI tests"
+open: 1
+total: 7
+recorded: 2026-10-23T18:41:00Z
 ---
 
 # Phase 16: Code Review Disposition
@@ -43,6 +47,8 @@ recorded: 2026-10-15T15:33:23Z
 | WR-04 | warning | fixed | 16-REVIEW-FIX.md (not in the current review) |
 | WR-05 | warning | fixed | 16-REVIEW-FIX.md (not in the current review) |
 | WR-06 | warning | fixed | 16-REVIEW-FIX.md (not in the current review) |
+
+| WR-07 | warning | open | 16-REVIEW.md; current CI registration gap |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved. A `|` in the reason is kept as prose and escaped on the next run.
