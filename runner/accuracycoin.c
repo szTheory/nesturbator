@@ -2041,13 +2041,6 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                     break;
                 }
                 local_index = (size_t)parsed_row - 1u;
-                if (parsed_row != (uint64_t)last_row_by_stage[stage] + 1u) {
-                    evidence_invalid = 1;
-                    (void)snprintf(error, sizeof error,
-                                   "page %u raw rows are out of source order",
-                                   (unsigned)page_number);
-                    break;
-                }
                 const accuracycoin_test *row = &directory->rows[first_row + local_index];
                 char expected_key[ACCURACYCOIN_NAME_CAPACITY + 16u];
                 char expected_address[16];
@@ -2088,6 +2081,19 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                                    (unsigned)page_number);
                     break;
                 }
+                if (fprintf(observations_file, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+                            attempt_id, fields[0], fields[1], fields[2], fields[3], fields[4],
+                            fields[5], fields[6]) < 0) {
+                    evidence_invalid = 1;
+                    break;
+                }
+                if (parsed_row != (uint64_t)last_row_by_stage[stage] + 1u) {
+                    evidence_invalid = 1;
+                    (void)snprintf(error, sizeof error,
+                                   "page %u raw rows are out of source order",
+                                   (unsigned)page_number);
+                    break;
+                }
                 if (stage_seen[stage][local_index] != 0u) {
                     evidence_invalid = 1;
                     (void)snprintf(error, sizeof error, "page %u repeats a raw row stage",
@@ -2101,12 +2107,6 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                     final_seen[local_index] = 1u;
                     final_observed[local_index] = (uint8_t)observed;
                     final_raw[local_index] = raw_byte;
-                }
-                if (fprintf(observations_file, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-                            attempt_id, fields[0], fields[1], fields[2], fields[3], fields[4],
-                            fields[5], fields[6]) < 0) {
-                    evidence_invalid = 1;
-                    break;
                 }
                 line = end + 1;
             }

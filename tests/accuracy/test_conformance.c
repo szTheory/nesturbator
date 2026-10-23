@@ -634,20 +634,25 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
         if (raw_file == NULL ||
             fprintf(raw_file, "stage\tpage\trow\tkey\tresult_address\tobserved\traw\n") < 0 ||
             !write_fixture_raw_stage(raw_file, directory, page, "before-start", mutation) ||
-            !write_fixture_raw_stage(raw_file, directory, page, "a-press", mutation) ||
-            !write_fixture_raw_stage(raw_file, directory, page, "a-release", mutation) ||
-            !write_fixture_raw_stage(raw_file, directory, page, "final", mutation)) {
+            !write_fixture_raw_stage(raw_file, directory, page, "a-press", mutation)) {
             if (raw_file != NULL)
                 (void)fclose(raw_file);
             return 0;
         }
-        if (strcmp(mutation, "duplicate-stage") == 0 && page == 1u) {
+        if ((strcmp(mutation, "duplicate-stage") == 0 ||
+             strcmp(mutation, "conflicting-stage") == 0) && page == 1u) {
             const accuracycoin_test *row = &directory->rows[directory->pages[0].first_row];
-            if (fprintf(raw_file, "a-press\t1\t1\taccuracycoin/%s\t0x%04x\t1\t0x03\n",
-                        row->name, (unsigned)row->result_address) < 0) {
+            const char *raw = strcmp(mutation, "conflicting-stage") == 0 ? "0x02" : "0x03";
+            if (fprintf(raw_file, "a-press\t1\t1\taccuracycoin/%s\t0x%04x\t1\t%s\n",
+                        row->name, (unsigned)row->result_address, raw) < 0) {
                 (void)fclose(raw_file);
                 return 0;
             }
+        }
+        if (!write_fixture_raw_stage(raw_file, directory, page, "a-release", mutation) ||
+            !write_fixture_raw_stage(raw_file, directory, page, "final", mutation)) {
+            (void)fclose(raw_file);
+            return 0;
         }
         if (fclose(raw_file) != 0)
             return 0;
@@ -784,6 +789,65 @@ static int expect_fixture_rejected(const char *work, const char *case_name,
     return 1;
 }
 
+static int expect_conflicting_observations_retained(
+    const char *work, const accuracycoin_directory *directory)
+{
+    char root[4096];
+    char path[4096];
+    char prefix[512];
+    if (snprintf(root, sizeof root, "%s/conflicting-stage", work) < 0 ||
+        !write_campaign_fixture(root, directory, "conflicting-stage")) {
+        CHECK(0);
+        return 0;
+    }
+    CHECK(accuracycoin_collect_campaign(directory, root) != 0);
+    if (snprintf(path, sizeof path, "%s/observations.tsv", root) < 0 ||
+        snprintf(prefix, sizeof prefix,
+                 "page-01-cold-01\ta-press\t1\t1\taccuracycoin/%s\t0x%04x\t1\t",
+                 directory->rows[directory->pages[0].first_row].name,
+                 (unsigned)directory->rows[directory->pages[0].first_row].result_address) < 0) {
+        CHECK(0);
+        return 0;
+    }
+    FILE *observations = fopen(path, "r");
+    CHECK(observations != NULL);
+    unsigned copies = 0u;
+    int retained_original = 0;
+    int retained_conflict = 0;
+    if (observations != NULL) {
+        char line[1024];
+        while (fgets(line, sizeof line, observations) != NULL) {
+            if (strncmp(line, prefix, strlen(prefix)) == 0) {
+                copies++;
+                retained_original |= strstr(line, "0x03\n") != NULL;
+                retained_conflict |= strstr(line, "0x02\n") != NULL;
+            }
+        }
+        CHECK(ferror(observations) == 0);
+        CHECK(fclose(observations) == 0);
+    }
+    CHECK_EQ_U64(copies, 2u);
+    CHECK(retained_original);
+    CHECK(retained_conflict);
+    if (snprintf(path, sizeof path, "%s/metadata.txt", root) < 0) {
+        CHECK(0);
+        return 0;
+    }
+    FILE *metadata = fopen(path, "r");
+    CHECK(metadata != NULL);
+    char metadata_text[2048];
+    size_t metadata_size = metadata != NULL ?
+        fread(metadata_text, 1u, sizeof metadata_text - 1u, metadata) : 0u;
+    if (metadata != NULL) {
+        CHECK(ferror(metadata) == 0);
+        CHECK(fclose(metadata) == 0);
+    }
+    metadata_text[metadata_size] = '\0';
+    CHECK(strstr(metadata_text, "trustworthy_observation=0") != NULL);
+    CHECK(strstr(metadata_text, "infrastructure_verdict=failed") != NULL);
+    return 1;
+}
+
 static int test_report(const char *new_rom_path, const char *old_rom_path, const char *work)
 {
     fixture_bytes new_bytes = {0};
@@ -824,6 +888,7 @@ static int test_report(const char *new_rom_path, const char *old_rom_path, const
     CHECK(expect_fixture_rejected(work, "bad-variant", &new_directory, "bad-variant"));
     CHECK(expect_fixture_rejected(work, "cap-plus", &new_directory, "cap-plus"));
     CHECK(expect_fixture_rejected(work, "duplicate-stage", &new_directory, "duplicate-stage"));
+    CHECK(expect_conflicting_observations_retained(work, &new_directory));
     CHECK(expect_fixture_rejected(work, "wrong-active", &new_directory, "wrong-active"));
     CHECK(expect_fixture_rejected(work, "wrong-rom-sha", &new_directory, "wrong-rom-sha"));
     CHECK(expect_fixture_rejected(work, "wrong-inventory-sha", &new_directory,

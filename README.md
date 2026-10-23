@@ -115,7 +115,9 @@ attempted rows, observed bytes and terminal classifications distinct. Missing
 bytes stay `-`; outer process failure never guesses a timeout or active test. A
 trustworthy completed observation may report guest failures or timeouts without
 passing the hardware tests. Five DRAW rows remain outside the 146-row scored
-total.
+total. Structurally valid duplicate raw samples are preserved in the campaign
+observations and make the campaign untrustworthy; the collector does not choose
+one conflicting copy as the final result.
 
 `NESTURBATOR_ACCURACYCOIN_FULL` defaults to `OFF`, so normal CI does not yet
 include the full campaign. After an explicit run, restore the ordinary build

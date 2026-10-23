@@ -346,9 +346,10 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    observer and campaign collector use it to connect decoded ROM result
    addresses to guest result bytes without bus side effects. AccuracyCoin's
    source-defined result variants remain scoped to the decoded test key in the
-   runner; outer process failures are kept separate from guest bytes. This
-   inspection API adds no library ABI or state-format requirement. On error,
-   *value is unchanged. */
+   runner; outer process failures are kept separate from guest bytes, and
+   duplicate raw samples remain diagnostics that invalidate campaign trust.
+   This inspection API adds no library ABI or state-format requirement. On
+   error, *value is unchanged. */
 nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,
                                             uint8_t *value);
 
