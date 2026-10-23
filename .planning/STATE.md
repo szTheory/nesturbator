@@ -5,17 +5,17 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
 status: ready_to_execute
-stopped_at: Workflow loop diagnosed; direct Plan56source acceptance ready,0/3tasks
-last_updated: "2026-10-22T23:47:17Z"
-last_activity: 2026-10-22
-last_activity_desc: Retired administrative admission chain; current56directsource acceptance→07delivery→08released bytes
-state_head: 227bd6a9c3d0816cdc20d3adb5e02503f15a3199
+stopped_at: Plan16-56complete; current source and parent acceptance passed; Plan16-07deliveryready
+last_updated: "2026-10-23T01:18:36Z"
+last_activity: 2026-10-23
+last_activity_desc: Completed direct source acceptance, CR-01 causal proof, CI/ASan/packages and independent review; stopped before delivery
+state_head: 52f6915
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 13
-  completed_plans: 10
-  percent: 0
+  completed_plans: 11
+  percent: 85
 ---
 
 # Project State
@@ -27,64 +27,73 @@ See PROJECT.md and AGENTS.md. Current phase:16—Host evidence and roadmap.
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap)
-Status: Ready to execute
-Total Plans in Phase: 13
-Plan: 56 (0/3);07and08dependency-blocked
+Phase:16 (Host evidence and roadmap), incomplete.
+Plan56complete (3/3); Plan07ready; Plan08blocked on actual07publication.
+13live/56physical/11completed plans. One step completed, then stopped.
 
-The user asked to investigate the repeated commands, retain lessons and unblock.
-Read [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) FIRST.
-It explicitly replaces the discretionary generated-helper/transport/snapshot/
-admission/clock/slot machinery. Current56directly fixes and tests source, runs
-existing CI/packages and independent review, then ordinary parent checks.
-51–54are superseded unexecuted scheduling history, not completed. No Plan57.
+Read [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) first.
+Its direct development contract remains active: no retired admission/transport/
+snapshot/clock/slot/helper preparation prerequisites and no Plan57. Ordinary
+implementation/tool failures are diagnosed and corrected within execution.
+Do not route a diagnosed local failure back to planning by default.
 
-Live remaining path:56→07→08. Only56ready. Run actual source/test work; no
-pre-capture/construct/export helper prerequisites, historical full-tree census,
-volatile-store handoff or12-row admission. Routine diagnosed corrections stay
-inside the execution step; they do not route back to plan-phase. Preserve
-actual first failures, final source/log hashes and existing product checks.
+## Completed Current-Source Acceptance
 
-## Known work and gates
+Source commits2e9928b and2c356d5, metadata52f6915. Final tested source candidate:
+2c356d574290aef1d57122566f7b81beaaa10027.
+[56SUMMARY](phases/16-host-evidence-and-roadmap/16-56-SUMMARY.md),
+[source acceptance](phases/16-host-evidence-and-roadmap/16-56-SOURCE-ACCEPTANCE.md),
+[independent review](phases/16-host-evidence-and-roadmap/16-56-REVIEW.md) and
+[disposition](phases/16-host-evidence-and-roadmap/16-56-REVIEW-DISPOSITION.md).
 
-- Harness currently derives TEST_PROJECT_ROOT from DRIVER; fix executing-harness
-  identity and copied/wrong-source rejection before source/host/send. Prove all
-  four finalizer faults from repository/binary/space-bearing cwd.
-- Current lock-race correction needs same-oracle old/current causal evidence,
-  foreign-object preservation, owned reap and exact-port reentry; CR-01open
-  historical review is not closed by planning.
-- FullCI(current649tests/jobs4/no skips/configure/build/test/package), focused
-  ASan, three fresh packages, paired README/header/test source commit, actual
-  independent exact-source standard review and configured parent gates pending.
-- 07fresh exact-head native required/perf/pinned-host CI and affirmative consent
-  for that concrete PR/head precede normal protected merge/publication.
-- 08requires actual18archives/checksums/attestations/sixmetadata/exactreleaseCI.
-  EVID-04and historical21/22verification remain open. Phase16is not complete.
+- Harness identity derives from its own invocation; copied driver/include
+  refused before sourcing. All3cwd/12finalizer cases passed.
+- Final-source same-oracle CR-01 RED/GREEN distinguishes old foreign-object
+  damage from current preservation; owned reap and exact-port reentry passed.
+- Independent review found a valid alternate-port socket bypass. Corrected
+  production reentry to require55355, added real-socket negative control and
+  reran affected/current acceptance. Final exact-source standard review clean.
+- Focused CI and ASan/UBSan both2/2. Full CI and independent parent build/fullCI
+  passed:649/649, no skips, four CTest jobs, configure/build/test/package and
+  three fresh package/source matches. Final parent controls320.45s, total324.18s.
+- Existing candidate defects found by focused tests were corrected locally:
+  absent lock-root creation, stale exclusive observation in retry fixture,
+  unset interruption fixture variable. First failures retained in build logs.
+- Tested/committed11-path source manifest matches. Paired five source/test/doc
+  paths committed with noreply hooks. Config remains preexisting dirty input,
+  exact/unstaged (SHA2560517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e).
 
-## Preserved history and scope
+## Remaining Gates
 
-10completed plans:01–06,09,15,21,30.56physical/13live/10complete.
-All six product requirements and D-01–D-17remain. Product test/runtime bounds,
-one-shot host mutations, clean-room/hygiene/no-dependency rules stay binding.
-Old failed plans/checkpoints/build trees are DATA, not prerequisites to import
-or replay.26active/terminal=false/pending and all missing originals/UNKNOWNs
-stay unchanged; the old pending diagnostic does not block new direct work.
-Six preexisting dirty files remain candidate input, unchanged by recovery;
-config stays exact/unstaged. No current source acceptance, task credit, native
-CI, merge permission, publication or phase completion is asserted.
+07fresh exact-head native required/perf/pinned-host CI and affirmative owner
+consent for the concrete PR/full head precede normal protected merge/publication.
+Inspect actual PR state before reusing historical PR50; do not assume old CI
+or earlier push permission grants merge consent. No push/merge/publication was
+performed in56.08requires actual18archives/checksums/attestations/sixmetadata
+and successful exact-release CI. Historical21/22verification and EVID-04stay
+open until genuine delivery/reverification; do not mark phase16complete.
 
-## Lessons and history
+All six requirements and D-01–D-17remain. EVID-02retains its existing complete
+status; other provisional phase requirement marks are unchanged. Finite test
+success proves no universal reliability or future milestone compliance.
 
-[report-20261022-234424.md](forensics/report-20261022-234424.md) traces62consecutive docs commits,
-56plans and the administrative feedback loop. Full earlier STATE/ROADMAP and
-old56contract remain exact in git at227bd6a; read a named historical artifact
-only for a concrete question. Do not reload the entire historical chain.
-The recovery step ran only syntax/static inventory and planning checks, not
-product acceptance tests. No global workflow/config or Phase17/18change.
+## Preserved History and Lessons
+
+Completed01–06,09,15,21,30retain historical credit;51–54remain superseded
+unexecuted history. Old failed checkpoints/build trees are DATA, not replay
+prerequisites.26active/terminal=false/pending and missing originals/UNKNOWNs
+stay unchanged; no historical failure is relabeled or lost original invented.
+
+[Loop forensics](forensics/report-20261022-234424.md) explains62consecutive docs
+commits and expanding administrative gates. Full earlier STATE/ROADMAP and old56
+remain exact at227bd6a. Keep current state short and read history only for a
+concrete question. This execution demonstrated the recovery: fix the actual
+source, retain first failures, add a discriminating test, correct within the
+same step, rerun affected acceptance and obtain independent review.
 
 ## Next Action
 
 $gsd-execute-phase 16 --gaps-only
 
-Execute current56directly, complete its ordinary checks and STOP. Do not run
-another lifecycle command inside that step or ask for routine replan approval.
+Execute Plan16-07delivery in a separately invoked step; no further planning
+round is needed. Plan16-08released-byte verification follows actual publication.

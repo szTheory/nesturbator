@@ -68,7 +68,7 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans:** 13live (56physical;10complete). Current process authority:
+**Plans:** 13live (56physical;11complete). Current process authority:
 [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md).
 
 **Recovery:** The user requested an end to the repeated plan/execute loop.
@@ -77,18 +77,22 @@ transport prerequisites. Those discretionary mechanics are retired explicitly;
 all six product requirements, D-01–D-17and actual test/review/release gates stay.
 Old56and the full prior roadmap remain in git at227bd6a; all old checkpoints/
 build evidence stay untouched.51–54are superseded incomplete, not successes.
-No current source/task/native/release acceptance is inferred by this recovery.
+Recovery alone inferred no acceptance. Plan56 has now completed actual current-source
+and parent acceptance; native/release acceptance remains pending.
 
 Completed:01–06(host/fixture/metadata/direction),09(timing),15(identity),
-21(cleanup-write repair),30(historical helper preparation). Changed current
-source needs fresh acceptance. Historical verification remains21/22/gaps_found.
+21(cleanup-write repair),30(historical helper preparation),56(current source
+acceptance). Source candidate2c356d5 has clean independent review, final-source
+CR-01 RED/GREEN, focused CI/ASan and parent649/649/no-skip/four-stage CI plus
+three fresh packages. Historical phase verification remains21/22/gaps_found;
+current source acceptance does not establish released bytes.
 
 **Wave 10** — direct current-source acceptance after completed30
-- [ ] 16-56-PLAN.md — Fix harness source identity/finalizers; prove current
+- [x] 16-56-PLAN.md — Fix harness source identity/finalizers; prove current
   lock-race correction; run current649/jobs4CI, focusedASan, packages, paired
   source/tests/docs commit, independent review and ordinary parent checks.
 
-**Wave 11** — blocked on genuine56source acceptance and configured parent checks
+**Wave 11** — ready after genuine56source acceptance and configured parent checks
 - [ ] 16-07-PLAN.md — Fresh exact-head native required/perf/pinned-host CI,
   affirmative exactPR/head merge consent and normal protected release flow.
 
@@ -96,10 +100,12 @@ source needs fresh acceptance. Historical verification remains21/22/gaps_found.
 - [ ] 16-08-PLAN.md — Verify all18downloaded archives, checksums, attestations,
   sixmetadata copies and successful exact-release-commitCI.
 
-Only56ready. Next `$gsd-execute-phase 16 --gaps-only` now starts source/test
-work directly. Finish56and STOP. Ordinary diagnosed implementation/tool errors
-stay inside that step, without another preparation plan. No new dependency,
-global workflow/config change, extra host platform or milestone upkeep.
+Only07ready. Next `$gsd-execute-phase 16 --gaps-only` starts delivery:
+fresh exact-head native CI, then concrete owner consent before protected merge.
+56finished and stopped;08remains dependent on actual07publication. Ordinary
+diagnosed errors stay inside execution, without another preparation plan.
+No new dependency, global workflow/config change, extra host platform or
+milestone upkeep. See56SUMMARY/source acceptance/review disposition for evidence.
 
 ### Phase 17: Complete pinned conformance baseline
 
