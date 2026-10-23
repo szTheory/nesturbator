@@ -4563,7 +4563,12 @@ for row in rows:
 elapsed=int(subprocess.check_output(["perl","-MTime::HiRes=clock_gettime,CLOCK_MONOTONIC","-e",'printf "%.0f\\n",clock_gettime(CLOCK_MONOTONIC)*1000'],text=True).strip())-int(os.environ["CLEANUP_MATRIX_STARTED"])
 complete=0
 if phase!="red": complete=int((root/"cases"/"already-quit"/"primary.elapsed").read_text().strip())
-if not 0<elapsed<=420000 or not 0<=elapsed-complete<=90000: raise RuntimeError("cleanup matrix exceeded measured wall budget")
+if not 0<elapsed<=420000 or not 0<=elapsed-complete<=90000:
+    raise RuntimeError(
+      "cleanup matrix exceeded measured wall budget: "
+      f"elapsed_ms={elapsed} primary_elapsed_ms={complete} "
+      f"overhead_ms={elapsed-complete} total_ok={0<elapsed<=420000} "
+      f"overhead_ok={0<=elapsed-complete<=90000}")
 files={}
 for path in sorted(root.rglob("*")):
     if path.is_file() and path.name!="evidence.json": files[path.relative_to(root).as_posix()]=sha(path)

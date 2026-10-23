@@ -207,3 +207,23 @@ The corrected local `cmake --workflow --preset ci` passed all 649 tests with no 
 The Plan 16-56 source manifest accounts for all 11 source/support paths. Nine remain byte-identical to its accepted hashes. The only path differences are the already-reviewed no-float header-comment correction and this `RUN_SERIAL` scheduling property; the executable implementation and cleanup assertions remain byte-identical to the reviewed candidate.
 
 This scheduling change is a local candidate only until it is committed, pushed normally, and passes fresh native `pull_request` required/perf/pinned-host checks on the resulting exact head and merge ref. The PR remains unmerged, no consent has been requested or granted, and release automation has not started. Do not present a merge-consent checkpoint until the fresh native checks pass. EVID-04 remains open.
+
+## Native result after serial scheduling — 2026-10-23
+
+PR [#50](https://github.com/szTheory/nesturbator/pull/50) remains open, non-draft, and unmerged at head `583cb29d499e9d044987a8580ef0da52df653513`, base `main` at `9f9386c661f6fb8f6063bf756655713aedadae77`, title `fix: make host evidence discriminating and describe supported MMC3`. The push started CI run 39888877749; updating the PR body started run 39888959676 on the same exact head and automatically cancelled the earlier run. The final run used `refs/pull/50/merge` SHA `0c02225dcb2c63514cf188cfb66d0c9b0a85c156` and completed with failure at 2026-10-23T02:33:31Z.
+
+| Native job | Result | Evidence |
+|---|---|---|
+| [`CI required`](https://github.com/szTheory/nesturbator/actions/runs/39888959676/job/120207902791) | Failed because the build aggregate and pinned RetroArch failed | Required-gate log retained under ignored `build/phase16-release/` |
+| [`perf`](https://github.com/szTheory/nesturbator/actions/runs/39888959676/job/120204096926) | Passed | Fresh `pull_request` event |
+| [`retroarch-e2e`](https://github.com/szTheory/nesturbator/actions/runs/39888959676/job/120204096988) | Failed `retroarch.session.controls` at 231.14 seconds | `cleanup matrix exceeded measured wall budget` |
+| [macOS Intel build](https://github.com/szTheory/nesturbator/actions/runs/39888959676/job/120204097070) | Failed `retroarch.session.controls` at 277.08 seconds | Same assertion |
+| [macOS ARM64 build](https://github.com/szTheory/nesturbator/actions/runs/39888959676/job/120204097177) | Passed all 649 tests; session controls took 493.63 seconds | Serial schedule isolated this test; full CTest stage took 707.77 seconds |
+
+ASan, Linux x64/ARM64, both Windows builds, both no-float jobs, hygiene, title, and perf passed. Hash equality was skipped after the build failures. The two failed jobs show `retroarch.session.controls` running alone under CTest's `RUN_SERIAL` property, so serialization is not sufficient by itself. Their logs preserve the failure but the Python exception does not report the actual matrix and primary durations or identify which comparison failed. The causal timing diagnosis remains open; neither the timer origin nor either bound has been changed.
+
+The failed-job excerpts, the passed macOS ARM64 summary, and the failed required-gate log are preserved under ignored `build/phase16-release/`. The next bounded diagnostic change is to print the existing `elapsed`, `complete`, and `elapsed-complete` values in the failure message while keeping the current 420,000 ms total and 90,000 ms overhead checks exactly intact. Then rerun the full local CI and fresh native pull-request CI before any consent request. No owner consent, merge, or release action has occurred; EVID-04 remains open.
+
+That diagnostic-only change is now present in `tests/retroarch/test_state_session.sh`: if the same condition fails again, the exception reports `elapsed_ms`, `primary_elapsed_ms`, `overhead_ms`, and the result of each existing comparison. It does not move the timer, modify evidence fingerprints, change assertion logic, or relax either limit.
+
+The diagnostic candidate passes local `cmake --workflow --preset ci`: all four workflow stages completed, all 649 tests passed with no skips, and the library, runner, and libretro packages were generated. The serialized cleanup matrix measured 109,999 ms total, 60,991 ms primary, and 49,008 ms overhead; `retroarch.session.controls` passed in 316.97 seconds. Native CI on the exact diagnostic commit is still required; owner consent remains blocked until required, perf, and pinned-host checks all pass on that final head.
