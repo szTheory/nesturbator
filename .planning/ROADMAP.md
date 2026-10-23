@@ -68,7 +68,18 @@ Every phase ships a tested result through the existing library, runner or adapte
   4. Released libretro metadata names the implemented MMC3 support truthfully and agrees with the documented supported profiles under an automated consistency check.
   5. The linked product roadmap exposes all four horizons, stable outcome IDs, evidence and promotion triggers; repository instructions and preparation handoff require reconciliation at both milestone boundaries within the invoked step, retaining delivered seed evidence and unresolved debt. The opening record demonstrates the contract, and existing commands or one-time link/structure checks verify its required artifacts without claiming to judge priority choices. A new recurring roadmap validator is optional if upkeep is repeatedly missed.
 
-**Plans:** 13live (56physical;11complete). Current process authority:
+**Plans:** 13 live (56 physical; 12 complete; Plan 16-08 outstanding). Current process authority:
+- [x] 16-01-PLAN.md
+- [x] 16-02-PLAN.md
+- [x] 16-03-PLAN.md
+- [x] 16-04-PLAN.md
+- [x] 16-05-PLAN.md
+- [x] 16-06-PLAN.md
+- [x] 16-09-PLAN.md
+- [x] 16-15-PLAN.md
+- [x] 16-21-PLAN.md
+- [x] 16-30-PLAN.md
+
 [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md).
 
 **Recovery:** The user requested an end to the repeated plan/execute loop.
@@ -77,37 +88,38 @@ transport prerequisites. Those discretionary mechanics are retired explicitly;
 all six product requirements, D-01–D-17and actual test/review/release gates stay.
 Old56and the full prior roadmap remain in git at227bd6a; all old checkpoints/
 build evidence stay untouched.51–54are superseded incomplete, not successes.
-Recovery alone inferred no acceptance. Plan56 has now completed actual current-source
-and parent acceptance; native/release acceptance remains pending.
+Recovery alone inferred no acceptance. Plan56 completed actual current-source
+and parent acceptance. Plan07 has now completed exact-head native acceptance,
+owner consent and normal v0.1.11 publication; Plan08's downloaded-byte checks
+remain pending.
 
 Completed:01–06(host/fixture/metadata/direction),09(timing),15(identity),
 21(cleanup-write repair),30(historical helper preparation),56(current source
-acceptance). Source candidate2c356d5 has clean independent review, final-source
-CR-01 RED/GREEN, focused CI/ASan and parent649/649/no-skip/four-stage CI plus
-three fresh packages. Historical phase verification remains21/22/gaps_found;
-current source acceptance does not establish released bytes.
+acceptance),07(release publication). Source candidate2c356d5 has clean
+independent review, final-source CR-01 RED/GREEN, focused CI/ASan and
+parent649/649/no-skip/four-stage CI plus three fresh packages. Historical
+phase verification remains21/22/gaps_found; released bytes await Plan08.
 
 **Wave 10** — direct current-source acceptance after completed30
 - [x] 16-56-PLAN.md — Fix harness source identity/finalizers; prove current
   lock-race correction; run current649/jobs4CI, focusedASan, packages, paired
   source/tests/docs commit, independent review and ordinary parent checks.
 
-**Wave 11** — ready after genuine56source acceptance and configured parent checks
-- [ ] 16-07-PLAN.md — Fresh exact-head native required/perf/pinned-host CI,
+**Wave 11** — complete after genuine56source acceptance and configured parent checks
+- [x] 16-07-PLAN.md — Fresh exact-head native required/perf/pinned-host CI,
   affirmative exactPR/head merge consent and normal protected release flow.
 
-**Wave 12** — blocked on actual normal07publication
+**Wave 12** — ready after actual normal07publication
 - [ ] 16-08-PLAN.md — Verify all18downloaded archives, checksums, attestations,
   sixmetadata copies and successful exact-release-commitCI.
 
-Only07ready. Next `$gsd-execute-phase 16 --gaps-only --wave 11` starts delivery:
-fresh exact-head native CI, then concrete owner consent before protected merge.
-56finished and stopped;08remains dependent on actual07publication. Ordinary
-diagnosed errors stay inside execution, without another preparation plan.
-No new dependency, global workflow/config change, extra host platform or
-milestone upkeep. See56SUMMARY/source acceptance/review disposition for evidence. Wave11selects
-only07and activates partial-wave stopping while08is incomplete; do not route
-its already-planned release gap through another plan-phase invocation.
+Plan16-07 is complete and its actual v0.1.11 publication is observed. Plan16-08
+is now the only ready plan; it validates the downloaded release bytes while
+EVID-04 and Phase16 remain open. The next workflow step is Wave12, but it was not
+started here. Wave11 stopped after completing07; do not launch08 or phase
+verification from this execution. Ordinary diagnosed errors stay within their
+execution step. No new dependency, global workflow/config change, extra host
+platform or milestone upkeep was introduced.
 
 ### Phase 17: Complete pinned conformance baseline
 
@@ -147,7 +159,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 16. Host evidence and roadmap | v4 | 10/14 | Plan44 terminal prewrite bound;45/07/08 blocked;2visible scope advisories | - |
+| 16. Host evidence and roadmap | v4 | 12/13 | Plan 16-08 ready; EVID-04 pending downloaded-byte validation | - |
 | 17. Complete pinned conformance baseline | v4 | 0/TBD | Not started | - |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 

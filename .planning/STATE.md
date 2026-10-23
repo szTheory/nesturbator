@@ -4,18 +4,19 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 16
 current_phase_name: Host evidence and roadmap
+current_plan: 13
 status: ready_to_execute
-stopped_at: Plan16-07 correction committed and local CI/ASan complete; update PR body before fresh native CI
-last_updated: "2026-10-23T16:04:51Z"
-state_head: bf46a5403fb4338113729dd83b0e8ae5288c84e4
+stopped_at: Completed 16-07-PLAN.md; Plan 16-08 is ready for release-byte validation
+last_updated: "2026-10-23T17:58:19.888Z"
+state_head: 788cc12123b372570080e5c8bde36861968ec1bf
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 13
-  completed_plans: 11
-  percent: 85
+  completed_plans: 12
+  percent: 92
 last_activity: 2026-10-23
-last_activity_desc: Plan07 readiness timing correction passed full local CI and ASan; final native checks and owner consent remain
+last_activity_desc: Plan 16-07 published v0.1.11 on the exact successful release commit; Plan 16-08 is ready to verify downloaded bytes
 ---
 
 # Project State
@@ -27,9 +28,11 @@ See PROJECT.md and AGENTS.md. Current phase:16—Host evidence and roadmap.
 
 ## Current Position
 
+Current Plan: 13
+Total Plans in Phase: 13
 Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan 16-56 complete (3/3); Plan 16-07 local acceptance complete; fresh exact-head native CI and owner consent remain. Plan 16-08 is blocked on actual Plan 16-07 publication.
-13 live / 56 physical / 11 completed plans. Phase 16 remains incomplete.
+Plan 16-56 complete (3/3); Plan 16-07 complete (3/3) with exact-head consent and published v0.1.11 candidate. Plan 16-08 is ready to verify downloaded release bytes; EVID-04 remains open.
+13 live / 56 physical / 12 completed plans. Phase 16 remains incomplete.
 
 Read [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) first.
 Its direct development contract remains active: no retired admission/transport/
@@ -65,13 +68,11 @@ Source commits2e9928b and2c356d5, metadata52f6915. Final tested source candidate
 
 ## Remaining Gates
 
-07fresh exact-head native required/perf/pinned-host CI and affirmative owner
-consent for the concrete PR/full head precede normal protected merge/publication.
-Inspect actual PR state before reusing historical PR50; do not assume old CI
-or earlier push permission grants merge consent. No push/merge/publication was
-performed in56.08requires actual18archives/checksums/attestations/sixmetadata
-and successful exact-release CI. Historical21/22verification and EVID-04stay
-open until genuine delivery/reverification; do not mark phase16complete.
+Plan 16-08 must independently download and validate the actual v0.1.11 release
+archives, checksums, attestations, six metadata copies and exact-release CI.
+Plan 16-07's exact-head PR consent, protected merge, and normal publication
+flow are recorded in 16-RELEASE-DELIVERY.md. EVID-04 and Phase 16 stay open
+until Plan 16-08 and phase verification are complete.
 
 All six requirements and D-01–D-17remain. EVID-02retains its existing complete
 status; other provisional phase requirement marks are unchanged. Finite test
@@ -93,12 +94,24 @@ same step, rerun affected acceptance and obtain independent review.
 
 ## Next Action
 
-Finish Plan 16-07 Task 1 by updating PR #50's body with the current failure and correction, then push the reviewed phase-branch candidate normally and observe fresh native `pull_request` required, perf, and pinned RetroArch checks on the exact final head and merge ref. If all pass, present the PR identity and those checks for explicit owner consent. Do not merge, publish, or advance to Plan 16-08 without that consent and the normal release flow. If a check fails, retain its result and diagnose the first real failure within Plan 16-07.
-
-Plan 16-08 remains blocked until the existing release flow publishes a candidate. Phase 16 stays incomplete until its downloaded-byte acceptance and phase verification are complete.
+Plan 16-08 is the next ready plan: verify the actual published v0.1.11
+archives and six metadata copies against the recorded release candidate. Do not
+mark EVID-04 or Phase 16 complete until that byte validation and phase-level
+verification pass.
 
 ## Session
 
-**Last session:** 2026-10-23T15:16:00.522Z
-**Stopped at:** Plan16-07 local acceptance complete; prepare final phase-branch head for native CI and exact-head consent checkpoint
-**Resume file:** .planning/phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md
+**Last session:** 2026-10-23T17:58:19.863Z
+**Stopped at:** Completed 16-07-PLAN.md; Plan 16-08 is ready for release-byte validation
+**Resume file:** None
+
+## Performance Metrics
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 16 P07 | 101m | 3 tasks | 10 files |
+
+## Decisions
+
+- [Phase 16]: Use the existing protected-main release flow without selecting a version; the release PR generated v0.1.11.
+- [Phase 16]: Keep EVID-04 open until Plan 16-08 validates the actual downloaded release bytes.
