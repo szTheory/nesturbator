@@ -5,18 +5,18 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 17
 current_phase_name: Complete pinned conformance baseline
 current_plan: Not started
-status: ready_to_plan
-stopped_at: "Phase 17 context gathered; next: gsd-plan-phase 17"
-last_updated: "2026-10-23T19:40:04.360Z"
-state_head: bbf0cd310633a9b011cb198d96e8f52b752dd93d
+status: executing
+stopped_at: "Phase 17 planned and checked; next: gsd-execute-phase 17"
+last_updated: "2026-10-23T20:14:51.058Z"
+state_head: baf802ec42e6f36671dc63137bca8717b5e78cbe
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 13
+  total_plans: 17
   completed_plans: 13
   percent: 33
 last_activity: 2026-10-23
-last_activity_desc: Phase 16 verified 22/22 and complete; ready to discuss Phase 17
+last_activity_desc: Phase 17 research and four sequential plans complete; independent plan verification passed
 ---
 
 # Project State
@@ -29,13 +29,28 @@ Current focus: Phase 17 — Complete pinned conformance baseline.
 
 ## Current Position
 
-Phase: 17 — Complete pinned conformance baseline
+Phase: 17 (Complete pinned conformance baseline) — READY TO EXECUTE
 Current Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 
 Phase 16 is complete: 13/13 live plans, 22/22 verification truths and all six
 requirements (EVID-01–04, DIR-01/02) verified. The normal completion handler
-advanced to Phase 17. No Phase 17 work has started.
+advanced to Phase 17. Phase 17 research and four plans in four sequential waves
+are complete; implementation has not started.
+
+## Phase 17 Planning
+
+- [Research](phases/17-complete-pinned-conformance-baseline/17-RESEARCH.md)
+  checks the immutable suite and existing runner/CI seams. New-pin campaign
+  outcomes, accepted caps and CI placement remain execution measurements.
+- Plans 17-01 through 17-04 cover the real tracer/inventory, bounded campaign,
+  protected-main regression enforcement, then atomic canonical activation and
+  measured CI placement. The old canonical strict checks stay active during
+  comparison staging.
+- Independent plan checking passed without findings. Four plan structures and
+  frontmatters validate; all 10 task verification commands state failure signals;
+  all four requirements and 15 tracked decisions are covered.
+- No implementation tests or full conformance campaign ran in this planning step.
 
 ## Phase 16 Evidence
 
@@ -85,11 +100,11 @@ advanced to Phase 17. No Phase 17 work has started.
 
 ## Next Action
 
-`$gsd-discuss-phase 17` — clarify the complete pinned conformance baseline.
+`$gsd-execute-phase 17` — execute the four verified plans in order.
 Do not re-run Phase 16 gap planning or execution for completed work.
 
 ## Session
 
-Last session: 2026-10-23T19:40:04.301Z
-Stopped at: Phase 17 context gathered; next: gsd-plan-phase 17
-Resume file: .planning/phases/17-complete-pinned-conformance-baseline/17-CONTEXT.md
+Last session: 2026-10-23T20:14:51.058Z
+Stopped at: Phase 17 planned and checked; next: gsd-execute-phase 17
+Resume file: .planning/phases/17-complete-pinned-conformance-baseline/17-01-PLAN.md

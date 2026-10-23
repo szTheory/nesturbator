@@ -134,7 +134,21 @@ milestone upkeep was introduced. Phase 17 is next.
   3. A bounded automated run retains raw results and diagnostics and classifies every scored test as pass, fail, skip, not-run or timeout; not-run/timeout records explain their causes and never imply execution or a passing score.
   4. All 17 previously protected passing keys remain mapped and accounted for. Automated gates reject same-pin pass regressions; upstream meaning or denominator changes have an explicit reviewed disposition and preserved comparison evidence.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+- [ ] 17-01-PLAN.md — Token-bearing end-to-end tracer, complete inventory and retained old comparison
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 17-02-PLAN.md — Independent bounded page campaign, honest reports and actual measured full observation
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 17-03-PLAN.md — Protected-main authority, actual protected measurements and source-backed migration enforcement
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 17-04-PLAN.md — Atomic canonical pin activation, durable comparison and measured CI placement
+
 **UI hint**: no
 **Canonical refs**: [CONFORMANCE.md](preparation/CONFORMANCE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md); pin/encoding updates in [research/v4-scope/accuracy.md](research/v4-scope/accuracy.md) supersede the older preparation pin for this phase.
 
