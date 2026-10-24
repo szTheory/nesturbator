@@ -4,16 +4,16 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 17
 current_phase_name: Complete pinned conformance baseline
-current_plan: 3
+current_plan: 4
 status: executing
-stopped_at: Completed 17-02-PLAN.md
-last_updated: "2026-10-23T23:11:29.501Z"
-state_head: dbcc64190d9a6269eb1ac1a437709c51ff37fdab
+stopped_at: Completed 17-03-PLAN.md
+last_updated: "2026-10-23T23:59:43.487Z"
+state_head: 514beda30507bcb4d3bfe48f7992e5033f458b4f
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 17
-  completed_plans: 15
+  completed_plans: 16
   percent: 33
 last_activity: 2026-10-23
 last_activity_desc: Plan 17-02 passed full CI; bounded new-pin campaign measured and retained raw outcomes
@@ -30,7 +30,7 @@ Current focus: Phase 17 — Complete pinned conformance baseline.
 ## Current Position
 
 Phase: 17 (Complete pinned conformance baseline) — EXECUTING
-Current Plan: 3
+Current Plan: 4
 Total Plans in Phase: 4
 Status: Ready to execute
 Progress: [███░░░░░░░] 33%
@@ -114,8 +114,8 @@ phase-level CONF requirements pending until the phase is verified.
 
 ## Session
 
-Last session: 2026-10-23T23:11:29.339Z
-Stopped at: Completed 17-02-PLAN.md
+Last session: 2026-10-23T23:59:43.328Z
+Stopped at: Completed 17-03-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -124,6 +124,7 @@ Resume file: None
 |------|----------|-------|-------|
 | Phase 17 P01 | 54min | 3 tasks | 15 files |
 | Phase 17 P02 | 67min | 3 tasks | 12 files |
+| Phase 17 P03 | 42min | 2 tasks | 15 files |
 
 ## Decisions
 
@@ -132,3 +133,6 @@ Resume file: None
 - [Phase 17]: Retain old protected measurements and mark all corresponding new-pin observations unmeasured until the later campaign.
 - [Phase 17]: The fixed five-Right navigation input is the measured campaign unit: six inputs change guest timing and the active page19 row, so cap-six exploration remains separately labeled.
 - [Phase 17]: Keep both raw navigation-sensitive page19 observations; timeout only the source-confirmed active row, retain stale running markers as not-run, and do not fall back when all bytes were observed.
+- [Phase 17]: Protected scoreboard and identity must come from the same immutable protected-main revision; legacy fallback reads the manifest from that revision.
+- [Phase 17]: Every protected mapping requires fresh old/new raw evidence; only four exact source-reviewed keys can admit measured cross-pin terminal failure.
+- [Phase 17]: Keep CONF-01 through CONF-04 pending until Phase 17 verification; canonical activation belongs to Plan 17-04.
