@@ -5,15 +5,15 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 17
 current_phase_name: Complete pinned conformance baseline
 current_plan: 4
-status: executing
-stopped_at: Completed 17-03-PLAN.md
-last_updated: "2026-10-24T00:01:04.593Z"
-state_head: 516f7c863d99e65ffc7c9e26253122fe2cdb3094
+status: verifying
+stopped_at: Completed 17-04-PLAN.md; phase verification pending
+last_updated: "2026-10-24T07:25:17.282Z"
+state_head: dcdb7b39bb0aec6ff74b192bfa239f6c0dc9243b
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 17
-  completed_plans: 16
+  completed_plans: 17
   percent: 33
 last_activity: 2026-10-23
 last_activity_desc: Plan 17-03 passed full CI; protected authority and fresh measured migration verdict are enforced
@@ -32,7 +32,7 @@ Current focus: Phase 17 — Complete pinned conformance baseline.
 Phase: 17 (Complete pinned conformance baseline) — EXECUTING
 Current Plan: 4
 Total Plans in Phase: 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Progress: [███░░░░░░░] 33%
 
 Phase 16 is complete: 13/13 live plans, 22/22 verification truths and all six
@@ -118,8 +118,8 @@ phase is verified.
 
 ## Session
 
-Last session: 2026-10-24T00:01:04.376Z
-Stopped at: Completed 17-03-PLAN.md
+Last session: 2026-10-24T07:25:00.056Z
+Stopped at: Completed 17-04-PLAN.md; phase verification pending
 Resume file: None
 
 Read [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) first.
@@ -135,6 +135,7 @@ Do not route a diagnosed local failure back to planning by default.
 | Phase 17 P01 | 54min | 3 tasks | 15 files |
 | Phase 17 P02 | 67min | 3 tasks | 12 files |
 | Phase 17 P03 | 42min | 2 tasks | 15 files |
+| Phase 17 P04 | 7h22m | 2 tasks | 38 files |
 
 ## Decisions
 
@@ -146,3 +147,6 @@ Do not route a diagnosed local failure back to planning by default.
 - [Phase 17]: Protected scoreboard and identity must come from the same immutable protected-main revision; legacy fallback reads the manifest from that revision.
 - [Phase 17]: Every protected mapping requires fresh old/new raw evidence; only four exact source-reviewed keys can admit measured cross-pin terminal failure.
 - [Phase 17]: Keep CONF-01 through CONF-04 pending until Phase 17 verification; canonical activation belongs to Plan 17-04.
+- [Phase 17]: Authenticate the canonical protected-main scoreboard from its exact commit and project only measured PASS rows.
+- [Phase 17]: Derive same-pin protected pages from the current protected baseline and require fresh PASS/raw evidence on the current invocation.
+- [Phase 17]: Run the full campaign once on primary Linux x64 PR CI; keep measured page bounds and existing workflow timeouts.
