@@ -510,7 +510,7 @@ foreach(target IN ITEMS rom-loader state-loader execution)
   set(run_record "${output_root}/${target}-run.tsv")
   file(WRITE "${run_record}"
     "source_revision\t${source_revision}\nrun_identity\t${run_identity}\nplatform\t${source_platform}\ntarget\t${target}\n"
-    "mode\t${MODE}\ncompiler\t${clang_version}\nsanitizers\tASan,UBSan,libFuzzer\nbuild_flags\t${c_flags};${link_flags}\n"
+    "mode\t${MODE}\ncompiler\t${clang_version}\nsanitizers\tASan,UBSan,libFuzzer\nbuild_flags\t${release_flags};${c_flags};${link_flags}\n"
     "source_corpus_manifest_sha256\t${source_corpus_sha256}\nsource_corpus_count\t${before_run_count}\n"
     "source_corpus\t${source_relative}\nwork_corpus\tworking/${target}\nartifact_dir\tartifacts/${target}\n"
     "execution_seed_metrics\texecution-seeds.tsv;includes accepted mapper, completed/frame counts, last API operation, allocation/state/ticks and exact descriptor hashes\n"
@@ -578,7 +578,8 @@ foreach(target IN ITEMS rom-loader state-loader execution)
       set(run_status completed-unaccounted)
       file(APPEND "${run_record}" "evidence_gap\tGNU time elapsed/RSS record missing\n")
     endif()
-    string(REGEX MATCH "#([0-9]+)[ ]+DONE cov:[ ]+([0-9]+)[ ]+ft:[ ]+([0-9]+)[ ]+corp:[ ]+([^\n]+)" fuzzer_summary "${run_err}")
+    string(REPLACE "\t" " " fuzzer_log "${run_err}")
+    string(REGEX MATCH "#([0-9]+) +DONE +cov: +([0-9]+) +ft: +([0-9]+) +corp: +([^\n]+)" fuzzer_summary "${fuzzer_log}")
     if(NOT fuzzer_summary STREQUAL "")
       file(APPEND "${run_record}" "actual_runs\t${CMAKE_MATCH_1}\nfinal_coverage_edges\t${CMAKE_MATCH_2}\nfinal_features\t${CMAKE_MATCH_3}\nfinal_corpus\t${CMAKE_MATCH_4}\n")
     else()
