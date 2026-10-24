@@ -36,8 +36,7 @@ static int run(const char *runner, const char *movie, const char *output)
     return test_process_run(arguments, output);
 }
 
-static int run_rom_movie(const char *runner, const char *movie, const char *rom,
-                         const char *output)
+static int run_rom_movie(const char *runner, const char *movie, const char *rom, const char *output)
 {
     const char *const arguments[] = {runner, "--movie", movie, "--rom", rom, NULL};
     return test_process_run(arguments, output);
@@ -169,8 +168,7 @@ int main(int argc, char **argv)
             unsigned long long ticks = 0u;
             char hash[65] = {0};
             CHECK(fgets(line, sizeof line, file) != NULL);
-            CHECK_EQ_U64(sscanf(line, "frame %u ticks %llu sha256 %64s", &frame, &ticks, hash),
-                         3u);
+            CHECK_EQ_U64(sscanf(line, "frame %u ticks %llu sha256 %64s", &frame, &ticks, hash), 3u);
             CHECK_EQ_U64(frame, expected_frame);
             CHECK(ticks > previous_ticks);
             if (expected_frame == 1u)

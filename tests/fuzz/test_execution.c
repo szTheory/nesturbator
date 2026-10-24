@@ -72,12 +72,11 @@ static void fixture_make(struct fixture *fixture, uint8_t profile_code)
     CHECK(nt_exec_decode(fixture->seed, sizeof fixture->seed, &recipe));
     CHECK(nt_exec_profile_for(profile_code, &fixture->profile));
     fixture->image = nt_exec_generate(&recipe, fixture->seed, sizeof fixture->seed,
-                                      &fixture->profile, &fixture->image_size,
-                                      &fixture->budget);
+                                      &fixture->profile, &fixture->image_size, &fixture->budget);
     CHECK(fixture->image != NULL);
     if (fixture->image != NULL)
-        fixture->inst = nt_exec_instance(&fixture->budget, fixture->image,
-                                         fixture->image_size, &fixture->metrics);
+        fixture->inst = nt_exec_instance(&fixture->budget, fixture->image, fixture->image_size,
+                                         &fixture->metrics);
 }
 
 static void fixture_drop(struct fixture *fixture)
@@ -114,17 +113,19 @@ static int observation_equal(const struct nt_exec_observation *a,
         a->origin_state_hash != b->origin_state_hash || a->states_equal != b->states_equal ||
         a->mapper != b->mapper || a->accepted_status != b->accepted_status ||
         a->completed_frames != b->completed_frames || a->operation_count != b->operation_count ||
-        a->bank_effects != b->bank_effects || !branch_equal(&a->continuation_a, &b->continuation_a) ||
+        a->bank_effects != b->bank_effects ||
+        !branch_equal(&a->continuation_a, &b->continuation_a) ||
         !branch_equal(&a->continuation_b, &b->continuation_b))
         return 0;
     if (a->metrics.accepted != b->metrics.accepted || a->metrics.frames != b->metrics.frames ||
-        a->metrics.frame_ok != b->metrics.frame_ok || a->metrics.frame_jam != b->metrics.frame_jam ||
+        a->metrics.frame_ok != b->metrics.frame_ok ||
+        a->metrics.frame_jam != b->metrics.frame_jam ||
         a->metrics.operations != b->metrics.operations ||
         a->metrics.generated_bytes != b->metrics.generated_bytes ||
         a->metrics.state_bytes != b->metrics.state_bytes ||
         a->metrics.guest_ticks != b->metrics.guest_ticks ||
-        a->metrics.stop_status != b->metrics.stop_status || a->metrics.mapper != b->metrics.mapper ||
-        a->metrics.submapper != b->metrics.submapper ||
+        a->metrics.stop_status != b->metrics.stop_status ||
+        a->metrics.mapper != b->metrics.mapper || a->metrics.submapper != b->metrics.submapper ||
         a->metrics.qualified_bank_effects != b->metrics.qualified_bank_effects)
         return 0;
     for (uint32_t i = 0u; i < a->metrics.operations; ++i) {
@@ -151,8 +152,7 @@ static int mapper_fields_equal(uint16_t mapper, const struct nesturbator__mapper
         return 0;
     switch (mapper) {
     case 1u:
-        return a->reg.mmc1.shift == b->reg.mmc1.shift &&
-               a->reg.mmc1.count == b->reg.mmc1.count &&
+        return a->reg.mmc1.shift == b->reg.mmc1.shift && a->reg.mmc1.count == b->reg.mmc1.count &&
                a->reg.mmc1.control_x == b->reg.mmc1.control_x &&
                a->reg.mmc1.chr0 == b->reg.mmc1.chr0 && a->reg.mmc1.chr1 == b->reg.mmc1.chr1 &&
                a->reg.mmc1.prg == b->reg.mmc1.prg &&
@@ -165,13 +165,11 @@ static int mapper_fields_equal(uint16_t mapper, const struct nesturbator__mapper
         return a->reg.mmc3.select == b->reg.mmc3.select &&
                memcmp(a->reg.mmc3.r, b->reg.mmc3.r, sizeof a->reg.mmc3.r) == 0 &&
                a->reg.mmc3.mirror == b->reg.mmc3.mirror &&
-               a->reg.mmc3.a001_x == b->reg.mmc3.a001_x &&
-               a->reg.mmc3.latch == b->reg.mmc3.latch &&
+               a->reg.mmc3.a001_x == b->reg.mmc3.a001_x && a->reg.mmc3.latch == b->reg.mmc3.latch &&
                a->reg.mmc3.counter == b->reg.mmc3.counter &&
                a->reg.mmc3.reload == b->reg.mmc3.reload &&
                a->reg.mmc3.irq_enable == b->reg.mmc3.irq_enable &&
-               a->reg.mmc3.a12 == b->reg.mmc3.a12 &&
-               a->reg.mmc3.low_cycle == b->reg.mmc3.low_cycle;
+               a->reg.mmc3.a12 == b->reg.mmc3.a12 && a->reg.mmc3.low_cycle == b->reg.mmc3.low_cycle;
     case 7u:
         return a->reg.axrom.bank == b->reg.axrom.bank;
     default:
@@ -239,8 +237,8 @@ static void test_lifecycle_profile(uint8_t profile_code)
     CHECK(fixture.inst != NULL);
     if (fixture.inst == NULL || fixture.image == NULL)
         return;
-    run_guarded_frame(fixture.inst, fixture.seed[10], &guest_ticks, &branch,
-                      &fixture.metrics, &buffers);
+    run_guarded_frame(fixture.inst, fixture.seed[10], &guest_ticks, &branch, &fixture.metrics,
+                      &buffers);
     nes = (struct nesturbator *)fixture.inst;
     state_size = nesturbator_state_size(fixture.inst);
     state = (uint8_t *)malloc(state_size);
@@ -252,22 +250,24 @@ static void test_lifecycle_profile(uint8_t profile_code)
     save_bytes(fixture.inst, state, state_size);
 
     /* A refused cartridge load is atomic for both machine bytes and the live span. */
-    CHECK_EQ_U64(nesturbator_get_memory(fixture.inst, NESTURBATOR_MEMORY_SAVE_RAM,
-                                        &span, &span_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(
+        nesturbator_get_memory(fixture.inst, NESTURBATOR_MEMORY_SAVE_RAM, &span, &span_size),
+        NESTURBATOR_OK);
     save_bytes(fixture.inst, state_after, state_size);
     CHECK_EQ_U64(memcmp(state, state_after, state_size), 0u);
     {
         static const uint8_t invalid_header[16] = {0u};
-        CHECK_EQ_U64(nesturbator_load_cartridge(fixture.inst, invalid_header,
-                                                 sizeof invalid_header),
-                     NESTURBATOR_ERR_CARTRIDGE);
+        CHECK_EQ_U64(
+            nesturbator_load_cartridge(fixture.inst, invalid_header, sizeof invalid_header),
+            NESTURBATOR_ERR_CARTRIDGE);
     }
     save_bytes(fixture.inst, state_after, state_size);
     CHECK_EQ_U64(memcmp(state, state_after, state_size), 0u);
     reported_span = NULL;
     reported_span_size = 0u;
-    CHECK_EQ_U64(nesturbator_get_memory(fixture.inst, NESTURBATOR_MEMORY_SAVE_RAM,
-                                        &reported_span, &reported_span_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_get_memory(fixture.inst, NESTURBATOR_MEMORY_SAVE_RAM, &reported_span,
+                                        &reported_span_size),
+                 NESTURBATOR_OK);
     CHECK(reported_span == span);
     CHECK_EQ_U64(reported_span_size, span_size);
 
@@ -338,17 +338,19 @@ static void test_lifecycle_profile(uint8_t profile_code)
     CHECK_EQ_U64(nes->frame_number, 0u);
     reported_span = (uint8_t *)(uintptr_t)1u;
     reported_span_size = 99u;
-    CHECK_EQ_U64(nesturbator_get_memory(fixture.inst, NESTURBATOR_MEMORY_SAVE_RAM,
-                                        &reported_span, &reported_span_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_get_memory(fixture.inst, NESTURBATOR_MEMORY_SAVE_RAM, &reported_span,
+                                        &reported_span_size),
+                 NESTURBATOR_OK);
     CHECK(reported_span == NULL);
     CHECK_EQ_U64(reported_span_size, 0u);
-    CHECK_EQ_U64(nesturbator_load_cartridge(fixture.inst, fixture.image,
-                                             fixture.image_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge(fixture.inst, fixture.image, fixture.image_size),
+                 NESTURBATOR_OK);
     CHECK_EQ_U64(nesturbator_save_generation(fixture.inst), generation_before_unload);
     reported_span = NULL;
     reported_span_size = 0u;
-    CHECK_EQ_U64(nesturbator_get_memory(fixture.inst, NESTURBATOR_MEMORY_SAVE_RAM,
-                                        &reported_span, &reported_span_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_get_memory(fixture.inst, NESTURBATOR_MEMORY_SAVE_RAM, &reported_span,
+                                        &reported_span_size),
+                 NESTURBATOR_OK);
     if (fixture.profile.battery != 0u) {
         CHECK(reported_span != NULL);
         CHECK_EQ_U64(reported_span_size, 8192u);
@@ -420,7 +422,10 @@ static int verdict_control(enum verdict_control control)
           (control != VERDICT_WRONG_ORIGIN || correct_origin != NULL));
     if (origin == NULL || state_a == NULL || state_b == NULL ||
         (control == VERDICT_WRONG_ORIGIN && correct_origin == NULL)) {
-        free(origin); free(correct_origin); free(state_a); free(state_b);
+        free(origin);
+        free(correct_origin);
+        free(state_a);
+        free(state_b);
         nesturbator_destroy(b);
         fixture_drop(&fixture);
         return 0;
@@ -460,7 +465,10 @@ static int verdict_control(enum verdict_control control)
         branch_b.guest_ticks = 0u;
     }
     verdict = nt_exec_verdict(&branch_a, &branch_b, state_a, state_b, state_size);
-    free(origin); free(correct_origin); free(state_a); free(state_b);
+    free(origin);
+    free(correct_origin);
+    free(state_a);
+    free(state_b);
     nesturbator_unload_cartridge(b);
     nesturbator_destroy(b);
     fixture_drop(&fixture);
@@ -499,7 +507,8 @@ static void test_guest_loop_progress(void)
         guard_reset(&buffers);
         CHECK_EQ_U64(nt_exec_frame(fixture.inst, 0u, buffers.video + GUARD_PIXELS,
                                    buffers.audio + GUARD_SAMPLES, &previous_ticks, &branch,
-                                   &fixture.metrics), NESTURBATOR_OK);
+                                   &fixture.metrics),
+                     NESTURBATOR_OK);
         CHECK(guard_intact(&buffers));
         CHECK(nes->ticks > ticks_before);
         CHECK(nes->frame_number > frame_before);
@@ -516,17 +525,15 @@ static void test_guest_loop_progress(void)
     fixture_drop(&fixture);
 }
 
-static nesturbator_status run_jam_frame(struct fixture *fixture,
-                                         struct guarded_buffers *buffers)
+static nesturbator_status run_jam_frame(struct fixture *fixture, struct guarded_buffers *buffers)
 {
     struct nt_exec_branch branch;
     uint64_t previous_ticks = ((struct nesturbator *)fixture->inst)->ticks;
     memset(&branch, 0, sizeof branch);
     guard_reset(buffers);
-    nesturbator_status status = nt_exec_frame(fixture->inst, 0u,
-                                               buffers->video + GUARD_PIXELS,
-                                               buffers->audio + GUARD_SAMPLES,
-                                               &previous_ticks, &branch, &fixture->metrics);
+    nesturbator_status status =
+        nt_exec_frame(fixture->inst, 0u, buffers->video + GUARD_PIXELS,
+                      buffers->audio + GUARD_SAMPLES, &previous_ticks, &branch, &fixture->metrics);
     CHECK(guard_intact(buffers));
     return status;
 }
@@ -653,9 +660,8 @@ static void test_recipe_order_and_repeat(void)
 int main(void)
 {
     uint8_t seed[NT_EXEC_RECIPE_SIZE];
-    const uint8_t profiles[] = {NT_EXEC_PROFILE_NROM, NT_EXEC_PROFILE_MMC1,
-                                NT_EXEC_PROFILE_UXROM, NT_EXEC_PROFILE_CNROM,
-                                NT_EXEC_PROFILE_MMC3, NT_EXEC_PROFILE_AXROM};
+    const uint8_t profiles[] = {NT_EXEC_PROFILE_NROM,  NT_EXEC_PROFILE_MMC1, NT_EXEC_PROFILE_UXROM,
+                                NT_EXEC_PROFILE_CNROM, NT_EXEC_PROFILE_MMC3, NT_EXEC_PROFILE_AXROM};
     CHECK_EQ_U64(nt_exec_self_test(), 0u);
     test_verdict_controls();
     test_guest_loop_progress();
