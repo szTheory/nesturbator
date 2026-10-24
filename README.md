@@ -132,10 +132,14 @@ See [`tests/accuracy/budgets.txt`](tests/accuracy/budgets.txt)
 and [`tests/accuracy/measurements.md`](tests/accuracy/measurements.md) for the
 source identity, cap rationale, timing sensitivity and CI placement input.
 
-`NESTURBATOR_ACCURACYCOIN_FULL` defaults to `OFF`, so ordinary CI does not yet
-include the full campaign. After an explicit run, restore the ordinary build
-configuration with `cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=OFF`;
-plan 17-04 records its measured recurring CI placement.
+`NESTURBATOR_ACCURACYCOIN_FULL` defaults to `OFF` for local builds. Required CI
+enables the full campaign on its primary Linux x64 lane only; the other five
+platform lanes still run the decoder, classifier, protected-pass and parity
+checks. Every build lane uploads the AccuracyCoin evidence directory even on a
+failed run, and missing evidence artifacts fail that job. To reproduce the
+complete local CI lane, configure with `-DNESTURBATOR_ACCURACYCOIN_FULL=ON`
+before `cmake --workflow --preset ci`. Restore the ordinary local setting with
+`cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=OFF` afterward.
 
 CI also runs the inventory decoder against owned mutations of the pinned ROM.
 These controls cover page boundaries, row fields, duplicate decoded identities,

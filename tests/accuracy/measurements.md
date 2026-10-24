@@ -2,17 +2,19 @@
 
 ## Final campaign identity
 
-The final registered run used the comparison ROM and production collector:
+The final registered run used the canonical 6bee ROM and production collector:
 
 - Pin: `6bee919529289c555803b612b8c9e4f7eaaeeabb`
 - ROM SHA-256: `8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc`
 - Inventory SHA-256: `7d022800d01ad81159109bf7457af94ab6f80e4a682fce716ec476f7c454a4a5`
+- Retained comparison pin: `673ef550db296136d52229961e7d39366116882a`, ROM SHA-256 `4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839`, inventory SHA-256 `3271803cdc63c4b4a83cf65453b817dc66ec65ed97863ad19261b56f36821c84`
+- Old inventory: 149 entries (144 scored, 5 DRAW); new inventory: 151 entries (146 scored, 5 DRAW)
 - Report/inventory schema: 1
-- Compiled source revision: `2b8fe1023608`
-- `source_dirty=1`: the only remaining tracked edit at capture time was the preexisting `.planning/config.json`; implementation files were committed.
+- Compiled source revision: `393cb34b445d` (`source_dirty=1`). The capture preceded the Task 1 activation commit and included this plan's source, test and public-header comment edits; the preexisting unrelated edit was `.planning/config.json`.
+- Deterministic build-input fingerprint: `62a760502a8d4d836ee16ea23e60f95d9a41d2cef4985d2db3091e760a63392c` over 56 code/build input files. Generated reports are excluded. Campaign report SHA-256: `6d0a811960f6964e7fc66802c6e4ade0c4ffb8772c40d88d50cf79e1f8463652`.
 - Input policy: cold boot; one page-header A input; one-frame A press; one-frame release; execute the selected page independently.
 - Accepted bounds: boot 32, navigation 5 per page switch, start 2 frames, execution 1800; page child 5 seconds, collector 10 seconds, CTest 150 seconds.
-- Actual CTest campaign duration: 5.97 seconds. Sum of per-page host measurements: 5.878275 seconds; slowest child was page 19 at 1.628714 seconds. A separate collector-only run completed below `/usr/bin/time -p`'s 0.01-second display resolution.
+- Actual CTest campaign duration: 6.46 seconds. Sum of per-page host measurements: 6.357288 seconds; slowest child was page 19 at 1.755651 seconds. A separate collector-only run completed below `/usr/bin/time -p`'s 0.01-second display resolution.
 - Retained output: `build/ci/accuracycoin/full/` contains all 22 page directories, child stdout/stderr, raw snapshots, diagnostics, page reports/metadata, `outer-outcomes.tsv`, and the production `inventory.tsv`, `attempts.tsv`, `observations.tsv`, `report.tsv`, `summary.txt`, and campaign `metadata.txt`.
 
 `outer-outcomes.tsv` records 22 `EXIT_ZERO` children, no outer timeout and no child failure. Campaign metadata says `trustworthy_observation=1` and `infrastructure_verdict=complete`.
@@ -36,32 +38,44 @@ The final registered run used the comparison ROM and production collector:
 
 The five DRAW entries are listed separately and never enter the scored denominator. Every scored row has an observed final byte. The two `not-run` classifications are the page-19 following row with a noncurrent `$03` marker and the untouched `$00` row; neither was invented as an active timeout. The page-19 `Arbitrary Sprite zero` row is the only guest timeout. No all-pass or hardware-conformance claim is made.
 
+## Retained protected-pass measurements
+
+All 17 protected old-pin passes were re-executed from the exact retained `673ef` ROM in fresh cold runs. Each mapped new-pin result is also backed by a fresh campaign observation. All 17 currently pass at both pins; the four source-reviewed changed-meaning rows are explicitly marked and do not broaden strict success to other rows.
+
+| Page | Protected keys | Old `673ef` measurement | New `6bee` measurement |
+|---:|---|---|---|
+| 2 | Absolute Indexed; Zero Page Indexed; Indirect; Indirect, X; Indirect, Y; Relative | All six pass, raw `$01`, 11 frames each | All six pass, raw `$01`, 12 frames each |
+| 14 | Length Counter; Length Table; Delta Modulation Channel; Frame Counter IRQ*; Frame Counter 4-step*; Frame Counter 5-step* | All six pass, raw `$01`, 120 frames each | All six pass, raw `$01`, 120 frames each |
+| 17 | CHR ROM is not writable; PPU Register Mirroring; PPU Register Open Bus*; PPU Read Buffer; Palette RAM Quirks | Four pass raw `$01` and one pass raw `$41`, all 151 frames | Four pass raw `$01` and one pass raw `$41`, all 159 frames |
+
+`*` indicates a source-reviewed changed meaning: the three frame-counter tests changed their cycle synchronization sequence, and PPU Register Open Bus changed its initial setup. The assertions and test symbols were reviewed per pinned source in `migration.tsv`. PPU Read Buffer `$41` remains a source-defined accepted pass for that key only. `tests/accuracy/old-673ef-scoreboard.txt` preserves the old strict expectations; `migration.tsv` carries the exact old/new raw bytes, frame counts, attempts, source symbols and fresh observation references.
+
 ## Per-page measurements
 
 | Page | Boot | Navigation | Start | Execution | Total frames | Verdict | Host ms |
 |---:|---:|---:|---:|---:|---:|---|---:|
-| 1 | 26 | 0 | 2 | 51 | 79 | complete | 71.801 |
-| 2 | 26 | 5 | 2 | 12 | 45 | complete | 36.370 |
-| 3 | 26 | 10 | 2 | 13 | 51 | complete | 41.929 |
-| 4 | 26 | 15 | 2 | 13 | 56 | complete | 47.677 |
-| 5 | 26 | 20 | 2 | 13 | 61 | complete | 50.451 |
-| 6 | 26 | 25 | 2 | 13 | 66 | complete | 55.139 |
-| 7 | 26 | 30 | 2 | 22 | 80 | complete | 69.627 |
-| 8 | 26 | 35 | 2 | 15 | 78 | complete | 66.255 |
-| 9 | 26 | 40 | 2 | 13 | 81 | complete | 69.421 |
-| 10 | 26 | 45 | 2 | 14 | 87 | complete | 72.992 |
-| 11 | 26 | 50 | 2 | 17 | 95 | complete | 79.945 |
-| 12 | 26 | 55 | 2 | 138 | 221 | complete | 161.104 |
-| 13 | 26 | 60 | 2 | 533 | 621 | complete | 637.188 |
-| 14 | 26 | 65 | 2 | 120 | 213 | complete | 200.837 |
-| 15 | 26 | 70 | 2 | 92 | 190 | complete | 184.773 |
-| 16 | 26 | 75 | 2 | 15 | 118 | complete (DRAW-only) | 99.312 |
-| 17 | 26 | 80 | 2 | 159 | 267 | complete | 245.698 |
-| 18 | 26 | 85 | 2 | 1463 | 1576 | complete | 1091.718 |
-| 19 | 26 | 90 | 2 | 1800 | 1918 | guest-timeout | 1628.714 |
-| 20 | 26 | 95 | 2 | 503 | 626 | complete | 478.359 |
-| 21 | 26 | 100 | 2 | 212 | 340 | complete | 266.448 |
-| 22 | 26 | 105 | 2 | 151 | 284 | complete | 222.517 |
+| 1 | 26 | 0 | 2 | 51 | 79 | complete | 75.747 |
+| 2 | 26 | 5 | 2 | 12 | 45 | complete | 37.485 |
+| 3 | 26 | 10 | 2 | 13 | 51 | complete | 43.582 |
+| 4 | 26 | 15 | 2 | 13 | 56 | complete | 47.651 |
+| 5 | 26 | 20 | 2 | 13 | 61 | complete | 51.144 |
+| 6 | 26 | 25 | 2 | 13 | 66 | complete | 63.248 |
+| 7 | 26 | 30 | 2 | 22 | 80 | complete | 69.653 |
+| 8 | 26 | 35 | 2 | 15 | 78 | complete | 67.584 |
+| 9 | 26 | 40 | 2 | 13 | 81 | complete | 74.108 |
+| 10 | 26 | 45 | 2 | 14 | 87 | complete | 76.926 |
+| 11 | 26 | 50 | 2 | 17 | 95 | complete | 85.186 |
+| 12 | 26 | 55 | 2 | 138 | 221 | complete | 165.982 |
+| 13 | 26 | 60 | 2 | 533 | 621 | complete | 690.845 |
+| 14 | 26 | 65 | 2 | 120 | 213 | complete | 233.894 |
+| 15 | 26 | 70 | 2 | 92 | 190 | complete | 202.555 |
+| 16 | 26 | 75 | 2 | 15 | 118 | complete (DRAW-only) | 103.587 |
+| 17 | 26 | 80 | 2 | 159 | 267 | complete | 265.428 |
+| 18 | 26 | 85 | 2 | 1463 | 1576 | complete | 1149.921 |
+| 19 | 26 | 90 | 2 | 1800 | 1918 | guest-timeout | 1755.651 |
+| 20 | 26 | 95 | 2 | 503 | 626 | complete | 514.905 |
+| 21 | 26 | 100 | 2 | 212 | 340 | complete | 323.773 |
+| 22 | 26 | 105 | 2 | 151 | 284 | complete | 258.433 |
 
 At page 16, the ROM's DRAW-only sequence reports no scored result transition. The start is attributed to the observed row-cursor transition and automation flag; completion is the later cursor return to the page header with automation cleared. All five DRAW rows remain inventory-only.
 
@@ -79,7 +93,7 @@ The difference demonstrates that this fixed frame sequence's navigation cap also
 - Navigation: five frames per page change is the measured fixed sequence: one Right edge followed by four neutral frames. The six-frame probe changes guest timing, so it is a distinct policy rather than a free safety margin.
 - Start/release: two frames, with A released on the second frame, were observed in all 22 attempts. Controller-sensitive page 14 also completed through the released-input path.
 - Execution: cap 1800 leaves 337 frames above the longest completed execution (page 18 at 1463); page 19 remains honestly timed out. Increasing this cap to erase that hardware observation is not justified.
-- Wall bounds: the slowest final page was 1.629 seconds, about 3.1 times below the 5-second page deadline. The 22 sequential page deadlines plus 10-second collection cap total 120 seconds; the 150-second CTest timeout leaves 30 seconds for orchestration and final output checks.
-- Placement recommendation for Plan 17-04: one full campaign in a single required PR CI lane, not all six platform matrix legs. This local campaign was 5.97 seconds and adds little against the existing CI job's 39-minute timeout. The repository derives job timeouts from twice the slowest successful sampled hosted run; local measurements do not establish hosted performance, so 17-04 should place one lane and update its timeout comment only after measuring its hosted job sample. The full campaign remains optional/off in ordinary CMake configuration until that activation step.
+- Wall bounds: the slowest final page was 1.756 seconds, about 2.8 times below the 5-second page deadline. The 22 sequential page deadlines plus 10-second collection cap total 120 seconds; the 150-second CTest timeout leaves 30 seconds for orchestration and final output checks.
+- Placement selected for Plan 17-04: one full campaign in the required Linux x64 build lane on each PR, not all six platform matrix legs. CI turns on `NESTURBATOR_ACCURACYCOIN_FULL` only in that lane; the other five still run decoder, classifier, activation, migration, protected-pass and parity checks. The full campaign CTest took 6.46 seconds locally. Each build lane uploads its `build/<preset>/accuracycoin/` evidence with an `always()` upload step and fails if the required directory is absent. The existing Linux build timeout remains 39 minutes: this repository sets it from sampled hosted runs, so the selected lane's actual hosted execution must be recorded before revisiting it. The same applies to the current timeout comment; local duration does not establish hosted performance.
 
 No row-A fallback was run. The cold campaign observed raw bytes for every scored row, and the only nonterminal results retain a current active timeout, a source-disqualified running marker, and an unstarted `$00` row. A separately selected-row attempt would change the guest context, and no additional raw byte is missing from this baseline. The two honest `not-run` findings remain visible for later plans.
