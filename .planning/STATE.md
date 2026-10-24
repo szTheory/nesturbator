@@ -5,18 +5,18 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 18
 current_phase_name: Execution and lifecycle robustness
 current_plan: 4
-status: executing
-stopped_at: Completed 18-03-PLAN.md
-last_updated: "2026-10-24T19:25:15.208Z"
-state_head: d1f9d7f0497aef8dddeaedf64729c84fde2c9d06
+status: verifying
+stopped_at: Completed 18-04-PLAN.md
+last_updated: "2026-10-24T23:36:21.249Z"
+state_head: 23ef1a05e8dfbd1ffc7958c1ec60509597e26891
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 21
-  completed_plans: 20
+  completed_plans: 21
   percent: 67
 last_activity: 2026-10-24
-last_activity_desc: Phase 18 Plan 18-03 qualified loop/JAM lifecycle and libretro presentation; full CI passed 667/667
+last_activity_desc: Phase 18 Plan 18-04 bounded campaign controls and exact-head CI/Nightly passed; phase verification is next
 ---
 
 # Project State
@@ -32,13 +32,14 @@ Current focus: Phase 18 — Execution and lifecycle robustness.
 Phase: 18 (Execution and lifecycle robustness) — EXECUTING
 Current Plan: 4
 Total Plans in Phase: 4
-Status: Ready to execute
+Status: Plan execution complete; phase verification pending
 Progress: [███████░░░] 67% of milestone phases (2/3)
-Written plans: 21 total; 20 plans have summaries and one Phase 18 plan remains.
+Written plans: 21 total; all 21 plans have summaries and Phase 18 awaits independent verification.
 
 Phase 17 is complete: four sequential plans, 38/38 independently verified
 roadmap/plan truths, all 15 locked decisions honored, and CONF-01 through
-CONF-04 Complete. Phase 18 Plans 18-01 through 18-03 are complete; 18-04 is next.
+CONF-04 Complete. Phase 18 Plans 18-01 through 18-04 are complete; Phase 18
+goal verification remains.
 
 ## Phase 18 Planning
 
@@ -60,10 +61,10 @@ CONF-04 Complete. Phase 18 Plans 18-01 through 18-03 are complete; 18-04 is next
   acceptance contracts still apply. No kept prohibition was silently dropped.
 - No prototype, product test or campaign ran during planning. Plan 18-02 later
   measured useful execution reach across all six families and added 24 core
-  functions beyond the loader corpora. Loop/JAM and adapter checks remain in
-  Plan 18-03 completed the loop/JAM and adapter checks; final replay/campaign
-  budgets and findings remain in Plan 18-04.
-  ROB-01 and ROB-02 stay unchecked pending final phase verification.
+  functions beyond the loader corpora. Plan 18-03 completed loop/JAM and adapter
+  checks; Plan 18-04 completed measured replay/campaign budgets, evidence
+  controls and the scoped presentation correction. ROB-01 through ROB-04 remain
+  unchecked pending independent Phase 18 goal verification.
 
 ## Phase 17 Evidence
 
@@ -156,14 +157,16 @@ CONF-04 Complete. Phase 18 Plans 18-01 through 18-03 are complete; 18-04 is next
 
 ## Next Action
 
-`$gsd-execute-phase 18` — continue with Plan 18-04; Plans 18-01 through 18-03 are complete.
-Review/deliver Phase 17 through draft PR #54 using
-the normal PR workflow. Do not re-execute completed Phase 17 plans.
+Run independent Phase 18 goal verification using the completed Plan 18-01
+through 18-04 summaries and exact-host evidence. Keep ROB-01 through ROB-04
+pending until the verifier confirms each requirement.
+Review/deliver Phase 17 through draft PR #54 using the normal PR workflow.
+Do not re-execute completed plans.
 
 ## Session
 
-Last session: 2026-10-24T19:25:14.899Z
-Stopped at: Completed 18-03-PLAN.md
+Last session: 2026-10-24T23:36:21.005Z
+Stopped at: Completed 18-04-PLAN.md
 Resume file: None
 
 [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) remains the
@@ -181,6 +184,7 @@ transport/snapshot/clock/slot gates are not prerequisites for new work.
 | Phase 18 P01 | 59min | 2 tasks | 12 files |
 | Phase 18 P02 | 60min | 3 tasks | 13 files |
 | Phase 18 P03 | 20min | 2 tasks | 13 files |
+| Phase 18 P4 | 3h20m | 3 tasks | 20 files |
 
 ## Recorded Phase 17 decisions
 
@@ -211,3 +215,7 @@ completed after independent verification.
 - [Phase 18]: Use monotonically advancing frame and tick counters as evidence of loop progress; repeated PC or pixels alone do not imply nonprogress.
 - [Phase 18]: Keep STOP_JAM native and latched; libretro repeats its owned complete XRGB frame or initialized black and sends no audio.
 - [Phase 18]: Keep presentation cache outside native state/save states and keep ROB-02/ROB-04 pending for final Phase 18 verification.
+- [Phase 18]: Use the existing Linux Clang workflow for mutation and budget selection because the local Apple Clang runtime lacks libFuzzer.
+- [Phase 18]: Keep target input and work bounds separate from replay, fuzzer, sampled RSS, and outer process limits; finite clean runs remain finite evidence.
+- [Phase 18]: Successful state restore invalidates frame validity while preserving XRGB storage already visible to the frontend.
+- [Phase 18]: Use 15-minute perf and 50-minute randomized-suite workflow caps after exact-host runs demonstrated setup and repeat timing needs.
