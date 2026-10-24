@@ -4,19 +4,19 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 18
 current_phase_name: Execution and lifecycle robustness
-current_plan: 2
+current_plan: 3
 status: executing
-stopped_at: Completed 18-01-PLAN.md
-last_updated: "2026-10-24T17:47:55.360Z"
-state_head: 22b890647bf43ac1bc49f998a023932d853b7bcb
+stopped_at: Completed 18-02-PLAN.md
+last_updated: "2026-10-24T18:49:47.551Z"
+state_head: 7a72947b71be8164e96f0dc9ed447574c4eb029f
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 21
-  completed_plans: 18
+  completed_plans: 19
   percent: 67
 last_activity: 2026-10-24
-last_activity_desc: Phase 18 Plan 18-01 executed and CI passed; initial execution reach measured
+last_activity_desc: Phase 18 Plan 18-02 qualified six mapper families and lifecycle controls; full CI passed
 ---
 
 # Project State
@@ -30,16 +30,15 @@ Current focus: Phase 18 — Execution and lifecycle robustness.
 ## Current Position
 
 Phase: 18 (Execution and lifecycle robustness) — EXECUTING
-Current Plan: 2
+Current Plan: 3
 Total Plans in Phase: 4
-Status: Executing Phase 18
+Status: Ready to execute
 Progress: [███████░░░] 67% of milestone phases (2/3)
-Written plans: 21 total; 17 complete and four Phase 18 plans ready to execute.
+Written plans: 21 total; 19 plans have summaries and two Phase 18 plans remain.
 
 Phase 17 is complete: four sequential plans, 38/38 independently verified
 roadmap/plan truths, all 15 locked decisions honored, and CONF-01 through
-CONF-04 Complete. Phase 18 planning is complete; implementation has not started.
-This command ran only the requested plan-phase step.
+CONF-04 Complete. Phase 18 Plans 18-01 and 18-02 are complete; 18-03 is next.
 
 ## Phase 18 Planning
 
@@ -59,9 +58,11 @@ This command ran only the requested plan-phase step.
 - Five classified edge-probe rows have explicit acceptance truths. Two
   unclassified rows remain flagged assumptions; the locked campaign and halt
   acceptance contracts still apply. No kept prohibition was silently dropped.
-- No prototype, product test or campaign ran in planning. Useful additional
-  six-family reach, final budgets and artifact collection await execution;
-  absent reach leaves ROB-01 unmet unless scope is explicitly amended.
+- No prototype, product test or campaign ran during planning. Plan 18-02 later
+  measured useful execution reach across all six families and added 24 core
+  functions beyond the loader corpora. Loop/JAM and adapter checks remain in
+  Plan 18-03; final replay/campaign budgets and findings remain in Plan 18-04.
+  ROB-01 and ROB-02 stay unchecked pending final phase verification.
 
 ## Phase 17 Evidence
 
@@ -154,14 +155,14 @@ This command ran only the requested plan-phase step.
 
 ## Next Action
 
-`$gsd-execute-phase 18` — run the four verified plans in order.
+`$gsd-execute-phase 18` — continue with Plan 18-03; Plans 18-01 and 18-02 are complete.
 Review/deliver Phase 17 through draft PR #54 using
 the normal PR workflow. Do not re-execute completed Phase 17 plans.
 
 ## Session
 
-Last session: 2026-10-24T17:47:55.079Z
-Stopped at: Completed 18-01-PLAN.md
+Last session: 2026-10-24T18:49:47.304Z
+Stopped at: Completed 18-02-PLAN.md
 Resume file: None
 
 [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) remains the
@@ -177,6 +178,7 @@ transport/snapshot/clock/slot gates are not prerequisites for new work.
 | Phase 17 P03 | 42min | 2 tasks | 15 files |
 | Phase 17 P04 | 7h22m | 2 tasks | 38 files |
 | Phase 18 P01 | 59min | 2 tasks | 12 files |
+| Phase 18 P02 | 60min | 3 tasks | 13 files |
 
 ## Recorded Phase 17 decisions
 
@@ -201,3 +203,6 @@ completed after independent verification.
 - [Phase 18]: Keep loader and state-loader corpus identities separate; execution receives its own NEXE recipe identity.
 - [Phase 18]: Use one finite matched Clang/ASan/UBSan/LLVM-coverage replay pass and report the measured 20-function delta without selecting final campaign budgets.
 - [Phase 18]: Use test-side getrusage for peak RSS after macOS /usr/bin/time -l attempted a sandbox-denied sysctl query.
+- [Phase 18]: Keep six compact in-memory mapper recipes and preserve unrestricted raw PRG/CHR mutation within each selected profile's capacity.
+- [Phase 18]: Interleave a different-board instance between source and restored frames; this checks deterministic isolation, not simultaneous calls or thread safety.
+- [Phase 18]: Keep ROB-01 and ROB-02 pending until remaining Phase 18 evidence and final phase verification.
