@@ -358,6 +358,10 @@ Tests never skip: a test that cannot run somewhere is not registered there, and
 `policy.no-skip` fails when any registered test could report itself skipped or
 is disabled.
 
+The pre-push history scan checks each historical ROM name and binary against
+the manifest in that same commit. Retiring or relocating a listed fixture does
+not invalidate the commit that recorded it.
+
 `fuzz.regress` replays checked-in malformed cartridge seeds through the public
 cartridge load/unload lifecycle on every CI platform. The Linux nightly builds
 that same entry point with Clang libFuzzer and ASan/UBSan, then runs it for a
