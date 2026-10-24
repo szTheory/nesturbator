@@ -4,19 +4,19 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 18
 current_phase_name: Execution and lifecycle robustness
-current_plan: 3
+current_plan: 4
 status: executing
-stopped_at: Completed 18-02-PLAN.md
-last_updated: "2026-10-24T18:49:47.551Z"
-state_head: 7a72947b71be8164e96f0dc9ed447574c4eb029f
+stopped_at: Completed 18-03-PLAN.md
+last_updated: "2026-10-24T19:25:15.208Z"
+state_head: d1f9d7f0497aef8dddeaedf64729c84fde2c9d06
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 21
-  completed_plans: 19
+  completed_plans: 20
   percent: 67
 last_activity: 2026-10-24
-last_activity_desc: Phase 18 Plan 18-02 qualified six mapper families and lifecycle controls; full CI passed
+last_activity_desc: Phase 18 Plan 18-03 qualified loop/JAM lifecycle and libretro presentation; full CI passed 667/667
 ---
 
 # Project State
@@ -30,15 +30,15 @@ Current focus: Phase 18 — Execution and lifecycle robustness.
 ## Current Position
 
 Phase: 18 (Execution and lifecycle robustness) — EXECUTING
-Current Plan: 3
+Current Plan: 4
 Total Plans in Phase: 4
 Status: Ready to execute
 Progress: [███████░░░] 67% of milestone phases (2/3)
-Written plans: 21 total; 19 plans have summaries and two Phase 18 plans remain.
+Written plans: 21 total; 20 plans have summaries and one Phase 18 plan remains.
 
 Phase 17 is complete: four sequential plans, 38/38 independently verified
 roadmap/plan truths, all 15 locked decisions honored, and CONF-01 through
-CONF-04 Complete. Phase 18 Plans 18-01 and 18-02 are complete; 18-03 is next.
+CONF-04 Complete. Phase 18 Plans 18-01 through 18-03 are complete; 18-04 is next.
 
 ## Phase 18 Planning
 
@@ -61,7 +61,8 @@ CONF-04 Complete. Phase 18 Plans 18-01 and 18-02 are complete; 18-03 is next.
 - No prototype, product test or campaign ran during planning. Plan 18-02 later
   measured useful execution reach across all six families and added 24 core
   functions beyond the loader corpora. Loop/JAM and adapter checks remain in
-  Plan 18-03; final replay/campaign budgets and findings remain in Plan 18-04.
+  Plan 18-03 completed the loop/JAM and adapter checks; final replay/campaign
+  budgets and findings remain in Plan 18-04.
   ROB-01 and ROB-02 stay unchecked pending final phase verification.
 
 ## Phase 17 Evidence
@@ -155,14 +156,14 @@ CONF-04 Complete. Phase 18 Plans 18-01 and 18-02 are complete; 18-03 is next.
 
 ## Next Action
 
-`$gsd-execute-phase 18` — continue with Plan 18-03; Plans 18-01 and 18-02 are complete.
+`$gsd-execute-phase 18` — continue with Plan 18-04; Plans 18-01 through 18-03 are complete.
 Review/deliver Phase 17 through draft PR #54 using
 the normal PR workflow. Do not re-execute completed Phase 17 plans.
 
 ## Session
 
-Last session: 2026-10-24T18:49:47.304Z
-Stopped at: Completed 18-02-PLAN.md
+Last session: 2026-10-24T19:25:14.899Z
+Stopped at: Completed 18-03-PLAN.md
 Resume file: None
 
 [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) remains the
@@ -179,6 +180,7 @@ transport/snapshot/clock/slot gates are not prerequisites for new work.
 | Phase 17 P04 | 7h22m | 2 tasks | 38 files |
 | Phase 18 P01 | 59min | 2 tasks | 12 files |
 | Phase 18 P02 | 60min | 3 tasks | 13 files |
+| Phase 18 P03 | 20min | 2 tasks | 13 files |
 
 ## Recorded Phase 17 decisions
 
@@ -206,3 +208,6 @@ completed after independent verification.
 - [Phase 18]: Keep six compact in-memory mapper recipes and preserve unrestricted raw PRG/CHR mutation within each selected profile's capacity.
 - [Phase 18]: Interleave a different-board instance between source and restored frames; this checks deterministic isolation, not simultaneous calls or thread safety.
 - [Phase 18]: Keep ROB-01 and ROB-02 pending until remaining Phase 18 evidence and final phase verification.
+- [Phase 18]: Use monotonically advancing frame and tick counters as evidence of loop progress; repeated PC or pixels alone do not imply nonprogress.
+- [Phase 18]: Keep STOP_JAM native and latched; libretro repeats its owned complete XRGB frame or initialized black and sends no audio.
+- [Phase 18]: Keep presentation cache outside native state/save states and keep ROB-02/ROB-04 pending for final Phase 18 verification.
