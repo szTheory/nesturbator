@@ -351,6 +351,9 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    bounded observer records a host monotonic start stamp with each report so a
    protected verdict can distinguish a fresh measured attempt from copied or
    candidate-asserted status rows.
+   AccuracyCoin ROM pins, inventory counts, and the measured conformance
+   baseline are test inputs only; they do not change this API's ABI or state
+   contract.
    This inspection API adds no library ABI or state-format requirement. On
    error, *value is unchanged. */
 nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,

@@ -20,6 +20,9 @@ if(NOT DEFINED COLLECT_TIMEOUT)
   set(COLLECT_TIMEOUT 20)
 endif()
 
+include("${CMAKE_CURRENT_LIST_DIR}/accuracycoin_input_fingerprint.cmake")
+accuracycoin_compute_input_fingerprint("${SOURCE_DIR}" build_inputs_sha256 build_inputs_count)
+
 file(MAKE_DIRECTORY "${WORK}")
 file(REMOVE "${WORK}/outer-outcomes.tsv" "${WORK}/inventory.tsv"
   "${WORK}/attempts.tsv" "${WORK}/observations.tsv" "${WORK}/report.tsv"
@@ -174,6 +177,10 @@ else()
       message(FATAL_ERROR "campaign collection omitted ${name}")
     endif()
   endforeach()
+  file(SHA256 "${WORK}/report.tsv" campaign_report_sha256)
+  file(APPEND "${WORK}/metadata.txt"
+    "build_inputs_sha256=${build_inputs_sha256}\nbuild_inputs_count=${build_inputs_count}\n"
+    "campaign_report_sha256=${campaign_report_sha256}\n")
   file(STRINGS "${WORK}/attempts.tsv" attempt_lines)
   file(STRINGS "${WORK}/report.tsv" report_lines)
   list(LENGTH attempt_lines attempt_count)

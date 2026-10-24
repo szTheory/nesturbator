@@ -59,21 +59,22 @@ build time from the committed ROM after its sha256 is checked, and are never com
 before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
 banks and uses the 8 KiB CHR RAM it fills during startup.
 
-The MIT AccuracyCoin ROM at `673ef550db296136d52229961e7d39366116882a` remains
-the canonical fixture for strict page and protected-scoreboard checks. The
-comparison fixture at `6bee919529289c555803b612b8c9e4f7eaaeeabb` is admitted
-separately: its SHA-256 is
+The MIT AccuracyCoin ROM at `6bee919529289c555803b612b8c9e4f7eaaeeabb` is the
+canonical fixture: its SHA-256 is
 `8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc`, and its
-decoded directory contains 146 scored tests plus five separate DRAW entries.
-The runner authenticates the complete ROM bytes, decodes the in-ROM page and
-row names, and reads observed result bytes from CPU RAM through
-`nesturbator_peek_cpu_ram`. The comparison fixture does not replace the old
-strict-page registrations or imply a passing score.
+decoded directory contains 146 scored rows plus five separate DRAW entries.
+The retained comparison ROM at `673ef550db296136d52229961e7d39366116882a`
+has SHA-256
+`4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839` and has
+144 scored rows plus five DRAW entries. The runner authenticates complete ROM
+bytes, decodes the in-ROM page and row names, and reads observed result bytes
+from CPU RAM through `nesturbator_peek_cpu_ram`. The new baseline is a measured
+observation, not a claim that every hardware test passes.
 
 Print the complete source-order inventory for either retained pin:
 
 ```sh
-nesturbator-run --accuracycoin-inventory --rom tests/roms/accuracycoin-6bee.nes
+nesturbator-run --accuracycoin-inventory --rom tests/roms/accuracycoin.nes
 ```
 
 Record bounded guest evidence for one page without treating known failures,
@@ -81,7 +82,7 @@ skips or guest timeouts as infrastructure failures:
 
 ```sh
 mkdir -p build/accuracycoin/page3
-nesturbator-run --accuracycoin-observe 3 --rom tests/roms/accuracycoin-6bee.nes \
+nesturbator-run --accuracycoin-observe 3 --rom tests/roms/accuracycoin.nes \
   --frames 1800 --accuracycoin-output build/accuracycoin/page3
 ```
 
@@ -124,12 +125,14 @@ per page change, 2 attributed press/release frames, and 1800 execution frames;
 its page, collection and CTest wall limits are 5, 10 and 150 seconds. The actual
 report and per-page diagnostics are retained under `build/ci/accuracycoin/full/`.
 That run attributed all 22 starts and observed all 146 scored bytes, with 101
-pass, 42 fail, 2 not-run and 1 guest timeout; five DRAW entries remain outside
-the denominator. See [`tests/accuracy/budgets.txt`](tests/accuracy/budgets.txt)
+pass, 42 fail, 0 skip, 2 not-run and 1 guest timeout; five DRAW entries remain
+outside the denominator. The two not-run rows have no observed result byte; the
+active `$03` row is a guest timeout, while a noncurrent `$03` marker is not-run.
+See [`tests/accuracy/budgets.txt`](tests/accuracy/budgets.txt)
 and [`tests/accuracy/measurements.md`](tests/accuracy/measurements.md) for the
 source identity, cap rationale, timing sensitivity and CI placement input.
 
-`NESTURBATOR_ACCURACYCOIN_FULL` defaults to `OFF`, so normal CI does not yet
+`NESTURBATOR_ACCURACYCOIN_FULL` defaults to `OFF`, so ordinary CI does not yet
 include the full campaign. After an explicit run, restore the ordinary build
 configuration with `cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=OFF`;
 plan 17-04 records its measured recurring CI placement.
@@ -148,14 +151,18 @@ test's source-defined branch, not a generalized emulator result code.
 The five rows whose result address is the shared `$03FF` DRAW sentinel are
 reported as `draw` and excluded from result transitions and scored rows.
 
-The existing strict runner continues to compare its selected page results
-against `tests/accuracy/scoreboard.txt`:
+The existing strict runner compares selected page results against the retained
+old-pin expectations, which continue to cover the measured pages 2, 14 and 17:
 
 ```sh
-nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin.nes \
-  --scoreboard tests/accuracy/scoreboard.txt
+nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin-673ef.nes \
+  --scoreboard tests/accuracy/old-673ef-scoreboard.txt
 ```
 
+The canonical `tests/accuracy/scoreboard.txt` is an observation baseline across
+the new pin's 146 rows; it records pass, fail, skip, not-run or timeout with the
+measured raw byte and guest frames. It is not used to turn failures into strict
+successes.
 The retained old-pin comparison lives in `tests/accuracy/old-673ef-scoreboard.txt`
 and `old-673ef-metadata.txt`. It records 17 measured old-pin protected passes
 from pages 2, 14 and 17, including PPU Read Buffer `$41`; it is not a full

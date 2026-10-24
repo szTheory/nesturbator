@@ -12,8 +12,8 @@ set(baseline "${SOURCE_DIR}/tests/accuracy/scoreboard-main.txt")
 set(metadata "${SOURCE_DIR}/tests/accuracy/scoreboard-main-metadata.txt")
 set(revision "9f9386c661f6fb8f6063bf756655713aedadae77")
 set(source_scoreboard "${SOURCE_DIR}/tests/accuracy/scoreboard.txt")
-set(old_rom "${SOURCE_DIR}/tests/roms/accuracycoin.nes")
-set(new_rom "${SOURCE_DIR}/tests/roms/accuracycoin-6bee.nes")
+set(old_rom "${SOURCE_DIR}/tests/roms/accuracycoin-673ef.nes")
+set(new_rom "${SOURCE_DIR}/tests/roms/accuracycoin.nes")
 set(source_manifest "${SOURCE_DIR}/tests/roms/manifest.txt")
 set(source_migration "${SOURCE_DIR}/tests/accuracy/migration.tsv")
 set(old_pin "673ef550db296136d52229961e7d39366116882a")
@@ -22,13 +22,41 @@ set(new_pin "6bee919529289c555803b612b8c9e4f7eaaeeabb")
 file(REMOVE_RECURSE "${WORK}")
 file(MAKE_DIRECTORY "${WORK}")
 
+function(set_old_candidate_manifest root)
+  file(STRINGS "${source_manifest}" source_lines)
+  set(updated_manifest "")
+  set(old_count 0)
+  set(new_count 0)
+  foreach(line IN LISTS source_lines)
+    if(line MATCHES "^#")
+      string(APPEND updated_manifest "${line}${newline}")
+      continue()
+    endif()
+    string(FIND "${line}" "tests/roms/accuracycoin.nes${tab}" new_offset)
+    if(new_offset EQUAL 0)
+      math(EXPR new_count "${new_count} + 1")
+      set(line "tests/roms/accuracycoin.nes\thttps://github.com/100thCoin/AccuracyCoin/tree/${old_pin}\t${old_pin}\tMIT\t4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839")
+    endif()
+    string(FIND "${line}" "tests/roms/accuracycoin-673ef.nes${tab}" old_offset)
+    if(old_offset EQUAL 0)
+      math(EXPR old_count "${old_count} + 1")
+      continue()
+    endif()
+    string(APPEND updated_manifest "${line}${newline}")
+  endforeach()
+  if(NOT old_count EQUAL 1 OR NOT new_count EQUAL 1)
+    message(FATAL_ERROR "old candidate manifest control did not find exactly one new canonical and old comparison row")
+  endif()
+  file(WRITE "${root}/manifest.txt" "${updated_manifest}")
+endfunction()
+
 macro(prepare_case name)
   set(case_root "${WORK}/${name}")
   file(MAKE_DIRECTORY "${case_root}")
   configure_file("${baseline}" "${case_root}/baseline.txt" COPYONLY)
   configure_file("${metadata}" "${case_root}/metadata.txt" COPYONLY)
   configure_file("${source_scoreboard}" "${case_root}/scoreboard.txt" COPYONLY)
-  configure_file("${source_manifest}" "${case_root}/manifest.txt" COPYONLY)
+  set_old_candidate_manifest("${case_root}")
   configure_file("${source_migration}" "${case_root}/migration.tsv" COPYONLY)
   file(MAKE_DIRECTORY "${case_root}/evidence")
   file(COPY "${EVIDENCE_ROOT}/old" "${EVIDENCE_ROOT}/new"
@@ -178,17 +206,15 @@ function(set_new_candidate_manifest root)
       string(APPEND updated_manifest "${line}${newline}")
       continue()
     endif()
-    string(FIND "${line}" "tests/roms/accuracycoin.nes${tab}" old_offset)
+    string(FIND "${line}" "tests/roms/accuracycoin-673ef.nes${tab}" old_offset)
     if(old_offset EQUAL 0)
       math(EXPR old_count "${old_count} + 1")
       continue()
     endif()
-    string(FIND "${line}" "tests/roms/accuracycoin-6bee.nes${tab}" new_offset)
+    string(FIND "${line}" "tests/roms/accuracycoin.nes${tab}" new_offset)
     if(new_offset EQUAL 0)
       math(EXPR new_count "${new_count} + 1")
-      string(REPLACE "tests/roms/accuracycoin-6bee.nes${tab}"
-        "tests/roms/accuracycoin.nes${tab}" new_line "${line}")
-      string(APPEND updated_manifest "${new_line}${newline}")
+      string(APPEND updated_manifest "${line}${newline}")
     else()
       string(APPEND updated_manifest "${line}${newline}")
     endif()
@@ -299,8 +325,8 @@ run_verdict("cannot read raw observation evidence")
 
 prepare_case(key_substitution_preserves_total)
 replace_once("${case_root}/scoreboard.txt"
-  "accuracycoin/Absolute Indexed\tpass\t0x01\t-\t-\n"
-  "accuracycoin/Absolute Index\tpass\t0x01\t-\t-\n")
+  "accuracycoin/Absolute Indexed\tpass\t0x01\t12\t-\n"
+  "accuracycoin/Absolute Index\tpass\t0x01\t12\t-\n")
 run_verdict("candidate scoreboard lost a protected key")
 
 prepare_case(candidate_pin_field_only)
@@ -329,8 +355,8 @@ set_new_candidate_manifest("${case_root}")
 mutate_observation("${case_root}" new 17 4 "accuracycoin/PPU Read Buffer"
   pass 0x39 source-defined-pass-variant)
 replace_once("${case_root}/scoreboard.txt"
-  "accuracycoin/PPU Read Buffer\tpass\t0x41\t-\t-\n"
-  "accuracycoin/PPU Read Buffer\tpass\t0x39\t-\t-\n")
+  "accuracycoin/PPU Read Buffer\tpass\t0x41\t159\t-\n"
+  "accuracycoin/PPU Read Buffer\tpass\t0x39\t159\t-\n")
 change_migration_reference("${case_root}" "accuracycoin/PPU Read Buffer"
   0x41 pass 0x39 pass 159)
 run_verdict("PASS")
@@ -340,8 +366,8 @@ set_new_candidate_manifest("${case_root}")
 mutate_observation("${case_root}" new 17 4 "accuracycoin/PPU Read Buffer"
   pass 0x05 unsupported-pass-variant)
 replace_once("${case_root}/scoreboard.txt"
-  "accuracycoin/PPU Read Buffer\tpass\t0x41\t-\t-\n"
-  "accuracycoin/PPU Read Buffer\tpass\t0x05\t-\t-\n")
+  "accuracycoin/PPU Read Buffer\tpass\t0x41\t159\t-\n"
+  "accuracycoin/PPU Read Buffer\tpass\t0x05\t159\t-\n")
 change_migration_reference("${case_root}" "accuracycoin/PPU Read Buffer"
   0x41 pass 0x05 pass 159)
 run_verdict("protected page report status does not match its raw byte")
@@ -357,8 +383,8 @@ set_new_candidate_manifest("${case_root}")
 mutate_observation("${case_root}" new 14 4 "accuracycoin/Frame Counter 4-step"
   fail 0x02 terminal-fail)
 replace_once("${case_root}/scoreboard.txt"
-  "accuracycoin/Frame Counter 4-step\tpass\t0x01\t-\t-\n"
-  "accuracycoin/Frame Counter 4-step\tfail\t0x02\t-\t-\n")
+  "accuracycoin/Frame Counter 4-step\tpass\t0x01\t120\t-\n"
+  "accuracycoin/Frame Counter 4-step\tfail\t0x02\t120\t-\n")
 change_migration_reference("${case_root}" "accuracycoin/Frame Counter 4-step"
   0x01 pass 0x02 fail 120)
 run_verdict("PASS")
@@ -368,8 +394,8 @@ set_new_candidate_manifest("${case_root}")
 mutate_observation("${case_root}" new 14 4 "accuracycoin/Frame Counter 4-step"
   fail 0x02 terminal-fail)
 replace_once("${case_root}/scoreboard.txt"
-  "accuracycoin/Frame Counter 4-step\tpass\t0x01\t-\t-\n"
-  "accuracycoin/Frame Counter 4-step\tfail\t0x02\t-\t-\n")
+  "accuracycoin/Frame Counter 4-step\tpass\t0x01\t120\t-\n"
+  "accuracycoin/Frame Counter 4-step\tfail\t0x02\t120\t-\n")
 change_migration_reference("${case_root}" "accuracycoin/Frame Counter 4-step"
   0x01 pass 0x02 fail 120)
 set_migration_disposition("${case_root}" "accuracycoin/Frame Counter 4-step" unchanged)

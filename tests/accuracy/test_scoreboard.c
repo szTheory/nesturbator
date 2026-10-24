@@ -220,6 +220,7 @@ static int load_scoreboard(const char *path, scoreboard_row *rows, size_t *count
     char line[SCOREBOARD_LINE_SIZE];
     size_t row_count = 0u;
     char previous[SCOREBOARD_KEY_SIZE] = "";
+    uint64_t frame_count;
     if (file == NULL)
         return set_error(error, error_size, "cannot read scoreboard");
     while (fgets(line, sizeof line, file) != NULL) {
@@ -230,10 +231,14 @@ static int load_scoreboard(const char *path, scoreboard_row *rows, size_t *count
             strlen(fields[0]) >= sizeof rows[0].key || strlen(fields[1]) >= sizeof rows[0].status ||
             strlen(fields[2]) >= sizeof rows[0].raw ||
             (strcmp(fields[1], "pass") != 0 && strcmp(fields[1], "fail") != 0 &&
-             strcmp(fields[1], "unavailable") != 0 && strcmp(fields[1], "unsupported") != 0) ||
-            strlen(fields[2]) != 4u || fields[2][0] != '0' || fields[2][1] != 'x' ||
-            !valid_hex(fields[2] + 2, 2u) || strcmp(fields[3], "-") != 0 ||
-            strcmp(fields[4], "-") != 0 ||
+             strcmp(fields[1], "skip") != 0 && strcmp(fields[1], "not-run") != 0 &&
+             strcmp(fields[1], "timeout") != 0 && strcmp(fields[1], "unavailable") != 0 &&
+             strcmp(fields[1], "unsupported") != 0) ||
+            (strcmp(fields[2], "-") != 0 &&
+             (strlen(fields[2]) != 4u || fields[2][0] != '0' || fields[2][1] != 'x' ||
+              !valid_hex(fields[2] + 2, 2u))) ||
+            (strcmp(fields[3], "-") != 0 && !parse_unsigned(fields[3], &frame_count)) ||
+            (strcmp(fields[4], "-") != 0 && !valid_hex(fields[4], 64u)) ||
             (previous[0] != '\0' && strcmp(previous, fields[0]) >= 0)) {
             (void)fclose(file);
             return set_error(error, error_size, "scoreboard row is invalid, duplicated, or unsorted");
@@ -768,9 +773,9 @@ static int verify_context(protected_context *context, const char *baseline_path,
         if (strcmp(context->baseline[i].status, "pass") != 0)
             return set_error(error, error_size, "protected baseline contains a non-pass row");
 
-    if (!load_directory(NESTURBATOR_SOURCE_DIR "/tests/roms/accuracycoin.nes",
+    if (!load_directory(NESTURBATOR_SOURCE_DIR "/tests/roms/accuracycoin-673ef.nes",
                         &context->old_directory, error, error_size) ||
-        !load_directory(NESTURBATOR_SOURCE_DIR "/tests/roms/accuracycoin-6bee.nes",
+        !load_directory(NESTURBATOR_SOURCE_DIR "/tests/roms/accuracycoin.nes",
                         &context->new_directory, error, error_size) ||
         !load_directory(candidate_rom_path, &context->candidate_directory, error, error_size))
         return 0;

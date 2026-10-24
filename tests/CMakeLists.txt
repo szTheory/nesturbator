@@ -693,12 +693,14 @@ set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
 # AccuracyCoin page runs are kept separate so a failure names the page whose
 # RAM-derived results diverged from the committed scoreboard.
 set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
+set(ACCURACYCOIN_OLD_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin-673ef.nes)
 set(ACCURACYCOIN_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/scoreboard.txt)
+set(ACCURACYCOIN_OLD_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/old-673ef-scoreboard.txt)
 set(ACCURACYCOIN_PROTECTED_WORK ${PROJECT_BINARY_DIR}/accuracycoin/protected-observations)
 foreach(page IN ITEMS 2 14 17)
   add_test(NAME accuracycoin.page${page}
     COMMAND ${CMAKE_COMMAND}
-      "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_ROM};--scoreboard;${ACCURACYCOIN_SCOREBOARD}"
+      "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_OLD_ROM};--scoreboard;${ACCURACYCOIN_OLD_SCOREBOARD}"
       "-DEXPECT=accuracycoin page ${page} PASS"
       -DEXPECT_EXIT=0
       -DIGNORE_STDOUT=TRUE
@@ -706,9 +708,9 @@ foreach(page IN ITEMS 2 14 17)
   set_tests_properties(accuracycoin.page${page} PROPERTIES TIMEOUT 60)
 endforeach()
 
-# The comparison tracer runs the actual new-pin fixture through the production
-# runner and validates its page-3 token expansion, start transition and report.
-set(ACCURACYCOIN_COMPARISON_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin-6bee.nes)
+# The canonical new-pin fixture exercises page-3 token expansion, start
+# transition and report generation through the production runner.
+set(ACCURACYCOIN_COMPARISON_ROM ${ACCURACYCOIN_ROM})
 option(NESTURBATOR_ACCURACYCOIN_FULL
   "Register the measured 22-page AccuracyCoin campaign test" OFF)
 add_executable(accuracycoin.conformance
@@ -734,13 +736,29 @@ set_tests_properties(accuracycoin.tracer PROPERTIES TIMEOUT 90)
 add_test(NAME accuracycoin.inventory
   COMMAND accuracycoin.conformance inventory
     ${ACCURACYCOIN_COMPARISON_ROM}
-    ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
+    ${ACCURACYCOIN_OLD_ROM})
 add_test(NAME accuracycoin.classifier
   COMMAND accuracycoin.conformance classifier)
 add_test(NAME accuracycoin.migration_source
   COMMAND accuracycoin.conformance migration
     ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/migration.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/old-673ef-scoreboard.txt)
+add_test(NAME accuracycoin.activation
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DCONFORMANCE=$<TARGET_FILE:accuracycoin.conformance>"
+    "-DNEW_ROM=${ACCURACYCOIN_ROM}"
+    "-DOLD_ROM=${ACCURACYCOIN_OLD_ROM}"
+    "-DSCOREBOARD=${ACCURACYCOIN_SCOREBOARD}"
+    "-DBASELINE_METADATA=${CMAKE_CURRENT_SOURCE_DIR}/accuracy/baseline-metadata.txt"
+    "-DOLD_SCOREBOARD=${ACCURACYCOIN_OLD_SCOREBOARD}"
+    "-DMIGRATION=${CMAKE_CURRENT_SOURCE_DIR}/accuracy/migration.tsv"
+    "-DFULL_ENABLED=${NESTURBATOR_ACCURACYCOIN_FULL}"
+    "-DFULL_REPORT=${PROJECT_BINARY_DIR}/accuracycoin/full/report.tsv"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_activation.cmake)
+set_tests_properties(accuracycoin.inventory accuracycoin.classifier
+  accuracycoin.migration_source accuracycoin.activation PROPERTIES TIMEOUT 90)
 set_tests_properties(accuracycoin.inventory accuracycoin.classifier
   accuracycoin.migration_source PROPERTIES TIMEOUT 30)
 add_test(NAME accuracycoin.driver
@@ -754,7 +772,7 @@ add_test(NAME accuracycoin.driver
 add_test(NAME accuracycoin.report
   COMMAND accuracycoin.conformance report
     ${ACCURACYCOIN_COMPARISON_ROM}
-    ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes
+    ${ACCURACYCOIN_OLD_ROM}
     ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/report)
 add_test(NAME accuracycoin.outer_failure
   COMMAND ${CMAKE_COMMAND}
@@ -779,6 +797,8 @@ if(NESTURBATOR_ACCURACYCOIN_FULL)
       -DPAGE_TIMEOUT=5 -DCOLLECT_TIMEOUT=10
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_campaign.cmake)
   set_tests_properties(accuracycoin.campaign PROPERTIES TIMEOUT 150)
+  set_tests_properties(accuracycoin.campaign PROPERTIES FIXTURES_SETUP accuracycoin_full_report)
+  set_tests_properties(accuracycoin.activation PROPERTIES FIXTURES_REQUIRED accuracycoin_full_report)
 endif()
 
 # Protected scoring is based on six fresh cold invocations: the three old
@@ -787,7 +807,7 @@ endif()
 add_test(NAME accuracycoin.protected_observation
   COMMAND ${CMAKE_COMMAND}
     "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
-    "-DOLD_ROM=${ACCURACYCOIN_ROM}"
+    "-DOLD_ROM=${ACCURACYCOIN_OLD_ROM}"
     "-DNEW_ROM=${ACCURACYCOIN_COMPARISON_ROM}"
     "-DWORK=${ACCURACYCOIN_PROTECTED_WORK}"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_protected.cmake)

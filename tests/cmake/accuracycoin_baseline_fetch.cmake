@@ -9,6 +9,7 @@ endforeach()
 file(REMOVE_RECURSE "${WORK}")
 file(MAKE_DIRECTORY "${WORK}")
 string(ASCII 10 metadata_newline)
+string(ASCII 9 manifest_tab)
 
 function(run_git working_directory description)
   execute_process(
@@ -43,6 +44,24 @@ function(create_fixture name scoreboard_mode metadata_mode has_main)
   endif()
   configure_file("${SOURCE_DIR}/tests/roms/manifest.txt"
     "${source_repo}/tests/roms/manifest.txt" COPYONLY)
+  # Model protected main before pin activation: its canonical filename still
+  # identified the old bytes. The legacy fixture must not copy the candidate
+  # identity forward merely because the pathname has since been reused.
+  file(STRINGS "${source_repo}/tests/roms/manifest.txt" manifest_lines)
+  set(legacy_manifest "")
+  set(legacy_manifest_rows 0)
+  foreach(line IN LISTS manifest_lines)
+    string(FIND "${line}" "tests/roms/accuracycoin.nes${manifest_tab}" canonical_offset)
+    if(canonical_offset EQUAL 0)
+      math(EXPR legacy_manifest_rows "${legacy_manifest_rows} + 1")
+      set(line "tests/roms/accuracycoin.nes\thttps://github.com/100thCoin/AccuracyCoin/tree/673ef550db296136d52229961e7d39366116882a\t673ef550db296136d52229961e7d39366116882a\tMIT\t4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839")
+    endif()
+    string(APPEND legacy_manifest "${line}${metadata_newline}")
+  endforeach()
+  if(NOT legacy_manifest_rows EQUAL 1)
+    message(FATAL_ERROR "legacy protected fixture did not find exactly one canonical AccuracyCoin row")
+  endif()
+  file(WRITE "${source_repo}/tests/roms/manifest.txt" "${legacy_manifest}")
 
   if(metadata_mode STREQUAL "local_snapshot")
     configure_file("${SOURCE_DIR}/tests/accuracy/scoreboard-main-metadata.txt"

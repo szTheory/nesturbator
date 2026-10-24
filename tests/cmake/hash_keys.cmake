@@ -35,7 +35,7 @@ set(NESTURBATOR_HASH_GAMES
 set(NESTURBATOR_STATE_HM_BOARDS m1sxrom m2 m3 m4tkrom m7)
 set(NESTURBATOR_ROM_HASH_EXEMPT
   "accuracycoin.nes"
-  "accuracycoin-6bee.nes")
+  "accuracycoin-673ef.nes")
 
 # Sets <out> to the sorted key list. A key is the text before " ticks " in a
 # frame row, the whole "... sha256" text of an audio row, or the text before
