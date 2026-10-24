@@ -378,7 +378,13 @@ execute_process(COMMAND git -C "${source_root}" rev-parse HEAD
 if(NOT revision_result EQUAL 0)
   message(FATAL_ERROR "could not identify the exact campaign source revision")
 endif()
-set(source_platform "${CMAKE_HOST_SYSTEM_NAME}-${CMAKE_HOST_SYSTEM_PROCESSOR}")
+find_program(uname_program NAMES uname REQUIRED)
+execute_process(COMMAND "${uname_program}" -m
+  RESULT_VARIABLE machine_result OUTPUT_VARIABLE machine_type OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT machine_result EQUAL 0 OR machine_type STREQUAL "")
+  message(FATAL_ERROR "could not identify execution host architecture")
+endif()
+set(source_platform "${CMAKE_HOST_SYSTEM_NAME}-${machine_type}")
 execute_process(COMMAND "${clang_program}" --version
   RESULT_VARIABLE clang_result OUTPUT_VARIABLE clang_version ERROR_VARIABLE clang_error)
 if(NOT clang_result EQUAL 0)
@@ -386,8 +392,8 @@ if(NOT clang_result EQUAL 0)
 endif()
 string(REPLACE "\n" " " clang_version "${clang_version}")
 string(STRIP "${clang_version}" clang_version)
-if(DEFINED GITHUB_RUN_ID AND NOT GITHUB_RUN_ID STREQUAL "")
-  set(run_identity "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")
+if(DEFINED ENV{GITHUB_RUN_ID} AND NOT "$ENV{GITHUB_RUN_ID}" STREQUAL "")
+  set(run_identity "$ENV{GITHUB_SERVER_URL}/$ENV{GITHUB_REPOSITORY}/actions/runs/$ENV{GITHUB_RUN_ID}")
 else()
   set(run_identity local-unhosted)
 endif()
@@ -419,12 +425,14 @@ file(COPY "${source_root}/tests/fuzz/corpus/" DESTINATION "${output_root}/origin
 file(COPY "${source_root}/tests/fuzz/corpus_state/" DESTINATION "${output_root}/originals/state-loader")
 file(COPY "${source_root}/tests/fuzz/corpus_execution/" DESTINATION "${output_root}/originals/execution")
 
-set(c_flags "-O1 -fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
+set(c_flags "-fsanitize=fuzzer-no-link,address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer")
+set(release_flags "-O1 -DNDEBUG")
 set(link_flags "-fsanitize=address,undefined")
-set(configure_command "cmake -S . -B <build> -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_C_FLAGS=${c_flags} -DCMAKE_EXE_LINKER_FLAGS=${link_flags} -DNESTURBATOR_LIBFUZZER=ON")
+set(configure_command "cmake -S . -B <build> -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_C_FLAGS_RELEASE=${release_flags} -DCMAKE_C_FLAGS=${c_flags} -DCMAKE_EXE_LINKER_FLAGS=${link_flags} -DNESTURBATOR_LIBFUZZER=ON")
 file(WRITE "${output_root}/logs/commands.txt" "source=${source_revision}\nplatform=${source_platform}\nrun=${run_identity}\nmode=${MODE}\nconfigure=${configure_command}\n")
 execute_process(COMMAND "${CMAKE_COMMAND}" -S "${source_root}" -B "${build_root}" -G Ninja
     "-DCMAKE_C_COMPILER=${clang_program}" -DCMAKE_BUILD_TYPE=Release
+    "-DCMAKE_C_FLAGS_RELEASE=${release_flags}"
     -DCMAKE_COMPILE_WARNING_AS_ERROR=ON "-DCMAKE_C_FLAGS=${c_flags}"
     "-DCMAKE_EXE_LINKER_FLAGS=${link_flags}" -DNESTURBATOR_LIBFUZZER=ON
   RESULT_VARIABLE configure_result OUTPUT_VARIABLE configure_out ERROR_VARIABLE configure_err)

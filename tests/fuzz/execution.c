@@ -1014,6 +1014,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     return 0;
 }
 
+#ifdef NESTURBATOR_FUZZ_REPLAY
 static void nt_exec_seed(uint8_t seed[NT_EXEC_RECIPE_SIZE])
 {
     static const uint8_t bytes[NT_EXEC_RECIPE_SIZE] = {
@@ -1374,7 +1375,6 @@ static int nt_exec_replay(int argc, char **argv)
     return 0;
 }
 
-#ifdef NESTURBATOR_FUZZ_REPLAY
 int main(int argc, char **argv)
 {
     if (argc >= 2 && strcmp(argv[1], "--check-seeds") == 0)
