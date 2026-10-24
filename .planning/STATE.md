@@ -7,8 +7,8 @@ current_phase_name: Complete pinned conformance baseline
 current_plan: 4
 status: executing
 stopped_at: Completed 17-03-PLAN.md
-last_updated: "2026-10-23T23:59:43.487Z"
-state_head: 514beda30507bcb4d3bfe48f7992e5033f458b4f
+last_updated: "2026-10-24T00:00:34.010Z"
+state_head: 29bb07cd380033a8ed921e9a1d3e2c3762e10aa3
 progress:
   total_phases: 3
   completed_phases: 1
@@ -16,7 +16,7 @@ progress:
   completed_plans: 16
   percent: 33
 last_activity: 2026-10-23
-last_activity_desc: Plan 17-02 passed full CI; bounded new-pin campaign measured and retained raw outcomes
+last_activity_desc: Plan 17-03 passed full CI; protected authority and fresh measured migration verdict are enforced
 ---
 
 # Project State
@@ -52,7 +52,10 @@ The planning step itself ran no implementation tests.
 - Plans 17-01 through 17-04 cover the real tracer/inventory, bounded campaign,
   protected-main regression enforcement, then atomic canonical activation and
   measured CI placement. Plan 17-01 now passes full CI with the comparison
-  fixture admitted; the old canonical strict checks stay active through staging.
+fixture admitted; the old canonical strict checks stay active through staging.
+- Plan 17-03 now enforces protected-main authority from one immutable revision
+  and requires fresh old/new observations for all 17 protected keys. Plan 17-04
+  owns canonical activation and measured CI placement.
 - Independent plan checking passed without findings. Four plan structures and
   frontmatters validate; all 10 task verification commands state failure signals;
   all four requirements and 15 tracked decisions are covered.
@@ -108,13 +111,13 @@ The planning step itself ran no implementation tests.
 
 ## Next Action
 
-`$gsd-execute-phase 17` — continue with Plan 17-03, protected-main authority,
-actual protected measurements and source-backed migration enforcement. Keep the
-phase-level CONF requirements pending until the phase is verified.
+`$gsd-execute-phase 17` — continue with Plan 17-04, canonical activation and
+measured CI placement. Keep the phase-level CONF requirements pending until the
+phase is verified.
 
 ## Session
 
-Last session: 2026-10-23T23:59:43.328Z
+Last session: 2026-10-24T00:00:33.826Z
 Stopped at: Completed 17-03-PLAN.md
 Resume file: None
 
