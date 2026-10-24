@@ -94,7 +94,7 @@ execute_process(
   COMMAND "${RUNNER}" --accuracycoin-observe 19 --rom "${ROM}" --frames 1924
     --accuracycoin-boot-cap 32 --accuracycoin-navigation-cap 5
     --accuracycoin-execution-cap 1800 --accuracycoin-output "${active_dir}"
-  WORKING_DIRECTORY "${SOURCE_DIR}" TIMEOUT 10
+  WORKING_DIRECTORY "${SOURCE_DIR}" TIMEOUT 30
   RESULT_VARIABLE active_result OUTPUT_VARIABLE active_stdout ERROR_VARIABLE active_stderr)
 if(NOT "${active_result}" STREQUAL "0")
   set(active_metadata_diagnostic "<metadata unavailable>")

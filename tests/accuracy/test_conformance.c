@@ -672,9 +672,13 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
         fclose(diagnostics) != 0)
         return 0;
 
-    FILE *report = fopen(report_path, "w");
+    int crlf_report = strcmp(mutation, "crlf-outcomes") == 0;
+    int malformed_report = strcmp(mutation, "bad-report-line") == 0;
+    const char *report_line_ending = crlf_report != 0 ? "\r\n" : "\n";
+    FILE *report = fopen(report_path, "wb");
     if (report == NULL ||
-        fprintf(report, "key\tpage\trow\tstatus\tobserved\traw\tframes\tcause\tattempt_id\n") < 0) {
+        fprintf(report, "key\tpage\trow\tstatus\tobserved\traw\tframes\tcause\tattempt_id%s",
+                report_line_ending) < 0) {
         if (report != NULL)
             (void)fclose(report);
         return 0;
@@ -706,10 +710,14 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
         char raw_text[5] = "-";
         if (observed != 0)
             (void)snprintf(raw_text, sizeof raw_text, "0x%02x", (unsigned)raw);
-        if (fprintf(report, "accuracycoin/%s\t%u\t%u\t%s\t%d\t%s\t%u\t%s\tpage-%02u-cold-01\n",
+        const char *line_ending = malformed_report != 0 && page == ACCURACYCOIN_PAGE_COUNT &&
+                                          i + 1u == page_info->row_count
+                                      ? ""
+                                      : report_line_ending;
+        if (fprintf(report, "accuracycoin/%s\t%u\t%u\t%s\t%d\t%s\t%u\t%s\tpage-%02u-cold-01%s",
                     row->name, (unsigned)row->page, (unsigned)row->row,
                     accuracycoin_status_text(result), observed, raw_text, execution_used,
-                    cause != NULL ? cause : "invalid-result", (unsigned)page) < 0) {
+                    cause != NULL ? cause : "invalid-result", (unsigned)page, line_ending) < 0) {
             (void)fclose(report);
             return 0;
         }
@@ -898,6 +906,8 @@ static int test_report(const char *new_rom_path, const char *old_rom_path, const
         goto done;
     }
     CHECK_EQ_U64(accuracycoin_collect_campaign(&new_directory, path), 0u);
+    CHECK(expect_fixture_rejected(work, "unterminated-report-line", &new_directory,
+                                  "bad-report-line"));
     CHECK(expect_fixture_rejected(work, "bad-schema", &new_directory, "bad-schema"));
     CHECK(expect_fixture_rejected(work, "held-a", &new_directory, "held-a"));
     CHECK(expect_fixture_rejected(work, "wrong-source", &new_directory, "wrong-source"));

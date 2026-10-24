@@ -355,12 +355,11 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    baseline are test inputs only; tests bind exact bytes to each manifest
    entry and the scored count to the parsed inventory. Names are length-bounded
    before result-key construction, and malformed/overlong name controls remain
-   rejected. Campaign table readers accept LF and CRLF line endings across CI
-   platforms. Historical hygiene checks use the manifest from each commit, so
-   relocating a pin preserves its recorded provenance. These checks do not
-   change this API's ABI or state contract.
-   This inspection API adds no library ABI or state-format requirement. On
-   error, *value is unchanged. */
+   rejected. Campaign readers strip LF or CRLF line terminators before exact
+   TSV field checks across CI platforms. Historical hygiene checks use the manifest from each
+   commit, so relocating a pin preserves its recorded provenance. These checks do not change this
+   API's ABI or state contract. This inspection API adds no library ABI or state-format requirement.
+   On error, *value is unchanged. */
 nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,
                                             uint8_t *value);
 

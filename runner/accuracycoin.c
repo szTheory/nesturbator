@@ -2324,8 +2324,9 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const
             int valid = child_report != NULL;
             if (valid != 0 &&
                 (fgets(line, sizeof line, child_report) == NULL ||
-                 strcmp(line,
-                        "key\tpage\trow\tstatus\tobserved\traw\tframes\tcause\tattempt_id\n") != 0))
+                 !campaign_strip_line_ending(line) ||
+                 strcmp(line, "key\tpage\trow\tstatus\tobserved\traw\tframes\tcause\tattempt_id") !=
+                     0))
                 valid = 0;
             for (size_t i = 0u; valid != 0 && i < row_count; i++) {
                 char expected[ACCURACYCOIN_CAMPAIGN_LINE_CAPACITY];
@@ -2354,14 +2355,15 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const
                     valid = 0;
                     break;
                 }
-                if (fgets(line, sizeof line, child_report) == NULL) {
+                if (fgets(line, sizeof line, child_report) == NULL ||
+                    !campaign_strip_line_ending(line)) {
                     fprintf(stderr,
                             "nesturbator-run: AccuracyCoin page %u report ended before row %lu\n",
                             (unsigned)page_number, (unsigned long)i + 1u);
                     valid = 0;
                     break;
                 }
-                if (strcmp(line, expected) != 0) {
+                if (!campaign_strip_line_ending(expected) || strcmp(line, expected) != 0) {
                     fprintf(stderr,
                             "nesturbator-run: AccuracyCoin page %u report row %lu differs from "
                             "final bytes\nexpected: %sactual: %s",
