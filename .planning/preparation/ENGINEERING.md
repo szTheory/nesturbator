@@ -2,7 +2,7 @@
 title: "Engineering: C rules, build, tests, CI and release"
 summary: "Build, test, CI and release decisions for nesturbator, each with its reason and source."
 read_when: "When creating or changing the build, tests, CI, repository settings or release pipeline."
-updated: 2026-10-02
+updated: 2026-10-24
 ---
 
 # Engineering: C rules, build, tests, CI and release
@@ -63,7 +63,7 @@ Tests are plain C executables under CTest with an in-repo `tests/check.h` of com
 Expected results are the scoreboard file CONFORMANCE.md defines; a test fails when its result is worse than recorded [ENG.19]. Test presets set `noTestsAction: error` [ENG.09].
 
 ## 4. Fuzzing and property-style tests
-Targets use `LLVMFuzzerTestOneInput`: the ROM loader first; the save-state loader and a bounded run of arbitrary ROM bytes in later milestones (PERF-01). libFuzzer runs under Clang 18 on Linux x64 in the nightly workflow [ENG.12]. Apple clang has no libFuzzer runtime, so every other leg links a standalone `main` replaying the committed corpus as `fuzz.regress.<target>` [ENG.09]. Property tests, also later, use an in-repo integer PRNG and a printed seed: N then M frames equals N+M; save, load, continue equals uninterrupted [ENG.07].
+Targets use `LLVMFuzzerTestOneInput` for the ROM loader, save-state loader and bounded execution recipes. Clang 18 on Linux x64 runs libFuzzer with ASan/UBSan in the nightly workflow [ENG.12]; the execution lane records three separately capped target campaigns and exact-source artifacts. Apple clang has no libFuzzer runtime, so every CI platform links a standalone `main` replaying committed corpora, including all eight execution descriptors, as `fuzz.regress.<target>` [ENG.09]. The execution generator creates accepted images in memory for six mapper families, an ordinary loop and JAM; it does not store ROM bytes in the corpus. The finite campaign limits and measurements are in `tests/fuzz/execution-budgets.txt` and `tests/fuzz/execution-measurements.md`.
 
 ## 5. CI design
 `ci.yml` runs on `pull_request`, `push` to `main`, `workflow_dispatch` and `workflow_call`, using committed files only. A scheduled `nightly.yml`, outside the required check, runs the full vectors, fetched suites and fuzzing [ENG.19].
@@ -75,6 +75,7 @@ Targets use `LLVMFuzzerTestOneInput`: the ROM loader first; the save-state loade
 | `asan`, `nofp` | `ubuntu-24.04`; `nofp` also `-arm` | Clang 18; GCC 14 |
 | `hash-equality` | `ubuntu-24.04` | needs exactly the expected hash files, byte-identical |
 | `perf` (PERF-02) | `ubuntu-24.04` | head (the merge commit) and its first parent under Cachegrind; `Ir` per frame on three ROMs; gate at +1% with an allow file (armed after a recorded zero spread) [ENG.12] |
+| `execution-fuzz` | `ubuntu-24.04`, nightly dispatch or schedule | Clang 18, ASan/UBSan/libFuzzer for ROM, state and execution targets; each target has measured run, time, input, sampled RSS and outer-process caps. The campaign command is capped at 180 s; its 5-minute job allowance reserves time for deliberate evidence controls, upload and cleanup. See the exact Linux run and artifact identity in `tests/fuzz/execution-measurements.md`. |
 
 Six legs run per pull request because cross-platform identity is a product claim; three, with the rest on `main`, is the alternative if measured queueing dominates. The Windows images are changing: `windows-2025` has Visual Studio 2026 and no 2022, and `windows-11-arm` has followed [ENG.21]. A preset that names the `Visual Studio 17 2022` generator does not configure on the new image, and the `Visual Studio 18 2026` generator needs CMake 4.2 [ENG.10].
 

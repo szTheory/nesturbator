@@ -429,8 +429,8 @@ The bounded harness allows a 256 KiB serialized state, at most two frames on
 each continuation side, six total frame calls including one different-board
 interleave, 128 public-API operations, and 2 MiB of combined harness/library
 allocations per input. The selected representative images are at most 98,320
-bytes. These measured bounds enclose the replay target; they are not hardware
-accuracy claims or final mutation-campaign budgets. Successful frames compare
+bytes. These per-input caps are enforced independently of libFuzzer's finite
+campaign limits; neither is a hardware accuracy claim. Successful frames compare
 canonical state, defined frame metadata, all native pixels and only written
 audio samples. JAM compares stop status and canonical state without reading
 partial frame output. `fuzz.execution.seeds` checks all eight exact seed
@@ -442,9 +442,15 @@ reset retention, reload freshness, refusal atomicity and battery-generation
 behavior.
 `fuzz.execution.oracle_failure` proves a deliberate verdict discrepancy exits
 nonzero. `fuzz.execution.campaign_controls` exercises crash and timeout input
-retention, missing resource evidence, collection failure, original preservation
-and outer cancellation classification. `fuzz.execution.libfuzzer` uses the same callback when
-`NESTURBATOR_LIBFUZZER` is enabled.
+retention, missing resource evidence, collection failure, original preservation,
+accepted-load and intended-operation checks for minimization, and outer
+cancellation classification. `fuzz.execution.libfuzzer` uses the same callback when
+`NESTURBATOR_LIBFUZZER` is enabled. The Linux nightly campaign runs the ROM,
+state and execution targets with independently measured bounds. Dispatch mode
+`pilot` repeats the bounded measurement; `campaign` is the default and uses the
+selected limits. Exact run commands, work completed, sampled resources, source
+and corpus hashes, artifacts, findings and limitations are recorded in
+[`tests/fuzz/execution-measurements.md`](tests/fuzz/execution-measurements.md).
 
 The `abi` tests hold the core to integer arithmetic and the C memory
 functions: a text scan of `src/` and `include/` for `float`, `double` and

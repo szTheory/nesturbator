@@ -179,7 +179,7 @@ The exact source revision was `2a7fde878fddf2468bb701c1f177e50824d1a440`, with `
 
 The eight-seed corpus replay reached the same 24 additional `src/` functions listed in the Plan 18-02 section, now with `144/202` total execution core functions hit. Loop completed its ordinary four-frame continuation; JAM reported three stop results and one completed frame. These are finite generated recipes, not evidence about every loop, JAM program or board configuration.
 
-The replay provides the pilot enclosure basis in `execution-budgets.txt`: the full execution corpus took 0.12 s, the slowest individual seeds took 0.12 s, and the observed whole-process peak RSS was 23,150,592 B. The pilot uses a five-second mutation window, two-second per-input timeout, 1,024 MiB sampled RSS ceiling, and a 20-second per-target process cap with 15 seconds after the mutation window for teardown and artifact copying. Those values are exploratory pilot limits only. Final campaign limits remain `UNSELECTED` until the Linux Clang/libFuzzer pilot reports actual mutation throughput, sanitizer RSS and stop reasons. The RSS threshold is sampled by libFuzzer and is not a hard allocation quota.
+The replay provides the pilot enclosure basis in `execution-budgets.txt`: the full execution corpus took 0.12 s, the slowest individual seeds took 0.12 s, and the observed whole-process peak RSS was 23,150,592 B. The measured hosted Linux pilot and selected campaign caps are recorded below. The RSS threshold is sampled by libFuzzer and is not a hard allocation quota.
 
 The raw eight-row family table is `build/execution-measure-plan18-04/execution-families.tsv`; `measurement.tsv` records tool versions, instrumentation and aggregate metrics. Coverage export SHA-256 values are:
 
@@ -194,3 +194,25 @@ The raw eight-row family table is `build/execution-measure-plan18-04/execution-f
 | `execution-axrom.json` | `6a7d346cccda0d0d53659344d55d6f55bfca8ee2aedd842371adba9c09ba4903` |
 | `execution-loop.json` | `fa2a34c9c6a1faabbc54b121de6018528935e1f296df408399d2aa579d1ba9ee` |
 | `execution-jam.json` | `6e251f46c20f97c25ef74aaf22b6b2a3ff383d17f92645c6b30761599bb95994` |
+
+## Plan 18-04 hosted Linux pilot and finite campaign
+
+The Linux pilot ran on [workflow run 40129666207](https://github.com/szTheory/nesturbator/actions/runs/40129666207), source commit `694455ec7f6785b0ddd3e5126552483989fdc0e6`. It used Ubuntu 24.04 x86_64, Clang 18.1.3, Release `-O1`, ASan, UBSan and libFuzzer, with the same initial enclosure on each target: `-runs=10000 -max_total_time=5 -timeout=2 -max_len=163856 -rss_limit_mb=1024 -seed=1804`, plus a 20-second outer process timeout. Pilot artifact `execution-fuzz-evidence-40129666207` (SHA-256 `d44e31a36bcfa4357ed8bb36e6ef8b7e4372b98be75dbcf13aa209fc37b336c3`) retains its build, inputs, logs and run records.
+
+| Target | Pilot executions | GNU time elapsed | Peak RSS | Coverage edges | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| ROM loader | 10,000 | 0.82 s | 417,587,200 B | 273 | run-count cap |
+| State loader | 153 | 6.85 s | 223,854,592 B | 1,330 | 5-second libFuzzer window |
+| Execution | 392 | 6.49 s | 75,370,496 B | 1,357 | 5-second libFuzzer window |
+
+The selected limits extend ROM loading to 100,000 runs with a 10-second window and 768 MiB sampled RSS limit. State loading receives 1,000 runs, a 15-second window and 512 MiB; execution receives 2,000 runs, a 15-second window and 256 MiB. All targets keep the pilot's 2-second per-input timeout, 163,856-byte maximum input and seed 1804, with a 30-second outer process cap. The pilot's 20-second outer limit exceeded its 5-second mutation window by 15 seconds; the final 30-second limit similarly reserves 15 seconds after mutation for accounting and evidence. The workflow command is separately capped at 180 seconds, with a 5-minute job allowance for build, controls, artifact upload and cleanup. `rss_limit_mb` is libFuzzer's sampled threshold, not an instantaneous allocation quota.
+
+The acceptance campaign ran on [workflow run 40130406953](https://github.com/szTheory/nesturbator/actions/runs/40130406953), source commit `8363ae43441815af4097cdd857193d6bbb1ee34e`, with the same Linux toolchain and sanitizer configuration. The uploaded artifact `execution-fuzz-evidence-40130406953` (artifact ID `12574867396`, 291,321 bytes, SHA-256 `1ba4211f991cc34f060f37c348d00c96e38774a009c8a8c835462b5e1ce788d0`) contains 994 files, including exact commands, copied originals and work corpora, each target's log and run record, execution descriptor hashes/metrics, and control fixtures. The source corpus manifest SHA-256 was `f524ddcbf03dea6faa115938df004cbfe08eae8aaac9921c3b4b39ec9bb95ac1`; every target and the final campaign report recorded source corpus integrity `PASS`.
+
+| Target | Limits: runs / seconds / MiB | Actual runs | Stop cause | Elapsed | Peak RSS | Coverage edges / features | Final work corpus | Status / reproducers |
+| --- | --- | ---: | --- | ---: | ---: | --- | --- | --- |
+| ROM loader (60 source seeds) | 100,000 / 10 / 768 | 100,000 | run-count cap | 2.32 s | 507,252,736 B | 288 / 313 | 75 files, 401 KiB | completed / 0 |
+| State loader (17 source seeds) | 1,000 / 15 / 512 | 745 | max-total-time | 16.08 s | 377,061,376 B | 1,330 / 2,379 | 27 files, 37 B | completed / 0 |
+| Execution (8 source seeds) | 2,000 / 15 / 256 | 2,000 | run-count cap | 10.63 s | 128,286,720 B | 1,383 / 1,987 | 28 files, 454 B | completed / 0 |
+
+The finite run observed no crash, timeout or OOM reproducer. This means none was observed in these runs under these limits; it does not establish that the targets are universally reliable. The final run's explicit stop cause is derived from actual runs against the run cap and GNU-time elapsed against `max_total_time`, then recorded in each run TSV. The campaign control step retained exact synthetic crash and per-input-timeout inputs, rejected a deliberately broken collector, recorded that the resource-limit fixture had no exact input, and classified outer cancellation as incomplete. The minimization controls verified original preservation and rejection of failure-class, accepted-load and intended-operation mismatches on the accepted NROM descriptor; no real campaign finding existed to reduce, so no actual finding reduction is claimed. The raw pilot and campaign artifacts are hosted with the workflow runs; the tables and identities above are the compact durable record.
