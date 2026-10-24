@@ -17,11 +17,11 @@ on:
   workflow_dispatch:
     inputs:
       execution_mode:
-        description: Linux execution fuzz mode (pilot measures; campaign uses selected limits)
+        description: Linux execution fuzz mode (bounded pilot or measured campaign)
         required: true
         type: choice
         options: [pilot, campaign]
-        default: pilot
+        default: campaign
   push:
     branches: [main]
   # A pull request that changes the nightly's own inputs runs it too, since a
@@ -305,6 +305,10 @@ jobs:
 
   execution-fuzz:
     runs-on: ubuntu-24.04
+    # Pilot completed in 33 s (run 40129666207); the 180 s process cap plus
+    # 120 s for self-test, artifact upload and cleanup fits the 5-minute
+    # network-bound job floor, ENGINEERING section 5.
+    timeout-minutes: 5
     permissions:
       contents: read
     outputs:
@@ -328,7 +332,7 @@ jobs:
           else
             DRIVER=tests/cmake/execution_campaign.cmake
           fi
-          timeout 300s cmake \
+          timeout 180s cmake \
             -DSOURCE_DIR="$GITHUB_WORKSPACE" \
             -DBUILD_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-build" \
             -DOUTPUT_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID" \

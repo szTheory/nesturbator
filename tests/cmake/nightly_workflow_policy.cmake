@@ -78,13 +78,15 @@ function(check_nightly_policy workflow out_error)
   string(FIND "${code}" "workflow_dispatch:\n    inputs:\n      execution_mode:" dispatch_input_index)
   string(FIND "${code}" "        type: choice" mode_type_index)
   string(FIND "${code}" "        options: [pilot, campaign]" mode_options_index)
+  string(FIND "${code}" "        default: campaign" mode_default_index)
   if(dispatch_input_index LESS 0 OR mode_type_index LESS dispatch_input_index OR
-     mode_options_index LESS mode_type_index)
+     mode_options_index LESS mode_type_index OR mode_default_index LESS mode_options_index)
     set(${out_error} ".github/workflows/nightly.yml: execution-mode: workflow_dispatch must expose only the pilot and campaign choices" PARENT_SCOPE)
     return()
   endif()
   set(execution_job "${job_text_execution-fuzz}")
   if(NOT execution_job MATCHES "runs-on: ubuntu-24[.]04" OR
+     NOT execution_job MATCHES "timeout-minutes: 5" OR
      NOT execution_job MATCHES "inputs[.]execution_mode == 'pilot'" OR
      NOT execution_job MATCHES "MODE:.*github[.]event_name")
     set(${out_error} ".github/workflows/nightly.yml: execution-mode: campaign mode must be selected by the bounded dispatch choice on Linux" PARENT_SCOPE)
@@ -95,7 +97,7 @@ function(check_nightly_policy workflow out_error)
       "-DOUTPUT_DIR=\"$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID\""
       "execution_measure.cmake"
       "execution_campaign.cmake"
-      "timeout 300s cmake"
+      "timeout 180s cmake"
       "-DMODE=\"$MODE\" -P \"$DRIVER\"")
     string(FIND "${execution_job}" "${required}" required_index)
     if(required_index LESS 0)
@@ -247,6 +249,10 @@ function(clean_fixture out_text)
   lane_fixture(mmc3-oracle "" mmc3)
   set(execution_fixture "  execution-fuzz:\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          persist-credentials: false\n      - name: Run bounded execution campaign\n        env:\n          MODE: \${{ github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'pilot' && 'pilot' || 'campaign' }}\n        run: |\n          if [ \"$MODE\" = pilot ]; then\n            DRIVER=tests/cmake/execution_measure.cmake\n          else\n            DRIVER=tests/cmake/execution_campaign.cmake\n          fi\n          timeout 300s cmake -DOUTPUT_DIR=\"$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID\" -DBUDGET_FILE=tests/fuzz/execution-budgets.txt -DMODE=\"$MODE\" -P \"$DRIVER\"\n      - name: Verify deliberate artifact controls\n        if: always()\n        run: |\n          cmake -DOUTPUT_DIR=\"$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID\" -DMODE=self-test -P tests/cmake/execution_campaign.cmake\n          test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/crash-expected\n          test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/timeout-expected\n      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9\n        if: always()\n        with:\n          name: execution-fuzz-evidence-\${{ github.run_id }}\n          path: build/execution-fuzz-evidence/\${{ github.run_id }}/\n          if-no-files-found: error\n")
   string(APPEND text "${vectors}${mmc3}${execution_fixture}  report:\n    needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, state-fuzz, execution-fuzz, suite-flake]\n    permissions:\n      issues: write\n    run: echo 'Execution fuzz outcome: %s'\n    env:\n      RESULT: \${{ needs.execution-fuzz.result == 'success' && 'success' || 'failure' }}\n      EXECUTION_FUZZ: \${{ needs.execution-fuzz.outputs.outcome }}\n")
+  string(REPLACE "default: pilot" "default: campaign" text "${text}")
+  string(REPLACE "  execution-fuzz:\n    runs-on: ubuntu-24.04\n    permissions:"
+    "  execution-fuzz:\n    runs-on: ubuntu-24.04\n    timeout-minutes: 5\n    permissions:" text "${text}")
+  string(REPLACE "timeout 300s cmake" "timeout 180s cmake" text "${text}")
   set(${out_text} "${text}" PARENT_SCOPE)
 endfunction()
 
@@ -309,18 +315,22 @@ if(SELFTEST)
       message(FATAL_ERROR "nightly policy self-test did not detect ${mutation}")
     endif()
   endforeach()
-  foreach(mutation execution-mode execution-command execution-budget
+  foreach(mutation execution-mode execution-default execution-timeout execution-command execution-budget
       execution-controls execution-artifact execution-upload execution-permissions
       execution-report-needs execution-report-outcome)
     set(mutated "${clean}")
     if(mutation STREQUAL execution-mode)
       string(REPLACE "options: [pilot, campaign]" "options: [campaign]" mutated "${mutated}")
+    elseif(mutation STREQUAL execution-default)
+      string(REPLACE "default: campaign" "default: pilot" mutated "${mutated}")
+    elseif(mutation STREQUAL execution-timeout)
+      mutate_execution("${mutated}" "timeout-minutes: 5" "timeout-minutes: 4" mutated)
     elseif(mutation STREQUAL execution-report-needs)
       string(REPLACE "execution-fuzz, suite-flake]" "suite-flake]" mutated "${mutated}")
     elseif(mutation STREQUAL execution-report-outcome)
       string(REPLACE "needs.execution-fuzz.result == 'success' && " "" mutated "${mutated}")
     elseif(mutation STREQUAL execution-command)
-      mutate_execution("${mutated}" "timeout 300s cmake" "cmake" mutated)
+      mutate_execution("${mutated}" "timeout 180s cmake" "cmake" mutated)
     elseif(mutation STREQUAL execution-budget)
       mutate_execution("${mutated}" "-DBUDGET_FILE=tests/fuzz/execution-budgets.txt" "-DBUDGET_FILE=missing.txt" mutated)
     elseif(mutation STREQUAL execution-controls)

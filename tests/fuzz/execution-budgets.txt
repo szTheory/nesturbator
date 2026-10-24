@@ -27,27 +27,34 @@ pilot.outer_timeout_seconds=20
 pilot.seed=1804
 pilot.source=build/execution-measure-plan18-04/measurement.tsv and execution-families.tsv; eight-descriptor Apple Clang 21 ASan/UBSan replay; overall 0.12 s, slowest execution seed 0.12 s, peak RSS 23150592 B
 
-# Filled only after the actual Linux mutation pilot establishes throughput,
-# slow-input and sanitizer RSS measurements. campaign mode refuses UNSELECTED.
-campaign.source=UNSELECTED
-campaign.rom-loader.runs=UNSELECTED
-campaign.rom-loader.max_total_time_seconds=UNSELECTED
-campaign.rom-loader.per_input_timeout_seconds=UNSELECTED
-campaign.rom-loader.max_len=UNSELECTED
-campaign.rom-loader.rss_limit_mb=UNSELECTED
-campaign.rom-loader.outer_timeout_seconds=UNSELECTED
-campaign.rom-loader.seed=UNSELECTED
-campaign.state-loader.runs=UNSELECTED
-campaign.state-loader.max_total_time_seconds=UNSELECTED
-campaign.state-loader.per_input_timeout_seconds=UNSELECTED
-campaign.state-loader.max_len=UNSELECTED
-campaign.state-loader.rss_limit_mb=UNSELECTED
-campaign.state-loader.outer_timeout_seconds=UNSELECTED
-campaign.state-loader.seed=UNSELECTED
-campaign.execution.runs=UNSELECTED
-campaign.execution.max_total_time_seconds=UNSELECTED
-campaign.execution.per_input_timeout_seconds=UNSELECTED
-campaign.execution.max_len=UNSELECTED
-campaign.execution.rss_limit_mb=UNSELECTED
-campaign.execution.outer_timeout_seconds=UNSELECTED
-campaign.execution.seed=UNSELECTED
+# Final limits derive from hosted Linux pilot run 40129666207 on commit 694455e.
+# It completed 10,000/153/392 units in 0.82/6.85/6.49 s, with peaks of
+# 398/213/71 MiB and 273/1330/1357 coverage edges for ROM/state/execution.
+# ROM keeps a 10x run-count extension and 10 s ceiling; state and execution get
+# 3x the observed 5 s mutation window and run caps above pilot throughput.
+# RSS limits retain 1.9x/2.4x/3.6x sampled-peak headroom; RSS is not a hard quota.
+# Each 30 s target process ceiling allows 15 s after 15 s mutation for records
+# and artifacts. The separate workflow step cap is 180 s; the job has a 5 min
+# network floor with 120 s reserved after that process cap for upload/cleanup.
+campaign.source=GitHub Actions run 40129666207; commit 694455ec7f6785b0ddd3e5126552483989fdc0e6; artifact execution-fuzz-evidence-40129666207; artifact SHA-256 d44e31a36bcfa4357ed8bb36e6ef8b7e4372b98be75dbcf13aa209fc37b336c3; source corpus SHA-256 f524ddcbf03dea6faa115938df004cbfe08eae8aaac9921c3b4b39ec9bb95ac1; Ubuntu 24.04 x86_64; Clang 18.1.3; Release -O1; ASan+UBSan+libFuzzer; pilot command runs=10000 max_total_time=5 timeout=2 max_len=163856 rss_limit_mb=1024 outer=20 seed=1804
+campaign.rom-loader.runs=100000
+campaign.rom-loader.max_total_time_seconds=10
+campaign.rom-loader.per_input_timeout_seconds=2
+campaign.rom-loader.max_len=163856
+campaign.rom-loader.rss_limit_mb=768
+campaign.rom-loader.outer_timeout_seconds=30
+campaign.rom-loader.seed=1804
+campaign.state-loader.runs=1000
+campaign.state-loader.max_total_time_seconds=15
+campaign.state-loader.per_input_timeout_seconds=2
+campaign.state-loader.max_len=163856
+campaign.state-loader.rss_limit_mb=512
+campaign.state-loader.outer_timeout_seconds=30
+campaign.state-loader.seed=1804
+campaign.execution.runs=2000
+campaign.execution.max_total_time_seconds=15
+campaign.execution.per_input_timeout_seconds=2
+campaign.execution.max_len=163856
+campaign.execution.rss_limit_mb=256
+campaign.execution.outer_timeout_seconds=30
+campaign.execution.seed=1804
