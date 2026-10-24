@@ -4603,7 +4603,14 @@ if [ "$CONTROL" = cleanup-request-failure ]; then
 fi
 fixture_started=$(mono_ms)
 
-test_dir="$WORK_ROOT/session-$$"
+mkdir -p "$WORK_ROOT" || {
+    echo 'state session controls: unable to create the test root' >&2
+    exit 2
+}
+test_dir=$(mktemp -d "$WORK_ROOT/session-$$-XXXXXXXX") || {
+    echo 'state session controls: unable to allocate a unique test root' >&2
+    exit 2
+}
 fixture_dir="$test_dir/fixture"
 ra_dir="$test_dir/ra"
 mkdir -p "$fixture_dir" "$ra_dir/shots" "$ra_dir/states"

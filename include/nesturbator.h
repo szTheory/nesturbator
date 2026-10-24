@@ -350,10 +350,18 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    duplicate raw samples remain diagnostics that invalidate campaign trust. The
    full 22-page campaign uses a bounded 15-second host-child deadline and a
    separate 1800 guest-frame execution cap; an outer process timeout cannot be
-   reclassified as the expected guest timeout. The bounded observer records a
-   host monotonic start stamp with each report so a
-   protected verdict can distinguish a fresh measured attempt from copied or
-   candidate-asserted status rows.
+   reclassified as the expected guest timeout. Protected-page checks derive
+   new-pin pages from the exact protected PASS keys and observe those pages in
+   the current invocation, with a 30-second maximum per page for slow hosted
+   instrumentation. The bounded observer records a host monotonic start stamp
+   with each report so a protected verdict can distinguish a fresh measured
+   attempt from copied or candidate-asserted status rows. When protected main
+   adopts the new pin, the same-pin check covers its full 101-PASS scoreboard;
+   the retained 17 old-pin migration controls remain separate. The normal CI
+   fetcher authenticates the canonical campaign scoreboard, its metadata, and
+   both manifest pins from one protected commit, then hands the verifier only
+   that commit's measured PASS rows; non-pass outcomes remain in the canonical
+   report and cannot become protected expectations.
    AccuracyCoin ROM pins, inventory counts, and the measured conformance
    baseline are test inputs only; tests bind exact bytes to each manifest
    entry and the scored count to the parsed inventory. Names are length-bounded
@@ -506,6 +514,8 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * frame (including a host's run-ahead lead) does not prove committed state or speculative audio.
  * Host containers are outside this native API; the test-only RetroArch reader qualifies one
  * measured uncompressed released-binary envelope and a bounded visible-marker window.
+ * The POSIX session-control harness allocates a unique scratch root per invocation so retained
+ * output from an earlier run cannot collide when the operating system reuses a process ID.
  * The registered libretro host tests select their battery and run-ahead fixtures by exact,
  * case-sensitive final filename; their CMake wrapper hashes the supplied special-file copy
  * against its manifest record before host launch. Slash always separates components; backslash

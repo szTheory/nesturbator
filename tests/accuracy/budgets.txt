@@ -28,6 +28,16 @@ Outer wall bounds:
   hosted basis: page 19 took 6.336 seconds and page 18 took 4.290 seconds in
     failed run 40054252174; 15 seconds is 2.36x the measured maximum.
 
+Protected current-invocation checks:
+  each observed page child: 30 seconds
+  page count: 3 retained old-pin pages plus up to 22 new-pin pages selected
+    from protected PASS keys and migration targets
+  maximum protected-observation setup: 25 * 30 + 10 = 760 seconds
+  hosted basis: the ASan page-19 observation took 22.454 seconds in successful
+    run 40055745306; the 30-second child bound leaves 7.546 seconds.
+  current post-merge control: 3 old + 19 new pages, summed local host elapsed
+    5.811 seconds, slowest page 1.584 seconds; focused CTest completed in 7.17.
+
 The navigation cap is also a timing policy: the launcher sends one Right edge and
 then neutral frames for each step. Five frames per step is the measured accepted
 unit. A six-frame exploratory policy changes the page-19 guest state and is kept

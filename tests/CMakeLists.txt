@@ -697,6 +697,10 @@ set(ACCURACYCOIN_OLD_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin-673ef.nes
 set(ACCURACYCOIN_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/scoreboard.txt)
 set(ACCURACYCOIN_OLD_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/old-673ef-scoreboard.txt)
 set(ACCURACYCOIN_PROTECTED_WORK ${PROJECT_BINARY_DIR}/accuracycoin/protected-observations)
+set(ACCURACYCOIN_PROTECTED_MAX_PAGES 22)
+set(ACCURACYCOIN_PROTECTED_PAGE_WALL_SECONDS 30)
+math(EXPR ACCURACYCOIN_PROTECTED_SETUP_TIMEOUT
+  "(${ACCURACYCOIN_PROTECTED_MAX_PAGES} + 3) * ${ACCURACYCOIN_PROTECTED_PAGE_WALL_SECONDS} + 10")
 foreach(page IN ITEMS 2 14 17)
   add_test(NAME accuracycoin.page${page}
     COMMAND ${CMAKE_COMMAND}
@@ -809,12 +813,15 @@ endif()
 add_test(NAME accuracycoin.protected_observation
   COMMAND ${CMAKE_COMMAND}
     "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DVERIFIER=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
     "-DOLD_ROM=${ACCURACYCOIN_OLD_ROM}"
     "-DNEW_ROM=${ACCURACYCOIN_COMPARISON_ROM}"
     "-DWORK=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DPAGE_WALL_SECONDS=${ACCURACYCOIN_PROTECTED_PAGE_WALL_SECONDS}"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_protected.cmake)
 set_tests_properties(accuracycoin.protected_observation PROPERTIES
-  FIXTURES_SETUP accuracycoin_protected_observations TIMEOUT 45)
+  FIXTURES_SETUP accuracycoin_protected_observations TIMEOUT ${ACCURACYCOIN_PROTECTED_SETUP_TIMEOUT})
 add_test(NAME accuracycoin.protected COMMAND accuracy.scoreboard)
 set_tests_properties(accuracycoin.protected PROPERTIES
   FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 30)
@@ -1069,12 +1076,15 @@ set_tests_properties(accuracy.scoreboard.no_lost_pass PROPERTIES
 add_test(NAME accuracycoin.regression_controls
   COMMAND ${CMAKE_COMMAND}
     "-DCHECKER=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DFULL_ENABLED=${NESTURBATOR_ACCURACYCOIN_FULL}"
     "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
     "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
     "-DWORK=${ACCURACYCOIN_REGRESSION_WORK}/matrix"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_regression_controls.cmake)
 set_tests_properties(accuracycoin.regression_controls PROPERTIES
-  FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 60)
+  FIXTURES_REQUIRED accuracycoin_protected_observations
+  TIMEOUT ${ACCURACYCOIN_PROTECTED_SETUP_TIMEOUT})
 
 add_test(NAME accuracycoin.baseline_fetch
   COMMAND ${CMAKE_COMMAND}

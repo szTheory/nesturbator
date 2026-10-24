@@ -26,6 +26,7 @@ endforeach()
 
 file(SHA256 "${NEW_ROM}" new_rom_sha256)
 file(SHA256 "${OLD_ROM}" old_rom_sha256)
+file(SHA256 "${SCOREBOARD}" canonical_scoreboard_sha256)
 if(NOT new_rom_sha256 STREQUAL "8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc" OR
    NOT old_rom_sha256 STREQUAL "4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839")
   message(FATAL_ERROR "AccuracyCoin fixture bytes do not match the reviewed old/new pins")
@@ -117,6 +118,7 @@ foreach(pair IN ITEMS
     "inventory_draw_rows|5"
     "scoreboard_schema|2"
     "scoreboard_rows|146"
+    "scoreboard_sha256|${canonical_scoreboard_sha256}"
     "pass|101"
     "fail|42"
     "skip|0"

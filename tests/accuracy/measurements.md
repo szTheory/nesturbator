@@ -10,13 +10,13 @@ The final registered run used the canonical 6bee ROM and production collector:
 - Retained comparison pin: `673ef550db296136d52229961e7d39366116882a`, ROM SHA-256 `4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839`, inventory SHA-256 `3271803cdc63c4b4a83cf65453b817dc66ec65ed97863ad19261b56f36821c84`
 - Old inventory: 149 entries (144 scored, 5 DRAW); new inventory: 151 entries (146 scored, 5 DRAW)
 - Report/inventory schema: 1
-- Compiled source revision: `51c9ce855fb6` (`source_dirty=1`). This pre-commit capture includes the page-report line-ending fix, byte-exact CRLF and unterminated-report controls, the isolated page-19 ASan probe bound, and the measured 15-second campaign child deadline. The preexisting unrelated `.planning/config.json` edit also remained in the worktree.
-- Deterministic build-input fingerprint: `13ecee0bd69a7286a3a7f683d1e462a66eb7f115023d11a1727aaa34865ac5b3` over 56 source/build input files. Generated reports are excluded. Campaign report SHA-256: `6d0a811960f6964e7fc66802c6e4ade0c4ffb8772c40d88d50cf79e1f8463652` (unchanged).
+- Compiled source revision: `47601b1f9dab` (`source_dirty=1`). This pre-commit capture includes the measured 15-second campaign deadline, dynamic protected-main page selection and same-invocation PASS verifier, attributed page-19 guest-timeout handling, 30-second protected-page bound, canonical scoreboard hash authentication and PASS projection, and its activation check. It also includes the unique POSIX session-control scratch-root fix and paired README/public-header contract notes. The dirty flag includes these implementation/test/documentation edits and the untouched pre-existing `.planning/config.json` edit; that planning file is excluded from the input fingerprint.
+- Deterministic build-input fingerprint: `65fea2e1a75d83e23c3d9fc9d730794ce50a1af634c76ef6b50c0fd59385a70e` over 56 source/build input files. Generated reports are excluded. Campaign report SHA-256: `6d0a811960f6964e7fc66802c6e4ade0c4ffb8772c40d88d50cf79e1f8463652` (unchanged).
 - Input policy: cold boot; one page-header A input; one-frame A press; one-frame release; execute the selected page independently.
 - Accepted bounds: boot 32, navigation 5 per page switch, start 2 frames, execution 1800; page child 15 seconds, collector 10 seconds, CTest 370 seconds.
 - The earlier hosted dispatch `40054252174` used the former 5-second common page deadline and failed to produce trustworthy campaign evidence. Its Linux x64 artifact records page 19 as `OUTER_TIMEOUT` at 5 seconds, after an otherwise source-qualified guest timeout observation reached 1800 frames in 6.335862879 seconds; page 18 took 4.290085045 seconds. All other page observations were at or below 2.463 seconds. The 15-second common host-child deadline is 2.36 times the measured maximum and preserves the existing 1800-frame guest cap. The old run remains attributed as failed infrastructure evidence, not a successful campaign.
 - The finite campaign envelope is now 22 * 15 seconds per-page maximum + 10 seconds collection = 340 seconds, with a 370-second CTest bound leaving 30 seconds for orchestration and final output checks. The injected `accuracycoin.outer_failure` controls keep their 1-second child deadline. The workflow/job timeout remains unchanged.
-- The refreshed campaign CTest took 5.97 seconds; the sum of per-page host measurements was 5.849151 seconds and the slowest local child was page 19 at 1.597869 seconds. All 22 children exited zero. The full `cmake --workflow --preset ci` run then passed 663/663 tests in 384.16 seconds and generated the three 0.1.11 macOS-arm64 packages; its campaign fixture passed in 6.68 seconds.
+- The latest actual campaign measurement sums to 5.758805 seconds across page children; the slowest local child was page 19 at 1.586519 seconds. All 22 children exited zero. The full CI workflow and its campaign CTest are being rerun on this final source; prior successful hosted runs remain attributed to their recorded immutable source heads.
 - Retained output: `build/ci/accuracycoin/full/` contains all 22 page directories, child stdout/stderr, raw snapshots, diagnostics, page reports/metadata, `outer-outcomes.tsv`, and the production `inventory.tsv`, `attempts.tsv`, `observations.tsv`, `report.tsv`, `summary.txt`, and campaign `metadata.txt`.
 
 `outer-outcomes.tsv` records 22 `EXIT_ZERO` children, no outer timeout and no child failure. Campaign metadata says `trustworthy_observation=1` and `infrastructure_verdict=complete`.
@@ -43,6 +43,21 @@ The five DRAW entries are listed separately and never enter the scored denominat
 ## Retained protected-pass measurements
 
 All 17 protected old-pin passes were re-executed from the exact retained `673ef` ROM in fresh cold runs. Each mapped new-pin result is also backed by a fresh campaign observation. All 17 currently pass at both pins; the four source-reviewed changed-meaning rows are explicitly marked and do not broaden strict success to other rows.
+
+The production protected observer now derives the needed new-pin pages from
+the PASS keys in the same fetched protected-main baseline used by the verdict.
+Before the pin transition that selects the 17 migrated targets; after protected
+main adopts the new pin it selects all pages containing the 101 protected PASS
+rows. The verdict freshly compares every such row's observed raw byte and
+status on each current lane. A primary-Linux full-lane control builds the
+post-merge 101-PASS baseline, obtains new cold page reports through this same
+observer, accepts all 101 measured passes, and rejects an outside-page failure
+and a formerly changed-meaning-key failure under same-pin policy.
+The focused local control run passed in 7.17 seconds; its 22 fresh page reports
+(three retained old-pin pages plus the 19 new-pin pages containing protected
+PASS keys) accounted for 5.811 seconds of summed guest/page-observer time, with
+a 1.584-second slowest page. This is local placement evidence, not a hosted
+post-merge measurement.
 
 | Page | Protected keys | Old `673ef` measurement | New `6bee` measurement |
 |---:|---|---|---|
@@ -97,6 +112,7 @@ The difference demonstrates that this fixed frame sequence's navigation cap also
 - Execution: cap 1800 leaves 337 frames above the longest completed execution (page 18 at 1463); page 19 remains honestly timed out. Increasing this cap to erase that hardware observation is not justified.
 - Wall bounds: hosted evidence from the former deadline showed page 19 at 6.336 seconds and page 18 at 4.290 seconds, so the former 5-second bound did not provide sufficient margin. The new common 15-second page deadline is 2.36 times the observed maximum; the 22 sequential page deadlines plus 10-second collection cap total 340 seconds, and the 370-second CTest timeout leaves 30 seconds for orchestration and final output checks.
 - Isolated ASan driver bound: page 19 reached the same expected row-6 `$03` guest timeout after 1918 frames on hosted ASan, with `host_elapsed_ns=14393278785`; the prior 10-second subprocess deadline killed the otherwise valid observation. The page-19 test-only host deadline is now 30 seconds (about 2x the measured run); the 1800 guest-frame cap, 60-second driver test timeout and all campaign/CI job bounds are unchanged.
+- Protected-page bound: each cold page observer has a 30-second host-child deadline. A protected baseline can select up to 22 new-pin pages in addition to the three retained old-pin pages; the setup CTest enclosure is `(22 + 3) * 30 + 10 = 760` seconds. The bound covers the hosted ASan page-19 observation at 22.454 seconds from successful run 40055745306 and leaves its guest-frame cap unchanged.
 - Placement selected for Plan 17-04: one full campaign in the required Linux x64 build lane on each PR, not all six platform matrix legs. CI turns on `NESTURBATOR_ACCURACYCOIN_FULL` only in that lane; the other five still run decoder, classifier, activation, migration, protected-pass and parity checks. The full campaign CTest took 6.65 seconds locally within a 376.25-second full `ci` workflow. Each build lane uploads its `build/<preset>/accuracycoin/` evidence with an `always()` upload step and fails if the required directory is absent. The existing Linux build timeout remains 39 minutes: this repository sets it from sampled hosted runs, so the selected lane's actual hosted execution must be recorded before revisiting it. The same applies to the current timeout comment; local duration does not establish hosted performance.
 
 No row-A fallback was run. The cold campaign observed raw bytes for every scored row, and the only nonterminal results retain a current active timeout, a source-disqualified running marker, and an unstarted `$00` row. A separately selected-row attempt would change the guest context, and no additional raw byte is missing from this baseline. The two honest `not-run` findings remain visible for later plans.

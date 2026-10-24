@@ -181,32 +181,49 @@ and routine symbols, cites both exact MIT source pins, records the four
 source-reviewed setup/meaning changes, and links each new-pin disposition to
 the measured attempt, raw byte, guest frames and status in a page report.
 Those links are checked against fresh cold observations on both pins during
-normal CI; a candidate scoreboard row cannot stand in for a guest result.
+normal CI; a candidate scoreboard row cannot stand in for a guest result. The
+17 retained old-pin keys stay as a separate strict migration control.
 
 Before the workflow preset, each of the six CI build lanes fetches protected
 `refs/heads/main` with tags disabled, resolves its fetched commit once, and
-reads the scoreboard and identity from that exact commit. Until main carries a
-dedicated metadata file, the fetcher strictly parses the canonical AccuracyCoin
-row from that same commit's ROM manifest and records the legacy source. The
-handoff includes scoreboard bytes, pin/hash/schema/denominator metadata and the
-protected revision. Missing, unfetchable, empty, malformed or mismatched
-authority fails the job; CI never falls back to candidate files. Detached local
-runs use the complete 17-row `tests/accuracy/scoreboard-main.txt` snapshot and
-its matching `scoreboard-main-metadata.txt` identity. The protected verdict
-requires each same-pin prior pass to be measured passing in the current cold
-run and checks a cross-pin pass only through the exact source-backed migration
-row and its fresh observation. Page 14 adds the six required APU results:
+reads the scoreboard and identity from that exact commit. Older protected-main
+revisions use their dedicated protected metadata or the canonical AccuracyCoin
+row from that same commit's ROM manifest. Once main carries the full campaign
+metadata, the fetcher verifies the 146-row scoreboard hash,
+status counts, inventory identity and both ROM manifest entries against that
+one commit, then projects only its measured PASS rows into the protected
+verifier's 101-row input. Failed, skipped, not-run and timed-out rows remain in
+the canonical measured scoreboard and cannot become protected passes. The
+handoff binds the projection to the exact fetched revision. Missing, unfetchable,
+empty, malformed or mismatched authority fails the job; CI never falls back to
+candidate files. Detached local runs use the complete 17-row
+`tests/accuracy/scoreboard-main.txt` snapshot and its matching
+`scoreboard-main-metadata.txt` identity. On every lane, the protected observer
+derives the new-pin pages from the PASS keys in the fetched baseline and
+measures those pages during that invocation. Same-pin protection therefore
+scales with the accepted PASS set: after main adopts the current pin, all 101
+protected passes are remeasured, including keys outside pages 2, 14 and 17.
+Those 101 keys currently span 19 of the new pin's 22 pages. Cross-pin checks
+still use the exact source-backed migration row, the retained old-pin controls,
+and a fresh mapped observation. Protected page children have a 30-second outer
+deadline and keep the 1800 guest-frame cap; the maximum setup envelope is 25
+page children plus 10 seconds for orchestration.
+Page 14 adds the six required APU results:
 Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame
 Counter 5-step, and Delta Modulation Channel.
 
 Normal CI also mutates the production evidence/verdict inputs to prove that a
 claimed pass cannot hide measured fail, skip, not-run or timeout states, absent
 raw evidence, a removed protected key, a candidate-only pin edit, a mixed
-protected revision or a missing/disguised migration disposition. It retains
-source-defined pass variants such as PPU Read Buffer `$41`, and rejects a
-malformed neighboring code. The fetcher is exercised against owned local Git
-repositories for exact commit handoff, missing/empty authority, invalid
-metadata and the same-revision legacy-manifest fallback; these tests do not
+protected revision or a missing/disguised migration disposition. The primary
+Linux full lane builds a post-merge 101-PASS baseline control, freshly observes
+all required pages, and confirms that both an outside-page key and a formerly
+changed-meaning key fail the same-pin verdict when their measured result
+changes. It retains source-defined pass variants such as PPU Read Buffer `$41`,
+and rejects a malformed neighboring code. The fetcher is exercised against owned local Git
+repositories for exact commit handoff, canonical 146-row/101-PASS projection,
+scoreboard-hash mismatch, missing/empty authority, invalid metadata and the
+same-revision legacy-manifest fallback; these tests do not
 depend on a network service.
 
 The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
@@ -349,6 +366,8 @@ control runs as the serial `retroarch.session.source_root` test in the POSIX
 working directory with spaces. Each case runs all four finalizer faults and
 requires wait status 143, the exact first reason, no cleanup anomaly, an
 unrun oracle and exact-port re-entry after owned-child reap.
+The session-control harness creates a fresh scratch root atomically for every
+invocation, so retained outputs cannot collide when a process ID is reused.
 
 | Lane | What it proves |
 |---|---|

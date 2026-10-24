@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-foreach(required_var IN ITEMS CHECKER SOURCE_DIR EVIDENCE_ROOT WORK)
+foreach(required_var IN ITEMS CHECKER RUNNER SOURCE_DIR EVIDENCE_ROOT WORK)
   if(NOT DEFINED ${required_var} OR "${${required_var}}" STREQUAL "")
     message(FATAL_ERROR "AccuracyCoin regression controls require ${required_var}")
   endif()
@@ -80,6 +80,11 @@ function(run_verdict expected_reason)
        NOT verdict_output MATCHES "protected AccuracyCoin verdict PASS")
       message(FATAL_ERROR "valid protected control failed (${verdict_result}): ${verdict_output}")
     endif()
+    if(DEFINED EXPECT_PROTECTED_COUNT AND
+       NOT verdict_output MATCHES "${EXPECT_PROTECTED_COUNT} protected PASS keys")
+      message(FATAL_ERROR
+        "valid protected control did not confirm ${EXPECT_PROTECTED_COUNT} protected PASS keys: ${verdict_output}")
+    endif()
   else()
     if("${verdict_result}" STREQUAL "0")
       message(FATAL_ERROR "protected regression control was accepted; expected '${expected_reason}'")
@@ -101,6 +106,64 @@ function(replace_once path old_text new_text)
   string(REPLACE "${old_text}" "${new_text}" updated "${contents}")
   file(WRITE "${path}" "${updated}")
 endfunction()
+
+function(create_next_main_baseline root)
+  file(STRINGS "${source_scoreboard}" scoreboard_lines)
+  set(pass_rows "")
+  set(pass_count 0)
+  foreach(line IN LISTS scoreboard_lines)
+    string(REPLACE "${tab}" ";" fields "${line}")
+    list(LENGTH fields field_count)
+    if(NOT field_count EQUAL 5)
+      message(FATAL_ERROR "next-main control found a malformed canonical scoreboard row")
+    endif()
+    list(GET fields 1 status)
+    if(status STREQUAL "pass")
+      string(APPEND pass_rows "${line}${newline}")
+      math(EXPR pass_count "${pass_count} + 1")
+    endif()
+  endforeach()
+  if(NOT pass_count EQUAL 101)
+    message(FATAL_ERROR "next-main control requires the canonical 101 PASS set, found ${pass_count}")
+  endif()
+  file(WRITE "${root}/baseline.txt" "${pass_rows}")
+  file(SHA256 "${root}/baseline.txt" baseline_sha256)
+
+  file(STRINGS "${SOURCE_DIR}/tests/accuracy/baseline-metadata.txt" metadata_lines
+    REGEX "^(rom_pin|rom_sha256|inventory_sha256|inventory_rows|inventory_scored_rows|inventory_draw_rows)=")
+  foreach(line IN LISTS metadata_lines)
+    string(REPLACE "=" ";" fields "${line}")
+    list(GET fields 0 key)
+    list(GET fields 1 value)
+    set("next_${key}" "${value}")
+  endforeach()
+  if(NOT next_rom_pin STREQUAL new_pin OR
+     NOT next_rom_sha256 STREQUAL
+       "8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc" OR
+     NOT next_inventory_rows STREQUAL "151" OR
+     NOT next_inventory_scored_rows STREQUAL "146" OR
+     NOT next_inventory_sha256 STREQUAL
+       "7d022800d01ad81159109bf7457af94ab6f80e4a682fce716ec476f7c454a4a5")
+    message(FATAL_ERROR "next-main control metadata does not describe the canonical new pin")
+  endif()
+  file(WRITE "${root}/metadata.txt"
+    "schema=1${newline}authority=local-snapshot${newline}source=next-main-production-control${newline}protected_revision=${revision}${newline}rom_pin=${next_rom_pin}${newline}rom_sha256=${next_rom_sha256}${newline}inventory_schema=1${newline}inventory_sha256=${next_inventory_sha256}${newline}inventory_rows=${next_inventory_rows}${newline}inventory_scored_rows=${next_inventory_scored_rows}${newline}inventory_draw_rows=5${newline}scoreboard_schema=1${newline}scoreboard_rows=${pass_count}${newline}scoreboard_denominator=${pass_count}${newline}scoreboard_sha256=${baseline_sha256}${newline}")
+endfunction()
+
+macro(prepare_next_main_case name)
+  prepare_case(${name})
+  configure_file("${next_main_root}/baseline.txt" "${case_root}/baseline.txt" COPYONLY)
+  configure_file("${next_main_root}/metadata.txt" "${case_root}/metadata.txt" COPYONLY)
+  configure_file("${next_main_root}/scoreboard.txt" "${case_root}/scoreboard.txt" COPYONLY)
+  configure_file("${next_main_root}/manifest.txt" "${case_root}/manifest.txt" COPYONLY)
+  configure_file("${next_main_root}/migration.tsv" "${case_root}/migration.tsv" COPYONLY)
+  file(REMOVE_RECURSE "${case_root}/evidence")
+  file(MAKE_DIRECTORY "${case_root}/evidence")
+  file(COPY "${next_main_root}/evidence/old" "${next_main_root}/evidence/new"
+    DESTINATION "${case_root}/evidence")
+  set(candidate_rom "${new_rom}")
+  set(candidate_manifest "${case_root}/manifest.txt")
+endmacro()
 
 function(mutate_observation root pin page row key status raw cause)
   if(page LESS 10)
@@ -400,3 +463,57 @@ change_migration_reference("${case_root}" "accuracycoin/Frame Counter 4-step"
   0x01 pass 0x02 fail 120)
 set_migration_disposition("${case_root}" "accuracycoin/Frame Counter 4-step" unchanged)
 run_verdict("unchanged cross-pin key lacks a measured passing observation")
+
+if(FULL_ENABLED)
+  # Model the first run after main adopts the new pin. Generate a complete
+  # 101-PASS baseline, then let the production page planner and cold observer
+  # create this invocation's evidence for every selected page.
+  prepare_case(next_main_positive)
+  create_next_main_baseline("${case_root}")
+  set_new_candidate_manifest("${case_root}")
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}"
+      "-DRUNNER=${RUNNER}"
+      "-DVERIFIER=${CHECKER}"
+      "-DSOURCE_DIR=${SOURCE_DIR}"
+      "-DOLD_ROM=${old_rom}"
+      "-DNEW_ROM=${new_rom}"
+      "-DWORK=${case_root}/evidence"
+      "-DBASELINE=${case_root}/baseline.txt"
+      "-DBASELINE_METADATA=${case_root}/metadata.txt"
+      "-DMIGRATION=${case_root}/migration.tsv"
+      -DPAGE_WALL_SECONDS=30
+      -P "${SOURCE_DIR}/tests/cmake/accuracycoin_protected.cmake"
+    RESULT_VARIABLE observe_result
+    OUTPUT_VARIABLE observe_stdout
+    ERROR_VARIABLE observe_stderr)
+  if(NOT "${observe_result}" STREQUAL "0")
+    message(FATAL_ERROR
+      "next-main control could not freshly observe its protected PASS pages (${observe_result}): ${observe_stderr}${observe_stdout}")
+  endif()
+  set(next_main_root "${case_root}")
+  set(EXPECT_PROTECTED_COUNT 101)
+  run_verdict("PASS")
+  unset(EXPECT_PROTECTED_COUNT)
+
+  # A PASS outside the old 2/14/17 set is now protected, and the same-pin
+  # production verdict must reject its measured terminal failure.
+  prepare_next_main_case(next_main_outside_old_pages_fails)
+  mutate_observation("${case_root}" new 1 1 "accuracycoin/ROM is not writable"
+    fail 0x02 terminal-fail)
+  replace_once("${case_root}/scoreboard.txt"
+    "accuracycoin/ROM is not writable\tpass\t0x01\t51\t-\n"
+    "accuracycoin/ROM is not writable\tfail\t0x02\t51\t-\n")
+  run_verdict("same-pin protected pass is not measured passing now")
+
+  # A formerly changed-meaning key receives no same-pin failure exemption.
+  prepare_next_main_case(next_main_changed_meaning_fails)
+  mutate_observation("${case_root}" new 14 3 "accuracycoin/Frame Counter IRQ"
+    fail 0x02 terminal-fail)
+  replace_once("${case_root}/scoreboard.txt"
+    "accuracycoin/Frame Counter IRQ\tpass\t0x01\t120\t-\n"
+    "accuracycoin/Frame Counter IRQ\tfail\t0x02\t120\t-\n")
+  change_migration_reference("${case_root}" "accuracycoin/Frame Counter IRQ"
+    0x01 pass 0x02 fail 120)
+  run_verdict("same-pin protected pass is not measured passing now")
+endif()

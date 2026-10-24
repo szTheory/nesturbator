@@ -81,8 +81,10 @@ typedef struct protected_context {
     accuracycoin_directory old_directory;
     accuracycoin_directory new_directory;
     accuracycoin_directory candidate_directory;
-    page_observation old_pages[3];
-    page_observation new_pages[3];
+    page_observation old_pages[ACCURACYCOIN_PAGE_COUNT];
+    page_observation new_pages[ACCURACYCOIN_PAGE_COUNT];
+    unsigned char old_page_loaded[ACCURACYCOIN_PAGE_COUNT];
+    unsigned char new_page_loaded[ACCURACYCOIN_PAGE_COUNT];
     char protected_revision[41];
     char baseline_pin[41];
     char candidate_pin[41];
@@ -330,9 +332,10 @@ static const scoreboard_row *scoreboard_find(const scoreboard_row *rows, size_t 
     return NULL;
 }
 
-static const observation_row *observation_find(const page_observation pages[3], const char *key)
+static const observation_row *
+observation_find(const page_observation pages[ACCURACYCOIN_PAGE_COUNT], const char *key)
 {
-    for (size_t page = 0u; page < 3u; page++)
+    for (size_t page = 0u; page < ACCURACYCOIN_PAGE_COUNT; page++)
         for (size_t row = 0u; row < pages[page].count; row++)
             if (strcmp(pages[page].rows[row].key, key) == 0)
                 return &pages[page].rows[row];
@@ -428,6 +431,24 @@ static int load_final_raw(const char *path, const accuracycoin_directory *direct
     return 1;
 }
 
+static accuracycoin_result_status classify_report_row(const char *key, int observed, uint8_t raw,
+                                                      const char *reported_cause,
+                                                      const char **cause)
+{
+    if (strcmp(reported_cause, "noncurrent-running-marker") == 0) {
+        if (observed == 1 && raw == 0x03u) {
+            if (cause != NULL)
+                *cause = "noncurrent-running-marker";
+            return ACCURACYCOIN_RESULT_NOT_RUN;
+        }
+        return ACCURACYCOIN_RESULT_INVALID;
+    }
+    return accuracycoin_classify(key, observed, raw,
+                                 strcmp(reported_cause, "active-test-budget-exhausted") == 0 ||
+                                     strcmp(reported_cause, "execution-cap-active-test") == 0,
+                                 cause);
+}
+
 static int load_page_observation(const char *evidence_root, const char *pin_name, unsigned page,
                                  const accuracycoin_directory *directory, page_observation *out,
                                  char *error, size_t error_size)
@@ -437,11 +458,16 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
     char report_path[1100];
     char raw_path[1100];
     char line[SCOREBOARD_LINE_SIZE];
+    char timeout_key[SCOREBOARD_KEY_SIZE] = "";
+    char timeout_raw[8] = "";
     static const char report_header[] =
         "key\tpage\trow\tstatus\tobserved\traw\tframes\tcause\tattempt_id\n";
     FILE *report;
     uint64_t number;
     const char *value;
+    const char *verdict;
+    const char *stop_cause;
+    unsigned timeout_count = 0u;
     const accuracycoin_page *inventory_page = &directory->pages[page - 1u];
     memset(out, 0, sizeof *out);
     if (snprintf(directory_path, sizeof directory_path, "%s/%s/page-%02u", evidence_root, pin_name,
@@ -452,6 +478,8 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
         return set_error(error, error_size, "protected observation path is too long");
     if (!load_metadata(metadata_path, &out->meta, error, error_size))
         return 0;
+    verdict = metadata_value(&out->meta, "verdict");
+    stop_cause = metadata_value(&out->meta, "stop_cause");
     if (strcmp(metadata_or_empty(&out->meta, "report_schema"), "1") != 0 ||
         strcmp(metadata_or_empty(&out->meta, "inventory_schema"), "1") != 0 ||
         strcmp(metadata_or_empty(&out->meta, "rom_pin"), directory->pin) != 0 ||
@@ -463,8 +491,10 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
         strcmp(metadata_or_empty(&out->meta, "requested_row"), "all") != 0 ||
         strcmp(metadata_or_empty(&out->meta, "input_start_policy"),
                "cold-boot;page-header-A;one-frame-A-press;one-frame-release") != 0 ||
-        strcmp(metadata_or_empty(&out->meta, "verdict"), "complete") != 0 ||
-        strcmp(metadata_or_empty(&out->meta, "stop_cause"), "all-page-results-terminal") != 0 ||
+        !((verdict != NULL && stop_cause != NULL && strcmp(verdict, "complete") == 0 &&
+           strcmp(stop_cause, "all-page-results-terminal") == 0) ||
+          (verdict != NULL && stop_cause != NULL && strcmp(verdict, "guest-timeout") == 0 &&
+           strcmp(stop_cause, "execution-cap-active-test") == 0)) ||
         strcmp(metadata_or_empty(&out->meta, "selection_observed"), "1") != 0 ||
         strcmp(metadata_or_empty(&out->meta, "selected_cursor"), "255") != 0 ||
         strcmp(metadata_or_empty(&out->meta, "a_press_observed"), "1") != 0 ||
@@ -541,9 +571,7 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
             (void)fclose(report);
             return set_error(error, error_size, "unobserved protected page row has a raw byte");
         }
-        classified =
-            accuracycoin_classify(fields[0], (int)observed, raw,
-                                  strcmp(fields[7], "execution-cap-active-test") == 0, &cause);
+        classified = classify_report_row(fields[0], (int)observed, raw, fields[7], &cause);
         if (classified == ACCURACYCOIN_RESULT_INVALID ||
             strcmp(fields[3], accuracycoin_status_text(classified)) != 0) {
             (void)fclose(report);
@@ -560,14 +588,45 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
         row->row = (unsigned)row_number;
         row->observed = (unsigned)observed;
         row->frames = frames;
+        if (strcmp(row->status, "timeout") == 0) {
+            timeout_count++;
+            (void)copy_text(timeout_key, sizeof timeout_key, row->key);
+            (void)copy_text(timeout_raw, sizeof timeout_raw, row->raw);
+        }
     }
     if (ferror(report) != 0 || fclose(report) != 0)
         return set_error(error, error_size, "protected page report read failed");
     if (out->count != inventory_page->row_count)
         return set_error(error, error_size,
                          "protected page report does not cover the full page inventory");
+    if (verdict != NULL && strcmp(verdict, "guest-timeout") == 0) {
+        if (timeout_count != 1u ||
+            strcmp(metadata_or_empty(&out->meta, "active_key"), timeout_key) != 0 ||
+            strcmp(metadata_or_empty(&out->meta, "active_raw"), timeout_raw) != 0 ||
+            strcmp(metadata_or_empty(&out->meta, "active_raw"), "0x03") != 0)
+            return set_error(error, error_size,
+                             "protected guest-timeout metadata does not identify one active row");
+    }
     if (!load_final_raw(raw_path, directory, page, out->rows, out->count, error, error_size))
         return 0;
+    return 1;
+}
+
+static int ensure_page_observation(const char *evidence_root, const char *pin_name, unsigned page,
+                                   const accuracycoin_directory *directory,
+                                   page_observation pages[ACCURACYCOIN_PAGE_COUNT],
+                                   unsigned char loaded[ACCURACYCOIN_PAGE_COUNT], char *error,
+                                   size_t error_size)
+{
+    if (page == 0u || page > ACCURACYCOIN_PAGE_COUNT)
+        return set_error(error, error_size,
+                         "protected page number is outside the pinned inventory");
+    if (loaded[page - 1u] != 0u)
+        return 1;
+    if (!load_page_observation(evidence_root, pin_name, page, directory, &pages[page - 1u], error,
+                               error_size))
+        return 0;
+    loaded[page - 1u] = 1u;
     return 1;
 }
 
@@ -753,6 +812,105 @@ static int validate_migration_row(const protected_context *context,
     return 1;
 }
 
+static int add_page(unsigned char pages[ACCURACYCOIN_PAGE_COUNT], unsigned page)
+{
+    if (page == 0u || page > ACCURACYCOIN_PAGE_COUNT)
+        return 0;
+    pages[page - 1u] = 1u;
+    return 1;
+}
+
+static int print_required_new_pages(const char *baseline_path, const char *metadata_path,
+                                    const char *migration_path)
+{
+    protected_context *context = (protected_context *)calloc(1u, sizeof *context);
+    metadata baseline_meta;
+    unsigned char pages[ACCURACYCOIN_PAGE_COUNT] = {0u};
+    const char *baseline_pin;
+    char error[256];
+    int result = 1;
+    int first = 1;
+    if (context == NULL) {
+        (void)fprintf(stderr, "protected-page-plan: out of memory\n");
+        return 1;
+    }
+    if (!load_scoreboard(baseline_path, context->baseline, &context->baseline_count, error,
+                         sizeof error) ||
+        !load_metadata(metadata_path, &baseline_meta, error, sizeof error) ||
+        !load_directory(NESTURBATOR_SOURCE_DIR "/tests/roms/accuracycoin-673ef.nes",
+                        &context->old_directory, error, sizeof error) ||
+        !load_directory(NESTURBATOR_SOURCE_DIR "/tests/roms/accuracycoin.nes",
+                        &context->new_directory, error, sizeof error) ||
+        !load_migrations(migration_path, context, error, sizeof error)) {
+        (void)fprintf(stderr, "protected-page-plan: %s\n", error);
+        goto done;
+    }
+    baseline_pin = metadata_value(&baseline_meta, "rom_pin");
+    if (baseline_pin == NULL ||
+        (strcmp(baseline_pin, context->old_directory.pin) != 0 &&
+         strcmp(baseline_pin, context->new_directory.pin) != 0) ||
+        (strcmp(baseline_pin, context->old_directory.pin) == 0 && context->baseline_count != 17u)) {
+        (void)fprintf(stderr, "protected-page-plan: baseline pin or retained count is invalid\n");
+        goto done;
+    }
+    for (size_t i = 0u; i < context->baseline_count; i++) {
+        const scoreboard_row *baseline = &context->baseline[i];
+        const accuracycoin_test *inventory;
+        const char *new_key = baseline->key;
+        if (strcmp(baseline->status, "pass") != 0) {
+            (void)fprintf(stderr, "protected-page-plan: baseline contains a non-pass row\n");
+            goto done;
+        }
+        if (strcmp(baseline_pin, context->old_directory.pin) == 0) {
+            const protected_migration *migration = migration_find(context, baseline->key, 0);
+            if (migration == NULL) {
+                (void)fprintf(stderr,
+                              "protected-page-plan: old protected key has no migration row: %s\n",
+                              baseline->key);
+                goto done;
+            }
+            new_key = migration->new_key;
+            if (new_key[0] == '\0')
+                continue;
+        }
+        inventory = inventory_row(&context->new_directory, new_key);
+        if (inventory == NULL || !add_page(pages, inventory->page)) {
+            (void)fprintf(stderr,
+                          "protected-page-plan: protected PASS has no new-pin inventory page: %s\n",
+                          new_key);
+            goto done;
+        }
+    }
+    for (size_t i = 0u; i < context->migration_count; i++) {
+        const protected_migration *migration = &context->migrations[i];
+        const accuracycoin_test *inventory;
+        if (migration->new_key[0] == '\0')
+            continue;
+        inventory = inventory_row(&context->new_directory, migration->new_key);
+        if (inventory == NULL || !add_page(pages, inventory->page)) {
+            (void)fprintf(
+                stderr, "protected-page-plan: migration target has no new-pin inventory page: %s\n",
+                migration->new_key);
+            goto done;
+        }
+    }
+    for (unsigned page = 1u; page <= ACCURACYCOIN_PAGE_COUNT; page++) {
+        if (pages[page - 1u] == 0u)
+            continue;
+        (void)printf("%s%u", first ? "" : ",", page);
+        first = 0;
+    }
+    if (first) {
+        (void)fprintf(stderr, "protected-page-plan: no new-pin PASS pages were selected\n");
+        goto done;
+    }
+    (void)putchar('\n');
+    result = 0;
+done:
+    free(context);
+    return result;
+}
+
 static int verify_context(protected_context *context, const char *baseline_path,
                           const char *baseline_metadata_path, const char *candidate_scoreboard_path,
                           const char *candidate_rom_path, const char *candidate_manifest_path,
@@ -760,10 +918,17 @@ static int verify_context(protected_context *context, const char *baseline_path,
                           const char *expected_revision, char *error, size_t error_size)
 {
     metadata baseline_meta;
+    scoreboard_row old_scoreboard[MAX_SCOREBOARD_ROWS];
+    const scoreboard_row *old_reference;
+    size_t old_scoreboard_count = 0u;
     char digest[65];
     uint64_t value;
     const char *text;
-    static const unsigned pages[] = {2u, 14u, 17u};
+    int baseline_is_old;
+    int baseline_is_new;
+    int candidate_is_old;
+    int candidate_is_new;
+    int cross_pin;
 
     if (!load_scoreboard(baseline_path, context->baseline, &context->baseline_count, error,
                          error_size))
@@ -796,7 +961,7 @@ static int verify_context(protected_context *context, const char *baseline_path,
         !metadata_number(&baseline_meta, "scoreboard_rows", &value) ||
         value != context->baseline_count ||
         !metadata_number(&baseline_meta, "scoreboard_denominator", &value) ||
-        value != context->baseline_count || context->baseline_count != 17u)
+        value != context->baseline_count)
         return set_error(error, error_size,
                          "protected scoreboard denominator or schema is invalid");
     for (size_t i = 0u; i < context->baseline_count; i++)
@@ -839,93 +1004,167 @@ static int verify_context(protected_context *context, const char *baseline_path,
         value != baseline_directory->draw_count)
         return set_error(error, error_size,
                          "protected metadata does not bind pin, inventory schema, and denominator");
-
-    for (size_t pin_index = 0u; pin_index < 2u; pin_index++) {
-        const char *pin_name = pin_index == 0u ? "old" : "new";
-        const accuracycoin_directory *directory =
-            pin_index == 0u ? &context->old_directory : &context->new_directory;
-        page_observation *observations = pin_index == 0u ? context->old_pages : context->new_pages;
-        for (size_t page_index = 0u; page_index < 3u; page_index++)
-            if (!load_page_observation(evidence_root, pin_name, pages[page_index], directory,
-                                       &observations[page_index], error, error_size))
-                return 0;
-    }
     if (!load_migrations(migration_path, context, error, error_size))
         return 0;
 
-    int cross_pin = strcmp(context->candidate_pin, context->baseline_pin) != 0;
-    if (cross_pin && (strcmp(context->baseline_pin, context->old_directory.pin) != 0 ||
-                      strcmp(context->candidate_pin, context->new_directory.pin) != 0))
+    baseline_is_old = strcmp(context->baseline_pin, context->old_directory.pin) == 0;
+    baseline_is_new = strcmp(context->baseline_pin, context->new_directory.pin) == 0;
+    candidate_is_old = strcmp(context->candidate_pin, context->old_directory.pin) == 0;
+    candidate_is_new = strcmp(context->candidate_pin, context->new_directory.pin) == 0;
+    cross_pin = strcmp(context->candidate_pin, context->baseline_pin) != 0;
+    if ((!baseline_is_old && !baseline_is_new) || (!candidate_is_old && !candidate_is_new) ||
+        (baseline_is_old && context->baseline_count != 17u))
+        return set_error(error, error_size, "protected pin or retained old denominator is invalid");
+    if ((cross_pin && (!baseline_is_old || !candidate_is_new)) ||
+        (!cross_pin && baseline_is_new && !candidate_is_new) ||
+        (!cross_pin && baseline_is_old && !candidate_is_old))
         return set_error(error, error_size,
                          "candidate pin changed outside the reviewed old-to-new transition");
-    if (!cross_pin && strcmp(context->candidate_pin, context->old_directory.pin) != 0 &&
-        strcmp(context->candidate_pin, context->new_directory.pin) != 0)
-        return set_error(error, error_size, "candidate pin has no protected measurement policy");
 
-    for (size_t i = 0u; i < context->baseline_count; i++) {
-        const scoreboard_row *baseline = &context->baseline[i];
-        int baseline_is_new = strcmp(context->baseline_pin, context->new_directory.pin) == 0;
-        const protected_migration *migration =
-            migration_find(context, baseline->key, baseline_is_new);
-        const observation_row *old_observation;
-        const observation_row *new_observation;
-        const observation_row *baseline_observation;
-        const observation_row *candidate_observation;
-        const scoreboard_row *candidate;
-        const char *active_key;
-        uint8_t actual_raw;
-        uint8_t baseline_raw;
-        accuracycoin_result_status classified;
-        if (migration == NULL)
-            return set_error(error, error_size, "protected key has no exact migration disposition");
-        old_observation = observation_find(context->old_pages, migration->old_key);
-        new_observation = observation_find(context->new_pages, migration->new_key);
-        if (!validate_migration_row(context, migration, new_observation, error, error_size))
+    if (baseline_is_old) {
+        old_reference = context->baseline;
+        old_scoreboard_count = context->baseline_count;
+    } else {
+        if (!load_scoreboard(NESTURBATOR_SOURCE_DIR "/tests/accuracy/old-673ef-scoreboard.txt",
+                             old_scoreboard, &old_scoreboard_count, error, error_size))
             return 0;
+        old_reference = old_scoreboard;
+    }
+
+    /* Preserve the 17 retained old-pin controls, then cover every page needed by
+     * the new-pin destinations selected from the active protected baseline. */
+    for (size_t i = 0u; i < context->migration_count; i++) {
+        const protected_migration *migration = &context->migrations[i];
+        const accuracycoin_test *old_inventory =
+            inventory_row(&context->old_directory, migration->old_key);
+        const scoreboard_row *old_expected =
+            scoreboard_find(old_reference, old_scoreboard_count, migration->old_key);
+        const observation_row *old_observation;
+        const observation_row *new_observation = NULL;
+        uint8_t old_raw;
+        uint8_t observed_old_raw;
+        char message[160];
+        if (old_inventory == NULL || old_expected == NULL ||
+            strcmp(old_expected->status, "pass") != 0 || !parse_raw(old_expected->raw, &old_raw))
+            return set_error(error, error_size,
+                             "retained old protected key has no strict passing reference");
+        if (!ensure_page_observation(evidence_root, "old", old_inventory->page,
+                                     &context->old_directory, context->old_pages,
+                                     context->old_page_loaded, error, error_size))
+            return 0;
+        old_observation = observation_find(context->old_pages, migration->old_key);
         if (old_observation == NULL || old_observation->observed != 1u ||
             strcmp(old_observation->status, "pass") != 0 ||
-            !parse_raw(old_observation->raw, &actual_raw)) {
-            char message[160];
+            !parse_raw(old_observation->raw, &observed_old_raw)) {
             const char *status = old_observation == NULL ? "missing" : old_observation->status;
             (void)snprintf(message, sizeof message,
                            "retained old protected key lacks an actual passing observation: %s",
                            status);
             return set_error(error, error_size, message);
         }
-        classified = accuracycoin_classify(migration->old_key, 1, actual_raw, 0, NULL);
-        baseline_observation = baseline_is_new ? new_observation : old_observation;
-        if (classified != ACCURACYCOIN_RESULT_PASS || baseline_observation == NULL ||
-            strcmp(baseline_observation->status, "pass") != 0 ||
-            !parse_raw(baseline_observation->raw, &baseline_raw) ||
-            !parse_raw(baseline->raw, &actual_raw) || baseline_raw != actual_raw)
+        if (observed_old_raw != old_raw)
             return set_error(error, error_size,
                              "old protected measurement differs from retained baseline pass");
-
-        if (cross_pin) {
-            if (strcmp(migration->disposition, "unchanged") == 0 &&
-                strcmp(new_observation->status, "pass") != 0)
+        if (migration->new_key[0] != '\0') {
+            const accuracycoin_test *new_inventory =
+                inventory_row(&context->new_directory, migration->new_key);
+            if (new_inventory == NULL)
                 return set_error(error, error_size,
-                                 "unchanged cross-pin key lacks a measured passing observation");
-            if (strcmp(migration->disposition, "changed-meaning") != 0 &&
-                strcmp(migration->disposition, "unchanged") != 0)
-                return set_error(error, error_size,
-                                 "cross-pin key requires an ordinary reviewed mapping");
-            active_key = migration->new_key;
-            candidate_observation = new_observation;
-        } else if (strcmp(context->candidate_pin, context->old_directory.pin) == 0) {
-            active_key = migration->old_key;
-            candidate_observation = old_observation;
-        } else {
-            active_key = migration->new_key;
-            candidate_observation = new_observation;
+                                 "protected migration target is absent from the new inventory");
+            if (!ensure_page_observation(evidence_root, "new", new_inventory->page,
+                                         &context->new_directory, context->new_pages,
+                                         context->new_page_loaded, error, error_size))
+                return 0;
+            new_observation = observation_find(context->new_pages, migration->new_key);
         }
-        if (candidate_observation == NULL || candidate_observation->observed != 1u ||
-            !parse_raw(candidate_observation->raw, &actual_raw))
-            return set_error(error, error_size,
-                             "candidate protected key has no actual raw observation");
-        if (!cross_pin && strcmp(candidate_observation->status, "pass") != 0)
-            return set_error(error, error_size,
-                             "same-pin protected pass is not measured passing now");
+        if (!validate_migration_row(context, migration, new_observation, error, error_size))
+            return 0;
+    }
+
+    if (baseline_is_new) {
+        for (size_t i = 0u; i < context->baseline_count; i++) {
+            const accuracycoin_test *inventory =
+                inventory_row(&context->new_directory, context->baseline[i].key);
+            if (inventory == NULL)
+                return set_error(
+                    error, error_size,
+                    "protected same-pin PASS is absent from the current new inventory");
+            if (!ensure_page_observation(evidence_root, "new", inventory->page,
+                                         &context->new_directory, context->new_pages,
+                                         context->new_page_loaded, error, error_size))
+                return 0;
+        }
+    }
+
+    for (size_t i = 0u; i < context->baseline_count; i++) {
+        const scoreboard_row *baseline = &context->baseline[i];
+        const protected_migration *migration = NULL;
+        const observation_row *candidate_observation;
+        const scoreboard_row *candidate;
+        const char *active_key;
+        uint8_t actual_raw;
+        uint8_t baseline_raw;
+        accuracycoin_result_status classified;
+        if (baseline_is_new) {
+            const accuracycoin_test *inventory =
+                inventory_row(&context->new_directory, baseline->key);
+            candidate_observation = observation_find(context->new_pages, baseline->key);
+            active_key = baseline->key;
+            if (inventory == NULL || candidate_observation == NULL ||
+                candidate_observation->observed != 1u ||
+                strcmp(candidate_observation->status, "pass") != 0 ||
+                !parse_raw(candidate_observation->raw, &actual_raw) ||
+                !parse_raw(baseline->raw, &baseline_raw) || actual_raw != baseline_raw)
+                return set_error(error, error_size,
+                                 "same-pin protected pass is not measured passing now");
+        } else {
+            migration = migration_find(context, baseline->key, 0);
+            if (migration == NULL)
+                return set_error(error, error_size,
+                                 "protected key has no exact migration disposition");
+            const observation_row *old_observation =
+                observation_find(context->old_pages, migration->old_key);
+            const observation_row *new_observation =
+                observation_find(context->new_pages, migration->new_key);
+            if (old_observation == NULL || old_observation->observed != 1u ||
+                strcmp(old_observation->status, "pass") != 0 ||
+                !parse_raw(old_observation->raw, &actual_raw))
+                return set_error(
+                    error, error_size,
+                    "retained old protected key lacks an actual passing observation: fail");
+            classified = accuracycoin_classify(migration->old_key, 1, actual_raw, 0, NULL);
+            if (classified != ACCURACYCOIN_RESULT_PASS ||
+                !parse_raw(baseline->raw, &baseline_raw) || baseline_raw != actual_raw)
+                return set_error(error, error_size,
+                                 "old protected measurement differs from retained baseline pass");
+
+            if (cross_pin) {
+                if (strcmp(migration->disposition, "unchanged") == 0 &&
+                    (new_observation == NULL || strcmp(new_observation->status, "pass") != 0))
+                    return set_error(
+                        error, error_size,
+                        "unchanged cross-pin key lacks a measured passing observation");
+                if (strcmp(migration->disposition, "changed-meaning") != 0 &&
+                    strcmp(migration->disposition, "unchanged") != 0)
+                    return set_error(error, error_size,
+                                     "cross-pin key requires an ordinary reviewed mapping");
+                active_key = migration->new_key;
+                candidate_observation = new_observation;
+            } else {
+                active_key = migration->old_key;
+                candidate_observation = old_observation;
+            }
+            if (candidate_observation == NULL || candidate_observation->observed != 1u ||
+                !parse_raw(candidate_observation->raw, &actual_raw))
+                return set_error(error, error_size,
+                                 "candidate protected key has no actual raw observation");
+        }
+        if (baseline_is_new) {
+            if (candidate_observation == NULL || candidate_observation->observed != 1u ||
+                !parse_raw(candidate_observation->raw, &actual_raw))
+                return set_error(error, error_size,
+                                 "candidate protected key has no actual raw observation");
+        }
         candidate = scoreboard_find(context->candidate, context->candidate_count, active_key);
         if (candidate == NULL)
             return set_error(error, error_size, "candidate scoreboard lost a protected key");
@@ -953,19 +1192,26 @@ static int verify_files(const char *baseline_path, const char *baseline_metadata
                         const char *candidate_rom_path, const char *candidate_manifest_path,
                         const char *migration_path, const char *evidence_root)
 {
-    protected_context context;
+    protected_context *context = (protected_context *)calloc(1u, sizeof *context);
     char error[256] = "protected verdict failed";
-    memset(&context, 0, sizeof context);
-    if (!verify_context(&context, baseline_path, baseline_metadata_path, candidate_scoreboard_path,
-                        candidate_rom_path, candidate_manifest_path, migration_path, evidence_root,
-                        revision, error, sizeof error)) {
-        (void)fprintf(stderr, "protected-verdict: %s\n", error);
+    int result;
+    if (context == NULL) {
+        (void)fprintf(stderr, "protected-verdict: out of memory\n");
         return 1;
     }
-    (void)printf("protected AccuracyCoin verdict PASS: %lu old passes, %lu new observations, "
-                 "candidate pin %s\n",
-                 (unsigned long)context.baseline_count, (unsigned long)context.migration_count,
-                 context.candidate_pin);
+    result = !verify_context(context, baseline_path, baseline_metadata_path,
+                             candidate_scoreboard_path, candidate_rom_path, candidate_manifest_path,
+                             migration_path, evidence_root, revision, error, sizeof error);
+    if (result != 0) {
+        (void)fprintf(stderr, "protected-verdict: %s\n", error);
+        free(context);
+        return result;
+    }
+    (void)printf("protected AccuracyCoin verdict PASS: %lu protected PASS keys, "
+                 "%lu retained migration keys, candidate pin %s\n",
+                 (unsigned long)context->baseline_count, (unsigned long)context->migration_count,
+                 context->candidate_pin);
+    free(context);
     return 0;
 }
 
@@ -1049,13 +1295,16 @@ int main(int argc, char **argv)
 {
     if (argc == 1)
         return main_verify();
+    if (argc == 5 && strcmp(argv[1], "--protected-pages") == 0 && strcmp(argv[4], "") != 0)
+        return print_required_new_pages(argv[2], argv[3], argv[4]);
     if (argc == 2 && strcmp(argv[1], "--scoreboard-syntax") == 0)
         return scoreboard_syntax();
     if (argc == 2)
         return no_lost_pass(argv[1]);
     if (argc == 10 && strcmp(argv[1], "--verify") == 0)
         return verify_files(argv[2], argv[3], argv[4], argv[5], argv[6], argv[7], argv[8], argv[9]);
-    (void)fprintf(stderr, "usage: accuracy.scoreboard [--scoreboard-syntax | --verify BASELINE "
+    (void)fprintf(stderr, "usage: accuracy.scoreboard [--scoreboard-syntax | --protected-pages "
+                          "BASELINE METADATA MIGRATION | --verify BASELINE "
                           "METADATA REVISION SCOREBOARD ROM MANIFEST MIGRATION EVIDENCE_ROOT]\n");
     return 2;
 }
