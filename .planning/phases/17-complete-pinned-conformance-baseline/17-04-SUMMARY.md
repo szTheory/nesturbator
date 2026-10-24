@@ -99,6 +99,19 @@ AccuracyCoin artifacts from that exact source head:
 
 ## Task Commits
 
+### Post-execution source-review follow-up
+
+Independent review found CR-01 in protected final-raw coverage. Commit `c23d0ac`
+adds per-key uniqueness/completeness and malformed-record controls; independent
+re-review is clean. This later measurement supersedes the earlier build-input
+fingerprint above for current source: 56 inputs now hash to
+`5aedbb3b04eca54a04d42e4e0ec7851e2e694cd72fd032d2ab1c29dfcbf2afe0`, while the
+campaign report hash and all result counts remain unchanged. Exact-source
+[PR CI 40075421001](https://github.com/szTheory/nesturbator/actions/runs/40075421001)
+passed all 15 jobs and primary Linux 663/663 tests. See
+[the fix evidence](17-REVIEW-FIX.md), [the clean review](17-REVIEW.md), and
+[the regression gate](17-REGRESSION.md) for the latest attribution and artifact hash.
+
 The persisted plan ledger records 13 commits between `plan_head_before` and the tested production head. The plan implementation commits are:
 
 1. **Task 1: Activate the fixture, measured baseline and protected migration** — `584ce9f`, with correctness/provenance follow-ups `cc48e64`, `91fb93b`, `51c9ce8` and `dcdb7b3`.
