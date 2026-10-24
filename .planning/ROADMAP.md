@@ -163,7 +163,21 @@ Plans:
   3. Normal CI replays a fixed permitted/generated corpus, while finite nightly sanitizer campaigns retain deterministic crash/timeout reproducers under measured time, memory and execution budgets selected from throughput/coverage evidence. Findings are minimized; a zero-finding campaign is reported only as finite evidence.
   4. Automated guest-loop and JAM cases demonstrate the documented progress/stop outcomes, including the adapter's observable halt policy. Every reproduced library/host contract violation has a minimized regression and correction or an explicit scope amendment; unexpected major repair/architecture scope is never silently absorbed or waived.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+**Wave 1**
+- [ ] 18-01-PLAN.md — Owned execution tracer and matched initial reach measurement.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 18-02-PLAN.md — Six-family bank/execution qualification and discriminating lifecycle controls.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 18-03-PLAN.md — Native/runner loop and JAM contracts plus adapter presentation policy.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 18-04-PLAN.md — Measured portable replay, finite sanitizer campaigns and scoped findings evidence.
+
 **UI hint**: no
 **Canonical refs**: [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [ENGINEERING.md](preparation/ENGINEERING.md), [CONFORMANCE.md](preparation/CONFORMANCE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md); current reach and discovery limits in [research/v4-scope/reliability.md](research/v4-scope/reliability.md).
 
@@ -177,7 +191,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 |-------|-----------|----------------|--------|-----------|
 | 16. Host evidence and roadmap | v4 | 13/13 | Complete    | 2026-10-23 |
 | 17. Complete pinned conformance baseline | v4 | 4/4 | Complete    | 2026-10-24 |
-| 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
+| 18. Execution and lifecycle robustness | v4 | 0/4 | Ready to execute | - |
 
 ## Backlog disposition
 

@@ -5,18 +5,18 @@ milestone_name: Measured NTSC accuracy and robustness
 current_phase: 18
 current_phase_name: Execution and lifecycle robustness
 current_plan: Not started
-status: planning
-stopped_at: Phase 18 context gathered; ready for gsd-plan-phase 18
-last_updated: "2026-10-24T15:43:53.083Z"
-state_head: b36d9c114fa7a19ad9b271c2cb8f0af44214ef67
+status: ready_to_execute
+stopped_at: Phase 18 planned and checked; ready for gsd-execute-phase 18
+last_updated: "2026-10-24T16:22:54.428Z"
+state_head: 594fd12dad9b382b8c147e26e6d782c22cbbc7de
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 17
+  total_plans: 21
   completed_plans: 17
   percent: 67
 last_activity: 2026-10-24
-last_activity_desc: Phase 17 passed 38/38 verification and all CONF requirements; ready to discuss Phase 18
+last_activity_desc: Phase 18 research and four plans verified; ready to execute
 ---
 
 # Project State
@@ -29,17 +29,39 @@ Current focus: Phase 18 — Execution and lifecycle robustness.
 
 ## Current Position
 
-Phase: 18 — Execution and lifecycle robustness
+Phase: 18 (Execution and lifecycle robustness) — READY TO EXECUTE
 Current Plan: Not started
-Total Plans in Phase: 0 (not planned)
-Status: Ready to discuss and plan
+Total Plans in Phase: 4
+Status: Ready to execute
 Progress: [███████░░░] 67% of milestone phases (2/3)
-Written plans: [████████████████████] 17/17 plans (100%); Phase 18 is not yet planned.
+Written plans: 21 total; 17 complete and four Phase 18 plans ready to execute.
 
 Phase 17 is complete: four sequential plans, 38/38 independently verified
 roadmap/plan truths, all 15 locked decisions honored, and CONF-01 through
-CONF-04 Complete. Phase 18 has not started. This command ran no next-phase
-or milestone lifecycle step.
+CONF-04 Complete. Phase 18 planning is complete; implementation has not started.
+This command ran only the requested plan-phase step.
+
+## Phase 18 Planning
+
+- Research identifies the current execution, lifecycle and CI seams. Local
+  sanitizer coverage is available; libFuzzer mutation uses the existing Linux
+  toolchain because the local runtime is unavailable.
+- Four sequential plans contain ten tasks: execution tracer and initial
+  measurement; six-family reach and lifecycle controls; loop/JAM and adapter
+  presentation; measured replay/campaign budgets, artifacts and scoped findings.
+- Independent plan checking passed after one narrow revision resolved a
+  context-budget warning with code/data/docs grouping and task-scoped reading.
+  Estimates remain uncalibrated projections, not measured implementation cost.
+- Automated structure checks pass for all four plans. Requirement coverage is
+  4/4, decision coverage 16/16 and post-planning coverage 20/20. All 12 planned
+  verification commands state failure signals. The path probe does not support
+  CMake/CTest; independent source inspection checked command feasibility.
+- Five classified edge-probe rows have explicit acceptance truths. Two
+  unclassified rows remain flagged assumptions; the locked campaign and halt
+  acceptance contracts still apply. No kept prohibition was silently dropped.
+- No prototype, product test or campaign ran in planning. Useful additional
+  six-family reach, final budgets and artifact collection await execution;
+  absent reach leaves ROB-01 unmet unless scope is explicitly amended.
 
 ## Phase 17 Evidence
 
@@ -132,15 +154,15 @@ or milestone lifecycle step.
 
 ## Next Action
 
-`$gsd-discuss-phase 18` — clarify the bounded execution/lifecycle prototype,
-corpus and loop/JAM contract. Review/deliver Phase 17 through draft PR #54 using
+`$gsd-execute-phase 18` — run the four verified plans in order.
+Review/deliver Phase 17 through draft PR #54 using
 the normal PR workflow. Do not re-execute completed Phase 17 plans.
 
 ## Session
 
-Last session: 2026-10-24T15:43:51.799Z
-Stopped at: Phase 18 context gathered; ready for gsd-plan-phase 18
-Resume file: .planning/phases/18-execution-and-lifecycle-robustness/18-CONTEXT.md
+Last session: 2026-10-24T16:22:54.428Z
+Stopped at: Phase 18 planned and checked; ready for gsd-execute-phase 18
+Resume file: .planning/phases/18-execution-and-lifecycle-robustness/18-01-PLAN.md
 
 [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) remains the
 historical authority for completed Phase 16. Its retired helper/admission/
