@@ -374,8 +374,9 @@ jobs:
   perf:
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.control)
     runs-on: ubuntu-24.04
-    # Twice the slowest of 13 sampled successful runs: 286 s in run 38398904814, rounded up to 10 minutes, ENGINEERING section 5.
-    timeout-minutes: 10
+    # Previous 10-minute cap: 13 successful samples, slowest 286 s in run 38398904814.
+    # Run 40135763965 used 7m44s to install Valgrind and hit the cap while measuring; run 40131613734 measured in 2m32s. 15m leaves about 4m over that combined path.
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
