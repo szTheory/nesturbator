@@ -45,6 +45,11 @@ leaks() { grep -I -E -e "$1" | grep -v -E -e "$2" | grep -q .; }
 # True if $1 is the first field of a line in the test-ROM manifest.
 in_manifest() { [ -f "$MANIFEST" ] && awk -v p="$1" '$1 == p { f = 1 } END { exit !f }' "$MANIFEST"; }
 
+# A historical snapshot is judged by the manifest that shipped with it. A
+# fixture can be retired or relocated later without making its earlier,
+# documented commit invalid.
+in_manifest_at() { git show "$1:$MANIFEST" 2>/dev/null | awk -v p="$2" '$1 == p { f = 1 } END { exit !f }'; }
+
 # $1 is a path; $2 is a command that prints that path's content. A file whose
 # content cannot be read is a finding, so the scan fails closed.
 check_file() {
@@ -173,14 +178,17 @@ case $mode in
       # --numstat shows a binary file's line counts as "-".
       for b in $(git diff-tree -r --root --no-commit-id --numstat "$c" |
         awk -F '\t' '$1 == "-" && $2 == "-" { print $3 }'); do
-        [ "$b" = "$SELF" ] || in_manifest "$b" || found 'binary file not in manifest' "$b (in history)"
+        [ "$b" = "$SELF" ] && continue
+        if git cat-file -e "$c:$b" 2>/dev/null; then
+          in_manifest_at "$c" "$b" || found 'binary file not in manifest' "$b (in history)"
+        fi
+      done
+      for n in $(git ls-tree -r --name-only "$c" | grep -i -E -e "$ROM_NAME" || true); do
+        in_manifest_at "$c" "$n" || found 'game image by name' "$n (in history)"
       done
       check_vector_json_budget commit "$c"
     done
     for e in $(git log "$@" --format='%ae%n%ce' | sort -u); do check_identity "$e" 'history'; done
-    for n in $(git log "$@" --name-only --format= | sort -u | grep -i -E -e "$ROM_NAME" || true); do
-      in_manifest "$n" || found 'game image by name' "$n (in history)"
-    done
     ;;
   *)
     printf 'usage: %s --staged | --tree | --history [rev-list args]\n' "$0" >&2
