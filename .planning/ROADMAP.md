@@ -49,7 +49,7 @@
 Establish trustworthy current-host evidence, a complete pinned NTSC conformance inventory and bounded execution robustness evidence. These measurements inform the next accuracy or regional milestone; they do not promise an all-pass score. Planning milestone v4 is distinct from package release v0.1.10. Future direction and promotion triggers remain in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 
 - [x] **Phase 16: Host evidence and roadmap** — Current RetroArch checks reject known wrong behavior, and milestone direction has a recurring operating contract. (completed 2026-10-23)
-- [ ] **Phase 17: Complete pinned conformance baseline** — Every AccuracyCoin entry is inventoried and each scored test has an honest bounded outcome.
+- [x] **Phase 17: Complete pinned conformance baseline** — Every AccuracyCoin entry is inventoried and each scored test has an honest bounded outcome. (completed 2026-10-24)
 - [ ] **Phase 18: Execution and lifecycle robustness** — Accepted generated programs exercise all supported board families with bounded replay, sanitizer evidence and explicit stop behavior.
 
 ## Phase Details
@@ -134,7 +134,7 @@ milestone upkeep was introduced. Phase 17 is next.
   3. A bounded automated run retains raw results and diagnostics and classifies every scored test as pass, fail, skip, not-run or timeout; not-run/timeout records explain their causes and never imply execution or a passing score.
   4. All 17 previously protected passing keys remain mapped and accounted for. Automated gates reject same-pin pass regressions; upstream meaning or denominator changes have an explicit reviewed disposition and preserved comparison evidence.
 
-**Plans**: 4/4 plans executed
+**Plans**: 4/4 plans complete
 
 Plans:
 **Wave 1**
@@ -176,7 +176,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 16. Host evidence and roadmap | v4 | 13/13 | Complete    | 2026-10-23 |
-| 17. Complete pinned conformance baseline | v4 | 4/4 | In Progress | - |
+| 17. Complete pinned conformance baseline | v4 | 4/4 | Complete    | 2026-10-24 |
 | 18. Execution and lifecycle robustness | v4 | 0/TBD | Not started | - |
 
 ## Backlog disposition

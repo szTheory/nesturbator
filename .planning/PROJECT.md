@@ -10,11 +10,11 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 ## Current State
 
-v3 "Save states and rewind" shipped on 2026-10-13; its five phases merged as PRs #42 to #46. Their release, [v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10), published at 2026-10-13T16:53:40Z after release PR #35 merged as `da2bf973813530cb9561a004e7b774011a0a7867`. Read-only verification at 2026-10-13T16:53:46Z confirmed [publication run 38432194730](https://github.com/szTheory/nesturbator/actions/runs/38432194730) completed successfully on that exact SHA, a non-draft release, and exactly 18 platform ZIPs plus `SHA256SUMS`, all nonempty. The formatting and merge blocker recorded at milestone close is resolved; its historical observation remains in MILESTONES.md. Hosts save and load the whole machine through the library, RetroArch saves and loads states, rewinds and runs ahead with the core under a `deterministic` claim, and nes-runner writes and reads states, flushes its save on a stop signal and reports every outcome through one documented exit-status table. Speed is measured on every pull request by a Cachegrind instruction-count gate, and `--bench` prints frame-time percentiles. No frame or audio hash moved. The code is 32,949 lines of C, 8,804 of them in the core library and public header, with 634 CTest tests in `ci`.
+v3 "Save states and rewind" shipped on 2026-10-13; its five phases merged as PRs #42 to #46. Their release, [v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10), published at 2026-10-13T16:53:40Z after release PR #35 merged as `da2bf973813530cb9561a004e7b774011a0a7867`. Read-only verification at 2026-10-13T16:53:46Z confirmed [publication run 38432194730](https://github.com/szTheory/nesturbator/actions/runs/38432194730) completed successfully on that exact SHA, a non-draft release, and exactly 18 platform ZIPs plus `SHA256SUMS`, all nonempty. The formatting and merge blocker recorded at milestone close is resolved; its historical observation remains in MILESTONES.md. Hosts save and load the whole machine through the library, RetroArch saves and loads states, rewinds and runs ahead with the core under a `deterministic` claim, and nes-runner writes and reads states, flushes its save on a stop signal and reports every outcome through one documented exit-status table. Speed is measured on every pull request by a Cachegrind instruction-count gate, and `--bench` prints frame-time percentiles. No frame or audio hash moved. That v3 release snapshot had 32,949 lines of C, 8,804 of them in the core library and public header, with 634 CTest tests in `ci`.
 
 v2 "Most of the library plays" shipped on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal v0.1.11 publication. The current source also registers the source-root matrix in normal POSIX CI/ASan; CI passed 650/650 with all three packages, and focused ASan passed 1/1. Nightly vectors-full remains separate unresolved debt. Phase 17 is ready for discussion.
+Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal v0.1.11 publication. The current source also registers the source-root matrix in normal POSIX CI/ASan; CI passed 650/650 with all three packages, and focused ASan passed 1/1. Nightly vectors-full remains separate unresolved debt. Phase 17 completed on 2026-10-24: all four CONF requirements and 38/38 verification truths passed. The canonical 146-scored/five-DRAW inventory has a measured 101-pass baseline with explicit nonpasses; all 17 old protections and the 101-PASS next-main transition are tested. Exact-source PR CI run [40075421001](https://github.com/szTheory/nesturbator/actions/runs/40075421001) passed all 15 jobs and primary Linux 663/663. Draft PR #54 remains unmerged. Phase 18 is ready for discussion; no execution/lifecycle prototype has started.
 
 ## Current Milestone: v4 Measured NTSC accuracy and robustness
 
@@ -58,9 +58,10 @@ Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal 
 - ✓ Real-host progression evidence rejects known wrong sequences, confirms bounded commands and exact fixtures; actual v0.1.11 metadata truthfully describes MMC3. — Phase 16, EVID-01 to EVID-04; 22/22 verification, 18 published archive checksums/attestations and six metadata copies
 - ✓ Four-horizon product direction and the same-step milestone opening/closeout contract are installed and source-linked; the v4 opening demonstrates the contract. — Phase 16, DIR-01/02; future boundary execution remains an ongoing obligation
 
+- ✓ The pinned AccuracyCoin inventory, bounded five-way baseline, retained old-pin comparison and same-invocation protected PASS evidence are verified. — Phase 17, CONF-01 to CONF-04; 38/38 truths, exact-source CI 663/663 and all 15 jobs
+
 ### Active
 
-- [ ] The runner inventories the pinned AccuracyCoin suite and records every scored result honestly, preserving protected passes and migration evidence. — CONF-01 to CONF-04
 - [ ] Supported accepted programs and lifecycle transitions receive bounded execution fuzzing, deterministic replay and documented loop/JAM behavior. — ROB-01 to ROB-04
 
 ### Out of Scope
@@ -77,7 +78,7 @@ Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal 
 
 ## Context
 
-- **Ecosystem.** Every mainstream libretro NES core is GPL or LGPL. The most accurate emulators are GPL applications or permissive C# and Java programs. A permissive, accuracy-class, embeddable C core does not exist yet. AccuracyCoin, an MIT test ROM with 144 tests, is today's public measure of accuracy.
+- **Ecosystem.** Every mainstream libretro NES core is GPL or LGPL. The most accurate emulators are GPL applications or permissive C# and Java programs. A permissive, accuracy-class, embeddable C core does not exist yet. AccuracyCoin is an MIT test ROM. The retained historical pin has 144 scored tests plus five DRAW entries; the canonical 6bee919 pin has 146 scored tests plus five separate DRAW entries.
 - **Sibling projects.** A Neo Geo core with the same three deliverables and the same API conventions. Playstead, a host that launches emulator processes and needs deterministic input replay and safe battery saves from them.
 - **How releases are tried.** In RetroArch on an Apple Silicon Mac, installed by script. The local RetroArch tests were removed in Phase 5; the hosted `retroarch-e2e` job carries the screenshot evidence, and `policy.no-skip` fails any CI job whose expected test reports itself skipped.
 - **Known debt after v1.** Closed in Phase 5. The audit that listed it is `.planning/milestones/v1-MILESTONE-AUDIT.md`.
@@ -151,6 +152,8 @@ Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal 
 | A stop signal only sets a flag; the main loop checks it before each frame, then flushes stdout and the save; the handler resets to the default action so a second signal kills; `--raise-after` raises the stop in-process at a chosen frame | A frame-exact, testable stop with no work in the handler, identical on every platform | ✓ Good — Phase 14 stopped runs match unstopped ones byte for byte; real-signal and real Ctrl+Break tests pass on six platforms |
 | The per-PR `perf` gate fails a ROM whose Cachegrind instructions per frame rise more than 1% over the merge base, fails UNSTABLE measurements outright, and accepts a slowdown only through a dated `tests/perf/allow.txt` line capped at 60 days | Instruction counts are deterministic where wall time is not, so a slowdown cannot land unseen while a deliberate one still can | ✓ Good — Phase 15 two control runs showed zero spread on all three ROMs before the gate was armed |
 | Every `timeout-minutes` line carries the ID of the measured run it doubles, and `hygiene.timeout_comments` fails a line without one | A limit with no measurement behind it is a guess, and guessed limits cancelled healthy jobs in Phase 13 | ✓ Good — Phase 15 nightly suite-flake set to 38 min from three cold runs |
+| Separate bounded observation success from hardware PASS, and keep DRAW outside the denominator | An honest complete baseline must retain guest failures, unexecuted rows and timeouts | ✓ Phase 17 records 146 scored rows and five DRAW entries with 101 pass / 42 fail / 0 skip / 2 not-run / 1 timeout |
+| Authenticate one protected-main scoreboard revision, then require fresh unique raw evidence for its PASS set | Candidate assertions, fixed 17-key tables and aggregate sample counts cannot protect later canonical baselines | ✓ Phase 17 proves the 101-PASS next-main transition and rejects outside-page, changed-meaning same-pin, duplicate and missing-raw regressions |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -172,4 +175,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-23 after Phase 16 completion*
+*Last updated: 2026-10-24 after Phase 17 completion*

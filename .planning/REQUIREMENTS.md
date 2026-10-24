@@ -17,10 +17,10 @@ The user approved these requirements with the v4 proposal on 2026-10-13. The new
 
 ### Conformance
 
-- [ ] **CONF-01**: The AccuracyCoin pin, licence/hash, compressed-name decoder and protected-key migration are validated together, retaining the old-pin comparison.
-- [ ] **CONF-02**: The runner inventories every scored test and DRAW entry at that immutable pin; missing or duplicate entries and malformed result tables fail validation.
-- [ ] **CONF-03**: A bounded automated run gives each scored test an explicit pass/fail/skip/not-run/timeout classification with retained results and diagnostics; DRAW is excluded from the score denominator.
-- [ ] **CONF-04**: Previously protected passing keys remain mapped and accounted for; same-pin pass regressions fail, while changed upstream meanings or denominator changes require an explicit reviewed disposition.
+- [x] **CONF-01**: The AccuracyCoin pin, licence/hash, compressed-name decoder and protected-key migration are validated together, retaining the old-pin comparison.
+- [x] **CONF-02**: The runner inventories every scored test and DRAW entry at that immutable pin; missing or duplicate entries and malformed result tables fail validation.
+- [x] **CONF-03**: A bounded automated run gives each scored test an explicit pass/fail/skip/not-run/timeout classification with retained results and diagnostics; DRAW is excluded from the score denominator.
+- [x] **CONF-04**: Previously protected passing keys remain mapped and accounted for; same-pin pass regressions fail, while changed upstream meanings or denominator changes require an explicit reviewed disposition.
 
 ### Execution robustness
 
@@ -79,10 +79,10 @@ Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.
 | EVID-02 | Phase 16 | Complete |
 | EVID-03 | Phase 16 | Complete |
 | EVID-04 | Phase 16 | Complete |
-| CONF-01 | Phase 17 | Pending |
-| CONF-02 | Phase 17 | Pending |
-| CONF-03 | Phase 17 | Pending |
-| CONF-04 | Phase 17 | Pending |
+| CONF-01 | Phase 17 | Complete |
+| CONF-02 | Phase 17 | Complete |
+| CONF-03 | Phase 17 | Complete |
+| CONF-04 | Phase 17 | Complete |
 | ROB-01 | Phase 18 | Pending |
 | ROB-02 | Phase 18 | Pending |
 | ROB-03 | Phase 18 | Pending |
@@ -100,6 +100,8 @@ Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.
 
 ---
 *Requirements defined and approved: 2026-10-13*
-*Last updated: 2026-10-15 after Phase 16 verification; release publication pending*
+*Last updated: 2026-10-24 after Phase 17 verification*
 
 **Phase 16 re-verification (2026-10-23):** [22/22 truths verified](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md). Actual v0.1.11 downloads close the historical EVID-04 gap: all 18 ZIP checksums and source attestations, six released metadata copies and exact-release CI pass. The normal phase completion handler marked EVID-01–04 and DIR-01/02 Complete. The 2026-10-15 observation above remains historical; it is superseded by this evidence.
+
+**Phase 17 verification (2026-10-24):** [38/38 truths verified](phases/17-complete-pinned-conformance-baseline/17-VERIFICATION.md), all four CONF requirements Complete. The exact-source hosted workflow passed 663/663 primary-Linux tests and all 15 required jobs; the immutable 146-row baseline retains all five statuses and five separate DRAW entries. Source review is clean after CR-01's raw-evidence coverage fix.
