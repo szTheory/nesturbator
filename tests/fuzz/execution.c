@@ -94,7 +94,8 @@ enum nt_exec_profile_code {
     NT_EXEC_PROFILE_CNROM = 4u,
     NT_EXEC_PROFILE_MMC3 = 5u,
     NT_EXEC_PROFILE_AXROM = 6u,
-    NT_EXEC_PROFILE_JAM = 7u
+    NT_EXEC_PROFILE_JAM = 7u,
+    NT_EXEC_PROFILE_LOOP = 8u
 };
 
 enum nt_exec_bank_effect {
@@ -176,7 +177,7 @@ static int nt_exec_decode(const uint8_t *data, size_t size, struct nt_exec_recip
         recipe == NULL)
         return 0;
     if (data[0] != 'N' || data[1] != 'E' || data[2] != 'X' || data[3] != 'E' || data[4] != 1u ||
-        data[5] < NT_EXEC_PROFILE_NROM || data[5] > NT_EXEC_PROFILE_JAM)
+        data[5] < NT_EXEC_PROFILE_NROM || data[5] > NT_EXEC_PROFILE_LOOP)
         return 0;
     recipe->profile_code = data[5];
     recipe->jam = (uint8_t)(data[5] == NT_EXEC_PROFILE_JAM);
@@ -272,6 +273,7 @@ static int nt_exec_profile_for(uint8_t code, struct nt_exec_profile *profile)
         profile->code_address = 0x8000u;
         return 1;
     case NT_EXEC_PROFILE_JAM:
+    case NT_EXEC_PROFILE_LOOP:
         profile->prg_16k = 1u;
         profile->chr_8k = 1u;
         profile->code_address = 0x8000u;
@@ -343,7 +345,14 @@ static size_t nt_exec_make_program(uint8_t code[NT_EXEC_PROGRAM_BYTES],
     size_t n = 0u;
     size_t loop;
     if (recipe->jam != 0u) {
-        code[n++] = 0x02u;
+        nt_exec_emit(code, &n, 0xeeu); /* INC $0000 makes re-entry observable. */
+        nt_exec_emit_word(code, &n, 0x0000u);
+        nt_exec_emit(code, &n, 0x02u);
+        return n;
+    }
+    if (recipe->profile_code == NT_EXEC_PROFILE_LOOP) {
+        nt_exec_emit(code, &n, 0x4cu); /* JMP $8000: a valid guest loop with a stable PC. */
+        nt_exec_emit_word(code, &n, profile->code_address);
         return n;
     }
     nt_exec_emit(code, &n, 0x78u); /* SEI */
@@ -664,8 +673,9 @@ static nesturbator_status nt_exec_frame(nesturbator *inst, uint8_t buttons, uint
     if (status != NESTURBATOR_OK)
         nt_exec_fail("accepted execution returned an unexpected frame status");
     metrics->frame_ok++;
-    if (frame.audio_count > NT_EXEC_AUDIO_SAMPLES || frame.ticks < *previous_ticks)
-        nt_exec_fail("frame metadata exceeded its output contract");
+    if (frame.audio_count > NT_EXEC_AUDIO_SAMPLES || frame.ticks <= *previous_ticks ||
+        frame.frame_number == 0u)
+        nt_exec_fail("successful frame did not advance its output contract");
     branch->output_hash = nt_exec_hash_u32le(branch->output_hash, frame.audio_count);
     branch->output_hash = nt_exec_hash_u64le(branch->output_hash, frame.frame_number);
     branch->output_hash = nt_exec_hash_u64le(branch->output_hash, frame.ticks);
@@ -758,7 +768,8 @@ static int nt_exec_verdict(const struct nt_exec_branch *a, const struct nt_exec_
         return 0;
     if (a->stop_status == (uint32_t)NESTURBATOR_STOP_JAM)
         return 1;
-    return a->guest_ticks == b->guest_ticks && a->output_hash == b->output_hash &&
+    return a->frames > 0u && a->guest_ticks > 0u && a->guest_ticks == b->guest_ticks &&
+           a->output_hash == b->output_hash &&
            a->prg_marker == b->prg_marker && a->chr_marker == b->chr_marker &&
            a->guest_counter == b->guest_counter &&
            a->nametable_marker == b->nametable_marker && a->controller_a == b->controller_a &&
@@ -913,7 +924,8 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
         nt_exec_observe_guest(a, &observed.continuation_a, &observed.metrics);
     if (after_b_finished)
         nt_exec_observe_guest(b, &observed.continuation_b, &observed.metrics);
-    if (before_finished && after_a_finished && after_b_finished && size == NT_EXEC_RECIPE_SIZE) {
+    if (before_finished && after_a_finished && after_b_finished && size == NT_EXEC_RECIPE_SIZE &&
+        recipe.profile_code != NT_EXEC_PROFILE_LOOP) {
         const uint8_t expected = nt_exec_expected_effects(&profile);
         observed.bank_effects = nt_exec_observed_effects(&profile, &before);
         if (observed.bank_effects != expected || before.guest_counter == 0u ||
@@ -1049,7 +1061,8 @@ static int nt_exec_read_path(const char *path, uint8_t **bytes, size_t *size)
 static int nt_exec_seed_code(const char *name)
 {
     static const char *const names[] = {
-        "nrom-deep", "mmc1-deep", "uxrom-deep", "cnrom-deep", "mmc3-deep", "axrom-deep"};
+        "nrom-deep", "mmc1-deep", "uxrom-deep", "cnrom-deep", "mmc3-deep", "axrom-deep",
+        "jam", "loop"};
     for (size_t i = 0u; i < sizeof names / sizeof names[0]; ++i)
         if (strcmp(name, names[i]) == 0)
             return (int)i + 1;
@@ -1058,10 +1071,10 @@ static int nt_exec_seed_code(const char *name)
 
 static int nt_exec_check_seeds(int argc, char **argv)
 {
-    uint8_t seen[7] = {0u};
+    uint8_t seen[9] = {0u};
     unsigned valid_count = 0u;
     if (argc < 3) {
-        fputs(NT_EXEC_REPLAY_NAME ": --check-seeds requires the six committed family seeds\n", stderr);
+        fputs(NT_EXEC_REPLAY_NAME ": --check-seeds requires the eight committed recipes\n", stderr);
         return 1;
     }
     for (int i = 2; i < argc; ++i) {
@@ -1084,20 +1097,38 @@ static int nt_exec_check_seeds(int argc, char **argv)
             free(bytes);
             return 1;
         }
-        if (!nt_exec_process(bytes, size, &observed) || observed.metrics.accepted == 0u ||
-            observed.metrics.frame_ok != observed.metrics.frames || observed.metrics.frames < 3u ||
-            observed.completed_frames != observed.metrics.frames || observed.operation_count == 0u ||
-            observed.metrics.generated_bytes != nt_exec_image_size(&profile) ||
-            observed.metrics.mapper != profile.mapper || !observed.states_equal ||
-            observed.metrics.qualified_bank_effects != nt_exec_expected_effects(&profile)) {
-            fprintf(stderr, NT_EXEC_REPLAY_NAME ": seed did not qualify: %s accepted=%u frames=%u/%u completed=%u ops=%u bytes=%u mapper=%u effects=0x%02x expected=0x%02x state=%d\n",
-                    argv[i], observed.metrics.accepted, observed.metrics.frame_ok,
-                    observed.metrics.frames, observed.completed_frames, observed.operation_count,
-                    observed.metrics.generated_bytes, (unsigned)observed.metrics.mapper,
-                    (unsigned)observed.metrics.qualified_bank_effects,
-                    (unsigned)nt_exec_expected_effects(&profile), observed.states_equal);
+        if (!nt_exec_process(bytes, size, &observed)) {
+            fprintf(stderr, NT_EXEC_REPLAY_NAME ": recipe did not execute: %s\n", argv[i]);
             free(bytes);
             return 1;
+        }
+        {
+            int qualified = observed.metrics.accepted != 0u && observed.states_equal &&
+                            observed.operation_count != 0u &&
+                            observed.metrics.generated_bytes == nt_exec_image_size(&profile) &&
+                            observed.metrics.mapper == profile.mapper &&
+                            observed.metrics.qualified_bank_effects ==
+                                nt_exec_expected_effects(&profile);
+            if (code == NT_EXEC_PROFILE_JAM) {
+                qualified = qualified && observed.metrics.stop_status == NESTURBATOR_STOP_JAM &&
+                            observed.metrics.frame_jam == 3u && observed.metrics.frame_ok == 1u &&
+                            observed.metrics.frames == 4u;
+            } else {
+                qualified = qualified && observed.metrics.frame_ok == observed.metrics.frames &&
+                            observed.metrics.frames >= 3u &&
+                            observed.completed_frames == observed.metrics.frames;
+            }
+            if (!qualified) {
+                fprintf(stderr, NT_EXEC_REPLAY_NAME ": seed did not qualify: %s accepted=%u frames=%u/%u completed=%u ops=%u bytes=%u mapper=%u effects=0x%02x expected=0x%02x state=%d\n",
+                        argv[i], observed.metrics.accepted, observed.metrics.frame_ok,
+                        observed.metrics.frames, observed.completed_frames,
+                        observed.operation_count, observed.metrics.generated_bytes,
+                        (unsigned)observed.metrics.mapper,
+                        (unsigned)observed.metrics.qualified_bank_effects,
+                        (unsigned)nt_exec_expected_effects(&profile), observed.states_equal);
+                free(bytes);
+                return 1;
+            }
         }
         seen[code] = 1u;
         valid_count++;
@@ -1106,17 +1137,17 @@ static int nt_exec_check_seeds(int argc, char **argv)
                observed.operation_count, (unsigned)observed.bank_effects, observed.states_equal);
         free(bytes);
     }
-    if (valid_count != 6u) {
-        fputs(NT_EXEC_REPLAY_NAME ": corpus must contain exactly six qualified family seeds\n", stderr);
+    if (valid_count != 8u) {
+        fputs(NT_EXEC_REPLAY_NAME ": corpus must contain exactly eight qualified recipes\n", stderr);
         return 1;
     }
-    for (size_t i = 1u; i <= 6u; ++i) {
+    for (size_t i = 1u; i <= 8u; ++i) {
         if (seen[i] == 0u) {
             fputs(NT_EXEC_REPLAY_NAME ": a required family seed is missing\n", stderr);
             return 1;
         }
     }
-    puts(NT_EXEC_REPLAY_NAME ": six deterministic non-JAM family recipes executed and restored");
+    puts(NT_EXEC_REPLAY_NAME ": six family, loop and JAM recipes executed and restored");
     return 0;
 }
 
@@ -1163,7 +1194,7 @@ static int nt_exec_self_test(void)
     if (nt_exec_decode(seed, sizeof seed, &recipe))
         return 1;
     nt_exec_seed(seed);
-    seed[5] = 8u;
+    seed[5] = 9u;
     if (nt_exec_decode(seed, sizeof seed, &recipe))
         return 1;
     nt_exec_seed(seed);

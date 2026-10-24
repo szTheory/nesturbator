@@ -32,7 +32,8 @@ enum verdict_control {
     VERDICT_SUPPRESSED_EXECUTION,
     VERDICT_SKIPPED_RESTORE,
     VERDICT_WRONG_ORIGIN,
-    VERDICT_SHARED_INSTANCE
+    VERDICT_SHARED_INSTANCE,
+    VERDICT_NO_PROGRESS
 };
 
 static void guard_reset(struct guarded_buffers *buffers)
@@ -454,6 +455,10 @@ static int verdict_control(enum verdict_control control)
         save_bytes(a, state_a, state_size);
         save_bytes(b, state_b, state_size);
     }
+    if (control == VERDICT_NO_PROGRESS) {
+        branch_a.guest_ticks = 0u;
+        branch_b.guest_ticks = 0u;
+    }
     verdict = nt_exec_verdict(&branch_a, &branch_b, state_a, state_b, state_size);
     free(origin); free(correct_origin); free(state_a); free(state_b);
     nesturbator_unload_cartridge(b);
@@ -469,6 +474,147 @@ static void test_verdict_controls(void)
     CHECK(!verdict_control(VERDICT_SKIPPED_RESTORE));
     CHECK(!verdict_control(VERDICT_WRONG_ORIGIN));
     CHECK(!verdict_control(VERDICT_SHARED_INSTANCE));
+    CHECK(!verdict_control(VERDICT_NO_PROGRESS));
+}
+
+static void test_guest_loop_progress(void)
+{
+    struct fixture fixture;
+    struct guarded_buffers buffers;
+    struct nt_exec_branch branch;
+    struct nesturbator *nes;
+    static uint16_t first_pixels[256u * 240u];
+    uint64_t previous_ticks = 0u;
+    uint64_t previous_frame = 0u;
+
+    memset(&branch, 0, sizeof branch);
+    fixture_make(&fixture, NT_EXEC_PROFILE_LOOP);
+    CHECK(fixture.inst != NULL && fixture.image != NULL);
+    if (fixture.inst == NULL || fixture.image == NULL)
+        return;
+    nes = (struct nesturbator *)fixture.inst;
+    for (uint32_t i = 0u; i < 5u; ++i) {
+        const uint64_t ticks_before = nes->ticks;
+        const uint64_t frame_before = nes->frame_number;
+        guard_reset(&buffers);
+        CHECK_EQ_U64(nt_exec_frame(fixture.inst, 0u, buffers.video + GUARD_PIXELS,
+                                   buffers.audio + GUARD_SAMPLES, &previous_ticks, &branch,
+                                   &fixture.metrics), NESTURBATOR_OK);
+        CHECK(guard_intact(&buffers));
+        CHECK(nes->ticks > ticks_before);
+        CHECK(nes->frame_number > frame_before);
+        CHECK_EQ_U64(nes->cpu.pc, fixture.profile.code_address);
+        if (i == 0u)
+            memcpy(first_pixels, buffers.video + GUARD_PIXELS, sizeof first_pixels);
+        else
+            CHECK(memcmp(first_pixels, buffers.video + GUARD_PIXELS, sizeof first_pixels) == 0);
+        previous_frame = nes->frame_number;
+        previous_ticks = nes->ticks;
+    }
+    CHECK_EQ_U64(previous_frame, 5u);
+    CHECK(fixture.metrics.guest_ticks > 0u);
+    fixture_drop(&fixture);
+}
+
+static nesturbator_status run_jam_frame(struct fixture *fixture,
+                                         struct guarded_buffers *buffers)
+{
+    struct nt_exec_branch branch;
+    uint64_t previous_ticks = ((struct nesturbator *)fixture->inst)->ticks;
+    memset(&branch, 0, sizeof branch);
+    guard_reset(buffers);
+    nesturbator_status status = nt_exec_frame(fixture->inst, 0u,
+                                               buffers->video + GUARD_PIXELS,
+                                               buffers->audio + GUARD_SAMPLES,
+                                               &previous_ticks, &branch, &fixture->metrics);
+    CHECK(guard_intact(buffers));
+    return status;
+}
+
+static void test_jam_lifecycle(void)
+{
+    struct fixture fixture;
+    struct guarded_buffers buffers;
+    struct nesturbator *nes;
+    uint8_t *origin = NULL;
+    uint8_t *jammed = NULL;
+    uint8_t *observed = NULL;
+    size_t state_size;
+    uint64_t origin_ticks;
+    uint64_t origin_frame;
+    uint64_t jam_ticks;
+
+    fixture_make(&fixture, NT_EXEC_PROFILE_JAM);
+    CHECK(fixture.inst != NULL && fixture.image != NULL);
+    if (fixture.inst == NULL || fixture.image == NULL)
+        return;
+    nes = (struct nesturbator *)fixture.inst;
+    state_size = nesturbator_state_size(fixture.inst);
+    origin = (uint8_t *)malloc(state_size);
+    jammed = (uint8_t *)malloc(state_size);
+    observed = (uint8_t *)malloc(state_size);
+    CHECK(origin != NULL && jammed != NULL && observed != NULL);
+    if (origin == NULL || jammed == NULL || observed == NULL)
+        goto done;
+    save_bytes(fixture.inst, origin, state_size);
+    origin_ticks = nes->ticks;
+    origin_frame = nes->frame_number;
+
+    CHECK_EQ_U64(run_jam_frame(&fixture, &buffers), NESTURBATOR_STOP_JAM);
+    CHECK(nes->cpu.jammed != 0u);
+    CHECK(nes->ticks > origin_ticks);
+    CHECK(nes->ticks - origin_ticks < NESTURBATOR_TICKS_PER_FRAME);
+    CHECK_EQ_U64(nes->frame_number, origin_frame);
+    CHECK_EQ_U64(nes->bus.ram[0], 1u);
+    jam_ticks = nes->ticks;
+    save_bytes(fixture.inst, jammed, state_size);
+
+    CHECK_EQ_U64(run_jam_frame(&fixture, &buffers), NESTURBATOR_STOP_JAM);
+    CHECK(nes->cpu.jammed != 0u);
+    CHECK_EQ_U64(nes->ticks, jam_ticks);
+    CHECK_EQ_U64(nes->frame_number, origin_frame);
+    save_bytes(fixture.inst, observed, state_size);
+    CHECK_EQ_U64(memcmp(jammed, observed, state_size), 0u);
+
+    /* Reset clears the latch; running the reset vector executes the JAM program again. */
+    CHECK_EQ_U64(nesturbator_reset(fixture.inst), NESTURBATOR_OK);
+    CHECK_EQ_U64(nes->cpu.jammed, 0u);
+    CHECK_EQ_U64(nes->ticks, jam_ticks + 168u);
+    CHECK_EQ_U64(nes->frame_number, origin_frame);
+    {
+        const uint64_t reset_ticks = nes->ticks;
+        CHECK_EQ_U64(run_jam_frame(&fixture, &buffers), NESTURBATOR_STOP_JAM);
+        CHECK(nes->ticks > reset_ticks);
+        CHECK_EQ_U64(nes->bus.ram[0], 2u);
+        CHECK(nes->cpu.jammed != 0u);
+    }
+
+    /* Restoring the saved halt reinstates it; loading the pre-JAM origin clears it. */
+    CHECK_EQ_U64(nesturbator_load_state(fixture.inst, jammed, state_size), NESTURBATOR_OK);
+    CHECK(nes->cpu.jammed != 0u);
+    save_bytes(fixture.inst, observed, state_size);
+    CHECK_EQ_U64(memcmp(jammed, observed, state_size), 0u);
+    CHECK_EQ_U64(run_jam_frame(&fixture, &buffers), NESTURBATOR_STOP_JAM);
+    CHECK_EQ_U64(nes->ticks, jam_ticks);
+    save_bytes(fixture.inst, observed, state_size);
+    CHECK_EQ_U64(memcmp(jammed, observed, state_size), 0u);
+
+    CHECK_EQ_U64(nesturbator_load_state(fixture.inst, origin, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nes->cpu.jammed, 0u);
+    save_bytes(fixture.inst, observed, state_size);
+    CHECK_EQ_U64(memcmp(origin, observed, state_size), 0u);
+    CHECK_EQ_U64(run_jam_frame(&fixture, &buffers), NESTURBATOR_STOP_JAM);
+    CHECK(nes->cpu.jammed != 0u);
+    CHECK_EQ_U64(nes->bus.ram[0], 1u);
+    CHECK_EQ_U64(nes->ticks, jam_ticks);
+    save_bytes(fixture.inst, observed, state_size);
+    CHECK_EQ_U64(memcmp(jammed, observed, state_size), 0u);
+
+done:
+    free(origin);
+    free(jammed);
+    free(observed);
+    fixture_drop(&fixture);
 }
 
 static void test_recipe_order_and_repeat(void)
@@ -512,6 +658,8 @@ int main(void)
                                 NT_EXEC_PROFILE_MMC3, NT_EXEC_PROFILE_AXROM};
     CHECK_EQ_U64(nt_exec_self_test(), 0u);
     test_verdict_controls();
+    test_guest_loop_progress();
+    test_jam_lifecycle();
     test_recipe_order_and_repeat();
     for (size_t i = 0u; i < sizeof profiles / sizeof profiles[0]; ++i) {
         struct nt_exec_observation observed;

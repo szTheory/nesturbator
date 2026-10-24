@@ -6,6 +6,7 @@
 
 #include "nesturbator.h"
 #include "../check.h"
+#include "../ines.h"
 
 #define W 256u
 #define H 240u
@@ -38,6 +39,46 @@ static void frame_io(nesturbator_frame *io, uint16_t *v, uint32_t pitch, int16_t
     io->video_pitch = pitch;
     io->audio = a;
     io->audio_capacity = cap;
+}
+
+/* A valid guest loop may repeat its PC and pixels while frame time advances. */
+static void test_looping_guest_progress(void)
+{
+    static const uint8_t loop_code[] = {0x4cu, 0x00u, 0x80u}; /* JMP $8000 */
+    static uint16_t previous[W * H];
+    uint8_t image[16u + INES_PRG_BANK + INES_CHR_BANK];
+    struct ines_spec spec;
+    const size_t image_size = sizeof image;
+    nesturbator *inst = make();
+    uint64_t previous_ticks = 0u;
+    uint64_t previous_frame = 0u;
+
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.prg_code = loop_code;
+    spec.prg_code_len = sizeof loop_code;
+    spec.nmi_vector = 0x8000u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    CHECK_EQ_U64(ines_build(image, sizeof image, &spec), image_size);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, image_size), NESTURBATOR_OK);
+
+    for (uint32_t frame = 0u; frame < 5u; ++frame) {
+        nesturbator_frame io;
+        frame_io(&io, video2, W, audio, AUDIO_CAP);
+        CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_OK);
+        CHECK(io.frame_number > previous_frame);
+        CHECK(io.ticks > previous_ticks);
+        if (frame >= 1u)
+            CHECK(memcmp(video2, previous, sizeof previous) == 0);
+        memcpy(previous, video2, sizeof previous);
+        previous_frame = io.frame_number;
+        previous_ticks = io.ticks;
+    }
+
+    nesturbator_unload_cartridge(inst);
+    nesturbator_destroy(inst);
 }
 
 /* Every refused call leaves frame_number, ticks and the audio remainder as
@@ -258,6 +299,7 @@ static void test_big_frame(void)
 int main(void)
 {
     test_refusals();
+    test_looping_guest_progress();
     test_pitch();
     test_audio_period();
     test_boundaries();
