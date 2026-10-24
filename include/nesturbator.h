@@ -364,7 +364,10 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    report and cannot become protected expectations.
    AccuracyCoin ROM pins, inventory counts, and the measured conformance
    baseline are test inputs only; tests bind exact bytes to each manifest
-   entry and the scored count to the parsed inventory. Names are length-bounded
+   entry and the scored count to the parsed inventory. Protected verdicts
+   require exactly one well-formed final raw sample for every page report row;
+   malformed or duplicate final records invalidate evidence, while valid
+   non-final snapshots remain diagnostic context. Names are length-bounded
    before result-key construction, and malformed/overlong name controls remain
    rejected. Campaign readers strip LF or CRLF line terminators before exact
    TSV field checks across CI platforms. Historical hygiene checks use the manifest from each

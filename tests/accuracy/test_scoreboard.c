@@ -372,13 +372,30 @@ static int load_final_raw(const char *path, const accuracycoin_directory *direct
                           const observation_row *report_rows, size_t report_count, char *error,
                           size_t error_size)
 {
-    static const char header[] = "stage\tpage\trow\tkey\tresult_address\tobserved\traw\n";
-    FILE *file = fopen(path, "r");
+    static const char header[] = "stage\tpage\trow\tkey\tresult_address\tobserved\traw";
+    FILE *file;
     char line[SCOREBOARD_LINE_SIZE];
+    unsigned char seen[MAX_REPORT_ROWS] = {0u};
     size_t final_count = 0u;
+    size_t header_length;
+    if (report_count > MAX_REPORT_ROWS)
+        return set_error(error, error_size, "final raw evidence report is too large");
+    file = fopen(path, "r");
     if (file == NULL)
         return set_error(error, error_size, "cannot read raw observation evidence");
-    if (fgets(line, sizeof line, file) == NULL || strcmp(line, header) != 0) {
+    if (fgets(line, sizeof line, file) == NULL) {
+        (void)fclose(file);
+        return set_error(error, error_size, "raw observation header is invalid");
+    }
+    header_length = strlen(line);
+    if (header_length == 0u || line[header_length - 1u] != '\n') {
+        (void)fclose(file);
+        return set_error(error, error_size, "raw observation header is invalid");
+    }
+    line[--header_length] = '\0';
+    if (header_length > 0u && line[header_length - 1u] == '\r')
+        line[--header_length] = '\0';
+    if (strcmp(line, header) != 0) {
         (void)fclose(file);
         return set_error(error, error_size, "raw observation header is invalid");
     }
@@ -387,8 +404,22 @@ static int load_final_raw(const char *path, const accuracycoin_directory *direct
         size_t count = 0u;
         uint64_t page_value, row_value, address_value;
         const accuracycoin_test *expected;
-        if (!split_tabs(line, fields, 7u, &count) || count != 7u || strcmp(fields[0], "final") != 0)
+        int final_stage_prefix = strncmp(line, "final\t", sizeof "final\t" - 1u) == 0 ||
+                                 strcmp(line, "final") == 0 || strcmp(line, "final\r") == 0 ||
+                                 strcmp(line, "final\n") == 0 || strcmp(line, "final\r\n") == 0;
+        if (!split_tabs(line, fields, 7u, &count)) {
+            if (final_stage_prefix) {
+                (void)fclose(file);
+                return set_error(error, error_size, "final raw evidence row is malformed");
+            }
             continue;
+        }
+        if (strcmp(fields[0], "final") != 0)
+            continue;
+        if (count != 7u) {
+            (void)fclose(file);
+            return set_error(error, error_size, "final raw evidence row is malformed");
+        }
         if (!parse_unsigned(fields[1], &page_value) || !parse_unsigned(fields[2], &row_value) ||
             !parse_hex_value(fields[4], &address_value) || page_value != page || row_value == 0u ||
             row_value > ACCURACYCOIN_MAX_PAGE_ROWS) {
@@ -408,6 +439,7 @@ static int load_final_raw(const char *path, const accuracycoin_directory *direct
             return set_error(error, error_size, "final raw evidence byte is invalid");
         }
         int found = 0;
+        size_t report_index = report_count;
         for (size_t i = 0u; i < report_count; i++)
             if (strcmp(report_rows[i].key, fields[3]) == 0) {
                 uint8_t report_raw;
@@ -417,17 +449,28 @@ static int load_final_raw(const char *path, const accuracycoin_directory *direct
                                      "report raw byte differs from final sample");
                 }
                 found++;
+                report_index = i;
             }
         if (found != 1) {
             (void)fclose(file);
             return set_error(error, error_size, "final raw evidence key is missing or duplicated");
         }
+        if (seen[report_index] != 0u) {
+            (void)fclose(file);
+            return set_error(error, error_size, "duplicate final raw evidence key");
+        }
+        seen[report_index] = 1u;
         final_count++;
     }
-    if (ferror(file) != 0 || fclose(file) != 0)
+    int read_failed = ferror(file) != 0;
+    int close_failed = fclose(file) != 0;
+    if (read_failed || close_failed)
         return set_error(error, error_size, "raw observation evidence read failed");
     if (final_count != report_count)
         return set_error(error, error_size, "final raw evidence is incomplete");
+    for (size_t i = 0u; i < report_count; i++)
+        if (seen[i] == 0u)
+            return set_error(error, error_size, "final raw evidence is incomplete");
     return 1;
 }
 

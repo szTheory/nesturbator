@@ -10,13 +10,13 @@ The final registered run used the canonical 6bee ROM and production collector:
 - Retained comparison pin: `673ef550db296136d52229961e7d39366116882a`, ROM SHA-256 `4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839`, inventory SHA-256 `3271803cdc63c4b4a83cf65453b817dc66ec65ed97863ad19261b56f36821c84`
 - Old inventory: 149 entries (144 scored, 5 DRAW); new inventory: 151 entries (146 scored, 5 DRAW)
 - Report/inventory schema: 1
-- Compiled source revision: `47601b1f9dab` (`source_dirty=1`). This pre-commit capture includes the measured 15-second campaign deadline, dynamic protected-main page selection and same-invocation PASS verifier, attributed page-19 guest-timeout handling, 30-second protected-page bound, canonical scoreboard hash authentication and PASS projection, and its activation check. It also includes the unique POSIX session-control scratch-root fix and paired README/public-header contract notes. The dirty flag includes these implementation/test/documentation edits and the untouched pre-existing `.planning/config.json` edit; that planning file is excluded from the input fingerprint.
-- Deterministic build-input fingerprint: `65fea2e1a75d83e23c3d9fc9d730794ce50a1af634c76ef6b50c0fd59385a70e` over 56 source/build input files. Generated reports are excluded. Campaign report SHA-256: `6d0a811960f6964e7fc66802c6e4ade0c4ffb8772c40d88d50cf79e1f8463652` (unchanged).
+- Compiled source revision: `d4a8a4aaf123` (`source_dirty=1`). This pre-commit capture includes CR-01 enforcement of unique, complete final raw samples, malformed-final rejection and CRLF raw-header support; the measured campaign rows remain unchanged. The checkout also contains paired README/public-header contract notes and regression controls, plus the untouched pre-existing `.planning/config.json` edit; the planning file is excluded from the input fingerprint.
+- Deterministic build-input fingerprint: `5aedbb3b04eca54a04d42e4e0ec7851e2e694cd72fd032d2ab1c29dfcbf2afe0` over 56 source/build input files. Generated reports are excluded. Campaign report SHA-256: `6d0a811960f6964e7fc66802c6e4ade0c4ffb8772c40d88d50cf79e1f8463652` (unchanged).
 - Input policy: cold boot; one page-header A input; one-frame A press; one-frame release; execute the selected page independently.
 - Accepted bounds: boot 32, navigation 5 per page switch, start 2 frames, execution 1800; page child 15 seconds, collector 10 seconds, CTest 370 seconds.
 - The earlier hosted dispatch `40054252174` used the former 5-second common page deadline and failed to produce trustworthy campaign evidence. Its Linux x64 artifact records page 19 as `OUTER_TIMEOUT` at 5 seconds, after an otherwise source-qualified guest timeout observation reached 1800 frames in 6.335862879 seconds; page 18 took 4.290085045 seconds. All other page observations were at or below 2.463 seconds. The 15-second common host-child deadline is 2.36 times the measured maximum and preserves the existing 1800-frame guest cap. The old run remains attributed as failed infrastructure evidence, not a successful campaign.
 - The finite campaign envelope is now 22 * 15 seconds per-page maximum + 10 seconds collection = 340 seconds, with a 370-second CTest bound leaving 30 seconds for orchestration and final output checks. The injected `accuracycoin.outer_failure` controls keep their 1-second child deadline. The workflow/job timeout remains unchanged.
-- The latest actual campaign measurement sums to 5.758805 seconds across page children; the slowest local child was page 19 at 1.586519 seconds. All 22 children exited zero. The full CI workflow and its campaign CTest are being rerun on this final source; prior successful hosted runs remain attributed to their recorded immutable source heads.
+- The latest local campaign measurement sums to 7.320463 seconds across page children; the slowest child was page 19 at 2.285672 seconds. All 22 children exited zero. `accuracycoin.campaign` passed on the current dirty source; full hosted CI remains the exact-head verification after the fix.
 - Retained output: `build/ci/accuracycoin/full/` contains all 22 page directories, child stdout/stderr, raw snapshots, diagnostics, page reports/metadata, `outer-outcomes.tsv`, and the production `inventory.tsv`, `attempts.tsv`, `observations.tsv`, `report.tsv`, `summary.txt`, and campaign `metadata.txt`.
 
 `outer-outcomes.tsv` records 22 `EXIT_ZERO` children, no outer timeout and no child failure. Campaign metadata says `trustworthy_observation=1` and `infrastructure_verdict=complete`.
@@ -53,10 +53,11 @@ status on each current lane. A primary-Linux full-lane control builds the
 post-merge 101-PASS baseline, obtains new cold page reports through this same
 observer, accepts all 101 measured passes, and rejects an outside-page failure
 and a formerly changed-meaning-key failure under same-pin policy.
-The focused local control run passed in 7.17 seconds; its 22 fresh page reports
-(three retained old-pin pages plus the 19 new-pin pages containing protected
-PASS keys) accounted for 5.811 seconds of summed guest/page-observer time, with
-a 1.584-second slowest page. This is local placement evidence, not a hosted
+The focused CTest fixture and regression-control run passed in 7.46 seconds.
+Its future-main control produced 22 fresh page reports (three retained
+old-pin pages plus the 19 new-pin pages containing protected PASS keys),
+accounting for 6.042099 seconds of summed guest/page-observer time; the slowest
+page took 1.591905 seconds. This is local placement evidence, not a hosted
 post-merge measurement.
 
 | Page | Protected keys | Old `673ef` measurement | New `6bee` measurement |
@@ -71,28 +72,28 @@ post-merge measurement.
 
 | Page | Boot | Navigation | Start | Execution | Total frames | Verdict | Host ms |
 |---:|---:|---:|---:|---:|---:|---|---:|
-| 1 | 26 | 0 | 2 | 51 | 79 | complete | 72.701 |
-| 2 | 26 | 5 | 2 | 12 | 45 | complete | 37.303 |
-| 3 | 26 | 10 | 2 | 13 | 51 | complete | 42.112 |
-| 4 | 26 | 15 | 2 | 13 | 56 | complete | 46.271 |
-| 5 | 26 | 20 | 2 | 13 | 61 | complete | 49.986 |
-| 6 | 26 | 25 | 2 | 13 | 66 | complete | 55.243 |
-| 7 | 26 | 30 | 2 | 22 | 80 | complete | 68.735 |
-| 8 | 26 | 35 | 2 | 15 | 78 | complete | 62.832 |
-| 9 | 26 | 40 | 2 | 13 | 81 | complete | 66.610 |
-| 10 | 26 | 45 | 2 | 14 | 87 | complete | 75.429 |
-| 11 | 26 | 50 | 2 | 17 | 95 | complete | 82.553 |
-| 12 | 26 | 55 | 2 | 138 | 221 | complete | 163.245 |
-| 13 | 26 | 60 | 2 | 533 | 621 | complete | 636.520 |
-| 14 | 26 | 65 | 2 | 120 | 213 | complete | 194.302 |
-| 15 | 26 | 70 | 2 | 92 | 190 | complete | 174.240 |
-| 16 | 26 | 75 | 2 | 15 | 118 | complete (DRAW-only) | 105.764 |
-| 17 | 26 | 80 | 2 | 159 | 267 | complete | 240.086 |
-| 18 | 26 | 85 | 2 | 1463 | 1576 | complete | 1099.122 |
-| 19 | 26 | 90 | 2 | 1800 | 1918 | guest-timeout | 1597.869 |
-| 20 | 26 | 95 | 2 | 503 | 626 | complete | 477.933 |
-| 21 | 26 | 100 | 2 | 212 | 340 | complete | 276.675 |
-| 22 | 26 | 105 | 2 | 151 | 284 | complete | 223.620 |
+| 1 | 26 | 0 | 2 | 51 | 79 | complete | 80.007 |
+| 2 | 26 | 5 | 2 | 12 | 45 | complete | 38.418 |
+| 3 | 26 | 10 | 2 | 13 | 51 | complete | 46.838 |
+| 4 | 26 | 15 | 2 | 13 | 56 | complete | 57.148 |
+| 5 | 26 | 20 | 2 | 13 | 61 | complete | 53.230 |
+| 6 | 26 | 25 | 2 | 13 | 66 | complete | 55.881 |
+| 7 | 26 | 30 | 2 | 22 | 80 | complete | 73.222 |
+| 8 | 26 | 35 | 2 | 15 | 78 | complete | 86.811 |
+| 9 | 26 | 40 | 2 | 13 | 81 | complete | 68.037 |
+| 10 | 26 | 45 | 2 | 14 | 87 | complete | 75.742 |
+| 11 | 26 | 50 | 2 | 17 | 95 | complete | 81.037 |
+| 12 | 26 | 55 | 2 | 138 | 221 | complete | 161.661 |
+| 13 | 26 | 60 | 2 | 533 | 621 | complete | 657.384 |
+| 14 | 26 | 65 | 2 | 120 | 213 | complete | 205.038 |
+| 15 | 26 | 70 | 2 | 92 | 190 | complete | 184.258 |
+| 16 | 26 | 75 | 2 | 15 | 118 | complete (DRAW-only) | 104.151 |
+| 17 | 26 | 80 | 2 | 159 | 267 | complete | 249.146 |
+| 18 | 26 | 85 | 2 | 1463 | 1576 | complete | 1387.206 |
+| 19 | 26 | 90 | 2 | 1800 | 1918 | guest-timeout | 2285.672 |
+| 20 | 26 | 95 | 2 | 503 | 626 | complete | 790.990 |
+| 21 | 26 | 100 | 2 | 212 | 340 | complete | 321.706 |
+| 22 | 26 | 105 | 2 | 151 | 284 | complete | 256.880 |
 
 At page 16, the ROM's DRAW-only sequence reports no scored result transition. The start is attributed to the observed row-cursor transition and automation flag; completion is the later cursor return to the page header with automation cleared. All five DRAW rows remain inventory-only.
 

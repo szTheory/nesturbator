@@ -182,7 +182,11 @@ source-reviewed setup/meaning changes, and links each new-pin disposition to
 the measured attempt, raw byte, guest frames and status in a page report.
 Those links are checked against fresh cold observations on both pins during
 normal CI; a candidate scoreboard row cannot stand in for a guest result. The
-17 retained old-pin keys stay as a separate strict migration control.
+17 retained old-pin keys stay as a separate strict migration control. Before
+trusting a protected page report, the verifier requires exactly one well-formed
+final raw sample for every report row. Missing or duplicate keys and malformed
+final-stage records fail the verdict; valid non-final snapshots remain
+diagnostic context.
 
 Before the workflow preset, each of the six CI build lanes fetches protected
 `refs/heads/main` with tags disabled, resolves its fetched commit once, and
