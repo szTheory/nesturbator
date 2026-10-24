@@ -402,7 +402,10 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * written and callers must not inspect the video or audio buffers as results;
  * the machine remains valid for a save-state snapshot. A libretro host may
  * present its separately owned last complete converted frame (or black), but
- * must not treat these native output buffers as a frame. Test-only bounded
+ * must not treat these native output buffers as a frame. Loading state does
+ * not write to host-owned presentation storage; the host can invalidate its
+ * cached frame without changing bytes already passed to its frontend.
+ * Test-only bounded
  * execution replay uses generated representative mapper 0, 1, 2, 3, 4 and 7
  * content to check deterministic continuation and instance isolation. Its
  * successful-frame comparison uses defined metadata, native pixels and only

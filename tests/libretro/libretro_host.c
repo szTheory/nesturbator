@@ -155,6 +155,7 @@ static int video_calls;
 static unsigned video_width, video_height;
 static size_t video_pitch;
 static bool video_data_nonnull;
+static const void *video_source;
 static uint32_t frame[W * H];
 static int poll_calls;
 static int input_calls;
@@ -209,6 +210,7 @@ static void RETRO_CALLCONV video(const void *data, unsigned width, unsigned heig
     video_height = height;
     video_pitch = pitch;
     video_data_nonnull = data != NULL;
+    video_source = data;
     if (data == NULL || width != W || height != H || pitch < W * 4u) {
         return;
     }
@@ -1174,6 +1176,10 @@ static void check_jam_presentation(const unsigned char *base_image, size_t image
     CHECK(!p_unserialize(jammed, state_size - 1u));
     check_jam_callback(last_complete, true);
     CHECK(p_unserialize(jammed, state_size));
+    CHECK(video_source != NULL);
+    if (video_source != NULL) {
+        CHECK(memcmp(video_source, last_complete, sizeof last_complete) == 0);
+    }
     CHECK(p_serialize(roundtrip, state_size));
     CHECK(memcmp(roundtrip, jammed, state_size) == 0);
     check_jam_callback(black, false);

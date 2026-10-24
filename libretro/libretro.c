@@ -52,7 +52,6 @@ static int16_t stereo[NT_AUDIO_CAPACITY * 2u];
 static void invalidate_presentation(void)
 {
     completed_frame_valid = false;
-    memset(xrgb, 0, sizeof xrgb);
 }
 
 /* L7511: called before retro_init. Declaring no-game support (18, L1051)
