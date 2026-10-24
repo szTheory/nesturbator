@@ -693,17 +693,138 @@ set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
 # AccuracyCoin page runs are kept separate so a failure names the page whose
 # RAM-derived results diverged from the committed scoreboard.
 set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
+set(ACCURACYCOIN_OLD_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin-673ef.nes)
 set(ACCURACYCOIN_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/scoreboard.txt)
+set(ACCURACYCOIN_OLD_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/old-673ef-scoreboard.txt)
+set(ACCURACYCOIN_PROTECTED_WORK ${PROJECT_BINARY_DIR}/accuracycoin/protected-observations)
+set(ACCURACYCOIN_PROTECTED_MAX_PAGES 22)
+set(ACCURACYCOIN_PROTECTED_PAGE_WALL_SECONDS 30)
+math(EXPR ACCURACYCOIN_PROTECTED_SETUP_TIMEOUT
+  "(${ACCURACYCOIN_PROTECTED_MAX_PAGES} + 3) * ${ACCURACYCOIN_PROTECTED_PAGE_WALL_SECONDS} + 10")
 foreach(page IN ITEMS 2 14 17)
   add_test(NAME accuracycoin.page${page}
     COMMAND ${CMAKE_COMMAND}
-      "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_ROM};--scoreboard;${ACCURACYCOIN_SCOREBOARD}"
+      "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_OLD_ROM};--scoreboard;${ACCURACYCOIN_OLD_SCOREBOARD}"
       "-DEXPECT=accuracycoin page ${page} PASS"
       -DEXPECT_EXIT=0
       -DIGNORE_STDOUT=TRUE
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake)
   set_tests_properties(accuracycoin.page${page} PROPERTIES TIMEOUT 60)
 endforeach()
+
+# The canonical new-pin fixture exercises page-3 token expansion, start
+# transition and report generation through the production runner.
+set(ACCURACYCOIN_COMPARISON_ROM ${ACCURACYCOIN_ROM})
+option(NESTURBATOR_ACCURACYCOIN_FULL
+  "Register the measured 22-page AccuracyCoin campaign test" OFF)
+add_executable(accuracycoin.conformance
+  accuracy/test_conformance.c
+  ../runner/accuracycoin.c
+  ../runner/audio_hash.c
+  ../runner/clock.c
+  ../runner/sha256.c)
+target_include_directories(accuracycoin.conformance PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/runner)
+target_link_libraries(accuracycoin.conformance PRIVATE nesturbator::nesturbator)
+target_compile_definitions(accuracycoin.conformance PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(accuracycoin.conformance)
+set(ACCURACYCOIN_TRACER_WORK ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/page3-tracer)
+add_test(NAME accuracycoin.tracer
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${ACCURACYCOIN_TRACER_WORK}"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_tracer.cmake)
+set_tests_properties(accuracycoin.tracer PROPERTIES TIMEOUT 90)
+add_test(NAME accuracycoin.inventory
+  COMMAND accuracycoin.conformance inventory
+    ${ACCURACYCOIN_COMPARISON_ROM}
+    ${ACCURACYCOIN_OLD_ROM})
+add_test(NAME accuracycoin.classifier
+  COMMAND accuracycoin.conformance classifier)
+add_test(NAME accuracycoin.migration_source
+  COMMAND accuracycoin.conformance migration
+    ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/migration.tsv
+    ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/old-673ef-scoreboard.txt)
+add_test(NAME accuracycoin.activation
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DCONFORMANCE=$<TARGET_FILE:accuracycoin.conformance>"
+    "-DNEW_ROM=${ACCURACYCOIN_ROM}"
+    "-DOLD_ROM=${ACCURACYCOIN_OLD_ROM}"
+    "-DSCOREBOARD=${ACCURACYCOIN_SCOREBOARD}"
+    "-DBASELINE_METADATA=${CMAKE_CURRENT_SOURCE_DIR}/accuracy/baseline-metadata.txt"
+    "-DOLD_SCOREBOARD=${ACCURACYCOIN_OLD_SCOREBOARD}"
+    "-DMIGRATION=${CMAKE_CURRENT_SOURCE_DIR}/accuracy/migration.tsv"
+    "-DFULL_ENABLED=${NESTURBATOR_ACCURACYCOIN_FULL}"
+    "-DFULL_REPORT=${PROJECT_BINARY_DIR}/accuracycoin/full/report.tsv"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_activation.cmake)
+set_tests_properties(accuracycoin.inventory accuracycoin.classifier
+  accuracycoin.migration_source accuracycoin.activation PROPERTIES TIMEOUT 90)
+set_tests_properties(accuracycoin.inventory accuracycoin.classifier
+  accuracycoin.migration_source PROPERTIES TIMEOUT 30)
+add_test(NAME accuracycoin.driver
+  COMMAND ${CMAKE_COMMAND}
+    "-DCONFORMANCE=$<TARGET_FILE:accuracycoin.conformance>"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/driver"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_driver.cmake)
+add_test(NAME accuracycoin.report
+  COMMAND accuracycoin.conformance report
+    ${ACCURACYCOIN_COMPARISON_ROM}
+    ${ACCURACYCOIN_OLD_ROM}
+    ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/report)
+add_test(NAME accuracycoin.outer_failure
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/outer-failure"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -DBOOT_CAP=32 -DNAVIGATION_CAP=5 -DEXECUTION_CAP=1800
+    -DPAGE_TIMEOUT=1 -DCOLLECT_TIMEOUT=20
+    -DTEST_TIMEOUT_PAGE=1 -DTEST_PARTIAL_FAILURE_PAGE=2
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_campaign.cmake)
+set_tests_properties(accuracycoin.driver accuracycoin.report
+  accuracycoin.outer_failure PROPERTIES TIMEOUT 60)
+if(NESTURBATOR_ACCURACYCOIN_FULL)
+  add_test(NAME accuracycoin.campaign
+    COMMAND ${CMAKE_COMMAND}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+      "-DWORK=${PROJECT_BINARY_DIR}/accuracycoin/full"
+      "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+      -DBOOT_CAP=32 -DNAVIGATION_CAP=5 -DEXECUTION_CAP=1800
+      -DPAGE_TIMEOUT=15 -DCOLLECT_TIMEOUT=10
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_campaign.cmake)
+  set_tests_properties(accuracycoin.campaign PROPERTIES TIMEOUT 370)
+  set_tests_properties(accuracycoin.campaign PROPERTIES FIXTURES_SETUP accuracycoin_full_report)
+  set_tests_properties(accuracycoin.activation PROPERTIES FIXTURES_REQUIRED accuracycoin_full_report)
+endif()
+
+# Protected scoring is based on six fresh cold invocations: the three old
+# protected pages and their new-pin semantic mappings. The verdict test cannot
+# reuse evidence from a prior CTest invocation.
+add_test(NAME accuracycoin.protected_observation
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DVERIFIER=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DOLD_ROM=${ACCURACYCOIN_OLD_ROM}"
+    "-DNEW_ROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DPAGE_WALL_SECONDS=${ACCURACYCOIN_PROTECTED_PAGE_WALL_SECONDS}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_protected.cmake)
+set_tests_properties(accuracycoin.protected_observation PROPERTIES
+  FIXTURES_SETUP accuracycoin_protected_observations TIMEOUT ${ACCURACYCOIN_PROTECTED_SETUP_TIMEOUT})
+add_test(NAME accuracycoin.protected COMMAND accuracy.scoreboard)
+set_tests_properties(accuracycoin.protected PROPERTIES
+  FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 30)
 
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
@@ -921,33 +1042,77 @@ add_test(NAME fuzz.registration
 # D-14: nesturbator_get_palette's copy rules, calibrated sRGB samples and
 # palette invariants.
 nesturbator_core_test(core.palette core/test_palette.c)
-nesturbator_core_test(accuracy.scoreboard accuracy/test_scoreboard.c)
+add_executable(accuracy.scoreboard
+  accuracy/test_scoreboard.c
+  ../runner/accuracycoin.c
+  ../runner/audio_hash.c
+  ../runner/clock.c
+  ../runner/sha256.c)
+target_include_directories(accuracy.scoreboard PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/runner)
+target_link_libraries(accuracy.scoreboard PRIVATE nesturbator::nesturbator)
 target_compile_definitions(accuracy.scoreboard PRIVATE
   NESTURBATOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+  NESTURBATOR_PROTECTED_EVIDENCE_DIR="${ACCURACYCOIN_PROTECTED_WORK}"
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(accuracy.scoreboard)
+add_test(NAME accuracy.scoreboard COMMAND accuracy.scoreboard --scoreboard-syntax)
 
-# The candidate scoreboard must fail if it drops a prior protected-main PASS.
-set(ACCURACYCOIN_REGRESSION_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-regression-baseline.txt)
-file(WRITE ${ACCURACYCOIN_REGRESSION_BASELINE}
-  "accuracycoin/Removed PASS\tpass\t0x01\t-\t-\n")
+# Exercise the production verdict, with a complete passing baseline and fresh
+# protected-page evidence, when one candidate key is removed.
+set(ACCURACYCOIN_REGRESSION_WORK ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/regression-controls)
 add_test(NAME accuracy.scoreboard.no_lost_pass
   COMMAND ${CMAKE_COMMAND}
     "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
-    "-DREGRESSION_BASELINE=${ACCURACYCOIN_REGRESSION_BASELINE}"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${ACCURACYCOIN_REGRESSION_WORK}/no-lost-pass"
+    -DMODE=no_lost_pass
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+set_tests_properties(accuracy.scoreboard.no_lost_pass PROPERTIES
+  FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 30)
 
-# Exercise the CI-only handoff failure and the confirmed empty first-merge case
-# with isolated, build-directory fixtures rather than the local snapshot.
+add_test(NAME accuracycoin.regression_controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DCHECKER=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DFULL_ENABLED=${NESTURBATOR_ACCURACYCOIN_FULL}"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${ACCURACYCOIN_REGRESSION_WORK}/matrix"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_regression_controls.cmake)
+set_tests_properties(accuracycoin.regression_controls PROPERTIES
+  FIXTURES_REQUIRED accuracycoin_protected_observations
+  TIMEOUT ${ACCURACYCOIN_PROTECTED_SETUP_TIMEOUT})
+
+add_test(NAME accuracycoin.baseline_fetch
+  COMMAND ${CMAKE_COMMAND}
+    "-DPREPARE_SCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/cmake/prepare_scoreboard_baseline.cmake"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/baseline-fetch-controls"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_baseline_fetch.cmake)
+set_tests_properties(accuracycoin.baseline_fetch PROPERTIES TIMEOUT 60)
+
+# Exercise the CI-only handoff failures with specific reasons.
 add_test(NAME accuracy.scoreboard.ci_missing_baseline
-  COMMAND ${CMAKE_COMMAND} -E env --unset=NESTURBATOR_SCOREBOARD_BASELINE CI=true
-    $<TARGET_FILE:accuracy.scoreboard>)
-set_tests_properties(accuracy.scoreboard.ci_missing_baseline PROPERTIES WILL_FAIL TRUE)
-set(ACCURACYCOIN_EMPTY_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-empty-baseline.txt)
-file(WRITE ${ACCURACYCOIN_EMPTY_BASELINE} "")
-add_test(NAME accuracy.scoreboard.ci_empty_baseline
-  COMMAND ${CMAKE_COMMAND} -E env CI=true
-    "NESTURBATOR_SCOREBOARD_BASELINE=${ACCURACYCOIN_EMPTY_BASELINE}"
-    $<TARGET_FILE:accuracy.scoreboard>)
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/ci-missing-baseline"
+    -DMODE=ci_missing_baseline
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+set_tests_properties(accuracy.scoreboard.ci_missing_baseline PROPERTIES TIMEOUT 30)
+add_test(NAME accuracy.scoreboard.ci_empty_baseline_rejected
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/ci-empty-baseline"
+    -DMODE=ci_empty_baseline
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+set_tests_properties(accuracy.scoreboard.ci_empty_baseline_rejected PROPERTIES TIMEOUT 30)
 
 # D-15: the shared host conversion indexes the palette by the low 9 bits and
 # honours both pitches.

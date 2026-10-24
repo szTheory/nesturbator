@@ -2,7 +2,7 @@
 title: "libretro adapter, RetroArch on macOS, and the headless runner contract"
 summary: "What libretro requires of a core, how a local core reaches RetroArch 1.22.2 on an Apple Silicon Mac, and what Playstead needs from an emulator process."
 read_when: "Building the libretro adapter, packaging a release, or designing the runner's command line."
-updated: 2026-10-02
+updated: 2026-10-23
 ---
 
 # libretro adapter, RetroArch on macOS, and the headless runner contract
@@ -96,9 +96,11 @@ Playstead [LR.17][LR.18] starts one pinned emulator from an argument template wi
 | Saves | `--save-dir DIR` writes `DIR/<rom basename>.sav`, the bytes the adapter exposes as save RAM; nothing beside the ROM |
 | Flush | temp file and rename, within `--save-interval` frames of a change, on SIGUSR1, on exit |
 | Signals | SIGTERM, SIGINT: flush, exit 0 inside 2 s; crash signals unhandled |
-| Exit status | 0 done; 1 failure; 2 usage; 3 hash mismatch; 77 unsupported capability |
-| Replay and checks | `--movie FILE`, `--frames N`; `--hash-frame N` and `--hash-audio` print SHA-256; `--dump-frame N:FILE`; `--expect FILE` compares the printed hashes with a recorded file and exits 3 on a difference |
+| Exit status | Historical proposal only: 0 done; 1 failure; 2 usage; 3 hash mismatch; 77 unsupported capability. These proposed 3/77 assignments were not adopted. |
+| Replay and checks | Historical proposal only: `--movie FILE`, `--frames N`; `--hash-frame N`, `--hash-audio`, `--dump-frame N:FILE` and `--expect FILE`. The current runner does not expose the proposed `--expect` hash-mismatch path. |
 | Preflight | `--capabilities`: JSON with version, mappers, save media, state fingerprint (state format plus ROM hash); writes nothing |
+
+The current runner exit contract is defined by `RUNNER_EXIT_TABLE` in `runner/exit_status.h`: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch, and 5 rejected state. Statuses 3 and 77 remain reserved. The table above records earlier design ideas only; callers and tests must follow the current table rather than infer capability or hash outcomes from those proposed numbers.
 
 Choices. SIGTERM exits 0, since Playstead knows it sent the signal; alternative, a dedicated status; Playstead needing to tell them apart by status would change this. Movies use FM2's text frame lines [LR.04]; alternative, a private binary format; foreign movies failing to sync would change this. The runner has no window: it serves Playstead's replay check, not play. RetroArch offers `autosave_interval` and a `SAVE_FILES` command [LR.03][LR.08].
 

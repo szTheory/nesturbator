@@ -2,7 +2,7 @@
 title: "Conformance tests, oracles and the scoreboard"
 summary: "Public NES test suites and reference emulators - what each proves, how it reports headlessly, its licence and its pin."
 read_when: "Choosing test ROMs; writing the headless runner, pin manifest, scoreboard or CI tiers."
-updated: 2026-10-08
+updated: 2026-10-23
 ---
 
 # Conformance tests, oracles and the scoreboard
@@ -14,20 +14,22 @@ nesturbator's correctness claims rest on outside tests. They differ in what they
 
 | Suite | Licence | Size | Proves; does not prove | Pin | Headless protocol | Results from |
 |---|---|---|---|---|---|---|
-| AccuracyCoin | MIT | 1 ROM, 40,976 B, mapper 0 | 144 tests of CPU, unofficial opcodes, interrupts, DMA, APU, PPU and sprite timing on NTSC RP2A03G + RP2C02G; no mappers, audio output, PAL | commit [CF.01] | one Start press; result bytes in RAM $0403-$0495 | author's consoles and emulator [CF.01][CF.03] |
+| AccuracyCoin | MIT | 1 ROM per pin, 40,976 B, mapper 0 | historical pin 673ef: 144 scored + 5 DRAW; current project pin 6bee: 146 scored + 5 DRAW. CPU, unofficial opcodes, interrupts, DMA, APU, PPU and sprite timing on NTSC RP2A03G + RP2C02G; no mappers, audio output, PAL | historical commit [CF.01]; current pin [CF.14] | raw result bytes in CPU RAM; current observer uses bounded cold page selection and a fresh A press/release | source target is not proof of measured hardware behavior [CF.01][CF.03][CF.14] |
 | 65x02 `nes6502/v1` | MIT | 256 files, 1,081,529,097 B | state and per-cycle bus activity of single instructions, all opcodes; no interrupts, DMA, NES memory map | commit [CF.04] | compare final state and bus list | an emulator [CF.04] |
 | Holy Mapperel | zlib | 40 ROMs, 17,964 B 7z archive (over 8 MB unpacked) | banking, WRAM, CHR RAM, gross IRQ for mappers 0-4, 7, 9, 10, 11, 28, 34, 66, 69, 78.3, 118, 180; not exhaustive (README); NES 2.0 headers | v0.02 [CF.05] | no memory channel: 4-digit screen code (0000 normal), beeps | real boards: a PCB test [CF.05] |
 | nes-test-roms | none | 290 ROMs, 14,885,408 B | per subsystem; see Classic suites | commit [CF.06] | $6000 protocol in 19 suites, else screen text | hardware, per most blargg readmes [CF.06] |
 
 ## AccuracyCoin in detail
 
-**Running headless.** After power-on the cursor rests on the page index, where a new Start press (the menu's NMI handler reads controller 1 each frame) runs every test and draws a results table. $EC reads $0A once the menu is up. $35 is 1 during the run, then 0; $37 then holds the tests counted, $38 the passes, $3F the skips. Tests that read controllers fail while a button is held, so Start is released once the run begins. A hang leaves that test and all later ones at $00 [CF.01].
+**Historical menu behavior at pin 673ef.** After power-on the cursor rests on the page index; a fresh Start press runs the selected suite and draws its results table. $EC reads $0A once the menu is up. $35 is 1 during the run, then 0; $37 then holds the tests counted, $38 the passes, $3F the skips. Tests that read controllers fail while a button is held, so Start is released once the run begins. A hang leaves that test and all later ones at $00 [CF.01]. This is source behavior at that pin, not the project's current measurement procedure.
 
-**Result bytes.** $00 not run, $FF skip. Otherwise bits 0-1: 1 pass, 2 fail, 3 running; bits 2-7: a code. On fail it is the error number in the README's list for that test; on pass, non-zero names the accepted hardware variant seen ($39: variant E, PPU revision E or earlier) [CF.01].
+**Current project run contract.** The canonical test input is the independently retained 6bee pin; 673ef remains the old comparison input. `nesturbator-run` authenticates the selected ROM and parses its own directory. The bounded campaign cold-starts each of 22 pages, waits for its page header, sends a one-frame A press and release, then observes for at most 1800 guest frames (32 boot, 5 per page navigation, 2 start/release). It is observation mode: a trustworthy report can contain test failures and a qualified guest timeout; the strict page command still fails when a selected page does not satisfy its expected pass rows. These commands do not make a hardware accuracy claim [CF.14].
 
-**Names.** The ROM holds its own table: at file offset $0110 (CPU $8100), little-endian page pointers ending where the first one points (22 pages). A page is a title, $FF, then entries of name, $FF, result address, routine address, closed by $FF. The pinned ROM yields 149 uniquely named entries: 144 tests and 5 DRAW entries (result address $03FF) that only print power-on state. Parsing it replaces a hand-kept address list [CF.01].
+**Raw result protocol.** For the pinned ROMs, $FF is skip, $00 is not-run, low bits 01 mean pass and 10 mean fail; low bits 11 indicate a running marker. Nonzero pass variants are source-test-specific (for example, PPU Read Buffer accepts $39 or $41); they are not generic pass codes. The current report classifier uses five mutually exclusive statuses: `pass`, `fail`, `skip`, `not-run`, and `timeout`. A $03 result is a timeout only when the observer proves that it is the current active test at the guest-frame cap. A noncurrent $03 marker remains visible as `not-run`; an untouched $00 is also `not-run`. DRAW is an inventory kind, not a sixth scored status. The production migration protects each accepted variant by decoded key and fresh raw observation [CF.01][CF.14].
 
-**Categories** (tests). CPU behaviour and addressing 15; unofficial instructions 66; interrupts 3; APU registers and DMA 10; APU 9; CPU behaviour 2: 5; PPU 27; advanced background and sprite evaluation 9 [CF.01].
+**Names.** Each ROM holds its own table: at file offset $0110 (CPU $8100), little-endian page pointers ending where the first one points (22 pages). A page is a title, $FF, then entries of name, $FF, result address, routine address, closed by $FF. The historical 673ef pin yields 149 entries (144 scored and 5 DRAW); the current 6bee pin yields 151 entries (146 scored and 5 DRAW). In the current pin, F0 through F4 expand to the source assembly's Indirect, ZeroPage, Absolute, Immediate and UnofficialInstructions name tokens; FF terminates strings and page tables. The $03FF DRAW entries print power-on state and are excluded from scoring. Decoding the pinned table replaces a hand-kept address list [CF.01][CF.14].
+
+**Historical categories at pin 673ef** (tests). CPU behaviour and addressing 15; unofficial instructions 66; interrupts 3; APU registers and DMA 10; APU 9; CPU behaviour 2: 5; PPU 27; advanced background and sprite evaluation 9 [CF.01]. The current 6bee inventory has two more scored rows; see the parsed project baseline for the measured per-key outcomes [CF.14].
 
 **Pages.** 1 CPU behaviour; 2 addressing-mode wraparound; 3 to 11 unofficial instructions; 12 CPU interrupts; 13 APU registers and DMA; 14 APU tests (Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter 5-step, Delta Modulation Channel, APU Register Activation, Controller Strobing, Controller Clocking); 15 CPU behaviour 2; 16 power-on state (the DRAW entries); 17 PPU behaviour; 18 vblank timing; 19 sprite evaluation; 20 PPU miscellany; 21 and 22 advanced background and sprite evaluation. Names are as the ROM's own table spells them [CF.01].
 
@@ -77,7 +79,7 @@ Explicit licences only [CF.13]; m = mapper.
 
 | Licence | ROMs (source and pin) |
 |---|---|
-| MIT | AccuracyCoin (`100thCoin/AccuracyCoin` @673ef550); Nesteroids (`battlelinegames/nesteroids` @ae65d780; game, m0); nes-runner (`zorchenhimer/nes-runner` v1; game, m1) |
+| MIT | AccuracyCoin (`100thCoin/AccuracyCoin` current project pin @6bee9195; retained comparison pin @673ef550); Nesteroids (`battlelinegames/nesteroids` @ae65d780; game, m0); nes-runner (`zorchenhimer/nes-runner` v1; game, m1) |
 | zlib | Holy Mapperel (`pinobatch/holy-mapperel` v0.02); Double Action Blaster Guys (`NovaSquirrel/DABG` @`5ecc60b6af3f726851bfeb1c2555388c5953e0c0`; game, m0; exact `LICENSE.txt` says zlib); Pently demo (`pinobatch/pently` v0.05wip11; music, m0) |
 | all-permissive | RHDE (`pinobatch/rhde-nes` v0.07; game, m0) |
 
@@ -97,11 +99,11 @@ Excluded: Thwaite, Concentration Room (GPL-3.0), 240p Test Suite (GPL-2.0): copy
 
 ## Scoreboard design
 
-Recommendation: one committed, sorted text file, one tab-separated line per test: `key status code frames hash`. `key` is suite and test name (`accuracycoin/NMI Overlap BRK`, `65x02/a9`). `status` is `pass`, `fail`, `unavailable` (ROM not fetched in this run) or `unsupported` (needs a feature the core does not claim). `code` is the suite's own result (AccuracyCoin byte, $6000 code, failing-vector count). `hash` is a SHA-256 prefix of the final frame as palette indices, or `-`.
+Historical proposal: one committed, sorted text file with `key status code frames hash`; its suggested statuses were `pass`, `fail`, `unavailable` and `unsupported`. The project implementation uses the five-way AccuracyCoin observation protocol described above and does not use `unavailable` or `unsupported` as scored outcomes. Its canonical `tests/accuracy/scoreboard.txt` stores `key`, status, observed raw byte, guest frames and optional hash (`-` for this campaign). The new-pin 146-row baseline is kept separate from the old 144-row comparison and its 17 protected passes. The baseline records measurements; it is not a “may only improve” rank across pins, and totals from different ROM pins are not comparable [CF.14].
 
 Pin manifest, per fetched object: URL, commit, SHA-256, licence, protocol (`accuracycoin-ram`, `blargg-6000`, `blargg-f8`, `screen-text`, `vectors`, `frame-hash`), frame cap, input script, and accepted codes where hardware has several valid outcomes.
 
-"May only improve" compares keys, never totals, and only between runs with identical pins: `pass` stays `pass`; `fail` to `pass` updates the file in the same change; `unavailable` is neither. A pin bump is its own change: added keys enter with the status they have, removed keys are deleted, a rename is a removal plus an addition.
+The earlier “may only improve” proposal compared keys only within identical pins. The current protected verdict instead requires same-pin protected passes to pass in the fresh run; a pin change retains old pass measurements and applies an explicit source-backed disposition to each mapped key. Added/removed rows and changed meanings remain visible in the two pin-specific inventory identities and migration record [CF.14].
 
 Strongest alternative: JUnit XML per run, readable by dashboards but poor to diff; adopting a dashboard would favour generating it from this file.
 
@@ -141,3 +143,4 @@ Strongest alternative: classics per pull request from a cache, justified by a wa
 | CF.11 | T1 | github.com/100thCoin/TriCNES (README, project file, sources) | 94f1b1178057e84c56e4c2410c8391eee4d78975 | limits |
 | CF.12 | T1 | docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching | 2026-10-02 | cache |
 | CF.13 | T1 | github.com/ + each repository named under committable ROMs (LICENSE, README, releases) | 2026-10-02 | licences |
+| CF.14 | T1 | github.com/100thCoin/AccuracyCoin (`README`, `AccuracyCoin.asm`) | 6bee919529289c555803b612b8c9e4f7eaaeeabb | current project pin and parser protocol |

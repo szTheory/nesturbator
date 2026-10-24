@@ -2,34 +2,125 @@
 gsd_state_version: "1.0"
 milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
-current_phase: 16
-current_phase_name: Host evidence and roadmap
-status: ready_to_execute
-stopped_at: Plan16-07 correction committed and local CI/ASan complete; update PR body before fresh native CI
-last_updated: "2026-10-23T16:04:51Z"
-state_head: bf46a5403fb4338113729dd83b0e8ae5288c84e4
+current_phase: 17
+current_phase_name: Complete pinned conformance baseline
+current_plan: 4
+status: verifying
+stopped_at: Completed 17-04-PLAN.md; phase verification pending
+last_updated: "2026-10-24T07:25:17.282Z"
+state_head: dcdb7b39bb0aec6ff74b192bfa239f6c0dc9243b
 progress:
   total_phases: 3
-  completed_phases: 0
-  total_plans: 13
-  completed_plans: 11
-  percent: 85
+  completed_phases: 1
+  total_plans: 17
+  completed_plans: 17
+  percent: 33
 last_activity: 2026-10-23
-last_activity_desc: Plan07 readiness timing correction passed full local CI and ASan; final native checks and owner consent remain
+last_activity_desc: Plan 17-03 passed full CI; protected authority and fresh measured migration verdict are enforced
 ---
 
 # Project State
 
 ## Project Reference
 
+See [PROJECT.md](PROJECT.md), updated 2026-10-23, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-See PROJECT.md and AGENTS.md. Current phase:16—Host evidence and roadmap.
+Current focus: Phase 17 — Complete pinned conformance baseline.
 
 ## Current Position
 
-Phase: 16 (Host evidence and roadmap) — EXECUTING
-Plan 16-56 complete (3/3); Plan 16-07 local acceptance complete; fresh exact-head native CI and owner consent remain. Plan 16-08 is blocked on actual Plan 16-07 publication.
-13 live / 56 physical / 11 completed plans. Phase 16 remains incomplete.
+Phase: 17 (Complete pinned conformance baseline) — EXECUTING
+Current Plan: 4
+Total Plans in Phase: 4
+Status: Phase complete — ready for verification
+Progress: [███░░░░░░░] 33%
+
+Phase 16 is complete: 13/13 live plans, 22/22 verification truths and all six
+requirements (EVID-01–04, DIR-01/02) verified. The normal completion handler
+advanced to Phase 17. Phase 17 research and four plans in four sequential waves
+are complete. Plan 17-01's comparison fixture, inventory, tracer and old-pin
+evidence now pass full CI. Plan 17-02's bounded new-pin campaign also passed
+full CI and produced retained outcomes for all 22 pages. Protected-main
+authority and fresh migration verdicts now pass full CI through Plan 17-03;
+canonical activation and measured CI placement remain for Plan 17-04. The
+planning step itself ran no implementation tests.
+
+## Phase 17 Planning
+
+- [Research](phases/17-complete-pinned-conformance-baseline/17-RESEARCH.md)
+  checks the immutable suite and existing runner/CI seams. New-pin campaign
+  outcomes, accepted caps and CI placement remain execution measurements.
+- Plans 17-01 through 17-04 cover the real tracer/inventory, bounded campaign,
+  protected-main regression enforcement, then atomic canonical activation and
+  measured CI placement. Plan 17-01 now passes full CI with the comparison
+fixture admitted; the old canonical strict checks stay active through staging.
+- Plan 17-03 now enforces protected-main authority from one immutable revision
+  and requires fresh old/new observations for all 17 protected keys. Plan 17-04
+  owns canonical activation and measured CI placement.
+- Independent plan checking passed without findings. Four plan structures and
+  frontmatters validate; all 10 task verification commands state failure signals;
+  all four requirements and 15 tracked decisions are covered.
+- The planning step ran no implementation tests. Plan 17-01's production
+  tracer, inventory, status and old-page evidence passed full CI; Plan 17-02's
+  bounded new-pin campaign also passed full CI across all 22 pages.
+
+## Phase 16 Evidence
+
+- [Independent verification](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md)
+  passes with a canonical current-input fingerprint.
+- [Release evidence](phases/16-host-evidence-and-roadmap/16-RELEASE-EVIDENCE.md):
+  v0.1.11, source e47feb3afc34baf1d611ef44153af199424f41a2, exact successful
+  Release run 39993108038; 18 actual ZIP checksums and attestations, six truthful
+  MMC3 metadata copies, all checked against the immutable release source.
+- [Delivery](phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md): approved
+  exact PR #50 head, protected merge and normal release-please publication.
+- [Current review](phases/16-host-evidence-and-roadmap/16-REVIEW.md) is clean.
+  WR-07's missing preflight CI registration was fixed in e80af77: full CI
+  650/650, no skips, three packages; focused ASan preflight 1/1.
+- [Source acceptance](phases/16-host-evidence-and-roadmap/16-56-SOURCE-ACCEPTANCE.md)
+  and its review/disposition preserve the actual source-root, lock ownership,
+  finalizer and causal RED/GREEN evidence.
+
+## Decisions and Lessons
+
+1. Resume from the canonical live plan index and completed summaries. Retired
+   admission/helper/transport/snapshot/clock/slot gates are historical data;
+   [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) is the
+   authority for the completed phase. No Plan 57 is needed.
+2. Diagnose concrete failures within execution. The Sigstore verifier needed
+   a writable task-local XDG cache; its exact source/signer policy stayed intact.
+   Code review caught a real missing CI registration, which was fixed and tested
+   in this same step.
+3. Source/package success and publication proof are distinct. Keep exact release
+   identities and actual bytes; complete the phase only after independent goal
+   verification passes. Finite checks do not establish universal reliability or
+   future milestone compliance.
+
+## Preserved Debt and History
+
+- Separate Nightly run 39993108154: vectors-full failed; suite-flake passed.
+  This is not a required Release gate and remains unresolved debt.
+- Completion warned that 16-05-SUMMARY.md lists two command strings as file paths:
+  `cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake` and
+  `bash scripts/hygiene.sh`. These metadata warnings do not change the verdict.
+- Old failed checkpoints, missing originals/UNKNOWNs and Plan 26's historical
+  active/pending observation remain unchanged. Superseded plans gain no false
+  completion credit. No broad build-tree traversal or historical replay.
+- [Loop forensics](forensics/report-20261022-234424.md) records the earlier
+  62-document-commit loop. Original state/roadmap are retained at 227bd6a.
+- Preexisting `.planning/config.json` edits remain exact and unstaged.
+
+## Next Action
+
+`$gsd-execute-phase 17` — continue with Plan 17-04, canonical activation and
+measured CI placement. Keep the phase-level CONF requirements pending until the
+phase is verified.
+
+## Session
+
+Last session: 2026-10-24T07:25:00.056Z
+Stopped at: Completed 17-04-PLAN.md; phase verification pending
+Resume file: None
 
 Read [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) first.
 Its direct development contract remains active: no retired admission/transport/
@@ -37,68 +128,25 @@ snapshot/clock/slot/helper preparation prerequisites and no Plan57. Ordinary
 implementation/tool failures are diagnosed and corrected within execution.
 Do not route a diagnosed local failure back to planning by default.
 
-## Completed Current-Source Acceptance
+## Performance Metrics
 
-Source commits2e9928b and2c356d5, metadata52f6915. Final tested source candidate:
-2c356d574290aef1d57122566f7b81beaaa10027.
-[56SUMMARY](phases/16-host-evidence-and-roadmap/16-56-SUMMARY.md),
-[source acceptance](phases/16-host-evidence-and-roadmap/16-56-SOURCE-ACCEPTANCE.md),
-[independent review](phases/16-host-evidence-and-roadmap/16-56-REVIEW.md) and
-[disposition](phases/16-host-evidence-and-roadmap/16-56-REVIEW-DISPOSITION.md).
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 17 P01 | 54min | 3 tasks | 15 files |
+| Phase 17 P02 | 67min | 3 tasks | 12 files |
+| Phase 17 P03 | 42min | 2 tasks | 15 files |
+| Phase 17 P04 | 7h22m | 2 tasks | 38 files |
 
-- Harness identity derives from its own invocation; copied driver/include
-  refused before sourcing. All3cwd/12finalizer cases passed.
-- Final-source same-oracle CR-01 RED/GREEN distinguishes old foreign-object
-  damage from current preservation; owned reap and exact-port reentry passed.
-- Independent review found a valid alternate-port socket bypass. Corrected
-  production reentry to require55355, added real-socket negative control and
-  reran affected/current acceptance. Final exact-source standard review clean.
-- Focused CI and ASan/UBSan both2/2. Full CI and independent parent build/fullCI
-  passed:649/649, no skips, four CTest jobs, configure/build/test/package and
-  three fresh package/source matches. Final parent controls320.45s, total324.18s.
-- Existing candidate defects found by focused tests were corrected locally:
-  absent lock-root creation, stale exclusive observation in retry fixture,
-  unset interruption fixture variable. First failures retained in build logs.
-- Tested/committed11-path source manifest matches. Paired five source/test/doc
-  paths committed with noreply hooks. Config remains preexisting dirty input,
-  exact/unstaged (SHA2560517388f5d422ae97afdc5dc1ae11bc43ebd481a757424f152ee8af61559ff5e).
+## Decisions
 
-## Remaining Gates
-
-07fresh exact-head native required/perf/pinned-host CI and affirmative owner
-consent for the concrete PR/full head precede normal protected merge/publication.
-Inspect actual PR state before reusing historical PR50; do not assume old CI
-or earlier push permission grants merge consent. No push/merge/publication was
-performed in56.08requires actual18archives/checksums/attestations/sixmetadata
-and successful exact-release CI. Historical21/22verification and EVID-04stay
-open until genuine delivery/reverification; do not mark phase16complete.
-
-All six requirements and D-01–D-17remain. EVID-02retains its existing complete
-status; other provisional phase requirement marks are unchanged. Finite test
-success proves no universal reliability or future milestone compliance.
-
-## Preserved History and Lessons
-
-Completed01–06,09,15,21,30retain historical credit;51–54remain superseded
-unexecuted history. Old failed checkpoints/build trees are DATA, not replay
-prerequisites.26active/terminal=false/pending and missing originals/UNKNOWNs
-stay unchanged; no historical failure is relabeled or lost original invented.
-
-[Loop forensics](forensics/report-20261022-234424.md) explains62consecutive docs
-commits and expanding administrative gates. Full earlier STATE/ROADMAP and old56
-remain exact at227bd6a. Keep current state short and read history only for a
-concrete question. This execution demonstrated the recovery: fix the actual
-source, retain first failures, add a discriminating test, correct within the
-same step, rerun affected acceptance and obtain independent review.
-
-## Next Action
-
-Finish Plan 16-07 Task 1 by updating PR #50's body with the current failure and correction, then push the reviewed phase-branch candidate normally and observe fresh native `pull_request` required, perf, and pinned RetroArch checks on the exact final head and merge ref. If all pass, present the PR identity and those checks for explicit owner consent. Do not merge, publish, or advance to Plan 16-08 without that consent and the normal release flow. If a check fails, retain its result and diagnose the first real failure within Plan 16-07.
-
-Plan 16-08 remains blocked until the existing release flow publishes a candidate. Phase 16 stays incomplete until its downloaded-byte acceptance and phase verification are complete.
-
-## Session
-
-**Last session:** 2026-10-23T15:16:00.522Z
-**Stopped at:** Plan16-07 local acceptance complete; prepare final phase-branch head for native CI and exact-head consent checkpoint
-**Resume file:** .planning/phases/16-host-evidence-and-roadmap/16-RELEASE-DELIVERY.md
+- [Phase 17]: Keep 673ef550 canonical while admitting 6bee919 as a comparison fixture; do not activate the new pin in Plan 17-01.
+- [Phase 17]: Accept nonstandard pass bytes only for exact source-defined decoded keys; classify $02 as a valid failure and DRAW sentinel rows as inventory-only.
+- [Phase 17]: Retain old protected measurements and mark all corresponding new-pin observations unmeasured until the later campaign.
+- [Phase 17]: The fixed five-Right navigation input is the measured campaign unit: six inputs change guest timing and the active page19 row, so cap-six exploration remains separately labeled.
+- [Phase 17]: Keep both raw navigation-sensitive page19 observations; timeout only the source-confirmed active row, retain stale running markers as not-run, and do not fall back when all bytes were observed.
+- [Phase 17]: Protected scoreboard and identity must come from the same immutable protected-main revision; legacy fallback reads the manifest from that revision.
+- [Phase 17]: Every protected mapping requires fresh old/new raw evidence; only four exact source-reviewed keys can admit measured cross-pin terminal failure.
+- [Phase 17]: Keep CONF-01 through CONF-04 pending until Phase 17 verification; canonical activation belongs to Plan 17-04.
+- [Phase 17]: Authenticate the canonical protected-main scoreboard from its exact commit and project only measured PASS rows.
+- [Phase 17]: Derive same-pin protected pages from the current protected baseline and require fresh PASS/raw evidence on the current invocation.
+- [Phase 17]: Run the full campaign once on primary Linux x64 PR CI; keep measured page bounds and existing workflow timeouts.

@@ -83,6 +83,25 @@ out=$(sh scripts/hygiene.sh --history 2>&1) || {
   exit 1
 }
 
+# A ROM listed by a commit's manifest remains valid historical evidence after
+# a later commit retires the fixture and its manifest row.
+mkdir -p tests/roms
+printf '\116\105\123\032fixture\000' >tests/roms/retired.nes
+printf 'tests/roms/retired.nes\tfixture\tpin\tMIT\tsha256\n' >tests/roms/manifest.txt
+git add tests/roms/retired.nes tests/roms/manifest.txt
+git -c user.name=test -c user.email=test@users.noreply.github.com \
+  -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -q -m 'test: list fixture in historical manifest'
+git rm -q tests/roms/retired.nes
+: >tests/roms/manifest.txt
+git add tests/roms/manifest.txt
+git -c user.name=test -c user.email=test@users.noreply.github.com \
+  -c commit.gpgsign=false -c core.hooksPath=/dev/null commit -q -m 'test: retire historical fixture'
+out=$(sh scripts/hygiene.sh --history 2>&1) || {
+  printf '%s\n' "$out"
+  echo "FAIL: --history rejected a fixture listed by its historical manifest"
+  exit 1
+}
+
 # A tracked JSON total above 64 KiB is rejected from the staged index, the
 # working tree and commit history. The generated file exists only in this
 # isolated scratch repository, never in the project's shipped vector data.

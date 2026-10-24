@@ -114,7 +114,21 @@ jobs:
       # candidate-controlled CTest configuration or scoreboard files run.
       - name: Prepare protected-main scoreboard baseline
         run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake
+      # The full pinned campaign is measured once per required PR run on the
+      # primary Linux x64 lane. Other platform lanes keep the focused parser,
+      # classifier, protected-pass and parity checks without multiplying the
+      # 22-page campaign.
+      - name: Enable full AccuracyCoin campaign on primary lane
+        if: matrix.os == 'linux' && matrix.arch == 'x64'
+        run: cmake --preset ${{ matrix.preset }} -DNESTURBATOR_ACCURACYCOIN_FULL=ON
       - run: cmake --workflow --preset ${{ matrix.preset }}
+      - name: Upload AccuracyCoin evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: accuracycoin-evidence-${{ matrix.os }}-${{ matrix.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/${{ matrix.preset }}/accuracycoin/**
+          if-no-files-found: error
       - run: cmake -DDIR=build/${{ matrix.preset }} -P tests/cmake/check_archives.cmake
       - if: matrix.os == 'macos' && matrix.arch == 'arm64'
         run: cmake -DREADME=README.md -DPACKAGES=build/${{ matrix.preset }}/packages -DOUT=build/install-line -P tests/cmake/check_install_line.cmake
@@ -149,6 +163,21 @@ jobs:
       - name: Prepare protected-main scoreboard baseline
         run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake
       - run: cmake --workflow --preset asan
+      - name: Upload AccuracyCoin ASan diagnostics
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: accuracycoin-asan-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/asan/tests/accuracycoin/driver/**/metadata.txt
+            build/asan/tests/accuracycoin/driver/**/report.tsv
+            build/asan/tests/accuracycoin/driver/**/raw.tsv
+            build/asan/tests/accuracycoin/driver/**/diagnostics.tsv
+            build/asan/tests/accuracycoin/report/**/metadata.txt
+            build/asan/tests/accuracycoin/report/**/report.tsv
+            build/asan/tests/accuracycoin/report/**/raw.tsv
+            build/asan/tests/accuracycoin/report/**/diagnostics.tsv
+          if-no-files-found: warn
 
   nofp:
     runs-on: ${{ matrix.runner }}
