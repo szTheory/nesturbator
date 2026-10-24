@@ -7,8 +7,8 @@ current_phase_name: Complete pinned conformance baseline
 current_plan: 4
 status: executing
 stopped_at: Completed 17-03-PLAN.md
-last_updated: "2026-10-24T00:00:34.010Z"
-state_head: 29bb07cd380033a8ed921e9a1d3e2c3762e10aa3
+last_updated: "2026-10-24T00:01:04.593Z"
+state_head: 516f7c863d99e65ffc7c9e26253122fe2cdb3094
 progress:
   total_phases: 3
   completed_phases: 1
@@ -41,8 +41,9 @@ advanced to Phase 17. Phase 17 research and four plans in four sequential waves
 are complete. Plan 17-01's comparison fixture, inventory, tracer and old-pin
 evidence now pass full CI. Plan 17-02's bounded new-pin campaign also passed
 full CI and produced retained outcomes for all 22 pages. Protected-main
-regression work and canonical activation remain for Plans 17-03 and 17-04.
-The planning step itself ran no implementation tests.
+authority and fresh migration verdicts now pass full CI through Plan 17-03;
+canonical activation and measured CI placement remain for Plan 17-04. The
+planning step itself ran no implementation tests.
 
 ## Phase 17 Planning
 
@@ -117,7 +118,7 @@ phase is verified.
 
 ## Session
 
-Last session: 2026-10-24T00:00:33.826Z
+Last session: 2026-10-24T00:01:04.376Z
 Stopped at: Completed 17-03-PLAN.md
 Resume file: None
 
