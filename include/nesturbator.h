@@ -400,7 +400,9 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
  * advance on later frame calls. On STOP_JAM, frame output fields are not
  * written and callers must not inspect the video or audio buffers as results;
- * the machine remains valid for a save-state snapshot. Test-only bounded
+ * the machine remains valid for a save-state snapshot. A libretro host may
+ * present its separately owned last complete converted frame (or black), but
+ * must not treat these native output buffers as a frame. Test-only bounded
  * execution replay uses generated representative mapper 0, 1, 2, 3, 4 and 7
  * content to check deterministic continuation and instance isolation. Its
  * successful-frame comparison uses defined metadata, native pixels and only

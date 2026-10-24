@@ -43,8 +43,17 @@ static size_t save_size;
 static uint32_t palette[512];
 static uint16_t video[NT_PIXELS];
 static uint32_t xrgb[NT_PIXELS];
+static bool completed_frame_valid;
 static int16_t mono[NT_AUDIO_CAPACITY];
 static int16_t stereo[NT_AUDIO_CAPACITY * 2u];
+
+/* JAM leaves the native frame buffers unspecified, so only this adapter-owned
+   converted frame may be repeated. */
+static void invalidate_presentation(void)
+{
+    completed_frame_valid = false;
+    memset(xrgb, 0, sizeof xrgb);
+}
 
 /* L7511: called before retro_init. Declaring no-game support (18, L1051)
    makes the frontend call retro_load_game(NULL) (L1040-1051). */
@@ -86,6 +95,7 @@ void retro_init(void)
 {
     nesturbator_config cfg;
 
+    invalidate_presentation();
     nesturbator_destroy(inst);
     inst = NULL;
     memset(&cfg, 0, sizeof cfg);
@@ -111,7 +121,7 @@ void retro_deinit(void)
     input_state_cb = NULL;
     memset(palette, 0, sizeof palette);
     memset(video, 0, sizeof video);
-    memset(xrgb, 0, sizeof xrgb);
+    invalidate_presentation();
     memset(mono, 0, sizeof mono);
     memset(stereo, 0, sizeof stereo);
 }
@@ -174,8 +184,8 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
    The status is dropped because libretro's reset returns void. */
 void retro_reset(void)
 {
-    if (inst != NULL) {
-        (void)nesturbator_reset(inst);
+    if (inst != NULL && nesturbator_reset(inst) == NESTURBATOR_OK) {
+        invalidate_presentation();
     }
 }
 
@@ -183,11 +193,14 @@ void retro_reset(void)
    called once with XRGB8888 rows of 1024 bytes, and mono samples are
    duplicated into left/right pairs. Prefer the batch callback (L7465); use
    the per-sample callback only when no batch callback is registered (L7453).
-   A failed frame sends no video or audio. */
+   A JAM still polls input and sends the last complete converted frame, or
+   black before one exists; it sends no audio and does not reset the instance.
+   Other failed frames send no video or audio. */
 void retro_run(void)
 {
     nesturbator_frame io;
     nesturbator_input input;
+    nesturbator_status status;
     uint32_t i;
 
     if (input_poll_cb != NULL) {
@@ -218,11 +231,22 @@ void retro_run(void)
     io.video_pitch = NT_WIDTH;
     io.audio = mono;
     io.audio_capacity = NT_AUDIO_CAPACITY;
-    if (nesturbator_run_frame(inst, &io) != NESTURBATOR_OK) {
+    status = nesturbator_run_frame(inst, &io);
+    if (status == NESTURBATOR_STOP_JAM) {
+        if (video_cb != NULL) {
+            if (!completed_frame_valid) {
+                memset(xrgb, 0, sizeof xrgb);
+            }
+            video_cb(xrgb, NT_WIDTH, NT_HEIGHT, (size_t)NT_WIDTH * sizeof xrgb[0]);
+        }
+        return;
+    }
+    if (status != NESTURBATOR_OK) {
         return;
     }
     /* D-15: the runner's conversion loop. */
     nesturbator_host_convert(palette, video, NT_WIDTH, xrgb, NT_WIDTH);
+    completed_frame_valid = true;
     if (video_cb != NULL) {
         video_cb(xrgb, NT_WIDTH, NT_HEIGHT, (size_t)NT_WIDTH * sizeof xrgb[0]);
     }
@@ -265,7 +289,11 @@ bool retro_serialize(void *data, size_t len)
 
 bool retro_unserialize(const void *data, size_t len)
 {
-    return nesturbator_load_state(inst, data, len) == NESTURBATOR_OK;
+    if (nesturbator_load_state(inst, data, len) != NESTURBATOR_OK) {
+        return false;
+    }
+    invalidate_presentation();
+    return true;
 }
 
 void retro_cheat_reset(void)
@@ -298,6 +326,7 @@ bool retro_load_game(const struct retro_game_info *game)
     /* Drop the cached span before the cartridge it points into is released. */
     save_data = NULL;
     save_size = 0u;
+    invalidate_presentation();
     nesturbator_unload_cartridge(inst);
     if (game != NULL &&
         nesturbator_load_cartridge(inst, game->data, game->size) != NESTURBATOR_OK) {
@@ -328,6 +357,7 @@ void retro_unload_game(void)
 {
     save_data = NULL;
     save_size = 0u;
+    invalidate_presentation();
     nesturbator_unload_cartridge(inst);
 }
 

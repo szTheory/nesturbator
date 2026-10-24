@@ -154,6 +154,7 @@ static enum retro_pixel_format pixel_format = RETRO_PIXEL_FORMAT_0RGB1555;
 static int video_calls;
 static unsigned video_width, video_height;
 static size_t video_pitch;
+static bool video_data_nonnull;
 static uint32_t frame[W * H];
 static int poll_calls;
 static int input_calls;
@@ -207,6 +208,7 @@ static void RETRO_CALLCONV video(const void *data, unsigned width, unsigned heig
     video_width = width;
     video_height = height;
     video_pitch = pitch;
+    video_data_nonnull = data != NULL;
     if (data == NULL || width != W || height != H || pitch < W * 4u) {
         return;
     }
@@ -1009,6 +1011,207 @@ static void check_sound_frame_parity(unsigned char *image, size_t image_size)
     p_set_audio_sample_batch(batch);
     nesturbator_destroy(nes);
     p_unload_game();
+}
+
+static void check_jam_callback(const uint32_t *expected, bool use_batch)
+{
+    int old_video = video_calls;
+    int old_poll = poll_calls;
+    int old_input = input_calls;
+
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(use_batch ? batch : NULL);
+    sample_calls = 0;
+    batch_calls = 0;
+    batch_frames = 0u;
+    p_run();
+    CHECK_EQ_U64(video_calls, (uint64_t)old_video + 1u);
+    CHECK_EQ_U64(poll_calls, (uint64_t)old_poll + 1u);
+    CHECK_EQ_U64(input_calls, (uint64_t)old_input + 16u);
+    CHECK(video_data_nonnull);
+    CHECK_EQ_U64(video_width, W);
+    CHECK_EQ_U64(video_height, H);
+    CHECK_EQ_U64(video_pitch, W * sizeof frame[0]);
+    CHECK(memcmp(frame, expected, sizeof frame) == 0);
+    CHECK_EQ_U64(sample_calls, 0u);
+    CHECK_EQ_U64(batch_calls, 0u);
+    CHECK_EQ_U64(batch_frames, 0u);
+}
+
+static bool run_delayed_jam(uint32_t *last_complete)
+{
+    bool have_complete = false;
+
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
+    for (unsigned attempt = 0u; attempt < 20u; attempt++) {
+        int old_video = video_calls;
+        int old_poll = poll_calls;
+        int old_input = input_calls;
+
+        sample_calls = 0;
+        batch_calls = 0;
+        batch_frames = 0u;
+        p_run();
+        CHECK_EQ_U64(video_calls, (uint64_t)old_video + 1u);
+        CHECK_EQ_U64(poll_calls, (uint64_t)old_poll + 1u);
+        CHECK_EQ_U64(input_calls, (uint64_t)old_input + 16u);
+        CHECK(video_data_nonnull);
+        CHECK_EQ_U64(video_width, W);
+        CHECK_EQ_U64(video_height, H);
+        CHECK_EQ_U64(video_pitch, W * sizeof frame[0]);
+        CHECK_EQ_U64(sample_calls, 0u);
+        if (batch_calls == 0) {
+            CHECK(have_complete);
+            if (have_complete) {
+                CHECK(memcmp(frame, last_complete, sizeof frame) == 0);
+            }
+            return have_complete;
+        }
+        CHECK_EQ_U64(batch_calls, 1u);
+        CHECK(batch_frames == 798u || batch_frames == 799u);
+        memcpy(last_complete, frame, sizeof frame);
+        have_complete = true;
+    }
+    CHECK(0); /* The generated bounded delay must reach its JAM opcode. */
+    return false;
+}
+
+/* D-10: the adapter repeats only a complete converted frame, and its cache
+   lifetime is separate from the native save-state and machine state. */
+static void check_jam_presentation(const unsigned char *base_image, size_t image_size)
+{
+    static const uint8_t delay_then_jam[] = {0xa2u, 0xffu, 0xa0u, 0xffu, 0x88u, 0xd0u,
+                                             0xfdu, 0xcau, 0xd0u, 0xf8u, 0xa9u, 0x01u,
+                                             0x8du, 0x00u, 0x00u, 0x02u};
+    static const uint8_t clear_ram_loop[] = {0xa9u, 0x00u, 0x8du, 0x00u,
+                                             0x00u, 0x4cu, 0x05u, 0x80u};
+    static const uint8_t reset_gate[] = {0xadu, 0x00u, 0x00u, 0xd0u, 0x07u, 0xa9u, 0x01u,
+                                         0x85u, 0x00u, 0x4cu, 0x00u, 0x80u, 0x02u};
+    static const uint32_t black[W * H] = {0u};
+    uint8_t direct_image[16u + 16384u + 8192u];
+    uint8_t delayed_image[16u + 16384u + 8192u];
+    uint8_t setup_image[16u + 16384u + 8192u];
+    uint32_t last_complete[W * H];
+    struct retro_game_info game;
+    uint8_t *origin = NULL;
+    uint8_t *jammed = NULL;
+    uint8_t *roundtrip = NULL;
+    size_t state_size;
+
+    CHECK_EQ_U64(image_size, sizeof direct_image);
+    if (image_size != sizeof direct_image) {
+        return;
+    }
+    memcpy(direct_image, base_image, image_size);
+    direct_image[16u] = 0x02u; /* Immediate JAM at the reset vector. */
+    memset(&game, 0, sizeof game);
+    game.data = direct_image;
+    game.size = image_size;
+    CHECK(p_load_game(&game));
+    for (unsigned attempt = 0u; attempt < 4u; attempt++) {
+        check_jam_callback(black, attempt % 2u == 0u);
+    }
+
+    /* Cartridge loading may preserve CPU RAM; explicitly make the reset gate
+       marker zero before the initial delayed-JAM run. */
+    memcpy(setup_image, base_image, image_size);
+    memcpy(setup_image + 16u, clear_ram_loop, sizeof clear_ram_loop);
+    game.data = setup_image;
+    CHECK(p_load_game(&game));
+    p_reset();
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
+    batch_calls = 0;
+    p_run();
+    CHECK_EQ_U64(batch_calls, 1u);
+
+    /* The first frame completes visibly; a generated nested delay reaches JAM
+       later, while the reset gate makes soft reset re-enter JAM immediately. */
+    memcpy(delayed_image, base_image, image_size);
+    memcpy(delayed_image + 16u + 0x32u, delay_then_jam, sizeof delay_then_jam);
+    memcpy(delayed_image + 16u + 0x100u, reset_gate, sizeof reset_gate);
+    delayed_image[16u + 0x3ffau] = 0x00u;
+    delayed_image[16u + 0x3ffbu] = 0x81u;
+    delayed_image[16u + 0x3ffcu] = 0x00u;
+    delayed_image[16u + 0x3ffdu] = 0x81u;
+    delayed_image[16u + 0x3ffeu] = 0x00u;
+    delayed_image[16u + 0x3fffu] = 0x81u;
+    game.data = delayed_image;
+    CHECK(p_load_game(&game));
+
+    state_size = p_serialize_size();
+    CHECK(state_size > 0u);
+    if (state_size == 0u) {
+        p_unload_game();
+        return;
+    }
+    origin = (uint8_t *)malloc(state_size);
+    jammed = (uint8_t *)malloc(state_size);
+    roundtrip = (uint8_t *)malloc(state_size);
+    CHECK(origin != NULL && jammed != NULL && roundtrip != NULL);
+    if (origin == NULL || jammed == NULL || roundtrip == NULL) {
+        free(origin);
+        free(jammed);
+        free(roundtrip);
+        p_unload_game();
+        return;
+    }
+    CHECK(p_serialize(origin, state_size));
+    CHECK(run_delayed_jam(last_complete));
+    CHECK(memcmp(last_complete, black, sizeof black) != 0);
+
+    sample_calls = 0;
+    batch_calls = 0;
+    batch_frames = 0u;
+    CHECK(p_serialize(jammed, state_size));
+    CHECK_EQ_U64(sample_calls, 0u);
+    CHECK_EQ_U64(batch_calls, 0u);
+    check_jam_callback(last_complete, false);
+
+    /* A refused load preserves the complete presentation; successful state
+       restore invalidates it without putting pixels into the native state. */
+    CHECK(!p_unserialize(jammed, state_size - 1u));
+    check_jam_callback(last_complete, true);
+    CHECK(p_unserialize(jammed, state_size));
+    CHECK(p_serialize(roundtrip, state_size));
+    CHECK(memcmp(roundtrip, jammed, state_size) == 0);
+    check_jam_callback(black, false);
+
+    /* A valid pre-JAM origin clears the latch and deliberately executes again. */
+    CHECK(p_unserialize(origin, state_size));
+    CHECK(run_delayed_jam(last_complete));
+    CHECK(memcmp(last_complete, black, sizeof black) != 0);
+
+    /* CPU RAM survives reset. The generated reset gate sees its marker and
+       executes JAM at once, so a valid prior frame would be visibly stale. */
+    p_reset();
+    check_jam_callback(black, true);
+
+    /* Rebuild a valid cached frame, unload, then reload direct JAM content.
+       The no-content frame between sessions also remains a normal completion. */
+    CHECK(p_unserialize(origin, state_size));
+    sample_calls = 0;
+    batch_calls = 0;
+    batch_frames = 0u;
+    p_run();
+    CHECK_EQ_U64(batch_calls, 1u);
+    CHECK(video_data_nonnull);
+    memcpy(last_complete, frame, sizeof frame);
+    p_unload_game();
+    CHECK(p_load_game(NULL));
+    p_run();
+    CHECK(video_data_nonnull);
+    game.data = direct_image;
+    CHECK(p_load_game(&game));
+    check_jam_callback(black, false);
+    p_unload_game();
+
+    free(origin);
+    free(jammed);
+    free(roundtrip);
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
 }
 
 /* ---- the runner's image ---- */
@@ -2587,6 +2790,7 @@ int main(int argc, char **argv)
     struct retro_system_av_info av;
     struct retro_game_info dummy;
     static unsigned char dummy_bytes[16u + 16384u + 8192u];
+    static unsigned char jam_base[16u + 16384u + 8192u];
     static uint32_t first_content_frame[W * H];
     double fps_diff;
     const char *fixture_argv_path = getenv("NESTURBATOR_FIXTURE_ARGV_CAPTURE");
@@ -2671,6 +2875,7 @@ int main(int argc, char **argv)
     dummy_bytes[16u + 0x3ffdu] = 0x80;
     dummy_bytes[16u + 0x3ffeu] = 0x00;
     dummy_bytes[16u + 0x3fffu] = 0x80;
+    memcpy(jam_base, dummy_bytes, sizeof jam_base);
     check_core_timing_and_jam(dummy_bytes, sizeof dummy_bytes);
     check_ppu_frame_edges(dummy_bytes, sizeof dummy_bytes);
     memset(&dummy, 0, sizeof dummy);
@@ -2714,6 +2919,7 @@ int main(int argc, char **argv)
     check_lifecycle_reuse();
     check_unload_then_no_content(argv[2]);
     check_unload_edges();
+    check_jam_presentation(jam_base, sizeof jam_base);
     check_sound_frame_parity(dummy_bytes, sizeof dummy_bytes);
     video_calls = 0;
     sample_calls = 0;

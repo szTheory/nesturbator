@@ -18,7 +18,7 @@ A core is a dynamic library exporting all 25 functions in libretro.h (L7511-7840
 | `retro_set_environment` (7511), five other `retro_set_*` | called before `retro_init`; the others before `retro_run` |
 | `retro_get_system_info` (7627) | static strings; extensions "nes"; `need_fullpath` false lets the frontend load, unzip and patch (L6008) |
 | `retro_load_game` (7761), `retro_get_system_av_info` (7642) | ROM bytes in `retro_game_info` (L6833); geometry and timing after a successful load |
-| `retro_run` (7694) | one frame: input poll at least once (L7685), video callback once [LR.06], audio |
+| `retro_run` (7694) | one frame: input poll at least once (L7685); on a completed native frame, video callback once and audio. On this core's latched `STOP_JAM`, the adapter still polls and sends one non-NULL XRGB callback from its owned last complete frame, or initialized black before one exists; it sends no audio. The callback runs in the `retro_run` thread and receives the passed buffer for that call [LR.01, LR.06]. |
 | `retro_reset`, `retro_get_region` (7812) | soft reset; 0 NTSC, 1 PAL |
 | serialize calls (7707-7730) | size 0 means no states [LR.06] |
 | `retro_get_memory_data` and `_size` (7826) | NULL and 0 allowed (L498) |
@@ -83,6 +83,7 @@ Tested: files fetched with `curl` or `gh release download` carry no `com.apple.q
 | Frame and sample rates as fractions | doubles (L6302); the adapter divides once (NTSC 39375000/655171) |
 | Palette lookup, native pixel to XRGB8888 | RGB video callback (L7436); hashes use native pixels |
 | Mono int16 samples per frame | duplicated to left/right, one batch call per `retro_run` (L7465) |
+| Latched `STOP_JAM` without valid native frame output | adapter-owned completed XRGB cache, invalidated by successful load/reset/unload/state load; refused state loads preserve it. JAM repeats the cache or black and emits no audio; pixels and validity are not serialized. This is an adapter policy tested by `libretro.host`, not native machine progress. |
 | RAM pointers and sizes fixed from load to unload | descriptor `ptr` cannot move (L3591) |
 | Fixed state size; caller's buffer; fixed byte order | L7699 |
 | Load copies the ROM | data is "valid only until retro_load_game() returns" (L6129). Recommendation: copy. Alternative: `persistent_data` via `SET_CONTENT_INFO_OVERRIDE` (65). Memory pressure on a small target would change this |

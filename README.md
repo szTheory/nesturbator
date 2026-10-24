@@ -1593,6 +1593,17 @@ game. With no content it changes nothing. `libretro.host` compares the frames
 after a reset with those of a direct-API instance given the same frames, reset
 and frames.
 
+The native frame call returns `NESTURBATOR_STOP_JAM` with its instance latched;
+its output buffers are unspecified on that stop. In a loaded libretro session,
+each `retro_run` still polls input and sends one video callback on JAM, using
+the last fully converted XRGB frame or black if no complete frame exists. The
+adapter sends no audio and does not reset, unload or terminate the session.
+Successful content load, reset, unload and state load clear this adapter-owned
+presentation cache; a refused state load keeps it. The cache is not part of the
+native machine or serialized state. `libretro.host` checks first and repeated
+JAM, both audio callback modes, state restore/refusal, reset, recovery and
+unload/reload transitions.
+
 `retro_get_memory_data` and `retro_get_memory_size` return the battery span
 for `RETRO_MEMORY_SAVE_RAM`, the same span as
 `nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, ...)`; every other
