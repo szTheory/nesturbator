@@ -70,8 +70,8 @@ foreach(corpus_var IN ITEMS rom_corpus state_corpus execution_corpus)
   endif()
 endforeach()
 list(LENGTH execution_corpus execution_count)
-if(NOT execution_count EQUAL 1)
-  message(FATAL_ERROR "execution comparison expects exactly one qualified descriptor seed, found ${execution_count}")
+if(NOT execution_count EQUAL 6)
+  message(FATAL_ERROR "execution comparison expects the six qualified mapper-family seeds, found ${execution_count}")
 endif()
 
 set(c_flags "-O1 -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -fprofile-instr-generate -fcoverage-mapping")
@@ -131,7 +131,7 @@ function(run_replay target executable profile corpus_file out_prefix)
     message(FATAL_ERROR "${target} emitted no LLVM profile: ${profile}")
   endif()
 
-  if(target STREQUAL "execution")
+  if(target MATCHES "^execution")
     string(JSON inputs GET "${run_output}" inputs)
     string(JSON accepted GET "${run_output}" accepted)
     string(JSON frames GET "${run_output}" frames)
@@ -144,6 +144,10 @@ function(run_replay target executable profile corpus_file out_prefix)
     string(JSON allocation_peak GET "${run_output}" peak_allocation_bytes)
     string(JSON stop_status GET "${run_output}" last_stop_status)
     string(JSON peak_rss GET "${run_output}" peak_rss_bytes)
+    string(JSON last_mapper GET "${run_output}" last_mapper)
+    string(JSON last_submapper GET "${run_output}" last_submapper)
+    string(JSON last_effects GET "${run_output}" last_bank_effects)
+    string(JSON completed_frames GET "${run_output}" last_completed_frames)
   else()
     string(REGEX MATCH "METRICS target=[^\n]+" metric_line "${run_output}")
     if(metric_line STREQUAL "")
@@ -161,6 +165,10 @@ function(run_replay target executable profile corpus_file out_prefix)
     extract_metric("${metric_line}" peak_rss_bytes peak_rss)
     set(allocation_peak 0)
     set(stop_status "not-applicable")
+    set(last_mapper 0)
+    set(last_submapper 0)
+    set(last_effects 0)
+    set(completed_frames 0)
   endif()
   if(NOT inputs EQUAL corpus_file)
     message(FATAL_ERROR "${target} measured ${inputs} inputs but its corpus has ${corpus_file} files")
@@ -196,6 +204,10 @@ function(run_replay target executable profile corpus_file out_prefix)
   set(${out_prefix}_stop_status "${stop_status}" PARENT_SCOPE)
   set(${out_prefix}_elapsed "${elapsed}" PARENT_SCOPE)
   set(${out_prefix}_peak_rss "${peak_rss}" PARENT_SCOPE)
+  set(${out_prefix}_mapper "${last_mapper}" PARENT_SCOPE)
+  set(${out_prefix}_submapper "${last_submapper}" PARENT_SCOPE)
+  set(${out_prefix}_effects "${last_effects}" PARENT_SCOPE)
+  set(${out_prefix}_completed_frames "${completed_frames}" PARENT_SCOPE)
   set(${out_prefix}_input_rate "${input_rate}" PARENT_SCOPE)
   set(${out_prefix}_accepted_rate "${accepted_rate}" PARENT_SCOPE)
 endfunction()
@@ -226,18 +238,19 @@ function(core_function_reach export_json out_functions out_hit_count out_total_c
   if(data_count LESS 1)
     message(FATAL_ERROR "coverage export has no data array: ${export_json}")
   endif()
-  string(JSON function_count LENGTH "${coverage_json}" data 0 functions)
+  string(JSON functions_json GET "${coverage_json}" data 0 functions)
+  string(JSON function_count LENGTH "${functions_json}")
   if(function_count GREATER 0)
     math(EXPR last_function "${function_count} - 1")
     foreach(function_index RANGE 0 ${last_function})
-      string(JSON function_name GET "${coverage_json}" data 0 functions ${function_index} name)
-      string(JSON function_hits GET "${coverage_json}" data 0 functions ${function_index} count)
-      string(JSON filename_count LENGTH "${coverage_json}" data 0 functions ${function_index} filenames)
+      string(JSON function_name GET "${functions_json}" ${function_index} name)
+      string(JSON function_hits GET "${functions_json}" ${function_index} count)
+      string(JSON filename_count LENGTH "${functions_json}" ${function_index} filenames)
       set(core_function 0)
       if(filename_count GREATER 0)
         math(EXPR last_filename "${filename_count} - 1")
         foreach(filename_index RANGE 0 ${last_filename})
-          string(JSON filename GET "${coverage_json}" data 0 functions ${function_index} filenames ${filename_index})
+          string(JSON filename GET "${functions_json}" ${function_index} filenames ${filename_index})
           if(filename MATCHES "/src/.*[.]c$")
             set(core_function 1)
             get_filename_component(source_filename "${filename}" NAME)
@@ -274,6 +287,37 @@ run_replay("rom-loader" "${rom_binary}" "${rom_profile}" "${rom_count}" rom ${ro
 run_replay("state-loader" "${state_binary}" "${state_profile}" "${state_count}" state ${state_corpus})
 run_replay("execution" "${execution_binary}" "${execution_profile}" "${execution_count}" execution --measure 1 ${execution_corpus})
 
+file(WRITE "${output_root}/execution-families.tsv"
+  "family\tmapper\tsubmapper\taccepted\tframes\tframe_ok\tframe_jam\tcompleted_frames\tapi_operations\tgenerated_bytes\tguest_ticks\tpeak_allocation_bytes\tstop_status\telapsed_seconds\tinputs_per_second\taccepted_per_second\tpeak_rss_bytes\tbank_effects\tcore_functions_hit\tcore_functions_total\n")
+foreach(family_spec IN ITEMS "nrom|0|0|0" "mmc1|1|0|3" "uxrom|2|1|1"
+    "cnrom|3|1|2" "mmc3|4|0|3" "axrom|7|1|5")
+  string(REPLACE "|" ";" family_fields "${family_spec}")
+  list(GET family_fields 0 family)
+  list(GET family_fields 1 expected_mapper)
+  list(GET family_fields 2 expected_submapper)
+  list(GET family_fields 3 expected_effects)
+  set(family_seed "${source_root}/tests/fuzz/corpus_execution/${family}-deep")
+  set(family_profile "${raw_root}/execution-${family}.profraw")
+  run_replay("execution-${family}" "${execution_binary}" "${family_profile}" 1 execution_family
+    --measure 1 "${family_seed}")
+  if(NOT execution_family_accepted EQUAL 1 OR NOT execution_family_mapper EQUAL expected_mapper OR
+     NOT execution_family_submapper EQUAL expected_submapper OR
+     NOT execution_family_completed_frames EQUAL 3 OR NOT execution_family_frame_jam EQUAL 0 OR
+     NOT execution_family_effects EQUAL expected_effects)
+    message(FATAL_ERROR "${family} measurement did not qualify its expected mapper, work and effects")
+  endif()
+  export_coverage("execution-${family}" "${execution_binary}" "${family_profile}")
+  core_function_reach("${coverage_root}/execution-${family}.json"
+    family_core_functions family_core_hits family_core_total)
+  file(APPEND "${output_root}/execution-families.tsv"
+    "${family}\t${execution_family_mapper}\t${execution_family_submapper}\t${execution_family_accepted}\t"
+    "${execution_family_frames}\t${execution_family_frame_ok}\t${execution_family_frame_jam}\t"
+    "${execution_family_completed_frames}\t${execution_family_operations}\t${execution_family_generated_bytes}\t"
+    "${execution_family_guest_ticks}\t${execution_family_allocation_peak}\t${execution_family_stop_status}\t"
+    "${execution_family_elapsed}\t${execution_family_input_rate}\t${execution_family_accepted_rate}\t"
+    "${execution_family_peak_rss}\t${execution_family_effects}\t${family_core_hits}\t${family_core_total}\n")
+endforeach()
+
 export_coverage(rom-loader "${rom_binary}" "${rom_profile}")
 export_coverage(state-loader "${state_binary}" "${state_profile}")
 export_coverage(execution "${execution_binary}" "${execution_profile}")
@@ -292,7 +336,7 @@ endforeach()
 list(SORT new_core_functions)
 list(LENGTH new_core_functions new_core_count)
 if(new_core_count EQUAL 0)
-  message(FATAL_ERROR "the bounded generated NROM replay added no src/ function reach")
+  message(FATAL_ERROR "the bounded six-family replay added no src/ function reach")
 endif()
 
 execute_process(COMMAND git -C "${source_root}" rev-parse HEAD
@@ -356,6 +400,7 @@ file(WRITE "${output_root}/measurement.tsv"
   "rom-loader\t${rom_count}\t${rom_loader_corpus_sha256}\n"
   "state-loader\t${state_count}\t${state_loader_corpus_sha256}\n"
   "execution\t${execution_count}\t${execution_corpus_sha256}\n"
+  "execution_family_file\texecution-families.tsv\t${output_root}/execution-families.tsv\n"
   "target\tinputs\taccepted\tframes\tframe_ok\tframe_jam\tapi_operations\tgenerated_bytes\tmax_state_bytes\tguest_ticks\tpeak_allocation_bytes\tstop_status\telapsed_seconds\tinputs_per_second\taccepted_per_second\tpeak_rss_bytes\tcore_functions_hit\tcore_functions_total\n"
   "rom-loader\t${rom_inputs}\t${rom_accepted}\t${rom_frames}\t${rom_frame_ok}\t${rom_frame_jam}\t${rom_operations}\t${rom_generated_bytes}\t${rom_max_state_bytes}\t${rom_guest_ticks}\t${rom_allocation_peak}\t${rom_stop_status}\t${rom_elapsed}\t${rom_input_rate}\t${rom_accepted_rate}\t${rom_peak_rss}\t${rom_core_hits}\t${rom_core_total}\n"
   "state-loader\t${state_inputs}\t${state_accepted}\t${state_frames}\t${state_frame_ok}\t${state_frame_jam}\t${state_operations}\t${state_generated_bytes}\t${state_max_state_bytes}\t${state_guest_ticks}\t${state_allocation_peak}\t${state_stop_status}\t${state_elapsed}\t${state_input_rate}\t${state_accepted_rate}\t${state_peak_rss}\t${state_core_hits}\t${state_core_total}\n"
@@ -368,4 +413,4 @@ endforeach()
 file(APPEND "${log_root}/commands.txt"
   "COMMAND: ${profdata_program} merge -sparse <target>.profraw -o <target>.profdata\n"
   "COMMAND: ${cov_program} export -format=text -instr-profile=<target>.profdata <target-binary> > <target>.json\n")
-message(STATUS "execution measurement PASS: ${rom_inputs}/${rom_accepted}, ${state_inputs}/${state_accepted}, ${execution_inputs}/${execution_accepted} inputs/accepted; ${new_core_count} newly reached src functions")
+message(STATUS "execution measurement PASS: ${rom_inputs}/${rom_accepted}, ${state_inputs}/${state_accepted}, ${execution_inputs}/${execution_accepted} inputs/accepted across six family rows; ${new_core_count} newly reached src functions")

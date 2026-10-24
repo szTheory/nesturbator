@@ -1068,17 +1068,17 @@ static int nt_exec_check_seeds(int argc, char **argv)
                observed.operation_count, (unsigned)observed.bank_effects, observed.states_equal);
         free(bytes);
     }
-    if (valid_count != 4u) {
-        fputs(NT_EXEC_REPLAY_NAME ": current corpus must contain NROM, MMC1, UxROM and CNROM seeds\n", stderr);
+    if (valid_count != 6u) {
+        fputs(NT_EXEC_REPLAY_NAME ": corpus must contain exactly six qualified family seeds\n", stderr);
         return 1;
     }
-    for (size_t i = 1u; i <= 4u; ++i) {
+    for (size_t i = 1u; i <= 6u; ++i) {
         if (seen[i] == 0u) {
             fputs(NT_EXEC_REPLAY_NAME ": a required family seed is missing\n", stderr);
             return 1;
         }
     }
-    puts(NT_EXEC_REPLAY_NAME ": four deterministic non-JAM family recipes executed and restored");
+    puts(NT_EXEC_REPLAY_NAME ": six deterministic non-JAM family recipes executed and restored");
     return 0;
 }
 
@@ -1196,6 +1196,10 @@ static int nt_exec_measure(int argc, char **argv)
     uint32_t allocation_peak = 0u;
     uint32_t max_state_bytes = 0u;
     uint32_t last_stop = 0u;
+    uint32_t last_mapper = 0u;
+    uint32_t last_submapper = 0u;
+    uint32_t last_effects = 0u;
+    uint32_t last_completed_frames = 0u;
     uint64_t peak_rss_bytes = 0u;
 #if defined(__APPLE__) || defined(__linux__)
     struct rusage usage;
@@ -1232,6 +1236,10 @@ static int nt_exec_measure(int argc, char **argv)
             if (observed.metrics.state_bytes > max_state_bytes)
                 max_state_bytes = observed.metrics.state_bytes;
             last_stop = observed.metrics.stop_status;
+            last_mapper = observed.metrics.mapper;
+            last_submapper = observed.metrics.submapper;
+            last_effects = observed.metrics.qualified_bank_effects;
+            last_completed_frames = observed.completed_frames;
             free(bytes);
         }
     }
@@ -1246,12 +1254,14 @@ static int nt_exec_measure(int argc, char **argv)
            "\"frame_jam\":%llu,\"api_operations\":%llu,"
            "\"generated_bytes\":%llu,\"max_state_bytes\":%u,\"guest_ticks\":%llu,"
            "\"peak_allocation_bytes\":%u,"
-           "\"last_stop_status\":%u,\"peak_rss_bytes\":%llu}\n",
+           "\"last_stop_status\":%u,\"peak_rss_bytes\":%llu,\"last_mapper\":%u,"
+           "\"last_submapper\":%u,\"last_bank_effects\":%u,\"last_completed_frames\":%u}\n",
            (unsigned long long)inputs, (unsigned long long)accepted, (unsigned long long)frames,
            (unsigned long long)frame_ok, (unsigned long long)frame_jam,
            (unsigned long long)operations, (unsigned long long)generated_bytes, max_state_bytes,
            (unsigned long long)guest_ticks, allocation_peak, last_stop,
-           (unsigned long long)peak_rss_bytes);
+           (unsigned long long)peak_rss_bytes, last_mapper, last_submapper, last_effects,
+           last_completed_frames);
     return inputs > 0u ? 0 : 1;
 }
 
