@@ -371,8 +371,11 @@ jobs:
   # six-platform CI run covers the other hosts once.
   suite-flake:
     runs-on: ubuntu-24.04
-    # Twice the slowest of 39 sampled successful runs: 1173 s in run 38324782531, rounded up to 40 minutes, ENGINEERING section 5.
-    timeout-minutes: 40
+    # The 40-minute cap was based on 39 successful samples (1173 s maximum).
+    # Exact-head run 40136996662 reached the third session-controls repeat at
+    # the cap; its first two repeats took 450.35 s and 451.35 s. Allow 50 min
+    # for that observed tail plus the remaining suite and cleanup.
+    timeout-minutes: 50
     permissions:
       contents: read
     outputs:
