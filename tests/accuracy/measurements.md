@@ -10,11 +10,13 @@ The final registered run used the canonical 6bee ROM and production collector:
 - Retained comparison pin: `673ef550db296136d52229961e7d39366116882a`, ROM SHA-256 `4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839`, inventory SHA-256 `3271803cdc63c4b4a83cf65453b817dc66ec65ed97863ad19261b56f36821c84`
 - Old inventory: 149 entries (144 scored, 5 DRAW); new inventory: 151 entries (146 scored, 5 DRAW)
 - Report/inventory schema: 1
-- Compiled source revision: `ada8cb3afb61` (`source_dirty=1`). This pre-commit capture includes the page-report line-ending fix, byte-exact CRLF and unterminated-report controls, and the measured 30-second host timeout for the isolated page-19 ASan probe. The preexisting unrelated `.planning/config.json` edit also remained in the worktree.
-- Deterministic build-input fingerprint: `b253cc5cd2de278680430ddd920a9f75be1191cd918d54cf41b59530e823d751` over 56 source/build input files. Generated reports are excluded. Campaign report SHA-256: `6d0a811960f6964e7fc66802c6e4ade0c4ffb8772c40d88d50cf79e1f8463652` (unchanged).
+- Compiled source revision: `51c9ce855fb6` (`source_dirty=1`). This pre-commit capture includes the page-report line-ending fix, byte-exact CRLF and unterminated-report controls, the isolated page-19 ASan probe bound, and the measured 15-second campaign child deadline. The preexisting unrelated `.planning/config.json` edit also remained in the worktree.
+- Deterministic build-input fingerprint: `13ecee0bd69a7286a3a7f683d1e462a66eb7f115023d11a1727aaa34865ac5b3` over 56 source/build input files. Generated reports are excluded. Campaign report SHA-256: `6d0a811960f6964e7fc66802c6e4ade0c4ffb8772c40d88d50cf79e1f8463652` (unchanged).
 - Input policy: cold boot; one page-header A input; one-frame A press; one-frame release; execute the selected page independently.
-- Accepted bounds: boot 32, navigation 5 per page switch, start 2 frames, execution 1800; page child 5 seconds, collector 10 seconds, CTest 150 seconds.
-- Actual baseline CTest campaign duration: 5.96 seconds. Sum of per-page host measurements: 5.845528 seconds; slowest child was page 19 at 1.600098 seconds. Focused `accuracycoin.report` and `accuracycoin.driver` passed on both CI and ASan presets after the portability correction. The full `cmake --workflow --preset ci` run then passed 663/663 tests in 376.25 seconds and generated the three 0.1.11 packages; its campaign fixture passed in 6.65 seconds. A separate collector-only run completed below `/usr/bin/time -p`'s 0.01-second display resolution.
+- Accepted bounds: boot 32, navigation 5 per page switch, start 2 frames, execution 1800; page child 15 seconds, collector 10 seconds, CTest 370 seconds.
+- The earlier hosted dispatch `40054252174` used the former 5-second common page deadline and failed to produce trustworthy campaign evidence. Its Linux x64 artifact records page 19 as `OUTER_TIMEOUT` at 5 seconds, after an otherwise source-qualified guest timeout observation reached 1800 frames in 6.335862879 seconds; page 18 took 4.290085045 seconds. All other page observations were at or below 2.463 seconds. The 15-second common host-child deadline is 2.36 times the measured maximum and preserves the existing 1800-frame guest cap. The old run remains attributed as failed infrastructure evidence, not a successful campaign.
+- The finite campaign envelope is now 22 * 15 seconds per-page maximum + 10 seconds collection = 340 seconds, with a 370-second CTest bound leaving 30 seconds for orchestration and final output checks. The injected `accuracycoin.outer_failure` controls keep their 1-second child deadline. The workflow/job timeout remains unchanged.
+- The refreshed campaign CTest took 5.97 seconds; the sum of per-page host measurements was 5.849151 seconds and the slowest local child was page 19 at 1.597869 seconds. All 22 children exited zero. The full `cmake --workflow --preset ci` run then passed 663/663 tests in 384.16 seconds and generated the three 0.1.11 macOS-arm64 packages; its campaign fixture passed in 6.68 seconds.
 - Retained output: `build/ci/accuracycoin/full/` contains all 22 page directories, child stdout/stderr, raw snapshots, diagnostics, page reports/metadata, `outer-outcomes.tsv`, and the production `inventory.tsv`, `attempts.tsv`, `observations.tsv`, `report.tsv`, `summary.txt`, and campaign `metadata.txt`.
 
 `outer-outcomes.tsv` records 22 `EXIT_ZERO` children, no outer timeout and no child failure. Campaign metadata says `trustworthy_observation=1` and `infrastructure_verdict=complete`.
@@ -54,28 +56,28 @@ All 17 protected old-pin passes were re-executed from the exact retained `673ef`
 
 | Page | Boot | Navigation | Start | Execution | Total frames | Verdict | Host ms |
 |---:|---:|---:|---:|---:|---:|---|---:|
-| 1 | 26 | 0 | 2 | 51 | 79 | complete | 72.294 |
-| 2 | 26 | 5 | 2 | 12 | 45 | complete | 38.360 |
-| 3 | 26 | 10 | 2 | 13 | 51 | complete | 42.559 |
-| 4 | 26 | 15 | 2 | 13 | 56 | complete | 47.877 |
-| 5 | 26 | 20 | 2 | 13 | 61 | complete | 52.575 |
-| 6 | 26 | 25 | 2 | 13 | 66 | complete | 54.364 |
-| 7 | 26 | 30 | 2 | 22 | 80 | complete | 68.093 |
-| 8 | 26 | 35 | 2 | 15 | 78 | complete | 64.463 |
-| 9 | 26 | 40 | 2 | 13 | 81 | complete | 65.262 |
-| 10 | 26 | 45 | 2 | 14 | 87 | complete | 72.861 |
-| 11 | 26 | 50 | 2 | 17 | 95 | complete | 79.529 |
-| 12 | 26 | 55 | 2 | 138 | 221 | complete | 163.828 |
-| 13 | 26 | 60 | 2 | 533 | 621 | complete | 644.968 |
-| 14 | 26 | 65 | 2 | 120 | 213 | complete | 209.430 |
-| 15 | 26 | 70 | 2 | 92 | 190 | complete | 175.997 |
-| 16 | 26 | 75 | 2 | 15 | 118 | complete (DRAW-only) | 102.131 |
-| 17 | 26 | 80 | 2 | 159 | 267 | complete | 239.344 |
-| 18 | 26 | 85 | 2 | 1463 | 1576 | complete | 1077.808 |
-| 19 | 26 | 90 | 2 | 1800 | 1918 | guest-timeout | 1600.098 |
-| 20 | 26 | 95 | 2 | 503 | 626 | complete | 479.864 |
-| 21 | 26 | 100 | 2 | 212 | 340 | complete | 269.164 |
-| 22 | 26 | 105 | 2 | 151 | 284 | complete | 224.659 |
+| 1 | 26 | 0 | 2 | 51 | 79 | complete | 72.701 |
+| 2 | 26 | 5 | 2 | 12 | 45 | complete | 37.303 |
+| 3 | 26 | 10 | 2 | 13 | 51 | complete | 42.112 |
+| 4 | 26 | 15 | 2 | 13 | 56 | complete | 46.271 |
+| 5 | 26 | 20 | 2 | 13 | 61 | complete | 49.986 |
+| 6 | 26 | 25 | 2 | 13 | 66 | complete | 55.243 |
+| 7 | 26 | 30 | 2 | 22 | 80 | complete | 68.735 |
+| 8 | 26 | 35 | 2 | 15 | 78 | complete | 62.832 |
+| 9 | 26 | 40 | 2 | 13 | 81 | complete | 66.610 |
+| 10 | 26 | 45 | 2 | 14 | 87 | complete | 75.429 |
+| 11 | 26 | 50 | 2 | 17 | 95 | complete | 82.553 |
+| 12 | 26 | 55 | 2 | 138 | 221 | complete | 163.245 |
+| 13 | 26 | 60 | 2 | 533 | 621 | complete | 636.520 |
+| 14 | 26 | 65 | 2 | 120 | 213 | complete | 194.302 |
+| 15 | 26 | 70 | 2 | 92 | 190 | complete | 174.240 |
+| 16 | 26 | 75 | 2 | 15 | 118 | complete (DRAW-only) | 105.764 |
+| 17 | 26 | 80 | 2 | 159 | 267 | complete | 240.086 |
+| 18 | 26 | 85 | 2 | 1463 | 1576 | complete | 1099.122 |
+| 19 | 26 | 90 | 2 | 1800 | 1918 | guest-timeout | 1597.869 |
+| 20 | 26 | 95 | 2 | 503 | 626 | complete | 477.933 |
+| 21 | 26 | 100 | 2 | 212 | 340 | complete | 276.675 |
+| 22 | 26 | 105 | 2 | 151 | 284 | complete | 223.620 |
 
 At page 16, the ROM's DRAW-only sequence reports no scored result transition. The start is attributed to the observed row-cursor transition and automation flag; completion is the later cursor return to the page header with automation cleared. All five DRAW rows remain inventory-only.
 
@@ -93,7 +95,7 @@ The difference demonstrates that this fixed frame sequence's navigation cap also
 - Navigation: five frames per page change is the measured fixed sequence: one Right edge followed by four neutral frames. The six-frame probe changes guest timing, so it is a distinct policy rather than a free safety margin.
 - Start/release: two frames, with A released on the second frame, were observed in all 22 attempts. Controller-sensitive page 14 also completed through the released-input path.
 - Execution: cap 1800 leaves 337 frames above the longest completed execution (page 18 at 1463); page 19 remains honestly timed out. Increasing this cap to erase that hardware observation is not justified.
-- Wall bounds: the slowest final page was 1.812 seconds, about 2.8 times below the 5-second page deadline. The 22 sequential page deadlines plus 10-second collection cap total 120 seconds; the 150-second CTest timeout leaves 30 seconds for orchestration and final output checks.
+- Wall bounds: hosted evidence from the former deadline showed page 19 at 6.336 seconds and page 18 at 4.290 seconds, so the former 5-second bound did not provide sufficient margin. The new common 15-second page deadline is 2.36 times the observed maximum; the 22 sequential page deadlines plus 10-second collection cap total 340 seconds, and the 370-second CTest timeout leaves 30 seconds for orchestration and final output checks.
 - Isolated ASan driver bound: page 19 reached the same expected row-6 `$03` guest timeout after 1918 frames on hosted ASan, with `host_elapsed_ns=14393278785`; the prior 10-second subprocess deadline killed the otherwise valid observation. The page-19 test-only host deadline is now 30 seconds (about 2x the measured run); the 1800 guest-frame cap, 60-second driver test timeout and all campaign/CI job bounds are unchanged.
 - Placement selected for Plan 17-04: one full campaign in the required Linux x64 build lane on each PR, not all six platform matrix legs. CI turns on `NESTURBATOR_ACCURACYCOIN_FULL` only in that lane; the other five still run decoder, classifier, activation, migration, protected-pass and parity checks. The full campaign CTest took 6.65 seconds locally within a 376.25-second full `ci` workflow. Each build lane uploads its `build/<preset>/accuracycoin/` evidence with an `always()` upload step and fails if the required directory is absent. The existing Linux build timeout remains 39 minutes: this repository sets it from sampled hosted runs, so the selected lane's actual hosted execution must be recorded before revisiting it. The same applies to the current timeout comment; local duration does not establish hosted performance.
 

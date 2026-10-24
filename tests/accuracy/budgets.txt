@@ -20,11 +20,13 @@ Measured execution cap selection:
     this is an expected guest timeout, not a reason to enlarge the cap
 
 Outer wall bounds:
-  each page child: 5 seconds
+  each page child: 15 seconds
   final production collection: 10 seconds
-  registered full-campaign CTest: 150 seconds
-  maximum sequential launcher allowance: 22 * 5 + 10 = 120 seconds
+  registered full-campaign CTest: 370 seconds
+  maximum sequential launcher allowance: 22 * 15 + 10 = 340 seconds
   CTest allowance above the component sum: 30 seconds
+  hosted basis: page 19 took 6.336 seconds and page 18 took 4.290 seconds in
+    failed run 40054252174; 15 seconds is 2.36x the measured maximum.
 
 The navigation cap is also a timing policy: the launcher sends one Right edge and
 then neutral frames for each step. Five frames per step is the measured accepted

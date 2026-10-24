@@ -348,7 +348,10 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    source-defined result variants remain scoped to the decoded test key in the
    runner; outer process failures are kept separate from guest bytes, and
    duplicate raw samples remain diagnostics that invalidate campaign trust. The
-   bounded observer records a host monotonic start stamp with each report so a
+   full 22-page campaign uses a bounded 15-second host-child deadline and a
+   separate 1800 guest-frame execution cap; an outer process timeout cannot be
+   reclassified as the expected guest timeout. The bounded observer records a
+   host monotonic start stamp with each report so a
    protected verdict can distinguish a fresh measured attempt from copied or
    candidate-asserted status rows.
    AccuracyCoin ROM pins, inventory counts, and the measured conformance

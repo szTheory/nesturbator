@@ -125,12 +125,15 @@ one conflicting copy as the final result.
 
 The final measured campaign uses caps of 32 boot frames, 5 navigation frames
 per page change, 2 attributed press/release frames, and 1800 execution frames;
-its page, collection and CTest wall limits are 5, 10 and 150 seconds. The actual
-report and per-page diagnostics are retained under `build/ci/accuracycoin/full/`.
-That run attributed all 22 starts and observed all 146 scored bytes, with 101
-pass, 42 fail, 0 skip, 2 not-run and 1 guest timeout; five DRAW entries remain
-outside the denominator. The two not-run rows have no observed result byte; the
-active `$03` row is a guest timeout, while a noncurrent `$03` marker is not-run.
+its page, collection and CTest wall limits are 15, 10 and 370 seconds. The 15-
+second child deadline is based on hosted page measurements up to 6.336 seconds;
+the separate guest-frame cap still defines the expected page-19 guest timeout.
+The actual report and per-page diagnostics are retained under
+`build/ci/accuracycoin/full/`. That run attributed all 22 starts and observed all
+146 scored bytes, with 101 pass, 42 fail, 0 skip, 2 not-run and 1 guest timeout;
+five DRAW entries remain outside the denominator. The two not-run rows have no
+observed result byte; the active `$03` row is a guest timeout, while a noncurrent
+`$03` marker is not-run.
 See [`tests/accuracy/budgets.txt`](tests/accuracy/budgets.txt)
 and [`tests/accuracy/measurements.md`](tests/accuracy/measurements.md) for the
 source identity, cap rationale, timing sensitivity and CI placement input.

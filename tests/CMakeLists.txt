@@ -796,9 +796,9 @@ if(NESTURBATOR_ACCURACYCOIN_FULL)
       "-DWORK=${PROJECT_BINARY_DIR}/accuracycoin/full"
       "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
       -DBOOT_CAP=32 -DNAVIGATION_CAP=5 -DEXECUTION_CAP=1800
-      -DPAGE_TIMEOUT=5 -DCOLLECT_TIMEOUT=10
+      -DPAGE_TIMEOUT=15 -DCOLLECT_TIMEOUT=10
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_campaign.cmake)
-  set_tests_properties(accuracycoin.campaign PROPERTIES TIMEOUT 150)
+  set_tests_properties(accuracycoin.campaign PROPERTIES TIMEOUT 370)
   set_tests_properties(accuracycoin.campaign PROPERTIES FIXTURES_SETUP accuracycoin_full_report)
   set_tests_properties(accuracycoin.activation PROPERTIES FIXTURES_REQUIRED accuracycoin_full_report)
 endif()
