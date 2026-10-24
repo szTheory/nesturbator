@@ -398,8 +398,12 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * enabled IRQ at instruction boundaries and enters the IRQ vector (HWC.02).
  * No cartridge: test pattern and silence. A JAM opcode stops with
  * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
- * advance on later frame calls. Audio is mono signed 16-bit PCM; no-cartridge
- * audio is zero. */
+ * advance on later frame calls. On STOP_JAM, frame output fields are not
+ * written and callers must not inspect the video or audio buffers as results;
+ * the machine remains valid for a save-state snapshot. Test-only bounded
+ * execution replay uses generated NROM content and compares pixels and only
+ * the samples written by a successful call. Audio is mono signed 16-bit PCM;
+ * no-cartridge audio is zero. */
 nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *io);
 
 /* Copies up to `count` calibrated NTSC-to-sRGB XRGB8888 entries (0x00RRGGBB),

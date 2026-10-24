@@ -411,6 +411,23 @@ and save back to the loaded bytes with the library's behaviour revision.
 lines) and every `valid-*` seed to load. The same source builds as the libFuzzer
 target `fuzz.state.libfuzzer` when `NESTURBATOR_LIBFUZZER` is on.
 
+`fuzz.execution.regress` replays the versioned 16-byte recipe in
+`tests/fuzz/corpus_execution/nrom-deep`. The recipe is a descriptor, not a ROM:
+the test target generates a 16 KiB PRG and 8 KiB CHR image in memory, runs its
+non-JAM program with controller input sampled on successive frames, saves the
+machine, restores that state into a fresh instance and compares the continuation.
+Prototype limits are 16 input bytes, 24,592 generated image bytes, a 256 KiB
+serialized state, two frames before and after the save, six frame calls,
+34 public-API operations and 2 MiB of combined harness/library allocations per
+input. These development bounds are measured before mutation budgets are set.
+Successful frames compare native pixels, metadata and only written audio
+samples; JAM results compare status and canonical saved state without reading
+partial frame output. `fuzz.execution.seeds` checks the exact seed identity,
+`fuzz.execution.controls` checks malformed and cap boundaries, and
+`fuzz.execution.oracle_failure` proves a deliberate verdict discrepancy exits
+nonzero. `fuzz.execution.libfuzzer` uses the same callback when
+`NESTURBATOR_LIBFUZZER` is enabled.
+
 The `abi` tests hold the core to integer arithmetic and the C memory
 functions: a text scan of `src/` and `include/` for `float`, `double` and
 decimal or hex floating literals, with a self-test that it finds `1.5`,

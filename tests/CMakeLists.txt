@@ -1014,9 +1014,38 @@ add_test(NAME fuzz.state.regress
   COMMAND fuzz.state_loader ${NESTURBATOR_STATE_CORPUS})
 set_tests_properties(fuzz.state fuzz.state.regress PROPERTIES TIMEOUT 30)
 
+# Phase 18, Plan 01: exercise a compact descriptor through generated NROM execution,
+# frame-scheduled input and a restored continuation. The corpus stores no ROM bytes.
+file(GLOB NESTURBATOR_EXECUTION_CORPUS CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus_execution/*")
+if(NOT NESTURBATOR_EXECUTION_CORPUS)
+  message(FATAL_ERROR "execution fuzz corpus is missing or empty")
+endif()
+add_executable(fuzz.execution fuzz/execution.c)
+target_link_libraries(fuzz.execution PRIVATE nesturbator::nesturbator)
+target_compile_definitions(fuzz.execution PRIVATE NESTURBATOR_FUZZ_REPLAY=1)
+nesturbator_warnings(fuzz.execution)
+if(MSVC)
+  target_compile_definitions(fuzz.execution PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+add_test(NAME fuzz.execution.regress
+  COMMAND fuzz.execution ${NESTURBATOR_EXECUTION_CORPUS})
+add_test(NAME fuzz.execution.seeds
+  COMMAND fuzz.execution --check-seeds ${NESTURBATOR_EXECUTION_CORPUS})
+add_test(NAME fuzz.execution.controls COMMAND fuzz.execution --self-test)
+add_test(NAME fuzz.execution.oracle_failure
+  COMMAND ${CMAKE_COMMAND}
+    "-DCMD=$<TARGET_FILE:fuzz.execution>;--oracle-failure"
+    -DEXPECT_EXIT=1
+    -DIGNORE_STDOUT=ON
+    "-DEXPECT_ERR=intentional execution oracle failure"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+set_tests_properties(fuzz.execution.regress fuzz.execution.seeds
+  fuzz.execution.controls fuzz.execution.oracle_failure PROPERTIES TIMEOUT 30)
+
 # Linux nightly only: the same source/entry point and sanitized library, with
 # Clang's libFuzzer main and runtime instrumentation.
-option(NESTURBATOR_LIBFUZZER "Build the ROM loader libFuzzer target" OFF)
+option(NESTURBATOR_LIBFUZZER "Build the libFuzzer targets" OFF)
 if(NESTURBATOR_LIBFUZZER)
   if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR "NESTURBATOR_LIBFUZZER requires Clang")
@@ -1031,6 +1060,11 @@ if(NESTURBATOR_LIBFUZZER)
   target_compile_options(fuzz.state.libfuzzer PRIVATE -fsanitize=fuzzer-no-link)
   target_link_options(fuzz.state.libfuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
   nesturbator_warnings(fuzz.state.libfuzzer)
+  add_executable(fuzz.execution.libfuzzer fuzz/execution.c)
+  target_link_libraries(fuzz.execution.libfuzzer PRIVATE nesturbator::nesturbator)
+  target_compile_options(fuzz.execution.libfuzzer PRIVATE -fsanitize=fuzzer-no-link)
+  target_link_options(fuzz.execution.libfuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+  nesturbator_warnings(fuzz.execution.libfuzzer)
 endif()
 
 add_test(NAME fuzz.registration

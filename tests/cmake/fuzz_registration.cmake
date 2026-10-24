@@ -7,7 +7,9 @@ execute_process(
 if(NOT result EQUAL 0)
   message(FATAL_ERROR "could not inspect CTest inventory: ${error}")
 endif()
-foreach(required fuzz.regress fuzz.state fuzz.state.regress)
+foreach(required fuzz.regress fuzz.state fuzz.state.regress
+                 fuzz.execution.regress fuzz.execution.seeds fuzz.execution.controls
+                 fuzz.execution.oracle_failure)
   string(REPLACE "." "\\." pattern "${required}")
   if(NOT inventory MATCHES "\"name\"[ \t]*:[ \t]*\"${pattern}\"")
     message(FATAL_ERROR "CTest does not register the required ${required} test")
