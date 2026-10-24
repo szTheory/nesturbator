@@ -1,5 +1,5 @@
 /* Bounded generated-program execution and save-state continuation fuzz target.
- * The recipe stores descriptors only; its NROM image is generated in memory. */
+ * Recipes store descriptors only; accepted board images are generated in memory. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,22 +8,24 @@
 #include <sys/resource.h>
 #endif
 #include "nesturbator.h"
+#include "../ines.h"
 
 #define NT_EXEC_REPLAY_NAME "fuzz.execution.regress"
 #define NT_EXEC_MAGIC_SIZE 4u
 #define NT_EXEC_RECIPE_SIZE 16u
-#define NT_EXEC_MAX_INPUT_BYTES 16u
-#define NT_EXEC_MAX_PRG_BYTES 16384u
-#define NT_EXEC_MAX_CHR_BYTES 8192u
+#define NT_EXEC_MAX_INPUT_BYTES (NT_EXEC_RECIPE_SIZE + NT_EXEC_MAX_PRG_BYTES + NT_EXEC_MAX_CHR_BYTES)
+#define NT_EXEC_MAX_PRG_BYTES (128u * 1024u)
+#define NT_EXEC_MAX_CHR_BYTES (32u * 1024u)
 #define NT_EXEC_MAX_GENERATED_BYTES (16u + NT_EXEC_MAX_PRG_BYTES + NT_EXEC_MAX_CHR_BYTES)
 #define NT_EXEC_MAX_STATE_BYTES (256u * 1024u)
 #define NT_EXEC_MAX_ALLOCATION_BYTES (2u * 1024u * 1024u)
 #define NT_EXEC_MAX_FRAMES_PER_PHASE 2u
 #define NT_EXEC_MAX_FRAME_CALLS 6u
-#define NT_EXEC_MAX_OPERATIONS 34u
+#define NT_EXEC_MAX_OPERATIONS 128u
 #define NT_EXEC_VIDEO_BYTES (256u * 240u * sizeof(uint16_t))
 #define NT_EXEC_AUDIO_SAMPLES 1024u
 #define NT_EXEC_AUDIO_BYTES (NT_EXEC_AUDIO_SAMPLES * sizeof(int16_t))
+#define NT_EXEC_PROGRAM_BYTES 768u
 
 struct nt_exec_budget {
     size_t current;
@@ -31,7 +33,8 @@ struct nt_exec_budget {
 };
 
 struct nt_exec_recipe {
-    uint8_t program;
+    uint8_t profile_code;
+    uint8_t jam;
     uint16_t before_frames;
     uint16_t after_frames;
     uint8_t before_buttons;
@@ -50,6 +53,10 @@ struct nt_exec_metrics {
     uint32_t allocation_peak;
     uint64_t guest_ticks;
     uint32_t stop_status;
+    uint16_t mapper;
+    uint8_t submapper;
+    uint8_t qualified_bank_effects;
+    uint32_t operation_indices[NT_EXEC_MAX_OPERATIONS];
 };
 
 struct nt_exec_branch {
@@ -57,8 +64,12 @@ struct nt_exec_branch {
     uint32_t stop_status;
     uint64_t output_hash;
     uint64_t guest_ticks;
-    uint16_t marker;
+    uint16_t prg_marker;
+    uint16_t chr_marker;
+    uint16_t guest_counter;
+    uint16_t nametable_marker;
     uint8_t controller_a;
+    uint32_t visible_pixels;
 };
 
 struct nt_exec_observation {
@@ -68,6 +79,39 @@ struct nt_exec_observation {
     uint64_t state_hash_a;
     uint64_t state_hash_b;
     int states_equal;
+    uint16_t mapper;
+    uint32_t accepted_status;
+    uint32_t completed_frames;
+    uint32_t operation_count;
+    uint8_t bank_effects;
+};
+
+enum nt_exec_profile_code {
+    NT_EXEC_PROFILE_NROM = 1u,
+    NT_EXEC_PROFILE_MMC1 = 2u,
+    NT_EXEC_PROFILE_UXROM = 3u,
+    NT_EXEC_PROFILE_CNROM = 4u,
+    NT_EXEC_PROFILE_MMC3 = 5u,
+    NT_EXEC_PROFILE_AXROM = 6u,
+    NT_EXEC_PROFILE_JAM = 7u
+};
+
+enum nt_exec_bank_effect {
+    NT_EXEC_EFFECT_PRG = 1u,
+    NT_EXEC_EFFECT_CHR = 2u,
+    NT_EXEC_EFFECT_NAMETABLE = 4u
+};
+
+struct nt_exec_profile {
+    uint16_t mapper;
+    uint8_t submapper;
+    uint8_t prg_16k;
+    uint8_t chr_8k;
+    uint8_t chr_ram;
+    uint8_t nes2;
+    uint8_t battery;
+    uint8_t prg_nvram_shift;
+    uint16_t code_address;
 };
 
 enum nt_exec_read_status {
@@ -127,13 +171,14 @@ static uint32_t nt_exec_u32le(const uint8_t *p)
 static int nt_exec_decode(const uint8_t *data, size_t size, struct nt_exec_recipe *recipe)
 {
     uint32_t max_operations;
-    if (size > NT_EXEC_MAX_INPUT_BYTES || size != NT_EXEC_RECIPE_SIZE || data == NULL ||
+    if (size > NT_EXEC_MAX_INPUT_BYTES || size < NT_EXEC_RECIPE_SIZE || data == NULL ||
         recipe == NULL)
         return 0;
     if (data[0] != 'N' || data[1] != 'E' || data[2] != 'X' || data[3] != 'E' || data[4] != 1u ||
-        data[5] < 1u || data[5] > 2u)
+        data[5] < NT_EXEC_PROFILE_NROM || data[5] > NT_EXEC_PROFILE_JAM)
         return 0;
-    recipe->program = (uint8_t)(data[5] - 1u);
+    recipe->profile_code = data[5];
+    recipe->jam = (uint8_t)(data[5] == NT_EXEC_PROFILE_JAM);
     {
         uint16_t before_frames = nt_exec_u16le(data + 6u);
         uint16_t after_frames = nt_exec_u16le(data + 8u);
@@ -150,7 +195,7 @@ static int nt_exec_decode(const uint8_t *data, size_t size, struct nt_exec_recip
         recipe->before_frames > NT_EXEC_MAX_FRAMES_PER_PHASE ||
         recipe->after_frames > NT_EXEC_MAX_FRAMES_PER_PHASE)
         return 0;
-    max_operations = 22u + 2u * recipe->before_frames + 4u * recipe->after_frames;
+    max_operations = 80u + 2u * recipe->before_frames + 4u * recipe->after_frames;
     return max_operations <= NT_EXEC_MAX_OPERATIONS &&
            recipe->before_frames + 2u * recipe->after_frames <= NT_EXEC_MAX_FRAME_CALLS;
 }
@@ -163,7 +208,7 @@ static uint32_t nt_exec_random(uint32_t *state)
 
 static void nt_exec_emit(uint8_t *program, size_t *length, uint8_t value)
 {
-    if (*length >= 128u)
+    if (*length >= NT_EXEC_PROGRAM_BYTES)
         nt_exec_fail("generated program exceeded its fixed buffer");
     program[(*length)++] = value;
 }
@@ -174,116 +219,375 @@ static void nt_exec_emit_word(uint8_t *program, size_t *length, uint16_t value)
     nt_exec_emit(program, length, (uint8_t)(value >> 8));
 }
 
-/* NROM's 16 KiB PRG is mirrored at $C000; the vectors are placed at its last six bytes.
- * The loop enables rendering, clocks pulse 1, increments a 16-bit RAM marker and reads A from
- * the controller port. These map to the loader, frame, and controller contracts in
- * ARCHITECTURE.md sections 3, 4, 6 and 7 and include/nesturbator.h's load/input API. */
-static void nt_exec_program(uint8_t *prg, const struct nt_exec_recipe *recipe)
+static int nt_exec_profile_for(uint8_t code, struct nt_exec_profile *profile)
 {
-    uint8_t code[128];
-    size_t n = 0u;
-    size_t loop;
-    if (recipe->program == 1u) {
-        code[n++] = 0x02u; /* KIL/JAM is a deliberate status-validity control. */
-    } else {
-        nt_exec_emit(code, &n, 0x78u);             /* SEI */
-        nt_exec_emit(code, &n, 0xd8u);             /* CLD */
-        nt_exec_emit(code, &n, 0xa2u);             /* LDX #$ff; TXS */
-        nt_exec_emit(code, &n, 0xffu);
-        nt_exec_emit(code, &n, 0x9au);
-        nt_exec_emit(code, &n, 0xa9u);             /* Clear RAM $00-$02. */
-        nt_exec_emit(code, &n, 0x00u);
-        nt_exec_emit(code, &n, 0x85u);
-        nt_exec_emit(code, &n, 0x00u);
-        nt_exec_emit(code, &n, 0x85u);
-        nt_exec_emit(code, &n, 0x01u);
-        nt_exec_emit(code, &n, 0x85u);
-        nt_exec_emit(code, &n, 0x02u);
-        nt_exec_emit(code, &n, 0xa9u);             /* Enable background and sprites. */
-        nt_exec_emit(code, &n, 0x18u);
-        nt_exec_emit(code, &n, 0x8du);
-        nt_exec_emit_word(code, &n, 0x2001u);
-        nt_exec_emit(code, &n, 0xa9u);             /* Enable pulse 1 with constant volume. */
-        nt_exec_emit(code, &n, 0x01u);
-        nt_exec_emit(code, &n, 0x8du);
-        nt_exec_emit_word(code, &n, 0x4015u);
-        nt_exec_emit(code, &n, 0xa9u);
-        nt_exec_emit(code, &n, 0x3fu);
-        nt_exec_emit(code, &n, 0x8du);
-        nt_exec_emit_word(code, &n, 0x4000u);
-        nt_exec_emit(code, &n, 0xa9u);
-        nt_exec_emit(code, &n, 0x08u);
-        nt_exec_emit(code, &n, 0x8du);
-        nt_exec_emit_word(code, &n, 0x4002u);
-        nt_exec_emit(code, &n, 0x8du);
-        nt_exec_emit_word(code, &n, 0x4003u);
-        loop = n;
-        nt_exec_emit(code, &n, 0xe6u);             /* INC $00; carry into $01. */
-        nt_exec_emit(code, &n, 0x00u);
-        nt_exec_emit(code, &n, 0xd0u);             /* BNE past INC $01. */
-        nt_exec_emit(code, &n, 0x02u);
-        nt_exec_emit(code, &n, 0xe6u);
-        nt_exec_emit(code, &n, 0x01u);
-        nt_exec_emit(code, &n, 0xa9u);             /* Latch controller, then read A. */
-        nt_exec_emit(code, &n, 0x01u);
-        nt_exec_emit(code, &n, 0x8du);
-        nt_exec_emit_word(code, &n, 0x4016u);
-        nt_exec_emit(code, &n, 0xa9u);
-        nt_exec_emit(code, &n, 0x00u);
-        nt_exec_emit(code, &n, 0x8du);
-        nt_exec_emit_word(code, &n, 0x4016u);
-        nt_exec_emit(code, &n, 0xadu);
-        nt_exec_emit_word(code, &n, 0x4016u);
-        nt_exec_emit(code, &n, 0x29u);             /* AND #1; STA $02. */
-        nt_exec_emit(code, &n, 0x01u);
-        nt_exec_emit(code, &n, 0x85u);
-        nt_exec_emit(code, &n, 0x02u);
-        nt_exec_emit(code, &n, 0x4cu);             /* JMP loop. */
-        nt_exec_emit_word(code, &n, (uint16_t)(0x8000u + (uint16_t)loop));
+    memset(profile, 0, sizeof *profile);
+    switch (code) {
+    case NT_EXEC_PROFILE_NROM:
+        profile->prg_16k = 1u;
+        profile->chr_8k = 1u;
+        profile->code_address = 0x8000u;
+        return 1;
+    case NT_EXEC_PROFILE_MMC1:
+        profile->mapper = 1u;
+        profile->prg_16k = 2u;
+        profile->chr_8k = 4u;
+        profile->nes2 = 1u;
+        profile->battery = 1u;
+        profile->prg_nvram_shift = 7u;
+        profile->code_address = 0xc000u;
+        return 1;
+    case NT_EXEC_PROFILE_UXROM:
+        profile->mapper = 2u;
+        profile->submapper = 1u;
+        profile->prg_16k = 4u;
+        profile->chr_ram = 1u;
+        profile->nes2 = 1u;
+        profile->code_address = 0xc000u;
+        return 1;
+    case NT_EXEC_PROFILE_CNROM:
+        profile->mapper = 3u;
+        profile->submapper = 1u;
+        profile->prg_16k = 2u;
+        profile->chr_8k = 4u;
+        profile->nes2 = 1u;
+        profile->code_address = 0x8000u;
+        return 1;
+    case NT_EXEC_PROFILE_MMC3:
+        profile->mapper = 4u;
+        profile->prg_16k = 4u;
+        profile->chr_8k = 4u;
+        profile->nes2 = 1u;
+        profile->battery = 1u;
+        profile->prg_nvram_shift = 7u;
+        profile->code_address = 0xe000u;
+        return 1;
+    case NT_EXEC_PROFILE_AXROM:
+        profile->mapper = 7u;
+        profile->submapper = 1u;
+        profile->prg_16k = 4u;
+        profile->chr_ram = 1u;
+        profile->nes2 = 1u;
+        profile->code_address = 0x8000u;
+        return 1;
+    case NT_EXEC_PROFILE_JAM:
+        profile->prg_16k = 1u;
+        profile->chr_8k = 1u;
+        profile->code_address = 0x8000u;
+        return 1;
+    default:
+        return 0;
     }
-    memcpy(prg, code, n);
-    prg[0x3ffau] = 0x00u;
-    prg[0x3ffbu] = 0x80u;
-    prg[0x3ffcu] = 0x00u;
-    prg[0x3ffdu] = 0x80u;
-    prg[0x3ffeu] = 0x00u;
-    prg[0x3fffu] = 0x80u;
 }
 
-static uint8_t *nt_exec_generate(const struct nt_exec_recipe *recipe, struct nt_exec_budget *budget)
+static size_t nt_exec_image_size(const struct nt_exec_profile *profile)
 {
-    uint8_t *image = (uint8_t *)nt_exec_alloc(budget, NT_EXEC_MAX_GENERATED_BYTES);
+    return 16u + (size_t)profile->prg_16k * INES_PRG_BANK +
+           (size_t)profile->chr_8k * INES_CHR_BANK;
+}
+
+static void nt_exec_emit_imm(uint8_t *code, size_t *n, uint8_t value)
+{
+    nt_exec_emit(code, n, 0xa9u);
+    nt_exec_emit(code, n, value);
+}
+
+static void nt_exec_emit_sta(uint8_t *code, size_t *n, uint16_t address)
+{
+    nt_exec_emit(code, n, 0x8du);
+    nt_exec_emit_word(code, n, address);
+}
+
+static void nt_exec_emit_lda(uint8_t *code, size_t *n, uint16_t address)
+{
+    nt_exec_emit(code, n, 0xadu);
+    nt_exec_emit_word(code, n, address);
+}
+
+static void nt_exec_emit_ppu_read(uint8_t *code, size_t *n, uint16_t address, uint8_t target)
+{
+    nt_exec_emit_imm(code, n, (uint8_t)(address >> 8));
+    nt_exec_emit_sta(code, n, 0x2006u);
+    nt_exec_emit_imm(code, n, (uint8_t)address);
+    nt_exec_emit_sta(code, n, 0x2006u);
+    nt_exec_emit_lda(code, n, 0x2007u); /* First read fills the PPU read buffer. */
+    nt_exec_emit_lda(code, n, 0x2007u);
+    nt_exec_emit(code, n, 0x85u);
+    nt_exec_emit(code, n, target);
+}
+
+static void nt_exec_emit_ppu_write(uint8_t *code, size_t *n, uint16_t address, uint8_t value)
+{
+    nt_exec_emit_imm(code, n, (uint8_t)(address >> 8));
+    nt_exec_emit_sta(code, n, 0x2006u);
+    nt_exec_emit_imm(code, n, (uint8_t)address);
+    nt_exec_emit_sta(code, n, 0x2006u);
+    nt_exec_emit_imm(code, n, value);
+    nt_exec_emit_sta(code, n, 0x2007u);
+}
+
+static void nt_exec_emit_mmc1_register(uint8_t *code, size_t *n, uint16_t address, uint8_t value)
+{
+    for (unsigned bit = 0u; bit < 5u; ++bit) {
+        nt_exec_emit_imm(code, n, (uint8_t)((value >> bit) & 1u));
+        nt_exec_emit_sta(code, n, address);
+        nt_exec_emit(code, n, 0xeau); /* Keep serial writes off the immediately next cycle. */
+    }
+}
+
+static size_t nt_exec_make_program(uint8_t code[NT_EXEC_PROGRAM_BYTES],
+                                   const struct nt_exec_recipe *recipe,
+                                   const struct nt_exec_profile *profile)
+{
+    size_t n = 0u;
+    size_t loop;
+    if (recipe->jam != 0u) {
+        code[n++] = 0x02u;
+        return n;
+    }
+    nt_exec_emit(code, &n, 0x78u); /* SEI */
+    nt_exec_emit(code, &n, 0xd8u); /* CLD */
+    nt_exec_emit(code, &n, 0xa2u);
+    nt_exec_emit(code, &n, 0xffu);
+    nt_exec_emit(code, &n, 0x9au); /* TXS */
+    nt_exec_emit_imm(code, &n, 0u);
+    for (uint8_t i = 0u; i < 9u; ++i) {
+        nt_exec_emit(code, &n, 0x85u); /* Clear observation bytes and guest counter. */
+        nt_exec_emit(code, &n, i);
+    }
+    if (profile->battery != 0u) {
+        nt_exec_emit_imm(code, &n, 0xa5u);
+        nt_exec_emit_sta(code, &n, 0x6000u);
+    }
+    if (profile->chr_ram != 0u) {
+        nt_exec_emit_ppu_write(code, &n, 0x0100u, 0x6du);
+        nt_exec_emit_imm(code, &n, 0x00u);
+        nt_exec_emit_sta(code, &n, 0x2006u);
+        nt_exec_emit_imm(code, &n, 0x00u);
+        nt_exec_emit_sta(code, &n, 0x2006u);
+        for (unsigned i = 0u; i < 8u; ++i) {
+            nt_exec_emit_imm(code, &n, 0xffu);
+            nt_exec_emit_sta(code, &n, 0x2007u);
+        }
+        for (unsigned i = 0u; i < 8u; ++i) {
+            nt_exec_emit_imm(code, &n, 0x00u);
+            nt_exec_emit_sta(code, &n, 0x2007u);
+        }
+    }
+    nt_exec_emit_lda(code, &n, 0x8400u);
+    nt_exec_emit(code, &n, 0x85u);
+    nt_exec_emit(code, &n, 0x00u); /* Initial PRG bank marker. */
+    if (profile->mapper == 1u || profile->mapper == 3u || profile->mapper == 4u)
+        nt_exec_emit_ppu_read(code, &n, profile->mapper == 4u ? 0x1100u : 0x0100u, 0x02u);
+    else
+        nt_exec_emit_ppu_read(code, &n, 0x0100u, 0x02u);
+    switch (profile->mapper) {
+    case 1u:
+        nt_exec_emit_mmc1_register(code, &n, 0xe000u, 1u);
+        nt_exec_emit_lda(code, &n, 0x8400u);
+        nt_exec_emit(code, &n, 0x85u);
+        nt_exec_emit(code, &n, 0x01u);
+        nt_exec_emit_mmc1_register(code, &n, 0xa000u, 2u);
+        nt_exec_emit_ppu_read(code, &n, 0x0100u, 0x03u);
+        break;
+    case 2u:
+        nt_exec_emit_imm(code, &n, 1u);
+        nt_exec_emit_sta(code, &n, 0x8000u);
+        nt_exec_emit_lda(code, &n, 0x8400u);
+        nt_exec_emit(code, &n, 0x85u);
+        nt_exec_emit(code, &n, 0x01u);
+        break;
+    case 3u:
+        nt_exec_emit_imm(code, &n, 2u);
+        nt_exec_emit_sta(code, &n, 0x8000u);
+        nt_exec_emit_ppu_read(code, &n, 0x0100u, 0x03u);
+        break;
+    case 4u:
+        nt_exec_emit_imm(code, &n, 6u);
+        nt_exec_emit_sta(code, &n, 0x8000u);
+        nt_exec_emit_imm(code, &n, 1u);
+        nt_exec_emit_sta(code, &n, 0x8001u);
+        nt_exec_emit_lda(code, &n, 0x8400u);
+        nt_exec_emit(code, &n, 0x85u);
+        nt_exec_emit(code, &n, 0x01u);
+        nt_exec_emit_imm(code, &n, 2u);
+        nt_exec_emit_sta(code, &n, 0x8000u);
+        nt_exec_emit_imm(code, &n, 3u);
+        nt_exec_emit_sta(code, &n, 0x8001u);
+        nt_exec_emit_ppu_read(code, &n, 0x1100u, 0x03u);
+        break;
+    case 7u:
+        nt_exec_emit_ppu_write(code, &n, 0x2001u, 0x5au);
+        nt_exec_emit_imm(code, &n, 0x11u); /* PRG bank 1 and single-screen page 1. */
+        nt_exec_emit_sta(code, &n, 0x8000u);
+        nt_exec_emit_lda(code, &n, 0x8400u);
+        nt_exec_emit(code, &n, 0x85u);
+        nt_exec_emit(code, &n, 0x01u);
+        nt_exec_emit_ppu_read(code, &n, 0x2001u, 0x04u); /* Page 1 starts independently. */
+        nt_exec_emit_ppu_write(code, &n, 0x2001u, 0xa5u);
+        nt_exec_emit_imm(code, &n, 0u); /* Return to bank 0 and page 0. */
+        nt_exec_emit_sta(code, &n, 0x8000u);
+        nt_exec_emit_ppu_read(code, &n, 0x2001u, 0x05u);
+        break;
+    default:
+        nt_exec_emit(code, &n, 0xa5u); /* NROM has no bank register. */
+        nt_exec_emit(code, &n, 0x00u);
+        nt_exec_emit(code, &n, 0x85u);
+        nt_exec_emit(code, &n, 0x01u);
+        nt_exec_emit_ppu_read(code, &n, 0x0100u, 0x03u);
+        break;
+    }
+    nt_exec_emit_ppu_write(code, &n, 0x3f01u, 0x21u);
+    nt_exec_emit_imm(code, &n, 0x20u);
+    nt_exec_emit_sta(code, &n, 0x2006u);
+    nt_exec_emit_imm(code, &n, 0x00u);
+    nt_exec_emit_sta(code, &n, 0x2006u);
+    nt_exec_emit_imm(code, &n, 0x18u);
+    nt_exec_emit_sta(code, &n, 0x2001u); /* Enable background and sprite fetches. */
+    nt_exec_emit_imm(code, &n, 0x01u);
+    nt_exec_emit_sta(code, &n, 0x4015u);
+    nt_exec_emit_imm(code, &n, 0x3fu);
+    nt_exec_emit_sta(code, &n, 0x4000u);
+    nt_exec_emit_imm(code, &n, 0x08u);
+    nt_exec_emit_sta(code, &n, 0x4002u);
+    nt_exec_emit_sta(code, &n, 0x4003u);
+    loop = n;
+    nt_exec_emit(code, &n, 0xe6u);
+    nt_exec_emit(code, &n, 0x06u);
+    nt_exec_emit(code, &n, 0xd0u);
+    nt_exec_emit(code, &n, 0x02u);
+    nt_exec_emit(code, &n, 0xe6u);
+    nt_exec_emit(code, &n, 0x07u);
+    nt_exec_emit_imm(code, &n, 1u);
+    nt_exec_emit_sta(code, &n, 0x4016u);
+    nt_exec_emit_imm(code, &n, 0u);
+    nt_exec_emit_sta(code, &n, 0x4016u);
+    nt_exec_emit_lda(code, &n, 0x4016u);
+    nt_exec_emit(code, &n, 0x29u);
+    nt_exec_emit(code, &n, 1u);
+    nt_exec_emit(code, &n, 0x85u);
+    nt_exec_emit(code, &n, 0x08u);
+    nt_exec_emit(code, &n, 0x4cu);
+    nt_exec_emit_word(code, &n, (uint16_t)(profile->code_address + (uint16_t)loop));
+    return n;
+}
+
+static void nt_exec_write_vector(uint8_t *prg, size_t offset, uint16_t vector)
+{
+    prg[offset - 6u] = (uint8_t)vector;
+    prg[offset - 5u] = (uint8_t)(vector >> 8);
+    prg[offset - 4u] = (uint8_t)vector;
+    prg[offset - 3u] = (uint8_t)(vector >> 8);
+    prg[offset - 2u] = (uint8_t)vector;
+    prg[offset - 1u] = (uint8_t)(vector >> 8);
+}
+
+static uint8_t *nt_exec_generate(const struct nt_exec_recipe *recipe, const uint8_t *input,
+                                 size_t input_size, const struct nt_exec_profile *profile,
+                                 size_t *generated_size, struct nt_exec_budget *budget)
+{
+    const size_t prg_size = (size_t)profile->prg_16k * INES_PRG_BANK;
+    const size_t chr_size = (size_t)profile->chr_8k * INES_CHR_BANK;
+    const size_t size = nt_exec_image_size(profile);
+    uint8_t *image;
     uint8_t *prg;
     uint8_t *chr;
+    uint8_t code[NT_EXEC_PROGRAM_BYTES];
+    size_t code_size;
     uint32_t state;
+    if (input_size - NT_EXEC_RECIPE_SIZE > prg_size + chr_size)
+        return NULL;
+    image = (uint8_t *)nt_exec_alloc(budget, size);
     if (image == NULL)
         nt_exec_fail("generated-image allocation exceeded its cap");
-    memset(image, 0, 16u);
+    memset(image, 0, size);
     image[0] = 'N';
     image[1] = 'E';
     image[2] = 'S';
     image[3] = 0x1au;
-    image[4] = 1u;
-    image[5] = 1u;
+    image[4] = profile->prg_16k;
+    image[5] = profile->chr_8k;
+    image[6] = (uint8_t)(((profile->mapper & 0x0fu) << 4) |
+                         (profile->battery != 0u ? 0x02u : 0u));
+    image[7] = (uint8_t)((profile->mapper & 0xf0u) | (profile->nes2 != 0u ? 0x08u : 0u));
+    if (profile->nes2 != 0u) {
+        image[8] = (uint8_t)(((unsigned)profile->submapper << 4) |
+                             ((profile->mapper >> 8) & 0x0fu));
+        image[10] = (uint8_t)(profile->prg_nvram_shift << 4);
+        image[11] = (uint8_t)(profile->chr_ram != 0u ? 0x07u : 0u);
+    }
     prg = image + 16u;
-    chr = prg + NT_EXEC_MAX_PRG_BYTES;
+    chr = prg + prg_size;
     state = recipe->seed;
-    for (size_t i = 0u; i < NT_EXEC_MAX_PRG_BYTES + NT_EXEC_MAX_CHR_BYTES; ++i)
+    for (size_t i = 0u; i < prg_size + chr_size; ++i) {
         image[16u + i] = (uint8_t)(nt_exec_random(&state) >> 24);
-    nt_exec_program(prg, recipe);
-    (void)chr;
+    }
+    if (profile->chr_ram == 0u) {
+        for (size_t offset = 0u; offset < chr_size; offset += 1024u) {
+            for (size_t i = 0u; i < 8u; ++i) {
+                chr[offset + i] = 0xffu;
+                chr[offset + 8u + i] = 0u;
+            }
+        }
+        if (profile->mapper == 1u) {
+            chr[0x100u] = 0x51u;
+            chr[INES_CHR_BANK + 0x100u] = 0x52u;
+        } else if (profile->mapper == 3u) {
+            chr[0x100u] = 0x51u;
+            chr[2u * INES_CHR_BANK + 0x100u] = 0x53u;
+        } else if (profile->mapper == 4u) {
+            chr[0x100u] = 0x51u;
+            chr[3u * 1024u + 0x100u] = 0x54u;
+        } else {
+            chr[0x100u] = 0x51u;
+        }
+    }
+    if (recipe->jam == 0u) {
+        if (profile->mapper == 4u) {
+            prg[0x400u] = 0x40u;
+            prg[8192u + 0x400u] = 0x41u;
+        } else if (profile->mapper == 7u) {
+            prg[0x400u] = 0x40u;
+            prg[INES_PRG_BANK * 2u + 0x400u] = 0x41u;
+        } else {
+            prg[0x400u] = 0x40u;
+            if (profile->prg_16k > 1u)
+                prg[INES_PRG_BANK + 0x400u] = 0x41u;
+        }
+    }
+    code_size = nt_exec_make_program(code, recipe, profile);
+    if (profile->mapper == 7u && recipe->jam == 0u) {
+        memcpy(prg, code, code_size);
+        memcpy(prg + INES_PRG_BANK * 2u, code, code_size);
+        nt_exec_write_vector(prg, INES_PRG_BANK * 2u, profile->code_address);
+        nt_exec_write_vector(prg, INES_PRG_BANK * 4u, profile->code_address);
+    } else {
+        size_t code_offset;
+        if (profile->mapper == 4u)
+            code_offset = prg_size - 8192u;
+        else if (profile->code_address == 0xc000u)
+            code_offset = prg_size - INES_PRG_BANK;
+        else
+            code_offset = 0u;
+        memcpy(prg + code_offset, code, code_size);
+        nt_exec_write_vector(prg, prg_size, profile->code_address);
+    }
+    if (input_size > NT_EXEC_RECIPE_SIZE)
+        memcpy(prg, input + NT_EXEC_RECIPE_SIZE, input_size - NT_EXEC_RECIPE_SIZE);
+    *generated_size = size;
     return image;
 }
 
 static void nt_exec_operation(struct nt_exec_metrics *metrics)
 {
-    metrics->operations++;
-    if (metrics->operations > NT_EXEC_MAX_OPERATIONS)
+    if (metrics->operations >= NT_EXEC_MAX_OPERATIONS)
         nt_exec_fail("recipe exceeded its public-API operation cap");
+    metrics->operation_indices[metrics->operations] = metrics->operations;
+    metrics->operations++;
 }
 
 static nesturbator *nt_exec_instance(struct nt_exec_budget *budget, const uint8_t *image,
-                                     struct nt_exec_metrics *metrics)
+                                     size_t image_size, struct nt_exec_metrics *metrics)
 {
     nesturbator_config config;
     nesturbator *inst = NULL;
@@ -297,8 +601,8 @@ static nesturbator *nt_exec_instance(struct nt_exec_budget *budget, const uint8_
     if (nesturbator_create(&config, &inst) != NESTURBATOR_OK)
         nt_exec_fail("instance creation failed within the allocation cap");
     nt_exec_operation(metrics);
-    if (nesturbator_load_cartridge(inst, image, NT_EXEC_MAX_GENERATED_BYTES) != NESTURBATOR_OK)
-        nt_exec_fail("generated NROM image was refused");
+    if (nesturbator_load_cartridge(inst, image, image_size) != NESTURBATOR_OK)
+        nt_exec_fail("generated accepted-profile image was refused");
     return inst;
 }
 
@@ -364,6 +668,8 @@ static nesturbator_status nt_exec_frame(nesturbator *inst, uint8_t buttons, uint
     branch->output_hash = nt_exec_hash_u64le(branch->output_hash, frame.ticks);
     for (size_t i = 0u; i < 256u * 240u; ++i) {
         uint16_t pixel = video[i];
+        if (pixel != 0u)
+            branch->visible_pixels++;
         branch->output_hash = nt_exec_hash_byte(branch->output_hash, (uint8_t)pixel);
         branch->output_hash = nt_exec_hash_byte(branch->output_hash, (uint8_t)(pixel >> 8));
     }
@@ -378,26 +684,30 @@ static nesturbator_status nt_exec_frame(nesturbator *inst, uint8_t buttons, uint
     return status;
 }
 
-static uint16_t nt_exec_marker(const nesturbator *inst, struct nt_exec_metrics *metrics)
-{
-    uint8_t low = 0u;
-    uint8_t high = 0u;
-    nt_exec_operation(metrics);
-    if (nesturbator_peek_cpu_ram(inst, 0u, &low) != NESTURBATOR_OK)
-        nt_exec_fail("RAM marker low byte could not be observed");
-    nt_exec_operation(metrics);
-    if (nesturbator_peek_cpu_ram(inst, 1u, &high) != NESTURBATOR_OK)
-        nt_exec_fail("RAM marker high byte could not be observed");
-    return (uint16_t)((uint16_t)low | ((uint16_t)high << 8));
-}
-
-static uint8_t nt_exec_controller_a(const nesturbator *inst, struct nt_exec_metrics *metrics)
+static uint8_t nt_exec_peek(const nesturbator *inst, uint16_t address,
+                            struct nt_exec_metrics *metrics)
 {
     uint8_t value = 0u;
     nt_exec_operation(metrics);
-    if (nesturbator_peek_cpu_ram(inst, 2u, &value) != NESTURBATOR_OK)
-        nt_exec_fail("controller result could not be observed");
+    if (nesturbator_peek_cpu_ram(inst, address, &value) != NESTURBATOR_OK)
+        nt_exec_fail("guest RAM observation was refused");
     return value;
+}
+
+static void nt_exec_observe_guest(const nesturbator *inst, struct nt_exec_branch *branch,
+                                  struct nt_exec_metrics *metrics)
+{
+    const uint8_t prg_initial = nt_exec_peek(inst, 0u, metrics);
+    const uint8_t prg_selected = nt_exec_peek(inst, 1u, metrics);
+    const uint8_t chr_initial = nt_exec_peek(inst, 2u, metrics);
+    const uint8_t chr_selected = nt_exec_peek(inst, 3u, metrics);
+    branch->prg_marker = (uint16_t)((uint16_t)prg_initial | ((uint16_t)prg_selected << 8));
+    branch->chr_marker = (uint16_t)((uint16_t)chr_initial | ((uint16_t)chr_selected << 8));
+    branch->nametable_marker = (uint16_t)((uint16_t)nt_exec_peek(inst, 4u, metrics) |
+                                           ((uint16_t)nt_exec_peek(inst, 5u, metrics) << 8));
+    branch->guest_counter = (uint16_t)((uint16_t)nt_exec_peek(inst, 6u, metrics) |
+                                       ((uint16_t)nt_exec_peek(inst, 7u, metrics) << 8));
+    branch->controller_a = nt_exec_peek(inst, 8u, metrics);
 }
 
 static size_t nt_exec_save(nesturbator *inst, uint8_t *state, size_t capacity,
@@ -435,24 +745,66 @@ static uint64_t nt_exec_state_hash(const uint8_t *state, size_t size)
     return hash;
 }
 
-/* Compares output only when the frame status says it is valid. A JAM path is
- * judged by its stop status and canonical saved state, never partial buffers. */
+/* OK paths compare only written frame metadata, pixels and audio samples. JAM
+ * paths compare stop status and canonical state, never partial output buffers. */
 static int nt_exec_verdict(const struct nt_exec_branch *a, const struct nt_exec_branch *b,
                            const uint8_t *state_a, const uint8_t *state_b, size_t state_size)
 {
-    return a->frames == b->frames && a->stop_status == b->stop_status &&
-           a->guest_ticks == b->guest_ticks && a->output_hash == b->output_hash &&
-           a->marker == b->marker && a->controller_a == b->controller_a &&
-           memcmp(state_a, state_b, state_size) == 0;
+    if (a->frames != b->frames || a->stop_status != b->stop_status ||
+        memcmp(state_a, state_b, state_size) != 0)
+        return 0;
+    if (a->stop_status == (uint32_t)NESTURBATOR_STOP_JAM)
+        return 1;
+    return a->guest_ticks == b->guest_ticks && a->output_hash == b->output_hash &&
+           a->prg_marker == b->prg_marker && a->chr_marker == b->chr_marker &&
+           a->guest_counter == b->guest_counter &&
+           a->nametable_marker == b->nametable_marker && a->controller_a == b->controller_a &&
+           a->visible_pixels == b->visible_pixels;
+}
+
+static uint8_t nt_exec_expected_effects(const struct nt_exec_profile *profile)
+{
+    uint8_t effects = 0u;
+    if (profile->mapper == 1u || profile->mapper == 2u || profile->mapper == 4u ||
+        profile->mapper == 7u)
+        effects |= NT_EXEC_EFFECT_PRG;
+    if (profile->mapper == 1u || profile->mapper == 3u || profile->mapper == 4u)
+        effects |= NT_EXEC_EFFECT_CHR;
+    if (profile->mapper == 7u)
+        effects |= NT_EXEC_EFFECT_NAMETABLE;
+    return effects;
+}
+
+static uint8_t nt_exec_observed_effects(const struct nt_exec_profile *profile,
+                                        const struct nt_exec_branch *branch)
+{
+    uint8_t effects = 0u;
+    const uint8_t prg0 = (uint8_t)branch->prg_marker;
+    const uint8_t prg1 = (uint8_t)(branch->prg_marker >> 8);
+    const uint8_t chr0 = (uint8_t)branch->chr_marker;
+    const uint8_t chr1 = (uint8_t)(branch->chr_marker >> 8);
+    if (nt_exec_expected_effects(profile) & NT_EXEC_EFFECT_PRG) {
+        if (prg0 == 0x40u && prg1 == 0x41u)
+            effects |= NT_EXEC_EFFECT_PRG;
+    }
+    if (nt_exec_expected_effects(profile) & NT_EXEC_EFFECT_CHR) {
+        const uint8_t expected_chr = profile->mapper == 1u ? 0x52u :
+                                     profile->mapper == 3u ? 0x53u : 0x54u;
+        if (chr0 == 0x51u && chr1 == expected_chr)
+            effects |= NT_EXEC_EFFECT_CHR;
+    }
+    if (profile->mapper == 7u && branch->nametable_marker == 0x5a00u)
+        effects |= NT_EXEC_EFFECT_NAMETABLE;
+    return effects;
 }
 
 static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_observation *out)
 {
     struct nt_exec_recipe recipe;
+    struct nt_exec_profile profile;
     struct nt_exec_budget budget = {0u, 0u};
     struct nt_exec_observation observed;
-    struct nt_exec_branch before = {0u, (uint32_t)NESTURBATOR_OK, 14695981039346656037ull,
-                                    0u, 0u, 0u};
+    struct nt_exec_branch before;
     nesturbator *a = NULL;
     nesturbator *b = NULL;
     uint8_t *image = NULL;
@@ -461,6 +813,7 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     uint8_t *state_b = NULL;
     uint16_t *video = NULL;
     int16_t *audio = NULL;
+    size_t image_size = 0u;
     size_t state_size = 0u;
     uint64_t ticks_a = 0u;
     uint64_t ticks_b = 0u;
@@ -468,23 +821,34 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     int after_a_finished;
     int after_b_finished;
     memset(&observed, 0, sizeof observed);
-    if (!nt_exec_decode(data, size, &recipe)) {
+    memset(&before, 0, sizeof before);
+    before.stop_status = (uint32_t)NESTURBATOR_OK;
+    if (!nt_exec_decode(data, size, &recipe) ||
+        !nt_exec_profile_for(recipe.profile_code, &profile)) {
         if (out != NULL)
             *out = observed;
         return 0;
     }
-    image = nt_exec_generate(&recipe, &budget);
-    observed.metrics.generated_bytes = NT_EXEC_MAX_GENERATED_BYTES;
+    image = nt_exec_generate(&recipe, data, size, &profile, &image_size, &budget);
+    if (image == NULL) {
+        if (out != NULL)
+            *out = observed;
+        return 0;
+    }
+    observed.metrics.generated_bytes = (uint32_t)image_size;
+    observed.metrics.mapper = profile.mapper;
+    observed.metrics.submapper = profile.submapper;
+    observed.mapper = profile.mapper;
+    observed.accepted_status = (uint32_t)NESTURBATOR_OK;
     video = (uint16_t *)nt_exec_alloc(&budget, NT_EXEC_VIDEO_BYTES);
     audio = (int16_t *)nt_exec_alloc(&budget, NT_EXEC_AUDIO_BYTES);
     if (video == NULL || audio == NULL)
         nt_exec_fail("frame buffers exceeded the allocation cap");
-    a = nt_exec_instance(&budget, image, &observed.metrics);
+    a = nt_exec_instance(&budget, image, image_size, &observed.metrics);
     before_finished = nt_exec_run_phase(a, recipe.before_buttons, recipe.before_frames, video, audio,
                                         &ticks_a, &before, &observed.metrics);
-    before.marker = nt_exec_marker(a, &observed.metrics);
-    if (before_finished && before.marker == 0u)
-        nt_exec_fail("non-JAM recipe did not execute its RAM marker loop");
+    if (before_finished)
+        nt_exec_observe_guest(a, &before, &observed.metrics);
     nt_exec_operation(&observed.metrics);
     state_size = nesturbator_state_size(a);
     if (state_size == 0u || state_size > NT_EXEC_MAX_STATE_BYTES)
@@ -495,7 +859,7 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     observed.metrics.state_bytes = (uint32_t)state_size;
     if (nt_exec_save(a, saved, state_size, &observed.metrics) != state_size)
         nt_exec_fail("save-state length changed unexpectedly");
-    b = nt_exec_instance(&budget, image, &observed.metrics);
+    b = nt_exec_instance(&budget, image, image_size, &observed.metrics);
     nt_exec_operation(&observed.metrics);
     if (nesturbator_load_state(b, saved, state_size) != NESTURBATOR_OK)
         nt_exec_fail("saved continuation was refused by a matching fresh instance");
@@ -512,14 +876,27 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     after_b_finished = nt_exec_run_phase(b, recipe.after_buttons, recipe.after_frames, video, audio,
                                          &ticks_b, &observed.continuation_b,
                                          &observed.metrics);
-    observed.continuation_a.marker = nt_exec_marker(a, &observed.metrics);
-    observed.continuation_b.marker = nt_exec_marker(b, &observed.metrics);
-    observed.continuation_a.controller_a = nt_exec_controller_a(a, &observed.metrics);
-    observed.continuation_b.controller_a = nt_exec_controller_a(b, &observed.metrics);
-    if (before_finished && after_a_finished && after_b_finished &&
-        (observed.continuation_a.marker == before.marker ||
-         observed.continuation_a.controller_a != (uint8_t)(recipe.after_buttons & 1u)))
-        nt_exec_fail("scheduled input did not produce continued guest execution");
+    if (after_a_finished)
+        nt_exec_observe_guest(a, &observed.continuation_a, &observed.metrics);
+    if (after_b_finished)
+        nt_exec_observe_guest(b, &observed.continuation_b, &observed.metrics);
+    if (before_finished && after_a_finished && after_b_finished && size == NT_EXEC_RECIPE_SIZE) {
+        const uint8_t expected = nt_exec_expected_effects(&profile);
+        observed.bank_effects = nt_exec_observed_effects(&profile, &before);
+        if (observed.bank_effects != expected || before.guest_counter == 0u ||
+            before.visible_pixels == 0u ||
+            observed.continuation_a.guest_counter == before.guest_counter ||
+            observed.continuation_a.controller_a != (uint8_t)(recipe.after_buttons & 1u)) {
+            fprintf(stderr, "mapper=%u effects=%02x/%02x counter=%u/%u pixels=%u button=%u/%u\n",
+                    (unsigned)profile.mapper, (unsigned)observed.bank_effects, (unsigned)expected,
+                    before.guest_counter, observed.continuation_a.guest_counter,
+                    before.visible_pixels, observed.continuation_a.controller_a,
+                    (unsigned)(recipe.after_buttons & 1u));
+            nt_exec_fail("deep recipe did not qualify its guest, bank or scheduled-input effects");
+        }
+    }
+    observed.completed_frames = observed.metrics.frame_ok;
+    observed.metrics.qualified_bank_effects = observed.bank_effects;
     nt_exec_operation(&observed.metrics);
     if (nesturbator_state_size(a) != state_size)
         nt_exec_fail("source state size changed during continuation");
@@ -552,10 +929,11 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     nt_exec_free(&budget, state_b, state_size);
     nt_exec_free(&budget, video, NT_EXEC_VIDEO_BYTES);
     nt_exec_free(&budget, audio, NT_EXEC_AUDIO_BYTES);
-    nt_exec_free(&budget, image, NT_EXEC_MAX_GENERATED_BYTES);
+    nt_exec_free(&budget, image, image_size);
     if (budget.current != 0u)
         nt_exec_fail("per-input allocations were not fully released");
     observed.metrics.allocation_peak = (uint32_t)budget.peak;
+    observed.operation_count = observed.metrics.operations;
     if (out != NULL)
         *out = observed;
     return 1;
@@ -621,7 +999,7 @@ static int nt_exec_read_path(const char *path, uint8_t **bytes, size_t *size)
         status = NT_EXEC_READ_FAILED;
     }
     if (status != NT_EXEC_READ_OK) {
-        const char *reason = status == NT_EXEC_READ_TOO_LARGE ? "input exceeds 16-byte cap" :
+        const char *reason = status == NT_EXEC_READ_TOO_LARGE ? "input exceeds descriptor and board-image cap" :
                              status == NT_EXEC_READ_MEMORY ? "out of memory reading input" :
                              "invalid or unreadable input";
         fprintf(stderr, NT_EXEC_REPLAY_NAME ": %s: %s\n", reason, path);
@@ -630,43 +1008,77 @@ static int nt_exec_read_path(const char *path, uint8_t **bytes, size_t *size)
     return 1;
 }
 
+static int nt_exec_seed_code(const char *name)
+{
+    static const char *const names[] = {
+        "nrom-deep", "mmc1-deep", "uxrom-deep", "cnrom-deep", "mmc3-deep", "axrom-deep"};
+    for (size_t i = 0u; i < sizeof names / sizeof names[0]; ++i)
+        if (strcmp(name, names[i]) == 0)
+            return (int)i + 1;
+    return 0;
+}
+
 static int nt_exec_check_seeds(int argc, char **argv)
 {
-    uint8_t expected[NT_EXEC_RECIPE_SIZE];
+    uint8_t seen[7] = {0u};
     unsigned valid_count = 0u;
-    nt_exec_seed(expected);
     if (argc < 3) {
-        fputs(NT_EXEC_REPLAY_NAME ": --check-seeds requires committed seed files\n", stderr);
+        fputs(NT_EXEC_REPLAY_NAME ": --check-seeds requires the six committed family seeds\n", stderr);
         return 1;
     }
     for (int i = 2; i < argc; ++i) {
+        uint8_t expected[NT_EXEC_RECIPE_SIZE];
         uint8_t *bytes = NULL;
         size_t size = 0u;
         struct nt_exec_observation observed;
-        if (!nt_exec_read_path(argv[i], &bytes, &size))
-            return 1;
-        if (strcmp(nt_exec_basename(argv[i]), "nrom-deep") != 0 || size != sizeof expected ||
-            memcmp(bytes, expected, sizeof expected) != 0) {
+        struct nt_exec_profile profile;
+        const int code = nt_exec_seed_code(nt_exec_basename(argv[i]));
+        if (code == 0 || !nt_exec_read_path(argv[i], &bytes, &size)) {
             fprintf(stderr, NT_EXEC_REPLAY_NAME ": unexpected recipe seed: %s\n", argv[i]);
             free(bytes);
             return 1;
         }
-        if (!nt_exec_process(bytes, size, &observed) || observed.metrics.accepted == 0u ||
-            observed.metrics.frames < 2u || observed.continuation_a.frames == 0u ||
-            observed.metrics.generated_bytes != NT_EXEC_MAX_GENERATED_BYTES ||
-            !observed.states_equal) {
-            fprintf(stderr, NT_EXEC_REPLAY_NAME ": seed did not qualify: %s\n", argv[i]);
+        nt_exec_seed(expected);
+        expected[5] = (uint8_t)code;
+        if (seen[code] != 0u || size != sizeof expected || memcmp(bytes, expected, sizeof expected) != 0 ||
+            !nt_exec_profile_for((uint8_t)code, &profile)) {
+            fprintf(stderr, NT_EXEC_REPLAY_NAME ": seed descriptor or family path mismatch: %s\n", argv[i]);
             free(bytes);
             return 1;
         }
+        if (!nt_exec_process(bytes, size, &observed) || observed.metrics.accepted == 0u ||
+            observed.metrics.frame_ok != observed.metrics.frames || observed.metrics.frames < 3u ||
+            observed.completed_frames != observed.metrics.frames || observed.operation_count == 0u ||
+            observed.metrics.generated_bytes != nt_exec_image_size(&profile) ||
+            observed.metrics.mapper != profile.mapper || !observed.states_equal ||
+            observed.metrics.qualified_bank_effects != nt_exec_expected_effects(&profile)) {
+            fprintf(stderr, NT_EXEC_REPLAY_NAME ": seed did not qualify: %s accepted=%u frames=%u/%u completed=%u ops=%u bytes=%u mapper=%u effects=0x%02x expected=0x%02x state=%d\n",
+                    argv[i], observed.metrics.accepted, observed.metrics.frame_ok,
+                    observed.metrics.frames, observed.completed_frames, observed.operation_count,
+                    observed.metrics.generated_bytes, (unsigned)observed.metrics.mapper,
+                    (unsigned)observed.metrics.qualified_bank_effects,
+                    (unsigned)nt_exec_expected_effects(&profile), observed.states_equal);
+            free(bytes);
+            return 1;
+        }
+        seen[code] = 1u;
         valid_count++;
+        printf("%s: mapper=%u frames=%u operations=%u effects=0x%02x state=%u\n",
+               nt_exec_basename(argv[i]), (unsigned)observed.mapper, observed.completed_frames,
+               observed.operation_count, (unsigned)observed.bank_effects, observed.states_equal);
         free(bytes);
     }
-    if (valid_count != 1u) {
-        fputs(NT_EXEC_REPLAY_NAME ": corpus must contain exactly one nrom-deep seed\n", stderr);
+    if (valid_count != 4u) {
+        fputs(NT_EXEC_REPLAY_NAME ": current corpus must contain NROM, MMC1, UxROM and CNROM seeds\n", stderr);
         return 1;
     }
-    puts(NT_EXEC_REPLAY_NAME ": one deterministic non-JAM recipe executed and restored");
+    for (size_t i = 1u; i <= 4u; ++i) {
+        if (seen[i] == 0u) {
+            fputs(NT_EXEC_REPLAY_NAME ": a required family seed is missing\n", stderr);
+            return 1;
+        }
+    }
+    puts(NT_EXEC_REPLAY_NAME ": four deterministic non-JAM family recipes executed and restored");
     return 0;
 }
 
@@ -674,6 +1086,7 @@ static int nt_exec_self_test(void)
 {
     uint8_t seed[NT_EXEC_RECIPE_SIZE];
     uint8_t oversize[NT_EXEC_MAX_INPUT_BYTES + 1u] = {0u};
+    uint8_t mutation[NT_EXEC_RECIPE_SIZE + 1u];
     struct nt_exec_recipe recipe;
     struct nt_exec_budget budget = {0u, 0u};
     struct nt_exec_observation jam_observation;
@@ -695,10 +1108,16 @@ static int nt_exec_self_test(void)
     seed[6] = 2u; /* The exact frame-call cap remains valid. */
     seed[8] = 2u;
     if (!nt_exec_decode(seed, sizeof seed, &recipe) ||
-        22u + 2u * recipe.before_frames + 4u * recipe.after_frames != NT_EXEC_MAX_OPERATIONS)
+        80u + 2u * recipe.before_frames + 4u * recipe.after_frames > NT_EXEC_MAX_OPERATIONS ||
+        recipe.before_frames + 2u * recipe.after_frames != NT_EXEC_MAX_FRAME_CALLS)
         return 1;
     seed[6] = 3u;
     if (nt_exec_decode(seed, sizeof seed, &recipe))
+        return 1;
+    nt_exec_seed(seed);
+    memcpy(mutation, seed, sizeof seed);
+    mutation[NT_EXEC_RECIPE_SIZE] = 0xffu; /* Arbitrary raw ROM-byte mutation remains accepted. */
+    if (!nt_exec_decode(mutation, sizeof mutation, &recipe))
         return 1;
     nt_exec_seed(seed);
     seed[6] = 0xffu;
@@ -706,7 +1125,7 @@ static int nt_exec_self_test(void)
     if (nt_exec_decode(seed, sizeof seed, &recipe))
         return 1;
     nt_exec_seed(seed);
-    seed[5] = 3u;
+    seed[5] = 8u;
     if (nt_exec_decode(seed, sizeof seed, &recipe))
         return 1;
     nt_exec_seed(seed);
@@ -737,13 +1156,13 @@ static int nt_exec_self_test(void)
     if (!nt_exec_decode(seed, sizeof seed, &recipe))
         return 1;
     nt_exec_seed(seed);
-    seed[5] = 2u;
+    seed[5] = NT_EXEC_PROFILE_JAM;
     if (!nt_exec_process(seed, sizeof seed, &jam_observation) ||
         jam_observation.metrics.accepted == 0u || !jam_observation.states_equal ||
         jam_observation.metrics.stop_status != (uint32_t)NESTURBATOR_STOP_JAM ||
         jam_observation.metrics.frames != 3u || jam_observation.metrics.guest_ticks != 0u)
         return 1;
-    puts(NT_EXEC_REPLAY_NAME ": empty, truncated, version, byte, allocation, frame, and operation boundaries passed");
+    puts(NT_EXEC_REPLAY_NAME ": descriptor, raw-byte mutation, allocation, frame and JAM boundaries passed");
     return 0;
 }
 
@@ -757,7 +1176,7 @@ static int nt_exec_oracle_failure(void)
     if (!nt_exec_process(seed, sizeof seed, &observed))
         return 2;
     mismatched = observed.continuation_a;
-    mismatched.marker ^= 1u;
+    mismatched.prg_marker ^= 1u;
     if (nt_exec_verdict(&observed.continuation_a, &mismatched, state, state, sizeof state))
         return 2;
     fputs(NT_EXEC_REPLAY_NAME ": intentional execution oracle failure\n", stderr);
