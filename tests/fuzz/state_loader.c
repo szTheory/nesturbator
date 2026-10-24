@@ -18,6 +18,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(__APPLE__) || defined(__linux__)
+#include <sys/resource.h>
+#endif
 #include "nesturbator.h"
 
 #define NT_REPLAY_NAME "fuzz.state.regress"
@@ -52,6 +55,50 @@ static uint8_t *nt_image;
 static size_t nt_image_size;
 static unsigned nt_image_cart = 0xffffffffu;
 static int nt_last_accepted;
+
+#ifdef NESTURBATOR_FUZZ_METRICS
+struct nt_fuzz_metrics {
+    uint64_t inputs;
+    uint64_t accepted;
+    uint64_t refused;
+    uint64_t api_operations;
+    uint64_t frame_calls;
+    uint64_t frame_ok;
+    uint64_t frame_jam;
+    uint64_t guest_ticks;
+};
+static struct nt_fuzz_metrics nt_metrics;
+#define NT_METRIC_OPERATION() (nt_metrics.api_operations++)
+
+static uint64_t nt_metric_peak_rss_bytes(void)
+{
+#if defined(__APPLE__) || defined(__linux__)
+    struct rusage usage;
+    if (getrusage(RUSAGE_SELF, &usage) != 0 || usage.ru_maxrss < 0)
+        return 0u;
+#if defined(__APPLE__)
+    return (uint64_t)usage.ru_maxrss;
+#else
+    return (uint64_t)usage.ru_maxrss * 1024u;
+#endif
+#else
+    return 0u;
+#endif
+}
+
+void nt_replay_report_metrics(void);
+void nt_replay_report_metrics(void)
+{
+    printf("METRICS target=state-loader inputs=%llu accepted=%llu refused=%llu api_operations=%llu frame_calls=%llu frame_ok=%llu frame_jam=%llu guest_ticks=%llu peak_rss_bytes=%llu\n",
+           (unsigned long long)nt_metrics.inputs, (unsigned long long)nt_metrics.accepted,
+           (unsigned long long)nt_metrics.refused, (unsigned long long)nt_metrics.api_operations,
+           (unsigned long long)nt_metrics.frame_calls, (unsigned long long)nt_metrics.frame_ok,
+           (unsigned long long)nt_metrics.frame_jam, (unsigned long long)nt_metrics.guest_ticks,
+           (unsigned long long)nt_metric_peak_rss_bytes());
+}
+#else
+#define NT_METRIC_OPERATION() ((void)0)
+#endif
 
 static void nt_fail(const char *what)
 {
@@ -126,8 +173,10 @@ static nesturbator *nt_new(unsigned cart)
     const uint8_t *image = nt_cart_image(cart, &size);
     config.size = (uint32_t)sizeof config;
     config.abi = NESTURBATOR_ABI_VERSION;
+    NT_METRIC_OPERATION();
     if (nesturbator_create(&config, &inst) != NESTURBATOR_OK)
         nt_fail("create");
+    NT_METRIC_OPERATION();
     if (nesturbator_load_cartridge(inst, image, size) != NESTURBATOR_OK)
         nt_fail("synthetic cart refused");
     return inst;
@@ -136,12 +185,14 @@ static nesturbator *nt_new(unsigned cart)
 static uint8_t *nt_save(const nesturbator *inst, size_t *size)
 {
     uint8_t *buf;
+    NT_METRIC_OPERATION();
     *size = nesturbator_state_size(inst);
     if (*size < NT_HEADER)
         nt_fail("state size below the header");
     buf = (uint8_t *)malloc(*size);
     if (buf == NULL)
         nt_fail("out of memory saving");
+    NT_METRIC_OPERATION();
     if (nesturbator_save_state(inst, buf, *size) != NESTURBATOR_OK)
         nt_fail("save_state refused");
     return buf;
@@ -169,6 +220,7 @@ static uint64_t nt_run(nesturbator *inst)
     input.buttons[0] = NT_PAD;
     for (unsigned i = 0u; i < NT_FRAMES; ++i) {
         nesturbator_status status;
+        NT_METRIC_OPERATION();
         if (nesturbator_set_input(inst, &input) != NESTURBATOR_OK)
             nt_fail("set_input");
         memset(&frame, 0, sizeof frame);
@@ -177,7 +229,19 @@ static uint64_t nt_run(nesturbator *inst)
         frame.video_pitch = 256u;
         frame.audio = audio;
         frame.audio_capacity = 1024u;
+        NT_METRIC_OPERATION();
+#ifdef NESTURBATOR_FUZZ_METRICS
+        nt_metrics.frame_calls++;
+#endif
         status = nesturbator_run_frame(inst, &frame);
+#ifdef NESTURBATOR_FUZZ_METRICS
+        if (status == NESTURBATOR_OK) {
+            nt_metrics.frame_ok++;
+            nt_metrics.guest_ticks += frame.ticks;
+        } else if (status == NESTURBATOR_STOP_JAM) {
+            nt_metrics.frame_jam++;
+        }
+#endif
         if (status != NESTURBATOR_OK && status != NESTURBATOR_STOP_JAM)
             nt_fail("run_frame status after an accepted load");
         h = nt_hash(h, &status, sizeof status);
@@ -214,6 +278,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     uint8_t *cand;
     uint8_t *before = nt_save(a, &before_n);
     nesturbator_status status;
+#ifdef NESTURBATOR_FUZZ_METRICS
+    nt_metrics.inputs++;
+#endif
     nt_last_accepted = 0;
 
     len = n;
@@ -237,8 +304,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         nt_recrc(cand, len);
     }
 
+    NT_METRIC_OPERATION();
     status = nesturbator_load_state(a, cand, len);
     if (status != NESTURBATOR_OK) {
+#ifdef NESTURBATOR_FUZZ_METRICS
+        nt_metrics.refused++;
+#endif
         uint8_t *after;
         if (!nt_refusal_documented(status))
             nt_fail("load_state returned an undocumented status");
@@ -248,6 +319,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         nt_same(before, after, before_n, "a refused load changed the instance");
         free(after);
     } else {
+#ifdef NESTURBATOR_FUZZ_METRICS
+        nt_metrics.accepted++;
+#endif
         nesturbator *b = nt_new(cart);
         nesturbator *c = nt_new(cart);
         size_t s0_n, s1_n, s2_n, s3_n;
@@ -267,6 +341,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         if (s0_n != len)
             nt_fail("state size changed across a load");
         nt_same(expect, s0, len, "save(load(S)) differs from S");
+        NT_METRIC_OPERATION();
         if (nesturbator_load_state(b, cand, len) != NESTURBATOR_OK)
             nt_fail("the same state loaded into a second fresh instance was refused");
         hash_a = nt_run(a);
@@ -274,10 +349,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         if (hash_a != hash_b)
             nt_fail("two instances loading the same state diverged");
         s1 = nt_save(a, &s1_n);
+        NT_METRIC_OPERATION();
         if (nesturbator_load_state(c, s1, s1_n) != NESTURBATOR_OK)
             nt_fail("a saved state did not reload into a fresh instance");
         s2 = nt_save(c, &s2_n);
         nt_same(s1, s2, s1_n, "save, load, save changed the bytes");
+        NT_METRIC_OPERATION();
         if (nesturbator_load_state(c, s2, s2_n) != NESTURBATOR_OK)
             nt_fail("a saved state did not reload into its own instance");
         s3 = nt_save(c, &s3_n);
@@ -287,12 +364,15 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         free(s1);
         free(s2);
         free(s3);
+        NT_METRIC_OPERATION();
         nesturbator_destroy(b);
+        NT_METRIC_OPERATION();
         nesturbator_destroy(c);
     }
     free(base);
     free(before);
     free(cand);
+    NT_METRIC_OPERATION();
     nesturbator_destroy(a);
     return 0;
 }

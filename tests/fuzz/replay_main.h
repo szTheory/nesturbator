@@ -10,6 +10,9 @@
 #ifndef NESTURBATOR_REPLAY_NAME
 #define NESTURBATOR_REPLAY_NAME "fuzz.regress"
 #endif
+#ifdef NESTURBATOR_FUZZ_METRICS
+void nt_replay_report_metrics(void);
+#endif
 
 static int replay_file(const char *path)
 {
@@ -63,6 +66,9 @@ int main(int argc, char **argv)
         if (!replay_file(argv[i]))
             return 1;
     }
+#ifdef NESTURBATOR_FUZZ_METRICS
+    nt_replay_report_metrics();
+#endif
     return 0;
 }
 #endif

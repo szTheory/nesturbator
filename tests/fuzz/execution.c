@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if defined(__APPLE__) || defined(__linux__)
+#include <sys/resource.h>
+#endif
 #include "nesturbator.h"
 
 #define NT_EXEC_REPLAY_NAME "fuzz.execution.regress"
@@ -39,6 +42,8 @@ struct nt_exec_recipe {
 struct nt_exec_metrics {
     uint32_t accepted;
     uint32_t frames;
+    uint32_t frame_ok;
+    uint32_t frame_jam;
     uint32_t operations;
     uint32_t generated_bytes;
     uint32_t state_bytes;
@@ -345,10 +350,13 @@ static nesturbator_status nt_exec_frame(nesturbator *inst, uint8_t buttons, uint
     branch->output_hash = nt_exec_hash_u32le(branch->output_hash, (uint32_t)status);
     branch->stop_status = (uint32_t)status;
     metrics->stop_status = (uint32_t)status;
-    if (status == NESTURBATOR_STOP_JAM)
+    if (status == NESTURBATOR_STOP_JAM) {
+        metrics->frame_jam++;
         return status; /* JAM leaves frame outputs partial; inspect only canonical state later. */
+    }
     if (status != NESTURBATOR_OK)
         nt_exec_fail("accepted execution returned an unexpected frame status");
+    metrics->frame_ok++;
     if (frame.audio_count > NT_EXEC_AUDIO_SAMPLES || frame.ticks < *previous_ticks)
         nt_exec_fail("frame metadata exceeded its output contract");
     branch->output_hash = nt_exec_hash_u32le(branch->output_hash, frame.audio_count);
@@ -767,7 +775,14 @@ static int nt_exec_measure(int argc, char **argv)
     uint64_t generated_bytes = 0u;
     uint64_t guest_ticks = 0u;
     uint32_t allocation_peak = 0u;
+    uint32_t max_state_bytes = 0u;
     uint32_t last_stop = 0u;
+    uint64_t peak_rss_bytes = 0u;
+#if defined(__APPLE__) || defined(__linux__)
+    struct rusage usage;
+#endif
+    uint64_t frame_ok = 0u;
+    uint64_t frame_jam = 0u;
     if (argc < 4) {
         fputs(NT_EXEC_REPLAY_NAME ": --measure requires repeats and corpus files\n", stderr);
         return 1;
@@ -788,21 +803,36 @@ static int nt_exec_measure(int argc, char **argv)
             inputs++;
             accepted += observed.metrics.accepted;
             frames += observed.metrics.frames;
+            frame_ok += observed.metrics.frame_ok;
+            frame_jam += observed.metrics.frame_jam;
             operations += observed.metrics.operations;
             generated_bytes += observed.metrics.generated_bytes;
             guest_ticks += observed.metrics.guest_ticks;
             if (observed.metrics.allocation_peak > allocation_peak)
                 allocation_peak = observed.metrics.allocation_peak;
+            if (observed.metrics.state_bytes > max_state_bytes)
+                max_state_bytes = observed.metrics.state_bytes;
             last_stop = observed.metrics.stop_status;
             free(bytes);
         }
     }
-    printf("{\"inputs\":%llu,\"accepted\":%llu,\"frames\":%llu,\"api_operations\":%llu,"
-           "\"generated_bytes\":%llu,\"guest_ticks\":%llu,\"peak_allocation_bytes\":%u,"
-           "\"last_stop_status\":%u}\n",
+#if defined(__APPLE__)
+    if (getrusage(RUSAGE_SELF, &usage) == 0 && usage.ru_maxrss >= 0)
+        peak_rss_bytes = (uint64_t)usage.ru_maxrss;
+#elif defined(__linux__)
+    if (getrusage(RUSAGE_SELF, &usage) == 0 && usage.ru_maxrss >= 0)
+        peak_rss_bytes = (uint64_t)usage.ru_maxrss * 1024u;
+#endif
+    printf("{\"inputs\":%llu,\"accepted\":%llu,\"frames\":%llu,\"frame_ok\":%llu,"
+           "\"frame_jam\":%llu,\"api_operations\":%llu,"
+           "\"generated_bytes\":%llu,\"max_state_bytes\":%u,\"guest_ticks\":%llu,"
+           "\"peak_allocation_bytes\":%u,"
+           "\"last_stop_status\":%u,\"peak_rss_bytes\":%llu}\n",
            (unsigned long long)inputs, (unsigned long long)accepted, (unsigned long long)frames,
-           (unsigned long long)operations, (unsigned long long)generated_bytes,
-           (unsigned long long)guest_ticks, allocation_peak, last_stop);
+           (unsigned long long)frame_ok, (unsigned long long)frame_jam,
+           (unsigned long long)operations, (unsigned long long)generated_bytes, max_state_bytes,
+           (unsigned long long)guest_ticks, allocation_peak, last_stop,
+           (unsigned long long)peak_rss_bytes);
     return inputs > 0u ? 0 : 1;
 }
 

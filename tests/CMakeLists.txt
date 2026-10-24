@@ -1043,6 +1043,15 @@ add_test(NAME fuzz.execution.oracle_failure
 set_tests_properties(fuzz.execution.regress fuzz.execution.seeds
   fuzz.execution.controls fuzz.execution.oracle_failure PROPERTIES TIMEOUT 30)
 
+# Narrow replay counters are compiled only in the matched, sanitizer-instrumented
+# measurement build. The normal CI and libFuzzer targets keep their existing path.
+option(NESTURBATOR_FUZZ_METRICS "Enable replay counters for the bounded fuzz comparison" OFF)
+if(NESTURBATOR_FUZZ_METRICS)
+  target_compile_definitions(fuzz.rom_loader PRIVATE NESTURBATOR_FUZZ_METRICS=1)
+  target_compile_definitions(fuzz.state_loader PRIVATE NESTURBATOR_FUZZ_METRICS=1)
+  target_compile_definitions(fuzz.execution PRIVATE NESTURBATOR_FUZZ_METRICS=1)
+endif()
+
 # Linux nightly only: the same source/entry point and sanitized library, with
 # Clang's libFuzzer main and runtime instrumentation.
 option(NESTURBATOR_LIBFUZZER "Build the libFuzzer targets" OFF)
