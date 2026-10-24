@@ -56,31 +56,31 @@ The execution harness, mapper recipes, lifecycle controls, adapter cache policy,
 
 ### Warnings
 
-### WR-01 [WARNING]: Loader-target minimization validates inputs as execution recipes
+### WR-01: Loader-target minimization validates inputs as execution recipes
 
 **File:** `tests/cmake/execution_campaign.cmake:357-390`
 **Issue:** Minimization mode explicitly accepts `FUZZ_TARGET=rom-loader` and `state-loader` at line 362, but `validate_minimized` always calls `measure_execution` at lines 144-149. That helper runs `fuzz.execution --measure`, which only accepts NEXE descriptors and requires an accepted generated execution image. ROM-loader and state-loader reproducers therefore fail validation even when their own libFuzzer minimizer preserves them.
 **Fix:** Dispatch validation by `FUZZ_TARGET`. Replay ROM-loader and state-loader inputs through their corresponding target-specific acceptance and failure checks; reserve the NEXE execution validator for `FUZZ_TARGET=execution`.
 
-### WR-02 [WARNING]: Execution minimization cannot verify a reproduced failure
+### WR-02: Execution minimization cannot verify a reproduced failure
 
 **File:** `tests/cmake/execution_campaign.cmake:124-160, 378-390`; `tests/fuzz/execution.c:609-615, 1332-1338`
 **Issue:** `validate_minimized` only compares the caller-supplied class strings, then requires both inputs to complete a successful `--measure` run. A minimized input that still triggers an `nt_exec_fail` abort or sanitizer crash returns nonzero and is rejected, while the validator never runs the fuzz binary to derive and compare the actual failure class. The claimed operation is also only `operation_count - 1`; `nt_exec_operation` records sequential indices, not which API operation failed. Thus the flow cannot accept and prove an execution reproducer with the same failure class at the intended operation.
 **Fix:** Keep accepted-load verification separate from failure reproduction. Run original and reduced inputs in disposable processes using the same instrumented target, derive and compare the observed failure class, and record named operation identities at the operation sites so both inputs can be checked against the intended failing operation.
 
-### WR-03 [WARNING]: Evidence self-test writes directly to the expected artifact paths
+### WR-03: Evidence self-test writes directly to the expected artifact paths
 
 **File:** `tests/cmake/execution_campaign.cmake:7-17, 238-275, 639-650`
 **Issue:** The crash and timeout child controls write the synthetic descriptor directly to `CHILD_ARTIFACT`, which is the final path that `require_artifact` checks. They do not create a libFuzzer artifact under `artifact_dir` or exercise the campaign's artifact discovery and copy loop at lines 639-650. The controls can pass even if real crash/timeout inputs are no longer collected or copied for upload.
 **Fix:** Exercise the same collection path used by campaign runs: trigger crash and timeout artifacts from a disposable fuzz target, or factor artifact discovery/copying into a helper and feed it inputs in the actual `artifact_dir`; assert that the resulting uploaded reproducer matches the triggering input.
 
-### WR-04 [WARNING]: State-loader oracle hashes frame outputs after JAM
+### WR-04: State-loader oracle hashes frame outputs after JAM
 
 **File:** `tests/fuzz/state_loader.c:237-253, 348-351`
 **Issue:** The public header states that `STOP_JAM` leaves frame output fields unspecified, but `nt_run` hashes `video`, `audio_count`, `frame_number`, and `ticks` unconditionally after accepting either `OK` or `STOP_JAM`. The video/audio arrays are static and reused. If both same-state instances JAM, the second run can hash the first instance's stale video, and the oracle compares only those hashes rather than the two post-run canonical states. This can allow a divergent JAM continuation to pass based on shared stale buffer contents.
 **Fix:** On `STOP_JAM`, compare only stop status and canonical saved state for each instance; do not read frame metadata or video/audio outputs. Compare the two post-run state snapshots in the accepted-state continuation path.
 
-### WR-05 [WARNING]: State-loader guest-tick metric sums absolute timestamps
+### WR-05: State-loader guest-tick metric sums absolute timestamps
 
 **File:** `tests/fuzz/state_loader.c:237-242`
 **Issue:** `frame.ticks` is documented in `include/nesturbator.h` as cumulative emulated time since power-on and is restored from state. Adding it for every successful frame counts the preexisting state origin repeatedly instead of measuring work performed by those frame calls. Mutated accepted states with larger tick origins therefore inflate the recorded `guest_ticks` metric and distort the matched work comparison.
