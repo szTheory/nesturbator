@@ -13,15 +13,33 @@
 #define NT_EXEC_REPLAY_NAME "fuzz.execution.regress"
 #define NT_EXEC_MAGIC_SIZE 4u
 #define NT_EXEC_RECIPE_SIZE 16u
-#define NT_EXEC_MAX_INPUT_BYTES (NT_EXEC_RECIPE_SIZE + NT_EXEC_MAX_PRG_BYTES + NT_EXEC_MAX_CHR_BYTES)
+#ifndef NT_EXEC_MAX_PRG_BYTES
 #define NT_EXEC_MAX_PRG_BYTES (128u * 1024u)
+#endif
+#ifndef NT_EXEC_MAX_CHR_BYTES
 #define NT_EXEC_MAX_CHR_BYTES (32u * 1024u)
+#endif
+#ifndef NT_EXEC_MAX_INPUT_BYTES
+#define NT_EXEC_MAX_INPUT_BYTES (NT_EXEC_RECIPE_SIZE + NT_EXEC_MAX_PRG_BYTES + NT_EXEC_MAX_CHR_BYTES)
+#endif
+#ifndef NT_EXEC_MAX_GENERATED_BYTES
 #define NT_EXEC_MAX_GENERATED_BYTES (16u + NT_EXEC_MAX_PRG_BYTES + NT_EXEC_MAX_CHR_BYTES)
+#endif
+#ifndef NT_EXEC_MAX_STATE_BYTES
 #define NT_EXEC_MAX_STATE_BYTES (256u * 1024u)
+#endif
+#ifndef NT_EXEC_MAX_ALLOCATION_BYTES
 #define NT_EXEC_MAX_ALLOCATION_BYTES (2u * 1024u * 1024u)
+#endif
+#ifndef NT_EXEC_MAX_FRAMES_PER_PHASE
 #define NT_EXEC_MAX_FRAMES_PER_PHASE 2u
+#endif
+#ifndef NT_EXEC_MAX_FRAME_CALLS
 #define NT_EXEC_MAX_FRAME_CALLS 6u
+#endif
+#ifndef NT_EXEC_MAX_OPERATIONS
 #define NT_EXEC_MAX_OPERATIONS 128u
+#endif
 #define NT_EXEC_VIDEO_BYTES (256u * 240u * sizeof(uint16_t))
 #define NT_EXEC_AUDIO_SAMPLES 1024u
 #define NT_EXEC_AUDIO_BYTES (NT_EXEC_AUDIO_SAMPLES * sizeof(int16_t))
@@ -505,7 +523,8 @@ static uint8_t *nt_exec_generate(const struct nt_exec_recipe *recipe, const uint
     uint8_t code[NT_EXEC_PROGRAM_BYTES];
     size_t code_size;
     uint32_t state;
-    if (input_size - NT_EXEC_RECIPE_SIZE > prg_size + chr_size)
+    if (prg_size > NT_EXEC_MAX_PRG_BYTES || chr_size > NT_EXEC_MAX_CHR_BYTES ||
+        size > NT_EXEC_MAX_GENERATED_BYTES || input_size - NT_EXEC_RECIPE_SIZE > prg_size + chr_size)
         return NULL;
     image = (uint8_t *)nt_exec_alloc(budget, size);
     if (image == NULL)
@@ -1270,6 +1289,7 @@ static int nt_exec_measure(int argc, char **argv)
     uint32_t last_submapper = 0u;
     uint32_t last_effects = 0u;
     uint32_t last_completed_frames = 0u;
+    uint32_t last_operation = 0u;
     uint64_t peak_rss_bytes = 0u;
 #if defined(__APPLE__) || defined(__linux__)
     struct rusage usage;
@@ -1310,6 +1330,7 @@ static int nt_exec_measure(int argc, char **argv)
             last_submapper = observed.metrics.submapper;
             last_effects = observed.metrics.qualified_bank_effects;
             last_completed_frames = observed.completed_frames;
+            last_operation = observed.operation_count > 0u ? observed.operation_count - 1u : 0u;
             free(bytes);
         }
     }
@@ -1325,13 +1346,14 @@ static int nt_exec_measure(int argc, char **argv)
            "\"generated_bytes\":%llu,\"max_state_bytes\":%u,\"guest_ticks\":%llu,"
            "\"peak_allocation_bytes\":%u,"
            "\"last_stop_status\":%u,\"peak_rss_bytes\":%llu,\"last_mapper\":%u,"
-           "\"last_submapper\":%u,\"last_bank_effects\":%u,\"last_completed_frames\":%u}\n",
+           "\"last_submapper\":%u,\"last_bank_effects\":%u,\"last_completed_frames\":%u,"
+           "\"last_operation\":%u}\n",
            (unsigned long long)inputs, (unsigned long long)accepted, (unsigned long long)frames,
            (unsigned long long)frame_ok, (unsigned long long)frame_jam,
            (unsigned long long)operations, (unsigned long long)generated_bytes, max_state_bytes,
            (unsigned long long)guest_ticks, allocation_peak, last_stop,
            (unsigned long long)peak_rss_bytes, last_mapper, last_submapper, last_effects,
-           last_completed_frames);
+           last_completed_frames, last_operation);
     return inputs > 0u ? 0 : 1;
 }
 

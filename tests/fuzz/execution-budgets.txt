@@ -1,0 +1,53 @@
+# Numeric target caps are enforced by replay code even when the campaign runner
+# is not used. Campaign limits remain UNSELECTED until a hosted Linux pilot.
+execution.max_prg_bytes=131072
+execution.max_chr_bytes=32768
+execution.max_input_bytes=163856
+execution.max_generated_bytes=163856
+execution.max_state_bytes=262144
+execution.max_allocation_bytes=2097152
+execution.max_frames_per_phase=2
+execution.max_frame_calls=6
+execution.max_operations=128
+execution.fixed_replay_timeout_seconds=30
+
+# Pilot uses the same finite libFuzzer envelope for all three targets. The
+# refreshed eight-descriptor replay took 0.12 s overall; its slowest execution
+# seeds (CNROM and AxROM) took 0.12 s, and observed peak RSS was 23 MiB. The
+# pilot's 5 s target window is 42x that slow seed, its 2 s input cap is 17x the slow seed,
+# and its 1 GiB sampled RSS ceiling gives room for sanitizer instrumentation.
+# The 20 s process cap leaves 15 s after the 5 s mutator window for teardown
+# and artifact collection. RSS is sampled by libFuzzer, not a hard memory quota.
+pilot.runs=10000
+pilot.max_total_time_seconds=5
+pilot.per_input_timeout_seconds=2
+pilot.max_len=163856
+pilot.rss_limit_mb=1024
+pilot.outer_timeout_seconds=20
+pilot.seed=1804
+pilot.source=build/execution-measure-plan18-04/measurement.tsv and execution-families.tsv; eight-descriptor Apple Clang 21 ASan/UBSan replay; overall 0.12 s, slowest execution seed 0.12 s, peak RSS 23150592 B
+
+# Filled only after the actual Linux mutation pilot establishes throughput,
+# slow-input and sanitizer RSS measurements. campaign mode refuses UNSELECTED.
+campaign.source=UNSELECTED
+campaign.rom-loader.runs=UNSELECTED
+campaign.rom-loader.max_total_time_seconds=UNSELECTED
+campaign.rom-loader.per_input_timeout_seconds=UNSELECTED
+campaign.rom-loader.max_len=UNSELECTED
+campaign.rom-loader.rss_limit_mb=UNSELECTED
+campaign.rom-loader.outer_timeout_seconds=UNSELECTED
+campaign.rom-loader.seed=UNSELECTED
+campaign.state-loader.runs=UNSELECTED
+campaign.state-loader.max_total_time_seconds=UNSELECTED
+campaign.state-loader.per_input_timeout_seconds=UNSELECTED
+campaign.state-loader.max_len=UNSELECTED
+campaign.state-loader.rss_limit_mb=UNSELECTED
+campaign.state-loader.outer_timeout_seconds=UNSELECTED
+campaign.state-loader.seed=UNSELECTED
+campaign.execution.runs=UNSELECTED
+campaign.execution.max_total_time_seconds=UNSELECTED
+campaign.execution.per_input_timeout_seconds=UNSELECTED
+campaign.execution.max_len=UNSELECTED
+campaign.execution.rss_limit_mb=UNSELECTED
+campaign.execution.outer_timeout_seconds=UNSELECTED
+campaign.execution.seed=UNSELECTED

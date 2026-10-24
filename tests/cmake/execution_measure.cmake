@@ -5,8 +5,12 @@ foreach(required IN ITEMS SOURCE_DIR OUTPUT_DIR MODE)
     message(FATAL_ERROR "execution measurement needs ${required}")
   endif()
 endforeach()
-if(NOT MODE STREQUAL "replay")
-  message(FATAL_ERROR "execution measurement supports only the finite replay mode")
+if(MODE STREQUAL "pilot")
+  set(CAMPAIGN_MODE pilot)
+  include("${CMAKE_CURRENT_LIST_DIR}/execution_campaign.cmake")
+  return()
+elseif(NOT MODE STREQUAL "replay")
+  message(FATAL_ERROR "execution measurement supports only replay or the bounded pilot mode")
 endif()
 
 get_filename_component(source_root "${SOURCE_DIR}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_LIST_DIR}/../..")
@@ -70,8 +74,8 @@ foreach(corpus_var IN ITEMS rom_corpus state_corpus execution_corpus)
   endif()
 endforeach()
 list(LENGTH execution_corpus execution_count)
-if(NOT execution_count EQUAL 6)
-  message(FATAL_ERROR "execution comparison expects the six qualified mapper-family seeds, found ${execution_count}")
+if(NOT execution_count EQUAL 8)
+  message(FATAL_ERROR "execution comparison expects six mapper-family seeds plus loop and JAM, found ${execution_count}")
 endif()
 
 set(c_flags "-O1 -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -fprofile-instr-generate -fcoverage-mapping")
@@ -290,20 +294,35 @@ run_replay("execution" "${execution_binary}" "${execution_profile}" "${execution
 file(WRITE "${output_root}/execution-families.tsv"
   "family\tmapper\tsubmapper\taccepted\tframes\tframe_ok\tframe_jam\tcompleted_frames\tapi_operations\tgenerated_bytes\tguest_ticks\tpeak_allocation_bytes\tstop_status\telapsed_seconds\tinputs_per_second\taccepted_per_second\tpeak_rss_bytes\tbank_effects\tcore_functions_hit\tcore_functions_total\n")
 foreach(family_spec IN ITEMS "nrom|0|0|0" "mmc1|1|0|3" "uxrom|2|1|1"
-    "cnrom|3|1|2" "mmc3|4|0|3" "axrom|7|1|5")
+    "cnrom|3|1|2" "mmc3|4|0|3" "axrom|7|1|5" "loop|0|0|0" "jam|0|0|0")
   string(REPLACE "|" ";" family_fields "${family_spec}")
   list(GET family_fields 0 family)
   list(GET family_fields 1 expected_mapper)
   list(GET family_fields 2 expected_submapper)
   list(GET family_fields 3 expected_effects)
-  set(family_seed "${source_root}/tests/fuzz/corpus_execution/${family}-deep")
+  if(family STREQUAL "loop" OR family STREQUAL "jam")
+    set(family_seed "${source_root}/tests/fuzz/corpus_execution/${family}")
+  else()
+    set(family_seed "${source_root}/tests/fuzz/corpus_execution/${family}-deep")
+  endif()
   set(family_profile "${raw_root}/execution-${family}.profraw")
   run_replay("execution-${family}" "${execution_binary}" "${family_profile}" 1 execution_family
     --measure 1 "${family_seed}")
-  if(NOT execution_family_accepted EQUAL 1 OR NOT execution_family_mapper EQUAL expected_mapper OR
-     NOT execution_family_submapper EQUAL expected_submapper OR
-     NOT execution_family_completed_frames EQUAL 4 OR NOT execution_family_frame_jam EQUAL 0 OR
-     NOT execution_family_effects EQUAL expected_effects)
+  set(family_qualified 1)
+  if(family STREQUAL "jam")
+    if(NOT execution_family_accepted EQUAL 1 OR NOT execution_family_mapper EQUAL expected_mapper OR
+       NOT execution_family_submapper EQUAL expected_submapper OR
+       NOT execution_family_completed_frames EQUAL 1 OR NOT execution_family_frame_jam EQUAL 3 OR
+       NOT execution_family_effects EQUAL expected_effects)
+      set(family_qualified 0)
+    endif()
+  elseif(NOT execution_family_accepted EQUAL 1 OR NOT execution_family_mapper EQUAL expected_mapper OR
+       NOT execution_family_submapper EQUAL expected_submapper OR
+       NOT execution_family_frame_jam EQUAL 0 OR NOT execution_family_effects EQUAL expected_effects OR
+       execution_family_completed_frames LESS 3)
+    set(family_qualified 0)
+  endif()
+  if(NOT family_qualified)
     message(FATAL_ERROR "${family} measurement did not qualify its expected mapper, work and effects")
   endif()
   export_coverage("execution-${family}" "${execution_binary}" "${family_profile}")
@@ -336,7 +355,7 @@ endforeach()
 list(SORT new_core_functions)
 list(LENGTH new_core_functions new_core_count)
 if(new_core_count EQUAL 0)
-  message(FATAL_ERROR "the bounded six-family replay added no src/ function reach")
+  message(FATAL_ERROR "the bounded eight-seed replay added no src/ function reach")
 endif()
 
 execute_process(COMMAND git -C "${source_root}" rev-parse HEAD
@@ -355,6 +374,8 @@ endif()
 set(measurement_inputs
   tests/CMakeLists.txt
   tests/cmake/execution_measure.cmake
+  tests/cmake/execution_campaign.cmake
+  tests/fuzz/execution-budgets.txt
   tests/fuzz/execution.c
   tests/fuzz/rom_loader.c
   tests/fuzz/replay_main.h
@@ -400,6 +421,7 @@ file(WRITE "${output_root}/measurement.tsv"
   "rom-loader\t${rom_count}\t${rom_loader_corpus_sha256}\n"
   "state-loader\t${state_count}\t${state_loader_corpus_sha256}\n"
   "execution\t${execution_count}\t${execution_corpus_sha256}\n"
+  "execution_seed_scope\tsix mapper-family descriptors plus loop and JAM; no ROM bytes stored\n"
   "execution_family_file\texecution-families.tsv\t${output_root}/execution-families.tsv\n"
   "target\tinputs\taccepted\tframes\tframe_ok\tframe_jam\tapi_operations\tgenerated_bytes\tmax_state_bytes\tguest_ticks\tpeak_allocation_bytes\tstop_status\telapsed_seconds\tinputs_per_second\taccepted_per_second\tpeak_rss_bytes\tcore_functions_hit\tcore_functions_total\n"
   "rom-loader\t${rom_inputs}\t${rom_accepted}\t${rom_frames}\t${rom_frame_ok}\t${rom_frame_jam}\t${rom_operations}\t${rom_generated_bytes}\t${rom_max_state_bytes}\t${rom_guest_ticks}\t${rom_allocation_peak}\t${rom_stop_status}\t${rom_elapsed}\t${rom_input_rate}\t${rom_accepted_rate}\t${rom_peak_rss}\t${rom_core_hits}\t${rom_core_total}\n"
@@ -413,4 +435,4 @@ endforeach()
 file(APPEND "${log_root}/commands.txt"
   "COMMAND: ${profdata_program} merge -sparse <target>.profraw -o <target>.profdata\n"
   "COMMAND: ${cov_program} export -format=text -instr-profile=<target>.profdata <target-binary> > <target>.json\n")
-message(STATUS "execution measurement PASS: ${rom_inputs}/${rom_accepted}, ${state_inputs}/${state_accepted}, ${execution_inputs}/${execution_accepted} inputs/accepted across six family rows; ${new_core_count} newly reached src functions")
+message(STATUS "execution measurement PASS: ${rom_inputs}/${rom_accepted}, ${state_inputs}/${state_accepted}, ${execution_inputs}/${execution_accepted} inputs/accepted across six mapper families plus loop and JAM; ${new_core_count} newly reached src functions")
