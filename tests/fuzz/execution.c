@@ -78,6 +78,7 @@ struct nt_exec_observation {
     struct nt_exec_branch continuation_b;
     uint64_t state_hash_a;
     uint64_t state_hash_b;
+    uint64_t origin_state_hash;
     int states_equal;
     uint16_t mapper;
     uint32_t accepted_status;
@@ -195,9 +196,9 @@ static int nt_exec_decode(const uint8_t *data, size_t size, struct nt_exec_recip
         recipe->before_frames > NT_EXEC_MAX_FRAMES_PER_PHASE ||
         recipe->after_frames > NT_EXEC_MAX_FRAMES_PER_PHASE)
         return 0;
-    max_operations = 80u + 2u * recipe->before_frames + 4u * recipe->after_frames;
+    max_operations = 96u + 2u * recipe->before_frames + 4u * recipe->after_frames;
     return max_operations <= NT_EXEC_MAX_OPERATIONS &&
-           recipe->before_frames + 2u * recipe->after_frames <= NT_EXEC_MAX_FRAME_CALLS;
+           1u + recipe->before_frames + 2u * recipe->after_frames <= NT_EXEC_MAX_FRAME_CALLS;
 }
 
 static uint32_t nt_exec_random(uint32_t *state)
@@ -639,6 +640,8 @@ static nesturbator_status nt_exec_frame(nesturbator *inst, uint8_t buttons, uint
     nt_exec_operation(metrics);
     if (nesturbator_set_input(inst, &input) != NESTURBATOR_OK)
         nt_exec_fail("controller input was refused");
+    memset(video, 0xa5, NT_EXEC_VIDEO_BYTES);
+    memset(audio, 0x5a, NT_EXEC_AUDIO_BYTES);
     memset(&frame, 0, sizeof frame);
     frame.size = (uint32_t)sizeof frame;
     frame.video = video;
@@ -805,15 +808,19 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     struct nt_exec_budget budget = {0u, 0u};
     struct nt_exec_observation observed;
     struct nt_exec_branch before;
+    struct nt_exec_branch interloper_branch;
     nesturbator *a = NULL;
     nesturbator *b = NULL;
+    nesturbator *interloper = NULL;
     uint8_t *image = NULL;
+    uint8_t *interloper_image = NULL;
     uint8_t *saved = NULL;
     uint8_t *state_a = NULL;
     uint8_t *state_b = NULL;
     uint16_t *video = NULL;
     int16_t *audio = NULL;
     size_t image_size = 0u;
+    size_t interloper_image_size = 0u;
     size_t state_size = 0u;
     uint64_t ticks_a = 0u;
     uint64_t ticks_b = 0u;
@@ -822,6 +829,7 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     int after_b_finished;
     memset(&observed, 0, sizeof observed);
     memset(&before, 0, sizeof before);
+    memset(&interloper_branch, 0, sizeof interloper_branch);
     before.stop_status = (uint32_t)NESTURBATOR_OK;
     if (!nt_exec_decode(data, size, &recipe) ||
         !nt_exec_profile_for(recipe.profile_code, &profile)) {
@@ -859,6 +867,31 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     observed.metrics.state_bytes = (uint32_t)state_size;
     if (nt_exec_save(a, saved, state_size, &observed.metrics) != state_size)
         nt_exec_fail("save-state length changed unexpectedly");
+    observed.origin_state_hash = nt_exec_state_hash(saved, state_size);
+
+    /* A different board runs between the source frame calls and its continuation.
+       This is deterministic interleaving, not a simultaneous-call/thread-safety claim. */
+    {
+        uint8_t interloper_recipe[NT_EXEC_RECIPE_SIZE];
+        struct nt_exec_recipe decoded_interloper;
+        struct nt_exec_profile interloper_profile;
+        memcpy(interloper_recipe, data, sizeof interloper_recipe);
+        interloper_recipe[5] = profile.mapper == 1u ? NT_EXEC_PROFILE_NROM : NT_EXEC_PROFILE_MMC1;
+        if (!nt_exec_decode(interloper_recipe, sizeof interloper_recipe, &decoded_interloper) ||
+            !nt_exec_profile_for(decoded_interloper.profile_code, &interloper_profile))
+            nt_exec_fail("different-board isolation recipe could not be decoded");
+        interloper_image = nt_exec_generate(&decoded_interloper, interloper_recipe,
+                                             sizeof interloper_recipe, &interloper_profile,
+                                             &interloper_image_size, &budget);
+        if (interloper_image == NULL)
+            nt_exec_fail("different-board isolation image could not be generated");
+        interloper = nt_exec_instance(&budget, interloper_image, interloper_image_size,
+                                      &observed.metrics);
+        if (!nt_exec_run_phase(interloper, (uint8_t)(recipe.before_buttons ^ 0x80u), 1u,
+                               video, audio, &ticks_b, &interloper_branch,
+                               &observed.metrics))
+            nt_exec_fail("different-board interloper unexpectedly JAMmed");
+    }
     b = nt_exec_instance(&budget, image, image_size, &observed.metrics);
     nt_exec_operation(&observed.metrics);
     if (nesturbator_load_state(b, saved, state_size) != NESTURBATOR_OK)
@@ -922,14 +955,19 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     nt_exec_operation(&observed.metrics);
     nesturbator_unload_cartridge(b);
     nt_exec_operation(&observed.metrics);
+    nesturbator_unload_cartridge(interloper);
+    nt_exec_operation(&observed.metrics);
     nesturbator_destroy(a);
     nt_exec_operation(&observed.metrics);
     nesturbator_destroy(b);
+    nt_exec_operation(&observed.metrics);
+    nesturbator_destroy(interloper);
     nt_exec_free(&budget, state_a, state_size);
     nt_exec_free(&budget, state_b, state_size);
     nt_exec_free(&budget, video, NT_EXEC_VIDEO_BYTES);
     nt_exec_free(&budget, audio, NT_EXEC_AUDIO_BYTES);
     nt_exec_free(&budget, image, image_size);
+    nt_exec_free(&budget, interloper_image, interloper_image_size);
     if (budget.current != 0u)
         nt_exec_fail("per-input allocations were not fully released");
     observed.metrics.allocation_peak = (uint32_t)budget.peak;
@@ -1105,11 +1143,11 @@ static int nt_exec_self_test(void)
     if (nt_exec_decode(seed, sizeof seed, &recipe))
         return 1;
     nt_exec_seed(seed);
-    seed[6] = 2u; /* The exact frame-call cap remains valid. */
+    seed[6] = 1u;
     seed[8] = 2u;
     if (!nt_exec_decode(seed, sizeof seed, &recipe) ||
-        80u + 2u * recipe.before_frames + 4u * recipe.after_frames > NT_EXEC_MAX_OPERATIONS ||
-        recipe.before_frames + 2u * recipe.after_frames != NT_EXEC_MAX_FRAME_CALLS)
+        96u + 2u * recipe.before_frames + 4u * recipe.after_frames > NT_EXEC_MAX_OPERATIONS ||
+        1u + recipe.before_frames + 2u * recipe.after_frames != NT_EXEC_MAX_FRAME_CALLS)
         return 1;
     seed[6] = 3u;
     if (nt_exec_decode(seed, sizeof seed, &recipe))
@@ -1160,7 +1198,8 @@ static int nt_exec_self_test(void)
     if (!nt_exec_process(seed, sizeof seed, &jam_observation) ||
         jam_observation.metrics.accepted == 0u || !jam_observation.states_equal ||
         jam_observation.metrics.stop_status != (uint32_t)NESTURBATOR_STOP_JAM ||
-        jam_observation.metrics.frames != 3u || jam_observation.metrics.guest_ticks != 0u)
+        jam_observation.metrics.frames != 4u || jam_observation.metrics.frame_ok != 1u ||
+        jam_observation.metrics.frame_jam != 3u)
         return 1;
     puts(NT_EXEC_REPLAY_NAME ": descriptor, raw-byte mutation, allocation, frame and JAM boundaries passed");
     return 0;

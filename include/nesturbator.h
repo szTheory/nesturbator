@@ -401,8 +401,12 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * advance on later frame calls. On STOP_JAM, frame output fields are not
  * written and callers must not inspect the video or audio buffers as results;
  * the machine remains valid for a save-state snapshot. Test-only bounded
- * execution replay uses generated NROM content and compares pixels and only
- * the samples written by a successful call. Audio is mono signed 16-bit PCM;
+ * execution replay uses generated representative mapper 0, 1, 2, 3, 4 and 7
+ * content to check deterministic continuation and instance isolation. Its
+ * successful-frame comparison uses defined metadata, native pixels and only
+ * samples written by a successful call; JAM comparison uses status and saved
+ * machine state. This agreement is not a hardware-accuracy claim. Audio is
+ * mono signed 16-bit PCM;
  * no-cartridge audio is zero. */
 nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *io);
 

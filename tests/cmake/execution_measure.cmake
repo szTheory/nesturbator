@@ -302,7 +302,7 @@ foreach(family_spec IN ITEMS "nrom|0|0|0" "mmc1|1|0|3" "uxrom|2|1|1"
     --measure 1 "${family_seed}")
   if(NOT execution_family_accepted EQUAL 1 OR NOT execution_family_mapper EQUAL expected_mapper OR
      NOT execution_family_submapper EQUAL expected_submapper OR
-     NOT execution_family_completed_frames EQUAL 3 OR NOT execution_family_frame_jam EQUAL 0 OR
+     NOT execution_family_completed_frames EQUAL 4 OR NOT execution_family_frame_jam EQUAL 0 OR
      NOT execution_family_effects EQUAL expected_effects)
     message(FATAL_ERROR "${family} measurement did not qualify its expected mapper, work and effects")
   endif()

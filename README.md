@@ -411,19 +411,31 @@ and save back to the loaded bytes with the library's behaviour revision.
 lines) and every `valid-*` seed to load. The same source builds as the libFuzzer
 target `fuzz.state.libfuzzer` when `NESTURBATOR_LIBFUZZER` is on.
 
-`fuzz.execution.regress` replays the versioned 16-byte recipe in
-`tests/fuzz/corpus_execution/nrom-deep`. The recipe is a descriptor, not a ROM:
-the test target generates a 16 KiB PRG and 8 KiB CHR image in memory, runs its
-non-JAM program with controller input sampled on successive frames, saves the
-machine, restores that state into a fresh instance and compares the continuation.
-Prototype limits are 16 input bytes, 24,592 generated image bytes, a 256 KiB
-serialized state, two frames before and after the save, six frame calls,
-34 public-API operations and 2 MiB of combined harness/library allocations per
-input. These development bounds are measured before mutation budgets are set.
-Successful frames compare native pixels, metadata and only written audio
-samples; JAM results compare status and canonical saved state without reading
-partial frame output. `fuzz.execution.seeds` checks the exact seed identity,
-`fuzz.execution.controls` checks malformed and cap boundaries, and
+`fuzz.execution.regress` replays six versioned 16-byte recipes in
+`tests/fuzz/corpus_execution`: NROM, MMC1, UxROM, CNROM, MMC3 and AxROM.
+Recipes are descriptors, not ROMs. The test target builds each accepted image
+in memory, runs a non-JAM guest program that observes mapper-specific PRG, CHR
+or nametable effects, then saves and restores a continuation into a fresh
+instance. A different mapper runs between the source and restored frame calls
+to check deterministic instance isolation. The separately replayable recipe
+format also accepts arbitrary trailing bytes as raw PRG/CHR variation, bounded
+by the selected profile's image capacity and an overall 128 KiB PRG plus 32 KiB
+CHR input ceiling; the six deep descriptors remain exact and compact.
+
+The bounded harness allows a 256 KiB serialized state, at most two frames on
+each continuation side, six total frame calls including one different-board
+interleave, 128 public-API operations, and 2 MiB of combined harness/library
+allocations per input. The selected representative images are at most 98,320
+bytes. These measured bounds enclose the replay target; they are not hardware
+accuracy claims or final mutation-campaign budgets. Successful frames compare
+canonical state, defined frame metadata, all native pixels and only written
+audio samples. JAM compares stop status and canonical state without reading
+partial frame output. `fuzz.execution.seeds` checks all six exact seed identities
+and their useful bank effects. `fuzz.execution.controls` sends valid and broken
+continuations through the same verdict, including suppressed execution, skipped
+restore, wrong saved origin and shared-instance interference. It also checks
+reset retention, reload freshness, refusal atomicity and battery-generation
+behavior.
 `fuzz.execution.oracle_failure` proves a deliberate verdict discrepancy exits
 nonzero. `fuzz.execution.libfuzzer` uses the same callback when
 `NESTURBATOR_LIBFUZZER` is enabled.

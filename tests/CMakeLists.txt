@@ -1032,7 +1032,15 @@ add_test(NAME fuzz.execution.regress
   COMMAND fuzz.execution ${NESTURBATOR_EXECUTION_CORPUS})
 add_test(NAME fuzz.execution.seeds
   COMMAND fuzz.execution --check-seeds ${NESTURBATOR_EXECUTION_CORPUS})
-add_test(NAME fuzz.execution.controls COMMAND fuzz.execution --self-test)
+add_executable(fuzz.execution.controls fuzz/test_execution.c)
+target_include_directories(fuzz.execution.controls PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(fuzz.execution.controls PRIVATE nesturbator::nesturbator)
+target_compile_definitions(fuzz.execution.controls PRIVATE NESTURBATOR_FUZZ_REPLAY=1)
+nesturbator_warnings(fuzz.execution.controls)
+if(MSVC)
+  target_compile_definitions(fuzz.execution.controls PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+add_test(NAME fuzz.execution.controls COMMAND fuzz.execution.controls)
 add_test(NAME fuzz.execution.oracle_failure
   COMMAND ${CMAKE_COMMAND}
     "-DCMD=$<TARGET_FILE:fuzz.execution>;--oracle-failure"
