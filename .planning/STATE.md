@@ -4,19 +4,19 @@ milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 18
 current_phase_name: Execution and lifecycle robustness
-current_plan: Not started
-status: ready_to_execute
-stopped_at: Phase 18 planned and checked; ready for gsd-execute-phase 18
-last_updated: "2026-10-24T16:22:54.428Z"
-state_head: 594fd12dad9b382b8c147e26e6d782c22cbbc7de
+current_plan: 2
+status: executing
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-10-24T17:47:55.360Z"
+state_head: 22b890647bf43ac1bc49f998a023932d853b7bcb
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 21
-  completed_plans: 17
+  completed_plans: 18
   percent: 67
 last_activity: 2026-10-24
-last_activity_desc: Phase 18 research and four plans verified; ready to execute
+last_activity_desc: Phase 18 Plan 18-01 executed and CI passed; initial execution reach measured
 ---
 
 # Project State
@@ -29,10 +29,10 @@ Current focus: Phase 18 — Execution and lifecycle robustness.
 
 ## Current Position
 
-Phase: 18 (Execution and lifecycle robustness) — READY TO EXECUTE
-Current Plan: Not started
+Phase: 18 (Execution and lifecycle robustness) — EXECUTING
+Current Plan: 2
 Total Plans in Phase: 4
-Status: Ready to execute
+Status: Executing Phase 18
 Progress: [███████░░░] 67% of milestone phases (2/3)
 Written plans: 21 total; 17 complete and four Phase 18 plans ready to execute.
 
@@ -160,9 +160,9 @@ the normal PR workflow. Do not re-execute completed Phase 17 plans.
 
 ## Session
 
-Last session: 2026-10-24T16:22:54.428Z
-Stopped at: Phase 18 planned and checked; ready for gsd-execute-phase 18
-Resume file: .planning/phases/18-execution-and-lifecycle-robustness/18-01-PLAN.md
+Last session: 2026-10-24T17:47:55.079Z
+Stopped at: Completed 18-01-PLAN.md
+Resume file: None
 
 [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) remains the
 historical authority for completed Phase 16. Its retired helper/admission/
@@ -176,6 +176,7 @@ transport/snapshot/clock/slot gates are not prerequisites for new work.
 | Phase 17 P02 | 67min | 3 tasks | 12 files |
 | Phase 17 P03 | 42min | 2 tasks | 15 files |
 | Phase 17 P04 | 7h22m | 2 tasks | 38 files |
+| Phase 18 P01 | 59min | 2 tasks | 12 files |
 
 ## Recorded Phase 17 decisions
 
@@ -194,3 +195,9 @@ completed after independent verification.
 - [Phase 17]: Authenticate the canonical protected-main scoreboard from its exact commit and project only measured PASS rows.
 - [Phase 17]: Derive same-pin protected pages from the current protected baseline and require fresh PASS/raw evidence on the current invocation.
 - [Phase 17]: Run the full campaign once on primary Linux x64 PR CI; keep measured page bounds and existing workflow timeouts.
+
+## Decisions
+
+- [Phase 18]: Keep loader and state-loader corpus identities separate; execution receives its own NEXE recipe identity.
+- [Phase 18]: Use one finite matched Clang/ASan/UBSan/LLVM-coverage replay pass and report the measured 20-function delta without selecting final campaign budgets.
+- [Phase 18]: Use test-side getrusage for peak RSS after macOS /usr/bin/time -l attempted a sandbox-denied sysctl query.

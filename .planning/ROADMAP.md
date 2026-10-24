@@ -163,11 +163,11 @@ Plans:
   3. Normal CI replays a fixed permitted/generated corpus, while finite nightly sanitizer campaigns retain deterministic crash/timeout reproducers under measured time, memory and execution budgets selected from throughput/coverage evidence. Findings are minimized; a zero-finding campaign is reported only as finite evidence.
   4. Automated guest-loop and JAM cases demonstrate the documented progress/stop outcomes, including the adapter's observable halt policy. Every reproduced library/host contract violation has a minimized regression and correction or an explicit scope amendment; unexpected major repair/architecture scope is never silently absorbed or waived.
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 18-01-PLAN.md — Owned execution tracer and matched initial reach measurement.
+- [x] 18-01-PLAN.md — Owned execution tracer and matched initial reach measurement.
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 18-02-PLAN.md — Six-family bank/execution qualification and discriminating lifecycle controls.
@@ -191,7 +191,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 |-------|-----------|----------------|--------|-----------|
 | 16. Host evidence and roadmap | v4 | 13/13 | Complete    | 2026-10-23 |
 | 17. Complete pinned conformance baseline | v4 | 4/4 | Complete    | 2026-10-24 |
-| 18. Execution and lifecycle robustness | v4 | 0/4 | Ready to execute | - |
+| 18. Execution and lifecycle robustness | v4 | 1/4 | In Progress | - |
 
 ## Backlog disposition
 
