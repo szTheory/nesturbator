@@ -56,8 +56,8 @@ static size_t page_title_terminator(const uint8_t *bytes, unsigned page)
     return cursor;
 }
 
-static int row_offsets(const uint8_t *bytes, unsigned page, unsigned row,
-                       size_t *name_offset, size_t *field_offset, size_t *encoded_length)
+static int row_offsets(const uint8_t *bytes, unsigned page, unsigned row, size_t *name_offset,
+                       size_t *field_offset, size_t *encoded_length)
 {
     size_t cursor = page_title_terminator(bytes, page) + 1u;
     size_t limit = page_limit(bytes, page);
@@ -80,8 +80,7 @@ static int row_offsets(const uint8_t *bytes, unsigned page, unsigned row,
     return 0;
 }
 
-static void expect_inventory_reason(const uint8_t *bytes, size_t size,
-                                    accuracycoin_reason expected)
+static void expect_inventory_reason(const uint8_t *bytes, size_t size, accuracycoin_reason expected)
 {
     accuracycoin_directory parsed;
     accuracycoin_reason actual = ACCURACYCOIN_REASON_OK;
@@ -127,9 +126,9 @@ static int read_fixture(const char *path, fixture_bytes *out)
 static void check_page3(const accuracycoin_directory *directory)
 {
     static const char *const expected[] = {"$03   SLO indirect,X", "$07   SLO zeropage",
-                                            "$0F   SLO absolute", "$13   SLO indirect,Y",
-                                            "$17   SLO zeropage,X", "$1B   SLO absolute,Y",
-                                            "$1F   SLO absolute,X"};
+                                           "$0F   SLO absolute",   "$13   SLO indirect,Y",
+                                           "$17   SLO zeropage,X", "$1B   SLO absolute,Y",
+                                           "$1F   SLO absolute,X"};
     const accuracycoin_page *page = &directory->pages[2];
     CHECK(strcmp(page->title, "Unofficial Instructions: SLO") == 0);
     CHECK_EQ_U64(page->row_count, 7u);
@@ -184,7 +183,7 @@ static void test_inventory_mutations(const uint8_t *source, size_t size,
     size_t name_b;
     size_t field_b;
     size_t encoded_b;
-    uint16_t unused_address;
+    uint16_t unused_address = 0u;
     accuracycoin_directory ignored;
     accuracycoin_reason reason = ACCURACYCOIN_REASON_OK;
     CHECK(mutant != NULL);
@@ -300,8 +299,8 @@ static void test_inventory_mutations(const uint8_t *source, size_t size,
         const accuracycoin_test *source_row = &directory->rows[first];
         if (source_row->kind != ACCURACYCOIN_KIND_TEST)
             continue;
-        CHECK(row_offsets(source, source_row->page, source_row->row, &name_a, &field_a,
-                          &encoded_a));
+        CHECK(
+            row_offsets(source, source_row->page, source_row->row, &name_a, &field_a, &encoded_a));
         if (!contains_encoded_token(source, name_a, encoded_a))
             continue;
         for (unsigned second = first + 1u; second < directory->row_count; second++) {
@@ -329,8 +328,8 @@ static void test_inventory_mutations(const uint8_t *source, size_t size,
     expect_inventory_reason(mutant, size, ACCURACYCOIN_REASON_INVENTORY_FINGERPRINT);
     CHECK(find_unused_result_address(directory, &unused_address));
     memcpy(mutant, source, size);
-    CHECK(row_offsets(mutant, directory->rows[0].page, directory->rows[0].row,
-                      &name_a, &field_a, &encoded_a));
+    CHECK(row_offsets(mutant, directory->rows[0].page, directory->rows[0].row, &name_a, &field_a,
+                      &encoded_a));
     write_le16(mutant + field_a, unused_address);
     expect_inventory_reason(mutant, size, ACCURACYCOIN_REASON_INVENTORY_FINGERPRINT);
 
@@ -416,47 +415,46 @@ static int test_classifier(void)
     static const struct {
         const char *key;
         uint8_t raw;
-    } pass_variants[] = {
-        {"accuracycoin/DMA + $2002 Read", 0x05u},
-        {"accuracycoin/DMA + $2002 Read", 0x09u},
-        {"accuracycoin/APU Register Activation", 0x05u},
-        {"accuracycoin/APU Register Activation", 0x09u},
-        {"accuracycoin/DMA + $4016 Read", 0x05u},
-        {"accuracycoin/DMA + $4016 Read", 0x09u},
-        {"accuracycoin/Implicit DMA Abort", 0x05u},
-        {"accuracycoin/Implicit DMA Abort", 0x09u},
-        {"accuracycoin/Controller Clocking", 0x05u},
-        {"accuracycoin/Controller Clocking", 0x09u},
-        {"accuracycoin/Sprites On Scanline 0", 0x05u},
-        {"accuracycoin/Sprites On Scanline 0", 0x09u},
-        {"accuracycoin/Misaligned OAM2 Address", 0x05u},
-        {"accuracycoin/Misaligned OAM2 Address", 0x09u},
-        {"accuracycoin/$93   SHA indirect,Y", 0x05u},
-        {"accuracycoin/$93   SHA indirect,Y", 0x09u},
-        {"accuracycoin/$93   SHA indirect,Y", 0x0du},
-        {"accuracycoin/$93   SHA indirect,Y", 0x11u},
-        {"accuracycoin/$9F   SHA absolute,Y", 0x05u},
-        {"accuracycoin/$9F   SHA absolute,Y", 0x09u},
-        {"accuracycoin/$9F   SHA absolute,Y", 0x0du},
-        {"accuracycoin/$9F   SHA absolute,Y", 0x11u},
-        {"accuracycoin/$9B   SHS absolute,Y", 0x05u},
-        {"accuracycoin/$9B   SHS absolute,Y", 0x09u},
-        {"accuracycoin/$9B   SHS absolute,Y", 0x0du},
-        {"accuracycoin/$9B   SHS absolute,Y", 0x11u},
-        {"accuracycoin/PPU Read Buffer", 0x39u},
-        {"accuracycoin/PPU Read Buffer", 0x41u},
-        {"accuracycoin/Address $2004 behavior", 0x39u},
-        {"accuracycoin/Address $2004 behavior", 0x41u}};
-    check_classification("accuracycoin/ROM is not writable", 1, 0xffu, 0,
-                         ACCURACYCOIN_RESULT_SKIP, "upstream-skip");
+    } pass_variants[] = {{"accuracycoin/DMA + $2002 Read", 0x05u},
+                         {"accuracycoin/DMA + $2002 Read", 0x09u},
+                         {"accuracycoin/APU Register Activation", 0x05u},
+                         {"accuracycoin/APU Register Activation", 0x09u},
+                         {"accuracycoin/DMA + $4016 Read", 0x05u},
+                         {"accuracycoin/DMA + $4016 Read", 0x09u},
+                         {"accuracycoin/Implicit DMA Abort", 0x05u},
+                         {"accuracycoin/Implicit DMA Abort", 0x09u},
+                         {"accuracycoin/Controller Clocking", 0x05u},
+                         {"accuracycoin/Controller Clocking", 0x09u},
+                         {"accuracycoin/Sprites On Scanline 0", 0x05u},
+                         {"accuracycoin/Sprites On Scanline 0", 0x09u},
+                         {"accuracycoin/Misaligned OAM2 Address", 0x05u},
+                         {"accuracycoin/Misaligned OAM2 Address", 0x09u},
+                         {"accuracycoin/$93   SHA indirect,Y", 0x05u},
+                         {"accuracycoin/$93   SHA indirect,Y", 0x09u},
+                         {"accuracycoin/$93   SHA indirect,Y", 0x0du},
+                         {"accuracycoin/$93   SHA indirect,Y", 0x11u},
+                         {"accuracycoin/$9F   SHA absolute,Y", 0x05u},
+                         {"accuracycoin/$9F   SHA absolute,Y", 0x09u},
+                         {"accuracycoin/$9F   SHA absolute,Y", 0x0du},
+                         {"accuracycoin/$9F   SHA absolute,Y", 0x11u},
+                         {"accuracycoin/$9B   SHS absolute,Y", 0x05u},
+                         {"accuracycoin/$9B   SHS absolute,Y", 0x09u},
+                         {"accuracycoin/$9B   SHS absolute,Y", 0x0du},
+                         {"accuracycoin/$9B   SHS absolute,Y", 0x11u},
+                         {"accuracycoin/PPU Read Buffer", 0x39u},
+                         {"accuracycoin/PPU Read Buffer", 0x41u},
+                         {"accuracycoin/Address $2004 behavior", 0x39u},
+                         {"accuracycoin/Address $2004 behavior", 0x41u}};
+    check_classification("accuracycoin/ROM is not writable", 1, 0xffu, 0, ACCURACYCOIN_RESULT_SKIP,
+                         "upstream-skip");
     check_classification("accuracycoin/ROM is not writable", 1, 0x00u, 0,
                          ACCURACYCOIN_RESULT_NOT_RUN, "unstarted");
-    check_classification("accuracycoin/ROM is not writable", 1, 0x01u, 0,
-                         ACCURACYCOIN_RESULT_PASS, "terminal-pass");
-    check_classification("accuracycoin/PPU Read Buffer", 1, 0x39u, 0,
-                         ACCURACYCOIN_RESULT_PASS, "source-defined-pass-variant");
-    check_classification("accuracycoin/PPU Read Buffer", 1, 0x41u, 0,
-                         ACCURACYCOIN_RESULT_PASS, "source-defined-pass-variant");
+    check_classification("accuracycoin/ROM is not writable", 1, 0x01u, 0, ACCURACYCOIN_RESULT_PASS,
+                         "terminal-pass");
+    check_classification("accuracycoin/PPU Read Buffer", 1, 0x39u, 0, ACCURACYCOIN_RESULT_PASS,
+                         "source-defined-pass-variant");
+    check_classification("accuracycoin/PPU Read Buffer", 1, 0x41u, 0, ACCURACYCOIN_RESULT_PASS,
+                         "source-defined-pass-variant");
     for (size_t i = 0u; i < sizeof pass_variants / sizeof pass_variants[0]; i++)
         check_classification(pass_variants[i].key, 1, pass_variants[i].raw, 0,
                              ACCURACYCOIN_RESULT_PASS, "source-defined-pass-variant");
@@ -464,12 +462,12 @@ static int test_classifier(void)
                          ACCURACYCOIN_RESULT_INVALID, "unsupported-pass-variant");
     check_classification("accuracycoin/ROM is not writable", 1, 0x41u, 0,
                          ACCURACYCOIN_RESULT_INVALID, "unsupported-pass-variant");
-    check_classification("accuracycoin/ROM is not writable", 1, 0x02u, 0,
-                         ACCURACYCOIN_RESULT_FAIL, "terminal-fail");
-    check_classification("accuracycoin/ROM is not writable", 1, 0x06u, 0,
-                         ACCURACYCOIN_RESULT_FAIL, "terminal-fail");
-    check_classification("accuracycoin/ROM is not writable", 1, 0x42u, 0,
-                         ACCURACYCOIN_RESULT_FAIL, "terminal-fail");
+    check_classification("accuracycoin/ROM is not writable", 1, 0x02u, 0, ACCURACYCOIN_RESULT_FAIL,
+                         "terminal-fail");
+    check_classification("accuracycoin/ROM is not writable", 1, 0x06u, 0, ACCURACYCOIN_RESULT_FAIL,
+                         "terminal-fail");
+    check_classification("accuracycoin/ROM is not writable", 1, 0x42u, 0, ACCURACYCOIN_RESULT_FAIL,
+                         "terminal-fail");
     check_classification("accuracycoin/ROM is not writable", 1, 0x40u, 0,
                          ACCURACYCOIN_RESULT_INVALID, "invalid-result");
     check_classification("accuracycoin/ROM is not writable", 1, 0x05u, 0,
@@ -489,24 +487,22 @@ static int test_classifier(void)
     accuracycoin_test draw_row;
     memset(&draw_row, 0, sizeof draw_row);
     draw_row.kind = (uint8_t)ACCURACYCOIN_KIND_DRAW;
-    CHECK(accuracycoin_classify_row(&draw_row, 1, 0x7fu, 0, &cause) ==
-          ACCURACYCOIN_RESULT_DRAW);
+    CHECK(accuracycoin_classify_row(&draw_row, 1, 0x7fu, 0, &cause) == ACCURACYCOIN_RESULT_DRAW);
     CHECK(cause != NULL && strcmp(cause, "inventory-only-draw") == 0);
     CHECK(strcmp(accuracycoin_status_text(ACCURACYCOIN_RESULT_DRAW), "draw") == 0);
     draw_row.kind = 2u;
-    CHECK(accuracycoin_classify_row(&draw_row, 1, 0x01u, 0, &cause) ==
-          ACCURACYCOIN_RESULT_INVALID);
+    CHECK(accuracycoin_classify_row(&draw_row, 1, 0x01u, 0, &cause) == ACCURACYCOIN_RESULT_INVALID);
     CHECK(cause != NULL && strcmp(cause, "invalid-row") == 0);
     CHECK_DONE();
 }
 
 static int expect_start(const char *expected, uint32_t requested_page, uint8_t menu_ready,
-                       uint8_t selected_page, uint8_t cursor, int a_press, int a_release,
-                       int run_state, int transition)
+                        uint8_t selected_page, uint8_t cursor, int a_press, int a_release,
+                        int run_state, int transition)
 {
-    const char *actual = accuracycoin_validate_start(requested_page, menu_ready, selected_page,
-                                                      cursor, a_press, a_release, run_state,
-                                                      transition, 0, 0);
+    const char *actual =
+        accuracycoin_validate_start(requested_page, menu_ready, selected_page, cursor, a_press,
+                                    a_release, run_state, transition, 0, 0);
     return actual != NULL && strcmp(actual, expected) == 0;
 }
 
@@ -597,8 +593,9 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
     char source_revision[64] = "fixture-source";
     uint32_t execution_cap = 3u;
     uint32_t execution_used = strcmp(mutation, "cap-minus") == 0 ? 2u : 3u;
-    int is_timeout = (strcmp(mutation, "timeout") == 0 ||
-                      strcmp(mutation, "multiple-timeout") == 0) && page == 1u;
+    int is_timeout =
+        (strcmp(mutation, "timeout") == 0 || strcmp(mutation, "multiple-timeout") == 0) &&
+        page == 1u;
     int release_frames = strcmp(mutation, "held-a") == 0 && page == 3u ? 0 : 1;
     char rom_sha[65];
     char inventory_sha[65];
@@ -640,11 +637,12 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
             return 0;
         }
         if ((strcmp(mutation, "duplicate-stage") == 0 ||
-             strcmp(mutation, "conflicting-stage") == 0) && page == 1u) {
+             strcmp(mutation, "conflicting-stage") == 0) &&
+            page == 1u) {
             const accuracycoin_test *row = &directory->rows[directory->pages[0].first_row];
             const char *raw = strcmp(mutation, "conflicting-stage") == 0 ? "0x02" : "0x03";
-            if (fprintf(raw_file, "a-press\t1\t1\taccuracycoin/%s\t0x%04x\t1\t%s\n",
-                        row->name, (unsigned)row->result_address, raw) < 0) {
+            if (fprintf(raw_file, "a-press\t1\t1\taccuracycoin/%s\t0x%04x\t1\t%s\n", row->name,
+                        (unsigned)row->result_address, raw) < 0) {
                 (void)fclose(raw_file);
                 return 0;
             }
@@ -662,22 +660,21 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
     int is_draw_page = page == 16u;
     if (diagnostics == NULL ||
         fprintf(diagnostics,
-                "stage\tframe\tmenu_ready\tpage_index\tcursor\tautomate_test_suite\trunning_all_tests\tresult_transition\n"
+                "stage\tframe\tmenu_ready\tpage_index\tcursor\tautomate_test_suite\trunning_all_"
+                "tests\tresult_transition\n"
                 "boot\t1\t10\t%u\t255\t0\t0\t0\n"
                 "a-press\t2\t10\t%u\t%u\t1\t0\t%u\n"
                 "a-release\t3\t10\t%u\t%u\t1\t0\t%u\n"
                 "observe\t4\t10\t%u\t%u\t%u\t0\t0\n",
-                (unsigned)(page - 1u), (unsigned)(page - 1u), 0u,
-                is_draw_page ? 0u : 1u, (unsigned)(page - 1u), is_draw_page ? 0u : 0u,
-                is_draw_page ? 0u : 1u, (unsigned)(page - 1u),
-                is_timeout ? 1u : 255u, is_timeout ? 1u : 0u) < 0 ||
+                (unsigned)(page - 1u), (unsigned)(page - 1u), 0u, is_draw_page ? 0u : 1u,
+                (unsigned)(page - 1u), is_draw_page ? 0u : 0u, is_draw_page ? 0u : 1u,
+                (unsigned)(page - 1u), is_timeout ? 1u : 255u, is_timeout ? 1u : 0u) < 0 ||
         fclose(diagnostics) != 0)
         return 0;
 
     FILE *report = fopen(report_path, "w");
     if (report == NULL ||
-        fprintf(report,
-                "key\tpage\trow\tstatus\tobserved\traw\tframes\tcause\tattempt_id\n") < 0) {
+        fprintf(report, "key\tpage\trow\tstatus\tobserved\traw\tframes\tcause\tattempt_id\n") < 0) {
         if (report != NULL)
             (void)fclose(report);
         return 0;
@@ -709,8 +706,7 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
         char raw_text[5] = "-";
         if (observed != 0)
             (void)snprintf(raw_text, sizeof raw_text, "0x%02x", (unsigned)raw);
-        if (fprintf(report,
-                    "accuracycoin/%s\t%u\t%u\t%s\t%d\t%s\t%u\t%s\tpage-%02u-cold-01\n",
+        if (fprintf(report, "accuracycoin/%s\t%u\t%u\t%s\t%d\t%s\t%u\t%s\tpage-%02u-cold-01\n",
                     row->name, (unsigned)row->page, (unsigned)row->row,
                     accuracycoin_status_text(result), observed, raw_text, execution_used,
                     cause != NULL ? cause : "invalid-result", (unsigned)page) < 0) {
@@ -728,8 +724,8 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
     unsigned total_cap = 120u + nav_frames + 2u + execution_cap;
     unsigned frames_used = 26u + nav_frames + 2u + execution_used;
     const char *verdict = is_timeout != 0 ? "guest-timeout" : "complete";
-    const char *stop_cause = is_timeout != 0 ? "execution-cap-active-test" :
-                                                "all-page-results-terminal";
+    const char *stop_cause =
+        is_timeout != 0 ? "execution-cap-active-test" : "all-page-results-terminal";
     char active_key[ACCURACYCOIN_NAME_CAPACITY + 16u] = "-";
     if (is_timeout != 0) {
         const accuracycoin_test *active = &directory->rows[page_info->first_row + 1u];
@@ -737,14 +733,26 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
     }
     if (strcmp(mutation, "wrong-active") == 0 && page == 1u)
         (void)snprintf(active_key, sizeof active_key, "accuracycoin/not-the-active-row");
-    if (fprintf(metadata,
-                "report_schema=%s\ninventory_schema=1\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%s\nsource_revision=%s\nsource_dirty=0\nlibrary_version=0.1.0\nbehaviour_revision=1\nmode=observe\npage=%u\nattempt_id=%s\norigin=cold-page\nrequested_row=all\ninput_start_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release\nboot_frame_budget=120\nnavigation_frame_budget_per_page=5\nexecution_frame_budget=%u\ntotal_frame_budget=%u\nboot_frames_used=26\nnavigation_frames_used=%u\nstart_frames_used=2\nexecution_frames=%u\nframes_used=%u\nstartup_dmc_pretest_observed=1\nstartup_dmc_pretest=0x00\nstartup_vblank_pretest_observed=1\nstartup_vblank_pretest=0x00\nstartup_ppu_reset_pretest_observed=1\nstartup_ppu_reset_pretest=0x01\nselection_observed=1\nselected_page=%u\nselected_cursor=255\na_press_observed=1\na_release_observed=1\nrelease_frames=%d\nrun_state_observed=1\nresult_transition_observed=%d\ndraw_cursor_transition_observed=%d\nmenu_returned_to_header_observed=%d\nstart_attributed=1\nstop_cause=%s\nactive_key=%s\nactive_raw=%s\nverdict=%s\nhost_elapsed_ns=1000\n",
-                strcmp(mutation, "bad-schema") == 0 && page == 1u ? "2" : "1",
-                directory->pin, rom_sha, inventory_sha, source_revision,
-                (unsigned)page, attempt_id, execution_cap, total_cap,
-                nav_frames, execution_used, frames_used, (unsigned)(page - 1u), release_frames,
-                is_draw_page ? 0 : 1, is_draw_page, !is_timeout, stop_cause, active_key,
-                is_timeout != 0 ? "0x03" : "-", verdict) < 0 ||
+    if (fprintf(
+            metadata,
+            "report_schema=%s\ninventory_schema=1\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%"
+            "s\nsource_revision=%s\nsource_dirty=0\nlibrary_version=0.1.0\nbehaviour_revision="
+            "1\nmode=observe\npage=%u\nattempt_id=%s\norigin=cold-page\nrequested_row=all\ninput_"
+            "start_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release\nboot_frame_"
+            "budget=120\nnavigation_frame_budget_per_page=5\nexecution_frame_budget=%u\ntotal_"
+            "frame_budget=%u\nboot_frames_used=26\nnavigation_frames_used=%u\nstart_frames_used="
+            "2\nexecution_frames=%u\nframes_used=%u\nstartup_dmc_pretest_observed=1\nstartup_dmc_"
+            "pretest=0x00\nstartup_vblank_pretest_observed=1\nstartup_vblank_pretest=0x00\nstartup_"
+            "ppu_reset_pretest_observed=1\nstartup_ppu_reset_pretest=0x01\nselection_observed="
+            "1\nselected_page=%u\nselected_cursor=255\na_press_observed=1\na_release_observed="
+            "1\nrelease_frames=%d\nrun_state_observed=1\nresult_transition_observed=%d\ndraw_"
+            "cursor_transition_observed=%d\nmenu_returned_to_header_observed=%d\nstart_attributed="
+            "1\nstop_cause=%s\nactive_key=%s\nactive_raw=%s\nverdict=%s\nhost_elapsed_ns=1000\n",
+            strcmp(mutation, "bad-schema") == 0 && page == 1u ? "2" : "1", directory->pin, rom_sha,
+            inventory_sha, source_revision, (unsigned)page, attempt_id, execution_cap, total_cap,
+            nav_frames, execution_used, frames_used, (unsigned)(page - 1u), release_frames,
+            is_draw_page ? 0 : 1, is_draw_page, !is_timeout, stop_cause, active_key,
+            is_timeout != 0 ? "0x03" : "-", verdict) < 0 ||
         fclose(metadata) != 0)
         return 0;
     return 1;
@@ -756,15 +764,17 @@ static int write_campaign_fixture(const char *root, const accuracycoin_directory
     char path[4096];
     if (!make_directory(root) || snprintf(path, sizeof path, "%s/outer-outcomes.tsv", root) < 0)
         return 0;
-    FILE *outer = fopen(path, "w");
+    int crlf = strcmp(mutation, "crlf-outcomes") == 0;
+    const char *line_ending = crlf != 0 ? "\r\n" : "\n";
+    FILE *outer = fopen(path, "wb");
     if (outer == NULL ||
-        fprintf(outer, "page\toutcome\texit_code\tdeadline_seconds\n") < 0) {
+        fprintf(outer, "page\toutcome\texit_code\tdeadline_seconds%s", line_ending) < 0) {
         if (outer != NULL)
             (void)fclose(outer);
         return 0;
     }
     for (uint32_t page = 1u; page <= ACCURACYCOIN_PAGE_COUNT; page++)
-        if (fprintf(outer, "%u\tEXIT_ZERO\t0\t30\n", (unsigned)page) < 0) {
+        if (fprintf(outer, "%u\tEXIT_ZERO\t0\t30%s", (unsigned)page, line_ending) < 0) {
             (void)fclose(outer);
             return 0;
         }
@@ -789,8 +799,8 @@ static int expect_fixture_rejected(const char *work, const char *case_name,
     return 1;
 }
 
-static int expect_conflicting_observations_retained(
-    const char *work, const accuracycoin_directory *directory)
+static int expect_conflicting_observations_retained(const char *work,
+                                                    const accuracycoin_directory *directory)
 {
     char root[4096];
     char path[4096];
@@ -836,8 +846,8 @@ static int expect_conflicting_observations_retained(
     FILE *metadata = fopen(path, "r");
     CHECK(metadata != NULL);
     char metadata_text[2048];
-    size_t metadata_size = metadata != NULL ?
-        fread(metadata_text, 1u, sizeof metadata_text - 1u, metadata) : 0u;
+    size_t metadata_size =
+        metadata != NULL ? fread(metadata_text, 1u, sizeof metadata_text - 1u, metadata) : 0u;
     if (metadata != NULL) {
         CHECK(ferror(metadata) == 0);
         CHECK(fclose(metadata) == 0);
@@ -872,7 +882,8 @@ static int test_report(const char *new_rom_path, const char *old_rom_path, const
     snprintf(path, sizeof path, "%s/good/summary.txt", work);
     FILE *summary = fopen(path, "r");
     char summary_text[2048];
-    size_t summary_size = summary != NULL ? fread(summary_text, 1u, sizeof summary_text - 1u, summary) : 0u;
+    size_t summary_size =
+        summary != NULL ? fread(summary_text, 1u, sizeof summary_text - 1u, summary) : 0u;
     if (summary != NULL)
         (void)fclose(summary);
     summary_text[summary_size] = '\0';
@@ -881,6 +892,12 @@ static int test_report(const char *new_rom_path, const char *old_rom_path, const
     CHECK(strstr(summary_text, "fail=1") != NULL);
     CHECK(strstr(summary_text, "skip=1") != NULL);
     CHECK(strstr(summary_text, "draw_inventory_only=5") != NULL);
+    if (snprintf(path, sizeof path, "%s/crlf-outcomes", work) < 0 ||
+        !write_campaign_fixture(path, &new_directory, "crlf-outcomes")) {
+        CHECK(0);
+        goto done;
+    }
+    CHECK_EQ_U64(accuracycoin_collect_campaign(&new_directory, path), 0u);
     CHECK(expect_fixture_rejected(work, "bad-schema", &new_directory, "bad-schema"));
     CHECK(expect_fixture_rejected(work, "held-a", &new_directory, "held-a"));
     CHECK(expect_fixture_rejected(work, "wrong-source", &new_directory, "wrong-source"));
@@ -907,15 +924,19 @@ static int test_report(const char *new_rom_path, const char *old_rom_path, const
     snprintf(path, sizeof path, "%s/multiple-timeout/report.tsv", work);
     FILE *multiple_timeout = fopen(path, "r");
     char multiple_timeout_text[32768];
-    size_t multiple_timeout_size = multiple_timeout != NULL ?
-        fread(multiple_timeout_text, 1u, sizeof multiple_timeout_text - 1u, multiple_timeout) : 0u;
+    size_t multiple_timeout_size =
+        multiple_timeout != NULL
+            ? fread(multiple_timeout_text, 1u, sizeof multiple_timeout_text - 1u, multiple_timeout)
+            : 0u;
     if (multiple_timeout != NULL)
         (void)fclose(multiple_timeout);
     multiple_timeout_text[multiple_timeout_size] = '\0';
-    CHECK(strstr(multiple_timeout_text,
-                 "accuracycoin/RAM Mirroring\t1\t2\ttest\ttimeout\t1\t0x03\t3\tactive-test-budget-exhausted\tpage-01-cold-01") != NULL);
-    CHECK(strstr(multiple_timeout_text,
-                 "accuracycoin/PC Wraparound\t1\t3\ttest\tnot-run\t1\t0x03\t3\tnoncurrent-running-marker\tpage-01-cold-01") != NULL);
+    CHECK(strstr(multiple_timeout_text, "accuracycoin/RAM "
+                                        "Mirroring\t1\t2\ttest\ttimeout\t1\t0x03\t3\tactive-test-"
+                                        "budget-exhausted\tpage-01-cold-01") != NULL);
+    CHECK(strstr(multiple_timeout_text, "accuracycoin/PC "
+                                        "Wraparound\t1\t3\ttest\tnot-run\t1\t0x03\t3\tnoncurrent-"
+                                        "running-marker\tpage-01-cold-01") != NULL);
     snprintf(path, sizeof path, "%s/wrong-pin", work);
     CHECK(write_campaign_fixture(path, &new_directory, "good"));
     CHECK(accuracycoin_collect_campaign(&old_directory, path) != 0);
@@ -1010,8 +1031,8 @@ static int test_migration_source(const char *migration_path, const char *scorebo
         CHECK(strcmp(score_fields[1], "pass") == 0);
         raw = strtoul(score_fields[2], &end, 0);
         CHECK(end != score_fields[2] && end != NULL && *end == '\0');
-        CHECK(raw == 0x01u || (raw == 0x41u &&
-                              strcmp(score_fields[0], "accuracycoin/PPU Read Buffer") == 0));
+        CHECK(raw == 0x01u ||
+              (raw == 0x41u && strcmp(score_fields[0], "accuracycoin/PPU Read Buffer") == 0));
         CHECK(protected_count < PROTECTED_ROW_CAPACITY);
         if (protected_count >= PROTECTED_ROW_CAPACITY)
             continue;
@@ -1056,8 +1077,7 @@ static int test_migration_source(const char *migration_path, const char *scorebo
             continue;
         for (size_t i = 0u; i < migration_count; i++)
             CHECK(strcmp(migration_keys[i], fields[1]) != 0);
-        (void)snprintf(migration_keys[migration_count], sizeof migration_keys[0], "%s",
-                       fields[1]);
+        (void)snprintf(migration_keys[migration_count], sizeof migration_keys[0], "%s", fields[1]);
         migration_count++;
     }
     CHECK(ferror(migration) == 0);
@@ -1089,7 +1109,7 @@ int main(int argc, char **argv)
         return test_report(argv[2], argv[3], argv[4]);
     if (argc == 4 && strcmp(argv[1], "migration") == 0)
         return test_migration_source(argv[2], argv[3]);
-    fprintf(stderr,
-            "usage: accuracycoin.conformance inventory NEW_ROM OLD_ROM | classifier | driver | report NEW_ROM OLD_ROM WORK | migration TSV SCOREBOARD\n");
+    fprintf(stderr, "usage: accuracycoin.conformance inventory NEW_ROM OLD_ROM | classifier | "
+                    "driver | report NEW_ROM OLD_ROM WORK | migration TSV SCOREBOARD\n");
     return 2;
 }

@@ -108,22 +108,21 @@ int accuracycoin_write_inventory(FILE *out, const accuracycoin_directory *direct
  * active until an observed guest-frame budget expires. Pinned source-defined
  * pass variants are accepted only for their named tests. */
 accuracycoin_result_status accuracycoin_classify(const char *key, int observed, uint8_t raw,
-                                                  int active_budget_expired,
-                                                  const char **cause);
+                                                 int active_budget_expired, const char **cause);
 /* DRAW rows carry the shared sentinel as inventory data; return DRAW without
  * interpreting its arbitrary byte as a scored status. */
 accuracycoin_result_status accuracycoin_classify_row(const accuracycoin_test *row, int observed,
-                                                      uint8_t raw, int active_budget_expired,
-                                                      const char **cause);
+                                                     uint8_t raw, int active_budget_expired,
+                                                     const char **cause);
 const char *accuracycoin_status_text(accuracycoin_result_status status);
 
 /* Driver start evidence uses result transitions for scored pages and the
  * source-defined row-cursor transition for DRAW-only pages. */
 const char *accuracycoin_validate_start(uint32_t requested_page, uint8_t menu_ready,
-                                       uint8_t selected_page, uint8_t cursor,
-                                       int a_press_observed, int a_release_observed,
-                                       int run_state_observed, int result_transition_observed,
-                                       int draw_only_page, int draw_cursor_transition_observed);
+                                        uint8_t selected_page, uint8_t cursor, int a_press_observed,
+                                        int a_release_observed, int run_state_observed,
+                                        int result_transition_observed, int draw_only_page,
+                                        int draw_cursor_transition_observed);
 
 int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32_t page,
                                  const char *scoreboard_path, nesturbator *inst, uint16_t *video,
@@ -133,13 +132,11 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
  * diagnostics, a classified report and metadata. The host monotonic start stamp
  * distinguishes this invocation's evidence from a previously copied report. */
 int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint32_t page,
-                                  const accuracycoin_run_budgets *budgets,
-                                  const char *output_dir,
+                                  const accuracycoin_run_budgets *budgets, const char *output_dir,
                                   nesturbator *inst, uint16_t *video, int16_t *audio);
 
 /* Collect one bounded campaign under output_dir. Page child outcomes are produced by the
  * CMake launcher; only validated per-page evidence is classified as complete observation. */
-int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
-                                  const char *output_dir);
+int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const char *output_dir);
 
 #endif /* NESTURBATOR_RUNNER_ACCURACYCOIN_H */

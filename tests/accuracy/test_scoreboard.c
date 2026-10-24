@@ -213,8 +213,8 @@ static int metadata_number(const metadata *meta, const char *key, uint64_t *out)
     return text != NULL && parse_unsigned(text, out);
 }
 
-static int load_scoreboard(const char *path, scoreboard_row *rows, size_t *count,
-                           char *error, size_t error_size)
+static int load_scoreboard(const char *path, scoreboard_row *rows, size_t *count, char *error,
+                           size_t error_size)
 {
     FILE *file = fopen(path, "r");
     char line[SCOREBOARD_LINE_SIZE];
@@ -241,7 +241,8 @@ static int load_scoreboard(const char *path, scoreboard_row *rows, size_t *count
             (strcmp(fields[4], "-") != 0 && !valid_hex(fields[4], 64u)) ||
             (previous[0] != '\0' && strcmp(previous, fields[0]) >= 0)) {
             (void)fclose(file);
-            return set_error(error, error_size, "scoreboard row is invalid, duplicated, or unsorted");
+            return set_error(error, error_size,
+                             "scoreboard row is invalid, duplicated, or unsorted");
         }
         (void)copy_text(rows[row_count].key, sizeof rows[row_count].key, fields[0]);
         (void)copy_text(rows[row_count].status, sizeof rows[row_count].status, fields[1]);
@@ -281,8 +282,8 @@ static int hash_file(const char *path, char out[65])
     return 1;
 }
 
-static int load_directory(const char *path, accuracycoin_directory *directory,
-                          char *error, size_t error_size)
+static int load_directory(const char *path, accuracycoin_directory *directory, char *error,
+                          size_t error_size)
 {
     FILE *file = fopen(path, "rb");
     uint8_t *bytes = NULL;
@@ -310,7 +311,7 @@ static int load_directory(const char *path, accuracycoin_directory *directory,
 }
 
 static const accuracycoin_test *inventory_row(const accuracycoin_directory *directory,
-                                               const char *key)
+                                              const char *key)
 {
     const char *name = strncmp(key, "accuracycoin/", 13u) == 0 ? key + 13u : "";
     for (size_t i = 0u; i < directory->row_count; i++)
@@ -329,8 +330,7 @@ static const scoreboard_row *scoreboard_find(const scoreboard_row *rows, size_t 
     return NULL;
 }
 
-static const observation_row *observation_find(const page_observation pages[3],
-                                               const char *key)
+static const observation_row *observation_find(const page_observation pages[3], const char *key)
 {
     for (size_t page = 0u; page < 3u; page++)
         for (size_t row = 0u; row < pages[page].count; row++)
@@ -365,9 +365,9 @@ static int parse_hex_value(const char *text, uint64_t *value)
     return 1;
 }
 
-static int load_final_raw(const char *path, const accuracycoin_directory *directory,
-                          unsigned page, const observation_row *report_rows, size_t report_count,
-                          char *error, size_t error_size)
+static int load_final_raw(const char *path, const accuracycoin_directory *directory, unsigned page,
+                          const observation_row *report_rows, size_t report_count, char *error,
+                          size_t error_size)
 {
     static const char header[] = "stage\tpage\trow\tkey\tresult_address\tobserved\traw\n";
     FILE *file = fopen(path, "r");
@@ -396,7 +396,8 @@ static int load_final_raw(const char *path, const accuracycoin_directory *direct
         if (expected == NULL || expected->page != page || expected->row != row_value ||
             expected->result_address != address_value || strcmp(fields[5], "1") != 0) {
             (void)fclose(file);
-            return set_error(error, error_size, "final raw evidence does not map to the pinned inventory");
+            return set_error(error, error_size,
+                             "final raw evidence does not map to the pinned inventory");
         }
         uint8_t raw;
         if (!parse_raw(fields[6], &raw)) {
@@ -409,7 +410,8 @@ static int load_final_raw(const char *path, const accuracycoin_directory *direct
                 uint8_t report_raw;
                 if (!parse_raw(report_rows[i].raw, &report_raw) || report_raw != raw) {
                     (void)fclose(file);
-                    return set_error(error, error_size, "report raw byte differs from final sample");
+                    return set_error(error, error_size,
+                                     "report raw byte differs from final sample");
                 }
                 found++;
             }
@@ -426,9 +428,9 @@ static int load_final_raw(const char *path, const accuracycoin_directory *direct
     return 1;
 }
 
-static int load_page_observation(const char *evidence_root, const char *pin_name,
-                                 unsigned page, const accuracycoin_directory *directory,
-                                 page_observation *out, char *error, size_t error_size)
+static int load_page_observation(const char *evidence_root, const char *pin_name, unsigned page,
+                                 const accuracycoin_directory *directory, page_observation *out,
+                                 char *error, size_t error_size)
 {
     char directory_path[1024];
     char metadata_path[1100];
@@ -442,8 +444,8 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
     const char *value;
     const accuracycoin_page *inventory_page = &directory->pages[page - 1u];
     memset(out, 0, sizeof *out);
-    if (snprintf(directory_path, sizeof directory_path, "%s/%s/page-%02u", evidence_root,
-                 pin_name, page) < 0 ||
+    if (snprintf(directory_path, sizeof directory_path, "%s/%s/page-%02u", evidence_root, pin_name,
+                 page) < 0 ||
         snprintf(metadata_path, sizeof metadata_path, "%s/metadata.txt", directory_path) < 0 ||
         snprintf(report_path, sizeof report_path, "%s/report.tsv", directory_path) < 0 ||
         snprintf(raw_path, sizeof raw_path, "%s/raw.tsv", directory_path) < 0)
@@ -454,7 +456,8 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
         strcmp(metadata_or_empty(&out->meta, "inventory_schema"), "1") != 0 ||
         strcmp(metadata_or_empty(&out->meta, "rom_pin"), directory->pin) != 0 ||
         strcmp(metadata_or_empty(&out->meta, "rom_sha256"), directory->rom_sha256) != 0 ||
-        strcmp(metadata_or_empty(&out->meta, "inventory_sha256"), directory->inventory_sha256) != 0 ||
+        strcmp(metadata_or_empty(&out->meta, "inventory_sha256"), directory->inventory_sha256) !=
+            0 ||
         strcmp(metadata_or_empty(&out->meta, "mode"), "observe") != 0 ||
         strcmp(metadata_or_empty(&out->meta, "origin"), "cold-page") != 0 ||
         strcmp(metadata_or_empty(&out->meta, "requested_row"), "all") != 0 ||
@@ -477,10 +480,11 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
         !metadata_number(&out->meta, "boot_frame_budget", &number) || number != 32u ||
         !metadata_number(&out->meta, "navigation_frame_budget_per_page", &number) || number != 5u ||
         !metadata_number(&out->meta, "execution_frame_budget", &number) || number != 1800u ||
-        !metadata_number(&out->meta, "execution_frames", &number) || number == 0u || number > 1800u ||
-        !metadata_number(&out->meta, "total_frame_budget", &number) ||
+        !metadata_number(&out->meta, "execution_frames", &number) || number == 0u ||
+        number > 1800u || !metadata_number(&out->meta, "total_frame_budget", &number) ||
         number != 32u + (uint64_t)(page - 1u) * 5u + 2u + 1800u)
-        return set_error(error, error_size, "protected observation metadata does not prove a qualified bounded start");
+        return set_error(error, error_size,
+                         "protected observation metadata does not prove a qualified bounded start");
     char expected_attempt[64];
     (void)snprintf(expected_attempt, sizeof expected_attempt, "page-%02u-cold-01", page);
     value = metadata_value(&out->meta, "attempt_id");
@@ -507,9 +511,12 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
             out->count >= MAX_REPORT_ROWS || !parse_unsigned(fields[1], &row_page) ||
             !parse_unsigned(fields[2], &row_number) || !parse_unsigned(fields[4], &observed) ||
             !parse_unsigned(fields[6], &frames) || row_page != page || row_number == 0u ||
-            observed > 1u || frames == 0u || frames > 1800u || strlen(fields[0]) >= SCOREBOARD_KEY_SIZE ||
-            strlen(fields[3]) >= sizeof out->rows[0].status || strlen(fields[5]) >= sizeof out->rows[0].raw ||
-            strlen(fields[7]) >= sizeof out->rows[0].cause || strlen(fields[8]) >= sizeof out->rows[0].attempt_id ||
+            observed > 1u || frames == 0u || frames > 1800u ||
+            strlen(fields[0]) >= SCOREBOARD_KEY_SIZE ||
+            strlen(fields[3]) >= sizeof out->rows[0].status ||
+            strlen(fields[5]) >= sizeof out->rows[0].raw ||
+            strlen(fields[7]) >= sizeof out->rows[0].cause ||
+            strlen(fields[8]) >= sizeof out->rows[0].attempt_id ||
             strcmp(fields[8], expected_attempt) != 0) {
             (void)fclose(report);
             return set_error(error, error_size, "protected page report row is malformed");
@@ -517,7 +524,8 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
         inventory = inventory_row(directory, fields[0]);
         if (inventory == NULL || inventory->page != page || inventory->row != row_number) {
             (void)fclose(report);
-            return set_error(error, error_size, "protected page report key differs from the pinned inventory");
+            return set_error(error, error_size,
+                             "protected page report key differs from the pinned inventory");
         }
         for (size_t i = 0u; i < out->count; i++)
             if (strcmp(out->rows[i].key, fields[0]) == 0) {
@@ -533,13 +541,14 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
             (void)fclose(report);
             return set_error(error, error_size, "unobserved protected page row has a raw byte");
         }
-        classified = accuracycoin_classify(fields[0], (int)observed, raw,
-                                            strcmp(fields[7], "execution-cap-active-test") == 0,
-                                            &cause);
+        classified =
+            accuracycoin_classify(fields[0], (int)observed, raw,
+                                  strcmp(fields[7], "execution-cap-active-test") == 0, &cause);
         if (classified == ACCURACYCOIN_RESULT_INVALID ||
             strcmp(fields[3], accuracycoin_status_text(classified)) != 0) {
             (void)fclose(report);
-            return set_error(error, error_size, "protected page report status does not match its raw byte");
+            return set_error(error, error_size,
+                             "protected page report status does not match its raw byte");
         }
         row = &out->rows[out->count++];
         (void)copy_text(row->key, sizeof row->key, fields[0]);
@@ -555,7 +564,8 @@ static int load_page_observation(const char *evidence_root, const char *pin_name
     if (ferror(report) != 0 || fclose(report) != 0)
         return set_error(error, error_size, "protected page report read failed");
     if (out->count != inventory_page->row_count)
-        return set_error(error, error_size, "protected page report does not cover the full page inventory");
+        return set_error(error, error_size,
+                         "protected page report does not cover the full page inventory");
     if (!load_final_raw(raw_path, directory, page, out->rows, out->count, error, error_size))
         return 0;
     return 1;
@@ -586,19 +596,21 @@ static int load_manifest_identity(const char *path, const accuracycoin_directory
             if (strcmp(fields[1], expected_url) != 0 || strcmp(fields[2], directory->pin) != 0 ||
                 strcmp(fields[3], "MIT") != 0 || strcmp(fields[4], directory->rom_sha256) != 0) {
                 (void)fclose(file);
-                return set_error(error, error_size, "candidate manifest identity does not match candidate ROM bytes");
+                return set_error(error, error_size,
+                                 "candidate manifest identity does not match candidate ROM bytes");
             }
         }
     }
     if (ferror(file) != 0 || fclose(file) != 0)
         return set_error(error, error_size, "candidate ROM manifest read failed");
     if (matches != 1u)
-        return set_error(error, error_size, "candidate manifest must identify exactly one canonical AccuracyCoin ROM");
+        return set_error(error, error_size,
+                         "candidate manifest must identify exactly one canonical AccuracyCoin ROM");
     return 1;
 }
 
-static int load_migrations(const char *path, protected_context *context,
-                           char *error, size_t error_size)
+static int load_migrations(const char *path, protected_context *context, char *error,
+                           size_t error_size)
 {
     static const char header[] =
         "old_pin\told_key\told_result_symbol\told_routine_symbol\tnew_pin\tnew_key\t"
@@ -619,20 +631,23 @@ static int load_migrations(const char *path, protected_context *context,
         if (!split_tabs(line, fields, 12u, &count) || count != 12u ||
             context->migration_count >= MAX_MIGRATION_ROWS) {
             (void)fclose(file);
-            return set_error(error, error_size, "protected migration row is malformed or oversized");
+            return set_error(error, error_size,
+                             "protected migration row is malformed or oversized");
         }
         migration = &context->migrations[context->migration_count++];
-        char *targets[] = {migration->old_pin, migration->old_key, migration->old_result_symbol,
-                           migration->old_routine_symbol, migration->new_pin, migration->new_key,
+        char *targets[] = {migration->old_pin,           migration->old_key,
+                           migration->old_result_symbol, migration->old_routine_symbol,
+                           migration->new_pin,           migration->new_key,
                            migration->new_result_symbol, migration->new_routine_symbol,
-                           migration->disposition, migration->source_reference,
-                           migration->assertion_change, migration->new_observation_reference};
-        size_t capacities[] = {sizeof migration->old_pin, sizeof migration->old_key,
-                               sizeof migration->old_result_symbol, sizeof migration->old_routine_symbol,
-                               sizeof migration->new_pin, sizeof migration->new_key,
-                               sizeof migration->new_result_symbol, sizeof migration->new_routine_symbol,
-                               sizeof migration->disposition, sizeof migration->source_reference,
-                               sizeof migration->assertion_change, sizeof migration->new_observation_reference};
+                           migration->disposition,       migration->source_reference,
+                           migration->assertion_change,  migration->new_observation_reference};
+        size_t capacities[] = {
+            sizeof migration->old_pin,           sizeof migration->old_key,
+            sizeof migration->old_result_symbol, sizeof migration->old_routine_symbol,
+            sizeof migration->new_pin,           sizeof migration->new_key,
+            sizeof migration->new_result_symbol, sizeof migration->new_routine_symbol,
+            sizeof migration->disposition,       sizeof migration->source_reference,
+            sizeof migration->assertion_change,  sizeof migration->new_observation_reference};
         for (size_t i = 0u; i < 12u; i++)
             if (!copy_text(targets[i], capacities[i], fields[i])) {
                 (void)fclose(file);
@@ -642,16 +657,17 @@ static int load_migrations(const char *path, protected_context *context,
     if (ferror(file) != 0 || fclose(file) != 0)
         return set_error(error, error_size, "protected migration table read failed");
     if (context->migration_count != 17u)
-        return set_error(error, error_size, "protected migration table must cover all 17 retained keys");
+        return set_error(error, error_size,
+                         "protected migration table must cover all 17 retained keys");
     return 1;
 }
 
-static const protected_migration *migration_find(const protected_context *context,
-                                                  const char *key, int use_new_key)
+static const protected_migration *migration_find(const protected_context *context, const char *key,
+                                                 int use_new_key)
 {
     for (size_t i = 0u; i < context->migration_count; i++) {
-        const char *candidate = use_new_key ? context->migrations[i].new_key :
-                                              context->migrations[i].old_key;
+        const char *candidate =
+            use_new_key ? context->migrations[i].new_key : context->migrations[i].old_key;
         if (strcmp(candidate, key) == 0)
             return &context->migrations[i];
     }
@@ -661,10 +677,8 @@ static const protected_migration *migration_find(const protected_context *contex
 static int is_reviewed_changed_key(const char *key)
 {
     static const char *const keys[] = {
-        "accuracycoin/Frame Counter 4-step",
-        "accuracycoin/Frame Counter 5-step",
-        "accuracycoin/Frame Counter IRQ",
-        "accuracycoin/PPU Register Open Bus"};
+        "accuracycoin/Frame Counter 4-step", "accuracycoin/Frame Counter 5-step",
+        "accuracycoin/Frame Counter IRQ", "accuracycoin/PPU Register Open Bus"};
     for (size_t i = 0u; i < sizeof keys / sizeof keys[0]; i++)
         if (strcmp(key, keys[i]) == 0)
             return 1;
@@ -673,14 +687,16 @@ static int is_reviewed_changed_key(const char *key)
 
 static int validate_migration_row(const protected_context *context,
                                   const protected_migration *migration,
-                                  const observation_row *new_observation,
-                                  char *error, size_t error_size)
+                                  const observation_row *new_observation, char *error,
+                                  size_t error_size)
 {
     char old_source[128];
     char new_source[128];
     char expected_reference[512];
-    const accuracycoin_test *old_inventory = inventory_row(&context->old_directory, migration->old_key);
-    const accuracycoin_test *new_inventory = inventory_row(&context->new_directory, migration->new_key);
+    const accuracycoin_test *old_inventory =
+        inventory_row(&context->old_directory, migration->old_key);
+    const accuracycoin_test *new_inventory =
+        inventory_row(&context->new_directory, migration->new_key);
     if (strcmp(migration->old_pin, context->old_directory.pin) != 0 ||
         strcmp(migration->new_pin, context->new_directory.pin) != 0 ||
         strncmp(migration->old_result_symbol, "result_", 7u) != 0 ||
@@ -691,28 +707,35 @@ static int validate_migration_row(const protected_context *context,
         strstr(migration->source_reference, migration->old_pin) == NULL ||
         strstr(migration->source_reference, migration->new_pin) == NULL ||
         migration->assertion_change[0] == '\0')
-        return set_error(error, error_size, "migration disposition lacks exact pin-bound source facts");
+        return set_error(error, error_size,
+                         "migration disposition lacks exact pin-bound source facts");
     (void)snprintf(old_source, sizeof old_source, "blob/%s/AccuracyCoin.asm", migration->old_pin);
     (void)snprintf(new_source, sizeof new_source, "blob/%s/AccuracyCoin.asm", migration->new_pin);
     if (strstr(migration->source_reference, old_source) == NULL ||
         strstr(migration->source_reference, new_source) == NULL)
-        return set_error(error, error_size, "migration source references do not name both exact source pins");
+        return set_error(error, error_size,
+                         "migration source references do not name both exact source pins");
     if (strcmp(migration->disposition, "unchanged") == 0) {
         if (old_inventory == NULL || new_inventory == NULL ||
             strcmp(migration->old_key, migration->new_key) != 0)
-            return set_error(error, error_size, "unchanged disposition does not map the same decoded key");
+            return set_error(error, error_size,
+                             "unchanged disposition does not map the same decoded key");
     } else if (strcmp(migration->disposition, "changed-meaning") == 0) {
-        if (!is_reviewed_changed_key(migration->old_key) || old_inventory == NULL || new_inventory == NULL ||
-            strcmp(migration->old_key, migration->new_key) != 0)
-            return set_error(error, error_size, "changed-meaning disposition is not one of the four reviewed source rows");
+        if (!is_reviewed_changed_key(migration->old_key) || old_inventory == NULL ||
+            new_inventory == NULL || strcmp(migration->old_key, migration->new_key) != 0)
+            return set_error(
+                error, error_size,
+                "changed-meaning disposition is not one of the four reviewed source rows");
     } else if (strcmp(migration->disposition, "renamed") == 0) {
         if (old_inventory == NULL || new_inventory == NULL ||
             strcmp(migration->old_key, migration->new_key) == 0)
-            return set_error(error, error_size, "renamed disposition does not prove two present distinct keys");
+            return set_error(error, error_size,
+                             "renamed disposition does not prove two present distinct keys");
     } else if (strcmp(migration->disposition, "removed") == 0) {
         if (old_inventory == NULL || migration->new_key[0] != '\0' || new_observation != NULL ||
             strstr(migration->assertion_change, "removed") == NULL)
-            return set_error(error, error_size, "removed disposition lacks an explicit absent-row source fact");
+            return set_error(error, error_size,
+                             "removed disposition lacks an explicit absent-row source fact");
         return 1;
     } else {
         return set_error(error, error_size, "migration disposition is unrecognized");
@@ -725,7 +748,8 @@ static int validate_migration_row(const protected_context *context,
                    new_observation->raw, (unsigned long long)new_observation->frames,
                    new_observation->status);
     if (strcmp(expected_reference, migration->new_observation_reference) != 0)
-        return set_error(error, error_size, "migration new-observation link differs from fresh measured evidence");
+        return set_error(error, error_size,
+                         "migration new-observation link differs from fresh measured evidence");
     return 1;
 }
 
@@ -741,8 +765,8 @@ static int verify_context(protected_context *context, const char *baseline_path,
     const char *text;
     static const unsigned pages[] = {2u, 14u, 17u};
 
-    if (!load_scoreboard(baseline_path, context->baseline, &context->baseline_count,
-                         error, error_size))
+    if (!load_scoreboard(baseline_path, context->baseline, &context->baseline_count, error,
+                         error_size))
         return 0;
     if (!load_scoreboard(candidate_scoreboard_path, context->candidate, &context->candidate_count,
                          error, error_size))
@@ -750,11 +774,14 @@ static int verify_context(protected_context *context, const char *baseline_path,
     if (!load_metadata(baseline_metadata_path, &baseline_meta, error, error_size))
         return 0;
     if (!valid_hex(expected_revision, 40u))
-        return set_error(error, error_size, "protected authority revision is not an immutable commit id");
-    (void)copy_text(context->protected_revision, sizeof context->protected_revision, expected_revision);
+        return set_error(error, error_size,
+                         "protected authority revision is not an immutable commit id");
+    (void)copy_text(context->protected_revision, sizeof context->protected_revision,
+                    expected_revision);
     text = metadata_value(&baseline_meta, "protected_revision");
     if (text == NULL || strcmp(text, context->protected_revision) != 0)
-        return set_error(error, error_size, "protected metadata revision differs from fetched authority revision");
+        return set_error(error, error_size,
+                         "protected metadata revision differs from fetched authority revision");
     text = metadata_value(&baseline_meta, "source");
     if (strcmp(metadata_or_empty(&baseline_meta, "schema"), "1") != 0 ||
         (strcmp(metadata_or_empty(&baseline_meta, "authority"), "protected-main") != 0 &&
@@ -763,12 +790,15 @@ static int verify_context(protected_context *context, const char *baseline_path,
         return set_error(error, error_size, "protected metadata authority identity is invalid");
     if (!hash_file(baseline_path, digest) ||
         strcmp(digest, metadata_or_empty(&baseline_meta, "scoreboard_sha256")) != 0)
-        return set_error(error, error_size, "protected scoreboard bytes do not match same-revision metadata");
+        return set_error(error, error_size,
+                         "protected scoreboard bytes do not match same-revision metadata");
     if (!metadata_number(&baseline_meta, "scoreboard_schema", &value) || value != 1u ||
-        !metadata_number(&baseline_meta, "scoreboard_rows", &value) || value != context->baseline_count ||
-        !metadata_number(&baseline_meta, "scoreboard_denominator", &value) || value != context->baseline_count ||
-        context->baseline_count != 17u)
-        return set_error(error, error_size, "protected scoreboard denominator or schema is invalid");
+        !metadata_number(&baseline_meta, "scoreboard_rows", &value) ||
+        value != context->baseline_count ||
+        !metadata_number(&baseline_meta, "scoreboard_denominator", &value) ||
+        value != context->baseline_count || context->baseline_count != 17u)
+        return set_error(error, error_size,
+                         "protected scoreboard denominator or schema is invalid");
     for (size_t i = 0u; i < context->baseline_count; i++)
         if (strcmp(context->baseline[i].status, "pass") != 0)
             return set_error(error, error_size, "protected baseline contains a non-pass row");
@@ -782,29 +812,38 @@ static int verify_context(protected_context *context, const char *baseline_path,
     if (strcmp(context->old_directory.pin, "673ef550db296136d52229961e7d39366116882a") != 0 ||
         strcmp(context->new_directory.pin, "6bee919529289c555803b612b8c9e4f7eaaeeabb") != 0)
         return set_error(error, error_size, "candidate or comparison ROM pin identity is invalid");
-    if (!load_manifest_identity(candidate_manifest_path, &context->candidate_directory,
-                                error, error_size))
+    if (!load_manifest_identity(candidate_manifest_path, &context->candidate_directory, error,
+                                error_size))
         return 0;
     (void)snprintf(context->baseline_pin, sizeof context->baseline_pin, "%s",
                    metadata_or_empty(&baseline_meta, "rom_pin"));
     (void)snprintf(context->candidate_pin, sizeof context->candidate_pin, "%s",
                    context->candidate_directory.pin);
     const accuracycoin_directory *baseline_directory =
-        strcmp(context->baseline_pin, context->old_directory.pin) == 0 ? &context->old_directory :
-        (strcmp(context->baseline_pin, context->new_directory.pin) == 0 ? &context->new_directory : NULL);
+        strcmp(context->baseline_pin, context->old_directory.pin) == 0
+            ? &context->old_directory
+            : (strcmp(context->baseline_pin, context->new_directory.pin) == 0
+                   ? &context->new_directory
+                   : NULL);
     if (baseline_directory == NULL ||
-        strcmp(metadata_or_empty(&baseline_meta, "rom_sha256"), baseline_directory->rom_sha256) != 0 ||
-        strcmp(metadata_or_empty(&baseline_meta, "inventory_sha256"), baseline_directory->inventory_sha256) != 0 ||
+        strcmp(metadata_or_empty(&baseline_meta, "rom_sha256"), baseline_directory->rom_sha256) !=
+            0 ||
+        strcmp(metadata_or_empty(&baseline_meta, "inventory_sha256"),
+               baseline_directory->inventory_sha256) != 0 ||
         !metadata_number(&baseline_meta, "inventory_schema", &value) || value != 1u ||
-        !metadata_number(&baseline_meta, "inventory_rows", &value) || value != baseline_directory->row_count ||
-        !metadata_number(&baseline_meta, "inventory_scored_rows", &value) || value != baseline_directory->scored_count ||
-        !metadata_number(&baseline_meta, "inventory_draw_rows", &value) || value != baseline_directory->draw_count)
-        return set_error(error, error_size, "protected metadata does not bind pin, inventory schema, and denominator");
+        !metadata_number(&baseline_meta, "inventory_rows", &value) ||
+        value != baseline_directory->row_count ||
+        !metadata_number(&baseline_meta, "inventory_scored_rows", &value) ||
+        value != baseline_directory->scored_count ||
+        !metadata_number(&baseline_meta, "inventory_draw_rows", &value) ||
+        value != baseline_directory->draw_count)
+        return set_error(error, error_size,
+                         "protected metadata does not bind pin, inventory schema, and denominator");
 
     for (size_t pin_index = 0u; pin_index < 2u; pin_index++) {
         const char *pin_name = pin_index == 0u ? "old" : "new";
-        const accuracycoin_directory *directory = pin_index == 0u ? &context->old_directory :
-                                                                    &context->new_directory;
+        const accuracycoin_directory *directory =
+            pin_index == 0u ? &context->old_directory : &context->new_directory;
         page_observation *observations = pin_index == 0u ? context->old_pages : context->new_pages;
         for (size_t page_index = 0u; page_index < 3u; page_index++)
             if (!load_page_observation(evidence_root, pin_name, pages[page_index], directory,
@@ -817,7 +856,8 @@ static int verify_context(protected_context *context, const char *baseline_path,
     int cross_pin = strcmp(context->candidate_pin, context->baseline_pin) != 0;
     if (cross_pin && (strcmp(context->baseline_pin, context->old_directory.pin) != 0 ||
                       strcmp(context->candidate_pin, context->new_directory.pin) != 0))
-        return set_error(error, error_size, "candidate pin changed outside the reviewed old-to-new transition");
+        return set_error(error, error_size,
+                         "candidate pin changed outside the reviewed old-to-new transition");
     if (!cross_pin && strcmp(context->candidate_pin, context->old_directory.pin) != 0 &&
         strcmp(context->candidate_pin, context->new_directory.pin) != 0)
         return set_error(error, error_size, "candidate pin has no protected measurement policy");
@@ -825,7 +865,8 @@ static int verify_context(protected_context *context, const char *baseline_path,
     for (size_t i = 0u; i < context->baseline_count; i++) {
         const scoreboard_row *baseline = &context->baseline[i];
         int baseline_is_new = strcmp(context->baseline_pin, context->new_directory.pin) == 0;
-        const protected_migration *migration = migration_find(context, baseline->key, baseline_is_new);
+        const protected_migration *migration =
+            migration_find(context, baseline->key, baseline_is_new);
         const observation_row *old_observation;
         const observation_row *new_observation;
         const observation_row *baseline_observation;
@@ -842,11 +883,13 @@ static int verify_context(protected_context *context, const char *baseline_path,
         if (!validate_migration_row(context, migration, new_observation, error, error_size))
             return 0;
         if (old_observation == NULL || old_observation->observed != 1u ||
-            strcmp(old_observation->status, "pass") != 0 || !parse_raw(old_observation->raw, &actual_raw)) {
+            strcmp(old_observation->status, "pass") != 0 ||
+            !parse_raw(old_observation->raw, &actual_raw)) {
             char message[160];
             const char *status = old_observation == NULL ? "missing" : old_observation->status;
             (void)snprintf(message, sizeof message,
-                           "retained old protected key lacks an actual passing observation: %s", status);
+                           "retained old protected key lacks an actual passing observation: %s",
+                           status);
             return set_error(error, error_size, message);
         }
         classified = accuracycoin_classify(migration->old_key, 1, actual_raw, 0, NULL);
@@ -855,15 +898,18 @@ static int verify_context(protected_context *context, const char *baseline_path,
             strcmp(baseline_observation->status, "pass") != 0 ||
             !parse_raw(baseline_observation->raw, &baseline_raw) ||
             !parse_raw(baseline->raw, &actual_raw) || baseline_raw != actual_raw)
-            return set_error(error, error_size, "old protected measurement differs from retained baseline pass");
+            return set_error(error, error_size,
+                             "old protected measurement differs from retained baseline pass");
 
         if (cross_pin) {
             if (strcmp(migration->disposition, "unchanged") == 0 &&
                 strcmp(new_observation->status, "pass") != 0)
-                return set_error(error, error_size, "unchanged cross-pin key lacks a measured passing observation");
+                return set_error(error, error_size,
+                                 "unchanged cross-pin key lacks a measured passing observation");
             if (strcmp(migration->disposition, "changed-meaning") != 0 &&
                 strcmp(migration->disposition, "unchanged") != 0)
-                return set_error(error, error_size, "cross-pin key requires an ordinary reviewed mapping");
+                return set_error(error, error_size,
+                                 "cross-pin key requires an ordinary reviewed mapping");
             active_key = migration->new_key;
             candidate_observation = new_observation;
         } else if (strcmp(context->candidate_pin, context->old_directory.pin) == 0) {
@@ -875,23 +921,29 @@ static int verify_context(protected_context *context, const char *baseline_path,
         }
         if (candidate_observation == NULL || candidate_observation->observed != 1u ||
             !parse_raw(candidate_observation->raw, &actual_raw))
-            return set_error(error, error_size, "candidate protected key has no actual raw observation");
+            return set_error(error, error_size,
+                             "candidate protected key has no actual raw observation");
         if (!cross_pin && strcmp(candidate_observation->status, "pass") != 0)
-            return set_error(error, error_size, "same-pin protected pass is not measured passing now");
+            return set_error(error, error_size,
+                             "same-pin protected pass is not measured passing now");
         candidate = scoreboard_find(context->candidate, context->candidate_count, active_key);
         if (candidate == NULL)
             return set_error(error, error_size, "candidate scoreboard lost a protected key");
         if (strcmp(candidate->status, candidate_observation->status) != 0 ||
             strcmp(candidate->raw, candidate_observation->raw) != 0)
-            return set_error(error, error_size, "candidate scoreboard claim differs from measured result");
+            return set_error(error, error_size,
+                             "candidate scoreboard claim differs from measured result");
         if (cross_pin && strcmp(migration->disposition, "changed-meaning") == 0 &&
             strcmp(candidate_observation->status, "pass") != 0 &&
             strcmp(candidate_observation->status, "fail") != 0)
-            return set_error(error, error_size, "changed-meaning disposition only permits a measured terminal failure");
+            return set_error(
+                error, error_size,
+                "changed-meaning disposition only permits a measured terminal failure");
         classified = accuracycoin_classify(active_key, 1, actual_raw, 0, NULL);
         if (classified == ACCURACYCOIN_RESULT_INVALID ||
             strcmp(candidate_observation->status, accuracycoin_status_text(classified)) != 0)
-            return set_error(error, error_size, "candidate protected status is not valid for its raw byte");
+            return set_error(error, error_size,
+                             "candidate protected status is not valid for its raw byte");
     }
     return 1;
 }
@@ -904,13 +956,14 @@ static int verify_files(const char *baseline_path, const char *baseline_metadata
     protected_context context;
     char error[256] = "protected verdict failed";
     memset(&context, 0, sizeof context);
-    if (!verify_context(&context, baseline_path, baseline_metadata_path,
-                        candidate_scoreboard_path, candidate_rom_path, candidate_manifest_path,
-                        migration_path, evidence_root, revision, error, sizeof error)) {
+    if (!verify_context(&context, baseline_path, baseline_metadata_path, candidate_scoreboard_path,
+                        candidate_rom_path, candidate_manifest_path, migration_path, evidence_root,
+                        revision, error, sizeof error)) {
         (void)fprintf(stderr, "protected-verdict: %s\n", error);
         return 1;
     }
-    (void)printf("protected AccuracyCoin verdict PASS: %lu old passes, %lu new observations, candidate pin %s\n",
+    (void)printf("protected AccuracyCoin verdict PASS: %lu old passes, %lu new observations, "
+                 "candidate pin %s\n",
                  (unsigned long)context.baseline_count, (unsigned long)context.migration_count,
                  context.candidate_pin);
     return 0;
@@ -933,7 +986,8 @@ static int main_verify(void)
     if (ci_enabled()) {
         if (baseline == NULL || baseline[0] == '\0' || metadata_path == NULL ||
             metadata_path[0] == '\0' || revision == NULL || revision[0] == '\0') {
-            (void)fprintf(stderr, "protected-verdict: CI requires protected scoreboard, metadata, and revision handoff\n");
+            (void)fprintf(stderr, "protected-verdict: CI requires protected scoreboard, metadata, "
+                                  "and revision handoff\n");
             return 1;
         }
     } else {
@@ -947,12 +1001,11 @@ static int main_verify(void)
         }
         revision = revision_from_file;
     }
-    return verify_files(baseline, metadata_path, revision,
-                        NESTURBATOR_SOURCE_DIR "/tests/accuracy/scoreboard.txt",
-                        NESTURBATOR_SOURCE_DIR "/tests/roms/accuracycoin.nes",
-                        NESTURBATOR_SOURCE_DIR "/tests/roms/manifest.txt",
-                        NESTURBATOR_SOURCE_DIR "/tests/accuracy/migration.tsv",
-                        NESTURBATOR_PROTECTED_EVIDENCE_DIR);
+    return verify_files(
+        baseline, metadata_path, revision, NESTURBATOR_SOURCE_DIR "/tests/accuracy/scoreboard.txt",
+        NESTURBATOR_SOURCE_DIR "/tests/roms/accuracycoin.nes",
+        NESTURBATOR_SOURCE_DIR "/tests/roms/manifest.txt",
+        NESTURBATOR_SOURCE_DIR "/tests/accuracy/migration.tsv", NESTURBATOR_PROTECTED_EVIDENCE_DIR);
 }
 
 static int scoreboard_syntax(void)
@@ -960,8 +1013,8 @@ static int scoreboard_syntax(void)
     scoreboard_row rows[MAX_SCOREBOARD_ROWS];
     size_t count = 0u;
     char error[256];
-    if (!load_scoreboard(NESTURBATOR_SOURCE_DIR "/tests/accuracy/scoreboard.txt",
-                         rows, &count, error, sizeof error)) {
+    if (!load_scoreboard(NESTURBATOR_SOURCE_DIR "/tests/accuracy/scoreboard.txt", rows, &count,
+                         error, sizeof error)) {
         (void)fprintf(stderr, "scoreboard: %s\n", error);
         return 1;
     }
@@ -976,8 +1029,8 @@ static int no_lost_pass(const char *baseline_path)
     size_t current_count = 0u;
     size_t baseline_count = 0u;
     char error[256];
-    if (!load_scoreboard(NESTURBATOR_SOURCE_DIR "/tests/accuracy/scoreboard.txt",
-                         current, &current_count, error, sizeof error) ||
+    if (!load_scoreboard(NESTURBATOR_SOURCE_DIR "/tests/accuracy/scoreboard.txt", current,
+                         &current_count, error, sizeof error) ||
         !load_scoreboard(baseline_path, baseline, &baseline_count, error, sizeof error)) {
         (void)fprintf(stderr, "scoreboard: %s\n", error);
         return 1;
@@ -1002,7 +1055,7 @@ int main(int argc, char **argv)
         return no_lost_pass(argv[1]);
     if (argc == 10 && strcmp(argv[1], "--verify") == 0)
         return verify_files(argv[2], argv[3], argv[4], argv[5], argv[6], argv[7], argv[8], argv[9]);
-    (void)fprintf(stderr,
-                  "usage: accuracy.scoreboard [--scoreboard-syntax | --verify BASELINE METADATA REVISION SCOREBOARD ROM MANIFEST MIGRATION EVIDENCE_ROOT]\n");
+    (void)fprintf(stderr, "usage: accuracy.scoreboard [--scoreboard-syntax | --verify BASELINE "
+                          "METADATA REVISION SCOREBOARD ROM MANIFEST MIGRATION EVIDENCE_ROOT]\n");
     return 2;
 }

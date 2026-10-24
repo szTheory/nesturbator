@@ -97,7 +97,15 @@ execute_process(
   WORKING_DIRECTORY "${SOURCE_DIR}" TIMEOUT 10
   RESULT_VARIABLE active_result OUTPUT_VARIABLE active_stdout ERROR_VARIABLE active_stderr)
 if(NOT "${active_result}" STREQUAL "0")
-  message(FATAL_ERROR "source-qualified active-row observation failed: ${active_stderr}")
+  set(active_metadata_diagnostic "<metadata unavailable>")
+  if(EXISTS "${active_dir}/metadata.txt")
+    file(READ "${active_dir}/metadata.txt" active_metadata_diagnostic LIMIT 4096)
+  endif()
+  message(FATAL_ERROR
+    "source-qualified active-row observation failed (result=${active_result})\n"
+    "stdout:\n${active_stdout}\n"
+    "stderr:\n${active_stderr}\n"
+    "metadata (up to 4096 bytes):\n${active_metadata_diagnostic}")
 endif()
 file(READ "${active_dir}/metadata.txt" active_metadata)
 file(READ "${active_dir}/report.tsv" active_report)

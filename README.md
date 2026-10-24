@@ -70,8 +70,9 @@ has SHA-256
 bytes, decodes length-bounded in-ROM page and row names, and reads observed
 result bytes from CPU RAM through `nesturbator_peek_cpu_ram`. Only validated
 names become result keys; normal CI checks that malformed and overlong names
-are rejected. The new baseline is a measured observation, not a claim that
-every hardware test passes.
+are rejected. Evidence readers accept LF and CRLF line endings for the
+cross-platform campaign tables. The new baseline is a measured observation,
+not a claim that every hardware test passes.
 
 Print the complete source-order inventory for either retained pin:
 

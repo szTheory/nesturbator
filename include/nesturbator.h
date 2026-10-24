@@ -355,7 +355,8 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    baseline are test inputs only; tests bind exact bytes to each manifest
    entry and the scored count to the parsed inventory. Names are length-bounded
    before result-key construction, and malformed/overlong name controls remain
-   rejected. Historical hygiene checks use the manifest from each commit, so
+   rejected. Campaign table readers accept LF and CRLF line endings across CI
+   platforms. Historical hygiene checks use the manifest from each commit, so
    relocating a pin preserves its recorded provenance. These checks do not
    change this API's ABI or state contract.
    This inspection API adds no library ABI or state-format requirement. On

@@ -38,15 +38,19 @@
 
 static const char new_pin[] = "6bee919529289c555803b612b8c9e4f7eaaeeabb";
 static const char old_pin[] = "673ef550db296136d52229961e7d39366116882a";
-static const char new_rom_sha[] = "8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc";
-static const char old_rom_sha[] = "4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839";
+static const char new_rom_sha[] =
+    "8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc";
+static const char old_rom_sha[] =
+    "4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839";
 
 /* SHA-256 over each page/title record followed by that page's source-order rows. Page records
  * are `P<TAB>page<TAB>title<LF>`; rows are
  * `R<TAB>page<TAB>row<TAB>kind<TAB>accuracycoin/name<TAB>0xresult<TAB>0xroutine<LF>`.
  * These fingerprints were derived from the independently verified pinned ROMs. */
-static const char new_inventory_sha[] = "7d022800d01ad81159109bf7457af94ab6f80e4a682fce716ec476f7c454a4a5";
-static const char old_inventory_sha[] = "3271803cdc63c4b4a83cf65453b817dc66ec65ed97863ad19261b56f36821c84";
+static const char new_inventory_sha[] =
+    "7d022800d01ad81159109bf7457af94ab6f80e4a682fce716ec476f7c454a4a5";
+static const char old_inventory_sha[] =
+    "3271803cdc63c4b4a83cf65453b817dc66ec65ed97863ad19261b56f36821c84";
 
 static uint16_t read_le16(const uint8_t *bytes)
 {
@@ -78,8 +82,8 @@ static int rom_offset(uint16_t address, size_t *offset)
 static int decode_name(const uint8_t *bytes, size_t limit, size_t *at, char *out,
                        size_t out_capacity, accuracycoin_reason *reason)
 {
-    static const char *const expansions[] = {" indirect", " zeropage", " absolute",
-                                              " immediate", "Unofficial Instructions: "};
+    static const char *const expansions[] = {" indirect", " zeropage", " absolute", " immediate",
+                                             "Unofficial Instructions: "};
     size_t used = 0u;
     size_t cursor = *at;
     while (cursor < limit && bytes[cursor] != 0xffu) {
@@ -117,17 +121,17 @@ static int decode_name(const uint8_t *bytes, size_t limit, size_t *at, char *out
     return 1;
 }
 
-static void inventory_hash_add(nesturbator_run_sha256 *hash, const char *format,
-                               unsigned page, unsigned row, const char *kind,
-                               const char *title_or_name, unsigned result, unsigned routine)
+static void inventory_hash_add(nesturbator_run_sha256 *hash, const char *format, unsigned page,
+                               unsigned row, const char *kind, const char *title_or_name,
+                               unsigned result, unsigned routine)
 {
     char line[ACCURACYCOIN_NAME_CAPACITY + 96u];
     int written;
     if (row == 0u) {
         written = snprintf(line, sizeof line, "P\t%u\t%s\n", page, title_or_name);
     } else {
-        written = snprintf(line, sizeof line, format, page, row, kind, title_or_name, result,
-                           routine);
+        written =
+            snprintf(line, sizeof line, format, page, row, kind, title_or_name, result, routine);
     }
     if (written > 0 && (size_t)written < sizeof line)
         nesturbator_run_sha256_update(hash, line, (size_t)written);
@@ -221,8 +225,7 @@ int accuracycoin_parse_for_pin(const uint8_t *bytes, size_t size, accuracycoin_p
         uint16_t address = read_le16(bytes + ACCURACYCOIN_PAGE_TABLE_OFFSET + (size_t)i * 2u);
         size_t offset;
         if (!rom_offset(address, &offset) ||
-            (i == 0u && offset != ACCURACYCOIN_PAGE_TABLE_OFFSET +
-                                       ACCURACYCOIN_PAGE_COUNT * 2u) ||
+            (i == 0u && offset != ACCURACYCOIN_PAGE_TABLE_OFFSET + ACCURACYCOIN_PAGE_COUNT * 2u) ||
             (i > 0u && offset <= page_offsets[i - 1u])) {
             *reason = ACCURACYCOIN_REASON_PAGE_POINTER;
             return 0;
@@ -230,9 +233,8 @@ int accuracycoin_parse_for_pin(const uint8_t *bytes, size_t size, accuracycoin_p
         page_offsets[i] = offset;
     }
     for (unsigned page_index = 0u; page_index < ACCURACYCOIN_PAGE_COUNT; page_index++) {
-        size_t limit = page_index + 1u < ACCURACYCOIN_PAGE_COUNT
-                           ? page_offsets[page_index + 1u]
-                           : ACCURACYCOIN_PRG_END;
+        size_t limit = page_index + 1u < ACCURACYCOIN_PAGE_COUNT ? page_offsets[page_index + 1u]
+                                                                 : ACCURACYCOIN_PRG_END;
         size_t cursor = page_offsets[page_index];
         unsigned page_number = page_index + 1u;
         accuracycoin_page *page = &result.pages[page_index];
@@ -370,8 +372,8 @@ int accuracycoin_write_inventory(FILE *out, const accuracycoin_directory *direct
         return 0;
     for (unsigned i = 0u; i < directory->row_count; i++) {
         const accuracycoin_test *row = &directory->rows[i];
-        if (fprintf(out, "%u\t%u\t%s\taccuracycoin/%s\t0x%04x\t0x%04x\n",
-                    (unsigned)row->page, (unsigned)row->row,
+        if (fprintf(out, "%u\t%u\t%s\taccuracycoin/%s\t0x%04x\t0x%04x\n", (unsigned)row->page,
+                    (unsigned)row->row,
                     row->kind == (uint8_t)ACCURACYCOIN_KIND_DRAW ? "DRAW" : "TEST", row->name,
                     (unsigned)row->result_address, (unsigned)row->routine_address) < 0)
             return 0;
@@ -381,8 +383,8 @@ int accuracycoin_write_inventory(FILE *out, const accuracycoin_directory *direct
 
 const char *accuracycoin_status_text(accuracycoin_result_status status)
 {
-    static const char *const text[] = {"pass", "fail", "skip", "not-run", "timeout", "draw",
-                                       "invalid"};
+    static const char *const text[] = {"pass",    "fail", "skip",   "not-run",
+                                       "timeout", "draw", "invalid"};
     size_t index = (size_t)status;
     if (index >= sizeof text / sizeof text[0])
         return "invalid";
@@ -390,10 +392,10 @@ const char *accuracycoin_status_text(accuracycoin_result_status status)
 }
 
 const char *accuracycoin_validate_start(uint32_t requested_page, uint8_t menu_ready,
-                                       uint8_t selected_page, uint8_t cursor,
-                                       int a_press_observed, int a_release_observed,
-                                       int run_state_observed, int result_transition_observed,
-                                       int draw_only_page, int draw_cursor_transition_observed)
+                                        uint8_t selected_page, uint8_t cursor, int a_press_observed,
+                                        int a_release_observed, int run_state_observed,
+                                        int result_transition_observed, int draw_only_page,
+                                        int draw_cursor_transition_observed)
 {
     if (requested_page == 0u || requested_page > ACCURACYCOIN_PAGE_COUNT || menu_ready != 0x0au)
         return "menu-not-ready";
@@ -405,16 +407,16 @@ const char *accuracycoin_validate_start(uint32_t requested_page, uint8_t menu_re
         return "a-press-not-observed";
     if (a_release_observed == 0)
         return "a-release-not-observed";
-    if (run_state_observed == 0 ||
-        (draw_only_page != 0 ? draw_cursor_transition_observed == 0 :
-                               result_transition_observed == 0))
+    if (run_state_observed == 0 || (draw_only_page != 0 ? draw_cursor_transition_observed == 0
+                                                        : result_transition_observed == 0))
         return "start-not-attributed";
     return "start-attributed";
 }
 
-static accuracycoin_result_status accuracycoin_classify_final_row(
-    const accuracycoin_test *row, int observed, uint8_t raw, int current_active_row,
-    const char **cause)
+static accuracycoin_result_status accuracycoin_classify_final_row(const accuracycoin_test *row,
+                                                                  int observed, uint8_t raw,
+                                                                  int current_active_row,
+                                                                  const char **cause)
 {
     if (row != NULL && row->kind == (uint8_t)ACCURACYCOIN_KIND_TEST && observed != 0 &&
         raw == 0x03u && current_active_row == 0) {
@@ -431,23 +433,18 @@ static accuracycoin_result_status accuracycoin_classify_final_row(
  * Source: MIT AccuracyCoin.asm at pins 673ef550 and 6bee919. */
 static int source_pass_variant(const char *key, uint8_t raw)
 {
-    static const char *const sha_shs_keys[] = {
-        "accuracycoin/$93   SHA indirect,Y",
-        "accuracycoin/$9F   SHA absolute,Y",
-        "accuracycoin/$9B   SHS absolute,Y"};
+    static const char *const sha_shs_keys[] = {"accuracycoin/$93   SHA indirect,Y",
+                                               "accuracycoin/$9F   SHA absolute,Y",
+                                               "accuracycoin/$9B   SHS absolute,Y"};
     static const char *const five_nine_keys[] = {
-        "accuracycoin/DMA + $2002 Read",
-        "accuracycoin/APU Register Activation",
-        "accuracycoin/DMA + $4016 Read",
-        "accuracycoin/Implicit DMA Abort",
-        "accuracycoin/Controller Clocking",
-        "accuracycoin/Sprites On Scanline 0",
+        "accuracycoin/DMA + $2002 Read",       "accuracycoin/APU Register Activation",
+        "accuracycoin/DMA + $4016 Read",       "accuracycoin/Implicit DMA Abort",
+        "accuracycoin/Controller Clocking",    "accuracycoin/Sprites On Scanline 0",
         "accuracycoin/Misaligned OAM2 Address"};
     if (key == NULL)
         return 0;
-    if ((raw == 0x39u || raw == 0x41u) &&
-        (strcmp(key, "accuracycoin/PPU Read Buffer") == 0 ||
-         strcmp(key, "accuracycoin/Address $2004 behavior") == 0))
+    if ((raw == 0x39u || raw == 0x41u) && (strcmp(key, "accuracycoin/PPU Read Buffer") == 0 ||
+                                           strcmp(key, "accuracycoin/Address $2004 behavior") == 0))
         return 1;
     if (raw == 0x05u || raw == 0x09u) {
         for (size_t i = 0u; i < sizeof five_nine_keys / sizeof five_nine_keys[0]; i++)
@@ -463,8 +460,7 @@ static int source_pass_variant(const char *key, uint8_t raw)
 }
 
 accuracycoin_result_status accuracycoin_classify(const char *key, int observed, uint8_t raw,
-                                                  int active_budget_expired,
-                                                  const char **cause)
+                                                 int active_budget_expired, const char **cause)
 {
     if (cause != NULL)
         *cause = "invalid-result";
@@ -518,9 +514,11 @@ accuracycoin_result_status accuracycoin_classify(const char *key, int observed, 
     return ACCURACYCOIN_RESULT_INVALID;
 }
 
+static int accuracycoin_make_full_key(char *out, size_t capacity, const char *name);
+
 accuracycoin_result_status accuracycoin_classify_row(const accuracycoin_test *row, int observed,
-                                                      uint8_t raw, int active_budget_expired,
-                                                      const char **cause)
+                                                     uint8_t raw, int active_budget_expired,
+                                                     const char **cause)
 {
     char key[ACCURACYCOIN_NAME_CAPACITY + 16u];
     if (cause != NULL)
@@ -534,7 +532,8 @@ accuracycoin_result_status accuracycoin_classify_row(const accuracycoin_test *ro
     }
     if (row->kind != (uint8_t)ACCURACYCOIN_KIND_TEST)
         return ACCURACYCOIN_RESULT_INVALID;
-    (void)snprintf(key, sizeof key, "accuracycoin/%s", row->name);
+    if (!accuracycoin_make_full_key(key, sizeof key, row->name))
+        return ACCURACYCOIN_RESULT_INVALID;
     return accuracycoin_classify(key, observed, raw, active_budget_expired, cause);
 }
 
@@ -544,8 +543,7 @@ static int accuracy_ram(const nesturbator *inst, uint16_t address, uint8_t *out)
 }
 
 static nesturbator_status accuracy_frame(nesturbator *inst, uint16_t buttons, uint16_t *video,
-                                         int16_t *audio,
-                                         nesturbator_run_audio_hash *audio_hash)
+                                         int16_t *audio, nesturbator_run_audio_hash *audio_hash)
 {
     nesturbator_input input;
     nesturbator_frame frame;
@@ -589,19 +587,50 @@ static int accuracycoin_make_full_key(char *out, size_t capacity, const char *na
     return 1;
 }
 
+static int accuracycoin_make_scoreboard_line(char *out, size_t capacity, const char *full_key,
+                                             accuracycoin_result_status status, uint8_t raw)
+{
+    static const char hex[] = "0123456789abcdef";
+    static const char tail[] = "\t-\t-\n";
+    const char *status_text = accuracycoin_status_text(status);
+    size_t key_size;
+    size_t status_size;
+    size_t offset = 0u;
+    if (out == NULL || full_key == NULL || status_text == NULL)
+        return 0;
+    key_size = strlen(full_key);
+    status_size = strlen(status_text);
+    if (capacity <= key_size || capacity - key_size < status_size + 12u)
+        return 0;
+    memcpy(out + offset, full_key, key_size);
+    offset += key_size;
+    out[offset++] = '\t';
+    memcpy(out + offset, status_text, status_size);
+    offset += status_size;
+    out[offset++] = '\t';
+    out[offset++] = '0';
+    out[offset++] = 'x';
+    out[offset++] = hex[(raw >> 4u) & 0x0fu];
+    out[offset++] = hex[raw & 0x0fu];
+    memcpy(out + offset, tail, sizeof tail - 1u);
+    offset += sizeof tail - 1u;
+    out[offset] = '\0';
+    return 1;
+}
+
 static int required_page14_test(const char *name)
 {
-    static const char *const required[] = {"Length Counter", "Length Table", "Frame Counter IRQ",
-                                            "Frame Counter 4-step", "Frame Counter 5-step",
-                                            "Delta Modulation Channel"};
+    static const char *const required[] = {"Length Counter",       "Length Table",
+                                           "Frame Counter IRQ",    "Frame Counter 4-step",
+                                           "Frame Counter 5-step", "Delta Modulation Channel"};
     for (size_t i = 0u; i < sizeof required / sizeof required[0]; i++)
         if (strcmp(name, required[i]) == 0)
             return 1;
     return 0;
 }
 
-static int compare_scoreboard(const char *path, const accuracycoin_test *tests,
-                              const uint8_t *raw, size_t count)
+static int compare_scoreboard(const char *path, const accuracycoin_test *tests, const uint8_t *raw,
+                              size_t count)
 {
     FILE *file = fopen(path, "r");
     char line[256];
@@ -619,7 +648,6 @@ static int compare_scoreboard(const char *path, const accuracycoin_test *tests,
             return 0;
         }
         for (size_t i = 0u; i < count; i++) {
-            char key[160];
             char expected[192];
             char full_key[ACCURACYCOIN_NAME_CAPACITY + 16u];
             const char *cause = NULL;
@@ -630,11 +658,13 @@ static int compare_scoreboard(const char *path, const accuracycoin_test *tests,
             accuracycoin_result_status status =
                 accuracycoin_classify(full_key, 1, raw[i], 0, &cause);
             (void)cause;
-            (void)snprintf(key, sizeof key, "accuracycoin/%s\t", tests[i].name);
-            if (strncmp(line, key, strlen(key)) == 0) {
-                (void)snprintf(expected, sizeof expected,
-                               "accuracycoin/%s\t%s\t0x%02x\t-\t-\n", tests[i].name,
-                               accuracycoin_status_text(status), (unsigned)raw[i]);
+            size_t full_key_size = strlen(full_key);
+            if (strncmp(line, full_key, full_key_size) == 0 && line[full_key_size] == '\t') {
+                if (!accuracycoin_make_scoreboard_line(expected, sizeof expected, full_key, status,
+                                                       raw[i])) {
+                    fclose(file);
+                    return 0;
+                }
                 if (strcmp(line, expected) != 0 || (found & ((size_t)1u << i)) != 0u) {
                     fclose(file);
                     return 0;
@@ -675,15 +705,15 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
     qsort(tests, count, sizeof tests[0], compare_test_name);
     if (page_number == 14u) {
         for (size_t i = 0u; i < 6u; i++) {
-            static const char *const required[] = {"Length Counter", "Length Table",
-                                                    "Frame Counter IRQ", "Frame Counter 4-step",
-                                                    "Frame Counter 5-step",
-                                                    "Delta Modulation Channel"};
+            static const char *const required[] = {
+                "Length Counter",       "Length Table",         "Frame Counter IRQ",
+                "Frame Counter 4-step", "Frame Counter 5-step", "Delta Modulation Channel"};
             int found = 0;
             for (size_t j = 0u; j < count; j++)
                 found |= strcmp(tests[j].name, required[i]) == 0;
             if (found == 0) {
-                fprintf(stderr, "nesturbator-run: AccuracyCoin page 14 is missing required APU tests\n");
+                fprintf(stderr,
+                        "nesturbator-run: AccuracyCoin page 14 is missing required APU tests\n");
                 return RUNNER_EXIT_FAILURE;
             }
         }
@@ -705,7 +735,8 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
             break;
     }
     if (value != 0x0au) {
-        fprintf(stderr, "nesturbator-run: AccuracyCoin menu did not become ready within 120 frames\n");
+        fprintf(stderr,
+                "nesturbator-run: AccuracyCoin menu did not become ready within 120 frames\n");
         return RUNNER_EXIT_FAILURE;
     }
     for (uint32_t p = 1u; p < page_number; p++) {
@@ -727,9 +758,10 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
     if (!accuracy_ram(inst, ACCURACYCOIN_PAGE_INDEX_ADDRESS, &selected_page) ||
         !accuracy_ram(inst, ACCURACYCOIN_CURSOR_ADDRESS, &cursor) ||
         selected_page != (uint8_t)(page_number - 1u) || cursor != 0xffu) {
-        fprintf(stderr,
-                "nesturbator-run: AccuracyCoin menu selection mismatch (page-index=%u cursor=0x%02x)\n",
-                (unsigned)selected_page, (unsigned)cursor);
+        fprintf(
+            stderr,
+            "nesturbator-run: AccuracyCoin menu selection mismatch (page-index=%u cursor=0x%02x)\n",
+            (unsigned)selected_page, (unsigned)cursor);
         return RUNNER_EXIT_FAILURE;
     }
     if (accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio, audio_hash) != NESTURBATOR_OK ||
@@ -743,8 +775,8 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
             const char *cause = NULL;
             if (!accuracy_ram(inst, tests[i].result_address, &results[i]))
                 return RUNNER_EXIT_FAILURE;
-            accuracycoin_result_status status = accuracycoin_classify(
-                tests[i].name, 1, results[i], 0, &cause);
+            accuracycoin_result_status status =
+                accuracycoin_classify(tests[i].name, 1, results[i], 0, &cause);
             if (status == ACCURACYCOIN_RESULT_NOT_RUN || results[i] == 0x03u)
                 complete = 0;
         }
@@ -772,7 +804,8 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
         fprintf(stderr, "nesturbator-run: AccuracyCoin page %u timed out after %u frames\n",
                 page_number, frames);
         fprintf(stderr,
-                "nesturbator-run: menu $00ec=0x%02x page-index=%u cursor=0x%02x automate=%u running=%u\n",
+                "nesturbator-run: menu $00ec=0x%02x page-index=%u cursor=0x%02x automate=%u "
+                "running=%u\n",
                 (unsigned)value, (unsigned)selected_page, (unsigned)cursor, (unsigned)automate,
                 (unsigned)running);
         return RUNNER_EXIT_FAILURE;
@@ -799,7 +832,8 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
             required_count++;
         }
         if (required != 0 && result_status != ACCURACYCOIN_RESULT_PASS) {
-            fprintf(stderr, "nesturbator-run: AccuracyCoin page %u test '%s' returned 0x%02x (%s)\n",
+            fprintf(stderr,
+                    "nesturbator-run: AccuracyCoin page %u test '%s' returned 0x%02x (%s)\n",
                     page_number, tests[i].name, (unsigned)results[i],
                     cause != NULL ? cause : "unknown result");
             all_passed = 0;
@@ -808,12 +842,13 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
     if (!all_passed)
         return RUNNER_EXIT_FAILURE;
     if (!compare_scoreboard(scoreboard_path, required_tests, required_results, required_count)) {
-        fprintf(stderr, "nesturbator-run: AccuracyCoin page %u RAM results differ from scoreboard\n",
+        fprintf(stderr,
+                "nesturbator-run: AccuracyCoin page %u RAM results differ from scoreboard\n",
                 page_number);
         return RUNNER_EXIT_FAILURE;
     }
-    printf("accuracycoin page %u PASS (%lu tests, %u frames)\n", page_number,
-           (unsigned long)count, frames);
+    printf("accuracycoin page %u PASS (%lu tests, %u frames)\n", page_number, (unsigned long)count,
+           frames);
     return RUNNER_EXIT_DONE;
 }
 
@@ -835,7 +870,7 @@ static int read_controls(const nesturbator *inst, accuracycoin_controls *control
 }
 
 static int sample_rows(const nesturbator *inst, const accuracycoin_test *rows, size_t count,
-                      uint8_t *raw)
+                       uint8_t *raw)
 {
     for (size_t i = 0u; i < count; i++) {
         if (rows[i].kind == (uint8_t)ACCURACYCOIN_KIND_DRAW) {
@@ -884,11 +919,11 @@ static int scored_result_transition(const accuracycoin_test *rows, size_t count,
 static int write_diagnostic(FILE *file, const char *stage, uint64_t frame,
                             const accuracycoin_controls *controls, int transition)
 {
-    return fprintf(file, "%s\t%llu\t%u\t%u\t%u\t%u\t%u\t%d\n", stage,
-                   (unsigned long long)frame,
+    return fprintf(file, "%s\t%llu\t%u\t%u\t%u\t%u\t%u\t%d\n", stage, (unsigned long long)frame,
                    (unsigned)controls->menu_ready, (unsigned)controls->page_index,
                    (unsigned)controls->cursor, (unsigned)controls->automate,
-                   (unsigned)controls->running, transition) >= 0 && fflush(file) == 0;
+                   (unsigned)controls->running, transition) >= 0 &&
+           fflush(file) == 0;
 }
 
 static int frame_and_sample(nesturbator *inst, uint16_t buttons, uint16_t *video, int16_t *audio,
@@ -900,9 +935,8 @@ static int frame_and_sample(nesturbator *inst, uint16_t buttons, uint16_t *video
 }
 
 int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint32_t page_number,
-                                  const accuracycoin_run_budgets *budgets,
-                                  const char *output_dir, nesturbator *inst, uint16_t *video,
-                                  int16_t *audio)
+                                  const accuracycoin_run_budgets *budgets, const char *output_dir,
+                                  nesturbator *inst, uint16_t *video, int16_t *audio)
 {
     accuracycoin_test rows[ACCURACYCOIN_MAX_PAGE_ROWS];
     uint8_t before[ACCURACYCOIN_MAX_PAGE_ROWS];
@@ -980,7 +1014,8 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
     required_frames += 2u;
     if (UINT64_MAX - required_frames < (uint64_t)budgets->execution_frames ||
         required_frames + (uint64_t)budgets->execution_frames > budgets->total_frames) {
-        fprintf(stderr, "nesturbator-run: AccuracyCoin stage caps exceed checked total frame bound\n");
+        fprintf(stderr,
+                "nesturbator-run: AccuracyCoin stage caps exceed checked total frame bound\n");
         return RUNNER_EXIT_USAGE;
     }
 
@@ -1005,10 +1040,11 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
     diagnostic_file = fopen(diagnostic_path, "w");
     if (raw_file == NULL || diagnostic_file == NULL ||
         fprintf(raw_file, "stage\tpage\trow\tkey\tresult_address\tobserved\traw\n") < 0 ||
-        fprintf(diagnostic_file,
-                "stage\tframe\tmenu_ready\tpage_index\tcursor\tautomate_test_suite\trunning_all_tests\tresult_transition\n") < 0) {
+        fprintf(diagnostic_file, "stage\tframe\tmenu_ready\tpage_index\tcursor\tautomate_test_"
+                                 "suite\trunning_all_tests\tresult_transition\n") < 0) {
         stop_cause = "evidence-open-failure";
-        fprintf(stderr, "nesturbator-run: cannot create AccuracyCoin diagnostics in output directory\n");
+        fprintf(stderr,
+                "nesturbator-run: cannot create AccuracyCoin diagnostics in output directory\n");
         goto done;
     }
 
@@ -1095,9 +1131,9 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
     a_press_observed = 1;
     saw_run_flag |= controls.automate != 0u || controls.running != 0u;
     saw_transition |= scored_result_transition(rows, count, before, after_press);
-    draw_cursor_transition_observed = draw_only_page != 0 &&
-        selected_controls.cursor == 0xffu && controls.page_index == selected_controls.page_index &&
-        controls.cursor == 0u && controls.automate != 0u;
+    draw_cursor_transition_observed = draw_only_page != 0 && selected_controls.cursor == 0xffu &&
+                                      controls.page_index == selected_controls.page_index &&
+                                      controls.cursor == 0u && controls.automate != 0u;
     if (!write_raw_sample(raw_file, rows, count, "a-press", after_press) ||
         !write_diagnostic(diagnostic_file, "a-press", frames, &controls, saw_transition)) {
         stop_cause = "start-evidence-write-failure";
@@ -1121,11 +1157,10 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         goto done;
     }
 
-    cause = accuracycoin_validate_start(page_number, selected_controls.menu_ready,
-                                         selected_controls.page_index, selected_controls.cursor,
-                                         a_press_observed, a_release_observed, saw_run_flag,
-                                         saw_transition, draw_only_page,
-                                         draw_cursor_transition_observed);
+    cause = accuracycoin_validate_start(
+        page_number, selected_controls.menu_ready, selected_controls.page_index,
+        selected_controls.cursor, a_press_observed, a_release_observed, saw_run_flag,
+        saw_transition, draw_only_page, draw_cursor_transition_observed);
     if (strcmp(cause, "start-attributed") != 0) {
         stop_cause = cause;
         verdict = "driver-failure";
@@ -1153,8 +1188,8 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
             }
         }
         int menu_execution_complete = controls.menu_ready == 0x0au &&
-            controls.page_index == (uint8_t)(page_number - 1u) && controls.cursor == 0xffu &&
-            controls.automate == 0u;
+                                      controls.page_index == (uint8_t)(page_number - 1u) &&
+                                      controls.cursor == 0xffu && controls.automate == 0u;
         if (!any_active && !any_not_run && menu_execution_complete)
             break;
         if (frames >= budgets->total_frames ||
@@ -1192,12 +1227,13 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         any_not_run |= current[i] == 0u;
     }
     menu_returned_to_header_observed = controls.menu_ready == 0x0au &&
-        controls.page_index == (uint8_t)(page_number - 1u) && controls.cursor == 0xffu &&
-        controls.automate == 0u;
+                                       controls.page_index == (uint8_t)(page_number - 1u) &&
+                                       controls.cursor == 0xffu && controls.automate == 0u;
     if (draw_only_page != 0) {
         if (menu_returned_to_header_observed == 0) {
-            stop_cause = execution_frames >= budgets->execution_frames ?
-                "draw-sequence-cap-exhausted" : "draw-sequence-incomplete";
+            stop_cause = execution_frames >= budgets->execution_frames
+                             ? "draw-sequence-cap-exhausted"
+                             : "draw-sequence-incomplete";
             verdict = "bounded-incomplete";
             status = RUNNER_EXIT_DONE;
         } else {
@@ -1215,13 +1251,11 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         }
         active_index = controls.cursor;
         (void)snprintf(active_key, sizeof active_key, "accuracycoin/%s", rows[active_index].name);
-        (void)snprintf(active_raw, sizeof active_raw, "0x%02x",
-                       (unsigned)current[active_index]);
+        (void)snprintf(active_raw, sizeof active_raw, "0x%02x", (unsigned)current[active_index]);
         stop_cause = "execution-cap-active-test";
         verdict = "guest-timeout";
         status = RUNNER_EXIT_DONE;
-    } else if (any_active != 0 || any_not_run != 0 ||
-               menu_returned_to_header_observed == 0) {
+    } else if (any_active != 0 || any_not_run != 0 || menu_returned_to_header_observed == 0) {
         stop_cause = "execution-ended-with-not-run-rows";
         if (any_active == 0 && any_not_run == 0)
             stop_cause = "execution-cap-before-menu-return";
@@ -1235,8 +1269,8 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
 
     report_file = fopen(report_path, "w");
     if (report_file == NULL ||
-        fprintf(report_file,
-                "key\tpage\trow\tstatus\tobserved\traw\tframes\tcause\tattempt_id\n") < 0) {
+        fprintf(report_file, "key\tpage\trow\tstatus\tobserved\traw\tframes\tcause\tattempt_id\n") <
+            0) {
         stop_cause = "report-open-failure";
         verdict = "output-failure";
         status = RUNNER_EXIT_FAILURE;
@@ -1246,7 +1280,7 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         char raw_text[5];
         int observed = rows[i].kind == (uint8_t)ACCURACYCOIN_KIND_TEST;
         result_status = accuracycoin_classify_final_row(&rows[i], observed, current[i],
-                                                         i == active_index, &cause);
+                                                        i == active_index, &cause);
         if (observed != 0)
             (void)snprintf(raw_text, sizeof raw_text, "0x%02x", (unsigned)current[i]);
         else
@@ -1279,27 +1313,37 @@ done:
     if (metadata_file == NULL && output_path(metadata_path, output_dir, "metadata.txt"))
         metadata_file = fopen(metadata_path, "w");
     if (metadata_file == NULL ||
-        fprintf(metadata_file,
-                "report_schema=1\ninventory_schema=1\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%s\nsource_revision=%s\nsource_dirty=%s\nlibrary_version=%u.%u.%u\nbehaviour_revision=%u\nmode=observe\npage=%u\nattempt_id=page-%02u-cold-01\norigin=cold-page\nrequested_row=all\ninput_start_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release\nboot_frame_budget=%u\nnavigation_frame_budget_per_page=%u\nexecution_frame_budget=%u\ntotal_frame_budget=%llu\nboot_frames_used=%llu\nnavigation_frames_used=%llu\nstart_frames_used=%llu\nexecution_frames=%llu\nframes_used=%llu\nstartup_dmc_pretest_observed=%d\nstartup_dmc_pretest=0x%02x\nstartup_vblank_pretest_observed=%d\nstartup_vblank_pretest=0x%02x\nstartup_ppu_reset_pretest_observed=%d\nstartup_ppu_reset_pretest=0x%02x\nselection_observed=%d\nselected_page=%u\nselected_cursor=%u\na_press_observed=%d\na_release_observed=%d\nrelease_frames=%d\nrun_state_observed=%d\nresult_transition_observed=%d\ndraw_cursor_transition_observed=%d\nmenu_returned_to_header_observed=%d\nstart_attributed=%d\nstop_cause=%s\nactive_key=%s\nactive_raw=%s\nverdict=%s\nobservation_started_ns=%llu\nhost_elapsed_ns=%llu\n",
-                directory->pin, directory->rom_sha256, directory->inventory_sha256,
-                NESTURBATOR_SOURCE_REVISION, NESTURBATOR_SOURCE_DIRTY,
-                (unsigned)version.major, (unsigned)version.minor, (unsigned)version.patch,
-                (unsigned)version.behaviour_revision, (unsigned)page_number,
-                (unsigned)page_number, (unsigned)budgets->boot_frames,
-                (unsigned)budgets->navigation_frames_per_page,
-                (unsigned)budgets->execution_frames,
-                (unsigned long long)budgets->total_frames, (unsigned long long)boot_frames,
-                (unsigned long long)navigation_frames, (unsigned long long)start_frames,
-                (unsigned long long)execution_frames, (unsigned long long)frames,
-                pretest_dmc_observed, (unsigned)pretest_dmc, pretest_vblank_observed,
-                (unsigned)pretest_vblank, pretest_ppu_reset_observed,
-                (unsigned)pretest_ppu_reset, selection_observed, (unsigned)selected_page,
-                (unsigned)selected_cursor, a_press_observed, a_release_observed,
-                a_release_observed, saw_run_flag, saw_transition,
-                draw_cursor_transition_observed, menu_returned_to_header_observed,
-                start_attributed, stop_cause, active_key, active_raw, verdict,
-                (unsigned long long)started_ns,
-                (unsigned long long)elapsed_ns) < 0 ||
+        fprintf(
+            metadata_file,
+            "report_schema=1\ninventory_schema=1\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%"
+            "s\nsource_revision=%s\nsource_dirty=%s\nlibrary_version=%u.%u.%u\nbehaviour_revision=%"
+            "u\nmode=observe\npage=%u\nattempt_id=page-%02u-cold-01\norigin=cold-page\nrequested_"
+            "row=all\ninput_start_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-"
+            "release\nboot_frame_budget=%u\nnavigation_frame_budget_per_page=%u\nexecution_frame_"
+            "budget=%u\ntotal_frame_budget=%llu\nboot_frames_used=%llu\nnavigation_frames_used=%"
+            "llu\nstart_frames_used=%llu\nexecution_frames=%llu\nframes_used=%llu\nstartup_dmc_"
+            "pretest_observed=%d\nstartup_dmc_pretest=0x%02x\nstartup_vblank_pretest_observed=%"
+            "d\nstartup_vblank_pretest=0x%02x\nstartup_ppu_reset_pretest_observed=%d\nstartup_ppu_"
+            "reset_pretest=0x%02x\nselection_observed=%d\nselected_page=%u\nselected_cursor=%u\na_"
+            "press_observed=%d\na_release_observed=%d\nrelease_frames=%d\nrun_state_observed=%"
+            "d\nresult_transition_observed=%d\ndraw_cursor_transition_observed=%d\nmenu_returned_"
+            "to_header_observed=%d\nstart_attributed=%d\nstop_cause=%s\nactive_key=%s\nactive_raw=%"
+            "s\nverdict=%s\nobservation_started_ns=%llu\nhost_elapsed_ns=%llu\n",
+            directory->pin, directory->rom_sha256, directory->inventory_sha256,
+            NESTURBATOR_SOURCE_REVISION, NESTURBATOR_SOURCE_DIRTY, (unsigned)version.major,
+            (unsigned)version.minor, (unsigned)version.patch, (unsigned)version.behaviour_revision,
+            (unsigned)page_number, (unsigned)page_number, (unsigned)budgets->boot_frames,
+            (unsigned)budgets->navigation_frames_per_page, (unsigned)budgets->execution_frames,
+            (unsigned long long)budgets->total_frames, (unsigned long long)boot_frames,
+            (unsigned long long)navigation_frames, (unsigned long long)start_frames,
+            (unsigned long long)execution_frames, (unsigned long long)frames, pretest_dmc_observed,
+            (unsigned)pretest_dmc, pretest_vblank_observed, (unsigned)pretest_vblank,
+            pretest_ppu_reset_observed, (unsigned)pretest_ppu_reset, selection_observed,
+            (unsigned)selected_page, (unsigned)selected_cursor, a_press_observed,
+            a_release_observed, a_release_observed, saw_run_flag, saw_transition,
+            draw_cursor_transition_observed, menu_returned_to_header_observed, start_attributed,
+            stop_cause, active_key, active_raw, verdict, (unsigned long long)started_ns,
+            (unsigned long long)elapsed_ns) < 0 ||
         fflush(metadata_file) != 0) {
         fprintf(stderr, "nesturbator-run: failed writing AccuracyCoin metadata\n");
         status = RUNNER_EXIT_FAILURE;
@@ -1329,7 +1373,6 @@ done:
     }
     return status;
 }
-
 
 #define ACCURACYCOIN_CAMPAIGN_TEXT_CAPACITY 65536u
 #define ACCURACYCOIN_CAMPAIGN_LINE_CAPACITY 2048u
@@ -1378,6 +1421,16 @@ static int campaign_read_text(const char *path, char *buffer, size_t capacity, i
     if (memchr(buffer, '\0', count) != NULL)
         return 0;
     buffer[count] = '\0';
+    {
+        size_t normalized = 0u;
+        for (size_t i = 0u; i < count; i++) {
+            if (buffer[i] == '\r' && i + 1u < count && buffer[i + 1u] == '\n')
+                continue;
+            buffer[normalized++] = buffer[i];
+        }
+        count = normalized;
+        buffer[count] = '\0';
+    }
     if (count != 0u && buffer[count - 1u] != '\n')
         return 0;
     return 1;
@@ -1391,8 +1444,7 @@ static int campaign_value(const char *text, const char *key, char *out, size_t c
     while (*line != '\0') {
         const char *end = strchr(line, '\n');
         size_t length = end != NULL ? (size_t)(end - line) : strlen(line);
-        if (length > key_length && line[key_length] == '=' &&
-            memcmp(line, key, key_length) == 0) {
+        if (length > key_length && line[key_length] == '=' && memcmp(line, key, key_length) == 0) {
             size_t value_length = length - key_length - 1u;
             if (value_length >= capacity)
                 return 0;
@@ -1454,15 +1506,23 @@ static int campaign_parse_hex_byte(const char *text, uint8_t *out)
     return 1;
 }
 
+static int campaign_strip_line_ending(char *line)
+{
+    char *end = strchr(line, '\n');
+    if (end == NULL)
+        return 0;
+    if (end > line && end[-1] == '\r')
+        end[-1] = '\0';
+    else
+        *end = '\0';
+    return 1;
+}
+
 static int campaign_split(char *line, char **fields, size_t expected)
 {
     size_t field = 0u;
     char *start = line;
-    char *end = strchr(line, '\n');
-    if (end == NULL)
-        return 0;
-    *end = '\0';
-    if (end > line && end[-1] == '\r')
+    if (!campaign_strip_line_ending(line))
         return 0;
     for (char *cursor = line;; cursor++) {
         if (*cursor == '\t' || *cursor == '\0') {
@@ -1485,8 +1545,8 @@ static int campaign_parse_outcomes(const char *path,
     char line[ACCURACYCOIN_CAMPAIGN_LINE_CAPACITY];
     if (file == NULL)
         return 0;
-    if (fgets(line, sizeof line, file) == NULL ||
-        strcmp(line, "page\toutcome\texit_code\tdeadline_seconds\n") != 0) {
+    if (fgets(line, sizeof line, file) == NULL || !campaign_strip_line_ending(line) ||
+        strcmp(line, "page\toutcome\texit_code\tdeadline_seconds") != 0) {
         (void)fclose(file);
         return 0;
     }
@@ -1496,12 +1556,10 @@ static int campaign_parse_outcomes(const char *path,
         uint64_t page;
         uint64_t deadline;
         uint64_t exit_code;
-        if (fgets(line, sizeof line, file) == NULL ||
-            !campaign_split(line, fields, 4u) || !campaign_parse_u64(fields[0], &page) ||
-            !campaign_parse_u64(fields[3], &deadline) || page != expected_page ||
-            deadline == 0u || deadline > UINT32_MAX ||
-            (strcmp(fields[1], "EXIT_ZERO") != 0 &&
-             strcmp(fields[1], "CHILD_FAILURE") != 0 &&
+        if (fgets(line, sizeof line, file) == NULL || !campaign_split(line, fields, 4u) ||
+            !campaign_parse_u64(fields[0], &page) || !campaign_parse_u64(fields[3], &deadline) ||
+            page != expected_page || deadline == 0u || deadline > UINT32_MAX ||
+            (strcmp(fields[1], "EXIT_ZERO") != 0 && strcmp(fields[1], "CHILD_FAILURE") != 0 &&
              strcmp(fields[1], "OUTER_TIMEOUT") != 0) ||
             fields[2][0] == '\0' || strlen(fields[1]) >= sizeof outcomes[0].outcome ||
             strlen(fields[2]) >= sizeof outcomes[0].exit_code) {
@@ -1544,8 +1602,8 @@ static int campaign_stage(const char *stage)
 
 static int campaign_valid_diagnostics(char *text, accuracycoin_controls_evidence *controls)
 {
-    static const char header[] =
-        "stage\tframe\tmenu_ready\tpage_index\tcursor\tautomate_test_suite\trunning_all_tests\tresult_transition\n";
+    static const char header[] = "stage\tframe\tmenu_ready\tpage_index\tcursor\tautomate_test_"
+                                 "suite\trunning_all_tests\tresult_transition\n";
     char *line = text;
     uint64_t previous_frame = 0u;
     unsigned records = 0u;
@@ -1606,8 +1664,7 @@ static int campaign_path(char out[4096], const char *directory, const char *page
     return result > 0 && (size_t)result < 4096u;
 }
 
-int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
-                                  const char *output_dir)
+int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const char *output_dir)
 {
     accuracycoin_outer_outcome outcomes[ACCURACYCOIN_PAGE_COUNT];
     unsigned status_counts[5] = {0u, 0u, 0u, 0u, 0u};
@@ -1654,7 +1711,8 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
         !output_path(summary_path, output_dir, "summary.txt") ||
         !output_path(metadata_path, output_dir, "metadata.txt") ||
         !campaign_parse_outcomes(outer_path, outcomes)) {
-        fprintf(stderr, "nesturbator-run: AccuracyCoin campaign has missing or malformed outer outcomes\n");
+        fprintf(stderr,
+                "nesturbator-run: AccuracyCoin campaign has missing or malformed outer outcomes\n");
         return RUNNER_EXIT_FAILURE;
     }
     inventory_file = fopen(inventory_path, "w");
@@ -1667,7 +1725,12 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
         report_file == NULL || summary_file == NULL || metadata_file == NULL ||
         !accuracycoin_write_inventory(inventory_file, directory) ||
         fprintf(attempts_file,
-                "attempt_id\torigin\trequested_page\trequested_row\tprocess_outcome\texit_code\tselection_observed\tselected_page\tselected_cursor\tstart_attributed\tstartup_dmc_pretest\tstartup_vblank_pretest\tstartup_ppu_reset_pretest\tboot_frames_used\tnavigation_frames_used\tstart_frames_used\texecution_frames\tframes_used\tstop_cause\tactive_key\tactive_raw\tevidence_complete\n") < 0 ||
+                "attempt_id\torigin\trequested_page\trequested_row\tprocess_outcome\texit_"
+                "code\tselection_observed\tselected_page\tselected_cursor\tstart_"
+                "attributed\tstartup_dmc_pretest\tstartup_vblank_pretest\tstartup_ppu_reset_"
+                "pretest\tboot_frames_used\tnavigation_frames_used\tstart_frames_used\texecution_"
+                "frames\tframes_used\tstop_cause\tactive_key\tactive_raw\tevidence_complete\n") <
+            0 ||
         fprintf(observations_file,
                 "attempt_id\tstage\tpage\trow\tkey\tresult_address\tobserved\traw\n") < 0 ||
         fprintf(report_file,
@@ -1681,7 +1744,8 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
         FILE *outer_file = fopen(outer_path, "rb");
         char line[ACCURACYCOIN_CAMPAIGN_LINE_CAPACITY];
         if (outer_file == NULL || fgets(line, sizeof line, outer_file) == NULL ||
-            strcmp(line, "page\toutcome\texit_code\tdeadline_seconds\n") != 0) {
+            !campaign_strip_line_ending(line) ||
+            strcmp(line, "page\toutcome\texit_code\tdeadline_seconds") != 0) {
             if (outer_file != NULL)
                 (void)fclose(outer_file);
             (void)snprintf(error, sizeof error, "cannot re-read outer outcome table");
@@ -1768,8 +1832,7 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
         memset(final_seen, 0, sizeof final_seen);
         memset(stage_seen, 0, sizeof stage_seen);
         (void)snprintf(page_dir, sizeof page_dir, "page-%02u", (unsigned)page_number);
-        (void)snprintf(attempt_id, sizeof attempt_id, "page-%02u-cold-01",
-                       (unsigned)page_number);
+        (void)snprintf(attempt_id, sizeof attempt_id, "page-%02u-cold-01", (unsigned)page_number);
         if (!campaign_path(raw_path, output_dir, page_dir, "raw.tsv") ||
             !campaign_path(diag_path, output_dir, page_dir, "diagnostics.tsv") ||
             !campaign_path(page_report_path, output_dir, page_dir, "report.tsv") ||
@@ -1789,12 +1852,12 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
             metadata_present = 0;
         }
         if (metadata_present != 0) {
-#define META_STRING(KEY, DEST)                                                                      \
-            do {                                                                                    \
-                (DEST)[0] = '\0';                                                                   \
-                if (!campaign_value(metadata, KEY, DEST, sizeof DEST))                              \
-                    page_metadata_valid = 0;                                                        \
-            } while (0)
+#define META_STRING(KEY, DEST)                                                                     \
+    do {                                                                                           \
+        (DEST)[0] = '\0';                                                                          \
+        if (!campaign_value(metadata, KEY, DEST, sizeof DEST))                                     \
+            page_metadata_valid = 0;                                                               \
+    } while (0)
             page_metadata_valid = 1;
             META_STRING("report_schema", value);
             if (strcmp(value, "1") != 0)
@@ -1811,10 +1874,8 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
             META_STRING("verdict", verdict);
             if (strcmp(verdict, "complete") != 0 && strcmp(verdict, "guest-timeout") != 0 &&
                 strcmp(verdict, "bounded-incomplete") != 0 &&
-                strcmp(verdict, "startup-timeout") != 0 &&
-                strcmp(verdict, "driver-failure") != 0 &&
-                strcmp(verdict, "guest-failure") != 0 &&
-                strcmp(verdict, "output-failure") != 0 &&
+                strcmp(verdict, "startup-timeout") != 0 && strcmp(verdict, "driver-failure") != 0 &&
+                strcmp(verdict, "guest-failure") != 0 && strcmp(verdict, "output-failure") != 0 &&
                 strcmp(verdict, "startup-failure") != 0)
                 page_metadata_valid = 0;
             META_STRING("attempt_id", value);
@@ -1953,14 +2014,15 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
             if (source_revision[0] == '\0' || strcmp(source_revision, "unknown") == 0 ||
                 (strcmp(source_dirty, "0") != 0 && strcmp(source_dirty, "1") != 0) ||
                 library_version[0] == '\0' || behaviour_revision[0] == '\0' ||
-                strlen(policy) == 0u || strcmp(policy,
-                    "cold-boot;page-header-A;one-frame-A-press;one-frame-release") != 0)
+                strlen(policy) == 0u ||
+                strcmp(policy, "cold-boot;page-header-A;one-frame-A-press;one-frame-release") != 0)
                 page_metadata_valid = 0;
             if (page_metadata_valid != 0) {
                 if (have_identity == 0) {
                     (void)snprintf(campaign_source, sizeof campaign_source, "%s", source_revision);
                     (void)snprintf(campaign_dirty, sizeof campaign_dirty, "%s", source_dirty);
-                    (void)snprintf(campaign_library, sizeof campaign_library, "%s", library_version);
+                    (void)snprintf(campaign_library, sizeof campaign_library, "%s",
+                                   library_version);
                     (void)snprintf(campaign_behaviour, sizeof campaign_behaviour, "%s",
                                    behaviour_revision);
                     (void)snprintf(campaign_policy, sizeof campaign_policy, "%s", policy);
@@ -1972,8 +2034,7 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                            strcmp(campaign_dirty, source_dirty) != 0 ||
                            strcmp(campaign_library, library_version) != 0 ||
                            strcmp(campaign_behaviour, behaviour_revision) != 0 ||
-                           strcmp(campaign_policy, policy) != 0 ||
-                           campaign_boot_cap != boot_cap ||
+                           strcmp(campaign_policy, policy) != 0 || campaign_boot_cap != boot_cap ||
                            campaign_navigation_cap != navigation_cap ||
                            campaign_execution_cap != execution_cap) {
                     page_metadata_valid = 0;
@@ -2046,8 +2107,8 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                 }
                 if (!campaign_split(line, fields, 7u) ||
                     !campaign_parse_u64(fields[1], &parsed_page) ||
-                    !campaign_parse_u64(fields[2], &parsed_row) ||
-                    parsed_page != page_number || parsed_row == 0u || parsed_row > row_count) {
+                    !campaign_parse_u64(fields[2], &parsed_row) || parsed_page != page_number ||
+                    parsed_row == 0u || parsed_row > row_count) {
                     evidence_invalid = 1;
                     (void)snprintf(error, sizeof error,
                                    "page %u raw row is malformed or outside inventory order",
@@ -2090,28 +2151,25 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                 } else if (observed != 0) {
                     if (!campaign_parse_hex_byte(fields[6], &raw_byte)) {
                         evidence_invalid = 1;
-                        (void)snprintf(error, sizeof error,
-                                       "page %u raw byte is malformed",
+                        (void)snprintf(error, sizeof error, "page %u raw byte is malformed",
                                        (unsigned)page_number);
                         break;
                     }
                 } else if (strcmp(fields[6], "-") != 0) {
                     evidence_invalid = 1;
-                    (void)snprintf(error, sizeof error,
-                                   "page %u unobserved row invents a raw byte",
+                    (void)snprintf(error, sizeof error, "page %u unobserved row invents a raw byte",
                                    (unsigned)page_number);
                     break;
                 }
-                if (fprintf(observations_file, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-                            attempt_id, fields[0], fields[1], fields[2], fields[3], fields[4],
-                            fields[5], fields[6]) < 0) {
+                if (fprintf(observations_file, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", attempt_id,
+                            fields[0], fields[1], fields[2], fields[3], fields[4], fields[5],
+                            fields[6]) < 0) {
                     evidence_invalid = 1;
                     break;
                 }
                 if (parsed_row != (uint64_t)last_row_by_stage[stage] + 1u) {
                     evidence_invalid = 1;
-                    (void)snprintf(error, sizeof error,
-                                   "page %u raw rows are out of source order",
+                    (void)snprintf(error, sizeof error, "page %u raw rows are out of source order",
                                    (unsigned)page_number);
                     break;
                 }
@@ -2138,8 +2196,7 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
             }
             for (size_t stage_index = 0u; stage_index < ACCURACYCOIN_CAMPAIGN_STAGE_COUNT;
                  stage_index++) {
-                if (stage_counts[stage_index] != 0u &&
-                    stage_counts[stage_index] != row_count) {
+                if (stage_counts[stage_index] != 0u && stage_counts[stage_index] != row_count) {
                     evidence_invalid = 1;
                     (void)snprintf(error, sizeof error, "page %u raw stage is incomplete",
                                    (unsigned)page_number);
@@ -2151,27 +2208,25 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
             if (stage_counts[0] != row_count || stage_counts[1] != row_count ||
                 stage_counts[2] != row_count || start_used != 2u) {
                 evidence_invalid = 1;
-                (void)snprintf(error, sizeof error, "page %u lacks complete press/release snapshots",
+                (void)snprintf(error, sizeof error,
+                               "page %u lacks complete press/release snapshots",
                                (unsigned)page_number);
             }
         }
-        if (page_metadata_valid != 0 &&
-            strcmp(verdict, "startup-timeout") == 0 &&
+        if (page_metadata_valid != 0 && strcmp(verdict, "startup-timeout") == 0 &&
             (start_attributed != 0 || boot_used != boot_cap || selection_observed != 0 ||
              a_press != 0 || a_release != 0)) {
             evidence_invalid = 1;
             (void)snprintf(error, sizeof error, "page %u startup timeout has later-stage evidence",
                            (unsigned)page_number);
         }
-        if (!campaign_read_text(diag_path, metadata, sizeof metadata, 0,
-                                &diagnostics_present)) {
+        if (!campaign_read_text(diag_path, metadata, sizeof metadata, 0, &diagnostics_present)) {
             evidence_invalid = 1;
             diagnostics_present = 0;
             (void)snprintf(error, sizeof error, "page %u diagnostics are unreadable or truncated",
                            (unsigned)page_number);
         }
-        if (diagnostics_present != 0 &&
-            !campaign_valid_diagnostics(metadata, &controls_evidence)) {
+        if (diagnostics_present != 0 && !campaign_valid_diagnostics(metadata, &controls_evidence)) {
             evidence_invalid = 1;
             diagnostics_present = 0;
             (void)snprintf(error, sizeof error, "page %u diagnostics are malformed",
@@ -2184,12 +2239,14 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                            (unsigned)page_number);
         }
         if (page_metadata_valid != 0 && diagnostics_present != 0) {
-            int expected_draw_cursor_transition = draw_only_page != 0 &&
-                selected_cursor == 0xff && controls_evidence.press_page_index == page_number - 1u &&
+            int expected_draw_cursor_transition =
+                draw_only_page != 0 && selected_cursor == 0xff &&
+                controls_evidence.press_page_index == page_number - 1u &&
                 controls_evidence.press_cursor == 0u && controls_evidence.press_automate != 0u;
             int expected_menu_return = controls_evidence.last_menu_ready == 0x0au &&
-                controls_evidence.last_page_index == page_number - 1u &&
-                controls_evidence.last_cursor == 0xffu && controls_evidence.last_automate == 0u;
+                                       controls_evidence.last_page_index == page_number - 1u &&
+                                       controls_evidence.last_cursor == 0xffu &&
+                                       controls_evidence.last_automate == 0u;
             if ((int)controls_evidence.saw_run_state != run_state ||
                 (int)controls_evidence.saw_result_transition != transition ||
                 controls_evidence.press_page_index != page_number - 1u ||
@@ -2203,10 +2260,9 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
             if (page_metadata_valid != 0 && start_attributed != 0) {
                 if (!selection_observed || selected_page != (int)(page_number - 1u) ||
                     selected_cursor != 0xff || !a_press || !a_release || release_frames != 1 ||
-                    !run_state || (draw_only_page != 0 ? !draw_cursor_transition_observed :
-                                                          !transition) ||
-                    !pretest_dmc_observed || !pretest_vblank_observed ||
-                    !pretest_ppu_observed) {
+                    !run_state ||
+                    (draw_only_page != 0 ? !draw_cursor_transition_observed : !transition) ||
+                    !pretest_dmc_observed || !pretest_vblank_observed || !pretest_ppu_observed) {
                     evidence_invalid = 1;
                     (void)snprintf(error, sizeof error,
                                    "page %u has unattributed menu/start evidence",
@@ -2236,8 +2292,8 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                     cursor_row->kind != (uint8_t)ACCURACYCOIN_KIND_TEST ||
                     final_observed[controls_evidence.last_cursor] == 0u ||
                     final_raw[controls_evidence.last_cursor] != 0x03u ||
-                    controls_evidence.last_automate != 1u ||
-                    strcmp(active_key, current_key) != 0 || strcmp(active_raw, "0x03") != 0 ||
+                    controls_evidence.last_automate != 1u || strcmp(active_key, current_key) != 0 ||
+                    strcmp(active_raw, "0x03") != 0 ||
                     strcmp(stop_cause, "execution-cap-active-test") != 0 ||
                     execution_used != execution_cap) {
                     evidence_invalid = 1;
@@ -2277,19 +2333,17 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                 const char *classified_cause = NULL;
                 const accuracycoin_test *row = &directory->rows[first_row + i];
                 int observed = row->kind == (uint8_t)ACCURACYCOIN_KIND_TEST;
-                accuracycoin_result_status result =
-                    accuracycoin_classify_final_row(
-                        row, observed, final_raw[i],
-                        strcmp(verdict, "guest-timeout") == 0 &&
-                            i == controls_evidence.last_cursor,
-                        &classified_cause);
+                accuracycoin_result_status result = accuracycoin_classify_final_row(
+                    row, observed, final_raw[i],
+                    strcmp(verdict, "guest-timeout") == 0 && i == controls_evidence.last_cursor,
+                    &classified_cause);
                 if (observed != 0)
                     (void)snprintf(raw_text, sizeof raw_text, "0x%02x", (unsigned)final_raw[i]);
                 else
                     (void)snprintf(raw_text, sizeof raw_text, "-");
                 (void)snprintf(expected, sizeof expected,
-                               "accuracycoin/%s\t%u\t%u\t%s\t%d\t%s\t%llu\t%s\t%s\n",
-                               row->name, (unsigned)page_number, (unsigned)row->row,
+                               "accuracycoin/%s\t%u\t%u\t%s\t%d\t%s\t%llu\t%s\t%s\n", row->name,
+                               (unsigned)page_number, (unsigned)row->row,
                                accuracycoin_status_text(result), observed, raw_text,
                                (unsigned long long)execution_used, classified_cause, attempt_id);
                 if (result == ACCURACYCOIN_RESULT_INVALID) {
@@ -2309,7 +2363,8 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                 }
                 if (strcmp(line, expected) != 0) {
                     fprintf(stderr,
-                            "nesturbator-run: AccuracyCoin page %u report row %lu differs from final bytes\nexpected: %sactual: %s",
+                            "nesturbator-run: AccuracyCoin page %u report row %lu differs from "
+                            "final bytes\nexpected: %sactual: %s",
                             (unsigned)page_number, (unsigned long)i + 1u, expected, line);
                     valid = 0;
                     break;
@@ -2331,8 +2386,7 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
             if (strcmp(verdict, "startup-timeout") == 0 &&
                 strcmp(stop_cause, "boot-cap-exhausted") == 0 && start_attributed == 0) {
                 page_complete = 1;
-            } else if ((strcmp(verdict, "complete") == 0 ||
-                        strcmp(verdict, "guest-timeout") == 0 ||
+            } else if ((strcmp(verdict, "complete") == 0 || strcmp(verdict, "guest-timeout") == 0 ||
                         strcmp(verdict, "bounded-incomplete") == 0) &&
                        start_evidence_complete != 0 && final_snapshot_complete != 0 &&
                        page_report_valid != 0 &&
@@ -2342,7 +2396,8 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
             } else {
                 evidence_invalid = 1;
                 (void)snprintf(error, sizeof error,
-                               "page %u successful child lacks terminal evidence (start=%d final=%d report=%d)",
+                               "page %u successful child lacks terminal evidence (start=%d "
+                               "final=%d report=%d)",
                                (unsigned)page_number, start_evidence_complete,
                                final_snapshot_complete, page_report_valid);
             }
@@ -2370,10 +2425,11 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
             (void)snprintf(pretest_ppu_text, sizeof pretest_ppu_text, "0x%02x",
                            (unsigned)pretest_ppu);
         if (fprintf(attempts_file,
-                    "%s\t%s\t%u\tall\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%s\t%s\t%llu\t%llu\t%llu\t%llu\t%llu\t%s\t%s\t%s\t%d\n",
+                    "%s\t%s\t%u\tall\t%s\t%s\t%d\t%d\t%d\t%d\t%s\t%s\t%s\t%llu\t%llu\t%llu\t%llu\t%"
+                    "llu\t%s\t%s\t%s\t%d\n",
                     path, origin, (unsigned)page_number, outer->outcome, outer->exit_code,
-                    selection_observed, selected_page, selected_cursor,
-                    start_attributed, pretest_dmc_text, pretest_vblank_text, pretest_ppu_text,
+                    selection_observed, selected_page, selected_cursor, start_attributed,
+                    pretest_dmc_text, pretest_vblank_text, pretest_ppu_text,
                     (unsigned long long)boot_used, (unsigned long long)navigation_used,
                     (unsigned long long)start_used, (unsigned long long)execution_used,
                     (unsigned long long)total_used, stop_cause, active_key, active_raw,
@@ -2399,11 +2455,11 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                 draw_rows++;
             } else if (page_report_valid != 0 && final_seen[local_index] != 0u &&
                        final_observed[local_index] != 0u && page_metadata_valid != 0) {
-                result = accuracycoin_classify_final_row(
-                    row, 1, raw,
-                    strcmp(verdict, "guest-timeout") == 0 &&
-                        local_index == controls_evidence.last_cursor,
-                    &cause);
+                result = accuracycoin_classify_final_row(row, 1, raw,
+                                                         strcmp(verdict, "guest-timeout") == 0 &&
+                                                             local_index ==
+                                                                 controls_evidence.last_cursor,
+                                                         &cause);
                 if (result == ACCURACYCOIN_RESULT_INVALID) {
                     evidence_invalid = 1;
                     (void)snprintf(error, sizeof error, "page %u has invalid classified result",
@@ -2420,8 +2476,8 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                 else if (page_metadata_valid != 0 && start_attributed == 0)
                     cause = stop_cause;
                 else
-                    cause = final_seen[local_index] != 0u ? "untrusted-final-snapshot" :
-                                                              "missing-final-snapshot";
+                    cause = final_seen[local_index] != 0u ? "untrusted-final-snapshot"
+                                                          : "missing-final-snapshot";
             }
             if (row->kind == (uint8_t)ACCURACYCOIN_KIND_TEST) {
                 if ((unsigned)result < 5u)
@@ -2441,8 +2497,8 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory,
                         row->name, (unsigned)row->page, (unsigned)row->row,
                         row->kind == (uint8_t)ACCURACYCOIN_KIND_DRAW ? "draw" : "test",
                         accuracycoin_status_text(result), observed, raw_text,
-                        (unsigned long long)frames_for_row,
-                        cause != NULL ? cause : "unknown", row_attempt) < 0) {
+                        (unsigned long long)frames_for_row, cause != NULL ? cause : "unknown",
+                        row_attempt) < 0) {
                 evidence_invalid = 1;
                 (void)snprintf(error, sizeof error, "cannot write final report");
                 goto collect_done;
@@ -2459,24 +2515,29 @@ collect_done:
                                 status_counts[3] + status_counts[4];
     if (classified_total != directory->scored_count) {
         evidence_invalid = 1;
-        (void)snprintf(error, sizeof error, "campaign status counts do not sum to scored inventory");
+        (void)snprintf(error, sizeof error,
+                       "campaign status counts do not sum to scored inventory");
     }
     if (summary_file == NULL) {
         evidence_invalid = 1;
         (void)snprintf(error, sizeof error, "campaign summary output is unavailable");
-    } else if (fprintf(summary_file,
-                "AccuracyCoin bounded campaign\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%s\nscored_total=%u\npass=%u/%u\nfail=%u\nskip=%u\nnot-run=%u\ntimeout=%u\ndraw_inventory_only=%u\npages_launched=%u/%u\npages_start_attributed=%u/%u\nattempted_scored_rows=%u/%u\nobserved_scored_rows=%u/%u\nterminal_scored_rows=%u/%u\nouter_infrastructure=%s\n",
-                directory->pin, directory->rom_sha256, directory->inventory_sha256,
-                (unsigned)directory->scored_count, status_counts[ACCURACYCOIN_RESULT_PASS],
-                (unsigned)directory->scored_count, status_counts[ACCURACYCOIN_RESULT_FAIL],
-                status_counts[ACCURACYCOIN_RESULT_SKIP],
-                status_counts[ACCURACYCOIN_RESULT_NOT_RUN],
-                status_counts[ACCURACYCOIN_RESULT_TIMEOUT], draw_rows, ACCURACYCOIN_PAGE_COUNT,
-                ACCURACYCOIN_PAGE_COUNT, attempted_pages, ACCURACYCOIN_PAGE_COUNT,
-                attempted_scored_rows, (unsigned)directory->scored_count, observed_rows,
-                (unsigned)directory->scored_count,
-                terminal_rows, (unsigned)directory->scored_count,
-                infrastructure_failed || evidence_invalid ? "failed" : "complete") < 0) {
+    } else if (
+        fprintf(
+            summary_file,
+            "AccuracyCoin bounded "
+            "campaign\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%s\nscored_total=%u\npass=%u/"
+            "%u\nfail=%u\nskip=%u\nnot-run=%u\ntimeout=%u\ndraw_inventory_only=%u\npages_launched=%"
+            "u/%u\npages_start_attributed=%u/%u\nattempted_scored_rows=%u/"
+            "%u\nobserved_scored_rows=%u/%u\nterminal_scored_rows=%u/%u\nouter_infrastructure=%s\n",
+            directory->pin, directory->rom_sha256, directory->inventory_sha256,
+            (unsigned)directory->scored_count, status_counts[ACCURACYCOIN_RESULT_PASS],
+            (unsigned)directory->scored_count, status_counts[ACCURACYCOIN_RESULT_FAIL],
+            status_counts[ACCURACYCOIN_RESULT_SKIP], status_counts[ACCURACYCOIN_RESULT_NOT_RUN],
+            status_counts[ACCURACYCOIN_RESULT_TIMEOUT], draw_rows, ACCURACYCOIN_PAGE_COUNT,
+            ACCURACYCOIN_PAGE_COUNT, attempted_pages, ACCURACYCOIN_PAGE_COUNT,
+            attempted_scored_rows, (unsigned)directory->scored_count, observed_rows,
+            (unsigned)directory->scored_count, terminal_rows, (unsigned)directory->scored_count,
+            infrastructure_failed || evidence_invalid ? "failed" : "complete") < 0) {
         evidence_invalid = 1;
         (void)snprintf(error, sizeof error, "cannot write summary");
     }
@@ -2506,21 +2567,28 @@ collect_done:
         (void)snprintf(error, sizeof error, "cannot flush campaign attempts");
     }
     if (metadata_file != NULL) {
-        if (fprintf(metadata_file,
-                    "report_schema=1\ninventory_schema=1\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%s\nsource_revision=%s\nsource_dirty=%s\nlibrary_version=%s\nbehaviour_revision=%s\nmode=campaign\ninput_start_policy=%s\nboot_frame_budget=%u\nnavigation_frame_budget_per_page=%u\nexecution_frame_budget=%u\ntotal_frame_budget=%llu\npages_launched=%u\npages_start_attributed=%u\nattempted_scored_rows=%u\npages_completed=%u\nscored_total=%u\npass=%u\nfail=%u\nskip=%u\nnot_run=%u\ntimeout=%u\ndraw=%u\nobserved_scored_rows=%u\nterminal_scored_rows=%u\nhost_elapsed_guest_ns=%llu\ntrustworthy_observation=%s\ninfrastructure_verdict=%s\n",
-                    directory->pin, directory->rom_sha256, directory->inventory_sha256,
-                    have_identity ? campaign_source : "-", have_identity ? campaign_dirty : "-",
-                    have_identity ? campaign_library : "-", have_identity ? campaign_behaviour : "-",
-                    have_identity ? campaign_policy : "-", campaign_boot_cap,
-                    campaign_navigation_cap, campaign_execution_cap,
-                    (unsigned long long)campaign_total_cap, ACCURACYCOIN_PAGE_COUNT,
-                    attempted_pages, attempted_scored_rows,
-                    infrastructure_failed || evidence_invalid ? 0u : ACCURACYCOIN_PAGE_COUNT,
-                    (unsigned)directory->scored_count, status_counts[0], status_counts[1],
-                    status_counts[2], status_counts[3], status_counts[4], draw_rows,
-                    observed_rows, terminal_rows, (unsigned long long)campaign_host_elapsed_ns,
-                    infrastructure_failed || evidence_invalid ? "0" : "1",
-                    infrastructure_failed || evidence_invalid ? "failed" : "complete") < 0 ||
+        if (fprintf(
+                metadata_file,
+                "report_schema=1\ninventory_schema=1\nrom_pin=%s\nrom_sha256=%s\ninventory_sha256=%"
+                "s\nsource_revision=%s\nsource_dirty=%s\nlibrary_version=%s\nbehaviour_revision=%"
+                "s\nmode=campaign\ninput_start_policy=%s\nboot_frame_budget=%u\nnavigation_frame_"
+                "budget_per_page=%u\nexecution_frame_budget=%u\ntotal_frame_budget=%llu\npages_"
+                "launched=%u\npages_start_attributed=%u\nattempted_scored_rows=%u\npages_completed="
+                "%u\nscored_total=%u\npass=%u\nfail=%u\nskip=%u\nnot_run=%u\ntimeout=%u\ndraw=%"
+                "u\nobserved_scored_rows=%u\nterminal_scored_rows=%u\nhost_elapsed_guest_ns=%"
+                "llu\ntrustworthy_observation=%s\ninfrastructure_verdict=%s\n",
+                directory->pin, directory->rom_sha256, directory->inventory_sha256,
+                have_identity ? campaign_source : "-", have_identity ? campaign_dirty : "-",
+                have_identity ? campaign_library : "-", have_identity ? campaign_behaviour : "-",
+                have_identity ? campaign_policy : "-", campaign_boot_cap, campaign_navigation_cap,
+                campaign_execution_cap, (unsigned long long)campaign_total_cap,
+                ACCURACYCOIN_PAGE_COUNT, attempted_pages, attempted_scored_rows,
+                infrastructure_failed || evidence_invalid ? 0u : ACCURACYCOIN_PAGE_COUNT,
+                (unsigned)directory->scored_count, status_counts[0], status_counts[1],
+                status_counts[2], status_counts[3], status_counts[4], draw_rows, observed_rows,
+                terminal_rows, (unsigned long long)campaign_host_elapsed_ns,
+                infrastructure_failed || evidence_invalid ? "0" : "1",
+                infrastructure_failed || evidence_invalid ? "failed" : "complete") < 0 ||
             fflush(metadata_file) != 0)
             evidence_invalid = 1;
     }
@@ -2547,7 +2615,8 @@ collect_done:
         fprintf(stderr, "nesturbator-run: AccuracyCoin campaign collection failed: %s\n", error);
         return RUNNER_EXIT_FAILURE;
     }
-    printf("accuracycoin campaign complete (%u scored, %u DRAW; pass %u fail %u skip %u not-run %u timeout %u)\n",
+    printf("accuracycoin campaign complete (%u scored, %u DRAW; pass %u fail %u skip %u not-run %u "
+           "timeout %u)\n",
            (unsigned)directory->scored_count, draw_rows, status_counts[0], status_counts[1],
            status_counts[2], status_counts[3], status_counts[4]);
     return fflush(stdout) == 0 && ferror(stdout) == 0 ? RUNNER_EXIT_DONE : RUNNER_EXIT_FAILURE;
