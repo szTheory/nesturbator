@@ -33,7 +33,8 @@ static uint64_t nt_metric_peak_rss_bytes(void)
 void nt_replay_report_metrics(void);
 void nt_replay_report_metrics(void)
 {
-    printf("METRICS target=rom-loader inputs=%llu accepted=%llu refused=%llu api_operations=%llu frame_calls=0 frame_ok=0 frame_jam=0 guest_ticks=0 peak_rss_bytes=%llu\n",
+    printf("METRICS target=rom-loader inputs=%llu accepted=%llu refused=%llu api_operations=%llu "
+           "frame_calls=0 frame_ok=0 frame_jam=0 guest_ticks=0 peak_rss_bytes=%llu\n",
            (unsigned long long)nt_metric_inputs, (unsigned long long)nt_metric_accepted,
            (unsigned long long)(nt_metric_inputs - nt_metric_accepted),
            (unsigned long long)nt_metric_api_operations,

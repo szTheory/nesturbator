@@ -20,7 +20,8 @@
 #define NT_EXEC_MAX_CHR_BYTES (32u * 1024u)
 #endif
 #ifndef NT_EXEC_MAX_INPUT_BYTES
-#define NT_EXEC_MAX_INPUT_BYTES (NT_EXEC_RECIPE_SIZE + NT_EXEC_MAX_PRG_BYTES + NT_EXEC_MAX_CHR_BYTES)
+#define NT_EXEC_MAX_INPUT_BYTES                                                                    \
+    (NT_EXEC_RECIPE_SIZE + NT_EXEC_MAX_PRG_BYTES + NT_EXEC_MAX_CHR_BYTES)
 #endif
 #ifndef NT_EXEC_MAX_GENERATED_BYTES
 #define NT_EXEC_MAX_GENERATED_BYTES (16u + NT_EXEC_MAX_PRG_BYTES + NT_EXEC_MAX_CHR_BYTES)
@@ -184,8 +185,7 @@ static uint16_t nt_exec_u16le(const uint8_t *p)
 
 static uint32_t nt_exec_u32le(const uint8_t *p)
 {
-    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) |
-           ((uint32_t)p[3] << 24);
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
 static int nt_exec_decode(const uint8_t *data, size_t size, struct nt_exec_recipe *recipe)
@@ -303,8 +303,7 @@ static int nt_exec_profile_for(uint8_t code, struct nt_exec_profile *profile)
 
 static size_t nt_exec_image_size(const struct nt_exec_profile *profile)
 {
-    return 16u + (size_t)profile->prg_16k * INES_PRG_BANK +
-           (size_t)profile->chr_8k * INES_CHR_BANK;
+    return 16u + (size_t)profile->prg_16k * INES_PRG_BANK + (size_t)profile->chr_8k * INES_CHR_BANK;
 }
 
 static void nt_exec_emit_imm(uint8_t *code, size_t *n, uint8_t value)
@@ -524,7 +523,8 @@ static uint8_t *nt_exec_generate(const struct nt_exec_recipe *recipe, const uint
     size_t code_size;
     uint32_t state;
     if (prg_size > NT_EXEC_MAX_PRG_BYTES || chr_size > NT_EXEC_MAX_CHR_BYTES ||
-        size > NT_EXEC_MAX_GENERATED_BYTES || input_size - NT_EXEC_RECIPE_SIZE > prg_size + chr_size)
+        size > NT_EXEC_MAX_GENERATED_BYTES ||
+        input_size - NT_EXEC_RECIPE_SIZE > prg_size + chr_size)
         return NULL;
     image = (uint8_t *)nt_exec_alloc(budget, size);
     if (image == NULL)
@@ -536,12 +536,11 @@ static uint8_t *nt_exec_generate(const struct nt_exec_recipe *recipe, const uint
     image[3] = 0x1au;
     image[4] = profile->prg_16k;
     image[5] = profile->chr_8k;
-    image[6] = (uint8_t)(((profile->mapper & 0x0fu) << 4) |
-                         (profile->battery != 0u ? 0x02u : 0u));
+    image[6] = (uint8_t)(((profile->mapper & 0x0fu) << 4) | (profile->battery != 0u ? 0x02u : 0u));
     image[7] = (uint8_t)((profile->mapper & 0xf0u) | (profile->nes2 != 0u ? 0x08u : 0u));
     if (profile->nes2 != 0u) {
-        image[8] = (uint8_t)(((unsigned)profile->submapper << 4) |
-                             ((profile->mapper >> 8) & 0x0fu));
+        image[8] =
+            (uint8_t)(((unsigned)profile->submapper << 4) | ((profile->mapper >> 8) & 0x0fu));
         image[10] = (uint8_t)(profile->prg_nvram_shift << 4);
         image[11] = (uint8_t)(profile->chr_ram != 0u ? 0x07u : 0u);
     }
@@ -736,7 +735,7 @@ static void nt_exec_observe_guest(const nesturbator *inst, struct nt_exec_branch
     branch->prg_marker = (uint16_t)((uint16_t)prg_initial | ((uint16_t)prg_selected << 8));
     branch->chr_marker = (uint16_t)((uint16_t)chr_initial | ((uint16_t)chr_selected << 8));
     branch->nametable_marker = (uint16_t)((uint16_t)nt_exec_peek(inst, 4u, metrics) |
-                                           ((uint16_t)nt_exec_peek(inst, 5u, metrics) << 8));
+                                          ((uint16_t)nt_exec_peek(inst, 5u, metrics) << 8));
     branch->guest_counter = (uint16_t)((uint16_t)nt_exec_peek(inst, 6u, metrics) |
                                        ((uint16_t)nt_exec_peek(inst, 7u, metrics) << 8));
     branch->controller_a = nt_exec_peek(inst, 8u, metrics);
@@ -788,9 +787,8 @@ static int nt_exec_verdict(const struct nt_exec_branch *a, const struct nt_exec_
     if (a->stop_status == (uint32_t)NESTURBATOR_STOP_JAM)
         return 1;
     return a->frames > 0u && a->guest_ticks > 0u && a->guest_ticks == b->guest_ticks &&
-           a->output_hash == b->output_hash &&
-           a->prg_marker == b->prg_marker && a->chr_marker == b->chr_marker &&
-           a->guest_counter == b->guest_counter &&
+           a->output_hash == b->output_hash && a->prg_marker == b->prg_marker &&
+           a->chr_marker == b->chr_marker && a->guest_counter == b->guest_counter &&
            a->nametable_marker == b->nametable_marker && a->controller_a == b->controller_a &&
            a->visible_pixels == b->visible_pixels;
 }
@@ -821,8 +819,9 @@ static uint8_t nt_exec_observed_effects(const struct nt_exec_profile *profile,
             effects |= NT_EXEC_EFFECT_PRG;
     }
     if (nt_exec_expected_effects(profile) & NT_EXEC_EFFECT_CHR) {
-        const uint8_t expected_chr = profile->mapper == 1u ? 0x52u :
-                                     profile->mapper == 3u ? 0x53u : 0x54u;
+        const uint8_t expected_chr = profile->mapper == 1u   ? 0x52u
+                                     : profile->mapper == 3u ? 0x53u
+                                                             : 0x54u;
         if (chr0 == 0x51u && chr1 == expected_chr)
             effects |= NT_EXEC_EFFECT_CHR;
     }
@@ -883,8 +882,8 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     if (video == NULL || audio == NULL)
         nt_exec_fail("frame buffers exceeded the allocation cap");
     a = nt_exec_instance(&budget, image, image_size, &observed.metrics);
-    before_finished = nt_exec_run_phase(a, recipe.before_buttons, recipe.before_frames, video, audio,
-                                        &ticks_a, &before, &observed.metrics);
+    before_finished = nt_exec_run_phase(a, recipe.before_buttons, recipe.before_frames, video,
+                                        audio, &ticks_a, &before, &observed.metrics);
     if (before_finished)
         nt_exec_observe_guest(a, &before, &observed.metrics);
     nt_exec_operation(&observed.metrics);
@@ -910,16 +909,15 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
         if (!nt_exec_decode(interloper_recipe, sizeof interloper_recipe, &decoded_interloper) ||
             !nt_exec_profile_for(decoded_interloper.profile_code, &interloper_profile))
             nt_exec_fail("different-board isolation recipe could not be decoded");
-        interloper_image = nt_exec_generate(&decoded_interloper, interloper_recipe,
-                                             sizeof interloper_recipe, &interloper_profile,
-                                             &interloper_image_size, &budget);
+        interloper_image =
+            nt_exec_generate(&decoded_interloper, interloper_recipe, sizeof interloper_recipe,
+                             &interloper_profile, &interloper_image_size, &budget);
         if (interloper_image == NULL)
             nt_exec_fail("different-board isolation image could not be generated");
-        interloper = nt_exec_instance(&budget, interloper_image, interloper_image_size,
-                                      &observed.metrics);
-        if (!nt_exec_run_phase(interloper, (uint8_t)(recipe.before_buttons ^ 0x80u), 1u,
-                               video, audio, &ticks_b, &interloper_branch,
-                               &observed.metrics))
+        interloper =
+            nt_exec_instance(&budget, interloper_image, interloper_image_size, &observed.metrics);
+        if (!nt_exec_run_phase(interloper, (uint8_t)(recipe.before_buttons ^ 0x80u), 1u, video,
+                               audio, &ticks_b, &interloper_branch, &observed.metrics))
             nt_exec_fail("different-board interloper unexpectedly JAMmed");
     }
     b = nt_exec_instance(&budget, image, image_size, &observed.metrics);
@@ -934,11 +932,9 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
         nt_exec_fail("continuation snapshots exceeded the allocation cap");
     ticks_b = ticks_a;
     after_a_finished = nt_exec_run_phase(a, recipe.after_buttons, recipe.after_frames, video, audio,
-                                         &ticks_a, &observed.continuation_a,
-                                         &observed.metrics);
+                                         &ticks_a, &observed.continuation_a, &observed.metrics);
     after_b_finished = nt_exec_run_phase(b, recipe.after_buttons, recipe.after_frames, video, audio,
-                                         &ticks_b, &observed.continuation_b,
-                                         &observed.metrics);
+                                         &ticks_b, &observed.continuation_b, &observed.metrics);
     if (after_a_finished)
         nt_exec_observe_guest(a, &observed.continuation_a, &observed.metrics);
     if (after_b_finished)
@@ -1069,9 +1065,10 @@ static int nt_exec_read_path(const char *path, uint8_t **bytes, size_t *size)
         status = NT_EXEC_READ_FAILED;
     }
     if (status != NT_EXEC_READ_OK) {
-        const char *reason = status == NT_EXEC_READ_TOO_LARGE ? "input exceeds descriptor and board-image cap" :
-                             status == NT_EXEC_READ_MEMORY ? "out of memory reading input" :
-                             "invalid or unreadable input";
+        const char *reason = status == NT_EXEC_READ_TOO_LARGE
+                                 ? "input exceeds descriptor and board-image cap"
+                             : status == NT_EXEC_READ_MEMORY ? "out of memory reading input"
+                                                             : "invalid or unreadable input";
         fprintf(stderr, NT_EXEC_REPLAY_NAME ": %s: %s\n", reason, path);
         return 0;
     }
@@ -1080,9 +1077,8 @@ static int nt_exec_read_path(const char *path, uint8_t **bytes, size_t *size)
 
 static int nt_exec_seed_code(const char *name)
 {
-    static const char *const names[] = {
-        "nrom-deep", "mmc1-deep", "uxrom-deep", "cnrom-deep", "mmc3-deep", "axrom-deep",
-        "jam", "loop"};
+    static const char *const names[] = {"nrom-deep", "mmc1-deep",  "uxrom-deep", "cnrom-deep",
+                                        "mmc3-deep", "axrom-deep", "jam",        "loop"};
     for (size_t i = 0u; i < sizeof names / sizeof names[0]; ++i)
         if (strcmp(name, names[i]) == 0)
             return (int)i + 1;
@@ -1111,9 +1107,11 @@ static int nt_exec_check_seeds(int argc, char **argv)
         }
         nt_exec_seed(expected);
         expected[5] = (uint8_t)code;
-        if (seen[code] != 0u || size != sizeof expected || memcmp(bytes, expected, sizeof expected) != 0 ||
+        if (seen[code] != 0u || size != sizeof expected ||
+            memcmp(bytes, expected, sizeof expected) != 0 ||
             !nt_exec_profile_for((uint8_t)code, &profile)) {
-            fprintf(stderr, NT_EXEC_REPLAY_NAME ": seed descriptor or family path mismatch: %s\n", argv[i]);
+            fprintf(stderr, NT_EXEC_REPLAY_NAME ": seed descriptor or family path mismatch: %s\n",
+                    argv[i]);
             free(bytes);
             return 1;
         }
@@ -1123,12 +1121,12 @@ static int nt_exec_check_seeds(int argc, char **argv)
             return 1;
         }
         {
-            int qualified = observed.metrics.accepted != 0u && observed.states_equal &&
-                            observed.operation_count != 0u &&
-                            observed.metrics.generated_bytes == nt_exec_image_size(&profile) &&
-                            observed.metrics.mapper == profile.mapper &&
-                            observed.metrics.qualified_bank_effects ==
-                                nt_exec_expected_effects(&profile);
+            int qualified =
+                observed.metrics.accepted != 0u && observed.states_equal &&
+                observed.operation_count != 0u &&
+                observed.metrics.generated_bytes == nt_exec_image_size(&profile) &&
+                observed.metrics.mapper == profile.mapper &&
+                observed.metrics.qualified_bank_effects == nt_exec_expected_effects(&profile);
             if (code == NT_EXEC_PROFILE_JAM) {
                 qualified = qualified && observed.metrics.stop_status == NESTURBATOR_STOP_JAM &&
                             observed.metrics.frame_jam == 3u && observed.metrics.frame_ok == 1u &&
@@ -1139,7 +1137,10 @@ static int nt_exec_check_seeds(int argc, char **argv)
                             observed.completed_frames == observed.metrics.frames;
             }
             if (!qualified) {
-                fprintf(stderr, NT_EXEC_REPLAY_NAME ": seed did not qualify: %s accepted=%u frames=%u/%u completed=%u ops=%u bytes=%u mapper=%u effects=0x%02x expected=0x%02x state=%d\n",
+                fprintf(stderr,
+                        NT_EXEC_REPLAY_NAME
+                        ": seed did not qualify: %s accepted=%u frames=%u/%u completed=%u ops=%u "
+                        "bytes=%u mapper=%u effects=0x%02x expected=0x%02x state=%d\n",
                         argv[i], observed.metrics.accepted, observed.metrics.frame_ok,
                         observed.metrics.frames, observed.completed_frames,
                         observed.operation_count, observed.metrics.generated_bytes,
@@ -1158,7 +1159,8 @@ static int nt_exec_check_seeds(int argc, char **argv)
         free(bytes);
     }
     if (valid_count != 8u) {
-        fputs(NT_EXEC_REPLAY_NAME ": corpus must contain exactly eight qualified recipes\n", stderr);
+        fputs(NT_EXEC_REPLAY_NAME ": corpus must contain exactly eight qualified recipes\n",
+              stderr);
         return 1;
     }
     for (size_t i = 1u; i <= 8u; ++i) {
@@ -1252,7 +1254,8 @@ static int nt_exec_self_test(void)
         jam_observation.metrics.frames != 4u || jam_observation.metrics.frame_ok != 1u ||
         jam_observation.metrics.frame_jam != 3u)
         return 1;
-    puts(NT_EXEC_REPLAY_NAME ": descriptor, raw-byte mutation, allocation, frame and JAM boundaries passed");
+    puts(NT_EXEC_REPLAY_NAME
+         ": descriptor, raw-byte mutation, allocation, frame and JAM boundaries passed");
     return 0;
 }
 
