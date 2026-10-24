@@ -67,9 +67,11 @@ The retained comparison ROM at `673ef550db296136d52229961e7d39366116882a`
 has SHA-256
 `4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839` and has
 144 scored rows plus five DRAW entries. The runner authenticates complete ROM
-bytes, decodes the in-ROM page and row names, and reads observed result bytes
-from CPU RAM through `nesturbator_peek_cpu_ram`. The new baseline is a measured
-observation, not a claim that every hardware test passes.
+bytes, decodes length-bounded in-ROM page and row names, and reads observed
+result bytes from CPU RAM through `nesturbator_peek_cpu_ram`. Only validated
+names become result keys; normal CI checks that malformed and overlong names
+are rejected. The new baseline is a measured observation, not a claim that
+every hardware test passes.
 
 Print the complete source-order inventory for either retained pin:
 

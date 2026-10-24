@@ -352,10 +352,12 @@ void nesturbator_unload_cartridge(nesturbator *inst);
    protected verdict can distinguish a fresh measured attempt from copied or
    candidate-asserted status rows.
    AccuracyCoin ROM pins, inventory counts, and the measured conformance
-   baseline are test inputs only; tests bind each pin's exact bytes and result
-   count to its manifest entry. Historical hygiene checks use the manifest
-   from each commit, so relocating a pin preserves its recorded provenance.
-   These checks do not change this API's ABI or state contract.
+   baseline are test inputs only; tests bind exact bytes to each manifest
+   entry and the scored count to the parsed inventory. Names are length-bounded
+   before result-key construction, and malformed/overlong name controls remain
+   rejected. Historical hygiene checks use the manifest from each commit, so
+   relocating a pin preserves its recorded provenance. These checks do not
+   change this API's ABI or state contract.
    This inspection API adds no library ABI or state-format requirement. On
    error, *value is unchanged. */
 nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,

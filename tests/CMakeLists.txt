@@ -723,6 +723,8 @@ target_include_directories(accuracycoin.conformance PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/runner)
 target_link_libraries(accuracycoin.conformance PRIVATE nesturbator::nesturbator)
+target_compile_definitions(accuracycoin.conformance PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(accuracycoin.conformance)
 set(ACCURACYCOIN_TRACER_WORK ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/page3-tracer)
 add_test(NAME accuracycoin.tracer

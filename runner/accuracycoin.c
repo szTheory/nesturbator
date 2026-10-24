@@ -573,6 +573,22 @@ static int compare_test_name(const void *left, const void *right)
     return strcmp(a->name, b->name);
 }
 
+static int accuracycoin_make_full_key(char *out, size_t capacity, const char *name)
+{
+    static const char prefix[] = "accuracycoin/";
+    const size_t prefix_size = sizeof prefix - 1u;
+    size_t name_size = 0u;
+    if (out == NULL || name == NULL || capacity <= prefix_size)
+        return 0;
+    while (name_size < ACCURACYCOIN_NAME_CAPACITY && name[name_size] != '\0')
+        name_size++;
+    if (name_size == ACCURACYCOIN_NAME_CAPACITY || name_size >= capacity - prefix_size)
+        return 0;
+    memcpy(out, prefix, prefix_size);
+    memcpy(out + prefix_size, name, name_size + 1u);
+    return 1;
+}
+
 static int required_page14_test(const char *name)
 {
     static const char *const required[] = {"Length Counter", "Length Table", "Frame Counter IRQ",
@@ -607,7 +623,10 @@ static int compare_scoreboard(const char *path, const accuracycoin_test *tests,
             char expected[192];
             char full_key[ACCURACYCOIN_NAME_CAPACITY + 16u];
             const char *cause = NULL;
-            (void)snprintf(full_key, sizeof full_key, "accuracycoin/%s", tests[i].name);
+            if (!accuracycoin_make_full_key(full_key, sizeof full_key, tests[i].name)) {
+                fclose(file);
+                return 0;
+            }
             accuracycoin_result_status status =
                 accuracycoin_classify(full_key, 1, raw[i], 0, &cause);
             (void)cause;
@@ -768,7 +787,8 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
         char full_key[ACCURACYCOIN_NAME_CAPACITY + 16u];
         if (!accuracy_ram(inst, tests[i].result_address, &results[i]))
             return RUNNER_EXIT_FAILURE;
-        (void)snprintf(full_key, sizeof full_key, "accuracycoin/%s", tests[i].name);
+        if (!accuracycoin_make_full_key(full_key, sizeof full_key, tests[i].name))
+            return RUNNER_EXIT_FAILURE;
         result_status = accuracycoin_classify(full_key, 1, results[i], 0, &cause);
         printf("accuracycoin/%s\t%s\t0x%02x\t-\t-\n", tests[i].name,
                accuracycoin_status_text(result_status), (unsigned)results[i]);
