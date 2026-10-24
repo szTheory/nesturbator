@@ -122,6 +122,12 @@ Last session: 2026-10-24T00:01:04.376Z
 Stopped at: Completed 17-03-PLAN.md
 Resume file: None
 
+Read [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) first.
+Its direct development contract remains active: no retired admission/transport/
+snapshot/clock/slot/helper preparation prerequisites and no Plan57. Ordinary
+implementation/tool failures are diagnosed and corrected within execution.
+Do not route a diagnosed local failure back to planning by default.
+
 ## Performance Metrics
 
 | Plan | Duration | Tasks | Files |
