@@ -14,14 +14,17 @@ v4 "Measured NTSC accuracy and robustness" shipped on 2026-10-24 (planning miles
 
 v3 "Save states and rewind" shipped on 2026-10-13 ([v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10)), v2 "Most of the library plays" on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-## Next Milestone Goals
+## Current Milestone: v5 NMI, VBlank and sprite-0 timing
 
-Proposed, not yet approved; `/gsd-new-milestone` decides. The direction is in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+**Goal:** A game's frame loop and status-bar splits time out exactly as they do on an NTSC console.
 
-- **Preferred — RM-004:** NMI/VBlank and sprite-0 timing match the console. That means the 11 named failing AccuracyCoin rows pass at `6bee919` with no lost PASS.
-- **Alternative cluster:** the eight DMA rows (DMC/OAM DMA conflicts and aborts, `$4015` reads).
-- **Alternative milestone — RM-005:** PAL timing and pitch. It is held behind RM-004 because the NTSC baseline shows broad timing gaps.
-- **Tune-up (SEED-006):** AccuracyCoin JAM attribution and a run-ahead-under-JAM test, carried from the v4 audit.
+**Target features:**
+- NMI and VBlank timing match the console: AccuracyCoin's `$2002` flag timing, NMI Control, NMI Timing, NMI Suppression, NMI at VBlank end, NMI disabled at VBlank, NMI Overlap BRK, NMI Overlap IRQ and Interrupt flag latency rows pass at `6bee919`.
+- Sprite-0 hit matches the console: the Sprite 0 Hit behavior and Arbitrary Sprite zero rows pass.
+- Nothing that passes today stops passing; changed frame or audio hashes are re-pinned with their reason, and save states carry any new machine field.
+- Tune-up (SEED-006): AccuracyCoin reports a guest JAM as a JAM, and `libretro.runahead` covers run-ahead across a JAM.
+
+Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay the next alternative cluster and PAL (RM-005) stays behind them.
 
 <details>
 <summary>v4 milestone definition (archived)</summary>
@@ -65,7 +68,10 @@ Proposed, not yet approved; `/gsd-new-milestone` decides. The direction is in [P
 
 ### Active
 
-- None committed. The proposed next scope is in Next Milestone Goals above and is approved at `/gsd-new-milestone`.
+- [ ] NMI and VBlank timing match the console on the nine named AccuracyCoin rows — v5
+- [ ] Sprite-0 hit matches the console on the two named AccuracyCoin rows — v5
+- [ ] Every row that passes today still passes, with hash re-pins explained and new state fields saved — v5
+- [ ] A guest JAM is reported as a JAM by AccuracyCoin runs and is covered under run-ahead — v5
 
 ### Out of Scope
 
@@ -182,4 +188,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-24 after v4 milestone*
+*Last updated: 2026-10-25 after v5 milestone start*

@@ -1,38 +1,32 @@
 ---
 gsd_state_version: "1.0"
-milestone: v4
-milestone_name: Measured NTSC accuracy and robustness
-status: Awaiting next milestone
-stopped_at: Phase 18 complete — all phases complete
-last_updated: "2026-10-25T02:32:18.508Z"
-last_activity: 2026-10-24
-last_activity_desc: Milestone v4 completed and archived
-state_head: 39401b75ab3be6c4f071759cb0dc33ee0828d7d3
+milestone: v5
+milestone_name: NMI, VBlank and sprite-0 timing
+status: planning
+last_updated: "2026-10-25T13:51:01.430Z"
+last_activity: 2026-10-25
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 21
-  completed_plans: 21
-  percent: 100
-current_phase: 18
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated 2026-10-24 after the v4 milestone, and AGENTS.md.
+See [PROJECT.md](PROJECT.md), updated 2026-10-25 at the v5 milestone start, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: planning the next milestone. The preferred proposal is RM-004 (NMI/VBlank and sprite-0 timing) in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); phases start at 19.
 
 ## Current Position
 
-Phase: Milestone v4 complete (Phases 16–18 archived to [milestones/v4-phases/](milestones/v4-phases/))
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-10-24 — Milestone v4 completed and archived
-
-Closeout type: override closeout. Phases 16 and 17 are marked stale only because later phases edited files they cover; the post-phase [v4 audit](milestones/v4-MILESTONE-AUDIT.md) passed 14/14 requirements, 5/5 integration and 5/5 flows. The next milestone's phases continue at Phase 19. Decisions are in PROJECT.md Key Decisions and `.planning/preparation/DECISIONS.md`.
+Status: Defining requirements
+Last activity: 2026-10-25 — Milestone v5 started
 
 ## Delivery
 
