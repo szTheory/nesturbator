@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
-current_phase: 19
-current_phase_name: JAM reporting and sprite-0 hit
-status: verifying
-stopped_at: Completed 19-06-PLAN.md
-last_updated: "2026-10-25T18:48:54.095Z"
+current_phase: 20
+current_phase_name: NMI line and VBlank flag
+status: planning
+stopped_at: Phase 19 complete, ready to plan Phase 20
+last_updated: "2026-10-25T19:00:53.083Z"
 last_activity: 2026-10-25
-last_activity_desc: Phase 19 execution started
-state_head: 8b363eba66ae074573eceecb4c1b4214d9f6fd32
+last_activity_desc: Phase 19 complete, transitioned to Phase 20
+state_head: 62fcbf85fad2729f233580d2059b1f5fae7f5802
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 6
   completed_plans: 6
-  percent: 0
+  percent: 33
 ---
 
 # Project State
@@ -28,12 +28,12 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 19 (JAM reporting and sprite-0 hit) — EXECUTING
-Plan: 6 of 6
-Status: Phase complete — ready for verification
-Last activity: 2026-10-25 — Phase 19 execution started
+Phase: 20 — NMI line and VBlank flag
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-25 — Phase 19 complete, transitioned to Phase 20
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33%
 
 ## Accumulated Context
 
@@ -85,7 +85,7 @@ Plan Phase 19 with `/gsd-plan-phase 19` (or `/gsd-discuss-phase 19` first) on th
 ## Session
 
 Last session: 2026-10-25T18:48:54.077Z
-Stopped at: Completed 19-06-PLAN.md
+Stopped at: Phase 19 complete, ready to plan Phase 20
 Resume file: None
 
 ## Performance Metrics

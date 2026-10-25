@@ -58,7 +58,7 @@
 
 A game's frame loop and status-bar splits time out exactly as they do on an NTSC console. Eleven AccuracyCoin rows at pin `6bee919` move to pass; the 101 rows that pass today keep passing. Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 
-- [ ] **Phase 19: JAM reporting and sprite-0 hit** - AccuracyCoin names a guest JAM, and sprite-0 hit lands on the console's line
+- [x] **Phase 19: JAM reporting and sprite-0 hit** - AccuracyCoin names a guest JAM, and sprite-0 hit lands on the console's line (completed 2026-10-25)
 - [ ] **Phase 20: NMI line and VBlank flag** - `$2002` reads and `$2000` writes around VBlank give the console's flag and NMIs, and save states carry the new latches
 - [ ] **Phase 21: Interrupt latency and hijack** - IRQs start on the console's instruction and an NMI takes over BRK or IRQ as on the console
 
@@ -77,7 +77,7 @@ Each phase merges by pull request into a green `main` and is released automatica
   3. The `Sprite 0 Hit behavior` and `Arbitrary Sprite zero` rows report pass in `accuracy.scoreboard`, within the 1800-frame cap, and owned `ppu.sprites` tests show the hit on its dot and the first sprite evaluated acting as sprite 0 at any OAM index.
   4. Every row that passes on `main` today still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane; any frame hash the sprite-0 fix moves is re-pinned in the same change with its reason.
 
-**Plans**: 6/6 plans executed
+**Plans**: 6/6 plans complete
 **Wave 1**
 - [x] 19-01-PLAN.md — AccuracyCoin names a guest JAM in the execution stage (`guest-jam`, `jam_frame`, `accuracycoin.jam`)
 
@@ -136,7 +136,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 19. JAM reporting and sprite-0 hit | v5 | 6/6 | In Progress | - |
+| 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
 | 20. NMI line and VBlank flag | v5 | 0/TBD | Not started | - |
 | 21. Interrupt latency and hijack | v5 | 0/TBD | Not started | - |
 
