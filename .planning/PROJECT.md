@@ -65,13 +65,13 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 - ✓ The pinned AccuracyCoin inventory, bounded five-way baseline, retained old-pin comparison and same-invocation protected PASS evidence are verified. — v4, Phase 17, CONF-01 to CONF-04; 38/38 truths, exact-source CI 663/663 and all 15 jobs
 - ✓ An owned execution fuzz/replay target runs bounded accepted programs on all six board families (mappers 0, 1, 2, 3, 4, 7) through reset, save/load and unload/reload with instance-independence and deterministic-continuation checks; CI replays the fixed corpus and finite Linux sanitizer campaigns run under pilot-measured budgets with crash, timeout, resource, collector, cancellation and minimization controls; guest loops and JAM have tested stop outcomes, and the adapter repeats the last complete frame or black with no audio on JAM. — v4, Phase 18, ROB-01 to ROB-04; independent verification 4/4, exact-head CI run 40150921041 green on all 15 jobs
+- ✓ AccuracyCoin names a guest JAM as a JAM in every stage (`fail 0x03 guest-jam` row, `jam_frame` metadata, strict-mode message), and run-ahead across a JAM shows the same picture and silence as running without it, never a diverged timeline's picture. — v5, Phase 19, JAM-01, JAM-02; verification 4/4
+- ✓ Sprite evaluation starts at OAMADDR and OAMADDR clears during sprite tile loading, so Sprite 0 Hit behavior and Arbitrary Sprite zero pass (behaviour revision 7); the re-recorded baseline is 108 pass / 38 fail with no PASS lost. — v5, Phase 19, SPR-01, SPR-02; verification 4/4, `ci` 670/670
 
 ### Active
 
 - [ ] NMI and VBlank timing match the console on the nine named AccuracyCoin rows — v5
-- [ ] Sprite-0 hit matches the console on the two named AccuracyCoin rows — v5
 - [ ] Every row that passes today still passes, with hash re-pins explained and new state fields saved — v5
-- [ ] A guest JAM is reported as a JAM by AccuracyCoin runs and is covered under run-ahead — v5
 
 ### Out of Scope
 
@@ -167,6 +167,7 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 | Authenticate one protected-main scoreboard revision, then require fresh unique raw evidence for its PASS set | Candidate assertions, fixed 17-key tables and aggregate sample counts cannot protect later canonical baselines | ✓ Phase 17 proves the 101-PASS next-main transition and rejects outside-page, changed-meaning same-pin, duplicate and missing-raw regressions |
 | Native `STOP_JAM` stays latched with undefined native output buffers; the libretro adapter keeps its own cached presentation outside the instance and save-state, and on JAM repeats the last complete converted frame or black with no audio | A host must see a defined picture and silence, while the library keeps its existing documented stop contract | ✓ Phase 18 `fuzz.state.jam_oracle`, `runner.save.jam` and `libretro.host` pass; stale-buffer and divergence controls fail when the fix is removed |
 | Execution fuzz budgets come from a hosted Linux pilot, with separate fuzzer, replay, memory-sampling and outer-process limits, and a zero-finding campaign is reported only as finite evidence | Guessed limits cancel healthy jobs; a clean campaign proves bounded work, not absence of bugs | ✓ Phase 18 `tests/fuzz/execution-budgets.txt`; Nightly 40148240864 campaign artifact retained with controls |
+| The libretro JAM cache is tagged with the frame number and a state-CRC timeline generation; a load keeps it only when the loaded state is the cached frame's state or its jammed successor, otherwise JAM shows black | Run-ahead must never show a picture from a diverged timeline under JAM | ✓ Phase 19 `libretro.runahead` (depths 1-3, five JAM-image controls) and `libretro.host` diverged-timeline case |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -188,4 +189,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-25 after v5 milestone start*
+*Last updated: 2026-10-25 after Phase 19*

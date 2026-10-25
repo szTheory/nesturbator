@@ -22,9 +22,9 @@ progress:
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated 2026-10-25 at the v5 milestone start, and AGENTS.md.
+See [PROJECT.md](PROJECT.md), updated 2026-10-25 after Phase 19, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 19 JAM reporting and sprite-0 hit.
+Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 20 NMI line and VBlank flag.
 
 ## Current Position
 
@@ -50,12 +50,11 @@ Progress: [███░░░░░░░] 33%
 
 ### Blockers/Concerns
 
-- Sprite-0 basic-hit cause is not isolated; a trace of subtest 1 comes before any fix (Phase 19).
 - Whether AccuracyCoin assumes a CPU/PPU alignment constant is untested (Phase 20).
 
 ## Delivery
 
-Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. v5 work is on branch `gsd/phase-19-jam-reporting-and-sprite-0-hit`.
+Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 is complete on branch `gsd/phase-19-jam-reporting-and-sprite-0-hit`, awaiting its PR.
 
 ## Deferred Items
 
@@ -72,16 +71,15 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 ## Preserved Debt
 
 - Nightly run 39993108154: vectors-full failed (not a Release gate).
-- AccuracyCoin observe records a JAM only as a generic frame failure; no AccuracyCoin JAM control. (Scheduled: Phase 19, JAM-01.)
-- No explicit run-ahead-under-JAM test in `libretro.runahead`. (Scheduled: Phase 19, JAM-02.)
+- [Phase 19] Code review advisories open in 19-REVIEW-DISPOSITION.md: sprite-0 hit set only inside compose_pixel (held by NULL-video rejection), single jam_state_crc may blank an earlier jammed state under run-ahead, per-frame save_state cost in the adapter.
+- [Phase 19] Navigation- and start-stage JAM branches share the boot-stage code but only boot is constructed in a test.
+- [Phase 19] 19-06 baseline-metadata records a local dirty-tree run (source_dirty=1); a clean hosted run should confirm it.
 - Real-campaign minimization is proven only by controls.
 - Historical metadata warnings (16-05 command strings as paths; three Phase 17 references) do not change any verdict.
 - Preexisting `.planning/config.json` edits remain unstaged.
 
 ## Next Action
-
-Plan Phase 19 with `/gsd-plan-phase 19` (or `/gsd-discuss-phase 19` first) on the phase branch `gsd/phase-19-jam-reporting-and-sprite-0-hit`.
-
+Open and squash-merge the Phase 19 PR, create the Phase 20 branch, then plan Phase 20 with `/gsd-plan-phase 20` (or `/gsd-discuss-phase 20` first).
 ## Session
 
 Last session: 2026-10-25T18:48:54.077Z
