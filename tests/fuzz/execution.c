@@ -8,6 +8,7 @@
 #include <sys/resource.h>
 #endif
 #include "nesturbator.h"
+#include "failure_control.h"
 #include "../ines.h"
 
 #define NT_EXEC_REPLAY_NAME "fuzz.execution.regress"
@@ -606,12 +607,13 @@ static uint8_t *nt_exec_generate(const struct nt_exec_recipe *recipe, const uint
     return image;
 }
 
-static void nt_exec_operation(struct nt_exec_metrics *metrics)
+static void nt_exec_operation(struct nt_exec_metrics *metrics, const char *name)
 {
     if (metrics->operations >= NT_EXEC_MAX_OPERATIONS)
         nt_exec_fail("recipe exceeded its public-API operation cap");
     metrics->operation_indices[metrics->operations] = metrics->operations;
     metrics->operations++;
+    nt_fuzz_trace_operation(name);
 }
 
 static nesturbator *nt_exec_instance(struct nt_exec_budget *budget, const uint8_t *image,
@@ -625,10 +627,10 @@ static nesturbator *nt_exec_instance(struct nt_exec_budget *budget, const uint8_
     config.allocator.alloc = nt_exec_alloc;
     config.allocator.free = nt_exec_free;
     config.allocator.user = budget;
-    nt_exec_operation(metrics);
+    nt_exec_operation(metrics, "nesturbator_create");
     if (nesturbator_create(&config, &inst) != NESTURBATOR_OK)
         nt_exec_fail("instance creation failed within the allocation cap");
-    nt_exec_operation(metrics);
+    nt_exec_operation(metrics, "nesturbator_load_cartridge");
     if (nesturbator_load_cartridge(inst, image, image_size) != NESTURBATOR_OK)
         nt_exec_fail("generated accepted-profile image was refused");
     return inst;
@@ -664,7 +666,7 @@ static nesturbator_status nt_exec_frame(nesturbator *inst, uint8_t buttons, uint
     memset(&input, 0, sizeof input);
     input.size = (uint32_t)sizeof input;
     input.buttons[0] = buttons;
-    nt_exec_operation(metrics);
+    nt_exec_operation(metrics, "nesturbator_set_input");
     if (nesturbator_set_input(inst, &input) != NESTURBATOR_OK)
         nt_exec_fail("controller input was refused");
     memset(video, 0xa5, NT_EXEC_VIDEO_BYTES);
@@ -675,7 +677,7 @@ static nesturbator_status nt_exec_frame(nesturbator *inst, uint8_t buttons, uint
     frame.video_pitch = 256u;
     frame.audio = audio;
     frame.audio_capacity = NT_EXEC_AUDIO_SAMPLES;
-    nt_exec_operation(metrics);
+    nt_exec_operation(metrics, "nesturbator_run_frame");
     status = nesturbator_run_frame(inst, &frame);
     metrics->frames++;
     if (metrics->frames > NT_EXEC_MAX_FRAME_CALLS)
@@ -719,7 +721,7 @@ static uint8_t nt_exec_peek(const nesturbator *inst, uint16_t address,
                             struct nt_exec_metrics *metrics)
 {
     uint8_t value = 0u;
-    nt_exec_operation(metrics);
+    nt_exec_operation(metrics, "nesturbator_peek_cpu_ram");
     if (nesturbator_peek_cpu_ram(inst, address, &value) != NESTURBATOR_OK)
         nt_exec_fail("guest RAM observation was refused");
     return value;
@@ -745,11 +747,11 @@ static size_t nt_exec_save(nesturbator *inst, uint8_t *state, size_t capacity,
                            struct nt_exec_metrics *metrics)
 {
     size_t size;
-    nt_exec_operation(metrics);
+    nt_exec_operation(metrics, "nesturbator_state_size");
     size = nesturbator_state_size(inst);
     if (size == 0u || size > NT_EXEC_MAX_STATE_BYTES || size > capacity)
         nt_exec_fail("machine state exceeded its fixed serialization cap");
-    nt_exec_operation(metrics);
+    nt_exec_operation(metrics, "nesturbator_save_state");
     if (nesturbator_save_state(inst, state, capacity) != NESTURBATOR_OK)
         nt_exec_fail("machine state could not be saved");
     return size;
@@ -882,11 +884,13 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     if (video == NULL || audio == NULL)
         nt_exec_fail("frame buffers exceeded the allocation cap");
     a = nt_exec_instance(&budget, image, image_size, &observed.metrics);
+    if (nt_fuzz_control_matches("execution", data, size, NT_EXEC_RECIPE_SIZE, (uint8_t)'E'))
+        nt_fuzz_control_crash("execution");
     before_finished = nt_exec_run_phase(a, recipe.before_buttons, recipe.before_frames, video,
                                         audio, &ticks_a, &before, &observed.metrics);
     if (before_finished)
         nt_exec_observe_guest(a, &before, &observed.metrics);
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_state_size");
     state_size = nesturbator_state_size(a);
     if (state_size == 0u || state_size > NT_EXEC_MAX_STATE_BYTES)
         nt_exec_fail("machine state size exceeded its pre-allocation cap");
@@ -921,7 +925,7 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
             nt_exec_fail("different-board interloper unexpectedly JAMmed");
     }
     b = nt_exec_instance(&budget, image, image_size, &observed.metrics);
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_load_state");
     if (nesturbator_load_state(b, saved, state_size) != NESTURBATOR_OK)
         nt_exec_fail("saved continuation was refused by a matching fresh instance");
     nt_exec_free(&budget, saved, state_size);
@@ -957,16 +961,16 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     }
     observed.completed_frames = observed.metrics.frame_ok;
     observed.metrics.qualified_bank_effects = observed.bank_effects;
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_state_size");
     if (nesturbator_state_size(a) != state_size)
         nt_exec_fail("source state size changed during continuation");
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_state_size");
     if (nesturbator_state_size(b) != state_size)
         nt_exec_fail("state size changed during continuation");
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_save_state");
     if (nesturbator_save_state(a, state_a, state_size) != NESTURBATOR_OK)
         nt_exec_fail("continued source instance could not be saved");
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_save_state");
     if (nesturbator_save_state(b, state_b, state_size) != NESTURBATOR_OK)
         nt_exec_fail("restored continuation could not be saved");
     observed.state_hash_a = nt_exec_state_hash(state_a, state_size);
@@ -977,17 +981,17 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
         nt_exec_fail("uninterrupted and restored continuations diverged");
     observed.metrics.accepted = 1u;
     observed.metrics.allocation_peak = (uint32_t)budget.peak;
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_unload_cartridge");
     nesturbator_unload_cartridge(a);
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_unload_cartridge");
     nesturbator_unload_cartridge(b);
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_unload_cartridge");
     nesturbator_unload_cartridge(interloper);
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_destroy");
     nesturbator_destroy(a);
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_destroy");
     nesturbator_destroy(b);
-    nt_exec_operation(&observed.metrics);
+    nt_exec_operation(&observed.metrics, "nesturbator_destroy");
     nesturbator_destroy(interloper);
     nt_exec_free(&budget, state_a, state_size);
     nt_exec_free(&budget, state_b, state_size);
@@ -1002,6 +1006,53 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
     if (out != NULL)
         *out = observed;
     return 1;
+}
+
+/* Target acceptance is descriptor/profile/image-load only; continuation oracles are replayed
+ * separately so an observed failure cannot erase evidence that the recipe was accepted. */
+static int nt_exec_accept_input(const uint8_t *data, size_t size)
+{
+    struct nt_exec_recipe recipe;
+    struct nt_exec_profile profile;
+    struct nt_exec_budget budget = {0u, 0u};
+    struct nt_exec_metrics metrics = {0};
+    nesturbator_config config;
+    nesturbator *inst = NULL;
+    nesturbator_status status;
+    uint8_t *image;
+    size_t image_size = 0u;
+    int accepted;
+    if (!nt_exec_decode(data, size, &recipe) ||
+        !nt_exec_profile_for(recipe.profile_code, &profile))
+        return 0;
+    image = nt_exec_generate(&recipe, data, size, &profile, &image_size, &budget);
+    if (image == NULL)
+        return 0;
+    memset(&config, 0, sizeof config);
+    config.size = (uint32_t)sizeof config;
+    config.abi = NESTURBATOR_ABI_VERSION;
+    config.allocator.alloc = nt_exec_alloc;
+    config.allocator.free = nt_exec_free;
+    config.allocator.user = &budget;
+    nt_exec_operation(&metrics, "nesturbator_create");
+    status = nesturbator_create(&config, &inst);
+    if (status != NESTURBATOR_OK) {
+        if (inst != NULL) {
+            nt_exec_operation(&metrics, "nesturbator_destroy");
+            nesturbator_destroy(inst);
+        }
+        nt_exec_free(&budget, image, image_size);
+        return 0;
+    }
+    nt_exec_operation(&metrics, "nesturbator_load_cartridge");
+    status = nesturbator_load_cartridge(inst, image, image_size);
+    accepted = status == NESTURBATOR_OK;
+    nt_exec_operation(&metrics, "nesturbator_unload_cartridge");
+    nesturbator_unload_cartridge(inst);
+    nt_exec_operation(&metrics, "nesturbator_destroy");
+    nesturbator_destroy(inst);
+    nt_exec_free(&budget, image, image_size);
+    return accepted && budget.current == 0u;
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
@@ -1380,6 +1431,17 @@ static int nt_exec_replay(int argc, char **argv)
 
 int main(int argc, char **argv)
 {
+    if (argc == 3 && strcmp(argv[1], "--accept-only") == 0) {
+        uint8_t *bytes = NULL;
+        size_t size = 0u;
+        int accepted;
+        if (!nt_exec_read_path(argv[2], &bytes, &size))
+            return 1;
+        accepted = nt_exec_accept_input(bytes, size);
+        free(bytes);
+        printf("ACCEPTANCE target=execution accepted=%d\n", accepted);
+        return 0;
+    }
     if (argc >= 2 && strcmp(argv[1], "--check-seeds") == 0)
         return nt_exec_check_seeds(argc, argv);
     if (argc == 2 && strcmp(argv[1], "--self-test") == 0)

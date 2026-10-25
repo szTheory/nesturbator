@@ -11,8 +11,9 @@
  * state CRC-32 with its own copy of the algorithm, so the mutated bytes reach the range checks
  * behind the checksum. The library carries no fuzz-only code for this.
  *
- * A cart is an iNES header plus PRG and CHR bytes from a fixed-seed integer LCG. No ROM bytes,
- * file paths or environment variables reach the harness. Every oracle failure calls abort(), so
+ * A cart is an iNES header plus PRG and CHR bytes from a fixed-seed integer LCG. Normal corpus
+ * replay uses no ROM files, paths or environment variables. Dormant minimization and JAM oracle
+ * controls use explicit test-only selectors. Every unexpected oracle failure calls abort(), so
  * libFuzzer and the replay build both report it. */
 #include <stdint.h>
 #include <stdio.h>
@@ -22,8 +23,10 @@
 #include <sys/resource.h>
 #endif
 #include "nesturbator.h"
+#include "failure_control.h"
 
 #define NT_REPLAY_NAME "fuzz.state.regress"
+#define NESTURBATOR_FUZZ_ACCEPTANCE 1
 #define NESTURBATOR_REPLAY_NAME NT_REPLAY_NAME
 #define NESTURBATOR_REPLAY_EXTRA_MAIN 1
 
@@ -32,8 +35,11 @@
 #define NT_FRAMES 2u
 #define NT_PAD 0xa5u
 #define NT_RAW 0x10u
+/* 64-byte state header + 14 serialized core bytes + CPU fields through jammed. */
+#define NT_CPU_JAMMED_OFFSET 90u
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+int nt_replay_last_accepted(void);
 
 struct nt_cart {
     const char *name;
@@ -55,6 +61,9 @@ static uint8_t *nt_image;
 static size_t nt_image_size;
 static unsigned nt_image_cart = 0xffffffffu;
 static int nt_last_accepted;
+static unsigned nt_jam_statuses;
+static int nt_jam_oracle_divergence_control;
+static int nt_jam_oracle_divergence_injected;
 
 #ifdef NESTURBATOR_FUZZ_METRICS
 struct nt_fuzz_metrics {
@@ -68,7 +77,7 @@ struct nt_fuzz_metrics {
     uint64_t guest_ticks;
 };
 static struct nt_fuzz_metrics nt_metrics;
-#define NT_METRIC_OPERATION() (nt_metrics.api_operations++)
+#define NT_METRIC_OPERATION(name) (nt_metrics.api_operations++, nt_fuzz_trace_operation(name))
 
 static uint64_t nt_metric_peak_rss_bytes(void)
 {
@@ -98,8 +107,13 @@ void nt_replay_report_metrics(void)
            (unsigned long long)nt_metric_peak_rss_bytes());
 }
 #else
-#define NT_METRIC_OPERATION() ((void)0)
+#define NT_METRIC_OPERATION(name) nt_fuzz_trace_operation(name)
 #endif
+
+int nt_replay_last_accepted(void)
+{
+    return nt_last_accepted;
+}
 
 static void nt_fail(const char *what)
 {
@@ -113,6 +127,14 @@ static void nt_put32(uint8_t *p, uint32_t v)
     p[1] = (uint8_t)(v >> 8);
     p[2] = (uint8_t)(v >> 16);
     p[3] = (uint8_t)(v >> 24);
+}
+
+static uint64_t nt_get64(const uint8_t *p)
+{
+    uint64_t value = 0u;
+    for (unsigned i = 0u; i < 8u; ++i)
+        value |= (uint64_t)p[i] << (8u * i);
+    return value;
 }
 
 /* CRC-32, IEEE, reflected polynomial 0xEDB88320: the algorithm the header documents. */
@@ -174,10 +196,10 @@ static nesturbator *nt_new(unsigned cart)
     const uint8_t *image = nt_cart_image(cart, &size);
     config.size = (uint32_t)sizeof config;
     config.abi = NESTURBATOR_ABI_VERSION;
-    NT_METRIC_OPERATION();
+    NT_METRIC_OPERATION("nesturbator_create");
     if (nesturbator_create(&config, &inst) != NESTURBATOR_OK)
         nt_fail("create");
-    NT_METRIC_OPERATION();
+    NT_METRIC_OPERATION("nesturbator_load_cartridge");
     if (nesturbator_load_cartridge(inst, image, size) != NESTURBATOR_OK)
         nt_fail("synthetic cart refused");
     return inst;
@@ -186,14 +208,14 @@ static nesturbator *nt_new(unsigned cart)
 static uint8_t *nt_save(const nesturbator *inst, size_t *size)
 {
     uint8_t *buf;
-    NT_METRIC_OPERATION();
+    NT_METRIC_OPERATION("nesturbator_state_size");
     *size = nesturbator_state_size(inst);
     if (*size < NT_HEADER)
         nt_fail("state size below the header");
     buf = (uint8_t *)malloc(*size);
     if (buf == NULL)
         nt_fail("out of memory saving");
-    NT_METRIC_OPERATION();
+    NT_METRIC_OPERATION("nesturbator_save_state");
     if (nesturbator_save_state(inst, buf, *size) != NESTURBATOR_OK)
         nt_fail("save_state refused");
     return buf;
@@ -207,21 +229,25 @@ static uint64_t nt_hash(uint64_t h, const void *data, size_t len)
     return h;
 }
 
-/* Runs NT_FRAMES frames with a fixed pad and hashes video and audio; the status of each frame
- * must be OK or STOP_JAM. */
-static uint64_t nt_run(nesturbator *inst)
+/* Runs NT_FRAMES frames with a fixed pad. JAM provides only a valid stop status and state. */
+static uint64_t nt_run(nesturbator *inst, uint64_t ticks_origin, uint8_t output_poison)
 {
     static uint16_t video[256u * 240u];
     static int16_t audio[1024];
     nesturbator_input input;
     nesturbator_frame frame;
     uint64_t h = 14695981039346656037ull;
+    uint64_t previous_ticks = ticks_origin;
+    for (size_t i = 0u; i < sizeof video / sizeof video[0]; ++i)
+        video[i] = output_poison;
+    for (size_t i = 0u; i < sizeof audio / sizeof audio[0]; ++i)
+        audio[i] = output_poison;
     memset(&input, 0, sizeof input);
     input.size = (uint32_t)sizeof input;
     input.buttons[0] = NT_PAD;
     for (unsigned i = 0u; i < NT_FRAMES; ++i) {
         nesturbator_status status;
-        NT_METRIC_OPERATION();
+        NT_METRIC_OPERATION("nesturbator_set_input");
         if (nesturbator_set_input(inst, &input) != NESTURBATOR_OK)
             nt_fail("set_input");
         memset(&frame, 0, sizeof frame);
@@ -230,7 +256,7 @@ static uint64_t nt_run(nesturbator *inst)
         frame.video_pitch = 256u;
         frame.audio = audio;
         frame.audio_capacity = 1024u;
-        NT_METRIC_OPERATION();
+        NT_METRIC_OPERATION("nesturbator_run_frame");
 #ifdef NESTURBATOR_FUZZ_METRICS
         nt_metrics.frame_calls++;
 #endif
@@ -238,7 +264,6 @@ static uint64_t nt_run(nesturbator *inst)
 #ifdef NESTURBATOR_FUZZ_METRICS
         if (status == NESTURBATOR_OK) {
             nt_metrics.frame_ok++;
-            nt_metrics.guest_ticks += frame.ticks;
         } else if (status == NESTURBATOR_STOP_JAM) {
             nt_metrics.frame_jam++;
         }
@@ -246,6 +271,17 @@ static uint64_t nt_run(nesturbator *inst)
         if (status != NESTURBATOR_OK && status != NESTURBATOR_STOP_JAM)
             nt_fail("run_frame status after an accepted load");
         h = nt_hash(h, &status, sizeof status);
+        if (status == NESTURBATOR_STOP_JAM) {
+            nt_jam_statuses++;
+            break;
+        }
+        if (frame.audio_count > sizeof audio / sizeof audio[0] ||
+            frame.ticks <= previous_ticks)
+            nt_fail("successful frame did not advance its output contract");
+#ifdef NESTURBATOR_FUZZ_METRICS
+        nt_metrics.guest_ticks += frame.ticks - previous_ticks;
+#endif
+        previous_ticks = frame.ticks;
         h = nt_hash(h, video, sizeof video);
         h = nt_hash(h, &frame.audio_count, sizeof frame.audio_count);
         h = nt_hash(h, audio, (size_t)frame.audio_count * sizeof audio[0]);
@@ -305,7 +341,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         nt_recrc(cand, len);
     }
 
-    NT_METRIC_OPERATION();
+    NT_METRIC_OPERATION("nesturbator_load_state");
     status = nesturbator_load_state(a, cand, len);
     if (status != NESTURBATOR_OK) {
 #ifdef NESTURBATOR_FUZZ_METRICS
@@ -323,14 +359,18 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 #ifdef NESTURBATOR_FUZZ_METRICS
         nt_metrics.accepted++;
 #endif
-        nesturbator *b = nt_new(cart);
-        nesturbator *c = nt_new(cart);
-        size_t s0_n, s1_n, s2_n, s3_n;
-        uint8_t *expect, *s0, *s1, *s2, *s3;
+        nesturbator *b;
+        nesturbator *c;
+        size_t s0_n, s1_n, s2_n, s3_n, post_a_n, post_b_n;
+        uint8_t *expect, *s0, *s1, *s2, *s3, *post_a, *post_b;
         uint64_t hash_a, hash_b;
         if (len != n)
             nt_fail("a state of the wrong length was accepted");
         nt_last_accepted = 1;
+        if (nt_fuzz_control_matches("state-loader", data, size, 1u, (uint8_t)'S'))
+            nt_fuzz_control_crash("state-loader");
+        b = nt_new(cart);
+        c = nt_new(cart);
         /* save(load(S)) is S with the library's behaviour revision and a fresh checksum. */
         expect = (uint8_t *)malloc(len);
         if (expect == NULL)
@@ -342,20 +382,40 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         if (s0_n != len)
             nt_fail("state size changed across a load");
         nt_same(expect, s0, len, "save(load(S)) differs from S");
-        NT_METRIC_OPERATION();
-        if (nesturbator_load_state(b, cand, len) != NESTURBATOR_OK)
-            nt_fail("the same state loaded into a second fresh instance was refused");
-        hash_a = nt_run(a);
-        hash_b = nt_run(b);
-        if (hash_a != hash_b)
-            nt_fail("two instances loading the same state diverged");
+        {
+            const uint64_t ticks_origin = nt_get64(s0 + 40u);
+            NT_METRIC_OPERATION("nesturbator_load_state");
+            if (nesturbator_load_state(b, cand, len) != NESTURBATOR_OK)
+                nt_fail("the same state loaded into a second fresh instance was refused");
+            hash_a = nt_run(a, ticks_origin, 0xa5u);
+            hash_b = nt_run(b, ticks_origin,
+                            nt_jam_oracle_divergence_control ? 0xa5u : 0x5au);
+            if (hash_a != hash_b)
+                nt_fail("two instances loading the same state diverged");
+            if (nt_jam_oracle_divergence_control) {
+                if (nt_jam_statuses != 2u)
+                    nt_fail("JAM divergence control did not observe two stopped instances");
+                NT_METRIC_OPERATION("nesturbator_reset");
+                if (nesturbator_reset(b) != NESTURBATOR_OK)
+                    nt_fail("JAM divergence control could not alter the canonical state");
+                nt_jam_oracle_divergence_injected = 1;
+            }
+            post_a = nt_save(a, &post_a_n);
+            post_b = nt_save(b, &post_b_n);
+            if (post_a_n != post_b_n)
+                nt_fail("two instances loading the same state produced different state sizes");
+            nt_same(post_a, post_b, post_a_n,
+                    "two instances loading the same state produced different post-run states");
+            free(post_a);
+            free(post_b);
+        }
         s1 = nt_save(a, &s1_n);
-        NT_METRIC_OPERATION();
+        NT_METRIC_OPERATION("nesturbator_load_state");
         if (nesturbator_load_state(c, s1, s1_n) != NESTURBATOR_OK)
             nt_fail("a saved state did not reload into a fresh instance");
         s2 = nt_save(c, &s2_n);
         nt_same(s1, s2, s1_n, "save, load, save changed the bytes");
-        NT_METRIC_OPERATION();
+        NT_METRIC_OPERATION("nesturbator_load_state");
         if (nesturbator_load_state(c, s2, s2_n) != NESTURBATOR_OK)
             nt_fail("a saved state did not reload into its own instance");
         s3 = nt_save(c, &s3_n);
@@ -365,15 +425,15 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         free(s1);
         free(s2);
         free(s3);
-        NT_METRIC_OPERATION();
+        NT_METRIC_OPERATION("nesturbator_destroy");
         nesturbator_destroy(b);
-        NT_METRIC_OPERATION();
+        NT_METRIC_OPERATION("nesturbator_destroy");
         nesturbator_destroy(c);
     }
     free(base);
     free(before);
     free(cand);
-    NT_METRIC_OPERATION();
+    NT_METRIC_OPERATION("nesturbator_destroy");
     nesturbator_destroy(a);
     return 0;
 }
@@ -591,6 +651,27 @@ static int nt_check_seeds(const char *dir, int argc, char **argv)
 
 static int nt_replay_extra_main(int argc, char **argv)
 {
+    if (argc == 2 && strcmp(argv[1], "--jam-oracle-regression") == 0) {
+        static const uint8_t jammed_state_mutation[] = {0u, NT_CPU_JAMMED_OFFSET, 0u, 1u};
+        (void)LLVMFuzzerTestOneInput(jammed_state_mutation, sizeof jammed_state_mutation);
+        if (!nt_last_accepted || nt_jam_statuses != 2u) {
+            fprintf(stderr, NT_REPLAY_NAME ": JAM oracle regression did not exercise both stop calls\n");
+            return 1;
+        }
+        puts("JAM oracle regression passed: differing stale frame buffers were ignored; status and canonical state matched");
+        return 0;
+    }
+    if (argc == 2 && strcmp(argv[1], "--jam-oracle-divergence") == 0) {
+        static const uint8_t jammed_state_mutation[] = {0u, NT_CPU_JAMMED_OFFSET, 0u, 1u};
+        nt_jam_oracle_divergence_control = 1;
+        (void)LLVMFuzzerTestOneInput(jammed_state_mutation, sizeof jammed_state_mutation);
+        if (!nt_last_accepted || !nt_jam_oracle_divergence_injected) {
+            fprintf(stderr, NT_REPLAY_NAME ": JAM oracle did not reach the deliberate state difference\n");
+            return 1;
+        }
+        fprintf(stderr, NT_REPLAY_NAME ": oracle failed to reject different canonical JAM states\n");
+        return 1;
+    }
     if (argc >= 3 && strcmp(argv[1], "--write-seeds") == 0)
         return nt_write_seeds(argv[2], argc >= 4 ? argv[3] : "PIN");
     if (argc >= 3 && strcmp(argv[1], "--check-seeds") == 0)

@@ -237,8 +237,9 @@ typedef struct nesturbator_frame {
     uint32_t audio_count;    /* out: samples written to audio */
     uint64_t frame_number;   /* out: frames run since power-on, 1 after the first;
                                 restored by nesturbator_load_state */
-    uint64_t ticks;          /* out: emulated time in half master-clock periods
-                                since power-on, restored by nesturbator_load_state,
+    uint64_t ticks;          /* out: cumulative emulated time in half master-clock periods
+                                since power-on (not a per-call delta), restored by
+                                nesturbator_load_state,
                                 including the 7 CPU cycles of
                                 each nesturbator_reset; instructions may carry residual
                                 ticks across the nominal 714732-tick boundary.

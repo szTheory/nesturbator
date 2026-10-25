@@ -1013,7 +1013,17 @@ add_test(NAME fuzz.state
     ${NESTURBATOR_STATE_CORPUS})
 add_test(NAME fuzz.state.regress
   COMMAND fuzz.state_loader ${NESTURBATOR_STATE_CORPUS})
-set_tests_properties(fuzz.state fuzz.state.regress PROPERTIES TIMEOUT 30)
+add_test(NAME fuzz.state.jam_oracle
+  COMMAND fuzz.state_loader --jam-oracle-regression)
+add_test(NAME fuzz.state.jam_oracle_divergence
+  COMMAND ${CMAKE_COMMAND}
+    "-DCMD=$<TARGET_FILE:fuzz.state_loader>;--jam-oracle-divergence"
+    -DEXPECT_NONZERO=ON
+    -DIGNORE_STDOUT=ON
+    "-DEXPECT_ERR=two instances loading the same state produced different post-run states"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+set_tests_properties(fuzz.state fuzz.state.regress fuzz.state.jam_oracle
+  fuzz.state.jam_oracle_divergence PROPERTIES TIMEOUT 30)
 
 # Phase 18, Plan 01: exercise a compact descriptor through generated NROM execution,
 # frame-scheduled input and a restored continuation. The corpus stores no ROM bytes.
@@ -1091,6 +1101,17 @@ add_test(NAME fuzz.execution.oracle_failure
     -DIGNORE_STDOUT=ON
     "-DEXPECT_ERR=intentional execution oracle failure"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+set(NESTURBATOR_CAMPAIGN_CONTROL_ARGS)
+option(NESTURBATOR_LIBFUZZER "Build the libFuzzer targets" OFF)
+if(NESTURBATOR_LIBFUZZER)
+  list(APPEND NESTURBATOR_CAMPAIGN_CONTROL_ARGS
+    -DFUZZ_CONTROLS_REQUIRED=ON
+    -DROM_LOADER_FUZZER=$<TARGET_FILE:fuzz.rom_loader.libfuzzer>
+    -DSTATE_LOADER_FUZZER=$<TARGET_FILE:fuzz.state.libfuzzer>
+    -DEXECUTION_FUZZER=$<TARGET_FILE:fuzz.execution.libfuzzer>
+    -DROM_LOADER_REPLAY=$<TARGET_FILE:fuzz.rom_loader>
+    -DSTATE_LOADER_REPLAY=$<TARGET_FILE:fuzz.state_loader>)
+endif()
 add_test(NAME fuzz.execution.campaign_controls
   COMMAND ${CMAKE_COMMAND}
     "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
@@ -1098,12 +1119,17 @@ add_test(NAME fuzz.execution.campaign_controls
     "-DOUTPUT_DIR=${PROJECT_BINARY_DIR}/execution-campaign-controls"
     "-DBUDGET_FILE=${NESTURBATOR_EXECUTION_BUDGET_FILE}"
     -DREPLAY_BINARY=$<TARGET_FILE:fuzz.execution>
+    ${NESTURBATOR_CAMPAIGN_CONTROL_ARGS}
     -DMODE=self-test
     -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/execution_campaign.cmake")
 set_tests_properties(fuzz.execution.regress fuzz.execution.seeds
   fuzz.execution.controls fuzz.execution.oracle_failure PROPERTIES
   TIMEOUT ${NESTURBATOR_EXECUTION_REPLAY_TIMEOUT})
-set_tests_properties(fuzz.execution.campaign_controls PROPERTIES TIMEOUT 15)
+if(NESTURBATOR_LIBFUZZER)
+  set_tests_properties(fuzz.execution.campaign_controls PROPERTIES TIMEOUT 150)
+else()
+  set_tests_properties(fuzz.execution.campaign_controls PROPERTIES TIMEOUT 15)
+endif()
 
 # Narrow replay counters are compiled only in the matched, sanitizer-instrumented
 # measurement build. The normal CI and libFuzzer targets keep their existing path.
@@ -1116,7 +1142,6 @@ endif()
 
 # Linux nightly only: the same source/entry point and sanitized library, with
 # Clang's libFuzzer main and runtime instrumentation.
-option(NESTURBATOR_LIBFUZZER "Build the libFuzzer targets" OFF)
 if(NESTURBATOR_LIBFUZZER)
   if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR "NESTURBATOR_LIBFUZZER requires Clang")

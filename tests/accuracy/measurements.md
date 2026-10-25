@@ -21,6 +21,19 @@ The final registered run used the canonical 6bee ROM and production collector:
 
 `outer-outcomes.tsv` records 22 `EXIT_ZERO` children, no outer timeout and no child failure. Campaign metadata says `trustworthy_observation=1` and `infrastructure_verdict=complete`.
 
+## Phase 18 build-input provenance refresh
+
+The Phase 18 fuzz-control, state-loader oracle and public ticks-comment changes altered the
+selected AccuracyCoin build-input fingerprint, so the full campaign was run again during the
+`ci` workflow before refreshing its provenance. This run used source revision `68c99c078dc2`
+with a dirty working tree, fingerprint `a3a8ec4717db2600a98cb1a67dd0a098cd20305d6c88469c7b421f08cb961c12`
+over 56 inputs, and `host_elapsed_guest_ns=7327020000`. It retained the canonical report SHA-256
+`6d0a811960f6964e7fc66802c6e4ade0c4ffb8772c40d88d50cf79e1f8463652`; all 22 pages completed,
+all 146 scored rows were observed, and the canonical counts stayed at 101 pass, 42 fail, 0 skip,
+2 not-run, 1 timeout and 5 inventory-only DRAW rows. The source and measurement metadata were
+refreshed from `build/ci/accuracycoin/full/metadata.txt`; the scoreboard and report rows were not
+changed.
+
 ## Campaign outcome
 
 | Measure | Actual |

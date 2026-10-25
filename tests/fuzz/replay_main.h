@@ -7,8 +7,12 @@
 #define NESTURBATOR_FUZZ_REPLAY_MAIN_H
 
 #ifdef NESTURBATOR_FUZZ_REPLAY
+#include <string.h>
 #ifndef NESTURBATOR_REPLAY_NAME
 #define NESTURBATOR_REPLAY_NAME "fuzz.regress"
+#endif
+#ifdef NESTURBATOR_FUZZ_ACCEPTANCE
+int nt_replay_last_accepted(void);
 #endif
 #ifdef NESTURBATOR_FUZZ_METRICS
 void nt_replay_report_metrics(void);
@@ -53,6 +57,15 @@ static int replay_file(const char *path)
 
 int main(int argc, char **argv)
 {
+#ifdef NESTURBATOR_FUZZ_ACCEPTANCE
+    if (argc == 3 && strcmp(argv[1], "--accept-only") == 0) {
+        if (!replay_file(argv[2]))
+            return 1;
+        printf("ACCEPTANCE target=%s accepted=%d\n", NESTURBATOR_REPLAY_NAME,
+               nt_replay_last_accepted());
+        return 0;
+    }
+#endif
 #ifdef NESTURBATOR_REPLAY_EXTRA_MAIN
     int extra = nt_replay_extra_main(argc, argv);
     if (extra >= 0)

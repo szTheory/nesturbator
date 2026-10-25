@@ -444,7 +444,18 @@ behavior.
 nonzero. `fuzz.execution.campaign_controls` exercises crash and timeout input
 retention, missing resource evidence, collection failure, original preservation,
 accepted-load and intended-operation checks for minimization, and outer
-cancellation classification. `fuzz.execution.libfuzzer` uses the same callback when
+cancellation classification. On Linux with `NESTURBATOR_LIBFUZZER=ON`, the controls
+also minimize synthetic sanitizer failures from each actual fuzz target, then replay
+both original and reduced files in that same instrumented target. They check target-specific
+acceptance separately from the observed failure class and pre-call API operation, with
+bounded minimizer work and exact original preservation. Collector fixtures pass through
+the campaign artifact discovery and copy helper and verify the uploaded bytes. The
+state-loader replay has a separate JAM oracle regression: it feeds equal latched-state
+copies different stale video/audio buffers and verifies only stop status and canonical
+post-run state, never incomplete frame outputs. Its negative counterpart deliberately
+resets one instance after both JAM calls while keeping the stale output buffers equal;
+the same oracle must reject the different canonical states.
+`fuzz.execution.libfuzzer` uses the same callback when
 `NESTURBATOR_LIBFUZZER` is enabled. The Linux nightly campaign runs the ROM,
 state and execution targets with independently measured bounds. Dispatch mode
 `pilot` repeats the bounded measurement; `campaign` is the default and uses the

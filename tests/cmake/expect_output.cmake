@@ -1,6 +1,7 @@
 # Runs a command and checks its exact standard output and exit status.
 #
 #   cmake -DCMD=<program;arg;...> -DEXPECT=<line;line;...> -DEXPECT_EXIT=<code>
+#         [-DEXPECT_NONZERO=ON]
 #         [-DIGNORE_STDOUT=ON] [-DEXPECT_ERR=<text>] [-DCLEAN_DIR=<directory>] -P expect_output.cmake
 #
 # EXPECT_ERR, when set and non-empty, must appear as a substring of standard error.
@@ -39,7 +40,11 @@ foreach(line IN LISTS EXPECT)
 endforeach()
 
 set(failed FALSE)
-if(NOT "${actual_exit}" STREQUAL "${EXPECT_EXIT}")
+if(EXPECT_NONZERO)
+  if("${actual_exit}" STREQUAL "0")
+    set(failed TRUE)
+  endif()
+elseif(NOT "${actual_exit}" STREQUAL "${EXPECT_EXIT}")
   set(failed TRUE)
 endif()
 if(NOT IGNORE_STDOUT AND NOT "${actual}" STREQUAL "${expected}")

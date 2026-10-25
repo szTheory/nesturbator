@@ -6,6 +6,18 @@
 #include <sys/resource.h>
 #endif
 #include "nesturbator.h"
+#include "failure_control.h"
+
+#define NESTURBATOR_REPLAY_NAME "fuzz.rom_loader"
+#define NESTURBATOR_FUZZ_ACCEPTANCE 1
+
+static int nt_last_accepted;
+int nt_replay_last_accepted(void);
+
+int nt_replay_last_accepted(void)
+{
+    return nt_last_accepted;
+}
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
@@ -46,28 +58,40 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     nesturbator *inst = NULL;
     nesturbator_config config = {0};
+    nesturbator_status load_status;
+    nt_last_accepted = 0;
     config.size = (uint32_t)sizeof config;
     config.abi = NESTURBATOR_ABI_VERSION;
 #ifdef NESTURBATOR_FUZZ_METRICS
     nt_metric_inputs++;
     nt_metric_api_operations++;
 #endif
+    nt_fuzz_trace_operation("nesturbator_create");
     if (nesturbator_create(&config, &inst) != NESTURBATOR_OK)
         return 0;
 #ifdef NESTURBATOR_FUZZ_METRICS
     nt_metric_api_operations++;
-    if (nesturbator_load_cartridge(inst, data, size) == NESTURBATOR_OK)
+#endif
+    nt_fuzz_trace_operation("nesturbator_load_cartridge");
+#ifdef NESTURBATOR_FUZZ_METRICS
+    load_status = nesturbator_load_cartridge(inst, data, size);
+    if (load_status == NESTURBATOR_OK)
         nt_metric_accepted++;
 #else
-    (void)nesturbator_load_cartridge(inst, data, size);
+    load_status = nesturbator_load_cartridge(inst, data, size);
 #endif
+    nt_last_accepted = load_status == NESTURBATOR_OK;
+    if (nt_last_accepted && nt_fuzz_control_matches("rom-loader", data, size, 16u, 0x4cu))
+        nt_fuzz_control_crash("rom-loader");
 #ifdef NESTURBATOR_FUZZ_METRICS
     nt_metric_api_operations++;
 #endif
+    nt_fuzz_trace_operation("nesturbator_unload_cartridge");
     nesturbator_unload_cartridge(inst);
 #ifdef NESTURBATOR_FUZZ_METRICS
     nt_metric_api_operations++;
 #endif
+    nt_fuzz_trace_operation("nesturbator_destroy");
     nesturbator_destroy(inst);
     return 0;
 }
