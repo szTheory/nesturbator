@@ -106,9 +106,10 @@ function(check_nightly_policy workflow out_error)
     endif()
   endforeach()
   foreach(required IN ITEMS
+      "-DOUTPUT_DIR=\"\$GITHUB_WORKSPACE/build/execution-fuzz-evidence/\$GITHUB_RUN_ID/self-test\""
       "-DMODE=self-test -P tests/cmake/execution_campaign.cmake"
-      "fixtures/crash-expected"
-      "fixtures/timeout-expected")
+      "self-test/reproducers/rom-loader/crash-synthetic-control"
+      "self-test/reproducers/rom-loader/timeout-synthetic-control")
     string(FIND "${execution_job}" "${required}" control_index)
     if(control_index LESS 0)
       set(${out_error} ".github/workflows/nightly.yml: execution-controls: deliberate exact-input controls must run and be checked in the evidence directory" PARENT_SCOPE)
@@ -249,6 +250,18 @@ function(clean_fixture out_text)
   lane_fixture(mmc3-oracle "" mmc3)
   set(execution_fixture "  execution-fuzz:\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          persist-credentials: false\n      - name: Run bounded execution campaign\n        env:\n          MODE: \${{ github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'pilot' && 'pilot' || 'campaign' }}\n        run: |\n          if [ \"$MODE\" = pilot ]; then\n            DRIVER=tests/cmake/execution_measure.cmake\n          else\n            DRIVER=tests/cmake/execution_campaign.cmake\n          fi\n          timeout 300s cmake -DOUTPUT_DIR=\"$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID\" -DBUDGET_FILE=tests/fuzz/execution-budgets.txt -DMODE=\"$MODE\" -P \"$DRIVER\"\n      - name: Verify deliberate artifact controls\n        if: always()\n        run: |\n          cmake -DOUTPUT_DIR=\"$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID\" -DMODE=self-test -P tests/cmake/execution_campaign.cmake\n          test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/crash-expected\n          test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/timeout-expected\n      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9\n        if: always()\n        with:\n          name: execution-fuzz-evidence-\${{ github.run_id }}\n          path: build/execution-fuzz-evidence/\${{ github.run_id }}/\n          if-no-files-found: error\n")
   string(APPEND text "${vectors}${mmc3}${execution_fixture}  report:\n    needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, state-fuzz, execution-fuzz, suite-flake]\n    permissions:\n      issues: write\n    run: echo 'Execution fuzz outcome: %s'\n    env:\n      RESULT: \${{ needs.execution-fuzz.result == 'success' && 'success' || 'failure' }}\n      EXECUTION_FUZZ: \${{ needs.execution-fuzz.outputs.outcome }}\n")
+  string(REPLACE
+    [[cmake -DOUTPUT_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID" -DMODE=self-test -P tests/cmake/execution_campaign.cmake]]
+    [[cmake -DOUTPUT_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test" -DMODE=self-test -P tests/cmake/execution_campaign.cmake]]
+    text "${text}")
+  string(REPLACE
+    [[test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/crash-expected]]
+    [[test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test/reproducers/rom-loader/crash-synthetic-control]]
+    text "${text}")
+  string(REPLACE
+    [[test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/timeout-expected]]
+    [[test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test/reproducers/rom-loader/timeout-synthetic-control]]
+    text "${text}")
   string(REPLACE "default: pilot" "default: campaign" text "${text}")
   string(REPLACE "  execution-fuzz:\n    runs-on: ubuntu-24.04\n    permissions:"
     "  execution-fuzz:\n    runs-on: ubuntu-24.04\n    timeout-minutes: 5\n    permissions:" text "${text}")
@@ -370,16 +383,18 @@ elseif(DEFINED WORKFLOW)
         "-DSOURCE_DIR=${ROOT}" "-DBUILD_DIR=${ROOT}/build/execution-fuzz-build"
         "-DOUTPUT_DIR=${control_output}"
         "-DBUDGET_FILE=${ROOT}/tests/fuzz/execution-budgets.txt"
+        "-DREPLAY_BINARY=${REPLAY_BINARY}"
         -DMODE=self-test -P "${ROOT}/tests/cmake/execution_campaign.cmake"
       RESULT_VARIABLE controls_result OUTPUT_VARIABLE controls_out ERROR_VARIABLE controls_err)
     if(NOT controls_result EQUAL 0)
       message(FATAL_ERROR "execution evidence controls did not produce the selected upload-path fixtures: ${controls_err}${controls_out}")
     endif()
-    foreach(fixture IN ITEMS crash-expected timeout-expected)
-      if(NOT EXISTS "${control_output}/fixtures/${fixture}")
+    foreach(fixture IN ITEMS crash-synthetic-control timeout-synthetic-control)
+      set(uploaded_fixture "${control_output}/reproducers/rom-loader/${fixture}")
+      if(NOT EXISTS "${uploaded_fixture}")
         message(FATAL_ERROR "execution evidence control did not retain ${fixture} in the upload path")
       endif()
-      file(SIZE "${control_output}/fixtures/${fixture}" fixture_size)
+      file(SIZE "${uploaded_fixture}" fixture_size)
       if(fixture_size EQUAL 0)
         message(FATAL_ERROR "execution evidence control emitted an empty ${fixture}")
       endif()

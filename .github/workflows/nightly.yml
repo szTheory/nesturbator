@@ -344,11 +344,11 @@ jobs:
           cmake \
             -DSOURCE_DIR="$GITHUB_WORKSPACE" \
             -DBUILD_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-build" \
-            -DOUTPUT_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID" \
+            -DOUTPUT_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test" \
             -DBUDGET_FILE=tests/fuzz/execution-budgets.txt \
             -DMODE=self-test -P tests/cmake/execution_campaign.cmake
-          test -s "build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/crash-expected"
-          test -s "build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/timeout-expected"
+          test -s "build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test/reproducers/rom-loader/crash-synthetic-control"
+          test -s "build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test/reproducers/rom-loader/timeout-synthetic-control"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:

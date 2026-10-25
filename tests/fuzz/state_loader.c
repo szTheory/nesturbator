@@ -275,8 +275,7 @@ static uint64_t nt_run(nesturbator *inst, uint64_t ticks_origin, uint8_t output_
             nt_jam_statuses++;
             break;
         }
-        if (frame.audio_count > sizeof audio / sizeof audio[0] ||
-            frame.ticks <= previous_ticks)
+        if (frame.audio_count > sizeof audio / sizeof audio[0] || frame.ticks <= previous_ticks)
             nt_fail("successful frame did not advance its output contract");
 #ifdef NESTURBATOR_FUZZ_METRICS
         nt_metrics.guest_ticks += frame.ticks - previous_ticks;
@@ -388,8 +387,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             if (nesturbator_load_state(b, cand, len) != NESTURBATOR_OK)
                 nt_fail("the same state loaded into a second fresh instance was refused");
             hash_a = nt_run(a, ticks_origin, 0xa5u);
-            hash_b = nt_run(b, ticks_origin,
-                            nt_jam_oracle_divergence_control ? 0xa5u : 0x5au);
+            hash_b = nt_run(b, ticks_origin, nt_jam_oracle_divergence_control ? 0xa5u : 0x5au);
             if (hash_a != hash_b)
                 nt_fail("two instances loading the same state diverged");
             if (nt_jam_oracle_divergence_control) {
@@ -655,10 +653,12 @@ static int nt_replay_extra_main(int argc, char **argv)
         static const uint8_t jammed_state_mutation[] = {0u, NT_CPU_JAMMED_OFFSET, 0u, 1u};
         (void)LLVMFuzzerTestOneInput(jammed_state_mutation, sizeof jammed_state_mutation);
         if (!nt_last_accepted || nt_jam_statuses != 2u) {
-            fprintf(stderr, NT_REPLAY_NAME ": JAM oracle regression did not exercise both stop calls\n");
+            fprintf(stderr,
+                    NT_REPLAY_NAME ": JAM oracle regression did not exercise both stop calls\n");
             return 1;
         }
-        puts("JAM oracle regression passed: differing stale frame buffers were ignored; status and canonical state matched");
+        puts("JAM oracle regression passed: differing stale frame buffers were ignored; status and "
+             "canonical state matched");
         return 0;
     }
     if (argc == 2 && strcmp(argv[1], "--jam-oracle-divergence") == 0) {
@@ -666,10 +666,12 @@ static int nt_replay_extra_main(int argc, char **argv)
         nt_jam_oracle_divergence_control = 1;
         (void)LLVMFuzzerTestOneInput(jammed_state_mutation, sizeof jammed_state_mutation);
         if (!nt_last_accepted || !nt_jam_oracle_divergence_injected) {
-            fprintf(stderr, NT_REPLAY_NAME ": JAM oracle did not reach the deliberate state difference\n");
+            fprintf(stderr,
+                    NT_REPLAY_NAME ": JAM oracle did not reach the deliberate state difference\n");
             return 1;
         }
-        fprintf(stderr, NT_REPLAY_NAME ": oracle failed to reject different canonical JAM states\n");
+        fprintf(stderr,
+                NT_REPLAY_NAME ": oracle failed to reject different canonical JAM states\n");
         return 1;
     }
     if (argc >= 3 && strcmp(argv[1], "--write-seeds") == 0)

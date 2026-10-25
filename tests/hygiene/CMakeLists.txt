@@ -44,6 +44,7 @@ add_test(NAME hygiene.timeout_comments.good
 add_test(NAME hygiene.nightly_workflow_policy
   COMMAND ${CMAKE_COMMAND}
     -DROOT=${PROJECT_SOURCE_DIR}
+    -DREPLAY_BINARY=$<TARGET_FILE:fuzz.execution>
     -DWORKFLOW=${PROJECT_SOURCE_DIR}/.github/workflows/nightly.yml
     -P ${PROJECT_SOURCE_DIR}/tests/cmake/nightly_workflow_policy.cmake)
 add_test(NAME hygiene.nightly_workflow_policy.selftest

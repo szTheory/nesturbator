@@ -1023,8 +1023,7 @@ static int nt_exec_accept_input(const uint8_t *data, size_t size)
     uint8_t *image;
     size_t image_size = 0u;
     int accepted;
-    if (!nt_exec_decode(data, size, &recipe) ||
-        !nt_exec_profile_for(recipe.profile_code, &profile))
+    if (!nt_exec_decode(data, size, &recipe) || !nt_exec_profile_for(recipe.profile_code, &profile))
         return 0;
     image = nt_exec_generate(&recipe, data, size, &profile, &image_size, &budget);
     if (image == NULL)
