@@ -67,6 +67,7 @@ A game's frame loop and status-bar splits time out exactly as they do on an NTSC
 Each phase merges by pull request into a green `main` and is released automatically. Behaviour changes land with tests in `cmake --workflow --preset ci`, README and `nesturbator.h` comments. One NMI-line and interrupt-poll model serves every row; no row or title gets a special case, the 1800-frame AccuracyCoin cap stays, and no blargg ROM is committed.
 
 ### Phase 19: JAM reporting and sprite-0 hit
+
 **Goal**: A developer reading an AccuracyCoin run sees a guest JAM named as a JAM, and a game's sprite-0 status-bar split lands on the console's line.
 **Depends on**: Phase 18 (JAM stop contract, AccuracyCoin baseline at `6bee919`)
 **Requirements**: JAM-01, JAM-02, SPR-01, SPR-02
@@ -75,18 +76,32 @@ Each phase merges by pull request into a green `main` and is released automatica
   2. `libretro.runahead` shows that run-ahead across a JAM gives the same picture and silence as running without run-ahead.
   3. The `Sprite 0 Hit behavior` and `Arbitrary Sprite zero` rows report pass in `accuracy.scoreboard`, within the 1800-frame cap, and owned `ppu.sprites` tests show the hit on its dot and the first sprite evaluated acting as sprite 0 at any OAM index.
   4. Every row that passes on `main` today still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane; any frame hash the sprite-0 fix moves is re-pinned in the same change with its reason.
+
 **Plans**: 6 plans
+**Wave 1**
 - [ ] 19-01-PLAN.md — AccuracyCoin names a guest JAM in the execution stage (`guest-jam`, `jam_frame`, `accuracycoin.jam`)
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 19-02-PLAN.md — guest JAM named in earlier stages and strict mode; tracer pin, README, collector and attribution-dropped controls
+
+**Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 19-03-PLAN.md — run-ahead across a JAM keeps the frozen picture and silence (adapter cache tag with timeline identity, `libretro.runahead` JAM image)
+
+**Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 19-04-PLAN.md — owned sprite tests first, then the OAMADDR reset with its campaign diff
+
+**Wave 5** *(blocked on Wave 4 completion)*
 - [ ] 19-05-PLAN.md — evaluation from OAMADDR with the dot-66 identity, driver re-target, behaviour revision 7
+
+**Wave 6** *(blocked on Wave 5 completion)*
 - [ ] 19-06-PLAN.md — re-record scoreboard and activation baseline, D-11 guard, correct the research record
+
 **Canonical refs**: [CONFORMANCE.md](preparation/CONFORMANCE.md), [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/FEATURES.md](research/FEATURES.md) (G5, JAM), [research/PITFALLS.md](research/PITFALLS.md) (#8, #9, #15, #16), [research/SUMMARY.md](research/SUMMARY.md) (steps 0–2, 7)
 
 Note: the sprite-0 basic-hit cause is not isolated yet; a trace of subtest 1 settles it before any fix. Sprite-0 lands in its own pull request, before the NMI model changes, so a moved row is attributable.
 
 ### Phase 20: NMI line and VBlank flag
+
 **Goal**: A game that reads `$2002` or toggles NMI around the start or end of VBlank gets the console's flag value and exactly the console's NMIs, and its save states hold through that race.
 **Depends on**: Phase 19 (sprite-0 settled so NMI regressions are attributable)
 **Requirements**: NMI-01, NMI-02, KEEP-02, KEEP-03
@@ -95,12 +110,14 @@ Note: the sprite-0 basic-hit cause is not isolated yet; a trace of subtest 1 set
   2. A developer running `cmake --workflow --preset ci` on any of the six platforms gets identical frame and audio hashes; each hash that moved was re-pinned in the change that moved it, with its reason beside it.
   3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
   4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
+
 **Plans**: TBD
 **Canonical refs**: [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [DECISIONS.md](preparation/DECISIONS.md), [CONFORMANCE.md](preparation/CONFORMANCE.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (section 1, state), [research/FEATURES.md](research/FEATURES.md) (G1, G2), [research/PITFALLS.md](research/PITFALLS.md) (#1, #2, #3, #6, #7, #10, #12), [research/SUMMARY.md](research/SUMMARY.md) (steps 3–4)
 
 Note: the NMI line and its edge latch come before the penultimate-cycle poll, which reads that latch; both may share one pull request if the reproducers check each step. Test whether AccuracyCoin needs a CPU/PPU alignment constant before adding one.
 
 ### Phase 21: Interrupt latency and hijack
+
 **Goal**: A game's IRQ starts on the same instruction as on the console, and an NMI arriving during BRK or an IRQ takes over its vector as on the console.
 **Depends on**: Phase 20 (NMI edge latch and poll)
 **Requirements**: INT-01, INT-02, KEEP-01
@@ -109,6 +126,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
   2. All eleven v5 rows report pass at `6bee919` and every row that passed before v5 still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
   3. `cpu.vectors`, the nightly blargg MMC3 lane, Holy Mapperel and `runner.boot_to_play` stay green with the shared NMI, IRQ and BRK entry in place.
   4. A state saved in the middle of a BRK, IRQ or NMI sequence loads back to the same run in `core.state_fork.*` and `libretro.runahead`, and moved hashes stay identical on all six platforms.
+
 **Plans**: TBD
 **Canonical refs**: [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [CONFORMANCE.md](preparation/CONFORMANCE.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (shared `interrupt_entry`), [research/FEATURES.md](research/FEATURES.md) (G3, G4), [research/PITFALLS.md](research/PITFALLS.md) (#4, #5, #6, #11), [research/SUMMARY.md](research/SUMMARY.md) (steps 5, 6, 8)
 
