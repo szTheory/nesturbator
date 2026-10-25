@@ -1,0 +1,438 @@
+cmake_minimum_required(VERSION 3.25)
+
+foreach(required IN ITEMS SOURCE_DIR OUTPUT_DIR MODE)
+  if(NOT DEFINED ${required} OR "${${required}}" STREQUAL "")
+    message(FATAL_ERROR "execution measurement needs ${required}")
+  endif()
+endforeach()
+if(MODE STREQUAL "pilot")
+  set(CAMPAIGN_MODE pilot)
+  include("${CMAKE_CURRENT_LIST_DIR}/execution_campaign.cmake")
+  return()
+elseif(NOT MODE STREQUAL "replay")
+  message(FATAL_ERROR "execution measurement supports only replay or the bounded pilot mode")
+endif()
+
+get_filename_component(source_root "${SOURCE_DIR}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_LIST_DIR}/../..")
+get_filename_component(output_root "${OUTPUT_DIR}" ABSOLUTE BASE_DIR "${source_root}")
+set(build_root "${output_root}/build")
+set(raw_root "${output_root}/profiles")
+set(coverage_root "${output_root}/coverage")
+set(log_root "${output_root}/logs")
+file(MAKE_DIRECTORY "${output_root}" "${raw_root}" "${coverage_root}" "${log_root}")
+
+find_program(clang_program NAMES clang REQUIRED)
+find_program(ninja_program NAMES ninja REQUIRED)
+if(CMAKE_HOST_APPLE)
+  find_program(xcrun_program NAMES xcrun REQUIRED)
+  execute_process(COMMAND "${xcrun_program}" --find llvm-profdata
+    RESULT_VARIABLE profdata_find_result OUTPUT_VARIABLE profdata_program
+    ERROR_VARIABLE profdata_find_error OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(COMMAND "${xcrun_program}" --find llvm-cov
+    RESULT_VARIABLE cov_find_result OUTPUT_VARIABLE cov_program
+    ERROR_VARIABLE cov_find_error OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(NOT profdata_find_result EQUAL 0 OR NOT cov_find_result EQUAL 0)
+    message(FATAL_ERROR "xcrun could not locate llvm-profdata/llvm-cov: ${profdata_find_error}${cov_find_error}")
+  endif()
+  set(time_args -p)
+else()
+  find_program(profdata_program NAMES llvm-profdata REQUIRED)
+  find_program(cov_program NAMES llvm-cov REQUIRED)
+  set(time_args -p)
+endif()
+if(NOT EXISTS "/usr/bin/time")
+  message(FATAL_ERROR "the measurement driver needs /usr/bin/time for wall time")
+endif()
+set(time_program "/usr/bin/time")
+
+execute_process(COMMAND "${clang_program}" --version
+  RESULT_VARIABLE clang_result OUTPUT_VARIABLE clang_version ERROR_VARIABLE clang_error)
+if(NOT clang_result EQUAL 0)
+  message(FATAL_ERROR "could not identify Clang: ${clang_error}")
+endif()
+string(REPLACE "\n" " " clang_version "${clang_version}")
+string(STRIP "${clang_version}" clang_version)
+execute_process(COMMAND "${profdata_program}" --version
+  RESULT_VARIABLE profdata_result OUTPUT_VARIABLE profdata_version ERROR_VARIABLE profdata_error)
+execute_process(COMMAND "${cov_program}" --version
+  RESULT_VARIABLE cov_result OUTPUT_VARIABLE cov_version ERROR_VARIABLE cov_error)
+if(NOT profdata_result EQUAL 0 OR NOT cov_result EQUAL 0)
+  message(FATAL_ERROR "could not identify LLVM coverage tools: ${profdata_error}${cov_error}")
+endif()
+string(REPLACE "\n" " " profdata_version "${profdata_version}")
+string(REPLACE "\n" " " cov_version "${cov_version}")
+string(STRIP "${profdata_version}" profdata_version)
+string(STRIP "${cov_version}" cov_version)
+
+file(GLOB rom_corpus LIST_DIRECTORIES FALSE "${source_root}/tests/fuzz/corpus/*")
+file(GLOB state_corpus LIST_DIRECTORIES FALSE "${source_root}/tests/fuzz/corpus_state/*")
+file(GLOB execution_corpus LIST_DIRECTORIES FALSE "${source_root}/tests/fuzz/corpus_execution/*")
+foreach(corpus_var IN ITEMS rom_corpus state_corpus execution_corpus)
+  list(LENGTH ${corpus_var} corpus_count)
+  if(corpus_count EQUAL 0)
+    message(FATAL_ERROR "${corpus_var} is empty; refusing to measure a replay no-op")
+  endif()
+endforeach()
+list(LENGTH execution_corpus execution_count)
+if(NOT execution_count EQUAL 8)
+  message(FATAL_ERROR "execution comparison expects six mapper-family seeds plus loop and JAM, found ${execution_count}")
+endif()
+
+set(c_flags "-O1 -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -fprofile-instr-generate -fcoverage-mapping")
+set(link_flags "-fsanitize=address,undefined -fprofile-instr-generate")
+set(configure_log "COMMAND: cmake -S ${source_root} -B ${build_root} -G Ninja -DCMAKE_C_COMPILER=${clang_program} -DCMAKE_BUILD_TYPE=Release -DCMAKE_COMPILE_WARNING_AS_ERROR=ON -DCMAKE_C_FLAGS=${c_flags} -DCMAKE_EXE_LINKER_FLAGS=${link_flags} -DNESTURBATOR_FUZZ_METRICS=ON -DNESTURBATOR_LIBFUZZER=OFF\n")
+file(WRITE "${log_root}/commands.txt" "${configure_log}")
+execute_process(COMMAND "${CMAKE_COMMAND}" -S "${source_root}" -B "${build_root}" -G Ninja
+    "-DCMAKE_C_COMPILER=${clang_program}"
+    -DCMAKE_BUILD_TYPE=Release
+    -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+    "-DCMAKE_C_FLAGS=${c_flags}"
+    "-DCMAKE_EXE_LINKER_FLAGS=${link_flags}"
+    -DNESTURBATOR_FUZZ_METRICS=ON
+    -DNESTURBATOR_LIBFUZZER=OFF
+  RESULT_VARIABLE configure_result OUTPUT_VARIABLE configure_output ERROR_VARIABLE configure_error)
+file(WRITE "${log_root}/configure.stdout" "${configure_output}")
+file(WRITE "${log_root}/configure.stderr" "${configure_error}")
+if(NOT configure_result EQUAL 0)
+  message(FATAL_ERROR "instrumented configure failed: ${configure_error}${configure_output}")
+endif()
+
+file(APPEND "${log_root}/commands.txt"
+  "COMMAND: cmake --build ${build_root} --target fuzz.rom_loader fuzz.state_loader fuzz.execution\n")
+execute_process(COMMAND "${CMAKE_COMMAND}" --build "${build_root}" --target
+    fuzz.rom_loader fuzz.state_loader fuzz.execution
+  RESULT_VARIABLE build_result OUTPUT_VARIABLE build_output ERROR_VARIABLE build_error)
+file(WRITE "${log_root}/build.stdout" "${build_output}")
+file(WRITE "${log_root}/build.stderr" "${build_error}")
+if(NOT build_result EQUAL 0)
+  message(FATAL_ERROR "matched instrumentation build failed: ${build_error}${build_output}")
+endif()
+
+function(extract_metric line key output_name)
+  string(REGEX MATCH "(^|[ ])${key}=([0-9]+)($|[ ])" matched "${line}")
+  if(matched STREQUAL "")
+    message(FATAL_ERROR "metrics output omitted ${key}: ${line}")
+  endif()
+  set(${output_name} "${CMAKE_MATCH_2}" PARENT_SCOPE)
+endfunction()
+
+function(run_replay target executable profile corpus_file out_prefix)
+  set(arguments ${ARGN})
+  file(REMOVE "${profile}")
+  execute_process(COMMAND "${CMAKE_COMMAND}" -E env "LLVM_PROFILE_FILE=${profile}"
+      "${time_program}" ${time_args} "${executable}" ${arguments}
+    RESULT_VARIABLE run_result OUTPUT_VARIABLE run_output ERROR_VARIABLE run_error)
+  file(WRITE "${log_root}/${target}.stdout" "${run_output}")
+  file(WRITE "${log_root}/${target}.stderr" "${run_error}")
+  if(NOT run_result EQUAL 0)
+    message(FATAL_ERROR "${target} replay failed (${run_result}): ${run_error}${run_output}")
+  endif()
+  if(NOT run_error MATCHES "real ([0-9]+[.][0-9]+)")
+    message(FATAL_ERROR "${target} /usr/bin/time did not report elapsed seconds: ${run_error}")
+  endif()
+  set(elapsed "${CMAKE_MATCH_1}")
+  if(NOT EXISTS "${profile}" OR IS_DIRECTORY "${profile}")
+    message(FATAL_ERROR "${target} emitted no LLVM profile: ${profile}")
+  endif()
+
+  if(target MATCHES "^execution")
+    string(JSON inputs GET "${run_output}" inputs)
+    string(JSON accepted GET "${run_output}" accepted)
+    string(JSON frames GET "${run_output}" frames)
+    string(JSON frame_ok GET "${run_output}" frame_ok)
+    string(JSON frame_jam GET "${run_output}" frame_jam)
+    string(JSON operations GET "${run_output}" api_operations)
+    string(JSON generated_bytes GET "${run_output}" generated_bytes)
+    string(JSON max_state_bytes GET "${run_output}" max_state_bytes)
+    string(JSON guest_ticks GET "${run_output}" guest_ticks)
+    string(JSON allocation_peak GET "${run_output}" peak_allocation_bytes)
+    string(JSON stop_status GET "${run_output}" last_stop_status)
+    string(JSON peak_rss GET "${run_output}" peak_rss_bytes)
+    string(JSON last_mapper GET "${run_output}" last_mapper)
+    string(JSON last_submapper GET "${run_output}" last_submapper)
+    string(JSON last_effects GET "${run_output}" last_bank_effects)
+    string(JSON completed_frames GET "${run_output}" last_completed_frames)
+  else()
+    string(REGEX MATCH "METRICS target=[^\n]+" metric_line "${run_output}")
+    if(metric_line STREQUAL "")
+      message(FATAL_ERROR "${target} replay omitted its measurement record: ${run_output}")
+    endif()
+    extract_metric("${metric_line}" inputs inputs)
+    extract_metric("${metric_line}" accepted accepted)
+    extract_metric("${metric_line}" frame_calls frames)
+    extract_metric("${metric_line}" frame_ok frame_ok)
+    extract_metric("${metric_line}" frame_jam frame_jam)
+    extract_metric("${metric_line}" api_operations operations)
+    set(generated_bytes 0)
+    set(max_state_bytes 0)
+    extract_metric("${metric_line}" guest_ticks guest_ticks)
+    extract_metric("${metric_line}" peak_rss_bytes peak_rss)
+    set(allocation_peak 0)
+    set(stop_status "not-applicable")
+    set(last_mapper 0)
+    set(last_submapper 0)
+    set(last_effects 0)
+    set(completed_frames 0)
+  endif()
+  if(NOT inputs EQUAL corpus_file)
+    message(FATAL_ERROR "${target} measured ${inputs} inputs but its corpus has ${corpus_file} files")
+  endif()
+  if(accepted GREATER inputs OR frames LESS frame_ok OR frames LESS frame_jam)
+    message(FATAL_ERROR "${target} emitted inconsistent acceptance/frame counts")
+  endif()
+  if(peak_rss LESS 1)
+    message(FATAL_ERROR "${target} did not report a nonzero observed peak RSS")
+  endif()
+  execute_process(COMMAND awk "-v" "n=${inputs}" "-v" "t=${elapsed}"
+      "BEGIN { if (t > 0) printf \"%.2f\", n / t; else print \"unavailable\" }"
+    RESULT_VARIABLE rate_result OUTPUT_VARIABLE input_rate ERROR_VARIABLE rate_error)
+  if(NOT rate_result EQUAL 0)
+    message(FATAL_ERROR "could not compute ${target} throughput: ${rate_error}")
+  endif()
+  execute_process(COMMAND awk "-v" "n=${accepted}" "-v" "t=${elapsed}"
+      "BEGIN { if (t > 0) printf \"%.2f\", n / t; else print \"unavailable\" }"
+    RESULT_VARIABLE accepted_rate_result OUTPUT_VARIABLE accepted_rate ERROR_VARIABLE accepted_rate_error)
+  if(NOT accepted_rate_result EQUAL 0)
+    message(FATAL_ERROR "could not compute ${target} accepted throughput: ${accepted_rate_error}")
+  endif()
+  set(${out_prefix}_inputs "${inputs}" PARENT_SCOPE)
+  set(${out_prefix}_accepted "${accepted}" PARENT_SCOPE)
+  set(${out_prefix}_frames "${frames}" PARENT_SCOPE)
+  set(${out_prefix}_frame_ok "${frame_ok}" PARENT_SCOPE)
+  set(${out_prefix}_frame_jam "${frame_jam}" PARENT_SCOPE)
+  set(${out_prefix}_operations "${operations}" PARENT_SCOPE)
+  set(${out_prefix}_generated_bytes "${generated_bytes}" PARENT_SCOPE)
+  set(${out_prefix}_max_state_bytes "${max_state_bytes}" PARENT_SCOPE)
+  set(${out_prefix}_guest_ticks "${guest_ticks}" PARENT_SCOPE)
+  set(${out_prefix}_allocation_peak "${allocation_peak}" PARENT_SCOPE)
+  set(${out_prefix}_stop_status "${stop_status}" PARENT_SCOPE)
+  set(${out_prefix}_elapsed "${elapsed}" PARENT_SCOPE)
+  set(${out_prefix}_peak_rss "${peak_rss}" PARENT_SCOPE)
+  set(${out_prefix}_mapper "${last_mapper}" PARENT_SCOPE)
+  set(${out_prefix}_submapper "${last_submapper}" PARENT_SCOPE)
+  set(${out_prefix}_effects "${last_effects}" PARENT_SCOPE)
+  set(${out_prefix}_completed_frames "${completed_frames}" PARENT_SCOPE)
+  set(${out_prefix}_input_rate "${input_rate}" PARENT_SCOPE)
+  set(${out_prefix}_accepted_rate "${accepted_rate}" PARENT_SCOPE)
+endfunction()
+
+function(export_coverage target executable raw_profile)
+  set(profile_data "${coverage_root}/${target}.profdata")
+  set(export_json "${coverage_root}/${target}.json")
+  execute_process(COMMAND "${profdata_program}" merge -sparse "${raw_profile}" -o "${profile_data}"
+    RESULT_VARIABLE merge_result OUTPUT_VARIABLE merge_output ERROR_VARIABLE merge_error)
+  if(NOT merge_result EQUAL 0)
+    message(FATAL_ERROR "${target} llvm-profdata merge failed: ${merge_error}${merge_output}")
+  endif()
+  execute_process(COMMAND "${cov_program}" export -format=text "-instr-profile=${profile_data}" "${executable}"
+    RESULT_VARIABLE export_result OUTPUT_FILE "${export_json}" ERROR_VARIABLE export_error)
+  if(NOT export_result EQUAL 0)
+    message(FATAL_ERROR "${target} llvm-cov export failed: ${export_error}")
+  endif()
+  set(${target}_profile_data "${profile_data}" PARENT_SCOPE)
+  set(${target}_coverage_json "${export_json}" PARENT_SCOPE)
+endfunction()
+
+function(core_function_reach export_json out_functions out_hit_count out_total_count)
+  file(READ "${export_json}" coverage_json)
+  string(JSON data_count LENGTH "${coverage_json}" data)
+  set(reached)
+  set(hit_count 0)
+  set(total_count 0)
+  if(data_count LESS 1)
+    message(FATAL_ERROR "coverage export has no data array: ${export_json}")
+  endif()
+  string(JSON functions_json GET "${coverage_json}" data 0 functions)
+  string(JSON function_count LENGTH "${functions_json}")
+  if(function_count GREATER 0)
+    math(EXPR last_function "${function_count} - 1")
+    foreach(function_index RANGE 0 ${last_function})
+      string(JSON function_name GET "${functions_json}" ${function_index} name)
+      string(JSON function_hits GET "${functions_json}" ${function_index} count)
+      string(JSON filename_count LENGTH "${functions_json}" ${function_index} filenames)
+      set(core_function 0)
+      if(filename_count GREATER 0)
+        math(EXPR last_filename "${filename_count} - 1")
+        foreach(filename_index RANGE 0 ${last_filename})
+          string(JSON filename GET "${functions_json}" ${function_index} filenames ${filename_index})
+          if(filename MATCHES "/src/.*[.]c$")
+            set(core_function 1)
+            get_filename_component(source_filename "${filename}" NAME)
+            string(REPLACE "${source_filename}:" "" normalized_function_name "${function_name}")
+            set(function_key "${filename}::${normalized_function_name}")
+          endif()
+        endforeach()
+      endif()
+      if(core_function)
+        math(EXPR total_count "${total_count} + 1")
+        if(function_hits GREATER 0)
+          math(EXPR hit_count "${hit_count} + 1")
+          list(APPEND reached "${function_key}")
+        endif()
+      endif()
+    endforeach()
+  endif()
+  list(REMOVE_DUPLICATES reached)
+  list(SORT reached)
+  set(${out_functions} "${reached}" PARENT_SCOPE)
+  set(${out_hit_count} "${hit_count}" PARENT_SCOPE)
+  set(${out_total_count} "${total_count}" PARENT_SCOPE)
+endfunction()
+
+set(rom_binary "${build_root}/tests/fuzz.rom_loader")
+set(state_binary "${build_root}/tests/fuzz.state_loader")
+set(execution_binary "${build_root}/tests/fuzz.execution")
+set(rom_profile "${raw_root}/rom-loader.profraw")
+set(state_profile "${raw_root}/state-loader.profraw")
+set(execution_profile "${raw_root}/execution.profraw")
+list(LENGTH rom_corpus rom_count)
+list(LENGTH state_corpus state_count)
+run_replay("rom-loader" "${rom_binary}" "${rom_profile}" "${rom_count}" rom ${rom_corpus})
+run_replay("state-loader" "${state_binary}" "${state_profile}" "${state_count}" state ${state_corpus})
+run_replay("execution" "${execution_binary}" "${execution_profile}" "${execution_count}" execution --measure 1 ${execution_corpus})
+
+file(WRITE "${output_root}/execution-families.tsv"
+  "family\tmapper\tsubmapper\taccepted\tframes\tframe_ok\tframe_jam\tcompleted_frames\tapi_operations\tgenerated_bytes\tguest_ticks\tpeak_allocation_bytes\tstop_status\telapsed_seconds\tinputs_per_second\taccepted_per_second\tpeak_rss_bytes\tbank_effects\tcore_functions_hit\tcore_functions_total\n")
+foreach(family_spec IN ITEMS "nrom|0|0|0" "mmc1|1|0|3" "uxrom|2|1|1"
+    "cnrom|3|1|2" "mmc3|4|0|3" "axrom|7|1|5" "loop|0|0|0" "jam|0|0|0")
+  string(REPLACE "|" ";" family_fields "${family_spec}")
+  list(GET family_fields 0 family)
+  list(GET family_fields 1 expected_mapper)
+  list(GET family_fields 2 expected_submapper)
+  list(GET family_fields 3 expected_effects)
+  if(family STREQUAL "loop" OR family STREQUAL "jam")
+    set(family_seed "${source_root}/tests/fuzz/corpus_execution/${family}")
+  else()
+    set(family_seed "${source_root}/tests/fuzz/corpus_execution/${family}-deep")
+  endif()
+  set(family_profile "${raw_root}/execution-${family}.profraw")
+  run_replay("execution-${family}" "${execution_binary}" "${family_profile}" 1 execution_family
+    --measure 1 "${family_seed}")
+  set(family_qualified 1)
+  if(family STREQUAL "jam")
+    if(NOT execution_family_accepted EQUAL 1 OR NOT execution_family_mapper EQUAL expected_mapper OR
+       NOT execution_family_submapper EQUAL expected_submapper OR
+       NOT execution_family_completed_frames EQUAL 1 OR NOT execution_family_frame_jam EQUAL 3 OR
+       NOT execution_family_effects EQUAL expected_effects)
+      set(family_qualified 0)
+    endif()
+  elseif(NOT execution_family_accepted EQUAL 1 OR NOT execution_family_mapper EQUAL expected_mapper OR
+       NOT execution_family_submapper EQUAL expected_submapper OR
+       NOT execution_family_frame_jam EQUAL 0 OR NOT execution_family_effects EQUAL expected_effects OR
+       execution_family_completed_frames LESS 3)
+    set(family_qualified 0)
+  endif()
+  if(NOT family_qualified)
+    message(FATAL_ERROR "${family} measurement did not qualify its expected mapper, work and effects")
+  endif()
+  export_coverage("execution-${family}" "${execution_binary}" "${family_profile}")
+  core_function_reach("${coverage_root}/execution-${family}.json"
+    family_core_functions family_core_hits family_core_total)
+  file(APPEND "${output_root}/execution-families.tsv"
+    "${family}\t${execution_family_mapper}\t${execution_family_submapper}\t${execution_family_accepted}\t"
+    "${execution_family_frames}\t${execution_family_frame_ok}\t${execution_family_frame_jam}\t"
+    "${execution_family_completed_frames}\t${execution_family_operations}\t${execution_family_generated_bytes}\t"
+    "${execution_family_guest_ticks}\t${execution_family_allocation_peak}\t${execution_family_stop_status}\t"
+    "${execution_family_elapsed}\t${execution_family_input_rate}\t${execution_family_accepted_rate}\t"
+    "${execution_family_peak_rss}\t${execution_family_effects}\t${family_core_hits}\t${family_core_total}\n")
+endforeach()
+
+export_coverage(rom-loader "${rom_binary}" "${rom_profile}")
+export_coverage(state-loader "${state_binary}" "${state_profile}")
+export_coverage(execution "${execution_binary}" "${execution_profile}")
+core_function_reach("${rom-loader_coverage_json}" rom_core_functions rom_core_hits rom_core_total)
+core_function_reach("${state-loader_coverage_json}" state_core_functions state_core_hits state_core_total)
+core_function_reach("${execution_coverage_json}" execution_core_functions execution_core_hits execution_core_total)
+set(existing_core_functions ${rom_core_functions} ${state_core_functions})
+list(REMOVE_DUPLICATES existing_core_functions)
+set(new_core_functions)
+foreach(function_key IN LISTS execution_core_functions)
+  list(FIND existing_core_functions "${function_key}" found_index)
+  if(found_index EQUAL -1)
+    list(APPEND new_core_functions "${function_key}")
+  endif()
+endforeach()
+list(SORT new_core_functions)
+list(LENGTH new_core_functions new_core_count)
+if(new_core_count EQUAL 0)
+  message(FATAL_ERROR "the bounded eight-seed replay added no src/ function reach")
+endif()
+
+execute_process(COMMAND git -C "${source_root}" rev-parse HEAD
+  RESULT_VARIABLE revision_result OUTPUT_VARIABLE source_revision OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(NOT revision_result EQUAL 0)
+  message(FATAL_ERROR "could not identify the source revision")
+endif()
+execute_process(COMMAND git -C "${source_root}" diff --quiet
+  RESULT_VARIABLE dirty_result)
+if(dirty_result EQUAL 0)
+  set(source_dirty 0)
+else()
+  set(source_dirty 1)
+endif()
+
+set(measurement_inputs
+  tests/CMakeLists.txt
+  tests/cmake/execution_measure.cmake
+  tests/cmake/execution_campaign.cmake
+  tests/fuzz/execution-budgets.txt
+  tests/fuzz/execution.c
+  tests/fuzz/rom_loader.c
+  tests/fuzz/replay_main.h
+  tests/fuzz/state_loader.c)
+file(WRITE "${output_root}/measurement-inputs.tsv" "path\tsha256\n")
+set(measurement_input_manifest "")
+foreach(relative_path IN LISTS measurement_inputs)
+  file(SHA256 "${source_root}/${relative_path}" input_sha256)
+  file(APPEND "${output_root}/measurement-inputs.tsv" "${relative_path}\t${input_sha256}\n")
+  string(APPEND measurement_input_manifest "${relative_path}\t${input_sha256}\n")
+endforeach()
+string(SHA256 measurement_overlay_sha256 "${measurement_input_manifest}")
+
+file(WRITE "${output_root}/corpora.tsv" "target\tpath\tsha256\n")
+foreach(target_name IN ITEMS rom-loader state-loader execution)
+  if(target_name STREQUAL "rom-loader")
+    set(target_corpus ${rom_corpus})
+  elseif(target_name STREQUAL "state-loader")
+    set(target_corpus ${state_corpus})
+  else()
+    set(target_corpus ${execution_corpus})
+  endif()
+  set(target_corpus_manifest "")
+  foreach(seed IN LISTS target_corpus)
+    file(SHA256 "${seed}" seed_sha256)
+    file(RELATIVE_PATH seed_relative "${source_root}" "${seed}")
+    file(APPEND "${output_root}/corpora.tsv" "${target_name}\t${seed_relative}\t${seed_sha256}\n")
+    string(APPEND target_corpus_manifest "${seed_relative}\t${seed_sha256}\n")
+  endforeach()
+  string(SHA256 target_corpus_sha256 "${target_corpus_manifest}")
+  string(REPLACE "-" "_" target_variable "${target_name}")
+  set(${target_variable}_corpus_sha256 "${target_corpus_sha256}")
+endforeach()
+file(SHA256 "${output_root}/corpora.tsv" corpus_manifest_sha256)
+
+file(WRITE "${output_root}/measurement.tsv"
+  "source_revision\t${source_revision}\nsource_dirty\t${source_dirty}\nmeasurement_overlay_sha256\t${measurement_overlay_sha256}\nmode\t${MODE}\n"
+  "exploratory_enclosure\tone finite replay pass over each target's exact tracked corpus; no mutation\n"
+  "clang\t${clang_version}\nllvm_profdata\t${profdata_version}\nllvm_cov\t${cov_version}\n"
+  "instrumentation\t-O1 -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -fprofile-instr-generate -fcoverage-mapping\n"
+  "corpus_manifest_sha256\t${corpus_manifest_sha256}\n"
+  "corpus_target\tfiles\tmanifest_sha256\n"
+  "rom-loader\t${rom_count}\t${rom_loader_corpus_sha256}\n"
+  "state-loader\t${state_count}\t${state_loader_corpus_sha256}\n"
+  "execution\t${execution_count}\t${execution_corpus_sha256}\n"
+  "execution_seed_scope\tsix mapper-family descriptors plus loop and JAM; no ROM bytes stored\n"
+  "execution_family_file\texecution-families.tsv\t${output_root}/execution-families.tsv\n"
+  "target\tinputs\taccepted\tframes\tframe_ok\tframe_jam\tapi_operations\tgenerated_bytes\tmax_state_bytes\tguest_ticks\tpeak_allocation_bytes\tstop_status\telapsed_seconds\tinputs_per_second\taccepted_per_second\tpeak_rss_bytes\tcore_functions_hit\tcore_functions_total\n"
+  "rom-loader\t${rom_inputs}\t${rom_accepted}\t${rom_frames}\t${rom_frame_ok}\t${rom_frame_jam}\t${rom_operations}\t${rom_generated_bytes}\t${rom_max_state_bytes}\t${rom_guest_ticks}\t${rom_allocation_peak}\t${rom_stop_status}\t${rom_elapsed}\t${rom_input_rate}\t${rom_accepted_rate}\t${rom_peak_rss}\t${rom_core_hits}\t${rom_core_total}\n"
+  "state-loader\t${state_inputs}\t${state_accepted}\t${state_frames}\t${state_frame_ok}\t${state_frame_jam}\t${state_operations}\t${state_generated_bytes}\t${state_max_state_bytes}\t${state_guest_ticks}\t${state_allocation_peak}\t${state_stop_status}\t${state_elapsed}\t${state_input_rate}\t${state_accepted_rate}\t${state_peak_rss}\t${state_core_hits}\t${state_core_total}\n"
+  "execution\t${execution_inputs}\t${execution_accepted}\t${execution_frames}\t${execution_frame_ok}\t${execution_frame_jam}\t${execution_operations}\t${execution_generated_bytes}\t${execution_max_state_bytes}\t${execution_guest_ticks}\t${execution_allocation_peak}\t${execution_stop_status}\t${execution_elapsed}\t${execution_input_rate}\t${execution_accepted_rate}\t${execution_peak_rss}\t${execution_core_hits}\t${execution_core_total}\n")
+file(WRITE "${output_root}/execution-added-core-functions.txt" "")
+foreach(function_key IN LISTS new_core_functions)
+  string(REPLACE "${source_root}/" "" function_relative "${function_key}")
+  file(APPEND "${output_root}/execution-added-core-functions.txt" "${function_relative}\n")
+endforeach()
+file(APPEND "${log_root}/commands.txt"
+  "COMMAND: ${profdata_program} merge -sparse <target>.profraw -o <target>.profdata\n"
+  "COMMAND: ${cov_program} export -format=text -instr-profile=<target>.profdata <target-binary> > <target>.json\n")
+message(STATUS "execution measurement PASS: ${rom_inputs}/${rom_accepted}, ${state_inputs}/${state_accepted}, ${execution_inputs}/${execution_accepted} inputs/accepted across six mapper families plus loop and JAM; ${new_core_count} newly reached src functions")

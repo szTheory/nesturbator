@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "check.h"
+#include "../ines.h"
 #include "movie_fixture.h"
 #include "test_process.h"
 
@@ -35,10 +36,34 @@ static int run(const char *runner, const char *movie, const char *output)
     return test_process_run(arguments, output);
 }
 
-static int run_jam(const char *runner, const char *movie, const char *rom, const char *output)
+static int run_rom_movie(const char *runner, const char *movie, const char *rom, const char *output)
 {
     const char *const arguments[] = {runner, "--movie", movie, "--rom", rom, NULL};
     return test_process_run(arguments, output);
+}
+
+static int write_loop_rom(const char *path)
+{
+    static const uint8_t code[] = {0x4cu, 0x00u, 0x80u}; /* JMP $8000 */
+    const size_t size = 16u + INES_PRG_BANK + INES_CHR_BANK;
+    uint8_t *rom = (uint8_t *)calloc(1u, size);
+    int ok = 0;
+    if (rom == NULL)
+        return 0;
+    rom[0] = 'N';
+    rom[1] = 'E';
+    rom[2] = 'S';
+    rom[3] = 0x1au;
+    rom[4] = 1u;
+    rom[5] = 1u;
+    memcpy(rom + 16u, code, sizeof code);
+    for (size_t vector = 0x3ffau; vector < 0x4000u; vector += 2u) {
+        rom[16u + vector] = 0x00u;
+        rom[16u + vector + 1u] = 0x80u;
+    }
+    ok = write_bytes(path, rom, size);
+    free(rom);
+    return ok;
 }
 
 static int rejected_before_replay(const char *runner, const char *movie, const char *output)
@@ -122,6 +147,40 @@ int main(int argc, char **argv)
         fclose(file);
     }
 
+    /* A normal guest loop returns with advancing frame/tick output and repeat pixels. */
+    CHECK(write_loop_rom(argv[5]));
+    header(bytes, 3u);
+    for (uint32_t frame = 0u; frame < 3u; ++frame) {
+        bytes[16u + frame * 4u] = MOVIE_FIXTURE_PORT0;
+        bytes[17u + frame * 4u] = 0u;
+        bytes[18u + frame * 4u] = MOVIE_FIXTURE_PORT1;
+        bytes[19u + frame * 4u] = 0u;
+    }
+    CHECK(write_bytes(argv[2], bytes, sizeof bytes));
+    CHECK_EQ_U64(run_rom_movie(argv[1], argv[2], argv[5], argv[3]), 0u);
+    file = fopen(argv[3], "rb");
+    CHECK(file != NULL);
+    if (file != NULL) {
+        unsigned long long previous_ticks = 0u;
+        char first_hash[65] = {0};
+        for (unsigned expected_frame = 1u; expected_frame <= 3u; ++expected_frame) {
+            unsigned frame = 0u;
+            unsigned long long ticks = 0u;
+            char hash[65] = {0};
+            CHECK(fgets(line, sizeof line, file) != NULL);
+            CHECK_EQ_U64(sscanf(line, "frame %u ticks %llu sha256 %64s", &frame, &ticks, hash), 3u);
+            CHECK_EQ_U64(frame, expected_frame);
+            CHECK(ticks > previous_ticks);
+            if (expected_frame == 1u)
+                memcpy(first_hash, hash, sizeof first_hash);
+            else
+                CHECK(strcmp(hash, first_hash) == 0);
+            previous_ticks = ticks;
+        }
+        CHECK(fgets(line, sizeof line, file) == NULL);
+        fclose(file);
+    }
+
     /* Every malformed encoding is rejected before a frame is emitted. */
     header(bytes, 1u);
     CHECK(write_bytes(argv[2], bytes, 15u));
@@ -167,7 +226,7 @@ int main(int argc, char **argv)
         bytes[18] = MOVIE_FIXTURE_PORT1;
         bytes[19] = 0u;
         CHECK(write_bytes(argv[2], bytes, 20u));
-        CHECK(run_jam(argv[1], argv[2], argv[5], argv[3]) != 0);
+        CHECK_EQ_U64(run_rom_movie(argv[1], argv[2], argv[5], argv[3]), 1u);
         file = fopen(argv[3], "rb");
         CHECK(file != NULL);
         if (file != NULL) {

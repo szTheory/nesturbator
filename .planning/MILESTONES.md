@@ -1,5 +1,38 @@
 # Milestones
 
+## v4 Measured NTSC accuracy and robustness (Shipped: 2026-10-24)
+
+**Delivered:** Host builders can trust the RetroArch progression and state checks, read a complete, honest AccuracyCoin baseline at a pinned upstream commit, and rely on bounded evidence that accepted programs run on all six board families through reset, save/load, unload/reload, guest loops and JAM. The baseline is a measurement, not an all-pass claim: 101 of 146 scored rows pass.
+
+**Phases completed:** 3 phases (16 to 18), 21 plans, 42 tasks. Phase 16 merged as PR #50 and released as v0.1.11; Phases 17 and 18 ride PR #55 (PR #54 is folded into it)
+**Timeline:** 2026-10-13 → 2026-10-24 (12 days)
+**Code:** 39,760 lines of C (8,979 in the core library and public header), excluding the vendored `libretro.h`; 669 CTest tests in `ci`
+**Requirements:** 14/14 v4 requirements satisfied ([audit](milestones/v4-MILESTONE-AUDIT.md), status tech_debt)
+
+**Key accomplishments:**
+- An owned frame counter and one bounded verdict make the real RetroArch progression check reject dropped, doubled and wrong-load sequences. Network commands are confirmed rather than blindly retried, fixtures are chosen by exact identity, and v0.1.11's metadata describes MMC3 truthfully.
+- PRODUCT-ROADMAP.md keeps four horizons with stable RM IDs, and both milestone boundaries reconcile it within the invoked step.
+- AccuracyCoin is pinned at `6bee919` with a tested compressed-name decoder. A 22-page bounded campaign classifies all 146 scored rows (101 pass, 42 fail, 2 not-run, 1 timeout), keeps the five DRAW entries out of the score, and retains the old `673ef55` comparison.
+- Every CI lane freshly re-measures the PASS set taken from one protected-main revision. All 17 old protected keys still pass.
+- A 16-byte NEXE descriptor generates bank-sensitive programs on mappers 0, 1, 2, 3, 4 and 7. They pass continuation, reset, state-load and instance-isolation checks, and reach 24 core functions beyond the loader corpora.
+- Guest loops and JAM have tested native outcomes; on JAM the libretro adapter repeats the last complete frame and sends no audio. Finite nightly sanitizer campaigns run under measured budgets, and they found and fixed a real libretro state-load presentation bug.
+
+**Closeout:** override closeout. All three phase verifications passed (22/22, 38/38, 4/4), but GSD marks Phases 16 and 17 stale because later phases changed files they cover. The milestone audit ran after all three phases and found 14/14 requirements, 5/5 integration and 5/5 flows.
+
+Known verification overrides: 3 newly acknowledged, 7 carried forward from a prior close (see STATE.md Deferred Items)
+
+**Delivery at close:** Phases 17 and 18 had not merged to main. Exact-head PR #55 CI run 40150921041 passed every check, and Nightly 40150888217 succeeded. Publication is recorded below once observed.
+
+**Deferred tech debt:**
+- AccuracyCoin observe records a JAM only as a generic frame failure, and no AccuracyCoin control covers JAM.
+- No explicit run-ahead-under-JAM test exists in `libretro.runahead`.
+- Real-campaign minimization is proven only by controls.
+- Nightly `vectors-full` failed in run 39993108154 (not a Release gate).
+- Local macOS `nofp` flags `stack_chk_fail`/`stack_chk_guard` from the Apple toolchain.
+- Debug sessions `phase16-cleanup-fixture` and `phase16-interruption` were acknowledged, not resolved.
+
+---
+
 ## v3 Save states and rewind (Shipped: 2026-10-13)
 
 **Delivered:** Hosts save and load the whole machine through the library, players save and load states, rewind and use run-ahead in RetroArch, and a launcher can stop nes-runner at any time without losing a save and read every outcome from one documented exit-status table. No frame or audio hash moved, and speed is measured on every pull request.

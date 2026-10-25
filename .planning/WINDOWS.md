@@ -2,9 +2,9 @@
 schema_version: 1
 open_count: 0
 waived_count: 4
-fixed_count: 11
-total_count: 15
-last_updated: 2026-10-15T00:12:58.556Z
+fixed_count: 14
+total_count: 18
+last_updated: 2026-10-23T18:44:55Z
 ---
 
 # Broken Windows Ledger
@@ -30,6 +30,9 @@ last_updated: 2026-10-15T00:12:58.556Z
 | 13 | 16 | deviation | README.md |  | Replaced the unsupported 61-fps wall-time bound with the enforced absolute marker window 4..10000; out-of-window evidence fails. | fixed |  | 2026-10-13T19:49:05.121Z | 2026-10-13T19:49:09.830Z |
 | 14 | 16 | deviation | tests/retroarch/CMakeLists.txt | 59 | Removed output-only CTest pass regexes so process exit status governs progression test success | fixed |  | 2026-10-13T22:23:37.344Z | 2026-10-13T22:23:50.741Z |
 | 15 | 16 | deviation | .planning/phases/16-host-evidence-and-roadmap/16-04-SUMMARY.md | 105 | Task 2 RED used a reduced root-equality and branch-protection guard instead of the verbatim supplied pin block. | waived | The pinned root and protected-branch conditions were verified; this was a process-only difference in diagnostics, and later commits used the verbatim guard. | 2026-10-15T00:12:18.425Z | 2026-10-15T00:12:58.556Z |
+| 16 | 16 | deviation | include/nesturbator.h |  | Plan 16-07 Task 1 corrected a no-float false positive in a public-header comment; executable behavior and scan rules were unchanged, and native CI passed. | fixed |  | 2026-10-23T17:54:21.348Z | 2026-10-23T17:54:44.538Z |
+| 17 | 16 | deviation | tests/retroarch/test_state_session.sh |  | Plan 16-07 Task 1 repaired host timing test measurements and scheduling after native CI findings without loosening bounds; local CI/ASan and final native CI passed. | fixed |  | 2026-10-23T17:54:46.994Z | 2026-10-23T17:54:49.121Z |
+| 18 | 16 | coverage | tests/retroarch/CMakeLists.txt | 71 | Source-root preflight was callable but absent from normal CTest coverage (WR-07). | fixed | Registered a serial bounded test; full CI 650/650 with packages and focused ASan 1/1 passed; independent follow-up review clean. | 2026-10-23T18:44:55Z | 2026-10-23T18:44:55Z |
 
 ````json
 [
@@ -226,6 +229,32 @@ last_updated: 2026-10-15T00:12:58.556Z
     "reason": "The pinned root and protected-branch conditions were verified; this was a process-only difference in diagnostics, and later commits used the verbatim guard.",
     "recorded_at": "2026-10-15T00:12:18.425Z",
     "resolved_at": "2026-10-15T00:12:58.556Z",
+    "milestone": null
+  },
+  {
+    "id": 16,
+    "kind": "deviation",
+    "phase": "16",
+    "file": "include/nesturbator.h",
+    "line": null,
+    "description": "Plan 16-07 Task 1 corrected a no-float false positive in a public-header comment; executable behavior and scan rules were unchanged, and native CI passed.",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-10-23T17:54:21.348Z",
+    "resolved_at": "2026-10-23T17:54:44.538Z",
+    "milestone": null
+  },
+  {
+    "id": 17,
+    "kind": "deviation",
+    "phase": "16",
+    "file": "tests/retroarch/test_state_session.sh",
+    "line": null,
+    "description": "Plan 16-07 Task 1 repaired host timing test measurements and scheduling after native CI findings without loosening bounds; local CI/ASan and final native CI passed.",
+    "status": "fixed",
+    "reason": "",
+    "recorded_at": "2026-10-23T17:54:46.994Z",
+    "resolved_at": "2026-10-23T17:54:49.121Z",
     "milestone": null
   }
 ]

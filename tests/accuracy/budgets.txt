@@ -1,0 +1,44 @@
+AccuracyCoin campaign budgets (report schema 1)
+
+Selected immutable fixture:
+  pin: 6bee919529289c555803b612b8c9e4f7eaaeeabb
+  rom_sha256: 8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc
+  inventory_sha256: 7d022800d01ad81159109bf7457af94ab6f80e4a682fce716ec476f7c454a4a5
+
+Guest-frame caps per cold-page attempt:
+  cold_boot: 32 frames (all 22 measured starts reached menu-ready at frame 26)
+  navigation_step: 5 frames (one Right press plus four neutral frames per page change)
+  attributed_start: 2 frames (one A press and one released frame)
+  execution: 1800 frames after the release
+  page_total(p): 32 + 5 * (p - 1) + 2 + 1800
+  campaign_total: 41503 frames across 22 attempts
+
+Measured execution cap selection:
+  longest completed page: page 18, 1463 execution frames
+  completed-page margin to 1800: 337 frames (23.0% of the observed maximum)
+  page 19: one source-qualified active test remained $03 at the 1800-frame cap;
+    this is an expected guest timeout, not a reason to enlarge the cap
+
+Outer wall bounds:
+  each page child: 15 seconds
+  final production collection: 10 seconds
+  registered full-campaign CTest: 370 seconds
+  maximum sequential launcher allowance: 22 * 15 + 10 = 340 seconds
+  CTest allowance above the component sum: 30 seconds
+  hosted basis: page 19 took 6.336 seconds and page 18 took 4.290 seconds in
+    failed run 40054252174; 15 seconds is 2.36x the measured maximum.
+
+Protected current-invocation checks:
+  each observed page child: 30 seconds
+  page count: 3 retained old-pin pages plus up to 22 new-pin pages selected
+    from protected PASS keys and migration targets
+  maximum protected-observation setup: 25 * 30 + 10 = 760 seconds
+  hosted basis: the ASan page-19 observation took 22.454 seconds in successful
+    run 40055745306; the 30-second child bound leaves 7.546 seconds.
+  current post-merge control: 3 old + 19 new pages, summed local host elapsed
+    5.811 seconds, slowest page 1.584 seconds; focused CTest completed in 7.17.
+
+The navigation cap is also a timing policy: the launcher sends one Right edge and
+then neutral frames for each step. Five frames per step is the measured accepted
+unit. A six-frame exploratory policy changes the page-19 guest state and is kept
+as a separate measurement in measurements.md, not mixed with the final campaign.

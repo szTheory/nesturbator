@@ -1,3 +1,12 @@
+# Requirements Archive: v4 Measured NTSC accuracy and robustness
+
+**Archived:** 2026-10-24
+**Status:** SHIPPED
+
+For current requirements, see `.planning/REQUIREMENTS.md`.
+
+---
+
 # Requirements: nesturbator
 
 **Milestone:** v4 Measured NTSC accuracy and robustness
@@ -10,29 +19,29 @@ The user approved these requirements with the v4 proposal on 2026-10-13. The new
 
 ### Host evidence
 
-- [ ] **EVID-01**: The real-host progression check rejects dropped, doubled or wrong-load sequences using distinguishable frames or absolute state anchors, including negative controls for identical-image ambiguity.
+- [x] **EVID-01**: The real-host progression check rejects dropped, doubled or wrong-load sequences using distinguishable frames or absolute state anchors, including negative controls for identical-image ambiguity.
 - [x] **EVID-02**: Network-driven checks confirm bounded completion of safely retried requests and fail/restart unconfirmed non-idempotent actions; no blind FRAMEADVANCE or PAUSE_TOGGLE retry.
-- [ ] **EVID-03**: Fixture selection uses exact content identity/basenames, and adversarial parent-directory names cannot change the selected path.
-- [ ] **EVID-04**: Released libretro metadata describes the implemented MMC3 support truthfully and agrees with documented supported profiles.
+- [x] **EVID-03**: Fixture selection uses exact content identity/basenames, and adversarial parent-directory names cannot change the selected path.
+- [x] **EVID-04**: Released libretro metadata describes the implemented MMC3 support truthfully and agrees with documented supported profiles.
 
 ### Conformance
 
-- [ ] **CONF-01**: The AccuracyCoin pin, licence/hash, compressed-name decoder and protected-key migration are validated together, retaining the old-pin comparison.
-- [ ] **CONF-02**: The runner inventories every scored test and DRAW entry at that immutable pin; missing or duplicate entries and malformed result tables fail validation.
-- [ ] **CONF-03**: A bounded automated run gives each scored test an explicit pass/fail/skip/not-run/timeout classification with retained results and diagnostics; DRAW is excluded from the score denominator.
-- [ ] **CONF-04**: Previously protected passing keys remain mapped and accounted for; same-pin pass regressions fail, while changed upstream meanings or denominator changes require an explicit reviewed disposition.
+- [x] **CONF-01**: The AccuracyCoin pin, licence/hash, compressed-name decoder and protected-key migration are validated together, retaining the old-pin comparison.
+- [x] **CONF-02**: The runner inventories every scored test and DRAW entry at that immutable pin; missing or duplicate entries and malformed result tables fail validation.
+- [x] **CONF-03**: A bounded automated run gives each scored test an explicit pass/fail/skip/not-run/timeout classification with retained results and diagnostics; DRAW is excluded from the score denominator.
+- [x] **CONF-04**: Previously protected passing keys remain mapped and accounted for; same-pin pass regressions fail, while changed upstream meanings or denominator changes require an explicit reviewed disposition.
 
 ### Execution robustness
 
-- [ ] **ROB-01**: A small owned fuzz/replay target executes bounded accepted profiles for all six supported board families with generated program/CHR bytes and controlled input.
-- [ ] **ROB-02**: The target exercises reset, save/load and unload/reload, checking instance independence and deterministic continuation through existing API contracts.
-- [ ] **ROB-03**: Normal CI replays a fixed permitted/generated corpus; finite nightly sanitizer campaigns retain deterministic crash/timeout reproducers with measured time, memory and execution budgets.
-- [ ] **ROB-04**: Guest loops and JAM have tested progress/stop behavior, including the adapter's observable halt policy; any reproduced library/host contract violation receives a minimized regression and correction or explicit rescoping.
+- [x] **ROB-01**: A small owned fuzz/replay target executes bounded accepted profiles for all six supported board families with generated program/CHR bytes and controlled input.
+- [x] **ROB-02**: The target exercises reset, save/load and unload/reload, checking instance independence and deterministic continuation through existing API contracts.
+- [x] **ROB-03**: Normal CI replays a fixed permitted/generated corpus; finite nightly sanitizer campaigns retain deterministic crash/timeout reproducers with measured time, memory and execution budgets.
+- [x] **ROB-04**: Guest loops and JAM have tested progress/stop behavior, including the adapter's observable halt policy; any reproduced library/host contract violation receives a minimized regression and correction or explicit rescoping.
 
 ### Product direction
 
-- [ ] **DIR-01**: The repository has a product roadmap with Immediate/Near/Mid/Long horizons, stable outcome IDs, evidence and promotion triggers linked from the project instructions and preparation handoff.
-- [ ] **DIR-02**: New-milestone and complete-milestone instructions require the agent to reconcile and refresh that roadmap within the invoked step, preserving delivered seed evidence and unresolved debt.
+- [x] **DIR-01**: The repository has a product roadmap with Immediate/Near/Mid/Long horizons, stable outcome IDs, evidence and promotion triggers linked from the project instructions and preparation handoff.
+- [x] **DIR-02**: New-milestone and complete-milestone instructions require the agent to reconcile and refresh that roadmap within the invoked step, preserving delivered seed evidence and unresolved debt.
 
 ## Acceptance boundaries
 
@@ -75,20 +84,20 @@ Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.
 
 | Requirement | Phase | Status |
 |---|---|---|
-| EVID-01 | Phase 16 | Gaps Found |
+| EVID-01 | Phase 16 | Complete |
 | EVID-02 | Phase 16 | Complete |
-| EVID-03 | Phase 16 | Gaps Found |
-| EVID-04 | Phase 16 | Pending |
-| CONF-01 | Phase 17 | Pending |
-| CONF-02 | Phase 17 | Pending |
-| CONF-03 | Phase 17 | Pending |
-| CONF-04 | Phase 17 | Pending |
-| ROB-01 | Phase 18 | Pending |
-| ROB-02 | Phase 18 | Pending |
-| ROB-03 | Phase 18 | Pending |
-| ROB-04 | Phase 18 | Pending |
-| DIR-01 | Phase 16 | Gaps Found |
-| DIR-02 | Phase 16 | Gaps Found |
+| EVID-03 | Phase 16 | Complete |
+| EVID-04 | Phase 16 | Complete |
+| CONF-01 | Phase 17 | Complete |
+| CONF-02 | Phase 17 | Complete |
+| CONF-03 | Phase 17 | Complete |
+| CONF-04 | Phase 17 | Complete |
+| ROB-01 | Phase 18 | Complete |
+| ROB-02 | Phase 18 | Complete |
+| ROB-03 | Phase 18 | Complete |
+| ROB-04 | Phase 18 | Complete |
+| DIR-01 | Phase 16 | Complete |
+| DIR-02 | Phase 16 | Complete |
 
 **Coverage:**
 - v4 requirements: 14 total
@@ -100,4 +109,8 @@ Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.
 
 ---
 *Requirements defined and approved: 2026-10-13*
-*Last updated: 2026-10-15 after Phase 16 verification; release publication pending*
+*Last updated: 2026-10-24 after Phase 17 verification*
+
+**Phase 16 re-verification (2026-10-23):** [22/22 truths verified](phases/16-host-evidence-and-roadmap/16-VERIFICATION.md). Actual v0.1.11 downloads close the historical EVID-04 gap: all 18 ZIP checksums and source attestations, six released metadata copies and exact-release CI pass. The normal phase completion handler marked EVID-01–04 and DIR-01/02 Complete. The 2026-10-15 observation above remains historical; it is superseded by this evidence.
+
+**Phase 17 verification (2026-10-24):** [38/38 truths verified](phases/17-complete-pinned-conformance-baseline/17-VERIFICATION.md), all four CONF requirements Complete. The exact-source hosted workflow passed 663/663 primary-Linux tests and all 15 required jobs; the immutable 146-row baseline retains all five statuses and five separate DRAW entries. Source review is clean after CR-01's raw-evidence coverage fix.

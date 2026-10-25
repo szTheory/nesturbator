@@ -237,8 +237,9 @@ typedef struct nesturbator_frame {
     uint32_t audio_count;    /* out: samples written to audio */
     uint64_t frame_number;   /* out: frames run since power-on, 1 after the first;
                                 restored by nesturbator_load_state */
-    uint64_t ticks;          /* out: emulated time in half master-clock periods
-                                since power-on, restored by nesturbator_load_state,
+    uint64_t ticks;          /* out: cumulative emulated time in half master-clock periods
+                                since power-on (not a per-call delta), restored by
+                                nesturbator_load_state,
                                 including the 7 CPU cycles of
                                 each nesturbator_reset; instructions may carry residual
                                 ticks across the nominal 714732-tick boundary.
@@ -342,7 +343,38 @@ void nesturbator_unload_cartridge(nesturbator *inst);
 /* Reads CPU internal RAM without changing emulator state. Addresses $0000-$1FFF
    are accepted and use the NES's 2 KiB RAM mirrors; other addresses are
    rejected. This inspection path does not perform bus side effects and is
-   intended for conformance harnesses. On error, *value is unchanged. */
+   intended for conformance harnesses. The runner's pinned AccuracyCoin
+   observer and campaign collector use it to connect decoded ROM result
+   addresses to guest result bytes without bus side effects. AccuracyCoin's
+   source-defined result variants remain scoped to the decoded test key in the
+   runner; outer process failures are kept separate from guest bytes, and
+   duplicate raw samples remain diagnostics that invalidate campaign trust. The
+   full 22-page campaign uses a bounded 15-second host-child deadline and a
+   separate 1800 guest-frame execution cap; an outer process timeout cannot be
+   reclassified as the expected guest timeout. Protected-page checks derive
+   new-pin pages from the exact protected PASS keys and observe those pages in
+   the current invocation, with a 30-second maximum per page for slow hosted
+   instrumentation. The bounded observer records a host monotonic start stamp
+   with each report so a protected verdict can distinguish a fresh measured
+   attempt from copied or candidate-asserted status rows. When protected main
+   adopts the new pin, the same-pin check covers its full 101-PASS scoreboard;
+   the retained 17 old-pin migration controls remain separate. The normal CI
+   fetcher authenticates the canonical campaign scoreboard, its metadata, and
+   both manifest pins from one protected commit, then hands the verifier only
+   that commit's measured PASS rows; non-pass outcomes remain in the canonical
+   report and cannot become protected expectations.
+   AccuracyCoin ROM pins, inventory counts, and the measured conformance
+   baseline are test inputs only; tests bind exact bytes to each manifest
+   entry and the scored count to the parsed inventory. Protected verdicts
+   require exactly one well-formed final raw sample for every page report row;
+   malformed or duplicate final records invalidate evidence, while valid
+   non-final snapshots remain diagnostic context. Names are length-bounded
+   before result-key construction, and malformed/overlong name controls remain
+   rejected. Campaign readers strip LF or CRLF line terminators before exact
+   TSV field checks across CI platforms. Historical hygiene checks use the manifest from each
+   commit, so relocating a pin preserves its recorded provenance. These checks do not change this
+   API's ABI or state contract. This inspection API adds no library ABI or state-format requirement.
+   On error, *value is unchanged. */
 nesturbator_status nesturbator_peek_cpu_ram(const nesturbator *inst, uint16_t address,
                                             uint8_t *value);
 
@@ -367,8 +399,21 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * enabled IRQ at instruction boundaries and enters the IRQ vector (HWC.02).
  * No cartridge: test pattern and silence. A JAM opcode stops with
  * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
- * advance on later frame calls. Audio is mono signed 16-bit PCM; no-cartridge
- * audio is zero. */
+ * advance on later frame calls. On STOP_JAM, frame output fields are not
+ * written and callers must not inspect the video or audio buffers as results;
+ * the machine remains valid for a save-state snapshot. A libretro host may
+ * present its separately owned last complete converted frame (or black), but
+ * must not treat these native output buffers as a frame. Loading state does
+ * not write to host-owned presentation storage; the host can invalidate its
+ * cached frame without changing bytes already passed to its frontend.
+ * Test-only bounded
+ * execution replay uses generated representative mapper 0, 1, 2, 3, 4 and 7
+ * content to check deterministic continuation and instance isolation. Its
+ * successful-frame comparison uses defined metadata, native pixels and only
+ * samples written by a successful call; JAM comparison uses status and saved
+ * machine state. This agreement is not a hardware-accuracy claim. Audio is
+ * mono signed 16-bit PCM;
+ * no-cartridge audio is zero. */
 nesturbator_status nesturbator_run_frame(nesturbator *inst, nesturbator_frame *io);
 
 /* Copies up to `count` calibrated NTSC-to-sRGB XRGB8888 entries (0x00RRGGBB),
@@ -486,6 +531,8 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * frame (including a host's run-ahead lead) does not prove committed state or speculative audio.
  * Host containers are outside this native API; the test-only RetroArch reader qualifies one
  * measured uncompressed released-binary envelope and a bounded visible-marker window.
+ * The POSIX session-control harness allocates a unique scratch root per invocation so retained
+ * output from an earlier run cannot collide when the operating system reuses a process ID.
  * The registered libretro host tests select their battery and run-ahead fixtures by exact,
  * case-sensitive final filename; their CMake wrapper hashes the supplied special-file copy
  * against its manifest record before host launch. Slash always separates components; backslash
@@ -543,7 +590,8 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * A source-only interruption trace include is shared by the driver and harness. The POSIX test
  * harness derives its source root from the canonical path of its executing script, then validates
  * the supplied driver and fixed trace include against that root before sourcing or launching host
- * or transport work. Its source-root preflight exercises the repository root, CTest binary cwd and
+ * or transport work. The serial retroarch.session.source_root test runs its preflight in the
+ * POSIX ci and asan lanes. It exercises the repository root, CTest binary cwd and
  * an owned cwd containing spaces, and rejects a copied driver/include before the copied include can
  * run. Each cwd repeats all four finalizer faults and checks wait 143, the exact first reason,
  * cleanup_anomaly=0, oracle not-run and exact-port re-entry after owned-child reap. Before fixture

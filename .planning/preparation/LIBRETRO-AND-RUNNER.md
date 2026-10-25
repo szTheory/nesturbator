@@ -2,7 +2,7 @@
 title: "libretro adapter, RetroArch on macOS, and the headless runner contract"
 summary: "What libretro requires of a core, how a local core reaches RetroArch 1.22.2 on an Apple Silicon Mac, and what Playstead needs from an emulator process."
 read_when: "Building the libretro adapter, packaging a release, or designing the runner's command line."
-updated: 2026-10-02
+updated: 2026-10-23
 ---
 
 # libretro adapter, RetroArch on macOS, and the headless runner contract
@@ -18,7 +18,7 @@ A core is a dynamic library exporting all 25 functions in libretro.h (L7511-7840
 | `retro_set_environment` (7511), five other `retro_set_*` | called before `retro_init`; the others before `retro_run` |
 | `retro_get_system_info` (7627) | static strings; extensions "nes"; `need_fullpath` false lets the frontend load, unzip and patch (L6008) |
 | `retro_load_game` (7761), `retro_get_system_av_info` (7642) | ROM bytes in `retro_game_info` (L6833); geometry and timing after a successful load |
-| `retro_run` (7694) | one frame: input poll at least once (L7685), video callback once [LR.06], audio |
+| `retro_run` (7694) | one frame: input poll at least once (L7685); on a completed native frame, video callback once and audio. On this core's latched `STOP_JAM`, the adapter still polls and sends one non-NULL XRGB callback from its owned last complete frame, or initialized black before one exists; it sends no audio. The callback runs in the `retro_run` thread and receives the passed buffer for that call [LR.01, LR.06]. |
 | `retro_reset`, `retro_get_region` (7812) | soft reset; 0 NTSC, 1 PAL |
 | serialize calls (7707-7730) | size 0 means no states [LR.06] |
 | `retro_get_memory_data` and `_size` (7826) | NULL and 0 allowed (L498) |
@@ -83,6 +83,7 @@ Tested: files fetched with `curl` or `gh release download` carry no `com.apple.q
 | Frame and sample rates as fractions | doubles (L6302); the adapter divides once (NTSC 39375000/655171) |
 | Palette lookup, native pixel to XRGB8888 | RGB video callback (L7436); hashes use native pixels |
 | Mono int16 samples per frame | duplicated to left/right, one batch call per `retro_run` (L7465) |
+| Latched `STOP_JAM` without valid native frame output | adapter-owned completed XRGB cache, invalidated by successful load/reset/unload/state load; refused state loads preserve it. JAM repeats the cache or black and emits no audio; pixels and validity are not serialized. This is an adapter policy tested by `libretro.host`, not native machine progress. |
 | RAM pointers and sizes fixed from load to unload | descriptor `ptr` cannot move (L3591) |
 | Fixed state size; caller's buffer; fixed byte order | L7699 |
 | Load copies the ROM | data is "valid only until retro_load_game() returns" (L6129). Recommendation: copy. Alternative: `persistent_data` via `SET_CONTENT_INFO_OVERRIDE` (65). Memory pressure on a small target would change this |
@@ -96,9 +97,11 @@ Playstead [LR.17][LR.18] starts one pinned emulator from an argument template wi
 | Saves | `--save-dir DIR` writes `DIR/<rom basename>.sav`, the bytes the adapter exposes as save RAM; nothing beside the ROM |
 | Flush | temp file and rename, within `--save-interval` frames of a change, on SIGUSR1, on exit |
 | Signals | SIGTERM, SIGINT: flush, exit 0 inside 2 s; crash signals unhandled |
-| Exit status | 0 done; 1 failure; 2 usage; 3 hash mismatch; 77 unsupported capability |
-| Replay and checks | `--movie FILE`, `--frames N`; `--hash-frame N` and `--hash-audio` print SHA-256; `--dump-frame N:FILE`; `--expect FILE` compares the printed hashes with a recorded file and exits 3 on a difference |
+| Exit status | Historical proposal only: 0 done; 1 failure; 2 usage; 3 hash mismatch; 77 unsupported capability. These proposed 3/77 assignments were not adopted. |
+| Replay and checks | Historical proposal only: `--movie FILE`, `--frames N`; `--hash-frame N`, `--hash-audio`, `--dump-frame N:FILE` and `--expect FILE`. The current runner does not expose the proposed `--expect` hash-mismatch path. |
 | Preflight | `--capabilities`: JSON with version, mappers, save media, state fingerprint (state format plus ROM hash); writes nothing |
+
+The current runner exit contract is defined by `RUNNER_EXIT_TABLE` in `runner/exit_status.h`: 0 done, 1 failure, 2 usage error, 4 `.sav` size mismatch, and 5 rejected state. Statuses 3 and 77 remain reserved. The table above records earlier design ideas only; callers and tests must follow the current table rather than infer capability or hash outcomes from those proposed numbers.
 
 Choices. SIGTERM exits 0, since Playstead knows it sent the signal; alternative, a dedicated status; Playstead needing to tell them apart by status would change this. Movies use FM2's text frame lines [LR.04]; alternative, a private binary format; foreign movies failing to sync would change this. The runner has no window: it serves Playstead's replay check, not play. RetroArch offers `autosave_interval` and a `SAVE_FILES` command [LR.03][LR.08].
 

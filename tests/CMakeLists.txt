@@ -693,17 +693,138 @@ set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
 # AccuracyCoin page runs are kept separate so a failure names the page whose
 # RAM-derived results diverged from the committed scoreboard.
 set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
+set(ACCURACYCOIN_OLD_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin-673ef.nes)
 set(ACCURACYCOIN_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/scoreboard.txt)
+set(ACCURACYCOIN_OLD_SCOREBOARD ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/old-673ef-scoreboard.txt)
+set(ACCURACYCOIN_PROTECTED_WORK ${PROJECT_BINARY_DIR}/accuracycoin/protected-observations)
+set(ACCURACYCOIN_PROTECTED_MAX_PAGES 22)
+set(ACCURACYCOIN_PROTECTED_PAGE_WALL_SECONDS 30)
+math(EXPR ACCURACYCOIN_PROTECTED_SETUP_TIMEOUT
+  "(${ACCURACYCOIN_PROTECTED_MAX_PAGES} + 3) * ${ACCURACYCOIN_PROTECTED_PAGE_WALL_SECONDS} + 10")
 foreach(page IN ITEMS 2 14 17)
   add_test(NAME accuracycoin.page${page}
     COMMAND ${CMAKE_COMMAND}
-      "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_ROM};--scoreboard;${ACCURACYCOIN_SCOREBOARD}"
+      "-DCMD=$<TARGET_FILE:nesturbator-run>;--accuracycoin-page;${page};--rom;${ACCURACYCOIN_OLD_ROM};--scoreboard;${ACCURACYCOIN_OLD_SCOREBOARD}"
       "-DEXPECT=accuracycoin page ${page} PASS"
       -DEXPECT_EXIT=0
       -DIGNORE_STDOUT=TRUE
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake)
   set_tests_properties(accuracycoin.page${page} PROPERTIES TIMEOUT 60)
 endforeach()
+
+# The canonical new-pin fixture exercises page-3 token expansion, start
+# transition and report generation through the production runner.
+set(ACCURACYCOIN_COMPARISON_ROM ${ACCURACYCOIN_ROM})
+option(NESTURBATOR_ACCURACYCOIN_FULL
+  "Register the measured 22-page AccuracyCoin campaign test" OFF)
+add_executable(accuracycoin.conformance
+  accuracy/test_conformance.c
+  ../runner/accuracycoin.c
+  ../runner/audio_hash.c
+  ../runner/clock.c
+  ../runner/sha256.c)
+target_include_directories(accuracycoin.conformance PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/runner)
+target_link_libraries(accuracycoin.conformance PRIVATE nesturbator::nesturbator)
+target_compile_definitions(accuracycoin.conformance PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(accuracycoin.conformance)
+set(ACCURACYCOIN_TRACER_WORK ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/page3-tracer)
+add_test(NAME accuracycoin.tracer
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${ACCURACYCOIN_TRACER_WORK}"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_tracer.cmake)
+set_tests_properties(accuracycoin.tracer PROPERTIES TIMEOUT 90)
+add_test(NAME accuracycoin.inventory
+  COMMAND accuracycoin.conformance inventory
+    ${ACCURACYCOIN_COMPARISON_ROM}
+    ${ACCURACYCOIN_OLD_ROM})
+add_test(NAME accuracycoin.classifier
+  COMMAND accuracycoin.conformance classifier)
+add_test(NAME accuracycoin.migration_source
+  COMMAND accuracycoin.conformance migration
+    ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/migration.tsv
+    ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/old-673ef-scoreboard.txt)
+add_test(NAME accuracycoin.activation
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DCONFORMANCE=$<TARGET_FILE:accuracycoin.conformance>"
+    "-DNEW_ROM=${ACCURACYCOIN_ROM}"
+    "-DOLD_ROM=${ACCURACYCOIN_OLD_ROM}"
+    "-DSCOREBOARD=${ACCURACYCOIN_SCOREBOARD}"
+    "-DBASELINE_METADATA=${CMAKE_CURRENT_SOURCE_DIR}/accuracy/baseline-metadata.txt"
+    "-DOLD_SCOREBOARD=${ACCURACYCOIN_OLD_SCOREBOARD}"
+    "-DMIGRATION=${CMAKE_CURRENT_SOURCE_DIR}/accuracy/migration.tsv"
+    "-DFULL_ENABLED=${NESTURBATOR_ACCURACYCOIN_FULL}"
+    "-DFULL_REPORT=${PROJECT_BINARY_DIR}/accuracycoin/full/report.tsv"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_activation.cmake)
+set_tests_properties(accuracycoin.inventory accuracycoin.classifier
+  accuracycoin.migration_source accuracycoin.activation PROPERTIES TIMEOUT 90)
+set_tests_properties(accuracycoin.inventory accuracycoin.classifier
+  accuracycoin.migration_source PROPERTIES TIMEOUT 30)
+add_test(NAME accuracycoin.driver
+  COMMAND ${CMAKE_COMMAND}
+    "-DCONFORMANCE=$<TARGET_FILE:accuracycoin.conformance>"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/driver"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_driver.cmake)
+add_test(NAME accuracycoin.report
+  COMMAND accuracycoin.conformance report
+    ${ACCURACYCOIN_COMPARISON_ROM}
+    ${ACCURACYCOIN_OLD_ROM}
+    ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/report)
+add_test(NAME accuracycoin.outer_failure
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/outer-failure"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    -DBOOT_CAP=32 -DNAVIGATION_CAP=5 -DEXECUTION_CAP=1800
+    -DPAGE_TIMEOUT=1 -DCOLLECT_TIMEOUT=20
+    -DTEST_TIMEOUT_PAGE=1 -DTEST_PARTIAL_FAILURE_PAGE=2
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_campaign.cmake)
+set_tests_properties(accuracycoin.driver accuracycoin.report
+  accuracycoin.outer_failure PROPERTIES TIMEOUT 60)
+if(NESTURBATOR_ACCURACYCOIN_FULL)
+  add_test(NAME accuracycoin.campaign
+    COMMAND ${CMAKE_COMMAND}
+      "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+      "-DROM=${ACCURACYCOIN_COMPARISON_ROM}"
+      "-DWORK=${PROJECT_BINARY_DIR}/accuracycoin/full"
+      "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+      -DBOOT_CAP=32 -DNAVIGATION_CAP=5 -DEXECUTION_CAP=1800
+      -DPAGE_TIMEOUT=15 -DCOLLECT_TIMEOUT=10
+      -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_campaign.cmake)
+  set_tests_properties(accuracycoin.campaign PROPERTIES TIMEOUT 370)
+  set_tests_properties(accuracycoin.campaign PROPERTIES FIXTURES_SETUP accuracycoin_full_report)
+  set_tests_properties(accuracycoin.activation PROPERTIES FIXTURES_REQUIRED accuracycoin_full_report)
+endif()
+
+# Protected scoring is based on six fresh cold invocations: the three old
+# protected pages and their new-pin semantic mappings. The verdict test cannot
+# reuse evidence from a prior CTest invocation.
+add_test(NAME accuracycoin.protected_observation
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DVERIFIER=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DOLD_ROM=${ACCURACYCOIN_OLD_ROM}"
+    "-DNEW_ROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DWORK=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DPAGE_WALL_SECONDS=${ACCURACYCOIN_PROTECTED_PAGE_WALL_SECONDS}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_protected.cmake)
+set_tests_properties(accuracycoin.protected_observation PROPERTIES
+  FIXTURES_SETUP accuracycoin_protected_observations TIMEOUT ${ACCURACYCOIN_PROTECTED_SETUP_TIMEOUT})
+add_test(NAME accuracycoin.protected COMMAND accuracy.scoreboard)
+set_tests_properties(accuracycoin.protected PROPERTIES
+  FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 30)
 
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
@@ -719,6 +840,7 @@ nesturbator_core_test(core.api core/test_api.c)
 # D-11: run_frame statuses, buffer rules, the D-09 audio period, the D-02
 # boundary pixels and two independent instances.
 nesturbator_core_test(core.frame core/test_frame.c)
+set_tests_properties(core.frame PROPERTIES TIMEOUT 30)
 nesturbator_core_test(core.apu core/test_apu.c)
 nesturbator_core_test(core.synth core/test_synth.c)
 target_include_directories(core.synth PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -891,11 +1013,135 @@ add_test(NAME fuzz.state
     ${NESTURBATOR_STATE_CORPUS})
 add_test(NAME fuzz.state.regress
   COMMAND fuzz.state_loader ${NESTURBATOR_STATE_CORPUS})
-set_tests_properties(fuzz.state fuzz.state.regress PROPERTIES TIMEOUT 30)
+add_test(NAME fuzz.state.jam_oracle
+  COMMAND fuzz.state_loader --jam-oracle-regression)
+add_test(NAME fuzz.state.jam_oracle_divergence
+  COMMAND ${CMAKE_COMMAND}
+    "-DCMD=$<TARGET_FILE:fuzz.state_loader>;--jam-oracle-divergence"
+    -DEXPECT_NONZERO=ON
+    -DIGNORE_STDOUT=ON
+    "-DEXPECT_ERR=two instances loading the same state produced different post-run states"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+set_tests_properties(fuzz.state fuzz.state.regress fuzz.state.jam_oracle
+  fuzz.state.jam_oracle_divergence PROPERTIES TIMEOUT 30)
+
+# Phase 18, Plan 01: exercise a compact descriptor through generated NROM execution,
+# frame-scheduled input and a restored continuation. The corpus stores no ROM bytes.
+file(GLOB NESTURBATOR_EXECUTION_CORPUS CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus_execution/*")
+if(NOT NESTURBATOR_EXECUTION_CORPUS)
+  message(FATAL_ERROR "execution fuzz corpus is missing or empty")
+endif()
+list(LENGTH NESTURBATOR_EXECUTION_CORPUS NESTURBATOR_EXECUTION_CORPUS_COUNT)
+if(NOT NESTURBATOR_EXECUTION_CORPUS_COUNT EQUAL 8)
+  message(FATAL_ERROR "execution fuzz corpus must contain six family, loop and JAM descriptors; found ${NESTURBATOR_EXECUTION_CORPUS_COUNT}")
+endif()
+set(NESTURBATOR_EXECUTION_BUDGET_FILE "${CMAKE_CURRENT_SOURCE_DIR}/fuzz/execution-budgets.txt")
+if(NOT EXISTS "${NESTURBATOR_EXECUTION_BUDGET_FILE}")
+  message(FATAL_ERROR "execution budget file is missing")
+endif()
+set(NESTURBATOR_EXECUTION_CAPS)
+foreach(cap IN ITEMS max_prg_bytes max_chr_bytes max_input_bytes max_generated_bytes
+    max_state_bytes max_allocation_bytes max_frames_per_phase max_frame_calls max_operations)
+  file(STRINGS "${NESTURBATOR_EXECUTION_BUDGET_FILE}" cap_lines
+    REGEX "^execution[.]${cap}=[0-9]+$")
+  list(LENGTH cap_lines cap_line_count)
+  if(NOT cap_line_count EQUAL 1)
+    message(FATAL_ERROR "execution budget must define exactly one positive execution.${cap}")
+  endif()
+  string(REGEX REPLACE "^execution[.]${cap}=" "" cap_value "${cap_lines}")
+  if(NOT cap_value MATCHES "^[1-9][0-9]*$")
+    message(FATAL_ERROR "execution.${cap} must be a positive integer")
+  endif()
+  string(TOUPPER "${cap}" upper_cap)
+  list(APPEND NESTURBATOR_EXECUTION_CAPS "NT_EXEC_${upper_cap}=${cap_value}u")
+  set("NESTURBATOR_EXECUTION_${cap}" "${cap_value}")
+endforeach()
+file(STRINGS "${NESTURBATOR_EXECUTION_BUDGET_FILE}" replay_timeout_lines
+  REGEX "^execution[.]fixed_replay_timeout_seconds=[0-9]+$")
+list(LENGTH replay_timeout_lines replay_timeout_count)
+if(NOT replay_timeout_count EQUAL 1)
+  message(FATAL_ERROR "execution budget must define exactly one fixed replay timeout")
+endif()
+string(REGEX REPLACE "^execution[.]fixed_replay_timeout_seconds=" ""
+  NESTURBATOR_EXECUTION_REPLAY_TIMEOUT "${replay_timeout_lines}")
+if(NOT NESTURBATOR_EXECUTION_REPLAY_TIMEOUT MATCHES "^[1-9][0-9]*$")
+  message(FATAL_ERROR "execution fixed replay timeout must be a positive integer")
+endif()
+math(EXPR expected_execution_input
+  "16 + ${NESTURBATOR_EXECUTION_max_prg_bytes} + ${NESTURBATOR_EXECUTION_max_chr_bytes}")
+if(NOT expected_execution_input EQUAL NESTURBATOR_EXECUTION_max_input_bytes OR
+   NOT expected_execution_input EQUAL NESTURBATOR_EXECUTION_max_generated_bytes)
+  message(FATAL_ERROR "execution input/generated byte caps must match the PRG + CHR + descriptor size (${expected_execution_input})")
+endif()
+add_executable(fuzz.execution fuzz/execution.c)
+target_link_libraries(fuzz.execution PRIVATE nesturbator::nesturbator)
+target_compile_definitions(fuzz.execution PRIVATE NESTURBATOR_FUZZ_REPLAY=1 ${NESTURBATOR_EXECUTION_CAPS})
+nesturbator_warnings(fuzz.execution)
+if(MSVC)
+  target_compile_definitions(fuzz.execution PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+add_test(NAME fuzz.execution.regress
+  COMMAND fuzz.execution ${NESTURBATOR_EXECUTION_CORPUS})
+add_test(NAME fuzz.execution.seeds
+  COMMAND fuzz.execution --check-seeds ${NESTURBATOR_EXECUTION_CORPUS})
+add_executable(fuzz.execution.controls fuzz/test_execution.c)
+target_include_directories(fuzz.execution.controls PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(fuzz.execution.controls PRIVATE nesturbator::nesturbator)
+target_compile_definitions(fuzz.execution.controls PRIVATE NESTURBATOR_FUZZ_REPLAY=1)
+nesturbator_warnings(fuzz.execution.controls)
+if(MSVC)
+  target_compile_definitions(fuzz.execution.controls PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+add_test(NAME fuzz.execution.controls COMMAND fuzz.execution.controls)
+add_test(NAME fuzz.execution.oracle_failure
+  COMMAND ${CMAKE_COMMAND}
+    "-DCMD=$<TARGET_FILE:fuzz.execution>;--oracle-failure"
+    -DEXPECT_EXIT=1
+    -DIGNORE_STDOUT=ON
+    "-DEXPECT_ERR=intentional execution oracle failure"
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/expect_output.cmake")
+set(NESTURBATOR_CAMPAIGN_CONTROL_ARGS)
+option(NESTURBATOR_LIBFUZZER "Build the libFuzzer targets" OFF)
+if(NESTURBATOR_LIBFUZZER)
+  list(APPEND NESTURBATOR_CAMPAIGN_CONTROL_ARGS
+    -DFUZZ_CONTROLS_REQUIRED=ON
+    -DROM_LOADER_FUZZER=$<TARGET_FILE:fuzz.rom_loader.libfuzzer>
+    -DSTATE_LOADER_FUZZER=$<TARGET_FILE:fuzz.state.libfuzzer>
+    -DEXECUTION_FUZZER=$<TARGET_FILE:fuzz.execution.libfuzzer>
+    -DROM_LOADER_REPLAY=$<TARGET_FILE:fuzz.rom_loader>
+    -DSTATE_LOADER_REPLAY=$<TARGET_FILE:fuzz.state_loader>)
+endif()
+add_test(NAME fuzz.execution.campaign_controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    "-DOUTPUT_DIR=${PROJECT_BINARY_DIR}/execution-campaign-controls"
+    "-DBUDGET_FILE=${NESTURBATOR_EXECUTION_BUDGET_FILE}"
+    -DREPLAY_BINARY=$<TARGET_FILE:fuzz.execution>
+    ${NESTURBATOR_CAMPAIGN_CONTROL_ARGS}
+    -DMODE=self-test
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/execution_campaign.cmake")
+set_tests_properties(fuzz.execution.regress fuzz.execution.seeds
+  fuzz.execution.controls fuzz.execution.oracle_failure PROPERTIES
+  TIMEOUT ${NESTURBATOR_EXECUTION_REPLAY_TIMEOUT})
+if(NESTURBATOR_LIBFUZZER)
+  set_tests_properties(fuzz.execution.campaign_controls PROPERTIES TIMEOUT 150)
+else()
+  set_tests_properties(fuzz.execution.campaign_controls PROPERTIES TIMEOUT 15)
+endif()
+
+# Narrow replay counters are compiled only in the matched, sanitizer-instrumented
+# measurement build. The normal CI and libFuzzer targets keep their existing path.
+option(NESTURBATOR_FUZZ_METRICS "Enable replay counters for the bounded fuzz comparison" OFF)
+if(NESTURBATOR_FUZZ_METRICS)
+  target_compile_definitions(fuzz.rom_loader PRIVATE NESTURBATOR_FUZZ_METRICS=1)
+  target_compile_definitions(fuzz.state_loader PRIVATE NESTURBATOR_FUZZ_METRICS=1)
+  target_compile_definitions(fuzz.execution PRIVATE NESTURBATOR_FUZZ_METRICS=1)
+endif()
 
 # Linux nightly only: the same source/entry point and sanitized library, with
 # Clang's libFuzzer main and runtime instrumentation.
-option(NESTURBATOR_LIBFUZZER "Build the ROM loader libFuzzer target" OFF)
 if(NESTURBATOR_LIBFUZZER)
   if(NOT CMAKE_C_COMPILER_ID MATCHES "Clang")
     message(FATAL_ERROR "NESTURBATOR_LIBFUZZER requires Clang")
@@ -910,44 +1156,96 @@ if(NESTURBATOR_LIBFUZZER)
   target_compile_options(fuzz.state.libfuzzer PRIVATE -fsanitize=fuzzer-no-link)
   target_link_options(fuzz.state.libfuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
   nesturbator_warnings(fuzz.state.libfuzzer)
+  add_executable(fuzz.execution.libfuzzer fuzz/execution.c)
+  target_link_libraries(fuzz.execution.libfuzzer PRIVATE nesturbator::nesturbator)
+  target_compile_definitions(fuzz.execution.libfuzzer PRIVATE ${NESTURBATOR_EXECUTION_CAPS})
+  target_compile_options(fuzz.execution.libfuzzer PRIVATE -fsanitize=fuzzer-no-link)
+  target_link_options(fuzz.execution.libfuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+  nesturbator_warnings(fuzz.execution.libfuzzer)
 endif()
 
 add_test(NAME fuzz.registration
   COMMAND ${CMAKE_COMMAND}
     -DCTEST=${CMAKE_CTEST_COMMAND}
     -DBUILD_DIR=${PROJECT_BINARY_DIR}
+    -DEXECUTION_BINARY=$<TARGET_FILE:fuzz.execution>
+    -DEXECUTION_CORPUS_DIR=${CMAKE_CURRENT_SOURCE_DIR}/fuzz/corpus_execution
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fuzz_registration.cmake)
 
 # D-14: nesturbator_get_palette's copy rules, calibrated sRGB samples and
 # palette invariants.
 nesturbator_core_test(core.palette core/test_palette.c)
-nesturbator_core_test(accuracy.scoreboard accuracy/test_scoreboard.c)
+add_executable(accuracy.scoreboard
+  accuracy/test_scoreboard.c
+  ../runner/accuracycoin.c
+  ../runner/audio_hash.c
+  ../runner/clock.c
+  ../runner/sha256.c)
+target_include_directories(accuracy.scoreboard PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/runner)
+target_link_libraries(accuracy.scoreboard PRIVATE nesturbator::nesturbator)
 target_compile_definitions(accuracy.scoreboard PRIVATE
   NESTURBATOR_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+  NESTURBATOR_PROTECTED_EVIDENCE_DIR="${ACCURACYCOIN_PROTECTED_WORK}"
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+nesturbator_warnings(accuracy.scoreboard)
+add_test(NAME accuracy.scoreboard COMMAND accuracy.scoreboard --scoreboard-syntax)
 
-# The candidate scoreboard must fail if it drops a prior protected-main PASS.
-set(ACCURACYCOIN_REGRESSION_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-regression-baseline.txt)
-file(WRITE ${ACCURACYCOIN_REGRESSION_BASELINE}
-  "accuracycoin/Removed PASS\tpass\t0x01\t-\t-\n")
+# Exercise the production verdict, with a complete passing baseline and fresh
+# protected-page evidence, when one candidate key is removed.
+set(ACCURACYCOIN_REGRESSION_WORK ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/regression-controls)
 add_test(NAME accuracy.scoreboard.no_lost_pass
   COMMAND ${CMAKE_COMMAND}
     "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
-    "-DREGRESSION_BASELINE=${ACCURACYCOIN_REGRESSION_BASELINE}"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${ACCURACYCOIN_REGRESSION_WORK}/no-lost-pass"
+    -DMODE=no_lost_pass
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+set_tests_properties(accuracy.scoreboard.no_lost_pass PROPERTIES
+  FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 30)
 
-# Exercise the CI-only handoff failure and the confirmed empty first-merge case
-# with isolated, build-directory fixtures rather than the local snapshot.
+add_test(NAME accuracycoin.regression_controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DCHECKER=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DFULL_ENABLED=${NESTURBATOR_ACCURACYCOIN_FULL}"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${ACCURACYCOIN_REGRESSION_WORK}/matrix"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_regression_controls.cmake)
+set_tests_properties(accuracycoin.regression_controls PROPERTIES
+  FIXTURES_REQUIRED accuracycoin_protected_observations
+  TIMEOUT ${ACCURACYCOIN_PROTECTED_SETUP_TIMEOUT})
+
+add_test(NAME accuracycoin.baseline_fetch
+  COMMAND ${CMAKE_COMMAND}
+    "-DPREPARE_SCRIPT=${CMAKE_CURRENT_SOURCE_DIR}/cmake/prepare_scoreboard_baseline.cmake"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/baseline-fetch-controls"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_baseline_fetch.cmake)
+set_tests_properties(accuracycoin.baseline_fetch PROPERTIES TIMEOUT 60)
+
+# Exercise the CI-only handoff failures with specific reasons.
 add_test(NAME accuracy.scoreboard.ci_missing_baseline
-  COMMAND ${CMAKE_COMMAND} -E env --unset=NESTURBATOR_SCOREBOARD_BASELINE CI=true
-    $<TARGET_FILE:accuracy.scoreboard>)
-set_tests_properties(accuracy.scoreboard.ci_missing_baseline PROPERTIES WILL_FAIL TRUE)
-set(ACCURACYCOIN_EMPTY_BASELINE ${CMAKE_CURRENT_BINARY_DIR}/scoreboard-empty-baseline.txt)
-file(WRITE ${ACCURACYCOIN_EMPTY_BASELINE} "")
-add_test(NAME accuracy.scoreboard.ci_empty_baseline
-  COMMAND ${CMAKE_COMMAND} -E env CI=true
-    "NESTURBATOR_SCOREBOARD_BASELINE=${ACCURACYCOIN_EMPTY_BASELINE}"
-    $<TARGET_FILE:accuracy.scoreboard>)
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/ci-missing-baseline"
+    -DMODE=ci_missing_baseline
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+set_tests_properties(accuracy.scoreboard.ci_missing_baseline PROPERTIES TIMEOUT 30)
+add_test(NAME accuracy.scoreboard.ci_empty_baseline_rejected
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD_TEST=$<TARGET_FILE:accuracy.scoreboard>"
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DEVIDENCE_ROOT=${ACCURACYCOIN_PROTECTED_WORK}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/ci-empty-baseline"
+    -DMODE=ci_empty_baseline
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/verify_scoreboard_regression.cmake)
+set_tests_properties(accuracy.scoreboard.ci_empty_baseline_rejected PROPERTIES TIMEOUT 30)
 
 # D-15: the shared host conversion indexes the palette by the low 9 bits and
 # honours both pitches.

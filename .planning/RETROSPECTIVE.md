@@ -129,6 +129,44 @@
 
 ---
 
+## Milestone: v4 — Measured NTSC accuracy and robustness
+
+**Shipped:** 2026-10-24
+**Phases:** 3 | **Plans:** 21 live (Phase 16 had 56 physical plan files) | **Releases:** v0.1.11 (Phase 16); Phases 17–18 ship through PR #55
+
+### What Was Built
+- RetroArch progression/state checks with an owned frame counter and one bounded verdict that rejects dropped, doubled and wrong-load sequences; confirmed network commands; exact fixture identity; truthful MMC3 metadata.
+- A four-horizon PRODUCT-ROADMAP.md reconciled at both milestone boundaries.
+- A complete AccuracyCoin inventory at `6bee919` and a 22-page bounded campaign: 101 pass, 42 fail, 2 not-run, 1 timeout out of 146 scored rows, with fresh PASS protection on every lane.
+- An owned execution fuzz/replay target on all six board families, with lifecycle, loop and JAM controls and finite nightly sanitizer campaigns.
+
+### What Worked
+- Phases 17 and 18 ran four plans each, in order, with no loop; independent verification passed first time after review fixes.
+- Separating "observed" from "passed" let the baseline be honest: a guest timeout is valid evidence, DRAW stays out of the denominator, and missing results never become passes.
+- Generating programs from a 16-byte descriptor reached 24 core functions the loader corpora never touched, and a finite campaign found a real libretro state-load presentation bug.
+
+### What Was Inefficient
+- Phase 16 looped: 62 consecutive docs commits and 56 physical plans for 13 live ones. Each bookkeeping failure became a new plan that inherited every earlier control ([forensics](forensics/report-20261022-234424.md)). It took an explicit recovery to stop.
+- Two Phase 16 debug sessions were left open and were only acknowledged at close.
+- Phases 17 and 18 piled up as stacked draft PRs instead of merging at each phase close, so delivery lagged the milestone.
+
+### Patterns Established
+- Acceptance binds to product behaviour on the actual tested source, not to meta-evidence machinery.
+- Protected scores come from one protected-main revision plus fresh, unique raw evidence per key.
+- Fuzz and campaign budgets come from a measured hosted pilot, with separate fuzzer, replay, memory and outer-process limits; a clean campaign is reported as finite evidence.
+
+### Key Lessons
+1. When a tool or bookkeeping step fails, diagnose it and fix it inside the step; never turn it into a new prerequisite plan.
+2. Merge each phase's PR when its CI is green, before starting the next phase; stacked drafts delay release and cloud the audit.
+3. Measure first, then choose: the full baseline is what changed the next-milestone order from PAL to NTSC timing.
+
+### Cost Observations
+- Model mix: planning and execution on opus, with some sessions on Codex; not measured in detail.
+- Sessions: not tracked.
+- Notable: Phase 16 took ten of the twelve days; Phases 17 and 18 took about one day each.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -138,6 +176,7 @@
 | v1 | — | 6 | Automation-first verification; zero manual UAT for product behaviour |
 | v2 | — | 6 | Milestone audit before close-out; post-audit quick tasks; per-preset CI cost |
 | v3 | — | 5 | Measured timeouts with run IDs; claims tied to tests at configure time; per-PR perf gate |
+| v4 | — | 3 | Rolling product roadmap at both boundaries; loop recovery that binds acceptance to product behaviour |
 
 ### Cumulative Quality
 
@@ -146,9 +185,11 @@
 | v1 | 357 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 | v2 | 481 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 | v3 | 633 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
+| v4 | 669 CTest tests in `ci` | 24 core functions beyond loader corpora (execution fuzz) | all (only `libretro.h` vendored) |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Prove behaviour with one integrated check against the real host or process; every milestone found real bugs this way (v1 gap phases, v2 NMI edge, v3 EINTR in the state read).
-2. Fixes landing after phase verification make the close an override; plan for it or re-verify in one batch.
+2. Fixes landing after phase verification make the close an override; plan for it or re-verify in one batch (v3 and v4 both closed as overrides for this reason).
 3. Every limit or claim needs its measurement or test beside it (timeouts with run IDs, `.info` levels with CTests, exit statuses with the README).
+4. Keep process overhead proportional: evidence machinery that grows its own prerequisites stalls delivery (v4 Phase 16).

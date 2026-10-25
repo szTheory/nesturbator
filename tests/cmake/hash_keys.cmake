@@ -8,9 +8,10 @@
 #                          frames: boot frames 1, 30, 60, 120, 180 and two audio
 #                          hashes under <key>/boot/.
 # NESTURBATOR_ROM_HASH_EXEMPT  Top-level ROMs that need no hash rows (D-14).
-#                          accuracycoin.nes is exempt: its NROM board is hashed
-#                          through three games, and its scoreboard runs on every
-#                          CI leg. Fuzz corpus seeds live outside tests/roms and
+#                          the retained AccuracyCoin canonical and comparison
+#                          ROMs are exempt: their NROM board is hashed through
+#                          three games, and conformance checks run on every CI
+#                          leg. Fuzz corpus seeds live outside tests/roms and
 #                          run under fuzz.regress.
 #
 # Also hashed: the three DABG two-port movies (15 frame keys), nes-runner play
@@ -33,7 +34,8 @@ set(NESTURBATOR_HASH_GAMES
 # "<key> <integer>" rows.
 set(NESTURBATOR_STATE_HM_BOARDS m1sxrom m2 m3 m4tkrom m7)
 set(NESTURBATOR_ROM_HASH_EXEMPT
-  "accuracycoin.nes")
+  "accuracycoin.nes"
+  "accuracycoin-673ef.nes")
 
 # Sets <out> to the sorted key list. A key is the text before " ticks " in a
 # frame row, the whole "... sha256" text of an audio row, or the text before

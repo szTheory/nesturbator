@@ -5,6 +5,10 @@ created: 2026-10-15
 updated: 2026-10-15
 goal: find_root_cause_only
 diagnostic_outcome: inconclusive
+audit_acknowledged:
+  milestone: v4
+  at: 2026-10-24
+  status: investigating
 ---
 
 ## Current Focus
@@ -18,6 +22,7 @@ candidate_causes:
   - code: interruption before operation timing initialization could disable journal writes
   - environment: /bin/sh wait or command-substitution signal behavior could report 130 before final parent cleanup
   - data: selected glob path could identify a different attempt than the eventual retained journal
+
 and_gate: unproven; multiple contributing conditions remain possible, with no demonstrated combination
 
 ## Symptoms

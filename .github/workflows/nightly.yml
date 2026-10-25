@@ -15,6 +15,13 @@ on:
   schedule:
     - cron: "17 4 * * *"
   workflow_dispatch:
+    inputs:
+      execution_mode:
+        description: Linux execution fuzz mode (bounded pilot or measured campaign)
+        required: true
+        type: choice
+        options: [pilot, campaign]
+        default: campaign
   push:
     branches: [main]
   # A pull request that changes the nightly's own inputs runs it too, since a
@@ -296,13 +303,79 @@ jobs:
             "$OUTCOME" "$HEAD_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" \
             >> "$GITHUB_STEP_SUMMARY"
 
+  execution-fuzz:
+    runs-on: ubuntu-24.04
+    # Pilot completed in 33 s (run 40129666207); the 180 s process cap plus
+    # 120 s for self-test, artifact upload and cleanup fits the 5-minute
+    # network-bound job floor, ENGINEERING section 5.
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      outcome: ${{ steps.campaign.outcome }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify Linux Clang and execution recipes
+        run: |
+          clang --version
+          test -s tests/fuzz/execution-budgets.txt
+          test -n "$(find tests/fuzz/corpus_execution -type f -print -quit)"
+      - name: Run bounded execution campaign
+        id: campaign
+        env:
+          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'pilot' && 'pilot' || 'campaign' }}
+        run: |
+          if [ "$MODE" = pilot ]; then
+            DRIVER=tests/cmake/execution_measure.cmake
+          else
+            DRIVER=tests/cmake/execution_campaign.cmake
+          fi
+          timeout 180s cmake \
+            -DSOURCE_DIR="$GITHUB_WORKSPACE" \
+            -DBUILD_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-build" \
+            -DOUTPUT_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID" \
+            -DBUDGET_FILE=tests/fuzz/execution-budgets.txt \
+            -DMODE="$MODE" -P "$DRIVER"
+      - name: Verify deliberate artifact controls
+        if: always()
+        run: |
+          cmake \
+            -DSOURCE_DIR="$GITHUB_WORKSPACE" \
+            -DBUILD_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-build" \
+            -DOUTPUT_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test" \
+            -DBUDGET_FILE=tests/fuzz/execution-budgets.txt \
+            -DMODE=self-test -P tests/cmake/execution_campaign.cmake
+          test -s "build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test/reproducers/rom-loader/crash-synthetic-control"
+          test -s "build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test/reproducers/rom-loader/timeout-synthetic-control"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: execution-fuzz-evidence-${{ github.run_id }}
+          path: build/execution-fuzz-evidence/${{ github.run_id }}/
+          if-no-files-found: error
+      - name: Record execution fuzz outcome
+        if: always()
+        env:
+          OUTCOME: ${{ steps.campaign.outcome }}
+          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.execution_mode || 'campaign' }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          printf 'Execution fuzz mode: **%s**\n\nOutcome: **%s**\n\nHead SHA: `%s`\n\nRun: %s/%s/actions/runs/%s\n\nArtifact: `execution-fuzz-evidence-%s`\n' \
+            "$MODE" "$OUTCOME" "$HEAD_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" \
+            "$GITHUB_RUN_ID" "$GITHUB_RUN_ID" >> "$GITHUB_STEP_SUMMARY"
+
   # Hunts flakes that parallel CTest could expose: the ci preset's suite three
   # times in random order, failing on any failure. Linux only; the PR's
   # six-platform CI run covers the other hosts once.
   suite-flake:
     runs-on: ubuntu-24.04
-    # Twice the slowest of 39 sampled successful runs: 1173 s in run 38324782531, rounded up to 40 minutes, ENGINEERING section 5.
-    timeout-minutes: 40
+    # The 40-minute cap was based on 39 successful samples (1173 s maximum).
+    # Exact-head run 40136996662 reached the third session-controls repeat at
+    # the cap; its first two repeats took 450.35 s and 451.35 s. Allow 50 min
+    # for that observed tail plus the remaining suite and cleanup.
+    timeout-minutes: 50
     permissions:
       contents: read
     outputs:
@@ -328,7 +401,7 @@ jobs:
   # opened or updated on failure and closed on success. No checkout, so gh is
   # given the repository.
   report:
-    needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, state-fuzz, suite-flake]
+    needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, state-fuzz, execution-fuzz, suite-flake]
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-24.04
     # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 3 sampled successful runs (5 s in run 38329002573) is 1 minutes.
@@ -339,11 +412,12 @@ jobs:
       - name: Rolling issue
         env:
           GH_TOKEN: ${{ github.token }}
-          RESULT: ${{ needs.vectors-full.result == 'success' && needs.mmc3-oracle.result == 'success' && needs.rom-loader-fuzz.result == 'success' && needs.state-fuzz.result == 'success' && needs.suite-flake.result == 'success' && 'success' || 'failure' }}
+          RESULT: ${{ needs.vectors-full.result == 'success' && needs.mmc3-oracle.result == 'success' && needs.rom-loader-fuzz.result == 'success' && needs.state-fuzz.result == 'success' && needs.execution-fuzz.result == 'success' && needs.suite-flake.result == 'success' && 'success' || 'failure' }}
           FAILED: ${{ needs.vectors-full.outputs.failed }}
           MMC3: ${{ needs.mmc3-oracle.outputs.failed }}
           FUZZ: ${{ needs.rom-loader-fuzz.outputs.outcome }}
           STATE_FUZZ: ${{ needs.state-fuzz.outputs.outcome }}
+          EXECUTION_FUZZ: ${{ needs.execution-fuzz.outputs.outcome }}
           FLAKE: ${{ needs.suite-flake.outputs.outcome }}
           HEAD_SHA: ${{ github.sha }}
           EVENT: ${{ github.event_name }}
@@ -360,8 +434,8 @@ jobs:
             fi
             exit 0
           fi
-          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nOverall result: %s\n\nFailed vector keys: %s\n\nFailed MMC3 oracle keys: %s\n\nROM loader fuzz outcome: %s\n\nState loader fuzz outcome: %s\n\nSuite flake hunt outcome: %s\n' \
-            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-none recorded; see the run}" "${MMC3:-none recorded; see the run}" "${FUZZ:-not recorded; see the run}" "${STATE_FUZZ:-not recorded; see the run}" "${FLAKE:-not recorded; see the run}")
+          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nOverall result: %s\n\nFailed vector keys: %s\n\nFailed MMC3 oracle keys: %s\n\nROM loader fuzz outcome: %s\n\nState loader fuzz outcome: %s\n\nExecution fuzz outcome: %s\n\nSuite flake hunt outcome: %s\n' \
+            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-none recorded; see the run}" "${MMC3:-none recorded; see the run}" "${FUZZ:-not recorded; see the run}" "${STATE_FUZZ:-not recorded; see the run}" "${EXECUTION_FUZZ:-not recorded; see the run}" "${FLAKE:-not recorded; see the run}")
           if [ -n "$issue" ]; then
             gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" --body "$body"
           else

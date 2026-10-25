@@ -3,9 +3,14 @@ status: verifying
 trigger: Phase 16 Plan 21 cleanup request materialization regression
 created: 2026-10-16
 updated: 2026-10-16
+audit_acknowledged:
+  milestone: v4
+  at: 2026-10-24
+  status: verifying
 ---
 
 ## Current Focus
+
 bug_class: Bohrbug
 hypothesis: An unguarded request redirection in cleanup_quit aborts EXIT cleanup under errexit before owned-host reap and lock release.
 test: Run round-1 RED against the exact reviewed production helper with the corrected readiness fixture.
@@ -24,6 +29,7 @@ reasoning_checkpoint:
   and_gate: yes; request write must fail while an owned live host exists, and the unguarded cleanup path must encounter errexit.
 
 ## Symptoms
+
 expected: Failed cleanup request writes preserve the original failure and complete bounded owned teardown.
 actual: Review CR-01 identifies an unguarded cleanup printf redirection under set -e.
 errors: Cleanup request path replaced with a directory after genuine readiness.
@@ -33,6 +39,7 @@ started: Reviewed production helper at 772dbb0.
 ## Eliminated
 
 ## Evidence
+
 - checked: Independently checked round5 continuation at 0a44a5b.
   found: One additional coherent pair authorized with the prior rounds retained and all formal gates still shared/unused.
 - checked: Round5 causal RED after actual process wait.
@@ -59,6 +66,7 @@ started: Reviewed production helper at 772dbb0.
   found: Added actual INT/TERM/HUP traps before publishing fixture PID so the empty signal log is observable evidence.
 
 ## Resolution
+
 root_cause: Unguarded cleanup printf redirection triggered errexit before owned host reap and endpoint release when request.txt became a directory.
 fix: Locally guard request write after setting QUIT_SENT; emit and journal CLEANUP_REQUEST_WRITE_FAILED with sends0; restore LAST_REASON from preserved FIRST_FAILURE, then finish owned teardown.
 verification: Round5 exact reviewed-helper RED wait1/3166ms and repaired eight-case GREEN wait0/105367ms; actual final stream hashes after wait; extracted exact committed-source saved proof PASS; seven reacquisitions PASS. Formal FULL/review remain pending.

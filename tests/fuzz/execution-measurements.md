@@ -1,0 +1,262 @@
+# Execution fuzz measurement record
+
+The first section records Plan 18-01's NROM-only baseline. The Plan 18-02 section below records the matched six-family update. Both are finite replay measurements from 2026-10-24, before final campaign budgets; neither includes libFuzzer mutation or retries. The three executables use Apple Clang 21 on arm64, Release configuration with `-O1`, ASan/UBSan, and LLVM source coverage (`-fprofile-instr-generate -fcoverage-mapping`). One instrumented CMake build supplies all three executables and the same core objects. The replay-only counters are enabled by `NESTURBATOR_FUZZ_METRICS=ON`; ordinary CI and libFuzzer builds do not enable them.
+
+## Reproduction and identity
+
+From the repository root, the measured driver command was:
+
+```sh
+cmake -DSOURCE_DIR=. -DOUTPUT_DIR=build/execution-measure -DMODE=replay \
+  -P tests/cmake/execution_measure.cmake
+```
+
+The driver configures with `-DCMAKE_BUILD_TYPE=Release`, `-DCMAKE_COMPILE_WARNING_AS_ERROR=ON`, `-DCMAKE_C_FLAGS='-O1 -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer -fprofile-instr-generate -fcoverage-mapping'`, `-DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined -fprofile-instr-generate'`, `-DNESTURBATOR_FUZZ_METRICS=ON`, and `-DNESTURBATOR_LIBFUZZER=OFF`; it builds `fuzz.rom_loader`, `fuzz.state_loader`, and `fuzz.execution` in that same build tree. Coverage tools are resolved with `xcrun --find llvm-profdata` and `xcrun --find llvm-cov`. The driver replays each complete corpus once, writes raw profiles and exported JSON, and compares functions whose source paths are under `src/`, excluding harness and loader files.
+
+The three replay invocations were `cmake -E env LLVM_PROFILE_FILE=build/execution-measure/profiles/rom-loader.profraw /usr/bin/time -p build/execution-measure/build/tests/fuzz.rom_loader tests/fuzz/corpus/*`, `cmake -E env LLVM_PROFILE_FILE=build/execution-measure/profiles/state-loader.profraw /usr/bin/time -p build/execution-measure/build/tests/fuzz.state_loader tests/fuzz/corpus_state/*`, and `cmake -E env LLVM_PROFILE_FILE=build/execution-measure/profiles/execution.profraw /usr/bin/time -p build/execution-measure/build/tests/fuzz.execution --measure 1 tests/fuzz/corpus_execution/nrom-deep`. The driver expands corpus paths itself and records the resolved commands in its ignored `build/execution-measure/logs/commands.txt` artifact.
+
+For each target, the driver runs `xcrun llvm-profdata merge -sparse build/execution-measure/profiles/<target>.profraw -o build/execution-measure/coverage/<target>.profdata` and `xcrun llvm-cov export -format=text -instr-profile=build/execution-measure/coverage/<target>.profdata build/execution-measure/build/tests/<target-binary> > build/execution-measure/coverage/<target>.json`. The individual export files and their hashes are listed below.
+
+The source revision was `1d5c9db76cb037fe7464949ad5f4fcf71fad64b2`, with `source_dirty=1` while the Plan 18-01 measurement edits were uncommitted. The measurement overlay SHA-256 is `defd3b08be5c0699df75f1c453ec9cb49a125d94417809c95f252646a2393309`; its six file hashes are recorded in `build/execution-measure/measurement-inputs.tsv`. The corpus inventory is in `build/execution-measure/corpora.tsv` (SHA-256 `7535da7db6634be92217a472c6c13e65586f9da35ce0f81aa868a788f84355be`). Per-target corpus identities:
+
+| Target | Files | Corpus manifest SHA-256 |
+| --- | ---: | --- |
+| `fuzz.rom_loader` | 60 | `781e99135484cc24af5d01555b399377a13a6734c818d3b6cb34487dd7825668` |
+| `fuzz.state_loader` | 17 | `971757ba4a4d3f34e6a5d9af95d387a71d8b0570de20f5ef79eba6a582391dcc` |
+| `fuzz.execution` | 1 | `05b4765ecac08c3643fe99551848ba4a1f2fa45f835aa7ab110eb26ebf88fd75` |
+
+The target corpus hashes cover sorted relative file paths and each file's SHA-256. The execution corpus hash identifies the 16-byte `nrom-deep` descriptor.
+
+## Measured replay
+
+| Target | Inputs accepted / total | Frame calls (OK / JAM) | Public API operations | Guest ticks | Generated image / max state / custom tracked allocation peak | Elapsed; inputs/s; accepted/s | Peak RSS | Core functions hit / linked |
+| --- | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: |
+| ROM loader | 11 / 60 | 0 (0 / 0) | 240 | 0 | n/a | 0.06 s; 1,000.00; 183.33 | 32,620,544 B | 39 / 180 |
+| State loader | 12 / 17 | 48 (24 / 24) | 446 | 25,733,664 | n/a | 0.14 s; 121.43; 85.71 | 48,398,336 B | 158 / 202 |
+| Execution | 1 / 1 | 3 (3 / 0) | 30 | 2,144,280 | 24,592 B / 4,895 B / 224,670 B | 0.06 s; 16.67; 16.67 | 18,006,016 B | 108 / 202 |
+
+The ROM-loader target makes four public calls per input and never runs a frame. The state-loader corpus ran 48 frames across its 12 accepted state inputs; 24 returned `NESTURBATOR_OK` and 24 returned `NESTURBATOR_STOP_JAM`. The generated NROM recipe was accepted and completed all three calls with `NESTURBATOR_OK` (status value 0), with no JAM stops. Its process-level guest work was 2,144,280 ticks. The state-loader's 25,733,664 ticks came from a different corpus and twice as many non-JAM frames; these totals describe workload, not relative speed.
+
+Elapsed time is the wall time from `/usr/bin/time -p` for a single instrumented replay process, so startup and coverage overhead are included. Throughput is that elapsed time divided into the exact corpus count and accepted count; these short single-pass rates are exploratory, not campaign performance budgets. Peak RSS is `getrusage(RUSAGE_SELF).ru_maxrss`, reported in bytes on macOS and normalized to bytes on Linux. The execution-only generated-image/state/allocator values come from the harness; the other targets do not expose those custom counters (`n/a` in the table, zero in the TSV).
+
+The initial `/usr/bin/time -l` attempt failed because its `sysctl kern.clockrate` query is denied in this environment. The driver uses POSIX `time -p` for elapsed time and test-side `getrusage` for peak RSS instead; neither changes the emulator library or public API.
+
+## Added core reach
+
+LLVM coverage counted functions compiled into each executable and compared function identities by `src/` file and name. The execution replay reached 20 source functions not reached by either existing corpus. They are the new PPU/APU paths plus the generated program's RAM marker and audio synthesis work:
+
+```text
+src/apu.c::apu_write_register
+src/apu.c::nesturbator__apu_write
+src/apu.c::pulse_volume
+src/instance.c::nesturbator_peek_cpu_ram
+src/ppu.c::address_dot
+src/ppu.c::at_address
+src/ppu.c::background_access
+src/ppu.c::bg_pattern_address
+src/ppu.c::copy_horizontal
+src/ppu.c::copy_vertical
+src/ppu.c::inc_coarse_x
+src/ppu.c::inc_y
+src/ppu.c::nt_address
+src/ppu.c::read_dot
+src/ppu.c::reload_shifters
+src/ppu.c::shift_background
+src/ppu.c::sprite_access
+src/ppu.c::sprite_pattern_address
+src/synth.c::interpolate_coefficient
+src/synth.c::nesturbator__synth_transition
+```
+
+The complete list is also saved as `build/execution-measure/execution-added-core-functions.txt`. Coverage exports are retained at `build/execution-measure/coverage/`:
+
+| Export | SHA-256 |
+| --- | --- |
+| `rom-loader.json` | `29033ff48d9abf4a3732cce9c4699c5ea1ec8cb87ddd36f518fbb8adb1435b5f` |
+| `state-loader.json` | `af63e8ed69f69558092baabbcbbc6561baa3ca1be5c6c2ef64d28688a112a3ce` |
+| `execution.json` | `8b81527be6e5a7868d186ff21f29b6e7d41c89e5c16d858050ed5e40c7eab4fc` |
+
+This established useful added NROM reach for the prototype. It did not measure the six required execution families or choose final mutation budgets. The next section adds the required family evidence; final phase requirements remain pending final verification.
+
+## Plan 18-02 six-family matched replay
+
+Measured 2026-10-24 using the reproduction command above, with one replay pass over each of the three exact corpora. The comparison reuses the same Release Clang 21 arm64 ASan/UBSan/LLVM coverage build for ROM loading, state loading, and execution. It additionally replays each execution seed in its own instrumented process and records per-family core function reach. The updated driver rejects any execution corpus other than the six required seeds. Each deep replay now includes a different-board interleaved frame between the saved origin and continuation, so it completes four frames and records 55 public API operations.
+
+### Family results
+
+Each descriptor is 16 bytes and generates its accepted iNES/NES 2.0 image in memory. All six loaded through the public loader, completed four `NESTURBATOR_OK` frame calls, recorded 55 public API operations including load, input, save/restore, a different-board interleave and unload, and stopped with status 0. No qualified family stopped with JAM. Bank-effect bits are PRG `1`, CHR `2`, and AxROM single-screen page `4`.
+
+| Seed | Representative profile | Accepted | Frames (OK/JAM) | API operations | Generated image | Guest ticks | Effects | Core functions hit / linked | Elapsed | Inputs/s | Peak RSS |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: | ---: | ---: |
+| `nrom-deep` | mapper 0, iNES 1, 16 KiB PRG, 8 KiB CHR ROM | 1/1 | 4 (4/0) | 55 | 24,592 B | 2,859,144 | none | 118 / 202 | 0.06 s | 16.67 | 18,579,456 B |
+| `mmc1-deep` | mapper 1 submapper 0, 32 KiB PRG, 32 KiB CHR ROM, 8 KiB battery RAM | 1/1 | 4 (4/0) | 55 | 65,552 B | 2,859,000 | PRG + CHR | 118 / 202 | 0.06 s | 16.67 | 18,448,384 B |
+| `uxrom-deep` | mapper 2 submapper 1, 64 KiB PRG, 8 KiB CHR RAM | 1/1 | 4 (4/0) | 55 | 65,552 B | 2,859,072 | PRG | 119 / 202 | 0.06 s | 16.67 | 18,563,072 B |
+| `cnrom-deep` | mapper 3 submapper 1, 32 KiB PRG, 32 KiB CHR ROM | 1/1 | 4 (4/0) | 55 | 65,552 B | 2,859,144 | CHR | 119 / 202 | 0.06 s | 16.67 | 18,415,616 B |
+| `mmc3-deep` | mapper 4 submapper 0, 64 KiB PRG, 32 KiB CHR ROM, 8 KiB battery RAM | 1/1 | 4 (4/0) | 55 | 98,320 B | 2,859,120 | PRG + CHR | 123 / 202 | 0.06 s | 16.67 | 18,743,296 B |
+| `axrom-deep` | mapper 7 submapper 1, 64 KiB PRG, 8 KiB CHR RAM | 1/1 | 4 (4/0) | 55 | 65,552 B | 2,859,048 | PRG + single-screen | 119 / 202 | 0.06 s | 16.67 | 18,612,224 B |
+
+The MMC1 guest places serial writes on separate CPU cycles; the discrete bank tests use no-conflict submapper 1; MMC3 selects its fixed-and-switchable PRG windows and CHR register while reading through the PPU; AxROM reads back separate nametable pages after switching bank and single-screen page. The examples are representative accepted profiles, not coverage claims for every admitted submapper, RAM size, or maximum image size.
+
+### Matched target totals
+
+| Target | Accepted / inputs | Frames (OK / JAM) | API operations | Guest ticks | Generated bytes / max state / custom allocation peak | Elapsed; inputs/s; accepted/s | Peak RSS | Core functions hit / linked |
+| --- | ---: | ---: | ---: | --- | --- | --- | ---: | ---: |
+| ROM loader | 11 / 60 | 0 (0 / 0) | 240 | 0 | n/a | 0.10 s; 600.00; 110.00 | 32,653,312 B | 39 / 180 |
+| State loader | 12 / 17 | 48 (24 / 24) | 446 | 25,733,664 | n/a | 0.14 s; 121.43; 85.71 | 48,431,104 B | 158 / 202 |
+| Execution | 6 / 6 | 24 (24 / 0) | 330 | 17,154,528 | 385,120 B / 13,111 B / 626,054 B | 0.11 s; 54.55; 54.55 | 21,905,408 B | 143 / 202 |
+
+Execution reached 24 `src/` functions not hit by either existing corpus, compared by source file and function name. The difference from the NROM-only baseline is the CNROM write path, MMC3 PPU A12 and counter paths, and the shared PPU write path in addition to the prior APU, rendering, RAM observation and synthesis paths:
+
+```text
+src/apu.c::apu_write_register
+src/apu.c::nesturbator__apu_write
+src/apu.c::pulse_volume
+src/instance.c::nesturbator_peek_cpu_ram
+src/mapper_cnrom.c::cnrom_cpu_write
+src/mapper_mmc3.c::clock_counter
+src/mapper_mmc3.c::mmc3_ppu_a12
+src/ppu.c::address_dot
+src/ppu.c::at_address
+src/ppu.c::background_access
+src/ppu.c::bg_pattern_address
+src/ppu.c::copy_horizontal
+src/ppu.c::copy_vertical
+src/ppu.c::inc_coarse_x
+src/ppu.c::inc_y
+src/ppu.c::nesturbator__ppu_write
+src/ppu.c::nt_address
+src/ppu.c::read_dot
+src/ppu.c::reload_shifters
+src/ppu.c::shift_background
+src/ppu.c::sprite_access
+src/ppu.c::sprite_pattern_address
+src/synth.c::interpolate_coefficient
+src/synth.c::nesturbator__synth_transition
+```
+
+The finite comparison shows useful added runtime reach across all six families beyond both loader/state corpora; it does not assert hardware accuracy or quantify raw mutation throughput. The fuzz input accepts arbitrary PRG/CHR payload bytes after the fixed descriptor, but this measurement intentionally contains only the six protected deep descriptors. Throughput is a one-pass exploratory rate that includes process startup and sanitizer/coverage overhead.
+
+### Measurement identity and artifacts
+
+The instrumented source revision was `1d7a010bdf3afdd56f874422f5ba72382a72b02e`, with `source_dirty=1` because Task 3 lifecycle controls and interleaving were measured before their task commit. The final measurement overlay SHA-256 was `4a99c0f01b472192b23ccfa4bcb8bf788d6e6e59f6ea4cab0922dfbb5433a0cf`; the sorted corpus manifest SHA-256 was `1a76c9de3aae9d5f999deeab93db8d8506d65cd9cb9cb7647f524f8496e15dc2`. The six-file execution corpus manifest hash was `bef47c764bef3be36726ffb95f0c4b8f5b3c06a6c0f269e23b6ca2aa7cdc0f88`.
+
+Full command logs, resource counters, corpus inventory and coverage exports are retained under ignored `build/execution-measure/`. `execution-families.tsv` contains the raw per-family result rows, and `execution-added-core-functions.txt` contains the function difference. Export hashes:
+
+| Export | SHA-256 |
+| --- | --- |
+| `execution.json` | `b85ace0dab512fc2e6feb739a53c9a7cf4a1bdebd9de16b8c258e673b1bfc0e9` |
+| `execution-nrom.json` | `446476f7ad32111ba55fa9b777267f12167be92fc819b6d60219f8675f7e81d3` |
+| `execution-mmc1.json` | `7344897280ae97884dad2ebbcdc59ccc71f1c75bcaffdbabb8b54ae729df2a1e` |
+| `execution-uxrom.json` | `c41ace4ef4fe4162be917696fdfd7d7583447197557ad7e04f3441c7b7e9e888` |
+| `execution-cnrom.json` | `6d528eef00e4c20284268e2dbbb20a14ba7014a243f0ad165ce18f230da17f55` |
+| `execution-mmc3.json` | `1168baad3bb5f09a7d6779289b61566c55c055bc445763ebfc243bd452f5ea11` |
+| `execution-axrom.json` | `2764bcc1c578c0f6278090f180061f379ac90551df6d62481805e3a8f7022598` |
+
+The per-family report row for each seed confirms one accepted image, four non-JAM frames, 55 operations, positive core-function reach, and the expected register/bank effect. The 24 new functions remain reached across all six deep profiles. This measurement is useful reach evidence only: it does not mark ROB-01 or ROB-02 complete before final phase verification.
+
+## Plan 18-04 eight-descriptor replay refresh
+
+Measured 2026-10-24 after adding the required loop and JAM descriptors. Reproduction uses the same command above with `OUTPUT_DIR=build/execution-measure-plan18-04`. This is still a local Apple Clang replay, not a Linux mutation measurement. It keeps the three matched Clang 21 arm64 Release ASan/UBSan/coverage executables and records one execution-corpus pass plus one isolated replay for each of the eight descriptors.
+
+The exact source revision was `2a7fde878fddf2468bb701c1f177e50824d1a440`, with `source_dirty=1` while Plan 18-04 changes were being measured. The refreshed overlay SHA-256 is `3490bbba0bfcf662a694ac3ff8c28fdfa13a38a1bd2c9a8496d49e006789f79c`; the corpus manifest SHA-256 is `bfd38db79d76d89206ceb67452e04260a960ed9eb75ac0da734fed6e7801edb2`. Execution uses eight 16-byte source descriptors; the per-target manifest hash is `22a9b31b9d36ca442bb6127fe2706f484fb2de7a22e1ca43e2681d7c020d39ea`. The source corpus paths and individual descriptor hashes are in `build/execution-measure-plan18-04/corpora.tsv`.
+
+| Target | Accepted / inputs | Frames (OK / JAM) | API operations | Guest ticks | Generated bytes / max state / custom allocation peak | Elapsed; inputs/s; accepted/s | Peak RSS | Core functions hit / linked |
+| --- | ---: | ---: | ---: | ---: | --- | --- | ---: | ---: |
+| ROM loader | 11 / 60 | 0 (0 / 0) | 240 | 0 | n/a | 0.13 s; 461.54; 84.62 | 32,587,776 B | 39 / 180 |
+| State loader | 12 / 17 | 48 (24 / 24) | 446 | 25,733,664 | n/a | 0.15 s; 113.33; 80.00 | 48,349,184 B | 158 / 202 |
+| Execution | 8 / 8 | 32 (29 / 3) | 413 | 20,728,248 | 434,304 B / 13,111 B / 626,054 B | 0.12 s; 66.67; 66.67 | 23,150,592 B | 144 / 202 |
+
+| Descriptor | Mapper / submapper | Accepted | Frames (OK / JAM) | API operations | Generated image | Guest ticks | Tracked allocation peak | Elapsed | Peak RSS |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `nrom-deep` | 0 / 0 | 1/1 | 4 (4/0) | 55 | 24,592 B | 2,859,144 | 372,054 B | 0.06 s | 18,497,536 B |
+| `mmc1-deep` | 1 / 0 | 1/1 | 4 (4/0) | 55 | 65,552 B | 2,859,000 | 437,618 B | 0.06 s | 18,579,456 B |
+| `uxrom-deep` | 2 / 1 | 1/1 | 4 (4/0) | 55 | 65,552 B | 2,859,072 | 527,704 B | 0.06 s | 18,710,528 B |
+| `cnrom-deep` | 3 / 1 | 1/1 | 4 (4/0) | 55 | 65,552 B | 2,859,144 | 494,936 B | 0.12 s | 18,677,760 B |
+| `mmc3-deep` | 4 / 0 | 1/1 | 4 (4/0) | 55 | 98,320 B | 2,859,120 | 626,054 B | 0.07 s | 18,808,832 B |
+| `axrom-deep` | 7 / 1 | 1/1 | 4 (4/0) | 55 | 65,552 B | 2,859,048 | 527,704 B | 0.12 s | 18,612,224 B |
+| `loop` | 0 / 0 | 1/1 | 4 (4/0) | 55 | 24,592 B | 2,858,976 | 372,054 B | 0.07 s | 18,628,608 B |
+| `jam` | 0 / 0 | 1/1 | 4 (1/3) | 28 | 24,592 B | 714,744 | 372,054 B | 0.06 s | 18,563,072 B |
+
+The eight-seed corpus replay reached the same 24 additional `src/` functions listed in the Plan 18-02 section, now with `144/202` total execution core functions hit. Loop completed its ordinary four-frame continuation; JAM reported three stop results and one completed frame. These are finite generated recipes, not evidence about every loop, JAM program or board configuration.
+
+The replay provides the pilot enclosure basis in `execution-budgets.txt`: the full execution corpus took 0.12 s, the slowest individual seeds took 0.12 s, and the observed whole-process peak RSS was 23,150,592 B. The measured hosted Linux pilot and selected campaign caps are recorded below. The RSS threshold is sampled by libFuzzer and is not a hard allocation quota.
+
+The raw eight-row family table is `build/execution-measure-plan18-04/execution-families.tsv`; `measurement.tsv` records tool versions, instrumentation and aggregate metrics. Coverage export SHA-256 values are:
+
+| Export | SHA-256 |
+| --- | --- |
+| `execution.json` | `f8d585cbcf73f93085c5340eb090a7378de5b16af104324b2b208213a42335a8` |
+| `execution-nrom.json` | `82c4f2c481dc5514539e4fab14e747e7567f68e1e6b6b5d4ef26f44546775c78` |
+| `execution-mmc1.json` | `e7af492935161044215d3554b2ea14fa3c447c3ce97d62b58c18963029256261` |
+| `execution-uxrom.json` | `e4ed5227ca1f73b3020a8627fbe27ba40d1c224de3b9003a86eda5e79592bbb1` |
+| `execution-cnrom.json` | `f199ccf9a734c25bf00322c552d8019852f7a173af4182a685fac8494b9e4297` |
+| `execution-mmc3.json` | `be3f252cff0685ddd1c473d68bd5dda0f8ad91eb49ed36fecde127331a51f347` |
+| `execution-axrom.json` | `6a7d346cccda0d0d53659344d55d6f55bfca8ee2aedd842371adba9c09ba4903` |
+| `execution-loop.json` | `fa2a34c9c6a1faabbc54b121de6018528935e1f296df408399d2aa579d1ba9ee` |
+| `execution-jam.json` | `6e251f46c20f97c25ef74aaf22b6b2a3ff383d17f92645c6b30761599bb95994` |
+
+## Review-fix replay and WR-05 tick correction
+
+The Plan 18-04 state-loader row above historically reported `guest_ticks=25,733,664`. WR-05
+confirmed that this counter summed cumulative `frame.ticks` values, including restored absolute
+origins, so that number overstated emulator work. It remains in the historical observation above
+but is superseded as a work metric; do not compare it as valid guest work. The corrected counter
+starts from the serialized state's little-endian tick origin at offset 40 and sums only each
+successful frame's `frame.ticks - previous_ticks`. A JAM stop contributes no frame-output ticks.
+
+The corrected-source matched replay was refreshed at commit
+`78bb8d84bd6b579b21c8283684cfa8593055c724` using the same Apple Clang 21, arm64 Release `-O1`,
+ASan/UBSan and LLVM coverage configuration. The reproduction command was:
+
+```sh
+cmake -DSOURCE_DIR=. -DOUTPUT_DIR=build/execution-measure-review-fix-78bb -DMODE=replay \
+  -P tests/cmake/execution_measure.cmake
+```
+
+The measurement output recorded `source_dirty=1` because the pre-existing `.planning/config.json`
+edit and this section's earlier uncommitted WR-05 record were present; neither file is in the
+eight-file measurement overlay. The config was not staged. The exact overlay SHA-256 is
+`3df856b8ca4c89dc5a81047026f3557493464bda1eef867a1d6e2dfd7549f05a`. The corpus manifest remains
+`bfd38db79d76d89206ceb67452e04260a960ed9eb75ac0da734fed6e7801edb2` (60 ROM, 17 state and 8
+execution descriptors); the execution target manifest is
+`22a9b31b9d36ca442bb6127fe2706f484fb2de7a22e1ca43e2681d7c020d39ea`.
+
+| Target | Accepted / inputs | Frames (OK / JAM) | API operations | Corrected guest ticks | Elapsed | Peak RSS | Core functions hit / linked |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ROM loader | 11 / 60 | 0 (0 / 0) | 240 | 0 | 0.15 s | 32,636,928 B | 39 / 180 |
+| State loader | 12 / 17 | 36 (24 / 12) | 470 | 17,155,728 | 0.15 s | 48,889,856 B | 158 / 202 |
+| Execution | 8 / 8 | 32 (29 / 3) | 413 | 20,728,248 | 0.14 s | 23,232,512 B | 144 / 202 |
+
+The corrected state-loader work is 17,155,728 ticks across its 24 successful frame calls. Twelve
+latched-stop calls contribute no guest work. Execution remains at 20,728,248 ticks, and the
+replay still reaches 24 additional `src/` functions against the two loader/state corpora. Raw
+family metrics, the exact measurement overlay, logs and coverage JSON are retained under ignored
+`build/execution-measure-review-fix-78bb/`; the exported JSON hashes are:
+
+| Export | SHA-256 |
+| --- | --- |
+| `rom-loader.json` | `551f90d628cf99f997605ba4210399ae92af9851a965950796b7b60fdb0d1304` |
+| `state-loader.json` | `09c62b88a156baf036b430cabc214c831ec450f4a0794f4e45a079feacef13da` |
+| `execution.json` | `1ece7a8e2846012f0eab2885f1b24abbbc43cbf872bd2a2cb7a8cbe738b5d011` |
+
+## Plan 18-04 hosted Linux pilot and finite campaign
+
+The Linux pilot ran on [workflow run 40129666207](https://github.com/szTheory/nesturbator/actions/runs/40129666207), source commit `694455ec7f6785b0ddd3e5126552483989fdc0e6`. It used Ubuntu 24.04 x86_64, Clang 18.1.3, Release `-O1`, ASan, UBSan and libFuzzer, with the same initial enclosure on each target: `-runs=10000 -max_total_time=5 -timeout=2 -max_len=163856 -rss_limit_mb=1024 -seed=1804`, plus a 20-second outer process timeout. Pilot artifact `execution-fuzz-evidence-40129666207` (SHA-256 `d44e31a36bcfa4357ed8bb36e6ef8b7e4372b98be75dbcf13aa209fc37b336c3`) retains its build, inputs, logs and run records.
+
+| Target | Pilot executions | GNU time elapsed | Peak RSS | Coverage edges | Result |
+| --- | ---: | ---: | ---: | ---: | --- |
+| ROM loader | 10,000 | 0.82 s | 417,587,200 B | 273 | run-count cap |
+| State loader | 153 | 6.85 s | 223,854,592 B | 1,330 | 5-second libFuzzer window |
+| Execution | 392 | 6.49 s | 75,370,496 B | 1,357 | 5-second libFuzzer window |
+
+The selected limits extend ROM loading to 100,000 runs with a 10-second window and 768 MiB sampled RSS limit. State loading receives 1,000 runs, a 15-second window and 512 MiB; execution receives 2,000 runs, a 15-second window and 256 MiB. All targets keep the pilot's 2-second per-input timeout, 163,856-byte maximum input and seed 1804, with a 30-second outer process cap. The pilot's 20-second outer limit exceeded its 5-second mutation window by 15 seconds; the final 30-second limit similarly reserves 15 seconds after mutation for accounting and evidence. The workflow command is separately capped at 180 seconds, with a 5-minute job allowance for build, controls, artifact upload and cleanup. `rss_limit_mb` is libFuzzer's sampled threshold, not an instantaneous allocation quota.
+
+The acceptance campaign ran on [workflow run 40130406953](https://github.com/szTheory/nesturbator/actions/runs/40130406953), source commit `8363ae43441815af4097cdd857193d6bbb1ee34e`, with the same Linux toolchain and sanitizer configuration. The uploaded artifact `execution-fuzz-evidence-40130406953` (artifact ID `12574867396`, 291,321 bytes, SHA-256 `1ba4211f991cc34f060f37c348d00c96e38774a009c8a8c835462b5e1ce788d0`) contains 994 files, including exact commands, copied originals and work corpora, each target's log and run record, execution descriptor hashes/metrics, and control fixtures. The source corpus manifest SHA-256 was `f524ddcbf03dea6faa115938df004cbfe08eae8aaac9921c3b4b39ec9bb95ac1`; every target and the final campaign report recorded source corpus integrity `PASS`.
+
+| Target | Limits: runs / seconds / MiB | Actual runs | Stop cause | Elapsed | Peak RSS | Coverage edges / features | Final work corpus | Status / reproducers |
+| --- | --- | ---: | --- | ---: | ---: | --- | --- | --- |
+| ROM loader (60 source seeds) | 100,000 / 10 / 768 | 100,000 | run-count cap | 2.32 s | 507,252,736 B | 288 / 313 | 75 files, 401 KiB | completed / 0 |
+| State loader (17 source seeds) | 1,000 / 15 / 512 | 745 | max-total-time | 16.08 s | 377,061,376 B | 1,330 / 2,379 | 27 files, 37 B | completed / 0 |
+| Execution (8 source seeds) | 2,000 / 15 / 256 | 2,000 | run-count cap | 10.63 s | 128,286,720 B | 1,383 / 1,987 | 28 files, 454 B | completed / 0 |
+
+The finite run observed no crash, timeout or OOM reproducer. This means none was observed in these runs under these limits; it does not establish that the targets are universally reliable. The final run's explicit stop cause is derived from actual runs against the run cap and GNU-time elapsed against `max_total_time`, then recorded in each run TSV. The campaign control step retained exact synthetic crash and per-input-timeout inputs, rejected a deliberately broken collector, recorded that the resource-limit fixture had no exact input, and classified outer cancellation as incomplete. The minimization controls verified original preservation and rejection of failure-class, accepted-load and intended-operation mismatches on the accepted NROM descriptor; no real campaign finding existed to reduce, so no actual finding reduction is claimed. The raw pilot and campaign artifacts are hosted with the workflow runs; the tables and identities above are the compact durable record.

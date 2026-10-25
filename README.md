@@ -59,29 +59,176 @@ build time from the committed ROM after its sha256 is checked, and are never com
 before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
 banks and uses the 8 KiB CHR RAM it fills during startup.
 
-The pinned MIT AccuracyCoin test ROM is also included for conformance checks.
-The CI runner drives one menu page at a time, reads result bytes from CPU RAM
-through `nesturbator_peek_cpu_ram`, and compares the exact names, order, status,
-and result codes on pages 2 and 17 with `tests/accuracy/scoreboard.txt`:
+The MIT AccuracyCoin ROM at `6bee919529289c555803b612b8c9e4f7eaaeeabb` is the
+canonical fixture: its SHA-256 is
+`8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc`, and its
+decoded directory contains 146 scored rows plus five separate DRAW entries.
+The retained comparison ROM at `673ef550db296136d52229961e7d39366116882a`
+has SHA-256
+`4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839` and has
+144 scored rows plus five DRAW entries. The runner authenticates complete ROM
+bytes, decodes length-bounded in-ROM page and row names, and reads observed
+result bytes from CPU RAM through `nesturbator_peek_cpu_ram`. Only validated
+names become result keys; normal CI checks that malformed and overlong names
+are rejected. Evidence readers accept LF and CRLF line endings in page reports
+and cross-platform campaign tables. The new baseline is a measured observation,
+not a claim that every hardware test passes.
+
+Print the complete source-order inventory for either retained pin:
 
 ```sh
-nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin.nes \
-  --scoreboard tests/accuracy/scoreboard.txt
+nesturbator-run --accuracycoin-inventory --rom tests/roms/accuracycoin.nes
 ```
 
+Record bounded guest evidence for one page without treating known failures,
+skips or guest timeouts as infrastructure failures:
+
+```sh
+mkdir -p build/accuracycoin/page3
+nesturbator-run --accuracycoin-observe 3 --rom tests/roms/accuracycoin.nes \
+  --frames 1800 --accuracycoin-output build/accuracycoin/page3
+```
+
+The output directory receives `report.tsv`, `raw.tsv`, `diagnostics.tsv` and
+`metadata.txt`. The report keeps every row and its status, observed raw byte,
+consumed execution frames, cause and attempt ID. Metadata binds it to the ROM
+and inventory digests, source revision and dirty state, behaviour revision,
+input policy, frame budgets and diagnostic host elapsed time. DRAW entries are
+inventory-only and do not enter a scored denominator. `$FF` is skip, `$00` is
+not-run, `$01` is pass, and failure values use low bits `10` with a nonzero
+source error index. An observed active test becomes timeout only when its
+guest-frame budget expires. Observation is not an all-pass gate; malformed
+evidence or output errors still fail.
+
+Run all 22 pages as independent cold attempts and collect their checked evidence
+with the production parser and classifier:
+
+```sh
+cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=ON
+ctest --preset ci -R '^accuracycoin.campaign$' --no-tests=error
+```
+
+The launcher bounds each child process separately, records `EXIT_ZERO`,
+`CHILD_FAILURE` or `OUTER_TIMEOUT`, and continues to later pages after a failure.
+Guest stage caps apply to cold boot, frames per page-navigation step, and
+execution after the one-frame A press and one-frame release. The campaign
+collector writes `inventory.tsv`, `attempts.tsv`, `observations.tsv`,
+`report.tsv`, `summary.txt` and `metadata.txt` beside per-page raw samples,
+diagnostics, reports, metadata and child logs. It keeps inventory size,
+attempted rows, observed bytes and terminal classifications distinct. Missing
+bytes stay `-`; outer process failure never guesses a timeout or active test. A
+trustworthy completed observation may report guest failures or timeouts without
+passing the hardware tests. Five DRAW rows remain outside the 146-row scored
+total. Structurally valid duplicate raw samples are preserved in the campaign
+observations and make the campaign untrustworthy; the collector does not choose
+one conflicting copy as the final result.
+
+The final measured campaign uses caps of 32 boot frames, 5 navigation frames
+per page change, 2 attributed press/release frames, and 1800 execution frames;
+its page, collection and CTest wall limits are 15, 10 and 370 seconds. The 15-
+second child deadline is based on hosted page measurements up to 6.336 seconds;
+the separate guest-frame cap still defines the expected page-19 guest timeout.
+The actual report and per-page diagnostics are retained under
+`build/ci/accuracycoin/full/`. That run attributed all 22 starts and observed all
+146 scored bytes, with 101 pass, 42 fail, 0 skip, 2 not-run and 1 guest timeout;
+five DRAW entries remain outside the denominator. The two not-run rows have no
+observed result byte; the active `$03` row is a guest timeout, while a noncurrent
+`$03` marker is not-run.
+See [`tests/accuracy/budgets.txt`](tests/accuracy/budgets.txt)
+and [`tests/accuracy/measurements.md`](tests/accuracy/measurements.md) for the
+source identity, cap rationale, timing sensitivity and CI placement input.
+
+`NESTURBATOR_ACCURACYCOIN_FULL` defaults to `OFF` for local builds. Required CI
+enables the full campaign on its primary Linux x64 lane only; the other five
+platform lanes still run the decoder, classifier, protected-pass and parity
+checks. Every build lane uploads the AccuracyCoin evidence directory even on a
+failed run, and missing evidence artifacts fail that job. To reproduce the
+complete local CI lane, configure with `-DNESTURBATOR_ACCURACYCOIN_FULL=ON`
+before `cmake --workflow --preset ci`. Restore the ordinary local setting with
+`cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=OFF` afterward.
+
+CI also runs the inventory decoder against owned mutations of the pinned ROM.
+These controls cover page boundaries, row fields, duplicate decoded identities,
+the shared DRAW sentinel, exact expansion capacity and both retained pin
+fingerprints. The result decoder follows the assembly protocol: `$FF` is skip,
+`$00` is not-run, `$01` is pass, and failure results use low bits `10`;
+`$02` is valid where the pinned assembly reports error index zero. Other
+passing variants are accepted only for the named source tests: `$05`/`$09`
+for the pinned DMA, controller, APU activation, scanline-zero and SHA/SHS
+branches; `$0D`/`$11` for the SHA/SHS behavior tests; and `$39`/`$41` for
+PPU Read Buffer and Address `$2004` behavior. These values describe the
+test's source-defined branch, not a generalized emulator result code.
+The five rows whose result address is the shared `$03FF` DRAW sentinel are
+reported as `draw` and excluded from result transitions and scored rows.
+
+The existing strict runner compares selected page results against the retained
+old-pin expectations, which continue to cover the measured pages 2, 14 and 17:
+
+```sh
+nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin-673ef.nes \
+  --scoreboard tests/accuracy/old-673ef-scoreboard.txt
+```
+
+The canonical `tests/accuracy/scoreboard.txt` is an observation baseline across
+the new pin's 146 rows; it records pass, fail, skip, not-run or timeout with the
+measured raw byte and guest frames. It is not used to turn failures into strict
+successes.
+The retained old-pin comparison lives in `tests/accuracy/old-673ef-scoreboard.txt`
+and `old-673ef-metadata.txt`. It records 17 measured old-pin protected passes
+from pages 2, 14 and 17, including PPU Read Buffer `$41`; it is not a full
+144-test result. `migration.tsv` maps every retained key to its old/new result
+and routine symbols, cites both exact MIT source pins, records the four
+source-reviewed setup/meaning changes, and links each new-pin disposition to
+the measured attempt, raw byte, guest frames and status in a page report.
+Those links are checked against fresh cold observations on both pins during
+normal CI; a candidate scoreboard row cannot stand in for a guest result. The
+17 retained old-pin keys stay as a separate strict migration control. Before
+trusting a protected page report, the verifier requires exactly one well-formed
+final raw sample for every report row. Missing or duplicate keys and malformed
+final-stage records fail the verdict; valid non-final snapshots remain
+diagnostic context.
+
 Before the workflow preset, each of the six CI build lanes fetches protected
-`refs/heads/main` with tags disabled. A cross-platform CMake script exports the
-exact protected-main scoreboard bytes through
-`NESTURBATOR_SCOREBOARD_BASELINE`; fetch, path inspection, content retrieval,
-and environment handoff errors fail the job. If a successful fetch confirms
-that main has no scoreboard yet, CI supplies an empty baseline for the first
-merge. The scoreboard test requires that CI-provided path and never falls back
-to the candidate snapshot. Detached local runs use the committed
-`tests/accuracy/scoreboard-main.txt` snapshot. In both cases a prior `pass` row
-must remain present and passing; AccuracyCoin results continue to be checked
-against live emulated RAM. Page 14 adds the six required APU results: Length
-Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame Counter
-5-step, and Delta Modulation Channel.
+`refs/heads/main` with tags disabled, resolves its fetched commit once, and
+reads the scoreboard and identity from that exact commit. Older protected-main
+revisions use their dedicated protected metadata or the canonical AccuracyCoin
+row from that same commit's ROM manifest. Once main carries the full campaign
+metadata, the fetcher verifies the 146-row scoreboard hash,
+status counts, inventory identity and both ROM manifest entries against that
+one commit, then projects only its measured PASS rows into the protected
+verifier's 101-row input. Failed, skipped, not-run and timed-out rows remain in
+the canonical measured scoreboard and cannot become protected passes. The
+handoff binds the projection to the exact fetched revision. Missing, unfetchable,
+empty, malformed or mismatched authority fails the job; CI never falls back to
+candidate files. Detached local runs use the complete 17-row
+`tests/accuracy/scoreboard-main.txt` snapshot and its matching
+`scoreboard-main-metadata.txt` identity. On every lane, the protected observer
+derives the new-pin pages from the PASS keys in the fetched baseline and
+measures those pages during that invocation. Same-pin protection therefore
+scales with the accepted PASS set: after main adopts the current pin, all 101
+protected passes are remeasured, including keys outside pages 2, 14 and 17.
+Those 101 keys currently span 19 of the new pin's 22 pages. Cross-pin checks
+still use the exact source-backed migration row, the retained old-pin controls,
+and a fresh mapped observation. Protected page children have a 30-second outer
+deadline and keep the 1800 guest-frame cap; the maximum setup envelope is 25
+page children plus 10 seconds for orchestration.
+Page 14 adds the six required APU results:
+Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame
+Counter 5-step, and Delta Modulation Channel.
+
+Normal CI also mutates the production evidence/verdict inputs to prove that a
+claimed pass cannot hide measured fail, skip, not-run or timeout states, absent
+raw evidence, a removed protected key, a candidate-only pin edit, a mixed
+protected revision or a missing/disguised migration disposition. The primary
+Linux full lane builds a post-merge 101-PASS baseline control, freshly observes
+all required pages, and confirms that both an outside-page key and a formerly
+changed-meaning key fail the same-pin verdict when their measured result
+changes. It retains source-defined pass variants such as PPU Read Buffer `$41`,
+and rejects a malformed neighboring code. The fetcher is exercised against owned local Git
+repositories for exact commit handoff, canonical 146-row/101-PASS projection,
+scoreboard-hash mismatch, missing/empty authority, invalid metadata and the
+same-revision legacy-manifest fallback; these tests do not
+depend on a network service.
 
 The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
 mirrors, and rejects other bus addresses without side effects. It is intended
@@ -218,10 +365,13 @@ The POSIX state-session harness derives its source root from the canonical path
 of the executing test script. Before sourcing the trace include, it checks the
 supplied driver and fixed include against that root, rejecting copied or
 mismatched inputs before any host or transport work. Its `source-root-preflight`
-control exercises the repository root, CTest binary directory and an owned
+control runs as the serial `retroarch.session.source_root` test in the POSIX
+`ci` and `asan` lanes. It exercises the repository root, CTest binary directory and an owned
 working directory with spaces. Each case runs all four finalizer faults and
 requires wait status 143, the exact first reason, no cleanup anomaly, an
 unrun oracle and exact-port re-entry after owned-child reap.
+The session-control harness creates a fresh scratch root atomically for every
+invocation, so retained outputs cannot collide when a process ID is reused.
 
 | Lane | What it proves |
 |---|---|
@@ -236,6 +386,10 @@ unrun oracle and exact-port re-entry after owned-child reap.
 Tests never skip: a test that cannot run somewhere is not registered there, and
 `policy.no-skip` fails when any registered test could report itself skipped or
 is disabled.
+
+The pre-push history scan checks each historical ROM name and binary against
+the manifest in that same commit. Retiring or relocating a listed fixture does
+not invalidate the commit that recorded it.
 
 `fuzz.regress` replays checked-in malformed cartridge seeds through the public
 cartridge load/unload lifecycle on every CI platform. The Linux nightly builds
@@ -256,6 +410,58 @@ and save back to the loaded bytes with the library's behaviour revision.
 (`fuzz.state_loader --write-seeds DIR` writes them and prints their manifest
 lines) and every `valid-*` seed to load. The same source builds as the libFuzzer
 target `fuzz.state.libfuzzer` when `NESTURBATOR_LIBFUZZER` is on.
+
+`fuzz.execution.regress` replays eight versioned 16-byte recipes in
+`tests/fuzz/corpus_execution`: NROM, MMC1, UxROM, CNROM, MMC3, AxROM, an
+ordinary loop and JAM. Recipes are descriptors, not ROMs. The test target
+builds each accepted image in memory, runs a non-JAM guest program for the six
+mapper families and loop, observes mapper-specific PRG, CHR or nametable
+effects, then saves and restores a continuation into a fresh instance. A
+different mapper runs between the source and restored frame calls to check
+deterministic instance isolation. The JAM recipe separately checks its stop
+result without reading partial frame output. The separately replayable recipe
+format also accepts arbitrary trailing bytes as raw PRG/CHR variation, bounded
+by the selected profile's image capacity and the caps in
+`tests/fuzz/execution-budgets.txt` (128 KiB PRG, 32 KiB CHR and their generated
+image); all eight checked-in descriptors remain exact and compact.
+
+The bounded harness allows a 256 KiB serialized state, at most two frames on
+each continuation side, six total frame calls including one different-board
+interleave, 128 public-API operations, and 2 MiB of combined harness/library
+allocations per input. The selected representative images are at most 98,320
+bytes. These per-input caps are enforced independently of libFuzzer's finite
+campaign limits; neither is a hardware accuracy claim. Successful frames compare
+canonical state, defined frame metadata, all native pixels and only written
+audio samples. JAM compares stop status and canonical state without reading
+partial frame output. `fuzz.execution.seeds` checks all eight exact seed
+identities, the six mapper families' useful bank effects, and loop/JAM outcomes.
+`fuzz.execution.controls` sends valid and broken
+continuations through the same verdict, including suppressed execution, skipped
+restore, wrong saved origin and shared-instance interference. It also checks
+reset retention, reload freshness, refusal atomicity and battery-generation
+behavior.
+`fuzz.execution.oracle_failure` proves a deliberate verdict discrepancy exits
+nonzero. `fuzz.execution.campaign_controls` exercises crash and timeout input
+retention, missing resource evidence, collection failure, original preservation,
+accepted-load and intended-operation checks for minimization, and outer
+cancellation classification. On Linux with `NESTURBATOR_LIBFUZZER=ON`, the controls
+also minimize synthetic sanitizer failures from each actual fuzz target, then replay
+both original and reduced files in that same instrumented target. They check target-specific
+acceptance separately from the observed failure class and pre-call API operation, with
+bounded minimizer work and exact original preservation. Collector fixtures pass through
+the campaign artifact discovery and copy helper and verify the uploaded bytes. The
+state-loader replay has a separate JAM oracle regression: it feeds equal latched-state
+copies different stale video/audio buffers and verifies only stop status and canonical
+post-run state, never incomplete frame outputs. Its negative counterpart deliberately
+resets one instance after both JAM calls while keeping the stale output buffers equal;
+the same oracle must reject the different canonical states.
+`fuzz.execution.libfuzzer` uses the same callback when
+`NESTURBATOR_LIBFUZZER` is enabled. The Linux nightly campaign runs the ROM,
+state and execution targets with independently measured bounds. Dispatch mode
+`pilot` repeats the bounded measurement; `campaign` is the default and uses the
+selected limits. Exact run commands, work completed, sampled resources, source
+and corpus hashes, artifacts, findings and limitations are recorded in
+[`tests/fuzz/execution-measurements.md`](tests/fuzz/execution-measurements.md).
 
 The `abi` tests hold the core to integer arithmetic and the C memory
 functions: a text scan of `src/` and `include/` for `float`, `double` and
@@ -335,8 +541,9 @@ fails if they differ, so a pinned result screen is known to be static.
 `policy.rom_hash_coverage` fails when a committed ROM under `tests/roms` or
 `tests/roms/hm` is neither hashed nor exempt, or when a ROM glob or list is
 empty, and `policy.rom_hash_coverage.self_test` proves both rejections.
-AccuracyCoin is the one exemption: its NROM board is hashed through three
-games and its scoreboard runs on every leg.
+AccuracyCoin is exempt by fixture filename: its NROM board is hashed through
+three games and the canonical scoreboard plus comparison tracer run in normal
+CI.
 Every other committed ROM (Holy Mapperel's ten files and two derived copies,
 Nesteroids, DABG, RHDE and nes-runner) has frame and audio rows that must be
 byte-identical on six platforms. `libretro.parity.<key>` runs each of them
@@ -1117,11 +1324,36 @@ nesturbator-run --version
 - `--movie FILE` replays a validated two-port movie (see above) instead of running `--frames N`,
   and prints a SHA-256 line for every frame.
 - `--help` prints the usage and the exit statuses to stdout and exits 0.
-- `--accuracycoin-page N` runs AccuracyCoin page N (2, 14 or 17) for 1800 frames and compares its
-  RAM results to the scoreboard. It needs `--rom` and `--scoreboard` and installs no stop
-  handlers.
+- `--accuracycoin-page N` runs a strict AccuracyCoin page (2, 14 or 17) for
+  1800 frames and compares its RAM results to the scoreboard. It needs `--rom`
+  and `--scoreboard` and installs no stop handlers.
 - `--scoreboard FILE` names the scoreboard that `--accuracycoin-page` compares against; it is
   an error without `--accuracycoin-page`.
+- `--accuracycoin-inventory` prints the complete verified old or new pinned
+  directory as TSV. It needs `--rom` and no other run mode.
+- `--accuracycoin-observe PAGE` runs one selected page from a cold boot within
+  `--frames N`, writing checked bounded evidence under `--accuracycoin-output DIR`.
+  A real guest timeout or a known failing/skipped result can still produce a
+  trustworthy observation with exit 0; bad inventory, missing output or a
+  result code outside the pinned protocol exits 1. This mode installs no stop
+  handlers and cannot be combined with scoreboards, movies, saves, state files,
+  hashes or frame dumps.
+- `--accuracycoin-output DIR` names the existing directory for observation
+  evidence (`report.tsv`, `raw.tsv`, `diagnostics.tsv`, and `metadata.txt`); it
+  is an error without `--accuracycoin-observe`.
+- `--accuracycoin-collect DIR` validates launcher outcomes and all 22 page
+  outputs, then emits campaign inventory, attempts, raw observations, final
+  classifications, a count summary and provenance metadata. It needs `--rom`
+  and cannot be combined with another run mode.
+- `--accuracycoin-boot-cap N` sets the positive cold-boot guest-frame bound for
+  `--accuracycoin-observe`. The CMake campaign value is in
+  `tests/accuracy/budgets.txt`.
+- `--accuracycoin-navigation-cap N` sets the positive guest-frame bound for each
+  page-navigation step in `--accuracycoin-observe`. The CMake campaign value is
+  in `tests/accuracy/budgets.txt`.
+- `--accuracycoin-execution-cap N` sets the positive post-release guest-frame
+  bound for `--accuracycoin-observe`. The CMake campaign value is in
+  `tests/accuracy/budgets.txt`.
 - `--version` prints one line to stdout, `nesturbator-run X.Y.Z`, formatted at
   run time from `nesturbator_get_version`, and exits 0. It needs no other
   option and nothing else is printed. It is handled where the option loop
@@ -1383,6 +1615,20 @@ soft reset, which keeps RAM and cartridge RAM; it does not unload or reload the
 game. With no content it changes nothing. `libretro.host` compares the frames
 after a reset with those of a direct-API instance given the same frames, reset
 and frames.
+
+The native frame call returns `NESTURBATOR_STOP_JAM` with its instance latched;
+its output buffers are unspecified on that stop. In a loaded libretro session,
+each `retro_run` still polls input and sends one video callback on JAM, using
+the last fully converted XRGB frame or black if no complete frame exists. The
+adapter sends no audio and does not reset, unload or terminate the session.
+Successful content load, reset, unload and state load invalidate this
+adapter-owned presentation cache; a refused state load keeps it. Invalidation
+drops the cached frame's validity without overwriting the buffer already passed
+to the frontend. The next video callback replaces that storage; if the next
+frame is JAM, the adapter sends black because no valid cached frame remains.
+The cache is not part of the native machine or serialized state.
+`libretro.host` checks first and repeated JAM callbacks in both audio modes,
+state restore and refusal, reset, recovery, and unload/reload transitions.
 
 `retro_get_memory_data` and `retro_get_memory_size` return the battery span
 for `RETRO_MEMORY_SAVE_RAM`, the same span as
