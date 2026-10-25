@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
 
-# JAM-01: a guest JAM in the AccuracyCoin execution stage is reported as a JAM.
-# The conformance program patches one byte of the pinned ROM in memory, runs the
-# real observe path on page 3 and leaves its evidence under WORK.
+# JAM-01: a guest JAM in every AccuracyCoin stage is reported as a JAM. The
+# conformance program patches one byte of a pinned ROM in memory only and runs
+# three legs: the execution stage on page 3 (exit 0, report), a boot-stage JAM at
+# the reset vector (exit 1, no report) and strict page mode on page 2 of the old
+# ROM (exit 1, stderr line). Evidence is left under WORK.
 if(NOT DEFINED CONFORMANCE OR NOT DEFINED NEW_ROM OR NOT DEFINED OLD_ROM OR
    NOT DEFINED OLD_SCOREBOARD OR NOT DEFINED WORK)
   message(FATAL_ERROR "accuracycoin.jam needs CONFORMANCE, NEW_ROM, OLD_ROM, OLD_SCOREBOARD and WORK")
@@ -16,8 +18,14 @@ execute_process(
   OUTPUT_VARIABLE jam_stdout
   ERROR_VARIABLE jam_stderr)
 if(NOT "${jam_result}" STREQUAL "0")
-  message(FATAL_ERROR "patched page-3 observation did not exit 0 (${jam_result}):\n${jam_stdout}\n${jam_stderr}")
+  message(FATAL_ERROR "jam subcommand failed (${jam_result}):\n${jam_stdout}\n${jam_stderr}")
 endif()
+foreach(leg_exit IN ITEMS "jam-observe-exit=0" "jam-boot-exit=1" "jam-strict-exit=1")
+  string(FIND "${jam_stdout}" "${leg_exit}\n" found)
+  if(found EQUAL -1)
+    message(FATAL_ERROR "missing ${leg_exit}:\n${jam_stdout}\n${jam_stderr}")
+  endif()
+endforeach()
 
 if(NOT jam_stdout MATCHES "jam-patched-key=([^\n]*)\n")
   message(FATAL_ERROR "jam run did not name the patched row: ${jam_stdout}")
@@ -82,4 +90,31 @@ foreach(line IN LISTS report_lines)
 endforeach()
 if(NOT jam_rows EQUAL 1)
   message(FATAL_ERROR "report.tsv has ${jam_rows} guest-jam rows, expected exactly 1")
+endif()
+
+# Boot stage (D-13): named as a JAM, unattributed, no report, exit 1 (checked above).
+if(NOT jam_stderr MATCHES "nesturbator-run: JAM stopped AccuracyCoin page 3 at frame [0-9]+ \\(active_key=-\\)\n")
+  message(FATAL_ERROR "stderr lacks the boot-stage JAM line with active_key=-: ${jam_stderr}")
+endif()
+set(boot_dir "${WORK}/observe-boot")
+if(EXISTS "${boot_dir}/report.tsv")
+  message(FATAL_ERROR "a boot-stage JAM wrote a report.tsv")
+endif()
+if(NOT EXISTS "${boot_dir}/metadata.txt")
+  message(FATAL_ERROR "boot-stage JAM omitted metadata.txt")
+endif()
+file(READ "${boot_dir}/metadata.txt" boot_metadata)
+foreach(expected IN ITEMS "verdict=guest-jam" "stop_cause=guest-jam" "active_key=-")
+  string(FIND "${boot_metadata}" "\n${expected}\n" found)
+  if(found EQUAL -1)
+    message(FATAL_ERROR "boot metadata lacks ${expected}:\n${boot_metadata}")
+  endif()
+endforeach()
+if(NOT boot_metadata MATCHES "\njam_frame=([0-9]+)\n")
+  message(FATAL_ERROR "boot metadata lacks a numeric jam_frame:\n${boot_metadata}")
+endif()
+
+# Strict page mode (D-13): the JAM is named on stderr.
+if(NOT jam_stderr MATCHES "nesturbator-run: JAM stopped AccuracyCoin page 2 at frame [0-9]+\n")
+  message(FATAL_ERROR "stderr lacks the strict-mode JAM line: ${jam_stderr}")
 endif()

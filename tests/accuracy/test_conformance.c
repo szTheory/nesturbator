@@ -549,9 +549,18 @@ static int make_directory(const char *path)
     return ACCURACYCOIN_MKDIR(path) == 0 || errno == EEXIST;
 }
 
+/* JAM-01 report fixtures (D-14): `jam` is a consistent guest-jam page; the other
+ * three each drop one part of the attribution and must be rejected. */
+static int fixture_is_jam(const char *mutation)
+{
+    return strcmp(mutation, "jam") == 0 || strcmp(mutation, "jam-cause-dropped") == 0 ||
+           strcmp(mutation, "jam-row-dropped") == 0 || strcmp(mutation, "jam-frame-missing") == 0;
+}
+
 static uint8_t fixture_final_raw(const accuracycoin_test *row, const char *mutation)
 {
-    if ((strcmp(mutation, "timeout") == 0 || strcmp(mutation, "multiple-timeout") == 0) &&
+    if ((strcmp(mutation, "timeout") == 0 || strcmp(mutation, "multiple-timeout") == 0 ||
+         fixture_is_jam(mutation)) &&
         row->page == 1u) {
         if (row->row == 1u)
             return 0xffu;
@@ -613,9 +622,12 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
     char source_revision[64] = "fixture-source";
     uint32_t execution_cap = 3u;
     uint32_t execution_used = strcmp(mutation, "cap-minus") == 0 ? 2u : 3u;
+    int is_jam = fixture_is_jam(mutation) && page == 1u;
+    /* A timeout and a JAM share one layout: row 2 of page 1 is the running row. */
     int is_timeout =
-        (strcmp(mutation, "timeout") == 0 || strcmp(mutation, "multiple-timeout") == 0) &&
-        page == 1u;
+        ((strcmp(mutation, "timeout") == 0 || strcmp(mutation, "multiple-timeout") == 0) &&
+         page == 1u) ||
+        is_jam != 0;
     int release_frames = strcmp(mutation, "held-a") == 0 && page == 3u ? 0 : 1;
     char rom_sha[65];
     char inventory_sha[65];
@@ -724,7 +736,12 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
         if (strcmp(mutation, "multiple-timeout") == 0 && row->row == 3u && raw == 0x03u) {
             result = ACCURACYCOIN_RESULT_NOT_RUN;
             cause = "noncurrent-running-marker";
+        } else if (is_jam != 0 && current_active_row != 0 &&
+                   strcmp(mutation, "jam-row-dropped") != 0) {
+            result = accuracycoin_classify_row(row, observed, raw, ACCURACYCOIN_ACTIVE_JAM, &cause);
         } else {
+            /* jam-row-dropped: the attributed row is reported as an ordinary budget
+             * timeout, so no row carries the guest-jam cause. */
             result = accuracycoin_classify_row(row, observed, raw, current_active_row, &cause);
         }
         char raw_text[5] = "-";
@@ -754,6 +771,13 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
     const char *verdict = is_timeout != 0 ? "guest-timeout" : "complete";
     const char *stop_cause =
         is_timeout != 0 ? "execution-cap-active-test" : "all-page-results-terminal";
+    const char *jam_frame = "-";
+    if (is_jam != 0) {
+        verdict = "guest-jam";
+        stop_cause = strcmp(mutation, "jam-cause-dropped") == 0 ? "execution-frame-failure"
+                                                               : "guest-jam";
+        jam_frame = strcmp(mutation, "jam-frame-missing") == 0 ? "-" : "2";
+    }
     char active_key[ACCURACYCOIN_NAME_CAPACITY + 16u] = "-";
     if (is_timeout != 0) {
         const accuracycoin_test *active = &directory->rows[page_info->first_row + 1u];
@@ -775,12 +799,13 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
             "1\nselected_page=%u\nselected_cursor=255\na_press_observed=1\na_release_observed="
             "1\nrelease_frames=%d\nrun_state_observed=1\nresult_transition_observed=%d\ndraw_"
             "cursor_transition_observed=%d\nmenu_returned_to_header_observed=%d\nstart_attributed="
-            "1\nstop_cause=%s\nactive_key=%s\nactive_raw=%s\nverdict=%s\nhost_elapsed_ns=1000\n",
+            "1\nstop_cause=%s\nactive_key=%s\nactive_raw=%s\nverdict=%s\njam_frame=%s\nhost_elapsed_"
+            "ns=1000\n",
             strcmp(mutation, "bad-schema") == 0 && page == 1u ? "2" : "1", directory->pin, rom_sha,
             inventory_sha, source_revision, (unsigned)page, attempt_id, execution_cap, total_cap,
             nav_frames, execution_used, frames_used, (unsigned)(page - 1u), release_frames,
             is_draw_page ? 0 : 1, is_draw_page, !is_timeout, stop_cause, active_key,
-            is_timeout != 0 ? "0x03" : "-", verdict) < 0 ||
+            is_timeout != 0 ? "0x03" : "-", verdict, jam_frame) < 0 ||
         fclose(metadata) != 0)
         return 0;
     return 1;
@@ -948,6 +973,14 @@ static int test_report(const char *new_rom_path, const char *old_rom_path, const
     snprintf(path, sizeof path, "%s/timeout", work);
     CHECK(write_campaign_fixture(path, &new_directory, "timeout"));
     CHECK_EQ_U64(accuracycoin_collect_campaign(&new_directory, path), 0u);
+    /* JAM-01 (D-14): a consistent guest-jam page is accepted; each variant that
+     * drops one part of the attribution is rejected. */
+    snprintf(path, sizeof path, "%s/jam", work);
+    CHECK(write_campaign_fixture(path, &new_directory, "jam"));
+    CHECK_EQ_U64(accuracycoin_collect_campaign(&new_directory, path), 0u);
+    CHECK(expect_fixture_rejected(work, "jam-cause-dropped", &new_directory, "jam-cause-dropped"));
+    CHECK(expect_fixture_rejected(work, "jam-row-dropped", &new_directory, "jam-row-dropped"));
+    CHECK(expect_fixture_rejected(work, "jam-frame-missing", &new_directory, "jam-frame-missing"));
     snprintf(path, sizeof path, "%s/multiple-timeout", work);
     CHECK(write_campaign_fixture(path, &new_directory, "multiple-timeout"));
     CHECK_EQ_U64(accuracycoin_collect_campaign(&new_directory, path), 0u);
@@ -1146,84 +1179,176 @@ static int nrom_file_offset(uint16_t address, size_t image_size, size_t *offset)
 
 #define JAM_OPCODE 0x02u /* an undocumented KIL opcode: the CPU stops */
 
+/* The last TEST-kind row of a page (0-based page index), chosen by rule from the
+ * parsed inventory, never a literal offset. */
+static const accuracycoin_test *last_test_row(const accuracycoin_directory *directory,
+                                              unsigned page_index)
+{
+    const accuracycoin_page *page = &directory->pages[page_index];
+    const accuracycoin_test *row = NULL;
+    for (unsigned i = 0u; i < page->row_count; i++)
+        if (directory->rows[page->first_row + i].kind == ACCURACYCOIN_KIND_TEST)
+            row = &directory->rows[page->first_row + i];
+    return row;
+}
+
+/* A copy of the ROM with JAM_OPCODE at the file offset of a CPU address, after
+ * asserting the original byte is not already JAM_OPCODE. NULL on any failure. */
+static uint8_t *patched_copy(const fixture_bytes *rom, uint16_t address, size_t *offset_out)
+{
+    size_t offset = 0u;
+    uint8_t *copy;
+    if (!nrom_file_offset(address, rom->size, &offset) || rom->bytes[offset] == JAM_OPCODE)
+        return NULL;
+    copy = (uint8_t *)malloc(rom->size);
+    if (copy == NULL)
+        return NULL;
+    memcpy(copy, rom->bytes, rom->size);
+    copy[offset] = JAM_OPCODE;
+    *offset_out = offset;
+    return copy;
+}
+
+static nesturbator *jam_instance(const uint8_t *image, size_t size)
+{
+    nesturbator_config config;
+    nesturbator *inst = NULL;
+    memset(&config, 0, sizeof config);
+    config.size = (uint32_t)sizeof config;
+    config.abi = NESTURBATOR_ABI_VERSION;
+    if (nesturbator_create(&config, &inst) != NESTURBATOR_OK)
+        return NULL;
+    if (nesturbator_load_cartridge(inst, image, size) != NESTURBATOR_OK) {
+        nesturbator_destroy(inst);
+        return NULL;
+    }
+    return inst;
+}
+
 static int test_jam(const char *new_rom_path, const char *old_rom_path, const char *old_scoreboard,
                     const char *work)
 {
     static uint16_t video[256u * 240u];
     static int16_t audio[1024u];
     fixture_bytes rom = {0};
+    fixture_bytes old_rom = {0};
     accuracycoin_directory directory;
+    accuracycoin_directory old_directory;
     accuracycoin_reason reason = ACCURACYCOIN_REASON_OK;
     accuracycoin_run_budgets budgets;
-    nesturbator_config config;
     nesturbator *inst = NULL;
     uint8_t *patched = NULL;
     char output_dir[4096];
     size_t offset = 0u;
+    int exit_code;
     const accuracycoin_test *row = NULL;
-    const accuracycoin_page *page;
-
-    /* The old ROM and scoreboard belong to the strict-mode control that Plan 19-02
-     * adds to this subcommand; accept them now so the CTest command line is stable. */
-    (void)old_rom_path;
-    (void)old_scoreboard;
 
     CHECK(make_directory(work));
     CHECK(read_fixture(new_rom_path, &rom));
-    if (rom.bytes == NULL)
+    CHECK(read_fixture(old_rom_path, &old_rom));
+    if (rom.bytes == NULL || old_rom.bytes == NULL)
         goto done;
     CHECK(accuracycoin_parse_pinned(rom.bytes, rom.size, &directory, &reason));
     if (reason != ACCURACYCOIN_REASON_OK)
         goto done;
-
-    /* Chosen by rule from the parsed inventory, never a literal offset: the last
-     * TEST-kind row of page 3. */
-    page = &directory.pages[2];
-    for (unsigned i = 0u; i < page->row_count; i++)
-        if (directory.rows[page->first_row + i].kind == ACCURACYCOIN_KIND_TEST)
-            row = &directory.rows[page->first_row + i];
-    CHECK(row != NULL);
-    if (row == NULL)
+    CHECK(accuracycoin_parse_pinned(old_rom.bytes, old_rom.size, &old_directory, &reason));
+    if (reason != ACCURACYCOIN_REASON_OK)
         goto done;
-    CHECK(nrom_file_offset(row->routine_address, rom.size, &offset));
-    if (offset == 0u)
-        goto done;
-    CHECK(rom.bytes[offset] != JAM_OPCODE);
 
-    patched = (uint8_t *)malloc(rom.size);
-    CHECK(patched != NULL);
-    if (patched == NULL)
-        goto done;
-    memcpy(patched, rom.bytes, rom.size);
-    patched[offset] = JAM_OPCODE;
-
-    memset(&config, 0, sizeof config);
-    config.size = (uint32_t)sizeof config;
-    config.abi = NESTURBATOR_ABI_VERSION;
-    CHECK_EQ_U64(nesturbator_create(&config, &inst), NESTURBATOR_OK);
-    if (inst == NULL)
-        goto done;
-    CHECK_EQ_U64(nesturbator_load_cartridge(inst, patched, rom.size), NESTURBATOR_OK);
-
-    CHECK(snprintf(output_dir, sizeof output_dir, "%s/observe-page3", work) > 0);
-    CHECK(make_directory(output_dir));
     budgets.boot_frames = 32u;
     budgets.navigation_frames_per_page = 5u;
     budgets.execution_frames = 1800u;
     budgets.total_frames = 32u + 5u * 2u + 2u + 1800u;
+
+    /* Leg 1: the last TEST row of page 3. A JAM in the execution stage is a
+     * finished observation: exit 0, report written. */
+    row = last_test_row(&directory, 2u);
+    CHECK(row != NULL);
+    if (row == NULL)
+        goto done;
+    patched = patched_copy(&rom, row->routine_address, &offset);
+    CHECK(patched != NULL);
+    if (patched == NULL)
+        goto done;
+    inst = jam_instance(patched, rom.size);
+    CHECK(inst != NULL);
+    if (inst == NULL)
+        goto done;
+    CHECK(snprintf(output_dir, sizeof output_dir, "%s/observe-page3", work) > 0);
+    CHECK(make_directory(output_dir));
     printf("jam-patched-key=accuracycoin/%s\n", row->name);
     printf("jam-patched-offset=%llu\n", (unsigned long long)offset);
     fflush(stdout);
-    /* A JAM in the execution stage is a finished observation: exit 0, report written. */
-    CHECK_EQ_U64(accuracycoin_run_observe_page(&directory, 3u, &budgets, output_dir, inst, video,
-                                               audio),
-                 0u);
+    exit_code = accuracycoin_run_observe_page(&directory, 3u, &budgets, output_dir, inst, video,
+                                              audio);
+    printf("jam-observe-exit=%d\n", exit_code);
+    fflush(stdout);
+    CHECK_EQ_U64(exit_code, 0u);
+    nesturbator_destroy(inst);
+    inst = NULL;
+    free(patched);
+    patched = NULL;
+
+    /* Leg 2: a JAM before the execution stage. The reset vector is read from the
+     * copy through the same bounds-checked mapping and its target patched, so the
+     * very first instruction jams. No report is written and the exit is 1. */
+    {
+        size_t lo_offset = 0u;
+        size_t hi_offset = 0u;
+        uint16_t reset;
+        CHECK(nrom_file_offset(0xFFFCu, rom.size, &lo_offset));
+        CHECK(nrom_file_offset(0xFFFDu, rom.size, &hi_offset));
+        if (lo_offset == 0u || hi_offset == 0u)
+            goto done;
+        reset = (uint16_t)(rom.bytes[lo_offset] | (rom.bytes[hi_offset] << 8));
+        patched = patched_copy(&rom, reset, &offset);
+        CHECK(patched != NULL);
+        if (patched == NULL)
+            goto done;
+    }
+    inst = jam_instance(patched, rom.size);
+    CHECK(inst != NULL);
+    if (inst == NULL)
+        goto done;
+    CHECK(snprintf(output_dir, sizeof output_dir, "%s/observe-boot", work) > 0);
+    CHECK(make_directory(output_dir));
+    exit_code = accuracycoin_run_observe_page(&directory, 3u, &budgets, output_dir, inst, video,
+                                              audio);
+    printf("jam-boot-exit=%d\n", exit_code);
+    fflush(stdout);
+    CHECK_EQ_U64(exit_code, 1u);
+    nesturbator_destroy(inst);
+    inst = NULL;
+    free(patched);
+    patched = NULL;
+
+    /* Leg 3: strict page mode on the old ROM, page 2. The patched row is the last
+     * TEST row of the old inventory's page 2; strict mode names the JAM on stderr
+     * and returns 1 (it used to fail silently). */
+    row = last_test_row(&old_directory, 1u);
+    CHECK(row != NULL);
+    if (row == NULL)
+        goto done;
+    patched = patched_copy(&old_rom, row->routine_address, &offset);
+    CHECK(patched != NULL);
+    if (patched == NULL)
+        goto done;
+    inst = jam_instance(patched, old_rom.size);
+    CHECK(inst != NULL);
+    if (inst == NULL)
+        goto done;
+    exit_code = accuracycoin_run_strict_page(&old_directory, 2u, old_scoreboard, inst, video,
+                                             audio, NULL);
+    printf("jam-strict-exit=%d\n", exit_code);
+    fflush(stdout);
+    CHECK_EQ_U64(exit_code, 1u);
 
 done:
     if (inst != NULL)
         nesturbator_destroy(inst);
     free(patched);
     free(rom.bytes);
+    free(old_rom.bytes);
     CHECK_DONE();
 }
 

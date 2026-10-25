@@ -103,8 +103,15 @@ execution stage the run stops with verdict and stop cause `guest-jam`, metadata
 stopped AccuracyCoin page P at frame N (active_key=...)` and exit 0. The row the
 suite was running (`active_key`, raw `0x03`) is reported as `fail` with cause
 `guest-jam`, never as pass, complete or a timeout; with no running row the JAM is
-unattributed (`active_key=-`). Observation is not an all-pass gate; malformed
-evidence or output errors still fail.
+unattributed (`active_key=-`). A JAM before the execution stage (boot,
+navigation or start) is named the same way in the metadata and on stderr with
+`active_key=-`, but writes no `report.tsv` and exits 1. In the report a JAM row
+is `fail` with raw `0x03` and cause `guest-jam`. The strict page mode
+(`--accuracycoin-page`) prints `nesturbator-run: JAM stopped AccuracyCoin page P
+at frame N` and exits 1. The `accuracycoin.jam` test proves all three cases by
+patching a JAM opcode into the pinned ROM in memory only; no modified ROM is
+written anywhere. Observation is not an all-pass gate; malformed evidence or
+output errors still fail.
 
 Run all 22 pages as independent cold attempts and collect their checked evidence
 with the production parser and classifier:
@@ -1340,7 +1347,8 @@ nesturbator-run --version
 - `--accuracycoin-observe PAGE` runs one selected page from a cold boot within
   `--frames N`, writing checked bounded evidence under `--accuracycoin-output DIR`.
   A real guest timeout, a guest JAM in the execution stage or a known
-  failing/skipped result can still produce a trustworthy observation with exit 0; bad inventory, missing output or a
+  failing/skipped result can still produce a trustworthy observation with exit 0
+  (a JAM in an earlier stage writes no report and exits 1); bad inventory, missing output or a
   result code outside the pinned protocol exits 1. This mode installs no stop
   handlers and cannot be combined with scoreboards, movies, saves, state files,
   hashes or frame dumps.
