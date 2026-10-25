@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "convert.h"
@@ -43,15 +44,96 @@ static size_t save_size;
 static uint32_t palette[512];
 static uint16_t video[NT_PIXELS];
 static uint32_t xrgb[NT_PIXELS];
+/* Never written: the black frame sent when the cache does not apply, so that showing black does
+   not destroy the cached picture (a later load may return to its timeline). */
+static const uint32_t blank[NT_PIXELS];
 static bool completed_frame_valid;
 static int16_t mono[NT_AUDIO_CAPACITY];
 static int16_t stereo[NT_AUDIO_CAPACITY * 2u];
 
-/* JAM leaves the native frame buffers unspecified, so only this adapter-owned
-   converted frame may be repeated. */
+/* The presentation cache and its identity. JAM leaves the native frame buffers unspecified, so
+   only this adapter-owned converted frame may be repeated, and it is shown only when it belongs
+   to the running timeline. None of this is written into the native save state.
+
+   D-16 narrows Phase 18 D-10, which dropped the cache on every successful load. Run-ahead loads a
+   state on every tick, so that rule showed black instead of a frozen picture once the real
+   timeline reached a JAM. The cache now carries a tag: the frame_number of the frame that filled
+   it (cached_frame_number) and a timeline generation (cached_timeline). It is shown on STOP_JAM
+   only when the tag equals the adapter-tracked frame_number (current_frame_number, from
+   io.frame_number after each run and from state bytes 32-39 after each load) and the instance is
+   on the cache's generation (timeline).
+
+   The D-16 amendment of 2026-10-25 adds the generation, because a frame number alone cannot tell
+   a state from a diverged timeline (rewind, or another save slot, with different input) from the
+   one the cache was drawn on. A successful load keeps the generation only when the loaded state's
+   CRC (header bytes 28-31) equals the CRC of the state the cached frame produced
+   (cached_state_crc) or of the jammed state reached from it (jam_state_crc); any other state
+   moves to a new generation. The CRC is recorded when a frame is converted, not only in
+   retro_serialize: with RetroArch's second-instance run-ahead the instance that shows the picture
+   never serializes. The cost is one nesturbator_save_state into scratch per converted frame.
+
+   Accepted residual (D-16 amendment): when a mispredicted input leads the real timeline into a
+   JAM on the first real frame after a load, the frozen real frame was never retained, so the
+   cache belongs to another generation and STOP_JAM shows black. Black is the safe direction:
+   the adapter never shows another timeline's picture. */
+static uint64_t cached_frame_number;
+static uint64_t current_frame_number;
+static uint32_t timeline;
+static uint32_t cached_timeline;
+static uint32_t cached_state_crc;
+static uint32_t jam_state_crc;
+static bool jam_state_crc_valid;
+static uint8_t *scratch;
+static size_t scratch_size;
+
+#define NT_STATE_CRC_OFFSET 28u
+#define NT_STATE_FRAME_OFFSET 32u
+
+static uint32_t read_le32(const uint8_t *b)
+{
+    return (uint32_t)b[0] | ((uint32_t)b[1] << 8) | ((uint32_t)b[2] << 16) | ((uint32_t)b[3] << 24);
+}
+
+static uint64_t read_le64(const uint8_t *b)
+{
+    return (uint64_t)read_le32(b) | ((uint64_t)read_le32(b + 4u) << 32);
+}
+
+/* Reset, load_game, unload, init and deinit start a new session. */
 static void invalidate_presentation(void)
 {
     completed_frame_valid = false;
+    cached_frame_number = 0u;
+    current_frame_number = 0u;
+    timeline = 0u;
+    cached_timeline = 0u;
+    cached_state_crc = 0u;
+    jam_state_crc = 0u;
+    jam_state_crc_valid = false;
+}
+
+static void free_scratch(void)
+{
+    free(scratch);
+    scratch = NULL;
+    scratch_size = 0u;
+}
+
+static bool cache_is_current(void)
+{
+    return completed_frame_valid && cached_frame_number == current_frame_number &&
+           cached_timeline == timeline;
+}
+
+/* Saves the running state into scratch and returns its CRC field. False without scratch (the
+   test card has no state) or when the save fails. */
+static bool scratch_state_crc(uint32_t *crc)
+{
+    if (scratch == NULL || nesturbator_save_state(inst, scratch, scratch_size) != NESTURBATOR_OK) {
+        return false;
+    }
+    *crc = read_le32(scratch + NT_STATE_CRC_OFFSET);
+    return true;
 }
 
 /* L7511: called before retro_init. Declaring no-game support (18, L1051)
@@ -95,6 +177,7 @@ void retro_init(void)
     nesturbator_config cfg;
 
     invalidate_presentation();
+    free_scratch();
     nesturbator_destroy(inst);
     inst = NULL;
     memset(&cfg, 0, sizeof cfg);
@@ -110,6 +193,7 @@ void retro_deinit(void)
 {
     nesturbator_destroy(inst);
     inst = NULL;
+    free_scratch();
     save_data = NULL;
     save_size = 0u;
     env_cb = NULL;
@@ -192,9 +276,9 @@ void retro_reset(void)
    called once with XRGB8888 rows of 1024 bytes, and mono samples are
    duplicated into left/right pairs. Prefer the batch callback (L7465); use
    the per-sample callback only when no batch callback is registered (L7453).
-   A JAM still polls input and sends the last complete converted frame, or
-   black before one exists; it sends no audio and does not reset the instance.
-   Other failed frames send no video or audio. */
+   A JAM still polls input and sends the cached converted frame when it belongs to the running
+   timeline (see the presentation cache above), or black; it sends no audio and does not reset
+   the instance. Other failed frames send no video or audio. */
 void retro_run(void)
 {
     nesturbator_frame io;
@@ -232,11 +316,17 @@ void retro_run(void)
     io.audio_capacity = NT_AUDIO_CAPACITY;
     status = nesturbator_run_frame(inst, &io);
     if (status == NESTURBATOR_STOP_JAM) {
+        const bool show_cache = cache_is_current();
+        uint32_t crc;
+
+        /* The jammed state reached from the cached frame stays on its timeline when loaded. */
+        if (show_cache && scratch_state_crc(&crc)) {
+            jam_state_crc = crc;
+            jam_state_crc_valid = true;
+        }
         if (video_cb != NULL) {
-            if (!completed_frame_valid) {
-                memset(xrgb, 0, sizeof xrgb);
-            }
-            video_cb(xrgb, NT_WIDTH, NT_HEIGHT, (size_t)NT_WIDTH * sizeof xrgb[0]);
+            video_cb(show_cache ? xrgb : blank, NT_WIDTH, NT_HEIGHT,
+                     (size_t)NT_WIDTH * sizeof xrgb[0]);
         }
         return;
     }
@@ -245,7 +335,11 @@ void retro_run(void)
     }
     /* D-15: the runner's conversion loop. */
     nesturbator_host_convert(palette, video, NT_WIDTH, xrgb, NT_WIDTH);
-    completed_frame_valid = true;
+    current_frame_number = io.frame_number;
+    cached_frame_number = io.frame_number;
+    cached_timeline = timeline;
+    jam_state_crc_valid = false;
+    completed_frame_valid = scratch == NULL || scratch_state_crc(&cached_state_crc);
     if (video_cb != NULL) {
         video_cb(xrgb, NT_WIDTH, NT_HEIGHT, (size_t)NT_WIDTH * sizeof xrgb[0]);
     }
@@ -288,10 +382,20 @@ bool retro_serialize(void *data, size_t len)
 
 bool retro_unserialize(const void *data, size_t len)
 {
+    const uint8_t *b = (const uint8_t *)data;
+    uint32_t crc;
+
     if (nesturbator_load_state(inst, data, len) != NESTURBATOR_OK) {
         return false;
     }
-    invalidate_presentation();
+    /* A load that returned OK has validated len as the state size, so the header is present. */
+    current_frame_number = read_le64(b + NT_STATE_FRAME_OFFSET);
+    crc = read_le32(b + NT_STATE_CRC_OFFSET);
+    if (crc == cached_state_crc || (jam_state_crc_valid && crc == jam_state_crc)) {
+        timeline = cached_timeline;
+    } else {
+        timeline = cached_timeline + 1u;
+    }
     return true;
 }
 
@@ -326,9 +430,17 @@ bool retro_load_game(const struct retro_game_info *game)
     save_data = NULL;
     save_size = 0u;
     invalidate_presentation();
+    free_scratch();
     nesturbator_unload_cartridge(inst);
     if (game != NULL &&
         nesturbator_load_cartridge(inst, game->data, game->size) != NESTURBATOR_OK) {
+        return false;
+    }
+    /* Room for the state the presentation identity reads; the test card has none (size 0). */
+    scratch_size = nesturbator_state_size(inst);
+    if (scratch_size != 0u && (scratch = (uint8_t *)malloc(scratch_size)) == NULL) {
+        scratch_size = 0u;
+        nesturbator_unload_cartridge(inst);
         return false;
     }
     nesturbator_get_palette(inst, palette, 512u);
@@ -357,6 +469,7 @@ void retro_unload_game(void)
     save_data = NULL;
     save_size = 0u;
     invalidate_presentation();
+    free_scratch();
     nesturbator_unload_cartridge(inst);
 }
 

@@ -404,8 +404,13 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * the machine remains valid for a save-state snapshot. A libretro host may
  * present its separately owned last complete converted frame (or black), but
  * must not treat these native output buffers as a frame. Loading state does
- * not write to host-owned presentation storage; the host can invalidate its
- * cached frame without changing bytes already passed to its frontend.
+ * not write to host-owned presentation storage. A host that keeps such a frame
+ * across loads (run-ahead loads a state every tick) should show it only when
+ * the loaded state's frame_number equals that of the frame and the state is the
+ * one that frame produced, or the jammed state reached from it (the state CRC,
+ * below); another state, such as one of a diverged timeline, deserves black. A
+ * mispredicted input that ends in a JAM on the first frame after a load leaves
+ * no such frame, and black is the safe picture.
  * Test-only bounded
  * execution replay uses generated representative mapper 0, 1, 2, 3, 4 and 7
  * content to check deterministic continuation and instance isolation. Its

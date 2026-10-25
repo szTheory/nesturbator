@@ -1632,17 +1632,27 @@ and frames.
 
 The native frame call returns `NESTURBATOR_STOP_JAM` with its instance latched;
 its output buffers are unspecified on that stop. In a loaded libretro session,
-each `retro_run` still polls input and sends one video callback on JAM, using
-the last fully converted XRGB frame or black if no complete frame exists. The
-adapter sends no audio and does not reset, unload or terminate the session.
-Successful content load, reset, unload and state load invalidate this
-adapter-owned presentation cache; a refused state load keeps it. Invalidation
-drops the cached frame's validity without overwriting the buffer already passed
-to the frontend. The next video callback replaces that storage; if the next
-frame is JAM, the adapter sends black because no valid cached frame remains.
-The cache is not part of the native machine or serialized state.
+each `retro_run` still polls input and sends one video callback on JAM. It sends
+the adapter's last fully converted XRGB frame when that frame belongs to the
+running timeline, and black otherwise. The adapter sends no audio and does not
+reset, unload or terminate the session. The cached frame is tagged with the
+frame number that produced it and with a timeline identity taken from the saved
+state's CRC. A successful state load does not drop it: run-ahead loads a state on
+every tick, and the picture after a JAM stays frozen. It is shown while the
+loaded state has the cached frame's number and is the state that frame produced
+(or the jammed state reached from it); a state with another frame number, or a
+state of a diverged timeline such as a rewind with different input, shows black
+instead, never the other timeline's picture. Successful content load, reset and
+unload drop it; a refused state load keeps it. One limit follows: when a
+mispredicted run-ahead input (the real input differs from the speculative one)
+leads the real timeline into a JAM on the first real frame after a load, the
+frozen real frame was never kept and the adapter shows black. Keeping the
+identity costs one state save per converted frame, inside the adapter. The cache
+and its identity are not part of the native machine or serialized state.
 `libretro.host` checks first and repeated JAM callbacks in both audio modes,
-state restore and refusal, reset, recovery, and unload/reload transitions.
+state restore and refusal, a diverged-timeline state, reset, recovery, and
+unload/reload transitions; `libretro.runahead` checks run-ahead across a JAM
+at every depth against an uninterrupted run.
 
 `retro_get_memory_data` and `retro_get_memory_size` return the battery span
 for `RETRO_MEMORY_SAVE_RAM`, the same span as
