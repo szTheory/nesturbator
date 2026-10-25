@@ -5,27 +5,27 @@ titles: json
 findings:
   - id: WR-01
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "Sprite-0 hit relies on an implicit coupling to the video path"
   - id: WR-02
     severity: warning
-    disposition: open
+    disposition: fixed
     title: "The libretro cache treats all later JAM frames as one identity"
   - id: IN-01
     severity: info
     disposition: open
     title: "A full state save for every converted frame"
-open: 3
+open: 1
 total: 3
-recorded: 2026-10-25T18:58:36.378Z
+recorded: 2026-10-25T19:36:52.396Z
 ---
 
 # Phase 19: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | open | - |
-| WR-02 | warning | open | - |
+| WR-01 | warning | fixed | 19-REVIEW-FIX.md |
+| WR-02 | warning | fixed | 19-REVIEW-FIX.md |
 | IN-01 | info | open | - |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
