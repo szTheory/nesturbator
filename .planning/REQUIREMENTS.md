@@ -24,10 +24,10 @@ The user approved these requirements with the v4 proposal on 2026-10-13. The new
 
 ### Execution robustness
 
-- [ ] **ROB-01**: A small owned fuzz/replay target executes bounded accepted profiles for all six supported board families with generated program/CHR bytes and controlled input.
-- [ ] **ROB-02**: The target exercises reset, save/load and unload/reload, checking instance independence and deterministic continuation through existing API contracts.
-- [ ] **ROB-03**: Normal CI replays a fixed permitted/generated corpus; finite nightly sanitizer campaigns retain deterministic crash/timeout reproducers with measured time, memory and execution budgets.
-- [ ] **ROB-04**: Guest loops and JAM have tested progress/stop behavior, including the adapter's observable halt policy; any reproduced library/host contract violation receives a minimized regression and correction or explicit rescoping.
+- [x] **ROB-01**: A small owned fuzz/replay target executes bounded accepted profiles for all six supported board families with generated program/CHR bytes and controlled input.
+- [x] **ROB-02**: The target exercises reset, save/load and unload/reload, checking instance independence and deterministic continuation through existing API contracts.
+- [x] **ROB-03**: Normal CI replays a fixed permitted/generated corpus; finite nightly sanitizer campaigns retain deterministic crash/timeout reproducers with measured time, memory and execution budgets.
+- [x] **ROB-04**: Guest loops and JAM have tested progress/stop behavior, including the adapter's observable halt policy; any reproduced library/host contract violation receives a minimized regression and correction or explicit rescoping.
 
 ### Product direction
 
@@ -83,10 +83,10 @@ Every approved v4 requirement maps to exactly one phase in [ROADMAP.md](ROADMAP.
 | CONF-02 | Phase 17 | Complete |
 | CONF-03 | Phase 17 | Complete |
 | CONF-04 | Phase 17 | Complete |
-| ROB-01 | Phase 18 | Pending |
-| ROB-02 | Phase 18 | Pending |
-| ROB-03 | Phase 18 | Pending |
-| ROB-04 | Phase 18 | Pending |
+| ROB-01 | Phase 18 | Complete |
+| ROB-02 | Phase 18 | Complete |
+| ROB-03 | Phase 18 | Complete |
+| ROB-04 | Phase 18 | Complete |
 | DIR-01 | Phase 16 | Complete |
 | DIR-02 | Phase 16 | Complete |
 

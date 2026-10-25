@@ -3,20 +3,19 @@ gsd_state_version: "1.0"
 milestone: v4
 milestone_name: Measured NTSC accuracy and robustness
 current_phase: 18
-current_phase_name: Execution and lifecycle robustness
-current_plan: 4
-status: verifying
-stopped_at: Completed 18-04-PLAN.md
-last_updated: "2026-10-24T23:36:21.249Z"
-state_head: 23ef1a05e8dfbd1ffc7958c1ec60509597e26891
+current_plan: Not started
+status: completed
+stopped_at: Phase 18 complete — all phases complete
+last_updated: "2026-10-25T01:58:53.954Z"
+state_head: "0bc644288cadd4cdfebac0b0d6188f6709f66fb0"
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 21
   completed_plans: 21
-  percent: 67
+  percent: 100
 last_activity: 2026-10-24
-last_activity_desc: Phase 18 Plan 18-04 bounded campaign controls and exact-head CI/Nightly passed; phase verification is next
+last_activity_desc: Phase 18 independently verified (4/4 ROB requirements) and marked complete; milestone v4 audit is next
 ---
 
 # Project State
@@ -25,21 +24,21 @@ last_activity_desc: Phase 18 Plan 18-04 bounded campaign controls and exact-head
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-24, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 18 — Execution and lifecycle robustness.
+Current focus: milestone v4 closeout — all three phases complete.
 
 ## Current Position
 
-Phase: 18 (Execution and lifecycle robustness) — EXECUTING
-Current Plan: 4
+Phase: 18
+Current Plan: Not started
 Total Plans in Phase: 4
-Status: Plan execution complete; phase verification pending
-Progress: [███████░░░] 67% of milestone phases (2/3)
-Written plans: 21 total; all 21 plans have summaries and Phase 18 awaits independent verification.
+Status: All phases complete
+Progress: [██████████] 100% of milestone phases (3/3)
+Written plans: 21 total; all 21 plans have summaries; Phase 18 is independently verified.
 
 Phase 17 is complete: four sequential plans, 38/38 independently verified
 roadmap/plan truths, all 15 locked decisions honored, and CONF-01 through
-CONF-04 Complete. Phase 18 Plans 18-01 through 18-04 are complete; Phase 18
-goal verification remains.
+CONF-04 Complete. Phase 18 is complete: four plans, independent goal verification
+passed 4/4 (ROB-01 through ROB-04 Complete), review findings WR-01..WR-05 fixed.
 
 ## Phase 18 Planning
 
@@ -63,8 +62,9 @@ goal verification remains.
   measured useful execution reach across all six families and added 24 core
   functions beyond the loader corpora. Plan 18-03 completed loop/JAM and adapter
   checks; Plan 18-04 completed measured replay/campaign budgets, evidence
-  controls and the scoped presentation correction. ROB-01 through ROB-04 remain
-  unchecked pending independent Phase 18 goal verification.
+  controls and the scoped presentation correction. Independent verification
+  ([18-VERIFICATION.md](phases/18-execution-and-lifecycle-robustness/18-VERIFICATION.md))
+  passed and ROB-01 through ROB-04 are Complete.
 
 ## Phase 17 Evidence
 
@@ -157,16 +157,16 @@ goal verification remains.
 
 ## Next Action
 
-Run independent Phase 18 goal verification using the completed Plan 18-01
-through 18-04 summaries and exact-host evidence. Keep ROB-01 through ROB-04
-pending until the verifier confirms each requirement.
+Audit milestone v4 against its original intent (`/gsd-audit-milestone`), then
+complete the milestone. Deliver Phase 18 through its PR after exact-head Nightly
+40150888217 finishes.
 Review/deliver Phase 17 through draft PR #54 using the normal PR workflow.
 Do not re-execute completed plans.
 
 ## Session
 
 Last session: 2026-10-24T23:36:21.005Z
-Stopped at: Completed 18-04-PLAN.md
+Stopped at: Phase 18 complete — all phases complete
 Resume file: None
 
 [16-RECOVERY.md](phases/16-host-evidence-and-roadmap/16-RECOVERY.md) remains the

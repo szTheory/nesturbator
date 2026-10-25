@@ -50,7 +50,7 @@ Establish trustworthy current-host evidence, a complete pinned NTSC conformance 
 
 - [x] **Phase 16: Host evidence and roadmap** — Current RetroArch checks reject known wrong behavior, and milestone direction has a recurring operating contract. (completed 2026-10-23)
 - [x] **Phase 17: Complete pinned conformance baseline** — Every AccuracyCoin entry is inventoried and each scored test has an honest bounded outcome. (completed 2026-10-24)
-- [ ] **Phase 18: Execution and lifecycle robustness** — Accepted generated programs exercise all supported board families with bounded replay, sanitizer evidence and explicit stop behavior.
+- [x] **Phase 18: Execution and lifecycle robustness** — Accepted generated programs exercise all supported board families with bounded replay, sanitizer evidence and explicit stop behavior. (completed 2026-10-24)
 
 ## Phase Details
 
@@ -163,7 +163,7 @@ Plans:
   3. Normal CI replays a fixed permitted/generated corpus, while finite nightly sanitizer campaigns retain deterministic crash/timeout reproducers under measured time, memory and execution budgets selected from throughput/coverage evidence. Findings are minimized; a zero-finding campaign is reported only as finite evidence.
   4. Automated guest-loop and JAM cases demonstrate the documented progress/stop outcomes, including the adapter's observable halt policy. Every reproduced library/host contract violation has a minimized regression and correction or an explicit scope amendment; unexpected major repair/architecture scope is never silently absorbed or waived.
 
-**Plans**: 4/4 plans executed
+**Plans**: 4/4 plans complete
 
 Plans:
 **Wave 1**
@@ -191,7 +191,7 @@ Closeout stays within Phase 18 and the normal milestone lifecycle: retain measur
 |-------|-----------|----------------|--------|-----------|
 | 16. Host evidence and roadmap | v4 | 13/13 | Complete    | 2026-10-23 |
 | 17. Complete pinned conformance baseline | v4 | 4/4 | Complete    | 2026-10-24 |
-| 18. Execution and lifecycle robustness | v4 | 4/4 | In Progress | - |
+| 18. Execution and lifecycle robustness | v4 | 4/4 | Complete    | 2026-10-24 |
 
 ## Backlog disposition
 
