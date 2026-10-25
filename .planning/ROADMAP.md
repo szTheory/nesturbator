@@ -75,11 +75,13 @@ Each phase merges by pull request into a green `main` and is released automatica
   2. `libretro.runahead` shows that run-ahead across a JAM gives the same picture and silence as running without run-ahead.
   3. The `Sprite 0 Hit behavior` and `Arbitrary Sprite zero` rows report pass in `accuracy.scoreboard`, within the 1800-frame cap, and owned `ppu.sprites` tests show the hit on its dot and the first sprite evaluated acting as sprite 0 at any OAM index.
   4. Every row that passes on `main` today still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane; any frame hash the sprite-0 fix moves is re-pinned in the same change with its reason.
-**Plans**: 4 plans
-- [ ] 19-01-PLAN.md — AccuracyCoin names a guest JAM (`guest-jam`, `jam_frame`, `accuracycoin.jam`, attribution-dropped controls)
-- [ ] 19-02-PLAN.md — run-ahead across a JAM keeps the frozen picture and silence (adapter cache tag, `libretro.runahead` JAM image)
-- [ ] 19-03-PLAN.md — owned sprite tests first, then OAMADDR reset and evaluation from OAMADDR (behaviour revision 7)
-- [ ] 19-04-PLAN.md — re-record scoreboard and activation baseline, D-11 guard, correct the research record
+**Plans**: 6 plans
+- [ ] 19-01-PLAN.md — AccuracyCoin names a guest JAM in the execution stage (`guest-jam`, `jam_frame`, `accuracycoin.jam`, attribution-dropped controls)
+- [ ] 19-02-PLAN.md — guest JAM named in earlier stages and strict mode; tracer pin and README
+- [ ] 19-03-PLAN.md — run-ahead across a JAM keeps the frozen picture and silence (adapter cache tag with timeline identity, `libretro.runahead` JAM image)
+- [ ] 19-04-PLAN.md — owned sprite tests first, then the OAMADDR reset with its campaign diff
+- [ ] 19-05-PLAN.md — evaluation from OAMADDR with the dot-66 identity, driver re-target, behaviour revision 7
+- [ ] 19-06-PLAN.md — re-record scoreboard and activation baseline, D-11 guard, correct the research record
 **Canonical refs**: [CONFORMANCE.md](preparation/CONFORMANCE.md), [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/FEATURES.md](research/FEATURES.md) (G5, JAM), [research/PITFALLS.md](research/PITFALLS.md) (#8, #9, #15, #16), [research/SUMMARY.md](research/SUMMARY.md) (steps 0–2, 7)
 
 Note: the sprite-0 basic-hit cause is not isolated yet; a trace of subtest 1 settles it before any fix. Sprite-0 lands in its own pull request, before the NMI model changes, so a moved row is attributable.

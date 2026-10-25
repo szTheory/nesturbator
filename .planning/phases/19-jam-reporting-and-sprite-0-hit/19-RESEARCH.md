@@ -273,7 +273,7 @@ Today `frame_and_sample` returns `int` built from `accuracy_frame(...) == NESTUR
 
 Walkthrough with depth N=2 and JAM frame J: at real state frame_number J-2, the speculative runs complete frame J-1 (cache tag J-1) and then jam; instance frame_number is J-1 (unchanged by the jammed call), tag matches, so the frozen picture is shown. Loading the saved state restores J-2 without touching the cache; the real tick then reproduces J-1 normally. At or after J the latched state loads with frame_number J-1, tag J-1 stays, picture is `video[J-1]`, which equals what a no-run-ahead run shows. [ASSUMED: derived by reasoning from src/frame.c semantics; the D-17 oracle assertions are exactly what will confirm it]
 
-Residual risk (cosmetic, JAM only): a frame number can recur on a diverged timeline (rewind then different input), so a tag match could show a picture from the other timeline. Acceptable; record it in the adapter comment.
+Residual (closed in planning): a frame number can recur on a diverged timeline (rewind or another save slot, then different input), so a frame_number-only tag could show a picture from the other timeline. Plan 19-03 closes it with a timeline identity in the tag: the adapter records the state CRC (header offset 28) of the state each converted frame produced and of the jammed state reached from it, keeps the timeline on a load of one of those states and moves to a new generation otherwise. A generation bumped on every load would break run-ahead, and recording only in `retro_serialize` would miss RetroArch's second instance, which never serializes. `libretro.host` pins the diverged-timeline case.
 
 ### Anti-Patterns to Avoid
 
@@ -434,14 +434,13 @@ The existing page tests run through `cmake/expect_output.cmake` with `-DCMD=...;
 | A4 | `NESTURBATOR_ERR_ARGUMENT` (or a local sentinel) is acceptable as the non-JAM failure mapping from `frame_and_sample` | Pattern 2 | Cosmetic; any non-OK, non-JAM value works |
 | A5 | Strict-mode JAM message can be asserted in-process without spawning the CLI | Code Examples | Test design only; fallback is a thin hook or a captured stderr pipe |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does the real-tree campaign agree with the scratch campaign?**
+1. **Does the real-tree campaign agree with the scratch campaign?** RESOLVED: settled by measurement, not by this research.
    - Known: raw bytes agree between baseline and prototype for all rows except the nine listed.
-   - Unclear: the final counts and `terminal_scored_rows` until run with git and `NESTURBATOR_ACCURACYCOIN_FULL=ON`.
-   - Recommendation: schedule the campaign run in commit 4 (D-04 alone) and again in commit 5/6, and record each diff.
-2. **Per-commit gates vs the fingerprint.** Which intermediate commits must be green under `accuracycoin.activation`? Recommendation: treat only the final commit and the squash result as gated; use `ctest -E accuracycoin.activation` for intermediate commits.
-3. **Is D-05(c) necessary on its own?** Not isolated; the prototype included it. Low value to isolate; keep it per D-05.
+   - Resolution: the full campaign runs in the real tree after commit 4 (Plan 19-04 Task 2) and after commit 5 (Plan 19-05 Task 3), each diff recorded in that plan's SUMMARY; Plan 19-06 Task 1 regenerates the scoreboard from the measured report and Task 2 takes every count and provenance hash from it. The predicted counts are a cross-check only.
+2. **Per-commit gates vs the fingerprint.** RESOLVED: only the final fingerprint-touching commit (D-20 commit 6, Plan 19-06 Task 2) and the squash result are gated by `accuracycoin.activation`; every earlier plan verifies with `ctest -E '^accuracycoin\.activation$'`, and Plan 19-06 Task 3 runs the full `ci` and `asan` workflows on the final commit.
+3. **Is D-05(c) necessary on its own?** RESOLVED: keep it as locked in D-05 (Plan 19-05 Task 1). It is a no-op for aligned OAMADDR and was part of the prototype that passed the rows; isolating it has low value.
 
 ## Environment Availability
 
