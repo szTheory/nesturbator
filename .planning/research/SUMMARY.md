@@ -26,7 +26,7 @@ Key risks: patching rows one at a time breaks neighbours (PITFALLS #1); blanket 
 - **G2, NMI edge:** `NMI Control` (`0x22`, subtests 8 and 9), `NMI Timing`, `NMI Suppression`, `NMI at VBlank end`, `NMI disabled at VBlank` (all `0x06`). High complexity; the central change.
 - **G3, I-flag latency:** `Interrupt flag latency` (`0x0a`). CLI, SEI and PLP take effect one instruction late; RTI takes effect at once.
 - **G4, hijack:** `NMI Overlap BRK` (`0x0a`), `NMI Overlap IRQ` (`0x06`). The vector is chosen after cycle 4 of 7.
-- **G5, sprite 0:** `Sprite 0 Hit behavior` (basic hit missing, `0x06`) and `Arbitrary Sprite zero` (timeout `0x03`, see Disagreements).
+- **G5, sprite 0:** `Sprite 0 Hit behavior` (`0x06`) and `Arbitrary Sprite zero` (timeout `0x03`). Superseded by Phase 19: the basic hit already worked and both rows were re-run artifacts of a stale OAMADDR; both pass now.
 - **JAM:** no ROM-side signal exists. The library returns `NESTURBATOR_STOP_JAM`; the runner must attribute it.
 - **Anti-features:** per-row special cases; raising the 1800-frame cap (`budgets.txt` rejects it); fixing neighbour rows (DMA, `Misaligned OAM`); game-specific NMI hacks; setting sprite-0 on any pixel.
 
@@ -36,7 +36,7 @@ Key risks: patching rows one at a time breaks neighbours (PITFALLS #1); blanket 
 - `bus.c cycle()`: edge-detect `nmi_line` against `nmi_prev` (the field exists and is unused) and latch `nmi_pending`. Add penultimate-cycle polls for NMI, IRQ and the I flag.
 - `cpu.c`: one shared `interrupt_entry` for NMI, IRQ and BRK, replacing the three copies at 496-525 and 1046-1054. Decide from polled values, not live `p`.
 - Sprite 0: move the hit test out of the `video_output` gate; identity follows the first sprite in range (PITFALLS #9).
-- State: new fields bump `NESTURBATOR_STATE_FORMAT_VERSION` to 2; behaviour revision goes from 6 to 7. `ppu.c` must not call `cpu.c` (link trap).
+- State: new fields bump `NESTURBATOR_STATE_FORMAT_VERSION` to 2; behaviour revision goes from 6 to 7 (revised: Phase 19 takes 7 and Phase 20 takes 8). `ppu.c` must not call `cpu.c` (link trap).
 
 ### Pitfalls (PITFALLS.md)
 1. One NMI-line model, not per-row patches; fix the order inside a CPU cycle once, in a comment.
@@ -85,7 +85,7 @@ One build order, which supersedes the three orders in the source files (see Disa
 
 | Issue | Positions | Resolution (better supported) |
 |---|---|---|
-| **(a) `Arbitrary Sprite zero`** | FEATURES: the `0x03` timeout is a budget artifact. Run to 8000 frames, it ends `fail 0x06`, the same missing basic hit. ARCHITECTURE: the timeout is a wait loop that spins because of slot-order return. STACK: it may clear from `$2002` timing, otherwise it is its own fix. | **FEATURES.** It is the only measured result (local observe runs). ARCHITECTURE's slot-order cause is a hypothesis. Both rows share the basic-hit fault, so fix that first (step 2). Do not raise the cap (`budgets.txt`). |
+| **(a) `Arbitrary Sprite zero`** (superseded by Phase 19 D-01/D-02: measured cause is a stale OAMADDR after `Misaligned OAM behavior` fails, not a missing basic hit; the row passes at 521 frames) | FEATURES: the `0x03` timeout is a budget artifact. Run to 8000 frames, it ends `fail 0x06`, the same missing basic hit. ARCHITECTURE: the timeout is a wait loop that spins because of slot-order return. STACK: it may clear from `$2002` timing, otherwise it is its own fix. | **FEATURES.** It is the only measured result (local observe runs). ARCHITECTURE's slot-order cause is a hypothesis. Both rows share the basic-hit fault, so fix that first (step 2). Do not raise the cap (`budgets.txt`). |
 | **(b) Build order: poll first or NMI line first** | FEATURES: poll seam first (smallest visible wins). STACK and ARCHITECTURE: NMI line and edge first, then poll. | **Line and edge first.** FEATURES' seam already includes the edge latch, and NMI Control 8/9 read that latch. Poll-first would latch NMI with no edge source. |
 | **(b) JAM tune-up position** | FEATURES: last (independent). PITFALLS: first. ARCHITECTURE: earliest suggested. | **First.** No hash impact, and it makes later failures diagnosable. FEATURES calls it independent but does not argue for last. |
 | **(b) Sprite-0 position** | STACK and ARCHITECTURE: after NMI, because timing sub-tests need the alignment. FEATURES: independent. PITFALLS: separate plan. | **Split.** Basic hit early (step 2); dot-exact subtests late (step 7). |

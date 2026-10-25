@@ -98,7 +98,7 @@ Each phase merges by pull request into a green `main` and is released automatica
 
 **Canonical refs**: [CONFORMANCE.md](preparation/CONFORMANCE.md), [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/FEATURES.md](research/FEATURES.md) (G5, JAM), [research/PITFALLS.md](research/PITFALLS.md) (#8, #9, #15, #16), [research/SUMMARY.md](research/SUMMARY.md) (steps 0–2, 7)
 
-Note: the sprite-0 basic-hit cause is not isolated yet; a trace of subtest 1 settles it before any fix. Sprite-0 lands in its own pull request, before the NMI model changes, so a moved row is attributable.
+Note: the basic hit already worked; the `0x06` sprite rows were guest re-run artifacts of a stale OAMADDR (never cleared during rendering, evaluation started at slot 0), fixed in behaviour revision 7 (D-01/D-02). Sprite-0 lands in its own pull request, before the NMI model changes, so a moved row is attributable.
 
 ### Phase 20: NMI line and VBlank flag
 

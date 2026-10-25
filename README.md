@@ -143,13 +143,14 @@ The final measured campaign uses caps of 32 boot frames, 5 navigation frames
 per page change, 2 attributed press/release frames, and 1800 execution frames;
 its page, collection and CTest wall limits are 15, 10 and 370 seconds. The 15-
 second child deadline is based on hosted page measurements up to 6.336 seconds;
-the separate guest-frame cap still defines the expected page-19 guest timeout.
+the separate guest-frame cap still defines a guest timeout on any page.
 The actual report and per-page diagnostics are retained under
 `build/ci/accuracycoin/full/`. That run attributed all 22 starts and observed all
-146 scored bytes, with 101 pass, 42 fail, 0 skip, 2 not-run and 1 guest timeout;
-five DRAW entries remain outside the denominator. The two not-run rows have no
-observed result byte; the active `$03` row is a guest timeout, while a noncurrent
-`$03` marker is not-run.
+146 scored bytes, with 108 pass, 38 fail, 0 skip, 0 not-run and 0 guest timeout;
+five DRAW entries remain outside the denominator. Page 19 now completes inside
+the cap (`Sprite 0 Hit behavior` and `Arbitrary Sprite zero` pass); a guest
+timeout or a not-run row is still reported as such when one occurs, and the
+activation check fails on any timeout row.
 See [`tests/accuracy/budgets.txt`](tests/accuracy/budgets.txt)
 and [`tests/accuracy/measurements.md`](tests/accuracy/measurements.md) for the
 source identity, cap rationale, timing sensitivity and CI placement input.
@@ -212,7 +213,7 @@ row from that same commit's ROM manifest. Once main carries the full campaign
 metadata, the fetcher verifies the 146-row scoreboard hash,
 status counts, inventory identity and both ROM manifest entries against that
 one commit, then projects only its measured PASS rows into the protected
-verifier's 101-row input. Failed, skipped, not-run and timed-out rows remain in
+verifier's 108-row input. Failed, skipped, not-run and timed-out rows remain in
 the canonical measured scoreboard and cannot become protected passes. The
 handoff binds the projection to the exact fetched revision. Missing, unfetchable,
 empty, malformed or mismatched authority fails the job; CI never falls back to
@@ -221,9 +222,9 @@ candidate files. Detached local runs use the complete 17-row
 `scoreboard-main-metadata.txt` identity. On every lane, the protected observer
 derives the new-pin pages from the PASS keys in the fetched baseline and
 measures those pages during that invocation. Same-pin protection therefore
-scales with the accepted PASS set: after main adopts the current pin, all 101
+scales with the accepted PASS set: after main adopts the current pin, all 108
 protected passes are remeasured, including keys outside pages 2, 14 and 17.
-Those 101 keys currently span 19 of the new pin's 22 pages. Cross-pin checks
+Those 108 keys currently span 19 of the new pin's 22 pages. Cross-pin checks
 still use the exact source-backed migration row, the retained old-pin controls,
 and a fresh mapped observation. Protected page children have a 30-second outer
 deadline and keep the 1800 guest-frame cap; the maximum setup envelope is 25
@@ -236,12 +237,12 @@ Normal CI also mutates the production evidence/verdict inputs to prove that a
 claimed pass cannot hide measured fail, skip, not-run or timeout states, absent
 raw evidence, a removed protected key, a candidate-only pin edit, a mixed
 protected revision or a missing/disguised migration disposition. The primary
-Linux full lane builds a post-merge 101-PASS baseline control, freshly observes
+Linux full lane builds a post-merge 108-PASS baseline control, freshly observes
 all required pages, and confirms that both an outside-page key and a formerly
 changed-meaning key fail the same-pin verdict when their measured result
 changes. It retains source-defined pass variants such as PPU Read Buffer `$41`,
 and rejects a malformed neighboring code. The fetcher is exercised against owned local Git
-repositories for exact commit handoff, canonical 146-row/101-PASS projection,
+repositories for exact commit handoff, canonical 146-row/108-PASS projection,
 scoreboard-hash mismatch, missing/empty authority, invalid metadata and the
 same-revision legacy-manifest fallback; these tests do not
 depend on a network service.

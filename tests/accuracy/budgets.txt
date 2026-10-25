@@ -16,8 +16,9 @@ Guest-frame caps per cold-page attempt:
 Measured execution cap selection:
   longest completed page: page 18, 1463 execution frames
   completed-page margin to 1800: 337 frames (23.0% of the observed maximum)
-  page 19: one source-qualified active test remained $03 at the 1800-frame cap;
-    this is an expected guest timeout, not a reason to enlarge the cap
+  page 19: completes in 521 execution frames since Phase 19 (behaviour revision 7);
+    before, a test stuck at $03 timed out at the cap because of a stale OAMADDR
+    (see measurements.md). The cap and its basis are unchanged
 
 Outer wall bounds:
   each page child: 15 seconds
