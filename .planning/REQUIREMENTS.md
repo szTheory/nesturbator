@@ -53,12 +53,23 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| NMI-01 | Phase 20 | Pending |
+| NMI-02 | Phase 20 | Pending |
+| INT-01 | Phase 21 | Pending |
+| INT-02 | Phase 21 | Pending |
+| SPR-01 | Phase 19 | Pending |
+| SPR-02 | Phase 19 | Pending |
+| KEEP-01 | Phase 21 | Pending |
+| KEEP-02 | Phase 20 | Pending |
+| KEEP-03 | Phase 20 | Pending |
+| JAM-01 | Phase 19 | Pending |
+| JAM-02 | Phase 19 | Pending |
 
 **Coverage:**
 - v5 requirements: 11 total
-- Mapped to phases: 0
-- Unmapped: 11
+- Mapped to phases: 11
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-10-25*
-*Last updated: 2026-10-25 after initial definition*
+*Last updated: 2026-10-25 after v5 roadmap creation*

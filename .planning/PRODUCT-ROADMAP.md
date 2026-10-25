@@ -19,7 +19,7 @@ Only `committed` items are current scope. Other statuses are `proposed`, `shippe
 
 ## Immediate
 
-RM-004 is committed for v5, together with the recurring SEED-006 tune-up (AccuracyCoin JAM attribution and a run-ahead-under-JAM test, both carried v4 debt). Requirements are in [REQUIREMENTS.md](REQUIREMENTS.md); phases start at 19. The shipped v4 rows stay below as the record.
+RM-004 is committed for v5, together with the recurring SEED-006 tune-up (AccuracyCoin JAM attribution and a run-ahead-under-JAM test, both carried v4 debt). Requirements are in [REQUIREMENTS.md](REQUIREMENTS.md); Phases 19–21 in [ROADMAP.md](ROADMAP.md). The shipped v4 rows stay below as the record.
 
 | ID | Status | Outcome | Milestone, release and acceptance evidence |
 |---|---|---|---|

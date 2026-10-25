@@ -6,6 +6,7 @@
 - ✅ **v2 Most of the library plays** — Phases 5–10 (shipped 2026-10-11) — [archive](milestones/v2-ROADMAP.md)
 - ✅ **v3 Save states and rewind** — Phases 11–15 (shipped 2026-10-13) — [archive](milestones/v3-ROADMAP.md)
 - ✅ **v4 Measured NTSC accuracy and robustness** — Phases 16–18 (shipped 2026-10-24) — [archive](milestones/v4-ROADMAP.md)
+- 🚧 **v5 NMI, VBlank and sprite-0 timing** — Phases 19–21 (scope approved 2026-10-25)
 
 ## Phases
 
@@ -53,7 +54,69 @@
 
 </details>
 
-Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The next milestone continues at Phase 19.
+### v5 — NMI, VBlank and sprite-0 timing
+
+A game's frame loop and status-bar splits time out exactly as they do on an NTSC console. Eleven AccuracyCoin rows at pin `6bee919` move to pass; the 101 rows that pass today keep passing. Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+
+- [ ] **Phase 19: JAM reporting and sprite-0 hit** - AccuracyCoin names a guest JAM, and sprite-0 hit lands on the console's line
+- [ ] **Phase 20: NMI line and VBlank flag** - `$2002` reads and `$2000` writes around VBlank give the console's flag and NMIs, and save states carry the new latches
+- [ ] **Phase 21: Interrupt latency and hijack** - IRQs start on the console's instruction and an NMI takes over BRK or IRQ as on the console
+
+## Phase Details
+
+Each phase merges by pull request into a green `main` and is released automatically. Behaviour changes land with tests in `cmake --workflow --preset ci`, README and `nesturbator.h` comments. One NMI-line and interrupt-poll model serves every row; no row or title gets a special case, the 1800-frame AccuracyCoin cap stays, and no blargg ROM is committed.
+
+### Phase 19: JAM reporting and sprite-0 hit
+**Goal**: A developer reading an AccuracyCoin run sees a guest JAM named as a JAM, and a game's sprite-0 status-bar split lands on the console's line.
+**Depends on**: Phase 18 (JAM stop contract, AccuracyCoin baseline at `6bee919`)
+**Requirements**: JAM-01, JAM-02, SPR-01, SPR-02
+**Success Criteria** (what must be TRUE):
+  1. A developer running `cmake --workflow --preset ci` sees an AccuracyCoin run that stops on a guest JAM reported as `guest-jam`, and a control that drops the JAM attribution fails.
+  2. `libretro.runahead` shows that run-ahead across a JAM gives the same picture and silence as running without run-ahead.
+  3. The `Sprite 0 Hit behavior` and `Arbitrary Sprite zero` rows report pass in `accuracy.scoreboard`, within the 1800-frame cap, and owned `ppu.sprites` tests show the hit on its dot and the first sprite evaluated acting as sprite 0 at any OAM index.
+  4. Every row that passes on `main` today still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane; any frame hash the sprite-0 fix moves is re-pinned in the same change with its reason.
+**Plans**: TBD
+**Canonical refs**: [CONFORMANCE.md](preparation/CONFORMANCE.md), [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/FEATURES.md](research/FEATURES.md) (G5, JAM), [research/PITFALLS.md](research/PITFALLS.md) (#8, #9, #15, #16), [research/SUMMARY.md](research/SUMMARY.md) (steps 0–2, 7)
+
+Note: the sprite-0 basic-hit cause is not isolated yet; a trace of subtest 1 settles it before any fix. Sprite-0 lands in its own pull request, before the NMI model changes, so a moved row is attributable.
+
+### Phase 20: NMI line and VBlank flag
+**Goal**: A game that reads `$2002` or toggles NMI around the start or end of VBlank gets the console's flag value and exactly the console's NMIs, and its save states hold through that race.
+**Depends on**: Phase 19 (sprite-0 settled so NMI regressions are attributable)
+**Requirements**: NMI-01, NMI-02, KEEP-02, KEEP-03
+**Success Criteria** (what must be TRUE):
+  1. The `$2002 flag timing`, `NMI Timing`, `NMI Suppression`, `NMI Control`, `NMI at VBlank end` and `NMI disabled at VBlank` rows report pass in `accuracy.scoreboard`, and owned `tests/ppu` reproducers for the `$2002`/`$2000` dots around VBlank start and end, written before the fix with expected values from NESdev and AccuracyCoin error codes, pass in `ci`, including the extra NMI from a `$00` then `$80` write that Bases Loaded II relies on.
+  2. A developer running `cmake --workflow --preset ci` on any of the six platforms gets identical frame and audio hashes; each hash that moved was re-pinned in the change that moved it, with its reason beside it.
+  3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
+  4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
+**Plans**: TBD
+**Canonical refs**: [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [DECISIONS.md](preparation/DECISIONS.md), [CONFORMANCE.md](preparation/CONFORMANCE.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (section 1, state), [research/FEATURES.md](research/FEATURES.md) (G1, G2), [research/PITFALLS.md](research/PITFALLS.md) (#1, #2, #3, #6, #7, #10, #12), [research/SUMMARY.md](research/SUMMARY.md) (steps 3–4)
+
+Note: the NMI line and its edge latch come before the penultimate-cycle poll, which reads that latch; both may share one pull request if the reproducers check each step. Test whether AccuracyCoin needs a CPU/PPU alignment constant before adding one.
+
+### Phase 21: Interrupt latency and hijack
+**Goal**: A game's IRQ starts on the same instruction as on the console, and an NMI arriving during BRK or an IRQ takes over its vector as on the console.
+**Depends on**: Phase 20 (NMI edge latch and poll)
+**Requirements**: INT-01, INT-02, KEEP-01
+**Success Criteria** (what must be TRUE):
+  1. The `Interrupt flag latency`, `NMI Overlap BRK` and `NMI Overlap IRQ` rows report pass in `accuracy.scoreboard`, and owned `tests/cpu` reproducers for the CLI, SEI, PLP, RTI and branch polls and for NMI at each cycle of BRK and IRQ, written before the fix with expected values from NESdev and AccuracyCoin error codes, pass in `ci`.
+  2. All eleven v5 rows report pass at `6bee919` and every row that passed before v5 still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
+  3. `cpu.vectors`, the nightly blargg MMC3 lane, Holy Mapperel and `runner.boot_to_play` stay green with the shared NMI, IRQ and BRK entry in place.
+  4. A state saved in the middle of a BRK, IRQ or NMI sequence loads back to the same run in `core.state_fork.*` and `libretro.runahead`, and moved hashes stay identical on all six platforms.
+**Plans**: TBD
+**Canonical refs**: [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [CONFORMANCE.md](preparation/CONFORMANCE.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (shared `interrupt_entry`), [research/FEATURES.md](research/FEATURES.md) (G3, G4), [research/PITFALLS.md](research/PITFALLS.md) (#4, #5, #6, #11), [research/SUMMARY.md](research/SUMMARY.md) (steps 5, 6, 8)
+
+## Progress
+
+**Execution order**: 19 → 20 → 21.
+
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 19. JAM reporting and sprite-0 hit | v5 | 0/TBD | Not started | - |
+| 20. NMI line and VBlank flag | v5 | 0/TBD | Not started | - |
+| 21. Interrupt latency and hijack | v5 | 0/TBD | Not started | - |
+
+Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 
 ## Backlog disposition
 

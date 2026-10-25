@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 status: planning
-last_updated: "2026-10-25T13:51:01.430Z"
+last_updated: "2026-10-25T15:00:00.000Z"
 last_activity: 2026-10-25
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,18 +19,32 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-25 at the v5 milestone start, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); phases start at 19.
+Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 19 JAM reporting and sprite-0 hit.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-10-25 — Milestone v5 started
+Phase: 19 of 21 (JAM reporting and sprite-0 hit)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-25 — v5 roadmap created (Phases 19–21, 11/11 requirements mapped)
+
+Progress: [░░░░░░░░░░] 0%
+
+## Accumulated Context
+
+### Decisions
+
+- v5 build order follows research/SUMMARY.md: JAM attribution first; each phase writes its owned reproducers before its fix so main stays green; sprite-0 in its own phase before the NMI model; NMI line and edge latch before the poll; shared interrupt entry and hijack last.
+- KEEP-02 and KEEP-03 sit in Phase 20 (hash moves, state format 2); KEEP-01 sits in Phase 21 (shared interrupt entry touches CPU vectors and the MMC3 IRQ). Every phase keeps the protected PASS set.
+
+### Blockers/Concerns
+
+- Sprite-0 basic-hit cause is not isolated; a trace of subtest 1 comes before any fix (Phase 19).
+- Whether AccuracyCoin assumes a CPU/PPU alignment constant is untested (Phase 20).
 
 ## Delivery
 
-Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merge through PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success). PR #54 is folded into #55. Record the publication of the next release in MILESTONES.md once it is observed.
+Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. v5 work is on branch `gsd/phase-19-jam-reporting-and-sprite-0-hit`.
 
 ## Deferred Items
 
@@ -47,20 +61,20 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 ## Preserved Debt
 
 - Nightly run 39993108154: vectors-full failed (not a Release gate).
-- AccuracyCoin observe records a JAM only as a generic frame failure; no AccuracyCoin JAM control.
-- No explicit run-ahead-under-JAM test in `libretro.runahead`.
+- AccuracyCoin observe records a JAM only as a generic frame failure; no AccuracyCoin JAM control. (Scheduled: Phase 19, JAM-01.)
+- No explicit run-ahead-under-JAM test in `libretro.runahead`. (Scheduled: Phase 19, JAM-02.)
 - Real-campaign minimization is proven only by controls.
 - Historical metadata warnings (16-05 command strings as paths; three Phase 17 references) do not change any verdict.
 - Preexisting `.planning/config.json` edits remain unstaged.
 
 ## Next Action
 
-Start the next milestone with `/gsd-new-milestone`. It reads PRODUCT-ROADMAP.md, presents RM-004 as preferred with the DMA cluster and RM-005 (PAL) as alternatives, and promotes only the approved scope.
+Plan Phase 19 with `/gsd-plan-phase 19` (or `/gsd-discuss-phase 19` first) on the phase branch `gsd/phase-19-jam-reporting-and-sprite-0-hit`.
 
 ## Session
 
-Last session: 2026-10-24
-Stopped at: Milestone v4 completed and archived
+Last session: 2026-10-25
+Stopped at: v5 roadmap created
 Resume file: None
 
 ## Performance Metrics
