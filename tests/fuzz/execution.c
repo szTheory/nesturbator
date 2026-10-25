@@ -1010,6 +1010,7 @@ static int nt_exec_process(const uint8_t *data, size_t size, struct nt_exec_obse
 
 /* Target acceptance is descriptor/profile/image-load only; continuation oracles are replayed
  * separately so an observed failure cannot erase evidence that the recipe was accepted. */
+#ifdef NESTURBATOR_FUZZ_REPLAY
 static int nt_exec_accept_input(const uint8_t *data, size_t size)
 {
     struct nt_exec_recipe recipe;
@@ -1054,6 +1055,7 @@ static int nt_exec_accept_input(const uint8_t *data, size_t size)
     nt_exec_free(&budget, image, image_size);
     return accepted && budget.current == 0u;
 }
+#endif
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
