@@ -4,12 +4,11 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: planning
+status: "Phase 19 shipped — PR #57"
 stopped_at: Phase 19 complete, ready to plan Phase 20
-last_updated: "2026-10-25T19:00:53.083Z"
+last_updated: "2026-10-25T19:42:18.151Z"
 last_activity: 2026-10-25
-last_activity_desc: Phase 19 complete, transitioned to Phase 20
-state_head: 62fcbf85fad2729f233580d2059b1f5fae7f5802
+state_head: 40b83a3b536b375c817e96006435085f4397e05a
 progress:
   total_phases: 3
   completed_phases: 1
@@ -30,8 +29,8 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 Phase: 20 — NMI line and VBlank flag
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-10-25 — Phase 19 complete, transitioned to Phase 20
+Status: Phase 19 shipped — PR #57
+Last activity: 2026-10-25
 
 Progress: [███░░░░░░░] 33%
 
@@ -79,7 +78,9 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 - Preexisting `.planning/config.json` edits remain unstaged.
 
 ## Next Action
+
 Open and squash-merge the Phase 19 PR, create the Phase 20 branch, then plan Phase 20 with `/gsd-plan-phase 20` (or `/gsd-discuss-phase 20` first).
+
 ## Session
 
 Last session: 2026-10-25T18:48:54.077Z
