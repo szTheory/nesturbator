@@ -77,12 +77,12 @@ Each phase merges by pull request into a green `main` and is released automatica
   3. The `Sprite 0 Hit behavior` and `Arbitrary Sprite zero` rows report pass in `accuracy.scoreboard`, within the 1800-frame cap, and owned `ppu.sprites` tests show the hit on its dot and the first sprite evaluated acting as sprite 0 at any OAM index.
   4. Every row that passes on `main` today still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane; any frame hash the sprite-0 fix moves is re-pinned in the same change with its reason.
 
-**Plans**: 0/6 plans executed
+**Plans**: 2/6 plans executed
 **Wave 1**
-- [ ] 19-01-PLAN.md — AccuracyCoin names a guest JAM in the execution stage (`guest-jam`, `jam_frame`, `accuracycoin.jam`)
+- [x] 19-01-PLAN.md — AccuracyCoin names a guest JAM in the execution stage (`guest-jam`, `jam_frame`, `accuracycoin.jam`)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 19-02-PLAN.md — guest JAM named in earlier stages and strict mode; tracer pin, README, collector and attribution-dropped controls
+- [x] 19-02-PLAN.md — guest JAM named in earlier stages and strict mode; tracer pin, README, collector and attribution-dropped controls
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 19-03-PLAN.md — run-ahead across a JAM keeps the frozen picture and silence (adapter cache tag with timeline identity, `libretro.runahead` JAM image)
@@ -136,7 +136,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 19. JAM reporting and sprite-0 hit | v5 | 0/6 | Planned     | - |
+| 19. JAM reporting and sprite-0 hit | v5 | 2/6 | In Progress | - |
 | 20. NMI line and VBlank flag | v5 | 0/TBD | Not started | - |
 | 21. Interrupt latency and hijack | v5 | 0/TBD | Not started | - |
 
