@@ -119,15 +119,15 @@ foreach(pair IN ITEMS
     "scoreboard_schema|2"
     "scoreboard_rows|146"
     "scoreboard_sha256|${canonical_scoreboard_sha256}"
-    "pass|101"
-    "fail|42"
+    "pass|108"
+    "fail|38"
     "skip|0"
-    "not_run|2"
-    "timeout|1"
+    "not_run|0"
+    "timeout|0"
     "draw|5"
     "attempted_scored_rows|146"
     "observed_scored_rows|146"
-    "terminal_scored_rows|143"
+    "terminal_scored_rows|146"
     "pages_launched|22"
     "pages_start_attributed|22"
     "pages_completed|22"
@@ -202,10 +202,40 @@ foreach(line IN LISTS scoreboard_lines)
   endif()
 endforeach()
 list(LENGTH scoreboard_keys scoreboard_count)
-if(NOT scoreboard_count EQUAL 146 OR NOT pass_count EQUAL 101 OR NOT fail_count EQUAL 42 OR
-   NOT skip_count EQUAL 0 OR NOT not_run_count EQUAL 2 OR NOT timeout_count EQUAL 1)
+if(NOT scoreboard_count EQUAL 146 OR NOT pass_count EQUAL 108 OR NOT fail_count EQUAL 38 OR
+   NOT skip_count EQUAL 0 OR NOT not_run_count EQUAL 0 OR NOT timeout_count EQUAL 0)
   message(FATAL_ERROR "canonical scoreboard counts do not match the measured campaign")
 endif()
+
+# Phase 19 (D-11): the page-19 sprite rows must pass on the canonical board, not
+# only on guest re-runs, and no row may time out (the 1800-frame cap is unchanged).
+foreach(page19_key IN ITEMS "accuracycoin/Misaligned OAM behavior"
+    "accuracycoin/Sprite 0 Hit behavior" "accuracycoin/Arbitrary Sprite zero")
+  list(FIND scoreboard_keys "${page19_key}" page19_index)
+  if(page19_index LESS 0)
+    message(FATAL_ERROR "page-19 row is missing from the canonical scoreboard: ${page19_key}")
+  endif()
+  list(GET scoreboard_lines ${page19_index} page19_line)
+  string(REPLACE "${tab}" ";" page19_fields "${page19_line}")
+  list(GET page19_fields 1 page19_status)
+  list(GET page19_fields 2 page19_raw)
+  if(page19_key STREQUAL "accuracycoin/Misaligned OAM behavior")
+    if(page19_status STREQUAL "not-run" OR page19_status STREQUAL "timeout" OR
+       page19_raw STREQUAL "0x03")
+      message(FATAL_ERROR "page-19 rule: ${page19_key} is ${page19_status}/${page19_raw}; it must run to a terminal result")
+    endif()
+  elseif(NOT page19_status STREQUAL "pass" OR NOT page19_raw STREQUAL "0x01")
+    message(FATAL_ERROR "page-19 rule: ${page19_key} is ${page19_status}/${page19_raw}; it must pass with 0x01")
+  endif()
+endforeach()
+foreach(line IN LISTS scoreboard_lines)
+  string(REPLACE "${tab}" ";" timeout_fields "${line}")
+  list(GET timeout_fields 1 timeout_status)
+  if(timeout_status STREQUAL "timeout")
+    list(GET timeout_fields 0 timeout_key)
+    message(FATAL_ERROR "page-19 rule: canonical scoreboard row timed out: ${timeout_key}")
+  endif()
+endforeach()
 
 if(FULL_ENABLED)
   if(NOT EXISTS "${FULL_REPORT}" OR IS_DIRECTORY "${FULL_REPORT}")
@@ -216,6 +246,15 @@ if(FULL_ENABLED)
     message(FATAL_ERROR "full campaign report bytes do not match the committed baseline provenance")
   endif()
   file(STRINGS "${FULL_REPORT}" report_lines)
+  get_filename_component(full_dir "${FULL_REPORT}" DIRECTORY)
+  set(page19_metadata "${full_dir}/page-19/metadata.txt")
+  if(NOT EXISTS "${page19_metadata}")
+    message(FATAL_ERROR "page-19 rule: ${page19_metadata} is missing from the full campaign")
+  endif()
+  file(STRINGS "${page19_metadata}" page19_meta_lines)
+  if(NOT "verdict=complete" IN_LIST page19_meta_lines)
+    message(FATAL_ERROR "page-19 rule: page-19/metadata.txt lacks verdict=complete")
+  endif()
   set(report_count 0)
   set(report_draw_count 0)
   foreach(line IN LISTS report_lines)
@@ -240,6 +279,10 @@ if(FULL_ENABLED)
       endif()
       math(EXPR report_draw_count "${report_draw_count} + 1")
       continue()
+    endif()
+    list(GET fields 1 report_page)
+    if(report_page STREQUAL "19" AND status STREQUAL "timeout")
+      message(FATAL_ERROR "page-19 rule: full campaign row timed out: ${key}")
     endif()
     if(NOT kind STREQUAL "test" OR NOT observed STREQUAL "1" OR attempt_id STREQUAL "")
       message(FATAL_ERROR "scored campaign row lacks attempted raw provenance: ${line}")
