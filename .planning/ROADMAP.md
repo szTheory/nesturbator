@@ -76,8 +76,8 @@ Each phase merges by pull request into a green `main` and is released automatica
   3. The `Sprite 0 Hit behavior` and `Arbitrary Sprite zero` rows report pass in `accuracy.scoreboard`, within the 1800-frame cap, and owned `ppu.sprites` tests show the hit on its dot and the first sprite evaluated acting as sprite 0 at any OAM index.
   4. Every row that passes on `main` today still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane; any frame hash the sprite-0 fix moves is re-pinned in the same change with its reason.
 **Plans**: 6 plans
-- [ ] 19-01-PLAN.md — AccuracyCoin names a guest JAM in the execution stage (`guest-jam`, `jam_frame`, `accuracycoin.jam`, attribution-dropped controls)
-- [ ] 19-02-PLAN.md — guest JAM named in earlier stages and strict mode; tracer pin and README
+- [ ] 19-01-PLAN.md — AccuracyCoin names a guest JAM in the execution stage (`guest-jam`, `jam_frame`, `accuracycoin.jam`)
+- [ ] 19-02-PLAN.md — guest JAM named in earlier stages and strict mode; tracer pin, README, collector and attribution-dropped controls
 - [ ] 19-03-PLAN.md — run-ahead across a JAM keeps the frozen picture and silence (adapter cache tag with timeline identity, `libretro.runahead` JAM image)
 - [ ] 19-04-PLAN.md — owned sprite tests first, then the OAMADDR reset with its campaign diff
 - [ ] 19-05-PLAN.md — evaluation from OAMADDR with the dot-66 identity, driver re-target, behaviour revision 7

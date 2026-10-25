@@ -75,6 +75,7 @@ The owner asked for every decision point to be fanned out to the point of dimini
   - on `STOP_JAM`, show the cache when its tag equals the instance's current `frame_number`, and black otherwise. `STOP_JAM` leaves `frame_number` unchanged, and a load restores it;
   - reset, load_game and unload still invalidate, and a refused load still preserves the cache;
   - the cache stays out of the native state.
+  - **Amendment (2026-10-25, owner, plan check):** the cache tag also carries a timeline identity (state CRC); a load into a different timeline invalidates it; a misprediction that ends in a JAM on the first real frame after a load shows black — accepted residual, safe direction.
 
   This narrows Phase 18 D-10, as JAM-02 requires. The one `check_jam_presentation` assertion changes in the same commit, along with the README and the adapter comment. — **Reversibility:** reversible — adapter-local presentation policy; no state or ABI change.
 - **D-17:** The test extends `libretro.runahead` only: no new CTest name and no core-level mirror, since `tests/core/test_state.c` and the header already pin the JAM latch across save/load.
