@@ -2,9 +2,14 @@
 gsd_state_version: "1.0"
 milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
+current_phase: 19
+current_phase_name: JAM reporting and sprite-0 hit
 status: planning
-last_updated: "2026-10-25T15:00:00.000Z"
+stopped_at: Phase 19 context gathered
+last_updated: "2026-10-25T15:02:49.765Z"
 last_activity: 2026-10-25
+last_activity_desc: v5 roadmap created (Phases 19–21, 11/11 requirements mapped)
+state_head: 1418e15341c512a67fb57f33575e1ef2d489313c
 progress:
   total_phases: 3
   completed_phases: 0
@@ -73,9 +78,9 @@ Plan Phase 19 with `/gsd-plan-phase 19` (or `/gsd-discuss-phase 19` first) on th
 
 ## Session
 
-Last session: 2026-10-25
-Stopped at: v5 roadmap created
-Resume file: None
+Last session: 2026-10-25T15:02:49.751Z
+Stopped at: Phase 19 context gathered
+Resume file: .planning/phases/19-jam-reporting-and-sprite-0-hit/19-CONTEXT.md
 
 ## Performance Metrics
 
