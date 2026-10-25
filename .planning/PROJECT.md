@@ -14,7 +14,7 @@ v3 "Save states and rewind" shipped on 2026-10-13; its five phases merged as PRs
 
 v2 "Most of the library plays" shipped on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal v0.1.11 publication. The current source also registers the source-root matrix in normal POSIX CI/ASan; CI passed 650/650 with all three packages, and focused ASan passed 1/1. Nightly vectors-full remains separate unresolved debt. Phase 17 completed on 2026-10-24: all four CONF requirements and 38/38 verification truths passed. The canonical 146-scored/five-DRAW inventory has a measured 101-pass baseline with explicit nonpasses; all 17 old protections and the 101-PASS next-main transition are tested. Exact-source PR CI run [40075421001](https://github.com/szTheory/nesturbator/actions/runs/40075421001) passed all 15 jobs and primary Linux 663/663. Draft PR #54 remains unmerged. Phase 18 is ready for discussion; no execution/lifecycle prototype has started.
+Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal v0.1.11 publication. The current source also registers the source-root matrix in normal POSIX CI/ASan; CI passed 650/650 with all three packages, and focused ASan passed 1/1. Nightly vectors-full remains separate unresolved debt. Phase 17 completed on 2026-10-24: all four CONF requirements and 38/38 verification truths passed. The canonical 146-scored/five-DRAW inventory has a measured 101-pass baseline with explicit nonpasses; all 17 old protections and the 101-PASS next-main transition are tested. Exact-source PR CI run [40075421001](https://github.com/szTheory/nesturbator/actions/runs/40075421001) passed all 15 jobs and primary Linux 663/663. Draft PR #54 remains unmerged. Phase 18 completed on 2026-10-24: ROB-01 to ROB-04 passed independent 4/4 verification; the owned execution target reaches all six board families with lifecycle, campaign and JAM controls, local CI ran 669/669, and exact-head PR CI run [40150921041](https://github.com/szTheory/nesturbator/actions/runs/40150921041) passed all 15 jobs. PR #55 remains open; all v4 phases are complete and the milestone audit is next.
 
 ## Current Milestone: v4 Measured NTSC accuracy and robustness
 
@@ -59,10 +59,11 @@ Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal 
 - ✓ Four-horizon product direction and the same-step milestone opening/closeout contract are installed and source-linked; the v4 opening demonstrates the contract. — Phase 16, DIR-01/02; future boundary execution remains an ongoing obligation
 
 - ✓ The pinned AccuracyCoin inventory, bounded five-way baseline, retained old-pin comparison and same-invocation protected PASS evidence are verified. — Phase 17, CONF-01 to CONF-04; 38/38 truths, exact-source CI 663/663 and all 15 jobs
+- ✓ An owned execution fuzz/replay target runs bounded accepted programs on all six board families (mappers 0, 1, 2, 3, 4, 7) through reset, save/load and unload/reload with instance-independence and deterministic-continuation checks; CI replays the fixed corpus and finite Linux sanitizer campaigns run under pilot-measured budgets with crash, timeout, resource, collector, cancellation and minimization controls; guest loops and JAM have tested stop outcomes, and the adapter repeats the last complete frame or black with no audio on JAM. — Phase 18, ROB-01 to ROB-04; independent verification 4/4, exact-head CI run 40150921041 green on all 15 jobs
 
 ### Active
 
-- [ ] Supported accepted programs and lifecycle transitions receive bounded execution fuzzing, deterministic replay and documented loop/JAM behavior. — ROB-01 to ROB-04
+- None in v4 beyond milestone closeout; the next scope is chosen at the milestone boundary from `.planning/PRODUCT-ROADMAP.md`.
 
 ### Out of Scope
 
@@ -154,6 +155,8 @@ Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal 
 | Every `timeout-minutes` line carries the ID of the measured run it doubles, and `hygiene.timeout_comments` fails a line without one | A limit with no measurement behind it is a guess, and guessed limits cancelled healthy jobs in Phase 13 | ✓ Good — Phase 15 nightly suite-flake set to 38 min from three cold runs |
 | Separate bounded observation success from hardware PASS, and keep DRAW outside the denominator | An honest complete baseline must retain guest failures, unexecuted rows and timeouts | ✓ Phase 17 records 146 scored rows and five DRAW entries with 101 pass / 42 fail / 0 skip / 2 not-run / 1 timeout |
 | Authenticate one protected-main scoreboard revision, then require fresh unique raw evidence for its PASS set | Candidate assertions, fixed 17-key tables and aggregate sample counts cannot protect later canonical baselines | ✓ Phase 17 proves the 101-PASS next-main transition and rejects outside-page, changed-meaning same-pin, duplicate and missing-raw regressions |
+| Native `STOP_JAM` stays latched with undefined native output buffers; the libretro adapter keeps its own cached presentation outside the instance and save-state, and on JAM repeats the last complete converted frame or black with no audio | A host must see a defined picture and silence, while the library keeps its existing documented stop contract | ✓ Phase 18 `fuzz.state.jam_oracle`, `runner.save.jam` and `libretro.host` pass; stale-buffer and divergence controls fail when the fix is removed |
+| Execution fuzz budgets come from a hosted Linux pilot, with separate fuzzer, replay, memory-sampling and outer-process limits, and a zero-finding campaign is reported only as finite evidence | Guessed limits cancel healthy jobs; a clean campaign proves bounded work, not absence of bugs | ✓ Phase 18 `tests/fuzz/execution-budgets.txt`; Nightly 40148240864 campaign artifact retained with controls |
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
@@ -175,4 +178,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-24 after Phase 17 completion*
+*Last updated: 2026-10-24 after Phase 18 completion*

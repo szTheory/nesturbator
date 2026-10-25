@@ -154,6 +154,9 @@ passed 4/4 (ROB-01 through ROB-04 Complete), review findings WR-01..WR-05 fixed.
   `.planning/preparation/{CONFORMANCE,LIBRETRO-AND-RUNNER}.md` for two existing
   documents; and the absent optional `scripts/ci_monitor.cjs`, for which GitHub
   Actions API/CLI evidence was used. These are not implementation or CI gaps.
+- [Phase 18] Real-campaign minimization is proven only by controls; no real
+  campaign finding has been reduced. Exact-head Nightly 40150888217 was still
+  running at phase completion (its campaign jobs and vectors-full had passed).
 
 ## Next Action
 
@@ -165,7 +168,7 @@ Do not re-execute completed plans.
 
 ## Session
 
-Last session: 2026-10-24T23:36:21.005Z
+Last session: 2026-10-25T02:05:00Z
 Stopped at: Phase 18 complete — all phases complete
 Resume file: None
 
