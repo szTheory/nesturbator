@@ -10,25 +10,27 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 ## Current State
 
-v3 "Save states and rewind" shipped on 2026-10-13; its five phases merged as PRs #42 to #46. Their release, [v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10), published at 2026-10-13T16:53:40Z after release PR #35 merged as `da2bf973813530cb9561a004e7b774011a0a7867`. Read-only verification at 2026-10-13T16:53:46Z confirmed [publication run 38432194730](https://github.com/szTheory/nesturbator/actions/runs/38432194730) completed successfully on that exact SHA, a non-draft release, and exactly 18 platform ZIPs plus `SHA256SUMS`, all nonempty. The formatting and merge blocker recorded at milestone close is resolved; its historical observation remains in MILESTONES.md. Hosts save and load the whole machine through the library, RetroArch saves and loads states, rewinds and runs ahead with the core under a `deterministic` claim, and nes-runner writes and reads states, flushes its save on a stop signal and reports every outcome through one documented exit-status table. Speed is measured on every pull request by a Cachegrind instruction-count gate, and `--bench` prints frame-time percentiles. No frame or audio hash moved. That v3 release snapshot had 32,949 lines of C, 8,804 of them in the core library and public header, with 634 CTest tests in `ci`.
+v4 "Measured NTSC accuracy and robustness" shipped on 2026-10-24 (planning milestone; the package version is separate). Phase 16 merged as PR #50 and was published as [v0.1.11](https://github.com/szTheory/nesturbator/releases/tag/v0.1.11), with downloaded-byte, checksum, attestation and six-platform metadata evidence. Phases 17 and 18 merge through PR #55, whose exact-head CI run [40150921041](https://github.com/szTheory/nesturbator/actions/runs/40150921041) passed every check; their publication is recorded in MILESTONES.md once observed. RetroArch progression and state checks now reject dropped, doubled and wrong-load sequences. The AccuracyCoin baseline at `6bee919` classifies all 146 scored rows (101 pass, 42 fail, 2 not-run, 1 timeout, five DRAW entries kept out of the score) and protects every PASS freshly on each CI lane. An owned execution fuzz/replay target runs generated programs on all six board families with lifecycle, loop and JAM controls and finite nightly sanitizer campaigns. The tree has 39,760 lines of C, 8,979 of them in the core library and public header, with 669 CTest tests in `ci`.
 
-v2 "Most of the library plays" shipped on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
+v3 "Save states and rewind" shipped on 2026-10-13 ([v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10)), v2 "Most of the library plays" on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal v0.1.11 publication. The current source also registers the source-root matrix in normal POSIX CI/ASan; CI passed 650/650 with all three packages, and focused ASan passed 1/1. Nightly vectors-full remains separate unresolved debt. Phase 17 completed on 2026-10-24: all four CONF requirements and 38/38 verification truths passed. The canonical 146-scored/five-DRAW inventory has a measured 101-pass baseline with explicit nonpasses; all 17 old protections and the 101-PASS next-main transition are tested. Exact-source PR CI run [40075421001](https://github.com/szTheory/nesturbator/actions/runs/40075421001) passed all 15 jobs and primary Linux 663/663. Draft PR #54 remains unmerged. Phase 18 completed on 2026-10-24: ROB-01 to ROB-04 passed independent 4/4 verification; the owned execution target reaches all six board families with lifecycle, campaign and JAM controls, local CI ran 669/669, and exact-head PR CI run [40150921041](https://github.com/szTheory/nesturbator/actions/runs/40150921041) passed all 15 jobs. PR #55 remains open; all v4 phases are complete and the milestone audit is next.
+## Next Milestone Goals
 
-## Current Milestone: v4 Measured NTSC accuracy and robustness
+Proposed, not yet approved; `/gsd-new-milestone` decides. The direction is in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+
+- **Preferred — RM-004:** NMI/VBlank and sprite-0 timing match the console. That means the 11 named failing AccuracyCoin rows pass at `6bee919` with no lost PASS.
+- **Alternative cluster:** the eight DMA rows (DMC/OAM DMA conflicts and aborts, `$4015` reads).
+- **Alternative milestone — RM-005:** PAL timing and pitch. It is held behind RM-004 because the NTSC baseline shows broad timing gaps.
+- **Tune-up (SEED-006):** AccuracyCoin JAM attribution and a run-ahead-under-JAM test, carried from the v4 audit.
+
+<details>
+<summary>v4 milestone definition (archived)</summary>
 
 **Goal:** Establish a complete pinned NTSC conformance inventory, host tests that reject known wrong behavior, and bounded execution robustness evidence for the supported core; use those measurements to choose the next accuracy or regional milestone.
 
-**Target features:**
-- Discriminating RetroArch state/progression checks, safe command confirmation, exact fixture selection and truthful MMC3 metadata.
-- A complete AccuracyCoin inventory and bounded baseline, with the pin, compressed-name decoder and protected-key migration validated together.
-- Accepted-program execution/lifecycle fuzzing with deterministic corpus replay, finite sanitizer campaigns and explicit loop/JAM outcomes.
-- A rolling Immediate/Near/Mid/Long product roadmap refreshed at every milestone start and closeout.
+**Selected seeds:** SEED-003's baseline portion, SEED-004's remaining execution-robustness portion and the bounded recurring SEED-006 tune-up. Full record: [milestones/v4-ROADMAP.md](milestones/v4-ROADMAP.md).
 
-**Direction:** [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md) keeps future priorities, evidence and promotion triggers. The active execution contract remains [ROADMAP.md](ROADMAP.md). User-approved scope is three phases, beginning at Phase 16; PAL/Dendy, new boards, expansion audio, FDS and an all-pass accuracy obligation remain outside v4.
-
-**Selected seeds:** SEED-003's baseline portion, SEED-004's remaining execution-robustness portion and the bounded recurring SEED-006 tune-up. Already shipped seed outcomes remain credited; original seed files are preserved.
+</details>
 
 ## Requirements
 
@@ -55,15 +57,15 @@ Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal 
 - ✓ A launcher can stop nes-runner at any time without losing a save: SIGINT and SIGTERM (Ctrl+C, Ctrl+Break and console close on Windows) finish the current frame, flush the battery save and exit 0, or 1 if the flush failed or a requested output was not reached; a second signal kills at once. Every exit status is one table in `runner/exit_status.h`, printed by `--help` and checked against the README. — v3, Phase 14 (RUN-02, RUN-03; PR #45 CI run 38324782351 green on all 14 jobs)
 - ✓ Speed is visible on every pull request: `nesturbator-run --bench N` prints frames per second and p50, p90, p99, p99.9 and max frame times (`--bench-state` adds a save and load per frame) without changing a hash, and a Cachegrind `perf` job compares instructions per frame between the head and its merge base on NROM, MMC1 and MMC3, gating at +1% per ROM after two zero-spread control runs, with a reviewed, expiring allow file. Every workflow timeout is twice a measured run whose ID sits beside it (nightly suite-flake 38 min), and action pins, runner labels, the AccuracyCoin pin and the README were reviewed. — v3, Phase 15 (PERF-02, PERF-03, TUNE-10; PR #46 CI run 38357342480 green on all jobs)
 
-- ✓ Real-host progression evidence rejects known wrong sequences, confirms bounded commands and exact fixtures; actual v0.1.11 metadata truthfully describes MMC3. — Phase 16, EVID-01 to EVID-04; 22/22 verification, 18 published archive checksums/attestations and six metadata copies
-- ✓ Four-horizon product direction and the same-step milestone opening/closeout contract are installed and source-linked; the v4 opening demonstrates the contract. — Phase 16, DIR-01/02; future boundary execution remains an ongoing obligation
+- ✓ Real-host progression evidence rejects known wrong sequences, confirms bounded commands and exact fixtures; actual v0.1.11 metadata truthfully describes MMC3. — v4, Phase 16, EVID-01 to EVID-04; 22/22 verification, 18 published archive checksums/attestations and six metadata copies
+- ✓ Four-horizon product direction and the same-step milestone opening/closeout contract are installed and source-linked; the v4 opening demonstrates the contract. — v4, Phase 16, DIR-01/02; v4 closeout ran the contract (direction revision 2)
 
-- ✓ The pinned AccuracyCoin inventory, bounded five-way baseline, retained old-pin comparison and same-invocation protected PASS evidence are verified. — Phase 17, CONF-01 to CONF-04; 38/38 truths, exact-source CI 663/663 and all 15 jobs
-- ✓ An owned execution fuzz/replay target runs bounded accepted programs on all six board families (mappers 0, 1, 2, 3, 4, 7) through reset, save/load and unload/reload with instance-independence and deterministic-continuation checks; CI replays the fixed corpus and finite Linux sanitizer campaigns run under pilot-measured budgets with crash, timeout, resource, collector, cancellation and minimization controls; guest loops and JAM have tested stop outcomes, and the adapter repeats the last complete frame or black with no audio on JAM. — Phase 18, ROB-01 to ROB-04; independent verification 4/4, exact-head CI run 40150921041 green on all 15 jobs
+- ✓ The pinned AccuracyCoin inventory, bounded five-way baseline, retained old-pin comparison and same-invocation protected PASS evidence are verified. — v4, Phase 17, CONF-01 to CONF-04; 38/38 truths, exact-source CI 663/663 and all 15 jobs
+- ✓ An owned execution fuzz/replay target runs bounded accepted programs on all six board families (mappers 0, 1, 2, 3, 4, 7) through reset, save/load and unload/reload with instance-independence and deterministic-continuation checks; CI replays the fixed corpus and finite Linux sanitizer campaigns run under pilot-measured budgets with crash, timeout, resource, collector, cancellation and minimization controls; guest loops and JAM have tested stop outcomes, and the adapter repeats the last complete frame or black with no audio on JAM. — v4, Phase 18, ROB-01 to ROB-04; independent verification 4/4, exact-head CI run 40150921041 green on all 15 jobs
 
 ### Active
 
-- None in v4 beyond milestone closeout; the next scope is chosen at the milestone boundary from `.planning/PRODUCT-ROADMAP.md`.
+- None committed. The proposed next scope is in Next Milestone Goals above and is approved at `/gsd-new-milestone`.
 
 ### Out of Scope
 
@@ -74,7 +76,8 @@ Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal 
 - A separate fast or low-accuracy mode — one accurate core keeps one set of bugs and one set of hashes.
 - Signed or notarized macOS artifacts — the script install path does not need them.
 - A test framework dependency — plain CTest executables with an in-repo `check.h` cover the need.
-- PAL and Dendy timing, mappers beyond the six common families, expansion audio, FDS, extra peripherals — planned for later milestones; see `.planning/seeds/`.
+- PAL and Dendy timing, mappers beyond the six common families, expansion audio, FDS, extra peripherals — not current scope; ordered and triggered in `.planning/PRODUCT-ROADMAP.md`.
+- An all-pass AccuracyCoin obligation — accuracy work is scoped one named failure cluster at a time.
 - Submitting the core to the libretro buildbot — an outward-facing step the owner decides on separately.
 
 ## Context
@@ -85,6 +88,7 @@ Phase 16 completed on 2026-10-23 with independent 22/22 verification and normal 
 - **Known debt after v1.** Closed in Phase 5. The audit that listed it is `.planning/milestones/v1-MILESTONE-AUDIT.md`.
 - **Known debt after v2.** Listed in `.planning/milestones/v2-MILESTONE-AUDIT.md` and the v2 entry of `.planning/MILESTONES.md`; Phase 11 and Phase 15 closed G2, G6, 08 IN-02 and Backlog 999.1.
 - **Known debt after v3.** Listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and the v3 entry of `.planning/MILESTONES.md`. None of it changes released behaviour; the most substantive items are the three Phase 13 RetroArch test-robustness warnings.
+- **Known debt after v4.** Listed in `.planning/milestones/v4-MILESTONE-AUDIT.md`, the v4 entry of `.planning/MILESTONES.md` and PRODUCT-ROADMAP's carried-debt section. None of it changes released behaviour; the most substantive items are AccuracyCoin's generic JAM attribution and the missing run-ahead-under-JAM test.
 - **CI cost.** The asan job skips or shortens the long hash tests (`NESTURBATOR_SHORT_RUNS`), whose full-length hashes the build jobs and hash-equality still check. Every `timeout-minutes` is twice a measured hosted run whose ID sits beside it, and `hygiene.timeout_comments` enforces that.
 - **Reference material.** Each file below states facts with their sources. Open the one that matches the work before designing or building.
   - `.planning/preparation/README.md` — index of the files below
@@ -178,4 +182,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-24 after Phase 18 completion*
+*Last updated: 2026-10-24 after v4 milestone*
