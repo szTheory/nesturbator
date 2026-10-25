@@ -195,6 +195,50 @@ The raw eight-row family table is `build/execution-measure-plan18-04/execution-f
 | `execution-loop.json` | `fa2a34c9c6a1faabbc54b121de6018528935e1f296df408399d2aa579d1ba9ee` |
 | `execution-jam.json` | `6e251f46c20f97c25ef74aaf22b6b2a3ff383d17f92645c6b30761599bb95994` |
 
+## Review-fix replay and WR-05 tick correction
+
+The Plan 18-04 state-loader row above historically reported `guest_ticks=25,733,664`. WR-05
+confirmed that this counter summed cumulative `frame.ticks` values, including restored absolute
+origins, so that number overstated emulator work. It remains in the historical observation above
+but is superseded as a work metric; do not compare it as valid guest work. The corrected counter
+starts from the serialized state's little-endian tick origin at offset 40 and sums only each
+successful frame's `frame.ticks - previous_ticks`. A JAM stop contributes no frame-output ticks.
+
+The corrected-source matched replay was refreshed at commit
+`78bb8d84bd6b579b21c8283684cfa8593055c724` using the same Apple Clang 21, arm64 Release `-O1`,
+ASan/UBSan and LLVM coverage configuration. The reproduction command was:
+
+```sh
+cmake -DSOURCE_DIR=. -DOUTPUT_DIR=build/execution-measure-review-fix-78bb -DMODE=replay \
+  -P tests/cmake/execution_measure.cmake
+```
+
+The measurement output recorded `source_dirty=1` because the pre-existing `.planning/config.json`
+edit and this section's earlier uncommitted WR-05 record were present; neither file is in the
+eight-file measurement overlay. The config was not staged. The exact overlay SHA-256 is
+`3df856b8ca4c89dc5a81047026f3557493464bda1eef867a1d6e2dfd7549f05a`. The corpus manifest remains
+`bfd38db79d76d89206ceb67452e04260a960ed9eb75ac0da734fed6e7801edb2` (60 ROM, 17 state and 8
+execution descriptors); the execution target manifest is
+`22a9b31b9d36ca442bb6127fe2706f484fb2de7a22e1ca43e2681d7c020d39ea`.
+
+| Target | Accepted / inputs | Frames (OK / JAM) | API operations | Corrected guest ticks | Elapsed | Peak RSS | Core functions hit / linked |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| ROM loader | 11 / 60 | 0 (0 / 0) | 240 | 0 | 0.15 s | 32,636,928 B | 39 / 180 |
+| State loader | 12 / 17 | 36 (24 / 12) | 470 | 17,155,728 | 0.15 s | 48,889,856 B | 158 / 202 |
+| Execution | 8 / 8 | 32 (29 / 3) | 413 | 20,728,248 | 0.14 s | 23,232,512 B | 144 / 202 |
+
+The corrected state-loader work is 17,155,728 ticks across its 24 successful frame calls. Twelve
+latched-stop calls contribute no guest work. Execution remains at 20,728,248 ticks, and the
+replay still reaches 24 additional `src/` functions against the two loader/state corpora. Raw
+family metrics, the exact measurement overlay, logs and coverage JSON are retained under ignored
+`build/execution-measure-review-fix-78bb/`; the exported JSON hashes are:
+
+| Export | SHA-256 |
+| --- | --- |
+| `rom-loader.json` | `551f90d628cf99f997605ba4210399ae92af9851a965950796b7b60fdb0d1304` |
+| `state-loader.json` | `09c62b88a156baf036b430cabc214c831ec450f4a0794f4e45a079feacef13da` |
+| `execution.json` | `1ece7a8e2846012f0eab2885f1b24abbbc43cbf872bd2a2cb7a8cbe738b5d011` |
+
 ## Plan 18-04 hosted Linux pilot and finite campaign
 
 The Linux pilot ran on [workflow run 40129666207](https://github.com/szTheory/nesturbator/actions/runs/40129666207), source commit `694455ec7f6785b0ddd3e5126552483989fdc0e6`. It used Ubuntu 24.04 x86_64, Clang 18.1.3, Release `-O1`, ASan, UBSan and libFuzzer, with the same initial enclosure on each target: `-runs=10000 -max_total_time=5 -timeout=2 -max_len=163856 -rss_limit_mb=1024 -seed=1804`, plus a 20-second outer process timeout. Pilot artifact `execution-fuzz-evidence-40129666207` (SHA-256 `d44e31a36bcfa4357ed8bb36e6ef8b7e4372b98be75dbcf13aa209fc37b336c3`) retains its build, inputs, logs and run records.

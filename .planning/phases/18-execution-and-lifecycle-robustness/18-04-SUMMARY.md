@@ -189,3 +189,61 @@ Plan 18-04 is complete and PR #55 remains a draft, open and unmerged. Requiremen
 - Summary file exists, contains exact CI/Nightly and artifact references, and has no whitespace errors.
 - All 12 source task commits listed above are ancestors of `23ef1a05e8dfbd1ffc7958c1ec60509597e26891`.
 - `.planning/config.json` remains the only pre-existing user edit and is excluded from this plan's files and commits.
+
+## Review Findings Follow-up (2026-10-25)
+
+After the original plan close-out, source review confirmed five warnings in the campaign and
+state-loader evidence controls. The source fixes are committed in `91ca836`, `25ee82a`, `9b04024`
+and `78bb8d8`. `18-REVIEW.md` remains unchanged; the exact titles, RED/GREEN evidence and limits
+are recorded in [`18-REVIEW-FIX.md`](18-REVIEW-FIX.md), with current dispositions in
+[`18-REVIEW-DISPOSITION.md`](18-REVIEW-DISPOSITION.md).
+
+- **Minimization and collection:** Exact-source Nightly run
+  [40148240864](https://github.com/szTheory/nesturbator/actions/runs/40148240864) completed
+  successfully, including three randomized suite passes, Linux state/ROM fuzz, the bounded campaign,
+  target-specific failure reproductions, negative target/class/operation/acceptance controls, and
+  collector-copy controls. Synthetic minimization results were ROM 131,088→131,088 bytes (no
+  smaller input found), state 3→2, and execution 23→17; no real campaign finding was invented.
+  Its campaign artifact is ID `12580614764` with SHA-256
+  `d7ff6f7a93c3b33143c62c85315cde76cdf2ddf309c190d63896abd85debaf7b`. Campaign limits and
+  observed runs remain as recorded in the review-fix artifact.
+- **JAM and tick accounting:** The positive JAM oracle accepts equivalent canonical post-JAM states
+  despite poisoned, differing stale output buffers; its negative control rejects deliberately
+  divergent canonical post-JAM states with identical poison buffers. The corrected state-loader
+  matched replay records 17,155,728 ticks for 24 successful frames and zero output ticks for 12 JAM
+  calls. The earlier 25,733,664 observation remains in the historical table but is marked invalid
+  as guest work. The 24-function coverage count and 20,728,248 execution ticks were refreshed with
+  the corrected source.
+- **Exact-source CI:** PR CI
+  [40148240830](https://github.com/szTheory/nesturbator/actions/runs/40148240830) passed all 15
+  jobs on code head `78bb8d8` (merge revision `c0518a4`): six platform builds, ASan, both no-FP
+  lanes, Cachegrind, RetroArch E2E, hygiene, hash equality and required CI gates. Six platform
+  `hashes.txt` manifests compared byte-for-byte; each has SHA-256
+  `718946884e27fd589ba243a6d22296d1ac8d8e3c416d14541dcd34ebb5eb0fa1`. The hosted RetroArch tests
+  passed exact progression and negative controls, frame parity, mapper-1/MMC3 battery round trips,
+  and deterministic state save/load lanes.
+- **AccuracyCoin provenance:** The exact-source full campaign preserved all 22 pages and 146 scored
+  rows: 101 pass, 42 fail, 2 not-run, 1 timeout, and 5 inventory-only draw rows. The canonical
+  report SHA-256 remains
+  `6d0a811960f6964e7fc66802c6e4ade0c4ffb8772c40d88d50cf79e1f8463652`; the protected scoreboard
+  SHA-256 remains
+  `9e96015ca205f0ed2a351c21d7b6b0a718b26e8e6da87b84f2542adadd04279a`. The tracked
+  `tests/accuracy/baseline-metadata.txt` now records the actual clean-source campaign revision,
+  policy and elapsed time. Its activation test passed after restoring the required clean-source
+  reason field.
+- **Final local verification:** After that metadata correction, `cmake --workflow --preset ci`
+  completed with 669/669 tests and generated the library, runner and libretro ZIP packages. The
+  first post-refresh run exposed only the omitted required `source_dirty_reason`; that key was
+  restored from the clean campaign provenance, the focused activation test passed, and the full
+  workflow then passed.
+
+These follow-up fixes close only WR-01 through WR-05. Requirements ROB-01 through ROB-04 remain
+pending independent Phase 18 verification. PR #55 remains draft, open and unmerged.
+
+## Follow-up Self-Check: PASSED
+
+- The disposition lists all five original warning IDs and `18-REVIEW-FIX.md` retains their exact
+  titles and evidence; the original review file has no changes.
+- Exact-source hosted CI and Nightly runs concluded successfully, and the corrected local workflow
+  passed all 669 tests and generated all three packages.
+- `.planning/config.json` remains the pre-existing user edit and is excluded from the follow-up.
