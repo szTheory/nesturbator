@@ -31,7 +31,7 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 ### A JAM is reported as a JAM
 
 - [x] **JAM-01**: An AccuracyCoin run that hits a guest JAM reports a JAM rather than a generic frame failure.
-- [ ] **JAM-02**: `libretro.runahead` shows that run-ahead across a JAM gives the same picture and silence as running without run-ahead.
+- [x] **JAM-02**: `libretro.runahead` shows that run-ahead across a JAM gives the same picture and silence as running without run-ahead.
 
 ## Future Requirements
 
@@ -63,7 +63,7 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 | KEEP-02 | Phase 20 | Pending |
 | KEEP-03 | Phase 20 | Pending |
 | JAM-01 | Phase 19 | Complete |
-| JAM-02 | Phase 19 | Pending |
+| JAM-02 | Phase 19 | Complete |
 
 **Coverage:**
 - v5 requirements: 11 total
