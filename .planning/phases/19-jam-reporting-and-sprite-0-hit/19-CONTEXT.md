@@ -44,6 +44,7 @@ The owner asked for every decision point to be fanned out to the point of dimini
   7. A first sprite out of range followed by a later one in range: no hit.
   8. Sprite zero covered by a lower-slot opaque sprite still hits (pins the current behaviour).
   9. The hit lands on its dot (x=254 hits, x=255 does not), extending the existing `tests/ppu/test_sprites.c`.
+  - **Amendment (2026-10-25, owner, plan check):** cases 2, 4, 8, 9 and the all-Y=$FF case are guards that pass on today's main by design (they pin behaviour an over-broad fix could break); cases 1, 3, 5, 6 and 7 are the reproducers that fail on main.
 - **D-11:** A page-19 check requires `Misaligned OAM behavior` to end with a terminal code (not `0x03` and not not-run), and the suite loop to finish, so rows cannot pass only on re-runs while the page later times out (adversarial case).
 
 ### JAM attribution (JAM-01)
