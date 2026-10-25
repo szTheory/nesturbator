@@ -224,14 +224,14 @@ function(run_fetch expected_reason)
       foreach(expected_row IN ITEMS
           "canonical_scoreboard_schema=2"
           "canonical_scoreboard_rows=146"
-          "canonical_pass_rows=101"
+          "canonical_pass_rows=108"
           "canonical_scoreboard_sha256=${canonical_source_sha}"
           "inventory_rows=151"
           "inventory_scored_rows=146"
           "inventory_draw_rows=5"
           "scoreboard_schema=1"
-          "scoreboard_rows=101"
-          "scoreboard_denominator=101")
+          "scoreboard_rows=108"
+          "scoreboard_denominator=108")
         string(FIND "${metadata_contents}" "${expected_row}${metadata_newline}" expected_offset)
         if(expected_offset EQUAL -1)
           message(FATAL_ERROR "canonical fetch metadata omits expected row '${expected_row}': ${metadata_contents}")
@@ -253,7 +253,7 @@ create_fixture(canonical_current canonical canonical TRUE)
 set(fixture_root "${WORK}/canonical_current")
 set(EXPECTED_SOURCE canonical-baseline)
 set(EXPECTED_PIN 6bee919529289c555803b612b8c9e4f7eaaeeabb)
-set(EXPECTED_BASELINE_ROWS 101)
+set(EXPECTED_BASELINE_ROWS 108)
 run_fetch("PASS")
 unset(EXPECTED_PIN)
 unset(EXPECTED_BASELINE_ROWS)
