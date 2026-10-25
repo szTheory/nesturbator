@@ -5,16 +5,16 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 19
 current_phase_name: JAM reporting and sprite-0 hit
 status: executing
-stopped_at: Completed 19-04-PLAN.md
-last_updated: "2026-10-25T17:47:15.061Z"
+stopped_at: Completed 19-05-PLAN.md
+last_updated: "2026-10-25T18:14:49.279Z"
 last_activity: 2026-10-25
 last_activity_desc: Phase 19 execution started
-state_head: 6af5a8b2918759c9a8133e291d455dced9418730
+state_head: 148913c0d4443aca90754680172a932b6989340c
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 6
-  completed_plans: 4
+  completed_plans: 5
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 ## Current Position
 
 Phase: 19 (JAM reporting and sprite-0 hit) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
 Last activity: 2026-10-25 — Phase 19 execution started
 
@@ -45,6 +45,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 19]: 19-02: collector resolves the attributed JAM row by full key and classifies it with ACCURACYCOIN_ACTIVE_JAM; earlier-stage JAM writes no report and exits 1
 - [Phase 19]: 19-03: STOP_JAM shows a never-written blank buffer for black so the cached picture survives; cache tag = frame_number + state-CRC timeline generation (D-16 amendment)
 - [Phase 19]: D-10 amendment applied: cases 2, 4, 8, 9 and all-Y=$FF are guards; 1, 3, 5, 6, 7 and $FD are reproducers run through expect_red until their fix lands
+- [Phase 19]: 19-05: page-19 driver case uses case-local execution cap 300; campaign caps unchanged; state/* hash rows re-pinned for behaviour revision 7
 
 ### Blockers/Concerns
 
@@ -82,8 +83,8 @@ Plan Phase 19 with `/gsd-plan-phase 19` (or `/gsd-discuss-phase 19` first) on th
 
 ## Session
 
-Last session: 2026-10-25T17:47:15.036Z
-Stopped at: Completed 19-04-PLAN.md
+Last session: 2026-10-25T18:14:49.256Z
+Stopped at: Completed 19-05-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -102,3 +103,4 @@ Resume file: None
 | Phase 19 P02 | 40 min | 3 tasks | 5 files |
 | Phase 19 P03 | 75 min | 3 tasks | 6 files |
 | Phase 19 P04 | 50 min | 2 tasks | 2 files |
+| Phase 19 P05 | 40min | 3 tasks | 9 files |

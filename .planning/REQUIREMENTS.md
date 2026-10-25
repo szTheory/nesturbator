@@ -19,8 +19,8 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 
 ### Status-bar splits land on the right line
 
-- [ ] **SPR-01**: Sprite-0 hit is set under the console's conditions and on its dot; the `Sprite 0 Hit behavior` row passes.
-- [ ] **SPR-02**: The first sprite evaluated acts as sprite 0 wherever it sits in OAM, and the row finishes within the page's frame cap; the `Arbitrary Sprite zero` row passes.
+- [x] **SPR-01**: Sprite-0 hit is set under the console's conditions and on its dot; the `Sprite 0 Hit behavior` row passes.
+- [x] **SPR-02**: The first sprite evaluated acts as sprite 0 wherever it sits in OAM, and the row finishes within the page's frame cap; the `Arbitrary Sprite zero` row passes.
 
 ### Everything that works today keeps working
 
@@ -57,8 +57,8 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 | NMI-02 | Phase 20 | Pending |
 | INT-01 | Phase 21 | Pending |
 | INT-02 | Phase 21 | Pending |
-| SPR-01 | Phase 19 | Pending |
-| SPR-02 | Phase 19 | Pending |
+| SPR-01 | Phase 19 | Complete |
+| SPR-02 | Phase 19 | Complete |
 | KEEP-01 | Phase 21 | Pending |
 | KEEP-02 | Phase 20 | Pending |
 | KEEP-03 | Phase 20 | Pending |
