@@ -7,9 +7,37 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int nt_fuzz_environment_present(const char *name)
+{
+#if defined(_MSC_VER)
+    char *value = NULL;
+    size_t length = 0u;
+    const int present = _dupenv_s(&value, &length, name) == 0 && value != NULL;
+    free(value);
+    return present;
+#else
+    return getenv(name) != NULL;
+#endif
+}
+
+static int nt_fuzz_environment_matches(const char *name, const char *expected)
+{
+#if defined(_MSC_VER)
+    char *value = NULL;
+    size_t length = 0u;
+    const int found = _dupenv_s(&value, &length, name) == 0 && value != NULL;
+    const int matches = found && strcmp(value, expected) == 0;
+    free(value);
+    return matches;
+#else
+    const char *value = getenv(name);
+    return value != NULL && strcmp(value, expected) == 0;
+#endif
+}
+
 static void nt_fuzz_trace_operation(const char *name)
 {
-    if (getenv("NESTURBATOR_FUZZ_TRACE_OPERATION") != NULL) {
+    if (nt_fuzz_environment_present("NESTURBATOR_FUZZ_TRACE_OPERATION")) {
         fprintf(stderr, "fuzz.operation=%s\n", name);
         (void)fflush(stderr);
     }
@@ -18,8 +46,7 @@ static void nt_fuzz_trace_operation(const char *name)
 static int nt_fuzz_control_matches(const char *target, const uint8_t *data, size_t size,
                                    size_t marker_offset, uint8_t marker)
 {
-    const char *control = getenv("NESTURBATOR_FUZZ_CONTROL");
-    return control != NULL && strcmp(control, target) == 0 && data != NULL &&
+    return nt_fuzz_environment_matches("NESTURBATOR_FUZZ_CONTROL", target) && data != NULL &&
            marker_offset < size && data[marker_offset] == marker;
 }
 
