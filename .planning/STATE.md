@@ -160,8 +160,9 @@ passed 4/4 (ROB-01 through ROB-04 Complete), review findings WR-01..WR-05 fixed.
 
 ## Next Action
 
-Audit milestone v4 against its original intent (`/gsd-audit-milestone`), then
-complete the milestone. Deliver Phase 18 through its PR after exact-head Nightly
+Milestone v4 audit done: tech_debt, 14/14 requirements, no blockers
+([v4-MILESTONE-AUDIT.md](v4-MILESTONE-AUDIT.md)). Complete the milestone next
+(`/gsd-complete-milestone v4`). Deliver Phase 18 through its PR after exact-head Nightly
 40150888217 finishes.
 Review/deliver Phase 17 through draft PR #54 using the normal PR workflow.
 Do not re-execute completed plans.
