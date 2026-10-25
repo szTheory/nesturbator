@@ -88,12 +88,17 @@ if(NOT draw_metadata MATCHES "start_attributed=1" OR
   message(FATAL_ERROR "DRAW-only start/completion lacked source-defined cursor evidence: ${draw_metadata}")
 endif()
 
+# Page 19 now completes inside the 1800-frame campaign cap (Phase 19), so this case uses a
+# case-local execution cap of 300 frames. Measured: Arbitrary Sprite zero (row 6, cursor 5) is
+# the running test with result 0x03 for execution frames 241-367, so 300 lies strictly inside it.
+# The campaign caps 32/5/1800 are unchanged. The noncurrent-running-marker report cause stays
+# covered by the report fixture in tests/accuracy/test_conformance.c.
 set(active_dir "${WORK}/active-page19")
 file(MAKE_DIRECTORY "${active_dir}")
 execute_process(
-  COMMAND "${RUNNER}" --accuracycoin-observe 19 --rom "${ROM}" --frames 1924
+  COMMAND "${RUNNER}" --accuracycoin-observe 19 --rom "${ROM}" --frames 424
     --accuracycoin-boot-cap 32 --accuracycoin-navigation-cap 5
-    --accuracycoin-execution-cap 1800 --accuracycoin-output "${active_dir}"
+    --accuracycoin-execution-cap 300 --accuracycoin-output "${active_dir}"
   WORKING_DIRECTORY "${SOURCE_DIR}" TIMEOUT 30
   RESULT_VARIABLE active_result OUTPUT_VARIABLE active_stdout ERROR_VARIABLE active_stderr)
 if(NOT "${active_result}" STREQUAL "0")
@@ -115,13 +120,11 @@ string(ASCII 9 TAB)
 string(REPLACE "${TAB}" ";" active_last_diagnostic "${active_last_diagnostic}")
 string(FIND "${active_report}"
   "accuracycoin/Arbitrary Sprite zero${TAB}19${TAB}6${TAB}timeout${TAB}1${TAB}0x03" active_row)
-string(FIND "${active_report}"
-  "accuracycoin/Misaligned OAM behavior${TAB}19${TAB}7${TAB}not-run${TAB}1${TAB}0x03${TAB}1800${TAB}noncurrent-running-marker" stale_marker)
 if(NOT active_metadata MATCHES "verdict=guest-timeout" OR
    NOT active_metadata MATCHES "stop_cause=execution-cap-active-test" OR
    NOT active_metadata MATCHES "active_key=accuracycoin/Arbitrary Sprite zero" OR
    NOT active_metadata MATCHES "active_raw=0x03" OR
    NOT active_last_diagnostic MATCHES "^observe;[0-9]+;10;18;5;1;0;1$" OR
-   active_row EQUAL -1 OR stale_marker EQUAL -1)
+   active_row EQUAL -1)
   message(FATAL_ERROR "page-19 active identity was not tied to source state: ${active_metadata}\n${active_report}")
 endif()

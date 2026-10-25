@@ -26,7 +26,10 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 6: the PPUCTRL NMI edge
+board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 7: OAMADDR is cleared during sprite tile loading
+(dots 257-320 while rendering) and sprite evaluation starts at OAMADDR, so the first sprite
+evaluated acts as sprite 0 wherever it sits in OAM; this changes the frames of programs that
+leave OAMADDR nonzero while rendering. Revision 6's PPUCTRL NMI edge
 changed the frames of games that rewrite `$2000` inside their NMI handler
 (revision 5's PPU fetch pipeline changed the frames of games that write the
 scroll or PPUCTRL while rendering). Mid-frame scroll writes render as on

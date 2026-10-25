@@ -179,8 +179,12 @@ static void sprite_evaluate(struct nesturbator *nes)
         return;
     if (ppu->dot == 65u) {
         ppu->eval_count = 0u;
-        ppu->eval_n = 0u;
-        ppu->eval_m = 0u;
+        /* OAMADDR at dot 65 sets where evaluation starts and which sprite counts as sprite 0; a
+           misaligned address makes the first read a non-Y byte. [NESdev Wiki, PPU registers
+           (OAMADDR) and PPU sprite evaluation; AccuracyCoin Misaligned OAM behavior and
+           Arbitrary Sprite zero] */
+        ppu->eval_n = (uint8_t)(ppu->oam_addr >> 2);
+        ppu->eval_m = (uint8_t)(ppu->oam_addr & 3u);
         ppu->eval_remaining = 0u;
         ppu->eval_copy_remaining = 0u;
         /* Pre-render evaluation prepares visible scanline zero; Y+1 wraps
@@ -205,7 +209,8 @@ static void sprite_evaluate(struct nesturbator *nes)
     }
     if (ppu->eval_copy_remaining != 0u) {
         uint16_t slot_base = (uint16_t)(ppu->eval_count - 1u) * 4u;
-        ppu->secondary_oam[slot_base + ppu->eval_m] = ppu->eval_latch;
+        /* Secondary OAM is filled in copy order, not indexed by the primary byte offset. */
+        ppu->secondary_oam[slot_base + (4u - ppu->eval_copy_remaining)] = ppu->eval_latch;
         ppu->eval_copy_remaining--;
         ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
         if (ppu->eval_m == 0u)
@@ -227,8 +232,11 @@ static void sprite_evaluate(struct nesturbator *nes)
         if (ppu->eval_count < 8u) {
             uint8_t slot = ppu->eval_count++;
             ppu->secondary_oam[(uint16_t)slot * 4u] = ppu->eval_latch;
-            ppu->eval_sprite_zero[slot] = ppu->eval_n == 0u;
-            ppu->eval_m = 1u;
+            /* The sprite found in range on the dot-66 read is sprite zero. */
+            ppu->eval_sprite_zero[slot] = (ppu->dot == 66u);
+            ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
+            if (ppu->eval_m == 0u)
+                ppu->eval_n++;
             ppu->eval_copy_remaining = 3u;
             return;
         } else {
@@ -244,6 +252,8 @@ static void sprite_evaluate(struct nesturbator *nes)
     ppu->eval_n++;
     if (ppu->eval_count == 8u)
         ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
+    else
+        ppu->eval_m = 0u;
 }
 
 static uint8_t reverse_bits(uint8_t value)
@@ -414,6 +424,8 @@ static uint16_t compose_pixel(struct nesturbator *nes, uint32_t x)
             (uint8_t)(((ppu->sprite_lo[i] >> bit) & 1u) | (((ppu->sprite_hi[i] >> bit) & 1u) << 1));
         if (color == 0u)
             continue;
+        /* The sprite-0 hit is evaluated here, on the video path only. This is sound because
+           nesturbator_run_frame rejects NULL video, so no frame runs without compose_pixel. */
         if (ppu->sprite_zero[i] != 0u && bg_opaque != 0u && x != 255u &&
             (ppu->mask & 0x08u) != 0u && (x >= 8u || (ppu->mask & 0x06u) == 0x06u))
             ppu->status |= 0x40u;

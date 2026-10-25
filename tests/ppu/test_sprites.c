@@ -272,20 +272,6 @@ static void test_dma_keeps_ppu_vblank_timing_while_stalling_cpu(void)
    never clears OAMADDR during rendering and always evaluates from OAM[0]; cases marked "guard"
    pass on that core by design and stop an over-broad fix. */
 
-/* Runs one reproducer that must still be red: at least one CHECK has to fail inside it. The
-   failure count is restored so only an unexpected pass is reported. */
-static void expect_red(const char *name, void (*fn)(void))
-{
-    int before = check_failures;
-    fn();
-    int red = check_failures != before;
-    check_failures = before;
-    if (!red) {
-        fprintf(stderr, "%s: expected red but the case passed\n", name);
-        check_failures++;
-    }
-}
-
 /* Opaque background everywhere: tile 0 rows 0-7 have plane 0 set on every column. */
 static void make_background_opaque(void)
 {
@@ -494,10 +480,10 @@ int main(void)
     test_oamaddr_kept_with_rendering_off();
     test_oamaddr_write_at_dot_300_is_cleared();
     test_vblank_oamaddr_write_reset_before_line_0();
-    expect_red("oamaddr_80_sprite_32", test_oamaddr_80_makes_sprite_32_sprite_zero);
-    expect_red("misaligned_oamaddr_81", test_misaligned_oamaddr_81_copies_bytes_in_order);
-    expect_red("oamaddr_fd_end_of_oam", test_oamaddr_fd_ends_at_end_of_oam);
-    expect_red("first_read_out_of_range", test_first_read_out_of_range_gives_no_sprite_zero);
+    test_oamaddr_80_makes_sprite_32_sprite_zero();
+    test_misaligned_oamaddr_81_copies_bytes_in_order();
+    test_oamaddr_fd_ends_at_end_of_oam();
+    test_first_read_out_of_range_gives_no_sprite_zero();
     test_covered_sprite_zero_still_hits();
     test_hit_on_dot_x254_not_x255();
     test_all_oam_y_ff_gives_no_hit();

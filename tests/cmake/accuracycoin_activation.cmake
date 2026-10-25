@@ -135,7 +135,7 @@ foreach(pair IN ITEMS
     "navigation_frame_budget_per_page|5"
     "execution_frame_budget|1800"
     "total_frame_budget|41503"
-    "behaviour_revision|6"
+    "behaviour_revision|7"
     "build_inputs_sha256|${current_inputs_sha256}"
     "build_inputs_count|${current_inputs_count}")
   string(REPLACE "|" ";" fields "${pair}")
