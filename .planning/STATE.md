@@ -5,11 +5,11 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 19
 current_phase_name: JAM reporting and sprite-0 hit
 status: executing
-stopped_at: Phase 19 context gathered
-last_updated: "2026-10-25T16:19:26.744Z"
+stopped_at: Completed 19-01-PLAN.md
+last_updated: "2026-10-25T17:05:15.468Z"
 last_activity: 2026-10-25
-last_activity_desc: v5 roadmap created (Phases 19–21, 11/11 requirements mapped)
-state_head: 33962a5b389d66d5636cb48ad5f3eac3d506dd72
+last_activity_desc: Phase 19 execution started
+state_head: e66e6cc00853b42b6cec2a4a911abce98fc1f1d7
 progress:
   total_phases: 3
   completed_phases: 0
@@ -28,10 +28,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 19 (JAM reporting and sprite-0 hit) — READY TO EXECUTE
-Plan: Not started
+Phase: 19 (JAM reporting and sprite-0 hit) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-10-25 — v5 roadmap created (Phases 19–21, 11/11 requirements mapped)
+Last activity: 2026-10-25 — Phase 19 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -41,6 +41,7 @@ Progress: [░░░░░░░░░░] 0%
 
 - v5 build order follows research/SUMMARY.md: JAM attribution first; each phase writes its owned reproducers before its fix so main stays green; sprite-0 in its own phase before the NMI model; NMI line and edge latch before the poll; shared interrupt entry and hijack last.
 - KEEP-02 and KEEP-03 sit in Phase 20 (hash moves, state format 2); KEEP-01 sits in Phase 21 (shared interrupt entry touches CPU vectors and the MMC3 IRQ). Every phase keeps the protected PASS set.
+- [Phase 19]: JAM attribution: frame_and_sample returns nesturbator_status; ACCURACYCOIN_ACTIVE_RUNNING/BUDGET/JAM three-state classifier; execution-stage JAM is fail/0x03/guest-jam with exit 0
 
 ### Blockers/Concerns
 
@@ -78,9 +79,9 @@ Plan Phase 19 with `/gsd-plan-phase 19` (or `/gsd-discuss-phase 19` first) on th
 
 ## Session
 
-Last session: 2026-10-25T15:02:49.751Z
-Stopped at: Phase 19 context gathered
-Resume file: .planning/phases/19-jam-reporting-and-sprite-0-hit/19-CONTEXT.md
+Last session: 2026-10-25T17:05:15.454Z
+Stopped at: Completed 19-01-PLAN.md
+Resume file: None
 
 ## Performance Metrics
 
@@ -94,3 +95,4 @@ Resume file: .planning/phases/19-jam-reporting-and-sprite-0-hit/19-CONTEXT.md
 | Phase 18 P02 | 60min | 3 tasks | 13 files |
 | Phase 18 P03 | 20min | 2 tasks | 13 files |
 | Phase 18 P4 | 3h20m | 3 tasks | 20 files |
+| Phase 19 P01 | 35 min | 3 tasks | 6 files |
