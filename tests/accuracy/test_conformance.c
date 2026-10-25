@@ -480,6 +480,26 @@ static int test_classifier(void)
                          ACCURACYCOIN_RESULT_TIMEOUT, "active-test-budget-exhausted");
     check_classification("accuracycoin/ROM is not writable", 1, 0x83u, 1,
                          ACCURACYCOIN_RESULT_INVALID, "unsupported-running-code");
+    /* Three-state active argument (JAM-01): the numeric values 0 and 1 are the
+     * old budget flag, so existing callers keep their results. */
+    CHECK_EQ_U64(ACCURACYCOIN_ACTIVE_RUNNING, 0u);
+    CHECK_EQ_U64(ACCURACYCOIN_ACTIVE_BUDGET, 1u);
+    CHECK_EQ_U64(ACCURACYCOIN_ACTIVE_JAM, 2u);
+    check_classification("accuracycoin/ROM is not writable", 1, 0x03u, ACCURACYCOIN_ACTIVE_JAM,
+                         ACCURACYCOIN_RESULT_FAIL, "guest-jam");
+    check_classification("accuracycoin/ROM is not writable", 1, 0x03u, ACCURACYCOIN_ACTIVE_RUNNING,
+                         ACCURACYCOIN_RESULT_INVALID, "active-test");
+    check_classification("accuracycoin/ROM is not writable", 1, 0x03u, ACCURACYCOIN_ACTIVE_BUDGET,
+                         ACCURACYCOIN_RESULT_TIMEOUT, "active-test-budget-exhausted");
+    /* A terminal byte is never overridden by the JAM state. */
+    check_classification("accuracycoin/ROM is not writable", 1, 0x01u, ACCURACYCOIN_ACTIVE_JAM,
+                         ACCURACYCOIN_RESULT_PASS, "terminal-pass");
+    check_classification("accuracycoin/ROM is not writable", 1, 0x06u, ACCURACYCOIN_ACTIVE_JAM,
+                         ACCURACYCOIN_RESULT_FAIL, "terminal-fail");
+    check_classification("accuracycoin/ROM is not writable", 1, 0x00u, ACCURACYCOIN_ACTIVE_JAM,
+                         ACCURACYCOIN_RESULT_NOT_RUN, "unstarted");
+    check_classification("accuracycoin/ROM is not writable", 1, 0x83u, ACCURACYCOIN_ACTIVE_JAM,
+                         ACCURACYCOIN_RESULT_INVALID, "unsupported-running-code");
     check_classification("accuracycoin/ROM is not writable", 0, 0x01u, 0,
                          ACCURACYCOIN_RESULT_INVALID, "missing-raw");
     check_classification("accuracycoin/ROM is not writable", 0, 0xffu, 0,
@@ -1107,6 +1127,106 @@ done:
     CHECK_DONE();
 }
 
+/* JAM-01 end-to-end control (D-12): the real observe path on the pinned ROM with
+ * one byte patched in memory only. The pin and SHA checks run on the unpatched
+ * bytes; the patched copy goes to nesturbator_load_cartridge and nowhere else, so
+ * no modified ROM exists on disk and nesturbator-run keeps refusing one.
+ *
+ * NROM file offset of a CPU address: 16-byte iNES header plus the offset into the
+ * 32 KiB PRG window at $8000 [NESdev Wiki, NROM]. This duplicates the static
+ * rom_offset() in runner/accuracycoin.c on purpose: a small local copy with its
+ * own bounds check is simpler than exporting a runner internal for one test. */
+static int nrom_file_offset(uint16_t address, size_t image_size, size_t *offset)
+{
+    if (address < 0x8000u)
+        return 0;
+    *offset = 16u + (size_t)(address - 0x8000u);
+    return *offset < PRG_END_OFFSET && *offset < image_size;
+}
+
+#define JAM_OPCODE 0x02u /* an undocumented KIL opcode: the CPU stops */
+
+static int test_jam(const char *new_rom_path, const char *old_rom_path, const char *old_scoreboard,
+                    const char *work)
+{
+    static uint16_t video[256u * 240u];
+    static int16_t audio[1024u];
+    fixture_bytes rom = {0};
+    accuracycoin_directory directory;
+    accuracycoin_reason reason = ACCURACYCOIN_REASON_OK;
+    accuracycoin_run_budgets budgets;
+    nesturbator_config config;
+    nesturbator *inst = NULL;
+    uint8_t *patched = NULL;
+    char output_dir[4096];
+    size_t offset = 0u;
+    const accuracycoin_test *row = NULL;
+    const accuracycoin_page *page;
+
+    /* The old ROM and scoreboard belong to the strict-mode control that Plan 19-02
+     * adds to this subcommand; accept them now so the CTest command line is stable. */
+    (void)old_rom_path;
+    (void)old_scoreboard;
+
+    CHECK(make_directory(work));
+    CHECK(read_fixture(new_rom_path, &rom));
+    if (rom.bytes == NULL)
+        goto done;
+    CHECK(accuracycoin_parse_pinned(rom.bytes, rom.size, &directory, &reason));
+    if (reason != ACCURACYCOIN_REASON_OK)
+        goto done;
+
+    /* Chosen by rule from the parsed inventory, never a literal offset: the last
+     * TEST-kind row of page 3. */
+    page = &directory.pages[2];
+    for (unsigned i = 0u; i < page->row_count; i++)
+        if (directory.rows[page->first_row + i].kind == ACCURACYCOIN_KIND_TEST)
+            row = &directory.rows[page->first_row + i];
+    CHECK(row != NULL);
+    if (row == NULL)
+        goto done;
+    CHECK(nrom_file_offset(row->routine_address, rom.size, &offset));
+    if (offset == 0u)
+        goto done;
+    CHECK(rom.bytes[offset] != JAM_OPCODE);
+
+    patched = (uint8_t *)malloc(rom.size);
+    CHECK(patched != NULL);
+    if (patched == NULL)
+        goto done;
+    memcpy(patched, rom.bytes, rom.size);
+    patched[offset] = JAM_OPCODE;
+
+    memset(&config, 0, sizeof config);
+    config.size = (uint32_t)sizeof config;
+    config.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&config, &inst), NESTURBATOR_OK);
+    if (inst == NULL)
+        goto done;
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, patched, rom.size), NESTURBATOR_OK);
+
+    CHECK(snprintf(output_dir, sizeof output_dir, "%s/observe-page3", work) > 0);
+    CHECK(make_directory(output_dir));
+    budgets.boot_frames = 32u;
+    budgets.navigation_frames_per_page = 5u;
+    budgets.execution_frames = 1800u;
+    budgets.total_frames = 32u + 5u * 2u + 2u + 1800u;
+    printf("jam-patched-key=accuracycoin/%s\n", row->name);
+    printf("jam-patched-offset=%llu\n", (unsigned long long)offset);
+    fflush(stdout);
+    /* A JAM in the execution stage is a finished observation: exit 0, report written. */
+    CHECK_EQ_U64(accuracycoin_run_observe_page(&directory, 3u, &budgets, output_dir, inst, video,
+                                               audio),
+                 0u);
+
+done:
+    if (inst != NULL)
+        nesturbator_destroy(inst);
+    free(patched);
+    free(rom.bytes);
+    CHECK_DONE();
+}
+
 int main(int argc, char **argv)
 {
     if (argc >= 2 && strcmp(argv[1], "inventory") == 0 && argc == 4)
@@ -1117,9 +1237,12 @@ int main(int argc, char **argv)
         return test_driver();
     if (argc == 5 && strcmp(argv[1], "report") == 0)
         return test_report(argv[2], argv[3], argv[4]);
+    if (argc == 6 && strcmp(argv[1], "jam") == 0)
+        return test_jam(argv[2], argv[3], argv[4], argv[5]);
     if (argc == 4 && strcmp(argv[1], "migration") == 0)
         return test_migration_source(argv[2], argv[3]);
     fprintf(stderr, "usage: accuracycoin.conformance inventory NEW_ROM OLD_ROM | classifier | "
-                    "driver | report NEW_ROM OLD_ROM WORK | migration TSV SCOREBOARD\n");
+                    "driver | report NEW_ROM OLD_ROM WORK | migration TSV SCOREBOARD | "
+                    "jam NEW_ROM OLD_ROM OLD_SCOREBOARD WORK\n");
     return 2;
 }

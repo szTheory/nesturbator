@@ -780,6 +780,16 @@ add_test(NAME accuracycoin.report
     ${ACCURACYCOIN_COMPARISON_ROM}
     ${ACCURACYCOIN_OLD_ROM}
     ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/report)
+# JAM-01: the real observe path on page 3 with one byte patched in memory only.
+add_test(NAME accuracycoin.jam
+  COMMAND ${CMAKE_COMMAND}
+    "-DCONFORMANCE=$<TARGET_FILE:accuracycoin.conformance>"
+    "-DNEW_ROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DOLD_ROM=${ACCURACYCOIN_OLD_ROM}"
+    "-DOLD_SCOREBOARD=${ACCURACYCOIN_OLD_SCOREBOARD}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/jam"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_jam.cmake)
+set_tests_properties(accuracycoin.jam PROPERTIES TIMEOUT 60)
 add_test(NAME accuracycoin.outer_failure
   COMMAND ${CMAKE_COMMAND}
     "-DRUNNER=$<TARGET_FILE:nesturbator-run>"

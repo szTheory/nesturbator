@@ -97,7 +97,13 @@ input policy, frame budgets and diagnostic host elapsed time. DRAW entries are
 inventory-only and do not enter a scored denominator. `$FF` is skip, `$00` is
 not-run, `$01` is pass, and failure values use low bits `10` with a nonzero
 source error index. An observed active test becomes timeout only when its
-guest-frame budget expires. Observation is not an all-pass gate; malformed
+guest-frame budget expires. If the guest executes a JAM opcode during the
+execution stage the run stops with verdict and stop cause `guest-jam`, metadata
+`jam_frame=N` (`-` when there was no JAM), a stderr line `nesturbator-run: JAM
+stopped AccuracyCoin page P at frame N (active_key=...)` and exit 0. The row the
+suite was running (`active_key`, raw `0x03`) is reported as `fail` with cause
+`guest-jam`, never as pass, complete or a timeout; with no running row the JAM is
+unattributed (`active_key=-`). Observation is not an all-pass gate; malformed
 evidence or output errors still fail.
 
 Run all 22 pages as independent cold attempts and collect their checked evidence
@@ -1333,8 +1339,8 @@ nesturbator-run --version
   directory as TSV. It needs `--rom` and no other run mode.
 - `--accuracycoin-observe PAGE` runs one selected page from a cold boot within
   `--frames N`, writing checked bounded evidence under `--accuracycoin-output DIR`.
-  A real guest timeout or a known failing/skipped result can still produce a
-  trustworthy observation with exit 0; bad inventory, missing output or a
+  A real guest timeout, a guest JAM in the execution stage or a known
+  failing/skipped result can still produce a trustworthy observation with exit 0; bad inventory, missing output or a
   result code outside the pinned protocol exits 1. This mode installs no stop
   handlers and cannot be combined with scoreboards, movies, saves, state files,
   hashes or frame dumps.
