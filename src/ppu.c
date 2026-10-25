@@ -294,6 +294,11 @@ static void sprite_access(struct nesturbator *nes)
     struct nesturbator__ppu *ppu = &nes->ppu;
     unsigned offset = (unsigned)ppu->dot - 257u;
     unsigned slot = offset >> 3;
+    /* OAMADDR is set to 0 on every tick 257-320 of the pre-render and visible lines, so a $2003
+       write in that interval is cleared again. This path runs only while rendering is on. The
+       2C02G corruption that accompanies it is not modelled. [NESdev Wiki, PPU registers, OAMADDR
+       values during rendering] */
+    ppu->oam_addr = 0u;
     int filled = slot < ppu->eval_count;
     switch (offset & 7u) {
     case 0u:

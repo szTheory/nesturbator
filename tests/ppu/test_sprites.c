@@ -222,7 +222,10 @@ static void test_8x16_selects_pattern_table_and_vertical_flip(void)
 
 static void test_oam_dma_copies_page_and_wraps_destination(void)
 {
+    /* Rendering is off so OAMADDR is not reset during tile loading while the DMA runs.
+       (derived: rendering off keeps OAMADDR; NESdev PPU registers) */
     setup();
+    nes.ppu.mask = 0u;
     for (uint16_t i = 0u; i < 256u; i++)
         nes.bus.ram[i] = (uint8_t)(i ^ 0xa5u);
     nes.ppu.oam_addr = 0xf0u;
@@ -237,6 +240,7 @@ static void test_oam_dma_copies_page_and_wraps_destination(void)
     CHECK_EQ_U64(nes.ppu.oam_addr, 0xf0u);
 
     setup();
+    nes.ppu.mask = 0u; /* (derived: rendering off keeps OAMADDR) */
     for (uint16_t i = 0u; i < 256u; i++)
         nes.bus.ram[i] = (uint8_t)(i ^ 0xa5u);
     nes.ticks = 24u;
@@ -486,9 +490,9 @@ int main(void)
     test_8x16_selects_pattern_table_and_vertical_flip();
     test_oam_dma_copies_page_and_wraps_destination();
     test_dma_keeps_ppu_vblank_timing_while_stalling_cpu();
-    expect_red("oamaddr_cleared_after_dot_320", test_oamaddr_cleared_after_dot_320_with_rendering);
+    test_oamaddr_cleared_after_dot_320_with_rendering();
     test_oamaddr_kept_with_rendering_off();
-    expect_red("oamaddr_write_at_dot_300", test_oamaddr_write_at_dot_300_is_cleared);
+    test_oamaddr_write_at_dot_300_is_cleared();
     test_vblank_oamaddr_write_reset_before_line_0();
     expect_red("oamaddr_80_sprite_32", test_oamaddr_80_makes_sprite_32_sprite_zero);
     expect_red("misaligned_oamaddr_81", test_misaligned_oamaddr_81_copies_bytes_in_order);
