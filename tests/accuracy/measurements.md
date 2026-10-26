@@ -154,3 +154,58 @@ The last three are neighbour rows that started to pass; they are recorded with t
 Guard. `accuracycoin.activation` now fails unless `Misaligned OAM behavior` is neither not-run nor raw `0x03`, `Sprite 0 Hit behavior` and `Arbitrary Sprite zero` are pass `0x01`, and no scored row times out; with the full campaign on it also fails on any page-19 timeout row or a page-19 `metadata.txt` without `verdict=complete`.
 
 Hashes. No frame hash in `tests/runner/hashes.txt` moved. The 12 `state/*` rows were re-pinned in Plan 19-05 only because saved states carry the behaviour revision byte (now 7).
+
+## Phase 20 NMI/VBlank baseline and source-derived oracles
+
+The initial pre-phase capture was a trustworthy complete run at source revision
+`6380cd844584`. After this plan's test registration changed the measured input
+set, the campaign was run again and `baseline-metadata.txt` was refreshed from
+the retained output. The latest trustworthy run used AccuracyCoin pin
+`6bee919529289c555803b612b8c9e4f7eaaeeabb`, ROM SHA-256
+`8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc`, behaviour
+revision 7, source revision `58607dbbd339`, `source_dirty=1`, and build-input
+fingerprint `e252004f3b152187984df0a1ffd4e937dc86c0a6f37d41bad16e33e8ad96e16a`
+(56 files). It completed 22/22 pages, observed all 146 scored rows, and reported
+108 pass, 38 fail, and zero nonterminal results. Its report SHA-256 remained
+`b73c7b255ef4c0fe091c2d50bf94685e5b666760aaead6e28985bc3931ceeb7c`; the
+scoreboard SHA-256 is
+`5693a671844469093afa74f8a728e94e1077ecdcdcf72e8519b4d4a940151c87`. These are
+the measured ROM outputs from that campaign, not results produced by the local
+table-comparator self-checks in `test_nmi_races.c`.
+
+| Measured AccuracyCoin row | Raw result | Frames | Source case |
+|---|---:|---:|---|
+| `$2002 flag timing` | `$06` fail | 521 | `TEST_2002_VBLANK_FLAG` |
+| `NMI Control` | `$22` fail | 1463 | `TEST_NMI_Control` |
+| `NMI Suppression` | `$06` fail | 1463 | `TEST_NMI_Suppression` |
+| `NMI Timing` | `$06` fail | 1463 | `TEST_NMI_Timing` |
+| `NMI at VBlank end` | `$06` fail | 1463 | `TEST_NMI_At_VBlank_End` |
+| `NMI disabled at VBlank` | `$06` fail | 1463 | `TEST_NMI_Disabled_At_VBlank` |
+
+The local source-oracle checks encode the pinned assembly's whole accepted
+vectors: `$2002` clear arrays `[E0,E0,80,00]` or `[E0,80,80,00]`; set samples
+`$53=00`, `$54=00|40`, `$55=60` after the source mask; NMI Timing's two ten-cell
+arrays `[03,02,02,02,02,02,02,01,01,01]` and
+`[02,02,02,02,02,02,01,01,01,01]`; and NMI Suppression's
+`[FF,02,02,FF,00,01,FF,03,03,03]` with source checks beginning at x=1 and
+skipping x=3 and x=6. The NMI-at-VBlank-end test runs both source sequences and
+expects `[01,01,01,00,00,00,00]` for each. Sequence A enables NMI and stores
+the sampled value; sequence B is exactly `LDA #$80; STA $2000; NOP; NOP;
+LDA #$00; STA $2000` before storing the sample. The disabled-at-VBlank row
+expects `[00,00,00,FF,01,01,01]` and skips the x=3 cell. NMI Control case 8
+checks the instruction after `STA $2000` before the handler's INX marker; case
+9 polls between the two writes of `INC $2000`.
+
+The source-derived table values and accepted alternatives above are copied from
+the MIT AccuracyCoin `AccuracyCoin.asm` at the pinned commit (flag timing
+around lines 1839–1900; NMI Control around 6521–6640; timing, suppression, and
+VBlank-end cases around 6688–6886). The tests validate comparator fidelity and
+reject mixed/incorrect vectors; they do not execute the AccuracyCoin ROM and do
+not constitute production conformance evidence. Live local evidence instead
+comes from the owned NROM fixtures: direct before/on/after PPU-dot checks,
+ordinary and mirrored CPU bus reads, suppression cases, guest-visible NMI
+entry/return markers, and named expected-red assertions. The expected-red cases
+mask only one exact assertion identity and fail if setup or any other assertion
+also fails. `awaiting-production-control` output labels describe future mutation
+controls; the local diagnostic self-checks compare values and do not execute
+mutated production implementations.

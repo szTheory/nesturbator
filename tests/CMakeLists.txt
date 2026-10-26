@@ -879,6 +879,10 @@ endif()
 target_include_directories(core.reset PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # D-02: the PPUCTRL NMI edge, one NMI per frame from a handler that rewrites $2000.
 nesturbator_core_test(core.nmi_edge core/test_nmi_edge.c)
+# NMI-02: source-shaped STA/INC polling sequences and guest NMI entry markers.
+nesturbator_core_test(core.nmi_poll core/test_nmi_poll.c)
+target_include_directories(core.nmi_poll PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set_tests_properties(core.nmi_poll PROPERTIES TIMEOUT 10)
 # MAP-01, D-04, D-05, D-06, D-08: cycle-stamped mapper writes, the IRQ OR, the nametable map and reset.
 nesturbator_core_test(core.mapper core/test_mapper.c)
 target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
