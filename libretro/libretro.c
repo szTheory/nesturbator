@@ -46,7 +46,7 @@ static uint16_t video[NT_PIXELS];
 static uint32_t xrgb[NT_PIXELS];
 /* Never written: the black frame sent when the cache does not apply, so that showing black does
    not destroy the cached picture (a later load may return to its timeline). */
-static const uint32_t blank[NT_PIXELS];
+static const uint32_t blank[NT_PIXELS] = {0};
 static bool completed_frame_valid;
 static int16_t mono[NT_AUDIO_CAPACITY];
 static int16_t stereo[NT_AUDIO_CAPACITY * 2u];
