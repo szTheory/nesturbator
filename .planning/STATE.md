@@ -5,10 +5,11 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
 status: "Phase 19 shipped — PR #57"
-stopped_at: Phase 19 complete, ready to plan Phase 20
-last_updated: "2026-10-25T19:42:18.151Z"
-last_activity: 2026-10-25
-state_head: 40b83a3b536b375c817e96006435085f4397e05a
+stopped_at: CI speed-up quick task complete; capture testing proposals next
+last_updated: "2026-10-26T17:24:58.846Z"
+last_activity: 2026-10-26
+last_activity_desc: "Completed quick task 261026-i8z: reduce CI overhead"
+state_head: dbbf04f5328eec2e994b9167096e936583e03c53
 progress:
   total_phases: 3
   completed_phases: 1
@@ -30,7 +31,7 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 Phase: 20 — NMI line and VBlank flag
 Plan: Not started
 Status: Phase 19 shipped — PR #57
-Last activity: 2026-10-25
+Last activity: 2026-10-26 — Completed quick task 261026-i8z: reduce CI overhead
 
 Progress: [███░░░░░░░] 33%
 
@@ -50,10 +51,17 @@ Progress: [███░░░░░░░] 33%
 ### Blockers/Concerns
 
 - Whether AccuracyCoin assumes a CPU/PPU alignment constant is untested (Phase 20).
+- The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 261026-i8z | Reduce repeated CI suites, session controls and vector inventory work | 2026-10-26 | dbbf04f | [261026-i8z-reduce-ci-overhead-using-the-recovered-c](./quick/261026-i8z-reduce-ci-overhead-using-the-recovered-c/) |
 
 ## Delivery
 
-Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 is complete on branch `gsd/phase-19-jam-reporting-and-sprite-0-hit`, awaiting its PR.
+Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 has no context or plans yet.
 
 ## Deferred Items
 
@@ -79,13 +87,13 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Open and squash-merge the Phase 19 PR, create the Phase 20 branch, then plan Phase 20 with `/gsd-plan-phase 20` (or `/gsd-discuss-phase 20` first).
+Run `$gsd-capture` for the testing ideas in the recovered `ci-efficiency-findings-2026-10-26` project memory as proposed scope, then `$gsd-discuss-phase 20`. The CI speed-up quick task is implemented in `dbbf04f`: dedicated session jobs, build-only hosted RetroArch setup, the quit-grace override correction, outgoing committed-source formatting checks, shared vector inventory and smaller JSON property queries. The separate title workflow remains deferred pending a coordinated required-check ruleset migration; existing title gating is preserved. Testing ideas remain proposed: owned property helpers, deterministic signal checks, and later mutation testing. No capture or Phase 20 discussion ran in this command.
 
 ## Session
 
-Last session: 2026-10-25T18:48:54.077Z
-Stopped at: Phase 19 complete, ready to plan Phase 20
-Resume file: None
+Last session: 2026-10-26T17:24:31Z
+Stopped at: CI speed-up quick task complete; capture testing proposals next, then discuss Phase 20
+Resume file: None (the pause checkpoint and structured handoff were consumed)
 
 ## Performance Metrics
 
