@@ -1,0 +1,33 @@
+stage	page	row	key	result_address	observed	raw
+before-start	19	1	accuracycoin/Sprite overflow behavior	0x0459	1	0x00
+before-start	19	2	accuracycoin/Sprite 0 Hit behavior	0x0457	1	0x00
+before-start	19	3	accuracycoin/$2002 flag timing	0x048d	1	0x00
+before-start	19	4	accuracycoin/Suddenly Resize Sprite	0x0489	1	0x00
+before-start	19	5	accuracycoin/Misaligned OAM DMA	0x0494	1	0x00
+before-start	19	6	accuracycoin/Arbitrary Sprite zero	0x0458	1	0x00
+before-start	19	7	accuracycoin/Misaligned OAM behavior	0x045a	1	0x00
+before-start	19	8	accuracycoin/OAM Corruption	0x047b	1	0x00
+a-press	19	1	accuracycoin/Sprite overflow behavior	0x0459	1	0x03
+a-press	19	2	accuracycoin/Sprite 0 Hit behavior	0x0457	1	0x00
+a-press	19	3	accuracycoin/$2002 flag timing	0x048d	1	0x00
+a-press	19	4	accuracycoin/Suddenly Resize Sprite	0x0489	1	0x00
+a-press	19	5	accuracycoin/Misaligned OAM DMA	0x0494	1	0x00
+a-press	19	6	accuracycoin/Arbitrary Sprite zero	0x0458	1	0x00
+a-press	19	7	accuracycoin/Misaligned OAM behavior	0x045a	1	0x00
+a-press	19	8	accuracycoin/OAM Corruption	0x047b	1	0x00
+a-release	19	1	accuracycoin/Sprite overflow behavior	0x0459	1	0x03
+a-release	19	2	accuracycoin/Sprite 0 Hit behavior	0x0457	1	0x00
+a-release	19	3	accuracycoin/$2002 flag timing	0x048d	1	0x00
+a-release	19	4	accuracycoin/Suddenly Resize Sprite	0x0489	1	0x00
+a-release	19	5	accuracycoin/Misaligned OAM DMA	0x0494	1	0x00
+a-release	19	6	accuracycoin/Arbitrary Sprite zero	0x0458	1	0x00
+a-release	19	7	accuracycoin/Misaligned OAM behavior	0x045a	1	0x00
+a-release	19	8	accuracycoin/OAM Corruption	0x047b	1	0x00
+final	19	1	accuracycoin/Sprite overflow behavior	0x0459	1	0x01
+final	19	2	accuracycoin/Sprite 0 Hit behavior	0x0457	1	0x01
+final	19	3	accuracycoin/$2002 flag timing	0x048d	1	0x0a
+final	19	4	accuracycoin/Suddenly Resize Sprite	0x0489	1	0x01
+final	19	5	accuracycoin/Misaligned OAM DMA	0x0494	1	0x01
+final	19	6	accuracycoin/Arbitrary Sprite zero	0x0458	1	0x01
+final	19	7	accuracycoin/Misaligned OAM behavior	0x045a	1	0x16
+final	19	8	accuracycoin/OAM Corruption	0x047b	1	0x0a

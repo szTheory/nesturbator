@@ -1,0 +1,29 @@
+stage	page	row	key	result_address	observed	raw
+before-start	18	1	accuracycoin/VBlank beginning	0x0450	1	0x00
+before-start	18	2	accuracycoin/VBlank end	0x0451	1	0x00
+before-start	18	3	accuracycoin/NMI Control	0x0452	1	0x00
+before-start	18	4	accuracycoin/NMI Timing	0x0453	1	0x00
+before-start	18	5	accuracycoin/NMI Suppression	0x0454	1	0x00
+before-start	18	6	accuracycoin/NMI at VBlank end	0x0455	1	0x00
+before-start	18	7	accuracycoin/NMI disabled at VBlank	0x0456	1	0x00
+a-press	18	1	accuracycoin/VBlank beginning	0x0450	1	0x03
+a-press	18	2	accuracycoin/VBlank end	0x0451	1	0x00
+a-press	18	3	accuracycoin/NMI Control	0x0452	1	0x00
+a-press	18	4	accuracycoin/NMI Timing	0x0453	1	0x00
+a-press	18	5	accuracycoin/NMI Suppression	0x0454	1	0x00
+a-press	18	6	accuracycoin/NMI at VBlank end	0x0455	1	0x00
+a-press	18	7	accuracycoin/NMI disabled at VBlank	0x0456	1	0x00
+a-release	18	1	accuracycoin/VBlank beginning	0x0450	1	0x03
+a-release	18	2	accuracycoin/VBlank end	0x0451	1	0x00
+a-release	18	3	accuracycoin/NMI Control	0x0452	1	0x00
+a-release	18	4	accuracycoin/NMI Timing	0x0453	1	0x00
+a-release	18	5	accuracycoin/NMI Suppression	0x0454	1	0x00
+a-release	18	6	accuracycoin/NMI at VBlank end	0x0455	1	0x00
+a-release	18	7	accuracycoin/NMI disabled at VBlank	0x0456	1	0x00
+final	18	1	accuracycoin/VBlank beginning	0x0450	1	0x06
+final	18	2	accuracycoin/VBlank end	0x0451	1	0x01
+final	18	3	accuracycoin/NMI Control	0x0452	1	0x22
+final	18	4	accuracycoin/NMI Timing	0x0453	1	0x06
+final	18	5	accuracycoin/NMI Suppression	0x0454	1	0x06
+final	18	6	accuracycoin/NMI at VBlank end	0x0455	1	0x06
+final	18	7	accuracycoin/NMI disabled at VBlank	0x0456	1	0x01

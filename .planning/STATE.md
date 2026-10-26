@@ -4,12 +4,12 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: executing
-stopped_at: Completed 20-01-PLAN.md
-last_updated: "2026-10-26T19:19:09.959Z"
+status: blocked
+stopped_at: Plan 20-02 Task 1 detector-order evidence checkpoint
+last_updated: "2026-10-26T19:56:36Z"
 last_activity: 2026-10-26
-last_activity_desc: Completed Phase 20 plan 20-01
-state_head: 88dead09f0d9a214ba6f1f82155749d012080b0b
+last_activity_desc: "20-01 complete; 20-02 blocked on independent A/C detector-order evidence"
+state_head: 2878bab664a0
 progress:
   total_phases: 3
   completed_phases: 1
@@ -28,10 +28,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — EXECUTING
-Plan: 2 of 6
-Status: Executing Phase 20
-Last activity: 2026-10-26 — Completed 20-01; next is 20-02
+Phase: 20 (NMI line and VBlank flag) — BLOCKED AT EVIDENCE CHECKPOINT
+Plan: 1/6 complete; 20-02 Task 1 blocked, 0/3 tasks complete
+Status: Awaiting independent detector-order evidence or explicit acceptance revision
+Last activity: 2026-10-26 — Three-candidate experiment left A/C unresolved; provisional edits restored
 
 Progress: [███░░░░░░░] 33%
 
@@ -52,6 +52,7 @@ Progress: [███░░░░░░░] 33%
 
 ### Blockers/Concerns
 
+- [Phase 20 execution]: Plan 20-02's three-candidate experiment rejects B on NMI Control but leaves A/C identical on all six live target rows. The owned probe distinguishes predictions without a hardware oracle. Task 1's explicit ambiguity stop applies; no production change or format/revision bump landed. See [20-02-CHECKPOINT.md](phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md) for retained raw observations, source limits and resume choices. Plans 20-03 through 20-06 remain dependent and pending.
 - Same-edge capture/side-effect order and default-alignment acceptance against all six complete tables remain bounded execution experiments (20-02/03); no alignment shift is assumed.
 - The constructed NMI-disabled set/clear probe proves limited exact instruction-boundary save/load feasibility with audio history. Enabled-NMI and edge-before-poll continuation remain 20-04 acceptance work; an unrepresentable required cutpoint blocks KEEP-03 pending explicit clarification.
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
@@ -96,13 +97,13 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Continue Phase 20 with Plan 20-02, which measures split status/line capture and coherent state format 2 with behaviour revision 8. Three testing proposals under Pending Todos remain proposed future scope; they were not promoted into Phase 20. The CI speed-up quick task is implemented in `dbbf04f`; its separate title workflow remains deferred pending a coordinated required-check ruleset migration.
+Resolve the blocking decision recorded in [20-02-CHECKPOINT.md](phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md): obtain independent evidence distinguishing A/C, or explicitly revise the acceptance rule before resuming 20-02. Do not repeat the three-candidate sweep or dispatch dependent plans under unchanged acceptance. Plan 20-01's full workflow passed 677/677; the restored-tree focused suite passed 4/4. Three testing proposals remain proposed future scope. The CI speed-up quick task is implemented in `dbbf04f`; its separate title workflow remains deferred pending a coordinated required-check ruleset migration.
 
 ## Session
 
-Last session: 2026-10-26T19:19:09.917Z
-Stopped at: Completed 20-01-PLAN.md
-Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-02-PLAN.md
+Last session: 2026-10-26T19:56:36Z
+Stopped at: Plan 20-02 Task 1 detector-order evidence checkpoint
+Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md
 
 ## Performance Metrics
 
