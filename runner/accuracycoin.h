@@ -103,16 +103,26 @@ const char *accuracycoin_reason_text(accuracycoin_reason reason);
 const char *accuracycoin_pin_text(accuracycoin_pin pin);
 int accuracycoin_write_inventory(FILE *out, const accuracycoin_directory *directory);
 
+/* State of the row whose raw byte is $03 (running) when the observation ends.
+ * RUNNING: the row is not the final active row (or the run is still going);
+ * BUDGET: the observed guest-frame budget expired while the row ran, a timeout;
+ * JAM: the guest executed a JAM opcode while the row ran, a failure with cause
+ * guest-jam. A terminal byte is never overridden by any state. */
+#define ACCURACYCOIN_ACTIVE_RUNNING 0
+#define ACCURACYCOIN_ACTIVE_BUDGET 1
+#define ACCURACYCOIN_ACTIVE_JAM 2
+
 /* Result protocol: $FF is skip, $00 is not-run, $01 is pass, failures encode
  * an error index with low bits 10 (including source-defined $02), and $03 is
- * active until an observed guest-frame budget expires. Pinned source-defined
+ * active until an observed guest-frame budget expires (ACCURACYCOIN_ACTIVE_BUDGET)
+ * or the guest JAMs (ACCURACYCOIN_ACTIVE_JAM). Pinned source-defined
  * pass variants are accepted only for their named tests. */
 accuracycoin_result_status accuracycoin_classify(const char *key, int observed, uint8_t raw,
-                                                 int active_budget_expired, const char **cause);
+                                                 int active_state, const char **cause);
 /* DRAW rows carry the shared sentinel as inventory data; return DRAW without
  * interpreting its arbitrary byte as a scored status. */
 accuracycoin_result_status accuracycoin_classify_row(const accuracycoin_test *row, int observed,
-                                                     uint8_t raw, int active_budget_expired,
+                                                     uint8_t raw, int active_state,
                                                      const char **cause);
 const char *accuracycoin_status_text(accuracycoin_result_status status);
 

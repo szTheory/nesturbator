@@ -780,6 +780,29 @@ add_test(NAME accuracycoin.report
     ${ACCURACYCOIN_COMPARISON_ROM}
     ${ACCURACYCOIN_OLD_ROM}
     ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/report)
+# The report command creates its work directory's missing parents, so it does
+# not depend on another test having run first (ctest --schedule-random).
+add_test(NAME accuracycoin.report_scratch
+  COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin_fresh)
+set_tests_properties(accuracycoin.report_scratch PROPERTIES
+  FIXTURES_SETUP accuracycoin_report_fresh)
+add_test(NAME accuracycoin.report_fresh
+  COMMAND accuracycoin.conformance report
+    ${ACCURACYCOIN_COMPARISON_ROM}
+    ${ACCURACYCOIN_OLD_ROM}
+    ${CMAKE_CURRENT_BINARY_DIR}/accuracycoin_fresh/nested/report)
+set_tests_properties(accuracycoin.report_fresh PROPERTIES
+  FIXTURES_REQUIRED accuracycoin_report_fresh)
+# JAM-01: the real observe path on page 3 with one byte patched in memory only.
+add_test(NAME accuracycoin.jam
+  COMMAND ${CMAKE_COMMAND}
+    "-DCONFORMANCE=$<TARGET_FILE:accuracycoin.conformance>"
+    "-DNEW_ROM=${ACCURACYCOIN_COMPARISON_ROM}"
+    "-DOLD_ROM=${ACCURACYCOIN_OLD_ROM}"
+    "-DOLD_SCOREBOARD=${ACCURACYCOIN_OLD_SCOREBOARD}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/jam"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_jam.cmake)
+set_tests_properties(accuracycoin.jam PROPERTIES TIMEOUT 60)
 add_test(NAME accuracycoin.outer_failure
   COMMAND ${CMAKE_COMMAND}
     "-DRUNNER=$<TARGET_FILE:nesturbator-run>"

@@ -415,16 +415,16 @@ const char *accuracycoin_validate_start(uint32_t requested_page, uint8_t menu_re
 
 static accuracycoin_result_status accuracycoin_classify_final_row(const accuracycoin_test *row,
                                                                   int observed, uint8_t raw,
-                                                                  int current_active_row,
+                                                                  int active_state,
                                                                   const char **cause)
 {
     if (row != NULL && row->kind == (uint8_t)ACCURACYCOIN_KIND_TEST && observed != 0 &&
-        raw == 0x03u && current_active_row == 0) {
+        raw == 0x03u && active_state == ACCURACYCOIN_ACTIVE_RUNNING) {
         if (cause != NULL)
             *cause = "noncurrent-running-marker";
         return ACCURACYCOIN_RESULT_NOT_RUN;
     }
-    return accuracycoin_classify_row(row, observed, raw, current_active_row, cause);
+    return accuracycoin_classify_row(row, observed, raw, active_state, cause);
 }
 
 /* AccuracyCoin sometimes returns a passing result that encodes which
@@ -460,7 +460,7 @@ static int source_pass_variant(const char *key, uint8_t raw)
 }
 
 accuracycoin_result_status accuracycoin_classify(const char *key, int observed, uint8_t raw,
-                                                 int active_budget_expired, const char **cause)
+                                                 int active_state, const char **cause)
 {
     if (cause != NULL)
         *cause = "invalid-result";
@@ -485,7 +485,15 @@ accuracycoin_result_status accuracycoin_classify(const char *key, int observed, 
                 *cause = "unsupported-running-code";
             return ACCURACYCOIN_RESULT_INVALID;
         }
-        if (active_budget_expired != 0) {
+        if (active_state == ACCURACYCOIN_ACTIVE_JAM) {
+            /* The guest executed a JAM opcode while this row's running marker
+             * was set; the row can never finish, so it is a failure, not a
+             * timeout. Terminal bytes were classified above and stay as is. */
+            if (cause != NULL)
+                *cause = "guest-jam";
+            return ACCURACYCOIN_RESULT_FAIL;
+        }
+        if (active_state != ACCURACYCOIN_ACTIVE_RUNNING) {
             if (cause != NULL)
                 *cause = "active-test-budget-exhausted";
             return ACCURACYCOIN_RESULT_TIMEOUT;
@@ -517,7 +525,7 @@ accuracycoin_result_status accuracycoin_classify(const char *key, int observed, 
 static int accuracycoin_make_full_key(char *out, size_t capacity, const char *name);
 
 accuracycoin_result_status accuracycoin_classify_row(const accuracycoin_test *row, int observed,
-                                                     uint8_t raw, int active_budget_expired,
+                                                     uint8_t raw, int active_state,
                                                      const char **cause)
 {
     char key[ACCURACYCOIN_NAME_CAPACITY + 16u];
@@ -534,7 +542,7 @@ accuracycoin_result_status accuracycoin_classify_row(const accuracycoin_test *ro
         return ACCURACYCOIN_RESULT_INVALID;
     if (!accuracycoin_make_full_key(key, sizeof key, row->name))
         return ACCURACYCOIN_RESULT_INVALID;
-    return accuracycoin_classify(key, observed, raw, active_budget_expired, cause);
+    return accuracycoin_classify(key, observed, raw, active_state, cause);
 }
 
 static int accuracy_ram(const nesturbator *inst, uint16_t address, uint8_t *out)
@@ -561,6 +569,19 @@ static nesturbator_status accuracy_frame(nesturbator *inst, uint16_t buttons, ui
     nesturbator_status status = nesturbator_run_frame(inst, &frame);
     if (status == NESTURBATOR_OK && audio_hash != NULL)
         nesturbator_run_audio_hash_pcm(audio_hash, audio, frame.audio_count);
+    return status;
+}
+
+/* Strict page mode frame: a guest JAM is named on stderr once (it used to fail
+ * silently); the caller still returns RUNNER_EXIT_FAILURE. */
+static nesturbator_status strict_frame(nesturbator *inst, uint16_t buttons, uint16_t *video,
+                                       int16_t *audio, nesturbator_run_audio_hash *audio_hash,
+                                       uint32_t page_number, uint32_t frames)
+{
+    nesturbator_status status = accuracy_frame(inst, buttons, video, audio, audio_hash);
+    if (status == NESTURBATOR_STOP_JAM)
+        fprintf(stderr, "nesturbator-run: JAM stopped AccuracyCoin page %u at frame %u\n",
+                page_number, frames);
     return status;
 }
 
@@ -683,6 +704,10 @@ static int compare_scoreboard(const char *path, const accuracycoin_test *tests, 
     return found == (((size_t)1u << count) - 1u);
 }
 
+/* One strict-mode frame at the current frame count; a JAM is named on stderr. */
+#define STRICT_FRAME(buttons)                                                                      \
+    strict_frame(inst, buttons, video, audio, audio_hash, page_number, frames)
+
 int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32_t page_number,
                                  const char *scoreboard_path, nesturbator *inst, uint16_t *video,
                                  int16_t *audio, nesturbator_run_audio_hash *audio_hash)
@@ -726,7 +751,7 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
         }
     }
     while (frames < 120u) {
-        nesturbator_status status = accuracy_frame(inst, 0u, video, audio, audio_hash);
+        nesturbator_status status = STRICT_FRAME(0u);
         frames++;
         if (status != NESTURBATOR_OK ||
             !accuracy_ram(inst, ACCURACYCOIN_MENU_READY_ADDRESS, &value))
@@ -740,15 +765,14 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
         return RUNNER_EXIT_FAILURE;
     }
     for (uint32_t p = 1u; p < page_number; p++) {
-        if (accuracy_frame(inst, NESTURBATOR_BUTTON_RIGHT, video, audio, audio_hash) !=
-                NESTURBATOR_OK ||
-            accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK) {
+        if (STRICT_FRAME(NESTURBATOR_BUTTON_RIGHT) != NESTURBATOR_OK ||
+            STRICT_FRAME(0u) != NESTURBATOR_OK) {
             fprintf(stderr, "nesturbator-run: AccuracyCoin page navigation failed\n");
             return RUNNER_EXIT_FAILURE;
         }
         frames += 2u;
         for (uint32_t settle = 0u; settle < 3u; settle++) {
-            if (accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK)
+            if (STRICT_FRAME(0u) != NESTURBATOR_OK)
                 return RUNNER_EXIT_FAILURE;
             frames++;
         }
@@ -764,9 +788,8 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
             (unsigned)selected_page, (unsigned)cursor);
         return RUNNER_EXIT_FAILURE;
     }
-    if (accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio, audio_hash) != NESTURBATOR_OK ||
-        accuracy_frame(inst, NESTURBATOR_BUTTON_A, video, audio, audio_hash) != NESTURBATOR_OK ||
-        accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK)
+    if (STRICT_FRAME(NESTURBATOR_BUTTON_A) != NESTURBATOR_OK ||
+        STRICT_FRAME(NESTURBATOR_BUTTON_A) != NESTURBATOR_OK || STRICT_FRAME(0u) != NESTURBATOR_OK)
         return RUNNER_EXIT_FAILURE;
     frames += 3u;
     while (frames < 1800u) {
@@ -782,7 +805,7 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
         }
         if (complete != 0)
             break;
-        if (accuracy_frame(inst, 0u, video, audio, audio_hash) != NESTURBATOR_OK)
+        if (STRICT_FRAME(0u) != NESTURBATOR_OK)
             return RUNNER_EXIT_FAILURE;
         frames++;
     }
@@ -851,6 +874,8 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
            frames);
     return RUNNER_EXIT_DONE;
 }
+
+#undef STRICT_FRAME
 
 typedef struct accuracycoin_controls {
     uint8_t menu_ready;
@@ -926,12 +951,41 @@ static int write_diagnostic(FILE *file, const char *stage, uint64_t frame,
            fflush(file) == 0;
 }
 
-static int frame_and_sample(nesturbator *inst, uint16_t buttons, uint16_t *video, int16_t *audio,
-                            const accuracycoin_test *rows, size_t count, uint8_t *raw,
-                            accuracycoin_controls *controls)
+/* NESTURBATOR_OK: the frame ran and both samples were taken. NESTURBATOR_STOP_JAM
+ * passes through unchanged so callers can name a guest JAM. Any other failure
+ * (a frame error or an unreadable sample) is a non-OK, non-JAM status. */
+static nesturbator_status frame_and_sample(nesturbator *inst, uint16_t buttons, uint16_t *video,
+                                           int16_t *audio, const accuracycoin_test *rows,
+                                           size_t count, uint8_t *raw,
+                                           accuracycoin_controls *controls)
 {
-    return accuracy_frame(inst, buttons, video, audio, NULL) == NESTURBATOR_OK &&
-           read_controls(inst, controls) && sample_rows(inst, rows, count, raw);
+    nesturbator_status status = accuracy_frame(inst, buttons, video, audio, NULL);
+    if (status != NESTURBATOR_OK)
+        return status == NESTURBATOR_STOP_JAM ? NESTURBATOR_STOP_JAM : NESTURBATOR_ERR_ARGUMENT;
+    if (!read_controls(inst, controls) || !sample_rows(inst, rows, count, raw))
+        return NESTURBATOR_ERR_ARGUMENT;
+    return NESTURBATOR_OK;
+}
+
+/* A guest JAM (the CPU executed a KIL/JAM opcode) is named as such in the
+ * observe verdict and stop cause, with the total frames completed before it. */
+static void observe_note_jam(const char **stop_cause, const char **verdict, char *jam_frame,
+                             size_t jam_frame_capacity, uint64_t frames)
+{
+    *stop_cause = "guest-jam";
+    *verdict = "guest-jam";
+    (void)snprintf(jam_frame, jam_frame_capacity, "%llu", (unsigned long long)frames);
+}
+
+/* JAM before the execution stage: named in metadata and on stderr, but there is
+ * no active row to attribute, no report is written and the exit stays 1. */
+static void observe_early_jam(const char **stop_cause, const char **verdict, char *jam_frame,
+                              size_t jam_frame_capacity, uint64_t frames, uint32_t page_number)
+{
+    observe_note_jam(stop_cause, verdict, jam_frame, jam_frame_capacity, frames);
+    fprintf(stderr,
+            "nesturbator-run: JAM stopped AccuracyCoin page %u at frame %s (active_key=-)\n",
+            page_number, jam_frame);
 }
 
 int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint32_t page_number,
@@ -991,6 +1045,8 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
     const char *stop_cause = "runner-error";
     char active_key[ACCURACYCOIN_NAME_CAPACITY + 16u] = "-";
     char active_raw[8] = "-";
+    char jam_frame[24] = "-";
+    int jam_stop = 0;
     nesturbator_version version;
     int status = RUNNER_EXIT_FAILURE;
 
@@ -1050,7 +1106,14 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
 
     started_ns = nesturbator_run_clock_now_ns();
     while (boot_frames < budgets->boot_frames && frames < budgets->total_frames) {
-        if (!frame_and_sample(inst, 0u, video, audio, rows, count, current, &controls)) {
+        nesturbator_status boot_status =
+            frame_and_sample(inst, 0u, video, audio, rows, count, current, &controls);
+        if (boot_status == NESTURBATOR_STOP_JAM) {
+            observe_early_jam(&stop_cause, &verdict, jam_frame, sizeof jam_frame, frames,
+                              page_number);
+            goto done;
+        }
+        if (boot_status != NESTURBATOR_OK) {
             stop_cause = "boot-frame-failure";
             verdict = "guest-failure";
             goto done;
@@ -1082,8 +1145,16 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
     for (uint32_t target = 1u; target < page_number; target++) {
         for (uint32_t step = 0u; step < budgets->navigation_frames_per_page; step++) {
             uint16_t buttons = step == 0u ? NESTURBATOR_BUTTON_RIGHT : 0u;
-            if (frames >= budgets->total_frames ||
-                !frame_and_sample(inst, buttons, video, audio, rows, count, current, &controls)) {
+            nesturbator_status nav_status = NESTURBATOR_ERR_ARGUMENT;
+            if (frames < budgets->total_frames)
+                nav_status =
+                    frame_and_sample(inst, buttons, video, audio, rows, count, current, &controls);
+            if (nav_status == NESTURBATOR_STOP_JAM) {
+                observe_early_jam(&stop_cause, &verdict, jam_frame, sizeof jam_frame, frames,
+                                  page_number);
+                goto done;
+            }
+            if (nav_status != NESTURBATOR_OK) {
                 stop_cause = "navigation-frame-failure";
                 verdict = "guest-failure";
                 goto done;
@@ -1119,9 +1190,15 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         goto done;
     }
 
-    if (frames >= budgets->total_frames ||
-        !frame_and_sample(inst, NESTURBATOR_BUTTON_A, video, audio, rows, count, after_press,
-                          &controls)) {
+    nesturbator_status start_status = NESTURBATOR_ERR_ARGUMENT;
+    if (frames < budgets->total_frames)
+        start_status = frame_and_sample(inst, NESTURBATOR_BUTTON_A, video, audio, rows, count,
+                                        after_press, &controls);
+    if (start_status == NESTURBATOR_STOP_JAM) {
+        observe_early_jam(&stop_cause, &verdict, jam_frame, sizeof jam_frame, frames, page_number);
+        goto done;
+    }
+    if (start_status != NESTURBATOR_OK) {
         stop_cause = "a-press-frame-failure";
         verdict = "driver-failure";
         goto done;
@@ -1140,8 +1217,14 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         goto done;
     }
 
-    if (frames >= budgets->total_frames ||
-        !frame_and_sample(inst, 0u, video, audio, rows, count, current, &controls)) {
+    start_status = NESTURBATOR_ERR_ARGUMENT;
+    if (frames < budgets->total_frames)
+        start_status = frame_and_sample(inst, 0u, video, audio, rows, count, current, &controls);
+    if (start_status == NESTURBATOR_STOP_JAM) {
+        observe_early_jam(&stop_cause, &verdict, jam_frame, sizeof jam_frame, frames, page_number);
+        goto done;
+    }
+    if (start_status != NESTURBATOR_OK) {
         stop_cause = "a-release-frame-failure";
         verdict = "driver-failure";
         goto done;
@@ -1192,8 +1275,21 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
                                       controls.cursor == 0xffu && controls.automate == 0u;
         if (!any_active && !any_not_run && menu_execution_complete)
             break;
-        if (frames >= budgets->total_frames ||
-            !frame_and_sample(inst, 0u, video, audio, rows, count, current, &controls)) {
+        if (frames >= budgets->total_frames) {
+            stop_cause = "execution-frame-failure";
+            verdict = "guest-failure";
+            goto done;
+        }
+        nesturbator_status frame_status =
+            frame_and_sample(inst, 0u, video, audio, rows, count, current, &controls);
+        if (frame_status == NESTURBATOR_STOP_JAM) {
+            /* Checked before the generic failure branch: a JAM is the guest's
+             * own stop, not a driver or emulator error (JAM-01). */
+            observe_note_jam(&stop_cause, &verdict, jam_frame, sizeof jam_frame, frames);
+            jam_stop = 1;
+            break;
+        }
+        if (frame_status != NESTURBATOR_OK) {
             stop_cause = "execution-frame-failure";
             verdict = "guest-failure";
             goto done;
@@ -1213,6 +1309,13 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
         stop_cause = "final-sample-failure";
         goto done;
     }
+    /* After a JAM the controls still hold the last completed frame; refresh them
+     * from CPU RAM, which stays readable, so the attribution reads the cursor at
+     * the JAM. */
+    if (jam_stop != 0 && !read_controls(inst, &controls)) {
+        stop_cause = "final-sample-failure";
+        goto done;
+    }
     any_active = 0;
     any_not_run = 0;
     active_count = 0;
@@ -1229,7 +1332,25 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
     menu_returned_to_header_observed = controls.menu_ready == 0x0au &&
                                        controls.page_index == (uint8_t)(page_number - 1u) &&
                                        controls.cursor == 0xffu && controls.automate == 0u;
-    if (draw_only_page != 0) {
+    if (jam_stop != 0) {
+        /* The JAM ended the loop early, so the cap checks below do not apply
+         * (they would misread it as active-row-not-current). The JAM belongs to
+         * the row the suite is running when automation is active, the cursor
+         * names a TEST row and that row's byte is still 0x03; otherwise it is
+         * unattributed. stop_cause and verdict were set by observe_note_jam. */
+        if (draw_only_page == 0 && controls.automate != 0u && controls.cursor < count &&
+            rows[controls.cursor].kind == (uint8_t)ACCURACYCOIN_KIND_TEST &&
+            current[controls.cursor] == 0x03u) {
+            active_index = controls.cursor;
+            (void)snprintf(active_key, sizeof active_key, "accuracycoin/%s",
+                           rows[active_index].name);
+            (void)snprintf(active_raw, sizeof active_raw, "0x%02x",
+                           (unsigned)current[active_index]);
+        }
+        fprintf(stderr, "nesturbator-run: JAM stopped AccuracyCoin page %u at frame %s (%s=%s)\n",
+                page_number, jam_frame, "active_key", active_key);
+        status = RUNNER_EXIT_DONE;
+    } else if (draw_only_page != 0) {
         if (menu_returned_to_header_observed == 0) {
             stop_cause = execution_frames >= budgets->execution_frames
                              ? "draw-sequence-cap-exhausted"
@@ -1279,8 +1400,12 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
     for (size_t i = 0u; i < count; i++) {
         char raw_text[5];
         int observed = rows[i].kind == (uint8_t)ACCURACYCOIN_KIND_TEST;
-        result_status = accuracycoin_classify_final_row(&rows[i], observed, current[i],
-                                                        i == active_index, &cause);
+        result_status =
+            accuracycoin_classify_final_row(&rows[i], observed, current[i],
+                                            i != active_index ? ACCURACYCOIN_ACTIVE_RUNNING
+                                            : jam_stop != 0   ? ACCURACYCOIN_ACTIVE_JAM
+                                                              : ACCURACYCOIN_ACTIVE_BUDGET,
+                                            &cause);
         if (observed != 0)
             (void)snprintf(raw_text, sizeof raw_text, "0x%02x", (unsigned)current[i]);
         else
@@ -1328,7 +1453,7 @@ done:
             "press_observed=%d\na_release_observed=%d\nrelease_frames=%d\nrun_state_observed=%"
             "d\nresult_transition_observed=%d\ndraw_cursor_transition_observed=%d\nmenu_returned_"
             "to_header_observed=%d\nstart_attributed=%d\nstop_cause=%s\nactive_key=%s\nactive_raw=%"
-            "s\nverdict=%s\nobservation_started_ns=%llu\nhost_elapsed_ns=%llu\n",
+            "s\nverdict=%s\njam_frame=%s\nobservation_started_ns=%llu\nhost_elapsed_ns=%llu\n",
             directory->pin, directory->rom_sha256, directory->inventory_sha256,
             NESTURBATOR_SOURCE_REVISION, NESTURBATOR_SOURCE_DIRTY, (unsigned)version.major,
             (unsigned)version.minor, (unsigned)version.patch, (unsigned)version.behaviour_revision,
@@ -1342,7 +1467,7 @@ done:
             (unsigned)selected_page, (unsigned)selected_cursor, a_press_observed,
             a_release_observed, a_release_observed, saw_run_flag, saw_transition,
             draw_cursor_transition_observed, menu_returned_to_header_observed, start_attributed,
-            stop_cause, active_key, active_raw, verdict, (unsigned long long)started_ns,
+            stop_cause, active_key, active_raw, verdict, jam_frame, (unsigned long long)started_ns,
             (unsigned long long)elapsed_ns) < 0 ||
         fflush(metadata_file) != 0) {
         fprintf(stderr, "nesturbator-run: failed writing AccuracyCoin metadata\n");
@@ -1372,6 +1497,19 @@ done:
         }
     }
     return status;
+}
+
+/* The classifier's active state for one collected row: the cursor row of a
+ * guest-timeout is budget-expired, the attributed row of a guest-jam is
+ * JAM-stopped, every other row is not the running one. */
+static int campaign_row_active_state(const char *verdict, size_t row, size_t cursor_row,
+                                     size_t jam_row)
+{
+    if (strcmp(verdict, "guest-timeout") == 0 && row == cursor_row)
+        return ACCURACYCOIN_ACTIVE_BUDGET;
+    if (strcmp(verdict, "guest-jam") == 0 && row == jam_row)
+        return ACCURACYCOIN_ACTIVE_JAM;
+    return ACCURACYCOIN_ACTIVE_RUNNING;
 }
 
 #define ACCURACYCOIN_CAMPAIGN_TEXT_CAPACITY 65536u
@@ -1765,6 +1903,8 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const
         char attempt_id[64];
         char stop_cause[64] = "outer-failure";
         char verdict[40] = "incomplete";
+        char jam_frame_text[24] = "-";
+        size_t jam_row = SIZE_MAX;
         char origin[32] = "cold-page";
         char source_revision[64] = "";
         char source_dirty[8] = "";
@@ -1876,8 +2016,19 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const
                 strcmp(verdict, "bounded-incomplete") != 0 &&
                 strcmp(verdict, "startup-timeout") != 0 && strcmp(verdict, "driver-failure") != 0 &&
                 strcmp(verdict, "guest-failure") != 0 && strcmp(verdict, "output-failure") != 0 &&
-                strcmp(verdict, "startup-failure") != 0)
+                strcmp(verdict, "startup-failure") != 0 && strcmp(verdict, "guest-jam") != 0)
                 page_metadata_valid = 0;
+            /* JAM-01: verdict and stop cause name a JAM together, and jam_frame is
+             * a frame count exactly then (`-` otherwise). */
+            META_STRING("jam_frame", jam_frame_text);
+            {
+                int jam_verdict = strcmp(verdict, "guest-jam") == 0;
+                uint64_t jam_frame_value = 0u;
+                if (jam_verdict != (strcmp(stop_cause, "guest-jam") == 0) ||
+                    (jam_verdict != 0 ? !campaign_parse_u64(jam_frame_text, &jam_frame_value)
+                                      : strcmp(jam_frame_text, "-") != 0))
+                    page_metadata_valid = 0;
+            }
             META_STRING("attempt_id", value);
             if (strcmp(value, attempt_id) != 0)
                 page_metadata_valid = 0;
@@ -2272,6 +2423,18 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const
                 }
             }
         }
+        if (page_metadata_valid != 0 && final_snapshot_complete != 0 &&
+            strcmp(verdict, "guest-jam") == 0 && strcmp(active_key, "-") != 0) {
+            /* The attributed row is the TEST row whose full key is active_key. */
+            for (size_t i = 0u; i < row_count; i++) {
+                const accuracycoin_test *row = &directory->rows[first_row + i];
+                char full_key[ACCURACYCOIN_NAME_CAPACITY + 16u];
+                if (row->kind == (uint8_t)ACCURACYCOIN_KIND_TEST &&
+                    accuracycoin_make_full_key(full_key, sizeof full_key, row->name) &&
+                    strcmp(full_key, active_key) == 0)
+                    jam_row = i;
+            }
+        }
         if (page_metadata_valid != 0 && final_snapshot_complete != 0) {
             unsigned active_rows = 0u;
             const accuracycoin_test *cursor_row = NULL;
@@ -2299,6 +2462,20 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const
                     evidence_invalid = 1;
                     (void)snprintf(error, sizeof error,
                                    "page %u timeout lacks current-row automation evidence",
+                                   (unsigned)page_number);
+                }
+            } else if (strcmp(verdict, "guest-jam") == 0) {
+                /* An attributed JAM names one observed 0x03 TEST row and is the
+                 * only running row; an unattributed JAM has no running row. The
+                 * report check below confirms the single fail/0x03/guest-jam row. */
+                int attributed = strcmp(active_key, "-") != 0;
+                if (attributed != 0 ? (jam_row == SIZE_MAX || final_observed[jam_row] == 0u ||
+                                       final_raw[jam_row] != 0x03u || active_rows != 1u ||
+                                       strcmp(active_raw, "0x03") != 0)
+                                    : (active_rows != 0u || strcmp(active_raw, "-") != 0)) {
+                    evidence_invalid = 1;
+                    (void)snprintf(error, sizeof error,
+                                   "page %u JAM attribution lacks a matching running row",
                                    (unsigned)page_number);
                 }
             } else if (active_rows != 0u || strcmp(active_key, "-") != 0 ||
@@ -2336,7 +2513,7 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const
                 int observed = row->kind == (uint8_t)ACCURACYCOIN_KIND_TEST;
                 accuracycoin_result_status result = accuracycoin_classify_final_row(
                     row, observed, final_raw[i],
-                    strcmp(verdict, "guest-timeout") == 0 && i == controls_evidence.last_cursor,
+                    campaign_row_active_state(verdict, i, controls_evidence.last_cursor, jam_row),
                     &classified_cause);
                 if (observed != 0)
                     (void)snprintf(raw_text, sizeof raw_text, "0x%02x", (unsigned)final_raw[i]);
@@ -2389,6 +2566,7 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const
                 strcmp(stop_cause, "boot-cap-exhausted") == 0 && start_attributed == 0) {
                 page_complete = 1;
             } else if ((strcmp(verdict, "complete") == 0 || strcmp(verdict, "guest-timeout") == 0 ||
+                        strcmp(verdict, "guest-jam") == 0 ||
                         strcmp(verdict, "bounded-incomplete") == 0) &&
                        start_evidence_complete != 0 && final_snapshot_complete != 0 &&
                        page_report_valid != 0 &&
@@ -2457,11 +2635,11 @@ int accuracycoin_collect_campaign(const accuracycoin_directory *directory, const
                 draw_rows++;
             } else if (page_report_valid != 0 && final_seen[local_index] != 0u &&
                        final_observed[local_index] != 0u && page_metadata_valid != 0) {
-                result = accuracycoin_classify_final_row(row, 1, raw,
-                                                         strcmp(verdict, "guest-timeout") == 0 &&
-                                                             local_index ==
-                                                                 controls_evidence.last_cursor,
-                                                         &cause);
+                result = accuracycoin_classify_final_row(
+                    row, 1, raw,
+                    campaign_row_active_state(verdict, local_index, controls_evidence.last_cursor,
+                                              jam_row),
+                    &cause);
                 if (result == ACCURACYCOIN_RESULT_INVALID) {
                     evidence_invalid = 1;
                     (void)snprintf(error, sizeof error, "page %u has invalid classified result",

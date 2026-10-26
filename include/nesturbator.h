@@ -53,11 +53,14 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 6 is the PPUCTRL NMI edge: a $2000 write raises
+   the same inputs. Revision 7 clears OAMADDR on dots 257-320 while rendering and
+   starts sprite evaluation at OAMADDR, with the sprite found on the dot-66 read
+   acting as sprite 0, which changes the frames of programs that leave OAMADDR
+   nonzero while rendering. Revision 6 is the PPUCTRL NMI edge: a $2000 write raises
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
-   Revision 5 was the PPU fetch pipeline. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 6
+   Revision 5 was the PPU fetch pipeline. The state format is unchanged by revision 7. */
+#define NESTURBATOR_BEHAVIOUR_REVISION 7
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
@@ -404,8 +407,13 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * the machine remains valid for a save-state snapshot. A libretro host may
  * present its separately owned last complete converted frame (or black), but
  * must not treat these native output buffers as a frame. Loading state does
- * not write to host-owned presentation storage; the host can invalidate its
- * cached frame without changing bytes already passed to its frontend.
+ * not write to host-owned presentation storage. A host that keeps such a frame
+ * across loads (run-ahead loads a state every tick) should show it only when
+ * the loaded state's frame_number equals that of the frame and the state is the
+ * one that frame produced, or the jammed state reached from it (the state CRC,
+ * below); another state, such as one of a diverged timeline, deserves black. A
+ * mispredicted input that ends in a JAM on the first frame after a load leaves
+ * no such frame, and black is the safe picture.
  * Test-only bounded
  * execution replay uses generated representative mapper 0, 1, 2, 3, 4 and 7
  * content to check deterministic continuation and instance isolation. Its

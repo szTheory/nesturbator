@@ -6,10 +6,10 @@ accuracycoin/$13   SLO indirect,Y	pass	0x01	13	-
 accuracycoin/$17   SLO zeropage,X	pass	0x01	13	-
 accuracycoin/$1B   SLO absolute,Y	pass	0x01	13	-
 accuracycoin/$1F   SLO absolute,X	pass	0x01	13	-
-accuracycoin/$2002 flag timing	fail	0x06	1800	-
-accuracycoin/$2004 Stress Test	fail	0x0a	503	-
-accuracycoin/$2007 Stress Test	fail	0x0a	503	-
-accuracycoin/$2007 read w/ rendering	fail	0x06	503	-
+accuracycoin/$2002 flag timing	fail	0x06	521	-
+accuracycoin/$2004 Stress Test	fail	0x0a	569	-
+accuracycoin/$2007 Stress Test	fail	0x0a	569	-
+accuracycoin/$2007 read w/ rendering	pass	0x01	569	-
 accuracycoin/$23   RLA indirect,X	pass	0x01	13	-
 accuracycoin/$27   RLA zeropage	pass	0x01	13	-
 accuracycoin/$2B   ANC immediate	pass	0x01	17	-
@@ -71,9 +71,9 @@ accuracycoin/$FF   ISC absolute,X	pass	0x01	13	-
 accuracycoin/ALE + Read	fail	0x0a	212	-
 accuracycoin/APU Register Activation	fail	0x12	120	-
 accuracycoin/Absolute Indexed	pass	0x01	12	-
-accuracycoin/Address $2004 behavior	fail	0x0e	503	-
+accuracycoin/Address $2004 behavior	fail	0x0e	569	-
 accuracycoin/All NOP instructions	pass	0x01	51	-
-accuracycoin/Arbitrary Sprite zero	timeout	0x03	1800	-
+accuracycoin/Arbitrary Sprite zero	pass	0x01	521	-
 accuracycoin/Attributes As Tiles	pass	0x01	212	-
 accuracycoin/BG Serial In	fail	0x0a	212	-
 accuracycoin/Branch Dummy Reads	pass	0x01	92	-
@@ -99,7 +99,7 @@ accuracycoin/Frame Counter 5-step	pass	0x01	120	-
 accuracycoin/Frame Counter IRQ	pass	0x01	120	-
 accuracycoin/Frozen OAM2 Increment	fail	0x0a	151	-
 accuracycoin/Hybrid Addresses	fail	0x0a	212	-
-accuracycoin/INC $4014	fail	0x0a	503	-
+accuracycoin/INC $4014	pass	0x01	569	-
 accuracycoin/Implicit DMA Abort	fail	0x0a	533	-
 accuracycoin/Implied Dummy Reads	fail	0x0e	92	-
 accuracycoin/Indirect	pass	0x01	12	-
@@ -111,8 +111,8 @@ accuracycoin/Interrupt flag latency	fail	0x0a	138	-
 accuracycoin/JSR Edge Cases	pass	0x01	92	-
 accuracycoin/Length Counter	pass	0x01	120	-
 accuracycoin/Length Table	pass	0x01	120	-
-accuracycoin/Misaligned OAM DMA	fail	0x06	1800	-
-accuracycoin/Misaligned OAM behavior	not-run	0x03	1800	-
+accuracycoin/Misaligned OAM DMA	pass	0x01	521	-
+accuracycoin/Misaligned OAM behavior	fail	0x16	521	-
 accuracycoin/Misaligned OAM2 Address	fail	0x0e	151	-
 accuracycoin/NMI Control	fail	0x22	1463	-
 accuracycoin/NMI Overlap BRK	fail	0x0a	138	-
@@ -121,7 +121,7 @@ accuracycoin/NMI Suppression	fail	0x06	1463	-
 accuracycoin/NMI Timing	fail	0x06	1463	-
 accuracycoin/NMI at VBlank end	fail	0x06	1463	-
 accuracycoin/NMI disabled at VBlank	fail	0x06	1463	-
-accuracycoin/OAM Corruption	not-run	0x00	1800	-
+accuracycoin/OAM Corruption	fail	0x0a	521	-
 accuracycoin/Open Bus	fail	0x1e	51	-
 accuracycoin/PC Wraparound	pass	0x01	51	-
 accuracycoin/PPU Read Buffer	pass	0x41	159	-
@@ -131,16 +131,16 @@ accuracycoin/Palette RAM Quirks	pass	0x01	159	-
 accuracycoin/RAM Mirroring	pass	0x01	51	-
 accuracycoin/ROM is not writable	pass	0x01	51	-
 accuracycoin/Relative	pass	0x01	12	-
-accuracycoin/Rendering Flag Behavior	fail	0x0a	503	-
-accuracycoin/Sprite 0 Hit behavior	fail	0x06	1800	-
-accuracycoin/Sprite overflow behavior	pass	0x01	1800	-
+accuracycoin/Rendering Flag Behavior	pass	0x01	569	-
+accuracycoin/Sprite 0 Hit behavior	pass	0x01	521	-
+accuracycoin/Sprite overflow behavior	pass	0x01	521	-
 accuracycoin/Sprites On Scanline 0	fail	0x0a	151	-
 accuracycoin/Stale BG Shift Registers	fail	0x0e	212	-
 accuracycoin/Stale Sprite Shift Regs	fail	0x0e	151	-
-accuracycoin/Suddenly Resize Sprite	fail	0x06	1800	-
+accuracycoin/Suddenly Resize Sprite	pass	0x01	521	-
 accuracycoin/The B Flag	pass	0x01	51	-
 accuracycoin/The Decimal Flag	pass	0x01	51	-
 accuracycoin/VBlank beginning	pass	0x01	1463	-
 accuracycoin/VBlank end	pass	0x01	1463	-
 accuracycoin/Zero Page Indexed	pass	0x01	12	-
-accuracycoin/t Register Quirks	pass	0x01	503	-
+accuracycoin/t Register Quirks	pass	0x01	569	-

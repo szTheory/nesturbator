@@ -123,8 +123,8 @@ function(create_next_main_baseline root)
       math(EXPR pass_count "${pass_count} + 1")
     endif()
   endforeach()
-  if(NOT pass_count EQUAL 101)
-    message(FATAL_ERROR "next-main control requires the canonical 101 PASS set, found ${pass_count}")
+  if(NOT pass_count EQUAL 108)
+    message(FATAL_ERROR "next-main control requires the canonical 108 PASS set, found ${pass_count}")
   endif()
   file(WRITE "${root}/baseline.txt" "${pass_rows}")
   file(SHA256 "${root}/baseline.txt" baseline_sha256)
@@ -547,7 +547,7 @@ run_verdict("unchanged cross-pin key lacks a measured passing observation")
 
 if(FULL_ENABLED)
   # Model the first run after main adopts the new pin. Generate a complete
-  # 101-PASS baseline, then let the production page planner and cold observer
+  # 108-PASS baseline, then let the production page planner and cold observer
   # create this invocation's evidence for every selected page.
   prepare_case(next_main_positive)
   create_next_main_baseline("${case_root}")
@@ -573,7 +573,7 @@ if(FULL_ENABLED)
       "next-main control could not freshly observe its protected PASS pages (${observe_result}): ${observe_stderr}${observe_stdout}")
   endif()
   set(next_main_root "${case_root}")
-  set(EXPECT_PROTECTED_COUNT 101)
+  set(EXPECT_PROTECTED_COUNT 108)
   run_verdict("PASS")
   unset(EXPECT_PROTECTED_COUNT)
 

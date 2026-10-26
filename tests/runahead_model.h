@@ -148,10 +148,16 @@ static inline nesturbator *ra_instance(const uint8_t *rom, size_t size)
 }
 
 /* One frame with the given buttons. The video hash is over the XRGB frame the adapter hands a
-   host (palette[native & 0x1ff]); the audio hash is ra_audio_hash_mono. Either pointer may be
-   NULL. Returns 1 when the frame ran. */
-static inline int ra_lib_frame(nesturbator *nes, uint16_t buttons, uint64_t *video_hash,
-                               uint64_t *audio_hash)
+   host (palette[native & 0x1ff]); the audio hash is ra_audio_hash_mono. Any output pointer may be
+   NULL; *frame_number receives io.frame_number of an OK frame. Returns RA_FRAME_OK when the frame
+   ran, RA_FRAME_JAM on NESTURBATOR_STOP_JAM (nothing is written, as nesturbator.h says) and
+   RA_FRAME_FAIL otherwise. */
+#define RA_FRAME_FAIL 0
+#define RA_FRAME_OK 1
+#define RA_FRAME_JAM 2
+
+static inline int ra_lib_frame_status(nesturbator *nes, uint16_t buttons, uint64_t *video_hash,
+                                      uint64_t *audio_hash, uint64_t *frame_number)
 {
     static uint16_t video[RA_PIXELS];
     static int16_t audio[1024];
@@ -159,6 +165,7 @@ static inline int ra_lib_frame(nesturbator *nes, uint16_t buttons, uint64_t *vid
     static int palette_ready;
     nesturbator_input in;
     nesturbator_frame io;
+    nesturbator_status status;
     if (!palette_ready) {
         nesturbator_get_palette(NULL, palette, 512u);
         palette_ready = 1;
@@ -174,9 +181,12 @@ static inline int ra_lib_frame(nesturbator *nes, uint16_t buttons, uint64_t *vid
     io.video_pitch = 256u;
     io.audio = audio;
     io.audio_capacity = 1024u;
-    if (nesturbator_run_frame(nes, &io) != NESTURBATOR_OK) {
+    status = nesturbator_run_frame(nes, &io);
+    if (status == NESTURBATOR_STOP_JAM)
+        return RA_FRAME_JAM;
+    if (status != NESTURBATOR_OK) {
         CHECK(0);
-        return 0;
+        return RA_FRAME_FAIL;
     }
     if (video_hash != NULL) {
         uint64_t h = RA_FNV_BASIS;
@@ -186,17 +196,45 @@ static inline int ra_lib_frame(nesturbator *nes, uint16_t buttons, uint64_t *vid
     }
     if (audio_hash != NULL)
         *audio_hash = ra_audio_hash_mono(audio, io.audio_count);
+    if (frame_number != NULL)
+        *frame_number = io.frame_number;
+    return RA_FRAME_OK;
+}
+
+/* The strict form: any status other than OK, a JAM included, is an error. Returns 1 when the
+   frame ran. */
+static inline int ra_lib_frame(nesturbator *nes, uint16_t buttons, uint64_t *video_hash,
+                               uint64_t *audio_hash)
+{
+    int r = ra_lib_frame_status(nes, buttons, video_hash, audio_hash, NULL);
+    if (r != RA_FRAME_OK) {
+        CHECK(0);
+        return 0;
+    }
     return 1;
 }
 
 /* The uninterrupted run: per frame the video and audio hashes, and the state after the frame
    at state + i * state_size. */
+/* One frame of the uninterrupted run. A frame that returned STOP_JAM is not valid: its hash is
+   that of the last valid frame (the picture a host that repeats its last converted frame shows),
+   its frame_number is held at the latch. */
+struct ra_frame {
+    uint64_t hash;
+    uint64_t frame_number;
+    int valid;
+};
+
+#define RA_NO_JAM 0xffffffffu
+
 struct ra_oracle {
     uint32_t frames;
     size_t state_size;
     uint64_t *video;
     uint64_t *audio;
     uint8_t *state;
+    struct ra_frame *rec; /* per frame, filled by the JAM-aware run only */
+    uint32_t jam_frame;   /* the first STOP_JAM, or RA_NO_JAM */
 };
 
 static inline void ra_oracle_free(struct ra_oracle *o)
@@ -204,6 +242,7 @@ static inline void ra_oracle_free(struct ra_oracle *o)
     free(o->video);
     free(o->audio);
     free(o->state);
+    free(o->rec);
     memset(o, 0, sizeof *o);
 }
 
@@ -215,17 +254,49 @@ static inline int ra_oracle_alloc(struct ra_oracle *o, uint32_t frames, size_t s
     o->video = (uint64_t *)calloc(frames, sizeof *o->video);
     o->audio = (uint64_t *)calloc(frames, sizeof *o->audio);
     o->state = (uint8_t *)calloc((size_t)frames * state_size, 1u);
-    if (o->video == NULL || o->audio == NULL || o->state == NULL) {
+    o->rec = (struct ra_frame *)calloc(frames, sizeof *o->rec);
+    o->jam_frame = RA_NO_JAM;
+    if (o->video == NULL || o->audio == NULL || o->state == NULL || o->rec == NULL) {
         ra_oracle_free(o);
         return 0;
     }
     return 1;
 }
 
-/* Runs frames 0..frames-1 with in[i]. Returns 1 on success; the caller frees with
-   ra_oracle_free. */
-static inline int ra_run_uninterrupted(const uint8_t *rom, size_t size, const uint16_t *in,
-                                       uint32_t frames, struct ra_oracle *o)
+/* Records one frame of a JAM-aware run: an OK frame is valid and moves frame_number; a STOP_JAM
+   frame is not valid, holds the previous hash and frame_number, and has no audio (the hash of
+   zero samples). Returns 0 when the frame neither ran nor JAMmed, or when a JAM comes before any
+   valid frame. */
+static inline int ra_record_frame(struct ra_oracle *o, uint32_t i, nesturbator *nes,
+                                  uint16_t buttons, int jam_aware)
+{
+    uint64_t number = 0u;
+    int r = ra_lib_frame_status(nes, buttons, &o->video[i], &o->audio[i], &number);
+    if (r == RA_FRAME_JAM && jam_aware && i > 0u) {
+        o->video[i] = o->rec[i - 1u].hash;
+        o->audio[i] = ra_audio_hash_mono(NULL, 0u);
+        o->rec[i].hash = o->video[i];
+        o->rec[i].frame_number = o->rec[i - 1u].frame_number;
+        o->rec[i].valid = 0;
+        if (o->jam_frame == RA_NO_JAM)
+            o->jam_frame = i;
+        return 1;
+    }
+    if (r != RA_FRAME_OK) {
+        CHECK(0);
+        return 0;
+    }
+    o->rec[i].hash = o->video[i];
+    o->rec[i].frame_number = number;
+    o->rec[i].valid = 1;
+    return 1;
+}
+
+/* Runs frames 0..frames-1 with in[i]. With jam_aware set, a STOP_JAM frame is recorded as not
+   valid and the run goes on (the instance stays latched); otherwise any status other than OK is
+   an error. Returns 1 on success; the caller frees with ra_oracle_free. */
+static inline int ra_run_uninterrupted_ex(const uint8_t *rom, size_t size, const uint16_t *in,
+                                          uint32_t frames, struct ra_oracle *o, int jam_aware)
 {
     nesturbator *nes = ra_instance(rom, size);
     int ok = 0;
@@ -234,7 +305,7 @@ static inline int ra_run_uninterrupted(const uint8_t *rom, size_t size, const ui
     if (ra_oracle_alloc(o, frames, nesturbator_state_size(nes))) {
         ok = 1;
         for (uint32_t i = 0u; i < frames && ok; i++) {
-            ok = ra_lib_frame(nes, in[i], &o->video[i], &o->audio[i]);
+            ok = ra_record_frame(o, i, nes, in[i], jam_aware);
             if (ok) {
                 nesturbator_status st = nesturbator_save_state(
                     nes, o->state + (size_t)i * o->state_size, o->state_size);
@@ -249,13 +320,20 @@ static inline int ra_run_uninterrupted(const uint8_t *rom, size_t size, const ui
     return ok;
 }
 
+static inline int ra_run_uninterrupted(const uint8_t *rom, size_t size, const uint16_t *in,
+                                       uint32_t frames, struct ra_oracle *o)
+{
+    return ra_run_uninterrupted_ex(rom, size, in, frames, o, 0);
+}
+
 /* The two-instance model (RetroArch's second-instance mode): A runs the real timeline with
    in[t] and is recorded in *a; each tick B loads A's state after frame t, runs depth frames
    with in[t] repeated, and the last frame's video hash is visible[t] (A's own frame when depth
-   is 0). */
-static inline int ra_run_two_instance(const uint8_t *rom, size_t size, const uint16_t *in,
-                                      uint32_t T, unsigned depth, struct ra_oracle *a,
-                                      uint64_t *visible)
+   is 0). With jam_aware set a JAM frame (on A or on B) is not an error: it leaves the picture
+   the host last converted. */
+static inline int ra_run_two_instance_ex(const uint8_t *rom, size_t size, const uint16_t *in,
+                                         uint32_t T, unsigned depth, struct ra_oracle *a,
+                                         uint64_t *visible, int jam_aware)
 {
     nesturbator *na = ra_instance(rom, size);
     nesturbator *nb = ra_instance(rom, size);
@@ -264,14 +342,19 @@ static inline int ra_run_two_instance(const uint8_t *rom, size_t size, const uin
         ok = 1;
         for (uint32_t t = 0u; t < T && ok; t++) {
             uint8_t *s = a->state + (size_t)t * a->state_size;
-            ok = ra_lib_frame(na, in[t], &a->video[t], &a->audio[t]);
+            ok = ra_record_frame(a, t, na, in[t], jam_aware);
             if (!ok)
                 break;
             CHECK_EQ_U64(nesturbator_save_state(na, s, a->state_size), NESTURBATOR_OK);
             CHECK_EQ_U64(nesturbator_load_state(nb, s, a->state_size), NESTURBATOR_OK);
             visible[t] = a->video[t];
-            for (unsigned j = 0u; j < depth && ok; j++)
-                ok = ra_lib_frame(nb, in[t], &visible[t], NULL);
+            for (unsigned j = 0u; j < depth && ok; j++) {
+                int r = ra_lib_frame_status(nb, in[t], &visible[t], NULL, NULL);
+                /* A frame that JAMs shows the last converted frame: visible[t] stays. */
+                ok = r == RA_FRAME_OK || (r == RA_FRAME_JAM && jam_aware);
+                if (!ok)
+                    CHECK(0);
+            }
         }
         if (!ok)
             ra_oracle_free(a);
@@ -279,6 +362,13 @@ static inline int ra_run_two_instance(const uint8_t *rom, size_t size, const uin
     nesturbator_destroy(nb);
     nesturbator_destroy(na);
     return ok;
+}
+
+static inline int ra_run_two_instance(const uint8_t *rom, size_t size, const uint16_t *in,
+                                      uint32_t T, unsigned depth, struct ra_oracle *a,
+                                      uint64_t *visible)
+{
+    return ra_run_two_instance_ex(rom, size, in, T, depth, a, visible, 0);
 }
 
 /* The one-instance model through the library: save after the real frame, run depth frames with

@@ -123,10 +123,34 @@ The difference demonstrates that this fixed frame sequence's navigation cap also
 - Boot: all 22 attempts reached menu-ready by frame 26. Cap 32 leaves 6 frames (23%) for startup variation without increasing the longer per-page deadline.
 - Navigation: five frames per page change is the measured fixed sequence: one Right edge followed by four neutral frames. The six-frame probe changes guest timing, so it is a distinct policy rather than a free safety margin.
 - Start/release: two frames, with A released on the second frame, were observed in all 22 attempts. Controller-sensitive page 14 also completed through the released-input path.
-- Execution: cap 1800 leaves 337 frames above the longest completed execution (page 18 at 1463); page 19 remains honestly timed out. Increasing this cap to erase that hardware observation is not justified.
+- Execution: cap 1800 leaves 337 frames above the longest completed execution (page 18 at 1463); page 19 timed out before Phase 19 and now completes (see "Phase 19 re-record"). The cap is unchanged.
 - Wall bounds: hosted evidence from the former deadline showed page 19 at 6.336 seconds and page 18 at 4.290 seconds, so the former 5-second bound did not provide sufficient margin. The new common 15-second page deadline is 2.36 times the observed maximum; the 22 sequential page deadlines plus 10-second collection cap total 340 seconds, and the 370-second CTest timeout leaves 30 seconds for orchestration and final output checks.
 - Isolated ASan driver bound: page 19 reached the same expected row-6 `$03` guest timeout after 1918 frames on hosted ASan, with `host_elapsed_ns=14393278785`; the prior 10-second subprocess deadline killed the otherwise valid observation. The page-19 test-only host deadline is now 30 seconds (about 2x the measured run); the 1800 guest-frame cap, 60-second driver test timeout and all campaign/CI job bounds are unchanged.
 - Protected-page bound: each cold page observer has a 30-second host-child deadline. A protected baseline can select up to 22 new-pin pages in addition to the three retained old-pin pages; the setup CTest enclosure is `(22 + 3) * 30 + 10 = 760` seconds. The bound covers the hosted ASan page-19 observation at 22.454 seconds from successful run 40055745306 and leaves its guest-frame cap unchanged.
 - Placement selected for Plan 17-04: one full campaign in the required Linux x64 build lane on each PR, not all six platform matrix legs. CI turns on `NESTURBATOR_ACCURACYCOIN_FULL` only in that lane; the other five still run decoder, classifier, activation, migration, protected-pass and parity checks. The full campaign CTest took 6.65 seconds locally within a 376.25-second full `ci` workflow. Each build lane uploads its `build/<preset>/accuracycoin/` evidence with an `always()` upload step and fails if the required directory is absent. The existing Linux build timeout remains 39 minutes: this repository sets it from sampled hosted runs, so the selected lane's actual hosted execution must be recorded before revisiting it. The same applies to the current timeout comment; local duration does not establish hosted performance.
 
 No row-A fallback was run. The cold campaign observed raw bytes for every scored row, and the only nonterminal results retain a current active timeout, a source-disqualified running marker, and an unstarted `$00` row. A separately selected-row attempt would change the guest context, and no additional raw byte is missing from this baseline. The two honest `not-run` findings remain visible for later plans.
+
+## Phase 19 re-record (sprite 0 and OAMADDR, behaviour revision 7)
+
+Cause. The basic sprite-0 hit already worked (Phase 19 D-01/D-02). The `0x06` results on `Sprite 0 Hit behavior`, `Suddenly Resize Sprite`, `Misaligned OAM DMA` and `Arbitrary Sprite zero` were guest re-run artifacts: after `Misaligned OAM behavior` took its failure branch, the ROM re-ran later tests with OAMADDR stale, because the core never cleared OAMADDR during rendering (sprite tile loading, dots 257-320) and started sprite evaluation at slot 0 instead of OAMADDR. The fix clears OAMADDR during tile loading and starts evaluation at OAMADDR; no hit test was changed. The `Arbitrary Sprite zero` `0x03` timeout described under "Campaign outcome" above is superseded: it came from the same stale OAMADDR, not from a missing hit.
+
+Full campaign after the fix (`build/ci/accuracycoin/full/`, 22 of 22 pages complete): 146 scored rows, 108 pass, 38 fail, 0 skip, 0 not-run, 0 timeout, 146 terminal. This matches the research prediction (108/38/0/0/146). The 1800-frame execution cap and the 32/5 boot and navigation caps are unchanged. Page 19 rows now report 521 frames and its `metadata.txt` has `verdict=complete`; the page-18 rows moved from 503 to 569 frames.
+
+| Row | Before | After |
+|---|---|---|
+| Sprite 0 Hit behavior | fail 0x06 | pass 0x01 |
+| Arbitrary Sprite zero | timeout 0x03 | pass 0x01 |
+| Suddenly Resize Sprite | fail 0x06 | pass 0x01 |
+| Misaligned OAM DMA | fail 0x06 | pass 0x01 |
+| Misaligned OAM behavior | not-run 0x03 | fail 0x16 (terminal) |
+| OAM Corruption | not-run 0x00 | fail 0x0a (terminal) |
+| INC $4014 | fail 0x0a | pass 0x01 |
+| Rendering Flag Behavior | fail 0x0a | pass 0x01 |
+| $2007 read w/ rendering | fail 0x06 | pass 0x01 |
+
+The last three are neighbour rows that started to pass; they are recorded with their cause (the same OAMADDR behaviour), not tuned or chased. No row that passed on main stopped passing. Remaining rows only changed their frame counts.
+
+Guard. `accuracycoin.activation` now fails unless `Misaligned OAM behavior` is neither not-run nor raw `0x03`, `Sprite 0 Hit behavior` and `Arbitrary Sprite zero` are pass `0x01`, and no scored row times out; with the full campaign on it also fails on any page-19 timeout row or a page-19 `metadata.txt` without `verdict=complete`.
+
+Hashes. No frame hash in `tests/runner/hashes.txt` moved. The 12 `state/*` rows were re-pinned in Plan 19-05 only because saved states carry the behaviour revision byte (now 7).

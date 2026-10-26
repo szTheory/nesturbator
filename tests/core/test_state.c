@@ -756,6 +756,11 @@ static void jam_both_ways(void)
     CHECK_EQ_U64(run_frames(jammed, 3u), NESTURBATOR_STOP_JAM);
     /* Saving a jammed instance is OK and never STOP_JAM. */
     CHECK_EQ_U64(nesturbator_save_state(jammed, jam_state, size), NESTURBATOR_OK);
+    /* The jammed state is frame-invariant: further STOP_JAM frames leave every saved byte as it
+       was, so a host that tracks the jammed state by its CRC sees one identity (phase 19). */
+    CHECK_EQ_U64(run_frames(jammed, 3u), NESTURBATOR_STOP_JAM);
+    CHECK_EQ_U64(nesturbator_save_state(jammed, again, size), NESTURBATOR_OK);
+    CHECK(memcmp(again, jam_state, size) == 0);
     /* Loading the jammed state: OK, then the next frame returns STOP_JAM. */
     CHECK_EQ_U64(nesturbator_load_state(fresh, jam_state, size), NESTURBATOR_OK);
     CHECK_EQ_U64(st_frame(fresh, 0u, NULL, NULL, NULL, NULL), NESTURBATOR_STOP_JAM);
@@ -766,6 +771,22 @@ static void jam_both_ways(void)
     /* A jammed instance loading the clean state is running again. */
     CHECK_EQ_U64(nesturbator_load_state(jammed, clean_state, size), NESTURBATOR_OK);
     CHECK_EQ_U64(st_frame(jammed, 0u, NULL, NULL, NULL, NULL), NESTURBATOR_OK);
+    /* The sprite-0 hit is set while pixels are composed, so a frame without a video buffer must
+       be refused rather than run: otherwise emulation would depend on output (phase 19). */
+    {
+        static int16_t audio[1024];
+        nesturbator_frame io;
+        memset(&io, 0, sizeof io);
+        io.size = (uint32_t)sizeof io;
+        io.video = NULL;
+        io.video_pitch = 256u;
+        io.audio = audio;
+        io.audio_capacity = 1024u;
+        CHECK_EQ_U64(nesturbator_save_state(jammed, again, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_run_frame(jammed, &io), NESTURBATOR_ERR_ARGUMENT);
+        CHECK_EQ_U64(nesturbator_save_state(jammed, jam_state, size), NESTURBATOR_OK);
+        CHECK(memcmp(again, jam_state, size) == 0);
+    }
     free(jam_state);
     free(clean_state);
     free(again);

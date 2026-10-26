@@ -1,8 +1,8 @@
 # Product roadmap: nesturbator
 
-Reviewed: 2026-10-24 at v4 closeout.
-Direction revision: 2.
-Active milestone: none. v4 shipped; the next scope is proposed below and is committed only after approval at new-milestone.
+Reviewed: 2026-10-25 at v5 opening.
+Direction revision: 3.
+Active milestone: v5 "NMI, VBlank and sprite-0 timing" (RM-004), approved at new-milestone on 2026-10-25.
 
 This is the rolling product direction. The execution contract remains in `.planning/ROADMAP.md`. Planning milestones v1, v2, v3 and v4 are distinct from package versions such as v0.1.10. No dates or future phase numbers are promised here.
 
@@ -19,10 +19,11 @@ Only `committed` items are current scope. Other statuses are `proposed`, `shippe
 
 ## Immediate
 
-Nothing is committed. v4 delivered the three outcomes below; the next milestone's scope is chosen and promoted here at new-milestone.
+RM-004 is committed for v5, together with the recurring SEED-006 tune-up (AccuracyCoin JAM attribution and a run-ahead-under-JAM test, both carried v4 debt). Requirements are in [REQUIREMENTS.md](REQUIREMENTS.md); Phases 19–21 in [ROADMAP.md](ROADMAP.md). The shipped v4 rows stay below as the record.
 
 | ID | Status | Outcome | Milestone, release and acceptance evidence |
 |---|---|---|---|
+| RM-004 | committed | NMI/VBlank and sprite-0 timing match the console | v5. The 11 rows: `$2002 flag timing`, `NMI Control`, `NMI Timing`, `NMI Suppression`, `NMI at VBlank end`, `NMI disabled at VBlank`, `NMI Overlap BRK`, `NMI Overlap IRQ`, `Interrupt flag latency`, `Sprite 0 Hit behavior`, `Arbitrary Sprite zero` (10 fail, 1 timeout at `6bee919`, rechecked 2026-10-25). Exit: they pass at `6bee919` with no lost PASS, documented hash re-pins and state coverage for any new field. |
 | RM-001 | shipped | Complete pinned NTSC conformance inventory and bounded baseline | v4 Phase 17; CONF-01–04 ([v4 requirements](milestones/v4-REQUIREMENTS.md)); 38/38 verification; 146 scored + 5 DRAW at `6bee919`: 101 pass, 42 fail, 2 not-run, 1 timeout. Release: lands with PR #55 in the release after v0.1.11. |
 | RM-002 | shipped | Discriminating existing RetroArch progression/state evidence | v4 Phase 16; EVID-01–04; 22/22 verification; released in [v0.1.11](https://github.com/szTheory/nesturbator/releases/tag/v0.1.11) with 18 archives, checksums, attestations and six metadata copies checked. |
 | RM-003 | shipped | Bounded accepted-program execution and lifecycle robustness | v4 Phase 18; ROB-01–04; 4/4 verification; six board families reach execution; Nightly 40150888217 green. Release: lands with PR #55 in the release after v0.1.11. |
@@ -31,11 +32,10 @@ Closeout record: [v4 audit](milestones/v4-MILESTONE-AUDIT.md) (tech_debt, 14/14 
 
 ## Near
 
-The v4 baseline met RM-004's trigger. Of 146 scored rows, 45 don't pass, and they group into gameplay-relevant timing clusters rather than scattered edge cases. RM-004 is therefore the preferred next milestone, with RM-005 (PAL) the main alternative. This is priority ordering, not a claim that every NTSC edge case technically blocks PAL or another board.
+RM-004 moved to Immediate at the v5 opening. After it, the DMA cluster (listed with RM-004's follow-ons below) is the preferred next accuracy scope, because DMC games corrupt controller reads when DMA steals cycles; RM-005 (PAL) stays the main alternative milestone behind it. This is priority ordering, not a claim that every NTSC edge case technically blocks PAL or another board.
 
 | ID | Status | Outcome | Why and promotion trigger |
 |---|---|---|---|
-| RM-004 | proposed (preferred next) | NMI/VBlank and sprite-0 timing match the console | Trigger met at v4 close. Named cluster: `$2002 flag timing`, `NMI Control`, `NMI Timing`, `NMI Suppression`, `NMI at VBlank end`, `NMI disabled at VBlank`, `NMI Overlap BRK`, `NMI Overlap IRQ`, `Interrupt flag latency`, `Sprite 0 Hit behavior`, `Arbitrary Sprite zero` (11 rows). Every game's frame loop depends on NMI and VBlank timing, and status-bar splits depend on sprite-0. Exit: those rows pass at `6bee919` with no lost PASS, documented hash re-pins and state coverage for any new field. |
 | RM-005 | proposed | PAL games run at their intended timing and pitch | Preferred next compatibility milestone when no broad NTSC correctness blocker remains; requires regional test evidence. |
 | RM-006 | proposed | Dendy games run with a distinct, correct timing profile | Scope independently after regional infrastructure is proven and demand/evidence justify it. |
 
@@ -65,7 +65,7 @@ Acceptance direction: a small owned target constructs bounded accepted board pro
 
 Discovery gate: demonstrate additional execution paths and useful throughput compared with existing targets before committing a large campaign. If the target duplicates state fuzzing or requires a new architecture, split or park it explicitly. A confirmed reproducible safety failure blocks a clean safety claim and receives a repair or explicit scope decision; never silently defer it.
 
-### RM-004, RM-005 and RM-006: Conditional next choice
+### RM-004 follow-ons, RM-005 and RM-006: Conditional next choice
 
 After the full baseline, prioritize named game-relevant failures before obscure score points. The v4 baseline's other failing clusters stay as RM-004 follow-ons in this order, and each needs its own approval:
 - DMA (8 rows): `DMA + $4015 Read`, `DMA Landing on Write`, `DMC DMA + OAM DMA`, `DMC DMA Bus Conflicts`, `Explicit DMA Abort`, `Implicit DMA Abort`, `Misaligned OAM DMA`, `INC $4014`. This is the strongest alternative to the preferred cluster, because DMC games corrupt controller reads when DMA steals cycles.
@@ -135,6 +135,7 @@ Keep the file small. Use existing Markdown and git; no roadmap service or parser
 
 - 2026-10-13, v4 opening: promoted RM-001/RM-002/RM-003 from the approved proposal to Immediate/committed. Complete measurement and stronger execution/host evidence precede unnamed accuracy repairs. Retained PAL as the preferred compatibility alternative, with Dendy separately scoped. Deferred larger hardware and host work until evidence or demand justifies it. Historical delivered seed outcomes remain credited; no seed file was changed.
 - 2026-10-24, v4 closeout: marked RM-001, RM-002 and RM-003 shipped with evidence. Publication of RM-001 and RM-003 waits on PR #55 and the release after it. The measured baseline met RM-004's trigger, so the order changed: RM-004 is now the preferred next milestone, narrowed to the 11-row NMI/VBlank and sprite-0 cluster. DMA is the strongest alternative cluster. RM-005 (PAL) remains the main alternative milestone and moves behind RM-004, because the baseline shows broad NTSC timing gaps that would carry into PAL timing. Mid and Long items are unchanged; no new demand or performance budget appeared. Carried v4 debt is listed above. No seed file was changed.
+- 2026-10-25, v5 opening: promoted RM-004 to Immediate/committed with the SEED-006 tune-up (JAM attribution, run-ahead-under-JAM). The owner chose it over adding the DMA cluster, doing DMA first, or PAL. Ordering otherwise unchanged: DMA is the preferred next cluster, then PAL (RM-005); Mid and Long items are unchanged. Release PR #56 (0.1.12), which publishes RM-001 and RM-003, was still open at the opening. No seed file was changed.
 
 ## Why this shape
 

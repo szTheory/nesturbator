@@ -26,7 +26,10 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 6: the PPUCTRL NMI edge
+board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 7: OAMADDR is cleared during sprite tile loading
+(dots 257-320 while rendering) and sprite evaluation starts at OAMADDR, so the first sprite
+evaluated acts as sprite 0 wherever it sits in OAM; this changes the frames of programs that
+leave OAMADDR nonzero while rendering. Revision 6's PPUCTRL NMI edge
 changed the frames of games that rewrite `$2000` inside their NMI handler
 (revision 5's PPU fetch pipeline changed the frames of games that write the
 scroll or PPUCTRL while rendering). Mid-frame scroll writes render as on
@@ -97,8 +100,21 @@ input policy, frame budgets and diagnostic host elapsed time. DRAW entries are
 inventory-only and do not enter a scored denominator. `$FF` is skip, `$00` is
 not-run, `$01` is pass, and failure values use low bits `10` with a nonzero
 source error index. An observed active test becomes timeout only when its
-guest-frame budget expires. Observation is not an all-pass gate; malformed
-evidence or output errors still fail.
+guest-frame budget expires. If the guest executes a JAM opcode during the
+execution stage the run stops with verdict and stop cause `guest-jam`, metadata
+`jam_frame=N` (`-` when there was no JAM), a stderr line `nesturbator-run: JAM
+stopped AccuracyCoin page P at frame N (active_key=...)` and exit 0. The row the
+suite was running (`active_key`, raw `0x03`) is reported as `fail` with cause
+`guest-jam`, never as pass, complete or a timeout; with no running row the JAM is
+unattributed (`active_key=-`). A JAM before the execution stage (boot,
+navigation or start) is named the same way in the metadata and on stderr with
+`active_key=-`, but writes no `report.tsv` and exits 1. In the report a JAM row
+is `fail` with raw `0x03` and cause `guest-jam`. The strict page mode
+(`--accuracycoin-page`) prints `nesturbator-run: JAM stopped AccuracyCoin page P
+at frame N` and exits 1. The `accuracycoin.jam` test proves all three cases by
+patching a JAM opcode into the pinned ROM in memory only; no modified ROM is
+written anywhere. Observation is not an all-pass gate; malformed evidence or
+output errors still fail.
 
 Run all 22 pages as independent cold attempts and collect their checked evidence
 with the production parser and classifier:
@@ -127,13 +143,14 @@ The final measured campaign uses caps of 32 boot frames, 5 navigation frames
 per page change, 2 attributed press/release frames, and 1800 execution frames;
 its page, collection and CTest wall limits are 15, 10 and 370 seconds. The 15-
 second child deadline is based on hosted page measurements up to 6.336 seconds;
-the separate guest-frame cap still defines the expected page-19 guest timeout.
+the separate guest-frame cap still defines a guest timeout on any page.
 The actual report and per-page diagnostics are retained under
 `build/ci/accuracycoin/full/`. That run attributed all 22 starts and observed all
-146 scored bytes, with 101 pass, 42 fail, 0 skip, 2 not-run and 1 guest timeout;
-five DRAW entries remain outside the denominator. The two not-run rows have no
-observed result byte; the active `$03` row is a guest timeout, while a noncurrent
-`$03` marker is not-run.
+146 scored bytes, with 108 pass, 38 fail, 0 skip, 0 not-run and 0 guest timeout;
+five DRAW entries remain outside the denominator. Page 19 now completes inside
+the cap (`Sprite 0 Hit behavior` and `Arbitrary Sprite zero` pass); a guest
+timeout or a not-run row is still reported as such when one occurs, and the
+activation check fails on any timeout row.
 See [`tests/accuracy/budgets.txt`](tests/accuracy/budgets.txt)
 and [`tests/accuracy/measurements.md`](tests/accuracy/measurements.md) for the
 source identity, cap rationale, timing sensitivity and CI placement input.
@@ -196,7 +213,7 @@ row from that same commit's ROM manifest. Once main carries the full campaign
 metadata, the fetcher verifies the 146-row scoreboard hash,
 status counts, inventory identity and both ROM manifest entries against that
 one commit, then projects only its measured PASS rows into the protected
-verifier's 101-row input. Failed, skipped, not-run and timed-out rows remain in
+verifier's 108-row input. Failed, skipped, not-run and timed-out rows remain in
 the canonical measured scoreboard and cannot become protected passes. The
 handoff binds the projection to the exact fetched revision. Missing, unfetchable,
 empty, malformed or mismatched authority fails the job; CI never falls back to
@@ -205,9 +222,9 @@ candidate files. Detached local runs use the complete 17-row
 `scoreboard-main-metadata.txt` identity. On every lane, the protected observer
 derives the new-pin pages from the PASS keys in the fetched baseline and
 measures those pages during that invocation. Same-pin protection therefore
-scales with the accepted PASS set: after main adopts the current pin, all 101
+scales with the accepted PASS set: after main adopts the current pin, all 108
 protected passes are remeasured, including keys outside pages 2, 14 and 17.
-Those 101 keys currently span 19 of the new pin's 22 pages. Cross-pin checks
+Those 108 keys currently span 19 of the new pin's 22 pages. Cross-pin checks
 still use the exact source-backed migration row, the retained old-pin controls,
 and a fresh mapped observation. Protected page children have a 30-second outer
 deadline and keep the 1800 guest-frame cap; the maximum setup envelope is 25
@@ -220,12 +237,12 @@ Normal CI also mutates the production evidence/verdict inputs to prove that a
 claimed pass cannot hide measured fail, skip, not-run or timeout states, absent
 raw evidence, a removed protected key, a candidate-only pin edit, a mixed
 protected revision or a missing/disguised migration disposition. The primary
-Linux full lane builds a post-merge 101-PASS baseline control, freshly observes
+Linux full lane builds a post-merge 108-PASS baseline control, freshly observes
 all required pages, and confirms that both an outside-page key and a formerly
 changed-meaning key fail the same-pin verdict when their measured result
 changes. It retains source-defined pass variants such as PPU Read Buffer `$41`,
 and rejects a malformed neighboring code. The fetcher is exercised against owned local Git
-repositories for exact commit handoff, canonical 146-row/101-PASS projection,
+repositories for exact commit handoff, canonical 146-row/108-PASS projection,
 scoreboard-hash mismatch, missing/empty authority, invalid metadata and the
 same-revision legacy-manifest fallback; these tests do not
 depend on a network service.
@@ -355,7 +372,10 @@ cmake --workflow --preset vectors-full  # the full 65x02 vector set, fetched at 
 cmake --workflow --preset mmc3-oracle  # blargg's MMC3 test ROMs, fetched at their pin (network)
 ```
 
-On Windows with MSVC, use `ci-msvc` from a developer command prompt.
+On Windows with MSVC, use `ci-msvc` from a developer command prompt. MSVC
+rejects a `const` object declared without an initializer (C4132); Clang 21
+and later report the same thing through `-Wdefault-const-init-var`, which the
+build adds when the compiler accepts it, so `ci` catches it off Windows too.
 
 ## Checks
 
@@ -628,7 +648,10 @@ over test-card frames, 60 frames with sound, a JAM, a too-small buffer and an
 unload and reload.
 `cmake.script_policy` checks that every script in `tests/cmake` sets
 `cmake_minimum_required(VERSION 3.25)`, so each CMake release reads it the
-same way. `libretro.vendored`
+same way. `retroarch.revision_literals` fails on any `format=<n>` or
+`revision=<n>` literal in `tests/retroarch/*.cmake`: the hosted-only scripts
+read both numbers from `include/nesturbator.h`, so a revision bump cannot
+leave a stale value that only the macOS runner would see. `libretro.vendored`
 checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
 `libretro.info_claims` parses `libretro/nesturbator_libretro.info` and requires
 the exact capability keys and pinned values, a `savestate_features` whenever
@@ -869,6 +892,10 @@ The `suite-flake` job builds the `ci` preset on Ubuntu 24.04 and runs its
 suite three times in random order with
 `ctest --preset ci --repeat until-fail:3 --schedule-random`; any failure fails
 the job, and its outcome is reported in the same `nightly` issue.
+In `ci` itself, `accuracycoin.report_fresh` runs the AccuracyCoin report
+command on a nested work directory whose tree has just been removed, so a test
+that relies on another test having made its directory fails in the fixed order
+too.
 
 The same workflow runs the `mmc3-oracle` lane (`cmake --workflow --preset
 mmc3-oracle`) as a second job, built like `vectors-full`: `contents: read`
@@ -1333,8 +1360,9 @@ nesturbator-run --version
   directory as TSV. It needs `--rom` and no other run mode.
 - `--accuracycoin-observe PAGE` runs one selected page from a cold boot within
   `--frames N`, writing checked bounded evidence under `--accuracycoin-output DIR`.
-  A real guest timeout or a known failing/skipped result can still produce a
-  trustworthy observation with exit 0; bad inventory, missing output or a
+  A real guest timeout, a guest JAM in the execution stage or a known
+  failing/skipped result can still produce a trustworthy observation with exit 0
+  (a JAM in an earlier stage writes no report and exits 1); bad inventory, missing output or a
   result code outside the pinned protocol exits 1. This mode installs no stop
   handlers and cannot be combined with scoreboards, movies, saves, state files,
   hashes or frame dumps.
@@ -1618,17 +1646,27 @@ and frames.
 
 The native frame call returns `NESTURBATOR_STOP_JAM` with its instance latched;
 its output buffers are unspecified on that stop. In a loaded libretro session,
-each `retro_run` still polls input and sends one video callback on JAM, using
-the last fully converted XRGB frame or black if no complete frame exists. The
-adapter sends no audio and does not reset, unload or terminate the session.
-Successful content load, reset, unload and state load invalidate this
-adapter-owned presentation cache; a refused state load keeps it. Invalidation
-drops the cached frame's validity without overwriting the buffer already passed
-to the frontend. The next video callback replaces that storage; if the next
-frame is JAM, the adapter sends black because no valid cached frame remains.
-The cache is not part of the native machine or serialized state.
+each `retro_run` still polls input and sends one video callback on JAM. It sends
+the adapter's last fully converted XRGB frame when that frame belongs to the
+running timeline, and black otherwise. The adapter sends no audio and does not
+reset, unload or terminate the session. The cached frame is tagged with the
+frame number that produced it and with a timeline identity taken from the saved
+state's CRC. A successful state load does not drop it: run-ahead loads a state on
+every tick, and the picture after a JAM stays frozen. It is shown while the
+loaded state has the cached frame's number and is the state that frame produced
+(or the jammed state reached from it); a state with another frame number, or a
+state of a diverged timeline such as a rewind with different input, shows black
+instead, never the other timeline's picture. Successful content load, reset and
+unload drop it; a refused state load keeps it. One limit follows: when a
+mispredicted run-ahead input (the real input differs from the speculative one)
+leads the real timeline into a JAM on the first real frame after a load, the
+frozen real frame was never kept and the adapter shows black. Keeping the
+identity costs one state save per converted frame, inside the adapter. The cache
+and its identity are not part of the native machine or serialized state.
 `libretro.host` checks first and repeated JAM callbacks in both audio modes,
-state restore and refusal, reset, recovery, and unload/reload transitions.
+state restore and refusal, a diverged-timeline state, reset, recovery, and
+unload/reload transitions; `libretro.runahead` checks run-ahead across a JAM
+at every depth against an uninterrupted run.
 
 `retro_get_memory_data` and `retro_get_memory_size` return the battery span
 for `RETRO_MEMORY_SAVE_RAM`, the same span as

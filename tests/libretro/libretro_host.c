@@ -1079,6 +1079,8 @@ static bool run_delayed_jam(uint32_t *last_complete)
     return false;
 }
 
+static void check_jam_timeline(void);
+
 /* D-10: the adapter repeats only a complete converted frame, and its cache
    lifetime is separate from the native save-state and machine state. */
 static void check_jam_presentation(const unsigned char *base_image, size_t image_size)
@@ -1171,8 +1173,8 @@ static void check_jam_presentation(const unsigned char *base_image, size_t image
     CHECK_EQ_U64(batch_calls, 0u);
     check_jam_callback(last_complete, false);
 
-    /* A refused load preserves the complete presentation; successful state
-       restore invalidates it without putting pixels into the native state. */
+    /* A refused load preserves the complete presentation. A successful load of the state saved
+       at the cached frame keeps it (D-16), without putting pixels into the native state. */
     CHECK(!p_unserialize(jammed, state_size - 1u));
     check_jam_callback(last_complete, true);
     CHECK(p_unserialize(jammed, state_size));
@@ -1182,7 +1184,7 @@ static void check_jam_presentation(const unsigned char *base_image, size_t image
     }
     CHECK(p_serialize(roundtrip, state_size));
     CHECK(memcmp(roundtrip, jammed, state_size) == 0);
-    check_jam_callback(black, false);
+    check_jam_callback(last_complete, false);
 
     /* A valid pre-JAM origin clears the latch and deliberately executes again. */
     CHECK(p_unserialize(origin, state_size));
@@ -1218,6 +1220,111 @@ static void check_jam_presentation(const unsigned char *base_image, size_t image
     free(roundtrip);
     p_set_audio_sample(sample);
     p_set_audio_sample_batch(batch);
+    check_jam_timeline();
+}
+
+/* D-16 amendment: a state from a diverged timeline (same frame number, different input) never
+   borrows the cached picture of the other timeline. NMI handler: read controller 1, put a
+   backdrop that depends on A in $3F00 (rendering stays off), execute JAM when Start is held. */
+static void check_jam_timeline(void)
+{
+    static const uint8_t reset_code[] = {0x78u, 0xa9u, 0x80u, 0x8du, 0x00u,
+                                         0x20u, 0x4cu, 0x06u, 0x80u};
+    static const uint8_t nmi_code[] = {
+        0xa9u, 0x01u, 0x8du, 0x16u, 0x40u, 0xa9u, 0x00u, 0x8du, 0x16u, 0x40u, /* strobe */
+        0xadu, 0x16u, 0x40u, 0x29u, 0x01u, 0xaau,                             /* A -> X */
+        0xadu, 0x16u, 0x40u, 0xadu, 0x16u, 0x40u, 0xadu, 0x16u, 0x40u,        /* B, Select, Start */
+        0x29u, 0x01u, 0xf0u, 0x01u, 0x02u,                                    /* Start: JAM */
+        0xa9u, 0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u, 0x8du, 0x06u, 0x20u, 0xa9u,
+        0x2au, 0xe0u, 0x00u, 0xf0u, 0x02u, 0xa9u, 0x16u, 0x8du, 0x07u, 0x20u, 0xa9u,
+        0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u, 0x8du, 0x06u, 0x20u, /* v back to $3F00 */
+        0x40u};
+    static const struct ines_segment segments[] = {{0x10u, nmi_code, sizeof nmi_code}};
+    static const uint32_t black[W * H] = {0u};
+    static uint8_t image[16u + INES_PRG_BANK + INES_CHR_BANK];
+    static uint32_t pic_a[W * H];
+    static uint32_t pic_b[W * H];
+    enum { K = 4 };
+    struct ines_spec spec;
+    struct retro_game_info game;
+    uint8_t *base = NULL, *s_a = NULL, *s_a_prev = NULL, *s_b = NULL;
+    size_t state_size;
+
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.prg_code = reset_code;
+    spec.prg_code_len = sizeof reset_code;
+    spec.segments = segments;
+    spec.segment_count = 1u;
+    spec.nmi_vector = 0x8010u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    memset(&game, 0, sizeof game);
+    game.size = ines_build(image, sizeof image, &spec);
+    game.data = image;
+    CHECK(game.size != 0u);
+    if (game.size == 0u || !p_load_game(&game)) {
+        CHECK(0);
+        return;
+    }
+    p_set_audio_sample(sample);
+    p_set_audio_sample_batch(batch);
+    state_size = p_serialize_size();
+    base = (uint8_t *)malloc(state_size);
+    s_a = (uint8_t *)malloc(state_size);
+    s_a_prev = (uint8_t *)malloc(state_size);
+    s_b = (uint8_t *)malloc(state_size);
+    CHECK(base != NULL && s_a != NULL && s_a_prev != NULL && s_b != NULL);
+    if (base == NULL || s_a == NULL || s_a_prev == NULL || s_b == NULL) {
+        goto done;
+    }
+    memset(host_buttons, 0, sizeof host_buttons);
+    for (unsigned i = 0u; i < 4u; i++) {
+        p_run();
+    }
+    CHECK(p_serialize(base, state_size));
+    /* Timeline B: A held for K frames. */
+    host_buttons[0] = NESTURBATOR_BUTTON_A;
+    for (unsigned i = 0u; i < (unsigned)K; i++) {
+        p_run();
+    }
+    memcpy(pic_b, frame, sizeof pic_b);
+    CHECK(p_serialize(s_b, state_size));
+    /* Timeline A: the same base, no buttons for K frames. */
+    CHECK(p_unserialize(base, state_size));
+    host_buttons[0] = 0u;
+    for (unsigned i = 0u; i < (unsigned)K; i++) {
+        if (i == (unsigned)K - 1u) {
+            CHECK(p_serialize(s_a_prev, state_size));
+        }
+        p_run();
+    }
+    memcpy(pic_a, frame, sizeof pic_a);
+    CHECK(p_serialize(s_a, state_size));
+    CHECK(memcmp(pic_a, pic_b, sizeof pic_a) != 0);
+    CHECK(memcmp(pic_a, black, sizeof pic_a) != 0);
+
+    /* The same frame number on the other timeline: black, never picture A. */
+    CHECK(p_unserialize(s_b, state_size));
+    host_buttons[0] = NESTURBATOR_BUTTON_START;
+    check_jam_callback(black, true);
+    /* The state the cached frame produced: its picture. */
+    CHECK(p_unserialize(s_a, state_size));
+    check_jam_callback(pic_a, true);
+    /* A different frame number: black. */
+    CHECK(p_unserialize(s_a_prev, state_size));
+    check_jam_callback(black, true);
+    /* Back on the cache's timeline again: the picture. */
+    CHECK(p_unserialize(s_a, state_size));
+    check_jam_callback(pic_a, true);
+done:
+    memset(host_buttons, 0, sizeof host_buttons);
+    free(base);
+    free(s_a);
+    free(s_a_prev);
+    free(s_b);
+    p_unload_game();
 }
 
 /* ---- the runner's image ---- */
@@ -2391,6 +2498,11 @@ struct rah_result {
     unsigned states;     /* states compared with the oracle */
     unsigned mismatches; /* comparisons that differed */
     int report;          /* print the first mismatch */
+    /* JAM oracle only (D-17) */
+    unsigned silent_real; /* real ticks that delivered zero audio frames */
+    unsigned load_skips;  /* ticks whose load-has-work check was skipped */
+    unsigned cls[4];      /* window classes: no JAM in sight, JAM in the speculative frames,
+                             the boundary t = J-1, a jammed state loaded */
 };
 
 static void rah_mismatch(struct rah_result *r, const char *what, uint32_t t)
@@ -2438,6 +2550,8 @@ static void rah_run(const struct ser_rom *rom, unsigned N, const uint16_t *in, u
 {
     size_t ss;
     unsigned char *r_now = NULL, *r_prev = NULL, *pre = NULL;
+    const uint32_t J = o->jam_frame;
+    const int jam = J != RA_NO_JAM;
 
     if (!ser_load(rom->data, rom->size)) {
         CHECK(0);
@@ -2462,6 +2576,9 @@ static void rah_run(const struct ser_rom *rom, unsigned N, const uint16_t *in, u
         p_run();
         real_video = rah_frame_hash();
         real_audio = rah_audio_hash();
+        if (jam && batch_frames == 0u) {
+            res->silent_real++;
+        }
         if (real_video != o->video[t]) {
             rah_mismatch(res, "real video", t);
         }
@@ -2494,11 +2611,27 @@ static void rah_run(const struct ser_rom *rom, unsigned N, const uint16_t *in, u
         if (N > 0u && two == NULL && spec_audio != o->audio[t + N]) {
             rah_mismatch(res, "speculative audio", t);
         }
+        /* D-17: from the tick whose window reaches the JAM on, the picture is the last converted
+           frame, never black. */
+        if (jam && ctl == RAH_NORMAL && t + N >= J && visible != o->rec[J - 1u].hash) {
+            rah_mismatch(res, "frozen picture", t);
+        }
+        if (jam && ctl == RAH_NORMAL) {
+            res->cls[0] += t + N < J ? 1u : 0u;
+            res->cls[1] += t < J && J <= t + N ? 1u : 0u;
+            res->cls[2] += t + 1u == J ? 1u : 0u;
+            res->cls[3] += t >= J ? 1u : 0u;
+        }
 
-        /* The load has work to do: the state after the speculative frames is not R(t+1). */
+        /* The load has work to do: the state after the speculative frames is not R(t+1). Once the
+           real frame has JAMmed, the latched state is all there is, and the check is skipped. */
         if (N > 0u && ctl == RAH_NORMAL) {
             CHECK(p_serialize(pre, ss));
-            CHECK(memcmp(pre, r_now, ss) != 0);
+            if (jam && !o->rec[t].valid) {
+                res->load_skips++;
+            } else {
+                CHECK(memcmp(pre, r_now, ss) != 0);
+            }
         }
         if (ctl == RAH_STALE_LOAD) {
             CHECK(p_unserialize(r_prev, ss));
@@ -2526,6 +2659,9 @@ out:
 struct rah_totals {
     unsigned roms, ticks, states, repeat_ticks, expected_ticks, expected_repeat;
     unsigned controls_tripped;
+    unsigned jam_controls_tripped;
+    unsigned jam_cls[RA_MAX_DEPTH + 1u][4]; /* window classes per depth, JAM image only */
+    uint32_t jam_frame;                     /* J, read from the oracle */
 };
 
 static void rah_add(struct rah_totals *tot, const struct rah_result *res, int repeat)
@@ -2538,12 +2674,22 @@ static void rah_add(struct rah_totals *tot, const struct rah_result *res, int re
     tot->states += res->states;
 }
 
+/* D-17: exactly T-J real ticks are silent, and the load-has-work check is skipped exactly T-J
+   times (at depths above 0). */
+static void rah_check_jam_counts(const struct rah_result *res, uint32_t J, uint32_t T, unsigned N)
+{
+    CHECK_EQ_U64(res->silent_real, T - J);
+    if (N > 0u) {
+        CHECK_EQ_U64(res->load_skips, T - J);
+    }
+}
+
 /* One script over one ROM, at the depths in depth_mask (bit N is depth N; depth 0 is the
    uninterrupted run itself and must match trivially). Each depth runs the module in real-input
    mode against the oracle; with repeat set, depths above 0 also run in repeat mode against the
    library's two-instance model. */
 static void rah_matrix(const struct ser_rom *rom, uint32_t T, unsigned script, unsigned depth_mask,
-                       int repeat, struct rah_totals *tot)
+                       int repeat, int jam, struct rah_totals *tot)
 {
     uint16_t *in = ra_script_make(script, script == 1u ? RA_SEED_1 : RA_SEED_2, T + RA_MAX_DEPTH);
     uint64_t *visible = (uint64_t *)malloc((size_t)T * sizeof *visible);
@@ -2551,11 +2697,25 @@ static void rah_matrix(const struct ser_rom *rom, uint32_t T, unsigned script, u
 
     CHECK(in != NULL && visible != NULL);
     if (in == NULL || visible == NULL ||
-        !ra_run_uninterrupted(rom->data, rom->size, in, T + RA_MAX_DEPTH, &oracle)) {
+        !ra_run_uninterrupted_ex(rom->data, rom->size, in, T + RA_MAX_DEPTH, &oracle, jam)) {
         CHECK(0);
         free(in);
         free(visible);
         return;
+    }
+    if (jam) {
+        /* D-17: J is whatever the oracle's first STOP_JAM is, within bounds that keep every
+           window class inside the run. */
+        tot->jam_frame = oracle.jam_frame;
+        CHECK(oracle.jam_frame != RA_NO_JAM);
+        CHECK(oracle.jam_frame >= RA_MAX_DEPTH + 2u && oracle.jam_frame <= T - RA_MAX_DEPTH - 2u);
+        if (oracle.jam_frame == RA_NO_JAM || oracle.jam_frame < RA_MAX_DEPTH + 2u ||
+            oracle.jam_frame > T - RA_MAX_DEPTH - 2u) {
+            ra_oracle_free(&oracle);
+            free(in);
+            free(visible);
+            return;
+        }
     }
     for (unsigned N = 0u; N <= RA_MAX_DEPTH; N++) {
         struct rah_result res;
@@ -2572,8 +2732,16 @@ static void rah_matrix(const struct ser_rom *rom, uint32_t T, unsigned script, u
                     script, N, res.mismatches);
         }
         CHECK_EQ_U64(res.mismatches, 0u);
+        if (jam) {
+            rah_check_jam_counts(&res, oracle.jam_frame, T, N);
+        }
         if (N == 0u) {
             continue;
+        }
+        if (jam) {
+            for (unsigned c = 0u; c < 4u; c++) {
+                tot->jam_cls[N][c] += res.cls[c];
+            }
         }
         rah_add(tot, &res, 0);
         tot->expected_ticks += T;
@@ -2582,7 +2750,7 @@ static void rah_matrix(const struct ser_rom *rom, uint32_t T, unsigned script, u
         }
         memset(&res, 0, sizeof res);
         res.report = 1;
-        if (ra_run_two_instance(rom->data, rom->size, in, T, N, &model, visible)) {
+        if (ra_run_two_instance_ex(rom->data, rom->size, in, T, N, &model, visible, jam)) {
             rah_run(rom, N, in, T, &oracle, visible, RAH_NORMAL, &res);
             ra_oracle_free(&model);
         } else {
@@ -2593,6 +2761,12 @@ static void rah_matrix(const struct ser_rom *rom, uint32_t T, unsigned script, u
                     rom->path, script, N, res.mismatches);
         }
         CHECK_EQ_U64(res.mismatches, 0u);
+        if (jam) {
+            rah_check_jam_counts(&res, oracle.jam_frame, T, N);
+            for (unsigned c = 0u; c < 4u; c++) {
+                tot->jam_cls[N][c] += res.cls[c];
+            }
+        }
         rah_add(tot, &res, 1);
         tot->expected_repeat += T;
     }
@@ -2603,7 +2777,7 @@ static void rah_matrix(const struct ser_rom *rom, uint32_t T, unsigned script, u
 
 /* D-16: four broken hosts run through the same comparator and each must differ from the
    uninterrupted run. A control that matches would mean the comparator proves nothing. */
-static unsigned rah_controls(const struct ser_rom *rom, uint32_t T)
+static unsigned rah_controls(const struct ser_rom *rom, uint32_t T, int jam)
 {
     static const struct {
         enum rah_control ctl;
@@ -2617,10 +2791,43 @@ static unsigned rah_controls(const struct ser_rom *rom, uint32_t T)
     struct ra_oracle oracle;
 
     CHECK(in != NULL);
-    if (in == NULL || !ra_run_uninterrupted(rom->data, rom->size, in, T + RA_MAX_DEPTH, &oracle)) {
+    if (in == NULL ||
+        !ra_run_uninterrupted_ex(rom->data, rom->size, in, T + RA_MAX_DEPTH, &oracle, jam)) {
         CHECK(0);
         free(in);
         return 0u;
+    }
+    if (jam) {
+        /* D-17 black-oracle control: an oracle that expects black from the JAM on. The host
+           shows the frozen picture, so the comparison must differ. */
+        static const uint32_t black[W * H] = {0};
+        struct rah_result res;
+        const uint64_t black_hash = ra_hash_words(black, W * H);
+
+        CHECK(oracle.jam_frame != RA_NO_JAM &&
+              black_hash != oracle.rec[oracle.jam_frame - 1u].hash);
+        for (uint32_t i = oracle.jam_frame; i < oracle.frames && oracle.jam_frame != RA_NO_JAM;
+             i++) {
+            oracle.video[i] = black_hash;
+        }
+        memset(&res, 0, sizeof res);
+        rah_run(rom, 2u, in, T, &oracle, NULL, RAH_NORMAL, &res);
+        if (res.mismatches == 0u) {
+            fprintf(stderr,
+                    "libretro.runahead: control black-oracle matched the uninterrupted run\n");
+            CHECK(res.mismatches != 0u);
+        } else {
+            tripped++;
+            printf("libretro.runahead: control black-oracle tripped (%u mismatches)\n",
+                   res.mismatches);
+        }
+        /* Restore the true oracle for the four controls below. */
+        ra_oracle_free(&oracle);
+        if (!ra_run_uninterrupted_ex(rom->data, rom->size, in, T + RA_MAX_DEPTH, &oracle, jam)) {
+            CHECK(0);
+            free(in);
+            return tripped;
+        }
     }
     for (unsigned i = 0u; i < sizeof controls / sizeof controls[0]; i++) {
         struct rah_result res;
@@ -2641,6 +2848,47 @@ static unsigned rah_controls(const struct ser_rom *rom, uint32_t T)
     return tripped;
 }
 
+/* D-17: the synthetic JAM image. NROM, input ignored, rendering off, pulse 1 playing. Each NMI
+   counts up and writes counter + $10 to $3F00, so every frame before the JAM has its own
+   backdrop; the thirteenth NMI executes the JAM opcode $02. The VRAM address is put back to
+   $3F00 after the write so the displayed backdrop is that entry. Returns the image size. */
+static size_t rah_jam_image(uint8_t *out, size_t cap)
+{
+    static const uint8_t reset_code[] = {
+        0x78u,                                                     /* SEI */
+        0xa9u, 0x00u, 0x85u, 0x00u,                                /* LDA #0, STA $00 */
+        0xa9u, 0x01u, 0x8du, 0x15u, 0x40u,                         /* $4015: pulse 1 on */
+        0xa9u, 0xbfu, 0x8du, 0x00u, 0x40u,                         /* $4000: duty 2, volume F */
+        0xa9u, 0xfdu, 0x8du, 0x02u, 0x40u,                         /* $4002: timer low */
+        0xa9u, 0x08u, 0x8du, 0x03u, 0x40u,                         /* $4003: timer high */
+        0xa9u, 0x80u, 0x8du, 0x00u, 0x20u,                         /* $2000: NMI on */
+        0x4cu, 0x1eu, 0x80u};                                      /* JMP self */
+    static const uint8_t nmi_code[] = {0xe6u, 0x00u,               /* INC $00 */
+                                       0xa5u, 0x00u,               /* LDA $00 */
+                                       0xc9u, 0x0du,               /* CMP #13 */
+                                       0xd0u, 0x01u,               /* BNE +1 */
+                                       0x02u,                      /* JAM */
+                                       0x18u, 0x69u, 0x10u, 0xaau, /* CLC, ADC #$10, TAX */
+                                       0xa9u, 0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u,
+                                       0x8du, 0x06u, 0x20u, 0x8eu, 0x07u, 0x20u, /* STX $2007 */
+                                       0xa9u, 0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u,
+                                       0x8du, 0x06u, 0x20u, 0x40u}; /* RTI */
+    static const struct ines_segment segments[] = {{0x30u, nmi_code, sizeof nmi_code}};
+    struct ines_spec spec;
+
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.prg_code = reset_code;
+    spec.prg_code_len = sizeof reset_code;
+    spec.segments = segments;
+    spec.segment_count = 1u;
+    spec.nmi_vector = 0x8030u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    return ines_build(out, cap, &spec);
+}
+
 /* libretro.host --runahead <module> [--short] <rom>... */
 static int runahead_mode(int argc, char **argv)
 {
@@ -2649,7 +2897,7 @@ static int runahead_mode(int argc, char **argv)
     int first = 3, a;
     unsigned depth, covered_depths = 0u, control_roms = 0u;
     struct ser_rom *roms;
-    unsigned count = 0u, stress_images = 0u;
+    unsigned count = 0u, stress_images = 0u, jam_images = 0u;
     int stress = 0;
     uint16_t *s1, *s2;
 
@@ -2709,15 +2957,32 @@ static int runahead_mode(int argc, char **argv)
         if (fixture_role_for_path(r->path) == FIXTURE_ROLE_NESTEROIDS) {
             /* The full matrix: both scripts, depths 0 to 3, repeat mode on script 1, and the
                four controls. */
-            rah_matrix(r, T, 1u, 0xfu, 1, &tot);
-            rah_matrix(r, T, 2u, 0xeu, 0, &tot);
-            tot.controls_tripped += rah_controls(r, T);
+            rah_matrix(r, T, 1u, 0xfu, 1, 0, &tot);
+            rah_matrix(r, T, 2u, 0xeu, 0, 0, &tot);
+            tot.controls_tripped += rah_controls(r, T, 0);
             control_roms++;
         } else {
             /* One script per board (alternating) at the claimed bounds, depths 1 and 3. */
-            rah_matrix(r, T, 1u + (count & 1u), 0xau, 0, &tot);
+            rah_matrix(r, T, 1u + (count & 1u), 0xau, 0, 0, &tot);
         }
         tot.roms++;
+    }
+    /* D-17: the in-memory JAM image, all depths in both modes, plus its controls. It is not a
+       file ROM, so RAH_MIN_ROMS does not count it. */
+    {
+        static uint8_t jam_image[16u + INES_PRG_BANK + INES_CHR_BANK];
+        struct ser_rom jr;
+
+        memset(&jr, 0, sizeof jr);
+        jr.path = "jam-image";
+        jr.data = jam_image;
+        jr.size = rah_jam_image(jam_image, sizeof jam_image);
+        CHECK(jr.size != 0u);
+        if (jr.size != 0u) {
+            rah_matrix(&jr, T, 1u, 0xfu, 1, 1, &tot);
+            tot.jam_controls_tripped += rah_controls(&jr, T, 1);
+            jam_images++;
+        }
     }
     /* The Phase 12 stress images keep DMA and interrupts in flight across frame boundaries. */
     for (unsigned m = 0u; stress && m < 2u; m++) {
@@ -2733,7 +2998,7 @@ static int runahead_mode(int argc, char **argv)
         sr.data = (unsigned char *)malloc(sr.size != 0u ? sr.size : 1u);
         if (sr.data != NULL && sr.size != 0u) {
             memcpy(sr.data, image, sr.size);
-            rah_matrix(&sr, T, 1u + m, 0xau, 0, &tot);
+            rah_matrix(&sr, T, 1u + m, 0xau, 0, 0, &tot);
             stress_images++;
         }
         free(sr.data);
@@ -2743,6 +3008,13 @@ static int runahead_mode(int argc, char **argv)
     CHECK_EQ_U64(stress_images, stress ? 2u : 0u);
     CHECK_EQ_U64(control_roms, 1u);
     CHECK_EQ_U64(tot.controls_tripped, 4u);
+    CHECK_EQ_U64(jam_images, 1u);
+    CHECK_EQ_U64(tot.jam_controls_tripped, 5u); /* four controls and the black oracle */
+    for (depth = 1u; depth <= RA_MAX_DEPTH; depth++) {
+        for (unsigned c = 0u; c < 4u; c++) {
+            CHECK(tot.jam_cls[depth][c] != 0u);
+        }
+    }
     CHECK_EQ_U64(covered_depths, RA_MAX_DEPTH);
     CHECK_EQ_U64(tot.ticks, tot.expected_ticks);
     CHECK_EQ_U64(tot.repeat_ticks, tot.expected_repeat);
@@ -2750,9 +3022,15 @@ static int runahead_mode(int argc, char **argv)
     CHECK(tot.repeat_ticks >= RA_MAX_DEPTH * T);
     CHECK(tot.states >= tot.ticks + tot.repeat_ticks);
     printf("libretro.runahead: order=\"%s\" roms=%u stress=%u ticks=%u repeat_ticks=%u states=%u "
-           "controls_tripped=%u\n",
+           "controls_tripped=%u jam_images=%u jam_frame=%u jam_controls_tripped=%u\n",
            RA_SPECULATIVE_ORDER, count, stress_images, tot.ticks, tot.repeat_ticks, tot.states,
-           tot.controls_tripped);
+           tot.controls_tripped, jam_images, (unsigned)tot.jam_frame, tot.jam_controls_tripped);
+    for (depth = 1u; depth <= RA_MAX_DEPTH; depth++) {
+        printf("libretro.runahead: jam depth %u windows: no_jam=%u in_speculative=%u boundary=%u "
+               "jammed_loaded=%u\n",
+               depth, tot.jam_cls[depth][0], tot.jam_cls[depth][1], tot.jam_cls[depth][2],
+               tot.jam_cls[depth][3]);
+    }
     for (a = 0; a < (int)count; a++) {
         free(roms[a].data);
     }

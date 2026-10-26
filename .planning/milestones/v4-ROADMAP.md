@@ -150,7 +150,7 @@ Plans:
 - [x] 17-04-PLAN.md — Atomic canonical pin activation, durable comparison and measured CI placement
 
 **UI hint**: no
-**Canonical refs**: [CONFORMANCE.md](preparation/CONFORMANCE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md); pin/encoding updates in [research/v4-scope/accuracy.md](research/v4-scope/accuracy.md) supersede the older preparation pin for this phase.
+**Canonical refs**: [CONFORMANCE.md](preparation/CONFORMANCE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md); pin/encoding updates in [research/v4-scope/accuracy.md](v4-research/v4-scope/accuracy.md) supersede the older preparation pin for this phase.
 
 ### Phase 18: Execution and lifecycle robustness
 
@@ -179,7 +179,7 @@ Plans:
 - [x] 18-04-PLAN.md — Measured portable replay, finite sanitizer campaigns and scoped findings evidence.
 
 **UI hint**: no
-**Canonical refs**: [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [ENGINEERING.md](preparation/ENGINEERING.md), [CONFORMANCE.md](preparation/CONFORMANCE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md); current reach and discovery limits in [research/v4-scope/reliability.md](research/v4-scope/reliability.md).
+**Canonical refs**: [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [ENGINEERING.md](preparation/ENGINEERING.md), [CONFORMANCE.md](preparation/CONFORMANCE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md); current reach and discovery limits in [research/v4-scope/reliability.md](v4-research/v4-scope/reliability.md).
 
 Closeout stays within Phase 18 and the normal milestone lifecycle: retain measured results, unresolved debt and actual release evidence, then refresh product direction under DIR-02. No additional validation-only phase or all-pass accuracy obligation is introduced. If the execution prototype adds no useful reach, record an explicit scope amendment rather than claiming ROB-01 complete.
 
