@@ -544,8 +544,22 @@ static int test_driver(void)
     CHECK_DONE();
 }
 
+/* Creates path and any missing parents, so a command does not depend on another
+ * test having made its work tree. Only the result for path itself counts. */
 static int make_directory(const char *path)
 {
+    char parent[4096];
+    size_t length = strlen(path);
+    if (length >= sizeof parent)
+        return 0;
+    memcpy(parent, path, length + 1u);
+    for (size_t i = 1u; i < length; i++) {
+        if (parent[i] == '/' || parent[i] == '\\') {
+            parent[i] = '\0';
+            (void)ACCURACYCOIN_MKDIR(parent);
+            parent[i] = path[i];
+        }
+    }
     return ACCURACYCOIN_MKDIR(path) == 0 || errno == EEXIST;
 }
 

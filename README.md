@@ -892,6 +892,10 @@ The `suite-flake` job builds the `ci` preset on Ubuntu 24.04 and runs its
 suite three times in random order with
 `ctest --preset ci --repeat until-fail:3 --schedule-random`; any failure fails
 the job, and its outcome is reported in the same `nightly` issue.
+In `ci` itself, `accuracycoin.report_fresh` runs the AccuracyCoin report
+command on a nested work directory whose tree has just been removed, so a test
+that relies on another test having made its directory fails in the fixed order
+too.
 
 The same workflow runs the `mmc3-oracle` lane (`cmake --workflow --preset
 mmc3-oracle`) as a second job, built like `vectors-full`: `contents: read`
