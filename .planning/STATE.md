@@ -4,16 +4,16 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: Phase 20 context gathered; ready for planning
-stopped_at: Phase 20 context gathered; ready for planning
-last_updated: "2026-10-26T17:49:27.170Z"
+status: Ready to execute
+stopped_at: Phase 20 planned; ready to execute
+last_updated: "2026-10-26T18:35:40.520Z"
 last_activity: 2026-10-26
-last_activity_desc: "Phase 20 context gathered; next: $gsd-plan-phase 20"
-state_head: 9c4f188c313cdd13349a715c9b9a6a0860dc6c0f
+last_activity_desc: "Phase 20 planned and checked; next: $gsd-execute-phase 20"
+state_head: cc5f7540165a1a20bbc41c9a652535ac6879db39
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 6
+  total_plans: 12
   completed_plans: 6
   percent: 33
 ---
@@ -28,10 +28,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 — NMI line and VBlank flag
-Plan: Not started
-Status: Phase 20 context gathered; ready for planning
-Last activity: 2026-10-26 — Phase 20 context gathered; next: $gsd-plan-phase 20
+Phase: 20 (NMI line and VBlank flag) — READY TO EXECUTE
+Plan: 0/6 complete; 17 tasks in six sequential waves
+Status: Ready to execute
+Last activity: 2026-10-26 — Phase 20 planned and checked; next: $gsd-execute-phase 20
 
 Progress: [███░░░░░░░] 33%
 
@@ -47,10 +47,12 @@ Progress: [███░░░░░░░] 33%
 - [Phase 19]: D-10 amendment applied: cases 2, 4, 8, 9 and all-Y=$FF are guards; 1, 3, 5, 6, 7 and $FD are reproducers run through expect_red until their fix lands
 - [Phase 19]: 19-05: page-19 driver case uses case-local execution cap 300; campaign caps unchanged; state/* hash rows re-pinned for behaviour revision 7
 - [Phase 19]: 19-06: AccuracyCoin baseline re-recorded from measured full campaign (108 pass/38 fail/0 timeout); matched research prediction
+- [Phase 20 planning]: Six sequential plans cover reproducers, split status/line capture with coherent state format 2/revision 8, NMI polling, exact race-state continuation, host replay and final evidence. Independent plan check passed after isolating four new test oracles; all four requirements and 24 decisions are assigned.
 
 ### Blockers/Concerns
 
-- Whether AccuracyCoin assumes a CPU/PPU alignment constant is untested (Phase 20).
+- Same-edge capture/side-effect order and default-alignment acceptance against all six complete tables remain bounded execution experiments (20-02/03); no alignment shift is assumed.
+- The constructed NMI-disabled set/clear probe proves limited exact instruction-boundary save/load feasibility with audio history. Enabled-NMI and edge-before-poll continuation remain 20-04 acceptance work; an unrepresentable required cutpoint blocks KEEP-03 pending explicit clarification.
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
 
 ### Pending Todos
@@ -67,7 +69,7 @@ Progress: [███░░░░░░░] 33%
 
 ## Delivery
 
-Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 has no context or plans yet.
+Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 context, research, six plans and a passed plan check are recorded; implementation has not started.
 
 ## Deferred Items
 
@@ -93,13 +95,13 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-discuss-phase 20` to gather context for NMI line and VBlank flag work. Three testing proposals are captured under Pending Todos with confirmed minor severity: reproducible owned property tests, deterministic runner signal checks, and later scoped nightly mutation testing. They remain proposed scope for future prioritization. The CI speed-up quick task is implemented in `dbbf04f`; its separate title workflow remains deferred pending a coordinated required-check ruleset migration. No Phase 20 discussion or implementation ran during capture.
+Run `$gsd-execute-phase 20` to execute the six checked plans. This planning command stops before implementation. Three testing proposals under Pending Todos remain proposed future scope; they were not promoted into Phase 20. The CI speed-up quick task is implemented in `dbbf04f`; its separate title workflow remains deferred pending a coordinated required-check ruleset migration.
 
 ## Session
 
-Last session: 2026-10-26T17:49:27.123Z
-Stopped at: Phase 20 context gathered; ready for planning
-Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-CONTEXT.md
+Last session: 2026-10-26T18:35:40.520Z
+Stopped at: Phase 20 planned; ready to execute
+Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-01-PLAN.md
 
 ## Performance Metrics
 
