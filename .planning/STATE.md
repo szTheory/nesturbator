@@ -6,10 +6,10 @@ current_phase: 20
 current_phase_name: NMI line and VBlank flag
 status: blocked
 stopped_at: Plan 20-02 Task 1 detector-order evidence checkpoint
-last_updated: "2026-10-26T19:56:36Z"
+last_updated: "2026-10-26T20:28:28Z"
 last_activity: 2026-10-26
-last_activity_desc: "20-01 complete; 20-02 blocked on independent A/C detector-order evidence"
-state_head: 2878bab664a0
+last_activity_desc: "Independent die-network oracle reproduced 6/6 cases; paired-chip A/C boundary remains unresolved"
+state_head: 670cabb
 progress:
   total_phases: 3
   completed_phases: 1
@@ -31,7 +31,7 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 Phase: 20 (NMI line and VBlank flag) — BLOCKED AT EVIDENCE CHECKPOINT
 Plan: 1/6 complete; 20-02 Task 1 blocked, 0/3 tasks complete
 Status: Awaiting independent detector-order evidence or explicit acceptance revision
-Last activity: 2026-10-26 — Three-candidate experiment left A/C unresolved; provisional edits restored
+Last activity: 2026-10-26 — Independent six-case die-network oracle reproduced; exact paired-chip A/C boundary remains unresolved
 
 Progress: [███░░░░░░░] 33%
 
@@ -39,6 +39,7 @@ Progress: [███░░░░░░░] 33%
 
 ### Decisions
 
+- [Phase 20 oracle research]: The owner selected independent hardware/source research. A published Visual2A03 die-network probe now establishes six finite-margin sampling/retention outcomes; it separates internal phi2 from widened M2 and preserves the input/request stage distinction. The exact simultaneous PPU/CPU edge remains unverified, and no acceptance rule was relaxed. See [20-NMI-ORACLE-RESEARCH.md](phases/20-nmi-line-and-vblank-flag/20-NMI-ORACLE-RESEARCH.md).
 - v5 build order follows research/SUMMARY.md: JAM attribution first; each phase writes its owned reproducers before its fix so main stays green; sprite-0 in its own phase before the NMI model; NMI line and edge latch before the poll; shared interrupt entry and hijack last.
 - KEEP-02 and KEEP-03 sit in Phase 20 (hash moves, state format 2); KEEP-01 sits in Phase 21 (shared interrupt entry touches CPU vectors and the MMC3 IRQ). Every phase keeps the protected PASS set.
 - [Phase 19]: JAM attribution: frame_and_sample returns nesturbator_status; ACCURACYCOIN_ACTIVE_RUNNING/BUDGET/JAM three-state classifier; execution-stage JAM is fail/0x03/guest-jam with exit 0
@@ -97,11 +98,11 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Resolve the blocking decision recorded in [20-02-CHECKPOINT.md](phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md): obtain independent evidence distinguishing A/C, or explicitly revise the acceptance rule before resuming 20-02. Do not repeat the three-candidate sweep or dispatch dependent plans under unchanged acceptance. Plan 20-01's full workflow passed 677/677; the restored-tree focused suite passed 4/4. Three testing proposals remain proposed future scope. The CI speed-up quick task is implemented in `dbbf04f`; its separate title workflow remains deferred pending a coordinated required-check ruleset migration.
+Use the independently reproduced six-case circuit oracle in [20-NMI-ORACLE-RESEARCH.md](phases/20-nmi-line-and-vblank-flag/20-NMI-ORACLE-RESEARCH.md) to constrain CPU capture. To resolve [20-02-CHECKPOINT.md](phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md), still obtain a source-backed PPU-output-to-CPU-input schedule or paired-chip measurement, or explicitly revise acceptance before resuming 20-02. The owner authorized research, not a provisional A choice. Do not repeat the exhausted three-candidate sweep or dispatch dependent plans. Plan 20-01's full workflow passed 677/677; the restored-tree focused suite passed 4/4. Three testing proposals remain proposed future scope. The CI speed-up quick task is implemented in `dbbf04f`; its separate title workflow remains deferred pending a coordinated required-check ruleset migration.
 
 ## Session
 
-Last session: 2026-10-26T19:56:36Z
+Last session: 2026-10-26T20:28:28Z
 Stopped at: Plan 20-02 Task 1 detector-order evidence checkpoint
 Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md
 

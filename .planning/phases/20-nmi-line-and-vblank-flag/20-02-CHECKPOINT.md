@@ -30,6 +30,15 @@ independent hardware oracle. Therefore no candidate was selected. The executor
 retracted its provisional A selection and restored all experimental edits.
 State format remains 1 and behaviour revision remains 7.
 
+The owner selected independent-oracle research on 2026-10-26. The resulting
+[research and executed die-network probe](20-NMI-ORACLE-RESEARCH.md) establishes
+six nonzero-margin CPU sampling/retention cases, with an owned reproduction
+driver and exact trace retained. This is new independent circuit evidence,
+but does not select A/C at the old zero-margin paired-chip boundary. The
+block remains; no acceptance change or further candidate sweep was authorized
+or performed. The missing evidence is a source-backed PPU-output-to-CPU-input
+schedule, or a paired-chip measurement establishing that relation.
+
 Resume requires either independent hardware/source evidence settling A versus C,
 or an explicit revision of this plan's acceptance rule. A possible revision is
 to permit A as a documented provisional model, complete polling, then reassess
