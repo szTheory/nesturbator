@@ -966,6 +966,12 @@ nesturbator_warnings(core.controller)
 add_test(NAME core.controller COMMAND core.controller)
 
 # Focused CPU-visible PPU register and dot-boundary tests.
+add_executable(ppu.nmi_races ppu/test_nmi_races.c)
+target_link_libraries(ppu.nmi_races PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.nmi_races PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.nmi_races)
+add_test(NAME ppu.nmi_races COMMAND ppu.nmi_races)
+set_tests_properties(ppu.nmi_races PROPERTIES TIMEOUT 10)
 add_executable(ppu.registers ppu/test_registers.c)
 target_link_libraries(ppu.registers PRIVATE nesturbator::nesturbator)
 target_include_directories(ppu.registers PRIVATE ${PROJECT_SOURCE_DIR}/src)
