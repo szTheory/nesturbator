@@ -4,17 +4,17 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: Ready to execute
-stopped_at: Phase 20 resumption revision checked; ready for Plan 20-02
-last_updated: "2026-10-26T20:52:46Z"
+status: executing
+stopped_at: Completed 20-02-PLAN.md
+last_updated: "2026-10-26T22:24:07.729Z"
 last_activity: 2026-10-26
-last_activity_desc: "Phase 20 resumption revision passed; next: $gsd-execute-phase 20"
-state_head: e7d22872042149b92bd42e1c69afadc8e97f49cc
+last_activity_desc: Phase 20 execution started
+state_head: 1a48384c3c872f68e1689bf38ee7aec733c1f900
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 12
-  completed_plans: 7
+  completed_plans: 8
   percent: 33
 ---
 
@@ -28,10 +28,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — READY TO EXECUTE
-Plan: 1/6 complete; 20-02 next, 0/3 tasks complete
-Status: Ready to execute Plan 20-02 under amended D-10
-Last activity: 2026-10-26 — Independent plan check passed; six structures valid and all 28 requirements/decisions covered
+Phase: 20 (NMI line and VBlank flag) — EXECUTING
+Plan: 3 of 6
+Status: Ready to execute
+Last activity: 2026-10-26 — Phase 20 execution started
 
 Progress: [███░░░░░░░] 33%
 
@@ -50,11 +50,14 @@ Progress: [███░░░░░░░] 33%
 - [Phase 19]: 19-06: AccuracyCoin baseline re-recorded from measured full campaign (108 pass/38 fail/0 timeout); matched research prediction
 - [Phase 20 planning]: Six sequential plans cover reproducers, split status/line capture with coherent state format 2/revision 8, NMI polling, exact race-state continuation, host replay and final evidence. Independent plan check passed after isolating four new test oracles; all four requirements and 24 decisions are assigned.
 - [Phase 20]: Keep live PPU, bus, and guest observations separate from source-assembly table comparator checks.
+- [Phase 20]: Equal integer timestamps use PPU transition, CPU sample, then bus side effect; exact physical tie precedence remains unclaimed.
+- [Phase 20]: The bus captures a rising derived NMI line at cycle close; later line deassertion does not revoke the request.
+- [Phase 20]: PPUSTATUS decoding requires the PPU address range as well as register bits 010, including for DMC parked reads.
 
 ### Blockers/Concerns
 
-- [Phase 20 execution]: Plan 20-02's old physical-tie stop is superseded by the owner's unblocking request and amended D-10. Finite-margin circuit behavior constrains implementation; unresolved exact ties use one documented global model policy without claiming hardware proof. Physical paired-chip precedence remains an evidence limit. No production change or format/revision bump landed. See [20-02-CHECKPOINT.md](phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md). Plans 20-03 through 20-06 remain dependent and pending under their normal prerequisites.
-- Capture and side-effect ordering use the amended D-10 circuit constraints and a documented global tie policy. The physical exact-tie limit remains explicit; complete-table/default-alignment validation remains executable work in 20-02/03, with no alignment shift assumed.
+- [Phase 20 execution]: Plan 20-02 is complete under amended D-10. Finite-margin circuit behavior constrains implementation; unresolved exact ties use one documented global model policy without claiming hardware proof. Physical paired-chip precedence remains an evidence limit. Plans 20-03 through 20-06 remain pending under their normal prerequisites.
+- Plan 20-02 recorded all six source tables at default alignment and the production sampler endpoint projections in `tests/accuracy/measurements.md`. Plans 20-03/06 must revalidate the tables after polling changes; no alignment shift has been selected.
 - The constructed NMI-disabled set/clear probe proves limited exact instruction-boundary save/load feasibility with audio history. Enabled-NMI and edge-before-poll continuation remain 20-04 acceptance work; an unrepresentable required cutpoint blocks KEEP-03 pending explicit clarification.
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
 
@@ -72,7 +75,7 @@ Progress: [███░░░░░░░] 33%
 
 ## Delivery
 
-Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 context, research, six plans and a passed plan check are recorded. Plan 20-01 completed the owned test and measurement work; production emulation changes remain in later plans.
+Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 context, research, six plans and a passed plan check are recorded. Plans 20-01 and 20-02 are complete; Phase 20 remains in progress with its polling, continuation, host replay, and final evidence plans still pending.
 
 ## Deferred Items
 
@@ -98,13 +101,13 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 20` to resume Plan 20-02 at Task 1, 0/3. The revised plans passed independent checking, all six structures are valid, and all four requirements plus 24 decisions are covered. Plan 20-01 remains complete. Amended D-10 uses the six-case circuit oracle plus an explicit global tie policy and preserves every target/regression requirement. Do not repeat the exhausted candidate sweep or treat the superseded checkpoint as an active stop. No A/C hardware winner is claimed. Three testing proposals remain proposed future scope; the CI speed-up title-workflow migration remains deferred.
+Run `$gsd-execute-phase 20` to start Plan 20-03. Plan 20-02 completed its split status/line capture, format-2/revision-8 state contract, full campaign and hash evidence, and local CI gates. All six page-18 tables were recorded at default alignment; Plan 20-03 must revalidate them after polling changes. The exact physical tie remains an evidence limit, with no A/C hardware winner claimed. Three testing proposals remain proposed future scope; the CI speed-up title-workflow migration remains deferred.
 
 ## Session
 
-Last session: 2026-10-26T20:52:46Z
-Stopped at: Phase 20 resumption revision checked; ready for Plan 20-02
-Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-02-PLAN.md
+Last session: 2026-10-26T22:24:07.664Z
+Stopped at: Completed 20-02-PLAN.md
+Resume file: None
 
 ## Performance Metrics
 
@@ -125,3 +128,4 @@ Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-02-PLAN.md
 | Phase 19 P05 | 40min | 3 tasks | 9 files |
 | Phase 19 P06 | 40 min | 3 tasks | 10 files |
 | Phase 20 P01 | 32min | 2 tasks | 6 files |
+| Phase 20 P02 | 90min | 3 tasks | 24 files |
