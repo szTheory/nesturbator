@@ -4,17 +4,17 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: Ready to execute
-stopped_at: Phase 20 planned; ready to execute
-last_updated: "2026-10-26T18:35:40.520Z"
+status: executing
+stopped_at: Completed 20-01-PLAN.md
+last_updated: "2026-10-26T19:19:09.959Z"
 last_activity: 2026-10-26
-last_activity_desc: "Phase 20 planned and checked; next: $gsd-execute-phase 20"
-state_head: cc5f7540165a1a20bbc41c9a652535ac6879db39
+last_activity_desc: Completed Phase 20 plan 20-01
+state_head: 88dead09f0d9a214ba6f1f82155749d012080b0b
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 12
-  completed_plans: 6
+  completed_plans: 7
   percent: 33
 ---
 
@@ -28,10 +28,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — READY TO EXECUTE
-Plan: 0/6 complete; 17 tasks in six sequential waves
-Status: Ready to execute
-Last activity: 2026-10-26 — Phase 20 planned and checked; next: $gsd-execute-phase 20
+Phase: 20 (NMI line and VBlank flag) — EXECUTING
+Plan: 2 of 6
+Status: Executing Phase 20
+Last activity: 2026-10-26 — Completed 20-01; next is 20-02
 
 Progress: [███░░░░░░░] 33%
 
@@ -48,6 +48,7 @@ Progress: [███░░░░░░░] 33%
 - [Phase 19]: 19-05: page-19 driver case uses case-local execution cap 300; campaign caps unchanged; state/* hash rows re-pinned for behaviour revision 7
 - [Phase 19]: 19-06: AccuracyCoin baseline re-recorded from measured full campaign (108 pass/38 fail/0 timeout); matched research prediction
 - [Phase 20 planning]: Six sequential plans cover reproducers, split status/line capture with coherent state format 2/revision 8, NMI polling, exact race-state continuation, host replay and final evidence. Independent plan check passed after isolating four new test oracles; all four requirements and 24 decisions are assigned.
+- [Phase 20]: Keep live PPU, bus, and guest observations separate from source-assembly table comparator checks.
 
 ### Blockers/Concerns
 
@@ -69,7 +70,7 @@ Progress: [███░░░░░░░] 33%
 
 ## Delivery
 
-Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 context, research, six plans and a passed plan check are recorded; implementation has not started.
+Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 context, research, six plans and a passed plan check are recorded. Plan 20-01 completed the owned test and measurement work; production emulation changes remain in later plans.
 
 ## Deferred Items
 
@@ -95,13 +96,13 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 20` to execute the six checked plans. This planning command stops before implementation. Three testing proposals under Pending Todos remain proposed future scope; they were not promoted into Phase 20. The CI speed-up quick task is implemented in `dbbf04f`; its separate title workflow remains deferred pending a coordinated required-check ruleset migration.
+Continue Phase 20 with Plan 20-02, which measures split status/line capture and coherent state format 2 with behaviour revision 8. Three testing proposals under Pending Todos remain proposed future scope; they were not promoted into Phase 20. The CI speed-up quick task is implemented in `dbbf04f`; its separate title workflow remains deferred pending a coordinated required-check ruleset migration.
 
 ## Session
 
-Last session: 2026-10-26T18:35:40.520Z
-Stopped at: Phase 20 planned; ready to execute
-Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-01-PLAN.md
+Last session: 2026-10-26T19:19:09.917Z
+Stopped at: Completed 20-01-PLAN.md
+Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-02-PLAN.md
 
 ## Performance Metrics
 
@@ -121,3 +122,4 @@ Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-01-PLAN.md
 | Phase 19 P04 | 50 min | 2 tasks | 2 files |
 | Phase 19 P05 | 40min | 3 tasks | 9 files |
 | Phase 19 P06 | 40 min | 3 tasks | 10 files |
+| Phase 20 P01 | 32min | 2 tasks | 6 files |
