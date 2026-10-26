@@ -4,12 +4,12 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: blocked
-stopped_at: Plan 20-02 Task 1 detector-order evidence checkpoint
-last_updated: "2026-10-26T20:28:28Z"
+status: Ready to execute
+stopped_at: Phase 20 resumption revision checked; ready for Plan 20-02
+last_updated: "2026-10-26T20:52:46Z"
 last_activity: 2026-10-26
-last_activity_desc: "Independent die-network oracle reproduced 6/6 cases; paired-chip A/C boundary remains unresolved"
-state_head: 670cabb
+last_activity_desc: "Phase 20 resumption revision passed; next: $gsd-execute-phase 20"
+state_head: e7d22872042149b92bd42e1c69afadc8e97f49cc
 progress:
   total_phases: 3
   completed_phases: 1
@@ -28,10 +28,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — BLOCKED AT EVIDENCE CHECKPOINT
-Plan: 1/6 complete; 20-02 Task 1 blocked, 0/3 tasks complete
-Status: Awaiting independent detector-order evidence or explicit acceptance revision
-Last activity: 2026-10-26 — Independent six-case die-network oracle reproduced; exact paired-chip A/C boundary remains unresolved
+Phase: 20 (NMI line and VBlank flag) — READY TO EXECUTE
+Plan: 1/6 complete; 20-02 next, 0/3 tasks complete
+Status: Ready to execute Plan 20-02 under amended D-10
+Last activity: 2026-10-26 — Independent plan check passed; six structures valid and all 28 requirements/decisions covered
 
 Progress: [███░░░░░░░] 33%
 
@@ -53,8 +53,8 @@ Progress: [███░░░░░░░] 33%
 
 ### Blockers/Concerns
 
-- [Phase 20 execution]: Plan 20-02's three-candidate experiment rejects B on NMI Control but leaves A/C identical on all six live target rows. The owned probe distinguishes predictions without a hardware oracle. Task 1's explicit ambiguity stop applies; no production change or format/revision bump landed. See [20-02-CHECKPOINT.md](phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md) for retained raw observations, source limits and resume choices. Plans 20-03 through 20-06 remain dependent and pending.
-- Same-edge capture/side-effect order and default-alignment acceptance against all six complete tables remain bounded execution experiments (20-02/03); no alignment shift is assumed.
+- [Phase 20 execution]: Plan 20-02's old physical-tie stop is superseded by the owner's unblocking request and amended D-10. Finite-margin circuit behavior constrains implementation; unresolved exact ties use one documented global model policy without claiming hardware proof. Physical paired-chip precedence remains an evidence limit. No production change or format/revision bump landed. See [20-02-CHECKPOINT.md](phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md). Plans 20-03 through 20-06 remain dependent and pending under their normal prerequisites.
+- Capture and side-effect ordering use the amended D-10 circuit constraints and a documented global tie policy. The physical exact-tie limit remains explicit; complete-table/default-alignment validation remains executable work in 20-02/03, with no alignment shift assumed.
 - The constructed NMI-disabled set/clear probe proves limited exact instruction-boundary save/load feasibility with audio history. Enabled-NMI and edge-before-poll continuation remain 20-04 acceptance work; an unrepresentable required cutpoint blocks KEEP-03 pending explicit clarification.
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
 
@@ -98,13 +98,13 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Use the independently reproduced six-case circuit oracle in [20-NMI-ORACLE-RESEARCH.md](phases/20-nmi-line-and-vblank-flag/20-NMI-ORACLE-RESEARCH.md) to constrain CPU capture. To resolve [20-02-CHECKPOINT.md](phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md), still obtain a source-backed PPU-output-to-CPU-input schedule or paired-chip measurement, or explicitly revise acceptance before resuming 20-02. The owner authorized research, not a provisional A choice. Do not repeat the exhausted three-candidate sweep or dispatch dependent plans. Plan 20-01's full workflow passed 677/677; the restored-tree focused suite passed 4/4. Three testing proposals remain proposed future scope. The CI speed-up quick task is implemented in `dbbf04f`; its separate title workflow remains deferred pending a coordinated required-check ruleset migration.
+Run `$gsd-execute-phase 20` to resume Plan 20-02 at Task 1, 0/3. The revised plans passed independent checking, all six structures are valid, and all four requirements plus 24 decisions are covered. Plan 20-01 remains complete. Amended D-10 uses the six-case circuit oracle plus an explicit global tie policy and preserves every target/regression requirement. Do not repeat the exhausted candidate sweep or treat the superseded checkpoint as an active stop. No A/C hardware winner is claimed. Three testing proposals remain proposed future scope; the CI speed-up title-workflow migration remains deferred.
 
 ## Session
 
-Last session: 2026-10-26T20:28:28Z
-Stopped at: Plan 20-02 Task 1 detector-order evidence checkpoint
-Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md
+Last session: 2026-10-26T20:52:46Z
+Stopped at: Phase 20 resumption revision checked; ready for Plan 20-02
+Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-02-PLAN.md
 
 ## Performance Metrics
 

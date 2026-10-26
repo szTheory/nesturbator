@@ -1,5 +1,44 @@
+## Operative research addendum — 2026-10-26
+
+Read the amended D-10 in `20-CONTEXT.md` and the independent
+[`20-NMI-ORACLE-RESEARCH.md`](20-NMI-ORACLE-RESEARCH.md) before using the
+original research below. The circuit oracle was independently reproduced
+6/6. It establishes phase-qualified finite-margin sampling, retained request
+after release and the distinction between internal phi2 and widened M2.
+The original copied user constraints and unresolved-order descriptions below
+record the pre-amendment discussion/research; their demand to independently
+settle an exact PPU/CPU tie before implementation is superseded. Physical
+paired-chip tie precedence remains scientifically unresolved. The oracle's
+statement that research itself relaxed no rule remains historically correct;
+the subsequent owner-directed planning amendment now changes development
+acceptance explicitly, without changing accuracy requirements.
+
+Implement capture using owned C tests derived from the archived waveform,
+with a source-to-core coordinate map and honest limits. A bus-end sample may
+realize the observed stage endpoints within the existing two-catch-up timeline;
+there is no requirement to copy a transistor simulation, add a scheduler or
+make Node/network/netlist inputs part of CI. Distinguish a helper-level replay
+from whole-bus proof and keep real decoded `$2002`/`$2000` guest markers and
+selected wrong-model controls. Preserve the meanings of all six pulse cases:
+one retained capture before fall, no capture for a phi1-only short pulse, no
+capture for a pulse ending before phi2 closes, no capture for widened-M2-only,
+one capture for a pulse held through the next close, and no pulse/no capture.
+If a fixture cannot express a subcycle waveform, say so; test its stage
+projection separately rather than claim an unexecuted bus sample.
+
+For unresolved equal timestamps, document one globally applied deterministic
+source-consistent ordering as model policy with a hardware limit. Check it
+against the finite-margin cases and all six complete source sequences after
+polling, at default alignment first. Diagnose the first divergent event if a
+target still fails, using existing local fix authority and bounded experiments;
+uncertainty alone no longer stops 20-02. Contradictory finite-margin evidence,
+lost protected PASS or unmet final targets remain acceptance failures. Do not
+repeat the exhausted candidate sweep or infer an A/C hardware winner: their
+experimental source was not retained. All state/version/hash/CI obligations
+and the exact-cutpoint representation gate remain in force.
+
 <user_constraints>
-## User Constraints (from CONTEXT.md)
+## User Constraints (original discussion snapshot; amended D-10 in current CONTEXT.md governs)
 
 ### Phase Boundary
 
@@ -86,7 +125,7 @@ planning, not claims of implemented or measured improvements.
   original bus cycle count; do not perform a second register read merely to
   obtain the second sample. Keep APU phase, mapper stamps and DMA repeated
   accesses coherent with that timeline.
-- **D-10:** Treat PPUSTATUS sampling and CPU NMI-input sampling as separate
+- **D-10 (historical wording, superseded by the operative addendum and current CONTEXT.md):** Treat PPUSTATUS sampling and CPU NMI-input sampling as separate
   events. The old research alternately prescribes M2 rise, M2 fall or an
   alignment shift without resolving same-edge ordering. Research must map
   CPU detector stages to the existing M2 events from primary analysis and
@@ -211,8 +250,10 @@ planning, not claims of implemented or measured improvements.
 
 - Helper names, minimal latch representation, exact fixture layout, diagnostic
   formatting and bounded sweep size are implementation choices.
-- Research must establish same-edge clear/capture order, verify the default
-  alignment against the complete pinned tables, and demonstrate the selected
+- This original snapshot required research to establish same-edge clear/capture
+  order; amended D-10 now permits a labeled global model policy constrained by
+  the independent finite-margin oracle. Still verify the default alignment
+  against complete pinned tables and demonstrate the selected
   reachable serialization cutpoints (including audio state). No runtime probes or implementation tests were
   run during this discussion; no target row is newly claimed passing.
 - Older research's global alignment-shift recommendation, conflated sample
@@ -263,7 +304,7 @@ Phase 20 should model the PPU's VBlank flag and NMI output line as separate stat
 
 The deterministic internal cutpoint probe in `probes/20-cutpoint-probe.c` reaches both context candidate dots with whole three-cycle JMP instructions, then exercises the production save/load path and compares canonical continuation state. It has NMI disabled, starts from a constructed rendering-off `(261,0)` fixture origin, and carries nonzero APU/synth history. It does not establish normal cartridge-reset reachability, NMI detector state at edge-before-poll, or any AccuracyCoin pass. Preserve this distinction in planning and verification. [VERIFIED: `probes/20-cutpoint-probe-output.txt`]
 
-**Primary recommendation:** First implement source-grounded PPU dot and CPU-bus reproducers, then test the existing fixed alignment against every complete pinned table. Probe D-10 ordering with a bounded set of same-edge variations before selecting the NMI capture event. Serialize and validate persistent history, update versions and explain measured hash changes in the same causal change that introduces that history; add complete host replay after capture and polling are correct. Do not apply a global timing shift based on one table.
+**Primary recommendation (amended):** Consume completed Plan 20-01's source-grounded reproducers, then implement capture constrained by the six independent finite-margin circuit cases and amended D-10. Record a global equal-timestamp model policy without calling it physical proof; the old candidate ambiguity is no longer an implementation gate. Test the existing fixed alignment against every complete pinned table after polling, diagnose first divergence and make only evidence-supported local corrections. Serialize and validate persistent history, update versions and explain measured hash changes in the same causal change that introduces that history; add complete host replay after capture and polling are correct. Do not apply a global timing shift based on one table.
 
 ## Architectural Responsibility Map
 
@@ -372,7 +413,7 @@ The measured output is preserved verbatim in [`20-cutpoint-probe-output.txt`](pr
 
 1. Add absolute PPU-dot VBlank set/clear tests (before/on/after), normal controls and bounded wrong-model controls. Keep their expected coordinates/event conventions beside the assertions.
 2. Add CPU bus/program tests for `$2002` split sampling and `$2000` enable/disable/unchanged-write/RMW cases through real register mirrors; verify status/open-bus side effects independently from NMI delivery.
-3. Add a small D-10 same-edge experiment around (a) VBlank set coincident with `$2002` early bit-7 sample and later clear, (b) detector sample at the candidate M2-fall point before/after that read side effect, and (c) the CPU's next legal poll point. Keep the fixed alignment unchanged while comparing the few order variants. Choose one only if an owned observable and the pinned tables distinguish it; otherwise document remaining ambiguity and do not claim the target rows.
+3. Follow amended D-10 and Plan 20-02: derive phase-qualified capture/retention tests from the independent six-case circuit trace, preserve real decoded status/enable/disable paths and guest markers, and record one global equal-timestamp ordering as model policy. The exhausted three-candidate experiment remains historical; its ambiguity is not a prerequisite to repeat or a reason to stop implementation. Physical-tie certainty and target acceptance remain separate claims.
 4. Run the six pinned rows at commit `6bee919` with unchanged campaign policy. Compare each complete table/checker exactly as above against existing deterministic alignment. Change a single global phase only after order is correct and a minimal reproducer demonstrates residual need; re-run all six tables and protected regressions. Do not hard-code per-row/per-program offsets.
 5. Include NMI-specific serialized history and reachable-combination validation in the existing state visitor with each causal capture/poll change above, never as a later unsaved-history step. Keep historical detector/request state distinct from a recomputable live line. Bump format 1→2 and behavior revision 7→8, preserve format-error precedence/all-or-nothing rejection, update hash pins and README/public-header comments with observed causal behavior.
 6. Extend the existing fork/reject/runner/core run-ahead/libretro replay tests with the NMI event marker, stale/omitted-load controls, two instances with different histories, exact set/clear fixtures and the edge-before-poll finding. Re-pin only observed frame/audio/state hashes, then run the final campaign and `cmake --workflow --preset ci` as required by the locked context.
@@ -451,7 +492,7 @@ The probe command and measured output are in `probes/20-cutpoint-probe-output.tx
 
 ## Open Questions and bounded execution gates
 
-1. **D-10 same-edge ordering — unresolved, bounded experiment required.** Hardware references establish the `$2002` bit-7 sample at M2 rise and a CPU NMI detector sampled during φ2; the source-backed detector candidate is M2 fall. They do not establish whether line capture at the coincident set dot happens before or after `$2002` clear/`$2000` disable side effects in this implementation. Add one owned real-bus program with a guest NMI marker and vary only the event ordering at the shared dot among: PPU set → detector capture → read side effect; PPU set → read side effect → detector capture; detector at next candidate sample. Run same-dot and ±1-dot controls through the actual decoder. Record status return, capture/poll marker and cycle count. Compare against relevant pinned rows. If the test does not distinguish variants, record the ambiguity; do not assert a passing hardware result or invent further offsets.
+1. **D-10 exact tie — scientifically unresolved, development unblocked by amendment.** The independent circuit trace establishes finite-margin behavior and internal-phi2/M2 distinction; it excludes simultaneous edges and does not simulate PPU output propagation. Use its archived waveform to constrain capture, with explicit helper/bus representation limits and a global deterministic tie policy. Preserve real guest status/enable/disable and ±1-dot controls; justify the policy against complete downstream sequences. No aggregate page verdict or invented offset proves hardware precedence. An actually contradictory finite-margin case blocks capture acceptance; lack of a physical-tie measurement alone does not. See amended CONTEXT and Plan 20-02 for the operative executable gate.
 2. **Complete table alignment — no global shift established.** Run the existing deterministic alignment against the exact tables and checker rules above, for all six target rows. `$2002` clear and NMI Timing permit whole-sequence alternatives; `NMI Suppression` and `NMI disabled at VBlank` skip specified cells; `$2002` set has a single `$54` alternative. Any proposed phase change is one global integer shift and must keep all target tables plus protected regressions valid. Research did not claim a new target result.
 3. **Edge-before-poll serialization — set/clear pass; this remains open.** The probe proves set/clear cutpoint feasibility. Run one bounded candidate sweep over NMI Control 8/9's actual instruction sequence and poll window, logging completed instruction boundary, PC/opcode, PPU coordinate, CPU edge/capture/poll history and serialized state. Either demonstrate an execution-reached full-state cutpoint and replay it through production load, or record the precise state-machine representation limit and obtain acceptance clarification before KEEP-03 is claimed.
 

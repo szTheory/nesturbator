@@ -1,7 +1,7 @@
 # Phase 20: NMI line and VBlank flag - Context
 
 **Gathered:** 2026-10-26
-**Status:** Ready for planning
+**Status:** Amended for execution resumption on 2026-10-26; 20-01 complete, 20-02 through 20-06 pending
 
 <domain>
 ## Phase Boundary
@@ -93,13 +93,29 @@ planning, not claims of implemented or measured improvements.
   obtain the second sample. Keep APU phase, mapper stamps and DMA repeated
   accesses coherent with that timeline.
 - **D-10:** Treat PPUSTATUS sampling and CPU NMI-input sampling as separate
-  events. The old research alternately prescribes M2 rise, M2 fall or an
-  alignment shift without resolving same-edge ordering. Research must map
-  CPU detector stages to the existing M2 events from primary analysis and
-  pinned test behavior, then probe flag-set/read-clear/sample/poll ordering.
-  M2 fall is the source-backed detector candidate from the specialist review;
-  same-edge side-effect ordering remains to be demonstrated. Do not mistake
-  the proven bit-7 read sample at M2 rise for proof of NMI detector timing.
+  events. **Operative amendment, 2026-10-26:** The owner's request to unblock
+  execution authorizes implementation constrained by the independently
+  reproduced six-case circuit oracle in `20-NMI-ORACLE-RESEARCH.md`; physical
+  proof of an exactly simultaneous PPU/CPU tie is no longer a prerequisite
+  to Plan 20-02. Map the phase-qualified input and retained-request stages
+  to the existing integer timeline, distinguishing internal phi2 from widened
+  M2. Owned C tests must cover finite-margin positive/negative pulses and
+  capture retained after line release, with explicit representation limits;
+  retain separate real-decoder status/enable/disable and guest-marker proof.
+  A bus-end sampler may realize the stage behavior without copying the
+  transistor model. For unresolved equal timestamps, choose and document one
+  source-consistent deterministic ordering applied globally, label it model
+  policy with its hardware limit, and justify it against finite-margin
+  evidence and every complete downstream table. An unknown physical tie alone
+  does not block capture implementation or residual polling/alignment
+  diagnosis. Contradictory finite-margin behavior, a lost protected PASS or
+  a final target failure still blocks the corresponding acceptance. This is
+  development acceptance, not an observed A/C hardware winner or a waiver of
+  NMI-01/NMI-02. Do not select A from aggregate page verdicts, repeat the
+  exhausted three-candidate sweep as a prerequisite, or claim faithful A/C
+  classification without their missing source. D-09/D-11 through D-24 remain
+  in force; no scheduler, runtime callback, mid-instruction state or public
+  API is introduced to manufacture physical ties.
 - **D-11:** First test the existing deterministic alignment. AccuracyCoin's
   relative synchronization and accepted table shifts do not establish a
   unique boot/reset alignment or justify adding a constant. Add/change one
@@ -217,8 +233,9 @@ planning, not claims of implemented or measured improvements.
 
 - Helper names, minimal latch representation, exact fixture layout, diagnostic
   formatting and bounded sweep size are implementation choices.
-- Research must establish same-edge clear/capture order, verify the default
-  alignment against the complete pinned tables, and demonstrate the selected
+- Per amended D-10, distinguish independently established finite-margin
+  capture behavior from the chosen equal-timestamp model policy; verify the
+  default alignment against the complete pinned tables and demonstrate the selected
   reachable serialization cutpoints (including audio state). No runtime probes or implementation tests were
   run during this discussion; no target row is newly claimed passing.
 - Older research's global alignment-shift recommendation, conflated sample
@@ -226,6 +243,45 @@ planning, not claims of implemented or measured improvements.
   choices. The pinned NMI-at-end source also does not support the earlier
   `PLA` versus `NOP` description; use its actual two sequences when deriving
   the reproducer. Reconcile these in phase research rather than propagating them.
+
+### D-10 amendment provenance and historical limit — 2026-10-26
+
+After independent-oracle research, the owner asked, "okay whats the next
+opengsd command then are we stuck unblock us". This request, together with
+the existing delegation of coherent implementation choices, authorizes the
+development-acceptance amendment above. The published Visual2A03 experiment
+was reproduced 6/6; it establishes nonzero-margin CPU sampling/retention,
+not analog setup/hold, PPU propagation or physical paired-chip precedence.
+The circuit trace, confidence labels and all old candidate observations are
+retained unchanged. `20-02-CHECKPOINT.md` records the superseded stop; its
+old requirement to independently distinguish A/C before implementation is
+historical and must not re-block a resumed executor.
+
+The original D-10 required mapping CPU detector stages to M2 events and
+demonstrating same-edge side-effect ordering before fixing production details;
+it called M2 fall a source-backed candidate and warned against conflating
+PPUSTATUS bit-7 sampling with NMI sampling. Those scientific cautions remain.
+Its interpretation as a mandatory physical-tie proof is superseded. The six
+target rows, 108 protected PASS keys, whole-sequence oracles, default-alignment
+discipline, format 2/revision 8, atomic state rejection, causal hash proof and
+full CI are unchanged. Plan 20-02 remains 0/3 tasks; no completion SUMMARY or
+newly passing requirement is implied. Plans 20-03 through 20-06 remain pending.
+
+### Scope handling for the resumption revision — 2026-10-26
+
+Preserve D-20/D-23's coherent causal changes and the six existing waves.
+Plans 20-02/03 honestly list 15 files each because their production change,
+tests, public contract, measured hash/campaign pins and compatibility fixtures
+must agree before the causal commit. The existing three sequential tasks per
+plan bound the implementation work. The generic GSD per-plan file-count
+threshold is an advisory scope risk for these two atomic changes, not an
+additional stop or a reason to ship incomplete state/evidence in separate
+commits. Retain every file and acceptance check; record this exception in the
+plan check rather than hiding scope by trimming the manifest. The 11/12-file
+counts in Plans 20-05/06 are also visible planning advisories. Concrete missing
+tests, unsupported behavior or an unexecutable task remain blockers. This
+planning judgment implements the owner's unblocking request and delegated
+implementation choices; it does not change an emulation requirement.
 
 </decisions>
 
@@ -241,6 +297,11 @@ planning, not claims of implemented or measured improvements.
 - `.planning/phases/19-jam-reporting-and-sprite-0-hit/19-CONTEXT.md` — D-10
   amendment, revision 7, settled sprite behavior and no-dependency preference.
 - `.planning/preparation/GSD-HANDOFF.md` — one step, automated verification.
+- `.planning/phases/20-nmi-line-and-vblank-flag/20-NMI-ORACLE-RESEARCH.md`
+  and its owned driver/raw trace — independent finite-margin circuit evidence
+  and mapping limits for amended D-10; research-only tools are not CI dependencies.
+- `.planning/phases/20-nmi-line-and-vblank-flag/20-02-CHECKPOINT.md` — retained
+  candidate observations and historical stop, superseded by this amendment.
 
 ### Hardware and implementation research
 - `.planning/preparation/ARCHITECTURE.md` — sections 2/3/7: time, CPU and state.

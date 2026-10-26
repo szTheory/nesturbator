@@ -1,14 +1,46 @@
 ---
 phase: 20-nmi-line-and-vblank-flag
 plan: "02"
-status: blocked
+status: superseded
 checkpoint_type: decision
-gate: blocking-human
+resolution: superseded-by-amended-plan
 completed_tasks: 0
+total_tasks: 3
 updated: 2026-10-26
 ---
 
-# Plan 20-02: unresolved detector order
+# Plan 20-02: detector-order checkpoint superseded by amended acceptance
+
+## Operative resolution — 2026-10-26
+
+The owner's request to unblock execution after independent-oracle research
+authorizes the dated D-10 amendment in [20-CONTEXT.md](20-CONTEXT.md) and the
+revised [20-02-PLAN.md](20-02-PLAN.md). **This checkpoint is superseded by
+the amended plan; its old ambiguity stop is historical and is not an active
+execution gate.** Resume Plan 20-02 at Task 1 under that plan after the planning
+revision is checked. Do not repeat the exhausted three-candidate sweep as a
+prerequisite or infer a provisional A winner from aggregate page results.
+
+The independently reproduced 6/6 circuit oracle constrains finite-margin,
+phase-qualified sampling and retained requests; it distinguishes internal
+phi2 from widened M2. Owned C tests must preserve all six waveform meanings
+with an explicit phase map and helper/bus representation limits, plus real
+decoded status/enable/disable guest-marker paths and wrong-model controls.
+One source-consistent globally applied deterministic convention handles
+unresolved equal timestamps, explicitly as model policy with hardware limits.
+No physical A/C winner is claimed. Unknown exact physical precedence alone
+does not block development or downstream first-divergence diagnosis; actual
+contradictory finite-margin evidence, lost protected PASS or a final target
+failure still blocks the relevant acceptance. All six target rows, 108 PASS
+protection, whole-table/default-alignment discipline, format 2/revision 8,
+state atomicity, causal hash evidence and full CI remain mandatory.
+
+This resolution completes no implementation task: Plan 20-02 remains **0/3**,
+has no SUMMARY, and production remains format 1/revision 7 until its causal
+change is actually implemented and verified. Plan 20-01 stays complete;
+the remaining five plans stay pending in the original six-plan/wave order.
+
+## Historical execution checkpoint (superseded stop, retained evidence)
 
 Plan 20-01 is complete at `2878bab`; its two test commits are `58607db`
 and `88dead0`. The orchestrator's subsequent `cmake --workflow --preset ci`
@@ -17,9 +49,9 @@ Plan 20-02 has no completed task, production commit or SUMMARY. Plans
 20-03 through 20-06 remain pending behind it. No phase completion or
 requirement acceptance is claimed.
 
-## Stop condition and decision
+## Original stop condition and decision — historical
 
-Task 1 explicitly requires: "If no independently grounded observable
+At the original stop, Task 1 explicitly required: "If no independently grounded observable
 distinguishes the remaining candidates, report that bounded ambiguity and
 leave the causal capture claim incomplete."
 
@@ -30,21 +62,27 @@ independent hardware oracle. Therefore no candidate was selected. The executor
 retracted its provisional A selection and restored all experimental edits.
 State format remains 1 and behaviour revision remains 7.
 
-The owner selected independent-oracle research on 2026-10-26. The resulting
+The owner then selected independent-oracle research on 2026-10-26. The resulting
 [research and executed die-network probe](20-NMI-ORACLE-RESEARCH.md) establishes
 six nonzero-margin CPU sampling/retention cases, with an owned reproduction
 driver and exact trace retained. This is new independent circuit evidence,
 but does not select A/C at the old zero-margin paired-chip boundary. The
-block remains; no acceptance change or further candidate sweep was authorized
-or performed. The missing evidence is a source-backed PPU-output-to-CPU-input
-schedule, or a paired-chip measurement establishing that relation.
+block remained at the end of that research-only step; no acceptance change
+or further candidate sweep was then authorized or performed. The missing
+physical evidence was a source-backed PPU-output-to-CPU-input schedule, or a
+paired-chip measurement establishing that relation. The later owner request
+and D-10 amendment above supersede this development stop; the scientific gap
+remains honestly recorded.
 
-Resume requires either independent hardware/source evidence settling A versus C,
-or an explicit revision of this plan's acceptance rule. A possible revision is
-to permit A as a documented provisional model, complete polling, then reassess
-all six target tables; that is an unapproved alternative, not hardware proof.
-Do not silently repeat the exhausted three-candidate experiment or advance to
-dependent plans. Do not create a completion SUMMARY for this checkpoint.
+At that checkpoint, resumption required independent hardware/source evidence
+settling A versus C or explicit acceptance revision. A provisional A selection
+was only an unapproved alternative; it was not hardware proof and is not the
+amendment now adopted. The adopted rule instead constrains capture by the
+independent circuit evidence, labels the global tie policy and retains every
+final acceptance obligation. The old instruction not to advance dependent
+plans applied while this checkpoint was active; after checked revision,
+normal plan dependencies govern. Do not create a completion SUMMARY for this
+checkpoint.
 
 ## Live results retained
 
@@ -112,9 +150,11 @@ The phase's [hardware reference](../../preparation/NES-HARDWARE-CPU-APU.md)
 HWC.02 describes NMI edge sampling during phi2 each cycle; HWC.03 describes
 M2/phi2. Pinned AccuracyCoin `TEST_2002FlagTiming` (HWC.19) describes bit 7 at
 M2 rise and sprite flags at M2 fall. These references do not settle precedence
-for a simultaneous PPU line transition and CPU detector sample. The plan's
-independent-evidence rule prevents choosing A just because its schedule is
-plausible and A/C share the same current test failures.
+for a simultaneous PPU line transition and CPU detector sample. The
+independent-evidence rule continues to prevent claiming A as a hardware
+winner just because its schedule is plausible and A/C share the same current
+test failures. Amended D-10 permits documented global model policy without
+such a claim; this source limitation no longer bars capture implementation.
 
 ## Restored-tree verification
 
