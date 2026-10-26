@@ -21,6 +21,12 @@ set_tests_properties(retroarch.compare.cli PROPERTIES FIXTURES_REQUIRED cmp_file
 
 # RetroArch itself is exercised only by the hosted retroarch-e2e job, which
 # runs run_retroarch.cmake directly; no local test launches it (TUNE-05).
+# So that script reads the state format and behaviour revision from the public header; this
+# check keeps a revision bump from leaving a stale number that only the hosted job would see.
+add_test(NAME retroarch.revision_literals
+  COMMAND ${CMAKE_COMMAND} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}
+    -P ${PROJECT_SOURCE_DIR}/tests/cmake/retroarch_revision_literals.cmake)
+set_tests_properties(retroarch.revision_literals PROPERTIES TIMEOUT 30)
 
 # D-27 as corrected: frame_index identifies a RetroArch screenshot among the runner's frames
 # 1..W (RGB, not the native hash). Its two tests run on every platform; the tool needs the

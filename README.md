@@ -645,7 +645,10 @@ over test-card frames, 60 frames with sound, a JAM, a too-small buffer and an
 unload and reload.
 `cmake.script_policy` checks that every script in `tests/cmake` sets
 `cmake_minimum_required(VERSION 3.25)`, so each CMake release reads it the
-same way. `libretro.vendored`
+same way. `retroarch.revision_literals` fails on any `format=<n>` or
+`revision=<n>` literal in `tests/retroarch/*.cmake`: the hosted-only scripts
+read both numbers from `include/nesturbator.h`, so a revision bump cannot
+leave a stale value that only the macOS runner would see. `libretro.vendored`
 checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
 `libretro.info_claims` parses `libretro/nesturbator_libretro.info` and requires
 the exact capability keys and pinned values, a `savestate_features` whenever

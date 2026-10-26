@@ -142,6 +142,19 @@ if(HOSTED_MARKER)
     endif()
   endforeach()
   get_filename_component(project_root "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+  # frame_index prints the state format and behaviour revision it was built with, so the
+  # expected anchor line is read from the public header rather than written here.
+  foreach(macro STATE_FORMAT_VERSION BEHAVIOUR_REVISION)
+    file(STRINGS "${project_root}/include/nesturbator.h" macro_line
+      REGEX "^#define NESTURBATOR_${macro} [0-9]+$")
+    list(LENGTH macro_line macro_count)
+    if(NOT macro_count EQUAL 1)
+      message(FATAL_ERROR "HOSTED_MARKER: NESTURBATOR_${macro} is not defined exactly once in include/nesturbator.h")
+    endif()
+    string(REGEX REPLACE "^.* " "" hosted_${macro} "${macro_line}")
+  endforeach()
+  set(HOSTED_ANCHOR_LINE
+    "native-valid format=${hosted_STATE_FORMAT_VERSION} revision=${hosted_BEHAVIOUR_REVISION} envelope=RASTATE1/MEM/pad8/END")
   cmake_path(ABSOLUTE_PATH BUILD_DIR BASE_DIRECTORY "${project_root}" NORMALIZE
     OUTPUT_VARIABLE hosted_build_root)
   cmake_path(ABSOLUTE_PATH HOST_ROOT BASE_DIRECTORY "${project_root}" NORMALIZE
@@ -724,8 +737,9 @@ exec "${HOSTED_REAL_FRAME_INDEX:?}" "$@"
           endif()
           file(READ "${attempt_dir}/anchor-original.out" original_anchor_output)
           file(READ "${attempt_dir}/anchor-rewound.out" rewound_anchor_output)
-          if(NOT original_anchor_output MATCHES "native-valid format=1 revision=6 envelope=RASTATE1/MEM/pad8/END" OR
-              NOT rewound_anchor_output MATCHES "native-valid format=1 revision=6 envelope=RASTATE1/MEM/pad8/END")
+          string(FIND "${original_anchor_output}" "${HOSTED_ANCHOR_LINE}" original_anchor_at)
+          string(FIND "${rewound_anchor_output}" "${HOSTED_ANCHOR_LINE}" rewound_anchor_at)
+          if(original_anchor_at EQUAL -1 OR rewound_anchor_at EQUAL -1)
             message(FATAL_ERROR "HOSTED_MARKER wrong-origin control lacked two native-valid anchors")
           endif()
         endif()
