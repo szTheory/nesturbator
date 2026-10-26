@@ -4,12 +4,12 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: "Phase 19 shipped — PR #57"
-stopped_at: Captured three minor testing proposals; discuss Phase 20 next
-last_updated: "2026-10-26T17:34:30.814Z"
+status: Phase 20 context gathered; ready for planning
+stopped_at: Phase 20 context gathered; ready for planning
+last_updated: "2026-10-26T17:49:27.170Z"
 last_activity: 2026-10-26
-last_activity_desc: "Captured three proposed minor testing todos"
-state_head: eb9398a1f7a3461e32991dd1134788e34d70769b
+last_activity_desc: "Phase 20 context gathered; next: $gsd-plan-phase 20"
+state_head: 9c4f188c313cdd13349a715c9b9a6a0860dc6c0f
 progress:
   total_phases: 3
   completed_phases: 1
@@ -30,8 +30,8 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 Phase: 20 — NMI line and VBlank flag
 Plan: Not started
-Status: Phase 19 shipped — PR #57
-Last activity: 2026-10-26 — Captured three proposed minor testing todos
+Status: Phase 20 context gathered; ready for planning
+Last activity: 2026-10-26 — Phase 20 context gathered; next: $gsd-plan-phase 20
 
 Progress: [███░░░░░░░] 33%
 
@@ -97,9 +97,9 @@ Run `$gsd-discuss-phase 20` to gather context for NMI line and VBlank flag work.
 
 ## Session
 
-Last session: 2026-10-26T17:34:30.814Z
-Stopped at: Captured three minor testing proposals; discuss Phase 20 next
-Resume file: None (the pause checkpoint and structured handoff were consumed)
+Last session: 2026-10-26T17:49:27.123Z
+Stopped at: Phase 20 context gathered; ready for planning
+Resume file: .planning/phases/20-nmi-line-and-vblank-flag/20-CONTEXT.md
 
 ## Performance Metrics
 
