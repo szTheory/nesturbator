@@ -1,34 +1,34 @@
 accuracycoin/$03   SLO indirect,X	pass	0x01	13	-
 accuracycoin/$07   SLO zeropage	pass	0x01	13	-
-accuracycoin/$0B   ANC immediate	pass	0x01	17	-
+accuracycoin/$0B   ANC immediate	pass	0x01	18	-
 accuracycoin/$0F   SLO absolute	pass	0x01	13	-
 accuracycoin/$13   SLO indirect,Y	pass	0x01	13	-
 accuracycoin/$17   SLO zeropage,X	pass	0x01	13	-
 accuracycoin/$1B   SLO absolute,Y	pass	0x01	13	-
 accuracycoin/$1F   SLO absolute,X	pass	0x01	13	-
-accuracycoin/$2002 flag timing	fail	0x06	521	-
-accuracycoin/$2004 Stress Test	fail	0x0a	569	-
-accuracycoin/$2007 Stress Test	fail	0x0a	569	-
-accuracycoin/$2007 read w/ rendering	pass	0x01	569	-
+accuracycoin/$2002 flag timing	fail	0x0a	551	-
+accuracycoin/$2004 Stress Test	fail	0x0a	557	-
+accuracycoin/$2007 Stress Test	fail	0x0a	557	-
+accuracycoin/$2007 read w/ rendering	pass	0x01	557	-
 accuracycoin/$23   RLA indirect,X	pass	0x01	13	-
 accuracycoin/$27   RLA zeropage	pass	0x01	13	-
-accuracycoin/$2B   ANC immediate	pass	0x01	17	-
+accuracycoin/$2B   ANC immediate	pass	0x01	18	-
 accuracycoin/$2F   RLA absolute	pass	0x01	13	-
 accuracycoin/$33   RLA indirect,Y	pass	0x01	13	-
 accuracycoin/$37   RLA zeropage,X	pass	0x01	13	-
 accuracycoin/$3B   RLA absolute,Y	pass	0x01	13	-
 accuracycoin/$3F   RLA absolute,X	pass	0x01	13	-
-accuracycoin/$43   SRE indirect,X	pass	0x01	13	-
-accuracycoin/$47   SRE zeropage	pass	0x01	13	-
-accuracycoin/$4B   ASR immediate	pass	0x01	17	-
-accuracycoin/$4F   SRE absolute	pass	0x01	13	-
-accuracycoin/$53   SRE indirect,Y	pass	0x01	13	-
-accuracycoin/$57   SRE zeropage,X	pass	0x01	13	-
-accuracycoin/$5B   SRE absolute,Y	pass	0x01	13	-
-accuracycoin/$5F   SRE absolute,X	pass	0x01	13	-
+accuracycoin/$43   SRE indirect,X	pass	0x01	14	-
+accuracycoin/$47   SRE zeropage	pass	0x01	14	-
+accuracycoin/$4B   ASR immediate	pass	0x01	18	-
+accuracycoin/$4F   SRE absolute	pass	0x01	14	-
+accuracycoin/$53   SRE indirect,Y	pass	0x01	14	-
+accuracycoin/$57   SRE zeropage,X	pass	0x01	14	-
+accuracycoin/$5B   SRE absolute,Y	pass	0x01	14	-
+accuracycoin/$5F   SRE absolute,X	pass	0x01	14	-
 accuracycoin/$63   RRA indirect,X	pass	0x01	13	-
 accuracycoin/$67   RRA zeropage	pass	0x01	13	-
-accuracycoin/$6B   ARR immediate	pass	0x01	17	-
+accuracycoin/$6B   ARR immediate	pass	0x01	18	-
 accuracycoin/$6F   RRA absolute	pass	0x01	13	-
 accuracycoin/$73   RRA indirect,Y	pass	0x01	13	-
 accuracycoin/$77   RRA zeropage,X	pass	0x01	13	-
@@ -36,7 +36,7 @@ accuracycoin/$7B   RRA absolute,Y	pass	0x01	13	-
 accuracycoin/$7F   RRA absolute,X	pass	0x01	13	-
 accuracycoin/$83   SAX indirect,X	pass	0x01	22	-
 accuracycoin/$87   SAX zeropage	pass	0x01	22	-
-accuracycoin/$8B   ANE immediate	pass	0x01	17	-
+accuracycoin/$8B   ANE immediate	pass	0x01	18	-
 accuracycoin/$8F   SAX absolute	pass	0x01	22	-
 accuracycoin/$93   SHA indirect,Y	fail	0x1e	14	-
 accuracycoin/$97   SAX zeropage,Y	pass	0x01	22	-
@@ -46,7 +46,7 @@ accuracycoin/$9E   SHX absolute,Y	fail	0x1e	14	-
 accuracycoin/$9F   SHA absolute,Y	fail	0x1e	14	-
 accuracycoin/$A3   LAX indirect,X	pass	0x01	22	-
 accuracycoin/$A7   LAX zeropage	pass	0x01	22	-
-accuracycoin/$AB   LXA immediate	pass	0x01	17	-
+accuracycoin/$AB   LXA immediate	pass	0x01	18	-
 accuracycoin/$AF   LAX absolute	pass	0x01	22	-
 accuracycoin/$B3   LAX indirect,Y	pass	0x01	22	-
 accuracycoin/$B7   LAX zeropage,Y	pass	0x01	22	-
@@ -54,7 +54,7 @@ accuracycoin/$BB   LAE absolute,Y	pass	0x01	14	-
 accuracycoin/$BF   LAX absolute,Y	pass	0x01	22	-
 accuracycoin/$C3   DCP indirect,X	pass	0x01	15	-
 accuracycoin/$C7   DCP zeropage	pass	0x01	15	-
-accuracycoin/$CB   AXS immediate	pass	0x01	17	-
+accuracycoin/$CB   AXS immediate	pass	0x01	18	-
 accuracycoin/$CF   DCP absolute	pass	0x01	15	-
 accuracycoin/$D3   DCP indirect,Y	pass	0x01	15	-
 accuracycoin/$D7   DCP zeropage,X	pass	0x01	15	-
@@ -62,7 +62,7 @@ accuracycoin/$DB   DCP absolute,Y	pass	0x01	15	-
 accuracycoin/$DF   DCP absolute,X	pass	0x01	15	-
 accuracycoin/$E3   ISC indirect,X	pass	0x01	13	-
 accuracycoin/$E7   ISC zeropage	pass	0x01	13	-
-accuracycoin/$EB   SBC immediate	pass	0x01	17	-
+accuracycoin/$EB   SBC immediate	pass	0x01	18	-
 accuracycoin/$EF   ISC absolute	pass	0x01	13	-
 accuracycoin/$F3   ISC indirect,Y	pass	0x01	13	-
 accuracycoin/$F7   ISC zeropage,X	pass	0x01	13	-
@@ -71,76 +71,76 @@ accuracycoin/$FF   ISC absolute,X	pass	0x01	13	-
 accuracycoin/ALE + Read	fail	0x0a	212	-
 accuracycoin/APU Register Activation	fail	0x12	120	-
 accuracycoin/Absolute Indexed	pass	0x01	12	-
-accuracycoin/Address $2004 behavior	fail	0x0e	569	-
+accuracycoin/Address $2004 behavior	fail	0x0e	557	-
 accuracycoin/All NOP instructions	pass	0x01	51	-
-accuracycoin/Arbitrary Sprite zero	pass	0x01	521	-
+accuracycoin/Arbitrary Sprite zero	pass	0x01	551	-
 accuracycoin/Attributes As Tiles	pass	0x01	212	-
 accuracycoin/BG Serial In	fail	0x0a	212	-
 accuracycoin/Branch Dummy Reads	pass	0x01	92	-
-accuracycoin/CHR ROM is not writable	pass	0x01	159	-
+accuracycoin/CHR ROM is not writable	pass	0x01	150	-
 accuracycoin/Controller Clocking	pass	0x09	120	-
 accuracycoin/Controller Strobing	fail	0x12	120	-
-accuracycoin/DMA + $2002 Read	pass	0x05	533	-
-accuracycoin/DMA + $2007 Read	pass	0x01	533	-
-accuracycoin/DMA + $2007 Write	pass	0x01	533	-
-accuracycoin/DMA + $4015 Read	fail	0x0a	533	-
-accuracycoin/DMA + $4016 Read	pass	0x09	533	-
-accuracycoin/DMA + Open Bus	pass	0x01	533	-
+accuracycoin/DMA + $2002 Read	pass	0x05	532	-
+accuracycoin/DMA + $2007 Read	pass	0x01	532	-
+accuracycoin/DMA + $2007 Write	pass	0x01	532	-
+accuracycoin/DMA + $4015 Read	fail	0x0a	532	-
+accuracycoin/DMA + $4016 Read	pass	0x09	532	-
+accuracycoin/DMA + Open Bus	pass	0x01	532	-
 accuracycoin/DMA Landing on Write	fail	0x16	92	-
-accuracycoin/DMC DMA + OAM DMA	fail	0x0a	533	-
-accuracycoin/DMC DMA Bus Conflicts	fail	0x0a	533	-
+accuracycoin/DMC DMA + OAM DMA	fail	0x0a	532	-
+accuracycoin/DMC DMA Bus Conflicts	fail	0x0a	532	-
 accuracycoin/DMC Reload Timing	pass	0x01	92	-
 accuracycoin/Delta Modulation Channel	pass	0x01	120	-
 accuracycoin/Dummy read cycles	pass	0x01	51	-
 accuracycoin/Dummy write cycles	pass	0x01	51	-
-accuracycoin/Explicit DMA Abort	fail	0x0a	533	-
+accuracycoin/Explicit DMA Abort	fail	0x0a	532	-
 accuracycoin/Frame Counter 4-step	pass	0x01	120	-
 accuracycoin/Frame Counter 5-step	pass	0x01	120	-
 accuracycoin/Frame Counter IRQ	pass	0x01	120	-
 accuracycoin/Frozen OAM2 Increment	fail	0x0a	151	-
-accuracycoin/Hybrid Addresses	fail	0x0a	212	-
-accuracycoin/INC $4014	pass	0x01	569	-
-accuracycoin/Implicit DMA Abort	fail	0x0a	533	-
+accuracycoin/Hybrid Addresses	pass	0x01	212	-
+accuracycoin/INC $4014	pass	0x01	557	-
+accuracycoin/Implicit DMA Abort	fail	0x0a	532	-
 accuracycoin/Implied Dummy Reads	fail	0x0e	92	-
 accuracycoin/Indirect	pass	0x01	12	-
 accuracycoin/Indirect, X	pass	0x01	12	-
 accuracycoin/Indirect, Y	pass	0x01	12	-
 accuracycoin/Instruction Timing	pass	0x01	92	-
 accuracycoin/Internal Data Bus	fail	0x0a	92	-
-accuracycoin/Interrupt flag latency	fail	0x0a	138	-
+accuracycoin/Interrupt flag latency	fail	0x0a	141	-
 accuracycoin/JSR Edge Cases	pass	0x01	92	-
 accuracycoin/Length Counter	pass	0x01	120	-
 accuracycoin/Length Table	pass	0x01	120	-
-accuracycoin/Misaligned OAM DMA	pass	0x01	521	-
-accuracycoin/Misaligned OAM behavior	fail	0x16	521	-
+accuracycoin/Misaligned OAM DMA	pass	0x01	551	-
+accuracycoin/Misaligned OAM behavior	fail	0x16	551	-
 accuracycoin/Misaligned OAM2 Address	fail	0x0e	151	-
-accuracycoin/NMI Control	fail	0x22	1463	-
-accuracycoin/NMI Overlap BRK	fail	0x0a	138	-
-accuracycoin/NMI Overlap IRQ	fail	0x06	138	-
-accuracycoin/NMI Suppression	fail	0x06	1463	-
-accuracycoin/NMI Timing	fail	0x06	1463	-
-accuracycoin/NMI at VBlank end	fail	0x06	1463	-
-accuracycoin/NMI disabled at VBlank	fail	0x06	1463	-
-accuracycoin/OAM Corruption	fail	0x0a	521	-
+accuracycoin/NMI Control	pass	0x01	1437	-
+accuracycoin/NMI Overlap BRK	fail	0x0a	141	-
+accuracycoin/NMI Overlap IRQ	fail	0x06	141	-
+accuracycoin/NMI Suppression	fail	0x06	1437	-
+accuracycoin/NMI Timing	fail	0x06	1437	-
+accuracycoin/NMI at VBlank end	fail	0x06	1437	-
+accuracycoin/NMI disabled at VBlank	fail	0x06	1437	-
+accuracycoin/OAM Corruption	fail	0x0a	551	-
 accuracycoin/Open Bus	fail	0x1e	51	-
 accuracycoin/PC Wraparound	pass	0x01	51	-
-accuracycoin/PPU Read Buffer	pass	0x41	159	-
-accuracycoin/PPU Register Mirroring	pass	0x01	159	-
-accuracycoin/PPU Register Open Bus	pass	0x01	159	-
-accuracycoin/Palette RAM Quirks	pass	0x01	159	-
+accuracycoin/PPU Read Buffer	pass	0x41	150	-
+accuracycoin/PPU Register Mirroring	pass	0x01	150	-
+accuracycoin/PPU Register Open Bus	pass	0x01	150	-
+accuracycoin/Palette RAM Quirks	pass	0x01	150	-
 accuracycoin/RAM Mirroring	pass	0x01	51	-
 accuracycoin/ROM is not writable	pass	0x01	51	-
 accuracycoin/Relative	pass	0x01	12	-
-accuracycoin/Rendering Flag Behavior	pass	0x01	569	-
-accuracycoin/Sprite 0 Hit behavior	pass	0x01	521	-
-accuracycoin/Sprite overflow behavior	pass	0x01	521	-
+accuracycoin/Rendering Flag Behavior	pass	0x01	557	-
+accuracycoin/Sprite 0 Hit behavior	pass	0x01	551	-
+accuracycoin/Sprite overflow behavior	pass	0x01	551	-
 accuracycoin/Sprites On Scanline 0	fail	0x0a	151	-
 accuracycoin/Stale BG Shift Registers	fail	0x0e	212	-
 accuracycoin/Stale Sprite Shift Regs	fail	0x0e	151	-
-accuracycoin/Suddenly Resize Sprite	pass	0x01	521	-
+accuracycoin/Suddenly Resize Sprite	pass	0x01	551	-
 accuracycoin/The B Flag	pass	0x01	51	-
 accuracycoin/The Decimal Flag	pass	0x01	51	-
-accuracycoin/VBlank beginning	pass	0x01	1463	-
-accuracycoin/VBlank end	pass	0x01	1463	-
+accuracycoin/VBlank beginning	pass	0x01	1437	-
+accuracycoin/VBlank end	pass	0x01	1437	-
 accuracycoin/Zero Page Indexed	pass	0x01	12	-
-accuracycoin/t Register Quirks	pass	0x01	569	-
+accuracycoin/t Register Quirks	pass	0x01	557	-

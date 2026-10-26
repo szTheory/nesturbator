@@ -26,7 +26,7 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 7: OAMADDR is cleared during sprite tile loading
+board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 8: the CPU samples the derived PPU NMI line at the end of its bus cycle, and a captured request survives later line deassertion. `$2002` samples bit 7 at M2 rise and the remaining status bits at M2 fall. Revision 7 clears OAMADDR during sprite tile loading
 (dots 257-320 while rendering) and sprite evaluation starts at OAMADDR, so the first sprite
 evaluated acts as sprite 0 wherever it sits in OAM; this changes the frames of programs that
 leave OAMADDR nonzero while rendering. Revision 6's PPUCTRL NMI edge
@@ -314,11 +314,16 @@ If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
 CPU stays latched until the cartridge is unloaded or reloaded.
 
 The PPU sets vblank at scanline 241 dot 1 and clears it at scanline 261 dot 1.
-A `$2002` read immediately before the vblank start dot suppresses the flag and
-NMI edge for that frame; reads on or after the start dot observe and clear the
-flag. A `$2000` write raises an NMI only when bit 7 changes from 0 to 1 while
-the vblank flag is set; rewriting it with bit 7 still set does not, and
-clearing bit 7 suppresses a pending NMI. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
+A `$2002` read immediately before the vblank start dot suppresses the flag for
+that frame. Its bit 7 reflects the flag at M2 rise; sprite flags and low bits
+are composed at M2 fall, where the same read clears vblank. The asserted NMI
+line is `PPUCTRL.7 && PPUSTATUS.7`; the CPU samples it at the bus-cycle close.
+A captured CPU request remains pending after `$2002`, `$2000` disable or the
+pre-render clear lowers the line. Rewriting `$2000` with bit 7 still set does
+not create a second capture. Equal-time PPU updates, CPU sampling and bus side
+effects use one deterministic model order; this convention does not assert
+physical setup/hold precedence at an exact tie. Odd NTSC frames skip pre-render
+dot 340 when rendering is enabled.
 Nametable accesses use the cartridge's horizontal or vertical
 mirroring bit. Register accesses retain the CPU open-bus value in un-driven
 bits, and `$2007` reads are buffered outside palette space.

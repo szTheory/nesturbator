@@ -34,8 +34,10 @@
 
 /* 6502 core state (D-10). P is kept exactly as loaded or pulled: flag
    writes touch only their own bits, so bits 4 and 5 change only on a pull.
-   The interrupt fields and halted_in_read are unused until the bus samples
-   the lines and stalls reads.
+   nmi_prev is the asserted-high PPU line sampled at M2 fall; nmi_pending is
+   the captured edge retained until CPU service. They intentionally may differ
+   from the live PPU line and are both serialized. halted_in_read covers a
+   stalled read; the bus samples interrupt lines at its clock seam.
    The power-on state comes from cartridge load, which sets S, P and PC from
    the reset vector. The CPU runs during every frame. nesturbator__cpu_reset
    runs the soft-reset sequence (I set, S lowered by 3, PC from the vector)
@@ -330,6 +332,10 @@ extern const uint16_t nesturbator__tnd_mix[16][16][128];
 void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks);
 uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr);
 void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+uint8_t nesturbator__ppu_nmi_line(const struct nesturbator *nes);
+void nesturbator__ppu_status_read_begin(struct nesturbator *nes, uint8_t suppress_vblank);
+uint8_t nesturbator__ppu_status_read_finish(struct nesturbator *nes, uint8_t early_vblank);
+uint8_t nesturbator__ppu_status_read(struct nesturbator *nes, uint8_t early_vblank);
 uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg);
 void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint8_t value);
 

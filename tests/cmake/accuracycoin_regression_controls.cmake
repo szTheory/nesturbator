@@ -123,8 +123,8 @@ function(create_next_main_baseline root)
       math(EXPR pass_count "${pass_count} + 1")
     endif()
   endforeach()
-  if(NOT pass_count EQUAL 108)
-    message(FATAL_ERROR "next-main control requires the canonical 108 PASS set, found ${pass_count}")
+  if(NOT pass_count EQUAL 110)
+    message(FATAL_ERROR "next-main control requires the canonical 110 PASS set, found ${pass_count}")
   endif()
   file(WRITE "${root}/baseline.txt" "${pass_rows}")
   file(SHA256 "${root}/baseline.txt" baseline_sha256)
@@ -499,10 +499,10 @@ set_new_candidate_manifest("${case_root}")
 mutate_observation("${case_root}" new 17 4 "accuracycoin/PPU Read Buffer"
   pass 0x39 source-defined-pass-variant)
 replace_once("${case_root}/scoreboard.txt"
-  "accuracycoin/PPU Read Buffer\tpass\t0x41\t159\t-\n"
-  "accuracycoin/PPU Read Buffer\tpass\t0x39\t159\t-\n")
+  "accuracycoin/PPU Read Buffer\tpass\t0x41\t150\t-\n"
+  "accuracycoin/PPU Read Buffer\tpass\t0x39\t150\t-\n")
 change_migration_reference("${case_root}" "accuracycoin/PPU Read Buffer"
-  0x41 pass 0x39 pass 159)
+  0x41 pass 0x39 pass 150)
 run_verdict("PASS")
 
 prepare_case(malformed_raw_variant)
@@ -510,10 +510,10 @@ set_new_candidate_manifest("${case_root}")
 mutate_observation("${case_root}" new 17 4 "accuracycoin/PPU Read Buffer"
   pass 0x05 unsupported-pass-variant)
 replace_once("${case_root}/scoreboard.txt"
-  "accuracycoin/PPU Read Buffer\tpass\t0x41\t159\t-\n"
-  "accuracycoin/PPU Read Buffer\tpass\t0x05\t159\t-\n")
+  "accuracycoin/PPU Read Buffer\tpass\t0x41\t150\t-\n"
+  "accuracycoin/PPU Read Buffer\tpass\t0x05\t150\t-\n")
 change_migration_reference("${case_root}" "accuracycoin/PPU Read Buffer"
-  0x41 pass 0x05 pass 159)
+  0x41 pass 0x05 pass 150)
 run_verdict("protected page report status does not match its raw byte")
 
 # Complete measured cross-pin migration is a positive control. The changed-
@@ -547,7 +547,7 @@ run_verdict("unchanged cross-pin key lacks a measured passing observation")
 
 if(FULL_ENABLED)
   # Model the first run after main adopts the new pin. Generate a complete
-  # 108-PASS baseline, then let the production page planner and cold observer
+  # 110-PASS baseline, then let the production page planner and cold observer
   # create this invocation's evidence for every selected page.
   prepare_case(next_main_positive)
   create_next_main_baseline("${case_root}")
@@ -573,7 +573,7 @@ if(FULL_ENABLED)
       "next-main control could not freshly observe its protected PASS pages (${observe_result}): ${observe_stderr}${observe_stdout}")
   endif()
   set(next_main_root "${case_root}")
-  set(EXPECT_PROTECTED_COUNT 108)
+  set(EXPECT_PROTECTED_COUNT 110)
   run_verdict("PASS")
   unset(EXPECT_PROTECTED_COUNT)
 

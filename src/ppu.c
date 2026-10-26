@@ -497,18 +497,15 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
         }
         nes->ppu.dot++;
         /* NTSC vblank starts at scanline 241 dot 1 and ends at 261 dot 1.
-           Enabling NMI with vblank active raises the CPU's pending edge. [HWP.03] */
+           The flag and PPUCTRL enable derive the active-low /NMI output; the
+           CPU bus samples that line separately. [HWP.03] */
         if (nes->ppu.scanline == 241u && nes->ppu.dot == 1u) {
-            if (nes->ppu.vblank_suppress == 0u) {
+            if (nes->ppu.vblank_suppress == 0u)
                 nes->ppu.status |= 0x80u;
-                if ((nes->ppu.control & 0x80u) != 0u)
-                    nes->cpu.nmi_pending = 1u;
-            }
             nes->ppu.vblank_suppress = 0u;
         }
         if (nes->ppu.scanline == 261u && nes->ppu.dot == 1u) {
             nes->ppu.status &= 0x1fu;
-            nes->cpu.nmi_pending = 0u;
             /* The reset signal "is set on reset and cleared at the end of VBlank, by the
                same signal that clears the VBlank, sprite 0, and overflow flags". [NESdev
                Wiki, PPU power up state] */
@@ -571,19 +568,48 @@ static void advance_v_after_data_access(struct nesturbator *nes)
     }
 }
 
+/* The physical /NMI pin is asserted when both PPUSTATUS.7 and PPUCTRL.7 are
+   set. Return its asserted-high model view; CPU capture is owned by bus.c. */
+uint8_t nesturbator__ppu_nmi_line(const struct nesturbator *nes)
+{
+    return (uint8_t)((nes->ppu.status & nes->ppu.control & 0x80u) != 0u);
+}
+
+/* Record the M2-rise coincidence that suppresses the upcoming flag set. A
+   sample before (241,0) must not clear a flag that rises later in the same
+   bus cycle; status_read_finish applies the clear only to a sampled high bit. */
+void nesturbator__ppu_status_read_begin(struct nesturbator *nes, uint8_t suppress_vblank)
+{
+    if (suppress_vblank != 0u)
+        nes->ppu.vblank_suppress = 1u;
+}
+
+uint8_t nesturbator__ppu_status_read_finish(struct nesturbator *nes, uint8_t early_vblank)
+{
+    uint8_t value =
+        (uint8_t)((early_vblank & 0x80u) | (nes->ppu.status & 0x60u) | (nes->ppu.io_bus & 0x1fu));
+    if ((early_vblank & 0x80u) != 0u)
+        nes->ppu.status &= 0x7fu;
+    nes->ppu.address_latch = 0u;
+    nes->ppu.io_bus = value;
+    nes->ppu.io_bus_age = 0u;
+    return value;
+}
+
+uint8_t nesturbator__ppu_status_read(struct nesturbator *nes, uint8_t early_vblank)
+{
+    uint8_t suppress_vblank = (uint8_t)(nes->ppu.scanline == 241u && nes->ppu.dot == 0u);
+    nesturbator__ppu_status_read_begin(nes, suppress_vblank);
+    return nesturbator__ppu_status_read_finish(nes, early_vblank);
+}
+
 uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg)
 {
+    if (reg == 0x2002u)
+        return nesturbator__ppu_status_read(nes, (uint8_t)(nes->ppu.status & 0x80u));
+
     uint8_t value = nes->ppu.io_bus;
-    if (reg == 0x2002u) {
-        value = (uint8_t)((nes->ppu.status & 0xe0u) | (nes->ppu.io_bus & 0x1fu));
-        nes->ppu.status &= 0x7fu;
-        /* A read on scanline 241 before dot 1 suppresses this frame's flag
-           and NMI edge. Reads at/after dot 1 observe and clear the flag. [HWP.03] */
-        if (nes->ppu.scanline == 241u && nes->ppu.dot == 0u)
-            nes->ppu.vblank_suppress = 1u;
-        nes->ppu.address_latch = 0;
-        nes->cpu.nmi_pending = 0u;
-    } else if (reg == 0x2004u) {
+    if (reg == 0x2004u) {
         value = nes->ppu.oam[nes->ppu.oam_addr];
     } else if (reg == 0x2007u) {
         uint8_t memory_value = nesturbator__ppu_read(nes, nes->ppu.v);
@@ -613,8 +639,8 @@ uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg)
    implementation ignores them until scanline 261 dot 1, which is 29,667 CPU cycles from the
    start of the reset (29,660 from the first instruction). The VBL flag is "unchanged by reset"
    and so are v, OAM address and video memory. Control, mask, the w latch, t, fine X, the read
-   buffer and the NMI latches are cleared. vblank_suppress belongs to the position left behind
-   and is cleared with it. The caller catches the PPU up to the CPU first. */
+   buffer and the CPU's sampled/captured NMI history are reset. vblank_suppress belongs to the
+   position left behind and is cleared with it. The caller catches the PPU up to the CPU first. */
 void nesturbator__ppu_reset(struct nesturbator *nes)
 {
     nes->ppu.scanline = 0u;
@@ -644,19 +670,11 @@ void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint
         (reg == 0x2000u || reg == 0x2001u || reg == 0x2005u || reg == 0x2006u))
         return;
     if (reg == 0x2000u) {
-        uint8_t old = nes->ppu.control;
         nes->ppu.control = value;
         nes->ppu.t = (uint16_t)((nes->ppu.t & 0xf3ffu) | ((value & 3u) << 10));
-        /* NESdev Wiki, PPU registers: "Changing NMI enable from 0 to 1 while the vblank flag
-           in PPUSTATUS is 1 will immediately trigger an NMI." Only that 0-to-1 change raises
-           the edge; a write that keeps bit 7 set leaves the pending state as it was, and a
-           write that clears bit 7 suppresses a pending NMI. */
-        if ((value & 0x80u) != 0u) {
-            if ((old & 0x80u) == 0u && (nes->ppu.status & 0x80u) != 0u)
-                nes->cpu.nmi_pending = 1u;
-        } else {
-            nes->cpu.nmi_pending = 0u;
-        }
+        /* The PPU owns control and flag state. A control write changes the
+           derived /NMI output; the CPU detector samples it at the next M2 fall.
+           An unchanged $80 write therefore creates no additional edge. [HWP.03] */
     } else if (reg == 0x2001u) {
         nes->ppu.mask = value;
     } else if (reg == 0x2003u) {

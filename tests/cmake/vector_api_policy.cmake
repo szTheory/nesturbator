@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
-# Phase 8 baseline, refreshed for Phase 12: this SHA-256 follows the mapper-0 API,
-# nesturbator_reset, the save API, behaviour revision 7 (sprite-0/OAMADDR) and the save-state
-# API (three functions, five statuses, NESTURBATOR_STATE_FORMAT_VERSION). It is a temporary
-# guard, not a permanent repository freeze.
-set(PHASE8_DECLARATIONS_SHA256 "f697e9833c93680a74a2762800927d4f4e942061090d72e917418f3d41236ad6")
+# Phase 8 API baseline, refreshed for Phase 20: the public version and state-format macros
+# now identify behaviour revision 8 and save-state format 2. This is a temporary guard, not a
+# permanent repository freeze.
+set(PHASE8_DECLARATIONS_SHA256 "4c7398d3d4b744a496b03af52baf58919cce91a93810723440a23522b40a17e1")
 
 function(normalize_api source out_hash)
   string(REGEX REPLACE "/\\*([^*]|\\*+[^*/])*\\*+/" "" text "${source}")

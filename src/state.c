@@ -99,6 +99,8 @@ static void cpu_io(struct nesturbator__sio *io, struct nesturbator__cpu *c)
     nesturbator__sio_u8(io, &c->y, 255u);
     nesturbator__sio_u8(io, &c->s, 255u);
     nesturbator__sio_u8(io, &c->p, 255u);
+    /* The sampled physical line and captured request are separate history. A
+       read or disable can lower the live line without clearing either field. */
     nesturbator__sio_u8(io, &c->nmi_prev, 1u);
     nesturbator__sio_u8(io, &c->nmi_pending, 1u);
     nesturbator__sio_u8(io, &c->irq_line, 1u);

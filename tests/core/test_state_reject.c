@@ -1,8 +1,8 @@
 /* STATE-04 (D-03, D-04, D-16): a hostile or damaged state is refused with the right status and
    changes nothing. For each ROM a state is made after 20 frames, then:
      1. cross-ROM matrix and no-cartridge: ERR_STATE_CARTRIDGE
-     2. format_version 0 and 2: FORMAT; header_size 63 and 65: CHECKSUM, then INVALID with the CRC
-        recomputed
+     2. format_version 0, 1 and 3: FORMAT; header_size 63 and 65: CHECKSUM, then INVALID with the
+   CRC recomputed
      3. truncation to every length below S, S + 1 bytes, NULL arguments, S itself loads
      4. flip every header byte and body byte: the D-04 class per offset (RAM bytes with a stride
         under --short)
@@ -179,11 +179,13 @@ static void case_header(struct rom *r)
     struct guard g;
     uint8_t *b = copy_state(r);
     guard_open(&g, r->inst);
-    for (unsigned v = 0u; v <= 2u; v += 2u) {
+    for (unsigned v = 0u; v <= 1u; ++v) {
         put_raw(b + H_VERSION, v, 2u);
         refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "format_version", r->path);
     }
-    put_raw(b + H_VERSION, 1u, 2u);
+    put_raw(b + H_VERSION, 3u, 2u);
+    refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "format_version", r->path);
+    put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION, 2u);
     for (unsigned hs = 63u; hs <= 65u; hs += 2u) {
         put_raw(b + H_HEADER_SIZE, hs, 2u);
         refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_CHECKSUM, "header_size, old CRC",
@@ -263,10 +265,10 @@ static void case_two_faults(struct rom *r)
     struct guard g;
     uint8_t *b = copy_state(r);
     guard_open(&g, r->inst);
-    put_raw(b + H_VERSION, 2u, 2u);
+    put_raw(b + H_VERSION, 3u, 2u);
     b[H_ROM_CRC] ^= 0xffu;
     refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "version + ROM CRC", r->path);
-    put_raw(b + H_VERSION, 1u, 2u);
+    put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION, 2u);
     refuse(&g, b, r->state_size - 1u, NESTURBATOR_ERR_STATE_CARTRIDGE, "ROM CRC + short", r->path);
     b[H_ROM_CRC] ^= 0xffu;
     b[HEADER + 3u] ^= 0xffu;

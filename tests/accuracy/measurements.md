@@ -155,12 +155,12 @@ Guard. `accuracycoin.activation` now fails unless `Misaligned OAM behavior` is n
 
 Hashes. No frame hash in `tests/runner/hashes.txt` moved. The 12 `state/*` rows were re-pinned in Plan 19-05 only because saved states carry the behaviour revision byte (now 7).
 
-## Phase 20 NMI/VBlank baseline and source-derived oracles
+## Phase 20 pre-implementation NMI/VBlank baseline and source-derived oracles
 
 The initial pre-phase capture was a trustworthy complete run at source revision
 `6380cd844584`. After this plan's test registration changed the measured input
-set, the campaign was run again and `baseline-metadata.txt` was refreshed from
-the retained output. The latest trustworthy run used AccuracyCoin pin
+set, the pre-implementation campaign was run again and `baseline-metadata.txt`
+was refreshed from the retained output. This pre-implementation run used AccuracyCoin pin
 `6bee919529289c555803b612b8c9e4f7eaaeeabb`, ROM SHA-256
 `8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc`, behaviour
 revision 7, source revision `58607dbbd339`, `source_dirty=1`, and build-input
@@ -201,11 +201,220 @@ the MIT AccuracyCoin `AccuracyCoin.asm` at the pinned commit (flag timing
 around lines 1839–1900; NMI Control around 6521–6640; timing, suppression, and
 VBlank-end cases around 6688–6886). The tests validate comparator fidelity and
 reject mixed/incorrect vectors; they do not execute the AccuracyCoin ROM and do
-not constitute production conformance evidence. Live local evidence instead
-comes from the owned NROM fixtures: direct before/on/after PPU-dot checks,
-ordinary and mirrored CPU bus reads, suppression cases, guest-visible NMI
-entry/return markers, and named expected-red assertions. The expected-red cases
-mask only one exact assertion identity and fail if setup or any other assertion
-also fails. `awaiting-production-control` output labels describe future mutation
-controls; the local diagnostic self-checks compare values and do not execute
-mutated production implementations.
+not constitute production conformance evidence. At that pre-implementation
+checkpoint, the owned NROM cases had not yet closed the production-path controls
+or recorded the actual ROM tables. The next section records the later campaign,
+production-path controls, and actual executed table observations.
+
+## Plan 20-02 current capture
+
+The full campaign was rerun after the status-read decoder fix and the format-2,
+revision-8 implementation. Its retained output is
+`build/accuracycoin-plan18-02-campaign/accuracycoin/full/`.
+
+| Measure | Recorded value |
+|---|---|
+| AccuracyCoin pin / ROM SHA-256 | `6bee919529289c555803b612b8c9e4f7eaaeeabb` / `8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc` |
+| Source revision / source dirty | `53b32c2baf65` / `1` |
+| Behaviour revision / state format | 8 / 2 |
+| Build-input fingerprint / files | `d3898ef935b97427518b9cdc1501074f44fee3f4a6c7caa7ff23a7baff16115b` / 56 |
+| Report SHA-256 / scoreboard SHA-256 | `15f69db8a3c0c7037219bd27f930ae2607fba99b0f5013ef0b99c303a6d72dc7` / `27068b6791b5a4aca4f2bc22cf9e9cdcf9407dbc37ec0ff7f2ad654839f0001b` |
+| Pages / scored rows observed / terminal | 22 / 146 / 146 |
+| Pass / fail / skip / not-run / timeout / DRAW | 110 / 36 / 0 / 0 / 0 / 5 |
+| Guest elapsed time | 7,068,439,000 ns |
+
+The ROM pin, schema, 32/5/1800 caps, 146 scored denominator and five DRAW
+entries are unchanged. `source_dirty=1` records that implementation and tests
+were uncommitted during the local measurement. This output is not hosted
+authority. The cold protected-main fetch still reads the separate
+`scoreboard-main.txt` snapshot with its 108 PASS keys; the protected verdict
+and no-lost-pass controls passed against fresh page observations. Nightly
+vectors-fetch evidence remains unresolved.
+
+The current target rows are:
+
+| AccuracyCoin row | Result | Frames |
+|---|---:|---:|
+| `$2002 flag timing` | fail `0x0a` | 551 |
+| `NMI Control` | pass `0x01` | 1437 |
+| `NMI Timing` | fail `0x06` | 1437 |
+| `NMI Suppression` | fail `0x06` | 1437 |
+| `NMI at VBlank end` | fail `0x06` | 1437 |
+| `NMI disabled at VBlank` | fail `0x06` | 1437 |
+| `VBlank beginning` | pass `0x01` | 1437 |
+| `VBlank end` | pass `0x01` | 1437 |
+
+All 108 PASS keys from the tracked pre-plan scoreboard remain PASS. Two rows
+also moved from failure to pass: `NMI Control` (`0x22` to `0x01`) and `Hybrid
+Addresses` (`0x0a` to `0x01`). `$2002 flag timing` remains a failure, with its
+error byte moving from `0x06` to `0x0a`; the actual table's first mismatch is
+recorded below. No remaining polling failure is promoted to a pass or removed
+from the Plan 20-03/20-06 follow-up.
+
+### Actual source table observations
+
+These values are from the MIT AccuracyCoin ROM executing through the production
+runner, not from the owned C comparators. The log records writes to the ROM's
+result RAM, including PC, half-master tick, PPU coordinate, status, control and
+NMI line/history. The page-18 table stores are at the listed production PCs.
+
+| Source sequence | Production stores and observed vector | Source comparison and first divergence |
+|---|---|---|
+| VBlank beginning | `$50..$56`, PC `$b29d`: `[02,02,02,02,00,01,01]` | Expected `[02,02,02,02,00,01,01]`; source skips alignment-dependent index 3. Pass. Stores run at 241:130–136; no divergence. |
+| NMI Timing | `$50..$59`, PC `$b400`: `[02,02,02,01,01,01,01,01,01,01]` | First cell 2 selects the shifted expected sequence `[02,02,02,02,02,02,01,01,01,01]`. First divergence is x=3: expected 2, observed 1, at tick 404,483,760 / 241:94. |
+| NMI Suppression | `$50..$59`, PC `$b454`: `[02,02,02,02,00,03,03,03,03,03]` | Source checks x=1,2,4,5,7,8,9 and skips x=3,6. First divergence is x=5: expected 1, observed 3, at tick 660,359,112 / 241:78. |
+| NMI at VBlank end, sequence A | `$50..$56`, PC `$b49b`: `[00,00,00,00,00,00,00]` | Expected `[01,01,01,00,00,00,00]`. First divergence is x=0, expected 1 / observed 0, at tick 774,056,448 / 261:47. |
+| NMI at VBlank end, sequence B | `$60..$66`, PC `$b4bf`: `[00,00,00,00,00,00,00]` | Same expected vector as sequence A. First divergence is x=0, expected 1 / observed 0, at tick 876,978,432 / 261:47. |
+| NMI disabled at VBlank | `$50..$56`, PC `$b4fd`: `[01,01,01,01,01,01,01]` | Expected `[00,00,00,FF,01,01,01]`; source skips x=3. First divergence is x=0, expected 0 / observed 1, at tick 1,022,730,384 / 241:94. |
+
+The two VBlank status-only rows also have actual stores. VBlank end writes
+`$50..$56` as `[01,01,01,01,00,00,00]` at PC `$b2dc`, ticks
+217,277,040–339,496,944 / 261:29–35, matching the pinned source vector. The
+`$2002 flag timing` clear table at PC `$94a0` is `[e0,80,80,00]`, the permitted
+shifted alternative. Its set table first diverges at `$53`: expected `00`,
+observed `40`, at PC `$94d3`, tick 179,757,096 / 131:172. The page-19 final
+result remains `fail 0x0a` at 551 frames.
+
+### Bus decoder regression and production controls
+
+The reproduced regression was a missing `$2000` lower bound in the status-read
+predicate. A plain RAM read at `$00ea` has low three bits `010`; the old
+predicate therefore ran PPUSTATUS effects before the RAM decoder returned its
+value. The same mistake affected DMC's parked read. A shared predicate now
+requires `$2000 <= address < $4000` and low bits `010` in both paths. Owned
+checks cover `$00ea`, RAM mirrors and boundaries, a DMC parked `$0002` read
+(five 24-tick cycles with status/latches retained), ordinary `$2002`, mirrored
+`$3ffa`, and ordinary/mirrored PPUCTRL writes. The focused race test passed
+after the fix.
+
+Expected-red controls now execute the production bus/sample path and reject one
+named wrong expectation each: set sampled one dot late, clear sampled one dot
+early, all status bits merged at M2 rise, captured request revoked on line fall,
+unchanged PPUCTRL enable making another edge, and a pre-close transient or
+widened-M2-only pulse captured. These prove the intended source assertion
+rejects each wrong result; they are not compiled implementation mutants. The
+six circuit waveforms invoke `nesturbator__bus_read` at internal-phi2 close
+endpoints. In the circuit reference cycle, M2 rises at 2437, internal phi2
+opens at 2440, and both fall at 2452; relative to the cycle start at 2428,
+these are +9, +12 and +24 half-master ticks. The projection samples at 2428
+and 2452, so its second close is the reference close. This is an endpoint
+projection, not a full bus or
+transistor waveform replay. It does not model NMIP transitions, output
+propagation, analog setup/hold, or prove a paired-chip winner at exact ties.
+
+The global integer-timestamp policy is PPU transition, CPU sample, then bus
+side effect. Finite-margin cases support the phase endpoints, while exact-tie
+precedence remains a deterministic model rule. The PPU owns flag, enable and
+suppression; the bus samples the derived asserted line at the cycle close and
+retains a rising-edge request independently. A falling line does not revoke a
+request; CPU service consumes it and reset clears both sampled history and
+pending request. State format 2 serializes those fields and refuses format-1
+states; behaviour revision is 8.
+
+### Every changed campaign row
+
+This table compares the tracked pre-plan scoreboard with the current full
+campaign. Columns are status / raw error byte / frames. It lists every changed
+full key, including frame-only changes; unchanged rows are absent.
+
+| Full key | Before | Current |
+|---|---|---|
+| `accuracycoin/$0B   ANC immediate` | pass / `0x01` / 17 | pass / `0x01` / 18 |
+| `accuracycoin/$2002 flag timing` | fail / `0x06` / 521 | fail / `0x0a` / 551 |
+| `accuracycoin/$2004 Stress Test` | fail / `0x0a` / 569 | fail / `0x0a` / 557 |
+| `accuracycoin/$2007 Stress Test` | fail / `0x0a` / 569 | fail / `0x0a` / 557 |
+| `accuracycoin/$2007 read w/ rendering` | pass / `0x01` / 569 | pass / `0x01` / 557 |
+| `accuracycoin/$2B   ANC immediate` | pass / `0x01` / 17 | pass / `0x01` / 18 |
+| `accuracycoin/$43   SRE indirect,X` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$47   SRE zeropage` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$4B   ASR immediate` | pass / `0x01` / 17 | pass / `0x01` / 18 |
+| `accuracycoin/$4F   SRE absolute` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$53   SRE indirect,Y` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$57   SRE zeropage,X` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$5B   SRE absolute,Y` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$5F   SRE absolute,X` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$6B   ARR immediate` | pass / `0x01` / 17 | pass / `0x01` / 18 |
+| `accuracycoin/$8B   ANE immediate` | pass / `0x01` / 17 | pass / `0x01` / 18 |
+| `accuracycoin/$AB   LXA immediate` | pass / `0x01` / 17 | pass / `0x01` / 18 |
+| `accuracycoin/$CB   AXS immediate` | pass / `0x01` / 17 | pass / `0x01` / 18 |
+| `accuracycoin/$EB   SBC immediate` | pass / `0x01` / 17 | pass / `0x01` / 18 |
+| `accuracycoin/Address $2004 behavior` | fail / `0x0e` / 569 | fail / `0x0e` / 557 |
+| `accuracycoin/Arbitrary Sprite zero` | pass / `0x01` / 521 | pass / `0x01` / 551 |
+| `accuracycoin/CHR ROM is not writable` | pass / `0x01` / 159 | pass / `0x01` / 150 |
+| `accuracycoin/DMA + $2002 Read` | pass / `0x05` / 533 | pass / `0x05` / 532 |
+| `accuracycoin/DMA + $2007 Read` | pass / `0x01` / 533 | pass / `0x01` / 532 |
+| `accuracycoin/DMA + $2007 Write` | pass / `0x01` / 533 | pass / `0x01` / 532 |
+| `accuracycoin/DMA + $4015 Read` | fail / `0x0a` / 533 | fail / `0x0a` / 532 |
+| `accuracycoin/DMA + $4016 Read` | pass / `0x09` / 533 | pass / `0x09` / 532 |
+| `accuracycoin/DMA + Open Bus` | pass / `0x01` / 533 | pass / `0x01` / 532 |
+| `accuracycoin/DMC DMA + OAM DMA` | fail / `0x0a` / 533 | fail / `0x0a` / 532 |
+| `accuracycoin/DMC DMA Bus Conflicts` | fail / `0x0a` / 533 | fail / `0x0a` / 532 |
+| `accuracycoin/Explicit DMA Abort` | fail / `0x0a` / 533 | fail / `0x0a` / 532 |
+| `accuracycoin/Hybrid Addresses` | fail / `0x0a` / 212 | pass / `0x01` / 212 |
+| `accuracycoin/INC $4014` | pass / `0x01` / 569 | pass / `0x01` / 557 |
+| `accuracycoin/Implicit DMA Abort` | fail / `0x0a` / 533 | fail / `0x0a` / 532 |
+| `accuracycoin/Interrupt flag latency` | fail / `0x0a` / 138 | fail / `0x0a` / 141 |
+| `accuracycoin/Misaligned OAM DMA` | pass / `0x01` / 521 | pass / `0x01` / 551 |
+| `accuracycoin/Misaligned OAM behavior` | fail / `0x16` / 521 | fail / `0x16` / 551 |
+| `accuracycoin/NMI Control` | fail / `0x22` / 1463 | pass / `0x01` / 1437 |
+| `accuracycoin/NMI Overlap BRK` | fail / `0x0a` / 138 | fail / `0x0a` / 141 |
+| `accuracycoin/NMI Overlap IRQ` | fail / `0x06` / 138 | fail / `0x06` / 141 |
+| `accuracycoin/NMI Suppression` | fail / `0x06` / 1463 | fail / `0x06` / 1437 |
+| `accuracycoin/NMI Timing` | fail / `0x06` / 1463 | fail / `0x06` / 1437 |
+| `accuracycoin/NMI at VBlank end` | fail / `0x06` / 1463 | fail / `0x06` / 1437 |
+| `accuracycoin/NMI disabled at VBlank` | fail / `0x06` / 1463 | fail / `0x06` / 1437 |
+| `accuracycoin/OAM Corruption` | fail / `0x0a` / 521 | fail / `0x0a` / 551 |
+| `accuracycoin/PPU Read Buffer` | pass / `0x41` / 159 | pass / `0x41` / 150 |
+| `accuracycoin/PPU Register Mirroring` | pass / `0x01` / 159 | pass / `0x01` / 150 |
+| `accuracycoin/PPU Register Open Bus` | pass / `0x01` / 159 | pass / `0x01` / 150 |
+| `accuracycoin/Palette RAM Quirks` | pass / `0x01` / 159 | pass / `0x01` / 150 |
+| `accuracycoin/Rendering Flag Behavior` | pass / `0x01` / 569 | pass / `0x01` / 557 |
+| `accuracycoin/Sprite 0 Hit behavior` | pass / `0x01` / 521 | pass / `0x01` / 551 |
+| `accuracycoin/Sprite overflow behavior` | pass / `0x01` / 521 | pass / `0x01` / 551 |
+| `accuracycoin/Suddenly Resize Sprite` | pass / `0x01` / 521 | pass / `0x01` / 551 |
+| `accuracycoin/VBlank beginning` | pass / `0x01` / 1463 | pass / `0x01` / 1437 |
+| `accuracycoin/VBlank end` | pass / `0x01` / 1463 | pass / `0x01` / 1437 |
+| `accuracycoin/t Register Quirks` | pass / `0x01` / 569 | pass / `0x01` / 557 |
+
+The timing-only changes above are the new measured frame counts under the same
+cold-boot/input/cap policy; the final scoreboard retains each row's status and
+raw byte. The two new passes are kept as measured outcomes. The `$2002` flag
+timing raw change is directly tied to the corrected rule that RAM addresses
+whose low bits resemble `$2002` do not run PPU status effects.
+
+### Full hash inventory changes
+
+The complete inventory was regenerated by `runner.write_hashes`; the
+`runner.write_hashes.content` comparison passed after these pins were copied.
+All 24 moved digests are listed below. The NMI-driven guest frame/audio rows
+changed because captured edge timing changes the game's CPU update and APU
+write schedule; rows retain their measured tick counts. State digests changed
+because the serialized state now declares format 2 / behaviour revision 8 and
+stores the live NMI history and retained request. State byte sizes did not
+change: DABG 13087, M1SXROM 45869, M2 13088, M3 4896, M4TKROM 21303, M7 13088.
+Every other frame and audio digest in the full inventory is unchanged.
+
+| Hash key | Old ticks / SHA-256 | New ticks / SHA-256 | Cause |
+|---|---|---|---|
+| `nesrunner/play/audio/pcm` | — / `d21d8de676cd86d4a220a319d5f92593a51fe736e9b458c4cdec961700f4e854` | — / `509cb4c1625d855b45ac65e3678d9c047e19732f65cdd98a6b840ad3f6e7b7f5` | Guest NMI update cadence changes APU register writes and PCM. |
+| `nesrunner/play/audio/transitions` | — / `470ec17a86fc8c04f29d835dcd8eb286e1211e359c4c5c9ad3473519db0f6873` | — / `8c5368976985549a8800301ac8c9a034b7c62d990ba8c207ee734c5b24c6413b` | Same guest/APU event schedule change. |
+| `nesrunner/play/frame 180` | 128661024 / `1a9c0d42f6893cd1fb1d0b6ea91a2e0fa84e41cb7f6ba1eefe93464243788fd9` | 128661072 / `b1233a42c80a47d1f560ed28edd2fadc55efb273b2ff029dbca6a18352335595` | Guest NMI update cadence changes rendered game state. |
+| `nesrunner/play/frame 300` | 214433712 / `8478ee93a2ec8bc5f110956eae466c81575ac927187cac565c845406b2083fc0` | 214434816 / `499ab10106bb67c663b295a81639c1505a39554fc1e5fadd9a6937711021b629` | Same guest NMI/input update schedule change. |
+| `nesrunner/play/frame 450` | 321650496 / `d70d35decb6af04ecbd48a9d09cff7c0e7c6210679b3a32f60788b27b5694570` | 321652296 / `8570a4e5b35385c2d7b1dc7278b40cd4d7b6fe7e60ade1324377278c537cda51` | Same guest NMI/input update schedule change. |
+| `nesrunner/play/frame 600` | 428866800 / `6bf066cfb147bf966dc88a59a4e85482c4b59c50fe70ef3d892b55e5ec1e7025` | 428868504 / `d7f312362cb9b57c2bf51de97a3242112d90052138ba2a89b2aa2b9a47aeb55c` | Same guest NMI/input update schedule change. |
+| `nesteroids/boot/frame 30` | 21443256 / `f504aa7fa75f73dd733bb9454f9e1db91c9e903ece80c9ddda87e70052e35c25` | 21443376 / `e6afba6666d9d0ba1b9ae2f2f3c3f4e5f71f6bf1995f8b20e1e198a055bd8bf9` | NMI delivery shifts the guest's frame update schedule. |
+| `nesteroids/boot/frame 60` | 42886752 / `d695d84c9721f7174f72f2c2357093170531d965f19d31dea17b0010cf49b938` | 42886872 / `73f4a7d3c377a519c8f990f9d9179730bf5cf86553e3fa1d79b59e8c17b99cdf` | Same guest NMI update schedule change. |
+| `nesteroids/boot/frame 120` | 85773792 / `92cc9679c0a621d7b23f9f6414940956d807fcea46d3980e698d67239206e0f6` | 85773912 / `bbddb0e13f03ab3b31b4b68c168e8ebf7a9e28f76452cd5feb72ee3cabf4c1e9` | Same guest NMI update schedule change. |
+| `nesteroids/boot/frame 180` | 128661144 / `6adc68fe11b7577c4fd375e47e0d958d36a2e143bfb663a35107d9464761f528` | 128661144 / `7cecae1314a25b2427bd22417bd6cdee2077492037dda45deef5a730a487aad3` | NMI delivery changes rendered game state even at the same tick count. |
+| `state/dabg 0` | 0 / `70d7fdc6ebf5f47a2e8085a004c895916a2a2ce97d70e786303242defc3fe2b9` | 0 / `f105d0501e23a6bc10c626b99961258757fbb4e0cd2726f45cd249ed75def012` | Format / behaviour identity and live NMI history fields. |
+| `state/dabg 60` | 42886680 / `57f7ccf1863779a217be4f0b9f81bdb389bcdeb46368b2051cabbbd6a8a2dbfd` | 42886680 / `ea063a567aaee6a8cd2cfad1527356914a8cfd1e9c2ab1f50c7f80c7b7b3afb6` | Format / behaviour identity and serialized NMI line/request history. |
+| `state/m1sxrom 0` | 0 / `4b326291841235b635da1179009a95335dcb0bd5081fb1e4c7baf30681d200d8` | 0 / `9285b5e4fb97e6057bde66d7c1f4fbdd0641188d3f791e861d9b1b99aff2dd55` | Format / behaviour identity and live NMI history fields. |
+| `state/m1sxrom 60` | 42885624 / `b2614c63c523ce859a2b19b0d0235b324b027266bd3ea78dda1a523a44c0a560` | 42885624 / `070dec6aa7185cec5590a692d3ff6f01c8685826a31a05be9d1ec45cf1b01859` | Format / behaviour identity and serialized NMI line/request history. |
+| `state/m2 0` | 0 / `c3decbeb895f2462f0dc43272ba4c1d876a00784fd921b085c69f6636c8b4004` | 0 / `387ac411805ab63a1a8fe612f94cd0cf40cd215a11c9b50fbcfa62b1e611738e` | Format / behaviour identity and live NMI history fields. |
+| `state/m2 60` | 42886032 / `f755cf07f870907d5df52f3a119f1a29fb26afcd238370f8869987cfceebee89` | 42886032 / `f8c54c7e0b968279c396daf6a5fe5d41b0b7616a635a249b8de2ad9f619f2e6c` | Format / behaviour identity and serialized NMI line/request history. |
+| `state/m3 0` | 0 / `70fac23aa5042ca3984b805a8bbbaa4cfe1f3c2348b6c2ad09d5fa515f0c8e2f` | 0 / `67c5067aff2a4076744cb87af3cd35c0258772ae2c1d55a1e5cd54f55f9d80d3` | Format / behaviour identity and live NMI history fields. |
+| `state/m3 60` | 42885984 / `ce3f32d8027f8b2336a4897638121c957c0f11bfbe1a46322f413df03825194a` | 42885984 / `208f9f9889dd74e22f652470dac059f210594bcea4b4e940e896a7073a0f08cc` | Format / behaviour identity and serialized NMI line/request history. |
+| `state/m4tkrom 0` | 0 / `7b39fa5f1ff754b8f84392e130238d0e44e48501a897f26c66b9cacb765011cc` | 0 / `a43c893161026911671453f70d6d7f249ac0f98124743ced6b598a029dda0fa6` | Format / behaviour identity and live NMI history fields. |
+| `state/m4tkrom 60` | 42885984 / `ef4017f5075eac3ebd3d8bcc7711b49e1e212b4b188d9aad9c9ff23c1dd88a61` | 42885984 / `e77766a8ce80f06b8035c50e3572bff7451b67162e8eeccf67aaf020ab8621b2` | Format / behaviour identity and serialized NMI line/request history. |
+| `state/m7 0` | 0 / `37ff46b66837a464a568dff70c6bcdc0f1701b233a28cce49c23b8bf6b242ef4` | 0 / `0ce0219480c287d67494092430cd76bca5067bf1d08bdb96f6840ae3d5762102` | Format / behaviour identity and live NMI history fields. |
+| `state/m7 60` | 42885960 / `f26c54a53b2196b134693226e7573107149fead9f86787b611bf47f7c3b056b4` | 42885960 / `bc6fd5040a6ae570822263c1b83b690fe89a55737cd9e769e9f7007c36c459ec` | Format / behaviour identity and serialized NMI line/request history. |

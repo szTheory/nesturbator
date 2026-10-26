@@ -53,25 +53,29 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 7 clears OAMADDR on dots 257-320 while rendering and
+   the same inputs. Revision 8 samples the derived PPU NMI line at the CPU bus
+   cycle boundary and keeps a captured request after the line falls; this also
+   splits the early vblank-bit and later sprite-bit samples of a $2002 read.
+   Revision 7 clears OAMADDR on dots 257-320 while rendering and
    starts sprite evaluation at OAMADDR, with the sprite found on the dot-66 read
    acting as sprite 0, which changes the frames of programs that leave OAMADDR
    nonzero while rendering. Revision 6 is the PPUCTRL NMI edge: a $2000 write raises
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
-   Revision 5 was the PPU fetch pipeline. The state format is unchanged by revision 7. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 7
+   Revision 5 was the PPU fetch pipeline. */
+#define NESTURBATOR_BEHAVIOUR_REVISION 8
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
    NESTURBATOR_ERR_STATE_FORMAT; there is no converter. Before the first release that contains
    save states it stays 1 and the layout may change. After that release, any change to the state
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
-   same commit. A fix that changes only emulated output raises
-   NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a load does not enforce.
+   same commit. Version 2 records the CPU's sampled NMI-line history and captured request; version
+   1 states are refused with NESTURBATOR_ERR_STATE_FORMAT. A fix that changes only emulated output
+   raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a load does not enforce.
    Raising it is not a breaking change to the C interface and leaves NESTURBATOR_ABI_VERSION as it
    is. */
-#define NESTURBATOR_STATE_FORMAT_VERSION 1
+#define NESTURBATOR_STATE_FORMAT_VERSION 2
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -499,7 +503,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
 /* Save states. A state is the whole machine at a frame boundary, in a fixed-size byte string
  * that is the same on every platform: save, load into any instance holding the same cartridge,
  * and every later frame, audio sample and tick equals the uninterrupted run's. The library does
- * no file I/O and never allocates for a state; the host owns the buffer.
+ * no file I/O and never allocates for a state; the host owns the buffer. CPU NMI history stores
+ * the sampled asserted line and captured request independently: $2002, PPUCTRL disable and
+ * pre-render clear can lower the derived line without revoking a captured request.
  *
  * nesturbator_state_size returns the exact length of a state of the loaded cartridge: 0 for a
  * NULL instance or with no cartridge, otherwise constant from a successful load until unload. It

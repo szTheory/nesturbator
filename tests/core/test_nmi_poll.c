@@ -74,22 +74,6 @@ static void run_sta_control_to_marker(void)
     CHECK_EQ_U64(poll_nes->bus.ram[NMI_COUNT], 1u);
 }
 
-static void sta_marker_assertion(void)
-{
-    run_sta_control_to_marker();
-    nmi_expected_assertion("control-8-marker-after-following-LDX",
-                           poll_nes->bus.ram[STA_MARKER] == 0x11u);
-}
-
-static void sta_handler_entry_assertion(void)
-{
-    run_sta_control_to_marker();
-    uint16_t return_pc =
-        (uint16_t)((uint16_t)poll_nes->bus.ram[0x01fdu] << 8 | poll_nes->bus.ram[0x01fcu]);
-    nmi_expected_assertion("control-8-handler-entry-after-following-LDX",
-                           poll_nes->bus.ram[NMI_ENTRY_X] == 0x10u && return_pc == 0x800bu);
-}
-
 static void prepare_sta_control(void)
 {
     poll_nes = build_poll_fixture(sta_control_program, sizeof sta_control_program);
@@ -110,8 +94,8 @@ static void test_control_8_marker(void)
     prepare_sta_control();
     if (poll_nes == NULL)
         return;
-    nmi_expect_red("nmi-control-8-following-instruction-marker",
-                   "control-8-marker-after-following-LDX", sta_marker_assertion);
+    run_sta_control_to_marker();
+    CHECK_EQ_U64(poll_nes->bus.ram[STA_MARKER], 0x11u);
     nesturbator_destroy((nesturbator *)poll_nes);
     poll_nes = NULL;
 }
@@ -121,8 +105,11 @@ static void test_control_8_handler_entry(void)
     prepare_sta_control();
     if (poll_nes == NULL)
         return;
-    nmi_expect_red("nmi-control-8-handler-entry-order",
-                   "control-8-handler-entry-after-following-LDX", sta_handler_entry_assertion);
+    run_sta_control_to_marker();
+    uint16_t return_pc =
+        (uint16_t)((uint16_t)poll_nes->bus.ram[0x01fdu] << 8 | poll_nes->bus.ram[0x01fcu]);
+    CHECK_EQ_U64(poll_nes->bus.ram[NMI_ENTRY_X], 0x10u);
+    CHECK_EQ_U64(return_pc, 0x800bu);
     nesturbator_destroy((nesturbator *)poll_nes);
     poll_nes = NULL;
 }

@@ -34,11 +34,11 @@ static void test_status_read_just_before_vblank_suppresses_flag(void)
     nes.ppu.scanline = 241u;
     nes.ppu.dot = 0u;
     nes.ppu.control = 0x80u;
-    nesturbator__ppu_register_write(&nes, 0x2000u, 0x80u);
     nesturbator__ppu_run_until(&nes, 0u);
     CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2002u) & 0x80u, 0u);
     nesturbator__ppu_run_until(&nes, 8u);
     CHECK_EQ_U64(nes.ppu.status & 0x80u, 0u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(&nes), 0u);
     CHECK_EQ_U64(nes.cpu.nmi_pending, 0u);
 }
 
@@ -50,28 +50,34 @@ static void test_status_read_on_vblank_dot_observes_then_clears_flag(void)
     nes.ppu.control = 0x80u;
     nesturbator__ppu_run_until(&nes, 8u);
     CHECK_EQ_U64(nes.ppu.status & 0x80u, 0x80u);
-    CHECK_EQ_U64(nes.cpu.nmi_pending, 1u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(&nes), 1u);
+    CHECK_EQ_U64(nes.cpu.nmi_pending, 0u); /* Direct PPU stepping does not clock CPU capture. */
     CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2002u) & 0x80u, 0x80u);
     CHECK_EQ_U64(nes.ppu.status & 0x80u, 0u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(&nes), 0u);
     CHECK_EQ_U64(nes.cpu.nmi_pending, 0u);
 }
 
 static void test_ppuctrl_nmi_edge(void)
 {
-    /* D-02, NESdev Wiki "PPU registers": only a 0-to-1 change of bit 7 inside vblank raises NMI. */
+    /* PPU register writes change the derived physical line. The CPU captures
+       that line at a bus-cycle sample; direct register calls do not do so. */
     reset();
     nes.ppu.status = 0x80u;
     nesturbator__ppu_register_write(&nes, 0x2000u, 0x80u);
-    CHECK_EQ_U64(nes.cpu.nmi_pending, 1u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(&nes), 1u);
+    CHECK_EQ_U64(nes.cpu.nmi_pending, 0u);
     nes.cpu.nmi_pending = 0u;
     nesturbator__ppu_register_write(&nes, 0x2000u, 0x80u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(&nes), 1u);
     CHECK_EQ_U64(nes.cpu.nmi_pending, 0u);
 
     reset();
     nes.ppu.status = 0x80u;
     nes.cpu.nmi_pending = 1u;
     nesturbator__ppu_register_write(&nes, 0x2000u, 0x00u);
-    CHECK_EQ_U64(nes.cpu.nmi_pending, 0u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(&nes), 0u);
+    CHECK_EQ_U64(nes.cpu.nmi_pending, 1u); /* Lowering the line preserves capture. */
 
     reset();
     nesturbator__ppu_register_write(&nes, 0x2000u, 0x80u);
@@ -82,6 +88,7 @@ static void test_ppuctrl_nmi_edge(void)
     nes.ppu.control = 0x80u;
     nes.cpu.nmi_pending = 1u;
     nesturbator__ppu_register_write(&nes, 0x2000u, 0x80u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(&nes), 1u);
     CHECK_EQ_U64(nes.cpu.nmi_pending, 1u);
 }
 

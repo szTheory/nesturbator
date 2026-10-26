@@ -199,8 +199,8 @@ static void load_order(const struct fixture *fx, const uint8_t *rom, size_t rom_
     s[7] ^= 0x80u;
     expect_load(t, s, fx->size, NESTURBATOR_ERR_STATE_FORMAT, "magic byte 7");
     memcpy(s, fx->state, fx->size);
-    s[8] = 2u;
-    expect_load(t, s, fx->size, NESTURBATOR_ERR_STATE_FORMAT, "version 2");
+    s[8] = 1u;
+    expect_load(t, s, fx->size, NESTURBATOR_ERR_STATE_FORMAT, "version 1");
     /* 4: identity, before the length. */
     memcpy(s, fx->state, fx->size);
     s[20] ^= 1u;

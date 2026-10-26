@@ -1447,16 +1447,23 @@ static void check_ppu_frame_edges(unsigned char *image, size_t image_size)
     probe->ppu.control = 0x80u;
     nesturbator__ppu_run_until(probe, 8u);
     CHECK((probe->ppu.status & 0x80u) != 0u);
-    CHECK_EQ_U64(probe->cpu.nmi_pending, 1u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(probe), 1u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 0u);
     (void)nesturbator__bus_read(probe, 0x2002u);
     CHECK((probe->ppu.status & 0x80u) == 0u);
-    CHECK_EQ_U64(probe->cpu.nmi_pending, 0u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(probe), 0u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 1u);
 
     probe->ppu.ppu_ticks = 0u;
     probe->ppu.scanline = 241u;
     probe->ppu.dot = 0u;
     probe->ppu.status = 0u;
+    probe->cpu.nmi_prev = 0u;
+    probe->cpu.nmi_pending = 0u;
     nesturbator__ppu_run_until(probe, 8u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(probe), 1u);
+    CHECK_EQ_U64(probe->cpu.nmi_pending, 0u);
+    (void)nesturbator__bus_read(probe, 0x0000u);
     CHECK_EQ_U64(probe->cpu.nmi_pending, 1u);
     nesturbator__cpu_step(probe);
     CHECK_EQ_U64(probe->cpu.pc, 0x8050u);
