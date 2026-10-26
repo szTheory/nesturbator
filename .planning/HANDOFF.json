@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-10-26T16:33:49.772Z",
+  "phase": "20",
+  "phase_name": "NMI line and VBlank flag",
+  "phase_dir": ".planning/phases/20-nmi-line-and-vblank-flag (not created yet)",
+  "plan": null,
+  "task": null,
+  "total_tasks": null,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Fix PR #57 CI failures (debug session pr57-ci-failures)", "status": "done", "commit": "2abeb66"},
+    {"id": 2, "name": "Squash-merge PR #57 into main", "status": "done", "commit": "ab9c2e6"},
+    {"id": 3, "name": "Create and push branch gsd/phase-20-nmi-line-and-vblank-flag from main", "status": "done", "commit": "ab9c2e6"}
+  ],
+  "remaining_tasks": [
+    {"id": 4, "name": "/gsd-quick: CI speed-up items from the ci-efficiency-findings-2026-10-26 memory", "status": "not_started"},
+    {"id": 5, "name": "/gsd-capture: testing ideas from the same memory as proposed scope", "status": "not_started"},
+    {"id": 6, "name": "/gsd-discuss-phase 20", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "Nightly vectors-full fails: cpu.vectors-full.fetch stalls fetching github.com/SingleStepTests/65x02 (curl 28, bad pack header). Seen 3 times on 2026-10-26; not caused by phase 19; not a required check.", "type": "external", "workaround": "Rerun Nightly later; consider a fetch retry or cached vectors in the CI quick task"}
+  ],
+  "async_jobs": [],
+  "human_actions_pending": [
+    {"action": "Decide whether to keep the uncommitted .planning/config.json change (effort routing light/standard medium->xhigh, codex model override edits)", "context": "Pre-existing owner edit; left untouched all session", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "Merged PR #57 with Nightly vectors-full red", "rationale": "Only 'CI required' is a required check on main; the failure is an upstream download stall unrelated to the branch", "phase": "19"},
+    {"decision": "retroarch-e2e anchor check reads format/revision from include/nesturbator.h", "rationale": "Hardcoded revision=6 went stale after the behaviour revision bump; guard test retroarch.revision_literals prevents recurrence", "phase": "19"}
+  ],
+  "uncommitted_files": [" M .planning/config.json"],
+  "next_action": "Run /gsd-quick for the CI speed-up items in the ci-efficiency-findings-2026-10-26 memory (verify line numbers first), or /gsd-discuss-phase 20",
+  "context_notes": "Phase 19 shipped. Reformatting any file that feeds the AccuracyCoin fingerprint requires re-recording tests/accuracy/baseline-metadata.txt after a full campaign rerun. build/pr57-full is an untracked scratch build directory that can be deleted."
+}
