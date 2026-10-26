@@ -267,8 +267,8 @@ static inline int ra_oracle_alloc(struct ra_oracle *o, uint32_t frames, size_t s
    frame is not valid, holds the previous hash and frame_number, and has no audio (the hash of
    zero samples). Returns 0 when the frame neither ran nor JAMmed, or when a JAM comes before any
    valid frame. */
-static inline int ra_record_frame(struct ra_oracle *o, uint32_t i, nesturbator *nes, uint16_t buttons,
-                                  int jam_aware)
+static inline int ra_record_frame(struct ra_oracle *o, uint32_t i, nesturbator *nes,
+                                  uint16_t buttons, int jam_aware)
 {
     uint64_t number = 0u;
     int r = ra_lib_frame_status(nes, buttons, &o->video[i], &o->audio[i], &number);

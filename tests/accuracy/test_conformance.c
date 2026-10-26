@@ -774,8 +774,8 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
     const char *jam_frame = "-";
     if (is_jam != 0) {
         verdict = "guest-jam";
-        stop_cause = strcmp(mutation, "jam-cause-dropped") == 0 ? "execution-frame-failure"
-                                                               : "guest-jam";
+        stop_cause =
+            strcmp(mutation, "jam-cause-dropped") == 0 ? "execution-frame-failure" : "guest-jam";
         jam_frame = strcmp(mutation, "jam-frame-missing") == 0 ? "-" : "2";
     }
     char active_key[ACCURACYCOIN_NAME_CAPACITY + 16u] = "-";
@@ -799,7 +799,8 @@ static int write_fixture_page(const char *root, const accuracycoin_directory *di
             "1\nselected_page=%u\nselected_cursor=255\na_press_observed=1\na_release_observed="
             "1\nrelease_frames=%d\nrun_state_observed=1\nresult_transition_observed=%d\ndraw_"
             "cursor_transition_observed=%d\nmenu_returned_to_header_observed=%d\nstart_attributed="
-            "1\nstop_cause=%s\nactive_key=%s\nactive_raw=%s\nverdict=%s\njam_frame=%s\nhost_elapsed_"
+            "1\nstop_cause=%s\nactive_key=%s\nactive_raw=%s\nverdict=%s\njam_frame=%s\nhost_"
+            "elapsed_"
             "ns=1000\n",
             strcmp(mutation, "bad-schema") == 0 && page == 1u ? "2" : "1", directory->pin, rom_sha,
             inventory_sha, source_revision, (unsigned)page, attempt_id, execution_cap, total_cap,
@@ -1279,8 +1280,8 @@ static int test_jam(const char *new_rom_path, const char *old_rom_path, const ch
     printf("jam-patched-key=accuracycoin/%s\n", row->name);
     printf("jam-patched-offset=%llu\n", (unsigned long long)offset);
     fflush(stdout);
-    exit_code = accuracycoin_run_observe_page(&directory, 3u, &budgets, output_dir, inst, video,
-                                              audio);
+    exit_code =
+        accuracycoin_run_observe_page(&directory, 3u, &budgets, output_dir, inst, video, audio);
     printf("jam-observe-exit=%d\n", exit_code);
     fflush(stdout);
     CHECK_EQ_U64(exit_code, 0u);
@@ -1312,8 +1313,8 @@ static int test_jam(const char *new_rom_path, const char *old_rom_path, const ch
         goto done;
     CHECK(snprintf(output_dir, sizeof output_dir, "%s/observe-boot", work) > 0);
     CHECK(make_directory(output_dir));
-    exit_code = accuracycoin_run_observe_page(&directory, 3u, &budgets, output_dir, inst, video,
-                                              audio);
+    exit_code =
+        accuracycoin_run_observe_page(&directory, 3u, &budgets, output_dir, inst, video, audio);
     printf("jam-boot-exit=%d\n", exit_code);
     fflush(stdout);
     CHECK_EQ_U64(exit_code, 1u);
@@ -1337,8 +1338,8 @@ static int test_jam(const char *new_rom_path, const char *old_rom_path, const ch
     CHECK(inst != NULL);
     if (inst == NULL)
         goto done;
-    exit_code = accuracycoin_run_strict_page(&old_directory, 2u, old_scoreboard, inst, video,
-                                             audio, NULL);
+    exit_code =
+        accuracycoin_run_strict_page(&old_directory, 2u, old_scoreboard, inst, video, audio, NULL);
     printf("jam-strict-exit=%d\n", exit_code);
     fflush(stdout);
     CHECK_EQ_U64(exit_code, 1u);

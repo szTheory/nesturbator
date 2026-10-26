@@ -705,7 +705,7 @@ static int compare_scoreboard(const char *path, const accuracycoin_test *tests, 
 }
 
 /* One strict-mode frame at the current frame count; a JAM is named on stderr. */
-#define STRICT_FRAME(buttons) \
+#define STRICT_FRAME(buttons)                                                                      \
     strict_frame(inst, buttons, video, audio, audio_hash, page_number, frames)
 
 int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32_t page_number,
@@ -765,8 +765,7 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
         return RUNNER_EXIT_FAILURE;
     }
     for (uint32_t p = 1u; p < page_number; p++) {
-        if (STRICT_FRAME(NESTURBATOR_BUTTON_RIGHT) !=
-                NESTURBATOR_OK ||
+        if (STRICT_FRAME(NESTURBATOR_BUTTON_RIGHT) != NESTURBATOR_OK ||
             STRICT_FRAME(0u) != NESTURBATOR_OK) {
             fprintf(stderr, "nesturbator-run: AccuracyCoin page navigation failed\n");
             return RUNNER_EXIT_FAILURE;
@@ -790,8 +789,7 @@ int accuracycoin_run_strict_page(const accuracycoin_directory *directory, uint32
         return RUNNER_EXIT_FAILURE;
     }
     if (STRICT_FRAME(NESTURBATOR_BUTTON_A) != NESTURBATOR_OK ||
-        STRICT_FRAME(NESTURBATOR_BUTTON_A) != NESTURBATOR_OK ||
-        STRICT_FRAME(0u) != NESTURBATOR_OK)
+        STRICT_FRAME(NESTURBATOR_BUTTON_A) != NESTURBATOR_OK || STRICT_FRAME(0u) != NESTURBATOR_OK)
         return RUNNER_EXIT_FAILURE;
     frames += 3u;
     while (frames < 1800u) {
@@ -1149,8 +1147,8 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
             uint16_t buttons = step == 0u ? NESTURBATOR_BUTTON_RIGHT : 0u;
             nesturbator_status nav_status = NESTURBATOR_ERR_ARGUMENT;
             if (frames < budgets->total_frames)
-                nav_status = frame_and_sample(inst, buttons, video, audio, rows, count, current,
-                                              &controls);
+                nav_status =
+                    frame_and_sample(inst, buttons, video, audio, rows, count, current, &controls);
             if (nav_status == NESTURBATOR_STOP_JAM) {
                 observe_early_jam(&stop_cause, &verdict, jam_frame, sizeof jam_frame, frames,
                                   page_number);
@@ -1221,8 +1219,7 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
 
     start_status = NESTURBATOR_ERR_ARGUMENT;
     if (frames < budgets->total_frames)
-        start_status =
-            frame_and_sample(inst, 0u, video, audio, rows, count, current, &controls);
+        start_status = frame_and_sample(inst, 0u, video, audio, rows, count, current, &controls);
     if (start_status == NESTURBATOR_STOP_JAM) {
         observe_early_jam(&stop_cause, &verdict, jam_frame, sizeof jam_frame, frames, page_number);
         goto done;
@@ -1403,12 +1400,12 @@ int accuracycoin_run_observe_page(const accuracycoin_directory *directory, uint3
     for (size_t i = 0u; i < count; i++) {
         char raw_text[5];
         int observed = rows[i].kind == (uint8_t)ACCURACYCOIN_KIND_TEST;
-        result_status = accuracycoin_classify_final_row(
-            &rows[i], observed, current[i],
-            i != active_index ? ACCURACYCOIN_ACTIVE_RUNNING
-            : jam_stop != 0   ? ACCURACYCOIN_ACTIVE_JAM
-                              : ACCURACYCOIN_ACTIVE_BUDGET,
-            &cause);
+        result_status =
+            accuracycoin_classify_final_row(&rows[i], observed, current[i],
+                                            i != active_index ? ACCURACYCOIN_ACTIVE_RUNNING
+                                            : jam_stop != 0   ? ACCURACYCOIN_ACTIVE_JAM
+                                                              : ACCURACYCOIN_ACTIVE_BUDGET,
+                                            &cause);
         if (observed != 0)
             (void)snprintf(raw_text, sizeof raw_text, "0x%02x", (unsigned)current[i]);
         else

@@ -1228,16 +1228,16 @@ static void check_jam_presentation(const unsigned char *base_image, size_t image
    backdrop that depends on A in $3F00 (rendering stays off), execute JAM when Start is held. */
 static void check_jam_timeline(void)
 {
-    static const uint8_t reset_code[] = {0x78u, 0xa9u, 0x80u, 0x8du, 0x00u, 0x20u,
-                                         0x4cu, 0x06u, 0x80u};
+    static const uint8_t reset_code[] = {0x78u, 0xa9u, 0x80u, 0x8du, 0x00u,
+                                         0x20u, 0x4cu, 0x06u, 0x80u};
     static const uint8_t nmi_code[] = {
         0xa9u, 0x01u, 0x8du, 0x16u, 0x40u, 0xa9u, 0x00u, 0x8du, 0x16u, 0x40u, /* strobe */
         0xadu, 0x16u, 0x40u, 0x29u, 0x01u, 0xaau,                             /* A -> X */
         0xadu, 0x16u, 0x40u, 0xadu, 0x16u, 0x40u, 0xadu, 0x16u, 0x40u,        /* B, Select, Start */
-        0x29u, 0x01u, 0xf0u, 0x01u, 0x02u,                                     /* Start: JAM */
-        0xa9u, 0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u, 0x8du, 0x06u, 0x20u,
-        0xa9u, 0x2au, 0xe0u, 0x00u, 0xf0u, 0x02u, 0xa9u, 0x16u, 0x8du, 0x07u, 0x20u,
-        0xa9u, 0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u, 0x8du, 0x06u, 0x20u, /* v back to $3F00 */
+        0x29u, 0x01u, 0xf0u, 0x01u, 0x02u,                                    /* Start: JAM */
+        0xa9u, 0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u, 0x8du, 0x06u, 0x20u, 0xa9u,
+        0x2au, 0xe0u, 0x00u, 0xf0u, 0x02u, 0xa9u, 0x16u, 0x8du, 0x07u, 0x20u, 0xa9u,
+        0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u, 0x8du, 0x06u, 0x20u, /* v back to $3F00 */
         0x40u};
     static const struct ines_segment segments[] = {{0x10u, nmi_code, sizeof nmi_code}};
     static const uint32_t black[W * H] = {0u};
@@ -2661,7 +2661,7 @@ struct rah_totals {
     unsigned controls_tripped;
     unsigned jam_controls_tripped;
     unsigned jam_cls[RA_MAX_DEPTH + 1u][4]; /* window classes per depth, JAM image only */
-    uint32_t jam_frame;                      /* J, read from the oracle */
+    uint32_t jam_frame;                     /* J, read from the oracle */
 };
 
 static void rah_add(struct rah_totals *tot, const struct rah_result *res, int repeat)
@@ -2804,7 +2804,8 @@ static unsigned rah_controls(const struct ser_rom *rom, uint32_t T, int jam)
         struct rah_result res;
         const uint64_t black_hash = ra_hash_words(black, W * H);
 
-        CHECK(oracle.jam_frame != RA_NO_JAM && black_hash != oracle.rec[oracle.jam_frame - 1u].hash);
+        CHECK(oracle.jam_frame != RA_NO_JAM &&
+              black_hash != oracle.rec[oracle.jam_frame - 1u].hash);
         for (uint32_t i = oracle.jam_frame; i < oracle.frames && oracle.jam_frame != RA_NO_JAM;
              i++) {
             oracle.video[i] = black_hash;
@@ -2812,7 +2813,8 @@ static unsigned rah_controls(const struct ser_rom *rom, uint32_t T, int jam)
         memset(&res, 0, sizeof res);
         rah_run(rom, 2u, in, T, &oracle, NULL, RAH_NORMAL, &res);
         if (res.mismatches == 0u) {
-            fprintf(stderr, "libretro.runahead: control black-oracle matched the uninterrupted run\n");
+            fprintf(stderr,
+                    "libretro.runahead: control black-oracle matched the uninterrupted run\n");
             CHECK(res.mismatches != 0u);
         } else {
             tripped++;
@@ -2853,25 +2855,24 @@ static unsigned rah_controls(const struct ser_rom *rom, uint32_t T, int jam)
 static size_t rah_jam_image(uint8_t *out, size_t cap)
 {
     static const uint8_t reset_code[] = {
-        0x78u,                                                       /* SEI */
-        0xa9u, 0x00u, 0x85u, 0x00u,                                  /* LDA #0, STA $00 */
-        0xa9u, 0x01u, 0x8du, 0x15u, 0x40u,                           /* $4015: pulse 1 on */
-        0xa9u, 0xbfu, 0x8du, 0x00u, 0x40u,                           /* $4000: duty 2, volume F */
-        0xa9u, 0xfdu, 0x8du, 0x02u, 0x40u,                           /* $4002: timer low */
-        0xa9u, 0x08u, 0x8du, 0x03u, 0x40u,                           /* $4003: timer high */
-        0xa9u, 0x80u, 0x8du, 0x00u, 0x20u,                           /* $2000: NMI on */
-        0x4cu, 0x1eu, 0x80u};                                        /* JMP self */
-    static const uint8_t nmi_code[] = {
-        0xe6u, 0x00u,                                                /* INC $00 */
-        0xa5u, 0x00u,                                                /* LDA $00 */
-        0xc9u, 0x0du,                                                /* CMP #13 */
-        0xd0u, 0x01u,                                                /* BNE +1 */
-        0x02u,                                                       /* JAM */
-        0x18u, 0x69u, 0x10u, 0xaau,                                  /* CLC, ADC #$10, TAX */
-        0xa9u, 0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u, 0x8du, 0x06u, 0x20u,
-        0x8eu, 0x07u, 0x20u,                                         /* STX $2007 */
-        0xa9u, 0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u, 0x8du, 0x06u, 0x20u,
-        0x40u};                                                      /* RTI */
+        0x78u,                                                     /* SEI */
+        0xa9u, 0x00u, 0x85u, 0x00u,                                /* LDA #0, STA $00 */
+        0xa9u, 0x01u, 0x8du, 0x15u, 0x40u,                         /* $4015: pulse 1 on */
+        0xa9u, 0xbfu, 0x8du, 0x00u, 0x40u,                         /* $4000: duty 2, volume F */
+        0xa9u, 0xfdu, 0x8du, 0x02u, 0x40u,                         /* $4002: timer low */
+        0xa9u, 0x08u, 0x8du, 0x03u, 0x40u,                         /* $4003: timer high */
+        0xa9u, 0x80u, 0x8du, 0x00u, 0x20u,                         /* $2000: NMI on */
+        0x4cu, 0x1eu, 0x80u};                                      /* JMP self */
+    static const uint8_t nmi_code[] = {0xe6u, 0x00u,               /* INC $00 */
+                                       0xa5u, 0x00u,               /* LDA $00 */
+                                       0xc9u, 0x0du,               /* CMP #13 */
+                                       0xd0u, 0x01u,               /* BNE +1 */
+                                       0x02u,                      /* JAM */
+                                       0x18u, 0x69u, 0x10u, 0xaau, /* CLC, ADC #$10, TAX */
+                                       0xa9u, 0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u,
+                                       0x8du, 0x06u, 0x20u, 0x8eu, 0x07u, 0x20u, /* STX $2007 */
+                                       0xa9u, 0x3fu, 0x8du, 0x06u, 0x20u, 0xa9u, 0x00u,
+                                       0x8du, 0x06u, 0x20u, 0x40u}; /* RTI */
     static const struct ines_segment segments[] = {{0x30u, nmi_code, sizeof nmi_code}};
     struct ines_spec spec;
 
