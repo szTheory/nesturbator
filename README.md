@@ -364,6 +364,7 @@ You need CMake 3.25 or newer, Ninja and a C17 compiler.
 
 ```sh
 cmake --workflow --preset ci    # Release, warnings as errors; builds, runs every test, writes the archives
+cmake --workflow --preset ci-build  # hosted POSIX build lane; session controls run in dedicated jobs
 cmake --workflow --preset dev   # Debug build and the same tests
 cmake --workflow --preset asan  # the same tests under AddressSanitizer and UBSan
 cmake --workflow --preset nofp  # core built with -mgeneral-regs-only; the abi checks
@@ -386,7 +387,7 @@ of the executing test script. Before sourcing the trace include, it checks the
 supplied driver and fixed include against that root, rejecting copied or
 mismatched inputs before any host or transport work. Its `source-root-preflight`
 control runs as the serial `retroarch.session.source_root` test in the POSIX
-`ci` and `asan` lanes. It exercises the repository root, CTest binary directory and an owned
+`ci` lane, with the `retroarch-session` label. It exercises the repository root, CTest binary directory and an owned
 working directory with spaces. Each case runs all four finalizer faults and
 requires wait status 143, the exact first reason, no cleanup anomaly, an
 unrun oracle and exact-port re-entry after owned-child reap.
@@ -397,7 +398,8 @@ invocation, so retained outputs cannot collide when a process ID is reused.
 |---|---|
 | `ci` | Release build with warnings as errors; every test passes, the library installs and builds a separate consumer, and the three release archives are written |
 | `ci-msvc` | The same as `ci`, built with MSVC on Windows |
-| `asan` | The same tests pass under AddressSanitizer and UBSan, with any report fatal, except that `NESTURBATOR_SHORT_RUNS` leaves `runner.write_hashes`, `runner.boot_to_play` and the two `vectors.registration_policy` tests to the `ci` lanes, sweeps fewer reset points in `core.reset`, and compares the non-save Holy Mapperel parity runs longer than 100 frames at frame 100 |
+| `ci-build` | The POSIX `ci` build, tests and packages with the `retroarch-session` label excluded; required dedicated Linux and Apple Silicon jobs run those serial controls once per invocation, and nightly retains Intel coverage |
+| `asan` | The same tests pass under AddressSanitizer and UBSan, with any report fatal, except that `NESTURBATOR_SHORT_RUNS` leaves `runner.write_hashes`, `runner.boot_to_play`, the two `vectors.registration_policy` tests and the shell-based `retroarch.session.*` matrix to their dedicated lanes, sweeps fewer reset points in `core.reset`, and compares the non-save Holy Mapperel parity runs longer than 100 frames at frame 100 |
 | `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
 | `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
@@ -506,6 +508,14 @@ and an address in a file with a non-ASCII name and in a Latin-1 file, and to
 report a file whose name holds a newline as unreadable. It then requires
 `--history` to find a home path and an address in a commit message and to
 pass a clean message that carries the trailer.
+The hook then checks outgoing committed C/C++ blobs with clang-format 18,
+including intermediate local commits. A corrected working tree cannot hide an
+unformatted commit. It excludes only the vendored `libretro/libretro.h`, checks
+paths with spaces or newlines, and rejects source symlinks. Set `CLANG_FORMAT`
+to the version-18 executable, or put `clang-format-18` on PATH; the helper also
+finds Homebrew's `llvm@18`. `hygiene.push_format.controls` exercises clean,
+dirty, historical, filename, vendor, deletion, link and wrong-version cases in
+the normal POSIX CI suite. Python 3 runs the helper.
 `hygiene.action_pins` checks that every
 `uses:` key under `.github` names a full 40-digit commit SHA or a local
 path; `hygiene.action_pins.bad` and `.good` show it rejects a tag and accepts
@@ -829,7 +839,13 @@ CPack configuration, then runs one frame.
 `.github/workflows/ci.yml` runs on every pull request, every push to `main`
 and on demand, with the same preset commands as above. The `build` job runs
 `ci` on Linux and macOS and `ci-msvc` on Windows, each on x64 and arm64: six
-platforms. Each leg also checks its three archives and writes native-frame
+platforms. Hosted POSIX build legs use the `ci-build` workflow preset, which
+leaves `retroarch-session` tests to required dedicated `session-controls` jobs
+on Linux x64 and macOS arm64. The full local `ci` preset still runs those tests.
+Nightly runs their Intel counterpart once and excludes the label from its
+three-repeat suite-flake job. The test harness uses the driver's test-only
+`STATE_SESSION_TEST_QUIT_GRACE_MS` override; production deadlines are unchanged.
+Each build leg also checks its three archives and writes native-frame
 hashes for each pinned game's boot and the DABG port-0, port-1 and combined
 input scripts:
 
@@ -854,7 +870,21 @@ The `dev`, `ci`, `ci-msvc` and `asan` test presets run CTest four tests at a
 time (`execution.jobs`). The three long tests, `vectors.registration_policy`,
 its self test and `runner.write_hashes`, carry a CTest `COST`, so a cold build
 with no timing history starts them first. The `asan` lane does not register them
-(`NESTURBATOR_SHORT_RUNS`, which only that preset sets).
+or the shell session matrix (`NESTURBATOR_SHORT_RUNS`, which only that preset sets).
+The required `vector-inventory` job configures `vectors-full` once without
+running its fetch fixture and shares its actual CTest inventory with the six
+build legs through an artifact from the same invocation. Each leg checks its
+own sample inventory and that full inventory, including labels, fixtures and
+no-skip properties. Local runs retain the configure-only fallback. The policy
+reads individual test objects for property queries rather than reparsing the
+entire inventory each time. Nightly still fetches the vectors cold.
+
+The hosted `retroarch-e2e` job configures and builds the tools and generated
+cartridge fixtures, then runs its real-host checks without repeating the local
+suite already required by the build lanes. Job limits retain their existing
+measured envelopes until isolated hosted durations are available. The title
+check remains in CI, including the `edited` trigger; moving it to a separate
+workflow also requires a coordinated required-check ruleset change.
 
 The `perf` job runs on every pull request on ubuntu-24.04. It builds the pull request's merge
 commit and its first parent (the tip of `main`, which ENGINEERING section 5 calls the merge

@@ -88,6 +88,11 @@
       "execution": { "noTestsAction": "error", "jobs": 4 }
     },
     {
+      "name": "ci-build",
+      "inherits": "ci",
+      "filter": { "exclude": { "label": "retroarch-session" } }
+    },
+    {
       "name": "ci-msvc",
       "configurePreset": "ci-msvc",
       "output": { "outputOnFailure": true },
@@ -154,6 +159,15 @@
         { "type": "configure", "name": "ci" },
         { "type": "build", "name": "ci" },
         { "type": "test", "name": "ci" },
+        { "type": "package", "name": "ci" }
+      ]
+    },
+    {
+      "name": "ci-build",
+      "steps": [
+        { "type": "configure", "name": "ci" },
+        { "type": "build", "name": "ci" },
+        { "type": "test", "name": "ci-build" },
         { "type": "package", "name": "ci" }
       ]
     },

@@ -579,6 +579,11 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * from recorder status. Binary pre/post journal snapshots copy through one open handle and bind
  * that handle's device, inode and size; they do not identify the bytes grep read. Synthetic tests
  * cover statuses 0, 1 and controlled 2, recorder errors, pathname replacement and event ownership.
+ * The POSIX shell session controls carry the retroarch-session CTest label. Local ci runs the
+ * full matrix; hosted ci-build delegates it to required Linux and Apple Silicon jobs, with Intel
+ * covered nightly. Short-run ASan omits this shell matrix while retaining native host checks.
+ * The test-only QUIT grace override is STATE_SESSION_TEST_QUIT_GRACE_MS; production operation
+ * deadlines and the library's interrupt, presentation and state contracts are unchanged.
  * Cooperative local session invocations reserve loopback TCP port 55355 with a bound, non-listening
  * SOCK_STREAM descriptor held at FD 9, separate from the host UDP command transport.
  * Bundled Perl binds and validates the descriptor, then

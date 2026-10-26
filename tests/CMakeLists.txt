@@ -1530,15 +1530,19 @@ add_test(NAME policy.no-skip.self_test
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/skip_policy.cmake)
 
 # Exact opcode inventories come from CTest's machine-readable metadata. The
-# policy configures the full preset but never runs its network-backed fixture.
+# hosted policy reads the shared full inventory; local runs configure the full
+# preset as a fallback. Neither path runs its network-backed fixture.
 # NESTURBATOR_SHORT_RUNS (preset asan) leaves both out: they check CTest metadata, sanitizers
 # add nothing, and every ci leg runs them.
 if(NOT NESTURBATOR_SHORT_RUNS)
+set(NESTURBATOR_VECTORS_INVENTORY "" CACHE FILEPATH
+  "Fresh full-vector CTest inventory supplied by this CI invocation")
 add_test(NAME vectors.registration_policy
   COMMAND ${CMAKE_COMMAND}
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -DCI_BUILD=${PROJECT_BINARY_DIR}
     -DFULL_BUILD=${PROJECT_BINARY_DIR}/../vectors-full
+    -DINVENTORY_FILE=${NESTURBATOR_VECTORS_INVENTORY}
     -DCTEST=${CMAKE_CTEST_COMMAND}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
 set_tests_properties(vectors.registration_policy PROPERTIES COST 1000)

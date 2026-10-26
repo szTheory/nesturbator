@@ -1,4 +1,7 @@
 #!/bin/sh
 # Scans every local-branch commit that no remote has yet, so the first push
 # covers the whole history and later pushes cover only what is new.
-exec "$(git rev-parse --show-toplevel)/scripts/hygiene.sh" --history --branches --not --remotes
+set -eu
+root=$(git rev-parse --show-toplevel)
+"$root/scripts/hygiene.sh" --history --branches --not --remotes
+exec python3 "$root/scripts/check_push_format.py"
