@@ -5,11 +5,11 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
 status: "Phase 19 shipped — PR #57"
-stopped_at: CI speed-up quick task complete; capture testing proposals next
-last_updated: "2026-10-26T17:24:58.846Z"
+stopped_at: Captured three minor testing proposals; discuss Phase 20 next
+last_updated: "2026-10-26T17:34:30.814Z"
 last_activity: 2026-10-26
-last_activity_desc: "Completed quick task 261026-i8z: reduce CI overhead"
-state_head: dbbf04f5328eec2e994b9167096e936583e03c53
+last_activity_desc: "Captured three proposed minor testing todos"
+state_head: eb9398a1f7a3461e32991dd1134788e34d70769b
 progress:
   total_phases: 3
   completed_phases: 1
@@ -31,7 +31,7 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 Phase: 20 — NMI line and VBlank flag
 Plan: Not started
 Status: Phase 19 shipped — PR #57
-Last activity: 2026-10-26 — Completed quick task 261026-i8z: reduce CI overhead
+Last activity: 2026-10-26 — Captured three proposed minor testing todos
 
 Progress: [███░░░░░░░] 33%
 
@@ -52,6 +52,12 @@ Progress: [███░░░░░░░] 33%
 
 - Whether AccuracyCoin assumes a CPU/PPU alignment constant is untested (Phase 20).
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
+
+### Pending Todos
+
+- [2026-10-26] [testing] Add reproducible owned property tests — [todo file](.planning/todos/pending/2026-10-26-add-reproducible-owned-property-tests.md)
+- [2026-10-26] [testing] Evaluate scoped nightly mutation testing — [todo file](.planning/todos/pending/2026-10-26-evaluate-scoped-nightly-mutation-testing.md)
+- [2026-10-26] [testing] Make runner signal checks deterministic — [todo file](.planning/todos/pending/2026-10-26-make-runner-signal-checks-deterministic.md)
 
 ### Quick Tasks Completed
 
@@ -87,12 +93,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-capture` for the testing ideas in the recovered `ci-efficiency-findings-2026-10-26` project memory as proposed scope, then `$gsd-discuss-phase 20`. The CI speed-up quick task is implemented in `dbbf04f`: dedicated session jobs, build-only hosted RetroArch setup, the quit-grace override correction, outgoing committed-source formatting checks, shared vector inventory and smaller JSON property queries. The separate title workflow remains deferred pending a coordinated required-check ruleset migration; existing title gating is preserved. Testing ideas remain proposed: owned property helpers, deterministic signal checks, and later mutation testing. No capture or Phase 20 discussion ran in this command.
+Run `$gsd-discuss-phase 20` to gather context for NMI line and VBlank flag work. Three testing proposals are captured under Pending Todos with confirmed minor severity: reproducible owned property tests, deterministic runner signal checks, and later scoped nightly mutation testing. They remain proposed scope for future prioritization. The CI speed-up quick task is implemented in `dbbf04f`; its separate title workflow remains deferred pending a coordinated required-check ruleset migration. No Phase 20 discussion or implementation ran during capture.
 
 ## Session
 
-Last session: 2026-10-26T17:24:31Z
-Stopped at: CI speed-up quick task complete; capture testing proposals next, then discuss Phase 20
+Last session: 2026-10-26T17:34:30.814Z
+Stopped at: Captured three minor testing proposals; discuss Phase 20 next
 Resume file: None (the pause checkpoint and structured handoff were consumed)
 
 ## Performance Metrics
