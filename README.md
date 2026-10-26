@@ -372,7 +372,10 @@ cmake --workflow --preset vectors-full  # the full 65x02 vector set, fetched at 
 cmake --workflow --preset mmc3-oracle  # blargg's MMC3 test ROMs, fetched at their pin (network)
 ```
 
-On Windows with MSVC, use `ci-msvc` from a developer command prompt.
+On Windows with MSVC, use `ci-msvc` from a developer command prompt. MSVC
+rejects a `const` object declared without an initializer (C4132); Clang 21
+and later report the same thing through `-Wdefault-const-init-var`, which the
+build adds when the compiler accepts it, so `ci` catches it off Windows too.
 
 ## Checks
 

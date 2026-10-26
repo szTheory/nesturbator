@@ -15,9 +15,14 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 # Warning set from ENGINEERING section 1. Presets make warnings fatal through
 # CMAKE_COMPILE_WARNING_AS_ERROR, so an embedding build is unaffected.
+# -Wdefault-const-init-var (Clang 21 and later) reports a const object with no
+# initializer, which MSVC rejects as C4132, so local builds catch it too.
+include(CheckCCompilerFlag)
+check_c_compiler_flag(-Wdefault-const-init-var NESTURBATOR_HAS_WDEFAULT_CONST_INIT_VAR)
 function(nesturbator_warnings target)
   target_compile_options(${target} PRIVATE
     $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion -Wstrict-prototypes -Wmissing-prototypes -Wvla>
+    $<$<BOOL:${NESTURBATOR_HAS_WDEFAULT_CONST_INIT_VAR}>:-Wdefault-const-init-var>
     $<$<C_COMPILER_ID:GNU>:-Wduplicated-cond -Wlogical-op>
     $<$<C_COMPILER_ID:MSVC>:/W4>)
 endfunction()

@@ -2800,7 +2800,7 @@ static unsigned rah_controls(const struct ser_rom *rom, uint32_t T, int jam)
     if (jam) {
         /* D-17 black-oracle control: an oracle that expects black from the JAM on. The host
            shows the frozen picture, so the comparison must differ. */
-        static const uint32_t black[W * H];
+        static const uint32_t black[W * H] = {0};
         struct rah_result res;
         const uint64_t black_hash = ra_hash_words(black, W * H);
 
