@@ -1,6 +1,6 @@
 # Phase 20 local evidence ledger
 
-This ledger records the local result for Plan 20-06. It does not claim hosted
+This ledger records local evidence through Plan 20-09. It does not claim hosted
 six-platform completion or close KEEP-02/KEEP-03.
 
 ## Campaign and protected PASS evidence
@@ -240,3 +240,57 @@ repeated. Neither the synthetic fixture nor local workflow establishes hosted
 six-platform equality, hosted performance, clean-source exact-head, or physical
 tie results. KEEP-02/KEEP-03 and all four project requirement checkboxes remain
 pending for independent phase re-verification.
+
+## Phase 20 Plan 09: hosted evidence preparation
+
+The collector in `tests/cmake/phase20_hosted_evidence.cmake` accepts
+`MODE=collect|validate`, `ROOT`, and `SOURCE_REF`. For an authorized delivery,
+`ROOT/delivery.json` contains exactly the repository identity, CI and Nightly
+run IDs/attempts, candidate head SHA, and pull-request number. Collection reads
+GitHub run/job/artifact metadata and logs, downloads retained content, and
+validates that content through the same validator as the offline fixture
+controls. It writes raw metadata, retrieved artifact checksums, source
+identities, a complete input manifest, and the resulting verdict under ROOT.
+The collect operation issues only read-only `gh api`, `gh run view --attempt
+--log`, and artifact-download requests. Missing or invalid delivery details
+produce `pending_delivery`; fixtures cannot produce hosted provenance. The
+current task has no authorized delivery IDs and therefore has no hosted-pass
+manifest.
+
+The local effective-source digest is
+`684085be7b2ecccc55f30eb885387a111aecfb622950da3184a84bce1d489c43` over 415
+files. The digest sorts the Git-index plus nonignored working-tree paths,
+hashes regular file contents and symlink targets, and excludes only
+`.planning/**` and `tests/accuracy/measurements.md`. This includes the complete
+effective source/configuration/test/workflow set and is separate from the
+narrower 56-input AccuracyCoin fingerprint. The measured campaign's causal
+source revision is `f85e1b15f176`, with `source_dirty=1`; the live source commit
+for delivery is the Plan 20-09 source/documentation commit recorded in its
+summary. The full digest and count are the values Plan 20-10 must match against
+GitHub API trees before accepting runs.
+
+GitHub pull-request builds use a synthetic merge commit. A successful hosted
+identity must bind that tested SHA to exactly the candidate head and protected
+base as its parents, and verify full effective source content across all six
+build lanes and companion CI/Nightly evidence. It must validate each exact NMI
+key, the original 108 protected PASS keys on every lane, complete native hash
+inventories, actual `CI required`/hash-equality/RetroArch marker evidence, all
+three raw base/head performance rows with zero base spread and no regression
+above 1%, and same-source Nightly vectors-full/MMC3 inventories and JUnit.
+Push/dispatch runs, `n/a` performance rows, and fixture self-comparisons do not
+establish those claims. Existing physical exact-tie limitations, descriptor-less
+clean-room prohibition, unclassified NMI assumptions, local dirty provenance,
+and Nightly fetch debt stay visible; the hosted source set remains pending
+Plan 20-10.
+
+The single full-enabled local campaign completed 22/22 pages and 146 scored
+rows: 114 pass, 32 fail, no skip/not-run/timeout, and 5 DRAW. It used fingerprint
+`ebdaef6447e2ad737de5367bc85eec6fca365d8070953a3b58663c6d5262d864` over 56
+inputs, report SHA-256
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`, and
+`host_elapsed_guest_ns=5958989000`. After metadata refresh with the full option
+off, the focused acceptance run passed 9/9, including all six target rows, the
+cold protected-main observation, the 108-key no-lost-pass check, and unchanged
+native hashes. `cmake --workflow --preset ci` passed 684/684 and generated all
+three local packages. These are local preparation results, not hosted results.
+All four requirements, KEEP-02/KEEP-03 and Phase 20 remain pending.

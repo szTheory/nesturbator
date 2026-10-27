@@ -1043,3 +1043,37 @@ uncommitted README/header documentation edits and the preserved pre-existing
 `.planning/config.json` edit. Behavior revision 8, format 2, frame/PCM/state
 pins, target set, and campaign caps are unchanged. This local measurement is
 not a clean-source or hosted result.
+
+## Phase 20 Plan 09: hosted evidence preparation
+
+The one full-enabled local AccuracyCoin campaign ran after the collector CTest
+registration and workflow edits. It completed all 22 pages and all 146 scored
+rows: 114 pass, 32 fail, 0 skip, 0 not-run, 0 timeout, and 5 DRAW. The six
+required NMI target keys were checked separately. The measured page-child total
+is recorded as `host_elapsed_guest_ns=5958989000`; the report SHA-256 remains
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`. The new
+56-input AccuracyCoin build fingerprint is
+`ebdaef6447e2ad737de5367bc85eec6fca365d8070953a3b58663c6d5262d864`, reflecting
+the registered evidence control. Generated metadata names causal source
+revision `f85e1b15f176` and records `source_dirty=1` because this local checkout
+contains the README update and the preserved `.planning/config.json` edit.
+This is local campaign provenance, not a clean or hosted result.
+
+With the full option disabled after measurement, the focused local acceptance
+group passed 9/9: the shared hosted-evidence controls, campaign activation,
+exact six NMI targets, protected-main observation and verdict, all 108 original
+PASS keys, and unchanged native hash inventory/content. The hosted-evidence
+controls run offline through the same content validator as collection and
+exercise named invalid source mappings, incomplete lanes, missing/expired
+artifacts, dirty or stale campaign data, lost protected keys, hash omissions,
+skipped/cancelled jobs, invalid performance evidence and missing host/Nightly
+evidence. Synthetic passes remain fixtures; they do not supply hosted
+provenance. No ROM bytes, native hash expectations, campaign caps, behavior
+revision or state format changed.
+
+`cmake --workflow --preset ci` then passed 684/684 tests with the full campaign
+disabled and packaged the library, runner and libretro adapter. The full
+workflow and local controls do not establish hosted exact-head, six-platform,
+protected-main, performance, or Nightly acceptance. They leave physical
+exact-tie precedence and the previously recorded local/Nightly fetch debt
+unresolved.

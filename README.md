@@ -918,6 +918,61 @@ differ) always fails; a base that cannot be built or run shows `n/a` and does no
 request. Wall time is never measured or gated. The `perf.roms_render` test shows that
 all three ROMs draw a non-blank frame 60, so the job never measures an idle PPU.
 
+### Phase 20 hosted evidence collection
+
+The six build jobs retain their executed `LastTest.log` and the cold-fetched
+protected-main scoreboard and metadata in their existing run-and-attempt
+AccuracyCoin artifacts. The `perf` job retains its raw base/head Cachegrind
+measurements, summary, and run identity for 60 days. The read-only collector
+downloads those artifacts and the related CI and Nightly job logs into a
+scratch directory, then validates their contents, checksums, exact tested
+source identity, all six NMI target rows, all 108 original protected PASS keys,
+the full native hash inventory, per-ROM performance samples, host marker
+evidence, and Nightly vectors/MMC3 results.
+
+After a separately authorized hosted delivery has produced pull-request CI and
+Nightly runs, create `ROOT/delivery.json` with the repository, run IDs and
+attempts, candidate branch head, and pull-request number. Run the collector and
+then revalidate the saved bundle against the current source:
+
+```json
+{
+  "repository": "szTheory/nesturbator",
+  "ci_run_id": "123456789",
+  "ci_run_attempt": "1",
+  "nightly_run_id": "123456790",
+  "nightly_run_attempt": "1",
+  "candidate_head_sha": "<40-digit candidate commit SHA>",
+  "pr_number": "123"
+}
+```
+
+```sh
+cmake -DMODE=collect -DROOT=build/phase20-evidence -DSOURCE_REF=. \
+  -P tests/cmake/phase20_hosted_evidence.cmake
+cmake -DMODE=validate -DROOT=build/phase20-evidence -DSOURCE_REF=. \
+  -P tests/cmake/phase20_hosted_evidence.cmake
+```
+
+`ROOT` must be under `build/` or `/tmp`. Collection uses only read-only GitHub
+CLI API, run-view, and artifact-download requests. The collector derives the
+actual tested checkout and protected base from GitHub run metadata; pull-request
+builds normally test a synthetic merge commit, so the candidate head SHA is
+checked against the merge commit's two parents instead of being treated as the
+tested checkout SHA. Its full effective-source manifest hashes Git tree
+contents and symlink targets, excluding only `.planning/` and
+`tests/accuracy/measurements.md`. This is distinct from the narrower
+AccuracyCoin build-input fingerprint. The collector records the source digest,
+run/job/artifact metadata, retrieval time, and checksums beside the downloaded
+evidence. It rejects local fixtures as hosted provenance, dirty effective
+source, missing or expired artifacts, incomplete jobs, and changed source.
+
+Without authorized run IDs and attempts, `MODE=collect` exits nonzero with
+`pending_delivery` and does not write a hosted-pass manifest. Dispatch or push
+runs that skip the pull-request performance job cannot establish performance
+acceptance. Local fixture controls verify validator behavior only; actual
+hosted acceptance remains pending Plan 20-10.
+
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
 04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
 requests that change a file that can change what its tests run: the workflow,
