@@ -4,11 +4,11 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: awaiting_hosted_results
-stopped_at: PR 59 replacement e6e83a3 published; CI 40514060876 and Nightly 40513950000 active
-last_updated: "2026-10-27T13:41:24Z"
+status: awaiting_hosted_collection
+stopped_at: CI 40514060876 and Nightly 40513950000 passed; 20-10 content collection and independent phase verification pending
+last_updated: "2026-10-27T14:04:39Z"
 last_activity: 2026-10-27
-last_activity_desc: Session dependencies and cold-start cleanup repaired; performance gate restored without raising caps; final local verification recorded in delivery ledger
+last_activity_desc: Both selected hosted runs reported success; CI/CD efficiency research and unapplied low-risk proposal recorded; phase acceptance remains pending
 state_head: e6e83a31e413e12abe9dee142e3c0f7143d63eb4
 progress:
   total_phases: 3
@@ -28,10 +28,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — AWAITING HOSTED RESULTS
+Phase: 20 (NMI line and VBlank flag) — AWAITING HOSTED COLLECTION
 Plan: 9 of 10 complete; 20-10 has zero completed tasks
-Status: Draft PR #59 replacement e6e83a3 published; CI 40514060876 and Nightly 40513950000 active; all local gates passed; 20-10 and all requirements remain pending
-Last activity: 2026-10-27 — Delivery authorized; formatting hook repaired without bypass; remeasured campaign and full CI passed 684/684
+Status: Draft PR #59 candidate e6e83a3 has successful CI 40514060876 and Nightly 40513950000, both attempt 1; actual artifact-content collection, 20-10, independent verification and all requirements remain pending
+Last activity: 2026-10-27 — Both selected hosted workflows passed; investigated CI/CD efficiency through measured parallel reviews and primary documentation; recorded an unapplied follow-up patch
 
 Progress: [███░░░░░░░] 33%
 
@@ -124,4 +124,4 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Monitor draft PR #59 candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4`: CI `40514060876` and Nightly `40513950000`, both attempt 1. The actual PR merge snapshot is `11533e456d41f740751c8353f947d65017aae692`. Delivery JSON and 20-DELIVERY.md record these selected identities; earlier runs are superseded. The effective source digest is `de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab` over 415 files. Local CI 684/684, ASan/UBSan 676/676, MMC3 13/13 and the real per-ROM performance gate passed without cap changes. Once required hosted jobs and artifacts are complete and available, run `$gsd-execute-phase 20 --gaps-only` to resume only 20-10 and independent phase verification. This planning-only handoff stays local to avoid restarting CI. Keep requirements open, preserve unrelated config edits and debt, and do not merge or advance to Phase 21 before actual hosted gates and re-verification pass.
+Run `$gsd-execute-phase 20 --gaps-only` to resume only 20-10 and independent phase verification. CI `40514060876` and Nightly `40513950000`, both attempt 1, now report completed/success for candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4` and selected PR merge snapshot `11533e456d41f740751c8353f947d65017aae692`. Delivery JSON contains these identities. Workflow success is availability evidence, not the content verdict: collect and validate all required artifacts before requirement/phase closure. Effective source remains `de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab` over 415 files. CI/CD efficiency findings and an unapplied four-change patch are in `.planning/research/2026-10-27-CI-EFFICIENCY.md`; apply follow-up workflow changes after collecting this source-bound evidence. Keep research/handoff commits local to avoid restarting current CI; preserve the config edit and do not merge or advance to Phase 21 before 20-10 and re-verification pass.

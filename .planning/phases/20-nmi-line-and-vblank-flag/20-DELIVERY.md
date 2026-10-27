@@ -277,3 +277,20 @@ belong to this effective source. The hosted jobs must still complete and their
 actual artifacts must pass 20-10. No merge, requirement closure, phase closure,
 20-10 task commit or summary is claimed. This planning-only handoff remains
 local to avoid another unnecessary CI restart.
+
+
+## Hosted availability confirmed during CI/CD efficiency investigation
+
+Read-only API metadata reports CI `40514060876` completed/success
+(updated `2026-10-27T13:49:22Z`) and Nightly `40513950000`
+completed/success (updated `2026-10-27T13:58:15Z`). Both are attempt 1
+and candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4`.
+The delivery JSON identities and source digest remain unchanged. No artifact
+content acceptance or 20-10 task is claimed by this availability observation.
+
+The requested CI/CD efficiency investigation sampled 100 recent run inventories,
+used three specialist/adversarial review lenses, and recorded measured
+recommendations plus an isolated, unapplied four-change proposal under
+`.planning/research/2026-10-27-CI-EFFICIENCY.md`. Live workflow files and the
+current candidate were left intact. Collect Phase 20's actual evidence before
+applying follow-up workflow changes. Research/status artifacts remain local.
