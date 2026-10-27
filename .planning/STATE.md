@@ -4,16 +4,16 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: "Executing; 11/12 plans complete. Next: Plan 20-10 content acceptance; Phase 20 and all requirements remain pending."
-stopped_at: "Completed 20-12-PLAN.md; 11/12 Phase 20 plans complete. Next: 20-10 content acceptance."
-last_updated: "2026-10-27T20:05:59.229Z"
-last_activity: "2026-10-27: Plan 20-12 complete; 11/12 Phase 20 plans complete. Next: 20-10 content acceptance."
-state_head: dff2ecaad5101fe0edd8816229ad2fd9ba6ebca4
+status: "Halted at 20-12 current-source acquisition: CI passed, but the only authorized Nightly rerun failed required vectors-full fetch. Plan 20-10 is dependency-blocked; Phase 20 and all requirements remain pending."
+stopped_at: "Halted 20-12: Nightly 40580594558 attempt 2 vectors-full fetch failed; 20-10 blocked pending fresh current-source availability"
+last_updated: "2026-10-27T21:15:47.821Z"
+last_activity: "2026-10-27: recorded afba1d0 hosted outcomes; Nightly 40580594558 attempt 2 vectors-full acquisition failed; 20-12 halted and 20-10 blocked."
+state_head: afba1d091bba916a9fe803f71e18788343a16219
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 18
-  completed_plans: 17
+  completed_plans: 16
   percent: 33
 ---
 
@@ -27,10 +27,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — EXECUTING
-Plan: 10 of 12 (next: 20-10; 11/12 plans complete)
-Status: Executing; 11/12 plans complete. Next: Plan 20-10 content acceptance; Phase 20 and all requirements remain pending.
-Last activity: 2026-10-27: Plan 20-12 complete; 11/12 Phase 20 plans complete. Next: 20-10 content acceptance.
+Phase: 20 (NMI line and VBlank flag) — HALTED
+Plan: 12 of 12 (20-12 halted; 20-10 blocked by dependency; 10/12 plans complete)
+Status: Halted at 20-12 current-source acquisition: exact-head CI passed, but the sole authorized Nightly rerun failed required vectors-full fetch. No current-source availability handoff exists; 20-10 and all Phase 20 requirements remain pending.
+Last activity: 2026-10-27: recorded afba1d0 hosted outcomes; Nightly 40580594558 attempt 2 vectors-full acquisition failed; 20-12 halted and 20-10 blocked.
 
 Progress: [███░░░░░░░] 33%
 
@@ -83,11 +83,12 @@ Progress: [███░░░░░░░] 33%
 ### Blockers/Concerns
 
 - [Phase 20 execution]: Plans 20-01 through 20-09 and collector plans 20-11/20-12 are executed and summarized under amended D-10. Their race/state/host witnesses and local evidence remain historical. The exact physical paired-chip tie remains an evidence limit. Final source-bound CI/Nightly availability passed in 20-12; content acceptance in 20-10 remains, and no requirements close before independent phase verification.
-- [Plan 20-10 failed collection]: The initial missing-delivery checkpoint was superseded by the recorded authorization for PR 59 and successful CI 40514060876/1 and Nightly 40513950000/1. Collection failed on root-level LastTest.log lookup, the nonexistent long Holy Mapperel alias and collector assumptions about job logs. Pre-publication review inspected old job 122224137324 and established the endpoint returns BOM-prefixed timestamped plain text, not a ZIP; 20-11 now validates this response shape and preserves raw bytes. Those old runs and raw diagnostics remain historical. Fresh CI 40571402181/1 and Nightly 40571401669/1 now pass metadata-only availability for candidate 0039b9cd; artifact content validation remains required in 20-10. See 20-COLLECTOR-REPAIR-PLANNING.md and 20-EVIDENCE.md.
+- [Plan 20-10 failed collection]: The initial missing-delivery checkpoint was superseded by the recorded authorization for PR 59 and successful CI 40514060876/1 and Nightly 40513950000/1. Collection failed on root-level LastTest.log lookup, the xistent long Holy Mapperel alias and collector assumptions about job logs. Pre-publication review inspected old job 122224137324 and established the endpoint returns BOM-prefixed timestamped plain text, not a ZIP; 20-11 now validates this response shape and preserves raw bytes. Those old runs and raw diagnostics remain historical. Fresh CI 40571402181/1 and Nightly 40571401669/1 now pass metadata-only availability for candidate 0039b9cd; artifact content validation remains required in 20-10. See 20-COLLECTOR-REPAIR-PLANNING.md and 20-EVIDENCE.md.
 - [Execution handoff]: Corrected 20-10's future command examples to use the completed collector's checkout-directory argument `SOURCE_REF=.` instead of the planning placeholder `HEAD`. Only planning prose changed; no collection or 20-10 task was executed and the effective-source digest remains unchanged.
 - `tests/accuracy/measurements.md` records the Plan 20-03 source-sequence results, Plan 20-04's constructed/executed origins, all 20 bounded Control 8/9 candidates, and the production sampler endpoint projections. No alignment shift or per-table offset was selected.
 - KEEP-02 and KEEP-03 remain pending for cross-platform hash confirmation and hosted evidence. Plan 20-05 supplies local host replay; it does not resolve physical tie precedence or satisfy later hosted evidence. Plan 20-04 found no required instruction-boundary cutpoint that needs clarification.
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
+- Phase 20 plan 20-12 is halted for current candidate afba1d0: Nightly 40580594558 attempt 2 required vectors-full job 122471173432 failed at cpu.vectors-full.fetch from upstream promisor fetch curl 28 / bad pack header. No current-source availability handoff; dependent plan 20-10 is blocked.
 
 ### Pending Todos
 
@@ -131,7 +132,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 20 --gaps-only` for Plan 20-10 next: consume the fresh source-bound metadata handoff for read-only artifact collection/content validation and measurement confirmation, then perform independent phase verification. Eleven of twelve plans are complete; all four requirements remain pending. Final candidate `0039b9cd47a00d14d2f2f62376b8dbb2ad91baaf` passed CI `40571402181/1` and Nightly `40571401669/1`; availability maps it to tested merge `32076c451f9f16d76d3e0e8f8ef721a2ee5050f6` and protected base `ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`. The effective source digest is `99691ce668e69ac193d493ed30fe422f872d9538ef3bfe28c75a018b05ccad0e` over 416 files. This metadata-only proof is not content acceptance. The PR remains open/draft; no merge, force push, new PR, workflow dispatch, unrelated CI efficiency change, or config staging occurred. The unrelated config bytes remain unchanged. Do not start Phase 21 before real content acceptance and re-verification pass.
+Do not start 20-10: its declared dependency is plan 20-12, now halted because current candidate `afba1d091bba916a9fe803f71e18788343a16219` has no successful Nightly attempt. CI `40580594574/1` passed. The sole authorized all-jobs rerun of Nightly `40580594558` attempt 2 failed required `vectors-full` job `122471173432` while fetching promisor commit `e95579991e0ab08ee8fe79b57bcae7f71a2b9d02`; the direct log and its hash are recorded in `20-DELIVERY.md`. The earlier CI/Nightly and availability proof for `0039b9cd47a00d14d2f2f62376b8dbb2ad91baaf` remains historical only and cannot satisfy the current-source precondition. Fresh successful availability and 20-10 content acceptance remain pending, as do all four requirements and Phase 20 verification. No further retry, merge, force push, new PR, workflow dispatch, unrelated CI efficiency change, or config staging occurred. The unrelated config bytes remain unchanged.
 
 ## Performance Metrics
 
@@ -142,6 +143,6 @@ Run `$gsd-execute-phase 20 --gaps-only` for Plan 20-10 next: consume the fresh s
 
 ## Session
 
-**Last session:** 2026-10-27T20:05:59.179Z
-**Stopped at:** Completed 20-12-PLAN.md; 11/12 Phase 20 plans complete. Next: 20-10 content acceptance.
+**Last session:** 2026-10-27T21:15:47.773Z
+**Stopped at:** Halted 20-12: Nightly 40580594558 attempt 2 vectors-full fetch failed; 20-10 blocked pending fresh current-source availability
 **Resume file:** None

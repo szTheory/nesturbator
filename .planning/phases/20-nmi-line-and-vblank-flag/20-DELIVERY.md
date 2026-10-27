@@ -492,3 +492,37 @@ Availability validates live run/job/artifact metadata and full source
 identity only. No artifact archive was downloaded in this plan; artifact
 content validation and hosted acceptance remain exclusively for 20-10.
 All Phase 20 requirements remain pending independent phase verification.
+
+## 2026-10-27 current-source acquisition failure (candidate afba1d0)
+
+Subsequent collector corrections changed the effective source and were
+published to the existing open draft PR #59. Its current head is
+`afba1d091bba916a9fe803f71e18788343a16219` on
+`gsd/phase-20-nmi-line-and-vblank-flag` against `main`. Exact-head CI run
+`40580594574/1` completed successfully; all 16 jobs passed.
+
+The automatically triggered Nightly run is `40580594558`. Attempt 1 failed
+`vectors-full` on the known upstream promisor fetch timeout. The one authorized
+all-jobs rerun was already executed as attempt 2; it failed required job
+`122471173432` at `cpu.vectors-full.fetch`. The completed job log records:
+`curl 28 Operation too slow. Less than 1000 bytes/sec` for the last 60 seconds,
+followed by `fatal: protocol error: bad pack header` and inability to fetch
+promisor commit `e95579991e0ab08ee8fe79b57bcae7f71a2b9d02`. The direct job log
+is retained at
+`build/phase20-hosted-evidence-diagnostics/nightly-vectors-full-40580594558-122471173432.log`
+(SHA-256 `229465ea49188322d29e826dd5b662ea155ac79f32461725d314989357bec2e7`).
+
+At the last live metadata read, attempt 2 remained `in_progress`: `mmc3-oracle`
+122471172900, `rom-loader-fuzz` 122471173130, `state-fuzz` 122471173256, and
+`execution-fuzz` 122471173409 passed; `vectors-full` 122471173432 failed;
+`suite-flake` 122471173250 and `session-controls` 122471173506 remained active.
+No further rerun was triggered. A failed required job prevents a current-source
+availability handoff even if unrelated jobs later complete.
+
+The `delivery.json` and `availability/availability.txt` above remain valid
+historical records for candidate `0039b9cd47a00d14d2f2f62376b8dbb2ad91baaf`
+only. They were not rewritten for `afba1d0`, and the production
+`MODE=availability` validator was not run because there is no completed
+successful Nightly attempt. Plan 20-12 is halted for the current source; plan
+20-10 content collection/acceptance remains blocked and all requirements stay
+pending. No source correction is indicated by this external acquisition error.
