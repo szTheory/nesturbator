@@ -4,18 +4,18 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: awaiting_hosted_collection
-stopped_at: CI 40514060876 and Nightly 40513950000 passed; 20-10 content collection and independent phase verification pending
-last_updated: "2026-10-27T14:04:39Z"
+status: ready_to_execute
+last_updated: "2026-10-27T14:45:40Z"
 last_activity: 2026-10-27
-last_activity_desc: Both selected hosted runs reported success; CI/CD efficiency research and unapplied low-risk proposal recorded; phase acceptance remains pending
-state_head: e6e83a31e413e12abe9dee142e3c0f7143d63eb4
+last_activity_desc: Planned collector repair, authorized fresh delivery and dependent collection; independent plan recheck passed with zero issues
+state_head: df5090df359c88e372bb0732863c644be0fb17ba
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 16
+  total_plans: 18
   completed_plans: 15
   percent: 33
+stopped_at: Repair plans ready; execute 20-11 then 20-12 then 20-10; old green runs have no content acceptance
 ---
 
 # Project State
@@ -28,10 +28,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — AWAITING HOSTED COLLECTION
-Plan: 9 of 10 complete; 20-10 has zero completed tasks
-Status: Draft PR #59 candidate e6e83a3 has successful CI 40514060876 and Nightly 40513950000, both attempt 1; actual artifact-content collection, 20-10, independent verification and all requirements remain pending
-Last activity: 2026-10-27 — Both selected hosted workflows passed; investigated CI/CD efficiency through measured parallel reviews and primary documentation; recorded an unapplied follow-up patch
+Phase: 20 (NMI line and VBlank flag) — READY TO EXECUTE
+Plan: 9 of 12 complete; remaining order 20-11 -> 20-12 -> 20-10; all three have zero completed tasks
+Status: Old candidate e6e83a3 has successful CI/Nightly but failed collector content acceptance; new collector repairs and offline controls, fresh existing-PR delivery and actual collection are planned; all requirements remain pending
+Last activity: 2026-10-27 — Independent plan recheck passed after adding a shared metadata-only availability gate to verify the full delivery handoff
 
 Progress: [███░░░░░░░] 33%
 
@@ -50,6 +50,7 @@ Progress: [███░░░░░░░] 33%
 - [Phase 19]: 19-06: AccuracyCoin baseline re-recorded from measured full campaign (108 pass/38 fail/0 timeout); matched research prediction
 - [Phase 20 planning]: Six sequential plans cover reproducers, split status/line capture with coherent state format 2/revision 8, NMI polling, exact race-state continuation, host replay and final evidence. Independent plan check passed after isolating four new test oracles; all four requirements and 24 decisions are assigned.
 - [Phase 20 gap planning]: Plans 20-07 through 20-10 run sequentially in waves 7–10: changing-sprite decoder witness and WR-01/02 corrections; equal-tick and combined empty-PCM state witnesses; local hosted collector/retention preparation; then real hosted collection. Independent review passed after separating preparation from collection so 20-09 closes normally and 20-10 checks external delivery before any task commit. All four requirements and 24 decisions remain covered; no implementation or hosted result is claimed by planning.
+- [Phase 20 collector repair planning]: Completed 20-01 through 20-09 stay historical. Remaining order is 20-11 wave 10 (local collector/adapter/availability repair), 20-12 wave 11 (persistent-authorized existing-PR delivery and fresh availability), then unexecuted 20-10 wave 12 (read-only content acceptance). Independent recheck passed with zero issues after tightening the automated handoff check; all four requirements, 24 decisions and seven fallback dispositions remain covered. Old green runs cannot certify changed effective inputs.
 - [Phase 20]: Keep live PPU, bus, and guest observations separate from source-assembly table comparator checks.
 - [Phase 20]: Plan 20-03 supersedes Plan 20-02's initial tie policy: equal integer timestamps use bus side effect, detector capture, then the tied PPU transition; CPU polling reads captured history at phi2 open. Exact physical tie precedence remains unclaimed.
 - [Phase 20]: The bus captures a rising derived NMI line at cycle close; later line deassertion does not revoke the request.
@@ -75,8 +76,8 @@ Progress: [███░░░░░░░] 33%
 
 ### Blockers/Concerns
 
-- [Phase 20 execution]: Plans 20-01 through 20-09 are locally executed and summarized under amended D-10. Plan 20-03 revalidated all six target rows at default alignment under the single global model policy; Plan 20-04 reached enabled set/clear and captured-before-poll states by complete production instructions and replayed them through public save/load; Plan 20-05 added local frame-boundary replay across core, runner, and libretro; Plan 20-06 recorded the measured campaign; Plan 20-07 added the changing-sprite M2 sample witness and fixed WR-01/02 locally; Plan 20-08 added the equal-tick inventory and combined frame-zero audio-history witnesses; Plan 20-09 completed the locally tested collector and artifact retention. The exact physical paired-chip tie remains an evidence limit. Only 20-10 remains, pending separately authorized hosted delivery.
-- [Plan 20-10 checkpoint]: Read-only checks found no `build/phase20-hosted-evidence/delivery.json`, CI/Nightly runs on the phase branch, or phase PR. Its first-task external precondition is unmet (`pending_delivery`, blocking-human availability gate); no collection, artifact mutation, task commit or SUMMARY was made. This is a missing delivery fact, not a manual test or sign-off request.
+- [Phase 20 execution]: Plans 20-01 through 20-09 are locally executed and summarized under amended D-10. Their implementation, local race/state/host witnesses and artifact preparation remain historical. The exact physical paired-chip tie remains an evidence limit. Collector repair 20-11, fresh delivery 20-12 and actual acceptance 20-10 remain unexecuted; none closes requirements before independent phase verification.
+- [Plan 20-10 failed collection]: The initial missing-delivery checkpoint was superseded by authorized PR 59 and successful CI 40514060876/1 and Nightly 40513950000/1. Their availability precondition passed, but actual collection failed on root-level LastTest.log lookup. That raw log is empty of test results, the validator expects a nonexistent Holy Mapperel name, and further normalization/CLI defects are assigned to 20-11. Raw diagnostics remain ignored scratch; no acceptance manifest, task commit or SUMMARY exists. This is an automated collector failure, not a manual sign-off request. See 20-COLLECTOR-REPAIR-PLANNING.md.
 - [Execution handoff]: Corrected 20-10's future command examples to use the completed collector's checkout-directory argument `SOURCE_REF=.` instead of the planning placeholder `HEAD`. Only planning prose changed; no collection or 20-10 task was executed and the effective-source digest remains unchanged.
 - `tests/accuracy/measurements.md` records the Plan 20-03 source-sequence results, Plan 20-04's constructed/executed origins, all 20 bounded Control 8/9 candidates, and the production sampler endpoint projections. No alignment shift or per-table offset was selected.
 - KEEP-02 and KEEP-03 remain pending for cross-platform hash confirmation and hosted evidence. Plan 20-05 supplies local host replay; it does not resolve physical tie precedence or satisfy later hosted evidence. Plan 20-04 found no required instruction-boundary cutpoint that needs clarification.
@@ -124,4 +125,4 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 20 --gaps-only` to resume only 20-10 and independent phase verification. CI `40514060876` and Nightly `40513950000`, both attempt 1, now report completed/success for candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4` and selected PR merge snapshot `11533e456d41f740751c8353f947d65017aae692`. Delivery JSON contains these identities. Workflow success is availability evidence, not the content verdict: collect and validate all required artifacts before requirement/phase closure. Effective source remains `de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab` over 415 files. CI/CD efficiency findings and an unapplied four-change patch are in `.planning/research/2026-10-27-CI-EFFICIENCY.md`; apply follow-up workflow changes after collecting this source-bound evidence. Keep research/handoff commits local to avoid restarting current CI; preserve the config edit and do not merge or advance to Phase 21 before 20-10 and re-verification pass.
+Run `$gsd-execute-phase 20 --gaps-only`. The dependency order is 20-11 (wave 10 local collector repair and offline controls), 20-12 (wave 11 existing draft PR 59 normal delivery under the recorded persistent authorization, fresh CI/Nightly and metadata-only availability), then 20-10 (wave 12 read-only content collection and measurement confirmation), followed by independent phase verification. No repeat delivery authorization is needed. Old CI `40514060876/1` and Nightly `40513950000/1` on candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4` / merge `11533e456d41f740751c8353f947d65017aae692` remain successful availability observations with failed collection, not accepted or reusable proof for a repaired collector. This planning step leaves effective source `de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab` over 415 files unchanged and performs no implementation or remote mutation. Keep the unrelated CI efficiency patch unapplied, preserve the config edit, and do not merge or start Phase 21 before real content acceptance and re-verification pass.

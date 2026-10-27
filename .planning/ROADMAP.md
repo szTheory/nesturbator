@@ -111,7 +111,7 @@ Note: the basic hit already worked; the `0x06` sprite rows were guest re-run art
   3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
   4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
 
-**Plans**: 9/10 plans executed — 6 historical plans executed; 4 additive gap-closure plans pending
+**Plans**: 9/12 plans executed — collector repair, fresh delivery and actual collection remain pending
 
 Plans:
 **Wave 1**
@@ -141,10 +141,16 @@ Plans:
 **Wave 9** *(gap closure; blocked on Wave 8)*
 - [x] 20-09-PLAN.md — locally tested hosted collector, artifact retention and delivery preparation with ordinary complete summary
 
-**Wave 10** *(gap closure; blocked on completed Wave 9 and separately authorized delivery)*
+**Wave 10** *(gap closure; consumes completed Wave 9)*
+- [ ] 20-11-PLAN.md — repair archive normalization, executed job evidence and CLI handling; prove collect/validate and metadata-only availability with offline adapter controls
+
+**Wave 11** *(gap closure; blocked on Wave 10)*
+- [ ] 20-12-PLAN.md — use the persistent authorization to publish through existing draft PR 59 and acquire fresh source-bound CI/Nightly availability
+
+**Wave 12** *(gap closure; blocked on Wave 11)*
 - [ ] 20-10-PLAN.md — read-only real hosted evidence collection after a first-task delivery precondition, then immutable-source measurement confirmation
 
-Local gap execution can complete and summarize 20-09 preparation. Actual source-bound hosted results remain an external delivery prerequisite for 20-10, checked before its first task mutates artifacts or commits. Missing results leave 20-10 with zero task commits and KEEP-02/KEEP-03 and Phase 20 incomplete; these plans do not authorize push, PR, workflow dispatch or merge.
+Completed 20-09 preparation remains historical. Old successful CI/Nightly runs failed collector content acceptance and cannot certify a changed collector. Remaining execution is ordered 20-11 -> 20-12 -> 20-10: local repair, existing-PR delivery under the persistent authorization in 20-DELIVERY.md, then read-only content acceptance. Availability is checked automatically before collection; missing or invalid evidence leaves 20-10, all four requirements and Phase 20 incomplete. No merge, force push, new PR, workflow dispatch, unrelated CI efficiency change or additional lifecycle command is included. This planning step changes no effective source or remote state.
 
 **Canonical refs**: [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [DECISIONS.md](preparation/DECISIONS.md), [CONFORMANCE.md](preparation/CONFORMANCE.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (section 1, state), [research/FEATURES.md](research/FEATURES.md) (G1, G2), [research/PITFALLS.md](research/PITFALLS.md) (#1, #2, #3, #6, #7, #10, #12), [research/SUMMARY.md](research/SUMMARY.md) (steps 3–4)
 
@@ -171,7 +177,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
-| 20. NMI line and VBlank flag | v5 | 9/10 | In Progress | - |
+| 20. NMI line and VBlank flag | v5 | 9/12 | In Progress | - |
 | 21. Interrupt latency and hijack | v5 | 0/TBD | Not started | - |
 
 Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
