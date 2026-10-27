@@ -275,7 +275,7 @@ function(nesturbator_phase20_write_evidence_fixture root source_dir runner rom)
       "2026-10-26T09:59:56.0000000Z 5/6 Test #5: holymapperel.m2.decode .................. Passed 0.01 sec\r\n"
       "2026-10-26T09:59:56.0000000Z 6/6 Test #6: runner.boot_to_play ..................... Passed 0.01 sec\r\n"
       "2026-10-26T09:59:57.0000000Z ##[endgroup]\r\n"
-      "2026-10-26T10:00:10.1000000Z ##[group]Run cmake --workflow --preset ci-build\r\n"
+      "2026-10-26T10:00:10.1000000Z ##[group]${expected_step}\r\n"
       "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... ${log_esc}[32mPassed${log_esc}[0m 16.82 sec\r\n"
       "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
       "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
@@ -292,12 +292,121 @@ function(nesturbator_phase20_write_evidence_fixture root source_dir runner rom)
       "2026-10-26T10:01:02.0000000Z 6/6 Test #6: runner.boot_to_play ..................... Passed 0.01 sec\r\n"
       "2026-10-26T10:01:03.0000000Z ##[endgroup]\r\n")
     file(SHA256 "${log}" raw_log_sha)
+    phase20_extract_job_log("${log}" "${platform}" 2026-10-26T10:00:10Z 2026-10-26T10:01:00Z
+      "${root}/provenance/build-${platform}-workflow.log" extract_error)
+    if(NOT extract_error STREQUAL "")
+      message(FATAL_ERROR "cannot derive offline selected workflow-step fixture: ${extract_error}")
+    endif()
+    file(SHA256 "${root}/provenance/build-${platform}-workflow.log" step_sha)
     file(WRITE "${root}/provenance/build-${platform}-job.txt"
-      "job_id=${job_id}\njob_name=${expected_job}\nrun_id=1001\nrun_attempt=1\nstep_name=${expected_step}\nstep_number=11\nraw_job_log=job-${platform}.txt\nraw_job_log_sha256=${raw_log_sha}\nstep_started_at=2026-10-26T10:00:10Z\nstep_completed_at=2026-10-26T10:01:00Z\n")
+      "job_id=${job_id}\njob_name=${expected_job}\nrun_id=1001\nrun_attempt=1\nstep_name=${expected_step}\nstep_number=11\nraw_job_log=job-${platform}.txt\nraw_job_log_sha256=${raw_log_sha}\nstep_log_sha256=${step_sha}\nstep_started_at=2026-10-26T10:00:10Z\nstep_completed_at=2026-10-26T10:01:00Z\n")
   endforeach()
 
   file(WRITE "${root}/provenance/source-identity.txt"
     "repository=szTheory/nesturbator\nci_run_id=1001\nci_run_attempt=1\nnightly_run_id=2002\nnightly_run_attempt=1\npr_number=42\ncandidate_head_sha=${candidate_sha}\ntested_sha=${tested_sha}\nbase_sha=${base_sha}\nsource_digest=${fixture_source_digest}\nsource_count=${fixture_source_count}\ncandidate_tree_sha=${tree_sha}\ntested_tree_sha=${tree_sha}\nprovenance_kind=fixture\n")
+endfunction()
+
+function(phase20_control_set_selected_job_log root mode)
+  set(raw_log "${root}/downloads/job-linux-x64.txt")
+  set(step_log "${root}/provenance/build-linux-x64-workflow.log")
+  set(mapping_path "${root}/provenance/build-linux-x64-job.txt")
+  set(results "")
+  if(mode STREQUAL "positive")
+    set(results
+      "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 16.82 sec\r\n"
+      "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:14.1234567Z 4/6 Test #336: vectors.n65v ............................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.m2.decode .................. Passed 0.00 sec\r\n"
+      "2026-10-26T10:00:16.1234567Z 6/6 Test #289: runner.boot_to_play ..................... Passed 10.08 sec\r\n")
+  elseif(mode STREQUAL "empty")
+    set(results "2026-10-26T10:00:11.0000000Z Test project /build/ci\r\n2026-10-26T10:00:12.0000000Z No tests were found!!!\r\n")
+  elseif(mode STREQUAL "near-miss")
+    set(results
+      "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 16.82 sec\r\n"
+      "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:14.1234567Z 4/6 Test #336: vectors.n65v ............................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.M2_P128K_CR8K_V.decode .... Passed 0.00 sec\r\n"
+      "2026-10-26T10:00:16.1234567Z 6/6 Test #289: runner.boot_to_play ..................... Passed 10.08 sec\r\n")
+  elseif(mode STREQUAL "skipped")
+    set(results
+      "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:14.1234567Z 4/6 Test #336: vectors.n65v ............................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.m2.decode .................. Skipped 0.00 sec\r\n"
+      "2026-10-26T10:00:16.1234567Z 6/6 Test #289: runner.boot_to_play ..................... Passed 0.01 sec\r\n")
+  elseif(mode STREQUAL "failed")
+    set(results
+      "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:14.1234567Z 4/6 Test #336: vectors.n65v ............................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.m2.decode .................. Failed 0.00 sec\r\n"
+      "2026-10-26T10:00:16.1234567Z 6/6 Test #289: runner.boot_to_play ..................... Passed 0.01 sec\r\n")
+  elseif(mode STREQUAL "duplicate")
+    set(results
+      "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:14.1234567Z 4/6 Test #336: vectors.n65v ............................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.m2.decode .................. Passed 0.00 sec\r\n"
+      "2026-10-26T10:00:16.1234567Z 6/6 Test #117: holymapperel.m2.decode .................. Passed 0.00 sec\r\n"
+      "2026-10-26T10:00:17.1234567Z 7/7 Test #289: runner.boot_to_play ..................... Passed 0.01 sec\r\n")
+  elseif(mode STREQUAL "contradictory")
+    set(results
+      "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:14.1234567Z 4/6 Test #336: vectors.n65v ............................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.m2.decode .................. Passed 0.00 sec\r\n"
+      "2026-10-26T10:00:16.1234567Z 6/6 Test #117: holymapperel.m2.decode .................. Failed 0.00 sec\r\n"
+      "2026-10-26T10:00:17.1234567Z 7/7 Test #289: runner.boot_to_play ..................... Passed 0.01 sec\r\n")
+  elseif(NOT mode STREQUAL "other-step-only")
+    message(FATAL_ERROR "unknown selected-job-log fixture mode: ${mode}")
+  endif()
+
+  string(ASCII 239 187 191 log_bom)
+  string(ASCII 27 log_esc)
+  file(WRITE "${raw_log}"
+    "${log_bom}2026-10-26T09:59:50.0000000Z Current runner version: '2.338.0'\r\n"
+    "2026-10-26T09:59:55.0000000Z ##[group]Run preceding-step-checks\r\n"
+    "2026-10-26T09:59:56.0000000Z 1/6 Test #1: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
+    "2026-10-26T09:59:56.0000000Z 2/6 Test #2: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+    "2026-10-26T09:59:56.0000000Z 3/6 Test #3: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+    "2026-10-26T09:59:56.0000000Z 4/6 Test #4: vectors.n65v ............................ Passed 0.01 sec\r\n"
+    "2026-10-26T09:59:56.0000000Z 5/6 Test #5: holymapperel.m2.decode .................. Passed 0.01 sec\r\n"
+    "2026-10-26T09:59:56.0000000Z 6/6 Test #6: runner.boot_to_play ..................... Passed 0.01 sec\r\n"
+    "2026-10-26T09:59:57.0000000Z ##[endgroup]\r\n"
+    "2026-10-26T10:00:10.1000000Z ##[group]Run cmake --workflow --preset ci-build\r\n"
+    "${results}"
+    "2026-10-26T10:00:59.0000000Z ##[endgroup]\r\n"
+    "2026-10-26T10:01:01.0000000Z ##[group]Run following-step-checks\r\n"
+    "2026-10-26T10:01:02.0000000Z 1/6 Test #1: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
+    "2026-10-26T10:01:02.0000000Z 2/6 Test #2: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+    "2026-10-26T10:01:02.0000000Z 3/6 Test #3: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+    "2026-10-26T10:01:02.0000000Z 4/6 Test #4: vectors.n65v ............................ Passed 0.01 sec\r\n"
+    "2026-10-26T10:01:02.0000000Z 5/6 Test #5: holymapperel.m2.decode .................. Passed 0.01 sec\r\n"
+    "2026-10-26T10:01:02.0000000Z 6/6 Test #6: runner.boot_to_play ..................... Passed 0.01 sec\r\n"
+    "2026-10-26T10:01:03.0000000Z ##[endgroup]\r\n")
+  if(mode STREQUAL "positive")
+    file(READ "${raw_log}" raw_text)
+    string(REPLACE "Passed 16.82 sec" "${log_esc}[32mPassed${log_esc}[0m 16.82 sec" raw_text "${raw_text}")
+    file(WRITE "${raw_log}" "${raw_text}")
+  endif()
+  file(READ "${mapping_path}" mapping_text)
+  file(SHA256 "${raw_log}" raw_sha)
+  file(WRITE "${root}/provenance/build-linux-x64-workflow.log" "")
+  phase20_extract_job_log("${raw_log}" linux-x64 2026-10-26T10:00:10Z 2026-10-26T10:01:00Z
+    "${step_log}" extract_error)
+  if(NOT extract_error STREQUAL "")
+    message(FATAL_ERROR "could not construct selected workflow-step fixture: ${extract_error}")
+  endif()
+  file(SHA256 "${step_log}" step_sha)
+  string(REGEX REPLACE "raw_job_log_sha256=[0-9a-f]+" "raw_job_log_sha256=${raw_sha}" mapping_text "${mapping_text}")
+  string(REGEX REPLACE "step_log_sha256=[0-9a-f]+" "step_log_sha256=${step_sha}" mapping_text "${mapping_text}")
+  file(WRITE "${mapping_path}" "${mapping_text}")
 endfunction()
 
 function(phase20_adapter_zip source_dir prefix archive work_dir)
@@ -539,9 +648,26 @@ if(CASE STREQUAL "adapter" OR CASE STREQUAL "availability")
        NOT EXISTS "${adapter_root}/provenance/normalization.tsv")
       message(FATAL_ERROR "production collect omitted its hosted evidence manifest, verdict or raw normalization ledger")
     endif()
+    file(READ "${adapter_root}/downloads/job-linux-x64.txt" collected_job_log_hex HEX)
+    file(SHA256 "${adapter_root}/downloads/job-linux-x64.txt" collected_job_log_sha)
+    phase20_read_properties("${adapter_root}/provenance/build-linux-x64-job.txt" collected_job
+      valid_collected_job collected_job_error)
+    if(NOT collected_job_log_hex MATCHES "^efbbbf" OR
+       NOT collected_job_log_sha STREQUAL collected_job_raw_job_log_sha256 OR
+       NOT EXISTS "${adapter_root}/provenance/build-linux-x64-workflow.log" OR
+       NOT collected_job_raw_job_log STREQUAL "job-linux-x64.txt" OR
+       NOT collected_job_step_started_at STREQUAL "2026-10-26T10:00:10Z" OR
+       NOT collected_job_step_completed_at STREQUAL "2026-10-26T10:01:00Z" OR
+       NOT collected_job_error STREQUAL "")
+      message(FATAL_ERROR "collector did not preserve original job-log bytes and bind the derived selected step")
+    endif()
     file(READ "${call_log}" collect_calls)
     if(collect_calls MATCHES "rejected-api-flag")
       message(FATAL_ERROR "production collector invoked unsupported gh api --repo")
+    endif()
+    if(NOT collect_calls MATCHES "api-raw\t[^\n]*/logs" OR
+       NOT collect_calls MATCHES "api-raw\t[^\n]*/zip")
+      message(FATAL_ERROR "production collect did not use escape-enabled raw job-log and artifact-ZIP requests")
     endif()
     message(STATUS "phase20 production collect adapter accepted the authentic-shaped fixture")
     execute_process(
@@ -562,6 +688,30 @@ if(CASE STREQUAL "adapter" OR CASE STREQUAL "availability")
       message(FATAL_ERROR "failed collect retry left a hosted-pass verdict")
     endif()
     message(STATUS "phase20 failed recollection cleared success and preserved raw history")
+
+    set(old_gh_root "${adapter_root}/old-gh")
+    file(MAKE_DIRECTORY "${old_gh_root}")
+    configure_file("${delivery_file}" "${old_gh_root}/delivery.json" COPYONLY)
+    file(REMOVE "${call_log}")
+    execute_process(
+      COMMAND "${CMAKE_COMMAND}" -E env
+        "PATH=${fake_path}" "PHASE20_FAKE_GH_FIXTURE=${fake_root}"
+        "PHASE20_FAKE_GH_CALLS=${call_log}" "PHASE20_FAKE_GH_NO_ESCAPE_FLAG=1"
+        "${CMAKE_COMMAND}" "-DMODE=collect" "-DROOT=${old_gh_root}"
+        "-DSOURCE_REF=${source_clone}"
+        -P "${SOURCE_DIR}/tests/cmake/phase20_hosted_evidence.cmake"
+      RESULT_VARIABLE old_gh_result OUTPUT_VARIABLE old_gh_stdout ERROR_VARIABLE old_gh_stderr)
+    if("${old_gh_result}" STREQUAL "0" OR EXISTS "${old_gh_root}/manifest.txt" OR
+       NOT EXISTS "${old_gh_root}/verdict.txt")
+      message(FATAL_ERROR "a gh executable without raw-response support was accepted: ${old_gh_stdout}${old_gh_stderr}")
+    endif()
+    file(READ "${old_gh_root}/verdict.txt" old_gh_verdict)
+    file(READ "${call_log}" old_gh_calls)
+    if(NOT old_gh_verdict MATCHES "cli: installed GitHub CLI does not advertise --allow-escape-sequences" OR
+       NOT old_gh_calls MATCHES "api-help" OR old_gh_calls MATCHES "api-raw")
+      message(FATAL_ERROR "unsupported gh escape option was not feature-detected before a raw request: ${old_gh_verdict} / ${old_gh_calls}")
+    endif()
+    message(STATUS "phase20 collector rejects old gh before downloading raw evidence")
   endif()
 
   set(availability_root "${source_clone}/build/ci/availability-check")
@@ -866,16 +1016,19 @@ if(CASE STREQUAL "all")
     elseif(case_name STREQUAL "missing-nightly")
       file(REMOVE "${FIXTURE}/artifacts/nightly/vectors-full/vectors-full.junit.xml")
     elseif(case_name STREQUAL "empty-job-log")
-      file(WRITE "${FIXTURE}/provenance/build-linux-x64-workflow.log" "Test project /build/ci\nStart testing\nEnd testing\n")
+      set(job_log_case empty)
     elseif(case_name STREQUAL "near-miss-holy-mapperel")
-      file(WRITE "${FIXTURE}/provenance/build-linux-x64-workflow.log"
-        "1/6 Test #1: accuracycoin.protected_observation .... Passed 0.01 sec\n2/6 Test #2: accuracycoin.protected .... Passed 0.01 sec\n3/6 Test #3: accuracy.scoreboard.no_lost_pass .... Passed 0.01 sec\n4/6 Test #4: vectors.n65v .... Passed 0.01 sec\n5/6 Test #5: holymapperel.M2_P128K_CR8K_V.decode .... Passed 0.01 sec\n6/6 Test #6: runner.boot_to_play .... Passed 0.01 sec\n")
+      set(job_log_case near-miss)
     elseif(case_name STREQUAL "skipped-required-test")
-      file(WRITE "${FIXTURE}/provenance/build-linux-x64-workflow.log"
-        "1/6 Test #1: accuracycoin.protected_observation .... Passed 0.01 sec\n2/6 Test #2: accuracycoin.protected .... Passed 0.01 sec\n3/6 Test #3: accuracy.scoreboard.no_lost_pass .... Passed 0.01 sec\n4/6 Test #4: vectors.n65v .... Passed 0.01 sec\n5/6 Test #5: holymapperel.m2.decode .... Skipped 0.00 sec\n6/6 Test #6: runner.boot_to_play .... Passed 0.01 sec\n")
+      set(job_log_case skipped)
+    elseif(case_name STREQUAL "failed-required-test")
+      set(job_log_case failed)
     elseif(case_name STREQUAL "duplicate-required-test")
-      file(WRITE "${FIXTURE}/provenance/build-linux-x64-workflow.log"
-        "1/6 Test #1: accuracycoin.protected_observation .... Passed 0.01 sec\n2/6 Test #2: accuracycoin.protected .... Passed 0.01 sec\n3/6 Test #3: accuracy.scoreboard.no_lost_pass .... Passed 0.01 sec\n4/6 Test #4: vectors.n65v .... Passed 0.01 sec\n5/6 Test #5: holymapperel.m2.decode .... Passed 0.01 sec\n6/6 Test #6: holymapperel.m2.decode .... Passed 0.01 sec\n7/7 Test #7: runner.boot_to_play .... Passed 0.01 sec\n")
+      set(job_log_case duplicate)
+    elseif(case_name STREQUAL "contradictory-required-test")
+      set(job_log_case contradictory)
+    elseif(case_name STREQUAL "other-step-only-results")
+      set(job_log_case other-step-only)
     elseif(case_name STREQUAL "wrong-attempt-job")
       file(READ "${FIXTURE}/provenance/build-linux-x64-job.json" text)
       string(REPLACE "\"run_attempt\":1" "\"run_attempt\":2" text "${text}")
@@ -883,31 +1036,8 @@ if(CASE STREQUAL "all")
     else()
       message(FATAL_ERROR "unknown phase20 evidence control: ${case_name}")
     endif()
-    if(case_name MATCHES "(job-log|holy-mapperel|required-test)")
-      set(job_log "${FIXTURE}/provenance/build-linux-x64-workflow.log")
-      set(job_mapping "${FIXTURE}/provenance/build-linux-x64-job.txt")
-      file(READ "${job_mapping}" mapping_text)
-      file(STRINGS "${job_mapping}" mapping_lines)
-      foreach(mapping_line IN LISTS mapping_lines)
-        if(mapping_line MATCHES "^archive_member=(.*)$")
-          set(archive_member "${CMAKE_MATCH_1}")
-        endif()
-      endforeach()
-      set(job_stage "${WORK}/replacement-job-step")
-      file(REMOVE_RECURSE "${job_stage}")
-      file(MAKE_DIRECTORY "${job_stage}")
-      configure_file("${job_log}" "${job_stage}/${archive_member}" COPYONLY)
-      execute_process(COMMAND "${CMAKE_COMMAND}" -E tar cf "${FIXTURE}/downloads/job-linux-x64.zip"
-        --format=zip "${archive_member}" WORKING_DIRECTORY "${job_stage}"
-        RESULT_VARIABLE zip_result OUTPUT_VARIABLE zip_stdout ERROR_VARIABLE zip_stderr)
-      if(NOT "${zip_result}" STREQUAL "0")
-        message(FATAL_ERROR "cannot update offline job log archive: ${zip_stdout}${zip_stderr}")
-      endif()
-      file(SHA256 "${job_log}" step_digest)
-      file(SHA256 "${FIXTURE}/downloads/job-linux-x64.zip" archive_digest)
-      string(REGEX REPLACE "step_log_sha256=[0-9a-f]+" "step_log_sha256=${step_digest}" mapping_text "${mapping_text}")
-      string(REGEX REPLACE "archive_sha256=[0-9a-f]+" "archive_sha256=${archive_digest}" mapping_text "${mapping_text}")
-      file(WRITE "${job_mapping}" "${mapping_text}")
+    if(DEFINED job_log_case)
+      phase20_control_set_selected_job_log("${FIXTURE}" "${job_log_case}")
     endif()
     nesturbator_phase20_validate_evidence("${FIXTURE}" "${SOURCE_DIR}" accepted actual_reason TRUE)
     string(FIND "${actual_reason}" "${expected_text}" reason_position)
@@ -942,7 +1072,10 @@ if(CASE STREQUAL "all")
   phase20_expect_rejection("empty-job-log" "job execution log is missing passing accuracycoin.protected_observation")
   phase20_expect_rejection("near-miss-holy-mapperel" "job execution log is missing passing holymapperel.m2.decode")
   phase20_expect_rejection("skipped-required-test" "recorded Skipped for holymapperel.m2.decode")
+  phase20_expect_rejection("failed-required-test" "recorded Failed for holymapperel.m2.decode")
   phase20_expect_rejection("duplicate-required-test" "duplicate terminal CTest result for holymapperel.m2.decode")
+  phase20_expect_rejection("contradictory-required-test" "duplicate terminal CTest result for holymapperel.m2.decode")
+  phase20_expect_rejection("other-step-only-results" "job execution log is missing passing accuracycoin.protected_observation")
   phase20_expect_rejection("wrong-attempt-job" "does not bind the selected successful run/attempt")
 
   set(suffix_root "${WORK}/suffix-normalization")
@@ -1001,21 +1134,16 @@ if(CASE STREQUAL "all")
     message(FATAL_ERROR "archive symlink was not rejected before touching its target: ${unsafe_error}")
   endif()
 
-  set(ambiguous_log_stage "${WORK}/ambiguous-job-log")
-  file(REMOVE_RECURSE "${ambiguous_log_stage}")
-  file(MAKE_DIRECTORY "${ambiguous_log_stage}")
-  file(WRITE "${ambiguous_log_stage}/11_first.txt" "first\n")
-  file(WRITE "${ambiguous_log_stage}/11_second.txt" "second\n")
-  execute_process(COMMAND "${CMAKE_COMMAND}" -E tar cf "${WORK}/ambiguous-job-log.zip"
-      --format=zip 11_first.txt 11_second.txt WORKING_DIRECTORY "${ambiguous_log_stage}"
-    RESULT_VARIABLE log_zip_result OUTPUT_VARIABLE log_zip_stdout ERROR_VARIABLE log_zip_stderr)
-  if(NOT "${log_zip_result}" STREQUAL "0")
-    message(FATAL_ERROR "cannot create ambiguous job-log control: ${log_zip_stdout}${log_zip_stderr}")
-  endif()
-  phase20_extract_job_log("${WORK}/ambiguous-job-log.zip" "linux-x64" "11"
-    "${WORK}/ambiguous-job.txt" ambiguous_member ambiguous_error)
-  if(NOT ambiguous_error MATCHES "ambiguous")
-    message(FATAL_ERROR "duplicate workflow-step log candidates were not rejected: ${ambiguous_error}")
+  string(ASCII 239 187 191 ambiguous_bom)
+  file(WRITE "${WORK}/ambiguous-job-log.txt"
+    "${ambiguous_bom}2026-10-26T10:00:10.1000000Z ##[group]Run cmake --workflow --preset ci-build\n"
+    "2026-10-26T10:00:11.1000000Z 1/6 Test #1: accuracycoin.protected_observation .... Passed 0.01 sec\n"
+    "2026-10-26T10:00:12.1000000Z ##[group]Run cmake --workflow --preset ci-build\n"
+    "2026-10-26T10:00:13.1000000Z 1/6 Test #1: accuracycoin.protected_observation .... Passed 0.01 sec\n")
+  phase20_extract_job_log("${WORK}/ambiguous-job-log.txt" "linux-x64" 2026-10-26T10:00:10Z
+    2026-10-26T10:01:00Z "${WORK}/ambiguous-job.txt" ambiguous_error)
+  if(NOT ambiguous_error MATCHES "no unique selected workflow-step group")
+    message(FATAL_ERROR "duplicate workflow-step groups were not rejected: ${ambiguous_error}")
   endif()
 
   nesturbator_phase20_write_evidence_fixture("${FIXTURE}" "${SOURCE_DIR}" "${RUNNER}" "${ROM}")

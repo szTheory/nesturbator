@@ -139,13 +139,33 @@ static int phase20_handle_api(int argc, char **argv)
 {
     const char *fixture = phase20_env("PHASE20_FAKE_GH_FIXTURE");
     const char *endpoint = NULL;
+    int allow_escape_sequences = 0;
     int index;
 
+    if (argc >= 3 && strcmp(argv[2], "--help") == 0) {
+        if (phase20_append_call("api-help", "help") != 0) {
+            return 65;
+        }
+        (void)printf("Usage: gh api [flags] <endpoint>\n");
+        if (phase20_env("PHASE20_FAKE_GH_NO_ESCAPE_FLAG")[0] != '1') {
+            (void)printf(
+                "      --allow-escape-sequences   Allow printing terminal escape sequences\n");
+        }
+        return 0;
+    }
     for (index = 2; index < argc; ++index) {
         if (strcmp(argv[index], "--repo") == 0) {
             (void)phase20_append_call("rejected-api-flag", "--repo");
             (void)fprintf(stderr, "gh: unknown flag: --repo for api\n");
             return 64;
+        }
+        if (strcmp(argv[index], "--allow-escape-sequences") == 0) {
+            if (phase20_env("PHASE20_FAKE_GH_NO_ESCAPE_FLAG")[0] == '1') {
+                (void)fprintf(stderr, "gh: unknown flag: --allow-escape-sequences\n");
+                return 64;
+            }
+            allow_escape_sequences = 1;
+            continue;
         }
         if (argv[index][0] != '-') {
             if (endpoint != NULL) {
@@ -153,13 +173,16 @@ static int phase20_handle_api(int argc, char **argv)
                 return 64;
             }
             endpoint = argv[index];
+            continue;
         }
+        (void)fprintf(stderr, "fake gh: unexpected API option\n");
+        return 64;
     }
     if (endpoint == NULL || fixture[0] == '\0') {
         (void)fprintf(stderr, "fake gh: api endpoint or fixture root is missing\n");
         return 64;
     }
-    if (phase20_append_call("api", endpoint) != 0) {
+    if (phase20_append_call(allow_escape_sequences ? "api-raw" : "api", endpoint) != 0) {
         return 65;
     }
     if (phase20_env("PHASE20_FAKE_GH_CONTENT_FORBIDDEN")[0] == '1' &&
@@ -169,6 +192,12 @@ static int phase20_handle_api(int argc, char **argv)
     }
     if (phase20_failure_for_endpoint(endpoint)) {
         return 67;
+    }
+    if ((strstr(endpoint, "/logs") != NULL || strstr(endpoint, "/zip") != NULL) &&
+        !allow_escape_sequences) {
+        (void)fprintf(stderr, "gh: the response contains terminal escape sequences; pass "
+                              "--allow-escape-sequences to output it anyway\n");
+        return 68;
     }
     return phase20_match_route(fixture, endpoint);
 }

@@ -992,9 +992,13 @@ retrieval time. This is a time-bounded metadata snapshot, not hosted
 acceptance. It requests no artifact or job log, extracts no archive, and does
 not replace collection provenance or acceptance files.
 
-`ROOT` must be under `build/` or `/tmp`. Collection uses supported read-only
-GitHub CLI API, run-view, per-job log, and artifact-download requests. The collector derives the
-actual tested checkout and protected base from saved GitHub run and PR metadata; pull-request
+`ROOT` must be under `build/` or `/tmp`. Collection uses read-only GitHub CLI API,
+run-view, per-job log, and artifact-download requests. For raw job logs and
+artifact ZIP downloads it feature-detects the installed CLI's
+`--allow-escape-sequences` option because API responses may contain terminal
+escape bytes; a CLI that does not advertise the option is rejected before a
+raw response is requested. The collector derives the actual tested checkout and
+protected base from saved GitHub run and PR metadata; pull-request
 builds normally test a synthetic merge commit, so the candidate head SHA is
 checked against the merge commit's two parents instead of being treated as the
 tested checkout SHA. The run API's `head_sha` identifies the candidate, while
@@ -1003,10 +1007,19 @@ parent, artifact and full-tree checks. Required matrix jobs use their complete
 hosted names, including session-control and no-floating-point lanes. The six
 required CTest results are read from each selected matrix job's own
 workflow-execution step and are bound to that job's ID, run attempt, step
-metadata and raw log ZIP digest. The Holy Mapperel result uses the registered
-name `holymapperel.m2.decode`. `LastTest.log` remains byte-for-byte raw
-supporting evidence; it may contain only start/end lines and is not a CTest
-summary. Artifact files are normalized by matching complete path suffixes at
+metadata and the digest of its preserved raw plain-text job log. GitHub's job
+logs endpoint returns a full timestamped job log, not a ZIP; the collector
+retains its original BOM, line endings and ANSI sequences in
+`downloads/job-<platform>.txt`, then writes a derived step log after selecting
+the unique named workflow step within the API metadata's start/completion
+bounds. The derived copy removes a leading UTF-8 BOM and ANSI CSI sequences and
+normalizes line endings; validation recomputes it from the raw bytes and saved
+step timestamps before accepting any result. Lines before the named workflow
+step group, outside its metadata time bounds, or from another job cannot supply
+passing results. The Holy Mapperel result uses the registered name
+`holymapperel.m2.decode`. `LastTest.log` remains byte-for-byte raw supporting
+evidence; it may contain only start/end lines and is not a CTest summary.
+Artifact files are normalized by matching complete path suffixes at
 directory boundaries, including root-level members. Every expected file must
 have exactly one raw path; root/nested ambiguity and duplicate ZIP members
 fail. `provenance/normalization.tsv` records raw and normalized paths with the
@@ -1023,6 +1036,10 @@ Without authorized run IDs and attempts, `MODE=collect` exits nonzero with
 runs that skip the pull-request performance job cannot establish performance
 acceptance. Local fixture controls verify validator behavior only; actual
 hosted acceptance remains pending Plan 20-10.
+
+The saved raw job-log shape follows the [GitHub workflow jobs logs API](https://docs.github.com/en/rest/actions/workflow-jobs#download-job-logs-for-a-workflow-run),
+which redirects to plain text. Artifact downloads remain ZIP archives and keep
+their existing path, duplicate-member, traversal and symlink checks.
 
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
 04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
