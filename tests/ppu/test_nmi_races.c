@@ -224,6 +224,163 @@ static void test_clear_race_read(uint16_t address, const char *case_name)
     split_read_nes = NULL;
 }
 
+/* AccuracyCoin TEST_2002FlagTiming documents that the PPUSTATUS bits are
+   sampled at separate M2 edges. This constructed state represents the point
+   after eight sprites filled secondary OAM and the ninth in-range Y was read
+   at dot 129: with Y=0, target=1, 8x8 mode, and eval_count=8, dot 130 sets
+   eval_remaining=3; the documented delayed overflow signal exposes bit 5 on
+   dot 131. This follows sprite_evaluate and NESdev's PPU sprite-evaluation
+   description; the expected byte below is not copied from a decoder result. */
+static struct nesturbator *sprite_overflow_transition_fixture(void)
+{
+    static const uint8_t idle[] = {0x4cu, 0x00u, 0x80u};
+    struct nesturbator *nes = nmi_fixture_build(idle, sizeof idle, NULL, 0u, 0x8000u);
+    if (nes == NULL)
+        return NULL;
+
+    nmi_fixture_at(nes, 0u, 129u, 0u, 0u, 0x15u);
+    nes->ppu.mask = 0x18u;
+    nes->ppu.eval_count = 8u;
+    nes->ppu.eval_n = 8u;
+    nes->ppu.eval_m = 0u;
+    nes->ppu.eval_target = 1u;
+    nes->ppu.eval_latch = 0u;
+    nes->ppu.eval_remaining = 0u;
+    nes->ppu.eval_copy_remaining = 0u;
+    return nes;
+}
+
+static void assert_sprite_overflow_phase(const char *name, uint64_t ticks, uint16_t expected_dot,
+                                         uint8_t expected_status)
+{
+    struct nesturbator *nes = sprite_overflow_transition_fixture();
+    CHECK(nes != NULL);
+    if (nes == NULL)
+        return;
+
+    /* Direct PPU advancement is an independent coordinate witness; it never
+       performs the acceptance read or mutates status from a test callback. */
+    nesturbator__ppu_run_until(nes, ticks);
+    CHECK_EQ_U64(nes->ppu.scanline, 0u);
+    CHECK_EQ_U64(nes->ppu.dot, expected_dot);
+    CHECK_EQ_HEX(nes->ppu.status & 0x20u, expected_status);
+    if (expected_dot == 130u) {
+        CHECK_EQ_U64(nes->ppu.eval_count, 8u);
+        CHECK_EQ_U64(nes->ppu.eval_remaining, 3u);
+        CHECK_EQ_U64(nes->ppu.eval_m, 1u);
+    } else {
+        CHECK_EQ_U64(nes->ppu.eval_count, 8u);
+        CHECK_EQ_U64(nes->ppu.eval_remaining, 3u);
+    }
+    printf("TRACE sprite-status-phase sample=%s tick=%llu coordinate=0:%u status=%02x ", name,
+           (unsigned long long)ticks, (unsigned)nes->ppu.dot, (unsigned)nes->ppu.status);
+    if (expected_dot == 130u)
+        printf("eval_remaining=%u\n", (unsigned)nes->ppu.eval_remaining);
+    else
+        printf("delayed-overflow=%u\n", (unsigned)((nes->ppu.status >> 5u) & 1u));
+    nesturbator_destroy((nesturbator *)nes);
+}
+
+static void test_sprite_status_changes_between_m2_samples(void)
+{
+    static const uint16_t addresses[] = {0x2002u, 0x3ffau};
+    struct nesturbator *early = sprite_overflow_transition_fixture();
+    struct nesturbator *poll = sprite_overflow_transition_fixture();
+    struct nesturbator *late = sprite_overflow_transition_fixture();
+    CHECK(early != NULL && poll != NULL && late != NULL);
+    if (early == NULL || poll == NULL || late == NULL) {
+        if (early != NULL)
+            nesturbator_destroy((nesturbator *)early);
+        if (poll != NULL)
+            nesturbator_destroy((nesturbator *)poll);
+        if (late != NULL)
+            nesturbator_destroy((nesturbator *)late);
+        return;
+    }
+
+    /* M2 rise catches through +9 (dot 130); phi2-open catch-up at +12 adds
+       no PPU dot. Before the +24 close, catch-up through +23 reaches dot 131. */
+    nesturbator__ppu_run_until(early, 9u);
+    nesturbator__ppu_run_until(poll, 12u);
+    nesturbator__ppu_run_until(late, 23u);
+    CHECK_EQ_U64(early->ppu.dot, 130u);
+    CHECK_EQ_U64(poll->ppu.dot, 130u);
+    CHECK_EQ_U64(late->ppu.dot, 131u);
+    CHECK_EQ_HEX(early->ppu.status & 0x20u, 0u);
+    CHECK_EQ_HEX(poll->ppu.status & 0x20u, 0u);
+    CHECK_EQ_HEX(late->ppu.status & 0x20u, 0x20u);
+    CHECK_EQ_U64(early->ppu.eval_remaining, 3u);
+    CHECK_EQ_U64(poll->ppu.eval_remaining, 3u);
+    CHECK_EQ_U64(late->ppu.eval_remaining, 3u);
+
+    for (size_t i = 0u; i < sizeof addresses / sizeof addresses[0]; i++) {
+        struct nesturbator *nes = sprite_overflow_transition_fixture();
+        CHECK(nes != NULL);
+        if (nes == NULL)
+            continue;
+
+        /* Start with a nonzero I/O age so the one read's reset is observable. */
+        nes->ppu.io_bus_age = 7u;
+        nes->ppu.address_latch = 1u;
+        uint64_t start_ticks = nes->ticks;
+        uint64_t start_ppu_ticks = nes->ppu.ppu_ticks;
+        uint64_t start_cycle = nes->cpu_cycle;
+        CHECK_EQ_HEX(nes->ppu.status & 0x20u, 0u);
+        uint8_t value = nesturbator__bus_read(nes, addresses[i]);
+
+        CHECK_EQ_HEX(early->ppu.status & 0x80u, 0u);
+        CHECK_EQ_HEX(late->ppu.status & 0x60u, 0x20u);
+        /* This is the precise acceptance assertion used by the wrong-sampler
+           control: using the rise snapshot for sprite flags returns 0x15. */
+        CHECK_EQ_HEX(value, 0x35u);
+        CHECK_EQ_HEX(nes->bus.open_bus, value);
+        CHECK_EQ_U64(nes->ppu.status & 0x20u, 0x20u);
+        CHECK_EQ_U64(nes->ppu.address_latch, 0u);
+        CHECK_EQ_U64(nes->ppu.io_bus, value);
+        CHECK_EQ_U64(nes->ppu.io_bus_age, 1u);
+        CHECK_EQ_U64(nes->ticks - start_ticks, 24u);
+        CHECK_EQ_U64(nes->ppu.ppu_ticks - start_ppu_ticks, 24u);
+        CHECK_EQ_U64(nes->cpu_cycle - start_cycle, 1u);
+        printf("TRACE sprite-status-split address=%04x early=0:130@+9 status=%02x "
+               "poll=0:130@+12 status=%02x late=0:131@+23 status=%02x returned=%02x "
+               "ticks=24 cycles=1 io_age=%u\n",
+               addresses[i], (unsigned)(early->ppu.status & 0xe0u),
+               (unsigned)(poll->ppu.status & 0xe0u), (unsigned)(late->ppu.status & 0xe0u),
+               (unsigned)value, (unsigned)nes->ppu.io_bus_age);
+        nesturbator_destroy((nesturbator *)nes);
+    }
+
+    nesturbator_destroy((nesturbator *)early);
+    nesturbator_destroy((nesturbator *)poll);
+    nesturbator_destroy((nesturbator *)late);
+}
+
+static void test_sprite_status_no_transition_controls(void)
+{
+    for (unsigned control = 0u; control < 2u; control++) {
+        struct nesturbator *nes = sprite_overflow_transition_fixture();
+        CHECK(nes != NULL);
+        if (nes == NULL)
+            continue;
+
+        if (control == 0u) {
+            /* The eighth in-range sprite fills the last slot, without a ninth comparison. */
+            nes->ppu.eval_count = 7u;
+            nes->ppu.eval_n = 7u;
+        } else {
+            /* A ninth Y of zero is outside target=9's range. */
+            nes->ppu.eval_target = 9u;
+        }
+        nesturbator__ppu_run_until(nes, 23u);
+        CHECK_EQ_U64(nes->ppu.dot, 131u);
+        CHECK_EQ_HEX(nes->ppu.status & 0x20u, 0u);
+        printf("CASE guard sprite-overflow-no-transition control=%s coordinate=0:131 status=%02x\n",
+               control == 0u ? "eighth-slot" : "ninth-y-out-of-range",
+               (unsigned)(nes->ppu.status & 0x20u));
+        nesturbator_destroy((nesturbator *)nes);
+    }
+}
+
 static void test_nmi_suppression_cases(void)
 {
     static const uint8_t idle[] = {0x4cu, 0x00u, 0x80u};
@@ -701,6 +858,11 @@ int main(void)
     test_set_race_read(0x3ffau, "set-boundary-mirrored");
     test_clear_race_read(0x2002u, "clear-boundary-ordinary");
     test_clear_race_read(0x3ffau, "clear-boundary-mirrored");
+    assert_sprite_overflow_phase("m2-rise", 9u, 130u, 0u);
+    assert_sprite_overflow_phase("phi2-open", 12u, 130u, 0u);
+    assert_sprite_overflow_phase("before-m2-fall", 23u, 131u, 0x20u);
+    test_sprite_status_changes_between_m2_samples();
+    test_sprite_status_no_transition_controls();
     test_nmi_suppression_cases();
     test_captured_request_survives_clear();
     test_wrong_unchanged_enable_control();

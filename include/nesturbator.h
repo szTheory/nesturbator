@@ -56,8 +56,10 @@ extern "C" {
    the same inputs. Revision 8 captures the derived PPU NMI line at CPU bus
    clock seams, then services a request only after the instruction's CPU poll
    (including branch-specific poll cycles); a captured request survives later
-   line deassertion. This also splits the early vblank-bit and later sprite-bit
-   samples of a $2002 read.
+   line deassertion. A $2002 read samples vblank bit 7 at M2 rise and sprite
+   bits 6/5 at M2 fall; a flag raised between those samples appears in the
+   returned status byte. PPUCTRL disable and the pre-render clear lower the
+   live NMI line without revoking an already captured request.
    Revision 7 clears OAMADDR on dots 257-320 while rendering and
    starts sprite evaluation at OAMADDR, with the sprite found on the dot-66 read
    acting as sprite 0, which changes the frames of programs that leave OAMADDR
@@ -258,7 +260,8 @@ typedef struct nesturbator_frame {
                                 A $2000 write raises an NMI only when bit 7
                                 changes from 0 to 1 while vblank is set;
                                 rewriting it with bit 7 still set does not,
-                                and clearing bit 7 suppresses a pending NMI. */
+                                and clearing bit 7 lowers the live NMI line
+                                without revoking an already captured request. */
 } nesturbator_frame;
 
 /* Writes the library's version into *out. Writes nothing when out is NULL or

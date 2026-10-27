@@ -316,14 +316,16 @@ CPU stays latched until the cartridge is unloaded or reloaded.
 The PPU sets vblank at scanline 241 dot 1 and clears it at scanline 261 dot 1.
 A `$2002` read immediately before the vblank start dot suppresses the flag for
 that frame. Its bit 7 reflects the flag at M2 rise; sprite flags and low bits
-are composed at M2 fall, where the same read clears vblank. The asserted NMI
+are composed at M2 fall, where the same read clears vblank. A sprite-overflow
+flag raised between those edges is visible in that read. The asserted NMI
 line is `PPUCTRL.7 && PPUSTATUS.7`; bus-clock seams capture its rising edge,
 while the CPU polls the captured request at instruction-specific cycle points.
 Most instructions poll before their final bus cycle; conditional branches poll
 before the offset cycle, skip the poll before a taken same-page branch's third
 cycle, and poll before its page-cross fix-up cycle. A request captured after a
-poll remains pending until a later instruction poll. It survives `$2002`,
-`$2000` disable or the pre-render clear lowering the line. Rewriting `$2000`
+poll remains pending until a later instruction poll. `$2002`, `$2000` disable
+and the pre-render clear can lower the live line without revoking an already
+captured request. Rewriting `$2000`
 with bit 7 still set does not create a second capture. Equal-time PPU updates,
 CPU sampling and bus side effects use one deterministic model order; this
 convention does not assert physical setup/hold precedence at an exact tie. Odd
