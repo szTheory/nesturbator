@@ -852,3 +852,45 @@ loadable with the live NMI line low; the bounded-field sweep rejects
 out-of-range history booleans; and format 1 retains its format-error
 precedence. The new Control 8 clear replay separately reaches and restores a
 captured request after the live PPU status has fallen.
+
+## Phase 20 Plan 05: public host frame-boundary replay
+
+This plan adds deterministic host replay evidence; it does not create an
+AccuracyCoin campaign result or change the measured scoreboard. The owned NROM
+fixture lives in test code and is written only into each runner or CTest scratch
+directory. The AccuracyCoin metadata fingerprint was refreshed for the added
+runner test registration while its ROM pin, report, scoreboard, source-dirty
+provenance and local-vs-protected distinction were preserved.
+
+The core fork and run-ahead tests check guest NMI count and one-based event
+sequence at frame 0, the first NMI frame and successive boundaries. Speculative
+depths 1–3 use changed inputs, two histories remain independent, and stale or
+omitted restores are caught by the expected marker. The same test image changes
+the visible backdrop and keeps pulse audio active; the checks cover native
+state, displayed frame, frame number, ticks and non-silent PCM. The existing
+`core.nmi_state` test remains the separate instruction-boundary and omitted
+history oracle.
+
+The runner process cases create frame-0, frame-1 and frame-4 states, verify the
+saved guest sequence through the public state API, then load frame 1 in a fresh
+process. Final native frame, ticks and serialized bytes match the uninterrupted
+run. Transition and PCM hashes cover frames 2–4 only and match a direct
+uninterrupted suffix reference. Idempotence is byte-for-byte; stale-checkpoint
+and omitted-load controls finish normally and fail on the expected guest marker.
+
+The libretro host serializes and restores at every displayed boundary for 12
+ticks at each depth, in both real-future-input and repeated-current-input modes.
+It checks the expected guest count and event sequence in each real and
+speculative state, frame numbers, ticks, saved bytes, visible output and PCM.
+Both omitted-load and stale-load controls must register a guest-marker
+mismatch. Existing mapper, audio, serialization and JAM matrices remain in
+place. These are public host frame-boundary results and do not replace Plan
+20-04's exact modeled race cutpoints or the later hosted evidence required to
+close KEEP-02/KEEP-03.
+
+Validation on the local candidate: `core.state_fork.nmi`,
+`core.state_runahead`, and `core.nmi_state` passed; all three
+`runner.state.nmi_*` cases passed; and `libretro.host`, `libretro.serialize`,
+and `libretro.runahead` passed. ASan/UBSan `libretro.host` and
+`libretro.runahead` passed. The complete `cmake --workflow --preset ci` run
+passed 683/683 tests and packaged the library, runner and libretro archives.

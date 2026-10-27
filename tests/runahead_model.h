@@ -313,14 +313,47 @@ static inline int ra_record_frame(struct ra_oracle *o, uint32_t i, nesturbator *
 static inline void ra_check_nmi_marker(nesturbator *nes, uint8_t expected_count)
 {
     uint8_t value = 0u;
-    CHECK_EQ_U64(nesturbator_peek_cpu_ram(nes, RA_NMI_COUNT_ADDRESS, &value), NESTURBATOR_OK);
-    CHECK_EQ_U64(value, expected_count);
+    int matches = nesturbator_peek_cpu_ram(nes, RA_NMI_COUNT_ADDRESS, &value) == NESTURBATOR_OK &&
+                  value == expected_count;
+    for (uint16_t event = 1u; matches && event <= expected_count; event++)
+        matches = nesturbator_peek_cpu_ram(nes, (uint16_t)(RA_NMI_EVENTS_ADDRESS + event),
+                                           &value) == NESTURBATOR_OK &&
+                  value == event;
+    CHECK(matches);
+}
+
+static inline uint64_t ra_state_u64le(const uint8_t *state, size_t offset)
+{
+    uint64_t value = 0u;
+    for (uint32_t byte = 0u; byte < 8u; byte++)
+        value |= (uint64_t)state[offset + byte] << (8u * byte);
+    return value;
+}
+
+/* The public state layout puts frame_number at byte 32 and ticks at byte 40. */
+static inline uint64_t ra_state_frame_number(const uint8_t *state)
+{
+    return ra_state_u64le(state, 32u);
+}
+
+static inline uint64_t ra_state_ticks(const uint8_t *state)
+{
+    return ra_state_u64le(state, 40u);
+}
+
+static inline int ra_nmi_marker_matches(nesturbator *nes, uint8_t expected_count)
+{
+    uint8_t value = 0u;
+    if (nesturbator_peek_cpu_ram(nes, RA_NMI_COUNT_ADDRESS, &value) != NESTURBATOR_OK ||
+        value != expected_count)
+        return 0;
     for (uint16_t event = 1u; event <= expected_count; event++) {
-        CHECK_EQ_U64(
-            nesturbator_peek_cpu_ram(nes, (uint16_t)(RA_NMI_EVENTS_ADDRESS + event), &value),
-            NESTURBATOR_OK);
-        CHECK_EQ_U64(value, event);
+        if (nesturbator_peek_cpu_ram(nes, (uint16_t)(RA_NMI_EVENTS_ADDRESS + event), &value) !=
+                NESTURBATOR_OK ||
+            value != event)
+            return 0;
     }
+    return 1;
 }
 
 /* Load a host-produced state through the public API before inspecting the guest marker. */
@@ -333,10 +366,9 @@ static inline int ra_state_has_nmi_marker(const uint8_t *rom, size_t size, const
         return 0;
     status = nesturbator_load_state(nes, state, state_size);
     CHECK_EQ_U64(status, NESTURBATOR_OK);
-    if (status == NESTURBATOR_OK)
-        ra_check_nmi_marker(nes, expected_count);
+    int matches = status == NESTURBATOR_OK && ra_nmi_marker_matches(nes, expected_count);
     nesturbator_destroy(nes);
-    return status == NESTURBATOR_OK;
+    return matches;
 }
 
 /* Runs frames 0..frames-1 with in[i]. With jam_aware set, a STOP_JAM frame is recorded as not

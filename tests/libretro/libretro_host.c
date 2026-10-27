@@ -22,6 +22,7 @@
 
 #include "../check.h"
 #include "../ines.h"
+#include "../nmi_fixture.h"
 #include "../runahead_model.h"
 #include "../state_test.h"
 #include "../../src/internal.h"
@@ -1821,6 +1822,7 @@ struct ser_rom {
     size_t size;
     size_t state_size;
     unsigned char *state;
+    int nmi_sensitive;
 };
 
 static int ser_prepare(struct ser_rom *r)
@@ -2512,12 +2514,14 @@ enum rah_control {
 };
 
 #define RAH_MIN_ROMS 7u /* D-20: a pass over fewer ROMs than this cannot succeed */
+#define RAH_NMI_TICKS 12u
 
 struct rah_result {
-    unsigned ticks;      /* ticks run */
-    unsigned states;     /* states compared with the oracle */
-    unsigned mismatches; /* comparisons that differed */
-    int report;          /* print the first mismatch */
+    unsigned ticks;             /* ticks run */
+    unsigned states;            /* states compared with the oracle */
+    unsigned mismatches;        /* comparisons that differed */
+    unsigned marker_mismatches; /* NMI guest markers that differed */
+    int report;                 /* print the first mismatch */
     /* JAM oracle only (D-17) */
     unsigned silent_real; /* real ticks that delivered zero audio frames */
     unsigned load_skips;  /* ticks whose load-has-work check was skipped */
@@ -2531,6 +2535,12 @@ static void rah_mismatch(struct rah_result *r, const char *what, uint32_t t)
         fprintf(stderr, "libretro.runahead: %s differs at tick %u\n", what, (unsigned)t);
     }
     r->mismatches++;
+}
+
+static void rah_marker_mismatch(struct rah_result *r, uint32_t t)
+{
+    r->marker_mismatches++;
+    rah_mismatch(r, "guest NMI marker", t);
 }
 
 static void rah_set_buttons(uint16_t b)
@@ -2604,7 +2614,18 @@ static void rah_run(const struct ser_rom *rom, unsigned N, const uint16_t *in, u
         }
         CHECK(p_serialize(r_now, ss));
         res->states++;
-        if (memcmp(r_now, o->state + (size_t)t * ss, ss) != 0) {
+        const uint8_t *real_state = o->state + (size_t)t * ss;
+        if (ra_state_frame_number(r_now) != ra_state_frame_number(real_state)) {
+            rah_mismatch(res, "frame number", t);
+        }
+        if (ra_state_ticks(r_now) != ra_state_ticks(real_state)) {
+            rah_mismatch(res, "ticks", t);
+        }
+        if (rom->nmi_sensitive &&
+            !ra_state_has_nmi_marker(rom->data, rom->size, r_now, ss, (uint8_t)(t + 1u))) {
+            rah_marker_mismatch(res, t);
+        }
+        if (memcmp(r_now, real_state, ss) != 0) {
             rah_mismatch(res, "saved state", t);
         }
 
@@ -2618,6 +2639,24 @@ static void rah_run(const struct ser_rom *rom, unsigned N, const uint16_t *in, u
         if (N > 0u) {
             visible = rah_frame_hash();
             spec_audio = rah_audio_hash();
+        }
+        if (rom->nmi_sensitive && N > 0u) {
+            uint32_t future = t + N;
+            const uint8_t *future_state = o->state + (size_t)future * ss;
+            if (!p_serialize(pre, ss)) {
+                CHECK(0);
+            } else {
+                if (!ra_state_has_nmi_marker(rom->data, rom->size, pre, ss,
+                                             (uint8_t)(future + 1u))) {
+                    rah_marker_mismatch(res, t);
+                }
+                if (ra_state_frame_number(pre) != ra_state_frame_number(future_state)) {
+                    rah_mismatch(res, "speculative frame number", t);
+                }
+                if (ra_state_ticks(pre) != ra_state_ticks(future_state)) {
+                    rah_mismatch(res, "speculative ticks", t);
+                }
+            }
         }
         if (ctl == RAH_AUDIO_LEAK) {
             real_audio = ra_fnv_bytes(real_audio, &spec_audio, sizeof spec_audio);
@@ -2680,6 +2719,8 @@ struct rah_totals {
     unsigned roms, ticks, states, repeat_ticks, expected_ticks, expected_repeat;
     unsigned controls_tripped;
     unsigned jam_controls_tripped;
+    unsigned nmi_controls_tripped;
+    unsigned nmi_ticks;
     unsigned jam_cls[RA_MAX_DEPTH + 1u][4]; /* window classes per depth, JAM image only */
     uint32_t jam_frame;                     /* J, read from the oracle */
 };
@@ -2722,6 +2763,22 @@ static void rah_matrix(const struct ser_rom *rom, uint32_t T, unsigned script, u
         free(in);
         free(visible);
         return;
+    }
+    if (rom->nmi_sensitive) {
+        CHECK(oracle.frames >= T + RA_MAX_DEPTH);
+        CHECK(oracle.video[0] != oracle.video[1]);
+        for (uint32_t i = 0u; i < oracle.frames; i++) {
+            uint8_t expected = (uint8_t)(i + 1u);
+            const uint8_t *state = oracle.state + (size_t)i * oracle.state_size;
+            CHECK_EQ_U64(oracle.guest_marker[i], expected);
+            CHECK(
+                ra_state_has_nmi_marker(rom->data, rom->size, state, oracle.state_size, expected));
+            CHECK(ra_audio_hash_is_nonzero_pcm(oracle.audio[i]));
+        }
+        for (uint32_t t = 0u; t < T; t++) {
+            for (uint32_t j = 1u; j <= RA_MAX_DEPTH; j++)
+                CHECK(in[t] != in[t + j]);
+        }
     }
     if (jam) {
         /* D-17: J is whatever the oracle's first STOP_JAM is, within bounds that keep every
@@ -2868,6 +2925,43 @@ static unsigned rah_controls(const struct ser_rom *rom, uint32_t T, int jam)
     return tripped;
 }
 
+/* NMI input-ignoring fixture controls must be caught by the guest marker itself. */
+static unsigned rah_nmi_controls(const struct ser_rom *rom, uint32_t T)
+{
+    static const struct {
+        enum rah_control ctl;
+        const char *name;
+    } controls[] = {{RAH_SKIP_LOAD, "omitted-load"}, {RAH_STALE_LOAD, "stale-load"}};
+    unsigned tripped = 0u;
+    uint16_t *in = ra_script_make(1u, RA_SEED_1, T + RA_MAX_DEPTH);
+    struct ra_oracle oracle;
+
+    CHECK(in != NULL);
+    if (in == NULL ||
+        !ra_run_uninterrupted_ex(rom->data, rom->size, in, T + RA_MAX_DEPTH, &oracle, 0)) {
+        CHECK(0);
+        free(in);
+        return 0u;
+    }
+    for (unsigned i = 0u; i < sizeof controls / sizeof controls[0]; i++) {
+        struct rah_result res;
+        memset(&res, 0, sizeof res);
+        rah_run(rom, 2u, in, T, &oracle, NULL, controls[i].ctl, &res);
+        if (res.mismatches == 0u || res.marker_mismatches == 0u) {
+            fprintf(stderr, "libretro.runahead: NMI control %s did not trip its guest marker\n",
+                    controls[i].name);
+            CHECK(res.mismatches != 0u && res.marker_mismatches != 0u);
+        } else {
+            tripped++;
+            printf("libretro.runahead: NMI control %s tripped guest marker (%u mismatches)\n",
+                   controls[i].name, res.marker_mismatches);
+        }
+    }
+    ra_oracle_free(&oracle);
+    free(in);
+    return tripped;
+}
+
 /* D-17: the synthetic JAM image. NROM, input ignored, rendering off, pulse 1 playing. Each NMI
    counts up and writes counter + $10 to $3F00, so every frame before the JAM has its own
    backdrop; the thirteenth NMI executes the JAM opcode $02. The VRAM address is put back to
@@ -2915,7 +3009,7 @@ static int runahead_mode(int argc, char **argv)
     struct rah_totals tot;
     uint32_t T = 180u;
     int first = 3, a;
-    unsigned depth, covered_depths = 0u, control_roms = 0u;
+    unsigned depth, covered_depths = 0u, control_roms = 0u, nmi_images = 0u;
     struct ser_rom *roms;
     unsigned count = 0u, stress_images = 0u, jam_images = 0u;
     int stress = 0;
@@ -3004,6 +3098,25 @@ static int runahead_mode(int argc, char **argv)
             jam_images++;
         }
     }
+    /* Public frame-boundary NMI fixture: one expected guest event per frame, with all run-ahead
+       depths, repeat-input mode and a rewind load after every displayed boundary. */
+    {
+        static uint8_t nmi_image[NMI_FIXTURE_HOST_IMAGE_SIZE];
+        struct ser_rom nr;
+
+        memset(&nr, 0, sizeof nr);
+        nr.path = "nmi-frame-boundary";
+        nr.data = nmi_image;
+        nr.size = nmi_fixture_host_image(nmi_image, sizeof nmi_image);
+        nr.nmi_sensitive = 1;
+        CHECK(nr.size == sizeof nmi_image);
+        if (nr.size != 0u) {
+            rah_matrix(&nr, RAH_NMI_TICKS, 1u, 0xfu, 1, 0, &tot);
+            tot.nmi_controls_tripped = rah_nmi_controls(&nr, RAH_NMI_TICKS);
+            tot.nmi_ticks = 2u * RA_MAX_DEPTH * RAH_NMI_TICKS;
+            nmi_images++;
+        }
+    }
     /* The Phase 12 stress images keep DMA and interrupts in flight across frame boundaries. */
     for (unsigned m = 0u; stress && m < 2u; m++) {
         static const uint16_t mappers[2] = {0u, 4u};
@@ -3028,6 +3141,8 @@ static int runahead_mode(int argc, char **argv)
     CHECK_EQ_U64(stress_images, stress ? 2u : 0u);
     CHECK_EQ_U64(control_roms, 1u);
     CHECK_EQ_U64(tot.controls_tripped, 4u);
+    CHECK_EQ_U64(nmi_images, 1u);
+    CHECK_EQ_U64(tot.nmi_controls_tripped, 2u);
     CHECK_EQ_U64(jam_images, 1u);
     CHECK_EQ_U64(tot.jam_controls_tripped, 5u); /* four controls and the black oracle */
     for (depth = 1u; depth <= RA_MAX_DEPTH; depth++) {
@@ -3042,9 +3157,11 @@ static int runahead_mode(int argc, char **argv)
     CHECK(tot.repeat_ticks >= RA_MAX_DEPTH * T);
     CHECK(tot.states >= tot.ticks + tot.repeat_ticks);
     printf("libretro.runahead: order=\"%s\" roms=%u stress=%u ticks=%u repeat_ticks=%u states=%u "
-           "controls_tripped=%u jam_images=%u jam_frame=%u jam_controls_tripped=%u\n",
+           "controls_tripped=%u nmi_images=%u nmi_verified_ticks=%u nmi_controls_tripped=%u "
+           "jam_images=%u jam_frame=%u jam_controls_tripped=%u\n",
            RA_SPECULATIVE_ORDER, count, stress_images, tot.ticks, tot.repeat_ticks, tot.states,
-           tot.controls_tripped, jam_images, (unsigned)tot.jam_frame, tot.jam_controls_tripped);
+           tot.controls_tripped, nmi_images, tot.nmi_ticks, tot.nmi_controls_tripped, jam_images,
+           (unsigned)tot.jam_frame, tot.jam_controls_tripped);
     for (depth = 1u; depth <= RA_MAX_DEPTH; depth++) {
         printf("libretro.runahead: jam depth %u windows: no_jam=%u in_speculative=%u boundary=%u "
                "jammed_loaded=%u\n",
