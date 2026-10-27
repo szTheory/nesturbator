@@ -5,16 +5,16 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
 status: executing
-stopped_at: Completed 20-02-PLAN.md
-last_updated: "2026-10-26T22:24:07.729Z"
+stopped_at: Completed 20-03-PLAN.md
+last_updated: "2026-10-27T00:03:42.972Z"
 last_activity: 2026-10-26
 last_activity_desc: Phase 20 execution started
-state_head: 1a48384c3c872f68e1689bf38ee7aec733c1f900
+state_head: b75b4360b7004004f9ef2268322377be03446d41
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 12
-  completed_plans: 8
+  completed_plans: 9
   percent: 33
 ---
 
@@ -29,7 +29,7 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 ## Current Position
 
 Phase: 20 (NMI line and VBlank flag) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
 Last activity: 2026-10-26 — Phase 20 execution started
 
@@ -53,6 +53,8 @@ Progress: [███░░░░░░░] 33%
 - [Phase 20]: Equal integer timestamps use PPU transition, CPU sample, then bus side effect; exact physical tie precedence remains unclaimed.
 - [Phase 20]: The bus captures a rising derived NMI line at cycle close; later line deassertion does not revoke the request.
 - [Phase 20]: PPUSTATUS decoding requires the PPU address range as well as register bits 010, including for DMC parked reads.
+- [Phase 20]: NMI instruction polls use a separately serialized cpu.nmi_polled latch distinct from the captured cpu.nmi_pending request; late captures remain until the next poll.
+- [Phase 20]: Plan 20-03 keeps one global timestamp model and no per-table offset; the exact physical tie remains unproven.
 
 ### Blockers/Concerns
 
@@ -105,8 +107,8 @@ Run `$gsd-execute-phase 20` to start Plan 20-03. Plan 20-02 completed its split 
 
 ## Session
 
-Last session: 2026-10-26T22:24:07.664Z
-Stopped at: Completed 20-02-PLAN.md
+Last session: 2026-10-27T00:03:42.932Z
+Stopped at: Completed 20-03-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -129,3 +131,4 @@ Resume file: None
 | Phase 19 P06 | 40 min | 3 tasks | 10 files |
 | Phase 20 P01 | 32min | 2 tasks | 6 files |
 | Phase 20 P02 | 90min | 3 tasks | 24 files |
+| Phase 20 P03 | 83min | 3 tasks | 25 files |
