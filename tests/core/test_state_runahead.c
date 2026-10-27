@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../nmi_fixture.h"
 #include "../state_test.h"
 #include "../runahead_model.h"
 
@@ -107,6 +108,160 @@ static void run_image(const char *name, const uint8_t *rom, size_t size, unsigne
     tot->images++;
 }
 
+static void run_nmi_fixture(void)
+{
+    static uint8_t image[NMI_FIXTURE_HOST_IMAGE_SIZE];
+    const uint32_t T = 8u;
+    const size_t image_size = nmi_fixture_host_image(image, sizeof image);
+    uint16_t *in = ra_script_make(1u, RA_SEED_1, T + RA_MAX_DEPTH);
+    struct ra_oracle oracle;
+    nesturbator *probe = NULL;
+    uint8_t *saved = NULL;
+
+    CHECK(image_size == sizeof image && in != NULL);
+    if (image_size == 0u || in == NULL) {
+        free(in);
+        return;
+    }
+    CHECK(ra_run_uninterrupted(image, image_size, in, T + RA_MAX_DEPTH, &oracle));
+    if (oracle.state == NULL) {
+        free(in);
+        return;
+    }
+    probe = ra_instance(image, image_size);
+    saved = (uint8_t *)malloc(oracle.state_size);
+    CHECK(probe != NULL && saved != NULL);
+    if (probe == NULL || saved == NULL)
+        goto done;
+
+    /* These are independent guest observations: each completed host frame causes
+       one NMI, and the handler records its one-based event ordinal. */
+    for (uint32_t t = 0u; t < oracle.frames; ++t) {
+        CHECK_EQ_U64(oracle.guest_marker[t], t + 1u);
+        CHECK(ra_audio_hash_is_nonzero_pcm(oracle.audio[t]));
+        CHECK_EQ_U64(nesturbator_load_state(probe, oracle.state + (size_t)t * oracle.state_size,
+                                            oracle.state_size),
+                     NESTURBATOR_OK);
+        ra_check_nmi_marker(probe, (uint8_t)(t + 1u));
+    }
+    CHECK(oracle.video[0] != oracle.video[1]);
+
+    for (unsigned depth = 1u; depth <= RA_MAX_DEPTH; ++depth) {
+        struct ra_oracle two;
+        uint64_t *visible = (uint64_t *)calloc(T, sizeof *visible);
+        nesturbator *one = ra_instance(image, image_size);
+        CHECK(visible != NULL && one != NULL);
+        if (visible == NULL || one == NULL) {
+            free(visible);
+            nesturbator_destroy(one);
+            continue;
+        }
+        CHECK(ra_run_two_instance(image, image_size, in, T, depth, &two, visible));
+        if (two.state != NULL) {
+            for (uint32_t t = 0u; t < T; ++t) {
+                CHECK_EQ_U64(two.guest_marker[t], t + 1u);
+                CHECK_EQ_U64(memcmp(two.state + (size_t)t * two.state_size,
+                                    oracle.state + (size_t)t * oracle.state_size,
+                                    oracle.state_size),
+                             0u);
+                CHECK_EQ_U64(two.video[t], oracle.video[t]);
+                CHECK_EQ_U64(two.audio[t], oracle.audio[t]);
+                CHECK_EQ_U64(visible[t], oracle.video[t + depth]);
+                CHECK_EQ_U64(nesturbator_load_state(probe, two.state + (size_t)t * two.state_size,
+                                                    two.state_size),
+                             NESTURBATOR_OK);
+                ra_check_nmi_marker(probe, (uint8_t)(t + 1u));
+                CHECK_EQ_U64(nesturbator_load_state(
+                                 probe, oracle.state + (size_t)(t + depth) * oracle.state_size,
+                                 oracle.state_size),
+                             NESTURBATOR_OK);
+                ra_check_nmi_marker(probe, (uint8_t)(t + depth + 1u));
+            }
+            ra_oracle_free(&two);
+        }
+
+        for (uint32_t t = 0u; t < T; ++t) {
+            uint64_t video = 0u, audio = 0u;
+            CHECK_EQ_U64(ra_lib_frame_status(one, in[t], &video, &audio, NULL), RA_FRAME_OK);
+            CHECK_EQ_U64(video, oracle.video[t]);
+            CHECK_EQ_U64(audio, oracle.audio[t]);
+            ra_check_nmi_marker(one, (uint8_t)(t + 1u));
+            CHECK_EQ_U64(nesturbator_save_state(one, saved, oracle.state_size), NESTURBATOR_OK);
+            CHECK(memcmp(saved, oracle.state + (size_t)t * oracle.state_size, oracle.state_size) ==
+                  0);
+
+            for (unsigned j = 1u; j <= depth; ++j) {
+                CHECK(in[t + j] != in[t]);
+                CHECK_EQ_U64(ra_lib_frame_status(one, in[t + j], &video, &audio, NULL),
+                             RA_FRAME_OK);
+                CHECK_EQ_U64(video, oracle.video[t + j]);
+                CHECK_EQ_U64(audio, oracle.audio[t + j]);
+                ra_check_nmi_marker(one, (uint8_t)(t + j + 1u));
+            }
+            CHECK_EQ_U64(nesturbator_load_state(one, saved, oracle.state_size), NESTURBATOR_OK);
+            CHECK_EQ_U64(nesturbator_save_state(one, saved, oracle.state_size), NESTURBATOR_OK);
+            CHECK(memcmp(saved, oracle.state + (size_t)t * oracle.state_size, oracle.state_size) ==
+                  0);
+            ra_check_nmi_marker(one, (uint8_t)(t + 1u));
+        }
+        nesturbator_destroy(one);
+        free(visible);
+    }
+
+    /* A wrong host that skips the restore leaves the speculative guest count ahead.
+       This control is checked directly against the marker, not only frame equality. */
+    {
+        nesturbator *wrong = ra_instance(image, image_size);
+        uint8_t count = 0u;
+        CHECK(wrong != NULL);
+        if (wrong != NULL) {
+            CHECK_EQ_U64(ra_lib_frame_status(wrong, 0u, NULL, NULL, NULL), RA_FRAME_OK);
+            CHECK_EQ_U64(nesturbator_peek_cpu_ram(wrong, NMI_FIXTURE_HOST_COUNT, &count),
+                         NESTURBATOR_OK);
+            CHECK_EQ_U64(count, 1u);
+            for (unsigned j = 0u; j < 2u; ++j) {
+                CHECK_EQ_U64(ra_lib_frame_status(wrong, 0u, NULL, NULL, NULL), RA_FRAME_OK);
+            }
+            CHECK_EQ_U64(nesturbator_peek_cpu_ram(wrong, NMI_FIXTURE_HOST_COUNT, &count),
+                         NESTURBATOR_OK);
+            CHECK_EQ_U64(ra_lib_frame_status(wrong, in[1], NULL, NULL, NULL), RA_FRAME_OK);
+            CHECK_EQ_U64(nesturbator_peek_cpu_ram(wrong, NMI_FIXTURE_HOST_COUNT, &count),
+                         NESTURBATOR_OK);
+            CHECK(count != oracle.guest_marker[1]); /* expected 2 after restoring frame 1 */
+            printf("core.state_runahead: omitted-load control marker=%u expected=%u\n", count,
+                   oracle.guest_marker[1]);
+            nesturbator_destroy(wrong);
+        }
+    }
+    {
+        nesturbator *wrong = ra_instance(image, image_size);
+        uint8_t *stale = (uint8_t *)malloc(oracle.state_size);
+        uint8_t count = 0u;
+        CHECK(wrong != NULL && stale != NULL);
+        if (wrong != NULL && stale != NULL) {
+            CHECK_EQ_U64(ra_lib_frame_status(wrong, in[0], NULL, NULL, NULL), RA_FRAME_OK);
+            CHECK_EQ_U64(nesturbator_save_state(wrong, stale, oracle.state_size), NESTURBATOR_OK);
+            CHECK_EQ_U64(ra_lib_frame_status(wrong, in[1], NULL, NULL, NULL), RA_FRAME_OK);
+            CHECK_EQ_U64(ra_lib_frame_status(wrong, in[2], NULL, NULL, NULL), RA_FRAME_OK);
+            CHECK_EQ_U64(nesturbator_load_state(wrong, stale, oracle.state_size), NESTURBATOR_OK);
+            CHECK_EQ_U64(nesturbator_peek_cpu_ram(wrong, NMI_FIXTURE_HOST_COUNT, &count),
+                         NESTURBATOR_OK);
+            CHECK(count != oracle.guest_marker[1]); /* stale frame 1, expected frame 2 */
+            printf("core.state_runahead: stale-load control marker=%u expected=%u\n", count,
+                   oracle.guest_marker[1]);
+        }
+        free(stale);
+        nesturbator_destroy(wrong);
+    }
+    printf("core.state_runahead: NMI marker, state, frame, tick and PCM replay passed at depths "
+           "1..3\n");
+done:
+    free(saved);
+    nesturbator_destroy(probe);
+    ra_oracle_free(&oracle);
+    free(in);
+}
+
 int main(int argc, char **argv)
 {
     uint32_t T = 180u;
@@ -147,6 +302,7 @@ int main(int argc, char **argv)
                 run_image(names[m], buf, n, index, 0, T, &tot);
         }
     }
+    run_nmi_fixture();
     /* D-20: counts that rule out a pass that did nothing. */
     CHECK(tot.images >= MIN_IMAGES);
     CHECK_EQ_U64(full_images, 1u);

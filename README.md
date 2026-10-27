@@ -575,6 +575,14 @@ changed row. `state.format_pin` fails unless the `state_format` row equals
 The list is written once, in
 `tests/cmake/hash_keys.cmake`, which the writer, the CI hash-equality
 validator and its self-test all read, so no row count is spelled out anywhere.
+The generated `runner.state.nmi_*` cases write an owned NROM image only under
+their per-case scratch directory. They verify the power-on marker, the first
+NMI entry and the ordered guest event count after frame 4, then load frame 1 in
+a new runner process and compare the final frame, tick count and state bytes.
+The resumed frames 2–4 transition and PCM hashes are checked against an
+uninterrupted reference that hashes only that same suffix. Separate stale
+checkpoint and omitted-load controls complete normally and are rejected by
+the independently expected guest marker.
 `runner.write_hashes` hashes frame N and frame 2N of each Holy Mapperel ROM and
 fails if they differ, so a pinned result screen is known to be static.
 `policy.rom_hash_coverage` fails when a committed ROM under `tests/roms` or
@@ -1214,11 +1222,14 @@ C interface is the same.
 Battery RAM is part of the PRG RAM, so a load replaces it. Rewinding past an in-game save reverts the save RAM.
 
 The `core.state_fork.*` tests (one per committed game, plus
-`core.state_fork.stress`) fork games on all six boards and a DMA and interrupt
-stress program (on NROM and on MMC3) at many frames, including frame 0. Each fork loads into an instance that was pre-filled with other state and
-then poisoned, and it requires every later frame, sample, tick count and the
-final state to match an uninterrupted run. It also shows that saving every
-frame changes nothing.
+`core.state_fork.stress` and `core.state_fork.nmi`) fork games on all six boards,
+a DMA and interrupt stress program (on NROM and on MMC3), and an owned NMI
+program at public frame boundaries. The NMI program records a one-based guest
+entry sequence, changes the visible backdrop, and keeps pulse audio active.
+Each saved fork restores into a differently run and poisoned instance; later
+native state, frame, tick, PCM, and independently expected guest events must
+match the uninterrupted timeline. The board and DMA/interrupt matrices remain
+registered, and the tests also show that saving every frame changes nothing.
 
 The `core.state_reject` test shows the refusals. It loads each game's state into
 every other game, flips every byte of a state and expects the status of the
@@ -1757,6 +1768,11 @@ uninterrupted run, and a repeat mode that gives the speculative frames the
 current input, as RetroArch does, must equal a two-instance library model. Four
 broken hosts (no load, a stale load, input one frame late, speculative audio in
 the real stream) run through the same comparison and each must differ.
+The same host matrix also runs an owned NMI-sensitive NROM image at depths 1 to
+3: the guest counter and event sequence, per-frame state, visible backdrop and
+PCM are checked across speculative restore and successive rewind boundaries.
+This is public frame-boundary evidence; the exact dot and edge cutpoints remain
+the separate internal tests described in the NMI state section.
 The registered `libretro.serialize` and `libretro.runahead` tests first copy each
 special ROM into their build directory, then compare that actual supplied file's
 SHA-256 with its exact row in `tests/roms/manifest.txt` before starting the host.

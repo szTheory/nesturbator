@@ -944,6 +944,10 @@ foreach(rom IN LISTS FORK_GAMES)
 endforeach()
 add_test(NAME core.state_fork.stress COMMAND core.state_fork ${FORK_MODE} --stress ${FORK_OTHER})
 set_tests_properties(core.state_fork.stress PROPERTIES TIMEOUT 300 COST 60)
+# KEEP-03 (D-19): a focused NROM public-boundary fork checks every guest NMI event
+# and resumes frame 0 through successive saved boundaries without replacing the board matrix.
+add_test(NAME core.state_fork.nmi COMMAND core.state_fork --nmi)
+set_tests_properties(core.state_fork.nmi PROPERTIES TIMEOUT 30)
 # STATE-04 (D-03, D-04): all-or-nothing load. Cross-ROM, version, header_size, truncation, a flip of
 # every byte, the CRC-recomputed field sweep, the at-bound table and the ppu_ticks gap, each checked
 # for the D-04 status and a byte-identical instance. NESTURBATOR_SHORT_RUNS (preset asan) strides

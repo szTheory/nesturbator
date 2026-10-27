@@ -16,6 +16,7 @@
 #include "internal.h"
 #include "nesturbator.h"
 #include "../check.h"
+#include "../nmi_fixture.h"
 #include "../state_test.h"
 
 #define MAX_END 180u
@@ -46,6 +47,142 @@ static int g_observe;
 static struct straddle g_seen;
 static uint8_t *g_other;
 static size_t g_other_size;
+
+static void nmi_guest_marker(nesturbator *nes, uint8_t expected)
+{
+    uint8_t value = 0u;
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(nes, NMI_FIXTURE_HOST_COUNT, &value), NESTURBATOR_OK);
+    CHECK_EQ_U64(value, expected);
+    for (uint16_t event = 1u; event <= expected; ++event) {
+        CHECK_EQ_U64(
+            nesturbator_peek_cpu_ram(nes, (uint16_t)(NMI_FIXTURE_HOST_EVENTS + event), &value),
+            NESTURBATOR_OK);
+        CHECK_EQ_U64(value, event);
+    }
+}
+
+static nesturbator_status nmi_frame(nesturbator *nes, uint16_t buttons, struct digest *out)
+{
+    static uint16_t video[256u * 240u];
+    static int16_t audio[1024];
+    nesturbator_input in;
+    nesturbator_frame io;
+    uint8_t bytes[2];
+    uint32_t crc = 0u;
+    int nonzero_audio = 0;
+
+    memset(&in, 0, sizeof in);
+    in.size = (uint32_t)sizeof in;
+    in.buttons[0] = (uint8_t)(buttons & 0xffu);
+    in.buttons[1] = (uint8_t)(buttons >> 8);
+    CHECK_EQ_U64(nesturbator_set_input(nes, &in), NESTURBATOR_OK);
+    memset(&io, 0, sizeof io);
+    io.size = (uint32_t)sizeof io;
+    io.video = video;
+    io.video_pitch = 256u;
+    io.audio = audio;
+    io.audio_capacity = 1024u;
+    nesturbator_status status = nesturbator_run_frame(nes, &io);
+    if (status != NESTURBATOR_OK)
+        return status;
+    for (size_t i = 0u; i < 256u * 240u; ++i) {
+        bytes[0] = (uint8_t)(video[i] & 0xffu);
+        bytes[1] = (uint8_t)(video[i] >> 8);
+        crc = nesturbator__crc32(crc, bytes, 2u);
+    }
+    out->video = crc;
+    crc = 0u;
+    for (uint32_t i = 0u; i < io.audio_count; ++i) {
+        uint16_t bits = (uint16_t)audio[i];
+        bytes[0] = (uint8_t)bits;
+        bytes[1] = (uint8_t)(bits >> 8);
+        crc = nesturbator__crc32(crc, bytes, 2u);
+        nonzero_audio |= audio[i] != 0;
+    }
+    CHECK(nonzero_audio);
+    out->audio = crc;
+    out->ticks = io.ticks;
+    out->frame_number = io.frame_number;
+    CHECK_EQ_U64(out->frame_number, nes->frame_number);
+    return status;
+}
+
+static void nmi_fork(void)
+{
+    static const uint32_t forks[] = {0u, 1u, 2u, 3u};
+    static struct digest reference[5];
+    static uint8_t image[NMI_FIXTURE_HOST_IMAGE_SIZE];
+    static uint8_t *states[sizeof forks / sizeof forks[0]];
+    uint8_t *final_state = NULL;
+    uint8_t *scratch = NULL;
+    const size_t image_size = nmi_fixture_host_image(image, sizeof image);
+    const uint32_t end = 4u;
+    nesturbator *a = st_make_instance();
+    nesturbator *b = st_make_instance();
+    size_t state_size;
+
+    CHECK(image_size == sizeof image);
+    CHECK(a != NULL && b != NULL);
+    if (image_size == 0u || a == NULL || b == NULL)
+        goto done;
+    st_load(a, image, image_size);
+    state_size = nesturbator_state_size(a);
+    final_state = (uint8_t *)malloc(state_size);
+    scratch = (uint8_t *)malloc(state_size);
+    CHECK(state_size != 0u && final_state != NULL && scratch != NULL);
+    if (state_size == 0u || final_state == NULL || scratch == NULL)
+        goto done;
+    nmi_guest_marker(a, 0u); /* frame 0 is the power-on boundary */
+    for (size_t i = 0u; i < sizeof forks / sizeof forks[0]; ++i) {
+        states[i] = (uint8_t *)malloc(state_size);
+        CHECK(states[i] != NULL);
+    }
+    for (uint32_t frame = 0u; frame <= end; ++frame) {
+        if (frame != 0u) {
+            CHECK_EQ_U64(nmi_frame(a, st_buttons(frame), &reference[frame]), NESTURBATOR_OK);
+            CHECK(reference[frame].video != 0u);
+            nmi_guest_marker(a, (uint8_t)frame); /* one source event per completed frame */
+        }
+        if (frame < sizeof forks / sizeof forks[0]) {
+            CHECK_EQ_U64(nesturbator_save_state(a, states[frame], state_size), NESTURBATOR_OK);
+        }
+    }
+    CHECK(reference[1].video != reference[2].video);
+    CHECK_EQ_U64(nesturbator_save_state(a, final_state, state_size), NESTURBATOR_OK);
+
+    for (size_t i = 0u; i < sizeof forks / sizeof forks[0]; ++i) {
+        uint32_t fork = forks[i];
+        struct digest actual;
+        st_load(b, image, image_size);
+        for (uint32_t frame = 1u; frame <= fork + 3u; ++frame)
+            CHECK_EQ_U64(nmi_frame(b, (uint16_t)(0xffu ^ st_buttons(frame)), &actual),
+                         NESTURBATOR_OK);
+        st_poison(b);
+        CHECK_EQ_U64(nesturbator_load_state(b, states[i], state_size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_save_state(b, scratch, state_size), NESTURBATOR_OK);
+        CHECK(memcmp(scratch, states[i], state_size) == 0);
+        nmi_guest_marker(b, (uint8_t)fork);
+        for (uint32_t frame = fork + 1u; frame <= end; ++frame) {
+            CHECK_EQ_U64(nmi_frame(b, st_buttons(frame), &actual), NESTURBATOR_OK);
+            CHECK_EQ_U64(actual.video, reference[frame].video);
+            CHECK_EQ_U64(actual.audio, reference[frame].audio);
+            CHECK_EQ_U64(actual.ticks, reference[frame].ticks);
+            CHECK_EQ_U64(actual.frame_number, reference[frame].frame_number);
+            nmi_guest_marker(b, (uint8_t)frame);
+        }
+        CHECK_EQ_U64(nesturbator_save_state(b, scratch, state_size), NESTURBATOR_OK);
+        CHECK(memcmp(scratch, final_state, state_size) == 0);
+    }
+    printf("NMI public fork: frames=0..%u forks=%lu marker=one NMI/frame audio=nonzero\n", end,
+           (unsigned long)(sizeof forks / sizeof forks[0]));
+done:
+    for (size_t i = 0u; i < sizeof forks / sizeof forks[0]; ++i)
+        free(states[i]);
+    free(final_state);
+    free(scratch);
+    nesturbator_destroy(a);
+    nesturbator_destroy(b);
+}
 
 /* The input B runs before the load: not the pattern A uses. */
 static uint16_t other_buttons(uint32_t n)
@@ -191,6 +328,10 @@ int main(int argc, char **argv)
     const uint32_t *forks;
     size_t nforks;
     uint32_t end;
+    if (argc == 2 && strcmp(argv[1], "--nmi") == 0) {
+        nmi_fork();
+        CHECK_DONE();
+    }
     if (argc > 1 && strcmp(argv[1], "--short") == 0) {
         g_short = 1;
         first = 2;
