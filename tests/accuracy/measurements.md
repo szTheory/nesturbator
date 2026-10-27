@@ -1295,3 +1295,26 @@ candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4`, merge
 failed collection and old plain-text job log remain diagnostic only. New
 clean-source CI/Nightly results and later content acceptance are still
 required. All four Phase 20 requirements remain pending.
+
+### Phase 20 Plan 20-12 MSVC evidence-helper repair measurement
+
+The fresh Windows ARM64 and x64 CI jobs rejected `phase20_fake_gh.c` because
+MSVC's secure-CRT warnings were errors. The target now receives the same
+`_CRT_SECURE_NO_WARNINGS` definition used by the other test executables. The
+full-enabled local campaign was rebuilt and rerun at source revision
+`c3a64f05a96e`, with `source_dirty=1` for the preserved `.planning/config.json`
+edit. All 22 pages completed and all 146 scored rows were observed: 114 PASS,
+32 FAIL, no skip/not-run/timeout, and five DRAW. `host_elapsed_guest_ns` was
+`4710803000`; the report SHA-256 remains
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`. The
+fingerprint changed to
+`4bebe4c94120d67c079d0c8f1d5332e1e5d7203ac82eb8ab4b599d52c6f3535c` over 56
+inputs because `tests/CMakeLists.txt` is fingerprinted. The canonical report
+rows and scoreboard remain unchanged. Hosted CI/Nightly evidence and content
+acceptance are still pending. The resulting effective source digest is
+`42b6369b20b3c5aae6b3bab23729f90e9d07f742ba5bbeeffcd2d7aec2f2cb0f` over 416
+files. With full campaign mode disabled, the full CI workflow passed
+686/686 in 385.86 seconds and generated the library, runner and libretro
+packages. The collector/performance gate passed 28/28; the protected-key,
+six-target, availability, hash and policy gate passed 37/37. All source-bound
+hosted evidence remains pending.

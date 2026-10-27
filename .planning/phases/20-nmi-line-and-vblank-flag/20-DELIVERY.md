@@ -337,3 +337,43 @@ The existing delivery JSON still points to the prior candidate until Task 2
 replaces it with these observed identities and the live metadata-only
 availability gate passes. Plan 20-10 alone validates content and may record
 hosted acceptance; all Phase 20 requirements remain pending.
+
+## First repaired-source run diagnosis and MSVC correction
+
+The automatic runs for candidate
+`56a31aa4b76fab4bebc019886fc1b4c5c21528c4` exposed two independent issues.
+CI run `40541045065`, attempt 1, failed the Windows ARM64 and x64 `ci-msvc`
+jobs while compiling `tests/runner/phase20_fake_gh.c`: MSVC C4996 secure-CRT
+warnings were promoted to errors at its `fopen` calls. Bounded read-only
+per-job logs came from jobs `122319534622` (Windows ARM64) and
+`122319534734` (Windows x64); the plain-text diagnostics are retained under
+`build/phase20-hosted-evidence-diagnostics/40541045065/`, outside the
+acceptance evidence root. The in-scope correction is commit
+`c3a64f05a96e2c5e77217ab72f493829a85a8bfa`: the `phase20_fake_gh` target now
+gets the same MSVC-only `_CRT_SECURE_NO_WARNINGS` definition as neighboring
+test targets.
+
+Nightly run `40541045136`, attempt 1, failed its `vectors-full` job at
+`cpu.vectors-full.fetch`. The bounded text diagnostic from job
+`122319184252`, retained separately under
+`build/phase20-hosted-evidence-diagnostics/40541045136/`, reports an upstream
+promisor fetch timeout (`curl 28`, followed by `bad pack header`) while
+fetching commit `e95579991e0ab08ee8fe79b57bcae7f71a2b9d02`. No workflow,
+fetch policy or retry behavior was changed. This external acquisition failure
+does not count as successful Nightly availability.
+
+After the MSVC fix, the full AccuracyCoin campaign was rebuilt at
+`c3a64f05a96e`, retaining 114 PASS / 32 FAIL, no skip/not-run/timeout and five
+DRAW. The unchanged report SHA-256 is
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`; the
+56-input fingerprint is now
+`4bebe4c94120d67c079d0c8f1d5332e1e5d7203ac82eb8ab4b599d52c6f3535c`. The
+full local CI workflow passed 686/686 in 385.86 seconds and generated all
+three packages. Focused collector/performance checks passed 28/28 and the
+protected-key, six-target, availability, hash and policy checks passed 37/37.
+The effective source digest after the refreshed baseline metadata is
+`42b6369b20b3c5aae6b3bab23729f90e9d07f742ba5bbeeffcd2d7aec2f2cb0f` over
+416 files. `source_dirty=1` records only the preserved `.planning/config.json`
+edit, excluded from the effective source digest. A new normal push and new
+automatic CI/Nightly runs are required for this corrected source; the runs
+above remain failed historical diagnostics, not availability or acceptance.
