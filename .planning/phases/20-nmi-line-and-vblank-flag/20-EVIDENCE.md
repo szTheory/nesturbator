@@ -159,5 +159,56 @@ KEEP-03, or full Phase 20 completion can be claimed:
 - A clean-source full campaign and identified exact-head artifacts remain
   outstanding. The measured local candidate remains `source_dirty=1`.
 
-The phase remains in progress. NMI-01 and NMI-02 are the only requirements
-closed by local plan evidence; KEEP-02 and KEEP-03 remain unchecked.
+The phase remains in progress. All four Phase 20 requirements remain pending
+for independent phase-level re-verification; KEEP-02 and KEEP-03 also remain
+unchecked.
+
+## Phase 20 Plan 07: split sprite-status sample witness
+
+The owned `ppu.nmi_races` test starts after the ninth in-range sprite Y read at
+scanline 0 dot 129 with eight secondary-OAM slots occupied. Independent PPU
+advances witness overflow clear at dot 130 at both +9 M2 rise and +12 phi2
+open, then set at dot 131 before the +24 M2 fall. Each actual decoder read
+begins from that same dot-129 fixture and reaches dot 132 in one 24-tick CPU
+cycle. Through both `$2002` and `$3FFA`, it returns `0x35`: early vblank is
+clear, late sprite overflow is set, and low I/O bits are `0x15`. The test
+checks the address-latch reset, open bus, I/O bus and age, and exactly one
+cycle. Separate eighth-slot and ninth-Y-out-of-range controls stay clear.
+
+The bounded wrong-sampler experiment temporarily captured `PPUSTATUS & 0x60`
+at M2 rise and supplied those bits to the close-time status result while
+preserving bit 7, the one-read side effects and the cycle count. The test
+rejected the mutant only at the intended assertion for each alias:
+`value == 0x35u` failed with `0x15 != 0x35`; no setup, compile, crash, or
+unrelated assertion failed. The temporary `src/bus.c` edit was restored, and
+`git diff --exit-code -- src/bus.c` passed before the restored focused tests.
+
+The one full-enabled campaign completed 22/22 pages and 146/146 scored rows:
+114 pass, 32 fail, no skip/not-run/timeout, and 5 DRAW. Measured metadata is
+`source_revision=af268f348619`, `source_dirty=1`,
+`host_elapsed_guest_ns=8625836000`, fingerprint
+`152511afaec8cc129d7259eb49e5a72a11fb0e94adf9ed1757fc9526f0e77d84` over 56
+inputs, and report SHA-256
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`. Dirty
+provenance includes the preserved `.planning/config.json` and `.planning/STATE.md`
+edits; the local candidate is not clean-source evidence. The exact six target
+keys pass, and fresh protected observation/verdict plus the 108-key no-lost-pass
+check passed. `runner.write_hashes.content` passed with no hash inventory change.
+
+| Command | Outcome |
+|---|---|
+| `cmake --build --preset ci && ctest --preset ci -R '^(ppu\.nmi_races|ppu\.registers|ppu\.sprites|core\.nmi_edge|vectors\.api_policy)$' --no-tests=error --output-on-failure` | 5/5 passed before the task commit and again after restoring the production source. |
+| Full-enabled exact AccuracyCoin regex | Campaign, six-target gate, protected observation/verdict, 108-key no-lost-pass, and hash-content checks passed; activation initially rejected the stale committed fingerprint, as expected until this refresh. |
+| Full-enabled campaign | 22/22 pages completed and trustworthy metadata/report retained under `build/ci/accuracycoin/full/`. |
+| AccuracyCoin regex after metadata refresh with full option off | Activation, exact-six target, protected PASS, no-lost-pass, and content checks passed without another campaign invocation. |
+| `ctest --preset ci -R '^accuracycoin\.baseline_fetch$' --no-tests=error --output-on-failure` | 1/1 passed after replacing the forbidden `=` in `source_dirty_reason` with “dirty bit 1”; measured provenance stayed unchanged. |
+| `cmake --workflow --preset ci` | Passed 683/683 after that correction, then packaged the library, runner, and libretro adapter. The preceding full run had one `accuracycoin.baseline_fetch` parser failure; the isolated rerun and complete workflow passed after the metadata fix. |
+
+The documentation corrects WR-01: `$2000` disable and pre-render clear lower
+the live line without revoking a captured request. The changing-bit witness and
+bounded mutant close WR-02 locally. No public API, state format, behavior
+revision, ROM, or scoreboard key changed. Equal-time behavior remains the
+selected deterministic model order and does not establish physical exact-tie
+precedence. Hosted exact-head/cross-platform/performance evidence, Nightly
+`vectors-full`, and the clean-room audit remain unresolved; KEEP-02/KEEP-03 and
+all four project requirement checkboxes remain pending.

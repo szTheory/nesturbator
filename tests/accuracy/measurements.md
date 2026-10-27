@@ -946,3 +946,36 @@ runner, and libretro packages; `cmake --workflow --preset asan` completed
 MMC3/Holy Mapperel, boot-to-play, state/JAM, host, and protected-pass checks.
 These local workflow results do not supply hosted exact-head or cross-platform
 evidence.
+
+## Phase 20 Plan 07 local campaign refresh
+
+The single full-enabled campaign for Plan 20-07 ran from committed source
+revision `af268f348619` with `source_dirty=1`. The dirty checkout contained the
+preserved `.planning/config.json` and `.planning/STATE.md` edits; the baseline
+metadata and evidence updates below were made after measurement. The report
+schema, ROM pin `6bee919529289c555803b612b8c9e4f7eaaeeabb`, ROM SHA-256
+`8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc`, and
+inventory SHA-256 `7d022800d01ad81159109bf7457af94ab6f80e4a682fce716ec476f7c454a4a5`
+remain unchanged. The fingerprint is `152511afaec8cc129d7259eb49e5a72a11fb0e94adf9ed1757fc9526f0e77d84`
+over 56 inputs; the measured report SHA-256 remains
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`.
+
+The run launched and completed all 22 pages and observed all 146 scored rows:
+114 pass, 32 fail, 0 skip, 0 not-run, 0 timeout, and 5 DRAW. It measured
+`host_elapsed_guest_ns=8625836000` with unchanged 32/5/1800 frame caps and
+41,503 total frame budget. The exact six target rows all remain `pass`:
+`accuracycoin/$2002 flag timing`, `accuracycoin/NMI Timing`,
+`accuracycoin/NMI Suppression`, `accuracycoin/NMI Control`,
+`accuracycoin/NMI at VBlank end`, and `accuracycoin/NMI disabled at VBlank`.
+Fresh protected-main observation, protected verdict, and the no-lost-pass test
+all passed; all 108 original PASS keys remain protected. The candidate hash
+inventory content check passed without changing the checked-in hash inventory.
+
+The focused CTest invocation initially reported the expected stale-fingerprint
+activation failure after the campaign had recorded the new header-input hash;
+campaign, exact-six target, protected-main, no-lost-pass, and hash-content tests
+passed. Baseline metadata was then refreshed from the retained campaign output
+and current fingerprint helper. The activation and target checks passed after
+reconfiguring the full campaign off, without rerunning the measured campaign.
+This local result does not close hosted exact-head, cross-platform, performance,
+or Nightly `vectors-full` evidence.
