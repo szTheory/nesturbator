@@ -1152,6 +1152,13 @@ valid for the same format version, ROM and board, and it is byte-identical on
 every platform. The library does no file I/O and never allocates for a state;
 the host owns the buffer and decides where states live.
 
+The current state format is 2 and the behavior revision is 8. Format 2 stores
+the sampled NMI line, captured request, and last instruction poll; the revision
+8 CPU polls that captured request at its instruction-specific poll point. The
+public save/load interface snapshots frame boundaries. Exact NMI race cutpoints
+are exercised by internal tests at completed instruction boundaries, while
+core, runner, and libretro replay tests cover public frame-boundary continuation.
+
 1. `nesturbator_state_size(inst)` returns the exact length of a state of the
    loaded cartridge. It is 0 for a NULL instance or with no cartridge, and the
    same value from a successful load until unload.

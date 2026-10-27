@@ -938,3 +938,11 @@ renamed Holy Mapperel audio-key controls.
 This refresh changes no runtime code and repins no frame, PCM, transition, or
 state digest. Hosted exact-head six-platform equality/protected-PASS and
 performance evidence remains pending.
+
+The final local workflows also passed with the AccuracyCoin full option off:
+`cmake --workflow --preset ci` completed 683/683 tests and generated the library,
+runner, and libretro packages; `cmake --workflow --preset asan` completed
+675/675 tests. The CI run includes the exact-six target gate, CPU-vector,
+MMC3/Holy Mapperel, boot-to-play, state/JAM, host, and protected-pass checks.
+These local workflow results do not supply hosted exact-head or cross-platform
+evidence.
