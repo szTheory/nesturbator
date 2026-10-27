@@ -111,7 +111,7 @@ Note: the basic hit already worked; the `0x06` sprite rows were guest re-run art
   3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
   4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
 
-**Plans**: 6/6 plans executed
+**Plans**: 10 plans — 6 historical plans executed; 4 additive gap-closure plans pending
 
 Plans:
 **Wave 1**
@@ -131,6 +131,20 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 - [x] 20-06-PLAN.md — six-target gate, final baseline/hash provenance and local/hosted evidence ledger
+
+**Wave 7** *(gap closure; consumes completed Wave 6)*
+- [ ] 20-07-PLAN.md — changing-sprite split-decoder witness and WR-01/WR-02 contract corrections
+
+**Wave 8** *(gap closure; blocked on Wave 7)*
+- [ ] 20-08-PLAN.md — equal-tick full-key controls and combined frame-zero/empty-PCM/nonzero-history replay
+
+**Wave 9** *(gap closure; blocked on Wave 8)*
+- [ ] 20-09-PLAN.md — locally tested hosted collector, artifact retention and delivery preparation with ordinary complete summary
+
+**Wave 10** *(gap closure; blocked on completed Wave 9 and separately authorized delivery)*
+- [ ] 20-10-PLAN.md — read-only real hosted evidence collection after a first-task delivery precondition, then immutable-source measurement confirmation
+
+Local gap execution can complete and summarize 20-09 preparation. Actual source-bound hosted results remain an external delivery prerequisite for 20-10, checked before its first task mutates artifacts or commits. Missing results leave 20-10 with zero task commits and KEEP-02/KEEP-03 and Phase 20 incomplete; these plans do not authorize push, PR, workflow dispatch or merge.
 
 **Canonical refs**: [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [DECISIONS.md](preparation/DECISIONS.md), [CONFORMANCE.md](preparation/CONFORMANCE.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (section 1, state), [research/FEATURES.md](research/FEATURES.md) (G1, G2), [research/PITFALLS.md](research/PITFALLS.md) (#1, #2, #3, #6, #7, #10, #12), [research/SUMMARY.md](research/SUMMARY.md) (steps 3–4)
 
@@ -157,7 +171,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
-| 20. NMI line and VBlank flag | v5 | 6/6 | In Progress | - |
+| 20. NMI line and VBlank flag | v5 | 6/10 | In Progress | - |
 | 21. Interrupt latency and hijack | v5 | 0/TBD | Not started | - |
 
 Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
