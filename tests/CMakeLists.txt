@@ -310,11 +310,22 @@ target_include_directories(runner.state_mutate PRIVATE ${PROJECT_SOURCE_DIR}/src
 nesturbator_warnings(runner.state_mutate)
 target_compile_definitions(runner.state_mutate PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+add_executable(runner.nmi_fixture
+  runner/nmi_fixture.c
+  ../runner/audio_hash.c
+  ../runner/sha256.c)
+target_include_directories(runner.nmi_fixture PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/runner)
+target_link_libraries(runner.nmi_fixture PRIVATE nesturbator::nesturbator)
+nesturbator_warnings(runner.nmi_fixture)
 function(runner_state_case case)
   add_test(NAME runner.state.${case}
     COMMAND ${CMAKE_COMMAND}
       "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
       "-DMUTATE=$<TARGET_FILE:runner.state_mutate>"
+      "-DNMI_FIXTURE=$<TARGET_FILE:runner.nmi_fixture>"
       "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes"
       "-DOTHER_ROM=${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes"
       "-DSAVE_FIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
@@ -338,6 +349,9 @@ runner_state_case(save_dir)
 runner_state_case(frame0)
 runner_state_case(same_k)
 runner_state_case(continue_hash)
+runner_state_case(nmi_roundtrip)
+runner_state_case(nmi_idempotent)
+runner_state_case(nmi_wrong_load)
 runner_state_case(range_frames)
 runner_state_case(range_hash_frame)
 runner_state_case(range_state)

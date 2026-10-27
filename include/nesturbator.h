@@ -402,8 +402,13 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * At the start of a successful call, the latest input set through
  * nesturbator_set_input is sampled for that frame. Instructions complete
  * across the requested frame boundary; the next input is sampled only on the
- * next call, so a crossing instruction cannot mix frame masks. Cartridge
- * audio clocks the NTSC RP2A03 channels and frame sequencer on CPU cycles;
+ * next call, so a crossing instruction cannot mix frame masks. Frame calls
+ * are synchronous host output intervals, not NMI timing cutpoints: PPU
+ * vblank/NMI edges and CPU instruction polls continue at chip timing, so an
+ * NMI handler may run during a call or remain pending across its return
+ * ([HWP.03][HWC.02]). A host that saves or restores between calls preserves
+ * that machine history through the state API. Cartridge audio clocks the
+ * NTSC RP2A03 channels and frame sequencer on CPU cycles;
  * frame-counter and DMC interrupt status are independent. The CPU samples an
  * enabled IRQ at instruction boundaries and enters the IRQ vector (HWC.02).
  * No cartridge: test pattern and silence. A JAM opcode stops with
