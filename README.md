@@ -956,10 +956,14 @@ cmake -DMODE=validate -DROOT=build/phase20-evidence -DSOURCE_REF=. \
 
 `ROOT` must be under `build/` or `/tmp`. Collection uses only read-only GitHub
 CLI API, run-view, and artifact-download requests. The collector derives the
-actual tested checkout and protected base from GitHub run metadata; pull-request
+actual tested checkout and protected base from saved GitHub run and PR metadata; pull-request
 builds normally test a synthetic merge commit, so the candidate head SHA is
 checked against the merge commit's two parents instead of being treated as the
-tested checkout SHA. Its full effective-source manifest hashes Git tree
+tested checkout SHA. The run API's `head_sha` identifies the candidate, while
+the matching PR snapshot's `merge_commit_sha` selects the merge for independent
+parent, artifact and full-tree checks. Required matrix jobs use their complete
+hosted names, including session-control and no-floating-point lanes.
+Its full effective-source manifest hashes Git tree
 contents and symlink targets, excluding only `.planning/` and
 `tests/accuracy/measurements.md`. This is distinct from the narrower
 AccuracyCoin build-input fingerprint. The collector records the source digest,

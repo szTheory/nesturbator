@@ -320,6 +320,8 @@ target_include_directories(runner.nmi_fixture PRIVATE
   ${PROJECT_SOURCE_DIR}/runner)
 target_link_libraries(runner.nmi_fixture PRIVATE nesturbator::nesturbator)
 nesturbator_warnings(runner.nmi_fixture)
+target_compile_definitions(runner.nmi_fixture PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 function(runner_state_case case)
   add_test(NAME runner.state.${case}
     COMMAND ${CMAKE_COMMAND}

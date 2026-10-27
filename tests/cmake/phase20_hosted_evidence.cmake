@@ -286,6 +286,35 @@ function(phase20_check_remote_tree tree_path source_dir file_manifest out_error)
   set(${out_error} "" PARENT_SCOPE)
 endfunction()
 
+function(phase20_resolve_tested_sha run_json pr_json candidate_sha pr_number out_sha out_error)
+  # The Actions API's head_sha names the candidate; checkout tests the PR merge.
+  # Bind the current PR snapshot to the run's immutable head/base before using
+  # merge_commit_sha. Artifacts and merge parents are checked independently.
+  # https://docs.github.com/en/rest/pulls/pulls#get-a-pull-request
+  set(${out_sha} "" PARENT_SCOPE)
+  phase20_json_get(run_head "${run_json}" head_sha)
+  phase20_json_get(run_pr_head "${run_json}" pull_requests 0 head sha)
+  phase20_json_get(run_pr_base "${run_json}" pull_requests 0 base sha)
+  phase20_json_get(run_pr_number "${run_json}" pull_requests 0 number)
+  phase20_json_get(snapshot_head "${pr_json}" head sha)
+  phase20_json_get(snapshot_base "${pr_json}" base sha)
+  phase20_json_get(snapshot_number "${pr_json}" number)
+  phase20_json_get(merge_sha "${pr_json}" merge_commit_sha)
+  phase20_is_lower_hex("${merge_sha}" 40 valid_merge_sha)
+  if(NOT run_head STREQUAL candidate_sha OR NOT run_pr_head STREQUAL candidate_sha OR
+     NOT run_pr_number STREQUAL pr_number OR NOT snapshot_number STREQUAL pr_number OR
+     NOT snapshot_head STREQUAL run_pr_head OR NOT snapshot_base STREQUAL run_pr_base)
+    set(${out_error} "PR snapshot does not match the run candidate/base identity" PARENT_SCOPE)
+    return()
+  endif()
+  if(NOT valid_merge_sha)
+    set(${out_error} "PR snapshot has no tested merge SHA" PARENT_SCOPE)
+    return()
+  endif()
+  set(${out_sha} "${merge_sha}" PARENT_SCOPE)
+  set(${out_error} "" PARENT_SCOPE)
+endfunction()
+
 function(phase20_validate_run_json run_path job_path artifact_path prefix run_id attempt
     candidate_sha tested_sha base_sha expected_pr_number out_error)
   foreach(path IN ITEMS "${run_path}" "${job_path}" "${artifact_path}")
@@ -306,8 +335,8 @@ function(phase20_validate_run_json run_path job_path artifact_path prefix run_id
   if(NOT "${id}" STREQUAL "${run_id}" OR
      NOT "${actual_attempt}" STREQUAL "${attempt}" OR
      NOT repository STREQUAL NESTURBATOR_PHASE20_REPOSITORY OR
-     NOT event STREQUAL "pull_request" OR NOT head_sha STREQUAL tested_sha)
-    set(${out_error} "${prefix} run identity does not match delivery run/attempt/repository/tested SHA" PARENT_SCOPE)
+     NOT event STREQUAL "pull_request")
+    set(${out_error} "${prefix} run identity does not match delivery run/attempt/repository/event" PARENT_SCOPE)
     return()
   endif()
   phase20_json_get(pr_count "${run_json}" pull_requests LENGTH)
@@ -322,6 +351,10 @@ function(phase20_validate_run_json run_path job_path artifact_path prefix run_id
      NOT "${pr_base}" STREQUAL "${base_sha}" OR
      NOT "${pr_number}" STREQUAL "${expected_pr_number}")
     set(${out_error} "${prefix} PR candidate/base mapping does not match delivery identity" PARENT_SCOPE)
+    return()
+  endif()
+  if(NOT head_sha STREQUAL candidate_sha)
+    set(${out_error} "${prefix} run head SHA does not match the PR candidate SHA" PARENT_SCOPE)
     return()
   endif()
 
@@ -423,7 +456,9 @@ function(phase20_validate_run_json run_path job_path artifact_path prefix run_id
     set("${prefix}_artifact_id_${name}" "${artifact_id_${name}}" PARENT_SCOPE)
   endforeach()
   if(prefix STREQUAL "ci")
-    foreach(name IN ITEMS hygiene title vector-inventory session-controls asan nofp hash-equality retroarch-e2e perf "CI required")
+    foreach(name IN ITEMS hygiene title vector-inventory asan hash-equality retroarch-e2e perf "CI required"
+        "session-controls (ubuntu-24.04)" "session-controls (macos-15)"
+        "nofp (ubuntu-24.04)" "nofp (ubuntu-24.04-arm)")
       if(NOT name IN_LIST job_names)
         set(${out_error} "CI job missing from hosted run: ${name}" PARENT_SCOPE)
         return()
@@ -453,6 +488,9 @@ function(phase20_validate_run_json run_path job_path artifact_path prefix run_id
         set(preset "ci-msvc")
       endif()
       set(expected_job "build (${runner}, ${preset}, ${os}, ${arch})")
+      if(NOT os STREQUAL "windows")
+        set(expected_job "build (${runner}, ci, ci-build, ${os}, ${arch})")
+      endif()
       if(NOT expected_job IN_LIST job_names)
         set(${out_error} "CI platform job missing from hosted run: ${platform}" PARENT_SCOPE)
         return()
@@ -896,7 +934,7 @@ function(nesturbator_phase20_validate_evidence root source_dir out_ok out_reason
   endif()
 
   if(identity_provenance_kind STREQUAL "hosted")
-    foreach(name IN ITEMS ci-run.json ci-commit.json candidate-commit.json ci-jobs.json ci-artifacts.json
+    foreach(name IN ITEMS pr.json ci-run.json ci-commit.json candidate-commit.json ci-jobs.json ci-artifacts.json
         nightly-run.json nightly-commit.json nightly-jobs.json nightly-artifacts.json
         ci-tested-tree.json ci-candidate-tree.json nightly-tested-tree.json)
       if(NOT EXISTS "${root}/provenance/${name}")
@@ -998,7 +1036,7 @@ function(nesturbator_phase20_validate_evidence root source_dir out_ok out_reason
     endforeach()
   else()
     # Fixture provenance is structurally complete but remains explicitly local.
-    foreach(name IN ITEMS ci-run.json ci-commit.json candidate-commit.json ci-jobs.json ci-artifacts.json
+    foreach(name IN ITEMS pr.json ci-run.json ci-commit.json candidate-commit.json ci-jobs.json ci-artifacts.json
         nightly-run.json nightly-jobs.json nightly-artifacts.json)
       if(NOT EXISTS "${root}/provenance/${name}")
         set(${out_reason} "fixture provenance missing ${name}" PARENT_SCOPE)
@@ -1036,6 +1074,21 @@ function(nesturbator_phase20_validate_evidence root source_dir out_ok out_reason
       set(${out_reason} "source mapping: candidate commit SHA mismatch" PARENT_SCOPE)
       return()
     endif()
+  endif()
+
+  # Both offline fixtures and hosted bundles resolve the tested merge through
+  # the same run/PR identity checks.
+  file(READ "${root}/provenance/ci-run.json" source_run)
+  file(READ "${root}/provenance/pr.json" source_pr)
+  phase20_resolve_tested_sha("${source_run}" "${source_pr}" "${identity_candidate_head_sha}"
+    "${identity_pr_number}" resolved_tested_sha error)
+  if(NOT error STREQUAL "")
+    set(${out_reason} "source mapping: ${error}" PARENT_SCOPE)
+    return()
+  endif()
+  if(NOT resolved_tested_sha STREQUAL identity_tested_sha)
+    set(${out_reason} "source mapping: PR merge SHA differs from tested source identity" PARENT_SCOPE)
+    return()
   endif()
 
   # Require artifact identities before using their contents. For a fixture the
@@ -1295,18 +1348,31 @@ function(nesturbator_phase20_collect_evidence root source_dir out_ok out_reason)
       return()
     endif()
   endforeach()
-  phase20_json_get(run_json "${delivery_json}" ci_run_id)
   file(READ "${root}/provenance/ci-run.json" ci_run)
-  phase20_json_get(tested_sha "${ci_run}" head_sha)
+  phase20_json_get(run_head_sha "${ci_run}" head_sha)
   phase20_json_get(pr_base "${ci_run}" pull_requests 0 base sha)
   phase20_json_get(pr_head "${ci_run}" pull_requests 0 head sha)
   phase20_json_get(pr_number "${ci_run}" pull_requests 0 number)
   phase20_is_lower_hex("${pr_base}" 40 valid_pr_base)
-  phase20_is_lower_hex("${tested_sha}" 40 valid_tested_sha)
   if(NOT pr_head STREQUAL delivery_candidate_head_sha OR NOT pr_number STREQUAL delivery_pr_number OR
-     NOT valid_pr_base OR NOT valid_tested_sha)
+     NOT valid_pr_base OR NOT run_head_sha STREQUAL delivery_candidate_head_sha)
     set(${out_ok} FALSE PARENT_SCOPE)
     set(${out_reason} "incomplete: CI run PR/base/head mapping differs from delivery.json" PARENT_SCOPE)
+    return()
+  endif()
+  phase20_gh_api("${repo}" "repos/${repo}/pulls/${delivery_pr_number}"
+    "${root}/provenance/pr.json" api_error)
+  if(NOT api_error STREQUAL "")
+    set(${out_ok} FALSE PARENT_SCOPE)
+    set(${out_reason} "incomplete: ${api_error}" PARENT_SCOPE)
+    return()
+  endif()
+  file(READ "${root}/provenance/pr.json" pr_snapshot)
+  phase20_resolve_tested_sha("${ci_run}" "${pr_snapshot}" "${delivery_candidate_head_sha}"
+    "${delivery_pr_number}" tested_sha source_error)
+  if(NOT source_error STREQUAL "")
+    set(${out_ok} FALSE PARENT_SCOPE)
+    set(${out_reason} "incomplete: ${source_error}" PARENT_SCOPE)
     return()
   endif()
   set(base_sha "${pr_base}")

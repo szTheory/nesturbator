@@ -1102,3 +1102,21 @@ acceptance. Actual hosted results remain pending.
 
 The formatted delivery source passed `cmake --workflow --preset ci`: 684/684
 tests, followed by packaging of library, runner and libretro deliverables.
+
+The first real PR runs exposed a GCC test narrowing warning, an MSVC-only
+fixture-tool build definition omission and a missing generated host marker
+cartridge. These are corrected in the existing test target/workflow seams.
+Live API identities and full matrix names are now represented by the
+collector's fixtures; bounded stale/head/merge/matrix controls remain strict.
+After the target CMake edit, a newly measured 22-page campaign still reports
+114 pass / 32 fail with the same report digest. Its actual 56-input fingerprint
+is `7e9ebb45e5367df9b4b21f0fdbba86b19ca92a63b5bcbb592cfd9ef990a42e13`
+and source revision is `d7ad9695d922`, dirty bit 1. The precise dirty-source
+reason is preserved in baseline metadata. Focused acceptance passed 35/35.
+The superseding full effective digest is
+`f73937e970bedd54d6f9379d235f3f44887e014970a22718997c7929b6b2b3b5`
+over 415 files. Source-bound real acceptance requires replacement hosted runs;
+no old result is relabeled. Details are in `20-DELIVERY.md`.
+
+The coherent hosted-runner/API repair passed final local CI 684/684 and
+packaged all three deliverables; full campaign registration remains OFF.

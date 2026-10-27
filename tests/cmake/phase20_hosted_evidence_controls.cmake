@@ -180,22 +180,26 @@ function(nesturbator_phase20_write_evidence_fixture root source_dir runner rom)
   file(WRITE "${root}/artifacts/nightly/mmc3-oracle/mmc3-oracle.junit.xml"
     "<testsuite name=\"mmc3-oracle\" tests=\"1\" failures=\"0\" errors=\"0\" skipped=\"0\"><testcase name=\"mmc3.oracle.mmc3_irq_tests\"/></testsuite>")
 
+  file(WRITE "${root}/provenance/pr.json"
+    "{\"number\":42,\"head\":{\"sha\":\"${candidate_sha}\"},\"base\":{\"sha\":\"${base_sha}\"},\"merge_commit_sha\":\"${tested_sha}\"}")
   file(WRITE "${root}/provenance/ci-run.json"
-    "{\"id\":1001,\"run_attempt\":1,\"event\":\"pull_request\",\"head_sha\":\"${tested_sha}\",\"repository\":{\"full_name\":\"szTheory/nesturbator\"},\"pull_requests\":[{\"number\":42,\"base\":{\"sha\":\"${base_sha}\"},\"head\":{\"sha\":\"${candidate_sha}\"}}]}")
+    "{\"id\":1001,\"run_attempt\":1,\"event\":\"pull_request\",\"head_sha\":\"${candidate_sha}\",\"repository\":{\"full_name\":\"szTheory/nesturbator\"},\"pull_requests\":[{\"number\":42,\"base\":{\"sha\":\"${base_sha}\"},\"head\":{\"sha\":\"${candidate_sha}\"}}]}")
   file(WRITE "${root}/provenance/ci-commit.json"
     "{\"sha\":\"${tested_sha}\",\"tree\":{\"sha\":\"${tree_sha}\"},\"parents\":[{\"sha\":\"${base_sha}\"},{\"sha\":\"${candidate_sha}\"}]}")
   file(WRITE "${root}/provenance/candidate-commit.json"
     "{\"sha\":\"${candidate_sha}\",\"tree\":{\"sha\":\"${tree_sha}\"}}")
   file(WRITE "${root}/provenance/nightly-run.json"
-    "{\"id\":2002,\"run_attempt\":1,\"event\":\"pull_request\",\"head_sha\":\"${tested_sha}\",\"repository\":{\"full_name\":\"szTheory/nesturbator\"},\"pull_requests\":[{\"number\":42,\"base\":{\"sha\":\"${base_sha}\"},\"head\":{\"sha\":\"${candidate_sha}\"}}]}")
+    "{\"id\":2002,\"run_attempt\":1,\"event\":\"pull_request\",\"head_sha\":\"${candidate_sha}\",\"repository\":{\"full_name\":\"szTheory/nesturbator\"},\"pull_requests\":[{\"number\":42,\"base\":{\"sha\":\"${base_sha}\"},\"head\":{\"sha\":\"${candidate_sha}\"}}]}")
 
   set(job_entries "")
-  set(job_names hygiene title vector-inventory session-controls asan nofp hash-equality retroarch-e2e perf "CI required")
+  set(job_names hygiene title vector-inventory asan hash-equality retroarch-e2e perf "CI required"
+    "session-controls (ubuntu-24.04)" "session-controls (macos-15)"
+    "nofp (ubuntu-24.04)" "nofp (ubuntu-24.04-arm)")
   set(job_names ${job_names}
-    "build (ubuntu-24.04, ci-build, linux, x64)"
-    "build (ubuntu-24.04-arm, ci-build, linux, arm64)"
-    "build (macos-15, ci-build, macos, arm64)"
-    "build (macos-15-intel, ci-build, macos, x64)"
+    "build (ubuntu-24.04, ci, ci-build, linux, x64)"
+    "build (ubuntu-24.04-arm, ci, ci-build, linux, arm64)"
+    "build (macos-15, ci, ci-build, macos, arm64)"
+    "build (macos-15-intel, ci, ci-build, macos, x64)"
     "build (windows-2025, ci-msvc, windows, x64)"
     "build (windows-11-arm, ci-msvc, windows, arm64)")
   foreach(name IN LISTS job_names)
@@ -280,6 +284,27 @@ if(CASE STREQUAL "all")
       string(REPLACE "candidate_head_sha=cccccccccccccccccccccccccccccccccccccccc"
         "candidate_head_sha=eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" text "${text}")
       file(WRITE "${FIXTURE}/provenance/source-identity.txt" "${text}")
+    elseif(case_name STREQUAL "wrong-run-head")
+      file(READ "${FIXTURE}/provenance/ci-run.json" text)
+      string(JSON text SET "${text}" head_sha "\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"")
+      file(WRITE "${FIXTURE}/provenance/ci-run.json" "${text}")
+    elseif(case_name STREQUAL "wrong-pr-merge")
+      file(READ "${FIXTURE}/provenance/pr.json" text)
+      string(JSON text SET "${text}" merge_commit_sha "\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"")
+      file(WRITE "${FIXTURE}/provenance/pr.json" "${text}")
+    elseif(case_name STREQUAL "stale-pr-snapshot")
+      file(READ "${FIXTURE}/provenance/pr.json" text)
+      string(JSON text SET "${text}" head sha "\"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\"")
+      file(WRITE "${FIXTURE}/provenance/pr.json" "${text}")
+    elseif(case_name STREQUAL "missing-matrix-job")
+      file(READ "${FIXTURE}/provenance/ci-jobs.json" text)
+      string(REPLACE "nofp (ubuntu-24.04)" "missing-nofp" text "${text}")
+      file(WRITE "${FIXTURE}/provenance/ci-jobs.json" "${text}")
+    elseif(case_name STREQUAL "wrong-build-matrix")
+      file(READ "${FIXTURE}/provenance/ci-jobs.json" text)
+      string(REPLACE "build (ubuntu-24.04, ci, ci-build, linux, x64)"
+        "build (ubuntu-24.04, ci-build, linux, x64)" text "${text}")
+      file(WRITE "${FIXTURE}/provenance/ci-jobs.json" "${text}")
     elseif(case_name STREQUAL "wrong-merge-parent")
       file(READ "${FIXTURE}/provenance/ci-commit.json" text)
       string(REPLACE "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
@@ -354,6 +379,11 @@ if(CASE STREQUAL "all")
   endfunction()
 
   phase20_expect_rejection("wrong-head-mapping" "PR candidate/base mapping")
+  phase20_expect_rejection("wrong-run-head" "run head SHA does not match the PR candidate SHA")
+  phase20_expect_rejection("wrong-pr-merge" "PR merge SHA differs from tested source identity")
+  phase20_expect_rejection("stale-pr-snapshot" "PR snapshot does not match the run candidate/base identity")
+  phase20_expect_rejection("missing-matrix-job" "CI job missing from hosted run: nofp (ubuntu-24.04)")
+  phase20_expect_rejection("wrong-build-matrix" "CI platform job missing from hosted run: linux-x64")
   phase20_expect_rejection("wrong-merge-parent" "tested merge parents")
   phase20_expect_rejection("missing-platform" "hash artifact missing for platform windows-arm64")
   phase20_expect_rejection("duplicate-platform" "expected 6 platform artifacts, found 7")

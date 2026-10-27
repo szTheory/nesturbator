@@ -296,6 +296,7 @@ jobs:
         run: |
           cmake --preset ci
           cmake --build --preset ci
+          ctest --preset ci -R '^retroarch\.marker\.generate$' --no-tests=error --output-on-failure
       - name: Install and verify the pinned RetroArch candidate
         env:
           RETROARCH_URL: https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg
