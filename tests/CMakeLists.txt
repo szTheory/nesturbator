@@ -883,6 +883,10 @@ nesturbator_core_test(core.nmi_edge core/test_nmi_edge.c)
 nesturbator_core_test(core.nmi_poll core/test_nmi_poll.c)
 target_include_directories(core.nmi_poll PRIVATE ${PROJECT_SOURCE_DIR}/src)
 set_tests_properties(core.nmi_poll PROPERTIES TIMEOUT 10)
+# KEEP-03 (D-16 to D-19): exact enabled-NMI state replay and omitted-history oracle.
+nesturbator_core_test(core.nmi_state core/test_nmi_state.c)
+target_include_directories(core.nmi_state PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set_tests_properties(core.nmi_state PROPERTIES TIMEOUT 30)
 # MAP-01, D-04, D-05, D-06, D-08: cycle-stamped mapper writes, the IRQ OR, the nametable map and reset.
 nesturbator_core_test(core.mapper core/test_mapper.c)
 target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
