@@ -863,6 +863,22 @@ add_test(NAME accuracycoin.protected COMMAND accuracy.scoreboard)
 set_tests_properties(accuracycoin.protected PROPERTIES
   FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 30)
 
+# Phase 20: require the six measured NMI/VBlank keys by full key and status.
+# On the existing full-campaign lane this check follows the fresh campaign;
+# other lanes check the committed candidate scoreboard without duplicating it.
+set(ACCURACYCOIN_NMI_TARGET_WORK ${PROJECT_BINARY_DIR}/accuracycoin/nmi-target-controls)
+add_test(NAME accuracycoin.nmi_targets
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD=${ACCURACYCOIN_SCOREBOARD}"
+    "-DGATE=${CMAKE_CURRENT_SOURCE_DIR}/cmake/nmi_targets.cmake"
+    "-DWORK=${ACCURACYCOIN_NMI_TARGET_WORK}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_nmi_targets_control.cmake)
+set_tests_properties(accuracycoin.nmi_targets PROPERTIES TIMEOUT 15)
+if(NESTURBATOR_ACCURACYCOIN_FULL)
+  set_tests_properties(accuracycoin.nmi_targets PROPERTIES
+    FIXTURES_REQUIRED accuracycoin_full_report)
+endif()
+
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
 function(nesturbator_core_test name source)
