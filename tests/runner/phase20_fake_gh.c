@@ -65,7 +65,24 @@ static int phase20_serve_file(const char *fixture, const char *relative_path)
     }
     input = fopen(full_path, "rb");
     if (input == NULL) {
-        (void)fprintf(stderr, "fake gh: fixture response is missing\n");
+        (void)fprintf(stderr, "fake gh: fixture response is missing (errno=%d, path=\"", errno);
+        for (int index = 0; index < path_length; ++index) {
+            unsigned char character = (unsigned char)full_path[index];
+            if (character == (unsigned char)'\\') {
+                (void)fputs("\\\\", stderr);
+            } else if (character == (unsigned char)'\r') {
+                (void)fputs("\\r", stderr);
+            } else if (character == (unsigned char)'\n') {
+                (void)fputs("\\n", stderr);
+            } else if (character == (unsigned char)'\t') {
+                (void)fputs("\\t", stderr);
+            } else if (character < 0x20U || character >= 0x7fU) {
+                (void)fprintf(stderr, "\\x%02x", (unsigned)character);
+            } else {
+                (void)fputc((int)character, stderr);
+            }
+        }
+        (void)fprintf(stderr, "\")\n");
         return 1;
     }
     result = phase20_copy_stream(input, stdout);
@@ -99,7 +116,7 @@ static int phase20_match_route(const char *fixture, const char *endpoint)
         if (length > 0U && line[length - 1U] == '\n') {
             line[--length] = '\0';
         }
-        if (length > 0U && line[length - 1U] == '\r') {
+        while (length > 0U && line[length - 1U] == '\r') {
             line[--length] = '\0';
         }
         separator = strchr(line, '\t');

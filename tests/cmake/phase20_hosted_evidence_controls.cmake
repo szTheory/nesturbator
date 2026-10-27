@@ -461,11 +461,21 @@ function(phase20_adapter_find_job_id json name out_id)
 endfunction()
 
 function(phase20_adapter_route fake_root endpoint response)
-  file(APPEND "${fake_root}/routes.tsv" "${endpoint}\t${response}\r\n")
+  if(ARGC GREATER 3)
+    set(route_ending "${ARGV3}")
+  else()
+    set(route_ending "\r\n")
+  endif()
+  if(NOT EXISTS "${fake_root}/${response}")
+    message(FATAL_ERROR "adapter route response does not exist: ${response}")
+  endif()
+  file(APPEND "${fake_root}/routes.tsv" "${endpoint}\t${response}${route_ending}")
 endfunction()
 
 function(phase20_adapter_api_routes fake_root)
-  phase20_adapter_route("${fake_root}" "repos/szTheory/nesturbator/actions/runs/1001/attempts/1" "fixture/provenance/ci-run.json")
+  # Exercise duplicate terminal CR handling across Windows text-mode generation.
+  phase20_adapter_route("${fake_root}" "repos/szTheory/nesturbator/actions/runs/1001/attempts/1"
+    "fixture/provenance/ci-run.json" "\r\r\n")
   phase20_adapter_route("${fake_root}" "repos/szTheory/nesturbator/actions/runs/1001/attempts/1/jobs?per_page=100" "fixture/provenance/ci-jobs.json")
   phase20_adapter_route("${fake_root}" "repos/szTheory/nesturbator/actions/runs/1001/artifacts?per_page=100" "fixture/provenance/ci-artifacts.json")
   phase20_adapter_route("${fake_root}" "repos/szTheory/nesturbator/actions/runs/2002/attempts/1" "fixture/provenance/nightly-run.json")
@@ -551,6 +561,13 @@ if(CASE STREQUAL "adapter" OR CASE STREQUAL "availability")
   file(MAKE_DIRECTORY "${fake_root}/fixture")
   file(COPY "${FIXTURE}/provenance" "${FIXTURE}/artifacts" "${FIXTURE}/downloads"
     DESTINATION "${fake_root}/fixture")
+  foreach(name IN ITEMS ci-run.json ci-jobs.json ci-artifacts.json nightly-run.json
+      nightly-jobs.json nightly-artifacts.json pr.json ci-commit.json
+      candidate-commit.json)
+    if(NOT EXISTS "${fake_root}/fixture/provenance/${name}")
+      message(FATAL_ERROR "adapter fixture copy omitted provenance/${name}")
+    endif()
+  endforeach()
   file(WRITE "${fake_root}/fixture/provenance/ci-tree.json"
     "{\"sha\":\"dddddddddddddddddddddddddddddddddddddddd\",\"truncated\":false,\"tree\":[${tree_entries}]}")
   set(delivery_file "${adapter_root}/delivery.json")
