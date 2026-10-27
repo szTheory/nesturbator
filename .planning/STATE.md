@@ -8,7 +8,7 @@ status: executing
 stopped_at: Completed 20-03-PLAN.md
 last_updated: "2026-10-27T00:03:42.972Z"
 last_activity: 2026-10-26
-last_activity_desc: Phase 20 execution started
+last_activity_desc: Plan 20-03 completed; Plan 20-04 is next
 state_head: b75b4360b7004004f9ef2268322377be03446d41
 progress:
   total_phases: 3
@@ -58,8 +58,8 @@ Progress: [███░░░░░░░] 33%
 
 ### Blockers/Concerns
 
-- [Phase 20 execution]: Plan 20-02 is complete under amended D-10. Finite-margin circuit behavior constrains implementation; unresolved exact ties use one documented global model policy without claiming hardware proof. Physical paired-chip precedence remains an evidence limit. Plans 20-03 through 20-06 remain pending under their normal prerequisites.
-- Plan 20-02 recorded all six source tables at default alignment and the production sampler endpoint projections in `tests/accuracy/measurements.md`. Plans 20-03/06 must revalidate the tables after polling changes; no alignment shift has been selected.
+- [Phase 20 execution]: Plans 20-02 and 20-03 are complete under amended D-10. Plan 20-03 revalidated all six target rows at default alignment under the single global model policy; finite-margin circuit behavior constrains implementation, while exact physical paired-chip tie precedence remains an evidence limit. Plans 20-04 through 20-06 remain pending under their normal prerequisites.
+- `tests/accuracy/measurements.md` records the Plan 20-03 source-sequence results and the production sampler endpoint projections. No alignment shift or per-table offset was selected.
 - The constructed NMI-disabled set/clear probe proves limited exact instruction-boundary save/load feasibility with audio history. Enabled-NMI and edge-before-poll continuation remain 20-04 acceptance work; an unrepresentable required cutpoint blocks KEEP-03 pending explicit clarification.
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
 
@@ -103,7 +103,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 20` to start Plan 20-03. Plan 20-02 completed its split status/line capture, format-2/revision-8 state contract, full campaign and hash evidence, and local CI gates. All six page-18 tables were recorded at default alignment; Plan 20-03 must revalidate them after polling changes. The exact physical tie remains an evidence limit, with no A/C hardware winner claimed. Three testing proposals remain proposed future scope; the CI speed-up title-workflow migration remains deferred.
+Run `$gsd-execute-phase 20` to execute Plan 20-04. Plan 20-03 completed instruction-specific polling, format-2/revision-8 poll history, the six default-alignment target rows, protected-pass comparison, and local CI. Plan 20-04 owns enabled-NMI and edge-before-poll state continuation for KEEP-03. Six-platform hash confirmation and hosted Nightly vector-fetch evidence remain open; the exact physical tie remains an evidence limit. Three testing proposals remain proposed future scope; the CI speed-up title-workflow migration remains deferred.
 
 ## Session
 
