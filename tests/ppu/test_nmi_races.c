@@ -230,7 +230,7 @@ static void test_clear_race_read(uint16_t address, const char *case_name)
    at dot 129: with Y=0, target=1, 8x8 mode, and eval_count=8, dot 130 sets
    eval_remaining=3; the documented delayed overflow signal exposes bit 5 on
    dot 131. This follows sprite_evaluate and NESdev's PPU sprite-evaluation
-   description; the expected byte below is not copied from a decoder result. */
+   description [HWP.06]; the expected byte below is not copied from a decoder result. */
 static struct nesturbator *sprite_overflow_transition_fixture(void)
 {
     static const uint8_t idle[] = {0x4cu, 0x00u, 0x80u};
