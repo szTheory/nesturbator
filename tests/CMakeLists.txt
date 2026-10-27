@@ -710,6 +710,8 @@ set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
 # evidence validator. The fixtures are generated only in the build tree.
 add_executable(phase20_fake_gh runner/phase20_fake_gh.c)
 nesturbator_warnings(phase20_fake_gh)
+target_compile_definitions(phase20_fake_gh PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 add_test(NAME phase20.hosted_evidence.controls
   COMMAND ${CMAKE_COMMAND}
     -DCASE=all
