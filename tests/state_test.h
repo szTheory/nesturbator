@@ -327,7 +327,7 @@ static inline void st_poison(nesturbator *inst)
 #define ST_STRESS_N 0
 #endif
 #ifndef ST_STRESS_G
-#define ST_STRESS_G 5
+#define ST_STRESS_G 6
 #endif
 #define ST_E(buf, idx, ...)                                                                        \
     do {                                                                                           \

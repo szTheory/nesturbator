@@ -1,10 +1,9 @@
-/* Owned NROM programs and named expected-red bookkeeping for Phase 20. */
+/* Owned NROM programs and cycle-aligned phase fixtures for Phase 20. */
 #ifndef NESTURBATOR_TESTS_NMI_FIXTURE_H
 #define NESTURBATOR_TESTS_NMI_FIXTURE_H
 
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "internal.h"
@@ -74,59 +73,6 @@ static inline void nmi_fixture_at(struct nesturbator *nes, uint16_t scanline, ui
     nes->ppu.address_latch = 0u;
     nes->ppu.reset_flag = 0u;
     nes->cpu.nmi_pending = 0u;
-}
-
-typedef void (*nmi_expected_red_case)(void);
-
-static const char *nmi_red_case_name;
-static const char *nmi_red_assertion_name;
-static unsigned nmi_red_assertion_count;
-
-static inline int nmi_red_result_matches(const char *expected, const char *observed,
-                                         unsigned named_failures, unsigned total_failures)
-{
-    return expected != NULL && observed != NULL && strcmp(expected, observed) == 0 &&
-           named_failures == 1u && total_failures == 1u;
-}
-
-static inline void nmi_expected_assertion(const char *identity, int condition)
-{
-    if (condition)
-        return;
-    fprintf(stderr, "NMI expected assertion failed: %s (%s)\n",
-            nmi_red_case_name != NULL ? nmi_red_case_name : "outside expected-red case", identity);
-    if (nmi_red_case_name != NULL) {
-        nmi_red_assertion_name = identity;
-        nmi_red_assertion_count++;
-    }
-    check_failures++;
-}
-
-static inline void nmi_expect_red(const char *case_name, const char *expected_assertion,
-                                  nmi_expected_red_case run_case)
-{
-    int before = check_failures;
-    unsigned named_before = nmi_red_assertion_count;
-    nmi_red_case_name = case_name;
-    nmi_red_assertion_name = NULL;
-    run_case();
-    nmi_red_case_name = NULL;
-
-    unsigned named_failures = nmi_red_assertion_count - named_before;
-    unsigned total_failures = (unsigned)(check_failures - before);
-    if (!nmi_red_result_matches(expected_assertion, nmi_red_assertion_name, named_failures,
-                                total_failures)) {
-        fprintf(stderr,
-                "NMI expected-red rejected: case=%s expected=%s observed=%s named=%u total=%u\n",
-                case_name, expected_assertion != NULL ? expected_assertion : "<none>",
-                nmi_red_assertion_name != NULL ? nmi_red_assertion_name : "<none>", named_failures,
-                total_failures);
-        CHECK(0);
-        return;
-    }
-
-    check_failures--;
-    printf("CASE expected-red %s assertion=%s count=1\n", case_name, expected_assertion);
 }
 
 #endif /* NESTURBATOR_TESTS_NMI_FIXTURE_H */

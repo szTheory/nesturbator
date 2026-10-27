@@ -93,16 +93,22 @@ static void core_io(struct nesturbator__sio *io, struct nesturbator *nes)
 
 static void cpu_io(struct nesturbator__sio *io, struct nesturbator__cpu *c)
 {
+    uint8_t nmi_pending;
+    uint8_t nmi_polled;
     nesturbator__sio_u16(io, &c->pc, 0xffffu);
     nesturbator__sio_u8(io, &c->a, 255u);
     nesturbator__sio_u8(io, &c->x, 255u);
     nesturbator__sio_u8(io, &c->y, 255u);
     nesturbator__sio_u8(io, &c->s, 255u);
     nesturbator__sio_u8(io, &c->p, 255u);
-    /* The sampled physical line and captured request are separate history. A
-       read or disable can lower the live line without clearing either field. */
+    /* The detector line, captured edge and last instruction poll are separate
+       history. Live PPU status/control may lower the line without clearing the
+       captured request or poll result. */
     nesturbator__sio_u8(io, &c->nmi_prev, 1u);
-    nesturbator__sio_u8(io, &c->nmi_pending, 1u);
+    nmi_pending = nesturbator__sio_u8(io, &c->nmi_pending, 1u);
+    nesturbator__sio_cross(io);
+    nmi_polled = nesturbator__sio_u8(io, &c->nmi_polled, 1u);
+    nesturbator__sio_check(io, nmi_polled == 0u || nmi_pending != 0u);
     nesturbator__sio_u8(io, &c->irq_line, 1u);
     nesturbator__sio_u8(io, &c->poll_latch, 1u);
     /* Never read or written anywhere, but visited so every field of the struct is accounted for.

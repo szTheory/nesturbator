@@ -4,10 +4,9 @@
    falls and M2 is high for the last 15 of its 24 ticks, with data moving
    while M2 is high (NES-HARDWARE-CPU-APU, section 2, part 1). So a call
    advances 9 ticks to M2's rise and catches the PPU up before sampling
-   PPUSTATUS.7; advances 15 more to M2's fall, catches the PPU up, samples the
-   NMI detector, applies status-read effects, and then completes the access.
-   Equal integer timestamps use one global order: PPU transition, CPU sample,
-   bus register side effect. This is
+   PPUSTATUS.7; advances 15 more to M2's fall. At an equal PPU/CPU timestamp,
+   the selected global model order is bus side effect, detector sample, then
+   PPU transition. This is
    a deterministic model policy; finite-margin circuit cases support the
    phase endpoints, but do not establish physical setup/hold or paired-chip
    propagation at a tie. AccuracyCoin describes the split PPUSTATUS samples
@@ -20,20 +19,39 @@ static void ppu_catch_up(struct nesturbator *nes)
     nesturbator__ppu_run_until(nes, nes->ticks);
 }
 
+static void ppu_catch_up_before_close(struct nesturbator *nes)
+{
+    if (nes->ticks >= 9u)
+        nesturbator__ppu_run_until(nes, nes->ticks - 1u);
+}
+
 struct bus_cycle_sample {
     uint8_t vblank;
     uint8_t suppress_vblank;
     uint8_t status_value;
 };
 
+/* The detector samples the asserted-high PPU line at internal phi2 close. Its
+   captured request survives a later falling line. The CPU poll is separate
+   history, sampled from the already captured request at phi2 opening [HWC.02]. */
+static void sample_nmi_line(struct nesturbator *nes)
+{
+    uint8_t nmi_line = nesturbator__ppu_nmi_line(nes);
+    if (nmi_line != 0u && nes->cpu.nmi_prev == 0u)
+        nes->cpu.nmi_pending = 1u;
+    nes->cpu.nmi_prev = nmi_line;
+}
+
 static uint8_t is_ppu_status_address(uint16_t addr)
 {
     return (uint8_t)(addr >= 0x2000u && addr < 0x4000u && (addr & 7u) == 2u);
 }
 
-/* Time for one CPU cycle, with the PPU brought up to both M2 edges. Returns
-   PPUSTATUS.7 sampled at M2 rise for a later $2002 data-bus read. */
-static struct bus_cycle_sample cycle(struct nesturbator *nes, uint8_t status_read)
+/* Time for one CPU cycle, bringing the PPU through M2 rise and up to just
+   before the close timestamp. Returns PPUSTATUS.7 sampled at M2 rise. Bus
+   callers apply access side effects and sample NMI before a tied PPU transition. */
+static struct bus_cycle_sample cycle(struct nesturbator *nes, uint8_t status_read,
+                                     uint8_t defer_nmi_close_sample)
 {
     struct bus_cycle_sample sample;
     sample.status_value = 0u;
@@ -51,15 +69,20 @@ static struct bus_cycle_sample cycle(struct nesturbator *nes, uint8_t status_rea
        state as reads and writes. [HWC.01, HWC.09] */
     nes->bus.apu_get_put_phase ^= 1u;
     nesturbator__apu_clock(nes);
-    nes->ticks += 15u;
+    /* M2 rises at +9 ticks, while the circuit oracle places internal phi2
+       three ticks later. The CPU polls the request captured by the preceding
+       close here; the physical PPU line itself is sampled at phi2 close. */
+    nes->ticks += 3u;
     ppu_catch_up(nes);
-    /* The PPU's active-low /NMI output is represented asserted-high. Capture
-       its rising edge once at the end of internal phi2. A later falling line
-       only updates history; it never revokes an already captured request. */
-    uint8_t nmi_line = nesturbator__ppu_nmi_line(nes);
-    if (nmi_line != 0u && nes->cpu.nmi_prev == 0u)
-        nes->cpu.nmi_pending = 1u;
-    nes->cpu.nmi_prev = nmi_line;
+    nes->cpu.nmi_polled = nes->cpu.nmi_pending;
+    nes->ticks += 12u;
+    ppu_catch_up_before_close(nes);
+    if (defer_nmi_close_sample == 0u) {
+        /* An internal cycle has no bus side effect, so capture before the PPU
+           applies a transition at this same integer timestamp. */
+        sample_nmi_line(nes);
+        ppu_catch_up(nes);
+    }
     if (status_read != 0u)
         sample.status_value = nesturbator__ppu_status_read_finish(nes, sample.vblank);
     /* Count the cycle that just ran. A mapper write stamp is this count minus
@@ -111,15 +134,23 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read,
        parked CPU access, including controller and PPU register side effects. */
     uint8_t status_read = is_ppu_status_address(parked_read);
     (void)bus_read_data(nes, parked_read, *sample);
-    *sample = cycle(nes, status_read); /* DMC dummy read cycle. [HWC.01, HWC.09] */
+    sample_nmi_line(nes);
+    ppu_catch_up(nes);
+    *sample = cycle(nes, status_read, 1u); /* DMC dummy read cycle. [HWC.01, HWC.09] */
     (void)bus_read_data(nes, parked_read, *sample);
+    sample_nmi_line(nes);
+    ppu_catch_up(nes);
     if (nes->bus.apu_get_put_phase != 0u) {
-        *sample = cycle(nes, status_read); /* Alignment read on PUT. [HWC.01, HWC.09] */
+        *sample = cycle(nes, status_read, 1u); /* Alignment read on PUT. [HWC.01, HWC.09] */
         (void)bus_read_data(nes, parked_read, *sample);
+        sample_nmi_line(nes);
+        ppu_catch_up(nes);
     }
-    (void)cycle(nes, 0u); /* DMC memory get. [HWC.01, HWC.09] */
+    (void)cycle(nes, 0u, 1u); /* DMC memory get. [HWC.01, HWC.09] */
     dmc->sample_buffer = nesturbator__map_cpu_read(nes, dmc->address);
     nes->bus.open_bus = dmc->sample_buffer;
+    sample_nmi_line(nes);
+    ppu_catch_up(nes);
     dmc->buffer_empty = 0u;
     dmc->dma_pending = 0u;
     dmc->address = dmc->address == 0xffffu ? 0x8000u : (uint16_t)(dmc->address + 1u);
@@ -139,14 +170,16 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read,
 static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
 {
     uint8_t status_read = is_ppu_status_address(addr);
-    struct bus_cycle_sample sample = cycle(nes, status_read);
+    struct bus_cycle_sample sample = cycle(nes, status_read, 1u);
     if (nes->apu.dmc.dma_pending != 0u && dmc_dma(nes, addr, &sample) != 0u) {
         /* The CPU repeats its parked read once more when RDY is released.
            This is the resumed bus cycle after the DMC memory get, and is
            distinct from the GET cycle that filled the sample buffer. [HWC.01] */
-        sample = cycle(nes, status_read);
+        sample = cycle(nes, status_read, 1u);
     }
     uint8_t value = bus_read_data(nes, addr, sample);
+    sample_nmi_line(nes);
+    ppu_catch_up(nes);
     return value;
 }
 
@@ -162,9 +195,11 @@ static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
         (void)bus_read_cycle(nes, halted_read);
     for (uint16_t offset = 0u; offset < 256u; offset++) {
         uint8_t value = bus_read_cycle(nes, (uint16_t)(((uint16_t)page << 8) | offset));
-        (void)cycle(nes, 0u);
+        (void)cycle(nes, 0u, 1u);
         nes->bus.open_bus = value;
         nesturbator__ppu_register_write(nes, 0x2004u, value);
+        sample_nmi_line(nes);
+        ppu_catch_up(nes);
     }
 }
 
@@ -180,7 +215,7 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
 
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value)
 {
-    (void)cycle(nes, 0u);
+    (void)cycle(nes, 0u, 1u);
     nes->bus.open_bus = value;
     if (addr < 0x2000u) {
         nes->bus.ram[addr & 0x7FFu] = value;
@@ -227,4 +262,9 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
             nes->map.ops.cpu_write(nes, addr, v, nes->cpu_cycle - 1u);
         }
     }
+    /* The close-edge detector sample shares the CPU write's M2-fall
+       timestamp. Apply the register side effect first under the global model
+       policy documented above. */
+    sample_nmi_line(nes);
+    ppu_catch_up(nes);
 }

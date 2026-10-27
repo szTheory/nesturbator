@@ -418,3 +418,366 @@ Every other frame and audio digest in the full inventory is unchanged.
 | `state/m4tkrom 60` | 42885984 / `ef4017f5075eac3ebd3d8bcc7711b49e1e212b4b188d9aad9c9ff23c1dd88a61` | 42885984 / `e77766a8ce80f06b8035c50e3572bff7451b67162e8eeccf67aaf020ab8621b2` | Format / behaviour identity and serialized NMI line/request history. |
 | `state/m7 0` | 0 / `37ff46b66837a464a568dff70c6bcdc0f1701b233a28cce49c23b8bf6b242ef4` | 0 / `0ce0219480c287d67494092430cd76bca5067bf1d08bdb96f6840ae3d5762102` | Format / behaviour identity and live NMI history fields. |
 | `state/m7 60` | 42885960 / `f26c54a53b2196b134693226e7573107149fead9f86787b611bf47f7c3b056b4` | 42885960 / `bc6fd5040a6ae570822263c1b83b690fe89a55737cd9e769e9f7007c36c459ec` | Format / behaviour identity and serialized NMI line/request history. |
+
+## Plan 20-03 final poll campaign
+
+The final causal candidate is source revision `2c6ba6810823`, captured with
+`source_dirty=1` before this plan's green commit. The full pinned campaign used
+AccuracyCoin `6bee919529289c555803b612b8c9e4f7eaaeeabb`, the existing cold-boot
+and controller sequence, 32-frame boot cap, five-frame navigation cap, and
+1,800-frame page cap. It completed all 22 pages and 146 scored rows with 114
+pass, 32 fail, zero timeout, and five DRAW rows. Report SHA-256 is
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`; the
+56-file build-input fingerprint is
+`6b6bc9ecca830db8ca8114a9c70b7d488882c0bb9ac16b5956872249c600bd0a`; final
+scoreboard SHA-256 is `38b08c8c93ca2e3b7b3a52f28284d089ef2240d10dcaa1a1bf902c02cf92f4bf`.
+The run remains a local dirty-source measurement. The separate cold protected-
+main observation and 108-key no-lost-pass gate passed; hosted Nightly CPU-vector
+fetch evidence remains unresolved.
+
+The page-18 and page-19 target rows all pass at default alignment:
+
+| Full key | Result | Frames | Attempt |
+|---|---:|---:|---|
+| `accuracycoin/NMI Control` | pass `0x01` | 1418 | `page-18-cold-01` |
+| `accuracycoin/NMI Timing` | pass `0x01` | 1418 | `page-18-cold-01` |
+| `accuracycoin/NMI Suppression` | pass `0x01` | 1418 | `page-18-cold-01` |
+| `accuracycoin/NMI at VBlank end` | pass `0x01` | 1418 | `page-18-cold-01` |
+| `accuracycoin/NMI disabled at VBlank` | pass `0x01` | 1418 | `page-18-cold-01` |
+| `accuracycoin/$2002 flag timing` | pass `0x01` | 537 | `page-19-cold-01` |
+
+### Executed samples and guest markers
+
+These arrays are the values stored by the pinned AccuracyCoin source sequences
+in the full campaign. The NMI timing test accepts one whole ten-cell vector
+selected by its first sample; the two recorded sequences are `[03,02,02,02,02,02,02,01,01,01]`
+and `[02,02,02,02,02,02,01,01,01,01]`. NMI Suppression stored
+`[00,02,02,02,00,01,01,03,03,03]` at `$50..$59` (`TEST_NMI_Suppression`,
+store PC `$b454`); the source compares x=1,2,4,5,7,8,9 and deliberately skips
+x=3 and x=6. Both NMI-at-VBlank-end sequences stored
+`[01,01,01,00,00,00,00]`: sequence A at `$50..$56`, PC `$b49b`, and sequence B
+at `$60..$66`, PC `$b4bf`. NMI-disabled-at-VBlank stored
+`[00,00,00,00,01,01,01]` at `$50..$56`, PC `$b4fd`; the source skips x=3.
+The `$2002` clear table is `[e0,80,80,00]`. Its set samples at `$53..$55`
+were `$18,$58,$78` before the source `AND #$e0`, yielding `[00,40,60]`,
+which satisfies the pinned bit-6 alternative at `$54` and expected `$60` at
+`$55`.
+
+The owned Control 8 fixture asserts the guest marker sequence: after `STA
+$2000`, `LDX #$10` runs before NMI entry; the handler records entry X=`$10`,
+returns to `$800b`, and the following `STX` records X=`$11`. Control 9's
+`INC $2000` takes six cycles and retains both RMW writes; after the instruction
+control and I/O bus are `$81`, the poll requests NMI before the following LDX,
+and entry returns to `$8008` with handler-before-LDX. `core.nmi_poll` prints
+these markers and the implied/read/store/RMW/stack/RTS/RTI and branch-class
+poll traces as ordinary assertions. The race test has no expected-red path.
+
+One global integer-timestamp model remains in use: an addressed bus effect is
+applied before detector capture at the close; the PPU transition at that same
+timestamp follows the capture. The CPU polls the captured request at phi2 open,
+separately from line capture at close. No phase offset or per-table adjustment
+was applied. Finite-margin cases support the sampled phase endpoints; the
+exact physical winner at a tie remains unproven and is documented as a model
+limit. The result does not move VBlank set or clear dots.
+
+### Candidate row changes since Plan 20-02
+
+Every changed key is listed below with status, raw error byte, and executed
+frames before and after. Of 93 changed rows, 87 retained status and raw value
+while frame counts shifted; five target failures became passes. `Hybrid
+Addresses` changed from pass `0x01` to fail `0x0a` at 212 frames. It is not one
+of the 108 protected starting PASS keys, and the no-lost-pass gate passed; the
+adjacent row is recorded without broadening this plan's target scope.
+
+| Full key | Previous status / raw / frames | Final status / raw / frames |
+|---|---|---|
+| `accuracycoin/$0B   ANC immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$2002 flag timing` | fail / `0x0a` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/$2004 Stress Test` | fail / `0x0a` / 557 | fail / `0x0a` / 558 |
+| `accuracycoin/$2007 Stress Test` | fail / `0x0a` / 557 | fail / `0x0a` / 558 |
+| `accuracycoin/$2007 read w/ rendering` | pass / `0x01` / 557 | pass / `0x01` / 558 |
+| `accuracycoin/$2B   ANC immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$4B   ASR immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$6B   ARR immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$83   SAX indirect,X` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$87   SAX zeropage` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$8B   ANE immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$8F   SAX absolute` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$97   SAX zeropage,Y` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$A3   LAX indirect,X` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$A7   LAX zeropage` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$AB   LXA immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$AF   LAX absolute` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$B3   LAX indirect,Y` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$B7   LAX zeropage,Y` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$BF   LAX absolute,Y` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$C3   DCP indirect,X` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$C7   DCP zeropage` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$CB   AXS immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$CF   DCP absolute` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$D3   DCP indirect,Y` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$D7   DCP zeropage,X` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$DB   DCP absolute,Y` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$DF   DCP absolute,X` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$E3   ISC indirect,X` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$E7   ISC zeropage` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$EB   SBC immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$EF   ISC absolute` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$F3   ISC indirect,Y` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$F7   ISC zeropage,X` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$FB   ISC absolute,Y` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$FF   ISC absolute,X` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/APU Register Activation` | fail / `0x12` / 120 | fail / `0x12` / 121 |
+| `accuracycoin/Address $2004 behavior` | fail / `0x0e` / 557 | fail / `0x0e` / 558 |
+| `accuracycoin/Arbitrary Sprite zero` | pass / `0x01` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/Branch Dummy Reads` | pass / `0x01` / 92 | pass / `0x01` / 94 |
+| `accuracycoin/CHR ROM is not writable` | pass / `0x01` / 150 | pass / `0x01` / 159 |
+| `accuracycoin/Controller Clocking` | pass / `0x09` / 120 | pass / `0x09` / 121 |
+| `accuracycoin/Controller Strobing` | fail / `0x12` / 120 | fail / `0x12` / 121 |
+| `accuracycoin/DMA + $2002 Read` | pass / `0x05` / 532 | pass / `0x05` / 533 |
+| `accuracycoin/DMA + $2007 Read` | pass / `0x01` / 532 | pass / `0x01` / 533 |
+| `accuracycoin/DMA + $2007 Write` | pass / `0x01` / 532 | pass / `0x01` / 533 |
+| `accuracycoin/DMA + $4015 Read` | fail / `0x0a` / 532 | fail / `0x0a` / 533 |
+| `accuracycoin/DMA + $4016 Read` | pass / `0x09` / 532 | pass / `0x09` / 533 |
+| `accuracycoin/DMA + Open Bus` | pass / `0x01` / 532 | pass / `0x01` / 533 |
+| `accuracycoin/DMA Landing on Write` | fail / `0x16` / 92 | fail / `0x16` / 94 |
+| `accuracycoin/DMC DMA + OAM DMA` | fail / `0x0a` / 532 | fail / `0x0a` / 533 |
+| `accuracycoin/DMC DMA Bus Conflicts` | fail / `0x0a` / 532 | fail / `0x0a` / 533 |
+| `accuracycoin/DMC Reload Timing` | pass / `0x01` / 92 | pass / `0x01` / 94 |
+| `accuracycoin/Delta Modulation Channel` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Explicit DMA Abort` | fail / `0x0a` / 532 | fail / `0x0a` / 533 |
+| `accuracycoin/Frame Counter 4-step` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Frame Counter 5-step` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Frame Counter IRQ` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Frozen OAM2 Increment` | fail / `0x0a` / 151 | fail / `0x0a` / 122 |
+| `accuracycoin/Hybrid Addresses` | pass / `0x01` / 212 | fail / `0x0a` / 212 |
+| `accuracycoin/INC $4014` | pass / `0x01` / 557 | pass / `0x01` / 558 |
+| `accuracycoin/Implicit DMA Abort` | fail / `0x0a` / 532 | fail / `0x0a` / 533 |
+| `accuracycoin/Implied Dummy Reads` | fail / `0x0e` / 92 | fail / `0x0e` / 94 |
+| `accuracycoin/Instruction Timing` | pass / `0x01` / 92 | pass / `0x01` / 94 |
+| `accuracycoin/Internal Data Bus` | fail / `0x0a` / 92 | fail / `0x0a` / 94 |
+| `accuracycoin/Interrupt flag latency` | fail / `0x0a` / 141 | fail / `0x0a` / 151 |
+| `accuracycoin/JSR Edge Cases` | pass / `0x01` / 92 | pass / `0x01` / 94 |
+| `accuracycoin/Length Counter` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Length Table` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Misaligned OAM DMA` | pass / `0x01` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/Misaligned OAM behavior` | fail / `0x16` / 551 | fail / `0x16` / 537 |
+| `accuracycoin/Misaligned OAM2 Address` | fail / `0x0e` / 151 | fail / `0x0e` / 122 |
+| `accuracycoin/NMI Control` | pass / `0x01` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/NMI Overlap BRK` | fail / `0x0a` / 141 | fail / `0x0a` / 151 |
+| `accuracycoin/NMI Overlap IRQ` | fail / `0x06` / 141 | fail / `0x06` / 151 |
+| `accuracycoin/NMI Suppression` | fail / `0x06` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/NMI Timing` | fail / `0x06` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/NMI at VBlank end` | fail / `0x06` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/NMI disabled at VBlank` | fail / `0x06` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/OAM Corruption` | fail / `0x0a` / 551 | fail / `0x0a` / 537 |
+| `accuracycoin/PPU Read Buffer` | pass / `0x41` / 150 | pass / `0x41` / 159 |
+| `accuracycoin/PPU Register Mirroring` | pass / `0x01` / 150 | pass / `0x01` / 159 |
+| `accuracycoin/PPU Register Open Bus` | pass / `0x01` / 150 | pass / `0x01` / 159 |
+| `accuracycoin/Palette RAM Quirks` | pass / `0x01` / 150 | pass / `0x01` / 159 |
+| `accuracycoin/Rendering Flag Behavior` | pass / `0x01` / 557 | pass / `0x01` / 558 |
+| `accuracycoin/Sprite 0 Hit behavior` | pass / `0x01` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/Sprite overflow behavior` | pass / `0x01` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/Sprites On Scanline 0` | fail / `0x0a` / 151 | fail / `0x0a` / 122 |
+| `accuracycoin/Stale Sprite Shift Regs` | fail / `0x0e` / 151 | fail / `0x0e` / 122 |
+| `accuracycoin/Suddenly Resize Sprite` | pass / `0x01` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/VBlank beginning` | pass / `0x01` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/VBlank end` | pass / `0x01` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/t Register Quirks` | pass / `0x01` / 557 | pass / `0x01` / 558 |
+
+### Final native hash inventory changes
+
+`runner.write_hashes` regenerated all 114 inventory lines through the owned
+runner and movie writer. The content comparison passed after these pins were
+copied. Against the Plan 20-02 pinned inventory, 83 measured rows changed: 54
+digests and 29 tick/size-only values. State sizes increase by one byte because
+format-2 serialization now writes the distinct `nmi_polled` history field.
+Audio digests are listed independently from video because polling changes guest
+interrupt timing and APU write/transition scheduling. Frame rows with equal
+hashes retain identical rendered pixels while the tick count moves; the four
+changed `nesrunner/play` frame digests record the changed guest state.
+
+| Hash key | Previous ticks/size / SHA-256 | Final ticks/size / SHA-256 | Cause |
+|---|---|---|---|
+| `accuracycoin/$0B   ANC immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$2002 flag timing` | fail / `0x0a` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/$2004 Stress Test` | fail / `0x0a` / 557 | fail / `0x0a` / 558 |
+| `accuracycoin/$2007 Stress Test` | fail / `0x0a` / 557 | fail / `0x0a` / 558 |
+| `accuracycoin/$2007 read w/ rendering` | pass / `0x01` / 557 | pass / `0x01` / 558 |
+| `accuracycoin/$2B   ANC immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$4B   ASR immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$6B   ARR immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$83   SAX indirect,X` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$87   SAX zeropage` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$8B   ANE immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$8F   SAX absolute` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$97   SAX zeropage,Y` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$A3   LAX indirect,X` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$A7   LAX zeropage` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$AB   LXA immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$AF   LAX absolute` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$B3   LAX indirect,Y` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$B7   LAX zeropage,Y` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$BF   LAX absolute,Y` | pass / `0x01` / 22 | pass / `0x01` / 19 |
+| `accuracycoin/$C3   DCP indirect,X` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$C7   DCP zeropage` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$CB   AXS immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$CF   DCP absolute` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$D3   DCP indirect,Y` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$D7   DCP zeropage,X` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$DB   DCP absolute,Y` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$DF   DCP absolute,X` | pass / `0x01` / 15 | pass / `0x01` / 13 |
+| `accuracycoin/$E3   ISC indirect,X` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$E7   ISC zeropage` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$EB   SBC immediate` | pass / `0x01` / 18 | pass / `0x01` / 20 |
+| `accuracycoin/$EF   ISC absolute` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$F3   ISC indirect,Y` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$F7   ISC zeropage,X` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$FB   ISC absolute,Y` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/$FF   ISC absolute,X` | pass / `0x01` / 13 | pass / `0x01` / 14 |
+| `accuracycoin/APU Register Activation` | fail / `0x12` / 120 | fail / `0x12` / 121 |
+| `accuracycoin/Address $2004 behavior` | fail / `0x0e` / 557 | fail / `0x0e` / 558 |
+| `accuracycoin/Arbitrary Sprite zero` | pass / `0x01` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/Branch Dummy Reads` | pass / `0x01` / 92 | pass / `0x01` / 94 |
+| `accuracycoin/CHR ROM is not writable` | pass / `0x01` / 150 | pass / `0x01` / 159 |
+| `accuracycoin/Controller Clocking` | pass / `0x09` / 120 | pass / `0x09` / 121 |
+| `accuracycoin/Controller Strobing` | fail / `0x12` / 120 | fail / `0x12` / 121 |
+| `accuracycoin/DMA + $2002 Read` | pass / `0x05` / 532 | pass / `0x05` / 533 |
+| `accuracycoin/DMA + $2007 Read` | pass / `0x01` / 532 | pass / `0x01` / 533 |
+| `accuracycoin/DMA + $2007 Write` | pass / `0x01` / 532 | pass / `0x01` / 533 |
+| `accuracycoin/DMA + $4015 Read` | fail / `0x0a` / 532 | fail / `0x0a` / 533 |
+| `accuracycoin/DMA + $4016 Read` | pass / `0x09` / 532 | pass / `0x09` / 533 |
+| `accuracycoin/DMA + Open Bus` | pass / `0x01` / 532 | pass / `0x01` / 533 |
+| `accuracycoin/DMA Landing on Write` | fail / `0x16` / 92 | fail / `0x16` / 94 |
+| `accuracycoin/DMC DMA + OAM DMA` | fail / `0x0a` / 532 | fail / `0x0a` / 533 |
+| `accuracycoin/DMC DMA Bus Conflicts` | fail / `0x0a` / 532 | fail / `0x0a` / 533 |
+| `accuracycoin/DMC Reload Timing` | pass / `0x01` / 92 | pass / `0x01` / 94 |
+| `accuracycoin/Delta Modulation Channel` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Explicit DMA Abort` | fail / `0x0a` / 532 | fail / `0x0a` / 533 |
+| `accuracycoin/Frame Counter 4-step` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Frame Counter 5-step` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Frame Counter IRQ` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Frozen OAM2 Increment` | fail / `0x0a` / 151 | fail / `0x0a` / 122 |
+| `accuracycoin/Hybrid Addresses` | pass / `0x01` / 212 | fail / `0x0a` / 212 |
+| `accuracycoin/INC $4014` | pass / `0x01` / 557 | pass / `0x01` / 558 |
+| `accuracycoin/Implicit DMA Abort` | fail / `0x0a` / 532 | fail / `0x0a` / 533 |
+| `accuracycoin/Implied Dummy Reads` | fail / `0x0e` / 92 | fail / `0x0e` / 94 |
+| `accuracycoin/Instruction Timing` | pass / `0x01` / 92 | pass / `0x01` / 94 |
+| `accuracycoin/Internal Data Bus` | fail / `0x0a` / 92 | fail / `0x0a` / 94 |
+| `accuracycoin/Interrupt flag latency` | fail / `0x0a` / 141 | fail / `0x0a` / 151 |
+| `accuracycoin/JSR Edge Cases` | pass / `0x01` / 92 | pass / `0x01` / 94 |
+| `accuracycoin/Length Counter` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Length Table` | pass / `0x01` / 120 | pass / `0x01` / 121 |
+| `accuracycoin/Misaligned OAM DMA` | pass / `0x01` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/Misaligned OAM behavior` | fail / `0x16` / 551 | fail / `0x16` / 537 |
+| `accuracycoin/Misaligned OAM2 Address` | fail / `0x0e` / 151 | fail / `0x0e` / 122 |
+| `accuracycoin/NMI Control` | pass / `0x01` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/NMI Overlap BRK` | fail / `0x0a` / 141 | fail / `0x0a` / 151 |
+| `accuracycoin/NMI Overlap IRQ` | fail / `0x06` / 141 | fail / `0x06` / 151 |
+| `accuracycoin/NMI Suppression` | fail / `0x06` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/NMI Timing` | fail / `0x06` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/NMI at VBlank end` | fail / `0x06` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/NMI disabled at VBlank` | fail / `0x06` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/OAM Corruption` | fail / `0x0a` / 551 | fail / `0x0a` / 537 |
+| `accuracycoin/PPU Read Buffer` | pass / `0x41` / 150 | pass / `0x41` / 159 |
+| `accuracycoin/PPU Register Mirroring` | pass / `0x01` / 150 | pass / `0x01` / 159 |
+| `accuracycoin/PPU Register Open Bus` | pass / `0x01` / 150 | pass / `0x01` / 159 |
+| `accuracycoin/Palette RAM Quirks` | pass / `0x01` / 150 | pass / `0x01` / 159 |
+| `accuracycoin/Rendering Flag Behavior` | pass / `0x01` / 557 | pass / `0x01` / 558 |
+| `accuracycoin/Sprite 0 Hit behavior` | pass / `0x01` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/Sprite overflow behavior` | pass / `0x01` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/Sprites On Scanline 0` | fail / `0x0a` / 151 | fail / `0x0a` / 122 |
+| `accuracycoin/Stale Sprite Shift Regs` | fail / `0x0e` / 151 | fail / `0x0e` / 122 |
+| `accuracycoin/Suddenly Resize Sprite` | pass / `0x01` / 551 | pass / `0x01` / 537 |
+| `accuracycoin/VBlank beginning` | pass / `0x01` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/VBlank end` | pass / `0x01` / 1437 | pass / `0x01` / 1418 |
+| `accuracycoin/t Register Quirks` | pass / `0x01` / 557 | pass / `0x01` / 558 |
+| `dabg/boot/frame 120` | 85773744 ticks / `3626e1456fcc49b48f63729b0e56e66fc063808f42a9a38cf109941192eff4be` | 85773792 ticks / `3626e1456fcc49b48f63729b0e56e66fc063808f42a9a38cf109941192eff4be` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/boot/frame 180` | 128660136 ticks / `3626e1456fcc49b48f63729b0e56e66fc063808f42a9a38cf109941192eff4be` | 128660376 ticks / `3626e1456fcc49b48f63729b0e56e66fc063808f42a9a38cf109941192eff4be` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/boot/frame 30` | 21443472 ticks / `3626e1456fcc49b48f63729b0e56e66fc063808f42a9a38cf109941192eff4be` | 21443520 ticks / `3626e1456fcc49b48f63729b0e56e66fc063808f42a9a38cf109941192eff4be` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/boot/frame 60` | 42886680 ticks / `3626e1456fcc49b48f63729b0e56e66fc063808f42a9a38cf109941192eff4be` | 42886728 ticks / `3626e1456fcc49b48f63729b0e56e66fc063808f42a9a38cf109941192eff4be` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/both/frame 120` | 85773072 ticks / `88262d7171fee2de7d02188cc13ec80585860eecb76d4fc2d2356bda733bde8d` | 85772760 ticks / `88262d7171fee2de7d02188cc13ec80585860eecb76d4fc2d2356bda733bde8d` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/both/frame 180` | 128659512 ticks / `88262d7171fee2de7d02188cc13ec80585860eecb76d4fc2d2356bda733bde8d` | 128659272 ticks / `88262d7171fee2de7d02188cc13ec80585860eecb76d4fc2d2356bda733bde8d` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/both/frame 30` | 21443400 ticks / `f5311d20271e6c0982005106a38f98806db1fdb22212746ead9659d4fb8f3d62` | 21443448 ticks / `f5311d20271e6c0982005106a38f98806db1fdb22212746ead9659d4fb8f3d62` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/both/frame 60` | 42886440 ticks / `e2fd9e5e19f5465e70c2cf21047b8e5c8c003013316b35b05b244e81d792088d` | 42886392 ticks / `e2fd9e5e19f5465e70c2cf21047b8e5c8c003013316b35b05b244e81d792088d` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/p0/frame 120` | 85774320 ticks / `d24f81ec1f58cbe5994e43f26eac9133d99316d7ba46702c76feb33af1291fbc` | 85774344 ticks / `d24f81ec1f58cbe5994e43f26eac9133d99316d7ba46702c76feb33af1291fbc` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/p0/frame 180` | 128662176 ticks / `cbf5980d288e31fce3a07ab8798f287474636a042f63930049417e6aeb18eddf` | 128662224 ticks / `cbf5980d288e31fce3a07ab8798f287474636a042f63930049417e6aeb18eddf` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/p0/frame 60` | 42886536 ticks / `5695548cb78c27711d1bc58b68ab2c75e45b22d8ee4485a1cc29d0e645041e59` | 42886728 ticks / `5695548cb78c27711d1bc58b68ab2c75e45b22d8ee4485a1cc29d0e645041e59` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/p1/frame 120` | 85774320 ticks / `8de12125d32e21d317aab3bbe1c32ef6862109da07585d092815a3d8bc12e7e6` | 85774344 ticks / `8de12125d32e21d317aab3bbe1c32ef6862109da07585d092815a3d8bc12e7e6` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/p1/frame 180` | 128662176 ticks / `b45972289fa17f53d6b8c66cf9b79d89d5995a6d45e4fd09db3c7a0785467d56` | 128662224 ticks / `b45972289fa17f53d6b8c66cf9b79d89d5995a6d45e4fd09db3c7a0785467d56` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `dabg/p1/frame 60` | 42886536 ticks / `680473e4b6433630a943ab6f5470c4c3fcce4c1cffb5cf7934ce184bc602f7c4` | 42886728 ticks / `680473e4b6433630a943ab6f5470c4c3fcce4c1cffb5cf7934ce184bc602f7c4` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `holymapperel/m1sgrom/audio/pcm` | — / `01e16205667412937ee88cb3ddd5fd953c08460f03e2bc80dc52761e10293d4e` | — / `2ed54534760c85dc60c303f080596a1e4b34042459fce0c782373cb558db430b` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1sgrom/audio/transitions` | — / `d958c5697b2dc8913bd57d947f35c62b3369d5ffb04b58674d9262fd9b391b32` | — / `d01cf80d6e9743977bee6f6e94b329981c94dc80eb43c440ca0bee6e367bb025` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1sjrom/audio/pcm` | — / `fadb97ca0b0577f3709a538048e4d3f3b15db8be1a6a16d6c0d4d72c730a7478` | — / `f26096b138754e93fde55ffead15dbbcec5730ea83ab90e20d8a02b3c59a1b57` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1sjrom/audio/transitions` | — / `57865633e31562b18aec8d27ffa5706d1f2d4e98a8070651bab351efe715dac7` | — / `f3e48c59b193effab5b22c7453d982e3d32fd213c17484d146f79c6195041a6b` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1skrom/audio/pcm` | — / `7291ebf80ad06d8f2e81b57e62847455801fba7dd66781523883c80737404e95` | — / `9ea052a84d988b5e57a1d26b7faec9976eee56155eb015b36e722a180771e77a` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1skrom/audio/transitions` | — / `7bafb5137d0367deff299c47b83896814ef60071766699036caccda1a9bf979b` | — / `f692d45186ae0cf15270070f37676e2d1e11627421def2411ab29650ecd0821f` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1surom/audio/pcm` | — / `3f8c33cd0ef176e239640a848cae7f39212e043a5539c0f1d0caffd482fb886a` | — / `496cb689153fa8f675ac96cf1b5f9e80ff55d13b8a23c775cc1718f65eadfef0` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1surom/audio/transitions` | — / `c5d94c0ef1e626a6dfd7df822d0807f9476db89590e000d2e165eff24f2c709c` | — / `f00fda9d612e86784877358369617cced2048b4f0de7933aecfe79af08e0e088` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1sxrom.saved/audio/pcm` | — / `54022eb78f4042177f522554f17818af73cd6a3be511ccf2700453356ee57ab3` | — / `538e3dd4420115791101d8e8ff804e673b72ec1c3dec6fb2ff221f65f6f8e43d` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1sxrom.saved/audio/transitions` | — / `741de9d78cf1e977e52379d25dcd7e04a2b4142efe68d08d7d3dc3c5310f075f` | — / `f87f9cbbb7023654ad42cd52974d380ac0378d0a2f95e62706b19af16aea688f` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1sxrom/audio/pcm` | — / `838a68708053ae433e4daf743bb190273f2f4905346e3cd3de0aa791783aed98` | — / `2152f6d27a4fdb0aead97d9e47e521287f4d756d8011575220d62cbbd05c01a2` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m1sxrom/audio/transitions` | — / `ee71d3e5c45b2d7d7867ee78b4ea3a55d70276814e793ce22622dc72eb66958f` | — / `1e65869718125b727493958ca876c63b25edc5fcc757fc8e97d6ba5f80a6a256` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m2/audio/pcm` | — / `4fae20228e4475ecbb0105f5d69da7bfbde703d0422c2eed7e7489d7c51c9355` | — / `15c5798f585b40b8356f622c0b02ab2a278df088f3270cccba8366c26f1e6ba6` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m2/audio/transitions` | — / `157ad3cadde314c0c13ff347dd36d652990f7815a90831e6c1c45b6e6512cc7b` | — / `59f4b3d3bca41a1c43ba4574ae8ad633c065cefe4cc570837da2658afc88ff83` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m3/audio/pcm` | — / `9d6624ca49c255d35d2cf23b3cc21bec6368e6433c5c2b342fe6bdf3018b8500` | — / `1aad24dfd56f6731417fb34ae43c980ccc45f0b4e3b419e7a03bf098e0191ab3` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m3/audio/transitions` | — / `69e0b18fd668771eae33006dea3732531513e93594d9cd7d34d00f9ce5ee7605` | — / `c676257e63022a8f3fa1346708be58762f68306801076dd6714088667690d5b1` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m4tkrom.saved/audio/pcm` | — / `2d48e8a568154cef4dbc802e7826bbba8f0e068b8f04694510d7b867da8b9776` | — / `6b197559751e03560774d7d8b7244ca1125ef162a8c53809209f3dfbcd385ca1` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m4tkrom.saved/audio/transitions` | — / `cf3e93cdc0a85176157587afd65dbb92b8b62caf02fba778597ef4b46e67486c` | — / `beedbb31a350d584431aff6a3a73b785a183043b01f64367d993676142219eda` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m4tkrom/audio/pcm` | — / `2f181d70d7cfffcbef205dc7215519a956830ec882c90474a684340ce48077c3` | — / `04d64ffb7779667e58bc03cb2f00ad18d7edbe9798a67aacd6b7f52d440d235c` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m4tkrom/audio/transitions` | — / `da3aaa56fdf6b61641eeaf50f7d560df6004708437d55bbc02d36bd7b125c0f8` | — / `5b63501202b53aa34af161817fde4cc1f649aefc2379de03f0ead1bbbe1f15c3` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m4tnrom/audio/pcm` | — / `ed97f98dffb986feefc934c7f587980ccb0f07d92c25152f62e72f94a1b6e649` | — / `7de6bb9d9360e917b2faced225934521ce31a54e4bfc9956c419abd61e75cd10` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m4tnrom/audio/transitions` | — / `b2f60efe237274724ce7b6cafe6af522bcacfd2d6d8a3d8f5684628e6d813fef` | — / `3b67e4f14cecba52bc27755eff315a7e3f1fdc1e51a46c0106e65a9d19b5b874` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m4txrom/audio/pcm` | — / `27fa5c6e3c38758b9e2b35e6e47e0dce4dd4260cb60e01ca922301812859e663` | — / `d046014d26cacefc679ee2e829ddc890db1b5f3ae5dc7575387ee91471d9a238` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m4txrom/audio/transitions` | — / `e58f0d3c3f5cbea394de63e626729df6f6779c9d5b5609575f0272c737af2e44` | — / `29f98067b287073d3b0e2842c885f7bc4946cd43a055b3c28c507661a8d5bb48` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m4w8k/audio/pcm` | — / `2f181d70d7cfffcbef205dc7215519a956830ec882c90474a684340ce48077c3` | — / `04d64ffb7779667e58bc03cb2f00ad18d7edbe9798a67aacd6b7f52d440d235c` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m4w8k/audio/transitions` | — / `da3aaa56fdf6b61641eeaf50f7d560df6004708437d55bbc02d36bd7b125c0f8` | — / `5b63501202b53aa34af161817fde4cc1f649aefc2379de03f0ead1bbbe1f15c3` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m7/audio/pcm` | — / `bfa6ccd0efdce20e68f85f6a5193f07ca7ce1e983b92ca6918e6e80574c7d6f1` | — / `c506c30dad28bcd83e362689b999e0c7582737f7ba60cd73c3d745b04ab1bb97` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `holymapperel/m7/audio/transitions` | — / `6aec4cb3d0f1985e53dfe6bac331fd9a20869b9129a556050d4e2bc354929164` | — / `95d028d5842e0becc700313cb49412bb6833226217950d315e2058d2e143c3c2` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `nesrunner/boot/audio/pcm` | — / `7418d67120f61e710d4e272706fe11c2a8fddb7eea66ddcbe56614bbe7ecf0e4` | — / `d0d182ca80131e5c882386fe07cbc4df43963c15392e1a2da8f9d4c8482f30a5` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `nesrunner/boot/audio/transitions` | — / `3c74022bb75349d43083d15859e8c37baef8c54132d181beb4913e108b84f98a` | — / `eead1b35c3a77b5013c6a12149f222fa7ce044f140f2663cfd184b98baa56f58` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `nesrunner/boot/frame 120` | 85774200 ticks / `65dbd82319b50546b14bdf6067d867ff7f4ad37f5cddd4c9e9470c1b9aa9d7d4` | 85773312 ticks / `65dbd82319b50546b14bdf6067d867ff7f4ad37f5cddd4c9e9470c1b9aa9d7d4` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `nesrunner/boot/frame 180` | 128661072 ticks / `d407ddd6100a70ccd3c030842f4adb745587aa6eac88a2544034219250fea055` | 128659872 ticks / `d407ddd6100a70ccd3c030842f4adb745587aa6eac88a2544034219250fea055` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `nesrunner/boot/frame 30` | 21443544 ticks / `ac8b18b70121fb8c3bc114d7ccd9fd3f5d12bda58ae8af23fd080a59c5990820` | 21443448 ticks / `ac8b18b70121fb8c3bc114d7ccd9fd3f5d12bda58ae8af23fd080a59c5990820` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `nesrunner/boot/frame 60` | 42887112 ticks / `d407ddd6100a70ccd3c030842f4adb745587aa6eac88a2544034219250fea055` | 42886800 ticks / `d407ddd6100a70ccd3c030842f4adb745587aa6eac88a2544034219250fea055` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `nesrunner/play/audio/pcm` | — / `509cb4c1625d855b45ac65e3678d9c047e19732f65cdd98a6b840ad3f6e7b7f5` | — / `255636674903d03dd9cb7ca632246c3375dff8c88300155b052ac5c273d4dcca` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `nesrunner/play/audio/transitions` | — / `8c5368976985549a8800301ac8c9a034b7c62d990ba8c207ee734c5b24c6413b` | — / `33e4bce709976dca002689e4cc164f694a677d9949fdfa325b7dd6cfa5cc4006` | NMI delivery changes guest/APU register and transition timing; PCM and transitions are measured separately from video. |
+| `nesrunner/play/frame 120` | 85773936 ticks / `b53d3a8087edb1555ef0039ad438e8643dd8fbd72267a3d3566a1d5e504ccf3c` | 85773696 ticks / `b53d3a8087edb1555ef0039ad438e8643dd8fbd72267a3d3566a1d5e504ccf3c` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `nesrunner/play/frame 180` | 128661072 ticks / `b1233a42c80a47d1f560ed28edd2fadc55efb273b2ff029dbca6a18352335595` | 128660520 ticks / `c2e72c42c608a8106d4fbd3382d669b670af2eee6e2cd3827004a1f064a31fea` | Changed NMI delivery changes the running guest state rendered at this frame. |
+| `nesrunner/play/frame 30` | 21443544 ticks / `ac8b18b70121fb8c3bc114d7ccd9fd3f5d12bda58ae8af23fd080a59c5990820` | 21443448 ticks / `ac8b18b70121fb8c3bc114d7ccd9fd3f5d12bda58ae8af23fd080a59c5990820` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `nesrunner/play/frame 300` | 214434816 ticks / `499ab10106bb67c663b295a81639c1505a39554fc1e5fadd9a6937711021b629` | 214434000 ticks / `de7969e7b644a23f2095ca1eb60f26b3743512a32148fcd3c32cba3735d933ae` | Changed NMI delivery changes the running guest state rendered at this frame. |
+| `nesrunner/play/frame 450` | 321652296 ticks / `8570a4e5b35385c2d7b1dc7278b40cd4d7b6fe7e60ade1324377278c537cda51` | 321651120 ticks / `207054b1e158cd13ba94f3ba4875b381e5bec2d9d58ff22a4b9a9704823c929a` | Changed NMI delivery changes the running guest state rendered at this frame. |
+| `nesrunner/play/frame 60` | 42887112 ticks / `d407ddd6100a70ccd3c030842f4adb745587aa6eac88a2544034219250fea055` | 42886800 ticks / `d407ddd6100a70ccd3c030842f4adb745587aa6eac88a2544034219250fea055` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `nesrunner/play/frame 600` | 428868504 ticks / `d7f312362cb9b57c2bf51de97a3242112d90052138ba2a89b2aa2b9a47aeb55c` | 428867544 ticks / `14422e39cd4a56d1920a7c9cb02b0877c1d0ecf24f4d6e5b8ac4e3e3671865e0` | Changed NMI delivery changes the running guest state rendered at this frame. |
+| `nesteroids/boot/frame 120` | 85773912 ticks / `bbddb0e13f03ab3b31b4b68c168e8ebf7a9e28f76452cd5feb72ee3cabf4c1e9` | 85773336 ticks / `bbddb0e13f03ab3b31b4b68c168e8ebf7a9e28f76452cd5feb72ee3cabf4c1e9` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `nesteroids/boot/frame 180` | 128661144 ticks / `7cecae1314a25b2427bd22417bd6cdee2077492037dda45deef5a730a487aad3` | 128659800 ticks / `7cecae1314a25b2427bd22417bd6cdee2077492037dda45deef5a730a487aad3` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `nesteroids/boot/frame 30` | 21443376 ticks / `e6afba6666d9d0ba1b9ae2f2f3c3f4e5f71f6bf1995f8b20e1e198a055bd8bf9` | 21443088 ticks / `e6afba6666d9d0ba1b9ae2f2f3c3f4e5f71f6bf1995f8b20e1e198a055bd8bf9` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `nesteroids/boot/frame 60` | 42886872 ticks / `73f4a7d3c377a519c8f990f9d9179730bf5cf86553e3fa1d79b59e8c17b99cdf` | 42886440 ticks / `73f4a7d3c377a519c8f990f9d9179730bf5cf86553e3fa1d79b59e8c17b99cdf` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `rhde/boot/frame 120` | 85772832 ticks / `cac57d02298fefb360f916c1ee67683db9beab13336d797b368e55a90801d2b3` | 85770816 ticks / `cac57d02298fefb360f916c1ee67683db9beab13336d797b368e55a90801d2b3` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `rhde/boot/frame 180` | 128659272 ticks / `cac57d02298fefb360f916c1ee67683db9beab13336d797b368e55a90801d2b3` | 128655960 ticks / `cac57d02298fefb360f916c1ee67683db9beab13336d797b368e55a90801d2b3` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `rhde/boot/frame 30` | 21443136 ticks / `cac57d02298fefb360f916c1ee67683db9beab13336d797b368e55a90801d2b3` | 21442920 ticks / `cac57d02298fefb360f916c1ee67683db9beab13336d797b368e55a90801d2b3` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `rhde/boot/frame 60` | 42886392 ticks / `cac57d02298fefb360f916c1ee67683db9beab13336d797b368e55a90801d2b3` | 42885600 ticks / `cac57d02298fefb360f916c1ee67683db9beab13336d797b368e55a90801d2b3` | The poll/interrupt instruction path shifts ticks at this selected frame; rendered hash is unchanged. |
+| `state/dabg 0` | 0 ticks / `f105d0501e23a6bc10c626b99961258757fbb4e0cd2726f45cd249ed75def012` | 0 ticks / `91f3b2a5c1654c84b94ba8aabbb20dd7fad7a856718f7b900c17473e0b277386` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/dabg 60` | 42886680 ticks / `ea063a567aaee6a8cd2cfad1527356914a8cfd1e9c2ab1f50c7f80c7b7b3afb6` | 42886728 ticks / `81c1d20e87ccaf2f2778bac95f715fe8fa1fd671aabacf98fcbb54aabf0c629d` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/dabg/size` | size 13087 / `—` | size 13088 / `—` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m1sxrom 0` | 0 ticks / `9285b5e4fb97e6057bde66d7c1f4fbdd0641188d3f791e861d9b1b99aff2dd55` | 0 ticks / `d020d71d8eee4c4cc74b6de2a66c8745374f5d3f304367fbdb6090812a3af012` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m1sxrom 60` | 42885624 ticks / `070dec6aa7185cec5590a692d3ff6f01c8685826a31a05be9d1ec45cf1b01859` | 42885624 ticks / `19ebec22c18e9d251f047f7b89d29c3ae8bfbb9bcf6c2e8bd7887b8e2df22d09` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m1sxrom/size` | size 45869 / `—` | size 45870 / `—` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m2 0` | 0 ticks / `387ac411805ab63a1a8fe612f94cd0cf40cd215a11c9b50fbcfa62b1e611738e` | 0 ticks / `1c974dd758e1a4554757d373db253d6562e4bdfc84b74c60488d352d555378e2` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m2 60` | 42886032 ticks / `f8c54c7e0b968279c396daf6a5fe5d41b0b7616a635a249b8de2ad9f619f2e6c` | 42886032 ticks / `31c390cd7ccb6e47d3b319ec8d6c62b8bf58eccb5028717d2b0c67d40ad0e46c` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m2/size` | size 13088 / `—` | size 13089 / `—` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m3 0` | 0 ticks / `67c5067aff2a4076744cb87af3cd35c0258772ae2c1d55a1e5cd54f55f9d80d3` | 0 ticks / `469d139a5836ebea3dae6b87aa408b6697fb6f4f71aa48622ce7528992868a5b` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m3 60` | 42885984 ticks / `208f9f9889dd74e22f652470dac059f210594bcea4b4e940e896a7073a0f08cc` | 42885984 ticks / `f1ba0b5355ecf335afdb4784aa653a5e6184b2112c85cce9e27bec7fade06a2f` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m3/size` | size 4896 / `—` | size 4897 / `—` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m4tkrom 0` | 0 ticks / `a43c893161026911671453f70d6d7f249ac0f98124743ced6b598a029dda0fa6` | 0 ticks / `193e5cd855b694b23f13539961650169a3ed689a5c30198b141b8311d04194c2` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m4tkrom 60` | 42885984 ticks / `e77766a8ce80f06b8035c50e3572bff7451b67162e8eeccf67aaf020ab8621b2` | 42885984 ticks / `b7e3356328939081c3224e6bf79f9e48b0d8fa7eca74df2f366ced8d90fd800b` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m4tkrom/size` | size 21303 / `—` | size 21304 / `—` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m7 0` | 0 ticks / `0ce0219480c287d67494092430cd76bca5067bf1d08bdb96f6840ae3d5762102` | 0 ticks / `a7ce224a1348c0b4e9b9f74ee849522eb7c78f33395308c52e7dead83f60228d` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m7 60` | 42885960 ticks / `bc6fd5040a6ae570822263c1b83b690fe89a55737cd9e769e9f7007c36c459ec` | 42885960 ticks / `51911b7a2b515ce1afa4a5d871026715ef7b958f9e55cb32e54ceea860a4ae72` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+| `state/m7/size` | size 13088 / `—` | size 13089 / `—` | Format-2 state now serializes distinct captured and polled NMI history; payload size grows by one byte. |
+
+The metadata's `source_dirty=1`, campaign report, scoreboard hash, and input
+fingerprint are retained as measured provenance. The source revision and
+fingerprint describe the candidate used for this run; the local result does
+not replace the cold protected-main observation or close the hosted vectors
+fetch gap.

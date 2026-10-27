@@ -192,6 +192,11 @@ static void sprite_evaluate(struct nesturbator *nes)
         ppu->eval_target = ppu->scanline == 261u ? 0u : (uint8_t)(ppu->scanline + 1u);
         memset(ppu->secondary_oam, 0xff, sizeof ppu->secondary_oam);
     }
+    /* The overflow comparison result reaches the readable status bit on the following dot.
+       AccuracyCoin TEST_2002FlagTiming distinguishes this from the compare dot at M2 fall. */
+    if (ppu->scanline != 261u && ppu->dot >= 65u && (ppu->dot & 1u) != 0u &&
+        ppu->eval_count == 8u && ppu->eval_remaining == 3u)
+        ppu->status |= 0x20u;
     if ((ppu->mask & 0x18u) == 0u)
         return;
     if (ppu->dot < 65u || ppu->dot > 256u)
@@ -240,8 +245,6 @@ static void sprite_evaluate(struct nesturbator *nes)
             ppu->eval_copy_remaining = 3u;
             return;
         } else {
-            if (ppu->scanline != 261u)
-                ppu->status |= 0x20u;
             ppu->eval_remaining = 3u;
             ppu->eval_m = (uint8_t)((ppu->eval_m + 1u) & 3u);
             if (ppu->eval_m == 0u)
@@ -408,6 +411,32 @@ static uint16_t background_color(const struct nesturbator *nes, uint32_t x, uint
     return (uint16_t)(palette_value | (uint16_t)((ppu->mask >> 5) & 7u) << 6);
 }
 
+/* The collision circuit compares the current shifter outputs before this dot's shift. The
+   visible pixel buffer is composed after fetch_step, so using compose_pixel for the status bit
+   asserts sprite-0 hit one dot early. NESdev Wiki, PPU rendering: hit timing starts at cycle 2. */
+static void detect_sprite_zero_hit(struct nesturbator *nes, uint32_t x)
+{
+    struct nesturbator__ppu *ppu = &nes->ppu;
+    if ((ppu->mask & 0x18u) != 0x18u || (x < 8u && (ppu->mask & 0x06u) != 0x06u) || x == 255u)
+        return;
+
+    uint8_t bg_opaque = 0u;
+    (void)background_color(nes, x, &bg_opaque);
+    if (bg_opaque == 0u)
+        return;
+
+    for (uint8_t i = 0u; i < ppu->sprite_count; i++) {
+        uint8_t sx = ppu->sprite_x[i];
+        if (ppu->sprite_zero[i] == 0u || x < sx || x >= (uint32_t)sx + 8u)
+            continue;
+        uint8_t bit = (uint8_t)(7u - (x - sx));
+        if ((((ppu->sprite_lo[i] >> bit) & 1u) | (((ppu->sprite_hi[i] >> bit) & 1u) << 1)) != 0u) {
+            ppu->status |= 0x40u;
+            return;
+        }
+    }
+}
+
 static uint16_t compose_pixel(struct nesturbator *nes, uint32_t x)
 {
     uint8_t bg_opaque = 0u;
@@ -424,11 +453,6 @@ static uint16_t compose_pixel(struct nesturbator *nes, uint32_t x)
             (uint8_t)(((ppu->sprite_lo[i] >> bit) & 1u) | (((ppu->sprite_hi[i] >> bit) & 1u) << 1));
         if (color == 0u)
             continue;
-        /* The sprite-0 hit is evaluated here, on the video path only. This is sound because
-           nesturbator_run_frame rejects NULL video, so no frame runs without compose_pixel. */
-        if (ppu->sprite_zero[i] != 0u && bg_opaque != 0u && x != 255u &&
-            (ppu->mask & 0x08u) != 0u && (x >= 8u || (ppu->mask & 0x06u) == 0x06u))
-            ppu->status |= 0x40u;
         if (bg_opaque != 0u && (ppu->sprite_attr[i] & 0x20u) != 0u)
             return bg;
         uint8_t palette = (uint8_t)(0x10u + (ppu->sprite_attr[i] & 3u) * 4u + color);
@@ -525,6 +549,8 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
             nes->ppu.odd_frame = 0u;
             continue;
         }
+        if (nes->ppu.scanline < NESTURBATOR_HEIGHT && nes->ppu.dot >= 2u && nes->ppu.dot <= 257u)
+            detect_sprite_zero_hit(nes, (uint32_t)nes->ppu.dot - 2u);
         fetch_step(nes);
         if (nes->ppu.dot == 341u) {
             nes->ppu.dot = 0;

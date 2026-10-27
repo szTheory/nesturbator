@@ -1741,11 +1741,16 @@ static int marker_selftest(const char *work)
     ok &= marker_expect("oversized-MEM", marker_anchor(inst, bytes, length, 150u, offset),
                         "container-header", &count);
     memcpy(bytes, base, length);
-    if (padded == size)
-        return 2;
-    bytes[16u + size] = 1u;
-    ok &= marker_expect("nonzero-padding", marker_anchor(inst, bytes, length, 150u, offset),
-                        "container-padding", &count);
+    if (padded == size) {
+        bytes[16u + padded] ^= 1u;
+        ok &=
+            marker_expect("padding-boundary-end", marker_anchor(inst, bytes, length, 150u, offset),
+                          "container-end", &count);
+    } else {
+        bytes[16u + size] = 1u;
+        ok &= marker_expect("nonzero-padding", marker_anchor(inst, bytes, length, 150u, offset),
+                            "container-padding", &count);
+    }
     memcpy(bytes, base, length);
     memcpy(bytes + 16u + padded, "MEM ", 4u);
     ok &= marker_expect("duplicate-MEM", marker_anchor(inst, bytes, length, 150u, offset),

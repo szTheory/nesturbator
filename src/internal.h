@@ -34,10 +34,11 @@
 
 /* 6502 core state (D-10). P is kept exactly as loaded or pulled: flag
    writes touch only their own bits, so bits 4 and 5 change only on a pull.
-   nmi_prev is the asserted-high PPU line sampled at M2 fall; nmi_pending is
-   the captured edge retained until CPU service. They intentionally may differ
-   from the live PPU line and are both serialized. halted_in_read covers a
-   stalled read; the bus samples interrupt lines at its clock seam.
+   nmi_prev is the asserted-high PPU line at the detector sample, nmi_pending
+   retains a captured edge, and nmi_polled records the instruction poll result.
+   These historical values are separate from the live PPU line and are
+   serialized. halted_in_read covers a stalled read; the bus samples
+   interrupt lines at its clock seam.
    The power-on state comes from cartridge load, which sets S, P and PC from
    the reset vector. The CPU runs during every frame. nesturbator__cpu_reset
    runs the soft-reset sequence (I set, S lowered by 3, PC from the vector)
@@ -45,7 +46,7 @@
 struct nesturbator__cpu {
     uint16_t pc;
     uint8_t a, x, y, s, p;
-    uint8_t nmi_prev, nmi_pending, irq_line, poll_latch;
+    uint8_t nmi_prev, nmi_pending, nmi_polled, irq_line, poll_latch;
     uint8_t halted_in_read; /* nonzero while the current read is stalled */
     uint8_t jammed;         /* set by a JAM opcode; cleared by cpu_reset */
 };

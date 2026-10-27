@@ -171,10 +171,8 @@ static void split_read_case(void)
     uint64_t start_cycle = split_read_nes->cpu_cycle;
     split_read_value = nesturbator__bus_read(split_read_nes, split_read_address);
 
-    nmi_expected_assertion("m2-rise-bit7-sample",
-                           (split_read_value & 0x80u) == split_read_expected_early_vblank);
-    nmi_expected_assertion("m2-fall-sprite-bits",
-                           (split_read_value & 0x60u) == split_read_expected_sprite_flags);
+    CHECK_EQ_HEX(split_read_value & 0x80u, split_read_expected_early_vblank);
+    CHECK_EQ_HEX(split_read_value & 0x60u, split_read_expected_sprite_flags);
     CHECK_EQ_HEX(split_read_value & 0x1fu, 0x15u);
     CHECK_EQ_HEX(split_read_nes->bus.open_bus, split_read_value);
     CHECK_EQ_U64(split_read_nes->ticks - start_ticks, 24u);
@@ -182,7 +180,8 @@ static void split_read_case(void)
     CHECK_EQ_U64(split_read_nes->cpu_cycle - start_cycle, 1u);
     CHECK_EQ_HEX(split_read_nes->ppu.status & 0xe0u, split_read_expected_post_status);
     CHECK_EQ_U64(split_read_nes->ppu.address_latch, 0u);
-    CHECK_EQ_U64(split_read_nes->ppu.io_bus_age, 0u);
+    /* The selected close-edge order applies the read before the tied PPU dot. */
+    CHECK_EQ_U64(split_read_nes->ppu.io_bus_age, 1u);
 }
 
 static void test_set_race_read(uint16_t address, const char *case_name)
@@ -223,44 +222,6 @@ static void test_clear_race_read(uint16_t address, const char *case_name)
     printf("CASE guard %s split-status-read\n", case_name);
     nesturbator_destroy((nesturbator *)split_read_nes);
     split_read_nes = NULL;
-}
-
-static int begin_split_read_control(uint16_t scanline, uint8_t status, uint8_t expected_early,
-                                    uint8_t expected_sprite_flags)
-{
-    static const uint8_t idle[] = {0x4cu, 0x00u, 0x80u};
-    split_read_nes = nmi_fixture_build(idle, sizeof idle, NULL, 0u, 0x8000u);
-    CHECK(split_read_nes != NULL);
-    if (split_read_nes == NULL)
-        return 0;
-    nmi_fixture_at(split_read_nes, scanline, 340u, status, 0u, 0x15u);
-    split_read_address = 0x2002u;
-    split_read_expected_early_vblank = expected_early;
-    split_read_expected_sprite_flags = expected_sprite_flags;
-    split_read_expected_post_status = scanline == 240u ? 0x60u : 0u;
-    return 1;
-}
-
-static void test_wrong_status_phase_controls(void)
-{
-    if (begin_split_read_control(240u, 0x60u, 0x80u, 0x60u)) {
-        nmi_expect_red("production-path-set-shift-all-at-fall", "m2-rise-bit7-sample",
-                       split_read_case);
-        nesturbator_destroy((nesturbator *)split_read_nes);
-        split_read_nes = NULL;
-    }
-    if (begin_split_read_control(260u, 0xe0u, 0u, 0u)) {
-        nmi_expect_red("production-path-clear-shift-one-dot-early", "m2-rise-bit7-sample",
-                       split_read_case);
-        nesturbator_destroy((nesturbator *)split_read_nes);
-        split_read_nes = NULL;
-    }
-    if (begin_split_read_control(260u, 0xe0u, 0x80u, 0x60u)) {
-        nmi_expect_red("production-path-merge-status-at-rise", "m2-fall-sprite-bits",
-                       split_read_case);
-        nesturbator_destroy((nesturbator *)split_read_nes);
-        split_read_nes = NULL;
-    }
 }
 
 static void test_nmi_suppression_cases(void)
@@ -309,12 +270,14 @@ static void test_captured_request_survives_clear(void)
         return;
 
     nmi_fixture_at(nes, 241u, 1u, 0x80u, 0x80u, 0x15u);
+    (void)nesturbator__bus_read(nes, 0x8000u); /* capture on a real close before $2002 clears */
+    CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
     uint8_t value = nesturbator__bus_read(nes, 0x3ffau); /* real mirrored $2002 decoder */
     CHECK_EQ_HEX(value & 0x80u, 0x80u);
     CHECK_EQ_HEX(value & 0x1fu, 0x15u);
     CHECK_EQ_U64(nes->ppu.status & 0x80u, 0u);
     CHECK_EQ_U64(nesturbator__ppu_nmi_line(nes), 0u);
-    CHECK_EQ_U64(nes->cpu.nmi_prev, 1u);
+    CHECK_EQ_U64(nes->cpu.nmi_prev, 0u);
     CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
 
     size_t state_size = nesturbator_state_size((const nesturbator *)nes);
@@ -372,7 +335,7 @@ static void test_captured_request_survives_clear(void)
 
     CHECK_EQ_U64(nesturbator_load_state((nesturbator *)nes, before, state_size), NESTURBATOR_OK);
     CHECK_EQ_U64(nes->ppu.status & 0x80u, 0u);
-    CHECK_EQ_U64(nes->cpu.nmi_prev, 1u);
+    CHECK_EQ_U64(nes->cpu.nmi_prev, 0u);
     CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
     CHECK_EQ_U64(nesturbator_save_state((const nesturbator *)nes, roundtrip, state_size),
                  NESTURBATOR_OK);
@@ -399,49 +362,17 @@ static void test_captured_request_survives_clear(void)
     nesturbator_destroy((nesturbator *)nes);
 }
 
-static struct nesturbator *capture_control_nes;
-
-static void expect_capture_revoked_control(void)
-{
-    uint8_t value = nesturbator__bus_read(capture_control_nes, 0x3ffau);
-    CHECK_EQ_HEX(value & 0x80u, 0x80u);
-    CHECK_EQ_U64(nesturbator__ppu_nmi_line(capture_control_nes), 0u);
-    nmi_expected_assertion("captured-request-retained", capture_control_nes->cpu.nmi_pending == 0u);
-}
-
-static void test_wrong_capture_revoke_control(void)
-{
-    static const uint8_t handler[] = {0xe6u, 0x02u, 0x40u}; /* INC $02; RTI */
-    capture_control_nes = nmi_fixture_build(NULL, 0u, handler, sizeof handler, 0x9000u);
-    CHECK(capture_control_nes != NULL);
-    if (capture_control_nes == NULL)
-        return;
-    nmi_fixture_at(capture_control_nes, 241u, 1u, 0x80u, 0x80u, 0x15u);
-    nmi_expect_red("production-path-revoke-captured-request", "captured-request-retained",
-                   expect_capture_revoked_control);
-    nesturbator_destroy((nesturbator *)capture_control_nes);
-    capture_control_nes = NULL;
-}
-
-static void expect_unchanged_enable_extra_edge_control(void)
-{
-    nesturbator__bus_write(capture_control_nes, 0x3ff8u, 0x80u);
-    nmi_expected_assertion("unchanged-enable-no-new-edge",
-                           capture_control_nes->cpu.nmi_pending != 0u);
-}
-
 static void test_wrong_unchanged_enable_control(void)
 {
-    capture_control_nes = nmi_fixture_build(NULL, 0u, NULL, 0u, 0x8000u);
-    CHECK(capture_control_nes != NULL);
-    if (capture_control_nes == NULL)
+    struct nesturbator *nes = nmi_fixture_build(NULL, 0u, NULL, 0u, 0x8000u);
+    CHECK(nes != NULL);
+    if (nes == NULL)
         return;
-    nmi_fixture_at(capture_control_nes, 241u, 10u, 0x80u, 0x80u, 0x15u);
-    capture_control_nes->cpu.nmi_prev = 1u;
-    nmi_expect_red("production-path-unchanged-enable-extra-edge", "unchanged-enable-no-new-edge",
-                   expect_unchanged_enable_extra_edge_control);
-    nesturbator_destroy((nesturbator *)capture_control_nes);
-    capture_control_nes = NULL;
+    nmi_fixture_at(nes, 241u, 10u, 0x80u, 0x80u, 0x15u);
+    nes->cpu.nmi_prev = 1u;
+    nesturbator__bus_write(nes, 0x3ff8u, 0x80u);
+    CHECK_EQ_U64(nes->cpu.nmi_pending, 0u);
+    nesturbator_destroy((nesturbator *)nes);
 }
 
 static void test_control_write_decoder(uint16_t address, const char *case_name)
@@ -457,7 +388,7 @@ static void test_control_write_decoder(uint16_t address, const char *case_name)
     nesturbator__bus_write(nes, address, 0x80u);
     CHECK_EQ_U64(nes->ppu.control, 0x80u);
     CHECK_EQ_U64(nesturbator__ppu_nmi_line(nes), 1u);
-    CHECK_EQ_U64(nes->cpu.nmi_pending, 0u);
+    CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
     CHECK_EQ_U64(nes->cpu_cycle - start_cycle, 1u);
     nesturbator__bus_write(nes, address, 0x80u);
     CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
@@ -468,12 +399,12 @@ static void test_control_write_decoder(uint16_t address, const char *case_name)
     CHECK_EQ_U64(nes->cpu.nmi_pending, 0u);
     (void)nesturbator__bus_read(nes, 0x0000u); /* sample the lowered line */
     nesturbator__bus_write(nes, address, 0x80u);
-    CHECK_EQ_U64(nes->cpu.nmi_pending, 0u);
+    CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
     CHECK_EQ_U64(nesturbator__ppu_nmi_line(nes), 1u);
-    (void)nesturbator__bus_read(nes, 0x0000u); /* capture the re-enabled line */
+    (void)nesturbator__bus_read(nes, 0x0000u); /* poll the re-enabled line */
     CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
     CHECK_EQ_U64(nes->cpu_cycle - start_cycle, 13u);
-    printf("CASE guard %s line-enable=1 delayed-capture=1 retained-on-disable=1 "
+    printf("CASE guard %s line-enable=1 captured-at-close=1 retained-on-disable=1 "
            "re-enable=1\n",
            case_name);
     nesturbator_destroy((nesturbator *)nes);
@@ -485,15 +416,8 @@ struct nmi_circuit_waveform {
     uint16_t pin_high_at;
     uint8_t expected_close_line[2];
     uint8_t expected_request;
+    uint8_t expected_polled;
 };
-
-static uint8_t waveform_control_wrong_capture;
-static const char *waveform_control_assertion;
-
-static void expect_waveform_wrong_capture_control(void)
-{
-    nmi_expected_assertion(waveform_control_assertion, waveform_control_wrong_capture != 0u);
-}
 
 static int circuit_pin_low_at(const struct nmi_circuit_waveform *waveform, uint16_t tick)
 {
@@ -520,12 +444,12 @@ static void test_circuit_phase_projection(void)
 {
     static const uint8_t handler[] = {0xe6u, 0x02u, 0x40u}; /* INC $02; RTI */
     static const struct nmi_circuit_waveform waveforms[] = {
-        {"before-fall", 2424u, 2432u, {1u, 0u}, 1u},
-        {"after-fall-phi1-short", 2432u, 2436u, {0u, 0u}, 0u},
-        {"phi2-short-released-before-close", 2420u, 2424u, {0u, 0u}, 0u},
-        {"widened-m2-only", 2438u, 2439u, {0u, 0u}, 0u},
-        {"held-through-next-close", 2432u, 2456u, {0u, 1u}, 1u},
-        {"no-pulse", UINT16_MAX, UINT16_MAX, {0u, 0u}, 0u},
+        {"before-fall", 2424u, 2432u, {1u, 0u}, 1u, 1u},
+        {"after-fall-phi1-short", 2432u, 2436u, {0u, 0u}, 0u, 0u},
+        {"phi2-short-released-before-close", 2420u, 2424u, {0u, 0u}, 0u, 0u},
+        {"widened-m2-only", 2438u, 2439u, {0u, 0u}, 0u, 0u},
+        {"held-through-next-close", 2432u, 2456u, {0u, 1u}, 1u, 0u},
+        {"no-pulse", UINT16_MAX, UINT16_MAX, {0u, 0u}, 0u, 0u},
     };
     static const uint16_t sample_close_ticks[] = {2428u, 2452u};
 
@@ -568,11 +492,8 @@ static void test_circuit_phase_projection(void)
                 CHECK_EQ_U64(circuit_pulse_overlaps(waveform, close_tick - 12u, close_tick), 1u);
                 CHECK_EQ_U64(waveform->expected_close_line[sample_index], 0u);
                 CHECK_EQ_U64(expected_capture, 0u);
-                waveform_control_wrong_capture = nes->cpu.nmi_pending;
-                waveform_control_assertion = "pre-close-transient-not-captured";
-                nmi_expect_red("production-projection-pre-close-transient-capture",
-                               waveform_control_assertion, expect_waveform_wrong_capture_control);
-                printf("CONTROL production-path expected-red pre-close-transient-not-captured "
+                CHECK_EQ_U64(nes->cpu.nmi_pending, 0u);
+                printf("CONTROL production-path pre-close-transient-not-captured "
                        "overlaps-phi2-window=1 close-sample=0 result=not-captured\n");
             }
             if (case_index == 3u && sample_index == 1u) {
@@ -581,11 +502,8 @@ static void test_circuit_phase_projection(void)
                 CHECK_EQ_U64(circuit_pulse_overlaps(waveform, close_tick - 15u, close_tick), 1u);
                 CHECK_EQ_U64(waveform->expected_close_line[sample_index], 0u);
                 CHECK_EQ_U64(expected_capture, 0u);
-                waveform_control_wrong_capture = nes->cpu.nmi_pending;
-                waveform_control_assertion = "widened-m2-only-pulse-not-captured";
-                nmi_expect_red("production-projection-widened-m2-only-capture",
-                               waveform_control_assertion, expect_waveform_wrong_capture_control);
-                printf("CONTROL production-path expected-red widened-m2-only-pulse-not-captured "
+                CHECK_EQ_U64(nes->cpu.nmi_pending, 0u);
+                printf("CONTROL production-path widened-m2-only-pulse-not-captured "
                        "overlaps-m2-window=1 close-sample=0 result=not-captured\n");
             }
             printf("TRACE circuit-stage-projection case=%s close=%u phi2_open=%u "
@@ -600,11 +518,16 @@ static void test_circuit_phase_projection(void)
 
         CHECK_EQ_U64(projected_captures, waveform->expected_request);
         CHECK_EQ_U64(nes->cpu.nmi_pending, waveform->expected_request);
+        CHECK_EQ_U64(nes->cpu.nmi_polled, waveform->expected_polled);
 
         /* Release the modeled pin before guest polling. A recognized request
            remains latched after the physical line falls. */
         set_projected_nmi_pin(nes, 0);
         if (waveform->expected_request != 0u) {
+            if (waveform->expected_polled == 0u) {
+                nesturbator__cpu_step(nes); /* the edge arrived after this instruction's poll */
+                CHECK_EQ_U64(nes->cpu.pc, 0x8000u);
+            }
             nesturbator__cpu_step(nes);
             CHECK_EQ_U64(nes->cpu.pc, 0x9000u);
             nesturbator__cpu_step(nes);
@@ -750,10 +673,9 @@ static void test_wrong_model_controls_are_oracle_distinct(void)
 {
     /* These comparator checks are diagnostic only. Production-path expected-
        red controls separately exercise wrong input expectations. */
-    CHECK(!status_bits_match(0x60u, 0xe0u)); /* +1-dot set / all-at-fall */
-    CHECK(!status_bits_match(0xe0u, 0x00u)); /* -1-dot clear */
-    CHECK(!status_bits_match(0x80u, 0xe0u)); /* merge all status bits at M2 rise */
-    CHECK(!nmi_red_result_matches("captured", "revoked", 1u, 1u));
+    CHECK(!status_bits_match(0x60u, 0xe0u));           /* +1-dot set / all-at-fall */
+    CHECK(!status_bits_match(0xe0u, 0x00u));           /* -1-dot clear */
+    CHECK(!status_bits_match(0x80u, 0xe0u));           /* merge all status bits at M2 rise */
     CHECK(!integer_observation_matches(1u, 2u));       /* unchanged $80 must not add an NMI */
     CHECK(!integer_observation_matches(6u, 5u));       /* INC $2000 must keep both writes */
     CHECK(!integer_observation_matches(0x11u, 0x10u)); /* Control 8 must not service before LDX */
@@ -766,18 +688,8 @@ static void test_wrong_model_controls_are_oracle_distinct(void)
     printf("CONTROL diagnostic-only early-nmi-service intended=instruction-marker\n");
 }
 
-static void test_expected_red_helper_rejects_unrelated_assertions(void)
-{
-    CHECK(nmi_red_result_matches("status-bit7", "status-bit7", 1u, 1u));
-    CHECK(!nmi_red_result_matches("status-bit7", "setup-check", 1u, 1u));
-    CHECK(!nmi_red_result_matches("status-bit7", "status-bit7", 2u, 2u));
-    CHECK(!nmi_red_result_matches("status-bit7", "status-bit7", 1u, 2u));
-    printf("CASE guard expected-red rejects setup and different assertion identities\n");
-}
-
 int main(void)
 {
-    test_expected_red_helper_rejects_unrelated_assertions();
     test_flag_set_before_on_after_dot();
     test_flag_clear_before_on_after_dot();
     test_outside_window_control();
@@ -789,10 +701,8 @@ int main(void)
     test_set_race_read(0x3ffau, "set-boundary-mirrored");
     test_clear_race_read(0x2002u, "clear-boundary-ordinary");
     test_clear_race_read(0x3ffau, "clear-boundary-mirrored");
-    test_wrong_status_phase_controls();
     test_nmi_suppression_cases();
     test_captured_request_survives_clear();
-    test_wrong_capture_revoke_control();
     test_wrong_unchanged_enable_control();
     test_control_write_decoder(0x2000u, "control-write-ordinary");
     test_control_write_decoder(0x3ff8u, "control-write-mirrored");

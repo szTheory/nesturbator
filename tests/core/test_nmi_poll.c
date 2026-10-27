@@ -5,6 +5,7 @@
    poll between the two INC writes for case 9. */
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../nmi_fixture.h"
@@ -72,6 +73,8 @@ static void run_sta_control_to_marker(void)
     }
     CHECK(steps < 40u);
     CHECK_EQ_U64(poll_nes->bus.ram[NMI_COUNT], 1u);
+    CHECK_EQ_U64(poll_nes->cpu.nmi_pending, 0u);
+    CHECK_EQ_U64(poll_nes->cpu.nmi_polled, 0u);
 }
 
 static void prepare_sta_control(void)
@@ -110,6 +113,7 @@ static void test_control_8_handler_entry(void)
         (uint16_t)((uint16_t)poll_nes->bus.ram[0x01fdu] << 8 | poll_nes->bus.ram[0x01fcu]);
     CHECK_EQ_U64(poll_nes->bus.ram[NMI_ENTRY_X], 0x10u);
     CHECK_EQ_U64(return_pc, 0x800bu);
+    printf("CASE guard nmi-control-8 STA-next=LDX entry-X=$10 return=$800B marker-X=$11\n");
     nesturbator_destroy((nesturbator *)poll_nes);
     poll_nes = NULL;
 }
@@ -133,6 +137,7 @@ static void test_control_9_inc_poll_and_both_writes(void)
     CHECK_EQ_HEX(poll_nes->ppu.control, 0x81u);
     CHECK_EQ_HEX(poll_nes->ppu.io_bus, 0x81u);
     CHECK_EQ_U64(poll_nes->cpu.nmi_pending, 1u);
+    CHECK_EQ_U64(poll_nes->cpu.nmi_polled, 1u);
 
     nesturbator__cpu_step(poll_nes); /* NMI entry must precede LDX in Control 9. */
     CHECK_EQ_HEX(poll_nes->cpu.pc, 0x8200u);
@@ -208,10 +213,11 @@ static void test_enable_after_status_clear_does_not_request_nmi(void)
 static void test_branch_class_nmi_return(uint16_t pc, uint8_t offset, uint8_t flags,
                                          uint16_t expected_pc, const char *name)
 {
-    uint8_t program[0x100] = {0u};
+    uint8_t program[0x200] = {0u};
     size_t offset_in_prg = (size_t)(pc - 0x8000u);
     program[offset_in_prg] = 0xd0u; /* BNE */
     program[offset_in_prg + 1u] = offset;
+    program[expected_pc - 0x8000u] = 0xeau; /* next instruction after the branch */
     struct nesturbator *nes =
         nmi_fixture_build(program, sizeof program, nmi_handler, sizeof nmi_handler, 0x8200u);
     CHECK(nes != NULL);
@@ -225,13 +231,184 @@ static void test_branch_class_nmi_return(uint16_t pc, uint8_t offset, uint8_t fl
     CHECK_EQ_HEX(nes->cpu.pc, expected_pc);
     CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
     CHECK_EQ_U64(nes->cpu.irq_line, 0u);
+    uint8_t branch_polled = nes->cpu.nmi_polled;
+    uint16_t return_pc = expected_pc;
+    if (branch_polled == 0u) {
+        nesturbator__cpu_step(nes);
+        return_pc = (uint16_t)(expected_pc + 1u);
+        CHECK_EQ_HEX(nes->cpu.pc, return_pc);
+        CHECK_EQ_U64(nes->cpu.nmi_polled, 1u);
+    }
     nesturbator__cpu_step(nes);
     CHECK_EQ_HEX(nes->cpu.pc, 0x8200u);
     CHECK_EQ_U64(nes->cpu.irq_line, 0u);
-    uint16_t return_pc = (uint16_t)((uint16_t)nes->bus.ram[0x01fdu] << 8 | nes->bus.ram[0x01fcu]);
-    CHECK_EQ_HEX(return_pc, expected_pc);
+    uint16_t stacked_pc = (uint16_t)((uint16_t)nes->bus.ram[0x01fdu] << 8 | nes->bus.ram[0x01fcu]);
+    CHECK_EQ_HEX(stacked_pc, return_pc);
     printf("CASE guard branch-%s NMI-return=$%04X IRQ=unchanged\n", name, return_pc);
     nesturbator_destroy((nesturbator *)nes);
+}
+
+static void test_poll_instruction_classes(void)
+{
+    static const struct {
+        const char *name;
+        uint8_t code[3];
+        size_t len;
+        uint16_t return_pc;
+        uint8_t stack;
+    } cases[] = {
+        {"implied", {0xeau, 0u, 0u}, 1u, 0x8001u, 0u},
+        {"read", {0xadu, 0x00u, 0x80u}, 3u, 0x8003u, 0u},
+        {"store", {0x85u, 0x02u, 0u}, 2u, 0x8002u, 0u},
+        {"rmw", {0xe6u, 0x02u, 0u}, 2u, 0x8002u, 0u},
+        {"stack", {0x48u, 0u, 0u}, 1u, 0x8001u, 0u},
+        {"rts", {0x60u, 0u, 0u}, 1u, 0x1235u, 1u},
+        {"rti", {0x40u, 0u, 0u}, 1u, 0x1234u, 2u},
+    };
+    for (size_t i = 0u; i < sizeof cases / sizeof cases[0]; ++i) {
+        struct nesturbator *nes = build_poll_fixture(cases[i].code, cases[i].len);
+        CHECK(nes != NULL);
+        if (nes == NULL)
+            continue;
+        nmi_fixture_at(nes, 241u, 2u, 0x80u, 0x80u, 0u);
+        nes->cpu.pc = 0x8000u;
+        nes->cpu.p = 0x20u;
+        nes->cpu.s = cases[i].stack == 1u ? 0xfbu : cases[i].stack == 2u ? 0xfau : 0xfdu;
+        nes->cpu.a = 0x5au;
+        nes->bus.ram[0x0002u] = 0x10u;
+        if (cases[i].stack == 1u) {
+            nes->bus.ram[0x01fcu] = 0x34u;
+            nes->bus.ram[0x01fdu] = 0x12u;
+        } else if (cases[i].stack == 2u) {
+            nes->bus.ram[0x01fbu] = 0x20u;
+            nes->bus.ram[0x01fcu] = 0x34u;
+            nes->bus.ram[0x01fdu] = 0x12u;
+        }
+        nesturbator__cpu_step(nes);
+        CHECK_EQ_HEX(nes->cpu.pc, cases[i].return_pc);
+        CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
+        CHECK_EQ_U64(nes->cpu.nmi_polled, 1u);
+        uint8_t return_stack = nes->cpu.s;
+        nesturbator__cpu_step(nes);
+        CHECK_EQ_HEX(nes->cpu.pc, 0x8200u);
+        CHECK_EQ_HEX(nes->bus.ram[0x0100u | (uint8_t)(return_stack - 1u)],
+                     (uint8_t)cases[i].return_pc);
+        CHECK_EQ_HEX(nes->bus.ram[0x0100u | return_stack], (uint8_t)(cases[i].return_pc >> 8));
+        printf("CASE guard nmi-poll-class=%s captured=1 polled=1 return=$%04X\n", cases[i].name,
+               cases[i].return_pc);
+        nesturbator_destroy((nesturbator *)nes);
+    }
+}
+
+static void test_branch_late_capture_classes(void)
+{
+    static const struct {
+        uint16_t pc;
+        uint8_t offset;
+        uint8_t flags;
+        uint16_t expected_pc;
+        uint16_t start_dot;
+        uint8_t expected_polled;
+        const char *name;
+    } cases[] = {
+        {0x8000u, 0x02u, 0x22u, 0x8002u, 337u, 0u, "not-taken"},
+        {0x8000u, 0x02u, 0x20u, 0x8004u, 334u, 0u, "same-page"},
+        {0x80fcu, 0x02u, 0x20u, 0x8100u, 334u, 1u, "page-cross"},
+    };
+    uint8_t program[0x100] = {0u};
+    for (size_t i = 0u; i < sizeof cases / sizeof cases[0]; ++i) {
+        memset(program, 0u, sizeof program);
+        size_t offset = (size_t)(cases[i].pc - 0x8000u);
+        program[offset] = 0xd0u;
+        program[offset + 1u] = cases[i].offset;
+        if (cases[i].expected_polled == 0u)
+            program[cases[i].expected_pc - 0x8000u] = 0xeau;
+        struct nesturbator *nes =
+            nmi_fixture_build(program, sizeof program, nmi_handler, sizeof nmi_handler, 0x8200u);
+        CHECK(nes != NULL);
+        if (nes == NULL)
+            continue;
+        nmi_fixture_at(nes, 240u, cases[i].start_dot, 0u, 0x80u, 0u);
+        nes->cpu.pc = cases[i].pc;
+        nes->cpu.p = cases[i].flags;
+        nes->cpu.s = 0xfdu;
+        nesturbator__cpu_step(nes);
+        CHECK_EQ_HEX(nes->cpu.pc, cases[i].expected_pc);
+        CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
+        CHECK_EQ_U64(nes->cpu.nmi_polled, cases[i].expected_polled);
+        if (cases[i].expected_polled == 0u) {
+            nesturbator__cpu_step(nes);
+            CHECK_EQ_HEX(nes->cpu.pc, (uint16_t)(cases[i].expected_pc + 1u));
+            CHECK_EQ_U64(nes->cpu.nmi_polled, 1u);
+            nesturbator__cpu_step(nes);
+        } else {
+            nesturbator__cpu_step(nes);
+        }
+        CHECK_EQ_HEX(nes->cpu.pc, 0x8200u);
+        printf("CASE guard nmi-branch-late-%s pending=1 polled=%u\n", cases[i].name,
+               cases[i].expected_polled);
+        nesturbator_destroy((nesturbator *)nes);
+    }
+}
+
+static void test_saved_late_capture_continues_after_instruction_poll(void)
+{
+    static const uint8_t program[] = {0xeau, 0xe8u, 0xeau}; /* NOP; INX; NOP */
+    struct nesturbator *a = build_poll_fixture(program, sizeof program);
+    struct nesturbator *b = build_poll_fixture(program, sizeof program);
+    CHECK(a != NULL && b != NULL);
+    if (a == NULL || b == NULL) {
+        if (a != NULL)
+            nesturbator_destroy((nesturbator *)a);
+        if (b != NULL)
+            nesturbator_destroy((nesturbator *)b);
+        return;
+    }
+    nmi_fixture_at(a, 240u, 337u, 0u, 0x80u, 0u);
+    a->cpu.pc = 0x8000u;
+    a->cpu.p = 0x20u;
+    a->cpu.s = 0xfdu;
+    a->bus.ram[NMI_COUNT] = 0u;
+    a->bus.ram[NMI_ENTRY_X] = 0xffu;
+    nesturbator__cpu_step(a);
+    CHECK_EQ_HEX(a->cpu.pc, 0x8001u);
+    CHECK_EQ_U64(a->cpu.nmi_pending, 1u);
+    CHECK_EQ_U64(a->cpu.nmi_polled, 0u);
+
+    size_t size = nesturbator_state_size((nesturbator *)a);
+    uint8_t *state = (uint8_t *)malloc(size);
+    uint8_t *roundtrip = (uint8_t *)malloc(size);
+    CHECK(state != NULL && roundtrip != NULL);
+    if (state != NULL && roundtrip != NULL) {
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)a, state, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_load_state((nesturbator *)b, state, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)b, roundtrip, size), NESTURBATOR_OK);
+        CHECK(memcmp(state, roundtrip, size) == 0);
+        nesturbator__cpu_step(a);
+        nesturbator__cpu_step(b);
+        CHECK_EQ_HEX(a->cpu.pc, 0x8002u);
+        CHECK_EQ_U64(a->cpu.x, 1u);
+        CHECK_EQ_U64(a->cpu.nmi_polled, 1u);
+        nesturbator__cpu_step(a);
+        nesturbator__cpu_step(b);
+        CHECK_EQ_HEX(a->cpu.pc, 0x8200u);
+        CHECK_EQ_HEX(b->cpu.pc, 0x8200u);
+        nesturbator__cpu_step(a);
+        nesturbator__cpu_step(b);
+        nesturbator__cpu_step(a);
+        nesturbator__cpu_step(b);
+        CHECK_EQ_U64(a->bus.ram[NMI_ENTRY_X], 1u);
+        CHECK_EQ_U64(b->bus.ram[NMI_ENTRY_X], 1u);
+        CHECK_EQ_U64(a->bus.ram[NMI_COUNT], 1u);
+        CHECK_EQ_U64(b->bus.ram[NMI_COUNT], 1u);
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)a, state, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)b, roundtrip, size), NESTURBATOR_OK);
+        CHECK(memcmp(state, roundtrip, size) == 0);
+    }
+    free(state);
+    free(roundtrip);
+    nesturbator_destroy((nesturbator *)a);
+    nesturbator_destroy((nesturbator *)b);
 }
 
 int main(void)
@@ -245,5 +422,8 @@ int main(void)
     test_branch_class_nmi_return(0x8000u, 0x02u, 0x22u, 0x8002u, "not-taken");
     test_branch_class_nmi_return(0x8000u, 0x02u, 0x20u, 0x8004u, "taken-same-page");
     test_branch_class_nmi_return(0x80fcu, 0x02u, 0x20u, 0x8100u, "taken-page-cross");
+    test_poll_instruction_classes();
+    test_branch_late_capture_classes();
+    test_saved_late_capture_continues_after_instruction_poll();
     CHECK_DONE();
 }
