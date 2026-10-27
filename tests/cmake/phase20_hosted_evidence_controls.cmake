@@ -215,7 +215,7 @@ function(nesturbator_phase20_write_evidence_fixture root source_dir runner rom)
     phase20_expected_build_job_name("linux-x64" expected_job expected_step)
     set(job_steps "[]")
     if(name STREQUAL expected_job)
-      set(job_steps "[{\"name\":\"${expected_step}\",\"number\":11,\"status\":\"completed\",\"conclusion\":\"success\"}]")
+          set(job_steps "[{\"name\":\"${expected_step}\",\"number\":11,\"status\":\"completed\",\"conclusion\":\"success\",\"started_at\":\"2026-10-26T10:00:10Z\",\"completed_at\":\"2026-10-26T10:01:00Z\"}]")
     else()
       foreach(platform IN LISTS NESTURBATOR_PHASE20_PLATFORMS)
         phase20_expected_build_job_name("${platform}" platform_job platform_step)
@@ -261,25 +261,39 @@ function(nesturbator_phase20_write_evidence_fixture root source_dir runner rom)
     set(job_id "${fixture_ci_job_id_${job_key}}")
     set(job_metadata "${root}/provenance/build-${platform}-job.json")
     file(WRITE "${job_metadata}"
-      "{\"id\":${job_id},\"run_id\":1001,\"run_attempt\":1,\"name\":\"${expected_job}\",\"status\":\"completed\",\"conclusion\":\"success\",\"steps\":[{\"name\":\"${expected_step}\",\"number\":11,\"status\":\"completed\",\"conclusion\":\"success\"}]}")
-    set(log "${root}/provenance/build-${platform}-workflow.log")
+      "{\"id\":${job_id},\"run_id\":1001,\"run_attempt\":1,\"name\":\"${expected_job}\",\"status\":\"completed\",\"conclusion\":\"success\",\"steps\":[{\"name\":\"${expected_step}\",\"number\":11,\"status\":\"completed\",\"conclusion\":\"success\",\"started_at\":\"2026-10-26T10:00:10Z\",\"completed_at\":\"2026-10-26T10:01:00Z\"}]}")
+    set(log "${root}/downloads/job-${platform}.txt")
+    string(ASCII 239 187 191 log_bom)
+    string(ASCII 27 log_esc)
     file(WRITE "${log}"
-      "1/30 Test #1: accuracycoin.protected_observation .... Passed 0.01 sec\n2/30 Test #2: accuracycoin.protected .... Passed 0.01 sec\n3/30 Test #3: accuracy.scoreboard.no_lost_pass .... Passed 0.01 sec\n4/30 Test #4: vectors.n65v .... Passed 0.01 sec\n5/30 Test #5: holymapperel.m2.decode .... Passed 0.01 sec\n6/30 Test #6: runner.boot_to_play .... Passed 0.01 sec\n")
-    set(stage "${WORK}/job-${platform}")
-    file(REMOVE_RECURSE "${stage}")
-    file(MAKE_DIRECTORY "${stage}")
-    set(member "11_Run-cmake-workflow.txt")
-    configure_file("${log}" "${stage}/${member}" COPYONLY)
-    execute_process(COMMAND "${CMAKE_COMMAND}" -E tar cf "${root}/downloads/job-${platform}.zip"
-      --format=zip "${member}" WORKING_DIRECTORY "${stage}"
-      RESULT_VARIABLE zip_result OUTPUT_VARIABLE zip_stdout ERROR_VARIABLE zip_stderr)
-    if(NOT "${zip_result}" STREQUAL "0")
-      message(FATAL_ERROR "could not create authentic-shaped job log archive: ${zip_stdout}${zip_stderr}")
-    endif()
-    file(SHA256 "${root}/downloads/job-${platform}.zip" archive_sha)
-    file(SHA256 "${log}" step_sha)
+      "${log_bom}2026-10-26T09:59:50.0000000Z Current runner version: '2.338.0'\r\n"
+      "2026-10-26T09:59:55.0000000Z ##[group]Run preceding-step-checks\r\n"
+      "2026-10-26T09:59:56.0000000Z 1/6 Test #1: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
+      "2026-10-26T09:59:56.0000000Z 2/6 Test #2: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+      "2026-10-26T09:59:56.0000000Z 3/6 Test #3: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+      "2026-10-26T09:59:56.0000000Z 4/6 Test #4: vectors.n65v ............................ Passed 0.01 sec\r\n"
+      "2026-10-26T09:59:56.0000000Z 5/6 Test #5: holymapperel.m2.decode .................. Passed 0.01 sec\r\n"
+      "2026-10-26T09:59:56.0000000Z 6/6 Test #6: runner.boot_to_play ..................... Passed 0.01 sec\r\n"
+      "2026-10-26T09:59:57.0000000Z ##[endgroup]\r\n"
+      "2026-10-26T10:00:10.1000000Z ##[group]Run cmake --workflow --preset ci-build\r\n"
+      "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... ${log_esc}[32mPassed${log_esc}[0m 16.82 sec\r\n"
+      "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:14.1234567Z 4/6 Test #336: vectors.n65v ............................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.m2.decode .................. Passed 0.00 sec\r\n"
+      "2026-10-26T10:00:16.1234567Z 6/6 Test #289: runner.boot_to_play ..................... Passed 10.08 sec\r\n"
+      "2026-10-26T10:00:59.0000000Z ##[endgroup]\r\n"
+      "2026-10-26T10:01:01.0000000Z ##[group]Run following-step-checks\r\n"
+      "2026-10-26T10:01:02.0000000Z 1/6 Test #1: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
+      "2026-10-26T10:01:02.0000000Z 2/6 Test #2: accuracycoin.protected ................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:01:02.0000000Z 3/6 Test #3: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
+      "2026-10-26T10:01:02.0000000Z 4/6 Test #4: vectors.n65v ............................ Passed 0.01 sec\r\n"
+      "2026-10-26T10:01:02.0000000Z 5/6 Test #5: holymapperel.m2.decode .................. Passed 0.01 sec\r\n"
+      "2026-10-26T10:01:02.0000000Z 6/6 Test #6: runner.boot_to_play ..................... Passed 0.01 sec\r\n"
+      "2026-10-26T10:01:03.0000000Z ##[endgroup]\r\n")
+    file(SHA256 "${log}" raw_log_sha)
     file(WRITE "${root}/provenance/build-${platform}-job.txt"
-      "job_id=${job_id}\njob_name=${expected_job}\nrun_id=1001\nrun_attempt=1\nstep_name=${expected_step}\nstep_number=11\narchive_member=${member}\narchive_sha256=${archive_sha}\nstep_log_sha256=${step_sha}\n")
+      "job_id=${job_id}\njob_name=${expected_job}\nrun_id=1001\nrun_attempt=1\nstep_name=${expected_step}\nstep_number=11\nraw_job_log=job-${platform}.txt\nraw_job_log_sha256=${raw_log_sha}\nstep_started_at=2026-10-26T10:00:10Z\nstep_completed_at=2026-10-26T10:01:00Z\n")
   endforeach()
 
   file(WRITE "${root}/provenance/source-identity.txt"
@@ -499,7 +513,7 @@ if(CASE STREQUAL "adapter" OR CASE STREQUAL "availability")
       "fixture/provenance/build-${platform}-job.json")
     phase20_adapter_copy_route("${fake_root}"
       "repos/szTheory/nesturbator/actions/jobs/${job_id}/logs"
-      "${FIXTURE}/downloads/job-${platform}.zip" "fixture/zips/job-${platform}.zip")
+      "${FIXTURE}/downloads/job-${platform}.txt" "fixture/job-logs/job-${platform}.txt")
   endforeach()
   if(CMAKE_HOST_WIN32)
     set(path_separator ";")
