@@ -5,11 +5,11 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
 status: delivering
-stopped_at: PR 59 open; hosted runner/API repairs passed full local CI; publishing final candidate
-last_updated: "2026-10-27T12:10:10Z"
+stopped_at: PR 59 retained IRQ repair verified by CI 684/684, ASan 676/676 and MMC3 13/13; publishing
+last_updated: "2026-10-27T12:54:09Z"
 last_activity: 2026-10-27
-last_activity_desc: PR 59 open; GCC, MSVC, marker fixture and collector API repairs verified; final local CI 684/684
-state_head: d7ad9695d9226b447b98a117015946da184ed65b
+last_activity_desc: PR 59 delivery repairs and retained IRQ regression fix verified; CI 684/684, ASan 676/676, MMC3 13/13
+state_head: 2d904b7daef8f4882e3d50389869f21571727b62
 progress:
   total_phases: 3
   completed_phases: 1
@@ -28,9 +28,9 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — DELIVERING
+Phase: 20 (NMI line and VBlank flag) — DELIVERING REGRESSION REPAIR
 Plan: 9 of 10 complete; 20-10 has zero completed tasks
-Status: Draft PR #59 open; coherent hosted runner/API repair passed local CI 684/684 and focused checks 35/35; publishing new exact-head candidate; 20-10 remains unexecuted
+Status: Draft PR #59 open; retained IRQ regression repair passes CI 684/684, ASan 676/676 and MMC3 13/13; publishing finalized source; 20-10 and all requirements remain pending
 Last activity: 2026-10-27 — Delivery authorized; formatting hook repaired without bypass; remeasured campaign and full CI passed 684/684
 
 Progress: [███░░░░░░░] 33%
@@ -96,7 +96,7 @@ Progress: [███░░░░░░░] 33%
 
 ## Delivery
 
-Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Plans 20-01 through 20-09 are locally executed and summarized. Plan 20-09's final local CI passed 684/684 and packaged the library, runner, and libretro outputs; the final four-witness recheck passed 4/4. Its causal source commit is `392b8f5`, effective digest `684085be7b2ecccc55f30eb885387a111aecfb622950da3184a84bce1d489c43` over 415 files; later planning-only commits remain separate from the eventual delivered candidate. Hosted exact-head evidence remains pending; Phase 20 and all four requirement IDs remain open for independent phase-level re-verification. This execution step did not push, create a PR, dispatch workflows, or claim hosted results.
+Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Plans 20-01 through 20-09 are locally executed and summarized. Plan 20-09's final local CI passed 684/684 and packaged the library, runner, and libretro outputs; the final four-witness recheck passed 4/4. Its causal source commit is `392b8f5`, effective digest `684085be7b2ecccc55f30eb885387a111aecfb622950da3184a84bce1d489c43` over 415 files; later planning-only commits remain separate from the eventual delivered candidate. Hosted exact-head evidence remains pending; Phase 20 and all four requirement IDs remain open for independent phase-level re-verification. The original gap-execution step did not push, create a PR, dispatch workflows, or claim hosted results. The subsequent unblocking request authorized PR #59 delivery and its evidence-driven repairs; see 20-DELIVERY.md for superseding source identities and actual results.
 
 ## Deferred Items
 
@@ -124,12 +124,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Delivery is authorized by the owner's 2026-10-27 request to unblock the hosted-evidence dependency. Draft PR #59 is open; its existing triggers started CI 40499487090 and Nightly 40499486950. The GCC correction started CI 40499904071 and Nightly 40499904128; their MSVC and host-fixture failures and the collector API mismatches are corrected locally. The coherent repair passed final local CI 684/684 and focused acceptance 35/35. Publish it and collect only its new exact-head results. Do not merge or mark Phase 20 complete. `20-DELIVERY.md` and the commit map preserve the original measured identities and the superseding delivery digest after the push-hook formatting repair. Once actual completed runs and required artifacts exist, populate `build/phase20-hosted-evidence/delivery.json` and resume `$gsd-execute-phase 20 --gaps-only` for 20-10's collection and independent phase re-verification. Keep all four requirements pending, preserve unrelated config edits and debt, and do not advance to Phase 21.
+Monitor draft PR #59's delivered candidate `2d904b7daef8f4882e3d50389869f21571727b62`: CI `40501700246` and Nightly `40501700252`, both attempt 1, were started by the authorized delivery. The actual identities are saved in `build/phase20-hosted-evidence/delivery.json`. Once required jobs and artifacts are complete and available, run `$gsd-execute-phase 20 --gaps-only` to resume only 20-10 and independent phase verification. Consult `20-DELIVERY.md` for the formatting commit map, final local CI 684/684, focused acceptance 35/35, observed API/matrix corrections and superseding full source digest `f73937e970bedd54d6f9379d235f3f44887e014970a22718997c7929b6b2b3b5`. Earlier runs cannot certify this candidate. Planning-only handoff commits remain local to avoid cancelling its CI. Keep all requirements open, preserve unrelated config edits and debt, and do not merge or advance to Phase 21 before the actual hosted gates and re-verification pass.
 
 ## Session
 
-Last session: 2026-10-27T05:04:40Z
-Stopped at: Authorized hosted delivery; 20-10 still awaits actual results
+Last session: 2026-10-27T12:12:03Z
+Stopped at: PR 59 delivered; exact-head CI/Nightly results pending
 Resume file: None
 
 ## Performance Metrics

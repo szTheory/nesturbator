@@ -85,3 +85,98 @@ Final repaired-source `cmake --workflow --preset ci` passed 684/684 in
 376.67 seconds and packaged all three deliverables. Full campaign registration
 is OFF. Hygiene, roll-up policy, clean marker generation, API resolver and
 35-test focused checks passed before the delivery commit.
+
+## Delivered candidate and active runs
+
+Draft PR: https://github.com/szTheory/nesturbator/pull/59
+Candidate: `2d904b7daef8f4882e3d50389869f21571727b62`
+PR merge snapshot: `67e8301a4a0703fb828ee39ee92277e26752dbfc`
+Protected base: `ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`
+
+- CI: run `40501700246`, attempt `1`, observed status `in_progress`.
+- Nightly: run `40501700252`, attempt `1`, observed status `in_progress`.
+
+Both read-only API records bind the run to PR #59 and the delivered candidate.
+`build/phase20-hosted-evidence/delivery.json` contains these actual identities.
+This records delivery and work in progress, not successful hosted acceptance.
+20-10 must still require completed jobs/artifacts and validate the bundle.
+Use the superseding source digest `f73937e970bedd54d6f9379d235f3f44887e014970a22718997c7929b6b2b3b5`
+when reconciling the historical 20-09 summary with the delivered source.
+Planning-only handoff commits made after this candidate remain local so they
+do not cancel and restart its PR CI. No merge or phase completion occurred.
+
+## MMC3 regression found by actual Nightly
+
+Nightly 40501700252 reached its ROM tests and failed only
+`mmc3_test_2/4-scanline_timing`: code 0x02 at frame 48 (12/13 CTests passed).
+The exact case reproduced locally. A scratch build of protected main
+`ab9c2e6` passed it; scratch builds at the Phase 20 line-capture and poll commits
+both failed, narrowing the regression to 20-02. CLI-inhibit and poll-position
+experiments did not restore the case and were discarded outside the working
+tree. No ROM constants, expected verdicts or alignment offsets were changed.
+
+The owned trace found a missing piece of the selected global bus order. NMI
+used the detector sample before a tied PPU transition, but IRQ's following
+instruction poll read the already changed live line. In the first failing
+case A12 rises at pre-render dot 261, tied to the NOP opcode-fetch close.
+Protected main reached the next instruction with live IRQ 1 and poll 0; the
+Phase 20 model reached it with live IRQ 1 and poll 1 and entered IRQ before
+the guest INC marker. Retaining the IRQ level at the same close-edge sample
+as NMI restores the preceding-close input to the instruction poll. This is
+a shared bus-order regression repair, not implementation of Phase 21's full
+I-flag, branch/IRQ or vector-hijack requirements. Physical exact-tie precedence
+remains a model-policy qualification.
+
+`ppu.mmc3::test_irq_capture_before_tied_a12` constructs the finite instance
+state at (261,258), then executes production NOP/INC/IRQ entry. Before the fix
+it failed the expected poll-0 and guest marker assertions. After the fix it
+checks live IRQ 1 versus poll 0, the completed guest INC, IRQ entry and
+canonical save/load continuation over a destination with different retained
+history. The retained level is a bounded boolean in the same production state
+visitor; hostile-state sweeps include it. Unpublished format 2 is finalized
+with this byte, retaining format-1 refusal and behavior revision 8.
+
+The full MMC3 tier now passes 13/13 locally, and NMI/state/rejection/policy
+checks pass. The newly measured native inventory changes only 12 state hashes
+and six state sizes (+1 byte); frame, PCM, transition and tick rows are
+identical. `20-IRQ-STATE-HASH-MOVES.tsv` retains every old/new row. The added
+serialized byte changes payload length, header total size and CRC, accounting
+for the state hash movement. This repin does not mask an output regression.
+
+One remeasured AccuracyCoin campaign still completed 22 pages with 114 PASS /
+32 FAIL, no skip/not-run/timeout, the original six target passes and unchanged
+report digest. Its actual input fingerprint is
+`7a31d9bdc998cbb62593384dd7f809b9e4def2c8d259c31cb693d5a092431183`,
+source revision `2d904b7daef8`, dirty bit 1 for this coherent repair and the
+preserved config edit. Focused final acceptance passed 15/15. Full campaign
+registration is OFF. The superseding effective source digest is
+`0cb4f7fec388edd64c7edf82760136689930e481c1e443fe3f7b13444219d436`
+over 415 files. Final local CI and replacement hosted identities follow; no
+previous run can certify this repaired source.
+
+### Final fixture and verification closeout
+
+The first full run after IRQ retention exposed two layout-dependent JAM
+controls still targeting byte 91 and a stress stimulus that no longer reached
+pending OAM on both boards. The JAM controls now target the actual byte 92
+(64-byte header + 14 core bytes + 14 CPU bytes before jammed). Both the normal
+JAM check and deliberate-divergence check passed. The owned stress program's
+DMC-to-OAM gap is calibrated to G=8, which reaches pending OAM on NROM frame
+60 and MMC3 frame 56 within the existing short-run cap; pending DMC and poll
+coverage remains required. No coverage assertion, frame cap, oracle verdict
+or hardware timing offset was relaxed. The normal stress replay passed.
+
+The A12 witness also covers a tie at the NOP's final close: live IRQ is 1
+while the retained level is 0. Save/load must restore that low history over a
+destination poisoned high, rather than reconstructing it from the live pin.
+Both retained-level cases continue through the guest INC and IRQ entry.
+
+The final source passed `cmake --workflow --preset ci` 684/684 with library,
+runner and libretro packages, `cmake --workflow --preset asan` 676/676, and
+the independent MMC3 tier 13/13. Formatting and hygiene checks passed.
+The final effective source digest is
+`30aabfeee892574cfe98ab69de1cacce4bfad45d9b7d72427e7abbd070e84f2a`
+over 415 files; it supersedes the earlier repair digests for actual delivery.
+The fixture-only refinements do not change the measured campaign's narrower
+build-input fingerprint, and the full manifest still covers all their bytes.
+Fresh hosted results must test this finalized source.

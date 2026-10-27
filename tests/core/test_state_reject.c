@@ -368,6 +368,7 @@ static const struct row ROWS[] = {
     ROW(cpu.nmi_pending, 1),
     ROW(cpu.nmi_polled, 1),
     ROW(cpu.irq_line, 1),
+    ROW(cpu.irq_captured, 1),
     ROW(cpu.poll_latch, 1),
     ROW(cpu.halted_in_read, 0),
     {"cpu.jammed", offsetof(struct nesturbator, cpu.jammed), 1u, 1u, 1, 0, 0, NESTURBATOR_STOP_JAM},

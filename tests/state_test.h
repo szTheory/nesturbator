@@ -327,7 +327,9 @@ static inline void st_poison(nesturbator *inst)
 #define ST_STRESS_N 0
 #endif
 #ifndef ST_STRESS_G
-#define ST_STRESS_G 6
+/* Retained IRQ sampling: within 61 boundaries G=8 reaches pending OAM at
+   NROM frame 60 and MMC3 frame 56, while preserving pending DMC and IRQ polls. */
+#define ST_STRESS_G 8
 #endif
 #define ST_E(buf, idx, ...)                                                                        \
     do {                                                                                           \

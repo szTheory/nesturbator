@@ -1120,3 +1120,42 @@ no old result is relabeled. Details are in `20-DELIVERY.md`.
 
 The coherent hosted-runner/API repair passed final local CI 684/684 and
 packaged all three deliverables; full campaign registration remains OFF.
+
+## 2026-10-27 retained IRQ level restores the MMC3 guard
+
+Actual Nightly 40501700252 and a local 13-test MMC3 run reproduced
+`mmc3_test_2/4-scanline_timing` code 0x02 at frame 48. Protected main passed.
+An owned NOP/INC witness exposes live IRQ 1 with the previous-close poll
+required to remain 0 when A12 rises at a tied PPU transition. Capturing IRQ's
+level at the existing close-edge detector seam restores this ordering; the
+full MMC3 tier passes 13/13, with no oracle/ROM/offset change. The witness also
+checks canonical load/continuation and retained-history restoration. Broader
+IRQ I-flag/branch/hijack work remains Phase 21; no physical tie proof is claimed.
+
+The final unpublished format-2 payload gains one bounded retained-IRQ byte.
+`20-IRQ-STATE-HASH-MOVES.tsv` preserves all 12 measured old/new state hashes
+and six +1-byte size rows. Other frame/PCM/transition hashes and ticks are
+byte-identical. Size/CRC movement follows from that one serialized byte.
+The state visitor and hostile-state table include the field; format-1 refusal
+and behavior revision 8 remain in force.
+
+A single fresh full-enabled campaign at source `2d904b7daef8`, dirty bit 1,
+completed all 22 pages and 146 rows: 114 pass, 32 fail, zero skip/not-run/timeout,
+five DRAW. The report digest remains
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`;
+the measured fingerprint is
+`7a31d9bdc998cbb62593384dd7f809b9e4def2c8d259c31cb693d5a092431183`.
+The exact-six/protected/hash/collector/state focused gate passed 15/15.
+The effective source digest for fresh hosted acceptance is
+`0cb4f7fec388edd64c7edf82760136689930e481c1e443fe3f7b13444219d436`
+over 415 files. The full campaign option was disabled after measurement.
+
+The final witness distinguishes retained IRQ 0 from live IRQ 1 at a final-cycle
+A12 tie and restores it over poisoned history. Layout-dependent JAM controls
+now target byte 92; the stress stimulus uses G=8 to retain OAM/DMC/poll coverage
+within both full and short caps. All assertions remain active. Final local
+verification passed CI 684/684, ASan 676/676 and MMC3 13/13; all three packages
+were generated. The finalized effective source digest is
+`30aabfeee892574cfe98ab69de1cacce4bfad45d9b7d72427e7abbd070e84f2a`
+over 415 files, superseding the provisional fixture-stage digests. Campaign
+fingerprint and frame/PCM/transition hashes remain as measured above.

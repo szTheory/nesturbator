@@ -59,7 +59,9 @@ extern "C" {
    line deassertion. A $2002 read samples vblank bit 7 at M2 rise and sprite
    bits 6/5 at M2 fall; a flag raised between those samples appears in the
    returned status byte. PPUCTRL disable and the pre-render clear lower the
-   live NMI line without revoking an already captured request.
+   live NMI line without revoking an already captured request. IRQ retains its
+   close-edge level separately from the live line before the instruction poll,
+   preserving MMC3 timing at tied PPU transitions.
    Revision 7 clears OAMADDR on dots 257-320 while rendering and
    starts sprite evaluation at OAMADDR, with the sprite found on the dot-66 read
    acting as sprite 0, which changes the frames of programs that leave OAMADDR
@@ -75,7 +77,8 @@ extern "C" {
    save states it stays 1 and the layout may change. After that release, any change to the state
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
    same commit. Version 2 records the CPU's sampled NMI-line, captured-request and instruction-poll
-   histories; version 1 states are refused with NESTURBATOR_ERR_STATE_FORMAT. A fix that changes
+   histories and the retained close-edge IRQ level; version 1 states are refused with
+   NESTURBATOR_ERR_STATE_FORMAT. A fix that changes
    only emulated output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a
    load does not enforce. Raising it is not a breaking change to the C interface and leaves
    NESTURBATOR_ABI_VERSION as it is. */
@@ -521,6 +524,8 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * PPUCTRL disable and pre-render clear can lower the derived line without revoking a captured
  * request or a poll awaiting service. A late captured request remains pending until an instruction
  * reaches its NMI poll point.
+ * IRQ's retained close-edge level is likewise saved independently from the live
+ * IRQ line and the instruction poll, so loading does not resample a tied PPU edge.
  *
  * nesturbator_state_size returns the exact length of a state of the loaded cartridge: 0 for a
  * NULL instance or with no cartridge, otherwise constant from a successful load until unload. It

@@ -51,7 +51,7 @@ static const uint8_t state_magic[8] = {0x89u, 0x4eu, 0x54u, 0x53u, 0x0du, 0x0au,
    visits it and the number is updated (Pitfall P14). The structs hold only fixed-width integers
    and arrays of them, so the sizes are the same on every platform. Structs that also hold
    pointers are checked by the offset of their last saved field instead. */
-_Static_assert(sizeof(struct nesturbator__cpu) == 14u, "cpu fields changed: update cpu_io");
+_Static_assert(sizeof(struct nesturbator__cpu) == 16u, "cpu fields changed: update cpu_io");
 _Static_assert(sizeof(struct nesturbator__bus) == 2061u, "bus fields changed: update bus_io");
 _Static_assert(sizeof(struct nesturbator__pulse) == 16u, "pulse fields changed: update pulse_io");
 _Static_assert(sizeof(struct nesturbator__triangle) == 14u,
@@ -110,6 +110,7 @@ static void cpu_io(struct nesturbator__sio *io, struct nesturbator__cpu *c)
     nmi_polled = nesturbator__sio_u8(io, &c->nmi_polled, 1u);
     nesturbator__sio_check(io, nmi_polled == 0u || nmi_pending != 0u);
     nesturbator__sio_u8(io, &c->irq_line, 1u);
+    nesturbator__sio_u8(io, &c->irq_captured, 1u);
     nesturbator__sio_u8(io, &c->poll_latch, 1u);
     /* Never read or written anywhere, but visited so every field of the struct is accounted for.
        The bound is 0 because it is always 0 today; widen it when stalled reads are modelled. */

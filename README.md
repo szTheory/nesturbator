@@ -332,6 +332,12 @@ with bit 7 still set does not create a second capture. Equal-time PPU updates,
 CPU sampling and bus side effects use one deterministic model order; this
 convention does not assert physical setup/hold precedence at an exact tie. Odd
 NTSC frames skip pre-render dot 340 when rendering is enabled.
+IRQ polling also uses the level retained at the preceding close-edge detector
+sample. It cannot see an A12-driven IRQ raised by a later PPU transition at
+that same timestamp. An owned `ppu.mmc3` witness checks the guest instruction
+boundary and save/load continuation; the pinned MMC3 scanline-timing ROM stays
+an independent guard. This retains the existing MMC3 result while broader
+IRQ flag-latency and vector-hijack work remains in Phase 21.
 Nametable accesses use the cartridge's horizontal or vertical
 mirroring bit. Register accesses retain the CPU open-bus value in un-driven
 bits, and `$2007` reads are buffered outside palette space.
@@ -1216,7 +1222,8 @@ every platform. The library does no file I/O and never allocates for a state;
 the host owns the buffer and decides where states live.
 
 The current state format is 2 and the behavior revision is 8. Format 2 stores
-the sampled NMI line, captured request, and last instruction poll; the revision
+the sampled NMI line, captured request, last instruction poll and retained
+close-edge IRQ level independently of the live IRQ line. The revision
 8 CPU polls that captured request at its instruction-specific poll point. The
 public save/load interface snapshots frame boundaries. Exact NMI race cutpoints
 are exercised by internal tests at completed instruction boundaries, while

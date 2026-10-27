@@ -259,10 +259,10 @@ static void load_order(const struct fixture *fx, const uint8_t *rom, size_t rom_
     s[10] = 65u;
     st_recrc(s, fx->size);
     expect_load(t, s, fx->size, NESTURBATOR_ERR_STATE_INVALID, "header_size 65");
-    /* A field out of range: cpu.jammed is body offset 26 (after the 14 core bytes and 12 cpu
+    /* A field out of range: cpu.jammed is body offset 28 (after the 14 core bytes and 14 cpu
        bytes), so byte 64 + 26. */
     memcpy(s, fx->state, fx->size);
-    s[64 + 26] = 2u;
+    s[64 + 28] = 2u;
     st_recrc(s, fx->size);
     expect_load(t, s, fx->size, NESTURBATOR_ERR_STATE_INVALID, "cpu.jammed 2");
     /* The unaltered state loads. */

@@ -6,6 +6,7 @@
    falling edges of M2 of low, so with BG at $0000 and sprites at $1000 it clocks once per
    rendered line (241 per frame, pre-render included), empty sprite slots included.
    The 2C02 odd-frame extra clock (research pitfall 10) is not modelled and not tested. */
+#include <stdlib.h>
 #include <string.h>
 
 #include "internal.h"
@@ -52,6 +53,73 @@ static struct nesturbator *start(uint8_t control, uint8_t mask)
     nes->ppu.control = control;
     nes->ppu.mask = mask;
     return nes;
+}
+
+/* The global bus policy captures interrupt inputs before a tied PPU transition.
+   At (261,261) the sprite-pattern fetch raises A12. A NOP starting at dot 258
+   must not accept that new IRQ at its following poll: the next INC completes
+   before entry. This also protects blargg's 4-scanline_timing boundary without
+   changing its ROM, timing constants or expected verdict. [HWC.02, HWP.12] */
+static void test_irq_capture_before_tied_a12(uint16_t start_dot, uint8_t expected_capture)
+{
+    struct nesturbator *nes = start(0x08u, 0x18u);
+    struct nesturbator *loaded = start(0x08u, 0x18u);
+    nes->ticks = 240u;
+    nes->cpu_cycle = 10u;
+    nes->ppu.ppu_ticks = 240u;
+    nes->ppu.scanline = 261u;
+    nes->ppu.dot = start_dot;
+    nes->cpu.pc = 0u;
+    nes->cpu.p = 0x20u;
+    nes->cpu.poll_latch = 0u;
+    nes->cpu.irq_line = 0u;
+    nes->bus.ram[0] = 0xeau; /* NOP */
+    nes->bus.ram[1] = 0xe6u; /* INC $30 */
+    nes->bus.ram[2] = 0x30u;
+    nes->mapper.reg.mmc3.a12 = 0u;
+    nes->mapper.reg.mmc3.low_cycle = 0u;
+    nes->map.a12 = 0u;
+    nes->map.ops.cpu_write(nes, 0xc000u, 0u, nes->cpu_cycle);
+    nes->map.ops.cpu_write(nes, 0xc001u, 0u, nes->cpu_cycle);
+    nes->map.ops.cpu_write(nes, 0xe001u, 0u, nes->cpu_cycle);
+
+    nesturbator__cpu_step(nes);
+    CHECK_EQ_U64(nes->ppu.dot, start_dot + 6u);
+    CHECK_EQ_U64(nes->cpu.pc, 1u);
+    CHECK_EQ_U64(nes->cpu.irq_line, 1u);
+    CHECK_EQ_U64(nes->cpu.irq_captured, expected_capture);
+    CHECK_EQ_U64(nes->cpu.poll_latch, 0u);
+
+    size_t size = nesturbator_state_size((nesturbator *)nes);
+    uint8_t *state = (uint8_t *)malloc(size);
+    uint8_t *roundtrip = (uint8_t *)malloc(size);
+    CHECK(state != NULL && roundtrip != NULL);
+    if (state != NULL && roundtrip != NULL) {
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)nes, state, size), NESTURBATOR_OK);
+        loaded->cpu.irq_captured = (uint8_t)(expected_capture ^ 1u);
+        CHECK_EQ_U64(nesturbator_load_state((nesturbator *)loaded, state, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(loaded->cpu.irq_captured, expected_capture);
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)loaded, roundtrip, size),
+                     NESTURBATOR_OK);
+        CHECK(memcmp(state, roundtrip, size) == 0);
+        nesturbator__cpu_step(nes);
+        nesturbator__cpu_step(loaded);
+        CHECK_EQ_U64(nes->bus.ram[0x30u], 1u);
+        CHECK_EQ_U64(loaded->bus.ram[0x30u], 1u);
+        CHECK_EQ_U64(nes->cpu.pc, 3u);
+        nesturbator__cpu_step(nes);
+        nesturbator__cpu_step(loaded);
+        CHECK_EQ_U64(nes->cpu.pc, 0x8000u);
+        CHECK_EQ_U64(loaded->cpu.pc, 0x8000u);
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)nes, state, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)loaded, roundtrip, size),
+                     NESTURBATOR_OK);
+        CHECK(memcmp(state, roundtrip, size) == 0);
+    }
+    free(state);
+    free(roundtrip);
+    ppu_fixture_free(loaded);
+    ppu_fixture_free(nes);
 }
 
 /* Clocks seen in one whole frame after a settling frame. Any 262-line window holds each line
@@ -248,6 +316,10 @@ static void test_non_mmc3_board_gets_no_a12_call(void)
 
 int main(void)
 {
+    test_irq_capture_before_tied_a12(258u, 1u);
+    /* The final-cycle tie leaves a live IRQ with a retained low level: loading
+       must restore that history rather than reconstruct it from irq_line. */
+    test_irq_capture_before_tied_a12(255u, 0u);
     test_bg0000_sprites1000_241_clocks();
     test_sprites_in_range_still_one_per_line();
     test_empty_slots_8x16();
