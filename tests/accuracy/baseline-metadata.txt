@@ -53,4 +53,4 @@ migration_path=tests/accuracy/migration.tsv
 old_scoreboard_path=tests/accuracy/old-673ef-scoreboard.txt
 campaign_artifact=build/ci/accuracycoin/full/
 input_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release
-source_dirty_reason=Final local campaign at source revision 92db8e2a40a0; source_dirty=1 reflects the preserved preexisting .planning/config.json edit, while implementation and campaign-gate changes are committed. Protected-main PASS authority remains a separate cold fetch. Hosted Nightly vectors-full evidence remains unresolved.
+source_dirty_reason=Final local campaign at source revision 92db8e2a40a0; dirty records only the preserved preexisting .planning/config.json edit, while implementation and campaign-gate changes are committed. Protected-main PASS authority remains a separate cold fetch. Hosted Nightly vectors-full evidence remains unresolved.

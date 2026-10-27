@@ -302,14 +302,19 @@ projection, not a full bus or
 transistor waveform replay. It does not model NMIP transitions, output
 propagation, analog setup/hold, or prove a paired-chip winner at exact ties.
 
-The global integer-timestamp policy is PPU transition, CPU sample, then bus
-side effect. Finite-margin cases support the phase endpoints, while exact-tie
-precedence remains a deterministic model rule. The PPU owns flag, enable and
-suppression; the bus samples the derived asserted line at the cycle close and
-retains a rising-edge request independently. A falling line does not revoke a
-request; CPU service consumes it and reset clears both sampled history and
-pending request. State format 2 serializes those fields and refuses format-1
-states; behaviour revision is 8.
+Plan 20-02 initially recorded PPU transition, CPU sample, then bus side effect
+for equal integer timestamps. The source-run observations in that plan first
+diverged at NMI Timing x=3, Suppression x=5, and the first sample of each
+VBlank-end/disabled sequence; the complete values and coordinates are in the
+table above. Plan 20-03 superseded that policy with one global order: addressed
+bus side effect, NMI detector capture, then tied PPU transition. CPU polling
+uses the captured request at phi2 open. The final campaign below passes the
+source's complete arrays at default alignment without per-table phase offsets.
+Finite-margin waveforms constrain phase endpoints, but they do not identify the
+physical winner at an exact tie. The PPU owns flag, enable and suppression; a
+falling line does not revoke a captured request; service consumes it and reset
+clears both sampled history and pending request. State format 2 serializes
+those fields and refuses format-1 states; behaviour revision is 8.
 
 ### Every changed campaign row
 
@@ -894,3 +899,42 @@ Validation on the local candidate: `core.state_fork.nmi`,
 and `libretro.runahead` passed. ASan/UBSan `libretro.host` and
 `libretro.runahead` passed. The complete `cmake --workflow --preset ci` run
 passed 683/683 tests and packaged the library, runner and libretro archives.
+## Phase 20 Plan 06 final evidence refresh
+
+The one final full-campaign invocation used the existing full-enabled CI wiring:
+
+```sh
+cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=ON
+cmake --build --preset ci
+ctest --preset ci -R '^accuracycoin\.campaign$' --no-tests=error --output-on-failure
+```
+
+It passed all 22 pages and all 146 scored rows: 114 pass, 32 fail, 0 skip,
+0 not-run, 0 timeout, and 5 DRAW. The six required target rows and complete
+executed source arrays are listed above. The campaign report SHA-256 is
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`; its
+build-input fingerprint is `3465f9abcc455f5698f7c444417b496e617af9021a8c648ed5945346754ee3ed`
+over 56 inputs; `source_revision=92db8e2a40a0`, `source_dirty=1`, and
+`host_elapsed_guest_ns=7758848000`. Dirty provenance records the preserved
+pre-existing `.planning/config.json` edit; protected-main authority remains
+separate and was exercised by the cold observation/no-lost-pass checks.
+
+The final generated hash inventory contains 114 sorted rows. Its SHA-256,
+`b429a38b026750c6b0c9270bc3ce8b1a73d2bbb100ead0608ff5339dd51bc390`, matches
+both `tests/runner/hashes.txt` and `build/ci/tests/hashes.txt`; the
+`runner.write_hashes.content` comparison passed, so no native hash pin moved
+in Plan 20-06. A six-platform scratch inventory with one duplicated row was
+rejected at the expected 115-versus-114 row-count guard. The regular inventory
+self-test also passed malformed-row, platform-digest mismatch, and missing or
+renamed Holy Mapperel audio-key controls.
+
+| KEEP-02 fallback backstop | Evidence and disposition |
+|---|---|
+| Adjacency: equal-tick frame/audio/state identities remain distinct | Inventory keys give frame, PCM, transition, and state lanes distinct names, and the full key inventory is unique. No explicit same-tick boundary fixture compares adjacent frame/audio/state keys, so this backstop remains unconfirmed. |
+| Frame 0 and empty PCM retain canonical state and nonzero saved audio history | Plan 20-04 proves nonzero APU/synth history with no staged PCM at exact internal cutpoints and canonical save/load/save. Plan 20-05 separately covers frame-0 public replay. No fixture combines frame 0, empty PCM, and nonzero saved audio history, so this backstop remains unconfirmed. |
+| Deterministic sorted inventory rejects equal keys | The generated complete 114-row inventory sorts identically to the checked-in file; the content check and six-platform inventory controls passed. The duplicate-row negative control was rejected. Confirmed. |
+
+`NESTURBATOR_STATE_FORMAT_VERSION` remains 2 and behavior revision remains 8.
+This refresh changes no runtime code and repins no frame, PCM, transition, or
+state digest. Hosted exact-head six-platform equality/protected-PASS and
+performance evidence remains pending.
