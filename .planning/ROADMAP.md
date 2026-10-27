@@ -111,7 +111,7 @@ Note: the basic hit already worked; the `0x06` sprite rows were guest re-run art
   3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
   4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
 
-**Plans**: 3/6 plans executed
+**Plans**: 4/6 plans executed
 
 Plans:
 **Wave 1**
@@ -124,7 +124,7 @@ Plans:
 - [x] 20-03-PLAN.md — instruction-specific NMI polling, complete-table alignment and causal evidence
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 20-04-PLAN.md — exact enabled-NMI set/clear/edge state continuation and rejection controls
+- [x] 20-04-PLAN.md — exact enabled-NMI set/clear/edge state continuation and rejection controls
 
 **Wave 5** *(blocked on Wave 4 completion)*
 - [ ] 20-05-PLAN.md — NMI-sensitive core, runner and libretro rewind/run-ahead replay
@@ -157,7 +157,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
-| 20. NMI line and VBlank flag | v5 | 3/6 | In Progress | - |
+| 20. NMI line and VBlank flag | v5 | 4/6 | In Progress | - |
 | 21. Interrupt latency and hijack | v5 | 0/TBD | Not started | - |
 
 Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).

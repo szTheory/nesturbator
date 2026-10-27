@@ -5,16 +5,16 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
 status: executing
-stopped_at: Completed 20-03-PLAN.md
-last_updated: "2026-10-27T00:03:42.972Z"
+stopped_at: Completed 20-04-PLAN.md
+last_updated: "2026-10-27T00:36:30.035Z"
 last_activity: 2026-10-26
-last_activity_desc: Plan 20-03 completed; Plan 20-04 is next
-state_head: b75b4360b7004004f9ef2268322377be03446d41
+last_activity_desc: Plan 20-04 completed; Plan 20-05 is next
+state_head: 354cf393d136bccd9d3236a1e17fe61369976a9a
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
   percent: 33
 ---
 
@@ -29,9 +29,9 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 ## Current Position
 
 Phase: 20 (NMI line and VBlank flag) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Ready to execute
-Last activity: 2026-10-26 — Phase 20 execution started
+Last activity: 2026-10-26 — Plan 20-04 completed; Plan 20-05 is next
 
 Progress: [███░░░░░░░] 33%
 
@@ -55,12 +55,14 @@ Progress: [███░░░░░░░] 33%
 - [Phase 20]: PPUSTATUS decoding requires the PPU address range as well as register bits 010, including for DMC parked reads.
 - [Phase 20]: NMI instruction polls use a separately serialized cpu.nmi_polled latch distinct from the captured cpu.nmi_pending request; late captures remain until the next poll.
 - [Phase 20]: Plan 20-03 keeps one global timestamp model and no per-table offset; the exact physical tie remains unproven.
+- [Phase 20]: Exact NMI cutpoints use declared constructed origins and complete production cpu_step calls; no partial-instruction state API is introduced.
+- [Phase 20]: Captured NMI history remains serializable after VBlank status clears; a CRC-correct omitted-history control is caught by the guest-marker oracle.
 
 ### Blockers/Concerns
 
-- [Phase 20 execution]: Plans 20-02 and 20-03 are complete under amended D-10. Plan 20-03 revalidated all six target rows at default alignment under the single global model policy; finite-margin circuit behavior constrains implementation, while exact physical paired-chip tie precedence remains an evidence limit. Plans 20-04 through 20-06 remain pending under their normal prerequisites.
-- `tests/accuracy/measurements.md` records the Plan 20-03 source-sequence results and the production sampler endpoint projections. No alignment shift or per-table offset was selected.
-- The constructed NMI-disabled set/clear probe proves limited exact instruction-boundary save/load feasibility with audio history. Enabled-NMI and edge-before-poll continuation remain 20-04 acceptance work; an unrepresentable required cutpoint blocks KEEP-03 pending explicit clarification.
+- [Phase 20 execution]: Plans 20-02 through 20-04 are complete under amended D-10. Plan 20-03 revalidated all six target rows at default alignment under the single global model policy; Plan 20-04 reached enabled set/clear and captured-before-poll states by complete production instructions and replayed them through public save/load. The exact physical paired-chip tie remains an evidence limit. Plans 20-05 and 20-06 remain pending under their normal prerequisites.
+- `tests/accuracy/measurements.md` records the Plan 20-03 source-sequence results, Plan 20-04's constructed/executed origins, all 20 bounded Control 8/9 candidates, and the production sampler endpoint projections. No alignment shift or per-table offset was selected.
+- KEEP-03 remains pending for the later host replay and cross-platform evidence. Plan 20-04 found no required instruction-boundary cutpoint that needs clarification; local replay does not resolve physical tie precedence.
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
 
 ### Pending Todos
@@ -77,7 +79,7 @@ Progress: [███░░░░░░░] 33%
 
 ## Delivery
 
-Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 context, research, six plans and a passed plan check are recorded. Plans 20-01 and 20-02 are complete; Phase 20 remains in progress with its polling, continuation, host replay, and final evidence plans still pending.
+Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 context, research, six plans and a passed plan check are recorded. Plans 20-01 through 20-04 are complete; Phase 20 remains in progress with host replay and final evidence plans pending.
 
 ## Deferred Items
 
@@ -103,12 +105,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 20` to execute Plan 20-04. Plan 20-03 completed instruction-specific polling, format-2/revision-8 poll history, the six default-alignment target rows, protected-pass comparison, and local CI. Plan 20-04 owns enabled-NMI and edge-before-poll state continuation for KEEP-03. Six-platform hash confirmation and hosted Nightly vector-fetch evidence remain open; the exact physical tie remains an evidence limit. Three testing proposals remain proposed future scope; the CI speed-up title-workflow migration remains deferred.
+Run `$gsd-execute-phase 20` to execute Plan 20-05. Plans 20-03/20-04 completed instruction-specific polling, the six default-alignment target rows, protected-pass comparison, exact local enabled-NMI set/clear/edge continuation, and local CI. Plan 20-05 owns host rewind/run-ahead replay. KEEP-03 remains pending until later host and cross-platform evidence; six-platform hash confirmation and hosted Nightly vector-fetch evidence remain open. The exact physical tie remains an evidence limit. Three testing proposals remain proposed future scope; the CI speed-up title-workflow migration remains deferred.
 
 ## Session
 
-Last session: 2026-10-27T00:03:42.932Z
-Stopped at: Completed 20-03-PLAN.md
+Last session: 2026-10-27T00:36:29.996Z
+Stopped at: Completed 20-04-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -132,3 +134,4 @@ Resume file: None
 | Phase 20 P01 | 32min | 2 tasks | 6 files |
 | Phase 20 P02 | 90min | 3 tasks | 24 files |
 | Phase 20 P03 | 83min | 3 tasks | 25 files |
+| Phase 20 P04 | 31min | 3 tasks | 4 files |
