@@ -4,18 +4,17 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: ready_to_execute
-last_updated: "2026-10-27T14:45:40Z"
-last_activity: 2026-10-27
-last_activity_desc: Planned collector repair, authorized fresh delivery and dependent collection; independent plan recheck passed with zero issues
-state_head: df5090df359c88e372bb0732863c644be0fb17ba
+status: executing
+stopped_at: "Completed 20-11; 10/12 Phase 20 plans complete. Next sequence: 20-12, then 20-10."
+last_updated: "2026-10-27T15:38:30.837Z"
+last_activity: "2026-10-27: Plan 20-11 complete; 10/12 Phase 20 plans complete."
+state_head: 57515b3286b0d2df9b1f3d02253732932dc2646e
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
   percent: 33
-stopped_at: Repair plans ready; execute 20-11 then 20-12 then 20-10; old green runs have no content acceptance
 ---
 
 # Project State
@@ -28,10 +27,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — READY TO EXECUTE
-Plan: 9 of 12 complete; remaining order 20-11 -> 20-12 -> 20-10; all three have zero completed tasks
-Status: Old candidate e6e83a3 has successful CI/Nightly but failed collector content acceptance; new collector repairs and offline controls, fresh existing-PR delivery and actual collection are planned; all requirements remain pending
-Last activity: 2026-10-27 — Independent plan recheck passed after adding a shared metadata-only availability gate to verify the full delivery handoff
+Phase: 20 (NMI line and VBlank flag) — EXECUTING
+Plan: 11 of 12
+Status: Ready to execute
+Last activity: 2026-10-27: Plan 20-11 complete; 10/12 Phase 20 plans complete.
 
 Progress: [███░░░░░░░] 33%
 
@@ -73,6 +72,9 @@ Progress: [███░░░░░░░] 33%
 - [Phase 20]: Fixture provenance cannot satisfy hosted acceptance; collection requires fresh run and attempt metadata plus source-content verification.
 - [Phase 20]: Bind pull-request candidate head and protected base to the actual tested synthetic merge commit, with an independent full effective-source digest.
 - [Phase 20]: Keep all four Phase 20 requirements pending until real hosted evidence passes; local preparation alone does not complete the phase.
+- [Phase 20]: Plan 20-11: share source/run/job/artifact metadata validation between collect and metadata-only availability; keep availability separate from content acceptance.
+- [Phase 20]: Plan 20-11: validate actual per-job workflow-execution logs and preserve raw archive/log evidence with a separate normalized-path mapping.
+- [Phase 20]: Execution tracking: Plan 20-11 is complete; 10/12 Phase 20 plans now have summaries. The remaining order is 20-12 then 20-10, and Phase 20 is not complete.
 
 ### Blockers/Concerns
 
@@ -126,3 +128,15 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 ## Next Action
 
 Run `$gsd-execute-phase 20 --gaps-only`. The dependency order is 20-11 (wave 10 local collector repair and offline controls), 20-12 (wave 11 existing draft PR 59 normal delivery under the recorded persistent authorization, fresh CI/Nightly and metadata-only availability), then 20-10 (wave 12 read-only content collection and measurement confirmation), followed by independent phase verification. No repeat delivery authorization is needed. Old CI `40514060876/1` and Nightly `40513950000/1` on candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4` / merge `11533e456d41f740751c8353f947d65017aae692` remain successful availability observations with failed collection, not accepted or reusable proof for a repaired collector. This planning step leaves effective source `de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab` over 415 files unchanged and performs no implementation or remote mutation. Keep the unrelated CI efficiency patch unapplied, preserve the config edit, and do not merge or start Phase 21 before real content acceptance and re-verification pass.
+
+## Performance Metrics
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 20 P11 | 47min | 2 tasks | 9 files |
+
+## Session
+
+**Last session:** 2026-10-27T15:38:14.190Z
+**Stopped at:** Completed 20-11; 10/12 Phase 20 plans complete. Next sequence: 20-12, then 20-10.
+**Resume file:** None
