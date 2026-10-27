@@ -4,12 +4,12 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: executing
-stopped_at: Completed 20-09-PLAN.md
-last_updated: "2026-10-27T05:02:18.519Z"
+status: pending_delivery
+stopped_at: Plan 20-10 delivery precondition unmet; zero tasks or task commits
+last_updated: "2026-10-27T05:04:40Z"
 last_activity: 2026-10-27
-last_activity_desc: Completed Phase 20 Plan 20-08 locally; hosted evidence remains pending
-state_head: 392b8f5995e4992dcc55f818d6e6b25d8ae9b9df
+last_activity_desc: Plans 20-07 through 20-09 complete; 20-10 waiting for separately authorized hosted delivery
+state_head: 852e0933c3225d0272b7a7089f97b81951eff0fe
 progress:
   total_phases: 3
   completed_phases: 1
@@ -28,10 +28,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — EXECUTING
-Plan: 10 of 10
-Status: Ready to execute
-Last activity: 2026-10-27 — Completed Phase 20 Plan 20-08 locally; hosted evidence remains pending
+Phase: 20 (NMI line and VBlank flag) — PENDING DELIVERY
+Plan: 9 of 10 complete; 20-10 has zero completed tasks
+Status: pending_delivery — first-task external precondition unmet; no 20-10 task commits or SUMMARY
+Last activity: 2026-10-27 — Plans 20-07 through 20-09 completed locally; read-only 20-10 check found no delivery record, phase PR or hosted runs
 
 Progress: [███░░░░░░░] 33%
 
@@ -75,7 +75,9 @@ Progress: [███░░░░░░░] 33%
 
 ### Blockers/Concerns
 
-- [Phase 20 execution]: Plans 20-01 through 20-08 are locally executed and summarized under amended D-10. Plan 20-03 revalidated all six target rows at default alignment under the single global model policy; Plan 20-04 reached enabled set/clear and captured-before-poll states by complete production instructions and replayed them through public save/load; Plan 20-05 added local frame-boundary replay across core, runner, and libretro; Plan 20-06 recorded the measured campaign; Plan 20-07 added the changing-sprite M2 sample witness and fixed WR-01/02 locally; Plan 20-08 added the equal-tick inventory and combined frame-zero audio-history witnesses. The exact physical paired-chip tie remains an evidence limit. Plans 20-09 and 20-10 remain: local collector/retention preparation, then hosted evidence collection after its delivery precondition.
+- [Phase 20 execution]: Plans 20-01 through 20-09 are locally executed and summarized under amended D-10. Plan 20-03 revalidated all six target rows at default alignment under the single global model policy; Plan 20-04 reached enabled set/clear and captured-before-poll states by complete production instructions and replayed them through public save/load; Plan 20-05 added local frame-boundary replay across core, runner, and libretro; Plan 20-06 recorded the measured campaign; Plan 20-07 added the changing-sprite M2 sample witness and fixed WR-01/02 locally; Plan 20-08 added the equal-tick inventory and combined frame-zero audio-history witnesses; Plan 20-09 completed the locally tested collector and artifact retention. The exact physical paired-chip tie remains an evidence limit. Only 20-10 remains, pending separately authorized hosted delivery.
+- [Plan 20-10 checkpoint]: Read-only checks found no `build/phase20-hosted-evidence/delivery.json`, CI/Nightly runs on the phase branch, or phase PR. Its first-task external precondition is unmet (`pending_delivery`, blocking-human availability gate); no collection, artifact mutation, task commit or SUMMARY was made. This is a missing delivery fact, not a manual test or sign-off request.
+- [Execution handoff]: Corrected 20-10's future command examples to use the completed collector's checkout-directory argument `SOURCE_REF=.` instead of the planning placeholder `HEAD`. Only planning prose changed; no collection or 20-10 task was executed and the effective-source digest remains unchanged.
 - `tests/accuracy/measurements.md` records the Plan 20-03 source-sequence results, Plan 20-04's constructed/executed origins, all 20 bounded Control 8/9 candidates, and the production sampler endpoint projections. No alignment shift or per-table offset was selected.
 - KEEP-02 and KEEP-03 remain pending for cross-platform hash confirmation and hosted evidence. Plan 20-05 supplies local host replay; it does not resolve physical tie precedence or satisfy later hosted evidence. Plan 20-04 found no required instruction-boundary cutpoint that needs clarification.
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
@@ -94,7 +96,7 @@ Progress: [███░░░░░░░] 33%
 
 ## Delivery
 
-Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Plans 20-01 through 20-08 are locally executed and summarized. Plan 20-08's full local CI passed 683/683 and packaged the library, runner, and libretro outputs. Hosted exact-head evidence remains pending; Phase 20 and all four requirement IDs remain open for independent phase-level re-verification. This execution step did not push, create a PR, or claim hosted results.
+Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Plans 20-01 through 20-09 are locally executed and summarized. Plan 20-09's final local CI passed 684/684 and packaged the library, runner, and libretro outputs; the final four-witness recheck passed 4/4. Its causal source commit is `392b8f5`, effective digest `684085be7b2ecccc55f30eb885387a111aecfb622950da3184a84bce1d489c43` over 415 files; later planning-only commits remain separate from the eventual delivered candidate. Hosted exact-head evidence remains pending; Phase 20 and all four requirement IDs remain open for independent phase-level re-verification. This execution step did not push, create a PR, dispatch workflows, or claim hosted results.
 
 ## Deferred Items
 
@@ -122,12 +124,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 20 --gaps-only`. Two plans remain (20-09 and 20-10): 20-09 completes local collector/retention preparation with a normal SUMMARY; 20-10 requires separately delivered CI/Nightly artifacts before its first task changes artifacts or commits. Missing delivery leaves the supported `pending_delivery` checkpoint with zero task commits. Do not push, create a PR, dispatch workflows, or merge. Keep the four Phase 20 requirements pending, preserve the dirty local baseline and Nightly fetch debt, and retain the physical exact-tie limit, flagged clean-room prohibition, and pre-existing config edit. Do not advance to Phase 21 or claim full Phase 20 completion without hosted evidence and independent re-verification.
+Separately authorize delivery of the prepared phase source for PR CI (including real base/head performance) and same-source Nightly results. This execution command did not authorize or perform delivery. After completed runs and required artifacts exist, supply the README's `build/phase20-hosted-evidence/delivery.json` contract and rerun `$gsd-execute-phase 20 --gaps-only`; it will skip summarized 20-07/08/09 and retry only 20-10. The current `pending_delivery` checkpoint has zero task commits and no complete 20-10 SUMMARY. Keep all four Phase 20 requirements pending, preserve the dirty local baseline and Nightly fetch debt, and retain the physical exact-tie limit, flagged clean-room prohibition, and pre-existing config edit. Do not advance to Phase 21 or claim full Phase 20 completion without actual hosted evidence and independent re-verification.
 
 ## Session
 
-Last session: 2026-10-27T05:02:18.468Z
-Stopped at: Completed 20-09-PLAN.md
+Last session: 2026-10-27T05:04:40Z
+Stopped at: Plan 20-10 pending_delivery precondition; zero task commits
 Resume file: None
 
 ## Performance Metrics
