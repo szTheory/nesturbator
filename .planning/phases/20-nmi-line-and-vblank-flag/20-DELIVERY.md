@@ -377,3 +377,35 @@ The effective source digest after the refreshed baseline metadata is
 edit, excluded from the effective source digest. A new normal push and new
 automatic CI/Nightly runs are required for this corrected source; the runs
 above remain failed historical diagnostics, not availability or acceptance.
+
+## Windows ARM64 fake-GitHub route correction
+
+CI run `40544210449`, attempt 1, for candidate
+`8a2e1019517458bfe2b3d9b04173bb7711395402` failed both Windows lanes: ARM64
+job `122331476894` and x64 job `122331476772`. Each failed in the production
+adapter and metadata-only availability CTests. The bounded plain-text job logs
+are retained at
+`build/phase20-hosted-evidence-diagnostics/40544210449/job-122331476894.txt`
+(SHA-256 `da680259e0df87be4a371614c9cf06b6d33e2757015847305b4f8f338cbbcd07`)
+and `build/phase20-hosted-evidence-diagnostics/40544210449/job-122331476772.txt`
+(SHA-256 `4b1f291d747869e553710b3e1e425eeb9d5cd1d0e15ff0db237f1af077309190`).
+Both logs show that the fake CLI matched the route endpoint but could not open
+its response file.
+The route reader opened the table in binary mode and removed LF without also
+removing a preceding CR, leaving `\r` on the response filename on CRLF input.
+This was reproduced locally with the pre-fix helper (same missing-fixture
+error) and the corrected helper (fixture opened successfully). A representative
+Windows fixture path is 121 characters, below the helper's 4096-byte buffer
+and the usual MAX_PATH bound; the route table and fixture root were already
+successfully opened. The fix trims an optional CR after LF, and adapter tests
+now explicitly write CRLF route rows.
+
+The correction changes only the Phase 20 test adapter, not any of the 56
+AccuracyCoin build inputs; the measured input fingerprint remains
+`4bebe4c94120d67c079d0c8f1d5332e1e5d7203ac82eb8ab4b599d52c6f3535c` with the
+same campaign report. The effective source digest is now
+`5a8ad0a98bdfa25976b0e26939909717f735c9bfb93c789af31e39311a2fe885` over
+416 files. Focused collector/performance checks pass 28/28, and the
+protected-key, six-target, availability, hash and policy checks pass 37/37.
+Full local CI and a new source-bound hosted run are required before availability
+can be recorded; candidate `8a2e101` remains failed Windows diagnostic history.

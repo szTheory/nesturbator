@@ -99,6 +99,9 @@ static int phase20_match_route(const char *fixture, const char *endpoint)
         if (length > 0U && line[length - 1U] == '\n') {
             line[--length] = '\0';
         }
+        if (length > 0U && line[length - 1U] == '\r') {
+            line[--length] = '\0';
+        }
         separator = strchr(line, '\t');
         if (separator == NULL) {
             (void)fclose(routes);

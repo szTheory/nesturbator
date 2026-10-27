@@ -461,7 +461,7 @@ function(phase20_adapter_find_job_id json name out_id)
 endfunction()
 
 function(phase20_adapter_route fake_root endpoint response)
-  file(APPEND "${fake_root}/routes.tsv" "${endpoint}\t${response}\n")
+  file(APPEND "${fake_root}/routes.tsv" "${endpoint}\t${response}\r\n")
 endfunction()
 
 function(phase20_adapter_api_routes fake_root)
