@@ -294,3 +294,43 @@ cold protected-main observation, the 108-key no-lost-pass check, and unchanged
 native hashes. `cmake --workflow --preset ci` passed 684/684 and generated all
 three local packages. These are local preparation results, not hosted results.
 All four requirements, KEEP-02/KEEP-03 and Phase 20 remain pending.
+
+## Phase 20 Plan 11: collector repair and local campaign preparation
+
+Plan 20-11 repairs the production collector's supported `gh api` usage,
+validates actual per-job workflow-execution results, preserves raw archive and
+log provenance while normalizing complete root or single-prefix archives, and
+adds metadata-only `MODE=availability` through shared run/job/artifact/source
+validators. Offline fake-gh adapter and availability tests traverse the real
+production entrypoint. The controls assert intended refusals for incomplete
+inventories, missing matrix jobs, missing/expired/duplicate/wrong-run/old-
+attempt artifacts, absent freshness, wrong run/workflow/candidate/base/merge
+parents, truncated or changed trees, local source drift, substituted job
+attempts, archive/log duplicates and ambiguity, unsafe or missing content,
+registration-only/empty/failed/skipped results, unsupported CLI/auth errors,
+and stale-success retries. Availability fixtures reject archive/log calls and
+produce no content acceptance files.
+
+The refreshed local AccuracyCoin campaign used causal source revision
+`ac8456b60272` with `source_dirty=1` for the preserved planning config and
+execution-state edits. All 22 pages and 146 rows completed: 114 PASS, 32 FAIL,
+zero skip/not-run/timeout, and 5 DRAW. Each of the six Phase 20 NMI target keys
+passed. The campaign report SHA-256 is
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`; the
+56-input fingerprint is
+`b2cdcdd15785b590a415dac911187b8abfa0d025a1cc448d412650d1716f1240`, and
+host elapsed guest time is 5,017,232,000 ns. The measured effective source
+digest is
+`b07b42ac26cd92f698eec7a643bc77d5c3c4193ae9432b6f80032affdfabdede` over 416
+files. The focused Task 1 gate passed 28/28 and the Task 2 gate passed 12/12,
+including the protected 108-key observation/no-lost-pass checks and unchanged
+native hash inventory.
+
+The full `cmake --workflow --preset ci` passed 686/686 tests in 394.85 seconds
+and generated library, runner, and libretro packages. This includes the 20-11
+controls, adapter and availability CTests. These are local controls and
+measurements, not hosted acceptance. The new effective tree needs fresh
+clean-source hosted runs; previous green CI and Nightly identities remain
+historical availability for their earlier candidate and digest. All four
+requirements, KEEP-02/KEEP-03, and Phase 20 remain pending independent
+verification. No 20-10 or 20-12 execution occurred.

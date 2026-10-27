@@ -1214,3 +1214,27 @@ fresh post-comment/format performance measurement produced the same passing
 per-ROM results, with zero repeated-base spread. The existing config bytes
 remain unchanged and unstaged. New hosted runs must certify the published
 replacement; no phase/requirement closure or merge is claimed.
+
+## 2026-10-27 Plan 20-11 collector repair
+
+The full-enabled local AccuracyCoin campaign used causal source revision
+`ac8456b60272`, with `source_dirty=1` because the pre-existing planning
+configuration and execution-state edits remain in the checkout. It completed
+all 22 pages and 146 scored rows: 114 pass, 32 fail, no skip/not-run/timeout,
+and 5 DRAW. All six Phase 20 NMI target rows passed. The campaign report SHA-256
+is `29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`; its
+measured 56-input fingerprint is
+`b2cdcdd15785b590a415dac911187b8abfa0d025a1cc448d412650d1716f1240`, with
+`host_elapsed_guest_ns=5017232000`. Native inventory and ROM pins are
+unchanged. The effective hosted-evidence source tree is
+`b07b42ac26cd92f698eec7a643bc77d5c3c4193ae9432b6f80032affdfabdede` over 416
+files; planning files and this measurement ledger are excluded by the shared
+digest contract.
+
+The focused collector/availability/AccuracyCoin/hash/policy gate passed 12/12,
+including the cold protected-main observation, all 108 protected PASS keys,
+and no-lost-pass checks. This campaign and its controls are local preparation
+only. The full campaign option was disabled after the single measurement, and
+the effective source tree still requires fresh hosted exact-head evidence.
+With the campaign disabled, `cmake --workflow --preset ci` passed all 686
+tests and generated the library, runner, and libretro packages.
