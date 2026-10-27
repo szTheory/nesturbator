@@ -264,9 +264,9 @@ hashes regular file contents and symlink targets, and excludes only
 `.planning/**` and `tests/accuracy/measurements.md`. This includes the complete
 effective source/configuration/test/workflow set and is separate from the
 narrower 56-input AccuracyCoin fingerprint. The measured campaign's causal
-source revision is `f85e1b15f176`, with `source_dirty=1`; the live source commit
-for delivery is the Plan 20-09 source/documentation commit recorded in its
-summary. The full digest and count are the values Plan 20-10 must match against
+source revision is `f85e1b15f176`, with `source_dirty=1`; the measured effective
+source tree after local preparation is commit `392b8f5995e4992dcc55f818d6e6b25d8ae9b9df`.
+The full digest and count are the values Plan 20-10 must match against
 GitHub API trees before accepting runs.
 
 GitHub pull-request builds use a synthetic merge commit. A successful hosted

@@ -5,16 +5,16 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
 status: executing
-stopped_at: Completed 20-08-PLAN.md
-last_updated: "2026-10-27T04:13:19.588Z"
+stopped_at: Completed 20-09-PLAN.md
+last_updated: "2026-10-27T05:02:18.519Z"
 last_activity: 2026-10-27
 last_activity_desc: Completed Phase 20 Plan 20-08 locally; hosted evidence remains pending
-state_head: 60f2879e08009647a801b958d2eb3184f085e052
+state_head: 392b8f5995e4992dcc55f818d6e6b25d8ae9b9df
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 16
-  completed_plans: 14
+  completed_plans: 15
   percent: 33
 ---
 
@@ -29,7 +29,7 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 ## Current Position
 
 Phase: 20 (NMI line and VBlank flag) — EXECUTING
-Plan: 9 of 10
+Plan: 10 of 10
 Status: Ready to execute
 Last activity: 2026-10-27 — Completed Phase 20 Plan 20-08 locally; hosted evidence remains pending
 
@@ -69,6 +69,9 @@ Progress: [███░░░░░░░] 33%
 - [Phase 20]: Keep full artifact keys as identity when frame and state observations share ticks; leave schema and native hash pins unchanged.
 - [Phase 20]: Serialize APU sample phase and synthesizer/filter history independently of transient PCM staging.
 - [Phase 20]: Treat synthetic inventory and internal frame-zero results as local evidence; keep hosted requirements pending.
+- [Phase 20]: Fixture provenance cannot satisfy hosted acceptance; collection requires fresh run and attempt metadata plus source-content verification.
+- [Phase 20]: Bind pull-request candidate head and protected base to the actual tested synthetic merge commit, with an independent full effective-source digest.
+- [Phase 20]: Keep all four Phase 20 requirements pending until real hosted evidence passes; local preparation alone does not complete the phase.
 
 ### Blockers/Concerns
 
@@ -123,8 +126,8 @@ Run `$gsd-execute-phase 20 --gaps-only`. Two plans remain (20-09 and 20-10): 20-
 
 ## Session
 
-Last session: 2026-10-27T04:13:19.515Z
-Stopped at: Completed 20-08-PLAN.md
+Last session: 2026-10-27T05:02:18.468Z
+Stopped at: Completed 20-09-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -153,3 +156,4 @@ Resume file: None
 | Phase 20 P6 | 26min | 3 tasks | 7 files |
 | Phase 20 P07 | 27min | 2 tasks | 7 files |
 | Phase 20 P08 | 20min | 3 tasks | 7 files |
+| Phase 20 P09 | 25min | 2 tasks | 8 files |

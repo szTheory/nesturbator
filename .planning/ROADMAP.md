@@ -111,7 +111,7 @@ Note: the basic hit already worked; the `0x06` sprite rows were guest re-run art
   3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
   4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
 
-**Plans**: 8/10 plans executed — 6 historical plans executed; 4 additive gap-closure plans pending
+**Plans**: 9/10 plans executed — 6 historical plans executed; 4 additive gap-closure plans pending
 
 Plans:
 **Wave 1**
@@ -139,7 +139,7 @@ Plans:
 - [x] 20-08-PLAN.md — equal-tick full-key controls and combined frame-zero/empty-PCM/nonzero-history replay
 
 **Wave 9** *(gap closure; blocked on Wave 8)*
-- [ ] 20-09-PLAN.md — locally tested hosted collector, artifact retention and delivery preparation with ordinary complete summary
+- [x] 20-09-PLAN.md — locally tested hosted collector, artifact retention and delivery preparation with ordinary complete summary
 
 **Wave 10** *(gap closure; blocked on completed Wave 9 and separately authorized delivery)*
 - [ ] 20-10-PLAN.md — read-only real hosted evidence collection after a first-task delivery precondition, then immutable-source measurement confirmation
@@ -171,7 +171,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
-| 20. NMI line and VBlank flag | v5 | 8/10 | In Progress | - |
+| 20. NMI line and VBlank flag | v5 | 9/10 | In Progress | - |
 | 21. Interrupt latency and hijack | v5 | 0/TBD | Not started | - |
 
 Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
