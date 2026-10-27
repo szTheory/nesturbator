@@ -1020,10 +1020,20 @@ passing results. The Holy Mapperel result uses the registered name
 `holymapperel.m2.decode`. `LastTest.log` remains byte-for-byte raw supporting
 evidence; it may contain only start/end lines and is not a CTest summary.
 Artifact files are normalized by matching complete path suffixes at
-directory boundaries, including root-level members. Every expected file must
-have exactly one raw path; root/nested ambiguity and duplicate ZIP members
-fail. `provenance/normalization.tsv` records raw and normalized paths with the
-unchanged content digest. Its full effective-source manifest hashes
+directory boundaries, including root-level members. The AccuracyCoin upload
+uses `build/<preset>/accuracycoin/**`, so its ZIP stores `full/` at the archive
+root; the collector places those files in the canonical
+`artifacts/build-linux-x64/accuracycoin/full/` tree. RetroArch evidence keeps
+the authored `hosted-evidence.txt`, intended driver output and that output's
+attempt-bound oracle, session record and journal. Nightly's registered CTest
+inventory includes tests outside the selected lane, so validation selects the
+tests carrying the `vectors-full` or `mmc3-oracle` CTest label and checks that
+every one appears as a successful executed JUnit testcase. A clean CTest JUnit
+file may omit the optional `errors` count; explicit nonzero error, failure,
+skipped or disabled counts and failing testcase elements are rejected. Every
+expected artifact file must have exactly one raw path; root/nested ambiguity
+and duplicate ZIP members fail. `provenance/normalization.tsv` records raw and
+normalized paths with the unchanged content digest. Its full effective-source manifest hashes
 regular-file contents and symlink target text, excluding only `.planning/`
 and `tests/accuracy/measurements.md`. Hosted-tree comparisons check regular
 files against their Git blobs and symlinks against their mode-120000
@@ -1032,6 +1042,12 @@ AccuracyCoin build-input fingerprint. The collector records the source digest,
 run/job/artifact metadata, retrieval time, and checksums beside the downloaded
 evidence. It rejects local fixtures as hosted provenance, dirty effective
 source, missing or expired artifacts, incomplete jobs, and changed source.
+
+In the campaign metadata, `inventory_sha256` identifies the pinned ROM's
+authoritative input inventory and is checked against the tracked baseline
+metadata. The emitted `full/inventory.tsv` is the campaign's page/row
+inventory; validation compares its complete scored-key set with the current
+scoreboard and pairs its rows with the terminal report.
 
 Without authorized run IDs and attempts, `MODE=collect` exits nonzero with
 `pending_delivery` and does not write a hosted-pass manifest. Dispatch or push
