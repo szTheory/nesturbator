@@ -180,3 +180,22 @@ over 415 files; it supersedes the earlier repair digests for actual delivery.
 The fixture-only refinements do not change the measured campaign's narrower
 build-input fingerprint, and the full manifest still covers all their bytes.
 Fresh hosted results must test this finalized source.
+
+## Final repaired delivery
+
+Candidate `b474e1d081c12d44bd03e224d6248a5cac08b503` is published on draft PR #59. The selected PR merge
+snapshot is `6b2b1e4b199f577b7dd8dc9993fdac06c5ef93bb`, with protected base
+`ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`.
+
+- CI `40507506429`, attempt `1`: observed `in_progress`.
+- Nightly `40507506358`, attempt `1`: observed `in_progress`.
+- Effective source digest: `30aabfeee892574cfe98ab69de1cacce4bfad45d9b7d72427e7abbd070e84f2a`
+  over 415 files.
+
+`build/phase20-hosted-evidence/delivery.json` now selects only these final run
+identities. All earlier candidates/runs in this record remain historical and
+are superseded for acceptance. Full local CI 684/684, ASan 676/676 and MMC3
+13/13 passed before this push. Normal push hooks passed. Actual final hosted
+acceptance still requires completed jobs/artifacts and 20-10's content gates.
+Only this planning handoff is committed locally afterward, so it does not
+restart the source's CI. No merge or phase/requirement completion is claimed.

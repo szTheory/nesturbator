@@ -4,12 +4,12 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: delivering
-stopped_at: PR 59 retained IRQ repair verified by CI 684/684, ASan 676/676 and MMC3 13/13; publishing
-last_updated: "2026-10-27T12:54:09Z"
+status: awaiting_hosted_results
+stopped_at: PR 59 delivered at b474e1d; CI 40507506429 and Nightly 40507506358 running
+last_updated: "2026-10-27T12:55:28Z"
 last_activity: 2026-10-27
 last_activity_desc: PR 59 delivery repairs and retained IRQ regression fix verified; CI 684/684, ASan 676/676, MMC3 13/13
-state_head: 2d904b7daef8f4882e3d50389869f21571727b62
+state_head: b474e1d081c12d44bd03e224d6248a5cac08b503
 progress:
   total_phases: 3
   completed_phases: 1
@@ -28,9 +28,9 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — DELIVERING REGRESSION REPAIR
+Phase: 20 (NMI line and VBlank flag) — AWAITING HOSTED RESULTS
 Plan: 9 of 10 complete; 20-10 has zero completed tasks
-Status: Draft PR #59 open; retained IRQ regression repair passes CI 684/684, ASan 676/676 and MMC3 13/13; publishing finalized source; 20-10 and all requirements remain pending
+Status: Draft PR #59 delivered at b474e1d; fresh CI 40507506429 and Nightly 40507506358 started; delivery input updated; 20-10 and all requirements remain pending
 Last activity: 2026-10-27 — Delivery authorized; formatting hook repaired without bypass; remeasured campaign and full CI passed 684/684
 
 Progress: [███░░░░░░░] 33%
@@ -124,12 +124,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Monitor draft PR #59's delivered candidate `2d904b7daef8f4882e3d50389869f21571727b62`: CI `40501700246` and Nightly `40501700252`, both attempt 1, were started by the authorized delivery. The actual identities are saved in `build/phase20-hosted-evidence/delivery.json`. Once required jobs and artifacts are complete and available, run `$gsd-execute-phase 20 --gaps-only` to resume only 20-10 and independent phase verification. Consult `20-DELIVERY.md` for the formatting commit map, final local CI 684/684, focused acceptance 35/35, observed API/matrix corrections and superseding full source digest `f73937e970bedd54d6f9379d235f3f44887e014970a22718997c7929b6b2b3b5`. Earlier runs cannot certify this candidate. Planning-only handoff commits remain local to avoid cancelling its CI. Keep all requirements open, preserve unrelated config edits and debt, and do not merge or advance to Phase 21 before the actual hosted gates and re-verification pass.
+Monitor draft PR #59's final repaired candidate `b474e1d081c12d44bd03e224d6248a5cac08b503`: CI `40507506429` and Nightly `40507506358`, both attempt 1. Actual identities are saved in `build/phase20-hosted-evidence/delivery.json`. Earlier runs are superseded. Local verification passed CI 684/684, ASan 676/676 and MMC3 13/13, including the retained-IRQ regression witness and updated bounded state controls. Once required jobs and artifacts are complete and available, run `$gsd-execute-phase 20 --gaps-only` to resume only 20-10 and independent phase verification. Consult `20-DELIVERY.md` and the state-hash move table; the final full source digest is `30aabfeee892574cfe98ab69de1cacce4bfad45d9b7d72427e7abbd070e84f2a` over 415 files. Planning-only handoff commits remain local to avoid restarting CI. Keep requirements open, preserve unrelated config edits and debt, and do not merge or advance to Phase 21 before actual hosted gates and re-verification pass.
 
 ## Session
 
-Last session: 2026-10-27T12:12:03Z
-Stopped at: PR 59 delivered; exact-head CI/Nightly results pending
+Last session: 2026-10-27T12:55:28Z
+Stopped at: PR 59 final repaired source delivered; exact-head hosted results pending
 Resume file: None
 
 ## Performance Metrics
