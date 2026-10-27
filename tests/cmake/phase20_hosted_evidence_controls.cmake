@@ -245,6 +245,43 @@ file(MAKE_DIRECTORY "${WORK}")
 set(FIXTURE "${WORK}/fixture")
 nesturbator_phase20_write_evidence_fixture("${FIXTURE}" "${SOURCE_DIR}" "${RUNNER}" "${ROM}")
 
+if(CASE STREQUAL "adapter")
+  if(NOT DEFINED FAKE_GH OR NOT EXISTS "${FAKE_GH}")
+    message(FATAL_ERROR "phase20 adapter control requires the owned fake-gh executable")
+  endif()
+  set(fake_root "${WORK}/fake-gh")
+  set(adapter_root "${WORK}/collection")
+  set(call_log "${WORK}/fake-gh-calls.tsv")
+  file(REMOVE_RECURSE "${fake_root}" "${adapter_root}")
+  file(REMOVE "${call_log}")
+  file(MAKE_DIRECTORY "${fake_root}")
+  file(WRITE "${fake_root}/routes.tsv" "")
+  file(WRITE "${adapter_root}/delivery.json"
+    "{\"repository\":\"szTheory/nesturbator\",\"ci_run_id\":\"1001\",\"ci_run_attempt\":\"1\",\"nightly_run_id\":\"2002\",\"nightly_run_attempt\":\"1\",\"candidate_head_sha\":\"cccccccccccccccccccccccccccccccccccccccc\",\"pr_number\":\"42\"}\n")
+  get_filename_component(fake_directory "${FAKE_GH}" DIRECTORY)
+  if(CMAKE_HOST_WIN32)
+    set(path_separator ";")
+  else()
+    set(path_separator ":")
+  endif()
+  set(fake_path "${fake_directory}${path_separator}$ENV{PATH}")
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}" -E env
+      "PATH=${fake_path}"
+      "PHASE20_FAKE_GH_FIXTURE=${fake_root}"
+      "PHASE20_FAKE_GH_CALLS=${call_log}"
+      "${CMAKE_COMMAND}" "-DMODE=collect" "-DROOT=${adapter_root}"
+      "-DSOURCE_REF=${SOURCE_DIR}"
+      -P "${SOURCE_DIR}/tests/cmake/phase20_hosted_evidence.cmake"
+    RESULT_VARIABLE collect_result OUTPUT_VARIABLE collect_stdout ERROR_VARIABLE collect_stderr)
+  if(NOT "${collect_result}" STREQUAL "0")
+    message(FATAL_ERROR
+      "authentic-shaped production collect did not accept the fixture: ${collect_stdout}${collect_stderr}")
+  endif()
+  message(STATUS "phase20 production collect adapter accepted the authentic-shaped fixture")
+  return()
+endif()
+
 if(CASE STREQUAL "red")
   nesturbator_phase20_validate_evidence("${FIXTURE}" "${SOURCE_DIR}" ok reason TRUE)
   if(ok)

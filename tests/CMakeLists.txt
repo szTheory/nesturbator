@@ -708,6 +708,8 @@ set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
 
 # Phase 20: offline positive and negative controls for the shared hosted
 # evidence validator. The fixtures are generated only in the build tree.
+add_executable(phase20_fake_gh runner/phase20_fake_gh.c)
+nesturbator_warnings(phase20_fake_gh)
 add_test(NAME phase20.hosted_evidence.controls
   COMMAND ${CMAKE_COMMAND}
     -DCASE=all
@@ -717,6 +719,16 @@ add_test(NAME phase20.hosted_evidence.controls
     "-DWORK=${PROJECT_BINARY_DIR}/phase20-hosted-evidence-controls"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase20_hosted_evidence_controls.cmake)
 set_tests_properties(phase20.hosted_evidence.controls PROPERTIES TIMEOUT 120)
+add_test(NAME phase20.hosted_evidence.adapter
+  COMMAND ${CMAKE_COMMAND}
+    -DCASE=adapter
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes"
+    "-DFAKE_GH=$<TARGET_FILE:phase20_fake_gh>"
+    "-DWORK=${PROJECT_BINARY_DIR}/phase20-hosted-evidence-adapter"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase20_hosted_evidence_controls.cmake)
+set_tests_properties(phase20.hosted_evidence.adapter PROPERTIES TIMEOUT 120)
 
 # AccuracyCoin page runs are kept separate so a failure names the page whose
 # RAM-derived results diverged from the committed scoreboard.
