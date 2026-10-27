@@ -111,7 +111,7 @@ Note: the basic hit already worked; the `0x06` sprite rows were guest re-run art
   3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
   4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
 
-**Plans**: 10/12 plans executed — fresh delivery and actual collection remain pending
+**Plans**: 11/12 plans executed — fresh delivery and actual collection remain pending
 
 Plans:
 **Wave 1**
@@ -145,12 +145,12 @@ Plans:
 - [x] 20-11-PLAN.md — repair archive normalization and timestamped plain-text job-log evidence; prove collect/validate and metadata-only availability with offline adapter controls
 
 **Wave 11** *(gap closure; blocked on Wave 10)*
-- [ ] 20-12-PLAN.md — use the persistent authorization to publish through existing draft PR 59 and acquire fresh source-bound CI/Nightly availability
+- [x] 20-12-PLAN.md — use the persistent authorization to publish through existing draft PR 59 and acquire fresh source-bound CI/Nightly availability
 
 **Wave 12** *(gap closure; blocked on Wave 11)*
 - [ ] 20-10-PLAN.md — read-only real hosted evidence collection after a first-task delivery precondition, then immutable-source measurement confirmation
 
-Completed 20-09 preparation remains historical. Old successful CI/Nightly runs failed collector content acceptance and cannot certify the repaired collector. Plan 20-11 is complete with raw timestamped plain-text job-log validation and a refreshed local source identity. Remaining execution is ordered 20-12 -> 20-10: existing-PR delivery under the persistent authorization in 20-DELIVERY.md, then read-only content acceptance. Availability is checked automatically before collection; missing or invalid evidence leaves 20-10, all four requirements and Phase 20 incomplete. The repaired local source digest is `d1d4a456b40332a78678fbcf1ba1bf948a82641f20dfec5ecafbe0f2f678c69e` over 416 files; it requires fresh clean-source hosted runs. No merge, force push, new PR, workflow dispatch, unrelated CI efficiency change or additional lifecycle command is included.
+20-09 preparation and failed candidates remain historical. Plans 20-11 and 20-12 repaired the shared metadata validators, published the final candidate on existing draft PR 59, and passed fresh CI `40571402181/1` and Nightly `40571401669/1`. The live metadata-only availability record maps candidate `0039b9cd47a00d14d2f2f62376b8dbb2ad91baaf` to tested merge `32076c451f9f16d76d3e0e8f8ef721a2ee5050f6`, protected base `ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`, and effective source digest `99691ce668e69ac193d493ed30fe422f872d9538ef3bfe28c75a018b05ccad0e` over 416 files. Availability validates identities and artifact metadata only; Plan 20-10 still owns read-only artifact-content collection and acceptance. Eleven of twelve plans are summarized; all four requirements and Phase 20 remain incomplete pending that work and independent verification. The PR remains open/draft; no merge, force push, new PR, workflow dispatch, or unrelated CI change occurred.
 
 **Canonical refs**: [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [DECISIONS.md](preparation/DECISIONS.md), [CONFORMANCE.md](preparation/CONFORMANCE.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (section 1, state), [research/FEATURES.md](research/FEATURES.md) (G1, G2), [research/PITFALLS.md](research/PITFALLS.md) (#1, #2, #3, #6, #7, #10, #12), [research/SUMMARY.md](research/SUMMARY.md) (steps 3–4)
 
@@ -177,7 +177,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
-| 20. NMI line and VBlank flag | v5 | 10/12 | In Progress | - |
+| 20. NMI line and VBlank flag | v5 | 11/12 | In Progress | - |
 | 21. Interrupt latency and hijack | v5 | 0/TBD | Not started | - |
 
 Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).

@@ -4,16 +4,16 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: executing
-stopped_at: "Completed 20-11 correction; 10/12 plans complete. Next: 20-12, then 20-10."
-last_updated: "2026-10-27T16:08:22.614Z"
-last_activity: "2026-10-27: Plan 20-11 complete; 10/12 Phase 20 plans complete."
-state_head: 151732834c06a4b2042e43dd16bc63920d91176d
+status: "Executing; 11/12 plans complete. Next: Plan 20-10 content acceptance; Phase 20 and all requirements remain pending."
+stopped_at: "Completed 20-12-PLAN.md; 11/12 Phase 20 plans complete. Next: 20-10 content acceptance."
+last_updated: "2026-10-27T20:05:59.229Z"
+last_activity: "2026-10-27: Plan 20-12 complete; 11/12 Phase 20 plans complete. Next: 20-10 content acceptance."
+state_head: dff2ecaad5101fe0edd8816229ad2fd9ba6ebca4
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 18
-  completed_plans: 16
+  completed_plans: 17
   percent: 33
 ---
 
@@ -28,9 +28,9 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 ## Current Position
 
 Phase: 20 (NMI line and VBlank flag) — EXECUTING
-Plan: 12 of 12 (next: 20-12; 10/12 plans complete, then 20-10)
-Status: Ready for Plan 20-12 under the recorded authorization
-Last activity: 2026-10-27: Plan 20-11 plain-text log correction complete; 10/12 Phase 20 plans complete.
+Plan: 10 of 12 (next: 20-10; 11/12 plans complete)
+Status: Executing; 11/12 plans complete. Next: Plan 20-10 content acceptance; Phase 20 and all requirements remain pending.
+Last activity: 2026-10-27: Plan 20-12 complete; 11/12 Phase 20 plans complete. Next: 20-10 content acceptance.
 
 Progress: [███░░░░░░░] 33%
 
@@ -75,13 +75,15 @@ Progress: [███░░░░░░░] 33%
 - [Phase 20]: Plan 20-11: share source/run/job/artifact metadata validation between collect and metadata-only availability; keep availability separate from content acceptance.
 - [Phase 20]: Plan 20-11: GitHub Actions per-job logs are raw timestamped plain text; preserve raw bytes and rederive the unique metadata-selected step before validating CTest terminals.
 - [Phase 20]: Plan 20-11: validate actual per-job workflow-execution results and preserve raw archive/log evidence with separate derived mappings.
-- [Phase 20]: Execution tracking: Plan 20-11 is complete; 10/12 Phase 20 plans now have summaries. The remaining order is 20-12 then 20-10, and Phase 20 is not complete.
+- [Phase 20]: Execution tracking: Plans 20-11 and 20-12 are complete; 11/12 Phase 20 plans now have summaries. Next is 20-10 read-only content acceptance. Phase 20 and all four requirements remain pending.
 - [Phase 20]: GitHub Actions per-job logs are raw timestamped plain text; preserve raw bytes and rederive the unique metadata-selected step before validating CTest terminals.
+- [Phase 20]: Keep artifact-content acceptance exclusively in 20-10; 20-12 records live availability only.
+- [Phase 20]: Bind the published candidate, tested merge, protected base, and current effective source by exact Git identity.
 
 ### Blockers/Concerns
 
-- [Phase 20 execution]: Plans 20-01 through 20-09 and local collector repair 20-11 are executed and summarized under amended D-10. Their race/state/host witnesses and local evidence remain historical. The exact physical paired-chip tie remains an evidence limit. Fresh delivery 20-12 and actual acceptance 20-10 remain; none closes requirements before independent phase verification.
-- [Plan 20-10 failed collection]: The initial missing-delivery checkpoint was superseded by the recorded authorization for PR 59 and successful CI 40514060876/1 and Nightly 40513950000/1. Collection failed on root-level LastTest.log lookup, the nonexistent long Holy Mapperel alias and collector assumptions about job logs. Pre-publication review inspected old job 122224137324 and established the endpoint returns BOM-prefixed timestamped plain text, not a ZIP; 20-11 now validates this response shape and preserves raw bytes. The old runs and raw diagnostics remain historical, no hosted acceptance manifest exists, and fresh source-bound CI/Nightly plus content collection remain required. See 20-COLLECTOR-REPAIR-PLANNING.md and 20-EVIDENCE.md.
+- [Phase 20 execution]: Plans 20-01 through 20-09 and collector plans 20-11/20-12 are executed and summarized under amended D-10. Their race/state/host witnesses and local evidence remain historical. The exact physical paired-chip tie remains an evidence limit. Final source-bound CI/Nightly availability passed in 20-12; content acceptance in 20-10 remains, and no requirements close before independent phase verification.
+- [Plan 20-10 failed collection]: The initial missing-delivery checkpoint was superseded by the recorded authorization for PR 59 and successful CI 40514060876/1 and Nightly 40513950000/1. Collection failed on root-level LastTest.log lookup, the nonexistent long Holy Mapperel alias and collector assumptions about job logs. Pre-publication review inspected old job 122224137324 and established the endpoint returns BOM-prefixed timestamped plain text, not a ZIP; 20-11 now validates this response shape and preserves raw bytes. Those old runs and raw diagnostics remain historical. Fresh CI 40571402181/1 and Nightly 40571401669/1 now pass metadata-only availability for candidate 0039b9cd; artifact content validation remains required in 20-10. See 20-COLLECTOR-REPAIR-PLANNING.md and 20-EVIDENCE.md.
 - [Execution handoff]: Corrected 20-10's future command examples to use the completed collector's checkout-directory argument `SOURCE_REF=.` instead of the planning placeholder `HEAD`. Only planning prose changed; no collection or 20-10 task was executed and the effective-source digest remains unchanged.
 - `tests/accuracy/measurements.md` records the Plan 20-03 source-sequence results, Plan 20-04's constructed/executed origins, all 20 bounded Control 8/9 candidates, and the production sampler endpoint projections. No alignment shift or per-table offset was selected.
 - KEEP-02 and KEEP-03 remain pending for cross-platform hash confirmation and hosted evidence. Plan 20-05 supplies local host replay; it does not resolve physical tie precedence or satisfy later hosted evidence. Plan 20-04 found no required instruction-boundary cutpoint that needs clarification.
@@ -129,16 +131,17 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 20 --gaps-only` for Plan 20-12 next: use the existing draft PR 59 under the recorded persistent authorization and acquire fresh source-bound CI/Nightly runs plus metadata-only availability. Plan 20-10 follows with read-only content collection and measurement confirmation, then independent phase verification. Ten of twelve plans are complete; all four requirements remain pending. Old CI `40514060876/1` and Nightly `40513950000/1` on candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4` / merge `11533e456d41f740751c8353f947d65017aae692` remain historical availability observations with failed collection, not accepted or reusable proof for the repaired collector. The repaired local source digest is `d1d4a456b40332a78678fbcf1ba1bf948a82641f20dfec5ecafbe0f2f678c69e` over 416 files; it needs new clean-source hosted runs. No further remote mutation occurred during 20-11. Keep the unrelated CI efficiency patch unapplied, preserve the config edit, and do not merge or start Phase 21 before real content acceptance and re-verification pass.
+Run `$gsd-execute-phase 20 --gaps-only` for Plan 20-10 next: consume the fresh source-bound metadata handoff for read-only artifact collection/content validation and measurement confirmation, then perform independent phase verification. Eleven of twelve plans are complete; all four requirements remain pending. Final candidate `0039b9cd47a00d14d2f2f62376b8dbb2ad91baaf` passed CI `40571402181/1` and Nightly `40571401669/1`; availability maps it to tested merge `32076c451f9f16d76d3e0e8f8ef721a2ee5050f6` and protected base `ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`. The effective source digest is `99691ce668e69ac193d493ed30fe422f872d9538ef3bfe28c75a018b05ccad0e` over 416 files. This metadata-only proof is not content acceptance. The PR remains open/draft; no merge, force push, new PR, workflow dispatch, unrelated CI efficiency change, or config staging occurred. The unrelated config bytes remain unchanged. Do not start Phase 21 before real content acceptance and re-verification pass.
 
 ## Performance Metrics
 
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 20 P11 | 69min | 2 tasks | 11 files |
+| Phase 20 P12 | 232min | 2 tasks | 12 files |
 
 ## Session
 
-**Last session:** 2026-10-27T16:08:22.562Z
-**Stopped at:** Completed 20-11 correction; 10/12 plans complete. Next: 20-12, then 20-10.
+**Last session:** 2026-10-27T20:05:59.179Z
+**Stopped at:** Completed 20-12-PLAN.md; 11/12 Phase 20 plans complete. Next: 20-10 content acceptance.
 **Resume file:** None
