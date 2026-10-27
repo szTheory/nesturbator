@@ -100,6 +100,229 @@ static void compare_frames(const struct frame_result *a, const struct frame_resu
     CHECK(memcmp(a->audio, b->audio, (size_t)a->frame.audio_count * sizeof a->audio[0]) == 0);
 }
 
+static int same_synth_history(const struct nesturbator *a, const struct nesturbator *b)
+{
+    return a->apu.sample_phase == b->apu.sample_phase &&
+           a->synth.mixed_level == b->synth.mixed_level &&
+           a->synth.impulse_head == b->synth.impulse_head &&
+           memcmp(a->synth.impulse, b->synth.impulse, sizeof a->synth.impulse) == 0 &&
+           a->synth.integrator_q15 == b->synth.integrator_q15 &&
+           memcmp(a->synth.hp_input_q30, b->synth.hp_input_q30, sizeof a->synth.hp_input_q30) ==
+               0 &&
+           memcmp(a->synth.hp_output_q30, b->synth.hp_output_q30, sizeof a->synth.hp_output_q30) ==
+               0 &&
+           a->synth.lp_output_q30 == b->synth.lp_output_q30;
+}
+
+static void empty_drain_is_noop(struct nesturbator *nes, const uint8_t *canonical,
+                                uint8_t *after_drain, size_t size, const char *label)
+{
+    const int16_t sentinel_value = (int16_t)0x5a5a;
+    int16_t sentinel = sentinel_value;
+    uint16_t pcm_read = nes->synth.pcm_read;
+    uint16_t pcm_write = nes->synth.pcm_write;
+    uint32_t drained;
+
+    CHECK(nes->apu.sample_output == NULL);
+    CHECK_EQ_U64(nes->synth.pcm_count, 0u);
+    drained = nesturbator__synth_drain(nes, &sentinel, 1u);
+    CHECK_EQ_U64(drained, 0u);
+    CHECK(sentinel == sentinel_value);
+    CHECK_EQ_U64(nes->synth.pcm_read, pcm_read);
+    CHECK_EQ_U64(nes->synth.pcm_write, pcm_write);
+    CHECK_EQ_U64(nes->synth.pcm_count, 0u);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)nes, after_drain, size), NESTURBATOR_OK);
+    CHECK(memcmp(canonical, after_drain, size) == 0);
+    printf("empty PCM drain %s: returned=0 sentinel=unchanged ring=empty canonical=unchanged\n",
+           label);
+}
+
+static int pcm_diff_index(const struct frame_result *a, const struct frame_result *b,
+                          uint32_t *first_difference)
+{
+    uint32_t common =
+        a->frame.audio_count < b->frame.audio_count ? a->frame.audio_count : b->frame.audio_count;
+    for (uint32_t i = 0u; i < common; ++i) {
+        if (a->audio[i] != b->audio[i]) {
+            *first_difference = i;
+            return 1;
+        }
+    }
+    if (a->frame.audio_count != b->frame.audio_count) {
+        *first_difference = common;
+        return 1;
+    }
+    return 0;
+}
+
+static void test_frame_zero_empty_pcm_preserves_history(void)
+{
+    struct nesturbator *source = build_fixture(240u, 333u, 0u, 0x80u, 0u);
+    struct nesturbator *restored = build_fixture(240u, 333u, 0u, 0x80u, 0u);
+    struct nesturbator *lost_history = build_fixture(240u, 333u, 0u, 0x80u, 0u);
+    struct frame_result poisoned_frame;
+    struct frame_result source_frame;
+    struct frame_result restored_frame;
+    struct frame_result lost_frame;
+    size_t size = 0u;
+    uint8_t *state = NULL;
+    uint8_t *roundtrip = NULL;
+    uint8_t *source_now = NULL;
+    uint8_t *restored_now = NULL;
+    uint8_t *lost_now = NULL;
+    unsigned instructions = 0u;
+    int pcm_nonzero = 0;
+    int future_state_diff = 0;
+    int future_pcm_diff = 0;
+    uint32_t pcm_difference_frame = 0u;
+    uint32_t pcm_difference_sample = 0u;
+
+    CHECK(source != NULL && restored != NULL && lost_history != NULL);
+    if (source == NULL || restored == NULL || lost_history == NULL)
+        goto done;
+
+    /* The origin is a valid constructed PPU point; one complete production JMP reaches 241:1. */
+    CHECK_EQ_U64(source->frame_number, 0u);
+    CHECK_EQ_U64(source->ticks, 0u);
+    CHECK(source->apu.sample_output == NULL);
+    CHECK_EQ_U64(source->synth.pcm_count, 0u);
+    nesturbator__cpu_step(source);
+    CHECK_EQ_U64(source->frame_number, 0u);
+    CHECK_EQ_U64(source->ticks, 72u);
+    CHECK_EQ_U64(source->ppu.ppu_ticks, 72u);
+    CHECK_EQ_U64(source->cpu_cycle, 3u);
+    CHECK_EQ_U64(source->ppu.scanline, 241u);
+    CHECK_EQ_U64(source->ppu.dot, 1u);
+    CHECK_EQ_U64(source->cpu.pc, 0x8000u);
+    CHECK_EQ_U64(source->synth.pcm_count, 0u);
+    CHECK(source->apu.sample_output == NULL);
+    CHECK(has_synth_history(source));
+    printf("frame-zero empty-output origin=constructed(240,333) endpoint=executed(241,1) "
+           "frame=%llu ticks=%llu sample-phase=%u mixed-level=%d impulse-head=%u "
+           "integrator=%lld PCM-count=%u\n",
+           (unsigned long long)source->frame_number, (unsigned long long)source->ticks,
+           source->apu.sample_phase, source->synth.mixed_level, source->synth.impulse_head,
+           (long long)source->synth.integrator_q15, source->synth.pcm_count);
+
+    size = nesturbator_state_size((nesturbator *)source);
+    state = (uint8_t *)malloc(size);
+    roundtrip = (uint8_t *)malloc(size);
+    source_now = (uint8_t *)malloc(size);
+    restored_now = (uint8_t *)malloc(size);
+    lost_now = (uint8_t *)malloc(size);
+    CHECK(size != 0u && state != NULL && roundtrip != NULL && source_now != NULL &&
+          restored_now != NULL && lost_now != NULL);
+    if (size == 0u || state == NULL || roundtrip == NULL || source_now == NULL ||
+        restored_now == NULL || lost_now == NULL)
+        goto done;
+
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)source, state, size), NESTURBATOR_OK);
+    /* Poison the destination with a different valid public-frame state before loading. */
+    run_frame(restored, &poisoned_frame);
+    CHECK(restored->frame_number != source->frame_number);
+    CHECK(restored->ticks != source->ticks);
+    CHECK_EQ_U64(nesturbator_load_state((nesturbator *)restored, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(restored->frame_number, 0u);
+    CHECK_EQ_U64(restored->ticks, 72u);
+    CHECK(has_synth_history(restored));
+    CHECK(same_synth_history(source, restored));
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)restored, roundtrip, size), NESTURBATOR_OK);
+    CHECK(memcmp(state, roundtrip, size) == 0);
+
+    CHECK_EQ_U64(nesturbator_load_state((nesturbator *)lost_history, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(lost_history->frame_number, 0u);
+    CHECK_EQ_U64(lost_history->ticks, 72u);
+    nesturbator__synth_reset(lost_history);
+    CHECK(!same_synth_history(source, lost_history));
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)lost_history, lost_now, size),
+                 NESTURBATOR_OK);
+    CHECK(memcmp(state, lost_now, size) != 0);
+    printf("lost-history control: loaded valid frame-zero state, reset synth history, "
+           "history-oracle=detected saved-state-difference=detected\n");
+
+    empty_drain_is_noop(source, state, roundtrip, size, "source");
+    empty_drain_is_noop(restored, state, roundtrip, size, "restored");
+
+    /* Resume complete production instructions until the guest's NMI handler marks entry. */
+    while (source->bus.ram[NMI_COUNT] == 0u && instructions < 40000u) {
+        nesturbator__cpu_step(source);
+        nesturbator__cpu_step(restored);
+        nesturbator__cpu_step(lost_history);
+        instructions++;
+    }
+    CHECK(instructions < 40000u);
+    CHECK_EQ_U64(source->bus.ram[NMI_COUNT], 1u);
+    CHECK_EQ_U64(source->bus.ram[NMI_COUNT], restored->bus.ram[NMI_COUNT]);
+    CHECK_EQ_U64(source->bus.ram[NMI_COUNT], lost_history->bus.ram[NMI_COUNT]);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)source, source_now, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)restored, restored_now, size),
+                 NESTURBATOR_OK);
+    CHECK(memcmp(source_now, restored_now, size) == 0);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)lost_history, lost_now, size),
+                 NESTURBATOR_OK);
+    future_state_diff = memcmp(source_now, lost_now, size) != 0;
+
+    for (uint32_t frame = 1u; frame <= 2u; ++frame) {
+        run_frame(source, &source_frame);
+        run_frame(restored, &restored_frame);
+        run_frame(lost_history, &lost_frame);
+        compare_frames(&source_frame, &restored_frame);
+        CHECK_EQ_U64(source_frame.frame.frame_number, frame);
+        CHECK_EQ_U64(source_frame.frame.ticks, source->ticks);
+        CHECK_EQ_U64(source_frame.frame.audio_count, restored_frame.frame.audio_count);
+        CHECK_EQ_U64(source_frame.frame.audio_count, lost_frame.frame.audio_count);
+        CHECK(source_frame.frame.audio_count != 0u);
+        for (uint32_t i = 0u; i < source_frame.frame.audio_count; ++i)
+            if (source_frame.audio[i] != 0)
+                pcm_nonzero = 1;
+
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)source, source_now, size),
+                     NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)restored, restored_now, size),
+                     NESTURBATOR_OK);
+        CHECK(memcmp(source_now, restored_now, size) == 0);
+        CHECK_EQ_U64(nesturbator_save_state((nesturbator *)lost_history, lost_now, size),
+                     NESTURBATOR_OK);
+        if (memcmp(source_now, lost_now, size) != 0)
+            future_state_diff = 1;
+        if (!future_pcm_diff &&
+            pcm_diff_index(&source_frame, &lost_frame, &pcm_difference_sample)) {
+            future_pcm_diff = 1;
+            pcm_difference_frame = frame;
+        }
+        if (future_pcm_diff)
+            break;
+    }
+    CHECK(pcm_nonzero != 0);
+    CHECK(future_state_diff || future_pcm_diff);
+    CHECK_EQ_U64(source->bus.ram[NMI_COUNT], restored->bus.ram[NMI_COUNT]);
+    CHECK_EQ_U64(source->bus.ram[NMI_COUNT], lost_history->bus.ram[NMI_COUNT]);
+    if (future_pcm_diff) {
+        printf(
+            "lost-history continuation control: state-oracle=%s pcm-difference=frame %u sample %u "
+            "guest-count=%u\n",
+            future_state_diff ? "different" : "equal", pcm_difference_frame, pcm_difference_sample,
+            source->bus.ram[NMI_COUNT]);
+    } else {
+        printf("lost-history continuation control: state-difference=%s PCM-equal-through=2 frames "
+               "guest-count=%u\n",
+               future_state_diff ? "detected" : "not-detected", source->bus.ram[NMI_COUNT]);
+    }
+
+done:
+    free(state);
+    free(roundtrip);
+    free(source_now);
+    free(restored_now);
+    free(lost_now);
+    if (source != NULL)
+        nesturbator_destroy((nesturbator *)source);
+    if (restored != NULL)
+        nesturbator_destroy((nesturbator *)restored);
+    if (lost_history != NULL)
+        nesturbator_destroy((nesturbator *)lost_history);
+}
+
 static void test_exact_transition_cutpoint(const char *name, uint16_t origin_line,
                                            uint16_t origin_dot, uint8_t status, uint8_t nmi_prev,
                                            uint64_t target_ppu_ticks, uint16_t line, uint16_t dot,
@@ -648,6 +871,7 @@ int main(void)
 {
     test_disabled_probe_endpoints_are_limited_guard();
     test_bounded_control_transition_sweep();
+    test_frame_zero_empty_pcm_preserves_history();
     test_exact_transition_cutpoint("VBlank-set", 240u, 333u, 0u, 0u, 72u, 241u, 1u, 0u, 1u);
     test_exact_transition_cutpoint("VBlank-clear", 260u, 333u, 0x80u, 1u, 72u, 261u, 1u, 0u, 1u);
     test_captured_edge_survives_vblank_clear_load();
