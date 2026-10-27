@@ -5,7 +5,7 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
 status: delivering
-stopped_at: Authorized delivery prepared and revalidated; opening evidence PR
+stopped_at: PR 59 open; correcting first hosted GCC build failure
 last_updated: "2026-10-27T05:04:40Z"
 last_activity: 2026-10-27
 last_activity_desc: Hosted delivery authorized; unpublished formatting repaired; refreshed campaign and full local CI passed
@@ -30,7 +30,7 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 Phase: 20 (NMI line and VBlank flag) — DELIVERING
 Plan: 9 of 10 complete; 20-10 has zero completed tasks
-Status: Delivery authorized; preparing PR CI/Nightly evidence; 20-10 remains unexecuted with zero task commits and no SUMMARY
+Status: Draft PR #59 open; first CI/Nightly runs exposed GCC tick-offset narrowing in a test; verified correction ready for delivery; 20-10 remains unexecuted
 Last activity: 2026-10-27 — Delivery authorized; formatting hook repaired without bypass; remeasured campaign and full CI passed 684/684
 
 Progress: [███░░░░░░░] 33%
@@ -124,7 +124,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Delivery is authorized by the owner's 2026-10-27 request to unblock the hosted-evidence dependency. Push the formatted/revalidated phase branch and open its draft evidence PR; its existing triggers start both CI and Nightly on the synthetic merge checkout. Do not merge or mark Phase 20 complete. `20-DELIVERY.md` and the commit map preserve the original measured identities and the superseding delivery digest after the push-hook formatting repair. Once actual completed runs and required artifacts exist, populate `build/phase20-hosted-evidence/delivery.json` and resume `$gsd-execute-phase 20 --gaps-only` for 20-10's collection and independent phase re-verification. Keep all four requirements pending, preserve unrelated config edits and debt, and do not advance to Phase 21.
+Delivery is authorized by the owner's 2026-10-27 request to unblock the hosted-evidence dependency. Draft PR #59 is open; its existing triggers started CI 40499487090 and Nightly 40499486950. Their GCC compile failure is reproduced and corrected; push the verified test-only correction and collect results from the new exact-head runs. Do not merge or mark Phase 20 complete. `20-DELIVERY.md` and the commit map preserve the original measured identities and the superseding delivery digest after the push-hook formatting repair. Once actual completed runs and required artifacts exist, populate `build/phase20-hosted-evidence/delivery.json` and resume `$gsd-execute-phase 20 --gaps-only` for 20-10's collection and independent phase re-verification. Keep all four requirements pending, preserve unrelated config edits and debt, and do not advance to Phase 21.
 
 ## Session
 

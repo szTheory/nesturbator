@@ -22,3 +22,21 @@ The first normal push was rejected by the existing pre-push formatter because un
 ## Hosted acceptance
 
 The PR must run CI including actual base/head per-ROM performance, and Nightly on the same tested source. Record the candidate head, synthetic merge/base mapping, run IDs and attempts in `build/phase20-hosted-evidence/delivery.json` once identified. Only completed available results can pass 20-10's read-only precondition. Missing, failed or incompatible results remain pending; original dirty-source and Nightly fetch debt are preserved until actual results resolve their scope. No result is waived by opening the PR.
+
+## First hosted run and GCC correction
+
+Draft PR #59 was opened at candidate `0be8f4bb27cb0483ab903f28417d687b2ad122fa`.
+CI run `40499487090` and Nightly run `40499486950` started automatically.
+The first GCC jobs rejected two implicitly narrowed tick-offset expressions
+in `test_circuit_phase_projection` under `-Werror=conversion`. The exact
+GCC 14 compile flags reproduced both diagnostics against the original test.
+Explicit `uint16_t` casts for the fixed 2428/2452 tick fixture resolve them;
+the corrected translation unit passes GCC 14's same strict syntax check.
+No emulation behavior or assertion expectation changed. Focused local
+NMI/state/activation/hash/collector tests passed 7/7 after correction.
+The campaign build-input fingerprint remains unchanged; the full effective
+source digest changes to
+`0515b19f452f9280234e4611b3ac613c7e21e1a4a56c2d3e3b2a68456fe01e66`
+over 415 files. New hosted runs are required for this corrected source.
+The earlier 684/684 local workflow result belongs to the pre-correction
+formatted source, while the correction has its own focused verification.

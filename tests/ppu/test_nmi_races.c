@@ -646,7 +646,8 @@ static void test_circuit_phase_projection(void)
                 /* Diagnostic comparator: an implementation that latches any
                    transient in internal phi2 would retain this pulse even
                    though the production close sample is low. */
-                CHECK_EQ_U64(circuit_pulse_overlaps(waveform, close_tick - 12u, close_tick), 1u);
+                CHECK_EQ_U64(
+                    circuit_pulse_overlaps(waveform, (uint16_t)(close_tick - 12u), close_tick), 1u);
                 CHECK_EQ_U64(waveform->expected_close_line[sample_index], 0u);
                 CHECK_EQ_U64(expected_capture, 0u);
                 CHECK_EQ_U64(nes->cpu.nmi_pending, 0u);
@@ -656,7 +657,8 @@ static void test_circuit_phase_projection(void)
             if (case_index == 3u && sample_index == 1u) {
                 /* Diagnostic comparator: the widened M2 window contains this
                    short pulse, but the phase-close sample must miss it. */
-                CHECK_EQ_U64(circuit_pulse_overlaps(waveform, close_tick - 15u, close_tick), 1u);
+                CHECK_EQ_U64(
+                    circuit_pulse_overlaps(waveform, (uint16_t)(close_tick - 15u), close_tick), 1u);
                 CHECK_EQ_U64(waveform->expected_close_line[sample_index], 0u);
                 CHECK_EQ_U64(expected_capture, 0u);
                 CHECK_EQ_U64(nes->cpu.nmi_pending, 0u);
