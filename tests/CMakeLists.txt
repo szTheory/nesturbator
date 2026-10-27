@@ -704,6 +704,18 @@ add_test(NAME hash.inventory.self_test
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hash_inventory.cmake)
 set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
 
+# Phase 20: offline positive and negative controls for the shared hosted
+# evidence validator. The fixtures are generated only in the build tree.
+add_test(NAME phase20.hosted_evidence.controls
+  COMMAND ${CMAKE_COMMAND}
+    -DCASE=red
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes"
+    "-DWORK=${PROJECT_BINARY_DIR}/phase20-hosted-evidence-controls"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase20_hosted_evidence_controls.cmake)
+set_tests_properties(phase20.hosted_evidence.controls PROPERTIES TIMEOUT 120)
+
 # AccuracyCoin page runs are kept separate so a failure names the page whose
 # RAM-derived results diverged from the committed scoreboard.
 set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
