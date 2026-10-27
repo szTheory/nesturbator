@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
 status: executing
-stopped_at: "Completed 20-11; 10/12 Phase 20 plans complete. Next sequence: 20-12, then 20-10."
-last_updated: "2026-10-27T15:38:30.837Z"
+stopped_at: "Completed 20-11 correction; 10/12 plans complete. Next: 20-12, then 20-10."
+last_updated: "2026-10-27T16:08:22.614Z"
 last_activity: "2026-10-27: Plan 20-11 complete; 10/12 Phase 20 plans complete."
-state_head: 57515b3286b0d2df9b1f3d02253732932dc2646e
+state_head: 151732834c06a4b2042e43dd16bc63920d91176d
 progress:
   total_phases: 3
   completed_phases: 1
@@ -28,9 +28,9 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 ## Current Position
 
 Phase: 20 (NMI line and VBlank flag) — EXECUTING
-Plan: 11 of 12
-Status: Ready to execute
-Last activity: 2026-10-27: Plan 20-11 complete; 10/12 Phase 20 plans complete.
+Plan: 12 of 12 (next: 20-12; 10/12 plans complete, then 20-10)
+Status: Ready for Plan 20-12 under the recorded authorization
+Last activity: 2026-10-27: Plan 20-11 plain-text log correction complete; 10/12 Phase 20 plans complete.
 
 Progress: [███░░░░░░░] 33%
 
@@ -73,13 +73,15 @@ Progress: [███░░░░░░░] 33%
 - [Phase 20]: Bind pull-request candidate head and protected base to the actual tested synthetic merge commit, with an independent full effective-source digest.
 - [Phase 20]: Keep all four Phase 20 requirements pending until real hosted evidence passes; local preparation alone does not complete the phase.
 - [Phase 20]: Plan 20-11: share source/run/job/artifact metadata validation between collect and metadata-only availability; keep availability separate from content acceptance.
-- [Phase 20]: Plan 20-11: validate actual per-job workflow-execution logs and preserve raw archive/log evidence with a separate normalized-path mapping.
+- [Phase 20]: Plan 20-11: GitHub Actions per-job logs are raw timestamped plain text; preserve raw bytes and rederive the unique metadata-selected step before validating CTest terminals.
+- [Phase 20]: Plan 20-11: validate actual per-job workflow-execution results and preserve raw archive/log evidence with separate derived mappings.
 - [Phase 20]: Execution tracking: Plan 20-11 is complete; 10/12 Phase 20 plans now have summaries. The remaining order is 20-12 then 20-10, and Phase 20 is not complete.
+- [Phase 20]: GitHub Actions per-job logs are raw timestamped plain text; preserve raw bytes and rederive the unique metadata-selected step before validating CTest terminals.
 
 ### Blockers/Concerns
 
-- [Phase 20 execution]: Plans 20-01 through 20-09 are locally executed and summarized under amended D-10. Their implementation, local race/state/host witnesses and artifact preparation remain historical. The exact physical paired-chip tie remains an evidence limit. Collector repair 20-11, fresh delivery 20-12 and actual acceptance 20-10 remain unexecuted; none closes requirements before independent phase verification.
-- [Plan 20-10 failed collection]: The initial missing-delivery checkpoint was superseded by authorized PR 59 and successful CI 40514060876/1 and Nightly 40513950000/1. Their availability precondition passed, but actual collection failed on root-level LastTest.log lookup. That raw log is empty of test results, the validator expects a nonexistent Holy Mapperel name, and further normalization/CLI defects are assigned to 20-11. Raw diagnostics remain ignored scratch; no acceptance manifest, task commit or SUMMARY exists. This is an automated collector failure, not a manual sign-off request. See 20-COLLECTOR-REPAIR-PLANNING.md.
+- [Phase 20 execution]: Plans 20-01 through 20-09 and local collector repair 20-11 are executed and summarized under amended D-10. Their race/state/host witnesses and local evidence remain historical. The exact physical paired-chip tie remains an evidence limit. Fresh delivery 20-12 and actual acceptance 20-10 remain; none closes requirements before independent phase verification.
+- [Plan 20-10 failed collection]: The initial missing-delivery checkpoint was superseded by the recorded authorization for PR 59 and successful CI 40514060876/1 and Nightly 40513950000/1. Collection failed on root-level LastTest.log lookup, the nonexistent long Holy Mapperel alias and collector assumptions about job logs. Pre-publication review inspected old job 122224137324 and established the endpoint returns BOM-prefixed timestamped plain text, not a ZIP; 20-11 now validates this response shape and preserves raw bytes. The old runs and raw diagnostics remain historical, no hosted acceptance manifest exists, and fresh source-bound CI/Nightly plus content collection remain required. See 20-COLLECTOR-REPAIR-PLANNING.md and 20-EVIDENCE.md.
 - [Execution handoff]: Corrected 20-10's future command examples to use the completed collector's checkout-directory argument `SOURCE_REF=.` instead of the planning placeholder `HEAD`. Only planning prose changed; no collection or 20-10 task was executed and the effective-source digest remains unchanged.
 - `tests/accuracy/measurements.md` records the Plan 20-03 source-sequence results, Plan 20-04's constructed/executed origins, all 20 bounded Control 8/9 candidates, and the production sampler endpoint projections. No alignment shift or per-table offset was selected.
 - KEEP-02 and KEEP-03 remain pending for cross-platform hash confirmation and hosted evidence. Plan 20-05 supplies local host replay; it does not resolve physical tie precedence or satisfy later hosted evidence. Plan 20-04 found no required instruction-boundary cutpoint that needs clarification.
@@ -127,16 +129,16 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 20 --gaps-only`. The dependency order is 20-11 (wave 10 local collector repair and offline controls), 20-12 (wave 11 existing draft PR 59 normal delivery under the recorded persistent authorization, fresh CI/Nightly and metadata-only availability), then 20-10 (wave 12 read-only content collection and measurement confirmation), followed by independent phase verification. No repeat delivery authorization is needed. Old CI `40514060876/1` and Nightly `40513950000/1` on candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4` / merge `11533e456d41f740751c8353f947d65017aae692` remain successful availability observations with failed collection, not accepted or reusable proof for a repaired collector. This planning step leaves effective source `de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab` over 415 files unchanged and performs no implementation or remote mutation. Keep the unrelated CI efficiency patch unapplied, preserve the config edit, and do not merge or start Phase 21 before real content acceptance and re-verification pass.
+Run `$gsd-execute-phase 20 --gaps-only` for Plan 20-12 next: use the existing draft PR 59 under the recorded persistent authorization and acquire fresh source-bound CI/Nightly runs plus metadata-only availability. Plan 20-10 follows with read-only content collection and measurement confirmation, then independent phase verification. Ten of twelve plans are complete; all four requirements remain pending. Old CI `40514060876/1` and Nightly `40513950000/1` on candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4` / merge `11533e456d41f740751c8353f947d65017aae692` remain historical availability observations with failed collection, not accepted or reusable proof for the repaired collector. The repaired local source digest is `d1d4a456b40332a78678fbcf1ba1bf948a82641f20dfec5ecafbe0f2f678c69e` over 416 files; it needs new clean-source hosted runs. No further remote mutation occurred during 20-11. Keep the unrelated CI efficiency patch unapplied, preserve the config edit, and do not merge or start Phase 21 before real content acceptance and re-verification pass.
 
 ## Performance Metrics
 
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
-| Phase 20 P11 | 47min | 2 tasks | 9 files |
+| Phase 20 P11 | 69min | 2 tasks | 11 files |
 
 ## Session
 
-**Last session:** 2026-10-27T15:38:14.190Z
-**Stopped at:** Completed 20-11; 10/12 Phase 20 plans complete. Next sequence: 20-12, then 20-10.
+**Last session:** 2026-10-27T16:08:22.562Z
+**Stopped at:** Completed 20-11 correction; 10/12 plans complete. Next: 20-12, then 20-10.
 **Resume file:** None
