@@ -212,3 +212,31 @@ selected deterministic model order and does not establish physical exact-tie
 precedence. Hosted exact-head/cross-platform/performance evidence, Nightly
 `vectors-full`, and the clean-room audit remain unresolved; KEEP-02/KEEP-03 and
 all four project requirement checkboxes remain pending.
+
+## Phase 20 Plan 08: current local backstop evidence
+
+The single full-enabled local campaign for Plan 20-08 completed 22/22 pages and
+all 146 scored rows: 114 pass, 32 fail, 0 skip, 0 not-run, 0 timeout, and 5
+DRAW. The six required target keys passed. Generated metadata records
+`source_revision=df10aafd2099`, `source_dirty=1`,
+`host_elapsed_guest_ns=8570616000`, a 56-input fingerprint of
+`1d324c83a1aac5a69939eecc149cf4e0e7b86b7175f1da26064969fa7cd26c0c`, and
+report SHA-256
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`. Dirty
+provenance retains the uncommitted README/header comments and pre-existing
+`.planning/config.json` edit. Native hashes, campaign caps, behavior revision
+8, state format 2, protected-main authority, and the exact six target set were
+not repinned or widened.
+
+| KEEP-02 fallback backstop | Current local evidence and scope |
+|---|---|
+| Adjacency: equal-tick frame/audio/state identities remain distinct | `hash.inventory.self_test` accepted the six-platform synthetic fixture with `dabg/p0/frame 60`, `dabg/p1/frame 60`, and `state/dabg 60` all at 42,886,728 ticks, each with a different digest. PCM and transition full keys also remained distinct. An all-six duplicate retained row count and identical artifact bytes but was rejected by the expected full-key inventory; all-six and single-platform missing-key controls rejected for their expected inventory/artifact reasons. This proves local validator behavior only, not observed hosted equality. |
+| Frame 0 and empty PCM retain canonical state and nonzero saved audio history | `core.nmi_state`'s `test_frame_zero_empty_pcm_preserves_history` saves the same frame-0/tick-72 state at the executed `(241,1)` endpoint with sample phase 25,344, mixed level 11,540, no PCM, and null output pointer. Poisoned-destination load/save was canonical; both empty drains returned zero without touching the sentinel or state. Restored continuation matched guest marker, state, frame/ticks, video, and nonzero 798-sample PCM. Resetting synth history on a third loaded instance was detected in saved state and diverged at frame 1 sample 0. The internal constructed origin is not reset reachability or a completed public frame. |
+| Deterministic sorted inventory rejects equal keys | The full native 114-row sorted inventory and existing duplicate/missing controls remain intact. The new six-platform fixture specifically proves expected full-key rejection even when every artifact has equal count and identical bytes. |
+
+`cmake --workflow --preset ci` is the final local behavior gate. It runs with
+the full campaign option disabled so the already measured campaign is not
+repeated. Neither the synthetic fixture nor local workflow establishes hosted
+six-platform equality, hosted performance, clean-source exact-head, or physical
+tie results. KEEP-02/KEEP-03 and all four project requirement checkboxes remain
+pending for independent phase re-verification.

@@ -235,8 +235,11 @@ typedef struct nesturbator_info {
  * (HWC.11). Mixed-level transitions use the fixed-point 16-tap, 32-phase
  * band-limited kernel, followed by the NES 90 Hz and 440 Hz high-pass and
  * 14 kHz low-pass filters (HWC.28-HWC.30). Synthesis and filter history are
- * per-instance and persist across frame calls; the bounded PCM staging ring
- * is drained into the caller's frame buffer. For fixed content, behavior
+ * per-instance, persist across frame calls and are included in saved machine
+ * state; the bounded PCM staging ring is transient and drained into the
+ * caller's frame buffer. A frame-zero state can therefore contain nonzero
+ * audio history while its PCM output is empty, as exercised by
+ * test_frame_zero_empty_pcm_preserves_history. For fixed content, behavior
  * revision and input sequence, PCM samples are bit-for-bit deterministic. */
 typedef struct nesturbator_frame {
     uint32_t size;           /* in: sizeof(nesturbator_frame) */
@@ -678,7 +681,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * progression and retained origins; they do not prove every committed
  * machine field or audio. Portable whole-state and audio tests retain their broader proofs. Loading
  * restores frame_number and ticks, so the first frame after a load reports the frame number and
- * ticks of the uninterrupted run. The frame buffer and the audio are not in a state. Load never
+ * ticks of the uninterrupted run. The video frame buffer, caller's PCM output and transient
+ * staged PCM are not in a state; APU sample phase and synthesizer/filter history are saved machine
+ * state, including when frame zero has emitted no PCM. Load never
  * returns NESTURBATOR_STOP_JAM: a state saved after a JAM opcode restores the latch and the next
  * nesturbator_run_frame returns NESTURBATOR_STOP_JAM, and a state saved before one clears it.
  *

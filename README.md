@@ -296,7 +296,9 @@ Mixed-level changes feed a per-instance, fixed-point band-limited synthesizer.
 Its 16-tap, 32-phase Q15 kernel preserves each level transition exactly, then
 applies the NES 90 Hz and 440 Hz high-pass filters and 14 kHz low-pass filter
 before returning signed 16-bit mono PCM. The bounded staging ring carries
-kernel and filter history across caller frame boundaries. `runner.spectral`
+kernel and filter history across caller frame boundaries. APU sample phase and
+synthesizer/filter history are per-instance saved machine state; staged PCM is
+transient output. `runner.spectral`
 checks pulse periods 100, 40, 12 and 8, and triangle period 1 using a 4096
 sample filter warm-up and a 32768-sample periodic-Hann spectrum. It excludes
 one bin on either side of the first 512 integer harmonic orders after folding
@@ -1204,9 +1206,15 @@ The header is 64 bytes, every multi-byte field little-endian:
 | 48 | 16 | reserved, zero |
 
 The machine fields, the whole PRG RAM (battery RAM included) and the 8 KiB CHR
-RAM (when the board has it) follow. The frame buffer and the audio are not in a state. Frame numbers
-and ticks continue from the saved point: the first frame after a load reports
-the number and ticks of the uninterrupted run.
+RAM (when the board has it) follow. The video frame buffer, caller's PCM output
+and transient staged PCM are not in a state; APU sample phase and synthesizer
+and filter history are machine state and are serialized. This distinction also
+holds in an internal snapshot before the first output frame: `core.nmi_state`'s
+`test_frame_zero_empty_pcm_preserves_history` saves at frame 0 with no PCM
+staged and nonzero audio history, restores it canonically, and checks empty
+drain plus future continuation. Frame numbers and ticks continue from the saved
+point: the first frame after a load reports the number and ticks of the
+uninterrupted run.
 
 Battery RAM and the save generation: a state includes the battery RAM. Loading
 a state whose battery bytes differ from the instance's raises `nesturbator_save_generation`

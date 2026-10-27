@@ -979,3 +979,67 @@ and current fingerprint helper. The activation and target checks passed after
 reconfiguring the full campaign off, without rerunning the measured campaign.
 This local result does not close hosted exact-head, cross-platform, performance,
 or Nightly `vectors-full` evidence.
+
+## Phase 20 Plan 08: equal-tick identity and empty-output history witnesses
+
+The production six-artifact inventory validator accepted a complete synthetic
+fixture for `linux-arm64`, `linux-x64`, `macos-arm64`, `macos-x64`,
+`windows-arm64`, and `windows-x64`. It retained these distinct full keys at
+the same `42886728` ticks: `dabg/p0/frame 60` with digest `2222…2222`,
+`dabg/p1/frame 60` with `3333…3333`, and `state/dabg 60` with `4444…4444`.
+The fixture also retained distinct `dabg/boot/audio/pcm` (`5555…5555`) and
+`dabg/boot/audio/transitions` (`6666…6666`) keys. These fixed synthetic digests
+are fixture values, not emulator output. Every selected full key occurred once
+in all six byte-identical artifacts.
+
+The all-six duplicate control replaced the p1 frame key with the p0 row while
+preserving sorted artifacts, row count, and byte equality across all six
+platform files. The validator rejected it for not containing the expected
+151-key inventory. Removing the p1 key from all six files was rejected at the
+150-versus-151 inventory count; removing one key from only `windows-x64` was
+rejected because that artifact differed. The existing malformed-row,
+platform-difference, and Holy Mapperel missing/renamed controls remain active.
+`hash.inventory.self_test` exercises these cases through the validator also
+used by hosted hash-equality; local fixture equality is not an observed
+six-platform hosted run.
+
+`core.nmi_state` now records one combined internal frame-zero snapshot. From a
+constructed `(240,333)` origin, one production JMP reaches `(241,1)` at frame
+0 and tick 72. At that endpoint APU sample phase is 25,344, synth mixed level
+is 11,540, impulse head is 0, integrator is 0, PCM count is 0, and
+`sample_output` is null. Save over a destination poisoned by running a public
+frame, then load and save again, produced canonical byte equality and direct
+equality of the serialized APU/synth history. Empty drains on source and
+restored instances returned 0, left the sentinel unchanged, kept the ring
+empty, and left canonical state bytes unchanged.
+
+Uninterrupted and restored continuation matched the guest NMI marker, native
+state, frame/tick values, video, and nonempty 798-sample PCM with nonzero
+content. The bounded lost-history control loaded the same valid state into a
+third instance and reset only its synth history; the saved-state comparison
+detected the loss and continuation diverged at frame 1, PCM sample 0, with the
+guest count at 2. This is a test-owned perturbation, not a malformed-state
+loader case. The origins and exact endpoint remain constructed/instruction-
+executed evidence, not cartridge-reset reachability or a completed public
+frame.
+
+These results supersede the two earlier unconfirmed KEEP-02 fallback
+dispositions locally. They do not establish hosted six-platform artifact
+equality, hosted protected-PASS retention, or physical exact-tie behavior.
+KEEP-02/KEEP-03, all four Phase 20 requirements, and the hosted and physical
+debt remain open.
+
+The single Plan 20-08 full-enabled campaign completed all 22 pages and 146
+scored rows: 114 pass, 32 fail, 0 skip, 0 not-run, 0 timeout, and 5 DRAW. The
+exact six target keys passed; the protected-main cold observation and all 108
+starting PASS keys remain separately protected in the final CI checks. The
+campaign report SHA-256 is
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`; its
+build-input fingerprint is
+`1d324c83a1aac5a69939eecc149cf4e0e7b86b7175f1da26064969fa7cd26c0c` over 56
+inputs; `source_revision=df10aafd2099`, `source_dirty=1`, and
+`host_elapsed_guest_ns=8570616000`. The dirty provenance records these
+uncommitted README/header documentation edits and the preserved pre-existing
+`.planning/config.json` edit. Behavior revision 8, format 2, frame/PCM/state
+pins, target set, and campaign caps are unchanged. This local measurement is
+not a clean-source or hosted result.
