@@ -106,7 +106,7 @@ static void address_dot(struct nesturbator *nes, uint16_t addr)
 /* A read dot rebuilds the high 6 bits from live state and takes the low 8 from ALE, then reads.
    If PPUCTRL or the fetched state changed since the address dot, A12 can change here.
    [NESdev Wiki, PPU rendering] */
-static uint8_t read_dot(struct nesturbator *nes, uint16_t live)
+static inline uint8_t read_dot(struct nesturbator *nes, uint16_t live)
 {
     set_bus(nes, (uint16_t)((live & 0x3f00u) | nes->ppu.ale_latch));
     return nesturbator__ppu_read(nes, nes->ppu.bus_addr);
@@ -194,8 +194,8 @@ static void sprite_evaluate(struct nesturbator *nes)
     }
     /* The overflow comparison result reaches the readable status bit on the following dot.
        AccuracyCoin TEST_2002FlagTiming distinguishes this from the compare dot at M2 fall. */
-    if (ppu->scanline != 261u && ppu->dot >= 65u && (ppu->dot & 1u) != 0u &&
-        ppu->eval_count == 8u && ppu->eval_remaining == 3u)
+    if (ppu->eval_remaining == 3u && ppu->eval_count == 8u && ppu->scanline != 261u &&
+        ppu->dot >= 65u && (ppu->dot & 1u) != 0u)
         ppu->status |= 0x20u;
     if ((ppu->mask & 0x18u) == 0u)
         return;
@@ -270,7 +270,8 @@ static uint8_t reverse_bits(uint8_t value)
    tile $FF: in 8x8 mode that is $0FF0 or $1FF0 by PPUCTRL bit 3, in 8x16 mode $1FE0-$1FFF
    (A12 high). The low 4 bits of an empty fetch are not documented; the slot's own row is used.
    [NESdev Wiki, PPU sprite evaluation and PPU rendering] */
-static uint16_t sprite_pattern_address(const struct nesturbator *nes, unsigned slot, unsigned plane)
+static inline uint16_t sprite_pattern_address(const struct nesturbator *nes, unsigned slot,
+                                              unsigned plane)
 {
     const struct nesturbator__ppu *ppu = &nes->ppu;
     uint8_t height = (ppu->control & 0x20u) != 0u ? 16u : 8u;
@@ -344,6 +345,9 @@ static void sprite_access(struct nesturbator *nes)
         ppu->sprite_x[slot] = ppu->secondary_oam[slot * 4u + 3u];
         ppu->sprite_attr[slot] = attr;
         ppu->sprite_zero[slot] = filled ? ppu->eval_sprite_zero[slot] : 0u;
+        uint8_t bit = (uint8_t)(1u << slot);
+        ppu->sprite_zero_slots = (uint8_t)((ppu->sprite_zero_slots & (uint8_t)~bit) |
+                                           (ppu->sprite_zero[slot] != 0u ? bit : 0u));
         break;
     }
     }
@@ -417,17 +421,19 @@ static uint16_t background_color(const struct nesturbator *nes, uint32_t x, uint
 static void detect_sprite_zero_hit(struct nesturbator *nes, uint32_t x)
 {
     struct nesturbator__ppu *ppu = &nes->ppu;
-    if ((ppu->mask & 0x18u) != 0x18u || (x < 8u && (ppu->mask & 0x06u) != 0x06u) || x == 255u)
+    uint8_t slots = ppu->sprite_zero_slots;
+    if ((x < 8u && (ppu->mask & 0x06u) != 0x06u) || x == 255u)
         return;
 
-    uint8_t bg_opaque = 0u;
-    (void)background_color(nes, x, &bg_opaque);
-    if (bg_opaque == 0u)
+    /* Collision needs pattern opacity only, not a palette lookup or colour.
+       Once set, the hit latch remains set until pre-render. [HWP.03, HWP.07] */
+    unsigned pattern_bit = 15u - ppu->fine_x;
+    if ((((ppu->bg_shift_lo | ppu->bg_shift_hi) >> pattern_bit) & 1u) == 0u)
         return;
 
-    for (uint8_t i = 0u; i < ppu->sprite_count; i++) {
+    for (uint8_t i = 0u; i < ppu->sprite_count && slots != 0u; i++, slots >>= 1) {
         uint8_t sx = ppu->sprite_x[i];
-        if (ppu->sprite_zero[i] == 0u || x < sx || x >= (uint32_t)sx + 8u)
+        if ((slots & 1u) == 0u || x < sx || x >= (uint32_t)sx + 8u)
             continue;
         uint8_t bit = (uint8_t)(7u - (x - sx));
         if ((((ppu->sprite_lo[i] >> bit) & 1u) | (((ppu->sprite_hi[i] >> bit) & 1u) << 1)) != 0u) {
@@ -523,17 +529,17 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
         /* NTSC vblank starts at scanline 241 dot 1 and ends at 261 dot 1.
            The flag and PPUCTRL enable derive the active-low /NMI output; the
            CPU bus samples that line separately. [HWP.03] */
-        if (nes->ppu.scanline == 241u && nes->ppu.dot == 1u) {
-            if (nes->ppu.vblank_suppress == 0u)
-                nes->ppu.status |= 0x80u;
-            nes->ppu.vblank_suppress = 0u;
-        }
-        if (nes->ppu.scanline == 261u && nes->ppu.dot == 1u) {
-            nes->ppu.status &= 0x1fu;
-            /* The reset signal "is set on reset and cleared at the end of VBlank, by the
-               same signal that clears the VBlank, sprite 0, and overflow flags". [NESdev
-               Wiki, PPU power up state] */
-            nes->ppu.reset_flag = 0u;
+        if (nes->ppu.dot == 1u) {
+            if (nes->ppu.scanline == 241u) {
+                if (nes->ppu.vblank_suppress == 0u)
+                    nes->ppu.status |= 0x80u;
+                nes->ppu.vblank_suppress = 0u;
+            } else if (nes->ppu.scanline == 261u) {
+                nes->ppu.status &= 0x1fu;
+                /* The reset signal clears with VBlank, sprite 0 and overflow.
+                   [NESdev Wiki, PPU power up state] */
+                nes->ppu.reset_flag = 0u;
+            }
         }
         sprite_evaluate(nes);
         /* Rendering skips pre-render dot 340 on odd NTSC frames. [HWP.03] The skip lands on
@@ -549,7 +555,9 @@ void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks)
             nes->ppu.odd_frame = 0u;
             continue;
         }
-        if (nes->ppu.scanline < NESTURBATOR_HEIGHT && nes->ppu.dot >= 2u && nes->ppu.dot <= 257u)
+        if (nes->ppu.sprite_zero_slots != 0u && (nes->ppu.mask & 0x18u) == 0x18u &&
+            (nes->ppu.status & 0x40u) == 0u && nes->ppu.scanline < NESTURBATOR_HEIGHT &&
+            nes->ppu.dot >= 2u && nes->ppu.dot <= 257u)
             detect_sprite_zero_hit(nes, (uint32_t)nes->ppu.dot - 2u);
         fetch_step(nes);
         if (nes->ppu.dot == 341u) {
@@ -592,13 +600,6 @@ static void advance_v_after_data_access(struct nesturbator *nes)
         nes->ppu.v = (uint16_t)((nes->ppu.v + ((nes->ppu.control & 4u) ? 32u : 1u)) & 0x7fffu);
         set_bus(nes, nes->ppu.v);
     }
-}
-
-/* The physical /NMI pin is asserted when both PPUSTATUS.7 and PPUCTRL.7 are
-   set. Return its asserted-high model view; CPU capture is owned by bus.c. */
-uint8_t nesturbator__ppu_nmi_line(const struct nesturbator *nes)
-{
-    return (uint8_t)((nes->ppu.status & nes->ppu.control & 0x80u) != 0u);
 }
 
 /* Record the M2-rise coincidence that suppresses the upcoming flag set. A

@@ -448,9 +448,97 @@ static void test_frame_irq_cpu_entry(void)
     free(image);
 }
 
+/* The stateless channel-level reader is independent of the event-selection
+   optimization. Check every cycle, including both frame-counter modes. */
+static void test_mixer_tracks_all_clock_events(void)
+{
+    nesturbator *inst = make();
+    CHECK(inst != NULL);
+    if (inst == NULL)
+        return;
+    struct nesturbator *nes = (struct nesturbator *)inst;
+    static const uint8_t initial[20] = {0x3fu, 0x89u, 8u,    8u, 0xbfu, 0x8au, 16u, 8u,  0x9fu, 0u,
+                                        3u,    8u,    0x3fu, 0u, 0u,    8u,    15u, 64u, 0u,    0u};
+    nesturbator__apu_write(nes, 0x4015u, 0x1fu);
+    for (uint16_t reg = 0u; reg < 20u; reg++)
+        nesturbator__apu_write(nes, (uint16_t)(0x4000u + reg), initial[reg]);
+    unsigned nonzero[5] = {0u};
+    for (uint32_t cycle = 0u; cycle < 160000u; cycle++) {
+        if (cycle == 120000u || cycle == 130000u)
+            nesturbator__apu_write(nes, 0x4015u, cycle == 120000u ? 0u : 0x1fu);
+        if (cycle == 40000u || cycle == 100000u)
+            nesturbator__apu_write(nes, 0x4017u, cycle == 40000u ? 0x80u : 0u);
+        if ((cycle & 8191u) == 0u) {
+            nesturbator__apu_write(nes, 0x4003u, 8u);
+            nesturbator__apu_write(nes, 0x4007u, 8u);
+            nesturbator__apu_write(nes, 0x400bu, 8u);
+            nesturbator__apu_write(nes, 0x400fu, 8u);
+            nes->apu.dmc.sample_buffer = (uint8_t)(cycle >> 8);
+            nes->apu.dmc.buffer_empty = 0u;
+        }
+        nes->ticks += 24u;
+        nes->bus.apu_get_put_phase ^= 1u;
+        nesturbator__apu_clock(nes);
+        CHECK_EQ_U64(nes->synth.mixed_level, nesturbator__apu_mixed_level(nes));
+        for (unsigned channel = 0u; channel < 5u; channel++)
+            nonzero[channel] += nesturbator__apu_channel_level(nes, channel) != 0u;
+    }
+    for (unsigned channel = 0u; channel < 5u; channel++)
+        CHECK(nonzero[channel] != 0u);
+    nesturbator_destroy(inst);
+}
+
+/* Native-valid synthesis history can differ from the channel sum. Loading
+   it must force a mixer event on the first otherwise uneventful clock. */
+static void test_mixer_rechecks_restored_history(void)
+{
+    const size_t image_size = 16u + 16384u + 8192u;
+    uint8_t *image = calloc(1u, image_size);
+    nesturbator *inst = make();
+    CHECK(image != NULL && inst != NULL);
+    if (image == NULL || inst == NULL) {
+        free(image);
+        nesturbator_destroy(inst);
+        return;
+    }
+    make_image(image, image_size);
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, image_size), NESTURBATOR_OK);
+    struct nesturbator *nes = (struct nesturbator *)inst;
+    nesturbator__apu_write(nes, 0x4015u, 0u);
+    nesturbator__apu_write(nes, 0x4011u, 0u);
+    nes->apu.pulse[0].counter = 100u;
+    nes->apu.pulse[1].counter = 100u;
+    nes->apu.triangle.counter = 100u;
+    nes->apu.noise.counter = 100u;
+    nes->apu.dmc.counter = 100u;
+    nes->apu.frame_cycle = 1u;
+    nes->synth.mixed_level = 123;
+    nes->synth.integrator_q15 = 123 * INT64_C(32768);
+    size_t size = nesturbator_state_size(inst);
+    uint8_t *state = malloc(size);
+    uint8_t *round_trip = malloc(size);
+    CHECK(state != NULL && round_trip != NULL);
+    if (state != NULL && round_trip != NULL) {
+        CHECK_EQ_U64(nesturbator_save_state(inst, state, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_load_state(inst, state, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_save_state(inst, round_trip, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(memcmp(state, round_trip, size), 0u);
+        nes->ticks += 24u;
+        nes->bus.apu_get_put_phase ^= 1u;
+        nesturbator__apu_clock(nes);
+        CHECK_EQ_U64(nes->synth.mixed_level, 0u);
+    }
+    free(state);
+    free(round_trip);
+    free(image);
+    nesturbator_destroy(inst);
+}
+
 int main(void)
 {
     test_public_pulse_pcm();
+    test_mixer_tracks_all_clock_events();
+    test_mixer_rechecks_restored_history();
     test_documented_channel_sequences();
     test_dmc_fetch_from_mapper0();
     test_dmc_enable_waits_full_write_delay();

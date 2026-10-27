@@ -298,7 +298,10 @@ applies the NES 90 Hz and 440 Hz high-pass filters and 14 kHz low-pass filter
 before returning signed 16-bit mono PCM. The bounded staging ring carries
 kernel and filter history across caller frame boundaries. APU sample phase and
 synthesizer/filter history are per-instance saved machine state; staged PCM is
-transient output. `runner.spectral`
+transient output. The mixer rechecks channel levels at oscillator and
+frame-counter events and register writes. Loading state forces a check on the
+first CPU clock, including an otherwise uneventful clock; the validity cache
+adds no saved bytes. `runner.spectral`
 checks pulse periods 100, 40, 12 and 8, and triangle period 1 using a 4096
 sample filter warm-up and a 32768-sample periodic-Hann spectrum. It excludes
 one bin on either side of the first 512 integer harmonic orders after folding
@@ -332,6 +335,11 @@ with bit 7 still set does not create a second capture. Equal-time PPU updates,
 CPU sampling and bus side effects use one deterministic model order; this
 convention does not assert physical setup/hold precedence at an exact tie. Odd
 NTSC frames skip pre-render dot 340 when rendering is enabled.
+PPUSTATUS keeps its separate M2-rise observation. PPU work for other accesses
+and the CPU's history-only poll can wait until the pre-close catch-up.
+Sprite-hit detection uses pattern opacity and cached eligible slots; loading
+state rebuilds those slots from every saved sprite tag. These optimizations
+preserve the selected timing order and native state bytes.
 IRQ polling also uses the level retained at the preceding close-edge detector
 sample. It cannot see an A12-driven IRQ raised by a later PPU transition at
 that same timestamp. An owned `ppu.mmc3` witness checks the guest instruction
@@ -412,6 +420,10 @@ requires wait status 143, the exact first reason, no cleanup anomaly, an
 unrun oracle and exact-port re-entry after owned-child reap.
 The session-control harness creates a fresh scratch root atomically for every
 invocation, so retained outputs cannot collide when a process ID is reused.
+Its isolated CI jobs build both `frame_index` and `nesturbator-run`. Cleanup
+fault setup records its witnesses in one Python invocation so cold interpreter
+startup cannot consume the production driver's five-second read slice through
+repeated process launches.
 
 | Lane | What it proves |
 |---|---|

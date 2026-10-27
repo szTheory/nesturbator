@@ -78,7 +78,10 @@ extern "C" {
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
    same commit. Version 2 records the CPU's sampled NMI-line, captured-request and instruction-poll
    histories and the retained close-edge IRQ level; version 1 states are refused with
-   NESTURBATOR_ERR_STATE_FORMAT. A fix that changes
+   NESTURBATOR_ERR_STATE_FORMAT. Derived sprite eligibility is rebuilt on load;
+   the first CPU clock also reconciles restored synthesis history with channel
+   levels, even without an oscillator event. These caches add no saved bytes.
+   A fix that changes
    only emulated output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a
    load does not enforce. Raising it is not a breaking change to the C interface and leaves
    NESTURBATOR_ABI_VERSION as it is. */

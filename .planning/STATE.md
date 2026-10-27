@@ -4,12 +4,12 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: awaiting_hosted_results
-stopped_at: PR 59 delivered at b474e1d; CI 40507506429 and Nightly 40507506358 running
-last_updated: "2026-10-27T12:55:28Z"
+status: executing
+stopped_at: PR 59 follow-up delivery repair verified locally; replacement publication pending
+last_updated: "2026-10-27T13:38:44Z"
 last_activity: 2026-10-27
-last_activity_desc: PR 59 delivery repairs and retained IRQ regression fix verified; CI 684/684, ASan 676/676, MMC3 13/13
-state_head: b474e1d081c12d44bd03e224d6248a5cac08b503
+last_activity_desc: Session dependencies and cold-start cleanup repaired; performance gate restored without raising caps; final local verification recorded in delivery ledger
+state_head: d5a2270989ef60105b869bba851e43f874c8f1b1
 progress:
   total_phases: 3
   completed_phases: 1
@@ -28,9 +28,9 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — AWAITING HOSTED RESULTS
+Phase: 20 (NMI line and VBlank flag) — DELIVERY REPAIR
 Plan: 9 of 10 complete; 20-10 has zero completed tasks
-Status: Draft PR #59 delivered at b474e1d; fresh CI 40507506429 and Nightly 40507506358 started; delivery input updated; 20-10 and all requirements remain pending
+Status: Draft PR #59 remains open; b474e1d runs failed on isolated session dependencies and performance; the local repair is ready for replacement publication; 20-10 and all requirements remain pending
 Last activity: 2026-10-27 — Delivery authorized; formatting hook repaired without bypass; remeasured campaign and full CI passed 684/684
 
 Progress: [███░░░░░░░] 33%
@@ -124,38 +124,4 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Monitor draft PR #59's final repaired candidate `b474e1d081c12d44bd03e224d6248a5cac08b503`: CI `40507506429` and Nightly `40507506358`, both attempt 1. Actual identities are saved in `build/phase20-hosted-evidence/delivery.json`. Earlier runs are superseded. Local verification passed CI 684/684, ASan 676/676 and MMC3 13/13, including the retained-IRQ regression witness and updated bounded state controls. Once required jobs and artifacts are complete and available, run `$gsd-execute-phase 20 --gaps-only` to resume only 20-10 and independent phase verification. Consult `20-DELIVERY.md` and the state-hash move table; the final full source digest is `30aabfeee892574cfe98ab69de1cacce4bfad45d9b7d72427e7abbd070e84f2a` over 415 files. Planning-only handoff commits remain local to avoid restarting CI. Keep requirements open, preserve unrelated config edits and debt, and do not merge or advance to Phase 21 before actual hosted gates and re-verification pass.
-
-## Session
-
-Last session: 2026-10-27T12:55:28Z
-Stopped at: PR 59 final repaired source delivered; exact-head hosted results pending
-Resume file: None
-
-## Performance Metrics
-
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 17 P01 | 54min | 3 tasks | 15 files |
-| Phase 17 P02 | 67min | 3 tasks | 12 files |
-| Phase 17 P03 | 42min | 2 tasks | 15 files |
-| Phase 17 P04 | 7h22m | 2 tasks | 38 files |
-| Phase 18 P01 | 59min | 2 tasks | 12 files |
-| Phase 18 P02 | 60min | 3 tasks | 13 files |
-| Phase 18 P03 | 20min | 2 tasks | 13 files |
-| Phase 18 P4 | 3h20m | 3 tasks | 20 files |
-| Phase 19 P01 | 35 min | 3 tasks | 6 files |
-| Phase 19 P02 | 40 min | 3 tasks | 5 files |
-| Phase 19 P03 | 75 min | 3 tasks | 6 files |
-| Phase 19 P04 | 50 min | 2 tasks | 2 files |
-| Phase 19 P05 | 40min | 3 tasks | 9 files |
-| Phase 19 P06 | 40 min | 3 tasks | 10 files |
-| Phase 20 P01 | 32min | 2 tasks | 6 files |
-| Phase 20 P02 | 90min | 3 tasks | 24 files |
-| Phase 20 P03 | 83min | 3 tasks | 25 files |
-| Phase 20 P04 | 31min | 3 tasks | 4 files |
-| Phase 20 P5 | 32min | 3 tasks | 12 files |
-| Phase 20 P6 | 26min | 3 tasks | 7 files |
-| Phase 20 P07 | 27min | 2 tasks | 7 files |
-| Phase 20 P08 | 20min | 3 tasks | 7 files |
-| Phase 20 P09 | 25min | 2 tasks | 8 files |
+Publish the verified session/performance repair to draft PR #59 and record its new candidate/run/attempt identities in 20-DELIVERY.md and build/phase20-hosted-evidence/delivery.json. The b474e1d runs (CI 40507506429 / Nightly 40507506358) are failed historical diagnostics and cannot certify this replacement. Effective source digest: de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab over 415 files. Once the replacement's required jobs and artifacts are complete and available, run `$gsd-execute-phase 20 --gaps-only` to resume only 20-10 and independent phase verification. Keep requirements open, preserve unrelated config edits and debt, and do not merge or advance to Phase 21 before actual hosted gates and re-verification pass.

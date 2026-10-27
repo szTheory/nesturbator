@@ -215,7 +215,7 @@ static void apu_io(struct nesturbator__sio *io, struct nesturbator__apu *a)
     nesturbator__sio_u32(io, &a->frame_cycle, 37281u);
     /* S: sample_phase / 315000 picks a kernel phase of the 32 (synth.c). */
     nesturbator__sio_u32(io, &a->sample_phase, NESTURBATOR_AUDIO_TICKS_PER_PERIOD - 1u);
-    /* sample_output, sample_limit and sample_count belong to the frame: not saved. */
+    /* Frame staging and derived mixed_level_valid are not saved. */
 }
 
 /* History bounds. A mixer transition adds at most 2^15 times a 2^15 kernel coefficient to each of
@@ -341,6 +341,7 @@ static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
     nesturbator__sio_u16(io, &p->dot, 340u);
     nesturbator__sio_u8(io, &p->odd_frame, 1u);
     nesturbator__sio_u8(io, &p->reset_flag, 1u);
+    /* sprite_zero_slots is derived from the saved tags, not serialized. */
 }
 
 static void mapper_io(struct nesturbator__sio *io, struct nesturbator *nes)
@@ -509,6 +510,13 @@ nesturbator_status nesturbator_load_state(nesturbator *inst, const void *buf, si
     io.mode = NESTURBATOR__SIO_APPLY;
     io.r = b + STATE_HEADER_SIZE;
     body_io(&io, inst);
+    inst->ppu.sprite_zero_slots = 0u;
+    for (unsigned slot = 0u; slot < 8u; slot++)
+        if (inst->ppu.sprite_zero[slot] != 0u)
+            inst->ppu.sprite_zero_slots |= (uint8_t)(1u << slot);
+    /* A restored mixed level must be checked on the next CPU clock, even
+       when no oscillator or frame-counter event occurs on that clock. */
+    inst->apu.mixed_level_valid = 0u;
     /* The PCM ring is empty at a frame boundary, not in the state. */
     inst->synth.pcm_read = 0u;
     inst->synth.pcm_write = 0u;

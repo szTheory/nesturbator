@@ -21,15 +21,9 @@ static void ppu_catch_up(struct nesturbator *nes)
 
 static void ppu_catch_up_before_close(struct nesturbator *nes)
 {
-    if (nes->ticks >= 9u)
-        nesturbator__ppu_run_until(nes, nes->ticks - 1u);
+    /* cycle() has advanced a complete 24-tick cycle before this call. */
+    nesturbator__ppu_run_until(nes, nes->ticks - 1u);
 }
-
-struct bus_cycle_sample {
-    uint8_t vblank;
-    uint8_t suppress_vblank;
-    uint8_t status_value;
-};
 
 /* Both interrupt inputs are sampled at internal phi2 close: NMI retains an
    edge, while IRQ retains the level. Instruction polls read this captured
@@ -48,20 +42,21 @@ static uint8_t is_ppu_status_address(uint16_t addr)
     return (uint8_t)(addr >= 0x2000u && addr < 0x4000u && (addr & 7u) == 2u);
 }
 
-/* Time for one CPU cycle, bringing the PPU through M2 rise and up to just
-   before the close timestamp. Returns PPUSTATUS.7 sampled at M2 rise. Bus
-   callers apply access side effects and sample NMI before a tied PPU transition. */
-static struct bus_cycle_sample cycle(struct nesturbator *nes, uint8_t status_read,
-                                     uint8_t defer_nmi_close_sample)
+/* Time for one CPU cycle, bringing the PPU up to just before close. Only a
+   status read needs the earlier M2-rise catch-up. Return its composed status
+   byte; callers apply bus side effects and capture before a tied PPU transition. */
+static inline uint8_t cycle(struct nesturbator *nes, uint8_t status_read,
+                            uint8_t defer_nmi_close_sample)
 {
-    struct bus_cycle_sample sample;
-    sample.status_value = 0u;
+    uint8_t vblank = 0u;
+    uint8_t status_value = 0u;
     nes->ticks += 9u;
-    ppu_catch_up(nes);
-    sample.vblank = (uint8_t)(nes->ppu.status & 0x80u);
-    sample.suppress_vblank = (uint8_t)(nes->ppu.scanline == 241u && nes->ppu.dot == 0u);
-    if (status_read != 0u)
-        nesturbator__ppu_status_read_begin(nes, sample.suppress_vblank);
+    if (status_read != 0u) {
+        ppu_catch_up(nes);
+        vblank = (uint8_t)(nes->ppu.status & 0x80u);
+        uint8_t suppress_vblank = (uint8_t)(nes->ppu.scanline == 241u && nes->ppu.dot == 0u);
+        nesturbator__ppu_status_read_begin(nes, suppress_vblank);
+    }
     /* CPU cycles alternate the APU's get and put slots. Keep this phase at
        the bus seam so register races and DMA alignment use the same cycle
        state as reads and writes. [HWC.01, HWC.09] */
@@ -71,7 +66,9 @@ static struct bus_cycle_sample cycle(struct nesturbator *nes, uint8_t status_rea
        three ticks later. The CPU polls the request captured by the preceding
        close here; the physical PPU line itself is sampled at phi2 close. */
     nes->ticks += 3u;
-    ppu_catch_up(nes);
+    /* Only PPUSTATUS observes M2 rise. Other accesses and this history-only
+       poll can defer PPU work until the pre-close catch-up. APU and mapper
+       IRQ sources combine before the close-edge sample. */
     /* IRQ must use the preceding close sample too: a tied PPU A12 transition
        after that detector sample cannot feed this poll. [HWC.02, HWC.17] */
     nes->cpu.poll_latch = nes->cpu.irq_captured;
@@ -85,17 +82,19 @@ static struct bus_cycle_sample cycle(struct nesturbator *nes, uint8_t status_rea
         ppu_catch_up(nes);
     }
     if (status_read != 0u)
-        sample.status_value = nesturbator__ppu_status_read_finish(nes, sample.vblank);
+        status_value = nesturbator__ppu_status_read_finish(nes, vblank);
     /* Count the cycle that just ran. A mapper write stamp is this count minus
        one: the zero-based index of the write's own cycle (D-14). */
     nes->cpu_cycle++;
-    return sample;
+    return status_value;
 }
 
-static uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr, struct bus_cycle_sample sample)
+static inline uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr, uint8_t status_value)
 {
     /* CPU RAM mirrors, PPU registers, and NROM PRG are decoded here. */
-    if (addr == 0x4016u || addr == 0x4017u) {
+    if (addr >= 0x4020u) {
+        nes->bus.open_bus = nesturbator__map_cpu_read(nes, addr);
+    } else if (addr == 0x4016u || addr == 0x4017u) {
         uint8_t port = (uint8_t)(addr - 0x4016u);
         uint8_t bit;
         if (nes->bus.controller_strobe != 0u) {
@@ -115,15 +114,12 @@ static uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr, struct bus_
     } else if (addr < 0x4000u) {
         uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
         nes->bus.open_bus =
-            reg == 0x2002u ? sample.status_value : nesturbator__ppu_register_read(nes, reg);
-    } else if (addr >= 0x4020u) {
-        nes->bus.open_bus = nesturbator__map_cpu_read(nes, addr);
+            reg == 0x2002u ? status_value : nesturbator__ppu_register_read(nes, reg);
     }
     return nes->bus.open_bus;
 }
 
-static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read,
-                       struct bus_cycle_sample *sample)
+static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read, uint8_t *sample)
 {
     struct nesturbator__dmc *dmc = &nes->apu.dmc;
     if (dmc->dma_pending == 0u || dmc->enable_delay != 0u ||
@@ -171,7 +167,7 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read,
 static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
 {
     uint8_t status_read = is_ppu_status_address(addr);
-    struct bus_cycle_sample sample = cycle(nes, status_read, 1u);
+    uint8_t sample = cycle(nes, status_read, 1u);
     if (nes->apu.dmc.dma_pending != 0u && dmc_dma(nes, addr, &sample) != 0u) {
         /* The CPU repeats its parked read once more when RDY is released.
            This is the resumed bus cycle after the DMC memory get, and is

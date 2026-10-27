@@ -104,6 +104,8 @@ struct nesturbator__apu {
     int16_t *sample_output;
     uint32_t sample_limit;
     uint32_t sample_count;
+    /* Derived mixer-cache validity, not guest state; invalidated after load. */
+    uint8_t mixed_level_valid;
 };
 
 typedef void (*nesturbator__transition_sink)(void *context, uint64_t cpu_cycle, int32_t level);
@@ -158,6 +160,8 @@ struct nesturbator__ppu {
        $2000, $2001, $2005 and $2006 are dropped. Load and unload zero the PPU,
        so power-on has no such window (D-17). */
     uint8_t reset_flag;
+    /* Derived eligibility bits for sprite_zero[]; rebuilt after state load. */
+    uint8_t sprite_zero_slots;
 };
 
 struct nesturbator__cartridge {
@@ -335,7 +339,12 @@ extern const uint16_t nesturbator__tnd_mix[16][16][128];
 void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks);
 uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr);
 void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
-uint8_t nesturbator__ppu_nmi_line(const struct nesturbator *nes);
+/* The physical /NMI pin asserts when PPUSTATUS.7 and PPUCTRL.7 are set.
+   Keep the asserted-high view local to each per-cycle caller. [HWP.03] */
+static inline uint8_t nesturbator__ppu_nmi_line(const struct nesturbator *nes)
+{
+    return (uint8_t)((nes->ppu.status & nes->ppu.control & 0x80u) != 0u);
+}
 void nesturbator__ppu_status_read_begin(struct nesturbator *nes, uint8_t suppress_vblank);
 uint8_t nesturbator__ppu_status_read_finish(struct nesturbator *nes, uint8_t early_vblank);
 uint8_t nesturbator__ppu_status_read(struct nesturbator *nes, uint8_t early_vblank);

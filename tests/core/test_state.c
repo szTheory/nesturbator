@@ -511,6 +511,51 @@ static void mmc3_a12_derived(void)
     }
 }
 
+/* Derived eligibility must follow all eight saved sprite tags, including a
+   native-valid tag outside slot zero, rather than the destination's cache. */
+static void sprite_zero_eligibility_restored(void)
+{
+    size_t image = board_build(0u, 2u, 1u, 0u);
+    for (unsigned eligible = 0u; eligible < 2u; eligible++) {
+        nesturbator *a = st_make_instance();
+        nesturbator *b = st_make_instance();
+        st_load(a, board_image, image);
+        st_load(b, board_image, image);
+        a->ticks = 0u;
+        a->ppu.ppu_ticks = 0u;
+        a->ppu.scanline = 0u;
+        a->ppu.dot = 1u;
+        a->ppu.mask = 0x1eu;
+        a->ppu.status = 0u;
+        a->ppu.sprite_count = 8u;
+        a->ppu.bg_shift_lo = 0x8000u;
+        a->ppu.bg_shift_hi = 0u;
+        memset(a->ppu.sprite_zero, 0, sizeof a->ppu.sprite_zero);
+        memset(a->ppu.sprite_x, 0, sizeof a->ppu.sprite_x);
+        memset(a->ppu.sprite_lo, 0, sizeof a->ppu.sprite_lo);
+        memset(a->ppu.sprite_hi, 0, sizeof a->ppu.sprite_hi);
+        a->ppu.sprite_zero[7] = (uint8_t)eligible;
+        a->ppu.sprite_lo[7] = 0x80u;
+        b->ppu.sprite_zero_slots = eligible != 0u ? 0u : 0x80u;
+        size_t size = nesturbator_state_size(a);
+        uint8_t *state = (uint8_t *)malloc(size);
+        uint8_t *again = (uint8_t *)malloc(size);
+        CHECK(state != NULL && again != NULL);
+        if (state != NULL && again != NULL) {
+            CHECK_EQ_U64(nesturbator_save_state(a, state, size), NESTURBATOR_OK);
+            CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+            CHECK_EQ_U64(nesturbator_save_state(b, again, size), NESTURBATOR_OK);
+            CHECK_EQ_U64(memcmp(state, again, size), 0u);
+            nesturbator__ppu_run_until(b, 8u);
+            CHECK_EQ_U64(b->ppu.status & 0x40u, eligible != 0u ? 0x40u : 0u);
+        }
+        free(state);
+        free(again);
+        nesturbator_destroy(a);
+        nesturbator_destroy(b);
+    }
+}
+
 /* ---- STATE-01 contract (D-01, D-02, D-05, D-06) ---- */
 
 static uint8_t jam_image[16u + 16384u * 2u + 8192u];
@@ -853,6 +898,7 @@ int main(int argc, char **argv)
     board_mmc1();
     board_mmc3();
     mmc3_a12_derived();
+    sprite_zero_eligibility_restored();
     size_shape(rom, rom_size);
     save_never_allocates(rom, rom_size);
     save_const(rom, rom_size);

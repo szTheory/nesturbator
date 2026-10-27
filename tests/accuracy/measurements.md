@@ -1159,3 +1159,58 @@ were generated. The finalized effective source digest is
 `30aabfeee892574cfe98ab69de1cacce4bfad45d9b7d72427e7abbd070e84f2a`
 over 415 files, superseding the provisional fixture-stage digests. Campaign
 fingerprint and frame/PCM/transition hashes remain as measured above.
+
+
+## 2026-10-27 performance and isolated-session delivery repair
+
+CI 40507506429 on b474e1d exposed missing runner builds in isolated session
+jobs, a cold-interpreter cleanup setup race, and real per-ROM instruction
+regressions of +37.54%, +36.43% and +38.34%. The companion Nightly MMC3 oracle
+passed, confirming the preceding IRQ repair separately. These failed runs
+remain historical and cannot certify the replacement source.
+
+Both isolated workflows now build frame_index and nesturbator-run. The missing
+runner failure reproduced in a fresh frame-index-only build and passed after
+building the runner. Injecting 1.2 s per Python startup reproduced a lost-read
+cleanup failure. Consolidating the fault and all witnesses into one interpreter
+preserves the driver's five-second read slice, signal statuses and owned/foreign
+process/lock assertions; the same delayed-startup matrix passes all eight cases.
+
+The core avoids redundant PPU catch-ups where no early observation is required,
+keeps scalar status sampling, inlines small private helpers and prioritizes PRG
+reads. Sprite collision uses opacity and derived eligible-slot bits; dot-one
+flag work and the overflow predicate avoid unnecessary repeated comparisons.
+Mixer recomputation follows events that can change audible channel levels.
+The two per-instance caches are not serialized: successful load rebuilds sprite
+eligibility and invalidates mixer validity, while refusals remain atomic. Native
+state bytes, behavior revision, state format and all existing hash pins stay
+unchanged. Per-cycle all-channel/mode comparisons and loaded-history/eligibility
+controls pass; removing either cache's load reconstruction produces the expected
+wrong-level or wrong-sprite-hit failure.
+
+A fresh 22-page campaign at actual source HEAD d5a2270989ef, dirty bit 1 for
+these edits and the preserved config change, remains 114 PASS / 32 FAIL,
+zero skip/not-run/timeout and five DRAW. Report digest remains
+29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac.
+Its measured build-input fingerprint is
+3d427bc760a4be82aa6bba648c8b5f527fda5f6dae2b5b62f76bef3982f3338c
+(56 inputs). Full campaign registration is OFF after that measurement.
+The replacement effective source digest is
+de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab
+(415 files). Earlier delivery digests are superseded for acceptance.
+
+Local Linux x64 GCC 14.2 / Valgrind 3.22 measurements use the production
+performance validator, exact 60/360-frame differencing, equal-length binary
+paths, empty environments and two identical protected-main base measurements.
+Against ab9c2e6, the first complete repaired measurement passes: nesteroids
++0.51%, runner -10.10%, MMC3 -5.85%. This is local dirty-source evidence, not
+hosted acceptance. Full final CI/sanitizer results and new delivery/run
+identities are recorded after verification and publication.
+
+Final frozen-source verification passed CI 684/684 (all three packages),
+ASan/UBSan 676/676 and MMC3 13/13. GCC 14.2 strict-warning syntax checks,
+clang-format 18, workflow syntax, source hygiene and diff checks passed. A
+fresh post-comment/format performance measurement produced the same passing
+per-ROM results, with zero repeated-base spread. The existing config bytes
+remain unchanged and unstaged. New hosted runs must certify the published
+replacement; no phase/requirement closure or merge is claimed.
