@@ -409,3 +409,86 @@ same campaign report. The effective source digest is now
 protected-key, six-target, availability, hash and policy checks pass 37/37.
 Full local CI and a new source-bound hosted run are required before availability
 can be recorded; candidate `8a2e101` remains failed Windows diagnostic history.
+
+## Final repaired-source publication and availability (20-12)
+
+The final source-bound candidate is `0039b9cd47a00d14d2f2f62376b8dbb2ad91baaf`
+on the existing open draft PR #59, branch
+`gsd/phase-20-nmi-line-and-vblank-flag`, base `main`. The PR description was
+updated before the single normal push; the normal formatting and hygiene hooks
+passed. The original plan-start candidate `3cdf753` is represented by its
+format-preserving equivalent `56a31aa4b76fab4bebc019886fc1b4c5c21528c4`;
+`20-DELIVERY-COMMIT-MAP.tsv` retains the original-to-formatted commit map.
+No workflow was dispatched and no merge or branch change occurred.
+
+The final portability repairs stayed within Phase 20's collector and fixture
+scope. Windows route fixtures now trim repeated terminal CR/LF bytes and
+assert response paths exist before subprocess execution. Fixture setup reuses
+immutable trees, batches Git work, restores README bytes exactly, and retains
+the full adapter/control matrix without increasing test timeouts. Production
+tree hashing batches regular files while treating Git mode `120000` entries as
+the stored symlink-target blob. An offline real-Git control verifies symlink
+mode and target semantics. For fixture Git repositories, `.git/info/attributes`
+uses `* -text` so the source tree's `eol=lf` rules cannot normalize copied
+Windows source bytes; a control compares a copied source script's raw blob
+against its actual `git ls-tree` object. The source `.gitattributes` and
+production acceptance policy were not changed.
+
+The final effective-source digest is
+`99691ce668e69ac193d493ed30fe422f872d9538ef3bfe28c75a018b05ccad0e` over 416
+files. Local focused collector tests passed 3/3 in 24.56 seconds. Final
+`cmake --workflow --preset ci` passed 686/686 in 371.20 seconds and generated
+the library, runner, and libretro packages. The final normal push hook reported
+25 committed source blobs formatted.
+
+The exact automatic PR runs for candidate `0039b9cd` both completed
+successfully on attempt 1:
+
+- CI: `40571402181/1`, started `2026-10-27T19:41:39Z`, completed successfully
+  at `2026-10-27T19:55:39Z`.
+- Nightly: `40571401669/1`, started `2026-10-27T19:41:39Z`, completed
+  successfully at `2026-10-27T19:58:09Z`.
+
+The live metadata-only availability gate resolved the synthetic tested merge
+`32076c451f9f16d76d3e0e8f8ef721a2ee5050f6` with protected base
+`ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`; both merge parents match the
+candidate and protected base. CI and Nightly PR snapshots bind PR 59 to the
+same candidate and base. Candidate, tested tree, Nightly tested tree, and the
+current checkout all match the full effective-source digest and 416-file
+count above.
+
+All required CI jobs passed: `title` 122427216349; `hygiene` 122427216786;
+macOS session controls 122427216827; ARM nofp 122427216917; x64 nofp
+122427216923; ASan 122427216993; Ubuntu session controls 122427217018;
+RetroArch E2E 122427217033; vector inventory 122427217092; perf
+122427217121; six build lanes Linux x64 `122427358642`, Linux ARM64
+`122427358797`, macOS x64 `122427358757`, macOS ARM64 `122427358768`, Windows
+x64 `122427358617`, and Windows ARM64 `122427358634`; hash equality
+122433349464; and `CI required` 122433451527. Nightly's vectors-full
+122426253473, MMC3 oracle 122426253819, execution fuzz 122426253900,
+suite-flake 122426253903, state fuzz 122426253908, ROM-loader fuzz
+122426254030, and session controls 122426254062 all passed. The configured
+Nightly `report` job 122434795311 was skipped.
+
+The gate found all required unique, nonexpired artifacts attached to the exact
+run IDs and created after their attempt start. CI artifacts: hashes Linux x64
+12763989784 / Linux ARM64 12766390282 / macOS x64 12765588647 / macOS ARM64
+12765965445 / Windows x64 12766180961 / Windows ARM64 12765747552; AccuracyCoin
+evidence Linux x64 12764124691 / Linux ARM64 12764989310 / macOS x64
+12765483809 / macOS ARM64 12764354877 / Windows x64 12766150807 / Windows
+ARM64 12765134361; perf `12766091073`; RetroArch marker progression
+`12765880426`. Nightly artifacts: vectors-full `12764954068` and MMC3 oracle
+`12764714157`.
+
+The exact fresh `delivery.json` is retained at
+`build/phase20-hosted-evidence/delivery.json`. The live gate command from
+20-12 Task 2 passed and wrote
+`build/phase20-hosted-evidence/availability/availability.txt`, verdict
+`available`; its SHA-256 is
+`31abfdfba286dd7b8e5aff5a15f9b78569a854d1184484fdeb449a93d7ba5496`. It
+records 20 metadata-file digests under manifest SHA-256
+`8e7e1b5cebc811768f7ba6bfbcd655c6bde7c0906ca38c5aef074e3a18c5a91c`.
+Availability validates live run/job/artifact metadata and full source
+identity only. No artifact archive was downloaded in this plan; artifact
+content validation and hosted acceptance remain exclusively for 20-10.
+All Phase 20 requirements remain pending independent phase verification.
