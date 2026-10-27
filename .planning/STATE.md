@@ -4,11 +4,11 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: pending_delivery
-stopped_at: Plan 20-10 delivery precondition unmet; zero tasks or task commits
+status: delivering
+stopped_at: Authorized delivery prepared and revalidated; opening evidence PR
 last_updated: "2026-10-27T05:04:40Z"
 last_activity: 2026-10-27
-last_activity_desc: Plans 20-07 through 20-09 complete; 20-10 waiting for separately authorized hosted delivery
+last_activity_desc: Hosted delivery authorized; unpublished formatting repaired; refreshed campaign and full local CI passed
 state_head: 852e0933c3225d0272b7a7089f97b81951eff0fe
 progress:
   total_phases: 3
@@ -28,10 +28,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — PENDING DELIVERY
+Phase: 20 (NMI line and VBlank flag) — DELIVERING
 Plan: 9 of 10 complete; 20-10 has zero completed tasks
-Status: pending_delivery — first-task external precondition unmet; no 20-10 task commits or SUMMARY
-Last activity: 2026-10-27 — Plans 20-07 through 20-09 completed locally; read-only 20-10 check found no delivery record, phase PR or hosted runs
+Status: Delivery authorized; preparing PR CI/Nightly evidence; 20-10 remains unexecuted with zero task commits and no SUMMARY
+Last activity: 2026-10-27 — Delivery authorized; formatting hook repaired without bypass; remeasured campaign and full CI passed 684/684
 
 Progress: [███░░░░░░░] 33%
 
@@ -124,12 +124,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Separately authorize delivery of the prepared phase source for PR CI (including real base/head performance) and same-source Nightly results. This execution command did not authorize or perform delivery. After completed runs and required artifacts exist, supply the README's `build/phase20-hosted-evidence/delivery.json` contract and rerun `$gsd-execute-phase 20 --gaps-only`; it will skip summarized 20-07/08/09 and retry only 20-10. The current `pending_delivery` checkpoint has zero task commits and no complete 20-10 SUMMARY. Keep all four Phase 20 requirements pending, preserve the dirty local baseline and Nightly fetch debt, and retain the physical exact-tie limit, flagged clean-room prohibition, and pre-existing config edit. Do not advance to Phase 21 or claim full Phase 20 completion without actual hosted evidence and independent re-verification.
+Delivery is authorized by the owner's 2026-10-27 request to unblock the hosted-evidence dependency. Push the formatted/revalidated phase branch and open its draft evidence PR; its existing triggers start both CI and Nightly on the synthetic merge checkout. Do not merge or mark Phase 20 complete. `20-DELIVERY.md` and the commit map preserve the original measured identities and the superseding delivery digest after the push-hook formatting repair. Once actual completed runs and required artifacts exist, populate `build/phase20-hosted-evidence/delivery.json` and resume `$gsd-execute-phase 20 --gaps-only` for 20-10's collection and independent phase re-verification. Keep all four requirements pending, preserve unrelated config edits and debt, and do not advance to Phase 21.
 
 ## Session
 
 Last session: 2026-10-27T05:04:40Z
-Stopped at: Plan 20-10 pending_delivery precondition; zero task commits
+Stopped at: Authorized hosted delivery; 20-10 still awaits actual results
 Resume file: None
 
 ## Performance Metrics

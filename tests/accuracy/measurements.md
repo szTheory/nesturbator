@@ -1077,3 +1077,28 @@ workflow and local controls do not establish hosted exact-head, six-platform,
 protected-main, performance, or Nightly acceptance. They leave physical
 exact-tie precedence and the previously recorded local/Nightly fetch debt
 unresolved.
+
+## 2026-10-27 delivery formatting remeasurement
+
+The normal pre-push check exposed unformatted unpublished source snapshots.
+The formatting-only history map and provenance are retained in
+`20-DELIVERY-COMMIT-MAP.tsv` and `20-DELIVERY.md` under the Phase 20 directory.
+Historical source SHAs remain the identities actually measured; the mapping
+does not turn them into measurements of rewritten source.
+
+A fresh full campaign at source `28092e52803a` completed 22/22 pages and all
+146 scored rows (114 pass, 32 fail, zero skip/not-run/timeout, five DRAW).
+Its report SHA-256 stayed
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`.
+The actual refreshed 56-input fingerprint is
+`b154c4a48e17134e1421a7852c52257fd6486c8ceb1a03beff0aa43fb606cab1`;
+source_dirty is 1, including the preserved planning config edit and a temporary
+Python import cache subsequently removed. Focused activation/target/protected/
+hash/collector checks passed 10/10. Full campaign registration was disabled
+after this one measurement. Native hash expectations and emulation behavior
+were not changed. The effective source digest for delivery is `cf314a6d3c2494cefba4eb88bd6a779bb93e3d464e408103aa079b320bbb650f`
+over 415 files; this supersedes 20-09's pre-format digest for new hosted
+acceptance. Actual hosted results remain pending.
+
+The formatted delivery source passed `cmake --workflow --preset ci`: 684/684
+tests, followed by packaging of library, runner and libretro deliverables.
