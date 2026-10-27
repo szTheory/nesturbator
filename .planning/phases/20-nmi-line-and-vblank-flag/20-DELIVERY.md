@@ -254,3 +254,26 @@ fresh post-comment/format performance measurement produced the same passing
 per-ROM results, with zero repeated-base spread. The existing config bytes
 remain unchanged and unstaged. New hosted runs must certify the published
 replacement; no phase/requirement closure or merge is claimed.
+
+
+## Replacement publication after session and performance repairs
+
+Candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4` is published on draft PR #59. Normal
+push hooks passed, including all 34 outgoing committed C/header blobs.
+Protected base remains `ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be` and the actual PR merge
+snapshot is `11533e456d41f740751c8353f947d65017aae692`.
+
+- CI `40514060876`, attempt `1`: observed `pending`.
+- Nightly `40513950000`, attempt `1`: observed `in_progress`.
+- Effective source: `de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab`
+  over 415 files.
+
+Updating the PR description triggered its configured edited-event CI; select
+CI 40514060876 rather than the superseded synchronize run 40513949984.
+Nightly's original same-source synchronize run remains selected. The delivery
+JSON now contains exactly these replacement IDs. The local CI 684/684,
+ASan/UBSan 676/676, MMC3 13/13 and real per-ROM local performance results above
+belong to this effective source. The hosted jobs must still complete and their
+actual artifacts must pass 20-10. No merge, requirement closure, phase closure,
+20-10 task commit or summary is claimed. This planning-only handoff remains
+local to avoid another unnecessary CI restart.

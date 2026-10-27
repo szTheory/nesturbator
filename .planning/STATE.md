@@ -4,12 +4,12 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: executing
-stopped_at: PR 59 follow-up delivery repair verified locally; replacement publication pending
-last_updated: "2026-10-27T13:38:44Z"
+status: awaiting_hosted_results
+stopped_at: PR 59 replacement e6e83a3 published; CI 40514060876 and Nightly 40513950000 active
+last_updated: "2026-10-27T13:41:24Z"
 last_activity: 2026-10-27
 last_activity_desc: Session dependencies and cold-start cleanup repaired; performance gate restored without raising caps; final local verification recorded in delivery ledger
-state_head: d5a2270989ef60105b869bba851e43f874c8f1b1
+state_head: e6e83a31e413e12abe9dee142e3c0f7143d63eb4
 progress:
   total_phases: 3
   completed_phases: 1
@@ -28,9 +28,9 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — DELIVERY REPAIR
+Phase: 20 (NMI line and VBlank flag) — AWAITING HOSTED RESULTS
 Plan: 9 of 10 complete; 20-10 has zero completed tasks
-Status: Draft PR #59 remains open; b474e1d runs failed on isolated session dependencies and performance; the local repair is ready for replacement publication; 20-10 and all requirements remain pending
+Status: Draft PR #59 replacement e6e83a3 published; CI 40514060876 and Nightly 40513950000 active; all local gates passed; 20-10 and all requirements remain pending
 Last activity: 2026-10-27 — Delivery authorized; formatting hook repaired without bypass; remeasured campaign and full CI passed 684/684
 
 Progress: [███░░░░░░░] 33%
@@ -124,4 +124,4 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Publish the verified session/performance repair to draft PR #59 and record its new candidate/run/attempt identities in 20-DELIVERY.md and build/phase20-hosted-evidence/delivery.json. The b474e1d runs (CI 40507506429 / Nightly 40507506358) are failed historical diagnostics and cannot certify this replacement. Effective source digest: de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab over 415 files. Once the replacement's required jobs and artifacts are complete and available, run `$gsd-execute-phase 20 --gaps-only` to resume only 20-10 and independent phase verification. Keep requirements open, preserve unrelated config edits and debt, and do not merge or advance to Phase 21 before actual hosted gates and re-verification pass.
+Monitor draft PR #59 candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4`: CI `40514060876` and Nightly `40513950000`, both attempt 1. The actual PR merge snapshot is `11533e456d41f740751c8353f947d65017aae692`. Delivery JSON and 20-DELIVERY.md record these selected identities; earlier runs are superseded. The effective source digest is `de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab` over 415 files. Local CI 684/684, ASan/UBSan 676/676, MMC3 13/13 and the real per-ROM performance gate passed without cap changes. Once required hosted jobs and artifacts are complete and available, run `$gsd-execute-phase 20 --gaps-only` to resume only 20-10 and independent phase verification. This planning-only handoff stays local to avoid restarting CI. Keep requirements open, preserve unrelated config edits and debt, and do not merge or advance to Phase 21 before actual hosted gates and re-verification pass.
