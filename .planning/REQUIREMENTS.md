@@ -9,8 +9,8 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 
 ### Frame interrupts arrive when the console's would
 
-- [x] **NMI-01**: A game that reads `$2002` around the start of VBlank sees the console's flag value and gets or loses the NMI as the console does; the `$2002 flag timing`, `NMI Timing` and `NMI Suppression` rows pass.
-- [x] **NMI-02**: A game that enables or disables NMI around the start or end of VBlank gets NMIs exactly when the console would, including the extra NMI Bases Loaded II relies on; the `NMI Control`, `NMI at VBlank end` and `NMI disabled at VBlank` rows pass.
+- [ ] **NMI-01**: A game that reads `$2002` around the start of VBlank sees the console's flag value and gets or loses the NMI as the console does; the `$2002 flag timing`, `NMI Timing` and `NMI Suppression` rows pass.
+- [ ] **NMI-02**: A game that enables or disables NMI around the start or end of VBlank gets NMIs exactly when the console would, including the extra NMI Bases Loaded II relies on; the `NMI Control`, `NMI at VBlank end` and `NMI disabled at VBlank` rows pass.
 
 ### CPU interrupts start on the right instruction
 
@@ -53,8 +53,8 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NMI-01 | Phase 20 | Complete |
-| NMI-02 | Phase 20 | Complete |
+| NMI-01 | Phase 20 | Gaps Found |
+| NMI-02 | Phase 20 | Gaps Found |
 | INT-01 | Phase 21 | Pending |
 | INT-02 | Phase 21 | Pending |
 | SPR-01 | Phase 19 | Complete |
