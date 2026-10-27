@@ -294,3 +294,46 @@ recommendations plus an isolated, unapplied four-change proposal under
 `.planning/research/2026-10-27-CI-EFFICIENCY.md`. Live workflow files and the
 current candidate were left intact. Collect Phase 20's actual evidence before
 applying follow-up workflow changes. Research/status artifacts remain local.
+
+
+## 2026-10-27 Plan 20-12 repaired-source publication
+
+The initial normal push was rejected by the existing formatter because the
+owned `tests/runner/phase20_fake_gh.c` helper was unformatted in three
+unpublished commit snapshots. Clang-format 18.1.8 was applied to those
+snapshots. All 12 commits after the existing remote head were rebuilt with
+their exact messages and author/committer identities and timestamps preserved;
+the branch still descends from published head `e6e83a31e413e12abe9dee142e3c0f7143d63eb4`.
+The old local tip remains reachable at
+`refs/backup/phase20-20-12-unformatted-3cdf753`, and
+`20-DELIVERY-COMMIT-MAP.tsv` records every original-to-formatted identity.
+Only formatting changed in effective source. The hook now passes all 28
+outgoing C/C++ blobs. The unchanged AccuracyCoin campaign fingerprint inputs
+exclude this fake GitHub CLI helper.
+
+The formatted candidate `56a31aa4b76fab4bebc019886fc1b4c5c21528c4` was
+published by one normal fast-forward push to the existing draft PR #59. PR
+state remains open/draft on `gsd/phase-20-nmi-line-and-vblank-flag` against
+`main`; no merge or workflow dispatch occurred. The PR description was updated
+before selecting the new run identities.
+
+- Candidate head: `56a31aa4b76fab4bebc019886fc1b4c5c21528c4`.
+- Tested synthetic merge snapshot: `3a7001758ef7197402eaaf41c6c6259050f4f908`.
+- Protected base: `ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`.
+- Effective source SHA-256: `62c818e341cfe6f6c53024d0893e39e4e00820e7f2d6636dde2651d29b466654` over 416 files.
+- Full local `cmake --workflow --preset ci`: 686/686 passed in 394.88 seconds; library, runner and libretro packages generated.
+- CI run `40541045065`, attempt 1, candidate head above: observed `pending` at `2026-10-27T16:27:11Z`.
+- Nightly run `40541045136`, attempt 1, candidate head above: observed `queued` at `2026-10-27T16:27:10Z`.
+
+Before replacing `build/phase20-hosted-evidence/delivery.json`, the prior
+failed-collection artifacts and provenance for candidate `e6e83a31` and runs
+`40514060876/1` and `40513950000/1` were copied unchanged to
+`build/phase20-hosted-evidence-history/e6e83a31-40514060876-40513950000/`.
+The copied 285-file inventory matches the original bytes (digest
+`bf8f6b1f46e3373c3f229602eb5331fd4cc35ae7578a37b9beab631607202ed4`).
+
+The new CI and Nightly work is in progress, not availability or acceptance.
+The existing delivery JSON still points to the prior candidate until Task 2
+replaces it with these observed identities and the live metadata-only
+availability gate passes. Plan 20-10 alone validates content and may record
+hosted acceptance; all Phase 20 requirements remain pending.
