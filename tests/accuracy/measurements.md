@@ -781,3 +781,74 @@ fingerprint are retained as measured provenance. The source revision and
 fingerprint describe the candidate used for this run; the local result does
 not replace the cold protected-main observation or close the hosted vectors
 fetch gap.
+
+## Phase 20 Plan 04: serialized NMI cutpoints and bounded transition sweep
+
+`core.nmi_state` runs complete `nesturbator__cpu_step` instructions from the
+listed constructed origins. The origin is fixture state, not a claim of
+cartridge-reset reachability; each named endpoint below is reached by actual
+production instruction execution and is then passed through public save/load.
+The disabled-NMI rows reproduce the earlier probe as a limited guard only.
+
+| Probe | Constructed origin | Executed endpoint | Cycles / instructions | State at endpoint | Continuation evidence |
+| --- | --- | --- | ---: | --- | --- |
+| Disabled set guard | (261,0), NMI disabled | (241,1) | 87,069 / 29,023 JMPs | control=00, pending=0 | Matches 261,207 PPU dots; not an enabled-NMI acceptance case. |
+| Disabled clear guard | (261,0), NMI disabled | (261,1) | 29,781 / 9,927 JMPs | control=00, pending=0 | Matches 89,343 PPU dots; not an enabled-NMI acceptance case. |
+| Enabled VBlank set | (240,333), status=00, control=80 | (241,1) | 3 / 1 JMP | status=80, control=80, prev/pending/polled=0/0/0; audio phase=25,344, synth level=11,540 | Canonical save/load/save equal; uninterrupted/restored marker reaches 1 before the next frame and both instances then match frame ticks, video, 798 nonzero PCM samples, and full serialized state. |
+| Enabled VBlank clear | (260,333), status=80, control=80, prev=1 | (261,1) | 3 / 1 JMP | status=00, control=80, prev/pending/polled=1/0/0; audio phase=25,344, synth level=11,540 | Canonical save/load/save equal; uninterrupted/restored marker reaches 1 before the next frame and both instances then match frame ticks, video, 798 nonzero PCM samples, and full serialized state. |
+| Control 8 set edge before poll | (240,331), status=00, control=00; `STA $2000` with A=80 | (241,2) | 4 / 1 STA | PC=$8003; status=80, control=80, prev/captured/polled=1/1/0; audio phase=33,792, synth level=11,540 | Canonical load and re-save equal; the next LDX poll leads to the expected guest NMI marker 1. A CRC-correct state with `cpu.nmi_pending` omitted preserves the high live line but produces marker 0. The loaded instance first held pending=1, proving load clears stale latch history. |
+| Control 8 clear edge before poll | (260,330), status=80, control=00; `STA $2000` with A=80 | (261,1) | 4 / 1 STA | PC=$8003; status=00, control=80, prev/captured/polled=1/1/0; audio phase=33,792, synth level=11,540 | Canonical load and re-save equal; the captured request survives VBlank clear, is polled by the next LDX, and reaches the expected guest NMI marker 1. Restored and uninterrupted frame output/state match. |
+
+The bounded sweep holds CPU alignment at an existing instruction boundary and
+tests every PPU-dot offset from -2 through +2 around each pinned transition.
+Each run emits the full per-instruction PC/opcode, bus-cycle interval, PPU
+coordinate, previous/captured/polled bits, guest count, and next action to
+stdout; the table records every candidate's final executed boundary and marker
+result. Origin dots are the base dot plus the listed offset: Control 8 starts
+at 240/260:330..334; Control 9 starts at 240/260:309..313.
+
+| Sequence | Edge | Offset | Final executed step | End PPU | Final step PC/opcode; bus cycles | prev/cap/poll | Guest count / handler-entry X |
+| --- | --- | ---: | ---: | --- | --- | --- | ---: |
+| Control 8 STA | set | -2 | 07 | 241:91 | $8005 / $8E; 30..34 | 1/0/0 | 1 / 16 |
+| Control 8 STA | clear | -2 | 07 | 261:91 | $8005 / $8E; 30..34 | 0/0/0 | 1 / 16 |
+| Control 9 INC | set | -2 | 11 | 241:121 | $8057 / $FF; 44..51 | 1/0/0 | 1 / 16 |
+| Control 9 INC | clear | -2 | 07 | 261:76 | $8206 / $40; 30..36 | 0/0/0 | 1 / 0 |
+| Control 8 STA | set | -1 | 07 | 241:92 | $8005 / $8E; 30..34 | 1/0/0 | 1 / 16 |
+| Control 8 STA | clear | -1 | 11 | 261:101 | $8008 / $4C; 34..37 | 0/0/0 | 0 / 255 |
+| Control 9 INC | set | -1 | 07 | 241:77 | $8206 / $40; 30..36 | 1/0/0 | 1 / 0 |
+| Control 9 INC | clear | -1 | 11 | 261:101 | $800A / $4C; 41..44 | 0/0/0 | 0 / 255 |
+| Control 8 STA | set | 0 | 07 | 241:93 | $8005 / $8E; 30..34 | 1/0/0 | 1 / 16 |
+| Control 8 STA | clear | 0 | 11 | 261:102 | $8008 / $4C; 34..37 | 0/0/0 | 0 / 255 |
+| Control 9 INC | set | 0 | 07 | 241:78 | $8206 / $40; 30..36 | 1/0/0 | 1 / 0 |
+| Control 9 INC | clear | 0 | 11 | 261:102 | $800A / $4C; 41..44 | 0/0/0 | 0 / 255 |
+| Control 8 STA | set | +1 | 07 | 241:94 | $8005 / $8E; 30..34 | 1/0/0 | 1 / 16 |
+| Control 8 STA | clear | +1 | 11 | 261:103 | $8008 / $4C; 34..37 | 0/0/0 | 0 / 255 |
+| Control 9 INC | set | +1 | 07 | 241:79 | $8206 / $40; 30..36 | 1/0/0 | 1 / 0 |
+| Control 9 INC | clear | +1 | 11 | 261:103 | $800A / $4C; 41..44 | 0/0/0 | 0 / 255 |
+| Control 8 STA | set | +2 | 07 | 241:95 | $8005 / $8E; 30..34 | 1/0/0 | 1 / 16 |
+| Control 8 STA | clear | +2 | 11 | 261:104 | $8008 / $4C; 34..37 | 0/0/0 | 0 / 255 |
+| Control 9 INC | set | +2 | 07 | 241:80 | $8206 / $40; 30..36 | 1/0/0 | 1 / 0 |
+| Control 9 INC | clear | +2 | 11 | 261:104 | $800A / $4C; 41..44 | 0/0/0 | 0 / 255 |
+
+Control 8 clear offset -2 is the captured-but-not-yet-polled boundary after
+STA at (261,1): status is already clear while the captured request remains
+set. Its restored continuation reaches NMI entry after LDX. Control 9's
+six-cycle INC reaches NMI at its legal poll window; handler-entry X is 0 for
+offsets -1 through +2 and 16 at offset -2, with all five set cases reaching
+the expected marker. The set cases for both controls all reach the marker;
+the clear cases only do so at offset -2. No candidate required a fabricated
+mid-instruction state, target cap, or offset override.
+
+The result establishes deterministic production save/load at complete CPU
+instruction boundaries and at the modeled PPU coordinates. It does not decide
+physical CPU/PPU A/C tie precedence beyond the source-backed global event order
+already documented above; no public pause API, partial-instruction format, or
+per-test timing adjustment was introduced.
+
+The existing `core.state_reject` history matrix also passes across its ROM
+fixtures: CRC-correct `pending=0, polled=1` is refused without instance
+mutation; `pending=1, polled=0` and `pending=1, polled=1` remain canonically
+loadable with the live NMI line low; the bounded-field sweep rejects
+out-of-range history booleans; and format 1 retains its format-error
+precedence. The new Control 8 clear replay separately reaches and restores a
+captured request after the live PPU status has fallen.

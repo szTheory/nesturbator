@@ -202,6 +202,312 @@ done:
         nesturbator_destroy((nesturbator *)isolated);
 }
 
+static size_t state_offset(struct nesturbator *nes, size_t member)
+{
+    struct nesturbator__state_bound bounds[512];
+    size_t count = nesturbator__state_bounds(nes, bounds, 512u);
+    size_t size = nesturbator_state_size((nesturbator *)nes);
+    uint8_t *before = (uint8_t *)malloc(size);
+    uint8_t *after = (uint8_t *)malloc(size);
+    uint8_t saved[8];
+    uint8_t *field = (uint8_t *)nes + member;
+    size_t changed = 0u;
+    CHECK(size != 0u && before != NULL && after != NULL);
+    if (size == 0u || before == NULL || after == NULL) {
+        free(before);
+        free(after);
+        return 0u;
+    }
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)nes, before, size), NESTURBATOR_OK);
+    memcpy(saved, field, sizeof(uint8_t));
+    *field ^= 0xffu;
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)nes, after, size), NESTURBATOR_OK);
+    memcpy(field, saved, sizeof(uint8_t));
+    for (size_t i = 64u; i < size; ++i) {
+        if (before[i] != after[i]) {
+            changed = i;
+            break;
+        }
+    }
+    int recorded = 0;
+    for (size_t i = 0u; i < count && i < 512u; ++i)
+        if (bounds[i].offset == changed)
+            recorded = 1;
+    CHECK(recorded);
+    free(before);
+    free(after);
+    return recorded ? changed : 0u;
+}
+
+static void test_captured_edge_survives_vblank_clear_load(void)
+{
+    static const uint8_t program[] = {
+        0x8du, 0x00u, 0x20u, /* STA $2000: enable NMI just before VBlank clear */
+        0xa2u, 0x10u,        /* LDX #$10 */
+        0x8eu, 0x40u, 0x00u, /* STX $0040 */
+        0x4cu, 0x08u, 0x80u  /* JMP $8008 */
+    };
+    static const uint8_t handler[] = {
+        0xe6u, NMI_COUNT,        /* INC $30: independent guest entry marker */
+        0x8eu, 0x31u,     0x00u, /* STX $0031: ordering marker */
+        0xe8u,                   /* INX */
+        0x40u                    /* RTI */
+    };
+    struct nesturbator *a =
+        nmi_fixture_build(program, sizeof program, handler, sizeof handler, 0x8200u);
+    struct nesturbator *b =
+        nmi_fixture_build(program, sizeof program, handler, sizeof handler, 0x8200u);
+    size_t size;
+    uint8_t *state = NULL;
+    uint8_t *roundtrip = NULL;
+    uint8_t *a_state = NULL;
+    uint8_t *b_state = NULL;
+    struct frame_result frame_a;
+    struct frame_result frame_b;
+    int16_t pcm_nonzero = 0;
+
+    CHECK(a != NULL && b != NULL);
+    if (a == NULL || b == NULL)
+        goto done;
+
+    nmi_fixture_at(a, 260u, 330u, 0x80u, 0u, 0u);
+    nmi_fixture_at(b, 260u, 330u, 0x80u, 0u, 0u);
+    a->cpu.pc = b->cpu.pc = 0x8000u;
+    a->cpu.s = b->cpu.s = 0xfdu;
+    a->cpu.p = b->cpu.p = 0x24u;
+    a->cpu.a = b->cpu.a = 0x80u;
+    a->cpu.x = b->cpu.x = 0u;
+    a->bus.ram[0x31u] = b->bus.ram[0x31u] = 0xffu;
+    seed_audio(a);
+    seed_audio(b);
+    nesturbator__cpu_step(a);
+
+    CHECK_EQ_U64(a->cpu_cycle, 4u);
+    CHECK_EQ_U64(a->ppu.ppu_ticks, 96u);
+    CHECK_EQ_U64(a->ticks, 96u);
+    CHECK_EQ_U64(a->ppu.scanline, 261u);
+    CHECK_EQ_U64(a->ppu.dot, 1u);
+    CHECK_EQ_U64(a->cpu.pc, 0x8003u);
+    CHECK_EQ_U64(a->ppu.control, 0x80u);
+    CHECK_EQ_U64(a->ppu.status & 0x80u, 0u);
+    CHECK_EQ_U64(a->cpu.nmi_prev, 1u);
+    CHECK_EQ_U64(a->cpu.nmi_pending, 1u);
+    CHECK_EQ_U64(a->cpu.nmi_polled, 0u);
+    CHECK(has_synth_history(a));
+    printf("cutpoint edge-before-poll-after-clear origin=constructed(260,330) "
+           "endpoint=executed(%u,%u) PC=$%04X opcode=$8D bus-cycle=0..%llu "
+           "status=%02X control=%02X prev/captured/polled=%u/%u/%u "
+           "audio-phase=%u synth-level=%d\n",
+           (unsigned)a->ppu.scanline, (unsigned)a->ppu.dot, a->cpu.pc,
+           (unsigned long long)a->cpu_cycle, a->ppu.status, a->ppu.control, a->cpu.nmi_prev,
+           a->cpu.nmi_pending, a->cpu.nmi_polled, a->apu.sample_phase, a->synth.mixed_level);
+
+    size = nesturbator_state_size((nesturbator *)a);
+    state = (uint8_t *)malloc(size);
+    roundtrip = (uint8_t *)malloc(size);
+    a_state = (uint8_t *)malloc(size);
+    b_state = (uint8_t *)malloc(size);
+    CHECK(state != NULL && roundtrip != NULL && a_state != NULL && b_state != NULL);
+    if (state == NULL || roundtrip == NULL || a_state == NULL || b_state == NULL)
+        goto done;
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)a, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_state((nesturbator *)b, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)b, roundtrip, size), NESTURBATOR_OK);
+    CHECK(memcmp(state, roundtrip, size) == 0);
+    CHECK(has_synth_history(b));
+
+    for (unsigned i = 0u; i < 16u && a->bus.ram[NMI_COUNT] == 0u; ++i) {
+        nesturbator__cpu_step(a);
+        nesturbator__cpu_step(b);
+        save_pair_equal(a, b, size, a_state, b_state, "post-clear captured-edge steps");
+    }
+    CHECK_EQ_U64(a->bus.ram[NMI_COUNT], 1u);
+    CHECK_EQ_U64(b->bus.ram[NMI_COUNT], 1u);
+
+    run_frame(a, &frame_a);
+    run_frame(b, &frame_b);
+    compare_frames(&frame_a, &frame_b);
+    for (uint32_t i = 0u; i < frame_a.frame.audio_count; ++i)
+        if (frame_a.audio[i] != 0)
+            pcm_nonzero = 1;
+    CHECK(pcm_nonzero != 0);
+    save_pair_equal(a, b, size, a_state, b_state, "post-clear captured-edge frame continuation");
+    printf("cutpoint edge-before-poll-after-clear replay=PASS canonical=equal guest-count=%u "
+           "frames=1 ticks=%llu audio=%u pcm=nonzero video=equal\n",
+           a->bus.ram[NMI_COUNT], (unsigned long long)frame_a.frame.ticks,
+           frame_a.frame.audio_count);
+
+done:
+    free(state);
+    free(roundtrip);
+    free(a_state);
+    free(b_state);
+    if (a != NULL)
+        nesturbator_destroy((nesturbator *)a);
+    if (b != NULL)
+        nesturbator_destroy((nesturbator *)b);
+}
+
+static void test_edge_before_poll_replay_and_omitted_history(void)
+{
+    static const uint8_t program[] = {
+        0x8du, 0x00u, 0x20u, /* STA $2000: capture before the next legal poll */
+        0xa2u, 0x10u,        /* LDX #$10 */
+        0x8eu, 0x40u, 0x00u, /* STX $0040 */
+        0x4cu, 0x08u, 0x80u  /* JMP $8008 */
+    };
+    static const uint8_t handler[] = {
+        0xe6u, NMI_COUNT,        /* INC $30: independent guest entry marker */
+        0x8eu, 0x31u,     0x00u, /* STX $0031: ordering marker */
+        0xe8u,                   /* INX */
+        0x40u                    /* RTI */
+    };
+    struct nesturbator *a =
+        nmi_fixture_build(program, sizeof program, handler, sizeof handler, 0x8200u);
+    struct nesturbator *b =
+        nmi_fixture_build(program, sizeof program, handler, sizeof handler, 0x8200u);
+    struct nesturbator *omitted_instance =
+        nmi_fixture_build(program, sizeof program, handler, sizeof handler, 0x8200u);
+    struct nesturbator *isolated =
+        nmi_fixture_build(program, sizeof program, handler, sizeof handler, 0x8200u);
+    size_t size;
+    size_t pending_offset;
+    uint8_t *state = NULL;
+    uint8_t *omitted = NULL;
+    uint8_t *roundtrip = NULL;
+    uint8_t *a_state = NULL;
+    uint8_t *b_state = NULL;
+    int16_t pcm_nonzero = 0;
+    struct frame_result frame_a;
+    struct frame_result frame_b;
+    CHECK(a != NULL && b != NULL && omitted_instance != NULL && isolated != NULL);
+    if (a == NULL || b == NULL || omitted_instance == NULL || isolated == NULL)
+        goto done;
+
+    nmi_fixture_at(a, 240u, 331u, 0u, 0u, 0u);
+    nmi_fixture_at(b, 240u, 331u, 0u, 0u, 0u);
+    nmi_fixture_at(omitted_instance, 240u, 331u, 0u, 0u, 0u);
+    nmi_fixture_at(isolated, 240u, 331u, 0u, 0u, 0u);
+    a->cpu.pc = b->cpu.pc = omitted_instance->cpu.pc = isolated->cpu.pc = 0x8000u;
+    a->cpu.s = b->cpu.s = omitted_instance->cpu.s = isolated->cpu.s = 0xfdu;
+    a->cpu.p = b->cpu.p = omitted_instance->cpu.p = isolated->cpu.p = 0x24u;
+    a->cpu.x = b->cpu.x = omitted_instance->cpu.x = isolated->cpu.x = 0u;
+    a->cpu.a = b->cpu.a = omitted_instance->cpu.a = 0x80u;
+    isolated->cpu.a = 0u;
+    a->bus.ram[0x31u] = b->bus.ram[0x31u] = omitted_instance->bus.ram[0x31u] =
+        isolated->bus.ram[0x31u] = 0xffu;
+    seed_audio(a);
+    seed_audio(b);
+    seed_audio(omitted_instance);
+    isolated->ppu.control = 0u;
+    isolated->cpu.nmi_prev = 0u;
+    seed_audio(isolated);
+    nesturbator__cpu_step(a);
+
+    CHECK_EQ_U64(a->cpu_cycle, 4u);
+    CHECK_EQ_U64(a->ppu.ppu_ticks, 96u);
+    CHECK_EQ_U64(a->ticks, 96u);
+    CHECK_EQ_U64(a->ppu.scanline, 241u);
+    CHECK_EQ_U64(a->ppu.dot, 2u);
+    CHECK_EQ_U64(a->cpu.pc, 0x8003u);
+    CHECK_EQ_U64(a->ppu.control, 0x80u);
+    CHECK((a->ppu.status & 0x80u) != 0u);
+    CHECK_EQ_U64(a->cpu.nmi_prev, 1u);
+    CHECK_EQ_U64(a->cpu.nmi_pending, 1u);
+    CHECK_EQ_U64(a->cpu.nmi_polled, 0u);
+    CHECK(has_synth_history(a));
+    printf("cutpoint edge-before-poll origin=constructed(240,331) endpoint=executed(%u,%u) "
+           "PC=$%04X opcode=$8D bus-cycle=0..%llu prev/captured/polled=%u/%u/%u "
+           "audio-phase=%u synth-level=%d next=LDX\n",
+           (unsigned)a->ppu.scanline, (unsigned)a->ppu.dot, a->cpu.pc,
+           (unsigned long long)a->cpu_cycle, a->cpu.nmi_prev, a->cpu.nmi_pending, a->cpu.nmi_polled,
+           a->apu.sample_phase, a->synth.mixed_level);
+
+    size = nesturbator_state_size((nesturbator *)a);
+    pending_offset = state_offset(a, offsetof(struct nesturbator, cpu.nmi_pending));
+    CHECK(pending_offset >= 64u);
+    state = (uint8_t *)malloc(size);
+    omitted = (uint8_t *)malloc(size);
+    roundtrip = (uint8_t *)malloc(size);
+    a_state = (uint8_t *)malloc(size);
+    b_state = (uint8_t *)malloc(size);
+    CHECK(state != NULL && omitted != NULL && roundtrip != NULL && a_state != NULL &&
+          b_state != NULL);
+    if (state == NULL || omitted == NULL || roundtrip == NULL || a_state == NULL ||
+        b_state == NULL || pending_offset < 64u)
+        goto done;
+
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)a, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_state((nesturbator *)b, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)b, roundtrip, size), NESTURBATOR_OK);
+    CHECK(memcmp(state, roundtrip, size) == 0);
+    CHECK(has_synth_history(b));
+
+    memcpy(omitted, state, size);
+    CHECK_EQ_U64(omitted[pending_offset], 1u);
+    omitted[pending_offset] = 0u;
+    st_recrc(omitted, size);
+    nesturbator__cpu_step(omitted_instance);
+    CHECK_EQ_U64(omitted_instance->cpu.nmi_pending, 1u);
+    CHECK_EQ_U64(nesturbator_load_state((nesturbator *)omitted_instance, omitted, size),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)omitted_instance, roundtrip, size),
+                 NESTURBATOR_OK);
+    CHECK(memcmp(omitted, roundtrip, size) == 0);
+    CHECK_EQ_U64(omitted_instance->cpu.nmi_prev, 1u);
+    CHECK_EQ_U64(omitted_instance->cpu.nmi_pending, 0u);
+    CHECK_EQ_U64(omitted_instance->cpu.nmi_polled, 0u);
+    CHECK_EQ_U64(omitted_instance->ppu.control, a->ppu.control);
+    CHECK_EQ_U64(omitted_instance->ppu.status, a->ppu.status);
+
+    for (unsigned i = 0u; i < 16u && a->bus.ram[NMI_COUNT] == 0u; ++i) {
+        nesturbator__cpu_step(a);
+        nesturbator__cpu_step(isolated);
+        nesturbator__cpu_step(b);
+        nesturbator__cpu_step(omitted_instance);
+        save_pair_equal(a, b, size, a_state, b_state, "edge-before-poll CPU steps");
+        CHECK_EQ_U64(isolated->bus.ram[NMI_COUNT], 0u);
+        CHECK_EQ_U64(isolated->cpu.nmi_pending, 0u);
+        CHECK_EQ_U64(isolated->cpu.nmi_polled, 0u);
+    }
+    CHECK_EQ_U64(a->bus.ram[NMI_COUNT], 1u);
+    CHECK_EQ_U64(b->bus.ram[NMI_COUNT], 1u);
+    CHECK_EQ_U64(omitted_instance->bus.ram[NMI_COUNT], 0u);
+    printf("cutpoint edge-before-poll replay=PASS canonical=equal expected guest count=1 "
+           "restored=%u next-poll=NMI-entry\n",
+           b->bus.ram[NMI_COUNT]);
+    printf("control omitted-history field=cpu.nmi_pending CRC=correct live-line=high "
+           "stale-pending=1->loaded-0 expected guest count=1 actual=%u "
+           "omitted-history count=%u result=detected\n",
+           a->bus.ram[NMI_COUNT], omitted_instance->bus.ram[NMI_COUNT]);
+
+    run_frame(a, &frame_a);
+    run_frame(b, &frame_b);
+    compare_frames(&frame_a, &frame_b);
+    for (uint32_t i = 0u; i < frame_a.frame.audio_count; ++i)
+        if (frame_a.audio[i] != 0)
+            pcm_nonzero = 1;
+    CHECK(pcm_nonzero != 0);
+    save_pair_equal(a, b, size, a_state, b_state, "edge-before-poll frame continuation");
+    printf("cutpoint edge-before-poll frames=1 ticks=%llu audio=%u pcm=nonzero video=equal\n",
+           (unsigned long long)frame_a.frame.ticks, frame_a.frame.audio_count);
+
+done:
+    free(state);
+    free(omitted);
+    free(roundtrip);
+    free(a_state);
+    free(b_state);
+    if (a != NULL)
+        nesturbator_destroy((nesturbator *)a);
+    if (b != NULL)
+        nesturbator_destroy((nesturbator *)b);
+    if (omitted_instance != NULL)
+        nesturbator_destroy((nesturbator *)omitted_instance);
+    if (isolated != NULL)
+        nesturbator_destroy((nesturbator *)isolated);
+}
+
 static void test_disabled_probe_endpoints_are_limited_guard(void)
 {
     static const struct {
@@ -241,9 +547,110 @@ static void test_disabled_probe_endpoints_are_limited_guard(void)
     }
 }
 
+static void trace_control_candidate(const char *control_case, const char *edge,
+                                    uint16_t origin_line, uint16_t base_dot, int offset,
+                                    const uint8_t *program, size_t program_len, uint8_t a_value,
+                                    uint8_t ppu_status, uint8_t ppu_control, uint8_t io_bus)
+{
+    static const uint8_t handler[] = {
+        0xe6u, NMI_COUNT,        /* INC $30: guest handler-entry marker */
+        0x8eu, 0x31u,     0x00u, /* STX $0031: instruction-order marker */
+        0xe8u,                   /* INX */
+        0x40u                    /* RTI */
+    };
+    struct nesturbator *nes =
+        nmi_fixture_build(program, program_len, handler, sizeof handler, 0x8200u);
+    CHECK(nes != NULL);
+    if (nes == NULL)
+        return;
+
+    uint16_t start_dot = (uint16_t)((int)base_dot + offset);
+    nmi_fixture_at(nes, origin_line, start_dot, ppu_status, ppu_control, io_bus);
+    nes->cpu.pc = 0x8000u;
+    nes->cpu.s = 0xfdu;
+    nes->cpu.p = 0x24u;
+    nes->cpu.a = a_value;
+    nes->cpu.x = 0u;
+    nes->cpu.y = 0u;
+    nes->cpu.nmi_prev =
+        (uint8_t)(((ppu_status & 0x80u) != 0u && (ppu_control & 0x80u) != 0u) ? 1u : 0u);
+    nes->bus.ram[NMI_COUNT] = 0u;
+    nes->bus.ram[0x31u] = 0xffu;
+
+    for (unsigned step = 0u; step < 12u; ++step) {
+        uint16_t pc = nes->cpu.pc;
+        uint8_t opcode = 0xffu;
+        uint64_t cycle_before = nes->cpu_cycle;
+        if (pc >= 0x8000u && (size_t)(pc - 0x8000u) < program_len)
+            opcode = program[pc - 0x8000u];
+        else if (pc >= 0x8200u && (size_t)(pc - 0x8200u) < sizeof handler)
+            opcode = handler[pc - 0x8200u];
+
+        nesturbator__cpu_step(nes);
+
+        const char *next =
+            nes->cpu.nmi_polled != 0u
+                ? "NMI-entry"
+                : (nes->cpu.nmi_pending != 0u
+                       ? "next-instruction-poll"
+                       : (nes->cpu.pc >= 0x8200u && nes->cpu.pc < 0x8200u + sizeof handler
+                              ? "guest-handler"
+                              : "source-sequence"));
+        printf("sweep case=%s edge=%s offset=%+d alignment=CPU-boundary step=%02u "
+               "PC=$%04X opcode=$%02X bus-cycle=%llu..%llu PPU=(%u,%u) "
+               "prev/captured/polled=%u/%u/%u guest=%u next=%s\n",
+               control_case, edge, offset, step, pc, opcode, (unsigned long long)cycle_before,
+               (unsigned long long)nes->cpu_cycle, (unsigned)nes->ppu.scanline,
+               (unsigned)nes->ppu.dot, nes->cpu.nmi_prev, nes->cpu.nmi_pending, nes->cpu.nmi_polled,
+               nes->bus.ram[NMI_COUNT], next);
+        CHECK_EQ_U64(nes->ppu.ppu_ticks, nes->ticks);
+        if (nes->bus.ram[NMI_COUNT] != 0u && nes->cpu.pc == 0x8008u)
+            break;
+    }
+    printf("sweep result case=%s edge=%s offset=%+d complete-boundary=1 guest-count=%u "
+           "entry-X=%u control=%02X status=%02X\n",
+           control_case, edge, offset, nes->bus.ram[NMI_COUNT], nes->bus.ram[0x31u],
+           nes->ppu.control, nes->ppu.status);
+    nesturbator_destroy((nesturbator *)nes);
+}
+
+static void test_bounded_control_transition_sweep(void)
+{
+    static const uint8_t control8[] = {
+        0x8du, 0x00u, 0x20u, /* STA $2000 */
+        0xa2u, 0x10u,        /* LDX #$10 */
+        0x8eu, 0x40u, 0x00u, /* STX $0040 */
+        0x4cu, 0x08u, 0x80u  /* JMP $8008 */
+    };
+    static const uint8_t control9[] = {
+        0xa9u, 0x80u,        /* LDA #$80 */
+        0x8du, 0x02u, 0x20u, /* STA $2002: prime I/O bus */
+        0xeeu, 0x00u, 0x20u, /* INC $2000: retain both writes */
+        0xa2u, 0x10u,        /* LDX #$10 */
+        0x4cu, 0x09u, 0x80u  /* JMP $8009 */
+    };
+    static const int offsets[] = {-2, -1, 0, 1, 2};
+
+    for (size_t i = 0u; i < sizeof offsets / sizeof offsets[0]; ++i) {
+        int offset = offsets[i];
+        trace_control_candidate("Control-8-STA", "set", 240u, 332u, offset, control8,
+                                sizeof control8, 0x80u, 0u, 0u, 0u);
+        trace_control_candidate("Control-8-STA", "clear", 260u, 332u, offset, control8,
+                                sizeof control8, 0x80u, 0x80u, 0u, 0u);
+        trace_control_candidate("Control-9-INC", "set", 240u, 311u, offset, control9,
+                                sizeof control9, 0u, 0u, 0u, 0u);
+        trace_control_candidate("Control-9-INC", "clear", 260u, 311u, offset, control9,
+                                sizeof control9, 0u, 0x80u, 0u, 0u);
+    }
+}
+
 int main(void)
 {
     test_disabled_probe_endpoints_are_limited_guard();
+    test_bounded_control_transition_sweep();
     test_exact_transition_cutpoint("VBlank-set", 240u, 333u, 0u, 0u, 72u, 241u, 1u, 0u, 1u);
+    test_exact_transition_cutpoint("VBlank-clear", 260u, 333u, 0x80u, 1u, 72u, 261u, 1u, 0u, 1u);
+    test_captured_edge_survives_vblank_clear_load();
+    test_edge_before_poll_replay_and_omitted_history();
     CHECK_DONE();
 }
