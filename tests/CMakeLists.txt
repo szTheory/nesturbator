@@ -708,7 +708,7 @@ set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
 # evidence validator. The fixtures are generated only in the build tree.
 add_test(NAME phase20.hosted_evidence.controls
   COMMAND ${CMAKE_COMMAND}
-    -DCASE=red
+    -DCASE=all
     "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
     "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
     "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes"
