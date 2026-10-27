@@ -1238,3 +1238,60 @@ only. The full campaign option was disabled after the single measurement, and
 the effective source tree still requires fresh hosted exact-head evidence.
 With the campaign disabled, `cmake --workflow --preset ci` passed all 686
 tests and generated the library, runner, and libretro packages.
+
+### Post-review correction: GitHub job logs are plain text
+
+Before Plan 20-12 publication, review of the official GitHub Actions jobs API
+and retained job `122224137324` from CI `40514060876/1` established that
+`/actions/jobs/{job_id}/logs` returns a UTF-8-BOM timestamped plain-text job
+log, not a ZIP. That old log was inspected only to validate response shape and
+the CTest parser; it remains historical data and is not accepted as fresh
+source-bound evidence. The collector now preserves the raw response byte for
+byte, binds it to the selected successful workflow step's ID, run attempt and
+API `started_at`/`completed_at` values, and re-derives the selected step log
+from the preserved text before validating exact CTest result records. It
+requires the unique expected group marker, excludes results outside the
+metadata time window, and rejects missing, skipped, failed, duplicate and
+contradictory results. The derived file normalizes a leading BOM, ANSI CSI
+sequences and line endings; the raw SHA-256 and derived SHA-256 are retained
+separately. Binary artifact ZIPs still use archive path, duplicate-member,
+traversal and symlink checks. The raw GitHub CLI option is feature-detected
+from installed `gh api --help`; raw job-log and artifact ZIP requests pass
+`--allow-escape-sequences` through the same resolved executable.
+
+The TDD correction's realistic adapter fixture first failed on the actual
+plain-text response shape, then passed after the fix. Controls prove passing
+CTests outside the selected step cannot count and prove skipped, failed,
+duplicate and pass-plus-fail contradictory terminal results reject for the
+expected reason. The old-CLI feature-detection control rejects before any raw
+request. The production adapter also checks preserved BOM bytes and recomputes
+the raw-to-selected-log digest mapping on validation. The captured historical
+log replay passed the exact CMake terminal parser but remains data only.
+
+Two full-enabled local campaigns completed after the correction. The first was
+the planned measurement; a Task 2 focused CTest invoked the campaign once more
+as a registered fixture while full mode was still enabled, so the latest
+successful run is the recorded baseline below. Both runs completed 22/22 pages
+and 146/146 scored rows (114 PASS, 32 FAIL, no skip/not-run/timeout, five
+DRAW), kept all six NMI target keys passing, and produced the same report and
+56-input fingerprint. The recorded run binds causal source revision
+`f3b56e003dc8`, `source_dirty=1` for the preserved `.planning/config.json`
+edit, `host_elapsed_guest_ns=4768711000`, fingerprint
+`b2cdcdd15785b590a415dac911187b8abfa0d025a1cc448d412650d1716f1240`, and
+report SHA-256
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`. The
+Task 2 focused gate passed 12/12 with the cold 108-key protected comparison,
+all native hashes and policy controls. The Task 1 gate passed 28/28. With
+full mode disabled, `cmake --workflow --preset ci` passed 686/686 tests in
+389.05 seconds and generated the library, runner and libretro packages.
+
+The repaired effective source digest is
+`d1d4a456b40332a78678fbcf1ba1bf948a82641f20dfec5ecafbe0f2f678c69e` over 416
+files, after refreshing the baseline metadata. It supersedes the prior
+Plan 20-11 digest. The successful old CI/Nightly pair still belongs to
+candidate `e6e83a31e413e12abe9dee142e3c0f7143d63eb4`, merge
+`11533e456d41f740751c8353f947d65017aae692`, and digest
+`de6d4355222063e019c7a3a94e30a404b52041f3d994659d445f12b4a23318ab`; the
+failed collection and old plain-text job log remain diagnostic only. New
+clean-source CI/Nightly results and later content acceptance are still
+required. All four Phase 20 requirements remain pending.

@@ -334,3 +334,48 @@ clean-source hosted runs; previous green CI and Nightly identities remain
 historical availability for their earlier candidate and digest. All four
 requirements, KEEP-02/KEEP-03, and Phase 20 remain pending independent
 verification. No 20-10 or 20-12 execution occurred.
+
+### Post-review correction: actual GitHub job-log response
+
+Pre-publication review of the official
+[GitHub workflow jobs logs API](https://docs.github.com/en/rest/actions/workflow-jobs#download-job-logs-for-a-workflow-run)
+and old job `122224137324` from CI `40514060876/1` showed that the job `logs`
+endpoint returns a UTF-8-BOM timestamped plain-text job log, not a ZIP. The
+retained old response was inspected as data only; its successful prior CI and
+Nightly run identities remain historical availability and do not certify the
+repaired source. The collector now preserves the raw job log, binds its SHA to
+the selected job/run/attempt and successful step metadata, selects the unique
+expected step group within its `started_at`/`completed_at` bounds, and
+recomputes the normalized selected-step digest during validation. ANSI CSI
+sequences and line endings are normalized only in the derived step file. The
+exact terminal parser was replayed against the captured historical response;
+this was a parser check, not acceptance evidence. Artifact ZIP handling keeps
+the path, duplicate-member, traversal and symlink checks. Raw log and ZIP
+requests use the resolved `gh` executable and feature-detect
+`--allow-escape-sequences`.
+
+Correction commits: RED fixture `8202159` and implementation
+`f3b56e0`. The focused Task 1 gate passed 28/28 with exact-reason controls for
+other-step-only CTests, missing/near-match/skipped/failed/duplicate and
+contradictory results, plus unsupported old-CLI rejection before a raw
+request. Task 2 passed 12/12 with the cold protected observation, all 108
+protected PASS keys, exact six NMI targets, native inventory and policy
+controls. The full workflow passed 686/686 in 389.05 seconds and packaged
+library, runner and libretro outputs.
+
+Two full-enabled local campaigns completed after the correction. The second
+was an unintended fixture-triggered repeat while the Task 2 focused gate ran
+before full mode was disabled; both runs agree on the measured result and
+fingerprint, and the second run supplies the current baseline metadata. It
+records source revision `f3b56e003dc8`, `source_dirty=1` from the preserved
+config edit, `host_elapsed_guest_ns=4768711000`, report SHA-256
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`, and
+56-input fingerprint
+`b2cdcdd15785b590a415dac911187b8abfa0d025a1cc448d412650d1716f1240`. All 22
+pages and 146 scored rows completed: 114 PASS, 32 FAIL, no skip/not-run/timeout,
+five DRAW, and all six NMI targets pass. After baseline refresh, the effective
+source digest is
+`d1d4a456b40332a78678fbcf1ba1bf948a82641f20dfec5ecafbe0f2f678c69e` over 416
+files. No new hosted collection or acceptance manifest exists. New
+source-bound hosted CI/Nightly and actual content acceptance remain pending;
+all four Phase 20 requirements and KEEP-02/KEEP-03 remain open.
