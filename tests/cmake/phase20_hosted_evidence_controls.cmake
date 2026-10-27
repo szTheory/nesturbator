@@ -561,6 +561,9 @@ if(CASE STREQUAL "adapter" OR CASE STREQUAL "availability")
   if(NOT "${git_result}" STREQUAL "0")
     message(FATAL_ERROR "cannot initialize source-bound adapter fixture: ${git_error}")
   endif()
+  # info/attributes has higher precedence than the copied source rules, so
+  # Git stores exactly the bytes that the raw --no-filters comparison reads.
+  file(WRITE "${source_clone}/.git/info/attributes" "* -text\n")
   execute_process(COMMAND git -c core.autocrlf=false -c core.eol=lf
       -c core.symlinks=true add -A
     WORKING_DIRECTORY "${source_clone}"
@@ -581,6 +584,26 @@ if(CASE STREQUAL "adapter" OR CASE STREQUAL "availability")
     OUTPUT_VARIABLE git_output ERROR_VARIABLE git_error)
   if(NOT "${git_result}" STREQUAL "0")
     message(FATAL_ERROR "cannot commit adapter source fixture: ${git_error}")
+  endif()
+  execute_process(COMMAND git hash-object --no-filters -- tests/cmake/phase20_hosted_evidence.cmake
+    WORKING_DIRECTORY "${source_clone}" RESULT_VARIABLE git_result
+    OUTPUT_VARIABLE raw_script_blob ERROR_VARIABLE git_error
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(COMMAND git ls-tree HEAD -- tests/cmake/phase20_hosted_evidence.cmake
+    WORKING_DIRECTORY "${source_clone}" RESULT_VARIABLE tree_result
+    OUTPUT_VARIABLE script_tree_entry ERROR_VARIABLE tree_error
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  string(FIND "${script_tree_entry}" "\t" script_tree_separator)
+  if(script_tree_separator LESS 0)
+    message(FATAL_ERROR "real Git tree omitted the hosted-evidence source script")
+  endif()
+  string(SUBSTRING "${script_tree_entry}" 0 ${script_tree_separator} script_tree_header)
+  string(REPLACE " " ";" script_tree_fields "${script_tree_header}")
+  list(GET script_tree_fields 2 stored_script_blob)
+  if(NOT "${git_result}" STREQUAL "0" OR NOT "${tree_result}" STREQUAL "0" OR
+     NOT raw_script_blob STREQUAL stored_script_blob)
+    message(FATAL_ERROR
+      "raw source script bytes differ from the fixture Git blob: ${git_error}${tree_error}")
   endif()
   execute_process(COMMAND git hash-object --no-filters -- phase20-raw-crlf/blob.dat
     WORKING_DIRECTORY "${source_clone}" RESULT_VARIABLE git_result
