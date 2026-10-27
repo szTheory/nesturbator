@@ -1023,9 +1023,11 @@ Artifact files are normalized by matching complete path suffixes at
 directory boundaries, including root-level members. Every expected file must
 have exactly one raw path; root/nested ambiguity and duplicate ZIP members
 fail. `provenance/normalization.tsv` records raw and normalized paths with the
-unchanged content digest. Its full effective-source manifest hashes Git tree
-contents and symlink targets, excluding only `.planning/` and
-`tests/accuracy/measurements.md`. This is distinct from the narrower
+unchanged content digest. Its full effective-source manifest hashes
+regular-file contents and symlink target text, excluding only `.planning/`
+and `tests/accuracy/measurements.md`. Hosted-tree comparisons check regular
+files against their Git blobs and symlinks against their mode-120000
+link-target blobs. This is distinct from the narrower
 AccuracyCoin build-input fingerprint. The collector records the source digest,
 run/job/artifact metadata, retrieval time, and checksums beside the downloaded
 evidence. It rejects local fixtures as hosted provenance, dirty effective

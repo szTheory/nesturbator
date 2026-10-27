@@ -254,8 +254,8 @@ function(phase20_check_remote_tree tree_path source_dir file_manifest out_error)
   endif()
 
   string(REPLACE "\n" ";" rows "${file_manifest}")
-  set(local_paths)
-  set(local_path_keys)
+  set(regular_paths)
+  set(regular_path_keys)
   set(local_path_lines "")
   set(local_count 0)
   foreach(row IN LISTS rows)
@@ -271,48 +271,71 @@ function(phase20_check_remote_tree tree_path source_dir file_manifest out_error)
         set(${out_error} "effective source path is absent from the GitHub tree: ${path}" PARENT_SCOPE)
         return()
       endif()
-      list(APPEND local_paths "${path}")
-      list(APPEND local_path_keys "${path_key}")
-      string(APPEND local_path_lines "${path}\n")
       math(EXPR local_count "${local_count} + 1")
+      set(absolute "${source_dir}/${path}")
+      if(IS_SYMLINK "${absolute}")
+        # Git stores a symlink's target text as the blob. Hash that text via
+        # stdin so Git does not follow the link and hash its destination.
+        file(READ_SYMLINK "${absolute}" link_target)
+        set(link_input "${tree_path}.symlink-${local_count}-input")
+        file(WRITE "${link_input}" "${link_target}")
+        execute_process(
+          COMMAND git hash-object --no-filters --stdin
+          WORKING_DIRECTORY "${source_dir}" INPUT_FILE "${link_input}"
+          RESULT_VARIABLE hash_result OUTPUT_VARIABLE blob ERROR_VARIABLE hash_error
+          OUTPUT_STRIP_TRAILING_WHITESPACE)
+        file(REMOVE "${link_input}")
+        if(NOT "${hash_result}" STREQUAL "0" OR
+           NOT "${blob}" STREQUAL "${remote_${path_key}}")
+          set(${out_error} "effective source content differs from hosted tree at ${path}: ${hash_error}" PARENT_SCOPE)
+          return()
+        endif()
+      else()
+        list(APPEND regular_paths "${path}")
+        list(APPEND regular_path_keys "${path_key}")
+        string(APPEND local_path_lines "${path}\n")
+      endif()
     endif()
   endforeach()
 
   # Batch raw blob hashing to avoid one Git process per file on Windows.
-  # Keep the paths aligned with the original per-path comparison below.
-  set(hash_input "${tree_path}.local-hash-paths.txt")
-  file(WRITE "${hash_input}" "${local_path_lines}")
-  execute_process(
-    COMMAND git hash-object --no-filters --stdin-paths
-    WORKING_DIRECTORY "${source_dir}" INPUT_FILE "${hash_input}"
-    RESULT_VARIABLE hash_result OUTPUT_VARIABLE blob_lines ERROR_VARIABLE hash_error
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  file(REMOVE "${hash_input}")
-  if(NOT "${hash_result}" STREQUAL "0")
-    set(${out_error} "cannot hash effective source tree paths: ${hash_error}" PARENT_SCOPE)
-    return()
-  endif()
-  string(REPLACE "\r\n" "\n" blob_lines "${blob_lines}")
-  string(REPLACE "\r" "\n" blob_lines "${blob_lines}")
-  string(REPLACE "\n" ";" local_blobs "${blob_lines}")
-  list(LENGTH local_paths local_path_count)
-  list(LENGTH local_blobs local_blob_count)
-  if(NOT local_blob_count EQUAL local_path_count)
-    set(${out_error}
-      "raw Git tree hash count ${local_blob_count} does not match effective source file count ${local_path_count}"
-      PARENT_SCOPE)
-    return()
-  endif()
-  set(hash_index 0)
-  foreach(path IN LISTS local_paths)
-    list(GET local_path_keys ${hash_index} path_key)
-    list(GET local_blobs ${hash_index} blob)
-    if(NOT "${blob}" STREQUAL "${remote_${path_key}}")
-      set(${out_error} "effective source content differs from hosted tree at ${path}" PARENT_SCOPE)
+  # Keep regular-file paths aligned with the batched results; symlinks above
+  # use Git's stored link-target text instead of dereferencing their paths.
+  list(LENGTH regular_paths regular_path_count)
+  if(regular_path_count GREATER 0)
+    set(hash_input "${tree_path}.local-hash-paths.txt")
+    file(WRITE "${hash_input}" "${local_path_lines}")
+    execute_process(
+      COMMAND git hash-object --no-filters --stdin-paths
+      WORKING_DIRECTORY "${source_dir}" INPUT_FILE "${hash_input}"
+      RESULT_VARIABLE hash_result OUTPUT_VARIABLE blob_lines ERROR_VARIABLE hash_error
+      OUTPUT_STRIP_TRAILING_WHITESPACE)
+    file(REMOVE "${hash_input}")
+    if(NOT "${hash_result}" STREQUAL "0")
+      set(${out_error} "cannot hash effective source tree paths: ${hash_error}" PARENT_SCOPE)
       return()
     endif()
-    math(EXPR hash_index "${hash_index} + 1")
-  endforeach()
+    string(REPLACE "\r\n" "\n" blob_lines "${blob_lines}")
+    string(REPLACE "\r" "\n" blob_lines "${blob_lines}")
+    string(REPLACE "\n" ";" local_blobs "${blob_lines}")
+    list(LENGTH local_blobs local_blob_count)
+    if(NOT local_blob_count EQUAL regular_path_count)
+      set(${out_error}
+        "raw Git tree hash count ${local_blob_count} does not match effective regular-file count ${regular_path_count}"
+        PARENT_SCOPE)
+      return()
+    endif()
+    set(hash_index 0)
+    foreach(path IN LISTS regular_paths)
+      list(GET regular_path_keys ${hash_index} path_key)
+      list(GET local_blobs ${hash_index} blob)
+      if(NOT "${blob}" STREQUAL "${remote_${path_key}}")
+        set(${out_error} "effective source content differs from hosted tree at ${path}" PARENT_SCOPE)
+        return()
+      endif()
+      math(EXPR hash_index "${hash_index} + 1")
+    endforeach()
+  endif()
 
   if(NOT local_count EQUAL remote_count)
     set(${out_error} "effective source file set differs from hosted GitHub tree" PARENT_SCOPE)

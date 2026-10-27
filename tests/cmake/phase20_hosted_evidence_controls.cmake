@@ -518,15 +518,62 @@ if(CASE STREQUAL "adapter" OR CASE STREQUAL "availability")
   file(COPY_FILE "${FAKE_GH}" "${fake_root}/gh")
   file(COPY "${SOURCE_DIR}/" DESTINATION "${source_clone}"
     PATTERN ".git" EXCLUDE PATTERN ".planning" EXCLUDE PATTERN "build" EXCLUDE)
+  set(source_claude "${SOURCE_DIR}/CLAUDE.md")
+  set(clone_claude "${source_clone}/CLAUDE.md")
+  if(IS_SYMLINK "${source_claude}")
+    file(READ_SYMLINK "${source_claude}" expected_link_target)
+  else()
+    file(READ "${source_claude}" expected_link_target)
+  endif()
+  if(NOT IS_SYMLINK "${clone_claude}")
+    file(REMOVE "${clone_claude}")
+    file(CREATE_LINK "${expected_link_target}" "${clone_claude}"
+      SYMBOLIC RESULT symlink_result)
+    if(NOT symlink_result STREQUAL "0")
+      if(NOT CMAKE_HOST_WIN32)
+        message(FATAL_ERROR "cannot create the real CLAUDE.md symlink control: ${symlink_result}")
+      endif()
+      file(WRITE "${clone_claude}" "${expected_link_target}")
+    endif()
+  endif()
+  execute_process(COMMAND git rev-parse HEAD:CLAUDE.md
+    WORKING_DIRECTORY "${SOURCE_DIR}" RESULT_VARIABLE git_result
+    OUTPUT_VARIABLE claude_blob ERROR_VARIABLE git_error
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(NOT "${git_result}" STREQUAL "0")
+    message(FATAL_ERROR "cannot capture the source CLAUDE.md blob: ${git_error}")
+  endif()
+  file(MAKE_DIRECTORY "${source_clone}/phase20-raw-crlf")
+  file(WRITE "${source_clone}/phase20-raw-crlf/.gitattributes" "blob.dat -text")
+  if(CMAKE_HOST_WIN32)
+    set(raw_crlf_fixture "first line\nsecond line\n")
+  else()
+    set(raw_crlf_fixture "first line\r\nsecond line\r\n")
+  endif()
+  file(WRITE "${source_clone}/phase20-raw-crlf/blob.dat" "${raw_crlf_fixture}")
+  string(SHA256 expected_crlf_sha "first line\r\nsecond line\r\n")
+  file(SHA256 "${source_clone}/phase20-raw-crlf/blob.dat" actual_crlf_sha)
+  if(NOT actual_crlf_sha STREQUAL expected_crlf_sha)
+    message(FATAL_ERROR "phase20 CRLF source fixture did not retain exact CRLF bytes")
+  endif()
   execute_process(COMMAND git init WORKING_DIRECTORY "${source_clone}"
     RESULT_VARIABLE git_result OUTPUT_VARIABLE git_output ERROR_VARIABLE git_error)
   if(NOT "${git_result}" STREQUAL "0")
     message(FATAL_ERROR "cannot initialize source-bound adapter fixture: ${git_error}")
   endif()
-  execute_process(COMMAND git add -A WORKING_DIRECTORY "${source_clone}"
+  execute_process(COMMAND git -c core.autocrlf=false -c core.eol=lf
+      -c core.symlinks=true add -A
+    WORKING_DIRECTORY "${source_clone}"
     RESULT_VARIABLE git_result OUTPUT_VARIABLE git_output ERROR_VARIABLE git_error)
   if(NOT "${git_result}" STREQUAL "0")
     message(FATAL_ERROR "cannot stage adapter source fixture: ${git_error}")
+  endif()
+  execute_process(COMMAND git -c core.symlinks=true update-index --add --cacheinfo
+      "120000,${claude_blob},CLAUDE.md"
+    WORKING_DIRECTORY "${source_clone}" RESULT_VARIABLE git_result
+    OUTPUT_VARIABLE git_output ERROR_VARIABLE git_error)
+  if(NOT "${git_result}" STREQUAL "0")
+    message(FATAL_ERROR "cannot preserve the source CLAUDE.md symlink object in the fixture: ${git_error}")
   endif()
   execute_process(COMMAND git -c "core.hooksPath=${WORK}/empty-hooks" -c user.name=phase20-fixture
       -c user.email=phase20-fixture commit -m adapter-fixture
@@ -535,53 +582,86 @@ if(CASE STREQUAL "adapter" OR CASE STREQUAL "availability")
   if(NOT "${git_result}" STREQUAL "0")
     message(FATAL_ERROR "cannot commit adapter source fixture: ${git_error}")
   endif()
+  execute_process(COMMAND git hash-object --no-filters -- phase20-raw-crlf/blob.dat
+    WORKING_DIRECTORY "${source_clone}" RESULT_VARIABLE git_result
+    OUTPUT_VARIABLE raw_crlf_blob ERROR_VARIABLE git_error
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  execute_process(COMMAND git rev-parse HEAD:phase20-raw-crlf/blob.dat
+    WORKING_DIRECTORY "${source_clone}" RESULT_VARIABLE tree_result
+    OUTPUT_VARIABLE stored_crlf_blob ERROR_VARIABLE tree_error
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(NOT "${git_result}" STREQUAL "0" OR NOT "${tree_result}" STREQUAL "0" OR
+     NOT raw_crlf_blob STREQUAL stored_crlf_blob)
+    message(FATAL_ERROR
+      "raw CRLF source file did not retain its exact Git blob: ${git_error}${tree_error}")
+  endif()
   message(STATUS "phase20 adapter: isolated source clone is ready")
   phase20_compute_effective_digest("${source_clone}" adapter_digest adapter_count adapter_manifest digest_error)
   if(NOT digest_error STREQUAL "")
     message(FATAL_ERROR "cannot enumerate source-bound adapter fixture: ${digest_error}")
   endif()
+  if(IS_SYMLINK "${source_clone}/CLAUDE.md")
+    file(READ_SYMLINK "${source_clone}/CLAUDE.md" expected_link_target)
+  endif()
+  execute_process(COMMAND git show HEAD:CLAUDE.md
+    WORKING_DIRECTORY "${source_clone}" RESULT_VARIABLE git_result
+    OUTPUT_VARIABLE stored_link_target ERROR_VARIABLE git_error
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if(NOT "${git_result}" STREQUAL "0" OR
+     NOT stored_link_target STREQUAL expected_link_target)
+    message(FATAL_ERROR
+      "Git's CLAUDE.md symlink blob is not the raw link target: ${git_error}")
+  endif()
   set(tree_entries "")
-  set(adapter_paths "")
-  set(adapter_path_lines "")
-  string(REPLACE "\n" ";" adapter_rows "${adapter_manifest}")
-  foreach(row IN LISTS adapter_rows)
+  execute_process(COMMAND git ls-tree -r HEAD
+    WORKING_DIRECTORY "${source_clone}" RESULT_VARIABLE git_result
+    OUTPUT_VARIABLE tree_rows ERROR_VARIABLE git_error)
+  if(NOT "${git_result}" STREQUAL "0")
+    message(FATAL_ERROR "cannot read the real Git source tree for adapter fixture: ${git_error}")
+  endif()
+  string(REPLACE "\r\n" "\n" tree_rows "${tree_rows}")
+  string(REPLACE "\n" ";" tree_rows "${tree_rows}")
+  set(adapter_tree_count 0)
+  set(adapter_symlink_seen FALSE)
+  foreach(row IN LISTS tree_rows)
     if(row STREQUAL "")
       continue()
     endif()
-    string(REPLACE "\t" ";" fields "${row}")
-    list(GET fields 0 path)
-    list(APPEND adapter_paths "${path}")
-    string(APPEND adapter_path_lines "${path}\n")
-  endforeach()
-  set(adapter_path_file "${WORK}/adapter-source-paths.txt")
-  file(WRITE "${adapter_path_file}" "${adapter_path_lines}")
-  execute_process(
-    COMMAND git hash-object --no-filters --stdin-paths
-    WORKING_DIRECTORY "${source_clone}" INPUT_FILE "${adapter_path_file}"
-    RESULT_VARIABLE hash_result OUTPUT_VARIABLE blob_sha_lines ERROR_VARIABLE hash_error
-    OUTPUT_STRIP_TRAILING_WHITESPACE)
-  if(NOT "${hash_result}" STREQUAL "0")
-    message(FATAL_ERROR "cannot hash source-bound adapter fixture paths: ${hash_error}")
-  endif()
-  string(REPLACE "\r\n" "\n" blob_sha_lines "${blob_sha_lines}")
-  string(REPLACE "\r" "\n" blob_sha_lines "${blob_sha_lines}")
-  string(REPLACE "\n" ";" blob_shas "${blob_sha_lines}")
-  list(LENGTH adapter_paths adapter_path_count)
-  list(LENGTH blob_shas hash_count)
-  if(NOT hash_count EQUAL adapter_path_count)
-    message(FATAL_ERROR
-      "adapter source tree hash count ${hash_count} does not match path count ${adapter_path_count}")
-  endif()
-  set(hash_index 0)
-  foreach(path IN LISTS adapter_paths)
-    list(GET blob_shas ${hash_index} blob_sha)
+    string(FIND "${row}" "\t" separator)
+    if(separator LESS 0)
+      message(FATAL_ERROR "real Git source tree row is malformed: ${row}")
+    endif()
+    string(SUBSTRING "${row}" 0 ${separator} header)
+    math(EXPR path_start "${separator} + 1")
+    string(SUBSTRING "${row}" ${path_start} -1 path)
+    string(REPLACE " " ";" fields "${header}")
+    list(GET fields 0 mode)
+    list(GET fields 1 type)
+    list(GET fields 2 blob_sha)
+    if(NOT type STREQUAL "blob" OR path STREQUAL "tests/accuracy/measurements.md")
+      continue()
+    endif()
+    if(path STREQUAL "CLAUDE.md")
+      phase20_is_lower_hex("${blob_sha}" 40 valid_blob)
+      if(NOT mode STREQUAL "120000" OR NOT valid_blob)
+        message(FATAL_ERROR "real Git tree did not retain symlink mode/blob for CLAUDE.md: ${mode} ${blob_sha}")
+      endif()
+      set(adapter_symlink_seen TRUE)
+    endif()
+    string(JSON entry SET "{}" path "\"${path}\"")
+    string(JSON entry SET "${entry}" mode "\"${mode}\"")
+    string(JSON entry SET "${entry}" type "\"${type}\"")
+    string(JSON entry SET "${entry}" sha "\"${blob_sha}\"")
     if(NOT tree_entries STREQUAL "")
       string(APPEND tree_entries ",")
     endif()
-    string(APPEND tree_entries "{\"path\":\"${path}\",\"mode\":\"100644\",\"type\":\"blob\",\"sha\":\"${blob_sha}\"}")
-    math(EXPR hash_index "${hash_index} + 1")
+    string(APPEND tree_entries "${entry}")
+    math(EXPR adapter_tree_count "${adapter_tree_count} + 1")
   endforeach()
-  message(STATUS "phase20 adapter: batched ${adapter_path_count} source hashes")
+  if(NOT adapter_symlink_seen)
+    message(FATAL_ERROR "real Git API-tree fixture omitted the CLAUDE.md symlink entry")
+  endif()
+  message(STATUS "phase20 adapter: built ${adapter_tree_count} entries from real Git tree objects")
   file(MAKE_DIRECTORY "${fake_root}/fixture")
   file(COPY "${FIXTURE}/provenance" "${FIXTURE}/artifacts" "${FIXTURE}/downloads"
     DESTINATION "${fake_root}/fixture")
@@ -594,6 +674,68 @@ if(CASE STREQUAL "adapter" OR CASE STREQUAL "availability")
   endforeach()
   file(WRITE "${fake_root}/fixture/provenance/ci-tree.json"
     "{\"sha\":\"dddddddddddddddddddddddddddddddddddddddd\",\"truncated\":false,\"tree\":[${tree_entries}]}")
+  phase20_check_remote_tree("${fake_root}/fixture/provenance/ci-tree.json"
+    "${source_clone}" "${adapter_manifest}" tree_error)
+  if(NOT tree_error STREQUAL "")
+    message(FATAL_ERROR "real Git tree rejected the effective source fixture: ${tree_error}")
+  endif()
+  if(IS_SYMLINK "${clone_claude}")
+    file(READ_SYMLINK "${clone_claude}" link_target)
+    file(REMOVE "${clone_claude}")
+    file(WRITE "${clone_claude}" "${link_target}")
+    execute_process(COMMAND git config --local core.symlinks false
+      WORKING_DIRECTORY "${source_clone}" RESULT_VARIABLE git_result
+      OUTPUT_VARIABLE git_output ERROR_VARIABLE git_error)
+    if(NOT "${git_result}" STREQUAL "0")
+      message(FATAL_ERROR "cannot configure the materialized symlink control: ${git_error}")
+    endif()
+    phase20_compute_effective_digest("${source_clone}" materialized_digest
+      materialized_count materialized_manifest digest_error)
+    if(NOT digest_error STREQUAL "")
+      message(FATAL_ERROR "cannot digest the materialized symlink checkout: ${digest_error}")
+    endif()
+    phase20_check_remote_tree("${fake_root}/fixture/provenance/ci-tree.json"
+      "${source_clone}" "${materialized_manifest}" tree_error)
+    if(NOT tree_error STREQUAL "")
+      message(FATAL_ERROR "regular-file symlink checkout failed the real Git tree check: ${tree_error}")
+    endif()
+    phase20_validate_clean_source("${source_clone}" materialized_clean_error)
+    if(NOT materialized_clean_error STREQUAL "")
+      message(FATAL_ERROR
+        "core.symlinks=false materialized source checkout was considered dirty: ${materialized_clean_error}")
+    endif()
+    file(REMOVE "${clone_claude}")
+    file(CREATE_LINK "${link_target}" "${clone_claude}" SYMBOLIC RESULT symlink_result)
+    if(NOT symlink_result STREQUAL "0")
+      message(FATAL_ERROR "cannot restore symlink after materialized checkout control: ${symlink_result}")
+    endif()
+    execute_process(COMMAND git config --local --unset core.symlinks
+      WORKING_DIRECTORY "${source_clone}" RESULT_VARIABLE git_result
+      OUTPUT_VARIABLE git_output ERROR_VARIABLE git_error)
+    if(NOT "${git_result}" STREQUAL "0")
+      message(FATAL_ERROR "cannot restore default symlink checkout mode: ${git_error}")
+    endif()
+    phase20_compute_effective_digest("${source_clone}" restored_digest
+      restored_count restored_manifest digest_error)
+    phase20_validate_clean_source("${source_clone}" clean_error)
+    if(NOT digest_error STREQUAL "" OR NOT clean_error STREQUAL "" OR
+       NOT restored_digest STREQUAL adapter_digest OR
+       NOT restored_count STREQUAL adapter_count OR
+       NOT restored_manifest STREQUAL adapter_manifest)
+      message(FATAL_ERROR
+        "symlink checkout fixture was not restored exactly: ${digest_error} ${clean_error}")
+    endif()
+    message(STATUS "phase20 adapter: real symlink and core.symlinks=false materialized checks passed")
+  else()
+    phase20_check_remote_tree("${fake_root}/fixture/provenance/ci-tree.json"
+      "${source_clone}" "${adapter_manifest}" tree_error)
+    if(NOT tree_error STREQUAL "")
+      message(FATAL_ERROR
+        "materialized symlink checkout failed the real Git tree check: ${tree_error}")
+    endif()
+    message(STATUS
+      "phase20 adapter: core.symlinks=false regular-file representation matches the symlink blob")
+  endif()
   set(delivery_file "${adapter_root}/delivery.json")
   file(MAKE_DIRECTORY "${adapter_root}")
   file(WRITE "${delivery_file}"
