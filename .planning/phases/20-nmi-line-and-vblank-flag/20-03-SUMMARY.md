@@ -92,6 +92,10 @@ status: complete
 
 Tasks 1–3 share the one causal green commit required by D-20: `ace7abe` (`feat(20-03): implement instruction-level NMI polling`). The summary and sequential state/roadmap close-out follow separately.
 
+1. **Task 1: Trace Control 8 and Control 9 to distinct guest handler order** — `ace7abe` (`feat`)
+2. **Task 2: Validate poll history and explain the observed hash movement** — `ace7abe` (`feat`)
+3. **Task 3: Measure the poll campaign and close all six target diagnostics** — `ace7abe` (`feat`)
+
 ## Files Created/Modified
 
 - `src/cpu.c`, `src/bus.c`, `src/internal.h`, `src/state.c` — poll history, instruction polling, reset, serialization, and validation.
