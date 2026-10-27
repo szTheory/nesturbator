@@ -4,17 +4,17 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: executing
-stopped_at: Completed 20-05-PLAN.md
-last_updated: "2026-10-27T01:12:28.396Z"
+status: verifying
+stopped_at: Completed 20-06-PLAN.md
+last_updated: "2026-10-27T01:40:18.946Z"
 last_activity: 2026-10-26
-last_activity_desc: Plan 20-05 completed; Plan 20-06 is next
-state_head: 28c6b21f5946140599474a69cc0f0558baa08971
+last_activity_desc: Plan 20-06 local execution completed; awaiting parent verification gates
+state_head: 5ad07e9997e7858fdb18f1272e2c800cc387e5f0
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 33
 ---
 
@@ -30,8 +30,8 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 Phase: 20 (NMI line and VBlank flag) — EXECUTING
 Plan: 6 of 6
-Status: Ready to execute
-Last activity: 2026-10-26 — Plan 20-05 completed; Plan 20-06 is next
+Status: Local plans complete; hosted evidence and phase verification gates pending
+Last activity: 2026-10-26 — Plan 20-06 local execution completed; awaiting parent verification gates
 
 Progress: [███░░░░░░░] 33%
 
@@ -60,6 +60,9 @@ Progress: [███░░░░░░░] 33%
 - [Phase 20]: Plan 20-05: public host frame boundaries validate NMI guest history separately from exact instruction-boundary race evidence.
 - [Phase 20]: Plan 20-05: runner audio hashes compare the identical resumed suffix against uninterrupted execution.
 - [Phase 20]: Plan 20-05: KEEP-02 and KEEP-03 remain pending; local host replay does not establish six-platform or later hosted evidence.
+- [Phase 20]: Plan 20-06 gates each full AccuracyCoin NMI target key independently of aggregate totals.
+- [Phase 20]: The 108-key protected PASS authority stays separate from the six promoted NMI targets.
+- [Phase 20]: KEEP-02/03 remain pending hosted exact-head evidence; local cutpoint and host replay claims stay bounded.
 
 ### Blockers/Concerns
 
@@ -108,12 +111,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Plan 20-05 is complete. Plan 20-06 is next for the six-target gate, final baseline/hash provenance, and local/hosted evidence ledger. Plans 20-03/20-04 completed instruction-specific polling, the six default-alignment target rows, protected-pass comparison, and exact local enabled-NMI set/clear/edge continuation. Plan 20-05 added core, runner, and libretro host rewind/run-ahead replay and full local CI. KEEP-02/03 remain pending until six-platform hash confirmation and hosted Nightly vector-fetch evidence are recorded. The exact physical tie remains an evidence limit. Three testing proposals remain proposed future scope; the CI speed-up title-workflow migration remains deferred.
+Plan 20-06 local execution is complete; Phase 20 remains in progress for the parent verification gates. The exact-six target gate, final campaign provenance, 108-key protected PASS comparison, native hash inventory, local CI, and ASan all pass. KEEP-02/03 remain pending exact-head six-platform hash/protected PASS and hosted evidence; the Nightly vectors-full fetch debt and physical exact-tie limit remain open. No hosted result or full Phase 20 completion is claimed.
 
 ## Session
 
-Last session: 2026-10-27T01:12:28.271Z
-Stopped at: Completed 20-05-PLAN.md
+Last session: 2026-10-27T01:40:18.906Z
+Stopped at: Completed 20-06-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -139,3 +142,4 @@ Resume file: None
 | Phase 20 P03 | 83min | 3 tasks | 25 files |
 | Phase 20 P04 | 31min | 3 tasks | 4 files |
 | Phase 20 P5 | 32min | 3 tasks | 12 files |
+| Phase 20 P6 | 26min | 3 tasks | 7 files |
