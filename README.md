@@ -972,16 +972,45 @@ cmake -DMODE=validate -DROOT=build/phase20-evidence -DSOURCE_REF=. \
   -P tests/cmake/phase20_hosted_evidence.cmake
 ```
 
-`ROOT` must be under `build/` or `/tmp`. Collection uses only read-only GitHub
-CLI API, run-view, and artifact-download requests. The collector derives the
+To check whether delivery metadata is ready before downloading content, save
+the authorized candidate SHA in a text file and run:
+
+```sh
+cmake -DMODE=availability -DROOT=build/phase20-evidence \
+  -DSOURCE_REF=. -DEXPECTED_CANDIDATE_FILE=build/candidate-sha.txt \
+  -DEXPECTED_PR_NUMBER=123 \
+  -P tests/cmake/phase20_hosted_evidence.cmake
+```
+
+Availability compares that captured SHA and exact PR number with
+`ROOT/delivery.json`, the current PR snapshot and both selected run attempts.
+It checks complete run, job and artifact inventories, matrix job identities,
+merge parents, per-job metadata and full source trees. Success writes only
+`ROOT/availability/availability.txt` with an `available` verdict, source and
+run identities, selected job and artifact IDs, metadata-file digests and
+retrieval time. This is a time-bounded metadata snapshot, not hosted
+acceptance. It requests no artifact or job log, extracts no archive, and does
+not replace collection provenance or acceptance files.
+
+`ROOT` must be under `build/` or `/tmp`. Collection uses supported read-only
+GitHub CLI API, run-view, per-job log, and artifact-download requests. The collector derives the
 actual tested checkout and protected base from saved GitHub run and PR metadata; pull-request
 builds normally test a synthetic merge commit, so the candidate head SHA is
 checked against the merge commit's two parents instead of being treated as the
 tested checkout SHA. The run API's `head_sha` identifies the candidate, while
 the matching PR snapshot's `merge_commit_sha` selects the merge for independent
 parent, artifact and full-tree checks. Required matrix jobs use their complete
-hosted names, including session-control and no-floating-point lanes.
-Its full effective-source manifest hashes Git tree
+hosted names, including session-control and no-floating-point lanes. The six
+required CTest results are read from each selected matrix job's own
+workflow-execution step and are bound to that job's ID, run attempt, step
+metadata and raw log ZIP digest. The Holy Mapperel result uses the registered
+name `holymapperel.m2.decode`. `LastTest.log` remains byte-for-byte raw
+supporting evidence; it may contain only start/end lines and is not a CTest
+summary. Artifact files are normalized by matching complete path suffixes at
+directory boundaries, including root-level members. Every expected file must
+have exactly one raw path; root/nested ambiguity and duplicate ZIP members
+fail. `provenance/normalization.tsv` records raw and normalized paths with the
+unchanged content digest. Its full effective-source manifest hashes Git tree
 contents and symlink targets, excluding only `.planning/` and
 `tests/accuracy/measurements.md`. This is distinct from the narrower
 AccuracyCoin build-input fingerprint. The collector records the source digest,

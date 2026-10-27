@@ -56,9 +56,10 @@ static int phase20_serve_file(const char *fixture, const char *relative_path)
     char full_path[PHASE20_PATH_CAPACITY];
     FILE *input;
     int result;
+    int path_length;
 
-    if (snprintf(full_path, sizeof full_path, "%s/%s", fixture, relative_path) < 0 ||
-        strlen(full_path) >= sizeof full_path) {
+    path_length = snprintf(full_path, sizeof full_path, "%s/%s", fixture, relative_path);
+    if (path_length < 0 || (size_t)path_length >= sizeof full_path) {
         (void)fprintf(stderr, "fake gh: fixture path is too long\n");
         return 1;
     }
@@ -79,9 +80,10 @@ static int phase20_match_route(const char *fixture, const char *endpoint)
     char routes_path[PHASE20_PATH_CAPACITY];
     char line[PHASE20_PATH_CAPACITY];
     FILE *routes;
+    int path_length;
 
-    if (snprintf(routes_path, sizeof routes_path, "%s/routes.tsv", fixture) < 0 ||
-        strlen(routes_path) >= sizeof routes_path) {
+    path_length = snprintf(routes_path, sizeof routes_path, "%s/routes.tsv", fixture);
+    if (path_length < 0 || (size_t)path_length >= sizeof routes_path) {
         (void)fprintf(stderr, "fake gh: route path is too long\n");
         return 1;
     }
@@ -179,12 +181,12 @@ static int phase20_handle_run_view(int argc, char **argv)
     char route[128];
     int index;
 
-    if (argc < 3 || fixture[0] == '\0') {
+    if (argc < 4 || fixture[0] == '\0') {
         (void)fprintf(stderr, "fake gh: malformed run-view command\n");
         return 64;
     }
-    run_id = argv[2];
-    for (index = 3; index + 1 < argc; ++index) {
+    run_id = argv[3];
+    for (index = 4; index + 1 < argc; ++index) {
         if (strcmp(argv[index], "--attempt") == 0) {
             attempt = argv[index + 1];
         }
@@ -192,6 +194,11 @@ static int phase20_handle_run_view(int argc, char **argv)
     if (attempt == NULL || snprintf(route, sizeof route, "%s/%s", run_id, attempt) < 0) {
         (void)fprintf(stderr, "fake gh: run-view identity is incomplete\n");
         return 64;
+    }
+    if (phase20_env("PHASE20_FAKE_GH_CONTENT_FORBIDDEN")[0] == '1') {
+        (void)phase20_append_call("rejected-content", "workflow-run-log");
+        (void)fprintf(stderr, "fake gh: availability mode requested workflow logs\n");
+        return 66;
     }
     if (phase20_append_call("run-view", route) != 0) {
         return 65;

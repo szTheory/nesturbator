@@ -718,7 +718,7 @@ add_test(NAME phase20.hosted_evidence.controls
     "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes"
     "-DWORK=${PROJECT_BINARY_DIR}/phase20-hosted-evidence-controls"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase20_hosted_evidence_controls.cmake)
-set_tests_properties(phase20.hosted_evidence.controls PROPERTIES TIMEOUT 120)
+set_tests_properties(phase20.hosted_evidence.controls PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
 add_test(NAME phase20.hosted_evidence.adapter
   COMMAND ${CMAKE_COMMAND}
     -DCASE=adapter
@@ -728,7 +728,17 @@ add_test(NAME phase20.hosted_evidence.adapter
     "-DFAKE_GH=$<TARGET_FILE:phase20_fake_gh>"
     "-DWORK=${PROJECT_BINARY_DIR}/phase20-hosted-evidence-adapter"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase20_hosted_evidence_controls.cmake)
-set_tests_properties(phase20.hosted_evidence.adapter PROPERTIES TIMEOUT 120)
+set_tests_properties(phase20.hosted_evidence.adapter PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
+add_test(NAME phase20.hosted_evidence.availability
+  COMMAND ${CMAKE_COMMAND}
+    -DCASE=availability
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes"
+    "-DFAKE_GH=$<TARGET_FILE:phase20_fake_gh>"
+    "-DWORK=${PROJECT_BINARY_DIR}/phase20-hosted-evidence-availability"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase20_hosted_evidence_controls.cmake)
+set_tests_properties(phase20.hosted_evidence.availability PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
 
 # AccuracyCoin page runs are kept separate so a failure names the page whose
 # RAM-derived results diverged from the committed scoreboard.
