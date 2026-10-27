@@ -5,16 +5,16 @@ milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
 status: executing
-stopped_at: Completed 20-04-PLAN.md
-last_updated: "2026-10-27T00:36:30.035Z"
+stopped_at: Completed 20-05-PLAN.md
+last_updated: "2026-10-27T01:12:28.396Z"
 last_activity: 2026-10-26
-last_activity_desc: Plan 20-04 completed; Plan 20-05 is next
-state_head: 354cf393d136bccd9d3236a1e17fe61369976a9a
+last_activity_desc: Plan 20-05 completed; Plan 20-06 is next
+state_head: 28c6b21f5946140599474a69cc0f0558baa08971
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 12
-  completed_plans: 10
+  completed_plans: 11
   percent: 33
 ---
 
@@ -29,9 +29,9 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 ## Current Position
 
 Phase: 20 (NMI line and VBlank flag) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Ready to execute
-Last activity: 2026-10-26 — Plan 20-04 completed; Plan 20-05 is next
+Last activity: 2026-10-26 — Plan 20-05 completed; Plan 20-06 is next
 
 Progress: [███░░░░░░░] 33%
 
@@ -57,12 +57,15 @@ Progress: [███░░░░░░░] 33%
 - [Phase 20]: Plan 20-03 keeps one global timestamp model and no per-table offset; the exact physical tie remains unproven.
 - [Phase 20]: Exact NMI cutpoints use declared constructed origins and complete production cpu_step calls; no partial-instruction state API is introduced.
 - [Phase 20]: Captured NMI history remains serializable after VBlank status clears; a CRC-correct omitted-history control is caught by the guest-marker oracle.
+- [Phase 20]: Plan 20-05: public host frame boundaries validate NMI guest history separately from exact instruction-boundary race evidence.
+- [Phase 20]: Plan 20-05: runner audio hashes compare the identical resumed suffix against uninterrupted execution.
+- [Phase 20]: Plan 20-05: KEEP-02 and KEEP-03 remain pending; local host replay does not establish six-platform or later hosted evidence.
 
 ### Blockers/Concerns
 
-- [Phase 20 execution]: Plans 20-02 through 20-04 are complete under amended D-10. Plan 20-03 revalidated all six target rows at default alignment under the single global model policy; Plan 20-04 reached enabled set/clear and captured-before-poll states by complete production instructions and replayed them through public save/load. The exact physical paired-chip tie remains an evidence limit. Plans 20-05 and 20-06 remain pending under their normal prerequisites.
+- [Phase 20 execution]: Plans 20-02 through 20-05 are complete under amended D-10. Plan 20-03 revalidated all six target rows at default alignment under the single global model policy; Plan 20-04 reached enabled set/clear and captured-before-poll states by complete production instructions and replayed them through public save/load; Plan 20-05 added local frame-boundary replay across core, runner, and libretro. The exact physical paired-chip tie remains an evidence limit. Plan 20-06 remains pending under its normal prerequisites.
 - `tests/accuracy/measurements.md` records the Plan 20-03 source-sequence results, Plan 20-04's constructed/executed origins, all 20 bounded Control 8/9 candidates, and the production sampler endpoint projections. No alignment shift or per-table offset was selected.
-- KEEP-03 remains pending for the later host replay and cross-platform evidence. Plan 20-04 found no required instruction-boundary cutpoint that needs clarification; local replay does not resolve physical tie precedence.
+- KEEP-02 and KEEP-03 remain pending for cross-platform hash confirmation and hosted evidence. Plan 20-05 supplies local host replay; it does not resolve physical tie precedence or satisfy later hosted evidence. Plan 20-04 found no required instruction-boundary cutpoint that needs clarification.
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
 
 ### Pending Todos
@@ -79,7 +82,7 @@ Progress: [███░░░░░░░] 33%
 
 ## Delivery
 
-Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 context, research, six plans and a passed plan check are recorded. Plans 20-01 through 20-04 are complete; Phase 20 remains in progress with host replay and final evidence plans pending.
+Phase 16 is on main and released as v0.1.11. Phases 17 and 18 merged as PR #55 (exact-head CI 40150921041 green; Nightly 40150888217 success); PR #54 was folded into it. Release PR #56 (0.1.12) was open at the v5 opening; record its publication in MILESTONES.md once observed. Phase 19 squash-merged as PR #57 on 2026-10-26 (`ab9c2e6`), after the CI repairs documented in `debug/resolved/pr57-ci-failures.md`. Branch `gsd/phase-20-nmi-line-and-vblank-flag` was created and pushed from that main. Phase 20 context, research, six plans and a passed plan check are recorded. Plans 20-01 through 20-05 are complete; Phase 20 remains in progress with final evidence pending. Plan 20-05 proves local host frame-boundary replay only; KEEP-02/03 still need six-platform and hosted evidence.
 
 ## Deferred Items
 
@@ -105,12 +108,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 20` to execute Plan 20-05. Plans 20-03/20-04 completed instruction-specific polling, the six default-alignment target rows, protected-pass comparison, exact local enabled-NMI set/clear/edge continuation, and local CI. Plan 20-05 owns host rewind/run-ahead replay. KEEP-03 remains pending until later host and cross-platform evidence; six-platform hash confirmation and hosted Nightly vector-fetch evidence remain open. The exact physical tie remains an evidence limit. Three testing proposals remain proposed future scope; the CI speed-up title-workflow migration remains deferred.
+Plan 20-05 is complete. Plan 20-06 is next for the six-target gate, final baseline/hash provenance, and local/hosted evidence ledger. Plans 20-03/20-04 completed instruction-specific polling, the six default-alignment target rows, protected-pass comparison, and exact local enabled-NMI set/clear/edge continuation. Plan 20-05 added core, runner, and libretro host rewind/run-ahead replay and full local CI. KEEP-02/03 remain pending until six-platform hash confirmation and hosted Nightly vector-fetch evidence are recorded. The exact physical tie remains an evidence limit. Three testing proposals remain proposed future scope; the CI speed-up title-workflow migration remains deferred.
 
 ## Session
 
-Last session: 2026-10-27T00:36:29.996Z
-Stopped at: Completed 20-04-PLAN.md
+Last session: 2026-10-27T01:12:28.271Z
+Stopped at: Completed 20-05-PLAN.md
 Resume file: None
 
 ## Performance Metrics
@@ -135,3 +138,4 @@ Resume file: None
 | Phase 20 P02 | 90min | 3 tasks | 24 files |
 | Phase 20 P03 | 83min | 3 tasks | 25 files |
 | Phase 20 P04 | 31min | 3 tasks | 4 files |
+| Phase 20 P5 | 32min | 3 tasks | 12 files |
