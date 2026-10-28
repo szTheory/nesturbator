@@ -87,6 +87,7 @@ uint16_t nesturbator__apu_mixed_level(const struct nesturbator *nes)
 static void update_mixed_level(struct nesturbator *nes)
 {
     int32_t level = (int32_t)nesturbator__apu_mixed_level(nes);
+    nes->apu.mixed_level_valid = 1u;
     if (level == nes->synth.mixed_level)
         return;
     if (nes->transition_sink != NULL)
@@ -200,6 +201,7 @@ void nesturbator__apu_end_frame(struct nesturbator *nes)
 
 void nesturbator__apu_clock(struct nesturbator *nes)
 {
+    uint8_t level_changed = (uint8_t)(nes->apu.mixed_level_valid == 0u);
     if (nes->apu.frame_irq_clear_pending != 0u && nes->bus.apu_get_put_phase != 0u) {
         nes->apu.frame_irq = 0u;
         nes->apu.frame_irq_clear_pending = 0u;
@@ -211,6 +213,8 @@ void nesturbator__apu_clock(struct nesturbator *nes)
             if (pulse->counter == 0u) {
                 pulse->counter = pulse->timer;
                 pulse->phase = (uint8_t)((pulse->phase + 1u) & 7u);
+                if ((nes->apu.enabled & (1u << i)) != 0u && pulse->length != 0u)
+                    level_changed = 1u;
             } else {
                 pulse->counter--;
             }
@@ -219,14 +223,18 @@ void nesturbator__apu_clock(struct nesturbator *nes)
     struct nesturbator__triangle *triangle = &nes->apu.triangle;
     if (triangle->counter == 0u) {
         triangle->counter = triangle->timer;
-        if (triangle->length != 0u && triangle->linear != 0u && triangle->timer >= 2u)
+        if (triangle->length != 0u && triangle->linear != 0u && triangle->timer >= 2u) {
             triangle->phase = (uint8_t)((triangle->phase + 1u) & 31u);
+            level_changed = 1u;
+        }
     } else {
         triangle->counter--;
     }
     struct nesturbator__noise *noise = &nes->apu.noise;
     if (noise->counter == 0u) {
         noise->counter = noise_period[noise->reg[2] & 0x0fu];
+        if ((nes->apu.enabled & 8u) != 0u && noise->length != 0u)
+            level_changed = 1u;
         /* RP2A03G's measured power-up LFSR is zero; its first clock shifts in
            one. This follows CPU power-up measurement HWC.05, while HWC.08's
            operational “loads 1” wording describes the usual running model. */
@@ -271,6 +279,7 @@ void nesturbator__apu_clock(struct nesturbator *nes)
                 }
             }
             if (dmc->bits != 0u) {
+                level_changed = 1u;
                 if ((dmc->shift & 1u) != 0u) {
                     if (dmc->output <= 125u)
                         dmc->output = (uint8_t)(dmc->output + 2u);
@@ -301,6 +310,7 @@ void nesturbator__apu_clock(struct nesturbator *nes)
             nes->apu.frame_mode = nes->apu.frame_pending_mode;
             nes->apu.frame_cycle = 0u;
             if (nes->apu.frame_mode != 0u) {
+                level_changed = 1u;
                 frame_quarter_clock(&nes->apu);
                 length_clock(&nes->apu);
             }
@@ -311,6 +321,7 @@ void nesturbator__apu_clock(struct nesturbator *nes)
             nes->apu.frame_cycle == 22371u ||
             (nes->apu.frame_mode == 0u && nes->apu.frame_cycle == 29829u) ||
             (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == 37281u)) {
+            level_changed = 1u;
             frame_quarter_clock(&nes->apu);
             if (nes->apu.frame_cycle == 14913u || nes->apu.frame_cycle == 29829u ||
                 (nes->apu.frame_mode != 0u && nes->apu.frame_cycle == 37281u))
@@ -329,7 +340,11 @@ void nesturbator__apu_clock(struct nesturbator *nes)
             nes->apu.frame_cycle = 0u;
     }
     nesturbator__irq_update(nes);
-    update_mixed_level(nes);
+    /* Timer decrements do not change channel output. Recompute only at
+       oscillator/frame events; register writes update the mixer separately.
+       The transient validity flag forces the first clock after state load. */
+    if (level_changed != 0u)
+        update_mixed_level(nes);
     nes->apu.sample_phase += 24u * NESTURBATOR_AUDIO_SAMPLES_PER_PERIOD;
     if (nes->apu.sample_phase >= NESTURBATOR_AUDIO_TICKS_PER_PERIOD) {
         nes->apu.sample_phase -= NESTURBATOR_AUDIO_TICKS_PER_PERIOD;

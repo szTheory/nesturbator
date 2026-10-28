@@ -1,0 +1,9 @@
+key	page	row	status	observed	raw	frames	cause	attempt_id
+accuracycoin/Sprite overflow behavior	19	1	pass	1	0x01	528	terminal-pass	page-19-cold-01
+accuracycoin/Sprite 0 Hit behavior	19	2	pass	1	0x01	528	terminal-pass	page-19-cold-01
+accuracycoin/$2002 flag timing	19	3	fail	1	0x0a	528	terminal-fail	page-19-cold-01
+accuracycoin/Suddenly Resize Sprite	19	4	pass	1	0x01	528	terminal-pass	page-19-cold-01
+accuracycoin/Misaligned OAM DMA	19	5	pass	1	0x01	528	terminal-pass	page-19-cold-01
+accuracycoin/Arbitrary Sprite zero	19	6	pass	1	0x01	528	terminal-pass	page-19-cold-01
+accuracycoin/Misaligned OAM behavior	19	7	fail	1	0x16	528	terminal-fail	page-19-cold-01
+accuracycoin/OAM Corruption	19	8	fail	1	0x0a	528	terminal-fail	page-19-cold-01

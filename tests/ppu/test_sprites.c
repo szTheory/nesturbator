@@ -111,7 +111,7 @@ static void test_diagonal_overflow_compares_non_y_bytes(void)
         uint32_t address = (uint32_t)compared_entries[case_index] * 4u;
         address += compared_bytes[case_index];
         nes.ppu.oam[address] = 0u;
-        uint64_t comparison_dot = (uint64_t)(132u + 2u * case_index);
+        uint64_t comparison_dot = (uint64_t)(133u + 2u * case_index);
         for (uint8_t step = 0u; step <= case_index + 1u; step++) {
             uint64_t read_dot = 129u + 2u * step;
             nesturbator__ppu_run_until(&nes, read_dot * 8u);
@@ -147,6 +147,8 @@ static void test_diagonal_overflow_skips_in_range_y(void)
     nesturbator__ppu_run_until(&nes, 129u * 8u);
     CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2002u) & 0x20u, 0u);
     nesturbator__ppu_run_until(&nes, 130u * 8u);
+    CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2002u) & 0x20u, 0u);
+    nesturbator__ppu_run_until(&nes, 131u * 8u);
     CHECK_EQ_U64(nesturbator__ppu_register_read(&nes, 0x2002u) & 0x20u, 0x20u);
 }
 
@@ -162,7 +164,7 @@ static void test_diagonal_overflow_clears_on_prerender(void)
     nesturbator__ppu_run_until(&nes, (341u * 262u) * 8u);
     CHECK_EQ_U64(nes.ppu.status & 0x20u, 0u);
     CHECK_EQ_U64(nes.ppu.eval_count, 8u);
-    nesturbator__ppu_run_until(&nes, (341u * 262u + 132u) * 8u);
+    nesturbator__ppu_run_until(&nes, (341u * 262u + 133u) * 8u);
     CHECK_EQ_U64(nes.ppu.status & 0x20u, 0x20u);
 }
 
@@ -439,6 +441,8 @@ static void test_hit_on_dot_x254_not_x255(void)
     nesturbator__ppu_run_until(&nes, 341u * 8u + 254u * 8u); /* pixel 253 drawn */
     CHECK_EQ_U64(nes.ppu.status & 0x40u, 0u);
     nesturbator__ppu_run_until(&nes, 341u * 8u + 255u * 8u); /* pixel 254 drawn */
+    CHECK_EQ_U64(nes.ppu.status & 0x40u, 0u);
+    nesturbator__ppu_run_until(&nes, 341u * 8u + 256u * 8u); /* hit signal reaches status */
     CHECK_EQ_U64(nes.ppu.status & 0x40u, 0x40u);
 
     setup();

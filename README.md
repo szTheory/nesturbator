@@ -26,7 +26,7 @@ comparison still see overflow clear. This is
 not full game compatibility: cartridges load through a per-board mapper
 interface (page tables, a four-entry nametable map, a CPU-cycle-stamped write
 hook, a mapper IRQ ORed with the APU's, and PPU A12 edges reported to the
-board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 7: OAMADDR is cleared during sprite tile loading
+board), with NROM, MMC1, UxROM, CNROM, MMC3 and AxROM as the boards so far. The behaviour revision is 8: CPU bus-clock seams capture rising edges on the derived PPU NMI line, and instruction-specific poll cycles decide when a captured request is serviced. A captured request survives later line deassertion. `$2002` samples bit 7 at M2 rise and the remaining status bits at M2 fall. Revision 7 clears OAMADDR during sprite tile loading
 (dots 257-320 while rendering) and sprite evaluation starts at OAMADDR, so the first sprite
 evaluated acts as sprite 0 wherever it sits in OAM; this changes the frames of programs that
 leave OAMADDR nonzero while rendering. Revision 6's PPUCTRL NMI edge
@@ -296,7 +296,12 @@ Mixed-level changes feed a per-instance, fixed-point band-limited synthesizer.
 Its 16-tap, 32-phase Q15 kernel preserves each level transition exactly, then
 applies the NES 90 Hz and 440 Hz high-pass filters and 14 kHz low-pass filter
 before returning signed 16-bit mono PCM. The bounded staging ring carries
-kernel and filter history across caller frame boundaries. `runner.spectral`
+kernel and filter history across caller frame boundaries. APU sample phase and
+synthesizer/filter history are per-instance saved machine state; staged PCM is
+transient output. The mixer rechecks channel levels at oscillator and
+frame-counter events and register writes. Loading state forces a check on the
+first CPU clock, including an otherwise uneventful clock; the validity cache
+adds no saved bytes. `runner.spectral`
 checks pulse periods 100, 40, 12 and 8, and triangle period 1 using a 4096
 sample filter warm-up and a 32768-sample periodic-Hann spectrum. It excludes
 one bin on either side of the first 512 integer harmonic orders after folding
@@ -314,11 +319,33 @@ If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
 CPU stays latched until the cartridge is unloaded or reloaded.
 
 The PPU sets vblank at scanline 241 dot 1 and clears it at scanline 261 dot 1.
-A `$2002` read immediately before the vblank start dot suppresses the flag and
-NMI edge for that frame; reads on or after the start dot observe and clear the
-flag. A `$2000` write raises an NMI only when bit 7 changes from 0 to 1 while
-the vblank flag is set; rewriting it with bit 7 still set does not, and
-clearing bit 7 suppresses a pending NMI. Odd NTSC frames skip pre-render dot 340 when rendering is enabled.
+A `$2002` read immediately before the vblank start dot suppresses the flag for
+that frame. Its bit 7 reflects the flag at M2 rise; sprite flags and low bits
+are composed at M2 fall, where the same read clears vblank. A sprite-overflow
+flag raised between those edges is visible in that read. The asserted NMI
+line is `PPUCTRL.7 && PPUSTATUS.7`; bus-clock seams capture its rising edge,
+while the CPU polls the captured request at instruction-specific cycle points.
+Most instructions poll before their final bus cycle; conditional branches poll
+before the offset cycle, skip the poll before a taken same-page branch's third
+cycle, and poll before its page-cross fix-up cycle. A request captured after a
+poll remains pending until a later instruction poll. `$2002`, `$2000` disable
+and the pre-render clear can lower the live line without revoking an already
+captured request. Rewriting `$2000`
+with bit 7 still set does not create a second capture. Equal-time PPU updates,
+CPU sampling and bus side effects use one deterministic model order; this
+convention does not assert physical setup/hold precedence at an exact tie. Odd
+NTSC frames skip pre-render dot 340 when rendering is enabled.
+PPUSTATUS keeps its separate M2-rise observation. PPU work for other accesses
+and the CPU's history-only poll can wait until the pre-close catch-up.
+Sprite-hit detection uses pattern opacity and cached eligible slots; loading
+state rebuilds those slots from every saved sprite tag. These optimizations
+preserve the selected timing order and native state bytes.
+IRQ polling also uses the level retained at the preceding close-edge detector
+sample. It cannot see an A12-driven IRQ raised by a later PPU transition at
+that same timestamp. An owned `ppu.mmc3` witness checks the guest instruction
+boundary and save/load continuation; the pinned MMC3 scanline-timing ROM stays
+an independent guard. This retains the existing MMC3 result while broader
+IRQ flag-latency and vector-hijack work remains in Phase 21.
 Nametable accesses use the cartridge's horizontal or vertical
 mirroring bit. Register accesses retain the CPU open-bus value in un-driven
 bits, and `$2007` reads are buffered outside palette space.
@@ -364,6 +391,7 @@ You need CMake 3.25 or newer, Ninja and a C17 compiler.
 
 ```sh
 cmake --workflow --preset ci    # Release, warnings as errors; builds, runs every test, writes the archives
+cmake --workflow --preset ci-build  # hosted POSIX build lane; session controls run in dedicated jobs
 cmake --workflow --preset dev   # Debug build and the same tests
 cmake --workflow --preset asan  # the same tests under AddressSanitizer and UBSan
 cmake --workflow --preset nofp  # core built with -mgeneral-regs-only; the abi checks
@@ -386,18 +414,23 @@ of the executing test script. Before sourcing the trace include, it checks the
 supplied driver and fixed include against that root, rejecting copied or
 mismatched inputs before any host or transport work. Its `source-root-preflight`
 control runs as the serial `retroarch.session.source_root` test in the POSIX
-`ci` and `asan` lanes. It exercises the repository root, CTest binary directory and an owned
+`ci` lane, with the `retroarch-session` label. It exercises the repository root, CTest binary directory and an owned
 working directory with spaces. Each case runs all four finalizer faults and
 requires wait status 143, the exact first reason, no cleanup anomaly, an
 unrun oracle and exact-port re-entry after owned-child reap.
 The session-control harness creates a fresh scratch root atomically for every
 invocation, so retained outputs cannot collide when a process ID is reused.
+Its isolated CI jobs build both `frame_index` and `nesturbator-run`. Cleanup
+fault setup records its witnesses in one Python invocation so cold interpreter
+startup cannot consume the production driver's five-second read slice through
+repeated process launches.
 
 | Lane | What it proves |
 |---|---|
 | `ci` | Release build with warnings as errors; every test passes, the library installs and builds a separate consumer, and the three release archives are written |
 | `ci-msvc` | The same as `ci`, built with MSVC on Windows |
-| `asan` | The same tests pass under AddressSanitizer and UBSan, with any report fatal, except that `NESTURBATOR_SHORT_RUNS` leaves `runner.write_hashes`, `runner.boot_to_play` and the two `vectors.registration_policy` tests to the `ci` lanes, sweeps fewer reset points in `core.reset`, and compares the non-save Holy Mapperel parity runs longer than 100 frames at frame 100 |
+| `ci-build` | The POSIX `ci` build, tests and packages with the `retroarch-session` label excluded; required dedicated Linux and Apple Silicon jobs run those serial controls once per invocation, and nightly retains Intel coverage |
+| `asan` | The same tests pass under AddressSanitizer and UBSan, with any report fatal, except that `NESTURBATOR_SHORT_RUNS` leaves `runner.write_hashes`, `runner.boot_to_play`, the two `vectors.registration_policy` tests and the shell-based `retroarch.session.*` matrix to their dedicated lanes, sweeps fewer reset points in `core.reset`, and compares the non-save Holy Mapperel parity runs longer than 100 frames at frame 100 |
 | `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
 | `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
 | `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
@@ -506,6 +539,14 @@ and an address in a file with a non-ASCII name and in a Latin-1 file, and to
 report a file whose name holds a newline as unreadable. It then requires
 `--history` to find a home path and an address in a commit message and to
 pass a clean message that carries the trailer.
+The hook then checks outgoing committed C/C++ blobs with clang-format 18,
+including intermediate local commits. A corrected working tree cannot hide an
+unformatted commit. It excludes only the vendored `libretro/libretro.h`, checks
+paths with spaces or newlines, and rejects source symlinks. Set `CLANG_FORMAT`
+to the version-18 executable, or put `clang-format-18` on PATH; the helper also
+finds Homebrew's `llvm@18`. `hygiene.push_format.controls` exercises clean,
+dirty, historical, filename, vendor, deletion, link and wrong-version cases in
+the normal POSIX CI suite. Python 3 runs the helper.
 `hygiene.action_pins` checks that every
 `uses:` key under `.github` names a full 40-digit commit SHA or a local
 path; `hygiene.action_pins.bad` and `.good` show it rejects a tag and accepts
@@ -556,6 +597,14 @@ changed row. `state.format_pin` fails unless the `state_format` row equals
 The list is written once, in
 `tests/cmake/hash_keys.cmake`, which the writer, the CI hash-equality
 validator and its self-test all read, so no row count is spelled out anywhere.
+The generated `runner.state.nmi_*` cases write an owned NROM image only under
+their per-case scratch directory. They verify the power-on marker, the first
+NMI entry and the ordered guest event count after frame 4, then load frame 1 in
+a new runner process and compare the final frame, tick count and state bytes.
+The resumed frames 2–4 transition and PCM hashes are checked against an
+uninterrupted reference that hashes only that same suffix. Separate stale
+checkpoint and omitted-load controls complete normally and are rejected by
+the independently expected guest marker.
 `runner.write_hashes` hashes frame N and frame 2N of each Holy Mapperel ROM and
 fails if they differ, so a pinned result screen is known to be static.
 `policy.rom_hash_coverage` fails when a committed ROM under `tests/roms` or
@@ -742,9 +791,12 @@ only if the check reports it.
 The `vectors-full` lane registers its tests only when the CMake option
 `NESTURBATOR_VECTORS_FULL` is on, which its preset sets, so `ci` never touches
 the network. `cpu.vectors-full.fetch` runs `tests/cmake/fetch_vectors.cmake`:
-a sparse, blobless, depth-1 git fetch of upstream `nes6502/v1` at the commit
-on the first line of `tests/vectors/pins.txt` (about 190 MB, a minute or two),
-then a size and SHA-256 check of all 256 files against that file's lines. A
+a sparse, depth-1 git fetch of upstream `nes6502/v1` at the commit
+on the first line of `tests/vectors/pins.txt`. It fetches the blobless tree,
+then its required blobs in batches of at most 16 before checkout (1.08 GB
+uncompressed). This avoids one large lazy checkout pack request that
+can stall upstream; the 1000 B/s for 60 seconds cutoff is unchanged. It then
+checks the size and SHA-256 of all 256 files against that file's lines. A
 missing, extra or altered file fails with its path and both hashes, and so
 does a run without the network; nothing is skipped. When every file already
 verifies it fetches nothing. `cpu.vectors-full.00` to `cpu.vectors-full.ff`
@@ -810,6 +862,10 @@ symbolic link, or through a different letter case on macOS and Windows, is
 refused as inside the source tree; the fetch compares paths after resolving
 them to the links' targets and the case stored on disk. A refused directory
 that does not exist yet is not created.
+`vectors.fetch.transport` models a working pinned tree fetch and a stalled
+bulk checkout pack. It requires bounded blob requests before checkout,
+preserves the transfer cutoff, and checks cold success, warm reuse, an
+unavailable transport, a corrupt final file and an extra inventory file offline.
 `bus.unit` checks the library's bus (`src/bus.c`) on its own: each read or
 write advances time by 24 ticks, a byte written at `0x0001` reads back at
 `0x0801`, `0x1001` and `0x1801`, a read outside RAM returns the last value on
@@ -829,7 +885,13 @@ CPack configuration, then runs one frame.
 `.github/workflows/ci.yml` runs on every pull request, every push to `main`
 and on demand, with the same preset commands as above. The `build` job runs
 `ci` on Linux and macOS and `ci-msvc` on Windows, each on x64 and arm64: six
-platforms. Each leg also checks its three archives and writes native-frame
+platforms. Hosted POSIX build legs use the `ci-build` workflow preset, which
+leaves `retroarch-session` tests to required dedicated `session-controls` jobs
+on Linux x64 and macOS arm64. The full local `ci` preset still runs those tests.
+Nightly runs their Intel counterpart once and excludes the label from its
+three-repeat suite-flake job. The test harness uses the driver's test-only
+`STATE_SESSION_TEST_QUIT_GRACE_MS` override; production deadlines are unchanged.
+Each build leg also checks its three archives and writes native-frame
 hashes for each pinned game's boot and the DABG port-0, port-1 and combined
 input scripts:
 
@@ -854,7 +916,21 @@ The `dev`, `ci`, `ci-msvc` and `asan` test presets run CTest four tests at a
 time (`execution.jobs`). The three long tests, `vectors.registration_policy`,
 its self test and `runner.write_hashes`, carry a CTest `COST`, so a cold build
 with no timing history starts them first. The `asan` lane does not register them
-(`NESTURBATOR_SHORT_RUNS`, which only that preset sets).
+or the shell session matrix (`NESTURBATOR_SHORT_RUNS`, which only that preset sets).
+The required `vector-inventory` job configures `vectors-full` once without
+running its fetch fixture and shares its actual CTest inventory with the six
+build legs through an artifact from the same invocation. Each leg checks its
+own sample inventory and that full inventory, including labels, fixtures and
+no-skip properties. Local runs retain the configure-only fallback. The policy
+reads individual test objects for property queries rather than reparsing the
+entire inventory each time. Nightly still fetches the vectors cold.
+
+The hosted `retroarch-e2e` job configures and builds the tools and generated
+cartridge fixtures, then runs its real-host checks without repeating the local
+suite already required by the build lanes. Job limits retain their existing
+measured envelopes until isolated hosted durations are available. The title
+check remains in CI, including the `edited` trigger; moving it to a separate
+workflow also requires a coordinated required-check ruleset change.
 
 The `perf` job runs on every pull request on ubuntu-24.04. It builds the pull request's merge
 commit and its first parent (the tip of `main`, which ENGINEERING section 5 calls the merge
@@ -866,6 +942,129 @@ tests/perf/allow.txt carries a valid line for that ROM; an unstable base (two ba
 differ) always fails; a base that cannot be built or run shows `n/a` and does not fail the pull
 request. Wall time is never measured or gated. The `perf.roms_render` test shows that
 all three ROMs draw a non-blank frame 60, so the job never measures an idle PPU.
+
+### Phase 20 hosted evidence collection
+
+The six build jobs retain their executed `LastTest.log` and the cold-fetched
+protected-main scoreboard and metadata in their existing run-and-attempt
+AccuracyCoin artifacts. The `perf` job retains its raw base/head Cachegrind
+measurements, summary, and run identity for 60 days. The read-only collector
+downloads those artifacts and the related CI and Nightly job logs into a
+scratch directory, then validates their contents, checksums, exact tested
+source identity, all six NMI target rows, all 108 original protected PASS keys,
+the full native hash inventory, per-ROM performance samples, host marker
+evidence, and Nightly vectors/MMC3 results.
+
+After a separately authorized hosted delivery has produced pull-request CI and
+Nightly runs, create `ROOT/delivery.json` with the repository, run IDs and
+attempts, candidate branch head, and pull-request number. Run the collector and
+then revalidate the saved bundle against the current source:
+
+```json
+{
+  "repository": "szTheory/nesturbator",
+  "ci_run_id": "123456789",
+  "ci_run_attempt": "1",
+  "nightly_run_id": "123456790",
+  "nightly_run_attempt": "1",
+  "candidate_head_sha": "<40-digit candidate commit SHA>",
+  "pr_number": "123"
+}
+```
+
+```sh
+cmake -DMODE=collect -DROOT=build/phase20-evidence -DSOURCE_REF=. \
+  -P tests/cmake/phase20_hosted_evidence.cmake
+cmake -DMODE=validate -DROOT=build/phase20-evidence -DSOURCE_REF=. \
+  -P tests/cmake/phase20_hosted_evidence.cmake
+```
+
+To check whether delivery metadata is ready before downloading content, save
+the authorized candidate SHA in a text file and run:
+
+```sh
+cmake -DMODE=availability -DROOT=build/phase20-evidence \
+  -DSOURCE_REF=. -DEXPECTED_CANDIDATE_FILE=build/candidate-sha.txt \
+  -DEXPECTED_PR_NUMBER=123 \
+  -P tests/cmake/phase20_hosted_evidence.cmake
+```
+
+Availability compares that captured SHA and exact PR number with
+`ROOT/delivery.json`, the current PR snapshot and both selected run attempts.
+It checks complete run, job and artifact inventories, matrix job identities,
+merge parents, per-job metadata and full source trees. Success writes only
+`ROOT/availability/availability.txt` with an `available` verdict, source and
+run identities, selected job and artifact IDs, metadata-file digests and
+retrieval time. This is a time-bounded metadata snapshot, not hosted
+acceptance. It requests no artifact or job log, extracts no archive, and does
+not replace collection provenance or acceptance files.
+
+`ROOT` must be under `build/` or `/tmp`. Collection uses read-only GitHub CLI API,
+run-view, per-job log, and artifact-download requests. For raw job logs and
+artifact ZIP downloads it feature-detects the installed CLI's
+`--allow-escape-sequences` option because API responses may contain terminal
+escape bytes; a CLI that does not advertise the option is rejected before a
+raw response is requested. The collector derives the actual tested checkout and
+protected base from saved GitHub run and PR metadata; pull-request
+builds normally test a synthetic merge commit, so the candidate head SHA is
+checked against the merge commit's two parents instead of being treated as the
+tested checkout SHA. The run API's `head_sha` identifies the candidate, while
+the matching PR snapshot's `merge_commit_sha` selects the merge for independent
+parent, artifact and full-tree checks. Required matrix jobs use their complete
+hosted names, including session-control and no-floating-point lanes. The six
+required CTest results are read from each selected matrix job's own
+workflow-execution step and are bound to that job's ID, run attempt, step
+metadata and the digest of its preserved raw plain-text job log. GitHub's job
+logs endpoint returns a full timestamped job log, not a ZIP; the collector
+retains its original BOM, line endings and ANSI sequences in
+`downloads/job-<platform>.txt`, then writes a derived step log after selecting
+the unique named workflow step within the API metadata's start/completion
+bounds. The derived copy removes a leading UTF-8 BOM and ANSI CSI sequences and
+normalizes line endings; validation recomputes it from the raw bytes and saved
+step timestamps before accepting any result. Lines before the named workflow
+step group, outside its metadata time bounds, or from another job cannot supply
+passing results. The Holy Mapperel result uses the registered name
+`holymapperel.m2.decode`. `LastTest.log` remains byte-for-byte raw supporting
+evidence; it may contain only start/end lines and is not a CTest summary.
+Artifact files are normalized by matching complete path suffixes at
+directory boundaries, including root-level members. The AccuracyCoin upload
+uses `build/<preset>/accuracycoin/**`, so its ZIP stores `full/` at the archive
+root; the collector places those files in the canonical
+`artifacts/build-linux-x64/accuracycoin/full/` tree. RetroArch evidence keeps
+the authored `hosted-evidence.txt`, intended driver output and that output's
+attempt-bound oracle, session record and journal. Nightly's registered CTest
+inventory includes tests outside the selected lane, so validation selects the
+tests carrying the `vectors-full` or `mmc3-oracle` CTest label and checks that
+every one appears as a successful executed JUnit testcase. A clean CTest JUnit
+file may omit the optional `errors` count; explicit nonzero error, failure,
+skipped or disabled counts and failing testcase elements are rejected. Every
+expected artifact file must have exactly one raw path; root/nested ambiguity
+and duplicate ZIP members fail. `provenance/normalization.tsv` records raw and
+normalized paths with the unchanged content digest. Its full effective-source manifest hashes
+regular-file contents and symlink target text, excluding only `.planning/`
+and `tests/accuracy/measurements.md`. Hosted-tree comparisons check regular
+files against their Git blobs and symlinks against their mode-120000
+link-target blobs. This is distinct from the narrower
+AccuracyCoin build-input fingerprint. The collector records the source digest,
+run/job/artifact metadata, retrieval time, and checksums beside the downloaded
+evidence. It rejects local fixtures as hosted provenance, dirty effective
+source, missing or expired artifacts, incomplete jobs, and changed source.
+
+In the campaign metadata, `inventory_sha256` identifies the pinned ROM's
+authoritative input inventory and is checked against the tracked baseline
+metadata. The emitted `full/inventory.tsv` is the campaign's page/row
+inventory; validation compares its complete scored-key set with the current
+scoreboard and pairs its rows with the terminal report.
+
+Without authorized run IDs and attempts, `MODE=collect` exits nonzero with
+`pending_delivery` and does not write a hosted-pass manifest. Dispatch or push
+runs that skip the pull-request performance job cannot establish performance
+acceptance. Local fixture controls verify validator behavior only; actual
+hosted acceptance remains pending Plan 20-10.
+
+The saved raw job-log shape follows the [GitHub workflow jobs logs API](https://docs.github.com/en/rest/actions/workflow-jobs#download-job-logs-for-a-workflow-run),
+which redirects to plain text. Artifact downloads remain ZIP archives and keep
+their existing path, duplicate-member, traversal and symlink checks.
 
 `.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
 04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
@@ -1105,6 +1304,14 @@ valid for the same format version, ROM and board, and it is byte-identical on
 every platform. The library does no file I/O and never allocates for a state;
 the host owns the buffer and decides where states live.
 
+The current state format is 2 and the behavior revision is 8. Format 2 stores
+the sampled NMI line, captured request, last instruction poll and retained
+close-edge IRQ level independently of the live IRQ line. The revision
+8 CPU polls that captured request at its instruction-specific poll point. The
+public save/load interface snapshots frame boundaries. Exact NMI race cutpoints
+are exercised by internal tests at completed instruction boundaries, while
+core, runner, and libretro replay tests cover public frame-boundary continuation.
+
 1. `nesturbator_state_size(inst)` returns the exact length of a state of the
    loaded cartridge. It is 0 for a NULL instance or with no cartridge, and the
    same value from a successful load until unload.
@@ -1148,9 +1355,15 @@ The header is 64 bytes, every multi-byte field little-endian:
 | 48 | 16 | reserved, zero |
 
 The machine fields, the whole PRG RAM (battery RAM included) and the 8 KiB CHR
-RAM (when the board has it) follow. The frame buffer and the audio are not in a state. Frame numbers
-and ticks continue from the saved point: the first frame after a load reports
-the number and ticks of the uninterrupted run.
+RAM (when the board has it) follow. The video frame buffer, caller's PCM output
+and transient staged PCM are not in a state; APU sample phase and synthesizer
+and filter history are machine state and are serialized. This distinction also
+holds in an internal snapshot before the first output frame: `core.nmi_state`'s
+`test_frame_zero_empty_pcm_preserves_history` saves at frame 0 with no PCM
+staged and nonzero audio history, restores it canonically, and checks empty
+drain plus future continuation. Frame numbers and ticks continue from the saved
+point: the first frame after a load reports the number and ticks of the
+uninterrupted run.
 
 Battery RAM and the save generation: a state includes the battery RAM. Loading
 a state whose battery bytes differ from the instance's raises `nesturbator_save_generation`
@@ -1175,11 +1388,14 @@ C interface is the same.
 Battery RAM is part of the PRG RAM, so a load replaces it. Rewinding past an in-game save reverts the save RAM.
 
 The `core.state_fork.*` tests (one per committed game, plus
-`core.state_fork.stress`) fork games on all six boards and a DMA and interrupt
-stress program (on NROM and on MMC3) at many frames, including frame 0. Each fork loads into an instance that was pre-filled with other state and
-then poisoned, and it requires every later frame, sample, tick count and the
-final state to match an uninterrupted run. It also shows that saving every
-frame changes nothing.
+`core.state_fork.stress` and `core.state_fork.nmi`) fork games on all six boards,
+a DMA and interrupt stress program (on NROM and on MMC3), and an owned NMI
+program at public frame boundaries. The NMI program records a one-based guest
+entry sequence, changes the visible backdrop, and keeps pulse audio active.
+Each saved fork restores into a differently run and poisoned instance; later
+native state, frame, tick, PCM, and independently expected guest events must
+match the uninterrupted timeline. The board and DMA/interrupt matrices remain
+registered, and the tests also show that saving every frame changes nothing.
 
 The `core.state_reject` test shows the refusals. It loads each game's state into
 every other game, flips every byte of a state and expects the status of the
@@ -1718,6 +1934,11 @@ uninterrupted run, and a repeat mode that gives the speculative frames the
 current input, as RetroArch does, must equal a two-instance library model. Four
 broken hosts (no load, a stale load, input one frame late, speculative audio in
 the real stream) run through the same comparison and each must differ.
+The same host matrix also runs an owned NMI-sensitive NROM image at depths 1 to
+3: the guest counter and event sequence, per-frame state, visible backdrop and
+PCM are checked across speculative restore and successive rewind boundaries.
+This is public frame-boundary evidence; the exact dot and edge cutpoints remain
+the separate internal tests described in the NMI state section.
 The registered `libretro.serialize` and `libretro.runahead` tests first copy each
 special ROM into their build directory, then compare that actual supplied file's
 SHA-256 with its exact row in `tests/roms/manifest.txt` before starting the host.
@@ -1880,7 +2101,16 @@ supervision slice, further capped by live operation and attempt time. Empty read
 may retry within the 30-second readiness deadline; every action, state save/load,
 screenshot and QUIT request is one-shot. Monotonic timers bound the 30-second
 readiness and operation windows, 5-second artifact publication window,
-120-second attempt and 5-second cleanup reserve. Cleanup claims its one-shot
+120-second attempt and 5-second cleanup reserve. After bootstrap, repeated clock
+samples and artifact identities use the already required `frame_index` tool's
+native runner clock and bounded FNV-1a reader. This avoids starting a Perl
+interpreter for every timed observation; artifact identities and the nonempty
+1 MiB cap remain identical. The readiness controls charge 100 ms to each old
+clock-interpreter path and still require full progression plus cleanup within
+25 seconds. The load-send control charges 1050 ms to the old interpreted hash
+path while retaining its 1-second publication window and exact send-failure
+reason. `retroarch.session_helpers` checks frozen FNV vectors, buffer and cap
+neighbors, invalid files and advancing monotonic samples. Cleanup claims its one-shot
 QUIT before writing the request. A failed request write emits
 `CLEANUP_REQUEST_WRITE_FAILED`, records zero transport sends when the journal
 is writable, and still reaps the owned host and releases its proven endpoint

@@ -198,136 +198,97 @@ PY
                 cleanup_case=${STATE_SESSION_TEST_CASE_ID:?}
                 cleanup_invocation=${STATE_SESSION_TEST_INVOCATION_ID:?}
                 cleanup_request=${STATE_SESSION_TEST_EXPECTED_DIR%/states}/request.txt
-                [ -f "$cleanup_request" ] && [ ! -L "$cleanup_request" ] || exit 95
-                cleanup_before=$(CLEANUP_REQUEST_PATH="$cleanup_request" python3 - <<'PY'
-import os, pathlib, stat
-p=pathlib.Path(os.environ["CLEANUP_REQUEST_PATH"]); mode=p.lstat().st_mode
-if not stat.S_ISREG(mode) or p.is_symlink(): raise SystemExit("request was not a regular file before injection")
-print("regular")
-PY
-                ) || exit 96
-                printf '%s' "$request" >"$cleanup_root/consumed.request"
-                cleanup_mode=request-directory
-                cleanup_marker="$cleanup_invocation:$cleanup_mode"
-                case "$cleanup_case" in
-                    exit-failure|signal-INT|signal-TERM|signal-HUP) ;;
-                    writable-cleanup|foreign-owner-replacement)
-                        cleanup_mode=malformed-readiness
-                        cleanup_marker="$cleanup_invocation:$cleanup_mode"
-                        ;;
-                    *) exit 96 ;;
-                esac
-                cleanup_reply="GET_CONFIG_PARAM savestate_directory /wrong/$cleanup_invocation"
-                case "$cleanup_case" in
-                    signal-INT|signal-TERM|signal-HUP) : >"$cleanup_root/reply.raw" ;;
-                    *) printf '%s\n' "$cleanup_reply" >"$cleanup_root/reply.raw" ;;
-                esac
-                if [ "$cleanup_case" = foreign-owner-replacement ]; then
-                    cleanup_attempt="${STATE_SESSION_TEST_EXPECTED_DIR%/states}"
-                    [ -d "$cleanup_attempt" ] || exit 99
-                    cleanup_owner="${STATE_SESSION_LOCK_ROOT:?}/nesturbator-retroarch-55355.lock.owner.${cleanup_attempt##*/}"
-                    (set -C; printf 'test-owned retired sidecar fixture\n' >"$cleanup_owner") || exit 99
-                    [ -f "$cleanup_owner" ] && [ ! -L "$cleanup_owner" ] || exit 99
-                    CLEANUP_OWNER_PATH="$cleanup_owner" CLEANUP_CASE_ROOT="$cleanup_root" \
-                    python3 - <<'PY'
-import json, os, pathlib
-owner=pathlib.Path(os.environ["CLEANUP_OWNER_PATH"])
-st=owner.lstat()
-record={"device":st.st_dev,"inode":st.st_ino,"token":owner.read_text().strip()}
-root=pathlib.Path(os.environ["CLEANUP_CASE_ROOT"])
-(root/"owned-sidecar-original.json").write_text(json.dumps(record,sort_keys=True)+"\n")
-PY
-                    cp "$cleanup_root/foreign.sentinel" "$cleanup_root/foreign-owner.tmp" || exit 99
-                    mv "$cleanup_root/foreign-owner.tmp" "$cleanup_owner" || exit 99
-                    CLEANUP_OWNER_PATH="$cleanup_owner" CLEANUP_CASE_ROOT="$cleanup_root" \
-                    CLEANUP_FOREIGN_PID_FILE="$cleanup_root/foreign.pid" \
-                    python3 - <<'PY'
-import json, os, pathlib, shutil
-owner=pathlib.Path(os.environ["CLEANUP_OWNER_PATH"])
-st=owner.lstat(); pid=int(pathlib.Path(os.environ["CLEANUP_FOREIGN_PID_FILE"]).read_text().strip())
-try: os.kill(pid,0); live=True
-except (ProcessLookupError,PermissionError,OSError): live=False
-root=pathlib.Path(os.environ["CLEANUP_CASE_ROOT"])
-record={"pid":pid,"live":live,"lock":{"device":st.st_dev,"inode":st.st_ino,"token":owner.read_text().strip()}}
-(root/"foreign-before.json").write_text(json.dumps(record,sort_keys=True)+"\n")
-shutil.copyfile(owner,root/"foreign-bytes-before")
-PY
-                fi
-                if [ "$cleanup_mode" = request-directory ]; then
-                    rm "$cleanup_request" && mkdir "$cleanup_request" || exit 97
-                fi
                 cleanup_transport_pid=$$
-                cleanup_driver_pid=
-                cleanup_wait=0
-                while [ ! -s "${STATE_SESSION_TEST_DRIVER_PID_FILE:?}" ] && [ "$cleanup_wait" -lt 100 ]; do
-                    sleep 0.01
-                    cleanup_wait=$((cleanup_wait+1))
-                done
-                [ -s "$STATE_SESSION_TEST_DRIVER_PID_FILE" ] || exit 98
-                cleanup_driver_pid=$(cat "$STATE_SESSION_TEST_DRIVER_PID_FILE")
-                CLEANUP_REQUEST_PATH="$cleanup_request" python3 - <<'PY' >"$cleanup_root/request-after.json"
-import json, os, pathlib, stat
-p=pathlib.Path(os.environ["CLEANUP_REQUEST_PATH"]); mode=p.lstat().st_mode
-kind="regular" if stat.S_ISREG(mode) and not p.is_symlink() else "directory" if stat.S_ISDIR(mode) else "other"
-writable=kind=="regular" and os.access(p,os.W_OK)
-print(json.dumps({"kind":kind,"writable":writable},sort_keys=True))
-PY
-                cleanup_after=$(CLEANUP_REQUEST_AFTER_FILE="$cleanup_root/request-after.json" python3 - <<'PY'
-import json, os, pathlib
-print(json.loads(pathlib.Path(os.environ["CLEANUP_REQUEST_AFTER_FILE"]).read_text())["kind"])
-PY
-                ) || exit 96
-                cleanup_writable=$(CLEANUP_REQUEST_AFTER_FILE="$cleanup_root/request-after.json" python3 - <<'PY'
-import json, os, pathlib
-print("true" if json.loads(pathlib.Path(os.environ["CLEANUP_REQUEST_AFTER_FILE"]).read_text())["writable"] else "false")
-PY
-                ) || exit 96
-                cleanup_reservation=$(reservation_snapshot "${STATE_SESSION_TEST_EXPECTED_DIR%/states}/../../lock-reservation.tsv") || exit 94
-                CLEANUP_RESERVATION="$cleanup_reservation" \
+                # One interpreter performs the fault and records its witnesses inside
+                # the production 5 s read slice; repeated cold starts can consume it.
                 CLEANUP_CASE_ROOT="$cleanup_root" CLEANUP_CASE_ID="$cleanup_case" \
-                CLEANUP_INVOCATION_ID="$cleanup_invocation" CLEANUP_DRIVER_PID="$cleanup_driver_pid" \
-                CLEANUP_TRANSPORT_PID="$cleanup_transport_pid" CLEANUP_MODE="$cleanup_mode" \
-                CLEANUP_MARKER="$cleanup_marker" CLEANUP_REQUEST_PATH="$cleanup_request" \
-                CLEANUP_REQUEST_BEFORE="$cleanup_before" CLEANUP_REQUEST_AFTER="$cleanup_after" \
-                CLEANUP_REQUEST_WRITABLE="$cleanup_writable" \
+                CLEANUP_INVOCATION_ID="$cleanup_invocation" \
+                CLEANUP_DRIVER_PID_FILE="${STATE_SESSION_TEST_DRIVER_PID_FILE:?}" \
+                CLEANUP_TRANSPORT_PID="$cleanup_transport_pid" CLEANUP_REQUEST_PATH="$cleanup_request" \
                 CLEANUP_HOST_PID_FILE="$STATE_SESSION_TEST_HOST_PID" \
+                CLEANUP_ATTEMPT_DIR="${STATE_SESSION_TEST_EXPECTED_DIR%/states}" \
                 CLEANUP_LOCK_ROOT="${STATE_SESSION_LOCK_ROOT:?}" \
-                python3 - "$cleanup_root/control.json" <<'PY'
-import json, os, pathlib, sys
+                python3 - <<'PYCODE'
+import errno, json, os, pathlib, shutil, socket, stat, time
 root = pathlib.Path(os.environ["CLEANUP_CASE_ROOT"]).resolve()
-request = pathlib.Path(os.environ["CLEANUP_REQUEST_PATH"]).resolve()
+request = pathlib.Path(os.environ["CLEANUP_REQUEST_PATH"])
+case = os.environ["CLEANUP_CASE_ID"]
+invocation = os.environ["CLEANUP_INVOCATION_ID"]
+if not stat.S_ISREG(request.lstat().st_mode) or request.is_symlink():
+    raise RuntimeError("request was not a regular file before injection")
+(root / "consumed.request").write_bytes(request.read_bytes())
+mode = "request-directory"
+if case in ("writable-cleanup", "foreign-owner-replacement"):
+    mode = "malformed-readiness"
+elif case not in ("exit-failure", "signal-INT", "signal-TERM", "signal-HUP"):
+    raise RuntimeError("unknown cleanup case")
+marker = invocation + ":" + mode
+reply = "GET_CONFIG_PARAM savestate_directory /wrong/" + invocation
+(root / "reply.raw").write_bytes(b"" if case.startswith("signal-") else (reply + "\n").encode())
+def identity(path):
+    st = path.lstat()
+    if not stat.S_ISREG(st.st_mode) or path.is_symlink():
+        raise RuntimeError("owner was not a regular file")
+    return {"device": st.st_dev, "inode": st.st_ino, "token": path.read_text().strip()}
+def alive(pid):
+    try: os.kill(pid, 0); return pid > 1
+    except (ProcessLookupError, PermissionError, OSError): return False
+attempt = pathlib.Path(os.environ["CLEANUP_ATTEMPT_DIR"])
+if case == "foreign-owner-replacement":
+    owner = pathlib.Path(os.environ["CLEANUP_LOCK_ROOT"]) / ("nesturbator-retroarch-55355.lock.owner." + attempt.name)
+    with owner.open("x") as f: f.write("test-owned retired sidecar fixture\n")
+    (root / "owned-sidecar-original.json").write_text(json.dumps(identity(owner), sort_keys=True) + "\n")
+    shutil.copyfile(root / "foreign.sentinel", root / "foreign-owner.tmp")
+    (root / "foreign-owner.tmp").replace(owner)
+    pid = int((root / "foreign.pid").read_text().strip())
+    before = {"pid": pid, "live": alive(pid), "lock": identity(owner)}
+    (root / "foreign-before.json").write_text(json.dumps(before, sort_keys=True) + "\n")
+    shutil.copyfile(owner, root / "foreign-bytes-before")
+if mode == "request-directory":
+    request.unlink()
+    request.mkdir()
+driver_file = pathlib.Path(os.environ["CLEANUP_DRIVER_PID_FILE"])
+for _ in range(100):
+    if driver_file.is_file() and driver_file.stat().st_size: break
+    time.sleep(.01)
+driver_pid = int(driver_file.read_text().strip())
+kind = "regular" if stat.S_ISREG(request.lstat().st_mode) and not request.is_symlink() else "directory" if request.is_dir() else "other"
+writable = kind == "regular" and os.access(request, os.W_OK)
+(root / "request-after.json").write_text(json.dumps({"kind": kind, "writable": writable}, sort_keys=True) + "\n")
+rows = (attempt / ".." / ".." / "lock-reservation.tsv").read_text().splitlines()
+assert len(rows) == 2
+f = rows[1].split("\t"); assert len(f) == 9
+pid = int(f[2]); port = int(f[1])
+assert pid > 0 and f[0] == "127.0.0.1" and f[3] == "9"
+assert pid == int(os.environ["STATE_SESSION_LOCK_BOOT_PID"]) and port == int(os.environ["STATE_SESSION_LOCK_PORT"])
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
+try: sock.bind(("127.0.0.1", port))
+except OSError as e:
+    if e.errno != errno.EADDRINUSE: raise
+else: raise RuntimeError("record has no live kernel reservation")
+finally: sock.close()
+lock_before = {"device": int(f[4]), "inode": int(f[5]), "token": f"driver:{pid}:port:{port}",
+               "driver_pid": pid, "port": port, "address": "127.0.0.1", "kernel_exclusion": True}
 host_file = pathlib.Path(os.environ["CLEANUP_HOST_PID_FILE"])
 host_pid = int(host_file.read_text().strip()) if host_file.is_file() else 0
-try: os.kill(host_pid, 0); host_live = host_pid > 1
-except (ProcessLookupError, PermissionError, OSError): host_live = False
-transport_pid=int(os.environ["CLEANUP_TRANSPORT_PID"])
-try: os.kill(transport_pid,0); transport_live=True
-except (ProcessLookupError, PermissionError, OSError): transport_live=False
-lock_before = json.loads(os.environ["CLEANUP_RESERVATION"])
+transport_pid = int(os.environ["CLEANUP_TRANSPORT_PID"])
+host_live = alive(host_pid); transport_live = alive(transport_pid)
 record = {
-    "case_id": os.environ["CLEANUP_CASE_ID"],
-    "invocation_id": os.environ["CLEANUP_INVOCATION_ID"],
-    "case_root": "cases/" + os.environ["CLEANUP_CASE_ID"],
-    "producer": "fake-nc",
-    "mode": os.environ["CLEANUP_MODE"],
-    "driver_pid": int(os.environ["CLEANUP_DRIVER_PID"]),
-    "transport_pid": int(os.environ["CLEANUP_TRANSPORT_PID"]),
-    "host_pid": host_pid if host_pid > 1 else None,
-    "host_live_before_injection": host_live,
-    "owned_live_before_injection": host_live and transport_live,
-    "receive_live_before_injection": transport_live,
-    "owned_lock_before_injection": lock_before,
-    "request_path": request.relative_to(root).as_posix(),
-    "request_before": os.environ["CLEANUP_REQUEST_BEFORE"],
-    "request_after": os.environ["CLEANUP_REQUEST_AFTER"],
-    "request_writable": os.environ["CLEANUP_REQUEST_WRITABLE"] == "true",
-    "marker": os.environ["CLEANUP_MARKER"],
-    "consumed_file": "cases/" + os.environ["CLEANUP_CASE_ID"] + "/consumed.request",
-    "reply_file": "cases/" + os.environ["CLEANUP_CASE_ID"] + "/reply.raw",
+    "case_id": case, "invocation_id": invocation, "case_root": "cases/" + case,
+    "producer": "fake-nc", "mode": mode, "driver_pid": driver_pid,
+    "transport_pid": transport_pid, "host_pid": host_pid if host_pid > 1 else None,
+    "host_live_before_injection": host_live, "owned_live_before_injection": host_live and transport_live,
+    "receive_live_before_injection": transport_live, "owned_lock_before_injection": lock_before,
+    "request_path": request.resolve().relative_to(root).as_posix(), "request_before": "regular",
+    "request_after": kind, "request_writable": writable, "marker": marker,
+    "consumed_file": "cases/" + case + "/consumed.request", "reply_file": "cases/" + case + "/reply.raw",
     "signal": None,
 }
-pathlib.Path(sys.argv[1]).write_text(json.dumps(record, sort_keys=True) + "\n")
-PY
+(root / "control.json").write_text(json.dumps(record, sort_keys=True) + "\n")
+PYCODE
+                cleanup_marker="$cleanup_invocation:request-directory"
+                cleanup_reply="GET_CONFIG_PARAM savestate_directory /wrong/$cleanup_invocation"
                 printf '%s\n' "$cleanup_transport_pid" >"$cleanup_root/receive.pid"
                 case "$cleanup_case" in
                     signal-INT|signal-TERM|signal-HUP)
@@ -603,7 +564,7 @@ fi
 DRIVER=$DRIVER_PATH
 . "$TRACE_PATH"
 case "$CONTROL" in
-    all|readiness|interruption|cleanup-request-failure|interruption-capture-selftest|interruption-trace-lock-selftest|lock-pid-preflight|lock-release-race|lock-finalizer-cwd|source-root-identity|source-root-preflight) ;;
+    all|readiness|helper-cost|interruption|cleanup-request-failure|interruption-capture-selftest|interruption-trace-lock-selftest|lock-pid-preflight|lock-release-race|lock-finalizer-cwd|source-root-identity|source-root-preflight) ;;
     *) echo "state session controls: invalid STATE_SESSION_CONTROL=$CONTROL" >&2; exit 2 ;;
 esac
 
@@ -3853,6 +3814,42 @@ if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ] || [ "$CONTROL" = readiness ] |
 fi
 
 
+make_helper_latency_bin() {
+    helper_bin=$1
+    mkdir -p "$helper_bin"
+    helper_real_perl=$(command -v perl)
+    ln -s "$helper_real_perl" "$helper_bin/real-perl"
+    cat >"$helper_bin/perl" <<'EOF'
+#!/bin/sh
+# Charge only the superseded simple clock/hash interpreters, leaving journals,
+# supervision and fixture fault injection unchanged. Each charge is bounded.
+if [ "$1" = '-MTime::HiRes=clock_gettime,CLOCK_MONOTONIC' ] && [ "${#3}" -lt 100 ]; then
+    printf 'clock\n' >>"$STATE_SESSION_HELPER_CALLS"
+    sleep "${STATE_SESSION_HELPER_CLOCK_DELAY:-0}"
+fi
+if [ "$1" = -e ]; then
+    case "$2" in
+        'use integer; my $h='*)
+            printf 'hash\n' >>"$STATE_SESSION_HELPER_CALLS"
+            sleep "${STATE_SESSION_HELPER_HASH_DELAY:-0}"
+            ;;
+    esac
+fi
+exec "${0%/*}/real-perl" "$@"
+EOF
+    chmod +x "$helper_bin/perl"
+}
+
+assert_native_helper_usage() {
+    # Prove the shim was on the actual driver's PATH, and that only its original
+    # bootstrap clock used an interpreter. A dormant shim cannot pass this gate.
+    awk '$0 == "clock" { clocks++ } $0 == "hash" { hashes++ }
+        END { exit !(clocks == 1 && hashes == 0) }' "$1" || {
+        echo 'FAIL native helpers: expected one bootstrap interpreter clock and no interpreted hashes' >&2
+        exit 1
+    }
+}
+
 run_fault() {
     name=$1; expected=$2; fault=$3; fail_request=${4:-}; mode=${5:-prefix}; max_ms=${6:-20000}; ready_ms=${7:-30000}; publication_ms=${8:-1000}; attempt_override=${9:-}; operation_override=${10:-30000}
     case_dir=${STATE_SESSION_TEST_CASE_ROOT_OVERRIDE:-"$WORK_ROOT/session-$$-$name"}; case_ra="$case_dir/ra"
@@ -3869,6 +3866,13 @@ run_fault() {
     [ -z "$attempt_override" ] || attempt_ms=$attempt_override
     primary_elapsed_file=${STATE_SESSION_TEST_PRIMARY_ELAPSED_FILE:-}
     (
+    if [ "$name" = load-send-once ]; then
+        make_helper_latency_bin "$case_dir/helper-bin"
+        case_helper_original_path=$PATH
+        PATH="$case_dir/helper-bin:$PATH"
+        export PATH STATE_SESSION_HELPER_CALLS="$case_dir/helper-calls.log" \
+            STATE_SESSION_HELPER_HASH_DELAY=1.05
+    fi
     export STATE_SESSION_NC="$case_dir/fake-nc" \
     STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
     STATE_SESSION_TEST_EXPECTED_DIR="$case_ra/states" \
@@ -3894,7 +3898,7 @@ run_fault() {
     STATE_SESSION_SETTLE_MS=0 \
     STATE_SESSION_COMMAND_GAP_MS="$command_gap_ms" \
     STATE_SESSION_PROGRESS_WAIT_MS=20 \
-    STATE_SESSION_QUIT_GRACE_MS=300 \
+    STATE_SESSION_TEST_QUIT_GRACE_MS=300 \
     STATE_SESSION_TEST_CASE_ID="${STATE_SESSION_TEST_CASE_ID:-}" \
     STATE_SESSION_TEST_INVOCATION_ID="${STATE_SESSION_TEST_INVOCATION_ID:-}" \
     STATE_SESSION_TEST_CASE_ROOT="${STATE_SESSION_TEST_CASE_ROOT:-}" \
@@ -3939,6 +3943,7 @@ PY
             "$fixture_dir/calibration.txt" >"$case_dir/driver.out" 2>&1 || case_status=$?
     fi
     printf '%s\n' "$case_status" >"$case_dir/driver.status"
+    [ "$name" != load-send-once ] || PATH=$case_helper_original_path
     case_driver_finished=$(mono_ms); case_driver_elapsed=$((case_driver_finished-case_driver_started))
     printf '%s\n' "$case_driver_elapsed" >"$case_dir/driver.elapsed"
     [ -z "$primary_elapsed_file" ] || printf '%s\n' "$case_driver_elapsed" >"$primary_elapsed_file"
@@ -3961,6 +3966,7 @@ PY
         echo "FAIL $name driver-plus-cleanup bound: ${case_driver_elapsed}ms >= ${max_ms}ms (fixture setup ${case_setup_elapsed}ms)" >&2
         exit 1
     }
+    [ "$name" != load-send-once ] || assert_native_helper_usage "$case_dir/helper-calls.log"
     case_host=$(cat "$case_dir/host.pid")
     if kill -0 "$case_host" 2>/dev/null; then echo "FAIL $name left owned host alive" >&2; exit 1; fi
     set -- "$case_ra"/attempts/*
@@ -4813,7 +4819,11 @@ run_readiness_case() {
     readiness_setup_finished=$(mono_ms)
     readiness_setup_elapsed=$((readiness_setup_finished-readiness_setup_started))
     readiness_started=$(mono_ms); readiness_status=0
-    run_prefix_driver "$readiness_dir" "$readiness_ra" "$readiness_fault" >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
+    make_helper_latency_bin "$readiness_dir/helper-bin"
+    PATH="$readiness_dir/helper-bin:$PATH" \
+    STATE_SESSION_HELPER_CALLS="$readiness_dir/helper-calls.log" \
+    STATE_SESSION_HELPER_CLOCK_DELAY=0.10 \
+        run_prefix_driver "$readiness_dir" "$readiness_ra" "$readiness_fault" >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
     readiness_finished=$(mono_ms); readiness_elapsed=$((readiness_finished-readiness_started))
     readiness_operation_ms=unavailable; readiness_later_prefix=unavailable
     readiness_attempt_elapsed=unavailable; readiness_reason=unknown
@@ -4941,6 +4951,7 @@ run_readiness_case() {
     [ "$readiness_elapsed" -ge "$readiness_lower" ] && [ "$readiness_elapsed" -lt 25000 ] || {
         echo "FAIL $readiness_name full driver+cleanup bound: ${readiness_elapsed}ms" >&2; exit 1;
     }
+    assert_native_helper_usage "$readiness_dir/helper-calls.log"
     assert_sanitized_tree "$readiness_attempt"
     readiness_outer_finished=$(mono_ms)
     readiness_outer_elapsed=$((readiness_outer_finished-test_started))
@@ -4952,6 +4963,12 @@ run_readiness_controls() {
     run_readiness_case readiness-delayed readiness-response-delay 1201 4500
     run_readiness_case readiness-response-stall readiness-response-stall 4500 7000
 }
+
+if [ "$CONTROL" = helper-cost ]; then
+    run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' complete 75000 30000 1000
+    run_readiness_controls
+    exit 0
+fi
 
 run_startup_lock_signal_control() (
     startup_signal_started=$(mono_ms)

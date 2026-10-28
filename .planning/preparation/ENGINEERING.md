@@ -2,7 +2,7 @@
 title: "Engineering: C rules, build, tests, CI and release"
 summary: "Build, test, CI and release decisions for nesturbator, each with its reason and source."
 read_when: "When creating or changing the build, tests, CI, repository settings or release pipeline."
-updated: 2026-10-24
+updated: 2026-10-26
 ---
 
 # Engineering: C rules, build, tests, CI and release
@@ -71,7 +71,9 @@ Targets use `LLVMFuzzerTestOneInput` for the ROM loader, save-state loader and b
 | Job | Runner | Content |
 |---|---|---|
 | `hygiene`, `title` | `ubuntu-24.04` | sections 7 and 6 |
-| `build` | `ubuntu-24.04`, `ubuntu-24.04-arm` (GCC 14); `macos-15`, `macos-15-intel` (Apple clang 17); `windows-2025` (Visual Studio 2026, 18.10), `windows-11-arm` (Visual Studio 2026, image `windows-11-vs2026-arm64`, run 38329002566) [ENG.13][ENG.14][ENG.21] | `ci` or `ci-msvc`; uploads archive and `hashes.txt` |
+| `vector-inventory` | `ubuntu-24.04` | configure full-vector registration once; share its current-run inventory with the build matrix without fetching vectors |
+| `session-controls` | `ubuntu-24.04`, `macos-15`; `macos-15-intel` nightly | run the serial POSIX `retroarch-session` matrix once per OS; local `ci` keeps it, hosted `ci-build` excludes it |
+| `build` | `ubuntu-24.04`, `ubuntu-24.04-arm` (GCC 14); `macos-15`, `macos-15-intel` (Apple clang 17); `windows-2025` (Visual Studio 2026, 18.10), `windows-11-arm` (Visual Studio 2026, image `windows-11-vs2026-arm64`, run 38329002566) [ENG.13][ENG.14][ENG.21] | `ci-build` on POSIX or `ci-msvc` on Windows; uploads archive and `hashes.txt` |
 | `asan`, `nofp` | `ubuntu-24.04`; `nofp` also `-arm` | Clang 18; GCC 14 |
 | `hash-equality` | `ubuntu-24.04` | needs exactly the expected hash files, byte-identical |
 | `perf` (PERF-02) | `ubuntu-24.04` | head (the merge commit) and its first parent under Cachegrind; `Ir` per frame on three ROMs; gate at +1% with an allow file (armed after a recorded zero spread) [ENG.12] |
@@ -84,7 +86,7 @@ Six legs run per pull request because cross-platform identity is a product claim
 - **Concurrency.** `cancel-in-progress` is true only for pull requests, so each `main` commit keeps a result; `release.yml` has its own group, because a called workflow sees the caller's context [ENG.03][ENG.04].
 - **Timeouts** are twice the slowest successful run of that job among the sampled runs (the last 40 completed runs of the workflow, or all of them when there are fewer), rounded up to whole minutes; the comment names the slowest run ID and the sample count. A lane with a network fetch adds the fetch test's `TIMEOUT` to twice the rest. A short network-bound job (checkout, `gh` or another network API, or a `needs` rollup: `hygiene`, `title`, `hash-equality`, `CI required`, `release-please`, `publish`, the nightly `report`) gets a 5-minute floor, because runner start-up and network tails dominate it and a kill blocks merging or leaves a release half made. The default is 360 minutes [ENG.03][ENG.13].
 - **Pins.** Every `uses:` is a full SHA (threadline uses tags): the setting `sha_pinning_required` rejects anything else [ENG.13]; a `hygiene` test reads every `uses:` key, since scrypath's pattern matches only `- uses:` and sees 50 of its 60 lines [ENG.05]; Dependabot covers `github-actions` alone [ENG.01].
-- **Parallel tests.** The `dev`, `ci`, `ci-msvc` and `asan` test presets set `execution.jobs: 4`; `vectors.registration_policy` (1000), its self test (200) and `runner.write_hashes` (50) carry `COST`, because a cold CI build has no cost history. The `nightly.yml` job `suite-flake` runs `ctest --preset ci --repeat until-fail:3 --schedule-random` on `ubuntu-24.04` (timeout twice the slowest sampled run, recorded in `nightly.yml`) and feeds the rolling `nightly` issue.
+- **Parallel tests.** The `dev`, `ci`, `ci-msvc` and `asan` test presets set `execution.jobs: 4`; `vectors.registration_policy` (1000), its self test (200) and `runner.write_hashes` (50) carry `COST`, because a cold CI build has no cost history. The `nightly.yml` job `suite-flake` runs `ctest --preset ci -LE '^retroarch-session$' --repeat until-fail:3 --schedule-random` on `ubuntu-24.04` (timeout twice the slowest sampled run, recorded in `nightly.yml`) and feeds the rolling `nightly` issue.
 - **Caches.** No compiler cache at first (ccache is on no image); measured in Phase 5: compile share is 4 to 22 percent per leg, under the 40 percent rule, so ccache is not adopted; a later one is keyed by preset, runner label and compiler version, not `runner.os` [ENG.03]. The nightly fetches the 65x02 vectors at their pin on every run, with no cache: a cache used every night stays warm forever, and the fetch would stop being tested (Phase 2 D-21). Converted N65V is cached only if a cold run exceeds about 10 minutes, keyed on `tests/vectors/pins.txt` and the converter sources; the raw JSON is never cached.
 
 ## 6. Release
@@ -113,7 +115,7 @@ The tree already holds `LICENSE`, `README.md`, `.gitignore`, `AGENTS.md`, `scrip
 
 `PROVENANCE.md` predates the code because a policy cannot vouch for earlier history [ENG.01]. Modelled on the private sibling project's, it expands `AGENTS.md` rule 4: hardware facts may enter, restated with a citation; another emulator's code, comments, names and structure may not, even paraphrased by an assistant; assistants are prompted from specifications; their involvement is recorded in the pull-request description; each vendored file lists upstream, commit and SHA-256. `ASSET_POLICY.md` expands rule 3 and states that hashes and mapper numbers are facts, not content.
 
-`scripts/hygiene.sh` is the forbidden-content scan: POSIX shell over git that rejects home-directory paths, email addresses, ROM and save extensions and iNES or FDS magic, excepting `tests/roms/manifest.txt`. Hooks run its `--staged` and `--history` modes; the `hygiene` job runs `--tree` [ENG.20]. It gains one rule from that project's scanner: a tracked file git treats as binary fails unless the manifest lists it, which also stops save states, raw dumps and screenshots [ENG.01]. The library needs no secrets; local automation reads a git-ignored `.env.local`, and CI uses Actions secrets [ENG.07].
+`scripts/hygiene.sh` is the forbidden-content scan: POSIX shell over git that rejects home-directory paths, email addresses, ROM and save extensions and iNES or FDS magic, excepting `tests/roms/manifest.txt`. Hooks run its `--staged` and `--history` modes; pre-push also checks outgoing committed C/C++ blobs with clang-format 18 through `scripts/check_push_format.py`, with scratch-repository controls in the POSIX ci suite; the `hygiene` job runs `--tree` [ENG.20]. It gains one rule from that project's scanner: a tracked file git treats as binary fails unless the manifest lists it, which also stops save states, raw dumps and screenshots [ENG.01]. The library needs no secrets; local automation reads a git-ignored `.env.local`, and CI uses Actions secrets [ENG.07].
 
 ## 8. Practices carried over
 | Practice | Proven in | Here; disagreements |

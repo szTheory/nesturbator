@@ -51,7 +51,7 @@ static const uint8_t state_magic[8] = {0x89u, 0x4eu, 0x54u, 0x53u, 0x0du, 0x0au,
    visits it and the number is updated (Pitfall P14). The structs hold only fixed-width integers
    and arrays of them, so the sizes are the same on every platform. Structs that also hold
    pointers are checked by the offset of their last saved field instead. */
-_Static_assert(sizeof(struct nesturbator__cpu) == 14u, "cpu fields changed: update cpu_io");
+_Static_assert(sizeof(struct nesturbator__cpu) == 16u, "cpu fields changed: update cpu_io");
 _Static_assert(sizeof(struct nesturbator__bus) == 2061u, "bus fields changed: update bus_io");
 _Static_assert(sizeof(struct nesturbator__pulse) == 16u, "pulse fields changed: update pulse_io");
 _Static_assert(sizeof(struct nesturbator__triangle) == 14u,
@@ -93,15 +93,24 @@ static void core_io(struct nesturbator__sio *io, struct nesturbator *nes)
 
 static void cpu_io(struct nesturbator__sio *io, struct nesturbator__cpu *c)
 {
+    uint8_t nmi_pending;
+    uint8_t nmi_polled;
     nesturbator__sio_u16(io, &c->pc, 0xffffu);
     nesturbator__sio_u8(io, &c->a, 255u);
     nesturbator__sio_u8(io, &c->x, 255u);
     nesturbator__sio_u8(io, &c->y, 255u);
     nesturbator__sio_u8(io, &c->s, 255u);
     nesturbator__sio_u8(io, &c->p, 255u);
+    /* The detector line, captured edge and last instruction poll are separate
+       history. Live PPU status/control may lower the line without clearing the
+       captured request or poll result. */
     nesturbator__sio_u8(io, &c->nmi_prev, 1u);
-    nesturbator__sio_u8(io, &c->nmi_pending, 1u);
+    nmi_pending = nesturbator__sio_u8(io, &c->nmi_pending, 1u);
+    nesturbator__sio_cross(io);
+    nmi_polled = nesturbator__sio_u8(io, &c->nmi_polled, 1u);
+    nesturbator__sio_check(io, nmi_polled == 0u || nmi_pending != 0u);
     nesturbator__sio_u8(io, &c->irq_line, 1u);
+    nesturbator__sio_u8(io, &c->irq_captured, 1u);
     nesturbator__sio_u8(io, &c->poll_latch, 1u);
     /* Never read or written anywhere, but visited so every field of the struct is accounted for.
        The bound is 0 because it is always 0 today; widen it when stalled reads are modelled. */
@@ -206,7 +215,7 @@ static void apu_io(struct nesturbator__sio *io, struct nesturbator__apu *a)
     nesturbator__sio_u32(io, &a->frame_cycle, 37281u);
     /* S: sample_phase / 315000 picks a kernel phase of the 32 (synth.c). */
     nesturbator__sio_u32(io, &a->sample_phase, NESTURBATOR_AUDIO_TICKS_PER_PERIOD - 1u);
-    /* sample_output, sample_limit and sample_count belong to the frame: not saved. */
+    /* Frame staging and derived mixed_level_valid are not saved. */
 }
 
 /* History bounds. A mixer transition adds at most 2^15 times a 2^15 kernel coefficient to each of
@@ -332,6 +341,7 @@ static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
     nesturbator__sio_u16(io, &p->dot, 340u);
     nesturbator__sio_u8(io, &p->odd_frame, 1u);
     nesturbator__sio_u8(io, &p->reset_flag, 1u);
+    /* sprite_zero_slots is derived from the saved tags, not serialized. */
 }
 
 static void mapper_io(struct nesturbator__sio *io, struct nesturbator *nes)
@@ -500,6 +510,13 @@ nesturbator_status nesturbator_load_state(nesturbator *inst, const void *buf, si
     io.mode = NESTURBATOR__SIO_APPLY;
     io.r = b + STATE_HEADER_SIZE;
     body_io(&io, inst);
+    inst->ppu.sprite_zero_slots = 0u;
+    for (unsigned slot = 0u; slot < 8u; slot++)
+        if (inst->ppu.sprite_zero[slot] != 0u)
+            inst->ppu.sprite_zero_slots |= (uint8_t)(1u << slot);
+    /* A restored mixed level must be checked on the next CPU clock, even
+       when no oscillator or frame-counter event occurs on that clock. */
+    inst->apu.mixed_level_valid = 0u;
     /* The PCM ring is empty at a frame boundary, not in the state. */
     inst->synth.pcm_read = 0u;
     inst->synth.pcm_write = 0u;

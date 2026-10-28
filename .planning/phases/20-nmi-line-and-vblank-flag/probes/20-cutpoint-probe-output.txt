@@ -1,0 +1,20 @@
+Reproduction (from the repository root after the existing CI build):
+cc -std=c17 -Wall -Wextra -Wpedantic -Iinclude -Isrc -Itests \
+  .planning/phases/20-nmi-line-and-vblank-flag/probes/20-cutpoint-probe.c \
+  build/ci/libnesturbator.a -o /tmp/nmi-cutpoint-probe
+/tmp/nmi-cutpoint-probe
+
+Observed output:
+VBlank set exact checkpoint: cpu_cycles=87069 instructions=29023 ticks=2089656 ppu_ticks=2089656 ppu=(241,1) status=80 control=00 nmi_pending=0 audio_phase=33912 synth_level=11540 impulse0=92320 pcm_count=0
+VBlank set save/load/continuation: PASS (canonical state equal at load and after seven whole instructions)
+VBlank clear exact checkpoint: cpu_cycles=29781 instructions=9927 ticks=714744 ppu_ticks=714744 ppu=(261,1) status=00 control=00 nmi_pending=0 audio_phase=219888 synth_level=11540 impulse0=92320 pcm_count=0
+VBlank clear save/load/continuation: PASS (canonical state equal at load and after seven whole instructions)
+
+Scope: This is a constructed internal fixture at the context's rendering-off
+origin (261,0), with NMI disabled (PPUCTRL=$00). A JMP absolute loop advances
+three CPU cycles per instruction. Therefore each measured endpoint is an
+instruction boundary and lands after the PPU has reached the stated dot. It
+demonstrates exact VBlank-flag set/clear state serialization and deterministic
+continuation with existing synth/APU history. It does not establish reachability
+from ordinary cartridge reset, exercise an NMI edge, prove edge-before-poll
+serialization, or validate AccuracyCoin outcomes.

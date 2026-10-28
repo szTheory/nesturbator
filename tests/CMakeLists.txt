@@ -310,11 +310,24 @@ target_include_directories(runner.state_mutate PRIVATE ${PROJECT_SOURCE_DIR}/src
 nesturbator_warnings(runner.state_mutate)
 target_compile_definitions(runner.state_mutate PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+add_executable(runner.nmi_fixture
+  runner/nmi_fixture.c
+  ../runner/audio_hash.c
+  ../runner/sha256.c)
+target_include_directories(runner.nmi_fixture PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/runner)
+target_link_libraries(runner.nmi_fixture PRIVATE nesturbator::nesturbator)
+nesturbator_warnings(runner.nmi_fixture)
+target_compile_definitions(runner.nmi_fixture PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 function(runner_state_case case)
   add_test(NAME runner.state.${case}
     COMMAND ${CMAKE_COMMAND}
       "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
       "-DMUTATE=$<TARGET_FILE:runner.state_mutate>"
+      "-DNMI_FIXTURE=$<TARGET_FILE:runner.nmi_fixture>"
       "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/dabg.nes"
       "-DOTHER_ROM=${PROJECT_SOURCE_DIR}/tests/roms/hm/M3_P32K_C32K_H.nes"
       "-DSAVE_FIXTURE=${NESTURBATOR_SAVE_FIXTURE}"
@@ -338,6 +351,9 @@ runner_state_case(save_dir)
 runner_state_case(frame0)
 runner_state_case(same_k)
 runner_state_case(continue_hash)
+runner_state_case(nmi_roundtrip)
+runner_state_case(nmi_idempotent)
+runner_state_case(nmi_wrong_load)
 runner_state_case(range_frames)
 runner_state_case(range_hash_frame)
 runner_state_case(range_state)
@@ -690,6 +706,42 @@ add_test(NAME hash.inventory.self_test
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/hash_inventory.cmake)
 set_tests_properties(hash.inventory.self_test PROPERTIES TIMEOUT 30)
 
+# Phase 20: offline positive and negative controls for the shared hosted
+# evidence validator. The fixtures are generated only in the build tree.
+add_executable(phase20_fake_gh runner/phase20_fake_gh.c)
+nesturbator_warnings(phase20_fake_gh)
+target_compile_definitions(phase20_fake_gh PRIVATE
+  $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
+add_test(NAME phase20.hosted_evidence.controls
+  COMMAND ${CMAKE_COMMAND}
+    -DCASE=all
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes"
+    "-DWORK=${PROJECT_BINARY_DIR}/phase20-hosted-evidence-controls"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase20_hosted_evidence_controls.cmake)
+set_tests_properties(phase20.hosted_evidence.controls PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
+add_test(NAME phase20.hosted_evidence.adapter
+  COMMAND ${CMAKE_COMMAND}
+    -DCASE=adapter
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes"
+    "-DFAKE_GH=$<TARGET_FILE:phase20_fake_gh>"
+    "-DWORK=${PROJECT_BINARY_DIR}/phase20-hosted-evidence-adapter"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase20_hosted_evidence_controls.cmake)
+set_tests_properties(phase20.hosted_evidence.adapter PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
+add_test(NAME phase20.hosted_evidence.availability
+  COMMAND ${CMAKE_COMMAND}
+    -DCASE=availability
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes"
+    "-DFAKE_GH=$<TARGET_FILE:phase20_fake_gh>"
+    "-DWORK=${PROJECT_BINARY_DIR}/phase20-hosted-evidence-availability"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase20_hosted_evidence_controls.cmake)
+set_tests_properties(phase20.hosted_evidence.availability PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
+
 # AccuracyCoin page runs are kept separate so a failure names the page whose
 # RAM-derived results diverged from the committed scoreboard.
 set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
@@ -849,6 +901,22 @@ add_test(NAME accuracycoin.protected COMMAND accuracy.scoreboard)
 set_tests_properties(accuracycoin.protected PROPERTIES
   FIXTURES_REQUIRED accuracycoin_protected_observations TIMEOUT 30)
 
+# Phase 20: require the six measured NMI/VBlank keys by full key and status.
+# On the existing full-campaign lane this check follows the fresh campaign;
+# other lanes check the committed candidate scoreboard without duplicating it.
+set(ACCURACYCOIN_NMI_TARGET_WORK ${PROJECT_BINARY_DIR}/accuracycoin/nmi-target-controls)
+add_test(NAME accuracycoin.nmi_targets
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD=${ACCURACYCOIN_SCOREBOARD}"
+    "-DGATE=${CMAKE_CURRENT_SOURCE_DIR}/cmake/nmi_targets.cmake"
+    "-DWORK=${ACCURACYCOIN_NMI_TARGET_WORK}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_nmi_targets_control.cmake)
+set_tests_properties(accuracycoin.nmi_targets PROPERTIES TIMEOUT 15)
+if(NESTURBATOR_ACCURACYCOIN_FULL)
+  set_tests_properties(accuracycoin.nmi_targets PROPERTIES
+    FIXTURES_REQUIRED accuracycoin_full_report)
+endif()
+
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
 function(nesturbator_core_test name source)
@@ -879,6 +947,14 @@ endif()
 target_include_directories(core.reset PRIVATE ${PROJECT_SOURCE_DIR}/src)
 # D-02: the PPUCTRL NMI edge, one NMI per frame from a handler that rewrites $2000.
 nesturbator_core_test(core.nmi_edge core/test_nmi_edge.c)
+# NMI-02: source-shaped STA/INC polling sequences and guest NMI entry markers.
+nesturbator_core_test(core.nmi_poll core/test_nmi_poll.c)
+target_include_directories(core.nmi_poll PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set_tests_properties(core.nmi_poll PROPERTIES TIMEOUT 10)
+# KEEP-03 (D-16 to D-19): exact enabled-NMI state replay and omitted-history oracle.
+nesturbator_core_test(core.nmi_state core/test_nmi_state.c)
+target_include_directories(core.nmi_state PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set_tests_properties(core.nmi_state PROPERTIES TIMEOUT 30)
 # MAP-01, D-04, D-05, D-06, D-08: cycle-stamped mapper writes, the IRQ OR, the nametable map and reset.
 nesturbator_core_test(core.mapper core/test_mapper.c)
 target_include_directories(core.mapper PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -936,6 +1012,10 @@ foreach(rom IN LISTS FORK_GAMES)
 endforeach()
 add_test(NAME core.state_fork.stress COMMAND core.state_fork ${FORK_MODE} --stress ${FORK_OTHER})
 set_tests_properties(core.state_fork.stress PROPERTIES TIMEOUT 300 COST 60)
+# KEEP-03 (D-19): a focused NROM public-boundary fork checks every guest NMI event
+# and resumes frame 0 through successive saved boundaries without replacing the board matrix.
+add_test(NAME core.state_fork.nmi COMMAND core.state_fork --nmi)
+set_tests_properties(core.state_fork.nmi PROPERTIES TIMEOUT 30)
 # STATE-04 (D-03, D-04): all-or-nothing load. Cross-ROM, version, header_size, truncation, a flip of
 # every byte, the CRC-recomputed field sweep, the at-bound table and the ppu_ticks gap, each checked
 # for the D-04 status and a byte-identical instance. NESTURBATOR_SHORT_RUNS (preset asan) strides
@@ -966,6 +1046,12 @@ nesturbator_warnings(core.controller)
 add_test(NAME core.controller COMMAND core.controller)
 
 # Focused CPU-visible PPU register and dot-boundary tests.
+add_executable(ppu.nmi_races ppu/test_nmi_races.c)
+target_link_libraries(ppu.nmi_races PRIVATE nesturbator::nesturbator)
+target_include_directories(ppu.nmi_races PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(ppu.nmi_races)
+add_test(NAME ppu.nmi_races COMMAND ppu.nmi_races)
+set_tests_properties(ppu.nmi_races PROPERTIES TIMEOUT 10)
 add_executable(ppu.registers ppu/test_registers.c)
 target_link_libraries(ppu.registers PRIVATE nesturbator::nesturbator)
 target_include_directories(ppu.registers PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -1530,15 +1616,19 @@ add_test(NAME policy.no-skip.self_test
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/skip_policy.cmake)
 
 # Exact opcode inventories come from CTest's machine-readable metadata. The
-# policy configures the full preset but never runs its network-backed fixture.
+# hosted policy reads the shared full inventory; local runs configure the full
+# preset as a fallback. Neither path runs its network-backed fixture.
 # NESTURBATOR_SHORT_RUNS (preset asan) leaves both out: they check CTest metadata, sanitizers
 # add nothing, and every ci leg runs them.
 if(NOT NESTURBATOR_SHORT_RUNS)
+set(NESTURBATOR_VECTORS_INVENTORY "" CACHE FILEPATH
+  "Fresh full-vector CTest inventory supplied by this CI invocation")
 add_test(NAME vectors.registration_policy
   COMMAND ${CMAKE_COMMAND}
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -DCI_BUILD=${PROJECT_BINARY_DIR}
     -DFULL_BUILD=${PROJECT_BINARY_DIR}/../vectors-full
+    -DINVENTORY_FILE=${NESTURBATOR_VECTORS_INVENTORY}
     -DCTEST=${CMAKE_CTEST_COMMAND}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vector_registration_policy.cmake)
 set_tests_properties(vectors.registration_policy PROPERTIES COST 1000)
@@ -1983,6 +2073,11 @@ add_test(NAME vectors.fetch.guard
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -DWORK=${CMAKE_CURRENT_BINARY_DIR}/fetch-guard
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_guard.cmake)
+add_test(NAME vectors.fetch.transport
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/vectors-transport
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_transport.cmake)
+set_tests_properties(vectors.fetch.transport PROPERTIES TIMEOUT 60)
 
 # The blargg MMC3 fetch has the same guards, with its own directory and marker.
 add_test(NAME mmc3.fetch.guard

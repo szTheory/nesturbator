@@ -1,0 +1,43 @@
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -154,13 +154,14 @@
+       - run: cmake -DDIR=build/${{ matrix.preset }} -P tests/cmake/check_archives.cmake
+       - if: matrix.os == 'macos' && matrix.arch == 'arm64'
+         run: cmake -DREADME=README.md -DPACKAGES=build/${{ matrix.preset }}/packages -DOUT=build/install-line -P tests/cmake/check_install_line.cmake
+-      # Quote each -D argument for PowerShell; the movie writer's executable
+-      # suffix is platform-specific.
+-      - run: cmake "-DBUILD=build/${{ matrix.preset }}" "-DOUT=hashes.txt" "-DMOVIE_WRITER=build/${{ matrix.preset }}/tests/runner.game_movie${{ runner.os == 'Windows' && '.exe' || '' }}" -P tests/cmake/write_hashes.cmake
++      # Reuse this fresh run's inventory generated and content-checked by CTest.
++      # Copy fails if the fixture output is missing; do not substitute pinned hashes.
++      - run: cmake -E copy "build/${{ matrix.preset }}/tests/hashes.txt" hashes.txt
+       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+         with:
+           name: archives-${{ matrix.os }}-${{ matrix.arch }}
+           path: build/${{ matrix.preset }}/packages/*.zip
++          compression-level: 0
+           if-no-files-found: error
+       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+         with:
+@@ -544,7 +545,7 @@
+         with:
+           name: phase20-perf-${{ github.run_id }}-${{ github.run_attempt }}
+           path: ${{ runner.temp }}/perf/
+-          retention-days: 7
++          retention-days: 60
+           if-no-files-found: error
+ 
+   # The one required check. GitHub reports a skipped job as success and skips
+--- a/.github/workflows/nightly.yml
++++ b/.github/workflows/nightly.yml
+@@ -60,6 +60,11 @@
+ 
+ permissions: {}
+ 
++# First-attempt PR runs coalesce; reruns and non-PR runs keep their own groups.
++concurrency:
++  group: nightly-${{ github.event_name }}-${{ github.run_attempt == '1' && github.event.pull_request.number || github.run_id }}
++  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.run_attempt == '1' }}
++
+ jobs:
+   vectors-full:
+     runs-on: ubuntu-24.04

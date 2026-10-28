@@ -21,6 +21,8 @@
 #define RA_FNV_BASIS 14695981039346656037ull
 #define RA_FNV_PRIME 1099511628211ull
 #define RA_MAX_DEPTH 3u
+#define RA_NMI_COUNT_ADDRESS 0x30u
+#define RA_NMI_EVENTS_ADDRESS 0x40u
 #define RA_SEED_1 0x0badc0deu
 #define RA_SEED_2 0x5eed1234u
 #define RA_PIXELS (256u * 240u)
@@ -67,6 +69,14 @@ static inline uint64_t ra_audio_hash_mono(const int16_t *mono, size_t count)
         h = ra_fnv_bytes(ra_fnv_bytes(h, b, 2u), b, 2u);
     }
     return h;
+}
+
+/* The NMI host fixture must produce actual PCM, rather than a hash of silence. Frame sample
+   counts are 798 or 799 at the pinned NTSC rate, so reject both canonical all-zero streams. */
+static inline int ra_audio_hash_is_nonzero_pcm(uint64_t hash)
+{
+    static const int16_t silence[799] = {0};
+    return hash != ra_audio_hash_mono(silence, 798u) && hash != ra_audio_hash_mono(silence, 799u);
 }
 
 static inline uint32_t ra_lcg(uint32_t x)
@@ -233,6 +243,7 @@ struct ra_oracle {
     uint64_t *video;
     uint64_t *audio;
     uint8_t *state;
+    uint8_t *guest_marker;
     struct ra_frame *rec; /* per frame, filled by the JAM-aware run only */
     uint32_t jam_frame;   /* the first STOP_JAM, or RA_NO_JAM */
 };
@@ -242,6 +253,7 @@ static inline void ra_oracle_free(struct ra_oracle *o)
     free(o->video);
     free(o->audio);
     free(o->state);
+    free(o->guest_marker);
     free(o->rec);
     memset(o, 0, sizeof *o);
 }
@@ -254,9 +266,11 @@ static inline int ra_oracle_alloc(struct ra_oracle *o, uint32_t frames, size_t s
     o->video = (uint64_t *)calloc(frames, sizeof *o->video);
     o->audio = (uint64_t *)calloc(frames, sizeof *o->audio);
     o->state = (uint8_t *)calloc((size_t)frames * state_size, 1u);
+    o->guest_marker = (uint8_t *)calloc(frames, sizeof *o->guest_marker);
     o->rec = (struct ra_frame *)calloc(frames, sizeof *o->rec);
     o->jam_frame = RA_NO_JAM;
-    if (o->video == NULL || o->audio == NULL || o->state == NULL || o->rec == NULL) {
+    if (o->video == NULL || o->audio == NULL || o->state == NULL || o->guest_marker == NULL ||
+        o->rec == NULL) {
         ra_oracle_free(o);
         return 0;
     }
@@ -286,10 +300,75 @@ static inline int ra_record_frame(struct ra_oracle *o, uint32_t i, nesturbator *
         CHECK(0);
         return 0;
     }
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(nes, RA_NMI_COUNT_ADDRESS, &o->guest_marker[i]),
+                 NESTURBATOR_OK);
     o->rec[i].hash = o->video[i];
     o->rec[i].frame_number = number;
     o->rec[i].valid = 1;
     return 1;
+}
+
+/* The owned NMI fixture writes its count and one-based event sequence into guest RAM.
+   Keeping this read independent of frame/state equality makes a shared host/core bug visible. */
+static inline void ra_check_nmi_marker(nesturbator *nes, uint8_t expected_count)
+{
+    uint8_t value = 0u;
+    int matches = nesturbator_peek_cpu_ram(nes, RA_NMI_COUNT_ADDRESS, &value) == NESTURBATOR_OK &&
+                  value == expected_count;
+    for (uint16_t event = 1u; matches && event <= expected_count; event++)
+        matches = nesturbator_peek_cpu_ram(nes, (uint16_t)(RA_NMI_EVENTS_ADDRESS + event),
+                                           &value) == NESTURBATOR_OK &&
+                  value == event;
+    CHECK(matches);
+}
+
+static inline uint64_t ra_state_u64le(const uint8_t *state, size_t offset)
+{
+    uint64_t value = 0u;
+    for (uint32_t byte = 0u; byte < 8u; byte++)
+        value |= (uint64_t)state[offset + byte] << (8u * byte);
+    return value;
+}
+
+/* The public state layout puts frame_number at byte 32 and ticks at byte 40. */
+static inline uint64_t ra_state_frame_number(const uint8_t *state)
+{
+    return ra_state_u64le(state, 32u);
+}
+
+static inline uint64_t ra_state_ticks(const uint8_t *state)
+{
+    return ra_state_u64le(state, 40u);
+}
+
+static inline int ra_nmi_marker_matches(nesturbator *nes, uint8_t expected_count)
+{
+    uint8_t value = 0u;
+    if (nesturbator_peek_cpu_ram(nes, RA_NMI_COUNT_ADDRESS, &value) != NESTURBATOR_OK ||
+        value != expected_count)
+        return 0;
+    for (uint16_t event = 1u; event <= expected_count; event++) {
+        if (nesturbator_peek_cpu_ram(nes, (uint16_t)(RA_NMI_EVENTS_ADDRESS + event), &value) !=
+                NESTURBATOR_OK ||
+            value != event)
+            return 0;
+    }
+    return 1;
+}
+
+/* Load a host-produced state through the public API before inspecting the guest marker. */
+static inline int ra_state_has_nmi_marker(const uint8_t *rom, size_t size, const uint8_t *state,
+                                          size_t state_size, uint8_t expected_count)
+{
+    nesturbator *nes = ra_instance(rom, size);
+    nesturbator_status status;
+    if (nes == NULL)
+        return 0;
+    status = nesturbator_load_state(nes, state, state_size);
+    CHECK_EQ_U64(status, NESTURBATOR_OK);
+    int matches = status == NESTURBATOR_OK && ra_nmi_marker_matches(nes, expected_count);
+    nesturbator_destroy(nes);
+    return matches;
 }
 
 /* Runs frames 0..frames-1 with in[i]. With jam_aware set, a STOP_JAM frame is recorded as not

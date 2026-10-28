@@ -1,8 +1,8 @@
 /* STATE-04 (D-03, D-04, D-16): a hostile or damaged state is refused with the right status and
    changes nothing. For each ROM a state is made after 20 frames, then:
      1. cross-ROM matrix and no-cartridge: ERR_STATE_CARTRIDGE
-     2. format_version 0 and 2: FORMAT; header_size 63 and 65: CHECKSUM, then INVALID with the CRC
-        recomputed
+     2. format_version 0, 1 and 3: FORMAT; header_size 63 and 65: CHECKSUM, then INVALID with the
+   CRC recomputed
      3. truncation to every length below S, S + 1 bytes, NULL arguments, S itself loads
      4. flip every header byte and body byte: the D-04 class per offset (RAM bytes with a stride
         under --short)
@@ -179,11 +179,13 @@ static void case_header(struct rom *r)
     struct guard g;
     uint8_t *b = copy_state(r);
     guard_open(&g, r->inst);
-    for (unsigned v = 0u; v <= 2u; v += 2u) {
+    for (unsigned v = 0u; v <= 1u; ++v) {
         put_raw(b + H_VERSION, v, 2u);
         refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "format_version", r->path);
     }
-    put_raw(b + H_VERSION, 1u, 2u);
+    put_raw(b + H_VERSION, 3u, 2u);
+    refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "format_version", r->path);
+    put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION, 2u);
     for (unsigned hs = 63u; hs <= 65u; hs += 2u) {
         put_raw(b + H_HEADER_SIZE, hs, 2u);
         refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_CHECKSUM, "header_size, old CRC",
@@ -263,10 +265,10 @@ static void case_two_faults(struct rom *r)
     struct guard g;
     uint8_t *b = copy_state(r);
     guard_open(&g, r->inst);
-    put_raw(b + H_VERSION, 2u, 2u);
+    put_raw(b + H_VERSION, 3u, 2u);
     b[H_ROM_CRC] ^= 0xffu;
     refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "version + ROM CRC", r->path);
-    put_raw(b + H_VERSION, 1u, 2u);
+    put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION, 2u);
     refuse(&g, b, r->state_size - 1u, NESTURBATOR_ERR_STATE_CARTRIDGE, "ROM CRC + short", r->path);
     b[H_ROM_CRC] ^= 0xffu;
     b[HEADER + 3u] ^= 0xffu;
@@ -364,7 +366,9 @@ static const struct row ROWS[] = {
     ROW(apu.sample_phase, 314999),
     ROW(cpu.nmi_prev, 1),
     ROW(cpu.nmi_pending, 1),
+    ROW(cpu.nmi_polled, 1),
     ROW(cpu.irq_line, 1),
+    ROW(cpu.irq_captured, 1),
     ROW(cpu.poll_latch, 1),
     ROW(cpu.halted_in_read, 0),
     {"cpu.jammed", offsetof(struct nesturbator, cpu.jammed), 1u, 1u, 1, 0, 0, NESTURBATOR_STOP_JAM},
@@ -471,6 +475,51 @@ static size_t special_off(struct rom *r, const char *name)
     size_t off = locate(r, s->member, s->width);
     CHECK(off != 0u);
     return off;
+}
+
+/* The poll result is reachable independently of the current PPU line: a late
+   capture may await the next instruction poll, or a poll may await service,
+   after status/control have lowered the live input. */
+static void case_nmi_history(struct rom *r)
+{
+    uint8_t *b = copy_state(r);
+    size_t prev = locate(r, offsetof(struct nesturbator, cpu.nmi_prev), 1u);
+    size_t pending = locate(r, offsetof(struct nesturbator, cpu.nmi_pending), 1u);
+    size_t polled = locate(r, offsetof(struct nesturbator, cpu.nmi_polled), 1u);
+    size_t control = locate(r, offsetof(struct nesturbator, ppu.control), 1u);
+    size_t status = special_off(r, "ppu.status");
+    struct guard g;
+    CHECK(prev != 0u && pending != 0u && polled != 0u && control != 0u && status != 0u);
+    if (prev == 0u || pending == 0u || polled == 0u || control == 0u || status == 0u) {
+        free(b);
+        return;
+    }
+
+    b[pending] = 0u;
+    b[polled] = 1u;
+    st_recrc(b, r->state_size);
+    guard_open(&g, r->inst);
+    refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_INVALID,
+           "nmi_polled requires captured request", r->path);
+    guard_close(&g);
+
+    b[prev] = 1u;
+    b[pending] = 1u;
+    b[polled] = 0u;
+    b[control] = 0u;
+    b[status] = 0u;
+    st_recrc(b, r->state_size);
+    CHECK_EQ_U64(nesturbator_load_state(r->inst, b, r->state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, r->state, r->state_size), NESTURBATOR_OK);
+    CHECK(memcmp(r->state, b, r->state_size) == 0);
+
+    b[polled] = 1u;
+    st_recrc(b, r->state_size);
+    CHECK_EQ_U64(nesturbator_load_state(r->inst, b, r->state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, r->state, r->state_size), NESTURBATOR_OK);
+    CHECK(memcmp(r->state, b, r->state_size) == 0);
+    printf("row nmi-history live-line=low pending/polled=(1,0),(1,1) load=0 roundtrip=equal\n");
+    free(b);
 }
 
 /* ---- Case 6: the CRC-recomputed sweep over the recorded bounds ---- */
@@ -798,6 +847,7 @@ int main(int argc, char **argv)
         printf("%s: %zu bytes, %zu bounded fields\n", nm, roms[i].state_size, nb);
         case_header(&roms[i]);
         case_truncation(&roms[i]);
+        case_nmi_history(&roms[i]);
         case_two_faults(&roms[i]);
         case_flip(&roms[i]);
         case_field_sweep(&roms[i], bd, nb);

@@ -199,8 +199,8 @@ static void load_order(const struct fixture *fx, const uint8_t *rom, size_t rom_
     s[7] ^= 0x80u;
     expect_load(t, s, fx->size, NESTURBATOR_ERR_STATE_FORMAT, "magic byte 7");
     memcpy(s, fx->state, fx->size);
-    s[8] = 2u;
-    expect_load(t, s, fx->size, NESTURBATOR_ERR_STATE_FORMAT, "version 2");
+    s[8] = 1u;
+    expect_load(t, s, fx->size, NESTURBATOR_ERR_STATE_FORMAT, "version 1");
     /* 4: identity, before the length. */
     memcpy(s, fx->state, fx->size);
     s[20] ^= 1u;
@@ -259,10 +259,10 @@ static void load_order(const struct fixture *fx, const uint8_t *rom, size_t rom_
     s[10] = 65u;
     st_recrc(s, fx->size);
     expect_load(t, s, fx->size, NESTURBATOR_ERR_STATE_INVALID, "header_size 65");
-    /* A field out of range: cpu.jammed is body offset 26 (after the 14 core bytes and 12 cpu
+    /* A field out of range: cpu.jammed is body offset 28 (after the 14 core bytes and 14 cpu
        bytes), so byte 64 + 26. */
     memcpy(s, fx->state, fx->size);
-    s[64 + 26] = 2u;
+    s[64 + 28] = 2u;
     st_recrc(s, fx->size);
     expect_load(t, s, fx->size, NESTURBATOR_ERR_STATE_INVALID, "cpu.jammed 2");
     /* The unaltered state loads. */
@@ -506,6 +506,51 @@ static void mmc3_a12_derived(void)
         CHECK_EQ_U64(b->map.a12, (b->ppu.bus_addr >> 12) & 1u);
         CHECK_EQ_U64(b->map.a12, addrs[i] >> 12);
         free(state);
+        nesturbator_destroy(a);
+        nesturbator_destroy(b);
+    }
+}
+
+/* Derived eligibility must follow all eight saved sprite tags, including a
+   native-valid tag outside slot zero, rather than the destination's cache. */
+static void sprite_zero_eligibility_restored(void)
+{
+    size_t image = board_build(0u, 2u, 1u, 0u);
+    for (unsigned eligible = 0u; eligible < 2u; eligible++) {
+        nesturbator *a = st_make_instance();
+        nesturbator *b = st_make_instance();
+        st_load(a, board_image, image);
+        st_load(b, board_image, image);
+        a->ticks = 0u;
+        a->ppu.ppu_ticks = 0u;
+        a->ppu.scanline = 0u;
+        a->ppu.dot = 1u;
+        a->ppu.mask = 0x1eu;
+        a->ppu.status = 0u;
+        a->ppu.sprite_count = 8u;
+        a->ppu.bg_shift_lo = 0x8000u;
+        a->ppu.bg_shift_hi = 0u;
+        memset(a->ppu.sprite_zero, 0, sizeof a->ppu.sprite_zero);
+        memset(a->ppu.sprite_x, 0, sizeof a->ppu.sprite_x);
+        memset(a->ppu.sprite_lo, 0, sizeof a->ppu.sprite_lo);
+        memset(a->ppu.sprite_hi, 0, sizeof a->ppu.sprite_hi);
+        a->ppu.sprite_zero[7] = (uint8_t)eligible;
+        a->ppu.sprite_lo[7] = 0x80u;
+        b->ppu.sprite_zero_slots = eligible != 0u ? 0u : 0x80u;
+        size_t size = nesturbator_state_size(a);
+        uint8_t *state = (uint8_t *)malloc(size);
+        uint8_t *again = (uint8_t *)malloc(size);
+        CHECK(state != NULL && again != NULL);
+        if (state != NULL && again != NULL) {
+            CHECK_EQ_U64(nesturbator_save_state(a, state, size), NESTURBATOR_OK);
+            CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+            CHECK_EQ_U64(nesturbator_save_state(b, again, size), NESTURBATOR_OK);
+            CHECK_EQ_U64(memcmp(state, again, size), 0u);
+            nesturbator__ppu_run_until(b, 8u);
+            CHECK_EQ_U64(b->ppu.status & 0x40u, eligible != 0u ? 0x40u : 0u);
+        }
+        free(state);
+        free(again);
         nesturbator_destroy(a);
         nesturbator_destroy(b);
     }
@@ -853,6 +898,7 @@ int main(int argc, char **argv)
     board_mmc1();
     board_mmc3();
     mmc3_a12_derived();
+    sprite_zero_eligibility_restored();
     size_shape(rom, rom_size);
     save_never_allocates(rom, rom_size);
     save_const(rom, rom_size);

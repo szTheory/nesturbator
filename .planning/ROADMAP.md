@@ -59,7 +59,7 @@
 A game's frame loop and status-bar splits time out exactly as they do on an NTSC console. Eleven AccuracyCoin rows at pin `6bee919` move to pass; the 101 rows that pass today keep passing. Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 
 - [x] **Phase 19: JAM reporting and sprite-0 hit** - AccuracyCoin names a guest JAM, and sprite-0 hit lands on the console's line (completed 2026-10-25)
-- [ ] **Phase 20: NMI line and VBlank flag** - `$2002` reads and `$2000` writes around VBlank give the console's flag and NMIs, and save states carry the new latches
+- [x] **Phase 20: NMI line and VBlank flag** - `$2002` reads and `$2000` writes around VBlank give the console's flag and NMIs, and save states carry the new latches (completed 2026-10-28)
 - [ ] **Phase 21: Interrupt latency and hijack** - IRQs start on the console's instruction and an NMI takes over BRK or IRQ as on the console
 
 ## Phase Details
@@ -111,7 +111,51 @@ Note: the basic hit already worked; the `0x06` sprite rows were guest re-run art
   3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
   4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
 
-**Plans**: TBD
+**Plans**: 12/12 complete; hosted content accepted; independent re-verification passed 32/32
+
+Plans:
+- [x] 20-12-PLAN.md — final fe70d61 CI/Nightly and live source-bound availability with retained raw metadata passed; content acceptance stays in 20-10
+
+**Wave 1**
+- [x] 20-01-PLAN.md — owned absolute-dot, real-bus and guest NMI reproducers with exact pinned table oracles
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 20-02-PLAN.md — measured split status/line capture with coherent state format 2 and behavior revision 8
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 20-03-PLAN.md — instruction-specific NMI polling, complete-table alignment and causal evidence
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [x] 20-04-PLAN.md — exact enabled-NMI set/clear/edge state continuation and rejection controls
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [x] 20-05-PLAN.md — NMI-sensitive core, runner and libretro rewind/run-ahead replay
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [x] 20-06-PLAN.md — six-target gate, final baseline/hash provenance and local/hosted evidence ledger
+
+**Wave 7** *(gap closure; consumes completed Wave 6)*
+- [x] 20-07-PLAN.md — changing-sprite split-decoder witness and WR-01/WR-02 contract corrections
+
+**Wave 8** *(gap closure; blocked on Wave 7)*
+- [x] 20-08-PLAN.md — equal-tick full-key controls and combined frame-zero/empty-PCM/nonzero-history replay
+
+**Wave 9** *(gap closure; blocked on Wave 8)*
+- [x] 20-09-PLAN.md — locally tested hosted collector, artifact retention and delivery preparation with ordinary complete summary
+
+**Wave 10** *(gap closure; consumes completed Wave 9)*
+- [x] 20-11-PLAN.md — repair archive normalization and timestamped plain-text job-log evidence; prove collect/validate and metadata-only availability with offline adapter controls
+
+**Wave 11** *(gap closure; consumes completed Wave 10)*
+- [x] 20-12-PLAN.md — final fe70d61 CI/Nightly and live source-bound availability with retained raw metadata passed; content acceptance stays in 20-10
+
+**Wave 12** *(gap closure; consumes completed Wave 11)*
+- [x] 20-10-PLAN.md — real source-bound hosted content accepted; six-platform/protected/performance/conformance/host gates pass
+
+20-09 preparation, historical 0039 availability and failed afba1d0/b343083 candidates remain preserved in 20-DELIVERY.md. Initial candidate `fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1` has historical successful CI `40700458574/1`, Nightly `40700458462/1` and 417-input acceptance (`a08da046cedeecbdd28227cc53d54e3d3e7dff2a93ee88aab9ead67da47bf61c`). Plans 20-12 and 20-10 remain complete.
+
+After the native host-session helper and Windows binary-fixture repairs, current candidate `7848cc8980e8e96a1fc6f5ec223a9783fb7ef19d` / tested merge `716e8d49c80602e3524b9348881ddf171fe33a2f` passed fresh CI `40748417351/1` (18/18) and Nightly `40740261760/1` (seven work jobs). Production collection/current-checkout validation and an independent 418-entry mode/blob comparison passed for effective source `87ee34cf7b5ba45d87e748ab69b69f929a7fe7be96c02ed044bf9b1394f93202`. Fresh local CI passed 688/688 and generated all three packages. All four requirements and independent verification passed 32/32 with a refreshed source fingerprint; see 20-REVERIFICATION-EVIDENCE.md. PR #59 remains open and ready for review; this execution's evidence awaits publication. No merge or acceptance-policy relaxation occurred; Phase 21 has not started.
+
 **Canonical refs**: [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [DECISIONS.md](preparation/DECISIONS.md), [CONFORMANCE.md](preparation/CONFORMANCE.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (section 1, state), [research/FEATURES.md](research/FEATURES.md) (G1, G2), [research/PITFALLS.md](research/PITFALLS.md) (#1, #2, #3, #6, #7, #10, #12), [research/SUMMARY.md](research/SUMMARY.md) (steps 3–4)
 
 Note: the NMI line and its edge latch come before the penultimate-cycle poll, which reads that latch; both may share one pull request if the reproducers check each step. Test whether AccuracyCoin needs a CPU/PPU alignment constant before adding one.
@@ -137,7 +181,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
-| 20. NMI line and VBlank flag | v5 | 0/TBD | Not started | - |
+| 20. NMI line and VBlank flag | v5 | 12/12 | Complete    | 2026-10-28 |
 | 21. Interrupt latency and hijack | v5 | 0/TBD | Not started | - |
 
 Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).

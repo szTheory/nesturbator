@@ -2715,6 +2715,7 @@ static int32_t interpolate_coefficient(unsigned phase, unsigned tap, uint32_t ph
 
 void nesturbator__synth_reset(struct nesturbator *nes)
 {
+    nes->apu.mixed_level_valid = 0u;
     memset(&nes->synth, 0, sizeof nes->synth);
 }
 

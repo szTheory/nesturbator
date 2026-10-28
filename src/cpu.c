@@ -405,11 +405,18 @@ static void stack_dummy(struct nesturbator *nes)
    "Relative addressing"). The offset is signed. */
 static void branch(struct nesturbator *nes, int cond)
 {
+    /* Branches poll before cycle 2. A taken same-page branch does not poll
+       before cycle 3; a page-cross branch polls again before its fix-up cycle.
+       The opcode-fetch cycle supplied the first poll, so retain it across the
+       offset and same-page dummy cycles. */
+    uint8_t branch_poll = nes->cpu.nmi_polled;
     uint8_t off = fetch(nes);
     if (!cond) {
+        nes->cpu.nmi_polled = branch_poll;
         return;
     }
     implied(nes);
+    nes->cpu.nmi_polled = branch_poll;
     uint16_t pc = nes->cpu.pc;
     uint32_t delta = (off & 0x80u) != 0u ? (uint32_t)off + 0xFF00u : (uint32_t)off;
     uint16_t target = (uint16_t)(pc + delta);
@@ -493,7 +500,12 @@ void nesturbator__cpu_step(struct nesturbator *nes)
 
     /* NMI is sampled at an instruction boundary; it pushes PC and P with B
        clear, then reads the fixed vector. [HWC.08] */
-    if (nes->cpu.nmi_pending != 0u) {
+    if (nes->cpu.nmi_polled != 0u) {
+        /* Consume only the request being serviced. Edges captured during the
+           seven entry cycles remain pending, but interrupt entry itself does
+           not poll; the first handler instruction gets that poll. */
+        nes->cpu.nmi_pending = 0u;
+        nes->cpu.nmi_polled = 0u;
         nesturbator__bus_read(nes, nes->cpu.pc);
         nesturbator__bus_read(nes, nes->cpu.pc);
         push(nes, (uint8_t)(nes->cpu.pc >> 8));
@@ -503,7 +515,7 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         uint8_t lo = nesturbator__bus_read(nes, 0xFFFAu);
         uint8_t hi = nesturbator__bus_read(nes, 0xFFFBu);
         nes->cpu.pc = (uint16_t)(((uint16_t)hi << 8) | lo);
-        nes->cpu.nmi_pending = 0u;
+        nes->cpu.nmi_polled = 0u;
         return;
     }
 
@@ -511,6 +523,9 @@ void nesturbator__cpu_step(struct nesturbator *nes)
        poll sample. The frame status bit may be visible before its inhibit
        latch allows this line to trigger. [HWC.02] */
     if (nes->cpu.poll_latch != 0u && (nes->cpu.p & FLAG_I) == 0u) {
+        /* Interrupt entry does not poll NMI. Preserve a late captured edge
+           for the first handler instruction, which is the next poll point. */
+        nes->cpu.nmi_polled = 0u;
         nesturbator__bus_read(nes, nes->cpu.pc);
         nesturbator__bus_read(nes, nes->cpu.pc);
         push(nes, (uint8_t)(nes->cpu.pc >> 8));
@@ -521,6 +536,7 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         uint8_t hi = nesturbator__bus_read(nes, 0xFFFFu);
         nes->cpu.pc = (uint16_t)(((uint16_t)hi << 8) | lo);
         nes->cpu.poll_latch = 0u;
+        nes->cpu.nmi_polled = 0u;
         return;
     }
 
@@ -1378,4 +1394,7 @@ void nesturbator__cpu_reset(struct nesturbator *nes)
     /* The last cycle's IRQ sample is dropped: I is set, and the first
        instruction polls the line afresh. */
     nes->cpu.poll_latch = 0u;
+    nes->cpu.nmi_prev = 0u;
+    nes->cpu.nmi_pending = 0u;
+    nes->cpu.nmi_polled = 0u;
 }

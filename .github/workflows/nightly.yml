@@ -395,13 +395,36 @@ jobs:
       - run: cmake --build --preset ci
       - name: Run the suite three times in random order
         id: flake
-        run: ctest --preset ci --repeat until-fail:3 --schedule-random
+        run: ctest --preset ci -LE '^retroarch-session$' --repeat until-fail:3 --schedule-random
+
+  # Linux and Apple Silicon run these once per required CI invocation. Keep
+  # Intel coverage here rather than multiplying the serial matrix on every PR.
+  session-controls:
+    runs-on: macos-15-intel
+    # Successful Intel build run 38645462773 took 1,151 s including the matrix;
+    # retain that measured 39-minute envelope until this isolated job is measured.
+    timeout-minutes: 39
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: cmake --preset ci
+      - run: cmake --build --preset ci --target frame_index nesturbator-run
+      - run: ctest --preset ci -L '^retroarch-session$' --no-tests=error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: nightly-session-controls-intel
+          path: build/ci/Testing/Temporary/LastTest.log
+          if-no-files-found: warn
 
   # On scheduled and main-push runs: one rolling issue labelled nightly,
   # opened or updated on failure and closed on success. No checkout, so gh is
   # given the repository.
   report:
-    needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, state-fuzz, execution-fuzz, suite-flake]
+    needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, state-fuzz, execution-fuzz, suite-flake, session-controls]
     if: always() && (github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     runs-on: ubuntu-24.04
     # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 3 sampled successful runs (5 s in run 38329002573) is 1 minutes.
@@ -412,13 +435,14 @@ jobs:
       - name: Rolling issue
         env:
           GH_TOKEN: ${{ github.token }}
-          RESULT: ${{ needs.vectors-full.result == 'success' && needs.mmc3-oracle.result == 'success' && needs.rom-loader-fuzz.result == 'success' && needs.state-fuzz.result == 'success' && needs.execution-fuzz.result == 'success' && needs.suite-flake.result == 'success' && 'success' || 'failure' }}
+          RESULT: ${{ needs.vectors-full.result == 'success' && needs.mmc3-oracle.result == 'success' && needs.rom-loader-fuzz.result == 'success' && needs.state-fuzz.result == 'success' && needs.execution-fuzz.result == 'success' && needs.suite-flake.result == 'success' && needs.session-controls.result == 'success' && 'success' || 'failure' }}
           FAILED: ${{ needs.vectors-full.outputs.failed }}
           MMC3: ${{ needs.mmc3-oracle.outputs.failed }}
           FUZZ: ${{ needs.rom-loader-fuzz.outputs.outcome }}
           STATE_FUZZ: ${{ needs.state-fuzz.outputs.outcome }}
           EXECUTION_FUZZ: ${{ needs.execution-fuzz.outputs.outcome }}
           FLAKE: ${{ needs.suite-flake.outputs.outcome }}
+          SESSIONS: ${{ needs.session-controls.result }}
           HEAD_SHA: ${{ github.sha }}
           EVENT: ${{ github.event_name }}
         run: |
@@ -434,8 +458,8 @@ jobs:
             fi
             exit 0
           fi
-          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nOverall result: %s\n\nFailed vector keys: %s\n\nFailed MMC3 oracle keys: %s\n\nROM loader fuzz outcome: %s\n\nState loader fuzz outcome: %s\n\nExecution fuzz outcome: %s\n\nSuite flake hunt outcome: %s\n' \
-            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-none recorded; see the run}" "${MMC3:-none recorded; see the run}" "${FUZZ:-not recorded; see the run}" "${STATE_FUZZ:-not recorded; see the run}" "${EXECUTION_FUZZ:-not recorded; see the run}" "${FLAKE:-not recorded; see the run}")
+          body=$(printf 'Event: %s\n\nHead SHA: %s\n\nRun: %s\n\nOverall result: %s\n\nFailed vector keys: %s\n\nFailed MMC3 oracle keys: %s\n\nROM loader fuzz outcome: %s\n\nState loader fuzz outcome: %s\n\nExecution fuzz outcome: %s\n\nSuite flake hunt outcome: %s\n\nIntel session controls: %s\n' \
+            "$EVENT" "$HEAD_SHA" "$url" "$RESULT" "${FAILED:-none recorded; see the run}" "${MMC3:-none recorded; see the run}" "${FUZZ:-not recorded; see the run}" "${STATE_FUZZ:-not recorded; see the run}" "${EXECUTION_FUZZ:-not recorded; see the run}" "${FLAKE:-not recorded; see the run}" "${SESSIONS:-not recorded; see the run}")
           if [ -n "$issue" ]; then
             gh issue edit "$issue" --repo "$GITHUB_REPOSITORY" --body "$body"
           else

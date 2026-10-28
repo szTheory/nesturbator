@@ -53,25 +53,39 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 7 clears OAMADDR on dots 257-320 while rendering and
+   the same inputs. Revision 8 captures the derived PPU NMI line at CPU bus
+   clock seams, then services a request only after the instruction's CPU poll
+   (including branch-specific poll cycles); a captured request survives later
+   line deassertion. A $2002 read samples vblank bit 7 at M2 rise and sprite
+   bits 6/5 at M2 fall; a flag raised between those samples appears in the
+   returned status byte. PPUCTRL disable and the pre-render clear lower the
+   live NMI line without revoking an already captured request. IRQ retains its
+   close-edge level separately from the live line before the instruction poll,
+   preserving MMC3 timing at tied PPU transitions.
+   Revision 7 clears OAMADDR on dots 257-320 while rendering and
    starts sprite evaluation at OAMADDR, with the sprite found on the dot-66 read
    acting as sprite 0, which changes the frames of programs that leave OAMADDR
    nonzero while rendering. Revision 6 is the PPUCTRL NMI edge: a $2000 write raises
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
-   Revision 5 was the PPU fetch pipeline. The state format is unchanged by revision 7. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 7
+   Revision 5 was the PPU fetch pipeline. */
+#define NESTURBATOR_BEHAVIOUR_REVISION 8
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
    NESTURBATOR_ERR_STATE_FORMAT; there is no converter. Before the first release that contains
    save states it stays 1 and the layout may change. After that release, any change to the state
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
-   same commit. A fix that changes only emulated output raises
-   NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a load does not enforce.
-   Raising it is not a breaking change to the C interface and leaves NESTURBATOR_ABI_VERSION as it
-   is. */
-#define NESTURBATOR_STATE_FORMAT_VERSION 1
+   same commit. Version 2 records the CPU's sampled NMI-line, captured-request and instruction-poll
+   histories and the retained close-edge IRQ level; version 1 states are refused with
+   NESTURBATOR_ERR_STATE_FORMAT. Derived sprite eligibility is rebuilt on load;
+   the first CPU clock also reconciles restored synthesis history with channel
+   levels, even without an oscillator event. These caches add no saved bytes.
+   A fix that changes
+   only emulated output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a
+   load does not enforce. Raising it is not a breaking change to the C interface and leaves
+   NESTURBATOR_ABI_VERSION as it is. */
+#define NESTURBATOR_STATE_FORMAT_VERSION 2
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -227,8 +241,11 @@ typedef struct nesturbator_info {
  * (HWC.11). Mixed-level transitions use the fixed-point 16-tap, 32-phase
  * band-limited kernel, followed by the NES 90 Hz and 440 Hz high-pass and
  * 14 kHz low-pass filters (HWC.28-HWC.30). Synthesis and filter history are
- * per-instance and persist across frame calls; the bounded PCM staging ring
- * is drained into the caller's frame buffer. For fixed content, behavior
+ * per-instance, persist across frame calls and are included in saved machine
+ * state; the bounded PCM staging ring is transient and drained into the
+ * caller's frame buffer. A frame-zero state can therefore contain nonzero
+ * audio history while its PCM output is empty, as exercised by
+ * test_frame_zero_empty_pcm_preserves_history. For fixed content, behavior
  * revision and input sequence, PCM samples are bit-for-bit deterministic. */
 typedef struct nesturbator_frame {
     uint32_t size;           /* in: sizeof(nesturbator_frame) */
@@ -252,7 +269,8 @@ typedef struct nesturbator_frame {
                                 A $2000 write raises an NMI only when bit 7
                                 changes from 0 to 1 while vblank is set;
                                 rewriting it with bit 7 still set does not,
-                                and clearing bit 7 suppresses a pending NMI. */
+                                and clearing bit 7 lowers the live NMI line
+                                without revoking an already captured request. */
 } nesturbator_frame;
 
 /* Writes the library's version into *out. Writes nothing when out is NULL or
@@ -396,8 +414,13 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * At the start of a successful call, the latest input set through
  * nesturbator_set_input is sampled for that frame. Instructions complete
  * across the requested frame boundary; the next input is sampled only on the
- * next call, so a crossing instruction cannot mix frame masks. Cartridge
- * audio clocks the NTSC RP2A03 channels and frame sequencer on CPU cycles;
+ * next call, so a crossing instruction cannot mix frame masks. Frame calls
+ * are synchronous host output intervals, not NMI timing cutpoints: PPU
+ * vblank/NMI edges and CPU instruction polls continue at chip timing, so an
+ * NMI handler may run during a call or remain pending across its return
+ * ([HWP.03][HWC.02]). A host that saves or restores between calls preserves
+ * that machine history through the state API. Cartridge audio clocks the
+ * NTSC RP2A03 channels and frame sequencer on CPU cycles;
  * frame-counter and DMC interrupt status are independent. The CPU samples an
  * enabled IRQ at instruction boundaries and enters the IRQ vector (HWC.02).
  * No cartridge: test pattern and silence. A JAM opcode stops with
@@ -499,7 +522,13 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
 /* Save states. A state is the whole machine at a frame boundary, in a fixed-size byte string
  * that is the same on every platform: save, load into any instance holding the same cartridge,
  * and every later frame, audio sample and tick equals the uninterrupted run's. The library does
- * no file I/O and never allocates for a state; the host owns the buffer.
+ * no file I/O and never allocates for a state; the host owns the buffer. CPU NMI history stores
+ * the sampled asserted line, captured request and last instruction poll independently: $2002,
+ * PPUCTRL disable and pre-render clear can lower the derived line without revoking a captured
+ * request or a poll awaiting service. A late captured request remains pending until an instruction
+ * reaches its NMI poll point.
+ * IRQ's retained close-edge level is likewise saved independently from the live
+ * IRQ line and the instruction poll, so loading does not resample a tied PPU edge.
  *
  * nesturbator_state_size returns the exact length of a state of the loaded cartridge: 0 for a
  * NULL instance or with no cartridge, otherwise constant from a successful load until unload. It
@@ -574,11 +603,20 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * accepted by the local socket is not proof that RetroArch received it; each retained image and
  * native origin is checked by the shared progression verdict. The journal writes and sanitizes
  * each row in one Perl process, using one monotonic observation for attempt elapsed/remaining time.
+ * Repeated post-bootstrap clock samples and bounded nonempty artifact hashes use frame_index's
+ * native runner clock and shared FNV-1a reader, avoiding interpreter work inside timed polls.
+ * Clock/hash latency controls retain the exact load-send failure and 25000-ms readiness-plus-
+ * cleanup bound; frozen vectors check the unchanged 1 MiB hash cap and streaming boundaries.
  * The POSIX interruption harness and its private selector share one unchanged TERM assertion:
  * genuine grep runs once, with its numeric status and exact output bytes retained separately
  * from recorder status. Binary pre/post journal snapshots copy through one open handle and bind
  * that handle's device, inode and size; they do not identify the bytes grep read. Synthetic tests
  * cover statuses 0, 1 and controlled 2, recorder errors, pathname replacement and event ownership.
+ * The POSIX shell session controls carry the retroarch-session CTest label. Local ci runs the
+ * full matrix; hosted ci-build delegates it to required Linux and Apple Silicon jobs, with Intel
+ * covered nightly. Short-run ASan omits this shell matrix while retaining native host checks.
+ * The test-only QUIT grace override is STATE_SESSION_TEST_QUIT_GRACE_MS; production operation
+ * deadlines and the library's interrupt, presentation and state contracts are unchanged.
  * Cooperative local session invocations reserve loopback TCP port 55355 with a bound, non-listening
  * SOCK_STREAM descriptor held at FD 9, separate from the host UDP command transport.
  * Bundled Perl binds and validates the descriptor, then
@@ -655,7 +693,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * progression and retained origins; they do not prove every committed
  * machine field or audio. Portable whole-state and audio tests retain their broader proofs. Loading
  * restores frame_number and ticks, so the first frame after a load reports the frame number and
- * ticks of the uninterrupted run. The frame buffer and the audio are not in a state. Load never
+ * ticks of the uninterrupted run. The video frame buffer, caller's PCM output and transient
+ * staged PCM are not in a state; APU sample phase and synthesizer/filter history are saved machine
+ * state, including when frame zero has emitted no PCM. Load never
  * returns NESTURBATOR_STOP_JAM: a state saved after a JAM opcode restores the latch and the next
  * nesturbator_run_frame returns NESTURBATOR_STOP_JAM, and a state saved before one clears it.
  *

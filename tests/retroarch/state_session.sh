@@ -21,7 +21,15 @@ case "$TIMEOUT_MS:$OPERATION_MS:$CLEANUP_MS:$READY_MS:$PUBLICATION_MS" in
     *[!0-9:]*|::*|:*|*:) echo "state_session: INVALID_BUDGET" >&2; exit 2 ;;
 esac
     [ "$TIMEOUT_MS" -gt "$CLEANUP_MS" ] && [ "$OPERATION_MS" -gt 0 ] || { echo "state_session: INVALID_BUDGET" >&2; exit 2; }
-clock_ms() { perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000' 2>/dev/null; }
+clock_ms() {
+    # Keep the initial bootstrap sample in Perl for the descriptor handoff; repeated
+    # observations reuse the runner's native clock without starting an interpreter.
+    if [ "${STATE_SESSION_LOCK_BOOTSTRAPPED:-}" = 1 ]; then
+        "$FRAME_INDEX" --session-clock 2>/dev/null
+    else
+        perl -MTime::HiRes=clock_gettime,CLOCK_MONOTONIC -e 'printf "%.0f\n",clock_gettime(CLOCK_MONOTONIC)*1000' 2>/dev/null
+    fi
+}
 lock_reservation_is_held() {
     trace_lock_reservation_is_held
 }
@@ -642,10 +650,10 @@ probe_ready() {
     done
 }
 
-# Shell/awk FNV-1a 64-bit identities for the shared C evidence reader.
+# Use the evidence reader's bounded native FNV-1a rather than interpreting every
+# artifact byte inside the publication window. Empty and >1 MiB files still fail.
 fnv64() {
-    _size=$(wc -c <"$1" | tr -d ' '); [ "$_size" -gt 0 ] && [ "$_size" -le 1048576 ] || return 1
-    perl -e 'use integer; my $h=14695981039346656037; while(read STDIN,my $b,65536){ for my $x (unpack("C*",$b)){ $h ^= $x; $h *= 1099511628211 } } printf "%016x\n",$h' <"$1"
+    "$FRAME_INDEX" --session-hash "$1"
 }
 publish_image() {
     _tag=$1; _now=$(clock_ms) || fail MONOTONIC_CLOCK_FAILURE

@@ -34,8 +34,13 @@
 
 /* 6502 core state (D-10). P is kept exactly as loaded or pulled: flag
    writes touch only their own bits, so bits 4 and 5 change only on a pull.
-   The interrupt fields and halted_in_read are unused until the bus samples
-   the lines and stalls reads.
+   nmi_prev is the asserted-high PPU line at the detector sample, nmi_pending
+   retains a captured edge, and nmi_polled records the instruction poll result.
+   These historical values are separate from the live PPU line and are
+   serialized. irq_captured retains the IRQ level at the same close-edge
+   detector sample, distinct from irq_line and the instruction's poll_latch.
+   halted_in_read covers a stalled read; the bus samples
+   interrupt lines at its clock seam.
    The power-on state comes from cartridge load, which sets S, P and PC from
    the reset vector. The CPU runs during every frame. nesturbator__cpu_reset
    runs the soft-reset sequence (I set, S lowered by 3, PC from the vector)
@@ -43,7 +48,7 @@
 struct nesturbator__cpu {
     uint16_t pc;
     uint8_t a, x, y, s, p;
-    uint8_t nmi_prev, nmi_pending, irq_line, poll_latch;
+    uint8_t nmi_prev, nmi_pending, nmi_polled, irq_line, irq_captured, poll_latch;
     uint8_t halted_in_read; /* nonzero while the current read is stalled */
     uint8_t jammed;         /* set by a JAM opcode; cleared by cpu_reset */
 };
@@ -99,6 +104,8 @@ struct nesturbator__apu {
     int16_t *sample_output;
     uint32_t sample_limit;
     uint32_t sample_count;
+    /* Derived mixer-cache validity, not guest state; invalidated after load. */
+    uint8_t mixed_level_valid;
 };
 
 typedef void (*nesturbator__transition_sink)(void *context, uint64_t cpu_cycle, int32_t level);
@@ -153,6 +160,8 @@ struct nesturbator__ppu {
        $2000, $2001, $2005 and $2006 are dropped. Load and unload zero the PPU,
        so power-on has no such window (D-17). */
     uint8_t reset_flag;
+    /* Derived eligibility bits for sprite_zero[]; rebuilt after state load. */
+    uint8_t sprite_zero_slots;
 };
 
 struct nesturbator__cartridge {
@@ -330,6 +339,15 @@ extern const uint16_t nesturbator__tnd_mix[16][16][128];
 void nesturbator__ppu_run_until(struct nesturbator *nes, uint64_t ticks);
 uint8_t nesturbator__ppu_read(struct nesturbator *nes, uint16_t addr);
 void nesturbator__ppu_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
+/* The physical /NMI pin asserts when PPUSTATUS.7 and PPUCTRL.7 are set.
+   Keep the asserted-high view local to each per-cycle caller. [HWP.03] */
+static inline uint8_t nesturbator__ppu_nmi_line(const struct nesturbator *nes)
+{
+    return (uint8_t)((nes->ppu.status & nes->ppu.control & 0x80u) != 0u);
+}
+void nesturbator__ppu_status_read_begin(struct nesturbator *nes, uint8_t suppress_vblank);
+uint8_t nesturbator__ppu_status_read_finish(struct nesturbator *nes, uint8_t early_vblank);
+uint8_t nesturbator__ppu_status_read(struct nesturbator *nes, uint8_t early_vblank);
 uint8_t nesturbator__ppu_register_read(struct nesturbator *nes, uint16_t reg);
 void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint8_t value);
 

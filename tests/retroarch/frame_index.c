@@ -13,6 +13,7 @@
    frames before it, and prints the number of distinct frames. nesteroids repeats frames in
    adjacent pairs, so a screenshot can identify two indices. */
 #include "bmp_ppm.h"
+#include "clock.h"
 #include "convert.h"
 #include "nesturbator.h"
 #include "progression.h"
@@ -1741,11 +1742,16 @@ static int marker_selftest(const char *work)
     ok &= marker_expect("oversized-MEM", marker_anchor(inst, bytes, length, 150u, offset),
                         "container-header", &count);
     memcpy(bytes, base, length);
-    if (padded == size)
-        return 2;
-    bytes[16u + size] = 1u;
-    ok &= marker_expect("nonzero-padding", marker_anchor(inst, bytes, length, 150u, offset),
-                        "container-padding", &count);
+    if (padded == size) {
+        bytes[16u + padded] ^= 1u;
+        ok &=
+            marker_expect("padding-boundary-end", marker_anchor(inst, bytes, length, 150u, offset),
+                          "container-end", &count);
+    } else {
+        bytes[16u + size] = 1u;
+        ok &= marker_expect("nonzero-padding", marker_anchor(inst, bytes, length, 150u, offset),
+                            "container-padding", &count);
+    }
     memcpy(bytes, base, length);
     memcpy(bytes + 16u + padded, "MEM ", 4u);
     ok &= marker_expect("duplicate-MEM", marker_anchor(inst, bytes, length, 150u, offset),
@@ -2005,6 +2011,35 @@ static uint64_t fnv1a(const uint8_t *p, size_t n)
 
 int main(int argc, char **argv)
 {
+    if (argc == 2 && strcmp(argv[1], "--session-clock") == 0) {
+        uint64_t ns = nesturbator_run_clock_now_ns();
+        if (ns == 0u)
+            return 2;
+        /* Match the journal's nearest-millisecond monotonic samples. */
+        printf("%" PRIu64 "\n", (ns + UINT64_C(500000)) / UINT64_C(1000000));
+        return 0;
+    }
+    if (argc == 3 && strcmp(argv[1], "--session-hash") == 0) {
+        uint64_t hash;
+        if (!progression_hash_file(argv[2], &hash))
+            return 2;
+        printf("%016" PRIx64 "\n", hash);
+        return 0;
+    }
+    if ((argc == 3 || argc == 4) && strcmp(argv[1], "--session-binary-fixture") == 0) {
+        /* Text writers expand LF on Windows; retain these exact binary test bytes. */
+        static const uint8_t bytes[] = {1u, 10u, 13u, 127u, 128u, 255u};
+        if (argc == 4) {
+            static const uint8_t crlf[] = {1u, 13u, 10u, 13u, 127u, 128u, 255u};
+            static const uint8_t high_byte[] = {1u, 10u, 13u, 127u, 128u, 254u};
+            if (strcmp(argv[3], "crlf") == 0)
+                return marker_write(argv[2], crlf, sizeof crlf) ? 0 : 2;
+            if (strcmp(argv[3], "high_byte") == 0)
+                return marker_write(argv[2], high_byte, sizeof high_byte) ? 0 : 2;
+            return 2;
+        }
+        return marker_write(argv[2], bytes, sizeof bytes) ? 0 : 2;
+    }
     if (argc == 3 && strcmp(argv[1], "--progression-selftest") == 0)
         return progression_tracer_selftest(argv[2]);
     if (argc == 4 && strcmp(argv[1], "--progression-selftest") == 0 &&

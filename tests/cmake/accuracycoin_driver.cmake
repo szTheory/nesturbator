@@ -84,7 +84,7 @@ if(NOT draw_metadata MATCHES "start_attributed=1" OR
    NOT draw_metadata MATCHES "result_transition_observed=0" OR
    NOT draw_metadata MATCHES "draw_cursor_transition_observed=1" OR
    NOT draw_metadata MATCHES "menu_returned_to_header_observed=1" OR
-   NOT draw_metadata MATCHES "execution_frames=15\n")
+   NOT draw_metadata MATCHES "execution_frames=14\n")
   message(FATAL_ERROR "DRAW-only start/completion lacked source-defined cursor evidence: ${draw_metadata}")
 endif()
 
