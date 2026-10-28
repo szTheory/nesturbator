@@ -111,10 +111,10 @@ Note: the basic hit already worked; the `0x06` sprite rows were guest re-run art
   3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
   4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
 
-**Plans**: 10/12 complete; 20-12 halted on current-source Nightly acquisition; 20-10 blocked pending fresh successful availability
+**Plans**: 11/12 complete; 20-12 fresh availability restored; 20-10 content acceptance pending
 
 Plans:
-- [!] 20-12-PLAN.md — halted; current-source CI passed but the only authorized Nightly rerun failed required vectors-full acquisition
+- [x] 20-12-PLAN.md — final fe70d61 CI/Nightly and live source-bound availability with retained raw metadata passed; content acceptance stays in 20-10
 
 **Wave 1**
 - [x] 20-01-PLAN.md — owned absolute-dot, real-bus and guest NMI reproducers with exact pinned table oracles
@@ -146,13 +146,13 @@ Plans:
 **Wave 10** *(gap closure; consumes completed Wave 9)*
 - [x] 20-11-PLAN.md — repair archive normalization and timestamped plain-text job-log evidence; prove collect/validate and metadata-only availability with offline adapter controls
 
-**Wave 11** *(gap closure; blocked on Wave 10)*
-- [!] 20-12-PLAN.md — current afba1d0 CI passed, but the authorized Nightly retry failed required vectors-full acquisition; halted, no current availability handoff
+**Wave 11** *(gap closure; consumes completed Wave 10)*
+- [x] 20-12-PLAN.md — final fe70d61 CI/Nightly and live source-bound availability with retained raw metadata passed; content acceptance stays in 20-10
 
-**Wave 12** *(gap closure; blocked on Wave 11)*
-- [ ] 20-10-PLAN.md — blocked by halted 20-12; requires fresh successful source-bound CI/Nightly availability before read-only content collection
+**Wave 12** *(gap closure; consumes completed Wave 11)*
+- [ ] 20-10-PLAN.md — ready for read-only content collection/acceptance using the fresh fe70d61 availability handoff
 
-20-09 preparation and failed candidates remain historical. Plan 20-11 repaired shared metadata validators. The earlier successful 20-12 handoff for candidate `0039b9cd47a00d14d2f2f62376b8dbb2ad91baaf` remains recorded in `20-DELIVERY.md`, but is superseded for current source. PR 59 now points at candidate `afba1d091bba916a9fe803f71e18788343a16219`; exact-head CI `40580594574/1` passed, while Nightly run `40580594558` attempt 2 failed required `vectors-full` job `122471173432` during the upstream promisor fetch. Thus no current-source availability record exists, and the historical 0039 `delivery.json` cannot feed 20-10. Plan 20-12 is halted, 20-10 is dependency-blocked, all four requirements and Phase 20 remain incomplete, and the PR remains open/draft. No further retry, merge, force push, new PR, workflow dispatch, or unrelated CI change occurred.
+20-09 preparation, historical 0039 availability and failed afba1d0/b343083 candidates remain preserved in 20-DELIVERY.md. Debugging repaired cold promisor acquisition and its Windows test fixture. Final candidate `fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1` now has successful CI `40700458574/1`, Nightly `40700458462/1` and live production availability with 20 retained digest-verified metadata responses. Full effective source is `a08da046cedeecbdd28227cc53d54e3d3e7dff2a93ee88aab9ead67da47bf61c` over 417 files. Plan 20-12 is complete; 20-10 content acceptance, all four requirements and Phase 20 independent verification remain pending. PR 59 stays open/draft; no merge, force push, new PR, dispatch or acceptance-policy relaxation occurred.
 
 **Canonical refs**: [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [DECISIONS.md](preparation/DECISIONS.md), [CONFORMANCE.md](preparation/CONFORMANCE.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (section 1, state), [research/FEATURES.md](research/FEATURES.md) (G1, G2), [research/PITFALLS.md](research/PITFALLS.md) (#1, #2, #3, #6, #7, #10, #12), [research/SUMMARY.md](research/SUMMARY.md) (steps 3–4)
 

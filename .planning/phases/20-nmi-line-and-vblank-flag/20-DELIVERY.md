@@ -620,3 +620,68 @@ inputs, so the measured campaign above remains attributable under its existing
 input contract. Final corrected `cmake --workflow --preset ci` passes 687/687 in 382.27 seconds
 and produces all three packages before normal same-PR publication. New
 source-bound automatic CI/Nightly facts are still required for availability.
+
+The normal hooks-enabled push publishes fixture correction/final candidate
+`fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1` on the same existing draft PR #59.
+Its description update finished before publication and run selection. Actual
+automatic PR runs created at `2026-10-28T13:52:29Z` are CI `40700458574/1` and
+Nightly `40700458462/1`, with expected workflow paths and exact candidate.
+The new tested synthetic merge is
+`ef6d9e5ec2c94ddfd431c1d7162f620722a145df`, with protected base
+`ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`. These jobs are pending/queued at
+discovery; successful availability is not yet claimed. The b343083 successes
+and failed Windows jobs remain historical and cannot satisfy this source.
+
+## 2026-10-28 current-source availability restored
+
+The final candidate `fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1` has completed successful automatic PR
+CI `40700458574/1` (all 18 jobs) and Nightly `40700458462/1` (all seven
+test jobs; the existing schedule/main-only report is skipped on PR events).
+The tested synthetic merge is `ef6d9e5ec2c94ddfd431c1d7162f620722a145df` and protected base is
+`ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`. The unchanged complete effective source is
+`a08da046cedeecbdd28227cc53d54e3d3e7dff2a93ee88aab9ead67da47bf61c` over 417 files.
+Repair commits are `b343083` (bounded pinned blob transfer) and `fe70d61`
+(newline-free offline fixture). All historical failures above remain retained.
+
+The exact shared production `MODE=availability` command passed live at
+`2026-10-28T14:34:08Z`. `build/phase20-hosted-evidence/delivery.json`
+selects only these final run attempts. The availability record SHA-256 is
+`feb2ee889e32ed4ecea12214d8b7f745389afbb950525bb855bf9d6015bd6d9a`. Its complete 20-file metadata manifest
+SHA-256 is `85106b6520c1004254d6f67cf114a3359060797999a1f085051e188a2105f542`. Raw GET responses are
+retained under `build/phase20-hosted-evidence/availability/metadata/`; every
+filename, count and digest was verified against that production record.
+
+The existing helper deletes its temporary metadata on success. A bounded
+scratch-only watcher captured its real staging responses while the exact
+production command ran again, without replacing validation or changing source.
+The first successful proof (`ea0086a514214f6d68a8ab0955297b85f0f93de395dbc4e5565c0cf0672cbfd3`)
+is preserved at `build/phase20-hosted-evidence-history/first-availability-fe70d61.txt`.
+`availability/raw-retention-proof.json` records the independent full-manifest
+retention check. Future availability acquisitions still need this retention
+step while the helper removes staging. No archive or hosted content acceptance
+was performed here.
+
+| CI platform | Job ID | Hash artifact ID | AccuracyCoin artifact ID |
+|---|---:|---:|---:|
+| linux-x64 | 122859486545 | 12822221056 | 12821766998 |
+| linux-arm64 | 122859486510 | 12821512434 | 12820934637 |
+| macos-x64 | 122859486834 | 12822684951 | 12823877579 |
+| macos-arm64 | 122859486484 | 12823010815 | 12822567333 |
+| windows-x64 | 122859486522 | 12822670660 | 12821767334 |
+| windows-arm64 | 122859486841 | 12822735013 | 12821847585 |
+
+Other required CI jobs: asan `122859327683`; retroarch-e2e `122859328006`; title `122859328022`; vector-inventory `122859328040`; session-controls (ubuntu-24.04) `122859328079`; nofp (ubuntu-24.04-arm) `122859328095`; session-controls (macos-15) `122859328224`; hygiene `122859328299`; nofp (ubuntu-24.04) `122859328329`; perf `122859328349`; hash-equality `122878420493`; CI required `122878507828`.
+
+Nightly test jobs: suite-flake `122858543425`; execution-fuzz `122858543709`; mmc3-oracle `122858543964`; rom-loader-fuzz `122858544016`; vectors-full `122858544021`; session-controls `122858544033`; state-fuzz `122858544061`.
+
+Other selected artifact IDs: phase20-perf-40700458574-1 `12821532905`; retroarch-marker-progression `12822541503`; vectors-full-evidence-40700458462 `12819969669`; mmc3-oracle-evidence-40700458462 `12820139927`.
+
+Nightly execution-fuzz artifact: execution-fuzz-evidence-40700458462 `12821865856`.
+
+The halt is cleared for 20-12 only. Plan 20-10 now has fresh availability
+prerequisites for its later read-only content collection/acceptance. Phase 20,
+NMI-01, NMI-02, KEEP-02 and KEEP-03 remain pending independent verification.
+PR #59 stays open/draft. A later local evidence-only commit is distinct from
+the published candidate and does not change its full effective source. No
+merge, force push, new PR, workflow dispatch, threshold/pin/cap/timeout change
+or config staging occurred.

@@ -8,8 +8,8 @@ requires:
     provides: Shared source/job/artifact validators and metadata-only availability mode
 provides:
   - Historical 0039 source-bound CI/Nightly availability facts, retained as superseded for current source
-  - Current afba1d0 candidate CI success and required Nightly vectors acquisition failure
-  - Halt record showing that no current-source availability handoff exists and 20-10 is blocked
+  - Fresh fe70d61 source-bound successful CI/Nightly availability with all 20 raw metadata snapshots
+  - Historical afba1d0 and b343083 failures retained; 20-10 content acceptance remains pending
 affects: [20-10, phase-20-hosted-acceptance]
 actuals:
   tokens: 13863
@@ -43,15 +43,26 @@ patterns-established:
   - "Use synthetic Git info attributes to preserve raw Windows fixture bytes without changing source .gitattributes."
 requirements-completed: []
 duration: 232min
-last_attempted: 2026-10-27
-status: halted
+last_attempted: 2026-10-28
+status: complete
 ---
 
-# Phase 20 Plan 12: Historical source availability superseded; fresh acquisition halted
+# Phase 20 Plan 12: Fresh repaired-source availability restored
 
-**Candidate 0039 had verified availability, but the current afba1d0 source has no fresh availability handoff after its required Nightly vector-fetch job failed.**
+**20-12 is complete for candidate `fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1`; 20-10 content acceptance and all four requirements remain pending.**
 
-## Current Status — Halted
+## Current Status — Available
+
+- Normal existing-PR publication: `b343083` fetch repair and `fe70d61` fixture correction; PR #59 remains open/draft.
+- CI `40700458574/1`: completed success, all 18 jobs and six platforms. Nightly `40700458462/1`: completed success, all seven test jobs.
+- Candidate `fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1`; tested merge `ef6d9e5ec2c94ddfd431c1d7162f620722a145df`; protected base `ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`.
+- Full effective source `a08da046cedeecbdd28227cc53d54e3d3e7dff2a93ee88aab9ead67da47bf61c` over 417 files; planning/evidence-only commits remain separate.
+- Live shared `MODE=availability` passed at `2026-10-28T14:34:08Z`. Record SHA-256 `feb2ee889e32ed4ecea12214d8b7f745389afbb950525bb855bf9d6015bd6d9a`; metadata manifest `85106b6520c1004254d6f67cf114a3359060797999a1f085051e188a2105f542` over 20 retained raw responses, each filename/count/hash verified.
+- Fresh ignored `delivery.json`, captured candidate and `availability/availability.txt` provide the 20-10 handoff. Raw metadata is retained under `availability/metadata`; the scratch-only capture compensates for the existing helper deleting its staging.
+- Full local CI passes 687/687 and packages all three deliverables; complete cold fetch verifies all 256 files and all 258 vector tests pass. The measured campaign stays 114 PASS / 32 FAIL with unchanged report/fingerprint after the test-only fixture correction.
+- No hosted artifact content was accepted. NMI-01, NMI-02, KEEP-02, KEEP-03 and Phase 20 remain pending. See 20-DELIVERY.md for bounded job/artifact identities and preserved failures.
+
+## Historical afba1d0 acquisition halt
 
 The successful delivery facts below apply only to historical candidate
 `0039b9cd47a00d14d2f2f62376b8dbb2ad91baaf`; they are superseded for the current
@@ -149,7 +160,7 @@ without a new plan task commit.
 **Total deviations:** 1 grouped evidence-driven repair
 **Impact on plan:** Fixed platform-specific delivery blockers within the authorized collector scope. No acceptance policy, timeout, workflow, or test-matrix relaxation.
 
-## Issues Encountered
+## Historical Issues Encountered
 
 Earlier candidate attempts remain recorded as failed historical diagnostics and do not satisfy this handoff. The final candidate's exact PR-triggered CI and Nightly attempts both passed, so no retry or workflow dispatch was needed. No new authorization gate occurred.
 
@@ -159,24 +170,29 @@ None.
 
 ## Next Phase Readiness
 
-Plan 20-10 cannot consume the historical 0039 handoff for current candidate
-`afba1d0`. Fresh successful Nightly availability has not been established; the
-single permitted rerun failed its required full-vector fetch, so the plan is
-halted and 20-10 is blocked by its dependency. The existing branch remains on
-open draft PR #59. No additional retry, workflow dispatch, merge, or source
-change occurred in this closeout.
+20-10 can consume the fresh fe70d61 delivery input and retained metadata proof
+for its read-only content collection/acceptance in a later execute-phase step.
+This debug step did not run 20-10 or independent phase verification. Historical
+0039 availability and failed afba1d0/b343083 candidates cannot replace the new
+source-bound handoff. The config edit remains unchanged and unstaged.
 
 ## Historical Self-Check (0039 candidate): PASSED
 
 - The original 0039 summary recorded ten plan task commits and the matching historical availability record.
 - The `.planning/config.json` edit remained unchanged and unstaged.
 
-## Current Self-Check: HALTED
+## Historical afba1d0 Self-Check: HALTED
 
 - Candidate `afba1d0` CI passed, but its only authorized Nightly rerun failed the required `vectors-full` fetch.
 - No current-source `delivery.json` handoff or `MODE=availability` record exists; the existing 0039 files remain historical.
 - Plan 20-12 is halted and plan 20-10 is blocked; no completion or acceptance is claimed.
 
+## Current Self-Check: PASSED
+
+- All 18 CI jobs and seven Nightly test jobs pass on the final published candidate.
+- The live shared availability gate and complete 20-file raw metadata digest check pass.
+- 20-12 is complete; 20-10, all four requirements and Phase 20 verification remain pending.
+
 ---
 *Phase: 20-nmi-line-and-vblank-flag*
-*Completed: 2026-10-27*
+*Current availability restored: 2026-10-28; original 0039 delivery completed 2026-10-27*

@@ -1,26 +1,16 @@
 ---
-status: verifying
+status: resolved
 trigger: "Nightly vectors-full fetch fails with curl 28 and bad pack header; resolve the Phase 20 delivery blocker"
 created: 2026-10-28
-updated: 2026-10-28
+updated: 2026-10-28T14:38:01Z
 goal: find_and_fix
 ---
 
 ## Current Focus
 
-reasoning_checkpoint:
-  hypothesis: The new offline fixture writes native CRLF on Windows while its SHA oracle hashes LF, making all 256 synthetic files fail size/hash validation.
-  confirming_evidence:
-    - Windows x64 job 122847503174 and arm64 job 122847503220 fail only vectors.fetch.transport at final inventory verification.
-    - Both logs show 00.json expected size3/SHA d9b2aefb1febe2dd6e403f634e18917a8c0dd1a440c976e9fe126b465ae9fc8d (00+LF), actual size4/SHA 56a468fa75d7e429e99b3f560bbdcef20821e79f63a70a7ade6660fac6617682 (00+CRLF).
-    - Production cold vectors-full job 122845687330 succeeds on the same b343083 source; this failure is confined to synthetic fixture bytes.
-  falsification_test: If newline-free fixture writes differ from the two-byte SHA oracle or Windows still fails, newline conversion is not the complete portability cause.
-  fix_rationale: The fixture models transport and pin verification without needing text line endings; removing that need keeps exact byte verification and every transport assertion.
-  blind_spots: No local Windows runtime is available; fresh real Windows jobs must verify the corrected fixture after local controls/full ci.
-  candidate_causes: [code: synthetic LF hashes assume native writes preserve LF, environment: Windows text newline conversion, data: unexpected actual payload]
-  and_gate: yes; LF-specific oracle plus native Windows write semantics caused this new test-only failure.
-bug_class: Bohrbug (platform-dependent deterministic fixture bytes)
-next_action: Commit the reviewed newline-free fixture plus delivery/debug records, refresh existing PR59 description and captured candidate, then normally push this branch and select fresh automatic exact-source runs.
+hypothesis: Both confirmed causes are repaired: bulk lazy promisor acquisition and the new Windows fixture newline mismatch.
+test: Local controls/full CI, actual six-platform CI/Nightly, live production availability and exact raw metadata retention all pass.
+next_action: Stop this debug step; Plan 20-10 read-only content acceptance is the next separately invoked execution step.
 
 ## Symptoms
 
@@ -70,6 +60,14 @@ started: Intermittent upstream vector-fetch failures recorded on 2026-10-26 and 
 
 - Corrected full cmake --workflow --preset ci passes 687/687 in 382.27 s and produces all three packages. Supplemental review accepted; actual corrected Windows verification will come from new automatic candidate-bound jobs. Config SHA unchanged.
 
+- Normal publication of final candidate fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1 succeeds with hooks. Actual automatic CI 40700458574/1 and Nightly 40700458462/1 created 2026-10-28T13:52:29Z match exact source, event and workflow paths. Tested merge ef6d9e5ec2c94ddfd431c1d7162f620722a145df; base ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be. Captured candidate file updated; old b343083 cannot satisfy final-source availability.
+
+- Final-source Nightly 40700458462/1 vectors-full job 122858544021 passes (13:52:32Z to 13:54:49Z), along with MMC3/all three fuzz jobs. Final-source Windows arm64 build job 122859486841 and both Linux matrix builds pass; real corrected Windows evidence now confirms the synthetic byte repair. Other required final-source jobs remain active/queued; availability not yet claimed.
+
+- Final Nightly 40700458462/1 completed SUCCESS at 2026-10-28T14:09:58Z; all seven test jobs pass and the schedule/main-only report is correctly skipped on this PR. Both Windows x64 122859486522 and arm64 122859486841 pass. CI has 15 completed successes; only Intel macOS build 122859486834 remains active (started 14:13:39Z), before hash/required rollups.
+
+- Final CI 40700458574/1 completed success at 14:27:30Z with all 18 jobs. Final Nightly 40700458462/1 succeeds. Live shared availability passed at 2026-10-28T14:34:08Z; record SHA feb2ee889e32ed4ecea12214d8b7f745389afbb950525bb855bf9d6015bd6d9a, metadata manifest 85106b6520c1004254d6f67cf114a3359060797999a1f085051e188a2105f542, all 20 raw JSON responses retained and individually verified under availability/metadata. First hash-only proof preserved historically.
+
 ## Eliminated
 
 - hypothesis: Configured pin is invalid or vector data no longer exists.
@@ -85,11 +83,14 @@ fix: Prefetch all required pinned sparse-checkout tree blob IDs in at most 16-ob
 oracle_type: derived (pinned file inventory and bounded request transport model)
 verification:
   target_test: {result: pass}
-  mutation_check: {result: pass, method: owned 17-object-batch mutant rejected; Stryker unavailable for CMake}
+  mutation_check: {result: skipped, reason_if_skipped: Stryker is unavailable/not configured for CMake; owned scoped batch/depth/CRLF mutants were all rejected}
   no_op_deletion: {result: pass, deletion_justified_by_rca: false}
   adjacent_tests: {result: pass, suites_run: [vectors-full 258/258, focused 7/7, complete ci 687/687 plus all three packages]}
   revert_and_reconfirm: {result: pass, bug_returned_on_revert: true, fixed_on_reapply: true, method: original-code scratch replay}
   portability_target: {result: pass, forced_crlf_mutant: rejected, independent_review: LOOKS_GOOD, full_ci: 687/687 pass plus all three packages}
+  hosted_ci: {result: pass, run: 40700458574/1, jobs: 18/18, platforms: 6/6}
+  hosted_nightly: {result: pass, run: 40700458462/1, test_jobs: 7/7}
+  availability: {result: pass, record_sha256: feb2ee889e32ed4ecea12214d8b7f745389afbb950525bb855bf9d6015bd6d9a, retained_metadata_files: 20, full_manifest_verified: true}
   guardrail_verdict: accepted
 files_changed: [tests/cmake/fetch_vectors.cmake, tests/cmake/vectors_transport.cmake, tests/CMakeLists.txt, README.md, tests/accuracy/baseline-metadata.txt, tests/accuracy/measurements.md]
 
@@ -106,3 +107,7 @@ engineering:debug/general specialist skill unavailable in configured roots. Inde
 - Why not caught: no offline gate existed for checkout request shape; the previous fetch guards tested safe directory ownership only. Cold Nightly caught the transient failure, but a rerun did not correct the request shape.
 - Recurrence guard: tests/cmake/vectors_transport.cmake, registered as vectors.fetch.transport in the ci workflow, covers exact initial pin/depth/filter, every request cutoff, bounded prefetch, all blobs before checkout and final inventory refusal. Original-code replay and oversized-batch/depth mutants fail at their intended boundaries.
 - MemPalace tool and CLI are unavailable; knowledge-base.md is the durable fallback when this session is archived.
+
+Automated confirmation follows AGENTS.md rule 6 and the explicit task authorization: no manual sign-off is required. Plan 20-12 is available; 20-10, all four requirements and phase verification remain pending. The final local evidence-only commit is distinct from published source fe70d61.
+
+Secondary prevention: synthetic transport payloads need no text newline, so they now contain exactly two ASCII opcode bytes on every platform. Both actual Windows builds verify the correction; a forced-CRLF mutant remains rejected.

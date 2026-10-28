@@ -4,16 +4,16 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 20
 current_phase_name: NMI line and VBlank flag
-status: "Halted at 20-12 current-source acquisition: CI passed, but the only authorized Nightly rerun failed required vectors-full fetch. Plan 20-10 is dependency-blocked; Phase 20 and all requirements remain pending."
-stopped_at: "Halted 20-12: Nightly 40580594558 attempt 2 vectors-full fetch failed; 20-10 blocked pending fresh current-source availability"
-last_updated: "2026-10-27T21:15:47.821Z"
-last_activity: "2026-10-27: recorded afba1d0 hosted outcomes; Nightly 40580594558 attempt 2 vectors-full acquisition failed; 20-12 halted and 20-10 blocked."
-state_head: afba1d091bba916a9fe803f71e18788343a16219
+status: "20-12 fresh current-source availability restored; 20-10 read-only content acceptance is ready. Phase 20 and all four requirements remain pending."
+stopped_at: "20-12 available for fe70d61; next is 20-10 read-only hosted content acceptance"
+last_updated: "2026-10-28T14:38:01Z"
+last_activity: "2026-10-28: repaired cold vectors transport and Windows fixture; fe70d61 CI/Nightly and live availability with 20 retained metadata responses pass."
+state_head: fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 18
-  completed_plans: 16
+  completed_plans: 17
   percent: 33
 ---
 
@@ -27,10 +27,10 @@ Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md
 
 ## Current Position
 
-Phase: 20 (NMI line and VBlank flag) — HALTED
-Plan: 12 of 12 (20-12 halted; 20-10 blocked by dependency; 10/12 plans complete)
-Status: Halted at 20-12 current-source acquisition: exact-head CI passed, but the sole authorized Nightly rerun failed required vectors-full fetch. No current-source availability handoff exists; 20-10 and all Phase 20 requirements remain pending.
-Last activity: 2026-10-27: recorded afba1d0 hosted outcomes; Nightly 40580594558 attempt 2 vectors-full acquisition failed; 20-12 halted and 20-10 blocked.
+Phase: 20 (NMI line and VBlank flag) — AWAITING CONTENT ACCEPTANCE
+Plan: 20-10 next (20-12 availability complete; 11/12 plans complete)
+Status: 20-12 fresh current-source availability restored; 20-10 read-only content acceptance is ready. Phase 20 and all four requirements remain pending.
+Last activity: 2026-10-28: repaired cold vectors transport and Windows fixture; fe70d61 CI/Nightly and live availability with 20 retained metadata responses pass.
 
 Progress: [███░░░░░░░] 33%
 
@@ -88,7 +88,7 @@ Progress: [███░░░░░░░] 33%
 - `tests/accuracy/measurements.md` records the Plan 20-03 source-sequence results, Plan 20-04's constructed/executed origins, all 20 bounded Control 8/9 candidates, and the production sampler endpoint projections. No alignment shift or per-table offset was selected.
 - KEEP-02 and KEEP-03 remain pending for cross-platform hash confirmation and hosted evidence. Plan 20-05 supplies local host replay; it does not resolve physical tie precedence or satisfy later hosted evidence. Plan 20-04 found no required instruction-boundary cutpoint that needs clarification.
 - The pause handoff records three Nightly vectors-full fetch failures on 2026-10-26 (curl 28 / bad pack header from the upstream 65x02 download). This was external to Phase 19 and not a required PR check. Quick task 261026-i8z preserved the cold-fetch policy; no fresh hosted recheck was run.
-- Phase 20 plan 20-12 is halted for current candidate afba1d0: Nightly 40580594558 attempt 2 required vectors-full job 122471173432 failed at cpu.vectors-full.fetch from upstream promisor fetch curl 28 / bad pack header. No current-source availability handoff; dependent plan 20-10 is blocked.
+- Historical Phase 20 afba1d0 acquisition failure, superseded by fresh fe70d61 availability: Nightly 40580594558 attempt 2 required vectors-full job 122471173432 failed at cpu.vectors-full.fetch from upstream promisor fetch curl 28 / bad pack header. Failure details remain historical; fresh fe70d61 availability now unblocks 20-10 content acceptance.
 
 ### Pending Todos
 
@@ -132,7 +132,15 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Do not start 20-10: its declared dependency is plan 20-12, now halted because current candidate `afba1d091bba916a9fe803f71e18788343a16219` has no successful Nightly attempt. CI `40580594574/1` passed. The sole authorized all-jobs rerun of Nightly `40580594558` attempt 2 failed required `vectors-full` job `122471173432` while fetching promisor commit `e95579991e0ab08ee8fe79b57bcae7f71a2b9d02`; the direct log and its hash are recorded in `20-DELIVERY.md`. The earlier CI/Nightly and availability proof for `0039b9cd47a00d14d2f2f62376b8dbb2ad91baaf` remains historical only and cannot satisfy the current-source precondition. Fresh successful availability and 20-10 content acceptance remain pending, as do all four requirements and Phase 20 verification. No further retry, merge, force push, new PR, workflow dispatch, unrelated CI efficiency change, or config staging occurred. The unrelated config bytes remain unchanged.
+Run Plan 20-10 read-only hosted content collection/acceptance in the next
+execute-phase step. Its 20-12 dependency is complete: candidate `fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1`
+has successful CI `40700458574/1`, Nightly `40700458462/1` and live shared
+availability at `2026-10-28T14:34:08Z`. All 20 raw metadata responses are
+retained and match manifest `85106b6520c1004254d6f67cf114a3359060797999a1f085051e188a2105f542`.
+See 20-DELIVERY.md for candidate/tested/base identities, job/artifact IDs and
+preserved failed attempts. No 20-10 content acceptance or independent phase
+verification was run; all four requirements remain pending. Config bytes are
+unchanged and unstaged.
 
 ## Performance Metrics
 
@@ -143,6 +151,6 @@ Do not start 20-10: its declared dependency is plan 20-12, now halted because cu
 
 ## Session
 
-**Last session:** 2026-10-27T21:15:47.773Z
-**Stopped at:** Halted 20-12: Nightly 40580594558 attempt 2 vectors-full fetch failed; 20-10 blocked pending fresh current-source availability
+**Last session:** 2026-10-28T14:38:01Z
+**Stopped at:** 20-12 available for fe70d61; next is 20-10 read-only hosted content acceptance
 **Resume file:** None
