@@ -1,7 +1,132 @@
-# Phase 20 local evidence ledger
+# Phase 20 evidence ledger
 
-This ledger records local evidence through Plan 20-09. It does not claim hosted
-six-platform completion or close KEEP-02/KEEP-03.
+## Plan 20-10: accepted hosted content (2026-10-28)
+
+Production `MODE=collect` completed with `verdict=hosted-pass`, followed by
+successful `MODE=validate` against the current working checkout. All content
+and source gates passed without changing effective inputs, thresholds, pins,
+inventories, workflows or runtime. Independent phase re-verification still owns
+NMI-01, NMI-02, KEEP-02, KEEP-03 and Phase 20 completion.
+
+### Immutable identities and retained evidence
+
+- Repository: `szTheory/nesturbator`; existing draft PR #59, no remote mutation.
+- Candidate: `fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1`.
+- Actual tested synthetic merge: `ef6d9e5ec2c94ddfd431c1d7162f620722a145df`.
+- Protected base: `ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`.
+- [CI 40700458574/1](https://github.com/szTheory/nesturbator/actions/runs/40700458574/attempts/1): all 18 jobs successful.
+- [Nightly 40700458462/1](https://github.com/szTheory/nesturbator/actions/runs/40700458462/attempts/1): seven test jobs successful; the report job is intentionally skipped for the PR event.
+- Effective source SHA-256: `a08da046cedeecbdd28227cc53d54e3d3e7dff2a93ee88aab9ead67da47bf61c`, 417 files. Candidate, merge and current checkout match this entire input manifest.
+- Retrieval: `2026-10-28T14:47:48Z`; raw bundle retained at `build/phase20-hosted-evidence/`.
+- `manifest.txt` SHA-256: `55857090681bef15f44671c8a0ef5a39fddda2c23b479b45d4802871e83a2386`.
+- `verdict.txt` SHA-256: `84867fe8bfc1292323e0f0cc88e9b906b1b66eb947dbd9290f934b1943c68f22` (`verdict=hosted-pass`).
+- `provenance/evidence-files.sha256`: `715e1b27b157ab117934bb3d4766ee9fd603e0b981eee442631e0a0a91130e54`, covering 114 content/provenance files. Raw archive/log checksums and normalization mappings are preserved separately.
+
+The read-only precondition checked live exact run attempts, jobs, PR mapping,
+unexpired required artifacts and current effective-source equality before
+collection or document edits. Initial collection attempts exposed a blocked
+GitHub CLI cache path and the collector's relative-path/build-fixture scan
+limitations. The successful invocation used `XDG_CACHE_HOME` in build scratch,
+an absolute `SOURCE_REF` pointing to a clean local clone at evidence-record
+base `445e7e5cb6c266721d355c5bb927c4be7cb5eff8`, and a sibling scratch evidence
+root. Its effective bytes match the candidate and tested merge. The accepted
+bundle was copied to the path above and revalidated against this working
+checkout using an absolute `SOURCE_REF`; failed attempts remain scratch-only.
+No collector/source edit, new hosted run, delivery authorization or acceptance
+waiver was needed.
+
+### Six-platform content and protected PASS retention
+
+Every lane's selected successful workflow step was rederived from its raw
+per-job log and API step time bounds. All required configured sample-vector,
+Holy Mapperel and `runner.boot_to_play` CTests actually passed. Fresh
+`accuracycoin.protected_observe`, `accuracycoin.protected_verdict` and
+`accuracycoin.no_lost_pass` terminals confirm all 108 original protected PASS
+keys on each lane. The complete frame/PCM/transition/state inventories contain
+114 rows each and are byte-identical, SHA-256
+`1a06cbabea1fee522e023a405af4474726ad24ef798d067b5e27575cf505bc62`.
+
+| Platform | Build job | Hash artifact | AccuracyCoin artifact | Protected keys / hash rows |
+|---|---|---|---|---|
+| linux-x64 | 122859486545 | 12822221056 | 12821766998 | 108/108; 114/114 |
+| linux-arm64 | 122859486510 | 12821512434 | 12820934637 | 108/108; 114/114 |
+| macos-x64 | 122859486834 | 12822684951 | 12823877579 | 108/108; 114/114 |
+| macos-arm64 | 122859486484 | 12823010815 | 12822567333 | 108/108; 114/114 |
+| windows-x64 | 122859486522 | 12822670660 | 12821767334 | 108/108; 114/114 |
+| windows-arm64 | 122859486841 | 12822735013 | 12821847585 | 108/108; 114/114 |
+
+The clean Linux x64 campaign records `source_revision=ef6d9e5ec2c9`,
+`source_dirty=0`, 22/22 pages, 146 scored rows, 114 PASS / 32 FAIL,
+zero skipped/not-run/timeout and five DRAW. All six exact NMI target keys pass.
+Its report SHA-256 remains
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`;
+the 56-input fingerprint is
+`9b4d2199c8d6464c16d16f51766174aa64d633fb0a9d8b2968bac55013113993`.
+The measured `host_elapsed_guest_ns` is `16457386307`. This independently
+confirms the recorded dirty local campaign within its stated scope; local
+`source_dirty=1` metadata and causal old/new hashes remain unchanged.
+
+### Performance, conformance and real host
+
+The actual performance artifact `12821532905`, job `122859328349`, binds raw
+base/head measurements to the protected base and tested merge above. Production
+recomputation agrees with the hosted summary; both base controls have zero
+spread for every ROM. There is no n/a, skipped/self-only result, allowlisted
+slowdown or threshold change. Tools: Valgrind 3.22.0 and GCC 14.2.0.
+
+| ROM | Mapper | Base Ir/frame | Head Ir/frame | Delta | Base spread |
+|---|---|---|---|---|---|
+| nesteroids | 0 | 23791573 | 23914932 | +0.51% | 0 |
+| runner | 1 | 24699006 | 22203492 | -10.10% | 0 |
+| M4_P256K_C256K | 4 | 23367379 | 21998505 | -5.85% | 0 |
+
+- `hash-equality` job `122878420493` and `CI required` job `122878507828` succeeded.
+- Nightly `vectors-full` job `122858544021`, artifact `12819969669`: registration inventory and JUnit establish 258 successful tests, including cold fetch, all 256 opcodes and sample-match; zero failed/skipped.
+- Nightly `mmc3-oracle` job `122858543964`, artifact `12820139927`: 13 successful JUnit tests, including fetch and all configured oracle tests; zero failed/skipped.
+- Real `retroarch-e2e` job `122859328006`, artifact `12822541503`: pinned RetroArch 1.22.2; intended progression reaches 16 boundaries and `VERDICT_OK`, with save/load, rewind and run-ahead commands. Drop/double-advance controls reject with `ADVANCE_NOT_EXACTLY_ONE`; wrong-origin rejects with `ORIGIN`. The real-host source is the same tested merge.
+
+These results resolve the identified current-source six-platform, protected-PASS,
+clean campaign, per-ROM performance and configured hosted conformance/host debt,
+including the previously unconfirmed vectors-full/MMC3 fetch outcomes. Historical
+failed attempts and unrelated debt remain. The exact physical paired-chip tie
+and the flagged judgment-tier clean-room prohibition retain their prior bounded
+dispositions; no manual test or provenance sign-off is invented.
+
+### Immutable artifact downloads
+
+Each ID below was retrieved through its GitHub artifact ZIP endpoint after
+run/attempt/freshness checks. Download SHA-256 equals the API artifact digest;
+full metadata, raw bytes and copy mappings remain in the checksummed bundle.
+
+| Artifact ID | Download SHA-256 |
+|---|---|
+| 12819969669 | `1173245ff3a1c8e23d11b6d696e46bf438a6072d15f1447b3da8624e7f14662b` |
+| 12820139927 | `8b76bad7a20108bd7d42b2b3fb77799ea537ecd919083c0b44d5a1e20df007c1` |
+| 12820934637 | `5e5d18eee301c4f1b82abedc7a378bd4c13c3045c54a2fe1657ec713f446ab12` |
+| 12821512434 | `2d82731eac7171333c737bbac95d1898f60a4df2fa189e9985a8a39ec9299229` |
+| 12821532905 | `16f84c41b9078a781576f40f0c82c4d3382908b708ab2a8c38238f12550b9ef2` |
+| 12821766998 | `3d4fa259b38278d1527b7e7531ac55424c0c5d1e61512c8329bf4ac57b5e9dbc` |
+| 12821767334 | `ca239b5b484314c2fb02cd8a648a10ed5ef85086e1cd32d59ab47a353c9626fb` |
+| 12821847585 | `c0922222e3342bb87a6d921f61838ac75c9b5743995a5a6f323b7482ad989aa8` |
+| 12822221056 | `6b2d85f5144999bf75f1b8bb36cecab2e15cc775849bea048b388e2f0c0f3138` |
+| 12822541503 | `ba43a010518c3235033d6b756bd5d92f70f18c3a52bd83f8d2042d470db7ed29` |
+| 12822567333 | `c9d5b0f68eb4dfe9d3f0dc45b53e62d708262b9d16a903a08661e8561219b8e6` |
+| 12822670660 | `2517f54fa41ca45abc9e25957aa4e63f4396bfe6aedd16573fee625915cb007d` |
+| 12822684951 | `34f333abbf402fa4987fb9c0f0c3d29250614fc28cce04622d51bbdd4413e142` |
+| 12822735013 | `feda00f440f467740b38568ccef4900cc8391ea624670cdc35f43e4f2d56e5e2` |
+| 12823010815 | `56d1c6dec8f5b14eb7bd32055309152e27c0e1f5e6683f0960d1b36dedd77367` |
+| 12823877579 | `f9bade263cbc274062d0f747e1f07eb5f730313c018deffc2336180cfe033e0c` |
+
+Only `.planning/**` and `tests/accuracy/measurements.md` are excluded by the
+existing effective-input contract. The evidence commits record these immutable
+runs; they are not new tested source identities. Any later effective-input
+change invalidates this acceptance and requires fresh hosted evidence.
+
+# Historical local evidence through Plan 20-09
+
+The sections below preserve their original local observations and pending
+obligations. The Plan 20-10 acceptance above supersedes their hosted-pending
+statements for the identified delivered source; it does not rewrite history.
 
 ## Campaign and protected PASS evidence
 
@@ -141,7 +266,7 @@ not duplicated by either workflow. Tests exercised CPU vectors, MMC3,
 Holy Mapperel, boot-to-play, state/JAM matrices, host guards, and protected-pass
 controls in their existing placements.
 
-## Hosted obligations still pending
+## Historical hosted obligations before Plan 20-10
 
 No hosted run, job, or artifact identity was obtained in this local plan. The
 following evidence remains required at the exact final commit before KEEP-02,
