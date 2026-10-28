@@ -2,18 +2,18 @@
 status: resolved
 trigger: "Investigate Nightly run 40721285567: unexpected PUBLICATION_UNSTABLE and readiness cleanup exceeding 25 seconds"
 created: 2026-10-28T17:00:39Z
-updated: 2026-10-28T17:24:00Z
+updated: 2026-10-28T17:53:00Z
 ---
 
 ## Current Focus
 
-hypothesis: Confirmed separate interpreter clock amplification and interpreted hash publication preemption under controlled helper cost; exact hosted per-process durations remain unobserved.
-test: Independent baseline/reversion controls, final full production fault/progression matrix and fresh CI workflow after the final effective-source edit all completed.
-expecting: Local repair is terminal; fresh hosted validation will determine repaired-source Intel scheduling behavior.
-bug_class: heisenbug-mandelbug
+hypothesis: Native Windows newline expansion changes the new CMake binary fixture before the correct binary reader hashes it; prior clock/hash mechanism repairs remain preserved history.
+test: Compare exact fixture hex and independent FNV for intended versus CRLF-expanded bytes, then reuse the owned native binary writer and reject newline/byte mutations before hash comparison.
+expecting: A platform-neutral binary writer retains CR/LF/high-byte coverage and the same frozen FNV on every OS.
+bug_class: bohrbug
 candidate_causes: [code repeated process launches and fixture replay, config 1000-ms publication cap, environment Intel scheduling latency, data corrupt or changing publication]
 and_gate: yes; a small test publication window combines with helper overhead; the readiness failure has successful semantic results but excessive later-prefix work.
-reasoning_checkpoint:
+prior_reasoning_checkpoint:
   hypothesis: Repeated interpreter clock launches amplify startup cost across the prefix; interpreted bytewise hash work can consume the publication window before a second stability observation, preempting the intended load-send fault.
   confirming_evidence:
     - Original driver with 100-ms simple clock cost reports successful readiness/progression but fails total 25000-ms bound at 26070 ms.
@@ -27,7 +27,18 @@ reasoning_checkpoint:
     - environment startup or scheduling cost on hosted Intel
     - data genuinely changing or malformed screenshots (excluded by immutable fixture controls)
   and_gate: yes; bounded work combines with environment/helper cost to preempt otherwise valid fixture semantics. Keep the existing publication and total deadlines unchanged.
-next_action: Local debug step complete; preserve this source identity and obtain fresh hosted CI/Nightly validation, especially Intel session controls, through the separately authorized delivery task.
+next_action: Local fixture-portability repair is terminal and committed; parent delivery must obtain fresh hosted validation of the latest source, especially Windows, without relabeling the prior successful Intel source.
+
+reasoning_checkpoint:
+  hypothesis: CMake's native Windows file writer inserts CR before the LF in the binary vector, so the correct binary hash reader observes different bytes.
+  confirming_evidence:
+    - Windows arm64 returned 8bb25531c6274ace; local independently written intended bytes 010a0d7f80ff hash to 112184356382ae07, while exact CRLF-expanded bytes 010d0a0d7f80ff hash to the hosted result with both independent FNV and actual frame_index.
+    - The only newline-bearing new fixture is written by CMake file(WRITE); existing native marker_write already opens wb and writes explicit bytes.
+  falsification_test: Native wb fixture still has hex other than 010a0d7f80ff or unchanged binary reader disagrees with frozen FNV; deliberately inserted CR/changed bytes pass the exact-byte gate.
+  fix_rationale: Use the owned native binary writer for this fixed binary vector, then assert exact hex before hashing; this removes text newline conversion while retaining all original binary coverage and hash expectation.
+  blind_spots: Original Windows artifact did not retain hex; conversion is inferred from exact matching transformed-byte hash. Native Windows validation of this latest source remains pending hosted execution.
+  candidate_causes: [code text fixture writer used for binary bytes, environment Windows newline conversion, data CR inserted before LF, code hash reader bug excluded by independent intended/transformed controls]
+  and_gate: yes; newline-bearing fixture plus a text-mode writer on Windows are both required. Other new fixtures contain only x/foobar or are empty and have no line terminators.
 
 ## Symptoms
 
@@ -89,7 +100,7 @@ timeline: Observed in the final shipping-head Nightly on 2026-10-28. Candidate h
   found: vectors-full, execution-fuzz, rom-loader-fuzz, state-fuzz, suite-flake and mmc3-oracle succeeded; session-controls failed; report skipped for PR event. Raw job log retained in scratch as /tmp/nesturbator-nightly-40721285567-session-controls.log.
   implication: Start with the owned host-session tests, preserving all other outcomes. Required CI success does not resolve the Intel-specific failure.
 
-## Resolution
+## Prior local resolution (first delivery)
 
 root_cause: Repeated Perl interpreter launches amplify clock-observation cost across the full prefix; interpreted bytewise artifact hashing can exhaust the narrow publication window before stable fixture observations, preempting the intended load-send failure. Both require helper/environment cost combined with existing finite budgets; precise hosted per-process timing was not captured.
 fix: Reuse the owned runner monotonic clock and shared bounded FNV-1a reader through native frame_index modes after bootstrap. Preserve all budgets, identities, exact faults and one-shot counts; add independently charged clock/hash controls and frozen binary/cap vectors.
@@ -168,3 +179,82 @@ mechanisms independently while retaining original correctness/deadline oracles.
 why_not_caught: CI exercised semantic session faults but had no deliberate helper-cost control; only the Intel Nightly exposed this scheduling-sensitive amplification.
 recurrence_guard: tests/retroarch/test_state_session.sh latency controls run in retroarch.session.controls and retroarch.session.readiness; retroarch.session_helpers freezes native identities, binary reads and cap/clock behavior. Single-helper reversions reproduce each failure independently.
 semantic_recall: MemPalace tools unavailable; durable knowledge-base fallback used and updated.
+
+## Continuation: hosted fixture portability
+
+The same debug invocation resumed after publication of ef0bab9/e802a1e. CI
+40736138275 Windows arm64 job 122985617442 and Windows x64 job 122985617530
+each failed only retroarch.session_helpers. The frozen expected FNV was
+112184356382ae07; actual was 8bb25531c6274ace. The raw arm64 log remains in
+the temporary directory as nightly-intel-repair-windows-arm.log. Previous
+resolution, local results and failures above remain history for that source.
+
+### Additional evidence
+
+- checked: Independent binary byte and FNV controls.
+  found: Intended hex 010a0d7f80ff produces 112184356382ae07; exact CRLF-expanded hex 010d0a0d7f80ff produces 8bb25531c6274ace with both independent FNV and the unchanged native reader. This matches both Windows failures. Original Windows fixture hex was not retained, so the transformation is inferred from the matching controlled result.
+  implication: Repair fixture materialization, retaining the expected hash and binary coverage. No native hash-reader change is supported.
+- checked: All fixtures introduced by the first repair.
+  found: Only the CR/LF/high-byte vector used CMake text output with line terminators. The other new fixtures are empty, foobar, or repeated x; none contain a newline. Existing marker_write opens wb and writes exact byte counts and is already used for binary marker and state artifacts.
+  implication: Reuse that owned writer through one small fixed-vector test-tool mode; no new dependency or core contract change.
+- checked: Repaired helper and meaningful writer mutation.
+  found: Native writer creates hex 010a0d7f80ff; exact hex is required BEFORE the frozen hash comparison. Fresh child processes reject explicit CRLF and high-byte mutations. Changing the actual native writer to insert CR recreated hex 010d0a0d7f80ff and failed the byte gate, test exit 8. Restoring the writer returned target test to PASS in 0.16 s.
+  implication: The strengthened test distinguishes wrong fixture bytes from hash-reader behavior and kills the observed defect before hash comparison.
+- checked: GitHub connector terminal status and decoded Intel logs.
+  found: Nightly 40736138106 Intel job 122985089791 passed all 3 session tests in 617.04 s (source_root 24.15 s, controls 559.40 s, readiness 33.41 s). It checked out merge d977694 of candidate e802a1e35e369a2454364384eb715e523db47749 into ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be. Six other Nightly jobs succeeded; report was skipped for the PR event. CI Apple Silicon and Linux session-control jobs also succeeded; both Windows jobs showed the identical sole fixture defect.
+  implication: Original Intel session failures have actual hosted confirmation for the first repair source. This does not test the latest fixture-portability source.
+- checked: Cross-platform independence of the new negative controls.
+  found: CMake text output for LF-bearing negative fixtures would also insert CR on Windows, confounding the high-byte-only negative. Before acceptance, moved all three fixed byte vectors to the same owned wb writer and asserted exact positive/CRLF/high-byte HEX independently. Observed hex is respectively 010a0d7f80ff / 010d0a0d7f80ff / 010a0d7f80fe. Both malformed vectors fail the fresh-process exact-byte gate, and invalid mutation names return 2. Focused final test passed 0.19 s.
+  implication: No newly added binary fixture uses text output. Stopped the superseded full workflow (exit 130) and started the fresh final workflow only after this last effective-source edit.
+- checked: Final CI 40736138275 job metadata through GitHub connector.
+  found: All 14 non-Windows work jobs succeeded, including macOS Intel build and both required session-control jobs. The only two failing work jobs are Windows x64/arm64 with the same sole binary-fixture mismatch. CI required consequently failed; hash-equality was skipped. Nightly's seven work jobs all succeeded.
+  implication: No additional supported runtime failure remains in the first repair's hosted execution. This is historical source evidence, not acceptance of the latest fixture repair.
+
+## Resolution
+
+root_cause: The new binary vector used CMake file(WRITE), whose Windows native newline handling inserts CR before LF; the correct binary FNV reader therefore receives different fixture bytes. Native binary writer required to preserve intended bytes independently of platform.
+fix: One fixed-vector frame_index mode reuses marker_write(wb) for the positive vector and two explicit mutations; CMake requires exact fixture and mutation hex before comparing the unchanged frozen FNV or exercising rejection. Real child-process CRLF and high-byte negatives exercise the exact byte gate. Other new fixtures were audited as newline-free.
+verification:
+  target_test: { result: pass, test: retroarch.session_helpers, seconds: 0.19 }
+  mutation_check: { result: pass, mutant_killed: actual native writer with inserted CR rejected at hex gate before hashing; 2 persistent malformed-fixture controls also pass }
+  no_op_deletion: { result: pass, deletion_justified_by_rca: true }
+  adjacent_tests: { result: pass, suite: fresh final full ci workflow session 94077, tests: 688/688, seconds: 495.95, packages: [library, runner, libretro] }
+  revert_and_reconfirm: { result: pass, defect_reproduced: true, fixed_on_reapply: true, scope: exact observed Windows bytes modeled in actual writer; original Windows source failed hosted, latest Windows source remains pending }
+  guardrail_verdict: accepted
+files_changed: [tests/retroarch/frame_index.c, tests/cmake/session_helpers.cmake]
+unchanged_contracts: [native FNV reader, frozen expected hash, CR/LF/high-byte coverage, 1 MiB cap, clocks, deadlines, emulation, public header, README, AccuracyCoin input fingerprint]
+investigation_cycles: 2 cumulative (initial timing investigation; deterministic hosted fixture-portability continuation)
+fix_cycles: 5 cumulative (three first-delivery cycles; fixture-portability repair and independent native mutation refinement)
+oracle_type: specified exact hex before derived independently frozen FNV
+hosted_validation: Prior repair Intel Nightly passed; newest fixture repair still requires fresh hosted validation after publication.
+source_commit: fa321e587babce0a6434406e5bff0e0c996ceb32
+effective_source_sha256: 87ee34cf7b5ba45d87e748ab69b69f929a7fe7be96c02ed044bf9b1394f93202
+effective_source_count: 418
+
+### Continuation terminal evidence and prevention
+
+Fresh `cmake --workflow --preset ci` exited 0 after the final effective-source
+edit: **688/688 tests in 495.95 seconds**, all three packages generated. Native
+helper test passed in 0.18 s, session controls in 302.49 s, source-root in 10.32 s
+and dedicated readiness in 21.57 s. Workflow log SHA-256 is
+`2d4445c11cc2ed47979016110b2bbc1657fa09ce3c9df3ea49e335fe74b6c6f5`;
+raw log is `nightly-intel-portability-final-ci.log` in the temporary directory.
+No effective source changed after this workflow began. Core/public-header/README
+contracts, all time caps and the 56-input AccuracyCoin fingerprint are unchanged.
+
+The source repair commit is `fa321e5` (two test files, normal hooks and configured
+GitHub noreply identity). An initial sandbox-only Git staging denial was resolved
+by authorized narrowly scoped tool escalation; no approval rejection occurred.
+The original config remains unstaged with SHA-256
+`62a22f6862efb7c74ee31baf2f22bae32d453e79aaec6726dbcf3b7213d47167`.
+
+The latest source digest is
+`87ee34cf7b5ba45d87e748ab69b69f929a7fe7be96c02ed044bf9b1394f93202`
+over 418 files. The historical successful Intel job tested merge
+`d977694361b9c939829490974409f43d93a683da`, candidate
+`e802a1e35e369a2454364384eb715e523db47749`, protected base
+`ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`; it does not test this latest
+fixture repair. Fresh latest-source hosted validation is pending parent delivery.
+
+why_not_caught: The original binary fixture used a platform text writer and compared only the eventual hash; local POSIX execution did not expand LF and could not expose the Windows materialization defect. Real Windows CI caught it before acceptance.
+recurrence_guard: retroarch.session_helpers requires exact positive and mutation HEX from the owned wb writer BEFORE hash/rejection oracles; child-process byte gates reject isolated CRLF insertion and high-byte changes. An actual native-writer CR insertion mutant was killed by the exact-byte gate, then restoration passed. All other new fixture writes were audited as empty or newline-free.

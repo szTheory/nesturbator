@@ -24,3 +24,13 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Recurrence guard:** tests/retroarch/test_state_session.sh controlled 100-ms old-clock and 1050-ms old-hash paths, with active-shim usage assertions, run in retroarch.session.controls/readiness. retroarch.session_helpers freezes native binary FNV vectors, 4096-byte buffer and 1 MiB cap neighbors, missing/empty rejection and monotonic samples. Independent single-helper reverts restore each failure; current campaign evidence is measured, and prior hosted acceptance retains its historical source identity.
 ---
 
+## nightly-intel-session-controls-portability — binary fixtures need binary writers
+- **Date:** 2026-10-28
+- **Error patterns:** Windows x64/arm64 retroarch.session_helpers expected 112184356382ae07, actual 8bb25531c6274ace
+- **Root cause(s):** CMake text fixture output plus Windows newline conversion inserted CR before LF; independent intended/expanded byte models produce exactly the expected/actual hashes with the correct native reader.
+- **Fix:** Reuse owned marker_write(wb) for a fixed binary vector and two isolated mutations, require exact HEX before hashing, keep frozen hash and CR/LF/high-byte coverage unchanged. Only two test files change; no deadline, emulation, header or fingerprint change.
+- **Files changed:** tests/retroarch/frame_index.c, tests/cmake/session_helpers.cmake, .planning/STATE.md, resolved nightly-intel-session-controls session
+- **Why not caught:** Initial local POSIX execution preserved LF and the fixture lacked a byte assertion; actual Windows CI caught the writer defect. First negative-control draft also used text output, so both negative vectors were moved to wb before acceptance to avoid confounded Windows mutations.
+- **Recurrence guard:** retroarch.session_helpers exact HEX gates positive 010a0d7f80ff, CRLF mutant 010d0a0d7f80ff and high-byte-only mutant 010a0d7f80fe; fresh child processes must reject both mutants before hash comparison. Native-writer CR insertion mutant fails this gate; restoration and fresh full CI pass 688/688 plus packages. Prior repair Intel Nightly 40736138106 passes all three session tests; latest fixture source still requires fresh hosted validation.
+---
+
