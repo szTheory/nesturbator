@@ -2026,6 +2026,20 @@ int main(int argc, char **argv)
         printf("%016" PRIx64 "\n", hash);
         return 0;
     }
+    if ((argc == 3 || argc == 4) && strcmp(argv[1], "--session-binary-fixture") == 0) {
+        /* Text writers expand LF on Windows; retain these exact binary test bytes. */
+        static const uint8_t bytes[] = {1u, 10u, 13u, 127u, 128u, 255u};
+        if (argc == 4) {
+            static const uint8_t crlf[] = {1u, 13u, 10u, 13u, 127u, 128u, 255u};
+            static const uint8_t high_byte[] = {1u, 10u, 13u, 127u, 128u, 254u};
+            if (strcmp(argv[3], "crlf") == 0)
+                return marker_write(argv[2], crlf, sizeof crlf) ? 0 : 2;
+            if (strcmp(argv[3], "high_byte") == 0)
+                return marker_write(argv[2], high_byte, sizeof high_byte) ? 0 : 2;
+            return 2;
+        }
+        return marker_write(argv[2], bytes, sizeof bytes) ? 0 : 2;
+    }
     if (argc == 3 && strcmp(argv[1], "--progression-selftest") == 0)
         return progression_tracer_selftest(argv[2]);
     if (argc == 4 && strcmp(argv[1], "--progression-selftest") == 0 &&
