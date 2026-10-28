@@ -47,12 +47,19 @@ endif()
 # 1..W (RGB, not the native hash). Its two tests run on every platform; the tool needs the
 # library and the host converter. nesteroids repeats frames in adjacent pairs, so a screenshot
 # can name two indices.
-add_executable(frame_index frame_index.c bmp_ppm.c)
+add_executable(frame_index frame_index.c bmp_ppm.c ${PROJECT_SOURCE_DIR}/runner/clock.c)
 target_link_libraries(frame_index PRIVATE nesturbator nesturbator_host)
-target_include_directories(frame_index PRIVATE ${PROJECT_SOURCE_DIR}/tests ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(frame_index PRIVATE ${PROJECT_SOURCE_DIR}/tests ${PROJECT_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/runner)
 target_compile_definitions(frame_index PRIVATE
   $<$<C_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 nesturbator_warnings(frame_index)
+
+add_test(NAME retroarch.session_helpers
+  COMMAND ${CMAKE_COMMAND} -DFRAME_INDEX=$<TARGET_FILE:frame_index>
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/session-helper-controls
+    -P ${PROJECT_SOURCE_DIR}/tests/cmake/session_helpers.cmake)
+set_tests_properties(retroarch.session_helpers PROPERTIES TIMEOUT 30)
 
 add_test(NAME retroarch.marker.controls
   COMMAND frame_index --marker-selftest ${CMAKE_CURRENT_BINARY_DIR})

@@ -1332,6 +1332,22 @@ metadata was refreshed from this run. Guest caps, ROM, scoreboard and acceptance
 policy are unchanged. Hosted content acceptance remains pending Plan 20-10.
 
 
+## Nightly Intel session helper repair: local provenance (2026-10-28)
+
+The session driver's native clock/hash repair changes effective source. Required
+public-header documentation also changes the selected 56-input AccuracyCoin
+fingerprint to `424db30d3e712a95c6ebacd7785b710ca67beff078269dd9346c654d390ecc84`.
+A fresh actual 22-page production campaign at `source_revision=6d2d1370d8fa`,
+`source_dirty=1`, completed every page and all 146 scored rows: 114 PASS,
+32 FAIL, zero skip/not-run/timeout, five DRAW. Guest caps remain 32/5/1800;
+`host_elapsed_guest_ns=4678903000`, and report SHA-256 remains
+`29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`.
+Raw local evidence is under `build/nightly-intel-session-campaign/`; current
+baseline metadata comes from this observation. The historical hosted bundle
+below retains its original source identity and confirms its own source only.
+New-source hosted CI/Nightly validation, including Intel session controls,
+remains required; this local repair does not renew hosted acceptance.
+
 ## Phase 20 Plan 10: clean hosted confirmation (2026-10-28)
 
 Read-only production collection accepted CI `40700458574/1` and Nightly

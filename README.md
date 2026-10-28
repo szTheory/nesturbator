@@ -2101,7 +2101,16 @@ supervision slice, further capped by live operation and attempt time. Empty read
 may retry within the 30-second readiness deadline; every action, state save/load,
 screenshot and QUIT request is one-shot. Monotonic timers bound the 30-second
 readiness and operation windows, 5-second artifact publication window,
-120-second attempt and 5-second cleanup reserve. Cleanup claims its one-shot
+120-second attempt and 5-second cleanup reserve. After bootstrap, repeated clock
+samples and artifact identities use the already required `frame_index` tool's
+native runner clock and bounded FNV-1a reader. This avoids starting a Perl
+interpreter for every timed observation; artifact identities and the nonempty
+1 MiB cap remain identical. The readiness controls charge 100 ms to each old
+clock-interpreter path and still require full progression plus cleanup within
+25 seconds. The load-send control charges 1050 ms to the old interpreted hash
+path while retaining its 1-second publication window and exact send-failure
+reason. `retroarch.session_helpers` checks frozen FNV vectors, buffer and cap
+neighbors, invalid files and advancing monotonic samples. Cleanup claims its one-shot
 QUIT before writing the request. A failed request write emits
 `CLEANUP_REQUEST_WRITE_FAILED`, records zero transport sends when the journal
 is writable, and still reaps the owned host and releases its proven endpoint

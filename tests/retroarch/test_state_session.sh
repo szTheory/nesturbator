@@ -564,7 +564,7 @@ fi
 DRIVER=$DRIVER_PATH
 . "$TRACE_PATH"
 case "$CONTROL" in
-    all|readiness|interruption|cleanup-request-failure|interruption-capture-selftest|interruption-trace-lock-selftest|lock-pid-preflight|lock-release-race|lock-finalizer-cwd|source-root-identity|source-root-preflight) ;;
+    all|readiness|helper-cost|interruption|cleanup-request-failure|interruption-capture-selftest|interruption-trace-lock-selftest|lock-pid-preflight|lock-release-race|lock-finalizer-cwd|source-root-identity|source-root-preflight) ;;
     *) echo "state session controls: invalid STATE_SESSION_CONTROL=$CONTROL" >&2; exit 2 ;;
 esac
 
@@ -3814,6 +3814,42 @@ if [ "${STATE_SESSION_REPORT_SELFTEST:-0}" = 1 ] || [ "$CONTROL" = readiness ] |
 fi
 
 
+make_helper_latency_bin() {
+    helper_bin=$1
+    mkdir -p "$helper_bin"
+    helper_real_perl=$(command -v perl)
+    ln -s "$helper_real_perl" "$helper_bin/real-perl"
+    cat >"$helper_bin/perl" <<'EOF'
+#!/bin/sh
+# Charge only the superseded simple clock/hash interpreters, leaving journals,
+# supervision and fixture fault injection unchanged. Each charge is bounded.
+if [ "$1" = '-MTime::HiRes=clock_gettime,CLOCK_MONOTONIC' ] && [ "${#3}" -lt 100 ]; then
+    printf 'clock\n' >>"$STATE_SESSION_HELPER_CALLS"
+    sleep "${STATE_SESSION_HELPER_CLOCK_DELAY:-0}"
+fi
+if [ "$1" = -e ]; then
+    case "$2" in
+        'use integer; my $h='*)
+            printf 'hash\n' >>"$STATE_SESSION_HELPER_CALLS"
+            sleep "${STATE_SESSION_HELPER_HASH_DELAY:-0}"
+            ;;
+    esac
+fi
+exec "${0%/*}/real-perl" "$@"
+EOF
+    chmod +x "$helper_bin/perl"
+}
+
+assert_native_helper_usage() {
+    # Prove the shim was on the actual driver's PATH, and that only its original
+    # bootstrap clock used an interpreter. A dormant shim cannot pass this gate.
+    awk '$0 == "clock" { clocks++ } $0 == "hash" { hashes++ }
+        END { exit !(clocks == 1 && hashes == 0) }' "$1" || {
+        echo 'FAIL native helpers: expected one bootstrap interpreter clock and no interpreted hashes' >&2
+        exit 1
+    }
+}
+
 run_fault() {
     name=$1; expected=$2; fault=$3; fail_request=${4:-}; mode=${5:-prefix}; max_ms=${6:-20000}; ready_ms=${7:-30000}; publication_ms=${8:-1000}; attempt_override=${9:-}; operation_override=${10:-30000}
     case_dir=${STATE_SESSION_TEST_CASE_ROOT_OVERRIDE:-"$WORK_ROOT/session-$$-$name"}; case_ra="$case_dir/ra"
@@ -3830,6 +3866,13 @@ run_fault() {
     [ -z "$attempt_override" ] || attempt_ms=$attempt_override
     primary_elapsed_file=${STATE_SESSION_TEST_PRIMARY_ELAPSED_FILE:-}
     (
+    if [ "$name" = load-send-once ]; then
+        make_helper_latency_bin "$case_dir/helper-bin"
+        case_helper_original_path=$PATH
+        PATH="$case_dir/helper-bin:$PATH"
+        export PATH STATE_SESSION_HELPER_CALLS="$case_dir/helper-calls.log" \
+            STATE_SESSION_HELPER_HASH_DELAY=1.05
+    fi
     export STATE_SESSION_NC="$case_dir/fake-nc" \
     STATE_SESSION_TEST_FIXTURE="$fixture_dir" \
     STATE_SESSION_TEST_EXPECTED_DIR="$case_ra/states" \
@@ -3900,6 +3943,7 @@ PY
             "$fixture_dir/calibration.txt" >"$case_dir/driver.out" 2>&1 || case_status=$?
     fi
     printf '%s\n' "$case_status" >"$case_dir/driver.status"
+    [ "$name" != load-send-once ] || PATH=$case_helper_original_path
     case_driver_finished=$(mono_ms); case_driver_elapsed=$((case_driver_finished-case_driver_started))
     printf '%s\n' "$case_driver_elapsed" >"$case_dir/driver.elapsed"
     [ -z "$primary_elapsed_file" ] || printf '%s\n' "$case_driver_elapsed" >"$primary_elapsed_file"
@@ -3922,6 +3966,7 @@ PY
         echo "FAIL $name driver-plus-cleanup bound: ${case_driver_elapsed}ms >= ${max_ms}ms (fixture setup ${case_setup_elapsed}ms)" >&2
         exit 1
     }
+    [ "$name" != load-send-once ] || assert_native_helper_usage "$case_dir/helper-calls.log"
     case_host=$(cat "$case_dir/host.pid")
     if kill -0 "$case_host" 2>/dev/null; then echo "FAIL $name left owned host alive" >&2; exit 1; fi
     set -- "$case_ra"/attempts/*
@@ -4774,7 +4819,11 @@ run_readiness_case() {
     readiness_setup_finished=$(mono_ms)
     readiness_setup_elapsed=$((readiness_setup_finished-readiness_setup_started))
     readiness_started=$(mono_ms); readiness_status=0
-    run_prefix_driver "$readiness_dir" "$readiness_ra" "$readiness_fault" >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
+    make_helper_latency_bin "$readiness_dir/helper-bin"
+    PATH="$readiness_dir/helper-bin:$PATH" \
+    STATE_SESSION_HELPER_CALLS="$readiness_dir/helper-calls.log" \
+    STATE_SESSION_HELPER_CLOCK_DELAY=0.10 \
+        run_prefix_driver "$readiness_dir" "$readiness_ra" "$readiness_fault" >"$readiness_dir/driver.out" 2>&1 || readiness_status=$?
     readiness_finished=$(mono_ms); readiness_elapsed=$((readiness_finished-readiness_started))
     readiness_operation_ms=unavailable; readiness_later_prefix=unavailable
     readiness_attempt_elapsed=unavailable; readiness_reason=unknown
@@ -4902,6 +4951,7 @@ run_readiness_case() {
     [ "$readiness_elapsed" -ge "$readiness_lower" ] && [ "$readiness_elapsed" -lt 25000 ] || {
         echo "FAIL $readiness_name full driver+cleanup bound: ${readiness_elapsed}ms" >&2; exit 1;
     }
+    assert_native_helper_usage "$readiness_dir/helper-calls.log"
     assert_sanitized_tree "$readiness_attempt"
     readiness_outer_finished=$(mono_ms)
     readiness_outer_elapsed=$((readiness_outer_finished-test_started))
@@ -4913,6 +4963,12 @@ run_readiness_controls() {
     run_readiness_case readiness-delayed readiness-response-delay 1201 4500
     run_readiness_case readiness-response-stall readiness-response-stall 4500 7000
 }
+
+if [ "$CONTROL" = helper-cost ]; then
+    run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' complete 75000 30000 1000
+    run_readiness_controls
+    exit 0
+fi
 
 run_startup_lock_signal_control() (
     startup_signal_started=$(mono_ms)

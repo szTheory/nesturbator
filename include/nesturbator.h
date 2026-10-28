@@ -603,6 +603,10 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * accepted by the local socket is not proof that RetroArch received it; each retained image and
  * native origin is checked by the shared progression verdict. The journal writes and sanitizes
  * each row in one Perl process, using one monotonic observation for attempt elapsed/remaining time.
+ * Repeated post-bootstrap clock samples and bounded nonempty artifact hashes use frame_index's
+ * native runner clock and shared FNV-1a reader, avoiding interpreter work inside timed polls.
+ * Clock/hash latency controls retain the exact load-send failure and 25000-ms readiness-plus-
+ * cleanup bound; frozen vectors check the unchanged 1 MiB hash cap and streaming boundaries.
  * The POSIX interruption harness and its private selector share one unchanged TERM assertion:
  * genuine grep runs once, with its numeric status and exact output bytes retained separately
  * from recorder status. Binary pre/post journal snapshots copy through one open handle and bind
