@@ -92,6 +92,21 @@ failed attempts and unrelated debt remain. The exact physical paired-chip tie
 and the flagged judgment-tier clean-room prohibition retain their prior bounded
 dispositions; no manual test or provenance sign-off is invented.
 
+### Supplemental source mode check after review
+
+Review CR-01 identifies a recurring collector weakness: its effective digest
+and remote-tree comparison do not enforce every Git file mode. A separate
+automated check compared all 417 current Git index `(path, mode, blob SHA)`
+entries against each retained candidate, CI-tested and Nightly-tested Git tree;
+all three match exactly. The bounded mode/blob manifest is retained outside the
+immutable bundle at `build/phase20-source-modes.tsv`, SHA-256
+`d799defc0b6be54d5e9ff8e00beae68fb003fe06e78bb4d6c240afd055117818`.
+This supplies the missing mode observation for this source; it does not claim
+the collector enforces it on future runs. CR-01's enforcement repair, the
+observed source-scan weakness WR-03 and duplicate-function cleanup WR-04 remain
+explicitly deferred in 20-REVIEW-DISPOSITION.md. Independent verification owns
+the sufficiency decision; no requirement or phase is closed by this check.
+
 ### Immutable artifact downloads
 
 Each ID below was retrieved through its GitHub artifact ZIP endpoint after

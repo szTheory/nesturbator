@@ -11,9 +11,21 @@ findings:
     severity: warning
     disposition: fixed
     title: "Split `$2002` tests do not exercise changing sprite flags across M2"
+  - id: CR-01
+    severity: critical
+    disposition: deferred
+    title: "Hosted source validation ignores Git file modes"
+  - id: WR-03
+    severity: warning
+    disposition: deferred
+    title: "Scoreboard lookup recursively scans ignored build output"
+  - id: WR-04
+    severity: warning
+    disposition: deferred
+    title: "Nightly validator is defined twice"
 open: 0
-total: 2
-recorded: 2026-10-27T03:26:03Z
+total: 5
+recorded: 2026-10-28T15:06:12Z
 ---
 
 # Phase 20: Code Review Disposition
@@ -22,6 +34,10 @@ recorded: 2026-10-27T03:26:03Z
 |---------|----------|-------------|--------|
 | WR-01 | warning | fixed | `include/nesturbator.h` public NMI comments and README contract; `test_captured_request_survives_clear` retains the request after line deassertion. |
 | WR-02 | warning | fixed | `test_sprite_status_changes_between_m2_samples` witnesses `0:130` clear and `0:131` set through `$2002` and `$3FFA`; wrong-sampler control fails at the returned `0x35` assertion. |
+
+| CR-01 | critical | deferred | Recurring collector mode-check enforcement requires an effective-source change and fresh delivery, outside 20-10's read-only contract. Supplemental automated comparison of all 417 local Git index modes/blob IDs with candidate, CI-tested and Nightly-tested trees passes; mode/blob manifest SHA-256 `d799defc0b6be54d5e9ff8e00beae68fb003fe06e78bb4d6c240afd055117818`. Current-source equivalence has additional evidence; the implementation weakness remains debt for independent verification to assess. |
+| WR-03 | warning | deferred | Actual failure and successful absolute clean-equivalent-checkout workaround are preserved in 20-10-SUMMARY.md. A direct tracked-scoreboard copy and normalized source path need a later source-changing repair and new hosted evidence. |
+| WR-04 | warning | deferred | The two bodies are identical; keep the tested effective source intact during read-only acceptance. Remove the shadowed definition in a later source-changing maintenance change. |
 
 Dispositions: `open` (recorded, not yet triaged), `fixed`, `skipped`, `deferred`.
 Set `deferred` by hand and put the reason in the Source cell; both are preserved. A `|` in the reason is kept as prose and escaped on the next run.

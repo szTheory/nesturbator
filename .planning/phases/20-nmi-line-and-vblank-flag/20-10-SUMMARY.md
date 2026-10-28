@@ -73,3 +73,13 @@ Only the specified current-source hosted evidence debt is resolved. Dirty local 
 - Real collection and repeated current-checkout validation pass; fixture provenance was not used.
 - Effective source remains the tested 417-file digest; native pins, thresholds and runtime are unchanged.
 - The pre-existing `.planning/config.json` edit remains unstaged and unchanged.
+
+
+## Post-plan review gate
+
+The new review reports CR-01 (missing recurring Git-mode enforcement), WR-03
+(source-root recursive scan) and WR-04 (duplicate Nightly validator). The
+supplemental automated 417-entry index mode/blob check matches all three hosted
+trees; its manifest is recorded in 20-EVIDENCE.md. Source-changing repairs are
+deferred, with no acceptance-policy change. Independent phase verification
+will assess the current bundle and these explicit dispositions.
