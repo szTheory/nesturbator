@@ -26,6 +26,14 @@ See [PROJECT.md](PROJECT.md), updated 2026-10-28 after Phase 20, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
 Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 21 interrupt latency and hijack. Phase 20 is verified complete and delivered through PR #59; merge awaits its final required CI.
 
+Nightly follow-up: the host-session clock/hash repair passed a fresh local CI
+workflow (688/688 tests and all three packages). Its effective source is
+`bfcf8e6c94f5e2ee4cdc01cb1822f5fb04d273abb15dae534a66dc51895d2b79`
+over 418 files. The prior 417-input hosted acceptance and its candidate/tested/base
+identities remain historical evidence for that source. Fresh hosted CI/Nightly
+validation of the repaired source, including Intel session controls, is pending;
+the local repair does not renew hosted acceptance. Phase 21's position is unchanged.
+
 ## Current Position
 
 Phase: 21 — Interrupt latency and hijack
@@ -113,6 +121,8 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
+First obtain fresh hosted CI/Nightly validation of the repaired 418-input source,
+including Intel session controls; historical artifacts do not test this repair.
 Merge PR #59 after its final required CI passes.
 Phase 20 is verified complete; all four requirements are complete. Phase 21
 has no CONTEXT.md yet: after delivery, `$gsd-discuss-phase 21` gathers its
