@@ -1330,3 +1330,70 @@ The report SHA-256 remains `29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc
 Actual raw output is retained under `build/phase20-fetch-campaign/`; baseline
 metadata was refreshed from this run. Guest caps, ROM, scoreboard and acceptance
 policy are unchanged. Hosted content acceptance remains pending Plan 20-10.
+
+
+## Phase 20 Plan 10: clean hosted confirmation (2026-10-28)
+
+Read-only production collection accepted CI `40700458574/1` and Nightly
+`40700458462/1` with `verdict=hosted-pass`. Candidate
+`fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1`, actual tested synthetic merge
+`ef6d9e5ec2c94ddfd431c1d7162f620722a145df`, and protected base
+`ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be` remain distinct. The full effective
+source digest is `a08da046cedeecbdd28227cc53d54e3d3e7dff2a93ee88aab9ead67da47bf61c`
+over 417 files. Evidence ledger commit `e50e825` and this measurement edit
+change only the named planning/evidence exclusions; they do not claim new hosted
+runs. Production validation against the current checkout checks that mapping.
+
+The clean Linux x64 campaign records `source_revision=ef6d9e5ec2c9`,
+`source_dirty=0`, 22/22 pages and all 146 scored rows: 114 PASS / 32 FAIL,
+zero skip/not-run/timeout and five DRAW. All six exact NMI target keys pass.
+Report SHA-256 `29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`
+and 56-input fingerprint
+`9b4d2199c8d6464c16d16f51766174aa64d633fb0a9d8b2968bac55013113993`
+match the latest causal local observation; `host_elapsed_guest_ns=16457386307`.
+The original dirty local observations, hashes, cutpoint qualifications and
+constructed/executed origins remain historical facts above.
+
+All six platform artifacts (Linux, macOS, Windows; x64 and arm64) contain the
+same complete 114-row frame/PCM/transition/state inventory, SHA-256
+`1a06cbabea1fee522e023a405af4474726ad24ef798d067b5e27575cf505bc62`.
+Every lane's fresh protected observation/verdict/no-lost-pass checks retain
+108/108 original protected-main PASS keys. Actual configured sample-vector,
+Holy Mapperel and boot-to-play CTests pass in the selected per-job execution
+logs; CI required and hash-equality jobs succeed.
+
+The real performance artifact binds the protected base and tested merge above.
+Production raw-measurement recomputation agrees with the summary; both base
+controls have zero spread for all ROMs, and every row passes the unchanged +1%
+limit without an allowance, n/a or self-only comparison. Tools are Valgrind
+3.22.0 and GCC 14.2.0.
+
+| ROM | Mapper | Base Ir/frame | Head Ir/frame | Delta | Base spread |
+|---|---|---|---|---|---|
+| nesteroids | 0 | 23791573 | 23914932 | +0.51% | 0 |
+| runner | 1 | 24699006 | 22203492 | -10.10% | 0 |
+| M4_P256K_C256K | 4 | 23367379 | 21998505 | -5.85% | 0 |
+
+Same-source Nightly vectors-full inventory/JUnit establishes 258 successful
+tests including cold fetch, all 256 opcodes and sample-match; MMC3 inventory/JUnit
+establishes 13 successful tests including fetch and every configured oracle.
+Neither has failed/skipped cases. Real RetroArch 1.22.2 progression reaches
+16 boundaries and `VERDICT_OK`, including save/load, rewind and run-ahead;
+drop/double-advance and wrong-origin controls reject as intended.
+
+The immutable local bundle is `build/phase20-hosted-evidence/`. Its
+`manifest.txt` SHA-256 is
+`55857090681bef15f44671c8a0ef5a39fddda2c23b479b45d4802871e83a2386`,
+`verdict.txt` SHA-256 is
+`84867fe8bfc1292323e0f0cc88e9b906b1b66eb947dbd9290f934b1943c68f22`, and
+114-file `provenance/evidence-files.sha256` digest is
+`715e1b27b157ab117934bb3d4766ee9fd603e0b981eee442631e0a0a91130e54`.
+The source/run/attempt/job/artifact and raw ZIP digest mapping is recorded in
+`.planning/phases/20-nmi-line-and-vblank-flag/20-EVIDENCE.md`.
+
+This resolves the specified clean-campaign and current-source hosted
+platform/protected/performance/conformance/host evidence debt, including the
+previously unconfirmed vectors-full/MMC3 fetch outcomes. Prior failed attempts,
+unrelated debt, the exact physical paired-chip tie limit and the flagged
+clean-room prohibition remain visible. All four requirements and Phase 20
+completion stay pending independent re-verification at this task boundary.
