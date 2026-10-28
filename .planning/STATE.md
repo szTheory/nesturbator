@@ -6,10 +6,10 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 status: planning
 stopped_at: Phase 20 complete, ready to plan Phase 21
-last_updated: "2026-10-28T15:57:29.547Z"
+last_updated: "2026-10-28T19:14:28.406Z"
 last_activity: 2026-10-28
-last_activity_desc: "Phase 20 shipped as PR #59"
-state_head: 5f8e5279af5f98180e5a2a82e6d4fa4bfda3c49a
+last_activity_desc: Phase 20 complete, transitioned to Phase 21
+state_head: 7848cc8980e8e96a1fc6f5ec223a9783fb7ef19d
 progress:
   total_phases: 3
   completed_phases: 2
@@ -24,25 +24,26 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-28 after Phase 20, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 21 interrupt latency and hijack. Phase 20 is verified complete and delivered through PR #59; merge awaits its final required CI.
+Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 21 interrupt latency and hijack. Phase 20's repaired source is independently verified complete. PR #59 is open and ready for review; the refreshed execution artifacts await publication before delivery closeout.
 
-Nightly follow-up: the host-session clock/hash repair's 418-input source
-`bfcf8e6c94f5e2ee4cdc01cb1822f5fb04d273abb15dae534a66dc51895d2b79`
-passed all three Intel session CTests in Nightly 40736138106 (617.04 seconds).
-That delivery exposed a Windows binary-fixture text-conversion defect. Its
-fixture-only repair passed a fresh local CI workflow (688/688 tests in 495.95
-seconds and all three packages); current effective source is
+Nightly follow-up and re-verification: the native clock/hash helpers and Windows
+binary-fixture repair have fresh source-bound acceptance. CI `40748417351/1`
+passed 18/18 jobs and Nightly `40740261760/1` passed all seven work jobs, including
+Intel session controls. Current effective source is
 `87ee34cf7b5ba45d87e748ab69b69f929a7fe7be96c02ed044bf9b1394f93202`
-over 418 files. Fresh hosted validation of this latest source, especially Windows,
-is pending. The prior 417-input hosted acceptance and its candidate/tested/base
-identities remain historical evidence for that source. Phase 21's position is unchanged.
+over 418 files. Production collection and current-checkout validation passed;
+all 418 mode/blob entries match the candidate and both hosted trees. Fresh local
+CI passed 688/688 in 434.48 seconds and packaged all three deliverables.
+Independent verification passed 32/32 with a fresh 95-file fingerprint.
+The prior 417-input acceptance remains historical. See
+20-REVERIFICATION-EVIDENCE.md in the Phase 20 directory. Phase 21 has not started.
 
 ## Current Position
 
 Phase: 21 — Interrupt latency and hijack
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-10-28 -- Phase 20 shipped as PR #59
+Last activity: 2026-10-28 — Phase 20 complete, transitioned to Phase 21
 
 Progress: [███████░░░] 67%
 
@@ -53,13 +54,13 @@ Progress: [███████░░░] 67%
 - Phase 20 completes with 32/32 verified truths and all four assigned requirements satisfied. All 12 plan summaries, original gap closures and the source-bound accepted hosted bundle are preserved in the phase directory.
 - Captured NMI history and polled NMI work remain separate serialized latches. Exact race states use complete production instructions and label constructed origins separately from executed endpoints.
 - The finite-margin circuit evidence constrains one global integer-timestamp policy; no physical paired-chip exact-tie winner or per-table alignment shift is claimed. Full decision history remains in 20-CONTEXT.md, summaries and measurements.
-- Candidate `fe70d61`, tested merge `ef6d9e5`, protected base `ab9c2e6` and evidence-only commits remain separate. All 417 effective inputs and supplemental Git modes/blob IDs match; source-changing repairs require fresh hosted evidence.
+- Current candidate `7848cc8`, tested merge `716e8d4`, protected base `ab9c2e6` and evidence-only commits remain separate. All 418 effective inputs and Git modes/blob IDs match. Earlier candidate `fe70d61` / tested merge `ef6d9e5` retain their historical 417-input evidence; source-changing repairs require fresh hosted evidence.
 - Phase 21 retains its planned IRQ/poll/shared-entry/hijack scope. Phase 20 collector hardening is explicit debt, not silently added scope or an acceptance waiver.
 
 ### Blockers/Concerns
 
-- [Phase 20 delivery] PR #59 is the merge vehicle on `gsd/phase-20-nmi-line-and-vblank-flag`; the ship step publishes the evidence closeout and promotes the PR for review. Merge only after final required CI passes; begin Phase 21 source changes after delivery.
-- [Phase 20 review debt] CR-01: recurring collector enforcement omits Git file modes. This accepted run has an independent 417/417 mode/blob match against all three hosted trees; future enforcement repair is deferred.
+- [Phase 20 delivery] PR #59 is the merge vehicle on `gsd/phase-20-nmi-line-and-vblank-flag`, already ready for review. Publish this execution's refreshed evidence through `$gsd-ship 20`; merge only after the final published head's required CI passes. Begin Phase 21 source changes after delivery.
+- [Phase 20 review debt] CR-01: recurring collector enforcement omits Git file modes. The current accepted run has an independent 418/418 mode/blob match against all three hosted trees; future enforcement repair is deferred.
 - [Phase 20 review debt] WR-03: source scoreboard lookup recursively scans ignored build fixtures and relative SOURCE_REF fails. Collection used an absolute clean-equivalent checkout and current-checkout validation; direct tracked-path handling remains deferred.
 - [Phase 20 review debt] WR-04: duplicate identical Nightly validator definition remains deferred cleanup. See 20-REVIEW-DISPOSITION.md for all dispositions.
 - [Evidence limit] Exact physical paired-chip tie precedence remains unverified under amended D-10. The judgment-tier clean-room prohibition remains explicitly flagged; hygiene passes and no contamination was found. No manual sign-off gate is introduced.
@@ -77,6 +78,20 @@ Progress: [███████░░░] 67%
 | 261026-i8z | Reduce repeated CI suites, session controls and vector inventory work | 2026-10-26 | dbbf04f | [261026-i8z-reduce-ci-overhead-using-the-recovered-c](./quick/261026-i8z-reduce-ci-overhead-using-the-recovered-c/) |
 
 ## Delivery
+
+Current acceptance refresh: candidate `7848cc8980e8e96a1fc6f5ec223a9783fb7ef19d`,
+tested merge `716e8d49c80602e3524b9348881ddf171fe33a2f`, protected base `ab9c2e6`.
+CI `40748417351/1` and Nightly `40740261760/1` passed production content
+collection, including the repaired host-session helpers. The new immutable bundle
+is `build/phase20-refresh-hosted-evidence/`; the previous bundle is preserved.
+CI `40740261875/2` was green but its mixed-attempt artifacts were correctly
+rejected by the collector. A full rerun was requested then cancelled because it
+also retains old artifacts. Updating the PR's factual verification note started
+the accepted fresh CI run on the unchanged source. No source, deadline or
+acceptance rule changed. The refreshed review, verification and evidence are
+local execution artifacts pending the next ship step. No merge occurred.
+
+Historical initial delivery:
 
 Phase 19 squash-merged as PR #57 (`ab9c2e6`). Phase 20 uses existing PR
 #59 on `gsd/phase-20-nmi-line-and-vblank-flag`. Candidate
@@ -124,13 +139,13 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-First obtain fresh hosted CI/Nightly validation of the repaired 418-input source,
-including Intel session controls; historical artifacts do not test this repair.
-Merge PR #59 after its final required CI passes.
-Phase 20 is verified complete; all four requirements are complete. Phase 21
-has no CONTEXT.md yet: after delivery, `$gsd-discuss-phase 21` gathers its
-interrupt-latency/hijack approach. No next lifecycle step ran here. The preexisting local config edit is preserved outside the shipping commits
-and restored unchanged after publication.
+Run `$gsd-ship 20` to publish the refreshed verification/evidence through existing
+PR #59, then merge after its final published head's required CI passes.
+Phase 20 is verified complete on the repaired 418-input source; all four assigned
+requirements are complete. Phase 21 has no CONTEXT.md yet: after delivery,
+`$gsd-discuss-phase 21` gathers its interrupt-latency/hijack approach.
+No next lifecycle command ran here. The preexisting local config edit remains
+unchanged and outside the execution commits.
 
 ## Performance Metrics
 
@@ -142,6 +157,6 @@ and restored unchanged after publication.
 
 ## Session
 
-**Last session:** 2026-10-28T15:27:33Z
+**Last session:** 2026-10-28T19:14:28Z
 **Stopped at:** Phase 20 complete, ready to plan Phase 21
 **Resume file:** None
