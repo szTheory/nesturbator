@@ -6,10 +6,10 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 status: planning
 stopped_at: Phase 20 complete, ready to plan Phase 21
-last_updated: "2026-10-28T19:14:28.406Z"
+last_updated: "2026-10-28T19:38:22.603Z"
 last_activity: 2026-10-28
-last_activity_desc: Phase 20 complete, transitioned to Phase 21
-state_head: 7848cc8980e8e96a1fc6f5ec223a9783fb7ef19d
+last_activity_desc: "Phase 20 refreshed evidence shipped as PR #59"
+state_head: ad98012802bea9b158ef3c077421eaeb9b34491a
 progress:
   total_phases: 3
   completed_phases: 2
@@ -24,7 +24,7 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-28 after Phase 20, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 21 interrupt latency and hijack. Phase 20's repaired source is independently verified complete. PR #59 is open and ready for review; the refreshed execution artifacts await publication before delivery closeout.
+Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 21 interrupt latency and hijack. Phase 20's repaired source is independently verified complete. The refreshed verification/evidence and shipping note are published through open, ready-for-review PR #59; merge remains conditional on the final head's required CI.
 
 Nightly follow-up and re-verification: the native clock/hash helpers and Windows
 binary-fixture repair have fresh source-bound acceptance. CI `40748417351/1`
@@ -43,7 +43,7 @@ The prior 417-input acceptance remains historical. See
 Phase: 21 — Interrupt latency and hijack
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-10-28 — Phase 20 complete, transitioned to Phase 21
+Last activity: 2026-10-28 -- Phase 20 refreshed evidence shipped as PR #59
 
 Progress: [███████░░░] 67%
 
@@ -59,7 +59,7 @@ Progress: [███████░░░] 67%
 
 ### Blockers/Concerns
 
-- [Phase 20 delivery] PR #59 is the merge vehicle on `gsd/phase-20-nmi-line-and-vblank-flag`, already ready for review. Publish this execution's refreshed evidence through `$gsd-ship 20`; merge only after the final published head's required CI passes. Begin Phase 21 source changes after delivery.
+- [Phase 20 delivery] PR #59 is the merge vehicle on `gsd/phase-20-nmi-line-and-vblank-flag`, ready for review with refreshed evidence published by `$gsd-ship 20`. Merge only after the final published head's required CI passes. Begin Phase 21 source changes after delivery.
 - [Phase 20 review debt] CR-01: recurring collector enforcement omits Git file modes. The current accepted run has an independent 418/418 mode/blob match against all three hosted trees; future enforcement repair is deferred.
 - [Phase 20 review debt] WR-03: source scoreboard lookup recursively scans ignored build fixtures and relative SOURCE_REF fails. Collection used an absolute clean-equivalent checkout and current-checkout validation; direct tracked-path handling remains deferred.
 - [Phase 20 review debt] WR-04: duplicate identical Nightly validator definition remains deferred cleanup. See 20-REVIEW-DISPOSITION.md for all dispositions.
@@ -89,7 +89,14 @@ rejected by the collector. A full rerun was requested then cancelled because it
 also retains old artifacts. Updating the PR's factual verification note started
 the accepted fresh CI run on the unchanged source. No source, deadline or
 acceptance rule changed. The refreshed review, verification and evidence are
-local execution artifacts pending the next ship step. No merge occurred.
+published through the existing PR #59. Fresh ship-time local CI passed
+688/688 in 438.85 seconds and produced all three packages; production bundle
+revalidation passed and all 418 mode/blob entries match the accepted candidate
+and publication head. The shipping note uses no CI-skip token, so required CI
+runs on the final published head. The PR description now records current
+418-input acceptance instead of the superseded pending refresh. Existing review
+and debt dispositions are retained; no external review command is configured.
+No merge occurred and no next lifecycle command ran.
 
 Historical initial delivery:
 
@@ -139,8 +146,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-ship 20` to publish the refreshed verification/evidence through existing
-PR #59, then merge after its final published head's required CI passes.
+Review PR #59 and merge after its final published head's required CI passes.
 Phase 20 is verified complete on the repaired 418-input source; all four assigned
 requirements are complete. Phase 21 has no CONTEXT.md yet: after delivery,
 `$gsd-discuss-phase 21` gathers its interrupt-latency/hijack approach.

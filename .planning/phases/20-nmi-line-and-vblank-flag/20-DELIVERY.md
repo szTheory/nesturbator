@@ -685,3 +685,32 @@ PR #59 stays open/draft. A later local evidence-only commit is distinct from
 the published candidate and does not change its full effective source. No
 merge, force push, new PR, workflow dispatch, threshold/pin/cap/timeout change
 or config staging occurred.
+
+## 2026-10-28 refreshed verification publication
+
+The later repaired-source acceptance supersedes the historical pending status
+above. Candidate `7848cc8980e8e96a1fc6f5ec223a9783fb7ef19d`, tested merge
+`716e8d49c80602e3524b9348881ddf171fe33a2f`, and protected base `ab9c2e6`
+have accepted CI `40748417351/1` and Nightly `40740261760/1` content.
+The effective source has 418 inputs with SHA-256
+`87ee34cf7b5ba45d87e748ab69b69f929a7fe7be96c02ed044bf9b1394f93202`.
+Independent verification passes 32/32 truths and all four assigned requirements
+are complete. See `20-REVERIFICATION-EVIDENCE.md` for immutable bundle identities,
+the rejected mixed-attempt collection, and retained evidence limits.
+
+This ship step publishes the refreshed verification/evidence commit `ad98012`
+and its shipping note through existing, ready-for-review PR #59. Fresh
+`cmake --workflow --preset ci` passes 688/688 in 438.85 seconds and produces
+library, runner, and libretro packages; its log is
+`build/phase20-ship-refresh-ci.log`. Production `MODE=validate` revalidates
+`build/phase20-refresh-hosted-evidence/` against the publication checkout.
+All 418 effective Git mode/blob entries match both the accepted candidate and
+publication head. Repository hygiene and whitespace checks pass.
+
+The PR description records current acceptance and preserves historical results,
+CR-01/WR-03/WR-04 debt, and physical-tie/clean-room evidence limits. Existing
+review and dispositions are retained; no external review command is configured.
+Only planning/evidence files change after the accepted candidate. The preserved
+local config edit remains unstaged. The final shipping commit has no CI-skip
+token, so required CI runs normally on that head. Merge waits for its required
+CI; no merge or next lifecycle command occurs in this step.
