@@ -570,3 +570,53 @@ effective-source digest is
 The historical failed runs remain evidence; 20-12 remains halted until fresh
 source-bound automatic runs and the production availability gate pass. Plan
 20-10 content acceptance and all four requirements remain pending.
+
+The normal push published repair commit/candidate
+`b343083fe11a626fa5e768a03391539e949de93d` to the same branch and existing
+open draft PR #59, after updating its description. Normal hygiene and
+formatting hooks passed; no history rewrite or new PR occurred. Automatic
+PR runs created at `2026-10-28T13:28:59Z` are CI `40696814449/1` and Nightly
+`40696814469/1`; both have the exact candidate, expected workflow path and
+pull_request event. PR metadata resolves synthetic tested merge
+`32762001e3f156eac978b5b307a5d3605685f718` and protected base
+`ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be`. These are active run identities,
+not successful availability. No rerun or dispatch was triggered.
+
+The old delivery/raw/provenance bundle is additionally retained under
+`build/phase20-hosted-evidence-history/pre-vector-repair-0039`. The live
+`delivery.json` still selects historical 0039 until the new successful
+source-bound run facts exist. Later local planning/evidence commits do not
+change the published candidate or full effective source.
+
+## 2026-10-28 Windows fixture correction before fresh availability
+
+Candidate `b343083` passes real Nightly `vectors-full` job `122845687330`
+(started `13:29:09Z`, completed `13:31:32Z`), confirming the production cold
+fetch repair. Its CI `40696814449/1` nevertheless fails both Windows builds:
+x64 job `122847503174` and arm64 job `122847503220` fail only the new offline
+`vectors.fetch.transport` test. All 256 fake checkout files have native CRLF,
+while the synthetic pin oracle hashes LF. For 00.json, expected size 3/SHA
+`d9b2aefb1febe2dd6e403f634e18917a8c0dd1a440c976e9fe126b465ae9fc8d` is exactly
+00+LF; actual size 4/SHA
+`56a468fa75d7e429e99b3f560bbdcef20821e79f63a70a7ade6660fac6617682` is exactly
+00+CRLF. This is a test portability failure; byte verification correctly fails.
+
+Direct failed-job logs are retained under
+`build/phase20-hosted-evidence-diagnostics/ci-job-122847503174.log` (SHA-256
+`0c32d06eef81d3d21bbd110d09d0e957abd37339f6b79a2dff328bc6f6cc63d6`) and
+`ci-job-122847503220.log` (SHA-256
+`0b4b85725690f1dcdf12222bfeaccbe334340c91ed41d919223809bc9d29b50a`).
+No availability gate or rerun is used to hide the failed candidate.
+
+The minimal correction removes unnecessary newlines from synthetic payloads
+and hashes exactly two opcode ASCII bytes. Every transport, pin, inventory
+and refusal assertion remains. An owned forced-CRLF mutant reproduces the
+byte mismatch locally; the corrected control passes. Supplemental independent
+review returns LOOKS_GOOD. The full effective digest becomes
+`a08da046cedeecbdd28227cc53d54e3d3e7dff2a93ee88aab9ead67da47bf61c` over 417
+files. The production campaign fingerprint remains unchanged at
+`9b4d2199c8d6464c16d16f51766174aa64d633fb0a9d8b2968bac55013113993` over 56
+inputs, so the measured campaign above remains attributable under its existing
+input contract. Final corrected `cmake --workflow --preset ci` passes 687/687 in 382.27 seconds
+and produces all three packages before normal same-PR publication. New
+source-bound automatic CI/Nightly facts are still required for availability.
