@@ -9,8 +9,8 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 
 ### Frame interrupts arrive when the console's would
 
-- [ ] **NMI-01**: A game that reads `$2002` around the start of VBlank sees the console's flag value and gets or loses the NMI as the console does; the `$2002 flag timing`, `NMI Timing` and `NMI Suppression` rows pass.
-- [ ] **NMI-02**: A game that enables or disables NMI around the start or end of VBlank gets NMIs exactly when the console would, including the extra NMI Bases Loaded II relies on; the `NMI Control`, `NMI at VBlank end` and `NMI disabled at VBlank` rows pass.
+- [x] **NMI-01**: A game that reads `$2002` around the start of VBlank sees the console's flag value and gets or loses the NMI as the console does; the `$2002 flag timing`, `NMI Timing` and `NMI Suppression` rows pass.
+- [x] **NMI-02**: A game that enables or disables NMI around the start or end of VBlank gets NMIs exactly when the console would, including the extra NMI Bases Loaded II relies on; the `NMI Control`, `NMI at VBlank end` and `NMI disabled at VBlank` rows pass.
 
 ### CPU interrupts start on the right instruction
 
@@ -25,8 +25,8 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 ### Everything that works today keeps working
 
 - [ ] **KEEP-01**: Every AccuracyCoin row that passes today still passes on every CI lane, and the CPU vectors, blargg MMC3, Holy Mapperel and boot-to-play checks stay green.
-- [ ] **KEEP-02**: A frame or audio hash that moves is re-pinned in the same change with its reason, and stays identical on all six platforms.
-- [ ] **KEEP-03**: A save state taken at any frame, including during the VBlank race or an interrupt sequence, loads back to the same run under rewind and run-ahead; a state from an earlier format is refused with the existing version error.
+- [x] **KEEP-02**: A frame or audio hash that moves is re-pinned in the same change with its reason, and stays identical on all six platforms.
+- [x] **KEEP-03**: A save state taken at any frame, including during the VBlank race or an interrupt sequence, loads back to the same run under rewind and run-ahead; a state from an earlier format is refused with the existing version error.
 
 ### A JAM is reported as a JAM
 
@@ -53,15 +53,15 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NMI-01 | Phase 20 | Gaps Found |
-| NMI-02 | Phase 20 | Gaps Found |
+| NMI-01 | Phase 20 | Complete |
+| NMI-02 | Phase 20 | Complete |
 | INT-01 | Phase 21 | Pending |
 | INT-02 | Phase 21 | Pending |
 | SPR-01 | Phase 19 | Complete |
 | SPR-02 | Phase 19 | Complete |
 | KEEP-01 | Phase 21 | Pending |
-| KEEP-02 | Phase 20 | Pending |
-| KEEP-03 | Phase 20 | Pending |
+| KEEP-02 | Phase 20 | Complete |
+| KEEP-03 | Phase 20 | Complete |
 | JAM-01 | Phase 19 | Complete |
 | JAM-02 | Phase 19 | Complete |
 

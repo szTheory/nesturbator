@@ -14,6 +14,8 @@ v4 "Measured NTSC accuracy and robustness" shipped on 2026-10-24 (planning miles
 
 v3 "Save states and rewind" shipped on 2026-10-13 ([v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10)), v2 "Most of the library plays" on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
+Phase 20 is verified complete (2026-10-28): 32/32 truths, all six scoped NMI/VBlank rows passing, state format 2/behaviour revision 8, and source-bound hosted CI/Nightly acceptance. The clean campaign is 114 PASS / 32 FAIL; every lane retains all 108 protected starting PASS keys and identical complete hashes. Fresh local CI passes 687/687 and packages all three deliverables. Delivery remains existing draft PR #59; the verified effective source is candidate `fe70d61` / tested merge `ef6d9e5`, with evidence-only closeout commits kept separate. Phase 21 interrupt latency and hijack remains to plan. Collector maintenance debt is recorded in the Phase 20 review disposition.
+
 ## Current Milestone: v5 NMI, VBlank and sprite-0 timing
 
 **Goal:** A game's frame loop and status-bar splits time out exactly as they do on an NTSC console.
@@ -68,9 +70,12 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 - ✓ AccuracyCoin names a guest JAM as a JAM in every stage (`fail 0x03 guest-jam` row, `jam_frame` metadata, strict-mode message), and run-ahead across a JAM shows the same picture and silence as running without it, never a diverged timeline's picture. — v5, Phase 19, JAM-01, JAM-02; verification 4/4
 - ✓ Sprite evaluation starts at OAMADDR and OAMADDR clears during sprite tile loading, so Sprite 0 Hit behavior and Arbitrary Sprite zero pass (behaviour revision 7); the re-recorded baseline is 108 pass / 38 fail with no PASS lost. — v5, Phase 19, SPR-01, SPR-02; verification 4/4, `ci` 670/670
 
+- ✓ `$2002` split sampling, NMI line/capture/poll behavior and the six scoped AccuracyCoin NMI/VBlank rows pass; enabled race-state histories resume through the library, runner and libretro host. — v5, Phase 20, NMI-01/NMI-02/KEEP-03; independent re-verification 32/32
+- ✓ Causal frame/audio/state re-pins remain identical across six platforms, all 108 starting PASS keys remain protected per lane, and real +1% performance, vector/MMC3 and RetroArch checks pass on the tested source. — v5, Phase 20, KEEP-02; clean hosted campaign and source-bound content acceptance
+
 ### Active
 
-- [ ] NMI and VBlank timing match the console on the nine named AccuracyCoin rows — v5
+- [ ] Interrupt latency and NMI hijack match the console on `Interrupt flag latency`, `NMI Overlap BRK` and `NMI Overlap IRQ` — v5, Phase 21
 - [ ] Every row that passes today still passes, with hash re-pins explained and new state fields saved — v5
 
 ### Out of Scope
@@ -123,6 +128,8 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
+| Captured NMI request and polled NMI work are separate serialized latches; a falling live line does not revoke capture | One source-grounded model covers status reads, control writes and resumable races | ✓ Good — Phase 20, six target rows, exact state cutpoints and hosted replay verified |
+| Hosted evidence binds candidate, tested merge, protected base and complete effective inputs separately from evidence-only commits | Local dirty provenance and synthetic fixtures cannot stand in for real source-bound acceptance | ✓ Good — Phase 20, accepted six-platform/performance/Nightly/RetroArch bundle; future collector mode enforcement and source-scan cleanup remain debt |
 | Time in half-master-clock ticks; the CPU drives the bus; the PPU catches up at both M2 edges | The coarsest unit where every clock edge is an integer; the shape of designs that score 136 or more of 140 | ✓ Good — Phases 3–4 exercise shared CPU/PPU/APU timing with frame, channel and DMA edge tests |
 | Per-dot PPU with literal shift registers, address latch and OAM counters | The hardest public tests probe that state | ✓ Good — Phase 3 render and AccuracyCoin checks pass |
 | Integer-only core; `cmake --workflow --preset nofp` shows it | Bit-identical hashes on every platform | ✓ Good — fixed-point synthesis and integer spectral analysis pass the Phase 4 CI gate |
@@ -189,4 +196,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-25 after Phase 19*
+*Last updated: 2026-10-28 after Phase 20*
