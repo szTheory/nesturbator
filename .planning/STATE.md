@@ -6,10 +6,10 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 status: planning
 stopped_at: Phase 20 complete, ready to plan Phase 21
-last_updated: "2026-10-28T15:25:55.373Z"
+last_updated: "2026-10-28T15:57:29.547Z"
 last_activity: 2026-10-28
-last_activity_desc: Phase 20 complete, transitioned to Phase 21
-state_head: 7d1ede37ba6fa2d98a0d621346e0e2283e407236
+last_activity_desc: "Phase 20 shipped as PR #59"
+state_head: 5f8e5279af5f98180e5a2a82e6d4fa4bfda3c49a
 progress:
   total_phases: 3
   completed_phases: 2
@@ -24,14 +24,14 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-28 after Phase 20, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 21 interrupt latency and hijack. Phase 20 is verified complete and awaits normal PR delivery closeout.
+Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 21 interrupt latency and hijack. Phase 20 is verified complete and delivered through PR #59; merge awaits its final required CI.
 
 ## Current Position
 
 Phase: 21 — Interrupt latency and hijack
 Plan: Not started
 Status: Ready to plan
-Last activity: 2026-10-28 — Phase 20 complete, transitioned to Phase 21
+Last activity: 2026-10-28 -- Phase 20 shipped as PR #59
 
 Progress: [███████░░░] 67%
 
@@ -47,7 +47,7 @@ Progress: [███████░░░] 67%
 
 ### Blockers/Concerns
 
-- [Phase 20 delivery] Existing draft PR #59 remains the merge vehicle; this execute-phase step performed read-only collection and local commits. Ship/review the phase before beginning source changes for Phase 21.
+- [Phase 20 delivery] PR #59 is the merge vehicle on `gsd/phase-20-nmi-line-and-vblank-flag`; the ship step publishes the evidence closeout and promotes the PR for review. Merge only after final required CI passes; begin Phase 21 source changes after delivery.
 - [Phase 20 review debt] CR-01: recurring collector enforcement omits Git file modes. This accepted run has an independent 417/417 mode/blob match against all three hosted trees; future enforcement repair is deferred.
 - [Phase 20 review debt] WR-03: source scoreboard lookup recursively scans ignored build fixtures and relative SOURCE_REF fails. Collection used an absolute clean-equivalent checkout and current-checkout validation; direct tracked-path handling remains deferred.
 - [Phase 20 review debt] WR-04: duplicate identical Nightly validator definition remains deferred cleanup. See 20-REVIEW-DISPOSITION.md for all dispositions.
@@ -67,7 +67,7 @@ Progress: [███████░░░] 67%
 
 ## Delivery
 
-Phase 19 squash-merged as PR #57 (`ab9c2e6`). Phase 20 uses existing draft PR
+Phase 19 squash-merged as PR #57 (`ab9c2e6`). Phase 20 uses existing PR
 #59 on `gsd/phase-20-nmi-line-and-vblank-flag`. Candidate
 `fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1`, actual tested merge
 `ef6d9e5ec2c94ddfd431c1d7162f620722a145df`, and protected base
@@ -76,7 +76,14 @@ Phase 19 squash-merged as PR #57 (`ab9c2e6`). Phase 20 uses existing draft PR
 `a08da046cedeecbdd28227cc53d54e3d3e7dff2a93ee88aab9ead67da47bf61c`
 (417 files) is unchanged by evidence closeout. Independent re-verification
 passed 32/32 and fresh local CI passed 687/687 with all three packages.
-No push, PR mutation, merge or workflow dispatch occurred in this execution.
+The earlier execution performed no remote mutation. The 2026-10-28 ship step
+publishes the evidence closeout and shipping note to PR #59 and marks it ready
+for review. Fresh local CI passed 687/687, all three packages were produced,
+the immutable hosted bundle revalidated, and 417/417 effective mode/blob
+entries match the accepted candidate. Required CI runs on the final shipping
+head without a skip token. Existing phase review and recorded dispositions
+are retained; no external review command is configured. No merge or next
+lifecycle command is part of this ship step.
 See 20-DELIVERY.md for earlier publication and failed attempts; 20-EVIDENCE.md
 and 20-10-SUMMARY.md for accepted immutable artifact and source identities.
 
@@ -106,11 +113,11 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-ship 20` for existing PR #59 and the local evidence closeout commits.
+Merge PR #59 after its final required CI passes.
 Phase 20 is verified complete; all four requirements are complete. Phase 21
 has no CONTEXT.md yet: after delivery, `$gsd-discuss-phase 21` gathers its
-interrupt-latency/hijack approach. No next lifecycle step ran here. Config
-bytes remain unchanged and unstaged.
+interrupt-latency/hijack approach. No next lifecycle step ran here. The preexisting local config edit is preserved outside the shipping commits
+and restored unchanged after publication.
 
 ## Performance Metrics
 
