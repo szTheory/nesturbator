@@ -526,3 +526,47 @@ only. They were not rewritten for `afba1d0`, and the production
 successful Nightly attempt. Plan 20-12 is halted for the current source; plan
 20-10 content collection/acceptance remains blocked and all requirements stay
 pending. No source correction is indicated by this external acquisition error.
+
+## 2026-10-28 measured vector transport repair
+
+The prior external-acquisition classification is refined by a cold local
+reproduction. The depth-1 blobless commit/tree fetch succeeds in about 0.4 s;
+checkout then asks the promisor remote for all 260 sparse-checkout blobs in one
+pack request. Its trace receives empty sideband heartbeats without pack payload
+before the unchanged 1000 B/s for 60 s cutoff, reproducing the hosted curl 28,
+bad pack header and e9557999 failure. That object is the root `.gitignore` blob,
+not a commit. Server internals remain unobserved.
+
+[Git partial-clone documentation](https://git-scm.com/docs/partial-clone)
+confirms checkout bulk-prefetches missing blobs. An explicit 16-blob Git request
+from the same pinned tree succeeds in 4.97 s under the same transfer policy;
+a direct pinned 00.json transfer also matches its recorded SHA-256. The repair
+reuses Git to enumerate pinned ancestor/v1 trees and prefetch their blobs in
+batches of at most 16 before checkout. The pin, all-file size/SHA inventory,
+900-second fetch-test cap, low-speed cutoff and cold hosted policy are unchanged.
+No runtime API comment changes are needed.
+
+The owned offline transport control is RED against original checkout and GREEN
+with the repair. It rejects an oversized 17-object request and an initial
+depth-2 mutant, and covers initial exact-pin/filter/depth policy, all 260 blobs
+before checkout, unavailable transport, a corrupt final file, extra inventory
+and warm no-fetch reuse. Independent focused review accepted the repair after
+adding the exact initial-fetch policy assertions.
+
+Complete cold repaired acquisition verifies all 256 files; all 258 vector-lane
+tests pass using those fresh files. A fresh 22-page production campaign measures
+114 PASS / 32 FAIL, no skip/not-run/timeout and five DRAW rows, with unchanged
+report SHA-256 `29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`.
+Its actual build fingerprint is
+`9b4d2199c8d6464c16d16f51766174aa64d633fb0a9d8b2968bac55013113993` over 56
+inputs; compiled source revision is `f52a6108aec6`, dirty bit 1 for the focused
+repair and preserved config edit. Baseline metadata is refreshed from that
+measurement, not copied from an older campaign. Focused activation, protected
+observations/no-lost-pass, six NMI targets and fetch controls pass 7/7.
+
+Final `cmake --workflow --preset ci` passes 687/687 tests in 467.50 seconds and packages the library, runner and libretro adapter before publication. The measured full
+effective-source digest is
+`4475c98248e1eb37862abe5993724e83f199824834f8ca1f2267cc3951583d83` over 417 files.
+The historical failed runs remain evidence; 20-12 remains halted until fresh
+source-bound automatic runs and the production availability gate pass. Plan
+20-10 content acceptance and all four requirements remain pending.

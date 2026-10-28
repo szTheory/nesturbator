@@ -2073,6 +2073,11 @@ add_test(NAME vectors.fetch.guard
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -DWORK=${CMAKE_CURRENT_BINARY_DIR}/fetch-guard
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/fetch_guard.cmake)
+add_test(NAME vectors.fetch.transport
+  COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DWORK=${CMAKE_CURRENT_BINARY_DIR}/vectors-transport
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/vectors_transport.cmake)
+set_tests_properties(vectors.fetch.transport PROPERTIES TIMEOUT 60)
 
 # The blargg MMC3 fetch has the same guards, with its own directory and marker.
 add_test(NAME mmc3.fetch.guard

@@ -791,9 +791,12 @@ only if the check reports it.
 The `vectors-full` lane registers its tests only when the CMake option
 `NESTURBATOR_VECTORS_FULL` is on, which its preset sets, so `ci` never touches
 the network. `cpu.vectors-full.fetch` runs `tests/cmake/fetch_vectors.cmake`:
-a sparse, blobless, depth-1 git fetch of upstream `nes6502/v1` at the commit
-on the first line of `tests/vectors/pins.txt` (about 190 MB, a minute or two),
-then a size and SHA-256 check of all 256 files against that file's lines. A
+a sparse, depth-1 git fetch of upstream `nes6502/v1` at the commit
+on the first line of `tests/vectors/pins.txt`. It fetches the blobless tree,
+then its required blobs in batches of at most 16 before checkout (1.08 GB
+uncompressed). This avoids one large lazy checkout pack request that
+can stall upstream; the 1000 B/s for 60 seconds cutoff is unchanged. It then
+checks the size and SHA-256 of all 256 files against that file's lines. A
 missing, extra or altered file fails with its path and both hashes, and so
 does a run without the network; nothing is skipped. When every file already
 verifies it fetches nothing. `cpu.vectors-full.00` to `cpu.vectors-full.ff`
@@ -859,6 +862,10 @@ symbolic link, or through a different letter case on macOS and Windows, is
 refused as inside the source tree; the fetch compares paths after resolving
 them to the links' targets and the case stored on disk. A refused directory
 that does not exist yet is not created.
+`vectors.fetch.transport` models a working pinned tree fetch and a stalled
+bulk checkout pack. It requires bounded blob requests before checkout,
+preserves the transfer cutoff, and checks cold success, warm reuse, an
+unavailable transport, a corrupt final file and an extra inventory file offline.
 `bus.unit` checks the library's bus (`src/bus.c`) on its own: each read or
 write advances time by 24 ticks, a byte written at `0x0001` reads back at
 `0x0801`, `0x1001` and `0x1801`, a read outside RAM returns the last value on

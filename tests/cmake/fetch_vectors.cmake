@@ -9,8 +9,9 @@
 #
 # The files land in DIR/65x02-src/nes6502/v1. When all 256 already match PINS
 # by size and SHA-256 nothing is fetched. Otherwise DIR/65x02-src is replaced
-# by a sparse, blobless, depth-1 git checkout of the commit, every file is
-# checked, and DIR/65x02-src/.git is removed. A missing, extra or altered file
+# by a sparse, depth-1 git checkout of the commit. Its blobless tree is fetched
+# first, then the needed blobs in batches of at most 16 before checkout. Every
+# file is checked, and DIR/65x02-src/.git is removed. A missing, extra or altered file
 # fails with its path; so does no network. Nothing here skips: the test passes
 # or fails. The script deletes DIR/65x02-src only when it holds the marker
 # file .nesturbator-vectors that the script writes when it creates it.
@@ -18,8 +19,10 @@
 # WRITE_PINS mode fetches COMMIT and writes the pin line and one
 # "<sha256>  nes6502/v1/<xx>.json  <size>" line per file, 00 to ff, LF only.
 #
-# No command that reads blobs (size, log, diff) runs in the blobless tree: each
-# would fetch blobs one at a time.
+# Tree enumeration reads no blobs. Git documents that checkout bulk-prefetches
+# missing blobs in one batch (https://git-scm.com/docs/partial-clone). That
+# 260-blob request stalled before pack payload on GitHub; explicit 16-blob
+# requests avoid that request shape without relaxing the low-speed cutoff.
 
 # Script mode starts with no policies set: CMake 3.x then reads IN_LIST with
 # its pre-3.3 meaning and fails (nightly run 37135715964, CMake 3.31).
@@ -195,6 +198,31 @@ run_git(-c init.defaultBranch=main init -q)
 run_git(remote add origin "${repo_url}.git")
 run_git(sparse-checkout set --cone "${sub}")
 run_git(-c gc.auto=0 fetch -q --depth 1 --filter=blob:none origin "${commit}")
+
+# Cone checkout includes files in each ancestor directory as well as v1.
+# Read their blob IDs from the pinned trees, never from a moving branch.
+# --no-write-fetch-head preserves the pinned commit for the final checkout.
+set(blobs)
+foreach(tree FETCH_HEAD FETCH_HEAD:nes6502 FETCH_HEAD:${sub})
+  run_git(ls-tree "${tree}")
+  string(REPLACE "\n" ";" entries "${git_out}")
+  foreach(entry IN LISTS entries)
+    if(entry MATCHES "^[0-7]+ blob ([0-9a-f]+)\t")
+      list(APPEND blobs "${CMAKE_MATCH_1}")
+    endif()
+  endforeach()
+endforeach()
+list(REMOVE_DUPLICATES blobs)
+while(blobs)
+  list(LENGTH blobs count)
+  if(count GREATER 16)
+    set(count 16)
+  endif()
+  list(SUBLIST blobs 0 ${count} batch)
+  run_git(-c gc.auto=0 -c fetch.negotiationAlgorithm=noop fetch -q
+    --no-tags --no-write-fetch-head --filter=blob:none origin ${batch})
+  list(REMOVE_ITEM blobs ${batch})
+endwhile()
 run_git(-c advice.detachedHead=false checkout -q FETCH_HEAD)
 run_git(rev-parse HEAD)
 string(STRIP "${git_out}" head_sha)

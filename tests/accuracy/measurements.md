@@ -1318,3 +1318,15 @@ files. With full campaign mode disabled, the full CI workflow passed
 packages. The collector/performance gate passed 28/28; the protected-key,
 six-target, availability, hash and policy gate passed 37/37. All source-bound
 hosted evidence remains pending.
+
+## Phase 20 bounded vector transport repair provenance refresh
+
+The added offline transport CTest changes the selected build-input fingerprint.
+A fresh production 22-page campaign at source revision `f52a6108aec6`
+(`source_dirty=1`) measured fingerprint `9b4d2199c8d6464c16d16f51766174aa64d633fb0a9d8b2968bac55013113993`
+over 56 inputs and `host_elapsed_guest_ns=6286745000`.
+All 22 pages completed: 114 PASS, 32 FAIL, no skip/not-run/timeout, and five DRAW rows.
+The report SHA-256 remains `29ea119d0e0b4db5ca47af4eba2e063413641135d070ac1971fc9719075cf7ac`.
+Actual raw output is retained under `build/phase20-fetch-campaign/`; baseline
+metadata was refreshed from this run. Guest caps, ROM, scoreboard and acceptance
+policy are unchanged. Hosted content acceptance remains pending Plan 20-10.
