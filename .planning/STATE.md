@@ -6,11 +6,11 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 current_plan: 9 of 9
 status: executing
-stopped_at: Completed 21-08 post-review source qualification; 21-09 pending hosted availability
-last_updated: "2026-10-29T16:46:49.565Z"
+stopped_at: "Published Phase 21 draft PR 61; repair hosted performance and evidence-control timeouts before 21-09"
+last_updated: "2026-10-29T17:32:29.094954+00:00"
 last_activity: 2026-10-29
-last_activity_desc: Plan 21-08 local acceptance contract passed; final CI 695/695, ASAN 686/686, vectors-full 258/258, MMC3 13/13; hosted acceptance remains pending external availability
-state_head: 43d260a914ba76a130809524fba53ad58aca1298
+last_activity_desc: "Draft PR 61 published at 5cf4c9c; completed CI 40919233064/1 failed performance and control timeouts; Nightly 40919233254/1 passed all seven work jobs; delivery facts captured"
+state_head: 5cf4c9cf056682f79daeafc7e35a38215903e930
 progress:
   total_phases: 3
   completed_phases: 2
@@ -25,7 +25,7 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-28 after Phase 20, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004). Plans 21-01 through 21-08 are locally complete. The final source-bound campaign remains 119 PASS / 27 FAIL / 5 DRAW across 146 terminal rows; all eleven target rows and all 114 protected starting PASS keys remain covered. Plan 21-08's final local gates passed: CI 695/695, ASAN 686/686, vectors-full 258/258, and MMC3 13/13. The bounded DMC/open-bus prerequisite is resolved. Plan 21-09 is next but remains pending separately delivered hosted CI/Nightly availability and actual PR/tested-merge facts. Hosted evidence and all three phase requirements remain pending. See 21-04-SUMMARY.md, 21-04-CHECKPOINT.md, 21-06-SUMMARY.md, 21-07-SUMMARY.md, and 21-08-SUMMARY.md. Earlier Phase 20 notes remain historical.
+Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004). Plans 21-01 through 21-08 are locally complete. Draft PR #61 publishes candidate 5cf4c9c, a formatted clean commit retaining the original execution history under refs/phase21-history/execution-6c42607. The campaign remains 119 PASS / 27 FAIL / 5 DRAW across 146 terminal rows. Publication preflight passed hygiene 13/13 and focused tests 77/77. Completed hosted CI 40919233064/1 failed the +1% performance gate and the Phase21 evidence-control timeout on macOS x64 and both Windows platforms; Nightly 40919233254/1 passed all seven work jobs. Real delivery.json and artifact facts exist, but hosted acceptance remains blocked. Repair those CI failures next, then resume Plan 21-09. All three phase requirements remain pending. See 21-DELIVERY.md for identities, raw evidence and the next command. Earlier local qualification and Phase 20 notes remain historical.
 
 Nightly follow-up and re-verification: the native clock/hash helpers and Windows
 binary-fixture repair have fresh source-bound acceptance. CI `40748417351/1`
@@ -178,7 +178,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Plan 21-09 is next but its external precondition is not met: completed current-candidate CI/Nightly run and attempt identities, actual PR/tested-merge facts, and immutable artifacts are absent. Keep INT-01, INT-02, and KEEP-01 pending. Preserve the unrelated `.planning/config.json` edit and all collector debt. Do not start remote delivery or another lifecycle step from this closeout.
+Run `$gsd-debug Phase 21 hosted CI performance regression and evidence-control timeouts; use .planning/phases/21-interrupt-latency-and-hijack/21-DELIVERY.md`. Completed actual runs and delivery.json are available, but failed CI blocks Plan 21-09 acceptance. Preserve INT-01/INT-02/KEEP-01 as pending, the existing config edit, all causal history and collector debt. No merge or further lifecycle command ran during delivery.
 
 ## Performance Metrics
 
@@ -198,6 +198,6 @@ Plan 21-09 is next but its external precondition is not met: completed current-c
 
 ## Session
 
-**Last session:** 2026-10-29T16:46:49.286Z
-**Stopped at:** Completed 21-08 post-review source qualification; 21-09 pending hosted availability
-**Resume file:** .planning/phases/21-interrupt-latency-and-hijack/21-09-PLAN.md
+**Last session:** 2026-10-29T17:32:29.094954+00:00
+**Stopped at:** Published Phase 21 draft PR 61; repair hosted performance and evidence-control timeouts before 21-09
+**Resume file:** .planning/phases/21-interrupt-latency-and-hijack/21-DELIVERY.md
