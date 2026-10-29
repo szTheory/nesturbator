@@ -403,16 +403,24 @@ static void stack_dummy(struct nesturbator *nes)
    PC while the low byte is added, and a second dummy read at
    (old PCH << 8) | new PCL when the target is in another page (64doc,
    "Relative addressing"). The offset is signed. */
-static void branch(struct nesturbator *nes, int cond, uint8_t *irq_poll_samples)
+static void accept_irq_sample(struct nesturbator *nes, uint8_t sample)
+{
+    if (sample != 0u && (nes->cpu.p & FLAG_I) == 0u)
+        nes->cpu.irq_accepted = 1u;
+}
+
+static void branch(struct nesturbator *nes, int cond)
 {
     /* Branches poll before cycle 2. A taken same-page branch does not poll
        before cycle 3; a page-cross branch polls again before its fix-up cycle.
        The opcode-fetch cycle supplied the first poll, so retain it across the
        offset and same-page dummy cycles. */
     uint8_t branch_poll = nes->cpu.nmi_polled;
+    uint8_t irq_poll_samples = nes->cpu.poll_latch;
     uint8_t off = fetch(nes);
     if (!cond) {
         nes->cpu.nmi_polled = branch_poll;
+        accept_irq_sample(nes, irq_poll_samples);
         return;
     }
     implied(nes);
@@ -422,9 +430,10 @@ static void branch(struct nesturbator *nes, int cond, uint8_t *irq_poll_samples)
     uint16_t target = (uint16_t)(pc + delta);
     if ((target & 0xFF00u) != (pc & 0xFF00u)) {
         nesturbator__bus_read(nes, (uint16_t)((pc & 0xFF00u) | (target & 0x00FFu)));
-        *irq_poll_samples |= nes->cpu.poll_latch;
+        irq_poll_samples |= nes->cpu.poll_latch;
     }
     nes->cpu.pc = target;
+    accept_irq_sample(nes, irq_poll_samples);
 }
 
 /* PLP and RTI: bit 4 clear and bit 5 set whatever the stack held (D-16). */
@@ -604,10 +613,6 @@ static void store_sh_abs(struct nesturbator *nes, uint8_t reg, uint8_t idx)
 
 void nesturbator__cpu_step(struct nesturbator *nes)
 {
-    uint8_t old_i;
-    uint8_t irq_poll_samples;
-    uint8_t irq_poll_before_final = 0u;
-    uint8_t branch_instruction = 0u;
     uint8_t opcode;
 
     /* A loaded partial entry resumes before opcode fetch, jam checks or
@@ -641,11 +646,7 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         return;
     }
 
-    old_i = (uint8_t)(nes->cpu.p & FLAG_I);
     opcode = fetch(nes);
-    /* The opcode fetch is the first legal poll for a conditional branch.
-       Other instructions use their operation-specific final bus action. */
-    irq_poll_samples = nes->cpu.poll_latch;
     switch (opcode) {
     /* Loads. */
     case 0xA9: /* LDA immediate */
@@ -957,11 +958,15 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         flag_op(nes, FLAG_C, 1);
         break;
     case 0x58: /* CLI */
-        flag_op(nes, FLAG_I, 0);
-        break;
+        implied(nes);
+        accept_irq_sample(nes, nes->cpu.poll_latch);
+        set_flag(nes, FLAG_I, 0);
+        return;
     case 0x78: /* SEI */
-        flag_op(nes, FLAG_I, 1);
-        break;
+        implied(nes);
+        accept_irq_sample(nes, nes->cpu.poll_latch);
+        set_flag(nes, FLAG_I, 1);
+        return;
     case 0xB8: /* CLV */
         flag_op(nes, FLAG_V, 0);
         break;
@@ -1093,45 +1098,40 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         stack_dummy(nes);
         assign(nes, &nes->cpu.a, pull(nes));
         break;
-    case 0x28: /* PLP */
+    case 0x28: { /* PLP: its final poll precedes restored I. */
         implied(nes);
         stack_dummy(nes);
-        pull_p(nes);
-        break;
+        uint8_t p = pull(nes);
+        accept_irq_sample(nes, nes->cpu.poll_latch);
+        nes->cpu.p = (uint8_t)((p & ~FLAG_B) | FLAG_U);
+        return;
+    }
 
     /* Branches. */
     case 0x10: /* BPL */
-        branch_instruction = 1u;
-        branch(nes, (nes->cpu.p & FLAG_N) == 0u, &irq_poll_samples);
-        break;
+        branch(nes, (nes->cpu.p & FLAG_N) == 0u);
+        return;
     case 0x30: /* BMI */
-        branch_instruction = 1u;
-        branch(nes, (nes->cpu.p & FLAG_N) != 0u, &irq_poll_samples);
-        break;
+        branch(nes, (nes->cpu.p & FLAG_N) != 0u);
+        return;
     case 0x50: /* BVC */
-        branch_instruction = 1u;
-        branch(nes, (nes->cpu.p & FLAG_V) == 0u, &irq_poll_samples);
-        break;
+        branch(nes, (nes->cpu.p & FLAG_V) == 0u);
+        return;
     case 0x70: /* BVS */
-        branch_instruction = 1u;
-        branch(nes, (nes->cpu.p & FLAG_V) != 0u, &irq_poll_samples);
-        break;
+        branch(nes, (nes->cpu.p & FLAG_V) != 0u);
+        return;
     case 0x90: /* BCC */
-        branch_instruction = 1u;
-        branch(nes, (nes->cpu.p & FLAG_C) == 0u, &irq_poll_samples);
-        break;
+        branch(nes, (nes->cpu.p & FLAG_C) == 0u);
+        return;
     case 0xB0: /* BCS */
-        branch_instruction = 1u;
-        branch(nes, (nes->cpu.p & FLAG_C) != 0u, &irq_poll_samples);
-        break;
+        branch(nes, (nes->cpu.p & FLAG_C) != 0u);
+        return;
     case 0xD0: /* BNE */
-        branch_instruction = 1u;
-        branch(nes, (nes->cpu.p & FLAG_Z) == 0u, &irq_poll_samples);
-        break;
+        branch(nes, (nes->cpu.p & FLAG_Z) == 0u);
+        return;
     case 0xF0: /* BEQ */
-        branch_instruction = 1u;
-        branch(nes, (nes->cpu.p & FLAG_Z) != 0u, &irq_poll_samples);
-        break;
+        branch(nes, (nes->cpu.p & FLAG_Z) != 0u);
+        return;
 
     /* Jumps. */
     case 0x4C: /* JMP abs */
@@ -1189,11 +1189,10 @@ void nesturbator__cpu_step(struct nesturbator *nes)
            the final high-operand read [HWC.02; 21-INTERRUPT-TIMING-ANNEX.md §2].
            A request first captured on that last read belongs to the next
            instruction's poll. */
-        irq_poll_samples = nes->cpu.poll_latch;
-        irq_poll_before_final = 1u;
+        accept_irq_sample(nes, nes->cpu.poll_latch);
         uint8_t hi = fetch(nes);
         nes->cpu.pc = (uint16_t)(((uint32_t)hi << 8) | lo);
-        break;
+        return;
     }
 
     /* Unofficial NOPs (NESdev Wiki "CPU unofficial opcodes", revision
@@ -1478,19 +1477,10 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         break;
     }
 
-    /* Eligibility is committed only after this instruction's legal poll.
-       CLI, SEI and PLP poll before changing I; RTI polls after restoring it.
-       A branch ORs its first poll with the page-cross poll, if present. */
-    if (branch_instruction != 0u || irq_poll_before_final != 0u) {
-        if (irq_poll_samples != 0u && old_i == 0u)
-            nes->cpu.irq_accepted = 1u;
-    } else {
-        uint8_t poll_i = (uint8_t)(nes->cpu.p & FLAG_I);
-        if (opcode == 0x58u || opcode == 0x78u || opcode == 0x28u)
-            poll_i = old_i;
-        if (nes->cpu.poll_latch != 0u && poll_i == 0u)
-            nes->cpu.irq_accepted = 1u;
-    }
+    /* Ordinary operations poll on their final action; RTI has restored I.
+       The exceptional operations above commit at their own legal points, so
+       every other opcode need not carry and classify their bookkeeping. */
+    accept_irq_sample(nes, nes->cpu.poll_latch);
 }
 
 /* Soft reset, the console's Reset button. Per the NESdev Wiki "CPU power up

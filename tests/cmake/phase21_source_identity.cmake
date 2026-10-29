@@ -15,6 +15,8 @@ endif()
 if(NOT EXISTS "${ROOT}/.git")
   message(FATAL_ERROR "Phase 21 source identity checkout is not a Git checkout: ${ROOT}")
 endif()
+get_filename_component(manifest_dir "${MANIFEST}" DIRECTORY)
+file(MAKE_DIRECTORY "${manifest_dir}")
 execute_process(COMMAND git rev-parse --show-toplevel
   WORKING_DIRECTORY "${ROOT}" RESULT_VARIABLE git_result
   OUTPUT_VARIABLE git_root OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_VARIABLE git_error)
@@ -30,15 +32,32 @@ execute_process(COMMAND git rev-parse "HEAD^{tree}"
 execute_process(COMMAND git ls-files --stage
   WORKING_DIRECTORY "${ROOT}" RESULT_VARIABLE files_result
   OUTPUT_VARIABLE staged_files ERROR_VARIABLE files_error)
+execute_process(COMMAND git ls-tree -r HEAD
+  WORKING_DIRECTORY "${ROOT}" RESULT_VARIABLE committed_result
+  OUTPUT_VARIABLE committed_files ERROR_VARIABLE committed_error)
 if(NOT "${head_result}" STREQUAL "0" OR NOT "${tree_result}" STREQUAL "0" OR
-   NOT "${files_result}" STREQUAL "0")
-  message(FATAL_ERROR "Phase 21 source identity Git query failed: ${head_error}${tree_error}${files_error}")
+   NOT "${files_result}" STREQUAL "0" OR NOT "${committed_result}" STREQUAL "0")
+  message(FATAL_ERROR "Phase 21 source identity Git query failed: ${head_error}${tree_error}${files_error}${committed_error}")
 endif()
+
+# Keep committed, index and raw worktree identities independent, but query each
+# inventory in bulk. Starting Git three times per path consumed the controls'
+# unchanged 120-second cap on slower process-launch hosts.
+string(REPLACE "\r\n" "\n" committed_files "${committed_files}")
+string(REPLACE "\n" ";" committed_lines "${committed_files}")
+foreach(line IN LISTS committed_lines)
+  if(line MATCHES "^([0-9]+) blob ([0-9a-f]+)\t(.+)$")
+    set("committed_mode_${CMAKE_MATCH_3}" "${CMAKE_MATCH_1}")
+    set("committed_blob_${CMAKE_MATCH_3}" "${CMAKE_MATCH_2}")
+  endif()
+endforeach()
 
 string(REPLACE "\r\n" "\n" staged_files "${staged_files}")
 string(REPLACE "\n" ";" staged_lines "${staged_files}")
 set(manifest "schema=1\nhead=${head_sha}\ntree=${tree_sha}\nexcluded=.planning/**;tests/accuracy/measurements.md\n")
 set(included_count 0)
+set(regular_paths "")
+set(regular_inputs "")
 foreach(line IN LISTS staged_lines)
   if(line STREQUAL "")
     continue()
@@ -61,29 +80,18 @@ foreach(line IN LISTS staged_lines)
     message(FATAL_ERROR "Phase 21 source identity has an unsafe tracked path: ${relative}")
   endif()
 
-  execute_process(COMMAND git rev-parse "HEAD:${relative}"
-    WORKING_DIRECTORY "${ROOT}" RESULT_VARIABLE committed_result
-    OUTPUT_VARIABLE committed_blob OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_VARIABLE committed_error)
-  set(committed_mode "missing")
-  if("${committed_result}" STREQUAL "0")
-    execute_process(COMMAND git ls-tree HEAD -- "${relative}"
-      WORKING_DIRECTORY "${ROOT}" RESULT_VARIABLE mode_result
-      OUTPUT_VARIABLE tree_entry OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_VARIABLE mode_error)
-    if("${mode_result}" STREQUAL "0" AND
-       tree_entry MATCHES "^([0-9]+) blob ${committed_blob}")
-      set(committed_mode "${CMAKE_MATCH_1}")
-    else()
-      message(FATAL_ERROR "Phase 21 source identity cannot read committed Git mode at ${relative}: ${mode_error}")
-    endif()
-  else()
-    set(committed_blob "missing")
-  endif()
-
   set(absolute "${ROOT}/${relative}")
   if(NOT EXISTS "${absolute}" OR IS_DIRECTORY "${absolute}")
     message(FATAL_ERROR "Phase 21 current checkout is missing a tracked input: ${relative}")
   endif()
-  if(IS_SYMLINK "${absolute}")
+  list(APPEND included_paths "${relative}")
+  if(NOT IS_SYMLINK "${absolute}")
+    # --stdin-paths accepts Git's double-quoted pathname syntax, including spaces.
+    string(REPLACE "\\" "\\\\" quoted "${absolute}")
+    string(REPLACE "\"" "\\\"" quoted "${quoted}")
+    string(APPEND regular_inputs "\"${quoted}\"\n")
+    list(APPEND regular_paths "${relative}")
+  else()
     file(READ_SYMLINK "${absolute}" symlink_target)
     set(hash_input "${MANIFEST}.symlink-input")
     file(WRITE "${hash_input}" "${symlink_target}")
@@ -92,16 +100,46 @@ foreach(line IN LISTS staged_lines)
       RESULT_VARIABLE work_result OUTPUT_VARIABLE work_blob
       OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_VARIABLE work_error)
     file(REMOVE "${hash_input}")
-  else()
-    execute_process(COMMAND git hash-object --no-filters -- "${absolute}"
-      WORKING_DIRECTORY "${ROOT}" RESULT_VARIABLE work_result
-      OUTPUT_VARIABLE work_blob OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_VARIABLE work_error)
+    if(NOT "${work_result}" STREQUAL "0")
+      message(FATAL_ERROR "Phase 21 current checkout content cannot be hashed at ${relative}: ${work_error}")
+    endif()
+    set("work_blob_${relative}" "${work_blob}")
   endif()
-  if(NOT "${work_result}" STREQUAL "0")
-    message(FATAL_ERROR "Phase 21 current checkout content cannot be hashed at ${relative}: ${work_error}")
+  set("index_mode_${relative}" "${index_mode}")
+  set("index_blob_${relative}" "${index_blob}")
+endforeach()
+
+if(regular_paths)
+  set(hash_input "${MANIFEST}.path-input")
+  get_filename_component(manifest_dir "${MANIFEST}" DIRECTORY)
+  file(MAKE_DIRECTORY "${manifest_dir}")
+  file(WRITE "${hash_input}" "${regular_inputs}")
+  execute_process(COMMAND git hash-object --no-filters --stdin-paths
+    WORKING_DIRECTORY "${ROOT}" INPUT_FILE "${hash_input}"
+    RESULT_VARIABLE work_result OUTPUT_VARIABLE work_blobs
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_VARIABLE work_error)
+  file(REMOVE "${hash_input}")
+  string(REPLACE "\n" ";" work_blobs "${work_blobs}")
+  list(LENGTH regular_paths regular_count)
+  list(LENGTH work_blobs hash_count)
+  if(NOT "${work_result}" STREQUAL "0" OR NOT regular_count EQUAL hash_count)
+    message(FATAL_ERROR "Phase 21 current checkout content cannot be hashed: ${work_error}")
+  endif()
+  foreach(relative work_blob IN ZIP_LISTS regular_paths work_blobs)
+    string(STRIP "${work_blob}" work_blob)
+    set("work_blob_${relative}" "${work_blob}")
+  endforeach()
+endif()
+
+foreach(relative IN LISTS included_paths)
+  set(committed_mode "${committed_mode_${relative}}")
+  set(committed_blob "${committed_blob_${relative}}")
+  if(committed_mode STREQUAL "")
+    set(committed_mode "missing")
+    set(committed_blob "missing")
   endif()
   string(APPEND manifest
-    "${committed_mode}\t${committed_blob}\t${index_mode}\t${index_blob}\t${work_blob}\t${relative}\n")
+    "${committed_mode}\t${committed_blob}\t${index_mode_${relative}}\t${index_blob_${relative}}\t${work_blob_${relative}}\t${relative}\n")
   math(EXPR included_count "${included_count} + 1")
 endforeach()
 if(included_count EQUAL 0)

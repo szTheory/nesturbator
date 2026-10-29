@@ -61,13 +61,25 @@ message(STATUS "Phase 21 clean sibling accepted by shared hosted evidence contra
 # these controls exercise its missing and altered evidence diagnostics only.
 set(source_manifest "${WORK}/source-modes-blobs.tsv")
 set(source_identity_script "${SOURCE_DIR}/tests/cmake/phase21_source_identity.cmake")
-execute_process(COMMAND "${CMAKE_COMMAND}" -DMODE=write "-DROOT=${SOURCE_DIR}"
+set(identity_profile "${WORK}/source-identity-profile.json")
+execute_process(COMMAND "${CMAKE_COMMAND}" --profiling-format=google-trace
+  "--profiling-output=${identity_profile}" -DMODE=write "-DROOT=${SOURCE_DIR}"
   "-DMANIFEST=${source_manifest}" -P "${source_identity_script}"
   RESULT_VARIABLE manifest_write_result OUTPUT_VARIABLE manifest_write_output
   ERROR_VARIABLE manifest_write_error)
 if(NOT "${manifest_write_result}" STREQUAL "0")
   message(FATAL_ERROR "Phase 21 mode/blob control could not write its fixture: ${manifest_write_output}${manifest_write_error}")
 endif()
+# This is a work budget, independent of host speed. The positive inventory and
+# rejection controls still cover every tracked input under the same 120s cap.
+file(READ "${identity_profile}" identity_profile_text)
+string(REGEX MATCHALL "\"name\"[ \t\r\n]*:[ \t\r\n]*\"execute_process\""
+  identity_processes "${identity_profile_text}")
+list(LENGTH identity_processes identity_process_count)
+if(identity_process_count GREATER 12 OR identity_process_count LESS 1)
+  message(FATAL_ERROR "Phase 21 source identity process budget exceeded: ${identity_process_count}, maximum 12")
+endif()
+message(STATUS "Phase 21 source identity process budget: ${identity_process_count}/12")
 execute_process(COMMAND "${CMAKE_COMMAND}" -DMODE=verify "-DROOT=${SOURCE_DIR}"
   "-DMANIFEST=${source_manifest}" -P "${source_identity_script}"
   RESULT_VARIABLE manifest_verify_result OUTPUT_VARIABLE manifest_verify_output
@@ -97,6 +109,14 @@ if("${manifest_changed_result}" STREQUAL "0" OR
   message(FATAL_ERROR "Phase 21 mode/blob changed-evidence control failed at the wrong stage: ${manifest_changed_output}${manifest_changed_error}")
 endif()
 message(STATUS "Phase 21 run-specific tracked mode/blob controls rejected missing and altered evidence")
+execute_process(COMMAND "${CMAKE_COMMAND}" "-DSOURCE_DIR=${SOURCE_DIR}"
+  "-DWORK=${WORK}/identity-semantics"
+  -P "${SOURCE_DIR}/tests/cmake/phase21_source_identity_controls.cmake"
+  RESULT_VARIABLE identity_result OUTPUT_VARIABLE identity_output ERROR_VARIABLE identity_error)
+if(NOT "${identity_result}" STREQUAL "0")
+  message(FATAL_ERROR "Phase 21 identity semantic controls failed: ${identity_output}${identity_error}")
+endif()
+message(STATUS "Phase 21 independent source identity semantic controls passed")
 
 # A separate subprocess exercises the inherited content, source, inventory,
 # host, performance, hash and provenance controls with Phase 21's values.

@@ -439,6 +439,10 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out);
  * NTSC RP2A03 channels and frame sequencer on CPU cycles;
  * frame-counter and DMC interrupt status are independent. The CPU samples an
  * enabled IRQ at instruction boundaries and enters the IRQ vector (HWC.02).
+ * Eligibility is committed at each operation's legal poll: CLI, SEI and PLP
+ * use old I, branches retain both eligible samples, and JSR polls before its
+ * final operand read. Ordinary/status cycle specialization and coalesced
+ * history-only tick advances preserve these timing and serialized histories.
  * No cartridge: test pattern and silence. A JAM opcode stops with
  * NESTURBATOR_STOP_JAM; that instance then remains latched and does not
  * advance on later frame calls. On STOP_JAM, frame output fields are not

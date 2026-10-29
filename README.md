@@ -351,6 +351,11 @@ and the CPU's history-only poll can wait until the pre-close catch-up.
 Sprite-hit detection uses pattern opacity and cached eligible slots; loading
 state rebuilds those slots from every saved sprite tag. These optimizations
 preserve the selected timing order and native state bytes.
+Ordinary and PPUSTATUS reads select constant cycle paths so status-only work
+stays out of ordinary accesses. The history-only opening poll has no timed
+observer before close; its remaining 3 + 12 ticks advance together. IRQ
+exceptions commit at their own poll points, avoiding exception bookkeeping on
+every other instruction while retaining old-I and accepted-request history.
 IRQ polling also uses the level retained at the preceding close-edge detector
 sample. It cannot see an A12-driven IRQ raised by a later PPU transition at
 that same timestamp. An owned `ppu.mmc3` witness checks the guest instruction
@@ -1061,6 +1066,10 @@ AccuracyCoin build-input fingerprint. The collector records the source digest,
 run/job/artifact metadata, retrieval time, and checksums beside the downloaded
 evidence. It rejects local fixtures as hosted provenance, dirty effective
 source, missing or expired artifacts, incomplete jobs, and changed source.
+The independent Phase 21 mode/blob inventory queries the committed tree and
+raw working files in batches, retaining separate committed, index and worktree
+identities. Its controls cap Git launches at 12 for the full tracked inventory,
+and still reject missing or changed evidence under the original 120-second cap.
 
 In the campaign metadata, `inventory_sha256` identifies the pinned ROM's
 authoritative input inventory and is checked against the tracked baseline

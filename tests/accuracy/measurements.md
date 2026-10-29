@@ -1862,3 +1862,65 @@ The first publication push was rejected by the repository pre-push formatter, wh
 The refreshed publication campaign retains 119 PASS / 27 FAIL, all 146 scored rows terminal, and five inventory-only DRAW rows. Its report SHA-256 remains `56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`; its 56-input fingerprint is `cb1f1ce5de0bfe13b87e6754a8631a3a8d07365c7df1a62677ab4ef60257906c`. Metadata truthfully records the staged source checkout before the publication commit. Fresh publication CI/hygiene and hosted CI/Nightly results must be recorded separately from the earlier unformatted candidate.
 
 Publication preflight: hygiene 13/13 (including clang-format 18) and focused interrupt/state/actual-adapter suite 77/77 passed on the formatted source. The complete original execution history is preserved locally at `refs/phase21-history/execution-6c42607`. Hosted qualification remains pending the publication runs.
+
+## Phase 21 hosted-regression repair, 2026-10-29
+
+Actual CI `40919233064/1` rejected deterministic instruction increases of
+2.88%, 3.10% and 3.19%, and its Phase 21 evidence controls timed out at the
+unchanged 120-second cap on macOS Intel and both Windows architectures.
+Those failed results remain historical; Nightly `40919233254/1` passed its
+seven work jobs on that earlier source.
+
+The enlarged bus cycle prevented GCC 14 from specializing a dynamic
+PPUSTATUS path, retaining status-only register and stack work on ordinary
+reads. Constant cycle arguments restore specialization; combining the
+unobserved 3 + 12 tick advance removes another intermediate store. NMI edge
+handling branches on transitions and the rare inhibited candidate first.
+IRQ exceptions commit at their own legal polls, preserving old I, branch OR
+history and JSR timing without generic per-opcode exception flags.
+
+Fresh local Linux amd64 GCC `14.2.0-4ubuntu2~24.04.1` / Valgrind 3.22 raw
+60/360-frame measurements compare the repaired source against protected base
+`a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562`:
+
+| ROM | Base Ir/frame | Repaired Ir/frame | Delta |
+|---|---:|---:|---:|
+| nesteroids | 23914932.2267 | 24103968.3533 | +0.79045% |
+| runner | 22203492.7433 | 22392202.7133 | +0.84991% |
+| M4_P256K_C256K | 21998505.2900 | 22215976.1400 | +0.98857% |
+
+The base counts independently match the retained hosted repeat exactly. The
+original `perf_compare.cmake` gate passes with the existing allowances and
+threshold. A scratch source-point revert of constant status dispatch raises
+M4 to 22482530.8 Ir/frame (+2.200265%); reapplication restores exactly
+22215976.14. Only scratch objects/archive/binaries changed during that causal
+experiment; the canonical 428-input manifest verifies unchanged before/after.
+
+The identity helper previously launched Git 1285 times for one 427-path
+inventory and ran three full inventories in its controls. Batching committed
+tree and raw worktree queries reduces one inventory to seven launches and
+preserves its byte-for-byte manifest on the same checkout. A measured
+12-process budget rejects the old helper. Independent synthetic-Git controls
+exercise committed/index/worktree divergence, an index-mode change,
+staged-only input, spaces and raw CRLF, symlink target bytes where supported,
+missing input and unresolved stages. The new control script makes the tracked
+effective inventory 428 inputs. Full Phase 21 controls pass in 19.69 seconds
+with every inherited content/provenance negative and the original cap intact.
+
+The fresh campaign on dirty source `51ad35e39ef3` retains 119 PASS / 27 FAIL,
+146 terminal scored rows and five DRAW rows. Its report remains
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`;
+the current 56-input fingerprint is
+`bf09fe6ebb319fbb668abb65f70e5142bc1477a0dc70f391a305d7f3e97c136a`.
+State format 3, behavior revision 9, ABI 1 and pinned hash rows remain unchanged.
+
+Final local CI passes 695/695 in 380.80 seconds and generates all three
+packages. That invocation uses freshly fetched protected-main authority with
+all 114 starting PASS keys; its campaign, protected observation/verdict,
+no-lost-pass and eleven-target checks pass. Full vectors pass 258/258 in
+10.03 seconds, MMC3 passes 13/13 in 1.86 seconds, and hygiene passes 13/13.
+ASAN passes 686/686 in 156.32 seconds. Independent read-only source review
+reports no findings. Exact physical tie precedence and collector
+CR-01/WR-03/WR-04 remain deferred. Actual new-source hosted qualification is
+recorded separately; these local facts do not complete Plan 21-09 or phase
+requirements.

@@ -32,21 +32,22 @@ static void ppu_catch_up_before_close(struct nesturbator *nes)
 static void sample_interrupt_lines(struct nesturbator *nes)
 {
     uint8_t nmi_line = nesturbator__ppu_nmi_line(nes);
-    if (nmi_line != 0u && nes->cpu.nmi_prev == 0u &&
-        nes->cpu.nmi_pending != NESTURBATOR_NMI_RECOGNIZED) {
-        /* The vector-command pipe inhibits stage1 recognition after the C4
-           choice. A newly sampled input there is only a candidate: it must
-           stay asserted through the next T1, unlike an already recognized
-           edge. Visual6502 Interrupt Hijacking, node1368; annex section three,
-           arrival and hold expectations. */
-        nes->cpu.nmi_pending =
-            nes->cpu.entry_origin != NESTURBATOR_ENTRY_NONE && nes->cpu.entry_next_action >= 5u
-                ? NESTURBATOR_NMI_INHIBITED
-                : NESTURBATOR_NMI_RECOGNIZED;
-    } else if (nmi_line == 0u && nes->cpu.nmi_pending == NESTURBATOR_NMI_INHIBITED) {
-        nes->cpu.nmi_pending = NESTURBATOR_NMI_NONE;
+    if (nmi_line != nes->cpu.nmi_prev) {
+        if (nmi_line != 0u && nes->cpu.nmi_pending != NESTURBATOR_NMI_RECOGNIZED) {
+            /* The vector-command pipe inhibits stage1 recognition after the C4
+               choice. A newly sampled input there is only a candidate: it must
+               stay asserted through the next T1, unlike an already recognized
+               edge. Visual6502 Interrupt Hijacking, node1368; annex section three,
+               arrival and hold expectations. */
+            nes->cpu.nmi_pending =
+                nes->cpu.entry_origin != NESTURBATOR_ENTRY_NONE && nes->cpu.entry_next_action >= 5u
+                    ? NESTURBATOR_NMI_INHIBITED
+                    : NESTURBATOR_NMI_RECOGNIZED;
+        } else if (nmi_line == 0u && nes->cpu.nmi_pending == NESTURBATOR_NMI_INHIBITED) {
+            nes->cpu.nmi_pending = NESTURBATOR_NMI_NONE;
+        }
+        nes->cpu.nmi_prev = nmi_line;
     }
-    nes->cpu.nmi_prev = nmi_line;
     nes->cpu.irq_captured = nes->cpu.irq_line;
 }
 
@@ -63,8 +64,8 @@ static inline uint8_t cycle(struct nesturbator *nes, uint8_t status_read,
 {
     uint8_t vblank = 0u;
     uint8_t status_value = 0u;
-    if (nes->cpu.entry_origin == NESTURBATOR_ENTRY_NONE &&
-        nes->cpu.nmi_pending == NESTURBATOR_NMI_INHIBITED) {
+    if (nes->cpu.nmi_pending == NESTURBATOR_NMI_INHIBITED &&
+        nes->cpu.entry_origin == NESTURBATOR_ENTRY_NONE) {
         /* First handler T1: qualify before its C1 branch poll. Only this
            unrecognized candidate consults the held input; ordinary captured
            edges keep Phase20's sticky history and close/open timing. */
@@ -86,7 +87,6 @@ static inline uint8_t cycle(struct nesturbator *nes, uint8_t status_read,
     /* M2 rises at +9 ticks, while the circuit oracle places internal phi2
        three ticks later. The CPU polls the request captured by the preceding
        close here; the physical PPU line itself is sampled at phi2 close. */
-    nes->ticks += 3u;
     /* Only PPUSTATUS observes M2 rise. Other accesses and this history-only
        poll can defer PPU work until the pre-close catch-up. APU and mapper
        IRQ sources combine before the close-edge sample. */
@@ -96,7 +96,10 @@ static inline uint8_t cycle(struct nesturbator *nes, uint8_t status_read,
         nes->cpu.poll_latch = nes->cpu.irq_captured;
         nes->cpu.nmi_polled = (uint8_t)(nes->cpu.nmi_pending == NESTURBATOR_NMI_RECOGNIZED);
     }
-    nes->ticks += 12u;
+    /* No timed helper runs between the history-only opening poll and close.
+       Advance the remaining 3 + 12 ticks together rather than materializing
+       an otherwise unobservable intermediate timestamp on every cycle. */
+    nes->ticks += 15u;
     ppu_catch_up_before_close(nes);
     if (defer_nmi_close_sample == 0u) {
         /* An internal cycle has no bus side effect, so capture before the PPU
@@ -192,7 +195,13 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read, uint8_t *s
 static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
 {
     uint8_t status_read = is_ppu_status_address(addr);
-    uint8_t sample = cycle(nes, status_read, 1u);
+    /* Give the ordinary and split-status timings constant arguments. This
+       keeps PPUSTATUS-only temporaries out of every other read's hot path. */
+    uint8_t sample;
+    if (status_read != 0u)
+        sample = cycle(nes, 1u, 1u);
+    else
+        sample = cycle(nes, 0u, 1u);
     if (nes->apu.dmc.dma_pending != 0u && dmc_dma(nes, addr, &sample) != 0u) {
         /* The CPU repeats its parked read once more when RDY is released.
            This is the resumed bus cycle after the DMC memory get, and is
