@@ -6,10 +6,10 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 current_plan: 9 of 9 complete
 status: completed
-stopped_at: Phase 21 published through PR 61; review and merge remain
-last_updated: "2026-10-29T19:49:20.774Z"
+stopped_at: Hosted session-control debug repaired and verified; PR 61 merge remains
+last_updated: "2026-10-29T21:42:30Z"
 last_activity: 2026-10-29
-last_activity_desc: "Phase 21 shipped as PR #61"
+last_activity_desc: "Repaired and verified hosted session controls on PR #61"
 state_head: d85a058dd7e186180a6c6903f4253ad39b99d365
 progress:
   total_phases: 3
@@ -128,6 +128,19 @@ Earlier decisions below retain their original point-in-execution status; pending
 
 ## Delivery
 
+Post-publication debug repaired supervised poll interpreter cost and a TERM race
+during operation timing initialization in `f9ae22e`. Fresh local CI passes
+695/695 in 423.66 seconds with all packages; hosted CI `40956561386/1` passes
+all 18 jobs. Nightly `40956561408/1` Intel session controls pass all three tests,
+including the full matrix in 576.46 seconds under the unchanged 900-second cap.
+Both required hosted session lanes also pass. The broader Nightly suite-flake
+job is still running at this handoff; its other six work jobs succeed. Final
+evidence publication changes planning records only and starts new checks.
+Observe their results before merging. The previous immutable phase bundle keeps
+its original source identity. The config edit and all recorded debt remain
+preserved. See `debug/resolved/hosted-session-poll.md` for causal controls,
+evidence limits and run identities. No merge or further lifecycle step ran.
+
 Phase 21 is published through existing PR #61 on
 `gsd/phase-21-interrupt-latency-and-hijack`, ready for review. Fresh ship-time
 `cmake --workflow --preset ci` passed 695/695 in 420.78 seconds and generated
@@ -221,8 +234,11 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Review PR #61 and merge after required CI passes. All phase plans, requirements
-and independent verification are complete. Preserve the exact config edit,
+Merge PR #61 as a separate step after publication checks finish green. The
+session-control repair is verified on `f9ae22e`; required CI and all hosted
+session jobs pass, with the broader Nightly repeat job pending at handoff.
+All phase plans, requirements and independent verification are complete.
+Preserve the exact config edit,
 original causal history, accepted 428-input source, deferred collector findings
 and physical-tie limits. After PR review/merge, run the milestone audit and
 closeout as separate authorized steps; do not treat verified implementation
@@ -247,6 +263,6 @@ as an already shipped milestone.
 
 ## Session
 
-**Last session:** 2026-10-29T19:38:13Z
-**Stopped at:** Phase 21 published through PR #61; review and merge remain
+**Last session:** 2026-10-29T21:42:30Z
+**Stopped at:** Hosted session-control debug verified on f9ae22e; publication checks and merge remain
 **Resume file:** None

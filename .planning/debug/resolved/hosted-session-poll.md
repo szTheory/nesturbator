@@ -1,5 +1,5 @@
 ---
-status: verifying
+status: resolved
 trigger: "PR 61 Nightly failed again on retry with DELAY_PUBLICATION_POLL_DEADLINE; focused interruption check passed six local runs. Resolve hosted session-control failures before merging."
 created: 2026-10-29
 updated: 2026-10-29
@@ -7,10 +7,10 @@ updated: 2026-10-29
 
 ## Current Focus
 
-hypothesis: Two distinct mechanisms are reproduced: interpreted poll sleeps exhaust the unchanged child cap; TERM during begin_operation can expose an active operation before its deadline exists and disable journal serialization.
-test: Preserve the passing sleep regression and overrun neighbor; synchronize the real interruption control at its first readiness clock, then publish ACTIVE_OPERATION only after complete timing fields exist.
-expecting: Original operation initialization reproduces missing INTERRUPTED_TERM and journal-close-failed/TRACE_EVENT; repaired initialization retains exact TERM, three valid trace events, one QUIT and reaped host.
-next_action: Publish the locally verified repair on the existing phase branch and obtain fresh hosted CI/Nightly results without merging or invoking another lifecycle step.
+hypothesis: Both reproduced mechanisms are repaired and actual hosted session qualification passes on f9ae22e.
+test: Completed discriminating red/green controls, full local CI, required hosted CI and all hosted session jobs with unchanged limits.
+expecting: No further repair work in this debug step; source-changing failures remain distinct from later evidence-only publication checks.
+next_action: Observe publication checks and the remaining Nightly suite-flake job; merge PR 61 separately once checks are green. No merge, teammate-review prompt or further lifecycle command ran.
 
 ## Symptoms
 
@@ -23,6 +23,16 @@ reproduction: Dedicated macos-15-intel job builds frame_index and nesturbator-ru
 ## Eliminated
 
 ## Evidence
+
+- timestamp: 2026-10-29
+  checked: Fresh CI 40956561386/1 on f9ae22ecb04df41d6d7394e14b590b47e689c138.
+  found: All 18 jobs succeed, including CI required, six platform builds, hash equality, both dedicated session jobs, ASan, performance and actual RetroArch integration. Nightly still has only its suite-flake job running at this observation; its other six work jobs succeed.
+  implication: Required hosted qualification is complete on the repair source. Preserve the separate Nightly rollup status until its final job completes.
+
+- timestamp: 2026-10-29T21:31:46Z
+  checked: Fresh Nightly 40956561408/1 Intel session job 123738058128 on repair f9ae22ecb04df41d6d7394e14b590b47e689c138.
+  found: All three tests pass: source-root 35.99 s, full session controls 576.46 s, readiness 34.42 s; total 646.95 s. Required dedicated Linux and Apple Silicon session jobs also pass. Full CI and Nightly rollups are still running other jobs at this observation.
+  implication: Actual hosted Intel validates the repaired path and both unchanged exact failure contracts. Prior failed attempts 40943815484/1 and /2 remain historical evidence.
 
 - timestamp: 2026-10-29T21:17:00Z
   checked: Final cmake --workflow --preset ci after the last source change; tree hygiene, clang-format 18 header check, shell syntax and diff whitespace.
@@ -73,5 +83,5 @@ reproduction: Dedicated macos-15-intel job builds frame_index and nesturbator-ru
 
 root_cause: Reproduced two compatible mechanisms: per-poll interpreter startup can consume the 1050 ms supervised sleep budget; publishing ACTIVE_OPERATION before its deadline permits TERM to disable journal writing through a partially initialized operation.
 fix: Use existing fractional platform sleep under the same delay+1000 ms budget; initialize timing fields before publishing ACTIVE_OPERATION. Add discriminating actual-driver controls and print failed journal/trace evidence in the uploaded CTest log.
-verification: Local full CI 695/695 plus all packages; red/green initialization interruption and sleep-startup/real-overrun controls. Fresh hosted CI/Nightly pending. Original hosted per-process timing and exact interruption interleaving were not retained, so mechanism reproduction is not direct historical attribution.
+verification: Repair f9ae22ecb04df41d6d7394e14b590b47e689c138 passes local CI 695/695 plus all packages, CI 40956561386/1 all 18 jobs, both required session jobs and Nightly 40956561408/1 Intel 3/3. Nightly has six successful work jobs and suite-flake still running at handoff; no job has failed. Later evidence-only publication checks must be observed before merge. Original hosted per-process timing and exact interruption interleaving were not retained, so mechanism reproduction is not direct historical attribution.
 files_changed: tests/retroarch/state_session.sh, tests/retroarch/test_state_session.sh, README.md, include/nesturbator.h, tests/accuracy/baseline-metadata.txt, tests/accuracy/measurements.md, debug/state records.

@@ -4,6 +4,16 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 
 ---
 
+## hosted-session-poll — interpreter cost and partially published operation timing
+- **Date:** 2026-10-29
+- **Error patterns:** DELAY_PUBLICATION_POLL_DEADLINE; interruption first failure was not retained; driver-trace-TRACE_EVENT; journal field invalid; journal-close-failed
+- **Root causes:** A supervised 50 ms delay still launched Perl under a 1050 ms child budget. Separately, begin_operation exposed ACTIVE_OPERATION before its deadline existed, so TERM at initialization could disable the journal writer. Controlled startup cost and a synchronized genuine TERM reproduce the two hosted signatures; original hosted per-process timing and exact signal interleaving were not retained.
+- **Fix:** Reuse fractional platform sleep with unchanged child/operation/attempt limits; initialize operation timing before publishing the active marker. Print failed interruption journal/trace rows in the uploaded CTest log.
+- **Files changed:** tests/retroarch/state_session.sh, tests/retroarch/test_state_session.sh, README.md, include/nesturbator.h, tests/accuracy/baseline-metadata.txt, tests/accuracy/measurements.md, debug/state records
+- **Why not caught:** Prior native clock/hash controls did not charge sleep interpreter startup; unsynchronized interruption repeats could miss the partial-initialization boundary.
+- **Recurrence guard:** The registered session matrix includes poll-sleep startup/real-overrun neighbors and both ordinary and synchronized readiness-initialization TERM controls, retaining exact grep status, journal reason, three owned trace events, one QUIT and host/lock cleanup. Local CI passes 695/695; repair f9ae22e passes actual Intel Nightly 40956561408/1 all three session tests (full matrix 576.46 s under unchanged 900 s cap), plus dedicated Linux and Apple Silicon session jobs. Deferred Phase 16 historical attribution remains unchanged.
+---
+
 ## nightly-vectors-fetch — bounded pinned blob acquisition
 - **Date:** 2026-10-28
 - **Error patterns:** curl 28, bad pack header, promisor remote, vectors-full.fetch, Windows CRLF fixture hash mismatch
