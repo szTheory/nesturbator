@@ -1413,3 +1413,452 @@ previously unconfirmed vectors-full/MMC3 fetch outcomes. Prior failed attempts,
 unrelated debt, the exact physical paired-chip tie limit and the flagged
 clean-room prohibition remain visible. All four requirements and Phase 20
 completion stay pending independent re-verification at this task boundary.
+
+## Phase 21 Plan 02: poll acceptance and state compatibility (2026-10-28)
+
+The full local campaign used AccuracyCoin `6bee919529289c555803b612b8c9e4f7eaaeeabb`,
+the unchanged `32/5/1800` frame caps, source revision `d6563967d90b`, and behavior
+revision 9. It launched and attributed all 22 pages, observed all 146 scored
+rows, and completed with 114 pass, 30 fail, 2 not-run, 0 skip, 0 timeout, and 5
+inventory-only DRAW rows. The 56-input fingerprint is
+`9c236d3f77cfa9c1edb4d1c774d9fec29142bb6a6f089f1aa6682e5740984ef2`; the
+campaign report SHA-256 is
+`c5c7fc0e1085da59c25a14e4ecb27ae12ab2f7bb8a89032ba4a3b60a761f51ef`; summed
+guest execution time is 4.722662 seconds. The metadata and scoreboard checksums
+are copied from this run. The planning config edit that predated this plan was
+preserved and excluded from the input fingerprint.
+
+The fresh protected-main comparison used revision
+`a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562`. All 114 protected PASS keys remain
+PASS. Exactly three page-12 rows changed from the prior scoreboard:
+
+| Key | Previous | Measured | Cause |
+|---|---|---|---|
+| `Interrupt flag latency` | fail / `0x0a` / 151 | fail / `0x03` / 3 | Guest JAM during test-E setup; accepted history is already present before the source's BCC C1 poll and C3 acknowledgement sequence. |
+| `NMI Overlap BRK` | fail / `0x0a` / 151 | not-run / `0x00` / 3 | Unstarted after the earlier page-12 guest JAM. |
+| `NMI Overlap IRQ` | fail / `0x06` / 151 | not-run / `0x00` / 3 | Unstarted after the earlier page-12 guest JAM. |
+
+The source-defined IFlagLatency tests 1 through D reached completion; the guest
+error counter was `$0E`, and the DMC/open-bus prerequisite checks had passed.
+The pinned test E expects the first BCC poll at C1 to see IRQ, then requires
+that acceptance to survive the later C3 `$4015` dummy read that acknowledges
+the source. Its expected entry records return PC `$3FA5`, pushed `P=$20`, and
+the `$5A` handler marker. In the candidate trace, accepted history is already
+present immediately after the `JSR $4013` step and before the target instruction
+executes: the CPU is at `$4013`, `X=$5A`, `P=$20`, and the logical IRQ line,
+captured level, poll sample and accepted history are all asserted. This is an
+earlier poll divergence than the source's BCC C1/C3 sequence. The subsequent
+handler record shows return PC `$10A1`, followed by guest JAM at `$10A6`
+(campaign `jam_frame=82`, active raw `$03`). The local measurement therefore
+does not establish a pass for `Interrupt flag latency`; it records the first
+test-E divergence with both prerequisites satisfied. The two overlap rows
+remain unstarted and are still owned by Phase 21 Plan 04.
+
+Runner frame hashes, PCM hashes and APU transition hashes did not move. State
+hashes changed because the canonical state now serializes one bounded
+`irq_accepted` byte and carries format 3 / behavior revision 9; every tested
+state grew by exactly one byte. No CPU/APU timeline or audio output change is
+attributed to these byte-only state changes.
+
+| Mapper | State hash at 0 ticks, old → new | State hash at 60 ticks, old → new | Size, old → new |
+|---|---|---|---|
+| `dabg` | `e1095e7f0f1e25531866fb4758c9aa927fc5a4a44090d59fd15ebf0ef8525fc4` → `eb91bc38cb35e67c7abe11710ca3fef6bb075a1fe8ce0cc579e1a631e0c6b0dc` | `10567a2676d26cc32352591818f60a476b9593bf19c054ebb16033ae3725df8f` → `bbad277938241d9ac6abaffc842cb8651097e384067f1f6d9a6a4c1a7aafc4e2` | 13089 → 13090 |
+| `m1sxrom` | `c684eacdf391d0385d275ec77707a9cb390553e683b652d3d29234479f26c506` → `31d7a7d74de95472192e207c391b724e781f15d165ecc95a8e23c9121f6f9518` | `0a18d9a7e1f8e26c9c933e614d48ca1cf3f155295b015d08eb98e34a99636fc1` → `443dc187ac53f0927876d581b220f5cd833457a446513120523e225a48be9092` | 45871 → 45872 |
+| `m2` | `a3cb3ce2589ee0f1751111c891cd24ae4f28780925d79bac8ce09cc8714da35f` → `034f16fc881e009c1146fce3fb6d54981f7840739bea2c07379d515341ac946e` | `65085e74f0d494bd94eb829fb4cb74afc509eb0ce33b4f8fe11a917f7d031c14` → `747050bd4767712acec345b6de403f702083863166d083f09c72c2dd5c9cd2ed` | 13090 → 13091 |
+| `m3` | `6e779e324a7bb71f3dfad40c5afcb3f53498a481788e9ec8d1e7db83278cfb52` → `734f814da74515c5d921b2c17a92de595d08e69bf35133a05c95979035312df9` | `62f9c8cb49ba30a49a533b34aa7c0e24c2d9baa4540c5b19e046c1d33ff6d028` → `690d12175d9fd6f656a3b6a2d9ed51f9ceed1b8432d738ef56e0ffaa883ab520` | 4898 → 4899 |
+| `m4tkrom` | `be6d91d84268c095d71a6a2e236223083511c582c38e05a048a3073a4a7e95f1` → `a1596275787aba137ba75f866127d843afc0f856102ddf2311f4d44f54568d23` | `315136210957bed4db11cd0d3c06aaee7680ab1441ea8126fa0621326a58552a` → `30ac9a9c107a71f0f62d9ba4191115547475e3fc498fb552470c525a241399ea` | 21305 → 21306 |
+| `m7` | `09963ebbcdfb8cf69a88d27ecaf38c82af9485a75a9adc87c902328bc17cc483` → `8da0f0413157f31a639c114c226e0a8dabe0e35333521b4a851d527cb5d82ab8` | `ca58348266621b2a416e8fecc3adec9357a24b15b4ce410c8b3fa2f7a70c5680` → `37b4105d6cbac871441b58ed9cd52ff2d386b0e86033014e0575a7b5d0f9fed4` | 13090 → 13091 |
+
+The state corpus generator was run with `--write-seeds` and `--check-seeds`; all
+17 manifest entries matched the generated corpus, so no seed bytes changed.
+The ROM manifest and all ROM bytes were unchanged.
+
+## Phase 21 Plan 04: shared entry and native continuation measurement (2026-10-28)
+
+The full local campaign used AccuracyCoin
+`6bee919529289c555803b612b8c9e4f7eaaeeabb`, the unchanged `32/5/1800` frame
+caps, source revision `4a1b7cc970f9`, and behavior revision 9. It launched and
+attributed all 22 pages, observed all 146 scored rows, and completed with 114
+pass, 30 fail, 2 not-run, 0 skip, 0 timeout, and 5 inventory-only DRAW rows.
+The 56-input fingerprint is
+`4bf6ab823b3287d3e4a5934ed3564dc451f3eab2c2c4e908964ae2076fcf8ed0`; the
+campaign report SHA-256 remains
+`c5c7fc0e1085da59c25a14e4ecb27ae12ab2f7bb8a89032ba4a3b60a761f51ef`; summed
+guest execution time was 4.966354 seconds. All 114 starting PASS keys remain
+PASS.
+
+The eleven named Plan 21 campaign rows did not all pass. Eight passed:
+`$2002 flag timing`, `NMI Control`, `NMI Timing`, `NMI Suppression`, `NMI at
+VBlank end`, `NMI disabled at VBlank`, `Sprite 0 Hit behavior`, and `Arbitrary
+Sprite zero`. `Interrupt flag latency` remains fail / `0x03` / frame 3, so
+`NMI Overlap BRK` and `NMI Overlap IRQ` remain not-run / `0x00` / frame 3. The
+owned production-bus BRK32 and IRQ64 paired pushed-status sweeps now each match
+their source tables exactly under one alignment. The first remaining campaign
+divergence is inside the test's DMC/open-bus setup: a focused opcode trace at
+`$4013` reads `$40` (`RTI`) where the ROM expects `$90` (`BCC`), before the
+target BCC poll. The existing DMA/open-bus behavior is outside this plan's
+authorized change scope, so no INT01 or overlap campaign pass is claimed. The
+physical exact-tie winner remains unmeasured.
+
+Every non-state row in the 114-row runner inventory is byte-for-byte unchanged,
+including its selected frame tick totals, PCM hashes and APU-transition hashes.
+All six native state sizes increased by exactly four bytes for the
+origin/action/vector/partial-low continuation, and their hashes changed as
+measured below. These selected runner milestones do not claim globally
+unchanged timing or audio.
+
+| Mapper | State hash at 0 ticks, old → new | State hash at 60 ticks, old → new | Size, old → new |
+|---|---|---|---|
+| `dabg` | `eb91bc38cb35e67c7abe11710ca3fef6bb075a1fe8ce0cc579e1a631e0c6b0dc` → `feacfb502a3952c6a33b04f45364747b65de2c51ed2eb12f3713197141717b12` | `bbad277938241d9ac6abaffc842cb8651097e384067f1f6d9a6a4c1a7aafc4e2` → `1bbb23ad86b2c7afae35342e70335d5e029e6fb1fe8a87c2f4ccb5ad720b28c1` | 13090 → 13094 |
+| `m1sxrom` | `31d7a7d74de95472192e207c391b724e781f15d165ecc95a8e23c9121f6f9518` → `050f81968fa547aa52a4978d57534014ba35e87fe9fd4c86c8e73c5c42082ca3` | `443dc187ac53f0927876d581b220f5cd833457a446513120523e225a48be9092` → `489b694c2711e95c484cc329d4d520207159abdb8444f03590c53fb136aba788` | 45872 → 45876 |
+| `m2` | `034f16fc881e009c1146fce3fb6d54981f7840739bea2c07379d515341ac946e` → `93f21f82f84cc1af60ef11d36008cfe751526c48ea496f1669b140374a461101` | `747050bd4767712acec345b6de403f702083863166d083f09c72c2dd5c9cd2ed` → `b0025aa74ed683cb7a57af5940fd55484bd976d6b1a96ce302284a62c3bec6c0` | 13091 → 13095 |
+| `m3` | `734f814da74515c5d921b2c17a92de595d08e69bf35133a05c95979035312df9` → `764768824aaa4ffcd8204dc00bd6ac6c40ba24b459ebf2da3a64442f8fe6b7a7` | `690d12175d9fd6f656a3b6a2d9ed51f9ceed1b8432d738ef56e0ffaa883ab520` → `b581a90e0806652ac63d604cca0db50713c6e29c951f69f350a1ac757c7ccd2a` | 4899 → 4903 |
+| `m4tkrom` | `a1596275787aba137ba75f866127d843afc0f856102ddf2311f4d44f54568d23` → `1b0a15c00a36846a5f54737aff04b0b72e68fd7689d04d8f70a87394cfabceae` | `30ac9a9c107a71f0f62d9ba4191115547475e3fc498fb552470c525a241399ea` → `0dcceac6740f6441441ef6a406dec4bb0b5bf6cb498db380d5ca4714cf5a4a73` | 21306 → 21310 |
+| `m7` | `8da0f0413157f31a639c114c226e0a8dabe0e35333521b4a851d527cb5d82ab8` → `49340b2d168a7f5338f762c340bb2afa641b43d67e22382552ce36ab791f115b` | `37b4105d6cbac871441b58ed9cd52ff2d386b0e86033014e0575a7b5d0f9fed4` → `59a506a66c6db0ae9d7b5581203d5bdb4a110b21399f8919fee85a55fffffad6` | 13091 → 13095 |
+
+The owned state corpus was regenerated and checked: all 17 seed bytes and
+manifest rows are unchanged. These are local observations; the campaign target
+failure means the shared-entry plan remains incomplete pending a scoped
+resolution of the earlier DMC/open-bus divergence.
+
+The first full CI workflow exposed a separate timing assumption in the shared
+state-fork stress fixture: with its old delay `G=8`, the NROM image had no OAM
+pending boundary in 91 frames (MMC3 still observed three). The narrow fixture
+delay is now `G=9`; the requirement to observe OAM, DMC and IRQ-poll state at
+frame boundaries is unchanged. The passing measured run saw NROM OAM/DMC/poll
+at 1/4/27 boundaries (first OAM frame 58) and MMC3 at 1/3/20 (first OAM frame
+54), with all 61 forks completed on each board. `core.state_runahead` and
+`libretro.host` also passed with the adjusted fixture. This test-fixture
+calibration does not alter the campaign ROM, runner hashes or protected PASS
+authority.
+
+## Phase 21 Plan 04: bounded DMC/open-bus prerequisite repair (2026-10-29)
+
+The authorized prerequisite investigation found that a DMC halt blocked by a
+CPU write waited for its original GET/PUT phase instead of retrying on the next
+CPU cycle. Pinned AccuracyCoin test E's timed prefix includes such stack writes.
+That incorrect retry shifted CPU progress relative to the free-running timer:
+the reload halted JSR's final mapped high-operand read, and its resumed ROM read
+correctly replaced DMC `$90` with `$40`. The following `$4013` fetch therefore
+executed RTI and jammed. Retaining GET data over that resumed ROM read would
+have been incorrect. The repair advances the pending halt-attempt phase after
+an eligible write; the existing GET alignment and resumed read remain intact.
+
+The corrected retry lets Implied Dummy Reads advance past its previous failure,
+exposing an adjacent open-bus defect. The controller decoder forced D6 high,
+so its source-required JSR `$4015` operands formed `$4061` instead of `$0021`.
+The unintended RTI corrupted the guest stack and eventually reset page 15,
+erasing protected results. Retaining D5-D7 fixes that one-line decoder defect.
+The pinned assembly describes these operands in `TEST_ImpliedDummyRead`; the
+DMA retry contract is in NES-HARDWARE-CPU-APU section 2.2 (HWC.01).
+
+The failed pending-at-read-opening experiment was removed. No APU timer phase,
+`$4010` write order, `$4015` latch behavior, sample-byte retention, ROM pin,
+frame cap, answer table, state field, format or revision changed in this repair.
+The owned JSR fixture now uses the equal bus/APU phase relationship reached by
+cold execution; the branch fixture stalls the actual C1 opcode fetch and keeps
+all C3 acknowledgement/C4-clear assertions. New owned tests cover both initial
+halt phases after one, two and three writes, and both controller ports with all
+eight upper-bit patterns and both serial data values.
+
+Fresh Release/Ninja build `build/dmc-repair` used warnings as errors and
+`NESTURBATOR_ACCURACYCOIN_FULL=ON`. The owned full campaign retained pin
+`6bee919529289c555803b612b8c9e4f7eaaeeabb` and boot/navigation/execution caps
+`32/5/1800`. Its result is 119 PASS / 27 FAIL, with all 146 scored rows terminal,
+no not-run/skip/timeout, and five inventory-only DRAW rows. Every one of the
+114 starting PASS keys remains PASS and all eleven named v5 target keys pass.
+The five status improvements are:
+
+| Key | Previous status / raw / execution frame | Repaired status / raw / execution frame |
+|---|---|---|
+| DMA + `$4015` Read | fail / `0x0a` / 533 | pass / `0x01` / 526 |
+| Implied Dummy Reads | fail / `0x0e` / 94 | pass / `0x01` / 128 |
+| Interrupt flag latency | fail / `0x03` / 3 | pass / `0x01` / 148 |
+| NMI Overlap BRK | not-run / `0x00` / 3 | pass / `0x01` / 148 |
+| NMI Overlap IRQ | not-run / `0x00` / 3 | pass / `0x01` / 148 |
+
+There are 29 status/raw/frame row changes in total; the exact before/after list
+is retained in `build/dmc-repair-evidence/final-campaign/row-changes.tsv`.
+DMC Reload Timing remains PASS / `0x01` (page 15 execution frame 128), and Delta
+Modulation Channel remains PASS / `0x01` (page 14 execution frame 122). Their
+passing source windows require no timer-edge or timer-write-order change.
+
+The final campaign report SHA-256 is
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`;
+the 56-input fingerprint is
+`7936186b09988b79b502e9e6382d2895343d6f35adc7f8a9782a99efa8079e91`.
+Runner SHA-256 is
+`57dc440efabcfe9291a911499f0eb32612b73dfc003bc13093865946cbec636d`;
+`src/bus.c` SHA-256 is
+`44013871a5a6cf140cc2545dfc3e3593188f28b9b77ce7f3d287ca1a02faf3f3`.
+Exact source/binary/report identities and key gates are recorded under
+`build/dmc-repair-evidence/final-campaign/`. Original, diagnostic and independent
+revert runs each retain source copies, binary hash, commands and raw reports.
+
+Removing only the retry fix restores the owned retry failures and canonical
+latency `0x03`/3 with unstarted overlaps. Removing only controller retention
+restores the owned upper-bit failures and the page-15 reset. Reapplying both
+restores the campaign above. Fresh adjacent verification after reapplication
+passed 42/42 in 173.81 seconds, including the full campaign, all selected core
+and state-fork tests, native state seeds, CPU/bus and NMI-race controls. See
+`build/dmc-repair-evidence/final-focused.log` and
+`.planning/phases/21-interrupt-latency-and-hijack/21-DMC-PHASE-AUDIT.md`.
+
+At that first repair run, this was prerequisite evidence rather than Plan 21-04
+completion; the remaining campaign, pins, corpus, fresh protected-main and CI
+closeout are recorded below. No hosted evidence or phase-completion claim is
+made here.
+
+### Fresh source-bound remeasurement after candidate-count refresh
+
+The final campaign was rerun after the activation contract and candidate-derived
+fixture counts were updated. It used source revision `a23394036f71`, behavior
+revision 9, pin `6bee919529289c555803b612b8c9e4f7eaaeeabb`, and unchanged
+`32/5/1800` caps. It completed all 22 pages and all 146 scored rows with 119
+PASS, 27 FAIL, no skip/not-run/timeout and five inventory-only DRAW rows.
+Guest execution time was 4.917281 seconds. Report SHA-256 remains
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`; the
+current 56-input fingerprint is
+`c1aeeddca9b0b5a2641d66ffa9309998dfb67bb620cb1cbb94d6c59534865283`. The
+canonical scoreboard has 29 row deltas from the previous candidate; the fresh
+`row-changes.tsv` retains the complete list. All 114 protected-main PASS keys
+and all eleven v5 target rows pass, with 146/146 terminal rows.
+
+The exact report, measured metadata and raw campaign rows are retained in
+`build/dmc-repair/accuracycoin/full/`; `identity.json`, `gates.json` and
+`row-changes.tsv` are in
+`build/dmc-repair-evidence/final-campaign/`. Rechecking all twelve source,
+runner and report digests in `identity.json` found zero mismatches. The earlier
+`$4013 = $40` trace is a baseline-before-repair observation, not a final result;
+withdrawn stale probe variants are not used as acceptance evidence.
+
+Protected-main authority was freshly fetched from `origin/main` at
+`a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562`. Its canonical scoreboard projects
+114 PASS keys. The candidate preserves all 114. The selected runner hash
+inventory regenerated through `runner.write_hashes` and its content check
+passed byte-for-byte; frame, PCM and APU-transition rows stayed unchanged.
+The six native-state rows remain the measured four-byte format-3/revision-9
+continuation increase documented above. The owned state-corpus generator and
+`--check-seeds` reproduced all 17 entries; their bytes and ROM-manifest rows
+were unchanged. Six new page-14 migration links now point to the final measured
+frame 122 observations. No protected-main authority or answer table changed.
+
+Final verification ran `cmake --workflow --preset ci` with the full campaign
+enabled and the fetched protected-main scoreboard at
+`a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562`. The workflow passed 691/691 CTest
+tests in 358.64 seconds and generated the library, runner and libretro ZIP
+packages. Hosted cross-platform evidence remains assigned to the later Phase
+21 acceptance work; this plan records local acceptance only.
+
+## Phase 21 Plan 08: local source-bound final gates (2026-10-29)
+
+This is a local macOS arm64 run for the Plan 08 source, not hosted or
+cross-platform acceptance. A clean-equivalent checkout at candidate
+`1d27a0f12542a235d8d79b9c97591168fbd77d8e` ran the full workflow with a fresh
+protected-main baseline at `a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562`. Its
+`accuracycoin.campaign` and same-invocation `accuracycoin.protected_observation`
+tests passed. The campaign used library `0.1.11`, behaviour revision 9, and
+unchanged `32/5/1800` frame budgets; all 146 scored rows were terminal, with
+119 PASS, 27 FAIL, zero skip/not-run/timeout, and five inventory-only DRAW
+rows. All 114 fresh protected-main PASS keys and all eleven named v5 target
+keys pass. The final local campaign's guest elapsed time was 4,982,296,000 ns.
+Its report SHA-256 remains
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`, and the
+scoreboard SHA-256 remains
+`059d7c7558bd9f4785ab384c589f04e16f330ef3ba477393a8492b59e086dbbf`.
+
+| Measure | Local result |
+|---|---|
+| Source revision / dirty state | `1d27a0f12542` / clean clone (`source_dirty=0`) |
+| AccuracyCoin pin / ROM SHA-256 | `6bee919529289c555803b612b8c9e4f7eaaeeabb` / `8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc` |
+| Build-input fingerprint / files | `566b32ce33b98b33277a516720f7073ec40f24cb11e67448436e7773e85d87b1` / 56 |
+| Fresh protected-main PASS keys | 114; revision `a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562`; authority SHA-256 `b814f7524d15e0f389e97cb1e8567efbbce601cc8c4b8902ef3471ab965991c4` |
+| Full `ci` workflow | exit 0; 695/695 CTest tests; CTest total 427.78 seconds; one full campaign lane |
+| `asan` workflow | 686/686 CTest tests; 230.04 seconds; configured short-run suite |
+| `vectors-full` workflow | 258/258 tests; 8.26 seconds; pinned vectors obtained outside the repository |
+| `mmc3-oracle` workflow | 13/13 tests; 1.59 seconds; ROM inputs obtained outside the repository |
+| `nofp` on macOS arm64 | 4/5 ABI checks passed; `abi.undefined_symbols` rejected `stack_chk_fail` and `stack_chk_guard`; Linux nofp result remains external |
+| Phase21 evidence controls | Passed in full CI; Phase20 controls and adapter passed with historical defaults intact |
+
+The full CI workflow generated these three `0.1.11` macOS arm64 packages:
+
+| Package | SHA-256 | Inventory |
+|---|---|---|
+| `nesturbator-0.1.11-library-macos-arm64.zip` | `f68cdd0c309ccff557e300d3e770add1fe363558045af25f919bd6caed961799` | Public header, static library, pkg-config and CMake package files |
+| `nesturbator-0.1.11-runner-macos-arm64.zip` | `c82866961e4270ecbec58d7abf96dfcf969fad0f53ae8a7fea2c593eb82d7aa2` | `bin/nesturbator-run` |
+| `nesturbator-0.1.11-libretro-macos-arm64.zip` | `9cf4734626f9c2a94636b2744209e26644582d91b72895bac869b100b7e8c3f8` | `cores/nesturbator_libretro.dylib` and its `.info` file |
+
+`build/phase21-hosted-evidence/ci-final.log`, `asan-final.log`,
+`vectors-full-final.log`, `mmc3-oracle-final.log` and `nofp-final.log` retain
+the local command output. The independent
+Git source identity manifest records 427 effective tracked inputs and
+committed/index/worktree blob identities; its SHA-256 is
+`daa659df9cd037d09c489f1795d7d1a8e564f82b6c2299d77428645f44e45c84`. It was
+revalidated against both the clean source checkout and current checkout after
+each final local workflow. The state validation comment now cites hardware
+sections using integer wording so the unchanged no-float scanner accepts it;
+runtime behavior did not change. The source comment and refreshed baseline
+fingerprint are in candidate commit `1d27a0f`. The macOS `nofp` attempt's only
+remaining failure is the Apple stack-protector symbol allowlist noted above;
+the actual Linux nofp job remains pending. This manifest is run-specific Git
+evidence; it does not resolve
+the deferred collector mode-enforcement issue. The pre-existing
+`.planning/config.json` edit is excluded from source identity and commits.
+
+The source fingerprint changed only because the integer-only source citation
+fixed the no-float scan; the campaign report and measured row table did not
+change. The full workflow retained one campaign lane;
+local synthetic controls test failure diagnostics only. No hosted CI/Nightly
+attempt, tested merge, pull request identity, six-platform hash inventory,
+hosted performance result or actual hosted marker-session artifact is supplied
+here. Plan 21-09 remains pending those external facts; no local result is
+substituted for them.
+
+## Phase 21 source-review corroboration and inhibited NMI repair (2026-10-29)
+
+The committed review at `7d5fbe1` was checked independently against the
+Visual6502 State Machine and Interrupt Hijacking primary analyses. CR-01's
+proposed independent IRQ queue is rejected: one NMI-priority entry consumes the
+shared arbitration event. New simultaneous-poll controls prove an acknowledging
+NMI handler suppresses later IRQ, while a held source is accepted again after
+RTI restores I. The exact proposed preservation mutant instead enters IRQ
+before the first NMI-handler opcode despite I being set, and fails the controls.
+The ordinary branch-accepted IRQ/source-acknowledgement contract is unchanged.
+
+CR-02 is reproduced: sampled post-choice pulses released before handler
+recognition were stored as sticky recognized requests. Before-fix cases for
+all three entry origins at C5/C6/C7 and the first-handler branch enter an extra
+NMI. The repair uses the existing pending byte to distinguish a recognized
+request from an inhibited candidate. Release cancels only the candidate; a held
+candidate is qualified before the first handler's legal poll. Already recognized
+fresh edges remain sticky and consumed held inputs do not duplicate service.
+C5/C6 cases supply later entry-cycle margin; a C7 close followed by release at
+the next call boundary records deterministic model behavior, without claiming a
+physical exact-tie winner.
+
+State format 3, behavior revision 9, ABI 1 and state byte counts remain unchanged.
+The visitor now bounds the existing pending byte to 0 through 2 and validates
+candidate history against entry stage, sampled input and poll/JAM markers before
+APPLY. New CRC-correct active and idle-after-C7 rejection controls preserve the
+full instance and generation; a sampled-high/current-input-low candidate remains
+legal. Native held/released-candidate replay, the actual adapter's existing
+entry replay matrix, ordinary Phase20 capture/poll and DMC/open-bus controls pass.
+The detailed disposition, source citations, fixture correction and exact
+negative-control identities are in
+`.planning/phases/21-interrupt-latency-and-hijack/21-REVIEW-DISPOSITION.md`.
+
+The actual adapter additionally loads four candidate-2 histories through
+`retro_unserialize`: active C6 and idle after C7, each held and released. Its
+initial serialization must echo the entire saved byte string, then both scripts
+and depths one through three compare committed/speculative video, stereo PCM,
+state, ticks, frame numbers and handler markers with native continuation.
+Absolute first-frame markers require IRQ=1 and NMI=1 for held/0 for released.
+The extended `libretro.runahead` passed in 26.63 seconds, reporting four histories
+and 24 history/script/depth cases. The existing 20 base cutpoints, 60 depth cases,
+120 script cases and all four adapter controls remain intact. This test-only
+extension did not change runtime, module, runner or campaign-input identities;
+its host source/binary and output are retained in the final identity file and
+`build/entry-review-evidence/adapter-candidate2.log`.
+
+Fresh Release/Ninja build `build/entry-review-repair`, with warnings as errors
+and full AccuracyCoin enabled, passed the final selected 19 tests in 68.11
+seconds. This includes native and actual libretro runahead, entry/state history,
+CPU/bus, NMI/IRQ, native seeds and a fresh full campaign. The unchanged
+pin6bee919/cap1800 campaign remains **119 PASS / 27 FAIL**, all 119 prior PASS
+keys retained, all eleven target keys PASS, all 146 scored rows terminal and five
+DRAW rows outside the score. Every status/raw/frame row is unchanged.
+
+The report SHA-256 remains
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`.
+The measured 56-input fingerprint changes from
+`566b32ce33b98b33277a516720f7073ec40f24cb11e67448436e7773e85d87b1`
+to `d96efe4a88bdaa0680398334a3c84a0e04faef405016172e06ef2bb9c4999e57`.
+The current runner SHA-256 is
+`7f10856c0f4612b07430f53427edbfbae283b7376b36d3bb54a5a97818cc48e9`;
+the repaired `src/bus.c` SHA-256 is
+`446079ddc3c479d5a9cb3e5899b0d95f3142deee07ef9e5d0f0ea88d686922a6`.
+The owned tracked-input checker still records 427 effective paths, with dirty
+working-source manifest SHA-256
+`5b472e1930388bfe56fb2c795ecbe00766f95ba2d5d05dcf1ab436ad1a989305`.
+The final identity/key checks and logs are in `build/entry-review-evidence/`;
+the integer-only scan reports 23 files with no floating point.
+
+This working repair invalidates candidate `1d27a0f` and its previous Plan 08
+manifest. Previous full-CI/ASAN/vector/MMC3/package evidence remains historical;
+executor closeout must refresh fingerprints, hashes/corpus, full validation and
+the new source candidate coherently before a causal commit and re-review. The
+original review report remains unchanged. Plan 09 delivery, hosted acceptance,
+requirements and phase completion remain pending; this measurement does not
+substitute focused checks for those gates.
+
+## Phase 21 post-review source qualification refresh (2026-10-29)
+
+The causal source commit is `43d260a914ba76a130809524fba53ad58aca1298`.
+Final CI, ASAN, vector, MMC3 and campaign tests compiled the preceding dirty
+working tree at `7d5fbe18f367`; source, test, and public documentation bytes from
+that tested tree were committed unchanged. CI is therefore documented as a
+dirty-tree run, not a clean-clone build. After commit, a 427-path tracked
+Git-mode/blob manifest verified the candidate and an absolute clean clone at
+that candidate. The candidate manifest SHA-256 is
+`20460339ae9f742d3906ebe7ef6d5c4a2fff53c5c4b54cf59bcbb7b99cb9a1b2`.
+
+Fresh protected main was fetched from `origin/main` at
+`a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562`. Its 114 PASS-key authority SHA-256
+is `b814f7524d15e0f389e97cb1e8567efbbce601cc8b4c8902ef3471ab965991c4`.
+After preparing that authority, a selected CTest invocation passed its campaign
+fixture, same-invocation fresh protected observation/verdict, no-lost-pass and
+all-eleven target gate (5/5 total). It recorded 119 PASS / 27 FAIL, 146/146
+terminal scored rows, zero skip/not-run/timeout and five inventory-only DRAWs.
+Guest execution was 5,517,533,000 ns. All 114 protected PASS keys and all eleven
+target rows passed. Campaign report SHA-256 remains
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`; scoreboard
+SHA-256 remains `059d7c7558bd9f4785ab384c589f04e16f330ef3ba477393a8492b59e086dbbf`.
+The 56-input fingerprint is
+`d96efe4a88bdaa0680398334a3c84a0e04faef405016172e06ef2bb9c4999e57`.
+
+The final `cmake --workflow --preset ci` run passed 695/695 in 421.60 seconds
+and packaged all three deliverables. `cmake --workflow --preset asan` passed
+686/686 in 192.01 seconds, `vectors-full` passed 258/258 in 17.05 seconds, and
+`mmc3-oracle` passed 13/13 in 2.47 seconds. The local CI workflow was first run
+without the GitHub `RUNNER_TEMP`/`GITHUB_ENV` handoff; its fresh authority was
+then fetched explicitly and supplied to the selected current-source fixture
+run above. No second full CI lane was added for that authority refresh.
+
+The regenerated 114-row frame, PCM, APU-transition and state-hash inventory
+matches `tests/runner/hashes.txt` byte-for-byte; both writer and content checks
+passed. Inventory SHA-256 is
+`76f999668c5bf584074a37f050a19cb4c31f9c63b6671b06b85388e9950be850`. The six
+0-tick and six 60-tick state hashes, six state sizes and format pin did not
+move. State format 3, behavior revision 9, ABI 1 and payload sizes are
+unchanged; the inhibited request uses value 2 in the existing byte. The state
+corpus remains 17 files / 23 bytes (path/content manifest SHA-256
+`3b6b71143ce28de6c88b02a4ac65bb73b322edeab950564db705abf2b568bc09`). The
+ROM manifest remains 97 rows, SHA-256
+`e56a6b2cde320a3c4b5315904b9d4dd99cefc7edf80292ed3f81fc5c008b850d`.
+
+All three packages are retained under
+`build/phase21-hosted-evidence/packages/post-review-source/`. Their SHA-256
+values are library `5e91fefcdbda743bd9e0c26dec3417e1cf5908f9f585340c6b0f548096995112`,
+libretro `c095033d872d2f3ea89ac87468359ec83a3f6c36ab1e6132231017ded4f23a7c`,
+and runner `a975a24b213895d5d86774785d2c4486bc20c992a7d18659f8459a7e845588c1`.
+
+The current-source macOS arm64 no-FP workflow passed the 23-file float scan,
+scan self-test, global-symbol check and float fixture. Its undefined-symbol
+test still rejects Apple `stack_chk_fail` and `stack_chk_guard`; no allowlist
+waiver was made. Linux no-FP hosted results remain pending. The initial CI
+attempt had five strict metadata-parser failures because a prose value
+contained an equals sign. After removing that character, the affected five
+controls and the full CI workflow passed. No source gate was weakened.
+
+Plan 21-09 remains pending real delivered CI/Nightly run and attempt IDs, the
+actual PR and tested merge, and immutable hosted artifacts. Local package and
+fixture controls do not satisfy those external facts or complete INT-01,
+INT-02, KEEP-01, or the phase.
+
+## Phase 21 publication formatting refresh, 2026-10-29
+
+The first publication push was rejected by the repository pre-push formatter, which checks outgoing historical source blobs as well as the final tree. An isolated publication checkout preserves the original execution branch locally and formats the 19 affected owned C/header/test paths with clang-format 18. No hook or acceptance threshold is bypassed. The publication uses a clean commit on protected main; earlier causal commits and their qualification remain recorded as local execution history.
+
+The refreshed publication campaign retains 119 PASS / 27 FAIL, all 146 scored rows terminal, and five inventory-only DRAW rows. Its report SHA-256 remains `56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`; its 56-input fingerprint is `cb1f1ce5de0bfe13b87e6754a8631a3a8d07365c7df1a62677ab4ef60257906c`. Metadata truthfully records the staged source checkout before the publication commit. Fresh publication CI/hygiene and hosted CI/Nightly results must be recorded separately from the earlier unformatted candidate.
+
+Publication preflight: hygiene 13/13 (including clang-format 18) and focused interrupt/state/actual-adapter suite 77/77 passed on the formatted source. The complete original execution history is preserved locally at `refs/phase21-history/execution-6c42607`. Hosted qualification remains pending the publication runs.

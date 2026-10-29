@@ -171,7 +171,42 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
   3. `cpu.vectors`, the nightly blargg MMC3 lane, Holy Mapperel and `runner.boot_to_play` stay green with the shared NMI, IRQ and BRK entry in place.
   4. A state saved in the middle of a BRK, IRQ or NMI sequence loads back to the same run in `core.state_fork.*` and `libretro.runahead`, and moved hashes stay identical on all six platforms.
 
-**Plans**: TBD
+**Plans**: 8/9 plans executed
+
+Plans:
+**Wave 1**
+- [x] 21-01-PLAN.md — Real IRQ poll tracer and source-derived latency reproducers (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [x] 21-02-PLAN.md — Poll-time acceptance, format 3/revision 9 and causal campaign pins (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [x] 21-03-PLAN.md — Entry cutoff/recognition evidence and complete paired overlap tables (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [x] 21-04-PLAN.md — Shared resumable BRK/IRQ/NMI entry with coherent vector takeover (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [x] 21-05-PLAN.md — Reachable entry-state validation, rejection and reset (wave 5)
+- [x] 21-06-PLAN.md — Every-stage native replay with exact traces and frame/audio continuation (wave 5)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [x] 21-07-PLAN.md — Actual libretro unserialize and run-ahead from entry cutpoints (wave 6)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [x] 21-08-PLAN.md — All-eleven/all-114 acceptance contract and local evidence preparation (wave 7)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- [ ] 21-09-PLAN.md — Fresh source-bound hosted acceptance after external delivery (wave 8)
+
+Plan 21-08 is locally qualified on candidate `43d260a914ba76a130809524fba53ad58aca1298`.
+Its 427-path source mode/blob manifest SHA-256 is
+`20460339ae9f742d3906ebe7ef6d5c4a2fff53c5c4b54cf59bcbb7b99cb9a1b2`;
+CI/ASAN/vectors-full/MMC3 passed 695/695, 686/686, 258/258, and 13/13.
+Plan 21-09 remains pending separately delivered current-candidate hosted
+CI/Nightly, actual PR/tested-merge identities, and immutable artifacts; all
+three Phase 21 requirements remain pending.
+
 **Canonical refs**: [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [CONFORMANCE.md](preparation/CONFORMANCE.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (shared `interrupt_entry`), [research/FEATURES.md](research/FEATURES.md) (G3, G4), [research/PITFALLS.md](research/PITFALLS.md) (#4, #5, #6, #11), [research/SUMMARY.md](research/SUMMARY.md) (steps 5, 6, 8)
 
 ## Progress
@@ -182,7 +217,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
 |-------|-----------|----------------|--------|-----------|
 | 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
 | 20. NMI line and VBlank flag | v5 | 12/12 | Complete    | 2026-10-28 |
-| 21. Interrupt latency and hijack | v5 | 0/TBD | Not started | - |
+| 21. Interrupt latency and hijack | v5 | 8/9 | In Progress | - |
 
 Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 

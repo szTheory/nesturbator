@@ -742,6 +742,16 @@ add_test(NAME phase20.hosted_evidence.availability
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase20_hosted_evidence_controls.cmake)
 set_tests_properties(phase20.hosted_evidence.availability PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
 
+# Phase 21: verify its acceptance contract through the shared Phase 20 collector.
+add_test(NAME phase21.hosted_evidence.controls
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes"
+    "-DWORK=${PROJECT_BINARY_DIR}/phase21-hosted-evidence-controls"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/phase21_hosted_evidence_controls.cmake)
+set_tests_properties(phase21.hosted_evidence.controls PROPERTIES TIMEOUT 120 RUN_SERIAL TRUE)
+
 # AccuracyCoin page runs are kept separate so a failure names the page whose
 # RAM-derived results diverged from the committed scoreboard.
 set(ACCURACYCOIN_ROM ${PROJECT_SOURCE_DIR}/tests/roms/accuracycoin.nes)
@@ -917,6 +927,20 @@ if(NESTURBATOR_ACCURACYCOIN_FULL)
     FIXTURES_REQUIRED accuracycoin_full_report)
 endif()
 
+# Phase 21: require every named interrupt, NMI/VBlank, and sprite target by full key and status.
+set(ACCURACYCOIN_V5_TARGET_WORK ${PROJECT_BINARY_DIR}/accuracycoin/v5-target-controls)
+add_test(NAME accuracycoin.v5_targets
+  COMMAND ${CMAKE_COMMAND}
+    "-DSCOREBOARD=${ACCURACYCOIN_SCOREBOARD}"
+    "-DGATE=${CMAKE_CURRENT_SOURCE_DIR}/cmake/v5_targets.cmake"
+    "-DWORK=${ACCURACYCOIN_V5_TARGET_WORK}"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_v5_targets_control.cmake)
+set_tests_properties(accuracycoin.v5_targets PROPERTIES TIMEOUT 30)
+if(NESTURBATOR_ACCURACYCOIN_FULL)
+  set_tests_properties(accuracycoin.v5_targets PROPERTIES
+    FIXTURES_REQUIRED accuracycoin_full_report)
+endif()
+
 # Core tests: programs using tests/check.h, through the public header only.
 # Each exits 0 when every check passes.
 function(nesturbator_core_test name source)
@@ -951,6 +975,40 @@ nesturbator_core_test(core.nmi_edge core/test_nmi_edge.c)
 nesturbator_core_test(core.nmi_poll core/test_nmi_poll.c)
 target_include_directories(core.nmi_poll PRIVATE ${PROJECT_SOURCE_DIR}/src)
 set_tests_properties(core.nmi_poll PROPERTIES TIMEOUT 10)
+# INT-01: real APU frame IRQ source, production bus capture and old-I poll cases.
+nesturbator_core_test(core.irq_poll core/test_irq_poll.c)
+target_include_directories(core.irq_poll PRIVATE ${PROJECT_SOURCE_DIR}/src)
+set_tests_properties(core.irq_poll PROPERTIES TIMEOUT 10)
+# INT-02 (D-05 to D-11): test-only bus wrappers schedule constructed input
+# margins, then delegate every action to the production bus implementation.
+# The alternate names keep the shipped library's bus object out of this
+# executable; no callback or symbol is added to the library ABI.
+add_library(interrupt_entry_production_bus OBJECT ${PROJECT_SOURCE_DIR}/src/bus.c)
+nesturbator_core_flags(interrupt_entry_production_bus)
+target_include_directories(interrupt_entry_production_bus PRIVATE
+  ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/include)
+target_compile_definitions(interrupt_entry_production_bus PRIVATE
+  nesturbator__bus_read=nesturbator__bus_read_production
+  nesturbator__bus_write=nesturbator__bus_write_production)
+add_executable(core.interrupt_entry
+  core/test_interrupt_entry.c
+  $<TARGET_OBJECTS:interrupt_entry_production_bus>)
+target_link_libraries(core.interrupt_entry PRIVATE nesturbator::nesturbator)
+target_include_directories(core.interrupt_entry PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(core.interrupt_entry)
+add_test(NAME core.interrupt_entry COMMAND core.interrupt_entry)
+set_tests_properties(core.interrupt_entry PROPERTIES TIMEOUT 30)
+# INT-02 native continuation: production entry stages are captured through a
+# test-only observer that delegates to src/bus.c, then replayed through the
+# public save/load API and ordinary cpu_step.
+add_executable(core.interrupt_state
+  core/test_interrupt_state.c
+  $<TARGET_OBJECTS:interrupt_entry_production_bus>)
+target_link_libraries(core.interrupt_state PRIVATE nesturbator::nesturbator)
+target_include_directories(core.interrupt_state PRIVATE ${PROJECT_SOURCE_DIR}/src)
+nesturbator_warnings(core.interrupt_state)
+add_test(NAME core.interrupt_state COMMAND core.interrupt_state)
+set_tests_properties(core.interrupt_state PROPERTIES TIMEOUT 120)
 # KEEP-03 (D-16 to D-19): exact enabled-NMI state replay and omitted-history oracle.
 nesturbator_core_test(core.nmi_state core/test_nmi_state.c)
 target_include_directories(core.nmi_state PRIVATE ${PROJECT_SOURCE_DIR}/src)
@@ -1016,6 +1074,10 @@ set_tests_properties(core.state_fork.stress PROPERTIES TIMEOUT 300 COST 60)
 # and resumes frame 0 through successive saved boundaries without replacing the board matrix.
 add_test(NAME core.state_fork.nmi COMMAND core.state_fork --nmi)
 set_tests_properties(core.state_fork.nmi PROPERTIES TIMEOUT 30)
+# INT-02: extend the retained board-family state-fork executable with a genuine
+# production-action interrupt-entry cut loaded through the native state API.
+add_test(NAME core.state_fork.entry COMMAND core.state_fork --entry)
+set_tests_properties(core.state_fork.entry PROPERTIES TIMEOUT 30)
 # STATE-04 (D-03, D-04): all-or-nothing load. Cross-ROM, version, header_size, truncation, a flip of
 # every byte, the CRC-recomputed field sweep, the at-bound table and the ppu_ticks gap, each checked
 # for the D-04 status and a byte-identical instance. NESTURBATOR_SHORT_RUNS (preset asan) strides

@@ -69,54 +69,54 @@ accuracycoin/$F7   ISC zeropage,X	pass	0x01	14	-
 accuracycoin/$FB   ISC absolute,Y	pass	0x01	14	-
 accuracycoin/$FF   ISC absolute,X	pass	0x01	14	-
 accuracycoin/ALE + Read	fail	0x0a	212	-
-accuracycoin/APU Register Activation	fail	0x12	121	-
+accuracycoin/APU Register Activation	fail	0x12	122	-
 accuracycoin/Absolute Indexed	pass	0x01	12	-
 accuracycoin/Address $2004 behavior	fail	0x0e	558	-
 accuracycoin/All NOP instructions	pass	0x01	51	-
 accuracycoin/Arbitrary Sprite zero	pass	0x01	537	-
 accuracycoin/Attributes As Tiles	pass	0x01	212	-
 accuracycoin/BG Serial In	fail	0x0a	212	-
-accuracycoin/Branch Dummy Reads	pass	0x01	94	-
+accuracycoin/Branch Dummy Reads	pass	0x01	128	-
 accuracycoin/CHR ROM is not writable	pass	0x01	159	-
-accuracycoin/Controller Clocking	pass	0x09	121	-
-accuracycoin/Controller Strobing	fail	0x12	121	-
-accuracycoin/DMA + $2002 Read	pass	0x05	533	-
-accuracycoin/DMA + $2007 Read	pass	0x01	533	-
-accuracycoin/DMA + $2007 Write	pass	0x01	533	-
-accuracycoin/DMA + $4015 Read	fail	0x0a	533	-
-accuracycoin/DMA + $4016 Read	pass	0x09	533	-
-accuracycoin/DMA + Open Bus	pass	0x01	533	-
-accuracycoin/DMA Landing on Write	fail	0x16	94	-
-accuracycoin/DMC DMA + OAM DMA	fail	0x0a	533	-
-accuracycoin/DMC DMA Bus Conflicts	fail	0x0a	533	-
-accuracycoin/DMC Reload Timing	pass	0x01	94	-
-accuracycoin/Delta Modulation Channel	pass	0x01	121	-
+accuracycoin/Controller Clocking	pass	0x09	122	-
+accuracycoin/Controller Strobing	fail	0x12	122	-
+accuracycoin/DMA + $2002 Read	pass	0x05	526	-
+accuracycoin/DMA + $2007 Read	pass	0x01	526	-
+accuracycoin/DMA + $2007 Write	pass	0x01	526	-
+accuracycoin/DMA + $4015 Read	pass	0x01	526	-
+accuracycoin/DMA + $4016 Read	pass	0x09	526	-
+accuracycoin/DMA + Open Bus	pass	0x01	526	-
+accuracycoin/DMA Landing on Write	fail	0x26	128	-
+accuracycoin/DMC DMA + OAM DMA	fail	0x0a	526	-
+accuracycoin/DMC DMA Bus Conflicts	fail	0x0a	526	-
+accuracycoin/DMC Reload Timing	pass	0x01	128	-
+accuracycoin/Delta Modulation Channel	pass	0x01	122	-
 accuracycoin/Dummy read cycles	pass	0x01	51	-
 accuracycoin/Dummy write cycles	pass	0x01	51	-
-accuracycoin/Explicit DMA Abort	fail	0x0a	533	-
-accuracycoin/Frame Counter 4-step	pass	0x01	121	-
-accuracycoin/Frame Counter 5-step	pass	0x01	121	-
-accuracycoin/Frame Counter IRQ	pass	0x01	121	-
+accuracycoin/Explicit DMA Abort	fail	0x0a	526	-
+accuracycoin/Frame Counter 4-step	pass	0x01	122	-
+accuracycoin/Frame Counter 5-step	pass	0x01	122	-
+accuracycoin/Frame Counter IRQ	pass	0x01	122	-
 accuracycoin/Frozen OAM2 Increment	fail	0x0a	122	-
 accuracycoin/Hybrid Addresses	fail	0x0a	212	-
 accuracycoin/INC $4014	pass	0x01	558	-
-accuracycoin/Implicit DMA Abort	fail	0x0a	533	-
-accuracycoin/Implied Dummy Reads	fail	0x0e	94	-
+accuracycoin/Implicit DMA Abort	fail	0x0a	526	-
+accuracycoin/Implied Dummy Reads	pass	0x01	128	-
 accuracycoin/Indirect	pass	0x01	12	-
 accuracycoin/Indirect, X	pass	0x01	12	-
 accuracycoin/Indirect, Y	pass	0x01	12	-
-accuracycoin/Instruction Timing	pass	0x01	94	-
-accuracycoin/Internal Data Bus	fail	0x0a	94	-
-accuracycoin/Interrupt flag latency	fail	0x0a	151	-
-accuracycoin/JSR Edge Cases	pass	0x01	94	-
-accuracycoin/Length Counter	pass	0x01	121	-
-accuracycoin/Length Table	pass	0x01	121	-
+accuracycoin/Instruction Timing	pass	0x01	128	-
+accuracycoin/Internal Data Bus	fail	0x0a	128	-
+accuracycoin/Interrupt flag latency	pass	0x01	148	-
+accuracycoin/JSR Edge Cases	pass	0x01	128	-
+accuracycoin/Length Counter	pass	0x01	122	-
+accuracycoin/Length Table	pass	0x01	122	-
 accuracycoin/Misaligned OAM DMA	pass	0x01	537	-
 accuracycoin/Misaligned OAM behavior	fail	0x16	537	-
 accuracycoin/Misaligned OAM2 Address	fail	0x0e	122	-
 accuracycoin/NMI Control	pass	0x01	1418	-
-accuracycoin/NMI Overlap BRK	fail	0x0a	151	-
-accuracycoin/NMI Overlap IRQ	fail	0x06	151	-
+accuracycoin/NMI Overlap BRK	pass	0x01	148	-
+accuracycoin/NMI Overlap IRQ	pass	0x01	148	-
 accuracycoin/NMI Suppression	pass	0x01	1418	-
 accuracycoin/NMI Timing	pass	0x01	1418	-
 accuracycoin/NMI at VBlank end	pass	0x01	1418	-

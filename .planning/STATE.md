@@ -4,17 +4,18 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 21
 current_phase_name: Interrupt latency and hijack
-status: planning
-stopped_at: Phase 20 complete, ready to plan Phase 21
-last_updated: "2026-10-28T19:38:22.603Z"
-last_activity: 2026-10-28
-last_activity_desc: "Phase 20 refreshed evidence shipped as PR #59"
-state_head: ad98012802bea9b158ef3c077421eaeb9b34491a
+current_plan: 9 of 9
+status: executing
+stopped_at: Completed 21-08 post-review source qualification; 21-09 pending hosted availability
+last_updated: "2026-10-29T16:46:49.565Z"
+last_activity: 2026-10-29
+last_activity_desc: Plan 21-08 local acceptance contract passed; final CI 695/695, ASAN 686/686, vectors-full 258/258, MMC3 13/13; hosted acceptance remains pending external availability
+state_head: 43d260a914ba76a130809524fba53ad58aca1298
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 27
+  completed_plans: 26
   percent: 67
 ---
 
@@ -24,7 +25,7 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-28 after Phase 20, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)); Phase 21 interrupt latency and hijack. Phase 20's repaired source is independently verified complete. The refreshed verification/evidence and shipping note are published through open, ready-for-review PR #59; merge remains conditional on the final head's required CI.
+Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004). Plans 21-01 through 21-08 are locally complete. The final source-bound campaign remains 119 PASS / 27 FAIL / 5 DRAW across 146 terminal rows; all eleven target rows and all 114 protected starting PASS keys remain covered. Plan 21-08's final local gates passed: CI 695/695, ASAN 686/686, vectors-full 258/258, and MMC3 13/13. The bounded DMC/open-bus prerequisite is resolved. Plan 21-09 is next but remains pending separately delivered hosted CI/Nightly availability and actual PR/tested-merge facts. Hosted evidence and all three phase requirements remain pending. See 21-04-SUMMARY.md, 21-04-CHECKPOINT.md, 21-06-SUMMARY.md, 21-07-SUMMARY.md, and 21-08-SUMMARY.md. Earlier Phase 20 notes remain historical.
 
 Nightly follow-up and re-verification: the native clock/hash helpers and Windows
 binary-fixture repair have fresh source-bound acceptance. CI `40748417351/1`
@@ -36,14 +37,17 @@ all 418 mode/blob entries match the candidate and both hosted trees. Fresh local
 CI passed 688/688 in 434.48 seconds and packaged all three deliverables.
 Independent verification passed 32/32 with a fresh 95-file fingerprint.
 The prior 417-input acceptance remains historical. See
-20-REVERIFICATION-EVIDENCE.md in the Phase 20 directory. Phase 21 has not started.
+20-REVERIFICATION-EVIDENCE.md in the Phase 20 directory. Phase 21 execution
+began with Plan 21-01; its summary records 262/262 focused tests and 689/689
+full CI tests, with all three packages generated.
 
 ## Current Position
 
-Phase: 21 — Interrupt latency and hijack
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-10-28 -- Phase 20 refreshed evidence shipped as PR #59
+Phase: 21 (Interrupt latency and hijack) — IN PROGRESS
+Current Plan: 9 of 9
+Plan: 21-08 complete; 8/9 complete; Plan 21-09 is next, pending external hosted evidence
+Status: Local final CI, ASAN, full vectors, and MMC3 checks passed; hosted/all-lane phase acceptance remains pending
+Last activity: 2026-10-29 — Phase 21 Plan 08 local preparation passed its final configured gates
 
 Progress: [███████░░░] 67%
 
@@ -51,19 +55,47 @@ Progress: [███████░░░] 67%
 
 ### Decisions
 
+- [Phase 21 approved continuation, 2026-10-29]: The owner approved bounded investigation and repair of the traced DMC/open-bus prerequisite at `$4013`, preserving the prepared shared-entry implementation, one green causal commit and every acceptance gate. A general DMA cluster and remote delivery remain outside this approval. The final source-bound campaign and local CI now pass; hosted/all-lane evidence remains pending.
+
+- [Workflow preference]: Mechanical planning file/task-count limits are advisory. Keep justified coherent work together, document the reason and proceed without routine approval interruptions. This does not waive product scope, compatibility, correctness, measured performance/CI gates or the one-step/merge boundaries. Phase 21 Plans 02/04 are explicitly approved at 36/35 files, including 17 generated state seeds each.
+
 - Phase 20 completes with 32/32 verified truths and all four assigned requirements satisfied. All 12 plan summaries, original gap closures and the source-bound accepted hosted bundle are preserved in the phase directory.
 - Captured NMI history and polled NMI work remain separate serialized latches. Exact race states use complete production instructions and label constructed origins separately from executed endpoints.
 - The finite-margin circuit evidence constrains one global integer-timestamp policy; no physical paired-chip exact-tie winner or per-table alignment shift is claimed. Full decision history remains in 20-CONTEXT.md, summaries and measurements.
 - Current candidate `7848cc8`, tested merge `716e8d4`, protected base `ab9c2e6` and evidence-only commits remain separate. All 418 effective inputs and Git modes/blob IDs match. Earlier candidate `fe70d61` / tested merge `ef6d9e5` retain their historical 417-input evidence; source-changing repairs require fresh hosted evidence.
 - Phase 21 retains its planned IRQ/poll/shared-entry/hijack scope. Phase 20 collector hardening is explicit debt, not silently added scope or an acceptance waiver.
+- [Phase 21]: Adopt poll-time IRQ acceptance and shared internally resumable BRK/IRQ/NMI entry; preserve public frame semantics; plan state format 3 and behavior revision 9.
+- [Phase 21]: Live GitHub metadata and fetched origin/main confirm PR #59 merged at a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562; Phase 20 delivery blocker is resolved. Earlier open-PR/next-action delivery prose is historical.
+- [Phase 21]: Separate production APU source proof from clearly labeled flat-bus IRQ schedule evidence.
+- [Phase 21]: Retain exact-count expected-red poll defect checks until their causal implementation plan removes each wrapper.
+- [Phase 21]: Keep AccuracyCoin counts and report hash fixed; update only the build-input digest changed by test registration.
+- [Phase 21 Plan 21-01]: Cover both legal branch polls with a flat-bus assertion/acknowledgment window matrix and a production APU/DMC E source/acknowledgment guest; use the C4-low flat-bus expected-red control to discriminate lost first-poll acceptance until the poll fix lands in Plan 21-02.
+- [Phase 21]: Keep the approved format 3 / behaviour revision 9 change with unchanged ABI and refuse native formats 1 and 2.
+- [Phase 21]: Record the measured test-E latency divergence. The row now passes in Plan 21-04's local final campaign; INT-01 remains pending phase-level hosted/all-lane acceptance.
+- [Phase 21]: Keep KEEP-01 pending until protected passes are confirmed across every CI lane.
+- [Phase 21]: Treat the T5-phi1 after-C4/before-C5 mapping as a finite-margin inference; exact physical tie precedence remains unmeasured.
+- [Phase 21]: Use guest-captured complete paired BRK/IRQ pushed-status tables with a single common exact or +1 alignment per pair.
+- [Phase 21]: Plan 21-04 completed after the owner-approved bounded DMC/open-bus repair; all eleven local targets, all 114 protected keys and full local CI pass, while hosted/all-lane acceptance remains pending.
+- [Phase 21]: Use source-reachable production entry transitions as legal siblings for state rejection controls.
+- [Phase 21]: Keep INT-02 and KEEP-01 pending until hosted and all-lane acceptance is complete.
+- [Phase 21]: Keep constructed-origin cutpoint evidence separate from ordinary cpu_step initiation evidence.
+- [Phase 21]: Leave runtime code unchanged because Plan 21-04 already supplies the exercised entry behavior.
+- [Phase 21]: Keep constructed entry-cutpoint labels separate from ordinary public frame observations.
+- [Phase 21]: Reuse the existing libretro.runahead integration target; no CMake registration or AccuracyCoin fingerprint change was needed.
+- [Phase 21]: Phase 21 Plan 08 selects the all-eleven target set, 114-key protected authority, revision 9, and current library version through reused collector helpers while keeping Phase 20 defaults intact.
+- [Phase 21]: CR-01, WR-03, and WR-04 remain deferred; source identity uses a separate tracked Git mode/blob manifest and clean-equivalent checkout/current-checkout revalidation for this local run.
+- [Phase 21]: Plan 21-09 remains pending actual separately delivered CI and Nightly run/attempt, PR, tested-merge, and artifact facts; local controls and packages do not count as hosted acceptance.
+- [Phase 21]: Post-review CR-02 uses the existing nmi_pending byte value 2 for an inhibited NMI candidate; candidate 43d260a is locally qualified, while hosted Plan 21-09 and INT-01/INT-02/KEEP-01 remain pending.
 
 ### Blockers/Concerns
 
-- [Phase 20 delivery] PR #59 is the merge vehicle on `gsd/phase-20-nmi-line-and-vblank-flag`, ready for review with refreshed evidence published by `$gsd-ship 20`. Merge only after the final published head's required CI passes. Begin Phase 21 source changes after delivery.
+- [Phase 21 execution] Plan 21-04's historical pre-repair failure (`$4013` returned `$40`; latency was `0x03/3`; overlap rows were not-run) is resolved by the owner-approved bounded DMC retry/controller open-bus repair. Final local campaign evidence is 119 PASS / 27 FAIL / 5 DRAW over 146 terminal rows, with all 114 protected starting PASS keys retained and all eleven targets passing. Plan 21-06 full CI passed 693/693. Hosted/all-lane acceptance remains assigned to later plans. See 21-04-SUMMARY.md, 21-04-CHECKPOINT.md, and 21-06-SUMMARY.md.
+
 - [Phase 20 review debt] CR-01: recurring collector enforcement omits Git file modes. The current accepted run has an independent 418/418 mode/blob match against all three hosted trees; future enforcement repair is deferred.
 - [Phase 20 review debt] WR-03: source scoreboard lookup recursively scans ignored build fixtures and relative SOURCE_REF fails. Collection used an absolute clean-equivalent checkout and current-checkout validation; direct tracked-path handling remains deferred.
 - [Phase 20 review debt] WR-04: duplicate identical Nightly validator definition remains deferred cleanup. See 20-REVIEW-DISPOSITION.md for all dispositions.
 - [Evidence limit] Exact physical paired-chip tie precedence remains unverified under amended D-10. The judgment-tier clean-room prohibition remains explicitly flagged; hygiene passes and no contamination was found. No manual sign-off gate is introduced.
+- [Historical Phase 21-02 evidence, superseded by Plan 21-04]: AccuracyCoin latency was `0x03/3` before the DMC/open-bus prerequisite repair. Final local latency now passes; phase-level INT-01 remains open for hosted/all-lane acceptance.
 
 ### Pending Todos
 
@@ -146,12 +178,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Review PR #59 and merge after its final published head's required CI passes.
-Phase 20 is verified complete on the repaired 418-input source; all four assigned
-requirements are complete. Phase 21 has no CONTEXT.md yet: after delivery,
-`$gsd-discuss-phase 21` gathers its interrupt-latency/hijack approach.
-No next lifecycle command ran here. The preexisting local config edit remains
-unchanged and outside the execution commits.
+Plan 21-09 is next but its external precondition is not met: completed current-candidate CI/Nightly run and attempt identities, actual PR/tested-merge facts, and immutable artifacts are absent. Keep INT-01, INT-02, and KEEP-01 pending. Preserve the unrelated `.planning/config.json` edit and all collector debt. Do not start remote delivery or another lifecycle step from this closeout.
 
 ## Performance Metrics
 
@@ -160,9 +187,17 @@ unchanged and outside the execution commits.
 | Phase 20 P11 | 69min | 2 tasks | 11 files |
 | Phase 20 P12 | 232min | 2 tasks | 12 files |
 | Phase 20 P10 | 15min | 2 tasks | 2 evidence files |
+| Phase 21 P01 | 82min | 2 tasks | 11 files |
+| Phase 21 P02 | 62min | 3 tasks | 21 files |
+| Phase 21 P03 | 40m | 2 tasks | 6 files |
+| Phase 21 P04 | 21m | 3 tasks | 24 files |
+| Phase 21 P05 | 25m | 2 tasks | 4 files |
+| Phase 21 P06 | 29m | 2 tasks | 5 files |
+| Phase 21 P07 | 24m | 2 tasks | 3 files |
+| Phase 21 P08 | 84min | 3 tasks | 13 files |
 
 ## Session
 
-**Last session:** 2026-10-28T19:14:28Z
-**Stopped at:** Phase 20 complete, ready to plan Phase 21
-**Resume file:** None
+**Last session:** 2026-10-29T16:46:49.286Z
+**Stopped at:** Completed 21-08 post-review source qualification; 21-09 pending hosted availability
+**Resume file:** .planning/phases/21-interrupt-latency-and-hijack/21-09-PLAN.md

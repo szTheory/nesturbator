@@ -16,6 +16,7 @@
 #include "internal.h"
 #include "nesturbator.h"
 #include "../check.h"
+#include "../interrupt_fixture.h"
 #include "../nmi_fixture.h"
 #include "../state_test.h"
 
@@ -211,6 +212,81 @@ static int digest_same(const char *name, const char *what, uint32_t k, uint32_t 
     return 0;
 }
 
+static void entry_fork(void)
+{
+    struct nesturbator *a = interrupt_fixture_entry_build();
+    struct nesturbator *b = interrupt_fixture_entry_build();
+    uint8_t *state = NULL;
+    uint8_t *roundtrip = NULL;
+    uint8_t *final_a = NULL;
+    uint8_t *final_b = NULL;
+    size_t size = 0u;
+    struct digest expected = {0};
+    struct digest restored = {0};
+
+    CHECK(a != NULL && b != NULL);
+    if (a == NULL || b == NULL)
+        goto done;
+    interrupt_fixture_entry_warm(a, 600u);
+    a->cpu.p = 0x20u;
+    CHECK(interrupt_fixture_entry_construct(a, NESTURBATOR_ENTRY_IRQ));
+    CHECK(interrupt_fixture_entry_reach(a, 6u));
+    CHECK_EQ_U64(a->cpu.entry_origin, NESTURBATOR_ENTRY_IRQ);
+    CHECK_EQ_U64(a->cpu.entry_next_action, 6u);
+    CHECK_EQ_U64(a->cpu.entry_vector, NESTURBATOR_ENTRY_VECTOR_IRQ);
+
+    size = nesturbator_state_size((nesturbator *)a);
+    state = (uint8_t *)malloc(size);
+    roundtrip = (uint8_t *)malloc(size);
+    final_a = (uint8_t *)malloc(size);
+    final_b = (uint8_t *)malloc(size);
+    CHECK(size != 0u && state != NULL && roundtrip != NULL && final_a != NULL && final_b != NULL);
+    if (size == 0u || state == NULL || roundtrip == NULL || final_a == NULL || final_b == NULL)
+        goto done;
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)a, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_state((nesturbator *)b, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)b, roundtrip, size), NESTURBATOR_OK);
+    CHECK(memcmp(state, roundtrip, size) == 0);
+
+    /* Both paths use ordinary cpu_step from the same genuine C6 action cut. */
+    nesturbator__cpu_step(a);
+    nesturbator__cpu_step(b);
+    CHECK_EQ_HEX(a->cpu.pc, INTERRUPT_FIXTURE_IRQ_VECTOR);
+    CHECK_EQ_HEX(b->cpu.pc, INTERRUPT_FIXTURE_IRQ_VECTOR);
+    CHECK_EQ_U64(a->bus.ram[0x01fdu], b->bus.ram[0x01fdu]);
+    CHECK_EQ_U64(a->bus.ram[0x01fcu], b->bus.ram[0x01fcu]);
+    CHECK_EQ_U64(a->bus.ram[0x01fbu], b->bus.ram[0x01fbu]);
+
+    CHECK_EQ_U64(st_frame(a, st_buttons(1u), &expected.video, &expected.audio, &expected.ticks,
+                          &expected.frame_number),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(st_frame(b, st_buttons(1u), &restored.video, &restored.audio, &restored.ticks,
+                          &restored.frame_number),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(expected.video, restored.video);
+    CHECK_EQ_U64(expected.audio, restored.audio);
+    CHECK_EQ_U64(expected.ticks, restored.ticks);
+    CHECK_EQ_U64(expected.frame_number, restored.frame_number);
+    CHECK_EQ_U64(a->bus.ram[INTERRUPT_FIXTURE_IRQ_COUNT], 1u);
+    CHECK_EQ_U64(a->bus.ram[INTERRUPT_FIXTURE_NMI_COUNT], 0u);
+    CHECK_EQ_U64(a->bus.ram[INTERRUPT_FIXTURE_IRQ_COUNT], b->bus.ram[INTERRUPT_FIXTURE_IRQ_COUNT]);
+    CHECK_EQ_U64(a->bus.ram[INTERRUPT_FIXTURE_NMI_COUNT], b->bus.ram[INTERRUPT_FIXTURE_NMI_COUNT]);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)a, final_a, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)b, final_b, size), NESTURBATOR_OK);
+    CHECK(memcmp(final_a, final_b, size) == 0);
+    printf("entry state fork: origin=IRQ cut=next-C6 public-load=PASS continuation=cpu_step "
+           "frame=%llu ticks=%llu video/audio/marker/state=equal\n",
+           (unsigned long long)expected.frame_number, (unsigned long long)expected.ticks);
+
+done:
+    free(state);
+    free(roundtrip);
+    free(final_a);
+    free(final_b);
+    nesturbator_destroy((nesturbator *)a);
+    nesturbator_destroy((nesturbator *)b);
+}
+
 /* One code path for file ROMs and in-memory images. */
 static void fork_image(const char *name, const uint8_t *img, size_t n, const uint32_t *forks,
                        size_t nforks, uint32_t end)
@@ -328,6 +404,10 @@ int main(int argc, char **argv)
     const uint32_t *forks;
     size_t nforks;
     uint32_t end;
+    if (argc == 2 && strcmp(argv[1], "--entry") == 0) {
+        entry_fork();
+        CHECK_DONE();
+    }
     if (argc == 2 && strcmp(argv[1], "--nmi") == 0) {
         nmi_fork();
         CHECK_DONE();

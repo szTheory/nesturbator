@@ -53,7 +53,15 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 8 captures the derived PPU NMI line at CPU bus
+   the same inputs. Revision 9 retains an accepted IRQ at the instruction's
+   hardware poll point, using the old I flag for CLI, SEI and PLP. Branches
+   preserve their first poll across later cycles and add the page-cross poll;
+   a captured acceptance survives later source clearing until entry arbitration.
+   NMI wins that shared entry event; a held IRQ can be accepted again after RTI
+   restores I (HWC.02). Post-vector-choice NMI inputs remain unrecognized
+   candidates until held through the first handler opening; released pulses in
+   that inhibited window are missed (Visual6502 Interrupt Hijacking).
+   Revision 8 captures the derived PPU NMI line at CPU bus
    clock seams, then services a request only after the instruction's CPU poll
    (including branch-specific poll cycles); a captured request survives later
    line deassertion. A $2002 read samples vblank bit 7 at M2 rise and sprite
@@ -69,23 +77,27 @@ extern "C" {
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
    Revision 5 was the PPU fetch pipeline. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 8
+#define NESTURBATOR_BEHAVIOUR_REVISION 9
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
    NESTURBATOR_ERR_STATE_FORMAT; there is no converter. Before the first release that contains
    save states it stays 1 and the layout may change. After that release, any change to the state
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
-   same commit. Version 2 records the CPU's sampled NMI-line, captured-request and instruction-poll
-   histories and the retained close-edge IRQ level; version 1 states are refused with
-   NESTURBATOR_ERR_STATE_FORMAT. Derived sprite eligibility is rebuilt on load;
+   same commit. Version 3 records the CPU's sampled NMI-line, captured-request and instruction-poll
+   histories, retained close-edge IRQ level, accepted IRQ history, and the CPU entry origin,
+   next unperformed bus action, selected vector pair and partial vector-low byte; version 1 and 2
+   states are refused with NESTURBATOR_ERR_STATE_FORMAT. Completed interrupt-entry actions form
+   internal load cutpoints; ordinary instruction and frame execution drains a restored entry before
+   returning to the next instruction boundary. Public frame calls remain synchronous and do not
+   expose a mid-entry stop. Derived sprite eligibility is rebuilt on load;
    the first CPU clock also reconciles restored synthesis history with channel
    levels, even without an oscillator event. These caches add no saved bytes.
    A fix that changes
    only emulated output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a
    load does not enforce. Raising it is not a breaking change to the C interface and leaves
    NESTURBATOR_ABI_VERSION as it is. */
-#define NESTURBATOR_STATE_FORMAT_VERSION 2
+#define NESTURBATOR_STATE_FORMAT_VERSION 3
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -234,7 +246,9 @@ typedef struct nesturbator_info {
  * unavailable (libretro.h L7453, L7465). A frame yields
  * 798 or 799 samples; the fraction carries over to the next frame. The
  * pulse, triangle, noise and DMC state advances on CPU bus cycles and
- * contributes its DAC level to PCM. With no cartridge loaded, every sample is
+ * contributes its DAC level to PCM. A DMC halt blocked by a CPU write retries
+ * on the following CPU cycle; its sample read stays on GET, followed by the
+ * resumed CPU read (HWC.01). With no cartridge loaded, every sample is
  * zero. Channel timer, sequence, envelope/sweep/linear-counter and gating
  * behavior follows NES-HARDWARE-CPU-APU.md section 4 (HWC.05, HWC.08,
  * HWC.10). The pulse and 16 x 16 x 128 TND integer mixer is from section 5
@@ -293,7 +307,9 @@ void nesturbator_get_version(nesturbator_version *out);
  * silence. */
 nesturbator_status nesturbator_create(const nesturbator_config *cfg, nesturbator **out);
 
-/* Sets the next frame's standard controller state. A NULL instance or input
+/* Sets the next frame's standard controller state. CPU reads of either serial
+ * port retain open-bus bits D5-D7; only D0 supplies the standard button bit.
+ * A NULL instance or input
    returns NESTURBATOR_ERR_ARGUMENT; a bad size tag returns
    NESTURBATOR_ERR_STRUCT_SIZE. Refused calls leave the instance unchanged. */
 nesturbator_status nesturbator_set_input(nesturbator *inst, const nesturbator_input *input);
@@ -525,10 +541,19 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * no file I/O and never allocates for a state; the host owns the buffer. CPU NMI history stores
  * the sampled asserted line, captured request and last instruction poll independently: $2002,
  * PPUCTRL disable and pre-render clear can lower the derived line without revoking a captured
- * request or a poll awaiting service. A late captured request remains pending until an instruction
- * reaches its NMI poll point.
- * IRQ's retained close-edge level is likewise saved independently from the live
- * IRQ line and the instruction poll, so loading does not resample a tied PPU edge.
+ * recognized request or a poll awaiting service. A late recognized request remains pending until an
+ * instruction reaches its NMI poll point. A newly sampled input during post-choice entry inhibition
+ * is stored separately as an unrecognized candidate: it must remain asserted through the first
+ * handler opening; release before that point cancels it. This preserves the source-qualified
+ * finite-margin recognition window without promising physical precedence at an exact phase tie.
+ * IRQ's retained close-edge level, latest raw bus poll and accepted instruction poll are saved
+ * independently from the live IRQ line. Loading preserves acceptance even if the source was
+ * cleared after the poll, until shared entry arbitration selects NMI or IRQ; it never resamples a
+ * tied PPU edge. An active BRK/IRQ/NMI entry stores
+ * its origin, next unperformed bus action, selected vector pair and (between vector-byte reads) its
+ * low byte. Only reachable completed-action stages are accepted. Public instruction/frame calls
+ * stay synchronous: they finish any restored entry before the next instruction boundary, and do
+ * not expose an exact mid-entry stop.
  *
  * nesturbator_state_size returns the exact length of a state of the loaded cartridge: 0 for a
  * NULL instance or with no cartridge, otherwise constant from a successful load until unload. It

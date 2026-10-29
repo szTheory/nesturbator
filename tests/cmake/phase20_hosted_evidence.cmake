@@ -5,13 +5,42 @@ include("${CMAKE_CURRENT_LIST_DIR}/accuracycoin_input_fingerprint.cmake")
 set(NESTURBATOR_PHASE20_REPOSITORY "szTheory/nesturbator")
 set(NESTURBATOR_PHASE20_PLATFORMS
   linux-x64 linux-arm64 macos-x64 macos-arm64 windows-x64 windows-arm64)
-set(NESTURBATOR_PHASE20_NMI_KEYS
-  "accuracycoin/$2002 flag timing"
-  "accuracycoin/NMI Timing"
-  "accuracycoin/NMI Suppression"
-  "accuracycoin/NMI Control"
-  "accuracycoin/NMI at VBlank end"
-  "accuracycoin/NMI disabled at VBlank")
+if(NOT DEFINED NESTURBATOR_PHASE20_PROTECTED_MINIMUM)
+  set(NESTURBATOR_PHASE20_PROTECTED_MINIMUM 108)
+endif()
+if(NOT DEFINED NESTURBATOR_PHASE20_REQUIRED_TARGET_KEYS)
+  set(NESTURBATOR_PHASE20_REQUIRED_TARGET_KEYS
+    "accuracycoin/$2002 flag timing"
+    "accuracycoin/NMI Timing"
+    "accuracycoin/NMI Suppression"
+    "accuracycoin/NMI Control"
+    "accuracycoin/NMI at VBlank end"
+    "accuracycoin/NMI disabled at VBlank")
+endif()
+if(NOT DEFINED NESTURBATOR_PHASE20_BEHAVIOUR_REVISION)
+  set(NESTURBATOR_PHASE20_BEHAVIOUR_REVISION 8)
+endif()
+if(NOT DEFINED NESTURBATOR_PHASE20_LIBRARY_VERSION)
+  set(NESTURBATOR_PHASE20_LIBRARY_VERSION "0.1.11")
+endif()
+if(NOT DEFINED NESTURBATOR_PHASE20_PERF_ARTIFACT_PREFIX)
+  set(NESTURBATOR_PHASE20_PERF_ARTIFACT_PREFIX "phase20-perf")
+endif()
+if(NOT DEFINED NESTURBATOR_PHASE20_MARKER_ARTIFACT)
+  set(NESTURBATOR_PHASE20_MARKER_ARTIFACT "retroarch-marker-progression")
+endif()
+if(NOT DEFINED NESTURBATOR_PHASE20_VECTORS_ARTIFACT_PREFIX)
+  set(NESTURBATOR_PHASE20_VECTORS_ARTIFACT_PREFIX "vectors-full-evidence")
+endif()
+if(NOT DEFINED NESTURBATOR_PHASE20_MMC3_ARTIFACT_PREFIX)
+  set(NESTURBATOR_PHASE20_MMC3_ARTIFACT_PREFIX "mmc3-oracle-evidence")
+endif()
+if(NOT DEFINED NESTURBATOR_PHASE20_HASH_ARTIFACT_PREFIX)
+  set(NESTURBATOR_PHASE20_HASH_ARTIFACT_PREFIX "hashes")
+endif()
+if(NOT DEFINED NESTURBATOR_PHASE20_ACCURACYCOIN_ARTIFACT_PREFIX)
+  set(NESTURBATOR_PHASE20_ACCURACYCOIN_ARTIFACT_PREFIX "accuracycoin-evidence")
+endif()
 
 function(phase20_read_properties path prefix out_ok out_error)
   if(NOT EXISTS "${path}" OR IS_DIRECTORY "${path}")
@@ -574,12 +603,16 @@ function(phase20_validate_run_json run_path job_path artifact_path prefix run_id
       string(REPLACE "-" ";" parts "${platform}")
       list(GET parts 0 os)
       list(GET parts 1 arch)
-      list(APPEND required_artifacts "hashes-${os}-${arch}"
-        "accuracycoin-evidence-${os}-${arch}-${run_id}-${attempt}")
+      list(APPEND required_artifacts "${NESTURBATOR_PHASE20_HASH_ARTIFACT_PREFIX}-${os}-${arch}"
+        "${NESTURBATOR_PHASE20_ACCURACYCOIN_ARTIFACT_PREFIX}-${os}-${arch}-${run_id}-${attempt}")
     endforeach()
-    list(APPEND required_artifacts "phase20-perf-${run_id}-${attempt}" "retroarch-marker-progression")
+    list(APPEND required_artifacts
+      "${NESTURBATOR_PHASE20_PERF_ARTIFACT_PREFIX}-${run_id}-${attempt}"
+      "${NESTURBATOR_PHASE20_MARKER_ARTIFACT}")
   else()
-    list(APPEND required_artifacts "vectors-full-evidence-${run_id}" "mmc3-oracle-evidence-${run_id}")
+    list(APPEND required_artifacts
+      "${NESTURBATOR_PHASE20_VECTORS_ARTIFACT_PREFIX}-${run_id}"
+      "${NESTURBATOR_PHASE20_MMC3_ARTIFACT_PREFIX}-${run_id}")
   endif()
   foreach(name IN LISTS required_artifacts)
     if(NOT name IN_LIST artifact_names)
@@ -623,7 +656,9 @@ function(phase20_validate_run_json run_path job_path artifact_path prefix run_id
         return()
       endif()
     endforeach()
-    foreach(name IN ITEMS "vectors-full-evidence-${run_id}" "mmc3-oracle-evidence-${run_id}")
+    foreach(name IN ITEMS
+        "${NESTURBATOR_PHASE20_VECTORS_ARTIFACT_PREFIX}-${run_id}"
+        "${NESTURBATOR_PHASE20_MMC3_ARTIFACT_PREFIX}-${run_id}")
       if(NOT name IN_LIST artifact_names OR expired_${name})
         set(${out_error} "Nightly artifact missing or expired: ${name}" PARENT_SCOPE)
         return()
@@ -660,10 +695,8 @@ function(phase20_validate_scoreboard candidate_path protected_path metadata_path
     return()
   endif()
   if(NOT protected_authority STREQUAL "protected-main" OR
-     NOT protected_protected_revision STREQUAL base_sha OR
-     NOT protected_scoreboard_rows STREQUAL "108" OR
-     NOT protected_scoreboard_denominator STREQUAL "108")
-    set(${out_error} "protected scoreboard identity/count mismatch" PARENT_SCOPE)
+     NOT protected_protected_revision STREQUAL base_sha)
+    set(${out_error} "protected scoreboard identity mismatch" PARENT_SCOPE)
     return()
   endif()
   file(SHA256 "${protected_path}" protected_sha)
@@ -673,16 +706,22 @@ function(phase20_validate_scoreboard candidate_path protected_path metadata_path
   endif()
   file(STRINGS "${protected_path}" protected_rows)
   list(LENGTH protected_rows protected_count)
-  if(NOT protected_count EQUAL 108)
-    set(${out_error} "protected scoreboard must contain exactly 108 initial keys" PARENT_SCOPE)
+  if(protected_count LESS NESTURBATOR_PHASE20_PROTECTED_MINIMUM)
+    set(${out_error}
+      "protected scoreboard has fewer than ${NESTURBATOR_PHASE20_PROTECTED_MINIMUM} initial PASS keys"
+      PARENT_SCOPE)
+    return()
+  endif()
+  if(NOT protected_scoreboard_rows STREQUAL "${protected_count}" OR
+     NOT protected_scoreboard_denominator STREQUAL "${protected_count}")
+    set(${out_error} "protected scoreboard identity/count mismatch" PARENT_SCOPE)
     return()
   endif()
   file(STRINGS "${candidate_path}" candidate_rows)
   set(candidate_passes)
-  set(nmi_passes)
   set(previous "")
   foreach(line IN LISTS candidate_rows)
-    if(NOT line MATCHES "^([^\t]+)\t(pass|fail|skip|not_run|timeout)\t[^\t]+\t[^\t]+\t[^\t]+$")
+    if(NOT line MATCHES "^([^\t]+)\t(pass|fail|skip|not_run|not-run|timeout)\t[^\t]+\t[^\t]+\t[^\t]+$")
       set(${out_error} "candidate scoreboard contains a malformed row" PARENT_SCOPE)
       return()
     endif()
@@ -696,26 +735,30 @@ function(phase20_validate_scoreboard candidate_path protected_path metadata_path
     if(status STREQUAL "pass")
       list(APPEND candidate_passes "${key}")
     endif()
-    if(key IN_LIST NESTURBATOR_PHASE20_NMI_KEYS AND status STREQUAL "pass")
-      list(APPEND nmi_passes "${key}")
-    endif()
   endforeach()
+  set(protected_keys)
   foreach(line IN LISTS protected_rows)
     if(NOT line MATCHES "^(accuracycoin/[^\t]+)\tpass\t0x[0-9a-f][0-9a-f]\t-\t-$")
       set(${out_error} "protected scoreboard has malformed or non-PASS initial key" PARENT_SCOPE)
       return()
     endif()
     set(key "${CMAKE_MATCH_1}")
+    if(key IN_LIST protected_keys)
+      set(${out_error} "protected scoreboard duplicates initial PASS key: ${key}" PARENT_SCOPE)
+      return()
+    endif()
+    list(APPEND protected_keys "${key}")
     if(NOT key IN_LIST candidate_passes)
       set(${out_error} "protected key lost in candidate scoreboard: ${key}" PARENT_SCOPE)
       return()
     endif()
   endforeach()
-  list(LENGTH nmi_passes nmi_count)
-  if(NOT nmi_count EQUAL 6)
-    set(${out_error} "candidate scoreboard does not pass the exact six NMI target keys" PARENT_SCOPE)
-    return()
-  endif()
+  foreach(key IN LISTS NESTURBATOR_PHASE20_REQUIRED_TARGET_KEYS)
+    if(NOT key IN_LIST candidate_passes)
+      set(${out_error} "candidate scoreboard does not pass required target key: ${key}" PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
   set(${out_error} "" PARENT_SCOPE)
 endfunction()
 
@@ -741,12 +784,14 @@ function(phase20_validate_campaign root source_dir tested_sha out_error)
   endif()
   string(SUBSTRING "${tested_sha}" 0 12 tested_short_sha)
   foreach(pair IN ITEMS "report_schema|1" "inventory_schema|1" "source_revision|${tested_short_sha}"
-      "library_version|0.1.11" "behaviour_revision|8" "source_dirty|0" "rom_pin|6bee919529289c555803b612b8c9e4f7eaaeeabb"
+      "library_version|${NESTURBATOR_PHASE20_LIBRARY_VERSION}"
+      "behaviour_revision|${NESTURBATOR_PHASE20_BEHAVIOUR_REVISION}"
+      "source_dirty|0" "rom_pin|6bee919529289c555803b612b8c9e4f7eaaeeabb"
       "rom_sha256|8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc"
       "mode|campaign" "boot_frame_budget|32" "navigation_frame_budget_per_page|5"
       "execution_frame_budget|1800" "total_frame_budget|41503" "pages_launched|22" "pages_start_attributed|22"
       "pages_completed|22" "attempted_scored_rows|146" "scored_total|146"
-      "draw|5" "skip|0" "not_run|0" "timeout|0"
+      "draw|5" "skip|0" "not_run|${baseline_not_run}" "timeout|0"
       "trustworthy_observation|1" "infrastructure_verdict|complete")
     string(REPLACE "|" ";" fields "${pair}")
     list(GET fields 0 key)
@@ -785,7 +830,7 @@ function(phase20_validate_campaign root source_dir tested_sha out_error)
     endif()
     list(GET fields 0 key)
     list(GET fields 1 scoreboard_status)
-    if(NOT scoreboard_status MATCHES "^(pass|fail)$" OR key IN_LIST expected_test_keys)
+    if(NOT scoreboard_status MATCHES "^(pass|fail|not-run)$" OR key IN_LIST expected_test_keys)
       set(${out_error} "source AccuracyCoin scoreboard has an invalid or duplicate test key ${key}" PARENT_SCOPE)
       return()
     endif()
@@ -811,6 +856,7 @@ function(phase20_validate_campaign root source_dir tested_sha out_error)
   set(target_passes)
   set(pass_count 0)
   set(fail_count 0)
+  set(not_run_count 0)
   list(REMOVE_AT inventory_rows 0)
   list(REMOVE_AT report_rows 0)
   foreach(line IN LISTS inventory_rows)
@@ -876,7 +922,7 @@ function(phase20_validate_campaign root source_dir tested_sha out_error)
             return()
           endif()
         elseif(NOT report_kind STREQUAL "test" OR
-           NOT status MATCHES "^(pass|fail)$" OR NOT observed STREQUAL "1")
+           NOT status MATCHES "^(pass|fail|not-run)$" OR NOT observed STREQUAL "1")
           set(${out_error} "campaign TEST inventory terminal status mismatch" PARENT_SCOPE)
           return()
         endif()
@@ -884,11 +930,13 @@ function(phase20_validate_campaign root source_dir tested_sha out_error)
         list(APPEND report_keys "${key}")
         if(status STREQUAL "pass")
           math(EXPR pass_count "${pass_count} + 1")
-          if(key IN_LIST NESTURBATOR_PHASE20_NMI_KEYS)
+          if(key IN_LIST NESTURBATOR_PHASE20_REQUIRED_TARGET_KEYS)
             list(APPEND target_passes "${key}")
           endif()
         elseif(status STREQUAL "fail")
           math(EXPR fail_count "${fail_count} + 1")
+        elseif(status STREQUAL "not-run")
+          math(EXPR not_run_count "${not_run_count} + 1")
         endif()
       endif()
     endforeach()
@@ -908,12 +956,15 @@ function(phase20_validate_campaign root source_dir tested_sha out_error)
     return()
   endif()
   list(LENGTH target_passes target_count)
-  if(NOT target_count EQUAL 6 OR NOT pass_count STREQUAL campaign_pass OR
-     NOT fail_count STREQUAL campaign_fail OR
+  list(LENGTH NESTURBATOR_PHASE20_REQUIRED_TARGET_KEYS required_target_count)
+  if(NOT target_count EQUAL required_target_count OR NOT pass_count STREQUAL campaign_pass OR
+     NOT fail_count STREQUAL campaign_fail OR NOT not_run_count STREQUAL campaign_not_run OR
      NOT campaign_attempted_scored_rows STREQUAL "146" OR
-     NOT campaign_terminal_scored_rows STREQUAL "146" OR
+     NOT campaign_terminal_scored_rows STREQUAL baseline_terminal_scored_rows OR
      NOT campaign_observed_scored_rows STREQUAL "146")
-    set(${out_error} "campaign six-target/count summary disagrees with observed terminal rows" PARENT_SCOPE)
+    set(${out_error}
+      "campaign exact-${required_target_count}-target/count summary disagrees with observed terminal rows"
+      PARENT_SCOPE)
     return()
   endif()
   set(${out_error} "" PARENT_SCOPE)
@@ -1725,12 +1776,20 @@ function(nesturbator_phase20_validate_evidence root source_dir out_ok out_reason
       string(REPLACE "-" ";" parts "${platform}")
       list(GET parts 0 os)
       list(GET parts 1 arch)
-      list(APPEND required_artifact_ids "${ci_artifact_id_hashes-${os}-${arch}}"
-        "${ci_artifact_id_accuracycoin-evidence-${os}-${arch}-${identity_ci_run_id}-${identity_ci_run_attempt}}")
+      set(hash_artifact_name "${NESTURBATOR_PHASE20_HASH_ARTIFACT_PREFIX}-${os}-${arch}")
+      set(score_artifact_name
+        "${NESTURBATOR_PHASE20_ACCURACYCOIN_ARTIFACT_PREFIX}-${os}-${arch}-${identity_ci_run_id}-${identity_ci_run_attempt}")
+      set(hash_artifact_id_variable "ci_artifact_id_${hash_artifact_name}")
+      set(score_artifact_id_variable "ci_artifact_id_${score_artifact_name}")
+      list(APPEND required_artifact_ids "${${hash_artifact_id_variable}}"
+        "${${score_artifact_id_variable}}")
     endforeach()
-    list(APPEND required_artifact_ids
-      "${ci_artifact_id_phase20-perf-${identity_ci_run_id}-${identity_ci_run_attempt}}"
-      "${ci_artifact_id_retroarch-marker-progression}")
+    set(perf_artifact_name
+      "${NESTURBATOR_PHASE20_PERF_ARTIFACT_PREFIX}-${identity_ci_run_id}-${identity_ci_run_attempt}")
+    set(perf_artifact_id_variable "ci_artifact_id_${perf_artifact_name}")
+    set(marker_artifact_id_variable "ci_artifact_id_${NESTURBATOR_PHASE20_MARKER_ARTIFACT}")
+    list(APPEND required_artifact_ids "${${perf_artifact_id_variable}}"
+      "${${marker_artifact_id_variable}}")
     foreach(name IN ITEMS ci-commit.json candidate-commit.json nightly-commit.json)
       set(file "${root}/provenance/${name}")
       file(READ "${file}" commit_json)
@@ -1866,7 +1925,7 @@ function(nesturbator_phase20_validate_evidence root source_dir out_ok out_reason
     string(REPLACE "-" ";" parts "${platform}")
     list(GET parts 0 os)
     list(GET parts 1 arch)
-    if(NOT EXISTS "${root}/artifacts/hashes-${platform}/hashes.txt")
+    if(NOT EXISTS "${root}/artifacts/${NESTURBATOR_PHASE20_HASH_ARTIFACT_PREFIX}-${platform}/hashes.txt")
       set(${out_reason} "hash artifact missing for platform ${platform}" PARENT_SCOPE)
       return()
     endif()
@@ -2501,8 +2560,9 @@ function(nesturbator_phase20_collect_evidence root source_dir out_ok out_reason)
     string(REPLACE "-" ";" parts "${platform}")
     list(GET parts 0 os)
     list(GET parts 1 arch)
-    foreach(spec IN ITEMS "hashes-${os}-${arch}|hashes-${os}-${arch}"
-        "accuracycoin-evidence-${os}-${arch}-${delivery_ci_run_id}-${delivery_ci_run_attempt}|build-${platform}")
+    foreach(spec IN ITEMS
+        "${NESTURBATOR_PHASE20_HASH_ARTIFACT_PREFIX}-${os}-${arch}|${NESTURBATOR_PHASE20_HASH_ARTIFACT_PREFIX}-${os}-${arch}"
+        "${NESTURBATOR_PHASE20_ACCURACYCOIN_ARTIFACT_PREFIX}-${os}-${arch}-${delivery_ci_run_id}-${delivery_ci_run_attempt}|build-${platform}")
       string(REPLACE "|" ";" fields "${spec}")
       list(GET fields 0 name)
       list(GET fields 1 dest)
@@ -2523,7 +2583,7 @@ function(nesturbator_phase20_collect_evidence root source_dir out_ok out_reason)
         set(${out_reason} "incomplete: ${error}" PARENT_SCOPE)
         return()
       endif()
-      if(dest MATCHES "^hashes-")
+      if(dest MATCHES "^${NESTURBATOR_PHASE20_HASH_ARTIFACT_PREFIX}-")
         phase20_copy_unique("${download_dir}" "hashes.txt" "${root}/artifacts/${dest}/hashes.txt"
           "${root}" "artifact-${artifact_id}" error)
       else()
@@ -2549,7 +2609,9 @@ function(nesturbator_phase20_collect_evidence root source_dir out_ok out_reason)
       endif()
     endforeach()
   endforeach()
-  foreach(name IN ITEMS "phase20-perf-${delivery_ci_run_id}-${delivery_ci_run_attempt}" retroarch-marker-progression)
+  foreach(name IN ITEMS
+      "${NESTURBATOR_PHASE20_PERF_ARTIFACT_PREFIX}-${delivery_ci_run_id}-${delivery_ci_run_attempt}"
+      "${NESTURBATOR_PHASE20_MARKER_ARTIFACT}")
     phase20_json_get(count "${ci_artifacts}" artifacts LENGTH)
     set(artifact_id "")
     if(count GREATER 0)
@@ -2567,7 +2629,7 @@ function(nesturbator_phase20_collect_evidence root source_dir out_ok out_reason)
       set(${out_reason} "incomplete: ${error}" PARENT_SCOPE)
       return()
     endif()
-    if(name MATCHES "^phase20-perf-")
+    if(name MATCHES "^${NESTURBATOR_PHASE20_PERF_ARTIFACT_PREFIX}-")
       foreach(pattern IN ITEMS "summary.md" "identity.txt")
         phase20_copy_unique("${download_dir}" "${pattern}" "${root}/artifacts/perf/${pattern}"
           "${root}" "artifact-${artifact_id}" error)
@@ -2947,19 +3009,21 @@ function(nesturbator_phase20_check_availability root source_dir expected_candida
     string(REPLACE "-" ";" parts "${platform}")
     list(GET parts 0 os)
     list(GET parts 1 arch)
-    foreach(name IN ITEMS "hashes-${os}-${arch}"
-        "accuracycoin-evidence-${os}-${arch}-${delivery_ci_run_id}-${delivery_ci_run_attempt}")
+    foreach(name IN ITEMS "${NESTURBATOR_PHASE20_HASH_ARTIFACT_PREFIX}-${os}-${arch}"
+        "${NESTURBATOR_PHASE20_ACCURACYCOIN_ARTIFACT_PREFIX}-${os}-${arch}-${delivery_ci_run_id}-${delivery_ci_run_attempt}")
       phase20_find_artifact_id("${ci_artifacts}" "${name}" artifact_id id_error)
       string(APPEND selected_artifacts "artifact_${name}=${artifact_id};")
     endforeach()
   endforeach()
-  foreach(name IN ITEMS "phase20-perf-${delivery_ci_run_id}-${delivery_ci_run_attempt}"
-      retroarch-marker-progression)
+  foreach(name IN ITEMS
+      "${NESTURBATOR_PHASE20_PERF_ARTIFACT_PREFIX}-${delivery_ci_run_id}-${delivery_ci_run_attempt}"
+      "${NESTURBATOR_PHASE20_MARKER_ARTIFACT}")
     phase20_find_artifact_id("${ci_artifacts}" "${name}" artifact_id id_error)
     string(APPEND selected_artifacts "artifact_${name}=${artifact_id};")
   endforeach()
-  foreach(name IN ITEMS "vectors-full-evidence-${delivery_nightly_run_id}"
-      "mmc3-oracle-evidence-${delivery_nightly_run_id}")
+  foreach(name IN ITEMS
+      "${NESTURBATOR_PHASE20_VECTORS_ARTIFACT_PREFIX}-${delivery_nightly_run_id}"
+      "${NESTURBATOR_PHASE20_MMC3_ARTIFACT_PREFIX}-${delivery_nightly_run_id}")
     phase20_find_artifact_id("${nightly_artifacts}" "${name}" artifact_id id_error)
     string(APPEND selected_artifacts "artifact_${name}=${artifact_id};")
   endforeach()

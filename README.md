@@ -284,11 +284,16 @@ describes the operational initialization model (HWC.08). These channel
 sequences use integer state and bus-cycle ordering. The 4-step and 5-step frame
 sequencers clock envelopes, linear and length counters, and maintain a frame
 IRQ independent from the DMC IRQ; `$4015` reports and clears the frame source.
-The CPU accepts an enabled IRQ from its instruction-end polling sample and
-enters the IRQ vector with the normal seven-cycle stack sequence (HWC.02).
+The CPU retains IRQ acceptance at the instruction's hardware poll point,
+including old-I polling for CLI, SEI and PLP and the first plus page-cross
+branch polls, then enters the IRQ vector with the normal seven-cycle stack
+sequence (HWC.02).
 Writes to `$4017` take effect after the parity-dependent three or four CPU
 cycles. DMC sample fetches halt CPU reads at the bus seam, repeat the parked
-read, and preserve the independent IRQ source. These timing rules follow
+read, and preserve the independent IRQ source. A write that blocks a halt
+attempt makes it retry on the next CPU cycle, including the opposite GET/PUT
+phase; sample data still arrives on GET before the parked CPU read resumes.
+These timing rules follow
 NES-HARDWARE-CPU-APU sections 2 and 4 (HWC.01, HWC.23) and are exercised by
 `core.apu` and the six AccuracyCoin page-14 results. The nonlinear pulse and TND
 mixer uses checked-in integer pulse and 16×16×128 TND tables from HWC.11.
@@ -335,6 +340,12 @@ with bit 7 still set does not create a second capture. Equal-time PPU updates,
 CPU sampling and bus side effects use one deterministic model order; this
 convention does not assert physical setup/hold precedence at an exact tie. Odd
 NTSC frames skip pre-render dot 340 when rendering is enabled.
+During interrupt entry after vector selection, a new sampled NMI input is an
+inhibited candidate, rather than a recognized request. It must remain asserted
+through the first handler instruction's opening to become eligible there; a
+pulse released before that recognition is missed. An already recognized fresh
+edge remains sticky, and a consumed held level does not create a second entry
+(Visual6502 Interrupt Hijacking, annex section 3.1).
 PPUSTATUS keeps its separate M2-rise observation. PPU work for other accesses
 and the CPU's history-only poll can wait until the pre-close catch-up.
 Sprite-hit detection uses pattern opacity and cached eligible slots; loading
@@ -377,8 +388,9 @@ The public `nesturbator_set_input` API accepts a size-tagged pair of standard
 controller button masks. Port 0 is `$4016`; port 1 is `$4017`. Each port shifts
 A, B, Select, Start, Up, Down, Left, Right, least-significant bit first. A
 write with bit 0 high makes reads report the current A button; the high-to-low
-transition latches both masks. After eight reads, D0 returns 1. D6 reads high,
-while D5 and D7 retain the CPU bus open-bus value. Refused input calls leave
+transition latches both masks. After eight reads, D0 returns 1. D5 through D7
+retain the CPU bus open-bus value; the usual high D6 comes from the preceding
+`$40` address byte. Refused input calls leave
 the instance unchanged. Input is snapshotted at the beginning of each
 successful frame call. An instruction that crosses the requested frame
 boundary completes with that frame's snapshot; the next mask begins on the
@@ -1304,13 +1316,24 @@ valid for the same format version, ROM and board, and it is byte-identical on
 every platform. The library does no file I/O and never allocates for a state;
 the host owns the buffer and decides where states live.
 
-The current state format is 2 and the behavior revision is 8. Format 2 stores
-the sampled NMI line, captured request, last instruction poll and retained
-close-edge IRQ level independently of the live IRQ line. The revision
-8 CPU polls that captured request at its instruction-specific poll point. The
-public save/load interface snapshots frame boundaries. Exact NMI race cutpoints
-are exercised by internal tests at completed instruction boundaries, while
-core, runner, and libretro replay tests cover public frame-boundary continuation.
+The current state format is 3 and the behavior revision is 9. Format 3 stores
+the sampled NMI line, captured request, last instruction poll, retained
+close-edge IRQ level and accepted IRQ decision independently of the live IRQ
+line. It also stores an active BRK/IRQ/NMI entry's origin, next unperformed bus
+action, selected vector pair and partial low-vector byte. Only reachable
+completed-action stages load. The CPU records IRQ acceptance at the
+instruction-specific hardware poll point, using old I for CLI, SEI and PLP and
+retaining the first branch poll through later cycles (with the page-cross poll
+added). A source cleared after acceptance does not revoke the pending IRQ before
+entry arbitration. NMI wins that shared arbitration; an IRQ still asserted after
+RTI restores I can be accepted again. State distinguishes a recognized NMI
+request from an inhibited candidate that still requires the held input. Normal
+instruction execution drains a restored entry
+before continuing at the next instruction boundary. Public save/load uses
+frame-boundary host calls and exposes no exact mid-entry stop; the core remains
+synchronous. Exact race and loaded-entry cutpoints are exercised by internal
+tests, while core, runner and libretro replay tests cover public frame-boundary
+continuation.
 
 1. `nesturbator_state_size(inst)` returns the exact length of a state of the
    loaded cartridge. It is 0 for a NULL instance or with no cartridge, and the

@@ -86,9 +86,35 @@ static void test_high_strobe_tracks_a_and_invalid_input_is_unchanged(void)
     nesturbator_destroy(nes);
 }
 
+static void test_upper_three_bits_retain_cpu_open_bus(void)
+{
+    nesturbator *nes = make();
+    CHECK(nes != NULL);
+    if (nes == NULL)
+        return;
+    /* AccuracyCoin 6bee919, TEST_ImpliedDummyRead, requires the controller
+       operands after JSR $4015 to retain $20 and then $00 from stack writes.
+       All three upper bits float; the usual $40 is the address high byte,
+       rather than a bit driven high by the controller. */
+    for (uint8_t port = 0u; port < 2u; port++) {
+        for (uint8_t upper = 0u; upper < 8u; upper++) {
+            for (uint8_t bit = 0u; bit < 2u; bit++) {
+                nes->bus.controller_strobe = 0u;
+                nes->bus.controller_shift[port] = bit;
+                nes->bus.open_bus = (uint8_t)(((uint32_t)upper << 5) | 0x1fu);
+                uint8_t expected = (uint8_t)(((uint32_t)upper << 5) | bit);
+                CHECK_EQ_HEX(nesturbator__bus_read(nes, (uint16_t)(0x4016u + port)), expected);
+                CHECK_EQ_HEX(nes->bus.open_bus, expected);
+            }
+        }
+    }
+    nesturbator_destroy(nes);
+}
+
 int main(void)
 {
     test_two_ports_shift_independently();
     test_high_strobe_tracks_a_and_invalid_input_is_unchanged();
+    test_upper_three_bits_retain_cpu_open_bus();
     CHECK_DONE();
 }

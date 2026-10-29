@@ -227,6 +227,35 @@ static inline void st_recrc(uint8_t *state, size_t size)
     put32(state + 28, crc);
 }
 
+/* Advance the production interrupt-entry action seam to a completed-action
+   cutpoint. BRK begins at C2 because the caller has already fetched its
+   opcode; IRQ and NMI begin at C1. No stack byte or continuation field is
+   manufactured by the test. */
+static inline int st_entry_cutpoint(struct nesturbator *nes, enum nesturbator_entry_origin origin,
+                                    uint8_t next_action)
+{
+    uint8_t first = origin == NESTURBATOR_ENTRY_BRK ? 2u : 1u;
+    if (next_action < first || next_action > 7u)
+        return 0;
+    nesturbator__cpu_entry_begin(nes, origin);
+    while (nes->cpu.entry_origin != NESTURBATOR_ENTRY_NONE &&
+           nes->cpu.entry_next_action < next_action) {
+        if (nesturbator__cpu_entry_action(nes) == 0u)
+            return 0;
+    }
+    return (int)(nes->cpu.entry_origin == (uint8_t)origin &&
+                 nes->cpu.entry_next_action == next_action);
+}
+
+/* The PPU pin transition is a test stimulus; the following entry action's
+   production bus cycle samples it into nmi_pending. This mirrors the owned
+   bus schedule in test_interrupt_entry.c and never writes a CPU latch. */
+static inline void st_assert_nmi_pin(struct nesturbator *nes)
+{
+    nes->ppu.status |= 0x80u;
+    nes->ppu.control |= 0x80u;
+}
+
 /* An allocator that counts calls and live bytes, for "never allocates" checks. */
 struct st_counting_allocator {
     unsigned allocs;
@@ -327,9 +356,9 @@ static inline void st_poison(nesturbator *inst)
 #define ST_STRESS_N 0
 #endif
 #ifndef ST_STRESS_G
-/* Retained IRQ sampling: within 61 boundaries G=8 reaches pending OAM at
-   NROM frame 60 and MMC3 frame 56, while preserving pending DMC and IRQ polls. */
-#define ST_STRESS_G 8
+/* Under shared entry and C4 vector takeover, within 61 boundaries G=9 reaches
+   pending OAM on both boards while preserving pending DMC and IRQ polls. */
+#define ST_STRESS_G 9
 #endif
 #define ST_E(buf, idx, ...)                                                                        \
     do {                                                                                           \

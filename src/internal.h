@@ -32,13 +32,37 @@
 #define NESTURBATOR_FRAME_SIZE_V1 ((uint32_t)sizeof(nesturbator_frame))
 #define NESTURBATOR_INPUT_SIZE_V1 ((uint32_t)sizeof(nesturbator_input))
 
+enum nesturbator_entry_origin {
+    NESTURBATOR_ENTRY_NONE = 0,
+    NESTURBATOR_ENTRY_BRK = 1,
+    NESTURBATOR_ENTRY_IRQ = 2,
+    NESTURBATOR_ENTRY_NMI = 3
+};
+
+enum nesturbator_entry_vector {
+    NESTURBATOR_ENTRY_VECTOR_NONE = 0,
+    NESTURBATOR_ENTRY_VECTOR_IRQ = 1,
+    NESTURBATOR_ENTRY_VECTOR_NMI = 2
+};
+
+enum nesturbator_nmi_request {
+    NESTURBATOR_NMI_NONE = 0,
+    NESTURBATOR_NMI_RECOGNIZED = 1,
+    NESTURBATOR_NMI_INHIBITED = 2
+};
+
 /* 6502 core state (D-10). P is kept exactly as loaded or pulled: flag
    writes touch only their own bits, so bits 4 and 5 change only on a pull.
    nmi_prev is the asserted-high PPU line at the detector sample, nmi_pending
-   retains a captured edge, and nmi_polled records the instruction poll result.
+   distinguishes a recognized edge from an inhibited candidate that still
+   requires a held input at the next T1. nmi_polled records only recognized
+   requests at an instruction poll.
    These historical values are separate from the live PPU line and are
    serialized. irq_captured retains the IRQ level at the same close-edge
-   detector sample, distinct from irq_line and the instruction's poll_latch.
+   detector sample, distinct from irq_line and the most recent bus-opening
+   poll_latch. irq_accepted records a legal instruction poll that accepted the
+   IRQ and must survive later I changes or source acknowledgment until the
+   next entry arbitration; NMI priority consumes that shared entry event.
    halted_in_read covers a stalled read; the bus samples
    interrupt lines at its clock seam.
    The power-on state comes from cartridge load, which sets S, P and PC from
@@ -49,8 +73,12 @@ struct nesturbator__cpu {
     uint16_t pc;
     uint8_t a, x, y, s, p;
     uint8_t nmi_prev, nmi_pending, nmi_polled, irq_line, irq_captured, poll_latch;
+    uint8_t irq_accepted;
     uint8_t halted_in_read; /* nonzero while the current read is stalled */
     uint8_t jammed;         /* set by a JAM opcode; cleared by cpu_reset */
+    /* Active interrupt continuation; action is the next unperformed C1-C7
+       bus action (BRK starts at C2 because its opcode fetch is already done). */
+    uint8_t entry_origin, entry_next_action, entry_vector, entry_vector_low;
 };
 
 /* Bus-side state: 2048 bytes of internal RAM and the open-bus latch, the
@@ -86,6 +114,8 @@ struct nesturbator__noise {
 struct nesturbator__dmc {
     uint16_t timer, counter, address, remaining;
     uint8_t reg[4], output, shift, bits, sample_buffer, buffer_empty;
+    /* The next halt attempt's phase; an eligible write advances it to retry
+       on the following CPU cycle. The first load/reload targets GET/PUT. */
     uint8_t irq, dma_pending, dma_halt_phase, dma_load_waiting, enable_delay;
 };
 
@@ -353,6 +383,11 @@ void nesturbator__ppu_register_write(struct nesturbator *nes, uint16_t reg, uint
 
 /* Runs one whole instruction, opcode fetch to last cycle (D-11). */
 void nesturbator__cpu_step(struct nesturbator *nes);
+/* Private interrupt-entry stages shared by cpu_step and owned cutpoint tests.
+   One action advances exactly one completed production bus access. */
+void nesturbator__cpu_entry_begin(struct nesturbator *nes, enum nesturbator_entry_origin origin);
+uint8_t nesturbator__cpu_entry_action(struct nesturbator *nes);
+void nesturbator__cpu_entry_drain(struct nesturbator *nes);
 
 /* Soft reset of the CPU: I set, seven bus cycles, S lowered by 3, PC from
    $FFFC/$FFFD, jammed and the poll latch cleared (src/cpu.c). */
