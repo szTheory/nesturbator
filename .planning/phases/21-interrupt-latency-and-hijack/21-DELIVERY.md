@@ -1,5 +1,22 @@
 # Phase 21 hosted delivery, 2026-10-29
 
+## Execution and acceptance closeout
+
+Plan 21-09 subsequently completed production collection and current-checkout
+validation for the repaired delivery below. All 16 required artifact ZIPs match
+their API digests; candidate, tested merge and both checkouts match all 428
+effective modes/blobs, including a separate actual-filesystem mode check.
+Independent phase verification passes 32/32, and INT-01/INT-02/KEEP-01 are
+complete. Fresh parent CI passes 695/695 in 382.16 seconds and packages all three
+deliverables. See `21-EVIDENCE.md`, `21-EXECUTION-EVIDENCE.md`,
+`21-VERIFICATION.md` and the review disposition for accepted facts and limits.
+
+The execution closeout remains local. PR #61 stays draft and unmerged; no push,
+ready transition, workflow dispatch or next lifecycle command ran. Next command:
+`$gsd-ship 21`. The debug/preparation statuses and next-command instructions
+below are historical. WR-01 and Phase 20 CR-01/WR-03/WR-04 remain deferred;
+physical exact-tie and judgment-tier provenance limits remain visible.
+
 ## Hosted regression repair qualification
 
 The debug repair is published on the same draft PR #61 as

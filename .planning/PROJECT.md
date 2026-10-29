@@ -14,7 +14,22 @@ v4 "Measured NTSC accuracy and robustness" shipped on 2026-10-24 (planning miles
 
 v3 "Save states and rewind" shipped on 2026-10-13 ([v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10)), v2 "Most of the library plays" on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
 
-Phase 20 is verified complete on the repaired source (2026-10-28): 32/32 truths, all six scoped NMI/VBlank rows passing, state format 2/behaviour revision 8, and fresh source-bound hosted acceptance. The clean campaign remains 114 PASS / 32 FAIL; all six lanes retain 108 protected starting PASS keys and identical 114-row hashes. Fresh local CI passes 688/688 and packages all three deliverables. CI `40748417351/1` passed 18/18 jobs and Nightly `40740261760/1` passed seven work jobs, including Intel session controls. The current 418-input source is candidate `7848cc8` / tested merge `716e8d4`; the earlier 417-input acceptance remains historical. Existing PR #59 is ready for review, and the refreshed verification artifacts await publication. Phase 21 interrupt latency and hijack remains to plan. Collector maintenance debt and the explicit physical-tie/provenance evidence limits remain recorded in the Phase 20 report and disposition.
+Phase 20's NMI/VBlank work merged through PR #59 at `a64c23f`. Its 32/32
+verification and 418-input hosted acceptance remain historical evidence.
+
+Phase 21 is verified complete (2026-10-29): 32/32 truths and INT-01, INT-02,
+KEEP-01 satisfied. Poll-time IRQ acceptance and shared resumable BRK/IRQ/NMI
+entry use state format 3, behaviour revision 9 and unchanged ABI 1. The clean
+hosted campaign is 119 PASS / 27 FAIL, all 146 scored rows terminal and five DRAW
+inventory entries; all eleven v5 targets and 114 protected starting PASS keys
+pass on all six lanes. CI `40929011059/1` and Nightly `40929010997/1` bind
+candidate `54c7db2`, tested merge `faf1b91` and 428 effective inputs. Six native
+hash inventories match; the unchanged +1% performance gate passes all three
+ROMs. Fresh parent CI passes 695/695 and packages all three deliverables.
+Plan 21-09 acceptance and independent verification are committed locally;
+PR #61 remains draft and unmerged, awaiting a separate ship step. Collector
+WR-01 and Phase 20 CR-01/WR-03/WR-04 remain deferred with current-run mitigations;
+physical exact-tie precedence and judgment-tier provenance limits remain explicit.
 
 ## Current Milestone: v5 NMI, VBlank and sprite-0 timing
 
@@ -73,10 +88,13 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 - ✓ `$2002` split sampling, NMI line/capture/poll behavior and the six scoped AccuracyCoin NMI/VBlank rows pass; enabled race-state histories resume through the library, runner and libretro host. — v5, Phase 20, NMI-01/NMI-02/KEEP-03; independent re-verification 32/32
 - ✓ Causal frame/audio/state re-pins remain identical across six platforms, all 108 starting PASS keys remain protected per lane, and real +1% performance, vector/MMC3 and RetroArch checks pass on the tested source. — v5, Phase 20, KEEP-02; clean hosted campaign and source-bound content acceptance
 
+- ✓ IRQ acceptance after CLI/SEI/PLP/RTI/branches and coherent NMI takeover of BRK/IRQ pass the owned production-path tests and three target rows. — v5, Phase 21, INT-01/INT-02; independent verification 32/32, format 3/revision 9, every-stage native and actual-adapter replay
+- ✓ All eleven v5 targets and 114 protected starting PASS keys pass on all six lanes, with matching hashes, original +1% performance, vectors, MMC3, Holy Mapperel and boot-to-play evidence. — v5, Phase 21, KEEP-01; source-bound CI/Nightly acceptance for candidate `54c7db2`
+
 ### Active
 
-- [ ] Interrupt latency and NMI hijack match the console on `Interrupt flag latency`, `NMI Overlap BRK` and `NMI Overlap IRQ` — v5, Phase 21
-- [ ] Every row that passes today still passes, with hash re-pins explained and new state fields saved — v5
+No remaining v5 implementation requirements. Phase 21 publication, PR review/merge
+and milestone audit/closeout remain separate lifecycle steps.
 
 ### Out of Scope
 
@@ -196,4 +214,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-28 after Phase 20*
+*Last updated: 2026-10-29 after Phase 21 verification*

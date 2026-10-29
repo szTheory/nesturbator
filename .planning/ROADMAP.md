@@ -60,7 +60,7 @@ A game's frame loop and status-bar splits time out exactly as they do on an NTSC
 
 - [x] **Phase 19: JAM reporting and sprite-0 hit** - AccuracyCoin names a guest JAM, and sprite-0 hit lands on the console's line (completed 2026-10-25)
 - [x] **Phase 20: NMI line and VBlank flag** - `$2002` reads and `$2000` writes around VBlank give the console's flag and NMIs, and save states carry the new latches (completed 2026-10-28)
-- [ ] **Phase 21: Interrupt latency and hijack** - IRQs start on the console's instruction and an NMI takes over BRK or IRQ as on the console
+- [x] **Phase 21: Interrupt latency and hijack** - IRQs start on the console's instruction and an NMI takes over BRK or IRQ as on the console (completed 2026-10-29)
 
 ## Phase Details
 
@@ -171,7 +171,7 @@ Note: the NMI line and its edge latch come before the penultimate-cycle poll, wh
   3. `cpu.vectors`, the nightly blargg MMC3 lane, Holy Mapperel and `runner.boot_to_play` stay green with the shared NMI, IRQ and BRK entry in place.
   4. A state saved in the middle of a BRK, IRQ or NMI sequence loads back to the same run in `core.state_fork.*` and `libretro.runahead`, and moved hashes stay identical on all six platforms.
 
-**Plans**: 8/9 plans executed
+**Plans**: 9/9 plans complete
 
 Plans:
 **Wave 1**
@@ -197,15 +197,21 @@ Plans:
 - [x] 21-08-PLAN.md — All-eleven/all-114 acceptance contract and local evidence preparation (wave 7)
 
 **Wave 8** *(blocked on Wave 7 completion)*
-- [ ] 21-09-PLAN.md — Fresh source-bound hosted acceptance after external delivery (wave 8)
+- [x] 21-09-PLAN.md — Fresh source-bound hosted acceptance after external delivery (wave 8)
 
-Plan 21-08 is locally qualified on candidate `43d260a914ba76a130809524fba53ad58aca1298`.
-Its 427-path source mode/blob manifest SHA-256 is
-`20460339ae9f742d3906ebe7ef6d5c4a2fff53c5c4b54cf59bcbb7b99cb9a1b2`;
-CI/ASAN/vectors-full/MMC3 passed 695/695, 686/686, 258/258, and 13/13.
-Plan 21-09 remains pending separately delivered current-candidate hosted
-CI/Nightly, actual PR/tested-merge identities, and immutable artifacts; all
-three Phase 21 requirements remain pending.
+Phase 21 is verified complete: all 9/9 plans, 32/32 truths and INT-01/INT-02/KEEP-01.
+Plan 21-09 production collection/current-checkout validation accepts CI
+`40929011059/1` and Nightly `40929010997/1` for candidate `54c7db2` / tested merge
+`faf1b91`, with 428 matching effective inputs and 16 API-matching artifact ZIPs.
+All eleven v5 targets and 114 protected starting PASS keys pass on all six
+lanes; native hashes match and the original +1% performance gate passes.
+Fresh parent CI passed 695/695 in 382.16 seconds and generated all three
+packages. See `21-EVIDENCE.md`, `21-EXECUTION-EVIDENCE.md` and
+`21-VERIFICATION.md`. WR-01 and Phase 20 CR-01/WR-03/WR-04 remain deferred with
+current-run mitigations; physical exact-tie and provenance limits remain explicit.
+Existing PR #61 remains draft and unmerged; evidence closeout is local and the
+next separate step is `$gsd-ship 21`, followed by milestone audit/closeout after
+review/merge. Earlier Plan 21-08 pins remain historical in its summary.
 
 **Canonical refs**: [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [CONFORMANCE.md](preparation/CONFORMANCE.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (shared `interrupt_entry`), [research/FEATURES.md](research/FEATURES.md) (G3, G4), [research/PITFALLS.md](research/PITFALLS.md) (#4, #5, #6, #11), [research/SUMMARY.md](research/SUMMARY.md) (steps 5, 6, 8)
 
@@ -217,7 +223,7 @@ three Phase 21 requirements remain pending.
 |-------|-----------|----------------|--------|-----------|
 | 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
 | 20. NMI line and VBlank flag | v5 | 12/12 | Complete    | 2026-10-28 |
-| 21. Interrupt latency and hijack | v5 | 8/9 | In Progress | - |
+| 21. Interrupt latency and hijack | v5 | 9/9 | Complete    | 2026-10-29 |
 
 Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 

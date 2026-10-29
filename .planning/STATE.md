@@ -4,56 +4,71 @@ milestone: v5
 milestone_name: NMI, VBlank and sprite-0 timing
 current_phase: 21
 current_phase_name: Interrupt latency and hijack
-current_plan: 9 of 9
-status: executing
-stopped_at: "Debug repair qualified on draft PR 61; canonical delivery ready for separate Plan 21-09 acceptance"
-last_updated: "2026-10-29T18:41:17Z"
+current_plan: 9 of 9 complete
+status: completed
+stopped_at: Phase 21 verified complete; separate ship step remains
+last_updated: "2026-10-29T19:37:06.165Z"
 last_activity: 2026-10-29
-last_activity_desc: "Debug repair published at 54c7db2; CI 40929011059/1 passed 18 jobs and Nightly 40929010997/1 passed seven work jobs; canonical 428-input delivery and read-only availability ready"
-state_head: 54c7db29c73a66bb552e71b0887529249a41a072
+last_activity_desc: Phase 21 verified 32/32; local CI 695/695; requirements complete
+state_head: 274e108b1df497432d8fec310e546e317bec725c
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 27
-  completed_plans: 26
-  percent: 67
+  completed_plans: 27
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated 2026-10-28 after Phase 20, and AGENTS.md.
+See [PROJECT.md](PROJECT.md), updated 2026-10-29 after Phase 21, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004). Plans 21-01 through 21-08 are locally complete. The debug repair publishes candidate 54c7db2 on draft PR #61, retaining original execution history under refs/phase21-history/execution-6c42607. CI 40929011059/1 passed all 18 jobs and Nightly 40929010997/1 passed all seven work jobs on the same 428-input source; only its declared PR report job skipped. The unchanged +1% performance gate passes all three ROMs and all six platform evidence controls finish below the original 120-second cap. The clean hosted campaign remains 119 PASS / 27 FAIL / 5 DRAW, 146 terminal scored rows, all 114 protected passes and eleven targets retained. Six native hash artifacts are byte-identical. Final local CI 695/695, ASAN 686/686, vectors 258/258, MMC3 13/13 and hygiene 13/13 pass. Canonical delivery.json, bare candidate SHA, 428 modes/blobs and absolute clean clone now select this source; read-only availability passes. Resume Plan 21-09 separately for production collection/acceptance. All three phase requirements remain pending; no merge or ready transition occurred. See 21-DELIVERY.md for exact identities, raw evidence, preserved debt and the next command. Earlier failed attempts/local qualification and Phase 20 notes remain historical.
+Current focus: Phase 21 is complete; all 27 v5 plans and all 11 requirements are verified. Separate shipping and milestone review remain.
 
-Nightly follow-up and re-verification: the native clock/hash helpers and Windows
-binary-fixture repair have fresh source-bound acceptance. CI `40748417351/1`
-passed 18/18 jobs and Nightly `40740261760/1` passed all seven work jobs, including
-Intel session controls. Current effective source is
-`87ee34cf7b5ba45d87e748ab69b69f929a7fe7be96c02ed044bf9b1394f93202`
-over 418 files. Production collection and current-checkout validation passed;
-all 418 mode/blob entries match the candidate and both hosted trees. Fresh local
-CI passed 688/688 in 434.48 seconds and packaged all three deliverables.
-Independent verification passed 32/32 with a fresh 95-file fingerprint.
-The prior 417-input acceptance remains historical. See
-20-REVERIFICATION-EVIDENCE.md in the Phase 20 directory. Phase 21 execution
-began with Plan 21-01; its summary records 262/262 focused tests and 689/689
-full CI tests, with all three packages generated.
+Plan 21-09 collected and validated actual CI `40929011059/1` and Nightly
+`40929010997/1` for candidate `54c7db2`, tested merge `faf1b91` and protected
+base `a64c23f`. All 428 effective inputs match candidate, merge, current and
+clean source, including actual filesystem modes checked independently. All
+16 required artifact ZIPs match API digests. The clean campaign is 119 PASS /
+27 FAIL / five DRAW inventory entries, all 146 scored rows terminal, with
+all eleven targets and 114 protected starting PASS keys retained on all six
+lanes. Complete native hash inventories match and the unchanged +1% performance
+gate passes all three ROMs. Native every-stage and actual-adapter replay pass.
+
+Independent verification passed 32/32. Fresh parent CI passed 695/695 in 382.16
+seconds and generated library, runner and libretro packages. INT-01, INT-02 and
+KEEP-01 are complete. Source format 3/revision 9/ABI 1 remain unchanged. The
+config edit and original causal history under
+`refs/phase21-history/execution-6c42607` remain intact. Deferred WR-01 and
+Phase 20 CR-01/WR-03/WR-04 have run-specific mitigations, not recurring fixes;
+physical exact-tie and judgment-tier provenance limits remain explicit.
+
+PR #61 remains draft and unmerged. Execution evidence and closeout are local;
+no push, ready transition, merge or further lifecycle command ran. See
+`21-EVIDENCE.md`, `21-EXECUTION-EVIDENCE.md` and `21-VERIFICATION.md` in the
+Phase 21 directory. Earlier source pins and pending statuses below are historical.
 
 ## Current Position
 
-Phase: 21 (Interrupt latency and hijack) — IN PROGRESS
-Current Plan: 9 of 9
-Plan: 21-08 complete; 8/9 complete; Plan 21-09 is next with delivered source-bound hosted facts
-Status: Debug repair and required local/hosted checks passed; Plan 21-09 production acceptance remains pending
-Last activity: 2026-10-29 — Debug repair qualified on draft PR 61; canonical handoff and read-only availability ready
+Phase: 21 (Interrupt latency and hijack) — COMPLETE
+Current Plan: 9 of 9 complete
+Plan: All 9/9 phase plans complete; all 27/27 v5 plans complete
+Status: Verified complete; separate ship step and milestone audit/closeout remain
+Last activity: 2026-10-29 — Phase 21 verified 32/32; local CI 695/695; requirements complete
 
-Progress: [███████░░░] 67%
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
 ### Decisions
+
+- [Phase 21 closeout]: Accept only source-bound final hosted attempts; keep candidate, merge, protected base and evidence-only commits distinct. All 428 input modes/blobs and actual filesystem modes match.
+- [Phase 21 closeout]: The independent result is 32/32 with all three requirements satisfied. Retain finite-margin integer-timestamp semantics, explicit unverified physical ties and judgment-tier prohibitions without adding a manual sign-off gate.
+- [Phase 21 closeout]: Defer recurring source-identity WR-01 with collector maintenance; independent filesystem checks mitigate this accepted run. Preserve Phase 20 CR-01/WR-03/WR-04 and original execution history.
+
+Earlier decisions below retain their original point-in-execution status; pending hosted acceptance was resolved by Plan 21-09 above.
 
 - [Phase 21 approved continuation, 2026-10-29]: The owner approved bounded investigation and repair of the traced DMC/open-bus prerequisite at `$4013`, preserving the prepared shared-entry implementation, one green causal commit and every acceptance gate. A general DMA cluster and remote delivery remain outside this approval. The final source-bound campaign and local CI now pass; hosted/all-lane evidence remains pending.
 
@@ -89,6 +104,8 @@ Progress: [███████░░░] 67%
 
 ### Blockers/Concerns
 
+- [Phase 21 review] WR-01: recurring identity verification omits actual regular-file worktree mode. Both current checkouts independently match all 428 actual modes/blobs, including an execute-bit/type supplement; future helper repair remains deferred in 21-REVIEW-DISPOSITION.md.
+
 - [Phase 21 execution] Plan 21-04's historical pre-repair failure (`$4013` returned `$40`; latency was `0x03/3`; overlap rows were not-run) is resolved by the owner-approved bounded DMC retry/controller open-bus repair. Final local campaign evidence is 119 PASS / 27 FAIL / 5 DRAW over 146 terminal rows, with all 114 protected starting PASS keys retained and all eleven targets passing. Plan 21-06 full CI passed 693/693. Hosted/all-lane acceptance remains assigned to later plans. See 21-04-SUMMARY.md, 21-04-CHECKPOINT.md, and 21-06-SUMMARY.md.
 
 - [Phase 20 review debt] CR-01: recurring collector enforcement omits Git file modes. The current accepted run has an independent 418/418 mode/blob match against all three hosted trees; future enforcement repair is deferred.
@@ -110,6 +127,15 @@ Progress: [███████░░░] 67%
 | 261026-i8z | Reduce repeated CI suites, session controls and vector inventory work | 2026-10-26 | dbbf04f | [261026-i8z-reduce-ci-overhead-using-the-recovered-c](./quick/261026-i8z-reduce-ci-overhead-using-the-recovered-c/) |
 
 ## Delivery
+
+Current Phase 21 acceptance is complete for candidate `54c7db2` / tested merge
+`faf1b91`, CI `40929011059/1` and Nightly `40929010997/1`. The immutable bundle
+is `build/phase21-hosted-evidence/`; the accepted effective digest is
+`004e963df11ad77f080e422ea0b87dab5c060117d38ff9b43d330116b974479e`.
+Plan 21-09 evidence and independent verification are committed locally. Ship
+separately through existing draft PR #61; this execution performs no remote mutation.
+
+Historical Phase 20 delivery follows; its publication and pending states are historical.
 
 Current acceptance refresh: candidate `7848cc8980e8e96a1fc6f5ec223a9783fb7ef19d`,
 tested merge `716e8d49c80602e3524b9348881ddf171fe33a2f`, protected base `ab9c2e6`.
@@ -178,7 +204,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 21` to resume Plan 21-09 using canonical `build/phase21-hosted-evidence/delivery.json` and absolute `build/phase21-clean-source`. They select candidate 54c7db2, successful CI 40929011059/1 and Nightly 40929010997/1, matching 428-input modes/blobs and ready read-only availability. Production collection/acceptance has not run. Preserve INT-01/INT-02/KEEP-01 as pending, the exact existing config edit, original causal history and collector debt. The debug step ran no merge, ready transition or further lifecycle command.
+Run `$gsd-ship 21` to publish and prepare the completed phase through existing
+draft PR #61. All phase plans, requirements and independent verification are
+complete. Preserve the exact config edit, original causal history, accepted
+428-input source, deferred collector findings and physical-tie limits. After
+PR review/merge, run the milestone audit and closeout as separate authorized
+steps; do not treat verified implementation as an already shipped milestone.
 
 ## Performance Metrics
 
@@ -195,9 +226,10 @@ Run `$gsd-execute-phase 21` to resume Plan 21-09 using canonical `build/phase21-
 | Phase 21 P06 | 29m | 2 tasks | 5 files |
 | Phase 21 P07 | 24m | 2 tasks | 3 files |
 | Phase 21 P08 | 84min | 3 tasks | 13 files |
+| Phase 21 P09 | 18min | 2 tasks | 2 files |
 
 ## Session
 
-**Last session:** 2026-10-29T18:41:17Z
-**Stopped at:** Debug repair qualified on draft PR 61; canonical delivery ready for separate Plan 21-09 acceptance
-**Resume file:** .planning/phases/21-interrupt-latency-and-hijack/21-DELIVERY.md
+**Last session:** 2026-10-29T19:38:13Z
+**Stopped at:** Phase 21 verified complete; ready for separate ship step on PR #61
+**Resume file:** None
