@@ -1968,3 +1968,106 @@ read-only availability passes. Details and retained raw paths are in
 `21-DELIVERY.md`. This debug step performs no Plan 21-09 collection, success
 ledger, phase/requirement completion, merge or ready transition. Physical-tie
 limits, original causal history, config edit and collector debt remain intact.
+
+## Phase 21 final hosted acceptance (2026-10-29)
+
+This section supersedes the earlier pending-acceptance status above. Actual
+current-source collection and validation succeeded for draft PR #61, candidate
+`54c7db29c73a66bb552e71b0887529249a41a072`, tested synthetic merge
+`faf1b9159ce8dae83cd2c08c155fc9b77fac32de` and protected base
+`a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562`. CI `40929011059/1` passed 18/18
+jobs; Nightly `40929010997/1` passed its seven work jobs, with the report job
+skipped by its declared PR-only condition. The measured effective inventory is
+428 inputs, SHA-256
+`004e963df11ad77f080e422ea0b87dab5c060117d38ff9b43d330116b974479e`.
+Candidate, tested merge, current checkout and the existing clean source
+checkout match every effective mode/blob row. The detailed run, attempt, job,
+artifact IDs, content hashes and collection/validation record are in
+`.planning/phases/21-interrupt-latency-and-hijack/21-EVIDENCE.md`; all 16
+retained ZIPs match their GitHub API digest records.
+
+The final clean Linux x64 AccuracyCoin campaign used the pinned ROM and current
+behavior revision 9 at the existing 1800-frame cap. It completed 22 pages and
+all 146 scored terminal rows: **119 PASS / 27 FAIL**, zero skip/not-run/timeout,
+and five inventory-only DRAW rows. All 114 freshly authenticated protected
+main PASS keys were retained and every exact v5 target passed. There was no row
+movement from the immediately preceding final-source campaign. The report
+SHA-256 remains
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`; the
+56-input campaign fingerprint is
+`bf09fe6ebb319fbb668abb65f70e5142bc1477a0dc70f391a305d7f3e97c136a`.
+
+All six hosted native inventories contain the complete 114-row frame, PCM,
+APU-transition and serialized-state hash set. They are byte-identical to the
+pinned `tests/runner/hashes.txt`, SHA-256
+`76f999668c5bf584074a37f050a19cb4c31f9c63b6671b06b85388e9950be850`; the
+actual hosted hash-equality and required-rollup jobs passed. State format 3,
+behavior revision 9, ABI 1, state sizes and state hashes remain unchanged from
+the final Phase 21 source. The interrupt recognition/inhibition distinction
+uses the existing bounded byte, not a new serialized field. No PCM or other
+hash movement is attributed to candidate `54c7db2`: it only corrected the
+synthetic Git conflict fixture after the core/helper repair. Earlier state
+hash changes and their one-byte layout reason, as well as earlier interrupt
+campaign divergences, remain recorded in the historical sections above.
+
+Native replay reaches BRK C2–C7, IRQ C1–C7 and NMI C1–C7 through production
+entry actions, then restores through public native state APIs and checks exact
+bus/timing continuation, PC/status/stack/request history, canonical bytes,
+guest markers, video, valid stereo PCM, frame metadata and APU transitions.
+The sources preserve nonzero synthesis/filter/sample history and interleave
+instances with distinct entry/audio histories. Omitted-history, skipped-load
+and wrong-origin controls diverge at expected accesses. The loaded libretro
+module exercises all 20 entry cutpoints at depths 1–3 and both input scripts
+(60 class/depth and 120 script/depth cases), comparing committed and
+speculative state, ticks, frame metadata, video, stereo PCM and markers. Its
+four malformed-history controls reach the expected mismatch masks. The four
+held/released inhibited-NMI histories add 24 script/depth cases and require an
+initial byte-for-byte serialization echo. The actual RetroArch 1.22.2 hosted
+marker artifact reaches 16 intended boundaries and `VERDICT_OK`, while its
+drop-advance, double-advance and wrong-origin controls reject as expected.
+
+Hosted Linux x64/arm64, macOS x64/arm64 and Windows x64/arm64 Phase 21 controls
+passed in 36.02, 32.96, 104.99, 46.03, 49.51 and 63.31 seconds respectively;
+all remain under the unchanged 120-second cap. Holy Mapperel
+`holymapperel.m2.decode` and `runner.boot_to_play` passed in every build lane.
+The hosted ASAN, both no-float lanes, host-session controls, hygiene, title,
+vector inventory, RetroArch and required-rollup jobs also passed. Local final-
+source workflows separately passed CI 695/695 in 392.75 seconds, ASAN 686/686
+in 187.20 seconds, full vectors 258/258 in 8.65 seconds, MMC3 Oracle 13/13 in
+1.72 seconds and hygiene 13/13 in 45.49 seconds.
+
+The actual hosted performance artifact is bound to the accepted run, source
+and attempts. It uses GCC 14.2.0 / Valgrind 3.22.0, base `a64c23f` and tested
+head `faf1b91`, with the original zero-spread base controls and +1% per-ROM
+threshold:
+
+| ROM | Mapper | Base Ir/frame | Head Ir/frame | Delta |
+|---|---:|---:|---:|---:|
+| nesteroids | 0 | 23,914,932 | 24,103,968 | +0.79% |
+| runner | 1 | 22,203,492 | 22,392,202 | +0.84% |
+| M4_P256K_C256K | 4 | 21,998,505 | 22,215,976 | +0.98% |
+
+The companion Nightly evidence records full vectors 258/258 and MMC3 Oracle
+13/13 with no failure or skip. Earlier failed delivery is preserved: candidate
+`5cf4c9c` exceeded the same performance gate by +2.88%, +3.10% and +3.19%, and
+three hosted control jobs timed out. Repair `319916f` restored the gate; the
+Windows CRLF discovery then led to fixture-only correction `54c7db2`. The
+earlier and canceled attempts do not contribute to acceptance.
+
+The change from the old 56-input campaign fingerprint to the final
+`bf09fe6…` fingerprint follows the measured AccuracyCoin source/build-input
+refreshes recorded above; its campaign report and final hash inventory did
+not move. State format/layout and timing evidence are distinct: the previous
+IRQ state addition explains the documented one-byte serialized-state change,
+while CPU/APU behavior accounts for any timing-derived audio movement in the
+earlier historical campaign sections. Final accepted source has no incidental
+row or PCM movement.
+
+Acceptance is bounded by finite-margin source ordering and coherent interrupt
+vector pairs. The retained deterministic equal-timestamp rule is not evidence
+for a physical CPU/PPU zero-margin tie winner. The GPL/LGPL clean-room
+prohibition remains flagged-unverified judgment intent; no manual sign-off was
+created. Collector CR-01, WR-03 and WR-04 remain deferred despite this run's
+independent mode/blob inventory and absolute clean-source/current-source
+validation. The PR remains draft and open. This plan records hosted outcomes;
+parent verification and lifecycle updates remain separate.

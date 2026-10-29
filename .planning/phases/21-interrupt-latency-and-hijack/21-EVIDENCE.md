@@ -174,3 +174,70 @@ run/attempt binding is captured in the artifact JSON and availability record.
 | Nightly 40929010997/1 | `vectors-full-evidence-40929010997` | `12922705132` | `406e124ca081e924e5ba7b736aa9bf31fd5c7ba6d35e7e1058830f40103a5509` |
 | Nightly 40929010997/1 | `mmc3-oracle-evidence-40929010997` | `12920713402` | `4d7ece6bd7f710ef1106e9f59808b89cc4917abbd9d568484fc4785655ff8968` |
 
+## Interrupt replay and host evidence on the accepted source
+
+The source-bound local native replay matrix reaches 20 production entry
+cutpoints: BRK C2–C7, IRQ C1–C7 and NMI C1–C7. Public native save/load
+continuation compares remaining production bus operations and cycle times,
+PC/status/stack, request consumption, canonical saved bytes, guest markers,
+pixels, valid stereo PCM, frame metadata and APU transition history. Fixtures
+retain nonzero synthesis, filter and sample history; interleaved instances have
+distinct histories. Omitted-history, skipped-load and wrong-origin controls
+diverge at their expected bus locations while clean siblings match.
+
+The actual dynamically loaded libretro module replays the same 20 cutpoint
+classes through `retro_unserialize`/`retro_run`, at runahead depths 1–3 and
+under both existing input scripts (60 class/depth and 120 script/depth cases).
+It checks committed/speculative state and ticks, converted video, stereo PCM,
+frame metadata and guest markers. Four adapter controls reach the intended
+comparison verdicts: stale state (`0x0E`), skipped unserialize (`0x1E`), omitted
+entry history (`0x1C`) and wrong origin (`0x0E`). The held/released inhibited-
+NMI extension adds four active-C6 / idle-after-C7 histories across scripts and
+depths (24 cases), requires initial serialization to echo every byte, and
+checks the first-frame IRQ/NMI marker outcomes. These are test-runner
+observations on the accepted effective source, not physical zero-margin tie
+measurements.
+
+The hosted `retroarch-marker-progression` artifact independently records the
+actual RetroArch 1.22.2 session reaching all 16 intended boundaries and
+`VERDICT_OK`; dropped-advance, double-advance and wrong-origin faults produce
+their expected rejections. Hosted ASAN and both Linux no-float jobs are among
+the passing CI jobs; local final-source workflows separately passed ASAN
+686/686. Full-vector and MMC3 Nightly inventories pass 258/258 and 13/13.
+
+## Causal history and acceptance limits
+
+The earlier published candidate `5cf4c9cf056682f79daeafc7e35a38215903e930`
+is historical and failed its actual CI attempt: performance regressed by
+2.88%, 3.10% and 3.19%, and three platform control jobs reached the unchanged
+120-second cap. The core/helper repair `319916fb3868aa0343d887419a22ad96cd551e8a`
+restored performance and reduced the source-identity control's measured Git
+process count from 1285 to seven per inventory. Its Windows run exposed a
+CRLF-sensitive unresolved-index fixture. The final fixture-only candidate
+`54c7db29c73a66bb552e71b0887529249a41a072` writes explicit LF and verifies raw
+bytes and constructed stages; its actual CI and Nightly attempts are the only
+hosted acceptance recorded above. The failed and canceled attempts remain
+historical; no source-point or earlier-run substitution was used.
+
+The accepted source retains state format 3, behavior revision 9, ABI 1 and the
+existing interrupt-history byte. Final frame, PCM, APU-transition and state
+inventory digests are unchanged from the pinned 114-row inventory; candidate
+`54c7db2` changes only the evidence fixture, so no state-layout or CPU/APU
+timing change is attributed to that delivery correction. The final campaign
+has no incidental row movement from its immediately preceding measured
+campaign: report SHA-256 remains
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`, with
+119 PASS, 27 FAIL, five inventory-only DRAW and all 146 scored rows terminal.
+
+Finite-margin source ordering constrains IRQ/NMI takeover and coherent vector
+pairs. The global integer equal-timestamp policy is deterministic model
+behavior only; the physical zero-margin CPU/PPU tie winner remains unmeasured.
+The clean-room GPL/LGPL prohibition remains flagged-unverified judgment-tier
+intent; no additional human sign-off is claimed. Collector issues CR-01
+(recurring mode enforcement), WR-03 (recursive scan/relative clean-source
+handling) and WR-04 (duplicate validation) remain open. This run's independent
+428-row mode/blob comparison, absolute clean-source collection and
+current-checkout validation mitigate this evidence instance only and do not
+repair those debts. The PR remains open, draft and unmerged; INT-01, INT-02,
+KEEP-01 and phase completion are left for independent parent verification.
+
