@@ -1924,3 +1924,47 @@ reports no findings. Exact physical tie precedence and collector
 CR-01/WR-03/WR-04 remain deferred. Actual new-source hosted qualification is
 recorded separately; these local facts do not complete Plan 21-09 or phase
 requirements.
+
+### Final corrected-source qualification
+
+The published source repair is `319916fb3868aa0343d887419a22ad96cd551e8a`;
+fixture-only followup `54c7db29c73a66bb552e71b0887529249a41a072` writes Git
+index-info input with explicit LF and checks both raw bytes and constructed
+unresolved stages. First-repair hosted performance passed, but Windows found
+that native CRLF made Git ignore the intended conflict rows. A deliberate CRLF
+mutant now fails the exact-byte guard. That intermediate attempt does not
+supply final qualification.
+
+On final corrected source, local CI passes 695/695 in 392.75 seconds with
+all three packages, ASAN 686/686 in 187.20 seconds, vectors 258/258 in 8.65
+seconds, MMC3 13/13 in 1.72 seconds and hygiene 13/13 in 45.49 seconds.
+Actual CI `40929011059/1` succeeds in all 18 jobs, including performance,
+six builds, six-platform hash equality, both Linux no-float lanes, host checks
+and the required rollup. Actual Nightly `40929010997/1` succeeds in all seven
+work jobs; its PR report job is skipped by its declared condition. Both runs
+bind candidate `54c7db2`, tested merge
+`faf1b9159ce8dae83cd2c08c155fc9b77fac32de` and protected base `a64c23f`.
+
+Final hosted performance reproduces the exact three local counts above, with
+the +1% gate unchanged. Its raw ZIP, artifact `12920863587`, has SHA-256
+`e989d141819124cb704f65b1ffc267cf582506902275c002084d2595ab5933cf`, matching
+the API digest. Final Phase 21 controls pass on Linux x64/ARM64 in 36.02/32.96
+seconds, macOS x64/ARM64 in 104.99/46.03 seconds, and Windows x64/ARM64 in
+49.51/63.31 seconds, under the unchanged 120-second cap. All six native hash
+files are byte-identical to pinned
+`76f999668c5bf584074a37f050a19cb4c31f9c63b6671b06b85388e9950be850`.
+The clean hosted campaign has `source_dirty=0`, unchanged report/fingerprint,
+119 PASS / 27 FAIL / five DRAW, 146 terminal scored rows, all 114 protected
+passes and eleven exact targets.
+
+The final effective tracked inventory has 428 inputs and digest
+`004e963df11ad77f080e422ea0b87dab5c060117d38ff9b43d330116b974479e`.
+Candidate/tested/current/clean tracked modes and blobs independently agree;
+the Git-tree inventory SHA-256 is
+`d62c2f7e3f5b27653f2edcd9f9fef77d272bef6465b8afb161f8b76186899fe3`.
+All 16 required raw ZIP digests match GitHub metadata. Canonical delivery
+selectors and the absolute clean clone now select this source, and production
+read-only availability passes. Details and retained raw paths are in
+`21-DELIVERY.md`. This debug step performs no Plan 21-09 collection, success
+ledger, phase/requirement completion, merge or ready transition. Physical-tie
+limits, original causal history, config edit and collector debt remain intact.

@@ -6,11 +6,11 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 current_plan: 9 of 9
 status: executing
-stopped_at: "Published Phase 21 draft PR 61; repair hosted performance and evidence-control timeouts before 21-09"
-last_updated: "2026-10-29T17:32:29.094954+00:00"
+stopped_at: "Debug repair qualified on draft PR 61; canonical delivery ready for separate Plan 21-09 acceptance"
+last_updated: "2026-10-29T18:41:17Z"
 last_activity: 2026-10-29
-last_activity_desc: "Draft PR 61 published at 5cf4c9c; completed CI 40919233064/1 failed performance and control timeouts; Nightly 40919233254/1 passed all seven work jobs; delivery facts captured"
-state_head: 5cf4c9cf056682f79daeafc7e35a38215903e930
+last_activity_desc: "Debug repair published at 54c7db2; CI 40929011059/1 passed 18 jobs and Nightly 40929010997/1 passed seven work jobs; canonical 428-input delivery and read-only availability ready"
+state_head: 54c7db29c73a66bb552e71b0887529249a41a072
 progress:
   total_phases: 3
   completed_phases: 2
@@ -25,7 +25,7 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-28 after Phase 20, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004). Plans 21-01 through 21-08 are locally complete. Draft PR #61 publishes candidate 5cf4c9c, a formatted clean commit retaining the original execution history under refs/phase21-history/execution-6c42607. The campaign remains 119 PASS / 27 FAIL / 5 DRAW across 146 terminal rows. Publication preflight passed hygiene 13/13 and focused tests 77/77. Completed hosted CI 40919233064/1 failed the +1% performance gate and the Phase21 evidence-control timeout on macOS x64 and both Windows platforms; Nightly 40919233254/1 passed all seven work jobs. Real delivery.json and artifact facts exist, but hosted acceptance remains blocked. Repair those CI failures next, then resume Plan 21-09. All three phase requirements remain pending. See 21-DELIVERY.md for identities, raw evidence and the next command. Earlier local qualification and Phase 20 notes remain historical.
+Current focus: v5 NMI, VBlank and sprite-0 timing (RM-004). Plans 21-01 through 21-08 are locally complete. The debug repair publishes candidate 54c7db2 on draft PR #61, retaining original execution history under refs/phase21-history/execution-6c42607. CI 40929011059/1 passed all 18 jobs and Nightly 40929010997/1 passed all seven work jobs on the same 428-input source; only its declared PR report job skipped. The unchanged +1% performance gate passes all three ROMs and all six platform evidence controls finish below the original 120-second cap. The clean hosted campaign remains 119 PASS / 27 FAIL / 5 DRAW, 146 terminal scored rows, all 114 protected passes and eleven targets retained. Six native hash artifacts are byte-identical. Final local CI 695/695, ASAN 686/686, vectors 258/258, MMC3 13/13 and hygiene 13/13 pass. Canonical delivery.json, bare candidate SHA, 428 modes/blobs and absolute clean clone now select this source; read-only availability passes. Resume Plan 21-09 separately for production collection/acceptance. All three phase requirements remain pending; no merge or ready transition occurred. See 21-DELIVERY.md for exact identities, raw evidence, preserved debt and the next command. Earlier failed attempts/local qualification and Phase 20 notes remain historical.
 
 Nightly follow-up and re-verification: the native clock/hash helpers and Windows
 binary-fixture repair have fresh source-bound acceptance. CI `40748417351/1`
@@ -45,9 +45,9 @@ full CI tests, with all three packages generated.
 
 Phase: 21 (Interrupt latency and hijack) — IN PROGRESS
 Current Plan: 9 of 9
-Plan: 21-08 complete; 8/9 complete; Plan 21-09 is next, pending external hosted evidence
-Status: Local final CI, ASAN, full vectors, and MMC3 checks passed; hosted/all-lane phase acceptance remains pending
-Last activity: 2026-10-29 — Phase 21 Plan 08 local preparation passed its final configured gates
+Plan: 21-08 complete; 8/9 complete; Plan 21-09 is next with delivered source-bound hosted facts
+Status: Debug repair and required local/hosted checks passed; Plan 21-09 production acceptance remains pending
+Last activity: 2026-10-29 — Debug repair qualified on draft PR 61; canonical handoff and read-only availability ready
 
 Progress: [███████░░░] 67%
 
@@ -178,7 +178,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-debug Phase 21 hosted CI performance regression and evidence-control timeouts; use .planning/phases/21-interrupt-latency-and-hijack/21-DELIVERY.md`. Completed actual runs and delivery.json are available, but failed CI blocks Plan 21-09 acceptance. Preserve INT-01/INT-02/KEEP-01 as pending, the existing config edit, all causal history and collector debt. No merge or further lifecycle command ran during delivery.
+Run `$gsd-execute-phase 21` to resume Plan 21-09 using canonical `build/phase21-hosted-evidence/delivery.json` and absolute `build/phase21-clean-source`. They select candidate 54c7db2, successful CI 40929011059/1 and Nightly 40929010997/1, matching 428-input modes/blobs and ready read-only availability. Production collection/acceptance has not run. Preserve INT-01/INT-02/KEEP-01 as pending, the exact existing config edit, original causal history and collector debt. The debug step ran no merge, ready transition or further lifecycle command.
 
 ## Performance Metrics
 
@@ -198,6 +198,6 @@ Run `$gsd-debug Phase 21 hosted CI performance regression and evidence-control t
 
 ## Session
 
-**Last session:** 2026-10-29T17:32:29.094954+00:00
-**Stopped at:** Published Phase 21 draft PR 61; repair hosted performance and evidence-control timeouts before 21-09
+**Last session:** 2026-10-29T18:41:17Z
+**Stopped at:** Debug repair qualified on draft PR 61; canonical delivery ready for separate Plan 21-09 acceptance
 **Resume file:** .planning/phases/21-interrupt-latency-and-hijack/21-DELIVERY.md

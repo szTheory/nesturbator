@@ -1,5 +1,126 @@
 # Phase 21 hosted delivery, 2026-10-29
 
+## Hosted regression repair qualification
+
+The debug repair is published on the same draft PR #61 as
+`54c7db29c73a66bb552e71b0887529249a41a072`. Actual final pull-request attempts
+are [CI `40929011059/1`](https://github.com/szTheory/nesturbator/actions/runs/40929011059)
+and [Nightly `40929010997/1`](https://github.com/szTheory/nesturbator/actions/runs/40929010997),
+both completed successfully. CI passed all 18 jobs; Nightly passed all seven
+work jobs, with its report job skipped by the declared pull-request condition.
+The tested merge is
+`faf1b9159ce8dae83cd2c08c155fc9b77fac32de`, with protected base `a64c23fd3ca7`
+and the repair candidate as its two parents; its full tree equals the candidate,
+`e27d0dd1cabf913f3c76c36c3fa59906ecb6e14d`.
+
+The core/helper repair is `319916fb3868aa0343d887419a22ad96cd551e8a`.
+Its actual hosted performance gate passed, but both Windows builds exposed
+native CRLF in the new synthetic Git conflict fixture. Followup `54c7db2`
+changes only that fixture to explicit LF and verifies its bytes and exact
+constructed stages; an explicit CRLF mutant is rejected locally. Earlier
+repair CI `40927374281/1` was canceled after those two test failures when the
+correction was published. Its raw facts and performance success are retained,
+and its Nightly `40927374013/1` remains historical. No failed or canceled
+attempt supplies final acceptance.
+
+The enlarged cycle had prevented GCC 14 from specializing dynamic PPUSTATUS
+work and folding an unobserved timestamp. Constant ordinary/status cycle
+arguments, one remaining 15-tick advance, transition-first NMI handling and
+operation-specific IRQ acceptance remove that overhead while preserving the
+interrupt and state histories. The evidence helper batches its independent
+committed/index/raw-worktree inventory instead of launching Git three times
+per path. Its measured work budget rejects the old helper (1285 launches versus
+seven), and independent semantic controls cover divergent blobs, index modes,
+staged-only paths, spaces/raw CRLF, symlink target bytes, missing inputs and
+unresolved stages. Neither the +1% performance threshold nor the 120-second
+control timeout changed.
+
+Final corrected-source local CI passes 695/695 in 392.75 seconds with all
+three packages. Full CPU vectors pass 258/258 in 8.65 seconds, MMC3 passes
+13/13 in 1.72 seconds, hygiene passes 13/13 in 45.49 seconds, and ASAN passes
+686/686 in 187.20 seconds.
+The full CI invocation uses fresh protected-main authority
+with exactly 114 PASS keys. Its campaign and eleven-target gates preserve
+119 PASS / 27 FAIL, all 146 scored rows terminal and five DRAW rows. The report
+digest remains `56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`;
+the refreshed 56-input fingerprint is
+`bf09fe6ebb319fbb668abb65f70e5142bc1477a0dc70f391a305d7f3e97c136a`.
+
+Exact local Linux GCC14/Valgrind 60/360-frame comparisons pass the original
+gate at +0.79045%, +0.84991% and +0.98857%. Reverting only constant status
+dispatch in a scratch object/archive makes M4 fail at +2.200265%; reapplying
+restores +0.988571% exactly. The canonical source and CI/ASAN builds were
+untouched during that causal experiment. Independent read-only source review
+reports no findings.
+
+The final corrected-source hosted performance job also passes with these exact
+counts. Raw artifact `12920863587`, `phase20-perf-40929011059-1`, has downloaded
+ZIP SHA-256
+`e989d141819124cb704f65b1ffc267cf582506902275c002084d2595ab5933cf`, matching
+GitHub's digest; its identity binds the final candidate, tested merge, base and
+attempt. The unchanged gate revalidates its raw samples locally. Final Windows
+x64/ARM64 controls pass in 49.51/63.31 seconds under the original 120-second cap;
+all 679 tests pass on each. Linux x64/ARM64 controls pass in 36.02/32.96 seconds,
+and macOS ARM64 in 46.03 seconds. macOS Intel passes all 691 tests, with controls
+in 104.99 seconds. The original three timeout environments now all pass.
+
+The clean hosted Linux campaign records `source_dirty=0`, the final tested
+merge, 119 PASS / 27 FAIL / five DRAW, all 114 authenticated protected-main PASS
+keys and all eleven exact targets. Its report/fingerprint match the local
+values above. All six platform native hash artifacts are byte-identical
+to the existing pinned inventory, SHA-256
+`76f999668c5bf584074a37f050a19cb4c31f9c63b6671b06b85388e9950be850`.
+The actual six-platform hash-equality job and CI-required rollup both pass.
+
+The new semantic-control script increases the effective tracked inventory to
+428 inputs. Canonical and absolute no-hardlink clean clone manifests match
+byte-for-byte, SHA-256
+`b11cb67a1a8e84c045a661cecfb7999bdeed3bcd25bed493cd49ed7762182e7b`.
+Independent candidate/tested-merge mode/blob inventories also match all 428
+paths, SHA-256
+`d62c2f7e3f5b27653f2edcd9f9fef77d272bef6465b8afb161f8b76186899fe3`.
+The clean source checkout is `build/phase21-repair-clean-source/`; the new
+delivery preparation root is `build/phase21-repair-hosted-evidence/`, with
+bare-SHA `candidate.txt`, the exact seven-field `delivery.json`, and raw
+run/PR snapshots. Earlier failed delivery bytes remain in the original bundle.
+
+All 16 required raw artifact ZIPs are retained with API-matching SHA-256 and
+source-bound identities in `raw-artifacts/inventory.json` under that new root.
+The production read-only availability function returns `available` for the
+final attempts and 428-input effective digest
+`004e963df11ad77f080e422ea0b87dab5c060117d38ff9b43d330116b974479e`.
+No `MODE=collect` or content-acceptance ledger step ran.
+
+The canonical Plan 21-09 handoff now selects this repaired delivery:
+`build/phase21-hosted-evidence/candidate.txt` contains the supported bare final
+SHA, its `delivery.json` contains the exact new seven-field identity, and
+`effective-inputs.txt` records all 428 tracked modes/blobs. The existing
+`build/phase21-clean-source/` clone was updated through normal fetch/detached
+checkout to the final candidate, with empty status; no checkout was recreated.
+Its manifest matches the canonical checkout byte-for-byte at qualification.
+Canonical read-only availability also passes; its ready record is
+`build/phase21-hosted-evidence/availability/availability.txt`. The supported
+library-entry probe is
+`build/phase21-hosted-evidence/publication/check-availability.cmake`; it retains
+the absolute clean-source mitigation without changing collector debt.
+Original failed selectors, availability snapshot and rejection probe are
+archived under `publication/failed-5cf-selectors/`. The first-repair `319916f`
+selectors are separately retained in the new root's `publication/source-319916f/`.
+
+This debug delivery supersedes earlier preparation source pins for the next
+step; it does not execute acceptance. Next command: `$gsd-execute-phase 21`
+to resume Plan 21-09 using these canonical inputs. INT-01, INT-02 and KEEP-01,
+the phase, and the draft PR remain open. Final delivery metadata commits remain
+local and source-equivalent to the qualified published candidate, avoiding
+unnecessary workflow retriggers during this debug step.
+
+State format 3, revision 9, ABI 1, preserved execution history, config edit,
+physical-tie limits and collector CR-01/WR-03/WR-04 remain unchanged. No merge,
+ready transition, Plan 21-09 execution, phase completion or other lifecycle
+step is part of this debug step. The historical initial delivery follows.
+
+## Historical initial delivery
+
 The owner authorized publishing a draft PR, waiting for CI and Nightly, and preparing real delivery facts. This delivery is complete; hosted acceptance is blocked by actual CI failures. No merge or additional GSD lifecycle step ran. Plans 21-01 through 21-08 remain locally complete; Plan 21-09 and INT-01/INT-02/KEEP-01 remain incomplete.
 
 ## Publication and preserved history
