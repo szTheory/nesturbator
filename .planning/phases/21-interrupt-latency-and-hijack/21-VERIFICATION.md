@@ -238,5 +238,5 @@ No blocking implementation, wiring, behavior, requirement, artifact, or hosted-e
 
 ---
 
-_Verified: 2026-10-29T19:35:20Z_  
+_Verified: 2026-10-29T19:35:20Z_
 _Verifier: the agent (gsd-verifier)_
