@@ -6,11 +6,11 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 current_plan: 9 of 9 complete
 status: completed
-stopped_at: Phase 21 verified complete; separate ship step remains
-last_updated: "2026-10-29T19:37:06.165Z"
+stopped_at: Phase 21 published through PR 61; review and merge remain
+last_updated: "2026-10-29T19:49:20.774Z"
 last_activity: 2026-10-29
-last_activity_desc: Phase 21 verified 32/32; local CI 695/695; requirements complete
-state_head: 274e108b1df497432d8fec310e546e317bec725c
+last_activity_desc: "Phase 21 shipped as PR #61"
+state_head: d85a058dd7e186180a6c6903f4253ad39b99d365
 progress:
   total_phases: 3
   completed_phases: 3
@@ -25,7 +25,7 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-29 after Phase 21, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 21 is complete; all 27 v5 plans and all 11 requirements are verified. Separate shipping and milestone review remain.
+Current focus: Phase 21 is complete; all 27 v5 plans and all 11 requirements are verified. PR review/merge and milestone review remain.
 
 Plan 21-09 collected and validated actual CI `40929011059/1` and Nightly
 `40929010997/1` for candidate `54c7db2`, tested merge `faf1b91` and protected
@@ -45,8 +45,8 @@ config edit and original causal history under
 Phase 20 CR-01/WR-03/WR-04 have run-specific mitigations, not recurring fixes;
 physical exact-tie and judgment-tier provenance limits remain explicit.
 
-PR #61 remains draft and unmerged. Execution evidence and closeout are local;
-no push, ready transition, merge or further lifecycle command ran. See
+Phase 21 execution evidence and the shipping note are published through existing
+PR #61, ready for review. No merge or further lifecycle command ran. See
 `21-EVIDENCE.md`, `21-EXECUTION-EVIDENCE.md` and `21-VERIFICATION.md` in the
 Phase 21 directory. Earlier source pins and pending statuses below are historical.
 
@@ -56,7 +56,7 @@ Phase: 21 (Interrupt latency and hijack) — COMPLETE
 Current Plan: 9 of 9 complete
 Plan: All 9/9 phase plans complete; all 27/27 v5 plans complete
 Status: Verified complete; separate ship step and milestone audit/closeout remain
-Last activity: 2026-10-29 — Phase 21 verified 32/32; local CI 695/695; requirements complete
+Last activity: 2026-10-29 -- Phase 21 shipped as PR #61
 
 Progress: [██████████] 100%
 
@@ -127,6 +127,23 @@ Earlier decisions below retain their original point-in-execution status; pending
 | 261026-i8z | Reduce repeated CI suites, session controls and vector inventory work | 2026-10-26 | dbbf04f | [261026-i8z-reduce-ci-overhead-using-the-recovered-c](./quick/261026-i8z-reduce-ci-overhead-using-the-recovered-c/) |
 
 ## Delivery
+
+Phase 21 is published through existing PR #61 on
+`gsd/phase-21-interrupt-latency-and-hijack`, ready for review. Fresh ship-time
+`cmake --workflow --preset ci` passed 695/695 in 420.78 seconds and generated
+all three packages; raw output is retained at `build/phase21-ship-ci.log`.
+Production immutable-bundle validation passed against the shipping checkout.
+Independent actual-filesystem mode/raw-blob checks matched all 428 effective
+inputs in both current and clean-source checkouts to accepted candidate
+`54c7db2` and tested merge `faf1b91`. The final publication changes evidence only.
+The PR description now records accepted CI `40929011059/1`, Nightly
+`40929010997/1`, all eleven targets, 114 protected PASS keys and six-platform
+hash equality. Existing review dispositions and WR-01/Phase 20 collector debt
+remain visible. The config edit and original execution history remain intact.
+The shipping commit has no CI-skip token, so required checks run on the final
+published head. Review and merge remain; no merge or next lifecycle step ran.
+
+The execution checkpoint below predates this ship publication.
 
 Current Phase 21 acceptance is complete for candidate `54c7db2` / tested merge
 `faf1b91`, CI `40929011059/1` and Nightly `40929010997/1`. The immutable bundle
@@ -204,12 +221,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-ship 21` to publish and prepare the completed phase through existing
-draft PR #61. All phase plans, requirements and independent verification are
-complete. Preserve the exact config edit, original causal history, accepted
-428-input source, deferred collector findings and physical-tie limits. After
-PR review/merge, run the milestone audit and closeout as separate authorized
-steps; do not treat verified implementation as an already shipped milestone.
+Review PR #61 and merge after required CI passes. All phase plans, requirements
+and independent verification are complete. Preserve the exact config edit,
+original causal history, accepted 428-input source, deferred collector findings
+and physical-tie limits. After PR review/merge, run the milestone audit and
+closeout as separate authorized steps; do not treat verified implementation
+as an already shipped milestone.
 
 ## Performance Metrics
 
@@ -231,5 +248,5 @@ steps; do not treat verified implementation as an already shipped milestone.
 ## Session
 
 **Last session:** 2026-10-29T19:38:13Z
-**Stopped at:** Phase 21 verified complete; ready for separate ship step on PR #61
+**Stopped at:** Phase 21 published through PR #61; review and merge remain
 **Resume file:** None

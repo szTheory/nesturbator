@@ -1,5 +1,33 @@
 # Phase 21 hosted delivery, 2026-10-29
 
+## Ship publication
+
+The separate `$gsd-ship 21` step publishes execution closeout and the shipping
+note through existing PR #61 and marks it ready for review. The Conventional
+Commit title remains `fix(cpu): correct interrupt latency and NMI hijacking`.
+The description now records final source-bound acceptance and requirement
+completion instead of the historical pending-hosted statements.
+
+Fresh ship-time `cmake --workflow --preset ci` exits 0: **695/695 tests passed
+in 420.78 seconds**, with library, runner and libretro ZIPs generated. Raw
+output is retained at `build/phase21-ship-ci.log`. Production immutable hosted
+bundle validation exits 0 against the current checkout; its output is
+`verification/ship-bundle-validation.log` beneath the canonical bundle.
+Independent actual-filesystem mode/raw-blob checks match all 428 effective
+inputs in current and clean-source checkouts against candidate `54c7db2`,
+tested merge `faf1b91` and publication HEAD. The accepted input digest and all
+16 artifact identities remain unchanged. Shipping edits affect evidence only.
+
+The config edit remains unstaged and byte-for-byte preserved, SHA-256
+`62a22f6862efb7c74ee31baf2f22bae32d453e79aaec6726dbcf3b7213d47167`.
+Original causal history and existing review dispositions remain intact. WR-01,
+Phase 20 CR-01/WR-03/WR-04 and physical-tie/provenance limits stay visible.
+No external review command is configured. The final shipping commit uses no
+CI-skip token so required CI runs on the final head. PR review/merge remains;
+no merge, milestone audit/closeout or next lifecycle command ran.
+
+The execution and preparation checkpoints below are historical.
+
 ## Execution and acceptance closeout
 
 Plan 21-09 subsequently completed production collection and current-checkout
