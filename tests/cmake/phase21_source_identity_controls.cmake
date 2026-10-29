@@ -132,12 +132,29 @@ execute_process(COMMAND git rev-parse HEAD:target.txt WORKING_DIRECTORY "${root}
 if(NOT "${blob_result}" STREQUAL "0")
   message(FATAL_ERROR "identity conflict fixture cannot read its blob")
 endif()
-file(WRITE "${WORK}/conflict-index"
-  "0 0000000000000000000000000000000000000000\ttarget.txt\n100644 ${conflict_blob} 1\ttarget.txt\n100644 ${conflict_blob} 2\ttarget.txt\n")
+# Git's line-oriented index-info protocol needs LF bytes. Native CRLF text
+# output gives Windows Git invalid CR-suffixed paths, which it ignores.
+file(CONFIGURE OUTPUT "${WORK}/conflict-index" CONTENT
+  "0 0000000000000000000000000000000000000000\ttarget.txt\n100644 ${conflict_blob} 1\ttarget.txt\n100644 ${conflict_blob} 2\ttarget.txt\n"
+  NEWLINE_STYLE LF)
+file(READ "${WORK}/conflict-index" conflict_hex HEX)
+string(REGEX MATCHALL "0a" conflict_newlines "${conflict_hex}")
+list(LENGTH conflict_newlines conflict_newline_count)
+if(conflict_hex MATCHES "0d" OR NOT conflict_newline_count EQUAL 3)
+  message(FATAL_ERROR "identity conflict fixture must use three LF-only protocol rows")
+endif()
 execute_process(COMMAND git update-index --index-info WORKING_DIRECTORY "${root}"
   INPUT_FILE "${WORK}/conflict-index" RESULT_VARIABLE conflict_result)
 if(NOT "${conflict_result}" STREQUAL "0")
   message(FATAL_ERROR "identity conflict fixture cannot create unresolved stages")
+endif()
+execute_process(COMMAND git ls-files --stage -- target.txt WORKING_DIRECTORY "${root}"
+  OUTPUT_VARIABLE conflict_entries OUTPUT_STRIP_TRAILING_WHITESPACE
+  RESULT_VARIABLE stages_result)
+string(REPLACE "\r\n" "\n" conflict_entries "${conflict_entries}")
+if(NOT "${stages_result}" STREQUAL "0" OR NOT conflict_entries STREQUAL
+    "100644 ${conflict_blob} 1\ttarget.txt\n100644 ${conflict_blob} 2\ttarget.txt")
+  message(FATAL_ERROR "identity conflict fixture did not construct exact unresolved target stages")
 endif()
 identity(write "requires stage-zero index entries")
 message(STATUS "Phase 21 committed/index/raw worktree, modes, symlink, missing and conflict controls passed")
