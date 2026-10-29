@@ -1,5 +1,18 @@
 # Phase 21 hosted evidence ledger
 
+## Independent current-worktree mode check
+
+The parent review identified deferred WR-01: the tracked identity helper compares
+committed/index modes and raw worktree blobs, but misses chmod-only worktree mode
+changes. An independent lstat/raw-Git-blob check confirms actual filesystem modes
+and contents for all 428 effective inputs in both current and clean-source
+checkouts match candidate `54c7db2` and tested merge `faf1b91`. Both inventories
+have SHA-256 `d62c2f7e3f5b27653f2edcd9f9fef77d272bef6465b8afb161f8b76186899fe3`.
+The script, JSON result and two mode/blob inventories are retained in
+`build/phase21-hosted-evidence/verification/`; see
+[21-REVIEW-DISPOSITION.md](21-REVIEW-DISPOSITION.md). The recurring helper defect
+remains deferred; no accepted source or gate changed.
+
 ## Plan 21-09 production acceptance (2026-10-29)
 
 The canonical Phase 21 hosted collection completed with `verdict=hosted-pass`.
