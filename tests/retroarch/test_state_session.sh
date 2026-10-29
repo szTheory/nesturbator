@@ -564,7 +564,7 @@ fi
 DRIVER=$DRIVER_PATH
 . "$TRACE_PATH"
 case "$CONTROL" in
-    all|readiness|helper-cost|interruption|cleanup-request-failure|interruption-capture-selftest|interruption-trace-lock-selftest|lock-pid-preflight|lock-release-race|lock-finalizer-cwd|source-root-identity|source-root-preflight) ;;
+    all|readiness|helper-cost|poll-sleep|interruption|interruption-init|cleanup-request-failure|interruption-capture-selftest|interruption-trace-lock-selftest|lock-pid-preflight|lock-release-race|lock-finalizer-cwd|source-root-identity|source-root-preflight) ;;
     *) echo "state session controls: invalid STATE_SESSION_CONTROL=$CONTROL" >&2; exit 2 ;;
 esac
 
@@ -3433,7 +3433,8 @@ capture_interruption_boundary() {
 
 run_interruption_control() {
     interruption_fixture_dir=$1
-    interrupt_dir="$WORK_ROOT/session-$$-interrupt"
+    interrupt_mode=${2:-ordinary}
+    interrupt_dir="$WORK_ROOT/session-$$-interrupt-$interrupt_mode"
     interrupt_ra="$interrupt_dir/ra"
     interrupt_capture_dir="$interrupt_dir/capture"
     interrupt_capture_id=${interrupt_dir##*/}
@@ -3444,6 +3445,32 @@ run_interruption_control() {
     ln -s "$script_path" "$interrupt_dir/fake-nc"
     ln -s "$script_path" "$interrupt_dir/fake-retroarch"
     : >"$interrupt_dir/config.cfg"; : >"$interrupt_dir/core.so"
+    interrupt_frame_index=$FRAME_INDEX
+    if [ "$interrupt_mode" = operation-init ]; then
+        # session.cfg is copied immediately before host launch. The next clock
+        # sample initializes readiness; hold its return until genuine TERM is
+        # pending in the parent, exposing partial timing fields deterministically.
+        interrupt_frame_index="$interrupt_dir/frame-index"
+        cat >"$interrupt_frame_index" <<'EOF'
+#!/bin/sh
+if [ "$1" = --session-clock ] && [ ! -e "$STATE_SESSION_INIT_GATE/clock-armed" ]; then
+    for cfg in "$STATE_SESSION_INIT_GATE"/ra/attempts/*/session.cfg; do
+        if [ -f "$cfg" ]; then
+            : >"$STATE_SESSION_INIT_GATE/clock-armed"
+            tries=0
+            while [ ! -f "$STATE_SESSION_INIT_GATE/clock-release" ] && [ "$tries" -lt 500 ]; do
+                sleep 0.01
+                tries=$((tries+1))
+            done
+            [ -f "$STATE_SESSION_INIT_GATE/clock-release" ] || exit 98
+            break
+        fi
+    done
+fi
+exec "$STATE_SESSION_REAL_FRAME_INDEX" "$@"
+EOF
+        chmod +x "$interrupt_frame_index"
+    fi
     INTERRUPTION_RECORDER_DIR=$interrupt_capture_dir
     INTERRUPTION_RECORDER_ID=$interrupt_capture_id
     INTERRUPTION_EVENT_SEQUENCE=0
@@ -3480,8 +3507,10 @@ run_interruption_control() {
     STATE_SESSION_PUBLICATION_MS=5000 \
     STATE_SESSION_SETTLE_MS=0 \
     STATE_SESSION_PROGRESS_WAIT_MS=20 \
+    STATE_SESSION_INIT_GATE="$interrupt_dir" \
+    STATE_SESSION_REAL_FRAME_INDEX="$FRAME_INDEX" \
     sh "$DRIVER" "$interrupt_dir/fake-retroarch" "$interrupt_dir/config.cfg" "$interrupt_dir/core.so" \
-        "$interruption_fixture_dir/marker.nes" "$interrupt_ra" "$interrupt_dir/retroarch.log" "$FRAME_INDEX" \
+        "$interruption_fixture_dir/marker.nes" "$interrupt_ra" "$interrupt_dir/retroarch.log" "$interrupt_frame_index" \
         "$interruption_fixture_dir/calibration.txt" >"$interrupt_dir/driver.out" 2>&1 &
     interrupt_driver=$!
     record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
@@ -3500,6 +3529,19 @@ run_interruption_control() {
         return 1
     fi
     interrupt_host=$(cat "$interrupt_dir/host.pid")
+    if [ "$interrupt_mode" = operation-init ]; then
+        _tries=0
+        while [ ! -f "$interrupt_dir/clock-armed" ] && [ "$_tries" -lt 300 ]; do
+            sleep 0.01; _tries=$((_tries+1))
+        done
+        [ -f "$interrupt_dir/clock-armed" ] || {
+            : >"$interrupt_dir/clock-release"
+            kill -TERM "$interrupt_driver" 2>/dev/null || true
+            wait "$interrupt_driver" || true
+            echo 'FAIL readiness initialization clock gate was not reached' >&2
+            return 1
+        }
+    fi
     record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
         harness host-observed 0 "$interrupt_host" || true
     if kill -0 "$interrupt_driver" 2>/dev/null; then interrupt_driver_live=0; else interrupt_driver_live=$?; fi
@@ -3509,6 +3551,7 @@ run_interruption_control() {
         "driver_pid=$interrupt_driver driver_liveness=$interrupt_driver_live" || true
     interrupt_signal_status=0
     kill -TERM "$interrupt_driver" 2>/dev/null || interrupt_signal_status=$?
+    [ "$interrupt_mode" != operation-init ] || : >"$interrupt_dir/clock-release"
     record_interruption_event "$interrupt_capture_dir" "$interrupt_capture_id" \
         harness signal-term "$interrupt_signal_status" "$interrupt_driver" || true
     interrupt_status=0
@@ -3594,8 +3637,13 @@ run_interruption_control() {
         esac
     fi
     interruption_recorder_gate || interrupt_recorder_failure=1
-    [ "${interrupt_recorder_failure:-0}" -eq 0 ] && [ "$interrupt_assertion_failure" -eq 0 ] || return 1
-    printf 'state session interruption control: TERM retained; one QUIT; host reaped; capture=usable; trace=3 owned events\n'
+    if [ "${interrupt_recorder_failure:-0}" -ne 0 ] || [ "$interrupt_assertion_failure" -ne 0 ]; then
+        # These retained files contain sanitized fields; make failure evidence
+        # visible in LastTest.log, the file the hosted job actually uploads.
+        cat "$interrupt_dir/driver.out" "$interrupt_journal" "$interrupt_trace" >&2
+        return 1
+    fi
+    printf 'state session interruption control (%s): TERM retained; one QUIT; host reaped; capture=usable; trace=3 owned events\n' "$interrupt_mode"
 }
 
 selftest_lock_finalizer_cwd() (
@@ -3821,11 +3869,15 @@ make_helper_latency_bin() {
     ln -s "$helper_real_perl" "$helper_bin/real-perl"
     cat >"$helper_bin/perl" <<'EOF'
 #!/bin/sh
-# Charge only the superseded simple clock/hash interpreters, leaving journals,
+# Charge only the superseded simple clock/hash/sleep interpreters, leaving journals,
 # supervision and fixture fault injection unchanged. Each charge is bounded.
 if [ "$1" = '-MTime::HiRes=clock_gettime,CLOCK_MONOTONIC' ] && [ "${#3}" -lt 100 ]; then
     printf 'clock\n' >>"$STATE_SESSION_HELPER_CALLS"
     sleep "${STATE_SESSION_HELPER_CLOCK_DELAY:-0}"
+fi
+if [ "$1" = '-MTime::HiRes=sleep' ] && [ "${3:-}" = 'sleep($ARGV[0]/1000)' ]; then
+    printf 'interpreted-sleep\n' >>"$STATE_SESSION_HELPER_CALLS"
+    sleep "${STATE_SESSION_HELPER_SLEEP_DELAY:-0}"
 fi
 if [ "$1" = -e ]; then
     case "$2" in
@@ -3838,6 +3890,20 @@ fi
 exec "${0%/*}/real-perl" "$@"
 EOF
     chmod +x "$helper_bin/perl"
+    # Only the poll regression needs a sleep shim. Keep the existing strict
+    # readiness/load controls free of extra shell launches in their polling loops.
+    [ "${2:-}" = poll ] || return 0
+    helper_real_sleep=$(command -v sleep)
+    ln -s "$helper_real_sleep" "$helper_bin/real-sleep"
+    cat >"$helper_bin/sleep" <<'EOF'
+#!/bin/sh
+if [ "$#" -eq 1 ] && [ "$1" = 0.050 ]; then
+    printf 'platform-poll-sleep\n' >>"$STATE_SESSION_HELPER_CALLS"
+    "${0%/*}/real-sleep" "${STATE_SESSION_HELPER_PLATFORM_SLEEP_DELAY:-0}"
+fi
+exec "${0%/*}/real-sleep" "$@"
+EOF
+    chmod +x "$helper_bin/sleep"
 }
 
 assert_native_helper_usage() {
@@ -4650,8 +4716,9 @@ if [ "$CONTROL" = cleanup-request-failure ]; then
 fi
 if [ "$CONTROL" = all ]; then run_cleanup_request_failure_controls || exit $?; fi
 
-if [ "$CONTROL" = interruption ]; then
-    run_interruption_control "$fixture_dir"
+if [ "$CONTROL" = interruption ] || [ "$CONTROL" = interruption-init ]; then
+    if [ "$CONTROL" = interruption-init ]; then interrupt_selection=operation-init; else interrupt_selection=ordinary; fi
+    run_interruption_control "$fixture_dir" "$interrupt_selection"
     exit 0
 fi
 
@@ -4963,6 +5030,50 @@ run_readiness_controls() {
     run_readiness_case readiness-delayed readiness-response-delay 1201 4500
     run_readiness_case readiness-response-stall readiness-response-stall 4500 7000
 }
+
+run_poll_sleep_controls() {
+    poll_dir="$WORK_ROOT/session-$$-poll-sleep"
+    mkdir -p "$poll_dir/ra/shots" "$poll_dir/ra/states"
+    ln -s "$script_path" "$poll_dir/fake-nc"
+    ln -s "$script_path" "$poll_dir/fake-retroarch"
+    : >"$poll_dir/config.cfg"; : >"$poll_dir/core.so"
+    make_helper_latency_bin "$poll_dir/helper-bin" poll
+    poll_status=0
+    PATH="$poll_dir/helper-bin:$PATH" \
+    STATE_SESSION_HELPER_CALLS="$poll_dir/helper-calls.log" \
+    STATE_SESSION_HELPER_SLEEP_DELAY=1.2 \
+        run_prefix_driver "$poll_dir" "$poll_dir/ra" '' >"$poll_dir/driver.out" 2>&1 || poll_status=$?
+    if [ "$poll_status" -ne 0 ]; then
+        echo "FAIL poll sleep startup control (status=$poll_status)" >&2
+        cat "$poll_dir/driver.out" >&2
+        return 1
+    fi
+    assert_native_helper_usage "$poll_dir/helper-calls.log"
+    if grep -Fx interpreted-sleep "$poll_dir/helper-calls.log" >/dev/null; then
+        echo 'FAIL poll sleep still launches the charged interpreter' >&2
+        return 1
+    fi
+    grep -Fx platform-poll-sleep "$poll_dir/helper-calls.log" >/dev/null || {
+        echo 'FAIL poll sleep control did not exercise the platform shim' >&2
+        return 1
+    }
+    grep -Fx 'progression boundaries=3 mode=prefix verdict=PREFIX_OK' "$poll_dir/driver.out" >/dev/null || return 1
+    poll_host=$(cat "$poll_dir/host.pid")
+    ! kill -0 "$poll_host" 2>/dev/null || return 1
+    printf 'state session poll sleep: charged interpreter avoided; full prefix passed; host reaped\n'
+    (
+        PATH="$poll_dir/helper-bin:$PATH"
+        export PATH STATE_SESSION_HELPER_CALLS="$poll_dir/overrun-calls.log" \
+            STATE_SESSION_HELPER_PLATFORM_SLEEP_DELAY=1.2
+        run_fault poll-sleep-deadline DELAY_PUBLICATION_POLL_DEADLINE ''
+    ) || return 1
+    grep -Fx platform-poll-sleep "$poll_dir/overrun-calls.log" >/dev/null
+}
+
+if [ "$CONTROL" = poll-sleep ] || [ "$CONTROL" = all ]; then
+    run_poll_sleep_controls || exit $?
+    [ "$CONTROL" != poll-sleep ] || exit 0
+fi
 
 if [ "$CONTROL" = helper-cost ]; then
     run_fault load-send-once load-probe_SEND_FAILED send-error 'LOAD_STATE_SLOT 0' complete 75000 30000 1000
@@ -5281,6 +5392,7 @@ assert_sanitized_tree "$1"; assert_sanitized_tree "$2"
 printf 'state session isolation control: concurrent ENDPOINT_BUSY; two unique sequential attempts\n'
 
 run_interruption_control "$fixture_dir"
+run_interruption_control "$fixture_dir" operation-init
 
 # Expansion gate: the same actual driver must now run the full sixteen-boundary plan through
 # complete VERDICT_OK, retaining both native origins and using the prescribed forty rewinds.

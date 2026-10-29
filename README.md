@@ -441,6 +441,12 @@ Its isolated CI jobs build both `frame_index` and `nesturbator-run`. Cleanup
 fault setup records its witnesses in one Python invocation so cold interpreter
 startup cannot consume the production driver's five-second read slice through
 repeated process launches.
+Supervised polling delays use the platform's fractional `sleep`, keeping the
+same child budget without a Perl startup on every poll. Operation timing fields
+are initialized before the active marker becomes visible to signal handlers.
+Controls charge interpreter startup, reject a real poll-sleep overrun, and deliver
+TERM at the readiness initialization boundary; failures print journal and trace
+rows in the retained CTest log.
 
 | Lane | What it proves |
 |---|---|

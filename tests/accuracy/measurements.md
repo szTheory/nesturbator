@@ -1,5 +1,26 @@
 # AccuracyCoin bounded campaign measurements
 
+## Hosted session-control debug refresh, 2026-10-29
+
+The session-driver repair removes interpreted polling sleeps and publishes an
+active operation only after its timing fields exist. The paired public-header
+comments change the campaign input fingerprint; no emulation behavior changes.
+After explicit CI configuration, the production collector ran all 22 pages from
+compiled source `2940249e30ef` with `source_dirty=1`. The retained artifacts are
+`build/hosted-session-debug/campaign-configured/`. An initial capture had an older
+configure-time revision stamp and is preserved separately, not used as this baseline.
+
+The measured result remains **119 PASS / 27 FAIL**, all 146 scored rows terminal,
+five inventory-only DRAW rows, no skip/not-run/timeout and complete infrastructure.
+The report SHA-256 remains
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`;
+the refreshed 56-input fingerprint is
+`573904875fa3641acdc4936c2f116e2594c3366d2abe4eec70841af7d5ee4ac5`.
+Measured guest execution cost is `5577072000` host nanoseconds. The baseline
+metadata records those actual results. Original phase hosted acceptance remains
+bound to its original source; repair CI/Nightly validation is recorded separately
+in the debug session.
+
 ## Final campaign identity
 
 The final registered run used the canonical 6bee ROM and production collector:

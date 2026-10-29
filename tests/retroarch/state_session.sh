@@ -350,10 +350,13 @@ INTERRUPTION_TRACE_SEQUENCE=0; INTERRUPTION_TRACE_FAILED=0
 elapsed_ms() { _n=$(clock_ms) || return 1; [ "$_n" -ge "$START_MS" ] || return 1; echo $((_n-START_MS)); }
 remaining_ms() { _e=$(elapsed_ms) || return 1; _r=$((TIMEOUT_MS-_e)); [ "$_r" -gt 0 ] || _r=0; echo "$_r"; }
 begin_operation() {
-    ACTIVE_OPERATION=$1; OPERATION_BUDGET_MS=$2
+    OPERATION_BUDGET_MS=$2
     OPERATION_STOP_MS=
     OPERATION_START_MS=$(clock_ms) || fail MONOTONIC_CLOCK_FAILURE
     OPERATION_DEADLINE_MS=$((OPERATION_START_MS+OPERATION_BUDGET_MS))
+    # TERM may run while the clock command returns. Publish the active marker
+    # only once every field the signal journal reads is valid.
+    ACTIVE_OPERATION=$1
     LAST_OP_ELAPSED_MS=0; LAST_OP_REMAINING_MS=$OPERATION_BUDGET_MS
 }
 finish_operation() {
@@ -611,8 +614,11 @@ sleep_ms() {
     _delay=$1; _label=$2
     [ "$_delay" -gt 0 ] || return 0
     _budget=$((_delay+1000))
+    # The supported POSIX hosts already use fractional platform sleep in child
+    # supervision. Avoid another interpreter startup inside each bounded poll.
+    _seconds=$(printf '%s.%03d' "$((_delay/1000))" "$((_delay%1000))")
     run_child "delay_$_label" "$_budget" "$EMPTY" "$ATTEMPT_DIR/delay.out" \
-        "$ATTEMPT_DIR/delay.err" perl -MTime::HiRes=sleep -e 'sleep($ARGV[0]/1000)' "$_delay" || fail "DELAY_$_label"
+        "$ATTEMPT_DIR/delay.err" sleep "$_seconds" || fail "DELAY_$_label"
 }
 REQUEST="$ATTEMPT_DIR/request.txt"; REPLY="$ATTEMPT_DIR/reply.txt"; EMPTY="$ATTEMPT_DIR/empty.txt"; : >"$EMPTY"
 send_once() {

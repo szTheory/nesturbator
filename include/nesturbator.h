@@ -636,6 +636,10 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * native runner clock and shared FNV-1a reader, avoiding interpreter work inside timed polls.
  * Clock/hash latency controls retain the exact load-send failure and 25000-ms readiness-plus-
  * cleanup bound; frozen vectors check the unchanged 1 MiB hash cap and streaming boundaries.
+ * Supervised polling delays use fractional platform sleep under the unchanged child budget.
+ * Operation timing fields precede the active marker so a signal cannot journal a partial
+ * deadline; a real TERM control covers readiness initialization alongside sleep-cost and
+ * genuine sleep-overrun controls, with failed journal/trace rows retained in CTest output.
  * The POSIX interruption harness and its private selector share one unchanged TERM assertion:
  * genuine grep runs once, with its numeric status and exact output bytes retained separately
  * from recorder status. Binary pre/post journal snapshots copy through one open handle and bind
