@@ -119,9 +119,21 @@ reload and recovery have not been qualified by this session.
   evidence, not full button coverage or a general compatibility verdict.
 
 The Deck is now in Gaming Mode with ES-DE open through its repaired Steam
-shortcut. Normal collection-to-core gameplay, clean return and progress
-roundtrip remain to be observed. No current game is claimed perfect, and no
-core behavior, ABI, state format or emulator implementation changed here.
+shortcut. The owner launched Mario 3 from the collection; its log confirmed the
+Nesturbator command and module, but the controller's Start did not work in that
+context. Steam's virtual-device presentation differs from the earlier direct
+desktop run, so the physical-name preference did not establish player-one
+mapping there. A launch-context device-index resolver was added with handheld
+fallback; physical confirmation through the collection remains pending.
+Clean return and progress roundtrip remain unqualified. No current game is
+claimed perfect, and no core behavior, ABI, state format or emulator
+implementation changed here.
+
+The owner also raised state-format stability as daily use begins. Record an
+explicit future upgrade/migration/rollback policy before claiming compatibility:
+the existing format version refuses incompatible layouts, while recorded
+behavior revision alone is not enforced. See the daily-use compatibility note
+in the linked lessons; no converter or package-1.0 guarantee was introduced.
 
 Reusable mechanisms and the owner's intended workflow are indexed in
 [LESSONS.md](LESSONS.md). Other emulator projects may use that sanitized record;

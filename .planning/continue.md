@@ -18,8 +18,7 @@ inside normal state storage so other cores' snapshots survive.
 The user saw commercial Mario 3 running on the TV and confirmed Start after
 correcting the PowerA-specific SDL2 profile and player-one preference. The first
 profile used raw rather than normalized SDL2 indices and failed; preserve that
-lesson. The complete ES-DE → game → orderly return/progress roundtrip and broad
-input/performance coverage remain unqualified. Further user feedback is welcome,
+lesson. The subsequent real collection launch used Nesturbator but Start did not respond under Steam Input. Its virtual-device presentation bypassed the direct run's physical-name preference. The launch script now resolves the attached external device index in context, with handheld fallback; the failed attempt was closed and the owner was asked to relaunch from the collection. Physical confirmation of this correction, the complete ES-DE → game → orderly return/progress roundtrip and broad input/performance coverage remain unqualified. Further user feedback is welcome,
 not a mandatory release-signoff task. Do not launch an entire game sweep.
 
 Mac Mario 1 and Mario 3 played well enough for initial smoke signal, with mild
@@ -65,3 +64,5 @@ DMA follows readiness unless concrete title evidence changes priority; PAL is
 the regional alternative. No new requirements register, execution phases or
 milestone switch was approved. Reuse the completed sibling research rather than
 repeating broad fan-out. Preserve the pre-existing config/instruction edits.
+
+Latest owner concern: protect daily-use save states across future core updates. Current format 3 refuses earlier formats; recorded behavior revision is not enforced. A future supported-version/migration/rollback policy must be explicit, even before package 1.0. See lessons; no compatibility guarantee was added.

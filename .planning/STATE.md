@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Steam Deck Gaming Mode and ES-DE restored; Nesturbator collection ready for daily-play feedback
-last_updated: "2026-10-30T19:06:16Z"
+stopped_at: Actual collection launch exposed Steam Input routing gap; context-specific correction awaits user confirmation
+last_updated: "2026-10-30T19:29:08Z"
 last_activity: 2026-10-30
-last_activity_desc: Recorded Mac smoke reports, installed Deck core, repaired host/controller setup and saved PII-free lessons
+last_activity_desc: Applied launch-context controller routing correction; actual collection input awaits confirmation; recorded upgrade compatibility concern
 progress:
   total_phases: 3
   completed_phases: 3
@@ -23,7 +23,7 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v5 closeout, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Steam Deck/ES-DE daily-play feedback loop ready; next milestone remains proposed.
+Current focus: fix player-one input through the actual Steam/ES-DE collection launch; next milestone remains proposed.
 
 ## Current Position
 
@@ -48,13 +48,18 @@ The pre-existing AGENTS.md and config edits remain unstaged and preserved.
 
 ## Next Action
 
+Relaunch Mario 3 from the Nesturbator collection and check physical Start. The
+failed game attempt was closed; the latest process check found no current game.
+The updated launcher chooses the external controller index in its actual launch
+context and falls back to handheld controls when that device is absent.
+
 The Deck is in Gaming Mode and ES-DE is open through its repaired existing Steam
 shortcut. Open Collections → Nesturbator to use seven existing supported NTSC
 entries, each with Nesturbator selected and other cores still switchable. No main
 ROM files were changed or added. Normal battery storage is reused; snapshots
 are core-specific within normal state storage. The owner saw commercial Mario 3
 on the TV and confirmed physical Start after the corrected SDL2 PowerA profile.
-Full gameplay/pacing, clean frontend return and progress roundtrip remain open.
+The subsequent collection launch used the correct core but Start did not work. Steam virtual-device presentation differs from the direct desktop run; a context-specific controller resolver is now applied, with handheld fallback, and awaits physical confirmation. Full gameplay/pacing, clean frontend return and progress roundtrip remain open.
 
 Two Mac Mario reports were useful smoke signal; mild sluggishness/audio tearing
 remain unattributed. The owner explicitly deferred a full game sweep and higher
@@ -118,6 +123,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T19:06:16Z
-**Stopped at:** ES-DE ready in Gaming Mode; selected existing games use Nesturbator; further feedback optional. Planning continuation: `$gsd-new-milestone`
+**Last session:** 2026-10-30T19:30:18Z
+**Stopped at:** Actual collection controller correction applied; user relaunch/Start confirmation pending. Planning continuation: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`
