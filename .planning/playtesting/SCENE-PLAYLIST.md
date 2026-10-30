@@ -1,8 +1,10 @@
 # Targeted NES scene playlist
 
 Updated 2026-10-30. This follows the owner's request to maximize useful feedback
-per minute and explain classic failure cases before each game. Start with the
-first two probes below; both reach their target almost immediately. All games
+per minute and explain classic failure cases before each game. The targeted
+pass has supplied enough signal to plan: do not restart its original order as
+a fresh assignment. Use the [optional remaining queue](DECK-QUEUE.md) for more
+play and the [mini postmortem](POSTMORTEM.md) for the stopping rule. All games
 are in **Collections → Nesturbator**. The [full Deck queue](DECK-QUEUE.md)
 tracks the rest of the original shortlist.
 
@@ -34,6 +36,11 @@ The owner later confirmed Gradius's positive result; this is confirmation of the
 same title, not an additional distinct game result.
 
 ## Highest-value pass
+
+This is the original scene plan, retained for access instructions and technical
+motivation. The results above supersede unqualified recommendations to repeat
+it. No further owner replay is required before planning; Battletoads level two
+remains an optional new scene if convenient.
 
 | Order | Game and exact target | What to watch | How to reach it |
 |---|---|---|---|

@@ -17,6 +17,15 @@ integration. Read the newer [PII-free lessons](../../playtesting/LESSONS.md) and
 host repairs and bounded observations; the discovery proposals below do not
 claim that consumer integration or a new milestone was approved.
 
+**Later checkpoint:** the [mini postmortem](../../playtesting/POSTMORTEM.md)
+supersedes this report's original session setup and broad-trial proposal.
+Feedback now covers 22 Deck titles across all six supported mapper IDs; more
+ordinary play is optional. Prefer RM-014's remaining docs/progress-safety and
+reproducible-report gaps. Newly proposed RM-015 can precede DMA only when
+bounded native/reference triage establishes a core fault. Read the current
+[product roadmap](../../PRODUCT-ROADMAP.md) before selecting scope; none is
+approved here.
+
 ## Recommendation
 
 Prefer **v6: Player-ready NES delivery** before the remaining DMA cluster.
@@ -89,10 +98,12 @@ readiness, focus/input, clean exit and progress across launches must be exercise
 through Playstead's production path. Decide cross-repository ownership and
 consumer timing explicitly. Do not quietly swap that outcome for a document.
 
-## Low-friction session when content is ready
+## Original session proposal (before content/setup)
 
-The owner confirmed **Nesturbator (NES) here**. No game folder has been provided
-and this discovery launches nothing. Glueyneo is the
+The following records the initial proposal, not the current operational state.
+At that point the owner had confirmed **Nesturbator (NES) here**, no game folder
+had been supplied and the research had launched nothing. Subsequent setup and
+observations are in the linked baseline/postmortem. Glueyneo is the
 Neo Geo project; its real Metal Slug evidence is specifically **Metal Slug X's
 Mission 1 opening scene**, with normalized content, not arbitrary commercial
 ZIP compatibility. Keep that work in its own session and repository.

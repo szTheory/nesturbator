@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Private replay/capture verified; Shatterhand sync override verified on relaunch; remaining symptoms and native navigation limits retained
-last_updated: "2026-10-30T22:32:11Z"
+stopped_at: Optional queue and mini postmortem recorded; roadmap refreshed; next milestone scope remains unapproved
+last_updated: "2026-10-30T22:56:37Z"
 last_activity: 2026-10-30
-last_activity_desc: Verified regular/adaptive VSync read-back, retained remaining Shatterhand symptoms, captured output audio and preserved auto-state after empty-slot failure
+last_activity_desc: Synthesized playtest lessons, diminishing returns, optional remaining games and conditional future milestone sequence
 progress:
   total_phases: 3
   completed_phases: 3
@@ -23,7 +23,7 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v5 closeout, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: collect ordinary-play feedback through the working Steam/ES-DE collection route; next milestone remains proposed.
+Current focus: choose the next milestone from the completed gameplay/research checkpoint; further owner play is optional.
 
 ## Current Position
 
@@ -48,89 +48,47 @@ The pre-existing AGENTS.md and config edits remain unstaged and preserved.
 
 ## Next Action
 
-The private operational loop is ready. Shatterhand was relaunched with regular
-VSync on and adaptive VSync off, verified by active launch read-back. Remaining
-falling/left-right disturbances, busy-scene slowdown and a brief reported music
-interruption persist; exact prior drifting-line comparison is inconclusive.
-No fix is claimed and no further mandatory reset/relaunch is needed. The owner
-can keep playing; the agent acts next from retained evidence rather than asking
-for a broad repeat sweep. The agent can use
-four verified input recipes/checkpoints and retained captures to investigate
-before requesting more play. Read [automation/CI direction](playtesting/AUTOMATION.md),
-[scene findings](playtesting/SCENE-PLAYLIST.md), [controls](playtesting/CONTROLS.md)
-and the [dated baseline](playtesting/2026-10-30-nes-baseline.md). Root causes and
-hardware-correct visual expectations remain unresolved; no native fix or CI
-fixture was implemented in this operational setup.
+The owner asked for an updated play list, a diminishing-returns assessment and a
+mini postmortem with future milestones. The [postmortem](playtesting/POSTMORTEM.md)
+and [optional queue](playtesting/DECK-QUEUE.md) now capture those recommendations.
+Feedback covers 22 of 26 prepared Deck titles across all six supported mapper
+IDs. No further gameplay is required to plan. Optional next games are Castlevania
+and Journey to Silius, then Street Gangs/River City Ransom and Mario 1; existing
+positive scene checks should not be reassigned as missing.
 
-Feedback covers 22 of the 26 prepared titles, across all six supported mapper
-IDs. Positive play remains credited alongside explicit findings: OCEAN wobble
-tearing; Marble timer appearance questioned (native close-up has blue edging
-and a small opening in 4); Crystalis vertical world seam; Little Nemo outer-edge,
-jump-time and HUD-border disturbances; MM3 selection-screen line and vertical-
-scroll seams. Shadow Man's opening red-waterfall descent is a reproducible
-reported location; its stationary pattern was later qualified by the owner as
-possibly an optical/repeating-pattern effect. Balloon Trip's HUD/stars and
-Mario 3's first power-up emergence have explicit positive scene reports.
+Prefer **v6 candidate: Player-ready NES and reproducible feedback (RM-014)**:
+short truthful player docs, identified install/core, controls/progress guidance,
+state-version backup/rollback policy and a bounded reproduction recipe using
+existing runner/host facilities. Optional overscan presentation remains a scope
+choice. No new general frontend or mandatory commercial sweep is proposed.
 
-An actual host error assigned the Xbox to both P1/P2. The owned single-controller
-launcher now leaves P2 unassigned, with rollback backup and new-launch read-back
-verified. Latest MM3 progress was backed up. The owner still reports substantial
-crowd/jumping-enemy/damage slowdown after that correction and regards high jumps
-as possibly level design. Visual findings remain separate. MM3 sound/music and
-input are good; displayed FPS varies around 59.96–59.98 without correlation to
-action slowdown. The core advertises NTSC 60.0988 Hz; host VSync/audio sync uses
-a configured 60 Hz display. This supports game-side lag as a possibility, not
-hardware-correct timing as a conclusion. Other slowdown reports in Kirby,
-Blaster Master, DuckTales, Mega Man 2 and Metroid remain scene-specific and
-unattributed. Authentic sprite-limit flicker and compute lag need distinct
-classification.
+New proposed RM-015 is conditional scene-driven accuracy: native/source-based
+localization must establish a core fault before a fix/regression milestone is
+promoted ahead of DMA. Otherwise the five remaining DMA failures stay the next
+measured accuracy candidate, with three former candidates already protected.
+Actual Playstead acceptance is separately consumer-owned. PAL remains the
+regional alternative; Punch-Out!! now supplies named MMC2 interest without
+approving a mapper. All four horizons and audit debt are reconciled in
+[PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md), direction revision 7.
 
-Shatterhand adds good play plus a drifting/wrapping horizontal line captured
-privately in the first stage. Base Adaptive VSync was enabled. The backed-up
-owned profile disabled it and a fresh launch read-back passed. Remaining
-disturbances do not establish improvement or an NES overflow cause.
-
-A numbered Shatterhand state-slot load failed because that slot did not exist;
-a separate auto-state exists and was privately backed up. The death-delay cause
-and exact saved scene remain unqualified. Separate three-second output-monitor
-audio capture succeeded without microphone input or synchronization to video.
-Native Shatterhand navigation exhausted its bounded three attempts at title;
-no first-stage native repro is credited, and same-input runner/adapter final-
-frame parity leaves the navigation limitation unclassified.
-
-Four private headless cases—Jurassic Park, Marble Madness, Little Nemo and MM3
-menu—replay checkpoints with identical per-frame RGB/PCM to their input recipes.
-They export source PNG/PPM, WAV and audiovisual clips. Nemo currently reaches
-Mushroom Forest/NPC dialogue, not a qualified camera-seam reproduction; MM3's
-cursor remains center in its captured menu. Native payloads are not qualified
-RetroArch disk containers, and the prototype has no daily-SRAM input. Live
-read-only Deck capture succeeded for Mario 3, DuckTales, Nemo and MM3 without
-input/state commands; an inactive-game guard also refused correctly. Sampled
-clips have no audio and are not performance measurements. Private scripts,
-metadata, states, images, videos and trusted connection details remain under
-the ignored session; its operator notes give exact commands and bounds.
-
-The live host log recorded actual Nesturbator automatic-state-load success in
-Mario 3, separate from Zelda battery reuse. General cross-core/version snapshot
-compatibility and a controlled manual host roundtrip remain separate claims.
-Built-in passwords/Continue codes are explicitly preferred scene-access tools;
-Game Genie remains unimplemented. No collector entrypoint or historical stopped
-window was invoked, no emulator dependency added, and no emulation timing
-setting changed. Read [lessons](playtesting/LESSONS.md) before another emulator's
-host setup or testing plan. AGENTS.md now points to original-quirk guidance and
-independent-oracle regression direction.
-
-Separate planning continuation:
+The next actor is the owner selecting milestone scope. The agent can use the
+retained scene evidence after that choice; no more play is a prerequisite.
+Root causes of the reported seams, slowdown and music interruption remain
+unresolved. Regular-VSync-on/adaptive-off and corrected ports were read back on
+Shatterhand relaunch without a confirmed visual fix. Four private recipes replay
+identically, but repeatability is not correctness and their native checkpoints
+are not qualified RetroArch files. Read [automation](playtesting/AUTOMATION.md),
+[scene findings](playtesting/SCENE-PLAYLIST.md) and [controls](playtesting/CONTROLS.md)
+before another operational test. No native fix, public helper or CI fixture was
+implemented here; private content/media/states remain ignored.
 
 `$gsd-new-milestone`
 
-Resume the pending player-ready scope decision using the
-[research synthesis](research/milestone-v6-discovery/SYNTHESIS.md) and refreshed
-[product direction](PRODUCT-ROADMAP.md). Immediate remains uncommitted; no next
-milestone requirements, phases or version were approved. Keep existing
-state/host evidence credited, DMA as the following accuracy candidate, PAL as the
-regional alternative, and actual Playstead acceptance separate from a handoff.
-Context may be cleared; read [continue.md](continue.md) to resume.
+This resumes scope/version/seed selection and approval before creating the next
+requirements and execution roadmap. v5 remains completed; no new milestone
+version, requirements or phases were approved. Context may be cleared first;
+read [continue.md](continue.md). Preserve the owner's unrelated unstaged config
+and AGENTS.md edits, existing runtime stops and all closeout evidence limits.
 
 ## Preserved Debt and Boundaries
 
@@ -169,6 +127,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T22:32:11Z
-**Stopped at:** Private automation/capture verified; presentation override verified with remaining symptoms, no further mandatory owner repeat needed. Planning continuation: `$gsd-new-milestone`
+**Last session:** 2026-10-30T22:56:37Z
+**Stopped at:** Research/playtest checkpoint synthesized and optional queue refreshed; awaiting next milestone scope selection. Next: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`

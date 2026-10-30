@@ -2,12 +2,20 @@
 
 Prepared 2026-10-30 at the owner's request. Open **Collections → Nesturbator** in
 ES-DE. The collection now references 26 normal-library NTSC entries. Feedback now covers 22 titles, including open visual/slowdown observations;
-the four entries without a Deck gameplay report are ordered below.
-For maximum signal per minute, use the [targeted scene playlist](SCENE-PLAYLIST.md)
-first; several of its probes revisit specific scenes in already-played games.
+the four entries without a Deck gameplay report are ordered below. The broad
+sweep has enough signal for planning; all remaining play is optional. The
+[mini postmortem](POSTMORTEM.md) explains the stopping point and proposed next
+milestones. The [targeted scene playlist](SCENE-PLAYLIST.md) retains exact
+findings for investigation, rather than assigning another mandatory repeat pass.
 No game was launched automatically for this preparation.
 
 ## Where to resume
+
+**Recommended: stop the test sweep here, or try only Castlevania and Journey to
+Silius if you want something new to play.** These are exploratory probes, not
+claims that those games have known defects. About five minutes each is enough;
+there is no need to finish the remaining four to plan the next milestone.
+Existing captures and reports give the agent the next investigation work.
 
 The Shatterhand presentation comparison was activated and read back: regular
 VSync on, Adaptive VSync off. Some falling/left-right disturbances and busy-scene
@@ -34,10 +42,19 @@ actual selected images, rather than the original informal annotations.
 
 | Order | ES-DE entry | Mapper | Fun short-session target and useful signal |
 |---|---|---|---|
-| 1 | Super Mario Bros. (World) | 0 — NROM | World 1-1, power-ups and a pipe transition. Sprite-0/status split and sprite priority add more signal than the mapper label alone. This repeats the earlier Mac title on the Deck. |
-| 2 | Street Gangs | 4 — MMC3 | This is the existing River City Ransom (USA) entry. Try scrolling fights, crowded scenes and a shop/menu if reached. Single-player is sufficient; two-player input remains a separate check. |
-| 3 | Castlevania | 2 — UxROM | Existing USA Rev A entry. Try stairs, whipping candles, doors and the first stage's transitions. |
-| 4 | Journey to Silius (USA) | 1 — MMC1 | First-stage movement, combat and weapon/menu use. Listen to the music/effects mix. |
+| 1 | Castlevania | 2 — UxROM | About 5 minutes in stage one: stairs, whipping candles and a doorway/scroll transition if reached. Report persistent broken rows/tiles, misplaced sprites, stuck input or lasting sound loss. Do not label a single crowded flicker/slowdown a defect without comparison. |
+| 2 | Journey to Silius (USA) | 1 — MMC1 | About 5 minutes of first-stage jumping and firing; switch a weapon if readily available. Listen for music/effects that remain cut off after combat, repeated clicks or persistent corruption at a scroll boundary. This is a fresh audio/gameplay probe, not a documented unique hardware trap. |
+| 3 | Street Gangs | 4 — MMC3 | This is River City Ransom (USA). Optional scrolling fight and entering/exiting a shop if convenient. Watch that the picture/HUD returns intact and input still works. Record crowded-scene slowdown separately from output FPS; the extra crowded-scene signal is now low value. Single-player only for this profile. |
+| 4 | Super Mario Bros. (World) | 0 — NROM | Optional 2-minute Deck control: World 1-1, power-up and a pipe transition. Watch the HUD, item layering and return from the pipe. Low priority: already positive on the Mac and NROM has Deck signal from Balloon Fight. |
+
+If you want one genuinely new difficult scene instead, **Battletoads level two
+/ Wookie Hole descent** remains unreported: watch for a hang, blank playfield
+with music continuing, or broken HUD/playfield alignment. Only do it if reaching
+it is enjoyable; beating stage one solely for coverage is unnecessary. The
+[scene card and sources](SCENE-PLAYLIST.md#highest-value-pass) describe the route.
+Do not repeat Mario 3's power-up or Balloon Trip for coverage: both already have
+explicit positive reports. Jurassic Park and the reported scrolling scenes
+already have enough evidence to start agent-side triage.
 
 Gradius, Battletoads, Jurassic Park, Marble Madness and The Magic of
 Scheherazade are additions to the original shortlist. The other 21 entries are
@@ -56,7 +73,7 @@ the password's battle encounter route remains optional and not time-qualified.
 | Crystalis | Looks, plays and sounds great | Thin patterned top-edge strip captured privately; exposed overscan plausible, exact hardware correctness unverified |
 | Gradius (USA) | Plays really well, no issues | Specific graphics-bank transitions and duration were not separately reported |
 | Solar Jetman (USA) | Playing well | Specific cave transitions and duration were not separately reported |
-| Balloon Fight (USA) | Plays great, particularly smooth | Balloon Trip mode and its split have not been explicitly reported |
+| Balloon Fight (USA) | Plays great, particularly smooth; Balloon Trip HUD stays fixed and stars look fine | Positive named-scene evidence, not every rendering/PPUDATA interaction |
 | Kirby's Adventure (USA) | Plays great | Specific transition and save/relaunch checks remain unqualified |
 | Battletoads (USA) | Plays great, no observed issues | Level-two descent was not explicitly reported |
 | Batman - The Video Game (USA) | Plays great | Generic session result, no named later scene reported |

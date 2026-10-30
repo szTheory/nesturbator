@@ -4,7 +4,8 @@ Updated: 2026-10-30. Start here when another emulator project reaches a
 milestone and wants a practical player-feedback loop. These are workflow and
 host-integration lessons; hardware behavior still needs that core's own sources
 and tests. The [dated baseline](2026-10-30-nes-baseline.md) records observations
-and their limits.
+and their limits. Read the [mini postmortem](POSTMORTEM.md) for the concise
+outcome, diminishing-returns decision and proposed milestone sequence.
 
 ## Owner direction
 
@@ -35,7 +36,7 @@ normal library alongside preserved PAL variants, with explicit regional names;
 the collection selects one supported variant per title. Earlier seven-entry
 observations below describe the initial setup, not the current collection size.
 
-Feedback now covers 21 prepared Deck titles, including broad positive play and
+Feedback now covers 22 prepared Deck titles, including broad positive play and
 specific open visual/slowdown findings. Early perceived smoothness and the later
 scene-specific reports together form a useful dated checkpoint alongside CI. All six supported mapper IDs now have ordinary-
 play signal, while specific scenes and individual board profiles still need
