@@ -1,7 +1,7 @@
 # Product roadmap: nesturbator
 
-Reviewed: 2026-10-30 at v5 closeout.
-Direction revision: 4.
+Reviewed: 2026-10-30 during next-milestone discovery, after v5 closeout.
+Direction revision: 5.
 Active milestone: none. v5 "NMI, VBlank and sprite-0 timing" (RM-004) is complete; the next scope remains proposed.
 
 This is the rolling product direction. The execution contract remains in `.planning/ROADMAP.md`. Planning milestones v1, v2, v3, v4 and v5 are distinct from package versions such as v0.1.10. No dates or future phase numbers are promised here.
@@ -21,6 +21,8 @@ Only `committed` items are current scope. Other statuses are `proposed`, `shippe
 
 No new outcome is committed. RM-004 and the v5 SEED-006 tune-up shipped through merged PRs #57, #59 and #61. All eleven requirements are satisfied; the final campaign is 119 PASS / 27 FAIL over 146 terminal scored rows, plus five inventory-only DRAW entries. The remaining failures are separate proposed work. Requirements and phase details are archived in [v5 requirements](milestones/v5-REQUIREMENTS.md) and [v5 roadmap](milestones/v5-ROADMAP.md).
 
+The next-milestone discussion now includes the owner's request for ordinary game trials, a usable README and Playstead integration lessons. The preferred proposal is bounded player-ready NES delivery (RM-014), with an upstream Playstead handoff and separate consumer acceptance (RM-008). It has not been approved as execution scope. See the [cross-project synthesis](research/milestone-v6-discovery/SYNTHESIS.md).
+
 | ID | Status | Outcome | Milestone, release and acceptance evidence |
 |---|---|---|---|
 | RM-004 | shipped | NMI/VBlank, interrupt acceptance/takeover and sprite-0 timing satisfy the eleven-row contract | v5 Phases 19–21; 11/11 requirements, three current passed verifications, all eleven exact targets and 114 starting PASS keys on six lanes; ABI 1, state format 3, behavior revision 9. PR #61 merged. Package publication remains pending in release PR #56 (0.1.12); see [v5 closeout](milestones/v5-CLOSEOUT.md). |
@@ -32,10 +34,12 @@ Closeout record: [v4 audit](milestones/v4-MILESTONE-AUDIT.md) (tech_debt, 14/14 
 
 ## Near
 
-The remaining DMA cluster is the preferred next accuracy scope, with a bounded collector/documentation tune-up considered before collecting new hosted evidence. At the unchanged pin, five of the formerly proposed eight DMA rows still fail; the other three already pass and must be protected. Re-measure and choose exact keys at the next milestone boundary. PAL (RM-005) remains the main compatibility alternative; a maintenance-only milestone is the smaller alternative if recurring evidence defects take priority. This is priority ordering, not a claim that every NTSC edge case technically blocks PAL or another board.
+Player-ready delivery is now the preferred next milestone proposal: make the existing NES core easy to install and play, collect voluntary title-specific feedback, and prepare its actual launcher boundary. This changes the priority because of new owner demand, not because conformance work lost value. Actual Playstead integration has its own consumer-owned acceptance and must not be credited from a handoff alone. The remaining DMA cluster stays the preferred following accuracy scope, with a bounded collector tune-up before relying on new collected evidence. At the unchanged pin, five of the formerly proposed eight DMA rows still fail; the other three already pass and must be protected. An observed title blocker can change ordering. PAL (RM-005) remains the regional alternative; maintenance-only cleanup is the smaller alternative. No perfect NTSC score technically blocks regional or consumer work.
 
 | ID | Status | Outcome | Why and promotion trigger |
 |---|---|---|---|
+| RM-014 | proposed | A player can install the identified NES core, load supported content, understand controls/progress/limits and give useful feedback | New owner request after v5. Promote on scope approval for short current player docs, preserved executable doc/release contracts, the existing host path plus only demonstrated input/package gaps, a small private trial and a source-linked consumer handoff. No universal compatibility or mandatory owner sign-off. |
+| RM-008 | proposed | A concrete Playstead NES workflow has sufficient capability reporting and integration evidence | Moved from Mid on named consumer demand. First supply the upstream contract using released app/core identity; actual support requires a Playstead-owned adapter/readiness/input/exit/battery path and paired production acceptance. A report, runner result or RetroArch-only test cannot close this row. Native hosting/managed Continue need measured external-route friction or a supported state-control requirement. |
 | RM-005 | proposed | PAL games run at their intended timing and pitch | Main alternative to remaining DMA work. Promote on approved regional demand and a bounded CPU/PPU/APU/DMA, AV metadata and state-identity test plan with permitted regional fixtures; NTSC score is insufficient. |
 | RM-006 | proposed | Dendy games run with a distinct, correct timing profile | Keep proposed. Scope independently after regional infrastructure is proven and Dendy-specific delayed-VBlank/clock evidence and demand justify it; do not inherit PAL acceptance. |
 
@@ -82,10 +86,9 @@ PAL requires CPU/PPU/APU/DMA timing, audio scheduling, video/emphasis, state ide
 | ID | Status | Outcome | Promotion trigger and evidence |
 |---|---|---|---|
 | RM-007 | proposed | One additional cartridge board family works through all three deliverables | Still proposed: no new title/host demand appeared in v5. Promote on a named title/host need plus licensed validation. Consider 66, 206 or 9/10 individually; choose by useful coverage and test readiness, not stale dump percentages. Include state, persistence when applicable and host parity. |
-| RM-008 | proposed | A concrete host workflow has sufficient capability reporting and integration evidence | Still proposed: v5 verifies existing host replay, not a new host contract. Promote on a launcher/distribution requirement or reproducible platform defect. Start with one bounded preflight or Linux real-host pilot; avoid a speculative shared ABI and broad GUI matrix. |
 | RM-009 | proposed | A measured target device meets frame/run-ahead budgets faster | Still proposed: v5 met the existing +1% gate and established no new target-device budget. Promote when a real performance budget and profile identify a bottleneck. Preserve correctness and determinism; benchmark target-device improvement alongside existing instruction-count gates. |
 
-These are priority choices, not technical dependencies on perfect NTSC accuracy. Concrete demand may promote a mapper or host outcome earlier. Achievements or netplay need an actual consumer and acceptance session before joining RM-008's committed scope.
+These are priority choices, not technical dependencies on perfect NTSC accuracy. Concrete demand may promote a mapper earlier. RM-008's actual Playstead path is now Near, while a new native host, managed exact Continue, achievements and netplay remain conditional later work requiring a real consumer, supported control boundary and acceptance. No new target-device budget or mapper demand appeared in discovery.
 
 ## Long
 
@@ -98,7 +101,7 @@ These are priority choices, not technical dependencies on perfect NTSC accuracy.
 
 ## Recurring policy and historical seed disposition
 
-SEED-006 is recurring: every milestone starts with only the measured CI, flaky-test or documentation repairs needed for that milestone. No promised speedup without a bottleneck and no sweeping cosmetic cleanup.
+SEED-006 is recurring: every milestone starts with only the measured CI, flaky-test or documentation repairs needed for that milestone. No promised speedup without a bottleneck and no sweeping cosmetic cleanup. The current player-docs request demonstrates a navigation/truth problem, not a need for a documentation framework. The playability seed is relevant to the proposed actual-game trial; existing boot-to-play/host/state acceptance remains credited rather than re-scoped as missing.
 
 | Source | Direction disposition |
 |---|---|
@@ -124,6 +127,7 @@ Authorities: [v5 audit](milestones/v5-MILESTONE-AUDIT.md), [v5 closeout](milesto
 - WINDOWS entry 18's fixed disposition was reconciled to retained source/verification, its missing JSON restored and the unsupported table kind normalized. Historical refusal of a Phase 21 append remains recorded; no missing deviation was invented.
 - Physical exact-timestamp ordering and judgment-tier provenance remain explicit limits. The 27 remaining AccuracyCoin FAIL rows and five unscored DRAW entries are not waived or newly committed.
 - Package publication of v4 RM-001/RM-003 and v5 remains pending in PR #56; completed planning milestones are distinct from downloadable releases.
+- Next-milestone discovery found a player-facing README still opening with v3/behavior revision 8 while current source pins revision 9. A short entry point and topic-doc migration are proposed in RM-014; preserve existing runner/API/release consumers when relocating prose. The two recent CI-overhead quick tasks are already delivered and must not be re-promised.
 
 ## Refresh procedure
 
@@ -140,6 +144,7 @@ Keep the file small. Use existing Markdown and git; no roadmap service or parser
 - 2026-10-25, v5 opening: promoted RM-004 to Immediate/committed with the SEED-006 tune-up (JAM attribution, run-ahead-under-JAM). The owner chose it over adding the DMA cluster, doing DMA first, or PAL. Ordering otherwise unchanged: DMA is the preferred next cluster, then PAL (RM-005); Mid and Long items are unchanged. Release PR #56 (0.1.12), which publishes RM-001 and RM-003, was still open at the opening. No seed file was changed.
 
 - 2026-10-30, v5 closeout: RM-004 and the JAM tune-up shipped with all eleven requirements and three passed phases; package release PR #56 remains open. Re-measurement of the committed scoreboard narrows the old eight-row DMA candidate set to five failures and three protected passes, so remaining DMA retains first position without re-promising delivered work. PAL remains the main alternative, maintenance-only cleanup the smaller alternative; no new scope is approved. Mid priorities remain demand/profile-triggered and Long capabilities remain exploratory because v5 supplied neither new consumer demand nor regional/hardware acceptance evidence. Recurring collector defects and all evidence limits remain visible; the planning-ledger representation is repaired from retained evidence. The four horizons and triggers were reconsidered in this closeout; seeds remain unchanged.
+- 2026-10-30, next-milestone discovery: new owner direction asks for real-game feedback, Playstead readiness, concise public docs and lessons from active sibling cores. Independent Muhtari/peer passes and direct Playstead inspection support RM-014 as the preferred next proposal and move RM-008 from Mid to Near on concrete consumer demand. Immediate remains uncommitted. DMA remains the next accuracy cluster; PAL stays the regional alternative. Mid board/performance work and Long hardware remain conditional because no new title demand, target budget or hardware acceptance evidence promotes them. Retain Dendy's independent regional trigger, all audit debt, published-versus-merged distinctions and existing stops. Do not copy sibling emulation code, import a shared framework or count a handoff as consumer integration. [Synthesis and source reports](research/milestone-v6-discovery/SYNTHESIS.md) preserve rationale, tradeoffs and proposed slices; seeds remain unchanged.
 
 ## Why this shape
 

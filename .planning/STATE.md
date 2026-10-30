@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: v5 archived with acknowledged debt; next command is $gsd-new-milestone
-last_updated: "2026-10-30T17:37:54Z"
+stopped_at: Next-milestone discovery researched; player-ready delivery proposed; awaiting scope choice
+last_updated: "2026-10-30T17:50:15Z"
 last_activity: 2026-10-30
-last_activity_desc: Archived v5, refreshed all product horizons and reconciled the planning ledger
+last_activity_desc: Researched active sibling lessons and Playstead boundary; refreshed proposed product direction
 progress:
   total_phases: 3
   completed_phases: 3
@@ -23,7 +23,7 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v5 closeout, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 complete and archived; no next milestone scope is committed.
+Current focus: v5 archived; next-milestone player-readiness proposal researched, with no new scope committed.
 
 ## Current Position
 
@@ -50,11 +50,18 @@ The pre-existing AGENTS.md and config edits remain unstaged and preserved.
 
 `$gsd-new-milestone`
 
-Select the next scope and create fresh requirements and execution phases.
-Remaining DMA is preferred (five failing former candidate rows; protect the three
-that now pass). PAL is the main alternative; maintenance-only collector/docs
-cleanup is the smaller alternative. These are proposals requiring the next
-milestone scope decision. Do not start implementation from this handoff.
+Continue the pending scope decision, then create fresh requirements and execution
+phases within that one new-milestone step. New owner direction requested ordinary
+RetroArch game trials, Muhtari/active-core lessons, better README discovery and
+Playstead readiness. [Research synthesis](research/milestone-v6-discovery/SYNTHESIS.md)
+recommends player-ready NES delivery first: short truthful docs, easy real-content
+trial, only demonstrated host/package test gaps, and an upstream Playstead handoff.
+Actual Playstead integration is a wider consumer-owned outcome requiring paired
+acceptance; a handoff does not qualify it. The five DMA failures remain next for
+accuracy; PAL and maintenance-only scope remain alternatives. All are proposed,
+not approved requirements. No new milestone switch or implementation ran.
+The owner confirmed Nesturbator (NES) for the commercial-game spot check.
+Content-folder location remains pending; no emulator, media inspection or live test ran.
 Context can be cleared; read [continue.md](continue.md) before resuming.
 
 ## Preserved Debt and Boundaries
@@ -94,6 +101,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T17:37:54Z
-**Stopped at:** v5 complete and archived; next command: `$gsd-new-milestone`
+**Last session:** 2026-10-30T17:50:15Z
+**Stopped at:** Cross-project discovery researched; next scope awaits approval; next command: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`
