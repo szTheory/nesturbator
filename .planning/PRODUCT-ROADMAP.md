@@ -1,10 +1,10 @@
 # Product roadmap: nesturbator
 
-Reviewed: 2026-10-25 at v5 opening.
-Direction revision: 3.
-Active milestone: v5 "NMI, VBlank and sprite-0 timing" (RM-004), approved at new-milestone on 2026-10-25.
+Reviewed: 2026-10-30 at v5 closeout.
+Direction revision: 4.
+Active milestone: none. v5 "NMI, VBlank and sprite-0 timing" (RM-004) is complete; the next scope remains proposed.
 
-This is the rolling product direction. The execution contract remains in `.planning/ROADMAP.md`. Planning milestones v1, v2, v3 and v4 are distinct from package versions such as v0.1.10. No dates or future phase numbers are promised here.
+This is the rolling product direction. The execution contract remains in `.planning/ROADMAP.md`. Planning milestones v1, v2, v3, v4 and v5 are distinct from package versions such as v0.1.10. No dates or future phase numbers are promised here.
 
 ## Horizons and commitment
 
@@ -19,25 +19,25 @@ Only `committed` items are current scope. Other statuses are `proposed`, `shippe
 
 ## Immediate
 
-RM-004 is committed for v5, together with the recurring SEED-006 tune-up (AccuracyCoin JAM attribution and a run-ahead-under-JAM test, both carried v4 debt). Requirements are in [REQUIREMENTS.md](REQUIREMENTS.md); Phases 19–21 in [ROADMAP.md](ROADMAP.md). The shipped v4 rows stay below as the record.
+No new outcome is committed. RM-004 and the v5 SEED-006 tune-up shipped through merged PRs #57, #59 and #61. All eleven requirements are satisfied; the final campaign is 119 PASS / 27 FAIL over 146 terminal scored rows, plus five inventory-only DRAW entries. The remaining failures are separate proposed work. Requirements and phase details are archived in [v5 requirements](milestones/v5-REQUIREMENTS.md) and [v5 roadmap](milestones/v5-ROADMAP.md).
 
 | ID | Status | Outcome | Milestone, release and acceptance evidence |
 |---|---|---|---|
-| RM-004 | committed | NMI/VBlank and sprite-0 timing match the console | v5. The 11 rows: `$2002 flag timing`, `NMI Control`, `NMI Timing`, `NMI Suppression`, `NMI at VBlank end`, `NMI disabled at VBlank`, `NMI Overlap BRK`, `NMI Overlap IRQ`, `Interrupt flag latency`, `Sprite 0 Hit behavior`, `Arbitrary Sprite zero` (10 fail, 1 timeout at `6bee919`, rechecked 2026-10-25). Exit: they pass at `6bee919` with no lost PASS, documented hash re-pins and state coverage for any new field. |
-| RM-001 | shipped | Complete pinned NTSC conformance inventory and bounded baseline | v4 Phase 17; CONF-01–04 ([v4 requirements](milestones/v4-REQUIREMENTS.md)); 38/38 verification; 146 scored + 5 DRAW at `6bee919`: 101 pass, 42 fail, 2 not-run, 1 timeout. Release: lands with PR #55 in the release after v0.1.11. |
+| RM-004 | shipped | NMI/VBlank, interrupt acceptance/takeover and sprite-0 timing satisfy the eleven-row contract | v5 Phases 19–21; 11/11 requirements, three current passed verifications, all eleven exact targets and 114 starting PASS keys on six lanes; ABI 1, state format 3, behavior revision 9. PR #61 merged. Package publication remains pending in release PR #56 (0.1.12); see [v5 closeout](milestones/v5-CLOSEOUT.md). |
+| RM-001 | shipped | Complete pinned NTSC conformance inventory and bounded baseline | v4 Phase 17; CONF-01–04 ([v4 requirements](milestones/v4-REQUIREMENTS.md)); 38/38 verification; 146 scored + 5 DRAW at `6bee919`: 101 pass, 42 fail, 2 not-run, 1 timeout. PR #55 merged; package publication remains pending in release PR #56 (0.1.12), checked at v5 closeout. |
 | RM-002 | shipped | Discriminating existing RetroArch progression/state evidence | v4 Phase 16; EVID-01–04; 22/22 verification; released in [v0.1.11](https://github.com/szTheory/nesturbator/releases/tag/v0.1.11) with 18 archives, checksums, attestations and six metadata copies checked. |
-| RM-003 | shipped | Bounded accepted-program execution and lifecycle robustness | v4 Phase 18; ROB-01–04; 4/4 verification; six board families reach execution; Nightly 40150888217 green. Release: lands with PR #55 in the release after v0.1.11. |
+| RM-003 | shipped | Bounded accepted-program execution and lifecycle robustness | v4 Phase 18; ROB-01–04; 4/4 verification; six board families reach execution; Nightly 40150888217 green. PR #55 merged; package publication remains pending in release PR #56 (0.1.12), checked at v5 closeout. |
 
-Closeout record: [v4 audit](milestones/v4-MILESTONE-AUDIT.md) (tech_debt, 14/14 requirements). RM-001 and RM-003 were marked shipped at milestone close with publication pending; MILESTONES.md records the publication when it is observed.
+Closeout record: [v4 audit](milestones/v4-MILESTONE-AUDIT.md) (tech_debt, 14/14 requirements). RM-001 and RM-003 remain milestone-complete with package publication pending. PR #56 is still open at v5 closeout; no v0.1.12 publication is claimed.
 
 ## Near
 
-RM-004 moved to Immediate at the v5 opening. After it, the DMA cluster (listed with RM-004's follow-ons below) is the preferred next accuracy scope, because DMC games corrupt controller reads when DMA steals cycles; RM-005 (PAL) stays the main alternative milestone behind it. This is priority ordering, not a claim that every NTSC edge case technically blocks PAL or another board.
+The remaining DMA cluster is the preferred next accuracy scope, with a bounded collector/documentation tune-up considered before collecting new hosted evidence. At the unchanged pin, five of the formerly proposed eight DMA rows still fail; the other three already pass and must be protected. Re-measure and choose exact keys at the next milestone boundary. PAL (RM-005) remains the main compatibility alternative; a maintenance-only milestone is the smaller alternative if recurring evidence defects take priority. This is priority ordering, not a claim that every NTSC edge case technically blocks PAL or another board.
 
 | ID | Status | Outcome | Why and promotion trigger |
 |---|---|---|---|
-| RM-005 | proposed | PAL games run at their intended timing and pitch | Preferred next compatibility milestone when no broad NTSC correctness blocker remains; requires regional test evidence. |
-| RM-006 | proposed | Dendy games run with a distinct, correct timing profile | Scope independently after regional infrastructure is proven and demand/evidence justify it. |
+| RM-005 | proposed | PAL games run at their intended timing and pitch | Main alternative to remaining DMA work. Promote on approved regional demand and a bounded CPU/PPU/APU/DMA, AV metadata and state-identity test plan with permitted regional fixtures; NTSC score is insufficient. |
+| RM-006 | proposed | Dendy games run with a distinct, correct timing profile | Keep proposed. Scope independently after regional infrastructure is proven and Dendy-specific delayed-VBlank/clock evidence and demand justify it; do not inherit PAL acceptance. |
 
 ### RM-001: Complete NTSC conformance evidence
 
@@ -65,13 +65,13 @@ Acceptance direction: a small owned target constructs bounded accepted board pro
 
 Discovery gate: demonstrate additional execution paths and useful throughput compared with existing targets before committing a large campaign. If the target duplicates state fuzzing or requires a new architecture, split or park it explicitly. A confirmed reproducible safety failure blocks a clean safety claim and receives a repair or explicit scope decision; never silently defer it.
 
-### RM-004 follow-ons, RM-005 and RM-006: Conditional next choice
+### Remaining accuracy clusters, RM-005 and RM-006: Conditional next choice
 
-After the full baseline, prioritize named game-relevant failures before obscure score points. The v4 baseline's other failing clusters stay as RM-004 follow-ons in this order, and each needs its own approval:
-- DMA (8 rows): `DMA + $4015 Read`, `DMA Landing on Write`, `DMC DMA + OAM DMA`, `DMC DMA Bus Conflicts`, `Explicit DMA Abort`, `Implicit DMA Abort`, `Misaligned OAM DMA`, `INC $4014`. This is the strongest alternative to the preferred cluster, because DMC games corrupt controller reads when DMA steals cycles.
-- Sprite evaluation/OAM: `Sprites On Scanline 0`, `Suddenly Resize Sprite`, `Stale Sprite Shift Regs`, `Frozen OAM2 Increment`, `Misaligned OAM2 Address`, the `$2004` rows, plus the two not-run rows `Misaligned OAM behavior` and `OAM Corruption`.
-- PPU rendering reads: the `$2007` rows, `Rendering Flag Behavior`, `Stale BG Shift Registers`, `BG Serial In`, `ALE + Read`.
-- CPU bus: open bus, internal data bus, implied dummy reads, `Hybrid Addresses`, `APU Register Activation`, `Controller Strobing`, and the five unstable `SH*` stores (last, since games rarely depend on them).
+After the full baseline, prioritize named game-relevant failures before obscure score points. The current scoreboard keeps these remaining clusters proposed in this order; each needs its own approval:
+- DMA: five rows still fail — `DMA Landing on Write`, `DMC DMA + OAM DMA`, `DMC DMA Bus Conflicts`, `Explicit DMA Abort`, `Implicit DMA Abort`. Three former candidates now pass — `DMA + $4015 Read`, `Misaligned OAM DMA`, `INC $4014` — and become regression guards. The bounded Phase 21 DMC retry/open-bus prerequisite did not complete this cluster. Promote only after fresh measurement, at least one affected-title connection where available, owned bus-cycle oracles, state continuation and regression/performance budgets are scoped. Its game relevance keeps it ahead of PAL; the eight-row list from v4 is no longer eight missing outcomes.
+- Sprite evaluation/OAM: `Sprites On Scanline 0`, `Stale Sprite Shift Regs`, `Frozen OAM2 Increment`, `Misaligned OAM2 Address`, the `$2004` rows, `Misaligned OAM behavior` and `OAM Corruption`. Both previously not-run rows now terminate as FAIL; `Suddenly Resize Sprite` already passes.
+- PPU rendering reads: `$2007 Stress Test`, `Stale BG Shift Registers`, `BG Serial In`, `ALE + Read`. Other `$2007` rows and `Rendering Flag Behavior` already pass.
+- CPU bus: open bus, internal data bus, `Hybrid Addresses`, `APU Register Activation`, `Controller Strobing`, and the five unstable `SH*` stores (last, since games rarely depend on them).
 
 Each cluster should name at least one affected title, where one exists, before it is committed. Hardware fixes need owned reproducers, documented hardware behavior, external test evidence and save-state coverage if instance fields change. Intentional frame/audio hash changes are documented and re-pinned with their reason.
 
@@ -81,9 +81,9 @@ PAL requires CPU/PPU/APU/DMA timing, audio scheduling, video/emphasis, state ide
 
 | ID | Status | Outcome | Promotion trigger and evidence |
 |---|---|---|---|
-| RM-007 | proposed | One additional cartridge board family works through all three deliverables | A named title/host need plus licensed validation. Consider 66, 206 or 9/10 individually; choose by useful coverage and test readiness, not stale dump percentages. Include state, persistence when applicable and host parity. |
-| RM-008 | proposed | A concrete host workflow has sufficient capability reporting and integration evidence | A launcher/distribution requirement or reproducible platform defect. Start with one bounded preflight or Linux real-host pilot; avoid a speculative shared ABI and broad GUI matrix. |
-| RM-009 | proposed | A measured target device meets frame/run-ahead budgets faster | A real performance budget and profile identify a bottleneck. Preserve correctness and determinism; benchmark target-device improvement alongside existing instruction-count gates. |
+| RM-007 | proposed | One additional cartridge board family works through all three deliverables | Still proposed: no new title/host demand appeared in v5. Promote on a named title/host need plus licensed validation. Consider 66, 206 or 9/10 individually; choose by useful coverage and test readiness, not stale dump percentages. Include state, persistence when applicable and host parity. |
+| RM-008 | proposed | A concrete host workflow has sufficient capability reporting and integration evidence | Still proposed: v5 verifies existing host replay, not a new host contract. Promote on a launcher/distribution requirement or reproducible platform defect. Start with one bounded preflight or Linux real-host pilot; avoid a speculative shared ABI and broad GUI matrix. |
+| RM-009 | proposed | A measured target device meets frame/run-ahead budgets faster | Still proposed: v5 met the existing +1% gate and established no new target-device budget. Promote when a real performance budget and profile identify a bottleneck. Preserve correctness and determinism; benchmark target-device improvement alongside existing instruction-count gates. |
 
 These are priority choices, not technical dependencies on perfect NTSC accuracy. Concrete demand may promote a mapper or host outcome earlier. Achievements or netplay need an actual consumer and acceptance session before joining RM-008's committed scope.
 
@@ -91,10 +91,10 @@ These are priority choices, not technical dependencies on perfect NTSC accuracy.
 
 | ID | Status | Direction | What must be established before promotion |
 |---|---|---|---|
-| RM-010 | proposed | Selected Famicom expansion-audio boards | Choose one board; pair banking/IRQ behavior with owned integer audio, mixing/state continuity and permitted tests. Silent partial support is not completion. |
-| RM-011 | proposed | MMC5 | Independent scope for PPU snooping, tile/attribute banking, ExRAM, IRQ, audio and states; do not model it as renamed MMC3. |
-| RM-012 | proposed | Famicom Disk System | Host-supplied BIOS, lawful fixtures, disk-control contract, media state and persistence. No bundled BIOS. |
-| RM-013 | proposed | Selected additional peripherals | Concrete player/host demand, input representation and timing tests. Device/window code stays in the host. |
+| RM-010 | proposed | Selected Famicom expansion-audio boards | No v5 evidence promotes this item. Choose one board; pair banking/IRQ behavior with owned integer audio, mixing/state continuity and permitted tests. Silent partial support is not completion. |
+| RM-011 | proposed | MMC5 | No v5 evidence promotes this item. Independent scope for PPU snooping, tile/attribute banking, ExRAM, IRQ, audio and states; do not model it as renamed MMC3. |
+| RM-012 | proposed | Famicom Disk System | No v5 evidence promotes this item. Host-supplied BIOS, lawful fixtures, disk-control contract, media state and persistence. No bundled BIOS. |
+| RM-013 | proposed | Selected additional peripherals | No new demand surfaced in v5. Concrete player/host demand, input representation and timing tests. Device/window code stays in the host. |
 
 ## Recurring policy and historical seed disposition
 
@@ -104,24 +104,26 @@ SEED-006 is recurring: every milestone starts with only the measured CI, flaky-t
 |---|---|
 | SEED-001 | Common board families and battery saves delivered in v2; use archived milestone evidence. |
 | SEED-002 | Save states, rewind/run-ahead and runner process contract delivered in v3. Actual netplay remains uncommitted. |
-| SEED-003 | Partial: the measured baseline shipped in v4 (RM-001). The remaining failures go to RM-004 and its follow-on clusters; regions go to RM-005/RM-006. |
+| SEED-003 | Partial: the measured baseline shipped in v4 (RM-001). RM-004 shipped in v5; 27 failing rows remain in separate follow-on clusters. Regions remain proposed RM-005/RM-006. |
 | SEED-004 | Partial: benchmarks/perf gates, state fuzz (v3) and execution/lifecycle robustness (v4, RM-003) shipped. RM-009 covers measured future optimization. |
 | SEED-005 | Split future direction across cartridge, expansion-audio, MMC5, FDS and peripheral outcomes. |
-| SEED-006 | Recurring; never globally marked complete. |
+| SEED-006 | Recurring; v5 delivered JAM attribution and run-ahead-under-JAM. Collector/documentation cleanup and three testing proposals remain candidates; never globally marked complete. |
 | Playability seed | Existing boot-to-play evidence is credited. Promote an additional integrated host-play outcome only when a new claim requires it. |
 
 Seed files remain unchanged during new-milestone. This disposition ledger prevents stale dormant frontmatter from re-scoping delivered work. Backlog 999.2 is promoted into RM-001 / Phase 17 (CONF-01 through CONF-04); the execution roadmap records its disposition rather than leaving duplicate active backlog work.
 
-## Unresolved debt carried from v4
+## Unresolved debt and delivered tune-up
 
-Debt stays visible here until a milestone closes it. Item details are in the [v4 audit](milestones/v4-MILESTONE-AUDIT.md) and STATE.md Deferred Items.
+Authorities: [v5 audit](milestones/v5-MILESTONE-AUDIT.md), [v5 closeout](milestones/v5-CLOSEOUT.md), phase review dispositions and STATE.md Deferred Items. Debt is preserved without implying a new approved maintenance scope.
 
-- AccuracyCoin observe records a JAM only as a generic frame failure, and no AccuracyCoin control covers JAM. Fold this into the next accuracy milestone's tune-up.
-- No explicit run-ahead-under-JAM test exists in `libretro.runahead`.
-- Real-campaign minimization is proven only by controls; no real campaign finding has been reduced yet.
-- Nightly `vectors-full` failed in run 39993108154. It is not a Release gate.
-- Local macOS `nofp` reports `stack_chk_fail`/`stack_chk_guard` from the Apple toolchain. The Linux no-float lanes are the acceptance environment.
-- Two Phase 16 debug sessions (`phase16-cleanup-fixture`, `phase16-interruption`) were acknowledged at close, not resolved.
+- Delivered: JAM attribution and explicit run-ahead-under-JAM coverage close the two v4 tune-up gaps. Later accepted vectors pass; the older failed vector run remains history.
+- Collector debt: Phase 20 CR-01 omits Git modes, WR-03 scans ignored fixtures/fails relative SOURCE_REF, WR-04 duplicates a validator; Phase 21 WR-01 omits actual filesystem modes (the same defect as Phase 20 WR-05). Independent all-input checks mitigate only the accepted historical runs. Repair recurring enforcement and collect fresh source-bound evidence before treating a new run as qualified.
+- Phase 21 historical measurement attribution and README revision-8/revision-9 advisory remain open. Phase 19 per-frame full-state cost, sprite comparator citation and early-stage test-coverage limit remain recorded.
+- Local macOS nofp Apple stack-protector references remain platform debt; hosted Linux acceptance is separate. Real-campaign minimization remains proven only by controls. Historical parser/summary-frontmatter metadata warnings remain disclosed.
+- Two older Phase 16 debug sessions and the Phase 21 inhibition debug record remain acknowledged without changing their own verdict/status; three proposed testing todos are deferred.
+- WINDOWS entry 18's fixed disposition was reconciled to retained source/verification, its missing JSON restored and the unsupported table kind normalized. Historical refusal of a Phase 21 append remains recorded; no missing deviation was invented.
+- Physical exact-timestamp ordering and judgment-tier provenance remain explicit limits. The 27 remaining AccuracyCoin FAIL rows and five unscored DRAW entries are not waived or newly committed.
+- Package publication of v4 RM-001/RM-003 and v5 remains pending in PR #56; completed planning milestones are distinct from downloadable releases.
 
 ## Refresh procedure
 
@@ -136,6 +138,8 @@ Keep the file small. Use existing Markdown and git; no roadmap service or parser
 - 2026-10-13, v4 opening: promoted RM-001/RM-002/RM-003 from the approved proposal to Immediate/committed. Complete measurement and stronger execution/host evidence precede unnamed accuracy repairs. Retained PAL as the preferred compatibility alternative, with Dendy separately scoped. Deferred larger hardware and host work until evidence or demand justifies it. Historical delivered seed outcomes remain credited; no seed file was changed.
 - 2026-10-24, v4 closeout: marked RM-001, RM-002 and RM-003 shipped with evidence. Publication of RM-001 and RM-003 waits on PR #55 and the release after it. The measured baseline met RM-004's trigger, so the order changed: RM-004 is now the preferred next milestone, narrowed to the 11-row NMI/VBlank and sprite-0 cluster. DMA is the strongest alternative cluster. RM-005 (PAL) remains the main alternative milestone and moves behind RM-004, because the baseline shows broad NTSC timing gaps that would carry into PAL timing. Mid and Long items are unchanged; no new demand or performance budget appeared. Carried v4 debt is listed above. No seed file was changed.
 - 2026-10-25, v5 opening: promoted RM-004 to Immediate/committed with the SEED-006 tune-up (JAM attribution, run-ahead-under-JAM). The owner chose it over adding the DMA cluster, doing DMA first, or PAL. Ordering otherwise unchanged: DMA is the preferred next cluster, then PAL (RM-005); Mid and Long items are unchanged. Release PR #56 (0.1.12), which publishes RM-001 and RM-003, was still open at the opening. No seed file was changed.
+
+- 2026-10-30, v5 closeout: RM-004 and the JAM tune-up shipped with all eleven requirements and three passed phases; package release PR #56 remains open. Re-measurement of the committed scoreboard narrows the old eight-row DMA candidate set to five failures and three protected passes, so remaining DMA retains first position without re-promising delivered work. PAL remains the main alternative, maintenance-only cleanup the smaller alternative; no new scope is approved. Mid priorities remain demand/profile-triggered and Long capabilities remain exploratory because v5 supplied neither new consumer demand nor regional/hardware acceptance evidence. Recurring collector defects and all evidence limits remain visible; the planning-ledger representation is repaired from retained evidence. The four horizons and triggers were reconsidered in this closeout; seeds remain unchanged.
 
 ## Why this shape
 

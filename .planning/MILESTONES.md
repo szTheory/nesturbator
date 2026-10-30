@@ -1,5 +1,33 @@
 # Milestones
 
+## v5 NMI, VBlank and sprite-0 timing (Shipped: 2026-10-30)
+
+**Delivered:** Games and hosts get tested sprite-0, VBlank/NMI and interrupt poll/takeover behavior across the library, runner and libretro adapter, with deterministic state continuation and explicit JAM presentation.
+
+**Phases completed:** 3 phases (19–21), 27 plans, 68 tasks.
+**Timeline:** 2026-10-25 → 2026-10-30 (six calendar dates).
+**Requirements:** 11/11 satisfied; three current passed verifications, eight integration groups and eleven end-to-end flows ([audit](milestones/v5-MILESTONE-AUDIT.md), `tech_debt`, no blocking gaps).
+
+**Key accomplishments:**
+- AccuracyCoin names guest JAM in every stage; actual adapter run-ahead preserves the frozen picture and silence without reusing a diverged timeline.
+- Sprite evaluation follows OAMADDR and its rendering reset; both sprite-0 target rows pass with owned dot-level evidence.
+- Split PPUSTATUS sampling and separate NMI line/capture/poll histories satisfy all six NMI/VBlank target rows.
+- Legal instruction polls retain IRQ eligibility; shared resumable BRK/IRQ/NMI entry selects a coherent vector, including held/released inhibited NMI candidates.
+- State format 3 / behavior revision 9 / ABI 1 supports validated native and actual-adapter replay at every entry stage, preserving causal six-platform frame/audio/state hashes.
+- All eleven selected targets and all 114 Phase 21 starting PASS keys pass on six lanes; final baseline is 119 PASS / 27 FAIL, 146 terminal scored rows plus five unscored DRAW entries. Original conformance/host/performance gates pass in the accepted source-bound bundle.
+
+**Closeout:** override closeout for explicitly acknowledged open records, not missing phase verification or waived product requirements.
+
+Known verification overrides: 6 newly acknowledged, 10 carried forward from a prior close (see STATE.md Deferred Items).
+
+**Delivery:** PRs #57, #59 and #61 merged. [Release PR #56](https://github.com/szTheory/nesturbator/pull/56) (0.1.12) remains open at closeout; no new package publication is claimed. The planning archive is committed locally on a closeout branch. Milestone tags are disabled by configuration.
+
+**Debt and evidence:** [closeout record](milestones/v5-CLOSEOUT.md), [integration audit](milestones/v5-INTEGRATION-AUDIT.md), [product direction snapshot](milestones/v5-PRODUCT-ROADMAP.md), [roadmap](milestones/v5-ROADMAP.md), [requirements](milestones/v5-REQUIREMENTS.md). Source-bound hosted acceptance remains historical; local checks and final-head workflow success do not replace collected bundles. The ledger representation is reconciled; other audit debt and physical-tie/provenance limits remain.
+
+**What's next:** select fresh scope with `$gsd-new-milestone`. Preferred remaining DMA, PAL as main alternative, or smaller maintenance-only cleanup; none approved yet.
+
+---
+
 ## v4 Measured NTSC accuracy and robustness (Shipped: 2026-10-24)
 
 **Delivered:** Host builders can trust the RetroArch progression and state checks, read a complete, honest AccuracyCoin baseline at a pinned upstream commit, and rely on bounded evidence that accepted programs run on all six board families through reset, save/load, unload/reload, guest loops and JAM. The baseline is a measurement, not an all-pass claim: 101 of 146 scored rows pass.
@@ -22,6 +50,11 @@
 Known verification overrides: 3 newly acknowledged, 7 carried forward from a prior close (see STATE.md Deferred Items)
 
 **Delivery at close:** Phases 17 and 18 had not merged to main. Exact-head PR #55 CI run 40150921041 passed every check, and Nightly 40150888217 succeeded. Publication is recorded below once observed.
+
+**Delivery reconciliation — 2026-10-30:** PR #55 merged; package release PR #56
+(0.1.12) remains open and includes v4 baseline/robustness plus v5. No package
+publication is claimed. v5 delivered the two JAM tune-up gaps below; later
+accepted vector evidence passes. Other carried debt remains in the product ledger.
 
 **Deferred tech debt:**
 - AccuracyCoin observe records a JAM only as a generic frame failure, and no AccuracyCoin control covers JAM.

@@ -32,7 +32,7 @@ last_updated: 2026-10-23T18:44:55Z
 | 15 | 16 | deviation | .planning/phases/16-host-evidence-and-roadmap/16-04-SUMMARY.md | 105 | Task 2 RED used a reduced root-equality and branch-protection guard instead of the verbatim supplied pin block. | waived | The pinned root and protected-branch conditions were verified; this was a process-only difference in diagnostics, and later commits used the verbatim guard. | 2026-10-15T00:12:18.425Z | 2026-10-15T00:12:58.556Z |
 | 16 | 16 | deviation | include/nesturbator.h |  | Plan 16-07 Task 1 corrected a no-float false positive in a public-header comment; executable behavior and scan rules were unchanged, and native CI passed. | fixed |  | 2026-10-23T17:54:21.348Z | 2026-10-23T17:54:44.538Z |
 | 17 | 16 | deviation | tests/retroarch/test_state_session.sh |  | Plan 16-07 Task 1 repaired host timing test measurements and scheduling after native CI findings without loosening bounds; local CI/ASan and final native CI passed. | fixed |  | 2026-10-23T17:54:46.994Z | 2026-10-23T17:54:49.121Z |
-| 18 | 16 | coverage | tests/retroarch/CMakeLists.txt | 71 | Source-root preflight was callable but absent from normal CTest coverage (WR-07). | fixed | Registered a serial bounded test; full CI 650/650 with packages and focused ASan 1/1 passed; independent follow-up review clean. | 2026-10-23T18:44:55Z | 2026-10-23T18:44:55Z |
+| 18 | 16 | unmet-truth | tests/retroarch/CMakeLists.txt | 71 | Source-root preflight was callable but absent from normal CTest coverage (WR-07). | fixed | Registered a serial bounded test; full CI 650/650 with packages and focused ASan 1/1 passed; independent follow-up review clean. | 2026-10-23T18:44:55Z | 2026-10-23T18:44:55Z |
 
 ````json
 [
@@ -256,6 +256,19 @@ last_updated: 2026-10-23T18:44:55Z
     "recorded_at": "2026-10-23T17:54:46.994Z",
     "resolved_at": "2026-10-23T17:54:49.121Z",
     "milestone": null
+  },
+  {
+    "id": 18,
+    "kind": "unmet-truth",
+    "phase": "16",
+    "file": "tests/retroarch/CMakeLists.txt",
+    "line": 71,
+    "description": "Source-root preflight was callable but absent from normal CTest coverage (WR-07).",
+    "status": "fixed",
+    "reason": "Registered a serial bounded test; full CI 650/650 with packages and focused ASan 1/1 passed; independent follow-up review clean.",
+    "recorded_at": "2026-10-23T18:44:55Z",
+    "resolved_at": "2026-10-23T18:44:55Z",
+    "milestone": null
   }
 ]
 ````
@@ -280,3 +293,18 @@ reason for waivers only. Archived summaries are under `milestones/`.
 Read-only GitHub queries reconfirmed the named hosted conclusions and exact SHAs
 on 2026-10-13. All named commits exist in repository history. Unrelated milestone
 audit debt, including Phase 13 WR-01 through WR-03, remains unchanged.
+
+## Representation reconciliation — 2026-10-30
+
+Entry 18 was added to the table and counters by historical commit `e80af77`,
+but omitted from the authoritative JSON. Its fixed disposition is supported by
+[Phase 16 verification](milestones/v4-phases/16-host-evidence-and-roadmap/16-VERIFICATION.md)
+and the registered `retroarch.session.source_root` test. The missing JSON
+entry is restored from that retained table row. The old table kind `coverage`
+is represented as the supported schema kind `unmet-truth` in both views; the
+description, reason, fixed status and original timestamps are preserved.
+All 18 entries now agree: zero open, four waived and fourteen fixed.
+
+This representation repair does not reconstruct a previously refused Phase 21
+deviation append or claim that any other deferred issue was repaired. The
+historical refusal remains recorded in the archived phase deferred-items file.

@@ -52,6 +52,10 @@ nyquist:
 
 # v5 milestone audit: NMI, VBlank and sprite-0 timing
 
+Archive note: this audit predates closeout. Its historical ledger mismatch was
+subsequently reconciled from retained fixed evidence; other audit debt remains.
+See [v5 closeout](v5-CLOSEOUT.md) for the completed boundary outcome.
+
 **Verdict: tech_debt. All eleven requirements are satisfied, all three phase
 reports remain current and passed, and no blocking integration or end-to-end gap
 was found.** Deferred collector defects, documentation inconsistencies and
@@ -76,8 +80,8 @@ v4 starting 101-PASS authority is preserved through the sequential 108- and
 114 Phase 21 starting PASS keys. Aggregate score improvement is not substituted
 for the exact-key target and regression gates.
 
-Inputs: [project](PROJECT.md), [requirements](REQUIREMENTS.md),
-[roadmap](ROADMAP.md), all phase verifications, all 27 summary frontmatters,
+Inputs: [project](v5-PROJECT.md), [requirements](v5-REQUIREMENTS.md),
+[roadmap](v5-ROADMAP.md), all phase verifications, all 27 summary frontmatters,
 review dispositions, evidence ledgers and the fresh
 [integration audit](v5-INTEGRATION-AUDIT.md). No phase report or historical
 summary was rewritten to make the audit pass.
@@ -86,9 +90,9 @@ summary was rewritten to make the audit pass.
 
 | Phase | Current report | Verified truths | Plans | Requirement verdict |
 |---|---|---:|---:|---|
-| 19 — JAM reporting and sprite-0 hit | [passed](phases/19-jam-reporting-and-sprite-0-hit/19-VERIFICATION.md), 2026-10-30 | 4/4 | 6/6 | JAM-01/02, SPR-01/02 satisfied |
-| 20 — NMI line and VBlank flag | [passed](phases/20-nmi-line-and-vblank-flag/20-VERIFICATION.md), 2026-10-30 | 32/32 | 12/12 | NMI-01/02, KEEP-02/03 satisfied |
-| 21 — Interrupt latency and hijack | [passed](phases/21-interrupt-latency-and-hijack/21-VERIFICATION.md), 2026-10-30 | 32/32 | 9/9 | INT-01/02, KEEP-01 satisfied |
+| 19 — JAM reporting and sprite-0 hit | [passed](v5-phases/19-jam-reporting-and-sprite-0-hit/19-VERIFICATION.md), 2026-10-30 | 4/4 | 6/6 | JAM-01/02, SPR-01/02 satisfied |
+| 20 — NMI line and VBlank flag | [passed](v5-phases/20-nmi-line-and-vblank-flag/20-VERIFICATION.md), 2026-10-30 | 32/32 | 12/12 | NMI-01/02, KEEP-02/03 satisfied |
+| 21 — Interrupt latency and hijack | [passed](v5-phases/21-interrupt-latency-and-hijack/21-VERIFICATION.md), 2026-10-30 | 32/32 | 9/9 | INT-01/02, KEEP-01 satisfied |
 
 The verification owner returned `passed` for each directory in this audit.
 There are no missing, stale, gaps-found or behavior-unverified phase reports.
@@ -118,9 +122,9 @@ source tracing and focused executable checks.
 | INT-02 | 21 | SATISFIED | none; verifier owns closure | [x] Complete | satisfied after evidence reconciliation |
 | KEEP-01 | 21 | SATISFIED | none; verifier owns closure | [x] Complete | satisfied after evidence reconciliation |
 
-[20-10-SUMMARY.md](phases/20-nmi-line-and-vblank-flag/20-10-SUMMARY.md)
+[20-10-SUMMARY.md](v5-phases/20-nmi-line-and-vblank-flag/20-10-SUMMARY.md)
 explicitly assigns requirement completion to independent phase re-verification.
-[21-09-SUMMARY.md](phases/21-interrupt-latency-and-hijack/21-09-SUMMARY.md)
+[21-09-SUMMARY.md](v5-phases/21-interrupt-latency-and-hijack/21-09-SUMMARY.md)
 likewise leaves closure pending parent verification. These are truthful
 execution-time snapshots. The subsequent passed phase reports close their
 requirements; a historical pending key does not override that later evidence.
@@ -189,8 +193,8 @@ Historical source-bound acceptance stays distinct:
 
 | Evidence | Candidate / tested merge | Scope |
 |---|---|---|
-| [Phase 20 ledger](phases/20-nmi-line-and-vblank-flag/20-EVIDENCE.md) and [refresh](phases/20-nmi-line-and-vblank-flag/20-REVERIFICATION-EVIDENCE.md) | `7848cc8` / `716e8d4` | 418 effective inputs, independently checked modes/blobs, accepted CI/Nightly contents |
-| [Phase 21 ledger](phases/21-interrupt-latency-and-hijack/21-EVIDENCE.md) | `54c7db2` / `faf1b91` | 428 effective inputs, independently checked actual filesystem modes/raw blobs, six lanes and host/conformance/performance evidence |
+| [Phase 20 ledger](v5-phases/20-nmi-line-and-vblank-flag/20-EVIDENCE.md) and [refresh](v5-phases/20-nmi-line-and-vblank-flag/20-REVERIFICATION-EVIDENCE.md) | `7848cc8` / `716e8d4` | 418 effective inputs, independently checked modes/blobs, accepted CI/Nightly contents |
+| [Phase 21 ledger](v5-phases/21-interrupt-latency-and-hijack/21-EVIDENCE.md) | `54c7db2` / `faf1b91` | 428 effective inputs, independently checked actual filesystem modes/raw blobs, six lanes and host/conformance/performance evidence |
 
 The final-head workflow successes and current local checks do not rewrite
 those manifests or imply a new content/provenance collection. The phase
@@ -207,14 +211,14 @@ mode/blob evidence supplies the accepted-run mitigation; automated enforcement
 for future collections is still missing. Repairs require a new effective
 source and fresh hosted evidence rather than reuse of the old manifests.
 
-Review authorities: [19 disposition](phases/19-jam-reporting-and-sprite-0-hit/19-REVIEW-DISPOSITION.md),
-[20 disposition](phases/20-nmi-line-and-vblank-flag/20-REVIEW-DISPOSITION.md),
-[21 disposition](phases/21-interrupt-latency-and-hijack/21-REVIEW-DISPOSITION.md).
+Review authorities: [19 disposition](v5-phases/19-jam-reporting-and-sprite-0-hit/19-REVIEW-DISPOSITION.md),
+[20 disposition](v5-phases/20-nmi-line-and-vblank-flag/20-REVIEW-DISPOSITION.md),
+[21 disposition](v5-phases/21-interrupt-latency-and-hijack/21-REVIEW-DISPOSITION.md).
 Phase 19 WR-01/02 and Phase 20 WR-01/02 remain fixed. Phase 21's historical
 CR-01 rejection and CR-02 fix remain in its review history. No disposition was
 silently changed by this audit.
 
-The planning-ledger discrepancy is reproducible now: [WINDOWS.md](WINDOWS.md)
+The planning-ledger discrepancy is reproducible now: [WINDOWS.md](../WINDOWS.md)
 has `total_count: 18`, table row 18, and a fenced JSON array of 17 entries whose
 last ID is 17. This is a concrete representation mismatch, not an established
 runtime gap or a corrected aggregate. Preserve the historical record and
@@ -254,4 +258,4 @@ this audit. A scoped collector/documentation cleanup before closeout is an
 available alternative if the owner chooses that additional scope.
 
 No further lifecycle command ran. Context may be cleared before closeout;
-[STATE.md](STATE.md) and [continue.md](continue.md) provide the handoff.
+[STATE.md](../STATE.md) and [continue.md](../continue.md) provide the handoff.

@@ -109,7 +109,7 @@ These are warnings about maintenance, documentation, metadata, or the scope of e
 
 ## Evidence References
 
-- Phase summaries and independent verification: [Phase 19](phases/19-jam-reporting-and-sprite-0-hit/19-VERIFICATION.md), [Phase 20](phases/20-nmi-line-and-vblank-flag/20-VERIFICATION.md), [Phase 21](phases/21-interrupt-latency-and-hijack/21-VERIFICATION.md).
-- Deferred reviews: [Phase 20 disposition](phases/20-nmi-line-and-vblank-flag/20-REVIEW-DISPOSITION.md), [Phase 21 disposition](phases/21-interrupt-latency-and-hijack/21-REVIEW-DISPOSITION.md).
-- Hosted ledgers: [Phase 20 evidence](phases/20-nmi-line-and-vblank-flag/20-EVIDENCE.md), [Phase 21 evidence](phases/21-interrupt-latency-and-hijack/21-EVIDENCE.md).
+- Phase summaries and independent verification: [Phase 19](v5-phases/19-jam-reporting-and-sprite-0-hit/19-VERIFICATION.md), [Phase 20](v5-phases/20-nmi-line-and-vblank-flag/20-VERIFICATION.md), [Phase 21](v5-phases/21-interrupt-latency-and-hijack/21-VERIFICATION.md).
+- Deferred reviews: [Phase 20 disposition](v5-phases/20-nmi-line-and-vblank-flag/20-REVIEW-DISPOSITION.md), [Phase 21 disposition](v5-phases/21-interrupt-latency-and-hijack/21-REVIEW-DISPOSITION.md).
+- Hosted ledgers: [Phase 20 evidence](v5-phases/20-nmi-line-and-vblank-flag/20-EVIDENCE.md), [Phase 21 evidence](v5-phases/21-interrupt-latency-and-hijack/21-EVIDENCE.md).
 - Focused logs: `../build/v5-milestone-audit/focused-ctest.log` and `../build/v5-milestone-audit/focused-evidence-ctest.log`.

@@ -167,6 +167,43 @@
 
 ---
 
+## Milestone: v5 — NMI, VBlank and sprite-0 timing
+
+**Shipped:** 2026-10-30 (planning milestone; 0.1.12 publication pending).
+**Phases:** 3 | **Plans:** 27 | **Tasks:** 68 | **Timeline:** six calendar dates
+
+### What Was Built
+- Eleven timing targets pass through OAMADDR sprite evaluation, split status sampling, NMI capture/poll and shared interrupt entry.
+- Guest JAM attribution and actual-adapter frozen-frame/silence behavior survive rewind and run-ahead.
+- Format-3 state validation and native/actual-adapter entry-cutpoint continuation with source-bound six-platform acceptance.
+
+### What Worked
+- Owned pre-fix reproducers and exact revert/mutant controls separated real hardware-model defects from plausible wrong fixes.
+- Native and loaded-adapter replay checked actual guest markers, state, frame and audio history.
+- Full-key PASS protection and unchanged performance thresholds kept the improvement attributable; all three phase reports were refreshed before closeout.
+
+### What Was Inefficient
+- Hosted collection needed source-root/archive/log repairs and run-specific mode checks; recurring collector defects remain maintenance debt.
+- Later review-record changes invalidated cross-phase verification, requiring sequential refreshes.
+- Body-only summary parsing undercounted 68 recorded tasks as 49 and missed completed requirement claims; closeout reconciles the evidence without changing historical summaries.
+
+### Patterns Established
+- Separate raw assertions, inhibited candidates, recognized requests and legal poll acceptance in serialized history.
+- Preserve immutable hosted source identities separately from current local tests and final-head workflow success.
+- Refresh direction from current exact-key outcomes: three of the old eight DMA candidates now pass; the remaining cluster is five failures.
+
+### Key Lessons
+1. Treat collector identity enforcement as a prerequisite for trustworthy new evidence, not a property supplied permanently by one independent historical check.
+2. Batch source and review-disposition updates before final phase verification where possible; never rewrite fingerprints simply to remove a stale route.
+3. Keep package publication separate from merged implementation and planning completion; release PR #56 is still open.
+4. Repair routine ledger representation from retained source evidence inside closeout without manufacturing a new product phase or historical deviation.
+
+### Cost Observations
+- Model mix, token costs and sessions were not measured consistently.
+- Phase 20 needed twelve plans including evidence gap closure; Phase 21 needed nine. No new speedup claim is made from this record.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -177,6 +214,7 @@
 | v2 | — | 6 | Milestone audit before close-out; post-audit quick tasks; per-preset CI cost |
 | v3 | — | 5 | Measured timeouts with run IDs; claims tied to tests at configure time; per-PR perf gate |
 | v4 | — | 3 | Rolling product roadmap at both boundaries; loop recovery that binds acceptance to product behaviour |
+| v5 | — | 3 | Causal timing reproducers, native/actual-adapter cutpoints and source-bound hosted acceptance; current passed reports before closeout |
 
 ### Cumulative Quality
 
@@ -186,6 +224,7 @@
 | v2 | 481 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 | v3 | 633 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 | v4 | 669 CTest tests in `ci` | 24 core functions beyond loader corpora (execution fuzz) | all (only `libretro.h` vendored) |
+| v5 | 695 CTest tests in `ci` | exact eleven-key target contract plus every-stage entry replay; no percentage claimed | all (only `libretro.h` vendored) |
 
 ### Top Lessons (Verified Across Milestones)
 

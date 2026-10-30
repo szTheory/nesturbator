@@ -10,6 +10,17 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 ## Current State
 
+v5 "NMI, VBlank and sprite-0 timing" completed on 2026-10-30: three phases, 27 plans and eleven satisfied requirements. All eleven selected AccuracyCoin targets pass at `6bee919`; the canonical baseline is 119 PASS / 27 FAIL over 146 terminal scored rows plus five unscored DRAW entries. IRQ poll acceptance, coherent shared BRK/IRQ/NMI entry, sprite-0 evaluation and JAM presentation now have owned causal tests and native/actual-adapter replay. Public ABI 1 remains unchanged; state format 3 and behavior revision 9 refuse incompatible earlier states.
+
+PRs #57, #59 and #61 are merged. The accepted historical CI/Nightly bundles bind their own source identities and six-platform hashes, protected PASS sets, host/conformance outcomes and unchanged +1% performance threshold. The final PR head's CI/Nightly also succeeded. These are separate evidence claims, not a new content collection. Package release [PR #56](https://github.com/szTheory/nesturbator/pull/56) (0.1.12) is still open as checked during closeout; publication is not claimed.
+
+All three phase reports were current and passed before archival. The milestone audit has `tech_debt`, with no blocking requirement, integration or end-to-end gap. Closeout explicitly carries six newly acknowledged records and ten prior acknowledgements. Collector defects, historical measurement attribution, README revision advisory, macOS nofp and physical-tie/provenance limits remain documented in the [v5 closeout](milestones/v5-CLOSEOUT.md) and [audit](milestones/v5-MILESTONE-AUDIT.md). WINDOWS entry 18's representation is reconciled from its existing fixed evidence.
+
+The repository contains 49,089 lines of owned C, excluding vendored `libretro.h`, and 695 registered CI tests. Detailed count definitions, task reconciliation and history are in the closeout record. Library, runner and libretro remain the only three deliverables.
+
+<details>
+<summary>Historical state and phase refresh notes before v5 archival</summary>
+
 v4 "Measured NTSC accuracy and robustness" shipped on 2026-10-24 (planning milestone; the package version is separate). Phase 16 merged as PR #50 and was published as [v0.1.11](https://github.com/szTheory/nesturbator/releases/tag/v0.1.11), with downloaded-byte, checksum, attestation and six-platform metadata evidence. Phases 17 and 18 merge through PR #55, whose exact-head CI run [40150921041](https://github.com/szTheory/nesturbator/actions/runs/40150921041) passed every check; their publication is recorded in MILESTONES.md once observed. RetroArch progression and state checks now reject dropped, doubled and wrong-load sequences. The AccuracyCoin baseline at `6bee919` classifies all 146 scored rows (101 pass, 42 fail, 2 not-run, 1 timeout, five DRAW entries kept out of the score) and protects every PASS freshly on each CI lane. An owned execution fuzz/replay target runs generated programs on all six board families with lifecycle, loop and JAM controls and finite nightly sanitizer campaigns. The tree has 39,760 lines of C, 8,979 of them in the core library and public header, with 669 CTest tests in `ci`.
 
 v3 "Save states and rewind" shipped on 2026-10-13 ([v0.1.10](https://github.com/szTheory/nesturbator/releases/tag/v0.1.10)), v2 "Most of the library plays" on 2026-10-11 and v1 "NROM games with sound" on 2026-10-09. The milestone records are in `.planning/MILESTONES.md`, and each milestone's roadmap, requirements, audit and phase history are in `.planning/milestones/`.
@@ -51,7 +62,16 @@ Historical hosted evidence, deferred debt and evidence limits remain as recorded
 PR review/merge and milestone audit remain separate steps; no source change or
 new hosted qualification is claimed by this refresh.
 
-## Current Milestone: v5 NMI, VBlank and sprite-0 timing
+</details>
+
+## Next Milestone Goals
+
+No next milestone scope is approved. Preferred: the five remaining failures in the DMA cluster, protecting its three already passing rows and all current PASS keys, with a bounded collector/documentation tune-up before new evidence collection. PAL timing/pitch remains the main compatibility alternative; a maintenance-only milestone is the smaller alternative. All four horizons and promotion triggers are refreshed in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The next command is `$gsd-new-milestone`, which selects scope and creates fresh requirements; no implementation is authorized by these proposals.
+
+<details>
+<summary>v5 milestone definition (archived)</summary>
+
+### Completed milestone: v5 NMI, VBlank and sprite-0 timing
 
 **Goal:** A game's frame loop and status-bar splits time out exactly as they do on an NTSC console.
 
@@ -62,6 +82,8 @@ new hosted qualification is claimed by this refresh.
 - Tune-up (SEED-006): AccuracyCoin reports a guest JAM as a JAM, and `libretro.runahead` covers run-ahead across a JAM.
 
 Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay the next alternative cluster and PAL (RM-005) stays behind them.
+
+</details>
 
 <details>
 <summary>v4 milestone definition (archived)</summary>
@@ -113,8 +135,7 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 ### Active
 
-No remaining v5 implementation requirements. Phase 21 publication, PR review/merge
-and milestone audit/closeout remain separate lifecycle steps.
+No active milestone requirements. v5 is archived; fresh requirements are created only after the next milestone scope is approved. Package publication remains pending independently in PR #56.
 
 ### Out of Scope
 
@@ -137,7 +158,8 @@ and milestone audit/closeout remain separate lifecycle steps.
 - **Known debt after v1.** Closed in Phase 5. The audit that listed it is `.planning/milestones/v1-MILESTONE-AUDIT.md`.
 - **Known debt after v2.** Listed in `.planning/milestones/v2-MILESTONE-AUDIT.md` and the v2 entry of `.planning/MILESTONES.md`; Phase 11 and Phase 15 closed G2, G6, 08 IN-02 and Backlog 999.1.
 - **Known debt after v3.** Listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and the v3 entry of `.planning/MILESTONES.md`. None of it changes released behaviour; the most substantive items are the three Phase 13 RetroArch test-robustness warnings.
-- **Known debt after v4.** Listed in `.planning/milestones/v4-MILESTONE-AUDIT.md`, the v4 entry of `.planning/MILESTONES.md` and PRODUCT-ROADMAP's carried-debt section. None of it changes released behaviour; the most substantive items are AccuracyCoin's generic JAM attribution and the missing run-ahead-under-JAM test.
+- **Known debt after v4.** Listed in `.planning/milestones/v4-MILESTONE-AUDIT.md`, the v4 entry of `.planning/MILESTONES.md` and PRODUCT-ROADMAP's carried-debt section. The two JAM gaps shipped in v5; remaining campaign-minimization and platform debt stays in the current product ledger.
+- **Known debt after v5.** The [v5 audit](milestones/v5-MILESTONE-AUDIT.md) and [closeout](milestones/v5-CLOSEOUT.md) retain recurring collector defects, attribution and revision advisories, platform limitations and acknowledged planning records. The ledger representation repair changes no historical verdict.
 - **CI cost.** The asan job skips or shortens the long hash tests (`NESTURBATOR_SHORT_RUNS`), whose full-length hashes the build jobs and hash-equality still check. Every `timeout-minutes` is twice a measured hosted run whose ID sits beside it, and `hygiene.timeout_comments` enforces that.
 - **Reference material.** Each file below states facts with their sources. Open the one that matches the work before designing or building.
   - `.planning/preparation/README.md` — index of the files below
@@ -166,6 +188,9 @@ and milestone audit/closeout remain separate lifecycle steps.
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
+| IRQ eligibility is accepted at the legal instruction poll and BRK/IRQ/NMI share resumable entry with coherent vector selection | Old-I timing and takeover require retained history, not a new independent IRQ queue | ✓ Good — Phase 21 latency/overlap targets, native every-stage replay and actual adapter run-ahead; format 3/revision 9 |
+| Entry-inhibited NMI candidates qualify only if held until recognition; recognized requests remain separate | Raw sampled pulses must not become sticky recognized requests prematurely | ✓ Good — Phase 21 causal revert/mutant controls and held/released native/adapter histories; physical exact ties remain unmeasured |
+| Protected raw-key results, six-platform inventories and original performance thresholds remain unchanged acceptance gates | Aggregate score improvement cannot conceal lost passes or source mismatch | ✓ Good — all eleven targets and all 114 Phase 21 starting PASS keys on six lanes; collector recurrence remains debt |
 | Captured NMI request and polled NMI work are separate serialized latches; a falling live line does not revoke capture | One source-grounded model covers status reads, control writes and resumable races | ✓ Good — Phase 20, six target rows, exact state cutpoints and hosted replay verified |
 | Hosted evidence binds candidate, tested merge, protected base and complete effective inputs separately from evidence-only commits | Local dirty provenance and synthetic fixtures cannot stand in for real source-bound acceptance | ✓ Good — Phase 20, accepted six-platform/performance/Nightly/RetroArch bundle; future collector mode enforcement and source-scan cleanup remain debt |
 | Time in half-master-clock ticks; the CPU drives the bus; the PPU catches up at both M2 edges | The coarsest unit where every clock edge is an integer; the shape of designs that score 136 or more of 140 | ✓ Good — Phases 3–4 exercise shared CPU/PPU/APU timing with frame, channel and DMA edge tests |
@@ -234,4 +259,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-30 after Phase 20 review-record verification refresh*
+*Last updated: 2026-10-30 after v5 milestone closeout*
