@@ -35,8 +35,8 @@
 #define NT_FRAMES 2u
 #define NT_PAD 0xa5u
 #define NT_RAW 0x10u
-/* 64-byte state header + 14 core bytes + 14 CPU bytes before jammed. */
-#define NT_CPU_JAMMED_OFFSET 92u
+/* 64-byte state header + 14 core bytes + 19 CPU bytes before jammed. */
+#define NT_CPU_JAMMED_OFFSET 97u
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 int nt_replay_last_accepted(void);

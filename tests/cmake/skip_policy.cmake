@@ -19,13 +19,15 @@ function(check_inventory json out_error)
   endif()
   math(EXPR last_test "${count} - 1")
   foreach(test_index RANGE 0 ${last_test})
-    string(JSON test_name GET "${json}" tests ${test_index} name)
-    string(JSON property_count LENGTH "${json}" tests ${test_index} properties)
+    # CMake parses the supplied JSON on every query. Extract this test once
+    # rather than reparsing the full inventory for each of its properties.
+    string(JSON test_json GET "${json}" tests ${test_index})
+    string(JSON test_name GET "${test_json}" name)
+    string(JSON property_count LENGTH "${test_json}" properties)
     if(property_count GREATER 0)
       math(EXPR last_property "${property_count} - 1")
       foreach(property_index RANGE 0 ${last_property})
-        string(JSON property GET "${json}" tests ${test_index}
-          properties ${property_index} name)
+        string(JSON property GET "${test_json}" properties ${property_index} name)
         if(property STREQUAL "SKIP_RETURN_CODE"
             OR property STREQUAL "SKIP_REGULAR_EXPRESSION"
             OR property STREQUAL "DISABLED")
@@ -99,6 +101,21 @@ expect_rejected("DISABLED"
   "a\\.one")
 expect_rejected("invalid JSON" "{not json" "invalid ctest inventory")
 expect_rejected("empty list" [[{"tests":[]}]] "empty")
+
+# Scope every lookup to its own test, including a forbidden property after
+# ordinary properties on a later test in the inventory.
+foreach(property IN ITEMS SKIP_RETURN_CODE SKIP_REGULAR_EXPRESSION DISABLED)
+  if(property STREQUAL "SKIP_RETURN_CODE")
+    set(value "77")
+  elseif(property STREQUAL "SKIP_REGULAR_EXPRESSION")
+    set(value "[\"skip:\"]")
+  else()
+    set(value "true")
+  endif()
+  string(JSON later_test SET "${clean}" tests 1 properties 1
+    "{\"name\":\"${property}\",\"value\":${value}}")
+  expect_rejected("later test/property ${property}" "${later_test}" "b\\.two")
+endforeach()
 
 # Real ctest output: CMake configures a throwaway one-test project, so CMake
 # itself writes the test file ctest reads. LANGUAGES NONE needs no compiler and

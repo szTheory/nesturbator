@@ -1,7 +1,7 @@
 /* STATE-04 (D-03, D-04, D-16): a hostile or damaged state is refused with the right status and
    changes nothing. For each ROM a state is made after 20 frames, then:
      1. cross-ROM matrix and no-cartridge: ERR_STATE_CARTRIDGE
-     2. format_version 0, 1 and 3: FORMAT; header_size 63 and 65: CHECKSUM, then INVALID with the
+     2. format_version 0, 1, 2 and 4: FORMAT; header_size 63 and 65: CHECKSUM, then INVALID with the
    CRC recomputed
      3. truncation to every length below S, S + 1 bytes, NULL arguments, S itself loads
      4. flip every header byte and body byte: the D-04 class per offset (RAM bytes with a stride
@@ -179,11 +179,11 @@ static void case_header(struct rom *r)
     struct guard g;
     uint8_t *b = copy_state(r);
     guard_open(&g, r->inst);
-    for (unsigned v = 0u; v <= 1u; ++v) {
+    for (unsigned v = 0u; v <= 2u; ++v) {
         put_raw(b + H_VERSION, v, 2u);
         refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "format_version", r->path);
     }
-    put_raw(b + H_VERSION, 3u, 2u);
+    put_raw(b + H_VERSION, 4u, 2u);
     refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "format_version", r->path);
     put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION, 2u);
     for (unsigned hs = 63u; hs <= 65u; hs += 2u) {
@@ -265,10 +265,21 @@ static void case_two_faults(struct rom *r)
     struct guard g;
     uint8_t *b = copy_state(r);
     guard_open(&g, r->inst);
-    put_raw(b + H_VERSION, 3u, 2u);
-    b[H_ROM_CRC] ^= 0xffu;
-    refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "version + ROM CRC", r->path);
+    for (unsigned version = 1u; version <= 2u; ++version) {
+        put_raw(b + H_VERSION, version, 2u);
+        put_raw(b + H_HEADER_SIZE, 63u, 2u);
+        b[H_ROM_CRC] ^= 0xffu;
+        st_recrc(b, r->state_size);
+        refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT,
+               "old version + bad header + ROM CRC", r->path);
+        b[H_ROM_CRC] ^= 0xffu;
+        put_raw(b + H_HEADER_SIZE, 64u, 2u);
+    }
+    put_raw(b + H_VERSION, 4u, 2u);
+    st_recrc(b, r->state_size);
+    refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "future version", r->path);
     put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION, 2u);
+    b[H_ROM_CRC] ^= 0xffu;
     refuse(&g, b, r->state_size - 1u, NESTURBATOR_ERR_STATE_CARTRIDGE, "ROM CRC + short", r->path);
     b[H_ROM_CRC] ^= 0xffu;
     b[HEADER + 3u] ^= 0xffu;
@@ -365,11 +376,11 @@ static const struct row ROWS[] = {
     ROW(audio_rem, 314999),
     ROW(apu.sample_phase, 314999),
     ROW(cpu.nmi_prev, 1),
-    ROW(cpu.nmi_pending, 1),
     ROW(cpu.nmi_polled, 1),
     ROW(cpu.irq_line, 1),
     ROW(cpu.irq_captured, 1),
     ROW(cpu.poll_latch, 1),
+    ROW(cpu.irq_accepted, 1),
     ROW(cpu.halted_in_read, 0),
     {"cpu.jammed", offsetof(struct nesturbator, cpu.jammed), 1u, 1u, 1, 0, 0, NESTURBATOR_STOP_JAM},
     ROW(bus.apu_get_put_phase, 1),
@@ -454,6 +465,13 @@ struct special {
     size_t member, width;
 };
 static const struct special SPECIALS[] = {
+    /* The maximum2 needs recognition/entry history; case_entry_history tests
+       its reachable siblings and CRC-correct invalid combinations. */
+    {"cpu.nmi_pending", offsetof(struct nesturbator, cpu.nmi_pending), 1u},
+    {"cpu.entry_origin", offsetof(struct nesturbator, cpu.entry_origin), 1u},
+    {"cpu.entry_next_action", offsetof(struct nesturbator, cpu.entry_next_action), 1u},
+    {"cpu.entry_vector", offsetof(struct nesturbator, cpu.entry_vector), 1u},
+    {"cpu.entry_vector_low", offsetof(struct nesturbator, cpu.entry_vector_low), 1u},
     {"synth.mixed_level", offsetof(struct nesturbator, synth.mixed_level), 4u},
     {"synth.integrator_q15", offsetof(struct nesturbator, synth.integrator_q15), 8u},
     {"ppu.status", offsetof(struct nesturbator, ppu.status), 1u},
@@ -482,44 +500,283 @@ static size_t special_off(struct rom *r, const char *name)
    after status/control have lowered the live input. */
 static void case_nmi_history(struct rom *r)
 {
-    uint8_t *b = copy_state(r);
-    size_t prev = locate(r, offsetof(struct nesturbator, cpu.nmi_prev), 1u);
-    size_t pending = locate(r, offsetof(struct nesturbator, cpu.nmi_pending), 1u);
-    size_t polled = locate(r, offsetof(struct nesturbator, cpu.nmi_polled), 1u);
-    size_t control = locate(r, offsetof(struct nesturbator, ppu.control), 1u);
-    size_t status = special_off(r, "ppu.status");
-    struct guard g;
-    CHECK(prev != 0u && pending != 0u && polled != 0u && control != 0u && status != 0u);
-    if (prev == 0u || pending == 0u || polled == 0u || control == 0u || status == 0u) {
+    uint8_t *b = (uint8_t *)malloc(r->state_size);
+    uint8_t *early = (uint8_t *)malloc(r->state_size);
+    uint8_t *roundtrip = (uint8_t *)malloc(r->state_size);
+    struct nesturbator *nes = (struct nesturbator *)r->inst;
+    CHECK(b != NULL && early != NULL && roundtrip != NULL);
+    if (b == NULL || early == NULL || roundtrip == NULL) {
         free(b);
+        free(early);
+        free(roundtrip);
         return;
     }
 
-    b[pending] = 0u;
-    b[polled] = 1u;
-    st_recrc(b, r->state_size);
+    /* Produce a captured edge and its later poll through the production bus
+       sampler, then lower the live PPU input without clearing either latch. */
+    CHECK_EQ_U64(nesturbator_reset(r->inst), NESTURBATOR_OK);
+    st_assert_nmi_pin(nes); /* test pin stimulus; the CPU latch is not seeded */
+    (void)nesturbator__bus_read(nes, nes->cpu.pc);
+    CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
+    CHECK_EQ_U64(nes->cpu.nmi_polled, 0u);
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, early, r->state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_state(r->inst, early, r->state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, roundtrip, r->state_size), NESTURBATOR_OK);
+    CHECK(memcmp(roundtrip, early, r->state_size) == 0);
+
+    nes->ppu.control &= 0x7fu; /* the live input falls; the captured edge remains */
+    (void)nesturbator__bus_read(nes, nes->cpu.pc);
+    CHECK_EQ_U64(nes->cpu.nmi_prev, 0u);
+    CHECK_EQ_U64(nes->cpu.nmi_pending, 1u);
+    CHECK_EQ_U64(nes->cpu.nmi_polled, 1u);
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(nes), 0u);
+
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, b, r->state_size), NESTURBATOR_OK);
+    memcpy(r->state, b, r->state_size);
+    CHECK_EQ_U64(nesturbator_load_state(r->inst, b, r->state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, roundtrip, r->state_size), NESTURBATOR_OK);
+    CHECK(memcmp(roundtrip, b, r->state_size) == 0);
+    printf("row nmi-history production-edge live-line=low pending/polled=(1,0),(1,1) "
+           "roundtrip=equal\n");
+
+    /* A polled bit without its captured request is still an invalid candidate. */
+    {
+        uint8_t *bad = copy_state(r);
+        size_t pending = locate(r, offsetof(struct nesturbator, cpu.nmi_pending), 1u);
+        size_t polled = locate(r, offsetof(struct nesturbator, cpu.nmi_polled), 1u);
+        struct guard g;
+        CHECK(pending != 0u && polled != 0u);
+        bad[pending] = 0u;
+        st_recrc(bad, r->state_size);
+        guard_open(&g, r->inst);
+        refuse(&g, bad, r->state_size, NESTURBATOR_ERR_STATE_INVALID,
+               "nmi_polled requires captured request", r->path);
+        guard_close(&g);
+        CHECK_EQ_U64(b[polled], 1u);
+        free(bad);
+    }
+    free(roundtrip);
+    free(early);
+    free(b);
+}
+
+static void entry_state(struct rom *r, uint8_t *baseline, uint8_t *state,
+                        enum nesturbator_entry_origin origin, uint8_t next_action,
+                        uint8_t select_nmi)
+{
+    struct nesturbator *nes = (struct nesturbator *)r->inst;
+    uint8_t first = origin == NESTURBATOR_ENTRY_NONE  ? 0u
+                    : origin == NESTURBATOR_ENTRY_BRK ? 2u
+                                                      : 1u;
+    CHECK_EQ_U64(nesturbator_load_state(r->inst, baseline, r->state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_reset(r->inst), NESTURBATOR_OK);
+    nesturbator__cpu_entry_begin(nes, origin);
+    while (nes->cpu.entry_origin != NESTURBATOR_ENTRY_NONE &&
+           nes->cpu.entry_next_action < next_action) {
+        if (select_nmi != 0u && nes->cpu.entry_next_action == 4u)
+            st_assert_nmi_pin(nes);
+        CHECK_EQ_U64(nesturbator__cpu_entry_action(nes), 1u);
+    }
+    CHECK_EQ_U64(nes->cpu.entry_origin, origin);
+    CHECK_EQ_U64(nes->cpu.entry_next_action, next_action);
+    if (origin == NESTURBATOR_ENTRY_NMI)
+        CHECK_EQ_U64(nes->cpu.entry_vector, NESTURBATOR_ENTRY_VECTOR_NMI);
+    else if (next_action < 5u)
+        CHECK_EQ_U64(nes->cpu.entry_vector, NESTURBATOR_ENTRY_VECTOR_NONE);
+    else
+        CHECK_EQ_U64(nes->cpu.entry_vector, select_nmi != 0u ? NESTURBATOR_ENTRY_VECTOR_NMI
+                                                             : NESTURBATOR_ENTRY_VECTOR_IRQ);
+    CHECK(first <= next_action);
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, state, r->state_size), NESTURBATOR_OK);
+}
+
+static void reject_entry_control(struct rom *r, const uint8_t *valid, size_t field, uint8_t value,
+                                 const char *what)
+{
+    uint8_t *bad = (uint8_t *)malloc(r->state_size);
+    uint8_t *actual = (uint8_t *)malloc(r->state_size);
+    uint8_t *expected = (uint8_t *)malloc(r->state_size);
+    nesturbator *control = st_make_instance();
+    struct guard g;
+    CHECK(bad != NULL && actual != NULL && expected != NULL && control != NULL);
+    if (bad == NULL || actual == NULL || expected == NULL || control == NULL)
+        goto done;
+
+    memcpy(bad, valid, r->state_size);
+    bad[field] = value;
+    st_recrc(bad, r->state_size);
+    CHECK_EQ_U64(nesturbator_load_state(r->inst, valid, r->state_size), NESTURBATOR_OK);
+    st_load(control, r->data, r->size);
+    CHECK_EQ_U64(nesturbator_load_state(control, valid, r->state_size), NESTURBATOR_OK);
     guard_open(&g, r->inst);
-    refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_INVALID,
-           "nmi_polled requires captured request", r->path);
+    refuse(&g, bad, r->state_size, NESTURBATOR_ERR_STATE_INVALID, what, r->path);
     guard_close(&g);
 
-    b[prev] = 1u;
-    b[pending] = 1u;
-    b[polled] = 0u;
-    b[control] = 0u;
-    b[status] = 0u;
-    st_recrc(b, r->state_size);
-    CHECK_EQ_U64(nesturbator_load_state(r->inst, b, r->state_size), NESTURBATOR_OK);
-    CHECK_EQ_U64(nesturbator_save_state(r->inst, r->state, r->state_size), NESTURBATOR_OK);
-    CHECK(memcmp(r->state, b, r->state_size) == 0);
+    /* A refused candidate must leave the next real entry action identical. */
+    CHECK_EQ_U64(nesturbator__cpu_entry_action((struct nesturbator *)r->inst),
+                 nesturbator__cpu_entry_action((struct nesturbator *)control));
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, actual, r->state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(control, expected, r->state_size), NESTURBATOR_OK);
+    CHECK(memcmp(actual, expected, r->state_size) == 0);
+    CHECK_EQ_U64(nesturbator_load_state(r->inst, valid, r->state_size), NESTURBATOR_OK);
 
-    b[polled] = 1u;
-    st_recrc(b, r->state_size);
-    CHECK_EQ_U64(nesturbator_load_state(r->inst, b, r->state_size), NESTURBATOR_OK);
-    CHECK_EQ_U64(nesturbator_save_state(r->inst, r->state, r->state_size), NESTURBATOR_OK);
-    CHECK(memcmp(r->state, b, r->state_size) == 0);
-    printf("row nmi-history live-line=low pending/polled=(1,0),(1,1) load=0 roundtrip=equal\n");
-    free(b);
+done:
+    if (control != NULL)
+        nesturbator_destroy(control);
+    free(expected);
+    free(actual);
+    free(bad);
+}
+
+static void check_entry_roundtrip(struct rom *r, const uint8_t *state, const char *label)
+{
+    uint8_t *roundtrip = (uint8_t *)malloc(r->state_size);
+    struct nesturbator *nes = (struct nesturbator *)r->inst;
+    CHECK(roundtrip != NULL);
+    if (roundtrip == NULL)
+        return;
+    CHECK_EQ_U64(nesturbator_load_state(r->inst, state, r->state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, roundtrip, r->state_size), NESTURBATOR_OK);
+    CHECK(memcmp(roundtrip, state, r->state_size) == 0);
+    printf("row entry %-28s origin=%u next=%u vector=%u low=%02x load=0 roundtrip=equal\n", label,
+           (unsigned)nes->cpu.entry_origin, (unsigned)nes->cpu.entry_next_action,
+           (unsigned)nes->cpu.entry_vector, (unsigned)nes->cpu.entry_vector_low);
+    free(roundtrip);
+}
+
+static void case_entry_history(struct rom *r)
+{
+    uint8_t *baseline = (uint8_t *)malloc(r->state_size);
+    uint8_t *valid = (uint8_t *)malloc(r->state_size);
+    struct nesturbator *nes = (struct nesturbator *)r->inst;
+    size_t origin = locate(r, offsetof(struct nesturbator, cpu.entry_origin), 1u);
+    size_t action = locate(r, offsetof(struct nesturbator, cpu.entry_next_action), 1u);
+    size_t vector = locate(r, offsetof(struct nesturbator, cpu.entry_vector), 1u);
+    size_t low = locate(r, offsetof(struct nesturbator, cpu.entry_vector_low), 1u);
+    size_t jammed = locate(r, offsetof(struct nesturbator, cpu.jammed), 1u);
+    size_t nmi_polled = locate(r, offsetof(struct nesturbator, cpu.nmi_polled), 1u);
+    size_t nmi_pending = locate(r, offsetof(struct nesturbator, cpu.nmi_pending), 1u);
+    size_t nmi_prev = locate(r, offsetof(struct nesturbator, cpu.nmi_prev), 1u);
+    size_t poll_latch = locate(r, offsetof(struct nesturbator, cpu.poll_latch), 1u);
+    size_t irq_accepted = locate(r, offsetof(struct nesturbator, cpu.irq_accepted), 1u);
+    CHECK(baseline != NULL && valid != NULL);
+    CHECK(origin != 0u && action != 0u && vector != 0u && low != 0u && jammed != 0u &&
+          nmi_polled != 0u && nmi_pending != 0u && nmi_prev != 0u && poll_latch != 0u &&
+          irq_accepted != 0u);
+    if (baseline == NULL || valid == NULL || origin == 0u || action == 0u || vector == 0u ||
+        low == 0u || jammed == 0u || nmi_polled == 0u || poll_latch == 0u || nmi_pending == 0u ||
+        nmi_prev == 0u || irq_accepted == 0u) {
+        free(valid);
+        free(baseline);
+        return;
+    }
+
+    CHECK_EQ_U64(nesturbator_reset(r->inst), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, baseline, r->state_size), NESTURBATOR_OK);
+
+    /* Every source-reachable completed action cutpoint has a public-loader
+       sibling. This is independent of the existing interrupt-entry suite's
+       instruction/stack assertions. */
+    for (enum nesturbator_entry_origin o = NESTURBATOR_ENTRY_BRK; o <= NESTURBATOR_ENTRY_NMI; ++o) {
+        uint8_t first = o == NESTURBATOR_ENTRY_BRK ? 2u : 1u;
+        for (uint8_t select_nmi = 0u; select_nmi <= 1u; ++select_nmi) {
+            if (o == NESTURBATOR_ENTRY_NMI && select_nmi != 0u)
+                continue;
+            for (uint8_t next = first; next <= 7u; ++next) {
+                if (select_nmi != 0u && next < 5u)
+                    continue;
+                entry_state(r, baseline, valid, o, next, select_nmi);
+                check_entry_roundtrip(r, valid,
+                                      o == NESTURBATOR_ENTRY_BRK   ? "BRK"
+                                      : o == NESTURBATOR_ENTRY_IRQ ? "IRQ"
+                                                                   : "NMI");
+            }
+        }
+    }
+
+    /* A distinct NMI edge after IRQ's C4 vector choice stays pending while
+       the older selected IRQ pair remains live. The bus action samples the
+       event; the CPU latch itself is never injected. */
+    entry_state(r, baseline, valid, NESTURBATOR_ENTRY_IRQ, 5u, 0u);
+    CHECK_EQ_U64(nes->cpu.entry_vector, NESTURBATOR_ENTRY_VECTOR_IRQ);
+    st_assert_nmi_pin(nes);
+    CHECK_EQ_U64(nesturbator__cpu_entry_action(nes), 1u); /* C5 */
+    CHECK_EQ_U64(nes->cpu.entry_next_action, 6u);
+    CHECK_EQ_U64(nes->cpu.entry_vector, NESTURBATOR_ENTRY_VECTOR_IRQ);
+    CHECK_EQ_U64(nes->cpu.nmi_pending, NESTURBATOR_NMI_INHIBITED);
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, valid, r->state_size), NESTURBATOR_OK);
+    check_entry_roundtrip(r, valid, "IRQ C6 + new edge");
+    reject_entry_control(r, valid, nmi_prev, 0u, "inhibited input was sampled asserted");
+    reject_entry_control(r, valid, nmi_polled, 1u, "inhibited input is not recognized");
+    reject_entry_control(r, valid, nmi_pending, NESTURBATOR_NMI_RECOGNIZED,
+                         "IRQ post-choice input cannot already be recognized");
+    reject_entry_control(r, valid, action, 5u, "inhibited input starts only after C5");
+    reject_entry_control(r, valid, jammed, 1u, "inhibited input contradicts JAM");
+    /* A released live input can still differ from the last sampled high at a
+       saved cutpoint. Its next entry sample cancels the unrecognized candidate. */
+    nes->ppu.control &= 0x7fu;
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, valid, r->state_size), NESTURBATOR_OK);
+    check_entry_roundtrip(r, valid, "IRQ C6 inhibited, live released");
+
+    entry_state(r, baseline, valid, NESTURBATOR_ENTRY_IRQ, 5u, 0u);
+    reject_entry_control(r, valid, nmi_pending, NESTURBATOR_NMI_INHIBITED,
+                         "pre-C5 cannot contain inhibited candidate");
+
+    /* C7 can leave a real inhibited candidate while continuation is idle.
+       No ordinary poll or JAM executes between C7 and handler T1. Retain a
+       released live line to cover raw/history divergence at this handoff. */
+    entry_state(r, baseline, valid, NESTURBATOR_ENTRY_IRQ, 7u, 0u);
+    st_assert_nmi_pin(nes);
+    CHECK_EQ_U64(nesturbator__cpu_entry_action(nes), 1u);
+    CHECK_EQ_U64(nes->cpu.entry_origin, NESTURBATOR_ENTRY_NONE);
+    CHECK_EQ_U64(nes->cpu.nmi_pending, NESTURBATOR_NMI_INHIBITED);
+    nes->ppu.control &= 0x7fu;
+    CHECK_EQ_U64(nesturbator_save_state(r->inst, valid, r->state_size), NESTURBATOR_OK);
+    check_entry_roundtrip(r, valid, "idle after C7 inhibited, released");
+    reject_entry_control(r, valid, irq_accepted, 1u, "idle candidate precedes IRQ arbitration");
+    reject_entry_control(r, valid, jammed, 1u, "idle candidate precedes handler JAM");
+    reject_entry_control(r, valid, poll_latch, 1u, "idle candidate has no ordinary IRQ poll");
+    reject_entry_control(r, valid, nmi_polled, 1u, "idle candidate has no recognized NMI poll");
+    reject_entry_control(r, valid, nmi_prev, 0u, "idle candidate retains sampled high");
+
+    /* Each failed control is a one-byte, CRC-correct mutation of a real legal
+       sibling. reject_entry_control also runs and compares its next action. */
+    entry_state(r, baseline, valid, NESTURBATOR_ENTRY_NONE, 0u, 0u);
+    reject_entry_control(r, valid, action, 1u, "idle has empty continuation");
+    reject_entry_control(r, valid, vector, 3u, "idle vector enum range");
+    reject_entry_control(r, valid, low, 1u, "idle low byte canonical zero");
+
+    entry_state(r, baseline, valid, NESTURBATOR_ENTRY_IRQ, 1u, 0u);
+    reject_entry_control(r, valid, origin, 4u, "entry origin enum range");
+    reject_entry_control(r, valid, action, 0u, "active action lower bound");
+    reject_entry_control(r, valid, action, 8u, "active action upper bound");
+    reject_entry_control(r, valid, vector, 3u, "active vector enum range");
+
+    entry_state(r, baseline, valid, NESTURBATOR_ENTRY_BRK, 2u, 0u);
+    reject_entry_control(r, valid, action, 1u, "BRK starts after opcode fetch");
+    reject_entry_control(r, valid, vector, NESTURBATOR_ENTRY_VECTOR_IRQ,
+                         "BRK vector is unselected through C4");
+    reject_entry_control(r, valid, jammed, 1u, "active entry contradicts JAM");
+    reject_entry_control(r, valid, nmi_polled, 1u, "active entry cannot retain NMI poll");
+    reject_entry_control(r, valid, poll_latch, 1u, "active entry cannot retain IRQ poll");
+    reject_entry_control(r, valid, irq_accepted, 1u, "active entry cannot retain accepted IRQ");
+
+    entry_state(r, baseline, valid, NESTURBATOR_ENTRY_IRQ, 5u, 0u);
+    reject_entry_control(r, valid, vector, NESTURBATOR_ENTRY_VECTOR_NONE,
+                         "IRQ vector is selected after C4");
+    reject_entry_control(r, valid, low, 1u, "IRQ low byte absent before C6");
+
+    entry_state(r, baseline, valid, NESTURBATOR_ENTRY_NMI, 1u, 0u);
+    reject_entry_control(r, valid, vector, NESTURBATOR_ENTRY_VECTOR_IRQ,
+                         "NMI origin keeps NMI vector");
+    reject_entry_control(r, valid, vector, NESTURBATOR_ENTRY_VECTOR_NONE,
+                         "NMI vector cannot be unselected");
+
+    entry_state(r, baseline, valid, NESTURBATOR_ENTRY_NMI, 6u, 0u);
+    reject_entry_control(r, valid, low, 1u, "NMI low byte absent before C6");
+    printf("CASE entry-reject CRC-correct controls no-mutation and future-action equal\n");
+    free(valid);
+    free(baseline);
 }
 
 /* ---- Case 6: the CRC-recomputed sweep over the recorded bounds ---- */
@@ -848,6 +1105,7 @@ int main(int argc, char **argv)
         case_header(&roms[i]);
         case_truncation(&roms[i]);
         case_nmi_history(&roms[i]);
+        case_entry_history(&roms[i]);
         case_two_faults(&roms[i]);
         case_flip(&roms[i]);
         case_field_sweep(&roms[i], bd, nb);

@@ -25,7 +25,7 @@ static nesturbator_status (*const save_state_fn)(const nesturbator *, void *,
                                                  size_t) = nesturbator_save_state;
 static nesturbator_status (*const load_state_fn)(nesturbator *, const void *,
                                                  size_t) = nesturbator_load_state;
-static_assert(NESTURBATOR_STATE_FORMAT_VERSION == 2, "state format version");
+static_assert(NESTURBATOR_STATE_FORMAT_VERSION == 3, "state format version");
 static_assert(NESTURBATOR_ERR_STATE_INVALID == 12, "last status value");
 
 int main()

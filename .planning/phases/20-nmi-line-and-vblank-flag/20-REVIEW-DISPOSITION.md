@@ -15,6 +15,10 @@ findings:
     severity: warning
     disposition: deferred
     title: "Nightly validator is defined twice"
+  - id: WR-05
+    severity: warning
+    disposition: deferred
+    title: "Phase 21 source identity misses worktree file mode"
   - id: WR-01
     severity: warning
     disposition: fixed
@@ -24,8 +28,8 @@ findings:
     disposition: fixed
     title: "Split `$2002` tests do not exercise changing sprite flags across M2"
 open: 0
-total: 5
-recorded: 2026-10-28T18:46:30.401Z
+total: 6
+recorded: 2026-10-30T12:14:48.938Z
 ---
 
 # Phase 20: Code Review Disposition
@@ -35,6 +39,7 @@ recorded: 2026-10-28T18:46:30.401Z
 | CR-01 | critical | deferred | Recurring collector mode-check enforcement requires an effective-source change and fresh delivery, outside 20-10's read-only contract. Supplemental automated comparison of all 417 local Git index modes/blob IDs with candidate, CI-tested and Nightly-tested trees passes; mode/blob manifest SHA-256 `d799defc0b6be54d5e9ff8e00beae68fb003fe06e78bb4d6c240afd055117818`. Historical 417-input evidence remains source-specific. The repair refresh independently matches all 418 current Git index modes/blob IDs against candidate, CI-tested and Nightly-tested trees; `build/phase20-refresh-source-modes.tsv` SHA-256 `98f1978ae7a3ead9f8ce22b62a4f6d5950165abeddb03523e57bfe696e4fce7f`. Recurring enforcement remains deferred for independent verification to assess. |
 | WR-03 | warning | deferred | Actual failure and successful absolute clean-equivalent-checkout workaround are preserved in 20-10-SUMMARY.md. A direct tracked-scoreboard copy and normalized source path need a later source-changing repair and new hosted evidence. |
 | WR-04 | warning | deferred | The two bodies are identical; keep the tested effective source intact during read-only acceptance. Remove the shadowed definition in a later source-changing maintenance change. |
+| WR-05 | warning | deferred | Same recurring filesystem-mode gap already deferred as Phase 21 WR-01 in 21-REVIEW-DISPOSITION.md. The accepted run has independent filesystem mode/blob checks; recurring helper repair remains maintenance debt. This refresh does not claim historical hosted evidence qualifies current source. |
 | WR-01 | warning | fixed | `include/nesturbator.h` public NMI comments and README contract; `test_captured_request_survives_clear` retains the request after line deassertion. (not in the current review) |
 | WR-02 | warning | fixed | `test_sprite_status_changes_between_m2_samples` witnesses `0:130` clear and `0:131` set through `$2002` and `$3FFA`; wrong-sampler control fails at the returned `0x35` assertion. (not in the current review) |
 

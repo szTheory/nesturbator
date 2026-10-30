@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "check.h"
+#include "interrupt_fixture.h"
 #include "nesturbator.h"
 
 #define RA_FNV_BASIS 14695981039346656037ull
@@ -23,9 +24,14 @@
 #define RA_MAX_DEPTH 3u
 #define RA_NMI_COUNT_ADDRESS 0x30u
 #define RA_NMI_EVENTS_ADDRESS 0x40u
+#define RA_ENTRY_NMI_COUNT_ADDRESS 0x31u
 #define RA_SEED_1 0x0badc0deu
 #define RA_SEED_2 0x5eed1234u
 #define RA_PIXELS (256u * 240u)
+#define RA_ENTRY_CUTPOINT_CLASSES 20u
+#define RA_ENTRY_ROM_SIZE (16u + INES_PRG_BANK + INES_CHR_BANK)
+
+static inline nesturbator *ra_instance(const uint8_t *rom, size_t size);
 
 /* FNV-1a over bytes. */
 static inline uint64_t ra_fnv_bytes(uint64_t h, const void *data, size_t len)
@@ -77,6 +83,88 @@ static inline int ra_audio_hash_is_nonzero_pcm(uint64_t hash)
 {
     static const int16_t silence[799] = {0};
     return hash != ra_audio_hash_mono(silence, 798u) && hash != ra_audio_hash_mono(silence, 799u);
+}
+
+/* Build the exact image loaded by interrupt_fixture_entry_build. The fixture's
+   production-action driver creates the machine state; exposing these same ROM
+   bytes lets the dynamically loaded adapter accept the public native state. */
+static inline size_t ra_entry_rom_build(uint8_t *image, size_t capacity)
+{
+    struct ines_segment segments[2];
+    struct ines_spec spec;
+
+    if (image == NULL || capacity < RA_ENTRY_ROM_SIZE)
+        return 0u;
+    segments[0].prg_offset = INTERRUPT_FIXTURE_NMI_VECTOR - 0x8000u;
+    segments[0].bytes = interrupt_fixture_entry_nmi_handler;
+    segments[0].len = sizeof interrupt_fixture_entry_nmi_handler;
+    segments[1].prg_offset = INTERRUPT_FIXTURE_IRQ_VECTOR - 0x8000u;
+    segments[1].bytes = interrupt_fixture_entry_irq_handler;
+    segments[1].len = sizeof interrupt_fixture_entry_irq_handler;
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.prg_code = interrupt_fixture_entry_program;
+    spec.prg_code_len = sizeof interrupt_fixture_entry_program;
+    spec.segments = segments;
+    spec.segment_count = 2u;
+    spec.nmi_vector = INTERRUPT_FIXTURE_NMI_VECTOR;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = INTERRUPT_FIXTURE_IRQ_VECTOR;
+    return ines_build(image, capacity, &spec);
+}
+
+static inline uint8_t ra_entry_first_action(enum nesturbator_entry_origin origin)
+{
+    return origin == NESTURBATOR_ENTRY_BRK ? 2u : 1u;
+}
+
+/* Reach and save one of Plan 21-06's production-action cutpoints. Every byte
+   is written by the public state visitor after the internal fixture reaches
+   the labeled next action. */
+static inline int ra_entry_cutpoint_state_warm(const uint8_t *rom, size_t rom_size,
+                                               enum nesturbator_entry_origin origin,
+                                               uint8_t next_action, unsigned warm_instructions,
+                                               uint8_t *state, size_t state_size)
+{
+    nesturbator *public_instance = ra_instance(rom, rom_size);
+    struct nesturbator *instance = (struct nesturbator *)public_instance;
+    int ok = 0;
+
+    if (instance == NULL || state == NULL)
+        goto done;
+    interrupt_fixture_entry_warm(instance, warm_instructions);
+    {
+        int impulse_nonzero = 0;
+        for (size_t i = 0u; i < NESTURBATOR_SYNTH_TAPS; i++)
+            impulse_nonzero |= instance->synth.impulse[i] != 0;
+        CHECK(instance->apu.sample_phase != 0u && instance->synth.mixed_level != 0 &&
+              impulse_nonzero && instance->apu.sample_output == NULL &&
+              instance->synth.pcm_count == 0u);
+    }
+    instance->cpu.p = 0x20u;
+    if (!interrupt_fixture_entry_construct(instance, origin) ||
+        !interrupt_fixture_entry_reach(instance, next_action)) {
+        CHECK(0);
+        goto done;
+    }
+    CHECK_EQ_U64(nesturbator_state_size(public_instance), state_size);
+    if (nesturbator_state_size(public_instance) == state_size &&
+        interrupt_fixture_entry_save_cutpoint(instance, next_action, state, state_size))
+        ok = 1;
+    else
+        CHECK(0);
+done:
+    nesturbator_destroy(public_instance);
+    return ok;
+}
+
+static inline int ra_entry_cutpoint_state(const uint8_t *rom, size_t rom_size,
+                                          enum nesturbator_entry_origin origin, uint8_t next_action,
+                                          uint8_t *state, size_t state_size)
+{
+    return ra_entry_cutpoint_state_warm(rom, rom_size, origin, next_action, 600u, state,
+                                        state_size);
 }
 
 static inline uint32_t ra_lcg(uint32_t x)
@@ -166,8 +254,9 @@ static inline nesturbator *ra_instance(const uint8_t *rom, size_t size)
 #define RA_FRAME_OK 1
 #define RA_FRAME_JAM 2
 
-static inline int ra_lib_frame_status(nesturbator *nes, uint16_t buttons, uint64_t *video_hash,
-                                      uint64_t *audio_hash, uint64_t *frame_number)
+static inline int ra_lib_frame_outputs(nesturbator *nes, uint16_t buttons, uint64_t *video_hash,
+                                       uint64_t *audio_hash, uint64_t *frame_number, uint32_t *xrgb,
+                                       int16_t *stereo, size_t *stereo_frames)
 {
     static uint16_t video[RA_PIXELS];
     static int16_t audio[1024];
@@ -198,17 +287,41 @@ static inline int ra_lib_frame_status(nesturbator *nes, uint16_t buttons, uint64
         CHECK(0);
         return RA_FRAME_FAIL;
     }
-    if (video_hash != NULL) {
+    if (video_hash != NULL || xrgb != NULL) {
         uint64_t h = RA_FNV_BASIS;
-        for (size_t i = 0u; i < RA_PIXELS; i++)
-            h = (h ^ palette[video[i] & 0x1ffu]) * RA_FNV_PRIME;
-        *video_hash = h;
+        for (size_t i = 0u; i < RA_PIXELS; i++) {
+            uint32_t pixel = palette[video[i] & 0x1ffu];
+            if (xrgb != NULL)
+                xrgb[i] = pixel;
+            h = (h ^ pixel) * RA_FNV_PRIME;
+        }
+        if (video_hash != NULL)
+            *video_hash = h;
     }
-    if (audio_hash != NULL)
-        *audio_hash = ra_audio_hash_mono(audio, io.audio_count);
+    if (audio_hash != NULL || stereo != NULL) {
+        if (audio_hash != NULL)
+            *audio_hash = ra_audio_hash_mono(audio, io.audio_count);
+        if (stereo != NULL) {
+            for (size_t i = 0u; i < io.audio_count; i++) {
+                stereo[2u * i] = audio[i];
+                stereo[2u * i + 1u] = audio[i];
+            }
+        }
+        if (stereo_frames != NULL)
+            *stereo_frames = io.audio_count;
+    } else if (stereo_frames != NULL) {
+        *stereo_frames = io.audio_count;
+    }
     if (frame_number != NULL)
         *frame_number = io.frame_number;
     return RA_FRAME_OK;
+}
+
+static inline int ra_lib_frame_status(nesturbator *nes, uint16_t buttons, uint64_t *video_hash,
+                                      uint64_t *audio_hash, uint64_t *frame_number)
+{
+    return ra_lib_frame_outputs(nes, buttons, video_hash, audio_hash, frame_number, NULL, NULL,
+                                NULL);
 }
 
 /* The strict form: any status other than OK, a JAM included, is an error. Returns 1 when the
@@ -244,6 +357,7 @@ struct ra_oracle {
     uint64_t *audio;
     uint8_t *state;
     uint8_t *guest_marker;
+    uint8_t *guest_marker_secondary;
     struct ra_frame *rec; /* per frame, filled by the JAM-aware run only */
     uint32_t jam_frame;   /* the first STOP_JAM, or RA_NO_JAM */
 };
@@ -254,6 +368,7 @@ static inline void ra_oracle_free(struct ra_oracle *o)
     free(o->audio);
     free(o->state);
     free(o->guest_marker);
+    free(o->guest_marker_secondary);
     free(o->rec);
     memset(o, 0, sizeof *o);
 }
@@ -267,10 +382,11 @@ static inline int ra_oracle_alloc(struct ra_oracle *o, uint32_t frames, size_t s
     o->audio = (uint64_t *)calloc(frames, sizeof *o->audio);
     o->state = (uint8_t *)calloc((size_t)frames * state_size, 1u);
     o->guest_marker = (uint8_t *)calloc(frames, sizeof *o->guest_marker);
+    o->guest_marker_secondary = (uint8_t *)calloc(frames, sizeof *o->guest_marker_secondary);
     o->rec = (struct ra_frame *)calloc(frames, sizeof *o->rec);
     o->jam_frame = RA_NO_JAM;
     if (o->video == NULL || o->audio == NULL || o->state == NULL || o->guest_marker == NULL ||
-        o->rec == NULL) {
+        o->guest_marker_secondary == NULL || o->rec == NULL) {
         ra_oracle_free(o);
         return 0;
     }
@@ -302,6 +418,9 @@ static inline int ra_record_frame(struct ra_oracle *o, uint32_t i, nesturbator *
     }
     CHECK_EQ_U64(nesturbator_peek_cpu_ram(nes, RA_NMI_COUNT_ADDRESS, &o->guest_marker[i]),
                  NESTURBATOR_OK);
+    CHECK_EQ_U64(
+        nesturbator_peek_cpu_ram(nes, RA_ENTRY_NMI_COUNT_ADDRESS, &o->guest_marker_secondary[i]),
+        NESTURBATOR_OK);
     o->rec[i].hash = o->video[i];
     o->rec[i].frame_number = number;
     o->rec[i].valid = 1;
@@ -339,6 +458,13 @@ static inline uint64_t ra_state_frame_number(const uint8_t *state)
 static inline uint64_t ra_state_ticks(const uint8_t *state)
 {
     return ra_state_u64le(state, 40u);
+}
+
+/* Format 3's 64-byte header is followed by 14 core bytes and 20 CPU bytes;
+   BUS RAM is the first 2 KiB field thereafter. CPU RAM mirrors every $800. */
+static inline uint8_t ra_state_cpu_ram_byte(const uint8_t *state, uint16_t address)
+{
+    return state[64u + 14u + 20u + ((size_t)address & 0x7ffu)];
 }
 
 static inline int ra_nmi_marker_matches(nesturbator *nes, uint8_t expected_count)
@@ -405,6 +531,40 @@ static inline int ra_run_uninterrupted(const uint8_t *rom, size_t size, const ui
     return ra_run_uninterrupted_ex(rom, size, in, frames, o, 0);
 }
 
+/* Uninterrupted native continuation from a production-generated public state. */
+static inline int ra_run_from_state(const uint8_t *rom, size_t size, const uint8_t *start_state,
+                                    size_t start_size, const uint16_t *in, uint32_t frames,
+                                    struct ra_oracle *o)
+{
+    nesturbator *nes = ra_instance(rom, size);
+    int ok = 0;
+    nesturbator_status load_status = NESTURBATOR_ERR_ARGUMENT;
+
+    if (nes == NULL)
+        return 0;
+    CHECK_EQ_U64(nesturbator_state_size(nes), start_size);
+    if (nesturbator_state_size(nes) == start_size)
+        load_status = nesturbator_load_state(nes, start_state, start_size);
+    CHECK_EQ_U64(load_status, NESTURBATOR_OK);
+    if (nesturbator_state_size(nes) == start_size && load_status == NESTURBATOR_OK &&
+        ra_oracle_alloc(o, frames, start_size)) {
+        ok = 1;
+        for (uint32_t i = 0u; i < frames && ok; i++) {
+            ok = ra_record_frame(o, i, nes, in[i], 0);
+            if (ok) {
+                nesturbator_status status = nesturbator_save_state(
+                    nes, o->state + (size_t)i * o->state_size, o->state_size);
+                CHECK_EQ_U64(status, NESTURBATOR_OK);
+                ok = status == NESTURBATOR_OK;
+            }
+        }
+        if (!ok)
+            ra_oracle_free(o);
+    }
+    nesturbator_destroy(nes);
+    return ok;
+}
+
 /* The two-instance model (RetroArch's second-instance mode): A runs the real timeline with
    in[t] and is recorded in *a; each tick B loads A's state after frame t, runs depth frames
    with in[t] repeated, and the last frame's video hash is visible[t] (A's own frame when depth
@@ -448,6 +608,46 @@ static inline int ra_run_two_instance(const uint8_t *rom, size_t size, const uin
                                       uint64_t *visible)
 {
     return ra_run_two_instance_ex(rom, size, in, T, depth, a, visible, 0);
+}
+
+/* The two-instance model starting from an internally reached native cutpoint. */
+static inline int ra_run_two_instance_from_state(const uint8_t *rom, size_t size,
+                                                 const uint8_t *start_state, size_t start_size,
+                                                 const uint16_t *in, uint32_t T, unsigned depth,
+                                                 struct ra_oracle *a, uint64_t *visible)
+{
+    nesturbator *na = ra_instance(rom, size);
+    nesturbator *nb = ra_instance(rom, size);
+    int ok = 0;
+
+    if (na != NULL && nb != NULL && nesturbator_state_size(na) == start_size &&
+        nesturbator_state_size(nb) == start_size) {
+        CHECK_EQ_U64(nesturbator_load_state(na, start_state, start_size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_load_state(nb, start_state, start_size), NESTURBATOR_OK);
+        if (ra_oracle_alloc(a, T, start_size)) {
+            ok = 1;
+            for (uint32_t t = 0u; t < T && ok; t++) {
+                uint8_t *state = a->state + (size_t)t * start_size;
+                ok = ra_record_frame(a, t, na, in[t], 0);
+                if (!ok)
+                    break;
+                CHECK_EQ_U64(nesturbator_save_state(na, state, start_size), NESTURBATOR_OK);
+                CHECK_EQ_U64(nesturbator_load_state(nb, state, start_size), NESTURBATOR_OK);
+                visible[t] = a->video[t];
+                for (unsigned j = 0u; j < depth && ok; j++) {
+                    int status = ra_lib_frame_status(nb, in[t], &visible[t], NULL, NULL);
+                    ok = status == RA_FRAME_OK;
+                    if (!ok)
+                        CHECK(0);
+                }
+            }
+            if (!ok)
+                ra_oracle_free(a);
+        }
+    }
+    nesturbator_destroy(nb);
+    nesturbator_destroy(na);
+    return ok;
 }
 
 /* The one-instance model through the library: save after the real frame, run depth frames with

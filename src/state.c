@@ -51,7 +51,7 @@ static const uint8_t state_magic[8] = {0x89u, 0x4eu, 0x54u, 0x53u, 0x0du, 0x0au,
    visits it and the number is updated (Pitfall P14). The structs hold only fixed-width integers
    and arrays of them, so the sizes are the same on every platform. Structs that also hold
    pointers are checked by the offset of their last saved field instead. */
-_Static_assert(sizeof(struct nesturbator__cpu) == 16u, "cpu fields changed: update cpu_io");
+_Static_assert(sizeof(struct nesturbator__cpu) == 20u, "cpu fields changed: update cpu_io");
 _Static_assert(sizeof(struct nesturbator__bus) == 2061u, "bus fields changed: update bus_io");
 _Static_assert(sizeof(struct nesturbator__pulse) == 16u, "pulse fields changed: update pulse_io");
 _Static_assert(sizeof(struct nesturbator__triangle) == 14u,
@@ -91,31 +91,104 @@ static void core_io(struct nesturbator__sio *io, struct nesturbator *nes)
     nesturbator__sio_u8(io, &nes->profile.lxa_magic, 255u);
 }
 
+static uint8_t cpu_entry_state_valid(uint8_t origin, uint8_t next_action, uint8_t vector,
+                                     uint8_t vector_low, uint8_t jammed, uint8_t nmi_polled,
+                                     uint8_t poll_latch, uint8_t irq_accepted, uint8_t nmi_pending,
+                                     uint8_t nmi_prev)
+{
+    /* Reachable completed-action matrix [NES-HARDWARE-CPU-APU.md section 2, subsection 3;
+       21-INTERRUPT-TIMING-ANNEX.md section 3]:
+       idle => action/vector/low = 0/none/0; BRK => C2-C7; IRQ => C1-C7;
+       NMI => C1-C7 with the NMI pair fixed. BRK/IRQ select no pair through
+       C4, then IRQ or NMI for C5-C7; the low byte is nonzero only at C7.
+       Entry actions do not poll, so active histories have no polled/accepted
+       request. The after-C4/before-C5 choice is the finite-margin Visual6502
+       crosswalk inference documented in the annex; no exact-tie winner is
+       claimed there. Do not correlate retained capture with today's PPU line. */
+    /* An inhibited candidate exists only after C5 sampled an assertion, or
+       after C7 before the handler's first T1. It has no accepted poll, and
+       the last close still sampled high; today's PPU line may already be low.
+       Recognized history1 remains independent of line history as before. */
+    if (nmi_pending == NESTURBATOR_NMI_INHIBITED &&
+        (nmi_prev == 0u || nmi_polled != 0u || poll_latch != 0u || irq_accepted != 0u ||
+         jammed != 0u || (origin != NESTURBATOR_ENTRY_NONE && next_action < 6u)))
+        return 0u;
+    /* BRK/IRQ consumed any recognized edge at their C4 vector decision.
+       A fresh post-choice input is inhibited, not recognized. NMI-origin
+       entry can still carry a distinct edge recognized during its C1-C4. */
+    if (origin != NESTURBATOR_ENTRY_NONE && origin != NESTURBATOR_ENTRY_NMI && next_action >= 5u &&
+        nmi_pending == NESTURBATOR_NMI_RECOGNIZED)
+        return 0u;
+    if (origin == NESTURBATOR_ENTRY_NONE)
+        return (uint8_t)(next_action == 0u && vector == NESTURBATOR_ENTRY_VECTOR_NONE &&
+                         vector_low == 0u);
+
+    if (origin > NESTURBATOR_ENTRY_NMI || next_action == 0u || next_action > 7u || jammed != 0u ||
+        nmi_polled != 0u || poll_latch != 0u || irq_accepted != 0u)
+        return 0u;
+    if (origin == NESTURBATOR_ENTRY_BRK && next_action < 2u)
+        return 0u;
+    if (origin == NESTURBATOR_ENTRY_NMI) {
+        if (vector != NESTURBATOR_ENTRY_VECTOR_NMI)
+            return 0u;
+    } else if (next_action < 5u) {
+        if (vector != NESTURBATOR_ENTRY_VECTOR_NONE)
+            return 0u;
+    } else if (vector != NESTURBATOR_ENTRY_VECTOR_IRQ && vector != NESTURBATOR_ENTRY_VECTOR_NMI) {
+        return 0u;
+    }
+    if (next_action < 7u && vector_low != 0u)
+        return 0u;
+    return 1u;
+}
+
 static void cpu_io(struct nesturbator__sio *io, struct nesturbator__cpu *c)
 {
+    uint8_t nmi_prev;
     uint8_t nmi_pending;
     uint8_t nmi_polled;
+    uint8_t poll_latch;
+    uint8_t irq_accepted;
+    uint8_t entry_origin;
+    uint8_t entry_next_action;
+    uint8_t entry_vector;
+    uint8_t entry_vector_low;
+    uint8_t jammed;
     nesturbator__sio_u16(io, &c->pc, 0xffffu);
     nesturbator__sio_u8(io, &c->a, 255u);
     nesturbator__sio_u8(io, &c->x, 255u);
     nesturbator__sio_u8(io, &c->y, 255u);
     nesturbator__sio_u8(io, &c->s, 255u);
     nesturbator__sio_u8(io, &c->p, 255u);
-    /* The detector line, captured edge and last instruction poll are separate
-       history. Live PPU status/control may lower the line without clearing the
-       captured request or poll result. */
-    nesturbator__sio_u8(io, &c->nmi_prev, 1u);
-    nmi_pending = nesturbator__sio_u8(io, &c->nmi_pending, 1u);
+    /* The detector line, recognized request or inhibited candidate, and last
+       instruction poll are separate history. Live PPU status/control may lower
+       the line without clearing a recognized request or poll result. Only an
+       unrecognized inhibited candidate still requires a held input. */
+    nmi_prev = nesturbator__sio_u8(io, &c->nmi_prev, 1u);
+    nmi_pending = nesturbator__sio_u8(io, &c->nmi_pending, NESTURBATOR_NMI_INHIBITED);
     nesturbator__sio_cross(io);
     nmi_polled = nesturbator__sio_u8(io, &c->nmi_polled, 1u);
-    nesturbator__sio_check(io, nmi_polled == 0u || nmi_pending != 0u);
+    nesturbator__sio_check(io, nmi_polled == 0u || nmi_pending == NESTURBATOR_NMI_RECOGNIZED);
     nesturbator__sio_u8(io, &c->irq_line, 1u);
     nesturbator__sio_u8(io, &c->irq_captured, 1u);
-    nesturbator__sio_u8(io, &c->poll_latch, 1u);
+    poll_latch = nesturbator__sio_u8(io, &c->poll_latch, 1u);
+    irq_accepted = nesturbator__sio_u8(io, &c->irq_accepted, 1u);
+    entry_origin = nesturbator__sio_u8(io, &c->entry_origin, NESTURBATOR_ENTRY_NMI);
+    entry_next_action = nesturbator__sio_u8(io, &c->entry_next_action, 7u);
+    entry_vector = nesturbator__sio_u8(io, &c->entry_vector, NESTURBATOR_ENTRY_VECTOR_NMI);
+    entry_vector_low = nesturbator__sio_u8(io, &c->entry_vector_low, UINT8_MAX);
     /* Never read or written anywhere, but visited so every field of the struct is accounted for.
        The bound is 0 because it is always 0 today; widen it when stalled reads are modelled. */
     nesturbator__sio_u8(io, &c->halted_in_read, 0u);
-    nesturbator__sio_u8(io, &c->jammed, 1u);
+    jammed = nesturbator__sio_u8(io, &c->jammed, 1u);
+    /* These are completed-action cutpoints only. The vector is unselected
+       through the C4 action, selected for C5-C7, and the low byte exists only
+       while the high-vector read remains. A live line may differ from retained
+       detector history; do not validate against PPUCTRL/PPUSTATUS here. */
+    nesturbator__sio_check(io,
+                           cpu_entry_state_valid(entry_origin, entry_next_action, entry_vector,
+                                                 entry_vector_low, jammed, nmi_polled, poll_latch,
+                                                 irq_accepted, nmi_pending, nmi_prev));
 }
 
 static void bus_io(struct nesturbator__sio *io, struct nesturbator__bus *b)

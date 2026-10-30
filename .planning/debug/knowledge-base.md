@@ -4,6 +4,16 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 
 ---
 
+## hosted-session-poll — interpreter cost and partially published operation timing
+- **Date:** 2026-10-29
+- **Error patterns:** DELAY_PUBLICATION_POLL_DEADLINE; interruption first failure was not retained; driver-trace-TRACE_EVENT; journal field invalid; journal-close-failed
+- **Root causes:** A supervised 50 ms delay still launched Perl under a 1050 ms child budget. Separately, begin_operation exposed ACTIVE_OPERATION before its deadline existed, so TERM at initialization could disable the journal writer. Controlled startup cost and a synchronized genuine TERM reproduce the two hosted signatures; original hosted per-process timing and exact signal interleaving were not retained.
+- **Fix:** Reuse fractional platform sleep with unchanged child/operation/attempt limits; initialize operation timing before publishing the active marker. Print failed interruption journal/trace rows in the uploaded CTest log.
+- **Files changed:** tests/retroarch/state_session.sh, tests/retroarch/test_state_session.sh, README.md, include/nesturbator.h, tests/accuracy/baseline-metadata.txt, tests/accuracy/measurements.md, debug/state records
+- **Why not caught:** Prior native clock/hash controls did not charge sleep interpreter startup; unsynchronized interruption repeats could miss the partial-initialization boundary.
+- **Recurrence guard:** The registered session matrix includes poll-sleep startup/real-overrun neighbors and both ordinary and synchronized readiness-initialization TERM controls, retaining exact grep status, journal reason, three owned trace events, one QUIT and host/lock cleanup. Local CI passes 695/695; repair f9ae22e passes actual Intel Nightly 40956561408/1 all three session tests (full matrix 576.46 s under unchanged 900 s cap), plus dedicated Linux and Apple Silicon session jobs. Deferred Phase 16 historical attribution remains unchanged.
+---
+
 ## nightly-vectors-fetch — bounded pinned blob acquisition
 - **Date:** 2026-10-28
 - **Error patterns:** curl 28, bad pack header, promisor remote, vectors-full.fetch, Windows CRLF fixture hash mismatch
@@ -32,5 +42,15 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Files changed:** tests/retroarch/frame_index.c, tests/cmake/session_helpers.cmake, .planning/STATE.md, resolved nightly-intel-session-controls session
 - **Why not caught:** Initial local POSIX execution preserved LF and the fixture lacked a byte assertion; actual Windows CI caught the writer defect. First negative-control draft also used text output, so both negative vectors were moved to wb before acceptance to avoid confounded Windows mutations.
 - **Recurrence guard:** retroarch.session_helpers exact HEX gates positive 010a0d7f80ff, CRLF mutant 010d0a0d7f80ff and high-byte-only mutant 010a0d7f80fe; fresh child processes must reject both mutants before hash comparison. Native-writer CR insertion mutant fails this gate; restoration and fresh full CI pass 688/688 plus packages. Prior repair Intel Nightly 40736138106 passes all three session tests; latest fixture source still requires fresh hosted validation.
+---
+
+## phase21-hosted-ci-regressions — hot-path specialization and bounded identity work
+- **Date:** 2026-10-29
+- **Error patterns:** Ir/frame +2.88/+3.10/+3.19 percent, +1% performance gate, phase21.hosted_evidence.controls 120s timeout, Windows Git Ignoring path target.txt
+- **Root cause(s):** Enlarged cycle bookkeeping prevented GCC14 specializing dynamic PPUSTATUS work and folding an unobserved timestamp; ordinary opcodes carried generic exceptional IRQ bookkeeping. Three Git subprocesses per tracked path across three inventories amplified slow-host launch cost. The new conflict fixture also emitted native Windows CRLF into Git index-info, so its intended unresolved rows were ignored.
+- **Fix:** Constant ordinary/status timing paths, coalesced unobserved ticks, transition-first NMI handling and operation-local IRQ acceptance preserve all histories. Batch independent Git inventories/raw hashes; add a measured 12-process budget and semantic neighbors. Write the conflict protocol with explicit LF and verify raw bytes plus exact actual stages. Original +1% and 120s gates remain intact.
+- **Files changed:** src/bus.c, src/cpu.c, tests/cmake/phase21_source_identity.cmake, tests/cmake/phase21_source_identity_controls.cmake, tests/cmake/phase21_hosted_evidence_controls.cmake, README.md, include/nesturbator.h, tests/accuracy/baseline-metadata.txt, tests/accuracy/measurements.md, Phase 21 delivery/state/debug records
+- **Why not caught:** Local macOS correctness tests did not measure GCC14 instruction counts or slow platform launch cost; no process work budget existed. The new fixture initially tested rejection without first proving protocol bytes and exact constructed stages. Actual hosted gates caught these defects.
+- **Recurrence guard:** phase21.hosted_evidence.controls caps measured Git launches at 12, rejects the original 1285-launch helper, and retains every inherited negative. phase21_source_identity_controls.cmake covers independent committed/index/raw identities, modes, symlinks, missing/conflicted inputs and exact LF/stages; a CRLF mutant is killed. A scratch source-point revert fails M4 at +2.20%, reapplication restores +0.98857%. Final source 54c7db2 passes local CI695/ASAN686/vectors258/MMC313/hygiene13 and actual CI40929011059/1 all18 jobs plus Nightly40929010997/1 all7 work jobs. All six controls finish below120s and raw per-ROM +1% gates pass.
 ---
 

@@ -262,6 +262,101 @@ done:
     free(in);
 }
 
+/* D-18 native parity: every internally reached BRK/IRQ/NMI next-action cut
+   continues through the library two-instance model and agrees with an
+   uninterrupted native continuation for both established input scripts. */
+static void run_interrupt_entry_cutpoints(void)
+{
+    static const enum nesturbator_entry_origin origins[] = {
+        NESTURBATOR_ENTRY_BRK, NESTURBATOR_ENTRY_IRQ, NESTURBATOR_ENTRY_NMI};
+    static uint8_t image[RA_ENTRY_ROM_SIZE];
+    const uint32_t T = 8u;
+    const size_t image_size = ra_entry_rom_build(image, sizeof image);
+    nesturbator *probe = ra_instance(image, image_size);
+    size_t state_size = probe != NULL ? nesturbator_state_size(probe) : 0u;
+    unsigned cutpoints = 0u, script_depth_cases = 0u;
+
+    CHECK_EQ_U64(image_size, RA_ENTRY_ROM_SIZE);
+    CHECK(probe != NULL && state_size != 0u);
+    if (probe == NULL || state_size == 0u) {
+        nesturbator_destroy(probe);
+        return;
+    }
+
+    for (size_t origin_index = 0u; origin_index < sizeof origins / sizeof origins[0];
+         origin_index++) {
+        enum nesturbator_entry_origin origin = origins[origin_index];
+        for (uint8_t action = ra_entry_first_action(origin); action <= 7u; action++) {
+            uint8_t *cutpoint = (uint8_t *)malloc(state_size);
+            CHECK(cutpoint != NULL);
+            if (cutpoint == NULL)
+                continue;
+            CHECK(ra_entry_cutpoint_state(image, image_size, origin, action, cutpoint, state_size));
+            cutpoints++;
+
+            for (unsigned script = 1u; script <= 2u; script++) {
+                uint16_t *in =
+                    ra_script_make(script, script == 1u ? RA_SEED_1 : RA_SEED_2, T + RA_MAX_DEPTH);
+                CHECK(in != NULL);
+                if (in == NULL)
+                    continue;
+                {
+                    struct ra_oracle oracle;
+                    memset(&oracle, 0, sizeof oracle);
+                    CHECK(ra_run_from_state(image, image_size, cutpoint, state_size, in,
+                                            T + RA_MAX_DEPTH, &oracle));
+                    if (oracle.state != NULL) {
+                        for (unsigned depth = 1u; depth <= RA_MAX_DEPTH; depth++) {
+                            struct ra_oracle runahead;
+                            uint64_t *visible = (uint64_t *)calloc(T, sizeof *visible);
+                            memset(&runahead, 0, sizeof runahead);
+                            CHECK(visible != NULL);
+                            if (visible == NULL)
+                                continue;
+                            CHECK(ra_run_two_instance_from_state(image, image_size, cutpoint,
+                                                                 state_size, in, T, depth,
+                                                                 &runahead, visible));
+                            if (runahead.state != NULL) {
+                                for (uint32_t t = 0u; t < T; t++) {
+                                    int same_inputs = 1;
+                                    const uint8_t *actual =
+                                        runahead.state + (size_t)t * runahead.state_size;
+                                    const uint8_t *expected =
+                                        oracle.state + (size_t)t * oracle.state_size;
+                                    CHECK_EQ_U64(runahead.video[t], oracle.video[t]);
+                                    CHECK_EQ_U64(runahead.audio[t], oracle.audio[t]);
+                                    CHECK_EQ_U64(runahead.guest_marker[t], oracle.guest_marker[t]);
+                                    CHECK_EQ_U64(runahead.guest_marker_secondary[t],
+                                                 oracle.guest_marker_secondary[t]);
+                                    CHECK(memcmp(actual, expected, state_size) == 0);
+                                    CHECK_EQ_U64(ra_state_frame_number(actual),
+                                                 ra_state_frame_number(expected));
+                                    CHECK_EQ_U64(ra_state_ticks(actual), ra_state_ticks(expected));
+                                    for (unsigned j = 1u; j <= depth; j++)
+                                        same_inputs = same_inputs && in[t + j] == in[t];
+                                    if (same_inputs)
+                                        CHECK_EQ_U64(visible[t], oracle.video[t + depth]);
+                                }
+                                ra_oracle_free(&runahead);
+                            }
+                            free(visible);
+                            script_depth_cases++;
+                        }
+                        ra_oracle_free(&oracle);
+                    }
+                }
+                free(in);
+            }
+            free(cutpoint);
+        }
+    }
+    CHECK_EQ_U64(cutpoints, RA_ENTRY_CUTPOINT_CLASSES);
+    CHECK_EQ_U64(script_depth_cases, RA_ENTRY_CUTPOINT_CLASSES * 2u * RA_MAX_DEPTH);
+    printf("core.state_runahead: entry cutpoints=%u scripts=2 depths=1..3 native parity passed\n",
+           cutpoints);
+    nesturbator_destroy(probe);
+}
+
 int main(int argc, char **argv)
 {
     uint32_t T = 180u;
@@ -303,6 +398,7 @@ int main(int argc, char **argv)
         }
     }
     run_nmi_fixture();
+    run_interrupt_entry_cutpoints();
     /* D-20: counts that rule out a pass that did nothing. */
     CHECK(tot.images >= MIN_IMAGES);
     CHECK_EQ_U64(full_images, 1u);

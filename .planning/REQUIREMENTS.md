@@ -14,8 +14,8 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 
 ### CPU interrupts start on the right instruction
 
-- [ ] **INT-01**: An IRQ is taken on the same instruction as on the console after CLI, SEI, PLP, RTI and branches; the `Interrupt flag latency` row passes.
-- [ ] **INT-02**: An NMI arriving during BRK or an IRQ takes over its vector as on the console; the `NMI Overlap BRK` and `NMI Overlap IRQ` rows pass.
+- [x] **INT-01**: An IRQ is taken on the same instruction as on the console after CLI, SEI, PLP, RTI and branches; the `Interrupt flag latency` row passes.
+- [x] **INT-02**: An NMI arriving during BRK or an IRQ takes over its vector as on the console; the `NMI Overlap BRK` and `NMI Overlap IRQ` rows pass.
 
 ### Status-bar splits land on the right line
 
@@ -24,7 +24,7 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 
 ### Everything that works today keeps working
 
-- [ ] **KEEP-01**: Every AccuracyCoin row that passes today still passes on every CI lane, and the CPU vectors, blargg MMC3, Holy Mapperel and boot-to-play checks stay green.
+- [x] **KEEP-01**: Every AccuracyCoin row that passes today still passes on every CI lane, and the CPU vectors, blargg MMC3, Holy Mapperel and boot-to-play checks stay green.
 - [x] **KEEP-02**: A frame or audio hash that moves is re-pinned in the same change with its reason, and stays identical on all six platforms.
 - [x] **KEEP-03**: A save state taken at any frame, including during the VBlank race or an interrupt sequence, loads back to the same run under rewind and run-ahead; a state from an earlier format is refused with the existing version error.
 
@@ -55,11 +55,11 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 |-------------|-------|--------|
 | NMI-01 | Phase 20 | Complete |
 | NMI-02 | Phase 20 | Complete |
-| INT-01 | Phase 21 | Pending |
-| INT-02 | Phase 21 | Pending |
+| INT-01 | Phase 21 | Complete |
+| INT-02 | Phase 21 | Complete |
 | SPR-01 | Phase 19 | Complete |
 | SPR-02 | Phase 19 | Complete |
-| KEEP-01 | Phase 21 | Pending |
+| KEEP-01 | Phase 21 | Complete |
 | KEEP-02 | Phase 20 | Complete |
 | KEEP-03 | Phase 20 | Complete |
 | JAM-01 | Phase 19 | Complete |
@@ -72,4 +72,4 @@ Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](P
 
 ---
 *Requirements defined: 2026-10-25*
-*Last updated: 2026-10-25 after v5 roadmap creation*
+*Last updated: 2026-10-29 after Phase 21 verification; all v5 requirements complete*

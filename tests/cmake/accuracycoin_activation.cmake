@@ -119,8 +119,8 @@ foreach(pair IN ITEMS
     "scoreboard_schema|2"
     "scoreboard_rows|146"
     "scoreboard_sha256|${canonical_scoreboard_sha256}"
-    "pass|114"
-    "fail|32"
+    "pass|119"
+    "fail|27"
     "skip|0"
     "not_run|0"
     "timeout|0"
@@ -135,7 +135,7 @@ foreach(pair IN ITEMS
     "navigation_frame_budget_per_page|5"
     "execution_frame_budget|1800"
     "total_frame_budget|41503"
-    "behaviour_revision|8"
+    "behaviour_revision|9"
     "build_inputs_sha256|${current_inputs_sha256}"
     "build_inputs_count|${current_inputs_count}")
   string(REPLACE "|" ";" fields "${pair}")
@@ -202,7 +202,7 @@ foreach(line IN LISTS scoreboard_lines)
   endif()
 endforeach()
 list(LENGTH scoreboard_keys scoreboard_count)
-if(NOT scoreboard_count EQUAL 146 OR NOT pass_count EQUAL 114 OR NOT fail_count EQUAL 32 OR
+if(NOT scoreboard_count EQUAL 146 OR NOT pass_count EQUAL 119 OR NOT fail_count EQUAL 27 OR
    NOT skip_count EQUAL 0 OR NOT not_run_count EQUAL 0 OR NOT timeout_count EQUAL 0)
   message(FATAL_ERROR "canonical scoreboard counts do not match the measured campaign")
 endif()

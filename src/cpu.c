@@ -403,6 +403,12 @@ static void stack_dummy(struct nesturbator *nes)
    PC while the low byte is added, and a second dummy read at
    (old PCH << 8) | new PCL when the target is in another page (64doc,
    "Relative addressing"). The offset is signed. */
+static void accept_irq_sample(struct nesturbator *nes, uint8_t sample)
+{
+    if (sample != 0u && (nes->cpu.p & FLAG_I) == 0u)
+        nes->cpu.irq_accepted = 1u;
+}
+
 static void branch(struct nesturbator *nes, int cond)
 {
     /* Branches poll before cycle 2. A taken same-page branch does not poll
@@ -410,9 +416,11 @@ static void branch(struct nesturbator *nes, int cond)
        The opcode-fetch cycle supplied the first poll, so retain it across the
        offset and same-page dummy cycles. */
     uint8_t branch_poll = nes->cpu.nmi_polled;
+    uint8_t irq_poll_samples = nes->cpu.poll_latch;
     uint8_t off = fetch(nes);
     if (!cond) {
         nes->cpu.nmi_polled = branch_poll;
+        accept_irq_sample(nes, irq_poll_samples);
         return;
     }
     implied(nes);
@@ -422,8 +430,10 @@ static void branch(struct nesturbator *nes, int cond)
     uint16_t target = (uint16_t)(pc + delta);
     if ((target & 0xFF00u) != (pc & 0xFF00u)) {
         nesturbator__bus_read(nes, (uint16_t)((pc & 0xFF00u) | (target & 0x00FFu)));
+        irq_poll_samples |= nes->cpu.poll_latch;
     }
     nes->cpu.pc = target;
+    accept_irq_sample(nes, irq_poll_samples);
 }
 
 /* PLP and RTI: bit 4 clear and bit 5 set whatever the stack held (D-16). */
@@ -437,6 +447,117 @@ static void pull_p(struct nesturbator *nes)
 static void push_p(struct nesturbator *nes)
 {
     push(nes, (uint8_t)(nes->cpu.p | FLAG_B | FLAG_U));
+}
+
+static uint16_t entry_vector_base(const struct nesturbator__cpu *cpu)
+{
+    return cpu->entry_vector == NESTURBATOR_ENTRY_VECTOR_NMI ? 0xfffau : 0xfffeu;
+}
+
+void nesturbator__cpu_entry_begin(struct nesturbator *nes, enum nesturbator_entry_origin origin)
+{
+    struct nesturbator__cpu *cpu = &nes->cpu;
+    if (cpu->entry_origin != NESTURBATOR_ENTRY_NONE || cpu->jammed != 0u ||
+        (origin != NESTURBATOR_ENTRY_BRK && origin != NESTURBATOR_ENTRY_IRQ &&
+         origin != NESTURBATOR_ENTRY_NMI))
+        return;
+
+    cpu->entry_origin = (uint8_t)origin;
+    cpu->entry_next_action = origin == NESTURBATOR_ENTRY_BRK ? 2u : 1u;
+    cpu->entry_vector = origin == NESTURBATOR_ENTRY_NMI ? NESTURBATOR_ENTRY_VECTOR_NMI
+                                                        : NESTURBATOR_ENTRY_VECTOR_NONE;
+    cpu->entry_vector_low = 0u;
+    cpu->nmi_polled = 0u;
+    cpu->poll_latch = 0u;
+    cpu->irq_accepted = 0u;
+    if (origin == NESTURBATOR_ENTRY_NMI)
+        cpu->nmi_pending = 0u;
+}
+
+uint8_t nesturbator__cpu_entry_action(struct nesturbator *nes)
+{
+    struct nesturbator__cpu *cpu = &nes->cpu;
+    uint8_t action = cpu->entry_next_action;
+    uint16_t vector;
+
+    if (cpu->entry_origin == NESTURBATOR_ENTRY_NONE || action == 0u || action > 7u)
+        return 0u;
+
+    switch (action) {
+    case 1u: /* IRQ/NMI C1: first discarded read. */
+        if (cpu->entry_origin == NESTURBATOR_ENTRY_BRK)
+            return 0u;
+        (void)nesturbator__bus_read(nes, cpu->pc);
+        break;
+    case 2u: /* BRK padding read, or IRQ/NMI C2 discarded read. */
+        if (cpu->entry_origin == NESTURBATOR_ENTRY_BRK)
+            (void)fetch(nes);
+        else
+            (void)nesturbator__bus_read(nes, cpu->pc);
+        break;
+    case 3u:
+        push(nes, (uint8_t)(cpu->pc >> 8));
+        break;
+    case 4u:
+        push(nes, (uint8_t)cpu->pc);
+        break;
+    case 5u: {
+        uint8_t stacked_p = (uint8_t)((cpu->p & (uint8_t)(UINT8_MAX ^ FLAG_B)) | FLAG_U);
+        if (cpu->entry_origin == NESTURBATOR_ENTRY_BRK)
+            stacked_p |= FLAG_B;
+        push(nes, stacked_p);
+        cpu->p |= FLAG_I;
+        break;
+    }
+    case 6u:
+        if (cpu->entry_vector == NESTURBATOR_ENTRY_VECTOR_NONE)
+            return 0u;
+        vector = entry_vector_base(cpu);
+        cpu->entry_vector_low = nesturbator__bus_read(nes, vector);
+        break;
+    case 7u: {
+        uint8_t high;
+        if (cpu->entry_vector == NESTURBATOR_ENTRY_VECTOR_NONE)
+            return 0u;
+        vector = entry_vector_base(cpu);
+        high = nesturbator__bus_read(nes, (uint16_t)(vector + 1u));
+        cpu->pc = (uint16_t)(((uint16_t)high << 8) | cpu->entry_vector_low);
+        break;
+    }
+    default:
+        return 0u;
+    }
+
+    /* The source-qualified T5-phi1 decision follows completed C4 PCL and its
+       detector sample, before C5 P [HWC.02; 21-INTERRUPT-TIMING-ANNEX.md §3].
+       This is a finite-margin crosswalk inference; the exact physical tie is
+       unmeasured. Retaining the pair prevents a late edge mixing its high byte. */
+    if (action == 4u && cpu->entry_origin != NESTURBATOR_ENTRY_NMI) {
+        if (cpu->nmi_pending == NESTURBATOR_NMI_RECOGNIZED) {
+            cpu->entry_vector = NESTURBATOR_ENTRY_VECTOR_NMI;
+            cpu->nmi_pending = 0u;
+        } else {
+            cpu->entry_vector = NESTURBATOR_ENTRY_VECTOR_IRQ;
+        }
+    }
+
+    if (action == 7u) {
+        cpu->entry_origin = NESTURBATOR_ENTRY_NONE;
+        cpu->entry_next_action = 0u;
+        cpu->entry_vector = NESTURBATOR_ENTRY_VECTOR_NONE;
+        cpu->entry_vector_low = 0u;
+    } else {
+        cpu->entry_next_action = (uint8_t)(action + 1u);
+    }
+    return 1u;
+}
+
+void nesturbator__cpu_entry_drain(struct nesturbator *nes)
+{
+    while (nes->cpu.entry_origin != NESTURBATOR_ENTRY_NONE) {
+        if (nesturbator__cpu_entry_action(nes) == 0u)
+            return;
+    }
 }
 
 /* Reads a little-endian address: low byte at lo_addr, high byte at
@@ -492,6 +613,15 @@ static void store_sh_abs(struct nesturbator *nes, uint8_t reg, uint8_t idx)
 
 void nesturbator__cpu_step(struct nesturbator *nes)
 {
+    uint8_t opcode;
+
+    /* A loaded partial entry resumes before opcode fetch, jam checks or
+       interrupt arbitration. Public instruction/frame execution drains it. */
+    if (nes->cpu.entry_origin != NESTURBATOR_ENTRY_NONE) {
+        nesturbator__cpu_entry_drain(nes);
+        return;
+    }
+
     /* A jammed CPU reads 0xFFFF every cycle until reset (D-13). */
     if (nes->cpu.jammed) {
         nesturbator__bus_read(nes, 0xFFFFu);
@@ -501,46 +631,22 @@ void nesturbator__cpu_step(struct nesturbator *nes)
     /* NMI is sampled at an instruction boundary; it pushes PC and P with B
        clear, then reads the fixed vector. [HWC.08] */
     if (nes->cpu.nmi_polled != 0u) {
-        /* Consume only the request being serviced. Edges captured during the
-           seven entry cycles remain pending, but interrupt entry itself does
-           not poll; the first handler instruction gets that poll. */
-        nes->cpu.nmi_pending = 0u;
-        nes->cpu.nmi_polled = 0u;
-        nesturbator__bus_read(nes, nes->cpu.pc);
-        nesturbator__bus_read(nes, nes->cpu.pc);
-        push(nes, (uint8_t)(nes->cpu.pc >> 8));
-        push(nes, (uint8_t)nes->cpu.pc);
-        push(nes, (uint8_t)((nes->cpu.p & (uint8_t)(UINT8_MAX ^ FLAG_B)) | FLAG_U));
-        nes->cpu.p |= FLAG_I;
-        uint8_t lo = nesturbator__bus_read(nes, 0xFFFAu);
-        uint8_t hi = nesturbator__bus_read(nes, 0xFFFBu);
-        nes->cpu.pc = (uint16_t)(((uint16_t)hi << 8) | lo);
-        nes->cpu.nmi_polled = 0u;
+        /* NMI wins a simultaneous instruction poll. A still-asserted IRQ may
+           be accepted again by a later legal poll after I is cleared. */
+        nesturbator__cpu_entry_begin(nes, NESTURBATOR_ENTRY_NMI);
+        nesturbator__cpu_entry_drain(nes);
         return;
     }
 
-    /* IRQ is level-sensitive and accepted from the second-to-last-cycle
-       poll sample. The frame status bit may be visible before its inhibit
-       latch allows this line to trigger. [HWC.02] */
-    if (nes->cpu.poll_latch != 0u && (nes->cpu.p & FLAG_I) == 0u) {
-        /* Interrupt entry does not poll NMI. Preserve a late captured edge
-           for the first handler instruction, which is the next poll point. */
-        nes->cpu.nmi_polled = 0u;
-        nesturbator__bus_read(nes, nes->cpu.pc);
-        nesturbator__bus_read(nes, nes->cpu.pc);
-        push(nes, (uint8_t)(nes->cpu.pc >> 8));
-        push(nes, (uint8_t)nes->cpu.pc);
-        push(nes, (uint8_t)((nes->cpu.p & (uint8_t)(UINT8_MAX ^ FLAG_B)) | FLAG_U));
-        nes->cpu.p |= FLAG_I;
-        uint8_t lo = nesturbator__bus_read(nes, 0xFFFEu);
-        uint8_t hi = nesturbator__bus_read(nes, 0xFFFFu);
-        nes->cpu.pc = (uint16_t)(((uint16_t)hi << 8) | lo);
-        nes->cpu.poll_latch = 0u;
-        nes->cpu.nmi_polled = 0u;
+    /* IRQ is level-sensitive, but an accepted request is historical state:
+       later source acknowledgment or an I change cannot revoke it. [HWC.02] */
+    if (nes->cpu.irq_accepted != 0u) {
+        nesturbator__cpu_entry_begin(nes, NESTURBATOR_ENTRY_IRQ);
+        nesturbator__cpu_entry_drain(nes);
         return;
     }
 
-    uint8_t opcode = fetch(nes);
+    opcode = fetch(nes);
     switch (opcode) {
     /* Loads. */
     case 0xA9: /* LDA immediate */
@@ -852,11 +958,15 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         flag_op(nes, FLAG_C, 1);
         break;
     case 0x58: /* CLI */
-        flag_op(nes, FLAG_I, 0);
-        break;
+        implied(nes);
+        accept_irq_sample(nes, nes->cpu.poll_latch);
+        set_flag(nes, FLAG_I, 0);
+        return;
     case 0x78: /* SEI */
-        flag_op(nes, FLAG_I, 1);
-        break;
+        implied(nes);
+        accept_irq_sample(nes, nes->cpu.poll_latch);
+        set_flag(nes, FLAG_I, 1);
+        return;
     case 0xB8: /* CLV */
         flag_op(nes, FLAG_V, 0);
         break;
@@ -988,37 +1098,40 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         stack_dummy(nes);
         assign(nes, &nes->cpu.a, pull(nes));
         break;
-    case 0x28: /* PLP */
+    case 0x28: { /* PLP: its final poll precedes restored I. */
         implied(nes);
         stack_dummy(nes);
-        pull_p(nes);
-        break;
+        uint8_t p = pull(nes);
+        accept_irq_sample(nes, nes->cpu.poll_latch);
+        nes->cpu.p = (uint8_t)((p & ~FLAG_B) | FLAG_U);
+        return;
+    }
 
     /* Branches. */
     case 0x10: /* BPL */
         branch(nes, (nes->cpu.p & FLAG_N) == 0u);
-        break;
+        return;
     case 0x30: /* BMI */
         branch(nes, (nes->cpu.p & FLAG_N) != 0u);
-        break;
+        return;
     case 0x50: /* BVC */
         branch(nes, (nes->cpu.p & FLAG_V) == 0u);
-        break;
+        return;
     case 0x70: /* BVS */
         branch(nes, (nes->cpu.p & FLAG_V) != 0u);
-        break;
+        return;
     case 0x90: /* BCC */
         branch(nes, (nes->cpu.p & FLAG_C) == 0u);
-        break;
+        return;
     case 0xB0: /* BCS */
         branch(nes, (nes->cpu.p & FLAG_C) != 0u);
-        break;
+        return;
     case 0xD0: /* BNE */
         branch(nes, (nes->cpu.p & FLAG_Z) == 0u);
-        break;
+        return;
     case 0xF0: /* BEQ */
         branch(nes, (nes->cpu.p & FLAG_Z) != 0u);
-        break;
+        return;
 
     /* Jumps. */
     case 0x4C: /* JMP abs */
@@ -1056,16 +1169,11 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         break;
     }
 
-    /* BRK: the byte after the opcode is read and skipped, the return
-       address and P | 0x30 are pushed, I is set and D is left alone (D-16),
-       and PC loads from 0xFFFE/0xFFFF. */
+    /* BRK C1 was fetched above; the shared staged entry starts with its
+       padding read and retains BRK's opcode+2 return PC and stacked B bit. */
     case 0x00:
-        fetch(nes);
-        push(nes, (uint8_t)(nes->cpu.pc >> 8));
-        push(nes, (uint8_t)nes->cpu.pc);
-        push_p(nes);
-        set_flag(nes, FLAG_I, 1);
-        nes->cpu.pc = read_addr(nes, 0xFFFEu, 0xFFFFu);
+        nesturbator__cpu_entry_begin(nes, NESTURBATOR_ENTRY_BRK);
+        nesturbator__cpu_entry_drain(nes);
         break;
 
     /* JSR: the low address byte, a dummy stack read, the return address
@@ -1077,9 +1185,14 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         stack_dummy(nes);
         push(nes, (uint8_t)(nes->cpu.pc >> 8));
         push(nes, (uint8_t)nes->cpu.pc);
+        /* JSR recognizes IRQ at its penultimate action (the PCL push), before
+           the final high-operand read [HWC.02; 21-INTERRUPT-TIMING-ANNEX.md §2].
+           A request first captured on that last read belongs to the next
+           instruction's poll. */
+        accept_irq_sample(nes, nes->cpu.poll_latch);
         uint8_t hi = fetch(nes);
         nes->cpu.pc = (uint16_t)(((uint32_t)hi << 8) | lo);
-        break;
+        return;
     }
 
     /* Unofficial NOPs (NESdev Wiki "CPU unofficial opcodes", revision
@@ -1363,6 +1476,11 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         jam(nes);
         break;
     }
+
+    /* Ordinary operations poll on their final action; RTI has restored I.
+       The exceptional operations above commit at their own legal points, so
+       every other opcode need not carry and classify their bookkeeping. */
+    accept_irq_sample(nes, nes->cpu.poll_latch);
 }
 
 /* Soft reset, the console's Reset button. Per the NESdev Wiki "CPU power up
@@ -1380,6 +1498,11 @@ void nesturbator__cpu_reset(struct nesturbator *nes)
     uint8_t hi;
     nes->cpu.p = (uint8_t)(nes->cpu.p | FLAG_I);
     nes->cpu.jammed = 0u;
+    /* Reset aborts a suspended entry before its own seven-cycle sequence. */
+    nes->cpu.entry_origin = NESTURBATOR_ENTRY_NONE;
+    nes->cpu.entry_next_action = 0u;
+    nes->cpu.entry_vector = NESTURBATOR_ENTRY_VECTOR_NONE;
+    nes->cpu.entry_vector_low = 0u;
     nesturbator__bus_read(nes, (uint16_t)(0x0100u | nes->cpu.s));
     nesturbator__bus_read(nes, (uint16_t)(0x0100u | nes->cpu.s));
     nesturbator__bus_read(nes, (uint16_t)(0x0100u | nes->cpu.s));
@@ -1394,6 +1517,7 @@ void nesturbator__cpu_reset(struct nesturbator *nes)
     /* The last cycle's IRQ sample is dropped: I is set, and the first
        instruction polls the line afresh. */
     nes->cpu.poll_latch = 0u;
+    nes->cpu.irq_accepted = 0u;
     nes->cpu.nmi_prev = 0u;
     nes->cpu.nmi_pending = 0u;
     nes->cpu.nmi_polled = 0u;

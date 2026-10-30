@@ -100,6 +100,62 @@ static void compare_frames(const struct frame_result *a, const struct frame_resu
     CHECK(memcmp(a->audio, b->audio, (size_t)a->frame.audio_count * sizeof a->audio[0]) == 0);
 }
 
+static void test_accepted_irq_history_survives_state(void)
+{
+    struct nesturbator *source = build_fixture(240u, 333u, 0u, 0u, 0u);
+    struct nesturbator *restored = build_fixture(240u, 333u, 0u, 0u, 0u);
+    size_t size = 0u;
+    uint8_t *state = NULL;
+    uint8_t *roundtrip = NULL;
+
+    CHECK(source != NULL && restored != NULL);
+    if (source == NULL || restored == NULL)
+        goto done;
+
+    source->cpu.pc = 0x8000u;
+    source->cpu.s = 0xfdu;
+    source->cpu.p = 0x24u;
+    source->cpu.irq_line = 0u;
+    source->cpu.irq_captured = 0u;
+    source->cpu.poll_latch = 0u;
+    source->cpu.irq_accepted = 1u;
+    restored->cpu.p = 0x20u;
+    restored->cpu.irq_line = 1u;
+    restored->cpu.irq_captured = 1u;
+    restored->cpu.poll_latch = 1u;
+
+    size = nesturbator_state_size((nesturbator *)source);
+    state = (uint8_t *)malloc(size);
+    roundtrip = (uint8_t *)malloc(size);
+    CHECK(size != 0u && state != NULL && roundtrip != NULL);
+    if (size == 0u || state == NULL || roundtrip == NULL)
+        goto done;
+
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)source, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_state((nesturbator *)restored, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(restored->cpu.p, 0x24u);
+    CHECK_EQ_U64(restored->cpu.irq_line, 0u);
+    CHECK_EQ_U64(restored->cpu.irq_captured, 0u);
+    CHECK_EQ_U64(restored->cpu.poll_latch, 0u);
+    CHECK_EQ_U64(restored->cpu.irq_accepted, 1u);
+    CHECK_EQ_U64(nesturbator_save_state((nesturbator *)restored, roundtrip, size), NESTURBATOR_OK);
+    CHECK(memcmp(state, roundtrip, size) == 0);
+
+    nesturbator__cpu_step(restored);
+    CHECK_EQ_U64(restored->cpu.pc, 0x8000u);
+    CHECK_EQ_U64(restored->cpu.s, 0xfau);
+    CHECK_EQ_U64(restored->bus.ram[0x01fdu], 0x80u);
+    CHECK_EQ_U64(restored->bus.ram[0x01fcu], 0x00u);
+    CHECK_EQ_U64(restored->bus.ram[0x01fbu], 0x24u);
+    CHECK_EQ_U64(restored->cpu.irq_accepted, 0u);
+
+done:
+    free(state);
+    free(roundtrip);
+    nesturbator_destroy((nesturbator *)source);
+    nesturbator_destroy((nesturbator *)restored);
+}
+
 static int same_synth_history(const struct nesturbator *a, const struct nesturbator *b)
 {
     return a->apu.sample_phase == b->apu.sample_phase &&
@@ -869,6 +925,7 @@ static void test_bounded_control_transition_sweep(void)
 
 int main(void)
 {
+    test_accepted_irq_history_survives_state();
     test_disabled_probe_endpoints_are_limited_guard();
     test_bounded_control_transition_sweep();
     test_frame_zero_empty_pcm_preserves_history();

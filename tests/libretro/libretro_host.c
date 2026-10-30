@@ -2515,6 +2515,13 @@ enum rah_control {
 
 #define RAH_MIN_ROMS 7u /* D-20: a pass over fewer ROMs than this cannot succeed */
 #define RAH_NMI_TICKS 12u
+#define RAH_ENTRY_TICKS 4u
+#define RAH_ENTRY_CUTPOINT_CLASSES 20u
+#define RAH_ENTRY_DEPTH_CASES (RAH_ENTRY_CUTPOINT_CLASSES * RA_MAX_DEPTH)
+#define RAH_ENTRY_SCRIPT_CASES (RAH_ENTRY_DEPTH_CASES * 2u)
+#define RAH_ENTRY_CONTROLS 4u
+#define RAH_ENTRY_INHIBITED_HISTORIES 4u
+#define RAH_ENTRY_INHIBITED_SCRIPT_CASES (RAH_ENTRY_INHIBITED_HISTORIES * RA_MAX_DEPTH * 2u)
 
 struct rah_result {
     unsigned ticks;             /* ticks run */
@@ -2721,9 +2728,497 @@ struct rah_totals {
     unsigned jam_controls_tripped;
     unsigned nmi_controls_tripped;
     unsigned nmi_ticks;
+    unsigned entry_cutpoint_classes;
+    unsigned entry_depth_cases;
+    unsigned entry_script_cases;
+    unsigned entry_controls_tripped;
+    unsigned entry_inhibited_histories;
+    unsigned entry_inhibited_script_cases;
     unsigned jam_cls[RA_MAX_DEPTH + 1u][4]; /* window classes per depth, JAM image only */
     uint32_t jam_frame;                     /* J, read from the oracle */
 };
+
+enum rah_entry_difference {
+    RAH_ENTRY_DIFF_VIDEO = 1u << 0,
+    RAH_ENTRY_DIFF_PCM = 1u << 1,
+    RAH_ENTRY_DIFF_STATE = 1u << 2,
+    RAH_ENTRY_DIFF_METADATA = 1u << 3,
+    RAH_ENTRY_DIFF_MARKER = 1u << 4
+};
+
+/* Run one native frame and retain the complete host-facing result. */
+static int rah_entry_native_frame(nesturbator *nes, uint16_t buttons, uint32_t *xrgb,
+                                  int16_t *stereo, size_t *audio_frames, uint8_t *irq_marker,
+                                  uint8_t *nmi_marker, uint8_t *state, size_t state_size)
+{
+    uint64_t frame_number = 0u;
+    int status =
+        ra_lib_frame_outputs(nes, buttons, NULL, NULL, &frame_number, xrgb, stereo, audio_frames);
+    nesturbator_status save_status;
+
+    CHECK_EQ_U64(status, RA_FRAME_OK);
+    if (status != RA_FRAME_OK)
+        return 0;
+    CHECK(*audio_frames >= 798u && *audio_frames <= 799u);
+    {
+        int nonzero = 0;
+        for (size_t i = 0u; i < *audio_frames * 2u; i++)
+            nonzero |= stereo[i] != 0;
+        CHECK(nonzero);
+    }
+    save_status = nesturbator_save_state(nes, state, state_size);
+    CHECK_EQ_U64(save_status, NESTURBATOR_OK);
+    if (save_status != NESTURBATOR_OK)
+        return 0;
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(nes, INTERRUPT_FIXTURE_IRQ_COUNT, irq_marker),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_peek_cpu_ram(nes, INTERRUPT_FIXTURE_NMI_COUNT, nmi_marker),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(ra_state_cpu_ram_byte(state, INTERRUPT_FIXTURE_IRQ_COUNT), *irq_marker);
+    CHECK_EQ_U64(ra_state_cpu_ram_byte(state, INTERRUPT_FIXTURE_NMI_COUNT), *nmi_marker);
+    CHECK_EQ_U64(ra_state_frame_number(state), frame_number);
+    return 1;
+}
+
+/* Compare a real retro_run callback bundle and retro_serialize result with the
+   corresponding production native frame, including both guest RAM markers. */
+static unsigned rah_entry_module_frame(uint16_t buttons, const uint32_t *expected_xrgb,
+                                       const int16_t *expected_stereo, size_t expected_audio_frames,
+                                       const uint8_t *expected_state, size_t state_size,
+                                       uint8_t expected_irq_marker, uint8_t expected_nmi_marker,
+                                       uint8_t *actual_state)
+{
+    int video_before = video_calls;
+    int batch_before = batch_calls;
+    unsigned differences = 0u;
+
+    rah_set_buttons(buttons);
+    batch_frames = 0u;
+    p_run();
+    if (video_calls != video_before + 1 || !video_data_nonnull || video_width != W ||
+        video_height != H || video_pitch < W * 4u ||
+        memcmp(frame, expected_xrgb, W * H * sizeof frame[0]) != 0)
+        differences |= RAH_ENTRY_DIFF_VIDEO;
+    if (batch_calls != batch_before + 1 || batch_frames != expected_audio_frames ||
+        memcmp(batch_samples, expected_stereo,
+               expected_audio_frames * 2u * sizeof batch_samples[0]) != 0)
+        differences |= RAH_ENTRY_DIFF_PCM;
+    if (!p_serialize(actual_state, state_size)) {
+        differences |= RAH_ENTRY_DIFF_STATE;
+        return differences;
+    }
+    if (memcmp(actual_state, expected_state, state_size) != 0)
+        differences |= RAH_ENTRY_DIFF_STATE;
+    if (ra_state_frame_number(actual_state) != ra_state_frame_number(expected_state) ||
+        ra_state_ticks(actual_state) != ra_state_ticks(expected_state))
+        differences |= RAH_ENTRY_DIFF_METADATA;
+    if (ra_state_cpu_ram_byte(actual_state, INTERRUPT_FIXTURE_IRQ_COUNT) != expected_irq_marker ||
+        ra_state_cpu_ram_byte(actual_state, INTERRUPT_FIXTURE_NMI_COUNT) != expected_nmi_marker)
+        differences |= RAH_ENTRY_DIFF_MARKER;
+    return differences;
+}
+
+static int rah_entry_replay(const uint8_t *image, size_t image_size, const uint8_t *cutpoint,
+                            size_t state_size, const uint16_t *inputs, unsigned depth,
+                            int first_nmi_marker)
+{
+    nesturbator *real = ra_instance(image, image_size);
+    nesturbator *speculative = ra_instance(image, image_size);
+    uint32_t *expected_xrgb = (uint32_t *)malloc(RA_PIXELS * sizeof *expected_xrgb);
+    int16_t expected_stereo[2048];
+    uint8_t *committed = (uint8_t *)malloc(state_size);
+    uint8_t *expected_state = (uint8_t *)malloc(state_size);
+    uint8_t *actual_state = (uint8_t *)malloc(state_size);
+    int ok = 0;
+
+    CHECK(real != NULL && speculative != NULL && expected_xrgb != NULL && committed != NULL &&
+          expected_state != NULL && actual_state != NULL);
+    if (real == NULL || speculative == NULL || expected_xrgb == NULL || committed == NULL ||
+        expected_state == NULL || actual_state == NULL)
+        goto done;
+    CHECK_EQ_U64(nesturbator_state_size(real), state_size);
+    CHECK_EQ_U64(nesturbator_load_state(real, cutpoint, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(real, expected_state, state_size), NESTURBATOR_OK);
+    CHECK(memcmp(expected_state, cutpoint, state_size) == 0);
+    CHECK(ser_load(image, image_size));
+    CHECK_EQ_U64(p_serialize_size(), state_size);
+    CHECK(p_unserialize(cutpoint, state_size));
+    CHECK(p_serialize(actual_state, state_size));
+    CHECK(memcmp(actual_state, cutpoint, state_size) == 0);
+
+    for (uint32_t t = 0u; t < RAH_ENTRY_TICKS; t++) {
+        size_t audio_frames = 0u;
+        uint8_t irq_marker = 0u, nmi_marker = 0u;
+        unsigned differences;
+
+        CHECK(rah_entry_native_frame(real, inputs[t], expected_xrgb, expected_stereo, &audio_frames,
+                                     &irq_marker, &nmi_marker, committed, state_size));
+        if (t == 0u && first_nmi_marker >= 0) {
+            CHECK_EQ_U64(irq_marker, 1u);
+            CHECK_EQ_U64(nmi_marker, (uint8_t)first_nmi_marker);
+        }
+        differences =
+            rah_entry_module_frame(inputs[t], expected_xrgb, expected_stereo, audio_frames,
+                                   committed, state_size, irq_marker, nmi_marker, actual_state);
+        if (differences != 0u) {
+            fprintf(stderr,
+                    "libretro.runahead: entry real origin-state tick %u differs (mask=0x%02X)\n",
+                    (unsigned)t, differences);
+        }
+        CHECK_EQ_U64(differences, 0u);
+
+        CHECK_EQ_U64(nesturbator_load_state(speculative, committed, state_size), NESTURBATOR_OK);
+        for (unsigned j = 0u; j < depth; j++) {
+            audio_frames = 0u;
+            CHECK(rah_entry_native_frame(speculative, inputs[t], expected_xrgb, expected_stereo,
+                                         &audio_frames, &irq_marker, &nmi_marker, expected_state,
+                                         state_size));
+            differences = rah_entry_module_frame(inputs[t], expected_xrgb, expected_stereo,
+                                                 audio_frames, expected_state, state_size,
+                                                 irq_marker, nmi_marker, actual_state);
+            if (differences != 0u) {
+                fprintf(stderr,
+                        "libretro.runahead: entry speculative depth %u frame %u differs "
+                        "(mask=0x%02X)\n",
+                        depth, j + 1u, differences);
+            }
+            CHECK_EQ_U64(differences, 0u);
+        }
+        CHECK(p_unserialize(committed, state_size));
+        CHECK(p_serialize(actual_state, state_size));
+        CHECK(memcmp(actual_state, committed, state_size) == 0);
+    }
+    ok = 1;
+done:
+    p_unload_game();
+    nesturbator_destroy(speculative);
+    nesturbator_destroy(real);
+    free(expected_xrgb);
+    free(committed);
+    free(expected_state);
+    free(actual_state);
+    return ok;
+}
+
+static void rah_entry_matrix(struct rah_totals *tot)
+{
+    static const enum nesturbator_entry_origin origins[] = {
+        NESTURBATOR_ENTRY_BRK, NESTURBATOR_ENTRY_IRQ, NESTURBATOR_ENTRY_NMI};
+    static uint8_t image[RA_ENTRY_ROM_SIZE];
+    size_t image_size = ra_entry_rom_build(image, sizeof image);
+    size_t state_size = ser_direct_size(image, image_size);
+
+    CHECK_EQ_U64(image_size, RA_ENTRY_ROM_SIZE);
+    CHECK(state_size != 0u);
+    if (image_size == 0u || state_size == 0u)
+        return;
+    for (size_t origin_index = 0u; origin_index < sizeof origins / sizeof origins[0];
+         origin_index++) {
+        enum nesturbator_entry_origin origin = origins[origin_index];
+        uint8_t first = ra_entry_first_action(origin);
+        for (uint8_t action = first; action <= 7u; action++) {
+            uint8_t *cutpoint = (uint8_t *)malloc(state_size);
+            CHECK(cutpoint != NULL);
+            if (cutpoint == NULL)
+                continue;
+            CHECK(ra_entry_cutpoint_state(image, image_size, origin, action, cutpoint, state_size));
+            for (unsigned script = 1u; script <= 2u; script++) {
+                uint32_t seed = script == 1u ? RA_SEED_1 : RA_SEED_2;
+                uint16_t *inputs = ra_script_make(script, seed, RAH_ENTRY_TICKS + RA_MAX_DEPTH);
+                CHECK(inputs != NULL);
+                if (inputs != NULL) {
+                    for (unsigned depth = 1u; depth <= RA_MAX_DEPTH; depth++) {
+                        CHECK(rah_entry_replay(image, image_size, cutpoint, state_size, inputs,
+                                               depth, -1));
+                        if (script == 1u)
+                            tot->entry_depth_cases++;
+                        tot->entry_script_cases++;
+                    }
+                }
+                free(inputs);
+            }
+            tot->entry_cutpoint_classes++;
+            free(cutpoint);
+        }
+    }
+}
+
+static int rah_entry_inhibited_state(const uint8_t *image, size_t image_size, uint8_t idle,
+                                     uint8_t held, uint8_t *state, size_t state_size)
+{
+    nesturbator *public_instance = ra_instance(image, image_size);
+    struct nesturbator *instance = (struct nesturbator *)public_instance;
+    int ok = 0;
+
+    if (instance == NULL || state == NULL)
+        goto done;
+    /* Reuse the compatible ROM, production stage driver and public visitor.
+       C5 leaves an active C6 cut; C7 leaves the idle pre-handler handoff. */
+    if (!ra_entry_cutpoint_state(image, image_size, NESTURBATOR_ENTRY_IRQ, idle != 0u ? 7u : 5u,
+                                 state, state_size))
+        goto done;
+    CHECK_EQ_U64(nesturbator_load_state(public_instance, state, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(instance->cpu.nmi_prev, 0u);
+    instance->ppu.status |= 0x80u;
+    instance->ppu.control |= 0x80u;
+    CHECK_EQ_U64(nesturbator__cpu_entry_action(instance), 1u);
+    CHECK_EQ_U64(instance->cpu.nmi_pending, NESTURBATOR_NMI_INHIBITED);
+    CHECK_EQ_U64(instance->cpu.nmi_prev, 1u);
+    CHECK_EQ_U64(instance->cpu.entry_origin,
+                 idle != 0u ? NESTURBATOR_ENTRY_NONE : NESTURBATOR_ENTRY_IRQ);
+    CHECK_EQ_U64(instance->cpu.entry_next_action, idle != 0u ? 0u : 6u);
+    if (held == 0u)
+        instance->ppu.control &= 0x7fu;
+    CHECK_EQ_U64(nesturbator__ppu_nmi_line(instance), held);
+    CHECK_EQ_U64(instance->cpu.nmi_polled, 0u);
+    CHECK_EQ_U64(instance->cpu.irq_accepted, 0u);
+    CHECK_EQ_U64(nesturbator_state_size(public_instance), state_size);
+    ok = nesturbator_save_state(public_instance, state, state_size) == NESTURBATOR_OK;
+    CHECK(ok);
+done:
+    nesturbator_destroy(public_instance);
+    return ok;
+}
+
+static void rah_entry_inhibited_matrix(struct rah_totals *tot)
+{
+    static uint8_t image[RA_ENTRY_ROM_SIZE];
+    size_t image_size = ra_entry_rom_build(image, sizeof image);
+    size_t state_size = ser_direct_size(image, image_size);
+    uint8_t *cutpoint = (uint8_t *)malloc(state_size);
+
+    CHECK(image_size == RA_ENTRY_ROM_SIZE && state_size != 0u && cutpoint != NULL);
+    if (image_size == 0u || state_size == 0u || cutpoint == NULL)
+        goto done;
+    for (uint8_t idle = 0u; idle < 2u; idle++) {
+        for (uint8_t held = 0u; held < 2u; held++) {
+            CHECK(rah_entry_inhibited_state(image, image_size, idle, held, cutpoint, state_size));
+            for (unsigned script = 1u; script <= 2u; script++) {
+                uint16_t *inputs = ra_script_make(script, script == 1u ? RA_SEED_1 : RA_SEED_2,
+                                                  RAH_ENTRY_TICKS + RA_MAX_DEPTH);
+                CHECK(inputs != NULL);
+                if (inputs == NULL)
+                    continue;
+                for (unsigned depth = 1u; depth <= RA_MAX_DEPTH; depth++) {
+                    /* rah_entry_replay calls the actual retro_unserialize,
+                       echoes every byte (including candidate2) and compares
+                       all committed/speculative output, timing and markers. */
+                    CHECK(rah_entry_replay(image, image_size, cutpoint, state_size, inputs, depth,
+                                           held));
+                    tot->entry_inhibited_script_cases++;
+                }
+                free(inputs);
+            }
+            tot->entry_inhibited_histories++;
+            printf("libretro.runahead: inhibited candidate2 location=%s input=%s "
+                   "first-IRQ=1 first-NMI=%u scripts=2 depths=1..3\n",
+                   idle != 0u ? "idle-after-C7" : "active-C6", held != 0u ? "held" : "released",
+                   held);
+        }
+    }
+done:
+    free(cutpoint);
+}
+
+static int rah_entry_irq_hijack_nmi_state(const uint8_t *image, size_t image_size, uint8_t *state,
+                                          size_t state_size)
+{
+    nesturbator *public_instance = ra_instance(image, image_size);
+    struct nesturbator *instance = (struct nesturbator *)public_instance;
+    nesturbator_status status = NESTURBATOR_ERR_ARGUMENT;
+    int ok = 0;
+
+    if (instance == NULL || state == NULL)
+        goto done;
+    interrupt_fixture_entry_warm(instance, 600u);
+    instance->cpu.p = 0x20u;
+    CHECK(interrupt_fixture_entry_construct(instance, NESTURBATOR_ENTRY_IRQ));
+    CHECK(interrupt_fixture_entry_reach(instance, 4u));
+    /* This accepted edge is consumed at vector selection, yielding a legal
+       IRQ-origin/NMI-vector continuation with a distinguishable stack stage. */
+    instance->cpu.nmi_pending = 1u;
+    CHECK(interrupt_fixture_entry_reach(instance, 6u));
+    CHECK_EQ_U64(instance->cpu.entry_origin, NESTURBATOR_ENTRY_IRQ);
+    CHECK_EQ_U64(instance->cpu.entry_next_action, 6u);
+    CHECK_EQ_U64(instance->cpu.entry_vector, NESTURBATOR_ENTRY_VECTOR_NMI);
+    CHECK_EQ_U64(instance->cpu.nmi_pending, 0u);
+    status = nesturbator_save_state(public_instance, state, state_size);
+    CHECK_EQ_U64(status, NESTURBATOR_OK);
+    ok = status == NESTURBATOR_OK;
+done:
+    nesturbator_destroy(public_instance);
+    return ok;
+}
+
+static int rah_entry_omitted_history_state(const uint8_t *image, size_t image_size,
+                                           const uint8_t *source_state, size_t state_size,
+                                           uint8_t *state)
+{
+    nesturbator *public_instance = ra_instance(image, image_size);
+    struct nesturbator *instance = (struct nesturbator *)public_instance;
+    nesturbator_status load_status = NESTURBATOR_ERR_ARGUMENT;
+    nesturbator_status save_status = NESTURBATOR_ERR_ARGUMENT;
+    int ok = 0;
+
+    if (instance == NULL || source_state == NULL || state == NULL)
+        goto done;
+    load_status = nesturbator_load_state(public_instance, source_state, state_size);
+    CHECK_EQ_U64(load_status, NESTURBATOR_OK);
+    if (load_status != NESTURBATOR_OK)
+        goto done;
+    CHECK_EQ_U64(instance->cpu.entry_origin, NESTURBATOR_ENTRY_IRQ);
+    CHECK_EQ_U64(instance->cpu.entry_next_action, 6u);
+    instance->cpu.entry_origin = NESTURBATOR_ENTRY_NONE;
+    instance->cpu.entry_next_action = 0u;
+    instance->cpu.entry_vector = NESTURBATOR_ENTRY_VECTOR_NONE;
+    instance->cpu.entry_vector_low = 0u;
+    save_status = nesturbator_save_state(public_instance, state, state_size);
+    CHECK_EQ_U64(save_status, NESTURBATOR_OK);
+    ok = save_status == NESTURBATOR_OK;
+done:
+    nesturbator_destroy(public_instance);
+    return ok;
+}
+
+/* A control passes setup only after the native state is valid for the fixture,
+   the real module accepts and echoes compatible wrong bytes (except the
+   intentionally skipped call), and the mismatch reaches a named host output. */
+static int rah_entry_control(const uint8_t *image, size_t image_size,
+                             const uint8_t *expected_cutpoint, const uint8_t *load_state,
+                             size_t state_size, const char *name, unsigned required_difference,
+                             int skip_load)
+{
+    nesturbator *reference = ra_instance(image, image_size);
+    uint32_t *expected_xrgb = (uint32_t *)malloc(RA_PIXELS * sizeof *expected_xrgb);
+    int16_t expected_stereo[2048];
+    size_t audio_frames = 0u;
+    uint8_t irq_marker = 0u, nmi_marker = 0u;
+    uint8_t *expected_state = (uint8_t *)malloc(state_size);
+    uint8_t *actual_state = (uint8_t *)malloc(state_size);
+    uint16_t buttons = ra_script_buttons(1u, RA_SEED_1, 0u);
+    int setup_ok = 0;
+    unsigned differences;
+
+    CHECK(reference != NULL && expected_xrgb != NULL && expected_state != NULL &&
+          actual_state != NULL);
+    if (reference == NULL || expected_xrgb == NULL || expected_state == NULL ||
+        actual_state == NULL)
+        goto done;
+    CHECK_EQ_U64(nesturbator_state_size(reference), state_size);
+    CHECK_EQ_U64(nesturbator_load_state(reference, expected_cutpoint, state_size), NESTURBATOR_OK);
+    CHECK(rah_entry_native_frame(reference, buttons, expected_xrgb, expected_stereo, &audio_frames,
+                                 &irq_marker, &nmi_marker, expected_state, state_size));
+    CHECK(ser_load(image, image_size));
+    CHECK_EQ_U64(p_serialize_size(), state_size);
+    if (skip_load) {
+        CHECK(p_serialize(actual_state, state_size));
+        CHECK(memcmp(actual_state, expected_cutpoint, state_size) != 0);
+        setup_ok = 1;
+    } else if (load_state != NULL && p_unserialize(load_state, state_size)) {
+        CHECK(p_serialize(actual_state, state_size));
+        CHECK(memcmp(actual_state, load_state, state_size) == 0);
+        setup_ok = 1;
+    }
+    CHECK(setup_ok);
+    if (!setup_ok)
+        goto done;
+
+    differences =
+        rah_entry_module_frame(buttons, expected_xrgb, expected_stereo, audio_frames,
+                               expected_state, state_size, irq_marker, nmi_marker, actual_state);
+    if ((differences & required_difference) != required_difference) {
+        fprintf(stderr,
+                "libretro.runahead: entry control %s missed intended difference "
+                "(required=0x%02X actual=0x%02X)\n",
+                name, required_difference, differences);
+    } else {
+        printf("libretro.runahead: entry control %s reached adapter verdict mask=0x%02X\n", name,
+               differences);
+    }
+    CHECK((differences & required_difference) == required_difference);
+    p_unload_game();
+    free(expected_xrgb);
+    free(expected_state);
+    free(actual_state);
+    nesturbator_destroy(reference);
+    return (differences & required_difference) == required_difference;
+done:
+    p_unload_game();
+    free(expected_xrgb);
+    free(expected_state);
+    free(actual_state);
+    nesturbator_destroy(reference);
+    return 0;
+}
+
+static void rah_entry_controls(struct rah_totals *tot)
+{
+    static uint8_t image[RA_ENTRY_ROM_SIZE];
+    size_t image_size = ra_entry_rom_build(image, sizeof image);
+    size_t state_size = ser_direct_size(image, image_size);
+    uint8_t *irq_target = (uint8_t *)malloc(state_size);
+    uint8_t *nmi_target = (uint8_t *)malloc(state_size);
+    uint8_t *stale = (uint8_t *)malloc(state_size);
+    uint8_t *omitted = (uint8_t *)malloc(state_size);
+    uint8_t *wrong_origin = (uint8_t *)malloc(state_size);
+
+    CHECK(irq_target != NULL && nmi_target != NULL && stale != NULL && omitted != NULL &&
+          wrong_origin != NULL);
+    if (irq_target == NULL || nmi_target == NULL || stale == NULL || omitted == NULL ||
+        wrong_origin == NULL)
+        goto done;
+    CHECK(ra_entry_cutpoint_state(image, image_size, NESTURBATOR_ENTRY_IRQ, 6u, irq_target,
+                                  state_size));
+    /* Same compatible origin/stage with a prior native synthesis and tick history. */
+    CHECK(ra_entry_cutpoint_state_warm(image, image_size, NESTURBATOR_ENTRY_IRQ, 6u, 601u, stale,
+                                       state_size));
+    CHECK(rah_entry_omitted_history_state(image, image_size, irq_target, state_size, omitted));
+    CHECK(ra_entry_cutpoint_state(image, image_size, NESTURBATOR_ENTRY_NMI, 5u, nmi_target,
+                                  state_size));
+    CHECK(rah_entry_irq_hijack_nmi_state(image, image_size, wrong_origin, state_size));
+
+    /* Equal selected NMI vector, but the wrong source has IRQ origin, a later
+       next action, a completed P push, and consumed the hijacking NMI edge. */
+    {
+        nesturbator *nmi_instance = ra_instance(image, image_size);
+        nesturbator *irq_hijack = ra_instance(image, image_size);
+        struct nesturbator *nmi_internal = (struct nesturbator *)nmi_instance;
+        struct nesturbator *hijack_internal = (struct nesturbator *)irq_hijack;
+        CHECK(nmi_instance != NULL && irq_hijack != NULL);
+        if (nmi_instance != NULL && irq_hijack != NULL) {
+            CHECK_EQ_U64(nesturbator_load_state(nmi_instance, nmi_target, state_size),
+                         NESTURBATOR_OK);
+            CHECK_EQ_U64(nesturbator_load_state(irq_hijack, wrong_origin, state_size),
+                         NESTURBATOR_OK);
+            CHECK_EQ_U64(nmi_internal->cpu.entry_vector, hijack_internal->cpu.entry_vector);
+            CHECK(nmi_internal->cpu.entry_origin != hijack_internal->cpu.entry_origin);
+            CHECK(nmi_internal->cpu.entry_next_action != hijack_internal->cpu.entry_next_action);
+            CHECK(nmi_internal->cpu.s != hijack_internal->cpu.s);
+            CHECK_EQ_U64(hijack_internal->cpu.nmi_pending, 0u);
+        }
+        nesturbator_destroy(irq_hijack);
+        nesturbator_destroy(nmi_instance);
+    }
+
+    if (rah_entry_control(image, image_size, irq_target, stale, state_size, "stale",
+                          RAH_ENTRY_DIFF_STATE, 0))
+        tot->entry_controls_tripped++;
+    if (rah_entry_control(image, image_size, irq_target, NULL, state_size, "skipped-unserialize",
+                          RAH_ENTRY_DIFF_STATE | RAH_ENTRY_DIFF_MARKER, 1))
+        tot->entry_controls_tripped++;
+    if (rah_entry_control(image, image_size, irq_target, omitted, state_size, "omitted-history",
+                          RAH_ENTRY_DIFF_STATE | RAH_ENTRY_DIFF_MARKER, 0))
+        tot->entry_controls_tripped++;
+    if (rah_entry_control(image, image_size, nmi_target, wrong_origin, state_size, "wrong-origin",
+                          RAH_ENTRY_DIFF_STATE, 0))
+        tot->entry_controls_tripped++;
+done:
+    free(irq_target);
+    free(nmi_target);
+    free(stale);
+    free(omitted);
+    free(wrong_origin);
+}
 
 static void rah_add(struct rah_totals *tot, const struct rah_result *res, int repeat)
 {
@@ -3117,6 +3612,11 @@ static int runahead_mode(int argc, char **argv)
             nmi_images++;
         }
     }
+    /* D-18: exact BRK/IRQ/NMI next-action cuts are native states loaded into
+       the real module before every committed and speculative continuation. */
+    rah_entry_matrix(&tot);
+    rah_entry_inhibited_matrix(&tot);
+    rah_entry_controls(&tot);
     /* The Phase 12 stress images keep DMA and interrupts in flight across frame boundaries. */
     for (unsigned m = 0u; stress && m < 2u; m++) {
         static const uint16_t mappers[2] = {0u, 4u};
@@ -3143,6 +3643,12 @@ static int runahead_mode(int argc, char **argv)
     CHECK_EQ_U64(tot.controls_tripped, 4u);
     CHECK_EQ_U64(nmi_images, 1u);
     CHECK_EQ_U64(tot.nmi_controls_tripped, 2u);
+    CHECK_EQ_U64(tot.entry_cutpoint_classes, RAH_ENTRY_CUTPOINT_CLASSES);
+    CHECK_EQ_U64(tot.entry_depth_cases, RAH_ENTRY_DEPTH_CASES);
+    CHECK_EQ_U64(tot.entry_script_cases, RAH_ENTRY_SCRIPT_CASES);
+    CHECK_EQ_U64(tot.entry_controls_tripped, RAH_ENTRY_CONTROLS);
+    CHECK_EQ_U64(tot.entry_inhibited_histories, RAH_ENTRY_INHIBITED_HISTORIES);
+    CHECK_EQ_U64(tot.entry_inhibited_script_cases, RAH_ENTRY_INHIBITED_SCRIPT_CASES);
     CHECK_EQ_U64(jam_images, 1u);
     CHECK_EQ_U64(tot.jam_controls_tripped, 5u); /* four controls and the black oracle */
     for (depth = 1u; depth <= RA_MAX_DEPTH; depth++) {
@@ -3158,9 +3664,13 @@ static int runahead_mode(int argc, char **argv)
     CHECK(tot.states >= tot.ticks + tot.repeat_ticks);
     printf("libretro.runahead: order=\"%s\" roms=%u stress=%u ticks=%u repeat_ticks=%u states=%u "
            "controls_tripped=%u nmi_images=%u nmi_verified_ticks=%u nmi_controls_tripped=%u "
+           "entry_cutpoints=%u entry_depth_cases=%u entry_script_cases=%u "
+           "entry_inhibited_histories=%u entry_inhibited_script_cases=%u "
            "jam_images=%u jam_frame=%u jam_controls_tripped=%u\n",
            RA_SPECULATIVE_ORDER, count, stress_images, tot.ticks, tot.repeat_ticks, tot.states,
-           tot.controls_tripped, nmi_images, tot.nmi_ticks, tot.nmi_controls_tripped, jam_images,
+           tot.controls_tripped, nmi_images, tot.nmi_ticks, tot.nmi_controls_tripped,
+           tot.entry_cutpoint_classes, tot.entry_depth_cases, tot.entry_script_cases,
+           tot.entry_inhibited_histories, tot.entry_inhibited_script_cases, jam_images,
            (unsigned)tot.jam_frame, tot.jam_controls_tripped);
     for (depth = 1u; depth <= RA_MAX_DEPTH; depth++) {
         printf("libretro.runahead: jam depth %u windows: no_jam=%u in_speculative=%u boundary=%u "

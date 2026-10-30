@@ -274,9 +274,9 @@ static void test_dmc_load_halts_on_get_cycle(void)
     CHECK_EQ_U64(nes->apu.dmc.dma_pending, 0u);
     CHECK_EQ_U64(nes->apu.dmc.sample_buffer, 0x5au);
 
-    /* A reload DMA halts on PUT and includes the alignment cycle plus the
-       CPU's resumed read after the DMC GET. */
-    nes->bus.apu_get_put_phase = 1u;
+    /* With no write delaying RDY, a reload first halts on PUT. This read
+       reaches GET and misses; the following PUT read qualifies. */
+    nes->bus.apu_get_put_phase = 0u;
     nes->apu.pulse_clock_phase = 1u;
     nes->apu.dmc.address = 0xc040u;
     nes->apu.dmc.remaining = 1u;
@@ -287,12 +287,71 @@ static void test_dmc_load_halts_on_get_cycle(void)
     nes->apu.dmc.bits = 1u;
     nes->apu.dmc.counter = 100u;
     uint64_t reload_start = nes->ticks;
+    uint8_t missed_read = nesturbator__bus_read(nes, 0x8000u);
+    CHECK_EQ_HEX(missed_read, 0xa9u);
+    CHECK_EQ_U64(nes->ticks - reload_start, 24u);
+    CHECK_EQ_U64(nes->bus.apu_get_put_phase, 1u);
+    CHECK_EQ_U64(nes->apu.dmc.dma_pending, 1u);
+    CHECK_EQ_U64(nes->apu.dmc.remaining, 1u);
+
+    /* The eligible PUT start includes alignment and the resumed CPU read.
+       [HWC.01, HWC.25] */
+    nes->bus.apu_get_put_phase = 1u;
+    uint64_t retry_start = nes->ticks;
     (void)nesturbator__bus_read(nes, 0x8000u);
-    CHECK_EQ_U64(nes->ticks - reload_start, 5u * 24u);
+    CHECK_EQ_U64(nes->ticks - retry_start, 5u * 24u);
     CHECK_EQ_U64(nes->bus.apu_get_put_phase, 0u);
     CHECK_EQ_U64(nes->apu.dmc.dma_pending, 0u);
     CHECK_EQ_U64(nes->apu.dmc.sample_buffer, 0x5au);
     nesturbator_destroy(inst);
+    free(image);
+}
+
+static void test_dmc_halt_retries_after_cpu_writes(void)
+{
+    const size_t image_size = 16u + 16384u + 8192u;
+    uint8_t *image = calloc(1u, image_size);
+    CHECK(image != NULL);
+    if (image == NULL)
+        return;
+    make_image(image, image_size);
+    image[16u + 0x40u] = 0x5au;
+    for (uint8_t initial_halt = 0u; initial_halt < 2u; initial_halt++) {
+        for (uint8_t writes = 1u; writes <= 3u; writes++) {
+            nesturbator *inst = make();
+            CHECK(inst != NULL);
+            if (inst == NULL)
+                continue;
+            CHECK_EQ_U64(nesturbator_load_cartridge(inst, image, image_size), NESTURBATOR_OK);
+            struct nesturbator *nes = (struct nesturbator *)inst;
+            nes->bus.apu_get_put_phase = (uint8_t)(initial_halt ^ 1u);
+            nes->apu.pulse_clock_phase = nes->bus.apu_get_put_phase;
+            nes->apu.dmc.address = 0xc040u;
+            nes->apu.dmc.remaining = 1u;
+            nes->apu.dmc.dma_pending = 1u;
+            nes->apu.dmc.dma_halt_phase = initial_halt;
+            nes->apu.dmc.buffer_empty = 1u;
+            nes->apu.dmc.bits = 8u;
+            nes->apu.dmc.counter = 100u;
+            /* RDY cannot halt a write. Once its first attempt is delayed,
+               it retries each CPU cycle, including the opposite GET/PUT
+               phase. NESdev DMA, Cadence and DMC DMA. */
+            for (uint8_t n = 0u; n < writes; n++) {
+                nesturbator__bus_write(nes, 0x0010u, n);
+                CHECK_EQ_U64(nes->apu.dmc.dma_pending, 1u);
+                CHECK_EQ_U64(nes->apu.dmc.remaining, 1u);
+            }
+            uint8_t read_phase = (uint8_t)(nes->bus.apu_get_put_phase ^ 1u);
+            uint64_t before = nes->ticks;
+            CHECK_EQ_HEX(nesturbator__bus_read(nes, 0x8000u), 0xa9u);
+            CHECK_EQ_U64(nes->ticks - before, (read_phase != 0u ? 4u : 5u) * 24u);
+            CHECK_EQ_HEX(nes->apu.dmc.sample_buffer, 0x5au);
+            CHECK_EQ_U64(nes->apu.dmc.remaining, 0u);
+            CHECK_EQ_U64(nes->apu.dmc.dma_pending, 0u);
+            CHECK_EQ_U64(nes->bus.apu_get_put_phase, 0u);
+            nesturbator_destroy(inst);
+        }
+    }
     free(image);
 }
 
@@ -543,6 +602,7 @@ int main(void)
     test_dmc_fetch_from_mapper0();
     test_dmc_enable_waits_full_write_delay();
     test_dmc_load_halts_on_get_cycle();
+    test_dmc_halt_retries_after_cpu_writes();
     test_dmc_restart_preserves_full_sample_buffer();
     test_frame_counter_modes_and_irq_sources();
     test_get_put_delays();
