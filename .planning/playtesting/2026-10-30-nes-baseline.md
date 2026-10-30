@@ -2,6 +2,12 @@
 
 User-requested exploratory RetroArch sessions, one game at a time. Header admission is not gameplay acceptance. User observations and agent-observed launch facts are recorded separately. No full-game or library-wide compatibility claim.
 
+Current checkpoint: eleven positive Deck title reports span all six supported
+mapper IDs; 26 entries are prepared. The [scene playlist](SCENE-PLAYLIST.md)
+prioritizes known hard cases, and the [full queue](DECK-QUEUE.md) tracks remaining
+games. Later sections preserve the chronology; earlier setup counts are dated
+observations, not the current collection size.
+
 ## Session setup
 
 - RetroArch 1.22.2, macOS arm64, copied local development core from the current v5 source; not a downloaded release.
@@ -14,7 +20,7 @@ User-requested exploratory RetroArch sessions, one game at a time. Header admiss
 | # | Title | Header mapper | Battery | Status / observation |
 |---|---|---:|---|---|
 | 01 | Super Mario Bros. 3 (USA) | 4 | no | Mac: plays pretty good; mild sluggishness/audio tearing, cause unverified. Deck Rev A: good input timing, visuals and audio, low perceived latency, no observed issues during the reported session. |
-| 02 | Kirby's Adventure (USA) | 4 | yes | Not tried |
+| 02 | Kirby's Adventure (USA) | 4 | yes | Deck: user reports plays great; no save/relaunch or named later scene result. |
 | 03 | Mega Man 2 (USA) | 1 | no | Not tried |
 | 04 | Castlevania III - Dracula's Curse (USA) | 5 | no | Unsupported mapper 5 |
 | 05 | Contra (USA) | 2 | no | Deck: user reports everything plays well, with the same positive controls, visuals, audio and perceived latency as Mario 3; no observed issues. |
@@ -23,11 +29,11 @@ User-requested exploratory RetroArch sessions, one game at a time. Header admiss
 | 08 | Metroid (USA) | 1 | no | Not tried |
 | 09 | Ninja Gaiden (USA) | 1 | no | Deck: displayed as Shadow Warriors; user reports it plays great. |
 | 10 | Punch-Out!! (USA) | 9 | no | Unsupported mapper 9 |
-| 11 | Solar Jetman - Hunt for the Golden Warpship (USA) | 7 | no | Not tried |
+| 11 | Solar Jetman - Hunt for the Golden Warpship (USA) | 7 | no | Deck: user reports playing well. |
 | 12 | Mega Man 3 (USA) | 4 | no | Not tried |
 | 13 | Castlevania (USA) | 2 | no | Not tried |
 | 14 | DuckTales (USA) | 2 | no | Not tried |
-| 15 | Batman - The Video Game (USA) | 4 | no | Not tried |
+| 15 | Batman - The Video Game (USA) | 4 | no | Deck: user reports plays great. |
 | 16 | Bionic Commando (USA) | 1 | no | Not tried |
 | 17 | Blaster Master (USA) | 1 | no | Not tried |
 | 18 | Crystalis (USA) | 4 | yes | Deck: user reports looks, plays and sounds great; thin top-edge strip observed in private screen capture, overscan explanation plausible but exact rendering correctness unverified. |
@@ -37,7 +43,7 @@ User-requested exploratory RetroArch sessions, one game at a time. Header admiss
 | 22 | Shatterhand (USA) | 4 | no | Not tried |
 | 23 | Ufouria - The Saga (Europe) | 4 | no | PAL title; regional timing not implemented |
 | 24 | Gimmick! (Japan) | 69 | no | Unsupported mapper 69 |
-| 25 | Balloon Fight (USA) | 0 | no | Not tried |
+| 25 | Balloon Fight (USA) | 0 | no | Deck: user reports plays great and especially smooth; Balloon Trip not explicitly reported. |
 
 ## Header differences from the proposed list
 
@@ -271,3 +277,41 @@ The remaining 18 titles are prepared and untested on the Deck. MMC1, UxROM and
 MMC3 have directional play signal; CNROM, AxROM and NROM remain Deck gameplay
 gaps until the suggested next sessions. Unsupported requested boards/regions
 remain outside this queue and were not routed to Nesturbator.
+
+## Broad play checkpoint and scene-focused follow-up
+
+The owner subsequently reported Gradius plays really well with no issues,
+Solar Jetman is playing well, Balloon Fight plays great and feels especially
+smooth, Kirby's Adventure plays great, and Battletoads plays great with no
+observed issues. The owner describes the overall sessions as smooth with no
+perceived performance problems and explicitly treats this as a useful baseline
+checkpoint alongside CI. These are subjective gameplay observations, not
+instrumented performance measurements. No independent launch check was performed
+for each of these reports, and no specific later scenes or full-game coverage
+are inferred. Existing identities/configuration checks remain separate evidence.
+
+The owner then reported Batman plays great while research continued and stated
+they had returned to ES-DE. This makes eleven positive reported Deck games,
+spanning mapper IDs 0, 1, 2, 3, 4 and 7. It does not certify every board variant
+or every scene. Prior Crystalis edge and save/persistence limits remain visible.
+
+The owner explicitly requested specific known failure cases before each future
+play recommendation, practical shortcuts to deeper scenes, and reusable
+cross-emulator lessons. The [targeted scene playlist](SCENE-PLAYLIST.md) records
+sourced scene targets, symptoms, access costs, shortcut limitations and exact
+versus generic coverage. Empty cheat callbacks and unavailable system RAM mean
+Game Genie/frontend RAM cheats are not currently usable scene-access methods.
+Built-in game passwords and same-core checkpoints are the supported direction;
+no scene snapshot or automatic warp service was created here.
+
+Jurassic Park (USA), Marble Madness (USA) and The Magic of Scheherazade (USA)
+were added from the authorized local library after admission/frame-120 checks.
+Archive hashes, all collection references and core choices were verified on the
+Deck. Existing library files, metadata and save storage passed preservation
+checks. An active-game guard deferred the first refresh attempt; after the
+owner returned to ES-DE, a normal close request delivered directly to the
+identified frontend window exited it. No game was interrupted and no force
+termination was used. The normal Steam shortcut reopened ES-DE and its fresh
+log loaded the 26-entry collection. Current selected progress was backed up
+privately. Fifteen games remain untested on the Deck, and named scene coverage
+is tracked separately even for the eleven positive title reports.

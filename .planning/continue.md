@@ -10,9 +10,10 @@ cross-project entry point the owner requested. Use the
 The Deck is in normal Gaming Mode. ES-DE 3.5.0 is open through the repaired
 existing Steam shortcut; its fresh startup log loaded the expanded Nesturbator
 collection. The owner authorized broader preparation and transfers; that
-reference-only collection now contains 23 supported-region entries with per-game
+reference-only collection now contains 26 supported-region entries with per-game
 Nesturbator selection and switchable other cores. Seven existing NTSC entries
-were reused and 16 missing NTSC variants added to the normal library alongside
+were reused and 16 missing NTSC variants added initially, followed by three new
+scene targets in the normal library alongside
 preserved PAL versions, with explicit region names. Original files, metadata,
 save storage and unrelated emulator choices were preserved. Normal battery
 storage remains; Nesturbator states are namespaced
@@ -53,24 +54,42 @@ sluggishness and some Mario 3 audio tearing under concurrent work. Resource
 contention is suspected, not established. The owner explicitly deferred stronger
 performance confidence to a quieter/dedicated device.
 
-## Ready to resume play
+## Ready for targeted scenes
 
-The owner went for a walk and requested broader preparation. The
-[ordered Deck queue](playtesting/DECK-QUEUE.md) is ready: start with Gradius (USA),
-then Solar Jetman (USA) and Balloon Fight (USA) to fill CNROM, AxROM and NROM
-Deck gameplay gaps. Five games have positive reports; 18 remain untested on the
-Deck. Existing River City Ransom is shown as **Street Gangs**.
+The owner next reported Gradius, Solar Jetman, Balloon Fight, Kirby, Battletoads
+and Batman play well/great, describing the sessions as smooth without perceived
+performance issues. Eleven positive title reports now span all six supported
+mapper IDs. Exact scenes, every board variant and measured performance are
+separate. The owner explicitly wants concrete known pitfalls and efficient
+scene access before each recommendation, as durable cross-emulator learning.
+Read the [scene playlist](playtesting/SCENE-PLAYLIST.md) before recommending more
+play; the [full queue](playtesting/DECK-QUEUE.md) tracks all prepared entries.
 
-All selected archive identities, references and Nesturbator choices were
-verified; all images completed 120 no-input frames in the current local native
-runner. This is admission/startup signal only. Existing selected progress was
-backed up privately; new save/relaunch and snapshots remain separate checks.
-The normal Steam shortcut started ES-DE, the fresh log loaded the expanded
-collection, and a private capture showed its normal system carousel. No active
-game was interrupted or automatically launched; no display/controller/core
-setting changed. On return, the owner opens Collections → Nesturbator → Gradius
-(USA). No restart/setup action or additional user input is needed now. The next
-actor is the owner when ready to play; planning still has its separate boundary.
+Start Jurassic Park (USA), letting the OCEAN logo run, then Marble Madness (USA)
+for its first race-introduction text box. The Magic of Scheherazade is also
+installed for an optional 5W-password/party-battle damage probe; no deterministic
+immediate encounter route was verified. Three new NTSC games passed admission,
+frame-120 startup, archive-hash and per-game choice checks. Original files,
+metadata and save storage were preserved, current progress backed up privately.
+The collection has 26 entries, 15 with no Deck gameplay report yet.
+
+The owner returned to ES-DE after an active-game guard deferred refresh. Remote
+WM/keyboard quit requests did not exit the app; a direct normal close-protocol
+message to its verified window did. The normal Steam shortcut then reopened
+ES-DE and its fresh log loaded the expanded collection and completed startup.
+No game was interrupted/automatically launched, and no force kill, device
+restart, display setting or core behavior change was used. No restart/setup
+work remains; the owner acts next when ready to play. The agent can continue
+recording scene-specific observations and helping with verified routes.
+
+Game Genie is not currently implemented; cheat callbacks are empty and general
+system RAM is not exposed. A frontend cheat menu is not proof of support.
+Prefer built-in passwords, then snapshots made with this core after reaching a
+scene. Preserve daily progress since state loading may replace battery RAM.
+Foreign-core states and raw runner payloads are not qualified RetroArch scene
+shortcuts. No scene snapshot, replay library, cheat implementation or automated
+warp was created. Treat these as future proposed capabilities, not new milestone
+scope. Planning still has its separate boundary below.
 
 ## Host work and operational privacy
 

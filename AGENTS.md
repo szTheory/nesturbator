@@ -67,5 +67,10 @@ so the same games and progress remain usable for daily play. Preserve other
 cores' incompatible state files in their normal core-specific storage. Record
 brief user observations as scoped smoke evidence; higher-confidence device
 and performance testing can follow when the owner wants it.
+Before recommending play, read the
+[scene-first guidance](.planning/playtesting/LESSONS.md#scene-first-checkpoint-lessons).
+Give the scene, visible expected/failure behavior, verified access method and
+likely effort. Record title and exact-scene results separately as dated evidence
+alongside CI; verify current cheat/state support before proposing shortcuts.
 Keep connection details, identifiers, personal paths and raw private artifacts
 outside Git; record only sanitized lessons and scoped observations.

@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Expanded 23-title Deck collection prepared and loaded; owner can resume with Gradius
-last_updated: "2026-10-30T20:11:57Z"
+stopped_at: Eleven positive Deck reports cover six mapper IDs; 26-entry collection ready for targeted scene pass
+last_updated: "2026-10-30T21:21:03Z"
 last_activity: 2026-10-30
-last_activity_desc: Prepared owner-authorized mapper/edge-case play queue, transferred missing NTSC variants and verified preservation/frontend startup
+last_activity_desc: Recorded six additional positive reports; researched hard scenes and cheat limits, installed three targets, verified normal ES-DE refresh
 progress:
   total_phases: 3
   completed_phases: 3
@@ -48,45 +48,50 @@ The pre-existing AGENTS.md and config edits remain unstaged and preserved.
 
 ## Next Action
 
-The owner is away and asked for the next games to be prepared. Preparation is
-finished: the normal Steam shortcut started ES-DE and its fresh log loaded the
-expanded **Nesturbator** collection. A private capture confirmed the normal
-system carousel. No game was running or interrupted; no game was automatically
-launched. On return, open **Collections → Nesturbator → Gradius (USA)**, then try
-Solar Jetman (USA) and Balloon Fight (USA). No restart or setup action is needed.
-The owner acts next when ready to play; no further input is required for setup.
+The owner requested a time-efficient known-edge-case pass and concrete symptoms
+before each game. Start **Collections → Nesturbator → Jurassic Park (USA)** and
+watch the opening OCEAN logo, then **Marble Madness (USA)** and its first race's
+introductory text. The [scene playlist](playtesting/SCENE-PLAYLIST.md) contains
+the complete priority pass, access methods, expected failures, sourced
+shortcuts and evidence limits. ES-DE is open after a normal refresh; no restart
+or setup action is needed. The owner acts next when ready to play, and the
+agent can record scene-specific feedback and help with a route when needed.
 
-Read the [ordered Deck queue](playtesting/DECK-QUEUE.md) for the 18 untested Deck
-titles, useful short-session targets and unsupported exclusions. The collection
-has 23 entries: 21 supported-region choices from the original list plus Gradius
-and Battletoads. Seven existing NTSC entries were reused; 16 missing NTSC
-variants were copied into the normal library. Existing PAL versions, metadata,
-other emulator choices and progress were preserved. New entries show regional
-names. There is one selected variant per title in the collection, with no
-separate test ROM directory. All archive identities, references and per-game
-core choices passed read-back checks. Original files/metadata/save storage
-passed preservation checks; existing selected progress was backed up privately.
+Eleven games have positive Deck title reports: Mario 3, Contra, Ninja Gaiden
+(shown as Shadow Warriors), Zelda, Crystalis, Gradius, Solar Jetman, Balloon
+Fight, Kirby, Battletoads and Batman. The owner reports smooth gameplay with no
+perceived performance issues. This is a useful dated baseline alongside CI,
+not instrumented performance or full-game coverage. All six supported mapper
+IDs have ordinary-play signal; no unspecified hard scene or board variant is
+credited. Preserve the Crystalis top-edge observation and save/relaunch limits.
 
-Every selected image completed a 120-frame no-input startup preflight in the
-current local native runner. This is not a Linux interactive-play, sustained
-performance or broad compatibility result. No core, controller or display
-configuration changed. Handheld fallback and reconnect remain untested.
+The [full queue](playtesting/DECK-QUEUE.md) now references 26 normal-library NTSC
+entries; 15 remain untested on the Deck. Jurassic Park, Marble Madness and The
+Magic of Scheherazade were added for documented scene probes. Their hashes,
+references and per-game Nesturbator choices passed read-back; each reached
+frame 120 in the current local native runner. Existing files, metadata and save
+storage were preserved, current selected progress backed up privately, and the
+fresh ES-DE log loaded the expanded collection and completed startup. An active-
+game guard deferred the first refresh; the owner then returned to ES-DE. Direct
+normal window-close protocol exited the frontend after remote shortcut/WM
+requests had no effect; no game was interrupted or force-killed.
 
-Five Deck titles have positive user gameplay reports: Mario 3, Contra, Ninja
-Gaiden (shown as Shadow Warriors), Zelda and Crystalis. Those provide directional
-MMC3, UxROM and MMC1 signal. CNROM, AxROM and NROM remain Deck gameplay gaps.
-Zelda reused prior progress consistently with shared battery-save storage;
-prior writer/core and a new write/exit/relaunch cycle remain unverified. State
-compatibility across cores/versions is not established. Crystalis' thin top-edge
-strip is documented privately; exposed overscan is plausible, exact hardware
-correctness unverified, and optional cropping remains proposed.
+Game Genie is currently unimplemented: cheat callbacks are empty and general
+system RAM is not exposed. Built-in passwords and same-core scene snapshots
+are the practical direction. Scheherazade's 5W password is sourced, but its
+fastest party-battle encounter route is unqualified. No scene checkpoint,
+automatic warp, cheat implementation, core change or new dependency was added.
+Snapshots may restore battery RAM; preserve daily progress before checkpoint
+experiments. Existing handheld fallback/reconnect and cross-core/version state
+compatibility remain unqualified.
 
 Read [PII-free lessons](playtesting/LESSONS.md) before another emulator's host
-setup. Private connection details, media, saves, raw logs, captures and operational
-receipts remain outside Git. The [baseline](playtesting/2026-10-30-nes-baseline.md)
-preserves title observations and setup chronology. Two earlier Mac smoke reports
-remain useful; their sluggishness/audio tearing is unattributed. Higher-confidence
-performance and full-game coverage remain open.
+setup or testing plan. The explicit scene-first guidance is now durable in
+AGENTS.md. Private connection details, media, saves, raw logs and captures remain
+outside Git. The [baseline](playtesting/2026-10-30-nes-baseline.md) retains the
+chronology and exact feedback. Earlier Mac sluggishness/audio tearing remains
+unattributed. No current emulation defect is inferred from it or the Crystalis
+edge strip alone.
 
 Separate planning continuation:
 
@@ -137,6 +142,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T20:11:57Z
-**Stopped at:** Expanded collection loaded; owner can play Gradius next after returning, no setup work pending. Planning continuation: `$gsd-new-milestone`
+**Last session:** 2026-10-30T21:21:03Z
+**Stopped at:** Eleven positive Deck reports recorded; targeted scene playlist and 26-entry collection ready, owner can try Jurassic Park next. Planning continuation: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`

@@ -29,11 +29,20 @@ may hold the operational details. Share only sanitized mechanisms, outcomes,
 public artifact provenance and reusable decisions.
 
 The owner later authorized expanding the queue and transferring needed games.
-See the [prepared Deck queue](DECK-QUEUE.md) for the current 23-entry collection,
+See the [prepared Deck queue](DECK-QUEUE.md) for the current 26-entry collection,
 coverage priorities and visible title aliases. New NTSC variants live in the
 normal library alongside preserved PAL variants, with explicit regional names;
 the collection selects one supported variant per title. Earlier seven-entry
 observations below describe the initial setup, not the current collection size.
+
+The latest owner reports give eleven positive Deck title sessions, including
+new reports for Gradius, Solar Jetman, Balloon Fight, Kirby, Battletoads and
+Batman. Perceived smoothness with no reported performance issues is a useful
+dated checkpoint alongside CI. All six supported mapper IDs now have ordinary-
+play signal, while specific scenes and individual board profiles still need
+separate evidence. Start with the [scene playlist](SCENE-PLAYLIST.md) for the
+owner's current preference: known difficult scenes, concrete symptoms and
+practical access paths before another broad title sweep.
 
 ## Observed results and limits
 
@@ -48,12 +57,48 @@ observations below describe the initial setup, not the current collection size.
 | Steam Deck Zelda: owner reports it plays great and prior progress appeared; live check confirmed Nesturbator, shared `.srm` storage and no logged snapshot load | Positive MMC1 gameplay signal and prior-progress reuse consistent with battery-save sharing | Prior writer/core and a newly written save/relaunch cycle are unverified; this does not demonstrate cross-core save-state compatibility |
 | Steam Deck Crystalis: owner reports looks, plays and sounds great; private capture shows a thin patterned upper-edge strip | Positive MMC3 gameplay/audio smoke signal and a concrete presentation observation | Exposed overscan is plausible, but exact hardware correctness is unverified; no crop option currently exists in the adapter |
 | Reference-only Nesturbator collection registered against seven existing NTSC games; repaired Steam shortcut started ES-DE in Gaming Mode and its log loaded that collection | Installation/configuration/preservation checks passed; actual frontend startup reached its loaded-library state | All seven games and the complete ES-DE → core → exit/progress path remain separate acceptance |
-| Owner-authorized expansion to 23 references: seven reused NTSC entries plus 16 verified transfers; ES-DE freshly loaded the collection | Setup now covers candidate titles for all six supported mapper families; original files, metadata and save storage preserved, selected progress backed up | Only five Deck gameplay reports are credited; the new startup preflight does not establish interactive play or every board profile |
+| Owner-authorized expansion to 23 references: seven reused NTSC entries plus 16 verified transfers; ES-DE freshly loaded the collection | Setup now covers candidate titles for all six supported mapper families; original files, metadata and save storage preserved, selected progress backed up | At that setup point five Deck gameplay reports were credited; startup preflight does not establish interactive play or every board profile |
+| New Deck reports: Gradius, Solar Jetman, Balloon Fight, Kirby, Battletoads and Batman play well/great; owner reports smooth sessions without perceived performance issues | Eleven reported title sessions now span all six supported mapper IDs; useful build-associated gameplay baseline alongside CI | Exact scenes, duration, hardware-measured latency and individual board variants remain unqualified |
 
 The owner explicitly considers the two Mac sessions sufficient smoke signal for
-now. The rest of the original shortlist remains untested or outside current
-board/region support. Better pacing evidence can come later on a quieter device;
+now. Untested entries and requests outside current board/region support remain
+explicit in the current queue. Better pacing evidence can come later on a quieter device;
 it is not a prerequisite for retaining useful feedback now.
+
+## Scene-first checkpoint lessons
+
+The owner explicitly asked that future emulator projects inherit this approach.
+A recommendation should include the exact scene, the expected behavior or known
+failure symptom, how to reach it and the effort involved. Cite hardware-community
+or firsthand findings; distinguish documented traps from a plausible new probe.
+Once mapper breadth has useful signal, favor quick discriminating scenes over
+more generic opening-level successes. The Jurassic Park logo and Marble Madness
+text box are examples; scene details and sources belong in the linked playlist.
+
+Record generic title success and exact-scene results separately. “Battletoads
+plays great” does not prove its level-two descent was reached. Keep the owner's
+smooth-play assessment credited without turning it into a measured frame-time
+result. A checkpoint should retain the date, core/content identity, general
+host/frontend/input context, reached scene, access method and observed result.
+Keep private identifiers, raw captures and save bytes outside Git. CI and
+repeatable deterministic tests continue to establish their own properties.
+
+Use verified built-in passwords or level selects first. After reaching a scene,
+a snapshot made with the tested core can support repeats; preserve daily
+progress because restoring a snapshot can also restore battery RAM. Record the
+checkpoint's build/content/format and slot. Owned input recipes can eventually
+regenerate a scene when snapshots become incompatible. Foreign-core snapshots
+and arbitrary edited states are not portable access recipes.
+
+Verify cheat implementation before recommending codes. Nesturbator currently
+exports empty cheat callbacks and no general system RAM, so neither a visible
+RetroArch cheat menu nor a published Game Genie code supplies working support.
+Its daily launcher disables soft patches. Altered content or gameplay assistance
+must be labelled, and suspicious failures should be checked without it where
+practical. No cheat/warp implementation was approved or added in this session.
+A sourced code or password can be correct yet still need exact-image/live-host
+verification; keep uncertain encounter routes lower priority rather than wasting
+owner play time.
 
 ## Transferable mechanisms
 
