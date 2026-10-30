@@ -64,9 +64,16 @@ new hosted qualification is claimed by this refresh.
 
 </details>
 
-## Next Milestone Goals
+## Current Milestone: v6 Player-ready NES and reproducible feedback
 
-No next milestone scope is approved. Preferred: the five remaining failures in the DMA cluster, protecting its three already passing rows and all current PASS keys, with a bounded collector/documentation tune-up before new evidence collection. PAL timing/pitch remains the main compatibility alternative; a maintenance-only milestone is the smaller alternative. All four horizons and promotion triggers are refreshed in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The next command is `$gsd-new-milestone`, which selects scope and creates fresh requirements; no implementation is authorized by these proposals.
+**Goal:** A player can install an identified NES core, protect daily progress and provide a precise, reproducible scene report using existing facilities.
+
+**Target features:**
+- A concise, current player README leads to installation, supported content, controls, progress and troubleshooting; detailed developer contracts remain available in linked topic guides with their automated checks intact.
+- Installation identifies the actual package/build/core and keeps published releases separate from merged development behavior. Battery saves, snapshots, rewind and host containers have explicit backup, supported-version and rollback guidance.
+- A bounded report/replay recipe identifies scene, inputs, content and core, preserves private artifacts, and separates native output, adapter conversion, host presentation and original game behavior.
+
+The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30. v6 continues phase numbering after 21. SEED-006 contributes only demonstrated documentation/contract work; existing research and 22 title reports are reused. Requirements and the proposed two-phase roadmap still need their concrete review gate. Overscan, accuracy fixes, new regions/mappers and actual Playstead integration remain outside this milestone. Direction and preserved debt are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 
 <details>
 <summary>v5 milestone definition (archived)</summary>
@@ -135,7 +142,11 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 ### Active
 
-No active milestone requirements. v5 is archived; fresh requirements are created only after the next milestone scope is approved. Package publication remains pending independently in PR #56.
+- [ ] Player-facing installation and progress guidance accurately describes the available core, its supported content and state compatibility.
+- [ ] Existing executable documentation, packaging and public-header contracts survive the README/topic-guide reorganization.
+- [ ] A scene report can be reproduced through bounded existing runner/host facilities without changing daily progress or distributing private content.
+
+These are the approved v6 goals; detailed requirement acceptance and phase structure are being defined. v5 remains archived. Package publication is independent: release PR #56 was rechecked open and the latest published release was v0.1.11 during v6 opening.
 
 ### Out of Scope
 
@@ -188,6 +199,7 @@ No active milestone requirements. v5 is archived; fresh requirements are created
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
+| v6 closes player documentation, progress-safety and reproducible-feedback gaps before another accuracy cluster | Ordinary play across six mapper IDs supplied enough discovery evidence; additional generic gameplay has diminishing value | — Scope selected; requirements/roadmap review pending. Reuse research; no new broad sweep, host framework or overscan feature. |
 | IRQ eligibility is accepted at the legal instruction poll and BRK/IRQ/NMI share resumable entry with coherent vector selection | Old-I timing and takeover require retained history, not a new independent IRQ queue | ✓ Good — Phase 21 latency/overlap targets, native every-stage replay and actual adapter run-ahead; format 3/revision 9 |
 | Entry-inhibited NMI candidates qualify only if held until recognition; recognized requests remain separate | Raw sampled pulses must not become sticky recognized requests prematurely | ✓ Good — Phase 21 causal revert/mutant controls and held/released native/adapter histories; physical exact ties remain unmeasured |
 | Protected raw-key results, six-platform inventories and original performance thresholds remain unchanged acceptance gates | Aggregate score improvement cannot conceal lost passes or source mismatch | ✓ Good — all eleven targets and all 114 Phase 21 starting PASS keys on six lanes; collector recurrence remains debt |
@@ -259,4 +271,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-30 after v5 milestone closeout*
+*Last updated: 2026-10-30 during v6 opening, after owner scope selection*

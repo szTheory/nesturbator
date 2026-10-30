@@ -1,97 +1,66 @@
 ---
 gsd_state_version: "1.0"
-milestone: v5
-milestone_name: NMI, VBlank and sprite-0 timing
-status: completed
-current_phase: null
-current_plan: null
-stopped_at: Playtest checkpoint and mapper expansion context recorded; next milestone scope remains unapproved
-last_updated: "2026-10-30T23:13:56Z"
+milestone: v6
+milestone_name: Player-ready NES and reproducible feedback
+status: planning
+last_updated: "2026-10-30T23:20:08.462Z"
 last_activity: 2026-10-30
-last_activity_desc: Preserved mapper totals, coverage caveats and named expansion priorities for next-milestone selection
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 27
-  completed_plans: 27
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v5 closeout, and AGENTS.md.
+See [PROJECT.md](PROJECT.md), updated 2026-10-30 during v6 scope selection, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: choose the next milestone from the completed gameplay/research checkpoint; further owner play is optional.
+Current focus: define v6 player readiness and reproducible feedback; existing research/playtesting is sufficient and further owner play is optional.
 
 ## Current Position
 
-v5 completes three phases, 27 plans, 68 tasks and eleven requirements. All three
-phase reports were current and passed before archival; the milestone audit has
-`tech_debt` and no blocking gaps. Closeout is an explicit acknowledgement
-override: six newly acknowledged records and ten prior acknowledgements remain
-disclosed. Their artifact verdicts were not promoted to resolved.
-
-The [closeout](milestones/v5-CLOSEOUT.md), [audit](milestones/v5-MILESTONE-AUDIT.md),
-[integration report](milestones/v5-INTEGRATION-AUDIT.md) and
-[direction snapshot](milestones/v5-PRODUCT-ROADMAP.md) preserve detailed evidence.
-Historical state and refresh prose remain in [v5-STATE.md](milestones/v5-STATE.md).
-The canonical campaign is 119 PASS / 27 FAIL, 146 terminal scored rows plus five
-unscored DRAW entries; all eleven selected targets pass. ABI 1 / state format 3 /
-behavior revision 9 remains the current contract.
-
-PR #61 merged. Package release PR #56 (0.1.12) remains open; publication is not
-claimed. Closeout commits are local on `gsd/phase-21-v5-closeout`, based on merged
-main and the completed audit. No tag or remote mutation is part of closeout.
-The pre-existing AGENTS.md and config edits remain unstaged and preserved.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-10-30 — Milestone v6 started
 
 ## Next Action
 
-The owner asked for an updated play list, a diminishing-returns assessment and a
-mini postmortem with future milestones. The [postmortem](playtesting/POSTMORTEM.md)
-and [optional queue](playtesting/DECK-QUEUE.md) now capture those recommendations.
-Feedback covers 22 of 26 prepared Deck titles across all six supported mapper
-IDs. No further gameplay is required to plan. Optional next games are Castlevania
-and Journey to Silius, then Street Gangs/River City Ransom and Mario 1; existing
-positive scene checks should not be reassigned as missing.
+The owner selected **v6: Player-ready NES and reproducible feedback (RM-014)**
+with “follow ur recs” after the recommended scope and alternatives were presented.
+Version v6 continues phase numbering after 21. SEED-006 contributes only the
+measured documentation/contract delta; other delivered seed outcomes are credited.
+Reuse the [discovery synthesis](research/milestone-v6-discovery/SYNTHESIS.md),
+[postmortem](playtesting/POSTMORTEM.md) and existing 22 title reports. No new broad
+research fan-out or owner gameplay is needed.
 
-Prefer **v6 candidate: Player-ready NES and reproducible feedback (RM-014)**:
-short truthful player docs, identified install/core, controls/progress guidance,
-state-version backup/rollback policy and a bounded reproduction recipe using
-existing runner/host facilities. Optional overscan presentation remains a scope
-choice. No new general frontend or mandatory commercial sweep is proposed.
-
-New proposed RM-015 is conditional scene-driven accuracy: native/source-based
-localization must establish a core fault before a fix/regression milestone is
-promoted ahead of DMA. Otherwise the five remaining DMA failures stay the next
-measured accuracy candidate, with three former candidates already protected.
-Actual Playstead acceptance is separately consumer-owned. PAL remains the
-regional alternative; Punch-Out!! now supplies named MMC2 interest without
-approving a mapper. All four horizons and audit debt are reconciled in
-[PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md), direction revision 8. The owner also
-requested durable [mapper scope context](research/milestone-v6-discovery/MAPPER-SCOPE.md):
-the shortlist needs mapper IDs 9/5/69 and PAL separately. Prefer MMC2/Punch-Out!!
-when expansion is chosen; historical mapper prevalence is not compatibility.
-
-The next actor is the owner selecting milestone scope. The agent can use the
-retained scene evidence after that choice; no more play is a prerequisite.
-Root causes of the reported seams, slowdown and music interruption remain
-unresolved. Regular-VSync-on/adaptive-off and corrected ports were read back on
-Shatterhand relaunch without a confirmed visual fix. Four private recipes replay
-identically, but repeatability is not correctness and their native checkpoints
-are not qualified RetroArch files. Read [automation](playtesting/AUTOMATION.md),
-[scene findings](playtesting/SCENE-PLAYLIST.md) and [controls](playtesting/CONTROLS.md)
-before another operational test. No native fix, public helper or CI fixture was
-implemented here; private content/media/states remain ignored.
+The agent is defining concrete requirements and a proposed two-phase roadmap.
+Review/approval of that concrete contract remains within `$gsd-new-milestone`;
+phase discussion, planning and execution have not started. Read
+[continue.md](continue.md) before resuming. The selected scope excludes overscan,
+core accuracy fixes, PAL/Dendy, new mappers and actual Playstead integration.
+No new live testing, runtime window or safety-stop waiver is granted here.
 
 `$gsd-new-milestone`
 
-This resumes scope/version/seed selection and approval before creating the next
-requirements and execution roadmap. v5 remains completed; no new milestone
-version, requirements or phases were approved. Context may be cleared first;
-read [continue.md](continue.md). Preserve the owner's unrelated unstaged config
-and AGENTS.md edits, existing runtime stops and all closeout evidence limits.
+This resumes the same v6 opening at requirements/roadmap review, without selecting
+scope again or restarting/archiving v6. Context may be cleared after this checkpoint.
+Preserve the pre-existing unstaged AGENTS.md/config edits.
+
+v5 stays complete and archived: all eleven requirements satisfied, canonical
+119 PASS / 27 FAIL over 146 scored rows plus five unscored DRAW, ABI 1 / state
+format 3 / behavior revision 9. [Closeout](milestones/v5-CLOSEOUT.md) and
+[audit](milestones/v5-MILESTONE-AUDIT.md) retain debt and evidence limits.
+Release PR #56 was rechecked open; latest published package is v0.1.11.
+Root causes of the reported seams, slowdown and music interruption remain
+unclassified. Private replay establishes repeatability, not correctness; native
+checkpoints are not qualified RetroArch containers. Operational limits and
+private-artifact boundaries remain in [automation](playtesting/AUTOMATION.md),
+[scene cards](playtesting/SCENE-PLAYLIST.md) and [controls](playtesting/CONTROLS.md).
 
 ## Preserved Debt and Boundaries
 
@@ -130,6 +99,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T23:13:56Z
-**Stopped at:** Playtest checkpoint and mapper expansion context preserved; awaiting next milestone scope selection. Next: `$gsd-new-milestone`
+**Last session:** 2026-10-30T23:21:34Z
+**Stopped at:** v6 recommended scope selected; defining concrete requirements and proposed phases within new-milestone.
+**Next command:** `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`
