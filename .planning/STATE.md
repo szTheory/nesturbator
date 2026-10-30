@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Owner confirmed controller works after actual collection relaunch; daily-play smoke route available
-last_updated: "2026-10-30T19:33:37Z"
+stopped_at: Positive Mario 3 Steam Deck gameplay report recorded; Contra recommended next
+last_updated: "2026-10-30T19:37:18Z"
 last_activity: 2026-10-30
-last_activity_desc: Owner confirmed actual collection controller input; preserved persistence/performance limits and upgrade compatibility concern
+last_activity_desc: Owner reports good Mario 3 timing, visuals and audio with low perceived latency; Contra recommended next
 progress:
   total_phases: 3
   completed_phases: 3
@@ -51,7 +51,10 @@ The pre-existing AGENTS.md and config edits remain unstaged and preserved.
 The owner relaunched Mario 3 from the Nesturbator collection and confirmed the
 controller works. A read-only live check found the intended core and corrected
 player-one configuration. The game was left running. No immediate user action
-is required; ordinary-play feedback can continue when convenient. The launcher
+is required. The owner subsequently reported good Mario 3 input timing, visuals
+and audio, low perceived latency and no observed issues. Contra (USA) from the
+same collection is the recommended next voluntary spot check, covering UxROM
+after Mario 3's MMC3; no next-title launch or result is claimed. The launcher
 includes handheld fallback, but unplug/reconnect and fallback remain untested.
 
 The Deck is in Gaming Mode and ES-DE is open through its repaired existing Steam
@@ -60,7 +63,7 @@ entries, each with Nesturbator selected and other cores still switchable. No mai
 ROM files were changed or added. Normal battery storage is reused; snapshots
 are core-specific within normal state storage. The owner saw commercial Mario 3
 on the TV and confirmed physical Start after the corrected SDL2 PowerA profile.
-The subsequent collection launch used the correct core but Start did not work. Steam virtual-device presentation differs from the direct desktop run; a context-specific controller resolver was applied, and the owner confirmed working input after relaunching from the collection. Handheld fallback is configured but untested. Full gameplay/pacing, clean frontend return and progress roundtrip remain open.
+The subsequent collection launch used the correct core but Start did not work. Steam virtual-device presentation differs from the direct desktop run; a context-specific controller resolver was applied, and the owner confirmed working input after relaunching from the collection. Handheld fallback is configured but untested. Mario 3 has positive user-reported gameplay/pacing smoke evidence; instrumented latency, sustained/full-game coverage, clean frontend return and progress roundtrip remain open.
 
 Two Mac Mario reports were useful smoke signal; mild sluggishness/audio tearing
 remain unattributed. The owner explicitly deferred a full game sweep and higher
@@ -124,6 +127,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T19:33:37Z
-**Stopped at:** Actual collection controller input confirmed by owner; game left running and no immediate user action required. Planning continuation: `$gsd-new-milestone`
+**Last session:** 2026-10-30T19:37:18Z
+**Stopped at:** Mario 3 Deck gameplay smoke report positive; owner may try Contra next, no setup work pending. Planning continuation: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`

@@ -13,7 +13,7 @@ User-requested exploratory RetroArch sessions, one game at a time. Header admiss
 
 | # | Title | Header mapper | Battery | Status / observation |
 |---|---|---:|---|---|
-| 01 | Super Mario Bros. 3 (USA) | 4 | no | User: plays pretty good; mild sluggishness and some audio tearing, cause unverified. |
+| 01 | Super Mario Bros. 3 (USA) | 4 | no | Mac: plays pretty good; mild sluggishness/audio tearing, cause unverified. Deck Rev A: good input timing, visuals and audio, low perceived latency, no observed issues during the reported session. |
 | 02 | Kirby's Adventure (USA) | 4 | yes | Not tried |
 | 03 | Mega Man 2 (USA) | 1 | no | Not tried |
 | 04 | Castlevania III - Dracula's Curse (USA) | 5 | no | Unsupported mapper 5 |
@@ -144,3 +144,19 @@ Reusable mechanisms and the owner's intended workflow are indexed in
 [LESSONS.md](LESSONS.md). Other emulator projects may use that sanitized record;
 device/account identifiers, personal paths, addresses and private artifacts
 must not be committed.
+
+### Mario 3 — Steam Deck gameplay feedback
+
+After relaunching Super Mario Bros. 3 (USA, Rev A) from the Nesturbator
+collection, the owner played and reported good input timing, visuals and audio,
+low lag/latency, and no observed issues. This is a positive user-reported
+ordinary-play smoke result through Steam Gaming Mode → ES-DE → RetroArch →
+Nesturbator. Latency was perceived, not instrumented; session duration and game
+completion were not reported. Save/load, reconnect and handheld fallback remain
+untested. The earlier Mac sluggishness/audio tearing remains unattributed; this
+Deck report does not establish its cause.
+
+Recommended next voluntary spot check: **Contra (USA)** from the same collection,
+to exercise mapper 2 (UxROM) after Mario 3's mapper 4 (MMC3). This is a suggested
+next title, not a launch or gameplay result. No device configuration was changed
+for this feedback update.

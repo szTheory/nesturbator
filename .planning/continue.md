@@ -21,6 +21,13 @@ profile used raw rather than normalized SDL2 indices and failed; preserve that
 lesson. The subsequent real collection launch used Nesturbator but Start did not respond under Steam Input. Its virtual-device presentation bypassed the direct run's physical-name preference. The launch script now resolves the attached external device index in context, with handheld fallback. The owner relaunched Mario 3 from the collection and confirmed the controller works. A read-only live check found the intended core and corrected player-one configuration; the game was left running. No immediate user action is required. Reconnect/handheld fallback, the complete ES-DE → game → orderly return/progress roundtrip and broad input/performance coverage remain unqualified. Further user feedback is welcome,
 not a mandatory release-signoff task. Do not launch an entire game sweep.
 
+Latest Deck gameplay feedback: Mario 3 has good input timing, visuals and audio,
+low perceived latency and no observed issues according to the owner. This is
+ordinary-play smoke evidence, with no instrumented latency or full-game claim.
+Contra (USA), already in the same collection, is the recommended next voluntary
+spot check to cover UxROM after MMC3; it has not been launched or scored here.
+No setup action is pending. Save/load and longer-session coverage remain open.
+
 Mac Mario 1 and Mario 3 played well enough for initial smoke signal, with mild
 sluggishness and some Mario 3 audio tearing under concurrent work. Resource
 contention is suspected, not established. The owner explicitly deferred stronger
