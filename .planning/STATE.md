@@ -6,11 +6,11 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 current_plan: 9 of 9 complete
 status: completed
-stopped_at: CI efficiency quick task completed on the phase branch; PR 61 merge remains
-last_updated: "2026-10-30T00:49:54Z"
-last_activity: 2026-10-29
-last_activity_desc: "Completed CI efficiency quick task 261029-sdj"
-state_head: d85a058dd7e186180a6c6903f4253ad39b99d365
+stopped_at: Phase 19 verification refreshed; Phase 20 verification refresh is next, with no auto-chaining
+last_updated: "2026-10-30T04:29:11.633Z"
+last_activity: 2026-10-30
+last_activity_desc: Refreshed Phase 19 verification against current revision 9
+state_head: c75b437b7290a30a88c9131954e4568bb3b9085d
 progress:
   total_phases: 3
   completed_phases: 3
@@ -25,7 +25,20 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-29 after Phase 21, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 21 is complete; all 27 v5 plans and all 11 requirements are verified. PR review/merge and milestone review remain.
+Current focus: All 27 v5 plans have summaries and all 11 requirements retain their accepted implementation evidence. Phase 19 verification is freshly passed; Phase 20 and Phase 21 fingerprints remain stale and need separate verification refreshes before PR review/merge and milestone review.
+
+The 2026-10-30 Phase 19 execute-phase step skipped all six summarized plans,
+ran the required current-code review and fresh full CI (695/695 in 405.61
+seconds, all three packages), and independently verified 4/4 truths and all
+four mapped requirements. The regenerated v4 fingerprint is accepted by
+`verification.status`: `passed`, with no next-command route back to Phase 19.
+Its historical revision-7 campaign (108 PASS / 38 FAIL, sprite rows at 521
+frames) remains distinct from current revision-9 compatibility (119 PASS /
+27 FAIL / five DRAW entries, sprite rows at 537 frames). The current review
+has no critical or warning findings and adds informational citation finding
+IN-02; historical WR-01/WR-02 remain fixed and IN-01 remains open.
+No source change, implementation-plan rerun, remote mutation or auto-chain
+occurred. The completed Phase 21 position and all 27 summaries are preserved.
 
 Plan 21-09 collected and validated actual CI `40929011059/1` and Nightly
 `40929010997/1` for candidate `54c7db2`, tested merge `faf1b91` and protected
@@ -55,8 +68,8 @@ Phase 21 directory. Earlier source pins and pending statuses below are historica
 Phase: 21 (Interrupt latency and hijack) — COMPLETE
 Current Plan: 9 of 9 complete
 Plan: All 9/9 phase plans complete; all 27/27 v5 plans complete
-Status: Verified complete; separate ship step and milestone audit/closeout remain
-Last activity: 2026-10-29 -- Phase 21 shipped as PR #61
+Status: Implementation complete; Phase 19 freshly verified, Phase 20/21 verification refreshes and delivery/audit remain
+Last activity: 2026-10-30 -- Phase 19 verification refreshed; no auto-chaining
 
 Progress: [██████████] 100%
 
@@ -241,7 +254,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 ## Preserved Debt
 
 - Historical Nightly run 39993108154 failed vectors-full (not a Release gate). Current-source cold fetch/full vectors and MMC3 are confirmed successful by the accepted Phase 20 Nightly artifacts; historical failures remain recorded.
-- [Phase 19] Code review advisories open in 19-REVIEW-DISPOSITION.md: sprite-0 hit set only inside compose_pixel (held by NULL-video rejection), single jam_state_crc may blank an earlier jammed state under run-ahead, per-frame save_state cost in the adapter.
+- [Phase 19] Current review has 0 critical, 0 warning and 1 info finding (IN-02: sprite-0 hardware citation). Historical WR-01/WR-02 remain fixed; IN-01 (per-frame save_state cost) remains open. All decisions are preserved in 19-REVIEW-DISPOSITION.md.
 - [Phase 19] Navigation- and start-stage JAM branches share the boot-stage code but only boot is constructed in a test.
 - [Phase 19] Historical 19-06 baseline metadata remains a truthful local dirty-tree run. Phase 20 now separately records clean hosted confirmation of the current campaign and protected starting PASS set.
 - Real-campaign minimization is proven only by controls.
@@ -249,19 +262,24 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 - Preexisting `.planning/config.json` edits remain unstaged.
 - [Phase 20] CR-01/WR-03/WR-04 collector maintenance findings remain deferred with current-run mitigations/evidence in 20-REVIEW-DISPOSITION.md.
 - [Metadata warning] phase.complete flags 20-12-SUMMARY.md's shortened `availability/availability.txt` pointer as absent at repository root. The actual retained scratch file exists at `build/phase20-hosted-evidence/availability/availability.txt`; this path-parser warning changes no verdict.
+- [Metadata warning] Phase 19 refresh: phase.complete reads the acceptance command in 19-04-SUMMARY.md (`grep -c '(derived' tests/ppu/test_sprites.c`) as a filename. The actual test file exists and passed; this parser warning changes no verdict.
+- [Closeout ledger] The prior progress handoff reported 18 counted entries versus 17 recorded. That discrepancy remains unreconciled; this refresh adds IN-02 separately and does not establish a corrected aggregate. Reconcile counts and dispositions before milestone closeout.
 
 ## Next Action
 
-Merge PR #61 as a separate step after its publication checks are green.
-CI cleanup `dc3451b` passes full local qualification; the publication checks
-verify hosted policy behavior and six-platform hash reuse. The prior head
-`d480280` has successful required CI and Nightly results.
-All phase plans, requirements and independent verification are complete.
-Preserve the exact config edit,
-original causal history, accepted 428-input source, deferred collector findings
-and physical-tie limits. After PR review/merge, run the milestone audit and
-closeout as separate authorized steps; do not treat verified implementation
-as an already shipped milestone.
+Run `$gsd-execute-phase 20` as a separate step to refresh its stale verification,
+then refresh Phase 21 separately. Phase 19's stale status has cleared; do not
+repeat its execute command while its owner status remains passed. All 27 plans
+have summaries; no implementation planning is needed. If a refresh leaves its
+phase stale, stop and diagnose instead of repeating the command. No auto-chaining.
+
+After the remaining verification refreshes, review/merge PR #61 separately,
+then run the milestone audit and closeout as separately authorized steps.
+The prior progress handoff reported green CI and Nightly, not an outstanding
+hosted-check wait. Preserve the exact config edit, original causal history,
+accepted 428-input source, deferred collector findings and physical-tie limits.
+Reconcile the recorded ledger discrepancy before closeout; verified
+implementation is not an already shipped milestone.
 
 ## Performance Metrics
 
@@ -282,6 +300,6 @@ as an already shipped milestone.
 
 ## Session
 
-**Last session:** 2026-10-30T00:49:54Z
-**Stopped at:** CI efficiency quick task complete; PR #61 publication checks and merge remain
+**Last session:** 2026-10-30T04:29:11Z
+**Stopped at:** Phase 19 verification freshly passed; Phase 20 refresh next, no auto-chaining
 **Resume file:** None

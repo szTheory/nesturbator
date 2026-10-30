@@ -1,6 +1,6 @@
 ---
 phase: 19-jam-reporting-and-sprite-0-hit
-reviewed: 2026-10-25T00:00:00Z
+reviewed: 2026-10-30T04:12:54Z
 depth: standard
 files_reviewed: 18
 files_reviewed_list:
@@ -24,47 +24,52 @@ files_reviewed_list:
   - tests/runahead_model.h
 findings:
   critical: 0
-  warning: 2
+  warning: 0
   info: 1
-  total: 3
+  total: 1
 status: issues_found
 ---
 
 # Phase 19: Code Review Report
 
-**Reviewed:** 2026-10-25
+**Reviewed:** 2026-10-30T04:12:54Z
+
 **Depth:** standard
+
 **Files Reviewed:** 18
+
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the diff since deb7349 for the PPU sprite-0 and OAMADDR changes, the libretro presentation-cache timeline tracking, and the runner JAM reporting. I traced the PPU evaluation state machine (`eval_n` stays below 64 after `oam_addr >> 2`, so primary OAM indexing is in bounds). I also checked the state-CRC and frame-number offsets against `src/state.c`. The state CRC covers the frame number, so the libretro identity check is sound. I found no crashes, security issues or incorrect behaviour. I did not read the large test-side diffs line by line (`tests/libretro/libretro_host.c`, `tests/runahead_model.h`, `tests/ppu/test_sprites.c`, `tests/accuracy/test_conformance.c`). Two robustness concerns and one note follow.
+Reviewed the current Phase 19 implementation scope across the six plan summaries: AccuracyCoin JAM reporting and collection, libretro presentation across run-ahead state loads, and PPU OAMADDR/sprite-0 evaluation. The evaluation-scope resolver returned `degraded` (`no-task-commit-rows`) and widened to the phase-directory range, which includes later phases. I therefore used the six summaries' `key-files` union as the Phase 19 scope and applied the workflow's planning/data exclusions; the 18 listed files are the remaining source and test/build files. The report has one Info quality finding and no confirmed behavior or security defects. No tests were run as part of this review.
 
-## Warnings
+Historical findings and their original decisions are retained below. The current finding uses a new ID so the original dispositions remain attached to the same issues.
 
-### WR-01: Sprite-0 hit relies on an implicit coupling to the video path
+## Narrative Findings (AI reviewer)
 
-**File:** `src/ppu.c:427-431`
-**Issue:** The sprite-0 hit is set only inside `compose_pixel`, which runs only when a video buffer is present. The new comment justifies this with "nesturbator_run_frame rejects NULL video" (`src/frame.c:20`). Any future headless or skip-render mode, or a second caller of the PPU tick, would silently stop setting the sprite-0 flag and change emulation. That would break the determinism rule, because the hit would then depend on output. The invariant lives only in a comment.
-**Fix:** Evaluate the hit in a function that is separate from pixel output. Alternatively add a test that fails if `run_frame` ever accepts NULL video.
+### IN-02: Sprite-0 comparator comment cites unrelated hardware sections
 
-### WR-02: The libretro cache treats all later JAM frames as one identity
+**Severity:** Info
 
-**File:** `libretro/libretro.c` (`retro_run` STOP_JAM branch, `retro_unserialize`)
-**Issue:** `jam_state_crc` keeps a single value, overwritten on every JAM frame. If the machine's state changes per JAM tick (for example ticks, cycle counters or PPU position), then loading an earlier jammed state during run-ahead yields a CRC that is neither `cached_state_crc` nor the latest `jam_state_crc`. The adapter moves to a new timeline and shows black. This degrades the behaviour D-16 set out to fix, and only after the first JAM frame. The D-16 comment documents only the first-real-frame case. I did not confirm whether the jammed state is frame-invariant.
-**Fix:** Verify with a test that run-ahead across several consecutive JAM frames still shows the cached picture. If the jammed state is not frame-invariant, record the crc only once per JAM entry and key the identity on `frame_number` plus the cached CRC.
+**File:** `src/ppu.c:428-429`
 
-## Info
+**Issue:** The comment's hardware assertion that sprite-0 collision depends on pattern opacity rather than palette color is cited to HWP.03 (frame timing/NMI) and HWP.07 (palettes). The preparation index maps sprite evaluation and sprite-0 hit behavior to HWP.06. The current citations do not let a maintainer verify the comparator rule from the project's pinned hardware notes.
 
-### IN-01: A full state save for every converted frame
+**Fix:** Cite `[HWP.06]` for the sprite-0 collision rule. Keep `[HWP.03]` only for the status-latch clearing timing if it is the supporting source for that sentence, and remove `[HWP.07]` from the collision assertion.
 
-**File:** `libretro/libretro.c` (`retro_run`, `scratch_state_crc`)
-**Issue:** A `nesturbator_save_state` plus CRC runs on every converted frame (and every JAM frame while the cache is current) only to track presentation identity. Performance is out of v1 scope, so this is a note. The cost does matter for the retro_run hot path with run-ahead.
-**Fix:** If it becomes a concern, compute the CRC lazily, only in `retro_unserialize` or when a JAM is first seen.
+## Historical Review History
+
+The original standard review was recorded on 2026-10-25 against 18 files. It found no crashes or security issues, and its dispositions were recorded in `19-REVIEW-DISPOSITION.md`.
+
+- **WR-01 — Sprite-0 hit relies on an implicit coupling to the video path** (original Warning; fixed). The original concern was that the hit was set only inside `compose_pixel`, which ran only when a video buffer was present. The fix report added a state test proving `nesturbator_run_frame` rejects a null video buffer without changing machine state. Current `src/ppu.c` also calls `detect_sprite_zero_hit` from the PPU tick path independently of pixel composition (lines 421-444 and 558-561).
+- **WR-02 — The libretro cache treats all later JAM frames as one identity** (original Warning; fixed). The original concern was that a later JAM state might have a different CRC from the cached frame and the recorded jam state. The fix report added a state test proving repeated JAM calls leave the serialized bytes unchanged; the single `jam_state_crc` identity is still consistent with that behavior.
+- **IN-01 — A full state save for every converted frame** (original Info; open). The original note records the cost of saving to scratch to identify the cached presentation timeline. It is retained as historical review context; performance is out of scope for this review.
 
 ---
 
-_Reviewed: 2026-10-25_
-_Reviewer: Claude (gsd-code-reviewer)_
+_Reviewed: 2026-10-30T04:12:54Z_
+
+_Reviewer: the agent (gsd-code-reviewer)_
+
 _Depth: standard_
