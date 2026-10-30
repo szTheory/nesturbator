@@ -648,6 +648,9 @@ uint64_t nesturbator_save_generation(const nesturbator *inst);
  * The POSIX shell session controls carry the retroarch-session CTest label. Local ci runs the
  * full matrix; hosted ci-build delegates it to required Linux and Apple Silicon jobs, with Intel
  * covered nightly. Short-run ASan omits this shell matrix while retaining native host checks.
+ * Hosted build lanes clear native hash output before testing and upload the same hashes.txt
+ * generated and pin-checked by CTest; six-platform equality still checks its full inventory.
+ * The no-skip inventory policy extracts each test object once before querying its properties.
  * The test-only QUIT grace override is STATE_SESSION_TEST_QUIT_GRACE_MS; production operation
  * deadlines and the library's interrupt, presentation and state contracts are unchanged.
  * Cooperative local session invocations reserve loopback TCP port 55355 with a bound, non-listening

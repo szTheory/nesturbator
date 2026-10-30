@@ -128,6 +128,8 @@ jobs:
       - name: Enable full AccuracyCoin campaign on primary lane
         if: matrix.os == 'linux' && matrix.arch == 'x64'
         run: cmake --preset ${{ matrix.preset }} -DNESTURBATOR_ACCURACYCOIN_FULL=ON
+      - name: Clear native hash output before testing
+        run: cmake -E rm -f "build/${{ matrix.preset }}/tests/hashes.txt"
       - run: cmake --workflow --preset ${{ matrix.workflow || matrix.preset }}
       - name: Add the executed test log and cold protected-main authority
         if: always()
@@ -154,9 +156,6 @@ jobs:
       - run: cmake -DDIR=build/${{ matrix.preset }} -P tests/cmake/check_archives.cmake
       - if: matrix.os == 'macos' && matrix.arch == 'arm64'
         run: cmake -DREADME=README.md -DPACKAGES=build/${{ matrix.preset }}/packages -DOUT=build/install-line -P tests/cmake/check_install_line.cmake
-      # Quote each -D argument for PowerShell; the movie writer's executable
-      # suffix is platform-specific.
-      - run: cmake "-DBUILD=build/${{ matrix.preset }}" "-DOUT=hashes.txt" "-DMOVIE_WRITER=build/${{ matrix.preset }}/tests/runner.game_movie${{ runner.os == 'Windows' && '.exe' || '' }}" -P tests/cmake/write_hashes.cmake
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: archives-${{ matrix.os }}-${{ matrix.arch }}
@@ -165,7 +164,9 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: hashes-${{ matrix.os }}-${{ matrix.arch }}
-          path: hashes.txt
+          # CTest generated this file and compared it with the pinned inventory.
+          # Uploading the single file preserves the hashes.txt artifact basename.
+          path: build/${{ matrix.preset }}/tests/hashes.txt
           if-no-files-found: error
 
   # Registration is independent of the compiler. Generate it once from this

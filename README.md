@@ -934,6 +934,10 @@ set of every artifact, and rejecting duplicates, missing keys, extra keys and
 malformed hashes. The branch rules require one check,
 `CI required`, which passes only when every required job succeeded. Every
 action is pinned to a commit SHA, and Dependabot proposes updates weekly.
+Each build lane clears its native hash file before testing, then uploads the
+same `tests/hashes.txt` that CTest generated and checked against the pin. It
+reuses that validated output for the upload, and a missing output fails the
+artifact upload. The artifact still contains a single `hashes.txt`.
 
 The `dev`, `ci`, `ci-msvc` and `asan` test presets run CTest four tests at a
 time (`execution.jobs`). The three long tests, `vectors.registration_policy`,
@@ -947,6 +951,9 @@ own sample inventory and that full inventory, including labels, fixtures and
 no-skip properties. Local runs retain the configure-only fallback. The policy
 reads individual test objects for property queries rather than reparsing the
 entire inventory each time. Nightly still fetches the vectors cold.
+The no-skip policy likewise extracts each test object before checking its
+properties, retaining all skip/disabled rejection checks without repeatedly
+parsing the full inventory for each property.
 
 The hosted `retroarch-e2e` job configures and builds the tools and generated
 cartridge fixtures, then runs its real-host checks without repeating the local

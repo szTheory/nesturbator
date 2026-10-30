@@ -1,5 +1,23 @@
 # AccuracyCoin bounded campaign measurements
 
+## CI efficiency quick-task refresh, 2026-10-29
+
+Quick task `261029-sdj` extracts each test object once in the no-skip inventory
+policy and uploads the native hashes already produced and pin-checked by CTest.
+Its paired public-header comments change the build-input fingerprint. After
+explicit CI configuration and a build of the final source, the production
+collector ran all 22 pages from compiled source `d4802809ff41`, `source_dirty=1`.
+Artifacts are retained in `build/ci-efficiency-quick/campaign-final/`.
+
+The result remains **119 PASS / 27 FAIL**, all 146 scored rows terminal, five
+inventory-only DRAW rows, no skip/not-run/timeout and complete infrastructure.
+Report SHA-256 remains
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`.
+The measured 56-input fingerprint is
+`ab0bdf5142426482fa18fecae5c2c7272c4957b808f6c7aa8feaaf3b767cec80`,
+with `host_elapsed_guest_ns=5091122000`. The baseline metadata records this
+actual final-source capture; earlier hosted evidence retains its own identity.
+
 ## Hosted session-control debug refresh, 2026-10-29
 
 The session-driver repair removes interpreted polling sleeps and publishes an
