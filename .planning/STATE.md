@@ -328,8 +328,11 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Review and merge existing PR #61 as a separately authorized delivery step, then
-run `$gsd-audit-milestone` and closeout as separate commands. All three phase
+The owner authorized automatic squash merge of existing PR #61 on 2026-10-30
+once the current required CI checks are green. Publish the completed verification
+refreshes and enable that conditional merge without another confirmation.
+This authorization preserves CI gates and does not start milestone audit or
+closeout; run those as separate commands after merge. All three phase
 verification owner statuses are `passed`; do not repeat their execute commands
 while those statuses remain current. All 27 plans have summaries; no
 implementation planning remains. Preserve the exact config edit, original
