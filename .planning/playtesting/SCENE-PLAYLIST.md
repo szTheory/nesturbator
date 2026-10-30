@@ -8,17 +8,30 @@ tracks the rest of the original shortlist.
 
 ## Checkpoint so far
 
-Eleven games have positive user-reported Deck play: Mario 3, Contra, Ninja
-Gaiden/Shadow Warriors, Zelda, Crystalis, Gradius, Solar Jetman, Balloon Fight,
-Kirby's Adventure, Battletoads and Batman. The owner reports smooth gameplay
-and no perceived performance problems across these sessions. These are dated,
-build-associated ordinary-play observations, complementary to CI. There are no
-instrumented latency/frame-time measurements or full-game claims.
+Feedback now covers 22 prepared Deck titles, with broad positive play plus
+specific unresolved findings. The owner reports good controls/audio across many
+sessions, but now also describes scene-dependent slowdown. All six supported
+mapper IDs have ordinary-play signal; neither individual board variants nor
+unreported hard scenes are automatically credited. See the dated baseline for
+full reports and the [controls](CONTROLS.md) for reset/capture shortcuts.
 
-The reports span all six supported mapper IDs: 0, 1, 2, 3, 4 and 7. Individual
-board variants and the named scenes below still need their own evidence.
-Generic success in Battletoads or Balloon Fight does not establish that level
-two or Balloon Trip was reached. Keep scene results separate from title reports.
+## Results of the targeted pass
+
+| Target | Current evidence |
+|---|---|
+| OCEAN logo | Owner sees tearing during wobble; private cold-boot audiovisual capture/checkpoint exists. Cause remains unconfirmed. |
+| Marble Madness | Owner completed first race and some second race, generally good; timer glyph holes/blue outline questioned. Native close-up has blue edging and a small opening in 4. Intro text box was not separately accepted. |
+| Crystalis | Owner sees a moving seam during vertical camera scrolling; status-bar displacement unclear. Keep separate from the earlier top-edge strip and original HUD/dialogue-line quirks. |
+| Balloon Trip | Owner explicitly reports static HUD and no star issues; positive named-scene observation. |
+| Mario 3 first power-up | Owner explicitly reports normal vertical emergence with no visual issue noticed; positive named-scene observation. |
+| Zelda vertical transitions | Not specifically reported. |
+| Battletoads level two | Not specifically reported. |
+| Scheherazade battle damage | Not reached/reported; village gameplay looks good, NPC layering matched an unspecified video. User confirmed the title. |
+| Little Nemo Mushroom Forest | Scrolling edges, a jump-time horizontal disturbance and flicker immediately above the status border are three separate open observations. |
+| Mega Man 3 | Private stage-select capture includes the line's reported region above Shadow Man. Top Man vertical scrolling/falls show a reported seam. Crowding/damage slowdown and high jumps are confounded by confirmed duplicate P1/P2 host mapping; the relaunched corrected-port retest still showed crowd/damage slowdown near 59.97 output FPS. The owner regards high jumps as possibly a level mechanic. |
+
+The owner later confirmed Gradius's positive result; this is confirmation of the
+same title, not an additional distinct game result.
 
 ## Highest-value pass
 
@@ -45,6 +58,87 @@ Scheherazade's target concerns a bank-boundary CPU execution path.
 Crystalis/Zelda quirks too. A reported oddity is evidence to investigate, not an
 automatic emulator failure or automatic proof of correct emulation. The private
 Crystalis screenshot alone still does not classify its top-of-picture strip.
+
+## Known original behavior and reference cards
+
+Before recommending a scene, explain known original quirks as well as emulation
+failure symptoms. Keep uncertainty visible; there is no complete authoritative
+catalog of every game's slowdown or artifact. Start with
+[NESdev's original-game bugs](https://www.nesdev.org/wiki/Game_bugs), use its
+[tricky-game notes](https://www.nesdev.org/wiki/Tricky-to-emulate_games) for hardware
+traps, and add exact-scene hardware/firsthand references as needed.
+
+- **Sprites:** the NES evaluates at most eight sprites per scanline, and games
+  can rotate their order to share visibility. One character can use several
+  sprites. This explains why crowded-scene flicker can be authentic; it does
+  not prove a particular flicker is accurate. Sprite omission and game-side
+  computational slowdown are different effects. [PPU evaluation](https://www.nesdev.org/wiki/PPU_sprite_evaluation).
+- **Blaster Master / Kirby:** firsthand [Blaster Master run notes](https://speeddemosarchive.com/BlasterMaster.html)
+  and [Kirby route research](https://tasvideos.org/GameResources/NES/KirbysAdventure)
+  discuss lag. That makes game-side slowdown plausible; the owner's exact
+  scenes remain unattributed.
+- **Mega Man 2 / DuckTales:** [Rockman 2 run notes](https://tasvideos.org/6534S)
+  discuss underwater slowdown but use the Japanese revision; this is conditional,
+  not proof for an unspecified USA scene. [DuckTales NES route notes](https://tasvideos.org/UserFiles/Game/26)
+  discuss lag, but no verified first-red-plant-specific reference was found.
+- **Little Nemo:** a [firsthand HUD-line discussion](https://forums.nesdev.org/viewtopic.php?start=705&t=6928)
+  describes a similar expanding/contracting line and edge-cropping concern,
+  without verification on a Nemo cartridge. Similar output across emulators
+  does not establish hardware correctness. Ordinary cropping can hide outer
+  edges while leaving an internal world/HUD disturbance visible.
+- **Mega Man 3:** built-in player-two effects are documented in the
+  [community controller-two reference](https://strategywiki.org/wiki/Mega_Man_3/Tips_and_Tricks).
+  The host actually assigned the same controller index to both players. The
+  owned launcher now leaves player two unassigned for this one-controller
+  setup. A new launch was read back with P2 unassigned, and the owner still reported
+  crowded/damage slowdown. The port correction does not classify that slowdown
+  or the independent visual seams.
+
+The owner's [Marble Madness video](https://www.youtube.com/watch?v=-_rkCXLEGXY&t=47s)
+(at 0:47) and [Crystalis video](https://www.youtube.com/watch?v=Vx39m1u6d-E)
+were opened and identified as NintendoComplete playthroughs. A paused Marble
+frame shows outlined timer digits. The hardware/emulator, palette and exact
+revision provenance were not established. No Scheherazade video URL was actually
+included, although the owner reports matching NPC overlap in their comparison.
+
+Additional scene evidence: Mega Man 3's Top Man descent/ladder/camera movement
+and Shadow Man's opening red-waterfall fall both showed reported seams. The
+Shadow Man waterfall effect while standing still was later qualified by the
+owner as possibly a repeating-pattern illusion; retain it as uncertain. Large
+bulldozer-enemy flicker is separate and may involve the per-scanline sprite
+limit; no exact original-hardware comparison was established. The owner reports
+music/sound good and input tight, while crowded/jumping enemies and getting hit
+produce pronounced slowdown even after distinct-port read-back. Output FPS
+stayed around 59.96–59.98 without correlation to the perceived slowdown.
+
+The owner explicitly wants built-in passwords/Continue codes recorded as scene
+access recipes, prompted by Metroid. A valid password can recreate game
+progress across compatible game versions without reproducing an exact CPU/PPU
+instant; a core snapshot preserves a more exact runtime point. Label both the
+access method and revision. Metroid's early bat/shooting slowdown remains
+unattributed. Bionic Commando plays great; Blaster Master level one looks good
+with top-edge pixels/slowdown; DuckTales is good overall with first-red-plant
+slowdown; Mega Man 2 looks good with some slowdown. Kirby also has an occasional
+slowdown report. These remain scene-specific observations, not automatically
+normal behavior just because lag is documented in the game generally.
+
+Shatterhand's first-stage feedback: tight controls, satisfying/smooth gameplay,
+good audio/animations, a possible intro-reticle sprite artifact, crowded-enemy
+flicker and bottom-edge pixels during falls. The separately reported horizontal
+line began around two-thirds height during left/right movement, then the owner
+observed it slowly descending and wrapping from bottom to top. A private clip
+captured the actual first-stage fence/platform location. This drifting/wrapping
+motion strengthens a presentation-tearing hypothesis; it is not evidence of an
+NES counter overflow. Shatterhand has documented raster/parallax use in
+[Area B](https://forums.nesdev.org/viewtopic.php?t=14064), which does not classify
+this first-stage Area A observation.
+
+The base host config had regular VSync and Adaptive VSync both enabled. A
+backed-up owned Nesturbator append override now sets regular VSync on and
+Adaptive VSync off for the next launch. The active game was not interrupted;
+actual new-launch read-back and visual comparison remain pending. No global
+configuration or emulation code changed. Resolve this host factor before
+interpreting drifting seams as confirmed core timing failures.
 
 ## Reaching later scenes without wasting play time
 

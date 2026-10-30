@@ -2,8 +2,8 @@
 
 User-requested exploratory RetroArch sessions, one game at a time. Header admission is not gameplay acceptance. User observations and agent-observed launch facts are recorded separately. No full-game or library-wide compatibility claim.
 
-Current checkpoint: eleven positive Deck title reports span all six supported
-mapper IDs; 26 entries are prepared. The [scene playlist](SCENE-PLAYLIST.md)
+Current checkpoint: feedback covers 22 of 26 prepared Deck titles, spanning
+all six supported mapper IDs, with both positive play and open findings. The [scene playlist](SCENE-PLAYLIST.md)
 prioritizes known hard cases, and the [full queue](DECK-QUEUE.md) tracks remaining
 games. Later sections preserve the chronology; earlier setup counts are dated
 observations, not the current collection size.
@@ -21,26 +21,26 @@ observations, not the current collection size.
 |---|---|---:|---|---|
 | 01 | Super Mario Bros. 3 (USA) | 4 | no | Mac: plays pretty good; mild sluggishness/audio tearing, cause unverified. Deck Rev A: good input timing, visuals and audio, low perceived latency, no observed issues during the reported session. |
 | 02 | Kirby's Adventure (USA) | 4 | yes | Deck: user reports plays great; no save/relaunch or named later scene result. |
-| 03 | Mega Man 2 (USA) | 1 | no | Not tried |
+| 03 | Mega Man 2 (USA) | 1 | no | Deck: looks good overall, with some slowdown; title explicitly corrected to Mega Man 2. |
 | 04 | Castlevania III - Dracula's Curse (USA) | 5 | no | Unsupported mapper 5 |
 | 05 | Contra (USA) | 2 | no | Deck: user reports everything plays well, with the same positive controls, visuals, audio and perceived latency as Mario 3; no observed issues. |
 | 06 | Legend of Zelda, The (USA) | 1 | yes | Deck Rev A: user reports it plays great and prior progress appeared. Running core/shared battery-save path verified; no logged save-state load. |
 | 07 | Super Mario Bros. (World) | 0 | no | User: plays pretty well; graphics/audio good; mild sluggishness under substantial concurrent load, cause unverified. |
-| 08 | Metroid (USA) | 1 | no | Not tried |
+| 08 | Metroid (USA) | 1 | no | Deck: going well early; some slowdown when bats descend while shooting, cause unclassified. |
 | 09 | Ninja Gaiden (USA) | 1 | no | Deck: displayed as Shadow Warriors; user reports it plays great. |
 | 10 | Punch-Out!! (USA) | 9 | no | Unsupported mapper 9 |
 | 11 | Solar Jetman - Hunt for the Golden Warpship (USA) | 7 | no | Deck: user reports playing well. |
-| 12 | Mega Man 3 (USA) | 4 | no | Not tried |
+| 12 | Mega Man 3 (USA) | 4 | no | Deck: good audio/input; stage-select line, vertical-scroll seams and severe crowded/damage slowdown reported. Distinct-port retest retains slowdown near 59.97 FPS. |
 | 13 | Castlevania (USA) | 2 | no | Not tried |
-| 14 | DuckTales (USA) | 2 | no | Not tried |
+| 14 | DuckTales (USA) | 2 | no | Deck: good overall; slowdown at first red plant, cause unclassified. |
 | 15 | Batman - The Video Game (USA) | 4 | no | Deck: user reports plays great. |
-| 16 | Bionic Commando (USA) | 1 | no | Not tried |
-| 17 | Blaster Master (USA) | 1 | no | Not tried |
+| 16 | Bionic Commando (USA) | 1 | no | Deck: plays great. |
+| 17 | Blaster Master (USA) | 1 | no | Deck: level one looks good; top-edge graphics and some slowdown, cause unclassified. |
 | 18 | Crystalis (USA) | 4 | yes | Deck: user reports looks, plays and sounds great; thin top-edge strip observed in private screen capture, overscan explanation plausible but exact rendering correctness unverified. |
 | 19 | River City Ransom (USA) | 4 | no | Not tried |
-| 20 | Little Nemo - The Dream Master (USA) | 4 | no | Not tried |
+| 20 | Little Nemo - The Dream Master (USA) | 4 | no | Deck: good input/audio/general graphics; scrolling-edge pixels, jump-time horizontal disturbance and HUD-border flicker reported separately. |
 | 21 | Journey to Silius (USA) | 1 | no | Not tried |
-| 22 | Shatterhand (USA) | 4 | no | Not tried |
+| 22 | Shatterhand (USA) | 4 | no | Deck: controls/audio/smoothness good; intro/flicker/edge observations plus a horizontal line that drifts down and wraps to the top. Presentation comparison prepared, outcome pending. |
 | 23 | Ufouria - The Saga (Europe) | 4 | no | PAL title; regional timing not implemented |
 | 24 | Gimmick! (Japan) | 69 | no | Unsupported mapper 69 |
 | 25 | Balloon Fight (USA) | 0 | no | Deck: user reports plays great and especially smooth; Balloon Trip not explicitly reported. |
@@ -315,3 +315,122 @@ termination was used. The normal Steam shortcut reopened ES-DE and its fresh
 log loaded the 26-entry collection. Current selected progress was backed up
 privately. Fifteen games remain untested on the Deck, and named scene coverage
 is tracked separately even for the eleven positive title reports.
+
+## Detailed findings, private automation and controller-port recheck
+
+Bionic Commando plays great. Jurassic Park's wobbling OCEAN logo shows reported
+tearing. Marble Madness's first race and part of the second look/play good;
+the owner questions filled timer glyphs/missing blue outline against a supplied
+video. A native-size adapter RGB close-up does contain dark-blue edging and a
+small opening in 4, so do not diagnose a missing bitplane from the impression
+alone. Crystalis has a reported moving seam during north/south camera movement,
+with status-bar displacement unclear. This is distinct from its earlier top
+strip and documented original HUD/dialogue-line quirks.
+
+The owner confirmed The Magic of Scheherazade as the game with NPC layering
+that matched a comparison video. General village play looks good; exact hardware
+correctness and the menu-based battle-damage probe remain unqualified. The
+owner explicitly reports Balloon Trip's HUD staying fixed and no star issues,
+and Mario 3's first power-up emerging normally without a noticed visual issue.
+Gradius's good-play result was reiterated, not counted as a new distinct title.
+
+The supplied Marble Madness comparison is the NintendoComplete video at 0:47:
+[Marble Madness reference](https://www.youtube.com/watch?v=-_rkCXLEGXY&t=47s).
+The supplied [Crystalis reference](https://www.youtube.com/watch?v=Vx39m1u6d-E)
+is also from NintendoComplete. Both pages were
+opened and identified; no exact hardware/emulator, palette or revision provenance
+was established. A paused Marble reference frame shows outlined timer digits.
+No actual Scheherazade URL was included. These references do not certify real-
+console behavior by themselves; raw page captures remain private.
+
+Blaster Master (owner called it Master Blaster) looks good in level one, with
+top-edge pixels and some slowdown. Kirby also has occasional slowdown. DuckTales
+is good overall with slowdown near the first red plant. Mega Man 2 looks good
+with some slowdown, with the title explicitly corrected by the owner. Metroid
+is going well early with slowdown when bats descend while shooting. General
+lag references exist, but none establishes the exact reported event as correct.
+Built-in passwords/Continue codes are explicitly requested as efficient access
+recipes; a game password and an exact emulator snapshot preserve different
+amounts of runtime state.
+
+Little Nemo has positive controls/audio/general graphics plus three open visual
+observations: scrolling-edge updates, a horizontal disturbance during jumps and
+a flickering line above the Mushroom Forest status border. A private live clip
+captured the actual title. A firsthand discussion describes a similar HUD line
+without verification on a Nemo cartridge; keep the cause unclassified. Optional
+cropping is requested presentation work, not implemented here and not a remedy
+for an unexplained internal split.
+
+Mega Man 3 has a reported flickering line above Shadow Man in the selection
+screen, and moving seams during Top Man ladders/large falls and Shadow Man's
+opening red-waterfall descent. The standing-still waterfall appearance was later
+qualified by the owner as possibly a repeating-pattern illusion. Preserve that
+correction. Large bulldozer-enemy flicker is separate. The owner reports good
+music/sound and tight input, but pronounced slowdown with roughly four/five
+characters, multiple jumping enemies and damage. Sprite omission/flicker and
+game-side computational lag are different effects; exact hardware correctness
+was not established by a general NES sprite-limit explanation.
+
+A live configuration check found a concrete host error: player one selected the
+Xbox index while inherited player two selected the same index. Built-in MM3
+player-two effects made this a valuable confounder to remove. The owned launcher
+was backed up and corrected to leave P2 unassigned for single-controller play;
+syntax passed. A new MM3 launch was read back with P1 index1 and unused P2
+index15, and its latest state files were privately backed up before recommending
+reset. The owner still reports severe crowded/damage slowdown after the fix,
+considers higher jumps possibly a level mechanic, and still sees visual seams.
+Do not credit the port fix as resolving those findings or declare the jumps a
+cheat-induced bug. Two-player mappings remain a separate setup task.
+
+The owner enabled the FPS display and reports roughly 59.96–59.98 with no
+correlation between its small fluctuations and gameplay slowdown. The current
+adapter advertises 60.0988138974 Hz; the host uses 60 Hz configuration with VSync
+and audio sync. Stable output with slower action is consistent with game-side
+lag, not proof of original-hardware correctness. No synchronization setting
+was changed. Further casual diagnostics need only FPS/audio/scene context;
+frame-time benchmarks and sampled display clips are different evidence.
+
+A live Mario 3 log explicitly recorded successful automatic loading of a
+Nesturbator `.state.auto`. This is actual same-core load evidence, distinct from
+Zelda's earlier shared battery reuse. A controlled manual host save/exit/relaunch
+cycle and cross-core/version guarantees remain separate. See the
+[controller cheat sheet](CONTROLS.md).
+
+The owner then authorized more private automation. A small stdlib libretro
+frontend now runs bounded input recipes, checkpoints and native-size captures,
+PCM WAV and MP4 exports. Jurassic Park, Marble Madness, Little Nemo and MM3 menu
+recipes/checkpoint replays match per-frame RGB and PCM exactly. Nemo reaches
+Mushroom Forest and NPC dialogue, not yet a qualified camera-seam reproduction;
+MM3's checkpoint is inside its menu with Shadow Man visible, cursor center.
+A convenience replay command and identity checks shorten repeat runs. No daily
+saves are accessed, no native core behavior changed, and raw checkpoints are
+not qualified RetroArch containers. The owner was not required to play those
+routes. Private live Deck screenshot/clip capture also succeeded without input
+or state commands; an attempt stopped correctly when no game was active.
+
+The [automation/CI plan](AUTOMATION.md) maps the findings to existing owned
+PPU/MMC3/fetch/render/conversion tests, proposes small independent-oracle
+synthetic guards, and preserves unique regression protection while allowing
+redundant exploration to retire. No commercial bytes/state/capture entered Git,
+no collector campaign was invoked and no native fix or new CI fixture was
+implemented. Scene outcomes, original-behavior references and uncertainties
+remain in the [scene playlist](SCENE-PLAYLIST.md).
+
+### Shatterhand drifting-line presentation probe
+
+The owner reports Shatterhand's controls tight, gameplay satisfying and smooth,
+animations/general graphics good and audio great. A possible reticle-zoom sprite
+artifact, crowded-enemy flicker and bottom-edge pixels during falls are kept
+separate from the horizontal seam. Repeated left/right movement at the beginning
+of stage one showed a line initially around two-thirds height; further observation
+found it slowly travelling down and restarting at the top. A private sampled
+clip captured the actual Shatterhand fence/platform scene. This motion supports
+a host-presentation hypothesis, not a confirmed core fault or counter overflow.
+
+A read-only compositor convar query returned no value, so no compositor tearing
+state is claimed. The actual base RetroArch config did show normal VSync and
+Adaptive VSync both enabled. A backed-up owned append-profile override now keeps
+normal VSync enabled and disables adaptive VSync on the next launch. No current
+game, global setting or emulation code was changed. Activation/read-back and
+visual comparison await a fresh Shatterhand launch. No improvement is claimed
+until that result. See the scene/automation notes for references and next step.

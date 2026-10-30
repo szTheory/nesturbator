@@ -69,8 +69,11 @@ brief user observations as scoped smoke evidence; higher-confidence device
 and performance testing can follow when the owner wants it.
 Before recommending play, read the
 [scene-first guidance](.planning/playtesting/LESSONS.md#scene-first-checkpoint-lessons).
-Give the scene, visible expected/failure behavior, verified access method and
-likely effort. Record title and exact-scene results separately as dated evidence
+Give the scene, known original quirks, visible expected/failure behavior,
+verified access method and likely effort; mark uncertain comparisons. Record title and exact-scene results separately as dated evidence
 alongside CI; verify current cheat/state support before proposing shortcuts.
+Before converting gameplay findings into CI, read the
+[regression direction](.planning/playtesting/AUTOMATION.md). Prefer small owned
+fixtures with independent oracles and preserve unique regression coverage.
 Keep connection details, identifiers, personal paths and raw private artifacts
 outside Git; record only sanitized lessons and scoped observations.

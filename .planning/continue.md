@@ -54,42 +54,57 @@ sluggishness and some Mario 3 audio tearing under concurrent work. Resource
 contention is suspected, not established. The owner explicitly deferred stronger
 performance confidence to a quieter/dedicated device.
 
-## Ready for targeted scenes
+## Private replay/capture and current findings
 
-The owner next reported Gradius, Solar Jetman, Balloon Fight, Kirby, Battletoads
-and Batman play well/great, describing the sessions as smooth without perceived
-performance issues. Eleven positive title reports now span all six supported
-mapper IDs. Exact scenes, every board variant and measured performance are
-separate. The owner explicitly wants concrete known pitfalls and efficient
-scene access before each recommendation, as durable cross-emulator learning.
-Read the [scene playlist](playtesting/SCENE-PLAYLIST.md) before recommending more
-play; the [full queue](playtesting/DECK-QUEUE.md) tracks all prepared entries.
+Read [automation/CI direction](playtesting/AUTOMATION.md),
+[scene findings/reference cards](playtesting/SCENE-PLAYLIST.md) and
+[controls](playtesting/CONTROLS.md) before more testing. Feedback now covers 22
+of 26 prepared Deck titles. The owner requested private checkpoints/automated
+routes, exact known pitfalls and original quirks before play, then small owned
+synthetic CI regressions for confirmed hardware interactions. Native fixes and
+public helper/CI promotion remain unapproved future milestone scope.
 
-Start Jurassic Park (USA), letting the OCEAN logo run, then Marble Madness (USA)
-for its first race-introduction text box. The Magic of Scheherazade is also
-installed for an optional 5W-password/party-battle damage probe; no deterministic
-immediate encounter route was verified. Three new NTSC games passed admission,
-frame-120 startup, archive-hash and per-game choice checks. Original files,
-metadata and save storage were preserved, current progress backed up privately.
-The collection has 26 entries, 15 with no Deck gameplay report yet.
+The ignored session contains a verified stdlib/FFmpeg libretro capture prototype,
+convenience replay catalog and read-only live Deck capture helper. See its
+OPERATOR-NOTES.md and SCENE-LAB-README.md. Jurassic, Marble timer, Nemo opening
+and MM3 menu recipes/checkpoint replays have identical per-frame RGB/PCM. Nemo
+reaches NPC dialogue rather than proving the reported moving-camera defect;
+MM3 menu cursor remains center. Native checkpoints are not qualified RetroArch
+files; no daily SRAM input, arbitrary warp or autonomous whole-game player is
+implemented. Live captures contain actual game/core identity; one named for an
+earlier Blaster request actually captured DuckTales after a game switch.
 
-The owner returned to ES-DE after an active-game guard deferred refresh. Remote
-WM/keyboard quit requests did not exit the app; a direct normal close-protocol
-message to its verified window did. The normal Steam shortcut then reopened
-ES-DE and its fresh log loaded the expanded collection and completed startup.
-No game was interrupted/automatically launched, and no force kill, device
-restart, display setting or core behavior change was used. No restart/setup
-work remains; the owner acts next when ready to play. The agent can continue
-recording scene-specific observations and helping with verified routes.
+An actual duplicate P1/P2 controller mapping was corrected in the owned launcher
+for single-controller play, with backup and new-launch read-back. Current MM3
+P1 index1/P2 unused15 are distinct. Latest MM3 state files were backed up before
+reset advice. Severe crowd/damage slowdown persists after correction; the owner
+believes higher jumps may be level mechanics. Do not call those solved or
+cheat-caused. User-reported output FPS stays about 59.96–59.98 and does not
+correlate with action slowdown. Core timing is NTSC60.0988, host sync configured
+60Hz. Game-side lag is plausible, not hardware correctness established.
 
-Game Genie is not currently implemented; cheat callbacks are empty and general
-system RAM is not exposed. A frontend cheat menu is not proof of support.
-Prefer built-in passwords, then snapshots made with this core after reaching a
-scene. Preserve daily progress since state loading may replace battery RAM.
-Foreign-core states and raw runner payloads are not qualified RetroArch scene
-shortcuts. No scene snapshot, replay library, cheat implementation or automated
-warp was created. Treat these as future proposed capabilities, not new milestone
-scope. Planning still has its separate boundary below.
+Priority visual observations: Jurassic OCEAN tearing, Crystalis world seam,
+Marble timer shape/color concern (native outline/hole actually present), Nemo
+edge/jump/HUD-border disturbances, MM3 selection line and vertical-scroll seams.
+Shadow Man's opening red waterfalls are a precise reported scene; stationary
+pattern later qualified as possibly illusory. Keep original-game quirks and
+unknown-provenance video matches separate. Balloon Trip HUD/stars and Mario3
+first power-up have explicit positive results. The owner provided two
+NintendoComplete video links, stored canonically in the scene/baseline docs.
+
+A later Shatterhand report identified a horizontal line that slowly moves
+downward and wraps to the top. The actual scene was privately captured. A
+backed-up owned append-profile override now disables adaptive VSync while
+keeping regular VSync enabled on next launch. Global config/current gameplay
+were preserved. The owner can exit normally, relaunch Shatterhand and repeat
+the movement; activation/read-back and visual result are pending. This is the
+next high-value host-presentation comparison, not a claimed core fix. The agent can
+continue native/reference analysis from private artifacts; another native
+implementation or CI phase needs its own scope decision. No core behavior,
+emulation rate, dependency or collector window changed here; the prepared
+per-core adaptive-VSync presentation override is the explicit later exception
+to the earlier unchanged-display observation.
+Historical stops and planning boundaries remain intact.
 
 ## Host work and operational privacy
 

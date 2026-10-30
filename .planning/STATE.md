@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Eleven positive Deck reports cover six mapper IDs; 26-entry collection ready for targeted scene pass
-last_updated: "2026-10-30T21:21:03Z"
+stopped_at: Private replay/capture verified; Shatterhand drifting tear has a prepared next-launch presentation comparison
+last_updated: "2026-10-30T22:21:49Z"
 last_activity: 2026-10-30
-last_activity_desc: Recorded six additional positive reports; researched hard scenes and cheat limits, installed three targets, verified normal ES-DE refresh
+last_activity_desc: Recorded Shatterhand drifting/wrapping line; prepared per-core adaptive-VSync-off comparison, activation and visual result pending
 progress:
   total_phases: 3
   completed_phases: 3
@@ -48,50 +48,69 @@ The pre-existing AGENTS.md and config edits remain unstaged and preserved.
 
 ## Next Action
 
-The owner requested a time-efficient known-edge-case pass and concrete symptoms
-before each game. Start **Collections → Nesturbator → Jurassic Park (USA)** and
-watch the opening OCEAN logo, then **Marble Madness (USA)** and its first race's
-introductory text. The [scene playlist](playtesting/SCENE-PLAYLIST.md) contains
-the complete priority pass, access methods, expected failures, sourced
-shortcuts and evidence limits. ES-DE is open after a normal refresh; no restart
-or setup action is needed. The owner acts next when ready to play, and the
-agent can record scene-specific feedback and help with a route when needed.
+The private operational loop is ready. One high-value presentation comparison
+is prepared: the owner can exit normally and relaunch Shatterhand to apply
+regular VSync on / Adaptive VSync off, then repeat the same left/right motion.
+The active game was preserved. Activation read-back and the visual result are
+pending; the owner acts next when convenient, while the agent can continue
+from captures. No additional broad title sweep is required. The agent can use
+four verified input recipes/checkpoints and retained captures to investigate
+before requesting more play. Read [automation/CI direction](playtesting/AUTOMATION.md),
+[scene findings](playtesting/SCENE-PLAYLIST.md), [controls](playtesting/CONTROLS.md)
+and the [dated baseline](playtesting/2026-10-30-nes-baseline.md). Root causes and
+hardware-correct visual expectations remain unresolved; no native fix or CI
+fixture was implemented in this operational setup.
 
-Eleven games have positive Deck title reports: Mario 3, Contra, Ninja Gaiden
-(shown as Shadow Warriors), Zelda, Crystalis, Gradius, Solar Jetman, Balloon
-Fight, Kirby, Battletoads and Batman. The owner reports smooth gameplay with no
-perceived performance issues. This is a useful dated baseline alongside CI,
-not instrumented performance or full-game coverage. All six supported mapper
-IDs have ordinary-play signal; no unspecified hard scene or board variant is
-credited. Preserve the Crystalis top-edge observation and save/relaunch limits.
+Feedback covers 22 of the 26 prepared titles, across all six supported mapper
+IDs. Positive play remains credited alongside explicit findings: OCEAN wobble
+tearing; Marble timer appearance questioned (native close-up has blue edging
+and a small opening in 4); Crystalis vertical world seam; Little Nemo outer-edge,
+jump-time and HUD-border disturbances; MM3 selection-screen line and vertical-
+scroll seams. Shadow Man's opening red-waterfall descent is a reproducible
+reported location; its stationary pattern was later qualified by the owner as
+possibly an optical/repeating-pattern effect. Balloon Trip's HUD/stars and
+Mario 3's first power-up emergence have explicit positive scene reports.
 
-The [full queue](playtesting/DECK-QUEUE.md) now references 26 normal-library NTSC
-entries; 15 remain untested on the Deck. Jurassic Park, Marble Madness and The
-Magic of Scheherazade were added for documented scene probes. Their hashes,
-references and per-game Nesturbator choices passed read-back; each reached
-frame 120 in the current local native runner. Existing files, metadata and save
-storage were preserved, current selected progress backed up privately, and the
-fresh ES-DE log loaded the expanded collection and completed startup. An active-
-game guard deferred the first refresh; the owner then returned to ES-DE. Direct
-normal window-close protocol exited the frontend after remote shortcut/WM
-requests had no effect; no game was interrupted or force-killed.
+An actual host error assigned the Xbox to both P1/P2. The owned single-controller
+launcher now leaves P2 unassigned, with rollback backup and new-launch read-back
+verified. Latest MM3 progress was backed up. The owner still reports substantial
+crowd/jumping-enemy/damage slowdown after that correction and regards high jumps
+as possibly level design. Visual findings remain separate. MM3 sound/music and
+input are good; displayed FPS varies around 59.96–59.98 without correlation to
+action slowdown. The core advertises NTSC 60.0988 Hz; host VSync/audio sync uses
+a configured 60 Hz display. This supports game-side lag as a possibility, not
+hardware-correct timing as a conclusion. Other slowdown reports in Kirby,
+Blaster Master, DuckTales, Mega Man 2 and Metroid remain scene-specific and
+unattributed. Authentic sprite-limit flicker and compute lag need distinct
+classification.
 
-Game Genie is currently unimplemented: cheat callbacks are empty and general
-system RAM is not exposed. Built-in passwords and same-core scene snapshots
-are the practical direction. Scheherazade's 5W password is sourced, but its
-fastest party-battle encounter route is unqualified. No scene checkpoint,
-automatic warp, cheat implementation, core change or new dependency was added.
-Snapshots may restore battery RAM; preserve daily progress before checkpoint
-experiments. Existing handheld fallback/reconnect and cross-core/version state
-compatibility remain unqualified.
+Shatterhand adds good play plus a drifting/wrapping horizontal line captured
+privately in the first stage. Base Adaptive VSync was enabled. The backed-up
+owned profile now disables it for next launch while preserving regular VSync,
+global config and active gameplay. Do not credit an improvement or classify an
+NES overflow before the before/after test.
 
-Read [PII-free lessons](playtesting/LESSONS.md) before another emulator's host
-setup or testing plan. The explicit scene-first guidance is now durable in
-AGENTS.md. Private connection details, media, saves, raw logs and captures remain
-outside Git. The [baseline](playtesting/2026-10-30-nes-baseline.md) retains the
-chronology and exact feedback. Earlier Mac sluggishness/audio tearing remains
-unattributed. No current emulation defect is inferred from it or the Crystalis
-edge strip alone.
+Four private headless cases—Jurassic Park, Marble Madness, Little Nemo and MM3
+menu—replay checkpoints with identical per-frame RGB/PCM to their input recipes.
+They export source PNG/PPM, WAV and audiovisual clips. Nemo currently reaches
+Mushroom Forest/NPC dialogue, not a qualified camera-seam reproduction; MM3's
+cursor remains center in its captured menu. Native payloads are not qualified
+RetroArch disk containers, and the prototype has no daily-SRAM input. Live
+read-only Deck capture succeeded for Mario 3, DuckTales, Nemo and MM3 without
+input/state commands; an inactive-game guard also refused correctly. Sampled
+clips have no audio and are not performance measurements. Private scripts,
+metadata, states, images, videos and trusted connection details remain under
+the ignored session; its operator notes give exact commands and bounds.
+
+The live host log recorded actual Nesturbator automatic-state-load success in
+Mario 3, separate from Zelda battery reuse. General cross-core/version snapshot
+compatibility and a controlled manual host roundtrip remain separate claims.
+Built-in passwords/Continue codes are explicitly preferred scene-access tools;
+Game Genie remains unimplemented. No collector entrypoint or historical stopped
+window was invoked, no emulator dependency added, and no emulation timing
+setting changed. Read [lessons](playtesting/LESSONS.md) before another emulator's
+host setup or testing plan. AGENTS.md now points to original-quirk guidance and
+independent-oracle regression direction.
 
 Separate planning continuation:
 
@@ -142,6 +161,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T21:21:03Z
-**Stopped at:** Eleven positive Deck reports recorded; targeted scene playlist and 26-entry collection ready, owner can try Jurassic Park next. Planning continuation: `$gsd-new-milestone`
+**Last session:** 2026-10-30T22:21:49Z
+**Stopped at:** Private automation/capture verified; owner can relaunch Shatterhand for prepared presentation comparison, outcome pending. Planning continuation: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`

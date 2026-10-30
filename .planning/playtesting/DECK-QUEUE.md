@@ -1,19 +1,25 @@
 # Steam Deck NES play queue
 
 Prepared 2026-10-30 at the owner's request. Open **Collections → Nesturbator** in
-ES-DE. The collection now references 26 normal-library NTSC entries. Eleven have
-positive owner gameplay reports; the 15 remaining choices are ordered below.
+ES-DE. The collection now references 26 normal-library NTSC entries. Feedback now covers 22 titles, including open visual/slowdown observations;
+the four entries without a Deck gameplay report are ordered below.
 For maximum signal per minute, use the [targeted scene playlist](SCENE-PLAYLIST.md)
 first; several of its probes revisit specific scenes in already-played games.
 No game was launched automatically for this preparation.
 
 ## Where to resume
 
-Start with **Jurassic Park (USA)** and watch the opening OCEAN logo, then
-**Marble Madness (USA)** and its first race-introduction text box. The
-[targeted scene playlist](SCENE-PLAYLIST.md) gives precise symptoms and access
-methods for those and six other probes. Ordinary-play reports now span all six
-supported mapper IDs; deeper scenes and board variants remain separate evidence.
+The most useful immediate comparison is a **fresh Shatterhand launch** with the
+prepared presentation override: regular VSync on, Adaptive VSync off. The
+reported horizontal line drifts downward and wraps to the top, strengthening a
+host-presentation hypothesis. Current game remains untouched; use normal exit
+and relaunch to apply the backed-up per-core override, then repeat the same
+left/right movement. Read-back and visual result remain pending. This is a
+presentation test, not a PPU fix or proof of a cause.
+
+The corrected-port MM3 retest still showed crowd/damage slowdown and visual
+observations. See [controls](CONTROLS.md), [scene findings](SCENE-PLAYLIST.md)
+and [automated replay/CI direction](AUTOMATION.md).
 
 Spend a few enjoyable minutes per game, or keep playing if it is fun. Report
 controls/timing, graphics, audio and anything unusual. If something goes wrong,
@@ -30,21 +36,10 @@ actual selected images, rather than the original informal annotations.
 
 | Order | ES-DE entry | Mapper | Fun short-session target and useful signal |
 |---|---|---|---|
-| 1 | Jurassic Park (USA) | 4 — MMC3 | Watch the opening OCEAN logo before skipping anything; intentional wobble should remain coherent. See the targeted scene playlist. |
-| 2 | Marble Madness (USA) | 7 — AxROM | Start the first race and watch its introduction text for legibility and stable boundaries. See the targeted scene playlist. |
-| 3 | Super Mario Bros. (World) | 0 — NROM | World 1-1, power-ups and a pipe transition. Sprite-0/status split and sprite priority add more signal than the mapper label alone. This repeats the earlier Mac title on the Deck. |
-| 4 | Blaster Master (USA) | 1 — MMC1 | Drive, exit/re-enter the vehicle and enter an interior area. Check play-mode, scrolling and room transitions. |
-| 5 | Mega Man 2 (USA) | 1 — MMC1 | Stage select, a stage such as Metal Man, ladders and pause/weapon menu. Listen to music mixed with effects. |
-| 6 | DuckTales (USA) | 2 — UxROM | Amazon stage, pogo action, climbing and room transitions. A second UxROM game with different graphics and movement. |
-| 7 | Street Gangs | 4 — MMC3 | This is the existing River City Ransom (USA) entry. Try scrolling fights, crowded scenes and a shop/menu if reached. Single-player is sufficient; two-player input remains a separate check. |
-| 8 | Mega Man 3 (USA) | 4 — MMC3 | Stage select, a stage, ladders, slide and pause menu. Compare general stability with Mega Man 2 without expecting identical game mechanics. |
-| 9 | Castlevania | 2 — UxROM | Existing USA Rev A entry. Try stairs, whipping candles, doors and the first stage's transitions. |
-| 10 | Bionic Commando (USA) | 1 — MMC1 | Enter an action area, grapple and move between screens; check menus and action transitions. Lack of a normal jump is intentional. |
-| 11 | Little Nemo - The Dream Master (USA) | 4 — MMC3 | First-stage movement and an animal transformation. Check changes in character graphics, scrolling and audio. |
-| 12 | Shatterhand (USA) | 4 — MMC3 | First-stage combat, jumps and a robot companion if reached. Check sprite load and background stability. |
-| 13 | Journey to Silius (USA) | 1 — MMC1 | First-stage movement, combat and weapon/menu use. Listen to the music/effects mix. |
-| 14 | Metroid (USA) | 1 — MMC1 | Move through several rooms, acquire/use the Morph Ball and try a door transition. USA NES Metroid uses passwords; it is not a battery-save check. |
-| 15 | The Magic of Scheherazade (USA) | 1 — MMC1 | Optional deeper probe: CONTINUE → 5W, then take damage in a menu-based party battle. Encounter timing is uncertain; see the targeted scene playlist. |
+| 1 | Super Mario Bros. (World) | 0 — NROM | World 1-1, power-ups and a pipe transition. Sprite-0/status split and sprite priority add more signal than the mapper label alone. This repeats the earlier Mac title on the Deck. |
+| 2 | Street Gangs | 4 — MMC3 | This is the existing River City Ransom (USA) entry. Try scrolling fights, crowded scenes and a shop/menu if reached. Single-player is sufficient; two-player input remains a separate check. |
+| 3 | Castlevania | 2 — UxROM | Existing USA Rev A entry. Try stairs, whipping candles, doors and the first stage's transitions. |
+| 4 | Journey to Silius (USA) | 1 — MMC1 | First-stage movement, combat and weapon/menu use. Listen to the music/effects mix. |
 
 Gradius, Battletoads, Jurassic Park, Marble Madness and The Magic of
 Scheherazade are additions to the original shortlist. The other 21 entries are
@@ -67,6 +62,17 @@ the password's battle encounter route remains optional and not time-qualified.
 | Kirby's Adventure (USA) | Plays great | Specific transition and save/relaunch checks remain unqualified |
 | Battletoads (USA) | Plays great, no observed issues | Level-two descent was not explicitly reported |
 | Batman - The Video Game (USA) | Plays great | Generic session result, no named later scene reported |
+| Bionic Commando (USA) | Plays great | No named later scene or full-game claim |
+| Jurassic Park (USA) | Tearing reported in the wobbling OCEAN logo | Timing candidate; captured privately and native route replayable, cause unconfirmed |
+| Marble Madness (USA) | First level and part of second play/look good; timer font/outline questioned | Native close-up contains blue edging and a small opening in 4; exact host/reference comparison remains open |
+| The Magic of Scheherazade (USA) | General village play looks good; NPC layering matched a comparison video | User confirmed title; exact video URL/hardware provenance and RPG-battle damage probe unverified |
+| Blaster Master (USA) | Level one looks good; top-edge pixels and some slowdown | Original lag is documented generally; this scene's slowdown remains unattributed |
+| DuckTales (USA) | Good overall, smooth controls; slowdown at first red plant | Specific first-red-plant slowdown remains unattributed; private live capture available |
+| Little Nemo (USA) | Controls, sound and general graphics good; scrolling edge, jump-time line and HUD-border flicker reported | Three separate observations; original-hardware correctness not established |
+| Mega Man 2 (USA) | Looks good overall with some slowdown | Corrected title explicitly; area/cause unverified |
+| Mega Man 3 (USA) | Good sound/music and tight input; stage-select line, vertical-scroll seam and severe crowded/damage slowdown reported | P1/P2 duplicate mapping corrected and read back on relaunch; owner reports crowd/damage slowdown persists near 59.97 FPS, with separate stage-select/vertical-scroll observations |
+| Metroid (USA) | Going well early; slowdown around bats while shooting | Early bat/shooting slowdown remains unattributed; built-in passwords proposed for efficient scene access |
+| Shatterhand (USA) | Tight controls, good audio/animations and smooth play; intro artifact, sprite flicker, bottom edge and drifting horizontal line reported | Captured first-stage scene; line reportedly travels downward and wraps to top, so adaptive-VSync-off presentation comparison is prepared for next launch |
 
 ## Progress and host checks, when useful
 

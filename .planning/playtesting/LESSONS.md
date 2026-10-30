@@ -35,10 +35,9 @@ normal library alongside preserved PAL variants, with explicit regional names;
 the collection selects one supported variant per title. Earlier seven-entry
 observations below describe the initial setup, not the current collection size.
 
-The latest owner reports give eleven positive Deck title sessions, including
-new reports for Gradius, Solar Jetman, Balloon Fight, Kirby, Battletoads and
-Batman. Perceived smoothness with no reported performance issues is a useful
-dated checkpoint alongside CI. All six supported mapper IDs now have ordinary-
+Feedback now covers 21 prepared Deck titles, including broad positive play and
+specific open visual/slowdown findings. Early perceived smoothness and the later
+scene-specific reports together form a useful dated checkpoint alongside CI. All six supported mapper IDs now have ordinary-
 play signal, while specific scenes and individual board profiles still need
 separate evidence. Start with the [scene playlist](SCENE-PLAYLIST.md) for the
 owner's current preference: known difficult scenes, concrete symptoms and
@@ -99,6 +98,46 @@ practical. No cheat/warp implementation was approved or added in this session.
 A sourced code or password can be correct yet still need exact-image/live-host
 verification; keep uncertain encounter routes lower priority rather than wasting
 owner play time.
+
+## New lessons from targeted triage
+
+Give known original-game quirks and uncertainty before each probe. The
+[scene reference cards](SCENE-PLAYLIST.md#known-original-behavior-and-reference-cards)
+separate original-game bug documentation, difficult hardware behavior and
+unverified video comparisons. Reproduce authentic sprite limits and game lag;
+do not dismiss a report merely because similar games sometimes slow down.
+One character can use several hardware sprites; sprite omission/flicker and
+game-side computation slowdown are different effects.
+
+Check all host input ports after reassigning player one. This setup accidentally
+sent one physical controller to both P1 and P2. Mega Man 3 has built-in P2 effects,
+so a core without Game Genie support can still be affected by duplicate-port
+input. The launcher correction was read back on relaunch; severe crowd/damage
+slowdown persisted, so preserve the unresolved symptom rather than claiming the
+host fix solved it. Treat the owner's view that jumps may be level mechanics as
+an unresolved interpretation, not evidence of a diagnosed cheat effect.
+
+Use FPS/audio/scene context as low-effort triage. Near-60 output during action
+slowdown is consistent with game-side lag, but does not prove correct timing.
+Tiny display-counter changes are distinct from the core's emulated rate and
+from hardware behavior. Avoid turning ordinary play into a profiler exercise.
+The [cheat sheet](CONTROLS.md) records the actual configured bindings, automatic
+state-load evidence and rate distinction.
+
+The owner explicitly wants private commercial checkpoints and automation to
+reduce manual effort, then original synthetic fixtures in CI for confirmed
+hardware interactions. [Automation](AUTOMATION.md) records four working private
+recipes/replays and an efficient regression plan. Raw commercial snapshots,
+video and images remain private; current-output repeatability is not a
+correctness oracle. Keep independent expected masks/timing and failure controls
+when distilling a regression; consolidate duplicate checks only while retaining
+their unique failure detection.
+
+Built-in game passwords are valuable portable-progress recipes alongside
+same-core exact snapshots. Preserve game revision, source, input/access method
+and whether cheats remained active. Passwords do not preserve an exact CPU/PPU
+instant. The current private replay helpers are a useful operational prototype,
+not a published portable tool or proof that native payloads load in RetroArch.
 
 ## Transferable mechanisms
 
