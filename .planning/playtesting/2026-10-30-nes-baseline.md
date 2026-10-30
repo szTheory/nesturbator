@@ -30,7 +30,7 @@ User-requested exploratory RetroArch sessions, one game at a time. Header admiss
 | 15 | Batman - The Video Game (USA) | 4 | no | Not tried |
 | 16 | Bionic Commando (USA) | 1 | no | Not tried |
 | 17 | Blaster Master (USA) | 1 | no | Not tried |
-| 18 | Crystalis (USA) | 4 | yes | Not tried |
+| 18 | Crystalis (USA) | 4 | yes | Deck: user reports looks, plays and sounds great; thin top-edge strip observed in private screen capture, overscan explanation plausible but exact rendering correctness unverified. |
 | 19 | River City Ransom (USA) | 4 | no | Not tried |
 | 20 | Little Nemo - The Dream Master (USA) | 4 | no | Not tried |
 | 21 | Journey to Silius (USA) | 1 | no | Not tried |
@@ -210,3 +210,30 @@ Record positive user-reported gameplay and observed prior-progress reuse.
 The prior writer/core was not established; a newly written battery-save exit/
 relaunch cycle, save-state compatibility and full-game coverage remain
 unverified. This report does not upgrade the earlier save-state guarantees.
+
+### Crystalis — Steam Deck gameplay and top-edge observation
+
+The owner reports Crystalis looks, plays and sounds great, and asks about a bar
+at the very top of the picture. A read-only process check confirmed the intended
+Nesturbator module and Crystalis (USA). At the owner's request a current
+Gamescope screenshot was captured into ignored private storage and inspected:
+a thin white-and-blue patterned strip is visible at the upper edge of the game
+picture, above the playable scene. The capture is not committed.
+
+The adapter currently submits the entire 256×240 frame and has no crop core
+option or GET_OVERSCAN handling; see [adapter](../../libretro/libretro.c).
+The running host's base configuration already has `video_crop_overscan = true`,
+with no corresponding launch override. The legacy hint does not crop our
+adapter's output. Its API declaration is deprecated in favor of core options;
+see the owned vendored [API header](../../libretro/libretro.h).
+
+[NESdev's overscan reference](https://www.nesdev.org/wiki/Overscan) explains the
+full NES picture and edge visibility on televisions. The visible strip is
+consistent with exposed overscan/edge graphics, but neither this screenshot nor
+positive play feedback proves its exact rendering matches hardware. Preserve
+it as an unclassified edge observation, not a confirmed PPU defect or a proven
+normal Crystalis artifact. No hardware/reference comparison was performed.
+Optional overscan cropping is a proposed presentation improvement, not approved
+implementation scope; it must not be used to dismiss a real rendering defect.
+No game, TV, host display setting or core code was changed. Save/load and full-
+game coverage remain unverified.

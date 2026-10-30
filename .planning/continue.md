@@ -34,6 +34,15 @@ battery-progress reuse, not cross-core snapshot support; the prior writer/core
 and a newly written save/relaunch cycle remain unverified. No setup action is
 pending. Save-state compatibility and longer-session coverage remain open.
 
+Crystalis is the fifth positive Deck gameplay report: the owner says it looks,
+plays and sounds great. A requested private Gamescope capture shows a thin
+patterned strip at the top. The adapter sends full 256×240 with no crop option
+or overscan-hint handling; the host's enabled crop preference does not change
+that. Exposed overscan is plausible, but exact hardware correctness is unverified.
+No display setting or code was changed. Optional presentation cropping remains
+proposed; preserve the observation rather than claiming it proven normal or a
+confirmed PPU bug. No immediate user action is required.
+
 Mac Mario 1 and Mario 3 played well enough for initial smoke signal, with mild
 sluggishness and some Mario 3 audio tearing under concurrent work. Resource
 contention is suspected, not established. The owner explicitly deferred stronger

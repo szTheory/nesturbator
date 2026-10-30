@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Positive four-title Deck gameplay reports; Zelda reused prior progress consistent with shared battery storage
-last_updated: "2026-10-30T19:49:32Z"
+stopped_at: Positive five-title Deck smoke reports; Crystalis top-edge strip documented, exact cause unverified
+last_updated: "2026-10-30T19:58:31Z"
 last_activity: 2026-10-30
-last_activity_desc: Owner reports Zelda plays great and prior progress appeared; shared battery path verified, snapshot compatibility not established
+last_activity_desc: Owner reports Crystalis looks, plays and sounds great; private screen capture documents top-edge strip and missing crop option
 progress:
   total_phases: 3
   completed_phases: 3
@@ -62,13 +62,21 @@ is consistent with battery-save reuse; the prior writer/core, newly written
 save/relaunch cycle and snapshot compatibility remain unverified. The launcher
 includes handheld fallback, but unplug/reconnect and fallback remain untested.
 
+The owner then reported Crystalis looks, plays and sounds great, with a thin
+patterned strip at the top. A requested private screenshot confirms the strip.
+Full 256×240 adapter output and absent crop support explain why edge pixels are
+visible despite the host crop preference. Exposed overscan is plausible; exact
+hardware correctness remains unverified. Optional presentation cropping is only
+a proposal. No settings or core code changed, and no immediate user action is
+required.
+
 The Deck is in Gaming Mode and ES-DE is open through its repaired existing Steam
 shortcut. Open Collections → Nesturbator to use seven existing supported NTSC
 entries, each with Nesturbator selected and other cores still switchable. No main
 ROM files were changed or added. Normal battery storage is reused; snapshots
 are core-specific within normal state storage. The owner saw commercial Mario 3
 on the TV and confirmed physical Start after the corrected SDL2 PowerA profile.
-The subsequent collection launch used the correct core but Start did not work. Steam virtual-device presentation differs from the direct desktop run; a context-specific controller resolver was applied, and the owner confirmed working input after relaunching from the collection. Handheld fallback is configured but untested. Mario 3, Contra, Ninja Gaiden and Zelda have positive user-reported gameplay smoke evidence; instrumented latency, sustained/full-game coverage, clean frontend return and progress roundtrip remain open.
+The subsequent collection launch used the correct core but Start did not work. Steam virtual-device presentation differs from the direct desktop run; a context-specific controller resolver was applied, and the owner confirmed working input after relaunching from the collection. Handheld fallback is configured but untested. Mario 3, Contra, Ninja Gaiden, Zelda and Crystalis have positive user-reported gameplay smoke evidence; instrumented latency, sustained/full-game coverage, clean frontend return and progress roundtrip remain open.
 
 Two Mac Mario reports were useful smoke signal; mild sluggishness/audio tearing
 remain unattributed. The owner explicitly deferred a full game sweep and higher
@@ -132,6 +140,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T19:49:32Z
-**Stopped at:** Four Deck gameplay reports positive; Zelda prior progress reused, no setup work pending. Planning continuation: `$gsd-new-milestone`
+**Last session:** 2026-10-30T19:58:31Z
+**Stopped at:** Five Deck gameplay reports positive; Crystalis edge observation preserved, no setup work pending. Planning continuation: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`
