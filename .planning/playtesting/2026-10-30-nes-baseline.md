@@ -434,3 +434,32 @@ normal VSync enabled and disables adaptive VSync on the next launch. No current
 game, global setting or emulation code was changed. Activation/read-back and
 visual comparison await a fresh Shatterhand launch. No improvement is claimed
 until that result. See the scene/automation notes for references and next step.
+
+### Presentation override activation and remaining symptoms
+
+The owner quit/relaunched Shatterhand and also reset, losing their immediate
+position. Active launch read-back confirmed regular VSync on, adaptive VSync
+off and the distinct P1/unassigned-P2 routing. The owner still sees some falling
+and left/right disturbance plus busy-scene slowdown, especially with helpers/
+fireballs, and reports that music briefly stopped after a hit then resumed.
+The exact earlier fence-location drifting-line comparison is inconclusive;
+no improvement or cause is claimed. A private after-relaunch display clip and
+separate three-second stereo48k output-monitor audio recording were captured.
+The audio source was game/system output, not microphone input; it was not
+synchronized to the video and does not prove the music interruption recurred.
+
+The host log recorded a core reset and a failed load of numbered slot 0.
+Filesystem checks found that numbered file absent, while a separate autosave
+existed and was privately backed up. The exact auto-state scene was not
+independently inspected. This load error and the unmeasured death/restart delay
+are separate observations. For presentation-only comparisons, relaunch is
+sufficient; avoid needless resets and preserve/identify the saved point first.
+
+Three bounded native Shatterhand navigation attempts stayed on intro/title;
+no native first-stage seam or gameplay checkpoint was reached. The same input
+recipe's final native-runner frame matched the private adapter host, while an
+owned callback control delivered Start. Preserve the navigation limitation;
+neither a helper failure nor a guest/core fault was diagnosed. MM3 portrait/menu
+animation replay remains useful for frame comparison, but interactive cursor
+navigation is also unqualified. This is bounded automation, not an autonomous
+whole-game compatibility result.

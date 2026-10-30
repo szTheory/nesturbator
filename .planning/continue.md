@@ -146,3 +146,15 @@ milestone switch was approved. Reuse the completed sibling research rather than
 repeating broad fan-out. Preserve the pre-existing config/instruction edits.
 
 Latest owner concern: protect daily-use save states across future core updates. Current format 3 refuses earlier formats; recorded behavior revision is not enforced. A future supported-version/migration/rollback policy must be explicit, even before package 1.0. See lessons; no compatibility guarantee was added.
+
+Latest presentation follow-up: a relaunched Shatterhand profile was read back
+with regular VSync on/adaptive VSync off and corrected input ports. Some falling/
+left-right disturbances and busy helpers/fireballs slowdown remain; music
+briefly stopped after a hit by owner report. No fix is claimed. Three-second
+output-only audio capture succeeded separately from video. A numbered slot0
+load failed because no slot file existed; a distinct auto-state is available
+and backed up, exact scene uninspected. Reset was unnecessary for this
+presentation change; no further mandatory owner replay is needed. Native
+Shatterhand navigation failed to reach gameplay within three bounded attempts;
+its final output matches native-runner replay, so neither helper nor core cause
+is diagnosed. Preserve that limit and MM3 menu-interactivity uncertainty.

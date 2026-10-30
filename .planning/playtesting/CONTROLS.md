@@ -72,8 +72,10 @@ See [NES timing](https://www.nesdev.org/wiki/Cycle_reference_chart) and
 [frontend rate control](https://docs.libretro.com/development/cores/dynamic-rate-control/).
 A later Shatterhand drifting-line report led to a backed-up per-core
 presentation override: regular VSync on, Adaptive VSync off for the next launch.
-Its visual outcome is pending; the global settings and active session remain
-preserved. Exit normally and relaunch to apply it.
+A fresh Shatterhand launch was read back with regular VSync on and adaptive
+VSync off. The owner still reports falling/left-right disturbances and slowdown;
+the original exact drifting-line comparison remains inconclusive. This setting
+is not credited as a fix. Relaunching alone applies it; reset is unnecessary.
 
 ## Screenshots and clips
 
@@ -92,3 +94,10 @@ Raw captures and save bytes stay outside Git.
 [EmuDeck's hotkey reference](https://emudeck.github.io/controls-and-hotkeys/steamos/hotkeys/)
 and [RetroArch's input guide](https://docs.libretro.com/guides/input-and-controls/)
 provide background; the live installed configuration is authoritative here.
+
+The later host log showed a failed load of numbered slot 0; that file did not
+exist. A separate Shatterhand autosave exists and was privately backed up.
+Choose a saved slot (or the Auto entry in the host's state controls) rather than
+assuming numbered slot 0 contains the previous automatic resume point. Its
+exact saved scene was not independently inspected. No further reset/relaunch is
+required just to continue playing with the verified current settings.

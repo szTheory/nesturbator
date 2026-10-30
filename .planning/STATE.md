@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Private replay/capture verified; Shatterhand drifting tear has a prepared next-launch presentation comparison
-last_updated: "2026-10-30T22:21:49Z"
+stopped_at: Private replay/capture verified; Shatterhand sync override verified on relaunch; remaining symptoms and native navigation limits retained
+last_updated: "2026-10-30T22:32:11Z"
 last_activity: 2026-10-30
-last_activity_desc: Recorded Shatterhand drifting/wrapping line; prepared per-core adaptive-VSync-off comparison, activation and visual result pending
+last_activity_desc: Verified regular/adaptive VSync read-back, retained remaining Shatterhand symptoms, captured output audio and preserved auto-state after empty-slot failure
 progress:
   total_phases: 3
   completed_phases: 3
@@ -48,12 +48,13 @@ The pre-existing AGENTS.md and config edits remain unstaged and preserved.
 
 ## Next Action
 
-The private operational loop is ready. One high-value presentation comparison
-is prepared: the owner can exit normally and relaunch Shatterhand to apply
-regular VSync on / Adaptive VSync off, then repeat the same left/right motion.
-The active game was preserved. Activation read-back and the visual result are
-pending; the owner acts next when convenient, while the agent can continue
-from captures. No additional broad title sweep is required. The agent can use
+The private operational loop is ready. Shatterhand was relaunched with regular
+VSync on and adaptive VSync off, verified by active launch read-back. Remaining
+falling/left-right disturbances, busy-scene slowdown and a brief reported music
+interruption persist; exact prior drifting-line comparison is inconclusive.
+No fix is claimed and no further mandatory reset/relaunch is needed. The owner
+can keep playing; the agent acts next from retained evidence rather than asking
+for a broad repeat sweep. The agent can use
 four verified input recipes/checkpoints and retained captures to investigate
 before requesting more play. Read [automation/CI direction](playtesting/AUTOMATION.md),
 [scene findings](playtesting/SCENE-PLAYLIST.md), [controls](playtesting/CONTROLS.md)
@@ -86,9 +87,16 @@ classification.
 
 Shatterhand adds good play plus a drifting/wrapping horizontal line captured
 privately in the first stage. Base Adaptive VSync was enabled. The backed-up
-owned profile now disables it for next launch while preserving regular VSync,
-global config and active gameplay. Do not credit an improvement or classify an
-NES overflow before the before/after test.
+owned profile disabled it and a fresh launch read-back passed. Remaining
+disturbances do not establish improvement or an NES overflow cause.
+
+A numbered Shatterhand state-slot load failed because that slot did not exist;
+a separate auto-state exists and was privately backed up. The death-delay cause
+and exact saved scene remain unqualified. Separate three-second output-monitor
+audio capture succeeded without microphone input or synchronization to video.
+Native Shatterhand navigation exhausted its bounded three attempts at title;
+no first-stage native repro is credited, and same-input runner/adapter final-
+frame parity leaves the navigation limitation unclassified.
 
 Four private headless cases—Jurassic Park, Marble Madness, Little Nemo and MM3
 menu—replay checkpoints with identical per-frame RGB/PCM to their input recipes.
@@ -161,6 +169,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T22:21:49Z
-**Stopped at:** Private automation/capture verified; owner can relaunch Shatterhand for prepared presentation comparison, outcome pending. Planning continuation: `$gsd-new-milestone`
+**Last session:** 2026-10-30T22:32:11Z
+**Stopped at:** Private automation/capture verified; presentation override verified with remaining symptoms, no further mandatory owner repeat needed. Planning continuation: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`

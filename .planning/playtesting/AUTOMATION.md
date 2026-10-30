@@ -27,7 +27,7 @@ Four named cases now work without the owner playing:
 | `jurassic` | Fresh boot into the OCEAN animation; checkpoint after frame 60; short logo clip and native captures |
 | `marble` | Scripted player/name/control menus into the first race's intro and timer; checkpoint after frame 900; short clip and native captures |
 | `nemo` | Scripted opening into Mushroom Forest, then walk/jump inputs and NPC dialogue; exact moving-camera artifact is not yet reproduced/qualified |
-| `mm3` | Actual stage-select animation with Shadow Man visible; checkpoint after frame 450, cursor remains on center Mega Man |
+| `mm3` | Portrait/menu animation with Shadow Man visible; checkpoint after frame 450, cursor stays center and interactive navigation is unqualified |
 
 The local convenience command is `python3 private/nes-playtest-2026-10-30/replay_scene.py jurassic`
 or the same command with `marble`, `nemo` or `mm3`; `--fresh` runs the route from reset instead
@@ -102,8 +102,10 @@ host-presentation tearing as a competing explanation to fixed NES-row artifacts.
 The global config had Adaptive VSync enabled alongside normal VSync. The owned
 Nesturbator append profile was backed up and now disables adaptive VSync while
 retaining regular VSync on the next launch. Current gameplay/global config were
-preserved. Activation read-back and the visual before/after result are pending;
-no tearing fix is claimed. Treat this as the next highest-value experiment,
+preserved. A fresh Shatterhand launch was read back with these settings. The owner still
+reports falling/left-right disturbances, busy-scene slowdown and a temporary
+music interruption; exact original drift comparison remains inconclusive. No
+tearing fix is claimed. Treat this as the next highest-value experiment,
 before translating every multi-game seam into a synthetic PPU failure.
 
 ## Highest-value CI candidates
@@ -159,3 +161,12 @@ These visual reports do not establish a DMA cause or authorize another campaign.
 Public helper promotion, native fixes and CI additions remain future scoped
 work, informed by the [scene findings](SCENE-PLAYLIST.md) and
 [rolling direction](../PRODUCT-ROADMAP.md).
+
+Additional bounded Shatterhand navigation did not reach the first stage after
+three attempts; only intro/title output was captured. It is not a gameplay or
+seam checkpoint. Its final frame matched native-runner replay of the same input
+recipe, and an owned input callback control delivered Start, so the navigation
+failure remains unclassified rather than diagnosed as a helper/core bug.
+A separate three-second live output-monitor audio recording succeeded (stereo
+48 kHz, no microphone input); it was not synchronized to the display clip and
+does not establish that the reported brief music interruption recurred.

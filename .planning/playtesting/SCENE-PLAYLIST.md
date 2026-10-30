@@ -136,7 +136,9 @@ this first-stage Area A observation.
 The base host config had regular VSync and Adaptive VSync both enabled. A
 backed-up owned Nesturbator append override now sets regular VSync on and
 Adaptive VSync off for the next launch. The active game was not interrupted;
-actual new-launch read-back and visual comparison remain pending. No global
+a new-launch read-back confirmed those settings; the owner still reports
+falling/left-right disturbances and slowdown, and exact prior-drift comparison
+remains inconclusive. No global
 configuration or emulation code changed. Resolve this host factor before
 interpreting drifting seams as confirmed core timing failures.
 
@@ -202,3 +204,13 @@ preservation checks. The fresh frontend log loaded the 26-entry collection and
 completed startup; all references and per-game core choices passed read-back.
 Current selected-game progress was backed up privately. Raw metadata, saves,
 images and connection details remain outside Git.
+
+After relaunch, regular VSync on/adaptive VSync off and distinct P1/P2 routing
+were confirmed in the launch profile. The owner still reports falling and
+left/right disturbances, slowdown around multiple helpers/fireballs, and brief
+music cessation after being hit. The duration/cause of the post-death wait is
+not established; a separate host error was an attempt to load nonexistent
+numbered state slot 0. Actual auto-state availability and backup were verified.
+No more reset is required for this comparison. A private three-second output-
+monitor recording avoids microphone input but is not synchronized with the clip
+or proof of recurrence of the audio event.

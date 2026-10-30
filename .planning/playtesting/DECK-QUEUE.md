@@ -9,13 +9,11 @@ No game was launched automatically for this preparation.
 
 ## Where to resume
 
-The most useful immediate comparison is a **fresh Shatterhand launch** with the
-prepared presentation override: regular VSync on, Adaptive VSync off. The
-reported horizontal line drifts downward and wraps to the top, strengthening a
-host-presentation hypothesis. Current game remains untouched; use normal exit
-and relaunch to apply the backed-up per-core override, then repeat the same
-left/right movement. Read-back and visual result remain pending. This is a
-presentation test, not a PPU fix or proof of a cause.
+The Shatterhand presentation comparison was activated and read back: regular
+VSync on, Adaptive VSync off. Some falling/left-right disturbances and busy-scene
+slowdown remain; the exact original drifting-line comparison is inconclusive.
+No fix is credited. Further forced replay/reset is unnecessary; use the private
+captures and bounded native recipes before requesting more owner repetition.
 
 The corrected-port MM3 retest still showed crowd/damage slowdown and visual
 observations. See [controls](CONTROLS.md), [scene findings](SCENE-PLAYLIST.md)
@@ -72,7 +70,7 @@ the password's battle encounter route remains optional and not time-qualified.
 | Mega Man 2 (USA) | Looks good overall with some slowdown | Corrected title explicitly; area/cause unverified |
 | Mega Man 3 (USA) | Good sound/music and tight input; stage-select line, vertical-scroll seam and severe crowded/damage slowdown reported | P1/P2 duplicate mapping corrected and read back on relaunch; owner reports crowd/damage slowdown persists near 59.97 FPS, with separate stage-select/vertical-scroll observations |
 | Metroid (USA) | Going well early; slowdown around bats while shooting | Early bat/shooting slowdown remains unattributed; built-in passwords proposed for efficient scene access |
-| Shatterhand (USA) | Tight controls, good audio/animations and smooth play; intro artifact, sprite flicker, bottom edge and drifting horizontal line reported | Captured first-stage scene; line reportedly travels downward and wraps to top, so adaptive-VSync-off presentation comparison is prepared for next launch |
+| Shatterhand (USA) | Tight controls, good audio/animations and smooth play; intro artifact, sprite flicker, bottom edge and drifting horizontal line reported | Captured first-stage scene; line reportedly travels downward and wraps to top, so regular-VSync-on/adaptive-off read-back passed on relaunch, with remaining disturbances and no confirmed fix |
 
 ## Progress and host checks, when useful
 

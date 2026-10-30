@@ -139,6 +139,24 @@ and whether cheats remained active. Passwords do not preserve an exact CPU/PPU
 instant. The current private replay helpers are a useful operational prototype,
 not a published portable tool or proof that native payloads load in RetroArch.
 
+The later Shatterhand line drifted down and wrapped to the top, making a host
+presentation comparison especially valuable before a PPU change. Adaptive VSync
+was enabled in the base host config. A backed-up per-core override retained
+regular VSync and disabled adaptive VSync; relaunch read-back passed, but the
+owner still reported some disturbances and slowdown. Do not promote a plausible
+host hypothesis into a fix merely because a setting was applied.
+
+Preserve the owner's position during host comparisons. Explain whether a
+relaunch, soft reset or clean power-on is actually needed; a presentation-only
+change did not require resetting the level. Numbered state slots and automatic
+resume points are distinct—one attempted empty-slot load is not evidence that
+the autosave failed. Backup and identify checkpoints before repeating a scene.
+Native navigation also has limits: three Shatterhand attempts reached only the
+title, despite an input callback control and native/adapter output parity.
+Record scene access failures honestly rather than treating any generated clip
+as the intended problem scene. Output-monitor audio and unsynchronized sampled
+video carry different timing/diagnostic limits.
+
 ## Transferable mechanisms
 
 | Mechanism | Lesson and practical check |
