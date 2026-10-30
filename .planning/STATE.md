@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Positive Mario 3 and Contra Deck gameplay reports recorded; Ninja Gaiden recommended next
-last_updated: "2026-10-30T19:39:28Z"
+stopped_at: Positive Mario 3, Contra and Ninja Gaiden Deck gameplay reports recorded
+last_updated: "2026-10-30T19:45:32Z"
 last_activity: 2026-10-30
-last_activity_desc: Owner reports Contra plays well with the same positive feedback as Mario 3; Ninja Gaiden recommended next
+last_activity_desc: Owner reports Ninja Gaiden plays great; positive MMC1, MMC3 and UxROM smoke signal
 progress:
   total_phases: 3
   completed_phases: 3
@@ -53,9 +53,11 @@ controller works. A read-only live check found the intended core and corrected
 player-one configuration. The game was left running. No immediate user action
 is required. The owner subsequently reported good Mario 3 input timing, visuals
 and audio, low perceived latency and no observed issues. The owner then reported
-Contra (USA) plays well with similar feedback. Ninja Gaiden (USA), displayed as **Shadow Warriors**, from the same
-collection is the recommended next voluntary spot check, adding MMC1 after
-MMC3 and UxROM; no next-title launch or result is claimed. The launcher
+Contra (USA) plays well with similar feedback, then reported Ninja Gaiden
+(displayed as **Shadow Warriors**) plays great. These are positive MMC3, UxROM
+and MMC1 gameplay smoke reports. If the owner continues, The Legend of Zelda
+(USA, Rev A) is the next suggested voluntary title, with battery-backed progress
+to assess later. No Zelda gameplay or persistence result is claimed. The launcher
 includes handheld fallback, but unplug/reconnect and fallback remain untested.
 
 The Deck is in Gaming Mode and ES-DE is open through its repaired existing Steam
@@ -64,7 +66,7 @@ entries, each with Nesturbator selected and other cores still switchable. No mai
 ROM files were changed or added. Normal battery storage is reused; snapshots
 are core-specific within normal state storage. The owner saw commercial Mario 3
 on the TV and confirmed physical Start after the corrected SDL2 PowerA profile.
-The subsequent collection launch used the correct core but Start did not work. Steam virtual-device presentation differs from the direct desktop run; a context-specific controller resolver was applied, and the owner confirmed working input after relaunching from the collection. Handheld fallback is configured but untested. Mario 3 and Contra have positive user-reported gameplay/pacing smoke evidence; instrumented latency, sustained/full-game coverage, clean frontend return and progress roundtrip remain open.
+The subsequent collection launch used the correct core but Start did not work. Steam virtual-device presentation differs from the direct desktop run; a context-specific controller resolver was applied, and the owner confirmed working input after relaunching from the collection. Handheld fallback is configured but untested. Mario 3, Contra and Ninja Gaiden have positive user-reported gameplay smoke evidence; instrumented latency, sustained/full-game coverage, clean frontend return and progress roundtrip remain open.
 
 Two Mac Mario reports were useful smoke signal; mild sluggishness/audio tearing
 remain unattributed. The owner explicitly deferred a full game sweep and higher
@@ -128,6 +130,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T19:39:28Z
-**Stopped at:** Mario 3 and Contra Deck gameplay smoke reports positive; owner may try Ninja Gaiden next, no setup work pending. Planning continuation: `$gsd-new-milestone`
+**Last session:** 2026-10-30T19:45:32Z
+**Stopped at:** Mario 3, Contra and Ninja Gaiden Deck smoke reports positive; optional Zelda next, no setup work pending. Planning continuation: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`

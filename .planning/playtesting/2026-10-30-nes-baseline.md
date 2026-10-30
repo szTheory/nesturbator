@@ -21,7 +21,7 @@ User-requested exploratory RetroArch sessions, one game at a time. Header admiss
 | 06 | Legend of Zelda, The (USA) | 1 | yes | Not tried |
 | 07 | Super Mario Bros. (World) | 0 | no | User: plays pretty well; graphics/audio good; mild sluggishness under substantial concurrent load, cause unverified. |
 | 08 | Metroid (USA) | 1 | no | Not tried |
-| 09 | Ninja Gaiden (USA) | 1 | no | Not tried |
+| 09 | Ninja Gaiden (USA) | 1 | no | Deck: displayed as Shadow Warriors; user reports it plays great. |
 | 10 | Punch-Out!! (USA) | 9 | no | Unsupported mapper 9 |
 | 11 | Solar Jetman - Hunt for the Golden Warpship (USA) | 7 | no | Not tried |
 | 12 | Mega Man 3 (USA) | 4 | no | Not tried |
@@ -169,9 +169,8 @@ user-reported Contra (USA) smoke result on the existing Deck collection route.
 No independent launch/log check was performed for this report. Duration,
 full-game coverage, save/load and measured latency remain unqualified.
 
-Recommended next voluntary title: **Ninja Gaiden (USA)** from the same collection,
-to add mapper 1 (MMC1) after the positive MMC3 and UxROM sessions. No next-title
-launch or result is claimed.
+Ninja Gaiden (USA) was recommended next to add mapper 1 (MMC1). Its subsequent
+feedback is recorded below.
 
 ### Collection display-name clarification
 
@@ -181,3 +180,17 @@ with Nesturbator selected and no hidden flag. Its existing scraped display name
 is **Shadow Warriors**. No restart, ROM duplication or metadata change is needed;
 select Shadow Warriors to play the intended entry. This is an identity/display
 check, not a gameplay result.
+
+### Ninja Gaiden / Shadow Warriors — Steam Deck gameplay feedback
+
+After the display-name clarification, the owner reported: **plays great**.
+Record a positive user-reported gameplay smoke result for Ninja Gaiden (USA),
+displayed as Shadow Warriors in the collection. No separate detailed audio,
+latency, duration, full-game or persistence assessment was supplied for this
+report. Together with Mario 3 and Contra, this provides ordinary-play smoke
+signal across MMC1, MMC3 and UxROM; it does not qualify every game on those boards.
+
+If the owner continues, The Legend of Zelda (USA, Rev A), already in the
+collection, is a useful next voluntary choice with battery-backed progress.
+Its gameplay and save/reload behavior remain untested; no configuration change
+or automatic game launch was performed for this report.

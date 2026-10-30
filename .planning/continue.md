@@ -25,8 +25,10 @@ Latest Deck gameplay feedback: Mario 3 has good input timing, visuals and audio,
 low perceived latency and no observed issues according to the owner. This is
 ordinary-play smoke evidence, with no instrumented latency or full-game claim.
 The owner subsequently reported Contra (USA) plays well with the same positive
-feedback, adding a UxROM smoke result. Ninja Gaiden (USA), displayed as **Shadow Warriors**, already in the same
-collection, is the next suggested voluntary title to add MMC1; it is untested.
+feedback, adding a UxROM smoke result. The owner then reported Ninja Gaiden
+(USA), displayed as **Shadow Warriors**, plays great, adding positive MMC1 smoke
+signal. The Legend of Zelda (USA, Rev A) is the next optional title if the owner
+continues, with battery-backed progress to assess later; it remains untested.
 No setup action is pending. Save/load and longer-session coverage remain open.
 
 Mac Mario 1 and Mario 3 played well enough for initial smoke signal, with mild
