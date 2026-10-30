@@ -6,10 +6,10 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 current_plan: 9 of 9 complete
 status: completed
-stopped_at: Hosted session-control debug repaired and verified; PR 61 merge remains
-last_updated: "2026-10-29T21:42:30Z"
+stopped_at: CI efficiency quick task completed on the phase branch; PR 61 merge remains
+last_updated: "2026-10-30T00:49:54Z"
 last_activity: 2026-10-29
-last_activity_desc: "Repaired and verified hosted session controls on PR #61"
+last_activity_desc: "Completed CI efficiency quick task 261029-sdj"
 state_head: d85a058dd7e186180a6c6903f4253ad39b99d365
 progress:
   total_phases: 3
@@ -125,8 +125,26 @@ Earlier decisions below retain their original point-in-execution status; pending
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 261026-i8z | Reduce repeated CI suites, session controls and vector inventory work | 2026-10-26 | dbbf04f | [261026-i8z-reduce-ci-overhead-using-the-recovered-c](./quick/261026-i8z-reduce-ci-overhead-using-the-recovered-c/) |
+| 261029-sdj | Reduce inventory parsing and reuse CTest-validated hash artifacts | 2026-10-29 | dc3451b | [261029-sdj-optimize-no-skip-inventory-parsing-and-r](./quick/261029-sdj-optimize-no-skip-inventory-parsing-and-r/) |
 
 ## Delivery
+
+Quick task `261029-sdj` completes the CI cleanup in `dc3451b`. The no-skip
+policy takes 1.951 seconds locally versus 8.756 seconds for the original helper
+on the same 695-test inventory, with existing and new negative cases retained.
+Hosted lanes clear and upload the native hashes already generated and pin-checked
+by CTest, preserving all six artifact names and the full equality gate. Final
+local CI passes 695/695 in 418.82 seconds and generates all three packages;
+archive, hash, policy, hygiene and workflow syntax checks pass. The actual
+campaign remains 119 PASS/27 FAIL with its unchanged report digest.
+
+Code and planning records publish together through PR #61; its resulting
+automated checks provide hosted qualification. The previous head `d480280`
+has successful CI `40960199568/1` and Nightly `40960199553/1`, superseding the
+then-pending statuses in the historical debug handoff below. Prior immutable
+phase acceptance keeps its original source identity. The config edit and
+recorded debt remain unchanged. Planning-only fast paths remain proposed
+followup scope; this task changes neither required-check policy nor coverage.
 
 Post-publication debug repaired supervised poll interpreter cost and a TERM race
 during operation timing initialization in `f9ae22e`. Fresh local CI passes
@@ -234,9 +252,10 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Merge PR #61 as a separate step after publication checks finish green. The
-session-control repair is verified on `f9ae22e`; required CI and all hosted
-session jobs pass, with the broader Nightly repeat job pending at handoff.
+Merge PR #61 as a separate step after its publication checks are green.
+CI cleanup `dc3451b` passes full local qualification; the publication checks
+verify hosted policy behavior and six-platform hash reuse. The prior head
+`d480280` has successful required CI and Nightly results.
 All phase plans, requirements and independent verification are complete.
 Preserve the exact config edit,
 original causal history, accepted 428-input source, deferred collector findings
@@ -263,6 +282,6 @@ as an already shipped milestone.
 
 ## Session
 
-**Last session:** 2026-10-29T21:42:30Z
-**Stopped at:** Hosted session-control debug verified on f9ae22e; publication checks and merge remain
+**Last session:** 2026-10-30T00:49:54Z
+**Stopped at:** CI efficiency quick task complete; PR #61 publication checks and merge remain
 **Resume file:** None
