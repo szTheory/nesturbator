@@ -6,11 +6,11 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 current_plan: 9 of 9 complete
 status: completed
-stopped_at: Phase 20 review-record verification refreshed; all three reports passed; PR review/merge next, with no auto-chaining
-last_updated: "2026-10-30T14:02:43Z"
+stopped_at: v5 audit complete with tech_debt and no blockers; next command is $gsd-complete-milestone v5
+last_updated: "2026-10-30T17:17:18Z"
 last_activity: 2026-10-30
-last_activity_desc: Refreshed Phase 20 review-record verification; Phases 19, 20 and 21 passed
-state_head: 0a83c407d8bd2834af7b1bc40e1cb5e446cad522
+last_activity_desc: Audited all v5 requirements and integration; saved debt and closeout handoff
+state_head: e5e2d7d143619073a3bed4f2f3412834ef1050c8
 progress:
   total_phases: 3
   completed_phases: 3
@@ -25,7 +25,38 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after Phase 20 review-record verification refresh, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: All 27 v5 plans have summaries, all 11 requirements retain accepted implementation evidence, and Phases 19, 20 and 21 have current passed verification. PR review/merge and milestone audit remain separate steps.
+Current focus: v5 audit is complete with `tech_debt`: all eleven requirements, all three phases, eight integration groups and eleven end-to-end flows are satisfied with no blockers. Next: `$gsd-complete-milestone v5`; closeout has not run.
+
+The [milestone audit](v5-MILESTONE-AUDIT.md) and
+[integration report](v5-INTEGRATION-AUDIT.md) record the outcome. Fresh focused
+runtime/campaign/replay checks and offline collector/inventory controls pass.
+All three verification-owner queries remain `passed`. Five empty summary
+completion claims were reconciled against later independent verification and
+executable evidence; historical summaries and phase reports were preserved.
+Live GitHub confirms PR #61 merged and final-head CI/Nightly succeeded.
+Deferred collector defects, historical measurement attribution, README revision
+text and ledger consistency remain debt. The ledger currently has 18 table
+entries/counted records but 17 JSON records, missing entry 18. Historical
+source-bound hosted evidence and physical-tie/provenance limits remain intact.
+No runtime, test, public documentation, acceptance rule or phase record changed.
+The pre-existing config and AGENTS edits remain outside this audit's changes.
+Closeout must refresh product direction inside that step under AGENTS.md Rule 8.
+Context may be cleared; read [continue.md](continue.md) before closeout.
+
+The following merge confirmation and earlier execution records are historical.
+
+PR #61 merged on 2026-10-30 at 14:27:46 UTC after the final published head's
+CI and Nightly checks succeeded. GitHub records squash merge
+`45a078d2de1f08e39caf1c5942fcdb57f493d8af` for candidate
+`e5e2d7d143619073a3bed4f2f3412834ef1050c8`.
+Delivery: https://github.com/szTheory/nesturbator/pull/61
+CI: https://github.com/szTheory/nesturbator/actions/runs/41070047664
+Nightly: https://github.com/szTheory/nesturbator/actions/runs/41070047609
+All three local verification-owner checks still return `passed`.
+At that handoff, milestone audit and closeout had not run. Context-reset handoff:
+[continue.md](continue.md).
+
+Earlier execution and delivery status below is historical where superseded.
 
 The latest Phase 20 execute-phase step skipped all 12 summarized plans and
 refreshed the stale report caused solely by the changed Phase 21 review record.
@@ -126,8 +157,8 @@ Phase 21 directory. Earlier source pins and pending statuses below are historica
 Phase: 21 (Interrupt latency and hijack) — COMPLETE
 Current Plan: 9 of 9 complete
 Plan: All 9/9 phase plans complete; all 27/27 v5 plans complete
-Status: All three phase reports passed; PR review/merge and milestone audit remain
-Last activity: 2026-10-30 -- Phase 20 review-record verification refreshed; no auto-chaining
+Status: PR #61 squash-merged; all phase reports passed; v5 audit tech_debt with no blockers; closeout next
+Last activity: 2026-10-30 -- Milestone audit and integration checks complete; closeout handoff saved; no auto-chaining
 
 Progress: [██████████] 100%
 
@@ -328,18 +359,24 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-The owner authorized automatic squash merge of existing PR #61 on 2026-10-30
-once the current required CI checks are green. Publish the completed verification
-refreshes and enable that conditional merge without another confirmation.
-This authorization preserves CI gates and does not start milestone audit or
-closeout; run those as separate commands after merge. All three phase
-verification owner statuses are `passed`; do not repeat their execute commands
-while those statuses remain current. All 27 plans have summaries; no
-implementation planning remains. Preserve the exact config edit, original
-causal history, source-bound hosted acceptance, deferred collector findings,
-Phase 21 historical-attribution warning and physical-tie/provenance limits.
-Reconcile the recorded ledger discrepancy before closeout. Verified
-implementation is not an already shipped milestone. No auto-chaining.
+After clearing context, run this command in the same project:
+
+```text
+$gsd-complete-milestone v5
+```
+
+This reviews the audit's debt, archives v5 and refreshes rolling product direction
+within the closeout step. Read [continue.md](continue.md) and
+[v5-MILESTONE-AUDIT.md](v5-MILESTONE-AUDIT.md) first. PR #61 is already merged;
+no merge action or implementation-plan rerun remains. All three phase reports
+currently pass; use the verification owner to detect future staleness.
+
+Preserve the pre-existing config edit, source-bound hosted evidence, deferred
+collector findings, historical measurement-attribution warning, README advisory,
+ledger discrepancy and physical-tie/provenance limits. Audit is complete;
+closeout remains a separate step. Refresh the rolling product roadmap inside
+closeout, as AGENTS.md requires. DMA and PAL remain proposed direction, not new
+approved implementation scope.
 
 ## Performance Metrics
 
@@ -360,6 +397,6 @@ implementation is not an already shipped milestone. No auto-chaining.
 
 ## Session
 
-**Last session:** 2026-10-30T14:02:43Z
-**Stopped at:** Phase 20 review-record verification passed; all three reports current; PR review/merge next, no auto-chaining
-**Resume file:** None
+**Last session:** 2026-10-30T17:17:18Z
+**Stopped at:** v5 audit tech_debt, no blockers; next command: `$gsd-complete-milestone v5`
+**Resume file:** `.planning/continue.md`
