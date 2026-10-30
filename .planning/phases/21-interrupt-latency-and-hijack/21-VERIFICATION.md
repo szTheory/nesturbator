@@ -1,9 +1,10 @@
 ---
 phase: 21-interrupt-latency-and-hijack
-verified: 2026-10-29T19:35:20Z
+verified: 2026-10-30T13:29:50Z
 status: passed
 score: "32/32 truths verified"
 covered_files:
+  - .github/workflows/ci.yml
   - .planning/phases/21-interrupt-latency-and-hijack/21-01-PLAN.md
   - .planning/phases/21-interrupt-latency-and-hijack/21-01-SUMMARY.md
   - .planning/phases/21-interrupt-latency-and-hijack/21-02-PLAN.md
@@ -50,6 +51,7 @@ covered_files:
   - tests/cmake/phase21_hosted_evidence_controls.cmake
   - tests/cmake/phase21_source_identity.cmake
   - tests/cmake/phase21_source_identity_controls.cmake
+  - tests/cmake/skip_policy.cmake
   - tests/cmake/v5_targets.cmake
   - tests/cmake/vector_api_policy.cmake
   - tests/core/test_api.c
@@ -71,10 +73,12 @@ covered_files:
   - tests/header/header_cxx.cpp
   - tests/interrupt_fixture.h
   - tests/libretro/libretro_host.c
+  - tests/retroarch/state_session.sh
+  - tests/retroarch/test_state_session.sh
   - tests/runahead_model.h
   - tests/runner/hashes.txt
   - tests/state_test.h
-covered_digest: "v4:sha256:90685617487a7dfca4c459278e257d1cfa0a7ebf40f2d25b901bbeb2e52d87ea"
+covered_digest: "v4:sha256:62f1d2999791be7a7ec890edcaad20b824da67900b731bcae69f1d95ed5281f8"
 behavior_unverified: 0
 overrides_applied: 0
 unverified_prohibitions:
@@ -89,154 +93,160 @@ unverified_prohibitions:
   - statement: "Evidence must never claim a physical exact-tie winner or source-bound hosted acceptance that was not measured."
     status: flagged-unverified
     verification: judgment
-    reason: "Plan 21-09 marks this intent constraint unresolved; the physical zero-margin winner remains unmeasured."
+    reason: "Plan 21-09 marks this intent constraint unresolved; physical zero-margin precedence remains unmeasured."
 ---
 
 # Phase 21: Interrupt latency and hijack — Verification Report
 
 **Phase Goal:** A game's IRQ starts on the same instruction as on the console, and an NMI arriving during BRK or an IRQ takes over its vector as on the console.
-**Verified:** 2026-10-29T19:35:20Z
+**Verified:** 2026-10-30T13:29:50Z
 **Status:** passed
-**Re-verification:** No; initial verification.
+**Re-verification:** No; the prior report had no `gaps:` section, so this is an initial-mode goal audit.
 
 ## Goal Achievement
 
-I checked the four roadmap success criteria first, then every truth in all nine canonical plan frontmatters. The implementation has a single instance-owned poll/entry path; it is connected to production bus actions, native state, the real libretro module, AccuracyCoin gates, and source-bound hosted evidence. Tests exercise the state transitions and ordering invariants rather than only checking that symbols exist.
+I verified the four roadmap success criteria and all 28 truths in the nine plan frontmatters. Production code keeps IRQ eligibility at its instruction poll, carries the accepted decision into interrupt entry, and selects an NMI vector at the documented entry cutoff. Production bus tests, saved-state tests, and the actual libretro module tests exercise those transitions. The current local CI workflow passes.
+
+Evidence has two source scopes. Hosted six-platform acceptance, campaign data, and the RetroArch session are bound to the recorded candidate `54c7db29c73a66bb552e71b0887529249a41a072`, tested merge `faf1b9159ce8dae83cd2c08c155fc9b77fac32de`, and protected base `a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562`. Current `HEAD` is `ab790a8b6b03`, a descendant with later workflow, documentation, measurement, policy, and session-test edits. The fresh local CI result below covers this checkout; no new hosted qualification is claimed for current HEAD. The production CPU, bus, and state files are unchanged from the recorded hosted candidate.
 
 | # | Observable truth | Status | Evidence |
 |---|---|---|---|
-| R1 | The Interrupt flag latency, NMI Overlap BRK, and NMI Overlap IRQ rows pass, with owned CLI/SEI/PLP/RTI/branch and every BRK/IRQ-cycle reproducers registered in CI. | VERIFIED | Hosted 11-row gate includes all three targets; all passed. tests/core/test_irq_poll.c, tests/core/test_interrupt_entry.c, and tests/cpu/test_cpu_unit.c are registered; focused tests and final CI passed. |
-| R2 | All eleven v5 rows pass at pin 6bee919 and every previously passing row remains protected in each CI lane. | VERIFIED | Source-bound CI and fresh protected-main authority retain all 114 protected keys in all six lanes; exact target gate passes 11/11. |
-| R3 | CPU vectors, nightly blargg MMC3, Holy Mapperel, and boot-to-play remain green with the shared entry path. | VERIFIED | Nightly vectors 258/258 and MMC3 13/13 passed; Holy Mapperel and runner.boot_to_play passed on all six build platforms. |
-| R4 | Mid-entry native states and libretro run-ahead resume the same run, with matching moved hashes on six platforms. | VERIFIED | Native matrix covers 20 cutpoints; actual module replay covers 20 classes at depths 1–3 and both input scripts. Six full frame/PCM/APU-transition/state inventories match. |
-| 1.1 | A real APU IRQ passes through production source update, bus capture, legal poll, entry accesses, and an observable guest handler. | VERIFIED | test_real_apu_irq_reaches_handler in tests/core/test_irq_poll.c; core.irq_poll passes. Production IRQ writer and bus capture are in src/apu.c and src/bus.c. |
-| 1.2 | Old-I CLI/SEI/PLP, restored-I RTI, and all eight branch opcodes distinguish legal poll timing from later source or I changes. | VERIFIED | Exact access and stack tables in tests/cpu/test_cpu_unit.c and production guest cases in tests/core/test_irq_poll.c; cpu.unit and core.irq_poll pass. |
-| 1.3 | The integer timeline and sole IRQ-line writer remain; tests add no device code, dependency, ROM asset, or public API, and config remains untouched. | VERIFIED | Source path inspection, CI registration, source diff, hygiene result, and exact config digest 62a22f6862efb7c74ee31baf2f22bae32d453e79aaec6726dbcf3b7213d47167. |
-| 2.1 | IRQ eligibility is committed at legal polls with the correct old/restored I semantics and persists through dispatch despite later line/I changes. | VERIFIED | src/cpu.c keeps poll acceptance in irq_accepted; core.irq_poll, cpu.unit, core.interrupt_entry, and native replay pass. |
-| 2.2 | Format 3/revision 9 state includes bounded accepted history, leaves ABI unchanged, and rejects formats 1/2 before mutation. | VERIFIED | src/state.c visitor and validation, include/nesturbator.h compatibility contract, core.state_reject, core.state_generation, and core.interrupt_state pass. |
-| 2.3 | Poll changes, docs, campaign attribution, hash pins, and all 114 protected records are coherent. | VERIFIED | tests/accuracy/measurements.md, scoreboard, six-platform inventory, source-bound CI, and no-lost-pass gates. |
-| 3.1 | Source-derived finite-margin schedules distinguish interrupt origin, vector cutoff, and coherent paired status results; no physical exact-tie claim is made. | VERIFIED | tests/core/test_interrupt_entry.c captures production bus results against source-pinned complete tables and finite-margin cases; physical zero-margin precedence is explicitly stated as unmeasured. |
-| 3.2 | BRK/IRQ cycle arrivals, late sustained and missed short requests, paired tables, and wrong-model controls are exercised. | VERIFIED | core.interrupt_entry covers C1–C7 arrivals, complete BRK32/IRQ64 tables, request lifetime, and controls; named test passed. |
-| 4.1 | BRK, IRQ, and NMI share an instance-owned staged entry with origin semantics, coherent vector choice, and one-time request consumption. | VERIFIED | src/cpu.c entry begin/action/drain and src/internal.h fields are exercised by production-origin, overlap, simultaneous-request, and consumption tests. |
-| 4.2 | Only interrupt entry is resumable; ordinary cpu_step/frame drains synchronously without a new public stepping API or runtime snapshot callback. | VERIFIED | Public synchronous run path drains staged actions; tests/core/test_interrupt_entry.c and tests/core/test_interrupt_state.c compare ordinary initiation and continuation. Public header exports no new stepping API. |
-| 4.3 | Persistent fields use the canonical state visitor and reachable bounds before APPLY; docs, corpus, state format, and measured hashes agree. | VERIFIED | src/state.c validates before applying fields; tests/core/test_state_reject.c and test_interrupt_state.c exercise valid and invalid states; state matrix, public docs, corpus and pins agree. |
-| 5.1 | Only source-reachable entry combinations load; valid states remain canonical across save/load/save. | VERIFIED | tests/core/test_state_reject.c entry-history round-trip and rejection matrix; core.state_reject passes. |
-| 5.2 | Reset ends partial entry; invalid states and formats 1/2 preserve error order, instance bytes, and save generation. | VERIFIED | tests/core/test_state_generation.c reset matrix and tests/core/test_state_reject.c refusal controls; both pass. |
-| 6.1 | Every BRK/IRQ/NMI resumable action can be saved, loaded, and continued through ordinary execution with exact trace and future frame/audio equality. | VERIFIED | tests/core/test_interrupt_state.c covers 20 production cutpoints and compares bus trace, ticks, PC/P/stack, markers, pixels, PCM, frame data, and transitions; core.interrupt_state passes. |
-| 6.2 | Nonzero audio history, interleaved instances, state forks, and omitted-history controls rule out shared or boundary-only substitutes. | VERIFIED | test_interrupt_state.c interleaving and synthesis checks, test_state_fork.c entry case, and expected-divergence controls pass. |
-| 7.1 | The actual libretro module's retro_unserialize resumes every entry origin/stage under run-ahead and matches committed/speculative output. | VERIFIED | tests/libretro/libretro_host.c dynamically resolves the production module symbols and compares native state, ticks, video, PCM, frame metadata, and guest markers at depths 1–3. libretro.runahead passed in final CI. |
-| 7.2 | Skipped/stale loads and omitted history fail adapter comparisons while ordinary rewind/run-ahead and board-family cases remain. | VERIFIED | Four adapter controls reach intended rejection masks; final libretro.runahead, state-fork, and run-ahead suite passed. |
-| 8.1 | Fresh main authority protects all 114 prior PASS keys, and all eleven exact v5 target rows pass without aggregate-score substitution. | VERIFIED | Hosted per-platform evidence and exact-key gate report 114/114 and 11/11; tests/cmake/v5_targets.cmake and no-lost-pass are registered and pass. |
-| 8.2 | Six-platform hash equality, performance, sanitizer, host, vectors, MMC3, Holy Mapperel, and boot gates remain in place and pass. | VERIFIED | Evidence ledger binds six-platform inventories, original +1% per-ROM gate (+0.79%, +0.84%, +0.98%), CI/Nightly results, and host session. |
-| 8.3 | Local preparation does not masquerade as hosted evidence; collector debts and branch/config boundaries remain explicit. | VERIFIED | Plan08 preparation and Plan09 ledger separate local and hosted identities, preserve CR-01/WR-03/WR-04, keep PR draft, and record the unchanged config digest. |
-| 8.4 | Candidate, tested merge, and protected base are distinct; effective source mapping is only accepted for identical modes/blobs. | VERIFIED | 21-EVIDENCE.md binds candidate 54c7db29, tested merge faf1b915, base a64c23fd and matching 428-path current/clean inventories. |
-| 8.5 | Empty or missing authorities, lane results, artifacts, and inventories fail closed. | VERIFIED | Phase21 collector control suite tests missing/empty and mismatch cases; phase21.hosted_evidence.controls passed. |
-| 8.6 | Full-key and complete sorted hash comparisons reject duplicates, omissions, and platform-order changes. | VERIFIED | Collector and v5 negative controls plus six equal 114-row platform inventories passed. |
-| 9.1 | Actual hosted CI/Nightly contents, provenance, target rows, protected keys, hashes, performance, and conformance pass for the accepted source. | VERIFIED | CI 40929011059/1 passed 18/18; Nightly 40929010997/1 has seven work jobs passed and its declared PR-only report job skipped. All 16 downloaded ZIPs match API digests. |
-| 9.2 | Acceptance binds candidate, tested merge, base, modes/blobs, run/attempt/artifact IDs, with no remote mutation. | VERIFIED | 21-EVIDENCE.md and immutable manifest identify each layer; independent current/clean checkout validation and parent MODE=validate exited 0. No push, dispatch, merge, or PR-state change occurred during verification. |
-| 9.3 | Finite-margin ordering uses the one global integer tie policy without claiming a physical zero-margin winner. | VERIFIED | Timing annex and evidence ledger distinguish measured finite margins from deterministic integer model policy; no exact physical tie is claimed. |
-| 9.4 | With no new eligible NMI edge, BRK/IRQ retain vector and origin semantics; a held consumed level is not a second request. | VERIFIED | tests/core/test_interrupt_entry.c includes empty-request, held-consumed-level, and cancellation cases; core.interrupt_entry passes. |
-| 9.5 | Simultaneous eligible requests prioritize NMI, preserve origin PC/B semantics, and consume each recognized request once. | VERIFIED | Simultaneous arbitration, origin, stack, consumption, and new-edge controls in tests/core/test_interrupt_entry.c pass. |
+| R1 | The Interrupt flag latency, NMI Overlap BRK, and NMI Overlap IRQ targets pass, and owned CLI/SEI/PLP/RTI/branch and BRK/IRQ cycle cases run in CI. | VERIFIED | Current `core.irq_poll`, `core.interrupt_entry`, and `cpu.unit` pass in the fresh workflow; the source-bound hosted 11-row gate also passed. |
+| R2 | All eleven v5 rows pass and previously passing keys remain protected in each accepted CI lane. | VERIFIED | The accepted hosted candidate records 11/11 targets and all 114 protected keys across six lanes; current local exact-target and no-lost-pass checks pass. No current-HEAD hosted rerun is asserted. |
+| R3 | CPU vectors, nightly MMC3, Holy Mapperel, and boot-to-play remain green with the shared entry path. | VERIFIED | Hosted acceptance records vectors 258/258, MMC3 13/13, Holy Mapperel, and boot-to-play across six lanes; current `runner.boot_to_play` passes. |
+| R4 | Mid-entry native state and libretro run-ahead resume the same run, with matching moved hashes across the six accepted platforms. | VERIFIED | Current native and actual-module run-ahead tests pass; the accepted hosted evidence records six equal hash inventories and a complete RetroArch session for its bound source. |
+| 1.1 | A real APU IRQ traverses production source update, bus capture, legal poll, entry accesses, and an observable guest handler. | VERIFIED | `test_real_apu_irq_reaches_handler` uses the real APU and production bus path; `core.irq_poll` passes. |
+| 1.2 | Old-I CLI/SEI/PLP, restored-I RTI, and every branch opcode exercise the legal poll timing and pushed state. | VERIFIED | Owned exact access/stack tables and production guest cases cover the flag transitions and eight branch opcodes; `cpu.unit` and `core.irq_poll` pass. |
+| 1.3 | The existing integer timeline and sole IRQ writer remain; owned tests add no device code, dependency, ROM asset, or public API, and the preexisting config edit is excluded. | VERIFIED | Source and test wiring show owned fixtures and the production IRQ writer; the current config edit is outside phase inputs as Plan 21-01 states. No API or dependency was added. |
+| 2.1 | IRQ eligibility is committed at legal polls with correct old/restored-I semantics and survives later line/I changes. | VERIFIED | `src/cpu.c` stores accepted history per instance; poll, CPU, entry, and state replay tests exercise the transition. |
+| 2.2 | State format 3 and behavior revision 9 carry bounded accepted history, preserve ABI 1, and reject formats 1/2 before mutation. | VERIFIED | Header constants are format 3, revision 9, ABI 1; visitor validation runs before APPLY and state rejection/generation tests pass. |
+| 2.3 | Poll changes, README/header behavior documentation, campaign accounting, hash pins, and protected keys are covered. | VERIFIED | The README save-state section and public header describe revision 9; measured outputs and pins are covered. A stale README intro line and WR-02 attribution discrepancy are reported below as documentation warnings. |
+| 3.1 | Source-derived finite-margin schedules constrain origin, vector cutoff, and coherent paired results without claiming a physical exact tie. | VERIFIED | Production bus tables and finite-margin schedules pass; the annex explicitly leaves physical zero-margin precedence unmeasured. |
+| 3.2 | BRK/IRQ cycle arrivals, held and missed requests, paired tables, and wrong-model controls are exercised. | VERIFIED | `core.interrupt_entry` covers C1–C7 arrivals, complete BRK/IRQ tables, request lifetime, and negative controls. |
+| 4.1 | BRK, IRQ, and NMI share instance-owned staged entry with origin semantics, coherent vector choice, and one-time request consumption. | VERIFIED | Entry begin/action/drain code is exercised by origin, overlap, simultaneous-request, and consumption cases. |
+| 4.2 | Only interrupt entry is resumable; ordinary CPU/frame execution drains it synchronously without a new stepping API or runtime snapshot callback. | VERIFIED | Public synchronous execution drains entry actions; API inspection and ordinary continuation tests confirm no new public stepping API. |
+| 4.3 | Persistent fields use the canonical visitor and reachable bounds before APPLY; state format and serialized hashes remain coherent. | VERIFIED | `src/state.c`, the state matrix, CRC-correct rejection tests, header, and current state tests agree; `core.interrupt_state` passes. |
+| 5.1 | Only source-reachable entry combinations load, and valid states remain canonical across save/load/save. | VERIFIED | State rejection tests cover round trips and invalid entry combinations; `core.state_reject` passes. |
+| 5.2 | Reset ends partial entry; invalid states and old formats preserve error order, instance bytes, and generation. | VERIFIED | `core.state_generation` and `core.state_reject` pass reset and refusal controls. |
+| 6.1 | Every resumable BRK/IRQ/NMI action saves, loads, and continues through ordinary execution with exact trace and future output equality. | VERIFIED | Native tests cover 20 production cutpoints and compare traces, ticks, CPU state, markers, pixels, PCM, frame data, and transitions; `core.interrupt_state` passes. |
+| 6.2 | Nonzero audio history, interleaved instances, state forks, and omitted-history controls rule out boundary-only substitutes. | VERIFIED | Interleaving and synthesis comparisons, entry state-fork coverage, and expected-divergence controls pass. |
+| 7.1 | The actual libretro module's `retro_unserialize` resumes every entry origin/stage under run-ahead and matches committed/speculative output. | VERIFIED | Host dynamically loads the production module and compares state, ticks, video, PCM, frame metadata, and markers at depths 1–3; `libretro.runahead` passes. |
+| 7.2 | Stale/skipped loads and omitted history fail adapter comparisons while rewind, run-ahead, and board-family cases remain. | VERIFIED | Adapter negative controls exercise intended rejection paths; the current libretro and state-fork suites pass. |
+| 8.1 | Fresh authority protects all 114 prior PASS keys, and all eleven exact v5 target rows pass without aggregate-score substitution. | VERIFIED | Historical hosted acceptance is source-bound and exact-key; current `accuracycoin.v5_targets` and `accuracy.scoreboard.no_lost_pass` pass locally. |
+| 8.2 | Six-platform equality, performance, sanitizer, host, vector, MMC3, Holy Mapperel, and boot gates remain present and pass. | VERIFIED | The accepted hosted evidence records these outcomes and the six matching inventories; current workflow regression passes. It does not requalify current HEAD remotely. |
+| 8.3 | Local preparation is not represented as hosted acceptance; deferred collector debt and branch/config boundaries remain explicit. | VERIFIED | Evidence ledger distinguishes local preparation from the accepted run; review history and disposition retain deferred CR/WR items. Current HEAD is not newly hosted-qualified. |
+| 8.4 | Candidate, tested merge, and protected base remain distinct; source mapping is limited to matching effective inputs. | VERIFIED | The ledger binds candidate, tested merge, base, and the recorded 428-path inventories and digests. |
+| 8.5 | Empty or missing authorities, lane results, artifacts, and inventories fail closed. | VERIFIED | Phase21 collector negative controls cover absent/empty and mismatch cases and pass in current CI. |
+| 8.6 | Full-key and sorted hash comparisons reject duplicates, omissions, and platform-order changes. | VERIFIED | Collector and target negative controls pass; accepted six-platform inventories are complete and equal. |
+| 9.1 | Actual hosted CI/Nightly contents and provenance pass for the source they accepted. | VERIFIED | CI `40929011059/1` passed 18/18; Nightly `40929010997/1` had seven work jobs pass and its declared PR-only report job skipped; 16 artifact ZIPs matched API digests. This evidence is for the recorded candidate only. |
+| 9.2 | Acceptance binds candidate, tested merge, base, inputs/modes/blobs, run/attempt/artifact IDs, without delivery mutation. | VERIFIED | `21-EVIDENCE.md` and its manifest distinguish identities; recorded validation exited 0. The current verification made no remote mutations. |
+| 9.3 | Finite-margin ordering follows the global integer tie policy without asserting the physical zero-margin winner. | VERIFIED | Timing annex and tests distinguish finite-margin observations from deterministic model policy; no physical exact-tie claim is made. |
+| 9.4 | Without a new eligible NMI edge, BRK/IRQ retain their vector/origin; a held consumed level is not another request. | VERIFIED | Empty-request, held-consumed-level, and cancellation cases pass in `core.interrupt_entry`. |
+| 9.5 | Simultaneous eligible requests prioritize NMI, preserve origin PC/B semantics, and consume each request once. | VERIFIED | Arbitration, origin, stack, consumption, and new-edge controls pass in `core.interrupt_entry`. |
 
-**Score:** 32/32 truths verified (0 present but behavior-unverified).
+**Score:** 32/32 roadmap and plan truths verified (0 present but behavior-unverified).
 
 ## Required Artifacts
 
-The owner artifact query passed all 29/29 plan-declared artifacts: every path exists and is substantive. This includes the production poll and entry implementation, visitor validation, all owned test fixtures and registrations, the exact target/hosted collectors, state matrix, and measured evidence.
+The artifact query passed all 29/29 plan-declared artifacts. I also traced their wiring to production C entry points, CMake/CTest registration, state visitor use, or the evidence collector as applicable.
 
 | Plan | Artifacts checked | Status |
 |---|---|---|
-| 21-01 | tests/core/test_irq_poll.c; tests/cpu/test_cpu_unit.c; tests/interrupt_fixture.h | VERIFIED, 3/3 |
-| 21-02 | src/cpu.c; src/state.c; include/nesturbator.h; tests/accuracy/measurements.md | VERIFIED, 4/4 |
-| 21-03 | tests/core/test_interrupt_entry.c; tests/cpu/test_cpu_unit.c; tests/interrupt_fixture.h | VERIFIED, 3/3 |
-| 21-04 | src/cpu.c; src/internal.h; src/state.c; tests/core/test_interrupt_entry.c | VERIFIED, 4/4 |
-| 21-05 | tests/core/test_state_reject.c; tests/core/test_state_generation.c; 21-STATE-MATRIX.md | VERIFIED, 3/3 |
-| 21-06 | tests/core/test_interrupt_state.c; tests/interrupt_fixture.h; tests/core/test_state_fork.c | VERIFIED, 3/3 |
-| 21-07 | tests/libretro/libretro_host.c; tests/runahead_model.h; tests/core/test_state_runahead.c | VERIFIED, 3/3 |
-| 21-08 | tests/cmake/v5_targets.cmake; hosted evidence wrapper and controls; 21-EVIDENCE-PREPARATION.md | VERIFIED, 4/4 |
-| 21-09 | 21-EVIDENCE.md; tests/accuracy/measurements.md | VERIFIED, 2/2 |
+| 21-01 | `test_irq_poll.c`, `test_cpu_unit.c`, `interrupt_fixture.h` | VERIFIED, 3/3 |
+| 21-02 | `cpu.c`, `state.c`, public header, `measurements.md` | VERIFIED, 4/4 |
+| 21-03 | `test_interrupt_entry.c`, CPU test, fixture | VERIFIED, 3/3 |
+| 21-04 | CPU entry, internal state, visitor, entry tests | VERIFIED, 4/4 |
+| 21-05 | State rejection/generation tests, state matrix | VERIFIED, 3/3 |
+| 21-06 | Native interrupt replay, fixture, state fork | VERIFIED, 3/3 |
+| 21-07 | Libretro host, run-ahead model, public run-ahead test | VERIFIED, 3/3 |
+| 21-08 | Exact targets, hosted wrapper/controls, preparation evidence | VERIFIED, 4/4 |
+| 21-09 | Hosted ledger and measurement record | VERIFIED, 2/2 |
 
 ## Key Link Verification
 
-The heuristic key-link query detected 2/23 links by literal text. I traced all 23 manually; the remaining links are C calls through the owned fixture/object wrapper, CMake include/test wiring, state visitor fields, or evidence relationships that the token heuristic does not follow. No required artifact is orphaned.
+The literal-pattern query found 2/23 links. I manually traced the remaining C calls, visitor fields, CMake registrations, and evidence paths; all 23 are connected. The query undercounts these relationships because they cross C/test fixtures and generated evidence contracts.
 
-| Plan | Links manually checked | Result and trace |
-|---|---:|---|
-| 21-01 | 2/2 | APU IRQ guest calls the production bus and CPU path; CPU sequence cases use vector_bus and are explicitly labeled sequence-only. |
-| 21-02 | 3/3 | CPU acceptance consumes instance fields; state serialization restores them; campaign measurements reconcile to exact scoreboard keys. |
-| 21-03 | 2/2 | Entry fixture delegates scheduled operations to production bus; complete source tables and finite-margin mapping are documented in the timing annex. |
-| 21-04 | 3/3 | Each staged action calls production bus operations; state loads the next action into CPU state; measured changes map to campaign rows. |
-| 21-05 | 2/2 | Rejection test edits serialized fields, repairs CRC, then uses the production loader; generation test performs reset and resumes ordinary execution. |
-| 21-06 | 3/3 | Shared fixture reaches private production actions; native public save/load resumes them; state-fork runner registers the entry fork. |
-| 21-07 | 2/2 | Host dynamically loads the actual libretro module and resolves retro_unserialize; fixture-produced bytes and ROM identity feed the adapter matrix. |
-| 21-08 | 3/3 | Phase21 wrapper passes a narrow contract to shared Phase20 validators; CMake registers exact-target and evidence-control tests; fresh baseline flows into full-key comparison. |
-| 21-09 | 3/3 | Production wrapper validates real collected output, delivery identities select the source/run evidence, and independent mode/blob inventory binds the ledger to current and clean source. |
+| Plan | Manual trace |
+|---|---|
+| 21-01 | Production APU/bus IRQ guest and separate CPU sequence fixture are wired to registered tests. |
+| 21-02 | CPU acceptance uses instance fields; state visitor persists them; measurements map to scoreboard keys. |
+| 21-03 | Entry fixture delegates bus operations to production code; timing tables trace to the pinned annex. |
+| 21-04 | Each staged action calls production bus methods; state reload continues at the next action. |
+| 21-05 | CRC-repaired test inputs reach production state validation; reset cases call CPU reset and ordinary execution. |
+| 21-06 | Shared fixture reaches production actions; public save/load resumes them; state-fork registers entry cases. |
+| 21-07 | Host loads the actual module and resolves `retro_unserialize`; fixture bytes feed the adapter cases. |
+| 21-08 | Phase21 wrapper uses shared validators; CMake registers exact target and evidence controls; fresh authority flows to key comparison. |
+| 21-09 | Evidence wrapper, delivery identities, and effective-input inventory feed the source-bound ledger. |
 
 ## Data-Flow Trace
 
-| Artifact/data | Source and flow | Produces real observations | Status |
+| Data | Source and flow | Real observations | Status |
 |---|---|---|---|
-| IRQ eligibility | APU/source line → bus-captured poll latch → legal CPU poll → irq_accepted → shared entry and guest marker | Yes; owned real APU guest and CPU access traces | FLOWING |
-| NMI takeover | PPU edge history → bus recognition/inhibition → staged vector decision → production vector reads and guest markers | Yes; finite-margin source schedules and complete paired tables | FLOWING |
-| Native continuation | CPU entry fields → canonical state visitor and validation → production loader → next ordinary action → bus/frame/audio | Yes; exact continuation and future output comparisons | FLOWING |
-| Adapter continuation | Native cutpoint bytes → dynamically loaded production retro_unserialize → retro_run/runahead → committed/speculative state and output | Yes; video, PCM, ticks, frame data, and markers compared | FLOWING |
-| Cross-platform acceptance | Actual hosted artifacts and protected authority → source-bound collector → exact row and sorted inventory verdicts | Yes; six platform inventories and provenance digests | FLOWING |
+| IRQ eligibility | APU source → bus capture → legal poll → accepted CPU history → shared entry/guest marker | Real APU guest and CPU access trace | FLOWING |
+| NMI takeover | PPU edge history → bus recognition/inhibition → staged vector choice → production vector reads | Finite-margin schedules and paired source tables | FLOWING |
+| Native continuation | Entry fields → state visitor/validation → loader → next ordinary action → output | Trace and future frame/audio comparisons | FLOWING |
+| Libretro continuation | Native cutpoint bytes → production `retro_unserialize` → run-ahead → committed/speculative state/output | Video, PCM, ticks, frame data, and markers | FLOWING |
+| Cross-platform acceptance | Actual hosted artifacts and protected authority → collector → exact rows and sorted hashes | Six source-bound platform inventories and provenance | FLOWING for the accepted source |
 
 ## Behavioral Spot-Checks
 
-| Behavior | Command/evidence | Result | Status |
-|---|---|---|---|
-| Real APU IRQ and instruction poll behavior | Named core.irq_poll CTest; also in build/ci full workflow | Passed | PASS |
-| Entry cycles, vector selection, request lifetime, origin and paired tables | Named core.interrupt_entry CTest; also in full workflow | Passed | PASS |
-| Exact CPU poll/branch cases | Named cpu.unit CTest; also in full workflow | Passed | PASS |
-| Native entry replay, state rejection/reset, and entry fork | core.interrupt_state, core.state_reject, core.state_generation, core.state_fork.entry | All passed | PASS |
-| Actual libretro entry replay and run-ahead | libretro.runahead in build/phase21-postwave-ci.log | Passed in 29.74 seconds | PASS |
-| Exact target and protected-key gates | accuracycoin.v5_targets and accuracy.scoreboard.no_lost_pass in final workflow | Both passed | PASS |
-| Full current checkout CI | cmake --workflow --preset ci, build/phase21-postwave-ci.log | Exit 0; 695/695 in 382.16 seconds; library, runner, and libretro ZIPs generated | PASS |
-| Current bundle validation | Phase21 wrapper MODE=validate; parent-bundle-validation.log | Exit 0; all 16 ZIPs match retained API digests | PASS |
+No suite was rerun during this report refresh. The parent-provided fresh current checkout run is in `build/phase21-verification-refresh-ci.log`.
 
-Focused behavior tests were run individually for the poll, entry, CPU, state, reset, and entry-fork paths. The full workflow supplied the final integrated run; it was not repeated.
+| Behavior | Evidence | Result |
+|---|---|---|
+| Current integrated build and regression | `cmake --workflow --preset ci` | Exit 0; 695/695 passed in 459.85 seconds; library, runner, and libretro packages generated. |
+| Real APU IRQ, poll timing, branch cases | `core.irq_poll`, `cpu.unit` in the current workflow | Passed. |
+| BRK/IRQ cycles, vector selection, request lifetime | `core.interrupt_entry` in the current workflow | Passed. |
+| Native state replay, rejection, reset, entry fork | `core.interrupt_state`, `core.state_reject`, `core.state_generation`, `core.state_fork.entry` | Passed. |
+| Actual libretro module run-ahead | `libretro.runahead` | Passed. |
+| Exact target and no-lost-pass gates | `accuracycoin.v5_targets`, `accuracy.scoreboard.no_lost_pass` | Passed. |
+| Boot-to-play | `runner.boot_to_play` | Passed. |
 
 ## Probe Execution
 
-No plan or summary declares a shell probe, and no scripts/*/tests/probe-*.sh exists. Phase acceptance is provided by registered CTest targets and the source-bound collector. Probe execution: not applicable.
+No Phase21 plan or summary declares a shell probe, and no `scripts/*/tests/probe-*.sh` file exists. Probe execution is not applicable; registered CTest targets provide the automated checks.
 
 ## Requirements Coverage
 
-| Requirement | Source plan(s) | Description | Status | Evidence |
+| Requirement | Source plans | Description | Status | Evidence |
 |---|---|---|---|---|
-| INT-01 | 21-01, 21-02, 21-08, 21-09 | IRQ starts on the console-equivalent instruction after CLI, SEI, PLP, RTI, and branches; Interrupt flag latency passes. | SATISFIED | Poll tables, real source guest, exact target row, all 114 protected records, and six hosted lanes. |
-| INT-02 | 21-03, 21-04, 21-06, 21-07, 21-08, 21-09 | NMI during BRK/IRQ takes over the vector as specified; both overlap rows pass. | SATISFIED | Finite-margin arrivals and paired source tables, native and adapter cutpoint replay, hosted target rows. |
-| KEEP-01 | All nine plans | Existing AccuracyCoin PASS rows and CPU vectors, MMC3, Holy Mapperel, and boot-to-play remain green across lanes. | SATISFIED | 114/114 protected keys on all six lanes; full-vector, MMC3, Holy Mapperel and boot checks passed. |
+| INT-01 | 21-01, 21-02, 21-08, 21-09 | IRQ begins on the console-equivalent instruction after CLI, SEI, PLP, RTI, and branches; Interrupt flag latency passes. | SATISFIED | Poll tables, real source guest, exact target gate, protected-key gate, and source-bound hosted record. |
+| INT-02 | 21-03, 21-04, 21-06, 21-07, 21-08, 21-09 | NMI during BRK/IRQ takes over the vector; both overlap rows pass. | SATISFIED | Finite-margin arrival tests, paired vector tables, native and adapter replay, and accepted hosted target rows. |
+| KEEP-01 | All nine plans | Existing passing AccuracyCoin rows and CPU vectors, MMC3, Holy Mapperel, and boot-to-play stay green. | SATISFIED | 114/114 protected keys and six hosted lanes on the accepted source; current local regression and boot test pass. |
 
-Cross-reference check: plans declare only INT-01, INT-02, and KEEP-01. REQUIREMENTS.md maps exactly those three IDs to Phase 21; no orphaned Phase 21 requirement was found. REQUIREMENTS.md still shows their administrative status as Pending at this verification timestamp; the parent owns updating it after this report.
+Plans declare these three requirements. REQUIREMENTS.md maps exactly INT-01, INT-02, and KEEP-01 to Phase 21; there is no orphan Phase21 requirement. All three are marked complete in the requirements register.
+
+## Decision Coverage
+
+The GSD decision-coverage owner reports 26/26 trackable CONTEXT.md decisions honored, with no unhonored decisions. This includes the explicit source-grounded finite-margin rule, one global integer equal-timestamp policy, no physical exact-tie claim, and no judgment-tier manual gate.
 
 ## Anti-Patterns Found
 
 | File | Pattern | Severity | Impact |
 |---|---|---|---|
-| None | No unreferenced TBD/FIXME/XXX markers, TODO/HACK/PLACEHOLDER markers, empty production stubs, or disabled tests found in changed implementation/test files. | None | No blocker. |
+| None | No unreferenced TBD/FIXME/XXX, TODO/HACK/PLACEHOLDER, empty production stub, or disabled phase test was found. | None | No blocker. |
 
-The CTest WILL_FAIL property at tests/CMakeLists.txt:487 belongs to the named holymapperel.derive.refuse negative test, not a disabled test. RUN_SERIAL entries serialize integration fixtures and do not suppress execution. Synthetic ROM/movie files in tests/libretro/libretro_host.c are test inputs generated from owned fixture bytes, not expected-output generators.
+The `WILL_FAIL` property belongs to the named negative `holymapperel.derive.refuse` case; serialized integration tests are not disabled. Fixture-generated synthetic input is owned test data, not an expected-output oracle.
 
-## Review Debt and Proof Limits
+## Review Findings and Evidence Limits
 
-- WR-01 is valid and deferred: the committed source-identity helper does not detect chmod-only changes to a regular file’s actual worktree mode. For this accepted run, the independent scratch verifier and an additional execute-bit comparison matched all 428 effective paths in current and absolute clean checkouts against candidate and tested merge; both inventories have digest d62c2f7e3f5b27653f2edcd9f9fef77d272bef6465b8afb161f8b76186899fe3. This mitigates the current evidence instance but does not fix the recurring helper.
-- Phase 20 CR-01, WR-03, and WR-04 collector debt remains deferred. The run-specific clean-source collection, current-checkout validation, and duplicate/source inventory checks are recorded in the evidence ledger; they do not close the collector defects.
-- The exact physical zero-margin CPU/PPU timestamp winner remains unmeasured. The verified claim is finite-margin source ordering under the shared deterministic integer timestamp policy.
-- The three judgment-tier prohibitions are explicitly FLAGGED-UNVERIFIED in frontmatter, separate from the truth score. As required by the repository instructions and Plan 21-09 delivery contract, these are intent/provenance limits, not a new human testing or sign-off gate.
-- CI run 40929011059/1 is fully green. Nightly 40929010997/1 has seven work jobs passed and one declared PR-only report job skipped; the skipped report-only job is not represented as a work check.
-- PR #61 remains draft and unmerged. No remote mutation was needed for verification.
+- **WR-02 remains an open warning.** The historical session-control paragraph in `tests/accuracy/measurements.md` attributes the `2940249e30ef` capture, input digest `573904875fa3641acdc4936c2f116e2594c3366d2abe4eec70841af7d5ee4ac5`, and elapsed guest time `5577072000` to the canonical baseline. Current `tests/accuracy/baseline-metadata.txt` instead records source `d4802809ff41`, `source_dirty=1`, input digest `ab0bdf5142426482fa18fecae5c2c7272c4957b808f6c7aa8feaaf3b767cec80`, and `host_elapsed_guest_ns=5091122000`. These are separate captures. The current 56-input digest matches its metadata; the inaccurate attribution does not change the Phase21 runtime test results or create a claim of new hosted acceptance.
+- **README revision summary needs reconciliation.** `README.md` line 29 still calls the behavior revision 8, while the public header and README save-state section say behavior revision 9. The detailed interrupt and state documentation is present, but the introductory revision sentence is stale.
+- WR-01 remains deferred: the committed source-identity helper does not enforce chmod-only worktree mode changes. For the historical accepted run, independent comparison recorded matching mode/blob inventories for all 428 inputs; this mitigates that run without fixing the recurring helper.
+- Phase20 CR-01/WR-03/WR-04 collector debt remains preserved in review history and disposition; their run-specific evidence does not close those maintenance items.
+- Physical exact-tie CPU/PPU timestamp precedence remains unmeasured. The verified model claim is finite-margin ordering under deterministic integer timestamps.
+- The three judgment-tier prohibitions are flagged-unverified in frontmatter. They are retained as intent/provenance limits and are not human testing or sign-off gates.
+- Hosted CI `40929011059/1` passed 18/18. Nightly `40929010997/1` had seven work jobs pass and one declared PR-only report job skipped. The acceptance identities remain historical and source-bound to the recorded candidate.
 
 ## Human Verification Required
 
-None. The required behavior, preservation, delivery, and conformance checks are automated and their recorded results pass. The explicitly unresolved judgment-tier constraints remain flagged, as above, without blocking an automated phase result.
+None. All phase behavior truths have automated transition and replay coverage. The judgment-tier prohibitions stay flagged without adding a manual gate.
 
 ## Gaps Summary
 
-No blocking implementation, wiring, behavior, requirement, artifact, or hosted-evidence gap was found. The goal is achieved under the approved finite-margin and integer-timestamp contract. Remaining items are visible evidence limits and deferred collector maintenance, not unmet Phase 21 goal truths.
+No blocking implementation, behavior, wiring, artifact, requirement, or accepted-source evidence gap was found. The phase goal is met under the documented finite-margin contract. The open campaign-attribution warning, stale README revision sentence, deferred collector items, and absence of new hosted qualification for current HEAD remain explicit limits; they do not alter the recorded implementation verdict.
 
 ---
 
-_Verified: 2026-10-29T19:35:20Z_
+_Verified: 2026-10-30T13:29:50Z_
 _Verifier: the agent (gsd-verifier)_

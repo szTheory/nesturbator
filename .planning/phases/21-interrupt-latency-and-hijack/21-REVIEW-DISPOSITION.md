@@ -7,16 +7,21 @@ findings:
     severity: warning
     disposition: deferred
     title: "Worktree executable-mode changes are absent from source identity (WARNING)"
-open: 0
-total: 1
-recorded: 2026-10-29T19:25:59.842Z
+  - id: WR-02
+    severity: warning
+    disposition: open
+    title: "Measurement narrative attributes a different campaign to the canonical baseline (WARNING)"
+open: 1
+total: 2
+recorded: 2026-10-30T13:13:16Z
 ---
 
 # Phase 21: Code Review Disposition
 
 | Finding | Severity | Disposition | Source |
 |---------|----------|-------------|--------|
-| WR-01 | warning | deferred | Collector maintenance; actual filesystem modes and raw blobs independently matched all 428 inputs in both checkouts to candidate and tested merge. |
+| WR-01 | warning | deferred | Collector maintenance; actual filesystem modes and raw blobs independently matched all 428 inputs in both checkouts to candidate and tested merge. (not in the current incremental review) |
+| WR-02 | warning | open | - |
 
 ## Current-run mitigation and retained history
 
@@ -25,10 +30,16 @@ would change accepted effective inputs and require new hosted CI/Nightly runs.
 This evidence-only closeout preserves the work alongside Phase 20 CR-01/WR-03/WR-04;
 it does not waive source identity for this run.
 
+The 428-input comparison above is the mitigation recorded for that historical
+source-bound run. It does not requalify a hosted bundle against the current
+checkout. WR-01 remains deferred and was carried forward because its source was
+outside this review's incremental scope.
+
 An independent scratch verifier reads each regular file's actual owner-executable
 permission (or symlink type), hashes raw file/link bytes as Git blobs, and compares
-every path against candidate `54c7db2`, tested merge `faf1b91` and current HEAD.
-Both the current checkout and absolute clean-source checkout match all 428 inputs.
+every path against candidate `54c7db2`, tested merge `faf1b91` and the checkout
+HEAD at that time. The checkout and its absolute clean-source checkout then
+matched all 428 inputs.
 Their sorted mode/blob/path inventories have SHA-256
 `d62c2f7e3f5b27653f2edcd9f9fef77d272bef6465b8afb161f8b76186899fe3`.
 Reproduction and raw output are retained under

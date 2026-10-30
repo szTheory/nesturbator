@@ -1,18 +1,17 @@
 ---
 phase: 21-interrupt-latency-and-hijack
-reviewed: 2026-10-29T19:23:48Z
+reviewed: 2026-10-30T13:13:16Z
 depth: standard
-files_reviewed: 9
+files_reviewed: 8
 files_reviewed_list:
+  - .github/workflows/ci.yml
   - README.md
   - include/nesturbator.h
-  - src/bus.c
-  - src/cpu.c
   - tests/accuracy/baseline-metadata.txt
   - tests/accuracy/measurements.md
-  - tests/cmake/phase21_hosted_evidence_controls.cmake
-  - tests/cmake/phase21_source_identity.cmake
-  - tests/cmake/phase21_source_identity_controls.cmake
+  - tests/cmake/skip_policy.cmake
+  - tests/retroarch/state_session.sh
+  - tests/retroarch/test_state_session.sh
 findings:
   critical: 0
   warning: 1
@@ -21,27 +20,27 @@ findings:
 status: issues_found
 ---
 
-# Phase 21: Incremental Code Review Report
+# Phase 21: Code Review Report
 
-**Reviewed:** 2026-10-29T19:23:48Z
+**Reviewed:** 2026-10-30T13:13:16Z
 **Depth:** standard
-**Files Reviewed:** 9
+**Files Reviewed:** 8
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the nine requested tracked files changed since `5cf4c9c`. The IRQ refactor preserves the operation-specific poll points in the changed branches, and the reported performance repair retains its original CI and timeout gates. The source-identity manifest still omits the actual working-tree mode of regular files, so a chmod-only change can pass verification. Phase 21 CR-01 remains rejected and CR-02 remains fixed as documented in [21-REVIEW-DISPOSITION.md](21-REVIEW-DISPOSITION.md). Phase 20 collector CR-01, WR-03, and WR-04 remain deferred; the run-specific mitigations documented in [21-EVIDENCE.md](21-EVIDENCE.md) do not repair those recurring collector defects.
+Reviewed the eight files returned by the incremental phase-scope workflow. No plan summary changed after the previous review, so the evaluation-scope resolver widened to a usable `degraded` phase-range scope (`no-task-commits-since`); this scope can include interleaved changes. The review found one inaccurate campaign-provenance statement in `measurements.md`. Historical CR-01 rejection and CR-02 fix remain in `21-REVIEW-HISTORY.md`; deferred WR-01 remains recorded in `21-REVIEW-DISPOSITION.md`. This refresh does not requalify hosted bundles; historical accepted bundles remain bound to their recorded source identities.
 
-## Narrative Findings (AI reviewer)
+## Warnings
 
-### WR-01: Worktree executable-mode changes are absent from source identity (WARNING)
+### WR-02: Measurement narrative attributes a different campaign to the canonical baseline (WARNING)
 
-**File:** `tests/cmake/phase21_source_identity.cmake:83-93, 134-142`; `tests/cmake/phase21_source_identity_controls.cmake:99-102`
-**Issue:** For regular files, the helper records committed and index modes, then hashes only the worktree bytes. A chmod-only change to a tracked executable leaves every manifest field unchanged, so `MODE=verify` accepts a checkout whose executable behavior differs. The semantic control changes the index mode with `git update-index --chmod=+x`, but does not change the file's actual permissions.
-**Fix:** Record a normalized worktree mode for regular files (and the symlink mode for links), compare it in `verify`, and add a POSIX control that chmods a file while leaving its index entry untouched and requires verification to reject it. Keep the committed, index, and worktree fields distinct.
+**File:** `tests/accuracy/measurements.md:37-38`; `tests/accuracy/baseline-metadata.txt:6,29,32,54`
+**Issue:** The hosted session-control debug paragraph identifies the `2940249e30ef` capture with input fingerprint `573904875fa3641acdc4936c2f116e2594c3366d2abe4eec70841af7d5ee4ac5` and elapsed guest time `5577072000`, then says the baseline metadata records those results. The checked-in baseline metadata instead records source `d4802809ff41`, artifact `build/ci-efficiency-quick/campaign-final/`, fingerprint `ab0bdf5142426482fa18fecae5c2c7272c4957b808f6c7aa8feaaf3b767cec80`, and elapsed guest time `5091122000`. These are distinct captures, and the narrative's attribution is false, making the provenance of the canonical baseline ambiguous.
+**Fix:** Describe the session-debug capture as a separate historical measurement and point to its own retained metadata, or replace the canonical baseline only with a newly qualified capture whose source, artifact, fingerprint, and timing all agree. Keep the two source identities separate.
 
 ---
 
-_Reviewed: 2026-10-29T19:23:48Z_
+_Reviewed: 2026-10-30T13:13:16Z_
 _Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_

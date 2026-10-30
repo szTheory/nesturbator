@@ -6,11 +6,11 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 current_plan: 9 of 9 complete
 status: completed
-stopped_at: Phase 20 verification refreshed; Phase 21 verification refresh is next, with no auto-chaining
-last_updated: "2026-10-30T12:34:52.536Z"
+stopped_at: Phase 21 verification refreshed; Phase 20 review-record fingerprint refresh next, with no auto-chaining
+last_updated: "2026-10-30T13:33:45.261Z"
 last_activity: 2026-10-30
-last_activity_desc: Refreshed Phase 20 verification against current revision 9
-state_head: c9c090e642d0e05b5d2be977889141e2632e9917
+last_activity_desc: Refreshed Phase 21 verification against current revision 9
+state_head: ab790a8b6b03fee2fa9012cde94f278f9f7d1dab
 progress:
   total_phases: 3
   completed_phases: 3
@@ -23,9 +23,31 @@ progress:
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated 2026-10-29 after Phase 21, and AGENTS.md.
+See [PROJECT.md](PROJECT.md), updated 2026-10-30 after Phase 21 verification refresh, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: All 27 v5 plans have summaries and all 11 requirements retain their accepted implementation evidence. Phase 19 and Phase 20 verification are freshly passed; the Phase 21 fingerprint remains stale and needs a separate verification refresh before PR review/merge and milestone review.
+Current focus: All 27 v5 plans have summaries and all 11 requirements retain their accepted implementation evidence. Phases 19 and 21 have fresh passed verification. Phase 20 became stale only because its covered set includes the updated Phase 21 review-disposition record; refresh it in a separate step before PR review/merge and milestone audit.
+
+The 2026-10-30 Phase 21 execute-phase step skipped all nine summarized plans,
+refreshed the incremental current-code review and passed fresh full CI (695/695
+in 459.85 seconds, all three packages). Independent verification passed 32/32
+truths, all three requirements and all 26 decisions. The regenerated v4
+fingerprint is accepted by `verification.status`: `passed`, with no route back
+to phase execution. Format 3, behaviour revision 9 and ABI 1 remain unchanged.
+Historical six-lane hosted acceptance remains bound to candidate `54c7db2` /
+tested merge `faf1b91`; current local evidence does not claim new hosted
+qualification. Review WR-02 remains open for the historical measurement
+paragraph's incorrect attribution to canonical baseline metadata; actual current
+metadata and its 56-input fingerprint agree. Deferred WR-01 and Phase 20 debt,
+the README revision advisory and physical-tie/judgment-tier evidence limits
+remain visible. No source change, plan rerun, remote mutation or auto-chain
+occurred; the config edit and all 27 summaries are preserved.
+
+The final cross-phase status check leaves Phase 19 and Phase 21 `passed`.
+Phase 20 is now `stale` solely for its covered
+`21-REVIEW-DISPOSITION.md`, changed by this required review gate. No runtime,
+test or public-documentation input changed. The owner routes this cross-phase
+review-record dependency to `$gsd-execute-phase 20`; the one-step rule leaves
+that refresh for a separate command rather than silently rewriting its digest.
 
 The 2026-10-30 Phase 20 execute-phase step skipped all 12 summarized plans,
 refreshed the current-code review, and passed fresh full CI (695/695 in
@@ -85,8 +107,8 @@ Phase 21 directory. Earlier source pins and pending statuses below are historica
 Phase: 21 (Interrupt latency and hijack) — COMPLETE
 Current Plan: 9 of 9 complete
 Plan: All 9/9 phase plans complete; all 27/27 v5 plans complete
-Status: Implementation complete; Phases 19/20 freshly verified, Phase 21 verification refresh and delivery/audit remain
-Last activity: 2026-10-30 -- Phase 20 verification refreshed; no auto-chaining
+Status: Phase 21 freshly verified; Phase 20 review-record fingerprint refresh, PR review/merge and milestone audit remain
+Last activity: 2026-10-30 -- Phase 21 verification refreshed; no auto-chaining
 
 Progress: [██████████] 100%
 
@@ -133,6 +155,8 @@ Earlier decisions below retain their original point-in-execution status; pending
 - [Phase 21]: Post-review CR-02 uses the existing nmi_pending byte value 2 for an inhibited NMI candidate; candidate 43d260a is locally qualified, while hosted Plan 21-09 and INT-01/INT-02/KEEP-01 remain pending.
 
 ### Blockers/Concerns
+
+- [Phase 21 refresh] WR-02: the historical session-debug measurements paragraph attributes its fingerprint/timing to canonical metadata now recording a later campaign. This documentation warning remains open; current metadata and build-input digest agree. README also retains the revision-8/revision-9 overview inconsistency noted by both verifiers.
 
 - [Phase 21 review] WR-01: recurring identity verification omits actual regular-file worktree mode. Both current checkouts independently match all 428 actual modes/blobs, including an execute-bit/type supplement; future helper repair remains deferred in 21-REVIEW-DISPOSITION.md.
 
@@ -318,6 +342,6 @@ implementation is not an already shipped milestone.
 
 ## Session
 
-**Last session:** 2026-10-30T12:35:32Z
-**Stopped at:** Phase 20 verification freshly passed; Phase 21 refresh next, no auto-chaining
+**Last session:** 2026-10-30T13:34:18Z
+**Stopped at:** Phase 21 freshly passed; Phase 20 review-record fingerprint refresh next, no auto-chaining
 **Resume file:** None

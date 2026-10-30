@@ -27,9 +27,20 @@ candidate `54c7db2`, tested merge `faf1b91` and 428 effective inputs. Six native
 hash inventories match; the unchanged +1% performance gate passes all three
 ROMs. Fresh parent CI passes 695/695 and packages all three deliverables.
 Plan 21-09 acceptance and independent verification are committed locally;
-PR #61 remains draft and unmerged, awaiting a separate ship step. Collector
+The original closeout preceded later publication through PR #61. Collector
 WR-01 and Phase 20 CR-01/WR-03/WR-04 remain deferred with current-run mitigations;
 physical exact-tie precedence and judgment-tier provenance limits remain explicit.
+
+Phase 21 verification was refreshed on 2026-10-30 against current code:
+32/32 truths, INT-01/INT-02/KEEP-01 and all 26 decisions pass. Fresh local CI
+passes 695/695 in 459.85 seconds and produces all three packages. The original
+hosted qualification above remains source-bound; this refresh claims no new
+hosted runs. Current delivery is recorded through existing PR #61 in STATE.md;
+review/merge and milestone audit remain separate steps. The open measurement
+attribution warning (WR-02), README revision advisory, deferred collector debt
+and physical-tie/judgment-tier limits remain recorded. Updating Phase 21's
+review disposition invalidated Phase 20's coverage of that record; a separate
+Phase 20 fingerprint refresh is the next workflow step.
 
 ## Current Milestone: v5 NMI, VBlank and sprite-0 timing
 
@@ -214,4 +225,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-29 after Phase 21 verification*
+*Last updated: 2026-10-30 after Phase 21 verification refresh*
