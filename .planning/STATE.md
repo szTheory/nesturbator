@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Actual collection launch exposed Steam Input routing gap; context-specific correction awaits user confirmation
-last_updated: "2026-10-30T19:29:08Z"
+stopped_at: Owner confirmed controller works after actual collection relaunch; daily-play smoke route available
+last_updated: "2026-10-30T19:33:37Z"
 last_activity: 2026-10-30
-last_activity_desc: Applied launch-context controller routing correction; actual collection input awaits confirmation; recorded upgrade compatibility concern
+last_activity_desc: Owner confirmed actual collection controller input; preserved persistence/performance limits and upgrade compatibility concern
 progress:
   total_phases: 3
   completed_phases: 3
@@ -23,7 +23,7 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v5 closeout, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: fix player-one input through the actual Steam/ES-DE collection launch; next milestone remains proposed.
+Current focus: collect ordinary-play feedback through the working Steam/ES-DE collection route; next milestone remains proposed.
 
 ## Current Position
 
@@ -48,10 +48,11 @@ The pre-existing AGENTS.md and config edits remain unstaged and preserved.
 
 ## Next Action
 
-Relaunch Mario 3 from the Nesturbator collection and check physical Start. The
-failed game attempt was closed; the latest process check found no current game.
-The updated launcher chooses the external controller index in its actual launch
-context and falls back to handheld controls when that device is absent.
+The owner relaunched Mario 3 from the Nesturbator collection and confirmed the
+controller works. A read-only live check found the intended core and corrected
+player-one configuration. The game was left running. No immediate user action
+is required; ordinary-play feedback can continue when convenient. The launcher
+includes handheld fallback, but unplug/reconnect and fallback remain untested.
 
 The Deck is in Gaming Mode and ES-DE is open through its repaired existing Steam
 shortcut. Open Collections → Nesturbator to use seven existing supported NTSC
@@ -59,7 +60,7 @@ entries, each with Nesturbator selected and other cores still switchable. No mai
 ROM files were changed or added. Normal battery storage is reused; snapshots
 are core-specific within normal state storage. The owner saw commercial Mario 3
 on the TV and confirmed physical Start after the corrected SDL2 PowerA profile.
-The subsequent collection launch used the correct core but Start did not work. Steam virtual-device presentation differs from the direct desktop run; a context-specific controller resolver is now applied, with handheld fallback, and awaits physical confirmation. Full gameplay/pacing, clean frontend return and progress roundtrip remain open.
+The subsequent collection launch used the correct core but Start did not work. Steam virtual-device presentation differs from the direct desktop run; a context-specific controller resolver was applied, and the owner confirmed working input after relaunching from the collection. Handheld fallback is configured but untested. Full gameplay/pacing, clean frontend return and progress roundtrip remain open.
 
 Two Mac Mario reports were useful smoke signal; mild sluggishness/audio tearing
 remain unattributed. The owner explicitly deferred a full game sweep and higher
@@ -123,6 +124,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T19:30:18Z
-**Stopped at:** Actual collection controller correction applied; user relaunch/Start confirmation pending. Planning continuation: `$gsd-new-milestone`
+**Last session:** 2026-10-30T19:33:37Z
+**Stopped at:** Actual collection controller input confirmed by owner; game left running and no immediate user action required. Planning continuation: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`

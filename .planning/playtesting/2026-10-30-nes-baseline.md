@@ -124,7 +124,12 @@ Nesturbator command and module, but the controller's Start did not work in that
 context. Steam's virtual-device presentation differs from the earlier direct
 desktop run, so the physical-name preference did not establish player-one
 mapping there. A launch-context device-index resolver was added with handheld
-fallback; physical confirmation through the collection remains pending.
+fallback. The owner then relaunched Mario 3 from the collection and explicitly
+reported: **controller works now**. A read-only live check found Nesturbator
+running with the per-launch input configuration selecting the external device
+as player one. This closes the reported collection-launch input failure for
+this session; full button coverage, reconnect behavior and handheld fallback
+remain untested.
 Clean return and progress roundtrip remain unqualified. No current game is
 claimed perfect, and no core behavior, ABI, state format or emulator
 implementation changed here.
