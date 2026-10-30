@@ -1,51 +1,67 @@
-# Resume next-milestone discovery after v5
+# Resume after NES smoke tests and Steam Deck setup
 
-Next command: `$gsd-new-milestone`. Context may be cleared first. Read AGENTS.md,
-STATE.md, PRODUCT-ROADMAP.md and the
-[research synthesis](research/milestone-v6-discovery/SYNTHESIS.md), including its
-linked source reports and adversarial review. This resumes an existing scope
-discussion; do not repeat the broad sibling research or run another upkeep step.
+Read AGENTS.md, STATE.md, PRODUCT-ROADMAP.md and
+[playtesting lessons](playtesting/LESSONS.md). The lessons are the PII-free
+cross-project entry point the owner requested. Use the
+[dated baseline](playtesting/2026-10-30-nes-baseline.md) for scoped observations.
 
-The owner steered the earlier DMA proposal toward ordinary RetroArch game
-testing, lessons from Muhtari and other active cores, Playstead integration,
-concise public docs and future milestone direction. Independent passes covered
-Muhtari playtesting/direction, Glueyneo/GabbaBoy/Schwaystation and targeted
-Genewhip; parent inspection checked current Playstead adapter/state contracts.
-Recommendations converged and one adversarial pass corrected the distinction
-between state-format refusal and unenforced recorded behavior revision.
+## Current user-facing outcome
 
-Preferred proposal: **v6 Player-ready NES delivery**. Short truthful README and
-topic docs with existing test/release consumers preserved; straightforward
-real-content installation/controls/progress; small voluntary private game trial;
-reuse existing host/state/battery tests and fill only demonstrated gaps; a precise
-NES-to-Playstead upstream handoff. A handoff is not actual integration. If the
-owner wants Playstead play to be the immediate milestone outcome, explicitly
-co-scope consumer-owned adapter/readiness/input/exit/save work and paired
-acceptance before writing requirements. No next milestone scope/version or
-execution phases are approved. DMA remains the next accuracy candidate, PAL
-the regional alternative, maintenance-only cleanup the smaller option.
+The Deck is in normal Gaming Mode. ES-DE 3.5.0 is open through the repaired
+existing Steam shortcut; its log loaded the Nesturbator collection and retained
+the prior game count. That reference-only collection contains seven existing
+supported NTSC entries with per-game Nesturbator selection and switchable other
+cores. Main ROM files, scraped metadata and unrelated emulator choices were
+preserved. Normal battery storage remains; Nesturbator states are namespaced
+inside normal state storage so other cores' snapshots survive.
 
-The owner confirmed **Nesturbator (NES) here** for commercial-game testing;
-the content-folder location is still pending. Glueyneo is the Neo Geo core.
-Its accepted Metal Slug evidence is
-Metal Slug X's Mission 1 opening scene through normalized content, not arbitrary
-ZIP/full-library compatibility. No emulator, app, game/BIOS inspection, download,
-live input or hosted dispatch ran in this discovery. Research grants no new
-runtime window and does not renew previous safety stops or budgets.
+The user saw commercial Mario 3 running on the TV and confirmed Start after
+correcting the PowerA-specific SDL2 profile and player-one preference. The first
+profile used raw rather than normalized SDL2 indices and failed; preserve that
+lesson. The complete ES-DE → game → orderly return/progress roundtrip and broad
+input/performance coverage remain unqualified. Further user feedback is welcome,
+not a mandatory release-signoff task. Do not launch an entire game sweep.
 
-v5 remains archived with all eleven requirements satisfied, three passed phases
-and canonical 119 PASS/27 FAIL over 146 scored rows plus five unscored DRAW.
-ABI 1/state format 3/behavior 9 is the source contract. PR #61 merged; release
-PR #56 (0.1.12) remained open at the live check in this conversation. Published
-0.1.11 and merged v5 source must stay distinct. Preserve the
-[closeout](milestones/v5-CLOSEOUT.md), audit debt, historical hosted identities,
-physical/provenance limits and old Phase 16 stops. Collector fixes are needed
-before relying on a new accepted collection; do not reopen completed phases.
+Mac Mario 1 and Mario 3 played well enough for initial smoke signal, with mild
+sluggishness and some Mario 3 audio tearing under concurrent work. Resource
+contention is suspected, not established. The owner explicitly deferred stronger
+performance confidence to a quieter/dedicated device.
 
-PRODUCT-ROADMAP revision 5 refreshes all four horizons as proposals: RM-014
-player readiness leads; RM-008 moves from Mid to Near on actual launcher demand;
-DMA remains next accuracy work; board/performance/hardware retain demand and
-evidence triggers. Seeds are unchanged. No requirements register, PROJECT
-milestone switch or execution roadmap was written. Existing AGENTS.md and
-config edits are unrelated and must remain preserved outside this task's commit.
-No background task or test process remains after discovery.
+## Host work and operational privacy
+
+A two-screen extended desktop put Steam on the built-in panel and wallpaper on
+the TV. A backed-up TV-only docked layout resolved visibility; user confirmed it.
+An ES-DE post-update Steam failure logged an EmuDeck wrapper shell error. A
+backed-up stable wrapper preserves configured cloud-save hooks, invokes the
+installed AppImage and avoids launcher regeneration/backend updates on launch.
+Its version route and actual Steam/Gaming Mode startup passed. Do not infer the
+historical shell error's exact cause beyond the observed evidence.
+
+The installed Linux x64 module came from a digest-checked v5 CI artifact, with
+valid package/ELF/dependency checks. It is a development artifact, distinct from
+published package 0.1.11. No native emulation code, ABI, state format or behavior
+changed. Temporary transferred ROM duplicates were removed after verification;
+no separate test game system was registered.
+
+Private operational manifests and provenance are under ignored
+`private/nes-playtest-2026-10-30/`. Use those for connection/installation/backup
+locations, never copy their private contents or identifiers into Git. The source
+checkouts and original media remain intact. The direct diagnostic Mario service
+is stopped; only the normal ES-DE session is intentionally left running.
+
+## Planning continuation
+
+`$gsd-new-milestone` resumes the pending scope decision. Context may be cleared
+first. v5 stays archived with all eleven requirements satisfied, canonical
+119 PASS/27 FAIL over 146 scored rows plus five unscored DRAW, and ABI 1/state
+format 3/behavior 9. Read its closeout/audit for preserved debt and evidence limits.
+The earlier live check found release PR #56 still open; recheck before claiming
+new publication. Existing historical runtime stops remain unchanged.
+
+The preferred proposal remains player-ready NES delivery, now informed by the
+faster Deck/ES-DE daily-feedback loop before deeper Playstead work. Actual
+Playstead integration needs its consumer-owned implementation and acceptance.
+DMA follows readiness unless concrete title evidence changes priority; PAL is
+the regional alternative. No new requirements register, execution phases or
+milestone switch was approved. Reuse the completed sibling research rather than
+repeating broad fan-out. Preserve the pre-existing config/instruction edits.

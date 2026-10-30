@@ -55,3 +55,17 @@ Prefer a small owned helper or justified local duplication to another
 dependency. Add a dependency only when existing code, the standard library
 and the platform cannot handle a demonstrated need simply; keep its tree
 small and its abstraction local. The ownership and clean-room rules apply.
+
+## Personal playtesting
+
+At milestone boundaries or before personal host setup, read
+[playtesting lessons](.planning/playtesting/LESSONS.md). Steam Deck with ES-DE
+and RetroArch is a useful daily-feedback route before deeper Playstead work.
+Use existing library entries and persistent save locations for personal play.
+A test collection should reference those entries, with per-game core selection,
+so the same games and progress remain usable for daily play. Preserve other
+cores' incompatible state files in their normal core-specific storage. Record
+brief user observations as scoped smoke evidence; higher-confidence device
+and performance testing can follow when the owner wants it.
+Keep connection details, identifiers, personal paths and raw private artifacts
+outside Git; record only sanitized lessons and scoped observations.

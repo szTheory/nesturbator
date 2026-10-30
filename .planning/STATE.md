@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Next-milestone discovery researched; player-ready delivery proposed; awaiting scope choice
-last_updated: "2026-10-30T17:50:15Z"
+stopped_at: Steam Deck Gaming Mode and ES-DE restored; Nesturbator collection ready for daily-play feedback
+last_updated: "2026-10-30T19:06:16Z"
 last_activity: 2026-10-30
-last_activity_desc: Researched active sibling lessons and Playstead boundary; refreshed proposed product direction
+last_activity_desc: Recorded Mac smoke reports, installed Deck core, repaired host/controller setup and saved PII-free lessons
 progress:
   total_phases: 3
   completed_phases: 3
@@ -23,7 +23,7 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v5 closeout, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v5 archived; next-milestone player-readiness proposal researched, with no new scope committed.
+Current focus: Steam Deck/ES-DE daily-play feedback loop ready; next milestone remains proposed.
 
 ## Current Position
 
@@ -48,21 +48,38 @@ The pre-existing AGENTS.md and config edits remain unstaged and preserved.
 
 ## Next Action
 
+The Deck is in Gaming Mode and ES-DE is open through its repaired existing Steam
+shortcut. Open Collections → Nesturbator to use seven existing supported NTSC
+entries, each with Nesturbator selected and other cores still switchable. No main
+ROM files were changed or added. Normal battery storage is reused; snapshots
+are core-specific within normal state storage. The owner saw commercial Mario 3
+on the TV and confirmed physical Start after the corrected SDL2 PowerA profile.
+Full gameplay/pacing, clean frontend return and progress roundtrip remain open.
+
+Two Mac Mario reports were useful smoke signal; mild sluggishness/audio tearing
+remain unattributed. The owner explicitly deferred a full game sweep and higher
+confidence performance testing. TV visibility and ES-DE startup were repaired
+from observed host evidence, with local rollback backups. No core code, ABI,
+state format or emulation behavior changed. Details are in the
+[baseline](playtesting/2026-10-30-nes-baseline.md).
+
+Read [PII-free lessons](playtesting/LESSONS.md) before milestone scoping or another
+emulator's host setup. Owner direction now prefers this real-library daily-play
+loop as a fast source of feedback before deeper Playstead integration. Device
+addresses, account identifiers, personal paths, raw media/logs/captures and save
+bytes remain outside Git in private operational records.
+
+Separate planning continuation:
+
 `$gsd-new-milestone`
 
-Continue the pending scope decision, then create fresh requirements and execution
-phases within that one new-milestone step. New owner direction requested ordinary
-RetroArch game trials, Muhtari/active-core lessons, better README discovery and
-Playstead readiness. [Research synthesis](research/milestone-v6-discovery/SYNTHESIS.md)
-recommends player-ready NES delivery first: short truthful docs, easy real-content
-trial, only demonstrated host/package test gaps, and an upstream Playstead handoff.
-Actual Playstead integration is a wider consumer-owned outcome requiring paired
-acceptance; a handoff does not qualify it. The five DMA failures remain next for
-accuracy; PAL and maintenance-only scope remain alternatives. All are proposed,
-not approved requirements. No new milestone switch or implementation ran.
-The owner confirmed Nesturbator (NES) for the commercial-game spot check.
-Content-folder location remains pending; no emulator, media inspection or live test ran.
-Context can be cleared; read [continue.md](continue.md) before resuming.
+Resume the pending player-ready scope decision using the
+[research synthesis](research/milestone-v6-discovery/SYNTHESIS.md) and refreshed
+[product direction](PRODUCT-ROADMAP.md). Immediate remains uncommitted; no next
+milestone requirements, phases or version were approved. Keep existing
+state/host evidence credited, DMA as the following accuracy candidate, PAL as the
+regional alternative, and actual Playstead acceptance separate from a handoff.
+Context may be cleared; read [continue.md](continue.md) to resume.
 
 ## Preserved Debt and Boundaries
 
@@ -101,6 +118,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T17:50:15Z
-**Stopped at:** Cross-project discovery researched; next scope awaits approval; next command: `$gsd-new-milestone`
+**Last session:** 2026-10-30T19:06:16Z
+**Stopped at:** ES-DE ready in Gaming Mode; selected existing games use Nesturbator; further feedback optional. Planning continuation: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`

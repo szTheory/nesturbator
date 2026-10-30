@@ -9,6 +9,14 @@ parallel milestone discussion and that the requested spot check is NES here.
 Adapt the shared research intent; do not import console-specific tasks or
 assume the two projects share readiness, content formats or scope.
 
+Subsequent owner-directed playtesting established a faster near-term route:
+Steam Deck → ES-DE → RetroArch → the owned core, using the real library and
+normal progress storage for daily play. This can precede deeper Playstead
+integration. Read the newer [PII-free lessons](../../playtesting/LESSONS.md) and
+[dated baseline](../../playtesting/2026-10-30-nes-baseline.md) for that intent,
+host repairs and bounded observations; the discovery proposals below do not
+claim that consumer integration or a new milestone was approved.
+
 ## Recommendation
 
 Prefer **v6: Player-ready NES delivery** before the remaining DMA cluster.
