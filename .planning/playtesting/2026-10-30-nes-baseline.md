@@ -84,7 +84,7 @@ The **Nesturbator** custom collection references these existing NTSC entries:
 - Contra (USA)
 - Crystalis (USA)
 - The Legend of Zelda (USA, Rev A)
-- Ninja Gaiden (USA)
+- Ninja Gaiden (USA), displayed in ES-DE as **Shadow Warriors**
 - River City Ransom (USA)
 - Super Mario Bros. 3 (USA, Rev A)
 
@@ -172,3 +172,12 @@ full-game coverage, save/load and measured latency remain unqualified.
 Recommended next voluntary title: **Ninja Gaiden (USA)** from the same collection,
 to add mapper 1 (MMC1) after the positive MMC3 and UxROM sessions. No next-title
 launch or result is claimed.
+
+### Collection display-name clarification
+
+The owner could not find the recommended Ninja Gaiden entry. A read-only check
+found the existing Ninja Gaiden (USA) file present in the seven-entry collection,
+with Nesturbator selected and no hidden flag. Its existing scraped display name
+is **Shadow Warriors**. No restart, ROM duplication or metadata change is needed;
+select Shadow Warriors to play the intended entry. This is an identity/display
+check, not a gameplay result.

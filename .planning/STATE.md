@@ -53,7 +53,7 @@ controller works. A read-only live check found the intended core and corrected
 player-one configuration. The game was left running. No immediate user action
 is required. The owner subsequently reported good Mario 3 input timing, visuals
 and audio, low perceived latency and no observed issues. The owner then reported
-Contra (USA) plays well with similar feedback. Ninja Gaiden (USA) from the same
+Contra (USA) plays well with similar feedback. Ninja Gaiden (USA), displayed as **Shadow Warriors**, from the same
 collection is the recommended next voluntary spot check, adding MMC1 after
 MMC3 and UxROM; no next-title launch or result is claimed. The launcher
 includes handheld fallback, but unplug/reconnect and fallback remain untested.
