@@ -6,11 +6,11 @@ current_phase: 21
 current_phase_name: Interrupt latency and hijack
 current_plan: 9 of 9 complete
 status: completed
-stopped_at: Phase 21 verification refreshed; Phase 20 review-record fingerprint refresh next, with no auto-chaining
-last_updated: "2026-10-30T13:33:45.261Z"
+stopped_at: Phase 20 review-record verification refreshed; all three reports passed; PR review/merge next, with no auto-chaining
+last_updated: "2026-10-30T14:02:43Z"
 last_activity: 2026-10-30
-last_activity_desc: Refreshed Phase 21 verification against current revision 9
-state_head: ab790a8b6b03fee2fa9012cde94f278f9f7d1dab
+last_activity_desc: Refreshed Phase 20 review-record verification; Phases 19, 20 and 21 passed
+state_head: 0a83c407d8bd2834af7b1bc40e1cb5e446cad522
 progress:
   total_phases: 3
   completed_phases: 3
@@ -23,9 +23,28 @@ progress:
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated 2026-10-30 after Phase 21 verification refresh, and AGENTS.md.
+See [PROJECT.md](PROJECT.md), updated 2026-10-30 after Phase 20 review-record verification refresh, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: All 27 v5 plans have summaries and all 11 requirements retain their accepted implementation evidence. Phases 19 and 21 have fresh passed verification. Phase 20 became stale only because its covered set includes the updated Phase 21 review-disposition record; refresh it in a separate step before PR review/merge and milestone audit.
+Current focus: All 27 v5 plans have summaries, all 11 requirements retain accepted implementation evidence, and Phases 19, 20 and 21 have current passed verification. PR review/merge and milestone audit remain separate steps.
+
+The latest Phase 20 execute-phase step skipped all 12 summarized plans and
+refreshed the stale report caused solely by the changed Phase 21 review record.
+The required incremental review found no changed source files; its empty-scope
+branch preserved the review and disposition byte for byte. Fresh full CI passed
+695/695 in 386.27 seconds and generated all three packages. Independent
+verification passed 32/32 truths, all 24 decisions and all four requirements;
+both bounded probes passed. The CLI regenerated the 100-input v4 fingerprint
+and accepted the report as `passed`. Final cross-phase owner checks leave all
+three reports `passed`. The shortened availability-path parser warning remains
+metadata debt, with the real retained scratch path recorded below.
+Format 3 / behaviour revision 9 / ABI 1, all 27 summaries and the config edit
+remain unchanged. Historical hosted evidence remains source-bound; deferred
+collector findings, Phase 21 WR-02, README revision advisory and physical-tie /
+judgment-tier limits remain explicit. See `20-REVIEW-RECORD-REFRESH.md` and
+`20-VERIFICATION.md`. No implementation-plan rerun, remote mutation, merge or
+further lifecycle step occurred.
+
+Earlier refresh history follows; any then-stale or next-step status is historical.
 
 The 2026-10-30 Phase 21 execute-phase step skipped all nine summarized plans,
 refreshed the incremental current-code review and passed fresh full CI (695/695
@@ -107,8 +126,8 @@ Phase 21 directory. Earlier source pins and pending statuses below are historica
 Phase: 21 (Interrupt latency and hijack) — COMPLETE
 Current Plan: 9 of 9 complete
 Plan: All 9/9 phase plans complete; all 27/27 v5 plans complete
-Status: Phase 21 freshly verified; Phase 20 review-record fingerprint refresh, PR review/merge and milestone audit remain
-Last activity: 2026-10-30 -- Phase 21 verification refreshed; no auto-chaining
+Status: All three phase reports passed; PR review/merge and milestone audit remain
+Last activity: 2026-10-30 -- Phase 20 review-record verification refreshed; no auto-chaining
 
 Progress: [██████████] 100%
 
@@ -309,19 +328,15 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Next Action
 
-Run `$gsd-execute-phase 21` as a separate step to refresh its stale verification.
-Phase 19 and Phase 20 stale statuses have cleared; do not repeat their execute
-commands while their owner statuses remain passed. All 27 plans
-have summaries; no implementation planning is needed. If a refresh leaves its
-phase stale, stop and diagnose instead of repeating the command. No auto-chaining.
-
-After the remaining Phase 21 verification refresh, review/merge PR #61 separately,
-then run the milestone audit and closeout as separately authorized steps.
-The prior progress handoff reported green CI and Nightly, not an outstanding
-hosted-check wait. Preserve the exact config edit, original causal history,
-accepted 428-input source, deferred collector findings and physical-tie limits.
-Reconcile the recorded ledger discrepancy before closeout; verified
-implementation is not an already shipped milestone.
+Review and merge existing PR #61 as a separately authorized delivery step, then
+run `$gsd-audit-milestone` and closeout as separate commands. All three phase
+verification owner statuses are `passed`; do not repeat their execute commands
+while those statuses remain current. All 27 plans have summaries; no
+implementation planning remains. Preserve the exact config edit, original
+causal history, source-bound hosted acceptance, deferred collector findings,
+Phase 21 historical-attribution warning and physical-tie/provenance limits.
+Reconcile the recorded ledger discrepancy before closeout. Verified
+implementation is not an already shipped milestone. No auto-chaining.
 
 ## Performance Metrics
 
@@ -342,6 +357,6 @@ implementation is not an already shipped milestone.
 
 ## Session
 
-**Last session:** 2026-10-30T13:34:18Z
-**Stopped at:** Phase 21 freshly passed; Phase 20 review-record fingerprint refresh next, no auto-chaining
+**Last session:** 2026-10-30T14:02:43Z
+**Stopped at:** Phase 20 review-record verification passed; all three reports current; PR review/merge next, no auto-chaining
 **Resume file:** None

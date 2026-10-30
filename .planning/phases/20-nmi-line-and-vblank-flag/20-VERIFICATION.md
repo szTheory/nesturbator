@@ -1,6 +1,6 @@
 ---
 phase: 20-nmi-line-and-vblank-flag
-verified: 2026-10-30T12:34:26Z
+verified: 2026-10-30T14:00:32Z
 status: passed
 score: 32/32 truths verified
 covered_files:
@@ -36,9 +36,16 @@ covered_files:
   - .planning/phases/20-nmi-line-and-vblank-flag/20-RESEARCH.md
   - .planning/phases/20-nmi-line-and-vblank-flag/20-REVERIFICATION-EVIDENCE.md
   - .planning/phases/20-nmi-line-and-vblank-flag/20-REVIEW-DISPOSITION.md
+  - .planning/phases/20-nmi-line-and-vblank-flag/20-REVIEW-RECORD-REFRESH.md
   - .planning/phases/20-nmi-line-and-vblank-flag/20-REVIEW.md
+  - .planning/phases/20-nmi-line-and-vblank-flag/probes/20-cutpoint-probe-output.txt
+  - .planning/phases/20-nmi-line-and-vblank-flag/probes/20-cutpoint-probe.c
+  - .planning/phases/20-nmi-line-and-vblank-flag/probes/20-nmi-netlist-oracle-fetch.py
+  - .planning/phases/20-nmi-line-and-vblank-flag/probes/20-nmi-netlist-oracle.cjs
+  - .planning/phases/20-nmi-line-and-vblank-flag/probes/20-nmi-netlist-oracle.raw.txt
   - .planning/phases/21-interrupt-latency-and-hijack/21-EVIDENCE.md
   - .planning/phases/21-interrupt-latency-and-hijack/21-REVIEW-DISPOSITION.md
+  - .planning/phases/21-interrupt-latency-and-hijack/21-REVIEW.md
   - README.md
   - build/ci-efficiency-quick/campaign-final/metadata.txt
   - build/ci-efficiency-quick/campaign-final/report.tsv
@@ -46,6 +53,9 @@ covered_files:
   - build/phase20-refresh-hosted-evidence/manifest.txt
   - build/phase20-refresh-hosted-evidence/verdict.txt
   - build/phase20-refresh-source-modes.tsv
+  - build/phase20-review-record-refresh/ci.log
+  - build/phase20-review-record-refresh/cutpoint-probe.log
+  - build/phase20-review-record-refresh/netlist-probe.log
   - build/phase20-verification-refresh-ci.log
   - build/phase21-hosted-evidence/effective-inputs.txt
   - build/phase21-hosted-evidence/manifest.txt
@@ -75,6 +85,7 @@ covered_files:
   - tests/cmake/phase21_hosted_evidence.cmake
   - tests/cmake/phase21_source_identity.cmake
   - tests/cmake/phase21_source_identity_controls.cmake
+  - tests/cmake/runner_state.cmake
   - tests/cmake/state_format_pin.cmake
   - tests/cmake/vector_api_policy.cmake
   - tests/core/test_interrupt_entry.c
@@ -93,9 +104,13 @@ covered_files:
   - tests/runner/hashes.txt
   - tests/runner/nmi_fixture.c
   - tests/state_test.h
-covered_digest: "v4:sha256:00216ab6f118b920a09ca3493acd9c4ceb55becccf2433e026aac22cd45c15c8"
+covered_digest: "v4:sha256:e4f64680068f78f2e2da5b4c15741d342cbb69f687807a8570f0c0ecdbe5f95c"
 behavior_unverified: 0
 overrides_applied: 0
+decision_coverage:
+  honored: 24
+  total: 24
+  not_honored: []
 re_verification:
   previous_status: passed
   previous_score: 32/32
@@ -114,15 +129,16 @@ unverified_prohibitions:
     flagged: true
     flag: "unverified-prohibition — human review recommended"
     evidence: "Current automated hygiene and provenance evidence show no contamination. Full source/provenance assurance remains judgment-tier and is not asserted by this report."
+human_verification: []
 ---
 
 # Phase 20: NMI line and VBlank flag Verification Report
 
 **Phase Goal:** A game that reads `$2002` or toggles NMI around the start or end of VBlank gets the console's flag value and exactly the console's NMIs, and its save states hold through that race.
 
-**Verified:** 2026-10-30T12:34:26Z
+**Verified:** 2026-10-30T14:00:32Z
 **Status:** passed
-**Re-verification:** Yes — after Phase 21, against current format 3 / behavior revision 9 source. The earlier format 2 / revision 8 report is superseded for the current checkout.
+**Re-verification:** No — the prior passed report had no `gaps:` section, so this run used initial-mode goal-backward verification. It refreshed the record against the current format 3 / behavior revision 9 checkout after the Phase 21 disposition update.
 
 ## Goal Achievement
 
@@ -131,9 +147,9 @@ unverified_prohibitions:
 | # | Truth | Status | Evidence |
 |---|---|---|---|
 | 1 | All six AccuracyCoin NMI rows and owned race reproducers pass with source-selected values. | ✓ VERIFIED | Current CI log records `accuracycoin.nmi_targets`, `ppu.nmi_races`, and `core.nmi_poll` passing. The current campaign is terminal at 146 scored rows: 119 PASS, 27 FAIL, no skipped/not-run/timeout rows, and five DRAW; all six NMI target rows pass. |
-| 2 | The six supported platforms produce identical frame/audio hashes, with moved pins explained. | ✓ VERIFIED | The Phase 21 hosted evidence has six-platform identical hashes and the 114 protected keys for its own candidate `54c7db2` / merge `faf1b91`. That evidence is source-bound and is not represented as a hosted acceptance for current HEAD. Current runtime and hash-pin inputs match that candidate; the current source's fresh CI and canonical inventory checks pass. |
+| 2 | An accepted hosted source produces identical frame/audio hashes on all six supported platforms, with moved pins explained. | ✓ VERIFIED | The Phase 21 hosted evidence records six-platform identical hashes and 114 protected keys for candidate `54c7db2` / merge `faf1b91`; Phase 20's accepted bundle is separately bound to candidate `7848cc8` / merge `716e8d4`. Neither hosted record is represented as acceptance for current HEAD. Current checkout passes the local inventory/hash checks in the fresh CI workflow. |
 | 3 | VBlank-set, VBlank-clear, and edge-before-poll states replay through core, runner, and libretro; current format 3/revision 9 loads, and formats 1/2 are refused. | ✓ VERIFIED | Current header and `tests/runner/hashes.txt` pin format 3/revision 9. `src/state.c` rejects non-current formats before mutation; `core.state_reject`, `state.format_pin`, `core.nmi_state`, `core.state_fork.nmi`, runner NMI roundtrip/wrong-load/idempotency, and `libretro.runahead` pass in fresh CI. |
-| 4 | The 108 PASS / 38 FAIL starting scoreboard is protected, including Phase 19 rows; all six target additions and any incidental changes are accounted for. | ✓ VERIFIED | Current `accuracy.scoreboard.no_lost_pass` passes with 114 protected keys. The current campaign reports 119 PASS / 27 FAIL / five DRAW over 146 scored rows. This covers D-21's baseline and protected-main decision; no lost PASS is reported. |
+| 4 | The protected starting scoreboard, including Phase 19 rows, remains intact; all six target additions and incidental changes are accounted for. | ✓ VERIFIED | Fresh CI's `accuracy.scoreboard.no_lost_pass` passes with 114 protected keys. The retained local campaign metadata is source-bound to `d4802809ff41` with `source_dirty=1`; it records 119 PASS / 27 FAIL / five DRAW among 146 scored rows and all six target rows pass. This covers D-21 without presenting the local campaign as hosted or as a new capture. |
 | 5 | D-01: PPU-dot, real-bus/program, and pinned AccuracyCoin checks use separate oracles. | ✓ VERIFIED | Owned PPU race fixtures, guest programs using production bus/CPU paths, and pinned campaign vectors are separate checks and pass in current CI. |
 | 6 | D-02: Expected values identify source, cutpoint, starting state, and event order rather than copying measured output. | ✓ VERIFIED | Research, fixture comments, measurement records, and state witnesses identify sources and event order. The independent netlist probe is limited to finite-margin cases and is not used to choose a physical exact-tie winner. |
 | 7 | D-03: Start/end boundary, suppression, retained-edge, mirror, and normal-control cases are distinct. | ✓ VERIFIED | `ppu.nmi_races` and `core.nmi_poll` pass against before/on/after boundaries, suppression, edge retention, mirrored `$2002`, and normal-control cases. |
@@ -176,7 +192,9 @@ The previous report was 32/32 for format 2/revision 8. The current checkout is f
 
 ### Decision coverage
 
-The current decision-coverage query reports 24/24 honored decisions from `20-CONTEXT.md`. D-01 through D-20, D-22 through D-24 are represented in truths 5–27; D-21's starting scoreboard/protected-main policy is represented in truth 4. The five KEEP truths are 28–32.
+The decision-coverage gate returned `skipped: false`, `honored: 24`, `total: 24`, and no unhonored decisions. D-01 through D-20 and D-22 through D-24 are represented in truths 5–27; D-21's protected-scoreboard policy is represented in truth 4. The five KEEP truths are 28–32.
+
+Three `verification: backstop` truths in Plan 20-06 are explicitly evidenced rather than inferred: equal-tick inventory keys remain distinct, the empty-PCM state retains audio history without fabricating a sample, and generated inventory ordering is deterministic with duplicate keys rejected. `hash.inventory.self_test` and `core.nmi_state` exercise those cases. The two generic spec-less `NMI-01/unclassified` and `NMI-02/unclassified` probe labels remain flagged as classification assumptions; they do not replace or weaken the concrete requirement-specific checks.
 
 ### Required Artifacts
 
@@ -216,21 +234,33 @@ No checked output is a static response or hard-coded pass value.
 
 | Behavior | Command or evidence | Result | Status |
 |---|---|---|---|
-| Full current-source workflow | Parent's fresh `cmake --workflow --preset ci`; `build/phase20-verification-refresh-ci.log` | Exit 0; 695/695 passed, 100%, 401.09 seconds. All three v0.1.11 macOS arm64 deliverables generated. No source edits followed this run. | ✓ PASS |
-| NMI status, poll, and state history | Named CTests in that log: `ppu.nmi_races`, `core.nmi_poll`, `core.nmi_state`, `core.state_fork.nmi` | All pass. | ✓ PASS |
-| Format and rejection atomicity | `core.state_reject`, `state.format_pin` | Formats 1/2 and invalid versions reject; instance remains unchanged. Both pass. | ✓ PASS |
-| Core/runner/libretro continuation | Runner NMI roundtrip, wrong-load, idempotency; `libretro.runahead` | All pass in the current workflow. | ✓ PASS |
-| Current campaign and protected keys | `accuracycoin.nmi_targets`, `accuracy.scoreboard.no_lost_pass`; campaign `metadata.txt` and `report.tsv` | Six NMI target rows pass; 114 protected keys pass; current campaign has 119/27/5 terminal results. | ✓ PASS |
-| Current cutpoint fixture | `cc -std=c17 -Wall -Wextra -Wpedantic -Iinclude -Isrc -Itests .planning/phases/20-nmi-line-and-vblank-flag/probes/20-cutpoint-probe.c build/ci/libnesturbator.a -o /tmp/phase20-cutpoint-probe-verify && /tmp/phase20-cutpoint-probe-verify` | Exit 0. Exact set/clear states replay through the current library with complete JMP endpoints and nonzero audio history. The probe's NMI-disabled, constructed-origin limits are stated in truth 22. | ✓ PASS |
-| Independent NMI finite-margin oracle | `gsd_run run-with-timeout 30 -- python3 .planning/phases/20-nmi-line-and-vblank-flag/probes/20-nmi-netlist-oracle-fetch.py` | Exit 0; six independent finite-margin cases pass. Exact paired-chip ties are not measured. | ✓ PASS |
+| Full current-source workflow | `cmake --workflow --preset ci`; `build/phase20-review-record-refresh/ci.log` | Exit 0; 695/695 passed, 386.27 seconds. CPack generated library, runner and libretro ZIPs for v0.1.11 macOS arm64. | ✓ PASS |
+| NMI status, poll, and state history | `ppu.nmi_races`, `core.nmi_poll`, `core.nmi_state`, `core.state_fork.nmi` in the fresh log | All passed. | ✓ PASS |
+| Format and rejection atomicity | `core.state_reject`, `state.format_pin` | Both passed; format 1/2 and invalid versions reject without mutating the instance. | ✓ PASS |
+| Core/runner/libretro continuation | `runner.state.nmi_roundtrip`, `runner.state.nmi_wrong_load`, `runner.state.nmi_idempotent`, `libretro.runahead` | All passed in the current workflow. | ✓ PASS |
+| Campaign targets and protected keys | `accuracycoin.nmi_targets`, `accuracy.scoreboard.no_lost_pass`; retained `build/ci-efficiency-quick/campaign-final/` | Exact six NMI rows pass; 114 protected keys pass. Retained campaign is separately bound to its recorded dirty source and metadata. | ✓ PASS |
+| Current cutpoint fixture | `cc -std=c17 -Wall -Wextra -Wpedantic -Iinclude -Isrc -Itests .planning/phases/20-nmi-line-and-vblank-flag/probes/20-cutpoint-probe.c build/ci/libnesturbator.a -o /tmp/phase20-cutpoint-probe-refresh && /tmp/phase20-cutpoint-probe-refresh` | Exit 0. VBlank-set and clear checkpoints save/load canonically and match after seven whole instructions. This probe has NMI disabled and a constructed origin; enabled edge/poll continuation is independently exercised by `core.nmi_state` and `core.nmi_poll`. Raw output: `build/phase20-review-record-refresh/cutpoint-probe.log`. | ✓ PASS |
+| Independent NMI finite-margin oracle | `gsd_run run-with-timeout 30 -- python3 .planning/phases/20-nmi-line-and-vblank-flag/probes/20-nmi-netlist-oracle-fetch.py` | Exit 0 within 30 seconds; all six independent pulse cases pass. Inputs are hash-checked published transistor-netlist data; this does not measure an exact paired-chip tie. Raw output: `build/phase20-review-record-refresh/netlist-probe.log`. | ✓ PASS |
 
 ### Probe Execution
 
 | Probe | Command | Result | Status |
 |---|---|---|---|
 | Phase 20 netlist oracle | `gsd_run run-with-timeout 30 -- python3 .planning/phases/20-nmi-line-and-vblank-flag/probes/20-nmi-netlist-oracle-fetch.py` | Exit 0; six finite-margin cases passed, no exact-tie claim. | PASS |
-| Phase 20 cutpoint probe | Compile and run command in Behavioral Spot-Checks | Exit 0; bounded exact set/clear save/load/continuation behavior passed. | PASS |
+| Phase 20 cutpoint probe | Compile and run command in Behavioral Spot-Checks | Exit 0; set/clear save/load and continuation passed at complete JMP endpoints. NMI-disabled constructed-origin limit retained. | PASS |
 | Conventional `scripts/*/tests/probe-*.sh` | Phase directory discovery | None found or declared. | N/A |
+
+### Test Quality Audit
+
+| Test File | Linked Requirement | Active Evidence | Skipped | Circular | Assertion Level | Verdict |
+|---|---|---|---:|---|---|---|
+| `tests/ppu/test_nmi_races.c` and `tests/cmake/nmi_targets.cmake` | NMI-01 | `ppu.nmi_races`; exact six-key gate | 0 | No | Value and multi-step behavior | PASS |
+| `tests/core/test_nmi_poll.c` | NMI-02 | `core.nmi_poll`; STA/INC guests assert NMI counter and instruction markers | 0 | No | Value and multi-step behavior | PASS |
+| `tests/core/test_nmi_state.c`, `tests/core/test_state_fork.c` | KEEP-03 | `core.nmi_state`, `core.state_fork.nmi`, `core.state_reject` | 0 | No | Canonical bytes, rejection atomicity, state/output continuation | PASS |
+| `tests/cmake/runner_state.cmake`, `tests/runner/nmi_fixture.c`, `tests/libretro/libretro_host.c` | KEEP-03 | Runner NMI roundtrip/idempotency/wrong-load; `libretro.runahead` | 0 | No | Guest markers, hashes, state bytes and frame continuation | PASS |
+| `tests/cmake/hash_inventory.cmake`, `tests/cmake/nmi_targets.cmake` | KEEP-02 | `hash.inventory.self_test`, `accuracy.scoreboard.no_lost_pass` | 0 | No | Key sorting, duplicate/missing rejection, protected full keys | PASS |
+
+The requirement-linked test scan found no disabled tests, no circular expected-value generation, and no insufficient assertions. The guest fixtures generate input ROMs; expected counters, output hashes, campaign rows and malformed-state outcomes are checked against fixed markers, pinned source records, or independent source-derived expectations. The state fork compares two execution paths for continuity, while separate value and rejection assertions prevent it from serving as its own accuracy oracle.
 
 ### Requirements Coverage
 
@@ -255,24 +285,25 @@ No unresolved `TBD`, `FIXME`, or `XXX` markers, placeholder implementations, or 
 | WR-05: Phase 21 identity helper misses filesystem mode changes (same issue as Phase 21 WR-01) | Deferred | Independent run-specific mode/blob comparison exists for the accepted 428-input candidate; recurring enforcement remains debt. |
 | WR-01: public NMI API comment misstated captured-request behavior | Fixed | Current public comment and README contract describe the retained request after line deassertion. |
 | WR-02: split `$2002` test lacked changing sprite-flag coverage | Fixed | Production-bus test changes sprite overflow between M2 samples and checks `$2002` and `$3FFA`. |
+| Phase 21 WR-02: measurement prose attributes a different capture to the canonical baseline | Open warning in Phase 21 | `21-REVIEW.md` identifies distinct source/fingerprint/time captures: prose names `2940249e30ef`, fingerprint `573904…`, and 5,577,072,000 ns; current baseline metadata names `d4802809ff41`, fingerprint `ab0bdf…`, and 5,091,122,000 ns. Keep the historical attribution warning distinct from current metadata and from the hosted-source identities. It is a documentation/evidence concern, not a Phase 20 runtime failure. |
 
-These are disclosed maintenance and evidence-enforcement limits, not newly observed NMI runtime failures. The current refresh adds no manual sign-off requirement.
+These are disclosed maintenance and evidence-enforcement limits, not newly observed NMI runtime failures. Since `ab790a8`, the source, tests, public documentation and workflows have no diff; the evaluation-scope gate returned its documented empty-scope result, and Phase 20's disposition gate retained four deferred and two fixed findings. The refresh adds no manual sign-off requirement.
 
 ### Accepted Evidence Limits and Human Verification
 
-No human behavior check is required for this headless core phase. The clean-room prohibition is judgment-tier and remains explicitly flagged as `unverified-prohibition — human review recommended`; automated hygiene/provenance evidence does not claim complete source provenance. The deterministic finite-margin policy remains documented; exact physical paired-chip tie ordering is unmeasured and not claimed.
+N/A — infrastructure/foundation phase with no user-facing elements. All acceptance criteria are verified programmatically. No behavior-dependent truth remains unverified. The clean-room prohibition is judgment-tier and remains explicitly flagged as `unverified-prohibition — human review recommended`; automated hygiene/provenance evidence does not claim complete source provenance. The deterministic finite-margin policy remains documented; physical exact-tie ordering remains unmeasured and is not claimed.
 
 ### Advisory (New Scope, Unevidenced)
 
 | # | Finding | Category | Why Advisory |
 |---|---|---|---|
-| 1 | `README.md:29` says behavior revision 8 while `README.md:1341` and `include/nesturbator.h` identify format 3/revision 9. | other | Direct, deterministic documentation mismatch; no current runtime test fails. This refresh records it without changing source or expanding maintenance scope. |
+| 1 | `README.md:29` says behavior revision 8 while `README.md:1341` and `include/nesturbator.h` identify format 3/revision 9. | other | Direct, deterministic documentation mismatch; current header, runner pin and tests agree on format 3/revision 9. This is preserved as an advisory; no documentation edit was in scope. |
 
 ### Gaps Summary
 
-All 32 original observable truths are verified for current revision 9 behavior; all 24 context decisions and four mapped requirements are covered. Current CI provides fresh behavior evidence. Historical Phase 20 and Phase 21 hosted bundles remain bound to their own source identities, while this report makes no new hosted acceptance claim for current HEAD. The four deferred review findings, clean-room judgment flag, physical exact-tie limit, and README revision advisory remain visible and do not contradict the verified runtime truths.
+All 32 observable truths are verified; the decision gate reports 24/24 honored and all four assigned requirements are satisfied with no orphan. Fresh local CI on the current checkout passed 695/695 tests. Historical Phase 20 and Phase 21 hosted bundles remain source-bound and this report makes no hosted acceptance claim for current HEAD. The four Phase 20 deferred findings, Phase 21's open historical-attribution warning, two flagged unclassified probe labels, judgment-tier clean-room flag, physical exact-tie limit and README revision advisory remain visible. None contradicts the current NMI/status/state behavior evidence.
 
 ---
 
-_Verified: 2026-10-30T12:34:26Z_
+_Verified: 2026-10-30T14:00:32Z_
 _Verifier: gsd-verifier agent_

@@ -39,8 +39,17 @@ hosted runs. Current delivery is recorded through existing PR #61 in STATE.md;
 review/merge and milestone audit remain separate steps. The open measurement
 attribution warning (WR-02), README revision advisory, deferred collector debt
 and physical-tie/judgment-tier limits remain recorded. Updating Phase 21's
-review disposition invalidated Phase 20's coverage of that record; a separate
-Phase 20 fingerprint refresh is the next workflow step.
+review disposition invalidated Phase 20's coverage of that record; the separate
+Phase 20 execute-phase refresh below resolves that stale status.
+
+Phase 20's review-record refresh also passed on 2026-10-30: all 12 summarized
+plans were preserved, the incremental review scope was empty, and independent
+verification passed 32/32 truths, all 24 decisions and NMI-01/NMI-02/KEEP-02/KEEP-03.
+Fresh local CI passed 695/695 in 386.27 seconds and produced all three packages;
+both bounded probes passed. All three phase reports are now current and passed.
+Historical hosted evidence, deferred debt and evidence limits remain as recorded.
+PR review/merge and milestone audit remain separate steps; no source change or
+new hosted qualification is claimed by this refresh.
 
 ## Current Milestone: v5 NMI, VBlank and sprite-0 timing
 
@@ -225,4 +234,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-30 after Phase 21 verification refresh*
+*Last updated: 2026-10-30 after Phase 20 review-record verification refresh*
