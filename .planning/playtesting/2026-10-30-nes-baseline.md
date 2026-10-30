@@ -18,7 +18,7 @@ User-requested exploratory RetroArch sessions, one game at a time. Header admiss
 | 03 | Mega Man 2 (USA) | 1 | no | Not tried |
 | 04 | Castlevania III - Dracula's Curse (USA) | 5 | no | Unsupported mapper 5 |
 | 05 | Contra (USA) | 2 | no | Deck: user reports everything plays well, with the same positive controls, visuals, audio and perceived latency as Mario 3; no observed issues. |
-| 06 | Legend of Zelda, The (USA) | 1 | yes | Not tried |
+| 06 | Legend of Zelda, The (USA) | 1 | yes | Deck Rev A: user reports it plays great and prior progress appeared. Running core/shared battery-save path verified; no logged save-state load. |
 | 07 | Super Mario Bros. (World) | 0 | no | User: plays pretty well; graphics/audio good; mild sluggishness under substantial concurrent load, cause unverified. |
 | 08 | Metroid (USA) | 1 | no | Not tried |
 | 09 | Ninja Gaiden (USA) | 1 | no | Deck: displayed as Shadow Warriors; user reports it plays great. |
@@ -194,3 +194,19 @@ If the owner continues, The Legend of Zelda (USA, Rev A), already in the
 collection, is a useful next voluntary choice with battery-backed progress.
 Its gameplay and save/reload behavior remain untested; no configuration change
 or automatic game launch was performed for this report.
+
+### The Legend of Zelda — Steam Deck gameplay and prior progress
+
+The owner reports Zelda plays great and picked up prior progress, initially
+calling it a previous save state. A read-only live check confirmed Nesturbator
+running the existing USA Rev A entry. RetroArch's log identifies the normal
+shared `.srm` battery-save path and a separate Nesturbator snapshot path, with
+no save-state load reported in that log. This is consistent with reused
+in-game battery-backed progress, not evidence of cross-core snapshot support.
+The owner accepted that distinction. No save bytes were read, altered or added
+to the repository for this check.
+
+Record positive user-reported gameplay and observed prior-progress reuse.
+The prior writer/core was not established; a newly written battery-save exit/
+relaunch cycle, save-state compatibility and full-game coverage remain
+unverified. This report does not upgrade the earlier save-state guarantees.
