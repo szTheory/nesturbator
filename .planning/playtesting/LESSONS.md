@@ -28,6 +28,13 @@ raw logs, screenshots, media, saves and states out of Git. Local/private records
 may hold the operational details. Share only sanitized mechanisms, outcomes,
 public artifact provenance and reusable decisions.
 
+The owner later authorized expanding the queue and transferring needed games.
+See the [prepared Deck queue](DECK-QUEUE.md) for the current 23-entry collection,
+coverage priorities and visible title aliases. New NTSC variants live in the
+normal library alongside preserved PAL variants, with explicit regional names;
+the collection selects one supported variant per title. Earlier seven-entry
+observations below describe the initial setup, not the current collection size.
+
 ## Observed results and limits
 
 | Observation | What it establishes | What remains unknown |
@@ -41,6 +48,7 @@ public artifact provenance and reusable decisions.
 | Steam Deck Zelda: owner reports it plays great and prior progress appeared; live check confirmed Nesturbator, shared `.srm` storage and no logged snapshot load | Positive MMC1 gameplay signal and prior-progress reuse consistent with battery-save sharing | Prior writer/core and a newly written save/relaunch cycle are unverified; this does not demonstrate cross-core save-state compatibility |
 | Steam Deck Crystalis: owner reports looks, plays and sounds great; private capture shows a thin patterned upper-edge strip | Positive MMC3 gameplay/audio smoke signal and a concrete presentation observation | Exposed overscan is plausible, but exact hardware correctness is unverified; no crop option currently exists in the adapter |
 | Reference-only Nesturbator collection registered against seven existing NTSC games; repaired Steam shortcut started ES-DE in Gaming Mode and its log loaded that collection | Installation/configuration/preservation checks passed; actual frontend startup reached its loaded-library state | All seven games and the complete ES-DE → core → exit/progress path remain separate acceptance |
+| Owner-authorized expansion to 23 references: seven reused NTSC entries plus 16 verified transfers; ES-DE freshly loaded the collection | Setup now covers candidate titles for all six supported mapper families; original files, metadata and save storage preserved, selected progress backed up | Only five Deck gameplay reports are credited; the new startup preflight does not establish interactive play or every board profile |
 
 The owner explicitly considers the two Mac sessions sufficient smoke signal for
 now. The rest of the original shortlist remains untested or outside current
@@ -60,6 +68,7 @@ it is not a prerequisite for retaining useful feedback now.
 | Keep ordinary launch stable | After an ES-DE update, Steam recorded a shell error in the EmuDeck wrapper while the new AppImage's version command passed. The wrapper also regenerated launchers and updated/reset its backend during launch. The repair uses the installed AppImage through a stable wrapper, retaining configured cloud-sync hooks and moving updater work off the play path. Exact causation of the historical shell error is not fully reproduced. |
 | Preserve defaults when adding a core | Read the installed ES-DE version's NES configuration, retain its existing command order/options, and append the owned core as an alternative. Apply the new choice to selected supported entries, not every game in a curated system. Regional filenames can contradict legacy header flags; do not silently route PAL titles into an NTSC-only core. |
 | Verify crop support at the adapter boundary | A host overscan preference may have no effect if the core always submits the full frame and does not consume that preference. Nesturbator currently sends 256×240 with no crop option; optional presentation cropping is future work. Keep an unexplained edge artifact recorded until reference evidence distinguishes expected edge graphics from an emulation error. |
+| Treat region as part of content identity | An existing PAL copy is not a valid NTSC test substitute merely because a legacy header reports zero. With explicit transfer authority, add the needed regional variant to the normal library, label it clearly, preserve the original and select one variant per title in the test collection. Do not silently replace content under an existing filename or assume progress transfers between regional revisions. |
 | Collections are references | ES-DE custom collections list existing ROM paths. A small collection is a convenient view over the same entries and progress, not a duplicated ROM directory. Back up metadata and change only the intended per-game emulator field. |
 | Test progress separately | Normal save directories and a valid state API do not prove graceful host shutdown, automatic snapshot creation or safe recovery. Verify actual exit/save/reload results before making those claims. Never treat a forced process stop as proof that progress flushed. |
 

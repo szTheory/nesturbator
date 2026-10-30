@@ -8,18 +8,23 @@ cross-project entry point the owner requested. Use the
 ## Current user-facing outcome
 
 The Deck is in normal Gaming Mode. ES-DE 3.5.0 is open through the repaired
-existing Steam shortcut; its log loaded the Nesturbator collection and retained
-the prior game count. That reference-only collection contains seven existing
-supported NTSC entries with per-game Nesturbator selection and switchable other
-cores. Main ROM files, scraped metadata and unrelated emulator choices were
-preserved. Normal battery storage remains; Nesturbator states are namespaced
+existing Steam shortcut; its fresh startup log loaded the expanded Nesturbator
+collection. The owner authorized broader preparation and transfers; that
+reference-only collection now contains 23 supported-region entries with per-game
+Nesturbator selection and switchable other cores. Seven existing NTSC entries
+were reused and 16 missing NTSC variants added to the normal library alongside
+preserved PAL versions, with explicit region names. Original files, metadata,
+save storage and unrelated emulator choices were preserved. Normal battery
+storage remains; Nesturbator states are namespaced
 inside normal state storage so other cores' snapshots survive.
 
 The user saw commercial Mario 3 running on the TV and confirmed Start after
 correcting the PowerA-specific SDL2 profile and player-one preference. The first
 profile used raw rather than normalized SDL2 indices and failed; preserve that
 lesson. The subsequent real collection launch used Nesturbator but Start did not respond under Steam Input. Its virtual-device presentation bypassed the direct run's physical-name preference. The launch script now resolves the attached external device index in context, with handheld fallback. The owner relaunched Mario 3 from the collection and confirmed the controller works. A read-only live check found the intended core and corrected player-one configuration; the game was left running. No immediate user action is required. Reconnect/handheld fallback, the complete ES-DE → game → orderly return/progress roundtrip and broad input/performance coverage remain unqualified. Further user feedback is welcome,
-not a mandatory release-signoff task. Do not launch an entire game sweep.
+not a mandatory release-signoff task. The later expansion authorizes queue
+preparation and transfers, not invented gameplay results or unattended full
+playthroughs.
 
 Latest Deck gameplay feedback: Mario 3 has good input timing, visuals and audio,
 low perceived latency and no observed issues according to the owner. This is
@@ -47,6 +52,25 @@ Mac Mario 1 and Mario 3 played well enough for initial smoke signal, with mild
 sluggishness and some Mario 3 audio tearing under concurrent work. Resource
 contention is suspected, not established. The owner explicitly deferred stronger
 performance confidence to a quieter/dedicated device.
+
+## Ready to resume play
+
+The owner went for a walk and requested broader preparation. The
+[ordered Deck queue](playtesting/DECK-QUEUE.md) is ready: start with Gradius (USA),
+then Solar Jetman (USA) and Balloon Fight (USA) to fill CNROM, AxROM and NROM
+Deck gameplay gaps. Five games have positive reports; 18 remain untested on the
+Deck. Existing River City Ransom is shown as **Street Gangs**.
+
+All selected archive identities, references and Nesturbator choices were
+verified; all images completed 120 no-input frames in the current local native
+runner. This is admission/startup signal only. Existing selected progress was
+backed up privately; new save/relaunch and snapshots remain separate checks.
+The normal Steam shortcut started ES-DE, the fresh log loaded the expanded
+collection, and a private capture showed its normal system carousel. No active
+game was interrupted or automatically launched; no display/controller/core
+setting changed. On return, the owner opens Collections → Nesturbator → Gradius
+(USA). No restart/setup action or additional user input is needed now. The next
+actor is the owner when ready to play; planning still has its separate boundary.
 
 ## Host work and operational privacy
 

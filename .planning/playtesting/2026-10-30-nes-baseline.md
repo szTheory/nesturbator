@@ -237,3 +237,37 @@ Optional overscan cropping is a proposed presentation improvement, not approved
 implementation scope; it must not be used to dismiss a real rendering defect.
 No game, TV, host display setting or core code was changed. Save/load and full-
 game coverage remain unverified.
+
+## Owner-authorized expanded queue preparation
+
+The owner then requested broader mapper/edge-case smoke testing, authorized SSH
+transfer of needed local games and asked for preparation while away. This
+supersedes the earlier deferral of the rest of the shortlist for preparation;
+only reported gameplay receives credit. The [Deck queue](DECK-QUEUE.md) gives
+the recommended order, actual visible names, suggested scenes and boundaries.
+
+The collection now references 23 supported-region normal-library entries:
+21 from the original list plus Gradius (CNROM coverage) and Battletoads (another
+timing-sensitive AxROM title). Seven existing NTSC entries were reused and 16
+missing NTSC variants were transferred with archive-hash verification. Existing
+PAL variants were preserved; added USA/World entries distinguish their regions.
+There is one selected variant per title in this collection and no separate test
+ROM directory. Original library files, original metadata and original save
+storage passed preservation checks against the pre-transfer snapshot. Existing
+selected-game progress was backed up privately before further testing.
+
+All selected images passed admission and 120 no-input frames in the current
+local native runner. This is startup preflight, not a gameplay or performance
+pass. On the Deck, every collection reference resolves and selects Nesturbator.
+The normal Steam shortcut then started ES-DE, whose fresh log loaded the
+expanded collection and completed startup. A private screen capture confirmed
+the frontend at its normal system carousel. No game was running or interrupted,
+and no new game was automatically launched. Display, controller and core
+settings were preserved. The owner can return to Collections → Nesturbator and
+start **Gradius (USA)**; no frontend restart is currently needed.
+
+The five reported Deck sessions remain the credited gameplay observations.
+The remaining 18 titles are prepared and untested on the Deck. MMC1, UxROM and
+MMC3 have directional play signal; CNROM, AxROM and NROM remain Deck gameplay
+gaps until the suggested next sessions. Unsupported requested boards/regions
+remain outside this queue and were not routed to Nesturbator.

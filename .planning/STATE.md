@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Positive five-title Deck smoke reports; Crystalis top-edge strip documented, exact cause unverified
-last_updated: "2026-10-30T19:58:31Z"
+stopped_at: Expanded 23-title Deck collection prepared and loaded; owner can resume with Gradius
+last_updated: "2026-10-30T20:11:57Z"
 last_activity: 2026-10-30
-last_activity_desc: Owner reports Crystalis looks, plays and sounds great; private screen capture documents top-edge strip and missing crop option
+last_activity_desc: Prepared owner-authorized mapper/edge-case play queue, transferred missing NTSC variants and verified preservation/frontend startup
 progress:
   total_phases: 3
   completed_phases: 3
@@ -48,48 +48,45 @@ The pre-existing AGENTS.md and config edits remain unstaged and preserved.
 
 ## Next Action
 
-The owner relaunched Mario 3 from the Nesturbator collection and confirmed the
-controller works. A read-only live check found the intended core and corrected
-player-one configuration. The game was left running. No immediate user action
-is required. The owner subsequently reported good Mario 3 input timing, visuals
-and audio, low perceived latency and no observed issues. The owner then reported
-Contra (USA) plays well with similar feedback, then reported Ninja Gaiden
-(displayed as **Shadow Warriors**) plays great. These are positive MMC3, UxROM
-and MMC1 gameplay smoke reports. The owner next reported The Legend of Zelda
-(USA, Rev A) plays great and prior progress appeared. A live check confirmed
-Nesturbator and shared battery-save storage, with no logged snapshot load. This
-is consistent with battery-save reuse; the prior writer/core, newly written
-save/relaunch cycle and snapshot compatibility remain unverified. The launcher
-includes handheld fallback, but unplug/reconnect and fallback remain untested.
+The owner is away and asked for the next games to be prepared. Preparation is
+finished: the normal Steam shortcut started ES-DE and its fresh log loaded the
+expanded **Nesturbator** collection. A private capture confirmed the normal
+system carousel. No game was running or interrupted; no game was automatically
+launched. On return, open **Collections → Nesturbator → Gradius (USA)**, then try
+Solar Jetman (USA) and Balloon Fight (USA). No restart or setup action is needed.
+The owner acts next when ready to play; no further input is required for setup.
 
-The owner then reported Crystalis looks, plays and sounds great, with a thin
-patterned strip at the top. A requested private screenshot confirms the strip.
-Full 256×240 adapter output and absent crop support explain why edge pixels are
-visible despite the host crop preference. Exposed overscan is plausible; exact
-hardware correctness remains unverified. Optional presentation cropping is only
-a proposal. No settings or core code changed, and no immediate user action is
-required.
+Read the [ordered Deck queue](playtesting/DECK-QUEUE.md) for the 18 untested Deck
+titles, useful short-session targets and unsupported exclusions. The collection
+has 23 entries: 21 supported-region choices from the original list plus Gradius
+and Battletoads. Seven existing NTSC entries were reused; 16 missing NTSC
+variants were copied into the normal library. Existing PAL versions, metadata,
+other emulator choices and progress were preserved. New entries show regional
+names. There is one selected variant per title in the collection, with no
+separate test ROM directory. All archive identities, references and per-game
+core choices passed read-back checks. Original files/metadata/save storage
+passed preservation checks; existing selected progress was backed up privately.
 
-The Deck is in Gaming Mode and ES-DE is open through its repaired existing Steam
-shortcut. Open Collections → Nesturbator to use seven existing supported NTSC
-entries, each with Nesturbator selected and other cores still switchable. No main
-ROM files were changed or added. Normal battery storage is reused; snapshots
-are core-specific within normal state storage. The owner saw commercial Mario 3
-on the TV and confirmed physical Start after the corrected SDL2 PowerA profile.
-The subsequent collection launch used the correct core but Start did not work. Steam virtual-device presentation differs from the direct desktop run; a context-specific controller resolver was applied, and the owner confirmed working input after relaunching from the collection. Handheld fallback is configured but untested. Mario 3, Contra, Ninja Gaiden, Zelda and Crystalis have positive user-reported gameplay smoke evidence; instrumented latency, sustained/full-game coverage, clean frontend return and progress roundtrip remain open.
+Every selected image completed a 120-frame no-input startup preflight in the
+current local native runner. This is not a Linux interactive-play, sustained
+performance or broad compatibility result. No core, controller or display
+configuration changed. Handheld fallback and reconnect remain untested.
 
-Two Mac Mario reports were useful smoke signal; mild sluggishness/audio tearing
-remain unattributed. The owner explicitly deferred a full game sweep and higher
-confidence performance testing. TV visibility and ES-DE startup were repaired
-from observed host evidence, with local rollback backups. No core code, ABI,
-state format or emulation behavior changed. Details are in the
-[baseline](playtesting/2026-10-30-nes-baseline.md).
+Five Deck titles have positive user gameplay reports: Mario 3, Contra, Ninja
+Gaiden (shown as Shadow Warriors), Zelda and Crystalis. Those provide directional
+MMC3, UxROM and MMC1 signal. CNROM, AxROM and NROM remain Deck gameplay gaps.
+Zelda reused prior progress consistently with shared battery-save storage;
+prior writer/core and a new write/exit/relaunch cycle remain unverified. State
+compatibility across cores/versions is not established. Crystalis' thin top-edge
+strip is documented privately; exposed overscan is plausible, exact hardware
+correctness unverified, and optional cropping remains proposed.
 
-Read [PII-free lessons](playtesting/LESSONS.md) before milestone scoping or another
-emulator's host setup. Owner direction now prefers this real-library daily-play
-loop as a fast source of feedback before deeper Playstead integration. Device
-addresses, account identifiers, personal paths, raw media/logs/captures and save
-bytes remain outside Git in private operational records.
+Read [PII-free lessons](playtesting/LESSONS.md) before another emulator's host
+setup. Private connection details, media, saves, raw logs, captures and operational
+receipts remain outside Git. The [baseline](playtesting/2026-10-30-nes-baseline.md)
+preserves title observations and setup chronology. Two earlier Mac smoke reports
+remain useful; their sluggishness/audio tearing is unattributed. Higher-confidence
+performance and full-game coverage remain open.
 
 Separate planning continuation:
 
@@ -140,6 +137,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T19:58:31Z
-**Stopped at:** Five Deck gameplay reports positive; Crystalis edge observation preserved, no setup work pending. Planning continuation: `$gsd-new-milestone`
+**Last session:** 2026-10-30T20:11:57Z
+**Stopped at:** Expanded collection loaded; owner can play Gradius next after returning, no setup work pending. Planning continuation: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`
