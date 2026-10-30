@@ -17,7 +17,7 @@ User-requested exploratory RetroArch sessions, one game at a time. Header admiss
 | 02 | Kirby's Adventure (USA) | 4 | yes | Not tried |
 | 03 | Mega Man 2 (USA) | 1 | no | Not tried |
 | 04 | Castlevania III - Dracula's Curse (USA) | 5 | no | Unsupported mapper 5 |
-| 05 | Contra (USA) | 2 | no | Not tried |
+| 05 | Contra (USA) | 2 | no | Deck: user reports everything plays well, with the same positive controls, visuals, audio and perceived latency as Mario 3; no observed issues. |
 | 06 | Legend of Zelda, The (USA) | 1 | yes | Not tried |
 | 07 | Super Mario Bros. (World) | 0 | no | User: plays pretty well; graphics/audio good; mild sluggishness under substantial concurrent load, cause unverified. |
 | 08 | Metroid (USA) | 1 | no | Not tried |
@@ -156,7 +156,19 @@ completion were not reported. Save/load, reconnect and handheld fallback remain
 untested. The earlier Mac sluggishness/audio tearing remains unattributed; this
 Deck report does not establish its cause.
 
-Recommended next voluntary spot check: **Contra (USA)** from the same collection,
-to exercise mapper 2 (UxROM) after Mario 3's mapper 4 (MMC3). This is a suggested
-next title, not a launch or gameplay result. No device configuration was changed
-for this feedback update.
+The next suggested title was Contra (USA), covering mapper 2 (UxROM). Its
+subsequent feedback is recorded below. No device configuration was changed
+for these feedback updates.
+
+### Contra — Steam Deck gameplay feedback
+
+Following the Contra recommendation, the owner reported that everything plays
+well with feedback similar to Mario 3: good input timing, visuals and audio,
+low perceived latency and no observed issues. Record this as a positive
+user-reported Contra (USA) smoke result on the existing Deck collection route.
+No independent launch/log check was performed for this report. Duration,
+full-game coverage, save/load and measured latency remain unqualified.
+
+Recommended next voluntary title: **Ninja Gaiden (USA)** from the same collection,
+to add mapper 1 (MMC1) after the positive MMC3 and UxROM sessions. No next-title
+launch or result is claimed.
