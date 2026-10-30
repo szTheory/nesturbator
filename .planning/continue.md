@@ -24,8 +24,11 @@ Following scope: RM-015 scene-driven accuracy only when bounded native/reference
 triage establishes a core fault; otherwise resume the five remaining DMA
 failures, preserving the three former candidates already passing. Keep actual
 Playstead integration consumer-owned, PAL as the regional alternative, and new
-mappers independently scoped. Punch-Out!! supplies named MMC2 demand without
-implementing or committing it. All four horizons and audit debt remain visible.
+mappers independently scoped. The [mapper scope note](research/milestone-v6-discovery/MAPPER-SCOPE.md)
+records the six supported IDs, historical prevalence caveats and the three
+additional IDs on the shortlist (9/5/69), with PAL separate. Favor MMC2/Punch-Out!!
+when mapper expansion is chosen; it is not committed. All four horizons and
+audit debt remain visible.
 
 `$gsd-new-milestone`
 

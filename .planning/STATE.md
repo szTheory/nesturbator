@@ -5,10 +5,10 @@ milestone_name: NMI, VBlank and sprite-0 timing
 status: completed
 current_phase: null
 current_plan: null
-stopped_at: Optional queue and mini postmortem recorded; roadmap refreshed; next milestone scope remains unapproved
-last_updated: "2026-10-30T22:56:37Z"
+stopped_at: Playtest checkpoint and mapper expansion context recorded; next milestone scope remains unapproved
+last_updated: "2026-10-30T23:13:56Z"
 last_activity: 2026-10-30
-last_activity_desc: Synthesized playtest lessons, diminishing returns, optional remaining games and conditional future milestone sequence
+last_activity_desc: Preserved mapper totals, coverage caveats and named expansion priorities for next-milestone selection
 progress:
   total_phases: 3
   completed_phases: 3
@@ -69,7 +69,10 @@ measured accuracy candidate, with three former candidates already protected.
 Actual Playstead acceptance is separately consumer-owned. PAL remains the
 regional alternative; Punch-Out!! now supplies named MMC2 interest without
 approving a mapper. All four horizons and audit debt are reconciled in
-[PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md), direction revision 7.
+[PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md), direction revision 8. The owner also
+requested durable [mapper scope context](research/milestone-v6-discovery/MAPPER-SCOPE.md):
+the shortlist needs mapper IDs 9/5/69 and PAL separately. Prefer MMC2/Punch-Out!!
+when expansion is chosen; historical mapper prevalence is not compatibility.
 
 The next actor is the owner selecting milestone scope. The agent can use the
 retained scene evidence after that choice; no more play is a prerequisite.
@@ -127,6 +130,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T22:56:37Z
-**Stopped at:** Research/playtest checkpoint synthesized and optional queue refreshed; awaiting next milestone scope selection. Next: `$gsd-new-milestone`
+**Last session:** 2026-10-30T23:13:56Z
+**Stopped at:** Playtest checkpoint and mapper expansion context preserved; awaiting next milestone scope selection. Next: `$gsd-new-milestone`
 **Resume file:** `.planning/continue.md`

@@ -1,7 +1,7 @@
 # Product roadmap: nesturbator
 
 Reviewed: 2026-10-30 during next-milestone discovery, after v5 closeout.
-Direction revision: 7.
+Direction revision: 8.
 Active milestone: none. v5 "NMI, VBlank and sprite-0 timing" (RM-004) is complete; the next scope remains proposed.
 
 This is the rolling product direction. The execution contract remains in `.planning/ROADMAP.md`. Planning milestones v1, v2, v3, v4 and v5 are distinct from package versions such as v0.1.10. No dates or future phase numbers are promised here.
@@ -97,6 +97,8 @@ PAL requires CPU/PPU/APU/DMA timing, audio scheduling, video/emphasis, state ide
 
 These are priority choices, not technical dependencies on perfect NTSC accuracy. Punch-Out!! is concrete demand that may promote mapper 9 when requested; current positive Deck reports supply no measured optimization budget, and in-game slowdown alone does not justify a core performance rewrite. RM-008's actual Playstead path stays Near, while a new native host, managed exact Continue, achievements and netplay remain conditional on a real consumer, supported control boundary and acceptance.
 
+The [mapper scope note](research/milestone-v6-discovery/MAPPER-SCOPE.md) records why six common IDs already reach a large historical share of the licensed library, without claiming a compatibility percentage. Hundreds of assigned IDs include many variants and specialized boards; numbering capacity is not a delivery target. The owner's unsupported shortlist needs IDs 9, 5 and 69, with Ufouria requiring PAL separately. Prefer MMC2/Punch-Out!! when mapper expansion is selected; relative difficulty varies and MMC5 remains a larger independent outcome. This clarification changes no horizon commitment or next-milestone ordering.
+
 ## Long
 
 | ID | Status | Direction | What must be established before promotion |
@@ -155,6 +157,8 @@ Keep the file small. Use existing Markdown and git; no roadmap service or parser
 - 2026-10-30, next-milestone discovery: new owner direction asks for real-game feedback, Playstead readiness, concise public docs and lessons from active sibling cores. Independent Muhtari/peer passes and direct Playstead inspection support RM-014 as the preferred next proposal and move RM-008 from Mid to Near on concrete consumer demand. Immediate remains uncommitted. DMA remains the next accuracy cluster; PAL stays the regional alternative. Mid board/performance work and Long hardware remain conditional because no new title demand, target budget or hardware acceptance evidence promotes them. Retain Dendy's independent regional trigger, all audit debt, published-versus-merged distinctions and existing stops. Do not copy sibling emulation code, import a shared framework or count a handoff as consumer integration. [Synthesis and source reports](research/milestone-v6-discovery/SYNTHESIS.md) preserve rationale, tradeoffs and proposed slices; seeds remain unchanged.
 - 2026-10-30, owner playtesting: two Mac smoke sessions were sufficient initial signal despite unattributed sluggishness/audio tearing. The owner requested a Steam Deck daily-play route through existing ES-DE/RetroArch, with reference-only collections, normal progress storage and per-game core choices; this can precede deeper Playstead integration. Local installation/controller/display/launcher work supplies partial RM-014 evidence and no universal compatibility claim. Immediate remains uncommitted; DMA follows player readiness, PAL remains the regional alternative, and Mid/Long retain their demand/evidence triggers. Future emulator projects should consult the PII-free [lessons](playtesting/LESSONS.md). No new phase, requirement, dependency or historical safety waiver was selected.
 - 2026-10-30, diminishing-returns checkpoint: 22 reports across all six mapper IDs are enough to stop the broad sweep. Prefer RM-014's remaining documentation, progress-safety and repeatable-report gaps; retain already delivered local setup as partial evidence. Added proposed RM-015 because named scene findings offer a more direct player-quality target than another generic game pass. It moves ahead of DMA only when native/source-based triage establishes a core fault; otherwise DMA remains next. Actual Playstead stays a separate Near consumer outcome, PAL the regional alternative and Dendy independently conditional. Mid now acknowledges Punch-Out!!/MMC2 demand without approving it; Long acknowledges Gimmick!/5B and Castlevania III/MMC5 interest without promoting their broad hardware scope. No target-device performance budget, FDS or peripheral demand was established. Immediate stays empty, all audit debt/stops remain, seed files are unchanged and no publication was rechecked or claimed. [Postmortem](playtesting/POSTMORTEM.md) records methodology and proposed milestone outcomes.
+
+- 2026-10-30, mapper clarification: recorded the owner's request to retain mapper-count context before clearing the session. Six supported common IDs do not imply six equal-sized tasks out of a fixed total; historical prevalence is not measured compatibility. Prefer MMC2/Punch-Out!! when expansion is selected, with MMC5/5B and PAL independently scoped. All four horizons, promotion triggers, audit debt and current ordering remain unchanged; no additional scope was approved. See the [mapper note](research/milestone-v6-discovery/MAPPER-SCOPE.md).
 
 ## Why this shape
 
