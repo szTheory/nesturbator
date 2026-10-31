@@ -4,18 +4,18 @@ milestone: v6
 milestone_name: Player-ready NES and reproducible feedback
 current_phase: 22
 current_phase_name: Install and protect progress
-status: executing
-stopped_at: Completed 22-03-PLAN.md
-last_updated: "2026-10-31T01:31:30.453Z"
+status: verifying
+stopped_at: Completed 22-04-PLAN.md; Phase 22 awaits parent review, verifier and full CI
+last_updated: "2026-10-31T01:45:34.030Z"
 last_activity: 2026-10-30
-last_activity_desc: Plan 22-03 completed
-state_head: e9d9449603e28ba45b1689a33c9d176b321c8a50
+last_activity_desc: Plan 22-04 completed; phase awaits review and verification
+state_head: d9f49de379ea7beb80f92a5acd1be766ee368091
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
-  percent: 75
+  completed_plans: 4
+  percent: 100
 current_plan: null
 ---
 
@@ -25,33 +25,33 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v6 requirements and roadmap approval, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 22 is in progress. Plans 22-01 through 22-03 are complete; Plan 22-04 remains.
+Current focus: Phase 22 implementation is complete and awaits parent review, verification and full CI. READY requirements remain pending until the phase verifier accepts the evidence.
 
 ## Current Position
 
-Phase: 22 (Install and protect progress) — EXECUTING
+Phase: 22 (Install and protect progress) — VERIFYING
 Plan: 4 of 4
-Status: Ready to execute
-Last activity: 2026-10-30 — Plan 22-03 completed and committed
+Status: Implementation complete; awaiting parent review, verifier and full CI
+Last activity: 2026-10-30 — Plan 22-04 completed and committed
 
 ## Next Action
 
-Plans 22-01, 22-02 and 22-03 are complete. Plan 22-03 added the canonical
-release and testing guides and reconciled the original README material in
-[22-03-SUMMARY.md](phases/22-install-and-protect-progress/22-03-SUMMARY.md).
-Its final focused documentation and package-policy selection passed 16/16.
-READY requirements remain pending until Phase 22 is complete.
+Plans 22-01 through 22-04 are implemented. Plan 22-04 provides the player
+installation, identity, controls and disposable progress route; see
+[22-04-SUMMARY.md](phases/22-install-and-protect-progress/22-04-SUMMARY.md)
+for dated release/menu observations, task commits and focused evidence. Its
+focused 18-test selection and configured macOS arm64 package/archive checks
+passed. The parent phase executor still owns review, phase verification and
+full CI; READY requirements remain pending.
 
-Plan 22-04 is the next sequential plan. The phase executor continues when the
-owner invokes:
+Next command:
 
-`$gsd-execute-phase 22`
+`$gsd-verify-work 22`
 
-This resumes Phase 22 at player installation, identity, controls and progress.
-Context may be cleared first; read this state, the resume file and Plan 22-04.
-Do not start Phase 23 early. Full CI remains with the serial phase executor.
-No runtime behavior, package, host operation, push, release or gameplay
-acceptance is claimed.
+This reviews Phase 22 evidence against the phase goal. Context may be cleared
+first; read this state, the resume file, phase context and the 22-04 summary.
+Do not start Phase 23 early. No full CI, live host/device operation, release,
+push or gameplay acceptance is claimed here.
 
 Six fallback edge assumptions and six descriptor-less prohibitions remain
 explicitly flagged for downstream review; they are not implementation passes.
@@ -65,9 +65,9 @@ private-artifact boundaries and unchanged live-testing stops/allowances.
 
 v5 remains complete and archived. Its [closeout](milestones/v5-CLOSEOUT.md)
 and [audit](milestones/v5-MILESTONE-AUDIT.md) retain package-publication history,
-collector/platform/provenance debt and source-bound acceptance. Recheck release
-availability during Phase 22 implementation rather than treating opening status
-as current. Phase 23 report/replay/triage remains the following approved phase.
+collector/platform/provenance debt and source-bound acceptance. Release
+availability was refreshed during Plan 22-04. Phase 23 report/replay/triage
+remains the following approved phase.
 
 ## Preserved Debt and Boundaries
 
@@ -106,9 +106,9 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T01:31:30.434Z
-**Stopped at:** Completed 22-03-PLAN.md
-**Next command:** `$gsd-execute-phase 22`
+**Last session:** 2026-10-31T01:45:34.010Z
+**Stopped at:** Completed 22-04-PLAN.md; Phase 22 awaits parent review, verifier and full CI
+**Next command:** `$gsd-verify-work 22`
 **Resume file:** .planning/continue.md
 
 ## Performance Metrics
@@ -118,6 +118,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 | Phase 22 P01 | 13 min | 2 tasks | 5 files |
 | Phase 22 P02 | 12min | 2 tasks | 5 files |
 | Phase 22 P03 | 9 min | 2 tasks | 3 files |
+| Phase 22 P04 | about 20 minutes | 3 tasks | 4 files |
 
 ## Decisions
 
@@ -129,3 +130,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 - [Phase 22]: docs/releases.md owns archive inventory, install-line checks, marker mechanics, publication order and attestation provenance; the README keeps its marked install command.
 - [Phase 22]: docs/testing.md owns engineering checks and evidence limits, with API, runner and release semantics linked to their canonical guides.
 - [Phase 22]: Built-module tests, build-tree archive checks, six-target CI packaging and live host evidence remain distinct.
+- [Phase 22]: The README remains player-first and preserves the checked support statement and marked Apple Silicon install command.
+- [Phase 22]: Exact build identity requires the loaded module path, digest and matching provenance; unavailable identity remains unknown.
+- [Phase 22]: Host settings, logical input ports, native snapshots, host state containers and battery data remain separate boundaries.
+- [Phase 22]: Progress recovery uses disposable owned fixtures and keeps the newest battery copy outside active test and save paths.

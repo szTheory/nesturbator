@@ -1,28 +1,28 @@
-# Resume v6 after Phase 22 Plan 22-03
+# Resume v6 after Phase 22 Plan 22-04
 
 Read `AGENTS.md`, `.planning/STATE.md`, `.planning/REQUIREMENTS.md`,
 `.planning/ROADMAP.md`, and
 [Phase 22 context](phases/22-install-and-protect-progress/22-CONTEXT.md).
 Also read the [22-03 summary](phases/22-install-and-protect-progress/22-03-SUMMARY.md)
-and the next plan.
+and the [22-04 summary](phases/22-install-and-protect-progress/22-04-SUMMARY.md).
 
 ## Outcome and next actor
 
-Plans 22-01, 22-02 and 22-03 are complete. Plan 22-03 added canonical
-[release](../docs/releases.md) and [testing](../docs/testing.md) guides, and
-reduced README to the player route and focused developer links. Its six Task 1
-checks passed before and after the tracer commit; the final Task 2 selection
-passed 16/16. The marked install block and checked MMC3 clause remain unchanged.
-Full CI remains with the serial phase executor.
+Plans 22-01 through 22-04 are implemented. Plan 22-04 completed the
+player-first README, release identity guidance, host-control route and
+scratch-only progress recovery guide. The 18 focused Phase 22 checks passed;
+the configured macOS arm64 CPack archives and extraction checks passed. The
+latest release/menu observations and limitations are in the 22-04 summary. Full
+CI and phase review/verifier remain with the parent phase executor.
 
-The owner continues the phase by invoking:
+Next command:
 
-`$gsd-execute-phase 22`
+`$gsd-verify-work 22`
 
-This continues with Plan 22-04, the player installation, controls and progress
-route. Context may be cleared first. Read STATE, this resume file and Plan
-22-04. Keep READY requirements pending until Phase 22 is complete; do not start
-Phase 23 early.
+This reviews Phase 22 against its goal after the parent phase executor finishes
+review and full CI. Context may be cleared first. Read STATE, this resume file,
+phase context and the 22-04 summary. Keep READY requirements pending until the
+phase verifier accepts the evidence; do not start Phase 23 early.
 
 Six fallback edge assumptions and six descriptor-less prohibitions are explicitly
 flagged for downstream review. They do not create an owner gameplay/sign-off gate
@@ -53,8 +53,9 @@ availability and host menu wording remain execution-time observations.
   pre-existing unstaged `AGENTS.md` and `.planning/config.json` edits. Do not change
   global GSD/model settings in response to known runtime warnings.
 
-Plan 22-03 changed documentation only and reused existing native test source
-and evidence. It did not run full CI, a conformance campaign, package creation
-or extraction, a live host session, private scene replay, or player-progress
+Plan 22-04 changed documentation only and reused existing native test source
+and evidence. Its focused checks and configured macOS arm64 archive extraction
+passed, but it did not run full CI, a conformance campaign, all six release
+targets, a live host session, private scene replay, or player-progress
 operations. Preserve the existing stops and user-owned unstaged
 `AGENTS.md` and `.planning/config.json` edits.
