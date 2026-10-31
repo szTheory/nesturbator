@@ -1,13 +1,71 @@
-# Phase24 resume — separate acceptance runtime decision
+# Phase24 resume — corrected candidate, specific acceptance boundary
 
-Read STATE.md and24-ACCEPTANCE.md first. Plans01/02/03 are complete with summaries and matching commits. Current production source7f31579 is native format6 / behavior13 / ABI1. The owner explicitly approved the final abort countdown before mutation; it is implemented and verified. Do not redispatch/duplicate completed work or re-ask settled state decisions.
+Read STATE.md and24-ACCEPTANCE.md first. Do not redo completed plans or ask
+again for settled compatibility choices/routine local verification.
 
-Owned coverage independently corrects landing, OAM overlap, split internal/external bus effects, explicit abort and implicit abort under the selected early-G model. Wrong models fail; default guards pass. Native public cuts include silent/pending/collision/latch history plus explicit countdown2/3 and implicit1, full video/PCM/transitions/effects/final state equality and missing-history negatives. Old formats/refusal and range bounds pass. Six-board native states grew1 for the last field and normalize to their exact old payloads; non-state pins and historical revision9 campaign metadata are unchanged. Full source/consumer review has no active finding. Latest --short stress/refusal, controller/entry and API/doc checks pass.
+## Current result
 
-Plan04's implementation/selection audit is recorded in24-04-PARTIAL.md and24-ACCEPTANCE.md. **Waiting for owner on NEW runtime authority:** recommend one local `cmake --workflow --preset ci` run with a new39-minute resource ceiling (combined local duration is unqualified), all existing individual/page limits unchanged, and no automatic campaign retry. The existing707-test FULL=ON inventory includes the22-page campaign, protected observation setups and RetroArch session checks. Preserve prior ignored evidence before replacement. No push/PR/hosted run is included. The historic activation baseline will need evidence-derived reconciliation if a complete fresh report differs; do not edit expected statuses in advance or rerun automatically to get green.
+Core correction a12a79a is behavior14 / native format6 / ABI1. The earlier
+single authorized full workflow finished normally in444.6seconds, exit8.
+Its behavior13 campaign retained every119 previous current-pin PASS key but
+failed three selected DMA rows. Its sprite fixture failure is repaired.
+[Attributed result](24-CI-RUN.md); archived complete report and prior evidence
+remain under ignored build/phase24-acceptance/20261031T223038Z.
 
-No full workflow, AccuracyCoin ROM, campaign, push or PR ran in this execution. Full selected/protected/cross-platform/performance evidence remains missing. The literal `git diff --check main...HEAD` fails with exactly the159 inherited planning whitespace diagnostics already present at89a042b; execution delta89a042b..HEAD is clean. Do not silently waive the branch-wide guard or bulk-edit historical/patch records. Keep all requirements/phase incomplete.
+The remaining owned causes are corrected: undriven bus reconnect after4015
+deselection; imminent/armed explicit refills after disable without reader
+underflow/restart; inferred early-G fresh-byte visibility at an immediately
+adjacent output edge. All64 source-shaped abort-key entries now pass. The
+focused buffer/DAC wrong model and full sweep independently reject immediate
+visibility. This is compatibility evidence, not universal silicon proof.
+Readiness is a synchronous local argument, including OAM's tail, and cannot
+cross a public native boundary; no saved field/format bump was needed.
+[Full correction evidence](24-04-CORRECTIONS.md).
 
-After explicit runtime approval, re-inspect source/selection/caps/authority, then execute only the matching approved scope under its new window. If absent, keep the stop. Real interruption/timeout means preserve partial evidence and stop without retry. A local result does not establish hosted six-platform/full-vector/hash/performance acceptance; remote triggers need separate explicit authority. No shipping/merge/milestone closeout belongs to this command.
+Real guest-produced native frame1 cuts cover imminent29783, armed29784 and
+fresh-buffer29784 histories. Restore matches complete frames2/3, PCM,
+transitions/effects/final bytes; negatives and old/invalid refusal pass.
+Release warning-fatal build, focused dev-check, current-version/docs controls,
+short stress with NROM/MMC3 OAM/DMC/IRQ witnesses, and complete licensed-
+homebrew hashes pass. All non-state rows/sizes/ticks are unchanged; twelve
+state hashes differ only in behavior header/CRC and normalize exactly to13.
+README/header/docs/API/revision consumers and tests are committed together.
 
-Preserve unrelated dirty AGENTS/config/continue/quick-task records and untracked milestone discovery research. Use normal hygiene/noreply commits on the phase branch. Next command after the concrete decision: `$gsd-execute-phase 24`. Context may be cleared; the owner acts next.
+## Authority and next action
+
+The user's standing preference now includes required local builds/tests/CI,
+review/fixes and bounded retests in task approval. Apply the approved
+compatibility policy through actual fields/version/tests/docs without asking
+again per slice. Runtime length alone is not a permission gate. Global and
+project instructions record this durably; do not ask another acknowledgment.
+[Lesson](24-APPROVAL-LESSONS.md), [efficiency](24-CI-EFFICIENCY.md).
+
+One specific limit remains: the owner approved exactly one full workflow,
+now consumed. Recommend one fresh local full workflow on the corrected
+candidate under the same39-minute overall ceiling, unchanged inner limits
+and no automatic campaign retry. That fresh scope is not yet renewed. Keep
+the existing stop without asking merely to keep it stopped; no second
+AccuracyCoin execution/campaign, hosted trigger, push/PR, merge or release is
+inferred. Owner acts next on this concrete boundary only.
+
+The707-test name/timeout/fixture/label inventory was re-read and exactly
+matches24-CI-SELECTION.tsv. Existing CI presets are unchanged. The additive
+`cmake --workflow --preset dev-check` is fast owned feedback, not acceptance.
+Before any newly authorized campaign, inspect candidate/caps/selection and
+preserve prior evidence. Qualifying actual observations may support routine
+baseline reconciliation and bounded validator-only checks; never relaunch
+campaign fixtures implicitly or edit expected statuses in advance.
+
+Phase/requirements remain incomplete: behavior14 ROM acceptance, cold
+protected-main authority, hosted six-platform/full-vector/hash evidence,
+unchanged+1% performance checks and inherited branch whitespace are missing.
+Literal main...HEAD has159 inherited diagnostics; cached origin/main has41;
+execution delta89a042b..HEAD is clean. Do not corrupt archived patch records
+to hide the inherited guard. Canonical behavior9 campaign metadata remains
+historical and was not relabeled. Local equality does not imply host/hardware
+or cross-platform qualification.
+
+Preserve unrelated dirty AGENTS/config/continue/quick-task records and
+untracked milestone discovery research. Use noreply/hygiene phase-branch
+commits. Exact next command: `$gsd-execute-phase 24`. Context may be cleared;
+that command resumes this acceptance decision, not earlier routine prompts.

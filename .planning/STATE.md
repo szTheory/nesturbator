@@ -5,11 +5,11 @@ milestone_name: Remaining DMA accuracy failures
 current_phase: 24
 current_phase_name: Correct remaining NTSC DMA behavior
 status: executing
-stopped_at: "Plan24-04 runtime-authority checkpoint; Plans01/02/03 complete at format6/behavior13"
-last_updated: "2026-10-31T21:43:16Z"
+stopped_at: "Behavior14 corrections committed; fresh acceptance awaits renewal of the consumed one-run limit"
+last_updated: "2026-10-31T23:23:00Z"
 last_activity: 2026-10-31
-last_activity_desc: Approved abort correction committed and bounded checks/review pass; full acceptance remains stopped
-state_head: 7f31579
+last_activity_desc: Behavior14 owned repairs, native/audio checks and Release build committed; approval lessons and dev-check delivered; fresh acceptance pending
+state_head: a12a79a
 progress:
   total_phases: 1
   completed_phases: 0
@@ -23,25 +23,27 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 **Core value:** Games behave as on the console, identically across platforms, from a small MIT C library.
-**Current focus:** Plan24-04 separate runtime-authority checkpoint; current format6 / behavior13
+**Current focus:** Behavior14 / format6 / ABI1 candidate is ready for fresh acceptance; routine repair work is complete
 
 ## Current Position
 
-Phase: 24 (Correct remaining NTSC DMA behavior) — acceptance decision checkpoint
-Plan: 4 of 4 — Plans01/02/03 bounded implementation complete; full acceptance not run
-Status: Waiting for owner on a new local full-CI/campaign runtime window
-Last activity: 2026-10-31 — Approved abort countdown, native continuation/refusal and coherent consumers committed; final owned checks and reviews pass.
+Phase: 24 (Correct remaining NTSC DMA behavior) — acceptance checkpoint
+Plan: 4 of 4 — Plans01/02/03 bounded work complete; Plan04 acceptance incomplete
+Status: Owned repairs and checks committed; waiting only on the specific new acceptance scope
+Last activity: 2026-10-31 — One authorized workflow exposed three remaining row failures; the corrected behavior14 candidate now passes owned source-shaped, audio and native checks.
 Progress: [███████░░░] 75% (plans; phase acceptance pending)
 
 ## Next Action
 
-**Owner acts next on runtime authority.** Recommend one local `cmake --workflow --preset ci` invocation with a new39-minute resource ceiling (combined local duration is unqualified), unchanged per-test/page caps and no automatic retry after a real interruption/timeout. It includes the existing22-page AccuracyCoin campaign and RetroArch session checks. No push/PR/hosted scheduling is included. The full scope, actual707-test selection, preservation of interrupted evidence, expected provenance refresh and missing hosted/performance evidence are in [24-ACCEPTANCE.md](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
+**Owner acts next only on renewal of the explicitly one-invocation acceptance limit.** Recommend one fresh local `cmake --workflow --preset ci` on the committed corrected candidate, preserving the previous39-minute ceiling, every inner limit and no automatic campaign retry. The previous single invocation completed normally in444.6seconds with exit8 and is consumed. The reason for this boundary is that specific limit, not runtime length or routine verification. [Concrete scope and remaining gates](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
 
-The latest owner approval covered the abort countdown and state incompatibility. That exact decision is implemented: abort_delay0..3, DMC payload24, format6 / behavior13 / ABI1, formats1..5 refused without conversion. All three correction plans are complete with independent owned regressions/wrong-model controls and production-reachable native continuations. [Plan03 actual outcome](phases/24-correct-remaining-ntsc-dma-behavior/24-03-SUMMARY.md). Do not ask again about any settled saved-state decision.
+No ordinary implementation acknowledgment is needed. Task approval now durably covers local engineering, builds/tests/CI, reviews/fixes/bounded retests and approved compatibility follow-through. Those changes are recorded globally and in repository instructions. The additive `dev-check` preset provides fast owned feedback; existing CI objects and the complete707-test name/timeout/fixture/label inventory are unchanged. [Measured efficiency decisions](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-EFFICIENCY.md).
 
-No full workflow, AccuracyCoin ROM, campaign, push or PR ran. Five individual fresh target passes, all cold protected-main PASS observations, cross-platform complete hash equality and unchanged Cachegrind acceptance remain absent. The literal main...HEAD whitespace guard also reports159 inherited planning diagnostics already present before execution; the correction delta is clean. Do not mark the phase or any requirement complete or weaken these gates.
+Core correction a12a79a is behavior14 / native format6 / ABI1. All64 owned abort-key entries, bus matrix/status effects, focused byte/DAC wrong-model tests, genuine imminent/armed/fresh-buffer native cuts, short stress witnesses, current revision/document controls and homebrew hash consumers pass. Release builds with warnings as errors; no new saved field or dependency was needed. [Correction evidence](phases/24-correct-remaining-ntsc-dma-behavior/24-04-CORRECTIONS.md).
 
-After the separate runtime decision, run `$gsd-execute-phase 24`. Context may be cleared; read [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md) and the acceptance record first. The agent is waiting for this new runtime decision, not another acknowledgment of the existing stop. No response automatically preserves the stop.
+The actual behavior13 campaign retained all119 previous current-pin PASS keys but still failed bus-conflict and both abort rows. Do not claim fresh behavior14 ROM acceptance or replace canonical baseline metadata from owned tests. Required protected-main/hosted/platform/performance evidence and inherited branch whitespace remain unresolved. No second campaign, push/PR, hosted trigger, merge or release ran. [Actual workflow result](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN.md).
+
+**Next OpenGSD command:** `$gsd-execute-phase 24` — resumes at the recorded fresh-acceptance decision. Context may be cleared. Read this file and its resume before continuing; do not redo settled corrections or ask again for routine work. Without a clear new scope decision, preserve the specific stop automatically.
 
 ## Accumulated Context
 
@@ -58,14 +60,14 @@ The three deferred property/mutation/signal proposals remain unlinked to v7; the
 
 ### Blockers/Concerns
 
-- **Plan24-03 abort history resolved:** owner approved the concrete countdown/format6/behavior13 before mutation. Implementation, native positive/negative/refusal tests, docs and required current-version consumers are committed and reviewed. No further saved distinction was needed.
+- **Abort/state policy settled:** the approved countdown remains format6. The follow-through correction is behavior14 with no new serialized field/meaning or ABI change. Apply the approved compatibility policy without a new prompt for each implementation detail.
 
 - **Plan24-02 bus-latch decision resolved:** owner approved cpu_data/external open_bus, format5 and behavior12 before mutation; implemented/verified. The later approved abort change is format6 / behavior13.
 
-- **Plan 24-01 native-state checkpoint resolved:** owner approved the explicit silence byte, continuously clocked bits, format 4 and behavior revision 10. Other newly required state changes remain independently gated.
+- **Plan 24-01 native-state checkpoint resolved:** owner approved the explicit silence byte, continuously clocked bits, format 4 and behavior revision 10. Later compatibility follow-through follows the owner’s standing policy; only a materially new consequence outside it needs another decision.
 
-- **Active runtime stop:** The interrupted full-CI/AccuracyCoin campaign outcome is unknown. Do not rerun full CI or a campaign, including through automatic verification or a push/PR side effect, without separate owner authorization. Planning and milestone approval do not renew that authority.
-- **Phase 24 completion gate:** Project CI remains required. If its configuration schedules `accuracycoin.campaign`, stop execution before that command; record selected tests, missing evidence and required authorization. Keep phase/requirements incomplete; do not disable or weaken gates or substitute bounded passes for full acceptance.
+- **Specific runtime authority consumed:** the newly authorized single local workflow completed normally. Preserve its result; do not automatically run another campaign or hosted trigger. Ordinary owned fixes/retests remain authorized; runtime alone is not a permission gate.
+- **Phase24 run-specific acceptance boundary:** the one authorized full workflow is consumed. Stop before another AccuracyCoin execution/campaign or hosted trigger until the owner renews that specific scope. Ordinary required local verification is already authorized; no general runtime approval gate is created. Keep requirements/phase incomplete until actual acceptance exists.
 - Phase 23 document-test timeouts/wall-time jumps, five heuristic edges and Phase 22/23 judgment-tier prohibitions remain unresolved/flagged. No new timeout or restart is justified. Windows/PowerShell, host recovery and cross-build compatibility remain unqualified; commercial reports remain unclassified and daily progress untouched.
 - Collector Git/filesystem-mode, ignored-fixture/relative-root and duplicate-validator debt remain open. Historical attribution/revision advisories, Phase 19 cost/citation/early-stage coverage, real-campaign minimization controls and macOS nofp limits remain in the [v5 audit](milestones/v5-MILESTONE-AUDIT.md) and [product ledger](PRODUCT-ROADMAP.md#unresolved-debt-and-delivered-tune-up). New evidence cannot inherit old-run qualification.
 - WINDOWS entry 18 was reconciled from fixed existing evidence; the original refused append remains historical. Physical exact-timestamp precedence is unmeasured. Historic Phase 16 safety stops, runtime windows and thresholds remain unchanged; no closeout or approval waives them.
@@ -96,13 +98,13 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Performance Metrics
 
-v7: three of four plans complete; all bounded correction/native work is committed and verified. Plan24-04 is stopped at separate runtime authority, with full acceptance and inherited branch-wide whitespace unresolved. Full acceptance remains pending. v6 completed seven plans; detailed timing remains in the [archived phase summaries](milestones/v6-phases/) and [closeout](milestones/v6-CLOSEOUT.md).
+v7: three of four plans complete; the behavior14 correction and bounded evidence are committed. The authorized full workflow completed normally in444.60seconds, with session controls dominating441.98seconds of CTest; campaign collection took4.97seconds. The new focused developer tier takes a few seconds locally and preserves all full-CI gates. Plan04 acceptance and inherited branch whitespace remain incomplete. See the [efficiency synthesis](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-EFFICIENCY.md) and [actual result](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN.md).
 
 ## Session Continuity
 
-**Last session:** 2026-10-31T21:43:16Z
-**Stopped at:** Plan24-04 separate full-CI/campaign runtime-authority gate
-**Next actor:** Owner decides whether to authorize the exact local workflow/new39-minute scope in24-ACCEPTANCE.md.
-**Next command after decision:** `$gsd-execute-phase 24`
-**Context:** May be cleared; read STATE, resume and acceptance first.
+**Last session:** 2026-10-31T23:23:00Z
+**Stopped at:** Corrected candidate committed; the explicit one-run acceptance scope is consumed
+**Next actor:** Owner decides only whether to renew the concrete fresh local acceptance scope in24-ACCEPTANCE.md; keeping the stop needs no response
+**Next command:** `$gsd-execute-phase 24`
+**Context:** May be cleared; read STATE, resume and acceptance first
 **Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md

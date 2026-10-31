@@ -5,3 +5,15 @@ Task1 adds linked24-CI-SELECTION.tsv,24-PROTECTED-PASS-KEYS.tsv,24-04-PARTIAL.md
 If a separately authorized run produces a complete attributable report with every selected row passing and every required protected PASS retained, coherent evidence reconciliation may also require tests/accuracy/baseline-metadata.txt and the corresponding baseline expectations in tests/cmake/accuracycoin_activation.cmake, alongside the already owned scoreboard/measurements. These current-baseline consumers must move only with actual fresh evidence. Until then their historical revision9 data and checker stay unchanged. No expected status/provenance is edited in advance, and no missing/partial observations are promoted to acceptance. Declared source/report provenance is not authentication.
 
 This amendment grants no execution authority. Any subsequent local full workflow/campaign still needs the concrete Task2 decision; hosted/push/PR scheduling remains separately unauthorized. No automatic retry after real interruption/timeout and no additional serialized state change is implied.
+
+## Post-workflow causal repair follow-through
+
+The authorized one local workflow completed normally. Its three remaining
+selected failures require corrections in src/apu.c, src/bus.c/internal.h,
+owned CPU/native fixtures, README/public-header/API/reproduction documentation,
+current-revision policy checks and native hash consumers. These files are
+necessary implementation follow-through within Phase24 and the approved
+compatibility policy, not separate user decisions. No new serialized field
+or native format is needed. Behavior14 records the corrected output model.
+The actual changes and evidence are in24-04-CORRECTIONS.md. Local tests do not
+renew the consumed single campaign invocation or authorize hosted work.
