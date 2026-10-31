@@ -911,8 +911,11 @@ and on demand, with the same preset commands as above. The `build` job runs
 platforms. Hosted POSIX build legs use the `ci-build` workflow preset, which
 leaves `retroarch-session` tests to required dedicated `session-controls` jobs
 on Linux x64 and macOS arm64. The full local `ci` preset still runs those tests.
-Nightly runs their Intel counterpart once and excludes the label from its
-three-repeat suite-flake job. The test harness uses the driver's test-only
+The AccuracyCoin build-input fingerprint treats only the three
+`NESTURBATOR_VERSION_*` numbers as release metadata; every other public-header
+byte and fingerprinted input stays exact. Nightly runs the Intel session
+counterpart once and excludes the label from its three-repeat suite-flake job.
+The test harness uses the driver's test-only
 `STATE_SESSION_TEST_QUIT_GRACE_MS` override; production deadlines are unchanged.
 Each build leg also checks its three archives and writes native-frame
 hashes for each pinned game's boot and the DABG port-0, port-1 and combined
@@ -1108,8 +1111,12 @@ the root `CMakeLists.txt`, `CMakePresets.json`, `tests/CMakeLists.txt`,
 `include/nesturbator.h` and the scripts `fetch_vectors.cmake`,
 `vectors_full_run.cmake`, `vectors_sample_match.cmake` and
 `vector_registration_policy.cmake` in `tests/cmake/`.
-It is outside `CI required`, so a red nightly blocks no merge. Before the
-full run, it saves the CTest JSON inventory and checks all 258 full-tier tests,
+It is outside `CI required`, so a red nightly blocks no merge. Generated
+Release Please pull requests skip the non-required Nightly lanes because they
+already run required CI; pushes to `main` still run Nightly after merge. Other
+relevant pull requests, scheduled runs and manual runs keep the existing lanes.
+Before the full run, it saves the CTest JSON inventory and checks all 258
+full-tier tests,
 including their labels, fixtures and no-skip properties. The workflow then
 runs the lane once and saves its JUnit result. Both files are uploaded together
 as `vectors-full-evidence-<run ID>`; the job summary records the event, head
@@ -2029,7 +2036,7 @@ first sets the version; the second downloads and extracts:
 
 <!-- x-release-please-start-version -->
 ```sh
-NESTURBATOR_VERSION=0.1.11
+NESTURBATOR_VERSION=0.1.12
 mkdir -p ~/Library/Application\ Support/RetroArch && curl -fsSL "https://github.com/szTheory/nesturbator/releases/download/v$NESTURBATOR_VERSION/nesturbator-$NESTURBATOR_VERSION-libretro-macos-arm64.zip" | tar -xf - -C ~/Library/Application\ Support/RetroArch cores info
 ```
 <!-- x-release-please-end -->

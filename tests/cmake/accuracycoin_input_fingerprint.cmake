@@ -1,5 +1,19 @@
 cmake_minimum_required(VERSION 3.25)
 
+function(accuracycoin_compute_input_file_hash relative_path input_file out_hash)
+  if(relative_path STREQUAL "include/nesturbator.h")
+    file(READ "${input_file}" input_contents)
+    foreach(component IN ITEMS MAJOR MINOR PATCH)
+      string(REGEX REPLACE "(#define NESTURBATOR_VERSION_${component} )[0-9]+"
+        "\\1<release-version>" input_contents "${input_contents}")
+    endforeach()
+    string(SHA256 input_hash "${input_contents}")
+  else()
+    file(SHA256 "${input_file}" input_hash)
+  endif()
+  set(${out_hash} "${input_hash}" PARENT_SCOPE)
+endfunction()
+
 function(accuracycoin_compute_input_fingerprint source_dir out_hash out_count)
   file(GLOB_RECURSE input_files LIST_DIRECTORIES FALSE
     "${source_dir}/src/*.c" "${source_dir}/src/*.h"
@@ -25,7 +39,7 @@ function(accuracycoin_compute_input_fingerprint source_dir out_hash out_count)
       message(FATAL_ERROR "missing AccuracyCoin build input: ${input_file}")
     endif()
     file(RELATIVE_PATH relative_path "${source_dir}" "${input_file}")
-    file(SHA256 "${input_file}" input_hash)
+    accuracycoin_compute_input_file_hash("${relative_path}" "${input_file}" input_hash)
     string(APPEND input_manifest "${relative_path}\t${input_hash}\n")
     math(EXPR input_count "${input_count} + 1")
   endforeach()
