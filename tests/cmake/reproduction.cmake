@@ -76,7 +76,7 @@ function(reproduction_preflight state payload_kind runner rom recorded_runner_sh
   if(NOT current_state_sha256 STREQUAL expected_state_sha256)
     message(FATAL_ERROR "reproduction unsupported: recorded state SHA-256 mismatch")
   endif()
-  message(STATUS "runner.reproduction.preflight: exact runner, ROM and state digests match a same-invocation native checkpoint")
+  message(STATUS "runner.reproduction.preflight: supplied runner, ROM and state digests match; origin is caller-declared, not authenticated")
 endfunction()
 
 function(reproduction_expect_preflight_failure root case_name state payload_kind runner rom
@@ -121,7 +121,8 @@ function(reproduction_expect_preflight_success state payload_kind runner rom
     message(FATAL_ERROR "runner.reproduction.preflight_self_test: valid public preflight mode failed (${rc})\n${out}${err}")
   endif()
   string(CONCAT combined "${out}" "${err}")
-  if(NOT combined MATCHES "runner.reproduction.preflight: exact runner, ROM and state digests match")
+  if(NOT combined MATCHES "supplied runner, ROM and state digests match" OR
+     NOT combined MATCHES "origin is caller-declared, not authenticated")
     message(FATAL_ERROR "runner.reproduction.preflight_self_test: valid public preflight mode omitted its success result")
   endif()
   message(STATUS "runner.reproduction.preflight_self_test: valid public preflight mode accepted the recorded route")
@@ -416,6 +417,7 @@ elseif(MODE STREQUAL "preflight_fixture")
   file(SHA256 "${state}" recorded_state_sha256)
   reproduction_preflight("${state}" "runner-native-same-invocation" "${RUNNER}" "${rom}"
     "${recorded_runner_sha256}" "${recorded_rom_sha256}" "${recorded_state_sha256}")
+  message(STATUS "runner.reproduction.preflight: fixture created this native checkpoint with the identified runner in this invocation")
 elseif(MODE STREQUAL "preflight_self_test")
   if(NOT DEFINED WORK OR "${WORK}" STREQUAL "")
     message(FATAL_ERROR "runner.reproduction.preflight_self_test: -DWORK=... is required")

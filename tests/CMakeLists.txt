@@ -1681,6 +1681,8 @@ add_test(NAME docs.reproduction
     "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
     "-DCTEST=${CMAKE_CTEST_COMMAND}"
     "-DWORK=${PROJECT_BINARY_DIR}/tests/docs-reproduction-contract"
+    "-DSHORT_RUNS=${NESTURBATOR_SHORT_RUNS}"
+    "-DBOOT_TO_PLAY_TARGET=$<TARGET_FILE:runner.boot_to_play>"
     -DMODE=check
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction_contract.cmake)
 add_test(NAME docs.reproduction.self_test
@@ -1690,6 +1692,8 @@ add_test(NAME docs.reproduction.self_test
     "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
     "-DCTEST=${CMAKE_CTEST_COMMAND}"
     "-DWORK=${PROJECT_BINARY_DIR}/tests/docs-reproduction-contract-self-test"
+    "-DSHORT_RUNS=${NESTURBATOR_SHORT_RUNS}"
+    "-DBOOT_TO_PLAY_TARGET=$<TARGET_FILE:runner.boot_to_play>"
     -DMODE=self_test
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction_contract.cmake)
 set_tests_properties(docs.reproduction docs.reproduction.self_test PROPERTIES TIMEOUT 60)

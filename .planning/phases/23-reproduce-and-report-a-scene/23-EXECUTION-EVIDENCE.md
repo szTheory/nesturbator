@@ -163,3 +163,47 @@ remain flagged-unverified because their verification mode is judgment:
 
 No issue in this list is converted into an automatic pass by the documentation
 or mutation tests.
+
+## Execution-step review fixes and final regression scope
+
+The independent [code review](23-REVIEW.md) found three defects. All three were
+corrected within Phase 23; [dispositions](23-REVIEW-DISPOSITION.md) preserve each
+finding. The POSIX recipe now stops on scratch/configure/build failure in a
+subshell; PowerShell stops on directory errors and checks native-command exits.
+The document contract understands ASan's intentional short-run omission of the
+played-input CTest while retaining its required CI name and configured target.
+Preflight success reports caller-declared provenance and supplied digest matches;
+only the fixture path claims that it actually created the checkpoint.
+
+Fresh review-fix verification:
+
+- `cmake --preset ci` and `cmake --preset asan`: passed configuration/generation.
+- CI selection `^(runner.reproduction.preflight|runner.reproduction.preflight_self_test|docs.reproduction|docs.reproduction.self_test|cmake.script_policy)$`: passed.
+- ASan selection `^docs.reproduction(\.self_test)?$`: both checks passed. This checks ASan CTest metadata, not a full sanitizer suite.
+- POSIX shell controls injected failed scratch creation and failed configure; both stopped before subsequent commands. No unrelated build path was touched.
+- The corrected guide's exact POSIX block was executed in a new scratch build and passed its full selected route. PowerShell remains unexecuted on this platform.
+- `git diff --check`: passed.
+
+The first review-fix scratch run timed out in `docs.reproduction.self_test` after
+reporting 1,086 seconds against its configured 60-second bound. A prior-phase
+regression selection separately timed out in `libretro.info_claims.self_test`
+after 1,071 seconds. A narrow rerun again timed out in the document self-test
+after 921 seconds, while the info-metadata self-test passed. These runs are
+failures, not successful evidence. The cause of the wall-time jumps is not
+established. A targeted process inventory found no abandoned attributable test
+process requiring cleanup. Subsequent exact fresh-scratch execution passed,
+including its document self-test in about 21 seconds; no deadline was raised.
+The CI document self-test also passed a subsequent verbose rerun in about
+20 seconds, rejecting all fourteen mutations, including the added scratch guard.
+
+Regression scope preserves the approved no-campaign/no-live-host boundary.
+The existing local CI cache has `NESTURBATOR_ACCURACYCOIN_FULL=ON`; therefore
+`cmake --workflow --preset ci` would start a collector campaign, which this
+phase explicitly excludes. That configured full command was not run or claimed
+passing. Instead the prior Phase 22 verification's scoped runner/status/docs/
+release/info/policy tests and native format/save-generation/controller tests
+were selected with `-FA accuracycoin_full_report` and `--no-tests=error`.
+All except the initially timed-out info self-test passed in that selection;
+the info self-test passed its narrow rerun. This is scoped cross-phase evidence,
+not a full-workflow pass, provenance refresh or campaign acceptance. Runtime
+sources, historical measurements, baseline metadata and safety stops are unchanged.

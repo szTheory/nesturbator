@@ -262,6 +262,15 @@ function(reproduction_check doc_path)
   foreach(required IN ITEMS "mktemp -d" "[guid]::NewGuid()")
     reproduction_require_contains("${cold_section}" "${required}" "fresh POSIX/PowerShell scratch root is missing: ${required}")
   endforeach()
+  reproduction_require_contains("${cold_section}" "set -e" "POSIX commands do not stop on failure")
+  reproduction_require_contains("${cold_section}" "test -n \"$scratch\" && test -d \"$scratch\" || exit 1"
+    "scratch creation is not checked")
+  reproduction_require_contains("${cold_section}" "$ErrorActionPreference = 'Stop'"
+    "PowerShell directory failure does not stop the recipe")
+  foreach(failure IN ITEMS "Configure failed" "Build failed" "Reproduction checks failed")
+    reproduction_require_contains("${cold_section}" "if ($LASTEXITCODE -ne 0) { throw '${failure}' }"
+      "PowerShell native command failure is unchecked")
+  endforeach()
   foreach(required IN ITEMS
       "one new scratch root and build directory per invocation"
       "fresh nonce directory"
@@ -367,6 +376,11 @@ function(reproduction_check doc_path)
     list(APPEND generated_tests "${test_name}")
   endforeach()
   foreach(test_name IN LISTS documented_tests)
+    # The guide explicitly configures ci. ASan's short-run configuration
+    # intentionally omits only the played-input test, not its build target.
+    if(SHORT_RUNS AND test_name STREQUAL "runner.boot_to_play")
+      continue()
+    endif()
     if(NOT test_name IN_LIST generated_tests)
       message(FATAL_ERROR "docs.reproduction: documented CTest test is not generated: ${test_name}")
     endif()
@@ -412,14 +426,16 @@ function(reproduction_check doc_path)
     "generated reproduction document-check timeout is not 60 seconds")
   reproduction_require_test_property("${selected_tests_json}" "docs.reproduction.self_test" "TIMEOUT" "60"
     "generated reproduction document self-test timeout is not 60 seconds")
-  reproduction_require_test_property("${selected_tests_json}" "runner.boot_to_play" "TIMEOUT" "300"
-    "generated played-input control timeout is not 300 seconds")
+  if(NOT SHORT_RUNS)
+    reproduction_require_test_property("${selected_tests_json}" "runner.boot_to_play" "TIMEOUT" "300"
+      "generated played-input control timeout is not 300 seconds")
+    reproduction_require_test_property("${selected_tests_json}" "runner.boot_to_play" "FIXTURES_REQUIRED" "nesrunner_movies"
+      "played-input control is missing its movie fixtures")
+  endif()
   reproduction_require_test_property("${selected_tests_json}" "runner.save.fixture" "TIMEOUT" "10"
     "required save fixture setup has no 10-second timeout")
   reproduction_require_test_property("${selected_tests_json}" "runner.save.fixture" "FIXTURES_SETUP" "runner_save"
     "required save fixture setup is not registered")
-  reproduction_require_test_property("${selected_tests_json}" "runner.boot_to_play" "FIXTURES_REQUIRED" "nesrunner_movies"
-    "played-input control is missing its movie fixtures")
   foreach(case IN ITEMS nmi_roundtrip nmi_idempotent nmi_wrong_load)
     reproduction_require_test_property("${selected_tests_json}" "runner.state.${case}" "TIMEOUT" "60"
       "generated runner.state.${case} timeout is not 60 seconds")
@@ -429,9 +445,9 @@ function(reproduction_check doc_path)
       "generated runner.state.${case} setup test dependency is missing")
   endforeach()
   foreach(scenario IN ITEMS pos none attract startonly)
-    reproduction_require_test_property("${selected_tests_json}" "runner.nesrunner_movie.${scenario}" "TIMEOUT" "10"
+    reproduction_require_test_property("${all_tests_json}" "runner.nesrunner_movie.${scenario}" "TIMEOUT" "10"
       "required runner.nesrunner_movie.${scenario} setup timeout is not 10 seconds")
-    reproduction_require_test_property("${selected_tests_json}" "runner.nesrunner_movie.${scenario}" "FIXTURES_SETUP" "nesrunner_movies"
+    reproduction_require_test_property("${all_tests_json}" "runner.nesrunner_movie.${scenario}" "FIXTURES_SETUP" "nesrunner_movies"
       "required runner.nesrunner_movie.${scenario} fixture is not registered")
   endforeach()
 
@@ -469,6 +485,8 @@ function(reproduction_expect_mutation root name mutated expected)
       "-DSOURCE_DIR=${SOURCE_DIR}"
       "-DBUILD_DIR=${BUILD_DIR}"
       "-DCTEST=${CTEST}"
+      "-DSHORT_RUNS=${SHORT_RUNS}"
+      "-DBOOT_TO_PLAY_TARGET=${BOOT_TO_PLAY_TARGET}"
       "-DDOC=${mutated_doc}"
       -P "${CMAKE_CURRENT_LIST_FILE}"
     OUTPUT_VARIABLE out ERROR_VARIABLE err RESULT_VARIABLE rc TIMEOUT 20)
@@ -519,6 +537,11 @@ elseif(MODE STREQUAL "self_test")
   set(safety_mutation "${original}")
   string(REPLACE "Do not publish commercial game media" "Publish commercial game media" safety_mutation "${safety_mutation}")
   reproduction_expect_mutation("${root}" "missing-privacy-claim" "${safety_mutation}" "privacy claim missing")
+
+  string(REPLACE "test -n \"$scratch\" && test -d \"$scratch\" || exit 1"
+    "true" scratch_failure_mutation "${original}")
+  reproduction_expect_mutation("${root}" "unchecked-scratch-creation" "${scratch_failure_mutation}"
+    "scratch creation is not checked")
 
   set(bounds_mutation "${original}")
   string(REPLACE "`runner.reproduction.cold`: 180 s" "`runner.reproduction.cold`: unbounded" bounds_mutation "${bounds_mutation}")
@@ -574,7 +597,7 @@ elseif(MODE STREQUAL "self_test")
   reproduction_expect_mutation("${root}" "unclassified-commercial-labeled-fixed" "${commercial_fixed_mutation}"
     "commercial status relabeled")
 
-  message(STATUS "docs.reproduction.self_test: thirteen independent safety and evidence mutations rejected")
+  message(STATUS "docs.reproduction.self_test: fourteen independent safety and evidence mutations rejected")
 else()
   message(FATAL_ERROR "docs.reproduction: unknown mode '${MODE}'")
 endif()

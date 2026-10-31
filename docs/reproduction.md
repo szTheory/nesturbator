@@ -79,22 +79,32 @@ Use a fresh scratch build so generated files stay outside the source tree.
 POSIX shell:
 
 ```sh
-scratch="$(mktemp -d "${TMPDIR:-/tmp}/nesturbator-reproduction.XXXXXX")"
+(
+set -e
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/nesturbator-reproduction.XXXXXX")" || exit 1
+test -n "$scratch" && test -d "$scratch" || exit 1
 cmake --preset ci -B "$scratch/build"
 cmake --build "$scratch/build" --target nesturbator-run runner.game_movie runner.nmi_fixture runner.boot_to_play runner.save_rom runner.state_mutate
 ctest --test-dir "$scratch/build" --output-on-failure --no-tests=error \
   -R '^(runner.reproduction.cold|runner.reproduction.compare_self_test|runner.reproduction.preflight|runner.reproduction.preflight_self_test|runner.boot_to_play|runner.state.nmi_roundtrip|runner.state.nmi_idempotent|runner.state.nmi_wrong_load|docs.links|docs.links.self_test|docs.reproduction|docs.reproduction.self_test|cmake.script_policy)$'
+)
 ```
 
 PowerShell:
 
 ```powershell
+& {
+$ErrorActionPreference = 'Stop'
 $scratch = Join-Path $env:TEMP ("nesturbator-reproduction-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $scratch | Out-Null
 $build = Join-Path $scratch "build"
 cmake --preset ci -B $build
+if ($LASTEXITCODE -ne 0) { throw 'Configure failed' }
 cmake --build $build --target nesturbator-run runner.game_movie runner.nmi_fixture runner.boot_to_play runner.save_rom runner.state_mutate
+if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
 ctest --test-dir $build --output-on-failure --no-tests=error -R '^(runner.reproduction.cold|runner.reproduction.compare_self_test|runner.reproduction.preflight|runner.reproduction.preflight_self_test|runner.boot_to_play|runner.state.nmi_roundtrip|runner.state.nmi_idempotent|runner.state.nmi_wrong_load|docs.links|docs.links.self_test|docs.reproduction|docs.reproduction.self_test|cmake.script_policy)$'
+if ($LASTEXITCODE -ne 0) { throw 'Reproduction checks failed' }
+}
 ```
 
 The cold test makes a unique directory below the build tree, generates the
