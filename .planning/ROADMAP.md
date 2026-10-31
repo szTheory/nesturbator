@@ -11,11 +11,12 @@
 
 ## v6: Player-ready NES and reproducible feedback
 
-**Status:** Both approved phases are implemented and independently verified.
-Phase 23's three sequential plans and three review fixes are committed. Its
-scoped fixture/document/package checks establish the approved outcomes; local
-intermittent document-test timeouts remain disclosed. No full campaign CI,
-live host/device work or publication was performed. Refresh Phase 22's stale verification before milestone audit.
+**Status:** Both approved phases are implemented. Phase 22's explicit verification
+refresh passed after fixing scratch failure handling and strengthening shared
+document checks. These fixes made Phase 23's covered-file report stale; refresh
+it separately before milestone audit. Fresh scoped document/runtime/package
+checks pass; earlier intermittent document-test timeouts remain unexplained.
+No full campaign CI, live host/device work or publication was performed.
 
 **Goal:** A player can install an identified core, protect daily progress and
 supply a precise scene report that a developer can reproduce with existing facilities.
@@ -146,11 +147,10 @@ daily progress and choose the next evidence source without overclaiming a diagno
 | 23. Reproduce and report a scene | 3/3 | Complete    | 2026-10-31 |
 
 **Requirement coverage:** 10/10 mapped exactly once; 0 unmapped.
-**Next action:** `$gsd-execute-phase 22` — refresh Phase 22 verification after
-Phase 23 changed shared covered documents and CTest registrations. Its status
-query reports stale; completed plans are skipped. Milestone audit follows that
-refresh. Context may be cleared first; read STATE.md and continue.md. This
-execution step stops at the Phase 23 boundary.
+**Next action:** `$gsd-execute-phase 23` — refresh Phase 23 verification after
+the Phase 22 review corrections changed three shared covered files. Completed
+plans are skipped; milestone audit follows a passing refresh. Context may be
+cleared first; read STATE.md and continue.md. The Phase 22 refresh step is complete.
 
 ## Backlog disposition
 
@@ -164,4 +164,4 @@ No seed files were modified. The three pending property/mutation/signal proposal
 were inspected and have no confident requirement match here; they remain unlinked
 and deferred. All future direction remains in PRODUCT-ROADMAP.md.
 
-*Last updated: 2026-10-31 after Phase 23 execution and verification.*
+*Last updated: 2026-10-31 after Phase 22 verification refresh.*

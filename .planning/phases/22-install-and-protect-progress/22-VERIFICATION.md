@@ -1,6 +1,6 @@
 ---
 phase: 22-install-and-protect-progress
-verified: 2026-10-31T02:08:01Z
+verified: 2026-10-31T12:58:50Z
 status: passed
 score: 7/7 must-haves verified
 covered_files:
@@ -13,6 +13,12 @@ covered_files:
   - .planning/phases/22-install-and-protect-progress/22-04-PLAN.md
   - .planning/phases/22-install-and-protect-progress/22-04-SUMMARY.md
   - .planning/phases/22-install-and-protect-progress/22-EXECUTION-EVIDENCE.md
+  - .planning/phases/22-install-and-protect-progress/22-REFRESH-EVIDENCE.md
+  - .planning/phases/22-install-and-protect-progress/22-REVIEW-DISPOSITION-INITIAL.md
+  - .planning/phases/22-install-and-protect-progress/22-REVIEW-DISPOSITION.md
+  - .planning/phases/22-install-and-protect-progress/22-REVIEW-INITIAL.md
+  - .planning/phases/22-install-and-protect-progress/22-REVIEW.md
+  - .planning/phases/22-install-and-protect-progress/22-VERIFICATION-INITIAL.md
   - README.md
   - docs/api.md
   - docs/progress.md
@@ -23,10 +29,11 @@ covered_files:
   - tests/accuracy/baseline-metadata.txt
   - tests/accuracy/measurements.md
   - tests/cmake/doc_links.cmake
+  - tests/cmake/reproduction_contract.cmake
   - tests/cmake/runner_exit_table.cmake
   - tests/cmake/runner_options.cmake
   - tests/cmake/status_table.cmake
-covered_digest: "v4:sha256:a6db597fdfcb270e0ed5d2b71da604e1fa0f5cc3690ab8f84fc71b0b53e2dfb5"
+covered_digest: "v4:sha256:644b0437d81048e4c42ad5e17edd3e26fc65cabd1409d4347b17ccfe9dcdbbe9"
 behavior_unverified: 0
 overrides_applied: 0
 decision_coverage:
@@ -34,20 +41,45 @@ decision_coverage:
   total: 22
   not_honored: []
 re_verification:
-  previous_status: gaps_found
-  previous_score: 6/7
-  gaps_closed:
-    - "The progress guide now links to the canonical API Save states section and testing Disposable progress fixtures section."
+  previous_status: human_needed
+  previous_score: 7/7
+  gaps_closed: []
   gaps_remaining: []
   regressions: []
+unverified_prohibitions: 6
+prohibition_judgments:
+  - statement: "Contract relocation MUST NOT manufacture acceptance by dropping unique assertions or allowing a stale noncanonical copy to satisfy a missing guide claim."
+    verdict: "Non-authoritative scoped judgment: evidence supports the prohibition; unverified flag retained."
+    verification: judgment
+    flag: "unverified-prohibition — human review recommended"
+  - statement: "Documentation MUST NOT make new owner gameplay, device operation, or sign-off an acceptance prerequisite."
+    verdict: "Non-authoritative scoped judgment: evidence supports the prohibition; unverified flag retained."
+    verification: judgment
+    flag: "unverified-prohibition — human review recommended"
+  - statement: "Installation guidance MUST NOT assign current-source capabilities to an unidentified or older published binary."
+    verdict: "Non-authoritative scoped judgment: evidence supports the prohibition; unverified flag retained."
+    verification: judgment
+    flag: "unverified-prohibition — human review recommended"
+  - statement: "Control guidance MUST NOT imply a port assignment fixes an unclassified rendering or slowdown report."
+    verdict: "Non-authoritative scoped judgment: evidence supports the prohibition; unverified flag retained."
+    verification: judgment
+    flag: "unverified-prohibition — human review recommended"
+  - statement: "Progress procedures MUST NOT use private content, daily progress, or another core’s state storage as disposable test inputs."
+    verdict: "Non-authoritative scoped judgment: evidence supports the prohibition; unverified flag retained."
+    verification: judgment
+    flag: "unverified-prohibition — human review recommended"
+  - statement: "Rollback and old-state loading MUST NOT overwrite the separately preserved newest battery backup or promise unqualified cross-build or host-container recovery."
+    verdict: "Non-authoritative scoped judgment: evidence supports the prohibition; unverified flag retained."
+    verification: judgment
+    flag: "unverified-prohibition — human review recommended"
 ---
 
 # Phase 22: Install and Protect Progress — Verification Report
 
 **Phase Goal:** A player can find accurate installation/control guidance and preserve progress across an identified core upgrade or rollback.
-**Verified:** 2026-10-31T02:08:01Z
+**Verified:** 2026-10-31T12:58:50Z
 **Status:** passed
-**Re-verification:** Yes — after gap closure
+**Refresh:** Rechecked the previously passing report after the shared README, progress guide, reproduction contract checker, and review evidence changed. The original report is preserved as 22-VERIFICATION-INITIAL.md.
 
 ## Goal Achievement
 
@@ -55,150 +87,139 @@ re_verification:
 
 | # | Truth | Status | Evidence |
 |---|---|---|---|
-| 1 | READY-01 / roadmap criterion 1: The README gives a direct player route through supported content, installation and identity, loading, controls, progress, troubleshooting and developer guides. | VERIFIED | README sections appear in the locked order. The original README at fc1af9c02e19994adc3550d28ebbfd00986a4551 was enumerated by heading and reconciled against the current README and five guides. An exact-line scan found 1,979 of 2,110 original non-heading, nonblank lines unchanged; the remaining 131 were the stale v3/revision-8 opening, corrected install/provenance wording, path/anchor updates, or claims rewritten for the current checkout and assigned to the documented canonical homes. The 18-test guide/package selection below includes docs.links and its missing-target/fragment controls. |
-| 2 | READY-02 / roadmap criterion 2: A player can choose the existing archive for the RetroArch executable architecture, install the matching core and info files, and distinguish release, CI and local-build identity. | VERIFIED | README names Linux/macOS/Windows × x64/arm64 and the platform module extensions. Names match cmake/packaging.cmake and the 18-archive release workflow. The dated 2026-10-30 release observation records v0.1.11, 18 expected archives, SHA256SUMS and a matching macOS arm64 archive digest; local attestation verification was unavailable and is not claimed. The configured macOS arm64 archive inventory and install-line extraction checks passed. Guidance says exact identity is unknown when the loaded path/source cannot be established. No other platform was packaged or launched locally. |
-| 3 | READY-03 / roadmap criterion 3: Control instructions distinguish logical player ports from host Device Index and direct the player to verify the actual frontend launch route. | VERIFIED | README instructs one-player P1 with P2 unassigned and distinct devices on two active ports; it says a port change does not diagnose rendering or slowdown. docs/testing.md records the dated P1/P2 readback and logical-port test while explicitly limiting them to one launch/configuration and not all buttons, reconnects or handheld fallback. No new host or device operation was needed or performed. |
-| 4 | READY-04: The guidance distinguishes battery RAM, native core snapshots, host state containers, rewind, autoload and host-configured storage. | VERIFIED | docs/progress.md names each data type, explains that snapshots include battery RAM, points to the host's configured Save Files/Save States directories, and preserves core-specific storage. docs/api.md separates native state payload semantics from host files. No universal host path is prescribed. |
-| 5 | READY-05 / roadmap criterion 4: A player has a scratch-only backup, compatible roundtrip, native refusal and rollback procedure that preserves the newest battery copy and does not promise unsupported recovery. | VERIFIED | docs/progress.md keeps the newest battery copy outside active test/save paths, hashes both copies, keeps snapshots paired with their battery data, and describes an identified fresh launch with autoload isolated. It limits native refusal to native payloads and leaves cross-build SRAM and incompatible host-container recovery unknown. The Plan 22-04 record reports the generated-fixture digest stayed equal before/after its scratch walkthrough. This verifier directly ran runner.state.reject_format, core.state_generation and core.controller (plus the runner.save.fixture setup): 4/4 passed. The full workflow record says 699/700 passed with accuracycoin.activation as its only failure; no new long state-rejection run was started. |
-| 6 | READY-06 / roadmap criterion 5: Canonical API, runner, release and testing contracts remain reachable and the document/package controls reject missing or contradictory claims. | VERIFIED | The 18 focused docs/release/info/policy checks passed, including canonical status-table, runner help/exit, stale-copy, link, release-marker and archive-metadata controls. tests/CMakeLists.txt supplies canonical docs to the status and runner consumers. The three current macOS arm64 archives passed check_archives.cmake; check_install_line.cmake extracted exactly the expected core and info file. No checker assertion was removed in the scoped files. |
-| 7 | Plan 22-04 key links: The progress guide links its native-state guidance and fixture evidence to their canonical API and testing homes. | VERIFIED | docs/progress.md links the supported snapshot baseline to api.md#save-states and the disposable walkthrough to testing.md#disposable-progress-fixtures. Both target headings exist, and docs.links plus docs.links.self_test passed in this re-verification. |
+| 1 | READY-01 / roadmap criterion 1: The README gives a direct route through supported-content limits, installation and identity, loading, controls, progress, troubleshooting, and developer guides. | ✓ VERIFIED | Current headings follow that order. The prior full README conservation ledger maps each unique heading and claim to a maintained guide. The fresh 18-test canonical document/link/release/info selection passed; the independent doc-link controls reject missing targets and fragments. The current report archives the prior verification history. |
+| 2 | READY-02 / roadmap criterion 2: A player can choose an archive for the RetroArch executable architecture, install its core/info files, and distinguish release, CI, and local-build identity. | ✓ VERIFIED | The six README names match cmake/packaging.cmake and the release workflow's three components × three operating systems × two architectures. The current macOS arm64 package inventory passed for all three local components; the marked install-line checker extracted the expected core and info pair. The dated 2026-10-30 release observation remains explicitly qualified; no current release lookup or attestation verification is claimed in this refresh. |
+| 3 | READY-03 / roadmap criterion 3: Controls distinguish logical player ports from host Device Index and direct players to verify the real frontend launch route. | ✓ VERIFIED | README and docs/testing.md assign devices through the host, recommend P1 only for one controller and distinct devices for two active ports, and say a separate RetroArch launch may use different settings. The dated single-launch readback is bounded to that setup; the fresh core.controller test establishes logical port behavior, not host routing, all buttons, reconnects, or handheld fallback. |
+| 4 | READY-04: Guidance distinguishes battery RAM, native snapshots, host state containers, rewind, autoload, and configured host storage. | ✓ VERIFIED | docs/progress.md explains each separately, directs the player to the active frontend's configured directories and preserves core-specific state storage. docs/api.md owns native payload rules. The guide does not claim a universal path or that renaming a native payload converts it to a host container. |
+| 5 | READY-05 / roadmap criterion 4: A scratch-only backup, compatible roundtrip, native refusal, and rollback procedure preserve the newest battery copy and avoid unsupported recovery claims. | ✓ VERIFIED | The progress recipe keeps the newest copy outside active test paths, compares SHA-256 digests, isolates state loading, and describes both backup sets. The refreshed review fixes guard scratch creation and stop on failures before copy/hash. The current 4-test selection passed runner.state.reject_format, core.state_generation, core.controller, and runner.save.fixture setup. The previous disposable generated-fixture walkthrough recorded matching before/after battery digests. Host-container recovery and cross-build SRAM reuse remain expressly unknown. |
+| 6 | READY-06 / roadmap criterion 5: API, runner, release, and testing contracts remain canonical and their checks reject missing or contradictory claims. | ✓ VERIFIED | The fresh inherited selection passed 18/18 status/API, runner options/exit, README links, release marker/version, info, and archive self-tests. The registered consumers pass explicit canonical guide paths; the review-fixed reproduction contract also passes its positive current-guide check. Local archive inventory and install extraction passed. No runtime assertion, package layout, or public API changed. |
+| 7 | Plan 22-04 links: The progress guide reaches its canonical API snapshot rules and testing fixture instructions. | ✓ VERIFIED | docs/progress.md links to api.md#save-states and testing.md#disposable-progress-fixtures relative to docs/. Both target headings exist. The README-link checker covers README links; these two outbound progress links were checked directly rather than inferred from that checker. |
 
-**Score:** 7/7 distinct truths verified. All six READY requirements are substantively satisfied, and both plan-declared outbound links from the progress guide resolve to their canonical API and testing sections.
+**Score:** 7/7 distinct observable truths verified. The four plan frontmatters' 21 truths were merged with the five roadmap criteria and six READY requirements where they express the same outcome.
 
-The 21 plan-frontmatter truths were merged with the five roadmap criteria and six requirements where they restated the same outcome. API/status and runner relocation controls map to READY-01/06; release/testing/package preservation maps to READY-01/02/06; and the install, controls and progress decisions map to READY-01 through READY-05. Re-verification checked the two formerly missing progress-guide links directly and ran their exact link checker and negative control; unchanged truths retain the evidence from initial verification.
+### Flagged Assumption Review
 
-## Flagged Assumption Review
+The six fallback rows in 22-SOURCE-AUDIT.md remain distinct from test results. These scoped source judgments are non-authoritative; their unverified flags are retained below and do not attest to unseen activity.
 
-The six fallback rows in 22-SOURCE-AUDIT.md were judged against the current artifacts. These are verifier judgments based on observed files and checks; the source-audit rows remain historical flags and were not converted to automatic green results.
-
-| Requirement row | Evidence-supported judgment | Remaining limit |
+| Requirement | Static judgment | Limit |
 |---|---|---|
-| READY-01 — player route completeness | The final README has the requested order; all local guide links/fragments pass; every original README heading has a current home or an explicit player-facing retention. The full conservation check found no unassigned original section. | The owned link checker covers local targets/fragments, not every semantic claim. The manual conservation review supplies that part. |
-| READY-02 — archive and loaded identity | README's six names match the package naming rules and CI's 18-target matrix; local macOS arm64 packages and the marked extraction command were checked. Release, CI and pinned-local identity chains are distinct. | Only macOS arm64 archives were built locally. No active user's loaded module was inspected; the guidance correctly leaves identity unknown without path and provenance. |
-| READY-03 — host launch and port assignment | The README gives the actual-launch route and separate P1/P2 guidance; docs/testing.md preserves one dated launch readback and logical-port test evidence with their limits. | Host labels and unassigned-device choices vary. No all-button, reconnect, handheld-fallback or new live-host check is claimed. |
-| READY-04 — storage ownership | Battery RAM, native states, host containers, rewind and autoload are separate in the progress guide, which directs players to configured host directories. | Host paths and settings remain installation-specific; no live directory was inspected. |
-| READY-05 — rollback boundaries | The disposable procedure and state/source evidence distinguish native refusal from host-container behavior and retain the newest battery backup. | Cross-build SRAM reuse and incompatible host autoload recovery remain unqualified and are explicitly presented as unknown. |
-| READY-06 — scratch/concurrency | New checker controls use nonce-suffixed owned scratch subdirectories; the progress recipe requires a fresh build tree per simultaneous invocation and generated/manifest-listed inputs only. | Same-build simultaneous execution of all existing fixture families was not established; the guidance requires separate build trees. No real save or other-core directory was used. |
+| READY-01 | README order, guide links, and conservation ledgers support a complete player route. | Link tests establish local targets/fragments, not every semantic claim. |
+| READY-02 | Package naming and identity policy match the existing build/release sources. | Only local macOS arm64 archives were inspected; no release fetch or active-user module inspection occurred in this refresh. |
+| READY-03 | Guidance names the host launch route and keeps logical-port evidence separate from host routing. | Host labels vary; no new host, device, reconnect, or all-button check occurred. |
+| READY-04 | Host paths, battery data, snapshots, containers, rewind, and autoload have separate owners in the guide. | No live host directory was inspected. |
+| READY-05 | The scratch procedure protects the newest copy and the guide preserves both backup sets. | Cross-build battery reuse and incompatible host-container recovery remain unqualified. |
+| READY-06 | CMake controls use isolated scratch roots; the player recipe requires a fresh build tree per simultaneous invocation. | Concurrent invocations sharing a build tree were not tested. |
 
-## Descriptor-less Prohibition Judgments
+### Judgment-Tier Prohibition Review
 
-The six kept prohibitions were not treated as implicit passes. Each has a concrete judgment here; the applicable evidence boundaries remain explicit.
+The source audit records six descriptor-less prohibitions as unresolved and flagged-unverified. Evidence below supports each only as a scoped, non-authoritative judgment; each remains prominently flagged as unverified-prohibition — human review recommended. The project's higher-priority instructions say checks are automated and none waits on a person, and Plan 22-04 prohibits making owner sign-off an acceptance prerequisite. Those instructions replace the default interactive prohibition-resolution gate here. The flags preserve uncertainty and do not claim that unobserved activity occurred.
 
-| Prohibition | Judgment | Evidence and remaining limit |
+| Prohibition | Non-authoritative judgment | Evidence and limit |
 |---|---|---|
-| READY-06 / Plan 22-01: Contract relocation must not drop unique assertions or let a stale README satisfy a missing canonical guide. | Satisfied within the reviewed scope. | Status and runner self-tests keep stale README copies while removing or changing the canonical guide; README and the marked support/install claims were compared with the original. The controls cover their stated parser contracts, not every future prose edit. |
-| READY-01 / Plan 22-04: New gameplay, device operation or owner sign-off must not become acceptance prerequisites. | Satisfied. | The phase's test and package acceptance is automated and the instructions do not require a play session or sign-off. None was performed. |
-| READY-02 / Plan 22-04: Current-source capabilities must not be attributed to an unidentified or older binary. | Satisfied. | README labels support as current-source information; release guidance requires module path, digest and matching release/CI/local provenance, with unknown as the result when evidence is missing. The local Sigstore check did not verify an attestation. |
-| READY-03 / Plan 22-04: Port assignment must not be presented as a diagnosis for unclassified rendering/slowdown reports. | Satisfied. | README explicitly says a port change does not diagnose those reports; the dated observations keep the cause open. |
-| READY-04 / Plan 22-04: Private content, daily progress or another core's storage must not be disposable test input. | Satisfied. | The walkthrough uses a generated battery fixture and manifest-listed dabg.nes state fixture in a unique scratch/build tree. No private content, daily save or other-core directory was used. |
-| READY-05 / Plan 22-04: Rollback must not overwrite the separate newest battery copy or promise unqualified cross-build/host-container recovery. | Satisfied within the stated boundary. | The newest backup stays outside active paths; the walkthrough's recorded digests matched. The guides preserve both sets when compatibility is unknown and state that native refusal does not prove host-container recovery. |
+| READY-06 / Plan 22-01: Contract relocation must not drop unique assertions or accept a stale noncanonical copy. | Evidence supports; unverified flag retained. | Status and runner self-tests retain stale README copies while removing or mutating canonical claims. Fresh relevant checks passed; these controls cover their defined mutations, not every future prose change. |
+| READY-01 / Plan 22-04: Owner gameplay, device operation, or sign-off must not become acceptance prerequisites. | Evidence supports; unverified flag retained. | Plans and records use automated fixture/package checks and explicitly do not require new play or device activity. |
+| READY-02 / Plan 22-04: Current-source capabilities must not be assigned to unidentified or older binaries. | Evidence supports; unverified flag retained. | README and release guide require path, digest, and matching provenance; otherwise identity stays unknown. Local attestation verification was unavailable and is not claimed. |
+| READY-03 / Plan 22-04: Port assignment must not be presented as a rendering/slowdown diagnosis. | Evidence supports; unverified flag retained. | README separates input setup from unclassified rendering/slowdown reports; observations do not claim causation. |
+| READY-04 / Plan 22-04: Private content, daily progress, and other-core storage must not be disposable fixtures. | Evidence supports; unverified flag retained. | The procedure uses generated or manifest-listed fixtures and the refresh records no daily-save, private-content, or other-core operation. |
+| READY-05 / Plan 22-04: Rollback must preserve the newest battery copy and avoid unqualified compatibility promises. | Evidence supports; unverified flag retained. | The scratch digest evidence matched and the guide preserves both sets; tests do not qualify cross-build SRAM or incompatible host-container recovery. |
 
 ## Required Artifacts
 
-| Artifact | Exists | Substantive | Wired | Data flow | Status / evidence |
-|---|---:|---:|---:|---|---|
-| README.md | Yes | Yes | Yes | Static documentation | VERIFIED — player route, supported-content summary, marked install command and guide links are present. |
-| docs/api.md | Yes | Yes | Yes | Static documentation | VERIFIED — API, battery, state and status contracts; the status consumer reads only this canonical guide. |
-| docs/runner.md | Yes | Yes | Yes | Static documentation | VERIFIED — options compare against real --help; exit/stop contract compares against runner/exit_status.h and help output. |
-| docs/releases.md | Yes | Yes | Yes | Static documentation | VERIFIED — archive inventory, marker policy and identity guide are linked from README and match package/release sources. |
-| docs/testing.md | Yes | Yes | Yes | Static documentation | VERIFIED — build, evidence limits and host/test procedures are linked from README. |
-| docs/progress.md | Yes | Yes | Partial | Static documentation | PARTIAL — README links to it and it is substantive, but the two outbound links in Plan 22-04 are absent. |
-| tests/CMakeLists.txt and tests/cmake/{doc_links,status_table,runner_options,runner_exit_table}.cmake | Yes | Yes | Yes | No rendered data | VERIFIED — all plan-declared artifact paths exist; gsd-tools artifact checks passed for all four plans. Static link-query false negatives for relative CMake script paths were checked manually at their registrations. |
-| cmake/packaging.cmake, tests/cmake/check_archives.cmake and check_install_line.cmake | Yes | Yes | Yes | Build outputs | VERIFIED — unchanged package contract; current local archive inventory and install-line extraction passed. |
-| tests/accuracy/baseline-metadata.txt and measurements.md | Yes | Yes | Yes | Campaign report/provenance | VERIFIED — this bookkeeping refreshes the existing fingerprint/source measurement. The report SHA-256 matches the stored value exactly; scoreboard, pins and runtime sources are unchanged. |
+| Artifact | Exists | Substantive | Wired | Status / evidence |
+|---|---:|---:|---:|---|
+| README.md | Yes | Yes | Yes | VERIFIED — player route, checked support summary, marked install block, and topic links are present. |
+| docs/api.md | Yes | Yes | Yes | VERIFIED — canonical API, status, battery, and native state contract; status tests compare it to the public enum. |
+| docs/runner.md | Yes | Yes | Yes | VERIFIED — runner options, stop, and exit rules; live checks compare the guide to actual help and header values. |
+| docs/releases.md | Yes | Yes | Yes | VERIFIED — package naming, release, and loaded-build identity routes are linked from README. |
+| docs/testing.md | Yes | Yes | Yes | VERIFIED — engineering checks and qualified host evidence are linked from README. |
+| docs/progress.md | Yes | Yes | Yes | VERIFIED — substantive backup/rollback guide linked from README, with direct API and testing guide links. |
+| tests/CMakeLists.txt and plan-declared CMake checks | Yes | Yes | Yes | VERIFIED — all four artifact queries passed. CMake path-link query false negatives were resolved by inspecting the actual script registration and explicit DOC arguments. |
+| cmake/packaging.cmake and package check scripts | Yes | Yes | Yes | VERIFIED — actual component names match the release workflow; local package inventory and install extraction passed on macOS arm64. |
+| tests/cmake/reproduction_contract.cmake | Yes | Yes | Yes | VERIFIED for the stale shared-doc route — canonical docs/reproduction.md path is enforced; shell target/test selections must match; registered positive check passed. Current-head self-test evidence is recorded below. |
 
 ## Key Link Verification
 
 | From | To | Via | Status | Details |
 |---|---|---|---|---|
-| README.md | docs/api.md | Relative Markdown guide link | WIRED | docs.links and its negative controls passed. |
-| tests/CMakeLists.txt | tests/cmake/status_table.cmake | state.status_table registration passes canonical docs/api.md | WIRED | The CMake registration invokes cmake/status_table.cmake with DOC=docs/api.md; the generic link query missed the relative script path. |
-| tests/cmake/status_table.cmake | include/nesturbator.h | Bidirectional enum/table comparison | WIRED | The checker parses the public enum and compares every row in both directions. |
-| README.md | docs/runner.md | Relative Markdown guide link | WIRED | docs.links passed. |
-| tests/CMakeLists.txt | docs/runner.md | Canonical DOC input to runner consumers | WIRED | runner options and exit consumers receive docs/runner.md; focused tests passed. |
-| tests/cmake/runner_exit_table.cmake | runner/exit_status.h | Header/help/guide equality | WIRED | The production checker reads the header and the real runner's --help output. |
-| README.md | docs/releases.md | Developer/package guide links | WIRED | Local README link and fragment checks passed. |
-| README.md | docs/testing.md | Build/test/evidence guide links | WIRED | Local README link and fragment checks passed. |
-| tests/cmake/release_markers.cmake | release-please-config.json | README remains a version-marker-owned file | WIRED | The marker configuration and checker still include README; the marked block is byte-identical to the original. |
-| cmake/packaging.cmake | tests/cmake/check_archives.cmake | Package output inventory | WIRED | CI runs check_archives after packaging; direct local inventory check accepted all three current macOS arm64 archives. |
-| README.md | cmake/packaging.cmake | Documented OS/architecture archive names match CPack naming | WIRED | Manual source comparison confirms matching component, OS and architecture values. README is not intended to link players to the CMake implementation. |
-| README.md | docs/progress.md | Progress/troubleshooting links | WIRED | README points to the progress guide; docs.links passed. |
-| docs/progress.md | docs/api.md#save-states | Native support baseline versus loader enforcement | WIRED | Direct Markdown link follows Supported snapshot baseline; exact target heading exists. |
-| docs/progress.md | docs/testing.md#disposable-progress-fixtures | Scratch fixtures and reused evidence | WIRED | Direct Markdown link follows the fixture explanation; exact target heading exists. |
+| README.md | docs/api.md | Relative guide link | WIRED | docs.links and its negative controls passed. |
+| tests/CMakeLists.txt | tests/cmake/status_table.cmake | state.status_table registration with DOC=docs/api.md | WIRED | Query did not recognize the CMake script path; the registration explicitly invokes that script and passes the canonical guide. |
+| tests/cmake/status_table.cmake | include/nesturbator.h | Enum/table comparison | WIRED | Checker parses the public enum and compares the table; production and self-test passed. |
+| README.md | docs/runner.md | Relative guide link | WIRED | docs.links passed. |
+| tests/CMakeLists.txt | docs/runner.md | Explicit DOC inputs to runner consumers | WIRED | Fresh runner option/exit checks passed. |
+| tests/cmake/runner_exit_table.cmake | runner/exit_status.h | Header/help/guide comparison | WIRED | Real runner help and header values are the comparison inputs; canonical self-test passed. |
+| README.md | docs/releases.md and docs/testing.md | Developer guide links | WIRED | README local-link checks passed. |
+| tests/cmake/release_markers.cmake | release-please-config.json | Marker ownership | WIRED | Existing marker check passed; the install block remains owned by its configured marker. |
+| cmake/packaging.cmake | tests/cmake/check_archives.cmake | CPack output inventory checked in CI | WIRED | The CI workflow runs CPack then the archive checker; the local checker accepted all three configured macOS arm64 packages. |
+| README.md | cmake/packaging.cmake | Archive names and matrix | WIRED | Manual comparison matches OS, architecture, component, and extension names; README is not meant to link players to CMake source. |
+| README.md | docs/progress.md | Progress and troubleshooting route | WIRED | README links to the guide; docs.links passed. |
+| docs/progress.md | docs/api.md#save-states | Native support baseline | WIRED | Relative target and exact heading manually verified. |
+| docs/progress.md | docs/testing.md#disposable-progress-fixtures | Fixture instructions | WIRED | Relative target and exact heading manually verified. |
 
 ## Data-Flow Trace (Level 4)
 
-Not applicable to rendered values: Phase 22 delivers static Markdown guides, not a UI that renders query results or fetched values. Package identity values were checked against packaging sources and current generated local archives.
+No dynamic UI or fetched values are rendered by this documentation/checker phase. The executable checks use real inputs: runner option and exit comparisons read the built runner's help and the public header; state/input checks execute the core and runner; package verification inspected generated local archives. The scratch example consumes generated or manifest-listed fixtures and hashes the copied battery data. Its harmless-command self-test proves stop/copy ordering, not host recovery.
 
 ## Behavioral Spot-Checks
 
 | Behavior | Command / evidence | Result | Status |
 |---|---|---|---|
-| Repaired progress-guide links | ctest --test-dir build/ci --output-on-failure --no-tests=error -FA accuracycoin_full_report -R '^(docs\.links|docs\.links\.self_test)$' | Both exact link/fragment validation and its negative control passed (2/2). | PASS |
-| Canonical document, link, runner, release and info checks | Initial-verification CTest selection recorded above | 18/18 passed in initial verification; unaffected checks were not rerun. | PASS (prior evidence) |
-| Native format refusal, save-generation invariant and separate logical input ports | ctest --test-dir build/ci --output-on-failure --no-tests=error -FA accuracycoin_full_report -R '^(runner.state.reject_format|core.state_generation|core.controller)$' | 4/4 passed including runner.save.fixture setup. No campaign fixture was enabled. | PASS |
-| Archive component inventory | cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake | Accepted library, libretro and runner macOS arm64 archives for v0.1.11. | PASS |
-| Marked macOS install extraction | cmake -DREADME=README.md -DPACKAGES=build/ci/packages -DOUT=build/ci/install-line -P tests/cmake/check_install_line.cmake | Extracted exactly cores/nesturbator_libretro.dylib and info/nesturbator_libretro.info from the local archive. | PASS |
-| Scratch battery/state procedure | Plan 22-04 execution record | Generated-fixture roundtrip/refusal selections passed; its before/after battery backup digests matched. This verification did not repeat the full scratch procedure. | PASS (recorded evidence) |
-| AccuracyCoin migration/activation/protected-observation/scoreboard/no-lost-pass/baseline-fetch controls | Existing build/ci/Testing/Temporary/LastTest.log at 2026-10-30 21:58 EDT | 6/6 passed. The activation fixture was excluded; the log contains no campaign invocation. | PASS (existing run record) |
-| Full configured CI workflow | 22-EXECUTION-EVIDENCE.md and the preserved failure record | The initial run was 699/700; accuracycoin.activation failed because the registered build-input fingerprint was stale after tests/CMakeLists.txt changed. The later activation group passed after metadata refresh. Execution evidence records the owner's authorization boundary for a bounded native refresh; existing evidence met it, so no additional campaign ran. The full workflow was not rerun. | NOT A FULL-WORKFLOW PASS |
+| Current reproduction guide contract | ctest --test-dir build/ci --output-on-failure --no-tests=error -FA accuracycoin_full_report -R '^docs\.reproduction$' | 1/1 passed in 9.76 seconds in this verification. | PASS |
+| Canonical document, link, runner, release, info, and policy contracts | See the exact 18-test command below. | 18/18 passed in 1.31 seconds, including canonical path and stale-copy controls. | PASS |
+| Native format refusal, generation invariant, and logical input ports | ctest --test-dir build/ci --output-on-failure --no-tests=error -FA accuracycoin_full_report -R '^(runner\.state\.reject_format|core\.state_generation|core\.controller)$' | 4/4 passed in 0.14 seconds, including runner.save.fixture setup. | PASS |
+| Scratch failure handling and 17 document mutations, including noncanonical guide and PowerShell-only target/test omissions | Current-head build/ci/Testing/Temporary/LastTest.log and 22-REFRESH-EVIDENCE.md, read before this verifier's CTest runs | 1/1 passed in 19.75 seconds; four injected failures stopped before copy/hash and the positive control reached backup doubles. Not rerun here because the verifier's individual spot-check bound is under 10 seconds. | PASS (recorded current-head run) |
+| Local package inventory | cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake | Library, runner, and libretro macOS arm64 archives for v0.1.11 accepted. | PASS |
+| Marked install-line extraction | cmake -DREADME=README.md -DPACKAGES=build/ci/packages -DOUT=build/ci/install-line-verifier -P tests/cmake/check_install_line.cmake | Extracted the expected core and matching info file from the local archive. | PASS |
+| Disposable battery walkthrough | Plan 22-04 execution record | Actual isolated generated-fixture run passed configure/build and the roundtrip/refusal selections; before/after battery digests matched. This verifier did not repeat the full walkthrough. | PASS (recorded execution) |
+| Full configured CI workflow | 22-EXECUTION-EVIDENCE.md | Historical full run was 699/700; accuracycoin.activation was the only failure due to stale build-input provenance. A bounded activation/provenance repair passed afterward, but the workflow was not rerun. | NOT A FULL-WORKFLOW PASS |
 
-The report file in build/ci/accuracycoin/full/report.tsv has SHA-256 56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3, matching both build metadata and tests/accuracy/baseline-metadata.txt. The refresh preserves the 119 PASS / 27 FAIL measured rows, five DRAW rows and historical measurements. It repairs current-input provenance; it does not establish emulator correctness or a hosted result.
+The exact 18-test command was: ctest --test-dir build/ci --output-on-failure --no-tests=error -FA accuracycoin_full_report -R '^(state\.status_table|state\.status_table\.self_test|runner\.options\.readme|runner\.options\.canonical\.self_test|runner\.exit\.table|runner\.exit\.help|runner\.exit\.canonical\.self_test|docs\.links|docs\.links\.self_test|release\.one_version_per_line|release\.one_version_per_line\.self_test|release\.version_format|libretro\.info_claims|libretro\.info_claims\.self_test|libretro\.info_support|libretro\.info_staged|libretro\.info_archives\.self_test|cmake\.script_policy)$'
 
 ## Probe Execution
 
-Not applicable. None of the four plans declares a probe script, and no conventional scripts/*/tests/probe-*.sh probe was found.
+Not applicable. None of the four Phase 22 plans declares a probe script.
 
 ## Requirements Coverage
 
 | Requirement | Source plan | Status | Evidence |
 |---|---|---|---|
-| READY-01 | 22-01 through 22-04 | SATISFIED | README player order, full original-README conservation review, and passing local-guide target/fragment checks. |
-| READY-02 | 22-03 and 22-04 | SATISFIED | Six archive choices match package naming; release/CI/local identity paths and unknown handling are documented; local macOS arm64 archives and extraction checked. |
-| READY-03 | 22-04 | SATISFIED | Actual-launch host-owned controls, P1/P2 device distinction and dated evidence limits are documented. No new host operation is required by the approved boundary. |
-| READY-04 | 22-04 | SATISFIED | Save/state/container/rewind/autoload distinctions and configured host storage are documented. |
-| READY-05 | 22-04 | SATISFIED | Backup, digest, roundtrip, native refusal and rollback procedure is present; cross-build SRAM and incompatible host-container recovery remain expressly unknown. |
-| READY-06 | 22-01 through 22-04 | SATISFIED | Canonical contracts and independent relocation controls pass; archive and install-line checks pass. The progress-guide links to the canonical API and testing sections now resolve and pass link checks. |
+| READY-01 | 22-01 through 22-04 | SATISFIED | Current README route, conserved claims, and passing guide-link controls. |
+| READY-02 | 22-03 and 22-04 | SATISFIED | Six package names match the build/release sources; local macOS arm64 packages and install extraction passed; identity remains unknown when evidence is missing. |
+| READY-03 | 22-04 | SATISFIED | Host-owned launch and P1/P2 guidance plus bounded dated observation; no host-routing overclaim. |
+| READY-04 | 22-04 | SATISFIED | Battery, native snapshots, host containers, rewind, autoload, and configured directories are separated. |
+| READY-05 | 22-04 | SATISFIED | Scratch-only backup/roundtrip/refusal/rollback path and native tests; unsupported host/cross-build recovery remains unknown. |
+| READY-06 | 22-01 through 22-04 | SATISFIED | Fresh 18/18 canonical document/runner/release/info checks and local archive/extraction checks passed; review-fixed reproduction contract checks are covered separately. |
+
+The decision-coverage gate reports all 22 adopted CONTEXT.md decisions honored. This is a non-blocking coverage signal; it does not resolve the six separate judgment-tier prohibitions above.
 
 ## Test Quality Audit
 
-| Test file / check | Linked requirement | Active | Skipped | Circular | Assertion level | Verdict |
-|---|---|---:|---:|---:|---|---|
-| tests/cmake/doc_links.cmake | READY-01, READY-06 | Yes | No | No | Behavioral: missing target and fragment controls | Valid; 2 focused checks passed. |
-| tests/cmake/status_table.cmake | READY-06 | Yes | No | No | Value: enum equality, duplicate/extra/missing rows and canonical-path rejection | Valid; production check and self-test passed. |
-| tests/cmake/runner_options.cmake and runner_exit_table.cmake | READY-06 | Yes | No | No | Value/behavioral: real help/header equality plus stale-copy/mutation controls | Valid; production comparisons and self-tests passed. |
-| tests/cmake/check_archives.cmake and check_install_line.cmake | READY-02, READY-06 | Yes | No | No | Value: exact package inventory and extraction operands/members | Valid; current local packages accepted. |
-| tests/cmake/runner_save.cmake and runner_state.cmake | READY-05 | Yes | No | No | Behavioral: generated battery save, native roundtrip and deliberate format refusal | Valid; Plan 22-04 record reports the focused selections passed. |
-| tests/core/test_state_generation.c and test_state_reject.c | READY-05 | Yes | No | No | Behavioral/value: battery generation and byte-identical state after refusal | Source asserts the invariant; full workflow aggregate reports these among the 699 passing tests. The 60-second state-rejection check was not rerun. |
-| tests/core/test_controller.c | READY-03 | Yes | No | No | Behavioral: independent logical port state | Valid for the documented logical-port scope; it does not prove host Device Index routing. |
+| Test/check | Requirement | Quality |
+|---|---|---|
+| docs.links and self-test | READY-01, READY-06 | Active; checks actual README guide targets/fragments and reason-specific missing-target mutations. |
+| status_table and self-test | READY-06 | Active; value-level enum/table equality and canonical-guide negative controls. |
+| runner_options and runner_exit_table controls | READY-06 | Active; compares real help/header values and rejects missing/extra options, exit changes, and missing stop language. |
+| reproduction_contract self-test | Shared stale-guide route | Active; current-head log shows 17 independent mutations and progress shell failure controls. It consumes deliberately mutated documents; expected diagnostics are independently asserted. |
+| package/archive checks | READY-02, READY-06 | Active; exact local archive inventory and install extraction assertions passed. |
+| state generation/rejection tests | READY-05 | Active; generation/refusal and unchanged-state evidence comes from named tests, not a copied test oracle. |
+| controller test | READY-03 | Active for logical ports only; it does not claim host Device Index routing. |
 
-**Disabled tests on requirements:** 0 found in the linked document checker files.
-**Circular patterns detected:** 0.
-**Insufficient assertions:** 0 for the documented requirements. Logical-port tests are not treated as host-routing proof; that limitation is explicit.
+No disabled requirement-linked checker tests or circular expected-value generation were found. The scratch test helper uses source text as the input under test and harmless command doubles; it does not generate production expected values.
 
 ## Anti-Patterns Found
 
-| File | Line | Pattern | Severity | Impact |
-|---|---:|---|---|---|
-| Scoped implementation files | — | No debt markers, placeholders, empty implementations or disabled checker tests found. A broad XXX search only matched the mktemp XXXXXX template in docs/progress.md. | None | No implementation stub or unresolved marker found. |
+| File | Pattern | Severity | Impact |
+|---|---|---|---|
+| docs/progress.md | XXXXXX in the mktemp template matched a broad XXX scan. | None | This is the required unique temporary-name template, not an unresolved debt marker. No TODO, FIXME, placeholder, or empty implementation was found in the reviewed docs/checkers. |
 
-## Decision Coverage
+## Human Verification
 
-The configured decision-coverage gate reports 22/22 adopted CONTEXT.md decisions honored, with no unhonored decisions. It is a non-blocking gate.
-
-## Human Verification Required
-
-None. The approved acceptance boundary does not require owner gameplay, a device operation, host setup or sign-off. The absence of incompatible host-autoload recovery and cross-build SRAM evidence is stated as a limit, not as a verified behavior.
-
-## Deferred Items
-
-None. No open verification item is deferred to a later phase.
+None. All observable behavior checks passed or have scoped execution evidence, and no material source gap remains. The six judgment-tier prohibitions stay visible as unverified audit flags; they are not owner acceptance items and do not attest to unseen activity.
 
 ## Gaps Summary
 
-The previous blocking gap is closed: docs/progress.md now links to docs/api.md#save-states and docs/testing.md#disposable-progress-fixtures, both exact headings exist, and docs.links plus docs.links.self_test pass. All six READY requirements and the five roadmap success criteria have evidence. The initial full CI failure remains recorded as a stale-fingerprint activation failure; the repaired activation check passed, but the full workflow was not rerun and must not be described as having passed.
+No observable truth, artifact, or key link failed. The phase content and fresh scoped checks support all six READY requirements and five roadmap success criteria. Status is passed because no behavior check or material source gap remains; the six unresolved descriptor-less prohibitions are preserved as non-authoritative, unverified audit flags, not human acceptance gates. The historic 699/700 full-workflow result, repaired bounded provenance check, platform limits, and host recovery limits remain as recorded; this refresh does not claim a full workflow, release lookup, host/device check, Windows execution, or cross-build recovery result.
 
 ---
 
-_Verified: 2026-10-31T02:08:01Z_
+_Verified: 2026-10-31T12:58:50Z_
 _Verifier: the agent (gsd-verifier)_

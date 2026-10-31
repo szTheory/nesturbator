@@ -73,7 +73,7 @@ new hosted qualification is claimed by this refresh.
 - Installation identifies the actual package/build/core and keeps published releases separate from merged development behavior. Battery saves, snapshots, rewind and host containers have explicit backup, supported-version and rollback guidance.
 - A bounded report/replay recipe identifies scene, inputs, content and core, preserves private artifacts, and separates native output, adapter conversion, host presentation and original game behavior.
 
-The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30. v6 continues phase numbering after 21. SEED-006 contributes only demonstrated documentation/contract work; existing research and 22 title reports are reused. The owner approved the ten requirements and Phases 22–23 with “yes i approve”; see [requirements](REQUIREMENTS.md) and [roadmap](ROADMAP.md). Phases 22 and 23 are implemented. Phase 23 is independently verified; shared guide changes made the earlier Phase 22 report stale. Refresh that verification before the v6 milestone audit. Overscan, accuracy fixes, new regions/mappers and actual Playstead integration remain outside this milestone. Direction and preserved debt are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30. v6 continues phase numbering after 21. SEED-006 contributes only demonstrated documentation/contract work; existing research and 22 title reports are reused. The owner approved the ten requirements and Phases 22–23 with “yes i approve”; see [requirements](REQUIREMENTS.md) and [roadmap](ROADMAP.md). Phases 22 and 23 are implemented. Phase 22 verification was explicitly refreshed and passes after three review corrections to scratch failure handling and shared document checks. Those corrections made Phase 23's shared-file report stale; refresh it separately before the v6 milestone audit. Overscan, accuracy fixes, new regions/mappers and actual Playstead integration remain outside this milestone. Direction and preserved debt are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 
 <details>
 <summary>v5 milestone definition (archived)</summary>
@@ -270,6 +270,13 @@ runtime stops remain intact. See the Phase 22 verification and execution evidenc
 
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
+The Phase 22 refresh also established that published scratch recipes must stop
+before backup on scratch/configure/test failure, and each shell example must
+independently retain the required build and CTest contract. Fresh rejection
+controls cover these cases. The six judgment-tier prohibitions remain flagged;
+project instructions keep them from becoming new owner-signoff prerequisites.
+See the refreshed Phase 22 report and refresh evidence for limits and outcomes.
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
@@ -288,4 +295,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-31 after Phase 23 execution and verification*
+*Last updated: 2026-10-31 after Phase 22 verification refresh*

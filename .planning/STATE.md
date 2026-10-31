@@ -3,12 +3,13 @@ gsd_state_version: "1.0"
 milestone: v6
 milestone_name: Player-ready NES and reproducible feedback
 current_phase: 23
-status: Phase 23 complete; refresh stale Phase 22 verification next
-stopped_at: Phase 23 verified complete; stopped before milestone audit
-last_updated: "2026-10-31T04:59:03Z"
+current_phase_name: Reproduce and report a scene
+status: Phase 22 refresh passed; refresh stale Phase 23 verification next
+stopped_at: Phase 22 verification refreshed; stopped before Phase 23 refresh
+last_updated: "2026-10-31T13:00:43Z"
 last_activity: 2026-10-31
-last_activity_desc: Phase 23 implemented, review findings fixed and independently verified; Phase 22 verification refresh and milestone audit remain separate
-state_head: 4c0904ff4ca286191f836ad67ecb7bbcc763d93f
+last_activity_desc: Phase 22 review fixes committed and independently verified; Phase 23 shared-file report now stale; milestone audit remains separate
+state_head: a405970b6332036a7a575ebb12432807accf9dd8
 progress:
   total_phases: 2
   completed_phases: 2
@@ -22,65 +23,67 @@ current_plan: null
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated 2026-10-31 after Phase 23, and AGENTS.md.
+See [PROJECT.md](PROJECT.md), updated 2026-10-31 after Phase 22 verification refresh, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 23 is complete; all v6 implementation plans are complete. Refresh stale Phase 22 verification before milestone audit.
+Current focus: All v6 implementation plans are complete. Phase 22 verification is current and passed; Phase 23's shared-file report needs a separate refresh before milestone audit.
 
 ## Current Position
 
-Phase: 23 (Reproduce and report a scene) — COMPLETE
-Plan: 3 of 3 complete
+Phase: 22 (Install and protect progress) — VERIFICATION REFRESH COMPLETE
+Plan: 4 of 4 complete; all were skipped during this refresh
 Status: Independently verified; stopped at the execution boundary
-Last activity: 2026-10-31 — three plans and review fixes committed; six acceptance truths and all 22 adopted decisions verified
+Last activity: 2026-10-31 — three new review findings fixed; all seven truths, six READY requirements and 22 adopted decisions supported
 
 ## Next Action
 
-Phase 23 delivers one [scene reproduction guide](../docs/reproduction.md),
-bounded cold replay, neutral checkpoint/preflight controls and layered triage.
-All three review findings were fixed. See the
-[verification](phases/23-reproduce-and-report-a-scene/23-VERIFICATION.md),
-[review dispositions](phases/23-reproduce-and-report-a-scene/23-REVIEW-DISPOSITION.md)
-and [execution evidence](phases/23-reproduce-and-report-a-scene/23-EXECUTION-EVIDENCE.md).
+Phase 22's refreshed [verification](phases/22-install-and-protect-progress/22-VERIFICATION.md)
+passes. The progress walkthrough now stops on scratch/command failure; the
+reproduction checker requires its canonical document and matching shell recipes.
+See [review dispositions](phases/22-install-and-protect-progress/22-REVIEW-DISPOSITION.md)
+and [refresh evidence](phases/22-install-and-protect-progress/22-REFRESH-EVIDENCE.md).
+The original report, review and dispositions have INITIAL archives; the original
+full-workflow provenance failure and bounded repair history remain intact.
 
-No action is needed to finish this execution step. The next actor is the owner,
-when ready to begin a separate Phase 22 verification refresh:
+No user action is needed to finish this execution step. Work is stopped at its
+boundary. The next actor is the owner, when ready to run the separate command:
 
-`$gsd-execute-phase 22`
+`$gsd-execute-phase 23`
 
-This skips Phase 22's completed plans and resumes its review/verification gates
-for the shared guide changes. A passing refresh is needed before milestone audit. Context may be cleared first; read [continue.md](continue.md).
-Milestone audit/closeout, publication, push and PR were not started.
-The product-roadmap refresh remains part of a later approved closeout step.
+This skips Phase 23's completed plans and refreshes review/verification for the
+three covered files changed by these fixes: README.md, docs/progress.md and
+tests/cmake/reproduction_contract.cmake. Its status query currently reports
+stale. Do not silently re-fingerprint it. Context may be cleared first; read
+[continue.md](continue.md). Milestone audit follows a passing Phase 23 refresh.
+No new implementation phase, audit, closeout, publication, push or PR was started.
+Product-roadmap upkeep remains part of the later approved closeout step.
 
-The exact corrected POSIX scratch recipe and post-review CI/ASan document checks
-passed, as did scoped replay/input/continuation and prior-phase contract checks.
-Later verifier attempts at the document checks timed out; unusual wall-time
-jumps and intermittent local timeouts remain unresolved. These failed attempts
-are preserved alongside earlier passes. Do not claim uniformly green document
-checks or a full CI workflow pass. Deadlines were not raised. Targeted process
-inspection found no abandoned test requiring cleanup; no restart was needed.
+The final five document/link/policy checks passed within their unchanged bounds;
+the scoped runtime and inherited contract selection also passed. The verifier
+independently reran inherited document/state/input and local macOS archive/install
+checks. Full campaign CI was not run. Earlier Phase 23 document timeouts and
+wall-time jumps remain unresolved; fresh passes do not diagnose them. No deadline
+was raised and no process cleanup or restart occurred.
 
-The local CI cache enables a full AccuracyCoin campaign. The approved phase
-excludes collector campaigns and live host/device/private-content operations,
-so regression used prior Phase 22 scoped checks with the campaign fixture excluded.
-No campaign/provenance refresh or wider runtime window is authorized. Five
-fallback edges and eight judgment-tier prohibition limits remain explicit;
-scoped verifier judgments are not owner acceptance or proof of unseen activity.
+The configured CI cache enables a full AccuracyCoin campaign. Scoped CTests
+excluded its required fixture with -FA accuracycoin_full_report. No new campaign,
+collector/provenance refresh, live host/device/private-content operation or wider
+runtime window is authorized. Phase 22's six descriptor-less prohibitions and
+Phase 23's eight judgment-tier limits remain flagged; source review is neither
+owner risk acceptance nor proof of unseen external activity. A default verifier
+request for six owner signoffs was removed under the explicit project rule that
+checks do not wait on people and owner signoff cannot become an acceptance
+prerequisite. The final report records this instruction precedence and all limits.
 
-Cold movie and neutral checkpoint routes remain separate. Exact-build/content
-support is stricter than native loader checks; caller-declared provenance is
-not authenticated. Native/adapter equality establishes neither host presentation
-nor hardware correctness. Commercial reports remain unclassified. PowerShell
-and other platforms were not executed locally; no daily progress was touched.
+No runtime source, public ABI, save format, ROM pin or hash baseline changed.
+Cold replay and native checkpoint routes remain separate; exact-build support
+exceeds native loader checks and declared provenance is not authentication.
+Native/adapter equality establishes neither host presentation nor hardware
+correctness. Commercial reports remain unclassified. PowerShell and other
+platforms were not executed locally; no daily progress was touched.
 
-Work is on `gsd/phase-23-reproduce-and-report-a-scene`, based on the Phase 22
-branch. Preserve the owner's unstaged AGENTS.md and config changes. Phase 22
-remains historically complete; shared covered documentation changed in Phase 23,
-and its status query now reports stale. Refresh it in a separate execution step;
-do not silently re-fingerprint it. Keep its original full-workflow provenance failure and
-bounded refresh history intact. Existing collector/platform/host-recovery debt
-and all prior safety stops remain unchanged.
-
+Work remains on gsd/phase-23-reproduce-and-report-a-scene. Owner edits to AGENTS.md
+and .planning/config.json remain unstaged and uncommitted. Collector/platform,
+host-recovery debt and all historical safety stops are unchanged.
 
 ## Preserved Debt and Boundaries
 
@@ -121,9 +124,9 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T04:59:03Z
-**Stopped at:** Phase 23 verified complete; milestone audit not started
-**Next command:** $gsd-execute-phase 22
+**Last session:** 2026-10-31T13:00:43Z
+**Stopped at:** Phase 22 verification refreshed; Phase 23 shared-file verification is stale
+**Next command:** $gsd-execute-phase 23
 **Resume file:** .planning/continue.md
 
 ## Performance Metrics
