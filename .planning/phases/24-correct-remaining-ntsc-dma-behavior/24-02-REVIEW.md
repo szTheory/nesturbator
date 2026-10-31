@@ -26,9 +26,9 @@ status: passed
 
 # Phase 24-02: Code Review Report
 
-**Reviewed:** 2026-10-31T20:30:38Z  
-**Depth:** standard  
-**Files Reviewed:** 12  
+**Reviewed:** 2026-10-31T20:30:38Z
+**Depth:** standard
+**Files Reviewed:** 12
 **Status:** passed
 
 ## Summary
@@ -39,7 +39,7 @@ The OAM/DMC arbitration implementation appears consistent with the cited overlap
 
 ### WR-01: OAM tests derive expected duration from the observed trace
 
-**Severity:** WARNING  
+**Severity:** WARNING
 **File:** `tests/cpu/test_bus.c:952`
 
 **Issue:** `run_oam_probe` computes `extra` from the observed halt cycle, the derived DMC GET cycle, and the baseline OAM end, then checks that elapsed cycles equal that value. It never asserts that `requested_offset=128` produces a GET within OAM and an exact two-cycle extension, or that the 254/255 probes hit the expected one- and three-cycle tail cases. A shift that moves one of those probes into a different timing class can be accepted as the newly computed expectation; the requested offset and detected collision offset are only printed.
@@ -48,7 +48,7 @@ The OAM/DMC arbitration implementation appears consistent with the cited overlap
 
 ### WR-02: Save-state guide still describes format 3 as current
 
-**Severity:** WARNING  
+**Severity:** WARNING
 **File:** `docs/api.md:250`
 
 **Issue:** The current guide identifies format 4 above, but this paragraph still says “Format 3 rejects every other format version, including versions 1 and 2.” This is a carried documentation defect from the prior slice, not an OAM behavior regression.
@@ -57,8 +57,8 @@ The OAM/DMC arbitration implementation appears consistent with the cited overlap
 
 ---
 
-_Reviewed: 2026-10-31T20:30:38Z_  
-_Reviewer: the agent (gsd-code-reviewer)_  
+_Reviewed: 2026-10-31T20:30:38Z_
+_Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
 
 ## Resolution and scope

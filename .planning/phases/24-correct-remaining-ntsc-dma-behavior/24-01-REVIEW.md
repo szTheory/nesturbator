@@ -33,9 +33,9 @@ status: passed
 
 # Phase 24-01: Code Review Report
 
-**Reviewed:** 2026-10-31T20:04:40Z  
-**Depth:** standard  
-**Files Reviewed:** 19  
+**Reviewed:** 2026-10-31T20:04:40Z
+**Depth:** standard
+**Files Reviewed:** 19
 **Status:** passed
 
 ## Summary
@@ -46,7 +46,7 @@ The DMC output counter and latched silence state remain consistent with the seri
 
 ### WR-01: Save-state guide still describes format 3 as current
 
-**Severity:** WARNING  
+**Severity:** WARNING
 **File:** `docs/api.md:250`
 
 **Issue:** The guide now correctly identifies format 4 and says format-3 states are refused, but this later paragraph still says “Format 3 rejects every other format version, including versions 1 and 2.” That contradicts the current loader and the preceding format-4 explanation. This is a documentation defect; it does not affect state loading.
@@ -55,8 +55,8 @@ The DMC output counter and latched silence state remain consistent with the seri
 
 ---
 
-_Reviewed: 2026-10-31T20:04:40Z_  
-_Reviewer: the agent (gsd-code-reviewer)_  
+_Reviewed: 2026-10-31T20:04:40Z_
+_Reviewer: the agent (gsd-code-reviewer)_
 _Depth: standard_
 
 ## Resolution verification
