@@ -54,7 +54,10 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 9 retains an accepted IRQ at the instruction's
+   the same inputs. Revision 10 keeps the DMC output bit clock running through
+   eight-clock silent cycles. A later sample waits for that cycle boundary;
+   $4015 re-enables preserve the phase (HWC.23, Output Unit).
+   Revision 9 retains an accepted IRQ at the instruction's
    hardware poll point, using the old I flag for CLI, SEI and PLP. Branches
    preserve their first poll across later cycles and add the page-cross poll;
    a captured acceptance survives later source clearing until entry arbitration.
@@ -78,27 +81,28 @@ extern "C" {
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
    Revision 5 was the PPU fetch pipeline. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 9
+#define NESTURBATOR_BEHAVIOUR_REVISION 10
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
    NESTURBATOR_ERR_STATE_FORMAT; there is no converter. Before the first release that contains
    save states it stays 1 and the layout may change. After that release, any change to the state
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
-   same commit. Version 3 records the CPU's sampled NMI-line, captured-request and instruction-poll
-   histories, retained close-edge IRQ level, accepted IRQ history, and the CPU entry origin,
-   next unperformed bus action, selected vector pair and partial vector-low byte; version 1 and 2
-   states are refused with NESTURBATOR_ERR_STATE_FORMAT. Completed interrupt-entry actions form
-   internal load cutpoints; ordinary instruction and frame execution drains a restored entry before
-   returning to the next instruction boundary. Public frame calls remain synchronous and do not
-   expose a mid-entry stop. Derived sprite eligibility is rebuilt on load;
-   the first CPU clock also reconciles restored synthesis history with channel
-   levels, even without an oscillator event. These caches add no saved bytes.
-   A fix that changes
-   only emulated output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a
-   load does not enforce. Raising it is not a breaking change to the C interface and leaves
+   same commit. Version 4 records the DMC output silence flag and its continuous
+   bit-cycle position, including silent cycles; version 3 states are refused
+   rather than guessing the missing phase. Version 3 records the CPU's sampled NMI-line,
+   captured-request and instruction-poll histories, retained close-edge IRQ level, accepted IRQ
+   history, and the CPU entry origin, next unperformed bus action, selected vector pair and partial
+   vector-low byte; version 1 and 2 states are refused with NESTURBATOR_ERR_STATE_FORMAT. Completed
+   interrupt-entry actions form internal load cutpoints; ordinary instruction and frame execution
+   drains a restored entry before returning to the next instruction boundary. Public frame calls
+   remain synchronous and do not expose a mid-entry stop. Derived sprite eligibility is rebuilt on
+   load; the first CPU clock also reconciles restored synthesis history with channel levels, even
+   without an oscillator event. These caches add no saved bytes. A fix that changes only emulated
+   output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a load does not
+   enforce. Raising it is not a breaking change to the C interface and leaves
    NESTURBATOR_ABI_VERSION as it is. */
-#define NESTURBATOR_STATE_FORMAT_VERSION 3
+#define NESTURBATOR_STATE_FORMAT_VERSION 4
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {

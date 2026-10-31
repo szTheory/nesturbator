@@ -1,4 +1,4 @@
-# Phase 24 native-state decision — blocking
+# Phase 24 native-state decision — approved
 
 **Position:** Plan 24-01 Task 1, before a behavior correction. No task or requirement is complete. No format, behavior revision, serialized field, or emulation behavior has changed. This checkpoint does not authorize full CI, AccuracyCoin, a push or a PR.
 
@@ -54,3 +54,7 @@ The execution contract in [24-01-PLAN.md](24-01-PLAN.md) requires: “A newly re
 - No full workflow, AccuracyCoin ROM, campaign, push or PR ran. No fresh compatibility or phase acceptance is claimed.
 
 After an explicit decision, resume with `$gsd-execute-phase 24`. Context may be cleared; first read STATE and its linked execution resume. The owner acts next; no automatic continuation or test restart is authorized while this decision is pending.
+
+## Owner decision
+
+The owner explicitly approved the recommended concrete proposal in chat (“Yes.”) on 2026-10-31: continuous silent bit-count phase, a serialized silence byte, format 4, behavior revision 10, native continuation/refusal tests and documentation. This resolves this checkpoint only. No converter, additional state-field reinterpretation, full CI, AccuracyCoin, push or PR authority is included. Execution resumes in Plan 24-01 Task 1.

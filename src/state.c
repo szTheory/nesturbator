@@ -57,10 +57,11 @@ _Static_assert(sizeof(struct nesturbator__pulse) == 16u, "pulse fields changed: 
 _Static_assert(sizeof(struct nesturbator__triangle) == 14u,
                "triangle fields changed: update triangle_io");
 _Static_assert(sizeof(struct nesturbator__noise) == 12u, "noise fields changed: update noise_io");
-_Static_assert(sizeof(struct nesturbator__dmc) == 22u, "dmc fields changed: update dmc_io");
-_Static_assert(offsetof(struct nesturbator__apu, sample_phase) == 92u,
+_Static_assert(sizeof(struct nesturbator__dmc) == 24u, "dmc fields changed: update dmc_io");
+_Static_assert(offsetof(struct nesturbator__apu, sample_phase) == 96u,
                "apu fields changed: update apu_io");
-_Static_assert(offsetof(struct nesturbator__apu, sample_output) == 96u,
+_Static_assert(offsetof(struct nesturbator__apu, sample_output) ==
+                   ((100u + _Alignof(int16_t *) - 1u) / _Alignof(int16_t *)) * _Alignof(int16_t *),
                "apu fields changed: update apu_io");
 _Static_assert(offsetof(struct nesturbator__synth, pcm) ==
                    offsetof(struct nesturbator__synth, lp_output_q30) + 8u,
@@ -260,6 +261,7 @@ static void dmc_io(struct nesturbator__sio *io, struct nesturbator__dmc *d)
     nesturbator__sio_u8(io, &d->output, 127u);
     nesturbator__sio_u8(io, &d->shift, 255u);
     nesturbator__sio_u8(io, &d->bits, 8u);
+    nesturbator__sio_u8(io, &d->silence, 1u);
     nesturbator__sio_u8(io, &d->sample_buffer, 255u);
     nesturbator__sio_u8(io, &d->buffer_empty, 1u);
     nesturbator__sio_u8(io, &d->irq, 1u);

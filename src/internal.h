@@ -113,7 +113,9 @@ struct nesturbator__noise {
 
 struct nesturbator__dmc {
     uint16_t timer, counter, address, remaining;
-    uint8_t reg[4], output, shift, bits, sample_buffer, buffer_empty;
+    /* bits clocks through audible and silent eight-bit cycles; silence
+       latches the empty-buffer decision for the complete output cycle. */
+    uint8_t reg[4], output, shift, bits, silence, sample_buffer, buffer_empty;
     /* The next halt attempt's phase; an eligible write advances it to retry
        on the following CPU cycle. The first load/reload targets GET/PUT. */
     uint8_t irq, dma_pending, dma_halt_phase, dma_load_waiting, enable_delay;

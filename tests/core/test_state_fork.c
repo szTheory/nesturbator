@@ -287,6 +287,174 @@ done:
     nesturbator_destroy((nesturbator *)b);
 }
 
+/* Field-wise event capture avoids depending on padding in an event struct. */
+#define DMA_TRANSITIONS 32768u
+struct dma_transitions {
+    uint64_t cycle[DMA_TRANSITIONS];
+    int32_t level[DMA_TRANSITIONS];
+    size_t count;
+};
+
+static void dma_transition(void *context, uint64_t cycle, int32_t level)
+{
+    struct dma_transitions *capture = context;
+    CHECK(capture->count < DMA_TRANSITIONS);
+    if (capture->count < DMA_TRANSITIONS) {
+        capture->cycle[capture->count] = cycle;
+        capture->level[capture->count++] = level;
+    }
+}
+
+struct dma_output {
+    uint16_t pixels[256u * 240u];
+    int16_t pcm[1024];
+    nesturbator_frame frame;
+};
+
+static void dma_frame(nesturbator *nes, uint16_t buttons, struct dma_output *out)
+{
+    nesturbator_input input = {0};
+    input.size = (uint32_t)sizeof input;
+    input.buttons[0] = (uint8_t)buttons;
+    input.buttons[1] = (uint8_t)(buttons >> 8);
+    CHECK_EQ_U64(nesturbator_set_input(nes, &input), NESTURBATOR_OK);
+    memset(&out->frame, 0, sizeof out->frame);
+    out->frame.size = (uint32_t)sizeof out->frame;
+    out->frame.video = out->pixels;
+    out->frame.video_pitch = 256u;
+    out->frame.audio = out->pcm;
+    out->frame.audio_capacity = 1024u;
+    CHECK_EQ_U64(nesturbator_run_frame(nes, &out->frame), NESTURBATOR_OK);
+}
+
+/* Synchronous DMA cannot be publicly saved mid-transfer. These cuts are after
+   real frame returns, with a pending request and/or the affected silent phase
+   produced by the owned guest. No bus/APU history is manufactured. */
+static void dma_fork(void)
+{
+    static uint8_t image[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
+    static struct dma_output expected, actual;
+    static struct dma_transitions transitions_a, transitions_b;
+    nesturbator *a = st_make_instance();
+    nesturbator *b = st_make_instance();
+    uint8_t *state = NULL, *scratch = NULL, *final_a = NULL, *final_b = NULL;
+    size_t image_size = st_stress_image(image, sizeof image, 0u);
+    unsigned silent_cuts = 0u, pending_cuts = 0u;
+    size_t size = 0u;
+    CHECK(a != NULL && b != NULL && image_size != 0u);
+    if (a == NULL || b == NULL || image_size == 0u)
+        goto done;
+    /* Mixed DMC bits exercise real DAC transitions and leave a nonzero level
+       during silence, so an incorrect silence flag has an audible consequence. */
+    for (size_t byte = 0u; byte < 17u; ++byte)
+        image[16u + 0x4000u + byte] = 0x77u;
+    st_load(a, image, image_size);
+    st_load(b, image, image_size);
+    size = nesturbator_state_size(a);
+    state = malloc(size);
+    scratch = malloc(size);
+    final_a = malloc(size);
+    final_b = malloc(size);
+    CHECK(size != 0u && state != NULL && scratch != NULL && final_a != NULL && final_b != NULL);
+    if (size == 0u || state == NULL || scratch == NULL || final_a == NULL || final_b == NULL)
+        goto done;
+
+    for (uint32_t cut = 1u; cut <= 90u; ++cut) {
+        dma_frame(a, st_buttons(cut), &expected);
+        uint8_t silent = (uint8_t)(a->apu.dmc.silence != 0u && a->apu.dmc.bits != 0u);
+        uint8_t pending = a->apu.dmc.dma_pending;
+        uint8_t cut_bits = a->apu.dmc.bits;
+        if ((silent == 0u || silent_cuts != 0u) && (pending == 0u || pending_cuts != 0u))
+            continue;
+        silent_cuts += silent != 0u;
+        pending_cuts += pending != 0u;
+        CHECK_EQ_U64(nesturbator_save_state(a, state, size), NESTURBATOR_OK);
+        /* Same current payload with an old format header is refused before
+           payload interpretation, even with a recomputed valid checksum. */
+        memcpy(scratch, state, size);
+        scratch[8] = 3u;
+        scratch[9] = 0u;
+        st_recrc(scratch, size);
+        CHECK(st_refused(b, scratch, size, NESTURBATOR_ERR_STATE_FORMAT));
+        CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(b->apu.dmc.bits, a->apu.dmc.bits);
+        CHECK_EQ_U64(b->apu.dmc.silence, a->apu.dmc.silence);
+        CHECK_EQ_U64(b->apu.dmc.dma_pending, a->apu.dmc.dma_pending);
+        CHECK_EQ_U64(nesturbator_save_state(b, scratch, size), NESTURBATOR_OK);
+        CHECK(memcmp(state, scratch, size) == 0);
+
+        /* Find the silence byte by differential serialization, independently
+           of the field visitor's offset. Mutate only scratch, not the run. */
+        b->apu.dmc.silence ^= 1u;
+        CHECK_EQ_U64(nesturbator_save_state(b, final_b, size), NESTURBATOR_OK);
+        b->apu.dmc.silence ^= 1u;
+        size_t field = 0u, differences = 0u;
+        for (size_t offset = 64u; offset < size; ++offset) {
+            if (state[offset] != final_b[offset]) {
+                field = offset;
+                differences++;
+            }
+        }
+        CHECK_EQ_U64(differences, 1u);
+        memcpy(scratch, state, size);
+        scratch[field] = 2u;
+        st_recrc(scratch, size);
+        CHECK(st_refused(b, scratch, size, NESTURBATOR_ERR_STATE_INVALID));
+
+        transitions_a.count = 0u;
+        transitions_b.count = 0u;
+        nesturbator__apu_set_transition_sink(a, dma_transition, &transitions_a);
+        nesturbator__apu_set_transition_sink(b, dma_transition, &transitions_b);
+        dma_frame(a, st_buttons(cut + 1u), &expected);
+        dma_frame(b, st_buttons(cut + 1u), &actual);
+        CHECK(memcmp(expected.pixels, actual.pixels, sizeof expected.pixels) == 0);
+        CHECK_EQ_U64(expected.frame.audio_count, actual.frame.audio_count);
+        CHECK(memcmp(expected.pcm, actual.pcm,
+                     (size_t)expected.frame.audio_count * sizeof expected.pcm[0]) == 0);
+        CHECK_EQ_U64(expected.frame.ticks, actual.frame.ticks);
+        CHECK_EQ_U64(expected.frame.frame_number, actual.frame.frame_number);
+        CHECK_EQ_U64(transitions_a.count, transitions_b.count);
+        CHECK(transitions_a.count != 0u);
+        for (size_t event = 0u; event < transitions_a.count && event < transitions_b.count;
+             ++event) {
+            CHECK_EQ_U64(transitions_a.cycle[event], transitions_b.cycle[event]);
+            CHECK(transitions_a.level[event] == transitions_b.level[event]);
+        }
+        CHECK(memcmp(a->bus.ram, b->bus.ram, sizeof a->bus.ram) == 0);
+        CHECK_EQ_U64(nesturbator_save_state(a, final_a, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_save_state(b, final_b, size), NESTURBATOR_OK);
+        CHECK(memcmp(final_a, final_b, size) == 0);
+        /* A valid-valued wrong silence history must fail continuation too,
+           independently of the invalid-range and version refusal controls. */
+        CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+        b->apu.dmc.silence ^= 1u;
+        dma_frame(b, st_buttons(cut + 1u), &actual);
+        CHECK(expected.frame.audio_count != actual.frame.audio_count ||
+              memcmp(expected.pcm, actual.pcm,
+                     (size_t)expected.frame.audio_count * sizeof expected.pcm[0]) != 0);
+        nesturbator__apu_set_transition_sink(a, NULL, NULL);
+        nesturbator__apu_set_transition_sink(b, NULL, NULL);
+        printf("DMA native fork: frame=%u silent=%u bits=%u pending=%u transitions=%lu "
+               "pixels/PCM/effects/state=equal old-format/refusal=unchanged\n",
+               cut, (unsigned)silent, (unsigned)cut_bits, (unsigned)pending,
+               (unsigned long)transitions_a.count);
+        if (silent_cuts != 0u && pending_cuts != 0u)
+            break;
+        /* A stays uninterrupted. The compared continuation consumed the next
+           frame, so advance the search's input/frame counter along with it. */
+        cut++;
+    }
+    CHECK(silent_cuts != 0u);
+    CHECK(pending_cuts != 0u);
+done:
+    free(state);
+    free(scratch);
+    free(final_a);
+    free(final_b);
+    nesturbator_destroy(a);
+    nesturbator_destroy(b);
+}
+
 /* One code path for file ROMs and in-memory images. */
 static void fork_image(const char *name, const uint8_t *img, size_t n, const uint32_t *forks,
                        size_t nforks, uint32_t end)
@@ -404,6 +572,10 @@ int main(int argc, char **argv)
     const uint32_t *forks;
     size_t nforks;
     uint32_t end;
+    if (argc == 2 && strcmp(argv[1], "--dma") == 0) {
+        dma_fork();
+        CHECK_DONE();
+    }
     if (argc == 2 && strcmp(argv[1], "--entry") == 0) {
         entry_fork();
         CHECK_DONE();
@@ -443,6 +615,7 @@ int main(int argc, char **argv)
         free(rom);
     }
     if (stress) {
+        dma_fork();
         static uint8_t buf[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
         static const uint16_t mappers[] = {0u, 4u};
         static const char *const names[] = {"stress-nrom", "stress-mmc3"};

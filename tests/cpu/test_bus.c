@@ -114,14 +114,17 @@ static void prepare_landing(struct nesturbator *machine, uint8_t initial_phase,
     for (unsigned page = 16u; page < 48u; ++page)
         machine->map.cpu_r[page] = landing_prg + ((page - 16u) & 15u) * 0x400u;
     machine->bus.apu_get_put_phase = initial_phase;
+    machine->cpu_cycle = initial_phase;
+    machine->ticks = (uint64_t)initial_phase * 24u;
     machine->bus.ram[0x20u] = 0x5Au;
     machine->bus.open_bus = 0x33u;
-    machine->apu.pulse_clock_phase = 1u;
+    machine->apu.pulse_clock_phase = initial_phase;
     machine->apu.dmc.address = 0xC000u;
     machine->apu.dmc.remaining = 1u;
     machine->apu.dmc.buffer_empty = 1u;
-    machine->apu.dmc.counter = 1u;
-    machine->apu.dmc.dma_load_waiting = request_load;
+    machine->apu.dmc.counter = 100u;
+    machine->apu.dmc.dma_pending = 1u;
+    machine->apu.dmc.dma_halt_phase = request_load != 0u ? 1u : 0u;
     landing_prg[0] = 0xA7u;
 }
 
@@ -180,11 +183,17 @@ static void test9_emit_slide(uint16_t address, uint16_t total_cycles)
 static void test9_emit_frame_irq_wait(uint16_t address)
 {
     uint16_t pc = address;
-    test9_emit8(&pc, 0xA0u); /* LDY #101 */
-    test9_emit8(&pc, 101u);
+    test9_emit8(&pc, 0xA9u); /* The source helper resets $4017 before its delay. */
+    test9_emit8(&pc, 0u);
+    test9_emit_abs(&pc, 0x8Du, 0x4017u);
+    test9_emit_jsr(&pc, 0x8900u);
+    test9_emit8(&pc, 0x60u);
+    pc = 0x8900u;
+    test9_emit8(&pc, 0xA0u); /* LDY #100 */
+    test9_emit8(&pc, 100u);
     uint16_t outer = pc;
-    test9_emit8(&pc, 0xA2u); /* LDX #59 */
-    test9_emit8(&pc, 59u);
+    test9_emit8(&pc, 0xA2u); /* LDX #58 */
+    test9_emit8(&pc, 58u);
     uint16_t inner = pc;
     test9_emit8(&pc, 0xCAu); /* DEX */
     test9_emit8(&pc, 0xD0u); /* BNE inner */
@@ -192,6 +201,12 @@ static void test9_emit_frame_irq_wait(uint16_t address)
     test9_emit8(&pc, 0x88u); /* DEY */
     test9_emit8(&pc, 0xD0u); /* BNE outer */
     uint16_t outer_operand = pc++;
+    /* 29,601 loop cycles + 387 padding + JSR/RTS = exactly 30,000.
+       There is no enabled DMA or NMI in this pre-sync delay. */
+    test9_emit8(&pc, 0x24u);
+    test9_emit8(&pc, 0u);
+    for (unsigned i = 0u; i < 192u; ++i)
+        test9_emit8(&pc, 0xEAu);
     test9_emit8(&pc, 0x60u); /* RTS */
     landing_prg[(size_t)(inner_operand - 0x8000u)] = (uint8_t)(inner - (inner_operand + 1u));
     landing_prg[(size_t)(outer_operand - 0x8000u)] = (uint8_t)(outer - (outer_operand + 1u));
@@ -322,15 +337,11 @@ static uint16_t test9_emit_program(uint16_t *final_read)
     const uint16_t frame_wait = 0x8800u;
 
     uint16_t pc = 0x8000u;
-    /* Test 8's frame-IRQ/OAM/write sequence immediately before Test 9. Its
-       frame wait burns 30,402 cycles with the same even phase as the pinned
-       30,000-cycle clockslide, long enough for the 4-step IRQ to assert. */
+    /* Test 8's frame-IRQ/OAM/write sequence immediately before Test 9. The
+       helper's 30,000-cycle delay has an independently checked duration. */
     test9_emit8(&pc, 0xA9u);
     test9_emit8(&pc, 0x00u);
     test9_emit_abs(&pc, 0x8Du, 0x4015u); /* Disable DMC. */
-    test9_emit8(&pc, 0xA9u);
-    test9_emit8(&pc, 0x00u);
-    test9_emit_abs(&pc, 0x8Du, 0x4017u); /* Reset frame counter. */
     test9_emit_jsr(&pc, frame_wait);
     test9_emit8(&pc, 0xA9u);
     test9_emit8(&pc, 0x10u);
@@ -672,7 +683,15 @@ static void run_landing_test9_reload_boundary(uint8_t print_trace)
     size_t steps = 0u;
     uint8_t pretest_done = 0u;
     uint64_t pretest_end_cycle = 0u;
+    uint64_t wait_enter_cycle = 0u;
+    uint8_t wait_checked = 0u;
     while (normal.cpu.pc != final_read && steps < 1000000u) {
+        if (normal.cpu.pc == 0x8800u)
+            wait_enter_cycle = normal.cpu_cycle;
+        if (normal.cpu.pc == 0x8008u && wait_enter_cycle != 0u) {
+            CHECK_EQ_U64(normal.cpu_cycle - wait_enter_cycle, 30012u);
+            wait_checked = 1u;
+        }
         if (pretest_done == 0u && normal.cpu.pc == 0x8200u && normal.bus.ram[0x12u] == 1u) {
             pretest_done = 1u;
             pretest_end_cycle = normal.cpu_cycle;
@@ -695,6 +714,7 @@ static void run_landing_test9_reload_boundary(uint8_t print_trace)
         }
     }
     CHECK(pretest_done != 0u);
+    CHECK(wait_checked != 0u);
     CHECK(steps < 1000000u);
     CHECK_EQ_HEX(normal.cpu.pc, final_read);
     nesturbator__cpu_step(&normal);
@@ -720,11 +740,16 @@ static void run_landing_test9_reload_boundary(uint8_t print_trace)
     nesturbator_destroy(powered);
 }
 
+static int silent_bit_clock_valid(uint8_t before, uint8_t after)
+{
+    return after == (before == 0u ? 7u : (uint8_t)(before - 1u));
+}
+
 /* Independent APU-reference oracle: an empty memory buffer does not stop the
    output unit's eight-clock silent cycles. Use real power-on state and CPU
    instruction fetches; no DMC field or GET/PUT phase is injected. This is an
-   explicitly failing diagnostic until the native-state decision is resolved. */
-static void run_silent_output_probe(void)
+   default regression; the named frozen-bit control must be rejected. */
+static void run_silent_output_probe(uint8_t print_trace)
 {
     memset(landing_prg, 0xEA, sizeof landing_prg);
     nesturbator *powered = make_test9_powered_instance();
@@ -733,7 +758,7 @@ static void run_silent_output_probe(void)
     struct nesturbator normal = *powered;
     struct nesturbator observed = normal;
     dma_trace_count = 0u;
-    for (unsigned step = 0u; step < 1200u; ++step) {
+    for (unsigned step = 0u; step < 2400u; ++step) {
         nesturbator__cpu_step(&normal);
         test_observed_cpu_step(&observed);
     }
@@ -748,15 +773,19 @@ static void run_silent_output_probe(void)
             continue;
         CHECK_EQ_U64(before->buffer_empty, 1u);
         CHECK_EQ_U64(after->remaining, 0u);
+        CHECK(silent_bit_clock_valid(before->bits, after->bits));
+        if (clocks == 0u)
+            CHECK(!silent_bit_clock_valid(before->bits, 0u)); /* frozen-bit control */
         changing_bit_counts += before->bits != after->bits;
         clocks++;
-        printf("silent-output clock=%u cycle=%llu counter=%u->%u bits=%u->%u "
-               "buffer-empty=%u remaining=%u\n",
-               clocks, (unsigned long long)after->cpu_cycle, (unsigned)before->dmc_counter,
-               (unsigned)after->dmc_counter, (unsigned)before->bits, (unsigned)after->bits,
-               (unsigned)after->buffer_empty, (unsigned)after->remaining);
+        if (print_trace != 0u)
+            printf("silent-output clock=%u cycle=%llu counter=%u->%u bits=%u->%u "
+                   "buffer-empty=%u remaining=%u\n",
+                   clocks, (unsigned long long)after->cpu_cycle, (unsigned)before->dmc_counter,
+                   (unsigned)after->dmc_counter, (unsigned)before->bits, (unsigned)after->bits,
+                   (unsigned)after->buffer_empty, (unsigned)after->remaining);
     }
-    CHECK(clocks >= 3u);
+    CHECK(clocks >= 10u); /* Includes an entire eight-clock silent cycle. */
     /* Named wrong model: freeze-at-zero-while-empty. */
     CHECK(changing_bit_counts >= 3u);
     CHECK_EQ_U64(normal.apu.dmc.output, powered->apu.dmc.output);
@@ -806,21 +835,31 @@ static void run_bus_conflict_diagnostics(void)
     run_conflict_probe(0xFFD5u, 0xA5u, 1u, 0u);
 }
 
-static void run_oam_probe(uint16_t requested_offset)
+static void run_oam_probe(uint16_t requested_offset, uint8_t load, uint8_t phase)
 {
     struct nesturbator normal, observed;
-    prepare_landing(&normal, 0u, 0u);
-    prepare_landing(&observed, 0u, 0u);
+    prepare_landing(&normal, phase, 0u);
+    prepare_landing(&observed, phase, 0u);
     for (uint16_t i = 0u; i < 256u; ++i) {
         normal.bus.ram[i] = (uint8_t)i;
         observed.bus.ram[i] = (uint8_t)i;
     }
     normal.apu.dmc.remaining = 0u;
+    normal.apu.dmc.dma_pending = 0u;
     observed.apu.dmc.remaining = 1u;
     observed.apu.dmc.dma_pending = 0u;
-    observed.apu.dmc.dma_load_waiting = 1u;
-    observed.apu.dmc.counter = (uint16_t)(requested_offset + 2u);
-    observed.apu.pulse_clock_phase = 1u;
+    observed.apu.dmc.dma_load_waiting = load;
+    uint16_t first_edge = (uint16_t)(requested_offset + 2u);
+    if (first_edge > 214u) {
+        /* Delay until the second output edge using valid timer/counter
+           bounds and a full buffer, rather than injecting counter > 214. */
+        observed.apu.dmc.timer = 214u;
+        observed.apu.dmc.counter = (uint16_t)(first_edge - 214u);
+        observed.apu.dmc.bits = 1u;
+        observed.apu.dmc.buffer_empty = 0u;
+    } else {
+        observed.apu.dmc.counter = first_edge;
+    }
     dma_trace_count = 0u;
 
     nesturbator__bus_write(&normal, 0x4014u, 0u);
@@ -834,6 +873,8 @@ static void run_oam_probe(uint16_t requested_offset)
     const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
     uint16_t collision_offset = UINT16_MAX;
     uint16_t resume_offset = UINT16_MAX;
+    uint8_t resume_phase = 0u, destination_phase = 0u;
+    size_t destinations = 0u;
     if (get != NULL) {
         for (size_t i = 0u; i < dma_trace_count; ++i) {
             if (dma_trace[i].kind == NESTURBATOR_DMA_SAMPLE_GET)
@@ -845,47 +886,141 @@ static void run_oam_probe(uint16_t requested_offset)
             if (dma_trace[i].kind == NESTURBATOR_DMA_OAM_SOURCE_COMPLETE &&
                 dma_trace[i].cpu_cycle > get->cpu_cycle) {
                 resume_offset = dma_trace[i].detail;
+                resume_phase = dma_trace[i].phase;
                 break;
             }
         }
     }
-    printf("oam requested-offset=%u collision-offset=%s%u get-phase=%s "
-           "source-resume=%s%u base-cycles=%llu observed-cycles=%llu extra=%lld\n",
-           (unsigned)requested_offset, collision_offset == UINT16_MAX ? "none/" : "",
-           (unsigned)collision_offset, get != NULL && get->phase != 0u ? "GET" : "PUT",
+    for (size_t i = 0u; i < dma_trace_count; ++i) {
+        const struct dma_event *event = &dma_trace[i];
+        if (event->kind == NESTURBATOR_DMA_OAM_DEST) {
+            CHECK_EQ_U64(event->detail, destinations);
+            CHECK_EQ_U64(event->data, (uint8_t)destinations);
+            if (event->detail == collision_offset)
+                destination_phase = event->phase;
+            destinations++;
+        }
+    }
+    CHECK_EQ_U64(destinations, 256u);
+    printf("oam requested-offset=%u load=%u initial-phase=%u collision-offset=%s%u get-phase=%s "
+           "source-resume=%s%u/%s destination-phase=%s destinations=%lu "
+           "base-cycles=%llu observed-cycles=%llu extra=%lld pending-after-oam=%u\n",
+           (unsigned)requested_offset, (unsigned)load, (unsigned)phase,
+           collision_offset == UINT16_MAX ? "none/" : "", (unsigned)collision_offset,
+           get == NULL ? "none" : (get->phase != 0u ? "GET" : "PUT"),
            resume_offset == UINT16_MAX ? "none/" : "", (unsigned)resume_offset,
-           (unsigned long long)normal_cycles, (unsigned long long)observed_cycles,
-           (long long)observed_cycles - (long long)normal_cycles);
+           resume_phase != 0u ? "GET" : "PUT", destination_phase != 0u ? "GET" : "PUT",
+           (unsigned long)destinations, (unsigned long long)normal_cycles,
+           (unsigned long long)observed_cycles,
+           (long long)observed_cycles - (long long)normal_cycles,
+           (unsigned)observed.apu.dmc.dma_pending);
 }
 
-static void run_explicit_abort_probe(uint8_t intervening_write)
+/* Drive the documented stop windows from genuine output/buffer history.
+   No pending request, bit count or GET/PUT phase is injected. */
+static nesturbator *make_abort_instance(uint8_t control, uint8_t length, uint8_t start)
 {
-    struct nesturbator machine;
-    prepare_landing(&machine, 0u, 0u);
-    machine.bus.apu_get_put_phase = 0u;
-    machine.apu.pulse_clock_phase = 0u;
-    machine.apu.dmc.counter = 100u;
-    machine.apu.dmc.dma_pending = 1u;
-    machine.apu.dmc.dma_halt_phase = 1u;
-    machine.apu.dmc.remaining = 1u;
-    dma_trace_count = 0u;
+    memset(landing_prg, 0xEA, sizeof landing_prg);
+    nesturbator *machine = make_test9_powered_instance();
+    if (machine == NULL)
+        return NULL;
+    test_observed_bus_write(machine, 0x4010u, control);
+    test_observed_bus_write(machine, 0x4012u, 0u);
+    test_observed_bus_write(machine, 0x4013u, length);
+    if (start != 0u)
+        test_observed_bus_write(machine, 0x4015u, 0x10u);
+    return machine;
+}
 
-    uint64_t start = machine.cpu_cycle;
-    test_observed_bus_write(&machine, 0x4015u, 0u);
+static void run_explicit_abort_probe(uint8_t intervening_write, uint16_t lead_counter,
+                                     uint8_t half_phase)
+{
+    nesturbator *machine = make_abort_instance(0x4Fu, 0u, 1u);
+    if (machine == NULL)
+        return;
+    unsigned reads = 0u;
+    /* A stop on the intervening non-timer half-cycle is two CPU clocks
+       before the documented PUT halt. DMA wiki rev 23450, Bugs. */
+    while (!(machine->apu.dmc.bits == 0u && machine->apu.dmc.buffer_empty == 0u &&
+             machine->apu.dmc.counter == lead_counter &&
+             machine->apu.pulse_clock_phase == half_phase && machine->apu.dmc.dma_pending == 0u) &&
+           reads++ < 10000u)
+        (void)test_observed_bus_read(machine, 0x0020u);
+    CHECK(reads < 10000u);
+    dma_trace_count = 0u;
+    uint64_t start = machine->cpu_cycle;
+    test_observed_bus_write(machine, 0x4015u, 0u);
+    uint8_t stop_phase = machine->bus.apu_get_put_phase;
+    uint8_t write_position = stop_phase != 0u ? 3u : 2u;
+    uint8_t returned = 0u;
+    for (uint8_t access = 1u; access <= 9u; ++access) {
+        if (intervening_write != 0u && access == write_position)
+            test_observed_bus_write(machine, 0x0021u, 0x91u);
+        else
+            returned = test_observed_bus_read(machine, 0x0020u);
+    }
+    uint64_t cycles = machine->cpu_cycle - start;
+    CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_SAMPLE_GET), 0u);
+    CHECK_EQ_U64(machine->apu.dmc.remaining, 0u);
     if (intervening_write != 0u)
-        test_observed_bus_write(&machine, 0x0021u, 0x91u);
-    uint8_t returned = test_observed_bus_read(&machine, 0x0020u);
-    uint64_t cycles = machine.cpu_cycle - start;
-    printf("explicit-abort intervening-write=%u attempts=%lu accepted=%lu sample-gets=%lu "
-           "pending=%u remaining=%u read=%02x extra-dma-cycles=0 pinned-one-cycle-window=1 "
-           "first-divergence=eligible-halt-after-disable\n",
-           (unsigned)intervening_write,
-           (unsigned long)count_dma_events(NESTURBATOR_DMA_HALT_ATTEMPT),
-           (unsigned long)count_dma_events(NESTURBATOR_DMA_HALT_ACCEPTED),
+        CHECK_EQ_HEX(machine->bus.ram[0x21u], 0x91u);
+    int expected_abort =
+        (lead_counter == 1u && half_phase == 0u) || (lead_counter == 2u && half_phase == 1u)
+            ? (intervening_write != 0u ? 0 : 1)
+            : -1;
+    printf("explicit-abort stop-cycle=%llu counter=%u half=%u write-on-halt=%u ordinary-cycles=10 "
+           "observed-cycles=%llu expected-abort-extra=%d sample-gets=%lu "
+           "pending=%u bits=%u buffer-empty=%u read=%02x\n",
+           (unsigned long long)(start + 1u), (unsigned)lead_counter, (unsigned)half_phase,
+           (unsigned)intervening_write, (unsigned long long)cycles, expected_abort,
            (unsigned long)count_dma_events(NESTURBATOR_DMA_SAMPLE_GET),
-           (unsigned)machine.apu.dmc.dma_pending, (unsigned)machine.apu.dmc.remaining,
-           (unsigned)returned);
-    CHECK_EQ_U64(cycles, (uint64_t)2u + intervening_write);
+           (unsigned)machine->apu.dmc.dma_pending, (unsigned)machine->apu.dmc.bits,
+           (unsigned)machine->apu.dmc.buffer_empty, (unsigned)returned);
+    print_dma_trace(0u, intervening_write, 0u);
+    nesturbator_destroy(machine);
+}
+
+static void run_implicit_abort_probe(uint8_t loop, uint8_t length, uint8_t intervening_write,
+                                     uint16_t lead_counter, uint8_t half_phase)
+{
+    nesturbator *machine =
+        make_abort_instance((uint8_t)(0x0Eu | (loop != 0u ? 0x40u : 0u)), length, 0u);
+    if (machine == NULL)
+        return;
+    unsigned reads = 0u;
+    /* Enabling on the next CPU write, nine clocks before an output-cycle
+       boundary, places the first sample GET three clocks before that boundary.
+       Its implicit stop is in the revision-independent one-cycle-abort window. */
+    while (!(machine->apu.dmc.bits == 0u && machine->apu.dmc.counter == lead_counter &&
+             machine->apu.pulse_clock_phase == half_phase) &&
+           reads++ < 10000u)
+        (void)test_observed_bus_read(machine, 0x0020u);
+    CHECK(reads < 10000u);
+    CHECK_EQ_U64(machine->apu.dmc.buffer_empty, 1u);
+    dma_trace_count = 0u;
+    uint64_t start = machine->cpu_cycle;
+    test_observed_bus_write(machine, 0x4015u, 0x10u);
+    while (machine->cpu_cycle - start < 20u) {
+        if (intervening_write != 0u && machine->cpu_cycle - start == 9u)
+            test_observed_bus_write(machine, 0x0021u, 0x91u);
+        else
+            (void)test_observed_bus_read(machine, 0x0020u);
+    }
+    const struct dma_event *first_get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
+    CHECK(first_get != NULL && first_get->phase == 1u && first_get->address == 0xC000u);
+    printf("implicit-abort enable-cycle=%llu counter=%u half=%u loop=%u length-reg=%u "
+           "write-on-halt=%u "
+           "first-sample-offset=%llu sample-gets=%lu accepted=%lu pending=%u remaining=%u "
+           "bits=%u buffer-empty=%u\n",
+           (unsigned long long)(start + 1u), (unsigned)lead_counter, (unsigned)half_phase,
+           (unsigned)loop, (unsigned)length, (unsigned)intervening_write,
+           (unsigned long long)(first_get != NULL ? first_get->cpu_cycle - start : 0u),
+           (unsigned long)count_dma_events(NESTURBATOR_DMA_SAMPLE_GET),
+           (unsigned long)count_dma_events(NESTURBATOR_DMA_HALT_ACCEPTED),
+           (unsigned)machine->apu.dmc.dma_pending, (unsigned)machine->apu.dmc.remaining,
+           (unsigned)machine->apu.dmc.bits, (unsigned)machine->apu.dmc.buffer_empty);
+    print_dma_trace(0u, intervening_write, 1u);
+    nesturbator_destroy(machine);
 }
 
 static void reset(void)
@@ -949,7 +1084,7 @@ static void test_unmapped_write(void)
 int main(int argc, char **argv)
 {
     if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 && strcmp(argv[2], "silence") == 0) {
-        run_silent_output_probe();
+        run_silent_output_probe(1u);
         CHECK_DONE();
     }
     if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 && strcmp(argv[2], "landing") == 0) {
@@ -967,10 +1102,27 @@ int main(int argc, char **argv)
         run_landing_load_case(1u, 1u);
         run_landing_test9_reload_boundary(1u);
         run_bus_conflict_diagnostics();
-        run_oam_probe(128u);
-        run_oam_probe(255u);
-        run_explicit_abort_probe(0u);
-        run_explicit_abort_probe(1u);
+        for (uint8_t phase = 0u; phase <= 1u; ++phase) {
+            for (uint8_t load = 0u; load <= 1u; ++load) {
+                run_oam_probe(128u, load, phase);
+                run_oam_probe(254u, load, phase);
+                run_oam_probe(255u, load, phase);
+            }
+        }
+        for (uint16_t counter = 1u; counter <= 3u; ++counter) {
+            for (uint8_t half = 0u; half <= 1u; ++half) {
+                run_explicit_abort_probe(0u, counter, half);
+                run_explicit_abort_probe(1u, counter, half);
+            }
+        }
+        for (uint16_t counter = 4u; counter <= 6u; ++counter) {
+            for (uint8_t half = 0u; half <= 1u; ++half) {
+                run_implicit_abort_probe(0u, 0u, 0u, counter, half);
+                run_implicit_abort_probe(0u, 0u, 1u, counter, half);
+                run_implicit_abort_probe(1u, 0u, 0u, counter, half);
+                run_implicit_abort_probe(0u, 1u, 0u, counter, half);
+            }
+        }
         CHECK_DONE();
     }
     if (argc != 1)
@@ -982,5 +1134,7 @@ int main(int argc, char **argv)
     test_dma_landing_on_write();
     run_landing_load_case(0u, 0u);
     run_landing_load_case(1u, 0u);
+    run_silent_output_probe(0u);
+    run_landing_test9_reload_boundary(0u);
     CHECK_DONE();
 }

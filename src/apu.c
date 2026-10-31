@@ -272,13 +272,17 @@ void nesturbator__apu_clock(struct nesturbator *nes)
                 period = (uint16_t)(dmc_period[dmc->reg[0] & 0x0fu] / 2u);
             dmc->counter = period;
             if (dmc->bits == 0u) {
+                /* The output unit clocks eight-bit cycles even with no sample.
+                   Silence gates the DAC, not the bit counter. APU reference,
+                   Output Unit [HWC.23]; preserve that phase across $4015 writes. */
+                dmc->bits = 8u;
+                dmc->silence = dmc->buffer_empty;
                 if (dmc->buffer_empty == 0u) {
                     dmc->shift = dmc->sample_buffer;
                     dmc->buffer_empty = 1u;
-                    dmc->bits = 8u;
                 }
             }
-            if (dmc->bits != 0u) {
+            if (dmc->silence == 0u) {
                 level_changed = 1u;
                 if ((dmc->shift & 1u) != 0u) {
                     if (dmc->output <= 125u)
@@ -286,9 +290,9 @@ void nesturbator__apu_clock(struct nesturbator *nes)
                 } else if (dmc->output >= 2u) {
                     dmc->output = (uint8_t)(dmc->output - 2u);
                 }
-                dmc->shift >>= 1;
-                dmc->bits--;
             }
+            dmc->shift >>= 1;
+            dmc->bits--;
             if (dmc->buffer_empty != 0u && dmc->remaining != 0u && dmc->dma_pending == 0u) {
                 dmc->dma_pending = 1u;
                 /* A re-enable while the sample buffer is full still owns the

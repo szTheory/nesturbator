@@ -110,6 +110,12 @@ or slowdown report; see [testing evidence](docs/testing.md#disposable-progress-f
 
 ## Protect progress
 
+Native state format 4 preserves the DMC output cycle through silence, including
+the silence flag and bit position. Behavior revision 10 keeps that clock running
+while the sample buffer is empty, so a later sample waits for the correct cycle
+boundary. Format-3 native states are refused; there is no converter. Battery
+saves use their existing separate format.
+
 RetroArch's battery saves and save states are separate files, and loading an
 older state or rewinding past an in-game save can restore older battery RAM.
 Back up the newest battery save independently before an upgrade or state load;

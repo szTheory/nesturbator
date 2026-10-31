@@ -12,8 +12,9 @@ Cartridges use a per-board mapper interface with page tables, a four-entry namet
 
 ## Behavior revision history
 
-The current public header reports behavior revision 9. These revision facts describe this source tree; a published core must be identified from its own release or CI artifact.
+The current public header reports behavior revision 10. These revision facts describe this source tree; a published core must be identified from its own release or CI artifact.
 
+- **Revision 10:** The DMC bit counter continues through eight-clock silent cycles. Its separate silence flag gates DAC changes; re-enabling a sample preserves the cycle position. [HWC.23]
 - **Revision 9:** IRQ acceptance is retained at the instruction hardware poll point, using the old I flag for CLI, SEI and PLP. Branches preserve their first poll and add the page-cross poll. Accepted IRQs survive later source clearing until entry arbitration; NMI wins, and a held IRQ may be accepted again after RTI restores I. A post-vector-choice NMI input remains an unrecognized candidate until held through the first handler opening; releasing it before then cancels it. [HWC.02][HWC.17]
 - **Revision 8:** CPU bus-clock seams capture rising edges on the derived PPU NMI line; instruction-specific polls decide when a captured request is serviced, and later line deassertion does not revoke it. `$2002` samples vblank bit 7 at M2 rise and sprite bits 6/5 at M2 fall. PPUCTRL disable and pre-render clear lower the live line without clearing an already captured request. IRQ keeps its close-edge level through the instruction poll. [HWC.02][HWP.03]
 - **Revision 7:** OAMADDR clears during sprite tile loading on dots 257–320 while rendering, and evaluation starts at OAMADDR; the first sprite found there acts as sprite 0. [HWP.06]
@@ -158,14 +159,17 @@ A state is an exact snapshot of the whole machine at a frame boundary and is
 byte-identical across platforms for the same core build and content. The
 supported pairing is the exact core build and exact content file that created
 the state. This is support guidance, not an additional loader check: the native
-loader checks format 3 and cartridge identity using mapper, submapper, region,
+loader checks format 4 and cartridge identity using mapper, submapper, region,
 and the ROM CRC-32 of the 16 header bytes, PRG ROM and CHR ROM. The behavior
 revision is stored but not enforced, as described below. The core handles only
 the native state payload; host files and disk containers are outside this API.
 The library does no file I/O and never allocates for a state; the host owns the
 buffer and decides where states live.
 
-The current state format is 3 and the behavior revision is 9. Format 3 stores
+The current state format is 4 and the behavior revision is 10. Format 4 adds
+the DMC silence flag and counts silent output cycles in its saved bit position.
+Format-3 states are refused without conversion. It retains the format-3 interrupt
+histories:
 the sampled NMI line, captured request, last instruction poll, retained
 close-edge IRQ level and accepted IRQ decision independently of the live IRQ
 line. It also stores an active BRK/IRQ/NMI entry's origin, next unperformed bus
@@ -243,7 +247,8 @@ once, so the host writes the `.sav`. Loading a state whose battery bytes match,
 however many times, never moves it, and neither does a refused load, so
 repeated loads such as rewind never trigger a write.
 
-Format 3 rejects every other format version, including versions 1 and 2; states are never converted. Keep rewind buffers in
+Format 4 rejects every other format version, including versions 1, 2 and 3;
+states are never converted. Keep rewind buffers in
 memory, and expect user-kept states to need re-creating after a release that
 raises the format version. The behaviour revision is recorded and not
 enforced: after an emulation fix an old state still loads, but its later frames
@@ -252,6 +257,7 @@ may differ from the run that saved it.
 | Format version | Introduced |
 |---|---|
 | 1 | first release that contains save states |
+| 4 | DMC silence flag and continuous bit-cycle position |
 
 A format bump ships under a `feat:` title with a changelog line saying older
 states are refused. It does not change `NESTURBATOR_ABI_VERSION`, because the

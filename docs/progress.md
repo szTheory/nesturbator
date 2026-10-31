@@ -38,8 +38,8 @@ documents the host's Load/Save States controls and `Close Content` action.
 
 For reliable snapshots, pair the exact core build with the exact content image.
 The native loader also checks format, cartridge identity, size, checksum and
-field bounds. The current source tree uses state format 3 and refuses other
-format versions, including formats 1 and 2. It records the behavior revision
+field bounds. The current source tree uses state format 4 and refuses other
+format versions, including formats 1, 2 and 3. It records the behavior revision
 but does not enforce it as a compatibility check; a same-format state from
 before an emulation fix can load and later diverge. These native checks do not
 describe the frontend's disk container or recovery policy. Check the guide
