@@ -1643,20 +1643,38 @@ add_test(NAME docs.links.self_test
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/doc_links.cmake)
 set_tests_properties(docs.links docs.links.self_test PROPERTIES TIMEOUT 60)
 
-# RUN-03: the exit table is the same in runner/exit_status.h, --help and the README.
+# RUN-03: the exit table is the same in runner/exit_status.h, --help and the canonical runner guide.
 foreach(mode table help)
   add_test(NAME runner.exit.${mode}
     COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
       "-DRUNNER=$<TARGET_FILE:nesturbator-run>" -DMODE=${mode}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_exit_table.cmake)
   set_tests_properties(runner.exit.${mode} PROPERTIES LABELS exit_status)
 endforeach()
+add_test(NAME runner.exit.canonical.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DWORK=${PROJECT_BINARY_DIR}/tests/runner-exit-canonical-self-test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_exit_table.cmake)
+set_tests_properties(runner.exit.canonical.self_test PROPERTIES TIMEOUT 60)
 
-# D-22: the options printed by --help and the README runner bullets name the same set.
+# D-22: the options printed by --help and the canonical runner guide name the same set.
 add_test(NAME runner.options.readme
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
     "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_options.cmake)
+add_test(NAME runner.options.canonical.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DWORK=${PROJECT_BINARY_DIR}/tests/runner-options-canonical-self-test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_options.cmake)
+set_tests_properties(runner.options.canonical.self_test PROPERTIES TIMEOUT 60)
 
 # D-01 and D-02: vector conversion and fetch stay implemented by the owned C
 # parser; release configuration scripts are outside this scoped policy.

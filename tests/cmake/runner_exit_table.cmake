@@ -1,5 +1,144 @@
 cmake_minimum_required(VERSION 3.25)
 
+function(runner_exit_fixture name has_doc doc_text out_root out_doc)
+  set(root "${fixture_root}/${name}")
+  file(MAKE_DIRECTORY "${root}/docs" "${root}/runner")
+  configure_file("${SOURCE_DIR}/runner/exit_status.h"
+    "${root}/runner/exit_status.h" COPYONLY)
+  file(WRITE "${root}/README.md" "${stale_readme}")
+  set(doc "${root}/docs/runner.md")
+  if(has_doc)
+    file(WRITE "${doc}" "${doc_text}")
+  endif()
+  set(${out_root} "${root}" PARENT_SCOPE)
+  set(${out_doc} "${doc}" PARENT_SCOPE)
+endfunction()
+
+function(runner_exit_run root doc mode out_result out_text)
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}" "-DSOURCE_DIR=${root}" "-DDOC=${doc}"
+      "-DRUNNER=${RUNNER}" "-DMODE=${mode}" -P "${CMAKE_CURRENT_LIST_FILE}"
+    WORKING_DIRECTORY "${root}"
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE output
+    ERROR_VARIABLE error)
+  set(${out_result} "${result}" PARENT_SCOPE)
+  set(${out_text} "${output}\n${error}" PARENT_SCOPE)
+endfunction()
+
+function(runner_exit_expect_rejection name result output expected)
+  if(result EQUAL 0)
+    message(FATAL_ERROR "runner exit self-test: accepted ${name}")
+  endif()
+  string(FIND "${output}" "${expected}" at)
+  if(at EQUAL -1)
+    message(FATAL_ERROR "runner exit self-test: ${name} failed for the wrong reason: ${output}")
+  endif()
+endfunction()
+
+if(SELFTEST)
+  foreach(required SOURCE_DIR DOC RUNNER WORK)
+    if(NOT DEFINED ${required})
+      message(FATAL_ERROR "${required} is required for the runner exit self-test")
+    endif()
+  endforeach()
+
+  string(RANDOM LENGTH 16 ALPHABET 0123456789abcdef nonce)
+  set(fixture_root "${WORK}/runner_exit_${nonce}")
+  if(EXISTS "${fixture_root}")
+    message(FATAL_ERROR "runner exit self-test scratch path already exists: ${fixture_root}")
+  endif()
+  file(MAKE_DIRECTORY "${fixture_root}")
+
+  if(EXISTS "${DOC}")
+    file(READ "${DOC}" canonical_text)
+    set(stale_readme "## The runner\n${canonical_text}\n## The libretro core\n")
+  else()
+    # RED-phase fixture: the pre-migration README is the complete obsolete copy.
+    file(READ "${SOURCE_DIR}/README.md" canonical_text)
+    set(stale_readme "${canonical_text}")
+  endif()
+
+  runner_exit_fixture(valid TRUE "${canonical_text}" root doc)
+  runner_exit_run("${root}" "${doc}" table result output)
+  if(NOT result EQUAL 0)
+    file(REMOVE_RECURSE "${fixture_root}")
+    message(FATAL_ERROR "runner exit self-test: rejected valid canonical guide: ${output}")
+  endif()
+
+  runner_exit_fixture(missing_guide FALSE "" root doc)
+  runner_exit_run("${root}" "${doc}" table result output)
+  if(result EQUAL 0)
+    file(REMOVE_RECURSE "${fixture_root}")
+    message(FATAL_ERROR
+      "runner exit self-test: accepted missing canonical guide despite complete stale README copy")
+  endif()
+  string(FIND "${output}" "canonical runner guide does not exist" at)
+  if(at EQUAL -1)
+    file(REMOVE_RECURSE "${fixture_root}")
+    message(FATAL_ERROR "runner exit self-test: missing guide failed for the wrong reason: ${output}")
+  endif()
+
+  string(FIND "${canonical_text}" "| 0 | done |" at)
+  if(at EQUAL -1)
+    file(REMOVE_RECURSE "${fixture_root}")
+    message(FATAL_ERROR "runner exit self-test: no canonical exit meaning to mutate")
+  endif()
+  string(REPLACE "| 0 | done |" "| 0 | not done |" changed_meaning "${canonical_text}")
+  runner_exit_fixture(changed_meaning TRUE "${changed_meaning}" root doc)
+  runner_exit_run("${root}" "${doc}" table result output)
+  runner_exit_expect_rejection("changed exit meaning" "${result}" "${output}"
+    "canonical runner guide exit rows differ from the header")
+
+  string(FIND "${canonical_text}" "3 and 77 are reserved" at)
+  if(at EQUAL -1)
+    file(REMOVE_RECURSE "${fixture_root}")
+    message(FATAL_ERROR "runner exit self-test: no reserved sentence to mutate")
+  endif()
+  string(REPLACE "3 and 77 are reserved; the runner never returns them." ""
+    missing_reserved "${canonical_text}")
+  runner_exit_fixture(missing_reserved TRUE "${missing_reserved}" root doc)
+  runner_exit_run("${root}" "${doc}" table result output)
+  runner_exit_expect_rejection("missing reserved sentence" "${result}" "${output}"
+    "canonical runner guide Exit status lacks the reserved sentence")
+
+  string(FIND "${canonical_text}" "- `--raise-after N[:SIG[:K]]`" at)
+  if(at EQUAL -1)
+    file(REMOVE_RECURSE "${fixture_root}")
+    message(FATAL_ERROR "runner exit self-test: no --raise-after option bullet to mutate")
+  endif()
+  string(REPLACE "- `--raise-after N[:SIG[:K]]`" "" missing_raise_after "${canonical_text}")
+  runner_exit_fixture(missing_raise_after TRUE "${missing_raise_after}" root doc)
+  runner_exit_run("${root}" "${doc}" table result output)
+  runner_exit_expect_rejection("missing --raise-after before stop section" "${result}" "${output}"
+    "canonical runner guide option list lacks --raise-after before the stop section")
+
+  set(stop_sentences
+    "On SIGTERM or SIGINT the runner finishes the current frame, writes the battery save and exits 0, or 1 if the save could not be written."
+    "A second signal at any time, including during the flush, ends the runner at once."
+    "On Windows the runner handles Ctrl+C, Ctrl+Break and console close the same way."
+    "A forced termination (TerminateProcess, taskkill /F, power loss) cannot be handled; the last committed .sav survives it."
+    "A launcher that sends the event to group 0 first registers its own handler that returns TRUE for CTRL_BREAK_EVENT, after attaching and before sending, or the event ends the launcher too.")
+  set(stop_number 0)
+  foreach(sentence IN LISTS stop_sentences)
+    math(EXPR stop_number "${stop_number} + 1")
+    string(FIND "${canonical_text}" "${sentence}" at)
+    if(at EQUAL -1)
+      file(REMOVE_RECURSE "${fixture_root}")
+      message(FATAL_ERROR "runner exit self-test: no stop sentence ${stop_number} to mutate")
+    endif()
+    string(REPLACE "${sentence}" "" mutated_stop "${canonical_text}")
+    runner_exit_fixture("stop_${stop_number}" TRUE "${mutated_stop}" root doc)
+    runner_exit_run("${root}" "${doc}" table result output)
+    runner_exit_expect_rejection("removed stop sentence ${stop_number}" "${result}" "${output}"
+      "canonical runner guide lacks stop sentence: ${sentence}")
+  endforeach()
+
+  file(REMOVE_RECURSE "${fixture_root}")
+  message(STATUS "runner exit self-test: canonical guide and stale-copy controls passed")
+  return()
+endif()
+
 # RUN-03: the runner's exit statuses are defined once, in runner/exit_status.h, and printed by
 # nesturbator-run --help; the README section "Exit status" repeats them. Inputs:
 #   -DSOURCE_DIR=<repo>  -DRUNNER=<nesturbator-run>  -DMODE=table|help

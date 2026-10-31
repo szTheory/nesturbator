@@ -1,5 +1,105 @@
 cmake_minimum_required(VERSION 3.25)
 
+function(runner_options_fixture name has_doc doc_text out_root out_doc)
+  set(root "${fixture_root}/${name}")
+  file(MAKE_DIRECTORY "${root}/docs")
+  file(WRITE "${root}/README.md" "${stale_readme}")
+  set(doc "${root}/docs/runner.md")
+  if(has_doc)
+    file(WRITE "${doc}" "${doc_text}")
+  endif()
+  set(${out_root} "${root}" PARENT_SCOPE)
+  set(${out_doc} "${doc}" PARENT_SCOPE)
+endfunction()
+
+function(runner_options_run root doc out_result out_text)
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}" "-DSOURCE_DIR=${root}" "-DDOC=${doc}" "-DRUNNER=${RUNNER}"
+      -P "${CMAKE_CURRENT_LIST_FILE}"
+    WORKING_DIRECTORY "${root}"
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE output
+    ERROR_VARIABLE error)
+  set(${out_result} "${result}" PARENT_SCOPE)
+  set(${out_text} "${output}\n${error}" PARENT_SCOPE)
+endfunction()
+
+function(runner_options_expect_rejection name result output expected)
+  if(result EQUAL 0)
+    message(FATAL_ERROR "runner options self-test: accepted ${name}")
+  endif()
+  string(FIND "${output}" "${expected}" at)
+  if(at EQUAL -1)
+    message(FATAL_ERROR
+      "runner options self-test: ${name} failed for the wrong reason: ${output}")
+  endif()
+endfunction()
+
+if(SELFTEST)
+  foreach(required SOURCE_DIR DOC RUNNER WORK)
+    if(NOT DEFINED ${required})
+      message(FATAL_ERROR "${required} is required for the runner options self-test")
+    endif()
+  endforeach()
+
+  string(RANDOM LENGTH 16 ALPHABET 0123456789abcdef nonce)
+  set(fixture_root "${WORK}/runner_options_${nonce}")
+  if(EXISTS "${fixture_root}")
+    message(FATAL_ERROR "runner options self-test scratch path already exists: ${fixture_root}")
+  endif()
+  file(MAKE_DIRECTORY "${fixture_root}")
+
+  if(EXISTS "${DOC}")
+    file(READ "${DOC}" canonical_text)
+    set(stale_readme "## The runner\n${canonical_text}\n## The libretro core\n")
+  else()
+    # RED-phase fixture: the pre-migration README is the complete obsolete copy.
+    file(READ "${SOURCE_DIR}/README.md" canonical_text)
+    set(stale_readme "${canonical_text}")
+  endif()
+
+  runner_options_fixture(valid TRUE "${canonical_text}" root doc)
+  runner_options_run("${root}" "${doc}" result output)
+  if(NOT result EQUAL 0)
+    file(REMOVE_RECURSE "${fixture_root}")
+    message(FATAL_ERROR "runner options self-test: rejected valid canonical guide: ${output}")
+  endif()
+
+  runner_options_fixture(missing_guide FALSE "" root doc)
+  runner_options_run("${root}" "${doc}" result output)
+  if(result EQUAL 0)
+    file(REMOVE_RECURSE "${fixture_root}")
+    message(FATAL_ERROR
+      "runner options self-test: accepted missing canonical guide despite complete stale README copy")
+  endif()
+  string(FIND "${output}" "canonical runner guide does not exist" at)
+  if(at EQUAL -1)
+    file(REMOVE_RECURSE "${fixture_root}")
+    message(FATAL_ERROR "runner options self-test: missing guide failed for the wrong reason: ${output}")
+  endif()
+
+  string(FIND "${canonical_text}" "- `--frames N`" at)
+  if(at EQUAL -1)
+    file(REMOVE_RECURSE "${fixture_root}")
+    message(FATAL_ERROR "runner options self-test: no --frames bullet to mutate")
+  endif()
+  string(REPLACE "- `--frames N`" "" missing_option "${canonical_text}")
+  runner_options_fixture(missing_option TRUE "${missing_option}" root doc)
+  runner_options_run("${root}" "${doc}" result output)
+  runner_options_expect_rejection("missing canonical --frames bullet" "${result}" "${output}"
+    "option --frames is in --help but has no canonical guide bullet")
+
+  set(extra_option "${canonical_text}\n- `--not-a-real-option` invented option\n")
+  runner_options_fixture(extra_option TRUE "${extra_option}" root doc)
+  runner_options_run("${root}" "${doc}" result output)
+  runner_options_expect_rejection("extra canonical option" "${result}" "${output}"
+    "option --not-a-real-option has a canonical guide bullet but is not in --help")
+
+  file(REMOVE_RECURSE "${fixture_root}")
+  message(STATUS "runner options self-test: canonical guide and stale-copy controls passed")
+  return()
+endif()
+
 # D-22: every option `nesturbator-run --help` prints has a bullet in the README section
 # "The runner", and every option bullet there is printed by --help. Inputs:
 #   -DSOURCE_DIR=<repo>  -DRUNNER=<nesturbator-run>
