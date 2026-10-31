@@ -1,40 +1,24 @@
-# Resume Phase 23 after interrupted regression gate
+# Phase 23 verified; v6 milestone audit is next
 
-Read AGENTS.md, STATE.md, this file, Phase 22 VERIFICATION/REFRESH-EVIDENCE/
-REVIEW-DISPOSITION, and Phase 23 REVIEW, REVIEW-DISPOSITION, VERIFICATION and
-EXECUTION-EVIDENCE. All seven v6 plans are implemented. Phase 22 verification
-passed; its three fixes changed README.md, docs/progress.md and
-tests/cmake/reproduction_contract.cmake, making Phase 23's earlier verification
-stale.
+Read AGENTS.md, STATE.md, this file, the latest Phase 22 verification and
+refresh evidence, the Phase 23 verification/review/disposition, and
+PRODUCT-ROADMAP.md before starting the milestone audit.
 
-Phase 23's standard-depth review and disposition were refreshed and committed.
-The review covered those three changed files and found no new issues. During the
-regression gate, the configured command resolved to `cmake --workflow --preset
-ci`, although the preserved boundary requires excluding the AccuracyCoin
-campaign. The workflow started; CTest output reached roughly 608/706, with
-`accuracycoin.campaign` scheduled. CTest was interrupted; it left two identified
-child processes, one of which had already exited when signaled, while the other
-exited after SIGINT. A follow-up process check found none from this run. The run
-left no usable final CTest log, so whether the campaign test completed is
-unknown. The verifier did not run. The status query reports a stale fingerprint
-covering README.md, docs/progress.md,
-tests/cmake/reproduction_contract.cmake, 23-REVIEW.md and
-23-REVIEW-DISPOSITION.md. Do not claim the regression gate or verification
-passed.
+Phase 23 verification passed 9/9 roadmap and plan truths. The supplied bounded
+CTest selection passed 31/31 in 33.11 seconds with
+`-FA accuracycoin_full_report`; the verifier self-check passed at fingerprint
+`v4:sha256:819a7ef0397e51ac6e895ac96a26b888138f026f928275c6301bcf58d6f9388d`.
+The original CI test-command setting was restored after the bounded run.
 
-Stop here for the owner's decision about whether to continue after reviewing
-that uncertain campaign activity. The recommended path is a bounded CTest-only
-refresh using the already documented selections in
-`phases/22-install-and-protect-progress/22-REFRESH-EVIDENCE.md`, with
-`-FA accuracycoin_full_report`; do not rerun the full workflow. If approved, the
-next command is `$gsd-execute-phase 23`, with `workflow.test_command` set to the
-bounded selection for that run. After a passing refresh, milestone audit is a
-separate command and must not be started implicitly. Context may be cleared
-before resuming.
+Historical uncertainty remains from the earlier interrupted full-CI attempt:
+`accuracycoin.campaign` had been scheduled, but the unusable interrupted log does
+not establish whether it completed. Do not rerun the full workflow or campaign
+as part of this handoff. Earlier local document-test timeouts remain unexplained.
+The verification keeps eight judgment-tier prohibitions flagged and unverified;
+it does not imply owner risk acceptance. No device, commercial content, private
+capture, daily save, collector refresh, or broader runtime scope was used.
 
-The local CI cache enables the full campaign. No collector/provenance refresh,
-host/device, private-content, daily-save, publication, push or PR is authorized.
-No timeout was raised or machine restart performed. PowerShell and other-platform
-execution remain untried; commercial scenes remain unclassified. Preserve all
-collector/platform/host-recovery debt and historic runtime windows. The owner's
-unstaged AGENTS.md and .planning/config.json edits remain untouched.
+The exact next command is `$gsd-audit-milestone`. It audits v6 against the
+approved product direction and evidence before closeout; it has not been run.
+Context can be cleared before running it; read STATE.md and this file first.
+The owner's unstaged AGENTS.md and .planning/config.json edits remain untouched.

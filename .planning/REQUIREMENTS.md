@@ -2,7 +2,7 @@
 
 **Milestone:** Player-ready NES and reproducible feedback
 **Defined:** 2026-10-30
-**Status:** All ten approved requirements are implemented. Phase 23 independent verification passed; its shared-document changes made Phase 22 verification stale, so refresh that report before milestone audit. The approved scope is unchanged.
+**Status:** All ten approved requirements are implemented. Phase 22 and Phase 23 verification are current and passed; the v6 milestone audit is next. The approved scope is unchanged.
 **Core Value:** Games behave as on the console, identically across platforms, from a small MIT C library.
 
 ## v6 Requirements
@@ -101,7 +101,7 @@ an accuracy-fix obligation:
 
 ## Traceability
 
-Approved mapping; each requirement belongs to exactly one phase. Implementation remains pending.
+Approved mapping; each requirement belongs to exactly one phase. All mapped requirements are implemented.
 
 | Requirement | Phase | Status |
 |---|---|---|

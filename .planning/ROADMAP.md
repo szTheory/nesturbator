@@ -11,12 +11,13 @@
 
 ## v6: Player-ready NES and reproducible feedback
 
-**Status:** Both approved phases are implemented. Phase 22's explicit verification
-refresh passed after fixing scratch failure handling and strengthening shared
-document checks. These fixes made Phase 23's covered-file report stale; refresh
-it separately before milestone audit. Fresh scoped document/runtime/package
-checks pass; earlier intermittent document-test timeouts remain unexplained.
-No full campaign CI, live host/device work or publication was performed.
+**Status:** Both approved phases are implemented and verified. Phase 22's explicit
+verification refresh passed after fixing scratch failure handling and
+strengthening shared document checks. Phase 23's refreshed verification passed
+9/9 after a bounded 31-test CTest selection; the full AccuracyCoin campaign was
+not rerun, and its status in the earlier interrupted workflow remains unknown.
+Earlier intermittent document-test timeouts remain unexplained. No live
+host/device work or publication was performed. The v6 milestone audit is next.
 
 **Goal:** A player can install an identified core, protect daily progress and
 supply a precise scene report that a developer can reproduce with existing facilities.
@@ -147,10 +148,10 @@ daily progress and choose the next evidence source without overclaiming a diagno
 | 23. Reproduce and report a scene | 3/3 | Complete    | 2026-10-31 |
 
 **Requirement coverage:** 10/10 mapped exactly once; 0 unmapped.
-**Next action:** `$gsd-execute-phase 23` — refresh Phase 23 verification after
-the Phase 22 review corrections changed three shared covered files. Completed
-plans are skipped; milestone audit follows a passing refresh. Context may be
-cleared first; read STATE.md and continue.md. The Phase 22 refresh step is complete.
+**Next action:** `$gsd-audit-milestone` — audit v6 against the approved product
+direction and accumulated evidence before closeout. Phase 23's refreshed
+verification passed. Context may be cleared first; read STATE.md and
+continue.md. No milestone closeout or further test campaign has started.
 
 ## Backlog disposition
 
@@ -164,4 +165,4 @@ No seed files were modified. The three pending property/mutation/signal proposal
 were inspected and have no confident requirement match here; they remain unlinked
 and deferred. All future direction remains in PRODUCT-ROADMAP.md.
 
-*Last updated: 2026-10-31 after Phase 22 verification refresh.*
+*Last updated: 2026-10-31 after Phase 23 verification refresh.*
