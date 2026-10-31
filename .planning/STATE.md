@@ -4,18 +4,18 @@ milestone: v6
 milestone_name: Player-ready NES and reproducible feedback
 current_phase: 23
 current_phase_name: Reproduce and report a scene
-status: Ready to plan Phase 23; discussion complete
-stopped_at: Phase 23 context gathered; stopped before planning
-last_updated: "2026-10-31T02:21:40.683Z"
+status: Ready to execute Phase 23; plans verified
+stopped_at: Phase 23 planned and independently checked; stopped before execution
+last_updated: "2026-10-31T02:54:03Z"
 last_activity: 2026-10-30
-last_activity_desc: Phase 23 context gathered; ready to plan; no implementation started
-state_head: 545ed532bf46a56ff32c7abb55479517348029ea
+last_activity_desc: Phase 23 research and three sequential plans complete; independent plan check passed; no implementation started
+state_head: 10726656a8ad67e51e7dcee7e3fc63e00a0a4c75
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 4
+  total_plans: 7
   completed_plans: 4
-  percent: 50
+  percent: 57
 current_plan: null
 ---
 
@@ -25,28 +25,31 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after Phase 22, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 23 discussion complete; ready for planning. Phase 22 remains verified complete.
+Current focus: Phase 23 planning complete; ready to execute. Phase 22 remains verified complete.
 
 ## Current Position
 
-Phase: 23 — Reproduce and report a scene (context gathered; not planned)
-Plan: Not created
-Status: Ready to plan Phase 23; discussion complete
-Last activity: 2026-10-30 — Phase 23 discussion complete; delegated recommendations captured
+Phase: 23 (Reproduce and report a scene) — READY TO EXECUTE
+Plan: 0/3 complete; three sequential waves ready
+Status: Ready to execute Phase 23; independent plan check passed
+Last activity: 2026-10-30 — Phase 23 research, plans and coverage checks complete
 
 ## Next Action
 
-Phase 23 discussion is complete. The adopted report, replay, safety and triage
-constraints are in [23-CONTEXT.md](phases/23-reproduce-and-report-a-scene/23-CONTEXT.md).
-Three focused reviews and adversarial follow-ups resolved the choices under
-explicit owner delegation. No owner decision remains; planning is not started.
+Phase 23 planning is complete. Three sequential plans cover the report/cold-replay
+tracer, native checkpoint preflight/scratch safety and layered triage. Research
+and independent plan checking passed after resolving two research design questions.
+All requirements and adopted decisions are covered. See
+[plan check](phases/23-reproduce-and-report-a-scene/23-PLAN-CHECK.md) and
+[context](phases/23-reproduce-and-report-a-scene/23-CONTEXT.md).
+No implementation or runtime recipe has been run; no owner decision remains.
 
 The next actor is the owner invoking:
 
-`$gsd-plan-phase 23`
+`$gsd-execute-phase 23`
 
-This creates and verifies the Phase 23 implementation plan. Context may be
-cleared first; read [continue.md](continue.md). This discuss step stops here.
+This implements and verifies the three Phase 23 plans. Context may be
+cleared first; read [continue.md](continue.md). This planning step stops here.
 No runtime replay, live host/device/private-content operation, daily-progress
 change, push, PR or release was performed. Work is on
 `gsd/phase-23-reproduce-and-report-a-scene`, based on the existing Phase 22
@@ -106,9 +109,9 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T02:21:25.814Z
-**Stopped at:** Phase 23 context gathered; stopped before planning
-**Next command:** $gsd-plan-phase 23
+**Last session:** 2026-10-31T02:54:03Z
+**Stopped at:** Phase 23 planned and independently checked; stopped before execution
+**Next command:** $gsd-execute-phase 23
 **Resume file:** .planning/continue.md
 
 ## Performance Metrics

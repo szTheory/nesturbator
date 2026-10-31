@@ -15,8 +15,9 @@
 and two-phase roadmap with “yes i approve” on 2026-10-30. Milestone opening is
 complete; Phase 22 discussion and planning are complete with independent plan
 verification passed. All four Phase 22 plans are implemented and committed;
-review corrections and independent phase verification passed. Phase 23 remains
-pending at the required phase boundary.
+review corrections and independent phase verification passed. Phase 23 research
+and three sequential plans are complete; independent plan verification passed.
+Execution has not started; this planning step stops at its required boundary.
 
 **Goal:** A player can install an identified core, protect daily progress and
 supply a precise scene report that a developer can reproduce with existing facilities.
@@ -103,7 +104,22 @@ daily progress and choose the next evidence source without overclaiming a diagno
    oracle would need, and records the current commercial reports as unclassified.
    Repeated hashes alone are never labeled a correctness or scene-fix result.
 
-**Plans:** Not created; use a small owned helper only for a demonstrated missing facility.
+**Plans:** 3 plans in 3 sequential waves; independent plan verification passed. Use a small owned helper only after confirming the missing facility.
+
+**Wave 1**
+
+- [ ] 23-01-PLAN.md — Sanitized report and bounded repeated cold-movie tracer
+
+**Wave 2** *(depends on Wave 1)*
+
+- [ ] 23-02-PLAN.md — Neutral native checkpoint, identity preflight and isolated storage
+
+**Wave 3** *(depends on Wave 2)*
+
+- [ ] 23-03-PLAN.md — Layer-specific triage, independent oracle and complete guide verification
+
+[Research](phases/23-reproduce-and-report-a-scene/23-RESEARCH.md) and
+[plan verification](phases/23-reproduce-and-report-a-scene/23-PLAN-CHECK.md).
 
 ## Acceptance and scope limits
 
@@ -129,12 +145,12 @@ daily progress and choose the next evidence source without overclaiming a diagno
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
 | 22. Install and protect progress | 4/4 | Complete    | 2026-10-30 |
-| 23. Reproduce and report a scene | 0 / not planned | Not started | — |
+| 23. Reproduce and report a scene | 0/3 | Ready to execute | — |
 
 **Requirement coverage:** 10/10 mapped exactly once; 0 unmapped.
-**Next action:** `$gsd-discuss-phase 23` — define the report/replay/triage approach
-before planning. Context may be cleared first; read STATE.md and continue.md.
-Phase 23 has not started; no user action is needed to finish Phase 22.
+**Next action:** `$gsd-execute-phase 23` — implement and verify the three
+report/replay/triage plans. Context may be cleared first; read STATE.md and
+continue.md. Planning is complete; Phase 23 implementation has not started.
 
 ## Backlog disposition
 
@@ -148,4 +164,4 @@ No seed files were modified. The three pending property/mutation/signal proposal
 were inspected and have no confident requirement match here; they remain unlinked
 and deferred. All future direction remains in PRODUCT-ROADMAP.md.
 
-*Last updated: 2026-10-30 after Phase 22 execution and verification.*
+*Last updated: 2026-10-30 after Phase 23 research, planning and plan verification.*
