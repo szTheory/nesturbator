@@ -1,6 +1,6 @@
 # Phase 24 DMA evidence
 
-**Scope:** Owned C fixtures and source analysis only. The landing and OAM corrections have owned evidence at native format 4 / behavior revision 11. Bus conflicts and both abort rows remain uncorrected, with independent traces. Full-CI/campaign acceptance and DMA-01 through DMA-04 remain pending. No fresh AccuracyCoin result is claimed.
+**Current scope:** Behavior14 / native format6 / ABI1 source corrections and owned C-fixture evidence. Full-CI/campaign acceptance and DMA-01 through DMA-04 remain pending; no fresh behavior14 AccuracyCoin result is claimed. The first row tables and state audit below are chronological snapshots. Later dated plan sections, especially the current-candidate reconciliation at the end, supersede earlier status and version statements where they differ.
 
 ## Identities, oracle and reproduction
 
@@ -176,3 +176,64 @@ at explicit stops433/434 and the retained-internal-data expectation after
 4015 deselection. The new source-shaped64-entry abort suite and its immediate-
 visibility wrong model resolve the missing looping cases. Those later owned
 results do not replace the recorded full-ROM result or its source identity.
+
+## Plan24-04 current-candidate reconciliation
+
+The evidence above is chronological, not one claim about one source revision.
+This section records the final source and bounded build identity after the
+corrections. It does not convert the historical behavior13 ROM report into a
+behavior14 result.
+
+### Candidate and build identities
+
+- Prior complete ROM run: source `05ed2b1b673c486646296e26f09b9e4e9080c781`,
+  behavior13 / format6; campaign report SHA256
+  `aed1823fe23884583b0a25f7a5a827c3b6f51744f6c07fa0906617a34ba2dcc5`; build
+  input fingerprint `2ae704c0a21b865ca861faf01b5399194c1fe411324906e85b184de3dcbef3d2`
+  (56 inputs). The result was complete but failed three selected rows; see
+  [24-CI-RUN.md](24-CI-RUN.md). Its one-run authority is consumed.
+- Corrected source candidate: `a12a79a2cbf0d872150ada9c91754b5345ded38a`,
+  behavior14 / format6 / ABI1. The latest correction adds no serialized field
+  or meaning: `abort_delay` remains the format6 DMC field, payload bytes remain
+  format6, and `dmc_sample_ready` is a synchronous local argument that cannot
+  cross a public save boundary.
+- Bounded Task1 build tree: existing `build/phase24-owned`, Debug,
+  `NESTURBATOR_ACCURACYCOIN_FULL=OFF`, `NESTURBATOR_VECTORS_FULL=OFF`. After
+  the bounded build, SHA256 identities were: `bus.unit`
+  `8a3bc05a75c9bb195e59f3bc406a88594fe4dccd44b4decf6c3cfa866650fb0b`,
+  `core.apu` `7e089885aa621ce7d9d11ad59c4b4ca1807bb54fb40edf6ccc7f784807a1690d`,
+  `core.controller`
+  `6cfcb00af5ca610b85395808b98f587d781659af4aa5143fc930d31206db938f`, and
+  `core.state_fork`
+  `7a27d691ad4b2ae3bc187e08d88a377bb45cb289fbc950fe9b5b41185c18e153`.
+
+### Five independent row records
+
+| Row | Source lineage | First divergence and corrected trace | Independent wrong model |
+|---|---|---|---|
+| DMA Landing on Write | Diagnostic `7348a10c68e592b71ec1899121003bf62d6bc813` -> format4/behavior10 correction `fe735e624cb836f74c21174a7d76c2ee1d673a50` -> current candidate `a12a79a2cbf0d872150ada9c91754b5345ded38a`. | First empty-buffer output edge failed to advance the silent eight-bit cycle. The corrected trace advances silent bits while retaining DAC level; the tightened landing case samples `$5000` GET->PUT at37745, halt37746 PUT, sample GET37749 and resume37750. Its synchronized reload samples `$FFC0/00` at38165 GET and resumes `$4000` at38166 PUT. | `freeze-at-zero-while-empty`; the bit-clock oracle and retained pre-correction APU source reject the zero-count model. |
+| DMC DMA + OAM DMA | Pre-OAM bus `313a0f31ca3160c2f5c587fd88ea4cbbb6cab4ec` -> format4/behavior11 correction `88282256aa7b964de55fe9d53c191b153b431d92` -> current candidate `a12a79a2cbf0d872150ada9c91754b5345ded38a`. | The OAM clock failed to advance a pending DMC halt/dummy state. Corrected interior collision durations are517/518 clocks including the resumed CPU access, versus514/515 without load; all256 OAM destinations preserve byte order and phase. | `cpu-halt-gate-inside-oam` and `standalone-dmc-resume-as-oam-read` independently reject missing arbitration and the wrong resumed source/destination phase. |
+| DMC DMA Bus Conflicts | Pre-split bus `e08c9990e087d3471fda229a8da4ab70aba5c1aa` -> format5/behavior12 split-latch correction `d4a24c80a6abbcddccc7f5a1c3e5d4bc9d6522a5` -> current candidate `a12a79a2cbf0d872150ada9c91754b5345ded38a`. | The first divergence is the mapper sample GET not applying the selected internal-register side effect. The current matrix checks `$FF16/$A0` external data separately from controller shift/clock effects, `$FFD5/$A5` status IRQ acknowledgement, and the external held byte becoming visible after `$4015` deselection. | `external-memory-only-fetch`; the retained pre-split bus source independently fails the status/controller/latch assertions. |
+| Explicit DMA Abort | Pre-abort bus/APU `aa78a23b02797b8be4d4dd66a7c36ff4a5415c5a` -> format6/behavior13 correction `7f315791666d21566557a17e787ae02fcc589f7b` -> current candidate `a12a79a2cbf0d872150ada9c91754b5345ded38a`. | The fixed key is `4,4,4,4,4,4,3,4,1,1,0,0,0,0,0,0`. At offset6 an already armed request completes; at offset7 disable sees counter1/GET/bits0/full buffer/remaining1/pending0 and preserves the subsequently armed ordinary GET without underflow or restart. The old unsupported no-GET expectations at stops433/434 are superseded. | `forget-stop-before-reload`; separate due-write suppression controls reject an abort countdown incorrectly retained after the write. |
+| Implicit DMA Abort | Pre-abort bus/APU `aa78a23b02797b8be4d4dd66a7c36ff4a5415c5a` -> format6/behavior13 correction `7f315791666d21566557a17e787ae02fcc589f7b` -> current candidate `a12a79a2cbf0d872150ada9c91754b5345ded38a`. | A non-looping final sample at575 GET/data`EA` was followed by no required abort halt at578 PUT. The corrected trace halts at578 and resumes579 GET; looping offsets8/9 retain the fresh byte through the immediate output edge, avoiding the extra refill. The selected early-G ordering is an inference from the pinned key, not universal hardware proof. | `forget-one-byte-completion` rejects the missing halt; `immediate-sample-visibility` independently reproduces and rejects the extra loop refill. |
+
+The named wrong models above were compiled against the same owned fixtures as
+the production source, as detailed in Plans01-04 and
+[24-04-CORRECTIONS.md](24-04-CORRECTIONS.md). The current reproduction is the
+bounded `bus.unit` test plus the focused build/CTest/native-fork command in
+[24-ACCEPTANCE.md](24-ACCEPTANCE.md). The production/observer paths agree in
+the owned row fixtures; the previously recorded warnings-as-errors Release
+build and preprocessing check remove all observation markers. These results
+establish source/test compatibility only, not silicon behavior.
+
+### Current state and acceptance status
+
+The current native contract is format6 / behavior14 / ABI1. The approved
+`abort_delay` field remains serialized at DMC-local offset23 with values0..3;
+the current synchronous sample-readiness argument adds no state, API or
+converter. Older formats1..5 remain refused atomically. No old-format
+compatibility, behavior-revision loader enforcement, or cross-platform hash
+claim is added. Fresh behavior14 ROM results, protected-main evidence,
+cross-platform frame/PCM/transition hashes and unchanged performance checks
+remain absent. Do not complete any requirement or phase from these local
+fixtures.

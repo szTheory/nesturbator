@@ -57,14 +57,25 @@ statuses or claim qualification before the actual observations exist.
 
 ## Selection and unchanged limits
 
-The current candidate inventory was re-read after correction a12a79a: all707
-names, timeouts, fixture setup/requirements and labels exactly match the
-recorded inventory. FULL=ON and VECTORS_FULL=OFF.
-[Full selection/fixture inventory](24-CI-SELECTION.tsv). Existing CI preset
-objects are unchanged; the additive developer tier is separate. Local
-configuration is not hosted full-vector or six-platform qualification.
+The checked-in [selection inventory](24-CI-SELECTION.tsv) is a historical
+read-only `FULL=ON` CTest inventory for source7f31579, not a generated
+behavior14 inventory. Test registration files have not changed since that
+source; the `ci` workflow still enables `NESTURBATOR_ACCURACYCOIN_FULL=ON`.
+However, no matching current-candidate `FULL=ON` CTest tree is available: the
+existing `build/phase24-owned` tree is Debug with `FULL=OFF` and
+`VECTORS_FULL=OFF`, and the archived prior full-run directory has only its
+old cache, not a generated CTest inventory. Its read-only JSON contains706
+tests. The exact bounded selection resolves to `bus.unit`, `core.apu`,
+`core.controller` and `core.state_fork.entry`, with no setup/required fixture
+dependencies; `accuracycoin.campaign` is absent there. This proves only the
+bounded owned closure. The behavior14 full selection is **source-derived**
+from the current workflow and `tests/CMakeLists.txt`: those test registrations
+are unchanged since the recorded 707-entry inventory. Its current generated
+inventory remains unavailable and was not claimed as executed. The current
+workflow enables the campaign fixture, so the full selection would run it;
+this is why the stopped scope cannot be inferred from the bounded selection.
 
-| Consumer | Required fixture | Executed setup |
+| Consumer | Required fixture | Setup in FULL=ON CTest selection |
 |---|---|---|
 | accuracycoin.activation / nmi_targets / v5_targets | accuracycoin_full_report | accuracycoin.campaign |
 | accuracycoin.protected / accuracy.scoreboard.no_lost_pass / regression_controls | accuracycoin_protected_observations | accuracycoin.protected_observation |
@@ -105,6 +116,35 @@ The literal main...HEAD check has159 inherited diagnostics, also present
 before execution. The current cached origin/main base narrows this to41,
 still inherited. Execution delta89a042b..HEAD and the working correction
 files are clean. No network refresh or bulk historical rewrite was performed.
+
+## Bounded Plan24-04 review
+
+The current correction source is `a12a79a2cbf0d872150ada9c91754b5345ded38a`
+(behavior14 / format6 / ABI1). Only the plan's bounded command ran:
+
+```sh
+cmake --build build/phase24-owned --target bus.unit core.apu core.controller core.state_fork && ctest --test-dir build/phase24-owned -R '^(bus\.unit|core\.apu|core\.controller|core\.state_fork\.entry)$' --no-tests=error --timeout 30 --output-on-failure && build/phase24-owned/tests/core.state_fork --dma && git diff --check main...HEAD
+```
+
+All four targets built, the four selected CTest entries passed in0.82s, and
+`core.state_fork --dma` exited successfully. The final whitespace command
+returned2 with159 diagnostics already recorded for the inherited branch-wide
+planning diff; no broad cleanup was made. Detailed row identities and current
+binary SHA256 values are in [24-DMA-EVIDENCE.md](24-DMA-EVIDENCE.md).
+The bounded checks do not execute the stopped campaign fixture and do not
+establish behavior14 ROM acceptance.
+The Task1 evidence/state edits remain uncommitted: the sandbox denied writes
+to `.git/gsd-plan-head-before-24-04` and `.git/index.lock` with `Operation not
+permitted`. No unrelated path was staged.
+
+The five selected rows still require fresh individual PASS observations at
+pin `6bee919529289c555803b612b8c9e4f7eaaeeabb`, with complete terminal raw
+observations and source/build/ROM/report provenance. The complete protected
+PASS set (including the three DMA neighbors), fresh cold protected-main
+authority, cross-platform frame/PCM/transition hashes, unchanged Cachegrind
+`+1%` evidence and current hosted lanes are also missing. No scoreboard or
+measurement was changed. The one authorized local workflow is consumed; the
+full behavior14 `FULL=ON` selection remains stopped.
 
 ## Handoff
 
