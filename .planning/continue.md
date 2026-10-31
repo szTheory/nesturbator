@@ -1,64 +1,48 @@
-# Resume v6 at Phase 22 discussion
+# Resume v6 at Phase 22 planning
 
-Read AGENTS.md, [STATE.md](STATE.md), [PROJECT.md](PROJECT.md) and
-[PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). v6 **Player-ready NES and reproducible
-feedback** is initialized. The owner selected the recommended scope with
-“follow ur recs” and then approved the concrete requirements and two-phase
-roadmap with “yes i approve” on 2026-10-30. Do not repeat scope selection,
-requirements approval or the new-milestone lifecycle step.
+Read `AGENTS.md`, `.planning/STATE.md`, `.planning/REQUIREMENTS.md`,
+`.planning/ROADMAP.md`, and
+[Phase 22 context](phases/22-install-and-protect-progress/22-CONTEXT.md).
 
 ## Outcome and next actor
 
-The approved [requirements](REQUIREMENTS.md) map all ten items exactly once:
-Phase 22 covers installation, controls, progress/version policy and executable
-documentation contracts; Phase 23 covers the bounded report/replay/triage route.
-The [roadmap](ROADMAP.md), project, product direction and state/handoff are
-committed locally. No phase plans or implementation have been created; no push
-or release is part of milestone opening.
+Phase 22 discussion is complete. The owner delegated all relevant decisions to
+focused subagent review and authorized following the coherent recommendations.
+The context records adopted choices and source/evidence references; no owner
+choice remains unresolved. No plans or implementation were created.
 
 The owner acts next by invoking:
 
-`$gsd-discuss-phase 22`
+`$gsd-plan-phase 22`
 
-This clarifies the approach for **Install and protect progress** before planning.
-Context may be cleared first. No additional confirmation is needed to finish the
-completed milestone opening; stop here rather than chaining another GSD step.
+This researches remaining implementation details and creates executable plans
+for **Install and protect progress**. Context may be cleared first. Stop after
+this discussion step; do not auto-chain planning or execution.
 
-Reuse the [research](research/milestone-v6-discovery/SYNTHESIS.md),
-[postmortem](playtesting/POSTMORTEM.md) and existing 22 title reports across six
-supported mapper IDs. No further broad play sweep or generic research fan-out.
-SEED-006 contributes measured documentation/contract repairs only; seed files
-and previously delivered outcomes stay unchanged. The three pending testing
-proposals have no direct requirement match and remain unlinked/deferred.
-Static-runtime model/config warnings were observed during opening; no global
-install or settings change was made. The roadmap was prepared inline under the
-skill's no-explicit-subagent fallback, reusing existing research.
+## Constraints to carry forward
 
-## Boundaries and retained evidence
+- Keep support and literal marked installation in the player README; prefer
+  focused API/runner/release/testing guides and a player progress walkthrough.
+  Keep current archive layout; guides live in the repository.
+- Retain independent doc/package checks and negative controls. Cover moved
+  canonical API/runner lookup and links without weakening assertions.
+- Recheck published assets during implementation. Host name/version alone is
+  insufficient build identity; use actual module path/digest and provenance.
+- Host controls use the real frontend launch and distinct active player ports.
+  Existing daily input and automated tests retain their separate evidence limits.
+- Snapshot support recommendation is exact build/content. Native format/content
+  checks differ from recorded but unenforced behavior revision and host containers.
+  Old snapshots restore old battery RAM too. Preserve newest battery separately;
+  cross-build SRAM and incompatible host-autoload recovery remain unqualified.
+- Use scratch permitted fixtures and existing refusal tests. No personal device,
+  daily progress operation, commercial sweep or new live-testing window is granted.
+- Phase 23 owns report/replay/triage. Accuracy/overscan, regions/mappers, converters,
+  actual Playstead, generic testing proposals and collector debt remain outside
+  this phase. Existing safety stops and runtime allowances persist.
+- Work on `gsd/phase-22-install-and-protect-progress`. Preserve the owner's
+  pre-existing unstaged `AGENTS.md` and `.planning/config.json` edits. Do not change
+  global GSD/model settings in response to known runtime warnings.
 
-- Overscan, actual core fixes, DMA, PAL/Dendy, new mappers and actual Playstead
-  integration are outside v6. Following accuracy work is conditional RM-015 on
-  a confirmed core fault, otherwise the five remaining DMA failures; preserve
-  the three already-passing former candidates and all protected PASS results.
-- Documentation relocation must retain the independent install, runner-option,
-  stop/exit-table, status/state and info/release checks. Update their document
-  lookup deliberately without weakening their assertions. Runtime changes, if
-  an actual helper gap is demonstrated, require normal tests and README/header
-  updates. No new dependency, shared host or generic replay framework.
-- Preserve daily battery saves and core-specific snapshots. Native payloads and
-  RetroArch disk containers are distinct. State format 3 rejects earlier formats;
-  behavior revision 9 alone is not a general state compatibility guarantee.
-- Reported seams, slowdown and music interruption remain unclassified. Repeated
-  current RGB/PCM is repeatability evidence. The existing controller/VSync
-  read-backs do not establish a visual fix. Read [automation](playtesting/AUTOMATION.md),
-  [scene cards](playtesting/SCENE-PLAYLIST.md), [controls](playtesting/CONTROLS.md)
-  and [lessons](playtesting/LESSONS.md) before any operational work. No live test,
-  exhausted allowance, runtime stop or daily-progress operation is authorized by
-  this opening. Commercial content/media/states remain private and ignored.
-- v5 is archived with all eleven requirements complete. Keep its
-  [closeout](milestones/v5-CLOSEOUT.md), [audit](milestones/v5-MILESTONE-AUDIT.md),
-  collector/platform/provenance debt and historical source-bound acceptance.
-  Release PR #56 was rechecked open; latest published release was v0.1.11 at
-  opening. Publication and merged-source capability remain separate claims.
-- Preserve unrelated pre-existing unstaged AGENTS.md and config edits. Do not
-  install/update global GSD or change model settings as milestone housekeeping.
+The discussion changed planning artifacts only. It established no new runtime,
+package-install, host-recovery or gameplay result. Alternatives are in the
+human-only discussion log; downstream agents use the context.

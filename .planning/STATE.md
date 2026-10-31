@@ -2,18 +2,21 @@
 gsd_state_version: "1.0"
 milestone: v6
 milestone_name: Player-ready NES and reproducible feedback
-status: planning
 current_phase: 22
-current_plan: null
-stopped_at: v6 requirements and roadmap approved and initialized; Phase 22 discussion next
-last_updated: "2026-10-31T00:07:36Z"
+current_phase_name: Install and protect progress
+status: Ready for planning; Phase 22 context gathered; implementation not started
+stopped_at: Phase 22 context gathered; planning next; no implementation started
+last_updated: "2026-10-31T00:16:36.985Z"
 last_activity: 2026-10-30
+last_activity_desc: Phase 22 recommendations adopted after focused specialist and adversarial reviews
+state_head: 5519102580c4c5467c0f90d417ff3c9f5a927a4e
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
   percent: 0
+current_plan: null
 ---
 
 # Project State
@@ -22,53 +25,45 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v6 requirements and roadmap approval, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 22, Install and protect progress; milestone opening is complete and discussion is next. Existing research/playtesting is sufficient.
+Current focus: Phase 22 context gathered; ready for planning. No implementation started.
 
 ## Current Position
 
 Phase: 22 (Install and protect progress), first of two v6 phases
 Plan: —
-Status: Ready for phase discussion; implementation not started
-Last activity: 2026-10-30 — Owner approved all ten requirements and Phases 22–23; milestone initialized
+Status: Ready for planning; Phase 22 context gathered; implementation not started
+Last activity: 2026-10-30 — Phase 22 recommendations adopted after focused specialist and adversarial reviews
 
 ## Next Action
 
-The owner selected **v6: Player-ready NES and reproducible feedback (RM-014)**
-with “follow ur recs” after the recommended scope and alternatives were presented.
-Version v6 continues phase numbering after 21. SEED-006 contributes only the
-measured documentation/contract delta; other delivered seed outcomes are credited.
-Reuse the [discovery synthesis](research/milestone-v6-discovery/SYNTHESIS.md),
-[postmortem](playtesting/POSTMORTEM.md) and existing 22 title reports. No new broad
-research fan-out or owner gameplay is needed.
+Phase 22 discussion is complete. The owner delegated all relevant decisions to
+focused subagent reviews and authorized following the coherent recommendations.
+The [context](phases/22-install-and-protect-progress/22-CONTEXT.md) captures the
+player README/topic split, preserved executable contracts, archive/core identity,
+actual-launch controls and scratch-only progress/version/rollback policy.
+There are no unresolved owner choices; plans and implementation remain pending.
 
-The owner approved the concrete [requirements](REQUIREMENTS.md) and
-[two-phase roadmap](ROADMAP.md) with “yes i approve”. All ten requirements are
-mapped exactly once to Phases 22–23. The milestone-opening artifacts are committed
-locally; no push, release, phase discussion, planning or execution is part of this
-step. [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md), direction revision 9, reconciles
-all four horizons, triggers, partial evidence and debt within this same opening.
+The next actor is the owner invoking:
 
-The next actor is the owner invoking the next command when ready:
+`$gsd-plan-phase 22`
 
-`$gsd-discuss-phase 22`
+This researches remaining implementation details and creates executable plans
+for **Install and protect progress**. Context may be cleared first; read
+[continue.md](continue.md). The discussion step stops here. No push, release,
+runtime test, host operation or gameplay acceptance is claimed.
 
-This gathers the implementation approach for **Install and protect progress**
-before phase planning. Context may be cleared first; read
-[continue.md](continue.md). No further input is needed to finish this opening.
-Preserve the pre-existing unstaged AGENTS.md/config edits. Overscan, core accuracy
-fixes, PAL/Dendy, new mappers and actual Playstead integration stay outside v6.
-Existing live-testing stops and runtime allowances remain unchanged.
+Work is on `gsd/phase-22-install-and-protect-progress`. Preserve the owner's
+pre-existing unstaged AGENTS.md/config edits. Snapshot support guidance pairs
+exact build/content; behavior revision is recorded but not enforced. Native
+refusal evidence is separate from unqualified cross-build SRAM and incompatible
+host-autoload recovery. The context preserves existing evidence, deferred work,
+private-artifact boundaries and unchanged live-testing stops/allowances.
 
-v5 stays complete and archived: all eleven requirements satisfied, canonical
-119 PASS / 27 FAIL over 146 scored rows plus five unscored DRAW, ABI 1 / state
-format 3 / behavior revision 9. [Closeout](milestones/v5-CLOSEOUT.md) and
-[audit](milestones/v5-MILESTONE-AUDIT.md) retain debt and evidence limits.
-Release PR #56 was rechecked open; latest published package is v0.1.11.
-Root causes of the reported seams, slowdown and music interruption remain
-unclassified. Private replay establishes repeatability, not correctness; native
-checkpoints are not qualified RetroArch containers. Operational limits and
-private-artifact boundaries remain in [automation](playtesting/AUTOMATION.md),
-[scene cards](playtesting/SCENE-PLAYLIST.md) and [controls](playtesting/CONTROLS.md).
+v5 remains complete and archived. Its [closeout](milestones/v5-CLOSEOUT.md)
+and [audit](milestones/v5-MILESTONE-AUDIT.md) retain package-publication history,
+collector/platform/provenance debt and source-bound acceptance. Recheck release
+availability during Phase 22 implementation rather than treating opening status
+as current. Phase 23 report/replay/triage remains the following approved phase.
 
 ## Preserved Debt and Boundaries
 
@@ -107,7 +102,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T00:07:36Z
-**Stopped at:** v6 opening complete; approved requirements/roadmap committed; Phase 22 discussion next.
-**Next command:** `$gsd-discuss-phase 22`
-**Resume file:** `.planning/continue.md`
+**Last session:** 2026-10-31T00:16:36.770Z
+**Stopped at:** Phase 22 context gathered; planning next; no implementation started
+**Next command:** `$gsd-plan-phase 22`
+**Resume file:** .planning/continue.md
