@@ -13,7 +13,8 @@
 
 **Status:** Approved execution contract. The owner approved the ten requirements
 and two-phase roadmap with “yes i approve” on 2026-10-30. Milestone opening is
-complete; phase discussion, planning and execution have not started.
+complete; Phase 22 discussion and planning are complete with independent plan
+verification passed. Implementation has not started; Phase 23 remains pending.
 
 **Goal:** A player can install an identified core, protect daily progress and
 supply a precise scene report that a developer can reproduce with existing facilities.
@@ -54,7 +55,27 @@ progress across an identified core upgrade or rollback.
    controls still reject missing or contradictory contracts. No assertion is
    dropped merely to shorten the README.
 
-**Plans:** Not created; next step is `$gsd-discuss-phase 22`.
+**Plans:** 4 plans in 4 sequential waves; independent plan verification passed.
+
+**Wave 1**
+
+- [ ] 22-01-PLAN.md — Canonical API guide with relocation and link controls
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 22-02-PLAN.md — Runner help/options/stop/exit contract migration
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 22-03-PLAN.md — Release and engineering/testing guide migration
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 22-04-PLAN.md — Player install, identity, controls and safe progress
+
+[Research](phases/22-install-and-protect-progress/22-RESEARCH.md),
+[source audit](phases/22-install-and-protect-progress/22-SOURCE-AUDIT.md) and
+[plan verification](phases/22-install-and-protect-progress/22-PLAN-CHECK.md).
 
 ### Phase 23: Reproduce and report a scene
 
@@ -105,13 +126,13 @@ daily progress and choose the next evidence source without overclaiming a diagno
 
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
-| 22. Install and protect progress | 0 / not planned | Not started | — |
+| 22. Install and protect progress | 0 / 4 | Ready to execute | — |
 | 23. Reproduce and report a scene | 0 / not planned | Not started | — |
 
 **Requirement coverage:** 10/10 mapped exactly once; 0 unmapped.
-**Next action:** Run `$gsd-discuss-phase 22` to clarify the install/progress
-approach before planning. Context may be cleared first; read STATE.md and its
-resume file. The new-milestone step ends here and does not run the next command.
+**Next action:** Run `$gsd-execute-phase 22` to implement and verify the four
+install/progress plans. Context may be cleared first; read STATE.md and its
+resume file. The planning step ends here and does not run the next command.
 
 ## Backlog disposition
 
@@ -125,4 +146,4 @@ No seed files were modified. The three pending property/mutation/signal proposal
 were inspected and have no confident requirement match here; they remain unlinked
 and deferred. All future direction remains in PRODUCT-ROADMAP.md.
 
-*Last updated: 2026-10-30 after owner requirements and roadmap approval.*
+*Last updated: 2026-10-30 after Phase 22 planning and independent plan verification.*

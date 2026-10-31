@@ -4,16 +4,16 @@ milestone: v6
 milestone_name: Player-ready NES and reproducible feedback
 current_phase: 22
 current_phase_name: Install and protect progress
-status: Ready for planning; Phase 22 context gathered; implementation not started
-stopped_at: Phase 22 context gathered; planning next; no implementation started
-last_updated: "2026-10-31T00:16:36.985Z"
+status: Ready to execute; Phase 22 plans verified; implementation not started
+stopped_at: Phase 22 planning complete; independent plan verification passed; implementation not started
+last_updated: "2026-10-31T00:48:43.872Z"
 last_activity: 2026-10-30
-last_activity_desc: Phase 22 recommendations adopted after focused specialist and adversarial reviews
-state_head: 5519102580c4c5467c0f90d417ff3c9f5a927a4e
+last_activity_desc: Phase 22 research and four sequential execution plans verified
+state_head: 581d4aab8576bd892f1adf6f0e5bbbf3b14a005b
 progress:
   total_phases: 2
   completed_phases: 0
-  total_plans: 0
+  total_plans: 4
   completed_plans: 0
   percent: 0
 current_plan: null
@@ -25,32 +25,37 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v6 requirements and roadmap approval, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 22 context gathered; ready for planning. No implementation started.
+Current focus: Phase 22 planned and independently checked; ready to execute. No implementation started.
 
 ## Current Position
 
-Phase: 22 (Install and protect progress), first of two v6 phases
-Plan: —
-Status: Ready for planning; Phase 22 context gathered; implementation not started
-Last activity: 2026-10-30 — Phase 22 recommendations adopted after focused specialist and adversarial reviews
+Phase: 22 (Install and protect progress) — READY TO EXECUTE
+Plan: 0 of 4 complete (four sequential waves)
+Status: Ready to execute; Phase 22 plans verified; implementation not started
+Last activity: 2026-10-30 — Phase 22 research and four sequential execution plans verified
 
 ## Next Action
 
-Phase 22 discussion is complete. The owner delegated all relevant decisions to
-focused subagent reviews and authorized following the coherent recommendations.
-The [context](phases/22-install-and-protect-progress/22-CONTEXT.md) captures the
-player README/topic split, preserved executable contracts, archive/core identity,
-actual-launch controls and scratch-only progress/version/rollback policy.
-There are no unresolved owner choices; plans and implementation remain pending.
+Phase 22 planning is complete. Four sequential plans cover the canonical API
+and relocation/link controls, runner contracts, release/testing guides, and
+player install/control/progress guidance. The independent plan checker passed
+with no blockers or warnings; requirements and decision coverage gates passed.
+See the [plan check](phases/22-install-and-protect-progress/22-PLAN-CHECK.md),
+[source audit](phases/22-install-and-protect-progress/22-SOURCE-AUDIT.md) and
+[research](phases/22-install-and-protect-progress/22-RESEARCH.md).
 
 The next actor is the owner invoking:
 
-`$gsd-plan-phase 22`
+`$gsd-execute-phase 22`
 
-This researches remaining implementation details and creates executable plans
-for **Install and protect progress**. Context may be cleared first; read
-[continue.md](continue.md). The discussion step stops here. No push, release,
-runtime test, host operation or gameplay acceptance is claimed.
+This implements and verifies all four plans for **Install and protect progress**.
+Context may be cleared first; read [continue.md](continue.md). This planning step
+stops here. No implementation, runtime test, package extraction, host operation,
+push, release or gameplay acceptance is claimed. No owner choice is unresolved;
+the next command is the required step boundary, not a request for risk acceptance.
+
+Six fallback edge assumptions and six descriptor-less prohibitions remain
+explicitly flagged for downstream review; they are not implementation passes.
 
 Work is on `gsd/phase-22-install-and-protect-progress`. Preserve the owner's
 pre-existing unstaged AGENTS.md/config edits. Snapshot support guidance pairs
@@ -102,7 +107,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T00:16:36.770Z
-**Stopped at:** Phase 22 context gathered; planning next; no implementation started
-**Next command:** `$gsd-plan-phase 22`
+**Last session:** 2026-10-31T00:49:19.643Z
+**Stopped at:** Phase 22 planning complete; independent plan verification passed; implementation not started
+**Next command:** `$gsd-execute-phase 22`
 **Resume file:** .planning/continue.md

@@ -1,4 +1,4 @@
-# Resume v6 at Phase 22 planning
+# Resume v6 at Phase 22 execution
 
 Read `AGENTS.md`, `.planning/STATE.md`, `.planning/REQUIREMENTS.md`,
 `.planning/ROADMAP.md`, and
@@ -6,18 +6,25 @@ Read `AGENTS.md`, `.planning/STATE.md`, `.planning/REQUIREMENTS.md`,
 
 ## Outcome and next actor
 
-Phase 22 discussion is complete. The owner delegated all relevant decisions to
-focused subagent review and authorized following the coherent recommendations.
-The context records adopted choices and source/evidence references; no owner
-choice remains unresolved. No plans or implementation were created.
+Phase 22 planning is complete. The [research](phases/22-install-and-protect-progress/22-RESEARCH.md)
+and four plans are ready; [independent verification](phases/22-install-and-protect-progress/22-PLAN-CHECK.md)
+passed with no blockers or warnings. Requirements and adopted decisions are fully
+mapped in the [source audit](phases/22-install-and-protect-progress/22-SOURCE-AUDIT.md).
 
 The owner acts next by invoking:
 
-`$gsd-plan-phase 22`
+`$gsd-execute-phase 22`
 
-This researches remaining implementation details and creates executable plans
-for **Install and protect progress**. Context may be cleared first. Stop after
-this discussion step; do not auto-chain planning or execution.
+This implements and verifies four sequential plans: API relocation/controls,
+runner contracts, release/testing guides, then player install/control/progress.
+Context may be cleared first. Read each plan and its dependencies; no implementation
+or runtime/package/host verification has run. Stop after this planning step;
+do not auto-chain execution or start Phase 23.
+
+Six fallback edge assumptions and six descriptor-less prohibitions are explicitly
+flagged for downstream review. They do not create an owner gameplay/sign-off gate
+or qualify cross-build SRAM or incompatible host autoload recovery. Current release
+availability and host menu wording remain execution-time observations.
 
 ## Constraints to carry forward
 
@@ -43,6 +50,6 @@ this discussion step; do not auto-chain planning or execution.
   pre-existing unstaged `AGENTS.md` and `.planning/config.json` edits. Do not change
   global GSD/model settings in response to known runtime warnings.
 
-The discussion changed planning artifacts only. It established no new runtime,
+The planning step changed planning artifacts only. It established no new runtime,
 package-install, host-recovery or gameplay result. Alternatives are in the
 human-only discussion log; downstream agents use the context.
