@@ -14,8 +14,8 @@
 **Status:** Approved execution contract. The owner approved the ten requirements
 and two-phase roadmap with “yes i approve” on 2026-10-30. Milestone opening is
 complete; Phase 22 discussion and planning are complete with independent plan
-verification passed. Phase 22 implementation is underway: Plans 22-01 through
-22-03 are complete; Plan 22-04 remains. Phase 23 remains pending.
+verification passed. All four Phase 22 plans are implemented and committed. Review findings are
+fixed; phase verification is in progress. Phase 23 remains pending.
 
 **Goal:** A player can install an identified core, protect daily progress and
 supply a precise scene report that a developer can reproduce with existing facilities.
@@ -131,9 +131,8 @@ daily progress and choose the next evidence source without overclaiming a diagno
 | 23. Reproduce and report a scene | 0 / not planned | Not started | — |
 
 **Requirement coverage:** 10/10 mapped exactly once; 0 unmapped.
-**Next action:** Run `$gsd-execute-phase 22` to continue with player installation,
-identity, controls and progress in Plan 22-04. Context may be cleared first;
-read STATE.md, its resume file and Plan 22-04.
+**Next action:** The active phase executor is finishing verification of Phase 22.
+Do not start Phase 23 until the phase result is recorded in STATE.md.
 
 ## Backlog disposition
 
@@ -147,4 +146,4 @@ No seed files were modified. The three pending property/mutation/signal proposal
 were inspected and have no confident requirement match here; they remain unlinked
 and deferred. All future direction remains in PRODUCT-ROADMAP.md.
 
-*Last updated: 2026-10-30 after Plan 22-03 execution.*
+*Last updated: 2026-10-31 during Phase 22 verification.*

@@ -1,5 +1,33 @@
 # AccuracyCoin bounded campaign measurements
 
+## Phase 22 documentation registration refresh, 2026-10-31
+
+The full local CI configuration already enabled `NESTURBATOR_ACCURACYCOIN_FULL`.
+Its campaign passed, while activation rejected the unchanged historical
+build-input fingerprint after the planned documentation-test registrations
+changed `tests/CMakeLists.txt`. A later activation selection automatically
+included the campaign fixture again; its dependency should have been inspected
+before that selection. No further campaign was started for this refresh.
+
+The final capture uses compiled source `4c9b07f2c8b1`, `source_dirty=1`, with
+56-input fingerprint
+`b0d419a6e2f182174a026c009ff3da011230c4114ced4ae6dd76c8afd91064d7`.
+Replacing only `tests/CMakeLists.txt` with its pre-phase bytes reconstructs the
+prior accepted fingerprint; runtime sources and collection/oracle code did not
+change. The measured 22-page result remains **119 PASS / 27 FAIL**, all 146
+scored rows terminal, five DRAW entries, zero skipped/not-run/timeouts, complete
+infrastructure and `host_elapsed_guest_ns=7351615000`. Its report SHA-256 is
+unchanged:
+`56ebd01adb97b3916fde36f8739602284d951a1fd00d84285bb4ef441fb463a3`.
+
+Raw evidence remains ignored at `build/ci/accuracycoin/full/`; baseline metadata
+records the measured source, cost and fingerprint rather than relabeling the
+historical capture. All earlier measurements below retain their own identities.
+The guest and outer bounds in `budgets.txt`, protected PASS set, scoreboard,
+ROM pins, runtime stops and hosted-collector debt are unchanged. This is native
+CI fixture evidence; no host/device, private content, daily progress or hosted
+collection was used or authorized by this bookkeeping.
+
 ## CI efficiency quick-task refresh, 2026-10-29
 
 Quick task `261029-sdj` extracts each test object once in the no-skip inventory
