@@ -125,5 +125,5 @@ No implementation gap was found: the CI job guards, perf eligibility, required-c
 - The implementation diff contains the six planned code/documentation files; the pre-existing dirty `AGENTS.md`, `.planning/config.json`, and `.planning/continue.md` were left untouched.
 
 ---
-_Verified: 2026-10-31T15:37:09Z_  
+_Verified: 2026-10-31T15:37:09Z_
 _Verifier: gsd-verifier_
