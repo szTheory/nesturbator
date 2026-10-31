@@ -43,10 +43,10 @@ The README now routes maintainers to canonical release and testing guides while 
 
 ## Accomplishments
 
-- Added [docs/releases.md](../../../docs/releases.md) for the three source-build components, exact archive inventory, install-line validation, version-marker ownership, release workflow, checksums and attestation order.
-- Added [docs/testing.md](../../../docs/testing.md) for the README's build, CTest, conformance, CI, hosted collector, performance, libretro and RetroArch evidence. Repository paths are rebased for a guide under docs/.
-- Kept API and runner semantics in [docs/api.md](../../../docs/api.md) and [docs/runner.md](../../../docs/runner.md); testing material links to those owners.
-- Reduced [README.md](../../../README.md) to the player entry, supported-content summary, checked MMC3 clause, installation route and short developer links.
+- Added [docs/releases.md](../../../../docs/releases.md) for the three source-build components, exact archive inventory, install-line validation, version-marker ownership, release workflow, checksums and attestation order.
+- Added [docs/testing.md](../../../../docs/testing.md) for the README's build, CTest, conformance, CI, hosted collector, performance, libretro and RetroArch evidence. Repository paths are rebased for a guide under docs/.
+- Kept API and runner semantics in [docs/api.md](../../../../docs/api.md) and [docs/runner.md](../../../../docs/runner.md); testing material links to those owners.
+- Reduced [README.md](../../../../README.md) to the player entry, supported-content summary, checked MMC3 clause, installation route and short developer links.
 - Preserved the literal marked install block and MMC3 support clause byte-for-byte against the Task 1 baseline. release-please-config.json, CMake packaging and archive allowlists were unchanged.
 
 ## Consolidated README migration ledger

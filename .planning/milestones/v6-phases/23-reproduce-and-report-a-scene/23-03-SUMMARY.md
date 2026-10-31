@@ -96,7 +96,7 @@ plan_head_after: 36ac4302481be224683938aa7b555eb1ae885957
 
 ## Accomplishments
 
-- Added a decision table and evidence limits to [the reproduction guide](../../../docs/reproduction.md). It separates title-level observations, repeated native windows, RGB conversion and test-host callbacks, frontend presentation, and independent correctness oracles. README, testing and progress links were already direct; the runner guide now links to the canonical guide.
+- Added a decision table and evidence limits to [the reproduction guide](../../../../docs/reproduction.md). It separates title-level observations, repeated native windows, RGB conversion and test-host callbacks, frontend presentation, and independent correctness oracles. README, testing and progress links were already direct; the runner guide now links to the canonical guide.
 - Extended the scoped reproduction contract with five new independent false-claim mutations, preserving the original eight controls. It also validates the four direct guide links and the generated 60-second CTest limits.
 - Recorded permitted fixture/build digests, inherited cold frame/audio hashes, current checkpoint controls, exact focused commands, platform limits, helper-gap rationale and unresolved decisions in [the sanitized evidence record](23-EXECUTION-EVIDENCE.md). No emulator runtime source or public API changed.
 
@@ -123,9 +123,9 @@ The focused guide/link selection passed 4/4; the replay, preflight and NMI selec
 
 ## Files Created/Modified
 
-- [docs/reproduction.md](../../../docs/reproduction.md) — layered next-evidence table and explicit evidence limits.
-- [docs/runner.md](../../../docs/runner.md) — direct link to the canonical scene reproduction guide.
-- [tests/cmake/reproduction_contract.cmake](../../../tests/cmake/reproduction_contract.cmake) — scoped evidence, link, timeout and false-claim controls.
+- [docs/reproduction.md](../../../../docs/reproduction.md) — layered next-evidence table and explicit evidence limits.
+- [docs/runner.md](../../../../docs/runner.md) — direct link to the canonical scene reproduction guide.
+- [tests/cmake/reproduction_contract.cmake](../../../../tests/cmake/reproduction_contract.cmake) — scoped evidence, link, timeout and false-claim controls.
 - [23-EXECUTION-EVIDENCE.md](23-EXECUTION-EVIDENCE.md) — sanitized identity, commands, results, inherited evidence and limits.
 
 ## Decisions Made

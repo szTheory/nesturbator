@@ -10,16 +10,22 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 ## Current State
 
-v5 "NMI, VBlank and sprite-0 timing" completed on 2026-10-30: three phases, 27 plans and eleven satisfied requirements. All eleven selected AccuracyCoin targets pass at `6bee919`; the canonical baseline is 119 PASS / 27 FAIL over 146 terminal scored rows plus five unscored DRAW entries. IRQ poll acceptance, coherent shared BRK/IRQ/NMI entry, sprite-0 evaluation and JAM presentation now have owned causal tests and native/actual-adapter replay. Public ABI 1 remains unchanged. State format 3 refuses earlier formats; behavior revision 9 is recorded but is not a loader compatibility check.
+v6 "Player-ready NES and reproducible feedback" completed on 2026-10-31: two phases, seven plans and ten satisfied requirements. Phase 22 passed 7/7 and Phase 23 passed 9/9. The README now leads into maintained player and developer guides; installation identity, progress backup/rollback, bounded replay, checkpoint preflight and evidence limits are documented and checked. No emulator runtime source, public ABI, state format or pinned hash baseline changed.
 
-PRs #57, #59 and #61 are merged. The accepted historical CI/Nightly bundles bind their own source identities and six-platform hashes, protected PASS sets, host/conformance outcomes and unchanged +1% performance threshold. The final PR head's CI/Nightly also succeeded. These are separate evidence claims, not a new content collection. Package release [PR #56](https://github.com/szTheory/nesturbator/pull/56) (0.1.12) is still open as checked during closeout; publication is not claimed.
+The v6 audit reports `tech_debt` with no blocking requirement, integration or end-to-end gap. Closeout carries forward the recorded traceability, timing, campaign, platform and evidence limitations; it does not waive existing safety stops. The full CI workflow was not rerun, and the interrupted campaign outcome remains unknown. See the [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 roadmap archive](milestones/v6-ROADMAP.md).
 
-All three phase reports were current and passed before archival. The milestone audit has `tech_debt`, with no blocking requirement, integration or end-to-end gap. Closeout explicitly carries six newly acknowledged records and ten prior acknowledgements. Collector defects, historical measurement attribution, README revision advisory, macOS nofp and physical-tie/provenance limits remain documented in the [v5 closeout](milestones/v5-CLOSEOUT.md) and [audit](milestones/v5-MILESTONE-AUDIT.md). WINDOWS entry 18's representation is reconciled from its existing fixed evidence.
+Package publication remains separate from planning completion. The owner authorized automatic publication only when required CI checks are green. Release [PR #56](https://github.com/szTheory/nesturbator/pull/56) for 0.1.12 remains open and its latest checks failed, so it is not eligible; [v0.1.11](https://github.com/szTheory/nesturbator/releases/tag/v0.1.11) remains the latest published release. No campaign rerun or publication is claimed here.
 
-The repository contains 49,089 lines of owned C, excluding vendored `libretro.h`, and 695 registered CI tests. Detailed count definitions, task reconciliation and history are in the closeout record. Library, runner and libretro remain the only three deliverables.
+The repository contains 49,089 lines of owned C, excluding vendored `libretro.h`, and 695 registered CI tests. v6 added player and developer documentation plus automated contract checks; the library, runner and libretro adapter remain the only three deliverables.
 
 <details>
-<summary>Historical state and phase refresh notes before v5 archival</summary>
+<summary>v5 and earlier historical project state</summary>
+
+### v5 shipped state
+
+v5 "NMI, VBlank and sprite-0 timing" completed on 2026-10-30 with three phases, 27 plans and eleven satisfied requirements. All eleven selected AccuracyCoin targets passed at `6bee919`; the baseline was 119 PASS / 27 FAIL over 146 scored rows plus five unscored DRAW entries. IRQ acceptance, interrupt takeover, sprite-0 evaluation and JAM presentation have owned causal tests and native/adapter replay. ABI 1 remains unchanged; state format 3 rejects earlier formats, while behavior revision 9 is not a loader compatibility check.
+
+PRs #57, #59 and #61 merged. The accepted source-bound CI/Nightly bundles retained their own identity and six-platform evidence. Release PR #56 for 0.1.12 remained open. Six newly acknowledged records and ten prior acknowledgements were carried; collector, measurement, documentation, platform and provenance debt remain in the [v5 closeout](milestones/v5-CLOSEOUT.md) and [v5 audit](milestones/v5-MILESTONE-AUDIT.md). WINDOWS entry 18 was reconciled from existing fixed evidence.
 
 v4 "Measured NTSC accuracy and robustness" shipped on 2026-10-24 (planning milestone; the package version is separate). Phase 16 merged as PR #50 and was published as [v0.1.11](https://github.com/szTheory/nesturbator/releases/tag/v0.1.11), with downloaded-byte, checksum, attestation and six-platform metadata evidence. Phases 17 and 18 merge through PR #55, whose exact-head CI run [40150921041](https://github.com/szTheory/nesturbator/actions/runs/40150921041) passed every check; their publication is recorded in MILESTONES.md once observed. RetroArch progression and state checks now reject dropped, doubled and wrong-load sequences. The AccuracyCoin baseline at `6bee919` classifies all 146 scored rows (101 pass, 42 fail, 2 not-run, 1 timeout, five DRAW entries kept out of the score) and protects every PASS freshly on each CI lane. An owned execution fuzz/replay target runs generated programs on all six board families with lifecycle, loop and JAM controls and finite nightly sanitizer campaigns. The tree has 39,760 lines of C, 8,979 of them in the core library and public header, with 669 CTest tests in `ci`.
 
@@ -64,7 +70,11 @@ new hosted qualification is claimed by this refresh.
 
 </details>
 
-## Current Milestone: v6 Player-ready NES and reproducible feedback
+## Next Milestone Goals
+
+No next milestone is committed. The preferred default is the five remaining DMA failures, with the three already-passing former candidates retained as regression guards. RM-015 can move ahead only if bounded native/source-based triage establishes a concrete core fault. PAL is the main regional alternative; scoped maintenance is the smaller alternative. See the [four-horizon product roadmap](PRODUCT-ROADMAP.md). These are proposals, not approved scope.
+
+## Completed Milestone: v6 Player-ready NES and reproducible feedback
 
 **Goal:** A player can install an identified NES core, protect daily progress and provide a precise, reproducible scene report using existing facilities.
 
@@ -73,7 +83,7 @@ new hosted qualification is claimed by this refresh.
 - Installation identifies the actual package/build/core and keeps published releases separate from merged development behavior. Battery saves, snapshots, rewind and host containers have explicit backup, supported-version and rollback guidance.
 - A bounded report/replay recipe identifies scene, inputs, content and core, preserves private artifacts, and separates native output, adapter conversion, host presentation and original game behavior.
 
-The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30. v6 continues phase numbering after 21. SEED-006 contributes only demonstrated documentation/contract work; existing research and 22 title reports are reused. The owner approved the ten requirements and Phases 22–23 with “yes i approve”; see [requirements](REQUIREMENTS.md) and [roadmap](ROADMAP.md). Phases 22 and 23 are implemented. Phase 22 verification was explicitly refreshed and passes after three review corrections to scratch failure handling and shared document checks. Those corrections made Phase 23's shared-file report stale; refresh it separately before the v6 milestone audit. Overscan, accuracy fixes, new regions/mappers and actual Playstead integration remain outside this milestone. Direction and preserved debt are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30 and approved all ten requirements and Phases 22–23. Phase 22 covers player guidance, build identity and progress protection; Phase 23 covers sanitized scene reports, bounded cold replay, native checkpoint continuation and evidence triage. All ten requirements passed the milestone audit. Existing Deck/ES-DE setup and 22 title reports remain scoped smoke evidence, not universal compatibility claims. Overscan, accuracy repairs, new regions/mappers and actual Playstead integration remain outside v6. See the [archived requirements](milestones/v6-REQUIREMENTS.md), [execution roadmap](milestones/v6-ROADMAP.md), [product roadmap](milestones/v6-PRODUCT-ROADMAP.md) and [audit](milestones/v6-MILESTONE-AUDIT.md).
 
 <details>
 <summary>v5 milestone definition (archived)</summary>
@@ -148,9 +158,7 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 ### Active
 
-No remaining committed v6 implementation requirement. Milestone audit and closeout are separate steps.
-
-The ten detailed requirements and two-phase structure are approved. READY-01 through READY-06 and REPRO-01 through REPRO-04 are complete. Phase 23 adds documentation/test orchestration only; intermittent local CTest document-check timeouts remain unexplained and full campaign CI was not run. v5 remains archived. Package publication is independent: release PR #56 was rechecked open and the latest published release was v0.1.11 during v6 opening.
+No next-milestone requirement is committed. RM-015 remains conditional on a confirmed core fault; otherwise the remaining DMA cluster stays the preferred candidate. The other Near, Mid and Long outcomes remain proposed under their existing promotion triggers.
 
 ### Out of Scope
 
@@ -175,6 +183,7 @@ The ten detailed requirements and two-phase structure are approved. READY-01 thr
 - **Known debt after v3.** Listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and the v3 entry of `.planning/MILESTONES.md`. None of it changes released behaviour; the most substantive items are the three Phase 13 RetroArch test-robustness warnings.
 - **Known debt after v4.** Listed in `.planning/milestones/v4-MILESTONE-AUDIT.md`, the v4 entry of `.planning/MILESTONES.md` and PRODUCT-ROADMAP's carried-debt section. The two JAM gaps shipped in v5; remaining campaign-minimization and platform debt stays in the current product ledger.
 - **Known debt after v5.** The [v5 audit](milestones/v5-MILESTONE-AUDIT.md) and [closeout](milestones/v5-CLOSEOUT.md) retain recurring collector defects, attribution and revision advisories, platform limitations and acknowledged planning records. The ledger representation repair changes no historical verdict.
+- **Known debt after v6.** The [v6 audit](milestones/v6-MILESTONE-AUDIT.md) retains Phase 22 summary traceability gaps, unresolved document-test timing anomalies and heuristic edges, unverified platform/save-recovery behavior, and the interrupted full-CI/campaign outcome. Judgment-tier prohibitions remain flagged, not accepted as verified. The audit also carries forward prior collector, measurement, documentation and platform debt.
 - **CI cost.** The asan job skips or shortens the long hash tests (`NESTURBATOR_SHORT_RUNS`), whose full-length hashes the build jobs and hash-equality still check. Every `timeout-minutes` is twice a measured hosted run whose ID sits beside it, and `hygiene.timeout_comments` enforces that.
 - **Reference material.** Each file below states facts with their sources. Open the one that matches the work before designing or building.
   - `.planning/preparation/README.md` — index of the files below
@@ -197,7 +206,7 @@ The ten detailed requirements and two-phase structure are approved. READY-01 thr
 - **Privacy**: no personal paths, addresses or names in tracked files or release artifacts — the repository is public.
 - **Verification**: every machine-verifiable behaviour is shown by a command: `cmake --workflow --preset ci` for the main suite, with other presets and hosted workflows covering the rest. Before surfacing a pending UAT item, verify-work audits it for existing command evidence or a recurring regression test; automated items are run and recorded without an owner prompt. Owner input is reserved for consent or irreducible judgment, such as source provenance.
 - **Hand-offs**: integration, end-to-end and smoke checks run as commands locally or on CI (on CI when they keep paying off there); identity, consent and irreducible judgments are the only owner hand-offs, so product behavior closes without manual UAT.
-- **Delivery**: the owner creates each phase's branch; it merges by pull request into a green `main` and is released automatically — each phase ends in something to download and run.
+- **Delivery**: the owner creates each phase's branch; it merges by pull request into a green `main`. Required release checks must be green before automatic publication. Documentation-only planning work may not produce a package release.
 
 ## Key Decisions
 
@@ -212,7 +221,7 @@ runtime stops remain intact. See the Phase 22 verification and execution evidenc
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| v6 closes player documentation, progress-safety and reproducible-feedback gaps before another accuracy cluster | Ordinary play across six mapper IDs supplied enough discovery evidence; additional generic gameplay has diminishing value | — Approved requirements and Phases 22–23; implementation pending. Reuse research; no new broad sweep, host framework or overscan feature. |
+| v6 closes player documentation, progress-safety and reproducible-feedback gaps before another accuracy cluster | Ordinary play across six mapper IDs supplied enough discovery evidence; additional generic gameplay has diminishing value | ✓ Good — Phases 22–23 passed verification; all ten requirements are satisfied. No new broad sweep, host framework, overscan or actual Playstead integration. |
 | IRQ eligibility is accepted at the legal instruction poll and BRK/IRQ/NMI share resumable entry with coherent vector selection | Old-I timing and takeover require retained history, not a new independent IRQ queue | ✓ Good — Phase 21 latency/overlap targets, native every-stage replay and actual adapter run-ahead; format 3/revision 9 |
 | Entry-inhibited NMI candidates qualify only if held until recognition; recognized requests remain separate | Raw sampled pulses must not become sticky recognized requests prematurely | ✓ Good — Phase 21 causal revert/mutant controls and held/released native/adapter histories; physical exact ties remain unmeasured |
 | Protected raw-key results, six-platform inventories and original performance thresholds remain unchanged acceptance gates | Aggregate score improvement cannot conceal lost passes or source mismatch | ✓ Good — all eleven targets and all 114 Phase 21 starting PASS keys on six lanes; collector recurrence remains debt |
@@ -295,4 +304,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-31 after Phase 22 verification refresh*
+*Last updated: 2026-10-31 after v6 milestone closeout*

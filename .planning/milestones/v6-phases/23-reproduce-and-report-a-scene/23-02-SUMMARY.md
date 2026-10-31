@@ -138,12 +138,12 @@ The focused selection passed all 11 selected tests, including the automatic save
 
 ## Files Created/Modified
 
-- [docs/reproduction.md](../../../docs/reproduction.md) — native checkpoint preflight, continuation route, scratch bounds and outcome table.
-- [docs/progress.md](../../../docs/progress.md) — link to isolated scene reproduction and the independent battery-backup policy.
-- [docs/testing.md](../../../docs/testing.md) — link to the neutral fixture reproduction route.
-- [tests/CMakeLists.txt](../../../tests/CMakeLists.txt) — preflight registrations and finite fixture setup deadlines.
-- [tests/cmake/reproduction.cmake](../../../tests/cmake/reproduction.cmake) — digest preflight, supported fixture creation, negative controls and stop-line rejection.
-- [tests/cmake/reproduction_contract.cmake](../../../tests/cmake/reproduction_contract.cmake) — guide, scratch, container, CTest metadata and mutation checks.
+- [docs/reproduction.md](../../../../docs/reproduction.md) — native checkpoint preflight, continuation route, scratch bounds and outcome table.
+- [docs/progress.md](../../../../docs/progress.md) — link to isolated scene reproduction and the independent battery-backup policy.
+- [docs/testing.md](../../../../docs/testing.md) — link to the neutral fixture reproduction route.
+- [tests/CMakeLists.txt](../../../../tests/CMakeLists.txt) — preflight registrations and finite fixture setup deadlines.
+- [tests/cmake/reproduction.cmake](../../../../tests/cmake/reproduction.cmake) — digest preflight, supported fixture creation, negative controls and stop-line rejection.
+- [tests/cmake/reproduction_contract.cmake](../../../../tests/cmake/reproduction_contract.cmake) — guide, scratch, container, CTest metadata and mutation checks.
 
 ## Decisions Made
 

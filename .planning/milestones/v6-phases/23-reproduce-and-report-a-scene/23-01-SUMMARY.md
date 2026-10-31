@@ -100,7 +100,7 @@ plan_head_after: d3e2dba87ff2b4ac56d553447bda342d16eafdb8
 
 ## Accomplishments
 
-- Added a player report form, permitted-fixture example, privacy limits and source-build instructions in [docs/reproduction.md](../../../docs/reproduction.md); README troubleshooting links directly to it.
+- Added a player report form, permitted-fixture example, privacy limits and source-build instructions in [docs/reproduction.md](../../../../docs/reproduction.md); README troubleshooting links directly to it.
 - Added `runner.reproduction.cold`, which creates a fresh scratch root, generates the existing 600-frame `nesrunner-pos` NMOVIE1 movie, and runs the public CLI twice. The comparator requires frames 1–600 in order and compares the full tick/hash records plus separate transition and PCM hashes.
 - Added output and document controls that reject changed frame/audio values, missing audio, duplicate/reordered/truncated frames, missing report fields, stale CTest names or build targets, and a removed privacy claim.
 - Kept `runner.boot_to_play` as the separate game-behavior oracle for its positive run and none, attract-only and Start-only controls.

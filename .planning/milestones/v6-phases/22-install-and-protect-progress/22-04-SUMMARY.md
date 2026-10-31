@@ -46,9 +46,9 @@ The README now takes players through content limits, archive selection and exact
 
 ## Accomplishments
 
-- Reorganized [README.md](../../../README.md) around the player route, preserving the checked MMC3 support clause and the complete version-marked Apple Silicon install block. Added the six OS/architecture archive choices, configured core/info locations, content and no-content loading, host-port guidance, progress warning and troubleshooting.
-- Added [docs/progress.md](../../../docs/progress.md) distinguishing battery RAM, native snapshots, RetroArch state containers, rewind and automatic loading. It records the current format-3 check and unenforced behavior revision accurately, gives backup/hash/rollback steps, and labels unknown cross-build SRAM and incompatible host autoload recovery.
-- Expanded [docs/releases.md](../../../docs/releases.md) with loaded-build identity guidance, source/tag and artifact distinctions, platform digest tools, and unknown-on-insufficient-evidence handling. [docs/testing.md](../../../docs/testing.md) now explains the disposable fixture route and the scope of native and host observations.
+- Reorganized [README.md](../../../../README.md) around the player route, preserving the checked MMC3 support clause and the complete version-marked Apple Silicon install block. Added the six OS/architecture archive choices, configured core/info locations, content and no-content loading, host-port guidance, progress warning and troubleshooting.
+- Added [docs/progress.md](../../../../docs/progress.md) distinguishing battery RAM, native snapshots, RetroArch state containers, rewind and automatic loading. It records the current format-3 check and unenforced behavior revision accurately, gives backup/hash/rollback steps, and labels unknown cross-build SRAM and incompatible host autoload recovery.
+- Expanded [docs/releases.md](../../../../docs/releases.md) with loaded-build identity guidance, source/tag and artifact distinctions, platform digest tools, and unknown-on-insufficient-evidence handling. [docs/testing.md](../../../../docs/testing.md) now explains the disposable fixture route and the scope of native and host observations.
 - Kept each README claim represented in its maintained documentation home. The detailed migration ledger below preserves the original README's unique material across this plan and Plans 22-01 through 22-03.
 
 ## README claim-conservation ledger
@@ -106,7 +106,7 @@ None.
 
 ## Next Plan Readiness
 
-Plan 22-04 is complete. Phase 22 is **awaiting the parent executor's review/verifier and full CI**; it is not marked complete here, and Phase 23 has not started. Next command: `$gsd-verify-work 22`. It reviews the completed Phase 22 evidence and checks the phase goal. Context may be cleared before running it; read [STATE.md](../../STATE.md), [continue.md](../../continue.md), the phase context and this summary first.
+Plan 22-04 is complete. Phase 22 is **awaiting the parent executor's review/verifier and full CI**; it is not marked complete here, and Phase 23 has not started. Next command: `$gsd-verify-work 22`. It reviews the completed Phase 22 evidence and checks the phase goal. Context may be cleared before running it; read [STATE.md](../../../STATE.md), [continue.md](../../../continue.md), the phase context and this summary first.
 
 ## Self-Check: PASSED
 

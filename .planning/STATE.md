@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v6
 milestone_name: Player-ready NES and reproducible feedback
-current_phase: 23
-current_phase_name: Reproduce and report a scene
-status: Phase 23 verified; v6 milestone audit pending
-stopped_at: Phase 23 verification passed; stopped at separate milestone-audit boundary
-last_updated: "2026-10-31T13:28:32Z"
+status: v6 milestone complete; next milestone unapproved
+stopped_at: v6 milestone closeout complete
+last_updated: "2026-10-31T14:00:15Z"
 last_activity: 2026-10-31
-last_activity_desc: Phase 23 verification refreshed and passed 9/9 with bounded regression evidence
-state_head: 634a8f10a63330cb6f50347850441a1dd47f5c61
+last_activity_desc: Milestone v6 completed and archived
+state_head: f5f9e27cb3b1846681ae1066b896fe490d7a9a5c
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 7
   completed_plans: 7
   percent: 100
+current_phase: null
+current_phase_name: null
 current_plan: null
 ---
 
@@ -23,39 +23,41 @@ current_plan: null
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated 2026-10-31 after Phase 22 verification refresh, and AGENTS.md.
+See [PROJECT.md](PROJECT.md), updated for v6 closeout on 2026-10-31, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: All v6 implementation plans are complete. Phase 22 verification is current and passed. Phase 23 review and disposition are refreshed and committed; its refreshed verification passed 9/9 using the bounded 31-test CTest selection. The separate v6 milestone audit is next.
+Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md).
 
 ## Current Position
 
-Phase: 23 (Reproduce and report a scene) — VERIFIED
-Plan: All 3 of 3 plans are summarized.
-Status: Verification passed 9/9; the phase is already marked complete in the roadmap.
-Last activity: 2026-10-31 — refreshed verification passed after a bounded regression run.
+Phase: Milestone v6 archived
+Plan: —
+Status: Complete; no next milestone scope approved
+Last activity: 2026-10-31 — v6 closeout artifacts prepared
 
 ## Next Action
 
-Phase 22's [verification](phases/22-install-and-protect-progress/22-VERIFICATION.md)
-still passes. Phase 23's refreshed [review](phases/23-reproduce-and-report-a-scene/23-REVIEW.md)
-and [disposition](phases/23-reproduce-and-report-a-scene/23-REVIEW-DISPOSITION.md)
-found no new issues, and the refreshed [verification](phases/23-reproduce-and-report-a-scene/23-VERIFICATION.md)
-passed 9/9. The supplied bounded CTest selection passed 31/31 in 33.11 seconds
-with `-FA accuracycoin_full_report`; the full CI workflow and campaign were not
-rerun. The verifier self-check reports `passed`, and the current fingerprint is
-`v4:sha256:819a7ef0397e51ac6e895ac96a26b888138f026f928275c6301bcf58d6f9388d`.
+The milestone is archived in [MILESTONES.md](MILESTONES.md), with the full
+[closeout](milestones/v6-CLOSEOUT.md), [audit](milestones/v6-MILESTONE-AUDIT.md),
+[requirements](milestones/v6-REQUIREMENTS.md), [execution roadmap](milestones/v6-ROADMAP.md),
+and [product-roadmap snapshot](milestones/v6-PRODUCT-ROADMAP.md). All ten
+requirements, both phases, and three end-to-end flows are complete; the audit
+status is `tech_debt`, and the owner approved carrying its documented debt.
 
-The configured full-CI regression gate was accidentally started in the previous
-attempt. It reached roughly 608/706 tests and had `accuracycoin.campaign`
-scheduled before interruption; the final campaign result is unknown. This is
-retained as historical uncertainty, not a pass. The bounded refresh is complete;
-no further test or campaign command is needed for Phase 23.
+No next milestone is committed. The preferred candidate is the five remaining
+DMA failures, with RM-015 conditional on bounded evidence of a core fault. PAL
+is the regional alternative; scoped maintenance is the smaller alternative.
+The exact next command is `$gsd-new-milestone`. It starts the next milestone's
+scope questions, research, requirements and roadmap; context may be cleared
+before running it. The owner acts next. See [continue.md](continue.md) before
+resuming for the preserved detailed safety boundary.
 
-The next OpenGSD command is `$gsd-audit-milestone`. It audits v6 against the
-approved direction and accumulated evidence before closeout; it is a separate
-step and has not been started. Read [continue.md](continue.md) first. Context may
-be cleared before the owner runs it. No implementation phase, milestone closeout,
-publication, push or PR was started.
+Release PR #56 for 0.1.12 remains open at head
+`74d443f2b44857c9e366970e1b11b0f923cf4a0d`; its required CI aggregate failed,
+six platform build jobs and ASan failed, and `suite-flake` failed (checked
+2026-10-31). Automatic publication is authorized only after all required
+checks are green, so no publication occurred. v0.1.11 remains the latest
+published package. The configured `git.create_tag` is false; no v6 tag was
+created.
 
 Earlier Phase 23 document-test timeouts and wall-time jumps remain unexplained;
 no timeout was raised or machine restart performed. The configured CI cache can
@@ -73,9 +75,11 @@ Native/adapter equality establishes neither host presentation nor hardware
 correctness. Commercial reports remain unclassified. PowerShell and other
 platforms were not executed locally; no daily progress was touched.
 
-Work remains on gsd/phase-23-reproduce-and-report-a-scene. Owner edits to AGENTS.md
-and .planning/config.json remain unstaged and uncommitted. Collector/platform,
-host-recovery debt and all historical safety stops are unchanged.
+The closeout is on gsd/phase-23-reproduce-and-report-a-scene. Local changes to
+AGENTS.md, .planning/config.json and .planning/continue.md remain outside the
+milestone archive commits. Collector/platform, host-recovery debt and all
+historical safety stops are unchanged. No tests, full CI workflow, campaign,
+push or release action was run for closeout.
 
 ## Preserved Debt and Boundaries
 
@@ -116,9 +120,9 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T13:28:32Z
-**Stopped at:** Phase 23 verification passed; v6 milestone audit pending
-**Next command:** $gsd-audit-milestone
+**Last session:** 2026-10-31T14:00:15Z
+**Stopped at:** v6 milestone closeout complete; next milestone scope is unapproved
+**Next command:** $gsd-new-milestone
 **Resume file:** .planning/continue.md
 
 ## Performance Metrics
@@ -146,3 +150,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 - [Phase 23]: Keep replay examples in fresh scratch roots with explicit frame/time bounds and treat interrupted or incomplete output as failure.
 - [Phase 23]: Route each observation to the least costly evidence source that can answer its claim; matching hashes establish repeatability, not independent correctness.
 - [Phase 23]: Keep commercial reports unclassified and retain judgment-only safety findings as flagged-unverified.
+
+## Operator Next Steps
+
+- Start the next milestone with `$gsd-new-milestone`. This opens scope discovery and creates fresh requirements; context may be cleared first.

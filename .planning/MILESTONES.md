@@ -1,5 +1,49 @@
 # Milestones
 
+## v6 Player-ready NES and reproducible feedback (Shipped: 2026-10-31; planning milestone)
+
+**Phases completed:** 2 phases (22–23), 7 plans, 15 tasks.
+**Timeline:** 2026-10-30 → 2026-10-31.
+**Change range:** `5519102..f5f9e27`, 43 commits, 55 files, 10,446 insertions and 2,651 deletions.
+**Requirements:** 10/10 satisfied; Phase 22 passed 7/7, Phase 23 passed 9/9; audit `tech_debt`, with 3/3 end-to-end flows and no blockers.
+
+The archive CLI reported 8 tasks. The seven plan summaries record 2, 2, 2, 3,
+2, 2 and 2 tasks (15 total); this entry uses the reconciled summary count and
+leaves the source summaries unchanged.
+
+**Key accomplishments:**
+- Reorganized the README around the player path and added canonical API, runner, release, testing and progress guides with contract checks.
+- Documented loaded-build identity, backup/rollback policy and distinctions among battery saves, native snapshots and host containers.
+- Added a sanitized scene report and bounded two-run cold replay comparing complete frame and audio records.
+- Added native checkpoint preflight for runner/ROM/state identities and kept neutral continuation separate from movie replay.
+- Added evidence guidance that separates repeatability from adapter, host and hardware correctness claims.
+
+**Closeout:** The open-artifact audit was clear; no new records were acknowledged,
+and 16 earlier acknowledged items remain carried forward. The owner approved
+carrying the v6 audit's documented non-blocking debt; no phase or requirement
+was waived. See the [closeout record](milestones/v6-CLOSEOUT.md) and
+[milestone audit](milestones/v6-MILESTONE-AUDIT.md).
+
+**Delivery:** No v6 package release is claimed. Release PR #56 (0.1.12) remains
+open with failed and cancelled checks; v0.1.11 remains the latest published
+package. Automatic publication is authorized only after all required release
+checks are green, so PR #56 was not published. `git.create_tag` is disabled in
+project configuration; no v6 tag was created.
+
+**Direction:** RM-014 shipped. No next milestone is committed. The default next
+candidate is the five remaining DMA failures; RM-015 may move ahead only if
+bounded triage confirms a core fault. PAL is the regional alternative and
+scoped maintenance the smaller option. Mid and Long triggers remain unchanged.
+The two pre-v6 quick tasks remain in `.planning/quick/` because they have no
+milestone provenance.
+
+**Archive:** [product roadmap](milestones/v6-PRODUCT-ROADMAP.md),
+[execution roadmap](milestones/v6-ROADMAP.md),
+[requirements](milestones/v6-REQUIREMENTS.md),
+[phase artifacts](milestones/v6-phases/).
+
+---
+
 ## v5 NMI, VBlank and sprite-0 timing (Shipped: 2026-10-30)
 
 **Delivered:** Games and hosts get tested sprite-0, VBlank/NMI and interrupt poll/takeover behavior across the library, runner and libretro adapter, with deterministic state continuation and explicit JAM presentation.

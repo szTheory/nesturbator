@@ -49,10 +49,10 @@ README routes runner users to a canonical guide that keeps executable option, st
 
 ## Accomplishments
 
-- Added [docs/runner.md](../../../docs/runner.md) with every CLI option and its ranges/interactions, movie and save/state examples, frame/audio/dump output, stop semantics, platform launcher qualifications, and the exact exit table.
+- Added [docs/runner.md](../../../../docs/runner.md) with every CLI option and its ranges/interactions, movie and save/state examples, frame/audio/dump output, stop semantics, platform launcher qualifications, and the exact exit table.
 - Changed both production documentation consumers to require `docs/runner.md`; added independent missing-guide and reason-specific contradiction controls that retain a stale README copy.
 - Updated README links and moved its detailed movie/output/save-check presentation into the guide. The README's checked NTSC MMC3 support clause and marked Apple Silicon installation block remain intact.
-- Kept state payload and battery-span semantics in [docs/api.md](../../../docs/api.md), with direct links from runner file behavior. Source links in the new guide are relative to `docs/`.
+- Kept state payload and battery-span semantics in [docs/api.md](../../../../docs/api.md), with direct links from runner file behavior. Source links in the new guide are relative to `docs/`.
 
 ## Runner migration ledger
 
