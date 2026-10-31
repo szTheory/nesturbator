@@ -73,6 +73,16 @@ function(reproduction_check doc_path)
       message(FATAL_ERROR "docs.reproduction: -D${var}=... is required")
     endif()
   endforeach()
+  # Mutation children opt into a test-only mode; ordinary CTest invocations
+  # must check the same canonical document that users reach from the guides.
+  if(NOT MODE STREQUAL "mutation_check")
+    cmake_path(ABSOLUTE_PATH doc_path NORMALIZE OUTPUT_VARIABLE actual_doc)
+    set(canonical_doc "${SOURCE_DIR}/docs/reproduction.md")
+    cmake_path(NORMAL_PATH canonical_doc)
+    if(NOT actual_doc STREQUAL canonical_doc)
+      message(FATAL_ERROR "docs.reproduction: DOC must name canonical docs/reproduction.md")
+    endif()
+  endif()
   if(NOT EXISTS "${doc_path}")
     message(FATAL_ERROR "docs.reproduction: report document is missing")
   endif()
@@ -332,18 +342,30 @@ function(reproduction_check doc_path)
     message(FATAL_ERROR "docs.reproduction: POSIX and PowerShell build commands are required")
   endif()
   set(documented_targets)
+  set(first_targets TRUE)
   foreach(command IN LISTS build_commands)
     string(REGEX REPLACE "^.*--target[ \t]+" "" targets_text "${command}")
     string(REPLACE "\"" "" targets_text "${targets_text}")
     string(STRIP "${targets_text}" targets_text)
-    string(REPLACE " " ";" targets "${targets_text}")
-    list(APPEND documented_targets ${targets})
+    string(REGEX REPLACE "[ \t]+" ";" targets "${targets_text}")
+    list(SORT targets)
+    if(first_targets)
+      set(documented_targets "${targets}")
+      set(first_targets FALSE)
+    elseif(NOT targets STREQUAL documented_targets)
+      message(FATAL_ERROR "docs.reproduction: shell build target lists differ")
+    endif()
   endforeach()
-  list(REMOVE_DUPLICATES documented_targets)
 
-  string(REGEX MATCH "-R[ \t]+'[^']+'" selector_arg "${cold_section}")
-  if(selector_arg STREQUAL "")
-    message(FATAL_ERROR "docs.reproduction: bounded CTest selection is missing")
+  string(REGEX MATCHALL "-R[ \t]+'[^']+'" selector_args "${cold_section}")
+  list(LENGTH selector_args selector_count)
+  if(NOT selector_count EQUAL 2)
+    message(FATAL_ERROR "docs.reproduction: both shell CTest selections are required")
+  endif()
+  list(GET selector_args 0 selector_arg)
+  list(GET selector_args 1 second_selector)
+  if(NOT selector_arg STREQUAL second_selector)
+    message(FATAL_ERROR "docs.reproduction: shell CTest selections differ")
   endif()
   string(REGEX REPLACE "^-R[ \t]+'" "" test_regex "${selector_arg}")
   string(REGEX REPLACE "'$" "" test_regex "${test_regex}")
@@ -480,8 +502,12 @@ endfunction()
 function(reproduction_expect_mutation root name mutated expected)
   set(mutated_doc "${root}/${name}.md")
   file(WRITE "${mutated_doc}" "${mutated}")
+  set(child_mode mutation_check)
+  if(ARGC GREATER 4)
+    set(child_mode check)
+  endif()
   execute_process(COMMAND "${CMAKE_COMMAND}"
-      "-DMODE=check"
+      "-DMODE=${child_mode}"
       "-DSOURCE_DIR=${SOURCE_DIR}"
       "-DBUILD_DIR=${BUILD_DIR}"
       "-DCTEST=${CTEST}"
@@ -502,9 +528,65 @@ function(reproduction_expect_mutation root name mutated expected)
   message(STATUS "docs.reproduction.self_test: ${name} rejected for the expected reason")
 endfunction()
 
+# Execute the published progress block with harmless command doubles. A failed
+# scratch/configure/test step must never reach a battery-copy or hash command.
+function(reproduction_progress_failure_controls root)
+  find_program(posix_shell sh)
+  if(NOT posix_shell)
+    message(STATUS "docs.reproduction.self_test: POSIX progress controls unavailable on this platform")
+    return()
+  endif()
+  file(READ "${SOURCE_DIR}/docs/progress.md" progress)
+  string(REGEX MATCH "```sh\n([^`]+)```" block "${progress}")
+  if(block STREQUAL "")
+    message(FATAL_ERROR "docs.reproduction self-test: progress shell recipe is missing")
+  endif()
+  set(recipe "${CMAKE_MATCH_1}")
+  set(script "${root}/progress-failure.sh")
+  file(WRITE "${script}" [=[
+root=$1
+marker=$2
+failure=$3
+mktemp() {
+  case "$failure" in
+    creation) return 1 ;;
+    invalid) printf '%s\n' "$root/missing" ;;
+    *) printf '%s\n' "$root" ;;
+  esac
+}
+mkdir() { :; }
+cmake() { if test "$failure" = configure; then return 12; fi; }
+ctest() { if test "$failure" = test; then return 13; fi; }
+cp() { printf 'unexpected copy\n' >> "$marker"; }
+shasum() { printf 'unexpected hash\n' >> "$marker"; }
+]=] "${recipe}")
+  foreach(failure IN ITEMS creation invalid configure test success)
+    set(marker "${root}/unexpected-${failure}")
+    execute_process(COMMAND "${posix_shell}" "${script}" "${root}" "${marker}" "${failure}"
+      RESULT_VARIABLE rc OUTPUT_VARIABLE out ERROR_VARIABLE err TIMEOUT 5)
+    if(failure STREQUAL "success")
+      if(NOT "${rc}" STREQUAL "0" OR NOT EXISTS "${marker}")
+        message(FATAL_ERROR "docs.reproduction self-test: progress positive control did not reach backup")
+      endif()
+      message(STATUS "docs.reproduction.self_test: progress positive control reaches backup doubles")
+      continue()
+    endif()
+    set(expected_rc 1)
+    if(failure STREQUAL "configure")
+      set(expected_rc 12)
+    elseif(failure STREQUAL "test")
+      set(expected_rc 13)
+    endif()
+    if(NOT "${rc}" STREQUAL "${expected_rc}" OR EXISTS "${marker}")
+      message(FATAL_ERROR "docs.reproduction self-test: progress ${failure} failure did not stop before backup")
+    endif()
+    message(STATUS "docs.reproduction.self_test: progress ${failure} failure stops before backup")
+  endforeach()
+endfunction()
+
 if(NOT DEFINED MODE OR MODE STREQUAL "")
   message(FATAL_ERROR "docs.reproduction: -DMODE=check|self_test is required")
-elseif(MODE STREQUAL "check")
+elseif(MODE STREQUAL "check" OR MODE STREQUAL "mutation_check")
   if(NOT DEFINED DOC OR "${DOC}" STREQUAL "")
     message(FATAL_ERROR "docs.reproduction: -DDOC=... is required")
   endif()
@@ -520,6 +602,25 @@ elseif(MODE STREQUAL "self_test")
   string(RANDOM LENGTH 20 ALPHABET 0123456789abcdef suffix)
   set(root "${WORK}/contract-${suffix}")
   file(MAKE_DIRECTORY "${root}")
+
+  reproduction_progress_failure_controls("${root}")
+
+  reproduction_expect_mutation("${root}" "noncanonical-copy" "${original}"
+    "DOC must name canonical docs/reproduction.md" production)
+
+  # Change only the PowerShell block: a matching POSIX example cannot cover
+  # a missing executable or test in the other platform's recipe.
+  string(FIND "${original}" "```powershell" powershell_start)
+  string(SUBSTRING "${original}" 0 ${powershell_start} before_powershell)
+  string(SUBSTRING "${original}" ${powershell_start} -1 powershell)
+  string(REPLACE "--target nesturbator-run runner.game_movie"
+    "--target nesturbator-run" bad_targets "${powershell}")
+  reproduction_expect_mutation("${root}" "powershell-missing-target"
+    "${before_powershell}${bad_targets}" "shell build target lists differ")
+  string(REPLACE "runner.reproduction.cold|runner.reproduction.compare_self_test"
+    "runner.reproduction.compare_self_test" bad_selector "${powershell}")
+  reproduction_expect_mutation("${root}" "powershell-missing-test"
+    "${before_powershell}${bad_selector}" "shell CTest selections differ")
 
   set(field_mutation "${original}")
   string(REPLACE "Title and region:\n" "" field_mutation "${field_mutation}")
@@ -597,7 +698,7 @@ elseif(MODE STREQUAL "self_test")
   reproduction_expect_mutation("${root}" "unclassified-commercial-labeled-fixed" "${commercial_fixed_mutation}"
     "commercial status relabeled")
 
-  message(STATUS "docs.reproduction.self_test: fourteen independent safety and evidence mutations rejected")
+  message(STATUS "docs.reproduction.self_test: seventeen independent safety and evidence mutations rejected")
 else()
   message(FATAL_ERROR "docs.reproduction: unknown mode '${MODE}'")
 endif()

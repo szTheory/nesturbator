@@ -113,7 +113,8 @@ RetroArch's battery saves and save states are separate files, and loading an
 older state or rewinding past an in-game save can restore older battery RAM.
 Back up the newest battery save independently before an upgrade or state load;
 keep it outside the active save and state folders. See the [progress guide](docs/progress.md)
-for the scratch-only walkthrough, compatibility limits and rollback steps.
+for the scratch-only walkthrough, which stops on command failure, compatibility
+limits and rollback steps.
 
 ## Troubleshooting
 

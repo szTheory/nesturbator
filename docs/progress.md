@@ -98,7 +98,10 @@ subdirectories below that build and write only generated/manifest-listed test
 fixtures there:
 
 ```sh
-scratch="$(mktemp -d "${TMPDIR:-/tmp}/nesturbator-progress.XXXXXX")"
+(
+set -e
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/nesturbator-progress.XXXXXX")" || exit 1
+test -n "$scratch" && test -d "$scratch" || exit 1
 backup="${scratch}.backup"
 config="$scratch/config"
 mkdir -p "$config"
@@ -110,9 +113,12 @@ cp "$scratch/build/tests/save_work/roundtrip/battery.sav" "$backup/newest-batter
 shasum -a 256 "$scratch/build/tests/save_work/roundtrip/battery.sav" "$backup/newest-battery.sav"
 ctest --test-dir "$scratch/build" --output-on-failure --no-tests=error -R '^(runner.save.mismatch|runner.state.roundtrip|runner.state.reject_format)$'
 shasum -a 256 "$scratch/build/tests/save_work/roundtrip/battery.sav" "$backup/newest-battery.sav"
+)
 ```
 
-The command block assumes a POSIX shell. In PowerShell, create a unique root
+The command block assumes a POSIX shell and stops on scratch creation or
+command failure before continuing to backup or replay. In PowerShell, create a
+unique root
 with `Join-Path $env:TEMP ("nesturbator-progress-" + [guid]::NewGuid().ToString("N"))`,
 create its `config` and `build` directories, and use `Copy-Item` plus
 `Get-FileHash -Algorithm SHA256` for the backup and digest steps.
