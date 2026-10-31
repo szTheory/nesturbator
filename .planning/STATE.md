@@ -4,12 +4,12 @@ milestone: v6
 milestone_name: Player-ready NES and reproducible feedback
 current_phase: 23
 current_phase_name: Reproduce and report a scene
-status: Phase 22 refresh passed; refresh stale Phase 23 verification next
-stopped_at: Phase 22 verification refreshed; stopped before Phase 23 refresh
-last_updated: "2026-10-31T13:00:43Z"
+status: Phase 23 paused at regression gate
+stopped_at: Phase 23 review refresh committed; configured full-CI regression command interrupted
+last_updated: "2026-10-31T13:11:54Z"
 last_activity: 2026-10-31
-last_activity_desc: Phase 22 review fixes committed and independently verified; Phase 23 shared-file report now stale; milestone audit remains separate
-state_head: a405970b6332036a7a575ebb12432807accf9dd8
+last_activity_desc: Phase 23 review refreshed; full-CI regression command interrupted at the preserved campaign boundary; verifier not run
+state_head: c72a47d80ad7a86d871537ac2f05b356f5c1655d
 progress:
   total_phases: 2
   completed_phases: 2
@@ -25,44 +25,51 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-31 after Phase 22 verification refresh, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: All v6 implementation plans are complete. Phase 22 verification is current and passed; Phase 23's shared-file report needs a separate refresh before milestone audit.
+Current focus: All v6 implementation plans are complete. Phase 22 verification is current and passed. Phase 23 review and disposition are refreshed and committed; its verification remains stale because the regression gate did not complete.
 
 ## Current Position
 
-Phase: 22 (Install and protect progress) — VERIFICATION REFRESH COMPLETE
-Plan: 4 of 4 complete; all were skipped during this refresh
-Status: Independently verified; stopped at the execution boundary
-Last activity: 2026-10-31 — three new review findings fixed; all seven truths, six READY requirements and 22 adopted decisions supported
+Phase: 23 (Reproduce and report a scene) — PAUSED AT REGRESSION GATE
+Plan: No implementation plans remain; all three summaries already exist.
+Status: Review refreshed and committed; regression gate interrupted; verifier not run.
+Last activity: 2026-10-31 — full configured CI command started and was interrupted at the campaign boundary.
 
 ## Next Action
 
 Phase 22's refreshed [verification](phases/22-install-and-protect-progress/22-VERIFICATION.md)
-passes. The progress walkthrough now stops on scratch/command failure; the
-reproduction checker requires its canonical document and matching shell recipes.
-See [review dispositions](phases/22-install-and-protect-progress/22-REVIEW-DISPOSITION.md)
-and [refresh evidence](phases/22-install-and-protect-progress/22-REFRESH-EVIDENCE.md).
-The original report, review and dispositions have INITIAL archives; the original
-full-workflow provenance failure and bounded repair history remain intact.
+still passes. Phase 23's refreshed [review](phases/23-reproduce-and-report-a-scene/23-REVIEW.md)
+and [disposition](phases/23-reproduce-and-report-a-scene/23-REVIEW-DISPOSITION.md)
+cover the three shared files and found no new issues. Both artifacts are committed.
 
-No user action is needed to finish this execution step. Work is stopped at its
-boundary. The next actor is the owner, when ready to run the separate command:
+The Phase 23 regression gate resolved `workflow.test_command` to
+`cmake --workflow --preset ci`. That full workflow started despite the preserved
+instruction to exclude the AccuracyCoin campaign. CTest output reached roughly
+608/706 tests, and `accuracycoin.campaign` had been scheduled. I interrupted
+CTest. It left two child processes that I identified; one had exited before I
+sent SIGINT, and the other exited after the signal. A follow-up process check
+found none from this run. The interrupted run did not leave a usable final CTest
+log, so whether that campaign test completed and its result are unknown. No
+Phase 23 verifier ran and its fingerprint remains stale. Do not treat the
+interrupted run as a regression pass or a verification.
+
+The next actor is the owner, to decide whether to continue Phase 23 verification
+using only the bounded CTest selections already documented in
+[Phase 22 refresh evidence](phases/22-install-and-protect-progress/22-REFRESH-EVIDENCE.md),
+with `-FA accuracycoin_full_report`, after reviewing the uncertain campaign
+activity. If continuing, the next OpenGSD command is:
 
 `$gsd-execute-phase 23`
 
-This skips Phase 23's completed plans and refreshes review/verification for the
-three covered files changed by these fixes: README.md, docs/progress.md and
-tests/cmake/reproduction_contract.cmake. Its status query currently reports
-stale. Do not silently re-fingerprint it. Context may be cleared first; read
-[continue.md](continue.md). Milestone audit follows a passing Phase 23 refresh.
-No new implementation phase, audit, closeout, publication, push or PR was started.
-Product-roadmap upkeep remains part of the later approved closeout step.
+Before running it, set `workflow.test_command` to the bounded CTest selection for
+that run; do not use the configured full CI workflow. Read [continue.md](continue.md)
+first. Context may be cleared before the owner resumes. Milestone audit remains
+separate and must wait for a passing Phase 23 refresh. No new implementation
+phase, audit, closeout, publication, push or PR was started.
 
-The final five document/link/policy checks passed within their unchanged bounds;
-the scoped runtime and inherited contract selection also passed. The verifier
-independently reran inherited document/state/input and local macOS archive/install
-checks. Full campaign CI was not run. Earlier Phase 23 document timeouts and
-wall-time jumps remain unresolved; fresh passes do not diagnose them. No deadline
-was raised and no process cleanup or restart occurred.
+The bounded Phase 22 tests previously passed within their recorded limits; those
+results are historical and do not make the interrupted regression gate pass.
+Earlier Phase 23 document timeouts and wall-time jumps remain unresolved. No
+timeout was raised or machine restart performed.
 
 The configured CI cache enables a full AccuracyCoin campaign. Scoped CTests
 excluded its required fixture with -FA accuracycoin_full_report. No new campaign,
@@ -87,7 +94,7 @@ host-recovery debt and all historical safety stops are unchanged.
 
 ## Preserved Debt and Boundaries
 
-- Phase 23: intermittent local document CTest timeouts and wall-time jumps remain unexplained; preserve current failures and earlier post-review passes. Full campaign CI and PowerShell/other-platform execution were not performed.
+- Phase 23: intermittent local document CTest timeouts and wall-time jumps remain unexplained; preserve current failures and earlier post-review passes. The configured full CI regression command was interrupted after `accuracycoin.campaign` was scheduled; its completion and result are unknown. Do not rerun it without an owner decision. PowerShell/other-platform execution was not performed.
 
 - Recurring collector Git/filesystem-mode enforcement, ignored-fixture/relative-root handling and duplicate validator debt remain open. Independent accepted-run checks do not fix future collections.
 - Historical measurement attribution, README revision advisory, Phase 19 state-save cost/citation/early-stage coverage limits and summary/parser metadata warnings remain visible in the audit.
@@ -124,9 +131,9 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T13:00:43Z
-**Stopped at:** Phase 22 verification refreshed; Phase 23 shared-file verification is stale
-**Next command:** $gsd-execute-phase 23
+**Last session:** 2026-10-31T13:11:54Z
+**Stopped at:** Phase 23 regression gate interrupted; shared-file verification remains stale
+**Next command:** $gsd-execute-phase 23 (only after choosing the bounded CTest command)
 **Resume file:** .planning/continue.md
 
 ## Performance Metrics

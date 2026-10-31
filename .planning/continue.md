@@ -1,44 +1,38 @@
-# Resume v6 after Phase 22 verification refresh
+# Resume Phase 23 after interrupted regression gate
 
-Read AGENTS.md, STATE.md, Phase 22 VERIFICATION/REFRESH-EVIDENCE/REVIEW-DISPOSITION,
-and the existing Phase 23 verification and execution evidence. All seven v6
-plans are implemented. The explicit Phase 22 stale refresh skipped four completed
-plans, found and fixed three review issues and independently passed all seven
-observable truths, six READY requirements and 22 adopted decisions.
+Read AGENTS.md, STATE.md, this file, Phase 22 VERIFICATION/REFRESH-EVIDENCE/
+REVIEW-DISPOSITION, and Phase 23 REVIEW, REVIEW-DISPOSITION, VERIFICATION and
+EXECUTION-EVIDENCE. All seven v6 plans are implemented. Phase 22 verification
+passed; its three fixes changed README.md, docs/progress.md and
+tests/cmake/reproduction_contract.cmake, making Phase 23's earlier verification
+stale.
 
-The progress walkthrough now stops on failed scratch creation or commands. Its
-published POSIX block is exercised with four injected failures and a successful
-backup-double control. Reproduction checks require the canonical guide and equal
-shell target/test selections; 17 document mutations cover rejection behavior.
-Final five document/policy/link tests and 31 scoped runtime/inherited checks
-passed. The verifier reran inherited document/state/input and local package/install
-checks. Original full CI failure/provenance repair records and earlier intermittent
-Phase 23 document timeouts remain intact; no full workflow pass is claimed.
+Phase 23's standard-depth review and disposition were refreshed and committed.
+The review covered those three changed files and found no new issues. During the
+regression gate, the configured command resolved to `cmake --workflow --preset
+ci`, although the preserved boundary requires excluding the AccuracyCoin
+campaign. The workflow started; CTest output reached roughly 608/706, with
+`accuracycoin.campaign` scheduled. CTest was interrupted; it left two identified
+child processes, one of which had already exited when signaled, while the other
+exited after SIGINT. A follow-up process check found none from this run. The run
+left no usable final CTest log, so whether the campaign test completed is
+unknown. The verifier did not run; Phase 23's
+fingerprint remains stale. Do not claim the regression gate or verification
+passed.
 
-The fixes changed README.md, docs/progress.md and tests/cmake/reproduction_contract.cmake,
-which Phase 23's report covers. That report is now stale. The next actor is the
-owner, invoking the separate next step:
+Stop here for the owner's decision about whether to continue after reviewing
+that uncertain campaign activity. The recommended path is a bounded CTest-only
+refresh using the already documented selections in
+`phases/22-install-and-protect-progress/22-REFRESH-EVIDENCE.md`, with
+`-FA accuracycoin_full_report`; do not rerun the full workflow. If approved, the
+next command is `$gsd-execute-phase 23`, with `workflow.test_command` set to the
+bounded selection for that run. After a passing refresh, milestone audit is a
+separate command and must not be started implicitly. Context may be cleared
+before resuming.
 
-`$gsd-execute-phase 23`
-
-It skips three completed plans and refreshes the shared-file review/verification;
-do not silently rewrite its fingerprint. Context can be cleared first. After it
-passes, milestone audit is another explicit step; do not start it implicitly.
-Product-roadmap upkeep belongs to the later approved complete-milestone step.
-
-Six Phase 22 and eight Phase 23 judgment-tier prohibitions remain prominently
-flagged and non-authoritative. Project instructions forbid making owner signoff,
-new gameplay or device work an acceptance prerequisite. The final verifier report
-records that this instruction takes precedence over its default interactive
-signoff gate. No uncertainty was silently accepted and no safety stop was waived.
-
-The local CI cache has FULL campaign enabled. Always inspect fixture dependencies
-before CTest selection and exclude accuracycoin_full_report from scoped refresh
-checks. No campaign, collector/provenance refresh, host/device, private-content,
-daily-save, publication, push or PR authority is granted by this step. No timeout
-was raised, process cleanup done or restart needed. PowerShell and other-platform
+The local CI cache enables the full campaign. No collector/provenance refresh,
+host/device, private-content, daily-save, publication, push or PR is authorized.
+No timeout was raised or machine restart performed. PowerShell and other-platform
 execution remain untried; commercial scenes remain unclassified. Preserve all
-collector/platform/host-recovery debt and historic runtime windows.
-
-Work remains on the Phase 23 branch. Preserve the owner's unstaged AGENTS.md and
-.planning/config.json changes; they were not included in the fix or handoff commits.
+collector/platform/host-recovery debt and historic runtime windows. The owner's
+unstaged AGENTS.md and .planning/config.json edits remain untouched.
