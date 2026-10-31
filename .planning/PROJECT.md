@@ -172,10 +172,10 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 ### Active
 
-- [ ] The first causal divergence for each selected DMA failure is localized using bus-cycle traces and cited test/hardware evidence, with test expectations separated from implementation observations.
-- [ ] Each changed root cause has an owned, discriminating fixture and a source-supported implementation; unrelated DMA behavior stays unchanged.
-- [ ] All five selected DMA rows pass at the existing pin, while the three passing DMA rows and every other protected PASS key remain protected.
-- [ ] Determinism, save-state continuation and public behavior documentation are covered when implementation changes make them relevant; the existing full-CI/campaign stop is resolved separately before any prohibited rerun.
+- [ ] **DMA-01**: All five selected DMA rows pass at AccuracyCoin pin `6bee919` for the declared RP2A03G target.
+- [ ] **DMA-02**: Each distinct fix has source-backed cycle-level evidence and an owned fixture with a wrong-model control.
+- [ ] **DMA-03**: The three already-passing DMA rows and every other protected PASS key remain passing, with deterministic output and existing performance limits preserved.
+- [ ] **DMA-04**: Changed in-flight DMA state resumes identically after save/load, state-format/revision impact is explicit, and README/public-header behavior comments are updated.
 
 ### Out of Scope
 
@@ -322,4 +322,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-31 after v7 milestone opening*
+*Last updated: 2026-10-31 after v7 requirements approval*
