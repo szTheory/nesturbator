@@ -4,12 +4,12 @@ milestone: v6
 milestone_name: Player-ready NES and reproducible feedback
 current_phase: 23
 current_phase_name: Reproduce and report a scene
-status: planning
-stopped_at: Phase 22 executed and verified; stopped at phase boundary before Phase 23 discussion
-last_updated: "2026-10-31T02:10:01.350Z"
+status: Ready to plan Phase 23; discussion complete
+stopped_at: Phase 23 context gathered; stopped before planning
+last_updated: "2026-10-31T02:21:40.683Z"
 last_activity: 2026-10-30
-last_activity_desc: Phase 22 complete; all READY requirements verified; Phase 23 not started
-state_head: bc9ed0c0d1ef160c63bf12f45e1be230dcd9cd6c
+last_activity_desc: Phase 23 context gathered; ready to plan; no implementation started
+state_head: 545ed532bf46a56ff32c7abb55479517348029ea
 progress:
   total_phases: 2
   completed_phases: 1
@@ -25,56 +25,49 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after Phase 22, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 22 complete; Phase 23 report/replay/triage is the next approved scope and has not started.
+Current focus: Phase 23 discussion complete; ready for planning. Phase 22 remains verified complete.
 
 ## Current Position
 
-Phase: 23 — Reproduce and report a scene (not started)
+Phase: 23 — Reproduce and report a scene (context gathered; not planned)
 Plan: Not created
-Status: Phase 22 complete; ready for Phase 23 discussion
-Last activity: 2026-10-30 — Phase 22 executed, reviewed and independently verified
+Status: Ready to plan Phase 23; discussion complete
+Last activity: 2026-10-30 — Phase 23 discussion complete; delegated recommendations captured
 
 ## Next Action
 
-Phase 22 is complete: all four plans and READY-01 through READY-06 are verified.
-The player README and five topic guides are maintained with independent
-canonical-path/contradiction controls. Three review warnings and the verifier's
-two missing outbound links were fixed. See the
-[verification](phases/22-install-and-protect-progress/22-VERIFICATION.md) and
-[execution evidence](phases/22-install-and-protect-progress/22-EXECUTION-EVIDENCE.md).
+Phase 23 discussion is complete. The adopted report, replay, safety and triage
+constraints are in [23-CONTEXT.md](phases/23-reproduce-and-report-a-scene/23-CONTEXT.md).
+Three focused reviews and adversarial follow-ups resolved the choices under
+explicit owner delegation. No owner decision remains; planning is not started.
 
-The full local workflow initially passed 699/700 tests and stopped on stale
-AccuracyCoin input provenance. Its configured native campaign had completed;
-the measured final-source report matched the accepted report exactly. The
-provenance refresh and focused activation/protection checks passed. Final
-document controls, build, local macOS arm64 archives and install extraction
-passed. The initial workflow is not relabeled as a passing full rerun. The
-owner explicitly authorized the bounded native refresh; no further campaign
-was needed and no wider runtime window is granted.
+The next actor is the owner invoking:
 
-The next actor is the owner, when ready, invoking:
+`$gsd-plan-phase 23`
 
-`$gsd-discuss-phase 23`
+This creates and verifies the Phase 23 implementation plan. Context may be
+cleared first; read [continue.md](continue.md). This discuss step stops here.
+No runtime replay, live host/device/private-content operation, daily-progress
+change, push, PR or release was performed. Work is on
+`gsd/phase-23-reproduce-and-report-a-scene`, based on the existing Phase 22
+branch. Preserve the owner's unstaged AGENTS.md and config changes.
 
-This settles the report/replay/triage approach before Phase 23 planning.
-Context may be cleared first; read [continue.md](continue.md). No user action
-is needed to finish Phase 22. This execute step stops at the phase boundary;
-no Phase 23 work, push, PR, release, live host/device or daily-progress operation
-has been performed. Work remains committed on
-`gsd/phase-22-install-and-protect-progress`; merge remains through a pull request.
-Preserve the owner's unstaged AGENTS.md and config edits.
+Use separate cold-boot movie and neutral-input native checkpoint demonstrations;
+combined movie/load-state remains unsupported. Reuse controls and compare the
+same audio suffix. Exact-build/content support is stricter than native loader
+checks. Native/adapter agreement does not establish host presentation or hardware
+correctness. Scratch isolation, explicit frame/time bounds and private-artifact
+exclusion remain mandatory implementation constraints, not newly verified results.
 
-The six fallback assumptions and six descriptor-less prohibitions received
-explicit evidence-supported verifier judgments. Their limits remain visible:
-exact build/content pairing is support guidance; behavior revision is recorded
-but unenforced; cross-build SRAM and incompatible host-autoload recovery remain
-unqualified. Local package evidence is macOS arm64 only. Dated release evidence
-includes an unavailable local Sigstore verification; it is not a new provenance
-or all-host acceptance claim. Existing safety stops, collector/platform debt
-and private-artifact boundaries remain in force.
-
-v5 remains complete and archived; its [closeout](milestones/v5-CLOSEOUT.md) and
-[audit](milestones/v5-MILESTONE-AUDIT.md) retain their own evidence identities.
+Phase 22 remains complete; its [verification](phases/22-install-and-protect-progress/22-VERIFICATION.md)
+and [execution evidence](phases/22-install-and-protect-progress/22-EXECUTION-EVIDENCE.md)
+retain the initial full-workflow provenance failure, narrowly authorized refresh
+and focused passing checks. Do not relabel the initial workflow or restart
+campaigns for bookkeeping. Local package evidence is macOS arm64 only; existing
+cross-build/host-recovery, provenance, collector and platform limits remain.
+The [v5 audit](milestones/v5-MILESTONE-AUDIT.md) and
+[closeout](milestones/v5-CLOSEOUT.md) retain historical evidence and debt.
+No existing safety stop, budget or live-operation authority changes.
 
 ## Preserved Debt and Boundaries
 
@@ -113,9 +106,9 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T02:10:01.350Z
-**Stopped at:** Phase 22 complete; Phase 23 not started
-**Next command:** `$gsd-discuss-phase 23`
+**Last session:** 2026-10-31T02:21:25.814Z
+**Stopped at:** Phase 23 context gathered; stopped before planning
+**Next command:** $gsd-plan-phase 23
 **Resume file:** .planning/continue.md
 
 ## Performance Metrics

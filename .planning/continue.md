@@ -1,32 +1,42 @@
-# Resume v6 after Phase 22 execution
+# Resume v6 after Phase 23 discussion
 
-Read AGENTS.md, STATE.md, PROJECT.md, REQUIREMENTS.md and ROADMAP.md.
-Phase 22 is complete: four plans, all six READY requirements, review fixes and
-independent verification passed. See
-[verification](phases/22-install-and-protect-progress/22-VERIFICATION.md) and
-[execution evidence](phases/22-install-and-protect-progress/22-EXECUTION-EVIDENCE.md).
+Read AGENTS.md and STATE.md, then
+`phases/23-reproduce-and-report-a-scene/23-CONTEXT.md` relative to `.planning/`.
+Phase 23 discussion is complete; planning and implementation have not started.
+The owner selected all relevant decisions, requested focused subagents and
+delegated adoption of coherent recommendations. No owner choice is unresolved;
+do not restart a routine preference interview.
 
-The full CI workflow initially had one stale AccuracyCoin fingerprint failure.
-Existing measured campaign evidence matched the accepted report; refreshed
-provenance and targeted checks passed. Do not describe the initial workflow as
-passing or rerun campaigns just for bookkeeping. The owner's bounded refresh
-authorization was narrow; existing stops and hosted-collector debt remain.
+Next actor: the owner invokes:
 
-Next actor: the owner, when ready, runs:
+`$gsd-plan-phase 23`
 
-`$gsd-discuss-phase 23`
+This creates and verifies an executable plan for sanitized reporting, bounded
+permitted-fixture replay and honest triage. Context may be cleared first.
 
-This defines report/replay/triage details before planning. Context may be cleared
-first. No user action is needed to complete Phase 22. Do not start Phase 23
-without its next step invocation. Phase commits remain on
-`gsd/phase-22-install-and-protect-progress`; no push/PR/release was performed.
-Preserve unstaged AGENTS.md and config edits; merge by pull request.
+Adopt one report/reproduction guide linked from README; raw private artifacts
+stay local. Use separate cold-boot movie replay and neutral-input native
+checkpoint continuation: the runner rejects movie plus load-state. Compare
+same-suffix audio, preserve absolute frame numbering and reuse input/stale/
+omitted-load controls. Existing owned fixture targets are public source-build
+facilities, not tools assumed to ship in archives. Verify clean-checkout commands,
+scratch storage, finite frame/time bounds and unsupported preflight. No replay
+or new runtime behavior was demonstrated during discussion.
 
-Carry forward loaded-module identity, host-owned controls and storage,
-exact-build/content snapshot policy and independent newest-battery backup.
-Cross-build SRAM and incompatible host-autoload recovery remain unqualified.
-Local packages prove macOS arm64 only; release/menu observations are dated and
-local Sigstore verification was unavailable. No host/device/private-content or
-daily-progress operation was used. Phase 23 owns sanitized reporting, bounded
-permitted-fixture replay and triage; accuracy fixes, overscan, new regions/
-mappers, converters, actual Playstead and collector repairs remain outside it.
+Carry Phase 22's loaded-module identity, exact-build/content snapshot policy,
+newest independent battery backup and host-container distinctions. The loader
+does not enforce exact build/behavior revision; successful load is not support
+qualification. Native/adapter agreement does not clear host input, callback
+presentation or audio timing. Hash equality proves repeatability; hardware
+correctness needs an appropriate independent oracle.
+
+Phase 22 remains complete; its verification/execution artifacts retain the
+initial full-workflow failure, bounded provenance refresh and evidence limits.
+Do not relabel that initial run or rerun a campaign for bookkeeping. No live
+host/device/private-content/daily-progress work, wider runtime window, collector
+repair, accuracy fix, push, PR or release is authorized by this discussion.
+
+Work is on `gsd/phase-23-reproduce-and-report-a-scene`, based on the existing
+Phase 22 branch; merge remains through a pull request. Preserve the owner's
+unstaged AGENTS.md and `.planning/config.json` changes. The dependency preference
+already lives in AGENTS.md; the delegated decision method is captured in context.
