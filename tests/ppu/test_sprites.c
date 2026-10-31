@@ -245,8 +245,10 @@ static void test_oam_dma_copies_page_and_wraps_destination(void)
     nes.ppu.mask = 0u; /* (derived: rendering off keeps OAMADDR) */
     for (uint16_t i = 0u; i < 256u; i++)
         nes.bus.ram[i] = (uint8_t)(i ^ 0xa5u);
-    nes.ticks = 24u;
-    nes.ppu.ppu_ticks = 24u;
+    /* Advance the actual bus/APU/PPU phase together; timestamps alone do
+       not select OAM alignment. The next write now occurs on PUT. */
+    (void)nesturbator__bus_read(&nes, 0x0000u);
+    CHECK_EQ_U64(nes.ticks, 24u);
     before = nes.ticks;
     nesturbator__bus_write(&nes, 0x4014u, 0x00u);
     CHECK_EQ_U64(nes.ticks - before, 24u);
