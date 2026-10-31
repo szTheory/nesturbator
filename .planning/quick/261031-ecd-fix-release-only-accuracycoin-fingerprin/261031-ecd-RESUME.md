@@ -16,13 +16,15 @@ PR's exact base `45a078d`, applying the code and workflow patches produced
 with 56 inputs; the fingerprint control passed against that metadata. Use this
 value when preparing the fix on `main`.
 
-**Owner decision required before pushing:** updating the release fix PR will
-start the required CI workflow. Its Linux x64 lane runs the pinned 22-page
-AccuracyCoin campaign (CTest timeout 370 seconds). The previous campaign was
-interrupted and its result is unknown; neither the campaign nor full CI may be
-rerun until the owner explicitly authorizes this run. Release publication and
-squash merge remain authorized after required checks pass.
+The owner authorized one full CI run on 2026-10-31. Release PR #56 now points
+to `6bd7f267345f3bc153fc08f301a9bac166ed5812`; CI run `41211519919` is in
+progress and includes the 22-page AccuracyCoin campaign (CTest timeout 370
+seconds). The Nightly PR run skipped its optional lanes as intended. The prior
+campaign result remains unknown. Do not rerun the full campaign if this run
+fails without another owner decision. Squash merge and release publication
+remain authorized after required checks pass on the exact release head and
+post-merge release CI succeeds.
 
 Next command: `$gsd-quick resume fix-release-only-accuracycoin-fingerprin`.
-It resumes this quick task, including clean-base integration and the CI
-decision gate. Context may be cleared before running it.
+It resumes monitoring this run and continues to squash merge and release when
+the required checks pass. Context may be cleared before running it.
