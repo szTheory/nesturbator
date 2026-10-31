@@ -17,10 +17,14 @@ backgrounds and evaluated sprites, including palette priority, flips, 8x16
 selection, clipping, sprite-zero hit and the eight-sprite limit.
 
 With no cartridge, the fixed test card and silence remain available. The
-[API guide](docs/api.md) owns the native API, battery and state contracts. The
-[runner guide](docs/runner.md) documents invocation and options.
+checked MMC3 support clause is:
 
-## Downloads and archives
+Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
+
+These support details describe the current source tree. A released or locally
+installed binary must be identified from its own artifact and provenance.
+
+## Install and identify the core
 
 Install the libretro archive for the operating system and architecture of the
 RetroArch executable you actually launch. Choose the host executable's
@@ -33,46 +37,21 @@ x64 core even on an arm64 machine.
 | macOS | `nesturbator-VERSION-libretro-macos-x64.zip` | `nesturbator-VERSION-libretro-macos-arm64.zip` |
 | Windows | `nesturbator-VERSION-libretro-windows-x64.zip` | `nesturbator-VERSION-libretro-windows-arm64.zip` |
 
+Download the selected archive from the project's [published releases](https://github.com/szTheory/nesturbator/releases).
 Each archive has `cores/` and `info/` directories. Extract both into the
-locations shown by RetroArch's `Settings` → `Directory` → `Cores` and `Core
-Info` settings, preserving the folders and filenames. The module is
+locations shown by RetroArch's `Settings` → `Directory` → `Cores` and
+`Core Info` settings, preserving the folders and filenames. The module is
 `nesturbator_libretro.so` on Linux, `.dylib` on macOS and `.dll` on Windows;
 the matching `nesturbator_libretro.info` file belongs in `info/`. Make sure
 the frontend can read both files and that its configured directories are
 writable for installation. Libretro's [manual install guide](https://docs.libretro.com/guides/download-cores/)
 documents these directories and module extensions. The [release guide](docs/releases.md)
-explains how to verify an archive and identify the exact loaded binary.
+explains archive verification and exact loaded-build identity. Guides live in
+the source repository and are not inside the downloaded archives.
 
-## Releases
-
-The maintainer release process, version-marker ownership, package inventory
-and attestation checks are in the [release guide](docs/releases.md).
-
-## Developer guides
-
-- [API and native state](docs/api.md)
-- [Runner options and exit behavior](docs/runner.md)
-- [Release archives and process](docs/releases.md)
-- [Build, tests, CI and evidence limits](docs/testing.md)
-
-## The runner
-
-See [Runner guide](docs/runner.md) for command options, output examples, movies, stop behavior and exit statuses.
-
-Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
-
-## The libretro core
-
-The adapter is the nesturbator_libretro module for a libretro frontend such as
-RetroArch. Its checked capabilities and the existing host evidence are
-documented in the [testing guide](docs/testing.md#libretro-adapter-checks).
-Player installation steps are below.
-
-## Install in RetroArch (Apple Silicon)
-
-With RetroArch installed (see below), these two lines put the released core
-in RetroArch's `cores` directory and its information file in `info`. The
-first sets the version; the second downloads and extracts:
+With RetroArch installed, these two lines put the released core in RetroArch's
+`cores` directory and its information file in `info`. The first sets the
+version; the second downloads and extracts:
 
 <!-- x-release-please-start-version -->
 ```sh
@@ -81,14 +60,53 @@ mkdir -p ~/Library/Application\ Support/RetroArch && curl -fsSL "https://github.
 ```
 <!-- x-release-please-end -->
 
-Then start RetroArch, choose Load Core → nesturbator, then Start Core: the
-test card appears.
-
 Naming only cores and info leaves LICENSE and THIRD-PARTY-NOTICES.md outside
 RetroArch directories. The [release guide](docs/releases.md) documents how the
 marked version line and source-build extraction check are maintained.
 
-## Protecting progress
+The core's displayed name and version help you check your selection, but do
+not prove the exact binary. For exact identity, retain the module path used by
+the active launch and compare its digest with the matching release/CI artifact
+or pinned local build. If the loaded path or source cannot be established,
+report the build as unknown. The [release guide](docs/releases.md#identifying-a-loaded-build)
+has the verification steps. macOS may restrict a downloaded quarantined
+module; verify its source and digest and follow the current system security
+guidance rather than assuming a binary is signed or notarized. See Apple's
+[notarization guidance](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
+
+## Load content
+
+In RetroArch, load `nesturbator` from `Main Menu` → `Load Core` → `Core`, then
+choose `Load Content` and select an image supported above. When launching from
+an existing ES-DE or Steam library entry, keep that entry and its configured
+core association. Use the host's installed UI wording if the menus differ.
+
+To see the no-content test card, load the core and choose `Start Core`. No
+commercial game is needed to check that the adapter loads. RetroArch's
+[starting a game guide](https://docs.libretro.com/guides/starting-a-game/)
+describes the core/content route.
+
+## Controls
+
+RetroArch owns host-device assignment, controller profiles, remaps and
+hotkeys. A libretro port is the core's logical player input; **Device Index**
+selects which connected host controller feeds that port. In the launch route
+you use for play, check `Settings` → `Input` → `RetroPad Binds` →
+`Port 1 Controls` → `Device Index`. With one controller, assign it to Port 1 and leave
+Port 2 unassigned; do not select the same device for both ports. For two
+players, assign distinct intended devices to the two active ports. The unused
+choice and menu labels vary by host driver/version. RetroArch documents the
+[Device Index controls](https://docs.libretro.com/guides/input-and-controls/).
+
+Check remaps under the active core/content's Quick Menu → Controls and inspect
+hotkeys if a button opens a host menu instead of reaching the game. A separate
+RetroArch launch can use different settings from ES-DE/Steam, so verify the
+same launch route. The existing logical-port tests and one dated actual-launch
+readback have limited scope: they do not cover every button, reconnection or
+handheld fallback. Changing a port does not diagnose an unclassified graphics
+or slowdown report; see [testing evidence](docs/testing.md#disposable-progress-fixtures).
+
+## Protect progress
 
 RetroArch's battery saves and save states are separate files, and loading an
 older state or rewinding past an in-game save can restore older battery RAM.
@@ -96,29 +114,49 @@ Back up the newest battery save independently before an upgrade or state load;
 keep it outside the active save and state folders. See the [progress guide](docs/progress.md)
 for the scratch-only walkthrough, compatibility limits and rollback steps.
 
-## What it is
+## Troubleshooting
 
-- An accuracy-class, deterministic NES core with no GUI of its own.
-- Three deliverables: a C library, a command-line runner, and a libretro core
-  for frontends such as RetroArch.
-- All emulation code written here, under the MIT licence.
+- **The core is missing or may be the wrong build:** Confirm the archive OS and
+  executable architecture, then check the configured `Cores` and `Core Info`
+  directories and select nesturbator explicitly. A displayed name/version is
+  only a first check; if the actual loaded module path and digest are unknown,
+  keep the identity unknown.
+- **Input is ignored or opens a host action:** Check Device Index for both
+  ports, the active RetroPad remap and hotkeys through the same launch route.
+  Leave Port 2 unassigned with one controller. A port change does not establish
+  the cause of a graphics or pacing symptom.
+- **A battery save is missing:** Check the active frontend's configured Save
+  Files directory and close content cleanly. Paths vary across installs; the
+  core does not write the file itself.
+- **A snapshot is rejected or loads automatically:** Preserve the newest
+  battery save and both backup sets, isolate the questionable state, disable
+  automatic loading, and try a fresh launch of an identified core. Native
+  refusal does not establish how a host container recovers.
+- **Content does not load:** Check the image format, mapper/submapper and
+  support limits above. A mapper-family match alone does not promise full game
+  compatibility.
 
-## ROMs
+## About and developer guides
 
-This repository contains no commercial ROM or BIOS data. Supply your own
-legally obtained game images; see [ASSET_POLICY.md](ASSET_POLICY.md). The
-permitted test-ROM and vector inventory, licences, hashes and regeneration
-procedure are in the [testing guide](docs/testing.md#test-fixtures-and-source-policy).
+This project ships three deliverables: an embeddable C library, a headless
+command-line runner, and a libretro core for frontends such as RetroArch. It
+is an accuracy-class, deterministic NES core with no GUI of its own. All
+emulation code is written here from hardware documentation and public test
+ROM behavior, with AI coding assistants and without copying other emulators.
+See [PROVENANCE.md](PROVENANCE.md). The adapter's checked capabilities and
+existing host evidence are documented in the
+[testing guide](docs/testing.md#libretro-adapter-checks).
 
-## How the code is written
+This repository contains no commercial ROM or BIOS data. Supply only legally
+obtained game images; see [ASSET_POLICY.md](ASSET_POLICY.md). The permitted
+test-ROM and vector inventory, licences, hashes and regeneration procedure
+are in the [testing guide](docs/testing.md#test-fixtures-and-source-policy).
 
-From hardware documentation and public test ROMs, with AI coding assistants,
-and without copying from other emulators. See [PROVENANCE.md](PROVENANCE.md).
+- [API, battery and native state contracts](docs/api.md)
+- [Runner options, output, stop behavior and exit statuses](docs/runner.md)
+- [Release archives, identity and maintainer process](docs/releases.md)
+- [Build, tests, CI and evidence limits](docs/testing.md)
 
-## Licence
-
-MIT. See [LICENSE](LICENSE).
-
-nesturbator is not affiliated with or endorsed by Nintendo. The names "Nintendo
-Entertainment System", "NES" and "Famicom" are used here only to say what the
-core emulates.
+MIT. See [LICENSE](LICENSE). nesturbator is not affiliated with or endorsed
+by Nintendo. The names "Nintendo Entertainment System", "NES" and "Famicom"
+are used here only to say what the core emulates.

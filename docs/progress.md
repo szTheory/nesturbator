@@ -89,6 +89,8 @@ fixtures there:
 ```sh
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/nesturbator-progress.XXXXXX")"
 backup="${scratch}.backup"
+config="$scratch/config"
+mkdir -p "$config"
 cmake --preset ci -B "$scratch/build"
 cmake --build "$scratch/build" --target nesturbator-run runner.save_rom runner.state_mutate
 ctest --test-dir "$scratch/build" --output-on-failure --no-tests=error -R '^runner.save.roundtrip$'
@@ -99,12 +101,18 @@ ctest --test-dir "$scratch/build" --output-on-failure --no-tests=error -R '^(run
 shasum -a 256 "$scratch/build/tests/save_work/roundtrip/battery.sav" "$backup/newest-battery.sav"
 ```
 
+The command block assumes a POSIX shell. In PowerShell, create a unique root
+with `Join-Path $env:TEMP ("nesturbator-progress-" + [guid]::NewGuid().ToString("N"))`,
+create its `config` and `build` directories, and use `Copy-Item` plus
+`Get-FileHash -Algorithm SHA256` for the backup and digest steps.
+
 The two digest lines must match. `sha256sum` or PowerShell's `Get-FileHash`
 can be used instead on those platforms. The second CTest selection does not
 touch the copied battery file. If a command is interrupted, the isolated
 scratch may remain; inspect that unique directory before removing it, and do
 not point a test at an existing save directory. Start each concurrent run with
-a different `scratch` value and build tree; its sibling `backup` directory is
+a different `scratch` value and build tree; its `config` directory is isolated
+and unused by these runner-only checks. The sibling `backup` directory is
 separate from the active test tree and should be kept until digests match.
 
 The independent `core.state_reject` test checks the whole machine and battery
