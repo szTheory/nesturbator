@@ -19,7 +19,14 @@ selection, clipping, sprite-zero hit and the eight-sprite limit.
 DMC transfers now overlap OAM halt/dummy/alignment cycles. DMC sample reads
 take priority, and OAM resumes on GET without skipping or duplicating a byte.
 Interior overlaps add two cycles; final windows can add one or three. This
-uses behavior revision 11 and preserves native state format 4.
+was introduced in behavior revision 11.
+
+Behavior revision 12 separates internal CPU data from the external bus. A DMC
+sample ending in $15-$17 can select status or a controller while the CPU is
+parked in $4000-$401F. Status reads acknowledge the frame IRQ without replacing
+the external sample byte; controller reads retain external upper bits. These
+owned checks preserve the existing per-cycle controller-clock profile. Pinned
+AccuracyCoin ROM acceptance remains pending.
 
 With no cartridge, the fixed test card and silence remain available. The
 checked MMC3 support clause is:
@@ -115,11 +122,10 @@ or slowdown report; see [testing evidence](docs/testing.md#disposable-progress-f
 
 ## Protect progress
 
-Native state format 4 preserves the DMC output cycle through silence, including
-the silence flag and bit position. Behavior revision 10 keeps that clock running
-while the sample buffer is empty, so a later sample waits for the correct cycle
-boundary. Format-3 native states are refused; there is no converter. Battery
-saves use their existing separate format.
+Native state format 5 adds the internal CPU data latch and preserves the external
+bus separately. Formats 1 through 4 are refused; there is no converter. It also
+retains the DMC silence flag and continuously clocked bit position introduced
+in format 4 / behavior revision 10. Battery saves keep their separate format.
 
 RetroArch's battery saves and save states are separate files, and loading an
 older state or rewinding past an in-game save can restore older battery RAM.

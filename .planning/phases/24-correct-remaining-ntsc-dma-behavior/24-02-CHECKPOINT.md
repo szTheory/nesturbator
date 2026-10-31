@@ -1,4 +1,4 @@
-# Phase 24-02 bus-latch decision — blocking
+# Phase 24-02 bus-latch decision — approved
 
 **Position:** OAM Task 1 and its collision continuation are implemented; bus-conflict Task 2 has a failing owned latch diagnostic and is stopped before any new saved-field/layout/meaning change. Plan 24-02 is incomplete. The earlier owner approval covered the DMC silence byte/bit count only.
 
@@ -27,8 +27,9 @@ Offsets are local to the serialized BUS visitor, excluding chunk/header envelope
 |---|---|---|
 | `open_bus`, u8 at 2048 | Unified last read/write value; `$4015` currently replaces it | External held data only; an internal-only `$4015` read leaves it intact |
 | `cpu_data`, new u8 at 2049 | Absent | Internal CPU data latch, including `$4015` return and retained internal D5; range 0..255 |
-| `apu_get_put_phase` through controller strobe | Offsets 2049..2060 | Same widths/meaning, shifted to 2050..2061 |
-| Serialized BUS length | 2061 bytes | 2062 bytes |
+| `apu_get_put_phase` through controller strobe | Offsets 2049..2058 | Same widths/meaning, shifted to 2050..2059 |
+| Serialized BUS length | 2059 bytes | 2060 bytes |
+| C BUS struct size | 2061 bytes | 2062 bytes |
 | DMC silence/bit state | Format-4 fields | Unchanged |
 | Native format | 4 | 5 |
 | Behavior revision | 11 for the OAM correction | 12 when split-bus correction lands |
@@ -49,3 +50,11 @@ After the owner decision, `$gsd-execute-phase 24` resumes the saved Plan 24-02 c
 ## Saved execution outcome
 
 OAM correction/continuation and behavior11 consumers are committed in `8828225`; bounded tests and resolved review are recorded in 24-02-PARTIAL.md. The default suite passes and the separate conflict-latches diagnostic remains intentionally red. The owner acts next on this new field diff. No bus-latch implementation has occurred before this decision.
+
+## Owner approval
+
+On 2026-10-31 the owner explicitly approved this concrete proposal in chat (“Yeah, I approve it.”): separate serialized cpu_data, external open_bus meaning, format5, behavior12, native continuation/refusal tests and documentation. This resolves this checkpoint only; no abort-state changes, full CI/AccuracyCoin, push or PR authority is included. Continue at Task2 without repeating the OAM correction.
+
+## Byte-count correction before implementation
+
+The original table mistakenly included input_pending[2] in the serialized BUS length. Those two host-owned bytes are not visited by bus_io. The exact serialized change is 2059->2060, while the C struct is 2061->2062; downstream visitor offsets end at2058->2059. The approved cpu_data field, one-byte delta, meaning change, format5/revision12 and incompatibility consequence are unchanged. No new scope or decision is introduced by correcting this accounting.

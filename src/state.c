@@ -52,7 +52,7 @@ static const uint8_t state_magic[8] = {0x89u, 0x4eu, 0x54u, 0x53u, 0x0du, 0x0au,
    and arrays of them, so the sizes are the same on every platform. Structs that also hold
    pointers are checked by the offset of their last saved field instead. */
 _Static_assert(sizeof(struct nesturbator__cpu) == 20u, "cpu fields changed: update cpu_io");
-_Static_assert(sizeof(struct nesturbator__bus) == 2061u, "bus fields changed: update bus_io");
+_Static_assert(sizeof(struct nesturbator__bus) == 2062u, "bus fields changed: update bus_io");
 _Static_assert(sizeof(struct nesturbator__pulse) == 16u, "pulse fields changed: update pulse_io");
 _Static_assert(sizeof(struct nesturbator__triangle) == 14u,
                "triangle fields changed: update triangle_io");
@@ -196,6 +196,7 @@ static void bus_io(struct nesturbator__sio *io, struct nesturbator__bus *b)
 {
     nesturbator__sio_bytes(io, b->ram, sizeof b->ram);
     nesturbator__sio_u8(io, &b->open_bus, 255u);
+    nesturbator__sio_u8(io, &b->cpu_data, 255u);
     nesturbator__sio_u8(io, &b->apu_get_put_phase, 1u);
     nesturbator__sio_u8(io, &b->oam_dma_pending, 1u);
     nesturbator__sio_u8(io, &b->oam_dma_page, 255u);

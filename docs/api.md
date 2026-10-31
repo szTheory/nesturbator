@@ -12,8 +12,9 @@ Cartridges use a per-board mapper interface with page tables, a four-entry namet
 
 ## Behavior revision history
 
-The current public header reports behavior revision 11. These revision facts describe this source tree; a published core must be identified from its own release or CI artifact.
+The current public header reports behavior revision 12. These revision facts describe this source tree; a published core must be identified from its own release or CI artifact.
 
+- **Revision 12:** DMC GET combines parked core A15:5 with sample A4:0 for internal `$4015`–`$4017` selection. Internal status and external sample data have separate latches; `$4015` does not drive the external bus. Controller reads retain external upper bits under the existing per-cycle clock profile. The pinned test checks CPU-visible data, not DMC shift-register input. [HWC.01][HWC.19]
 - **Revision 11:** DMC halt/dummy/alignment overlaps OAM accesses; its sample GET wins collisions and OAM retries its source on GET. Interior overlaps add two cycles; final windows can add one or three. [HWC.01]
 - **Revision 10:** The DMC bit counter continues through eight-clock silent cycles. Its separate silence flag gates DAC changes; re-enabling a sample preserves the cycle position. [HWC.23]
 - **Revision 9:** IRQ acceptance is retained at the instruction hardware poll point, using the old I flag for CLI, SEI and PLP. Branches preserve their first poll and add the page-cross poll. Accepted IRQs survive later source clearing until entry arbitration; NMI wins, and a held IRQ may be accepted again after RTI restores I. A post-vector-choice NMI input remains an unrecognized candidate until held through the first handler opening; releasing it before then cancels it. [HWC.02][HWC.17]
@@ -160,17 +161,18 @@ A state is an exact snapshot of the whole machine at a frame boundary and is
 byte-identical across platforms for the same core build and content. The
 supported pairing is the exact core build and exact content file that created
 the state. This is support guidance, not an additional loader check: the native
-loader checks format 4 and cartridge identity using mapper, submapper, region,
+loader checks format 5 and cartridge identity using mapper, submapper, region,
 and the ROM CRC-32 of the 16 header bytes, PRG ROM and CHR ROM. The behavior
 revision is stored but not enforced, as described below. The core handles only
 the native state payload; host files and disk containers are outside this API.
 The library does no file I/O and never allocates for a state; the host owns the
 buffer and decides where states live.
 
-The current state format is 4 and the behavior revision is 11. Format 4 adds
-the DMC silence flag and counts silent output cycles in its saved bit position.
-Format-3 states are refused without conversion. It retains the format-3 interrupt
-histories:
+The current state format is 5 and the behavior revision is 12. Format 5 adds
+one byte for internal CPU data after the external bus latch; the BUS payload
+grows from 2059 to 2060 bytes. Formats 1 through 4 are refused without conversion.
+It retains the format-4 DMC silence flag and continuous output-cycle bit position,
+and the format-3 interrupt histories:
 the sampled NMI line, captured request, last instruction poll, retained
 close-edge IRQ level and accepted IRQ decision independently of the live IRQ
 line. It also stores an active BRK/IRQ/NMI entry's origin, next unperformed bus
@@ -248,7 +250,7 @@ once, so the host writes the `.sav`. Loading a state whose battery bytes match,
 however many times, never moves it, and neither does a refused load, so
 repeated loads such as rewind never trigger a write.
 
-Format 4 rejects every other format version, including versions 1, 2 and 3;
+Format 5 rejects every other format version, including versions 1, 2, 3 and 4;
 states are never converted. Keep rewind buffers in
 memory, and expect user-kept states to need re-creating after a release that
 raises the format version. The behaviour revision is recorded and not

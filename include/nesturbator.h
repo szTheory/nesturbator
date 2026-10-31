@@ -54,7 +54,12 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 11 overlaps DMC halt/dummy/alignment with OAM
+   the same inputs. Revision 12 separates internal CPU and external data latches.
+   DMC GET selects internal $4015-$4017 using parked core A15:5 and sample
+   A4:0. Status reads preserve external data; controllers merge its upper bits
+   (HWC.01/19). The existing per-cycle controller-clock profile is retained;
+   pinned test coverage does not establish DMC shift-register input.
+   Revision 11 overlaps DMC halt/dummy/alignment with OAM
    accesses. DMC sample GET wins a collision; OAM resumes on GET without losing
    a byte. Interior collisions add two cycles; final windows can add one or
    three (HWC.01). Revision 10 keeps the DMC output bit clock running through
@@ -84,14 +89,16 @@ extern "C" {
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
    Revision 5 was the PPU fetch pipeline. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 11
+#define NESTURBATOR_BEHAVIOUR_REVISION 12
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
    NESTURBATOR_ERR_STATE_FORMAT; there is no converter. Before the first release that contains
    save states it stays 1 and the layout may change. After that release, any change to the state
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
-   same commit. Version 4 records the DMC output silence flag and its continuous
+   same commit. Version 5 adds the internal CPU data latch, preserving external
+   held data independently; formats 1 through 4 are refused without conversion.
+   Version 4 recorded the DMC output silence flag and its continuous
    bit-cycle position, including silent cycles; version 3 states are refused
    rather than guessing the missing phase. Version 3 records the CPU's sampled NMI-line,
    captured-request and instruction-poll histories, retained close-edge IRQ level, accepted IRQ
@@ -105,7 +112,7 @@ extern "C" {
    output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a load does not
    enforce. Raising it is not a breaking change to the C interface and leaves
    NESTURBATOR_ABI_VERSION as it is. */
-#define NESTURBATOR_STATE_FORMAT_VERSION 4
+#define NESTURBATOR_STATE_FORMAT_VERSION 5
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {

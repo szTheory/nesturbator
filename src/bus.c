@@ -143,26 +143,45 @@ static inline uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr, uint
            6bee919 TEST_ImpliedDummyRead uses stack-driven $20/$00 operands. */
         nes->bus.open_bus = (uint8_t)((nes->bus.open_bus & 0xe0u) | bit);
     } else if (addr == 0x4015u) {
-        nes->bus.open_bus =
-            (uint8_t)((nesturbator__apu_status_read(nes) & 0xdfu) | (nes->bus.open_bus & 0x20u));
+        /* Status drives the internal CPU bus only. Its floating D5 retains
+           that bus's history, not a DMC byte driven externally. HWC.08/19. */
+        nes->bus.cpu_data =
+            (uint8_t)((nesturbator__apu_status_read(nes) & 0xdfu) | (nes->bus.cpu_data & 0x20u));
+        return nes->bus.cpu_data;
     } else if (addr < 0x2000u) {
         nes->bus.open_bus = nes->bus.ram[addr & 0x7FFu];
     } else if (addr < 0x4000u) {
         uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
         nes->bus.open_bus =
             reg == 0x2002u ? status_value : nesturbator__ppu_register_read(nes, reg);
+    } else {
+        /* Undriven internal registers retain the CPU-side latch, including
+           status data selected during a DMC GET. HWC.19 TEST_DMABusConflict. */
+        return nes->bus.cpu_data;
     }
-    return nes->bus.open_bus;
+    nes->bus.cpu_data = nes->bus.open_bus;
+    return nes->bus.cpu_data;
 }
 
 /* Complete one actual GET after its clock, shared by standalone and OAM
    overlap paths. No extra CPU cycle is implied by this data-side helper. */
-static void dmc_sample_get(struct nesturbator *nes)
+static void dmc_sample_get(struct nesturbator *nes, uint16_t parked_read)
 {
     struct nesturbator__dmc *dmc = &nes->apu.dmc;
     dmc->sample_buffer = nesturbator__map_cpu_read(nes, dmc->address);
     NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_SAMPLE_GET, nes, dmc->address, dmc->sample_buffer, 0u);
     nes->bus.open_bus = dmc->sample_buffer;
+    uint16_t internal = (uint16_t)((parked_read & 0xFFE0u) | (dmc->address & 0x001Fu));
+    if (internal >= 0x4015u && internal <= 0x4017u) {
+        /* Register select takes core A15:5 and external A4:0. The pinned
+           AccuracyCoin test qualifies CPU-visible effects, not DMC shift
+           register input; retain the existing external-byte reader model. */
+        (void)bus_read_data(nes, internal, 0u);
+        NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_INTERNAL_READ, nes, internal, nes->bus.cpu_data,
+                                parked_read);
+    } else {
+        nes->bus.cpu_data = dmc->sample_buffer;
+    }
     sample_interrupt_lines(nes);
     ppu_catch_up(nes);
     dmc->buffer_empty = 0u;
@@ -211,7 +230,7 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read, uint8_t *s
         ppu_catch_up(nes);
     }
     (void)cycle(nes, 0u, 1u); /* DMC memory get. [HWC.01, HWC.09] */
-    dmc_sample_get(nes);
+    dmc_sample_get(nes, parked_read);
     return 1u;
 }
 
@@ -265,7 +284,7 @@ static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
             (uint8_t)(dmc_get == 0u && destination == 0u && is_ppu_status_address(address) != 0u);
         uint8_t status = cycle(nes, status_read, 1u);
         if (dmc_get != 0u) {
-            dmc_sample_get(nes);
+            dmc_sample_get(nes, halted_read);
         } else {
             if (source != 0u) {
                 byte = bus_read_data(nes, address, status);
@@ -274,6 +293,7 @@ static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
                                         offset);
             } else if (destination != 0u) {
                 nes->bus.open_bus = byte;
+                nes->bus.cpu_data = byte;
                 NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_OAM_DEST, nes, 0x2004u, byte, offset);
                 nesturbator__ppu_register_write(nes, 0x2004u, byte);
                 offset++;
@@ -320,6 +340,7 @@ void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t valu
         NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_WRITE_RETRY, nes, addr, value, 0u);
     }
     nes->bus.open_bus = value;
+    nes->bus.cpu_data = value;
     if (addr < 0x2000u) {
         nes->bus.ram[addr & 0x7FFu] = value;
     } else if (addr < 0x4000u) {

@@ -474,6 +474,135 @@ done:
     nesturbator_destroy(b);
 }
 
+/* The owned guest repeatedly reads status with a looping, audible DMC.
+   A public frame return after LDA $4015 retains different internal/external
+   data. The next ordinary opcode fetch can converge the latches: prove
+   immediate read sensitivity separately at the existing private bus seam,
+   without claiming that a public frame API can stop mid-DMA/instruction. */
+static void conflict_latch_fork(void)
+{
+    static uint8_t image[16u + 2u * INES_PRG_BANK];
+    uint8_t code[160] = {0x78, 0xA9, 0x4F, 0x8D, 0x10, 0x40, /* SEI; looping fastest DMC */
+                         0xA9, 0x00, 0x8D, 0x12, 0x40,       /* sample $C000 */
+                         0xA9, 0x04, 0x8D, 0x13, 0x40,       /* 65 bytes, includes $15-$17 */
+                         0xA9, 0x10, 0x8D, 0x15, 0x40};
+    const uint16_t loop = 0x8015u;
+    size_t length = 21u;
+    for (unsigned read = 0u; read < 32u; ++read) {
+        code[length++] = 0xADu;
+        code[length++] = 0x15u;
+        code[length++] = 0x40u;
+    }
+    code[length++] = 0x4Cu;
+    code[length++] = (uint8_t)loop;
+    code[length++] = (uint8_t)(loop >> 8);
+    struct ines_spec spec = {0};
+    spec.prg_16k = 2u;
+    spec.prg_code = code;
+    spec.prg_code_len = length;
+    spec.reset_vector = 0x8000u;
+    size_t image_size = ines_build(image, sizeof image, &spec);
+    memset(image + 16u + 0x4000u, 0x77, 65u);
+    nesturbator *a = st_make_instance(), *b = st_make_instance();
+    static struct dma_output expected, actual;
+    static struct dma_transitions transitions_a, transitions_b;
+    uint8_t *state = NULL, *scratch = NULL, *final_a = NULL, *final_b = NULL;
+    unsigned found = 0u;
+    CHECK(a != NULL && b != NULL && image_size != 0u);
+    if (a == NULL || b == NULL || image_size == 0u)
+        goto done;
+    st_load(a, image, image_size);
+    st_load(b, image, image_size);
+    size_t size = nesturbator_state_size(a);
+    state = malloc(size);
+    scratch = malloc(size);
+    final_a = malloc(size);
+    final_b = malloc(size);
+    CHECK(state != NULL && scratch != NULL && final_a != NULL && final_b != NULL);
+    if (state == NULL || scratch == NULL || final_a == NULL || final_b == NULL)
+        goto done;
+    for (uint32_t cut = 1u; cut <= 90u; ++cut) {
+        dma_frame(a, st_buttons(cut), &expected);
+        if (a->bus.cpu_data == a->bus.open_bus || a->apu.dmc.dma_pending != 0u)
+            continue;
+        found = 1u;
+        CHECK_EQ_HEX(a->bus.open_bus, 0x40u); /* Last LDA absolute operand. */
+        CHECK_EQ_HEX(a->bus.cpu_data, 0x10u); /* DMC-active status, no D5. */
+        CHECK_EQ_U64(nesturbator_save_state(a, state, size), NESTURBATOR_OK);
+        memcpy(scratch, state, size);
+        scratch[8] = 4u;
+        scratch[9] = 0u;
+        st_recrc(scratch, size);
+        CHECK(st_refused(b, scratch, size, NESTURBATOR_ERR_STATE_FORMAT));
+        /* Poison both latches before public load; canonical roundtrip proves
+           each restored byte before any new CPU fetch overwrites history. */
+        b->bus.open_bus = 0xA5u;
+        b->bus.cpu_data = 0x65u;
+        CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+        CHECK_EQ_HEX(b->bus.open_bus, a->bus.open_bus);
+        CHECK_EQ_HEX(b->bus.cpu_data, a->bus.cpu_data);
+        CHECK_EQ_U64(nesturbator_save_state(b, scratch, size), NESTURBATOR_OK);
+        CHECK(memcmp(state, scratch, size) == 0);
+
+        transitions_a.count = transitions_b.count = 0u;
+        nesturbator__apu_set_transition_sink(a, dma_transition, &transitions_a);
+        nesturbator__apu_set_transition_sink(b, dma_transition, &transitions_b);
+        dma_frame(a, st_buttons(cut + 1u), &expected);
+        dma_frame(b, st_buttons(cut + 1u), &actual);
+        CHECK(memcmp(expected.pixels, actual.pixels, sizeof expected.pixels) == 0);
+        CHECK_EQ_U64(expected.frame.audio_count, actual.frame.audio_count);
+        CHECK(memcmp(expected.pcm, actual.pcm,
+                     expected.frame.audio_count * sizeof expected.pcm[0]) == 0);
+        CHECK_EQ_U64(expected.frame.ticks, actual.frame.ticks);
+        CHECK_EQ_U64(expected.frame.frame_number, actual.frame.frame_number);
+        CHECK_EQ_U64(transitions_a.count, transitions_b.count);
+        CHECK(transitions_a.count != 0u);
+        for (size_t event = 0u; event < transitions_a.count && event < transitions_b.count;
+             ++event) {
+            CHECK_EQ_U64(transitions_a.cycle[event], transitions_b.cycle[event]);
+            CHECK(transitions_a.level[event] == transitions_b.level[event]);
+        }
+        CHECK(memcmp(a->bus.ram, b->bus.ram, sizeof a->bus.ram) == 0);
+        CHECK_EQ_U64(nesturbator_save_state(a, final_a, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_save_state(b, final_b, size), NESTURBATOR_OK);
+        CHECK(memcmp(final_a, final_b, size) == 0);
+        nesturbator__apu_set_transition_sink(a, NULL, NULL);
+        nesturbator__apu_set_transition_sink(b, NULL, NULL);
+
+        /* Disposable copies of the genuinely guest-produced saved boundary.
+           These are private bus stimuli, not uninterrupted guest instruction
+           continuation. D5 and external upper bits have independent oracles. */
+        struct nesturbator good = *b, wrong = *b;
+        CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+        good = wrong = *b;
+        wrong.bus.cpu_data ^= 0x20u;
+        CHECK_EQ_HEX(nesturbator__bus_read(&good, 0x4015u), 0x10u);
+        CHECK_EQ_HEX(nesturbator__bus_read(&wrong, 0x4015u), 0x30u);
+        CHECK_EQ_HEX(good.bus.open_bus, 0x40u);
+        good = wrong = *b;
+        wrong.bus.open_bus ^= 0x80u;
+        CHECK_EQ_HEX(nesturbator__bus_read(&good, 0x4016u) & 0xE0u, 0x40u);
+        CHECK_EQ_HEX(nesturbator__bus_read(&wrong, 0x4016u) & 0xE0u, 0xC0u);
+        /* Reload restores both latch values after each destructive probe. */
+        CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_save_state(b, scratch, size), NESTURBATOR_OK);
+        CHECK(memcmp(state, scratch, size) == 0);
+        printf("conflict native fork: frame=%u internal=10 external=40 "
+               "public-frame pixels/PCM/transitions/state=equal; "
+               "private read controls independently reject missing latches; format4 refused\n",
+               cut);
+        break;
+    }
+    CHECK(found != 0u);
+done:
+    free(state);
+    free(scratch);
+    free(final_a);
+    free(final_b);
+    nesturbator_destroy(a);
+    nesturbator_destroy(b);
+}
+
 /* One code path for file ROMs and in-memory images. */
 static void fork_image(const char *name, const uint8_t *img, size_t n, const uint32_t *forks,
                        size_t nforks, uint32_t end)
@@ -593,6 +722,7 @@ int main(int argc, char **argv)
     uint32_t end;
     if (argc == 2 && strcmp(argv[1], "--dma") == 0) {
         dma_fork();
+        conflict_latch_fork();
         CHECK_DONE();
     }
     if (argc == 2 && strcmp(argv[1], "--entry") == 0) {
@@ -635,6 +765,7 @@ int main(int argc, char **argv)
     }
     if (stress) {
         dma_fork();
+        conflict_latch_fork();
         static uint8_t buf[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
         static const uint16_t mappers[] = {0u, 4u};
         static const char *const names[] = {"stress-nrom", "stress-mmc3"};

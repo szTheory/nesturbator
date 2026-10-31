@@ -85,7 +85,8 @@ struct nesturbator__cpu {
    last value driven on the data bus (D-12). */
 struct nesturbator__bus {
     uint8_t ram[2048];
-    uint8_t open_bus;
+    uint8_t open_bus;          /* External held data; $4015 does not drive this bus. */
+    uint8_t cpu_data;          /* Internal CPU data, including $4015 and its floating D5. */
     uint8_t apu_get_put_phase; /* 1: GET, 0: PUT at the current CPU bus cycle. */
     uint8_t oam_dma_pending, oam_dma_page;
     uint8_t input_pending[2], input_buttons[2];

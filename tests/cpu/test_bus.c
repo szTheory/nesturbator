@@ -21,14 +21,16 @@ enum dma_event_kind {
     NESTURBATOR_DMA_CPU_WRITE_COMPLETE,
     NESTURBATOR_DMA_OAM_SOURCE,
     NESTURBATOR_DMA_OAM_SOURCE_COMPLETE,
-    NESTURBATOR_DMA_OAM_DEST
+    NESTURBATOR_DMA_OAM_DEST,
+    NESTURBATOR_DMA_INTERNAL_READ
 };
 
 #define DMA_TRACE_CAPACITY 32768u
 struct dma_event {
     uint8_t kind;
     uint16_t address, detail;
-    uint8_t data, phase, pending, halt_phase, open_bus, buffer_empty, controller_shift, bits;
+    uint8_t data, phase, pending, halt_phase, open_bus, cpu_data, buffer_empty, controller_shift,
+        bits;
     uint8_t enable_delay, load_waiting;
     uint8_t frame_irq, frame_irq_clear_pending;
     uint16_t remaining, dmc_counter, dmc_timer;
@@ -52,6 +54,7 @@ static void dma_observe(enum dma_event_kind kind, const struct nesturbator *mach
     event->pending = machine->apu.dmc.dma_pending;
     event->halt_phase = machine->apu.dmc.dma_halt_phase;
     event->open_bus = machine->bus.open_bus;
+    event->cpu_data = machine->bus.cpu_data;
     event->remaining = machine->apu.dmc.remaining;
     event->buffer_empty = machine->apu.dmc.buffer_empty;
     event->bits = machine->apu.dmc.bits;
@@ -118,6 +121,7 @@ static void prepare_landing(struct nesturbator *machine, uint8_t initial_phase,
     machine->ticks = (uint64_t)initial_phase * 24u;
     machine->bus.ram[0x20u] = 0x5Au;
     machine->bus.open_bus = 0x33u;
+    machine->bus.cpu_data = 0x33u;
     machine->apu.pulse_clock_phase = initial_phase;
     machine->apu.dmc.address = 0xC000u;
     machine->apu.dmc.remaining = 1u;
@@ -439,6 +443,8 @@ static const char *dma_event_name(enum dma_event_kind kind)
         return "oam-source-complete";
     case NESTURBATOR_DMA_OAM_DEST:
         return "oam-dest";
+    case NESTURBATOR_DMA_INTERNAL_READ:
+        return "internal-read";
     }
     return "unknown";
 }
@@ -798,7 +804,7 @@ static void run_conflict_probe(uint16_t sample_address, uint8_t sample_data, uin
     struct nesturbator machine;
     prepare_landing(&machine, 0u, 0u);
     machine.bus.apu_get_put_phase = 0u;
-    machine.bus.open_bus = 0u;
+    machine.bus.open_bus = machine.bus.cpu_data = 0u;
     machine.bus.controller_strobe = 0u;
     machine.bus.controller_shift[0] = controller_shift;
     machine.apu.frame_irq = frame_irq;
@@ -812,17 +818,17 @@ static void run_conflict_probe(uint16_t sample_address, uint8_t sample_data, uin
 
     uint8_t returned = test_observed_bus_read(&machine, 0x4000u);
     uint16_t internal_select = (uint16_t)(0x4000u | (sample_address & 0x001fu));
-    uint8_t expected_return = sample_data;
+    uint8_t expected_return = internal_select == 0x4015u ? 0x50u : sample_data;
     if (internal_select == 0x4016u)
         expected_return = (uint8_t)((sample_data & 0xe0u) | (controller_shift & 1u));
 
     printf("conflict parked=$4000 internal-expected=$%04x external=$%04x/%02x "
-           "internal-observed=none returned=%02x expected=%02x frame-irq=%u->%u "
+           "internal-read-count=%lu returned=%02x expected=%02x frame-irq=%u->%u "
            "controller=%02x->%02x first-divergence=sample-get-internal-select\n",
            (unsigned)internal_select, (unsigned)sample_address, (unsigned)sample_data,
-           (unsigned)returned, (unsigned)expected_return, (unsigned)frame_irq,
-           (unsigned)machine.apu.frame_irq, (unsigned)controller_shift,
-           (unsigned)machine.bus.controller_shift[0]);
+           (unsigned long)count_dma_events(NESTURBATOR_DMA_INTERNAL_READ), (unsigned)returned,
+           (unsigned)expected_return, (unsigned)frame_irq, (unsigned)machine.apu.frame_irq,
+           (unsigned)controller_shift, (unsigned)machine.bus.controller_shift[0]);
     const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
     CHECK(get != NULL && get->address == sample_address && get->data == sample_data);
 }
@@ -844,6 +850,7 @@ static void run_conflict_latch_probe(void)
     struct nesturbator machine;
     prepare_landing(&machine, 0u, 1u);
     machine.bus.open_bus = 0x40u;
+    machine.bus.cpu_data = 0x40u;
     machine.bus.controller_shift[0] = 1u;
     machine.apu.frame_irq = 1u;
     machine.apu.dmc.address = 0xFF15u;
@@ -862,6 +869,99 @@ static void run_conflict_latch_probe(void)
     printf("conflict-latches parked=4015 sample=ff15/a5 internal-D5=0 "
            "status=%02x/%02x external=%02x controller=%02x expected=00/00,a5,a1\n",
            (unsigned)first, (unsigned)second, (unsigned)external, (unsigned)controller);
+}
+
+/* This profile retains the pre-existing per-cycle controller clocks (RF
+   Famicom). NES-001 contiguous-read clocking is a separate model, HWC.01.
+   The fixed halt/dummy[/alignment]/resume counts are 3 for load and 4 for
+   reload. Neither these counts nor expected data are derived from the trace. */
+static uint8_t shifted_controller(uint8_t value, unsigned clocks)
+{
+    return (uint8_t)((value >> clocks) | (0xFFu << (8u - clocks)));
+}
+
+static void test_dma_bus_conflicts(void)
+{
+    static const uint16_t parked[] = {0x4000u, 0x401Fu, 0x4015u, 0x4016u, 0x4017u, 0x4020u};
+    static const uint8_t samples[] = {0xA5u, 0xC2u};
+    for (uint8_t load = 0u; load <= 1u; ++load) {
+        unsigned repeats = load != 0u ? 3u : 4u;
+        for (size_t p = 0u; p < sizeof parked / sizeof parked[0]; ++p) {
+            for (uint16_t low = 0x14u; low <= 0x18u; ++low) {
+                for (size_t b = 0u; b < sizeof samples / sizeof samples[0]; ++b) {
+                    struct nesturbator normal, observed;
+                    prepare_landing(&normal, (uint8_t)(load ^ 1u), load);
+                    normal.bus.open_bus = normal.bus.cpu_data = 0x40u;
+                    normal.bus.controller_shift[0] = 0x96u;
+                    normal.bus.controller_shift[1] = 0x69u;
+                    normal.apu.frame_irq = 1u;
+                    normal.apu.dmc.address = (uint16_t)(0xFF00u | low);
+                    landing_prg[0x3F00u | low] = samples[b];
+                    observed = normal;
+                    dma_trace_count = 0u;
+                    uint64_t start = normal.cpu_cycle;
+                    uint8_t expected = nesturbator__bus_read(&normal, parked[p]);
+                    uint8_t returned = test_observed_bus_read(&observed, parked[p]);
+                    CHECK_EQ_HEX(returned, expected);
+                    CHECK(memcmp(&normal, &observed, sizeof normal) == 0);
+                    CHECK_EQ_U64(normal.cpu_cycle - start, repeats + 1u);
+                    const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
+                    CHECK(get != NULL && get->address == (0xFF00u | low) &&
+                          get->data == samples[b] && get->phase == 1u);
+                    CHECK_EQ_HEX(normal.apu.dmc.sample_buffer, samples[b]);
+                    /* Pinned TEST_DMABusConflict explicitly cannot qualify
+                       DMC shift-register input. This guards our retained
+                       external-byte reader model, not a silicon claim. */
+                    uint8_t alias = (uint8_t)(parked[p] < 0x4020u && low >= 0x15u && low <= 0x17u);
+                    CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_INTERNAL_READ), alias);
+                    const struct dma_event *reg = find_dma_event(NESTURBATOR_DMA_INTERNAL_READ);
+                    if (alias != 0u) {
+                        CHECK(reg != NULL && reg->address == (0x4000u | low) &&
+                              reg->detail == parked[p] && reg->phase == 1u);
+                        if (low == 0x15u && reg != NULL) {
+                            CHECK(reg->frame_irq_clear_pending != 0u);
+                            CHECK_EQ_HEX(reg->open_bus, samples[b]);
+                            CHECK_EQ_HEX(reg->cpu_data, parked[p] == 0x4015u ? 0x10u : 0x50u);
+                        }
+                    }
+                    /* GET-side status acknowledgement clears on the next
+                       GET, not the immediately following resumed PUT. */
+                    CHECK_EQ_U64(normal.apu.frame_irq, parked[p] != 0x4015u);
+                    for (uint8_t port = 0u; port <= 1u; ++port) {
+                        uint8_t initial = port == 0u ? 0x96u : 0x69u;
+                        unsigned clocks = parked[p] == 0x4016u + port ? repeats : 0u;
+                        clocks += alias != 0u && low == 0x16u + port;
+                        CHECK_EQ_HEX(normal.bus.controller_shift[port],
+                                     clocks == 0u ? initial : shifted_controller(initial, clocks));
+                    }
+                    uint8_t want = samples[b];
+                    if (parked[p] == 0x4016u || parked[p] == 0x4017u) {
+                        uint8_t port = (uint8_t)(parked[p] - 0x4016u);
+                        uint8_t initial = port == 0u ? 0x96u : 0x69u;
+                        unsigned prior = repeats - 1u + (alias != 0u && low == 0x16u + port);
+                        want = (uint8_t)((samples[b] & 0xE0u) | ((initial >> prior) & 1u));
+                    } else if (parked[p] == 0x4015u) {
+                        want = alias != 0u && low == 0x15u ? 0u : (samples[b] & 0x20u);
+                    } else if (alias != 0u && low == 0x15u) {
+                        want = 0x50u; /* DMC active at internal read; IRQ acknowledged. */
+                    } else if (alias != 0u && low >= 0x16u) {
+                        uint8_t initial = low == 0x16u ? 0x96u : 0x69u;
+                        want = (uint8_t)((samples[b] & 0xE0u) | (initial & 1u));
+                    }
+                    CHECK_EQ_HEX(returned, want);
+                    if (alias != 0u && low == 0x15u) {
+                        CHECK(normal.apu.frame_irq_clear_pending != 0u);
+                        CHECK_EQ_HEX(nesturbator__bus_read(&normal, 0x4000u),
+                                     test_observed_bus_read(&observed, 0x4000u));
+                        CHECK_EQ_U64(normal.apu.frame_irq, 0u);
+                        CHECK_EQ_U64(normal.apu.frame_irq_clear_pending, 0u);
+                        CHECK(memcmp(&normal, &observed, sizeof normal) == 0);
+                    }
+                }
+            }
+        }
+    }
+    run_conflict_latch_probe();
 }
 
 static void run_oam_probe(uint16_t requested_offset, uint8_t load, uint8_t phase, uint8_t verify)
@@ -1234,5 +1334,6 @@ int main(int argc, char **argv)
     run_landing_test9_reload_boundary(0u);
     test_dma_oam_collision();
     test_dma_oam_final_write();
+    test_dma_bus_conflicts();
     CHECK_DONE();
 }

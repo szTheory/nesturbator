@@ -193,7 +193,7 @@ function(reproduction_check doc_path)
       "reproduction unsupported:"
       "host container stop"
       "not hostile-file authentication"
-      "Native format version 4 and behavior revision 11 are separate values."
+      "Native format version 5 and behavior revision 12 are separate values."
       "Successful preflight does not")
     reproduction_require_contains("${preflight_section}" "${required}" "checkpoint preflight policy missing: ${required}")
   endforeach()
