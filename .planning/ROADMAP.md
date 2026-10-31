@@ -52,7 +52,7 @@ Plans:
 - [x] 24-01-PLAN.md — Landing-on-write tracer and independent baseline traces for all five rows (DMA-01, DMA-02, DMA-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 24-02-PLAN.md — DMC/OAM collision and DMC bus-conflict corrections (DMA-01, DMA-02, DMA-03, DMA-04)
+- [x] 24-02-PLAN.md — DMC/OAM collision and DMC bus-conflict corrections (DMA-01, DMA-02, DMA-03, DMA-04)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 24-03-PLAN.md — Explicit and implicit abort corrections with native continuation (DMA-01, DMA-02, DMA-03, DMA-04)

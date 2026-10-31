@@ -1,10 +1,12 @@
 ---
 phase: 24-02-oam-dmc-overlap
-reviewed: 2026-10-31T20:30:38Z
+reviewed: 2026-10-31T20:49:02Z
 depth: standard
-files_reviewed: 12
+files_reviewed: 14
 files_reviewed_list:
   - src/bus.c
+  - src/internal.h
+  - src/state.c
   - tests/cpu/test_bus.c
   - tests/core/test_state_fork.c
   - include/nesturbator.h
@@ -21,19 +23,19 @@ findings:
   warning: 0
   info: 0
   total: 0
-status: passed
+status: clean
 ---
 
 # Phase 24-02: Code Review Report
 
-**Reviewed:** 2026-10-31T20:30:38Z
+**Reviewed:** 2026-10-31T20:49:02Z
 **Depth:** standard
-**Files Reviewed:** 12
-**Status:** passed
+**Files Reviewed:** 14
+**Status:** clean
 
 ## Summary
 
-The OAM/DMC arbitration implementation appears consistent with the cited overlap model: OAM advances on GET/PUT, the DMC GET occupies a GET slot, and the source byte is retried. No production blocker was found. The bounded bus test should pin its intended interior and tail outcomes independently of the observed event timing. The checkpoint's intentionally failing `conflict-latches` diagnostic concerns the separate, unapproved split-latch correction and is not an OAM finding.
+The reviewed OAM/DMC correction has no active finding after the recorded resolution. The split-latch correction and its native continuation were also reviewed against the pinned bus-conflict trace; no remaining source or test blocker was found. The bounded checks noted by the parent were not rerun during this read-only review.
 
 ## Narrative Findings (AI reviewer)
 
@@ -65,4 +67,12 @@ _Depth: standard_
 
 WR-01 resolved: every interior/final phase/load row now pins its expected collision index, +2/+1/+3 extra clocks, GET/OAM-end relation, exact resumed CPU address/data/phase and source-resume index. The trace-derived relation remains an additional check only. Fresh default bus tests pass; independently compiling both production and observed copies from pre-OAM source rejects the fixed matrix, missing GET and wrong-phase controls.
 
-WR-02 withdrawn after direct parent inspection: docs/api.md already said format 4 rejects formats 1/2/3 in the committed first-plan correction, and still does. The review quote was stale context, not the current file. Both doc contract/mutation checks pass with current revision-11 text. No active OAM finding remains; this does not approve or review a future split-latch implementation.
+WR-02 withdrawn after direct parent inspection: docs/api.md already said format 4 rejects formats 1/2/3 in the committed first-plan correction, and still does. The review quote was stale context, not the current file. Both doc contract/mutation checks pass with current revision-11 text. WR-01 was resolved with fixed timing oracles. No active OAM finding remains.
+
+## Narrative Findings (AI reviewer) — split bus and native continuation
+
+**Scope:** `src/bus.c`, `src/internal.h`, `src/state.c`, `tests/cpu/test_bus.c`, and the conflict-latch case in `tests/core/test_state_fork.c`.
+
+No findings. The sample GET updates the external latch while `$4015` updates only the internal latch; controller alias reads merge sample upper bits with serial data, and IRQ/status side effects are checked separately. The bus matrix uses fixed address/data/phase and result oracles for both load/reload timing, both controller ports, neighboring non-alias lows, and the parked-address boundary, and compares the observer build with the linked production path. The guest-produced fork boundary preserves both latch values through save/load, compares subsequent frame output and state, and uses disposable private bus-seam probes to show that corrupting either latch changes its corresponding immediate read result. Those probes do not claim that the public frame API can stop mid-instruction or mid-DMA.
+
+No tests were run as part of this review. The historical diagnostic and pending protected ROM/campaign acceptance are outside this review's conclusion.
