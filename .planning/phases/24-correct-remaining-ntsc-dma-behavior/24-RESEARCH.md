@@ -350,12 +350,25 @@ Nyquist validation is explicitly disabled, so omit the Validation Architecture s
 |---|---|---|---|
 | — | No unverified package, hardware outcome or root-cause claim is recommended. First causal divergence for all five rows remains an open implementation finding. | Per-row evidence | The plan must not treat any candidate wrong model as established core behavior before a trace. |
 
-## Open Questions
+## Open Questions — RESOLVED planning dispositions
+
+**Planning disposition: RESOLVED; factual findings remain outstanding.** These questions deliberately remain unanswered where their answers require execution evidence or separate owner authority. Their disposition is explicit below, so they do not block plan readiness. This records responsibility and ordering, not a hardware conclusion, completed investigation, acceptance result, or permission to run anything. All existing plan tasks, locked decisions and the interrupted full-CI/campaign stop remain unchanged.
 
 1. **What is the first causal divergence for each selected row?** The scoreboard and pinned test source identify outcomes/expectations, while production code gives candidate observation points; no fresh trace was permitted or run. Recommendation: assign five independent bounded traces before grouping fixes. [VERIFIED: tests/accuracy/scoreboard.txt:89-103; .planning/research/milestone-dma-discovery/SCOPE.md:16-20,28-30]
+
+   **RESOLVED planning disposition — execution investigation, factually unanswered:** [Plan 01 Task 1](24-01-PLAN.md) establishes the landing row's first divergence in the leading tracer; Plan 01 Task 2 establishes the other four independently and records all five in `24-DMA-EVIDENCE.md`. Per D-01, dependent correction/grouping work stops if any required divergence remains unknown. These traces are execution artifacts; answering now would require prohibited runtime work or an invented cause. This assigned investigation does not block plan readiness and supplies no runtime authority.
+
 2. **Which exact implicit-abort outcome applies to the declared profile?** The pinned test accepts both pre-mid-1990 and mid-1990-or-later outcomes; the project targets RP2A03G but does not claim a universal revision result. Recommendation: preserve the source's allowed outcomes and state any narrowed profile assumption explicitly. [CITED: https://github.com/100thCoin/AccuracyCoin/blob/6bee919529289c555803b612b8c9e4f7eaaeeabb/README.md] [VERIFIED: .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-CONTEXT.md:22]
+
+   **RESOLVED planning disposition — execution investigation, factually unanswered:** [Plan 01 Task 2](24-01-PLAN.md) captures the independent implicit-abort trace; [Plan 03 Task 2](24-03-PLAN.md) derives the source-supported selected-profile expectation, records any narrower assumption and its evidence limits, and supplies the owned wrong-model control. Per D-03, compatibility acceptance continues to allow both pinned outcomes; neither an exact hardware outcome nor a universal RP2A03G rule is asserted here. The trace-derived profile finding is an execution artifact, so its absence does not block plan readiness or authorize a test/campaign run.
+
 3. **Will a fix change serialized in-flight state?** Existing bus/APU fields are already serialized; the implementation change is unknown. Recommendation: make the format/revision call after inspecting changed fields and semantics, then exercise a production-reachable frame boundary if state behavior is affected. [VERIFIED: src/state.c:194-205,250-280; .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-CONTEXT.md:27-28]
+
+   **RESOLVED planning disposition — implementation-dependent finding, factually unanswered:** Task 3 in [Plan 01](24-01-PLAN.md), [Plan 02](24-02-PLAN.md) and [Plan 03](24-03-PLAN.md) owns the actual field/layout/meaning audit, format/behavior-revision disposition and affected native-continuation evidence. The existing execution contracts require the audit before mutation and preserve the concrete state-change decision gate. D-05/D-06 settle the policy; the actual correction determines its application. No format outcome is invented, and this assigned finding does not block plan readiness.
+
 4. **When can the campaign gate be run?** STATE preserves an unknown interrupted outcome and requires separate authorization if configured project CI schedules the campaign. Recommendation: stop at that point with exact selected tests, missing evidence and command; keep phase requirements incomplete until authorization and verification are resolved. [VERIFIED: .planning/STATE.md:56-60; .planning/ROADMAP.md:89-97]
+
+   **RESOLVED planning disposition — authorization gate retained:** [Plan 04 Task 1](24-04-PLAN.md) prepares the exact command/selection and missing evidence; Task 2 requires separate matching owner authority; Task 3 may execute only within that newly authorized scope. No authority has been granted by this disposition, and the interrupted outcome remains unknown. Per D-08, absent separate authority execution stays stopped and the phase/requirements remain incomplete. The preserved gate does not block plan readiness.
 
 ## Sources
 

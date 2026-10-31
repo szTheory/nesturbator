@@ -45,7 +45,20 @@ milestone archives above; no future product proposal becomes execution scope.
   3. `DMA + $4015 Read`, `Misaligned OAM DMA`, `INC $4014` and every other protected PASS key still pass at the same pin; identical inputs retain identical frame/audio output across supported platforms and the existing performance gates pass without relaxed limits. Any intentional output-baseline change has a source-backed reason. (DMA-03)
   4. When a correction changes in-flight DMA state, saving and loading at production-reachable affected boundaries yields the same subsequent machine behavior and frame/audio output as uninterrupted execution. The state-format and behavior-revision disposition is explicit, including a reasoned no-change disposition where appropriate. (DMA-04)
   5. A host developer can read the README and public-header comments to understand the corrected DMA behavior and any state compatibility consequences, with the owned regression checks registered in the existing CI entrypoint alongside the behavior change. (DMA-02, DMA-04)
-**Plans**: TBD
+**Plans**: 0/4 plans complete
+
+Plans:
+**Wave 1**
+- [ ] 24-01-PLAN.md — Landing-on-write tracer and independent baseline traces for all five rows (DMA-01, DMA-02, DMA-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 24-02-PLAN.md — DMC/OAM collision and DMC bus-conflict corrections (DMA-01, DMA-02, DMA-03, DMA-04)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 24-03-PLAN.md — Explicit and implicit abort corrections with native continuation (DMA-01, DMA-02, DMA-03, DMA-04)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 24-04-PLAN.md — Regression audit and separately authorized acceptance handoff (DMA-01, DMA-02, DMA-03, DMA-04)
 **Canonical refs**: [DMA scope](research/milestone-dma-discovery/SCOPE.md); [preparation index](preparation/README.md); [CPU/APU hardware, especially DMA §2.2](preparation/NES-HARDWARE-CPU-APU.md); [conformance and oracle limits](preparation/CONFORMANCE.md).
 
 ### Evidence boundaries within Phase 24
