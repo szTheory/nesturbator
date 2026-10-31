@@ -19,21 +19,20 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 **Core value:** Games behave as on the console, identically across platforms, from a small MIT C library.
-**Current focus:** v7's four requirements are approved. The [execution roadmap](ROADMAP.md) assigns them to Phase 24 and awaits roadmap approval.
+**Current focus:** v7's four requirements and its one-phase roadmap are approved and committed. Phase 24 is ready for discussion; no implementation or tests have started.
 
 ## Current Position
 
 Phase: 24 — Correct remaining NTSC DMA behavior (1 of 1 in v7)
 Plan: Not planned
-Status: Roadmap ready for approval; phase not started
-Last activity: 2026-10-31 — Created the v7 roadmap and complete requirement traceability; no tests, workflow or campaign run.
+Status: Roadmap approved and committed; Phase 24 not started
+Last activity: 2026-10-31 — Owner approved the v7 roadmap; commit `74286c2` records the roadmap and traceability. No tests, workflow or campaign ran.
 Progress: [░░░░░░░░░░] 0%
 
 ## Next Action
 
-The orchestrator presents the concrete roadmap for owner approval. The user acts next at that required milestone boundary; no implementation starts under this handoff.
-After roadmap approval and commit, next command: `$gsd-discuss-phase 24`.
-It resolves the phase's remaining behavior and evidence choices before detailed planning. Context may be cleared then; read this file, [ROADMAP.md](ROADMAP.md) and the [DMA scope note](research/milestone-dma-discovery/SCOPE.md) first.
+The v7 roadmap is approved and committed. Next command: `$gsd-discuss-phase 24`.
+It gathers the remaining behavior and evidence choices for Phase 24 before detailed planning. Context may be cleared before running it; read this file, [ROADMAP.md](ROADMAP.md) and the [DMA scope note](research/milestone-dma-discovery/SCOPE.md) first.
 Roadmap approval does not authorize full CI or an AccuracyCoin campaign rerun.
 
 ## Accumulated Context
@@ -88,6 +87,6 @@ v7: no plans executed. v6 completed seven plans; detailed timing remains in the 
 ## Session Continuity
 
 **Last session:** 2026-10-31
-**Stopped at:** v7 roadmap written for approval; no implementation or tests started.
-**Next command after roadmap approval:** `$gsd-discuss-phase 24`
+**Stopped at:** v7 roadmap approved and committed; Phase 24 not started.
+**Next command:** `$gsd-discuss-phase 24`
 **Resume file:** [DMA scope note](research/milestone-dma-discovery/SCOPE.md); read alongside the roadmap's verification authorization gate.

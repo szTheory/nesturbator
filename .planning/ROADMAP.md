@@ -127,4 +127,4 @@ No seed files were modified. The three pending property/mutation/signal proposal
 were inspected and have no confident requirement match here; they remain unlinked
 and deferred. All future direction remains in PRODUCT-ROADMAP.md.
 
-*Last updated: 2026-10-31 for v7 roadmap review; requirements approved, roadmap approval pending. No tests or campaign run.*
+*Last updated: 2026-10-31 after v7 roadmap approval. No tests or campaign run.*
