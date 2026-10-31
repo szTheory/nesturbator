@@ -408,12 +408,22 @@ You need CMake 3.25 or newer, Ninja and a C17 compiler.
 cmake --workflow --preset ci    # Release, warnings as errors; builds, runs every test, writes the archives
 cmake --workflow --preset ci-build  # hosted POSIX build lane; session controls run in dedicated jobs
 cmake --workflow --preset dev   # Debug build and the same tests
+cmake --workflow --preset dev-check  # Debug build and the focused owned C test tier
 cmake --workflow --preset asan  # the same tests under AddressSanitizer and UBSan
 cmake --workflow --preset nofp  # core built with -mgeneral-regs-only; the abi checks
 cmake --workflow --preset hygiene  # tree contents, action pins and formatting
 cmake --workflow --preset vectors-full  # the full 65x02 vector set, fetched at its pin (network)
 cmake --workflow --preset mmc3-oracle  # blargg's MMC3 test ROMs, fetched at their pin (network)
 ```
+
+`dev-check` builds only the owned core, CPU, bus, controller, focused PPU,
+header, and native interrupt-entry test targets and their required
+dependencies. It runs 20 exact tests, including the state-format pin and public
+API policy self-test, with four CTest workers.
+Its exact-name selection excludes the full state-fork matrix and stress case,
+movies, AccuracyCoin, host sessions, performance checks, and network-fetched
+suites. Use it for fast local feedback; it does not replace the complete
+`ci` workflow required for acceptance.
 
 On Windows with MSVC, use `ci-msvc` from a developer command prompt. MSVC
 rejects a `const` object declared without an initializer (C4132); Clang 21
