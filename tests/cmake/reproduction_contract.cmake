@@ -1,6 +1,6 @@
 # Scoped public report and command contract for docs/reproduction.md.
 #
-#   MODE=check validates the report/cold sections and generated build metadata.
+#   MODE=check validates the report/replay/storage sections and generated CTest metadata.
 #   MODE=self_test requires independent broken copies to fail for named reasons.
 
 cmake_minimum_required(VERSION 3.25)
@@ -8,6 +8,61 @@ cmake_minimum_required(VERSION 3.25)
 function(reproduction_require_contains content needle diagnostic)
   string(FIND "${content}" "${needle}" found)
   if(found EQUAL -1)
+    message(FATAL_ERROR "docs.reproduction: ${diagnostic}")
+  endif()
+endfunction()
+
+function(reproduction_require_test_property tests_json test_name property expected diagnostic)
+  string(JSON test_count LENGTH "${tests_json}" tests)
+  set(found_test FALSE)
+  set(found_property FALSE)
+  set(observed_values)
+  foreach(test_index RANGE 0 ${test_count})
+    if(test_index GREATER_EQUAL test_count)
+      break()
+    endif()
+    string(JSON candidate_name GET "${tests_json}" tests ${test_index} name)
+    if(NOT candidate_name STREQUAL test_name)
+      continue()
+    endif()
+    set(found_test TRUE)
+    string(JSON property_count LENGTH "${tests_json}" tests ${test_index} properties)
+    foreach(property_index RANGE 0 ${property_count})
+      if(property_index GREATER_EQUAL property_count)
+        break()
+      endif()
+      string(JSON candidate_property GET "${tests_json}" tests ${test_index} properties ${property_index} name)
+      if(NOT candidate_property STREQUAL property)
+        continue()
+      endif()
+      set(found_property TRUE)
+      string(JSON value_type TYPE "${tests_json}" tests ${test_index} properties ${property_index} value)
+      if(value_type STREQUAL "ARRAY")
+        string(JSON value_count LENGTH "${tests_json}" tests ${test_index} properties ${property_index} value)
+        foreach(value_index RANGE 0 ${value_count})
+          if(value_index GREATER_EQUAL value_count)
+            break()
+          endif()
+          string(JSON value GET "${tests_json}" tests ${test_index} properties ${property_index} value ${value_index})
+          list(APPEND observed_values "${value}")
+        endforeach()
+      else()
+        string(JSON value GET "${tests_json}" tests ${test_index} properties ${property_index} value)
+        list(APPEND observed_values "${value}")
+      endif()
+      break()
+    endforeach()
+    break()
+  endforeach()
+
+  if(NOT found_test OR NOT found_property)
+    message(FATAL_ERROR "docs.reproduction: ${diagnostic}")
+  endif()
+  if(property STREQUAL "TIMEOUT")
+    if(NOT expected IN_LIST observed_values AND NOT "${expected}.0" IN_LIST observed_values)
+      message(FATAL_ERROR "docs.reproduction: ${diagnostic}")
+    endif()
+  elseif(NOT expected IN_LIST observed_values)
     message(FATAL_ERROR "docs.reproduction: ${diagnostic}")
   endif()
 endfunction()
@@ -26,12 +81,26 @@ function(reproduction_check doc_path)
   string(FIND "${document}" "## Report a scene" report_start)
   string(FIND "${document}" "## Permitted fixture example" example_start)
   string(FIND "${document}" "## Cold movie replay" cold_start)
-  if(report_start EQUAL -1 OR example_start LESS report_start OR cold_start LESS example_start)
+  string(FIND "${document}" "## Native checkpoint continuation" checkpoint_start)
+  string(FIND "${document}" "## Before checkpoint replay" preflight_start)
+  string(FIND "${document}" "## Scratch storage and bounds" scratch_start)
+  string(FIND "${document}" "## Procedure result and runner exit status" result_start)
+  if(report_start EQUAL -1 OR example_start LESS report_start OR cold_start LESS example_start OR
+     checkpoint_start LESS cold_start OR preflight_start LESS checkpoint_start OR
+     scratch_start LESS preflight_start OR result_start LESS scratch_start)
     message(FATAL_ERROR "docs.reproduction: report, fixture example and cold replay sections are out of order")
   endif()
   math(EXPR report_length "${example_start} - ${report_start}")
   string(SUBSTRING "${document}" ${report_start} ${report_length} report_section)
-  string(SUBSTRING "${document}" ${cold_start} -1 cold_section)
+  math(EXPR cold_length "${checkpoint_start} - ${cold_start}")
+  math(EXPR checkpoint_length "${preflight_start} - ${checkpoint_start}")
+  math(EXPR preflight_length "${scratch_start} - ${preflight_start}")
+  math(EXPR scratch_length "${result_start} - ${scratch_start}")
+  string(SUBSTRING "${document}" ${cold_start} ${cold_length} cold_section)
+  string(SUBSTRING "${document}" ${checkpoint_start} ${checkpoint_length} checkpoint_section)
+  string(SUBSTRING "${document}" ${preflight_start} ${preflight_length} preflight_section)
+  string(SUBSTRING "${document}" ${scratch_start} ${scratch_length} scratch_section)
+  string(SUBSTRING "${document}" ${result_start} -1 result_section)
 
   set(report_fields
     "Report revision/date:"
@@ -77,6 +146,75 @@ function(reproduction_check doc_path)
   reproduction_require_contains("${cold_section}" "foreign movie formats" "foreign movie conversion limitation is not documented")
   reproduction_require_contains("${cold_section}" "hardware-correctness evidence" "repeatability is overstated as correctness")
 
+  foreach(required IN ITEMS
+      "runner.reproduction.preflight"
+      "runner.reproduction.preflight_self_test"
+      "runner.state.nmi_roundtrip"
+      "runner.state.nmi_idempotent"
+      "runner.state.nmi_wrong_load"
+      "neutral-input"
+      "no movie"
+      "K=1"
+      "N=4"
+      "2–4; it is not four additional frames."
+      "transition and PCM suffix"
+      "guest NMI event sequence"
+      "stale-load and"
+      "omitted-load guest-marker failures")
+    reproduction_require_contains("${checkpoint_section}" "${required}" "native checkpoint route missing: ${required}")
+  endforeach()
+  foreach(required IN ITEMS
+      "64 hexadecimal characters"
+      "MODE=preflight"
+      "STATE"
+      "PAYLOAD_KIND"
+      "runner-native-same-invocation"
+      "RECORDED_RUNNER_SHA256"
+      "RECORDED_ROM_SHA256"
+      "RECORDED_STATE_SHA256"
+      "declared origin label"
+      "reproduction unsupported:"
+      "host container stop"
+      "not hostile-file authentication"
+      "Native format version 3 and behavior revision 9 are separate values."
+      "Successful preflight does not")
+    reproduction_require_contains("${preflight_section}" "${required}" "checkpoint preflight policy missing: ${required}")
+  endforeach()
+  reproduction_require_contains("${preflight_section}" "does not enforce the exact executing build" "loader build-enforcement limit missing")
+  reproduction_require_contains("${result_section}" "reproduction unsupported:" "procedure unsupported result is missing")
+  reproduction_require_contains("${result_section}" "not a runner exit code" "procedure result is conflated with runner exits")
+  foreach(exit_code IN ITEMS 0 1 2 4 5)
+    reproduction_require_contains("${result_section}" "Runner exit ${exit_code}" "runner exit contract is missing ${exit_code}")
+  endforeach()
+  reproduction_require_contains("${result_section}" "Runner exits 3 and 77" "reserved runner exits are missing")
+  reproduction_require_contains("${result_section}" "runner-native state cannot be renamed into a RetroArch disk state" "host/native container boundary is missing")
+  reproduction_require_contains("${result_section}" "--movie" "movie-plus-state refusal is missing")
+
+  foreach(required IN ITEMS "mktemp -d" "[guid]::NewGuid()")
+    reproduction_require_contains("${cold_section}" "${required}" "fresh POSIX/PowerShell scratch root is missing: ${required}")
+  endforeach()
+  foreach(required IN ITEMS
+      "one new scratch root and build directory per invocation"
+      "fresh nonce directory"
+      "captured stdout/stderr"
+      "Two separate CTest processes sharing one build tree are unsupported."
+      "No example imports daily battery data."
+      "600 movie frames per run; 2 cold runs"
+      "runner.reproduction.preflight`: 60 s"
+      "runner.reproduction.preflight_self_test`: 60 s"
+      "runner.state.nmi_roundtrip`: 60 s"
+      "runner.state.nmi_idempotent`: 60 s"
+      "runner.state.nmi_wrong_load`: 60 s"
+      "runner.save.fixture`: 10 s"
+      "runner.boot_to_play`: 300 s"
+      "runner.nesrunner_movie.*`: 10 s"
+      "stop line"
+      "partial")
+    reproduction_require_contains("${scratch_section}" "${required}" "scratch/bounds policy missing: ${required}")
+  endforeach()
+  reproduction_require_contains("${scratch_section}" "`runner.reproduction.cold`: 180 s" "cold replay timeout bound missing")
+  reproduction_require_contains("${scratch_section}" "outside every active example path" "newest battery backup must stay outside active paths")
+
   file(READ "${SOURCE_DIR}/README.md" readme)
   reproduction_require_contains("${readme}" "## Troubleshooting" "README troubleshooting heading missing")
   reproduction_require_contains("${readme}" "[Report a scene or reproduce a permitted fixture](docs/reproduction.md)" "README does not link directly to the report")
@@ -96,6 +234,8 @@ function(reproduction_check doc_path)
   reproduction_require_contains("${runner_guide}" "## Input movies" "runner guide section link is stale")
   reproduction_require_contains("${testing_guide}" "# Testing and engineering" "testing guide heading is stale")
   reproduction_require_contains("${progress_guide}" "# Protecting emulator progress" "progress guide heading is stale")
+  reproduction_require_contains("${testing_guide}" "[scene reproduction guide](reproduction.md)" "testing guide does not link to scene reproduction")
+  reproduction_require_contains("${progress_guide}" "[scene reproduction guide](reproduction.md)" "progress guide does not link to scene reproduction")
   reproduction_require_contains("${movie_writer}" "nesrunner-pos" "owned movie scenario is missing")
   reproduction_require_contains("${cold_section}" "[runner guide](runner.md)" "runner guide link is stale")
   reproduction_require_contains("${cold_section}" "[testing guide](testing.md)" "testing guide link is stale")
@@ -161,7 +301,12 @@ function(reproduction_check doc_path)
   foreach(required_test IN ITEMS
       runner.reproduction.cold
       runner.reproduction.compare_self_test
+      runner.reproduction.preflight
+      runner.reproduction.preflight_self_test
       runner.boot_to_play
+      runner.state.nmi_roundtrip
+      runner.state.nmi_idempotent
+      runner.state.nmi_wrong_load
       docs.links
       docs.links.self_test
       docs.reproduction
@@ -182,29 +327,46 @@ function(reproduction_check doc_path)
     message(FATAL_ERROR "docs.reproduction: documented CTest selection matches no tests")
   endif()
 
-  string(JSON selected_length LENGTH "${selected_tests_json}" tests)
-  set(cold_timeout "")
-  foreach(index RANGE 0 ${selected_length})
-    if(index GREATER_EQUAL selected_length)
-      break()
-    endif()
-    string(JSON test_name GET "${selected_tests_json}" tests ${index} name)
-    if(test_name STREQUAL "runner.reproduction.cold")
-      string(JSON property_count LENGTH "${selected_tests_json}" tests ${index} properties)
-      foreach(property_index RANGE 0 ${property_count})
-        if(property_index GREATER_EQUAL property_count)
-          break()
-        endif()
-        string(JSON property_name GET "${selected_tests_json}" tests ${index} properties ${property_index} name)
-        if(property_name STREQUAL "TIMEOUT")
-          string(JSON cold_timeout GET "${selected_tests_json}" tests ${index} properties ${property_index} value)
-        endif()
-      endforeach()
-    endif()
+  reproduction_require_test_property("${selected_tests_json}" "runner.reproduction.cold" "TIMEOUT" "180"
+    "generated cold replay timeout is not 180 seconds")
+  reproduction_require_test_property("${selected_tests_json}" "runner.reproduction.compare_self_test" "TIMEOUT" "60"
+    "generated movie comparison self-test timeout is not 60 seconds")
+  reproduction_require_test_property("${selected_tests_json}" "runner.reproduction.preflight" "TIMEOUT" "60"
+    "generated checkpoint preflight timeout is not 60 seconds")
+  reproduction_require_test_property("${selected_tests_json}" "runner.reproduction.preflight_self_test" "TIMEOUT" "60"
+    "generated preflight self-test timeout is not 60 seconds")
+  reproduction_require_test_property("${selected_tests_json}" "runner.boot_to_play" "TIMEOUT" "300"
+    "generated played-input control timeout is not 300 seconds")
+  reproduction_require_test_property("${selected_tests_json}" "runner.save.fixture" "TIMEOUT" "10"
+    "required save fixture setup has no 10-second timeout")
+  reproduction_require_test_property("${selected_tests_json}" "runner.save.fixture" "FIXTURES_SETUP" "runner_save"
+    "required save fixture setup is not registered")
+  reproduction_require_test_property("${selected_tests_json}" "runner.boot_to_play" "FIXTURES_REQUIRED" "nesrunner_movies"
+    "played-input control is missing its movie fixtures")
+  foreach(case IN ITEMS nmi_roundtrip nmi_idempotent nmi_wrong_load)
+    reproduction_require_test_property("${selected_tests_json}" "runner.state.${case}" "TIMEOUT" "60"
+      "generated runner.state.${case} timeout is not 60 seconds")
+    reproduction_require_test_property("${selected_tests_json}" "runner.state.${case}" "FIXTURES_REQUIRED" "runner_save"
+      "generated runner.state.${case} save fixture dependency is missing")
+    reproduction_require_test_property("${selected_tests_json}" "runner.state.${case}" "DEPENDS" "runner.save.fixture"
+      "generated runner.state.${case} setup test dependency is missing")
   endforeach()
-  if(NOT cold_timeout STREQUAL "180.0" AND NOT cold_timeout STREQUAL "180")
-    message(FATAL_ERROR "docs.reproduction: generated cold replay timeout is not 180 seconds")
-  endif()
+  foreach(scenario IN ITEMS pos none attract startonly)
+    reproduction_require_test_property("${selected_tests_json}" "runner.nesrunner_movie.${scenario}" "TIMEOUT" "10"
+      "required runner.nesrunner_movie.${scenario} setup timeout is not 10 seconds")
+    reproduction_require_test_property("${selected_tests_json}" "runner.nesrunner_movie.${scenario}" "FIXTURES_SETUP" "nesrunner_movies"
+      "required runner.nesrunner_movie.${scenario} fixture is not registered")
+  endforeach()
+
+  file(READ "${SOURCE_DIR}/tests/cmake/reproduction.cmake" replay_wrapper)
+  file(READ "${SOURCE_DIR}/tests/CMakeLists.txt" test_registration)
+  reproduction_require_contains("${replay_wrapper}" "reproduction_preflight(" "example preflight implementation is missing")
+  reproduction_require_contains("${replay_wrapper}" "elseif(MODE STREQUAL \"preflight\")" "public preflight mode is missing")
+  reproduction_require_contains("${replay_wrapper}" "TIMEOUT 20" "frame-1 runner child deadline is missing")
+  reproduction_require_contains("${replay_wrapper}" "TIMEOUT 10" "fixture and negative-control child deadlines are missing")
+  reproduction_require_contains("${replay_wrapper}" "nesturbator-run: stopped" "interrupted child output is not rejected")
+  reproduction_require_contains("${test_registration}" "-DMODE=preflight_fixture" "positive preflight CTest mode is stale")
+  reproduction_require_contains("${test_registration}" "-DMODE=preflight_self_test" "preflight negative-control CTest mode is stale")
 
   foreach(target IN LISTS documented_targets)
     string(FIND "${all_tests_json}" "/${target}" target_position)
@@ -212,7 +374,8 @@ function(reproduction_check doc_path)
       message(FATAL_ERROR "docs.reproduction: documented build target is not generated: ${target}")
     endif()
   endforeach()
-  foreach(required_target IN ITEMS nesturbator-run runner.game_movie runner.boot_to_play)
+  foreach(required_target IN ITEMS nesturbator-run runner.game_movie runner.nmi_fixture
+      runner.boot_to_play runner.save_rom runner.state_mutate)
     if(NOT required_target IN_LIST documented_targets)
       message(FATAL_ERROR "docs.reproduction: documented build command omits ${required_target}")
     endif()
@@ -268,7 +431,8 @@ elseif(MODE STREQUAL "self_test")
   reproduction_expect_mutation("${root}" "missing-report-field" "${field_mutation}" "report field missing: Title and region")
 
   set(test_mutation "${original}")
-  string(REPLACE "runner.reproduction.cold" "runner.reproduction.not_cold" test_mutation "${test_mutation}")
+  string(REPLACE "runner.reproduction.cold|runner.reproduction.compare_self_test"
+    "runner.reproduction.not_cold|runner.reproduction.compare_self_test" test_mutation "${test_mutation}")
   reproduction_expect_mutation("${root}" "stale-test-name" "${test_mutation}" "not generated")
 
   set(target_mutation "${original}")
@@ -278,7 +442,28 @@ elseif(MODE STREQUAL "self_test")
   set(safety_mutation "${original}")
   string(REPLACE "Do not publish commercial game media" "Publish commercial game media" safety_mutation "${safety_mutation}")
   reproduction_expect_mutation("${root}" "missing-privacy-claim" "${safety_mutation}" "privacy claim missing")
-  message(STATUS "docs.reproduction.self_test: four independent mutations rejected")
+
+  set(bounds_mutation "${original}")
+  string(REPLACE "`runner.reproduction.cold`: 180 s" "`runner.reproduction.cold`: unbounded" bounds_mutation "${bounds_mutation}")
+  reproduction_expect_mutation("${root}" "missing-replay-bound" "${bounds_mutation}"
+    "cold replay timeout bound missing")
+
+  set(storage_mutation "${original}")
+  string(REPLACE "outside every active example path" "inside every active example path" storage_mutation "${storage_mutation}")
+  reproduction_expect_mutation("${root}" "daily-storage-in-example" "${storage_mutation}"
+    "newest battery backup must stay outside active paths")
+
+  set(container_mutation "${original}")
+  string(REPLACE "runner-native state cannot be renamed into a RetroArch disk state"
+    "runner-native state is a RetroArch disk state" container_mutation "${container_mutation}")
+  reproduction_expect_mutation("${root}" "host-native-container-conflation" "${container_mutation}"
+    "host/native container boundary is missing")
+
+  set(loader_mutation "${original}")
+  string(REPLACE "does not enforce the exact executing build" "enforces the exact executing build" loader_mutation "${loader_mutation}")
+  reproduction_expect_mutation("${root}" "false-loader-build-enforcement" "${loader_mutation}"
+    "loader build-enforcement limit missing")
+  message(STATUS "docs.reproduction.self_test: eight independent safety and contract mutations rejected")
 else()
   message(FATAL_ERROR "docs.reproduction: unknown mode '${MODE}'")
 endif()

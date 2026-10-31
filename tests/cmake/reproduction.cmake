@@ -82,7 +82,7 @@ endfunction()
 function(reproduction_expect_preflight_failure root case_name state payload_kind runner rom
     recorded_runner_sha256 recorded_rom_sha256 recorded_state_sha256 expected)
   execute_process(COMMAND "${CMAKE_COMMAND}"
-      "-DMODE=preflight_case"
+      "-DMODE=preflight"
       "-DSTATE=${state}"
       "-DPAYLOAD_KIND=${payload_kind}"
       "-DRUNNER=${runner}"
@@ -102,6 +102,29 @@ function(reproduction_expect_preflight_failure root case_name state payload_kind
     message(FATAL_ERROR "runner.reproduction.preflight_self_test: ${case_name} expected '${expected}', observed '${observed}'")
   endif()
   message(STATUS "runner.reproduction.preflight_self_test: ${case_name} stopped before replay")
+endfunction()
+
+function(reproduction_expect_preflight_success state payload_kind runner rom
+    recorded_runner_sha256 recorded_rom_sha256 recorded_state_sha256)
+  execute_process(COMMAND "${CMAKE_COMMAND}"
+      "-DMODE=preflight"
+      "-DSTATE=${state}"
+      "-DPAYLOAD_KIND=${payload_kind}"
+      "-DRUNNER=${runner}"
+      "-DROM=${rom}"
+      "-DRECORDED_RUNNER_SHA256=${recorded_runner_sha256}"
+      "-DRECORDED_ROM_SHA256=${recorded_rom_sha256}"
+      "-DRECORDED_STATE_SHA256=${recorded_state_sha256}"
+      -P "${CMAKE_CURRENT_LIST_FILE}"
+    OUTPUT_VARIABLE out ERROR_VARIABLE err RESULT_VARIABLE rc TIMEOUT 10)
+  if(NOT "${rc}" STREQUAL "0")
+    message(FATAL_ERROR "runner.reproduction.preflight_self_test: valid public preflight mode failed (${rc})\n${out}${err}")
+  endif()
+  string(CONCAT combined "${out}" "${err}")
+  if(NOT combined MATCHES "runner.reproduction.preflight: exact runner, ROM and state digests match")
+    message(FATAL_ERROR "runner.reproduction.preflight_self_test: valid public preflight mode omitted its success result")
+  endif()
+  message(STATUS "runner.reproduction.preflight_self_test: valid public preflight mode accepted the recorded route")
 endfunction()
 
 function(reproduction_parse_output output label frames_out transitions_out pcm_out)
@@ -247,7 +270,7 @@ function(reproduction_expect_failure root case_name left right expected)
 endfunction()
 
 if(NOT DEFINED MODE OR MODE STREQUAL "")
-  message(FATAL_ERROR "reproduction: -DMODE=cold|compare_self_test|preflight_fixture|preflight_self_test|preflight_case is required")
+  message(FATAL_ERROR "reproduction: -DMODE=cold|compare_self_test|preflight|preflight_fixture|preflight_self_test is required")
 elseif(MODE STREQUAL "cold")
   foreach(var RUNNER MOVIE_WRITER ROM WORK)
     if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
@@ -273,6 +296,9 @@ elseif(MODE STREQUAL "cold")
     file(WRITE "${run_root}/run-${run}.stderr" "${run_err}")
     if(NOT "${run_rc}" STREQUAL "0")
       message(FATAL_ERROR "reproduction cold: runner execution ${run} failed or exceeded 60 seconds (status ${run_rc})")
+    endif()
+    if(run_err MATCHES "nesturbator-run: stopped")
+      message(FATAL_ERROR "reproduction cold: runner reported an interrupted stop; this is not a complete replay")
     endif()
     set(run_${run}_output "${run_out}")
   endforeach()
@@ -377,6 +403,9 @@ elseif(MODE STREQUAL "preflight_fixture")
   if(NOT "${runner_rc}" STREQUAL "0" OR NOT EXISTS "${state}")
     message(FATAL_ERROR "runner.reproduction.preflight: runner did not create the frame-1 checkpoint within 20 seconds (status ${runner_rc})")
   endif()
+  if(runner_err MATCHES "nesturbator-run: stopped")
+    message(FATAL_ERROR "runner.reproduction.preflight: runner reported an interrupted stop before checkpoint creation completed")
+  endif()
   if(NOT runner_out MATCHES "state 1 ticks [0-9]+ size [1-9][0-9]* sha256 [0-9a-f]+")
     message(FATAL_ERROR "runner.reproduction.preflight: required frame-1 state identity output is missing")
   endif()
@@ -402,6 +431,8 @@ elseif(MODE STREQUAL "preflight_self_test")
   file(SHA256 "${rom}" recorded_rom_sha256)
   file(SHA256 "${state}" recorded_state_sha256)
   reproduction_preflight("${state}" "runner-native-same-invocation" "${runner}" "${rom}"
+    "${recorded_runner_sha256}" "${recorded_rom_sha256}" "${recorded_state_sha256}")
+  reproduction_expect_preflight_success("${state}" "runner-native-same-invocation" "${runner}" "${rom}"
     "${recorded_runner_sha256}" "${recorded_rom_sha256}" "${recorded_state_sha256}")
 
   string(SUBSTRING "${recorded_runner_sha256}" 0 1 first_hex)
@@ -455,10 +486,10 @@ elseif(MODE STREQUAL "preflight_self_test")
     "runner-native-same-invocation" "${runner}" "${rom}" "${recorded_runner_sha256}"
     "${recorded_rom_sha256}" "${recorded_state_sha256}" "recorded state SHA-256 mismatch")
   message(STATUS "runner.reproduction.preflight_self_test: valid identity accepted; seven independent unsupported cases rejected before replay")
-elseif(MODE STREQUAL "preflight_case")
+elseif(MODE STREQUAL "preflight")
   foreach(var STATE PAYLOAD_KIND RUNNER ROM RECORDED_RUNNER_SHA256 RECORDED_ROM_SHA256 RECORDED_STATE_SHA256)
     if(NOT DEFINED ${var})
-      message(FATAL_ERROR "runner.reproduction.preflight_case: -D${var}=... is required")
+      message(FATAL_ERROR "runner.reproduction.preflight: -D${var}=... is required")
     endif()
   endforeach()
   reproduction_preflight("${STATE}" "${PAYLOAD_KIND}" "${RUNNER}" "${ROM}"

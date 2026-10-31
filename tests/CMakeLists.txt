@@ -156,7 +156,7 @@ set(NESTURBATOR_SAVE_FIXTURE ${CMAKE_CURRENT_BINARY_DIR}/save_fixture)
 file(MAKE_DIRECTORY ${NESTURBATOR_SAVE_FIXTURE})
 add_test(NAME runner.save.fixture
   COMMAND runner.save_rom ${NESTURBATOR_SAVE_FIXTURE})
-set_tests_properties(runner.save.fixture PROPERTIES FIXTURES_SETUP runner_save)
+set_tests_properties(runner.save.fixture PROPERTIES FIXTURES_SETUP runner_save TIMEOUT 10)
 function(runner_save_case case)
   add_test(NAME runner.save.${case}
     COMMAND ${CMAKE_COMMAND}
@@ -1576,7 +1576,7 @@ foreach(scenario pos none attract startonly)
       ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies/nesrunner-${scenario}.nmovie
       nesrunner-${scenario})
   set_tests_properties(runner.nesrunner_movie.${scenario} PROPERTIES
-    FIXTURES_SETUP nesrunner_movies)
+    FIXTURES_SETUP nesrunner_movies TIMEOUT 10)
 endforeach()
 
 # PLAY-01 / D-08: one program replays the movies through the library, reads

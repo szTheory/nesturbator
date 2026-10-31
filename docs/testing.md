@@ -1677,6 +1677,10 @@ launch or parsing failure cannot count as semantic evidence.
 
 ## Disposable progress fixtures
 
+The separate scene report and cold/native checkpoint replay procedure is in the
+[scene reproduction guide](reproduction.md). Its checkpoint examples use the
+owned neutral NMI fixture and do not consume personal saves or checkpoints.
+
 The bounded player walkthrough in [`docs/progress.md`](progress.md) uses
 `runner.save_rom` to generate its battery cartridge and the existing
 manifest-listed `tests/roms/dabg.nes` state fixture. A unique CMake build tree

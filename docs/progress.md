@@ -49,6 +49,11 @@ may have different behavior.
 See the [native save-state contract](api.md#save-states) for the canonical API
 rules and the distinction between supported build pairing and loader checks.
 
+For isolated scene reports, cold movie replay and neutral native-checkpoint
+examples, see the [scene reproduction guide](reproduction.md). Those examples
+use disposable build-tree paths and never import daily SRAM. Keep the newest
+independent battery backup outside every active reproduction path.
+
 Battery-save reuse across core builds is separate from snapshot support. Reuse
 an existing battery file with a different build only when the content, board,
 save geometry and compatibility have been established. Otherwise keep both

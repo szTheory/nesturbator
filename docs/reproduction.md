@@ -81,9 +81,9 @@ POSIX shell:
 ```sh
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/nesturbator-reproduction.XXXXXX")"
 cmake --preset ci -B "$scratch/build"
-cmake --build "$scratch/build" --target nesturbator-run runner.game_movie runner.boot_to_play
+cmake --build "$scratch/build" --target nesturbator-run runner.game_movie runner.nmi_fixture runner.boot_to_play runner.save_rom runner.state_mutate
 ctest --test-dir "$scratch/build" --output-on-failure --no-tests=error \
-  -R '^(runner.reproduction.cold|runner.reproduction.compare_self_test|runner.boot_to_play|docs.links|docs.links.self_test|docs.reproduction|docs.reproduction.self_test|cmake.script_policy)$'
+  -R '^(runner.reproduction.cold|runner.reproduction.compare_self_test|runner.reproduction.preflight|runner.reproduction.preflight_self_test|runner.boot_to_play|runner.state.nmi_roundtrip|runner.state.nmi_idempotent|runner.state.nmi_wrong_load|docs.links|docs.links.self_test|docs.reproduction|docs.reproduction.self_test|cmake.script_policy)$'
 ```
 
 PowerShell:
@@ -93,8 +93,8 @@ $scratch = Join-Path $env:TEMP ("nesturbator-reproduction-" + [guid]::NewGuid().
 New-Item -ItemType Directory -Path $scratch | Out-Null
 $build = Join-Path $scratch "build"
 cmake --preset ci -B $build
-cmake --build $build --target nesturbator-run runner.game_movie runner.boot_to_play
-ctest --test-dir $build --output-on-failure --no-tests=error -R '^(runner.reproduction.cold|runner.reproduction.compare_self_test|runner.boot_to_play|docs.links|docs.links.self_test|docs.reproduction|docs.reproduction.self_test|cmake.script_policy)$'
+cmake --build $build --target nesturbator-run runner.game_movie runner.nmi_fixture runner.boot_to_play runner.save_rom runner.state_mutate
+ctest --test-dir $build --output-on-failure --no-tests=error -R '^(runner.reproduction.cold|runner.reproduction.compare_self_test|runner.reproduction.preflight|runner.reproduction.preflight_self_test|runner.boot_to_play|runner.state.nmi_roundtrip|runner.state.nmi_idempotent|runner.state.nmi_wrong_load|docs.links|docs.links.self_test|docs.reproduction|docs.reproduction.self_test|cmake.script_policy)$'
 ```
 
 The cold test makes a unique directory below the build tree, generates the
@@ -111,8 +111,10 @@ The runner validates the two-port NMOVIE1 format. `--movie` supplies its own
 length, so do not combine it with `--frames`; movie replay with `--load-state`
 is unsupported. Host recording and conversion of foreign movie formats are
 also unsupported. The report/replay route does not write daily saves or create
-checkpoint files. Transition hashes, PCM hashes and native frame hashes are
-separate repeatability measurements; matching values are not independent
+user checkpoint files. The preflight example creates only an owned native
+checkpoint under its disposable build scratch. Transition hashes, PCM hashes
+and native frame hashes are separate repeatability measurements; matching
+values are not independent
 hardware-correctness evidence. See the [runner guide](runner.md),
 [testing guide](testing.md) and [progress guide](progress.md) for their
 canonical contracts.
@@ -141,6 +143,8 @@ omitted-load guest-marker failures. These guest markers and causal controls
 support their named invariants; matching output hashes alone show
 repeatability.
 
+## Before checkpoint replay
+
 Before a checkpoint is replayed, the recorded runner, content and state SHA-256
 values must each be present, contain 64 hexadecimal characters, and match the
 current files. The recorded origin must be `runner-native-same-invocation`.
@@ -150,6 +154,18 @@ identity check for this declared route, not hostile-file authentication or a
 container converter. Never infer identity from a menu version, replace a
 recorded digest with the digest of a changed file, or silently choose another
 checkpoint.
+`PAYLOAD_KIND` is a declared origin label; a matching value does not
+authenticate how an arbitrary imported state was produced. Only the positive
+fixture test establishes this example's same-invocation creation route.
+
+The example-local `MODE=preflight` accepts `STATE`, `PAYLOAD_KIND`, `RUNNER`,
+`ROM`, `RECORDED_RUNNER_SHA256`, `RECORDED_ROM_SHA256` and
+`RECORDED_STATE_SHA256` as CMake inputs. Record the three digests when the
+runner creates the state; the positive fixture test does that in one
+invocation. These are CMake wrapper inputs, not runner options. The public
+`runner.reproduction.preflight` test demonstrates that creation and check path
+with a generated NMI ROM; the self-test sends each bad identity through the
+same preflight mode without invoking replay.
 
 Native format version 3 and behavior revision 9 are separate values. The
 loader checks the native format, cartridge identity, size, checksum and field
@@ -159,8 +175,56 @@ documented exact-build/content support policy. Successful preflight does not
 bypass those native loader checks. See the [save-state contract](api.md#save-states)
 and [progress policy](progress.md#supported-snapshot-baseline).
 
-`--movie` with `--load-state` remains a usage refusal. Host movies, host
-recording and foreign movie conversion are unsupported; a runner-native state
-cannot be renamed into a RetroArch disk state. The procedure's unsupported
-result is not a new runner exit code: runner exits remain 0, 1, 2, 4 and 5, with
-3 and 77 reserved, as listed in the [runner exit status contract](runner.md#exit-status).
+## Scratch storage and bounds
+
+Use one new scratch root and build directory per invocation. The POSIX command
+uses `mktemp -d`; PowerShell uses a GUID. The CMake cold and preflight wrappers
+create a fresh nonce directory for each run beneath the build tree. They keep
+generated ROMs, states, movies and captured stdout/stderr there. Existing NMI
+tests use `build/tests/state_work/<case>` and the CTest-managed
+`runner.save.fixture` setup uses `build/tests/save_fixture`; their full build
+directory must be unique to this invocation. They may recreate their own case
+paths. Two separate CTest processes sharing one build tree are unsupported.
+
+These examples do not read or write a host config, active save/state/autoload
+directory or daily SRAM. Keep the newest independent battery backup
+outside every active example path. Follow the [progress guide](progress.md)
+for the backup procedure.
+No example imports daily battery data. A state load can replace battery RAM,
+so the native continuation fixture deliberately has no battery-backed content.
+
+| Recipe or required setup | Frame bound | Child process bound | CTest outer bound |
+| --- | --- | --- | --- |
+| Cold NMOVIE1 replay | 600 movie frames per run; 2 cold runs | Generator 10 s; each runner 60 s | `runner.reproduction.cold`: 180 s |
+| Checkpoint identity preflight | Fixture generator: 0 emulated frames; runner creates state at frame 1 | Generator 10 s; runner 20 s | `runner.reproduction.preflight`: 60 s |
+| Preflight metadata controls | 0 emulated frames | Each negative-control CMake child 10 s | `runner.reproduction.preflight_self_test`: 60 s |
+| NMI continuation | NMI ROM generation: 0 frames; save K=1; continue through absolute frame N=4 (frames 2–4) | Bounded by each CTest case | `runner.state.nmi_roundtrip`: 60 s |
+| NMI idempotence | Final absolute frame 2 | Bounded by each CTest case | `runner.state.nmi_idempotent`: 60 s |
+| NMI stale/omitted-load controls | At most absolute frame 3 | Bounded by each CTest case | `runner.state.nmi_wrong_load`: 60 s |
+| NMI tests' battery-fixture setup | 0 emulated frames | N/A | `runner.save.fixture`: 10 s |
+| Played-input controls | Five fixed 600-frame runs | Each movie writer 10 s | `runner.boot_to_play`: 300 s; each `runner.nesrunner_movie.*`: 10 s |
+
+The CTest bounds are generated properties, not estimates. The contract check
+compares them with CTest's actual metadata, including required/setup fixtures.
+Every required runner must exit successfully and produce its complete required
+output. A timeout, stop line, interruption, missing state/output or partial
+frame stream is incomplete, even when a child returned exit 0. Keep interrupted
+scratch locally for inspection; do not reuse it as input. Start the next attempt
+with a new root, and clean up only the root created by that invocation.
+
+## Procedure result and runner exit status
+
+| Result | Meaning |
+| --- | --- |
+| `reproduction unsupported: ...` | The example's identity/origin preflight stopped before replay. It is a procedure result, not a runner exit code. |
+| Runner exit 0 | The runner completed; the example still requires all expected output before reporting a match. |
+| Runner exit 1 | Read, execution or output failure. |
+| Runner exit 2 | Usage or unsupported option combination, including `--movie` with `--load-state`. |
+| Runner exit 4 | Battery `.sav` size mismatch. |
+| Runner exit 5 | Native state rejected by the loader. |
+| Runner exits 3 and 77 | Reserved; never returned. |
+
+Host movies, host recording and foreign movie conversion are unsupported. A
+runner-native state cannot be renamed into a RetroArch disk state. See the
+[runner exit status contract](runner.md#exit-status) and the native
+[save-state contract](api.md#save-states).
