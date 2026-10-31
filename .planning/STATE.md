@@ -1,12 +1,12 @@
 ---
 gsd_state_version: "1.0"
 milestone: v6
-status: v6 complete; v0.1.12 published; CI efficiency follow-up identified
-stopped_at: Release PR #56 squash-merged; release workflow and publication succeeded
-last_updated: "2026-10-31T15:14:38Z"
+status: v6 complete; v0.1.12 published; quick task 261031-fq6 complete locally; hosted verification pending owner authorization
+stopped_at: Quick task 261031-fq6 local implementation and focused verification complete; hosted validation awaits explicit owner authorization
+last_updated: "2026-10-31T15:41:05.399Z"
 last_activity: 2026-10-31
-last_activity_desc: Required CI passed; Release PR #56 merged; v0.1.12 published with verified assets
-state_head: 94703591ca1d5c1d5adcfb6e2fd51987de4a2558
+last_activity_desc: Quick task 261031-fq6 implemented and locally verified; hosted check awaits owner authorization
+state_head: fe376dac1edb7ce0e78c1c54c3efdc60d260681e
 progress:
   total_phases: 2
   completed_phases: 2
@@ -25,50 +25,34 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated for v6 closeout on 2026-10-31, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md). Quick task 261031-ecd fixed the release-version fingerprint mismatch and skips redundant optional Nightly lanes on generated release PRs. Release PR #56 passed required CI, squash-merged, and published v0.1.12. A duplicate-CI efficiency follow-up is recorded in the quick-task handoff.
+Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md). Quick task 261031-ecd fixed the release-version fingerprint mismatch and skips redundant optional Nightly lanes on generated release PRs. Release PR #56 passed required CI, squash-merged, and published v0.1.12. Quick task [261031-fq6](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md) now skips direct CI jobs on generated Release Please main pushes while preserving reusable Release CI, publication checks and main-push Nightly. Focused offline checks passed; hosted validation is waiting for fresh owner authorization.
 
 ## Current Position
 
 Phase: Milestone v6 archived
 Plan: —
-Status: Quick task 261031-ecd and the v0.1.12 release are complete
-Last activity: 2026-10-31 — exact-head CI passed; release assets and attestations verified and published
+Status: Quick task 261031-fq6 implementation and local validation are complete; hosted verification is pending
+Last activity: 2026-10-31 — release-push policy, self-test and required-rollup checks passed locally
 
 ## Next Action
 
-V6 is archived in [MILESTONES.md](MILESTONES.md), with the full
-[closeout](milestones/v6-CLOSEOUT.md) and [audit](milestones/v6-MILESTONE-AUDIT.md).
-Quick task [261031-ecd](quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/261031-ecd-SUMMARY.md)
-passes its focused local checks and the authorized remote release gates. Its
-clean-base fingerprint for the release fix is
-`78822adfa35ac2b0e2f562cfb0067ae08db7e76c3e6e4027fa63d7bcca400de2` (56
-inputs); the current phase branch's `0534...` value must not be used for
-Release PR #56.
+Quick task [261031-fq6](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md)
+is implemented in commits `00eedce`, `3fd0d9f` and `fe376da`. The focused live
+workflow policy, its mutation self-test, and the required-check roll-up passed.
+The verifier marked all five local must-haves verified and recorded hosted
+GitHub execution as `human_needed`; see the
+[verification report](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-VERIFICATION.md).
+No full CI workflow, campaign, push, dispatch, merge, or release action was run.
 
-Release PR #56 passed required CI at exact head
-`6bd7f267345f3bc153fc08f301a9bac166ed5812` on base
-`45a078d2de1f08e39caf1c5942fcdb57f493d8af`, then auto-squash-merged as
-`2338608ab184f040620a30d17756f5e06a42d4e3`. The Release workflow's reusable
-CI, ordinary main-push CI, and Nightly all succeeded on the merge commit.
-Each CI campaign passed all 693 tests. Release CI verified the exact 18
-platform archives, generated and verified attestations, rejected a tampered
-archive, and published [v0.1.12](https://github.com/szTheory/nesturbator/releases/tag/v0.1.12)
-with 18 archives and `SHA256SUMS`.
+A push of this branch starts another full AccuracyCoin campaign. The prior
+authorization has expired, so do not push or dispatch until the owner gives a
+fresh explicit decision. If authorized, inspect hosted CI and release workflow
+outcomes on the exact head; keep the normal publication gate intact.
 
-The main-push CI repeated the Release workflow's full validation on the same
-merge commit, including another AccuracyCoin campaign. This is a concrete
-efficiency opportunity: conditionally skip ordinary main-push CI for the
-Release Please `chore(main): release ...` commit while retaining the Release
-workflow's reusable CI, archive artifacts, and publication gate. Do not skip
-main-push Nightly coverage without a separate decision. The evidence and
-handoff are in [quick task 261031-ecd](quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/261031-ecd-RESUME.md).
-
-Next command: `$gsd-quick --validate Skip the redundant main-push CI run for Release Please merge commits while preserving the reusable release CI and publication gate.`
-It plans, implements, and locally validates the CI efficiency follow-up.
-Context may be cleared before running it. The previous authorization covered
-the release run; get a fresh owner decision before any push starts another full
-AccuracyCoin campaign. The agent continues next after that authorization
-boundary.
+Next command: `$gsd-quick status 261031-fq6`
+It displays this task's recorded status without starting CI or a campaign.
+Context may be cleared before running it. Before hosted work resumes, read the
+[quick-task handoff](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-RESUME.md).
 
 Earlier Phase 23 document-test timeouts and wall-time jumps remain unexplained;
 no timeout was raised or machine restart performed. The configured CI cache can
@@ -106,11 +90,12 @@ push or release action was run for closeout.
 
 ### Quick Tasks Completed
 
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 261026-i8z | Reduce repeated CI suites, session controls and vector inventory work | 2026-10-26 | dbbf04f | [261026-i8z-reduce-ci-overhead-using-the-recovered-c](./quick/261026-i8z-reduce-ci-overhead-using-the-recovered-c/) |
-| 261029-sdj | Reduce inventory parsing and reuse CTest-validated hash artifacts | 2026-10-29 | dc3451b | [261029-sdj-optimize-no-skip-inventory-parsing-and-r](./quick/261029-sdj-optimize-no-skip-inventory-parsing-and-r/) |
-| 261031-ecd | Fix release fingerprint and skip redundant Nightly lanes | 2026-10-31 | 9470359 | [261031-ecd-fix-release-only-accuracycoin-fingerprin](./quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/) |
+| # | Description | Date | Commit | Status | Directory |
+|---|-------------|------|--------|--------|-----------|
+| 261026-i8z | Reduce repeated CI suites, session controls and vector inventory work | 2026-10-26 | dbbf04f | — | [261026-i8z-reduce-ci-overhead-using-the-recovered-c](./quick/261026-i8z-reduce-ci-overhead-using-the-recovered-c/) |
+| 261029-sdj | Reduce inventory parsing and reuse CTest-validated hash artifacts | 2026-10-29 | dc3451b | — | [261029-sdj-optimize-no-skip-inventory-parsing-and-r](./quick/261029-sdj-optimize-no-skip-inventory-parsing-and-r/) |
+| 261031-ecd | Fix release fingerprint and skip redundant Nightly lanes | 2026-10-31 | 9470359 | — | [261031-ecd-fix-release-only-accuracycoin-fingerprin](./quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/) |
+| 261031-fq6 | Skip the redundant main-push CI run for Release Please merge commits while preserving the reusable release CI and publication gate. | 2026-10-31 | fe376da | Needs Review | [261031-fq6-skip-the-redundant-main-push-ci-run-for-](./quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/) |
 
 ## Deferred Items
 
@@ -132,10 +117,10 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T15:14:38Z
-**Stopped at:** v0.1.12 published; duplicate main-push CI documented as a follow-up
-**Next command:** $gsd-quick --validate Skip the redundant main-push CI run for Release Please merge commits while preserving the reusable release CI and publication gate.
-**Resume file:** .planning/quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/261031-ecd-RESUME.md
+**Last session:** 2026-10-31T15:41:20Z
+**Stopped at:** 261031-fq6 locally verified; hosted Actions validation awaits explicit owner authorization
+**Next command:** $gsd-quick status 261031-fq6
+**Resume file:** .planning/quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-RESUME.md
 
 ## Performance Metrics
 
@@ -165,4 +150,4 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Operator Next Steps
 
-- Consider the documented duplicate main-push CI follow-up. Do not push a workflow change or trigger another full AccuracyCoin campaign without a fresh owner decision.
+- The workflow change and focused local verification are complete. Before pushing this branch or dispatching hosted validation, give a fresh explicit decision because that action starts a full AccuracyCoin campaign. If authorized, inspect the exact-head CI and Release outcomes while retaining the existing publication gate.
