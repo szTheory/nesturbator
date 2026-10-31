@@ -1,6 +1,6 @@
 # Phase 24 DMA evidence
 
-**Scope:** Owned C fixtures and source analysis only. The landing correction is implemented with approved native format 4 / behavior revision 10. The other four rows are independently localized and still uncorrected. Full-CI/campaign acceptance and DMA-01 through DMA-04 remain pending. No fresh AccuracyCoin result is claimed.
+**Scope:** Owned C fixtures and source analysis only. The landing and OAM corrections have owned evidence at native format 4 / behavior revision 11. Bus conflicts and both abort rows remain uncorrected, with independent traces. Full-CI/campaign acceptance and DMA-01 through DMA-04 remain pending. No fresh AccuracyCoin result is claimed.
 
 ## Identities, oracle and reproduction
 
@@ -113,3 +113,15 @@ Owned checks do not replace the required fresh full pinned result, every protect
 ## Version-consumer review follow-through
 
 The scoped ownership amendment and review resolve the format/revision consumers alongside the correction. C/C++ header checks, API version, older/future refusal tests, new silence bounds, normalized API policy and current-version docs agree on format 4/revision 10. Six boards' state hashes were regenerated at frames 0/60; every state size grew one byte and frame ticks were unchanged. No frame/PCM/transition hash row was changed. The declaration-stream normalization proves only the two approved version macros changed the API baseline. Historical revision-9 AccuracyCoin metadata and its checker remain historical; they are not relabeled as current evidence. Bounded doc contract checks passed after the documented helper targets were built, without changing existing timeouts.
+
+## Plan 24-02 OAM correction — bounded, acceptance still pending
+
+The OAM loop now services a pending DMC halt/dummy/alignment using three synchronous local stages. Those no-access stages overlap OAM GET/PUT; only actual DMC sample GET steals the source slot. OAM waits the following PUT, then retries the same unconsumed byte on GET. All 256 destinations retain their order/data and PUT phase. The CPU resumes its original `$8000/$A7` read with the expected final phase. Standalone DMC sample completion is shared without changing its saved fields or ordering.
+
+The matrix pins fixed expectations independently of observed timing: interior offset128 adds2 for both phase/load cases; phase0 tail offsets254/255 add1/3; phase1 tails add2/1. Observed collision and resumed-source indices, actual sample address/data/GET, final read and all256 destination events are separately asserted. The normal and observer sources agree. Compiling **both** sources from the retained pre-OAM `313a0f3` bus rejects the same regression through missing GET, wrong OAM phase and fixed duration/index assertions. These are named `cpu-halt-gate-inside-oam` and `standalone-dmc-resume-as-oam-read` controls, not synthetic fabricated traces.
+
+No OAM local stage can straddle a public call return: transfers finish synchronously. Saved OAM pending/page and DMC request fields retain their existing interpretation, so format stays4. Behavior revision11 and its version consumers are updated. All twelve six-board state hashes differ from the prior revision10 pins **only** in the behavior tag and CRC; normalizing those two fields reproduces the old digests exactly. State lengths, ticks, every payload byte and all other hash inventory rows remain unchanged.
+
+The old owned stress timing missed OAM-pending cuts inside the retained 60-frame short window after this actual timing correction; both board assertions failed. A measured local gap G=6 restores all original OAM/DMC/IRQ boundary checks on NROM/MMC3, without extending bounds. Native --dma reaches silent frame1, pending-DMC frame17 and active-DMC/OAM-pending frame45; full pixel/PCM/metadata/RAM/transition/canonical-state continuation agrees. Skipping pending OAM is rejected by final-state equality. Short --stress retains all original forks/straddle assertions and passes both boards (first OAM45/41). The [scoped amendment](24-02-AMENDMENT.md) and [resolved review](24-02-REVIEW.md) explain the necessary fixture/version follow-through.
+
+The next split-bus slice has a new independent red latch test: `$4015` parked, GET `$FF15/$A5`, internal D5=0. It produces status20/20 and external/controller20/21, rather than source-supported00/00 andA5/A1. `--dma-trace conflict-latches` intentionally fails; the default regression does not invoke an unimplemented correction. [24-02-CHECKPOINT.md](24-02-CHECKPOINT.md) gates the proposed saved internal byte/external-latch meaning and format5/revision12 **before mutation**. No new latch or format-5 visitor exists, Plan24-02 remains incomplete, and no new campaign result is claimed.

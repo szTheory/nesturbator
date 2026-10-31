@@ -5,10 +5,10 @@ milestone_name: Remaining DMA accuracy failures
 current_phase: 24
 current_phase_name: Correct remaining NTSC DMA behavior
 status: executing
-stopped_at: "Plan 24-01 complete; continuing authorized bounded Plan 24-02"
-last_updated: "2026-10-31T20:10:20.297Z"
+stopped_at: "Plan24-02 OAM correction committed; awaiting concrete bus-latch format5 decision"
+last_updated: "2026-10-31T20:36:26Z"
 last_activity: 2026-10-31
-last_activity_desc: Plan 24-01 committed and reviewed; format 4 and behavior 10 implemented; four other DMA traces independent
+last_activity_desc: Landing and OAM owned corrections committed; format4 behavior11; split-bus diagnostic exposes a new saved-latch decision
 state_head: c8fbf4d02470d8a8e9f0671f85772253b9b401c3
 progress:
   total_phases: 1
@@ -23,23 +23,23 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 **Core value:** Games behave as on the console, identically across platforms, from a small MIT C library.
-**Current focus:** Plan 24-02 collision and bus-conflict corrections; full acceptance remains stopped
+**Current focus:** Plan24-02 split-bus state decision; OAM work committed and bounded verification passed
 
 ## Current Position
 
-Phase: 24 (Correct remaining NTSC DMA behavior) — EXECUTING
-Plan: 2 of 4 — collision and conflict work next
-Status: First plan complete; continuing bounded phase execution
-Last activity: 2026-10-31 — Landing correction, native format 4/behavior 10, continuation/refusal tests and coupled version consumers committed; independent remaining-row traces retained.
+Phase: 24 (Correct remaining NTSC DMA behavior) — CHECKPOINT
+Plan: 2 of 4 — OAM Task1/collision continuation complete; Task2 awaiting decision
+Status: Waiting for owner decision before new saved bus-latch mutation
+Last activity: 2026-10-31 — OAM correction and native continuation committed and reviewed; all bounded regression/consumer checks pass; new split-latch diagnostic is intentionally red.
 Progress: [██░░░░░░░░] 25% (plans; phase acceptance pending)
 
 ## Next Action
 
-Continue authorized bounded Plan 24-02 using the [completed first-plan summary](phases/24-correct-remaining-ntsc-dma-behavior/24-01-SUMMARY.md) and [five independent DMA records](phases/24-correct-remaining-ntsc-dma-behavior/24-DMA-EVIDENCE.md). The owner-approved silence byte, continuous bit-count meaning, format 4 and behavior revision 10 are implemented, reviewed and locally verified. All requirements remain pending full acceptance; four rows are localized but not corrected.
+**Waiting for the owner.** The approved DMC silence correction and the independently verified OAM overlap correction are committed. Current native contract is format4 / behavior11 / ABI1. Plan24-01 is complete; Plan24-02 is partial, with its OAM Task1 and collision-specific native continuation complete. [Partial outcome and exact resume](phases/24-correct-remaining-ntsc-dma-behavior/24-02-PARTIAL.md).
 
-The next useful command at a session boundary is `$gsd-execute-phase 24`; it resumes Plan 24-02. No user action is needed for bounded implementation within this execute step. Stop before any additional serialized layout/meaning change that needs a fresh concrete decision. Full CI/AccuracyCoin remains stopped: existing build/ci has the campaign ON, and the required workflow gate remains pending for the explicit phase acceptance checkpoint. Do not run it, push or open a PR as a side effect.
+The new bus-conflict probe needs simultaneous internal status D5=0 and retained external sample D5=1 across reads. Recommended decision: approve the new serialized cpu_data byte, explicitly external open_bus meaning, format5 and behavior12, with latch-native continuation/refusal tests and docs. This would also refuse unreleased format4 native states without a converter. The earlier silence-only approval does not cover this field. [Concrete diff, evidence and alternatives](phases/24-correct-remaining-ntsc-dma-behavior/24-02-CHECKPOINT.md). No new latch or format5 serializer is implemented.
 
-Context may be cleared at a handoff; read this file and [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md) first.
+After the decision, run `$gsd-execute-phase 24`; it resumes Task2 from the saved checkpoint and preserves completed OAM work. Context may be cleared; read this file and [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md) first. The agent waits for the owner; no additional response is needed merely to preserve the existing full-CI/AccuracyCoin stop. No workflow, ROM, campaign, push or PR ran; all requirements and full acceptance remain pending.
 
 ## Accumulated Context
 
@@ -55,6 +55,8 @@ Context may be cleared at a handoff; read this file and [24-EXECUTION-RESUME.md]
 The three deferred property/mutation/signal proposals remain unlinked to v7; their records are preserved below. No new todo scope is approved.
 
 ### Blockers/Concerns
+
+- **Plan24-02 new native bus-latch decision:** proposed cpu_data byte/external open_bus meaning and format5 refusal of format4 states need owner approval before mutation. OAM changes are already committed with unchanged format4.
 
 - **Plan 24-01 native-state checkpoint resolved:** owner approved the explicit silence byte, continuously clocked bits, format 4 and behavior revision 10. Other newly required state changes remain independently gated.
 
@@ -90,12 +92,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Performance Metrics
 
-v7: one of four plans complete. First correction/native state and independent traces are committed; full acceptance remains pending. v6 completed seven plans; detailed timing remains in the [archived phase summaries](milestones/v6-phases/) and [closeout](milestones/v6-CLOSEOUT.md).
+v7: one of four plans complete; Plan24-02 OAM task/continuation are committed and the split-bus slice is at its required native-state decision. Full acceptance remains pending. v6 completed seven plans; detailed timing remains in the [archived phase summaries](milestones/v6-phases/) and [closeout](milestones/v6-CLOSEOUT.md).
 
 ## Session Continuity
 
-**Last session:** 2026-10-31T20:12:52Z
-**Stopped at:** Plan 24-01 complete; continuing bounded Plan 24-02
-**Next actor:** Agent continues authorized bounded work; no owner response needed yet.
-**Next command at handoff:** `$gsd-execute-phase 24`
+**Last session:** 2026-10-31T20:36:26Z
+**Stopped at:** Plan24-02 new bus-latch decision before mutation; OAM correction committed
+**Next actor:** Owner approves or defers the concrete compatibility change; agent waits.
+**Next command after decision:** `$gsd-execute-phase 24`
 **Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md
