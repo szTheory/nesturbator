@@ -77,3 +77,10 @@ Before converting gameplay findings into CI, read the
 fixtures with independent oracles and preserve unique regression coverage.
 Keep connection details, identifiers, personal paths and raw private artifacts
 outside Git; record only sanitized lessons and scoped observations.
+
+## Standing engineering authority
+
+Task approval includes required local verification, fixes and bounded retests.
+Apply an approved compatibility policy without asking again for each saved
+field or version bump. Runtime alone is not an approval gate. Preserve explicit
+stops, limits and no-retry rules; ask only for a materially new consequence.
