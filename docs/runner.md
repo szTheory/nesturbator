@@ -304,6 +304,9 @@ movies fail before a frame runs. Replay prints one native-pixel SHA-256 line
 per frame in ascending frame order; a JAM stop reports its frame and exits
 nonzero.
 
+For the sanitized report form, bounded replay examples and next-evidence
+triage, see the [scene reproduction guide](reproduction.md).
+
 ## Output examples
 
 Each hashed frame prints one line:

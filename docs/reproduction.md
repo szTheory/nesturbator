@@ -228,3 +228,43 @@ Host movies, host recording and foreign movie conversion are unsupported. A
 runner-native state cannot be renamed into a RetroArch disk state. See the
 [runner exit status contract](runner.md#exit-status) and the native
 [save-state contract](api.md#save-states).
+
+## Choose the next evidence source
+
+Start with the exact scene, content, build, host route and ordered inputs. Use
+the first comparison that can answer the report's question; this is a decision
+guide, not a requirement to run every layer or start a host session.
+
+| Comparison | Supported inference | Remaining unknown | Next bounded evidence source |
+| --- | --- | --- | --- |
+| Scene, access route, content/build identity and inputs | Confirms whether the report describes the same identified setup and whether the exact scene was reached. A missing or failed access route remains a title-level observation, not scene acceptance. | Whether an unverified content/build identity or an unreached scene matches the reported behavior. Expected behavior can also remain unknown when its source or confidence is unknown. | Record the actual loaded core/build, content revision or digest, exact scene, verified access route and ordered port inputs. Use a documented scene source or one already verified access method; keep unavailable facts explicit. |
+| Repeated native frame, transition and PCM windows | Matching hashes over the same inputs and frame/audio boundaries establish repeatability for those native outputs on the measured build and platform. The cold route compares frames 1–600; the checkpoint route compares the suffix at frames 2–4. | Whether the repeated output is correct, whether another platform agrees, and whether an adapter or frontend changed what was presented. | Use `runner.reproduction.cold` for two cold 600-frame executions or `runner.state.nmi_roundtrip` for its neutral K=1 through N=4 suffix. Keep `runner.boot_to_play` and the stale/omitted-load guest-marker checks as separate input and continuation controls. |
+| Native pixels versus adapter RGB/callback output | `host.convert` covers palette indexing and source/output pitch. `libretro.host` compares selected video and PCM callback results with direct native output in a test host. | Whether a frontend delivered the intended physical input, accepted and presented every callback, or handled device audio and pacing correctly. These tests do not provide a display or audio device. | Route a native-to-RGB difference to `host.convert`; route a callback or PCM difference to `libretro.host` and its direct-core comparison. Keep each result scoped to the representation and callback tested. |
+| Frontend input, presentation, screenshot or audio timing | A frame-aligned host capture can compare host RGB with a native/adapter frame when capture timing, conversion, palette, scaling, shader, crop and encoding are known. The existing hosted comparison is limited to its identified module, content and frame. | Input delivery, dropped or doubled presentation, pacing, resampling, synchronization and physical devices remain frontend/host questions. Unaligned screenshots are qualitative and cannot be equated to native hashes. | Use an existing hosted comparison only when it covers the same supported fixture and frame. For a host-specific symptom, retain the exact host/frontend/build, input route, capture path and relevant settings, then take one bounded comparison in a separately authorized host run. Libretro describes the frontend's role in [core callbacks and host details](https://docs.libretro.com/development/cores/developing-cores/); RetroArch documents [video/audio synchronization and pacing](https://docs.libretro.com/guides/optimal-vsync/). |
+| Expected original-game behavior or hardware correctness | A claim-specific hardware document, identified hardware measurement, or independently derived owned-fixture expectation with a deliberately wrong behavior control can support a correctness claim for that behavior. A released reference-emulator binary with its version identified is comparative evidence. | Whether a source applies to this exact content revision, scene and setup; a reference emulator alone does not establish hardware authority. If no suitable oracle or reproducible access exists, the result remains unclassified. | Name the independent source and its scene/content/setup limits. Reduce confirmed interactions to an owned fixture with an independent expected result and a deliberately wrong control. Never inspect GPL/LGPL emulator source. |
+
+## Evidence limits
+
+**Repeatability** answers whether the same measured inputs and starting
+conditions produce the same outputs. A matching frame, transition or PCM hash
+does not show that the output is correct.
+
+**Fixture expectations** establish only the properties their independent
+predicate and negative controls check. A guest marker can show that a particular
+input or continuation occurred; it is not a general hardware oracle.
+
+**Hardware correctness** needs an independent source suited to the claim:
+documented hardware behavior, identified hardware evidence, or an independently
+derived owned fixture whose deliberately wrong behavior fails. Record the source,
+content revision, exact scene and confidence. A released reference-emulator
+version can be compared without inspecting its source, but its agreement is
+still comparison evidence rather than proof of hardware behavior.
+
+The dated [playtesting postmortem](../.planning/playtesting/POSTMORTEM.md#what-remains-unresolved)
+retains the commercial observations and their limits. Jurassic Park's OCEAN
+wobble and Crystalis's moving world seam have timing-sensitive counterparts;
+Little Nemo and Mega Man 3 retain separate reported line/seam observations.
+Shatterhand's drift, slowdown and music interruption remain inconclusive, and
+the Marble Madness timer comparison remains uncertain. These reports are not
+diagnoses or fixes. If exact access or an adequate independent oracle is
+missing, keep the result unclassified.
