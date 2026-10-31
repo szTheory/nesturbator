@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v7
 milestone_name: Remaining DMA accuracy failures
 status: planning
-last_updated: "2026-10-31T17:09:59.772Z"
+last_updated: "2026-10-31"
 last_activity: 2026-10-31
 progress:
-  total_phases: 0
+  total_phases: 1
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,74 +17,51 @@ progress:
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated for v6 closeout on 2026-10-31, and AGENTS.md.
-Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md). Quick task 261031-ecd fixed the release-version fingerprint mismatch and skips redundant optional Nightly lanes on generated release PRs. Release PR #56 passed required CI, squash-merged, and published v0.1.12. Quick task [261031-fq6](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md) is merged as `b25146c`; its PR and main-push CI runs passed. The code skips direct CI jobs on generated Release Please main pushes while preserving reusable Release CI, publication checks and main-push Nightly. A generated Release Please main-push and publication event remain unobserved; see the verification report.
+See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
+**Core value:** Games behave as on the console, identically across platforms, from a small MIT C library.
+**Current focus:** v7's four requirements are approved. The [execution roadmap](ROADMAP.md) assigns them to Phase 24 and awaits roadmap approval.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-10-31 — Milestone v7 started
-
+Phase: 24 — Correct remaining NTSC DMA behavior (1 of 1 in v7)
+Plan: Not planned
+Status: Roadmap ready for approval; phase not started
+Last activity: 2026-10-31 — Created the v7 roadmap and complete requirement traceability; no tests, workflow or campaign run.
+Progress: [░░░░░░░░░░] 0%
 
 ## Next Action
 
-The upstream scope review recommends one bounded NTSC milestone for the five
-currently failing DMA rows, protecting the three passing DMA rows and all other
-protected PASS keys. It has not created requirements or phases. Read the
-[scope note](research/milestone-dma-discovery/SCOPE.md) for failure boundaries,
-independent-oracle guidance, clean-room limits, preserved safety stops, and the
-stale release-status reconciliation required during formal milestone opening.
+The orchestrator presents the concrete roadmap for owner approval. The user acts next at that required milestone boundary; no implementation starts under this handoff.
+After roadmap approval and commit, next command: `$gsd-discuss-phase 24`.
+It resolves the phase's remaining behavior and evidence choices before detailed planning. Context may be cleared then; read this file, [ROADMAP.md](ROADMAP.md) and the [DMA scope note](research/milestone-dma-discovery/SCOPE.md) first.
+Roadmap approval does not authorize full CI or an AccuracyCoin campaign rerun.
 
-Next command: `$gsd-new-milestone Remaining DMA accuracy failures`
-It starts the formal milestone questioning, requirements, and roadmap gates
-using this scope. The user acts next. Context may be cleared before running the
-command; read this file and the linked scope note first.
+## Accumulated Context
 
-Earlier Phase 23 document-test timeouts and wall-time jumps remain unexplained;
-no timeout was raised or machine restart performed. The configured CI cache can
-enable the AccuracyCoin campaign, so do not rerun full CI or campaign tests under
-this phase. No collector/provenance refresh, live host/device/private-content
-operation or wider runtime window is authorized. Phase 22's six descriptor-less
-prohibitions and Phase 23's eight judgment-tier limits remain flagged; source
-review is neither owner risk acceptance nor proof of unseen external activity.
-No owner signoff is an acceptance prerequisite.
+### Decisions
 
-No runtime source, public ABI, save format, ROM pin or hash baseline changed.
-Cold replay and native checkpoint routes remain separate; exact-build support
-exceeds native loader checks and declared provenance is not authentication.
-Native/adapter equality establishes neither host presentation nor hardware
-correctness. Commercial reports remain unclassified. PowerShell and other
-platforms were not executed locally; no daily progress was touched.
+- v7 covers only the five selected failing NTSC DMA rows at the existing pin and declared RP2A03G target; the three passing DMA rows and every other protected PASS key remain guards.
+- One phase owns all four requirements: independently justified corrections, owned wrong-model fixtures, regression preservation and state/documentation consequences belong together. Shared causes require traces.
+- Preserve integer-only instance state, clean-room sources and the library/runner/libretro deliverables. Review format/revision impact if in-flight fields change; tests and README/public-header comments accompany each behavior change.
+- Existing cold replay and native checkpoint routes remain separate; exact-build support differs from loader checks. Declared provenance is not authentication; repeatability and native/adapter equality do not establish host or hardware correctness.
 
-The closeout is on gsd/phase-23-reproduce-and-report-a-scene. Local changes to
-AGENTS.md, .planning/config.json and .planning/continue.md remain outside the
-milestone archive commits. Collector/platform, host-recovery debt and all
-historical safety stops are unchanged. No tests, full CI workflow, campaign,
-push or release action was run for closeout.
+### Pending Todos
 
-## Preserved Debt and Boundaries
+The three deferred property/mutation/signal proposals remain unlinked to v7; their records are preserved below. No new todo scope is approved.
 
-- Phase 23: intermittent local document CTest timeouts and wall-time jumps remain unexplained; preserve current failures and earlier post-review passes. The configured full CI regression command was interrupted after `accuracycoin.campaign` was scheduled; its completion and result are unknown. Do not rerun it without an owner decision. PowerShell/other-platform execution was not performed.
+### Blockers/Concerns
 
-- Recurring collector Git/filesystem-mode enforcement, ignored-fixture/relative-root handling and duplicate validator debt remain open. Independent accepted-run checks do not fix future collections.
-- Historical measurement attribution, README revision advisory, Phase 19 state-save cost/citation/early-stage coverage limits and summary/parser metadata warnings remain visible in the audit.
-- macOS nofp Apple-toolchain symbol handling remains platform debt. Accepted hosted Linux results remain distinct.
-- Real-campaign minimization remains proven only by controls; acknowledged debug sessions and three testing proposals stay preserved.
-- WINDOWS entry 18 now agrees across JSON/table/counters, supported by existing fixed source evidence; no previously refused deviation append was invented. The archived deferred-item text records the original refusal.
-- Physical zero-margin CPU/PPU precedence is unmeasured; judgment-tier provenance limits remain flagged. No safety stop, budget, threshold or new scope is waived by closeout.
-- Historic Phase 16 safety stops and runtime windows remain unchanged in archived records. This milestone boundary grants no new runtime authority.
+- **Active runtime stop:** The interrupted full-CI/AccuracyCoin campaign outcome is unknown. Do not rerun full CI or a campaign, including through automatic verification or a push/PR side effect, without separate owner authorization. Planning and milestone approval do not renew that authority.
+- **Phase 24 completion gate:** Project CI remains required. If its configuration schedules `accuracycoin.campaign`, stop execution before that command; record selected tests, missing evidence and required authorization. Keep phase/requirements incomplete; do not disable or weaken gates or substitute bounded passes for full acceptance.
+- Phase 23 document-test timeouts/wall-time jumps, five heuristic edges and Phase 22/23 judgment-tier prohibitions remain unresolved/flagged. No new timeout or restart is justified. Windows/PowerShell, host recovery and cross-build compatibility remain unqualified; commercial reports remain unclassified and daily progress untouched.
+- Collector Git/filesystem-mode, ignored-fixture/relative-root and duplicate-validator debt remain open. Historical attribution/revision advisories, Phase 19 cost/citation/early-stage coverage, real-campaign minimization controls and macOS nofp limits remain in the [v5 audit](milestones/v5-MILESTONE-AUDIT.md) and [product ledger](PRODUCT-ROADMAP.md#unresolved-debt-and-delivered-tune-up). New evidence cannot inherit old-run qualification.
+- WINDOWS entry 18 was reconciled from fixed existing evidence; the original refused append remains historical. Physical exact-timestamp precedence is unmeasured. Historic Phase 16 safety stops, runtime windows and thresholds remain unchanged; no closeout or approval waives them.
 
-### Quick Tasks Completed
+## Delivery and Carried Evidence
 
-| # | Description | Date | Commit | Status | Directory |
-|---|-------------|------|--------|--------|-----------|
-| 261026-i8z | Reduce repeated CI suites, session controls and vector inventory work | 2026-10-26 | dbbf04f | — | [261026-i8z-reduce-ci-overhead-using-the-recovered-c](./quick/261026-i8z-reduce-ci-overhead-using-the-recovered-c/) |
-| 261029-sdj | Reduce inventory parsing and reuse CTest-validated hash artifacts | 2026-10-29 | dc3451b | — | [261029-sdj-optimize-no-skip-inventory-parsing-and-r](./quick/261029-sdj-optimize-no-skip-inventory-parsing-and-r/) |
-| 261031-ecd | Fix release fingerprint and skip redundant Nightly lanes | 2026-10-31 | 9470359 | — | [261031-ecd-fix-release-only-accuracycoin-fingerprin](./quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/) |
-| 261031-fq6 | Skip the redundant main-push CI run for Release Please merge commits while preserving the reusable release CI and publication gate. | 2026-10-31 | b25146c | Complete | [261031-fq6-skip-the-redundant-main-push-ci-run-for-](./quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/) |
+v6 is archived: both phases, all ten requirements and three flows passed; its [audit](milestones/v6-MILESTONE-AUDIT.md) and [closeout](milestones/v6-CLOSEOUT.md) retain non-blocking debt. Release PR #56 later published v0.1.12 with 18 archives and SHA256SUMS; milestone completion and package publication remain separate.
+Quick tasks 261026-i8z, 261029-sdj and 261031-ecd remain delivered. [261031-fq6](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md) merged; PR/main-push CI passed, while its exact generated Release Please main-push skip event remains unobserved. No user action is needed for that completed task.
+Pre-existing local edits to AGENTS.md, config, continue and quick-task records remain outside this roadmap's scope; they were not reverted.
 
 ## Deferred Items
 
@@ -104,39 +81,13 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 Seven seed acknowledgements from earlier closes remain suppressed by their own `audit_acknowledged` markers.
 
-## Session
-
-**Last session:** 2026-10-31T16:46:26Z
-**Stopped at:** upstream DMA scope review complete; formal milestone setup pending
-**Next command:** $gsd-new-milestone Remaining DMA accuracy failures
-**Resume file:** .planning/research/milestone-dma-discovery/SCOPE.md
-
 ## Performance Metrics
 
-| Plan | Duration | Tasks | Files |
-|------|----------|-------|-------|
-| Phase 22 P01 | 13 min | 2 tasks | 5 files |
-| Phase 22 P02 | 12min | 2 tasks | 5 files |
-| Phase 22 P03 | 9 min | 2 tasks | 3 files |
-| Phase 22 P04 | about 20 minutes | 3 tasks | 4 files |
-| Phase 23 P01 | 12 min | 2 tasks | 5 files |
-| Phase 23 P02 | 15 min | 2 tasks | 6 files |
-| Phase 23 P03 | 13 min | 2 tasks | 4 files |
+v7: no plans executed. v6 completed seven plans; detailed timing remains in the [archived phase summaries](milestones/v6-phases/) and [closeout](milestones/v6-CLOSEOUT.md).
 
-## Decisions
+## Session Continuity
 
-- Phase 22: Keep one canonical API/runner/release/testing/progress guide per topic; retain checked support and the marked install command in README.
-- Phase 22: Loaded module path/digest and matching provenance establish build identity; unavailable identity remains unknown.
-- Phase 22: Exact-build/content snapshot support differs from actual native loader checks; preserve newest battery independently from snapshots and both backup sets.
-- Phase 22: Host controls/storage/containers and native payloads retain separate ownership and evidence limits; unknown compatibility is not recovery acceptance.
-- Phase 22: Existing measured native CI evidence repaired registration-driven provenance drift; no assertion or safety stop was weakened. Full details remain in phase artifacts and PROJECT.md.
-- [Phase 23]: Keep one report route with explicit unknown values and private-artifact limits; leave raw logs and captures local.
-- [Phase 23]: Treat repeated frame and audio hashes as repeatability evidence, and keep gameplay sensitivity controls independent.
-- [Phase 23]: Qualify only same-invocation native checkpoints with exact runner, ROM and state digests; keep loader checks distinct from exact-build support.
-- [Phase 23]: Keep replay examples in fresh scratch roots with explicit frame/time bounds and treat interrupted or incomplete output as failure.
-- [Phase 23]: Route each observation to the least costly evidence source that can answer its claim; matching hashes establish repeatability, not independent correctness.
-- [Phase 23]: Keep commercial reports unclassified and retain judgment-only safety findings as flagged-unverified.
-
-## Operator Next Steps
-
-- Quick task PR #62 merged as `b25146c`; its hosted PR run and the resulting main-push run both passed. No user action is needed for this task. The exact Release Please main-push skip and publication remain unobserved until a future release; no release was performed here.
+**Last session:** 2026-10-31
+**Stopped at:** v7 roadmap written for approval; no implementation or tests started.
+**Next command after roadmap approval:** `$gsd-discuss-phase 24`
+**Resume file:** [DMA scope note](research/milestone-dma-discovery/SCOPE.md); read alongside the roadmap's verification authorization gate.

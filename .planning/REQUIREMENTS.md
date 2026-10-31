@@ -42,16 +42,19 @@ The prior full-CI/campaign run was interrupted and its outcome is unknown. This 
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DMA-01 | Pending roadmap | Pending |
-| DMA-02 | Pending roadmap | Pending |
-| DMA-03 | Pending roadmap | Pending |
-| DMA-04 | Pending roadmap | Pending |
+| DMA-01 | Phase 24 | Pending |
+| DMA-02 | Phase 24 | Pending |
+| DMA-03 | Phase 24 | Pending |
+| DMA-04 | Phase 24 | Pending |
 
 **Coverage:**
 - v1 requirements: 4 total
-- Mapped to phases: 0
-- Unmapped: 4 — roadmap creation will populate this table
+- Mapped to phases: 4 — each assigned to Phase 24 exactly once
+- Unmapped: 0
+
+The [execution roadmap](ROADMAP.md) is ready for approval. Requirement mappings
+do not establish completion or authorize the stopped full-CI/campaign rerun.
 
 ---
 *Requirements defined: 2026-10-31*  
-*Last updated: 2026-10-31 after v7 requirements approval*
+*Last updated: 2026-10-31 with complete v7 roadmap traceability; roadmap approval pending*
