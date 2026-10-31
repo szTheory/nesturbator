@@ -204,6 +204,45 @@
 
 ---
 
+## Milestone: v6 — Player-ready NES and reproducible feedback
+
+**Shipped:** 2026-10-31 (planning milestone; no package release claimed)
+**Phases:** 2 | **Plans:** 7 | **Tasks:** 15 | **Timeline:** two calendar dates
+
+### What Was Built
+- A player-facing README route with canonical API, runner, release, testing and progress guides, each retaining its executable contract checks.
+- Build identity and progress guidance that distinguishes battery saves, native snapshots and host containers, with backup and rollback limits.
+- A sanitized scene report, bounded repeated cold replay, native checkpoint identity preflight and neutral continuation.
+- Layered evidence guidance that routes each observation to bounded checks and separates repeatability from correctness claims.
+
+### What Worked
+- Independent negative controls kept documentation contracts meaningful through the README migration.
+- The two-phase structure separated player installation/progress guidance from scene replay/reporting while reusing existing runner facilities.
+- The milestone audit reconciled ten requirements and three flows without rewriting summaries or invalidating verification fingerprints.
+
+### What Was Inefficient
+- Phase 22 summary metadata omitted or left empty the six READY requirement completions, so the audit reconciled them manually.
+- The archive CLI counted eight tasks while the seven plan summaries record fifteen; the closeout uses the summary total and records the discrepancy.
+- Intermittent document-test timing anomalies remained unexplained. A prior full-CI/campaign run was interrupted with an unknown outcome, and the safety stop prevented a rerun.
+
+### Patterns Established
+- Keep one canonical guide per topic and maintain independent checks for relocated claims.
+- Treat matching frame/audio hashes as repeatability evidence only; preserve separate adapter, host and hardware claims.
+- Check the current release PR status before publication; automatic publication is authorized only after all required checks pass.
+- Keep interrupted or incomplete campaign results unknown unless a separately authorized run establishes the outcome.
+
+### Key Lessons
+1. Populate requirement-completion and task metadata consistently in each phase summary; the closeout counter must agree with the retained plan evidence.
+2. Keep release publication separate from planning completion and merged implementation; a failed or cancelled check means the release remains held.
+3. Reuse bounded permitted fixtures and distinguish native checkpoint provenance from general build/content support.
+4. Preserve timing, platform, campaign and judgment-tier limits without converting them into unrequested runtime work or risk acceptance.
+
+### Cost Observations
+- Model mix and session count were not measured.
+- Notable: two phases, seven plans and fifteen tasks completed over two calendar dates; no speedup claim is made.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -215,6 +254,7 @@
 | v3 | — | 5 | Measured timeouts with run IDs; claims tied to tests at configure time; per-PR perf gate |
 | v4 | — | 3 | Rolling product roadmap at both boundaries; loop recovery that binds acceptance to product behaviour |
 | v5 | — | 3 | Causal timing reproducers, native/actual-adapter cutpoints and source-bound hosted acceptance; current passed reports before closeout |
+| v6 | — | 2 | Executable documentation contracts, bounded scene replay and explicit separation of repeatability from correctness; release status checked at closeout |
 
 ### Cumulative Quality
 
@@ -225,6 +265,7 @@
 | v3 | 633 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 | v4 | 669 CTest tests in `ci` | 24 core functions beyond loader corpora (execution fuzz) | all (only `libretro.h` vendored) |
 | v5 | 695 CTest tests in `ci` | exact eleven-key target contract plus every-stage entry replay; no percentage claimed | all (only `libretro.h` vendored) |
+| v6 | not recounted; full CI not rerun | 10/10 requirements, 2/2 passed phases and 3/3 flows; no runtime code change | all (only `libretro.h` vendored) |
 
 ### Top Lessons (Verified Across Milestones)
 
