@@ -14,7 +14,7 @@
 - [x] **READY-03**: A player can follow host-owned control guidance to verify input through the actual frontend launch and avoid accidentally assigning one controller to both active player ports.
 - [x] **READY-04**: A player can distinguish battery saves, core-specific snapshots, rewind and automatic loading, and locate the host-configured storage that holds their progress.
 - [x] **READY-05**: A player can follow an explicit supported-version, backup and rollback procedure that preserves newer progress and describes incompatible-state refusal without promising conversion or cross-core snapshot support.
-- [ ] **READY-06**: A developer can find the relocated API, runner and release contracts, and the existing automated documentation/package checks still reject missing or contradictory claims at their maintained document locations.
+- [x] **READY-06**: A developer can find the relocated API, runner and release contracts, and the existing automated documentation/package checks still reject missing or contradictory claims at their maintained document locations.
 
 ### Reproduce and report a scene
 
@@ -110,7 +110,7 @@ Approved mapping; each requirement belongs to exactly one phase. Implementation 
 | READY-03 | Phase 22 | Complete |
 | READY-04 | Phase 22 | Complete |
 | READY-05 | Phase 22 | Complete |
-| READY-06 | Phase 22 | Pending |
+| READY-06 | Phase 22 | Complete |
 | REPRO-01 | Phase 23 | Pending |
 | REPRO-02 | Phase 23 | Pending |
 | REPRO-03 | Phase 23 | Pending |
