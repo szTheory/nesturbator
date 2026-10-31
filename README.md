@@ -911,6 +911,12 @@ and on demand, with the same preset commands as above. The `build` job runs
 platforms. Hosted POSIX build legs use the `ci-build` workflow preset, which
 leaves `retroarch-session` tests to required dedicated `session-controls` jobs
 on Linux x64 and macOS arm64. The full local `ci` preset still runs those tests.
+For a generated `chore(main): release ...` push, every job in the direct `CI`
+workflow skips, while Release calls this same reusable workflow on the exact
+commit and remains eligible for full validation. Main-push Nightly remains
+enabled. The offline `hygiene.ci_release_push_policy` check and its self-test
+verify the source-level routing and release gates; they do not exercise hosted
+GitHub execution.
 The AccuracyCoin build-input fingerprint treats only the three
 `NESTURBATOR_VERSION_*` numbers as release metadata; every other public-header
 byte and fingerprinted input stays exact. Nightly runs the Intel session
@@ -1527,6 +1533,12 @@ one-time `release-as` pin from staying behind in
 commit and publishes the release with 18 archives (library, runner and
 libretro for six platforms) and `SHA256SUMS`. `SHA256SUMS` carries a
 build-provenance attestation that covers every archive. To check a download:
+
+On a generated release merge, the ordinary direct CI jobs skip to avoid
+repeating Release's validation. The reusable Release CI still creates the
+build and hash artifacts, and `publish` remains dependent on successful CI and
+the exact archive and attestation checks. The offline release-push policy tests
+check this configuration but do not establish a hosted release result.
 
 ```sh
 gh attestation verify FILE --repo szTheory/nesturbator

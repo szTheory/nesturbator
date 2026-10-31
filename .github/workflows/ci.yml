@@ -1,7 +1,9 @@
 # Continuous integration (ENGINEERING section 5). Every job runs the same
 # `cmake --workflow --preset <lane>` command as a local build. The ruleset
 # requires one check, `CI required`, which passes only when every other job
-# succeeded.
+# succeeded. The generated Release Please merge commit skips ordinary CI
+# runner allocation because Release calls this workflow on the exact commit;
+# the Release caller remains eligible and owns its validation and artifacts.
 name: CI
 
 on:
@@ -23,8 +25,8 @@ on:
 permissions:
   contents: read
 
-# Only a pull request's runs supersede each other, so every main commit keeps
-# a result. A title edit also starts a run and cancels the one in progress.
+# Only a pull request's runs supersede each other. A title edit also starts a
+# run and cancels the one in progress.
 # The workflow name is part of the group because a call from release.yml sees
 # the caller's context: its run must not queue behind, or be replaced by, the
 # push run on the same commit.
@@ -33,7 +35,16 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Each direct CI job has its own guard so GitHub avoids allocating runners
+  # for the redundant generated-release push. A reusable call inherits the
+  # caller's workflow name (Release), so it still validates and uploads the
+  # release commit. PRs, ordinary pushes and manual CI keep their checks.
   hygiene:
+    if: >-
+      github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release ')
     runs-on: ubuntu-24.04
     # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 34 sampled successful runs (58 s in run 38288411183) is 2 minutes.
     timeout-minutes: 5
@@ -45,6 +56,11 @@ jobs:
       - run: cmake --workflow --preset hygiene
 
   title:
+    if: >-
+      github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release ')
     runs-on: ubuntu-24.04
     # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 37 sampled successful runs (8 s in run 38345355652) is 1 minutes.
     timeout-minutes: 5
@@ -72,6 +88,11 @@ jobs:
           fi
 
   build:
+    if: >-
+      github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release ')
     needs: vector-inventory
     runs-on: ${{ matrix.runner }}
     # Fixed last-40-run audit (38346573845..38645462773): 1,151 s on macos-15-intel in run 38645462773
@@ -173,6 +194,11 @@ jobs:
   # checkout, without running the cold network fixture, and share only within
   # this invocation. Each build still checks its own ordinary opcode inventory.
   vector-inventory:
+    if: >-
+      github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release ')
     runs-on: ubuntu-24.04
     # 5-minute network floor; configure was part of the 1,151 s successful build in run 38645462773.
     timeout-minutes: 5
@@ -189,6 +215,11 @@ jobs:
           if-no-files-found: error
 
   session-controls:
+    if: >-
+      github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release ')
     runs-on: ${{ matrix.runner }}
     # The successful macOS Intel build in run 38645462773 took 1,151 s including
     # this serial matrix; retain its measured 39-minute envelope until remeasured.
@@ -212,6 +243,11 @@ jobs:
           if-no-files-found: warn
 
   asan:
+    if: >-
+      github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release ')
     runs-on: ubuntu-24.04
     # NESTURBATOR_SHORT_RUNS (preset asan) drops or shortens the long hash tests that made this job
     # about 15 minutes; their hashes are checked at full length by the build jobs and hash-equality.
@@ -245,6 +281,11 @@ jobs:
           if-no-files-found: warn
 
   nofp:
+    if: >-
+      github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release ')
     runs-on: ${{ matrix.runner }}
     # Twice the slowest of the sampled successful runs (35 per runner): 43 s on ubuntu-24.04 in run 38342366027,
     # rounded up to 2 minutes, ENGINEERING section 5.
@@ -267,6 +308,11 @@ jobs:
   # The same inputs give the same hashes on every platform: all six
   # hashes.txt files must be byte-identical.
   hash-equality:
+    if: >-
+      github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release ')
     needs: build
     runs-on: ubuntu-24.04
     # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 28 sampled successful runs (9 s in run 38398904814) is 1 minutes.
@@ -285,6 +331,11 @@ jobs:
   # Required hosted proof using the pinned released app and a manifest-listed
   # game. Its screenshot is retained for diagnosis and reproducibility.
   retroarch-e2e:
+    if: >-
+      github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release ')
     runs-on: macos-15
     # Fixed last-40-run audit (38346573845..38645462773): maximum successful whole-job duration was 1,174 s
     # in run 38641853044 (versus 1,132 s in run 38645462773), rounded up to 40 minutes, ENGINEERING section 5.
@@ -438,7 +489,13 @@ jobs:
   # UNSTABLE base (two base measurements differ) does. 15-PERF-PROOF.md holds
   # the zero-spread evidence for arming. To disarm, revert the arming commit.
   perf:
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.control)
+    if: >-
+      (github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release ')) &&
+      (github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_dispatch' && inputs.control))
     runs-on: ubuntu-24.04
     # Previous 10-minute cap: 13 successful samples, slowest 286 s in run 38398904814.
     # Run 40135763965 used 7m44s to install Valgrind and hit the cap while measuring; run 40131613734 measured in 2m32s. 15m leaves about 4m over that combined path.
@@ -557,7 +614,12 @@ jobs:
   # expression on synthetic needs.
   ci-required:
     name: CI required
-    if: always()
+    if: >-
+      always() &&
+      (github.event_name != 'push' ||
+      github.ref != 'refs/heads/main' ||
+      github.workflow != 'CI' ||
+      !startsWith(github.event.head_commit.message, 'chore(main): release '))
     needs: [hygiene, title, vector-inventory, session-controls, build, asan, nofp, hash-equality, retroarch-e2e, perf]
     runs-on: ubuntu-24.04
     # 5-minute floor for a network-bound job, ENGINEERING section 5; twice the slowest of 23 sampled successful runs (4 s in run 38359109704) is 1 minutes.

@@ -59,6 +59,13 @@ add_test(NAME hygiene.ci_required_rollup
     -DWORK=${CMAKE_CURRENT_BINARY_DIR}/ci_required_rollup
     -P ${PROJECT_SOURCE_DIR}/tests/cmake/ci_required_rollup.cmake)
 
+add_test(NAME hygiene.ci_release_push_policy
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR}
+    -P ${PROJECT_SOURCE_DIR}/tests/cmake/ci_release_push_policy.cmake)
+add_test(NAME hygiene.ci_release_push_policy.selftest
+  COMMAND ${CMAKE_COMMAND} -DROOT=${PROJECT_SOURCE_DIR} -DSELFTEST=ON
+    -P ${PROJECT_SOURCE_DIR}/tests/cmake/ci_release_push_policy.cmake)
+
 # Every tracked C source but the vendored libretro.h is formatted as
 # .clang-format says, checked with clang-format 18.
 add_test(NAME hygiene.format
@@ -75,5 +82,9 @@ set_tests_properties(
   hygiene.tree hygiene.scan_selftest hygiene.action_pins hygiene.action_pins.bad hygiene.action_pins.good
   hygiene.timeout_comments hygiene.timeout_comments.bad hygiene.timeout_comments.good
   hygiene.nightly_workflow_policy hygiene.nightly_workflow_policy.selftest hygiene.format
-  hygiene.ci_required_rollup hygiene.release_version_format
+  hygiene.ci_required_rollup hygiene.ci_release_push_policy hygiene.ci_release_push_policy.selftest
+  hygiene.release_version_format
   PROPERTIES LABELS hygiene)
+
+set_tests_properties(hygiene.ci_release_push_policy hygiene.ci_release_push_policy.selftest
+  PROPERTIES TIMEOUT 5)
