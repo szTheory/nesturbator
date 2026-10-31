@@ -5,16 +5,16 @@ milestone_name: Player-ready NES and reproducible feedback
 current_phase: 23
 current_phase_name: Reproduce and report a scene
 status: executing
-stopped_at: Completed 23-01-PLAN.md
-last_updated: "2026-10-31T03:13:29.050Z"
+stopped_at: Completed 23-02-PLAN.md
+last_updated: "2026-10-31T03:32:05.849Z"
 last_activity: 2026-10-31
-last_activity_desc: Phase 23 plan 23-01 completed; plan 23-02 is next
-state_head: d3e2dba87ff2b4ac56d553447bda342d16eafdb8
+last_activity_desc: Phase 23 plan 23-02 completed; plan 23-03 is next
+state_head: 6e42c5af472297c6f013ab586283c7fedd02a0ee
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 50
 current_plan: null
 ---
@@ -25,31 +25,32 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after Phase 22, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 23 plan 23-01 is complete; plan 23-02 is next. Phase 22 remains verified complete.
+Current focus: Phase 23 plans 23-01 and 23-02 are complete; plan 23-03 is next. Phase 22 remains verified complete.
 
 ## Current Position
 
 Phase: 23 (Reproduce and report a scene) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
-Last activity: 2026-10-30 — Phase 23 execution started
+Last activity: 2026-10-31 — Plan 23-02 completed; plan 23-03 is next
 
 ## Next Action
 
-Plan 23-01 completed with the sanitized report, bounded cold-movie replay and
-executable output/report controls. Its [summary](phases/23-reproduce-and-report-a-scene/23-01-SUMMARY.md)
-records the passing focused CTest runs and clean scratch source-build. The
-measured hashes establish local repeatability only. Plans 23-02 and 23-03 remain
-pending; Phase 22 remains verified complete.
+Plan 23-02 completed with native checkpoint identity preflight, neutral NMI
+continuation instructions and scratch/time bounds. Its
+[summary](phases/23-reproduce-and-report-a-scene/23-02-SUMMARY.md) records
+passing preflight, existing NMI and document controls plus the full 18-test
+fresh-scratch route on local macOS arm64. Plan 23-03 remains; Phase 22 remains
+verified complete.
 
-The next actor continues Phase 23 by invoking:
+The next actor finishes Phase 23 by invoking:
 
 `$gsd-execute-phase 23`
 
-This continues at plan 23-02 (native checkpoint identity preflight and scratch
-safety), followed by plan 23-03. Context may be cleared first; read
-[continue.md](continue.md). No user action is needed. No live host/device/private-content
-operation, daily-progress change, push, PR or release was performed. Work is on
+This continues at plan 23-03 (layer-specific triage and complete guide
+verification). Context may be cleared first; read this file and AGENTS.md. No
+user action is needed. No live host/device/private-content operation,
+daily-progress change, push, PR or release was performed. Work is on
 `gsd/phase-23-reproduce-and-report-a-scene`, based on the existing Phase 22
 branch. Preserve the owner's unstaged AGENTS.md and config changes.
 
@@ -107,10 +108,10 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T03:13:28.991Z
-**Stopped at:** Completed 23-01-PLAN.md
+**Last session:** 2026-10-31T03:32:05.799Z
+**Stopped at:** Completed 23-02-PLAN.md
 **Next command:** $gsd-execute-phase 23
-**Resume file:** .planning/continue.md
+**Resume file:** None
 
 ## Performance Metrics
 
@@ -121,6 +122,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 | Phase 22 P03 | 9 min | 2 tasks | 3 files |
 | Phase 22 P04 | about 20 minutes | 3 tasks | 4 files |
 | Phase 23 P01 | 12 min | 2 tasks | 5 files |
+| Phase 23 P02 | 15 min | 2 tasks | 6 files |
 
 ## Decisions
 
@@ -131,3 +133,5 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 - Phase 22: Existing measured native CI evidence repaired registration-driven provenance drift; no assertion or safety stop was weakened. Full details remain in phase artifacts and PROJECT.md.
 - [Phase 23]: Keep one report route with explicit unknown values and private-artifact limits; leave raw logs and captures local.
 - [Phase 23]: Treat repeated frame and audio hashes as repeatability evidence, and keep gameplay sensitivity controls independent.
+- [Phase 23]: Qualify only same-invocation native checkpoints with exact runner, ROM and state digests; keep loader checks distinct from exact-build support.
+- [Phase 23]: Keep replay examples in fresh scratch roots with explicit frame/time bounds and treat interrupted or incomplete output as failure.
