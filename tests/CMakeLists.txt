@@ -811,6 +811,12 @@ add_test(NAME accuracycoin.migration_source
   COMMAND accuracycoin.conformance migration
     ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/migration.tsv
     ${CMAKE_CURRENT_SOURCE_DIR}/accuracy/old-673ef-scoreboard.txt)
+add_test(NAME accuracycoin.input_fingerprint
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DWORK=${CMAKE_CURRENT_BINARY_DIR}/accuracycoin/input-fingerprint"
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/accuracycoin_input_fingerprint_controls.cmake)
+set_tests_properties(accuracycoin.input_fingerprint PROPERTIES TIMEOUT 30)
 add_test(NAME accuracycoin.activation
   COMMAND ${CMAKE_COMMAND}
     "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"

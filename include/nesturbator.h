@@ -39,7 +39,8 @@
 extern "C" {
 #endif
 
-/* Library version of this header. Release tooling changes only the numbers,
+/* Library release version of this header. The values identify the build and
+   do not change emulated output. Release tooling changes only the numbers,
    without realigning neighbouring comments. This narrow formatting guard
    preserves formatting when a version component gains a digit. */
 /* clang-format off */
