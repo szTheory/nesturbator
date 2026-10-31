@@ -8,7 +8,7 @@ automation, and a libretro adapter.
 The library, runner and libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM, 16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves), mapper 2 (UxROM), mapper 3 (CNROM, 8 to 32 KiB CHR ROM), mapper 4 (MMC3) and mapper 7 (AxROM, CHR RAM), with 8 KiB CHR ROM or declared CHR RAM where supported. This is not full game compatibility. The PPU renders backgrounds and evaluated sprites, including palette priority, flips, 8x16 selection, clipping, sprite-zero hit and the eight-sprite limit.
 
 With no cartridge, the fixed test card and silence remain available. Detailed API, battery, native-state and CPU/PPU behavior contracts are in the [API guide](docs/api.md#library-api-and-native-state). The plan lives in [`.planning/`](.planning/).
-The runner accepts content with `--rom FILE`, for example:
+The runner accepts content with `--rom FILE`; see the [runner guide](docs/runner.md) for invocation examples and options.
 
 A trainer-bearing NROM, UxROM, CNROM or AxROM image copies its 512 trainer bytes into writable
 instance-owned PRG RAM at CPU `$7000-$71FF` before the reset vector is used.
@@ -223,22 +223,7 @@ The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
 mirrors, and rejects other bus addresses without side effects. It is intended
 for conformance and debugger integrations.
 
-It can also replay an owned, versioned two-port input movie:
-
-```sh
-nesturbator-run --movie input.nmovie --rom game.nes
-```
-
-The binary movie begins with the eight bytes `NMOVIE1` and a zero byte, then
-little-endian `uint32_t` version `1` and frame count. Each frame stores two
-little-endian `uint16_t` button masks, port 0 then port 1; values must fit the
-eight standard NES button bits. The count is limited to 1,000,000 frames, and
-the file must contain exactly the declared records. Empty movies are valid and
-run zero frames. Invalid, truncated, extra, unsupported-version, or oversized
-movies fail before a frame runs. Replay prints one native-pixel SHA-256 line
-per frame in ascending frame order; a JAM stop reports its frame and exits
-nonzero.
-
+See the [runner guide](docs/runner.md#input-movies) for the movie format, limits and failure behavior.
 Frame time advances in 24-tick CPU cycles. A frame request runs complete
 instructions through the requested boundary and reports the actual tick count,
 retaining any overshoot for the next request. Audio is mono signed 16-bit PCM at
@@ -1236,72 +1221,9 @@ security reports go through [SECURITY.md](SECURITY.md).
 
 ## The runner
 
-See [Runner guide](docs/runner.md) for the runner options, stop behavior and exit contract.
+See [Runner guide](docs/runner.md) for command options, output examples, movies, stop behavior and exit statuses.
 
 Supported NTSC MMC3: mapper 4, submappers 0/4; MMC6=no; four-screen=no.
-
-```sh
-nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame N:FILE]...
-                [--save-dir DIR [--save-interval N]]
-                [--state-at-frame N:FILE]... [--hash-state N]... [--load-state FILE]
-                [--raise-after N[:SIG[:K]]]
-nesturbator-run --version
-```
-
-The save writer is tested under failure. `runner.save_replace` runs the shared
-replace helper against a directory at the save path, a missing parent, a
-regular file as a parent, an empty and a non-empty directory at `.tmp`, a stale
-`.tmp`, and (Linux and macOS) a read-only directory and a symlink (also a dangling one) at `.tmp`;
-each leaves the old save intact and no `.tmp` behind. `runner.save_fsize`
-(Linux and macOS) repeats that under a file size limit.
-`runner.save.dir_at_tmp` runs the runner itself with a directory at
-`battery.sav.tmp` and expects exit 1, the `cannot save` message and the
-directory left alone.
-
-Exit status: see [Runner guide](docs/runner.md#exit-status).
-
-Each hashed frame prints one line:
-
-```
-frame <N> ticks <ticks> sha256 <64 lowercase hex digits>
-```
-
-`ticks` counts emulated time in half master-clock periods, 714732 per NTSC
-frame. The hash is SHA-256 over the 256x240 native pixels, each a 16-bit
-value written low byte first, row by row from the top row. The same inputs
-give the same hash on every platform. For the test card:
-
-```
-$ nesturbator-run --frames 1 --hash-frame 1
-frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453
-```
-
-Audio hashes can be checked without an audio device:
-
-```
-$ nesturbator-run --frames 1 --hash-audio
-audio transitions sha256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-audio pcm sha256 bfd6d535131a45e8a31340082147c4928edd44f2e05fe127081a1900b3cc0edc
-```
-
-The hash is always over the native pixels, never over a dumped image:
-
-```
-$ nesturbator-run --frames 1 --dump-frame 1:frame1.ppm --hash-frame 1
-frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453
-```
-
-writes `frame1.ppm` (184335 bytes) and prints the same line as before.
-
-Exit status: see [Runner guide](docs/runner.md#exit-status).
-
-### Stopping the runner
-
-See [Stopping the runner in the runner guide](docs/runner.md#stopping-the-runner).
-
-### Exit status
-
-See [Exit status in the runner guide](docs/runner.md#exit-status).
 
 ## The libretro core
 

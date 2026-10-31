@@ -55,7 +55,7 @@ nesturbator-run --version
   process K times (K defaults to 1) with SIG, so a stop lands at a known frame. SIG is `int`
   or `term` on POSIX (default `term`) and `int` or `break` on Windows (default `break`). It
   cannot be combined with `--accuracycoin-page`.
-- `--movie FILE` replays a validated two-port movie (see above) instead of running `--frames N`,
+- `--movie FILE` replays a validated two-port movie (see [Input movies](#input-movies)) instead of running `--frames N`,
   and prints a SHA-256 line for every frame.
 - `--help` prints the usage and the exit statuses to stdout and exits 0.
 - `--accuracycoin-page N` runs a strict AccuracyCoin page (2, 14 or 17) for
@@ -82,13 +82,13 @@ nesturbator-run --version
   and cannot be combined with another run mode.
 - `--accuracycoin-boot-cap N` sets the positive cold-boot guest-frame bound for
   `--accuracycoin-observe`. The CMake campaign value is in
-  `tests/accuracy/budgets.txt`.
+  [`tests/accuracy/budgets.txt`](../tests/accuracy/budgets.txt).
 - `--accuracycoin-navigation-cap N` sets the positive guest-frame bound for each
   page-navigation step in `--accuracycoin-observe`. The CMake campaign value is
-  in `tests/accuracy/budgets.txt`.
+  in [`tests/accuracy/budgets.txt`](../tests/accuracy/budgets.txt).
 - `--accuracycoin-execution-cap N` sets the positive post-release guest-frame
   bound for `--accuracycoin-observe`. The CMake campaign value is in
-  `tests/accuracy/budgets.txt`.
+  [`tests/accuracy/budgets.txt`](../tests/accuracy/budgets.txt).
 - `--version` prints one line to stdout, `nesturbator-run X.Y.Z`, formatted at
   run time from `nesturbator_get_version`, and exits 0. It needs no other
   option and nothing else is printed. It is handled where the option loop
@@ -151,7 +151,7 @@ nesturbator-run --version
   transition stream and its silent PCM bytes.
 - `--dump-frame N:FILE` writes frame N to FILE as a binary PPM (P6), 256x240,
   in the RGB of the colour table. N follows the `--hash-frame` rules, and the
-  option can be repeated. The image is converted by `host/convert.c`, the same
+  option can be repeated. The image is converted by [`host/convert.c`](../host/convert.c), the same
   loop the libretro adapter uses, so both show the same colours.
 - `--save-dir DIR` keeps the battery RAM of a mapper 1 cartridge in
   `DIR/<name>.sav`. It needs `--rom` and cannot be combined with
@@ -170,7 +170,9 @@ nesturbator-run --version
   link's target; a directory at that name is never removed. There is no directory
   sync, so a power cut just after the rename may still show the previous save. A run that writes
   the same bytes leaves the file and its modification time alone. A `.sav` is
-  the RAM's raw bytes with no header, the same bytes as RetroArch's `.srm`. A
+  the RAM's raw bytes with no header, the same bytes as RetroArch's `.srm`.
+  The [battery-save API](api.md#battery-saves) documents the library payload
+  and span lifetime. A
   cartridge without battery RAM reads and writes nothing, and without
   `--save-dir` no save file is read or written anywhere. A save
   failure, or a `DIR` that does not exist, exits 1. A `.sav` whose length is
@@ -197,7 +199,8 @@ nesturbator-run --version
   path and leaves no `.tmp` after a successful write. Running the same command
   twice replaces the file with identical bytes. Two runners writing one path
   at the same time are not supported. A write failure exits 1. The same N
-  given twice exits 2.
+  given twice exits 2. The payload and compatibility contract are documented in
+  the [save-state API](api.md#save-states).
 - `--hash-state N` (repeatable; N is 0 or more) prints one line after frame N,
   and for the loaded frame before the first frame runs:
   `state <N> ticks <T> size <S> sha256 <64 lowercase hex digits>`. The hash is the SHA-256 of
@@ -208,7 +211,9 @@ nesturbator-run --version
   N given twice exits 2.
 - `--load-state FILE` (once; a second one exits 2) resumes from a save state
   after the cartridge, and the battery save when `--save-dir` is given, are
-  loaded. Frame numbers stay absolute from power-on: a state saved after frame
+  loaded. The file is the native payload written by `nesturbator_save_state`,
+  not a host-specific state container; see the [save-state API](api.md#save-states).
+  Frame numbers stay absolute from power-on: a state saved after frame
   K (read from the state's header) makes the run continue at frame K + 1 up to
   `--frames`, and `--hash-frame` and `--state-at-frame` use the same numbers,
   so a run that saves at 60 and a run that loads that state print the same
@@ -263,3 +268,89 @@ exits 0. A bad command line prints the same text to standard error and exits 2.
 | 5 | state rejected | `--load-state` refused the file. |
 
 3 and 77 are reserved; the runner never returns them.
+
+## Save and state examples
+
+For a mapper 1 cartridge with battery RAM, create the save directory first:
+
+```sh
+mkdir -p saves
+nesturbator-run --rom game.nes --frames 600 --save-dir saves --save-interval 120
+```
+
+Capture a native save state after frame 60, then resume it to the same absolute
+end frame. Both runs report the same state hash for frame 120:
+
+```sh
+nesturbator-run --rom game.nes --frames 120 --state-at-frame 60:slot.state --hash-state 120
+nesturbator-run --rom game.nes --frames 120 --load-state slot.state --hash-state 120
+```
+
+## Input movies
+
+The runner can replay an owned, versioned two-port input movie:
+
+```sh
+nesturbator-run --movie input.nmovie --rom game.nes
+```
+
+The binary movie begins with the eight bytes `NMOVIE1` and a zero byte, then
+little-endian `uint32_t` version `1` and frame count. Each frame stores two
+little-endian `uint16_t` button masks, port 0 then port 1; values must fit the
+eight standard NES button bits. The count is limited to 1,000,000 frames, and
+the file must contain exactly the declared records. Empty movies are valid and
+run zero frames. Invalid, truncated, extra, unsupported-version, or oversized
+movies fail before a frame runs. Replay prints one native-pixel SHA-256 line
+per frame in ascending frame order; a JAM stop reports its frame and exits
+nonzero.
+
+## Output examples
+
+Each hashed frame prints one line:
+
+```
+frame <N> ticks <ticks> sha256 <64 lowercase hex digits>
+```
+
+`ticks` counts emulated time in half master-clock periods, 714732 per NTSC
+frame. The hash is SHA-256 over the 256x240 native pixels, each a 16-bit
+value written low byte first, row by row from the top row. The same inputs
+give the same hash on every platform. For the test card:
+
+```
+$ nesturbator-run --frames 1 --hash-frame 1
+frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453
+```
+
+Audio hashes can be checked without an audio device:
+
+```
+$ nesturbator-run --frames 1 --hash-audio
+audio transitions sha256 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+audio pcm sha256 bfd6d535131a45e8a31340082147c4928edd44f2e05fe127081a1900b3cc0edc
+```
+
+The hash is always over the native pixels, never over a dumped image:
+
+```
+$ nesturbator-run --frames 1 --dump-frame 1:frame1.ppm --hash-frame 1
+frame 1 ticks 714732 sha256 b49e9be44573a4de82d845179d4389a0a6e28e934bd9ab31516a40db2c0b0453
+```
+
+writes `frame1.ppm` (184335 bytes) and prints the same line as before.
+
+## Related runner checks
+
+The save writer is tested under failure in
+[`runner_save.cmake`](../tests/cmake/runner_save.cmake). `runner.save_replace` runs the shared
+replace helper against a directory at the save path, a missing parent, a
+regular file as a parent, an empty and a non-empty directory at `.tmp`, a stale
+`.tmp`, and (Linux and macOS) a read-only directory and a symlink (also a dangling one) at `.tmp`;
+each leaves the old save intact and no `.tmp` behind. `runner.save_fsize`
+(Linux and macOS) repeats that under a file size limit.
+`runner.save.dir_at_tmp` runs the runner itself with a directory at
+`battery.sav.tmp` and expects exit 1, the `cannot save` message and the
+directory left alone. Runner-level state and stop behavior remains covered by
+[`runner_state.cmake`](../tests/cmake/runner_state.cmake) and
+[`runner_stop.cmake`](../tests/cmake/runner_stop.cmake); save behavior is
+registered in [`tests/CMakeLists.txt`](../tests/CMakeLists.txt).
