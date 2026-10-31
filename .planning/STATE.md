@@ -1,11 +1,11 @@
 ---
 gsd_state_version: "1.0"
 milestone: v6
-status: v6 complete; v0.1.12 published; quick task 261031-fq6 complete locally; hosted verification pending owner authorization
-stopped_at: Quick task 261031-fq6 local implementation and focused verification complete; hosted validation awaits explicit owner authorization
-last_updated: "2026-10-31T15:41:05.399Z"
+status: v6 complete; v0.1.12 published; quick task 261031-fq6 local verification complete; hosted run route needs owner direction
+stopped_at: Owner authorized one push and CI run, but the phase branch has no remote ref or PR; awaiting approval for an isolated PR route
+last_updated: "2026-10-31T15:45:12Z"
 last_activity: 2026-10-31
-last_activity_desc: Quick task 261031-fq6 implemented and locally verified; hosted check awaits owner authorization
+last_activity_desc: Owner authorized hosted validation; current branch push would not trigger CI
 state_head: fe376dac1edb7ce0e78c1c54c3efdc60d260681e
 progress:
   total_phases: 2
@@ -25,7 +25,7 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated for v6 closeout on 2026-10-31, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md). Quick task 261031-ecd fixed the release-version fingerprint mismatch and skips redundant optional Nightly lanes on generated release PRs. Release PR #56 passed required CI, squash-merged, and published v0.1.12. Quick task [261031-fq6](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md) now skips direct CI jobs on generated Release Please main pushes while preserving reusable Release CI, publication checks and main-push Nightly. Focused offline checks passed; hosted validation is waiting for fresh owner authorization.
+Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md). Quick task 261031-ecd fixed the release-version fingerprint mismatch and skips redundant optional Nightly lanes on generated release PRs. Release PR #56 passed required CI, squash-merged, and published v0.1.12. Quick task [261031-fq6](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md) now skips direct CI jobs on generated Release Please main pushes while preserving reusable Release CI, publication checks and main-push Nightly. Focused offline checks passed. The owner authorized one hosted run, but the local phase branch has no remote ref or PR, so its push would not start CI; see the current handoff.
 
 ## Current Position
 
@@ -44,15 +44,22 @@ GitHub execution as `human_needed`; see the
 [verification report](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-VERIFICATION.md).
 No full CI workflow, campaign, push, dispatch, merge, or release action was run.
 
-A push of this branch starts another full AccuracyCoin campaign. The prior
-authorization has expired, so do not push or dispatch until the owner gives a
-fresh explicit decision. If authorized, inspect hosted CI and release workflow
-outcomes on the exact head; keep the normal publication gate intact.
+The owner authorized one push and hosted CI run. Preflight found no remote ref
+or open PR for the current phase branch. `.github/workflows/ci.yml` runs for PRs,
+`main` pushes, manual dispatch, and reusable calls; a push to this non-main
+branch alone will not start CI. The branch also contains broader phase history
+than this quick change. Do not push it or create a broad PR. The recommended
+route is to isolate this quick task's implementation commits on a branch based
+on latest `main` and open a draft PR, which would start full CI including an
+AccuracyCoin campaign. That route needs the owner's explicit approval; it does
+not authorize merge or release and would not itself exercise the release-merge
+skip event.
 
 Next command: `$gsd-quick status 261031-fq6`
-It displays this task's recorded status without starting CI or a campaign.
-Context may be cleared before running it. Before hosted work resumes, read the
-[quick-task handoff](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-RESUME.md).
+It displays this task's saved status without starting CI or a campaign.
+Context may be cleared before running it. Read the
+[quick-task handoff](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-RESUME.md)
+before hosted work resumes.
 
 Earlier Phase 23 document-test timeouts and wall-time jumps remain unexplained;
 no timeout was raised or machine restart performed. The configured CI cache can
@@ -117,8 +124,8 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T15:41:20Z
-**Stopped at:** 261031-fq6 locally verified; hosted Actions validation awaits explicit owner authorization
+**Last session:** 2026-10-31T15:45:12Z
+**Stopped at:** hosted CI authorization granted, but current phase branch has no remote ref/PR; awaiting isolated PR route decision
 **Next command:** $gsd-quick status 261031-fq6
 **Resume file:** .planning/quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-RESUME.md
 
@@ -150,4 +157,4 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Operator Next Steps
 
-- The workflow change and focused local verification are complete. Before pushing this branch or dispatching hosted validation, give a fresh explicit decision because that action starts a full AccuracyCoin campaign. If authorized, inspect the exact-head CI and Release outcomes while retaining the existing publication gate.
+- The owner authorized one hosted run, but the current phase branch has no remote ref or PR and a branch push would not trigger CI. Owner decision needed: authorize an isolated branch and draft PR containing only this quick task's changes. That PR will start full CI, including AccuracyCoin; it will not be merged or released without separate authority.

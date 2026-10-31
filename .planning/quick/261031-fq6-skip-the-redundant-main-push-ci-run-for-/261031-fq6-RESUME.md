@@ -12,12 +12,19 @@ tests passed. The verifier marked all five local must-haves verified and set
 [the verification report](261031-fq6-VERIFICATION.md).
 
 No full CI, AccuracyCoin campaign, push, dispatch, merge, or release action
-was run. The earlier owner authorization covered the previous release run.
-A push to validate this change starts another full AccuracyCoin campaign, so
-wait for the owner's fresh explicit decision before any push or dispatch. If
-authorized, inspect hosted CI and Release outcomes on the exact head and
-preserve the current publication gate.
+was run. The owner authorized one push and hosted CI run, but preflight found
+no remote ref or open PR for the current phase branch. CI runs on PRs, pushes
+to `main`, manual dispatch, and reusable calls; a non-main branch push alone
+does not trigger it. The current branch also contains broad phase history.
+
+Do not push it or create a broad PR. The recommended route is a clean branch
+from latest `main` containing only this task's implementation commits, followed
+by a draft PR to start one CI run. That run includes AccuracyCoin, does not
+authorize merge or release, and does not exercise the release-merge skip event.
+Get the owner's explicit approval for that additional branch/PR route before
+proceeding.
 
 Next OpenGSD command: `$gsd-quick status 261031-fq6`
 It displays the saved quick-task status without starting a hosted run. Context
-may be cleared before running it.
+may be cleared before running it. Read this handoff and STATE.md before
+resuming remote work.
