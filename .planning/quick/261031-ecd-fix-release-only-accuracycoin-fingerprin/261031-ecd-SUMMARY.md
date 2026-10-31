@@ -2,7 +2,7 @@
 quick_id: 261031-ecd
 status: complete
 implementation_commit: 9470359
-verification_scope: focused local checks; full CI/campaign remains stopped pending owner decision
+verification_scope: focused local checks, exact-head required CI, gated release CI, and published release
 date: 2026-10-31
 ---
 
@@ -34,10 +34,39 @@ contracts. The local phase branch records `build_inputs_sha256=0534b85785ca6d51a
 | `cmake --build --preset hygiene --target fuzz.execution` | Pass |
 | `git diff --check` | Pass |
 
-The full `cmake --workflow --preset ci` and AccuracyCoin campaign remain
-unrun. The prior interruption left their result unknown; the project stop
-requires a separate owner decision before rerunning either. No push, merge or
-publication occurred.
+The owner authorized one exact-head full CI/campaign run for Release PR #56.
+Run `41211519919` passed on head `6bd7f267345f3bc153fc08f301a9bac166ed5812`:
+all 693 tests passed, including `accuracycoin.campaign`,
+`accuracycoin.input_fingerprint`, and `accuracycoin.activation`. GitHub
+auto-squash-merged the PR after all required checks passed.
+
+The post-merge Release workflow (`41212164789`) passed its reusable full CI,
+hash-equality gate, and publication job on merge commit
+`2338608ab184f040620a30d17756f5e06a42d4e3`. Its AccuracyCoin campaign passed
+693 tests in 337.24 seconds. The ordinary main-push CI (`41212164724`) and
+Nightly (`41212164805`) also passed on that same commit; the main-push CI
+repeated the campaign (693 tests in 193.51 seconds). The Release workflow
+verified all 18 platform archives, generated and verified their attestations,
+confirmed a tampered archive fails verification, and published release
+[v0.1.12](https://github.com/szTheory/nesturbator/releases/tag/v0.1.12) with
+18 archives and `SHA256SUMS`.
+
+## CI Efficiency Follow-up
+
+The Release workflow's reusable CI is necessary for exact-tag validation and
+for attaching build artifacts to the release job. The separate `main` push
+also started the ordinary CI workflow on the same merge commit and reran the
+full AccuracyCoin campaign. This duplicate validation is a concrete
+optimization candidate: skip only the ordinary `main` push CI on the generated
+Release Please squash commit, while keeping the reusable Release CI and its
+publish dependency. The main-push Nightly lanes are separate optional
+coverage and should remain enabled absent a separate decision.
+
+The next GSD task is `$gsd-quick --validate Skip the redundant main-push CI run for Release Please merge commits while preserving the reusable release CI and publication gate.`
+The previous full-campaign authorization was for this release run; get a fresh
+owner decision before pushing a workflow change that triggers another full
+campaign. Existing local edits to `AGENTS.md`, `.planning/config.json`, and
+`.planning/continue.md` were left untouched.
 
 ## Commits
 

@@ -1,11 +1,11 @@
 ---
 gsd_state_version: "1.0"
 milestone: v6
-status: v6 complete; release CI run authorized and in progress
-stopped_at: Release PR #56 updated; current-head required checks running
-last_updated: "2026-10-31T14:44:54Z"
+status: v6 complete; v0.1.12 published; CI efficiency follow-up identified
+stopped_at: Release PR #56 squash-merged; release workflow and publication succeeded
+last_updated: "2026-10-31T15:14:38Z"
 last_activity: 2026-10-31
-last_activity_desc: Owner authorized one CI/campaign run; updated Release PR #56 and started required checks
+last_activity_desc: Required CI passed; Release PR #56 merged; v0.1.12 published with verified assets
 state_head: 94703591ca1d5c1d5adcfb6e2fd51987de4a2558
 progress:
   total_phases: 2
@@ -25,48 +25,50 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated for v6 closeout on 2026-10-31, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md). Quick task 261031-ecd fixes the release-version fingerprint mismatch and avoids redundant optional Nightly lanes on generated release PRs. The fix is on Release PR #56; current-head required CI is running.
+Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md). Quick task 261031-ecd fixed the release-version fingerprint mismatch and skips redundant optional Nightly lanes on generated release PRs. Release PR #56 passed required CI, squash-merged, and published v0.1.12. A duplicate-CI efficiency follow-up is recorded in the quick-task handoff.
 
 ## Current Position
 
 Phase: Milestone v6 archived
 Plan: —
-Status: Required CI run 41211519919 is in progress, including the authorized AccuracyCoin campaign
-Last activity: 2026-10-31 — release fix pushed; monitoring exact-head CI
+Status: Quick task 261031-ecd and the v0.1.12 release are complete
+Last activity: 2026-10-31 — exact-head CI passed; release assets and attestations verified and published
 
 ## Next Action
 
 V6 is archived in [MILESTONES.md](MILESTONES.md), with the full
 [closeout](milestones/v6-CLOSEOUT.md) and [audit](milestones/v6-MILESTONE-AUDIT.md).
 Quick task [261031-ecd](quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/261031-ecd-SUMMARY.md)
-passes its focused local checks. Its clean-base fingerprint for the release fix
-is `78822adfa35ac2b0e2f562cfb0067ae08db7e76c3e6e4027fa63d7bcca400de2`
-(56 inputs); the current phase branch's `0534...` value must not be used for
+passes its focused local checks and the authorized remote release gates. Its
+clean-base fingerprint for the release fix is
+`78822adfa35ac2b0e2f562cfb0067ae08db7e76c3e6e4027fa63d7bcca400de2` (56
+inputs); the current phase branch's `0534...` value must not be used for
 Release PR #56.
 
-Release PR #56 is open at exact head
-`6bd7f267345f3bc153fc08f301a9bac166ed5812` on base `45a078d`. Required CI run
-`41211519919` is in progress; its Linux x64 lane runs the pinned 22-page
-AccuracyCoin campaign (370-second CTest timeout). The owner explicitly
-authorized this one run. Nightly run `41211519890` skipped its optional lanes
-for the generated Release Please PR, as intended. The earlier interrupted
-campaign's result remains unknown. This authorization does not cover another
-full CI/campaign run if this one fails. After all required checks pass on this
-exact head, squash merge the release PR; the user authorized release
-publication after the post-merge release CI also passes.
+Release PR #56 passed required CI at exact head
+`6bd7f267345f3bc153fc08f301a9bac166ed5812` on base
+`45a078d2de1f08e39caf1c5942fcdb57f493d8af`, then auto-squash-merged as
+`2338608ab184f040620a30d17756f5e06a42d4e3`. The Release workflow's reusable
+CI, ordinary main-push CI, and Nightly all succeeded on the merge commit.
+Each CI campaign passed all 693 tests. Release CI verified the exact 18
+platform archives, generated and verified attestations, rejected a tampered
+archive, and published [v0.1.12](https://github.com/szTheory/nesturbator/releases/tag/v0.1.12)
+with 18 archives and `SHA256SUMS`.
 
-The exact next command is `$gsd-quick resume fix-release-only-accuracycoin-fingerprin`.
-It resumes monitoring the current required CI run and proceeds to squash merge
-and release only after checks are green. Context may be cleared before running
-it. The agent continues next; see the [resume note](quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/261031-ecd-RESUME.md)
-for the preserved scope and evidence.
+The main-push CI repeated the Release workflow's full validation on the same
+merge commit, including another AccuracyCoin campaign. This is a concrete
+efficiency opportunity: conditionally skip ordinary main-push CI for the
+Release Please `chore(main): release ...` commit while retaining the Release
+workflow's reusable CI, archive artifacts, and publication gate. Do not skip
+main-push Nightly coverage without a separate decision. The evidence and
+handoff are in [quick task 261031-ecd](quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/261031-ecd-RESUME.md).
 
-Release PR #56 for 0.1.12 moved from the failing head `74d443f` to
-`6bd7f267345f3bc153fc08f301a9bac166ed5812`. The earlier required CI failures
-shared the release-version fingerprint mismatch; the current run is testing
-the fix. v0.1.11 remains the latest published package until the exact release
-head passes its required CI and the post-merge release workflow succeeds. The
-configured `git.create_tag` is false; no v6 tag was created.
+Next command: `$gsd-quick --validate Skip the redundant main-push CI run for Release Please merge commits while preserving the reusable release CI and publication gate.`
+It plans, implements, and locally validates the CI efficiency follow-up.
+Context may be cleared before running it. The previous authorization covered
+the release run; get a fresh owner decision before any push starts another full
+AccuracyCoin campaign. The agent continues next after that authorization
+boundary.
 
 Earlier Phase 23 document-test timeouts and wall-time jumps remain unexplained;
 no timeout was raised or machine restart performed. The configured CI cache can
@@ -130,9 +132,9 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T14:44:54Z
-**Stopped at:** Release PR #56 updated; required CI/campaign run 41211519919 is in progress
-**Next command:** $gsd-quick resume fix-release-only-accuracycoin-fingerprin
+**Last session:** 2026-10-31T15:14:38Z
+**Stopped at:** v0.1.12 published; duplicate main-push CI documented as a follow-up
+**Next command:** $gsd-quick --validate Skip the redundant main-push CI run for Release Please merge commits while preserving the reusable release CI and publication gate.
 **Resume file:** .planning/quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/261031-ecd-RESUME.md
 
 ## Performance Metrics
@@ -163,4 +165,4 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Operator Next Steps
 
-- Continue monitoring required CI run `41211519919` on Release PR #56 head `6bd7f267345f3bc153fc08f301a9bac166ed5812`. If green, squash merge the PR and let the gated release workflow publish only after its exact-head CI passes. If the campaign fails, inspect its evidence and request a new owner decision before rerunning it.
+- Consider the documented duplicate main-push CI follow-up. Do not push a workflow change or trigger another full AccuracyCoin campaign without a fresh owner decision.

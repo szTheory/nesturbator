@@ -1,30 +1,30 @@
 # CI release fix handoff
 
-Read `AGENTS.md`, `.planning/STATE.md`, this file, and the quick task plan and
-summary before resuming.
+The 261031-ecd implementation and release are complete. Read `AGENTS.md`,
+`.planning/STATE.md`, the quick task plan and summary before continuing.
 
-The local quick task is implemented in commits `6c928f9`, `8573742`, and
-`9470359`. Targeted fingerprint and Nightly workflow policy checks passed. The
-required six-platform CI definition is unchanged. Release Please PRs skip the
-optional Nightly lanes; ordinary relevant PRs and scheduled, manual, and main
-push runs retain those lanes.
+Release PR #56 passed required CI at head
+`6bd7f267345f3bc153fc08f301a9bac166ed5812` and was auto-squash-merged as
+`2338608ab184f040620a30d17756f5e06a42d4e3`. The PR required-CI run
+`41211519919`, post-merge Release workflow `41212164789`, ordinary main-push CI
+`41212164724`, and Nightly `41212164805` all succeeded. All AccuracyCoin
+campaigns passed. The Release workflow verified all 18 platform archives and
+their attestations, rejected a modified archive, and published
+[v0.1.12](https://github.com/szTheory/nesturbator/releases/tag/v0.1.12) with
+18 archives and `SHA256SUMS`.
 
-The current phase branch has extra `tests/CMakeLists.txt` registrations, so its
-metadata hash is not suitable for Release PR #56. On a clean snapshot of the
-PR's exact base `45a078d`, applying the code and workflow patches produced
-`build_inputs_sha256=78822adfa35ac2b0e2f562cfb0067ae08db7e76c3e6e4027fa63d7bcca400de2`
-with 56 inputs; the fingerprint control passed against that metadata. Use this
-value when preparing the fix on `main`.
+CI efficiency finding: Release workflow reusable CI and the ordinary `main`
+push CI both ran on the same merge commit, duplicating the full AccuracyCoin
+campaign. The reusable Release CI is needed for release validation and build
+artifacts. The ordinary main-push CI is the low-hanging optimization target;
+preserve the Release workflow and its publish gate. Main-push Nightly lanes are
+separate optional coverage and were left enabled.
 
-The owner authorized one full CI run on 2026-10-31. Release PR #56 now points
-to `6bd7f267345f3bc153fc08f301a9bac166ed5812`; CI run `41211519919` is in
-progress and includes the 22-page AccuracyCoin campaign (CTest timeout 370
-seconds). The Nightly PR run skipped its optional lanes as intended. The prior
-campaign result remains unknown. Do not rerun the full campaign if this run
-fails without another owner decision. Squash merge and release publication
-remain authorized after required checks pass on the exact release head and
-post-merge release CI succeeds.
+Next command: `$gsd-quick --validate Skip the redundant main-push CI run for Release Please merge commits while preserving the reusable release CI and publication gate.`
+It plans, implements, and locally validates that workflow change. Context may
+be cleared before running it. The prior full-campaign authorization covered the
+release run; obtain a fresh owner decision before a push starts another
+campaign. The agent continues with local planning and implementation next.
 
-Next command: `$gsd-quick resume fix-release-only-accuracycoin-fingerprin`.
-It resumes monitoring this run and continues to squash merge and release when
-the required checks pass. Context may be cleared before running it.
+Existing local edits to `AGENTS.md`, `.planning/config.json`, and
+`.planning/continue.md` were not modified.
