@@ -111,16 +111,23 @@ if(SELFTEST)
   runner_exit_fixture(missing_raise_after TRUE "${missing_raise_after}" root doc)
   runner_exit_run("${root}" "${doc}" table result output)
   runner_exit_expect_rejection("missing --raise-after before stop section" "${result}" "${output}"
-    "canonical runner guide option list lacks --raise-after before the stop section")
+    "canonical runner guide option list lacks --raise-after")
 
   set(stop_sentences
     "On SIGTERM or SIGINT the runner finishes the current frame, writes the battery save and exits 0, or 1 if the save could not be written."
     "A second signal at any time, including during the flush, ends the runner at once."
     "On Windows the runner handles Ctrl+C, Ctrl+Break and console close the same way."
-    "A forced termination (TerminateProcess, taskkill /F, power loss) cannot be handled; the last committed .sav survives it."
+    "A forced termination (TerminateProcess, taskkill /F, power loss) cannot be handled\; the last committed .sav survives it."
     "A launcher that sends the event to group 0 first registers its own handler that returns TRUE for CTRL_BREAK_EVENT, after attaching and before sending, or the event ends the launcher too.")
+  set(stop_diagnostics
+    "canonical runner guide lacks stop sentence: On SIGTERM"
+    "canonical runner guide lacks stop sentence: A second signal"
+    "canonical runner guide lacks stop sentence: On Windows"
+    "canonical runner guide lacks stop sentence: A forced termination"
+    "canonical runner guide lacks stop sentence: A launcher that sends the event")
   set(stop_number 0)
   foreach(sentence IN LISTS stop_sentences)
+    list(GET stop_diagnostics ${stop_number} expected_diagnostic)
     math(EXPR stop_number "${stop_number} + 1")
     string(FIND "${canonical_text}" "${sentence}" at)
     if(at EQUAL -1)
@@ -131,7 +138,7 @@ if(SELFTEST)
     runner_exit_fixture("stop_${stop_number}" TRUE "${mutated_stop}" root doc)
     runner_exit_run("${root}" "${doc}" table result output)
     runner_exit_expect_rejection("removed stop sentence ${stop_number}" "${result}" "${output}"
-      "canonical runner guide lacks stop sentence: ${sentence}")
+      "${expected_diagnostic}")
   endforeach()
 
   file(REMOVE_RECURSE "${fixture_root}")
@@ -139,16 +146,25 @@ if(SELFTEST)
   return()
 endif()
 
-# RUN-03: the runner's exit statuses are defined once, in runner/exit_status.h, and printed by
-# nesturbator-run --help; the README section "Exit status" repeats them. Inputs:
-#   -DSOURCE_DIR=<repo>  -DRUNNER=<nesturbator-run>  -DMODE=table|help
-# MODE=table compares the header table, the --help rows and the README rows (a README Meaning
-# cell must equal the header text byte for byte, with no markup). MODE=help checks --help alone.
-foreach(var SOURCE_DIR RUNNER MODE)
+# RUN-03: runner/exit_status.h, `nesturbator-run --help`, and the canonical runner guide retain
+# the same exit table and stop contract. Inputs: -DSOURCE_DIR=<repo> -DDOC=<repo>/docs/runner.md
+# -DRUNNER=<nesturbator-run> -DMODE=table|help. MODE=table compares header/help/guide rows;
+# MODE=help checks the executable's help output.
+foreach(var SOURCE_DIR RUNNER MODE DOC)
   if(NOT DEFINED ${var})
     message(FATAL_ERROR "${var} is required")
   endif()
 endforeach()
+
+cmake_path(NORMAL_PATH SOURCE_DIR OUTPUT_VARIABLE source_dir)
+cmake_path(NORMAL_PATH DOC OUTPUT_VARIABLE doc_path)
+cmake_path(APPEND source_dir "docs/runner.md" OUTPUT_VARIABLE expected_doc)
+if(NOT doc_path STREQUAL expected_doc)
+  message(FATAL_ERROR "DOC must name the canonical runner guide: ${expected_doc}")
+endif()
+if(NOT EXISTS "${DOC}")
+  message(FATAL_ERROR "canonical runner guide does not exist: ${DOC}")
+endif()
 
 function(run_help out_text)
   execute_process(COMMAND "${RUNNER}" --help
@@ -195,12 +211,12 @@ if(NOT header MATCHES "#define RUNNER_EXIT_RESERVED_TEXT \"([^\"]*)\"")
 endif()
 set(reserved "${CMAKE_MATCH_1}")
 
-# The README rows between '### Exit status' and the next heading.
-file(STRINGS "${SOURCE_DIR}/README.md" readme_lines)
-set(readme_pairs "")
+# The canonical guide rows in '### Exit status' and its reserved-value sentence.
+file(STRINGS "${DOC}" doc_lines)
+set(doc_pairs "")
 set(in_section FALSE)
-set(readme_reserved FALSE)
-foreach(line IN LISTS readme_lines)
+set(doc_reserved FALSE)
+foreach(line IN LISTS doc_lines)
   if(line STREQUAL "### Exit status")
     set(in_section TRUE)
     continue()
@@ -211,16 +227,16 @@ foreach(line IN LISTS readme_lines)
   if(in_section)
     if(line MATCHES "^\\| ([0-9]+) \\| ([^|]+) \\| ")
       string(STRIP "${CMAKE_MATCH_2}" meaning)
-      list(APPEND readme_pairs "${CMAKE_MATCH_1}:${meaning}")
+      list(APPEND doc_pairs "${CMAKE_MATCH_1}:${meaning}")
     endif()
     string(FIND "${line}" "${reserved}" at)
     if(NOT at EQUAL -1)
-      set(readme_reserved TRUE)
+      set(doc_reserved TRUE)
     endif()
   endif()
 endforeach()
-if(NOT readme_reserved)
-  message(FATAL_ERROR "README '### Exit status' lacks '${reserved}'")
+if(NOT doc_reserved)
+  message(FATAL_ERROR "canonical runner guide Exit status lacks the reserved sentence '${reserved}'")
 endif()
 
 # The --help rows after the 'Exit status:' line, and the reserved line.
@@ -246,7 +262,7 @@ if(NOT help_reserved)
 endif()
 
 # 3 and 77 may appear only inside the reserved sentence, never as a row.
-foreach(place header readme help)
+foreach(place header doc help)
   foreach(pair IN LISTS ${place}_pairs)
     string(REGEX REPLACE ":.*$" "" number "${pair}")
     if(number EQUAL 3 OR number EQUAL 77)
@@ -263,35 +279,46 @@ foreach(place header readme help)
   endif()
 endforeach()
 
-foreach(place readme help)
+foreach(place doc help)
   if(NOT "${${place}_pairs}" STREQUAL "${header_pairs}")
+    if(place STREQUAL "doc")
+      message(FATAL_ERROR
+        "canonical runner guide exit rows differ from the header.\n  header: ${header_pairs}\n  guide: ${doc_pairs}")
+    endif()
     message(FATAL_ERROR "${place} rows differ from the header.\n  header: ${header_pairs}\n  ${place}: ${${place}_pairs}")
   endif()
 endforeach()
-message(STATUS "exit table matches in the header, --help and the README: ${header_pairs}")
+message(STATUS "exit table matches in the header, --help and docs/runner.md: ${header_pairs}")
 
-# Success criterion 4: the README keeps the stop contract (D-24) and the --raise-after entry (D-11).
-file(READ "${SOURCE_DIR}/README.md" readme_text)
-string(REPLACE "\r" "" readme_text "${readme_text}")
-string(FIND "${readme_text}" "\n### Stopping the runner\n" stop_at)
+# Success criterion 4: the canonical guide keeps the stop contract and places --raise-after
+# in the option list before the stop section.
+file(READ "${DOC}" guide_text)
+string(REPLACE "\r" "" guide_text "${guide_text}")
+string(FIND "${guide_text}" "\n### Stopping the runner\n" stop_at)
 if(stop_at EQUAL -1)
-  message(FATAL_ERROR "README lacks the section '### Stopping the runner'")
+  message(FATAL_ERROR "canonical runner guide lacks the section '### Stopping the runner'")
 endif()
-string(SUBSTRING "${readme_text}" 0 ${stop_at} readme_before_stop)
-string(FIND "${readme_before_stop}" "- `--raise-after N[:SIG[:K]]`" at)
+string(FIND "${guide_text}" "\n### Exit status\n" exit_at)
+if(exit_at EQUAL -1 OR NOT exit_at GREATER stop_at)
+  message(FATAL_ERROR "canonical runner guide lacks '### Exit status' after the stop section")
+endif()
+string(SUBSTRING "${guide_text}" 0 ${stop_at} guide_before_stop)
+string(FIND "${guide_before_stop}" "- `--raise-after N[:SIG[:K]]`" at)
 if(at EQUAL -1)
-  message(FATAL_ERROR "README option list lacks --raise-after")
+  message(FATAL_ERROR "canonical runner guide option list lacks --raise-after before the stop section")
 endif()
+math(EXPR stop_length "${exit_at} - ${stop_at}")
+string(SUBSTRING "${guide_text}" ${stop_at} ${stop_length} stop_section)
 set(stop_sentences
   "On SIGTERM or SIGINT the runner finishes the current frame, writes the battery save and exits 0, or 1 if the save could not be written."
   "A second signal at any time, including during the flush, ends the runner at once."
   "On Windows the runner handles Ctrl+C, Ctrl+Break and console close the same way."
-  "A forced termination (TerminateProcess, taskkill /F, power loss) cannot be handled; the last committed .sav survives it."
+  "A forced termination (TerminateProcess, taskkill /F, power loss) cannot be handled\; the last committed .sav survives it."
   "A launcher that sends the event to group 0 first registers its own handler that returns TRUE for CTRL_BREAK_EVENT, after attaching and before sending, or the event ends the launcher too.")
 foreach(sentence IN LISTS stop_sentences)
-  string(FIND "${readme_text}" "${sentence}" at)
+  string(FIND "${stop_section}" "${sentence}" at)
   if(at EQUAL -1)
-    message(FATAL_ERROR "README lacks the stop sentence: ${sentence}")
+    message(FATAL_ERROR "canonical runner guide lacks stop sentence: ${sentence}")
   endif()
 endforeach()
-message(STATUS "README keeps the stop contract and the --raise-after entry")
+message(STATUS "canonical runner guide keeps the stop contract and the --raise-after entry")
