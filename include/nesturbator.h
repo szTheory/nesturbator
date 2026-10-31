@@ -54,7 +54,10 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 10 keeps the DMC output bit clock running through
+   the same inputs. Revision 11 overlaps DMC halt/dummy/alignment with OAM
+   accesses. DMC sample GET wins a collision; OAM resumes on GET without losing
+   a byte. Interior collisions add two cycles; final windows can add one or
+   three (HWC.01). Revision 10 keeps the DMC output bit clock running through
    eight-clock silent cycles. A later sample waits for that cycle boundary;
    $4015 re-enables preserve the phase (HWC.23, Output Unit).
    Revision 9 retains an accepted IRQ at the instruction's
@@ -81,7 +84,7 @@ extern "C" {
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
    Revision 5 was the PPU fetch pipeline. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 10
+#define NESTURBATOR_BEHAVIOUR_REVISION 11
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
@@ -243,7 +246,9 @@ typedef struct nesturbator_info {
  * `$4014` queues an OAM DMA. The next CPU read is
  * halted while it reads one 256-byte page through the normal bus and writes
  * OAM starting at `$2003`'s address; it stalls the CPU for 513 or 514 cycles
- * by cycle parity while PPU time continues.
+ * by cycle parity while PPU time continues. DMC no-access phases can overlap
+ * OAM; a DMC GET takes priority and OAM retries the unconsumed source on GET.
+ * The usual overlap adds two cycles, with one/three-cycle final windows (HWC.01).
  *
  * Audio: mono signed 16-bit samples at the info sample rate. The libretro
  * adapter duplicates each sample into left and right channels, preferring its

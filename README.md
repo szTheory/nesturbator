@@ -16,6 +16,11 @@ where supported. This is not full game compatibility. The PPU renders
 backgrounds and evaluated sprites, including palette priority, flips, 8x16
 selection, clipping, sprite-zero hit and the eight-sprite limit.
 
+DMC transfers now overlap OAM halt/dummy/alignment cycles. DMC sample reads
+take priority, and OAM resumes on GET without skipping or duplicating a byte.
+Interior overlaps add two cycles; final windows can add one or three. This
+uses behavior revision 11 and preserves native state format 4.
+
 With no cartridge, the fixed test card and silence remain available. The
 checked MMC3 support clause is:
 

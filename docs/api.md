@@ -12,8 +12,9 @@ Cartridges use a per-board mapper interface with page tables, a four-entry namet
 
 ## Behavior revision history
 
-The current public header reports behavior revision 10. These revision facts describe this source tree; a published core must be identified from its own release or CI artifact.
+The current public header reports behavior revision 11. These revision facts describe this source tree; a published core must be identified from its own release or CI artifact.
 
+- **Revision 11:** DMC halt/dummy/alignment overlaps OAM accesses; its sample GET wins collisions and OAM retries its source on GET. Interior overlaps add two cycles; final windows can add one or three. [HWC.01]
 - **Revision 10:** The DMC bit counter continues through eight-clock silent cycles. Its separate silence flag gates DAC changes; re-enabling a sample preserves the cycle position. [HWC.23]
 - **Revision 9:** IRQ acceptance is retained at the instruction hardware poll point, using the old I flag for CLI, SEI and PLP. Branches preserve their first poll and add the page-cross poll. Accepted IRQs survive later source clearing until entry arbitration; NMI wins, and a held IRQ may be accepted again after RTI restores I. A post-vector-choice NMI input remains an unrecognized candidate until held through the first handler opening; releasing it before then cancels it. [HWC.02][HWC.17]
 - **Revision 8:** CPU bus-clock seams capture rising edges on the derived PPU NMI line; instruction-specific polls decide when a captured request is serviced, and later line deassertion does not revoke it. `$2002` samples vblank bit 7 at M2 rise and sprite bits 6/5 at M2 fall. PPUCTRL disable and pre-render clear lower the live line without clearing an already captured request. IRQ keeps its close-edge level through the instruction poll. [HWC.02][HWP.03]
@@ -166,7 +167,7 @@ the native state payload; host files and disk containers are outside this API.
 The library does no file I/O and never allocates for a state; the host owns the
 buffer and decides where states live.
 
-The current state format is 4 and the behavior revision is 10. Format 4 adds
+The current state format is 4 and the behavior revision is 11. Format 4 adds
 the DMC silence flag and counts silent output cycles in its saved bit position.
 Format-3 states are refused without conversion. It retains the format-3 interrupt
 histories:

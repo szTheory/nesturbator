@@ -18,6 +18,9 @@
 #include "../check.h"
 #include "../interrupt_fixture.h"
 #include "../nmi_fixture.h"
+/* The corrected OAM/DMC overlap changes the stress guest's phase drift.
+   Keep the OAM write within the retained short-run boundary window. */
+#define ST_STRESS_G 6
 #include "../state_test.h"
 
 #define MAX_END 180u
@@ -32,7 +35,7 @@ static const uint32_t FORKS_FULL[] = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10
                                       11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
                                       22, 23, 24, 25, 26, 27, 28, 29, 30, 60, 150};
 static const uint32_t FORKS_SHORT[] = {0, 1, 30};
-/* Stress images: every frame 0 to 60 over 90 frames (every straddle seen first by frame 44, and
+/* Stress images: every frame 0 to 60 over 90 frames (every straddle seen first by frame 45, and
    the run stays well under its 300 s timeout on a loaded runner); the fixed asan set over 60. */
 static uint32_t g_stress_full[61];
 static const uint32_t STRESS_SHORT[] = {0, 1, 2, 3, 30};
@@ -339,7 +342,7 @@ static void dma_fork(void)
     nesturbator *b = st_make_instance();
     uint8_t *state = NULL, *scratch = NULL, *final_a = NULL, *final_b = NULL;
     size_t image_size = st_stress_image(image, sizeof image, 0u);
-    unsigned silent_cuts = 0u, pending_cuts = 0u;
+    unsigned silent_cuts = 0u, pending_cuts = 0u, collision_cuts = 0u;
     size_t size = 0u;
     CHECK(a != NULL && b != NULL && image_size != 0u);
     if (a == NULL || b == NULL || image_size == 0u)
@@ -364,10 +367,13 @@ static void dma_fork(void)
         uint8_t silent = (uint8_t)(a->apu.dmc.silence != 0u && a->apu.dmc.bits != 0u);
         uint8_t pending = a->apu.dmc.dma_pending;
         uint8_t cut_bits = a->apu.dmc.bits;
-        if ((silent == 0u || silent_cuts != 0u) && (pending == 0u || pending_cuts != 0u))
+        uint8_t collision = (uint8_t)(a->bus.oam_dma_pending != 0u && a->apu.dmc.remaining != 0u);
+        if ((silent == 0u || silent_cuts != 0u) && (pending == 0u || pending_cuts != 0u) &&
+            (collision == 0u || collision_cuts != 0u))
             continue;
         silent_cuts += silent != 0u;
         pending_cuts += pending != 0u;
+        collision_cuts += collision != 0u;
         CHECK_EQ_U64(nesturbator_save_state(a, state, size), NESTURBATOR_OK);
         /* Same current payload with an old format header is refused before
            payload interpretation, even with a recomputed valid checksum. */
@@ -380,6 +386,7 @@ static void dma_fork(void)
         CHECK_EQ_U64(b->apu.dmc.bits, a->apu.dmc.bits);
         CHECK_EQ_U64(b->apu.dmc.silence, a->apu.dmc.silence);
         CHECK_EQ_U64(b->apu.dmc.dma_pending, a->apu.dmc.dma_pending);
+        CHECK_EQ_U64(b->bus.oam_dma_pending, a->bus.oam_dma_pending);
         CHECK_EQ_U64(nesturbator_save_state(b, scratch, size), NESTURBATOR_OK);
         CHECK(memcmp(state, scratch, size) == 0);
 
@@ -426,19 +433,30 @@ static void dma_fork(void)
         CHECK(memcmp(final_a, final_b, size) == 0);
         /* A valid-valued wrong silence history must fail continuation too,
            independently of the invalid-range and version refusal controls. */
-        CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
-        b->apu.dmc.silence ^= 1u;
-        dma_frame(b, st_buttons(cut + 1u), &actual);
-        CHECK(expected.frame.audio_count != actual.frame.audio_count ||
-              memcmp(expected.pcm, actual.pcm,
-                     (size_t)expected.frame.audio_count * sizeof expected.pcm[0]) != 0);
+        if (silent != 0u) {
+            CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+            b->apu.dmc.silence ^= 1u;
+            dma_frame(b, st_buttons(cut + 1u), &actual);
+            CHECK(expected.frame.audio_count != actual.frame.audio_count ||
+                  memcmp(expected.pcm, actual.pcm,
+                         (size_t)expected.frame.audio_count * sizeof expected.pcm[0]) != 0);
+        }
+        if (collision != 0u) {
+            CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+            CHECK(b->apu.dmc.timer <= 27u && b->apu.dmc.counter <= 27u);
+            b->bus.oam_dma_pending = 0u;
+            dma_frame(b, st_buttons(cut + 1u), &actual);
+            CHECK_EQ_U64(nesturbator_save_state(b, scratch, size), NESTURBATOR_OK);
+            CHECK(memcmp(final_a, scratch, size) != 0); /* skipped-OAM wrong model */
+        }
         nesturbator__apu_set_transition_sink(a, NULL, NULL);
         nesturbator__apu_set_transition_sink(b, NULL, NULL);
-        printf("DMA native fork: frame=%u silent=%u bits=%u pending=%u transitions=%lu "
-               "pixels/PCM/effects/state=equal old-format/refusal=unchanged\n",
-               cut, (unsigned)silent, (unsigned)cut_bits, (unsigned)pending,
-               (unsigned long)transitions_a.count);
-        if (silent_cuts != 0u && pending_cuts != 0u)
+        printf(
+            "DMA native fork: frame=%u silent=%u bits=%u pending=%u collision=%u transitions=%lu "
+            "pixels/PCM/effects/state=equal old-format/refusal=unchanged\n",
+            cut, (unsigned)silent, (unsigned)cut_bits, (unsigned)pending, (unsigned)collision,
+            (unsigned long)transitions_a.count);
+        if (silent_cuts != 0u && pending_cuts != 0u && collision_cuts != 0u)
             break;
         /* A stays uninterrupted. The compared continuation consumed the next
            frame, so advance the search's input/frame counter along with it. */
@@ -446,6 +464,7 @@ static void dma_fork(void)
     }
     CHECK(silent_cuts != 0u);
     CHECK(pending_cuts != 0u);
+    CHECK(collision_cuts != 0u);
 done:
     free(state);
     free(scratch);

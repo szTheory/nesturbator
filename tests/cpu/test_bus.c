@@ -835,7 +835,36 @@ static void run_bus_conflict_diagnostics(void)
     run_conflict_probe(0xFFD5u, 0xA5u, 1u, 0u);
 }
 
-static void run_oam_probe(uint16_t requested_offset, uint8_t load, uint8_t phase)
+/* $4015 reads the internal CPU bus and does not drive the external bus.
+   A following controller read still sees the external sample's high bits.
+   Two consecutive status reads also need the internal D5 history, as can
+   occur at the dummy/effective reads of indexed read-modify-write. */
+static void run_conflict_latch_probe(void)
+{
+    struct nesturbator machine;
+    prepare_landing(&machine, 0u, 1u);
+    machine.bus.open_bus = 0x40u;
+    machine.bus.controller_shift[0] = 1u;
+    machine.apu.frame_irq = 1u;
+    machine.apu.dmc.address = 0xFF15u;
+    landing_prg[0x3F15u] = 0xA5u;
+    dma_trace_count = 0u;
+    uint8_t first = test_observed_bus_read(&machine, 0x4015u);
+    uint8_t external = machine.bus.open_bus;
+    uint8_t second = test_observed_bus_read(&machine, 0x4015u);
+    uint8_t controller = test_observed_bus_read(&machine, 0x4016u);
+    const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
+    CHECK(get != NULL && get->address == 0xFF15u && get->data == 0xA5u && get->phase == 1u);
+    CHECK_EQ_HEX(first, 0u);
+    CHECK_EQ_HEX(second, 0u);
+    CHECK_EQ_HEX(external, 0xA5u);
+    CHECK_EQ_HEX(controller, 0xA1u);
+    printf("conflict-latches parked=4015 sample=ff15/a5 internal-D5=0 "
+           "status=%02x/%02x external=%02x controller=%02x expected=00/00,a5,a1\n",
+           (unsigned)first, (unsigned)second, (unsigned)external, (unsigned)controller);
+}
+
+static void run_oam_probe(uint16_t requested_offset, uint8_t load, uint8_t phase, uint8_t verify)
 {
     struct nesturbator normal, observed;
     prepare_landing(&normal, phase, 0u);
@@ -860,17 +889,23 @@ static void run_oam_probe(uint16_t requested_offset, uint8_t load, uint8_t phase
     } else {
         observed.apu.dmc.counter = first_edge;
     }
+    struct nesturbator linked = observed;
     dma_trace_count = 0u;
 
     nesturbator__bus_write(&normal, 0x4014u, 0u);
+    nesturbator__bus_write(&linked, 0x4014u, 0u);
     test_observed_bus_write(&observed, 0x4014u, 0u);
     uint64_t normal_start = normal.cpu_cycle;
     uint64_t observed_start = observed.cpu_cycle;
     (void)nesturbator__bus_read(&normal, 0x8000u);
-    (void)test_observed_bus_read(&observed, 0x8000u);
+    uint8_t expected_return = nesturbator__bus_read(&linked, 0x8000u);
+    uint8_t actual_return = test_observed_bus_read(&observed, 0x8000u);
+    CHECK_EQ_HEX(actual_return, expected_return);
+    CHECK(memcmp(&linked, &observed, sizeof linked) == 0);
     uint64_t normal_cycles = normal.cpu_cycle - normal_start;
     uint64_t observed_cycles = observed.cpu_cycle - observed_start;
     const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
+    const struct dma_event *halt = find_dma_event(NESTURBATOR_DMA_HALT_ACCEPTED);
     uint16_t collision_offset = UINT16_MAX;
     uint16_t resume_offset = UINT16_MAX;
     uint8_t resume_phase = 0u, destination_phase = 0u;
@@ -893,7 +928,11 @@ static void run_oam_probe(uint16_t requested_offset, uint8_t load, uint8_t phase
     }
     for (size_t i = 0u; i < dma_trace_count; ++i) {
         const struct dma_event *event = &dma_trace[i];
+        if (verify != 0u && event->kind == NESTURBATOR_DMA_OAM_SOURCE_COMPLETE)
+            CHECK_EQ_U64(event->phase, 1u);
         if (event->kind == NESTURBATOR_DMA_OAM_DEST) {
+            if (verify != 0u)
+                CHECK_EQ_U64(event->phase, 0u);
             CHECK_EQ_U64(event->detail, destinations);
             CHECK_EQ_U64(event->data, (uint8_t)destinations);
             if (event->detail == collision_offset)
@@ -902,6 +941,43 @@ static void run_oam_probe(uint16_t requested_offset, uint8_t load, uint8_t phase
         }
     }
     CHECK_EQ_U64(destinations, 256u);
+    if (verify != 0u) {
+        CHECK(get != NULL && get->phase == 1u && get->address == 0xC000u && get->data == 0xA7u &&
+              halt != NULL);
+        CHECK_EQ_U64(observed.apu.dmc.dma_pending, 0u);
+        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_SAMPLE_GET), 1u);
+        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_CPU_READ_COMPLETE), 1u);
+        const struct dma_event *cpu_resume = find_last_dma_event(NESTURBATOR_DMA_CPU_READ_COMPLETE);
+        CHECK(cpu_resume != NULL && cpu_resume->address == 0x8000u && cpu_resume->data == 0xA7u);
+        if (get != NULL && halt != NULL) {
+            /* Fixed stimulus/oracle table, independent of the observed halt:
+               interior +2; these two tail timer placements hit the documented
+               final-source / final-PUT windows. DMA rev 23450 overlap examples. */
+            uint64_t expected_extra = requested_offset == 128u ? 2u
+                                      : phase == 0u ? (requested_offset == 254u ? 1u : 3u)
+                                                    : (requested_offset == 254u ? 2u : 1u);
+            uint16_t expected_collision =
+                requested_offset == 255u ? 255u : (uint16_t)(requested_offset + (phase == 0u));
+            CHECK_EQ_U64(collision_offset, expected_collision);
+            CHECK_EQ_U64(observed_cycles - normal_cycles, expected_extra);
+            if (expected_collision < 255u) {
+                CHECK_EQ_U64(resume_offset, expected_collision + 1u);
+                CHECK_EQ_U64(resume_phase, 1u);
+            } else {
+                CHECK_EQ_U64(resume_offset, UINT16_MAX);
+            }
+            uint64_t dma_get = halt->cpu_cycle + (halt->phase != 0u ? 2u : 3u);
+            uint64_t oam_end = normal_start + normal_cycles - 1u;
+            uint64_t extra = dma_get <= oam_end ? 2u : dma_get - oam_end;
+            CHECK_EQ_U64(get->cpu_cycle, dma_get);
+            CHECK_EQ_U64(extra, expected_extra);
+            if (expected_extra == 1u || expected_extra == 3u)
+                CHECK_EQ_U64(get->cpu_cycle, oam_end + expected_extra);
+            else
+                CHECK(get->cpu_cycle < oam_end);
+            CHECK(cpu_resume != NULL && cpu_resume->phase == (uint8_t)(1u ^ (extra & 1u)));
+        }
+    }
     printf("oam requested-offset=%u load=%u initial-phase=%u collision-offset=%s%u get-phase=%s "
            "source-resume=%s%u/%s destination-phase=%s destinations=%lu "
            "base-cycles=%llu observed-cycles=%llu extra=%lld pending-after-oam=%u\n",
@@ -914,6 +990,21 @@ static void run_oam_probe(uint16_t requested_offset, uint8_t load, uint8_t phase
            (unsigned long long)observed_cycles,
            (long long)observed_cycles - (long long)normal_cycles,
            (unsigned)observed.apu.dmc.dma_pending);
+}
+
+static void test_dma_oam_collision(void)
+{
+    for (uint8_t phase = 0u; phase <= 1u; ++phase)
+        for (uint8_t load = 0u; load <= 1u; ++load)
+            run_oam_probe(128u, load, phase, 1u);
+}
+
+static void test_dma_oam_final_write(void)
+{
+    for (uint8_t phase = 0u; phase <= 1u; ++phase)
+        for (uint8_t load = 0u; load <= 1u; ++load)
+            for (uint16_t offset = 254u; offset <= 255u; ++offset)
+                run_oam_probe(offset, load, phase, 1u);
 }
 
 /* Drive the documented stop windows from genuine output/buffer history.
@@ -1083,6 +1174,11 @@ static void test_unmapped_write(void)
 
 int main(int argc, char **argv)
 {
+    if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 &&
+        strcmp(argv[2], "conflict-latches") == 0) {
+        run_conflict_latch_probe();
+        CHECK_DONE();
+    }
     if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 && strcmp(argv[2], "silence") == 0) {
         run_silent_output_probe(1u);
         CHECK_DONE();
@@ -1104,9 +1200,9 @@ int main(int argc, char **argv)
         run_bus_conflict_diagnostics();
         for (uint8_t phase = 0u; phase <= 1u; ++phase) {
             for (uint8_t load = 0u; load <= 1u; ++load) {
-                run_oam_probe(128u, load, phase);
-                run_oam_probe(254u, load, phase);
-                run_oam_probe(255u, load, phase);
+                run_oam_probe(128u, load, phase, 0u);
+                run_oam_probe(254u, load, phase, 0u);
+                run_oam_probe(255u, load, phase, 0u);
             }
         }
         for (uint16_t counter = 1u; counter <= 3u; ++counter) {
@@ -1136,5 +1232,7 @@ int main(int argc, char **argv)
     run_landing_load_case(1u, 0u);
     run_silent_output_probe(0u);
     run_landing_test9_reload_boundary(0u);
+    test_dma_oam_collision();
+    test_dma_oam_final_write();
     CHECK_DONE();
 }
