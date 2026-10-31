@@ -1,37 +1,34 @@
-# Resume v6 Phase 23 after Plan 23-01
+# Resume v6 after Phase 23 execution
 
-Read AGENTS.md and STATE.md, then the Phase 23 CONTEXT, RESEARCH, PLAN-CHECK and
-plans under `phases/23-reproduce-and-report-a-scene/` relative to `.planning/`.
-Plan 23-01 is complete; its [summary](phases/23-reproduce-and-report-a-scene/23-01-SUMMARY.md)
-records the report, bounded cold replay, measured local hashes and test evidence.
-Plans 23-02 and 23-03 remain pending. The user already authorized the full
-Phase 23 execution; no routine decision or confirmation is needed.
+Read AGENTS.md and STATE.md, then Phase 23 VERIFICATION, REVIEW-DISPOSITION and
+EXECUTION-EVIDENCE under phases/23-reproduce-and-report-a-scene/ relative to
+.planning/. All three plans and review fixes are committed. The report's status
+query passes; six acceptance truths and all 22 adopted decisions are verified.
+No implementation task remains. The next actor is the owner invoking:
 
-Next actor: continue the phase with:
+`$gsd-execute-phase 22`
 
-`$gsd-execute-phase 23`
+This skips completed Phase 22 plans and refreshes its review/verification gates.
+Its status query reports stale because Phase 23 changed five shared covered guides/
+registrations. Context can be cleared first. Milestone audit follows a passing
+refresh; do not start another phase, audit or closeout implicitly. Product
+roadmap upkeep belongs to the later approved complete-milestone step.
 
-This resumes at plan 23-02 (native checkpoint preflight and scratch safety), then
-plan 23-03 (layered triage and guide verification). Context may be cleared first
-if the next session reads AGENTS.md, STATE.md and this file. Stop at the phase
-boundary; do not implicitly start milestone closeout.
+Local intermittent document-check timeouts remain unexplained. Earlier post-review
+CI/ASan document runs and the corrected exact POSIX scratch recipe passed; later
+verifier attempts timed out. Preserve both outcomes, do not claim uniformly green
+checks or full CI. No timeout was raised; targeted process inspection found no
+abandoned test requiring cleanup. No machine restart was recommended or performed.
 
-Plan 23-01 verified two cold 600-frame movie runs and matching ordered native
-frame/tick/hash records plus transition and PCM hashes on the local macOS arm64
-CI build. This is repeatability evidence only. The permitted fixture is not a
-commercial-scene report. The five heuristic fallback edges and judgment-based
-prohibitions remain flagged; the plan summary preserves them.
+The local CI cache has FULL campaign enabled; regression used scoped prior-phase
+contracts with the campaign fixture excluded because this phase grants no campaign
+or live host/device/private-content authority. No runtime source/API/format changed,
+no daily progress was used, and no push/PR/release occurred. PowerShell remains
+unexecuted. Commercial reports remain unclassified. Five fallback edges and eight
+judgment-tier limits stay explicit; source judgments are not owner acceptance.
 
-Continue with separate cold-boot movie replay and neutral-input native
-checkpoint continuation: movie plus load-state is unsupported. Compare the same
-audio suffix, preserve absolute frame numbering, reuse the input/stale/omitted
-load controls, and keep exact-build/content support stricter than native loader
-checks. Native/adapter agreement does not establish host presentation or
-hardware correctness. Keep scratch isolation, explicit time/frame bounds and
-private-artifact exclusion mandatory.
-
-No live host/device/private-content/daily-progress work, wider runtime window,
-collector repair, accuracy fix, push, PR or release is authorized. Phase 22
-remains complete with its historical workflow and evidence limits unchanged.
-Work is on `gsd/phase-23-reproduce-and-report-a-scene`; preserve the owner's
-unstaged AGENTS.md and `.planning/config.json` changes.
+Phase 22's report covers shared guides changed by Phase 23; its status is stale and the next explicit command refreshes it; do not silently
+update its historical fingerprint. Preserve Phase 22's
+original workflow failure/authorized provenance refresh and all collector/platform,
+host-recovery and earlier safety-stop limits. Work remains on the Phase 23 branch;
+owner's unstaged AGENTS.md and config.json edits are preserved and uncommitted.

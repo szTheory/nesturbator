@@ -73,7 +73,7 @@ new hosted qualification is claimed by this refresh.
 - Installation identifies the actual package/build/core and keeps published releases separate from merged development behavior. Battery saves, snapshots, rewind and host containers have explicit backup, supported-version and rollback guidance.
 - A bounded report/replay recipe identifies scene, inputs, content and core, preserves private artifacts, and separates native output, adapter conversion, host presentation and original game behavior.
 
-The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30. v6 continues phase numbering after 21. SEED-006 contributes only demonstrated documentation/contract work; existing research and 22 title reports are reused. The owner approved the ten requirements and Phases 22–23 with “yes i approve”; see [requirements](REQUIREMENTS.md) and [roadmap](ROADMAP.md). Phase 22 is implemented and independently verified; Phase 23 discussion is next. Overscan, accuracy fixes, new regions/mappers and actual Playstead integration remain outside this milestone. Direction and preserved debt are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30. v6 continues phase numbering after 21. SEED-006 contributes only demonstrated documentation/contract work; existing research and 22 title reports are reused. The owner approved the ten requirements and Phases 22–23 with “yes i approve”; see [requirements](REQUIREMENTS.md) and [roadmap](ROADMAP.md). Phases 22 and 23 are implemented. Phase 23 is independently verified; shared guide changes made the earlier Phase 22 report stale. Refresh that verification before the v6 milestone audit. Overscan, accuracy fixes, new regions/mappers and actual Playstead integration remain outside this milestone. Direction and preserved debt are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 
 <details>
 <summary>v5 milestone definition (archived)</summary>
@@ -104,6 +104,8 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 ## Requirements
 
 ### Validated
+
+- ✓ A sanitized scene report leads to bounded permitted-fixture cold replay and neutral checkpoint continuation, with isolated progress and layered next-evidence guidance. — v6, Phase 23; see its verification, review dispositions and execution evidence.
 
 - ✓ Existing executable documentation, packaging and public-header contracts survive the README/topic-guide reorganization. — v6, Phase 22; see its verification and execution evidence.
 
@@ -146,9 +148,9 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 ### Active
 
-- [ ] A scene report can be reproduced through bounded existing runner/host facilities without changing daily progress or distributing private content.
+No remaining committed v6 implementation requirement. Milestone audit and closeout are separate steps.
 
-The ten detailed requirements and two-phase structure are approved. READY-01 through READY-06 are complete; Phase 23 REPRO requirements remain active. v5 remains archived. Package publication is independent: release PR #56 was rechecked open and the latest published release was v0.1.11 during v6 opening.
+The ten detailed requirements and two-phase structure are approved. READY-01 through READY-06 and REPRO-01 through REPRO-04 are complete. Phase 23 adds documentation/test orchestration only; intermittent local CTest document-check timeouts remain unexplained and full campaign CI was not run. v5 remains archived. Package publication is independent: release PR #56 was rechecked open and the latest published release was v0.1.11 during v6 opening.
 
 ### Out of Scope
 
@@ -262,6 +264,10 @@ runtime stops remain intact. See the Phase 22 verification and execution evidenc
 | Execution fuzz budgets come from a hosted Linux pilot, with separate fuzzer, replay, memory-sampling and outer-process limits, and a zero-finding campaign is reported only as finite evidence | Guessed limits cancel healthy jobs; a clean campaign proves bounded work, not absence of bugs | ✓ Phase 18 `tests/fuzz/execution-budgets.txt`; Nightly 40148240864 campaign artifact retained with controls |
 | The libretro JAM cache is tagged with the frame number and a state-CRC timeline generation; a load keeps it only when the loaded state is the cached frame's state or its jammed successor, otherwise JAM shows black | Run-ahead must never show a picture from a diverged timeline under JAM | ✓ Phase 19 `libretro.runahead` (depths 1-3, five JAM-image controls) and `libretro.host` diverged-timeline case |
 
+| Keep one sanitized report guide with separate cold-movie and neutral native-checkpoint routes | Existing runner facilities reject movie plus load-state; reuse independent input and continuation controls | Phase 23 fixture checks and exact fresh-scratch POSIX route pass; no runtime source changed |
+| Preflight checks supplied runner/content/state digests and a declared origin, while only fixture creation establishes same-invocation provenance | Digest matching cannot authenticate an imported checkpoint or enforce native-loader build compatibility | Phase 23 supported fixture and independent refusal controls pass |
+| Keep native repeatability, adapter callbacks, host presentation and independent hardware correctness as separate claims | Matching hashes and qualitative captures cannot diagnose an original-game scene | Phase 23 triage/source review passes; commercial reports remain unclassified and local timeout limits remain disclosed |
+
 The full list with sources is `.planning/preparation/DECISIONS.md`.
 
 ## Evolution
@@ -282,4 +288,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-30 after Phase 22 execution and verification*
+*Last updated: 2026-10-31 after Phase 23 execution and verification*

@@ -2,7 +2,7 @@
 
 **Milestone:** Player-ready NES and reproducible feedback
 **Defined:** 2026-10-30
-**Status:** Approved 2026-10-30; Phase 22 READY requirements implemented and verified; Phase 23 plan 23-01 completed (REPRO-01/02/03), with plans 23-02/03 pending. The owner approved the concrete requirements and two-phase roadmap with “yes i approve”.
+**Status:** All ten approved requirements are implemented. Phase 23 independent verification passed; its shared-document changes made Phase 22 verification stale, so refresh that report before milestone audit. The approved scope is unchanged.
 **Core Value:** Games behave as on the console, identically across platforms, from a small MIT C library.
 
 ## v6 Requirements

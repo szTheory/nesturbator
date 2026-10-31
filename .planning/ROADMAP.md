@@ -11,14 +11,11 @@
 
 ## v6: Player-ready NES and reproducible feedback
 
-**Status:** Approved execution contract. The owner approved the ten requirements
-and two-phase roadmap with “yes i approve” on 2026-10-30. Milestone opening is
-complete; Phase 22 discussion and planning are complete with independent plan
-verification passed. All four Phase 22 plans are implemented and committed;
-review corrections and independent phase verification passed. Phase 23 research
-and independent plan verification are complete. Plan 23-01 is implemented and
-verified, and plan 23-02 is implemented with focused checks passing; plan 23-03
-remains pending.
+**Status:** Both approved phases are implemented and independently verified.
+Phase 23's three sequential plans and three review fixes are committed. Its
+scoped fixture/document/package checks establish the approved outcomes; local
+intermittent document-test timeouts remain disclosed. No full campaign CI,
+live host/device work or publication was performed. Refresh Phase 22's stale verification before milestone audit.
 
 **Goal:** A player can install an identified core, protect daily progress and
 supply a precise scene report that a developer can reproduce with existing facilities.
@@ -31,7 +28,7 @@ and the [playtest postmortem](playtesting/POSTMORTEM.md); no fresh generic fan-o
 ## Phases
 
 - [x] **Phase 22: Install and protect progress** — Make the existing core straightforward to install and document how to preserve progress, while keeping executable developer contracts intact. (completed 2026-10-30)
-- [ ] **Phase 23: Reproduce and report a scene** — Provide a bounded, private-content-safe report/replay route that distinguishes repeatability from correctness.
+- [x] **Phase 23: Reproduce and report a scene** — Provide a bounded, private-content-safe report/replay route that distinguishes repeatability from correctness. (completed 2026-10-31)
 
 ### Phase 22: Install and protect progress
 
@@ -105,7 +102,7 @@ daily progress and choose the next evidence source without overclaiming a diagno
    oracle would need, and records the current commercial reports as unclassified.
    Repeated hashes alone are never labeled a correctness or scene-fix result.
 
-**Plans:** 3/3 plans executed in 3 sequential waves; independent plan verification passed. Use a small owned helper only after confirming the missing facility.
+**Plans:** 3/3 plans complete in 3 sequential waves; independent plan verification passed. Use a small owned helper only after confirming the missing facility.
 
 **Wave 1**
 
@@ -146,12 +143,14 @@ daily progress and choose the next evidence source without overclaiming a diagno
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
 | 22. Install and protect progress | 4/4 | Complete    | 2026-10-30 |
-| 23. Reproduce and report a scene | 3/3 | In Progress | — |
+| 23. Reproduce and report a scene | 3/3 | Complete    | 2026-10-31 |
 
 **Requirement coverage:** 10/10 mapped exactly once; 0 unmapped.
-**Next action:** `$gsd-execute-phase 23` — finish Phase 23 plan 23-03. Context
-may be cleared first; read STATE.md. Plans 23-01 and 23-02 are complete; the
-phase remains in progress.
+**Next action:** `$gsd-execute-phase 22` — refresh Phase 22 verification after
+Phase 23 changed shared covered documents and CTest registrations. Its status
+query reports stale; completed plans are skipped. Milestone audit follows that
+refresh. Context may be cleared first; read STATE.md and continue.md. This
+execution step stops at the Phase 23 boundary.
 
 ## Backlog disposition
 
@@ -165,4 +164,4 @@ No seed files were modified. The three pending property/mutation/signal proposal
 were inspected and have no confident requirement match here; they remain unlinked
 and deferred. All future direction remains in PRODUCT-ROADMAP.md.
 
-*Last updated: 2026-10-31 after Phase 23 plan 23-02 execution.*
+*Last updated: 2026-10-31 after Phase 23 execution and verification.*
