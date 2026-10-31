@@ -5,17 +5,17 @@ milestone_name: Player-ready NES and reproducible feedback
 current_phase: 22
 current_phase_name: Install and protect progress
 status: executing
-stopped_at: Completed 22-01-PLAN.md; Phase 22 plan 2 is next
-last_updated: "2026-10-31T01:06:12.947Z"
+stopped_at: Completed 22-02-PLAN.md; Plan 22-03 is next
+last_updated: "2026-10-31T01:21:24.865Z"
 last_activity: 2026-10-30
-last_activity_desc: Phase 22 execution started
-state_head: 88a5e28ff779eafc3769fd67280f52063756a6d6
+last_activity_desc: Plan 22-02 completed
+state_head: 8a01df75e4e843826f981f88f00f7e4c453f5d6a
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
-  percent: 25
+  completed_plans: 2
+  percent: 50
 current_plan: null
 ---
 
@@ -25,31 +25,34 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v6 requirements and roadmap approval, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 22 is in progress. Plan 22-01 is complete; plans 22-02 through 22-04 remain.
+Current focus: Phase 22 is in progress. Plans 22-01 and 22-02 are complete; plans 22-03 and 22-04 remain.
 
 ## Current Position
 
 Phase: 22 (Install and protect progress) — EXECUTING
-Plan: 2 of 4
-Status: Executing Phase 22
-Last activity: 2026-10-30 — Plan 22-01 completed and committed
+Plan: 3 of 4
+Status: Ready to execute
+Last activity: 2026-10-30 — Plan 22-02 completed and committed
 
 ## Next Action
 
-Plan 22-01 completed the canonical API guide and its focused relocation/link
-checks. READY-01 and READY-06 remain pending until the other sequential Phase 22
-plans finish. The summary and README migration ledger are in
-[22-01-SUMMARY.md](phases/22-install-and-protect-progress/22-01-SUMMARY.md).
+Plans 22-01 and 22-02 are complete. Plan 22-02 added the canonical runner guide
+and focused option, exit, stop, status and link controls. Its runner migration
+ledger and scoped evidence are in
+[22-02-SUMMARY.md](phases/22-install-and-protect-progress/22-02-SUMMARY.md).
+READY-01 and READY-06 remain pending until the other sequential Phase 22 plans
+finish.
 
-The next actor is the owner invoking:
+The phase executor continues with Plan 22-03 when the owner invokes:
 
 `$gsd-execute-phase 22`
 
-This resumes the remaining sequential Phase 22 plans, starting with the runner
-contracts. Context may be cleared first; read this state, the linked summary,
-and the next plan. Do not start Phase 23 until Phase 22 is complete. This plan
-ran documentation checks only; no runtime test, package extraction, host
-operation, push, release or gameplay acceptance is claimed.
+This resumes the remaining sequential Phase 22 plans, starting with release and
+engineering/testing guide migration. Context may be cleared first; read this
+state, the linked summary and the next plan. Do not start Plan 22-04 or Phase 23
+early. The focused documentation and contract checks passed; full CI remains
+with the phase executor. No runtime behavior, package, host operation, push,
+release or gameplay acceptance is claimed.
 
 Six fallback edge assumptions and six descriptor-less prohibitions remain
 explicitly flagged for downstream review; they are not implementation passes.
@@ -104,18 +107,22 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T01:06:12.931Z
-**Stopped at:** Completed 22-01-PLAN.md; Phase 22 plan 2 is next
+**Last session:** 2026-10-31T01:21:24.849Z
+**Stopped at:** Completed 22-02-PLAN.md; Plan 22-03 is next
 **Next command:** `$gsd-execute-phase 22`
-**Resume file:** .planning/phases/22-install-and-protect-progress/22-01-SUMMARY.md
+**Resume file:** .planning/continue.md
 
 ## Performance Metrics
 
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 22 P01 | 13 min | 2 tasks | 5 files |
+| Phase 22 P02 | 12min | 2 tasks | 5 files |
 
 ## Decisions
 
 - [Phase 22]: docs/api.md is the canonical source-tree API, status, and native-state guide.
 - [Phase 22]: Exact core-build and content pairing is support guidance, separate from the native loader checks.
+- [Phase 22]: docs/runner.md is the canonical home for runner options, examples, stop behavior and exit status.
+- [Phase 22]: Runner save/state file behavior stays in the runner guide; native payload and library span contracts link to docs/api.md.
+- [Phase 22]: Keep the checked MMC3 support clause in README while linking its detailed runner contract.
