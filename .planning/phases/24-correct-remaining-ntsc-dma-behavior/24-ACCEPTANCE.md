@@ -133,9 +133,10 @@ planning diff; no broad cleanup was made. Detailed row identities and current
 binary SHA256 values are in [24-DMA-EVIDENCE.md](24-DMA-EVIDENCE.md).
 The bounded checks do not execute the stopped campaign fixture and do not
 establish behavior14 ROM acceptance.
-The Task1 evidence/state edits remain uncommitted: the sandbox denied writes
-to `.git/gsd-plan-head-before-24-04` and `.git/index.lock` with `Operation not
-permitted`. No unrelated path was staged.
+The Task1 evidence/state edits were committed as `661a45a` after the default
+sandbox denied Git metadata writes. The scoped commit includes only this
+acceptance record, the DMA evidence ledger and STATE; no unrelated path was
+staged.
 
 The five selected rows still require fresh individual PASS observations at
 pin `6bee919529289c555803b612b8c9e4f7eaaeeabb`, with complete terminal raw

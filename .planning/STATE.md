@@ -8,7 +8,7 @@ status: executing
 stopped_at: Plan24-04 Task1 bounded review complete; Task2 awaits separate authority for the consumed full-workflow scope
 last_updated: "2026-10-31T23:53:01Z"
 last_activity: 2026-10-31
-last_activity_desc: Plan24-04 Task1 evidence and bounded checks complete; commit blocked by read-only Git metadata
+last_activity_desc: Plan24-04 Task1 evidence and bounded checks completed and committed as 661a45a; inherited whitespace remains flagged
 state_head: b9d4256a5a17bd8f519317704f06e5be0ddc7bd3
 progress:
   total_phases: 1
@@ -30,12 +30,12 @@ See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 Phase: 24 (Correct remaining NTSC DMA behavior) — acceptance checkpoint
 Plan: 4 of 4 — Task1 complete; Task2 awaits the owner's separate runtime decision
 Status: Phase and requirements remain incomplete
-Last activity: 2026-10-31 — Four bounded CTest entries and native `--dma` passed; commit is blocked by `.git` write denial; `git diff --check main...HEAD` reported159 inherited diagnostics
+Last activity: 2026-10-31 — Four bounded CTest entries and native `--dma` passed; commit `661a45a` records the task; `git diff --check main...HEAD` reported159 inherited diagnostics
 Progress: [███████░░░] 75% (plans; phase acceptance pending)
 
 ## Next Action
 
-**Owner acts next only if deciding whether to renew the exact full-workflow scope.** The prior one-run authority was consumed by a complete444.6-second `cmake --workflow --preset ci` run with exit8; Task1 now has bounded owned checks, but no behavior14 ROM result. Its evidence edits are uncommitted because this sandbox denies Git metadata writes (`.git/index.lock`: `Operation not permitted`). If renewed, the proposed command is exactly `cmake --workflow --preset ci`, with the previous39-minute ceiling, every existing inner limit, no automatic retry, and no hosted/push/PR trigger. Keeping the stop needs no response. The current behavior14 full CTest inventory is source-derived because no matching generated `FULL=ON` tree exists. [Concrete selection, limits, evidence and gaps](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
+**Owner acts next only if deciding whether to renew the exact full-workflow scope.** The prior one-run authority was consumed by a complete444.6-second `cmake --workflow --preset ci` run with exit8; Task1 now has bounded owned checks, but no behavior14 ROM result. Its evidence edits are committed as `661a45a`; only the three Plan 04 records were included, and unrelated dirty files remain untouched. If renewed, the proposed command is exactly `cmake --workflow --preset ci`, with the previous39-minute ceiling, every existing inner limit, no automatic retry, and no hosted/push/PR trigger. Keeping the stop needs no response. The current behavior14 full CTest inventory is source-derived because no matching generated `FULL=ON` tree exists. [Concrete selection, limits, evidence and gaps](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
 
 No ordinary implementation acknowledgment is needed. Task approval now durably covers local engineering, builds/tests/CI, reviews/fixes/bounded retests and approved compatibility follow-through. Those changes are recorded globally and in repository instructions. The additive `dev-check` preset provides fast owned feedback; existing CI objects and the complete707-test name/timeout/fixture/label inventory are unchanged. [Measured efficiency decisions](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-EFFICIENCY.md).
 
