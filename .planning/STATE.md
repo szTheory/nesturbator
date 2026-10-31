@@ -2,15 +2,19 @@
 gsd_state_version: "1.0"
 milestone: v7
 milestone_name: Remaining DMA accuracy failures
+current_phase: 24
+current_phase_name: Correct remaining NTSC DMA behavior
 status: planning
-last_updated: "2026-10-31"
+stopped_at: "Phase 24 context gathered; next command: $gsd-plan-phase 24"
+last_updated: "2026-10-31T17:41:42.856Z"
 last_activity: 2026-10-31
+last_activity_desc: Phase 24 context and discussion log committed. No tests, workflow, or campaign ran.
+state_head: 016eec6eb56442c2ed24ef8eb1ca3c86efd86f4c
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
-  percent: 0
 ---
 
 # Project State
@@ -19,21 +23,22 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 **Core value:** Games behave as on the console, identically across platforms, from a small MIT C library.
-**Current focus:** v7's four requirements and its one-phase roadmap are approved and committed. Phase 24 is ready for discussion; no implementation or tests have started.
+**Current focus:** v7's four requirements and its one-phase roadmap are approved and committed. Phase 24 context is gathered and committed; planning is next. No implementation or tests have started.
 
 ## Current Position
 
 Phase: 24 — Correct remaining NTSC DMA behavior (1 of 1 in v7)
 Plan: Not planned
 Status: Roadmap approved and committed; Phase 24 not started
-Last activity: 2026-10-31 — Owner approved the v7 roadmap; commit `74286c2` records the roadmap and traceability. No tests, workflow or campaign ran.
+Last activity: 2026-10-31 — Phase 24 context and discussion log committed. No tests, workflow, or campaign ran.
 Progress: [░░░░░░░░░░] 0%
 
 ## Next Action
 
-The v7 roadmap is approved and committed. Next command: `$gsd-discuss-phase 24`.
-It gathers the remaining behavior and evidence choices for Phase 24 before detailed planning. Context may be cleared before running it; read this file, [ROADMAP.md](ROADMAP.md) and the [DMA scope note](research/milestone-dma-discovery/SCOPE.md) first.
-Roadmap approval does not authorize full CI or an AccuracyCoin campaign rerun.
+Phase 24 context and discussion log are committed; implementation and tests have not started.
+Next command: `$gsd-plan-phase 24`.
+It creates the implementation plan from the approved requirements and context. Context may be cleared before running it; read this file and [24-CONTEXT.md](phases/24-correct-remaining-ntsc-dma-behavior/24-CONTEXT.md) first.
+The active CI/campaign stop remains; planning does not authorize full CI or an AccuracyCoin campaign rerun.
 
 ## Accumulated Context
 
@@ -86,7 +91,7 @@ v7: no plans executed. v6 completed seven plans; detailed timing remains in the 
 
 ## Session Continuity
 
-**Last session:** 2026-10-31
-**Stopped at:** v7 roadmap approved and committed; Phase 24 not started.
-**Next command:** `$gsd-discuss-phase 24`
-**Resume file:** [DMA scope note](research/milestone-dma-discovery/SCOPE.md); read alongside the roadmap's verification authorization gate.
+**Last session:** 2026-10-31T17:41:09.566Z
+**Stopped at:** Phase 24 context gathered; next command: $gsd-plan-phase 24
+**Next command:** $gsd-plan-phase 24
+**Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-CONTEXT.md
