@@ -45,11 +45,11 @@ milestone archives above; no future product proposal becomes execution scope.
   3. `DMA + $4015 Read`, `Misaligned OAM DMA`, `INC $4014` and every other protected PASS key still pass at the same pin; identical inputs retain identical frame/audio output across supported platforms and the existing performance gates pass without relaxed limits. Any intentional output-baseline change has a source-backed reason. (DMA-03)
   4. When a correction changes in-flight DMA state, saving and loading at production-reachable affected boundaries yields the same subsequent machine behavior and frame/audio output as uninterrupted execution. The state-format and behavior-revision disposition is explicit, including a reasoned no-change disposition where appropriate. (DMA-04)
   5. A host developer can read the README and public-header comments to understand the corrected DMA behavior and any state compatibility consequences, with the owned regression checks registered in the existing CI entrypoint alongside the behavior change. (DMA-02, DMA-04)
-**Plans**: 0/4 plans complete
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 24-01-PLAN.md — Landing-on-write tracer and independent baseline traces for all five rows (DMA-01, DMA-02, DMA-04)
+- [x] 24-01-PLAN.md — Landing-on-write tracer and independent baseline traces for all five rows (DMA-01, DMA-02, DMA-04)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 24-02-PLAN.md — DMC/OAM collision and DMC bus-conflict corrections (DMA-01, DMA-02, DMA-03, DMA-04)
@@ -113,7 +113,7 @@ The owner acts next only to decide separate runtime authorization at that gate.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 24. Correct remaining NTSC DMA behavior | 0/TBD | Not started | - |
+| 24. Correct remaining NTSC DMA behavior | 1/4 | In Progress | - |
 
 ## Coverage
 
