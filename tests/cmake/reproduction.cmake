@@ -120,6 +120,48 @@ function(reproduction_synthetic_output seed out)
   set(${out} "${lines}" PARENT_SCOPE)
 endfunction()
 
+# This second writer deliberately uses a separate implementation from
+# reproduction_synthetic_output: the positive contract control is not two
+# copies of one already-formatted string.
+function(reproduction_synthetic_reference_output out)
+  set(lines "")
+  set(frame 0)
+  while(frame LESS 600)
+    math(EXPR frame "${frame} + 1")
+    math(EXPR ticks "${frame} * 29780")
+    string(SHA256 digest "independent-control-a-frame-${frame}")
+    string(APPEND lines "frame ${frame} ticks ${ticks} sha256 ${digest}\n")
+  endwhile()
+  string(SHA256 transition_digest "independent-control-a-transitions")
+  string(SHA256 pcm_digest "independent-control-a-pcm")
+  string(APPEND lines "audio transitions sha256 ${transition_digest}\naudio pcm sha256 ${pcm_digest}\n")
+  set(${out} "${lines}" PARENT_SCOPE)
+endfunction()
+
+function(reproduction_expect_failure root case_name left right expected)
+  set(left_file "${root}/${case_name}-left.log")
+  set(right_file "${root}/${case_name}-right.log")
+  file(WRITE "${left_file}" "${left}")
+  file(WRITE "${right_file}" "${right}")
+  execute_process(COMMAND "${CMAKE_COMMAND}"
+      "-DMODE=compare_files"
+      "-DLEFT_FILE=${left_file}"
+      "-DRIGHT_FILE=${right_file}"
+      "-DCASE_NAME=${case_name}"
+      -P "${CMAKE_CURRENT_LIST_FILE}"
+    OUTPUT_VARIABLE out ERROR_VARIABLE err RESULT_VARIABLE rc TIMEOUT 10)
+  if("${rc}" STREQUAL "0")
+    message(FATAL_ERROR "reproduction compare_self_test: ${case_name} was accepted")
+  endif()
+  string(CONCAT combined "${out}" "${err}")
+  string(FIND "${combined}" "${expected}" diagnostic_pos)
+  if(diagnostic_pos EQUAL -1)
+    string(REGEX MATCH "reproduction [^\n]*" observed "${combined}")
+    message(FATAL_ERROR "reproduction compare_self_test: ${case_name} expected '${expected}', observed '${observed}'")
+  endif()
+  message(STATUS "runner.reproduction.compare_self_test: ${case_name} rejected for the expected reason")
+endfunction()
+
 if(NOT DEFINED MODE OR MODE STREQUAL "")
   message(FATAL_ERROR "reproduction: -DMODE=cold|compare_self_test is required")
 elseif(MODE STREQUAL "cold")
@@ -165,9 +207,58 @@ elseif(MODE STREQUAL "compare_self_test")
   endif()
   reproduction_fresh_root("${WORK}" "compare-self-test" run_root)
   reproduction_synthetic_output("independent-control-a" control_a)
-  reproduction_synthetic_output("independent-control-a" control_b)
+  reproduction_synthetic_reference_output(control_b)
   reproduction_compare_outputs("${control_a}" "${control_b}" "synthetic positive control")
-  message(STATUS "runner.reproduction.compare_self_test: complete synthetic pair accepted")
+
+  string(SHA256 final_hash "independent-control-a-frame-600")
+  string(SHA256 changed_hash "changed-final-frame")
+  set(changed_frame "${control_b}")
+  string(REPLACE "sha256 ${final_hash}\naudio transitions" "sha256 ${changed_hash}\naudio transitions"
+    changed_frame "${changed_frame}")
+  reproduction_expect_failure("${run_root}" "changed-final-frame" "${control_a}" "${changed_frame}"
+    "ordered native frame records differ")
+
+  string(SHA256 transition_hash "independent-control-a-transitions")
+  string(SHA256 changed_transition_hash "changed-transition-hash")
+  set(changed_transition "${control_b}")
+  string(REPLACE "audio transitions sha256 ${transition_hash}"
+    "audio transitions sha256 ${changed_transition_hash}" changed_transition "${changed_transition}")
+  reproduction_expect_failure("${run_root}" "changed-transition-hash" "${control_a}" "${changed_transition}"
+    "audio transitions hashes differ")
+
+  string(SHA256 pcm_hash "independent-control-a-pcm")
+  string(SHA256 changed_pcm_hash "changed-pcm-hash")
+  set(changed_pcm "${control_b}")
+  string(REPLACE "audio pcm sha256 ${pcm_hash}" "audio pcm sha256 ${changed_pcm_hash}"
+    changed_pcm "${changed_pcm}")
+  reproduction_expect_failure("${run_root}" "changed-pcm-hash" "${control_a}" "${changed_pcm}"
+    "audio PCM hashes differ")
+
+  set(missing_audio "${control_b}")
+  string(REPLACE "audio transitions sha256 ${transition_hash}\n" "" missing_audio "${missing_audio}")
+  reproduction_expect_failure("${run_root}" "missing-audio-line" "${control_a}" "${missing_audio}"
+    "transitions hash")
+
+  string(SHA256 hash_599 "independent-control-a-frame-599")
+  set(duplicate_frame "${control_b}")
+  string(REPLACE "frame 600 ticks 17868000 sha256 ${final_hash}\naudio transitions"
+    "frame 600 ticks 17868000 sha256 ${final_hash}\nframe 600 ticks 17868000 sha256 ${final_hash}\naudio transitions"
+    duplicate_frame "${duplicate_frame}")
+  reproduction_expect_failure("${run_root}" "duplicate-frame" "${control_a}" "${duplicate_frame}"
+    "expected frame 601, found 600")
+
+  set(reordered_frames "${control_b}")
+  string(REPLACE "frame 599 ticks 17838220 sha256 ${hash_599}\nframe 600 ticks 17868000 sha256 ${final_hash}"
+    "frame 600 ticks 17868000 sha256 ${final_hash}\nframe 599 ticks 17838220 sha256 ${hash_599}"
+    reordered_frames "${reordered_frames}")
+  reproduction_expect_failure("${run_root}" "reordered-frames" "${control_a}" "${reordered_frames}"
+    "expected frame 599, found 600")
+
+  set(truncated "${control_b}")
+  string(REPLACE "frame 600 ticks 17868000 sha256 ${final_hash}\n" "" truncated "${truncated}")
+  reproduction_expect_failure("${run_root}" "truncated-frame-stream" "${control_a}" "${truncated}"
+    "found 599")
+  message(STATUS "runner.reproduction.compare_self_test: independently generated 600-record positive pair accepted")
 elseif(MODE STREQUAL "compare_files")
   foreach(var LEFT_FILE RIGHT_FILE)
     if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")

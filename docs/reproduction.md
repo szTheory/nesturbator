@@ -83,7 +83,7 @@ scratch="$(mktemp -d "${TMPDIR:-/tmp}/nesturbator-reproduction.XXXXXX")"
 cmake --preset ci -B "$scratch/build"
 cmake --build "$scratch/build" --target nesturbator-run runner.game_movie runner.boot_to_play
 ctest --test-dir "$scratch/build" --output-on-failure --no-tests=error \
-  -R '^(runner.reproduction.cold|runner.reproduction.compare_self_test|runner.boot_to_play|docs.links|docs.links.self_test|cmake.script_policy)$'
+  -R '^(runner.reproduction.cold|runner.reproduction.compare_self_test|runner.boot_to_play|docs.links|docs.links.self_test|docs.reproduction|docs.reproduction.self_test|cmake.script_policy)$'
 ```
 
 PowerShell:
@@ -94,7 +94,7 @@ New-Item -ItemType Directory -Path $scratch | Out-Null
 $build = Join-Path $scratch "build"
 cmake --preset ci -B $build
 cmake --build $build --target nesturbator-run runner.game_movie runner.boot_to_play
-ctest --test-dir $build --output-on-failure --no-tests=error -R '^(runner.reproduction.cold|runner.reproduction.compare_self_test|runner.boot_to_play|docs.links|docs.links.self_test|cmake.script_policy)$'
+ctest --test-dir $build --output-on-failure --no-tests=error -R '^(runner.reproduction.cold|runner.reproduction.compare_self_test|runner.boot_to_play|docs.links|docs.links.self_test|docs.reproduction|docs.reproduction.self_test|cmake.script_policy)$'
 ```
 
 The cold test makes a unique directory below the build tree, generates the

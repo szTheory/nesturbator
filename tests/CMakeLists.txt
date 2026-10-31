@@ -1660,6 +1660,25 @@ add_test(NAME docs.links.self_test
     -DWORK=${PROJECT_BINARY_DIR}/tests/docs-links-selftest
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/doc_links.cmake)
 set_tests_properties(docs.links docs.links.self_test PROPERTIES TIMEOUT 60)
+add_test(NAME docs.reproduction
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DDOC=${PROJECT_SOURCE_DIR}/docs/reproduction.md"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    "-DCTEST=${CMAKE_CTEST_COMMAND}"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/docs-reproduction-contract"
+    -DMODE=check
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction_contract.cmake)
+add_test(NAME docs.reproduction.self_test
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DDOC=${PROJECT_SOURCE_DIR}/docs/reproduction.md"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    "-DCTEST=${CMAKE_CTEST_COMMAND}"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/docs-reproduction-contract-self-test"
+    -DMODE=self_test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction_contract.cmake)
+set_tests_properties(docs.reproduction docs.reproduction.self_test PROPERTIES TIMEOUT 60)
 
 # RUN-03: the exit table is the same in runner/exit_status.h, --help and the canonical runner guide.
 foreach(mode table help)
