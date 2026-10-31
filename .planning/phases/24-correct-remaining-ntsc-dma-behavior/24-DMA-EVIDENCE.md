@@ -1,97 +1,115 @@
-# Phase 24 DMA evidence — incomplete
+# Phase 24 DMA evidence
 
-**Status:** Partial execution evidence only. This file does not close Plan 24-01 or establish phase acceptance. No DMA behavior correction has been made.
+**Scope:** Owned C fixtures and source analysis only. The landing correction is implemented with approved native format 4 / behavior revision 10. The other four rows are independently localized and still uncorrected. Full-CI/campaign acceptance and DMA-01 through DMA-04 remain pending. No fresh AccuracyCoin result is claimed.
 
-## Source identities and limits
+## Identities, oracle and reproduction
 
-- Core baseline before these edits: commit `89a042ba742ef24679666deac8606ef8e54e67a4` (`docs(state): record phase 24 planning complete`).
-- Pinned test source: AccuracyCoin `6bee919529289c555803b612b8c9e4f7eaaeeabb`; `AccuracyCoin.asm` SHA256 `540b524187a97d71018bb94a1b7874e19d37894e5882861fe0c31adafe251a9f`.
-- Hardware notes used: `NES-HARDWARE-CPU-APU.md` §2.2, which summarizes RDY, GET/PUT, OAM overlap, register repeats, and internal/external bus selection. These notes are not a new silicon measurement.
-- No AccuracyCoin ROM, full workflow, campaign, push, or PR ran. Bounded C fixtures are compatibility/model evidence only.
+- Pre-correction core: `7348a10c68e592b71ec1899121003bf62d6bc813` (diagnostic checkpoint). `src/apu.c` from this identity is the independently reverted frozen-output model.
+- Pinned test: AccuracyCoin `6bee919529289c555803b612b8c9e4f7eaaeeabb`; assembly SHA256 `540b524187a97d71018bb94a1b7874e19d37894e5882861fe0c31adafe251a9f`.
+- [Pinned assembly](https://github.com/100thCoin/AccuracyCoin/blob/6bee919529289c555803b612b8c9e4f7eaaeeabb/AccuracyCoin.asm), [pinned README](https://github.com/100thCoin/AccuracyCoin/blob/6bee919529289c555803b612b8c9e4f7eaaeeabb/README.md), [DMA hardware model at revision 23450](https://www.nesdev.org/w/index.php?title=DMA&oldid=23450), [APU reference, Output Unit](https://www.nesdev.org/apu_ref.txt). These are separate test/model sources, not fresh silicon measurements.
+- Current fixtures compile the exact bus source with test-only observation and a renamed CPU copy. Release preprocessing removes observation. Ordinary linked and observed paths agree in the landing and silent-clock fixtures.
+- The inherited diagnostic's sync addressing errors, approximate wait, mismatched synthetic phase history and out-of-range long DMC counter were corrected. Earlier conclusions relying on those setups are withdrawn. The synthetic timing helper now asserts its exact 30,000-cycle delay (30,012 inside the enclosing wait; 30,018 including its call).
+- Synthetic lower-level matrices seed valid pending state; they do not claim those requests were created during the first write. Production reset/guest traces separately observe request creation, actual sample GET, and continuation. Synthetic phase starts keep ticks, CPU-cycle parity, bus phase and APU half-clock phase consistent.
 
-## Row 1 — DMA Landing on Write
-
-**Historical status:** `FAIL 0x26` in the checked-in scoreboard; not freshly run.
-
-**Pinned failure-code decode:** The pinned source encodes `TEST_Fail` as `(ErrorCode << 2) | 2`; raw `0x26` therefore identifies error code 9. The Test 9 assertion sequence places that error code at the final `LDA $4000; BNE FAIL` check. This decodes the historical scoreboard entry; it is not a fresh ROM result or event trace.
-
-**Pinned expectation:** AccuracyCoin Test 3 (assembly near lines 3160–3174) expects a one-write reload collision to retry to a GET halt and complete `[GET halt, PUT, GET]` in three DMA cycles. Test 5 (near lines 3182–3194) expects two consecutive blocked attempts followed by a four-cycle PUT-start transfer. The test also covers load timing, `$4015` effects, and resume behavior later in the row.
-
-**Observed core trace:** The owned fixture includes production `src/bus.c` with compile-time-only event hooks and also runs the normal linked entrypoints for parity. For the two source-shaped reload setups above, it observes request creation during APU clock, each write completion and retry, the first accepted read halt, the actual `$C000/$A7` sample GET on GET, and the resumed `$0020/$5A` CPU read. One write produces the three-cycle GET-start sequence; two writes produce the four-cycle PUT-start sequence. Fresh `$4015` load setup also exercises the production write and its 3/4-cycle enable delay. Normal and observed copies match in machine bytes, return value, and continuation.
-
-**Corrected synthetic Test 9 trace:** Parent review found and corrected two addressing-mode errors in the diagnostic sync helper: the initial result load must be zero page; the final Copy_A load must be absolute. The earlier pre-write-halt attribution is withdrawn. With those fixes, `$4015` completes on GET at cycle 44217; `$5000` correctly delays the request at 44221; the next read halts on PUT at 44222 and sample GET occurs on GET at 44225. The reconstructed later reload is nevertheless early (request snapshot 44259; halt 44260) and the final `$4000` read at 44642 returns `$40`. The approximate Test 8 frame wait means this remains a limited reconstruction, not an exact pinned row execution.
-
-**Independent output-unit divergence:** The owned `--dma-trace silence` probe uses production reset and CPU NOP execution, without DMC/phase injection. Six timer reload edges at snapshots 1, 429, 857, 1285, 1713 and 2141 all keep `bits=0` despite advancing output clocks. The APU reference's Output Unit contract requires continuous eight-clock sample-or-silence cycles with a separately latched silence flag. Current `src/apu.c` only starts/decrements bits when a sample is available. This loses silent-cycle phase and permits the newly loaded sample to drain at the next timer tick. This is a source-supported first output-unit divergence consistent with the early reload; exact landing-row attribution still needs the tightened fixture and required acceptance.
-
-**State gate:** Correct output-cycle phase needs continuous `bits` plus silence state. The current DMC visitor saves bits but no silence flag. Changing that meaning and adding a boolean requires a format bump under D-05. Execution stopped before mutation; see [the concrete field/version decision](24-01-CHECKPOINT.md). No correction is shared with other rows.
-
-**Wrong-model control:** The independent silent-clock diagnostic rejects the named `freeze-at-zero-while-empty` model; it intentionally exits 1 on the uncorrected implementation. Corrected behavior and native continuation are not implemented yet.
-
-## Row 2 — DMC DMA + OAM DMA
-
-**Historical status:** `FAIL 0x0a` in the checked-in scoreboard; not freshly run.
-
-**Pinned expectation:** AccuracyCoin's row comments describe DMC/OAM halt-cycle overlap and say the in-transfer DMC operation appears to add two cycles; the answer table distinguishes phases and final positions. This is a test contract, not a silicon result.
-
-**Observed core trace:** An owned NROM probe requested the DMC load at OAM source offsets 128 and 255. It recorded the source byte, GET sample phase, resumed source offset, and complete OAM duration. Both probes measured 514 CPU cycles without DMC and 517 with DMC (+3); each sample GET was on GET and OAM resumed at the same source offset.
-
-**First divergence:** For these synthetic in-transfer positions, the first differing event is the DMC/OAM overlap duration: the core adds three cycles where the pinned row's stated overlap model adds two. The final-position answer-key profile mapping still needs independent localization.
-
-**Wrong-model candidate:** A full standalone DMC sequence inside OAM, with no overlap of the two halt cycles. The duration probe distinguishes this candidate; it does not prove every answer-key position.
-
-## Row 3 — DMC DMA Bus Conflicts
-
-**Historical status:** `FAIL 0x0a` in the checked-in scoreboard; not freshly run.
-
-**Pinned expectation:** AccuracyCoin explains that the external sample address's low five bits select an internal APU/controller register while the CPU is parked in `$4000–$401F`. Its assembly checks controller results for offsets `$16/$17` and that a `$4015` conflict clears frame IRQ. The test explicitly does not inspect the DMC shift-register input.
-
-**Observed core trace:** With the CPU parked at `$4000`, an external GET at `$FF16` returning `$A0` left controller shift `$01` unchanged and the CPU saw `$A0`; the pinned internal `$4016` selection expects a controller bit merge, `$A1` for this fixture, and a controller clock. At `$FFD5/$A5`, the pinned internal `$4015` selection expects frame IRQ acknowledgement, but the observed frame IRQ remained set. The production DMC sample path reads the external mapper byte and updates the bus latch without the second internal register decode.
-
-**First divergence:** The internal register selection immediately after the observed external sample GET is absent. This differs independently from the OAM overlap trace.
-
-**Wrong-model candidate:** External-memory-only sample fetch. The observed `$FF16` and `$FFD5` cases reject it through controller and IRQ side effects.
-
-## Row 4 — Explicit DMA Abort
-
-**Historical status:** `FAIL 0x0a` in the checked-in scoreboard; not freshly run.
-
-**Pinned expectation:** The assembly's explicit-abort answer key contains one-cycle results at two offsets and zero-cycle results later. The setup disables DMC around a scheduled request and separately depends on phase alignment.
-
-**Observed core trace:** A synthetic pending request was disabled through the production `$4015` write, with and without one intervening CPU write. At the following read, the trace recorded a halt attempt but no accepted halt and no sample GET; state remained `dma_pending=1, remaining=0`.
-
-**First divergence:** Candidate only. The fixture has not yet reproduced the exact pinned offsets, so it does not establish which answer-key entry this state corresponds to or close the row.
-
-**Wrong-model candidate:** Cancel the pending request before the one-cycle aborted window. Exact offset and expected outcome remain to be localized.
-
-## Row 5 — Implicit DMA Abort
-
-**Historical status:** `FAIL 0x0a` in the checked-in scoreboard; not freshly run.
-
-**Pinned expectation:** The assembly has one-byte non-looping and looping controls, a one-cycle window, and a separate following-write case. It accepts both early and later chip-revision answer tables; no narrower RP2A03G outcome is assumed here.
-
-**Observed core trace:** No row-specific trace has been run.
-
-**First divergence:** Unknown. No correction or causal grouping may rely on this row yet.
-
-## Bounded commands and result
-
-Read-only CTest inspection selected only `core.apu` and `bus.unit`; their generated test entries have no `FIXTURES_REQUIRED` or `FIXTURES_SETUP` properties. The selected closure did not include `accuracycoin.campaign`.
-
-Commands run:
+Commands (all use the existing owned build):
 
 ```text
-cmake -S . -B build/phase24-owned -G Ninja -DCMAKE_BUILD_TYPE=Debug
-ctest --test-dir build/phase24-owned -R '^(bus\.unit|core\.apu)$' -N
-cmake --build build/phase24-owned --target bus.unit core.apu
+cmake --build build/phase24-owned --target bus.unit core.apu core.state_fork
 ctest --test-dir build/phase24-owned -R '^(bus\.unit|core\.apu)$' --no-tests=error --timeout 30 --output-on-failure
-build/phase24-owned/tests/bus.unit --dma-trace remaining
-cmake --build build/phase24-owned --target bus.unit
+build/phase24-owned/tests/bus.unit --dma-trace silence
 build/phase24-owned/tests/bus.unit --dma-trace landing
+build/phase24-owned/tests/bus.unit --dma-trace remaining
+build/phase24-owned/tests/core.state_fork --dma
 ```
 
-The selected bounded CTest run passed both tests. The diagnostic mode completed and emitted the traces summarized above; its success means the observations were captured, not that the failing AccuracyCoin rows passed.
-The latest `--dma-trace landing` run exited 1 on the expected diagnostic assertions: observed A was `0x40`, and the last halt/resume were not on the final `$4000` read because the last GET was earlier in the setup. It printed the trace above. This does not establish a fresh pinned-test result.
+Generated CTest JSON selects bus.unit/core.apu and, for executable-closure inspection, core.state_fork.stress; there are no fixture dependencies on these entries. Direct --dma invokes only generated owned content. No full workflow, AccuracyCoin ROM, campaign, push or PR ran. Diagnostic process success means the required observations were captured; it does not mean the remaining failing models passed a correction oracle.
 
-## Checkpoint disposition after parent review
+## 1. DMA Landing on Write — corrected owned tracer
 
-Plan 24-01 remains incomplete. Its selected default bus/APU regressions pass; unresolved source-shaped timing and silent-clock assertions live in explicit diagnostic modes, not the default regression path. This does not skip any pre-existing test or claim a correction. The corrected current commands and proposed native-state diff are recorded in [24-01-CHECKPOINT.md](24-01-CHECKPOINT.md). No completed SUMMARY exists and no requirement is checked off. Rows 2–5 retain the partial statuses above; no grouping/fix premise is authorized from incomplete traces.
+Historical raw row: **FAIL 0x26**, not freshly run. Pinned `TEST_Fail` encodes `(ErrorCode << 2) | 2`, identifying Landing Test 9. Its one-write-delayed load should take four cycles, followed by a synchronized reload during the final `$4000` read.
+
+| Evidence layer | Observation |
+|---|---|
+| Hardware/reference | Output Unit in HWC.23 clocks whole eight-bit audible or silent cycles, with a separate silence flag. An empty buffer must not freeze bit phase. RDY only halts CPU reads; actual DMC memory accesses use GET. |
+| Pinned test | Test 9 disables/re-enables around a timed output cycle, delays the load with `$5000`, then expects the final `$4000` open-bus read to see zero after a sample GET. Tests 3/5 separately distinguish three/four-cycle write-retry shapes. |
+| Baseline core | `bits` remains zero across six (now twelve in the default regression) output clocks while the buffer is empty. A later sample drains at the next timer clock, instead of its eight-clock boundary. The tightened Test 9 reconstruction fails its final A==0 and final-halt/resume assertions. |
+| First causal divergence | The first empty-buffer output clock fails to reload/advance the eight-bit silent cycle. This is earlier than the premature later reload; the fresh-load write retry itself was already correct. |
+| Corrected core | Silent clocks now count 0->7->6...->0->7 while preserving DAC level. In the tightened trace `$4015` completes at 37741 GET; `$5000` retries GET->PUT at 37745; halt is 37746 PUT, actual sample GET 37749 GET, resumed read 37750 PUT. The reload halts `$4000` at 38162 PUT, samples `$FFC0/00` at 38165 GET and resumes `$4000/00` at 38166 PUT. Absolute cycles are fixture-local. |
+| Wrong-model control | `freeze-at-zero-while-empty`: the bit-clock oracle rejects a zeroed next count at the first empty-buffer output edge. Rebuilding the current owned executable against the baseline APU source independently fails both the silence and tightened landing probes. |
+| Unverified remainder | No fresh pinned ROM result, hardware measurement, protected-key, cross-platform hash or performance acceptance. |
+
+The default bus.unit includes the silent-clock and tightened landing probes as well as both phase starts and one/two/three-write pending-request matrices. No old test was removed or weakened.
+
+## 2. DMC DMA + OAM DMA — independently localized
+
+Historical raw row: **FAIL 0x0a**, not freshly run.
+
+| Evidence layer | Observation |
+|---|---|
+| Hardware model | Independent DMA units overlap no-access phases; DMC memory GET wins a collision. The usual overlap costs two cycles; final two PUT positions can extend by one or three. OAM reads on GET and writes on PUT. |
+| Pinned test | Its separate beginning/end sweeps compare a phase-sensitive answer table and describe overlapping halt/dummy/alignment cycles. Aggregate raw status is not the cause. |
+| Owned setup | Interior and final windows at offsets 128/254/255, both consistent initial phases, load-waiting and ordinary-reload controls. The later request uses a full buffer, one remaining output bit and a valid 214-half-cycle timer, rather than counter >214. All 256 OAM destination indices/data are verified in order. |
+| Core events | Ordinary PUT-target reload requests stay pending through OAM: no DMC sample GET, OAM duration unchanged, pending=1 afterward. A GET-target delayed load can fetch, but resumes the interrupted OAM source on PUT and writes its destination on GET; common interior duration adds three clocks. Counts include the caller's resumed CPU read: baseline 514/515, load collision 517/518. |
+| First causal divergence | The OAM destination clock never advances a pending DMC halt/dummy state, while source reads only try the ordinary CPU-halt gate. The expected overlapping sequence is absent. When a load does run, the generic CPU-resumed read becomes an OAM source access on PUT. |
+| Wrong-model candidates | `cpu-halt-gate-inside-oam` (reload starves); `standalone-dmc-resume-as-oam-read` (wrong source/destination phase). Independent controls are retained for Plan 02. |
+| Unverified remainder | Exact pinned answer-table results, all final-window source-supported durations after correction, native collision continuation and campaign acceptance. |
+
+This cause remains present with the pre-fix APU independently linked, and is not grouped with the silent-clock correction.
+
+## 3. DMC DMA Bus Conflicts — independently localized
+
+Historical raw row: **FAIL 0x0a**, not freshly run.
+
+| Evidence layer | Observation |
+|---|---|
+| Hardware model | Parked CPU address bits 15:5 and external sample bits 4:0 select internal registers. Internal/external bus latches and register side effects are distinct. |
+| Pinned test | Samples ending in $15/$16/$17 exercise status/controller selection. The assembly explicitly does not inspect the DMC shift-register input. |
+| Owned setup/core | Park `$4000`; actual GET `$FF16/$A0` stays external-only: CPU sees `$A0`, controller shift remains `$01`, versus the selected controller bit yielding `$A1` and a clock. Actual GET `$FFD5/$A5` leaves frame IRQ set instead of acknowledging internally selected `$4015`. |
+| First causal divergence | Immediately following the actual mapper sample GET, the internal-register decode/side effect never occurs. `dmc_dma` only updates the one existing bus latch from the external byte. |
+| Wrong-model candidate | `external-memory-only-fetch`: distinct controller/IRQ effects reject this independently of any OAM timing change. |
+| Unverified remainder | Corrected split-latch semantics, both-controller/alias controls, reachable native latch continuation and required acceptance. The pinned test is not evidence for bits entering the DMC shift register. |
+
+## 4. Explicit DMA Abort — independently localized
+
+Historical raw row: **FAIL 0x0a**, not freshly run.
+
+| Evidence layer | Observation |
+|---|---|
+| Hardware model | DMA rev 23450 Bugs describes an explicit stop in the APU cycle before reload scheduling: a one-cycle aborted halt; a write at that halt suppresses it instead of deferring an ordinary DMA. |
+| Pinned test | A 16-offset disable/re-enable sweep has one-cycle entries and later zero-cycle entries in its answer key. |
+| Owned setup | Production reset and real register writes establish a looping one-byte sample and full buffer. Ordinary reads reach bits=0/counter=1 at the appropriate half-clock; production `$4015=0` stops immediately before rollover. No request/bit/phase field is injected. Separate no-write/write-on-halt controls preserve the write effect. |
+| Core events | Stop at cycle 433 GET, ordinary reads 434 PUT / 435 GET / 436 PUT / 437 GET. The reference sequence requires a one-cycle aborted read halt before resumed execution; observed total stays ten ordinary clocks, no sample GET and no retained abort request. The write control writes RAM at 436 and is also ten clocks. |
+| First causal divergence | On the required aborted-halt window, the core completes the ordinary CPU read without a halted repeat. The stop clears remaining; subsequent output-clock scheduling requires remaining !=0, so it loses the stop-window history and cannot produce an aborted DMA at all. This supersedes the older injected-pending candidate. |
+| Wrong-model candidate | `forget-stop-before-reload`: zero remaining is treated as eliminating both a real memory fetch and the separate one-cycle halt. |
+| Unverified remainder | The diagnostic sweeps three neighboring timer-counter offsets, both half-clock phases and separate writes. Exact corrected offset durations and the full pinned answer key remain Plan 03/04 work. |
+
+## 5. Implicit DMA Abort — independently localized
+
+Historical raw row: **FAIL 0x0a**, not freshly run.
+
+| Evidence layer | Observation |
+|---|---|
+| Hardware model | An empty-buffer, non-looping one-byte load can finish in the APU cycle before the next output boundary and require the same one-cycle aborted halt. Writes suppress it. The later RP2A03G/H extra-reload window is a separate revision-dependent case. |
+| Pinned test | Separate non-looping, following-write and looping sweeps; README retains both early and later accepted outcomes. |
+| Owned setup | Production reset, second-fastest timer, empty buffer and a genuine silent output cycle. Wait for counter=5/bits=0 at the chosen half-clock, then enable via `$4015`. Separate looping and length-17 controls use the same production history; no phase injection. |
+| Core events | Enable at 569 GET, halt 573 GET, actual sample GET `$C000/$EA` at 575 GET, resume 576 PUT. No second halt at the common aborted window (578 PUT); ordinary reads continue and remaining=0/pending=0. A write at 578 is preserved. Looping and length-17 controls retain remaining and produce a second real sample GET. |
+| First causal divergence | Completion of the one-byte sample clears remaining at the sample GET; the following output-cycle boundary does not remember that just-completed stop and emits no one-cycle aborted halt. This is independently observed without any `$4015` disable. |
+| Wrong-model candidate | `forget-one-byte-completion`: ordinary no-work behavior after remaining reaches zero, omitting the distinct aborted read. |
+| Selected-profile assumption | The owned later extra-reload control will use the early RP2A03G outcome (no optional extra fetch). This common aborted window applies to both accepted profiles. No universal RP2A03G or measured chip-date claim is made; both pinned acceptable result classifications remain unchanged. |
+| Unverified remainder | The diagnostic sweeps counter offsets 4/5/6, both half-clock phases, non-looping/looping/length-17 and following-write controls. Corrected per-offset oracles, native stop-history continuation and fresh pinned acceptance remain Plan 03/04 work. |
+
+The explicit and implicit paths now both have independent records. Similar final counters do not by themselves authorize sharing a fix; Plan 03 must compare their actual stop-history events first.
+
+## State audit and native continuation
+
+The owner explicitly approved [the concrete state decision](24-01-CHECKPOINT.md) before mutation. The implemented DMC visitor adds `silence` at local serialized offset 15; `bits` at offset 14 now counts silent output cycles too. Later DMC fields shift by one byte without changing meaning. Serialized DMC length is 23 (was 22), while C-struct size is 24 because of padding; struct padding is never serialized. Format is 4, behavior revision 10, ABI unchanged; no converter. The visitor validates silence <=1 in both validation/apply passes. Internal pointer-offset tripwires account for alignment without adding saved bytes.
+
+`core.state_fork --dma` reaches real public frame-return cuts at frame 1 (silent, bits=7) and frame 29 (silent, bits=5, DMA pending), using the existing owned stress guest with a mixed-bit sample. A never loads; B restores the native state. Both produce identical full pixel and PCM buffers, metadata, RAM effects, field-wise cycle/level transition lists and final canonical bytes. Each continuation includes nonzero DAC transitions. Valid-valued silence perturbation changes PCM and is rejected by the continuation oracle. Old-format-tagged input and an invalid silence byte are refused with the instance and save generation unchanged. The same fixture is called by existing --stress; no new CTest registration or public cycle API exists. Synchronous sample/transfer steps remain unexposed as public save points.
+
+## Acceptance still missing
+
+Owned checks do not replace the required fresh full pinned result, every protected PASS key, deterministic cross-platform hashes or performance gates. The runtime stop remains active. No requirement or phase completion may be marked from these local results. Later plans must preserve the five independent records and demonstrate their own wrong-model regressions before claiming corrections.
+
+## Version-consumer review follow-through
+
+The scoped ownership amendment and review resolve the format/revision consumers alongside the correction. C/C++ header checks, API version, older/future refusal tests, new silence bounds, normalized API policy and current-version docs agree on format 4/revision 10. Six boards' state hashes were regenerated at frames 0/60; every state size grew one byte and frame ticks were unchanged. No frame/PCM/transition hash row was changed. The declaration-stream normalization proves only the two approved version macros changed the API baseline. Historical revision-9 AccuracyCoin metadata and its checker remain historical; they are not relabeled as current evidence. Bounded doc contract checks passed after the documented helper targets were built, without changing existing timeouts.
