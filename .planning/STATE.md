@@ -4,12 +4,12 @@ milestone: v7
 milestone_name: Remaining DMA accuracy failures
 current_phase: 24
 current_phase_name: Correct remaining NTSC DMA behavior
-status: planning
-stopped_at: "Phase 24 planning complete; next command: $gsd-execute-phase 24"
-last_updated: "2026-10-31T18:33:34Z"
+status: executing
+stopped_at: "Phase 24-01 Task 1: awaiting concrete native-state format decision"
+last_updated: "2026-10-31T19:32:23Z"
 last_activity: 2026-10-31
-last_activity_desc: Phase 24 planning artifacts committed. No implementation, tests, full CI, or campaign ran.
-state_head: 411bab4db8145eb0c499884bbaa84ea38f641143
+last_activity_desc: Owned DMA traces retained; native-state change gated before implementation; no behavior correction
+state_head: 89a042ba742ef24679666deac8606ef8e54e67a4
 progress:
   total_phases: 1
   completed_phases: 0
@@ -23,21 +23,23 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 **Core value:** Games behave as on the console, identically across platforms, from a small MIT C library.
-**Current focus:** v7's four requirements and its one-phase roadmap are approved and committed. Phase 24 has four verified sequential plans, a roadmap plan list with wave dependencies, complete requirement and decision coverage, and a passed post-planning gap check. No implementation or tests have started.
+**Current focus:** Phase 24-01 tracer — awaiting native-state decision before the first correction
 
 ## Current Position
 
-Phase: 24 (Correct remaining NTSC DMA behavior) — READY TO EXECUTE
-Plan: Four verified plans, ready to execute
-Status: Planning complete; implementation not started
-Last activity: 2026-10-31 — Phase planning and verification complete. No builds, tests, or campaigns ran.
+Phase: 24 (Correct remaining NTSC DMA behavior) — CHECKPOINT
+Plan: 1 of 4 — Task 1 incomplete
+Status: Waiting for owner decision on concrete native-state incompatibility
+Last activity: 2026-10-31 — Owned traces localized a stopped DMC silent bit clock; bounded default bus/APU checks pass. No behavior correction or schema mutation.
 Progress: [░░░░░░░░░░] 0%
 
 ## Next Action
 
-Phase 24 planning is complete: four sequential plans passed independent review with no findings; DMA-01 through DMA-04 and all eight locked decisions are covered; the roadmap lists the four plans and their wave dependencies; and the post-planning gap analysis found no uncovered items. The research, plans, roadmap annotations, state and resume note were committed with this step. No implementation, tests, full CI, or AccuracyCoin campaign ran. The active CI/campaign stop remains; no full CI or AccuracyCoin campaign may run without separate authorization.
-Next command: `$gsd-execute-phase 24`.
-It executes the four plans in wave order, starting with the DMA Landing on Write tracer. The campaign stop remains active; if required project CI schedules `accuracycoin.campaign`, stop before that command and keep phase requirements incomplete until separate authorization and evidence exist. Context may be cleared before running it; read this file and [24-PLANNING-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-PLANNING-RESUME.md) first.
+**Waiting for the owner.** Plan 24-01 reached its required pre-mutation native-state checkpoint: the DMC output counter freezes during silence, while the source model needs an eight-clock silent phase and a separate silence flag. Recommended decision: approve the explicit silence byte and continuous bit-count meaning, state format 4 and behavior revision 10, with native continuation, old-format refusal tests and matching documentation. Existing format-3 native states would be refused; no converter is proposed. [Concrete field diff, alternatives and evidence](phases/24-correct-remaining-ntsc-dma-behavior/24-01-CHECKPOINT.md).
+
+No behavior correction, serializer change, completed plan, or requirement acceptance is claimed. Owned diagnostic hooks/fixtures and partial row evidence are retained; default bus/APU regressions pass, while explicit silence/landing diagnostics intentionally fail. No full workflow, AccuracyCoin ROM, campaign, push or PR ran. The existing campaign stop remains active.
+
+After the explicit decision, next command: `$gsd-execute-phase 24`. It resumes the incomplete first plan, then the dependent plans in order, while preserving all state/campaign gates. Context may be cleared; read this file and [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md) first.
 
 ## Accumulated Context
 
@@ -53,6 +55,8 @@ It executes the four plans in wave order, starting with the DMA Landing on Write
 The three deferred property/mutation/signal proposals remain unlinked to v7; their records are preserved below. No new todo scope is approved.
 
 ### Blockers/Concerns
+
+- **Plan 24-01 native-state checkpoint:** awaiting the owner’s decision on the proposed DMC silence byte/bit-count meaning and format-4 refusal of existing format-3 states. Do not mutate layout or meaning before that decision; see the linked checkpoint.
 
 - **Active runtime stop:** The interrupted full-CI/AccuracyCoin campaign outcome is unknown. Do not rerun full CI or a campaign, including through automatic verification or a push/PR side effect, without separate owner authorization. Planning and milestone approval do not renew that authority.
 - **Phase 24 completion gate:** Project CI remains required. If its configuration schedules `accuracycoin.campaign`, stop execution before that command; record selected tests, missing evidence and required authorization. Keep phase/requirements incomplete; do not disable or weaken gates or substitute bounded passes for full acceptance.
@@ -86,11 +90,12 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Performance Metrics
 
-v7: no plans executed. v6 completed seven plans; detailed timing remains in the [archived phase summaries](milestones/v6-phases/) and [closeout](milestones/v6-CLOSEOUT.md).
+v7: first plan partially investigated; zero completed plans. Diagnostic evidence is retained at the native-state checkpoint. v6 completed seven plans; detailed timing remains in the [archived phase summaries](milestones/v6-phases/) and [closeout](milestones/v6-CLOSEOUT.md).
 
 ## Session Continuity
 
-**Last session:** 2026-10-31T18:33:34Z
-**Stopped at:** Phase 24 planning complete; ready to execute
-**Next command:** `$gsd-execute-phase 24`
-**Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-PLANNING-RESUME.md
+**Last session:** 2026-10-31T19:32:23Z
+**Stopped at:** Phase 24-01 Task 1 — required native-state decision, before behavior/schema mutation
+**Next actor:** Owner decides the concrete compatibility consequence; execution waits.
+**Next command after decision:** `$gsd-execute-phase 24`
+**Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md
