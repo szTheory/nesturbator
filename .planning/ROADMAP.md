@@ -55,11 +55,11 @@ progress across an identified core upgrade or rollback.
    controls still reject missing or contradictory contracts. No assertion is
    dropped merely to shorten the README.
 
-**Plans:** 4 plans in 4 sequential waves; independent plan verification passed.
+**Plans:** 1/4 plans executed in 4 sequential waves; independent plan verification passed.
 
 **Wave 1**
 
-- [ ] 22-01-PLAN.md — Canonical API guide with relocation and link controls
+- [x] 22-01-PLAN.md — Canonical API guide with relocation and link controls
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -126,7 +126,7 @@ daily progress and choose the next evidence source without overclaiming a diagno
 
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
-| 22. Install and protect progress | 0 / 4 | Ready to execute | — |
+| 22. Install and protect progress | 1/4 | In Progress | — |
 | 23. Reproduce and report a scene | 0 / not planned | Not started | — |
 
 **Requirement coverage:** 10/10 mapped exactly once; 0 unmapped.
