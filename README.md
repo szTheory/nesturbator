@@ -70,6 +70,14 @@ Naming only cores and info leaves LICENSE and THIRD-PARTY-NOTICES.md outside
 RetroArch directories. The [release guide](docs/releases.md) documents how the
 marked version line and source-build extraction check are maintained.
 
+## Protecting progress
+
+RetroArch's battery saves and save states are separate files, and loading an
+older state or rewinding past an in-game save can restore older battery RAM.
+Back up the newest battery save independently before an upgrade or state load;
+keep it outside the active save and state folders. See the [progress guide](docs/progress.md)
+for the scratch-only walkthrough, compatibility limits and rollback steps.
+
 ## What it is
 
 - An accuracy-class, deterministic NES core with no GUI of its own.

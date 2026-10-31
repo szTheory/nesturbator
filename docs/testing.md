@@ -1675,6 +1675,33 @@ negative follows valid screenshot and native-anchor prerequisites, so a host
 launch or parsing failure cannot count as semantic evidence.
 
 
+## Disposable progress fixtures
+
+The bounded player walkthrough in [`docs/progress.md`](progress.md) uses
+`runner.save_rom` to generate its battery cartridge and the existing
+manifest-listed `tests/roms/dabg.nes` state fixture. A unique CMake build tree
+and each case's CTest-owned `save_work/<case>` or `state_work/<case>` directory
+keep generated saves/states separate from user paths. The runner's
+`runner.state.reject_format` case mutates a newly generated native payload and
+expects the runner's format refusal; it does not model a RetroArch disk state
+or its automatic-load behavior.
+
+The independent `core.state_reject` check compares the whole instance and save
+generation after a refused load. `core.state_generation` checks matching,
+changed and refused loads on battery-backed memory. Those tests and source
+oracles remain distinct from the focused runner walkthrough; neither result
+qualifies cross-build SRAM reuse or incompatible host-container recovery. The
+host checks document only their named frontend/build/content scenarios.
+
+For controller evidence, `core.controller` verifies that the two logical
+controller ports shift their button state independently. This does not test
+RetroArch's device-to-port assignment. The 2026-10-30 real-launch readback
+records P1 assigned and P2 unused after a single-controller correction; the
+earlier successful collection-launch input observation is only a smoke check.
+These observations do not cover every button, reconnect, handheld fallback,
+or every frontend/configuration. See [Input and Controls](https://docs.libretro.com/guides/input-and-controls/)
+for RetroArch's current Device Index menu guidance.
+
 ## Test fixtures and source policy
 
 ## ROMs
