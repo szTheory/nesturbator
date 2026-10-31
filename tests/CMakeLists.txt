@@ -1625,7 +1625,15 @@ add_test(NAME cmake.script_policy
 # states section and the rewind sentence (STATE-05).
 add_test(NAME state.status_table
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/README.md
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/status_table.cmake)
+add_test(NAME state.status_table.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/api.md
+    -DWORK=${PROJECT_BINARY_DIR}/tests/status-table-selftest
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/status_table.cmake)
+set_tests_properties(state.status_table.self_test PROPERTIES TIMEOUT 60)
 
 # RUN-03: the exit table is the same in runner/exit_status.h, --help and the README.
 foreach(mode table help)

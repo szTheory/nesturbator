@@ -1,5 +1,49 @@
 cmake_minimum_required(VERSION 3.25)
 
+# The first relocation control starts from the old README contract and proves
+# that the production consumer rejects a missing canonical guide even when the
+# stale copy still has a complete status table and native-state section.
+if(SELFTEST)
+  foreach(required SOURCE_DIR DOC WORK)
+    if(NOT DEFINED ${required})
+      message(FATAL_ERROR "${required} is required for the status table self-test")
+    endif()
+  endforeach()
+
+  string(RANDOM LENGTH 16 ALPHABET 0123456789abcdef nonce)
+  set(fixture "${WORK}/canonical_${nonce}")
+  file(MAKE_DIRECTORY "${fixture}/include")
+  configure_file("${SOURCE_DIR}/include/nesturbator.h"
+    "${fixture}/include/nesturbator.h" COPYONLY)
+
+  if(EXISTS "${DOC}")
+    file(READ "${DOC}" stale_readme)
+  else()
+    file(READ "${SOURCE_DIR}/README.md" stale_readme)
+  endif()
+  file(WRITE "${fixture}/README.md" "${stale_readme}")
+
+  set(missing_doc "${fixture}/docs/api.md")
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}" "-DSOURCE_DIR=${fixture}" "-DDOC=${missing_doc}"
+      -P "${CMAKE_CURRENT_LIST_FILE}"
+    WORKING_DIRECTORY "${fixture}"
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE output
+    ERROR_VARIABLE error)
+  if(result STREQUAL "0")
+    message(FATAL_ERROR
+      "stale README copy satisfied a missing canonical API guide; DOC was ignored")
+  endif()
+  string(CONCAT output "${output}" "${error}")
+  if(NOT output MATCHES "canonical API guide does not exist")
+    message(FATAL_ERROR
+      "missing canonical API guide failed for the wrong reason: ${output}")
+  endif()
+  message(STATUS "status table rejects a missing canonical API guide despite stale README text")
+  return()
+endif()
+
 # D-07: the README "Status codes" table lists exactly the values of enum
 # nesturbator_status, and the README carries the Save states section and the
 # sentence about rewinding past an in-game save. Run with -DSOURCE_DIR=<repo>.
