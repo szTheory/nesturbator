@@ -101,3 +101,8 @@ Plan 22-03 is complete. Plan 22-04 remains the next sequential plan for the play
 
 - docs/releases.md, docs/testing.md and this summary exist.
 - Task commits da972fe and e9d9449 are ancestors of HEAD.
+
+## Task Commits
+
+1. **Task 1: release guide** - `da972fe` (docs/test)
+2. **Task 2: testing guide** - `e9d9449` (docs/test)

@@ -49,9 +49,10 @@ documents these directories and module extensions. The [release guide](docs/rele
 explains archive verification and exact loaded-build identity. Guides live in
 the source repository and are not inside the downloaded archives.
 
-With RetroArch installed, these two lines put the released core in RetroArch's
-`cores` directory and its information file in `info`. The first sets the
-version; the second downloads and extracts:
+On Apple Silicon, these two lines use RetroArch's default macOS data directory,
+with the core in `cores` and its information file in `info`. If your configured
+directories differ, use the manual extraction instructions above with those
+destinations. The first line sets the version; the second downloads and extracts:
 
 <!-- x-release-please-start-version -->
 ```sh

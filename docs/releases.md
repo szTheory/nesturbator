@@ -166,7 +166,8 @@ Publishing depends on that CI result.
 The publish job downloads the six-platform build artifacts and requires the
 exact 18 archives: library, runner and libretro components for Linux, macOS
 and Windows on x64 and arm64. It writes `SHA256SUMS` in `sha256sum -a 256`
-format, creates a build-provenance attestation for that checksum file,
+format, uses those checksums to identify the archive subjects for
+build-provenance attestations,
 uploads the archives and sums to the draft, and verifies each archive's
 attestation. It also flips a byte in a copy and requires that copy's
 attestation verification to fail. Only after these checks does it publish

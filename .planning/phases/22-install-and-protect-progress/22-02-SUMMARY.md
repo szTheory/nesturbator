@@ -103,3 +103,9 @@ Plan 22-02 is complete. The next sequential plan is 22-03 (release and engineeri
 
 - Summary file exists at the required phase path.
 - Task commits `07e5bf4`, `09c0df6` and `8a01df7` are ancestors of HEAD.
+
+## Task Commits
+
+1. **Task 1: regression** - `07e5bf4` (docs/test)
+2. **Task 1: canonical runner tracer** - `09c0df6` (docs/test)
+3. **Task 2: runner examples** - `8a01df7` (docs/test)

@@ -111,3 +111,9 @@ None. This plan changes documentation and build-tree-only documentation checks; 
 
 The summary file exists, and commits `d536da3`, `2d4f049`, and `88a5e28` are ancestors of HEAD.
 
+
+## Task Commits
+
+1. **Task 1: regression** - `d536da3` (docs/test)
+2. **Task 1: canonical API tracer** - `2d4f049` (docs/test)
+3. **Task 2: complete API guide** - `88a5e28` (docs/test)

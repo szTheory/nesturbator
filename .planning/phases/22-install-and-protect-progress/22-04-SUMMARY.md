@@ -113,3 +113,9 @@ Plan 22-04 is complete. Phase 22 is **awaiting the parent executor's review/veri
 - All four plan documentation files and this summary exist.
 - Task commits 070c2d5, 5abb684 and d9f49de are ancestors of HEAD.
 - Added documentation diff scan found no TODO/FIXME/placeholder stubs.
+
+## Task Commits
+
+1. **Task 1: progress walkthrough** - `070c2d5` (docs/test)
+2. **Task 2: archive and identity guidance** - `5abb684` (docs/test)
+3. **Task 3: controls and troubleshooting** - `d9f49de` (docs/test)

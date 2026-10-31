@@ -1621,8 +1621,8 @@ add_test(NAME cmake.script_policy
   COMMAND ${CMAKE_COMMAND} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/cmake
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/script_policy.cmake)
 
-# D-07: the README status table equals enum nesturbator_status, and the README keeps its Save
-# states section and the rewind sentence (STATE-05).
+# D-07: the canonical API status table equals enum nesturbator_status, and the
+# guide keeps its Save states section and the rewind sentence (STATE-05).
 add_test(NAME state.status_table
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -DDOC=${PROJECT_SOURCE_DIR}/docs/api.md
