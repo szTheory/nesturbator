@@ -120,6 +120,9 @@ struct nesturbator__dmc {
     /* The next halt attempt's phase; an eligible write advances it to retry
        on the following CPU cycle. The first load/reload targets GET/PUT. */
     uint8_t irq, dma_pending, dma_halt_phase, dma_load_waiting, enable_delay;
+    /* One-shot halt due in this many future CPU clocks; writes consume it
+       instead of retrying. Separate from a sample transfer request. */
+    uint8_t abort_delay;
 };
 
 struct nesturbator__apu {
@@ -342,6 +345,19 @@ static inline uint8_t nesturbator__map_cpu_read(struct nesturbator *nes, uint16_
 /* One CPU read cycle at addr: advances time by one CPU cycle and returns the
    value on the data bus (src/bus.c in the library). */
 uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
+
+/* A reader stop two/three clocks before the output buffer drains schedules
+   one aborted PUT halt. Explicit disable and non-looping last-byte completion
+   share this window (NESdev DMA rev23450, Bugs [HWC.01]). The selected early-G
+   model has no later-G/H unexpected reload in the adjacent one-clock window. */
+static inline void nesturbator__dmc_stop_window(struct nesturbator *nes)
+{
+    struct nesturbator__dmc *d = &nes->apu.dmc;
+    uint16_t counter = d->counter != 0u ? d->counter : 1u;
+    uint16_t clocks = (uint16_t)(2u * counter - (nes->apu.pulse_clock_phase != 0u));
+    if (d->bits == 0u && d->buffer_empty == 0u && (clocks == 2u || clocks == 3u))
+        d->abort_delay = (uint8_t)clocks;
+}
 
 /* One CPU write cycle of value to addr (src/bus.c in the library). */
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);

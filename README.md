@@ -28,6 +28,13 @@ the external sample byte; controller reads retain external upper bits. These
 owned checks preserve the existing per-cycle controller-clock profile. Pinned
 AccuracyCoin ROM acceptance remains pending.
 
+Behavior revision 13 preserves a one-cycle aborted DMA when explicit disable
+or a non-looping last byte stops the reader two or three clocks before reload.
+A write suppresses that halt; normal sample requests still retry on writes.
+The selected early RP2A03G model omits the later-G/H unexpected extra reload.
+Both revision-dependent outcomes remain accepted by the pinned ROM contract;
+owned checks do not establish fresh ROM acceptance.
+
 With no cartridge, the fixed test card and silence remain available. The
 checked MMC3 support clause is:
 
@@ -122,10 +129,10 @@ or slowdown report; see [testing evidence](docs/testing.md#disposable-progress-f
 
 ## Protect progress
 
-Native state format 5 adds the internal CPU data latch and preserves the external
-bus separately. Formats 1 through 4 are refused; there is no converter. It also
-retains the DMC silence flag and continuously clocked bit position introduced
-in format 4 / behavior revision 10. Battery saves keep their separate format.
+Native state format 6 adds the expiring DMA abort countdown. It retains separate
+internal CPU and external data latches, the DMC silence flag and the continuously
+clocked bit position. Formats 1 through 5 are refused; there is no converter.
+Battery saves keep their separate format.
 
 RetroArch's battery saves and save states are separate files, and loading an
 older state or rewinding past an in-game save can restore older battery RAM.

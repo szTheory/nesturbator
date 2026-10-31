@@ -412,6 +412,7 @@ static const struct row ROWS[] = {
     ROW(apu.dmc.dma_halt_phase, 1),
     ROW(apu.dmc.dma_load_waiting, 1),
     ROW(apu.dmc.enable_delay, 4),
+    ROW(apu.dmc.abort_delay, 3),
     ROW(apu.enabled, 0x1f),
     ROW(apu.pulse_clock_phase, 1),
     ROW(apu.frame_mode, 1),

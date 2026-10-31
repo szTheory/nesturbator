@@ -192,9 +192,12 @@ static void dmc_sample_get(struct nesturbator *nes, uint16_t parked_read)
         if ((dmc->reg[0] & 0x40u) != 0u) {
             dmc->address = (uint16_t)(0xc000u | ((uint32_t)dmc->reg[2] << 6));
             dmc->remaining = (uint16_t)(((uint32_t)dmc->reg[3] << 4) | 1u);
-        } else if ((dmc->reg[0] & 0x80u) != 0u) {
-            dmc->irq = 1u;
-            nesturbator__irq_update(nes);
+        } else {
+            nesturbator__dmc_stop_window(nes);
+            if ((dmc->reg[0] & 0x80u) != 0u) {
+                dmc->irq = 1u;
+                nesturbator__irq_update(nes);
+            }
         }
     }
 }
@@ -237,6 +240,9 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read, uint8_t *s
 static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
 {
     uint8_t status_read = is_ppu_status_address(addr);
+    /* Capture before this cycle's APU clock expires the countdown. A write
+       or an already halted OAM cycle simply expires it without a retry. */
+    uint8_t aborted = (uint8_t)(nes->apu.dmc.abort_delay == 1u);
     /* Give the ordinary and split-status timings constant arguments. This
        keeps PPUSTATUS-only temporaries out of every other read's hot path. */
     uint8_t sample;
@@ -245,15 +251,26 @@ static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
     else
         sample = cycle(nes, 0u, 1u);
     uint8_t value;
+    uint8_t halted = 0u;
+    if (aborted != 0u) {
+        NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_HALT_ACCEPTED, nes, addr, 0u, 1u);
+        (void)bus_read_data(nes, addr, sample);
+        NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_PARKED_HALT, nes, addr, nes->bus.cpu_data, 1u);
+        sample_interrupt_lines(nes);
+        ppu_catch_up(nes);
+        sample = cycle(nes, status_read, 1u);
+        halted = 1u;
+    }
     if (nes->apu.dmc.dma_pending != 0u && dmc_dma(nes, addr, &sample) != 0u) {
         /* The CPU repeats its parked read once more when RDY is released.
            This is the resumed bus cycle after the DMC memory get, and is
            distinct from the GET cycle that filled the sample buffer. [HWC.01] */
         sample = cycle(nes, status_read, 1u);
-        value = bus_read_data(nes, addr, sample);
+        halted = 1u;
+    }
+    value = bus_read_data(nes, addr, sample);
+    if (halted != 0u) {
         NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_RESUMED_READ, nes, addr, value, 0u);
-    } else {
-        value = bus_read_data(nes, addr, sample);
     }
     NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_CPU_READ_COMPLETE, nes, addr, value, 0u);
     sample_interrupt_lines(nes);

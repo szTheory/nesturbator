@@ -249,6 +249,8 @@ void nesturbator__apu_clock(struct nesturbator *nes)
         noise->counter--;
     }
     struct nesturbator__dmc *dmc = &nes->apu.dmc;
+    if (dmc->abort_delay != 0u)
+        dmc->abort_delay--;
     if (dmc->enable_delay != 0u)
         dmc->enable_delay--;
     /* DMC rate entries are CPU-cycle periods, but the timer receives only
@@ -375,6 +377,7 @@ void nesturbator__apu_reset(struct nesturbator *nes)
     nes->apu.frame_irq_clear_pending = 0u;
     nes->apu.dmc.dma_pending = 0u;
     nes->apu.dmc.dma_halt_phase = 0u;
+    nes->apu.dmc.abort_delay = 0u;
     nes->apu.frame_reset_delay = (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 2u : 1u);
     nesturbator__irq_update(nes);
 }
@@ -420,10 +423,12 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
             }
         }
         if ((nes->apu.enabled & 0x10u) == 0u) {
-            /* A buffer-empty reload can already be waiting for the next
-               enabled CPU read. Disabling the reader stops sample progress,
-               but does not cancel that scheduled DMA. [HWC.10] */
+            /* Cancel the memory request, retaining only the independently
+               qualified, expiring one-cycle stop window. [HWC.01, Bugs] */
+            if (nes->apu.dmc.remaining != 0u)
+                nesturbator__dmc_stop_window(nes);
             nes->apu.dmc.remaining = 0u;
+            nes->apu.dmc.dma_pending = 0u;
             nes->apu.dmc.enable_delay = 0u;
             nes->apu.dmc.dma_load_waiting = 0u;
         } else if (nes->apu.dmc.remaining == 0u) {

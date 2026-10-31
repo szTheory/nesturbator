@@ -1,4 +1,4 @@
-# Phase24-03 abort history decision — awaiting owner
+# Phase24-03 abort history decision — approved
 
 ## Concrete choice
 
@@ -59,3 +59,7 @@ Reusing a normal pending flag would conflate a write-retrying sample transfer wi
 **Owner acts next:** approve or defer this concrete additional saved history/incompatibility. The previous bus-latch approval is settled and implemented; it does not cover abort history. The existing fullCI/AccuracyCoin stop stays active without another confirmation.
 
 After the decision: `$gsd-execute-phase 24`. Context may be cleared; read STATE.md and 24-EXECUTION-RESUME.md first.
+
+## Owner resolution
+
+On2026-10-31 the owner explicitly replied, “Yeah, I approve your recommendations.” This approves the concrete abort_delay0..3 byte, format6 / behavior13 / ABI1, refusal of formats1..5 without conversion, and coherent abort/native/tests/docs/version work. Implement the approved scope now. FullCI/AccuracyCoin remains independently stopped; no further acknowledgment is required to preserve that stop. Historical pending text above describes the pre-approval checkpoint.

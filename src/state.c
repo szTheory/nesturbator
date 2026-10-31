@@ -270,6 +270,7 @@ static void dmc_io(struct nesturbator__sio *io, struct nesturbator__dmc *d)
     nesturbator__sio_u8(io, &d->dma_halt_phase, 1u);
     nesturbator__sio_u8(io, &d->dma_load_waiting, 1u);
     nesturbator__sio_u8(io, &d->enable_delay, 4u);
+    nesturbator__sio_u8(io, &d->abort_delay, 3u);
 }
 
 static void apu_io(struct nesturbator__sio *io, struct nesturbator__apu *a)

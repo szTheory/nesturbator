@@ -603,6 +603,180 @@ done:
     nesturbator_destroy(b);
 }
 
+/* NOP/BIT padding counts actual guest instruction clocks before enabling
+   DMA. No phase, timer, request or CPU history is injected. */
+static void abort_guest_pad(uint8_t *code, size_t *length, uint32_t cycles)
+{
+    CHECK(cycles != 1u);
+    if ((cycles & 1u) != 0u) {
+        code[(*length)++] = 0x24u; /* BIT $00, three clocks */
+        code[(*length)++] = 0u;
+        cycles -= 3u;
+    }
+    while (cycles != 0u) {
+        code[(*length)++] = 0xEAu;
+        cycles -= 2u;
+    }
+}
+
+/* Three public frame-return cuts: explicit STA $4015 ends at29781/29782
+   with three/two clocks left; implicit NOP ends at29781 with one clock left. The initial
+   rate and later rate change align a silent output boundary without changing
+   timer state directly. Fixed guest-clock anchors are checked below. */
+static void abort_native_fork(uint8_t implicit, uint8_t stop_get)
+{
+    static uint8_t image[16u + 2u * INES_PRG_BANK];
+    static uint8_t code[INES_PRG_BANK];
+    static struct dma_output expected, actual;
+    static struct dma_transitions transitions_a, transitions_b;
+    uint32_t flip = implicit != 0u ? 512u : 1000u;
+    uint8_t initial = implicit != 0u ? 0x0Du : 0x44u;
+    uint8_t fast = implicit != 0u ? 0x0Fu : 0x4Fu;
+    const uint8_t start[] = {0x78u, 0xA9u, initial, 0x8Du, 0x10u, 0x40u};
+    size_t length = sizeof start;
+    memcpy(code, start, length); /* SEI + rate write =8 clocks */
+    abort_guest_pad(code, &length, flip - 8u - 6u);
+    const uint8_t configure[] = {0xA9u, fast,  0x8Du, 0x10u, 0x40u, 0xA9u, 0u,
+                                 0x8Du, 0x12u, 0x40u, 0x8Du, 0x13u, 0x40u};
+    memcpy(code + length, configure, sizeof configure);
+    length += sizeof configure;
+    abort_guest_pad(code, &length, 29773u - stop_get - (flip + 10u) - 6u);
+    const uint8_t enable[] = {0xA9u, 0x10u, 0x8Du, 0x15u, 0x40u};
+    memcpy(code + length, enable, sizeof enable);
+    length += sizeof enable;
+    if (implicit != 0u) {
+        code[length++] = 0x24u; /* BIT $00 before the halted NOP opcode. */
+        code[length++] = 0u;
+        code[length++] = 0xEAu;
+    } else {
+        const uint8_t stop[] = {0xA9u, 0u, 0x8Du, 0x15u, 0x40u};
+        memcpy(code + length, stop, sizeof stop);
+        length += sizeof stop;
+    }
+    uint16_t continuation = (uint16_t)(0x8000u + length);
+    code[length++] = 0xE6u; /* INC $20; JMP continuation (eight clocks). */
+    code[length++] = 0x20u;
+    code[length++] = 0x4Cu;
+    code[length++] = (uint8_t)continuation;
+    code[length++] = (uint8_t)(continuation >> 8);
+    CHECK(length < sizeof code);
+    struct ines_spec spec = {0};
+    spec.prg_16k = 2u;
+    spec.prg_code = code;
+    spec.prg_code_len = length;
+    spec.reset_vector = 0x8000u;
+    size_t image_size = ines_build(image, sizeof image, &spec);
+    memset(image + 16u + 0x4000u, 0x77, 17u);
+    nesturbator *a = st_make_instance(), *b = st_make_instance();
+    uint8_t *state = NULL, *scratch = NULL, *final_a = NULL, *final_b = NULL;
+    CHECK(a != NULL && b != NULL && image_size != 0u);
+    if (a == NULL || b == NULL || image_size == 0u)
+        goto done;
+    st_load(a, image, image_size);
+    st_load(b, image, image_size);
+    size_t size = nesturbator_state_size(a);
+    state = malloc(size);
+    scratch = malloc(size);
+    final_a = malloc(size);
+    final_b = malloc(size);
+    CHECK(state != NULL && scratch != NULL && final_a != NULL && final_b != NULL);
+    if (state == NULL || scratch == NULL || final_a == NULL || final_b == NULL)
+        goto done;
+    dma_frame(a, st_buttons(1u), &expected);
+    uint8_t delay = implicit != 0u ? 1u : (uint8_t)(2u + stop_get);
+    uint32_t cut_cycle = implicit != 0u || stop_get != 0u ? 29781u : 29782u;
+    CHECK_EQ_U64(a->cpu_cycle, cut_cycle);
+    CHECK_EQ_HEX(a->cpu.pc, continuation);
+    CHECK_EQ_U64(a->apu.dmc.abort_delay, delay);
+    CHECK_EQ_U64(a->apu.dmc.remaining, 0u);
+    CHECK_EQ_U64(a->apu.dmc.dma_pending, 0u);
+    CHECK_EQ_U64(a->apu.dmc.buffer_empty, 0u);
+    CHECK_EQ_U64(a->apu.dmc.bits, 0u);
+    CHECK_EQ_U64(nesturbator_save_state(a, state, size), NESTURBATOR_OK);
+    memcpy(scratch, state, size);
+    scratch[8] = 5u;
+    scratch[9] = 0u;
+    st_recrc(scratch, size);
+    CHECK(st_refused(b, scratch, size, NESTURBATOR_ERR_STATE_FORMAT));
+    b->apu.dmc.abort_delay = 0u;
+    CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(b->apu.dmc.abort_delay, delay);
+    CHECK_EQ_U64(nesturbator_save_state(b, scratch, size), NESTURBATOR_OK);
+    CHECK(memcmp(state, scratch, size) == 0);
+    b->apu.dmc.abort_delay = 0u;
+    CHECK_EQ_U64(nesturbator_save_state(b, final_b, size), NESTURBATOR_OK);
+    size_t field = 0u, differences = 0u;
+    for (size_t offset = 64u; offset < size; ++offset) {
+        if (state[offset] != final_b[offset]) {
+            field = offset;
+            differences++;
+        }
+    }
+    CHECK_EQ_U64(differences, 1u);
+    memcpy(scratch, state, size);
+    scratch[field] = 4u;
+    st_recrc(scratch, size);
+    CHECK(st_refused(b, scratch, size, NESTURBATOR_ERR_STATE_INVALID));
+    CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+
+    /* Disposable copies audit the actual next guest INC instruction as
+       well as the uninterrupted public-frame continuation below. Its halted
+       opcode (implicit) or operand (explicit) repeats once: six clocks, not
+       five. No CPU or bus history is injected into either positive run. */
+    struct nesturbator next = *b, missing = *b;
+    missing.apu.dmc.abort_delay = 0u;
+    nesturbator__cpu_step(&next);
+    nesturbator__cpu_step(&missing);
+    CHECK_EQ_U64(next.cpu_cycle - b->cpu_cycle, 6u);
+    CHECK_EQ_U64(missing.cpu_cycle - b->cpu_cycle, 5u);
+    CHECK_EQ_HEX(next.cpu.pc, continuation + 2u);
+    CHECK_EQ_HEX(next.bus.ram[0x20u], 1u);
+    CHECK_EQ_U64(next.apu.dmc.abort_delay, 0u);
+
+    transitions_a.count = transitions_b.count = 0u;
+    nesturbator__apu_set_transition_sink(a, dma_transition, &transitions_a);
+    nesturbator__apu_set_transition_sink(b, dma_transition, &transitions_b);
+    dma_frame(a, st_buttons(2u), &expected);
+    dma_frame(b, st_buttons(2u), &actual);
+    CHECK(memcmp(expected.pixels, actual.pixels, sizeof expected.pixels) == 0);
+    CHECK_EQ_U64(expected.frame.audio_count, actual.frame.audio_count);
+    CHECK(memcmp(expected.pcm, actual.pcm, expected.frame.audio_count * sizeof expected.pcm[0]) ==
+          0);
+    CHECK_EQ_U64(expected.frame.ticks, actual.frame.ticks);
+    CHECK_EQ_U64(expected.frame.frame_number, actual.frame.frame_number);
+    CHECK_EQ_U64(transitions_a.count, transitions_b.count);
+    CHECK(transitions_a.count != 0u);
+    for (size_t event = 0u; event < transitions_a.count && event < transitions_b.count; ++event) {
+        CHECK_EQ_U64(transitions_a.cycle[event], transitions_b.cycle[event]);
+        CHECK(transitions_a.level[event] == transitions_b.level[event]);
+    }
+    CHECK(memcmp(a->bus.ram, b->bus.ram, sizeof a->bus.ram) == 0);
+    CHECK_EQ_U64(nesturbator_save_state(a, final_a, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(b, final_b, size), NESTURBATOR_OK);
+    CHECK(memcmp(final_a, final_b, size) == 0);
+    nesturbator__apu_set_transition_sink(a, NULL, NULL);
+    nesturbator__apu_set_transition_sink(b, NULL, NULL);
+    /* Correctly valued but missing stop history loses one real halted read.
+       The guest's eight-clock RAM loop retains that timing difference. */
+    CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+    b->apu.dmc.abort_delay = 0u;
+    dma_frame(b, st_buttons(2u), &actual);
+    CHECK(expected.frame.ticks != actual.frame.ticks);
+    CHECK_EQ_U64(nesturbator_save_state(b, final_b, size), NESTURBATOR_OK);
+    CHECK(memcmp(final_a, final_b, size) != 0);
+    printf(
+        "%s abort native fork: public frame1 cycle=%u delay=%u "
+        "pixels/PCM/transitions/effects/state=equal; missing-history rejected; format5 refused\n",
+        implicit != 0u ? "implicit" : "explicit", cut_cycle, (unsigned)delay);
+done:
+    free(state);
+    free(scratch);
+    free(final_a);
+    free(final_b);
+    nesturbator_destroy(a);
+    nesturbator_destroy(b);
+}
+
 /* One code path for file ROMs and in-memory images. */
 static void fork_image(const char *name, const uint8_t *img, size_t n, const uint32_t *forks,
                        size_t nforks, uint32_t end)
@@ -723,6 +897,9 @@ int main(int argc, char **argv)
     if (argc == 2 && strcmp(argv[1], "--dma") == 0) {
         dma_fork();
         conflict_latch_fork();
+        abort_native_fork(0u, 0u);
+        abort_native_fork(0u, 1u);
+        abort_native_fork(1u, 0u);
         CHECK_DONE();
     }
     if (argc == 2 && strcmp(argv[1], "--entry") == 0) {
@@ -766,6 +943,9 @@ int main(int argc, char **argv)
     if (stress) {
         dma_fork();
         conflict_latch_fork();
+        abort_native_fork(0u, 0u);
+        abort_native_fork(0u, 1u);
+        abort_native_fork(1u, 0u);
         static uint8_t buf[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
         static const uint16_t mappers[] = {0u, 4u};
         static const char *const names[] = {"stress-nrom", "stress-mmc3"};

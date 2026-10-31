@@ -54,7 +54,12 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 12 separates internal CPU and external data latches.
+   the same inputs. Revision 13 retains the one-cycle abort after an explicit
+   or implicit stop two/three clocks before reload. A write suppresses it,
+   while ordinary sample requests still retry. The selected early RP2A03G
+   model omits the later-G/H unexpected reload; the pinned ROM still accepts
+   both revision-dependent outcomes (HWC.01/19).
+   Revision 12 separates internal CPU and external data latches.
    DMC GET selects internal $4015-$4017 using parked core A15:5 and sample
    A4:0. Status reads preserve external data; controllers merge its upper bits
    (HWC.01/19). The existing per-cycle controller-clock profile is retained;
@@ -89,14 +94,16 @@ extern "C" {
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
    Revision 5 was the PPU fetch pipeline. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 12
+#define NESTURBATOR_BEHAVIOUR_REVISION 13
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
    NESTURBATOR_ERR_STATE_FORMAT; there is no converter. Before the first release that contains
    save states it stays 1 and the layout may change. After that release, any change to the state
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
-   same commit. Version 5 adds the internal CPU data latch, preserving external
+   same commit. Version 6 adds the one-shot abort countdown, preserving a
+   halt due in one to three future CPU clocks; formats 1 through 5 are refused
+   without conversion. Version 5 added the internal CPU data latch, preserving external
    held data independently; formats 1 through 4 are refused without conversion.
    Version 4 recorded the DMC output silence flag and its continuous
    bit-cycle position, including silent cycles; version 3 states are refused
@@ -112,7 +119,7 @@ extern "C" {
    output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a load does not
    enforce. Raising it is not a breaking change to the C interface and leaves
    NESTURBATOR_ABI_VERSION as it is. */
-#define NESTURBATOR_STATE_FORMAT_VERSION 5
+#define NESTURBATOR_STATE_FORMAT_VERSION 6
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
