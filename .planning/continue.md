@@ -1,25 +1,28 @@
-# Resume v6 after Phase 22 Plan 22-02
+# Resume v6 after Phase 22 Plan 22-03
 
 Read `AGENTS.md`, `.planning/STATE.md`, `.planning/REQUIREMENTS.md`,
 `.planning/ROADMAP.md`, and
 [Phase 22 context](phases/22-install-and-protect-progress/22-CONTEXT.md).
+Also read the [22-03 summary](phases/22-install-and-protect-progress/22-03-SUMMARY.md)
+and the next plan.
 
 ## Outcome and next actor
 
-Plans 22-01 and 22-02 are complete. Plan 22-02 moved the runner contract and
-examples into [docs/runner.md](../docs/runner.md), with option, exit, stop,
-status-table and link controls. Its scoped checks passed; full CI remains with
-the phase executor. Read the [22-02 summary](phases/22-install-and-protect-progress/22-02-SUMMARY.md)
-and [22-03 plan](phases/22-install-and-protect-progress/22-03-PLAN.md).
+Plans 22-01, 22-02 and 22-03 are complete. Plan 22-03 added canonical
+[release](../docs/releases.md) and [testing](../docs/testing.md) guides, and
+reduced README to the player route and focused developer links. Its six Task 1
+checks passed before and after the tracer commit; the final Task 2 selection
+passed 16/16. The marked install block and checked MMC3 clause remain unchanged.
+Full CI remains with the serial phase executor.
 
 The owner continues the phase by invoking:
 
 `$gsd-execute-phase 22`
 
-This resumes the remaining sequential plans, starting with release and
-engineering/testing guide migration. Context may be cleared first. Read STATE,
-this resume file and the next plan. Keep READY-01 and READY-06 pending until
-Phase 22 is complete; do not start Phase 23 early.
+This continues with Plan 22-04, the player installation, controls and progress
+route. Context may be cleared first. Read STATE, this resume file and Plan
+22-04. Keep READY requirements pending until Phase 22 is complete; do not start
+Phase 23 early.
 
 Six fallback edge assumptions and six descriptor-less prohibitions are explicitly
 flagged for downstream review. They do not create an owner gameplay/sign-off gate
@@ -50,6 +53,8 @@ availability and host menu wording remain execution-time observations.
   pre-existing unstaged `AGENTS.md` and `.planning/config.json` edits. Do not change
   global GSD/model settings in response to known runtime warnings.
 
-Plan 22-02 changed documentation and test-checker coverage only. It established
-no runtime, package-install, host-recovery or gameplay result. Alternatives are
-in the human-only discussion log; downstream agents use the context.
+Plan 22-03 changed documentation only and reused existing native test source
+and evidence. It did not run full CI, a conformance campaign, package creation
+or extraction, a live host session, private scene replay, or player-progress
+operations. Preserve the existing stops and user-owned unstaged
+`AGENTS.md` and `.planning/config.json` edits.

@@ -5,17 +5,17 @@ milestone_name: Player-ready NES and reproducible feedback
 current_phase: 22
 current_phase_name: Install and protect progress
 status: executing
-stopped_at: Completed 22-02-PLAN.md; Plan 22-03 is next
-last_updated: "2026-10-31T01:21:24.865Z"
+stopped_at: Completed 22-03-PLAN.md
+last_updated: "2026-10-31T01:31:30.453Z"
 last_activity: 2026-10-30
-last_activity_desc: Plan 22-02 completed
-state_head: 8a01df75e4e843826f981f88f00f7e4c453f5d6a
+last_activity_desc: Plan 22-03 completed
+state_head: e9d9449603e28ba45b1689a33c9d176b321c8a50
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 current_plan: null
 ---
 
@@ -25,34 +25,33 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v6 requirements and roadmap approval, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 22 is in progress. Plans 22-01 and 22-02 are complete; plans 22-03 and 22-04 remain.
+Current focus: Phase 22 is in progress. Plans 22-01 through 22-03 are complete; Plan 22-04 remains.
 
 ## Current Position
 
 Phase: 22 (Install and protect progress) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
-Last activity: 2026-10-30 — Plan 22-02 completed and committed
+Last activity: 2026-10-30 — Plan 22-03 completed and committed
 
 ## Next Action
 
-Plans 22-01 and 22-02 are complete. Plan 22-02 added the canonical runner guide
-and focused option, exit, stop, status and link controls. Its runner migration
-ledger and scoped evidence are in
-[22-02-SUMMARY.md](phases/22-install-and-protect-progress/22-02-SUMMARY.md).
-READY-01 and READY-06 remain pending until the other sequential Phase 22 plans
-finish.
+Plans 22-01, 22-02 and 22-03 are complete. Plan 22-03 added the canonical
+release and testing guides and reconciled the original README material in
+[22-03-SUMMARY.md](phases/22-install-and-protect-progress/22-03-SUMMARY.md).
+Its final focused documentation and package-policy selection passed 16/16.
+READY requirements remain pending until Phase 22 is complete.
 
-The phase executor continues with Plan 22-03 when the owner invokes:
+Plan 22-04 is the next sequential plan. The phase executor continues when the
+owner invokes:
 
 `$gsd-execute-phase 22`
 
-This resumes the remaining sequential Phase 22 plans, starting with release and
-engineering/testing guide migration. Context may be cleared first; read this
-state, the linked summary and the next plan. Do not start Plan 22-04 or Phase 23
-early. The focused documentation and contract checks passed; full CI remains
-with the phase executor. No runtime behavior, package, host operation, push,
-release or gameplay acceptance is claimed.
+This resumes Phase 22 at player installation, identity, controls and progress.
+Context may be cleared first; read this state, the resume file and Plan 22-04.
+Do not start Phase 23 early. Full CI remains with the serial phase executor.
+No runtime behavior, package, host operation, push, release or gameplay
+acceptance is claimed.
 
 Six fallback edge assumptions and six descriptor-less prohibitions remain
 explicitly flagged for downstream review; they are not implementation passes.
@@ -107,8 +106,8 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T01:21:24.849Z
-**Stopped at:** Completed 22-02-PLAN.md; Plan 22-03 is next
+**Last session:** 2026-10-31T01:31:30.434Z
+**Stopped at:** Completed 22-03-PLAN.md
 **Next command:** `$gsd-execute-phase 22`
 **Resume file:** .planning/continue.md
 
@@ -118,6 +117,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 |------|----------|-------|-------|
 | Phase 22 P01 | 13 min | 2 tasks | 5 files |
 | Phase 22 P02 | 12min | 2 tasks | 5 files |
+| Phase 22 P03 | 9 min | 2 tasks | 3 files |
 
 ## Decisions
 
@@ -126,3 +126,6 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 - [Phase 22]: docs/runner.md is the canonical home for runner options, examples, stop behavior and exit status.
 - [Phase 22]: Runner save/state file behavior stays in the runner guide; native payload and library span contracts link to docs/api.md.
 - [Phase 22]: Keep the checked MMC3 support clause in README while linking its detailed runner contract.
+- [Phase 22]: docs/releases.md owns archive inventory, install-line checks, marker mechanics, publication order and attestation provenance; the README keeps its marked install command.
+- [Phase 22]: docs/testing.md owns engineering checks and evidence limits, with API, runner and release semantics linked to their canonical guides.
+- [Phase 22]: Built-module tests, build-tree archive checks, six-target CI packaging and live host evidence remain distinct.

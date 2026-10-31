@@ -7,15 +7,15 @@
 - ✅ **v3 Save states and rewind** — Phases 11–15 (shipped 2026-10-13) — [archive](milestones/v3-ROADMAP.md)
 - ✅ **v4 Measured NTSC accuracy and robustness** — Phases 16–18 (shipped 2026-10-24) — [archive](milestones/v4-ROADMAP.md)
 - ✅ **v5 NMI, VBlank and sprite-0 timing** — Phases 19–21 (shipped 2026-10-30; package publication pending) — [archive](milestones/v5-ROADMAP.md)
-- **v6 Player-ready NES and reproducible feedback** — Phases 22–23 (approved 2026-10-30; not started)
+- **v6 Player-ready NES and reproducible feedback** — Phases 22–23 (approved 2026-10-30; Phase 22 underway)
 
 ## v6: Player-ready NES and reproducible feedback
 
 **Status:** Approved execution contract. The owner approved the ten requirements
 and two-phase roadmap with “yes i approve” on 2026-10-30. Milestone opening is
 complete; Phase 22 discussion and planning are complete with independent plan
-verification passed. Phase 22 implementation is underway: Plans 22-01 and 22-02
-are complete, Plans 22-03 and 22-04 remain. Phase 23 remains pending.
+verification passed. Phase 22 implementation is underway: Plans 22-01 through
+22-03 are complete; Plan 22-04 remains. Phase 23 remains pending.
 
 **Goal:** A player can install an identified core, protect daily progress and
 supply a precise scene report that a developer can reproduce with existing facilities.
@@ -56,7 +56,7 @@ progress across an identified core upgrade or rollback.
    controls still reject missing or contradictory contracts. No assertion is
    dropped merely to shorten the README.
 
-**Plans:** 2/4 plans executed in 4 sequential waves; independent plan verification passed.
+**Plans:** 3/4 plans executed in 4 sequential waves; independent plan verification passed.
 
 **Wave 1**
 
@@ -68,7 +68,7 @@ progress across an identified core upgrade or rollback.
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 22-03-PLAN.md — Release and engineering/testing guide migration
+- [x] 22-03-PLAN.md — Release and engineering/testing guide migration
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -127,13 +127,13 @@ daily progress and choose the next evidence source without overclaiming a diagno
 
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
-| 22. Install and protect progress | 2/4 | In Progress | — |
+| 22. Install and protect progress | 3/4 | In Progress | — |
 | 23. Reproduce and report a scene | 0 / not planned | Not started | — |
 
 **Requirement coverage:** 10/10 mapped exactly once; 0 unmapped.
-**Next action:** Run `$gsd-execute-phase 22` to continue with release/testing
-guide migration and then player install/control/progress. Context may be cleared
-first; read STATE.md and its resume file.
+**Next action:** Run `$gsd-execute-phase 22` to continue with player installation,
+identity, controls and progress in Plan 22-04. Context may be cleared first;
+read STATE.md, its resume file and Plan 22-04.
 
 ## Backlog disposition
 
@@ -147,4 +147,4 @@ No seed files were modified. The three pending property/mutation/signal proposal
 were inspected and have no confident requirement match here; they remain unlinked
 and deferred. All future direction remains in PRODUCT-ROADMAP.md.
 
-*Last updated: 2026-10-30 after Plans 22-01 and 22-02 execution.*
+*Last updated: 2026-10-30 after Plan 22-03 execution.*
