@@ -30,6 +30,8 @@ on:
   # run: its presets and test registrations, the fetch, converter and run
   # scripts, the harness, and the CPU with the header and build file it is
   # compiled from, whose full 10000-test behaviour only this lane exercises.
+  # Release Please PRs already run required CI for source changes on main; the
+  # non-required Nightly lanes skip those generated PRs and run on the main push.
   pull_request:
     paths:
       - .github/workflows/nightly.yml
@@ -62,6 +64,10 @@ permissions: {}
 
 jobs:
   vectors-full:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.user.login != 'nesturbator-release[bot]' ||
+      !startsWith(github.event.pull_request.title, 'chore(main): release ')
     runs-on: ubuntu-24.04
     # The fetch is a network transfer, so it gets its own allowance, the 900 s
     # TIMEOUT of cpu.vectors-full.fetch in tests/CMakeLists.txt; the rest gets
@@ -131,6 +137,10 @@ jobs:
             "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$ARTIFACT" >> "$GITHUB_STEP_SUMMARY"
 
   mmc3-oracle:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.user.login != 'nesturbator-release[bot]' ||
+      !startsWith(github.event.pull_request.title, 'chore(main): release ')
     runs-on: ubuntu-24.04
     # The fetch is a network transfer, so it gets its own allowance, the 300 s
     # TIMEOUT of mmc3.oracle.fetch in tests/CMakeLists.txt; the rest gets twice
@@ -196,6 +206,10 @@ jobs:
             "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$ARTIFACT" >> "$GITHUB_STEP_SUMMARY"
 
   rom-loader-fuzz:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.user.login != 'nesturbator-release[bot]' ||
+      !startsWith(github.event.pull_request.title, 'chore(main): release ')
     runs-on: ubuntu-24.04
     # Twice the slowest of 40 sampled successful runs: 85 s in run 38347599457, rounded up to 3 minutes, ENGINEERING section 5.
     timeout-minutes: 3
@@ -241,6 +255,10 @@ jobs:
             >> "$GITHUB_STEP_SUMMARY"
 
   state-fuzz:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.user.login != 'nesturbator-release[bot]' ||
+      !startsWith(github.event.pull_request.title, 'chore(main): release ')
     runs-on: ubuntu-24.04
     # Twice the slowest of 37 sampled successful runs: 99 s in run 38289608338, rounded up to 4 minutes, ENGINEERING section 5.
     timeout-minutes: 4
@@ -304,6 +322,10 @@ jobs:
             >> "$GITHUB_STEP_SUMMARY"
 
   execution-fuzz:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.user.login != 'nesturbator-release[bot]' ||
+      !startsWith(github.event.pull_request.title, 'chore(main): release ')
     runs-on: ubuntu-24.04
     # Pilot completed in 33 s (run 40129666207); the 180 s process cap plus
     # 120 s for self-test, artifact upload and cleanup fits the 5-minute
@@ -370,6 +392,10 @@ jobs:
   # times in random order, failing on any failure. Linux only; the PR's
   # six-platform CI run covers the other hosts once.
   suite-flake:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.user.login != 'nesturbator-release[bot]' ||
+      !startsWith(github.event.pull_request.title, 'chore(main): release ')
     runs-on: ubuntu-24.04
     # The 40-minute cap was based on 39 successful samples (1173 s maximum).
     # Exact-head run 40136996662 reached the third session-controls repeat at
@@ -400,6 +426,10 @@ jobs:
   # Linux and Apple Silicon run these once per required CI invocation. Keep
   # Intel coverage here rather than multiplying the serial matrix on every PR.
   session-controls:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.user.login != 'nesturbator-release[bot]' ||
+      !startsWith(github.event.pull_request.title, 'chore(main): release ')
     runs-on: macos-15-intel
     # Successful Intel build run 38645462773 took 1,151 s including the matrix;
     # retain that measured 39-minute envelope until this isolated job is measured.

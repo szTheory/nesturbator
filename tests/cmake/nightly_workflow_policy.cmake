@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.25)
 
+set(release_pr_guard
+  "    if: >-\n      github.event_name != 'pull_request' ||\n      github.event.pull_request.user.login != 'nesturbator-release[bot]' ||\n      !startsWith(github.event.pull_request.title, 'chore(main): release ')")
+
 function(check_nightly_policy workflow out_error)
   # Ignore YAML and shell comments so documentation cannot satisfy a policy.
   string(REPLACE "\r\n" "\n" workflow "${workflow}")
@@ -20,8 +23,9 @@ function(check_nightly_policy workflow out_error)
   # Each lane is checked on its own text: from its two-space job header to the
   # next two-space job header, so a step in one lane cannot satisfy another.
   set(lanes vectors-full mmc3-oracle)
+  set(nightly_jobs vectors-full mmc3-oracle rom-loader-fuzz state-fuzz execution-fuzz suite-flake session-controls)
   set(report_job "")
-  foreach(job IN LISTS lanes ITEMS execution-fuzz report)
+  foreach(job IN LISTS nightly_jobs ITEMS report)
     set(job_text "")
     set(in_job FALSE)
     foreach(line IN LISTS active)
@@ -39,9 +43,15 @@ function(check_nightly_policy workflow out_error)
     set(job_text_${job} "${job_text}")
     if(job STREQUAL "report")
       set(report_job "${job_text}")
+    else()
+      string(FIND "${job_text}" "${release_pr_guard}" release_guard_index)
+      if(release_guard_index LESS 0)
+        set(${out_error} ".github/workflows/nightly.yml: release-pr-skip: ${job} must skip only generated Release Please PRs" PARENT_SCOPE)
+        return()
+      endif()
     endif()
   endforeach()
-  foreach(job IN LISTS lanes ITEMS execution-fuzz report)
+  foreach(job IN LISTS nightly_jobs ITEMS report)
     set(in_job FALSE)
     set(in_permissions FALSE)
     set(job_permissions)
@@ -247,7 +257,7 @@ endfunction()
 # One lane's minimal clean job text: inventory before the workflow command,
 # then the evidence step and the pinned upload.
 function(lane_fixture lane registration out_text)
-  set(text "  ${lane}:\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          persist-credentials: false\n      - run: cmake --preset ${lane}\n      - run: ctest --test-dir build/${lane} --show-only=json-v1\n${registration}      - run: cmake --workflow --preset ${lane}\n      - name: Verify run evidence\n        if: always()\n        run: |\n          test -s build/${lane}/registered-tests.json\n          test -s build/${lane}/${lane}.junit.xml\n      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9\n        if: always()\n        with:\n          if-no-files-found: error\n")
+  set(text "  ${lane}:\n${release_pr_guard}\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          persist-credentials: false\n      - run: cmake --preset ${lane}\n      - run: ctest --test-dir build/${lane} --show-only=json-v1\n${registration}      - run: cmake --workflow --preset ${lane}\n      - name: Verify run evidence\n        if: always()\n        run: |\n          test -s build/${lane}/registered-tests.json\n          test -s build/${lane}/${lane}.junit.xml\n      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9\n        if: always()\n        with:\n          if-no-files-found: error\n")
   set(${out_text} "${text}" PARENT_SCOPE)
 endfunction()
 
@@ -255,8 +265,12 @@ function(clean_fixture out_text)
   set(text "# cache: actions/cache is only a comment.\nname: Nightly\non:\n  schedule:\n    - cron: \"17 4 * * *\"\n  workflow_dispatch:\n    inputs:\n      execution_mode:\n        description: Select bounded Linux run mode\n        required: true\n        type: choice\n        options: [pilot, campaign]\n        default: pilot\n  push:\n    branches: [main]\npermissions: {}\njobs:\n")
   lane_fixture(vectors-full "      - run: cmake -DFULL_ONLY=ON -P tests/cmake/vector_registration_policy.cmake\n" vectors)
   lane_fixture(mmc3-oracle "" mmc3)
-  set(execution_fixture "  execution-fuzz:\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          persist-credentials: false\n      - name: Run bounded execution campaign\n        env:\n          MODE: \${{ github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'pilot' && 'pilot' || 'campaign' }}\n        run: |\n          if [ \"$MODE\" = pilot ]; then\n            DRIVER=tests/cmake/execution_measure.cmake\n          else\n            DRIVER=tests/cmake/execution_campaign.cmake\n          fi\n          timeout 300s cmake -DOUTPUT_DIR=\"$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID\" -DBUDGET_FILE=tests/fuzz/execution-budgets.txt -DMODE=\"$MODE\" -P \"$DRIVER\"\n      - name: Verify deliberate artifact controls\n        if: always()\n        run: |\n          cmake -DOUTPUT_DIR=\"$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID\" -DMODE=self-test -P tests/cmake/execution_campaign.cmake\n          test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/crash-expected\n          test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/timeout-expected\n      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9\n        if: always()\n        with:\n          name: execution-fuzz-evidence-\${{ github.run_id }}\n          path: build/execution-fuzz-evidence/\${{ github.run_id }}/\n          if-no-files-found: error\n")
-  string(APPEND text "${vectors}${mmc3}${execution_fixture}  report:\n    needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, state-fuzz, execution-fuzz, suite-flake]\n    permissions:\n      issues: write\n    run: echo 'Execution fuzz outcome: %s'\n    env:\n      RESULT: \${{ needs.execution-fuzz.result == 'success' && 'success' || 'failure' }}\n      EXECUTION_FUZZ: \${{ needs.execution-fuzz.outputs.outcome }}\n")
+  set(execution_fixture "  execution-fuzz:\n${release_pr_guard}\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: read\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          persist-credentials: false\n      - name: Run bounded execution campaign\n        env:\n          MODE: \${{ github.event_name == 'workflow_dispatch' && inputs.execution_mode == 'pilot' && 'pilot' || 'campaign' }}\n        run: |\n          if [ \"$MODE\" = pilot ]; then\n            DRIVER=tests/cmake/execution_measure.cmake\n          else\n            DRIVER=tests/cmake/execution_campaign.cmake\n          fi\n          timeout 300s cmake -DOUTPUT_DIR=\"$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID\" -DBUDGET_FILE=tests/fuzz/execution-budgets.txt -DMODE=\"$MODE\" -P \"$DRIVER\"\n      - name: Verify deliberate artifact controls\n        if: always()\n        run: |\n          cmake -DOUTPUT_DIR=\"$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID\" -DMODE=self-test -P tests/cmake/execution_campaign.cmake\n          test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/crash-expected\n          test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/fixtures/timeout-expected\n      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9\n        if: always()\n        with:\n          name: execution-fuzz-evidence-\${{ github.run_id }}\n          path: build/execution-fuzz-evidence/\${{ github.run_id }}/\n          if-no-files-found: error\n")
+  set(simple_jobs "")
+  foreach(job IN ITEMS rom-loader-fuzz state-fuzz suite-flake session-controls)
+    string(APPEND simple_jobs "  ${job}:\n${release_pr_guard}\n    permissions:\n      contents: read\n    runs-on: ubuntu-24.04\n    steps:\n      - run: true\n")
+  endforeach()
+  string(APPEND text "${vectors}${mmc3}${execution_fixture}${simple_jobs}  report:\n    needs: [vectors-full, mmc3-oracle, rom-loader-fuzz, state-fuzz, execution-fuzz, suite-flake]\n    permissions:\n      issues: write\n    run: echo 'Execution fuzz outcome: %s'\n    env:\n      RESULT: \${{ needs.execution-fuzz.result == 'success' && 'success' || 'failure' }}\n      EXECUTION_FUZZ: \${{ needs.execution-fuzz.outputs.outcome }}\n")
   string(REPLACE
     [[cmake -DOUTPUT_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID" -DMODE=self-test -P tests/cmake/execution_campaign.cmake]]
     [[cmake -DOUTPUT_DIR="$GITHUB_WORKSPACE/build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test" -DMODE=self-test -P tests/cmake/execution_campaign.cmake]]
@@ -270,8 +284,8 @@ function(clean_fixture out_text)
     [[test -s build/execution-fuzz-evidence/$GITHUB_RUN_ID/self-test/reproducers/rom-loader/timeout-synthetic-control]]
     text "${text}")
   string(REPLACE "default: pilot" "default: campaign" text "${text}")
-  string(REPLACE "  execution-fuzz:\n    runs-on: ubuntu-24.04\n    permissions:"
-    "  execution-fuzz:\n    runs-on: ubuntu-24.04\n    timeout-minutes: 5\n    permissions:" text "${text}")
+  string(REPLACE "  execution-fuzz:\n${release_pr_guard}\n    runs-on: ubuntu-24.04\n    permissions:"
+    "  execution-fuzz:\n${release_pr_guard}\n    runs-on: ubuntu-24.04\n    timeout-minutes: 5\n    permissions:" text "${text}")
   string(REPLACE "timeout 300s cmake" "timeout 180s cmake" text "${text}")
   set(${out_text} "${text}" PARENT_SCOPE)
 endfunction()
@@ -304,7 +318,7 @@ if(SELFTEST)
   endif()
   set(evidence_step "      - name: Verify run evidence\n        if: always()\n        run: |\n          test -s build/mmc3-oracle/registered-tests.json\n          test -s build/mmc3-oracle/mmc3-oracle.junit.xml\n")
   set(workflow_step "      - run: cmake --workflow --preset mmc3-oracle\n")
-  foreach(mutation cache skip permission privileged
+  foreach(mutation cache skip permission privileged release-pr-guard
       mmc3-evidence mmc3-write mmc3-skip mmc3-needs mmc3-order)
     set(mutated "${clean}")
     if(mutation STREQUAL cache)
@@ -315,6 +329,8 @@ if(SELFTEST)
       string(REPLACE "      contents: read" "      contents: write" mutated "${mutated}")
     elseif(mutation STREQUAL privileged)
       string(APPEND mutated "  pull_request_target:\n")
+    elseif(mutation STREQUAL release-pr-guard)
+      mutate_mmc3("${mutated}" "${release_pr_guard}\n" "" mutated)
     elseif(mutation STREQUAL mmc3-evidence)
       mutate_mmc3("${mutated}" "${evidence_step}" "" mutated)
     elseif(mutation STREQUAL mmc3-write)
