@@ -6,10 +6,10 @@ current_phase: 24
 current_phase_name: Correct remaining NTSC DMA behavior
 status: planning
 stopped_at: "Phase 24 planning complete; next command: $gsd-execute-phase 24"
-last_updated: "2026-10-31T18:32:32Z"
+last_updated: "2026-10-31T18:33:34Z"
 last_activity: 2026-10-31
-last_activity_desc: Phase 24 research and four plans finalized. No implementation, tests, full CI, or campaign ran.
-state_head: a4cc2e8e98ea3510b839c1e481eb8ed380383bbb
+last_activity_desc: Phase 24 planning artifacts committed. No implementation, tests, full CI, or campaign ran.
+state_head: 411bab4db8145eb0c499884bbaa84ea38f641143
 progress:
   total_phases: 1
   completed_phases: 0
@@ -35,7 +35,7 @@ Progress: [░░░░░░░░░░] 0%
 
 ## Next Action
 
-Phase 24 planning is complete: four sequential plans passed independent review with no findings; DMA-01 through DMA-04 and all eight locked decisions are covered; the roadmap lists the four plans and their wave dependencies; and the post-planning gap analysis found no uncovered items. Planning artifacts are being committed with this step. No implementation, tests, full CI, or AccuracyCoin campaign ran. The active CI/campaign stop remains; no full CI or AccuracyCoin campaign may run without separate authorization.
+Phase 24 planning is complete: four sequential plans passed independent review with no findings; DMA-01 through DMA-04 and all eight locked decisions are covered; the roadmap lists the four plans and their wave dependencies; and the post-planning gap analysis found no uncovered items. The research, plans, roadmap annotations, state and resume note were committed with this step. No implementation, tests, full CI, or AccuracyCoin campaign ran. The active CI/campaign stop remains; no full CI or AccuracyCoin campaign may run without separate authorization.
 Next command: `$gsd-execute-phase 24`.
 It executes the four plans in wave order, starting with the DMA Landing on Write tracer. The campaign stop remains active; if required project CI schedules `accuracycoin.campaign`, stop before that command and keep phase requirements incomplete until separate authorization and evidence exist. Context may be cleared before running it; read this file and [24-PLANNING-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-PLANNING-RESUME.md) first.
 
@@ -90,7 +90,7 @@ v7: no plans executed. v6 completed seven plans; detailed timing remains in the 
 
 ## Session Continuity
 
-**Last session:** 2026-10-31T18:32:32Z
+**Last session:** 2026-10-31T18:33:34Z
 **Stopped at:** Phase 24 planning complete; ready to execute
 **Next command:** `$gsd-execute-phase 24`
 **Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-PLANNING-RESUME.md
