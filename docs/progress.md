@@ -46,6 +46,9 @@ describe the frontend's disk container or recovery policy. Check the guide
 from the source tag that matches the binary you run; an older published core
 may have different behavior.
 
+See the [native save-state contract](api.md#save-states) for the canonical API
+rules and the distinction between supported build pairing and loader checks.
+
 Battery-save reuse across core builds is separate from snapshot support. Reuse
 an existing battery file with a different build only when the content, board,
 save geometry and compatibility have been established. Otherwise keep both
@@ -80,6 +83,9 @@ back; `runner.state.roundtrip` checks a compatible native state roundtrip;
 `runner.state.reject_format` deliberately changes a generated state version
 and expects the runner to refuse it. The native runner refusal is not evidence
 about a RetroArch disk container.
+
+The [disposable progress fixture instructions](testing.md#disposable-progress-fixtures)
+describe the owned helpers and the scope of the reused native and host evidence.
 
 From the repository root, use a fresh scratch/build directory for each
 simultaneous invocation. The registered tests create case-specific scratch

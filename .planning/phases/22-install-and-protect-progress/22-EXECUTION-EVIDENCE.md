@@ -32,7 +32,12 @@ have been checked before invoking CTest. It completed under the unchanged
 registered bounds; no further campaign was started for the refresh. An
 interim scope question about starting a new campaign was therefore superseded
 by discovery of the already-produced evidence; it supplies no additional
-runtime authority.
+runtime authority. The owner later explicitly selected “Authorize bounded
+refresh (Recommended).” That authorization is limited to the existing permitted
+native fixture, unchanged 1,800-frame page caps and 370-second outer limit,
+with matching results required before refreshing provenance. Existing evidence
+already met those conditions, so no additional campaign was needed. This does
+not renew any historical host/device/campaign window.
 
 Only `tests/CMakeLists.txt` changed among the 56 fingerprinted inputs.
 Substituting its pre-phase bytes reconstructs the previous accepted fingerprint
