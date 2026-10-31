@@ -105,7 +105,7 @@ daily progress and choose the next evidence source without overclaiming a diagno
    oracle would need, and records the current commercial reports as unclassified.
    Repeated hashes alone are never labeled a correctness or scene-fix result.
 
-**Plans:** 2/3 plans executed in 3 sequential waves; independent plan verification passed. Use a small owned helper only after confirming the missing facility.
+**Plans:** 3/3 plans executed in 3 sequential waves; independent plan verification passed. Use a small owned helper only after confirming the missing facility.
 
 **Wave 1**
 
@@ -117,7 +117,7 @@ daily progress and choose the next evidence source without overclaiming a diagno
 
 **Wave 3** *(depends on Wave 2)*
 
-- [ ] 23-03-PLAN.md — Layer-specific triage, independent oracle and complete guide verification
+- [x] 23-03-PLAN.md — Layer-specific triage, independent oracle and complete guide verification
 
 [Research](phases/23-reproduce-and-report-a-scene/23-RESEARCH.md) and
 [plan verification](phases/23-reproduce-and-report-a-scene/23-PLAN-CHECK.md).
@@ -146,7 +146,7 @@ daily progress and choose the next evidence source without overclaiming a diagno
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
 | 22. Install and protect progress | 4/4 | Complete    | 2026-10-30 |
-| 23. Reproduce and report a scene | 2/3 | In Progress | — |
+| 23. Reproduce and report a scene | 3/3 | In Progress | — |
 
 **Requirement coverage:** 10/10 mapped exactly once; 0 unmapped.
 **Next action:** `$gsd-execute-phase 23` — finish Phase 23 plan 23-03. Context

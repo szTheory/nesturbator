@@ -21,7 +21,7 @@
 - [x] **REPRO-01**: A player can submit a sanitized scene report identifying the content revision/digest, actual core/build and host, scene/access route, inputs, expected/observed behavior, repeatability and untried conditions.
 - [x] **REPRO-02**: A developer can follow a bounded existing-runner/host recipe on a permitted fixture to replay recorded inputs from cold boot and a supported checkpoint and compare frame/audio outputs across repeated runs.
 - [x] **REPRO-03**: A developer can run the documented reproduction in isolated scratch storage with explicit frame/time limits, keep private artifacts out of public output, and receive a clear stop or unsupported result for identity/container mismatches instead of silently using a wrong checkpoint.
-- [ ] **REPRO-04**: A developer can follow a documented triage route that separates native output, adapter conversion, host presentation and original-game behavior, and records repeatability separately from independently established correctness.
+- [x] **REPRO-04**: A developer can follow a documented triage route that separates native output, adapter conversion, host presentation and original-game behavior, and records repeatability separately from independently established correctness.
 
 ## Acceptance boundaries
 
@@ -114,7 +114,7 @@ Approved mapping; each requirement belongs to exactly one phase. Implementation 
 | REPRO-01 | Phase 23 | Complete |
 | REPRO-02 | Phase 23 | Complete |
 | REPRO-03 | Phase 23 | Complete |
-| REPRO-04 | Phase 23 | Pending |
+| REPRO-04 | Phase 23 | Complete |
 
 **Coverage:** 10 approved v6 requirements; 10 mapped exactly once; 0 unmapped.
 
