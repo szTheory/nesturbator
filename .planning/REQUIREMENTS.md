@@ -2,7 +2,7 @@
 
 **Milestone:** Player-ready NES and reproducible feedback
 **Defined:** 2026-10-30
-**Status:** Approved 2026-10-30; Phase 22 READY requirements implemented and verified; Phase 23 not started. The owner approved the concrete requirements and two-phase roadmap with “yes i approve”.
+**Status:** Approved 2026-10-30; Phase 22 READY requirements implemented and verified; Phase 23 plan 23-01 completed (REPRO-01/02/03), with plans 23-02/03 pending. The owner approved the concrete requirements and two-phase roadmap with “yes i approve”.
 **Core Value:** Games behave as on the console, identically across platforms, from a small MIT C library.
 
 ## v6 Requirements
@@ -18,9 +18,9 @@
 
 ### Reproduce and report a scene
 
-- [ ] **REPRO-01**: A player can submit a sanitized scene report identifying the content revision/digest, actual core/build and host, scene/access route, inputs, expected/observed behavior, repeatability and untried conditions.
-- [ ] **REPRO-02**: A developer can follow a bounded existing-runner/host recipe on a permitted fixture to replay recorded inputs from cold boot and a supported checkpoint and compare frame/audio outputs across repeated runs.
-- [ ] **REPRO-03**: A developer can run the documented reproduction in isolated scratch storage with explicit frame/time limits, keep private artifacts out of public output, and receive a clear stop or unsupported result for identity/container mismatches instead of silently using a wrong checkpoint.
+- [x] **REPRO-01**: A player can submit a sanitized scene report identifying the content revision/digest, actual core/build and host, scene/access route, inputs, expected/observed behavior, repeatability and untried conditions.
+- [x] **REPRO-02**: A developer can follow a bounded existing-runner/host recipe on a permitted fixture to replay recorded inputs from cold boot and a supported checkpoint and compare frame/audio outputs across repeated runs.
+- [x] **REPRO-03**: A developer can run the documented reproduction in isolated scratch storage with explicit frame/time limits, keep private artifacts out of public output, and receive a clear stop or unsupported result for identity/container mismatches instead of silently using a wrong checkpoint.
 - [ ] **REPRO-04**: A developer can follow a documented triage route that separates native output, adapter conversion, host presentation and original-game behavior, and records repeatability separately from independently established correctness.
 
 ## Acceptance boundaries
@@ -111,9 +111,9 @@ Approved mapping; each requirement belongs to exactly one phase. Implementation 
 | READY-04 | Phase 22 | Complete |
 | READY-05 | Phase 22 | Complete |
 | READY-06 | Phase 22 | Complete |
-| REPRO-01 | Phase 23 | Pending |
-| REPRO-02 | Phase 23 | Pending |
-| REPRO-03 | Phase 23 | Pending |
+| REPRO-01 | Phase 23 | Complete |
+| REPRO-02 | Phase 23 | Complete |
+| REPRO-03 | Phase 23 | Complete |
 | REPRO-04 | Phase 23 | Pending |
 
 **Coverage:** 10 approved v6 requirements; 10 mapped exactly once; 0 unmapped.
