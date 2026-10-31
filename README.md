@@ -117,6 +117,9 @@ for the scratch-only walkthrough, compatibility limits and rollback steps.
 
 ## Troubleshooting
 
+[Report a scene or reproduce a permitted fixture](docs/reproduction.md)
+
+
 - **The core is missing or may be the wrong build:** Confirm the archive OS and
   executable architecture, then check the configured `Cores` and `Core Info`
   directories and select nesturbator explicitly. A displayed name/version is

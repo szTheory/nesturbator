@@ -1615,6 +1615,24 @@ add_test(NAME runner.version
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_version.cmake)
 
+# REPRO-01/02: replay the public permitted movie twice and compare every
+# native frame record plus both audio representations under nested timeouts.
+add_test(NAME runner.reproduction.cold
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DMOVIE_WRITER=$<TARGET_FILE:runner.game_movie>"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/runner.nes"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-cold"
+    -DMODE=cold
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.cold PROPERTIES TIMEOUT 180)
+add_test(NAME runner.reproduction.compare_self_test
+  COMMAND ${CMAKE_COMMAND}
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-compare-self-test"
+    -DMODE=compare_self_test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.compare_self_test PROPERTIES TIMEOUT 60)
+
 # Every script in tests/cmake sets its policy version, so CMake reads it the
 # same way on every runner.
 add_test(NAME cmake.script_policy
