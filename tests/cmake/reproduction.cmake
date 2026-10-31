@@ -20,6 +20,90 @@ function(reproduction_fresh_root parent prefix out)
   endwhile()
 endfunction()
 
+function(reproduction_preflight_require_digest label digest)
+  if("${digest}" STREQUAL "")
+    message(FATAL_ERROR "reproduction unsupported: recorded ${label} SHA-256 is missing")
+  endif()
+  if(NOT "${digest}" MATCHES "^[0-9A-Fa-f]+$")
+    message(FATAL_ERROR "reproduction unsupported: recorded ${label} SHA-256 is not hexadecimal")
+  endif()
+  string(LENGTH "${digest}" digest_length)
+  if(NOT digest_length EQUAL 64)
+    message(FATAL_ERROR "reproduction unsupported: recorded ${label} SHA-256 must be 64 hexadecimal characters")
+  endif()
+endfunction()
+
+# This is procedure policy for a known, same-invocation runner checkpoint. It
+# is intentionally separate from the native loader, which validates its own
+# format and cartridge contents but does not pair a state with an exact build.
+function(reproduction_preflight state payload_kind runner rom recorded_runner_sha256
+    recorded_rom_sha256 recorded_state_sha256)
+  reproduction_preflight_require_digest("runner" "${recorded_runner_sha256}")
+  reproduction_preflight_require_digest("ROM" "${recorded_rom_sha256}")
+  reproduction_preflight_require_digest("state" "${recorded_state_sha256}")
+
+  if(payload_kind STREQUAL "retroarch-disk-state")
+    message(FATAL_ERROR "reproduction unsupported: host container is not a runner-native payload")
+  elseif(NOT payload_kind STREQUAL "runner-native-same-invocation")
+    message(FATAL_ERROR "reproduction unsupported: checkpoint origin is unknown or unverified")
+  endif()
+
+  foreach(path_label IN ITEMS runner ROM state)
+    if(path_label STREQUAL "runner")
+      set(path "${runner}")
+    elseif(path_label STREQUAL "ROM")
+      set(path "${rom}")
+    else()
+      set(path "${state}")
+    endif()
+    if(NOT EXISTS "${path}" OR IS_DIRECTORY "${path}")
+      message(FATAL_ERROR "reproduction unsupported: current ${path_label} file is unavailable")
+    endif()
+  endforeach()
+
+  file(SHA256 "${runner}" current_runner_sha256)
+  file(SHA256 "${rom}" current_rom_sha256)
+  file(SHA256 "${state}" current_state_sha256)
+  string(TOLOWER "${recorded_runner_sha256}" expected_runner_sha256)
+  string(TOLOWER "${recorded_rom_sha256}" expected_rom_sha256)
+  string(TOLOWER "${recorded_state_sha256}" expected_state_sha256)
+  if(NOT current_runner_sha256 STREQUAL expected_runner_sha256)
+    message(FATAL_ERROR "reproduction unsupported: recorded runner SHA-256 mismatch")
+  endif()
+  if(NOT current_rom_sha256 STREQUAL expected_rom_sha256)
+    message(FATAL_ERROR "reproduction unsupported: recorded ROM SHA-256 mismatch")
+  endif()
+  if(NOT current_state_sha256 STREQUAL expected_state_sha256)
+    message(FATAL_ERROR "reproduction unsupported: recorded state SHA-256 mismatch")
+  endif()
+  message(STATUS "runner.reproduction.preflight: exact runner, ROM and state digests match a same-invocation native checkpoint")
+endfunction()
+
+function(reproduction_expect_preflight_failure root case_name state payload_kind runner rom
+    recorded_runner_sha256 recorded_rom_sha256 recorded_state_sha256 expected)
+  execute_process(COMMAND "${CMAKE_COMMAND}"
+      "-DMODE=preflight_case"
+      "-DSTATE=${state}"
+      "-DPAYLOAD_KIND=${payload_kind}"
+      "-DRUNNER=${runner}"
+      "-DROM=${rom}"
+      "-DRECORDED_RUNNER_SHA256=${recorded_runner_sha256}"
+      "-DRECORDED_ROM_SHA256=${recorded_rom_sha256}"
+      "-DRECORDED_STATE_SHA256=${recorded_state_sha256}"
+      -P "${CMAKE_CURRENT_LIST_FILE}"
+    OUTPUT_VARIABLE out ERROR_VARIABLE err RESULT_VARIABLE rc TIMEOUT 10)
+  if("${rc}" STREQUAL "0")
+    message(FATAL_ERROR "runner.reproduction.preflight_self_test: ${case_name} was accepted")
+  endif()
+  string(CONCAT combined "${out}" "${err}")
+  string(FIND "${combined}" "${expected}" diagnostic_pos)
+  if(diagnostic_pos EQUAL -1)
+    string(REGEX MATCH "reproduction unsupported:[^\n]*" observed "${combined}")
+    message(FATAL_ERROR "runner.reproduction.preflight_self_test: ${case_name} expected '${expected}', observed '${observed}'")
+  endif()
+  message(STATUS "runner.reproduction.preflight_self_test: ${case_name} stopped before replay")
+endfunction()
+
 function(reproduction_parse_output output label frames_out transitions_out pcm_out)
   # Line endings are the only normalization; record contents remain exact.
   string(REPLACE "\r\n" "\n" normalized "${output}")
@@ -163,7 +247,7 @@ function(reproduction_expect_failure root case_name left right expected)
 endfunction()
 
 if(NOT DEFINED MODE OR MODE STREQUAL "")
-  message(FATAL_ERROR "reproduction: -DMODE=cold|compare_self_test is required")
+  message(FATAL_ERROR "reproduction: -DMODE=cold|compare_self_test|preflight_fixture|preflight_self_test|preflight_case is required")
 elseif(MODE STREQUAL "cold")
   foreach(var RUNNER MOVIE_WRITER ROM WORK)
     if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
@@ -269,6 +353,116 @@ elseif(MODE STREQUAL "compare_files")
   file(READ "${RIGHT_FILE}" right)
   reproduction_compare_outputs("${left}" "${right}" "${CASE_NAME}")
   message(STATUS "reproduction ${CASE_NAME}: outputs match")
+elseif(MODE STREQUAL "preflight_fixture")
+  foreach(var RUNNER NMI_FIXTURE WORK)
+    if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
+      message(FATAL_ERROR "reproduction preflight_fixture: -D${var}=... is required")
+    endif()
+  endforeach()
+  reproduction_fresh_root("${WORK}" "preflight" run_root)
+  set(rom "${run_root}/nmi.nes")
+  set(state "${run_root}/frame1.state")
+  execute_process(COMMAND "${NMI_FIXTURE}" write "${rom}"
+    OUTPUT_VARIABLE fixture_out ERROR_VARIABLE fixture_err RESULT_VARIABLE fixture_rc TIMEOUT 10)
+  file(WRITE "${run_root}/fixture.stdout" "${fixture_out}")
+  file(WRITE "${run_root}/fixture.stderr" "${fixture_err}")
+  if(NOT "${fixture_rc}" STREQUAL "0" OR NOT EXISTS "${rom}")
+    message(FATAL_ERROR "runner.reproduction.preflight: NMI fixture generation failed or exceeded 10 seconds (status ${fixture_rc})")
+  endif()
+  execute_process(COMMAND "${RUNNER}" --rom "${rom}" --frames 1
+      --state-at-frame "1:${state}" --hash-state 1
+    OUTPUT_VARIABLE runner_out ERROR_VARIABLE runner_err RESULT_VARIABLE runner_rc TIMEOUT 20)
+  file(WRITE "${run_root}/runner.stdout" "${runner_out}")
+  file(WRITE "${run_root}/runner.stderr" "${runner_err}")
+  if(NOT "${runner_rc}" STREQUAL "0" OR NOT EXISTS "${state}")
+    message(FATAL_ERROR "runner.reproduction.preflight: runner did not create the frame-1 checkpoint within 20 seconds (status ${runner_rc})")
+  endif()
+  if(NOT runner_out MATCHES "state 1 ticks [0-9]+ size [1-9][0-9]* sha256 [0-9a-f]+")
+    message(FATAL_ERROR "runner.reproduction.preflight: required frame-1 state identity output is missing")
+  endif()
+  # Record all three identities at creation in this invocation, then check
+  # those records with the same function exercised by the negative controls.
+  file(SHA256 "${RUNNER}" recorded_runner_sha256)
+  file(SHA256 "${rom}" recorded_rom_sha256)
+  file(SHA256 "${state}" recorded_state_sha256)
+  reproduction_preflight("${state}" "runner-native-same-invocation" "${RUNNER}" "${rom}"
+    "${recorded_runner_sha256}" "${recorded_rom_sha256}" "${recorded_state_sha256}")
+elseif(MODE STREQUAL "preflight_self_test")
+  if(NOT DEFINED WORK OR "${WORK}" STREQUAL "")
+    message(FATAL_ERROR "runner.reproduction.preflight_self_test: -DWORK=... is required")
+  endif()
+  reproduction_fresh_root("${WORK}" "preflight-self-test" run_root)
+  set(runner "${run_root}/runner.bin")
+  set(rom "${run_root}/rom.nes")
+  set(state "${run_root}/frame1.state")
+  file(WRITE "${runner}" "synthetic exact runner identity\n")
+  file(WRITE "${rom}" "synthetic exact content identity\n")
+  file(WRITE "${state}" "synthetic native state identity\n")
+  file(SHA256 "${runner}" recorded_runner_sha256)
+  file(SHA256 "${rom}" recorded_rom_sha256)
+  file(SHA256 "${state}" recorded_state_sha256)
+  reproduction_preflight("${state}" "runner-native-same-invocation" "${runner}" "${rom}"
+    "${recorded_runner_sha256}" "${recorded_rom_sha256}" "${recorded_state_sha256}")
+
+  string(SUBSTRING "${recorded_runner_sha256}" 0 1 first_hex)
+  string(SUBSTRING "${recorded_runner_sha256}" 1 -1 remaining_hex)
+  if(first_hex STREQUAL "0")
+    set(changed_first_hex "1")
+  else()
+    set(changed_first_hex "0")
+  endif()
+  set(changed_runner_sha256 "${changed_first_hex}${remaining_hex}")
+  reproduction_expect_preflight_failure("${run_root}" "changed-runner-identity" "${state}"
+    "runner-native-same-invocation" "${runner}" "${rom}" "${changed_runner_sha256}"
+    "${recorded_rom_sha256}" "${recorded_state_sha256}" "recorded runner SHA-256 mismatch")
+
+  string(SUBSTRING "${recorded_rom_sha256}" 0 1 first_hex)
+  string(SUBSTRING "${recorded_rom_sha256}" 1 -1 remaining_hex)
+  if(first_hex STREQUAL "0")
+    set(changed_first_hex "1")
+  else()
+    set(changed_first_hex "0")
+  endif()
+  set(changed_rom_sha256 "${changed_first_hex}${remaining_hex}")
+  reproduction_expect_preflight_failure("${run_root}" "changed-content-identity" "${state}"
+    "runner-native-same-invocation" "${runner}" "${rom}" "${recorded_runner_sha256}"
+    "${changed_rom_sha256}" "${recorded_state_sha256}" "recorded ROM SHA-256 mismatch")
+
+  string(SUBSTRING "${recorded_state_sha256}" 0 1 first_hex)
+  string(SUBSTRING "${recorded_state_sha256}" 1 -1 remaining_hex)
+  if(first_hex STREQUAL "0")
+    set(changed_first_hex "1")
+  else()
+    set(changed_first_hex "0")
+  endif()
+  set(changed_state_sha256 "${changed_first_hex}${remaining_hex}")
+  reproduction_expect_preflight_failure("${run_root}" "changed-state-identity" "${state}"
+    "runner-native-same-invocation" "${runner}" "${rom}" "${recorded_runner_sha256}"
+    "${recorded_rom_sha256}" "${changed_state_sha256}" "recorded state SHA-256 mismatch")
+
+  reproduction_expect_preflight_failure("${run_root}" "missing-recorded-identity" "${state}"
+    "runner-native-same-invocation" "${runner}" "${rom}" "${recorded_runner_sha256}"
+    "${recorded_rom_sha256}" "" "recorded state SHA-256 is missing")
+  reproduction_expect_preflight_failure("${run_root}" "unknown-origin" "${state}" "unknown"
+    "${runner}" "${rom}" "${recorded_runner_sha256}" "${recorded_rom_sha256}"
+    "${recorded_state_sha256}" "checkpoint origin is unknown or unverified")
+  reproduction_expect_preflight_failure("${run_root}" "host-container" "${state}" "retroarch-disk-state"
+    "${runner}" "${rom}" "${recorded_runner_sha256}" "${recorded_rom_sha256}"
+    "${recorded_state_sha256}" "host container is not a runner-native payload")
+
+  file(WRITE "${state}" "changed after the recorded identity\n")
+  reproduction_expect_preflight_failure("${run_root}" "changed-state-bytes" "${state}"
+    "runner-native-same-invocation" "${runner}" "${rom}" "${recorded_runner_sha256}"
+    "${recorded_rom_sha256}" "${recorded_state_sha256}" "recorded state SHA-256 mismatch")
+  message(STATUS "runner.reproduction.preflight_self_test: valid identity accepted; seven independent unsupported cases rejected before replay")
+elseif(MODE STREQUAL "preflight_case")
+  foreach(var STATE PAYLOAD_KIND RUNNER ROM RECORDED_RUNNER_SHA256 RECORDED_ROM_SHA256 RECORDED_STATE_SHA256)
+    if(NOT DEFINED ${var})
+      message(FATAL_ERROR "runner.reproduction.preflight_case: -D${var}=... is required")
+    endif()
+  endforeach()
+  reproduction_preflight("${STATE}" "${PAYLOAD_KIND}" "${RUNNER}" "${ROM}"
+    "${RECORDED_RUNNER_SHA256}" "${RECORDED_ROM_SHA256}" "${RECORDED_STATE_SHA256}")
 else()
   message(FATAL_ERROR "reproduction: unknown mode '${MODE}'")
 endif()

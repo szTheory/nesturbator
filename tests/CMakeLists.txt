@@ -1632,6 +1632,20 @@ add_test(NAME runner.reproduction.compare_self_test
     -DMODE=compare_self_test
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
 set_tests_properties(runner.reproduction.compare_self_test PROPERTIES TIMEOUT 60)
+add_test(NAME runner.reproduction.preflight
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DNMI_FIXTURE=$<TARGET_FILE:runner.nmi_fixture>"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-preflight"
+    -DMODE=preflight_fixture
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.preflight PROPERTIES TIMEOUT 60)
+add_test(NAME runner.reproduction.preflight_self_test
+  COMMAND ${CMAKE_COMMAND}
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-preflight-self-test"
+    -DMODE=preflight_self_test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.preflight_self_test PROPERTIES TIMEOUT 60)
 
 # Every script in tests/cmake sets its policy version, so CMake reads it the
 # same way on every runner.
