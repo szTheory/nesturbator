@@ -1123,15 +1123,49 @@ static nesturbator *make_abort_instance(uint8_t control, uint8_t length, uint8_t
     return machine;
 }
 
-static void run_explicit_abort_probe(uint8_t intervening_write, uint16_t lead_counter,
-                                     uint8_t half_phase)
+/* Running control anchors the documented stop offsets to a normal reload,
+   rather than inferring its halt from the failed stopped trace. */
+static void run_abort_running_control(void)
 {
     nesturbator *machine = make_abort_instance(0x4Fu, 0u, 1u);
     if (machine == NULL)
         return;
     unsigned reads = 0u;
-    /* A stop on the intervening non-timer half-cycle is two CPU clocks
-       before the documented PUT halt. DMA wiki rev 23450, Bugs. */
+    while (!(machine->apu.dmc.bits == 0u && machine->apu.dmc.buffer_empty == 0u &&
+             machine->apu.dmc.counter == 2u && machine->apu.pulse_clock_phase == 0u &&
+             machine->apu.dmc.dma_pending == 0u) &&
+           reads++ < 10000u)
+        (void)test_observed_bus_read(machine, 0x0020u);
+    CHECK(reads < 10000u);
+    dma_trace_count = 0u;
+    uint64_t start = machine->cpu_cycle;
+    test_observed_bus_write(machine, 0x0021u, 0x91u); /* Keep playback running. */
+    for (unsigned read = 0u; read < 9u; ++read)
+        (void)test_observed_bus_read(machine, 0x0020u);
+    const struct dma_event *halt = find_dma_event(NESTURBATOR_DMA_HALT_ACCEPTED);
+    const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
+    CHECK_EQ_U64(start + 1u, 431u);
+    CHECK_EQ_U64(machine->cpu_cycle - start, 14u);
+    CHECK(halt != NULL && halt->cpu_cycle == 434u && halt->phase == 0u);
+    CHECK(get != NULL && get->cpu_cycle == 437u && get->phase == 1u && get->address == 0xC000u &&
+          get->data == 0xEAu);
+    CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_HALT_ACCEPTED), 1u);
+    CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_SAMPLE_GET), 1u);
+    CHECK_EQ_HEX(machine->bus.ram[0x21u], 0x91u);
+    printf("abort running control: write431 GET, reload-halt434 PUT, sample437 GET, "
+           "ordinary10+DMA4 clocks; no stop history injected\n");
+    nesturbator_destroy(machine);
+}
+
+static void run_explicit_abort_probe(uint8_t intervening_write, uint16_t lead_counter,
+                                     uint8_t half_phase, uint8_t verify)
+{
+    nesturbator *machine = make_abort_instance(0x4Fu, 0u, 1u);
+    if (machine == NULL)
+        return;
+    unsigned reads = 0u;
+    /* Counter2 reaches the reload edge two/three CPU clocks after
+       the write, depending on its half. DMA rev23450, Bugs. */
     while (!(machine->apu.dmc.bits == 0u && machine->apu.dmc.buffer_empty == 0u &&
              machine->apu.dmc.counter == lead_counter &&
              machine->apu.pulse_clock_phase == half_phase && machine->apu.dmc.dma_pending == 0u) &&
@@ -1141,8 +1175,7 @@ static void run_explicit_abort_probe(uint8_t intervening_write, uint16_t lead_co
     dma_trace_count = 0u;
     uint64_t start = machine->cpu_cycle;
     test_observed_bus_write(machine, 0x4015u, 0u);
-    uint8_t stop_phase = machine->bus.apu_get_put_phase;
-    uint8_t write_position = stop_phase != 0u ? 3u : 2u;
+    uint8_t write_position = (uint8_t)(434u - (start + 1u));
     uint8_t returned = 0u;
     for (uint8_t access = 1u; access <= 9u; ++access) {
         if (intervening_write != 0u && access == write_position)
@@ -1155,10 +1188,23 @@ static void run_explicit_abort_probe(uint8_t intervening_write, uint16_t lead_co
     CHECK_EQ_U64(machine->apu.dmc.remaining, 0u);
     if (intervening_write != 0u)
         CHECK_EQ_HEX(machine->bus.ram[0x21u], 0x91u);
-    int expected_abort =
-        (lead_counter == 1u && half_phase == 0u) || (lead_counter == 2u && half_phase == 1u)
-            ? (intervening_write != 0u ? 0 : 1)
-            : -1;
+    /* The retained running control halts at434 PUT. Counter2 stops at
+       431 GET or432 PUT (three/two clocks before it); counter1 is later.
+       The earlier diagnostic's guessed436 halt was not a verified oracle. */
+    int expected_abort = lead_counter == 2u && intervening_write == 0u ? 1 : 0;
+    if (verify != 0u) {
+        CHECK_EQ_U64(cycles, 10u + (unsigned)expected_abort);
+        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_HALT_ACCEPTED), (unsigned)expected_abort);
+        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_RESUMED_READ), (unsigned)expected_abort);
+        CHECK_EQ_U64(machine->apu.dmc.dma_pending, 0u);
+        CHECK_EQ_HEX(returned, 0u);
+        const struct dma_event *halt = find_dma_event(NESTURBATOR_DMA_HALT_ACCEPTED);
+        if (expected_abort != 0 && halt != NULL)
+            CHECK(halt->cpu_cycle == 434u && halt->phase == 0u && halt->address == 0x0020u);
+        const struct dma_event *resume = find_dma_event(NESTURBATOR_DMA_RESUMED_READ);
+        if (expected_abort != 0 && resume != NULL)
+            CHECK(resume->cpu_cycle == 435u && resume->phase == 1u && resume->data == 0u);
+    }
     printf("explicit-abort stop-cycle=%llu counter=%u half=%u write-on-halt=%u ordinary-cycles=10 "
            "observed-cycles=%llu expected-abort-extra=%d sample-gets=%lu "
            "pending=%u bits=%u buffer-empty=%u read=%02x\n",
@@ -1172,7 +1218,7 @@ static void run_explicit_abort_probe(uint8_t intervening_write, uint16_t lead_co
 }
 
 static void run_implicit_abort_probe(uint8_t loop, uint8_t length, uint8_t intervening_write,
-                                     uint16_t lead_counter, uint8_t half_phase)
+                                     uint16_t lead_counter, uint8_t half_phase, uint8_t verify)
 {
     nesturbator *machine =
         make_abort_instance((uint8_t)(0x0Eu | (loop != 0u ? 0x40u : 0u)), length, 0u);
@@ -1192,13 +1238,36 @@ static void run_implicit_abort_probe(uint8_t loop, uint8_t length, uint8_t inter
     uint64_t start = machine->cpu_cycle;
     test_observed_bus_write(machine, 0x4015u, 0x10u);
     while (machine->cpu_cycle - start < 20u) {
-        if (intervening_write != 0u && machine->cpu_cycle - start == 9u)
+        if (intervening_write != 0u && machine->cpu_cycle == 577u)
             test_observed_bus_write(machine, 0x0021u, 0x91u);
         else
             (void)test_observed_bus_read(machine, 0x0020u);
     }
     const struct dma_event *first_get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
     CHECK(first_get != NULL && first_get->phase == 1u && first_get->address == 0xC000u);
+    if (verify != 0u) {
+        CHECK(first_get != NULL && first_get->data == 0xEAu);
+        if (lead_counter == 5u)
+            CHECK(first_get != NULL && first_get->cpu_cycle == 575u);
+        if (intervening_write != 0u) {
+            CHECK_EQ_HEX(machine->bus.ram[0x21u], 0x91u);
+            const struct dma_event *write = find_last_dma_event(NESTURBATOR_DMA_CPU_WRITE_COMPLETE);
+            CHECK(write != NULL && write->cpu_cycle == 578u && write->phase == 0u &&
+                  write->address == 0x0021u && write->data == 0x91u);
+        }
+        unsigned samples = loop != 0u || length != 0u ? 2u : 1u;
+        unsigned aborts =
+            loop == 0u && length == 0u && lead_counter == 5u && intervening_write == 0u;
+        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_SAMPLE_GET), samples);
+        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_HALT_ACCEPTED), samples + aborts);
+        CHECK_EQ_U64(machine->apu.dmc.dma_pending, 0u);
+        const struct dma_event *last = find_last_dma_event(NESTURBATOR_DMA_HALT_ACCEPTED);
+        if (aborts != 0u && last != NULL)
+            CHECK(last->cpu_cycle == 578u && last->phase == 0u && last->address == 0x0020u);
+        const struct dma_event *resume = find_last_dma_event(NESTURBATOR_DMA_RESUMED_READ);
+        if (aborts != 0u && resume != NULL)
+            CHECK(resume->cpu_cycle == 579u && resume->phase == 1u && resume->data == 0u);
+    }
     printf("implicit-abort enable-cycle=%llu counter=%u half=%u loop=%u length-reg=%u "
            "write-on-halt=%u "
            "first-sample-offset=%llu sample-gets=%lu accepted=%lu pending=%u remaining=%u "
@@ -1272,8 +1341,43 @@ static void test_unmapped_write(void)
     CHECK_EQ_HEX(nes.bus.open_bus, 0xA5u);
 }
 
+/* Red-only until the independently gated abort-state implementation. */
+static void test_dma_explicit_abort(void)
+{
+    run_abort_running_control();
+    for (uint16_t counter = 1u; counter <= 3u; ++counter) {
+        for (uint8_t half = 0u; half <= 1u; ++half) {
+            run_explicit_abort_probe(0u, counter, half, 1u);
+            if (counter == 2u)
+                run_explicit_abort_probe(1u, counter, half, 1u);
+        }
+    }
+}
+
+static void test_dma_implicit_abort(void)
+{
+    for (uint8_t half = 0u; half <= 1u; ++half) {
+        run_implicit_abort_probe(0u, 0u, 0u, 5u, half, 1u);
+        run_implicit_abort_probe(0u, 0u, 1u, 5u, half, 1u);
+        run_implicit_abort_probe(1u, 0u, 0u, 5u, half, 1u);
+        run_implicit_abort_probe(0u, 1u, 0u, 5u, half, 1u);
+        /* Earlier and later last-byte windows: selected early-G model
+           adds no late-G/H unexpected fetch at the one-clock window. */
+        run_implicit_abort_probe(0u, 0u, 0u, 4u, half, 1u);
+        run_implicit_abort_probe(0u, 0u, 0u, 6u, half, 1u);
+    }
+}
+
 int main(int argc, char **argv)
 {
+    /* Explicitly selected red contract until the abort-state decision and
+       correction. Normal bus.unit retains all completed DMA regressions. */
+    if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 &&
+        strcmp(argv[2], "abort-contract") == 0) {
+        test_dma_explicit_abort();
+        test_dma_implicit_abort();
+        CHECK_DONE();
+    }
     if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 &&
         strcmp(argv[2], "conflict-latches") == 0) {
         run_conflict_latch_probe();
@@ -1307,16 +1411,16 @@ int main(int argc, char **argv)
         }
         for (uint16_t counter = 1u; counter <= 3u; ++counter) {
             for (uint8_t half = 0u; half <= 1u; ++half) {
-                run_explicit_abort_probe(0u, counter, half);
-                run_explicit_abort_probe(1u, counter, half);
+                run_explicit_abort_probe(0u, counter, half, 0u);
+                run_explicit_abort_probe(1u, counter, half, 0u);
             }
         }
         for (uint16_t counter = 4u; counter <= 6u; ++counter) {
             for (uint8_t half = 0u; half <= 1u; ++half) {
-                run_implicit_abort_probe(0u, 0u, 0u, counter, half);
-                run_implicit_abort_probe(0u, 0u, 1u, counter, half);
-                run_implicit_abort_probe(1u, 0u, 0u, counter, half);
-                run_implicit_abort_probe(0u, 1u, 0u, counter, half);
+                run_implicit_abort_probe(0u, 0u, 0u, counter, half, 0u);
+                run_implicit_abort_probe(0u, 0u, 1u, counter, half, 0u);
+                run_implicit_abort_probe(1u, 0u, 0u, counter, half, 0u);
+                run_implicit_abort_probe(0u, 1u, 0u, counter, half, 0u);
             }
         }
         CHECK_DONE();
@@ -1335,5 +1439,6 @@ int main(int argc, char **argv)
     test_dma_oam_collision();
     test_dma_oam_final_write();
     test_dma_bus_conflicts();
+    run_abort_running_control();
     CHECK_DONE();
 }
