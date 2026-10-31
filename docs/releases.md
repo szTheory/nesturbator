@@ -45,6 +45,32 @@ and information file in `cores` and `info`. The player-facing installation
 instructions, including the marked Apple Silicon command, remain in the
 [README](../README.md).
 
+## Apple Silicon install-line check
+
+The README install block sets the version immediately before the download
+pipeline. Keeping one version on its own marked line lets Release Please update
+the tag and archive filename through the configured README marker. The guide
+does not repeat a current release version.
+
+The macOS-only build-tree check uses the exact README extraction operands
+against the archive produced by the configured build:
+
+```sh
+cmake -DREADME=README.md -DPACKAGES=build/ci/packages -DOUT=build/ci/install-line -P tests/cmake/check_install_line.cmake
+```
+
+It pipes the source-built ZIP into macOS tar using the README's flags,
+destination and member list, and requires exactly
+`cores/nesturbator_libretro.dylib` and
+`info/nesturbator_libretro.info`. It also checks that the version line matches
+`version.txt` and that both the release tag and archive filename come from
+the version variable. This check does not fetch a published release. It runs
+on macOS, including the macOS arm64 CI leg.
+
+The cross-platform `release.one_version_per_line` test checks every marked
+Release Please file, naming any line that contains more than one version.
+Its independent fixture verifies detection of a two-version marked line.
+
 ## Version markers and release policy
 
 Release Please updates the version numbers in the public header, the
