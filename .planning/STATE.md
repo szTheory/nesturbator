@@ -5,16 +5,16 @@ milestone_name: Remaining DMA accuracy failures
 current_phase: 24
 current_phase_name: Correct remaining NTSC DMA behavior
 status: executing
-stopped_at: "Plan24-03 concrete abort-history decision before production mutation; Plans01/02 complete"
-last_updated: "2026-10-31T20:59:37Z"
+stopped_at: "Plan24-04 runtime-authority checkpoint; Plans01/02/03 complete at format6/behavior13"
+last_updated: "2026-10-31T21:43:16Z"
 last_activity: 2026-10-31
-last_activity_desc: Plan02 committed and verified; independent abort contracts are red; one-byte abort-history proposal awaits owner
-state_head: 13292ca
+last_activity_desc: Approved abort correction committed and bounded checks/review pass; full acceptance remains stopped
+state_head: 7f31579
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -23,25 +23,25 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 **Core value:** Games behave as on the console, identically across platforms, from a small MIT C library.
-**Current focus:** Plan24-03 abort-history checkpoint before mutation; current format5 / behavior12
+**Current focus:** Plan24-04 separate runtime-authority checkpoint; current format6 / behavior13
 
 ## Current Position
 
-Phase: 24 (Correct remaining NTSC DMA behavior) — decision checkpoint
-Plan: 3 of 4 — Plans01/02 bounded implementation complete; Plan03 diagnostics only
-Status: Waiting for owner on a concrete new abort-history byte before production mutation
-Last activity: 2026-10-31 — Plan02 committed/reviewed/verified; new independent abort contracts reproduce missing one-cycle halts and a stale request.
-Progress: [█████░░░░░] 50% (plans; phase acceptance pending)
+Phase: 24 (Correct remaining NTSC DMA behavior) — acceptance decision checkpoint
+Plan: 4 of 4 — Plans01/02/03 bounded implementation complete; full acceptance not run
+Status: Waiting for owner on a new local full-CI/campaign runtime window
+Last activity: 2026-10-31 — Approved abort countdown, native continuation/refusal and coherent consumers committed; final owned checks and reviews pass.
+Progress: [███████░░░] 75% (plans; phase acceptance pending)
 
 ## Next Action
 
-**Owner acts next.** Recommend approving a saved abort_delay byte (range0..3 future CPU clocks), DMC payload23->24, native format6 / behavior13 / ABI1. The new format would refuse formats1..5, including unreleased format5 states, with no converter. This preserves the expiring one-cycle halt separately from ordinary DMA that retries on writes. [Concrete proposal, evidence and alternatives](phases/24-correct-remaining-ntsc-dma-behavior/24-03-CHECKPOINT.md).
+**Owner acts next on runtime authority.** Recommend one local `cmake --workflow --preset ci` invocation with a new39-minute resource ceiling (combined local duration is unqualified), unchanged per-test/page caps and no automatic retry after a real interruption/timeout. It includes the existing22-page AccuracyCoin campaign and RetroArch session checks. No push/PR/hosted scheduling is included. The full scope, actual707-test selection, preservation of interrupted evidence, expected provenance refresh and missing hosted/performance evidence are in [24-ACCEPTANCE.md](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
 
-Plans01/02 are committed and bounded verification/review pass, including the approved split bus, native continuation/refusal and coherent version consumers. Current production remains format5 / behavior12; no abort field/meaning/correction is implemented. [Plan02 actual outcome](phases/24-correct-remaining-ntsc-dma-behavior/24-02-SUMMARY.md).
+The latest owner approval covered the abort countdown and state incompatibility. That exact decision is implemented: abort_delay0..3, DMC payload24, format6 / behavior13 / ABI1, formats1..5 refused without conversion. All three correction plans are complete with independent owned regressions/wrong-model controls and production-reachable native continuations. [Plan03 actual outcome](phases/24-correct-remaining-ntsc-dma-behavior/24-03-SUMMARY.md). Do not ask again about any settled saved-state decision.
 
-The fresh running control corrects the earlier exploratory explicit halt436 inference to434; stops431/432 are the actual three/two-clock window. New explicit/implicit red-only mode rejects current missing aborts and stale disable request; ordinary bus/APU regressions pass. This is owned model evidence, not full pinned acceptance.
+No full workflow, AccuracyCoin ROM, campaign, push or PR ran. Five individual fresh target passes, all cold protected-main PASS observations, cross-platform complete hash equality and unchanged Cachegrind acceptance remain absent. The literal main...HEAD whitespace guard also reports159 inherited planning diagnostics already present before execution; the correction delta is clean. Do not mark the phase or any requirement complete or weaken these gates.
 
-After the decision, run `$gsd-execute-phase 24`. Context may be cleared; read [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md) first. Resume Plan03 without duplicating completed Plans01/02 or re-asking their settled approvals. All requirements remain pending. The agent is waiting for this new decision. Full CI/AccuracyCoin stays independently stopped; no workflow, AccuracyCoin ROM, campaign, push or PR ran.
+After the separate runtime decision, run `$gsd-execute-phase 24`. Context may be cleared; read [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md) and the acceptance record first. The agent is waiting for this new runtime decision, not another acknowledgment of the existing stop. No response automatically preserves the stop.
 
 ## Accumulated Context
 
@@ -58,9 +58,9 @@ The three deferred property/mutation/signal proposals remain unlinked to v7; the
 
 ### Blockers/Concerns
 
-- **Plan24-03 abort history:** a new saved one-shot countdown is proposed for explicit/implicit one-cycle halts; the concrete format6/behavior13 incompatibility awaits owner approval before mutation. The earlier bus-latch approval does not cover it.
+- **Plan24-03 abort history resolved:** owner approved the concrete countdown/format6/behavior13 before mutation. Implementation, native positive/negative/refusal tests, docs and required current-version consumers are committed and reviewed. No further saved distinction was needed.
 
-- **Plan24-02 bus-latch decision resolved:** owner approved cpu_data/external open_bus, format5 and behavior12 before mutation. Implementation/native continuation and consumers are committed. Any newly required abort-state change remains separately gated.
+- **Plan24-02 bus-latch decision resolved:** owner approved cpu_data/external open_bus, format5 and behavior12 before mutation; implemented/verified. The later approved abort change is format6 / behavior13.
 
 - **Plan 24-01 native-state checkpoint resolved:** owner approved the explicit silence byte, continuously clocked bits, format 4 and behavior revision 10. Other newly required state changes remain independently gated.
 
@@ -96,13 +96,13 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Performance Metrics
 
-v7: two of four plans complete; Plan24-02 collision and split-bus corrections/native continuations are committed and verified. Plan24-03 abort diagnostics reach a new saved-history checkpoint. Full acceptance remains pending. v6 completed seven plans; detailed timing remains in the [archived phase summaries](milestones/v6-phases/) and [closeout](milestones/v6-CLOSEOUT.md).
+v7: three of four plans complete; all bounded correction/native work is committed and verified. Plan24-04 is stopped at separate runtime authority, with full acceptance and inherited branch-wide whitespace unresolved. Full acceptance remains pending. v6 completed seven plans; detailed timing remains in the [archived phase summaries](milestones/v6-phases/) and [closeout](milestones/v6-CLOSEOUT.md).
 
 ## Session Continuity
 
-**Last session:** 2026-10-31T20:59:37Z
-**Stopped at:** Plan24-03 abort-history decision before production mutation
-**Next actor:** Owner approves or defers the concrete one-byte abort countdown / format6 / behavior13.
+**Last session:** 2026-10-31T21:43:16Z
+**Stopped at:** Plan24-04 separate full-CI/campaign runtime-authority gate
+**Next actor:** Owner decides whether to authorize the exact local workflow/new39-minute scope in24-ACCEPTANCE.md.
 **Next command after decision:** `$gsd-execute-phase 24`
-**Context:** May be cleared; read STATE and the linked resume first.
+**Context:** May be cleared; read STATE, resume and acceptance first.
 **Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md

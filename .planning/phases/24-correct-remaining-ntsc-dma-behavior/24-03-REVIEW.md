@@ -72,3 +72,7 @@ were still in progress at review time.
 
 No findings added. This addendum supersedes the initial summary's note that
 the consumer and documentation updates were still in progress.
+
+## Tracking follow-through
+
+The implementation owner refreshed STATE.md and24-EXECUTION-RESUME.md to the actual committed format6/behavior13 outcome and Plan04 runtime-authority checkpoint before handoff. The earlier pending tracking note is resolved; the historical state decisions remain preserved in their checkpoint records. No full acceptance claim is added.
