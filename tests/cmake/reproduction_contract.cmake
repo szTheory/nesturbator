@@ -85,9 +85,12 @@ function(reproduction_check doc_path)
   string(FIND "${document}" "## Before checkpoint replay" preflight_start)
   string(FIND "${document}" "## Scratch storage and bounds" scratch_start)
   string(FIND "${document}" "## Procedure result and runner exit status" result_start)
+  string(FIND "${document}" "## Choose the next evidence source" triage_start)
+  string(FIND "${document}" "## Evidence limits" evidence_limits_start)
   if(report_start EQUAL -1 OR example_start LESS report_start OR cold_start LESS example_start OR
      checkpoint_start LESS cold_start OR preflight_start LESS checkpoint_start OR
-     scratch_start LESS preflight_start OR result_start LESS scratch_start)
+     scratch_start LESS preflight_start OR result_start LESS scratch_start OR
+     triage_start LESS result_start OR evidence_limits_start LESS triage_start)
     message(FATAL_ERROR "docs.reproduction: report, fixture example and cold replay sections are out of order")
   endif()
   math(EXPR report_length "${example_start} - ${report_start}")
@@ -96,11 +99,15 @@ function(reproduction_check doc_path)
   math(EXPR checkpoint_length "${preflight_start} - ${checkpoint_start}")
   math(EXPR preflight_length "${scratch_start} - ${preflight_start}")
   math(EXPR scratch_length "${result_start} - ${scratch_start}")
+  math(EXPR result_length "${triage_start} - ${result_start}")
+  math(EXPR triage_length "${evidence_limits_start} - ${triage_start}")
   string(SUBSTRING "${document}" ${cold_start} ${cold_length} cold_section)
   string(SUBSTRING "${document}" ${checkpoint_start} ${checkpoint_length} checkpoint_section)
   string(SUBSTRING "${document}" ${preflight_start} ${preflight_length} preflight_section)
   string(SUBSTRING "${document}" ${scratch_start} ${scratch_length} scratch_section)
-  string(SUBSTRING "${document}" ${result_start} -1 result_section)
+  string(SUBSTRING "${document}" ${result_start} ${result_length} result_section)
+  string(SUBSTRING "${document}" ${triage_start} ${triage_length} triage_section)
+  string(SUBSTRING "${document}" ${evidence_limits_start} -1 evidence_limits_section)
 
   set(report_fields
     "Report revision/date:"
@@ -190,6 +197,68 @@ function(reproduction_check doc_path)
   reproduction_require_contains("${result_section}" "runner-native state cannot be renamed into a RetroArch disk state" "host/native container boundary is missing")
   reproduction_require_contains("${result_section}" "--movie" "movie-plus-state refusal is missing")
 
+  foreach(required IN ITEMS
+      "| Comparison | Supported inference | Remaining unknown | Next bounded evidence source |"
+      "Scene, access route, content/build identity and inputs"
+      "title-level observation, not scene acceptance"
+      "Repeated native frame, transition and PCM windows"
+      "repeatability for those native outputs"
+      "Native pixels versus adapter RGB/callback output"
+      "host.convert` covers palette indexing and source/output pitch"
+      "libretro.host` compares selected video and PCM callback results"
+      "These tests do not provide a display or audio device."
+      "Frontend input, presentation, screenshot or audio timing"
+      "dropped or doubled presentation"
+      "Expected original-game behavior or hardware correctness"
+      "deliberately wrong behavior control"
+      "released reference-emulator binary with its version identified"
+      "https://docs.libretro.com/development/cores/developing-cores/"
+      "https://docs.libretro.com/guides/optimal-vsync/")
+    reproduction_require_contains("${triage_section}" "${required}"
+      "triage branch or evidence layer is missing: ${required}")
+  endforeach()
+  reproduction_require_contains("${triage_section}"
+    "Use `runner.reproduction.cold` for two cold 600-frame executions or `runner.state.nmi_roundtrip` for its neutral K=1 through N=4 suffix."
+    "native next-evidence missing")
+  reproduction_require_contains("${triage_section}"
+    "Unaligned screenshots are qualitative and cannot be equated to native hashes."
+    "screenshot/native hash conflation")
+  reproduction_require_contains("${triage_section}"
+    "pacing, resampling, synchronization and physical devices remain frontend/host questions."
+    "host timing attribution")
+  reproduction_require_contains("${evidence_limits_section}" "Repeatability"
+    "repeatability limit is missing")
+  reproduction_require_contains("${evidence_limits_section}" "Fixture expectations"
+    "fixture expectation limit is missing")
+  reproduction_require_contains("${evidence_limits_section}" "Hardware correctness"
+    "independent hardware-correctness limit is missing")
+  reproduction_require_contains("${evidence_limits_section}" "does not show that the output is correct."
+    "hash correctness conflation")
+  reproduction_require_contains("${evidence_limits_section}" "guest marker"
+    "narrow fixture-marker inference limit is missing")
+  reproduction_require_contains("${evidence_limits_section}" "derived owned fixture"
+    "independent fixture-oracle requirement is missing")
+  reproduction_require_contains("${evidence_limits_section}" "without inspecting its source"
+    "reference-emulator clean-room boundary is missing")
+  reproduction_require_contains("${triage_section}" "GPL/LGPL emulator source"
+    "prohibited emulator-source boundary is missing")
+  reproduction_require_contains("${evidence_limits_section}" "These reports are not\ndiagnoses or fixes."
+    "commercial status relabeled")
+  reproduction_require_contains("${evidence_limits_section}"
+    "[playtesting postmortem](../.planning/playtesting/POSTMORTEM.md#what-remains-unresolved)"
+    "dated commercial evidence link is missing")
+  if(NOT EXISTS "${SOURCE_DIR}/.planning/playtesting/POSTMORTEM.md")
+    message(FATAL_ERROR "docs.reproduction: dated commercial evidence target is missing")
+  endif()
+  reproduction_require_contains("${evidence_limits_section}" "keep the result unclassified."
+    "unclassified outcome missing")
+  foreach(commercial_case IN ITEMS "Jurassic Park's OCEAN" "Crystalis's moving world seam"
+      "Little Nemo" "Mega Man 3" "Shatterhand's drift, slowdown and music interruption"
+      "Marble Madness timer comparison")
+    reproduction_require_contains("${evidence_limits_section}" "${commercial_case}"
+      "commercial observation is missing or relabeled: ${commercial_case}")
+  endforeach()
+
   foreach(required IN ITEMS "mktemp -d" "[guid]::NewGuid()")
     reproduction_require_contains("${cold_section}" "${required}" "fresh POSIX/PowerShell scratch root is missing: ${required}")
   endforeach()
@@ -217,7 +286,9 @@ function(reproduction_check doc_path)
 
   file(READ "${SOURCE_DIR}/README.md" readme)
   reproduction_require_contains("${readme}" "## Troubleshooting" "README troubleshooting heading missing")
-  reproduction_require_contains("${readme}" "[Report a scene or reproduce a permitted fixture](docs/reproduction.md)" "README does not link directly to the report")
+  reproduction_require_contains("${readme}"
+    "## Troubleshooting\n\n[Report a scene or reproduce a permitted fixture](docs/reproduction.md)"
+    "README troubleshooting does not link directly to the report")
   foreach(path IN ITEMS
       "docs/runner.md"
       "docs/testing.md"
@@ -232,6 +303,8 @@ function(reproduction_check doc_path)
   file(READ "${SOURCE_DIR}/docs/progress.md" progress_guide)
   file(READ "${SOURCE_DIR}/tests/runner/game_movie.c" movie_writer)
   reproduction_require_contains("${runner_guide}" "## Input movies" "runner guide section link is stale")
+  reproduction_require_contains("${runner_guide}" "For the sanitized report form, bounded replay examples and next-evidence\ntriage, see the [scene reproduction guide](reproduction.md)."
+    "runner guide does not link directly to scene reproduction")
   reproduction_require_contains("${testing_guide}" "# Testing and engineering" "testing guide heading is stale")
   reproduction_require_contains("${progress_guide}" "# Protecting emulator progress" "progress guide heading is stale")
   reproduction_require_contains("${testing_guide}" "[scene reproduction guide](reproduction.md)" "testing guide does not link to scene reproduction")
@@ -335,6 +408,10 @@ function(reproduction_check doc_path)
     "generated checkpoint preflight timeout is not 60 seconds")
   reproduction_require_test_property("${selected_tests_json}" "runner.reproduction.preflight_self_test" "TIMEOUT" "60"
     "generated preflight self-test timeout is not 60 seconds")
+  reproduction_require_test_property("${selected_tests_json}" "docs.reproduction" "TIMEOUT" "60"
+    "generated reproduction document-check timeout is not 60 seconds")
+  reproduction_require_test_property("${selected_tests_json}" "docs.reproduction.self_test" "TIMEOUT" "60"
+    "generated reproduction document self-test timeout is not 60 seconds")
   reproduction_require_test_property("${selected_tests_json}" "runner.boot_to_play" "TIMEOUT" "300"
     "generated played-input control timeout is not 300 seconds")
   reproduction_require_test_property("${selected_tests_json}" "runner.save.fixture" "TIMEOUT" "10"
@@ -463,7 +540,41 @@ elseif(MODE STREQUAL "self_test")
   string(REPLACE "does not enforce the exact executing build" "enforces the exact executing build" loader_mutation "${loader_mutation}")
   reproduction_expect_mutation("${root}" "false-loader-build-enforcement" "${loader_mutation}"
     "loader build-enforcement limit missing")
-  message(STATUS "docs.reproduction.self_test: eight independent safety and contract mutations rejected")
+
+  set(next_evidence_mutation "${original}")
+  string(REPLACE
+    "Use `runner.reproduction.cold` for two cold 600-frame executions or `runner.state.nmi_roundtrip` for its neutral K=1 through N=4 suffix."
+    ""
+    next_evidence_mutation "${next_evidence_mutation}")
+  reproduction_expect_mutation("${root}" "missing-next-evidence-branch" "${next_evidence_mutation}"
+    "native next-evidence missing")
+
+  set(hash_hardware_mutation "${original}")
+  string(REPLACE "does not show that the output is correct."
+    "shows that the output is hardware-correct." hash_hardware_mutation "${hash_hardware_mutation}")
+  reproduction_expect_mutation("${root}" "hash-as-hardware-oracle" "${hash_hardware_mutation}"
+    "hash correctness conflation")
+
+  set(screenshot_hash_mutation "${original}")
+  string(REPLACE "Unaligned screenshots are qualitative and cannot be equated to native hashes."
+    "Screenshots are native hashes." screenshot_hash_mutation "${screenshot_hash_mutation}")
+  reproduction_expect_mutation("${root}" "screenshot-as-native-hash" "${screenshot_hash_mutation}"
+    "screenshot/native hash conflation")
+
+  set(adapter_pacing_mutation "${original}")
+  string(REPLACE "pacing, resampling, synchronization and physical devices remain frontend/host questions."
+    "pacing is established by adapter parity, and resampling and physical devices remain frontend/host questions."
+    adapter_pacing_mutation "${adapter_pacing_mutation}")
+  reproduction_expect_mutation("${root}" "adapter-clears-host-pacing" "${adapter_pacing_mutation}"
+    "host timing attribution")
+
+  set(commercial_fixed_mutation "${original}")
+  string(REPLACE "These reports are not\ndiagnoses or fixes."
+    "These reports are fixed." commercial_fixed_mutation "${commercial_fixed_mutation}")
+  reproduction_expect_mutation("${root}" "unclassified-commercial-labeled-fixed" "${commercial_fixed_mutation}"
+    "commercial status relabeled")
+
+  message(STATUS "docs.reproduction.self_test: thirteen independent safety and evidence mutations rejected")
 else()
   message(FATAL_ERROR "docs.reproduction: unknown mode '${MODE}'")
 endif()
