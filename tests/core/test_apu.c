@@ -116,7 +116,7 @@ static void test_documented_channel_sequences(void)
     nesturbator__apu_write(nes, 0x4003u, 0x08u);
     nesturbator__apu_write(nes, 0x4001u, 0x89u); /* enable, negate, shift by one */
     nes->apu.frame_cycle = 14912u;
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.pulse[0].env_decay, 15u);
     CHECK_EQ_U64(nes->apu.pulse[0].timer, 3u); /* channel one negate subtracts one extra */
     CHECK_EQ_U64(nes->apu.pulse[0].length, 253u);
@@ -128,7 +128,7 @@ static void test_documented_channel_sequences(void)
     nesturbator__apu_write(nes, 0x400bu, 0x08u);
     CHECK_EQ_U64(nesturbator__apu_channel_level(nes, 2u), 15u);
     nes->apu.triangle.counter = 0u;
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nesturbator__apu_channel_level(nes, 2u), 14u);
     nes->apu.triangle.timer = 1u;
     CHECK_EQ_U64(nesturbator__apu_channel_level(nes, 2u), 0u);
@@ -136,10 +136,10 @@ static void test_documented_channel_sequences(void)
     nesturbator__apu_write(nes, 0x4008u, 3u);
     nesturbator__apu_write(nes, 0x400bu, 0x08u);
     nes->apu.frame_cycle = 7456u;
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.triangle.linear, 3u);
     nes->apu.frame_cycle = 7456u;
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.triangle.linear, 2u);
 
     /* RP2A03G's measured LFSR starts at zero; its first clock shifts in 1. */
@@ -150,7 +150,7 @@ static void test_documented_channel_sequences(void)
     nes->apu.noise.counter = 0u;
     CHECK_EQ_U64(nes->apu.noise.lfsr, 0u);
     CHECK_EQ_U64(nesturbator__apu_channel_level(nes, 3u), 15u);
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.noise.lfsr, 1u);
     CHECK_EQ_U64(nesturbator__apu_channel_level(nes, 3u), 0u);
 
@@ -161,7 +161,7 @@ static void test_documented_channel_sequences(void)
     nes->apu.dmc.bits = 1u;
     nes->apu.dmc.shift = 1u;
     nes->apu.pulse_clock_phase = 1u;
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nesturbator__apu_channel_level(nes, 4u), 66u);
     nesturbator__apu_write(nes, 0x4015u, 0u);
     CHECK_EQ_U64(nesturbator__apu_channel_level(nes, 0u), 0u);
@@ -187,9 +187,9 @@ static void test_dmc_fetch_from_mapper0(void)
     nesturbator__apu_write(nes, 0x4012u, 1u); /* $C040 in the DMC address map */
     nesturbator__apu_write(nes, 0x4013u, 0u); /* one byte */
     nesturbator__apu_write(nes, 0x4015u, 0x10u);
-    nesturbator__apu_clock(nes);
-    nesturbator__apu_clock(nes);
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
+    nesturbator__apu_clock(nes, 1u);
+    nesturbator__apu_clock(nes, 1u);
     (void)nesturbator__bus_read(nes, 0x8000u);
     CHECK_EQ_U64(nes->apu.dmc.sample_buffer, 0x5au);
     CHECK_EQ_U64(nes->apu.dmc.address, 0xc041u);
@@ -393,13 +393,13 @@ static void test_frame_counter_modes_and_irq_sources(void)
 
     /* 4-step mode raises frame IRQ at the last half-frame edge. */
     nes->apu.frame_cycle = 29826u;
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.frame_irq, 0u);
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.frame_irq, 1u);
     CHECK((nesturbator__apu_status_read(nes) & 0x40u) != 0u);
     nes->bus.apu_get_put_phase = 1u;
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.frame_cycle, 29829u);
     CHECK_EQ_U64(nes->apu.frame_irq, 1u);
     CHECK_EQ_U64(nes->cpu.irq_line, 1u);
@@ -417,7 +417,7 @@ static void test_frame_counter_modes_and_irq_sources(void)
     nes->apu.frame_reset_delay = 0u;
     nes->apu.frame_cycle = 14912u;
     uint8_t length = nes->apu.pulse[0].length;
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.frame_irq, 0u);
     CHECK_EQ_U64(nes->apu.pulse[0].length, length);
     nesturbator_destroy(inst);
@@ -464,15 +464,15 @@ static void test_dmc_timer_uses_half_rate_phase(void)
     nes->apu.dmc.output = 64u;
     nes->apu.pulse_clock_phase = 1u;
 
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.dmc.counter, 27u);
     CHECK_EQ_U64(nes->apu.dmc.output, 66u);
 
     /* After 27 more APU edges (54 CPU cycles), the next bit clocks. */
     for (unsigned i = 0u; i < 53u; i++)
-        nesturbator__apu_clock(nes);
+        nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.dmc.output, 66u);
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, 1u);
     CHECK_EQ_U64(nes->apu.dmc.output, 68u);
     nesturbator_destroy(inst);
 }
@@ -537,7 +537,7 @@ static void test_mixer_tracks_all_clock_events(void)
         }
         nes->ticks += 24u;
         nes->bus.apu_get_put_phase ^= 1u;
-        nesturbator__apu_clock(nes);
+        nesturbator__apu_clock(nes, 1u);
         CHECK_EQ_U64(nes->synth.mixed_level, nesturbator__apu_mixed_level(nes));
         for (unsigned channel = 0u; channel < 5u; channel++)
             nonzero[channel] += nesturbator__apu_channel_level(nes, channel) != 0u;
@@ -584,7 +584,7 @@ static void test_mixer_rechecks_restored_history(void)
         CHECK_EQ_U64(memcmp(state, round_trip, size), 0u);
         nes->ticks += 24u;
         nes->bus.apu_get_put_phase ^= 1u;
-        nesturbator__apu_clock(nes);
+        nesturbator__apu_clock(nes, 1u);
         CHECK_EQ_U64(nes->synth.mixed_level, 0u);
     }
     free(state);

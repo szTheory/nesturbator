@@ -167,3 +167,12 @@ Both independent wrong models compile in BOTH linked and observed bus paths; the
 Public native frame1 cuts reach explicit delay2/cycle29782, explicit delay3/cycle29781 and implicit delay1/cycle29781 through real guest instructions. All full frame/PCM/transition/effect/final-state continuations match without A loading. Invalid4/old5 refuse atomically; clearing the valid countdown loses a real halt and changes next-frame timing/canonical state. Disposable clones execute the actual next INC in6versus5 clocks with the correct PC/RAM effect. All previous native cuts and short stress witnesses remain intact. No public mid-DMA cut is manufactured.
 
 Six-board native sizes grow1 and all12 dumps normalize to the exact previous hashes after removing only the new byte and restoring version/length/CRC. Non-state rows/ticks/inventory stay unchanged. Final owned bus/APU/controller/entry and version/doc/format/refusal checks pass; release preprocessing erases all observer markers. No fresh ROM or protected/cross-platform/performance acceptance is implied. Literal main...HEAD whitespace check fails on inherited planning records already present before execution; correction delta89a042b..HEAD is clean. Detailed bounded evidence and remaining gates are in the summary and forthcoming acceptance record.
+
+## Post-workflow correction of the bounded oracle
+
+The complete behavior13 campaign exposed three remaining selected failures.
+[Plan04 corrections](24-04-CORRECTIONS.md) supersede the old no-GET expectations
+at explicit stops433/434 and the retained-internal-data expectation after
+4015 deselection. The new source-shaped64-entry abort suite and its immediate-
+visibility wrong model resolve the missing looping cases. Those later owned
+results do not replace the recorded full-ROM result or its source identity.

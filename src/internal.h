@@ -361,7 +361,10 @@ static inline void nesturbator__dmc_stop_window(struct nesturbator *nes)
 
 /* One CPU write cycle of value to addr (src/bus.c in the library). */
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
-void nesturbator__apu_clock(struct nesturbator *nes);
+/* Inferred early-G Loop3 ordering (HWC.19): a just-fetched DMC byte is
+   unavailable to the immediately following output edge. The synchronous
+   bus owns this argument; it cannot cross a public native-state boundary. */
+void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready);
 
 /* The one writer of cpu.irq_line: the frame IRQ (unless inhibited), the DMC IRQ
    and the board's IRQ ORed. Every source calls it when it changes (NESdev "IRQ"). */

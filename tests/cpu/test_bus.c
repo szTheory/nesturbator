@@ -70,6 +70,13 @@ static void dma_observe(enum dma_event_kind kind, const struct nesturbator *mach
     event->ticks = machine->ticks;
 }
 
+static uint8_t dma_wrong_immediate_sample;
+
+static void test_observed_apu_clock(struct nesturbator *machine, uint8_t sample_ready)
+{
+    nesturbator__apu_clock(machine, dma_wrong_immediate_sample != 0u ? 1u : sample_ready);
+}
+
 #define NESTURBATOR_DMA_OBSERVE(kind, machine, address, data, detail)                              \
     dma_observe((enum dma_event_kind)(kind), (machine), (uint16_t)(address), (uint8_t)(data),      \
                 (uint16_t)(detail))
@@ -77,7 +84,9 @@ uint8_t test_observed_bus_read(struct nesturbator *machine, uint16_t address);
 void test_observed_bus_write(struct nesturbator *machine, uint16_t address, uint8_t data);
 #define nesturbator__bus_read test_observed_bus_read
 #define nesturbator__bus_write test_observed_bus_write
+#define nesturbator__apu_clock test_observed_apu_clock
 #include "../../src/bus.c"
+#undef nesturbator__apu_clock
 #undef nesturbator__bus_read
 #undef nesturbator__bus_write
 #undef NESTURBATOR_DMA_OBSERVE
@@ -819,7 +828,7 @@ static void run_conflict_probe(uint16_t sample_address, uint8_t sample_data, uin
 
     uint8_t returned = test_observed_bus_read(&machine, 0x4000u);
     uint16_t internal_select = (uint16_t)(0x4000u | (sample_address & 0x001fu));
-    uint8_t expected_return = internal_select == 0x4015u ? 0x50u : sample_data;
+    uint8_t expected_return = sample_data;
     if (internal_select == 0x4016u)
         expected_return = (uint8_t)((sample_data & 0xe0u) | (controller_shift & 1u));
 
@@ -860,6 +869,11 @@ static void run_conflict_latch_probe(void)
     uint8_t first = test_observed_bus_read(&machine, 0x4015u);
     uint8_t external = machine.bus.open_bus;
     uint8_t second = test_observed_bus_read(&machine, 0x4015u);
+    /* Pinned bus-conflict answer key skips only controller offsets16/17.
+       Once status is deselected, an undriven read sees external sample data,
+       even though the preceding internal status selected different bits. */
+    uint8_t undriven = test_observed_bus_read(&machine, 0x4000u);
+    CHECK_EQ_HEX(undriven, 0xA5u);
     uint8_t controller = test_observed_bus_read(&machine, 0x4016u);
     const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
     CHECK(get != NULL && get->address == 0xFF15u && get->data == 0xA5u && get->phase == 1u);
@@ -884,7 +898,7 @@ static uint8_t shifted_controller(uint8_t value, unsigned clocks)
 static void test_dma_bus_conflicts(void)
 {
     static const uint16_t parked[] = {0x4000u, 0x401Fu, 0x4015u, 0x4016u, 0x4017u, 0x4020u};
-    static const uint8_t samples[] = {0xA5u, 0xC2u};
+    static const uint8_t samples[] = {0x00u, 0xA5u, 0xC2u, 0xFFu};
     for (uint8_t load = 0u; load <= 1u; ++load) {
         unsigned repeats = load != 0u ? 3u : 4u;
         for (size_t p = 0u; p < sizeof parked / sizeof parked[0]; ++p) {
@@ -943,8 +957,6 @@ static void test_dma_bus_conflicts(void)
                         want = (uint8_t)((samples[b] & 0xE0u) | ((initial >> prior) & 1u));
                     } else if (parked[p] == 0x4015u) {
                         want = alias != 0u && low == 0x15u ? 0u : (samples[b] & 0x20u);
-                    } else if (alias != 0u && low == 0x15u) {
-                        want = 0x50u; /* DMC active at internal read; IRQ acknowledged. */
                     } else if (alias != 0u && low >= 0x16u) {
                         uint8_t initial = low == 0x16u ? 0x96u : 0x69u;
                         want = (uint8_t)((samples[b] & 0xE0u) | (initial & 1u));
@@ -1192,7 +1204,11 @@ static void run_explicit_abort_probe(uint8_t intervening_write, uint16_t lead_co
     }
     CHECK(memcmp(&linked, machine, sizeof linked) == 0);
     uint64_t cycles = machine->cpu_cycle - start;
-    CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_SAMPLE_GET), 0u);
+    uint8_t prearmed_reload = (uint8_t)(lead_counter == 1u && half_phase == 0u);
+    uint8_t armed_reload = (uint8_t)(lead_counter == 1u && half_phase == 1u);
+    uint8_t normal_reload = (uint8_t)(prearmed_reload | armed_reload);
+    unsigned reload_extra = prearmed_reload != 0u ? 4u : armed_reload != 0u ? 3u : 0u;
+    CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_SAMPLE_GET), normal_reload);
     CHECK_EQ_U64(machine->apu.dmc.remaining, 0u);
     if (intervening_write != 0u)
         CHECK_EQ_HEX(machine->bus.ram[0x21u], 0x91u);
@@ -1200,10 +1216,13 @@ static void run_explicit_abort_probe(uint8_t intervening_write, uint16_t lead_co
        431 GET or432 PUT (three/two clocks before it); counter1 is later.
        The earlier diagnostic's guessed436 halt was not a verified oracle. */
     int expected_abort = lead_counter == 2u && intervening_write == 0u ? 1 : 0;
+    unsigned expected_extra_cycles = (unsigned)expected_abort + reload_extra;
     if (verify != 0u) {
-        CHECK_EQ_U64(cycles, 10u + (unsigned)expected_abort);
-        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_HALT_ACCEPTED), (unsigned)expected_abort);
-        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_RESUMED_READ), (unsigned)expected_abort);
+        CHECK_EQ_U64(cycles, 10u + (unsigned)expected_abort + reload_extra);
+        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_HALT_ACCEPTED),
+                     (unsigned)expected_abort + normal_reload);
+        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_RESUMED_READ),
+                     (unsigned)expected_abort + normal_reload);
         CHECK_EQ_U64(machine->apu.dmc.dma_pending, 0u);
         CHECK_EQ_U64(machine->apu.dmc.abort_delay, 0u);
         CHECK_EQ_HEX(returned, 0u);
@@ -1213,12 +1232,24 @@ static void run_explicit_abort_probe(uint8_t intervening_write, uint16_t lead_co
         const struct dma_event *resume = find_dma_event(NESTURBATOR_DMA_RESUMED_READ);
         if (expected_abort != 0 && resume != NULL)
             CHECK(resume->cpu_cycle == 435u && resume->phase == 1u && resume->data == 0u);
+        if (prearmed_reload != 0u) {
+            const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
+            CHECK(halt != NULL && halt->cpu_cycle == 434u && halt->phase == 0u);
+            CHECK(get != NULL && get->cpu_cycle == 437u && get->phase == 1u && get->data == 0xEAu);
+            CHECK(resume != NULL && resume->cpu_cycle == 438u && resume->phase == 0u);
+        }
+        if (armed_reload != 0u) {
+            const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
+            CHECK(halt != NULL && halt->cpu_cycle == 435u && halt->phase == 1u);
+            CHECK(get != NULL && get->cpu_cycle == 437u && get->phase == 1u && get->data == 0xEAu);
+            CHECK(resume != NULL && resume->cpu_cycle == 438u && resume->phase == 0u);
+        }
     }
     printf("explicit-abort stop-cycle=%llu counter=%u half=%u write-on-halt=%u ordinary-cycles=10 "
-           "observed-cycles=%llu expected-abort-extra=%d sample-gets=%lu "
+           "observed-cycles=%llu expected-extra-cycles=%u sample-gets=%lu "
            "pending=%u bits=%u buffer-empty=%u read=%02x\n",
            (unsigned long long)(start + 1u), (unsigned)lead_counter, (unsigned)half_phase,
-           (unsigned)intervening_write, (unsigned long long)cycles, expected_abort,
+           (unsigned)intervening_write, (unsigned long long)cycles, expected_extra_cycles,
            (unsigned long)count_dma_events(NESTURBATOR_DMA_SAMPLE_GET),
            (unsigned)machine->apu.dmc.dma_pending, (unsigned)machine->apu.dmc.bits,
            (unsigned)machine->apu.dmc.buffer_empty, (unsigned)returned);
@@ -1422,10 +1453,10 @@ static void test_abort_oam_and_restart(void)
     nesturbator_destroy(machine);
 }
 
-/* Unaccepted memory requests are canceled when bytes-remaining becomes
-   zero (HWC.10 Memory reader, HWC.08 Status). The old bus already refused
-   their GETs but retained a stale flag. No CPU write can occur inside an
-   accepted DMA because the read path drains that transfer synchronously. */
+/* A future load can be canceled before it is armed, while an armed
+   reload completes its GET after disable without decrementing zero or
+   restarting the stopped loop. The explicit ROM sweep distinguishes these
+   states. No CPU write occurs inside an accepted synchronous transfer. */
 static void test_abort_pending_disable(void)
 {
     for (uint8_t reload = 0u; reload <= 1u; ++reload) {
@@ -1452,15 +1483,23 @@ static void test_abort_pending_disable(void)
         nesturbator__bus_write(&linked, 0x4015u, 0u);
         test_observed_bus_write(machine, 0x4015u, 0u);
         CHECK_EQ_U64(machine->apu.dmc.remaining, 0u);
-        CHECK_EQ_U64(machine->apu.dmc.dma_pending, 0u);
+        CHECK_EQ_U64(machine->apu.dmc.dma_pending, reload);
         CHECK_EQ_U64(machine->apu.dmc.abort_delay, 0u);
         for (unsigned read = 0u; read < 8u; ++read) {
             CHECK_EQ_HEX(nesturbator__bus_read(&linked, 0x0020u),
                          test_observed_bus_read(machine, 0x0020u));
         }
-        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_SAMPLE_GET), 0u);
-        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_HALT_ACCEPTED), 0u);
+        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_SAMPLE_GET), reload);
+        CHECK_EQ_U64(count_dma_events(NESTURBATOR_DMA_HALT_ACCEPTED), reload);
         CHECK(memcmp(&linked, machine, sizeof linked) == 0);
+        /* An armed request may have filled a final buffer after disable.
+           Let the output unit consume it before the fresh-load control. */
+        unsigned drain = 0u;
+        while (machine->apu.dmc.buffer_empty == 0u && drain++ < 10000u) {
+            CHECK_EQ_HEX(nesturbator__bus_read(&linked, 0x0020u),
+                         test_observed_bus_read(machine, 0x0020u));
+        }
+        CHECK(drain < 10000u);
         /* A later enable creates a fresh load rather than inheriting stale
            retry phase/delay from the canceled request. */
         dma_trace_count = 0u;
@@ -1562,13 +1601,169 @@ static void test_dma_implicit_abort(void)
     }
 }
 
+struct fresh_sample_edge_result {
+    uint8_t output_before, output_after_get, silence_after_get, bits_after_get;
+    uint8_t buffer_empty_after_get, pending_after_get, sample_buffer_after_get;
+    uint8_t output_after_refill, buffer_empty_after_refill, pending_after_refill;
+    uint8_t sample_buffer_after_refill;
+    uint64_t get_cycle, after_get_cycle;
+    unsigned get_count_after_refill, output_edges_after_get;
+};
+
+static struct fresh_sample_edge_result run_fresh_sample_edge(uint8_t wrong_immediate)
+{
+    struct fresh_sample_edge_result result = {0};
+    dma_wrong_immediate_sample = 0u;
+    nesturbator *machine = make_abort_instance(0x4Eu, 0u, 0u);
+    if (machine == NULL)
+        return result;
+    machine->cart.prg[0] = 0x77u;
+    struct nesturbator linked = *machine;
+    unsigned reads = 0u;
+    while (!(machine->apu.dmc.bits == 0u && machine->apu.dmc.buffer_empty != 0u &&
+             machine->apu.dmc.counter == 4u && machine->apu.pulse_clock_phase == 1u &&
+             machine->apu.dmc.dma_pending == 0u) &&
+           reads++ < 10000u) {
+        CHECK_EQ_HEX(nesturbator__bus_read(&linked, 0x0020u),
+                     test_observed_bus_read(machine, 0x0020u));
+        CHECK(memcmp(&linked, machine, sizeof linked) == 0);
+    }
+    CHECK(reads < 10000u);
+    CHECK_EQ_U64(machine->apu.dmc.bits, 0u);
+    CHECK_EQ_U64(machine->apu.dmc.buffer_empty, 1u);
+    CHECK_EQ_U64(machine->apu.dmc.counter, 4u);
+    CHECK_EQ_U64(machine->apu.pulse_clock_phase, 1u);
+    CHECK_EQ_U64(machine->apu.dmc.dma_pending, 0u);
+    result.output_before = machine->apu.dmc.output;
+    dma_trace_count = 0u;
+    nesturbator__bus_write(&linked, 0x4015u, 0x10u);
+    test_observed_bus_write(machine, 0x4015u, 0x10u);
+    CHECK(memcmp(&linked, machine, sizeof linked) == 0);
+
+    dma_wrong_immediate_sample = wrong_immediate;
+    reads = 0u;
+    while (count_dma_events(NESTURBATOR_DMA_SAMPLE_GET) == 0u && reads++ < 64u) {
+        CHECK_EQ_HEX(nesturbator__bus_read(&linked, 0x0020u),
+                     test_observed_bus_read(machine, 0x0020u));
+        if (wrong_immediate == 0u)
+            CHECK(memcmp(&linked, machine, sizeof linked) == 0);
+        else
+            CHECK_EQ_U64(linked.cpu_cycle, machine->cpu_cycle);
+    }
+    dma_wrong_immediate_sample = 0u;
+    CHECK(reads < 64u);
+    const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
+    CHECK(get != NULL && get->address == 0xC000u && get->data == 0x77u && get->phase == 1u);
+    if (get != NULL)
+        result.get_cycle = get->cpu_cycle;
+    result.after_get_cycle = machine->cpu_cycle;
+    result.output_after_get = machine->apu.dmc.output;
+    result.silence_after_get = machine->apu.dmc.silence;
+    result.bits_after_get = machine->apu.dmc.bits;
+    result.buffer_empty_after_get = machine->apu.dmc.buffer_empty;
+    result.pending_after_get = machine->apu.dmc.dma_pending;
+    result.sample_buffer_after_get = machine->apu.dmc.sample_buffer;
+    if (wrong_immediate == 0u)
+        CHECK(memcmp(&linked, machine, sizeof linked) == 0);
+
+    if (wrong_immediate == 0u) {
+        unsigned reads_after_get = 0u;
+        while (result.output_edges_after_get < 8u && reads_after_get++ < 1000u) {
+            uint8_t previous_bits = machine->apu.dmc.bits;
+            uint8_t previous_output = machine->apu.dmc.output;
+            CHECK_EQ_HEX(nesturbator__bus_read(&linked, 0x0020u),
+                         test_observed_bus_read(machine, 0x0020u));
+            CHECK(memcmp(&linked, machine, sizeof linked) == 0);
+            uint8_t current_bits = machine->apu.dmc.bits;
+            if (current_bits != previous_bits) {
+                if (previous_bits == 0u)
+                    CHECK_EQ_U64(current_bits, 7u);
+                else
+                    CHECK_EQ_U64(current_bits, (unsigned)previous_bits - 1u);
+                result.output_edges_after_get++;
+                if (result.output_edges_after_get < 8u)
+                    CHECK_EQ_HEX(machine->apu.dmc.output, result.output_before);
+                else
+                    CHECK(machine->apu.dmc.output != result.output_before);
+            }
+            if (result.output_edges_after_get < 8u)
+                CHECK_EQ_HEX(machine->apu.dmc.output, previous_output);
+        }
+        CHECK(reads_after_get < 1000u);
+        result.output_after_refill = machine->apu.dmc.output;
+        result.buffer_empty_after_refill = machine->apu.dmc.buffer_empty;
+        result.pending_after_refill = machine->apu.dmc.dma_pending;
+        result.sample_buffer_after_refill = machine->apu.dmc.sample_buffer;
+        result.get_count_after_refill = (unsigned)count_dma_events(NESTURBATOR_DMA_SAMPLE_GET);
+    }
+
+    nesturbator_destroy(machine);
+    return result;
+}
+
+/* Reproduce the edge through real timer history and bus reads. A just-fetched
+   byte is not ready to the output unit on the immediately resumed CPU cycle;
+   the next output boundary consumes it after seven silent bits and then
+   refills the looping reader. The wrong-ready model must violate this oracle. */
+static void test_dma_fresh_sample_edge(void)
+{
+    struct fresh_sample_edge_result correct = run_fresh_sample_edge(0u);
+    uint8_t correct_edge =
+        (uint8_t)(correct.silence_after_get != 0u && correct.bits_after_get == 7u &&
+                  correct.buffer_empty_after_get == 0u && correct.pending_after_get == 0u &&
+                  correct.sample_buffer_after_get == 0x77u &&
+                  correct.output_after_get == correct.output_before);
+    CHECK_EQ_U64(correct_edge, 1u);
+    CHECK_EQ_U64(correct.output_edges_after_get, 8u);
+    CHECK(correct.output_after_refill != correct.output_before);
+    CHECK_EQ_U64(correct.get_count_after_refill, 2u);
+    CHECK_EQ_U64(correct.buffer_empty_after_refill, 0u);
+    CHECK_EQ_U64(correct.pending_after_refill, 0u);
+    CHECK_EQ_HEX(correct.sample_buffer_after_refill, 0x77u);
+
+    struct fresh_sample_edge_result wrong = run_fresh_sample_edge(1u);
+    uint8_t wrong_edge =
+        (uint8_t)(wrong.silence_after_get != 0u && wrong.bits_after_get == 7u &&
+                  wrong.buffer_empty_after_get == 0u && wrong.pending_after_get == 0u &&
+                  wrong.sample_buffer_after_get == 0x77u &&
+                  wrong.output_after_get == wrong.output_before);
+    CHECK_EQ_U64(wrong_edge, 0u);
+    CHECK_EQ_U64(wrong.silence_after_get, 0u);
+    CHECK_EQ_U64(wrong.bits_after_get, 7u);
+    CHECK_EQ_U64(wrong.buffer_empty_after_get, 1u);
+    CHECK_EQ_U64(wrong.pending_after_get, 1u);
+    CHECK(wrong.output_after_get != wrong.output_before);
+    CHECK(wrong.get_cycle == correct.get_cycle);
+    CHECK(wrong.after_get_cycle == correct.after_get_cycle);
+    CHECK(wrong.output_after_get != correct.output_after_get ||
+          wrong.buffer_empty_after_get != correct.buffer_empty_after_get ||
+          wrong.pending_after_get != correct.pending_after_get);
+    printf("fresh DMC sample edge GET=%llu output-after=%u wrong-output=%u "
+           "later-output=%u output-edges=8 later-GETs=%u\n",
+           (unsigned long long)correct.get_cycle, (unsigned)correct.output_after_get,
+           (unsigned)wrong.output_after_get, (unsigned)correct.output_after_refill,
+           correct.get_count_after_refill);
+}
+
+#include "dma_abort_sweep.h"
+
 int main(int argc, char **argv)
 {
+    if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 &&
+        strcmp(argv[2], "fresh-sample-edge") == 0) {
+        test_dma_fresh_sample_edge();
+        CHECK_DONE();
+    }
+    if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 && strcmp(argv[2], "rom-aborts") == 0) {
+        test_dma_abort_rom_sweeps();
+        CHECK_DONE();
+    }
     /* Focused traces for the same abort regressions run by default. */
     if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 &&
         strcmp(argv[2], "abort-contract") == 0) {
         test_dma_explicit_abort();
         test_dma_implicit_abort();
+        test_dma_fresh_sample_edge();
         CHECK_DONE();
     }
     if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 &&
@@ -1634,8 +1829,10 @@ int main(int argc, char **argv)
     test_dma_bus_conflicts();
     test_dma_explicit_abort();
     test_dma_implicit_abort();
+    test_dma_fresh_sample_edge();
     test_abort_side_effects();
     test_abort_oam_and_restart();
     test_abort_pending_disable();
+    test_dma_abort_rom_sweeps();
     CHECK_DONE();
 }

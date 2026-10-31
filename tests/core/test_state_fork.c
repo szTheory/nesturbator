@@ -619,16 +619,22 @@ static void abort_guest_pad(uint8_t *code, size_t *length, uint32_t cycles)
     }
 }
 
-/* Three public frame-return cuts: explicit STA $4015 ends at29781/29782
-   with three/two clocks left; implicit NOP ends at29781 with one clock left. The initial
-   rate and later rate change align a silent output boundary without changing
-   timer state directly. Fixed guest-clock anchors are checked below. */
+/* Public frame-return cuts retain expiring aborts, an armed request after
+   explicit disable, or a fresh sample buffer at its first silent output edge.
+   Guest instructions align each boundary without injecting timer state. */
 static void abort_native_fork(uint8_t implicit, uint8_t stop_get)
 {
     static uint8_t image[16u + 2u * INES_PRG_BANK];
     static uint8_t code[INES_PRG_BANK];
     static struct dma_output expected, actual;
     static struct dma_transitions transitions_a, transitions_b;
+    uint8_t before_edge = stop_get == 4u;
+    uint8_t armed = stop_get == 2u || before_edge != 0u;
+    uint8_t fresh_edge = stop_get == 3u;
+    uint32_t enable_cycle = before_edge != 0u  ? 29774u
+                            : armed != 0u      ? 29775u
+                            : fresh_edge != 0u ? 29777u
+                                               : 29773u - stop_get;
     uint32_t flip = implicit != 0u ? 512u : 1000u;
     uint8_t initial = implicit != 0u ? 0x0Du : 0x44u;
     uint8_t fast = implicit != 0u ? 0x0Fu : 0x4Fu;
@@ -640,13 +646,16 @@ static void abort_native_fork(uint8_t implicit, uint8_t stop_get)
                                  0x8Du, 0x12u, 0x40u, 0x8Du, 0x13u, 0x40u};
     memcpy(code + length, configure, sizeof configure);
     length += sizeof configure;
-    abort_guest_pad(code, &length, 29773u - stop_get - (flip + 10u) - 6u);
+    abort_guest_pad(code, &length, enable_cycle - (flip + 10u) - 6u);
     const uint8_t enable[] = {0xA9u, 0x10u, 0x8Du, 0x15u, 0x40u};
     memcpy(code + length, enable, sizeof enable);
     length += sizeof enable;
     if (implicit != 0u) {
         code[length++] = 0x24u; /* BIT $00 before the halted NOP opcode. */
         code[length++] = 0u;
+        code[length++] = 0xEAu;
+    } else if (fresh_edge != 0u) {
+        code[length++] = 0xEAu; /* Two NOPs put the fresh GET before the output edge. */
         code[length++] = 0xEAu;
     } else {
         const uint8_t stop[] = {0xA9u, 0u, 0x8Du, 0x15u, 0x40u};
@@ -683,27 +692,51 @@ static void abort_native_fork(uint8_t implicit, uint8_t stop_get)
     if (state == NULL || scratch == NULL || final_a == NULL || final_b == NULL)
         goto done;
     dma_frame(a, st_buttons(1u), &expected);
-    uint8_t delay = implicit != 0u ? 1u : (uint8_t)(2u + stop_get);
-    uint32_t cut_cycle = implicit != 0u || stop_get != 0u ? 29781u : 29782u;
+    uint8_t delay =
+        armed != 0u || fresh_edge != 0u ? 0u : (implicit != 0u ? 1u : (uint8_t)(2u + stop_get));
+    uint32_t cut_cycle = before_edge != 0u ? 29783u
+                         : armed != 0u || fresh_edge != 0u
+                             ? 29784u
+                             : (implicit != 0u || stop_get != 0u ? 29781u : 29782u);
     CHECK_EQ_U64(a->cpu_cycle, cut_cycle);
     CHECK_EQ_HEX(a->cpu.pc, continuation);
     CHECK_EQ_U64(a->apu.dmc.abort_delay, delay);
-    CHECK_EQ_U64(a->apu.dmc.remaining, 0u);
-    CHECK_EQ_U64(a->apu.dmc.dma_pending, 0u);
-    CHECK_EQ_U64(a->apu.dmc.buffer_empty, 0u);
-    CHECK_EQ_U64(a->apu.dmc.bits, 0u);
+    if (fresh_edge != 0u) {
+        CHECK_EQ_U64(a->apu.dmc.remaining, 1u);
+        CHECK_EQ_U64(a->apu.dmc.dma_pending, 0u);
+        CHECK_EQ_U64(a->apu.dmc.buffer_empty, 0u);
+        CHECK_EQ_U64(a->apu.dmc.bits, 7u);
+        CHECK_EQ_U64(a->apu.dmc.silence, 1u);
+        CHECK_EQ_HEX(a->apu.dmc.sample_buffer, 0x77u);
+    } else {
+        CHECK_EQ_U64(a->apu.dmc.remaining, 0u);
+        CHECK_EQ_U64(a->apu.dmc.dma_pending, armed);
+        CHECK_EQ_U64(a->apu.dmc.buffer_empty, before_edge != 0u ? 0u : armed);
+        CHECK_EQ_U64(a->apu.dmc.bits, armed != 0u && before_edge == 0u ? 7u : 0u);
+    }
     CHECK_EQ_U64(nesturbator_save_state(a, state, size), NESTURBATOR_OK);
     memcpy(scratch, state, size);
     scratch[8] = 5u;
     scratch[9] = 0u;
     st_recrc(scratch, size);
     CHECK(st_refused(b, scratch, size, NESTURBATOR_ERR_STATE_FORMAT));
-    b->apu.dmc.abort_delay = 0u;
+    if (armed != 0u)
+        b->apu.dmc.dma_pending = 0u;
+    else if (fresh_edge == 0u)
+        b->apu.dmc.abort_delay = 0u;
+    else
+        b->apu.dmc.buffer_empty = 1u;
     CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
     CHECK_EQ_U64(b->apu.dmc.abort_delay, delay);
+    CHECK_EQ_U64(b->apu.dmc.dma_pending, armed);
     CHECK_EQ_U64(nesturbator_save_state(b, scratch, size), NESTURBATOR_OK);
     CHECK(memcmp(state, scratch, size) == 0);
-    b->apu.dmc.abort_delay = 0u;
+    if (armed != 0u)
+        b->apu.dmc.dma_pending = 0u;
+    else if (fresh_edge != 0u)
+        b->apu.dmc.buffer_empty = 1u;
+    else
+        b->apu.dmc.abort_delay = 0u;
     CHECK_EQ_U64(nesturbator_save_state(b, final_b, size), NESTURBATOR_OK);
     size_t field = 0u, differences = 0u;
     for (size_t offset = 64u; offset < size; ++offset) {
@@ -714,60 +747,103 @@ static void abort_native_fork(uint8_t implicit, uint8_t stop_get)
     }
     CHECK_EQ_U64(differences, 1u);
     memcpy(scratch, state, size);
-    scratch[field] = 4u;
+    scratch[field] = fresh_edge != 0u ? 2u : 4u;
     st_recrc(scratch, size);
     CHECK(st_refused(b, scratch, size, NESTURBATOR_ERR_STATE_INVALID));
+    CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
+    if (fresh_edge != 0u)
+        st_poison(b);
     CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
 
     /* Disposable copies audit the actual next guest INC instruction as
        well as the uninterrupted public-frame continuation below. Its halted
-       opcode (implicit) or operand (explicit) repeats once: six clocks, not
-       five. No CPU or bus history is injected into either positive run. */
-    struct nesturbator next = *b, missing = *b;
-    missing.apu.dmc.abort_delay = 0u;
-    nesturbator__cpu_step(&next);
-    nesturbator__cpu_step(&missing);
-    CHECK_EQ_U64(next.cpu_cycle - b->cpu_cycle, 6u);
-    CHECK_EQ_U64(missing.cpu_cycle - b->cpu_cycle, 5u);
-    CHECK_EQ_HEX(next.cpu.pc, continuation + 2u);
-    CHECK_EQ_HEX(next.bus.ram[0x20u], 1u);
-    CHECK_EQ_U64(next.apu.dmc.abort_delay, 0u);
+       opcode or operand repeats once for an abort, or stalls for the armed
+       GET after disable. No history is injected into either positive run. */
+    if (fresh_edge == 0u) {
+        struct nesturbator next = *b, missing = *b;
+        if (armed != 0u)
+            missing.apu.dmc.dma_pending = 0u;
+        else
+            missing.apu.dmc.abort_delay = 0u;
+        nesturbator__cpu_step(&next);
+        nesturbator__cpu_step(&missing);
+        CHECK_EQ_U64(next.cpu_cycle - b->cpu_cycle,
+                     before_edge != 0u ? 9u : (armed != 0u ? 8u : 6u));
+        CHECK_EQ_U64(missing.cpu_cycle - b->cpu_cycle, 5u);
+        CHECK_EQ_HEX(next.cpu.pc, continuation + 2u);
+        CHECK_EQ_HEX(next.bus.ram[0x20u], 1u);
+        CHECK_EQ_U64(next.apu.dmc.abort_delay, 0u);
+        CHECK_EQ_U64(next.apu.dmc.remaining, 0u);
+        CHECK_EQ_U64(next.apu.dmc.dma_pending, 0u);
+        if (armed != 0u) {
+            CHECK_EQ_U64(next.apu.dmc.buffer_empty, 0u);
+            CHECK_EQ_HEX(next.apu.dmc.sample_buffer, 0x77u);
+        }
+    }
 
     transitions_a.count = transitions_b.count = 0u;
     nesturbator__apu_set_transition_sink(a, dma_transition, &transitions_a);
     nesturbator__apu_set_transition_sink(b, dma_transition, &transitions_b);
-    dma_frame(a, st_buttons(2u), &expected);
-    dma_frame(b, st_buttons(2u), &actual);
-    CHECK(memcmp(expected.pixels, actual.pixels, sizeof expected.pixels) == 0);
-    CHECK_EQ_U64(expected.frame.audio_count, actual.frame.audio_count);
-    CHECK(memcmp(expected.pcm, actual.pcm, expected.frame.audio_count * sizeof expected.pcm[0]) ==
-          0);
-    CHECK_EQ_U64(expected.frame.ticks, actual.frame.ticks);
-    CHECK_EQ_U64(expected.frame.frame_number, actual.frame.frame_number);
-    CHECK_EQ_U64(transitions_a.count, transitions_b.count);
-    CHECK(transitions_a.count != 0u);
-    for (size_t event = 0u; event < transitions_a.count && event < transitions_b.count; ++event) {
-        CHECK_EQ_U64(transitions_a.cycle[event], transitions_b.cycle[event]);
-        CHECK(transitions_a.level[event] == transitions_b.level[event]);
+    uint32_t frames = fresh_edge != 0u ? 3u : 2u;
+    for (uint32_t frame = 2u; frame <= frames; ++frame) {
+        transitions_a.count = transitions_b.count = 0u;
+        dma_frame(a, st_buttons(frame), &expected);
+        dma_frame(b, st_buttons(frame), &actual);
+        CHECK(memcmp(expected.pixels, actual.pixels, sizeof expected.pixels) == 0);
+        CHECK_EQ_U64(expected.frame.audio_count, actual.frame.audio_count);
+        CHECK(memcmp(expected.pcm, actual.pcm,
+                     (size_t)expected.frame.audio_count * sizeof expected.pcm[0]) == 0);
+        CHECK_EQ_U64(expected.frame.ticks, actual.frame.ticks);
+        CHECK_EQ_U64(expected.frame.frame_number, actual.frame.frame_number);
+        CHECK_EQ_U64(transitions_a.count, transitions_b.count);
+        CHECK(transitions_a.count != 0u);
+        for (size_t event = 0u; event < transitions_a.count && event < transitions_b.count;
+             ++event) {
+            CHECK_EQ_U64(transitions_a.cycle[event], transitions_b.cycle[event]);
+            CHECK(transitions_a.level[event] == transitions_b.level[event]);
+        }
+        CHECK(memcmp(a->bus.ram, b->bus.ram, sizeof a->bus.ram) == 0);
+        if (frame == 2u && fresh_edge != 0u) {
+            CHECK(transitions_a.cycle[0] > cut_cycle);
+            CHECK(transitions_a.cycle[0] < cut_cycle + 1000u);
+            CHECK_EQ_U64(nesturbator_save_state(a, scratch, size), NESTURBATOR_OK);
+        }
     }
-    CHECK(memcmp(a->bus.ram, b->bus.ram, sizeof a->bus.ram) == 0);
     CHECK_EQ_U64(nesturbator_save_state(a, final_a, size), NESTURBATOR_OK);
     CHECK_EQ_U64(nesturbator_save_state(b, final_b, size), NESTURBATOR_OK);
     CHECK(memcmp(final_a, final_b, size) == 0);
     nesturbator__apu_set_transition_sink(a, NULL, NULL);
     nesturbator__apu_set_transition_sink(b, NULL, NULL);
-    /* Correctly valued but missing stop history loses one real halted read.
-       The guest's eight-clock RAM loop retains that timing difference. */
+    /* A changed serialized phase/control value must remain visible in a
+       guest continuation. The fresh-edge case has a full sample buffer at the
+       cut; falsely emptying it arms an early reload and steals real guest time. */
     CHECK_EQ_U64(nesturbator_load_state(b, state, size), NESTURBATOR_OK);
-    b->apu.dmc.abort_delay = 0u;
+    if (armed != 0u)
+        b->apu.dmc.dma_pending = 0u;
+    else if (fresh_edge != 0u)
+        b->apu.dmc.buffer_empty = 1u;
+    else
+        b->apu.dmc.abort_delay = 0u;
     dma_frame(b, st_buttons(2u), &actual);
-    CHECK(expected.frame.ticks != actual.frame.ticks);
+    if (fresh_edge != 0u) {
+        CHECK_EQ_U64(nesturbator_save_state(b, final_b, size), NESTURBATOR_OK);
+        CHECK(memcmp(scratch, final_b, size) != 0);
+    } else {
+        CHECK(expected.frame.ticks != actual.frame.ticks);
+    }
+    if (fresh_edge != 0u)
+        dma_frame(b, st_buttons(3u), &actual);
     CHECK_EQ_U64(nesturbator_save_state(b, final_b, size), NESTURBATOR_OK);
     CHECK(memcmp(final_a, final_b, size) != 0);
-    printf(
-        "%s abort native fork: public frame1 cycle=%u delay=%u "
-        "pixels/PCM/transitions/effects/state=equal; missing-history rejected; format5 refused\n",
-        implicit != 0u ? "implicit" : "explicit", cut_cycle, (unsigned)delay);
+    printf("%s abort native fork: public frame1 cycle=%u delay=%u "
+           "pixels/PCM/transitions/effects/state=equal; %s; format5 refused\n",
+           fresh_edge != 0u
+               ? "fresh-buffer-edge"
+               : (before_edge != 0u ? "imminent-after-disable"
+                                    : (armed != 0u ? "armed-after-disable"
+                                                   : (implicit != 0u ? "implicit" : "explicit"))),
+           cut_cycle, (unsigned)delay,
+           fresh_edge != 0u ? "buffer-state negative rejected" : "missing-history rejected");
 done:
     free(state);
     free(scratch);
@@ -899,6 +975,9 @@ int main(int argc, char **argv)
         conflict_latch_fork();
         abort_native_fork(0u, 0u);
         abort_native_fork(0u, 1u);
+        abort_native_fork(0u, 2u);
+        abort_native_fork(0u, 4u);
+        abort_native_fork(0u, 3u);
         abort_native_fork(1u, 0u);
         CHECK_DONE();
     }
@@ -945,6 +1024,9 @@ int main(int argc, char **argv)
         conflict_latch_fork();
         abort_native_fork(0u, 0u);
         abort_native_fork(0u, 1u);
+        abort_native_fork(0u, 2u);
+        abort_native_fork(0u, 4u);
+        abort_native_fork(0u, 3u);
         abort_native_fork(1u, 0u);
         static uint8_t buf[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
         static const uint16_t mappers[] = {0u, 4u};

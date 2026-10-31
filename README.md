@@ -35,6 +35,14 @@ The selected early RP2A03G model omits the later-G/H unexpected extra reload.
 Both revision-dependent outcomes remain accepted by the pinned ROM contract;
 owned checks do not establish fresh ROM acceptance.
 
+Behavior revision 14 completes armed or imminent explicit refills after
+reader disable, and undriven reads reconnect to external data after $4015
+selection ends. A just-fetched sample waits past an immediately adjacent
+output boundary. This last ordering is an inferred compatibility model for
+the pinned early-G looping sweep; owned timing, audio and native checks do
+not establish universal silicon behavior. Native format 6 and ABI 1 remain
+unchanged. Fresh full-ROM acceptance of this revision is still pending.
+
 With no cartridge, the fixed test card and silence remain available. The
 checked MMC3 support clause is:
 

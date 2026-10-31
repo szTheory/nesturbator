@@ -12,8 +12,9 @@ Cartridges use a per-board mapper interface with page tables, a four-entry namet
 
 ## Behavior revision history
 
-The current public header reports behavior revision 13. These revision facts describe this source tree; a published core must be identified from its own release or CI artifact.
+The current public header reports behavior revision 14. These revision facts describe this source tree; a published core must be identified from its own release or CI artifact.
 
+- **Revision 14:** Undriven reads reconnect to external held data after internal `$4015` selection ends. An imminent/armed explicit refill completes after disable without reader underflow or restart. A just-fetched byte remains buffered across the immediately following output boundary, starting a silent output cycle instead of an adjacent refill. This last ordering is an inferred compatibility model from the pinned early-G Loop3 key, not a universal hardware fact. Readiness stays on the synchronous bus stack, including the OAM tail; no field meaning, native format or ABI changes. [HWC.19]
 - **Revision 13:** A stop two or three CPU clocks before reload retains a one-cycle aborted halt. Explicit disable and non-looping last-byte completion share the qualified window; a write suppresses the halt instead of retrying. The selected early RP2A03G model omits the later-G/H unexpected reload. Both historical implicit outcomes remain accepted by the pinned test contract. [HWC.01][HWC.19]
 - **Revision 12:** DMC GET combines parked core A15:5 with sample A4:0 for internal `$4015`–`$4017` selection. Internal status and external sample data have separate latches; `$4015` does not drive the external bus. Controller reads retain external upper bits under the existing per-cycle clock profile. The pinned test checks CPU-visible data, not DMC shift-register input. [HWC.01][HWC.19]
 - **Revision 11:** DMC halt/dummy/alignment overlaps OAM accesses; its sample GET wins collisions and OAM retries its source on GET. Interior overlaps add two cycles; final windows can add one or three. [HWC.01]
@@ -169,7 +170,7 @@ the native state payload; host files and disk containers are outside this API.
 The library does no file I/O and never allocates for a state; the host owns the
 buffer and decides where states live.
 
-The current state format is 6 and the behavior revision is 13. Format 6 adds
+The current state format is 6 and the behavior revision is 14. Format 6 adds
 one byte after the DMC enable delay: an abort countdown in 0..3 future CPU clocks,
 where 0 is inactive. The DMC payload grows from 23 to 24 bytes. Formats 1 through 5
 are refused without conversion. It preserves format-5 internal CPU data and the

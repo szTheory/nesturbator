@@ -177,7 +177,7 @@ invocation. These are CMake wrapper inputs, not runner options. The public
 with a generated NMI ROM; the self-test sends each bad identity through the
 same preflight mode without invoking replay.
 
-Native format version 6 and behavior revision 13 are separate values. The
+Native format version 6 and behavior revision 14 are separate values. The
 loader checks the native format, cartridge identity, size, checksum and field
 contents, but it does not enforce the exact executing build or behavior
 revision. A state may therefore pass native loading and still be outside the

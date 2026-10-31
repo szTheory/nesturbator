@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.25)
 
 # Phase 8 API baseline, refreshed for Phase 24: the public version and state-format macros
-# now identify behaviour revision 13 and save-state format 6. This is a temporary guard, not a
+# now identify behaviour revision 14 and save-state format 6. This is a temporary guard, not a
 # permanent repository freeze.
-set(PHASE8_DECLARATIONS_SHA256 "2d00381c04864f7c9968418cb814879b95e7f42cd575b586fa1a308bb8279502")
+set(PHASE8_DECLARATIONS_SHA256 "40a364cc0fe445ad8eb080c8aac82dbfd7a507f33f9ee6edfc7a05e863715e3e")
 
 function(normalize_api source out_hash)
   string(REGEX REPLACE "/\\*([^*]|\\*+[^*/])*\\*+/" "" text "${source}")

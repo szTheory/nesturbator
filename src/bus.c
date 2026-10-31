@@ -66,7 +66,7 @@ static uint8_t is_ppu_status_address(uint16_t addr)
    status read needs the earlier M2-rise catch-up. Return its composed status
    byte; callers apply bus side effects and capture before a tied PPU transition. */
 static inline uint8_t cycle(struct nesturbator *nes, uint8_t status_read,
-                            uint8_t defer_nmi_close_sample)
+                            uint8_t defer_nmi_close_sample, uint8_t dmc_sample_ready)
 {
     uint8_t vblank = 0u;
     uint8_t status_value = 0u;
@@ -90,7 +90,7 @@ static inline uint8_t cycle(struct nesturbator *nes, uint8_t status_read,
        state as reads and writes. [HWC.01, HWC.09] */
     nes->bus.apu_get_put_phase ^= 1u;
     NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_APU_BEFORE, nes, 0u, nes->apu.dmc.dma_pending, 0u);
-    nesturbator__apu_clock(nes);
+    nesturbator__apu_clock(nes, dmc_sample_ready);
     NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_APU_AFTER, nes, 0u, nes->apu.dmc.dma_pending, 0u);
     /* M2 rises at +9 ticks, while the circuit oracle places internal phi2
        three ticks later. The CPU polls the request captured by the preceding
@@ -154,11 +154,10 @@ static inline uint8_t bus_read_data(struct nesturbator *nes, uint16_t addr, uint
         uint16_t reg = (uint16_t)(0x2000u | (addr & 7u));
         nes->bus.open_bus =
             reg == 0x2002u ? status_value : nesturbator__ppu_register_read(nes, reg);
-    } else {
-        /* Undriven internal registers retain the CPU-side latch, including
-           status data selected during a DMC GET. HWC.19 TEST_DMABusConflict. */
-        return nes->bus.cpu_data;
     }
+    /* Only selected $4015 disconnects the external bus. After that select
+       ends, undriven registers sample the external held value too. The pinned
+       bus-conflict answer key excludes $16/$17, not $15. [HWC.08/19] */
     nes->bus.cpu_data = nes->bus.open_bus;
     return nes->bus.cpu_data;
 }
@@ -187,7 +186,10 @@ static void dmc_sample_get(struct nesturbator *nes, uint16_t parked_read)
     dmc->buffer_empty = 0u;
     dmc->dma_pending = 0u;
     dmc->address = dmc->address == 0xffffu ? 0x8000u : (uint16_t)(dmc->address + 1u);
-    dmc->remaining--;
+    if (dmc->remaining != 0u)
+        dmc->remaining--;
+    else
+        return; /* An armed GET after disable fills the buffer, not a new sample. */
     if (dmc->remaining == 0u) {
         if ((dmc->reg[0] & 0x40u) != 0u) {
             dmc->address = (uint16_t)(0xc000u | ((uint32_t)dmc->reg[2] << 6));
@@ -207,8 +209,7 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read, uint8_t *s
     struct nesturbator__dmc *dmc = &nes->apu.dmc;
     NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_HALT_ATTEMPT, nes, parked_read, 0u, 0u);
     if (dmc->dma_pending == 0u || dmc->enable_delay != 0u ||
-        nes->bus.apu_get_put_phase != dmc->dma_halt_phase || dmc->remaining == 0u ||
-        nes->cart.prg == NULL)
+        nes->bus.apu_get_put_phase != dmc->dma_halt_phase || nes->cart.prg == NULL)
         return 0u;
 
     NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_HALT_ACCEPTED, nes, parked_read, 0u, 0u);
@@ -219,25 +220,25 @@ static uint8_t dmc_dma(struct nesturbator *nes, uint16_t parked_read, uint8_t *s
     NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_PARKED_HALT, nes, parked_read, nes->bus.open_bus, 0u);
     sample_interrupt_lines(nes);
     ppu_catch_up(nes);
-    *sample = cycle(nes, status_read, 1u); /* DMC dummy read cycle. [HWC.01, HWC.09] */
+    *sample = cycle(nes, status_read, 1u, 1u); /* DMC dummy read cycle. [HWC.01, HWC.09] */
     (void)bus_read_data(nes, parked_read, *sample);
     NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_PARKED_DUMMY, nes, parked_read, nes->bus.open_bus, 0u);
     sample_interrupt_lines(nes);
     ppu_catch_up(nes);
     if (nes->bus.apu_get_put_phase != 0u) {
-        *sample = cycle(nes, status_read, 1u); /* Alignment read on PUT. [HWC.01, HWC.09] */
+        *sample = cycle(nes, status_read, 1u, 1u); /* Alignment read on PUT. [HWC.01, HWC.09] */
         (void)bus_read_data(nes, parked_read, *sample);
         NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_PARKED_ALIGN, nes, parked_read, nes->bus.open_bus,
                                 0u);
         sample_interrupt_lines(nes);
         ppu_catch_up(nes);
     }
-    (void)cycle(nes, 0u, 1u); /* DMC memory get. [HWC.01, HWC.09] */
+    (void)cycle(nes, 0u, 1u, 1u); /* DMC memory get. [HWC.01, HWC.09] */
     dmc_sample_get(nes, parked_read);
     return 1u;
 }
 
-static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
+static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr, uint8_t dmc_sample_ready)
 {
     uint8_t status_read = is_ppu_status_address(addr);
     /* Capture before this cycle's APU clock expires the countdown. A write
@@ -247,9 +248,9 @@ static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
        keeps PPUSTATUS-only temporaries out of every other read's hot path. */
     uint8_t sample;
     if (status_read != 0u)
-        sample = cycle(nes, 1u, 1u);
+        sample = cycle(nes, 1u, 1u, dmc_sample_ready);
     else
-        sample = cycle(nes, 0u, 1u);
+        sample = cycle(nes, 0u, 1u, dmc_sample_ready);
     uint8_t value;
     uint8_t halted = 0u;
     if (aborted != 0u) {
@@ -258,14 +259,17 @@ static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
         NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_PARKED_HALT, nes, addr, nes->bus.cpu_data, 1u);
         sample_interrupt_lines(nes);
         ppu_catch_up(nes);
-        sample = cycle(nes, status_read, 1u);
+        sample = cycle(nes, status_read, 1u, 1u);
         halted = 1u;
     }
     if (nes->apu.dmc.dma_pending != 0u && dmc_dma(nes, addr, &sample) != 0u) {
         /* The CPU repeats its parked read once more when RDY is released.
            This is the resumed bus cycle after the DMC memory get, and is
-           distinct from the GET cycle that filled the sample buffer. [HWC.01] */
-        sample = cycle(nes, status_read, 1u);
+           distinct from the GET cycle that filled the sample buffer. The
+           fresh byte is not yet output-visible on this immediate cycle
+           (inferred early-G Loop3 ordering, HWC.19). This local argument
+           cannot cross a public save boundary. [HWC.01] */
+        sample = cycle(nes, status_read, 1u, 0u);
         halted = 1u;
     }
     value = bus_read_data(nes, addr, sample);
@@ -278,7 +282,7 @@ static uint8_t bus_read_cycle(struct nesturbator *nes, uint16_t addr)
     return value;
 }
 
-static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
+static uint8_t oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
 {
     /* The CPU is already halted for the whole OAM transfer. DMC halt/dummy/
        alignment may overlap OAM accesses; only its memory GET steals an OAM
@@ -288,6 +292,7 @@ static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
     uint16_t offset = 0u;
     uint8_t byte = 0u, have_byte = 0u, oam_halt = 1u;
     uint8_t dmc_stage = 0u; /* 0: idle, 1: dummy next, 2: GET when aligned */
+    uint8_t dmc_sample_ready = 1u;
     do {
         uint8_t phase = (uint8_t)(nes->bus.apu_get_put_phase ^ 1u);
         uint8_t dmc_get = (uint8_t)(dmc_stage == 2u && phase != 0u);
@@ -299,7 +304,8 @@ static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
             NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_OAM_SOURCE, nes, address, 0u, offset);
         uint8_t status_read =
             (uint8_t)(dmc_get == 0u && destination == 0u && is_ppu_status_address(address) != 0u);
-        uint8_t status = cycle(nes, status_read, 1u);
+        uint8_t status = cycle(nes, status_read, 1u, dmc_sample_ready);
+        dmc_sample_ready = (uint8_t)(dmc_get == 0u);
         if (dmc_get != 0u) {
             dmc_sample_get(nes, halted_read);
         } else {
@@ -326,28 +332,30 @@ static void oam_dma(struct nesturbator *nes, uint8_t page, uint16_t halted_read)
         } else if (dmc_stage == 1u) {
             dmc_stage = 2u;
         } else if (dmc_stage == 0u && nes->apu.dmc.dma_pending != 0u &&
-                   nes->apu.dmc.enable_delay == 0u && nes->apu.dmc.remaining != 0u &&
-                   phase == nes->apu.dmc.dma_halt_phase && nes->cart.prg != NULL) {
+                   nes->apu.dmc.enable_delay == 0u && phase == nes->apu.dmc.dma_halt_phase &&
+                   nes->cart.prg != NULL) {
             NESTURBATOR_DMA_OBSERVE(NESTURBATOR_DMA_HALT_ACCEPTED, nes, halted_read, 0u, offset);
             dmc_stage = 1u;
         }
         oam_halt = 0u;
     } while (offset < 256u || dmc_stage != 0u);
+    return dmc_sample_ready;
 }
 
 uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
 {
+    uint8_t dmc_sample_ready = 1u;
     if (nes->bus.oam_dma_pending != 0u) {
         uint8_t page = nes->bus.oam_dma_page;
         nes->bus.oam_dma_pending = 0u;
-        oam_dma(nes, page, addr);
+        dmc_sample_ready = oam_dma(nes, page, addr);
     }
-    return bus_read_cycle(nes, addr);
+    return bus_read_cycle(nes, addr, dmc_sample_ready);
 }
 
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value)
 {
-    (void)cycle(nes, 0u, 1u);
+    (void)cycle(nes, 0u, 1u, 1u);
     if (nes->apu.dmc.dma_pending != 0u && nes->apu.dmc.enable_delay == 0u &&
         nes->bus.apu_get_put_phase == nes->apu.dmc.dma_halt_phase) {
         /* RDY cannot halt this write. Its failed attempt retries on the next

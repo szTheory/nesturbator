@@ -54,7 +54,13 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 13 retains the one-cycle abort after an explicit
+   the same inputs. Revision 14 reconnects undriven reads to the external bus
+   after $4015 selection ends, completes imminent/armed explicit refills, and
+   keeps a just-fetched byte unavailable to the immediate next output edge.
+   That last ordering is inferred from the pinned early-G looping sweep,
+   not a universal silicon timing claim (HWC.19). Its synchronous bus-local
+   readiness adds no saved field; native format 6 and ABI 1 are unchanged.
+   Revision 13 retains the one-cycle abort after an explicit
    or implicit stop two/three clocks before reload. A write suppresses it,
    while ordinary sample requests still retry. The selected early RP2A03G
    model omits the later-G/H unexpected reload; the pinned ROM still accepts
@@ -94,7 +100,7 @@ extern "C" {
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
    Revision 5 was the PPU fetch pipeline. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 13
+#define NESTURBATOR_BEHAVIOUR_REVISION 14
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
