@@ -330,7 +330,7 @@ The current config values are:
 <!-- DATA_J6rW9pA4_START -->
 ```json
 "nyquist_validation": false,
-"security_enforcement": false
+"security_enforcement": false,
 ```
 <!-- DATA_J6rW9pA4_END -->
 [VERIFIED: .planning/config.json:25,49]
