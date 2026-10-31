@@ -3,10 +3,13 @@ gsd_state_version: "1.0"
 milestone: v6
 milestone_name: Player-ready NES and reproducible feedback
 status: planning
-last_updated: "2026-10-30T23:20:08.462Z"
+current_phase: 22
+current_plan: null
+stopped_at: v6 requirements and roadmap approved and initialized; Phase 22 discussion next
+last_updated: "2026-10-31T00:07:36Z"
 last_activity: 2026-10-30
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,16 +20,16 @@ progress:
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated 2026-10-30 during v6 scope selection, and AGENTS.md.
+See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v6 requirements and roadmap approval, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: define v6 player readiness and reproducible feedback; existing research/playtesting is sufficient and further owner play is optional.
+Current focus: Phase 22, Install and protect progress; milestone opening is complete and discussion is next. Existing research/playtesting is sufficient.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 22 (Install and protect progress), first of two v6 phases
 Plan: —
-Status: Defining requirements
-Last activity: 2026-10-30 — Milestone v6 started
+Status: Ready for phase discussion; implementation not started
+Last activity: 2026-10-30 — Owner approved all ten requirements and Phases 22–23; milestone initialized
 
 ## Next Action
 
@@ -38,18 +41,23 @@ Reuse the [discovery synthesis](research/milestone-v6-discovery/SYNTHESIS.md),
 [postmortem](playtesting/POSTMORTEM.md) and existing 22 title reports. No new broad
 research fan-out or owner gameplay is needed.
 
-The agent is defining concrete requirements and a proposed two-phase roadmap.
-Review/approval of that concrete contract remains within `$gsd-new-milestone`;
-phase discussion, planning and execution have not started. Read
-[continue.md](continue.md) before resuming. The selected scope excludes overscan,
-core accuracy fixes, PAL/Dendy, new mappers and actual Playstead integration.
-No new live testing, runtime window or safety-stop waiver is granted here.
+The owner approved the concrete [requirements](REQUIREMENTS.md) and
+[two-phase roadmap](ROADMAP.md) with “yes i approve”. All ten requirements are
+mapped exactly once to Phases 22–23. The milestone-opening artifacts are committed
+locally; no push, release, phase discussion, planning or execution is part of this
+step. [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md), direction revision 9, reconciles
+all four horizons, triggers, partial evidence and debt within this same opening.
 
-`$gsd-new-milestone`
+The next actor is the owner invoking the next command when ready:
 
-This resumes the same v6 opening at requirements/roadmap review, without selecting
-scope again or restarting/archiving v6. Context may be cleared after this checkpoint.
-Preserve the pre-existing unstaged AGENTS.md/config edits.
+`$gsd-discuss-phase 22`
+
+This gathers the implementation approach for **Install and protect progress**
+before phase planning. Context may be cleared first; read
+[continue.md](continue.md). No further input is needed to finish this opening.
+Preserve the pre-existing unstaged AGENTS.md/config edits. Overscan, core accuracy
+fixes, PAL/Dendy, new mappers and actual Playstead integration stay outside v6.
+Existing live-testing stops and runtime allowances remain unchanged.
 
 v5 stays complete and archived: all eleven requirements satisfied, canonical
 119 PASS / 27 FAIL over 146 scored rows plus five unscored DRAW, ABI 1 / state
@@ -99,7 +107,7 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-30T23:21:34Z
-**Stopped at:** v6 recommended scope selected; defining concrete requirements and proposed phases within new-milestone.
-**Next command:** `$gsd-new-milestone`
+**Last session:** 2026-10-31T00:07:36Z
+**Stopped at:** v6 opening complete; approved requirements/roadmap committed; Phase 22 discussion next.
+**Next command:** `$gsd-discuss-phase 22`
 **Resume file:** `.planning/continue.md`

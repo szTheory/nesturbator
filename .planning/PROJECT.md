@@ -73,7 +73,7 @@ new hosted qualification is claimed by this refresh.
 - Installation identifies the actual package/build/core and keeps published releases separate from merged development behavior. Battery saves, snapshots, rewind and host containers have explicit backup, supported-version and rollback guidance.
 - A bounded report/replay recipe identifies scene, inputs, content and core, preserves private artifacts, and separates native output, adapter conversion, host presentation and original game behavior.
 
-The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30. v6 continues phase numbering after 21. SEED-006 contributes only demonstrated documentation/contract work; existing research and 22 title reports are reused. Requirements and the proposed two-phase roadmap still need their concrete review gate. Overscan, accuracy fixes, new regions/mappers and actual Playstead integration remain outside this milestone. Direction and preserved debt are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30. v6 continues phase numbering after 21. SEED-006 contributes only demonstrated documentation/contract work; existing research and 22 title reports are reused. The owner approved the ten requirements and Phases 22–23 with “yes i approve”; see [requirements](REQUIREMENTS.md) and [roadmap](ROADMAP.md). Milestone opening is complete; Phase 22 discussion is next. Overscan, accuracy fixes, new regions/mappers and actual Playstead integration remain outside this milestone. Direction and preserved debt are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 
 <details>
 <summary>v5 milestone definition (archived)</summary>
@@ -146,7 +146,7 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 - [ ] Existing executable documentation, packaging and public-header contracts survive the README/topic-guide reorganization.
 - [ ] A scene report can be reproduced through bounded existing runner/host facilities without changing daily progress or distributing private content.
 
-These are the approved v6 goals; detailed requirement acceptance and phase structure are being defined. v5 remains archived. Package publication is independent: release PR #56 was rechecked open and the latest published release was v0.1.11 during v6 opening.
+The ten detailed requirements and two-phase structure are approved; implementation has not started. v5 remains archived. Package publication is independent: release PR #56 was rechecked open and the latest published release was v0.1.11 during v6 opening.
 
 ### Out of Scope
 
@@ -199,7 +199,7 @@ These are the approved v6 goals; detailed requirement acceptance and phase struc
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| v6 closes player documentation, progress-safety and reproducible-feedback gaps before another accuracy cluster | Ordinary play across six mapper IDs supplied enough discovery evidence; additional generic gameplay has diminishing value | — Scope selected; requirements/roadmap review pending. Reuse research; no new broad sweep, host framework or overscan feature. |
+| v6 closes player documentation, progress-safety and reproducible-feedback gaps before another accuracy cluster | Ordinary play across six mapper IDs supplied enough discovery evidence; additional generic gameplay has diminishing value | — Approved requirements and Phases 22–23; implementation pending. Reuse research; no new broad sweep, host framework or overscan feature. |
 | IRQ eligibility is accepted at the legal instruction poll and BRK/IRQ/NMI share resumable entry with coherent vector selection | Old-I timing and takeover require retained history, not a new independent IRQ queue | ✓ Good — Phase 21 latency/overlap targets, native every-stage replay and actual adapter run-ahead; format 3/revision 9 |
 | Entry-inhibited NMI candidates qualify only if held until recognition; recognized requests remain separate | Raw sampled pulses must not become sticky recognized requests prematurely | ✓ Good — Phase 21 causal revert/mutant controls and held/released native/adapter histories; physical exact ties remain unmeasured |
 | Protected raw-key results, six-platform inventories and original performance thresholds remain unchanged acceptance gates | Aggregate score improvement cannot conceal lost passes or source mismatch | ✓ Good — all eleven targets and all 114 Phase 21 starting PASS keys on six lanes; collector recurrence remains debt |
@@ -271,4 +271,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-30 during v6 opening, after owner scope selection*
+*Last updated: 2026-10-30 after v6 requirements and roadmap approval*

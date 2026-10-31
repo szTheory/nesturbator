@@ -1,30 +1,38 @@
-# Resume v6 milestone opening
+# Resume v6 at Phase 22 discussion
 
 Read AGENTS.md, [STATE.md](STATE.md), [PROJECT.md](PROJECT.md) and
-[PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The owner selected the recommended
-**v6 Player-ready NES and reproducible feedback** scope with “follow ur recs”.
-Do not ask them to select scope again. Scope is selected; concrete requirements
-and roadmap approval remain part of this same `$gsd-new-milestone` step.
+[PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). v6 **Player-ready NES and reproducible
+feedback** is initialized. The owner selected the recommended scope with
+“follow ur recs” and then approved the concrete requirements and two-phase
+roadmap with “yes i approve” on 2026-10-30. Do not repeat scope selection,
+requirements approval or the new-milestone lifecycle step.
 
-## Contract and next actor
+## Outcome and next actor
 
-The agent finishes the concrete review package: short current player docs,
-identified installation/core, controls/progress guidance, state-version backup/
-rollback policy and a bounded scene-report/replay recipe using existing facilities.
-Continue phase numbering at 22. Reuse the completed
-[research](research/milestone-v6-discovery/SYNTHESIS.md) and
-[postmortem](playtesting/POSTMORTEM.md); feedback already covers 22 titles across
-all six supported mapper IDs. No further broad sweep or generic research fan-out.
+The approved [requirements](REQUIREMENTS.md) map all ten items exactly once:
+Phase 22 covers installation, controls, progress/version policy and executable
+documentation contracts; Phase 23 covers the bounded report/replay/triage route.
+The [roadmap](ROADMAP.md), project, product direction and state/handoff are
+committed locally. No phase plans or implementation have been created; no push
+or release is part of milestone opening.
+
+The owner acts next by invoking:
+
+`$gsd-discuss-phase 22`
+
+This clarifies the approach for **Install and protect progress** before planning.
+Context may be cleared first. No additional confirmation is needed to finish the
+completed milestone opening; stop here rather than chaining another GSD step.
+
+Reuse the [research](research/milestone-v6-discovery/SYNTHESIS.md),
+[postmortem](playtesting/POSTMORTEM.md) and existing 22 title reports across six
+supported mapper IDs. No further broad play sweep or generic research fan-out.
 SEED-006 contributes measured documentation/contract repairs only; seed files
-remain unchanged and previously delivered outcomes stay credited.
-
-Concrete requirements and phase structure need the workflow review gate before
-final roadmap commit. Do not run discuss/plan/execute from this opening step.
-
-`$gsd-new-milestone`
-
-This resumes the existing v6 opening; do not repeat milestone-switch or archive
-v6 as an outgoing milestone. Context may be cleared first.
+and previously delivered outcomes stay unchanged. The three pending testing
+proposals have no direct requirement match and remain unlinked/deferred.
+Static-runtime model/config warnings were observed during opening; no global
+install or settings change was made. The roadmap was prepared inline under the
+skill's no-explicit-subagent fallback, reusing existing research.
 
 ## Boundaries and retained evidence
 
