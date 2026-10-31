@@ -1158,66 +1158,13 @@ show that a slowdown above 1% fails without a line and passes with one.
 
 ## Downloads and archives
 
-Each release has three zip archives per platform, named
-`nesturbator-VERSION-COMPONENT-OS-ARCH.zip`, where OS is `linux`, `macos` or
-`windows` and ARCH is `x64` or `arm64`. Files sit at the zip root, with no
-enclosing directory:
-
-| Archive | Contents |
-|---|---|
-| `nesturbator-VERSION-libretro-OS-ARCH.zip` | `cores/nesturbator_libretro.{so,dylib,dll}`, `info/nesturbator_libretro.info`, `LICENSE`, `THIRD-PARTY-NOTICES.md` |
-| `nesturbator-VERSION-runner-OS-ARCH.zip` | `bin/nesturbator-run` (`.exe` on Windows), `LICENSE` |
-| `nesturbator-VERSION-library-OS-ARCH.zip` | `include/nesturbator.h`, the static library and package files under `lib/`, `LICENSE` |
-
-Unzip the libretro archive into RetroArch's directory to put the core in
-`cores` and its information file in `info`.
-
-`cmake --workflow --preset ci` ends by writing the three archives for the
-build machine to `build/ci/packages/`. This checks their names and contents:
-
-```sh
-cmake -DDIR=build/ci -P tests/cmake/check_archives.cmake
-```
-
-The checker rejects semicolons, ASCII control characters and duplicate ZIP
-member names, and allows only component directories, before comparing file
-entries with the exact contents above. Each required file pattern must match
-exactly once, and the listed names must agree with the raw ZIP names so that
-Unicode path aliases cannot substitute allowed names. It also checks packaged
-libretro metadata against the source file and the documented support clause.
+For archive names, contents, integrity checks and the player install route,
+see the [release guide](docs/releases.md) and the marked instructions below.
 
 ## Releases
 
-Release tooling changes only the numbers in the public header's three version
-macros. A narrow `clang-format off/on` region keeps their inline release-please
-markers stable when a number gains a digit, such as patch 9 becoming 10.
-`release.version_format` checks the guard, markers and numeric-only mutations
-in CI; `hygiene.release_version_format` also checks the full mutated headers
-with clang-format 18. Formatting resumes before the ABI macro.
-
-Merging a behaviour-changing pull request publishes a GitHub release.
-release-please reads the Conventional Commit titles on `main`, opens a release
-pull request that sets the version and the changelog, and merges it once CI
-passes. The version comes from the Conventional Commit titles alone: before
-1.0 a `feat:` raises the patch number, and `release.no_release_as` keeps a
-one-time `release-as` pin from staying behind in
-`release-please-config.json`. `.github/workflows/release.yml` then runs the full CI on that exact
-commit and publishes the release with 18 archives (library, runner and
-libretro for six platforms) and `SHA256SUMS`. `SHA256SUMS` carries a
-build-provenance attestation that covers every archive. To check a download:
-
-```sh
-gh attestation verify FILE --repo szTheory/nesturbator
-```
-
-The `release.nonbehavioral_policy` check requires the `needs:` and `if:` lines
-of the publish and ci jobs to equal fixed strings, so an added condition such
-as `|| always()` fails the suite.
-
-Before publishing, the workflow requires exactly the 18 expected archive
-names, verifies each archive this way, and confirms that a copy with one byte
-changed fails. Pull-request rules are in [CONTRIBUTING.md](CONTRIBUTING.md);
-security reports go through [SECURITY.md](SECURITY.md).
+The maintainer release process, version-marker ownership, package inventory
+and attestation checks are documented in the [release guide](docs/releases.md).
 
 ## The runner
 
