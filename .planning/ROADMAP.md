@@ -7,15 +7,16 @@
 - ✅ **v3 Save states and rewind** — Phases 11–15 (shipped 2026-10-13) — [archive](milestones/v3-ROADMAP.md)
 - ✅ **v4 Measured NTSC accuracy and robustness** — Phases 16–18 (shipped 2026-10-24) — [archive](milestones/v4-ROADMAP.md)
 - ✅ **v5 NMI, VBlank and sprite-0 timing** — Phases 19–21 (shipped 2026-10-30; package publication pending) — [archive](milestones/v5-ROADMAP.md)
-- **v6 Player-ready NES and reproducible feedback** — Phases 22–23 (approved 2026-10-30; Phase 22 underway)
+- **v6 Player-ready NES and reproducible feedback** — Phases 22–23 (approved 2026-10-30; Phase 22 complete)
 
 ## v6: Player-ready NES and reproducible feedback
 
 **Status:** Approved execution contract. The owner approved the ten requirements
 and two-phase roadmap with “yes i approve” on 2026-10-30. Milestone opening is
 complete; Phase 22 discussion and planning are complete with independent plan
-verification passed. All four Phase 22 plans are implemented and committed. Review findings are
-fixed; phase verification is in progress. Phase 23 remains pending.
+verification passed. All four Phase 22 plans are implemented and committed;
+review corrections and independent phase verification passed. Phase 23 remains
+pending at the required phase boundary.
 
 **Goal:** A player can install an identified core, protect daily progress and
 supply a precise scene report that a developer can reproduce with existing facilities.
@@ -27,7 +28,7 @@ and the [playtest postmortem](playtesting/POSTMORTEM.md); no fresh generic fan-o
 
 ## Phases
 
-- [ ] **Phase 22: Install and protect progress** — Make the existing core straightforward to install and document how to preserve progress, while keeping executable developer contracts intact.
+- [x] **Phase 22: Install and protect progress** — Make the existing core straightforward to install and document how to preserve progress, while keeping executable developer contracts intact. (completed 2026-10-30)
 - [ ] **Phase 23: Reproduce and report a scene** — Provide a bounded, private-content-safe report/replay route that distinguishes repeatability from correctness.
 
 ### Phase 22: Install and protect progress
@@ -56,7 +57,7 @@ progress across an identified core upgrade or rollback.
    controls still reject missing or contradictory contracts. No assertion is
    dropped merely to shorten the README.
 
-**Plans:** 4/4 plans executed in 4 sequential waves; independent plan verification passed.
+**Plans:** 4/4 plans complete in 4 sequential waves; independent plan verification passed.
 
 **Wave 1**
 
@@ -127,12 +128,13 @@ daily progress and choose the next evidence source without overclaiming a diagno
 
 | Phase | Plans Complete | Status | Completed |
 |---|---|---|---|
-| 22. Install and protect progress | 4/4 | In Progress | — |
+| 22. Install and protect progress | 4/4 | Complete    | 2026-10-30 |
 | 23. Reproduce and report a scene | 0 / not planned | Not started | — |
 
 **Requirement coverage:** 10/10 mapped exactly once; 0 unmapped.
-**Next action:** The active phase executor is finishing verification of Phase 22.
-Do not start Phase 23 until the phase result is recorded in STATE.md.
+**Next action:** `$gsd-discuss-phase 23` — define the report/replay/triage approach
+before planning. Context may be cleared first; read STATE.md and continue.md.
+Phase 23 has not started; no user action is needed to finish Phase 22.
 
 ## Backlog disposition
 
@@ -146,4 +148,4 @@ No seed files were modified. The three pending property/mutation/signal proposal
 were inspected and have no confident requirement match here; they remain unlinked
 and deferred. All future direction remains in PRODUCT-ROADMAP.md.
 
-*Last updated: 2026-10-31 during Phase 22 verification.*
+*Last updated: 2026-10-30 after Phase 22 execution and verification.*

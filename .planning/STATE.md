@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v6
 milestone_name: Player-ready NES and reproducible feedback
-current_phase: 22
-current_phase_name: Install and protect progress
-status: verifying
-stopped_at: Completed 22-04-PLAN.md; Phase 22 awaits parent review, verifier and full CI
-last_updated: "2026-10-31T01:45:34.030Z"
+current_phase: 23
+current_phase_name: Reproduce and report a scene
+status: planning
+stopped_at: Phase 22 executed and verified; stopped at phase boundary before Phase 23 discussion
+last_updated: "2026-10-31T02:10:01.350Z"
 last_activity: 2026-10-30
-last_activity_desc: Plan 22-04 completed; phase awaits review and verification
-state_head: d9f49de379ea7beb80f92a5acd1be766ee368091
+last_activity_desc: Phase 22 complete; all READY requirements verified; Phase 23 not started
+state_head: bc9ed0c0d1ef160c63bf12f45e1be230dcd9cd6c
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
   completed_plans: 4
-  percent: 100
+  percent: 50
 current_plan: null
 ---
 
@@ -23,51 +23,58 @@ current_plan: null
 
 ## Project Reference
 
-See [PROJECT.md](PROJECT.md), updated 2026-10-30 after v6 requirements and roadmap approval, and AGENTS.md.
+See [PROJECT.md](PROJECT.md), updated 2026-10-30 after Phase 22, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: Phase 22 implementation is complete and awaits parent review, verification and full CI. READY requirements remain pending until the phase verifier accepts the evidence.
+Current focus: Phase 22 complete; Phase 23 report/replay/triage is the next approved scope and has not started.
 
 ## Current Position
 
-Phase: 22 (Install and protect progress) — VERIFYING
-Plan: 4 of 4
-Status: Implementation complete; awaiting parent review, verifier and full CI
-Last activity: 2026-10-30 — Plan 22-04 completed and committed
+Phase: 23 — Reproduce and report a scene (not started)
+Plan: Not created
+Status: Phase 22 complete; ready for Phase 23 discussion
+Last activity: 2026-10-30 — Phase 22 executed, reviewed and independently verified
 
 ## Next Action
 
-Plans 22-01 through 22-04 are implemented. Plan 22-04 provides the player
-installation, identity, controls and disposable progress route; see
-[22-04-SUMMARY.md](phases/22-install-and-protect-progress/22-04-SUMMARY.md)
-for dated release/menu observations, task commits and focused evidence. Its
-focused 18-test selection and configured macOS arm64 package/archive checks
-passed. The parent phase executor still owns review, phase verification and
-full CI; READY requirements remain pending.
+Phase 22 is complete: all four plans and READY-01 through READY-06 are verified.
+The player README and five topic guides are maintained with independent
+canonical-path/contradiction controls. Three review warnings and the verifier's
+two missing outbound links were fixed. See the
+[verification](phases/22-install-and-protect-progress/22-VERIFICATION.md) and
+[execution evidence](phases/22-install-and-protect-progress/22-EXECUTION-EVIDENCE.md).
 
-Next command:
+The full local workflow initially passed 699/700 tests and stopped on stale
+AccuracyCoin input provenance. Its configured native campaign had completed;
+the measured final-source report matched the accepted report exactly. The
+provenance refresh and focused activation/protection checks passed. Final
+document controls, build, local macOS arm64 archives and install extraction
+passed. The initial workflow is not relabeled as a passing full rerun. The
+owner explicitly authorized the bounded native refresh; no further campaign
+was needed and no wider runtime window is granted.
 
-`$gsd-verify-work 22`
+The next actor is the owner, when ready, invoking:
 
-This reviews Phase 22 evidence against the phase goal. Context may be cleared
-first; read this state, the resume file, phase context and the 22-04 summary.
-Do not start Phase 23 early. No full CI, live host/device operation, release,
-push or gameplay acceptance is claimed here.
+`$gsd-discuss-phase 23`
 
-Six fallback edge assumptions and six descriptor-less prohibitions remain
-explicitly flagged for downstream review; they are not implementation passes.
+This settles the report/replay/triage approach before Phase 23 planning.
+Context may be cleared first; read [continue.md](continue.md). No user action
+is needed to finish Phase 22. This execute step stops at the phase boundary;
+no Phase 23 work, push, PR, release, live host/device or daily-progress operation
+has been performed. Work remains committed on
+`gsd/phase-22-install-and-protect-progress`; merge remains through a pull request.
+Preserve the owner's unstaged AGENTS.md and config edits.
 
-Work is on `gsd/phase-22-install-and-protect-progress`. Preserve the owner's
-pre-existing unstaged AGENTS.md/config edits. Snapshot support guidance pairs
-exact build/content; behavior revision is recorded but not enforced. Native
-refusal evidence is separate from unqualified cross-build SRAM and incompatible
-host-autoload recovery. The context preserves existing evidence, deferred work,
-private-artifact boundaries and unchanged live-testing stops/allowances.
+The six fallback assumptions and six descriptor-less prohibitions received
+explicit evidence-supported verifier judgments. Their limits remain visible:
+exact build/content pairing is support guidance; behavior revision is recorded
+but unenforced; cross-build SRAM and incompatible host-autoload recovery remain
+unqualified. Local package evidence is macOS arm64 only. Dated release evidence
+includes an unavailable local Sigstore verification; it is not a new provenance
+or all-host acceptance claim. Existing safety stops, collector/platform debt
+and private-artifact boundaries remain in force.
 
-v5 remains complete and archived. Its [closeout](milestones/v5-CLOSEOUT.md)
-and [audit](milestones/v5-MILESTONE-AUDIT.md) retain package-publication history,
-collector/platform/provenance debt and source-bound acceptance. Release
-availability was refreshed during Plan 22-04. Phase 23 report/replay/triage
-remains the following approved phase.
+v5 remains complete and archived; its [closeout](milestones/v5-CLOSEOUT.md) and
+[audit](milestones/v5-MILESTONE-AUDIT.md) retain their own evidence identities.
 
 ## Preserved Debt and Boundaries
 
@@ -106,9 +113,9 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T01:45:34.010Z
-**Stopped at:** Completed 22-04-PLAN.md; Phase 22 awaits parent review, verifier and full CI
-**Next command:** `$gsd-verify-work 22`
+**Last session:** 2026-10-31T02:10:01.350Z
+**Stopped at:** Phase 22 complete; Phase 23 not started
+**Next command:** `$gsd-discuss-phase 23`
 **Resume file:** .planning/continue.md
 
 ## Performance Metrics
@@ -122,15 +129,8 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Decisions
 
-- [Phase 22]: docs/api.md is the canonical source-tree API, status, and native-state guide.
-- [Phase 22]: Exact core-build and content pairing is support guidance, separate from the native loader checks.
-- [Phase 22]: docs/runner.md is the canonical home for runner options, examples, stop behavior and exit status.
-- [Phase 22]: Runner save/state file behavior stays in the runner guide; native payload and library span contracts link to docs/api.md.
-- [Phase 22]: Keep the checked MMC3 support clause in README while linking its detailed runner contract.
-- [Phase 22]: docs/releases.md owns archive inventory, install-line checks, marker mechanics, publication order and attestation provenance; the README keeps its marked install command.
-- [Phase 22]: docs/testing.md owns engineering checks and evidence limits, with API, runner and release semantics linked to their canonical guides.
-- [Phase 22]: Built-module tests, build-tree archive checks, six-target CI packaging and live host evidence remain distinct.
-- [Phase 22]: The README remains player-first and preserves the checked support statement and marked Apple Silicon install command.
-- [Phase 22]: Exact build identity requires the loaded module path, digest and matching provenance; unavailable identity remains unknown.
-- [Phase 22]: Host settings, logical input ports, native snapshots, host state containers and battery data remain separate boundaries.
-- [Phase 22]: Progress recovery uses disposable owned fixtures and keeps the newest battery copy outside active test and save paths.
+- Phase 22: Keep one canonical API/runner/release/testing/progress guide per topic; retain checked support and the marked install command in README.
+- Phase 22: Loaded module path/digest and matching provenance establish build identity; unavailable identity remains unknown.
+- Phase 22: Exact-build/content snapshot support differs from actual native loader checks; preserve newest battery independently from snapshots and both backup sets.
+- Phase 22: Host controls/storage/containers and native payloads retain separate ownership and evidence limits; unknown compatibility is not recovery acceptance.
+- Phase 22: Existing measured native CI evidence repaired registration-driven provenance drift; no assertion or safety stop was weakened. Full details remain in phase artifacts and PROJECT.md.

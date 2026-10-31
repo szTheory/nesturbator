@@ -10,7 +10,7 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 ## Current State
 
-v5 "NMI, VBlank and sprite-0 timing" completed on 2026-10-30: three phases, 27 plans and eleven satisfied requirements. All eleven selected AccuracyCoin targets pass at `6bee919`; the canonical baseline is 119 PASS / 27 FAIL over 146 terminal scored rows plus five unscored DRAW entries. IRQ poll acceptance, coherent shared BRK/IRQ/NMI entry, sprite-0 evaluation and JAM presentation now have owned causal tests and native/actual-adapter replay. Public ABI 1 remains unchanged; state format 3 and behavior revision 9 refuse incompatible earlier states.
+v5 "NMI, VBlank and sprite-0 timing" completed on 2026-10-30: three phases, 27 plans and eleven satisfied requirements. All eleven selected AccuracyCoin targets pass at `6bee919`; the canonical baseline is 119 PASS / 27 FAIL over 146 terminal scored rows plus five unscored DRAW entries. IRQ poll acceptance, coherent shared BRK/IRQ/NMI entry, sprite-0 evaluation and JAM presentation now have owned causal tests and native/actual-adapter replay. Public ABI 1 remains unchanged. State format 3 refuses earlier formats; behavior revision 9 is recorded but is not a loader compatibility check.
 
 PRs #57, #59 and #61 are merged. The accepted historical CI/Nightly bundles bind their own source identities and six-platform hashes, protected PASS sets, host/conformance outcomes and unchanged +1% performance threshold. The final PR head's CI/Nightly also succeeded. These are separate evidence claims, not a new content collection. Package release [PR #56](https://github.com/szTheory/nesturbator/pull/56) (0.1.12) is still open as checked during closeout; publication is not claimed.
 
@@ -73,7 +73,7 @@ new hosted qualification is claimed by this refresh.
 - Installation identifies the actual package/build/core and keeps published releases separate from merged development behavior. Battery saves, snapshots, rewind and host containers have explicit backup, supported-version and rollback guidance.
 - A bounded report/replay recipe identifies scene, inputs, content and core, preserves private artifacts, and separates native output, adapter conversion, host presentation and original game behavior.
 
-The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30. v6 continues phase numbering after 21. SEED-006 contributes only demonstrated documentation/contract work; existing research and 22 title reports are reused. The owner approved the ten requirements and Phases 22–23 with “yes i approve”; see [requirements](REQUIREMENTS.md) and [roadmap](ROADMAP.md). Milestone opening is complete; Phase 22 discussion is next. Overscan, accuracy fixes, new regions/mappers and actual Playstead integration remain outside this milestone. Direction and preserved debt are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30. v6 continues phase numbering after 21. SEED-006 contributes only demonstrated documentation/contract work; existing research and 22 title reports are reused. The owner approved the ten requirements and Phases 22–23 with “yes i approve”; see [requirements](REQUIREMENTS.md) and [roadmap](ROADMAP.md). Phase 22 is implemented and independently verified; Phase 23 discussion is next. Overscan, accuracy fixes, new regions/mappers and actual Playstead integration remain outside this milestone. Direction and preserved debt are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
 
 <details>
 <summary>v5 milestone definition (archived)</summary>
@@ -104,6 +104,10 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 ## Requirements
 
 ### Validated
+
+- ✓ Existing executable documentation, packaging and public-header contracts survive the README/topic-guide reorganization. — v6, Phase 22; see its verification and execution evidence.
+
+- ✓ Player-facing installation and progress guidance accurately describes the available core, its supported content and state compatibility. — v6, Phase 22; see its verification and execution evidence.
 
 - ✓ One command installs the core into RetroArch on an Apple Silicon Mac, and a test shows RetroArch displays the runner's frame. — v1, Phase 1 (v0.1.0)
 - ✓ `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds and tests everything on Linux, macOS and Windows, x64 and arm64, and CI runs the same commands. — v1, Phase 1
@@ -142,11 +146,9 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 ### Active
 
-- [ ] Player-facing installation and progress guidance accurately describes the available core, its supported content and state compatibility.
-- [ ] Existing executable documentation, packaging and public-header contracts survive the README/topic-guide reorganization.
 - [ ] A scene report can be reproduced through bounded existing runner/host facilities without changing daily progress or distributing private content.
 
-The ten detailed requirements and two-phase structure are approved; implementation has not started. v5 remains archived. Package publication is independent: release PR #56 was rechecked open and the latest published release was v0.1.11 during v6 opening.
+The ten detailed requirements and two-phase structure are approved. READY-01 through READY-06 are complete; Phase 23 REPRO requirements remain active. v5 remains archived. Package publication is independent: release PR #56 was rechecked open and the latest published release was v0.1.11 during v6 opening.
 
 ### Out of Scope
 
@@ -196,6 +198,15 @@ The ten detailed requirements and two-phase structure are approved; implementati
 - **Delivery**: the owner creates each phase's branch; it merges by pull request into a green `main` and is released automatically — each phase ends in something to download and run.
 
 ## Key Decisions
+
+Phase 22 keeps the player route in README and canonical API, runner, release,
+testing and progress guides in the repository, with unchanged archive layouts.
+Exact loaded identity requires module path/digest plus matching provenance;
+exact-build/content snapshot support is separate from native loader checks.
+Newest battery backup remains independent of snapshots, and uncertain cross-build
+or host recovery stays unknown. Existing measured native CI evidence repaired
+registration-driven input provenance; historical measurements, assertions and
+runtime stops remain intact. See the Phase 22 verification and execution evidence.
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
@@ -271,4 +282,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-30 after v6 requirements and roadmap approval*
+*Last updated: 2026-10-30 after Phase 22 execution and verification*

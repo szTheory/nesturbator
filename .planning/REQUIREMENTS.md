@@ -2,18 +2,18 @@
 
 **Milestone:** Player-ready NES and reproducible feedback
 **Defined:** 2026-10-30
-**Status:** Approved 2026-10-30; implementation not started. The owner approved the concrete requirements and two-phase roadmap with “yes i approve”.
+**Status:** Approved 2026-10-30; Phase 22 READY requirements implemented and verified; Phase 23 not started. The owner approved the concrete requirements and two-phase roadmap with “yes i approve”.
 **Core Value:** Games behave as on the console, identically across platforms, from a small MIT C library.
 
 ## v6 Requirements
 
 ### Install and protect progress
 
-- [ ] **READY-01**: A player can use a concise README to find current supported content, installation, controls, progress and troubleshooting, with detailed developer material available through working topic-guide links.
-- [ ] **READY-02**: A player can select and install the appropriate existing core archive for their platform/architecture and identify the loaded core/build, distinguishing published-release capabilities from merged development behavior.
-- [ ] **READY-03**: A player can follow host-owned control guidance to verify input through the actual frontend launch and avoid accidentally assigning one controller to both active player ports.
-- [ ] **READY-04**: A player can distinguish battery saves, core-specific snapshots, rewind and automatic loading, and locate the host-configured storage that holds their progress.
-- [ ] **READY-05**: A player can follow an explicit supported-version, backup and rollback procedure that preserves newer progress and describes incompatible-state refusal without promising conversion or cross-core snapshot support.
+- [x] **READY-01**: A player can use a concise README to find current supported content, installation, controls, progress and troubleshooting, with detailed developer material available through working topic-guide links.
+- [x] **READY-02**: A player can select and install the appropriate existing core archive for their platform/architecture and identify the loaded core/build, distinguishing published-release capabilities from merged development behavior.
+- [x] **READY-03**: A player can follow host-owned control guidance to verify input through the actual frontend launch and avoid accidentally assigning one controller to both active player ports.
+- [x] **READY-04**: A player can distinguish battery saves, core-specific snapshots, rewind and automatic loading, and locate the host-configured storage that holds their progress.
+- [x] **READY-05**: A player can follow an explicit supported-version, backup and rollback procedure that preserves newer progress and describes incompatible-state refusal without promising conversion or cross-core snapshot support.
 - [ ] **READY-06**: A developer can find the relocated API, runner and release contracts, and the existing automated documentation/package checks still reject missing or contradictory claims at their maintained document locations.
 
 ### Reproduce and report a scene
@@ -105,11 +105,11 @@ Approved mapping; each requirement belongs to exactly one phase. Implementation 
 
 | Requirement | Phase | Status |
 |---|---|---|
-| READY-01 | Phase 22 | Pending |
-| READY-02 | Phase 22 | Pending |
-| READY-03 | Phase 22 | Pending |
-| READY-04 | Phase 22 | Pending |
-| READY-05 | Phase 22 | Pending |
+| READY-01 | Phase 22 | Complete |
+| READY-02 | Phase 22 | Complete |
+| READY-03 | Phase 22 | Complete |
+| READY-04 | Phase 22 | Complete |
+| READY-05 | Phase 22 | Complete |
 | READY-06 | Phase 22 | Pending |
 | REPRO-01 | Phase 23 | Pending |
 | REPRO-02 | Phase 23 | Pending |
@@ -132,4 +132,4 @@ the [v5 audit](milestones/v5-MILESTONE-AUDIT.md) and
 [closeout](milestones/v5-CLOSEOUT.md) retain debt and evidence limits. No existing
 runtime stop, test budget or live-operation authority is changed by this document.
 
-*Last updated: 2026-10-30 after owner requirements and roadmap approval.*
+*Last updated: 2026-10-30 after Phase 22 execution and verification.*
