@@ -2,12 +2,168 @@
 
 This guide describes the public C API, battery-RAM view, status values, and native save-state buffer. It documents the current source tree; identify a published binary from its own release artifacts.
 
+## Emulated video and mapper interface
+
+The public frame output is a 256×240 raster in physical visible scanline order. Row 0 follows the pre-render scanline; an OAM Y value of `$FF` can wrap a sprite onto it. Each native `uint16_t` pixel holds a palette entry in bits 0–5 and the three PPUMASK emphasis bits in bits 6–8; bits 9–15 are zero. Background output follows nametable mirroring, pattern and attribute data, scrolling, grayscale and emphasis. Sprite output follows OAM order, transparency, palette, horizontal and vertical flips, 8×8 or 8×16 pattern selection and priority. `$2001` controls left-edge clipping. Native pixels are the canonical frame-hash input; display-palette conversion is separate. [HWP.02][HWP.08]
+
+Sprite overflow follows the 2C02 diagonal OAM scan: after eight sprites are selected, a tile, attribute or X byte can set overflow, while an in-range Y skipped by the scan does not. Overflow remains in PPU status until pre-render dot 1. The first eight selected sprites are copied one byte per odd/even OAM pair; their final X bytes are copied before the ninth Y comparison at dot 130, so `$2002` reads before that comparison still see overflow clear. Pre-render evaluation includes OAM Y=`$FF` sprites on visible row 0. [HWP.06]
+
+Cartridges use a per-board mapper interface with page tables, a four-entry nametable map, CPU-cycle-stamped writes, a mapper IRQ combined with the APU IRQ, and PPU A12 edges reported to the board. The current supported board profiles are summarized in the README and specified by `nesturbator_load_cartridge`. [HWP.12]
+
+## Behavior revision history
+
+The current public header reports behavior revision 9. These revision facts describe this source tree; a published core must be identified from its own release or CI artifact.
+
+- **Revision 9:** IRQ acceptance is retained at the instruction hardware poll point, using the old I flag for CLI, SEI and PLP. Branches preserve their first poll and add the page-cross poll. Accepted IRQs survive later source clearing until entry arbitration; NMI wins, and a held IRQ may be accepted again after RTI restores I. A post-vector-choice NMI input remains an unrecognized candidate until held through the first handler opening; releasing it before then cancels it. [HWC.02][HWC.17]
+- **Revision 8:** CPU bus-clock seams capture rising edges on the derived PPU NMI line; instruction-specific polls decide when a captured request is serviced, and later line deassertion does not revoke it. `$2002` samples vblank bit 7 at M2 rise and sprite bits 6/5 at M2 fall. PPUCTRL disable and pre-render clear lower the live line without clearing an already captured request. IRQ keeps its close-edge level through the instruction poll. [HWC.02][HWP.03]
+- **Revision 7:** OAMADDR clears during sprite tile loading on dots 257–320 while rendering, and evaluation starts at OAMADDR; the first sprite found there acts as sprite 0. [HWP.06]
+- **Revision 6:** A `$2000` write raises an NMI only when bit 7 changes from 0 to 1 while vblank is set; rewriting it with bit 7 still set does not retrigger NMI. [HWP.03]
+- **Revision 5:** The PPU fetch pipeline changed frames for programs that write scroll or PPUCTRL while rendering. Mid-frame scroll writes now render scanline by scanline. [HWP.04][HWP.09]
+
+## Using the library
+
+Install the library, its header and its package files:
+
+```sh
+cmake --install build/ci --component library --prefix <dir>
+```
+
+This writes `include/nesturbator.h`, the static library under `lib`, a CMake
+package under `lib/cmake/nesturbator` and `lib/pkgconfig/nesturbator.pc`.
+Both package files find their paths relative to themselves, so the directory
+can be moved. From CMake:
+
+```cmake
+find_package(nesturbator CONFIG REQUIRED)   # with CMAKE_PREFIX_PATH=<dir>
+target_link_libraries(app PRIVATE nesturbator::nesturbator)
+```
+
+With pkg-config, set `PKG_CONFIG_PATH=<dir>/lib/pkgconfig` and use
+`pkg-config --cflags --libs nesturbator`. The components `runner` and
+`libretro` install `bin/nesturbator-run` and `cores/` with `info/`.
+
+The source tree can also be embedded in another CMake project, which needs
+only a C compiler:
+
+```cmake
+add_subdirectory(nesturbator)               # or FetchContent_MakeAvailable
+target_link_libraries(app PRIVATE nesturbator::nesturbator)
+```
+
+An embedded build adds only the library and its `library` install rules,
+plus four build helpers with the `nesturbator` prefix: the CPU object library
+`nesturbator_cpu` that the library folds in, the CMake functions
+`nesturbator_core_flags` and `nesturbator_warnings`, and the option
+`NESTURBATOR_NOFP`. The runner, the libretro core, `palgen`, `vecconv`, the tests and the release
+packaging are built only when nesturbator is the top-level project. On a system or
+processor other than the six release targets, a top-level build still
+configures and names its archives after what CMake reports, with a warning.
+
+Every struct passed to or from the library starts with a `size` field. A
+caller zeroes the struct with `memset`, then sets `size` to its `sizeof` and
+fills the other fields. For `nesturbator_config` that is `size` and `abi`
+(`NESTURBATOR_ABI_VERSION`); the zeroed allocator means `malloc` and `free`.
+Zeroing first keeps padding and the bytes a newer header appends at zero, so
+a host built against a newer header still runs with an older library.
+
+The public functions are:
+
+- `nesturbator_create` and `nesturbator_destroy` make and free an instance.
+- `nesturbator_get_version` writes the library's version; a host compares it
+  with `NESTURBATOR_VERSION_*` when the library may differ from the header.
+  `nesturbator-run` calls it for `--version`.
+- `nesturbator_get_info` writes the video and audio format.
+- `nesturbator_get_palette` writes the palette as XRGB8888.
+- `nesturbator_load_cartridge` loads an iNES image;
+  `nesturbator_unload_cartridge` removes it and restores the state of a new
+  instance. The libretro adapter calls the unload.
+- `nesturbator_set_input` sets the next frame's controller state and
+  `nesturbator_run_frame` runs one frame.
+- `nesturbator_reset` is the soft reset below.
+- `nesturbator_get_memory` and `nesturbator_save_generation` give the
+  battery span and its write counter [Battery saves](#battery-saves).
+- `nesturbator_peek_cpu_ram` reads CPU RAM for test harnesses.
+- `nesturbator_state_size`, `nesturbator_save_state` and
+  `nesturbator_load_state` save and restore the whole machine [Save states](#save-states).
+
+Soft reset: `nesturbator_reset()` is the console's Reset button. Call it
+between frames. It keeps CPU RAM and cartridge RAM (PRG RAM and CHR RAM), so
+saves survive, and keeps A, X, Y and the host's input state. The controller
+strobe and shift registers and a pending OAM DMA are cleared. Mapper registers
+are kept, so the reset vector is read through the board's current banks. The
+CPU sets the I flag, lowers S by 3 and takes the reset vector in 7 CPU cycles, which count
+in `ticks`. The PPU restarts at the top of the picture and ignores writes to
+`$2000`, `$2001`, `$2005` and `$2006` until the end of the next vblank, 29,667
+CPU cycles from the reset (the NESdev Wiki documents about 29,658); it keeps
+`v`, the status flags, the OAM address and video memory. The APU is silenced as
+by a write of 0 to `$4015`, its IRQs are cleared and the last `$4017` mode is
+re-applied. Load is unchanged: there is no write-ignore window and no startup
+sequence at power-on, so the soft-reset work leaves frame and audio hashes from
+load unchanged. With no cartridge it does nothing and returns
+`NESTURBATOR_OK`.
+
+### Battery saves
+
+`nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, &data, &size)`
+writes a pointer to the cartridge's battery RAM and its size. The core does no
+file I/O: the host keeps the save file. A NULL `inst`, `data` or `size`, or any
+other kind, returns `NESTURBATOR_ERR_ARGUMENT` and writes nothing. With no
+cartridge, or a cartridge without battery RAM, it returns `NESTURBATOR_OK` with
+`NULL` and 0. The pointer stays valid from a successful load until unload, the
+next successful load or destroy; `nesturbator_reset()` and a refused load keep
+it, as does `nesturbator_load_state`, which copies into the same allocation.
+Copy a saved file in after load and before the first frame; read the span
+whenever you are between calls.
+
+`nesturbator_save_generation(inst)` counts CPU bus writes that reached the
+span while the board had that RAM enabled and writable, whether or not the
+byte changed. A read-modify-write counts both of its writes. It runs from
+`nesturbator_create()` and never resets or decreases, so compare it with `!=`
+and write the file when it moves. Load (including trainer bytes), reset,
+unload and writes through the pointer do not count. A state load counts once
+when it changes the battery bytes and not at all when it leaves them
+unchanged; a refused load never counts; see [Save states](#save-states).
+`NULL` gives 0.
+
+PRG RAM is one block laid out `[V work][N NVRAM]`, work RAM first, and the
+save span is the N battery bytes (hardware: NESdev Wiki "MMC1", SOROM). The
+header gives the sizes:
+
+| Header | V (work) | N (battery) | Span |
+|---|---|---|---|
+| iNES 1, mapper 1, PRG up to 256 KiB, no battery | 8 KiB | 0 | none |
+| iNES 1, mapper 1, PRG up to 256 KiB, battery | 0 | 8 KiB | 8 KiB |
+| iNES 1, mapper 1, PRG above 256 KiB, no battery | 32 KiB | 0 | none |
+| iNES 1, mapper 1, PRG above 256 KiB, battery | 0 | 32 KiB | 32 KiB |
+| iNES 1, mapper 4, no battery | 8 KiB | 0 | none |
+| iNES 1, mapper 4, battery | 0 | 8 KiB | 8 KiB |
+| NES 2.0 | byte 10 low nibble | byte 10 high nibble | N bytes at offset V |
+
+With V = N = 0, `$6000-$7FFF` reads as open bus. A trainer on a mapper 1
+image with no declared RAM maps its 8 KiB as work RAM (the trainer at `$7000`)
+and has no span.
+
+Known gap: an iNES 1 SOROM dump gets one 8 KiB battery block, because that
+header cannot say that half of the RAM is volatile; use a NES 2.0 header
+(V = 8 KiB, N = 8 KiB) for a true SOROM. An iNES 1 SUROM save is 32 KiB.
+
+Mapper 4 (MMC3) takes the same layout with one rule: V and N are each 0 or
+8 KiB, never both (NES 2.0: none, 8 KiB work, or 8 KiB NVRAM). Known gap: an
+iNES 1 MMC3 image always gets 8 KiB of RAM, so games that expect no RAM at
+all, such as Low G Man, need a NES 2.0 header with V = N = 0.
+
 ## Save states
 
-A state is an exact snapshot of the whole machine at a frame boundary. It is
-valid for the same format version, ROM and board, and it is byte-identical on
-every platform. The library does no file I/O and never allocates for a state;
-the host owns the buffer and decides where states live.
+A state is an exact snapshot of the whole machine at a frame boundary and is
+byte-identical across platforms for the same core build and content. The
+supported pairing is the exact core build and exact content file that created
+the state. This is support guidance, not an additional loader check: the native
+loader checks format 3 and cartridge identity using mapper, submapper, region,
+and the ROM CRC-32 of the 16 header bytes, PRG ROM and CHR ROM. The behavior
+revision is stored but not enforced, as described below. The core handles only
+the native state payload; host files and disk containers are outside this API.
+The library does no file I/O and never allocates for a state; the host owns the
+buffer and decides where states live.
 
 The current state format is 3 and the behavior revision is 9. Format 3 stores
 the sampled NMI line, captured request, last instruction poll, retained
@@ -87,7 +243,7 @@ once, so the host writes the `.sav`. Loading a state whose battery bytes match,
 however many times, never moves it, and neither does a refused load, so
 repeated loads such as rewind never trigger a write.
 
-Another format version is refused, never converted. Keep rewind buffers in
+Format 3 rejects every other format version, including versions 1 and 2; states are never converted. Keep rewind buffers in
 memory, and expect user-kept states to need re-creating after a release that
 raises the format version. The behaviour revision is recorded and not
 enforced: after an emulation fix an old state still loads, but its later frames
@@ -141,3 +297,23 @@ Every call returns one of these. An error changes no state.
 | 10 | `NESTURBATOR_ERR_STATE_SIZE` | The length is wrong, including any truncation. |
 | 11 | `NESTURBATOR_ERR_STATE_CHECKSUM` | The state's CRC-32 does not match: the bytes were damaged. |
 | 12 | `NESTURBATOR_ERR_STATE_INVALID` | The CRC-32 matches but a field is out of range or a reserved byte is set. |
+
+## The colour table
+
+`src/palette_ntsc.c` maps each native pixel value to calibrated sRGB in
+XRGB8888. The existing offline `tools/palgen` host tool decodes the NTSC signal
+levels, phases and emphasis rules from the cited NESdev Wiki revisions, applies
+the 2.4 transfer curve and 525-line BT.601 primaries, converts linear RGB to
+sRGB/D65, clips out-of-gamut channels and rounds to 8 bits. The BT.601
+chromaticities and transfer curve are from the [ICC BT.601 registry](https://registry.color.org/rgb-registry/bt601);
+the sRGB primaries and transfer curve follow the [W3C sRGB specification](https://www.w3.org/Graphics/Color/srgb).
+`nesturbator_get_palette` returns this display table; it never affects native
+frame hashes. Do not edit the table by hand; change palgen and regenerate:
+
+```sh
+build/ci/tools/palgen/palgen src/palette_ntsc.c
+```
+
+The `ci` build puts the library at `build/ci/libnesturbator.a` and the runner
+at `build/ci/runner/nesturbator-run`. The public header is
+`include/nesturbator.h`.
