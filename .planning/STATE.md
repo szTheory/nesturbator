@@ -1,22 +1,16 @@
 ---
 gsd_state_version: "1.0"
-milestone: v6
-status: v6 complete; v0.1.12 published; quick task 261031-fq6 local verification complete; hosted run route needs owner direction
-stopped_at: Owner authorized one push and CI run, but the phase branch has no remote ref or PR; awaiting approval for an isolated PR route
-last_updated: "2026-10-31T15:45:12Z"
+milestone: v7
+milestone_name: Remaining DMA accuracy failures
+status: planning
+last_updated: "2026-10-31T17:09:59.772Z"
 last_activity: 2026-10-31
-last_activity_desc: Owner authorized hosted validation; current branch push would not trigger CI
-state_head: fe376dac1edb7ce0e78c1c54c3efdc60d260681e
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
-milestone_name: Player-ready NES and reproducible feedback
-current_phase: null
-current_phase_name: null
-current_plan: null
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,41 +19,29 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated for v6 closeout on 2026-10-31, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md). Quick task 261031-ecd fixed the release-version fingerprint mismatch and skips redundant optional Nightly lanes on generated release PRs. Release PR #56 passed required CI, squash-merged, and published v0.1.12. Quick task [261031-fq6](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md) now skips direct CI jobs on generated Release Please main pushes while preserving reusable Release CI, publication checks and main-push Nightly. Focused offline checks passed. The owner authorized one hosted run, but the local phase branch has no remote ref or PR, so its push would not start CI; see the current handoff.
+Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md). Quick task 261031-ecd fixed the release-version fingerprint mismatch and skips redundant optional Nightly lanes on generated release PRs. Release PR #56 passed required CI, squash-merged, and published v0.1.12. Quick task [261031-fq6](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md) is merged as `b25146c`; its PR and main-push CI runs passed. The code skips direct CI jobs on generated Release Please main pushes while preserving reusable Release CI, publication checks and main-push Nightly. A generated Release Please main-push and publication event remain unobserved; see the verification report.
 
 ## Current Position
 
-Phase: Milestone v6 archived
+Phase: Not started (defining requirements)
 Plan: —
-Status: Quick task 261031-fq6 implementation and local validation are complete; hosted verification is pending
-Last activity: 2026-10-31 — release-push policy, self-test and required-rollup checks passed locally
+Status: Defining requirements
+Last activity: 2026-10-31 — Milestone v7 started
+
 
 ## Next Action
 
-Quick task [261031-fq6](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-SUMMARY.md)
-is implemented in commits `00eedce`, `3fd0d9f` and `fe376da`. The focused live
-workflow policy, its mutation self-test, and the required-check roll-up passed.
-The verifier marked all five local must-haves verified and recorded hosted
-GitHub execution as `human_needed`; see the
-[verification report](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-VERIFICATION.md).
-No full CI workflow, campaign, push, dispatch, merge, or release action was run.
+The upstream scope review recommends one bounded NTSC milestone for the five
+currently failing DMA rows, protecting the three passing DMA rows and all other
+protected PASS keys. It has not created requirements or phases. Read the
+[scope note](research/milestone-dma-discovery/SCOPE.md) for failure boundaries,
+independent-oracle guidance, clean-room limits, preserved safety stops, and the
+stale release-status reconciliation required during formal milestone opening.
 
-The owner authorized one push and hosted CI run. Preflight found no remote ref
-or open PR for the current phase branch. `.github/workflows/ci.yml` runs for PRs,
-`main` pushes, manual dispatch, and reusable calls; a push to this non-main
-branch alone will not start CI. The branch also contains broader phase history
-than this quick change. Do not push it or create a broad PR. The recommended
-route is to isolate this quick task's implementation commits on a branch based
-on latest `main` and open a draft PR, which would start full CI including an
-AccuracyCoin campaign. That route needs the owner's explicit approval; it does
-not authorize merge or release and would not itself exercise the release-merge
-skip event.
-
-Next command: `$gsd-quick status 261031-fq6`
-It displays this task's saved status without starting CI or a campaign.
-Context may be cleared before running it. Read the
-[quick-task handoff](quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-RESUME.md)
-before hosted work resumes.
+Next command: `$gsd-new-milestone Remaining DMA accuracy failures`
+It starts the formal milestone questioning, requirements, and roadmap gates
+using this scope. The user acts next. Context may be cleared before running the
+command; read this file and the linked scope note first.
 
 Earlier Phase 23 document-test timeouts and wall-time jumps remain unexplained;
 no timeout was raised or machine restart performed. The configured CI cache can
@@ -102,7 +84,7 @@ push or release action was run for closeout.
 | 261026-i8z | Reduce repeated CI suites, session controls and vector inventory work | 2026-10-26 | dbbf04f | — | [261026-i8z-reduce-ci-overhead-using-the-recovered-c](./quick/261026-i8z-reduce-ci-overhead-using-the-recovered-c/) |
 | 261029-sdj | Reduce inventory parsing and reuse CTest-validated hash artifacts | 2026-10-29 | dc3451b | — | [261029-sdj-optimize-no-skip-inventory-parsing-and-r](./quick/261029-sdj-optimize-no-skip-inventory-parsing-and-r/) |
 | 261031-ecd | Fix release fingerprint and skip redundant Nightly lanes | 2026-10-31 | 9470359 | — | [261031-ecd-fix-release-only-accuracycoin-fingerprin](./quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/) |
-| 261031-fq6 | Skip the redundant main-push CI run for Release Please merge commits while preserving the reusable release CI and publication gate. | 2026-10-31 | fe376da | Needs Review | [261031-fq6-skip-the-redundant-main-push-ci-run-for-](./quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/) |
+| 261031-fq6 | Skip the redundant main-push CI run for Release Please merge commits while preserving the reusable release CI and publication gate. | 2026-10-31 | b25146c | Complete | [261031-fq6-skip-the-redundant-main-push-ci-run-for-](./quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/) |
 
 ## Deferred Items
 
@@ -124,10 +106,10 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T15:45:12Z
-**Stopped at:** hosted CI authorization granted, but current phase branch has no remote ref/PR; awaiting isolated PR route decision
-**Next command:** $gsd-quick status 261031-fq6
-**Resume file:** .planning/quick/261031-fq6-skip-the-redundant-main-push-ci-run-for-/261031-fq6-RESUME.md
+**Last session:** 2026-10-31T16:46:26Z
+**Stopped at:** upstream DMA scope review complete; formal milestone setup pending
+**Next command:** $gsd-new-milestone Remaining DMA accuracy failures
+**Resume file:** .planning/research/milestone-dma-discovery/SCOPE.md
 
 ## Performance Metrics
 
@@ -157,4 +139,4 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Operator Next Steps
 
-- The owner authorized one hosted run, but the current phase branch has no remote ref or PR and a branch push would not trigger CI. Owner decision needed: authorize an isolated branch and draft PR containing only this quick task's changes. That PR will start full CI, including AccuracyCoin; it will not be merged or released without separate authority.
+- Quick task PR #62 merged as `b25146c`; its hosted PR run and the resulting main-push run both passed. No user action is needed for this task. The exact Release Please main-push skip and publication remain unobserved until a future release; no release was performed here.

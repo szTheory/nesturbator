@@ -12,9 +12,9 @@ Games behave as they do on the console, identically on every platform, from a sm
 
 v6 "Player-ready NES and reproducible feedback" completed on 2026-10-31: two phases, seven plans and ten satisfied requirements. Phase 22 passed 7/7 and Phase 23 passed 9/9. The README now leads into maintained player and developer guides; installation identity, progress backup/rollback, bounded replay, checkpoint preflight and evidence limits are documented and checked. No emulator runtime source, public ABI, state format or pinned hash baseline changed.
 
-The v6 audit reports `tech_debt` with no blocking requirement, integration or end-to-end gap. Closeout carries forward the recorded traceability, timing, campaign, platform and evidence limitations; it does not waive existing safety stops. The full CI workflow was not rerun, and the interrupted campaign outcome remains unknown. See the [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 roadmap archive](milestones/v6-ROADMAP.md).
+The v6 audit reports `tech_debt` with no blocking requirement, integration or end-to-end gap. Closeout carries forward the recorded traceability, timing, campaign, platform and evidence limitations; it does not waive existing safety stops. The full CI workflow was not rerun, and the interrupted campaign outcome remains unknown. See the [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 roadmap archive](milestones/v6-ROADMAP.md). v7 is now active and targets only the five remaining NTSC DMA failures; milestone opening ran no tests or campaign.
 
-Package publication remains separate from planning completion. The owner authorized automatic publication only when required CI checks are green. Release [PR #56](https://github.com/szTheory/nesturbator/pull/56) for 0.1.12 remains open and its latest checks failed, so it is not eligible; [v0.1.11](https://github.com/szTheory/nesturbator/releases/tag/v0.1.11) remains the latest published release. No campaign rerun or publication is claimed here.
+Package publication remains separate from planning completion. Release [PR #56](https://github.com/szTheory/nesturbator/pull/56) passed required CI, merged, and published [v0.1.12](https://github.com/szTheory/nesturbator/releases/tag/v0.1.12) with 18 archives and `SHA256SUMS`. Quick task 261031-fq6's exact Release Please main-push skip event remains unobserved. The interrupted v6 full-CI/campaign outcome is still unknown; opening v7 does not authorize another run.
 
 The repository contains 49,089 lines of owned C, excluding vendored `libretro.h`, and 695 registered CI tests. v6 added player and developer documentation plus automated contract checks; the library, runner and libretro adapter remain the only three deliverables.
 
@@ -70,9 +70,23 @@ new hosted qualification is claimed by this refresh.
 
 </details>
 
+## Current Milestone: v7 Remaining DMA accuracy failures
+
+**Goal:** Correct the five remaining failing NTSC DMA behaviors at the pinned AccuracyCoin revision using source-backed bus-cycle evidence, while preserving the three passing DMA rows and every other protected PASS key.
+
+**Target features:**
+- Locate each candidate's first causal divergence from actual bus/APU timing; treat causes as shared only when traces establish that relationship.
+- Add small owned bus/core fixtures with wrong-model controls for changed behavior; record bus access kind/address, get/put phase, halt/retry, sample access, side effects and continuation as applicable.
+- Fix only independently justified behavior. Preserve deterministic output and assess save-state format/revision effects if serialized in-flight state changes.
+- Keep the current AccuracyCoin pin and score contract. PAL/Dendy, unrelated accuracy clusters, broad playtesting, pin migration and general CI/collector cleanup stay out of scope.
+
+**Selected seed:** SEED-003 contributes its measured-accuracy portion. The existing [DMA scope research](research/milestone-dma-discovery/SCOPE.md) supplies row-specific evidence needs and constraints. SEED-006 is not selected because no separate CI or documentation repair has been demonstrated for this scope.
+
+**Evidence boundary:** The interrupted full-CI/campaign outcome remains unknown. Opening v7 does not authorize a campaign rerun or clear that stop; the state and audit retain the boundary. No campaign or tests were run during milestone opening.
+
 ## Next Milestone Goals
 
-No next milestone is committed. The preferred default is the five remaining DMA failures, with the three already-passing former candidates retained as regression guards. RM-015 can move ahead only if bounded native/source-based triage establishes a concrete core fault. PAL is the main regional alternative; scoped maintenance is the smaller alternative. See the [four-horizon product roadmap](PRODUCT-ROADMAP.md). These are proposals, not approved scope.
+After v7, PAL is the main regional alternative. RM-015 may move ahead only if bounded native/source-based triage confirms a concrete core fault; otherwise keep the scene reports unclassified. Scoped maintenance is the smaller alternative. Actual Playstead integration remains consumer-owned. See the [four-horizon product roadmap](PRODUCT-ROADMAP.md); these future outcomes remain proposals.
 
 ## Completed Milestone: v6 Player-ready NES and reproducible feedback
 
@@ -158,7 +172,10 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 ### Active
 
-No next-milestone requirement is committed. RM-015 remains conditional on a confirmed core fault; otherwise the remaining DMA cluster stays the preferred candidate. The other Near, Mid and Long outcomes remain proposed under their existing promotion triggers.
+- [ ] The first causal divergence for each selected DMA failure is localized using bus-cycle traces and cited test/hardware evidence, with test expectations separated from implementation observations.
+- [ ] Each changed root cause has an owned, discriminating fixture and a source-supported implementation; unrelated DMA behavior stays unchanged.
+- [ ] All five selected DMA rows pass at the existing pin, while the three passing DMA rows and every other protected PASS key remain protected.
+- [ ] Determinism, save-state continuation and public behavior documentation are covered when implementation changes make them relevant; the existing full-CI/campaign stop is resolved separately before any prohibited rerun.
 
 ### Out of Scope
 
@@ -227,6 +244,7 @@ runtime stops remain intact. See the Phase 22 verification and execution evidenc
 | Protected raw-key results, six-platform inventories and original performance thresholds remain unchanged acceptance gates | Aggregate score improvement cannot conceal lost passes or source mismatch | ✓ Good — all eleven targets and all 114 Phase 21 starting PASS keys on six lanes; collector recurrence remains debt |
 | Captured NMI request and polled NMI work are separate serialized latches; a falling live line does not revoke capture | One source-grounded model covers status reads, control writes and resumable races | ✓ Good — Phase 20, six target rows, exact state cutpoints and hosted replay verified |
 | Hosted evidence binds candidate, tested merge, protected base and complete effective inputs separately from evidence-only commits | Local dirty provenance and synthetic fixtures cannot stand in for real source-bound acceptance | ✓ Good — Phase 20, accepted six-platform/performance/Nightly/RetroArch bundle; future collector mode enforcement and source-scan cleanup remain debt |
+| v7 addresses only the five remaining pinned NTSC DMA failures and retains every existing protected pass | Aggregate score gains cannot justify unrelated changes or a dropped pass; cycle-level evidence is needed to identify causes | — Pending — milestone v7 (RM-016); the campaign stop and runtime/evidence boundaries remain in force |
 | Time in half-master-clock ticks; the CPU drives the bus; the PPU catches up at both M2 edges | The coarsest unit where every clock edge is an integer; the shape of designs that score 136 or more of 140 | ✓ Good — Phases 3–4 exercise shared CPU/PPU/APU timing with frame, channel and DMA edge tests |
 | Per-dot PPU with literal shift registers, address latch and OAM counters | The hardest public tests probe that state | ✓ Good — Phase 3 render and AccuracyCoin checks pass |
 | Integer-only core; `cmake --workflow --preset nofp` shows it | Bit-identical hashes on every platform | ✓ Good — fixed-point synthesis and integer spectral analysis pass the Phase 4 CI gate |
@@ -304,4 +322,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-31 after v6 milestone closeout*
+*Last updated: 2026-10-31 after v7 milestone opening*
