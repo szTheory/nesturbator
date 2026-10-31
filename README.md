@@ -163,6 +163,12 @@ are in the [testing guide](docs/testing.md#test-fixtures-and-source-policy).
 - [Release archives, identity and maintainer process](docs/releases.md)
 - [Build, tests, CI and evidence limits](docs/testing.md)
 
+For a generated Release Please merge commit, ordinary push CI skips its
+redundant runner jobs while the Release workflow runs reusable full CI and
+keeps the publication gate; main-push Nightly remains enabled. See the
+[testing](docs/testing.md#continuous-integration) and
+[release](docs/releases.md#release-commit-ci-ownership) guides.
+
 MIT. See [LICENSE](LICENSE). nesturbator is not affiliated with or endorsed
 by Nintendo. The names "Nintendo Entertainment System", "NES" and "Famicom"
 are used here only to say what the core emulates.

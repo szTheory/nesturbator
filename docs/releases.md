@@ -163,6 +163,23 @@ consumers fail `release.credentials_policy`. After the release pull request
 merges, the workflow runs the full CI workflow on the exact release commit.
 Publishing depends on that CI result.
 
+## Release commit CI ownership
+
+The generated `chore(main): release ...` merge push skips the redundant
+ordinary `CI` workflow jobs before they allocate runners. Release invokes the
+same reusable CI workflow on that exact commit, and GitHub exposes the caller
+workflow name as `Release` while retaining the push event. The caller therefore
+still runs the complete six-platform validation and produces its archive and
+hash artifacts; its existing CI dependency and publication checks remain in
+force. Release pull requests and ordinary CI events keep their validation.
+Nightly continues to run on the main push, including the generated release
+merge commit.
+
+The offline `hygiene.ci_release_push_policy` and its `.selftest` verify this
+workflow routing, the Release publication gates, and the Nightly trigger. They
+establish the checked source configuration only; hosted execution and
+published assets require their own GitHub run evidence.
+
 The publish job downloads the six-platform build artifacts and requires the
 exact 18 archives: library, runner and libretro components for Linux, macOS
 and Windows on x64 and arm64. It writes `SHA256SUMS` in `sha256sum -a 256`

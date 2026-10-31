@@ -922,6 +922,25 @@ cmake -DBUILD=build/ci -DOUT=hashes.txt \
       -P tests/cmake/write_hashes.cmake
 ```
 
+There is one narrow exception to ordinary main-push CI: when the direct `CI`
+workflow receives a push to protected `main` whose commit message starts with
+`chore(main): release `, every CI job, including `CI required`, skips before
+allocating a runner. The Release workflow calls this same reusable CI file on
+the exact generated merge commit and remains eligible. GitHub keeps the push
+event context for a reusable call but exposes the caller's workflow name as
+`Release`, which distinguishes that required release validation from the
+redundant direct `CI` run. Release pull requests, ordinary commits, and manual
+CI retain their existing checks. Nightly's independent main-push trigger
+remains enabled.
+
+The offline `hygiene.ci_release_push_policy` check validates every CI job's
+guard and protects the Release caller, six-platform build matrix, archive and
+hash uploads, publication gates, and Nightly routing. Its
+`hygiene.ci_release_push_policy.selftest` exercises the supported event cases
+and rejects deliberate routing and gate mutations; `hygiene.ci_required_rollup`
+continues to check the required result semantics. These static checks do not
+execute GitHub Actions or establish a hosted release result.
+
 The `hygiene` job runs the `hygiene` lane, `asan` runs `asan` with Clang 18,
 and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
 the pull-request title to be a Conventional Commit. `hash-equality` requires
