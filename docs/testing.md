@@ -159,6 +159,12 @@ activation check fails on any timeout row.
 See [`tests/accuracy/budgets.txt`](../tests/accuracy/budgets.txt)
 and [`tests/accuracy/measurements.md`](../tests/accuracy/measurements.md) for the
 source identity, cap rationale, timing sensitivity and CI placement input.
+The build-input fingerprint hashes the exact test and emulator sources, except
+that it replaces the numeric values of the three `NESTURBATOR_VERSION_*`
+release macros with one marker. Those numbers identify a release but do not
+change emulated output; all other public-header bytes remain fingerprinted.
+`accuracycoin.input_fingerprint` checks both this exception and the stored
+baseline hash and input count.
 
 `NESTURBATOR_ACCURACYCOIN_FULL` defaults to `OFF` for local builds. Required CI
 enables the full campaign on its primary Linux x64 lane only; the other five
@@ -1100,8 +1106,11 @@ the root `CMakeLists.txt`, `CMakePresets.json`, `tests/CMakeLists.txt`,
 `include/nesturbator.h` and the scripts `fetch_vectors.cmake`,
 `vectors_full_run.cmake`, `vectors_sample_match.cmake` and
 `vector_registration_policy.cmake` in `tests/cmake/`.
-It is outside `CI required`, so a red nightly blocks no merge. Before the
-full run, it saves the CTest JSON inventory and checks all 258 full-tier tests,
+It is outside `CI required`, so a red nightly blocks no merge. Its lanes skip
+Release Please generated PRs: those PRs already run required CI, and a push to
+`main` still runs Nightly after merge. Ordinary relevant PRs, scheduled runs,
+manual runs and main pushes keep the existing lanes. Before the full run, it
+saves the CTest JSON inventory and checks all 258 full-tier tests,
 including their labels, fixtures and no-skip properties. The workflow then
 runs the lane once and saves its JUnit result. Both files are uploaded together
 as `vectors-full-evidence-<run ID>`; the job summary records the event, head

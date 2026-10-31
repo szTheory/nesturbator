@@ -65,8 +65,9 @@ Naming only cores and info leaves LICENSE and THIRD-PARTY-NOTICES.md outside
 RetroArch directories. The [release guide](docs/releases.md) documents how the
 marked version line and source-build extraction check are maintained.
 
-The core's displayed name and version help you check your selection, but do
-not prove the exact binary. For exact identity, retain the module path used by
+The core's displayed name and release version help you check your selection;
+the release version does not change emulated output. They do not prove the
+exact binary. For exact identity, retain the module path used by
 the active launch and compare its digest with the matching release/CI artifact
 or pinned local build. If the loaded path or source cannot be established,
 report the build as unknown. The [release guide](docs/releases.md#identifying-a-loaded-build)
