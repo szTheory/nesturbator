@@ -1,19 +1,19 @@
 ---
 gsd_state_version: "1.0"
 milestone: v6
-milestone_name: Player-ready NES and reproducible feedback
-status: v6 milestone complete; next milestone unapproved
-stopped_at: v6 milestone closeout complete
-last_updated: "2026-10-31T14:00:15Z"
+status: v6 complete; CI quick task complete; release CI awaits owner decision
+stopped_at: quick task complete; required CI/campaign authorization pending
+last_updated: "2026-10-31T14:36:01Z"
 last_activity: 2026-10-31
-last_activity_desc: Milestone v6 completed and archived
-state_head: f5f9e27cb3b1846681ae1066b896fe490d7a9a5c
+last_activity_desc: Fixed release fingerprint false positive and trimmed redundant Nightly runs; awaiting explicit CI/campaign decision
+state_head: 94703591ca1d5c1d5adcfb6e2fd51987de4a2558
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 7
   completed_plans: 7
   percent: 100
+milestone_name: Player-ready NES and reproducible feedback
 current_phase: null
 current_phase_name: null
 current_plan: null
@@ -25,31 +25,39 @@ current_plan: null
 
 See [PROJECT.md](PROJECT.md), updated for v6 closeout on 2026-10-31, and AGENTS.md.
 Core value: Games behave as on the console, identically across platforms, from a small MIT C library.
-Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md).
+Current focus: v6 is archived. Phase 22 passed 7/7 and Phase 23 passed 9/9; all ten requirements and three end-to-end flows are satisfied. The `tech_debt` audit and closeout record are in [v6 audit](milestones/v6-MILESTONE-AUDIT.md) and [v6 closeout](milestones/v6-CLOSEOUT.md). Quick task 261031-ecd fixes the release-version fingerprint mismatch and avoids redundant optional Nightly lanes on generated release PRs. The source commits are local; Release PR #56 has not been updated.
 
 ## Current Position
 
 Phase: Milestone v6 archived
 Plan: —
-Status: Complete; no next milestone scope approved
-Last activity: 2026-10-31 — v6 closeout artifacts prepared
+Status: Quick task complete; waiting for owner decision before starting required CI that includes the AccuracyCoin campaign
+Last activity: 2026-10-31 — CI fingerprint fix and Nightly efficiency changes prepared
 
 ## Next Action
 
-The milestone is archived in [MILESTONES.md](MILESTONES.md), with the full
-[closeout](milestones/v6-CLOSEOUT.md), [audit](milestones/v6-MILESTONE-AUDIT.md),
-[requirements](milestones/v6-REQUIREMENTS.md), [execution roadmap](milestones/v6-ROADMAP.md),
-and [product-roadmap snapshot](milestones/v6-PRODUCT-ROADMAP.md). All ten
-requirements, both phases, and three end-to-end flows are complete; the audit
-status is `tech_debt`, and the owner approved carrying its documented debt.
+V6 is archived in [MILESTONES.md](MILESTONES.md), with the full
+[closeout](milestones/v6-CLOSEOUT.md) and [audit](milestones/v6-MILESTONE-AUDIT.md).
+Quick task [261031-ecd](quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/261031-ecd-SUMMARY.md)
+passes its focused local checks. Its clean-base fingerprint for the release fix
+is `78822adfa35ac2b0e2f562cfb0067ae08db7e76c3e6e4027fa63d7bcca400de2`
+(56 inputs); the current phase branch's `0534...` value must not be used for
+Release PR #56.
 
-No next milestone is committed. The preferred candidate is the five remaining
-DMA failures, with RM-015 conditional on bounded evidence of a core fault. PAL
-is the regional alternative; scoped maintenance is the smaller alternative.
-The exact next command is `$gsd-new-milestone`. It starts the next milestone's
-scope questions, research, requirements and roadmap; context may be cleared
-before running it. The owner acts next. See [continue.md](continue.md) before
-resuming for the preserved detailed safety boundary.
+The release PR remains open and its current head has not received the fix.
+An update will start required full CI; the Linux x64 lane runs the pinned
+22-page AccuracyCoin campaign with a 370-second test timeout. The earlier
+campaign was interrupted with an unknown result, and the existing stop
+requires an explicit owner decision before this run. No push, full workflow,
+campaign, merge, or publication has happened. Automatic publication and
+squash merge remain authorized after every required check passes on the exact
+release head.
+
+The exact next command is `$gsd-quick resume fix-release-only-accuracycoin-fingerprin`.
+It resumes clean-base release integration and waits at the full-CI/campaign
+decision gate. Context may be cleared before running it. The owner acts next;
+see the [resume note](quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/261031-ecd-RESUME.md)
+for the preserved scope and evidence.
 
 Release PR #56 for 0.1.12 remains open at head
 `74d443f2b44857c9e366970e1b11b0f923cf4a0d`; its required CI aggregate failed,
@@ -99,6 +107,7 @@ push or release action was run for closeout.
 |---|-------------|------|--------|-----------|
 | 261026-i8z | Reduce repeated CI suites, session controls and vector inventory work | 2026-10-26 | dbbf04f | [261026-i8z-reduce-ci-overhead-using-the-recovered-c](./quick/261026-i8z-reduce-ci-overhead-using-the-recovered-c/) |
 | 261029-sdj | Reduce inventory parsing and reuse CTest-validated hash artifacts | 2026-10-29 | dc3451b | [261029-sdj-optimize-no-skip-inventory-parsing-and-r](./quick/261029-sdj-optimize-no-skip-inventory-parsing-and-r/) |
+| 261031-ecd | Fix release fingerprint and skip redundant Nightly lanes | 2026-10-31 | 9470359 | [261031-ecd-fix-release-only-accuracycoin-fingerprin](./quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/) |
 
 ## Deferred Items
 
@@ -120,10 +129,10 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Session
 
-**Last session:** 2026-10-31T14:00:15Z
-**Stopped at:** v6 milestone closeout complete; next milestone scope is unapproved
-**Next command:** $gsd-new-milestone
-**Resume file:** .planning/continue.md
+**Last session:** 2026-10-31T14:36:01Z
+**Stopped at:** quick task 261031-ecd complete; awaiting owner decision before required CI/campaign
+**Next command:** $gsd-quick resume fix-release-only-accuracycoin-fingerprin
+**Resume file:** .planning/quick/261031-ecd-fix-release-only-accuracycoin-fingerprin/261031-ecd-RESUME.md
 
 ## Performance Metrics
 
@@ -153,4 +162,4 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Operator Next Steps
 
-- Start the next milestone with `$gsd-new-milestone`. This opens scope discovery and creates fresh requirements; context may be cleared first.
+- Decide whether to authorize the required CI run, which includes the AccuracyCoin campaign. If authorized, resume with `$gsd-quick resume fix-release-only-accuracycoin-fingerprin`; that command prepares the clean-base fix and advances to CI.
