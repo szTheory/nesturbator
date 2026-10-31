@@ -6,10 +6,10 @@ current_phase: 23
 current_phase_name: Reproduce and report a scene
 status: Phase 23 paused at regression gate
 stopped_at: Phase 23 review refresh committed; configured full-CI regression command interrupted
-last_updated: "2026-10-31T13:11:54Z"
+last_updated: "2026-10-31T13:13:32Z"
 last_activity: 2026-10-31
 last_activity_desc: Phase 23 review refreshed; full-CI regression command interrupted at the preserved campaign boundary; verifier not run
-state_head: c72a47d80ad7a86d871537ac2f05b356f5c1655d
+state_head: 8453c6f4102eb8c1af0475f5495817599e561894
 progress:
   total_phases: 2
   completed_phases: 2
@@ -70,6 +70,12 @@ The bounded Phase 22 tests previously passed within their recorded limits; those
 results are historical and do not make the interrupted regression gate pass.
 Earlier Phase 23 document timeouts and wall-time jumps remain unresolved. No
 timeout was raised or machine restart performed.
+
+The verification status query confirms the old fingerprint is stale across five
+covered files: README.md, docs/progress.md,
+tests/cmake/reproduction_contract.cmake, 23-REVIEW.md and
+23-REVIEW-DISPOSITION.md. A future successful execute-phase run must refresh the
+verifier over all five after the owner resolves the regression-gate boundary.
 
 The configured CI cache enables a full AccuracyCoin campaign. Scoped CTests
 excluded its required fixture with -FA accuracycoin_full_report. No new campaign,

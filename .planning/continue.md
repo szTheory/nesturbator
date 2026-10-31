@@ -16,8 +16,10 @@ campaign. The workflow started; CTest output reached roughly 608/706, with
 child processes, one of which had already exited when signaled, while the other
 exited after SIGINT. A follow-up process check found none from this run. The run
 left no usable final CTest log, so whether the campaign test completed is
-unknown. The verifier did not run; Phase 23's
-fingerprint remains stale. Do not claim the regression gate or verification
+unknown. The verifier did not run. The status query reports a stale fingerprint
+covering README.md, docs/progress.md,
+tests/cmake/reproduction_contract.cmake, 23-REVIEW.md and
+23-REVIEW-DISPOSITION.md. Do not claim the regression gate or verification
 passed.
 
 Stop here for the owner's decision about whether to continue after reviewing
