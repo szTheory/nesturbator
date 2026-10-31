@@ -71,6 +71,61 @@ The cross-platform `release.one_version_per_line` test checks every marked
 Release Please file, naming any line that contains more than one version.
 Its independent fixture verifies detection of a two-version marked line.
 
+## Identifying a loaded build
+
+The displayed core name and semantic version are useful for an initial check,
+but they do not identify the exact source or binary. Establish the module path
+used by the active launch and hash that module. When the current frontend log
+records the loaded path, retain that line with the host version and launch
+route. RetroArch's current CLI guide also shows explicit selection with
+`retroarch -L <core-path> <content>`; a launcher such as ES-DE may choose a
+different configured path. If neither the active command nor its log shows
+which module was loaded, report the exact build as unknown. See Libretro's
+[Starting a Game](https://docs.libretro.com/guides/starting-a-game/),
+[CLI](https://docs.libretro.com/guides/cli-intro/) and
+[logging](https://docs.libretro.com/guides/generating-retroarch-logs/) guides.
+
+Keep these three identities separate:
+
+| Build source | Identity evidence |
+|---|---|
+| Published release | Release tag, exact archive name, archive SHA-256 from that release's `SHA256SUMS`, and GitHub artifact attestation. Extract the module from that verified archive and compare its SHA-256 with the loaded module. |
+| CI development artifact | GitHub Actions workflow run, source commit, artifact name and downloaded module digest. A CI artifact is not a published release and does not inherit its tag or release provenance. |
+| Pinned local build | Exact source commit, CMake configuration/compiler and built module digest. A local version string alone does not bind the binary to a commit. |
+
+For a published ZIP, compare its digest with the matching `SHA256SUMS` entry
+and verify its attestation before treating it as a release artifact:
+
+```sh
+gh attestation verify FILE --repo szTheory/nesturbator
+```
+
+The attestation covers the archive; its checksum does not directly hash the
+extracted module. Hash both the loaded module and the corresponding
+`cores/nesturbator_libretro` member extracted from the same archive. Use
+`shasum -a 256` on macOS, `sha256sum` on Linux, or
+`Get-FileHash -Algorithm SHA256` in PowerShell. The names in RetroArch's core
+list and `.info` file are not substitutes for this path-and-digest comparison.
+
+For a CI artifact, retain the run page and source commit, then compare the
+loaded module against the module from that exact downloaded artifact. For a
+local build, record `git rev-parse HEAD`, the selected build configuration and
+the digest of the module you actually load. If the exact path, bytes or source
+identity cannot be tied together, leave the result unknown rather than
+attributing current-checkout capabilities to it.
+
+On macOS, Gatekeeper may restrict downloaded, quarantined plug-ins. Apple
+documents that applications on macOS 10.15 and later can load quarantined
+plug-ins only when they are notarized, or after the user explicitly approves
+them. Verify the archive source and digest before acting on a system warning;
+this repository guide makes no signing or notarization claim for a particular
+binary. See Apple's [notarization guidance](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution).
+
+The release list and each release's archive assets are maintained on the
+[public GitHub releases page](https://github.com/szTheory/nesturbator/releases).
+Current availability is time-dependent; do not reuse an earlier lookup as a
+current release observation.
+
 ## Version markers and release policy
 
 Release Please updates the version numbers in the public header, the

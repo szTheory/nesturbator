@@ -22,8 +22,26 @@ With no cartridge, the fixed test card and silence remain available. The
 
 ## Downloads and archives
 
-See the [release guide](docs/releases.md) for archive names, contents,
-integrity checks and repository documentation links.
+Install the libretro archive for the operating system and architecture of the
+RetroArch executable you actually launch. Choose the host executable's
+architecture, not the computer's processor; an x64 RetroArch process needs the
+x64 core even on an arm64 machine.
+
+| RetroArch platform | x64 archive | arm64 archive |
+|---|---|---|
+| Linux | `nesturbator-VERSION-libretro-linux-x64.zip` | `nesturbator-VERSION-libretro-linux-arm64.zip` |
+| macOS | `nesturbator-VERSION-libretro-macos-x64.zip` | `nesturbator-VERSION-libretro-macos-arm64.zip` |
+| Windows | `nesturbator-VERSION-libretro-windows-x64.zip` | `nesturbator-VERSION-libretro-windows-arm64.zip` |
+
+Each archive has `cores/` and `info/` directories. Extract both into the
+locations shown by RetroArch's `Settings` → `Directory` → `Cores` and `Core
+Info` settings, preserving the folders and filenames. The module is
+`nesturbator_libretro.so` on Linux, `.dylib` on macOS and `.dll` on Windows;
+the matching `nesturbator_libretro.info` file belongs in `info/`. Make sure
+the frontend can read both files and that its configured directories are
+writable for installation. Libretro's [manual install guide](https://docs.libretro.com/guides/download-cores/)
+documents these directories and module extensions. The [release guide](docs/releases.md)
+explains how to verify an archive and identify the exact loaded binary.
 
 ## Releases
 
