@@ -252,6 +252,32 @@ function(phase24_make_artifact_control_fixture fixture_root tamper)
   endif()
 endfunction()
 
+function(phase24_make_build_log_control_fixture fixture_root)
+  file(REMOVE_RECURSE "${fixture_root}")
+  set(id 91001)
+  foreach(platform IN LISTS NESTURBATOR_PHASE20_PLATFORMS)
+    phase20_expected_build_job_name("${platform}" job_name step_name)
+    set(job_path "${fixture_root}/provenance/build-${platform}-job.json")
+    set(raw_log "${fixture_root}/downloads/job-${platform}.txt")
+    get_filename_component(job_parent "${job_path}" DIRECTORY)
+    get_filename_component(log_parent "${raw_log}" DIRECTORY)
+    file(MAKE_DIRECTORY "${job_parent}" "${log_parent}")
+    set(step_started "2026-11-01T00:00:01Z")
+    set(step_completed "2026-11-01T00:00:05Z")
+    file(WRITE "${job_path}"
+      "{\"id\":${id},\"name\":\"${job_name}\",\"run_id\":12345,"
+      "\"run_attempt\":1,\"status\":\"completed\",\"conclusion\":\"success\","
+      "\"steps\":[{\"name\":\"${step_name}\",\"number\":10,\"status\":\"completed\","
+      "\"conclusion\":\"success\",\"started_at\":\"${step_started}\","
+      "\"completed_at\":\"${step_completed}\"}]}\n")
+    file(WRITE "${raw_log}"
+      "2026-11-01T00:00:01Z ##[group]${step_name}\n"
+      "2026-11-01T00:00:02Z synthetic workflow output\n"
+      "2026-11-01T00:00:03Z ##[endgroup]\n")
+    math(EXPR id "${id} + 1")
+  endforeach()
+endfunction()
+
 function(phase24_controls)
   if(NOT DEFINED BUS OR NOT EXISTS "${BUS}" OR IS_DIRECTORY "${BUS}")
     message(FATAL_ERROR "MODE=controls requires -DBUS=<built bus.unit executable>")
@@ -312,6 +338,25 @@ function(phase24_controls)
   phase24_validate_artifact_map("${archive_fixture}/valid" 12345 1 "${wrong_attempt_json}" error)
   phase24_expect_rejection("artifact from a different run attempt"
     "does not match one unexpired API artifact from this run/attempt" "${error}")
+  set(build_log_fixture "${root}/controls/build-workflow-logs")
+  phase24_make_build_log_control_fixture("${build_log_fixture}")
+  phase24_materialize_build_workflow_logs("${build_log_fixture}" 12345 1 error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "selected workflow-step log materialization failed: ${error}")
+  endif()
+  foreach(platform IN LISTS NESTURBATOR_PHASE20_PLATFORMS)
+    set(workflow_log "${build_log_fixture}/artifacts/build-${platform}/workflow.log")
+    if(NOT EXISTS "${workflow_log}" OR IS_DIRECTORY "${workflow_log}" OR IS_SYMLINK "${workflow_log}")
+      message(FATAL_ERROR "selected workflow-step log was not materialized for ${platform}")
+    endif()
+  endforeach()
+  message(STATUS "control materialized six timestamp-bounded build workflow logs from raw per-job logs")
+  file(READ "${build_log_fixture}/provenance/build-linux-x64-job.json" linux_job)
+  string(REPLACE "\"run_attempt\":1" "\"run_attempt\":2" linux_job wrong_attempt_job)
+  file(WRITE "${build_log_fixture}/provenance/build-linux-x64-job.json" "${wrong_attempt_job}")
+  phase24_materialize_build_workflow_logs("${build_log_fixture}" 12345 1 error)
+  phase24_expect_rejection("workflow log from a different run attempt"
+    "does not bind the selected successful run/attempt" "${error}")
   phase24_make_artifact_control_fixture("${archive_fixture}/tampered" TRUE)
   file(READ "${archive_fixture}/tampered/provenance/artifacts.json" artifact_json)
   phase24_validate_artifact_map("${archive_fixture}/tampered" 12345 1 "${artifact_json}" error)
@@ -1314,6 +1359,30 @@ function(phase24_validate_platform_baseline root platform base_sha scoreboard_sh
   set(${out_error} "" PARENT_SCOPE)
 endfunction()
 
+function(phase24_materialize_build_workflow_logs root run_id attempt out_error)
+  foreach(platform IN LISTS NESTURBATOR_PHASE20_PLATFORMS)
+    set(job_path "${root}/provenance/build-${platform}-job.json")
+    set(raw_log "${root}/downloads/job-${platform}.txt")
+    phase20_validate_build_job_metadata("${job_path}" "${platform}" "${run_id}" "${attempt}"
+      step_number job_error step_started step_completed)
+    if(NOT job_error STREQUAL "" OR NOT EXISTS "${raw_log}" OR IS_DIRECTORY "${raw_log}" OR
+       IS_SYMLINK "${raw_log}")
+      set(${out_error}
+        "${platform} build workflow log cannot be derived from its selected attempt: ${job_error}"
+        PARENT_SCOPE)
+      return()
+    endif()
+    set(destination "${root}/artifacts/build-${platform}/workflow.log")
+    phase20_extract_job_log("${raw_log}" "${platform}" "${step_started}" "${step_completed}"
+      "${destination}" extract_error)
+    if(NOT extract_error STREQUAL "")
+      set(${out_error} "${extract_error}" PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
+  set(${out_error} "" PARENT_SCOPE)
+endfunction()
+
 function(phase24_validate)
   if(NOT IS_DIRECTORY "${root}")
     message(FATAL_ERROR "MODE=validate requires a populated evidence ROOT")
@@ -1532,6 +1601,12 @@ function(phase24_validate)
     "${root}/artifacts/build-linux-x64/protected-main/metadata.txt" "${base_sha}" error)
   if(NOT error STREQUAL "")
     message(FATAL_ERROR "protected-key scoreboard check failed: ${error}")
+  endif()
+  # Keep immutable archive members exact; add the timestamp-bounded log views only after
+  # archive-map validation so derived files cannot masquerade as uploaded artifact members.
+  phase24_materialize_build_workflow_logs("${root}" "${run_id}" "${attempt}" error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "selected build workflow logs could not be derived: ${error}")
   endif()
   phase20_validate_build_logs("${root}" "${run_id}" "${attempt}" error)
   if(NOT error STREQUAL "")
