@@ -1,4 +1,4 @@
-# Phase24 acceptance — corrected candidate awaits fresh acceptance
+# Phase24 acceptance — local behavior14 acceptance passed; hosted gates remain
 
 ## Prior actual outcome
 
@@ -14,26 +14,43 @@ The sprite fixture is repaired. The three remaining core divergences now
 have source-shaped owned regressions and repairs, including full64-entry
 abort keys, focused byte/bus/audio checks, distinct wrong models and native
 continuation. Current candidate is behavior14 / native format6 / ABI1.
-[Correction record](24-04-CORRECTIONS.md). These are owned results, not a
-fresh behavior14 ROM observation. Phase24 and all four requirements remain
-incomplete. No second full workflow/campaign or hosted trigger ran.
+[Correction record](24-04-CORRECTIONS.md).
+
+## Latest actual result — 2026-11-01
+
+The owner granted standing authority for local CMake commands, including full
+CI and its configured campaign. The final `cmake --workflow --preset ci` run
+completed with exit0: all707 CTest entries passed in517.82 seconds, and the
+library, runner, and libretro macOS arm64 packages were generated. The
+complete22-page campaign observed all146 scored rows terminal (126 PASS,
+20 FAIL, no skip/not-run/timeout, five inventory-only DRAW rows).
+
+All five selected Phase24 rows passed at the unchanged ROM pin and classifier:
+Landing `0x01`/frame128, DMC+OAM `0x01`/frame46, Bus Conflicts `0x01`/frame46,
+Explicit Abort `0x01`/frame46, and Implicit Abort `0x09`/frame46 (the accepted
+source-defined pass variant). DMA + `$4015` Read, Misaligned OAM DMA, and INC
+`$4014` passed too. Every119 previous current-pin protected PASS key remains
+passing. This is local compatibility evidence, not universal silicon proof.
+The detailed [dated run record](24-CI-RUN-20261101.md) and
+[measurements](../../../tests/accuracy/measurements.md#phase-24-behavior14-local-acceptance-2026-11-01)
+identify the exact artifacts and hashes.
+
+Local protected-observation tests used the checkout `scoreboard-main` fallback;
+they do not establish independently prepared cold-main authority. The
+campaign report is complete and trustworthy, but current-head hosted lanes,
+six-platform frame/PCM/transition equality, and unchanged Cachegrind `+1%`
+evidence remain missing. The phase and its four requirements therefore remain
+incomplete. No hosted workflow, push, PR, merge, or release ran.
 
 ## Authority and current action
 
-Approval friction is resolved in standing instructions: task/phase approval
-includes required local engineering, builds/tests/CI, reviews/fixes and bounded
-retests. Runtime length alone and each compatibility implementation slice do
-not require another prompt. [Applied lesson](24-APPROVAL-LESSONS.md).
-
-The original one-invocation approval was consumed, and the owner initially
-chose to keep the stop. On 2026-10-31 the owner then granted standing authority
-for local CMake commands, including the full acceptance workflow and its
-configured AccuracyCoin campaign fixture. That later instruction supersedes
-the one-invocation gate; no per-run approval is needed. Preserve the existing
-39-minute overall ceiling, every inner cap and the complete test selection.
-Do not automatically retry a real interruption or timeout; preserve its
-evidence and resolve the cause first. Hosted triggers, pushes, PRs, merges and
-releases remain outside this authority.
+The owner has standing authority for local CMake configure, build, test and
+workflow commands, including full CI and configured acceptance campaigns; no
+per-run approval is needed. Preserve the existing39-minute overall ceiling,
+all inner caps and complete selection. Do not automatically retry a real
+interruption or timeout; retain evidence and resolve its cause first. Hosted
+workflow triggers, pushes, PRs, merges and releases remain separate actions
+and were not authorized by the local CMake instruction. [Applied lesson](24-APPROVAL-LESSONS.md).
 
 The efficiency review found no safe change that would materially shorten this
 acceptance while retaining its evidence. Keep the four-worker policy and full
@@ -45,18 +62,18 @@ it is not an acceptance substitute.
 On 2026-10-31 the owner explicitly granted standing local CMake authority,
 including repeated full local CI workflows as needed, without per-run
 approval. This supersedes the earlier keep-stop decision for local CMake only.
-The current run remains under the existing selection,39-minute overall
-ceiling and unchanged inner caps. A real interruption or timeout is not
-automatically retried; hosted and publication actions are still excluded.
+The completed run used the existing selection,39-minute overall ceiling and
+unchanged inner caps. A real interruption or timeout is not automatically
+retried; hosted and publication actions are still excluded.
 
 The current emulation source is behavior14 at
-`a12a79a2cbf0d872150ada9c91754b5345ded38a`; subsequent commits only change
-planning records and authority. The protected-baseline handoff variables are
-unset, so local protected checks use the checkout's `scoreboard-main`
-snapshot; this is not independently prepared cold-main authority. The prior
-report remains archived under
-`build/phase24-acceptance/20261031T223038Z/observed`. Exact invocation HEAD,
-build identity and result will be recorded in the new run record.
+`a12a79a2cbf0d872150ada9c91754b5345ded38a`; the final campaign ran at
+`0c8cc53b1672` with `source_dirty=1`, because measured metadata and local
+planning/instruction notes were present. The protected-baseline handoff
+variables were unset, so local protected checks used the checkout's
+`scoreboard-main` snapshot; this is not independently prepared cold-main
+authority. Final artifacts are archived under
+`build/phase24-acceptance/20261101T010016Z/`.
 
 ```sh
 cmake --workflow --preset ci
@@ -121,24 +138,25 @@ are not a substitute. [Historical key catalog](24-PROTECTED-PASS-KEYS.tsv).
 
 | Requirement | Still required |
 |---|---|
-| Selected rows | Fresh individual PASS for all five at the unchanged pin and classifier; both historical implicit outcomes remain accepted |
-| Completeness | Attributable current source/build/ROM/report; every scored row terminal; no real interruption/timeout |
-| Regression | Every cold protected-main PASS retained, including the three named DMA neighbors; both pins as applicable |
+| Selected rows | **PASS locally:** all five individual rows pass at the unchanged pin/classifier; both accepted implicit outcomes remain recognized |
+| Completeness | **PASS locally:** attributable source/build/ROM/report; every scored row terminal; no interruption/timeout |
+| Regression | 119 prior current-pin protected PASS keys retained, and three named DMA neighbors pass; independent cold protected-main authority remains outstanding |
 | Determinism | Actual Linux/macOS/Windows x64/arm64 equality of complete frame/PCM/transition/native hash inventory |
 | Performance | Existing Cachegrind base_a/base_b/head checks at60/360 frames and unchanged+1% threshold; no exception added |
 | Required CI | Current-head hosted lanes, full-vector inventory, session jobs, hash equality, perf and rollup |
 | Whitespace | Resolve inherited branch-wide planning diagnostics without corrupting archived patch fixtures or silently waiving the guard |
 
-Historical baseline-metadata.txt remains behavior9 and identifies its exact
-report. It was not relabeled13/14. Input-fingerprint and activation checks
-correctly reject stale identity; refresh only from qualifying actual evidence.
+`baseline-metadata.txt` now records the measured behavior14 report, 126/20
+counts, report digest, scoreboard digest and exact input fingerprint. Its
+scoreboard was generated from the observed report, not by changing expected
+statuses to force passes. The20 unrelated failures remain recorded.
 
 The prior Task1 review recorded159 inherited `main...HEAD` diagnostics and41
-against cached `origin/main`; those are historical counts. At the current
-phase branch head, the plan's `git diff --check main...HEAD` recheck exits2
-with133 trailing-whitespace findings in the committed branch diff. The scoped
-STATE/acceptance edits pass `git diff --check`. No broad cleanup, network
-refresh or bulk historical rewrite was performed.
+against cached `origin/main`; the latter is historical. The current
+`git diff --check main...HEAD` still reports159 trailing-whitespace findings
+across the committed branch diff, largely in archived planning and patch
+records. The scoped acceptance commit passes `git diff --check HEAD^ HEAD`.
+No broad cleanup, network refresh or bulk historical rewrite was performed.
 
 ## Bounded Plan24-04 review
 
@@ -161,21 +179,20 @@ sandbox denied Git metadata writes. The scoped commit includes only this
 acceptance record, the DMA evidence ledger and STATE; no unrelated path was
 staged.
 
-The five selected rows still require fresh individual PASS observations at
-pin `6bee919529289c555803b612b8c9e4f7eaaeeabb`, with complete terminal raw
-observations and source/build/ROM/report provenance. The complete protected
-PASS set (including the three DMA neighbors), fresh cold protected-main
-authority, cross-platform frame/PCM/transition hashes, unchanged Cachegrind
-`+1%` evidence and current hosted lanes are also missing. No scoreboard or
-measurement was changed. The original one-run authorization is consumed, but
-the later standing CMake authority now covers this fresh `FULL=ON` run under
-the unchanged selection and limits.
+The fresh local report establishes the five selected rows and complete
+campaign described above. Remaining requirements are independent cold
+protected-main authority, actual Linux/macOS/Windows x64/arm64 frame/PCM/
+transition equality, unchanged Cachegrind `+1%` performance evidence, and
+current-head hosted lanes. The inherited branch-wide whitespace findings also
+remain; most are in archived phases outside this plan, so no bulk rewrite was
+made.
 
 ## Handoff
 
-The agent completes the owned correction/check/review/commit work before
-stopping. No action is needed to keep the stop. If the owner later renews the
-exact local acceptance scope, they act next. Exact next OpenGSD command:
-`$gsd-execute-phase 24`. Context may be cleared; read the current STATE and
-this acceptance record before resuming. The specific run limit stays active
-until a clear decision changes it.
+All four plans have been executed and the local Plan24-04 acceptance outcome
+is recorded; Phase24 remains open only for the evidence above. No further
+local CMake approval is needed. The owner acts next only if they want the
+hosted checks/PR path, because that has remote effects outside the standing
+local-CMake authority. Exact next OpenGSD command after that authorization:
+`$gsd-ship`. It prepares a PR and runs the hosted review/check path. Context may
+be cleared; read STATE and this acceptance record before continuing.

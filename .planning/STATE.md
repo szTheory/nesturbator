@@ -5,16 +5,16 @@ milestone_name: Remaining DMA accuracy failures
 current_phase: 24
 current_phase_name: Correct remaining NTSC DMA behavior
 status: executing
-stopped_at: Plan24-04 Task3 local CI acceptance authorized; full workflow starting under existing limits
-last_updated: "2026-11-01T00:24:18Z"
-last_activity: 2026-10-31
-last_activity_desc: Owner granted standing authority for local CMake; efficiency review found no safe full-coverage shortcut; current acceptance run is authorized
+stopped_at: Plan24-04 local acceptance complete; hosted cross-platform evidence remains outside current authority
+last_updated: "2026-11-01T01:12:10Z"
+last_activity: 2026-11-01
+last_activity_desc: Full local CI and behavior14 campaign passed selected rows; phase remains open for hosted, cold-main, hash and performance evidence
 state_head: d98f0ca7b05b7235a21f173e2b871ce8977a7bd6
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -23,27 +23,29 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 **Core value:** Games behave as on the console, identically across platforms, from a small MIT C library.
-**Current focus:** Behavior14 bounded evidence is reconciled; fresh local acceptance is authorized and running
+**Current focus:** Behavior14 selected rows pass in fresh local full CI; remaining phase gates require hosted/cold-main evidence
 
 ## Current Position
 
 Phase: 24 (Correct remaining NTSC DMA behavior) — acceptance checkpoint
-Plan: 4 of 4 — Task1 and Task2 complete; Task3 local full-CI acceptance is authorized
+Plan: 4 of 4 — all Plan24-04 tasks completed through the local acceptance boundary
 Status: Phase and requirements remain incomplete
-Last activity: 2026-10-31 — Four bounded CTest entries and native `--dma` passed; commit `661a45a` records the task; scoped decision docs pass whitespace check; branch-wide check currently finds133 inherited trailing-whitespace findings
-Progress: [███████░░░] 75% (plans; phase acceptance pending)
+Last activity: 2026-11-01 — Full CI passed707/707 tests in517.82s; behavior14 campaign passed all five selected rows; hosted acceptance remains pending
+Progress: [██████████] 100% (plans executed; phase acceptance pending)
 
 ## Next Action
 
-**Standing local CMake authority is active; no per-run approval is needed.** The original one-run invocation completed in444.6seconds with exit8 and is preserved. The owner later authorized local CMake runs at the agent's discretion, including the full acceptance workflow and its campaign fixture. The current command is `cmake --workflow --preset ci`, under the same39-minute ceiling, unchanged inner limits and full selection. No automatic retry after interruption/timeout and no hosted/push/PR trigger are authorized. Efficiency review found no safe shortcut that preserves acceptance; `dev-check` remains the fast iteration tier. The existing `build/ci` Release tree is `FULL=ON`, and its read-only inventory contains707 tests with the campaign fixture; this inventory was inspected before execution. [Selection, limits, evidence and optimization review](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
+**Local CMake approval is durable; no per-run approval is needed.** The final `cmake --workflow --preset ci` run passed all707 CTest entries in517.82seconds and generated library, runner and libretro macOS arm64 packages. Its complete campaign observed all146 scored rows terminal (126 PASS,20 FAIL, no skip/not-run/timeout,5 inventory-only DRAW); all five selected DMA rows passed. All119 prior current-pin protected PASS keys remain passing. See the [dated run record](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN-20261101.md) and [campaign measurements](../tests/accuracy/measurements.md#phase-24-behavior14-local-acceptance-2026-11-01).
+
+Local protected-observation tests used the checkout `scoreboard-main` fallback, not independent cold-main authority. Current-head hosted lanes, Linux/macOS/Windows x64/arm64 frame/PCM/transition hash equality, and unchanged Cachegrind `+1%` evidence remain missing. Inherited branch-wide planning whitespace is also unresolved; most findings are in archived records outside this scoped update. No hosted trigger, push, PR, merge or release is authorized by the standing local-CMake instruction. The full suite has no safe coverage-preserving shortcut; `dev-check` remains the fast iteration tier. [Acceptance and efficiency record](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
 
 No ordinary implementation acknowledgment is needed. Task approval now durably covers local engineering, builds/tests/CI, reviews/fixes/bounded retests and approved compatibility follow-through. Those changes are recorded globally and in repository instructions. The additive `dev-check` preset provides fast owned feedback; existing CI objects and the complete707-test name/timeout/fixture/label inventory are unchanged. [Measured efficiency decisions](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-EFFICIENCY.md).
 
 Core correction a12a79a is behavior14 / native format6 / ABI1. All64 owned abort-key entries, bus matrix/status effects, focused byte/DAC wrong-model tests, genuine imminent/armed/fresh-buffer native cuts, short stress witnesses, current revision/document controls and homebrew hash consumers pass. Release builds with warnings as errors; no new saved field or dependency was needed. [Correction evidence](phases/24-correct-remaining-ntsc-dma-behavior/24-04-CORRECTIONS.md).
 
-The actual behavior13 campaign retained all119 previous current-pin PASS keys but still failed bus-conflict and both abort rows. Do not claim fresh behavior14 ROM acceptance or replace canonical baseline metadata from owned tests. Required protected-main/hosted/platform/performance evidence and inherited branch whitespace remain unresolved. No second campaign, push/PR, hosted trigger, merge or release ran. [Actual workflow result](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN.md).
+The earlier behavior13 campaign is historical at [24-CI-RUN.md](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN.md); the final behavior14 result supersedes it for local selected-row status. Baseline metadata now matches the observed campaign. No silicon or universal target claim is made.
 
-**Next OpenGSD command:** `$gsd-execute-phase 24` — continues Phase 24 acceptance under standing local CMake authority; remote CI and publication actions remain separate. Context may be cleared; read this file and [24-ACCEPTANCE.md](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md) first.
+**Next OpenGSD command, after the owner authorizes remote PR/check actions:** `$gsd-ship` — prepares the PR and runs the hosted review/check path needed for remaining platform evidence. No further local CMake approval is needed. Context may be cleared; read this file and [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md) first.
 
 ## Accumulated Context
 
@@ -66,7 +68,7 @@ The three deferred property/mutation/signal proposals remain unlinked to v7; the
 
 - **Plan 24-01 native-state checkpoint resolved:** owner approved the explicit silence byte, continuously clocked bits, format 4 and behavior revision 10. Later compatibility follow-through follows the owner’s standing policy; only a materially new consequence outside it needs another decision.
 
-- **Phase24 local CMake authority:** the owner explicitly authorized local CMake commands without per-run approval, including full CI and configured acceptance campaign fixtures. Preserve existing limits and do not automatically retry real interruptions/timeouts; investigate and resolve their cause first. Hosted workflow triggers, pushes, PRs, merges and releases remain separately unauthorized. Keep requirements/phase incomplete until fresh acceptance evidence exists.
+- **Phase24 local CMake authority:** the owner explicitly authorized local CMake commands without per-run approval, including full CI and configured acceptance campaign fixtures. Preserve existing limits and do not automatically retry real interruptions/timeouts; investigate and resolve their cause first. Hosted workflow triggers, pushes, PRs, merges and releases remain separately unauthorized. Local selected-row evidence now exists; keep requirements/phase incomplete until independent cold protected-main, hosted cross-platform/hash, and unchanged performance evidence exists.
 - Phase 23 document-test timeouts/wall-time jumps, five heuristic edges and Phase 22/23 judgment-tier prohibitions remain unresolved/flagged. No new timeout or restart is justified. Windows/PowerShell, host recovery and cross-build compatibility remain unqualified; commercial reports remain unclassified and daily progress untouched.
 - Collector Git/filesystem-mode, ignored-fixture/relative-root and duplicate-validator debt remain open. Historical attribution/revision advisories, Phase 19 cost/citation/early-stage coverage, real-campaign minimization controls and macOS nofp limits remain in the [v5 audit](milestones/v5-MILESTONE-AUDIT.md) and [product ledger](PRODUCT-ROADMAP.md#unresolved-debt-and-delivered-tune-up). New evidence cannot inherit old-run qualification.
 - WINDOWS entry 18 was reconciled from fixed existing evidence; the original refused append remains historical. Physical exact-timestamp precedence is unmeasured. Historic Phase 16 safety stops, runtime windows and thresholds remain unchanged; no closeout or approval waives them.
@@ -97,13 +99,13 @@ Seven seed acknowledgements from earlier closes remain suppressed by their own `
 
 ## Performance Metrics
 
-v7: three of four plans complete; the behavior14 correction and bounded evidence are committed. The authorized full workflow completed normally in444.60seconds, with session controls dominating441.98seconds of CTest; campaign collection took4.97seconds. The new focused developer tier takes a few seconds locally and preserves all full-CI gates. Plan04 acceptance and inherited branch whitespace remain incomplete. See the [efficiency synthesis](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-EFFICIENCY.md) and [actual result](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN.md).
+The final behavior14 local workflow passed all707 entries; campaign guest execution took6.35 seconds and CTest took517.82 seconds. Session-control work accounts for336.80 proc-seconds across three tests; skipping that coverage is not a safe acceptance optimization. `dev-check` remains the quick iteration tier. Hosted platform/hash/performance evidence remains missing, along with inherited branch whitespace. See the [efficiency synthesis](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-EFFICIENCY.md) and [dated result](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN-20261101.md).
 
 ## Session Continuity
 
-**Last session:** 2026-11-01T00:24:18Z
-**Stopped at:** Plan24-04 Task3 is authorized and ready to run the full local acceptance workflow
-**Next actor:** Agent continues locally; no owner action is needed for CMake runs within existing limits
-**Next command:** `$gsd-execute-phase 24`
-**Context:** May be cleared; read STATE, resume and acceptance first. The command resumes at the checkpoint, not earlier correction work.
+**Last session:** 2026-11-01T01:12:10Z
+**Stopped at:** Plan24-04 local acceptance recorded; phase remains open for hosted cross-platform evidence
+**Next actor:** Owner authorizes or declines hosted PR/check actions; local CMake needs no further approval
+**Next command:** `$gsd-ship` after remote-action authorization
+**Context:** May be cleared; read STATE and the resume/acceptance records first.
 **Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md

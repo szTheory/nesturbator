@@ -34,12 +34,21 @@ fixture failure without weakening the oracle.
 | First dev-check worker CTest | 2.57s | Focused tier only |
 | Independent fresh-tree pilot | configure0.854s, build0.834s, CTest2.720s | All20 selected checks pass; macOS local observation |
 | Independent warm CTest pilot | 0.09s | Warm measurement, not a clean-build forecast |
+| Final behavior14 full workflow | 517.82s CTest; 707/707 passed; packages generated | Complete local acceptance under the existing39-minute ceiling |
+| Final AccuracyCoin reported guest execution | 6.35s summed across the measured campaign | Campaign work remains a small fraction of workflow runtime |
+| Final `retroarch-session` label | 336.80s*proc across3 tests | Still the largest labeled group; aggregate process time, not wall-clock time |
 
 The fresh-tree pilot used a new ignored build directory, the preset's actual
 target list and regex, and four workers. This rules out stale selected
 binaries in the initial inventory. Keep target and test-name lists aligned
 when updating the preset. Details/logs are under
 `build/phase24-owned/dev-check-clean.{json,log}`.
+
+The final passing run confirms the earlier efficiency conclusion: skipping the
+full session/control coverage would remove required checks without fixing the
+main observed cost. The existing `dev-check` remains useful during iteration;
+the full workflow is reasonable as the acceptance gate. See the
+[dated final run record](24-CI-RUN-20261101.md).
 
 ## Next optimizations and tradeoffs
 
@@ -72,7 +81,8 @@ resolve the measured bottlenecks.
 - [Architecture and CI tradeoffs](24-CI-EFFICIENCY-ARCH.md)
 - [Test selection and reproducibility](24-CI-EFFICIENCY-TESTS.md)
 - [Adversarial preset review](24-CI-EFFICIENCY-REVIEW.md)
-- [Actual full-workflow result](24-CI-RUN.md)
+- [Earlier behavior13 full-workflow result](24-CI-RUN.md)
+- [Final behavior14 full-workflow result](24-CI-RUN-20261101.md)
 
 The reviews link CMake and GitHub primary documentation for fixture closure,
 preset semantics, required checks and concurrency. Their evidence supports

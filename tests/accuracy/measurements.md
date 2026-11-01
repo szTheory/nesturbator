@@ -1,5 +1,40 @@
 # AccuracyCoin bounded campaign measurements
 
+## Phase 24 behavior14 local acceptance, 2026-11-01
+
+The final local `cmake --workflow --preset ci` run completed successfully from
+source commit `0c8cc53b1672`, with `source_dirty=1`; the emulation correction
+is committed at `a12a79a2cbf0d872150ada9c91754b5345ded38a` (behavior14,
+format6, ABI1). The run used the canonical `6bee919529289c555803b612b8c9e4f7eaaeeabb`
+ROM pin, the existing full CI selection and limits, and the 56-input build
+fingerprint `f04cdd6ec67f0d02b0a6043ede6a2c6b5b6a6c85eee6f6277f73ac75100cd606`.
+
+All 22 pages completed and all 146 scored rows were observed and terminal:
+126 PASS, 20 FAIL, 0 skipped, 0 not-run, 0 timeout, and 5 inventory-only DRAW
+rows. The five selected Phase 24 rows all passed: DMA Landing on Write (`01`,
+frame128), DMC DMA + OAM DMA (`01`, frame46), DMC DMA Bus Conflicts (`01`,
+frame46), Explicit DMA Abort (`01`, frame46), and Implicit DMA Abort (`09`,
+frame46; source-defined accepted pass variant). DMA + `$4015` Read,
+Misaligned OAM DMA, and INC `$4014` also passed. All119 prior current-pin
+protected PASS keys remain passing. Local protected-observation tests used the
+checkout `scoreboard-main` fallback, so this does not establish independent
+cold-main authority.
+
+The campaign report SHA-256 is
+`f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`; its
+`host_elapsed_guest_ns` is `6353181000`. The measured current scoreboard SHA-256
+is `9ec5d50d291d2713f5281851f642270498a4e8b0dab273b8b72cd19b66ff111b`.
+The full workflow passed all707 CTest entries in517.82 seconds and generated
+the library, runner, and libretro macOS arm64 packages. Its archived log and
+complete campaign artifacts are under
+`build/phase24-acceptance/20261101T010016Z/` (ignored build output).
+
+This is local campaign/workflow evidence only. Current-head hosted lanes,
+independent cold protected-main authority, six-platform frame/PCM/transition
+hash equality, and unchanged Cachegrind `+1%` evidence remain outstanding; no
+hosted workflow or publication action ran. The result establishes compatibility
+with this pinned test set, not universal silicon behavior.
+
 ## Phase 22 documentation registration refresh, 2026-10-31
 
 The full local CI configuration already enabled `NESTURBATOR_ACCURACYCOIN_FULL`.

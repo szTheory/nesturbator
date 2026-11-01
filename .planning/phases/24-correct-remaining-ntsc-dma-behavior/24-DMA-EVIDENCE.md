@@ -1,6 +1,6 @@
 # Phase 24 DMA evidence
 
-**Current scope:** Behavior14 / native format6 / ABI1 source corrections and owned C-fixture evidence. Full-CI/campaign acceptance and DMA-01 through DMA-04 remain pending; no fresh behavior14 AccuracyCoin result is claimed. The first row tables and state audit below are chronological snapshots. Later dated plan sections, especially the current-candidate reconciliation at the end, supersede earlier status and version statements where they differ.
+**Current scope:** Behavior14 / native format6 / ABI1 source corrections, owned C-fixture evidence, and a completed local full-CI/AccuracyCoin run. All five selected ROM rows pass locally. DMA-01 through DMA-04 remain open because cold protected-main, hosted cross-platform hash and performance evidence is still outstanding. The first row tables and state audit below are chronological snapshots; the final dated sections supersede earlier status statements.
 
 ## Identities, oracle and reproduction
 
@@ -233,7 +233,35 @@ The current native contract is format6 / behavior14 / ABI1. The approved
 the current synchronous sample-readiness argument adds no state, API or
 converter. Older formats1..5 remain refused atomically. No old-format
 compatibility, behavior-revision loader enforcement, or cross-platform hash
-claim is added. Fresh behavior14 ROM results, protected-main evidence,
-cross-platform frame/PCM/transition hashes and unchanged performance checks
-remain absent. Do not complete any requirement or phase from these local
-fixtures.
+claim is added. The fresh local ROM evidence is recorded in the dated section
+below; it does not establish protected-main authority, cross-platform
+frame/PCM/transition equality, unchanged performance qualification, or
+silicon behavior. Do not complete any requirement or phase from local results
+alone.
+
+## Full local behavior14 acceptance — 2026-11-01
+
+The final local `cmake --workflow --preset ci` run passed all707 CTest entries
+in517.82 seconds and produced the library, runner and libretro macOS arm64
+packages. Its complete AccuracyCoin campaign ran22/22 pages and observed all
+146 scored rows terminal:126 PASS,20 FAIL, no skip/not-run/timeout, and5
+inventory-only DRAW rows. All five selected Phase24 rows passed at the pinned
+ROM and classifier: Landing `0x01`/frame128, DMC+OAM `0x01`/frame46, Bus
+Conflicts `0x01`/frame46, Explicit Abort `0x01`/frame46, and Implicit Abort
+`0x09`/frame46 (accepted source-defined pass variant). DMA + `$4015` Read,
+Misaligned OAM DMA, and INC `$4014` passed. All119 previous current-pin
+protected PASS keys remain passing.
+
+The campaign used source revision `0c8cc53b1672` with a dirty checkout;
+behavior14 implementation is committed at
+`a12a79a2cbf0d872150ada9c91754b5345ded38a`. The input fingerprint is
+`f04cdd6ec67f0d02b0a6043ede6a2c6b5b6a6c85eee6f6277f73ac75100cd606`; report
+SHA256 is `f3b5bbf7ddcf4d18deabda6d875b441330dc71c97b8aca5fdcc38bf471f98f6c`.
+See [the exact run record](24-CI-RUN-20261101.md) and
+[campaign measurements](../../../tests/accuracy/measurements.md#phase-24-behavior14-local-acceptance-2026-11-01).
+
+Protected observation used the checkout `scoreboard-main` fallback, not
+independently prepared cold-main authority. Current-head hosted lanes,
+Linux/macOS/Windows x64/arm64 frame/PCM/transition equality, and the unchanged
+Cachegrind `+1%` evidence remain outstanding. This report is compatibility
+evidence against its pinned tests, not a universal hardware claim.
