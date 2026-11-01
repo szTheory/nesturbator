@@ -5,11 +5,11 @@ milestone_name: Remaining DMA accuracy failures
 current_phase: 24
 current_phase_name: Correct remaining NTSC DMA behavior
 status: executing
-stopped_at: Plan24-04 local acceptance complete; hosted cross-platform evidence remains outside current authority
-last_updated: "2026-11-01T01:12:10Z"
+stopped_at: Phase verification found a DMA-03 evidence gap; gap planning is next, hosted actions remain unauthorized
+last_updated: "2026-11-01T01:39:50Z"
 last_activity: 2026-11-01
-last_activity_desc: Full local CI and behavior14 campaign passed selected rows; phase remains open for hosted, cold-main, hash and performance evidence
-state_head: d98f0ca7b05b7235a21f173e2b871ce8977a7bd6
+last_activity_desc: Phase review recorded one open trace-buffer warning; goal verification scored 8/9 with DMA-03 evidence outstanding
+state_head: f46a385
 progress:
   total_phases: 1
   completed_phases: 0
@@ -23,14 +23,14 @@ progress:
 
 See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 **Core value:** Games behave as on the console, identically across platforms, from a small MIT C library.
-**Current focus:** Behavior14 selected rows pass in fresh local full CI; remaining phase gates require hosted/cold-main evidence
+**Current focus:** Behavior14 selected rows pass in fresh local full CI; phase verification is 8/9 with DMA-03 cold-main, hosted, hash and performance evidence outstanding
 
 ## Current Position
 
-Phase: 24 (Correct remaining NTSC DMA behavior) — acceptance checkpoint
+Phase: 24 (Correct remaining NTSC DMA behavior) — verification found gaps
 Plan: 4 of 4 — all Plan24-04 tasks completed through the local acceptance boundary
-Status: Phase and requirements remain incomplete
-Last activity: 2026-11-01 — Full CI passed707/707 tests in517.82s; behavior14 campaign passed all five selected rows; hosted acceptance remains pending
+Status: Goal verification scored 8/9; phase and requirements remain incomplete
+Last activity: 2026-11-01 — Local full CI and all five selected rows passed; DMA-03 remains unverified pending independent and hosted evidence
 Progress: [██████████] 100% (plans executed; phase acceptance pending)
 
 ## Next Action
@@ -39,13 +39,15 @@ Progress: [██████████] 100% (plans executed; phase acceptanc
 
 Local protected-observation tests used the checkout `scoreboard-main` fallback, not independent cold-main authority. Current-head hosted lanes, Linux/macOS/Windows x64/arm64 frame/PCM/transition hash equality, and unchanged Cachegrind `+1%` evidence remain missing. Inherited branch-wide planning whitespace is also unresolved; most findings are in archived records outside this scoped update. No hosted trigger, push, PR, merge or release is authorized by the standing local-CMake instruction. The full suite has no safe coverage-preserving shortcut; `dev-check` remains the fast iteration tier. [Acceptance and efficiency record](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
 
+Formal goal verification scored 8/9 and found the DMA-03 evidence gap; see [24-VERIFICATION.md](phases/24-correct-remaining-ntsc-dma-behavior/24-VERIFICATION.md). The advisory [code review](phases/24-correct-remaining-ntsc-dma-behavior/24-REVIEW.md) also found a trace-buffer overflow risk in `tests/cpu/test_bus.c`; its disposition remains open. The verifier additionally noted a stale README acceptance sentence, inherited whitespace, and three plan prohibitions without verification tiers.
+
 No ordinary implementation acknowledgment is needed. Task approval now durably covers local engineering, builds/tests/CI, reviews/fixes/bounded retests and approved compatibility follow-through. Those changes are recorded globally and in repository instructions. The additive `dev-check` preset provides fast owned feedback; existing CI objects and the complete707-test name/timeout/fixture/label inventory are unchanged. [Measured efficiency decisions](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-EFFICIENCY.md).
 
 Core correction a12a79a is behavior14 / native format6 / ABI1. All64 owned abort-key entries, bus matrix/status effects, focused byte/DAC wrong-model tests, genuine imminent/armed/fresh-buffer native cuts, short stress witnesses, current revision/document controls and homebrew hash consumers pass. Release builds with warnings as errors; no new saved field or dependency was needed. [Correction evidence](phases/24-correct-remaining-ntsc-dma-behavior/24-04-CORRECTIONS.md).
 
 The earlier behavior13 campaign is historical at [24-CI-RUN.md](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN.md); the final behavior14 result supersedes it for local selected-row status. Baseline metadata now matches the observed campaign. No silicon or universal target claim is made.
 
-**Next OpenGSD command, after the owner authorizes remote PR/check actions:** `$gsd-ship` — prepares the PR and runs the hosted review/check path needed for remaining platform evidence. No further local CMake approval is needed. Context may be cleared; read this file and [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md) first.
+**Next OpenGSD command:** `$gsd-plan-phase 24 --gaps` — creates a gap-closure plan from the failed DMA-03 verification result. This planning step does not trigger hosted checks. The owner must still separately authorize remote PR/check actions before `$gsd-ship`. No further local CMake approval is needed. Context may be cleared; read this file and [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md) first.
 
 ## Accumulated Context
 
@@ -103,9 +105,9 @@ The final behavior14 local workflow passed all707 entries; campaign guest execut
 
 ## Session Continuity
 
-**Last session:** 2026-11-01T01:12:10Z
-**Stopped at:** Plan24-04 local acceptance recorded; phase remains open for hosted cross-platform evidence
-**Next actor:** Owner authorizes or declines hosted PR/check actions; local CMake needs no further approval
-**Next command:** `$gsd-ship` after remote-action authorization
+**Last session:** 2026-11-01T01:39:50Z
+**Stopped at:** Phase verification returned gaps_found (8/9); phase remains open for DMA-03 evidence and review follow-through
+**Next actor:** Owner starts the gap-planning step; remote hosted actions remain separately gated
+**Next command:** `$gsd-plan-phase 24 --gaps`
 **Context:** May be cleared; read STATE and the resume/acceptance records first.
 **Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md

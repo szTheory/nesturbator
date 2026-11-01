@@ -1,4 +1,4 @@
-# Phase24 resume — local acceptance complete, hosted evidence pending
+# Phase24 resume — local acceptance complete, verification gap planning next
 
 Read `.planning/STATE.md` and
 [24-ACCEPTANCE.md](24-ACCEPTANCE.md) first. The local Plan24-04 work is done;
@@ -32,7 +32,26 @@ caps; investigate a real timeout/interruption before any retry. Hosted
 workflow triggers, pushes, PRs, merges, and releases are separate remote
 actions and were not authorized by that local-CMake instruction.
 
-The owner acts next only to authorize the hosted PR/check path. Exact next
-OpenGSD command after that authorization: `$gsd-ship` — prepare the PR and
-hosted review/check run. Context can be cleared; read STATE and this resume
-file before continuing.
+Phase verification returned `gaps_found` (8/9). The next command is
+`$gsd-plan-phase 24 --gaps`, which creates a gap-closure plan from the
+verification report. This planning step does not trigger hosted checks. The
+owner must still separately authorize remote PR/check actions before
+`$gsd-ship`. Context can be cleared; read STATE and this resume file first.
+
+## Latest phase review and verification — 2026-11-01
+
+The configured code review recorded one open warning: `tests/cpu/test_bus.c`
+can silently overflow its fixed trace buffer before final DMA assertions.
+See [24-REVIEW.md](24-REVIEW.md) and [24-REVIEW-DISPOSITION.md](24-REVIEW-DISPOSITION.md).
+
+Goal verification scored 8/9 and returned `gaps_found`. DMA-03 still needs
+independent cold protected-main evidence, current-head hosted CI, Linux/macOS/
+Windows x64/arm64 frame/PCM/transition hash equality, and the unchanged
+Cachegrind `+1%` result. The verifier also flagged a stale README acceptance
+sentence, inherited branch whitespace, and three plan prohibitions without
+verification tiers. See [24-VERIFICATION.md](24-VERIFICATION.md).
+
+The next OpenGSD command is `$gsd-plan-phase 24 --gaps`; it plans closure for
+the verified gap and does not trigger hosted checks. Remote PR/check actions
+remain outside authority until separately authorized. Context may be cleared;
+read STATE, this resume file, and [24-ACCEPTANCE.md](24-ACCEPTANCE.md) first.
