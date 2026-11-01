@@ -240,7 +240,7 @@ function(phase24_make_artifact_control_fixture fixture_root tamper)
     string(APPEND artifact_json
       "{\"id\":${id},\"name\":\"${name}\",\"digest\":\"sha256:${zip_sha}\","
       "\"expired\":false,\"created_at\":\"${created}\",\"expires_at\":\"${expires}\","
-      "\"workflow_run\":{\"id\":12345,\"run_attempt\":1}}")
+      "\"workflow_run\":{\"id\":12345}}")
     math(EXPR id "${id} + 1")
   endforeach()
   string(APPEND artifact_json "]}")
@@ -302,8 +302,16 @@ function(phase24_controls)
   file(READ "${archive_fixture}/valid/provenance/artifacts.json" artifact_json)
   phase24_validate_artifact_map("${archive_fixture}/valid" 12345 1 "${artifact_json}" error)
   if(NOT error STREQUAL "")
-    message(FATAL_ERROR "valid ZIP-bound artifact control was rejected: ${error}")
+    message(FATAL_ERROR "valid run-scoped artifact metadata without a run-attempt field was rejected: ${error}")
   endif()
+  message(STATUS "control accepted run-scoped artifact metadata with omitted run-attempt fields")
+  string(REPLACE
+    "\"workflow_run\":{\"id\":12345}"
+    "\"workflow_run\":{\"id\":12345,\"run_attempt\":2}"
+    artifact_json wrong_attempt_json "${artifact_json}")
+  phase24_validate_artifact_map("${archive_fixture}/valid" 12345 1 "${wrong_attempt_json}" error)
+  phase24_expect_rejection("artifact from a different run attempt"
+    "does not match one unexpired API artifact from this run/attempt" "${error}")
   phase24_make_artifact_control_fixture("${archive_fixture}/tampered" TRUE)
   file(READ "${archive_fixture}/tampered/provenance/artifacts.json" artifact_json)
   phase24_validate_artifact_map("${archive_fixture}/tampered" 12345 1 "${artifact_json}" error)
@@ -1023,10 +1031,12 @@ function(phase24_validate_artifact_map root run_id attempt artifact_json out_err
         endif()
       endforeach()
     endif()
+    # The Actions artifact-list endpoint is run-scoped and omits run_attempt.
+    # phase20_validate_run_json binds this complete inventory to the exact run attempt and start time.
     if(NOT api_match EQUAL 1 OR NOT api_name STREQUAL name OR NOT api_digest STREQUAL "sha256:${digest}" OR
        NOT api_expired STREQUAL "false" OR NOT api_created STREQUAL created OR
        NOT api_expires STREQUAL expires OR NOT api_run STREQUAL run_id OR
-       NOT api_attempt STREQUAL attempt)
+       (NOT api_attempt STREQUAL "" AND NOT api_attempt STREQUAL attempt))
       set(${out_error} "artifact ${name} does not match one unexpired API artifact from this run/attempt" PARENT_SCOPE)
       return()
     endif()
@@ -1370,9 +1380,9 @@ function(phase24_validate)
   phase20_json_get(request_body_path "${request_json}" pr_body_file)
   phase20_json_get(request_pr_metadata_sha "${request_json}" pr_metadata_sha256)
   file(RELATIVE_PATH actual_body_path "${source_dir}" "${root}/pr-body.md")
-  phase20_lower_hex("${candidate_sha}" 40 valid_candidate)
-  phase20_lower_hex("${tested_sha}" 40 valid_tested)
-  phase20_lower_hex("${base_sha}" 40 valid_base)
+  phase24_lower_sha("${candidate_sha}" 40 valid_candidate)
+  phase24_lower_sha("${tested_sha}" 40 valid_tested)
+  phase24_lower_sha("${base_sha}" 40 valid_base)
   if(NOT schema STREQUAL "1" OR NOT repository STREQUAL NESTURBATOR_PHASE20_REPOSITORY OR
      NOT pr_number MATCHES "^[1-9][0-9]*$" OR NOT run_id MATCHES "^[0-9]+$" OR
      NOT attempt MATCHES "^[1-9][0-9]*$" OR NOT valid_candidate OR NOT valid_tested OR NOT valid_base OR
