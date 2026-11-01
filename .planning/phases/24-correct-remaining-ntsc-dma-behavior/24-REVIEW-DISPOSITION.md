@@ -26,6 +26,23 @@ with one specific diagnostic. The focused landing run retains 24,741 events
 through the actual final sample GET and resumed CPU read. See the linked
 acceptance record for commands and bounded results.
 
+## 2026-11-01 follow-up review findings
+
+The first pass found three issues, all fixed in commit `dfd0bfc`; the final
+standard-depth re-review recorded in `24-REVIEW.md` is clean. The IDs below
+are scoped to that follow-up pass; its WR-01 is separate from the earlier
+trace-tail WR-01 above.
+
+| Follow-up ID | Initial finding | Disposition | Evidence |
+|--------------|-----------------|-------------|----------|
+| CR-01 | Evidence ROOT could traverse a symlink outside ignored build output | fixed | Physical path containment and symlink rejection control in `tests/cmake/phase24_dma_gap_evidence.cmake` |
+| WR-01 | Test 9 trace printer dereferenced a missing completed-read event | fixed | Null-safe diagnostic and missing-read control in `tests/cpu/test_bus.c` and evidence controls |
+| WR-02 | Optional CPU-PC trace mode referenced an absent field | fixed | Conditional field capture in `tests/cpu/test_bus.c`; compiled with `ROM_ABORT_TRACE_CPU_PC` |
+
+`bus.unit`, the synthetic evidence controls, and the symlink rejection control
+passed. These findings affect test diagnostics and evidence tooling only; the
+emulation core and saved-state format did not change.
+
 ## Plan24-04 prohibition flags — human judgment remains unresolved
 
 These rows supersede only the unverified prohibition projection in
