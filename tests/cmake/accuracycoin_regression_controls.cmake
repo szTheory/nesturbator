@@ -123,14 +123,11 @@ function(create_next_main_baseline root)
       math(EXPR pass_count "${pass_count} + 1")
     endif()
   endforeach()
-  if(NOT pass_count EQUAL 119)
-    message(FATAL_ERROR "next-main control requires the measured canonical 119 PASS set, found ${pass_count}")
-  endif()
   file(WRITE "${root}/baseline.txt" "${pass_rows}")
   file(SHA256 "${root}/baseline.txt" baseline_sha256)
 
   file(STRINGS "${SOURCE_DIR}/tests/accuracy/baseline-metadata.txt" metadata_lines
-    REGEX "^(rom_pin|rom_sha256|inventory_sha256|inventory_rows|inventory_scored_rows|inventory_draw_rows)=")
+    REGEX "^(rom_pin|rom_sha256|inventory_sha256|inventory_rows|inventory_scored_rows|inventory_draw_rows|pass)=")
   foreach(line IN LISTS metadata_lines)
     string(REPLACE "=" ";" fields "${line}")
     list(GET fields 0 key)
@@ -143,9 +140,11 @@ function(create_next_main_baseline root)
      NOT next_inventory_rows STREQUAL "151" OR
      NOT next_inventory_scored_rows STREQUAL "146" OR
      NOT next_inventory_sha256 STREQUAL
-       "7d022800d01ad81159109bf7457af94ab6f80e4a682fce716ec476f7c454a4a5")
+       "7d022800d01ad81159109bf7457af94ab6f80e4a682fce716ec476f7c454a4a5" OR
+     NOT next_pass MATCHES "^[1-9][0-9]*$" OR NOT pass_count EQUAL next_pass)
     message(FATAL_ERROR "next-main control metadata does not describe the canonical new pin")
   endif()
+  set(NEXT_MAIN_PASS_COUNT "${pass_count}" PARENT_SCOPE)
   file(WRITE "${root}/metadata.txt"
     "schema=1${newline}authority=local-snapshot${newline}source=next-main-production-control${newline}protected_revision=${revision}${newline}rom_pin=${next_rom_pin}${newline}rom_sha256=${next_rom_sha256}${newline}inventory_schema=1${newline}inventory_sha256=${next_inventory_sha256}${newline}inventory_rows=${next_inventory_rows}${newline}inventory_scored_rows=${next_inventory_scored_rows}${newline}inventory_draw_rows=5${newline}scoreboard_schema=1${newline}scoreboard_rows=${pass_count}${newline}scoreboard_denominator=${pass_count}${newline}scoreboard_sha256=${baseline_sha256}${newline}")
 endfunction()
@@ -547,7 +546,7 @@ run_verdict("unchanged cross-pin key lacks a measured passing observation")
 
 if(FULL_ENABLED)
   # Model the first run after main adopts the new pin. Generate a complete
-  # 119-PASS baseline, then let the production page planner and cold observer
+  # canonical PASS baseline, then let the production page planner and cold observer
   # create this invocation's evidence for every selected page.
   prepare_case(next_main_positive)
   create_next_main_baseline("${case_root}")
@@ -573,7 +572,7 @@ if(FULL_ENABLED)
       "next-main control could not freshly observe its protected PASS pages (${observe_result}): ${observe_stderr}${observe_stdout}")
   endif()
   set(next_main_root "${case_root}")
-  set(EXPECT_PROTECTED_COUNT 119)
+  set(EXPECT_PROTECTED_COUNT "${NEXT_MAIN_PASS_COUNT}")
   run_verdict("PASS")
   unset(EXPECT_PROTECTED_COUNT)
 
