@@ -595,7 +595,7 @@ function(phase24_prepare)
   endif()
 
   phase24_expect_command(pr_list_command gh pr list --repo "${NESTURBATOR_PHASE20_REPOSITORY}"
-    --state all --head "szTheory:${branch}" --limit 100
+    --state all --head "${branch}" --limit 100
     --json number,state,url,title,baseRefName,headRefName,headRefOid,baseRefOid,headRepositoryOwner)
   set(pr_list "${pr_list_command_OUTPUT}")
   string(JSON pr_count ERROR_VARIABLE pr_error LENGTH "${pr_list}")
@@ -888,7 +888,7 @@ function(phase24_validate_request)
     message(FATAL_ERROR "prepared request remote branch changed since read-only preparation")
   endif()
   phase24_expect_command(current_pr_command gh pr list --repo "${NESTURBATOR_PHASE20_REPOSITORY}"
-    --state all --head "szTheory:${expected_branch}" --limit 100
+    --state all --head "${expected_branch}" --limit 100
     --json number,state,url,title,baseRefName,headRefName,headRefOid,baseRefOid,headRepositoryOwner)
   file(READ "${root}/pr-metadata.json" prepared_pr_metadata)
   string(STRIP "${prepared_pr_metadata}" prepared_pr_metadata)
