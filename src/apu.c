@@ -199,7 +199,7 @@ void nesturbator__apu_end_frame(struct nesturbator *nes)
     nes->apu.sample_count = 0u;
 }
 
-void nesturbator__apu_clock(struct nesturbator *nes)
+void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready)
 {
     uint8_t level_changed = (uint8_t)(nes->apu.mixed_level_valid == 0u);
     if (nes->apu.frame_irq_clear_pending != 0u && nes->bus.apu_get_put_phase != 0u) {
@@ -249,6 +249,8 @@ void nesturbator__apu_clock(struct nesturbator *nes)
         noise->counter--;
     }
     struct nesturbator__dmc *dmc = &nes->apu.dmc;
+    if (dmc->abort_delay != 0u)
+        dmc->abort_delay--;
     if (dmc->enable_delay != 0u)
         dmc->enable_delay--;
     /* DMC rate entries are CPU-cycle periods, but the timer receives only
@@ -272,13 +274,21 @@ void nesturbator__apu_clock(struct nesturbator *nes)
                 period = (uint16_t)(dmc_period[dmc->reg[0] & 0x0fu] / 2u);
             dmc->counter = period;
             if (dmc->bits == 0u) {
-                if (dmc->buffer_empty == 0u) {
+                /* The output unit clocks eight-bit cycles even with no sample.
+                   Silence gates the DAC, not the bit counter. APU reference,
+                   Output Unit [HWC.23]; preserve that phase across $4015 writes. */
+                dmc->bits = 8u;
+                /* Inferred early-G ordering: a GET's byte cannot feed the
+                   immediately following output edge. Keep it buffered for
+                   the next byte cycle. The pinned Loop3 offsets8/9 reject
+                   immediate consumption and its extra refill. [HWC.19] */
+                dmc->silence = (uint8_t)(dmc->buffer_empty != 0u || dmc_sample_ready == 0u);
+                if (dmc->silence == 0u) {
                     dmc->shift = dmc->sample_buffer;
                     dmc->buffer_empty = 1u;
-                    dmc->bits = 8u;
                 }
             }
-            if (dmc->bits != 0u) {
+            if (dmc->silence == 0u) {
                 level_changed = 1u;
                 if ((dmc->shift & 1u) != 0u) {
                     if (dmc->output <= 125u)
@@ -286,9 +296,9 @@ void nesturbator__apu_clock(struct nesturbator *nes)
                 } else if (dmc->output >= 2u) {
                     dmc->output = (uint8_t)(dmc->output - 2u);
                 }
-                dmc->shift >>= 1;
-                dmc->bits--;
             }
+            dmc->shift >>= 1;
+            dmc->bits--;
             if (dmc->buffer_empty != 0u && dmc->remaining != 0u && dmc->dma_pending == 0u) {
                 dmc->dma_pending = 1u;
                 /* A re-enable while the sample buffer is full still owns the
@@ -371,6 +381,7 @@ void nesturbator__apu_reset(struct nesturbator *nes)
     nes->apu.frame_irq_clear_pending = 0u;
     nes->apu.dmc.dma_pending = 0u;
     nes->apu.dmc.dma_halt_phase = 0u;
+    nes->apu.dmc.abort_delay = 0u;
     nes->apu.frame_reset_delay = (uint8_t)(nes->bus.apu_get_put_phase != 0u ? 2u : 1u);
     nesturbator__irq_update(nes);
 }
@@ -416,10 +427,26 @@ static void apu_write_register(struct nesturbator *nes, uint16_t addr, uint8_t v
             }
         }
         if ((nes->apu.enabled & 0x10u) == 0u) {
-            /* A buffer-empty reload can already be waiting for the next
-               enabled CPU read. Disabling the reader stops sample progress,
-               but does not cancel that scheduled DMA. [HWC.10] */
+            /* One CPU clock before the output boundary, disabling the reader
+               does not cancel the ordinary refill the imminent buffer
+               transfer will arm. Pre-arm that PUT request in existing state;
+               this explicit edge differs from the two/three-clock abort.
+               [HWC.19, ExplicitDMAAbort key offset7] */
+            if (nes->apu.dmc.remaining != 0u && nes->apu.dmc.dma_pending == 0u &&
+                nes->apu.dmc.enable_delay == 0u && nes->apu.dmc.dma_load_waiting == 0u &&
+                nes->apu.dmc.buffer_empty == 0u && nes->apu.dmc.bits == 0u &&
+                nes->apu.dmc.counter == 1u && nes->apu.pulse_clock_phase == 1u) {
+                nes->apu.dmc.dma_pending = 1u;
+                nes->apu.dmc.dma_halt_phase = 0u; /* Ordinary reload halts on PUT. */
+            }
+            /* An already armed memory request finishes even when the reader
+               stops. The pinned explicit sweep's offsets6/7 distinguish it
+               from the one-cycle abort and a not-yet-armed load. [HWC.19] */
+            if (nes->apu.dmc.remaining != 0u)
+                nesturbator__dmc_stop_window(nes);
             nes->apu.dmc.remaining = 0u;
+            if (nes->apu.dmc.enable_delay != 0u)
+                nes->apu.dmc.dma_pending = 0u;
             nes->apu.dmc.enable_delay = 0u;
             nes->apu.dmc.dma_load_waiting = 0u;
         } else if (nes->apu.dmc.remaining == 0u) {

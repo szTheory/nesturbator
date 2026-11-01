@@ -55,3 +55,37 @@ Prefer a small owned helper or justified local duplication to another
 dependency. Add a dependency only when existing code, the standard library
 and the platform cannot handle a demonstrated need simply; keep its tree
 small and its abstraction local. The ownership and clean-room rules apply.
+
+## Personal playtesting
+
+At milestone boundaries or before personal host setup, read
+[playtesting lessons](.planning/playtesting/LESSONS.md). Steam Deck with ES-DE
+and RetroArch is a useful daily-feedback route before deeper Playstead work.
+Use existing library entries and persistent save locations for personal play.
+A test collection should reference those entries, with per-game core selection,
+so the same games and progress remain usable for daily play. Preserve other
+cores' incompatible state files in their normal core-specific storage. Record
+brief user observations as scoped smoke evidence; higher-confidence device
+and performance testing can follow when the owner wants it.
+Before recommending play, read the
+[scene-first guidance](.planning/playtesting/LESSONS.md#scene-first-checkpoint-lessons).
+Give the scene, known original quirks, visible expected/failure behavior,
+verified access method and likely effort; mark uncertain comparisons. Record title and exact-scene results separately as dated evidence
+alongside CI; verify current cheat/state support before proposing shortcuts.
+Before converting gameplay findings into CI, read the
+[regression direction](.planning/playtesting/AUTOMATION.md). Prefer small owned
+fixtures with independent oracles and preserve unique regression coverage.
+Keep connection details, identifiers, personal paths and raw private artifacts
+outside Git; record only sanitized lessons and scoped observations.
+
+## Standing engineering authority
+
+Task approval includes required local verification, fixes and bounded retests.
+Apply an approved compatibility policy without asking again for each saved
+field or version bump. Runtime alone is not an approval gate. Preserve explicit
+stops, limits and no-retry rules; ask only for a materially new consequence.
+The owner grants standing authority for local CMake configure, build, test and
+workflow commands, including full CI and its configured acceptance campaigns;
+do not ask for per-run approval. Keep existing time/resource caps and no-retry
+rules, and diagnose failures before another run. This does not authorize hosted
+workflow triggers, pushes, PRs, merges or releases.

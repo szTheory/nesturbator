@@ -167,6 +167,82 @@
 
 ---
 
+## Milestone: v5 — NMI, VBlank and sprite-0 timing
+
+**Shipped:** 2026-10-30 (planning milestone; 0.1.12 publication pending).
+**Phases:** 3 | **Plans:** 27 | **Tasks:** 68 | **Timeline:** six calendar dates
+
+### What Was Built
+- Eleven timing targets pass through OAMADDR sprite evaluation, split status sampling, NMI capture/poll and shared interrupt entry.
+- Guest JAM attribution and actual-adapter frozen-frame/silence behavior survive rewind and run-ahead.
+- Format-3 state validation and native/actual-adapter entry-cutpoint continuation with source-bound six-platform acceptance.
+
+### What Worked
+- Owned pre-fix reproducers and exact revert/mutant controls separated real hardware-model defects from plausible wrong fixes.
+- Native and loaded-adapter replay checked actual guest markers, state, frame and audio history.
+- Full-key PASS protection and unchanged performance thresholds kept the improvement attributable; all three phase reports were refreshed before closeout.
+
+### What Was Inefficient
+- Hosted collection needed source-root/archive/log repairs and run-specific mode checks; recurring collector defects remain maintenance debt.
+- Later review-record changes invalidated cross-phase verification, requiring sequential refreshes.
+- Body-only summary parsing undercounted 68 recorded tasks as 49 and missed completed requirement claims; closeout reconciles the evidence without changing historical summaries.
+
+### Patterns Established
+- Separate raw assertions, inhibited candidates, recognized requests and legal poll acceptance in serialized history.
+- Preserve immutable hosted source identities separately from current local tests and final-head workflow success.
+- Refresh direction from current exact-key outcomes: three of the old eight DMA candidates now pass; the remaining cluster is five failures.
+
+### Key Lessons
+1. Treat collector identity enforcement as a prerequisite for trustworthy new evidence, not a property supplied permanently by one independent historical check.
+2. Batch source and review-disposition updates before final phase verification where possible; never rewrite fingerprints simply to remove a stale route.
+3. Keep package publication separate from merged implementation and planning completion; release PR #56 is still open.
+4. Repair routine ledger representation from retained source evidence inside closeout without manufacturing a new product phase or historical deviation.
+
+### Cost Observations
+- Model mix, token costs and sessions were not measured consistently.
+- Phase 20 needed twelve plans including evidence gap closure; Phase 21 needed nine. No new speedup claim is made from this record.
+
+---
+
+## Milestone: v6 — Player-ready NES and reproducible feedback
+
+**Shipped:** 2026-10-31 (planning milestone; no package release claimed)
+**Phases:** 2 | **Plans:** 7 | **Tasks:** 15 | **Timeline:** two calendar dates
+
+### What Was Built
+- A player-facing README route with canonical API, runner, release, testing and progress guides, each retaining its executable contract checks.
+- Build identity and progress guidance that distinguishes battery saves, native snapshots and host containers, with backup and rollback limits.
+- A sanitized scene report, bounded repeated cold replay, native checkpoint identity preflight and neutral continuation.
+- Layered evidence guidance that routes each observation to bounded checks and separates repeatability from correctness claims.
+
+### What Worked
+- Independent negative controls kept documentation contracts meaningful through the README migration.
+- The two-phase structure separated player installation/progress guidance from scene replay/reporting while reusing existing runner facilities.
+- The milestone audit reconciled ten requirements and three flows without rewriting summaries or invalidating verification fingerprints.
+
+### What Was Inefficient
+- Phase 22 summary metadata omitted or left empty the six READY requirement completions, so the audit reconciled them manually.
+- The archive CLI counted eight tasks while the seven plan summaries record fifteen; the closeout uses the summary total and records the discrepancy.
+- Intermittent document-test timing anomalies remained unexplained. A prior full-CI/campaign run was interrupted with an unknown outcome, and the safety stop prevented a rerun.
+
+### Patterns Established
+- Keep one canonical guide per topic and maintain independent checks for relocated claims.
+- Treat matching frame/audio hashes as repeatability evidence only; preserve separate adapter, host and hardware claims.
+- Check the current release PR status before publication; automatic publication is authorized only after all required checks pass.
+- Keep interrupted or incomplete campaign results unknown unless a separately authorized run establishes the outcome.
+
+### Key Lessons
+1. Populate requirement-completion and task metadata consistently in each phase summary; the closeout counter must agree with the retained plan evidence.
+2. Keep release publication separate from planning completion and merged implementation; a failed or cancelled check means the release remains held.
+3. Reuse bounded permitted fixtures and distinguish native checkpoint provenance from general build/content support.
+4. Preserve timing, platform, campaign and judgment-tier limits without converting them into unrequested runtime work or risk acceptance.
+
+### Cost Observations
+- Model mix and session count were not measured.
+- Notable: two phases, seven plans and fifteen tasks completed over two calendar dates; no speedup claim is made.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -177,6 +253,8 @@
 | v2 | — | 6 | Milestone audit before close-out; post-audit quick tasks; per-preset CI cost |
 | v3 | — | 5 | Measured timeouts with run IDs; claims tied to tests at configure time; per-PR perf gate |
 | v4 | — | 3 | Rolling product roadmap at both boundaries; loop recovery that binds acceptance to product behaviour |
+| v5 | — | 3 | Causal timing reproducers, native/actual-adapter cutpoints and source-bound hosted acceptance; current passed reports before closeout |
+| v6 | — | 2 | Executable documentation contracts, bounded scene replay and explicit separation of repeatability from correctness; release status checked at closeout |
 
 ### Cumulative Quality
 
@@ -186,6 +264,8 @@
 | v2 | 481 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 | v3 | 633 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 | v4 | 669 CTest tests in `ci` | 24 core functions beyond loader corpora (execution fuzz) | all (only `libretro.h` vendored) |
+| v5 | 695 CTest tests in `ci` | exact eleven-key target contract plus every-stage entry replay; no percentage claimed | all (only `libretro.h` vendored) |
+| v6 | not recounted; full CI not rerun | 10/10 requirements, 2/2 passed phases and 3/3 flows; no runtime code change | all (only `libretro.h` vendored) |
 
 ### Top Lessons (Verified Across Milestones)
 

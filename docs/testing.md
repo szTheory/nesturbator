@@ -1,0 +1,1792 @@
+# Testing and engineering
+
+This guide is the maintained home for build, test, conformance, CI and host-check
+procedures. Run shell commands from the repository root. The public API, runner
+and release contracts are owned by the [API guide](api.md), [runner guide](runner.md)
+and [release guide](releases.md). This guide records what the existing checks
+cover and the limits of their evidence.
+
+The README migration reuses the existing test source and recorded evidence.
+This documentation change did not execute a conformance or AccuracyCoin
+campaign, a private scene replay, a live host session, or a downloaded-package
+test. The focused CTest selections recorded for this plan check documentation
+and package-policy controls only.
+
+The evidence types have separate scopes:
+
+| Evidence | Establishes | Does not establish |
+|---|---|---|
+| Built-module tests | Behavior and metadata of the module produced by the selected build | Contents or extraction of a downloaded release archive |
+| Build-tree archive checks | Names, members and metadata of the configured build target's archives | Runtime loading by a frontend or other release-target hosts |
+| Six-target CI inventory | Packages built for Linux, macOS and Windows on x64 and arm64 | Live execution on all six host platforms |
+| Hosted RetroArch checks | The named host, module, content and flow recorded by that check | General host compatibility or a different release artifact |
+
+A source build creates archives for its configured target. Archive inventory
+checks are distinct from downloading a published package. A six-target CI
+inventory is also distinct from live execution on six host platforms. Build-tree
+RetroArch checks described below retain their original scope and qualifications;
+moving this material does not grant a new host-testing window. The exact runtime
+stops and private-artifact boundaries remain in the
+[playtesting automation notes](../.planning/playtesting/AUTOMATION.md). The player
+install procedure remains in the README.
+
+## Conformance evidence and source-tree claims
+
+
+A NES emulator core in C: a library you can embed, a headless runner for
+automation, and a libretro adapter.
+
+**Current source tree.** The library, headless runner and libretro adapter support battery-backed RAM, soft reset, native save states, and RetroArch rewind and run-ahead. The 6502 core matches the public 65x02 test vectors on every opcode and bus cycle.
+
+The library, runner and libretro core accept bounded iNES 1.0 and NES 2.0 images for mapper 0 (NROM, 16 or 32 KiB PRG), mapper 1 (MMC1, with battery saves), mapper 2 (UxROM), mapper 3 (CNROM, 8 to 32 KiB CHR ROM), mapper 4 (MMC3) and mapper 7 (AxROM, CHR RAM), with 8 KiB CHR ROM or declared CHR RAM where supported. This is not full game compatibility. The PPU renders backgrounds and evaluated sprites, including palette priority, flips, 8x16 selection, clipping, sprite-zero hit and the eight-sprite limit.
+
+With no cartridge, the fixed test card and silence remain available. Detailed API, battery, native-state and CPU/PPU behavior contracts are in the [API guide](api.md#library-api-and-native-state). The plan lives in [`.planning/`](../.planning/).
+The runner accepts content with `--rom FILE`; see the [runner guide](runner.md) for invocation examples and options.
+
+A trainer-bearing NROM, UxROM, CNROM or AxROM image copies its 512 trainer bytes into writable
+instance-owned PRG RAM at CPU `$7000-$71FF` before the reset vector is used.
+The full `$6000-$7FFF` 8 KiB window is writable and starts at zero outside the
+trainer span. Trainerless images keep `$6000-$7FFF` unmapped. Invalid images
+are rejected before cartridge allocation, and a failed reload leaves the
+previous cartridge usable.
+
+```sh
+nesturbator-run --frames 1 --rom game.nes --hash-frame 1 --dump-frame 1:frame.ppm
+```
+
+The CI suite pins three redistributable mapper-0 games: MIT-licensed
+Nesteroids, zlib-licensed Double Action Blaster Guys, and all-permissive RHDE.
+It also runs Holy Mapperel's mapper 1, 2, 3, 4 and 7 test ROMs (zlib), among them the
+mapper 4 ROMs `M4_P128K_CR8K` (TNROM-like) and `M4_P256K_C256K` (TxROM-like),
+and requires each to report the result code 0000 with `PRG RAM MISSING`. Two derived
+copies of `M4_P128K_CR8K` (header byte 10 patched, plus the battery bit for the second)
+prove the MMC3 `$A001` PRG RAM enable and write protect: they report `8K PRG RAM OK`,
+the battery copy also `+ BATTERY` on its second run. The derived files are built at
+build time from the committed ROM after its sha256 is checked, and are never committed. Their boot hashes and scripted DABG two-port movie hashes are checked against
+`tests/runner/hashes.txt` on every platform; the hashes use native pixels
+before display-palette conversion. RHDE's iNES header declares zero CHR-ROM
+banks and uses the 8 KiB CHR RAM it fills during startup.
+
+The MIT AccuracyCoin ROM at `6bee919529289c555803b612b8c9e4f7eaaeeabb` is the
+canonical fixture: its SHA-256 is
+`8ac8904a3cf26fbdfa6be501e414d45886ff4478d30dee8e58fa436cf5fd5adc`, and its
+decoded directory contains 146 scored rows plus five separate DRAW entries.
+The retained comparison ROM at `673ef550db296136d52229961e7d39366116882a`
+has SHA-256
+`4fe8c2bc9abc6f4d418da47b73f62cba89fcacd950fae763097a1681d650e839` and has
+144 scored rows plus five DRAW entries. The runner authenticates complete ROM
+bytes, decodes length-bounded in-ROM page and row names, and reads observed
+result bytes from CPU RAM through `nesturbator_peek_cpu_ram`. Only validated
+names become result keys; normal CI checks that malformed and overlong names
+are rejected. Evidence readers accept LF and CRLF line endings in page reports
+and cross-platform campaign tables. The new baseline is a measured observation,
+not a claim that every hardware test passes.
+
+Print the complete source-order inventory for either retained pin:
+
+```sh
+nesturbator-run --accuracycoin-inventory --rom tests/roms/accuracycoin.nes
+```
+
+Record bounded guest evidence for one page without treating known failures,
+skips or guest timeouts as infrastructure failures:
+
+```sh
+mkdir -p build/accuracycoin/page3
+nesturbator-run --accuracycoin-observe 3 --rom tests/roms/accuracycoin.nes \
+  --frames 1800 --accuracycoin-output build/accuracycoin/page3
+```
+
+The output directory receives `report.tsv`, `raw.tsv`, `diagnostics.tsv` and
+`metadata.txt`. The report keeps every row and its status, observed raw byte,
+consumed execution frames, cause and attempt ID. Metadata binds it to the ROM
+and inventory digests, source revision and dirty state, behaviour revision,
+input policy, frame budgets and diagnostic host elapsed time. DRAW entries are
+inventory-only and do not enter a scored denominator. `$FF` is skip, `$00` is
+not-run, `$01` is pass, and failure values use low bits `10` with a nonzero
+source error index. An observed active test becomes timeout only when its
+guest-frame budget expires. If the guest executes a JAM opcode during the
+execution stage the run stops with verdict and stop cause `guest-jam`, metadata
+`jam_frame=N` (`-` when there was no JAM), a stderr line `nesturbator-run: JAM
+stopped AccuracyCoin page P at frame N (active_key=...)` and exit 0. The row the
+suite was running (`active_key`, raw `0x03`) is reported as `fail` with cause
+`guest-jam`, never as pass, complete or a timeout; with no running row the JAM is
+unattributed (`active_key=-`). A JAM before the execution stage (boot,
+navigation or start) is named the same way in the metadata and on stderr with
+`active_key=-`, but writes no `report.tsv` and exits 1. In the report a JAM row
+is `fail` with raw `0x03` and cause `guest-jam`. The strict page mode
+(`--accuracycoin-page`) prints `nesturbator-run: JAM stopped AccuracyCoin page P
+at frame N` and exits 1. The `accuracycoin.jam` test proves all three cases by
+patching a JAM opcode into the pinned ROM in memory only; no modified ROM is
+written anywhere. Observation is not an all-pass gate; malformed evidence or
+output errors still fail.
+
+Run all 22 pages as independent cold attempts and collect their checked evidence
+with the production parser and classifier:
+
+```sh
+cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=ON
+ctest --preset ci -R '^accuracycoin.campaign$' --no-tests=error
+```
+
+The launcher bounds each child process separately, records `EXIT_ZERO`,
+`CHILD_FAILURE` or `OUTER_TIMEOUT`, and continues to later pages after a failure.
+Guest stage caps apply to cold boot, frames per page-navigation step, and
+execution after the one-frame A press and one-frame release. The campaign
+collector writes `inventory.tsv`, `attempts.tsv`, `observations.tsv`,
+`report.tsv`, `summary.txt` and `metadata.txt` beside per-page raw samples,
+diagnostics, reports, metadata and child logs. It keeps inventory size,
+attempted rows, observed bytes and terminal classifications distinct. Missing
+bytes stay `-`; outer process failure never guesses a timeout or active test. A
+trustworthy completed observation may report guest failures or timeouts without
+passing the hardware tests. Five DRAW rows remain outside the 146-row scored
+total. Structurally valid duplicate raw samples are preserved in the campaign
+observations and make the campaign untrustworthy; the collector does not choose
+one conflicting copy as the final result.
+
+The final measured campaign uses caps of 32 boot frames, 5 navigation frames
+per page change, 2 attributed press/release frames, and 1800 execution frames;
+its page, collection and CTest wall limits are 15, 10 and 370 seconds. The 15-
+second child deadline is based on hosted page measurements up to 6.336 seconds;
+the separate guest-frame cap still defines a guest timeout on any page.
+The actual report and per-page diagnostics are retained under
+`build/ci/accuracycoin/full/`. That run attributed all 22 starts and observed all
+146 scored bytes, with 108 pass, 38 fail, 0 skip, 0 not-run and 0 guest timeout;
+five DRAW entries remain outside the denominator. Page 19 now completes inside
+the cap (`Sprite 0 Hit behavior` and `Arbitrary Sprite zero` pass); a guest
+timeout or a not-run row is still reported as such when one occurs, and the
+activation check fails on any timeout row.
+See [`tests/accuracy/budgets.txt`](../tests/accuracy/budgets.txt)
+and [`tests/accuracy/measurements.md`](../tests/accuracy/measurements.md) for the
+source identity, cap rationale, timing sensitivity and CI placement input.
+The build-input fingerprint hashes the exact test and emulator sources, except
+that it replaces the numeric values of the three `NESTURBATOR_VERSION_*`
+release macros with one marker. Those numbers identify a release but do not
+change emulated output; all other public-header bytes remain fingerprinted.
+`accuracycoin.input_fingerprint` checks both this exception and the stored
+baseline hash and input count.
+
+`NESTURBATOR_ACCURACYCOIN_FULL` defaults to `OFF` for local builds. Required CI
+enables the full campaign on its primary Linux x64 lane only; the other five
+platform lanes still run the decoder, classifier, protected-pass and parity
+checks. Every build lane uploads the AccuracyCoin evidence directory even on a
+failed run, and missing evidence artifacts fail that job. To reproduce the
+complete local CI lane, configure with `-DNESTURBATOR_ACCURACYCOIN_FULL=ON`
+before `cmake --workflow --preset ci`. Restore the ordinary local setting with
+`cmake --preset ci -DNESTURBATOR_ACCURACYCOIN_FULL=OFF` afterward.
+
+CI also runs the inventory decoder against owned mutations of the pinned ROM.
+These controls cover page boundaries, row fields, duplicate decoded identities,
+the shared DRAW sentinel, exact expansion capacity and both retained pin
+fingerprints. The result decoder follows the assembly protocol: `$FF` is skip,
+`$00` is not-run, `$01` is pass, and failure results use low bits `10`;
+`$02` is valid where the pinned assembly reports error index zero. Other
+passing variants are accepted only for the named source tests: `$05`/`$09`
+for the pinned DMA, controller, APU activation, scanline-zero and SHA/SHS
+branches; `$0D`/`$11` for the SHA/SHS behavior tests; and `$39`/`$41` for
+PPU Read Buffer and Address `$2004` behavior. These values describe the
+test's source-defined branch, not a generalized emulator result code.
+The five rows whose result address is the shared `$03FF` DRAW sentinel are
+reported as `draw` and excluded from result transitions and scored rows.
+
+The existing strict runner compares selected page results against the retained
+old-pin expectations, which continue to cover the measured pages 2, 14 and 17:
+
+```sh
+nesturbator-run --accuracycoin-page 2 --rom tests/roms/accuracycoin-673ef.nes \
+  --scoreboard tests/accuracy/old-673ef-scoreboard.txt
+```
+
+The canonical `tests/accuracy/scoreboard.txt` is an observation baseline across
+the new pin's 146 rows; it records pass, fail, skip, not-run or timeout with the
+measured raw byte and guest frames. It is not used to turn failures into strict
+successes.
+The retained old-pin comparison lives in `tests/accuracy/old-673ef-scoreboard.txt`
+and `old-673ef-metadata.txt`. It records 17 measured old-pin protected passes
+from pages 2, 14 and 17, including PPU Read Buffer `$41`; it is not a full
+144-test result. `migration.tsv` maps every retained key to its old/new result
+and routine symbols, cites both exact MIT source pins, records the four
+source-reviewed setup/meaning changes, and links each new-pin disposition to
+the measured attempt, raw byte, guest frames and status in a page report.
+Those links are checked against fresh cold observations on both pins during
+normal CI; a candidate scoreboard row cannot stand in for a guest result. The
+17 retained old-pin keys stay as a separate strict migration control. Before
+trusting a protected page report, the verifier requires exactly one well-formed
+final raw sample for every report row. Missing or duplicate keys and malformed
+final-stage records fail the verdict; valid non-final snapshots remain
+diagnostic context.
+
+Before the workflow preset, each of the six CI build lanes fetches protected
+`refs/heads/main` with tags disabled, resolves its fetched commit once, and
+reads the scoreboard and identity from that exact commit. Older protected-main
+revisions use their dedicated protected metadata or the canonical AccuracyCoin
+row from that same commit's ROM manifest. Once main carries the full campaign
+metadata, the fetcher verifies the 146-row scoreboard hash,
+status counts, inventory identity and both ROM manifest entries against that
+one commit, then projects only its measured PASS rows into the protected
+verifier's 108-row input. Failed, skipped, not-run and timed-out rows remain in
+the canonical measured scoreboard and cannot become protected passes. The
+handoff binds the projection to the exact fetched revision. Missing, unfetchable,
+empty, malformed or mismatched authority fails the job; CI never falls back to
+candidate files. Detached local runs use the complete 17-row
+`tests/accuracy/scoreboard-main.txt` snapshot and its matching
+`scoreboard-main-metadata.txt` identity. On every lane, the protected observer
+derives the new-pin pages from the PASS keys in the fetched baseline and
+measures those pages during that invocation. Same-pin protection therefore
+scales with the accepted PASS set: after main adopts the current pin, all 108
+protected passes are remeasured, including keys outside pages 2, 14 and 17.
+Those 108 keys currently span 19 of the new pin's 22 pages. Cross-pin checks
+still use the exact source-backed migration row, the retained old-pin controls,
+and a fresh mapped observation. Protected page children have a 30-second outer
+deadline and keep the 1800 guest-frame cap; the maximum setup envelope is 25
+page children plus 10 seconds for orchestration.
+Page 14 adds the six required APU results:
+Length Counter, Length Table, Frame Counter IRQ, Frame Counter 4-step, Frame
+Counter 5-step, and Delta Modulation Channel.
+
+Normal CI also mutates the production evidence/verdict inputs to prove that a
+claimed pass cannot hide measured fail, skip, not-run or timeout states, absent
+raw evidence, a removed protected key, a candidate-only pin edit, a mixed
+protected revision or a missing/disguised migration disposition. The primary
+Linux full lane builds a post-merge 108-PASS baseline control, freshly observes
+all required pages, and confirms that both an outside-page key and a formerly
+changed-meaning key fail the same-pin verdict when their measured result
+changes. It retains source-defined pass variants such as PPU Read Buffer `$41`,
+and rejects a malformed neighboring code. The fetcher is exercised against owned local Git
+repositories for exact commit handoff, canonical 146-row/108-PASS projection,
+scoreboard-hash mismatch, missing/empty authority, invalid metadata and the
+same-revision legacy-manifest fallback; these tests do not
+depend on a network service.
+
+The CPU RAM inspection function is read-only, accepts the `$0000-$1FFF` RAM
+mirrors, and rejects other bus addresses without side effects. It is intended
+for conformance and debugger integrations.
+
+See the [runner guide](runner.md#input-movies) for the movie format, limits and failure behavior.
+Frame time advances in 24-tick CPU cycles. A frame request runs complete
+instructions through the requested boundary and reports the actual tick count,
+retaining any overshoot for the next request. Audio is mono signed 16-bit PCM at
+48 kHz; each frame returns 798 or 799 samples with the fraction carried
+forward. With no cartridge loaded, samples are zero. Mapper-0 pulse register
+writes and the `$4015` enable gate share the CPU bus timeline; pulse timer,
+duty, length and DAC gating follow NTSC RP2A03 documentation in
+`.planning/preparation/NES-HARDWARE-CPU-APU.md` section 4 (HWC.08). Both pulse
+units use independent duty phases, timers and length gates; triangle follows
+its 32-step DAC sequence and linear/length gates; noise uses the 15-bit LFSR,
+period table and mode tap; and DMC uses its timer, sample fetch, shift register
+and 7-bit DAC. RP2A03G noise starts at measured LFSR state `$0000`, with its
+first clock shifting in 1 (HWC.05); the APU_Noise overview's “loads 1” wording
+describes the operational initialization model (HWC.08). These channel
+sequences use integer state and bus-cycle ordering. The 4-step and 5-step frame
+sequencers clock envelopes, linear and length counters, and maintain a frame
+IRQ independent from the DMC IRQ; `$4015` reports and clears the frame source.
+The CPU retains IRQ acceptance at the instruction's hardware poll point,
+including old-I polling for CLI, SEI and PLP and the first plus page-cross
+branch polls, then enters the IRQ vector with the normal seven-cycle stack
+sequence (HWC.02).
+Writes to `$4017` take effect after the parity-dependent three or four CPU
+cycles. DMC sample fetches halt CPU reads at the bus seam, repeat the parked
+read, and preserve the independent IRQ source. A write that blocks a halt
+attempt makes it retry on the next CPU cycle, including the opposite GET/PUT
+phase; sample data still arrives on GET before the parked CPU read resumes.
+These timing rules follow
+NES-HARDWARE-CPU-APU sections 2 and 4 (HWC.01, HWC.23) and are exercised by
+`core.apu` and the six AccuracyCoin page-14 results. The nonlinear pulse and TND
+mixer uses checked-in integer pulse and 16×16×128 TND tables from HWC.11.
+Mixed-level changes feed a per-instance, fixed-point band-limited synthesizer.
+Its 16-tap, 32-phase Q15 kernel preserves each level transition exactly, then
+applies the NES 90 Hz and 440 Hz high-pass filters and 14 kHz low-pass filter
+before returning signed 16-bit mono PCM. The bounded staging ring carries
+kernel and filter history across caller frame boundaries. APU sample phase and
+synthesizer/filter history are per-instance saved machine state; staged PCM is
+transient output. The mixer rechecks channel levels at oscillator and
+frame-counter events and register writes. Loading state forces a check on the
+first CPU clock, including an otherwise uneventful clock; the validity cache
+adds no saved bytes. `runner.spectral`
+checks pulse periods 100, 40, 12 and 8, and triangle period 1 using a 4096
+sample filter warm-up and a 32768-sample periodic-Hann spectrum. It excludes
+one bin on either side of the first 512 integer harmonic orders after folding
+them into the positive FFT spectrum; the triangle's fundamental bin is folded
+at Nyquist. Each tone uses the nearest coherent bin to its NTSC timer
+frequency. The largest remaining peak below 16 kHz must be below -80 dB
+relative to the fundamental. These analysis choices are test rules; the
+synthesizer itself uses integer arithmetic and checked-in coefficient tables
+only. A private per-instance transition observer runs before synthesis consumes
+each changed mixed level and retains no event log. `nesturbator-run --hash-audio`
+prints separate SHA-256 hashes for 12-byte transition records
+(`uint64` CPU cycle little-endian, then `int32` level little-endian) and signed
+PCM samples (`int16` little-endian). Both encodings are host-endian independent.
+If a cartridge executes JAM, the frame call returns `NESTURBATOR_STOP_JAM`; the
+CPU stays latched until the cartridge is unloaded or reloaded.
+
+The PPU sets vblank at scanline 241 dot 1 and clears it at scanline 261 dot 1.
+A `$2002` read immediately before the vblank start dot suppresses the flag for
+that frame. Its bit 7 reflects the flag at M2 rise; sprite flags and low bits
+are composed at M2 fall, where the same read clears vblank. A sprite-overflow
+flag raised between those edges is visible in that read. The asserted NMI
+line is `PPUCTRL.7 && PPUSTATUS.7`; bus-clock seams capture its rising edge,
+while the CPU polls the captured request at instruction-specific cycle points.
+Most instructions poll before their final bus cycle; conditional branches poll
+before the offset cycle, skip the poll before a taken same-page branch's third
+cycle, and poll before its page-cross fix-up cycle. A request captured after a
+poll remains pending until a later instruction poll. `$2002`, `$2000` disable
+and the pre-render clear can lower the live line without revoking an already
+captured request. Rewriting `$2000`
+with bit 7 still set does not create a second capture. Equal-time PPU updates,
+CPU sampling and bus side effects use one deterministic model order; this
+convention does not assert physical setup/hold precedence at an exact tie. Odd
+NTSC frames skip pre-render dot 340 when rendering is enabled.
+During interrupt entry after vector selection, a new sampled NMI input is an
+inhibited candidate, rather than a recognized request. It must remain asserted
+through the first handler instruction's opening to become eligible there; a
+pulse released before that recognition is missed. An already recognized fresh
+edge remains sticky, and a consumed held level does not create a second entry
+(Visual6502 Interrupt Hijacking, annex section 3.1).
+PPUSTATUS keeps its separate M2-rise observation. PPU work for other accesses
+and the CPU's history-only poll can wait until the pre-close catch-up.
+Sprite-hit detection uses pattern opacity and cached eligible slots; loading
+state rebuilds those slots from every saved sprite tag. These optimizations
+preserve the selected timing order and native state bytes.
+Ordinary and PPUSTATUS reads select constant cycle paths so status-only work
+stays out of ordinary accesses. The history-only opening poll has no timed
+observer before close; its remaining 3 + 12 ticks advance together. IRQ
+exceptions commit at their own poll points, avoiding exception bookkeeping on
+every other instruction while retaining old-I and accepted-request history.
+IRQ polling also uses the level retained at the preceding close-edge detector
+sample. It cannot see an A12-driven IRQ raised by a later PPU transition at
+that same timestamp. An owned `ppu.mmc3` witness checks the guest instruction
+boundary and save/load continuation; the pinned MMC3 scanline-timing ROM stays
+an independent guard. This retains the existing MMC3 result while broader
+IRQ flag-latency and vector-hijack work remains in Phase 21.
+Nametable accesses use the cartridge's horizontal or vertical
+mirroring bit. Register accesses retain the CPU open-bus value in un-driven
+bits, and `$2007` reads are buffered outside palette space.
+Visible native pixels are written to the caller's frame buffer as PPU dots advance. The
+background is fetched from `v` two dots per access (nametable, attribute, pattern
+low and high) on the documented dots 1-256 and 321-336, through pattern and
+attribute shifters, so the selected pattern table, nametable attributes,
+fine X and the universal backdrop colour apply as on the console. Scroll
+writes take effect at the dot-257 horizontal copy and the pre-render dots
+280-304 vertical copies, not at the pixel being drawn, and a `$2007` access
+while rendering increments coarse X and Y together. The PPU address bus and
+its A12 line are reported to the cartridge board on every change, with the
+tick of the dot, including `v` itself while rendering is off; on a visible
+rendering line dot 0 shows the first tile's pattern address, and on the
+pre-render line it shows `v`, so with the background at `$1000` the first
+rise there is at dot 5. Sprites are evaluated into secondary OAM
+and fetched for the following scanline, one slot at a time on dots 257-320
+(two garbage nametable accesses, then the pattern low and high bytes), with
+an empty slot fetching tile `$FF` as the console does; transparent pixels reveal the
+background, and the priority bit selects which opaque layer appears in front.
+`$2001` grayscale and emphasis remain in the native pixel value; host palette
+conversion is separate and does not affect frame hashes.
+Writing a page number to `$4014` queues an OAM DMA; the next CPU read is halted
+while 256 bytes transfer through the CPU bus into OAM. The transfer wraps from
+the current `$2003` address and stalls the CPU for 513 or 514 cycles according
+to cycle parity. The PPU keeps advancing during the transfer.
+
+The public `nesturbator_set_input` API accepts a size-tagged pair of standard
+controller button masks. Port 0 is `$4016`; port 1 is `$4017`. Each port shifts
+A, B, Select, Start, Up, Down, Left, Right, least-significant bit first. A
+write with bit 0 high makes reads report the current A button; the high-to-low
+transition latches both masks. After eight reads, D0 returns 1. D5 through D7
+retain the CPU bus open-bus value; the usual high D6 comes from the preceding
+`$40` address byte. Refused input calls leave
+the instance unchanged. Input is snapshotted at the beginning of each
+successful frame call. An instruction that crosses the requested frame
+boundary completes with that frame's snapshot; the next mask begins on the
+next `nesturbator_run_frame` call. The libretro adapter polls both standard
+joypads once per frame and maps the host's NES button IDs to these masks.
+
+## Build, checks and CI
+
+## Building
+
+You need CMake 3.25 or newer, Ninja and a C17 compiler.
+
+```sh
+cmake --workflow --preset ci    # Release, warnings as errors; builds, runs every test, writes the archives
+cmake --workflow --preset ci-build  # hosted POSIX build lane; session controls run in dedicated jobs
+cmake --workflow --preset dev   # Debug build and the same tests
+cmake --workflow --preset dev-check  # Debug build and the focused owned C test tier
+cmake --workflow --preset asan  # the same tests under AddressSanitizer and UBSan
+cmake --workflow --preset nofp  # core built with -mgeneral-regs-only; the abi checks
+cmake --workflow --preset hygiene  # tree contents, action pins and formatting
+cmake --workflow --preset vectors-full  # the full 65x02 vector set, fetched at its pin (network)
+cmake --workflow --preset mmc3-oracle  # blargg's MMC3 test ROMs, fetched at their pin (network)
+```
+
+`dev-check` builds only the owned core, CPU, bus, controller, focused PPU,
+header, and native interrupt-entry test targets and their required
+dependencies. It runs 20 exact tests, including the state-format pin and public
+API policy self-test, with four CTest workers.
+Its exact-name selection excludes the full state-fork matrix and stress case,
+movies, AccuracyCoin, host sessions, performance checks, and network-fetched
+suites. Use it for fast local feedback; it does not replace the complete
+`ci` workflow required for acceptance.
+
+On Windows with MSVC, use `ci-msvc` from a developer command prompt. MSVC
+rejects a `const` object declared without an initializer (C4132); Clang 21
+and later report the same thing through `-Wdefault-const-init-var`, which the
+build adds when the compiler accepts it, so `ci` catches it off Windows too.
+
+## Checks
+
+Each lane is one command, `cmake --workflow --preset <lane>`.
+
+The POSIX state-session harness derives its source root from the canonical path
+of the executing test script. Before sourcing the trace include, it checks the
+supplied driver and fixed include against that root, rejecting copied or
+mismatched inputs before any host or transport work. Its `source-root-preflight`
+control runs as the serial `retroarch.session.source_root` test in the POSIX
+`ci` lane, with the `retroarch-session` label. It exercises the repository root, CTest binary directory and an owned
+working directory with spaces. Each case runs all four finalizer faults and
+requires wait status 143, the exact first reason, no cleanup anomaly, an
+unrun oracle and exact-port re-entry after owned-child reap.
+The session-control harness creates a fresh scratch root atomically for every
+invocation, so retained outputs cannot collide when a process ID is reused.
+Its isolated CI jobs build both `frame_index` and `nesturbator-run`. Cleanup
+fault setup records its witnesses in one Python invocation so cold interpreter
+startup cannot consume the production driver's five-second read slice through
+repeated process launches.
+Supervised polling delays use the platform's fractional `sleep`, keeping the
+same child budget without a Perl startup on every poll. Operation timing fields
+are initialized before the active marker becomes visible to signal handlers.
+Controls charge interpreter startup, reject a real poll-sleep overrun, and deliver
+TERM at the readiness initialization boundary; failures print journal and trace
+rows in the retained CTest log.
+
+| Lane | What it proves |
+|---|---|
+| `ci` | Release build with warnings as errors; every test passes, the library installs and builds a separate consumer, and the three release archives are written |
+| `ci-msvc` | The same as `ci`, built with MSVC on Windows |
+| `ci-build` | The POSIX `ci` build, tests and packages with the `retroarch-session` label excluded; required dedicated Linux and Apple Silicon jobs run those serial controls once per invocation, and nightly retains Intel coverage |
+| `asan` | The same tests pass under AddressSanitizer and UBSan, with any report fatal, except that `NESTURBATOR_SHORT_RUNS` leaves `runner.write_hashes`, `runner.boot_to_play`, the two `vectors.registration_policy` tests and the shell-based `retroarch.session.*` matrix to their dedicated lanes, sweeps fewer reset points in `core.reset`, and compares the non-save Holy Mapperel parity runs longer than 100 frames at frame 100 |
+| `nofp` | The core builds with `-mgeneral-regs-only` and passes the tests labelled `abi` |
+| `hygiene` | The tree holds no personal data and no unlisted ROM or binary file, every GitHub Action is pinned to a commit, and the C sources are formatted |
+| `vectors-full` | The full 65x02 vector set, fetched by git at the commit in `tests/vectors/pins.txt` and checked file by file, matches the CPU on every test; needs the network and fails without it |
+| `mmc3-oracle` | blargg's `mmc3_test_2` and `mmc3_irq_tests` ROMs, fetched by git at the commit in `tests/mmc3/pins.txt` and checked by SHA-256, give the result `tests/mmc3/oracle.txt` records for each; needs the network and fails without it |
+
+Tests never skip: a test that cannot run somewhere is not registered there, and
+`policy.no-skip` fails when any registered test could report itself skipped or
+is disabled.
+
+The pre-push history scan checks each historical ROM name and binary against
+the manifest in that same commit. Retiring or relocating a listed fixture does
+not invalidate the commit that recorded it.
+
+`fuzz.regress` replays checked-in malformed cartridge seeds through the public
+cartridge load/unload lifecycle on every CI platform. The Linux nightly builds
+that same entry point with Clang libFuzzer and ASan/UBSan, then runs it for a
+bounded minute. The corpus is manifest-listed and local; CI does not download
+ROMs or fuzz seeds.
+
+`fuzz.state.regress` does the same for the save-state loader: it replays the
+committed seeds in `tests/fuzz/corpus_state` through `nesturbator_load_state` on
+every CI platform. Each seed is a few bytes, not a state. The harness picks one
+of twelve synthetic carts (six boards, each with its smallest and largest PRG and
+CHR) built from an integer generator, so the corpus holds no ROM bytes, saves a
+state, patches it, repairs the fields a load checks first and its checksum, and
+loads the result. A refused load must leave the instance unchanged; an accepted
+one must run, save and reload, give the same frames and audio in two instances,
+and save back to the loaded bytes with the library's behaviour revision.
+`fuzz.state` requires every committed seed to equal what the harness generates
+(`fuzz.state_loader --write-seeds DIR` writes them and prints their manifest
+lines) and every `valid-*` seed to load. The same source builds as the libFuzzer
+target `fuzz.state.libfuzzer` when `NESTURBATOR_LIBFUZZER` is on.
+
+`fuzz.execution.regress` replays eight versioned 16-byte recipes in
+`tests/fuzz/corpus_execution`: NROM, MMC1, UxROM, CNROM, MMC3, AxROM, an
+ordinary loop and JAM. Recipes are descriptors, not ROMs. The test target
+builds each accepted image in memory, runs a non-JAM guest program for the six
+mapper families and loop, observes mapper-specific PRG, CHR or nametable
+effects, then saves and restores a continuation into a fresh instance. A
+different mapper runs between the source and restored frame calls to check
+deterministic instance isolation. The JAM recipe separately checks its stop
+result without reading partial frame output. The separately replayable recipe
+format also accepts arbitrary trailing bytes as raw PRG/CHR variation, bounded
+by the selected profile's image capacity and the caps in
+`tests/fuzz/execution-budgets.txt` (128 KiB PRG, 32 KiB CHR and their generated
+image); all eight checked-in descriptors remain exact and compact.
+
+The bounded harness allows a 256 KiB serialized state, at most two frames on
+each continuation side, six total frame calls including one different-board
+interleave, 128 public-API operations, and 2 MiB of combined harness/library
+allocations per input. The selected representative images are at most 98,320
+bytes. These per-input caps are enforced independently of libFuzzer's finite
+campaign limits; neither is a hardware accuracy claim. Successful frames compare
+canonical state, defined frame metadata, all native pixels and only written
+audio samples. JAM compares stop status and canonical state without reading
+partial frame output. `fuzz.execution.seeds` checks all eight exact seed
+identities, the six mapper families' useful bank effects, and loop/JAM outcomes.
+`fuzz.execution.controls` sends valid and broken
+continuations through the same verdict, including suppressed execution, skipped
+restore, wrong saved origin and shared-instance interference. It also checks
+reset retention, reload freshness, refusal atomicity and battery-generation
+behavior.
+`fuzz.execution.oracle_failure` proves a deliberate verdict discrepancy exits
+nonzero. `fuzz.execution.campaign_controls` exercises crash and timeout input
+retention, missing resource evidence, collection failure, original preservation,
+accepted-load and intended-operation checks for minimization, and outer
+cancellation classification. On Linux with `NESTURBATOR_LIBFUZZER=ON`, the controls
+also minimize synthetic sanitizer failures from each actual fuzz target, then replay
+both original and reduced files in that same instrumented target. They check target-specific
+acceptance separately from the observed failure class and pre-call API operation, with
+bounded minimizer work and exact original preservation. Collector fixtures pass through
+the campaign artifact discovery and copy helper and verify the uploaded bytes. The
+state-loader replay has a separate JAM oracle regression: it feeds equal latched-state
+copies different stale video/audio buffers and verifies only stop status and canonical
+post-run state, never incomplete frame outputs. Its negative counterpart deliberately
+resets one instance after both JAM calls while keeping the stale output buffers equal;
+the same oracle must reject the different canonical states.
+`fuzz.execution.libfuzzer` uses the same callback when
+`NESTURBATOR_LIBFUZZER` is enabled. The Linux nightly campaign runs the ROM,
+state and execution targets with independently measured bounds. Dispatch mode
+`pilot` repeats the bounded measurement; `campaign` is the default and uses the
+selected limits. Exact run commands, work completed, sampled resources, source
+and corpus hashes, artifacts, findings and limitations are recorded in
+[`tests/fuzz/execution-measurements.md`](../tests/fuzz/execution-measurements.md).
+
+The `abi` tests hold the core to integer arithmetic and the C memory
+functions: a text scan of `src/` and `include/` for `float`, `double` and
+decimal or hex floating literals, with a self-test that it finds `1.5`,
+`0x1p3` and `0x1.8p1`; an `nm` check that the library needs no symbol beyond
+`memcpy`, `memmove`, `memset`, `memcmp`, `malloc`, `free` and the
+toolchain's fortify and stack-protector helpers (plus `bzero` on macOS); an
+`nm` check that it defines no writable data; and a fixture with a `double`
+multiply that these checks must reject.
+
+The `hygiene` tests: `hygiene.tree` runs `scripts/hygiene.sh --tree`, which
+rejects home-directory paths, email addresses other than GitHub noreply, ROM
+and save files, and any file git treats as binary unless
+`tests/roms/manifest.txt` lists it. It reads file names unquoted, so a name
+with non-ASCII bytes is scanned, and it reports a file it cannot read rather
+than passing it. It runs in the C locale, so text that is not UTF-8 is still
+scanned. The pre-push hook runs `scripts/hygiene.sh --history`, which also
+scans each commit's message; there the noreply address of the AI co-author
+trailer is allowed as well. `hygiene.scan_selftest` builds a scratch
+repository and, under a UTF-8 locale, requires the scan to find a home path
+and an address in a file with a non-ASCII name and in a Latin-1 file, and to
+report a file whose name holds a newline as unreadable. It then requires
+`--history` to find a home path and an address in a commit message and to
+pass a clean message that carries the trailer.
+The hook then checks outgoing committed C/C++ blobs with clang-format 18,
+including intermediate local commits. A corrected working tree cannot hide an
+unformatted commit. It excludes only the vendored `libretro/libretro.h`, checks
+paths with spaces or newlines, and rejects source symlinks. Set `CLANG_FORMAT`
+to the version-18 executable, or put `clang-format-18` on PATH; the helper also
+finds Homebrew's `llvm@18`. `hygiene.push_format.controls` exercises clean,
+dirty, historical, filename, vendor, deletion, link and wrong-version cases in
+the normal POSIX CI suite. Python 3 runs the helper.
+`hygiene.action_pins` checks that every
+`uses:` key under `.github` names a full 40-digit commit SHA or a local
+path; `hygiene.action_pins.bad` and `.good` show it rejects a tag and accepts
+a SHA. `hygiene.format` runs clang-format over every tracked C source except
+the vendored `libretro/libretro.h` and fails on any change it would make. The
+lane needs clang-format 18, the version on CI's Ubuntu 24.04 image, and stops
+at configure if it finds another; on macOS, `brew install llvm@18` provides
+it. To format before committing:
+
+```sh
+/opt/homebrew/opt/llvm@18/bin/clang-format -i $(git ls-files '*.c' '*.h' '*.cpp' | grep -v '^libretro/libretro.h$')
+```
+
+The tests are plain C programs under `tests/` that use the macros in
+`tests/check.h`; CTest runs them. `core.api` checks every status code of
+`nesturbator_create` and that a custom allocator gets back each block it
+handed out. `core.frame` checks the buffer rules of `nesturbator_run_frame`,
+that a refused call changes nothing, the audio sample count over a whole
+period, the test card's edge pixels, and that two instances run apart.
+`core.palette` checks how `nesturbator_get_palette` copies and the colour
+table's invariants: `$20` and `$30` are white, `$xE` and `$xF` are black under
+every emphasis, an emphasis bit raises no colour channel but its own, and
+brightness never falls down a column.
+`runner.write_hashes` runs each pinned game (Nesteroids, DABG, RHDE and
+nes-runner), the three scripted DABG two-port movies, the scripted nes-runner
+play movie and every Holy Mapperel ROM. It writes ordered native hashes at
+frames 1, 30, 60, 120 and 180 plus transition and PCM hashes for each game's
+boot run, nes-runner play frames 1, 30, 60, 120, 180, 300, 450 and 600 plus
+their audio hashes, and for each Holy Mapperel ROM the result-screen frame and
+both audio hashes from the same run. It fails if any requested frame or audio
+hash is missing or duplicated, and unless the keys it generated equal the
+expected list exactly, naming the missing and the extra keys.
+`runner.write_hashes.content` requires all 114 sorted keys to equal
+`tests/runner/hashes.txt` byte for byte, with LF line endings only.
+The 114 keys are 28 game boot keys (four games, five frames and two audio keys
+each), 15 DABG movie keys, 10 nes-runner play keys, and for Holy Mapperel one
+`holymapperel/<key>/frame N` key plus two `holymapperel/<key>/audio/...` keys
+per ROM (twelve) and per second run (`<key>.saved` for `m1sxrom`, `m4tkrom`),
+which is 14 frame keys and 28 audio keys, plus 19 state keys: the
+`state_format` row, and for `dabg`, `m1sxrom`, `m2`, `m3`, `m4tkrom` and `m7`
+the state hash at frames 0 and 60 (`state/<board> N ticks T sha256 H`, from
+`--hash-state`) and the state size (`state/<board>/size S`). The state pins
+make a change to the saved state's bytes, size or format version show as a
+changed row. `state.format_pin` fails unless the `state_format` row equals
+`NESTURBATOR_STATE_FORMAT_VERSION` in `include/nesturbator.h`, and
+`runner.state.every_frame` saves a state after every frame from 0 to 180 of
+`dabg` and requires frames 1, 30, 60, 120 and 180 to keep their pinned hashes.
+The list is written once, in
+`tests/cmake/hash_keys.cmake`, which the writer, the CI hash-equality
+validator and its self-test all read, so no row count is spelled out anywhere.
+The generated `runner.state.nmi_*` cases write an owned NROM image only under
+their per-case scratch directory. They verify the power-on marker, the first
+NMI entry and the ordered guest event count after frame 4, then load frame 1 in
+a new runner process and compare the final frame, tick count and state bytes.
+The resumed frames 2–4 transition and PCM hashes are checked against an
+uninterrupted reference that hashes only that same suffix. Separate stale
+checkpoint and omitted-load controls complete normally and are rejected by
+the independently expected guest marker.
+`runner.write_hashes` hashes frame N and frame 2N of each Holy Mapperel ROM and
+fails if they differ, so a pinned result screen is known to be static.
+`policy.rom_hash_coverage` fails when a committed ROM under `tests/roms` or
+`tests/roms/hm` is neither hashed nor exempt, or when a ROM glob or list is
+empty, and `policy.rom_hash_coverage.self_test` proves both rejections.
+AccuracyCoin is exempt by fixture filename: its NROM board is hashed through
+three games and the canonical scoreboard plus comparison tracer run in normal
+CI.
+Every other committed ROM (Holy Mapperel's ten files and two derived copies,
+Nesteroids, DABG, RHDE and nes-runner) has frame and audio rows that must be
+byte-identical on six platforms. `libretro.parity.<key>` runs each of them
+through the libretro adapter and requires its last frame to equal the runner's,
+for nes-runner both the boot and its played movie. For the two battery boards,
+`libretro.parity.m1sxrom.run1`, `.run2`, `libretro.parity.m4tkrom.run1` and
+`.run2` also round-trip the save: run 1's save span must equal the runner's
+`.sav`, and run 2 loads that file into the span before its first frame and
+must end with the span the runner's second run saved. The fuzz seeds are exempt
+because they are crash inputs, not pinned pictures, and AccuracyCoin is exempt
+as above. Six-platform equality proves the platforms agree with each other, not
+that the emulation is right; correctness comes from Holy Mapperel's result
+codes, the AccuracyCoin scoreboard and the nightly blargg lane.
+`runner.boot_to_play` is the boot-to-play proof for nes-runner v1 (MIT,
+mapper 1). It replays generated NMOVIE1 movies through the library, reads
+`$3E` (game state) and the score bytes `$5D` to `$60` with
+`nesturbator_peek_cpu_ram`, and judges three predicates: RAM (the game is in
+state 2, the score rises and reaches 36, and RAM first differs from a no-input
+run no earlier than the first input frame and at most one frame after it),
+scene (changed pixels and at least half the picture differ from the no-input
+run) and audio (every window is loud and differs from the no-input run). The
+no-input, menu-navigation, failed-load and Start-only controls must each fail
+it with an exact mask. Synthetic mutants (silence, constant tone, a click then
+silence, a static picture with a ticking RAM counter, a rainbow-only title, an
+NMI-alive hang, early death, input latched late) and boundary traces on both
+sides of every threshold are judged without running the emulator and must each
+return their expected mask. The check also reads its save: the battery span
+starts `5A 6F` and the save generation advances.
+The `holymapperel.*` tests read Holy Mapperel's result from the frame, not
+from RAM. `holymapperel.<key>.dump` runs a ROM to its frame N and writes the
+frame with `--dump-frame`; `holymapperel.<key>.decode` runs the test-only
+`holymapperel-decode` on that image and passes only on the line
+`holymapperel: code 0000 (`. The decoder exits 0 for the code 0000, 1 for any
+other code (it prints what each digit means: WRAM, PRG window bitmask, IRQ,
+CHR; C0DE means the driver never finished) and 2 when the image has no result
+screen, a digit cannot be read, or the file is not a 256x240 P6 image.
+`holymapperel.decode.unit` paints frames to test every decoder branch,
+`holymapperel.glyphs` checks the decoder's font against the M3 ROM's CHR, and
+`holymapperel.decode.testcard`, `.early` and `.badsize` check that the test
+card, frame 1 and a wrong-size file exit 2.
+The five MMC1 ROMs are `M1_P128K_CR8K` (SGROM, `PRG RAM MISSING`),
+`M1_P128K_C32K_W8K` (SJROM) and `M1_P128K_C128K_S8K` (SKROM) and
+`M1_P512K_CR8K_S8K` (SUROM), all `8K PRG RAM OK`, and `M1_P512K_CR8K_S32K`
+(SXROM). Each ROM also has a `holymapperel.<key>.prgram` test: the decoder's
+`--prg-ram` mode reads the PRG RAM row of the result screen and the test
+passes only on its exact text, with the closing quote as the anchor. The SXROM
+ROM runs a two-run chain on one save directory with `nesturbator-run
+--save-dir`: run 1 empties the directory before it starts, then reads
+`0000` and `32K PRG RAM OK` without `+ BATTERY`, `run1.sav` checks the 32,768
+byte save for Holy Mapperel's `SAVEDATA` text at offset 0x100
+(`tests/cmake/check_sav.cmake`), and run 2 reads `0000` and `32K PRG RAM OK +
+BATTERY`, which shows the board loaded its own save. The two runs' screens hash
+differently and both are pinned. A new board ROM is one entry and one manifest
+line in `tests/holymapperel/roms.cmake`, whose entry is
+`<key>:<file>:<N>:<PRG RAM text>` with an optional `:save` field for the
+two-run chain, then an optional save span size (default 32768) and an optional
+`<offset>=<hex>` that adds a `run1.sav_byte` check on the first run's save;
+a `<file>` written `derived/<name>` names a copy that `holymapperel-derive`
+builds at build time from a committed ROM listed in
+`NESTURBATOR_HOLYMAPPEREL_DERIVED`, with `tests/cmake/hm_derive.cmake`
+refusing a base whose sha256 differs from the manifest
+(`holymapperel.derive.refuse`). `m4tkrom` is the battery copy: its 8,192 byte
+save must hold the write-protected byte 0xB6 at offset 0 (an emulator that
+ignored write protect would leave 0x6B) and `SAVEDATA` at 0x100; the tests, `tests/cmake/write_hashes.cmake` and
+`tests/cmake/hash_inventory.cmake` all read it.
+`runner.dump` runs the command above and checks the image's size, header and
+pixels; `runner.usage.dump*` and `runner.dump.unwritable` check its errors.
+`runner.usage.noargs` checks that a run without `--frames` is a usage error.
+`host.convert` checks the colour conversion the runner and the libretro
+adapter share (`host/convert.c`): each native pixel's low 9 bits pick the
+table entry, and the input and output row pitches are honoured.
+`header.c` and `header.cxx` compile the public header alone as C17 and as
+C++ with warnings as errors and check its struct layout. `runner.sha256`
+checks the runner's SHA-256 against the FIPS 180-4 example digests, and
+`version.consistency` checks that `version.txt` matches the header's version
+macros and the libretro `.info` file's `display_version`. `runner.version`
+runs `nesturbator-run --version` and requires stdout to be exactly
+`nesturbator-run` and the text of `version.txt` (read at test time), empty
+stderr and exit 0. `core.boundary` checks, after every frame, that the
+instance holds no video or audio pointer of the caller and no buffered PCM,
+over test-card frames, 60 frames with sound, a JAM, a too-small buffer and an
+unload and reload.
+`cmake.script_policy` checks that every script in `tests/cmake` sets
+`cmake_minimum_required(VERSION 3.25)`, so each CMake release reads it the
+same way. `retroarch.revision_literals` fails on any `format=<n>` or
+`revision=<n>` literal in `tests/retroarch/*.cmake`: the hosted-only scripts
+read both numbers from `include/nesturbator.h`, so a revision bump cannot
+leave a stale value that only the macOS runner would see. `libretro.vendored`
+checks that `libretro/libretro.h` is byte for byte the pinned upstream copy.
+`libretro.info_claims` parses `libretro/nesturbator_libretro.info` and requires
+the exact capability keys and pinned values, a `savestate_features` whenever
+`savestate = "true"`, and no duplicate or unknown key; its self-test feeds it
+bad files. `libretro.info_claims.self_test` also configures a scratch project to
+show the guard in `tests/CMakeLists.txt`: configuring fails when the `.info`
+claims a save-state level whose proving tests are not registered.
+`libretro.no_quirks` is described with the libretro core above.
+`libretro.host` loads the built libretro core at run time, calls it in the
+order RetroArch does, and checks that the frame it receives equals the
+runner's dumped image pixel for pixel, plus four colours written into the
+test. `retroarch.compare` checks `compare_frame`, the tool the hosted `retroarch-e2e` job
+uses to compare a screenshot with the runner's frame. It writes one picture as
+a P6 image and as BMPs in each layout `sips` can produce (40, 108 and
+124-byte headers, 24 and 32 bits per pixel, either row order), and requires
+each to read back equal. It also requires a 257x240 or 256x239 image to fail
+on size, one colour channel of pixel (17,200) off by one to be reported as
+`first difference at 17,200`, and truncated or malformed files to be
+rejected. `retroarch.compare.cli` runs `compare_frame` on an equal pair.
+`retroarch.frame_index` dumps frame 37 of Nesteroids with the runner and requires
+`frame_index`, the tool that finds a screenshot among the runner's frames 1..W
+by RGB, to report 37; `retroarch.frame_index.dups` requires every repeated
+frame in 1..1200 to have its partner at most 3 frames before it.
+`retroarch.log_check` and its `.serialized`, `.unlisted_error`, `.rewind_warn`,
+`.level_serialized`, `.level`, `.no_netcmd`, `.failed_load` and `.uncommented`
+variants run `tests/retroarch/log_check.cmake` on fixture logs: a clean log
+passes, and an unlisted `[ERROR]` line, a `[Rewind]` warning, a line allowlisted
+only for `serialized` when checked at `deterministic`, a missing `[NetCMD]` line,
+a failed state load and an allowlist entry without its comment all fail.
+`palette.regen` rebuilds the colour table with `tools/palgen` and
+checks that it matches the checked-in `src/palette_ntsc.c` byte for byte.
+`vecconv.a9` converts the first three upstream `a9` (LDA immediate) tests in
+`tests/vectors/fixtures` to the binary N65V form with `tools/vecconv` and
+reads them back through the shared reader, which must decode exactly what was
+written. It then runs them through the CPU with `cpu.vectors`, which links
+the CPU object the library ships against a test bus of flat RAM that logs
+every cycle, and requires each test's registers, RAM and every bus cycle
+(address, value, read or write) to match: `65x02/a9: 0 of 3 vectors failed`.
+`vectors.n65v` reads the committed sample `tests/vectors/65x02-sample.n65v`
+through the same reader and requires 256 chunks of 100 tests, chunk k holding
+opcode k, indexes 0 to 99 in each chunk, and nothing after the last chunk.
+`cpu.vectors.<xx>` runs opcode xx's 100 sample tests through the CPU and
+compares registers, RAM and every bus cycle, dummy reads included; it passes
+only on exit status 0 and the exact line `65x02/<xx>: 0 of 100 vectors
+failed`. A failure names the upstream test as `xx.json[i]` and the first field
+that differs. Each test starts from zeroed RAM: after a pass the harness
+zeroes the addresses the test listed, and after a failure all 64 KiB, since a
+failing CPU may have written anywhere. `cpu.vectors.stray-write` runs two INC
+tests that do not list their target address, the first with a wrong expected
+A, and requires `65x02/e6: 1 of 2 vectors failed`: the first test's write
+must not reach the second. The label `vectors` selects all 256 opcodes, `cpu.vectors.00`
+to `cpu.vectors.ff`, with no opcode or vector skipped: the 151 official ones
+in every addressing mode, the stable unofficial ones (NOP variants, LAX, SAX,
+SLO, RLA, SRE, RRA, DCP, ISC, ANC, ALR, ARR, SBX and SBC `eb`), the twelve
+JAM opcodes, and the unstable ANE, LXA, LAS, SHY, SHX, SHA and TAS. The CPU
+has no decimal mode, as on the 2A03: SED and CLD set and clear D, PHP, PLP and
+RTI keep it, and ADC and SBC stay binary. A JAM opcode makes eleven reads and
+no write, and leaves the CPU jammed. ANE and LXA use a constant of `0xEE`,
+the NTSC RP2A03G value, which the instance holds as part of its machine
+profile.
+`cpu.unit` covers what the sample cannot show, on the same CPU object and
+test bus. A JSR at `0x017B` with S at `0x7D` pushes PCL over its own
+high-address operand and must jump to the pushed byte: exactly six cycles,
+ending at `0x0155` with S at `0x7B` (SingleStepTests 65x02 issue 18). After a
+JAM opcode, each later step must be one read of `0xFFFF` with no register,
+flag or PC change, and a JAM at `0xFFFF` must leave PC at `0x0000`.
+`core.profile` creates an instance and requires both profile constants to be
+`0xEE`.
+`vectors.n65v.crafted` encodes a valid two-test buffer byte by byte and
+requires the reader to reject, naming the byte offset at fault, every
+truncation of it, bad magic, version 2, a cycle kind of 2, the wrong opcode, a
+header count that disagrees with the tests present, a repeated index, and one
+trailing byte. `vecconv.02` converts the first three tests of `02.json`,
+written in the compact layout, and runs them through the CPU:
+`65x02/02: 0 of 3 vectors failed`. `vecconv.a9_tail` converts three tests from
+a prefix of `a9.json` cut inside the fourth; `vecconv.a9_tail.cut` asks the
+same prefix for four and requires vecconv to fail. The fourteen
+`vecconv.reject.*` tests each edit the `a9` fixture into one malformed input
+(a fraction, a sign, an exponent, a leading zero, an address of 65536, a byte of 256, an
+unknown cycle kind, an unknown or missing key, 256 cycles, an empty file, an
+empty array or a short closed array without `--first`, a cut inside the third
+test) and require vecconv to exit 1 with the byte offset.
+`manifest.sha256` checks every line of `tests/roms/manifest.txt`: five
+tab-separated fields, a pin that is a 40-digit commit or a release tag, a
+licence, and a file whose SHA-256 equals the line's.
+`manifest.sha256.selftest` lists a scratch file with a wrong hash and passes
+only if the check reports it.
+The `vectors-full` lane registers its tests only when the CMake option
+`NESTURBATOR_VECTORS_FULL` is on, which its preset sets, so `ci` never touches
+the network. `cpu.vectors-full.fetch` runs `tests/cmake/fetch_vectors.cmake`:
+a sparse, depth-1 git fetch of upstream `nes6502/v1` at the commit
+on the first line of `tests/vectors/pins.txt`. It fetches the blobless tree,
+then its required blobs in batches of at most 16 before checkout (1.08 GB
+uncompressed). This avoids one large lazy checkout pack request that
+can stall upstream; the 1000 B/s for 60 seconds cutoff is unchanged. It then
+checks the size and SHA-256 of all 256 files against that file's lines. A
+missing, extra or altered file fails with its path and both hashes, and so
+does a run without the network; nothing is skipped. When every file already
+verifies it fetches nothing. `cpu.vectors-full.00` to `cpu.vectors-full.ff`
+each convert one whole file with `vecconv`, which then requires exactly 10000
+tests, and run it through the CPU; each passes only on the line
+`65x02/<xx>: 0 of 10000 vectors failed` and prints its failing-vector count
+otherwise. That is all 2,560,000 upstream tests. `cpu.vectors-full.sample-match`
+converts the first 100 tests of every fetched file and requires them to equal
+the committed sample chunk by chunk, byte for byte, which proves where the
+sample came from; a difference names the chunk and the blob offset.
+The `mmc3-oracle` lane registers its tests only when the CMake option
+`NESTURBATOR_MMC3_ORACLE` is on, which its preset sets, so `ci` never touches
+the network. It uses blargg's MMC3 ROMs from
+`https://github.com/christopherpow/nes-test-roms` at commit
+`95d8f621ae55cee0d09b91519a8989ae0e64753b` (`95d8f62`). That repository states
+no licence, so the ROMs are fetched and never committed, and no text of theirs
+is in the tree. `mmc3.oracle.fetch` runs `tests/cmake/fetch_blargg_mmc3.cmake`:
+a sparse, blobless, depth-1 fetch of `mmc3_test_2` and `mmc3_irq_tests`, then a
+size and SHA-256 check of the 12 ROMs listed in `tests/mmc3/pins.txt` and a
+check that no other `.nes` file is there. It deletes only a directory it
+created, which holds the marker `.nesturbator-mmc3`; `mmc3.fetch.guard`, in
+`ci` and offline, shows it refuses a foreign directory, a symlink into the
+source tree and an upper-case spelling of it. The test-only program
+`mmc3-oracle` (`tests/mmc3/oracle.c`) judges a ROM by one of blargg's two
+result protocols. `mmc3_test_2` writes the signature `DE B0 61` at
+`$6001-$6003`, `$80` at `$6000` while it runs, then a result there (`0` is a
+pass) and text from `$6004`; the oracle passes it only after it has seen `$80`,
+read `0` and found `Passed` in the text. `mmc3_irq_tests` leave `1` in zero page
+`$F8` when they pass; the oracle requires `1` at the frame budget and again 60
+frames later. Its exit status is 0 for a pass, the reported value for a
+failure, 120 for a ROM that never reported, 121 for no signature, 122 for an
+image that does not load and 123 for bad usage; it never exits 77.
+`tests/mmc3/oracle.txt` has one tab-separated row per ROM,
+`key status code frames hash`: the key is the suite and ROM name such as
+`mmc3_test_2/1-clocking`, the status is `pass` or `unsupported`, the code is
+the expected exit status as `0xNN`, and frames is the budget; the hash is `-`.
+Each row becomes the test `mmc3.oracle.<key>`, which passes when the exit
+status equals the code, and an `unsupported` row that exits 0 fails until the
+row is edited. These rows are not part of `tests/accuracy/scoreboard.txt`.
+The table holds the 12 ROMs, 10 `pass` and two `unsupported`. All six
+`mmc3_test_2` ROMs and the four Sharp-revision `mmc3_irq_tests` ROMs pass: `1-clocking`,
+`2-details`, `3-A12_clocking`, `4-scanline_timing`, `5-MMC3`, and `1.Clocking`, `2.Details`,
+`3.A12_clocking`, `4.Scanline_timing`, `6.MMC3_rev_B`. `mmc3_test_2/6-MMC3_alt` (exit
+`0x02`) and `mmc3_irq_tests/5.MMC3_rev_A` (exit `0x03`) are recorded `unsupported`: they test
+the NEC revision, and the core models the Sharp revision unless the cartridge header says
+submapper 4. The board adds no IRQ delay beyond the A12 edge. In `ci`, offline,
+`mmc3.pins` checks `tests/mmc3/pins.txt` (a header with a 40-hex commit and `none-stated`, then 12
+lines of a 64-hex hash, path and decimal size, LF only), `mmc3.oracle.inventory` checks that
+`oracle.txt` holds exactly the 12 pinned keys in the five-field form with exactly the two
+NEC-revision keys `unsupported`, and `mmc3.oracle.unit` runs the oracle's judgement on
+synthetic memory (a pass, a timeout, no signature, a result with `$80` never seen, text
+without `Passed`, and a `$F8` that changes within 60 frames).
+Run it with `cmake --workflow --preset mmc3-oracle`.
+`vectors.pins`, in `ci` and offline, checks `tests/vectors/pins.txt`: its pin
+line, 256 lines in order from `00.json` to `ff.json`, sizes summing to
+1,081,529,097 bytes, and a commit equal to the sample's manifest pin.
+`vectors.pins.selftest` swaps two lines in a copy and passes only if the check
+reports them as not sorted.
+`vectors.fetch.guard` checks, offline, that the fetch deletes only what it
+created: a `65x02-src` directory without the fetch's marker file is refused
+and left in place, and a directory that reaches the source tree through a
+symbolic link, or through a different letter case on macOS and Windows, is
+refused as inside the source tree; the fetch compares paths after resolving
+them to the links' targets and the case stored on disk. A refused directory
+that does not exist yet is not created.
+`vectors.fetch.transport` models a working pinned tree fetch and a stalled
+bulk checkout pack. It requires bounded blob requests before checkout,
+preserves the transfer cutoff, and checks cold success, warm reuse, an
+unavailable transport, a corrupt final file and an extra inventory file offline.
+`bus.unit` checks the library's bus (`src/bus.c`) on its own: each read or
+write advances time by 24 ticks, a byte written at `0x0001` reads back at
+`0x0801`, `0x1001` and `0x1801`, a read outside RAM returns the last value on
+the bus, and a write outside RAM changes no RAM byte.
+`install.stage` installs the library into `build/ci/stage`, and
+`install.consumer` builds `tests/consumer`, a separate project that includes
+only `<nesturbator.h>`, against that install with `find_package`, then runs
+one frame with it. `embed.subdirectory` builds `tests/embed`, a C-only
+project that adds the source tree with `add_subdirectory`; it requires that
+embedding enables no C++, adds no runner, libretro, `palgen`, `vecconv` or
+host-helper target, adds exactly the targets `nesturbator_cpu` and
+`nesturbator` and the helpers listed under "Using the library", and writes no
+CPack configuration, then runs one frame.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request, every push to `main`
+and on demand, with the same preset commands as above. The `build` job runs
+`ci` on Linux and macOS and `ci-msvc` on Windows, each on x64 and arm64: six
+platforms. Hosted POSIX build legs use the `ci-build` workflow preset, which
+leaves `retroarch-session` tests to required dedicated `session-controls` jobs
+on Linux x64 and macOS arm64. The full local `ci` preset still runs those tests.
+Nightly runs their Intel counterpart once and excludes the label from its
+three-repeat suite-flake job. The test harness uses the driver's test-only
+`STATE_SESSION_TEST_QUIT_GRACE_MS` override; production deadlines are unchanged.
+Each build leg also checks its three archives and writes native-frame
+hashes for each pinned game's boot and the DABG port-0, port-1 and combined
+input scripts:
+
+```sh
+cmake -DBUILD=build/ci -DOUT=hashes.txt \
+      -DMOVIE_WRITER=build/ci/tests/runner.game_movie \
+      -P tests/cmake/write_hashes.cmake
+```
+
+There is one narrow exception to ordinary main-push CI: when the direct `CI`
+workflow receives a push to protected `main` whose commit message starts with
+`chore(main): release `, every CI job, including `CI required`, skips before
+allocating a runner. The Release workflow calls this same reusable CI file on
+the exact generated merge commit and remains eligible. GitHub keeps the push
+event context for a reusable call but exposes the caller's workflow name as
+`Release`, which distinguishes that required release validation from the
+redundant direct `CI` run. Release pull requests, ordinary commits, and manual
+CI retain their existing checks. Nightly's independent main-push trigger
+remains enabled.
+
+The offline `hygiene.ci_release_push_policy` check validates every CI job's
+guard and protects the Release caller, six-platform build matrix, archive and
+hash uploads, publication gates, and Nightly routing. Its
+`hygiene.ci_release_push_policy.selftest` exercises the supported event cases
+and rejects deliberate routing and gate mutations; `hygiene.ci_required_rollup`
+continues to check the required result semantics. These static checks do not
+execute GitHub Actions or establish a hosted release result.
+
+The `hygiene` job runs the `hygiene` lane, `asan` runs `asan` with Clang 18,
+and `nofp` runs `nofp` with GCC 14 on Linux x64 and arm64. `title` requires
+the pull-request title to be a Conventional Commit. `hash-equality` requires
+the six `hashes.txt` files to be byte-identical, so a platform that computes
+a different frame, or a different state, fails the run. It also requires six nonempty artifacts with
+the exact 114-key inventory, state pins included, from `tests/cmake/hash_keys.cmake`, checking the key
+set of every artifact, and rejecting duplicates, missing keys, extra keys and
+malformed hashes. The branch rules require one check,
+`CI required`, which passes only when every required job succeeded. Every
+action is pinned to a commit SHA, and Dependabot proposes updates weekly.
+Each build lane clears its native hash file before testing, then uploads the
+same `tests/hashes.txt` that CTest generated and checked against the pin. It
+reuses that validated output for the upload, and a missing output fails the
+artifact upload. The artifact still contains a single `hashes.txt`.
+
+The `dev`, `ci`, `ci-msvc` and `asan` test presets run CTest four tests at a
+time (`execution.jobs`). The three long tests, `vectors.registration_policy`,
+its self test and `runner.write_hashes`, carry a CTest `COST`, so a cold build
+with no timing history starts them first. The `asan` lane does not register them
+or the shell session matrix (`NESTURBATOR_SHORT_RUNS`, which only that preset sets).
+The required `vector-inventory` job configures `vectors-full` once without
+running its fetch fixture and shares its actual CTest inventory with the six
+build legs through an artifact from the same invocation. Each leg checks its
+own sample inventory and that full inventory, including labels, fixtures and
+no-skip properties. Local runs retain the configure-only fallback. The policy
+reads individual test objects for property queries rather than reparsing the
+entire inventory each time. Nightly still fetches the vectors cold.
+The no-skip policy likewise extracts each test object before checking its
+properties, retaining all skip/disabled rejection checks without repeatedly
+parsing the full inventory for each property.
+
+The hosted `retroarch-e2e` job configures and builds the tools and generated
+cartridge fixtures, then runs its real-host checks without repeating the local
+suite already required by the build lanes. Job limits retain their existing
+measured envelopes until isolated hosted durations are available. The title
+check remains in CI, including the `edited` trigger; moving it to a separate
+workflow also requires a coordinated required-check ruleset change.
+
+The `perf` job runs on every pull request on ubuntu-24.04. It builds the pull request's merge
+commit and its first parent (the tip of `main`, which ENGINEERING section 5 calls the merge
+base) with the `ci` preset, runs each under Cachegrind for 60 and 360 frames on nesteroids
+(NROM), runner (MMC1) and M4_P256K_C256K (MMC3), and reports instructions per frame as
+(Ir(360) - Ir(60)) / 300 in the job summary and the job log. The job is part of CI required and fails a
+pull request when any ROM's instructions per frame rise by more than 1.00%, unless
+tests/perf/allow.txt carries a valid line for that ROM; an unstable base (two base measurements
+differ) always fails; a base that cannot be built or run shows `n/a` and does not fail the pull
+request. Wall time is never measured or gated. The `perf.roms_render` test shows that
+all three ROMs draw a non-blank frame 60, so the job never measures an idle PPU.
+
+### Phase 20 hosted evidence collection
+
+The six build jobs retain their executed `LastTest.log` and the cold-fetched
+protected-main scoreboard and metadata in their existing run-and-attempt
+AccuracyCoin artifacts. The `perf` job retains its raw base/head Cachegrind
+measurements, summary, and run identity for 60 days. The read-only collector
+downloads those artifacts and the related CI and Nightly job logs into a
+scratch directory, then validates their contents, checksums, exact tested
+source identity, all six NMI target rows, all 108 original protected PASS keys,
+the full native hash inventory, per-ROM performance samples, host marker
+evidence, and Nightly vectors/MMC3 results.
+
+After a separately authorized hosted delivery has produced pull-request CI and
+Nightly runs, create `ROOT/delivery.json` with the repository, run IDs and
+attempts, candidate branch head, and pull-request number. Run the collector and
+then revalidate the saved bundle against the current source:
+
+```json
+{
+  "repository": "szTheory/nesturbator",
+  "ci_run_id": "123456789",
+  "ci_run_attempt": "1",
+  "nightly_run_id": "123456790",
+  "nightly_run_attempt": "1",
+  "candidate_head_sha": "<40-digit candidate commit SHA>",
+  "pr_number": "123"
+}
+```
+
+```sh
+cmake -DMODE=collect -DROOT=build/phase20-evidence -DSOURCE_REF=. \
+  -P tests/cmake/phase20_hosted_evidence.cmake
+cmake -DMODE=validate -DROOT=build/phase20-evidence -DSOURCE_REF=. \
+  -P tests/cmake/phase20_hosted_evidence.cmake
+```
+
+To check whether delivery metadata is ready before downloading content, save
+the authorized candidate SHA in a text file and run:
+
+```sh
+cmake -DMODE=availability -DROOT=build/phase20-evidence \
+  -DSOURCE_REF=. -DEXPECTED_CANDIDATE_FILE=build/candidate-sha.txt \
+  -DEXPECTED_PR_NUMBER=123 \
+  -P tests/cmake/phase20_hosted_evidence.cmake
+```
+
+Availability compares that captured SHA and exact PR number with
+`ROOT/delivery.json`, the current PR snapshot and both selected run attempts.
+It checks complete run, job and artifact inventories, matrix job identities,
+merge parents, per-job metadata and full source trees. Success writes only
+`ROOT/availability/availability.txt` with an `available` verdict, source and
+run identities, selected job and artifact IDs, metadata-file digests and
+retrieval time. This is a time-bounded metadata snapshot, not hosted
+acceptance. It requests no artifact or job log, extracts no archive, and does
+not replace collection provenance or acceptance files.
+
+`ROOT` must be under `build/` or `/tmp`. Collection uses read-only GitHub CLI API,
+run-view, per-job log, and artifact-download requests. For raw job logs and
+artifact ZIP downloads it feature-detects the installed CLI's
+`--allow-escape-sequences` option because API responses may contain terminal
+escape bytes; a CLI that does not advertise the option is rejected before a
+raw response is requested. The collector derives the actual tested checkout and
+protected base from saved GitHub run and PR metadata; pull-request
+builds normally test a synthetic merge commit, so the candidate head SHA is
+checked against the merge commit's two parents instead of being treated as the
+tested checkout SHA. The run API's `head_sha` identifies the candidate, while
+the matching PR snapshot's `merge_commit_sha` selects the merge for independent
+parent, artifact and full-tree checks. Required matrix jobs use their complete
+hosted names, including session-control and no-floating-point lanes. The six
+required CTest results are read from each selected matrix job's own
+workflow-execution step and are bound to that job's ID, run attempt, step
+metadata and the digest of its preserved raw plain-text job log. GitHub's job
+logs endpoint returns a full timestamped job log, not a ZIP; the collector
+retains its original BOM, line endings and ANSI sequences in
+`downloads/job-<platform>.txt`, then writes a derived step log after selecting
+the unique named workflow step within the API metadata's start/completion
+bounds. The derived copy removes a leading UTF-8 BOM and ANSI CSI sequences and
+normalizes line endings; validation recomputes it from the raw bytes and saved
+step timestamps before accepting any result. Lines before the named workflow
+step group, outside its metadata time bounds, or from another job cannot supply
+passing results. The Holy Mapperel result uses the registered name
+`holymapperel.m2.decode`. `LastTest.log` remains byte-for-byte raw supporting
+evidence; it may contain only start/end lines and is not a CTest summary.
+Artifact files are normalized by matching complete path suffixes at
+directory boundaries, including root-level members. The AccuracyCoin upload
+uses `build/<preset>/accuracycoin/**`, so its ZIP stores `full/` at the archive
+root; the collector places those files in the canonical
+`artifacts/build-linux-x64/accuracycoin/full/` tree. RetroArch evidence keeps
+the authored `hosted-evidence.txt`, intended driver output and that output's
+attempt-bound oracle, session record and journal. Nightly's registered CTest
+inventory includes tests outside the selected lane, so validation selects the
+tests carrying the `vectors-full` or `mmc3-oracle` CTest label and checks that
+every one appears as a successful executed JUnit testcase. A clean CTest JUnit
+file may omit the optional `errors` count; explicit nonzero error, failure,
+skipped or disabled counts and failing testcase elements are rejected. Every
+expected artifact file must have exactly one raw path; root/nested ambiguity
+and duplicate ZIP members fail. `provenance/normalization.tsv` records raw and
+normalized paths with the unchanged content digest. Its full effective-source manifest hashes
+regular-file contents and symlink target text, excluding only `.planning/`
+and `tests/accuracy/measurements.md`. Hosted-tree comparisons check regular
+files against their Git blobs and symlinks against their mode-120000
+link-target blobs. This is distinct from the narrower
+AccuracyCoin build-input fingerprint. The collector records the source digest,
+run/job/artifact metadata, retrieval time, and checksums beside the downloaded
+evidence. It rejects local fixtures as hosted provenance, dirty effective
+source, missing or expired artifacts, incomplete jobs, and changed source.
+The independent Phase 21 mode/blob inventory queries the committed tree and
+raw working files in batches, retaining separate committed, index and worktree
+identities. Its controls cap Git launches at 12 for the full tracked inventory,
+and still reject missing or changed evidence under the original 120-second cap.
+
+In the campaign metadata, `inventory_sha256` identifies the pinned ROM's
+authoritative input inventory and is checked against the tracked baseline
+metadata. The emitted `full/inventory.tsv` is the campaign's page/row
+inventory; validation compares its complete scored-key set with the current
+scoreboard and pairs its rows with the terminal report.
+
+Without authorized run IDs and attempts, `MODE=collect` exits nonzero with
+`pending_delivery` and does not write a hosted-pass manifest. Dispatch or push
+runs that skip the pull-request performance job cannot establish performance
+acceptance. Local fixture controls verify validator behavior only; actual
+hosted acceptance remains pending Plan 20-10.
+
+The saved raw job-log shape follows the [GitHub workflow jobs logs API](https://docs.github.com/en/rest/actions/workflow-jobs#download-job-logs-for-a-workflow-run),
+which redirects to plain text. Artifact downloads remain ZIP archives and keep
+their existing path, duplicate-member, traversal and symlink checks.
+
+`.github/workflows/nightly.yml` runs the `vectors-full` lane every night at
+04:17 UTC on Ubuntu 24.04, on demand, on every push to `main`, and on pull
+requests that change a file that can change what its tests run: the workflow,
+the root `CMakeLists.txt`, `CMakePresets.json`, `tests/CMakeLists.txt`,
+`tests/vectors/`, `tests/cpu/`, `tools/vecconv/`, `src/cpu.c`, `src/internal.h`,
+`include/nesturbator.h` and the scripts `fetch_vectors.cmake`,
+`vectors_full_run.cmake`, `vectors_sample_match.cmake` and
+`vector_registration_policy.cmake` in `tests/cmake/`.
+It is outside `CI required`, so a red nightly blocks no merge. Its lanes skip
+Release Please generated PRs: those PRs already run required CI, and a push to
+`main` still runs Nightly after merge. Ordinary relevant PRs, scheduled runs,
+manual runs and main pushes keep the existing lanes. Before the full run, it
+saves the CTest JSON inventory and checks all 258 full-tier tests,
+including their labels, fixtures and no-skip properties. The workflow then
+runs the lane once and saves its JUnit result. Both files are uploaded together
+as `vectors-full-evidence-<run ID>`; the job summary records the event, head
+SHA, run URL and artifact name. This makes each main commit's exact run and
+test evidence queryable by its run ID. The workflow fetches the full set at
+its pin on every run, with no cache, because a cache used every night would
+stop the fetch from ever being tested; offline, or with any file differing
+from `tests/vectors/pins.txt`, it fails rather than skips. Scheduled and
+main-push runs share one open issue labelled `nightly`: a failure opens it,
+or updates it with the event, head SHA, run URL and failing keys
+(`65x02/<xx>`, `fetch`, `sample-match`), and the next passing run closes it.
+The `suite-flake` job builds the `ci` preset on Ubuntu 24.04 and runs its
+suite three times in random order with
+`ctest --preset ci --repeat until-fail:3 --schedule-random`; any failure fails
+the job, and its outcome is reported in the same `nightly` issue.
+In `ci` itself, `accuracycoin.report_fresh` runs the AccuracyCoin report
+command on a nested work directory whose tree has just been removed, so a test
+that relies on another test having made its directory fails in the fixed order
+too.
+
+The same workflow runs the `mmc3-oracle` lane (`cmake --workflow --preset
+mmc3-oracle`) as a second job, built like `vectors-full`: `contents: read`
+only, pinned actions, no cache and no skip code. It saves its CTest inventory
+first, runs the 12 blargg MMC3 rows, uploads the inventory and its JUnit file as
+`mmc3-oracle-evidence-<run ID>`, and feeds the same `nightly` issue, whose body
+lists its failing keys (`mmc3_test_2/<name>`, `mmc3_irq_tests/<name>`,
+`mmc3.oracle.fetch`). Pull requests that change `tests/mmc3/`, its fetch, run
+and inventory scripts, `src/mapper_mmc3.c`, `src/mapper.h`, `src/ppu.c`,
+`src/cartridge.c` or `src/bus.c` run it too. The hygiene test
+`hygiene.nightly_workflow_policy` checks each lane on its own job text, and its
+self test mutates both lanes. The nightly `state-fuzz` job runs
+`fuzz.state.libfuzzer` for 60 s on the committed `tests/fuzz/corpus_state` and
+reports in the rolling nightly issue; a crash it finds becomes a `regress-`
+seed in the fixing PR. The ROM
+loader fuzz outcome is recorded in the job summary and included in
+scheduled and main-push failure issues. It uses GitHub's per-job token: the
+full-run job has only `contents: read`, and only the report job has
+`issues: write`. Checkout credentials are not persisted and the workflow
+makes no commits.
+
+After the Phase 2 merge, collect release, exact-commit main-push and first
+post-merge scheduled vector evidence with this read-only command (replace the
+SHA and tag with the merge commit and expected release tag):
+
+```sh
+scripts/phase2_outcomes.sh <phase-2-merge-sha> <release-tag>
+```
+
+It reports external events that have not happened yet as `PENDING` (exit 2);
+completed failures return exit 1, and a fully passing report returns exit 0.
+Only a published release and successful runs with matching commits and all
+258 completed vector results are reported as `PASS`. It requires authenticated
+`gh`, `jq` and CMake. Run `scripts/phase2_outcomes.sh --self-test` to exercise
+the evidence parser without querying GitHub.
+
+Locally, the lane keeps the fetched files in `build/vectors-full/vectors-full`.
+To keep them somewhere that survives a clean build, set the cache variable
+`NESTURBATOR_VECTORS_DIR` in an untracked `CMakeUserPresets.json`, for example
+a configure preset that inherits `vectors-full`. The files go in its
+`65x02-src` subdirectory, which the fetch replaces only when it holds the
+marker file `.nesturbator-vectors` that the fetch wrote; any other
+`65x02-src` there fails the fetch. Files fetched before the move to
+`65x02-src` remain in `<dir>/src`, about 1 GB that the fetch never deletes;
+delete that directory by hand. The fetch refuses a directory inside the
+source tree other than under `build/`, after resolving symbolic links. To
+move to a new upstream commit, regenerate `pins.txt` and the vector sample in one change. The
+command below prints the new total size, which replaces 1,081,529,097 in
+`tests/cmake/pins_check.cmake`:
+
+```sh
+cmake -DDIR=build/pins -DSOURCE_DIR=. -DGIT=git -DCOMMIT=<40-digit upstream commit> \
+      -DWRITE_PINS=tests/vectors/pins.txt -P tests/cmake/fetch_vectors.cmake
+```
+
+
+### Performance allow file
+
+`tests/perf/allow.txt` lists reviewed exceptions to the performance gate, which fails a ROM whose
+instructions per frame grow by more than 1.00%. A line reads
+`<rom> <max_percent_x100> <expires YYYY-MM-DD> <reason...>`, for example
+`nesteroids 350 2026-12-31 PPU timing fix, see #NN`. The cap is a percent times 100 (350 is
+3.50%), and the expiry is at most 60 days after the day the check runs; an expired line, a
+malformed line, a duplicate, an unknown ROM and an empty reason each fail with their own message.
+A line is reviewed in the pull request that adds it and is removed after that pull request
+merges. The summary table prints the ROM, the cap and the expiry of an applied line, never the
+reason. A base measurement that differs between its two runs prints `UNSTABLE` and fails whatever
+the allow file says. The `perf.gate_selftest.*` tests run the comparison on synthetic data and
+show that a slowdown above 1% fails without a line and passes with one.
+
+
+## Runner guide
+
+The runner options, output examples, stop behavior and exit values belong to
+the canonical [runner guide](runner.md). The checked MMC3 support summary stays
+in the README.
+
+
+## Libretro adapter checks
+
+The adapter contract details below are evidence summaries. The canonical native
+API and runner semantics remain in their owner guides above.
+
+## The libretro core
+
+`libretro/` builds the core that libretro frontends such as RetroArch load.
+The file is named `nesturbator_libretro` with no `lib` prefix:
+
+| OS | File |
+|---|---|
+| macOS | `nesturbator_libretro.dylib` |
+| Linux | `nesturbator_libretro.so` |
+| Windows | `nesturbator_libretro.dll` |
+
+The `ci` build puts it at `build/ci/libretro/`. It exports only the 25
+`retro_*` functions of `libretro.h`.
+
+With no content, the core shows the test card and sends silence: in RetroArch,
+use "Start Core", or launch it with `-L` and no content path. The public core
+returns mono signed 16-bit PCM. The libretro adapter duplicates each sample to
+left and right at 48000 Hz, preferring one batch callback per frame and using
+the single-sample callback only when no batch callback is registered. When both
+callbacks are registered, only the batch callback receives audio.
+`libretro.host` checks both callback paths against direct core PCM without an
+audio device.
+
+One library instance lives from `retro_init` to `retro_deinit`. Each
+`retro_load_game` first calls `nesturbator_unload_cartridge`, and
+`retro_unload_game` calls it, so a reloaded game starts exactly as a fresh one.
+`libretro.host` loads, unloads and reloads content without `retro_deinit` and
+requires the same frames and audio each time, the test card after an unload,
+and a NULL save span after a double unload or a rejected image. The
+`core.cartridge` check compares an unloaded instance with a fresh one, field by
+field and frame by frame.
+
+RetroArch's Reset (`retro_reset`) runs `nesturbator_reset()`, the console's
+soft reset, which keeps RAM and cartridge RAM; it does not unload or reload the
+game. With no content it changes nothing. `libretro.host` compares the frames
+after a reset with those of a direct-API instance given the same frames, reset
+and frames.
+
+The native frame call returns `NESTURBATOR_STOP_JAM` with its instance latched;
+its output buffers are unspecified on that stop. In a loaded libretro session,
+each `retro_run` still polls input and sends one video callback on JAM. It sends
+the adapter's last fully converted XRGB frame when that frame belongs to the
+running timeline, and black otherwise. The adapter sends no audio and does not
+reset, unload or terminate the session. The cached frame is tagged with the
+frame number that produced it and with a timeline identity taken from the saved
+state's CRC. A successful state load does not drop it: run-ahead loads a state on
+every tick, and the picture after a JAM stays frozen. It is shown while the
+loaded state has the cached frame's number and is the state that frame produced
+(or the jammed state reached from it); a state with another frame number, or a
+state of a diverged timeline such as a rewind with different input, shows black
+instead, never the other timeline's picture. Successful content load, reset and
+unload drop it; a refused state load keeps it. One limit follows: when a
+mispredicted run-ahead input (the real input differs from the speculative one)
+leads the real timeline into a JAM on the first real frame after a load, the
+frozen real frame was never kept and the adapter shows black. Keeping the
+identity costs one state save per converted frame, inside the adapter. The cache
+and its identity are not part of the native machine or serialized state.
+`libretro.host` checks first and repeated JAM callbacks in both audio modes,
+state restore and refusal, a diverged-timeline state, reset, recovery, and
+unload/reload transitions; `libretro.runahead` checks run-ahead across a JAM
+at every depth against an uninterrupted run.
+
+`retro_get_memory_data` and `retro_get_memory_size` return the battery span
+for `RETRO_MEMORY_SAVE_RAM`, the same span as
+`nesturbator_get_memory(inst, NESTURBATOR_MEMORY_SAVE_RAM, ...)`; every other
+id, no content and a cartridge without battery RAM give NULL and 0. The adapter
+fetches the span at each successful `retro_load_game`, drops it at unload (NULL
+and 0 afterwards) and does no file I/O: the host
+writes the `.srm` and copies it back in after `retro_load_game` and before the
+first frame. The `.srm` and the runner's `.sav` are the same raw bytes, so a
+save moves between RetroArch and `nesturbator-run --save-dir` by renaming it.
+`libretro.host` checks the span's size, that its address survives `retro_run`
+and `retro_reset`, and that its bytes equal those of a direct-API instance run
+for the same frames.
+
+`retro_serialize_size`, `retro_serialize` and `retro_unserialize` use the
+library's save state (`nesturbator_state_size`, `nesturbator_save_state`,
+`nesturbator_load_state`). The size is 0 with no content and for the test card,
+and otherwise the fixed size of the loaded board. Only a buffer of exactly that
+size loads, and a refused load changes nothing: the next frame and the next
+state equal those of a run that never made the call. The core sets no
+serialization quirks, ignores the savestate context and the audio/video enable
+flags, and keeps no state of its own for these calls, so the bytes are the same
+whatever the frontend reports. `libretro.serialize` checks this through the
+built module on five ROMs: the sizes, the exact write length, thirteen refused
+buffers, a load straight after `retro_load_game` and after `retro_reset`,
+every savestate context, and a load every frame on a battery ROM. A load
+counts once in `nesturbator_save_generation` when it changes the battery bytes
+and never when loading the same state again. `libretro.no_quirks` fails if
+`libretro/libretro.c` names the quirks command or the context query.
+`libretro/nesturbator_libretro.info` declares `savestate = "true"` with
+`savestate_features = "deterministic"`, the highest of RetroArch's levels
+(`basic`, `serialized` for rewind, `deterministic` for run-ahead). RetroArch
+applies it only when the core sits in its `cores` directory beside the info
+file. The level is backed by `libretro.serialize`, `libretro.runahead` and
+`core.state_runahead`, and configuring the tests fails if the info file claims a
+level whose tests are not registered. RetroArch uses the deterministic level for
+run-ahead and netplay. Run-ahead is proven by the simulated host and the
+RetroArch end-to-end run. The state format is fixed little-endian and
+byte-identical on all six platforms. Netplay itself has no end-to-end test here.
+
+`libretro.runahead` runs the built module as a run-ahead host: per displayed
+frame it runs the real frame, saves, runs one to three frames ahead, shows the
+last and loads the saved state, through the real `retro_*` entry points on seven
+ROMs and the two synthetic stress programs. Two fixed-seed input scripts change
+the buttons on every alignment of the cycle, including the frame right after a
+load. The shown frames, the real frames' audio, the last speculative frame's
+audio, the state bytes at every frame boundary and the final state must equal an
+uninterrupted run, and a repeat mode that gives the speculative frames the
+current input, as RetroArch does, must equal a two-instance library model. Four
+broken hosts (no load, a stale load, input one frame late, speculative audio in
+the real stream) run through the same comparison and each must differ.
+The same host matrix also runs an owned NMI-sensitive NROM image at depths 1 to
+3: the guest counter and event sequence, per-frame state, visible backdrop and
+PCM are checked across speculative restore and successive rewind boundaries.
+This is public frame-boundary evidence; the exact dot and edge cutpoints remain
+the separate internal tests described in the NMI state section.
+The registered `libretro.serialize` and `libretro.runahead` tests first copy each
+special ROM into their build directory, then compare that actual supplied file's
+SHA-256 with its exact row in `tests/roms/manifest.txt` before starting the host.
+A mismatch, missing row or duplicate row fails before host launch. The host assigns
+the battery and run-ahead roles only to the case-sensitive final filenames
+`M1_P128K_C128K_S8K.nes` and `nesteroids.nes`; `/` separates path components on all
+platforms, and `\` does so only on Windows. Parent directory text and similar
+filenames select no role. This identity check belongs to the registered CMake tests;
+a direct `libretro.host` call uses exact names but does not authenticate file bytes.
+`libretro.fixture_roles` covers parent names, prefix/suffix lookalikes, case variants,
+empty and null paths, trailing separators, paths with spaces and platform-specific
+backslashes. `libretro.fixture_identity` checks valid copies of both special files,
+corrupt copies that must fail before host launch, generic inputs under misleading
+parents, and distinct missing-row, duplicate-row and missing-file errors. The marker
+fixture retains its separate generator identity. The wrapper's argv probe recreates
+its owned output directory on every run and checks paths with spaces, semicolons
+and backslashes, so stale local capture files cannot satisfy it.
+`core.state_runahead` checks RetroArch's second-instance mode as a library
+property: one instance runs the real timeline, a second loads its state each
+frame and runs ahead, and the shown frames equal a single instance that saves,
+runs ahead and loads. Together with `libretro.serialize` they back the
+deterministic claim.
+
+`libretro/nesturbator_libretro.info` is the core information file. It goes in
+RetroArch's `info` directory beside the core in `cores`, and declares
+`supports_no_game = "true"`, which lets RetroArch start the core without
+content, and `libretro_saves = "true"`.
+
+The metadata checks require one canonical MMC3 support clause in each of the
+information file, README and public header; duplicate clauses are rejected,
+including a later contradictory claim. The same checks cover staged installs
+and the metadata extracted from each libretro archive.
+
+`libretro/libretro.h` is the libretro API header, copied unchanged from
+RetroArch; its source and licence are in
+[THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md).
+
+
+## Build-tree RetroArch checks
+
+Earlier local testing found that files fetched with curl or gh release download
+carried no macOS quarantine attribute; unzip, ditto and tar propagated the
+attribute when it was present on an archive. Browser downloads and loading a
+browser-downloaded core in RetroArch were not tested in that evidence. See the
+[source-bound host notes](../.planning/preparation/LIBRETRO-AND-RUNNER.md).
+
+## Try it in RetroArch (from a build)
+
+On an Apple Silicon Mac, install RetroArch from `RetroArch_Metal.dmg` on the
+RetroArch website, or with `brew install --cask retroarch-metal`. The
+`retroarch` cask is the Intel-only build, which cannot load an arm64 core.
+After `cmake --workflow --preset ci`, start the core with no content to see
+the test card:
+
+```sh
+/Applications/RetroArch.app/Contents/MacOS/RetroArch -L build/ci/libretro/nesturbator_libretro.dylib
+```
+
+RetroArch's picture is checked by the hosted `retroarch-e2e` CI job, not by a
+local test. It installs the pinned RetroArch 1.22.2 on a macOS runner, runs the
+core on the manifest-listed Nesteroids image, and compares RetroArch's
+screenshot with the runner's frame; this is where RetroArch is checked. A
+second step runs two RetroArch sessions of the Holy Mapperel SXROM ROM: the
+first writes `saves/M1_P512K_CR8K_S32K.srm` (32,768 bytes, `SAVEDATA` at 0x100)
+when RetroArch unloads the content, and the second loads it back. Each
+screenshot must equal the runner's frame for the same save state (the runner
+reads the first session's `.srm` as `.sav`), the two screenshots must differ,
+and exactly one `.srm` must exist at the end. A third step does the same for
+the MMC3 battery ROM `m4tkrom`, derived at build time from a manifest-listed
+Holy Mapperel ROM (MMC3 with battery and 8 KiB of save RAM): two sessions to
+frame 600, an 8192-byte `.srm` with `SAVEDATA` at 0x100, screenshots equal to
+the runner's frames and different from each other. `run_retroarch.cmake` takes
+`-DSAVE_SIZE=<bytes>` for the exact `.srm` size (default 32768); anything but
+a positive integer is an error.
+
+`run_retroarch.cmake` also has a state mode (`-DSTATE_ROM`, with `-DFRAME_INDEX`
+and `-DSTATE_TEMPLATE`) for the rewind and run-ahead claim. It copies the core
+into RetroArch's cores directory beside the `.info`, because RetroArch applies
+the `.info` savestate level only to a core found there, and loads that copy. The
+expected run-ahead lead comes from the `.info` under test (the
+`run_ahead_frames` value for `deterministic`, 0 for `serialized`), and the
+screenshot must show it: lane `state-base` shows the runner's frame 120, lane
+`state-ahead` shows frame 120 plus the lead. `frame_index` identifies each
+screenshot among the runner's frames. After every lane the mode checks that no
+thumbnail was written and that no second core instance was set up, and it fails
+on any RetroArch `[ERROR]` line, or any rewind or run-ahead warning, that is not
+in the measured allowlist `tests/retroarch/log_allowlist.txt`. Each allowlist
+entry names the savestate level it is valid for and carries a comment saying
+where it was measured on RetroArch 1.22.2.
+
+The official RetroArch v1.22.2 macOS release is
+[`RetroArch_Metal.dmg`](https://buildbot.libretro.com/stable/1.22.2/apple/osx/universal/RetroArch_Metal.dmg),
+universal for arm64 and x86_64, with measured SHA-256
+`81b79121ba26d539064ae13b4d0419a120c3d165afbe656cf5f5412b15fdb434`. The
+required `retroarch-e2e` job downloads this asset on `macos-15`, verifies its
+checksum and exact version, loads Nesteroids, and compares the nonempty frame-60
+screenshot pixel for pixel with the runner's output. It isolates RetroArch's
+first-run home under the build tree and retains the asset evidence, screenshot,
+and runner frame, and both save round trips' screenshots, runner frames and
+`.srm` files (`M1_P512K_CR8K_S32K.srm` and `m4tkrom.srm`), in the `retroarch-e2e-frames` artifact. Missing assets, changes
+to the real home directory, startup errors, and frame mismatches fail the
+required CI check. No manual screenshot or gameplay check is needed.
+
+The job's state step retains the existing auto-save/auto-load, game, battery,
+portable state and audio evidence. Its separate marker network session first
+retains two independently published, marker-validated startup captures and
+requires the second frame to advance strictly beyond the first. This proves the
+host is running before the one-shot pause toggle; a host that starts paused or
+stalls fails closed. The next two captures must then show the same frame before
+the original native anchor is saved. These four startup/pause screenshots are
+followed by the sixteen canonical displayed-state boundaries: five exact
+advances, one state-load-plus-advance probe, two post-load advances, resume until
+forward progress is observed and pause, forty individually paced rewind sends,
+three rewound advances, then a paused run-ahead toggle and load-plus-advance
+probe. The two startup captures are retained separately and are not progression
+boundaries; the full session sends 18 one-shot SCREENSHOT requests and records
+79 one-shot sends overall. Each of the sixteen canonical captures is decoded
+within absolute marker frames 4..10000 and checked by the same production prefix
+verdict; only a clean host exit after all boundaries earns the complete verdict.
+Original and rewound native state containers are retained and validated before
+their slots are reused.
+
+Each attempt has a unique owned tree and exclusive local command-port lock. The
+owned lock is released if attempt-tree or journal setup fails, preserving the
+setup failure status before any host or transport starts. The
+only retryable request is the read-only readiness query with its exact isolated
+save-directory reply; a complete exact reply is accepted after the owned receive
+child exits or is reaped. The 1-second `nc` timeout sits inside a 5-second child
+supervision slice, further capped by live operation and attempt time. Empty reads
+may retry within the 30-second readiness deadline; every action, state save/load,
+screenshot and QUIT request is one-shot. Monotonic timers bound the 30-second
+readiness and operation windows, 5-second artifact publication window,
+120-second attempt and 5-second cleanup reserve. After bootstrap, repeated clock
+samples and artifact identities use the already required `frame_index` tool's
+native runner clock and bounded FNV-1a reader. This avoids starting a Perl
+interpreter for every timed observation; artifact identities and the nonempty
+1 MiB cap remain identical. The readiness controls charge 100 ms to each old
+clock-interpreter path and still require full progression plus cleanup within
+25 seconds. The load-send control charges 1050 ms to the old interpreted hash
+path while retaining its 1-second publication window and exact send-failure
+reason. `retroarch.session_helpers` checks frozen FNV vectors, buffer and cap
+neighbors, invalid files and advancing monotonic samples. Cleanup claims its one-shot
+QUIT before writing the request. A failed request write emits
+`CLEANUP_REQUEST_WRITE_FAILED`, records zero transport sends when the journal
+is writable, and still reaps the owned host and releases its proven endpoint
+lock while preserving the original failure or signal exit status. On the portable
+synthetic host, the full sixteen-boundary session took 53.2 seconds, including every
+intermediate production verdict. The POSIX control runs the actual shell driver
+through the successful full sequence
+and reason-specific loss, duplication, stale/partial artifact, wrong-origin,
+host-death, stalled-child and deadline cases. Its stalled-read check measures
+elapsed time and confirms that the blocked child and owned host are reaped.
+The full matrix and the private `STATE_SESSION_CONTROL=interruption` selector
+share one TERM assertion path. That path invokes the genuine `grep -F` once,
+retains its numeric status and exact output bytes, and brackets it with binary
+journal snapshots whose device, inode and size come from each snapshot's open
+handle. `STATE_SESSION_CONTROL=interruption-capture-selftest` checks status 0,
+1 and controlled 2, recorder failures, replacement while the old handle stays
+open, and per-invocation event ownership before any fixture or driver work.
+It drives an exact foreign legacy owner-sidecar collision through the actual
+startup path and requires `LOCK_OWNER_UNAVAILABLE`, unchanged bytes and
+filesystem identity, and no host or transport launch. Proof mutants reject
+unsafe success, changed or removed foreign objects, wrong paths, premature
+launches, and unrelated precondition errors. The focused readiness selector
+runs only the delayed and stalled requests. The default controls use a
+source-bound actual-driver tracer: the prior cleanup reached its final owner
+check, then its actual `rm` removed a replacement foreign object. The corrected
+driver holds a non-listening TCP reservation at `127.0.0.1:55355` in FD 9,
+separate from RetroArch's UDP commands,
+re-enters the eight-argument shell driver in the same PID, and closes only that
+descriptor after owned processes are reaped. A held-port contender is refused;
+after close, a second actual driver can reserve the same exact port. Its
+bounded test rendezvous proves foreign-object preservation at the release
+boundary. Test runs record the bound address, port, PID and FD identity in the
+invocation's private `RA_DIR/lock-reservation.tsv`. Device and inode values are
+nonnegative observations; Darwin may report zero for both, so they establish
+consistency only. The harness independently observes inherited FD 9 before
+calling the real writer, binds its record to the actual driver and invocation,
+and collects each launched child once on assertion failure. Release-gate FIFO
+reads and writes share the remaining attempt and cleanup deadline, including
+partial lines. Legacy endpoint and owner
+paths are read-only refusal observations, not ownership authority.
+The harness derives its source root from the canonical path of its executing
+test script, not from the supplied driver or current working directory. It
+validates the canonical driver and fixed trace include before sourcing or
+launching work; the preflight rejects a copied driver/include pair before the
+include marker, host or transport can run. It repeats the four finalizer faults
+from the repository root, CTest binary directory and an owned cwd with spaces,
+checking wait 143, retained first reason, `cleanup_anomaly=0`, oracle `not-run`
+and exact-port re-entry after owned children are reaped.
+These nearby snapshots do not identify the bytes read by grep; the tests prove
+the recorder contract, not which bytes grep read. The shared capture boundary
+receives its owned session ID explicitly; the nested `capture` directory name
+does not select event identity. The offline selector calls that same boundary
+and final validator for two independent sessions stored under
+`session-A/capture` and `session-B/capture`, then rejects wrong expected IDs,
+mixed outer or inner rows, and another session's ledger. An invalid ID marks
+the recorder unusable while preserving the genuine assertion status. The two
+ten-row examples remain generic identity-only checks. Separately, the real
+interruption control passes its observed driver, host and harness PIDs to a strict
+21-row gate before the recorder gate. That gate requires the exact eight-field
+event order, role-specific PIDs, statuses and details, contiguous sequence,
+nondecreasing monotonic time and final newline; recorder rejection remains
+separate from the single genuine assertion decision. Its host-after-wait row
+retains kill-0 ambiguity instead of distinguishing permission denial from a
+live process. These identity checks add to the seven capture and 40 retained trace cases (36 original
+plus four lock controls). Eleven lifecycle and QUIT cases add coverage for stable
+first-two-row host/child PIDs, live observations requiring a PID, unavailable
+observations remaining admissible, cleanup-cleared final observations and
+row-two QUIT remaining unsent. Trace field 14 reports a validated held socket
+descriptor rather than path occupancy. Occupied, dangling, stale or replaced
+legacy paths cause conservative refusal and are never removed or renamed. The
+reservation coordinates cooperating local invocations that bind the same
+address and port. It does not claim same-UID isolation, control arbitrary
+processes that ignore the reservation, or guarantee host teardown after
+SIGKILL. The prior
+corrected candidate `0268d3450f64392911a187ce5c040847fda5f8f8` passed focused CI
+10/10, ASan 2/2 and normal CI 649/649 with three ZIPs. Its source remained
+unchanged at review candidate `7a6b1aaa87c9f8eb244aa1e901becc32352ecf4e`, whose
+independent review left five open findings. Those are immutable historical
+results, not acceptance of this correction. The authoritative candidate/result
+register for corrected-source gates and review is
+`.planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md`.
+The historical assertion and native timing causes remain unknown. Fresh
+native/exact-head acceptance and owner consent, plus actual release publication,
+remain separate work in Plans 07 and 08.
+The source-only `tests/retroarch/interruption_trace.sh` is shared by the real
+driver and harness. Before fixture or driver work, the offline selector runs the
+same writer and validator through handler entry, journal close and cleanup. Its
+16-field rows retain a positive PID while observed and use `unavailable` after
+cleanup clears the owned host or child PID; liveness uses that marker when
+`kill -0` cannot establish a live process. Admission binds the unique session
+invocation and separately observed driver PID, exact event order, numeric
+monotonic samples, statuses and field values. The real-control 21-row gate is
+separate from the generic ten-row identity examples and receives observed process
+IDs from the control path. The seven capture cases remain.
+The 36 original trace cases cover lifecycle admission, independent mutation
+failures, invocation separation and writer rejection paths. Four lock cases
+cover bound-descriptor occupancy through release, field-14-only admission
+mutants and legacy filesystem-occupancy observations; 11 lifecycle cases enforce the observed-PID,
+liveness, cleanup and QUIT ordering rules. These bounded offline recorder checks
+exercise 51 trace cases in total. Corrected-source gates and independent review are tracked in the
+authoritative Plan 17 candidate/result register at
+`.planning/phases/16-host-evidence-and-roadmap/16-17-SOURCE-ACCEPTANCE.md`.
+These checks do not explain the historical assertion, whose cause remains
+unknown.
+The journal writes each row in one Perl process, taking one monotonic observation
+for attempt elapsed and remaining time and applying the existing path
+substitutions in that same write. A stopped operation uses its captured terminal
+observation; an active operation uses the row observation, and an inactive row
+retains the last completed operation values. The focused
+`retroarch.session.readiness` control runs the delayed exact-reply and
+response-stall full prefixes once each, in that order. It reports fixture/setup,
+readiness-operation, later-prefix, driver+cleanup and enclosing CTest time
+separately: each enclosing total includes fixture generation, captures, native
+validation and cleanup, and is distinct from that case's readiness operation
+interval. The per-case timing line is emitted before the strict full-driver
+duration assertion, so an over-bound failure keeps its available phase timings,
+driver status and sanitized reason; phases with no evidence are reported as
+unavailable rather than zero. Generated config and host logs are retained only
+in sanitized form. Before those prefixes, the registered readiness test checks
+the reporting contract with synthetic over-bound measurements. A local UDP send
+is not proof of host receipt; the retained images and native anchors are checked
+by the shared progression verdict.
+`PREFIX_OK` qualifies a declared continuation only; complete success requires
+all sixteen boundaries and terminal exit zero. Fault injection wraps only
+prescribed one-shot mutations; readiness reads use the real local `nc`. The
+wrapper supervises and reaps its own send child on interruption. This is bounded
+evidence for the pinned local-host run, not a guarantee of UDP delivery.
+
+The focused prefix profiler found three separately validated prefix processes
+per readiness attempt. In its single baseline pair they took about 0.99–1.01 s
+in ci and 1.97–1.99 s in asan. The validator retains a 150-frame replay when
+the displayed image is the native anchor, because the framebuffer is not saved
+in the state. For a later display frame, it now loads the validated anchor
+before advancing; that removes the overwritten pre-load replay while keeping
+each artifact decode and native check. In the candidate asan trace, the third
+prefix process changed from 962/968 ms to 775/741 ms for delayed/stalled cases.
+The aggregate prefix totals and enclosing case timings varied, and this local
+single pair does not show an overall readiness improvement. Native run
+`38764197994` separately recorded the Intel response-stall at 25946 ms and the
+ASan delayed case at 26269 ms against the strict 25000 ms bound. Those native
+subintervals and causes are unknown; only a fresh exact-head hosted run can
+establish whether the bounded local reduction resolves them.
+
+The portable `retroarch.marker.qualify` control qualifies an owned generated NROM
+counter. It
+runs every absolute library frame 4 through 10000 (9997 frames), checks every
+pixel of all counter cells and complementary guards, and measures the guest
+counter's mapping to the absolute frame, including startup latency. The interval
+is the permitted absolute capture, rewind and display-lead excursion; wall time
+alone cannot bound a host's frame rate. Evidence outside the qualified interval
+fails. The marker is near the
+bottom of the picture so instruction-boundary drift cannot split it in this
+window. Generated ROMs and calibration records stay in the build tree.
+
+The required pinned-host `HOSTED_MARKER=ON` invocation gives generated marker
+content its own state/network session and identity after checking the released
+RetroArch asset pin. It repeats qualification on that content, then runs the
+production session driver and one final production verdict over all sixteen
+boundaries. The separate Nesteroids game, deterministic auto-state and battery
+lanes remain in the hosted job; exact command progression no longer comes from
+set-valued screenshot chains.
+
+The host qualification checks distinct base/run-ahead and auto-save/load pictures,
+measures the display lead, and retains the native origin at frame 150. Its narrow
+reader accepts only the measured uncompressed RetroArch 1.22.2 `RASTATE` version
+1 envelope: one `MEM ` chunk of the exact native size, zero padding to eight
+bytes and one zero-length `END ` chunk, with no trailer. The public loader on an
+isolated same-content instance validates the payload; the oracle additionally
+binds current format, behavior revision, absolute origin and the next marker.
+SHA-256 identities bind supplied/generated content, copied core, metadata and
+each host configuration. A missing image/state, crash or failed launch fails
+the host gate. This bounds displayed progression and native origins; it does not
+prove every committed machine field or speculative audio. Portable whole-state
+and audio tests retain those separate proofs.
+
+`frame_index --marker-verdict-prefix ROM CALIBRATION EVIDENCE` applies the
+same versioned, bounded relation verdict to a declared prefix of decoded host
+images. It binds the record to the exact marker ROM and measured calibration,
+checks each image hash and marker, and validates its retained native anchor on
+an isolated same-content instance. `PREFIX_OK` means only that this observed
+prefix is consistent with the declared continuation; it is not a complete
+session verdict. `--marker-verdict` requires all prescribed boundaries and a
+clean terminal host exit. The evidence format preserves paths with spaces and
+rejects ambiguous frame candidates instead of selecting whichever candidate
+makes a relation fit. Its 16 boundaries keep one original anchor across two
+pause captures, five advances and the load/post-load/resume branch, and one
+rewound anchor across the coarse rewind, three advances and run-ahead probe.
+Load-plus-probe records two sends; the rewind records forty paced sends and
+requires at least twenty frames of backward movement. The run-ahead display
+lead is recorded separately. `retroarch.progression.controls` checks this
+complete path and 40 independent reason-specific controls, including the
+same-image A,A,B ambiguity case. `--marker-selftest WORK --fixtures` leaves
+build-owned marker images, calibration and native anchors for offline controls.
+
+`retroarch.marker.controls` runs 36 independently specified cases: first/last
+frames, startup and end plus one, counter carry, zero/one/two steps and duplicate
+identity, invalid colors and partial cells/guards, image geometry, bounded
+container length/header/padding/end checks, wrong native content/format/checksum,
+and native-valid stale revision and same-ROM wrong origin. Every negative must
+reach its named terminal reason. CRC-valid semantic negatives first pass the
+public loader, so a parse error or crash cannot masquerade as their rejection.
+Unrelated background RGB, top-down 24-bit BMP and bottom-up 32-bit BMP with
+unused alpha preserve marker identity. The required hosted
+progression gate retains its full qualification and owned attempt tree on success
+and failure for seven days in `retroarch-marker-progression`, alongside the
+unchanged game, battery and deterministic auto-state artifacts. Dropped and
+doubled real FRAMEADVANCE sends must reach the production `PROGRESSION` verdict;
+a branch bound to the other native-valid origin must reach `ORIGIN`. Each
+negative follows valid screenshot and native-anchor prerequisites, so a host
+launch or parsing failure cannot count as semantic evidence.
+
+
+## Disposable progress fixtures
+
+The separate scene report and cold/native checkpoint replay procedure is in the
+[scene reproduction guide](reproduction.md). Its checkpoint examples use the
+owned neutral NMI fixture and do not consume personal saves or checkpoints.
+
+The bounded player walkthrough in [`docs/progress.md`](progress.md) uses
+`runner.save_rom` to generate its battery cartridge and the existing
+manifest-listed `tests/roms/dabg.nes` state fixture. A unique CMake build tree
+and each case's CTest-owned `save_work/<case>` or `state_work/<case>` directory
+keep generated saves/states separate from user paths. The runner's
+`runner.state.reject_format` case mutates a newly generated native payload and
+expects the runner's format refusal; it does not model a RetroArch disk state
+or its automatic-load behavior.
+
+The independent `core.state_reject` check compares the whole instance and save
+generation after a refused load. `core.state_generation` checks matching,
+changed and refused loads on battery-backed memory. Those tests and source
+oracles remain distinct from the focused runner walkthrough; neither result
+qualifies cross-build SRAM reuse or incompatible host-container recovery. The
+host checks document only their named frontend/build/content scenarios.
+
+For controller evidence, `core.controller` verifies that the two logical
+controller ports shift their button state independently. This does not test
+RetroArch's device-to-port assignment. The 2026-10-30 real-launch readback
+records P1 assigned and P2 unused after a single-controller correction; the
+earlier successful collection-launch input observation is only a smoke check.
+These observations do not cover every button, reconnect, handheld fallback,
+or every frontend/configuration. See [Input and Controls](https://docs.libretro.com/guides/input-and-controls/)
+for RetroArch's current Device Index menu guidance.
+
+## Test fixtures and source policy
+
+## ROMs
+
+This repository contains no commercial ROM or BIOS data and never will. You
+supply your own legally obtained game images. See
+[ASSET_POLICY.md](../ASSET_POLICY.md).
+
+Holy Mapperel's mapper 1, 2, 3, 4 and 7 test ROMs under `tests/roms/hm/` are zlib
+licensed, byte-identical to the v0.02 release, and listed in
+`tests/roms/manifest.txt`; their licence is in
+[THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md).
+
+The CPU test data under `tests/vectors/` is MIT data from
+[SingleStepTests 65x02](https://github.com/SingleStepTests/65x02): the sample
+`65x02-sample.n65v` and three small JSON fixtures. Each is listed in
+`tests/roms/manifest.txt` with its source, pin, licence and SHA-256, and its
+licence notice is in [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md).
+
+### Regenerating the vector sample
+
+The sample holds the first 100 tests of each of the 256 upstream files. To
+rebuild it at an upstream commit, from a configured `ci` build:
+
+```sh
+cmake -DCOMMIT=<40-digit upstream commit> -DVECCONV=build/ci/tools/vecconv/vecconv \
+      -DWORK=build/ci/vectors-regen -DOUT=tests/vectors/65x02-sample.n65v \
+      -P tests/cmake/vectors_regen.cmake
+```
+
+It downloads the first 64 KiB of each file (about 16 MB), converts 100 tests
+from each with `vecconv`, joins the chunks in opcode order, and prints the
+file's size, its SHA-256 and the line for `tests/roms/manifest.txt`. Moving to
+a new upstream commit is a change of its own, with the new manifest line.
+## How the code is written
+
+From hardware documentation and public test ROMs, with AI coding assistants,
+and without copying from other emulators. See [PROVENANCE.md](../PROVENANCE.md).
+
+
+## Package guide
+
+The exact release archive inventory, build-tree package checker, release marker
+ownership, publication order and attestation verification are in the
+[release guide](releases.md). The archive layout has not changed as part of this
+documentation migration.

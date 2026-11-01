@@ -12,6 +12,9 @@ files:
   - tests/core/test_cartridge.c:324
   - tests/runner/state_mutate.c:1
   - tests/fuzz/state_loader.c:14
+audit_acknowledged:
+  milestone: v5
+  at: 2026-10-30
 ---
 
 ## Problem

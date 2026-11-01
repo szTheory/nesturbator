@@ -54,7 +54,29 @@ extern "C" {
 #define NESTURBATOR_ABI_VERSION 1
 
 /* Raised whenever emulated behaviour changes the frame or audio output for
-   the same inputs. Revision 9 retains an accepted IRQ at the instruction's
+   the same inputs. Revision 14 reconnects undriven reads to the external bus
+   after $4015 selection ends, completes imminent/armed explicit refills, and
+   keeps a just-fetched byte unavailable to the immediate next output edge.
+   That last ordering is inferred from the pinned early-G looping sweep,
+   not a universal silicon timing claim (HWC.19). Its synchronous bus-local
+   readiness adds no saved field; native format 6 and ABI 1 are unchanged.
+   Revision 13 retains the one-cycle abort after an explicit
+   or implicit stop two/three clocks before reload. A write suppresses it,
+   while ordinary sample requests still retry. The selected early RP2A03G
+   model omits the later-G/H unexpected reload; the pinned ROM still accepts
+   both revision-dependent outcomes (HWC.01/19).
+   Revision 12 separates internal CPU and external data latches.
+   DMC GET selects internal $4015-$4017 using parked core A15:5 and sample
+   A4:0. Status reads preserve external data; controllers merge its upper bits
+   (HWC.01/19). The existing per-cycle controller-clock profile is retained;
+   pinned test coverage does not establish DMC shift-register input.
+   Revision 11 overlaps DMC halt/dummy/alignment with OAM
+   accesses. DMC sample GET wins a collision; OAM resumes on GET without losing
+   a byte. Interior collisions add two cycles; final windows can add one or
+   three (HWC.01). Revision 10 keeps the DMC output bit clock running through
+   eight-clock silent cycles. A later sample waits for that cycle boundary;
+   $4015 re-enables preserve the phase (HWC.23, Output Unit).
+   Revision 9 retains an accepted IRQ at the instruction's
    hardware poll point, using the old I flag for CLI, SEI and PLP. Branches
    preserve their first poll across later cycles and add the page-cross poll;
    a captured acceptance survives later source clearing until entry arbitration.
@@ -78,27 +100,32 @@ extern "C" {
    an NMI only when bit 7 changes from 0 to 1 while the vblank flag is set, so a
    game that rewrites $2000 inside its NMI handler no longer re-enters NMI.
    Revision 5 was the PPU fetch pipeline. */
-#define NESTURBATOR_BEHAVIOUR_REVISION 9
+#define NESTURBATOR_BEHAVIOUR_REVISION 14
 
 /* The layout of the bytes nesturbator_save_state writes, and the only layout
    nesturbator_load_state reads. Any other version is refused with
    NESTURBATOR_ERR_STATE_FORMAT; there is no converter. Before the first release that contains
    save states it stays 1 and the layout may change. After that release, any change to the state
    bytes (a field added, removed, reordered or resized, or its meaning changed) raises it in the
-   same commit. Version 3 records the CPU's sampled NMI-line, captured-request and instruction-poll
-   histories, retained close-edge IRQ level, accepted IRQ history, and the CPU entry origin,
-   next unperformed bus action, selected vector pair and partial vector-low byte; version 1 and 2
-   states are refused with NESTURBATOR_ERR_STATE_FORMAT. Completed interrupt-entry actions form
-   internal load cutpoints; ordinary instruction and frame execution drains a restored entry before
-   returning to the next instruction boundary. Public frame calls remain synchronous and do not
-   expose a mid-entry stop. Derived sprite eligibility is rebuilt on load;
-   the first CPU clock also reconciles restored synthesis history with channel
-   levels, even without an oscillator event. These caches add no saved bytes.
-   A fix that changes
-   only emulated output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a
-   load does not enforce. Raising it is not a breaking change to the C interface and leaves
+   same commit. Version 6 adds the one-shot abort countdown, preserving a
+   halt due in one to three future CPU clocks; formats 1 through 5 are refused
+   without conversion. Version 5 added the internal CPU data latch, preserving external
+   held data independently; formats 1 through 4 are refused without conversion.
+   Version 4 recorded the DMC output silence flag and its continuous
+   bit-cycle position, including silent cycles; version 3 states are refused
+   rather than guessing the missing phase. Version 3 records the CPU's sampled NMI-line,
+   captured-request and instruction-poll histories, retained close-edge IRQ level, accepted IRQ
+   history, and the CPU entry origin, next unperformed bus action, selected vector pair and partial
+   vector-low byte; version 1 and 2 states are refused with NESTURBATOR_ERR_STATE_FORMAT. Completed
+   interrupt-entry actions form internal load cutpoints; ordinary instruction and frame execution
+   drains a restored entry before returning to the next instruction boundary. Public frame calls
+   remain synchronous and do not expose a mid-entry stop. Derived sprite eligibility is rebuilt on
+   load; the first CPU clock also reconciles restored synthesis history with channel levels, even
+   without an oscillator event. These caches add no saved bytes. A fix that changes only emulated
+   output raises NESTURBATOR_BEHAVIOUR_REVISION instead, which a state records but a load does not
+   enforce. Raising it is not a breaking change to the C interface and leaves
    NESTURBATOR_ABI_VERSION as it is. */
-#define NESTURBATOR_STATE_FORMAT_VERSION 3
+#define NESTURBATOR_STATE_FORMAT_VERSION 6
 
 /* Result of a call. Values are fixed and only appended. */
 enum nesturbator_status {
@@ -239,7 +266,9 @@ typedef struct nesturbator_info {
  * `$4014` queues an OAM DMA. The next CPU read is
  * halted while it reads one 256-byte page through the normal bus and writes
  * OAM starting at `$2003`'s address; it stalls the CPU for 513 or 514 cycles
- * by cycle parity while PPU time continues.
+ * by cycle parity while PPU time continues. DMC no-access phases can overlap
+ * OAM; a DMC GET takes priority and OAM retries the unconsumed source on GET.
+ * The usual overlap adds two cycles, with one/three-cycle final windows (HWC.01).
  *
  * Audio: mono signed 16-bit samples at the info sample rate. The libretro
  * adapter duplicates each sample into left and right channels, preferring its

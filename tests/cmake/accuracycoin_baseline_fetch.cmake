@@ -180,6 +180,7 @@ function(run_fetch expected_reason)
     if(DEFINED EXPECTED_SOURCE AND EXPECTED_SOURCE STREQUAL "canonical-baseline")
       file(STRINGS "${fixture_source_repo}/tests/accuracy/scoreboard.txt" source_rows)
       set(expected_projection "")
+      set(expected_projection_count 0)
       foreach(line IN LISTS source_rows)
         string(REPLACE "\t" ";" fields "${line}")
         list(GET fields 0 key)
@@ -187,8 +188,10 @@ function(run_fetch expected_reason)
         if(status STREQUAL "pass")
           list(GET fields 2 raw)
           string(APPEND expected_projection "${key}\tpass\t${raw}\t-\t-\n")
+          math(EXPR expected_projection_count "${expected_projection_count} + 1")
         endif()
       endforeach()
+      set(EXPECTED_BASELINE_ROWS "${expected_projection_count}")
       file(WRITE "${fixture_root}/expected-pass-scoreboard.txt" "${expected_projection}")
       file(SHA256 "${fixture_root}/expected-pass-scoreboard.txt" expected_projection_sha)
       if(NOT expected_projection_sha STREQUAL fetched_sha)
@@ -224,14 +227,14 @@ function(run_fetch expected_reason)
       foreach(expected_row IN ITEMS
           "canonical_scoreboard_schema=2"
           "canonical_scoreboard_rows=146"
-          "canonical_pass_rows=119"
+          "canonical_pass_rows=${expected_projection_count}"
           "canonical_scoreboard_sha256=${canonical_source_sha}"
           "inventory_rows=151"
           "inventory_scored_rows=146"
           "inventory_draw_rows=5"
           "scoreboard_schema=1"
-          "scoreboard_rows=119"
-          "scoreboard_denominator=119")
+          "scoreboard_rows=${expected_projection_count}"
+          "scoreboard_denominator=${expected_projection_count}")
         string(FIND "${metadata_contents}" "${expected_row}${metadata_newline}" expected_offset)
         if(expected_offset EQUAL -1)
           message(FATAL_ERROR "canonical fetch metadata omits expected row '${expected_row}': ${metadata_contents}")
@@ -253,10 +256,8 @@ create_fixture(canonical_current canonical canonical TRUE)
 set(fixture_root "${WORK}/canonical_current")
 set(EXPECTED_SOURCE canonical-baseline)
 set(EXPECTED_PIN 6bee919529289c555803b612b8c9e4f7eaaeeabb)
-set(EXPECTED_BASELINE_ROWS 119)
 run_fetch("PASS")
 unset(EXPECTED_PIN)
-unset(EXPECTED_BASELINE_ROWS)
 
 create_fixture(canonical_hash_mismatch canonical canonical TRUE)
 set(fixture_root "${WORK}/canonical_hash_mismatch")

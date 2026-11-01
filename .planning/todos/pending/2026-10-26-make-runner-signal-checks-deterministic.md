@@ -9,6 +9,9 @@ files:
   - tests/runner/test_signal.c:280
   - tests/runner/test_signal.c:493
   - tests/CMakeLists.txt:233
+audit_acknowledged:
+  milestone: v5
+  at: 2026-10-30
 ---
 
 ## Problem

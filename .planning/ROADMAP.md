@@ -6,227 +6,141 @@
 - ✅ **v2 Most of the library plays** — Phases 5–10 (shipped 2026-10-11) — [archive](milestones/v2-ROADMAP.md)
 - ✅ **v3 Save states and rewind** — Phases 11–15 (shipped 2026-10-13) — [archive](milestones/v3-ROADMAP.md)
 - ✅ **v4 Measured NTSC accuracy and robustness** — Phases 16–18 (shipped 2026-10-24) — [archive](milestones/v4-ROADMAP.md)
-- 🚧 **v5 NMI, VBlank and sprite-0 timing** — Phases 19–21 (scope approved 2026-10-25)
+- ✅ **v5 NMI, VBlank and sprite-0 timing** — Phases 19–21 (shipped 2026-10-30; package publication pending) — [archive](milestones/v5-ROADMAP.md)
+- ✅ **v6 Player-ready NES and reproducible feedback** — Phases 22–23 (planning milestone shipped 2026-10-31; no package release) — [archive](milestones/v6-ROADMAP.md)
+- 🚧 **v7 Remaining DMA accuracy failures** — Phase 24 (roadmap awaiting approval)
+
+The v5/v6 entries retain their closeout observations. Release PR #56 later
+published v0.1.12; current release evidence is reconciled in
+[PROJECT.md](PROJECT.md) and [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+
+## Overview
+
+v7 corrects the five remaining selected NTSC DMA failures for the declared
+RP2A03G target at AccuracyCoin pin `6bee919529289c555803b612b8c9e4f7eaaeeabb`.
+Every distinct correction needs an independent bus-cycle explanation and an
+owned regression fixture. Existing protected passes, deterministic output,
+performance limits and native state continuation are part of the same delivery.
+The four approved requirements form one coherent phase at coarse granularity;
+plans may separate demonstrated causes after tracing, without presuming that
+the five failing rows share a cause.
 
 ## Phases
 
-<details>
-<summary>✅ v1 NROM games with sound (Phases 1–4.2) — SHIPPED 2026-10-09</summary>
+- [ ] **Phase 24: Correct remaining NTSC DMA behavior** — Resolve the five selected DMA failures with causal evidence, protected results and compatible state continuation.
 
-- [x] Phase 1: A test frame in RetroArch (12/12 plans) — completed 2026-10-03
-- [x] Phase 2: The CPU matches the public vectors (11/11 plans) — completed 2026-10-06
-- [x] Phase 3: A real game in RetroArch (15/15 plans) — completed 2026-10-09
-- [x] Phase 4: Sound (4/4 plans) — completed 2026-10-09
-- [x] Phase 4.1: Close gap: GAME-01 — initialize accepted iNES trainers (1/1 plan, INSERTED) — completed 2026-10-09
-- [x] Phase 4.2: Close gap: SND-01 — deliver single-sample libretro audio (1/1 plan, INSERTED) — completed 2026-10-09
-
-</details>
-
-<details>
-<summary>✅ v2 Most of the library plays (Phases 5–10) — SHIPPED 2026-10-11</summary>
-
-- [x] Phase 5: Tune-up and v1 debt (8/8 plans) — completed 2026-10-10
-- [x] Phase 6: Mapper seam and PPU fetch pipeline (2/2 plans) — completed 2026-10-10
-- [x] Phase 7: UxROM, CNROM and AxROM (4/4 plans) — completed 2026-10-10
-- [x] Phase 8: MMC1 and battery saves (8/8 plans) — completed 2026-10-10
-- [x] Phase 9: MMC3 (12/12 plans) — completed 2026-10-10
-- [x] Phase 10: Close-out and boot-to-play (7/7 plans) — completed 2026-10-11
-
-</details>
-
-<details>
-<summary>✅ v3 Save states and rewind (Phases 11–15) — SHIPPED 2026-10-13</summary>
-
-- [x] Phase 11: Tune-up and state readiness (4/4 plans) — completed 2026-10-11
-- [x] Phase 12: Save states in the library (10/10 plans) — completed 2026-10-12
-- [x] Phase 13: Rewind and run-ahead in RetroArch (8/8 plans) — completed 2026-10-12
-- [x] Phase 14: Runner process contract (8/8 plans) — completed 2026-10-12
-- [x] Phase 15: Speed and close-out (8/8 plans) — completed 2026-10-13
-
-</details>
-
-<details>
-<summary>✅ v4 Measured NTSC accuracy and robustness (Phases 16–18) — SHIPPED 2026-10-24</summary>
-
-- [x] Phase 16: Host evidence and roadmap (13/13 live plans) — completed 2026-10-23
-- [x] Phase 17: Complete pinned conformance baseline (4/4 plans) — completed 2026-10-24
-- [x] Phase 18: Execution and lifecycle robustness (4/4 plans) — completed 2026-10-24
-
-</details>
-
-### v5 — NMI, VBlank and sprite-0 timing
-
-A game's frame loop and status-bar splits time out exactly as they do on an NTSC console. Eleven AccuracyCoin rows at pin `6bee919` move to pass; the 101 rows that pass today keep passing. Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
-
-- [x] **Phase 19: JAM reporting and sprite-0 hit** - AccuracyCoin names a guest JAM, and sprite-0 hit lands on the console's line (completed 2026-10-25)
-- [x] **Phase 20: NMI line and VBlank flag** - `$2002` reads and `$2000` writes around VBlank give the console's flag and NMIs, and save states carry the new latches (completed 2026-10-28)
-- [x] **Phase 21: Interrupt latency and hijack** - IRQs start on the console's instruction and an NMI takes over BRK or IRQ as on the console (completed 2026-10-29)
+Phase numbering continues from v6's Phase 23. Completed phases remain in the
+milestone archives above; no future product proposal becomes execution scope.
 
 ## Phase Details
 
-Each phase merges by pull request into a green `main` and is released automatically. Behaviour changes land with tests in `cmake --workflow --preset ci`, README and `nesturbator.h` comments. One NMI-line and interrupt-poll model serves every row; no row or title gets a special case, the 1800-frame AccuracyCoin cap stays, and no blargg ROM is committed.
+### Phase 24: Correct remaining NTSC DMA behavior
 
-### Phase 19: JAM reporting and sprite-0 hit
-
-**Goal**: A developer reading an AccuracyCoin run sees a guest JAM named as a JAM, and a game's sprite-0 status-bar split lands on the console's line.
-**Depends on**: Phase 18 (JAM stop contract, AccuracyCoin baseline at `6bee919`)
-**Requirements**: JAM-01, JAM-02, SPR-01, SPR-02
+**Goal**: Hosts using the library, runner or libretro adapter receive source-supported NTSC DMA behavior for the five selected failures, with existing passing behavior and deterministic continuation preserved.
+**Depends on**: Phase 23 (completed); inherits Phase 21's DMC retry/open-bus repair without treating it as completion of this cluster.
+**Requirements**: DMA-01, DMA-02, DMA-03, DMA-04
 **Success Criteria** (what must be TRUE):
-  1. A developer running `cmake --workflow --preset ci` sees an AccuracyCoin run that stops on a guest JAM reported as `guest-jam`, and a control that drops the JAM attribution fails.
-  2. `libretro.runahead` shows that run-ahead across a JAM gives the same picture and silence as running without run-ahead.
-  3. The `Sprite 0 Hit behavior` and `Arbitrary Sprite zero` rows report pass in `accuracy.scoreboard`, within the 1800-frame cap, and owned `ppu.sprites` tests show the hit on its dot and the first sprite evaluated acting as sprite 0 at any OAM index.
-  4. Every row that passes on `main` today still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane; any frame hash the sprite-0 fix moves is re-pinned in the same change with its reason.
-
-**Plans**: 6/6 plans complete
-**Wave 1**
-- [x] 19-01-PLAN.md — AccuracyCoin names a guest JAM in the execution stage (`guest-jam`, `jam_frame`, `accuracycoin.jam`)
-
-**Wave 2** *(blocked on Wave 1 completion)*
-- [x] 19-02-PLAN.md — guest JAM named in earlier stages and strict mode; tracer pin, README, collector and attribution-dropped controls
-
-**Wave 3** *(blocked on Wave 2 completion)*
-- [x] 19-03-PLAN.md — run-ahead across a JAM keeps the frozen picture and silence (adapter cache tag with timeline identity, `libretro.runahead` JAM image)
-
-**Wave 4** *(blocked on Wave 3 completion)*
-- [x] 19-04-PLAN.md — owned sprite tests first, then the OAMADDR reset with its campaign diff
-
-**Wave 5** *(blocked on Wave 4 completion)*
-- [x] 19-05-PLAN.md — evaluation from OAMADDR with the dot-66 identity, driver re-target, behaviour revision 7
-
-**Wave 6** *(blocked on Wave 5 completion)*
-- [x] 19-06-PLAN.md — re-record scoreboard and activation baseline, D-11 guard, correct the research record
-
-**Canonical refs**: [CONFORMANCE.md](preparation/CONFORMANCE.md), [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [LIBRETRO-AND-RUNNER.md](preparation/LIBRETRO-AND-RUNNER.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/FEATURES.md](research/FEATURES.md) (G5, JAM), [research/PITFALLS.md](research/PITFALLS.md) (#8, #9, #15, #16), [research/SUMMARY.md](research/SUMMARY.md) (steps 0–2, 7)
-
-Note: the basic hit already worked; the `0x06` sprite rows were guest re-run artifacts of a stale OAMADDR (never cleared during rendering, evaluation started at slot 0), fixed in behaviour revision 7 (D-01/D-02). Sprite-0 lands in its own pull request, before the NMI model changes, so a moved row is attributable.
-
-### Phase 20: NMI line and VBlank flag
-
-**Goal**: A game that reads `$2002` or toggles NMI around the start or end of VBlank gets the console's flag value and exactly the console's NMIs, and its save states hold through that race.
-**Depends on**: Phase 19 (sprite-0 settled so NMI regressions are attributable)
-**Requirements**: NMI-01, NMI-02, KEEP-02, KEEP-03
-**Success Criteria** (what must be TRUE):
-  1. The `$2002 flag timing`, `NMI Timing`, `NMI Suppression`, `NMI Control`, `NMI at VBlank end` and `NMI disabled at VBlank` rows report pass in `accuracy.scoreboard`, and owned `tests/ppu` reproducers for the `$2002`/`$2000` dots around VBlank start and end, written before the fix with expected values from NESdev and AccuracyCoin error codes, pass in `ci`, including the extra NMI from a `$00` then `$80` write that Bases Loaded II relies on.
-  2. A developer running `cmake --workflow --preset ci` on any of the six platforms gets identical frame and audio hashes; each hash that moved was re-pinned in the change that moved it, with its reason beside it.
-  3. A state saved on the VBlank-set dot, the VBlank-clear dot or between an NMI edge and its poll loads back to the same run in `core.state_fork.*`, `runner.state.*` and `libretro.runahead`; `state.format_pin` shows format version 2, and a format 1 state is refused with the existing version error.
-  4. Every row that passes on `main` today, including Phase 19's sprite-0 rows, still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
-
-**Plans**: 12/12 complete; hosted content accepted; independent re-verification passed 32/32
-
-Plans:
-- [x] 20-12-PLAN.md — final fe70d61 CI/Nightly and live source-bound availability with retained raw metadata passed; content acceptance stays in 20-10
-
-**Wave 1**
-- [x] 20-01-PLAN.md — owned absolute-dot, real-bus and guest NMI reproducers with exact pinned table oracles
-
-**Wave 2** *(blocked on Wave 1 completion)*
-- [x] 20-02-PLAN.md — measured split status/line capture with coherent state format 2 and behavior revision 8
-
-**Wave 3** *(blocked on Wave 2 completion)*
-- [x] 20-03-PLAN.md — instruction-specific NMI polling, complete-table alignment and causal evidence
-
-**Wave 4** *(blocked on Wave 3 completion)*
-- [x] 20-04-PLAN.md — exact enabled-NMI set/clear/edge state continuation and rejection controls
-
-**Wave 5** *(blocked on Wave 4 completion)*
-- [x] 20-05-PLAN.md — NMI-sensitive core, runner and libretro rewind/run-ahead replay
-
-**Wave 6** *(blocked on Wave 5 completion)*
-- [x] 20-06-PLAN.md — six-target gate, final baseline/hash provenance and local/hosted evidence ledger
-
-**Wave 7** *(gap closure; consumes completed Wave 6)*
-- [x] 20-07-PLAN.md — changing-sprite split-decoder witness and WR-01/WR-02 contract corrections
-
-**Wave 8** *(gap closure; blocked on Wave 7)*
-- [x] 20-08-PLAN.md — equal-tick full-key controls and combined frame-zero/empty-PCM/nonzero-history replay
-
-**Wave 9** *(gap closure; blocked on Wave 8)*
-- [x] 20-09-PLAN.md — locally tested hosted collector, artifact retention and delivery preparation with ordinary complete summary
-
-**Wave 10** *(gap closure; consumes completed Wave 9)*
-- [x] 20-11-PLAN.md — repair archive normalization and timestamped plain-text job-log evidence; prove collect/validate and metadata-only availability with offline adapter controls
-
-**Wave 11** *(gap closure; consumes completed Wave 10)*
-- [x] 20-12-PLAN.md — final fe70d61 CI/Nightly and live source-bound availability with retained raw metadata passed; content acceptance stays in 20-10
-
-**Wave 12** *(gap closure; consumes completed Wave 11)*
-- [x] 20-10-PLAN.md — real source-bound hosted content accepted; six-platform/protected/performance/conformance/host gates pass
-
-20-09 preparation, historical 0039 availability and failed afba1d0/b343083 candidates remain preserved in 20-DELIVERY.md. Initial candidate `fe70d619d6a3cf7b80ed1867ff9faf4c7c9053b1` has historical successful CI `40700458574/1`, Nightly `40700458462/1` and 417-input acceptance (`a08da046cedeecbdd28227cc53d54e3d3e7dff2a93ee88aab9ead67da47bf61c`). Plans 20-12 and 20-10 remain complete.
-
-After the native host-session helper and Windows binary-fixture repairs, current candidate `7848cc8980e8e96a1fc6f5ec223a9783fb7ef19d` / tested merge `716e8d49c80602e3524b9348881ddf171fe33a2f` passed fresh CI `40748417351/1` (18/18) and Nightly `40740261760/1` (seven work jobs). Production collection/current-checkout validation and an independent 418-entry mode/blob comparison passed for effective source `87ee34cf7b5ba45d87e748ab69b69f929a7fe7be96c02ed044bf9b1394f93202`. Fresh local CI passed 688/688 and generated all three packages. All four requirements and independent verification passed 32/32 with a refreshed source fingerprint; see 20-REVERIFICATION-EVIDENCE.md. PR #59 remains open and ready for review; this execution's evidence awaits publication. No merge or acceptance-policy relaxation occurred; Phase 21 has not started.
-
-**Canonical refs**: [NES-HARDWARE-PPU-CARTRIDGE.md](preparation/NES-HARDWARE-PPU-CARTRIDGE.md), [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [DECISIONS.md](preparation/DECISIONS.md), [CONFORMANCE.md](preparation/CONFORMANCE.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (section 1, state), [research/FEATURES.md](research/FEATURES.md) (G1, G2), [research/PITFALLS.md](research/PITFALLS.md) (#1, #2, #3, #6, #7, #10, #12), [research/SUMMARY.md](research/SUMMARY.md) (steps 3–4)
-
-Note: the NMI line and its edge latch come before the penultimate-cycle poll, which reads that latch; both may share one pull request if the reproducers check each step. Test whether AccuracyCoin needs a CPU/PPU alignment constant before adding one.
-
-### Phase 21: Interrupt latency and hijack
-
-**Goal**: A game's IRQ starts on the same instruction as on the console, and an NMI arriving during BRK or an IRQ takes over its vector as on the console.
-**Depends on**: Phase 20 (NMI edge latch and poll)
-**Requirements**: INT-01, INT-02, KEEP-01
-**Success Criteria** (what must be TRUE):
-  1. The `Interrupt flag latency`, `NMI Overlap BRK` and `NMI Overlap IRQ` rows report pass in `accuracy.scoreboard`, and owned `tests/cpu` reproducers for the CLI, SEI, PLP, RTI and branch polls and for NMI at each cycle of BRK and IRQ, written before the fix with expected values from NESdev and AccuracyCoin error codes, pass in `ci`.
-  2. All eleven v5 rows report pass at `6bee919` and every row that passed before v5 still passes in `accuracy.scoreboard.no_lost_pass` on every CI lane.
-  3. `cpu.vectors`, the nightly blargg MMC3 lane, Holy Mapperel and `runner.boot_to_play` stay green with the shared NMI, IRQ and BRK entry in place.
-  4. A state saved in the middle of a BRK, IRQ or NMI sequence loads back to the same run in `core.state_fork.*` and `libretro.runahead`, and moved hashes stay identical on all six platforms.
-
-**Plans**: 9/9 plans complete
+  1. At the unchanged AccuracyCoin pin and declared RP2A03G target, `DMA Landing on Write`, `DMC DMA + OAM DMA`, `DMC DMA Bus Conflicts`, `Explicit DMA Abort` and `Implicit DMA Abort` each report PASS. Missing, interrupted or aggregate-only results do not establish this outcome. (DMA-01)
+  2. For every distinct corrected behavior, a developer can inspect the first causal divergence in cycle-level evidence and run an owned fixture that accepts the corrected behavior and rejects a named wrong model. Hardware references, pinned-test expectations and observed core behavior remain separately identifiable. (DMA-02)
+  3. `DMA + $4015 Read`, `Misaligned OAM DMA`, `INC $4014` and every other protected PASS key still pass at the same pin; identical inputs retain identical frame/audio output across supported platforms and the existing performance gates pass without relaxed limits. Any intentional output-baseline change has a source-backed reason. (DMA-03)
+  4. When a correction changes in-flight DMA state, saving and loading at production-reachable affected boundaries yields the same subsequent machine behavior and frame/audio output as uninterrupted execution. The state-format and behavior-revision disposition is explicit, including a reasoned no-change disposition where appropriate. (DMA-04)
+  5. A host developer can read the README and public-header comments to understand the corrected DMA behavior and any state compatibility consequences, with the owned regression checks registered in the existing CI entrypoint alongside the behavior change. (DMA-02, DMA-04)
+**Plans**: 5 plans; 4/5 executed, gap closure planned
 
 Plans:
 **Wave 1**
-- [x] 21-01-PLAN.md — Real IRQ poll tracer and source-derived latency reproducers (wave 1)
+- [x] 24-01-PLAN.md — Landing-on-write tracer and independent baseline traces for all five rows (DMA-01, DMA-02, DMA-04)
 
-**Wave 2** *(blocked on Wave 1 completion)*
-- [x] 21-02-PLAN.md — Poll-time acceptance, format 3/revision 9 and causal campaign pins (wave 2)
+**Wave 2** *(complete)*
+- [x] 24-02-PLAN.md — DMC/OAM collision and DMC bus-conflict corrections (DMA-01, DMA-02, DMA-03, DMA-04)
 
-**Wave 3** *(blocked on Wave 2 completion)*
-- [x] 21-03-PLAN.md — Entry cutoff/recognition evidence and complete paired overlap tables (wave 3)
+**Wave 3** *(complete)*
+- [x] 24-03-PLAN.md — Explicit and implicit abort corrections with native continuation (DMA-01, DMA-02, DMA-03, DMA-04)
 
-**Wave 4** *(blocked on Wave 3 completion)*
-- [x] 21-04-PLAN.md — Shared resumable BRK/IRQ/NMI entry with coherent vector takeover (wave 4)
+**Wave 4** *(local acceptance complete; remote evidence pending)*
+- [x] 24-04-PLAN.md — Regression audit and separately authorized acceptance handoff (DMA-01, DMA-02, DMA-03, DMA-04)
 
-**Wave 5** *(blocked on Wave 4 completion)*
-- [x] 21-05-PLAN.md — Reachable entry-state validation, rejection and reset (wave 5)
-- [x] 21-06-PLAN.md — Every-stage native replay with exact traces and frame/audio continuation (wave 5)
+**Wave 5** *(gap closure planned; remote trigger authority required)*
+- [ ] 24-05-PLAN.md — Trace-completeness repair and separately authorized cold-main, hosted hash and performance evidence (DMA-02, DMA-03)
+**Canonical refs**: [DMA scope](research/milestone-dma-discovery/SCOPE.md); [preparation index](preparation/README.md); [CPU/APU hardware, especially DMA §2.2](preparation/NES-HARDWARE-CPU-APU.md); [conformance and oracle limits](preparation/CONFORMANCE.md).
 
-**Wave 6** *(blocked on Wave 5 completion)*
-- [x] 21-07-PLAN.md — Actual libretro unserialize and run-ahead from entry cutpoints (wave 6)
+### Evidence boundaries within Phase 24
 
-**Wave 7** *(blocked on Wave 6 completion)*
-- [x] 21-08-PLAN.md — All-eleven/all-114 acceptance contract and local evidence preparation (wave 7)
+- Localize each selected row before combining fixes. Preserve the current
+  recorded FAIL outcomes (`0x26` for landing on write; `0x0a` for the other four)
+  as historical starting evidence, not fresh observations.
+- Fixtures use the existing bus/core seam and distinguish access kind/address,
+  get/put phase, halt/retry, actual sample read, relevant side effects and
+  continuation. Include delayed CPU writes, DMC/OAM collision and final-write
+  resumption, split internal/external bus effects and explicit/implicit abort
+  controls as applicable. Cycle totals alone cannot locate a causal fault.
+- Keep implicit-abort chip-revision assumptions explicit. A passing test ROM
+  establishes its pinned contract; emulator agreement or matching hashes alone
+  does not establish silicon correctness or a specific game's repair.
+- Keep implementation and tests owned, integer-only and instance-local. No
+  GPL/LGPL emulator source, new dependency, scheduler rewrite, public exact-cycle
+  API or unlisted ROM bytes. The three existing deliverables remain the scope.
+- Every behavior change includes its owned test and README/public-header
+  documentation in the same change. Assess serialized state fields and loader
+  compatibility before deciding the format/revision disposition. Preserve the
+  current pin, raw-key score contract and existing runtime/performance limits.
+- PAL/Dendy, unrelated accuracy clusters, broad playtesting, pin migration and
+  general CI/collector cleanup remain outside this milestone. Existing collector
+  debt still limits how new source-bound evidence may be qualified; do not label
+  a run qualified without addressing its relevant evidence gaps explicitly.
 
-**Wave 8** *(blocked on Wave 7 completion)*
-- [x] 21-09-PLAN.md — Fresh source-bound hosted acceptance after external delivery (wave 8)
+### Verification authorization gate — Phase 24
 
-Phase 21 is verified complete: all 9/9 plans, 32/32 truths and INT-01/INT-02/KEEP-01.
-Plan 21-09 production collection/current-checkout validation accepts CI
-`40929011059/1` and Nightly `40929010997/1` for candidate `54c7db2` / tested merge
-`faf1b91`, with 428 matching effective inputs and 16 API-matching artifact ZIPs.
-All eleven v5 targets and 114 protected starting PASS keys pass on all six
-lanes; native hashes match and the original +1% performance gate passes.
-Fresh parent CI passed 695/695 in 382.16 seconds and generated all three
-packages. See `21-EVIDENCE.md`, `21-EXECUTION-EVIDENCE.md` and
-`21-VERIFICATION.md`. WR-01 and Phase 20 CR-01/WR-03/WR-04 remain deferred with
-current-run mitigations; physical exact-tie and provenance limits remain explicit.
-Existing PR #61 remains draft and unmerged; evidence closeout is local and the
-next separate step is `$gsd-ship 21`, followed by milestone audit/closeout after
-review/merge. Earlier Plan 21-08 pins remain historical in its summary.
+The interrupted full-CI/AccuracyCoin campaign's completion and result remain
+**unknown**. The existing stop is preserved. Milestone, requirements, roadmap,
+discussion or plan approval does **not** authorize a full workflow or campaign
+rerun, renew a runtime window/budget, or clear historical safety stops.
 
-**Canonical refs**: [NES-HARDWARE-CPU-APU.md](preparation/NES-HARDWARE-CPU-APU.md), [ARCHITECTURE.md](preparation/ARCHITECTURE.md), [CONFORMANCE.md](preparation/CONFORMANCE.md), [ENGINEERING.md](preparation/ENGINEERING.md); [research/ARCHITECTURE.md](research/ARCHITECTURE.md) (shared `interrupt_entry`), [research/FEATURES.md](research/FEATURES.md) (G3, G4), [research/PITFALLS.md](research/PITFALLS.md) (#4, #5, #6, #11), [research/SUMMARY.md](research/SUMMARY.md) (steps 5, 6, 8)
+No tests run during roadmap creation. Later planning must inspect test selection
+and configuration without executing the workflow and distinguish independently
+authorized bounded fixtures from commands that schedule `accuracycoin.campaign`.
+Do not start full CI or a campaign as a discovery probe, automatic verification,
+review repair or side effect of a push/PR while that stop is active.
+
+Project acceptance still requires `cmake --workflow --preset ci` and the existing
+protected-pass, cross-platform determinism and performance evidence. Do not
+disable the campaign, weaken the suite, raise limits or substitute bounded
+passes to claim that gate passed. If satisfying the configured project CI gate
+would schedule the stopped campaign, **stop Phase 24 execution before that
+command** and record the exact command, selected tests, missing evidence and
+authorization needed in phase evidence and STATE.md. Keep Phase 24 and affected
+requirements incomplete; do not ship, merge or close v7 on partial verification.
+The owner acts next only to decide separate runtime authorization at that gate.
 
 ## Progress
 
-**Execution order**: 19 → 20 → 21.
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 24. Correct remaining NTSC DMA behavior | 4/5 | Gap closure planned | - |
 
-| Phase | Milestone | Plans Complete | Status | Completed |
-|-------|-----------|----------------|--------|-----------|
-| 19. JAM reporting and sprite-0 hit | v5 | 6/6 | Complete    | 2026-10-25 |
-| 20. NMI line and VBlank flag | v5 | 12/12 | Complete    | 2026-10-28 |
-| 21. Interrupt latency and hijack | v5 | 9/9 | Complete    | 2026-10-29 |
+## Coverage
 
-Future direction and promotion triggers are in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md).
+| Requirement | Owning phase | Success criteria |
+|-------------|--------------|------------------|
+| DMA-01 | Phase 24 | 1 |
+| DMA-02 | Phase 24 | 2, 5 |
+| DMA-03 | Phase 24 | 3 |
+| DMA-04 | Phase 24 | 4, 5 |
+
+All four approved requirements map to exactly one phase. There are no orphaned
+or duplicated phase assignments. Mapping is coverage, not completion evidence.
 
 ## Backlog disposition
 
-2026-10-13: Backlog 999.2, "Bump AccuracyCoin past 673ef550", is promoted into [Phase 17](milestones/v4-ROADMAP.md#phase-17-complete-pinned-conformance-baseline), CONF-01 through CONF-04 and [RM-001](PRODUCT-ROADMAP.md#rm-001-complete-ntsc-conformance-evidence). Its pin/scoreboard/hash comparison is included there; no duplicate active backlog remains. Other future outcomes remain proposed in PRODUCT-ROADMAP.md.
+2026-10-13: Backlog 999.2, "Bump AccuracyCoin past 673ef550", is promoted into
+[Phase 17](milestones/v4-ROADMAP.md#phase-17-complete-pinned-conformance-baseline),
+CONF-01 through CONF-04 and RM-001. No duplicate active backlog remains.
+
+SEED-003 contributes only its approved remaining-DMA accuracy scope in v7.
+SEED-006 adds no separate repair without a demonstrated need; the existing
+playability/state/board outcomes and recent CI optimizations remain delivered.
+No seed files were modified. The three pending property/mutation/signal proposals
+were inspected and have no confident requirement match here; they remain unlinked
+and deferred. All future direction remains in PRODUCT-ROADMAP.md.
+
+*Last updated: 2026-10-31 after v7 roadmap approval. No tests or campaign run.*

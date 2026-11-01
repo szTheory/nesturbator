@@ -156,7 +156,7 @@ set(NESTURBATOR_SAVE_FIXTURE ${CMAKE_CURRENT_BINARY_DIR}/save_fixture)
 file(MAKE_DIRECTORY ${NESTURBATOR_SAVE_FIXTURE})
 add_test(NAME runner.save.fixture
   COMMAND runner.save_rom ${NESTURBATOR_SAVE_FIXTURE})
-set_tests_properties(runner.save.fixture PROPERTIES FIXTURES_SETUP runner_save)
+set_tests_properties(runner.save.fixture PROPERTIES FIXTURES_SETUP runner_save TIMEOUT 10)
 function(runner_save_case case)
   add_test(NAME runner.save.${case}
     COMMAND ${CMAKE_COMMAND}
@@ -1582,7 +1582,7 @@ foreach(scenario pos none attract startonly)
       ${CMAKE_CURRENT_BINARY_DIR}/nesrunner-movies/nesrunner-${scenario}.nmovie
       nesrunner-${scenario})
   set_tests_properties(runner.nesrunner_movie.${scenario} PROPERTIES
-    FIXTURES_SETUP nesrunner_movies)
+    FIXTURES_SETUP nesrunner_movies TIMEOUT 10)
 endforeach()
 
 # PLAY-01 / D-08: one program replays the movies through the library, reads
@@ -1621,32 +1621,121 @@ add_test(NAME runner.version
     -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_version.cmake)
 
+# REPRO-01/02: replay the public permitted movie twice and compare every
+# native frame record plus both audio representations under nested timeouts.
+add_test(NAME runner.reproduction.cold
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DMOVIE_WRITER=$<TARGET_FILE:runner.game_movie>"
+    "-DROM=${PROJECT_SOURCE_DIR}/tests/roms/runner.nes"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-cold"
+    -DMODE=cold
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.cold PROPERTIES TIMEOUT 180)
+add_test(NAME runner.reproduction.compare_self_test
+  COMMAND ${CMAKE_COMMAND}
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-compare-self-test"
+    -DMODE=compare_self_test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.compare_self_test PROPERTIES TIMEOUT 60)
+add_test(NAME runner.reproduction.preflight
+  COMMAND ${CMAKE_COMMAND}
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    "-DNMI_FIXTURE=$<TARGET_FILE:runner.nmi_fixture>"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-preflight"
+    -DMODE=preflight_fixture
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.preflight PROPERTIES TIMEOUT 60)
+add_test(NAME runner.reproduction.preflight_self_test
+  COMMAND ${CMAKE_COMMAND}
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/reproduction-preflight-self-test"
+    -DMODE=preflight_self_test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction.cmake)
+set_tests_properties(runner.reproduction.preflight_self_test PROPERTIES TIMEOUT 60)
+
 # Every script in tests/cmake sets its policy version, so CMake reads it the
 # same way on every runner.
 add_test(NAME cmake.script_policy
   COMMAND ${CMAKE_COMMAND} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/cmake
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/script_policy.cmake)
 
-# D-07: the README status table equals enum nesturbator_status, and the README keeps its Save
-# states section and the rewind sentence (STATE-05).
+# D-07: the canonical API status table equals enum nesturbator_status, and the
+# guide keeps its Save states section and the rewind sentence (STATE-05).
 add_test(NAME state.status_table
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/api.md
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/status_table.cmake)
+add_test(NAME state.status_table.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/api.md
+    -DWORK=${PROJECT_BINARY_DIR}/tests/status-table-selftest
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/status_table.cmake)
+set_tests_properties(state.status_table.self_test PROPERTIES TIMEOUT 60)
+add_test(NAME docs.links
+  COMMAND ${CMAKE_COMMAND} -DREADME=${PROJECT_SOURCE_DIR}/README.md
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/doc_links.cmake)
+add_test(NAME docs.links.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DWORK=${PROJECT_BINARY_DIR}/tests/docs-links-selftest
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/doc_links.cmake)
+set_tests_properties(docs.links docs.links.self_test PROPERTIES TIMEOUT 60)
+add_test(NAME docs.reproduction
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DDOC=${PROJECT_SOURCE_DIR}/docs/reproduction.md"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    "-DCTEST=${CMAKE_CTEST_COMMAND}"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/docs-reproduction-contract"
+    "-DSHORT_RUNS=${NESTURBATOR_SHORT_RUNS}"
+    "-DBOOT_TO_PLAY_TARGET=$<TARGET_FILE:runner.boot_to_play>"
+    -DMODE=check
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction_contract.cmake)
+add_test(NAME docs.reproduction.self_test
+  COMMAND ${CMAKE_COMMAND}
+    "-DSOURCE_DIR=${PROJECT_SOURCE_DIR}"
+    "-DDOC=${PROJECT_SOURCE_DIR}/docs/reproduction.md"
+    "-DBUILD_DIR=${PROJECT_BINARY_DIR}"
+    "-DCTEST=${CMAKE_CTEST_COMMAND}"
+    "-DWORK=${PROJECT_BINARY_DIR}/tests/docs-reproduction-contract-self-test"
+    "-DSHORT_RUNS=${NESTURBATOR_SHORT_RUNS}"
+    "-DBOOT_TO_PLAY_TARGET=$<TARGET_FILE:runner.boot_to_play>"
+    -DMODE=self_test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/reproduction_contract.cmake)
+set_tests_properties(docs.reproduction docs.reproduction.self_test PROPERTIES TIMEOUT 60)
 
-# RUN-03: the exit table is the same in runner/exit_status.h, --help and the README.
+# RUN-03: the exit table is the same in runner/exit_status.h, --help and the canonical runner guide.
 foreach(mode table help)
   add_test(NAME runner.exit.${mode}
     COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+      -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
       "-DRUNNER=$<TARGET_FILE:nesturbator-run>" -DMODE=${mode}
       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_exit_table.cmake)
   set_tests_properties(runner.exit.${mode} PROPERTIES LABELS exit_status)
 endforeach()
+add_test(NAME runner.exit.canonical.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DWORK=${PROJECT_BINARY_DIR}/tests/runner-exit-canonical-self-test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_exit_table.cmake)
+set_tests_properties(runner.exit.canonical.self_test PROPERTIES TIMEOUT 60)
 
-# D-22: the options printed by --help and the README runner bullets name the same set.
+# D-22: the options printed by --help and the canonical runner guide name the same set.
 add_test(NAME runner.options.readme
   COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
     "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_options.cmake)
+add_test(NAME runner.options.canonical.self_test
+  COMMAND ${CMAKE_COMMAND} -DSELFTEST=ON
+    -DSOURCE_DIR=${PROJECT_SOURCE_DIR}
+    -DDOC=${PROJECT_SOURCE_DIR}/docs/runner.md
+    "-DRUNNER=$<TARGET_FILE:nesturbator-run>"
+    -DWORK=${PROJECT_BINARY_DIR}/tests/runner-options-canonical-self-test
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/runner_options.cmake)
+set_tests_properties(runner.options.canonical.self_test PROPERTIES TIMEOUT 60)
 
 # D-01 and D-02: vector conversion and fetch stay implemented by the owned C
 # parser; release configuration scripts are outside this scoped policy.

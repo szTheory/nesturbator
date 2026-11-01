@@ -3,6 +3,10 @@ status: verifying
 trigger: "Corroborate Phase21 review CR01/CR02 against primary hardware sources"
 created: 2026-10-29
 updated: 2026-10-29
+audit_acknowledged:
+  milestone: v5
+  at: 2026-10-30
+  status: verifying
 ---
 
 ## Current Focus

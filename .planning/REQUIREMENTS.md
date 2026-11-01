@@ -1,75 +1,60 @@
 # Requirements: nesturbator
 
-**Defined:** 2026-10-25
+**Milestone:** v7 — Remaining DMA accuracy failures  
+**Defined:** 2026-10-31  
 **Core Value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
 
-## v5 Requirements
+## v1 Requirements
 
-Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)). AccuracyCoin rows are at pin `6bee919` and run by `cmake --workflow --preset ci`. Research: [research/SUMMARY.md](research/SUMMARY.md).
+Requirements for the committed v7 scope.
 
-### Frame interrupts arrive when the console's would
+### NTSC DMA accuracy
 
-- [x] **NMI-01**: A game that reads `$2002` around the start of VBlank sees the console's flag value and gets or loses the NMI as the console does; the `$2002 flag timing`, `NMI Timing` and `NMI Suppression` rows pass.
-- [x] **NMI-02**: A game that enables or disables NMI around the start or end of VBlank gets NMIs exactly when the console would, including the extra NMI Bases Loaded II relies on; the `NMI Control`, `NMI at VBlank end` and `NMI disabled at VBlank` rows pass.
+- [ ] **DMA-01**: At the existing AccuracyCoin pin `6bee919529289c555803b612b8c9e4f7eaaeeabb`, the core passes `DMA Landing on Write`, `DMC DMA + OAM DMA`, `DMC DMA Bus Conflicts`, `Explicit DMA Abort`, and `Implicit DMA Abort` for the declared RP2A03G target.
+- [ ] **DMA-02**: Every distinct corrected behavior has source-backed cycle-level evidence and an owned fixture with a wrong-model control; hardware behavior, test expectations, and observed core behavior are recorded separately.
 
-### CPU interrupts start on the right instruction
+### Regression and compatibility
 
-- [x] **INT-01**: An IRQ is taken on the same instruction as on the console after CLI, SEI, PLP, RTI and branches; the `Interrupt flag latency` row passes.
-- [x] **INT-02**: An NMI arriving during BRK or an IRQ takes over its vector as on the console; the `NMI Overlap BRK` and `NMI Overlap IRQ` rows pass.
-
-### Status-bar splits land on the right line
-
-- [x] **SPR-01**: Sprite-0 hit is set under the console's conditions and on its dot; the `Sprite 0 Hit behavior` row passes.
-- [x] **SPR-02**: The first sprite evaluated acts as sprite 0 wherever it sits in OAM, and the row finishes within the page's frame cap; the `Arbitrary Sprite zero` row passes.
-
-### Everything that works today keeps working
-
-- [x] **KEEP-01**: Every AccuracyCoin row that passes today still passes on every CI lane, and the CPU vectors, blargg MMC3, Holy Mapperel and boot-to-play checks stay green.
-- [x] **KEEP-02**: A frame or audio hash that moves is re-pinned in the same change with its reason, and stays identical on all six platforms.
-- [x] **KEEP-03**: A save state taken at any frame, including during the VBlank race or an interrupt sequence, loads back to the same run under rewind and run-ahead; a state from an earlier format is refused with the existing version error.
-
-### A JAM is reported as a JAM
-
-- [x] **JAM-01**: An AccuracyCoin run that hits a guest JAM reports a JAM rather than a generic frame failure.
-- [x] **JAM-02**: `libretro.runahead` shows that run-ahead across a JAM gives the same picture and silence as running without run-ahead.
+- [ ] **DMA-03**: `DMA + $4015 Read`, `Misaligned OAM DMA`, `INC $4014`, and every other protected PASS key remain passing at the same pin, with deterministic output and existing performance limits preserved.
+- [ ] **DMA-04**: If a fix changes in-flight DMA state, native save/load resumes identically and the state-format/behavior-revision impact is explicit; README and public-header comments describe the changed behavior.
 
 ## Future Requirements
 
-- DMA timing: the eight DMA rows (DMC/OAM DMA conflicts and aborts, `$4015` reads) — preferred next accuracy scope.
-- PAL timing and pitch (RM-005).
-- A nightly fetch-only blargg check (`ppu_vbl_nmi`, `cpu_interrupts_v2`) copying the MMC3 lane.
+- PAL and Dendy timing profiles, other AccuracyCoin failure clusters, a broader accuracy sweep, and further game/host playtesting remain future proposals.
+- AccuracyCoin pin migration is a separate change and is not part of v7.
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Raising the 1800-frame AccuracyCoin cap without a measured reason | `tests/accuracy/budgets.txt` already rejects it; re-measure only after rows pass |
-| Special cases for single rows or titles | One NMI-line and interrupt-poll model fixes the cluster; patches break neighbouring rows |
-| A newer AccuracyCoin pin | Scores across pins are not comparable |
-| Committing blargg ROMs | No published licence |
-| Other failing clusters (DMA, OAM, `$2007`, open bus) | Each is scoped separately in PRODUCT-ROADMAP.md |
+| PAL/Dendy timing, unrelated CPU/PPU accuracy clusters, sprite evaluation/OAM corruption, and broader commercial playtesting | v7 is limited to the five selected NTSC DMA failures. |
+| AccuracyCoin pin migration or a universal chip-revision claim | The existing pin and declared RP2A03G target are retained; revision-dependent behavior must stay explicit. |
+| General scheduler rewrite, new dependency, public exact-cycle API, or unrelated collector/CI cleanup | The scope note identifies no demonstrated need for these changes. |
+| Rerunning the previously interrupted full CI/AccuracyCoin campaign without separate authorization | The existing campaign stop remains active and is not changed by milestone or requirement approval. |
+
+## Evidence and safety notes
+
+The [DMA scope note](research/milestone-dma-discovery/SCOPE.md) records the per-row evidence needs, primary test/source references, and clean-room boundaries. It does not establish one shared cause among the five failures. The three passing DMA rows and all other protected PASS keys are regression guards, not scope to modify.
+
+The prior full-CI/campaign run was interrupted and its outcome is unknown. This milestone opening did not rerun it or claim a pass. The current stop remains until separately authorized; a requirement approval does not supply that authorization.
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NMI-01 | Phase 20 | Complete |
-| NMI-02 | Phase 20 | Complete |
-| INT-01 | Phase 21 | Complete |
-| INT-02 | Phase 21 | Complete |
-| SPR-01 | Phase 19 | Complete |
-| SPR-02 | Phase 19 | Complete |
-| KEEP-01 | Phase 21 | Complete |
-| KEEP-02 | Phase 20 | Complete |
-| KEEP-03 | Phase 20 | Complete |
-| JAM-01 | Phase 19 | Complete |
-| JAM-02 | Phase 19 | Complete |
+| DMA-01 | Phase 24 | Pending |
+| DMA-02 | Phase 24 | Pending |
+| DMA-03 | Phase 24 | Pending |
+| DMA-04 | Phase 24 | Pending |
 
 **Coverage:**
-- v5 requirements: 11 total
-- Mapped to phases: 11
+- v1 requirements: 4 total
+- Mapped to phases: 4 — each assigned to Phase 24 exactly once
 - Unmapped: 0
 
+The [execution roadmap](ROADMAP.md) is ready for approval. Requirement mappings
+do not establish completion or authorize the stopped full-CI/campaign rerun.
+
 ---
-*Requirements defined: 2026-10-25*
-*Last updated: 2026-10-29 after Phase 21 verification; all v5 requirements complete*
+*Requirements defined: 2026-10-31*  
+*Last updated: 2026-10-31 with approved v7 roadmap traceability*

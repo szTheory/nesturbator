@@ -85,7 +85,8 @@ struct nesturbator__cpu {
    last value driven on the data bus (D-12). */
 struct nesturbator__bus {
     uint8_t ram[2048];
-    uint8_t open_bus;
+    uint8_t open_bus;          /* External held data; $4015 does not drive this bus. */
+    uint8_t cpu_data;          /* Internal CPU data, including $4015 and its floating D5. */
     uint8_t apu_get_put_phase; /* 1: GET, 0: PUT at the current CPU bus cycle. */
     uint8_t oam_dma_pending, oam_dma_page;
     uint8_t input_pending[2], input_buttons[2];
@@ -113,10 +114,15 @@ struct nesturbator__noise {
 
 struct nesturbator__dmc {
     uint16_t timer, counter, address, remaining;
-    uint8_t reg[4], output, shift, bits, sample_buffer, buffer_empty;
+    /* bits clocks through audible and silent eight-bit cycles; silence
+       latches the empty-buffer decision for the complete output cycle. */
+    uint8_t reg[4], output, shift, bits, silence, sample_buffer, buffer_empty;
     /* The next halt attempt's phase; an eligible write advances it to retry
        on the following CPU cycle. The first load/reload targets GET/PUT. */
     uint8_t irq, dma_pending, dma_halt_phase, dma_load_waiting, enable_delay;
+    /* One-shot halt due in this many future CPU clocks; writes consume it
+       instead of retrying. Separate from a sample transfer request. */
+    uint8_t abort_delay;
 };
 
 struct nesturbator__apu {
@@ -340,9 +346,25 @@ static inline uint8_t nesturbator__map_cpu_read(struct nesturbator *nes, uint16_
    value on the data bus (src/bus.c in the library). */
 uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr);
 
+/* A reader stop two/three clocks before the output buffer drains schedules
+   one aborted PUT halt. Explicit disable and non-looping last-byte completion
+   share this window (NESdev DMA rev23450, Bugs [HWC.01]). The selected early-G
+   model has no later-G/H unexpected reload in the adjacent one-clock window. */
+static inline void nesturbator__dmc_stop_window(struct nesturbator *nes)
+{
+    struct nesturbator__dmc *d = &nes->apu.dmc;
+    uint16_t counter = d->counter != 0u ? d->counter : 1u;
+    uint16_t clocks = (uint16_t)(2u * counter - (nes->apu.pulse_clock_phase != 0u));
+    if (d->bits == 0u && d->buffer_empty == 0u && (clocks == 2u || clocks == 3u))
+        d->abort_delay = (uint8_t)clocks;
+}
+
 /* One CPU write cycle of value to addr (src/bus.c in the library). */
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value);
-void nesturbator__apu_clock(struct nesturbator *nes);
+/* Inferred early-G Loop3 ordering (HWC.19): a just-fetched DMC byte is
+   unavailable to the immediately following output edge. The synchronous
+   bus owns this argument; it cannot cross a public native-state boundary. */
+void nesturbator__apu_clock(struct nesturbator *nes, uint8_t dmc_sample_ready);
 
 /* The one writer of cpu.irq_line: the frame IRQ (unless inhibited), the DMC IRQ
    and the board's IRQ ORed. Every source calls it when it changes (NESdev "IRQ"). */

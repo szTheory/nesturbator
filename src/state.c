@@ -52,15 +52,16 @@ static const uint8_t state_magic[8] = {0x89u, 0x4eu, 0x54u, 0x53u, 0x0du, 0x0au,
    and arrays of them, so the sizes are the same on every platform. Structs that also hold
    pointers are checked by the offset of their last saved field instead. */
 _Static_assert(sizeof(struct nesturbator__cpu) == 20u, "cpu fields changed: update cpu_io");
-_Static_assert(sizeof(struct nesturbator__bus) == 2061u, "bus fields changed: update bus_io");
+_Static_assert(sizeof(struct nesturbator__bus) == 2062u, "bus fields changed: update bus_io");
 _Static_assert(sizeof(struct nesturbator__pulse) == 16u, "pulse fields changed: update pulse_io");
 _Static_assert(sizeof(struct nesturbator__triangle) == 14u,
                "triangle fields changed: update triangle_io");
 _Static_assert(sizeof(struct nesturbator__noise) == 12u, "noise fields changed: update noise_io");
-_Static_assert(sizeof(struct nesturbator__dmc) == 22u, "dmc fields changed: update dmc_io");
-_Static_assert(offsetof(struct nesturbator__apu, sample_phase) == 92u,
+_Static_assert(sizeof(struct nesturbator__dmc) == 24u, "dmc fields changed: update dmc_io");
+_Static_assert(offsetof(struct nesturbator__apu, sample_phase) == 96u,
                "apu fields changed: update apu_io");
-_Static_assert(offsetof(struct nesturbator__apu, sample_output) == 96u,
+_Static_assert(offsetof(struct nesturbator__apu, sample_output) ==
+                   ((100u + _Alignof(int16_t *) - 1u) / _Alignof(int16_t *)) * _Alignof(int16_t *),
                "apu fields changed: update apu_io");
 _Static_assert(offsetof(struct nesturbator__synth, pcm) ==
                    offsetof(struct nesturbator__synth, lp_output_q30) + 8u,
@@ -195,6 +196,7 @@ static void bus_io(struct nesturbator__sio *io, struct nesturbator__bus *b)
 {
     nesturbator__sio_bytes(io, b->ram, sizeof b->ram);
     nesturbator__sio_u8(io, &b->open_bus, 255u);
+    nesturbator__sio_u8(io, &b->cpu_data, 255u);
     nesturbator__sio_u8(io, &b->apu_get_put_phase, 1u);
     nesturbator__sio_u8(io, &b->oam_dma_pending, 1u);
     nesturbator__sio_u8(io, &b->oam_dma_page, 255u);
@@ -260,6 +262,7 @@ static void dmc_io(struct nesturbator__sio *io, struct nesturbator__dmc *d)
     nesturbator__sio_u8(io, &d->output, 127u);
     nesturbator__sio_u8(io, &d->shift, 255u);
     nesturbator__sio_u8(io, &d->bits, 8u);
+    nesturbator__sio_u8(io, &d->silence, 1u);
     nesturbator__sio_u8(io, &d->sample_buffer, 255u);
     nesturbator__sio_u8(io, &d->buffer_empty, 1u);
     nesturbator__sio_u8(io, &d->irq, 1u);
@@ -267,6 +270,7 @@ static void dmc_io(struct nesturbator__sio *io, struct nesturbator__dmc *d)
     nesturbator__sio_u8(io, &d->dma_halt_phase, 1u);
     nesturbator__sio_u8(io, &d->dma_load_waiting, 1u);
     nesturbator__sio_u8(io, &d->enable_delay, 4u);
+    nesturbator__sio_u8(io, &d->abort_delay, 3u);
 }
 
 static void apu_io(struct nesturbator__sio *io, struct nesturbator__apu *a)

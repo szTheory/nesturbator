@@ -8,6 +8,9 @@ files:
   - .github/workflows/nightly.yml:1
   - tests/CMakeLists.txt:1
   - .planning/preparation/ENGINEERING.md:53
+audit_acknowledged:
+  milestone: v5
+  at: 2026-10-30
 ---
 
 ## Problem

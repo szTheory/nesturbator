@@ -1,7 +1,8 @@
 /* STATE-04 (D-03, D-04, D-16): a hostile or damaged state is refused with the right status and
    changes nothing. For each ROM a state is made after 20 frames, then:
      1. cross-ROM matrix and no-cartridge: ERR_STATE_CARTRIDGE
-     2. format_version 0, 1, 2 and 4: FORMAT; header_size 63 and 65: CHECKSUM, then INVALID with the
+     2. all older format versions and the next version: FORMAT; header_size 63 and 65:
+   CHECKSUM, then INVALID with the
    CRC recomputed
      3. truncation to every length below S, S + 1 bytes, NULL arguments, S itself loads
      4. flip every header byte and body byte: the D-04 class per offset (RAM bytes with a stride
@@ -179,11 +180,11 @@ static void case_header(struct rom *r)
     struct guard g;
     uint8_t *b = copy_state(r);
     guard_open(&g, r->inst);
-    for (unsigned v = 0u; v <= 2u; ++v) {
+    for (unsigned v = 0u; v < NESTURBATOR_STATE_FORMAT_VERSION; ++v) {
         put_raw(b + H_VERSION, v, 2u);
         refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "format_version", r->path);
     }
-    put_raw(b + H_VERSION, 4u, 2u);
+    put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION + 1u, 2u);
     refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "format_version", r->path);
     put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION, 2u);
     for (unsigned hs = 63u; hs <= 65u; hs += 2u) {
@@ -275,7 +276,7 @@ static void case_two_faults(struct rom *r)
         b[H_ROM_CRC] ^= 0xffu;
         put_raw(b + H_HEADER_SIZE, 64u, 2u);
     }
-    put_raw(b + H_VERSION, 4u, 2u);
+    put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION + 1u, 2u);
     st_recrc(b, r->state_size);
     refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "future version", r->path);
     put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION, 2u);
@@ -404,12 +405,14 @@ static const struct row ROWS[] = {
     ROW(apu.dmc.remaining, 4081),
     ROW(apu.dmc.output, 127),
     ROW(apu.dmc.bits, 8),
+    ROW(apu.dmc.silence, 1),
     ROW(apu.dmc.buffer_empty, 1),
     ROW(apu.dmc.irq, 1),
     ROW(apu.dmc.dma_pending, 1),
     ROW(apu.dmc.dma_halt_phase, 1),
     ROW(apu.dmc.dma_load_waiting, 1),
     ROW(apu.dmc.enable_delay, 4),
+    ROW(apu.dmc.abort_delay, 3),
     ROW(apu.enabled, 0x1f),
     ROW(apu.pulse_clock_phase, 1),
     ROW(apu.frame_mode, 1),
