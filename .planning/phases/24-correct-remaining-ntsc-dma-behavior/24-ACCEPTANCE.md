@@ -1,6 +1,6 @@
 # Phase24 acceptance — corrected candidate awaits fresh acceptance
 
-## Actual outcome
+## Prior actual outcome
 
 The owner explicitly authorized one local `cmake --workflow --preset ci`
 invocation with a39-minute overall ceiling and unchanged inner limits. It
@@ -18,37 +18,52 @@ continuation. Current candidate is behavior14 / native format6 / ABI1.
 fresh behavior14 ROM observation. Phase24 and all four requirements remain
 incomplete. No second full workflow/campaign or hosted trigger ran.
 
-## Authority and next concrete decision
+## Authority and current action
 
 Approval friction is resolved in standing instructions: task/phase approval
 includes required local engineering, builds/tests/CI, reviews/fixes and bounded
 retests. Runtime length alone and each compatibility implementation slice do
 not require another prompt. [Applied lesson](24-APPROVAL-LESSONS.md).
 
-A separate, specific limit still exists here: the owner approved exactly one
-full workflow, now consumed. Do not infer another AccuracyCoin execution,
-campaign, hosted trigger, push/PR, merge or release from the ordinary repair
-authority. The next useful acceptance action is one fresh local full workflow
-on the committed corrected candidate, preserving the previous39-minute
-ceiling and all current inner caps. This is a recommendation, not yet a new
-authorization. The reason for a decision is that explicit one-invocation
-limit, not concern about how long ordinary tests take. Keeping the stop
-requires no response.
+The original one-invocation approval was consumed, and the owner initially
+chose to keep the stop. On 2026-10-31 the owner then granted standing authority
+for local CMake commands, including the full acceptance workflow and its
+configured AccuracyCoin campaign fixture. That later instruction supersedes
+the one-invocation gate; no per-run approval is needed. Preserve the existing
+39-minute overall ceiling, every inner cap and the complete test selection.
+Do not automatically retry a real interruption or timeout; preserve its
+evidence and resolve the cause first. Hosted triggers, pushes, PRs, merges and
+releases remain outside this authority.
 
-## Latest checkpoint decision
+The efficiency review found no safe change that would materially shorten this
+acceptance while retaining its evidence. Keep the four-worker policy and full
+`ci` selection. Use the existing `dev-check` workflow for routine iteration;
+it is not an acceptance substitute.
 
-On 2026-10-31 the owner chose to keep the stop. This preserves the consumed
-one-run limit and grants no new local workflow, campaign, hosted, push or PR
-authority. No new acceptance command ran. No action is needed while the stop
-remains in place; a later renewal must explicitly cover the listed local
-command, selection and unchanged limits.
+## Latest authority decision
+
+On 2026-10-31 the owner explicitly granted standing local CMake authority,
+including repeated full local CI workflows as needed, without per-run
+approval. This supersedes the earlier keep-stop decision for local CMake only.
+The current run remains under the existing selection,39-minute overall
+ceiling and unchanged inner caps. A real interruption or timeout is not
+automatically retried; hosted and publication actions are still excluded.
+
+The current emulation source is behavior14 at
+`a12a79a2cbf0d872150ada9c91754b5345ded38a`; subsequent commits only change
+planning records and authority. The protected-baseline handoff variables are
+unset, so local protected checks use the checkout's `scoreboard-main`
+snapshot; this is not independently prepared cold-main authority. The prior
+report remains archived under
+`build/phase24-acceptance/20261031T223038Z/observed`. Exact invocation HEAD,
+build identity and result will be recorded in the new run record.
 
 ```sh
 cmake --workflow --preset ci
 ```
 
-Before any newly authorized execution, record the candidate identity and
-read-only test/fixture selection. Preserve prior logs/reports separately.
+Before execution, record the candidate identity and read-only test/fixture
+selection. Preserve prior logs/reports separately.
 Existing attributable results, including the completed report, are copied
 under ignored `build/phase24-acceptance/20261031T223038Z/observed`; its report
 digest was verified against24-CI-RUN.md. Never overwrite that history with
@@ -66,22 +81,20 @@ statuses or claim qualification before the actual observations exist.
 ## Selection and unchanged limits
 
 The checked-in [selection inventory](24-CI-SELECTION.tsv) is a historical
-read-only `FULL=ON` CTest inventory for source7f31579, not a generated
-behavior14 inventory. Test registration files have not changed since that
-source; the `ci` workflow still enables `NESTURBATOR_ACCURACYCOIN_FULL=ON`.
-However, no matching current-candidate `FULL=ON` CTest tree is available: the
-existing `build/phase24-owned` tree is Debug with `FULL=OFF` and
-`VECTORS_FULL=OFF`, and the archived prior full-run directory has only its
-old cache, not a generated CTest inventory. Its read-only JSON contains706
-tests. The exact bounded selection resolves to `bus.unit`, `core.apu`,
+read-only `FULL=ON` CTest inventory for source7f31579. The existing
+`build/ci` tree is Release with `NESTURBATOR_ACCURACYCOIN_FULL=ON`; its
+read-only `ctest --show-only=json-v1` inventory contains707 tests. Test
+registration files have not changed since the historical inventory, and the
+workflow reconfigures this tree before running. The separate
+`build/phase24-owned` tree is Debug with `FULL=OFF` and `VECTORS_FULL=OFF`.
+The exact bounded selection resolves to `bus.unit`, `core.apu`,
 `core.controller` and `core.state_fork.entry`, with no setup/required fixture
 dependencies; `accuracycoin.campaign` is absent there. This proves only the
-bounded owned closure. The behavior14 full selection is **source-derived**
-from the current workflow and `tests/CMakeLists.txt`: those test registrations
-are unchanged since the recorded 707-entry inventory. Its current generated
-inventory remains unavailable and was not claimed as executed. The current
-workflow enables the campaign fixture, so the full selection would run it;
-this is why the stopped scope cannot be inferred from the bounded selection.
+bounded owned closure. The generated `FULL=ON` inventory confirms
+`accuracycoin.campaign` sets up `accuracycoin_full_report`, required by
+activation, NMI targets and v5 targets. The protected observation and report
+scratch fixtures are also registered. Inventory inspection is not test
+execution; the full workflow will run this unchanged selection.
 
 | Consumer | Required fixture | Setup in FULL=ON CTest selection |
 |---|---|---|
@@ -154,8 +167,9 @@ observations and source/build/ROM/report provenance. The complete protected
 PASS set (including the three DMA neighbors), fresh cold protected-main
 authority, cross-platform frame/PCM/transition hashes, unchanged Cachegrind
 `+1%` evidence and current hosted lanes are also missing. No scoreboard or
-measurement was changed. The one authorized local workflow is consumed; the
-full behavior14 `FULL=ON` selection remains stopped.
+measurement was changed. The original one-run authorization is consumed, but
+the later standing CMake authority now covers this fresh `FULL=ON` run under
+the unchanged selection and limits.
 
 ## Handoff
 

@@ -40,13 +40,12 @@ again per slice. Runtime length alone is not a permission gate. Global and
 project instructions record this durably; do not ask another acknowledgment.
 [Lesson](24-APPROVAL-LESSONS.md), [efficiency](24-CI-EFFICIENCY.md).
 
-One specific limit remains: the owner approved exactly one full workflow,
-now consumed. Recommend one fresh local full workflow on the corrected
-candidate under the same39-minute overall ceiling, unchanged inner limits
-and no automatic campaign retry. That fresh scope is not yet renewed. Keep
-the existing stop without asking merely to keep it stopped; no second
-AccuracyCoin execution/campaign, hosted trigger, push/PR, merge or release is
-inferred. Owner acts next on this concrete boundary only.
+The owner initially approved one full workflow and later granted standing
+authority for local CMake commands, including the full CI workflow and its
+AccuracyCoin campaign fixture. No per-run approval is needed. Preserve the
+same39-minute overall ceiling and all inner limits. Do not automatically retry
+a real interruption or timeout; preserve evidence and resolve the cause first.
+Hosted triggers, pushes, PRs, merges and releases remain outside this authority.
 
 The707-test name/timeout/fixture/label inventory was re-read and exactly
 matches24-CI-SELECTION.tsv. Existing CI presets are unchanged. The additive
@@ -67,5 +66,5 @@ or cross-platform qualification.
 
 Preserve unrelated dirty AGENTS/config/continue/quick-task records and
 untracked milestone discovery research. Use noreply/hygiene phase-branch
-commits. Exact next command: `$gsd-execute-phase 24`. Context may be cleared;
-that command resumes this acceptance decision, not earlier routine prompts.
+commits. Current action: `cmake --workflow --preset ci`. Context may be
+cleared; read STATE and24-ACCEPTANCE.md before resuming.

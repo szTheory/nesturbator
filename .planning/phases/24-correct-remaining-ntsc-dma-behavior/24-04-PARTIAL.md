@@ -12,11 +12,13 @@ Release builds and coherent docs/version/hash consumers pass.
 [Correction record](24-04-CORRECTIONS.md). Approval lessons and the additive
 focused developer tier are also delivered; existing full-CI gates remain.
 
-The consumed single-workflow limit is a specific remaining boundary. The
-next useful action is one fresh local full workflow under unchanged39-minute
-and inner caps, if the owner renews that scope. Routine repair/testing is
-already authorized and complete; runtime alone is not a new permission gate.
-No second campaign or hosted/push/PR action ran. [Concrete next scope](24-ACCEPTANCE.md).
+The owner granted standing authority for local CMake commands on2026-10-31,
+including the full CI workflow and its campaign fixture. The next action is
+one fresh local full workflow under the unchanged39-minute and inner caps.
+The efficiency review found no safe full-coverage shortcut. Do not
+automatically retry a real interruption/timeout; preserve evidence and resolve
+the cause first. Hosted/push/PR authority remains separate.
+[Current authority and selection](24-ACCEPTANCE.md).
 
 No24-04-SUMMARY exists because required current-candidate acceptance remains
 incomplete. Keep every requirement and the phase open; do not replace

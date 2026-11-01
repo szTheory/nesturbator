@@ -84,3 +84,8 @@ Task approval includes required local verification, fixes and bounded retests.
 Apply an approved compatibility policy without asking again for each saved
 field or version bump. Runtime alone is not an approval gate. Preserve explicit
 stops, limits and no-retry rules; ask only for a materially new consequence.
+The owner grants standing authority for local CMake configure, build, test and
+workflow commands, including full CI and its configured acceptance campaigns;
+do not ask for per-run approval. Keep existing time/resource caps and no-retry
+rules, and diagnose failures before another run. This does not authorize hosted
+workflow triggers, pushes, PRs, merges or releases.
