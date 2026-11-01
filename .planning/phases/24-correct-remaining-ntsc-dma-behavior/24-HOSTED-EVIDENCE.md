@@ -16,10 +16,22 @@ On 2026-11-01T11:17:43Z, the owner authorized local history repair and
 replacement request preparation only. The format-only rewrite produced commit
 `6503f3551899a5d607d283a41a00451a7090f4de`; the final code/data tree before
 documentation-reference updates matched the original candidate tree. The
-repository's outgoing format check now passes. The replacement request is
-prepared in ignored `build/phase24-gap-replacement/` and keeps
-`remote_action_authorized=false`. The prior push authorization does not apply
-to that candidate. No remote branch, PR, hosted run, or CI result exists.
+repository's outgoing format check now passes. The first replacement request
+in ignored `build/phase24-gap-replacement/` failed local `MODE=request`
+validation because its proposed PR command used the old default body path;
+that root is preserved. The generator fix is committed as
+`f76d4492c45048a8541e14a4fda6fefe669ea82a`. Preparation at
+`build/phase24-gap-replacement-v2/` stopped before generating request files
+because the sandbox denied Git's temporary `.git/index.lock`; that root is
+preserved. The request at `build/phase24-gap-replacement-v3/` passed
+`MODE=request` validation for candidate
+`f76d4492c45048a8541e14a4fda6fefe669ea82a` and tree
+`7a039910a2c0fe696da2fd0d2807eeeb7d63d5ef`; its JSON kept
+`remote_action_authorized=false`. Final state/evidence bookkeeping changed
+after that validation, so the final request is under
+`build/phase24-gap-replacement-v4/`. The prior push authorization does not
+apply to the replacement candidate. No remote branch, PR, hosted run, or CI
+result exists.
 
 The previous full local campaign remains historical evidence; it used the
 checkout `scoreboard-main` fallback and does not establish cold protected-main
@@ -84,3 +96,17 @@ separate from those normalized evidence files.
 
 No hosted receipt exists yet. Do not create an empty delivery record or claim
 a verdict from local/synthetic controls.
+
+The first standard-depth review found three evidence/test-diagnostic issues;
+commit `dfd0bfc` fixed them, and the final re-review is clean. `bus.unit`, the
+synthetic evidence controls (including symlink rejection), and the optional
+`ROM_ABORT_TRACE_CPU_PC` build passed. This commit invalidated request v4.
+Prepare and validate a new candidate-bound request after the review and state
+artifacts are committed. It grants no remote authority.
+
+The 2026-11-01 post-execution goal verification remains `gaps_found` at 8/9.
+The named `bus.unit` check and local rejection controls passed, but no new
+hosted or full-campaign evidence was produced. Independent cold-main authority,
+current-candidate hosted CI/campaign results, six-platform hash equality, and
+raw Cachegrind base/head evidence remain absent. See
+[`24-VERIFICATION.md`](24-VERIFICATION.md); no hosted verdict is inferred.

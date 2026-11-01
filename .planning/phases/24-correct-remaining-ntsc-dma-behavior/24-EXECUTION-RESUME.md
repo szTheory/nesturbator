@@ -35,11 +35,23 @@ commit IDs changed; the preceding 91 stayed the same. A documentation commit
 updated 21 references across eight committed files. The outgoing history
 format check now passes.
 
-The replacement request is prepared under `build/phase24-gap-replacement/`.
-Its request JSON carries the exact new head/tree and keeps
-`remote_action_authorized=false`. No remote action, test suite, workflow, or
-hosted CI run has occurred after the rewrite. The prior push authorization is
-bound to the old candidate and does not apply to this one.
+The first replacement request under `build/phase24-gap-replacement/` failed
+`MODE=request` validation because its proposed PR command used the old default
+body path; its root is preserved. Commit
+`f76d4492c45048a8541e14a4fda6fefe669ea82a` fixes the generator to use the
+selected request root's body path. Preparation at
+`build/phase24-gap-replacement-v2/` stopped before generating request files
+because the sandbox denied Git's temporary `.git/index.lock`; that root is
+preserved. The request under `build/phase24-gap-replacement-v3/` passed local
+`MODE=request` validation for the current candidate and kept
+`remote_action_authorized=false`. Final state/evidence bookkeeping changed
+after that validation, so the final request is under
+`build/phase24-gap-replacement-v4/`; `request.sha256` records the digest. On
+2026-11-01 at 12:06 UTC, the final v4 request passed `MODE=request` validation
+against its candidate/index/worktree snapshot and current read-only GitHub
+main/branch/PR metadata. No remote action, test suite, workflow, or hosted CI run has occurred
+after the rewrite. The prior push authorization is bound to the old candidate
+and does not apply to the replacement.
 
 ## Next action
 
@@ -49,6 +61,22 @@ run under the previously prepared limits. If CI runs, inspect its results
 read-only for low-effort improvements. Do not merge, release, manually
 dispatch, or retry a failed/interrupted run without new authorization.
 
-Next command: `$gsd-execute-phase 24 --gaps-only`. Context may be cleared at
-this handoff; read STATE, this resume file, and the acceptance record before
-resuming.
+The phase initializer reports zero incomplete plans because Plan 24-05 already
+has a summary. Do not expect another executor dispatch from the same command.
+The first standard-depth code review found three issues. Commit `dfd0bfc`
+fixed the symlinked ROOT escape, missing CPU-read dereference, and optional
+CPU-PC compile failure; `bus.unit`, the evidence controls, the optional
+CPU-PC build, and a clean re-review passed. The refreshed goal verification
+remains `gaps_found` at 8/9; the remaining DMA-03 evidence is detailed in
+`24-VERIFICATION.md`. This invalidated request v4.
+
+The next action is to prepare and validate a new candidate-bound request after
+the review and state artifacts are committed. It must keep
+`remote_action_authorized=false`. The owner then reviews that exact request and
+decides whether to authorize its push, new PR, and one configured CI run under
+the recorded limits.
+
+Next command after v5 passes local validation: `$gsd-progress`. It refreshes
+GSD routing so the owner can review the concrete request. Context may be
+cleared at this handoff; read STATE, this resume file, and the acceptance
+record before resuming.

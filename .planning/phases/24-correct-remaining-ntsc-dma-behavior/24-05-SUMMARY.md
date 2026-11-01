@@ -43,12 +43,51 @@ IDs changed; the preceding 91 stayed the same. The outgoing format check now
 passes.
 
 A local documentation commit refreshed 21 changed commit references across
-eight files. No code behavior changed, and no tests, full workflow, or hosted
-CI were rerun. The replacement request is prepared at
-`build/phase24-gap-replacement/request.md`; it records the final head/tree and
-leaves `remote_action_authorized=false`. The original push grant does not
-apply to this candidate. The next actor is the owner, who reviews the exact
-request and decides whether to authorize its push, new PR, and one existing
-configured CI run. If CI runs, review its results read-only for low-effort
-improvements before any new code change or rerun. Phase 24 and DMA-03 remain
-incomplete.
+eight files. The first replacement request at
+`build/phase24-gap-replacement/` failed `MODE=request` validation because its
+proposed PR command used the old default body path; the failed root is
+preserved. The committed generator fix
+`f76d4492c45048a8541e14a4fda6fefe669ea82a` uses the selected request root's
+body path. Preparation at `build/phase24-gap-replacement-v2/` stopped before
+generating request files because the sandbox denied Git's temporary
+`.git/index.lock`; that root is preserved. The request at
+`build/phase24-gap-replacement-v3/` passed local `MODE=request` validation for
+candidate `f76d4492c45048a8541e14a4fda6fefe669ea82a` and tree
+`7a039910a2c0fe696da2fd0d2807eeeb7d63d5ef`, with remote authorization false.
+Final state/evidence bookkeeping changed after that validation, so the final
+request is at `build/phase24-gap-replacement-v4/`. Its `request.sha256` records
+the final digest; its JSON keeps `remote_action_authorized=false`. No behavior change, tests, workflow, or
+hosted CI run occurred as part of this tooling repair. The original push grant
+does not apply to this candidate. The next actor is the owner, who reviews the
+exact request and decides whether to authorize its push, new PR, and one
+existing configured CI run. If CI runs, review its results read-only for
+low-effort improvements before any new code change or rerun. Phase 24 and
+DMA-03 remain incomplete.
+
+## Review follow-up
+
+The first standard-depth code review found three evidence/test-diagnostic
+issues: symlink traversal in the evidence `ROOT`, a nullable CPU-read trace
+dereference, and an optional CPU-PC trace compile failure. Commit `dfd0bfc`
+fixed all three and added synthetic controls for the symlink boundary and
+missing-read diagnostic. `bus.unit` passed with `ROM_ABORT_TRACE_CPU_PC`
+enabled, the evidence controls passed, the changed C file passed clang-format
+18, and the final standard-depth re-review is clean.
+
+This commit changed the candidate after request v4, so v4 is stale. The next
+candidate-bound request must be prepared after the final review and state docs
+are committed. Remote authorization remains false; no push, PR, workflow, or
+CI run is authorized for that new candidate.
+
+## Goal re-verification
+
+On 2026-11-01, the required goal-backward verification was refreshed after the
+local gap work and review fixes. It remains `gaps_found` at 8/9: the fresh
+`bus.unit` entry and Phase 24 rejection controls passed, while DMA-03 still
+requires independent cold protected-main evidence, current-candidate hosted
+CI/campaign results, all six platform hash inventories, and raw Cachegrind
+base/head evidence. The detailed report is
+[`24-VERIFICATION.md`](24-VERIFICATION.md). The report does not close the
+phase or requirements. After the final phase artifacts are committed, prepare
+and validate request v5 with `remote_action_authorized=false`; the owner is the
+next actor for any remote decision.
