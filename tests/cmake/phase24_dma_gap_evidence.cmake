@@ -310,6 +310,23 @@ function(phase24_controls)
   endif()
   message(STATUS "control accepted the candidate-build workflow after the hygiene preset")
 
+  set(synthetic_commit_sha "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+  set(synthetic_tree_sha "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+  string(CONCAT synthetic_commit_json
+    "{\"sha\":\"${synthetic_commit_sha}\",\"commit\":{\"message\":\"main; commit\","
+    "\"tree\":{\"sha\":\"${synthetic_tree_sha}\"}}}")
+  set(synthetic_tree_json "{\"sha\":\"${synthetic_tree_sha}\",\"truncated\":false}")
+  set(synthetic_commit_path "${root}/controls/semicolon-commit.json")
+  set(synthetic_tree_path "${root}/controls/semicolon-tree.json")
+  file(WRITE "${synthetic_commit_path}" "${synthetic_commit_json}\n")
+  file(WRITE "${synthetic_tree_path}" "${synthetic_tree_json}\n")
+  phase24_validate_commit_tree("synthetic semicolon" "${synthetic_commit_sha}"
+    "${synthetic_commit_path}" "${synthetic_tree_path}" error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "commit/tree control rejected a semicolon in a commit message: ${error}")
+  endif()
+  message(STATUS "control preserved GitHub commit JSON containing semicolons")
+
   execute_process(
     COMMAND "${BUS}" --dma-trace overflow-control
     RESULT_VARIABLE overflow_result
@@ -1346,6 +1363,22 @@ function(phase24_validate_prepare_contract request_json out_error)
   set(${out_error} "" PARENT_SCOPE)
 endfunction()
 
+function(phase24_validate_commit_tree label expected_sha commit_json_path tree_json_path out_error)
+  file(READ "${commit_json_path}" commit_json)
+  file(READ "${tree_json_path}" tree_json)
+  phase20_json_get(actual_sha "${commit_json}" sha)
+  phase20_json_get(commit_tree_sha "${commit_json}" commit tree sha)
+  phase20_json_get(tree_sha "${tree_json}" sha)
+  phase20_json_get(truncated "${tree_json}" truncated)
+  phase24_lower_sha("${tree_sha}" 40 valid_tree_sha)
+  if(NOT actual_sha STREQUAL expected_sha OR NOT commit_tree_sha STREQUAL tree_sha OR
+     NOT truncated STREQUAL "false" OR NOT valid_tree_sha)
+    set(${out_error} "${label} commit/tree identity is incomplete or mismatched" PARENT_SCOPE)
+    return()
+  endif()
+  set(${out_error} "" PARENT_SCOPE)
+endfunction()
+
 function(phase24_validate_platform_baseline root platform base_sha scoreboard_sha expected_rows out_error)
   foreach(file IN ITEMS
       "${root}/artifacts/build-${platform}/protected-main/scoreboard.txt"
@@ -1519,25 +1552,21 @@ function(phase24_validate)
   if(NOT error STREQUAL "" OR NOT resolved_tested STREQUAL tested_sha)
     message(FATAL_ERROR "current PR/tested merge mapping rejected: ${error}")
   endif()
-  foreach(pair IN ITEMS
-      "candidate|${candidate_sha}|${candidate_commit}|${candidate_tree}"
-      "tested|${tested_sha}|${tested_commit}|${tested_tree}"
-      "base|${base_sha}|${base_commit}|${base_tree}")
-    string(REPLACE "|" ";" fields "${pair}")
-    list(GET fields 0 label)
-    list(GET fields 1 expected_sha)
-    list(GET fields 2 commit_json)
-    list(GET fields 3 tree_json)
-    phase20_json_get(actual_sha "${commit_json}" sha)
-    phase20_json_get(commit_tree_sha "${commit_json}" commit tree sha)
-    phase20_json_get(tree_sha "${tree_json}" sha)
-    phase20_json_get(truncated "${tree_json}" truncated)
-    phase24_lower_sha("${tree_sha}" 40 valid_tree_sha)
-    if(NOT actual_sha STREQUAL expected_sha OR NOT commit_tree_sha STREQUAL tree_sha OR
-       NOT truncated STREQUAL "false" OR NOT valid_tree_sha)
-      message(FATAL_ERROR "${label} commit/tree identity is incomplete or mismatched")
-    endif()
-  endforeach()
+  phase24_validate_commit_tree("candidate" "${candidate_sha}"
+    "${root}/provenance/candidate-commit.json" "${root}/provenance/candidate-tree.json" error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "${error}")
+  endif()
+  phase24_validate_commit_tree("tested" "${tested_sha}"
+    "${root}/provenance/tested-commit.json" "${root}/provenance/tested-tree.json" error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "${error}")
+  endif()
+  phase24_validate_commit_tree("base" "${base_sha}"
+    "${root}/provenance/base-commit.json" "${root}/provenance/base-tree.json" error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "${error}")
+  endif()
   phase20_json_get(protected_sha "${protected_commit}" sha)
   phase20_json_get(protected_tree_sha "${protected_commit}" commit tree sha)
   phase20_json_get(protected_tree_id "${protected_tree}" sha)
