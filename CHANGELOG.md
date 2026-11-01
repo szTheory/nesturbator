@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.12](https://github.com/szTheory/nesturbator/compare/v0.1.11...v0.1.12) (2026-10-30)
+
+
+### Features
+
+* measure NTSC conformance and bound execution robustness ([#55](https://github.com/szTheory/nesturbator/issues/55)) ([5a21a9d](https://github.com/szTheory/nesturbator/commit/5a21a9daaa4a7ed6f9526f7be4dd2d0e19ce48de))
+* name guest JAMs and land sprite-0 hit on the console's line ([#57](https://github.com/szTheory/nesturbator/issues/57)) ([ab9c2e6](https://github.com/szTheory/nesturbator/commit/ab9c2e6eb822c06f0dfb0f08a0ca42ec541358be))
+
+
+### Bug Fixes
+
+* **cpu:** correct interrupt latency and NMI hijacking ([#61](https://github.com/szTheory/nesturbator/issues/61)) ([45a078d](https://github.com/szTheory/nesturbator/commit/45a078d2de1f08e39caf1c5942fcdb57f493d8af))
+* **nmi:** align VBlank status sampling and NMI polling ([#59](https://github.com/szTheory/nesturbator/issues/59)) ([a64c23f](https://github.com/szTheory/nesturbator/commit/a64c23fd3ca7caed7e3ad102ff1a9beaa29fa562))
+
 ## [0.1.11](https://github.com/szTheory/nesturbator/compare/v0.1.10...v0.1.11) (2026-10-23)
 
 

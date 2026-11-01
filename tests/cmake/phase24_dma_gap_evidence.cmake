@@ -77,7 +77,11 @@ set(NESTURBATOR_PHASE20_REPOSITORY "szTheory/nesturbator")
 set(NESTURBATOR_PHASE20_PLATFORMS
   linux-x64 linux-arm64 macos-x64 macos-arm64 windows-x64 windows-arm64)
 set(NESTURBATOR_PHASE20_BEHAVIOUR_REVISION 14)
-set(NESTURBATOR_PHASE20_LIBRARY_VERSION "0.1.11")
+file(STRINGS "${source_dir}/version.txt" NESTURBATOR_PHASE20_LIBRARY_VERSION LIMIT_COUNT 1)
+string(STRIP "${NESTURBATOR_PHASE20_LIBRARY_VERSION}" NESTURBATOR_PHASE20_LIBRARY_VERSION)
+if(NOT NESTURBATOR_PHASE20_LIBRARY_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+  message(FATAL_ERROR "version.txt does not contain a semantic library version")
+endif()
 set(NESTURBATOR_PHASE20_PERF_ARTIFACT_PREFIX "phase20-perf")
 set(NESTURBATOR_PHASE20_MARKER_ARTIFACT "retroarch-marker-progression")
 set(NESTURBATOR_PHASE20_HASH_ARTIFACT_PREFIX "hashes")
@@ -252,6 +256,18 @@ function(phase24_controls)
   if(NOT DEFINED BUS OR NOT EXISTS "${BUS}" OR IS_DIRECTORY "${BUS}")
     message(FATAL_ERROR "MODE=controls requires -DBUS=<built bus.unit executable>")
   endif()
+  phase24_git(committed_version_blob rev-parse HEAD:version.txt)
+  phase24_git(committed_version show HEAD:version.txt)
+  string(STRIP "${committed_version}" committed_version)
+  set(version_tree_json
+    "{\"tree\":[{\"path\":\"version.txt\",\"mode\":\"100644\",\"type\":\"blob\",\"sha\":\"${committed_version_blob}\"}]}")
+  set(NESTURBATOR_PHASE20_LIBRARY_VERSION "99.88.77")
+  phase24_library_version_from_tree("${version_tree_json}" resolved_version error)
+  if(NOT error STREQUAL "" OR NOT resolved_version STREQUAL committed_version)
+    message(FATAL_ERROR "immutable-version control used an uncommitted version: ${error}")
+  endif()
+  message(STATUS "control resolved library version from the committed Git tree")
+
   file(REMOVE_RECURSE "${root}/controls")
   file(MAKE_DIRECTORY "${root}/controls")
 
@@ -922,6 +938,31 @@ function(phase24_find_tree_entry tree_json path out_sha out_mode out_error)
   set(${out_error} "" PARENT_SCOPE)
 endfunction()
 
+function(phase24_library_version_from_tree tree_json out_version out_error)
+  phase24_find_tree_entry("${tree_json}" "version.txt" version_blob version_mode error)
+  if(NOT error STREQUAL "" OR NOT version_mode STREQUAL "100644")
+    set(${out_error} "candidate version.txt is not a regular Git blob: ${error}" PARENT_SCOPE)
+    return()
+  endif()
+  execute_process(
+    COMMAND git cat-file blob "${version_blob}"
+    WORKING_DIRECTORY "${source_dir}"
+    RESULT_VARIABLE result
+    OUTPUT_VARIABLE version
+    ERROR_VARIABLE stderr)
+  if(NOT "${result}" STREQUAL "0")
+    set(${out_error} "could not read committed version.txt blob: ${stderr}" PARENT_SCOPE)
+    return()
+  endif()
+  string(STRIP "${version}" version)
+  if(NOT version MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+$")
+    set(${out_error} "committed version.txt does not contain a semantic library version" PARENT_SCOPE)
+    return()
+  endif()
+  set(${out_version} "${version}" PARENT_SCOPE)
+  set(${out_error} "" PARENT_SCOPE)
+endfunction()
+
 function(phase24_validate_artifact_map root run_id attempt artifact_json out_error)
   set(map_path "${root}/provenance/artifact-map.tsv")
   set(file_map_path "${root}/provenance/artifact-files.tsv")
@@ -1415,6 +1456,11 @@ function(phase24_validate)
   if(NOT candidate_tree_id STREQUAL request_candidate_tree)
     message(FATAL_ERROR "candidate tree does not match the prepared request tree")
   endif()
+  phase24_library_version_from_tree("${candidate_tree}"
+    NESTURBATOR_PHASE20_LIBRARY_VERSION error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "candidate release version is not bound to its committed tree: ${error}")
+  endif()
   phase24_find_tree_entry("${protected_tree}" "tests/accuracy/scoreboard.txt"
     protected_blob_sha protected_blob_mode error)
   if(NOT error STREQUAL "" OR NOT protected_blob_mode STREQUAL "100644")
@@ -1515,6 +1561,7 @@ function(phase24_validate)
 
   set(scope_paths
     .github/workflows/ci.yml
+    version.txt
     tests/CMakeLists.txt
     tests/cmake/prepare_scoreboard_baseline.cmake
     tests/cmake/phase20_hosted_evidence.cmake
