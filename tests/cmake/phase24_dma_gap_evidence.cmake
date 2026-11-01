@@ -297,6 +297,19 @@ function(phase24_controls)
   file(REMOVE_RECURSE "${root}/controls")
   file(MAKE_DIRECTORY "${root}/controls")
 
+  file(SHA256 "${source_dir}/.github/workflows/ci.yml" contract_workflow_sha)
+  file(SHA256 "${source_dir}/tests/cmake/prepare_scoreboard_baseline.cmake" contract_prepare_sha)
+  set(contract_request "${root}/controls/prepare-contract-request.json")
+  file(WRITE "${contract_request}"
+    "{\"workflow_sha256\":\"${contract_workflow_sha}\","
+    "\"protected_baseline_script_sha256\":\"${contract_prepare_sha}\"}\n")
+  file(READ "${contract_request}" contract_request_json)
+  phase24_validate_prepare_contract("${contract_request_json}" error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "current cold-baseline workflow contract was rejected: ${error}")
+  endif()
+  message(STATUS "control accepted the candidate-build workflow after the hygiene preset")
+
   execute_process(
     COMMAND "${BUS}" --dma-trace overflow-control
     RESULT_VARIABLE overflow_result
@@ -1313,7 +1326,9 @@ function(phase24_validate_prepare_contract request_json out_error)
   file(READ "${source_dir}/tests/cmake/prepare_scoreboard_baseline.cmake" prepare_text)
   string(FIND "${workflow_text}" "- name: Prepare protected-main scoreboard baseline" prepare_name)
   string(FIND "${workflow_text}" "run: cmake -P tests/cmake/prepare_scoreboard_baseline.cmake" prepare_run)
-  string(FIND "${workflow_text}" "run: cmake --workflow --preset" ctest_run)
+  # Match the candidate build matrix command, not the earlier hygiene preset.
+  string(FIND "${workflow_text}"
+    [=[run: cmake --workflow --preset ${{ matrix.workflow || matrix.preset }}]=] ctest_run)
   string(FIND "${prepare_text}" "git fetch --no-tags" fetch_source)
   foreach(variable IN ITEMS NESTURBATOR_SCOREBOARD_BASELINE
       NESTURBATOR_SCOREBOARD_BASELINE_METADATA NESTURBATOR_SCOREBOARD_BASELINE_REVISION)
