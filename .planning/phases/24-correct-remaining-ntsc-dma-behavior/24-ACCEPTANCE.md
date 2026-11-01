@@ -67,7 +67,7 @@ unchanged inner caps. A real interruption or timeout is not automatically
 retried; hosted and publication actions are still excluded.
 
 The current emulation source is behavior14 at
-`a12a79a2cbf0d872150ada9c91754b5345ded38a`; the final campaign ran at
+`324a769e413003cce3aa30d6a5a78a441ce558d8`; the final campaign ran at
 `0c8cc53b1672` with `source_dirty=1`, because measured metadata and local
 planning/instruction notes were present. The protected-baseline handoff
 variables were unset, so local protected checks used the checkout's
@@ -160,7 +160,7 @@ No broad cleanup, network refresh or bulk historical rewrite was performed.
 
 ## Bounded Plan24-04 review
 
-The current correction source is `a12a79a2cbf0d872150ada9c91754b5345ded38a`
+The current correction source is `324a769e413003cce3aa30d6a5a78a441ce558d8`
 (behavior14 / format6 / ABI1). Only the plan's bounded command ran:
 
 ```sh
@@ -230,7 +230,7 @@ The README now reports the actual local selected-row result and keeps cold
 protected-main, current-hosted, six-platform and performance evidence
 outstanding. The inherited `main...HEAD` whitespace findings remain recorded
 above; the explicit scoped check for this plan is run against the pre-gap
-commit `a4af94c7fd3606e9561d79179b244503c2fd93ee`. No archived records or
+commit `d04c66ecfda4465446b4eadde492c967584ab41f`. No archived records or
 historical fixtures were bulk-edited.
 
 ## Plan24-05 remote decision checkpoint

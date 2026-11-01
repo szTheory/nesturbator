@@ -4,7 +4,7 @@
 
 The final local `cmake --workflow --preset ci` run completed successfully from
 source commit `0c8cc53b1672`, with `source_dirty=1`; the emulation correction
-is committed at `a12a79a2cbf0d872150ada9c91754b5345ded38a` (behavior14,
+is committed at `324a769e413003cce3aa30d6a5a78a441ce558d8` (behavior14,
 format6, ABI1). The run used the canonical `6bee919529289c555803b612b8c9e4f7eaaeeabb`
 ROM pin, the existing full CI selection and limits, and the 56-input build
 fingerprint `f04cdd6ec67f0d02b0a6043ede6a2c6b5b6a6c85eee6f6277f73ac75100cd606`.

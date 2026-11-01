@@ -53,4 +53,4 @@ migration_path=tests/accuracy/migration.tsv
 old_scoreboard_path=tests/accuracy/old-673ef-scoreboard.txt
 campaign_artifact=build/phase24-acceptance/20261101T010016Z/observed/accuracycoin/full/
 input_policy=cold-boot;page-header-A;one-frame-A-press;one-frame-release
-source_dirty_reason=The behavior14 campaign ran from commit 0c8cc53b1672 with a dirty checkout. Uncommitted measured metadata and local planning and AGENTS notes were present. Emulator corrections remain at committed behavior14 source a12a79a2cbf0d872150ada9c91754b5345ded38a. The 56-input fingerprint records the exact tested build-input bytes.
+source_dirty_reason=The behavior14 campaign ran from commit 0c8cc53b1672 with a dirty checkout. Uncommitted measured metadata and local planning and AGENTS notes were present. Emulator corrections remain at committed behavior14 source 324a769e413003cce3aa30d6a5a78a441ce558d8. The 56-input fingerprint records the exact tested build-input bytes.
