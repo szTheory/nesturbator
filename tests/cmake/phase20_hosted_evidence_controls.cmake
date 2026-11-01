@@ -391,7 +391,7 @@ function(phase20_control_set_selected_job_log root mode)
   set(mapping_path "${root}/provenance/build-linux-x64-job.txt")
   set(results "")
   if(mode STREQUAL "positive")
-    set(results
+    string(CONCAT results
       "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 16.82 sec\r\n"
       "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
       "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
@@ -399,9 +399,9 @@ function(phase20_control_set_selected_job_log root mode)
       "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.m2.decode .................. Passed 0.00 sec\r\n"
       "2026-10-26T10:00:16.1234567Z 6/6 Test #289: runner.boot_to_play ..................... Passed 10.08 sec\r\n")
   elseif(mode STREQUAL "empty")
-    set(results "2026-10-26T10:00:11.0000000Z Test project /build/ci\r\n2026-10-26T10:00:12.0000000Z No tests were found!!!\r\n")
+    string(CONCAT results "2026-10-26T10:00:11.0000000Z Test project /build/ci\r\n2026-10-26T10:00:12.0000000Z No tests were found!!!\r\n")
   elseif(mode STREQUAL "near-miss")
-    set(results
+    string(CONCAT results
       "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 16.82 sec\r\n"
       "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
       "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
@@ -409,7 +409,7 @@ function(phase20_control_set_selected_job_log root mode)
       "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.M2_P128K_CR8K_V.decode .... Passed 0.00 sec\r\n"
       "2026-10-26T10:00:16.1234567Z 6/6 Test #289: runner.boot_to_play ..................... Passed 10.08 sec\r\n")
   elseif(mode STREQUAL "skipped")
-    set(results
+    string(CONCAT results
       "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
       "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
       "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
@@ -417,7 +417,7 @@ function(phase20_control_set_selected_job_log root mode)
       "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.m2.decode .................. Skipped 0.00 sec\r\n"
       "2026-10-26T10:00:16.1234567Z 6/6 Test #289: runner.boot_to_play ..................... Passed 0.01 sec\r\n")
   elseif(mode STREQUAL "failed")
-    set(results
+    string(CONCAT results
       "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
       "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
       "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
@@ -425,7 +425,7 @@ function(phase20_control_set_selected_job_log root mode)
       "2026-10-26T10:00:15.1234567Z 5/6 Test #116: holymapperel.m2.decode .................. Failed 0.00 sec\r\n"
       "2026-10-26T10:00:16.1234567Z 6/6 Test #289: runner.boot_to_play ..................... Passed 0.01 sec\r\n")
   elseif(mode STREQUAL "duplicate")
-    set(results
+    string(CONCAT results
       "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
       "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
       "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"
@@ -434,7 +434,7 @@ function(phase20_control_set_selected_job_log root mode)
       "2026-10-26T10:00:16.1234567Z 6/6 Test #117: holymapperel.m2.decode .................. Passed 0.00 sec\r\n"
       "2026-10-26T10:00:17.1234567Z 7/7 Test #289: runner.boot_to_play ..................... Passed 0.01 sec\r\n")
   elseif(mode STREQUAL "contradictory")
-    set(results
+    string(CONCAT results
       "2026-10-26T10:00:11.1234567Z 1/6 Test #201: accuracycoin.protected_observation .... Passed 0.01 sec\r\n"
       "2026-10-26T10:00:12.1234567Z 2/6 Test #202: accuracycoin.protected ................ Passed 0.01 sec\r\n"
       "2026-10-26T10:00:13.1234567Z 3/6 Test #254: accuracy.scoreboard.no_lost_pass ....... Passed 0.01 sec\r\n"

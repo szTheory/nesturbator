@@ -259,21 +259,42 @@ function(phase24_make_build_log_control_fixture fixture_root)
     phase20_expected_build_job_name("${platform}" job_name step_name)
     set(job_path "${fixture_root}/provenance/build-${platform}-job.json")
     set(raw_log "${fixture_root}/downloads/job-${platform}.txt")
+    set(mapping_path "${fixture_root}/provenance/build-${platform}-job.txt")
     get_filename_component(job_parent "${job_path}" DIRECTORY)
     get_filename_component(log_parent "${raw_log}" DIRECTORY)
     file(MAKE_DIRECTORY "${job_parent}" "${log_parent}")
-    set(step_started "2026-11-01T00:00:01Z")
+    set(prepare_started "2026-11-01T00:00:01Z")
+    set(prepare_completed "2026-11-01T00:00:02Z")
+    set(step_started "2026-11-01T00:00:03Z")
     set(step_completed "2026-11-01T00:00:05Z")
+    set(step_output_suffix "")
+    if(platform STREQUAL "windows-x64")
+      set(step_output_suffix
+        ";Windows environment field\n2026-11-01T00:00:04Z windows path: C:\\runner\\")
+    endif()
     file(WRITE "${job_path}"
       "{\"id\":${id},\"name\":\"${job_name}\",\"run_id\":12345,"
       "\"run_attempt\":1,\"status\":\"completed\",\"conclusion\":\"success\","
-      "\"steps\":[{\"name\":\"${step_name}\",\"number\":10,\"status\":\"completed\","
+      "\"started_at\":\"2026-11-01T00:00:00Z\",\"completed_at\":\"${step_completed}\","
+      "\"steps\":[{\"name\":\"Prepare protected-main scoreboard baseline\",\"number\":5,"
+      "\"status\":\"completed\",\"conclusion\":\"success\","
+      "\"started_at\":\"${prepare_started}\",\"completed_at\":\"${prepare_completed}\"},"
+      "{\"name\":\"${step_name}\",\"number\":10,\"status\":\"completed\","
       "\"conclusion\":\"success\",\"started_at\":\"${step_started}\","
       "\"completed_at\":\"${step_completed}\"}]}\n")
     file(WRITE "${raw_log}"
-      "2026-11-01T00:00:01Z ##[group]${step_name}\n"
-      "2026-11-01T00:00:02Z synthetic workflow output\n"
-      "2026-11-01T00:00:03Z ##[endgroup]\n")
+      "2026-11-01T00:00:01Z ##[group]Run cmake -P tests/cmake/prepare_scoreboard_baseline.cmake\n"
+      "2026-11-01T00:00:01Z Run cmake -P tests/cmake/prepare_scoreboard_baseline.cmake\n"
+      "2026-11-01T00:00:02Z ##[endgroup]\n"
+      "2026-11-01T00:00:03Z ##[group]${step_name}\n"
+      "2026-11-01T00:00:04Z synthetic workflow output${step_output_suffix}\n"
+      "2026-11-01T00:00:05Z ##[endgroup]\n")
+    file(SHA256 "${raw_log}" raw_log_sha)
+    file(WRITE "${mapping_path}"
+      "job_id=${id}\njob_name=${job_name}\nrun_id=12345\nrun_attempt=1\n"
+      "step_name=${step_name}\nstep_number=10\nraw_job_log=job-${platform}.txt\n"
+      "raw_job_log_sha256=${raw_log_sha}\nstep_log_sha256=${raw_log_sha}\n"
+      "step_started_at=${step_started}\nstep_completed_at=${step_completed}\n")
     math(EXPR id "${id} + 1")
   endforeach()
 endfunction()
@@ -327,6 +348,75 @@ function(phase24_controls)
   endif()
   message(STATUS "control preserved GitHub commit JSON containing semicolons")
 
+  set(cold_projection_root "${root}/controls/cold-protected-projection")
+  file(MAKE_DIRECTORY "${cold_projection_root}/artifacts/build-linux-x64/protected-main")
+  set(cold_canonical "${cold_projection_root}/canonical-scoreboard.txt")
+  set(cold_projected "${cold_projection_root}/artifacts/build-linux-x64/protected-main/scoreboard.txt")
+  set(cold_metadata "${cold_projection_root}/artifacts/build-linux-x64/protected-main/metadata.txt")
+  file(WRITE "${cold_canonical}"
+    "accuracycoin/A\tpass\t0x01\t13\t-\n"
+    "accuracycoin/B\tfail\t0x02\t20\t-\n"
+    "accuracycoin/C\tpass\t0x03\t5\t-\n")
+  file(WRITE "${cold_projected}"
+    "accuracycoin/A\tpass\t0x01\t-\t-\n"
+    "accuracycoin/C\tpass\t0x03\t-\t-\n")
+  phase24_validate_scoreboard_projection("${cold_canonical}" "${cold_projected}"
+    cold_canonical_sha cold_canonical_rows cold_pass_rows cold_projected_sha error)
+  if(NOT error STREQUAL "" OR NOT cold_canonical_rows STREQUAL "3" OR
+     NOT cold_pass_rows STREQUAL "2")
+    message(FATAL_ERROR "canonical protected scoreboard projection control failed: ${error}")
+  endif()
+  file(SHA256 "${cold_projected}" cold_projected_sha)
+  file(WRITE "${cold_metadata}"
+    "schema=1\nauthority=protected-main\nsource=canonical-baseline\n"
+    "protected_revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+    "scoreboard_schema=1\nscoreboard_rows=2\nscoreboard_denominator=2\n"
+    "scoreboard_sha256=${cold_projected_sha}\n"
+    "canonical_scoreboard_schema=2\ncanonical_scoreboard_rows=3\ncanonical_pass_rows=2\n"
+    "canonical_scoreboard_sha256=${cold_canonical_sha}\n")
+  file(WRITE "${cold_projection_root}/artifacts/build-linux-x64/LastTest.log" "synthetic cold-main test log\n")
+  phase24_validate_platform_baseline("${cold_projection_root}" linux-x64
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" "${cold_canonical}" "${cold_canonical_sha}" 3 2 error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "cold-main projected scoreboard control was rejected: ${error}")
+  endif()
+  message(STATUS "control bound projected protected PASS rows to the independent canonical Git blob")
+  file(READ "${cold_metadata}" cold_metadata_bytes)
+  string(REPLACE "canonical_scoreboard_sha256=${cold_canonical_sha}"
+    "canonical_scoreboard_sha256=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    cold_metadata_bytes "${cold_metadata_bytes}")
+  file(WRITE "${cold_metadata}" "${cold_metadata_bytes}")
+  phase24_validate_platform_baseline("${cold_projection_root}" linux-x64
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" "${cold_canonical}" "${cold_canonical_sha}" 3 2 error)
+  phase24_expect_rejection("projected baseline detached from canonical scoreboard"
+    "canonical provenance metadata mismatch" "${error}")
+  set(cold_windows_dir "${cold_projection_root}/artifacts/build-windows-x64/protected-main")
+  file(MAKE_DIRECTORY "${cold_windows_dir}" "${cold_projection_root}/artifacts/build-windows-x64")
+  file(READ "${cold_projected}" cold_lf_projection)
+  string(REPLACE "\n" "\r\n" cold_crlf_projection "${cold_lf_projection}")
+  file(WRITE "${cold_windows_dir}/scoreboard.txt" "${cold_crlf_projection}")
+  file(SHA256 "${cold_windows_dir}/scoreboard.txt" cold_windows_sha)
+  file(WRITE "${cold_windows_dir}/metadata.txt"
+    "schema=1\nauthority=protected-main\nsource=canonical-baseline\n"
+    "protected_revision=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+    "scoreboard_schema=1\nscoreboard_rows=2\nscoreboard_denominator=2\n"
+    "scoreboard_sha256=${cold_windows_sha}\n"
+    "canonical_scoreboard_schema=2\ncanonical_scoreboard_rows=3\ncanonical_pass_rows=2\n"
+    "canonical_scoreboard_sha256=${cold_canonical_sha}\n")
+  file(WRITE "${cold_projection_root}/artifacts/build-windows-x64/LastTest.log"
+    "synthetic Windows cold-main test log\n")
+  phase24_validate_platform_baseline("${cold_projection_root}" windows-x64
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" "${cold_canonical}" "${cold_canonical_sha}" 3 2 error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "CRLF Windows protected scoreboard projection was rejected: ${error}")
+  endif()
+  message(STATUS "control accepted CRLF platform bytes with the same canonical protected PASS rows")
+  file(WRITE "${cold_projected}" "accuracycoin/A\tpass\t0x01\t-\t-\n")
+  phase24_validate_scoreboard_projection("${cold_canonical}" "${cold_projected}"
+    cold_canonical_sha cold_canonical_rows cold_pass_rows cold_projected_sha error)
+  phase24_expect_rejection("cold-main projection missing a canonical PASS key"
+    "does not match the canonical protected-main PASS projection" "${error}")
+
   execute_process(
     COMMAND "${BUS}" --dma-trace overflow-control
     RESULT_VARIABLE overflow_result
@@ -375,12 +465,38 @@ function(phase24_controls)
     message(FATAL_ERROR "selected workflow-step log materialization failed: ${error}")
   endif()
   foreach(platform IN LISTS NESTURBATOR_PHASE20_PLATFORMS)
-    set(workflow_log "${build_log_fixture}/artifacts/build-${platform}/workflow.log")
+    set(workflow_log "${build_log_fixture}/provenance/build-${platform}-workflow.log")
     if(NOT EXISTS "${workflow_log}" OR IS_DIRECTORY "${workflow_log}" OR IS_SYMLINK "${workflow_log}")
       message(FATAL_ERROR "selected workflow-step log was not materialized for ${platform}")
     endif()
+    if(platform STREQUAL "windows-x64")
+      file(READ "${workflow_log}" windows_workflow_log)
+      string(FIND "${windows_workflow_log}" "synthetic workflow output;Windows environment field" semicolon_log_position)
+      string(FIND "${windows_workflow_log}"
+        "2026-11-01T00:00:04Z windows path: C:\\runner\\\n"
+        windows_path_line_position)
+      if(semicolon_log_position LESS 0 OR windows_path_line_position LESS 0)
+        message(FATAL_ERROR "selected Windows workflow log split a semicolon or trailing backslash from its timestamped line")
+      endif()
+    endif()
   endforeach()
   message(STATUS "control materialized six timestamp-bounded build workflow logs from raw per-job logs")
+  foreach(platform IN LISTS NESTURBATOR_PHASE20_PLATFORMS)
+    phase24_validate_prepare_step("${build_log_fixture}" "${platform}" 12345 1 error)
+    if(NOT error STREQUAL "")
+      message(FATAL_ERROR "successful cold-baseline preparation control was rejected for ${platform}: ${error}")
+    endif()
+  endforeach()
+  message(STATUS "control accepted a successful cold-baseline step before candidate CTest on all six platforms")
+  file(READ "${build_log_fixture}/provenance/build-linux-x64-job.json" linux_job)
+  string(REPLACE
+    "\"completed_at\":\"2026-11-01T00:00:02Z\""
+    "\"completed_at\":\"2026-11-01T00:00:06Z\""
+    late_prepare_job "${linux_job}")
+  file(WRITE "${build_log_fixture}/provenance/build-linux-x64-job.json" "${late_prepare_job}")
+  phase24_validate_prepare_step("${build_log_fixture}" linux-x64 12345 1 error)
+  phase24_expect_rejection("cold-baseline preparation after candidate CTest"
+    "ran after candidate CTest" "${error}")
   file(READ "${build_log_fixture}/provenance/build-linux-x64-job.json" linux_job)
   string(REPLACE "\"run_attempt\":1" "\"run_attempt\":2" linux_job wrong_attempt_job)
   file(WRITE "${build_log_fixture}/provenance/build-linux-x64-job.json" "${wrong_attempt_job}")
@@ -1311,17 +1427,18 @@ function(phase24_validate_prepare_step root platform run_id attempt out_error)
   endif()
   phase20_iso_utc_second("${prepare_completed}" prepare_end_second timestamp_error)
   phase20_iso_utc_second("${run_started}" run_start_second run_time_error)
-  if(prepare_count NOT EQUAL 1 OR NOT timestamp_error STREQUAL "" OR
+  if(NOT prepare_count EQUAL 1 OR NOT timestamp_error STREQUAL "" OR
      NOT run_time_error STREQUAL "" OR NOT prepare_number MATCHES "^[0-9]+$" OR
      NOT prepare_status STREQUAL "completed" OR NOT prepare_conclusion STREQUAL "success" OR
-     NOT prepare_number LESS run_step_number OR prepare_start_second STRLESS prepare_end_second OR
+     NOT prepare_number LESS run_step_number OR NOT prepare_start_second STRLESS prepare_end_second OR
      prepare_end_second STRGREATER run_start_second)
     set(${out_error} "${platform} cold-baseline step was absent, duplicated, failed, or ran after candidate CTest" PARENT_SCOPE)
     return()
   endif()
 
   file(READ "${raw_log}" raw_text)
-  string(FIND "${raw_text}" "##[group]Prepare protected-main scoreboard baseline" prepare_group)
+  string(FIND "${raw_text}"
+    "##[group]Run cmake -P tests/cmake/prepare_scoreboard_baseline.cmake" prepare_group)
   string(FIND "${raw_text}" "Run cmake -P tests/cmake/prepare_scoreboard_baseline.cmake" prepare_command)
   if(prepare_group EQUAL -1 OR prepare_command EQUAL -1 OR prepare_command LESS prepare_group)
     set(${out_error} "${platform} raw job log does not retain the successful cold-baseline command group" PARENT_SCOPE)
@@ -1379,7 +1496,82 @@ function(phase24_validate_commit_tree label expected_sha commit_json_path tree_j
   set(${out_error} "" PARENT_SCOPE)
 endfunction()
 
-function(phase24_validate_platform_baseline root platform base_sha scoreboard_sha expected_rows out_error)
+function(phase24_validate_scoreboard_projection canonical_path projected_path
+    out_canonical_sha out_canonical_rows out_pass_rows out_projected_sha out_error)
+  foreach(path IN ITEMS "${canonical_path}" "${projected_path}")
+    if(NOT EXISTS "${path}" OR IS_DIRECTORY "${path}" OR IS_SYMLINK "${path}")
+      set(${out_error} "canonical or projected protected-main scoreboard is missing or unsafe: ${path}" PARENT_SCOPE)
+      return()
+    endif()
+  endforeach()
+  file(STRINGS "${canonical_path}" canonical_lines)
+  set(canonical_rows 0)
+  set(pass_rows 0)
+  set(previous_key "")
+  set(expected_projection "")
+  foreach(line IN LISTS canonical_lines)
+    string(REPLACE "\t" ";" fields "${line}")
+    list(LENGTH fields field_count)
+    if(NOT field_count EQUAL 5)
+      set(${out_error} "canonical protected-main scoreboard row has the wrong field count" PARENT_SCOPE)
+      return()
+    endif()
+    list(GET fields 0 key)
+    list(GET fields 1 status)
+    list(GET fields 2 raw)
+    list(GET fields 3 frames)
+    list(GET fields 4 hash)
+    if(NOT key MATCHES "^accuracycoin/[^;]+$" OR
+       (NOT status STREQUAL "pass" AND NOT status STREQUAL "fail" AND
+        NOT status STREQUAL "skip" AND NOT status STREQUAL "not-run" AND
+        NOT status STREQUAL "timeout") OR
+       (NOT raw STREQUAL "-" AND NOT raw MATCHES "^0x[0-9a-f][0-9a-f]$") OR
+       (NOT frames STREQUAL "-" AND NOT frames MATCHES "^[0-9]+$") OR
+       (NOT hash STREQUAL "-" AND NOT hash MATCHES "^[0-9a-f]+$") OR
+       (NOT previous_key STREQUAL "" AND NOT previous_key STRLESS key))
+      set(${out_error} "canonical protected-main scoreboard row is invalid or unsorted: ${key}" PARENT_SCOPE)
+      return()
+    endif()
+    if(NOT hash STREQUAL "-")
+      string(LENGTH "${hash}" hash_length)
+      if(NOT hash_length EQUAL 64)
+        set(${out_error} "canonical protected-main scoreboard row has an invalid hash: ${key}" PARENT_SCOPE)
+        return()
+      endif()
+    endif()
+    if(status STREQUAL "pass")
+      if(raw STREQUAL "-" OR frames STREQUAL "-")
+        set(${out_error} "canonical protected PASS row lacks measured raw/frame evidence: ${key}" PARENT_SCOPE)
+        return()
+      endif()
+      string(APPEND expected_projection "${key}\tpass\t${raw}\t-\t-\n")
+      math(EXPR pass_rows "${pass_rows} + 1")
+    endif()
+    set(previous_key "${key}")
+    math(EXPR canonical_rows "${canonical_rows} + 1")
+  endforeach()
+  if(canonical_rows EQUAL 0 OR pass_rows EQUAL 0)
+    set(${out_error} "canonical protected-main scoreboard has no rows or no PASS rows" PARENT_SCOPE)
+    return()
+  endif()
+  file(READ "${projected_path}" actual_projection)
+  string(REPLACE "\r\n" "\n" actual_projection "${actual_projection}")
+  string(REPLACE "\r" "\n" actual_projection "${actual_projection}")
+  if(NOT actual_projection STREQUAL expected_projection)
+    set(${out_error} "projected protected-main scoreboard does not match the canonical protected-main PASS projection" PARENT_SCOPE)
+    return()
+  endif()
+  file(SHA256 "${canonical_path}" canonical_sha)
+  file(SHA256 "${projected_path}" projected_sha)
+  set(${out_canonical_sha} "${canonical_sha}" PARENT_SCOPE)
+  set(${out_canonical_rows} "${canonical_rows}" PARENT_SCOPE)
+  set(${out_pass_rows} "${pass_rows}" PARENT_SCOPE)
+  set(${out_projected_sha} "${projected_sha}" PARENT_SCOPE)
+  set(${out_error} "" PARENT_SCOPE)
+endfunction()
+
+function(phase24_validate_platform_baseline root platform base_sha canonical_path
+    canonical_scoreboard_sha canonical_rows expected_rows out_error)
   foreach(file IN ITEMS
       "${root}/artifacts/build-${platform}/protected-main/scoreboard.txt"
       "${root}/artifacts/build-${platform}/protected-main/metadata.txt"
@@ -1391,17 +1583,28 @@ function(phase24_validate_platform_baseline root platform base_sha scoreboard_sh
   endforeach()
   phase20_read_properties("${root}/artifacts/build-${platform}/protected-main/metadata.txt"
     lane valid metadata_error)
-  file(SHA256 "${root}/artifacts/build-${platform}/protected-main/scoreboard.txt" lane_scoreboard_sha)
+  phase24_validate_scoreboard_projection("${canonical_path}"
+    "${root}/artifacts/build-${platform}/protected-main/scoreboard.txt"
+    lane_canonical_sha lane_canonical_rows lane_pass_rows lane_scoreboard_sha projection_error)
   file(STRINGS "${root}/artifacts/build-${platform}/protected-main/scoreboard.txt" lane_rows)
   list(LENGTH lane_rows lane_row_count)
   if(NOT metadata_error STREQUAL "" OR NOT lane_authority STREQUAL "protected-main" OR
      NOT lane_protected_revision STREQUAL base_sha OR
-     NOT lane_scoreboard_sha256 STREQUAL scoreboard_sha OR
-     NOT lane_scoreboard_sha STREQUAL scoreboard_sha OR
+     NOT lane_source STREQUAL "canonical-baseline" OR
+     NOT lane_scoreboard_schema STREQUAL "1" OR
+     NOT projection_error STREQUAL "" OR
+     NOT lane_scoreboard_sha256 STREQUAL lane_scoreboard_sha OR
      NOT lane_row_count STREQUAL expected_rows OR
      NOT lane_scoreboard_rows STREQUAL expected_rows OR
-     NOT lane_scoreboard_denominator STREQUAL expected_rows)
-    set(${out_error} "${platform} protected scoreboard is not the complete independently fetched main baseline" PARENT_SCOPE)
+     NOT lane_scoreboard_denominator STREQUAL expected_rows OR
+     NOT lane_canonical_scoreboard_schema STREQUAL "2" OR
+     NOT lane_canonical_scoreboard_sha256 STREQUAL canonical_scoreboard_sha OR
+     NOT lane_canonical_scoreboard_rows STREQUAL canonical_rows OR
+     NOT lane_canonical_pass_rows STREQUAL expected_rows OR
+     NOT lane_canonical_sha STREQUAL canonical_scoreboard_sha OR
+     NOT lane_canonical_rows STREQUAL canonical_rows OR
+     NOT lane_pass_rows STREQUAL expected_rows)
+    set(${out_error} "${platform} protected scoreboard or canonical provenance metadata mismatch" PARENT_SCOPE)
     return()
   endif()
   set(${out_error} "" PARENT_SCOPE)
@@ -1420,7 +1623,7 @@ function(phase24_materialize_build_workflow_logs root run_id attempt out_error)
         PARENT_SCOPE)
       return()
     endif()
-    set(destination "${root}/artifacts/build-${platform}/workflow.log")
+    set(destination "${root}/provenance/build-${platform}-workflow.log")
     phase20_extract_job_log("${raw_log}" "${platform}" "${step_started}" "${step_completed}"
       "${destination}" extract_error)
     if(NOT extract_error STREQUAL "")
@@ -1589,6 +1792,13 @@ function(phase24_validate)
   if(NOT error STREQUAL "" OR NOT protected_blob_mode STREQUAL "100644")
     message(FATAL_ERROR "independent protected-main tree does not contain the expected scoreboard blob: ${error}")
   endif()
+  phase24_validate_scoreboard_projection(
+    "${root}/provenance/protected-main-scoreboard.txt"
+    "${root}/artifacts/build-linux-x64/protected-main/scoreboard.txt"
+    api_scoreboard_sha canonical_scoreboard_rows protected_count hosted_scoreboard_sha error)
+  if(NOT error STREQUAL "")
+    message(FATAL_ERROR "cold protected-main scoreboard projection rejected: ${error}")
+  endif()
   execute_process(
     COMMAND git hash-object "${root}/provenance/protected-main-scoreboard.txt"
     WORKING_DIRECTORY "${source_dir}"
@@ -1596,18 +1806,16 @@ function(phase24_validate)
     OUTPUT_VARIABLE actual_blob_sha
     ERROR_VARIABLE blob_error
     OUTPUT_STRIP_TRAILING_WHITESPACE)
-  file(SHA256 "${root}/provenance/protected-main-scoreboard.txt" api_scoreboard_sha)
-  file(SHA256 "${root}/artifacts/build-linux-x64/protected-main/scoreboard.txt" hosted_scoreboard_sha)
-  if(NOT "${blob_result}" STREQUAL "0" OR NOT actual_blob_sha STREQUAL protected_blob_sha OR
-     NOT api_scoreboard_sha STREQUAL hosted_scoreboard_sha)
-    message(FATAL_ERROR "cold protected-main scoreboard bytes do not match the independently fetched Git blob")
+  if(NOT "${blob_result}" STREQUAL "0" OR NOT actual_blob_sha STREQUAL protected_blob_sha)
+    message(FATAL_ERROR "independently fetched protected-main scoreboard does not match its Git blob")
   endif()
   phase20_read_properties("${root}/artifacts/build-linux-x64/protected-main/metadata.txt"
     protected valid metadata_error)
   file(STRINGS "${root}/artifacts/build-linux-x64/protected-main/scoreboard.txt" protected_rows)
-  list(LENGTH protected_rows protected_count)
+  list(LENGTH protected_rows observed_protected_count)
   if(NOT metadata_error STREQUAL "" OR NOT protected_authority STREQUAL "protected-main" OR
      NOT protected_protected_revision STREQUAL base_sha OR
+     NOT observed_protected_count STREQUAL protected_count OR
      NOT protected_count MATCHES "^[1-9][0-9]*$")
     message(FATAL_ERROR "protected-main pass count or authority does not match the independently fetched base")
   endif()
@@ -1630,7 +1838,8 @@ function(phase24_validate)
   endif()
   foreach(platform IN LISTS NESTURBATOR_PHASE20_PLATFORMS)
     phase24_validate_platform_baseline("${root}" "${platform}" "${base_sha}"
-      "${api_scoreboard_sha}" "${protected_count}" error)
+      "${root}/provenance/protected-main-scoreboard.txt" "${api_scoreboard_sha}"
+      "${canonical_scoreboard_rows}" "${protected_count}" error)
     if(NOT error STREQUAL "")
       message(FATAL_ERROR "protected baseline from ${platform} rejected: ${error}")
     endif()
