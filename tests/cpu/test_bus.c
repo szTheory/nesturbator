@@ -34,6 +34,9 @@ struct dma_event {
     uint8_t enable_delay, load_waiting, abort_delay;
     uint8_t frame_irq, frame_irq_clear_pending;
     uint16_t remaining, dmc_counter, dmc_timer;
+#if defined(ROM_ABORT_TRACE_CPU_PC)
+    uint16_t cpu_pc;
+#endif
     uint64_t cpu_cycle, ticks;
 };
 
@@ -115,6 +118,9 @@ static void dma_observe(enum dma_event_kind kind, const struct nesturbator *mach
     event->controller_shift = machine->bus.controller_shift[0];
     event->frame_irq = machine->apu.frame_irq;
     event->frame_irq_clear_pending = machine->apu.frame_irq_clear_pending;
+#if defined(ROM_ABORT_TRACE_CPU_PC)
+    event->cpu_pc = machine->cpu.pc;
+#endif
     event->cpu_cycle = machine->cpu_cycle;
     event->ticks = machine->ticks;
 }
@@ -696,9 +702,15 @@ static void print_test9_trace(void)
             break;
         }
     }
-    printf("landing Test9 production prelude cycles=%llu events=%lu\n",
-           (unsigned long long)find_last_dma_event(NESTURBATOR_DMA_CPU_READ_COMPLETE)->cpu_cycle,
-           (unsigned long)dma_trace_count);
+    const struct dma_event *last_cpu_read = find_last_dma_event(NESTURBATOR_DMA_CPU_READ_COMPLETE);
+    if (last_cpu_read != NULL) {
+        printf("landing Test9 production prelude cycles=%llu events=%lu\n",
+               (unsigned long long)last_cpu_read->cpu_cycle, (unsigned long)dma_trace_count);
+    } else {
+        printf("landing Test9 production prelude cycles=unavailable events=%lu "
+               "(no completed CPU read)\n",
+               (unsigned long)dma_trace_count);
+    }
     for (size_t i = 0u; i < dma_trace_count; ++i) {
         const struct dma_event *event = &dma_trace[i];
         if (event->kind == NESTURBATOR_DMA_APU_AFTER && event->pending != 0u && i != 0u &&
@@ -1831,6 +1843,12 @@ int main(int argc, char **argv)
         for (size_t i = 0u; i <= DMA_TRACE_CAPACITY; ++i)
             dma_observe(NESTURBATOR_DMA_APU_BEFORE, &machine, 0u, 0u, 0u);
         CHECK(dma_trace_overflowed != 0u);
+        CHECK_DONE();
+    }
+    if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 &&
+        strcmp(argv[2], "missing-read-control") == 0) {
+        dma_trace_reset();
+        print_test9_trace();
         CHECK_DONE();
     }
     if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 &&

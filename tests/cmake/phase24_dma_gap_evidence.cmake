@@ -14,6 +14,57 @@ if(NOT build_root_position EQUAL 0)
   message(FATAL_ERROR "ROOT must be inside the ignored build/ directory: ${root}")
 endif()
 
+set(build_dir "${source_dir}/build")
+set(root_component "${root}")
+while(TRUE)
+  if(IS_SYMLINK "${root_component}")
+    message(FATAL_ERROR "ROOT must not traverse a symlink component: ${root_component}")
+  endif()
+  if("${root_component}" STREQUAL "${build_dir}")
+    break()
+  endif()
+  get_filename_component(parent_component "${root_component}" DIRECTORY)
+  if("${parent_component}" STREQUAL "${root_component}" OR "${parent_component}" STREQUAL "")
+    message(FATAL_ERROR "ROOT could not be resolved below the ignored build/ directory: ${root}")
+  endif()
+  set(root_component "${parent_component}")
+endwhile()
+if(EXISTS "${build_dir}")
+  file(REAL_PATH "${build_dir}" physical_build_dir)
+else()
+  set(physical_build_dir "${build_dir}")
+endif()
+set(root_probe "${root}")
+while(NOT EXISTS "${root_probe}")
+  get_filename_component(parent_probe "${root_probe}" DIRECTORY)
+  if("${parent_probe}" STREQUAL "${root_probe}" OR "${parent_probe}" STREQUAL "")
+    message(FATAL_ERROR "ROOT has no existing parent below the ignored build/ directory: ${root}")
+  endif()
+  set(root_probe "${parent_probe}")
+endwhile()
+file(REAL_PATH "${root_probe}" physical_root_parent)
+file(RELATIVE_PATH root_suffix "${root_probe}" "${root}")
+if("${root_suffix}" STREQUAL ".")
+  set(physical_root "${physical_root_parent}")
+else()
+  set(physical_root "${physical_root_parent}/${root_suffix}")
+endif()
+set(physical_build_check "${physical_build_dir}")
+set(expected_build_check "${build_dir}")
+set(physical_root_check "${physical_root}")
+if(WIN32)
+  string(TOLOWER "${physical_build_check}" physical_build_check)
+  string(TOLOWER "${expected_build_check}" expected_build_check)
+  string(TOLOWER "${physical_root_check}" physical_root_check)
+endif()
+if(NOT "${physical_build_check}" STREQUAL "${expected_build_check}")
+  message(FATAL_ERROR "build/ must not resolve through a symlink: ${build_dir}")
+endif()
+string(FIND "${physical_root_check}" "${physical_build_check}/" physical_root_position)
+if(NOT physical_root_position EQUAL 0)
+  message(FATAL_ERROR "ROOT resolves outside the ignored build/ directory: ${physical_root}")
+endif()
+
 execute_process(
   COMMAND git check-ignore -q "${root}"
   WORKING_DIRECTORY "${source_dir}"
@@ -218,6 +269,18 @@ function(phase24_controls)
   endif()
   message(STATUS "control rejected a forced retained-trace overflow with one explicit diagnostic")
 
+  execute_process(
+    COMMAND "${BUS}" --dma-trace missing-read-control
+    RESULT_VARIABLE missing_read_result
+    OUTPUT_VARIABLE missing_read_stdout
+    ERROR_VARIABLE missing_read_stderr)
+  set(missing_read_output "${missing_read_stdout}${missing_read_stderr}")
+  if(NOT "${missing_read_result}" STREQUAL "0" OR
+     NOT missing_read_output MATCHES "cycles=unavailable events=0 \\(no completed CPU read\\)")
+    message(FATAL_ERROR "missing CPU-read trace control did not print a safe diagnostic: ${missing_read_output}")
+  endif()
+  message(STATUS "control reported a missing CPU-read event without dereferencing it")
+
   set(archive_fixture "${root}/controls/artifact-map")
   phase24_make_artifact_control_fixture("${archive_fixture}/valid" FALSE)
   file(READ "${archive_fixture}/valid/provenance/artifacts.json" artifact_json)
@@ -306,6 +369,43 @@ function(phase24_controls)
   phase24_expect_rejection("incomplete raw performance measurements" "raw measurement is missing" "${error}")
 
   phase24_run_hash_controls("${root}/controls/hash-inventory")
+
+  set(temporary_parent "$ENV{TMPDIR}")
+  if(NOT IS_DIRECTORY "${temporary_parent}")
+    set(temporary_parent "$ENV{TEMP}")
+  endif()
+  if(IS_DIRECTORY "${temporary_parent}")
+    string(RANDOM LENGTH 12 ALPHABET 0123456789abcdef symlink_suffix)
+    set(symlink_target "${temporary_parent}/phase24-root-symlink-${symlink_suffix}")
+    set(symlink_path "${root}/controls/root-symlink")
+    file(MAKE_DIRECTORY "${symlink_target}/controls")
+    file(WRITE "${symlink_target}/controls/marker.txt" "control-only marker\n")
+    file(CREATE_LINK "${symlink_target}" "${symlink_path}" SYMBOLIC RESULT symlink_result)
+    if("${symlink_result}" STREQUAL "0")
+      get_filename_component(bus_path "${BUS}" ABSOLUTE BASE_DIR "${source_dir}")
+      execute_process(
+        COMMAND "${CMAKE_COMMAND}" -DMODE=controls "-DSOURCE_REF=${source_dir}"
+          "-DROOT=${symlink_path}" "-DBUS=${bus_path}" -P "${CMAKE_CURRENT_LIST_FILE}"
+        WORKING_DIRECTORY "${source_dir}"
+        RESULT_VARIABLE symlink_result_code
+        OUTPUT_VARIABLE symlink_stdout
+        ERROR_VARIABLE symlink_stderr)
+      set(symlink_output "${symlink_stdout}${symlink_stderr}")
+      if("${symlink_result_code}" STREQUAL "0" OR
+         NOT symlink_output MATCHES "ROOT must not traverse a symlink component" OR
+         NOT EXISTS "${symlink_target}/controls/marker.txt")
+        file(REMOVE_RECURSE "${symlink_path}" "${symlink_target}")
+        message(FATAL_ERROR "symlinked ROOT control failed to reject safely: ${symlink_output}")
+      endif()
+      file(REMOVE_RECURSE "${symlink_path}" "${symlink_target}")
+      message(STATUS "control rejected a symlinked ROOT before touching its target")
+    else()
+      file(REMOVE_RECURSE "${symlink_path}" "${symlink_target}")
+      message(STATUS
+        "symlinked ROOT control skipped because symbolic links are unavailable: ${symlink_result}")
+    endif()
+  endif()
+
   message(STATUS "Phase 24 DMA gap evidence controls passed; all fixtures are synthetic control-only data")
 endfunction()
 
