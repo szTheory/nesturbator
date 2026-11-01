@@ -5,11 +5,11 @@ milestone_name: Remaining DMA accuracy failures
 current_phase: 24
 current_phase_name: Correct remaining NTSC DMA behavior
 status: executing
-stopped_at: Plan24-04 Task1 bounded review complete; Task2 awaits separate authority for the consumed full-workflow scope
-last_updated: "2026-10-31T23:53:01Z"
+stopped_at: Plan24-04 Task1 and keep-stop decision complete; Task3 awaits fresh acceptance authority and evidence
+last_updated: "2026-11-01T00:13:14Z"
 last_activity: 2026-10-31
-last_activity_desc: Plan24-04 Task1 evidence and bounded checks completed and committed as 661a45a; inherited whitespace remains flagged
-state_head: b9d4256a5a17bd8f519317704f06e5be0ddc7bd3
+last_activity_desc: Owner chose to keep the consumed full-workflow stop; no run started; scoped docs pass whitespace check, branch-wide check still finds133 inherited issues
+state_head: f843c93d0de7e68880a0675fa18e6421bf59caf4
 progress:
   total_phases: 1
   completed_phases: 0
@@ -28,14 +28,14 @@ See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 ## Current Position
 
 Phase: 24 (Correct remaining NTSC DMA behavior) — acceptance checkpoint
-Plan: 4 of 4 — Task1 complete; Task2 awaits the owner's separate runtime decision
+Plan: 4 of 4 — Task1 and keep-stop decision complete; Task3 awaits fresh acceptance authority
 Status: Phase and requirements remain incomplete
-Last activity: 2026-10-31 — Four bounded CTest entries and native `--dma` passed; commit `661a45a` records the task; `git diff --check main...HEAD` reported159 inherited diagnostics
+Last activity: 2026-10-31 — Four bounded CTest entries and native `--dma` passed; commit `661a45a` records the task; scoped decision docs pass whitespace check; branch-wide check currently finds133 inherited trailing-whitespace findings
 Progress: [███████░░░] 75% (plans; phase acceptance pending)
 
 ## Next Action
 
-**Owner acts next only if deciding whether to renew the exact full-workflow scope.** The prior one-run authority was consumed by a complete444.6-second `cmake --workflow --preset ci` run with exit8; Task1 now has bounded owned checks, but no behavior14 ROM result. Its evidence edits are committed as `661a45a`; only the three Plan 04 records were included, and unrelated dirty files remain untouched. If renewed, the proposed command is exactly `cmake --workflow --preset ci`, with the previous39-minute ceiling, every existing inner limit, no automatic retry, and no hosted/push/PR trigger. Keeping the stop needs no response. The current behavior14 full CTest inventory is source-derived because no matching generated `FULL=ON` tree exists. [Concrete selection, limits, evidence and gaps](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
+**The owner chose to keep the stop on 2026-10-31; no action is needed while it remains in place.** The prior one-run authority was consumed by a complete444.6-second `cmake --workflow --preset ci` run with exit8; Task1 has bounded owned checks, but no behavior14 ROM result. Its evidence edits are committed as `661a45a`; only the three Plan 04 records were included, and unrelated dirty files remain untouched. No fresh workflow or campaign started in this invocation. If the owner later renews the exact local scope, the command is `cmake --workflow --preset ci`, with the previous39-minute ceiling, every existing inner limit, no automatic retry, and no hosted/push/PR trigger. The current behavior14 full CTest inventory is source-derived because no matching generated `FULL=ON` tree exists. [Concrete selection, limits, evidence and gaps](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
 
 No ordinary implementation acknowledgment is needed. Task approval now durably covers local engineering, builds/tests/CI, reviews/fixes/bounded retests and approved compatibility follow-through. Those changes are recorded globally and in repository instructions. The additive `dev-check` preset provides fast owned feedback; existing CI objects and the complete707-test name/timeout/fixture/label inventory are unchanged. [Measured efficiency decisions](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-EFFICIENCY.md).
 
@@ -43,7 +43,7 @@ Core correction a12a79a is behavior14 / native format6 / ABI1. All64 owned abort
 
 The actual behavior13 campaign retained all119 previous current-pin PASS keys but still failed bus-conflict and both abort rows. Do not claim fresh behavior14 ROM acceptance or replace canonical baseline metadata from owned tests. Required protected-main/hosted/platform/performance evidence and inherited branch whitespace remain unresolved. No second campaign, push/PR, hosted trigger, merge or release ran. [Actual workflow result](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN.md).
 
-**Next OpenGSD command:** `$gsd-execute-phase 24` — resumes at Task2's blocking decision and preserves the stop unless the owner explicitly renews this command and scope. Context may be cleared; read this file and [24-ACCEPTANCE.md](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md) first.
+**Next OpenGSD command:** `$gsd-execute-phase 24` — resumes Phase 24's acceptance gate and keeps the stop unless the owner explicitly renews the exact command and scope. Context may be cleared; read this file and [24-ACCEPTANCE.md](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md) first.
 
 ## Accumulated Context
 
@@ -102,9 +102,9 @@ v7: three of four plans complete; the behavior14 correction and bounded evidence
 
 ## Session Continuity
 
-**Last session:** 2026-10-31T23:53:01Z
-**Stopped at:** Plan24-04 Task1 evidence and bounded verification complete; Task2 awaits separate owner authority
-**Next actor:** Owner decides whether to renew the exact local full-workflow scope; keeping the existing stop needs no response
+**Last session:** 2026-11-01T00:13:14Z
+**Stopped at:** Plan24-04 Task1 evidence complete; owner chose to keep the consumed full-workflow stop
+**Next actor:** No action is needed while the stop remains; owner acts only if later renewing exact local acceptance authority
 **Next command:** `$gsd-execute-phase 24`
 **Context:** May be cleared; read STATE, resume and acceptance first. The command resumes at the checkpoint, not earlier correction work.
 **Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md

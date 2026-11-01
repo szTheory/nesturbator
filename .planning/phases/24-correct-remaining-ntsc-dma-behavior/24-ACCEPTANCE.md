@@ -35,6 +35,14 @@ authorization. The reason for a decision is that explicit one-invocation
 limit, not concern about how long ordinary tests take. Keeping the stop
 requires no response.
 
+## Latest checkpoint decision
+
+On 2026-10-31 the owner chose to keep the stop. This preserves the consumed
+one-run limit and grants no new local workflow, campaign, hosted, push or PR
+authority. No new acceptance command ran. No action is needed while the stop
+remains in place; a later renewal must explicitly cover the listed local
+command, selection and unchanged limits.
+
 ```sh
 cmake --workflow --preset ci
 ```
@@ -112,10 +120,12 @@ Historical baseline-metadata.txt remains behavior9 and identifies its exact
 report. It was not relabeled13/14. Input-fingerprint and activation checks
 correctly reject stale identity; refresh only from qualifying actual evidence.
 
-The literal main...HEAD check has159 inherited diagnostics, also present
-before execution. The current cached origin/main base narrows this to41,
-still inherited. Execution delta89a042b..HEAD and the working correction
-files are clean. No network refresh or bulk historical rewrite was performed.
+The prior Task1 review recorded159 inherited `main...HEAD` diagnostics and41
+against cached `origin/main`; those are historical counts. At the current
+phase branch head, the plan's `git diff --check main...HEAD` recheck exits2
+with133 trailing-whitespace findings in the committed branch diff. The scoped
+STATE/acceptance edits pass `git diff --check`. No broad cleanup, network
+refresh or bulk historical rewrite was performed.
 
 ## Bounded Plan24-04 review
 
@@ -150,8 +160,8 @@ full behavior14 `FULL=ON` selection remains stopped.
 ## Handoff
 
 The agent completes the owned correction/check/review/commit work before
-stopping. At the actual handoff, the owner acts next only on fresh acceptance
-authority; no routine implementation acknowledgment is needed. Exact next
-OpenGSD command: `$gsd-execute-phase 24`. Context may be cleared after reading
-the current STATE and linked resume on return. The specific run limit stays
-active until a clear decision changes it.
+stopping. No action is needed to keep the stop. If the owner later renews the
+exact local acceptance scope, they act next. Exact next OpenGSD command:
+`$gsd-execute-phase 24`. Context may be cleared; read the current STATE and
+this acceptance record before resuming. The specific run limit stays active
+until a clear decision changes it.
