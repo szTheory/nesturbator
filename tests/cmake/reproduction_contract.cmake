@@ -67,6 +67,34 @@ function(reproduction_require_test_property tests_json test_name property expect
   endif()
 endfunction()
 
+function(reproduction_movie_fixture_tests_json out_variable tests_json)
+  set(required_tests
+    runner.nesrunner_movie.pos
+    runner.nesrunner_movie.none
+    runner.nesrunner_movie.attract
+    runner.nesrunner_movie.startonly)
+  string(JSON test_count LENGTH "${tests_json}" tests)
+  set(filtered_json "{\"tests\":[")
+  set(first_test TRUE)
+  foreach(index RANGE 0 ${test_count})
+    if(index GREATER_EQUAL test_count)
+      break()
+    endif()
+    string(JSON test_name GET "${tests_json}" tests ${index} name)
+    if(NOT test_name IN_LIST required_tests)
+      continue()
+    endif()
+    string(JSON test_json GET "${tests_json}" tests ${index})
+    if(NOT first_test)
+      string(APPEND filtered_json ",")
+    endif()
+    string(APPEND filtered_json "${test_json}")
+    set(first_test FALSE)
+  endforeach()
+  string(APPEND filtered_json "]}")
+  set(${out_variable} "${filtered_json}" PARENT_SCOPE)
+endfunction()
+
 function(reproduction_check doc_path)
   foreach(var SOURCE_DIR BUILD_DIR CTEST)
     if(NOT DEFINED ${var} OR "${${var}}" STREQUAL "")
@@ -386,35 +414,54 @@ function(reproduction_check doc_path)
     set(SELECTED_TEST_REGEX "${test_regex}" PARENT_SCOPE)
   endif()
 
-  if(MODE STREQUAL "mutation_check" AND DEFINED TESTS_JSON_FILE AND
-     DEFINED SELECTED_TESTS_JSON_FILE)
-    foreach(metadata_file IN ITEMS "${TESTS_JSON_FILE}" "${SELECTED_TESTS_JSON_FILE}")
+  set(use_cached_metadata FALSE)
+  if(MODE STREQUAL "mutation_check" AND DEFINED GENERATED_TESTS_FILE AND
+     DEFINED SELECTED_TESTS_JSON_FILE AND DEFINED FIXTURE_TESTS_JSON_FILE AND
+     DEFINED ALL_TESTS_FILE)
+    set(use_cached_metadata TRUE)
+    foreach(metadata_file IN ITEMS "${GENERATED_TESTS_FILE}" "${SELECTED_TESTS_JSON_FILE}"
+        "${FIXTURE_TESTS_JSON_FILE}" "${ALL_TESTS_FILE}")
       if(NOT EXISTS "${metadata_file}" OR IS_DIRECTORY "${metadata_file}" OR
          IS_SYMLINK "${metadata_file}")
         message(FATAL_ERROR "docs.reproduction: cached CTest metadata is missing or unsafe")
       endif()
     endforeach()
-    file(READ "${TESTS_JSON_FILE}" all_tests_json)
+    file(READ "${GENERATED_TESTS_FILE}" generated_tests_text)
+    string(REPLACE "\n" ";" generated_tests "${generated_tests_text}")
+    file(READ "${ALL_TESTS_FILE}" all_tests_json)
   else()
     execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1
       OUTPUT_VARIABLE all_tests_json ERROR_VARIABLE ctest_err RESULT_VARIABLE ctest_rc TIMEOUT 20)
     if(NOT "${ctest_rc}" STREQUAL "0")
       message(FATAL_ERROR "docs.reproduction: generated CTest metadata could not be read")
     endif()
-    if(MODE STREQUAL "self_test" AND DEFINED TESTS_JSON_FILE AND
-       DEFINED SELECTED_TESTS_JSON_FILE)
-      file(WRITE "${TESTS_JSON_FILE}" "${all_tests_json}")
+  endif()
+  if(NOT use_cached_metadata)
+    string(JSON all_test_count LENGTH "${all_tests_json}" tests)
+    set(generated_tests)
+    foreach(index RANGE 0 ${all_test_count})
+      if(index GREATER_EQUAL all_test_count)
+        break()
+      endif()
+      string(JSON test_name GET "${all_tests_json}" tests ${index} name)
+      list(APPEND generated_tests "${test_name}")
+    endforeach()
+    if(MODE STREQUAL "self_test" AND DEFINED GENERATED_TESTS_FILE AND
+       DEFINED SELECTED_TESTS_JSON_FILE AND DEFINED FIXTURE_TESTS_JSON_FILE AND
+       DEFINED ALL_TESTS_FILE)
+      string(REPLACE ";" "\n" generated_tests_text "${generated_tests}")
+      file(WRITE "${GENERATED_TESTS_FILE}" "${generated_tests_text}\n")
+      file(WRITE "${ALL_TESTS_FILE}" "${all_tests_json}")
     endif()
   endif()
-  string(JSON all_test_count LENGTH "${all_tests_json}" tests)
-  set(generated_tests)
-  foreach(index RANGE 0 ${all_test_count})
-    if(index GREATER_EQUAL all_test_count)
-      break()
+  if(use_cached_metadata)
+    file(READ "${FIXTURE_TESTS_JSON_FILE}" movie_fixture_tests_json)
+  else()
+    reproduction_movie_fixture_tests_json(movie_fixture_tests_json "${all_tests_json}")
+    if(MODE STREQUAL "self_test" AND DEFINED FIXTURE_TESTS_JSON_FILE)
+      file(WRITE "${FIXTURE_TESTS_JSON_FILE}" "${movie_fixture_tests_json}")
     endif()
-    string(JSON test_name GET "${all_tests_json}" tests ${index} name)
-    list(APPEND generated_tests "${test_name}")
-  endforeach()
+  endif()
   foreach(test_name IN LISTS documented_tests)
     # The guide explicitly configures ci. ASan's short-run configuration
     # intentionally omits only the played-input test, not its build target.
@@ -444,8 +491,7 @@ function(reproduction_check doc_path)
     endif()
   endforeach()
 
-  if(MODE STREQUAL "mutation_check" AND DEFINED TESTS_JSON_FILE AND
-     DEFINED SELECTED_TESTS_JSON_FILE)
+  if(use_cached_metadata)
     file(READ "${SELECTED_TESTS_JSON_FILE}" selected_tests_json)
   else()
     execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1 -R "${test_regex}"
@@ -453,7 +499,7 @@ function(reproduction_check doc_path)
     if(NOT "${selected_rc}" STREQUAL "0")
       message(FATAL_ERROR "docs.reproduction: documented CTest selection could not be evaluated")
     endif()
-    if(MODE STREQUAL "self_test" AND DEFINED TESTS_JSON_FILE AND
+    if(MODE STREQUAL "self_test" AND DEFINED GENERATED_TESTS_FILE AND
        DEFINED SELECTED_TESTS_JSON_FILE)
       file(WRITE "${SELECTED_TESTS_JSON_FILE}" "${selected_tests_json}")
     endif()
@@ -494,9 +540,9 @@ function(reproduction_check doc_path)
       "generated runner.state.${case} setup test dependency is missing")
   endforeach()
   foreach(scenario IN ITEMS pos none attract startonly)
-    reproduction_require_test_property("${all_tests_json}" "runner.nesrunner_movie.${scenario}" "TIMEOUT" "10"
+    reproduction_require_test_property("${movie_fixture_tests_json}" "runner.nesrunner_movie.${scenario}" "TIMEOUT" "10"
       "required runner.nesrunner_movie.${scenario} setup timeout is not 10 seconds")
-    reproduction_require_test_property("${all_tests_json}" "runner.nesrunner_movie.${scenario}" "FIXTURES_SETUP" "nesrunner_movies"
+    reproduction_require_test_property("${movie_fixture_tests_json}" "runner.nesrunner_movie.${scenario}" "FIXTURES_SETUP" "nesrunner_movies"
       "required runner.nesrunner_movie.${scenario} fixture is not registered")
   endforeach()
 
@@ -522,8 +568,7 @@ function(reproduction_check doc_path)
       message(FATAL_ERROR "docs.reproduction: documented build command omits ${required_target}")
     endif()
   endforeach()
-  if(MODE STREQUAL "mutation_check" AND DEFINED TESTS_JSON_FILE AND
-     DEFINED SELECTED_TESTS_JSON_FILE AND
+  if(use_cached_metadata AND
      (NOT DEFINED SELECTED_TEST_REGEX OR NOT "${test_regex}" STREQUAL "${SELECTED_TEST_REGEX}"))
     message(FATAL_ERROR "docs.reproduction: cached CTest selection does not match the documented selection")
   endif()
@@ -545,8 +590,10 @@ function(reproduction_expect_mutation root name mutated expected)
       "-DCTEST=${CTEST}"
       "-DSHORT_RUNS=${SHORT_RUNS}"
       "-DBOOT_TO_PLAY_TARGET=${BOOT_TO_PLAY_TARGET}"
-      "-DTESTS_JSON_FILE=${TESTS_JSON_FILE}"
+      "-DGENERATED_TESTS_FILE=${GENERATED_TESTS_FILE}"
       "-DSELECTED_TESTS_JSON_FILE=${SELECTED_TESTS_JSON_FILE}"
+      "-DFIXTURE_TESTS_JSON_FILE=${FIXTURE_TESTS_JSON_FILE}"
+      "-DALL_TESTS_FILE=${ALL_TESTS_FILE}"
       "-DSELECTED_TEST_REGEX=${test_regex}"
       "-DDOC=${mutated_doc}"
       -P "${CMAKE_CURRENT_LIST_FILE}"
@@ -633,8 +680,10 @@ elseif(MODE STREQUAL "self_test")
     endif()
   endforeach()
   file(MAKE_DIRECTORY "${WORK}")
-  set(TESTS_JSON_FILE "${WORK}/generated-tests.json")
+  set(GENERATED_TESTS_FILE "${WORK}/generated-test-names.txt")
   set(SELECTED_TESTS_JSON_FILE "${WORK}/selected-tests.json")
+  set(FIXTURE_TESTS_JSON_FILE "${WORK}/fixture-tests.json")
+  set(ALL_TESTS_FILE "${WORK}/all-tests.json")
   reproduction_check("${DOC}")
   file(READ "${DOC}" original)
   string(RANDOM LENGTH 20 ALPHABET 0123456789abcdef suffix)
