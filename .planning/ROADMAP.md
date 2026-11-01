@@ -45,7 +45,7 @@ milestone archives above; no future product proposal becomes execution scope.
   3. `DMA + $4015 Read`, `Misaligned OAM DMA`, `INC $4014` and every other protected PASS key still pass at the same pin; identical inputs retain identical frame/audio output across supported platforms and the existing performance gates pass without relaxed limits. Any intentional output-baseline change has a source-backed reason. (DMA-03)
   4. When a correction changes in-flight DMA state, saving and loading at production-reachable affected boundaries yields the same subsequent machine behavior and frame/audio output as uninterrupted execution. The state-format and behavior-revision disposition is explicit, including a reasoned no-change disposition where appropriate. (DMA-04)
   5. A host developer can read the README and public-header comments to understand the corrected DMA behavior and any state compatibility consequences, with the owned regression checks registered in the existing CI entrypoint alongside the behavior change. (DMA-02, DMA-04)
-**Plans**: 4/4 plans executed
+**Plans**: 5 plans; 4/5 executed, gap closure planned
 
 Plans:
 **Wave 1**
@@ -59,6 +59,9 @@ Plans:
 
 **Wave 4** *(local acceptance complete; remote evidence pending)*
 - [x] 24-04-PLAN.md — Regression audit and separately authorized acceptance handoff (DMA-01, DMA-02, DMA-03, DMA-04)
+
+**Wave 5** *(gap closure planned; remote trigger authority required)*
+- [ ] 24-05-PLAN.md — Trace-completeness repair and separately authorized cold-main, hosted hash and performance evidence (DMA-02, DMA-03)
 **Canonical refs**: [DMA scope](research/milestone-dma-discovery/SCOPE.md); [preparation index](preparation/README.md); [CPU/APU hardware, especially DMA §2.2](preparation/NES-HARDWARE-CPU-APU.md); [conformance and oracle limits](preparation/CONFORMANCE.md).
 
 ### Evidence boundaries within Phase 24
@@ -113,7 +116,7 @@ The owner acts next only to decide separate runtime authorization at that gate.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 24. Correct remaining NTSC DMA behavior | 3/4 | In Progress | - |
+| 24. Correct remaining NTSC DMA behavior | 4/5 | Gap closure planned | - |
 
 ## Coverage
 

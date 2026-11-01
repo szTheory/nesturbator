@@ -5,15 +5,15 @@ milestone_name: Remaining DMA accuracy failures
 current_phase: 24
 current_phase_name: Correct remaining NTSC DMA behavior
 status: executing
-stopped_at: Phase verification found a DMA-03 evidence gap; gap planning is next, hosted actions remain unauthorized
-last_updated: "2026-11-01T01:39:50Z"
+stopped_at: Phase 24 gap closure is planned; Plan 24-05 is ready to execute, hosted actions remain gated
+last_updated: "2026-11-01T01:56:31.640Z"
 last_activity: 2026-11-01
-last_activity_desc: Phase review recorded one open trace-buffer warning; goal verification scored 8/9 with DMA-03 evidence outstanding
-state_head: f46a385
+last_activity_desc: Plan 24-05 covers the DMA-03 evidence gaps; plan check passed with one historical informational advisory
+state_head: a4af94c7fd3606e9561d79179b244503c2fd93ee
 progress:
   total_phases: 1
   completed_phases: 0
-  total_plans: 4
+  total_plans: 5
   completed_plans: 4
 ---
 
@@ -27,11 +27,11 @@ See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 
 ## Current Position
 
-Phase: 24 (Correct remaining NTSC DMA behavior) — verification found gaps
-Plan: 4 of 4 — all Plan24-04 tasks completed through the local acceptance boundary
+Phase: 24 (Correct remaining NTSC DMA behavior) — READY TO EXECUTE
+Plan: 4 of 5 — Plans 24-01 through 24-04 completed; Plan 24-05 is queued for gap closure
 Status: Goal verification scored 8/9; phase and requirements remain incomplete
 Last activity: 2026-11-01 — Local full CI and all five selected rows passed; DMA-03 remains unverified pending independent and hosted evidence
-Progress: [██████████] 100% (plans executed; phase acceptance pending)
+Progress: [████████░░] 80% (4 of 5 plans executed; gap closure pending)
 
 ## Next Action
 
@@ -41,13 +41,15 @@ Local protected-observation tests used the checkout `scoreboard-main` fallback, 
 
 Formal goal verification scored 8/9 and found the DMA-03 evidence gap; see [24-VERIFICATION.md](phases/24-correct-remaining-ntsc-dma-behavior/24-VERIFICATION.md). The advisory [code review](phases/24-correct-remaining-ntsc-dma-behavior/24-REVIEW.md) also found a trace-buffer overflow risk in `tests/cpu/test_bus.c`; its disposition remains open. The verifier additionally noted a stale README acceptance sentence, inherited whitespace, and three plan prohibitions without verification tiers.
 
+Gap planning is complete. New [Plan 24-05](phases/24-correct-remaining-ntsc-dma-behavior/24-05-PLAN.md) covers trace completeness, the stale README wording, and the independently sourced DMA-03 evidence. The plan checker found no blockers or warnings; its one informational advisory concerns schema gaps in completed Plans 24-01 through 24-03 and does not justify reopening them. No tests, builds, CI, or remote actions ran during planning.
+
 No ordinary implementation acknowledgment is needed. Task approval now durably covers local engineering, builds/tests/CI, reviews/fixes/bounded retests and approved compatibility follow-through. Those changes are recorded globally and in repository instructions. The additive `dev-check` preset provides fast owned feedback; existing CI objects and the complete707-test name/timeout/fixture/label inventory are unchanged. [Measured efficiency decisions](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-EFFICIENCY.md).
 
 Core correction a12a79a is behavior14 / native format6 / ABI1. All64 owned abort-key entries, bus matrix/status effects, focused byte/DAC wrong-model tests, genuine imminent/armed/fresh-buffer native cuts, short stress witnesses, current revision/document controls and homebrew hash consumers pass. Release builds with warnings as errors; no new saved field or dependency was needed. [Correction evidence](phases/24-correct-remaining-ntsc-dma-behavior/24-04-CORRECTIONS.md).
 
 The earlier behavior13 campaign is historical at [24-CI-RUN.md](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN.md); the final behavior14 result supersedes it for local selected-row status. Baseline metadata now matches the observed campaign. No silicon or universal target claim is made.
 
-**Next OpenGSD command:** `$gsd-plan-phase 24 --gaps` — creates a gap-closure plan from the failed DMA-03 verification result. This planning step does not trigger hosted checks. The owner must still separately authorize remote PR/check actions before `$gsd-ship`. No further local CMake approval is needed. Context may be cleared; read this file and [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md) first.
+**Next OpenGSD command:** `$gsd-execute-phase 24 --gaps-only` — executes only the new Plan 24-05. Its bounded local work is covered by standing authority; a blocking decision keeps any hosted trigger stopped until the owner explicitly authorizes its concrete candidate and scope. No further local CMake approval is needed. Context may be cleared; read this file, [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md), and [24-ACCEPTANCE.md](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md) first.
 
 ## Accumulated Context
 
@@ -105,9 +107,9 @@ The final behavior14 local workflow passed all707 entries; campaign guest execut
 
 ## Session Continuity
 
-**Last session:** 2026-11-01T01:39:50Z
-**Stopped at:** Phase verification returned gaps_found (8/9); phase remains open for DMA-03 evidence and review follow-through
-**Next actor:** Owner starts the gap-planning step; remote hosted actions remain separately gated
-**Next command:** `$gsd-plan-phase 24 --gaps`
-**Context:** May be cleared; read STATE and the resume/acceptance records first.
+**Last session:** 2026-11-01T01:56:31Z
+**Stopped at:** Plan 24-05 passed plan review and is ready for gap-only execution; phase verification remains 8/9
+**Next actor:** OpenGSD executes Plan 24-05; the owner acts only at its explicit remote-authority checkpoint
+**Next command:** `$gsd-execute-phase 24 --gaps-only`
+**Context:** May be cleared; read STATE, the resume file, and the acceptance record first.
 **Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md
