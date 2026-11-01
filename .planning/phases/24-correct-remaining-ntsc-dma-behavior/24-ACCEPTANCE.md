@@ -235,14 +235,14 @@ historical fixtures were bulk-edited.
 
 ## Plan24-05 remote decision checkpoint
 
-Task 1 is committed as `8d76d9475266faf8105378a396ad6b545c97e915` on
+Task 1 is committed as `9680ee8830ce95275d58158248c5f02f1da6b9fc` on
 `gsd/phase-24-correct-remaining-ntsc-dma-behavior`. The candidate tree is
-`e67b3e79b289382cb4ed6ce2ffe1737dc26ddb81`. Read-only preparation found main
+`1f8d0b89a784d29598e072aaad1c36b950717119`. Read-only preparation found main
 at `b25146c6efaac41c58f60555f59f0fe79a90ca68`, no existing PR for the branch,
 and no remote branch with that name. `MODE=request` rechecked the candidate,
 current main, PR list, branch ref, workflow and baseline script successfully.
 The request JSON digest is
-`85df86c8acefb0c6cd45bf3e0f213b1ec646b6177bcb5afcd704e37c3079ba42`; the
+`c772cfb2a8e0d46dbdbc58fb54623fc06be15b5724060fa2b93da0b03a77fe2e`; the
 exact [request](../../../build/phase24-gap/request.md) and [PR body](../../../build/phase24-gap/pr-body.md)
 are retained under ignored build output. The PR body SHA-256 is
 `410fe8a9db0380245a509990dfec03e1d95b3900600eaa163256b83dbeddab40`.
@@ -271,7 +271,8 @@ CTest timeout, four CTest workers, and the existing 30/760-second protected
 observation limits. There is no workflow dispatch, force push, merge, release,
 expanded limit, or automatic retry in the request.
 
-No remote action has been authorized or performed. DMA-03 still lacks (1)
+At the time this request was prepared, no remote action had been authorized or
+performed. DMA-03 still lacks (1)
 independent cold protected-main authority and fresh passing observations for
 every protected PASS key; (2) successful current-candidate hosted jobs and the
 full hosted campaign; (3) equal complete frame/PCM/transition/native hashes
@@ -279,9 +280,71 @@ from all six platform lanes; and (4) real base_a/base_b/head Cachegrind
 measurements at 60/360 frames passing the unchanged `+1%` gate. The three
 Plan24-04 prohibition flags remain `human_judgment` / `unresolved`.
 
-**Next actor:** the owner decides whether to authorize this exact candidate's
-push, new PR and resulting configured CI run with the stated limits. A plan
-approval, silence or local-test authority does not grant that permission.
-After an explicit matching grant, resume with
-`$gsd-execute-phase 24 --gaps-only`; context may be cleared after reading
-STATE, the resume note and this request.
+## Plan24-05 remote authorization
+
+On 2026-11-01T10:31:33Z, the owner replied: “Yes. And then by the way, after
+CI runs, look at the results and see if there's low-hanging fruit opportunities
+for improvement.” This authorizes only the prepared candidate
+`e2e24a6709aab6332267f414101fb7c2c05bb8bc` (its pre-rewrite identity), request SHA-256
+`c772cfb2a8e0d46dbdbc58fb54623fc06be15b5724060fa2b93da0b03a77fe2e`, the
+normal push to `origin/gsd/phase-24-correct-remaining-ntsc-dma-behavior`, and
+creation of the new PR using the prepared title/body. The resulting PR
+`opened` event may run the exact existing required job selection and one
+Linux x64 FULL=ON campaign under the workflow, campaign, CTest, page and
+collection limits recorded above. It does not authorize force push, manual
+dispatch, merge, release, a retry, or another candidate. After that CI run,
+the owner also authorized a read-only review of results for low-effort
+improvement opportunities; any new code change or rerun remains outside this
+grant.
+
+Before mutation, `MODE=request` must still validate the same candidate and
+current main/PR/branch metadata. A stale request or failed preflight preserves
+the stop and requires a newly reviewed request. The exact commands, request
+digest, event side effect and selected limits remain in the linked request
+above.
+
+## Plan24-05 Task 3 push attempt and local diagnostics
+
+The authorized candidate's push command returned without a final status after
+30 seconds. After its process ended, read-only checks found no requested remote
+branch or matching PR, so no PR `opened` CI run or CI results exist.
+Independent local diagnostics show the pre-push history hygiene scan passes.
+The format check exits 1 with 317 diagnostic lines and identifies two
+unformatted source blobs in outgoing pre-rewrite commit
+`7348a10c68e592b71ec1899121003bf62d6bc813`: `src/bus.c` and
+`tests/cpu/test_bus.c`. The complete local output is retained in ignored
+`build/phase24-gap/push-format-diagnostic.log`.
+
+No push retry, hook bypass, history rewrite, replacement candidate, PR, or CI
+run was attempted at the original stop. The original authorization was bound
+to pre-rewrite candidate `e2e24a6709aab6332267f414101fb7c2c05bb8bc` and
+excluded retries and a second candidate. No CI result exists for the
+owner-requested low-effort improvement review.
+
+## Replacement-candidate local authorization and outcome
+
+On 2026-11-01T11:17:43Z, the owner authorized local repair of the outgoing
+formatting history and preparation of a replacement candidate/request. This
+authorization does not cover a push, PR, CI run, retry, merge, or release.
+
+The branch contained 120 outgoing commits from common ancestor
+`45a078d2de1f08e39caf1c5942fcdb57f493d8af`, with no merge commits. Replaying
+from that ancestor preserved the candidate's final code/data tree. The
+unformatted commit `7348a10c68e592b71ec1899121003bf62d6bc813` was rewritten as
+`6503f3551899a5d607d283a41a00451a7090f4de`; clang-format 18 changed only
+whitespace in `src/bus.c` and `tests/cpu/test_bus.c` (their whitespace-stripped
+token streams matched). Two replay conflicts in later source changes were
+resolved with the exact original commit snapshots, each already formatted.
+Twenty-nine commit identities changed; 91 earlier identities stayed the
+same. The outgoing history format check now passes.
+
+A local documentation commit refreshed 21 references across eight committed
+files. The resulting prepared candidate is recorded in the new request at
+`build/phase24-gap-replacement/request.md`; request metadata records the exact
+head/tree and leaves `remote_action_authorized` false. No code behavior
+changed, no tests or workflow were rerun, and no remote action has occurred.
+The candidate's exact identity and request digest are reported at the review
+checkpoint. The next actor is the owner, who decides whether to authorize the
+candidate-bound push, new PR, and one configured CI run. If CI runs, review
+its results read-only for the requested low-effort improvements before any
+new code change or rerun.

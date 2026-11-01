@@ -5,11 +5,11 @@ milestone_name: Remaining DMA accuracy failures
 current_phase: 24
 current_phase_name: Correct remaining NTSC DMA behavior
 status: executing
-stopped_at: Phase 24 gap closure is planned; Plan 24-05 is ready to execute, hosted actions remain gated
-last_updated: "2026-11-01T01:56:31.640Z"
+stopped_at: Plan 24-05 local history repair and replacement request prepared; owner review is required before any remote action
+last_updated: "2026-11-01T11:17:43Z"
 last_activity: 2026-11-01
-last_activity_desc: Plan 24-05 covers the DMA-03 evidence gaps; plan check passed with one historical informational advisory
-state_head: d04c66ecfda4465446b4eadde492c967584ab41f
+last_activity_desc: Rewrote the outgoing history to pass the format gate and prepared a replacement request; no push, PR, or CI run was triggered
+state_head: db2d75ccc2a70f50cc5c28e129d6143827f7a8ce
 progress:
   total_phases: 1
   completed_phases: 0
@@ -27,19 +27,19 @@ See [PROJECT.md](PROJECT.md), updated for v7 on 2026-10-31, and AGENTS.md.
 
 ## Current Position
 
-Phase: 24 (Correct remaining NTSC DMA behavior) — READY TO EXECUTE
-Plan: 4 of 5 — Plans 24-01 through 24-04 completed; Plan 24-05 is queued for gap closure
+Phase: 24 (Correct remaining NTSC DMA behavior) — PLAN 24-05 TASK 3 AT REPLACEMENT-CANDIDATE REVIEW
+Plan: 4 of 5 complete — Plans 24-01 through 24-04 completed; Plan 24-05 Tasks 1–2 complete; local Task 3 repair/request prep is complete
 Status: Goal verification scored 8/9; phase and requirements remain incomplete
-Last activity: 2026-11-01 — Local full CI and all five selected rows passed; DMA-03 remains unverified pending independent and hosted evidence
-Progress: [████████░░] 80% (4 of 5 plans executed; gap closure pending)
+Last activity: 2026-11-01 — The repaired outgoing history passes formatting; the replacement request is ready for owner review, with no remote action taken
+Progress: [████████░░] 80% (4 of 5 plans complete; Plan 24-05 remains active)
 
 ## Next Action
 
-**Local CMake approval is durable; no per-run approval is needed.** The final `cmake --workflow --preset ci` run passed all707 CTest entries in517.82seconds and generated library, runner and libretro macOS arm64 packages. Its complete campaign observed all146 scored rows terminal (126 PASS,20 FAIL, no skip/not-run/timeout,5 inventory-only DRAW); all five selected DMA rows passed. All119 prior current-pin protected PASS keys remain passing. See the [dated run record](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN-20261101.md) and [campaign measurements](../tests/accuracy/measurements.md#phase-24-behavior14-local-acceptance-2026-11-01).
+**Local CMake approval is durable; no per-run approval is needed.** Plan 24-05 Task 1's original commit `e2e24a6709aab6332267f414101fb7c2c05bb8bc` is now `9680ee8830ce95275d58158248c5f02f1da6b9fc` after the history rewrite; its focused build, `bus.unit` CTest, landing trace, and offline rejection controls remain valid. The original push attempt had no final status and created no target branch; no PR or CI run exists. The local format gate found the pre-rewrite 24-01 blobs unformatted; the history repair reformatted them without changing the candidate's final code tree, and `scripts/check_push_format.py` now passes. The local request at `build/phase24-gap-replacement/request.md` records the replacement candidate and keeps remote authorization false. The previous push authorization was tied to the old candidate and does not cover this one. See the [Task 3 summary](phases/24-correct-remaining-ntsc-dma-behavior/24-05-SUMMARY.md) and [acceptance record](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md). The complete local CI/campaign result remains historical in the [dated run record](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN-20261101.md) and [campaign measurements](../tests/accuracy/measurements.md#phase-24-behavior14-local-acceptance-2026-11-01).
 
-Local protected-observation tests used the checkout `scoreboard-main` fallback, not independent cold-main authority. Current-head hosted lanes, Linux/macOS/Windows x64/arm64 frame/PCM/transition hash equality, and unchanged Cachegrind `+1%` evidence remain missing. Inherited branch-wide planning whitespace is also unresolved; most findings are in archived records outside this scoped update. No hosted trigger, push, PR, merge or release is authorized by the standing local-CMake instruction. The full suite has no safe coverage-preserving shortcut; `dev-check` remains the fast iteration tier. [Acceptance and efficiency record](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
+Local protected-observation tests used the checkout `scoreboard-main` fallback, not independent cold-main authority. DMA-03 still lacks fresh observations for every cold protected PASS key, current-candidate hosted CI and the full campaign, six-platform hash equality, and real base_a/base_b/head Cachegrind evidence. Inherited branch-wide planning whitespace is also unresolved; most findings are in archived records outside this scoped update. The owner has authorized only the candidate-bound push, new PR and existing CI selection recorded below; merge, release and automatic retry remain excluded. The full suite has no safe coverage-preserving shortcut; `dev-check` remains the fast iteration tier. [Acceptance and efficiency record](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md).
 
-Formal goal verification scored 8/9 and found the DMA-03 evidence gap; see [24-VERIFICATION.md](phases/24-correct-remaining-ntsc-dma-behavior/24-VERIFICATION.md). The advisory [code review](phases/24-correct-remaining-ntsc-dma-behavior/24-REVIEW.md) also found a trace-buffer overflow risk in `tests/cpu/test_bus.c`; its disposition remains open. The verifier additionally noted a stale README acceptance sentence, inherited whitespace, and three plan prohibitions without verification tiers.
+Formal goal verification scored 8/9 and found the DMA-03 evidence gap; see [24-VERIFICATION.md](phases/24-correct-remaining-ntsc-dma-behavior/24-VERIFICATION.md). The advisory [code review](phases/24-correct-remaining-ntsc-dma-behavior/24-REVIEW.md) found a trace-buffer overflow risk in `tests/cpu/test_bus.c`; WR-01 is now fixed with overflow rejection evidence. The README acceptance wording is current and the three prohibition flags now have explicit `human_judgment` tiers with unresolved status. Historical whitespace debt remains bounded.
 
 Gap planning is complete. New [Plan 24-05](phases/24-correct-remaining-ntsc-dma-behavior/24-05-PLAN.md) covers trace completeness, the stale README wording, and the independently sourced DMA-03 evidence. The plan checker found no blockers or warnings; its one informational advisory concerns schema gaps in completed Plans 24-01 through 24-03 and does not justify reopening them. No tests, builds, CI, or remote actions ran during planning.
 
@@ -49,7 +49,7 @@ Core correction a12a79a is behavior14 / native format6 / ABI1. All64 owned abort
 
 The earlier behavior13 campaign is historical at [24-CI-RUN.md](phases/24-correct-remaining-ntsc-dma-behavior/24-CI-RUN.md); the final behavior14 result supersedes it for local selected-row status. Baseline metadata now matches the observed campaign. No silicon or universal target claim is made.
 
-**Next OpenGSD command:** `$gsd-execute-phase 24 --gaps-only` — executes only the new Plan 24-05. Its bounded local work is covered by standing authority; a blocking decision keeps any hosted trigger stopped until the owner explicitly authorizes its concrete candidate and scope. No further local CMake approval is needed. Context may be cleared; read this file, [24-EXECUTION-RESUME.md](phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md), and [24-ACCEPTANCE.md](phases/24-correct-remaining-ntsc-dma-behavior/24-ACCEPTANCE.md) first.
+The prior request digest `c772cfb2a8e0d46dbdbc58fb54623fc06be15b5724060fa2b93da0b03a77fe2e` was bound to pre-rewrite candidate `e2e24a6709aab6332267f414101fb7c2c05bb8bc`; its push authorization does not carry over. The new candidate request is at `build/phase24-gap-replacement/request.md` and records the current head/tree with `remote_action_authorized=false`. The owner authorized local history repair and request preparation only. The next actor is the owner, who reviews the exact candidate and decides whether to authorize its push, new PR, and one configured CI run. Merge, release, and retry remain excluded.
 
 ## Accumulated Context
 
@@ -107,9 +107,9 @@ The final behavior14 local workflow passed all707 entries; campaign guest execut
 
 ## Session Continuity
 
-**Last session:** 2026-11-01T01:56:31Z
-**Stopped at:** Plan 24-05 passed plan review and is ready for gap-only execution; phase verification remains 8/9
-**Next actor:** OpenGSD executes Plan 24-05; the owner acts only at its explicit remote-authority checkpoint
+**Last session:** 2026-11-01T11:17:43Z
+**Stopped at:** Replacement candidate/request prepared after local history formatting repair; no remote branch, PR, or CI run exists
+**Next actor:** Owner reviews the exact replacement request and decides whether to authorize the candidate-bound push/PR/CI path
 **Next command:** `$gsd-execute-phase 24 --gaps-only`
-**Context:** May be cleared; read STATE, the resume file, and the acceptance record first.
+**Context:** Context may be cleared at this handoff. Read STATE, the resume file, and the acceptance record before resuming.
 **Resume file:** .planning/phases/24-correct-remaining-ntsc-dma-behavior/24-EXECUTION-RESUME.md

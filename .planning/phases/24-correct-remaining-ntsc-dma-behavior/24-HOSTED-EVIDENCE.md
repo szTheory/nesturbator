@@ -2,16 +2,31 @@
 
 ## Current result
 
-No hosted run, push, pull request, merge, or release has been performed for
-this gap closure. Synthetic local controls prove rejection behavior only.
+The original push command returned without a final status after 30 seconds.
+After its process ended, read-only checks found no requested branch, PR, or
+hosted run. The original request was bound to pre-rewrite candidate
+`e2e24a6709aab6332267f414101fb7c2c05bb8bc` and digest
+`c772cfb2a8e0d46dbdbc58fb54623fc06be15b5724060fa2b93da0b03a77fe2e`. Its
+pre-push history hygiene check passed; the format check failed on the
+unformatted blobs in pre-rewrite commit
+`7348a10c68e592b71ec1899121003bf62d6bc813`. Full output is retained in ignored
+`build/phase24-gap/push-format-diagnostic.log`.
+
+On 2026-11-01T11:17:43Z, the owner authorized local history repair and
+replacement request preparation only. The format-only rewrite produced commit
+`6503f3551899a5d607d283a41a00451a7090f4de`; the final code/data tree before
+documentation-reference updates matched the original candidate tree. The
+repository's outgoing format check now passes. The replacement request is
+prepared in ignored `build/phase24-gap-replacement/` and keeps
+`remote_action_authorized=false`. The prior push authorization does not apply
+to that candidate. No remote branch, PR, hosted run, or CI result exists.
+
 The previous full local campaign remains historical evidence; it used the
 checkout `scoreboard-main` fallback and does not establish cold protected-main
-authority.
-
-The next step is to prepare a read-only request bound to the committed
-Plan24-05 candidate and inspect current PR metadata. A prepared request does
-not grant remote authority. The blocking decision and any later permission
-must be recorded in `24-ACCEPTANCE.md`.
+authority. Synthetic local controls prove rejection behavior only. There are
+no CI results yet to inspect for low-effort improvements. The replacement
+candidate requires a separate owner decision before any push or PR; no merge
+or release is included.
 
 ## Evidence still required
 
@@ -67,5 +82,5 @@ scoreboard is saved as `provenance/protected-main-scoreboard.txt` from the
 independently retrieved base tree. Keep raw downloaded files and metadata
 separate from those normalized evidence files.
 
-No such hosted receipt exists yet. Do not create an empty delivery record or
-claim a verdict from local/synthetic controls.
+No hosted receipt exists yet. Do not create an empty delivery record or claim
+a verdict from local/synthetic controls.
