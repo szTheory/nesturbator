@@ -559,7 +559,7 @@ function(phase24_prepare)
   if(existing_pr_number STREQUAL "")
     set(event "opened")
     set(proposed_commands
-      "git push origin HEAD:refs/heads/${branch}\ngh pr create --repo szTheory/nesturbator --base main --head ${branch} --title \"fix(dma): correct remaining NTSC DMA behavior\" --body-file build/phase24-gap/pr-body.md")
+      "git push origin HEAD:refs/heads/${branch}\ngh pr create --repo szTheory/nesturbator --base main --head ${branch} --title \"fix(dma): correct remaining NTSC DMA behavior\" --body-file ${pr_body_relative}")
   else()
     set(event "synchronize")
     set(proposed_commands
