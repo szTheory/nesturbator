@@ -25,8 +25,11 @@ Behavior revision 12 separates internal CPU data from the external bus. A DMC
 sample ending in $15-$17 can select status or a controller while the CPU is
 parked in $4000-$401F. Status reads acknowledge the frame IRQ without replacing
 the external sample byte; controller reads retain external upper bits. These
-owned checks preserve the existing per-cycle controller-clock profile. Pinned
-AccuracyCoin ROM acceptance remains pending.
+owned checks preserve the existing per-cycle controller-clock profile. All
+five selected Phase 24 DMA rows passed in the complete local campaign on
+2026-11-01, with all 146 scored rows terminal. Independent cold protected-main
+validation, current-head hosted checks, six-platform output equality and the
+unchanged Cachegrind `+1%` gate remain outstanding.
 
 Behavior revision 13 preserves a one-cycle aborted DMA when explicit disable
 or a non-looping last byte stops the reader two or three clocks before reload.
@@ -41,7 +44,10 @@ selection ends. A just-fetched sample waits past an immediately adjacent
 output boundary. This last ordering is an inferred compatibility model for
 the pinned early-G looping sweep; owned timing, audio and native checks do
 not establish universal silicon behavior. Native format 6 and ABI 1 remain
-unchanged. Fresh full-ROM acceptance of this revision is still pending.
+unchanged. The five selected Phase 24 DMA rows passed in the complete
+2026-11-01 local campaign; independent cold protected-main validation,
+current-head hosted checks, six-platform output equality and the unchanged
+Cachegrind `+1%` gate remain outstanding.
 
 With no cartridge, the fixed test card and silence remain available. The
 checked MMC3 support clause is:

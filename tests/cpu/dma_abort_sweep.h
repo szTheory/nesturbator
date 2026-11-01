@@ -611,6 +611,8 @@ static uint8_t rom_abort_expected(enum rom_abort_sweep_kind kind, uint8_t index)
 static void rom_abort_print_case_trace(enum rom_abort_sweep_kind kind, uint8_t index,
                                        uint8_t actual, uint8_t expected, uint64_t start_cycle)
 {
+    if (dma_trace_require_complete() == 0u)
+        return;
     unsigned printed = 0u;
     unsigned open_bus_reads = 0u;
     printf("  first mismatch %s[%u]: actual=%u expected=%u start-cycle=%llu events=%lu%s\n",
@@ -741,7 +743,7 @@ static void rom_abort_run_guest(enum rom_abort_sweep_kind requested_kind, uint16
 
     CHECK_EQ_HEX(normal.cpu.pc, 0x8000u);
     CHECK_EQ_HEX(entry_pc, 0x9000u);
-    dma_trace_count = 0u;
+    dma_trace_reset();
     while (normal.cpu.pc != rom_abort_done_pc && steps < 12000000u) {
         for (unsigned i = 0u; i < ROM_ABORT_SWEEP_COUNT; ++i) {
             if (rom_abort_locations[i].name != NULL &&
@@ -750,7 +752,7 @@ static void rom_abort_run_guest(enum rom_abort_sweep_kind requested_kind, uint16
                 active_index = normal.cpu.x;
                 case_start_cycle = normal.cpu_cycle;
                 case_start_step = steps;
-                dma_trace_count = 0u;
+                dma_trace_reset();
                 break;
             }
         }

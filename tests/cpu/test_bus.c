@@ -39,12 +39,61 @@ struct dma_event {
 
 static struct dma_event dma_trace[DMA_TRACE_CAPACITY];
 static size_t dma_trace_count;
+static uint8_t dma_trace_overflowed;
+static uint8_t dma_trace_overflow_reported;
+static uint8_t dma_trace_capture_enabled = 1u;
+
+static void dma_trace_report_overflow(void)
+{
+    if (dma_trace_overflow_reported != 0u)
+        return;
+    fprintf(stderr, "DMA trace overflow: retained window exceeded capacity of %lu events\n",
+            (unsigned long)DMA_TRACE_CAPACITY);
+    dma_trace_overflow_reported = 1u;
+    check_failures++;
+}
+
+static uint8_t dma_trace_require_complete(void)
+{
+    if (dma_trace_overflowed == 0u)
+        return 1u;
+    dma_trace_report_overflow();
+    return 0u;
+}
+
+static void dma_trace_reset(void)
+{
+    dma_trace_require_complete();
+    dma_trace_count = 0u;
+    dma_trace_overflowed = 0u;
+    dma_trace_overflow_reported = 0u;
+    dma_trace_capture_enabled = 1u;
+}
+
+static void dma_trace_discard_prelude(void)
+{
+    dma_trace_require_complete();
+    dma_trace_count = 0u;
+    dma_trace_overflowed = 0u;
+    dma_trace_overflow_reported = 0u;
+    dma_trace_capture_enabled = 0u;
+}
+
+static void dma_trace_record_overflow(void)
+{
+    dma_trace_overflowed = 1u;
+    dma_trace_report_overflow();
+}
 
 static void dma_observe(enum dma_event_kind kind, const struct nesturbator *machine,
                         uint16_t address, uint8_t data, uint16_t detail)
 {
-    if (dma_trace_count == DMA_TRACE_CAPACITY)
+    if (dma_trace_capture_enabled == 0u)
         return;
+    if (dma_trace_count >= DMA_TRACE_CAPACITY) {
+        dma_trace_record_overflow();
+        return;
+    }
     struct dma_event *event = &dma_trace[dma_trace_count++];
     event->kind = (uint8_t)kind;
     event->address = address;
@@ -144,6 +193,8 @@ static void prepare_landing(struct nesturbator *machine, uint8_t initial_phase,
 
 static size_t count_dma_events(enum dma_event_kind kind)
 {
+    if (dma_trace_require_complete() == 0u)
+        return 0u;
     size_t count = 0u;
     for (size_t i = 0u; i < dma_trace_count; ++i)
         count += dma_trace[i].kind == kind;
@@ -413,6 +464,8 @@ static uint16_t test9_emit_program(uint16_t *final_read)
 
 static const struct dma_event *find_dma_event(enum dma_event_kind kind)
 {
+    if (dma_trace_require_complete() == 0u)
+        return NULL;
     for (size_t i = 0u; i < dma_trace_count; ++i) {
         if (dma_trace[i].kind == kind)
             return &dma_trace[i];
@@ -461,6 +514,8 @@ static const char *dma_event_name(enum dma_event_kind kind)
 
 static void print_dma_trace(uint8_t initial_phase, uint8_t write_count, uint8_t request_load)
 {
+    if (dma_trace_require_complete() == 0u)
+        return;
     const char *request = request_load == 2u ? "4015-load" : request_load != 0u ? "load" : "reload";
     printf("landing phase=%u writes=%u request=%s events=%lu\n", (unsigned)initial_phase,
            (unsigned)write_count, request, (unsigned long)dma_trace_count);
@@ -491,7 +546,7 @@ static void run_landing_case(uint8_t initial_phase, uint8_t write_count, uint8_t
     struct nesturbator normal, observed;
     prepare_landing(&normal, initial_phase, request_load);
     prepare_landing(&observed, initial_phase, request_load);
-    dma_trace_count = 0u;
+    dma_trace_reset();
 
     for (uint8_t i = 0u; i < write_count; ++i) {
         uint16_t address = (uint16_t)(0x10u + i);
@@ -558,7 +613,7 @@ static void run_landing_load_case(uint8_t initial_phase, uint8_t print_trace)
     observed.apu.dmc.dma_pending = 0u;
     normal.apu.dmc.counter = 100u;
     observed.apu.dmc.counter = 100u;
-    dma_trace_count = 0u;
+    dma_trace_reset();
 
     nesturbator__bus_write(&normal, 0x4015u, 0x10u);
     test_observed_bus_write(&observed, 0x4015u, 0x10u);
@@ -591,6 +646,8 @@ static void run_landing_load_case(uint8_t initial_phase, uint8_t print_trace)
 
 static const struct dma_event *find_last_dma_event(enum dma_event_kind kind)
 {
+    if (dma_trace_require_complete() == 0u)
+        return NULL;
     for (size_t i = dma_trace_count; i != 0u; --i) {
         if (dma_trace[i - 1u].kind == kind)
             return &dma_trace[i - 1u];
@@ -629,6 +686,8 @@ static nesturbator *make_test9_powered_instance(void)
 
 static void print_test9_trace(void)
 {
+    if (dma_trace_require_complete() == 0u)
+        return;
     size_t last_test_read = dma_trace_count;
     for (size_t i = dma_trace_count; i != 0u; --i) {
         if (dma_trace[i - 1u].kind == NESTURBATOR_DMA_CPU_READ_COMPLETE &&
@@ -694,7 +753,7 @@ static void run_landing_test9_reload_boundary(uint8_t print_trace)
         return;
     struct nesturbator normal = *(struct nesturbator *)powered;
     struct nesturbator observed = normal;
-    dma_trace_count = 0u;
+    dma_trace_discard_prelude();
 
     size_t steps = 0u;
     uint8_t pretest_done = 0u;
@@ -704,14 +763,14 @@ static void run_landing_test9_reload_boundary(uint8_t print_trace)
     while (normal.cpu.pc != final_read && steps < 1000000u) {
         if (normal.cpu.pc == 0x8800u)
             wait_enter_cycle = normal.cpu_cycle;
-        if (normal.cpu.pc == 0x8008u && wait_enter_cycle != 0u) {
+        if (normal.cpu.pc == 0x8008u && wait_enter_cycle != 0u && wait_checked == 0u) {
             CHECK_EQ_U64(normal.cpu_cycle - wait_enter_cycle, 30012u);
             wait_checked = 1u;
+            dma_trace_reset();
         }
         if (pretest_done == 0u && normal.cpu.pc == 0x8200u && normal.bus.ram[0x12u] == 1u) {
             pretest_done = 1u;
             pretest_end_cycle = normal.cpu_cycle;
-            dma_trace_count = 0u;
         }
         nesturbator__cpu_step(&normal);
         test_observed_cpu_step(&observed);
@@ -729,12 +788,21 @@ static void run_landing_test9_reload_boundary(uint8_t print_trace)
             break;
         }
     }
+
+    if (dma_trace_require_complete() == 0u) {
+        nesturbator_destroy(powered);
+        return;
+    }
     CHECK(pretest_done != 0u);
     CHECK(wait_checked != 0u);
     CHECK(steps < 1000000u);
     CHECK_EQ_HEX(normal.cpu.pc, final_read);
     nesturbator__cpu_step(&normal);
     test_observed_cpu_step(&observed);
+    if (dma_trace_require_complete() == 0u) {
+        nesturbator_destroy(powered);
+        return;
+    }
 
     CHECK_EQ_HEX(observed.cpu.a, 0u);
     CHECK_EQ_HEX(observed.cpu.a, normal.cpu.a);
@@ -773,12 +841,16 @@ static void run_silent_output_probe(uint8_t print_trace)
         return;
     struct nesturbator normal = *powered;
     struct nesturbator observed = normal;
-    dma_trace_count = 0u;
+    dma_trace_reset();
     for (unsigned step = 0u; step < 2400u; ++step) {
         nesturbator__cpu_step(&normal);
         test_observed_cpu_step(&observed);
     }
     CHECK(memcmp(&normal, &observed, sizeof normal) == 0);
+    if (dma_trace_require_complete() == 0u) {
+        nesturbator_destroy(powered);
+        return;
+    }
     unsigned clocks = 0u;
     unsigned changing_bit_counts = 0u;
     for (size_t i = 1u; i < dma_trace_count; ++i) {
@@ -824,7 +896,7 @@ static void run_conflict_probe(uint16_t sample_address, uint8_t sample_data, uin
     machine.apu.dmc.address = sample_address;
     machine.map.cpu_r[47] = landing_prg + 0x3c00u;
     landing_prg[0x3c00u + (sample_address & 0x03ffu)] = sample_data;
-    dma_trace_count = 0u;
+    dma_trace_reset();
 
     uint8_t returned = test_observed_bus_read(&machine, 0x4000u);
     uint16_t internal_select = (uint16_t)(0x4000u | (sample_address & 0x001fu));
@@ -865,7 +937,7 @@ static void run_conflict_latch_probe(void)
     machine.apu.frame_irq = 1u;
     machine.apu.dmc.address = 0xFF15u;
     landing_prg[0x3F15u] = 0xA5u;
-    dma_trace_count = 0u;
+    dma_trace_reset();
     uint8_t first = test_observed_bus_read(&machine, 0x4015u);
     uint8_t external = machine.bus.open_bus;
     uint8_t second = test_observed_bus_read(&machine, 0x4015u);
@@ -913,7 +985,7 @@ static void test_dma_bus_conflicts(void)
                     normal.apu.dmc.address = (uint16_t)(0xFF00u | low);
                     landing_prg[0x3F00u | low] = samples[b];
                     observed = normal;
-                    dma_trace_count = 0u;
+                    dma_trace_reset();
                     uint64_t start = normal.cpu_cycle;
                     uint8_t expected = nesturbator__bus_read(&normal, parked[p]);
                     uint8_t returned = test_observed_bus_read(&observed, parked[p]);
@@ -1003,7 +1075,7 @@ static void run_oam_probe(uint16_t requested_offset, uint8_t load, uint8_t phase
         observed.apu.dmc.counter = first_edge;
     }
     struct nesturbator linked = observed;
-    dma_trace_count = 0u;
+    dma_trace_reset();
 
     nesturbator__bus_write(&normal, 0x4014u, 0u);
     nesturbator__bus_write(&linked, 0x4014u, 0u);
@@ -1015,6 +1087,8 @@ static void run_oam_probe(uint16_t requested_offset, uint8_t load, uint8_t phase
     uint8_t actual_return = test_observed_bus_read(&observed, 0x8000u);
     CHECK_EQ_HEX(actual_return, expected_return);
     CHECK(memcmp(&linked, &observed, sizeof linked) == 0);
+    if (dma_trace_require_complete() == 0u)
+        return;
     uint64_t normal_cycles = normal.cpu_cycle - normal_start;
     uint64_t observed_cycles = observed.cpu_cycle - observed_start;
     const struct dma_event *get = find_dma_event(NESTURBATOR_DMA_SAMPLE_GET);
@@ -1150,7 +1224,7 @@ static void run_abort_running_control(void)
            reads++ < 10000u)
         (void)test_observed_bus_read(machine, 0x0020u);
     CHECK(reads < 10000u);
-    dma_trace_count = 0u;
+    dma_trace_reset();
     uint64_t start = machine->cpu_cycle;
     test_observed_bus_write(machine, 0x0021u, 0x91u); /* Keep playback running. */
     for (unsigned read = 0u; read < 9u; ++read)
@@ -1186,7 +1260,7 @@ static void run_explicit_abort_probe(uint8_t intervening_write, uint16_t lead_co
         (void)test_observed_bus_read(machine, 0x0020u);
     CHECK(reads < 10000u);
     struct nesturbator linked = *machine;
-    dma_trace_count = 0u;
+    dma_trace_reset();
     uint64_t start = machine->cpu_cycle;
     nesturbator__bus_write(&linked, 0x4015u, 0u);
     test_observed_bus_write(machine, 0x4015u, 0u);
@@ -1275,7 +1349,7 @@ static void run_implicit_abort_probe(uint8_t loop, uint8_t length, uint8_t inter
     CHECK(reads < 10000u);
     CHECK_EQ_U64(machine->apu.dmc.buffer_empty, 1u);
     struct nesturbator linked = *machine;
-    dma_trace_count = 0u;
+    dma_trace_reset();
     uint64_t start = machine->cpu_cycle;
     nesturbator__bus_write(&linked, 0x4015u, 0x10u);
     test_observed_bus_write(machine, 0x4015u, 0x10u);
@@ -1363,7 +1437,7 @@ static void test_abort_side_effects(void)
             machine->apu.frame_irq = 1u;
             nesturbator__irq_update(machine);
             struct nesturbator linked = *machine;
-            dma_trace_count = 0u;
+            dma_trace_reset();
             for (unsigned clock = 0u; clock < 2u; ++clock) {
                 CHECK_EQ_HEX(nesturbator__bus_read(&linked, 0x0020u),
                              test_observed_bus_read(machine, 0x0020u));
@@ -1409,7 +1483,7 @@ static void test_abort_oam_and_restart(void)
     test_observed_bus_write(machine, 0x4014u, 2u); /*432 PUT: abort has two clocks left. */
     struct nesturbator baseline = *machine, linked = *machine;
     baseline.apu.dmc.abort_delay = 0u; /* Owned no-abort timing control. */
-    dma_trace_count = 0u;
+    dma_trace_reset();
     uint64_t start = machine->cpu_cycle;
     uint8_t expected = nesturbator__bus_read(&linked, 0x8000u);
     CHECK_EQ_HEX(test_observed_bus_read(machine, 0x8000u), expected);
@@ -1428,7 +1502,7 @@ static void test_abort_oam_and_restart(void)
     if (machine == NULL)
         return;
     linked = *machine;
-    dma_trace_count = 0u;
+    dma_trace_reset();
     nesturbator__bus_write(&linked, 0x4015u, 0x10u);
     test_observed_bus_write(machine, 0x4015u, 0x10u); /*432 PUT, buffer still full. */
     CHECK_EQ_U64(machine->apu.dmc.abort_delay, 2u);
@@ -1479,7 +1553,7 @@ static void test_abort_pending_disable(void)
         CHECK_EQ_U64(machine->apu.dmc.dma_pending, 1u);
         CHECK_EQ_U64(machine->apu.dmc.buffer_empty, 1u);
         struct nesturbator linked = *machine;
-        dma_trace_count = 0u;
+        dma_trace_reset();
         nesturbator__bus_write(&linked, 0x4015u, 0u);
         test_observed_bus_write(machine, 0x4015u, 0u);
         CHECK_EQ_U64(machine->apu.dmc.remaining, 0u);
@@ -1502,7 +1576,7 @@ static void test_abort_pending_disable(void)
         CHECK(drain < 10000u);
         /* A later enable creates a fresh load rather than inheriting stale
            retry phase/delay from the canceled request. */
-        dma_trace_count = 0u;
+        dma_trace_reset();
         nesturbator__bus_write(&linked, 0x4015u, 0x10u);
         test_observed_bus_write(machine, 0x4015u, 0x10u);
         CHECK_EQ_U64(machine->apu.dmc.dma_halt_phase, 1u);
@@ -1635,7 +1709,7 @@ static struct fresh_sample_edge_result run_fresh_sample_edge(uint8_t wrong_immed
     CHECK_EQ_U64(machine->apu.pulse_clock_phase, 1u);
     CHECK_EQ_U64(machine->apu.dmc.dma_pending, 0u);
     result.output_before = machine->apu.dmc.output;
-    dma_trace_count = 0u;
+    dma_trace_reset();
     nesturbator__bus_write(&linked, 0x4015u, 0x10u);
     test_observed_bus_write(machine, 0x4015u, 0x10u);
     CHECK(memcmp(&linked, machine, sizeof linked) == 0);
@@ -1749,6 +1823,16 @@ static void test_dma_fresh_sample_edge(void)
 
 int main(int argc, char **argv)
 {
+    if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 &&
+        strcmp(argv[2], "overflow-control") == 0) {
+        struct nesturbator machine;
+        memset(&machine, 0, sizeof machine);
+        dma_trace_reset();
+        for (size_t i = 0u; i <= DMA_TRACE_CAPACITY; ++i)
+            dma_observe(NESTURBATOR_DMA_APU_BEFORE, &machine, 0u, 0u, 0u);
+        CHECK(dma_trace_overflowed != 0u);
+        CHECK_DONE();
+    }
     if (argc == 3 && strcmp(argv[1], "--dma-trace") == 0 &&
         strcmp(argv[2], "fresh-sample-edge") == 0) {
         test_dma_fresh_sample_edge();

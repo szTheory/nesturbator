@@ -187,12 +187,101 @@ current-head hosted lanes. The inherited branch-wide whitespace findings also
 remain; most are in archived phases outside this plan, so no bulk rewrite was
 made.
 
-## Handoff
+## Historical Plan24-04 handoff (superseded by Plan24-05 below)
 
-All four plans have been executed and the local Plan24-04 acceptance outcome
-is recorded; Phase24 remains open only for the evidence above. No further
-local CMake approval is needed. The owner acts next only if they want the
-hosted checks/PR path, because that has remote effects outside the standing
-local-CMake authority. Exact next OpenGSD command after that authorization:
-`$gsd-ship`. It prepares a PR and runs the hosted review/check path. Context may
-be cleared; read STATE and this acceptance record before continuing.
+At the Plan24-04 boundary, all four then-existing plans had completed and the
+local outcome was recorded. The later Plan24-05 gap closure below supersedes
+this historical next-command note; use the current checkpoint recorded there
+and in STATE.
+
+## Plan24-05 local gap closure
+
+The focused trace repair preserves the original Test9 guest execution and its
+checked 30,012-cycle synchronization wait. Trace capture is disabled during
+the intentionally discarded prelude, then reset at the checked `$8008`
+boundary. The retained window contains 24,741 events through the actual
+`$FFC0` sample GET on GET and the resumed `$4000` CPU read at cycle 38,166.
+Normal and observed machines remain equal.
+
+The forced-overflow child exits nonzero and prints exactly one
+`DMA trace overflow: retained window exceeded capacity of 32768 events`
+diagnostic. Reset and trace consumers now report any prior retained-window
+overflow before clearing, reading, asserting, or printing; the included abort
+trace uses the same completeness guard.
+
+Local Plan24-05 verification:
+
+```sh
+cmake --build build/phase24-owned --target bus.unit
+ctest --test-dir build/phase24-owned -R '^bus\.unit$' --no-tests=error --timeout 30 --output-on-failure
+build/phase24-owned/tests/bus.unit --dma-trace landing
+cmake -DMODE=controls -DSOURCE_REF=. -DROOT=build/phase24-gap-controls -DBUS=build/phase24-owned/tests/bus.unit -P tests/cmake/phase24_dma_gap_evidence.cmake
+```
+
+The focused build and `bus.unit` CTest passed; the landing path retained the
+final sample GET and resumed read; and all evidence controls passed. Those
+controls use synthetic fixtures only, including a ZIP-member-to-normalized-
+file digest mismatch rejection, and are not hosted acceptance. The
+2026-11-01 full local workflow and ROM campaign were not repeated. The new
+offline receipt validator still requires a prepared request and real hosted
+receipts; it cannot produce a pass from controls data.
+
+The README now reports the actual local selected-row result and keeps cold
+protected-main, current-hosted, six-platform and performance evidence
+outstanding. The inherited `main...HEAD` whitespace findings remain recorded
+above; the explicit scoped check for this plan is run against the pre-gap
+commit `a4af94c7fd3606e9561d79179b244503c2fd93ee`. No archived records or
+historical fixtures were bulk-edited.
+
+## Plan24-05 remote decision checkpoint
+
+Task 1 is committed as `8d76d9475266faf8105378a396ad6b545c97e915` on
+`gsd/phase-24-correct-remaining-ntsc-dma-behavior`. The candidate tree is
+`e67b3e79b289382cb4ed6ce2ffe1737dc26ddb81`. Read-only preparation found main
+at `b25146c6efaac41c58f60555f59f0fe79a90ca68`, no existing PR for the branch,
+and no remote branch with that name. `MODE=request` rechecked the candidate,
+current main, PR list, branch ref, workflow and baseline script successfully.
+The request JSON digest is
+`85df86c8acefb0c6cd45bf3e0f213b1ec646b6177bcb5afcd704e37c3079ba42`; the
+exact [request](../../../build/phase24-gap/request.md) and [PR body](../../../build/phase24-gap/pr-body.md)
+are retained under ignored build output. The PR body SHA-256 is
+`410fe8a9db0380245a509990dfec03e1d95b3900600eaa163256b83dbeddab40`.
+
+The proposed remote action is exactly:
+
+```text
+git push origin HEAD:refs/heads/gsd/phase-24-correct-remaining-ntsc-dma-behavior
+gh pr create --repo szTheory/nesturbator --base main --head gsd/phase-24-correct-remaining-ntsc-dma-behavior --title "fix(dma): correct remaining NTSC DMA behavior" --body-file build/phase24-gap/pr-body.md
+```
+
+The new PR's `opened` event would start the repository's existing required CI
+selection: hygiene, title, six build lanes, vector inventory, session controls,
+ASan, nofp, hash equality, RetroArch E2E, perf and CI required. Linux x64 runs
+the configured FULL=ON AccuracyCoin campaign; Linux/macOS use `ci` with
+`ci-build`, and Windows uses `ci-msvc`. The PR `edited` trigger also exists,
+and a title/body edit can cancel an in-progress run, so the candidate title
+and body must stay fixed during that run.
+
+Existing limits remain unchanged: build and session controls 39 minutes,
+ASan 26, nofp 2, hash equality 5, RetroArch E2E 40, perf 15, CI required 5,
+and the current 5-minute network-job caps. The campaign keeps 22 pages, five
+navigation frames per page, 1,800 execution frames per row, 41,503 total
+frames, 15-second page and 10-second collection caps, a 370-second campaign
+CTest timeout, four CTest workers, and the existing 30/760-second protected
+observation limits. There is no workflow dispatch, force push, merge, release,
+expanded limit, or automatic retry in the request.
+
+No remote action has been authorized or performed. DMA-03 still lacks (1)
+independent cold protected-main authority and fresh passing observations for
+every protected PASS key; (2) successful current-candidate hosted jobs and the
+full hosted campaign; (3) equal complete frame/PCM/transition/native hashes
+from all six platform lanes; and (4) real base_a/base_b/head Cachegrind
+measurements at 60/360 frames passing the unchanged `+1%` gate. The three
+Plan24-04 prohibition flags remain `human_judgment` / `unresolved`.
+
+**Next actor:** the owner decides whether to authorize this exact candidate's
+push, new PR and resulting configured CI run with the stated limits. A plan
+approval, silence or local-test authority does not grant that permission.
+After an explicit matching grant, resume with
+`$gsd-execute-phase 24 --gaps-only`; context may be cleared after reading
+STATE, the resume note and this request.
