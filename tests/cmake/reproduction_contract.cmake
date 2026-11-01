@@ -382,11 +382,29 @@ function(reproduction_check doc_path)
     message(FATAL_ERROR "docs.reproduction: bounded CTest selection must be an anchored name list")
   endif()
   string(REPLACE "|" ";" documented_tests "${test_names_text}")
+  if(MODE STREQUAL "self_test")
+    set(SELECTED_TEST_REGEX "${test_regex}" PARENT_SCOPE)
+  endif()
 
-  execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1
-    OUTPUT_VARIABLE all_tests_json ERROR_VARIABLE ctest_err RESULT_VARIABLE ctest_rc TIMEOUT 20)
-  if(NOT "${ctest_rc}" STREQUAL "0")
-    message(FATAL_ERROR "docs.reproduction: generated CTest metadata could not be read")
+  if(MODE STREQUAL "mutation_check" AND DEFINED TESTS_JSON_FILE AND
+     DEFINED SELECTED_TESTS_JSON_FILE)
+    foreach(metadata_file IN ITEMS "${TESTS_JSON_FILE}" "${SELECTED_TESTS_JSON_FILE}")
+      if(NOT EXISTS "${metadata_file}" OR IS_DIRECTORY "${metadata_file}" OR
+         IS_SYMLINK "${metadata_file}")
+        message(FATAL_ERROR "docs.reproduction: cached CTest metadata is missing or unsafe")
+      endif()
+    endforeach()
+    file(READ "${TESTS_JSON_FILE}" all_tests_json)
+  else()
+    execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1
+      OUTPUT_VARIABLE all_tests_json ERROR_VARIABLE ctest_err RESULT_VARIABLE ctest_rc TIMEOUT 20)
+    if(NOT "${ctest_rc}" STREQUAL "0")
+      message(FATAL_ERROR "docs.reproduction: generated CTest metadata could not be read")
+    endif()
+    if(MODE STREQUAL "self_test" AND DEFINED TESTS_JSON_FILE AND
+       DEFINED SELECTED_TESTS_JSON_FILE)
+      file(WRITE "${TESTS_JSON_FILE}" "${all_tests_json}")
+    endif()
   endif()
   string(JSON all_test_count LENGTH "${all_tests_json}" tests)
   set(generated_tests)
@@ -426,10 +444,19 @@ function(reproduction_check doc_path)
     endif()
   endforeach()
 
-  execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1 -R "${test_regex}"
-    OUTPUT_VARIABLE selected_tests_json ERROR_VARIABLE selected_err RESULT_VARIABLE selected_rc TIMEOUT 20)
-  if(NOT "${selected_rc}" STREQUAL "0")
-    message(FATAL_ERROR "docs.reproduction: documented CTest selection could not be evaluated")
+  if(MODE STREQUAL "mutation_check" AND DEFINED TESTS_JSON_FILE AND
+     DEFINED SELECTED_TESTS_JSON_FILE)
+    file(READ "${SELECTED_TESTS_JSON_FILE}" selected_tests_json)
+  else()
+    execute_process(COMMAND "${CTEST}" --test-dir "${BUILD_DIR}" --show-only=json-v1 -R "${test_regex}"
+      OUTPUT_VARIABLE selected_tests_json ERROR_VARIABLE selected_err RESULT_VARIABLE selected_rc TIMEOUT 20)
+    if(NOT "${selected_rc}" STREQUAL "0")
+      message(FATAL_ERROR "docs.reproduction: documented CTest selection could not be evaluated")
+    endif()
+    if(MODE STREQUAL "self_test" AND DEFINED TESTS_JSON_FILE AND
+       DEFINED SELECTED_TESTS_JSON_FILE)
+      file(WRITE "${SELECTED_TESTS_JSON_FILE}" "${selected_tests_json}")
+    endif()
   endif()
   string(JSON selected_count LENGTH "${selected_tests_json}" tests)
   if(selected_count LESS 1)
@@ -495,6 +522,11 @@ function(reproduction_check doc_path)
       message(FATAL_ERROR "docs.reproduction: documented build command omits ${required_target}")
     endif()
   endforeach()
+  if(MODE STREQUAL "mutation_check" AND DEFINED TESTS_JSON_FILE AND
+     DEFINED SELECTED_TESTS_JSON_FILE AND
+     (NOT DEFINED SELECTED_TEST_REGEX OR NOT "${test_regex}" STREQUAL "${SELECTED_TEST_REGEX}"))
+    message(FATAL_ERROR "docs.reproduction: cached CTest selection does not match the documented selection")
+  endif()
 
   message(STATUS "docs.reproduction: report fields, source links, build targets and bounded CTest selection are current")
 endfunction()
@@ -513,6 +545,9 @@ function(reproduction_expect_mutation root name mutated expected)
       "-DCTEST=${CTEST}"
       "-DSHORT_RUNS=${SHORT_RUNS}"
       "-DBOOT_TO_PLAY_TARGET=${BOOT_TO_PLAY_TARGET}"
+      "-DTESTS_JSON_FILE=${TESTS_JSON_FILE}"
+      "-DSELECTED_TESTS_JSON_FILE=${SELECTED_TESTS_JSON_FILE}"
+      "-DSELECTED_TEST_REGEX=${test_regex}"
       "-DDOC=${mutated_doc}"
       -P "${CMAKE_CURRENT_LIST_FILE}"
     OUTPUT_VARIABLE out ERROR_VARIABLE err RESULT_VARIABLE rc TIMEOUT 20)
@@ -597,6 +632,9 @@ elseif(MODE STREQUAL "self_test")
       message(FATAL_ERROR "docs.reproduction self-test: -D${var}=... is required")
     endif()
   endforeach()
+  file(MAKE_DIRECTORY "${WORK}")
+  set(TESTS_JSON_FILE "${WORK}/generated-tests.json")
+  set(SELECTED_TESTS_JSON_FILE "${WORK}/selected-tests.json")
   reproduction_check("${DOC}")
   file(READ "${DOC}" original)
   string(RANDOM LENGTH 20 ALPHABET 0123456789abcdef suffix)
