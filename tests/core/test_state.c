@@ -112,6 +112,9 @@ static void header_layout(const struct fixture *fx)
     static const uint8_t magic[8] = {0x89u, 0x4eu, 0x54u, 0x53u, 0x0du, 0x0au, 0x1au, 0x0au};
     const uint8_t *s = fx->state;
     uint32_t crc;
+    CHECK_EQ_U64(NESTURBATOR_STATE_FORMAT_VERSION, 6u);
+    CHECK_EQ_U64(NESTURBATOR_BEHAVIOUR_REVISION, 17u);
+    CHECK_EQ_U64(NESTURBATOR_ABI_VERSION, 1u);
     CHECK(memcmp(s, magic, sizeof magic) == 0);
     CHECK_EQ_U64(le16(s + 8), NESTURBATOR_STATE_FORMAT_VERSION);
     CHECK_EQ_U64(le16(s + 10), 64u);
@@ -130,6 +133,27 @@ static void header_layout(const struct fixture *fx)
         CHECK_EQ_U64(s[i], 0u);
     /* The ROM CRC-32 is of the file's PRG and CHR ROM, not of the whole file: it is not zero. */
     CHECK(le32(s + 24) != 0u);
+}
+
+/* An older behavior revision stays informational under retained format 6. */
+static void revision_is_informational(const struct fixture *fx)
+{
+    uint8_t *older = (uint8_t *)malloc(fx->size);
+    uint8_t *canonical = (uint8_t *)malloc(fx->size);
+    CHECK(older != NULL && canonical != NULL);
+    if (older == NULL || canonical == NULL) {
+        free(older);
+        free(canonical);
+        return;
+    }
+    memcpy(older, fx->state, fx->size);
+    put32(older + 16u, 16u);
+    st_recrc(older, fx->size);
+    CHECK_EQ_U64(nesturbator_load_state(fx->inst, older, fx->size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(fx->inst, canonical, fx->size), NESTURBATOR_OK);
+    CHECK(memcmp(canonical, fx->state, fx->size) == 0);
+    free(older);
+    free(canonical);
 }
 
 /* D-05: save checks in order and writes only on OK. */
@@ -884,6 +908,7 @@ int main(int argc, char **argv)
         struct fixture fx;
         fixture_make(&fx, rom, rom_size);
         header_layout(&fx);
+        revision_is_informational(&fx);
         save_order(&fx);
         load_order(&fx, rom, rom_size);
         empty_instance(&fx);

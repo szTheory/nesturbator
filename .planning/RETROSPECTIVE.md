@@ -167,6 +167,160 @@
 
 ---
 
+## Milestone: v5 — NMI, VBlank and sprite-0 timing
+
+**Shipped:** 2026-10-30 (planning milestone; 0.1.12 publication pending).
+**Phases:** 3 | **Plans:** 27 | **Tasks:** 68 | **Timeline:** six calendar dates
+
+### What Was Built
+- Eleven timing targets pass through OAMADDR sprite evaluation, split status sampling, NMI capture/poll and shared interrupt entry.
+- Guest JAM attribution and actual-adapter frozen-frame/silence behavior survive rewind and run-ahead.
+- Format-3 state validation and native/actual-adapter entry-cutpoint continuation with source-bound six-platform acceptance.
+
+### What Worked
+- Owned pre-fix reproducers and exact revert/mutant controls separated real hardware-model defects from plausible wrong fixes.
+- Native and loaded-adapter replay checked actual guest markers, state, frame and audio history.
+- Full-key PASS protection and unchanged performance thresholds kept the improvement attributable; all three phase reports were refreshed before closeout.
+
+### What Was Inefficient
+- Hosted collection needed source-root/archive/log repairs and run-specific mode checks; recurring collector defects remain maintenance debt.
+- Later review-record changes invalidated cross-phase verification, requiring sequential refreshes.
+- Body-only summary parsing undercounted 68 recorded tasks as 49 and missed completed requirement claims; closeout reconciles the evidence without changing historical summaries.
+
+### Patterns Established
+- Separate raw assertions, inhibited candidates, recognized requests and legal poll acceptance in serialized history.
+- Preserve immutable hosted source identities separately from current local tests and final-head workflow success.
+- Refresh direction from current exact-key outcomes: three of the old eight DMA candidates now pass; the remaining cluster is five failures.
+
+### Key Lessons
+1. Treat collector identity enforcement as a prerequisite for trustworthy new evidence, not a property supplied permanently by one independent historical check.
+2. Batch source and review-disposition updates before final phase verification where possible; never rewrite fingerprints simply to remove a stale route.
+3. Keep package publication separate from merged implementation and planning completion; release PR #56 is still open.
+4. Repair routine ledger representation from retained source evidence inside closeout without manufacturing a new product phase or historical deviation.
+
+### Cost Observations
+- Model mix, token costs and sessions were not measured consistently.
+- Phase 20 needed twelve plans including evidence gap closure; Phase 21 needed nine. No new speedup claim is made from this record.
+
+---
+
+## Milestone: v6 — Player-ready NES and reproducible feedback
+
+**Shipped:** 2026-10-31 (planning milestone; no package release claimed)
+**Phases:** 2 | **Plans:** 7 | **Tasks:** 15 | **Timeline:** two calendar dates
+
+### What Was Built
+- A player-facing README route with canonical API, runner, release, testing and progress guides, each retaining its executable contract checks.
+- Build identity and progress guidance that distinguishes battery saves, native snapshots and host containers, with backup and rollback limits.
+- A sanitized scene report, bounded repeated cold replay, native checkpoint identity preflight and neutral continuation.
+- Layered evidence guidance that routes each observation to bounded checks and separates repeatability from correctness claims.
+
+### What Worked
+- Independent negative controls kept documentation contracts meaningful through the README migration.
+- The two-phase structure separated player installation/progress guidance from scene replay/reporting while reusing existing runner facilities.
+- The milestone audit reconciled ten requirements and three flows without rewriting summaries or invalidating verification fingerprints.
+
+### What Was Inefficient
+- Phase 22 summary metadata omitted or left empty the six READY requirement completions, so the audit reconciled them manually.
+- The archive CLI counted eight tasks while the seven plan summaries record fifteen; the closeout uses the summary total and records the discrepancy.
+- Intermittent document-test timing anomalies remained unexplained. A prior full-CI/campaign run was interrupted with an unknown outcome, and the safety stop prevented a rerun.
+
+### Patterns Established
+- Keep one canonical guide per topic and maintain independent checks for relocated claims.
+- Treat matching frame/audio hashes as repeatability evidence only; preserve separate adapter, host and hardware claims.
+- Check the current release PR status before publication; automatic publication is authorized only after all required checks pass.
+- Keep interrupted or incomplete campaign results unknown unless a separately authorized run establishes the outcome.
+
+### Key Lessons
+1. Populate requirement-completion and task metadata consistently in each phase summary; the closeout counter must agree with the retained plan evidence.
+2. Keep release publication separate from planning completion and merged implementation; a failed or cancelled check means the release remains held.
+3. Reuse bounded permitted fixtures and distinguish native checkpoint provenance from general build/content support.
+4. Preserve timing, platform, campaign and judgment-tier limits without converting them into unrequested runtime work or risk acceptance.
+
+### Cost Observations
+- Model mix and session count were not measured.
+- Notable: two phases, seven plans and fifteen tasks completed over two calendar dates; no speedup claim is made.
+
+---
+
+## Milestone: v7 — Remaining DMA accuracy failures
+
+**Shipped:** 2026-11-01 (planning milestone; no package release or tag)
+**Phases:** 1 | **Plans:** 5 | **Tasks:** 15 | **Timeline:** two calendar dates
+
+### What Was Built
+- Corrected five selected NTSC DMA failures at the unchanged AccuracyCoin pin, each with cycle-level evidence and owned wrong-model controls.
+- Preserved all protected PASS keys, deterministic six-platform output, native continuation, and existing performance limits.
+- Updated native state to format 6 and behavior revision 14 while retaining ABI 1; old and invalid states have explicit refusal coverage.
+- Passed the local 707-test workflow and candidate-bound hosted CI/Nightly, hash-equality and Cachegrind evidence.
+
+### What Worked
+- Separating hardware references, pinned test expectations and observed core traces kept the five rows independently justified.
+- The exact-candidate receipt, protected-main observations, six-platform hashes and raw performance measurements were validated as separate evidence classes.
+- The milestone audit and static integration trace found no unsatisfied requirements or broken flows; historical stop conditions remained explicit.
+
+### What Was Inefficient
+- The archive CLI reported three tasks and no accomplishments because summary metadata was incomplete; the closeout reconciled fifteen tasks from the five plan contracts and extracted accomplishments manually.
+- The audit found README acceptance wording that still described already-passed exact-candidate evidence as outstanding. This was carried as non-blocking documentation debt.
+- Historical branch-wide whitespace diagnostics remain in archived planning evidence; scoped changes passed their own checks, and unrelated old files were not bulk-edited.
+
+### Patterns Established
+- Record the tested code candidate separately from later evidence/documentation commits.
+- Keep old interrupted campaign results unknown unless a separately authorized run establishes them.
+- At closeout, reconcile the product roadmap's Immediate item to shipped, preserve all four horizons and triggers, and keep package publication separate.
+
+### Key Lessons
+1. Keep summary task metadata complete; verify archive-tool statistics against plan evidence before writing the historical record.
+2. Update public acceptance status when new evidence closes a gap, then verify the README claim against the final report before audit.
+3. Preserve independent run identity and existing stop conditions when exact-candidate evidence arrives later in the workflow.
+
+### Cost Observations
+- Model mix and session count were not measured.
+- Five plans each declared three tasks; no speedup or runtime-budget change is claimed.
+
+---
+
+## Milestone: v8 — PAL region support
+
+**Shipped:** 2026-11-03 (planning milestone; no package release or tag)
+**Phases:** 4 | **Plans:** 12 | **Tasks:** 31 | **Timeline:** three calendar dates
+
+### What Was Built
+- Region-aware loading and PAL CPU/PPU/APU timing cover all six existing mapper families, with exact integer frame/sample accounting and NTSC output retained.
+- PAL DMC arbitration uses a bounded, source-backed 2A07 model; regional state identity and continuation reject cross-region states before applying them.
+- The library, runner and libretro adapter expose matching AV profiles and a named modeled 2C07 palette, with color and hardware limits documented.
+- Phase 27.1 validates PAL five-step state endpoints and regional frame counters as supplemental evidence for Phase 26's sole STATE-01 ownership.
+- All seven requirements, four phase verifications, seven integration paths and five end-to-end flows pass. The accepted local workflow passed 722 tests and packaged all three deliverables.
+
+### What Worked
+- One shared loader policy kept region precedence consistent across the library, runner and adapter while preserving the existing Auto API.
+- Exact rational timing, per-instance remainders, six-mapper PAL/NTSC controls and owned wrong-model fixtures made the acceptance observable without relying on rounded 50 Hz timing or hardware claims.
+- The audit traced all three deliverables and separated the non-blocking WR-01 metadata warning from current-candidate acceptance evidence.
+- The older interrupted campaign stop stayed explicit; closeout relied on the current audit and retained phase evidence without restarting it.
+
+### What Was Inefficient
+- The first documentary audit pass exposed missing Phase 26 summary attribution and a Phase 27.1 roadmap marker. The repairs made Phase 26 verification stale, so a separate verification refresh and audit rerun were needed before closeout.
+- A quick-task handoff remained marked halted after its original stale-verification blocker was cleared by those later steps; closeout reconciled its status to the current evidence.
+- The archive tool's counts and accomplishments still need review against plan contracts and phase summaries; the 31-task total is taken from the twelve plan estimates.
+
+### Patterns Established
+- Supplemental validation can close an audited acceptance case without creating a second requirement owner.
+- A passing audit can retain transparent hardware, host and provenance debt without treating it as an unsatisfied software requirement.
+- Closeout records the product-roadmap transition, package boundary and historical campaign stop separately from the phase acceptance result.
+
+### Key Lessons
+1. Run the canonical milestone manager after documentary summary or roadmap edits; phase completeness and verification freshness are separate signals.
+2. Keep requirement ownership distinct from additional validation evidence, and make the parser-facing summary metadata match the implementing plans.
+3. Verify current-candidate evidence independently from stale baseline metadata; preserve the warning when the current receipt remains valid.
+4. Keep PAL model evidence, direct hardware qualification, host pacing and the older interrupted campaign as separate claims.
+
+### Cost Observations
+- Model mix and session count were not tracked consistently.
+- The 722-test local workflow and all package builds were completed during phase work; closeout did not rerun CI or the stopped campaign.
+- No new CI-efficiency change or speedup is claimed.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -177,6 +331,10 @@
 | v2 | — | 6 | Milestone audit before close-out; post-audit quick tasks; per-preset CI cost |
 | v3 | — | 5 | Measured timeouts with run IDs; claims tied to tests at configure time; per-PR perf gate |
 | v4 | — | 3 | Rolling product roadmap at both boundaries; loop recovery that binds acceptance to product behaviour |
+| v5 | — | 3 | Causal timing reproducers, native/actual-adapter cutpoints and source-bound hosted acceptance; current passed reports before closeout |
+| v6 | — | 2 | Executable documentation contracts, bounded scene replay and explicit separation of repeatability from correctness; release status checked at closeout |
+| v7 | — | 1 | Candidate-bound DMA acceptance, native continuation and evidence provenance; prior interruption stop preserved |
+| v8 | — | 4 | Region support across all three deliverables, supplemental state validation and a refreshed audit that carries evidence limits without a closeout override |
 
 ### Cumulative Quality
 
@@ -186,6 +344,10 @@
 | v2 | 481 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 | v3 | 633 CTest tests in `ci` | not measured | all (only `libretro.h` vendored) |
 | v4 | 669 CTest tests in `ci` | 24 core functions beyond loader corpora (execution fuzz) | all (only `libretro.h` vendored) |
+| v5 | 695 CTest tests in `ci` | exact eleven-key target contract plus every-stage entry replay; no percentage claimed | all (only `libretro.h` vendored) |
+| v6 | not recounted; full CI not rerun | 10/10 requirements, 2/2 passed phases and 3/3 flows; no runtime code change | all (only `libretro.h` vendored) |
+| v7 | 707 CTest tests in `ci` | 4/4 requirements, 9/9 phase truths and 5/5 traced flows | all (only `libretro.h` vendored) |
+| v8 | 722 CTest tests in `ci` | 7/7 requirements, 4/4 passed phases, 7/7 integration paths and 5/5 flows | all (only `libretro.h` vendored) |
 
 ### Top Lessons (Verified Across Milestones)
 
@@ -193,3 +355,4 @@
 2. Fixes landing after phase verification make the close an override; plan for it or re-verify in one batch (v3 and v4 both closed as overrides for this reason).
 3. Every limit or claim needs its measurement or test beside it (timeouts with run IDs, `.info` levels with CTests, exit statuses with the README).
 4. Keep process overhead proportional: evidence machinery that grows its own prerequisites stalls delivery (v4 Phase 16).
+5. Re-run the canonical manager after documentary edits; implementation completeness and current verification status are separate signals (v8).

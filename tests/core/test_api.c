@@ -1,10 +1,45 @@
 /* D-11: version, info, create and allocator tests, through the public
    header only. */
 #include <stdint.h>
+#include <stddef.h>
 #include <string.h>
 
 #include "nesturbator.h"
 #include "../check.h"
+
+typedef struct config_v1_contract {
+    uint32_t size, abi;
+    nesturbator_allocator allocator;
+} config_v1_contract;
+
+typedef struct info_v1_contract {
+    uint32_t size, width, height, fps_num, fps_den, sample_rate_num, sample_rate_den;
+} info_v1_contract;
+
+typedef struct frame_v1_contract {
+    uint32_t size;
+    uint16_t *video;
+    uint32_t video_pitch;
+    int16_t *audio;
+    uint32_t audio_capacity, audio_count;
+    uint64_t frame_number, ticks;
+} frame_v1_contract;
+
+_Static_assert(sizeof(nesturbator_config) == sizeof(config_v1_contract), "config v1 size retained");
+_Static_assert(offsetof(nesturbator_config, allocator) == offsetof(config_v1_contract, allocator),
+               "config v1 prefix retained");
+_Static_assert(sizeof(nesturbator_info) == sizeof(info_v1_contract), "info v1 size retained");
+_Static_assert(offsetof(nesturbator_info, sample_rate_den) ==
+                   offsetof(info_v1_contract, sample_rate_den),
+               "info v1 prefix retained");
+_Static_assert(sizeof(nesturbator_frame) == sizeof(frame_v1_contract), "frame v1 size retained");
+_Static_assert(offsetof(nesturbator_frame, ticks) == offsetof(frame_v1_contract, ticks),
+               "frame v1 prefix retained");
+
+static nesturbator_status (*const load_region_fn)(nesturbator *, const void *, size_t,
+                                                  enum nesturbator_region_preference) =
+    nesturbator_load_cartridge_region;
+static enum nesturbator_region (*const get_region_fn)(const nesturbator *) = nesturbator_get_region;
 
 /* Counts every call and the bytes passed, to show create and destroy pair
    up and free receives the size alloc was given. */
@@ -93,7 +128,7 @@ static void test_version(void)
     CHECK_EQ_U64(v.minor, NESTURBATOR_VERSION_MINOR);
     CHECK_EQ_U64(v.patch, NESTURBATOR_VERSION_PATCH);
     CHECK_EQ_U64(v.abi, 1);
-    CHECK_EQ_U64(v.behaviour_revision, 9);
+    CHECK_EQ_U64(v.behaviour_revision, 17);
 
     /* An older caller's smaller struct: only its bytes are written. */
     memset(&v, 0xAB, sizeof v);
@@ -149,6 +184,19 @@ static void test_info(void)
     CHECK_EQ_U64(info.sample_rate_num, 48000);
     CHECK_EQ_U64(info.sample_rate_den, 1);
 
+    /* A caller with the original shorter prefix gets only those bytes. */
+    union {
+        nesturbator_info info;
+        uint8_t bytes[sizeof(nesturbator_info) + 8u];
+    } short_info;
+    memset(&short_info, 0xa5, sizeof short_info);
+    short_info.info.size = 8u;
+    nesturbator_get_info(inst, &short_info.info);
+    CHECK_EQ_U64(short_info.info.size, 8u);
+    CHECK_EQ_U64(short_info.info.width, 256u);
+    CHECK_EQ_HEX(short_info.bytes[8], 0xa5u);
+    CHECK_EQ_HEX(short_info.bytes[sizeof(nesturbator_info)], 0xa5u);
+
     /* NULL instance: nothing written. */
     memset(&info, 0, sizeof info);
     info.size = (uint32_t)sizeof info;
@@ -158,6 +206,48 @@ static void test_info(void)
 
     nesturbator_destroy(inst);
     nesturbator_destroy(NULL);
+}
+
+static void make_region_image(uint8_t *image, uint8_t timing)
+{
+    const size_t size = 16u + 16384u + 8192u;
+    memset(image, 0, size);
+    memcpy(image, "NES\032", 4u);
+    image[4] = 1u;
+    image[5] = 1u;
+    image[7] = 8u;
+    image[12] = timing;
+    image[16u + 0x3ffdu] = 0x80u;
+}
+
+static void test_region_api_auto_compatibility(void)
+{
+    static const uint8_t timings[] = {0u, 1u, 2u};
+    const size_t size = 16u + 16384u + 8192u;
+    uint8_t image[16u + 16384u + 8192u];
+    nesturbator_config cfg;
+    nesturbator *legacy = NULL, *additive = NULL;
+    default_config(&cfg);
+    CHECK_EQ_U64(NESTURBATOR_ABI_VERSION, 1u);
+    CHECK_EQ_U64(nesturbator_create(&cfg, &legacy), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_create(&cfg, &additive), NESTURBATOR_OK);
+    CHECK_EQ_U64(get_region_fn(NULL), NESTURBATOR_REGION_NTSC);
+    CHECK_EQ_U64(get_region_fn(legacy), NESTURBATOR_REGION_NTSC);
+
+    for (size_t i = 0u; i < sizeof timings / sizeof timings[0]; ++i) {
+        make_region_image(image, timings[i]);
+        CHECK_EQ_U64(nesturbator_load_cartridge(legacy, image, size), NESTURBATOR_OK);
+        CHECK_EQ_U64(load_region_fn(additive, image, size, NESTURBATOR_REGION_PREFERENCE_AUTO),
+                     NESTURBATOR_OK);
+        CHECK_EQ_U64(get_region_fn(legacy), get_region_fn(additive));
+        CHECK_EQ_U64(get_region_fn(legacy),
+                     timings[i] == 1u ? NESTURBATOR_REGION_PAL : NESTURBATOR_REGION_NTSC);
+    }
+
+    nesturbator_unload_cartridge(legacy);
+    CHECK_EQ_U64(get_region_fn(legacy), NESTURBATOR_REGION_NTSC);
+    nesturbator_destroy(additive);
+    nesturbator_destroy(legacy);
 }
 
 /* D-13: the save API through the public header only, with no cartridge. */
@@ -294,6 +384,7 @@ int main(void)
 {
     test_version();
     test_info();
+    test_region_api_auto_compatibility();
     test_create_sizes();
     test_save_api_without_cartridge();
     test_create_arguments();

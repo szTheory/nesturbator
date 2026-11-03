@@ -55,6 +55,7 @@ static struct frame_observation frame_replay;
 static struct frame_observation frame_control;
 
 uint8_t nesturbator__bus_read_production(struct nesturbator *nes, uint16_t address);
+uint8_t nesturbator__bus_read_sync_production(struct nesturbator *nes, uint16_t address);
 void nesturbator__bus_write_production(struct nesturbator *nes, uint16_t address, uint8_t value);
 
 static void record_bus_access(struct nesturbator *nes, uint16_t address, uint8_t value,
@@ -75,6 +76,15 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t address)
     uint64_t ticks_before = nes->ticks;
     uint64_t cycle_before = nes->cpu_cycle;
     uint8_t value = nesturbator__bus_read_production(nes, address);
+    record_bus_access(nes, address, value, 0u, ticks_before, cycle_before);
+    return value;
+}
+
+uint8_t nesturbator__bus_read_sync(struct nesturbator *nes, uint16_t address)
+{
+    uint64_t ticks_before = nes->ticks;
+    uint64_t cycle_before = nes->cpu_cycle;
+    uint8_t value = nesturbator__bus_read_sync_production(nes, address);
     record_bus_access(nes, address, value, 0u, ticks_before, cycle_before);
     return value;
 }

@@ -2410,6 +2410,10 @@ The CPU test data under `tests/vectors/` is MIT data from
 `tests/roms/manifest.txt` with its source, pin, licence and SHA-256, and its
 licence notice is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
+## Troubleshooting
+
+[Report a scene or reproduce a permitted fixture](docs/reproduction.md)
+
 ### Regenerating the vector sample
 
 The sample holds the first 100 tests of each of the 256 upstream files. To

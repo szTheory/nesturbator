@@ -3,7 +3,11 @@
 
 cmake_minimum_required(VERSION 3.25)
 
-execute_process(COMMAND "${PALGEN}" "${OUT}" RESULT_VARIABLE rc)
+if(DEFINED PALETTE_MODE AND PALETTE_MODE STREQUAL "pal")
+  execute_process(COMMAND "${PALGEN}" --pal "${OUT}" RESULT_VARIABLE rc)
+else()
+  execute_process(COMMAND "${PALGEN}" "${OUT}" RESULT_VARIABLE rc)
+endif()
 if(NOT rc EQUAL 0)
   message(FATAL_ERROR "palgen exited with ${rc}")
 endif()

@@ -1,75 +1,65 @@
 # Requirements: nesturbator
 
-**Defined:** 2026-10-25
-**Core Value:** Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
+**Milestone:** v9 — LibFuturo NES gameplay handoff  
+**Defined:** 2026-11-03  
+**Core Value:** Games behave as they do on the console, identically across platforms, from a small MIT-licensed C library that any host can embed.
 
-## v5 Requirements
+## v1 Requirements
 
-Milestone v5 "NMI, VBlank and sprite-0 timing" (RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md)). AccuracyCoin rows are at pin `6bee919` and run by `cmake --workflow --preset ci`. Research: [research/SUMMARY.md](research/SUMMARY.md).
+Requirements for the committed v9 scope.
 
-### Frame interrupts arrive when the console's would
+### Package identity and installation
 
-- [x] **NMI-01**: A game that reads `$2002` around the start of VBlank sees the console's flag value and gets or loses the NMI as the console does; the `$2002 flag timing`, `NMI Timing` and `NMI Suppression` rows pass.
-- [x] **NMI-02**: A game that enables or disables NMI around the start or end of VBlank gets NMIs exactly when the console would, including the extra NMI Bases Loaded II relies on; the `NMI Control`, `NMI at VBlank end` and `NMI disabled at VBlank` rows pass.
+- [ ] **PKG-01**: A consumer can identify and install a published Nesturbator package built from the exact accepted current source, with consistent package/header version, ABI, behavior revision and state-format identity; the release includes the library, runner and libretro artifacts with verified checksums.
+- [x] **INST-01**: A clean C consumer can configure, build and run against the installed library package after the install prefix is relocated, without resolving headers or libraries from the source or build tree; it can load a valid permitted ROM, advance frames with input, obtain video/audio, and verify that a refused replacement load preserves the active game.
 
-### CPU interrupts start on the right instruction
+### LibFuturo provider profile
 
-- [x] **INT-01**: An IRQ is taken on the same instruction as on the console after CLI, SEI, PLP, RTI and branches; the `Interrupt flag latency` row passes.
-- [x] **INT-02**: An NMI arriving during BRK or an IRQ takes over its vector as on the console; the `NMI Overlap BRK` and `NMI Overlap IRQ` rows pass.
+- [ ] **PROF-01**: A version-bound first-route profile identifies the exact Nesturbator package/source and accurately describes its selected NTSC content and region limits, load/refusal behavior, controller sampling, video representation, audio format/cadence/buffer bounds and lifecycle; it distinguishes battery-backed game memory from machine snapshots and marks every capability without current consumer proof as unqualified.
 
-### Status-bar splits land on the right line
+### Interactive game scenario
 
-- [x] **SPR-01**: Sprite-0 hit is set under the console's conditions and on its dot; the `Sprite 0 Hit behavior` row passes.
-- [x] **SPR-02**: The first sprite evaluated acts as sprite 0 wherever it sits in OAM, and the row finishes within the page's frame cap; the `Arbitrary Sprite zero` row passes.
-
-### Everything that works today keeps working
-
-- [x] **KEEP-01**: Every AccuracyCoin row that passes today still passes on every CI lane, and the CPU vectors, blargg MMC3, Holy Mapperel and boot-to-play checks stay green.
-- [x] **KEEP-02**: A frame or audio hash that moves is re-pinned in the same change with its reason, and stays identical on all six platforms.
-- [x] **KEEP-03**: A save state taken at any frame, including during the VBlank race or an interrupt sequence, loads back to the same run under rewind and run-ahead; a state from an earlier format is refused with the existing version error.
-
-### A JAM is reported as a JAM
-
-- [x] **JAM-01**: An AccuracyCoin run that hits a guest JAM reports a JAM rather than a generic frame failure.
-- [x] **JAM-02**: `libretro.runahead` shows that run-ahead across a JAM gives the same picture and silence as running without run-ahead.
+- [x] **GAME-01**: One ROM already permitted by the repository manifest has a bounded, reproducible boot-to-gameplay input scenario that runs through the relocated installed package; a game-specific progress predicate demonstrates an interactive transition with visible response and non-silent audio. A title screen, input activity, audio alone or frame hash alone does not satisfy the requirement. Nesteroids is the candidate until its exact route and predicate are verified.
 
 ## Future Requirements
 
-- DMA timing: the eight DMA rows (DMC/OAM DMA conflicts and aborts, `$4015` reads) — preferred next accuracy scope.
-- PAL timing and pitch (RM-005).
-- A nightly fetch-only blargg check (`ppu_vbl_nmi`, `cpu_interrupts_v2`) copying the MMC3 lane.
+- Actual NES gameplay acceptance through LibFuturo's installed consumer and native host; those changes and claims belong to the LibFuturo milestone.
+- PAL-specific LibFuturo profile and game-session qualification if the consumer needs European titles.
+- Additional mapper families, long-tail game coverage, snapshots, and broader consumer compatibility after concrete demand and acceptance are available.
+- Playstead adoption, owned by the Playstead consumer workflow.
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Raising the 1800-frame AccuracyCoin cap without a measured reason | `tests/accuracy/budgets.txt` already rejects it; re-measure only after rows pass |
-| Special cases for single rows or titles | One NMI-line and interrupt-poll model fixes the cluster; patches break neighbouring rows |
-| A newer AccuracyCoin pin | Scores across pins are not comparable |
-| Committing blargg ROMs | No published licence |
-| Other failing clusters (DMA, OAM, `$2007`, open bus) | Each is scoped separately in PRODUCT-ROADMAP.md |
+| Implementing LibFuturo's installed consumer, NES native host, audio host, or game-session UX | LibFuturo owns its host and actual end-to-end acceptance; Nesturbator supplies the versioned package/profile/scenario. |
+| Claiming Playstead integration or readiness | Playstead is not ready, and its adapter/readiness/input/progress acceptance is consumer-owned. |
+| PAL-through-LibFuturo acceptance | Nesturbator's PAL core capability ships in v8, but the first consumer profile is NTSC; qualify PAL separately when required. |
+| New public API or ABI change without a demonstrated current consumer gap | The current API already exposes region and cadence information; avoid speculative contract changes. |
+| New mapper families or all-games compatibility claim | This milestone qualifies one permitted NROM title; broad mapper support remains a long-term goal. |
+| Scene-accuracy fixes without a repeatable core fault and independent oracle | RM-015 remains conditional; absent its trigger, skip a standalone scene-accuracy milestone. |
+| Commercial ROMs, private captures/saves, hardware tests, restarting the stopped campaign, or unbounded CI | Use manifest-permitted fixtures and the existing bounded evidence/authority policy. |
+
+## Evidence and release policy
+
+The [v9 coordination context](../docs/coordination/milestone-context-2026-11-03.md), [single-game playability seed](seeds/SEED-261009-zs2-single-game-playability-check.md), [asset policy](../ASSET_POLICY.md), and [automation direction](playtesting/AUTOMATION.md) define the current evidence boundary. The v8 722-test receipt is historical and does not qualify a new package. Any code behavior change must retain the project's existing deterministic, clean-room, test-and-document requirements. Release is a milestone closeout gate under [VERIFICATION-POLICY.md](VERIFICATION-POLICY.md): exact candidate checks, related PR triage, green main CI, clean project-owned release worktrees with unrelated work preserved, and verified package/source/checksum identity. This does not restart the older stopped campaign.
 
 ## Traceability
 
+Each requirement maps to exactly one owner-approved v9 phase. Requirements and roadmap are approved.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NMI-01 | Phase 20 | Complete |
-| NMI-02 | Phase 20 | Complete |
-| INT-01 | Phase 21 | Complete |
-| INT-02 | Phase 21 | Complete |
-| SPR-01 | Phase 19 | Complete |
-| SPR-02 | Phase 19 | Complete |
-| KEEP-01 | Phase 21 | Complete |
-| KEEP-02 | Phase 20 | Complete |
-| KEEP-03 | Phase 20 | Complete |
-| JAM-01 | Phase 19 | Complete |
-| JAM-02 | Phase 19 | Complete |
+| PKG-01 | Phase 28 | Pending |
+| INST-01 | Phase 28 | Complete |
+| PROF-01 | Phase 28 | Pending |
+| GAME-01 | Phase 28 | Complete |
 
 **Coverage:**
-- v5 requirements: 11 total
-- Mapped to phases: 11
+- v1 requirements: 4 total
+- Mapped to phases: 4
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-10-25*
-*Last updated: 2026-10-29 after Phase 21 verification; all v5 requirements complete*
+*Requirements defined: 2026-11-03*
+*Last updated: 2026-11-03 after owner approval of the v9 requirements and Phase 28 roadmap.*

@@ -55,8 +55,8 @@ void nesturbator_get_info(const nesturbator *inst, nesturbator_info *out)
     info.size = out->size;
     info.width = NESTURBATOR_WIDTH;
     info.height = NESTURBATOR_HEIGHT;
-    info.fps_num = 39375000u; /* NTSC, 714732 ticks per frame (internal.h) */
-    info.fps_den = 655171u;
+    info.fps_num = nesturbator__fps_numerator(inst);
+    info.fps_den = nesturbator__fps_denominator(inst);
     info.sample_rate_num = 48000u;
     info.sample_rate_den = 1u;
     write_out(out, &info, (uint32_t)sizeof info);

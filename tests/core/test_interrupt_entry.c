@@ -17,6 +17,7 @@
 #define ENTRY_NMI_EVENTS 4u
 
 uint8_t nesturbator__bus_read_production(struct nesturbator *nes, uint16_t addr);
+uint8_t nesturbator__bus_read_sync_production(struct nesturbator *nes, uint16_t addr);
 void nesturbator__bus_write_production(struct nesturbator *nes, uint16_t addr, uint8_t value);
 
 struct entry_bus_access {
@@ -96,6 +97,17 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
     uint64_t before = nes->ticks;
     apply_entry_schedule(nes, access);
     uint8_t value = nesturbator__bus_read_production(nes, addr);
+    record_entry_access(nes, addr, value, 0u, before);
+    release_entry_schedule(nes, access);
+    return value;
+}
+
+uint8_t nesturbator__bus_read_sync(struct nesturbator *nes, uint16_t addr)
+{
+    uint32_t access = entry_access_count + 1u;
+    uint64_t before = nes->ticks;
+    apply_entry_schedule(nes, access);
+    uint8_t value = nesturbator__bus_read_sync_production(nes, addr);
     record_entry_access(nes, addr, value, 0u, before);
     release_entry_schedule(nes, access);
     return value;

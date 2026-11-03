@@ -52,15 +52,16 @@ static const uint8_t state_magic[8] = {0x89u, 0x4eu, 0x54u, 0x53u, 0x0du, 0x0au,
    and arrays of them, so the sizes are the same on every platform. Structs that also hold
    pointers are checked by the offset of their last saved field instead. */
 _Static_assert(sizeof(struct nesturbator__cpu) == 20u, "cpu fields changed: update cpu_io");
-_Static_assert(sizeof(struct nesturbator__bus) == 2061u, "bus fields changed: update bus_io");
+_Static_assert(sizeof(struct nesturbator__bus) == 2062u, "bus fields changed: update bus_io");
 _Static_assert(sizeof(struct nesturbator__pulse) == 16u, "pulse fields changed: update pulse_io");
 _Static_assert(sizeof(struct nesturbator__triangle) == 14u,
                "triangle fields changed: update triangle_io");
 _Static_assert(sizeof(struct nesturbator__noise) == 12u, "noise fields changed: update noise_io");
-_Static_assert(sizeof(struct nesturbator__dmc) == 22u, "dmc fields changed: update dmc_io");
-_Static_assert(offsetof(struct nesturbator__apu, sample_phase) == 92u,
+_Static_assert(sizeof(struct nesturbator__dmc) == 24u, "dmc fields changed: update dmc_io");
+_Static_assert(offsetof(struct nesturbator__apu, sample_phase) == 96u,
                "apu fields changed: update apu_io");
-_Static_assert(offsetof(struct nesturbator__apu, sample_output) == 96u,
+_Static_assert(offsetof(struct nesturbator__apu, sample_output) ==
+                   ((100u + _Alignof(int16_t *) - 1u) / _Alignof(int16_t *)) * _Alignof(int16_t *),
                "apu fields changed: update apu_io");
 _Static_assert(offsetof(struct nesturbator__synth, pcm) ==
                    offsetof(struct nesturbator__synth, lp_output_q30) + 8u,
@@ -85,8 +86,8 @@ _Static_assert(offsetof(struct nesturbator, audio_rem) ==
 static void core_io(struct nesturbator__sio *io, struct nesturbator *nes)
 {
     nesturbator__sio_u64(io, &nes->cpu_cycle);
-    /* frame.c divides by 315000 samples-worth of ticks (NESTURBATOR_AUDIO_TICKS_PER_PERIOD). */
-    nesturbator__sio_u32(io, &nes->audio_rem, NESTURBATOR_AUDIO_TICKS_PER_PERIOD - 1u);
+    /* frame.c divides by the loaded region's sample-tick denominator. */
+    nesturbator__sio_u32(io, &nes->audio_rem, nesturbator__sample_ticks_denominator(nes) - 1u);
     nesturbator__sio_u8(io, &nes->profile.ane_magic, 255u);
     nesturbator__sio_u8(io, &nes->profile.lxa_magic, 255u);
 }
@@ -195,6 +196,7 @@ static void bus_io(struct nesturbator__sio *io, struct nesturbator__bus *b)
 {
     nesturbator__sio_bytes(io, b->ram, sizeof b->ram);
     nesturbator__sio_u8(io, &b->open_bus, 255u);
+    nesturbator__sio_u8(io, &b->cpu_data, 255u);
     nesturbator__sio_u8(io, &b->apu_get_put_phase, 1u);
     nesturbator__sio_u8(io, &b->oam_dma_pending, 1u);
     nesturbator__sio_u8(io, &b->oam_dma_page, 255u);
@@ -260,6 +262,7 @@ static void dmc_io(struct nesturbator__sio *io, struct nesturbator__dmc *d)
     nesturbator__sio_u8(io, &d->output, 127u);
     nesturbator__sio_u8(io, &d->shift, 255u);
     nesturbator__sio_u8(io, &d->bits, 8u);
+    nesturbator__sio_u8(io, &d->silence, 1u);
     nesturbator__sio_u8(io, &d->sample_buffer, 255u);
     nesturbator__sio_u8(io, &d->buffer_empty, 1u);
     nesturbator__sio_u8(io, &d->irq, 1u);
@@ -267,10 +270,12 @@ static void dmc_io(struct nesturbator__sio *io, struct nesturbator__dmc *d)
     nesturbator__sio_u8(io, &d->dma_halt_phase, 1u);
     nesturbator__sio_u8(io, &d->dma_load_waiting, 1u);
     nesturbator__sio_u8(io, &d->enable_delay, 4u);
+    nesturbator__sio_u8(io, &d->abort_delay, 3u);
 }
 
-static void apu_io(struct nesturbator__sio *io, struct nesturbator__apu *a)
+static void apu_io(struct nesturbator__sio *io, struct nesturbator *nes)
 {
+    struct nesturbator__apu *a = &nes->apu;
     pulse_io(io, &a->pulse[0]);
     pulse_io(io, &a->pulse[1]);
     triangle_io(io, &a->triangle);
@@ -278,16 +283,18 @@ static void apu_io(struct nesturbator__sio *io, struct nesturbator__apu *a)
     dmc_io(io, &a->dmc);
     nesturbator__sio_u8(io, &a->enabled, 0x1fu);
     nesturbator__sio_u8(io, &a->pulse_clock_phase, 1u);
-    nesturbator__sio_u8(io, &a->frame_mode, 1u);
+    uint8_t frame_mode = nesturbator__sio_u8(io, &a->frame_mode, 1u);
     nesturbator__sio_u8(io, &a->frame_pending_mode, 1u);
     nesturbator__sio_u8(io, &a->frame_irq_inhibit, 1u);
     nesturbator__sio_u8(io, &a->frame_irq, 1u);
     nesturbator__sio_u8(io, &a->frame_irq_clear_pending, 1u);
     nesturbator__sio_u8(io, &a->frame_reset_delay, 4u);
-    /* The frame sequencer wraps at 29830 or 37282 cycles. */
-    nesturbator__sio_u32(io, &a->frame_cycle, 37281u);
-    /* S: sample_phase / 315000 picks a kernel phase of the 32 (synth.c). */
-    nesturbator__sio_u32(io, &a->sample_phase, NESTURBATOR_AUDIO_TICKS_PER_PERIOD - 1u);
+    /* The PAL five-step model reaches 41565 before wrapping at 41566; other modes keep 37281. */
+    const uint32_t frame_cycle_max =
+        nesturbator__is_pal(nes) != 0u && frame_mode != 0u ? 41565u : 37281u;
+    nesturbator__sio_u32(io, &a->frame_cycle, frame_cycle_max);
+    /* S: the regional denominator picks a kernel phase of the 32 (synth.c). */
+    nesturbator__sio_u32(io, &a->sample_phase, nesturbator__sample_ticks_denominator(nes) - 1u);
     /* Frame staging and derived mixed_level_valid are not saved. */
 }
 
@@ -336,8 +343,9 @@ static void flags_io(struct nesturbator__sio *io, uint8_t *p, size_t n, uint8_t 
         nesturbator__sio_u8(io, &p[i], max);
 }
 
-static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
+static void ppu_io(struct nesturbator__sio *io, struct nesturbator *nes)
 {
+    struct nesturbator__ppu *p = &nes->ppu;
     uint8_t status, eval_count, eval_copy_remaining;
     uint64_t ppu_ticks;
     nesturbator__sio_u8(io, &p->control, 255u);
@@ -404,13 +412,13 @@ static void ppu_io(struct nesturbator__sio *io, struct nesturbator__ppu *p)
        would not finish. A running core leaves the PPU within one dot of the CPU; a state saved
        right after nesturbator_reset is up to 7 CPU cycles behind. A gap below one frame loads and
        costs at most one frame of catch-up (Pitfall P5). The header ticks is also capped at
-       STATE_TICKS_MAX: `ppu_ticks + 8u <= ticks` and `ticks + NESTURBATOR_TICKS_PER_FRAME` wrap
-       near 2^64 and would then never finish. ppu_ticks <= ticks, so it is capped too. The other
+       STATE_TICKS_MAX: `ppu_ticks + 8u <= ticks` and `ticks + frame_ticks` wrap near 2^64 and
+       would then never finish. ppu_ticks <= ticks, so it is capped too. The other
        64-bit stamps (cpu_cycle, the MMC1 and MMC3 write stamps) are only compared by equality or
        by wrapping difference, never used as a loop bound. */
     nesturbator__sio_check(io, ppu_ticks <= io->ticks && io->ticks <= STATE_TICKS_MAX &&
-                                   io->ticks - ppu_ticks < NESTURBATOR_TICKS_PER_FRAME);
-    nesturbator__sio_u16(io, &p->scanline, 261u);
+                                   io->ticks - ppu_ticks < nesturbator__frame_ticks(nes));
+    nesturbator__sio_u16(io, &p->scanline, nesturbator__is_pal(nes) != 0 ? 311u : 261u);
     nesturbator__sio_u16(io, &p->dot, 340u);
     nesturbator__sio_u8(io, &p->odd_frame, 1u);
     nesturbator__sio_u8(io, &p->reset_flag, 1u);
@@ -431,9 +439,9 @@ static void body_io(struct nesturbator__sio *io, struct nesturbator *nes)
     core_io(io, nes);
     cpu_io(io, &nes->cpu);
     bus_io(io, &nes->bus);
-    apu_io(io, &nes->apu);
+    apu_io(io, nes);
     synth_io(io, &nes->synth);
-    ppu_io(io, &nes->ppu);
+    ppu_io(io, nes);
     mapper_io(io, nes);
 }
 
@@ -510,7 +518,7 @@ nesturbator_status nesturbator_save_state(const nesturbator *inst, void *buf, si
     put_le(b + H_BEHAVIOUR, NESTURBATOR_BEHAVIOUR_REVISION, 4u);
     put_le(b + H_MAPPER, inst->mapper.id, 2u);
     b[H_SUBMAPPER] = inst->mapper.submapper;
-    b[H_REGION] = 0u; /* NTSC: the instance has no other region */
+    b[H_REGION] = (uint8_t)nesturbator__is_pal(inst);
     put_le(b + H_ROM_CRC, inst->cart.rom_crc32, 4u);
     put_le(b + H_FRAME, inst->frame_number, 8u);
     put_le(b + H_TICKS, inst->ticks, 8u);
@@ -546,7 +554,8 @@ nesturbator_status nesturbator_load_state(nesturbator *inst, const void *buf, si
     /* Identity before length: the length depends on the cartridge, so another game's state
        reports the wrong game and not a wrong length. */
     if (inst->cart.bytes == NULL || get_le(b + H_MAPPER, 2u) != inst->mapper.id ||
-        b[H_SUBMAPPER] != inst->mapper.submapper || b[H_REGION] != 0u ||
+        b[H_SUBMAPPER] != inst->mapper.submapper ||
+        b[H_REGION] != (uint8_t)nesturbator__is_pal(inst) ||
         get_le(b + H_ROM_CRC, 4u) != inst->cart.rom_crc32)
         return NESTURBATOR_ERR_STATE_CARTRIDGE;
     if (size != nesturbator_state_size(inst) || get_le(b + H_TOTAL_SIZE, 4u) != size)
@@ -568,6 +577,17 @@ nesturbator_status nesturbator_load_state(nesturbator *inst, const void *buf, si
     io.ticks = get_le(b + H_TICKS, 8u);
     body_io(&io, inst);
     if (io.bad != 0)
+        return NESTURBATOR_ERR_STATE_INVALID;
+
+    /* H_TICKS is capped and checked against the PPU position above, so the quotient is bounded.
+       Check the upper relation before subtracting to keep the PAL lag test defined. PAL's next
+       target is absolute and a JAM followed by reset can leave frame_number one behind; NTSC's
+       target is relative to ticks and has no corresponding lower bound (frame.c). */
+    const uint64_t frame_ticks = nesturbator__frame_ticks(inst);
+    const uint64_t frame_quotient = io.ticks / frame_ticks;
+    const uint64_t frame_number = get_le(b + H_FRAME, 8u);
+    if (frame_number > frame_quotient ||
+        (nesturbator__is_pal(inst) != 0 && frame_quotient - frame_number > 1u))
         return NESTURBATOR_ERR_STATE_INVALID;
 
     /* APPLY cannot fail. */

@@ -6,9 +6,52 @@ nesturbator is a NES emulator core written in C. It ships as a library other pro
 
 ## Core Value
 
+OpenGSD verification, CI and release work follows the owner's
+[automation and efficiency policy](VERIFICATION-POLICY.md).
+
 Games behave as they do on the console, identically on every platform, from a small MIT-licensed C library that any host can embed.
 
 ## Current State
+
+v8 "PAL region support" shipped on 2026-11-03 as a planning milestone. Four phases and twelve plans satisfy all seven requirements; all phase verifications pass, the audit reports seven wired requirement paths and five complete end-to-end flows, and the current-source local workflow passed 722 tests and packaged the library, runner and libretro adapter. No v8 package release or tag is claimed; the latest published package remains [v0.1.12](https://github.com/szTheory/nesturbator/releases/tag/v0.1.12). Milestone tagging is disabled.
+
+The core supports the approved PAL profile across its six existing mapper families, with region-aware state identity, exact regional timing and host reporting, modeled 2C07 colors, and unchanged NTSC outputs. State format 6, behavior revision 17 and ABI 1 remain. WR-01 baseline metadata and the documented hardware/host evidence limits remain visible as non-blocking debt. The older interrupted full-CI/AccuracyCoin campaign remains stopped with unknown outcome.
+
+The repository remains an integer-only deterministic NES core with three deliverables: a C library, headless runner and libretro adapter. The configured CI workflow currently registers 722 tests.
+
+## Current Milestone: v9 LibFuturo NES gameplay handoff
+
+**Goal:** Publish an exact, installable current Nesturbator package and a reproducible licensed NROM gameplay scenario that let LibFuturo adopt and requalify the core through its evolving consumer contract.
+
+**Target features:**
+- Reconcile the current v8 source with the published release line, qualify the installed and relocated C package, and publish all three deliverables with exact source/package identity and verified artifacts.
+- Document a truthful first-route NTSC profile: supported content, region policy, load/refusal behavior, controller sampling, video/audio/cadence, battery-memory lifetime, and the separate snapshot compatibility surface.
+- Verify one boot-to-gameplay scenario from an already permitted NROM game, using bounded input and an observable gameplay transition, visible response, and non-silent audio. Nesteroids is the current candidate; confirm its exact access recipe before locking acceptance.
+- Keep LibFuturo's installed consumer, NES native host, and actual game-session acceptance in its own milestone. Do not claim Playstead adoption or general compatibility from this handoff.
+
+The owner approved this direction during the active `$gsd-new-milestone` discussion. The [coordination context](../docs/coordination/milestone-context-2026-11-03.md) preserves the evidence and the recurring LibFuturo check-in method.
+
+<details>
+<summary>Completed milestone: v8 PAL region support</summary>
+
+**Goal:** Make PAL games run at intended timing and pitch through the existing C library, runner and libretro adapter.
+
+**Delivered:** Region selection follows single-region NES 2.0 metadata, with NTSC fallback and eligible host overrides for ambiguous or legacy content; Dendy is refused. PAL timing, DMC behavior, regional state continuation, exact host AV reporting and a named modeled 2C07 palette cover all six existing mapper families while protecting NTSC behavior and output.
+
+**Verification:** Phases 25, 26, 27 and 27.1 passed. The audit found 7/7 requirements satisfied, 7/7 requirement paths wired and 5/5 end-to-end flows complete. Phase 27.1 supplies supplemental STATE-01 validation while Phase 26 remains its sole owning phase. The accepted local workflow passed 722 tests and produced all three packages.
+
+**Evidence limits and debt:** WR-01 says checked-in baseline metadata points to an earlier source revision and capture path; current-candidate campaign evidence was separately verified. Direct 2A07 hardware proof, later held no-op-cycle effects, PAL reset-edge behavior, 2C07 calibration and physical host pacing remain unverified. The older interrupted campaign remains stopped and unknown. See the [archived v8 audit](milestones/v8-MILESTONE-AUDIT.md), [requirements](milestones/v8-REQUIREMENTS.md), [roadmap](milestones/v8-ROADMAP.md) and [phase artifacts](milestones/v8-phases/).
+
+</details>
+
+<details>
+<summary>v5 and earlier historical project state</summary>
+
+### v5 shipped state
+
+v5 "NMI, VBlank and sprite-0 timing" completed on 2026-10-30 with three phases, 27 plans and eleven satisfied requirements. All eleven selected AccuracyCoin targets passed at `6bee919`; the baseline was 119 PASS / 27 FAIL over 146 scored rows plus five unscored DRAW entries. IRQ acceptance, interrupt takeover, sprite-0 evaluation and JAM presentation have owned causal tests and native/adapter replay. ABI 1 remains unchanged; state format 3 rejects earlier formats, while behavior revision 9 is not a loader compatibility check.
+
+PRs #57, #59 and #61 merged. The accepted source-bound CI/Nightly bundles retained their own identity and six-platform evidence. Release PR #56 for 0.1.12 remained open. Six newly acknowledged records and ten prior acknowledgements were carried; collector, measurement, documentation, platform and provenance debt remain in the [v5 closeout](milestones/v5-CLOSEOUT.md) and [v5 audit](milestones/v5-MILESTONE-AUDIT.md). WINDOWS entry 18 was reconciled from existing fixed evidence.
 
 v4 "Measured NTSC accuracy and robustness" shipped on 2026-10-24 (planning milestone; the package version is separate). Phase 16 merged as PR #50 and was published as [v0.1.11](https://github.com/szTheory/nesturbator/releases/tag/v0.1.11), with downloaded-byte, checksum, attestation and six-platform metadata evidence. Phases 17 and 18 merge through PR #55, whose exact-head CI run [40150921041](https://github.com/szTheory/nesturbator/actions/runs/40150921041) passed every check; their publication is recorded in MILESTONES.md once observed. RetroArch progression and state checks now reject dropped, doubled and wrong-load sequences. The AccuracyCoin baseline at `6bee919` classifies all 146 scored rows (101 pass, 42 fail, 2 not-run, 1 timeout, five DRAW entries kept out of the score) and protects every PASS freshly on each CI lane. An owned execution fuzz/replay target runs generated programs on all six board families with lifecycle, loop and JAM controls and finite nightly sanitizer campaigns. The tree has 39,760 lines of C, 8,979 of them in the core library and public header, with 669 CTest tests in `ci`.
 
@@ -51,7 +94,50 @@ Historical hosted evidence, deferred debt and evidence limits remain as recorded
 PR review/merge and milestone audit remain separate steps; no source change or
 new hosted qualification is claimed by this refresh.
 
-## Current Milestone: v5 NMI, VBlank and sprite-0 timing
+</details>
+
+<details>
+<summary>Previous planning milestones: v7 and v6</summary>
+
+## Completed Milestone: v7 Remaining DMA accuracy failures
+
+**Goal:** Correct the five remaining failing NTSC DMA behaviors at the pinned AccuracyCoin revision using source-backed bus-cycle evidence, while preserving the three passing DMA rows and every other protected PASS key.
+
+**Target features:**
+- Locate each candidate's first causal divergence from actual bus/APU timing; treat causes as shared only when traces establish that relationship.
+- Add small owned bus/core fixtures with wrong-model controls for changed behavior; record bus access kind/address, get/put phase, halt/retry, sample access, side effects and continuation as applicable.
+- Fix only independently justified behavior. Preserve deterministic output and assess save-state format/revision effects if serialized in-flight state changes.
+- Keep the current AccuracyCoin pin and score contract. PAL/Dendy, unrelated accuracy clusters, broad playtesting, pin migration and general CI/collector cleanup stay out of scope.
+
+**Selected seed:** SEED-003 contributes its measured-accuracy portion. The existing [DMA scope research](research/milestone-dma-discovery/SCOPE.md) supplies row-specific evidence needs and constraints. SEED-006 is not selected because no separate CI or documentation repair has been demonstrated for this scope.
+
+**Outcome:** The five selected rows pass at the unchanged pin; the three already-passing DMA rows and all other protected PASS keys remain guarded. The current native state format is 6, behavior revision 14 and ABI 1. Exact-candidate hosted CI/Nightly, six-platform frame/audio/state evidence and the unchanged +1% performance gate passed; raw Cachegrind results were +0.18% to +0.25%. The local full workflow passed 707 tests and packaged all three deliverables.
+
+**Evidence boundary:** The accepted receipt remains bound to the candidate recorded in the [Phase 24 verification](milestones/v7-phases/24-correct-remaining-ntsc-dma-behavior/24-VERIFICATION.md); later documentation edits were not represented as a new hosted run. The older interrupted full-CI/AccuracyCoin outcome remains unknown, and its restart stop remains active. Closeout did not run a campaign, push, merge or release.
+
+**Audit debt:** The stale README acceptance wording and inherited branch-wide whitespace warning remain documented in the [v7 audit](milestones/v7-MILESTONE-AUDIT.md).
+
+**Archive:** [requirements](milestones/v7-REQUIREMENTS.md), [execution roadmap](milestones/v7-ROADMAP.md), [product roadmap snapshot](milestones/v7-PRODUCT-ROADMAP.md), and [phase artifacts](milestones/v7-phases/). No v7 package release or milestone tag was created.
+
+## Direction After v8
+
+RM-015 may move ahead only if bounded native/source-based triage confirms a concrete core fault; otherwise keep the scene reports unclassified. Scoped maintenance is the smaller alternative. Actual Playstead integration remains consumer-owned. Mid- and Long-horizon triggers are unchanged. See the [four-horizon product roadmap](PRODUCT-ROADMAP.md); these outcomes remain proposals until selected through `$gsd-new-milestone`.
+
+## Completed Milestone: v6 Player-ready NES and reproducible feedback
+
+**Goal:** A player can install an identified NES core, protect daily progress and provide a precise, reproducible scene report using existing facilities.
+
+**Target features:**
+- A concise, current player README leads to installation, supported content, controls, progress and troubleshooting; detailed developer contracts remain available in linked topic guides with their automated checks intact.
+- Installation identifies the actual package/build/core and keeps published releases separate from merged development behavior. Battery saves, snapshots, rewind and host containers have explicit backup, supported-version and rollback guidance.
+- A bounded report/replay recipe identifies scene, inputs, content and core, preserves private artifacts, and separates native output, adapter conversion, host presentation and original game behavior.
+
+The owner selected the recommended scope with “follow ur recs” during `$gsd-new-milestone` on 2026-10-30 and approved all ten requirements and Phases 22–23. Phase 22 covers player guidance, build identity and progress protection; Phase 23 covers sanitized scene reports, bounded cold replay, native checkpoint continuation and evidence triage. All ten requirements passed the milestone audit. Existing Deck/ES-DE setup and 22 title reports remain scoped smoke evidence, not universal compatibility claims. Overscan, accuracy repairs, new regions/mappers and actual Playstead integration remain outside v6. See the [archived requirements](milestones/v6-REQUIREMENTS.md), [execution roadmap](milestones/v6-ROADMAP.md), [product roadmap](milestones/v6-PRODUCT-ROADMAP.md) and [audit](milestones/v6-MILESTONE-AUDIT.md).
+
+<details>
+<summary>v5 milestone definition (archived)</summary>
+
+### Completed milestone: v5 NMI, VBlank and sprite-0 timing
 
 **Goal:** A game's frame loop and status-bar splits time out exactly as they do on an NTSC console.
 
@@ -63,6 +149,8 @@ new hosted qualification is claimed by this refresh.
 
 Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay the next alternative cluster and PAL (RM-005) stays behind them.
 
+</details>
+
 <details>
 <summary>v4 milestone definition (archived)</summary>
 
@@ -72,9 +160,24 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 </details>
 
+</details>
+
 ## Requirements
 
 ### Validated
+
+- ✓ **v8 PAL scope**: REG-01, PAL-01, DMA-01 (PAL model), STATE-01 (regional continuation), VID-01, AV-01 and NTSC-01 — all 7/7 requirements satisfied by Phases 25–27.1; Phase 27.1 adds supplemental STATE-01 validation without a second owner. See [v8 requirements](milestones/v8-REQUIREMENTS.md) and the [v8 audit](milestones/v8-MILESTONE-AUDIT.md).
+
+- ✓ **DMA-01**: All five selected DMA rows pass at AccuracyCoin pin `6bee919` for the declared RP2A03G target. — Phase 24, source-bound acceptance and automated/agent verification (2026-11-01).
+- ✓ **DMA-02**: Each distinct fix has source-backed cycle-level evidence and an owned fixture with a wrong-model control. — Phase 24, source-bound acceptance and automated/agent verification (2026-11-01).
+- ✓ **DMA-03**: The three already-passing DMA rows and every other protected PASS key remain passing, with deterministic output and existing performance limits preserved. — Phase 24, source-bound acceptance and automated/agent verification (2026-11-01).
+- ✓ **DMA-04**: Changed in-flight DMA state resumes identically after save/load, state-format/revision impact is explicit, and README/public-header behavior comments are updated. — Phase 24, source-bound acceptance and automated/agent verification (2026-11-01).
+
+- ✓ A sanitized scene report leads to bounded permitted-fixture cold replay and neutral checkpoint continuation, with isolated progress and layered next-evidence guidance. — v6, Phase 23; see its verification, review dispositions and execution evidence.
+
+- ✓ Existing executable documentation, packaging and public-header contracts survive the README/topic-guide reorganization. — v6, Phase 22; see its verification and execution evidence.
+
+- ✓ Player-facing installation and progress guidance accurately describes the available core, its supported content and state compatibility. — v6, Phase 22; see its verification and execution evidence.
 
 - ✓ One command installs the core into RetroArch on an Apple Silicon Mac, and a test shows RetroArch displays the runner's frame. — v1, Phase 1 (v0.1.0)
 - ✓ `cmake --workflow --preset ci` (`ci-msvc` on Windows) builds and tests everything on Linux, macOS and Windows, x64 and arm64, and CI runs the same commands. — v1, Phase 1
@@ -113,8 +216,10 @@ Direction: RM-004 in [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md). The DMA rows stay
 
 ### Active
 
-No remaining v5 implementation requirements. Phase 21 publication, PR review/merge
-and milestone audit/closeout remain separate lifecycle steps.
+- [ ] Current package/source identity is reconciled, and the installed public C package is qualified from a relocated prefix.
+- [ ] A versioned LibFuturo profile states the selected NTSC route's supported contract and evidence limits.
+- [ ] One permitted NROM game has a reproducible boot-to-gameplay scenario with scripted input, an observable game transition, visible response and non-silent audio through the installed Nesturbator package.
+- [ ] The exact current package is published with required CI, related PR triage, clean owned worktrees, checksums and recorded source identity.
 
 ### Out of Scope
 
@@ -125,19 +230,23 @@ and milestone audit/closeout remain separate lifecycle steps.
 - A separate fast or low-accuracy mode — one accurate core keeps one set of bugs and one set of hashes.
 - Signed or notarized macOS artifacts — the script install path does not need them.
 - A test framework dependency — plain CTest executables with an in-repo `check.h` cover the need.
-- PAL and Dendy timing, mappers beyond the six common families, expansion audio, FDS, extra peripherals — not current scope; ordered and triggered in `.planning/PRODUCT-ROADMAP.md`.
+- Dendy timing, mappers beyond the six supported families, expansion audio, FDS and extra peripherals — not current scope; ordered and triggered in `.planning/PRODUCT-ROADMAP.md`.
 - An all-pass AccuracyCoin obligation — accuracy work is scoped one named failure cluster at a time.
 - Submitting the core to the libretro buildbot — an outward-facing step the owner decides on separately.
 
 ## Context
 
+- **v8 outcome.** PAL support shipped with state format 6, behavior revision 17 and ABI 1. The audit's WR-01 provenance warning and PAL hardware/host evidence limits remain explicit; no hardware qualification or interrupted-campaign result is inferred.
 - **Ecosystem.** Every mainstream libretro NES core is GPL or LGPL. The most accurate emulators are GPL applications or permissive C# and Java programs. A permissive, accuracy-class, embeddable C core does not exist yet. AccuracyCoin is an MIT test ROM. The retained historical pin has 144 scored tests plus five DRAW entries; the canonical 6bee919 pin has 146 scored tests plus five separate DRAW entries.
 - **Sibling projects.** A Neo Geo core with the same three deliverables and the same API conventions. Playstead, a host that launches emulator processes and needs deterministic input replay and safe battery saves from them.
 - **How releases are tried.** In RetroArch on an Apple Silicon Mac, installed by script. The local RetroArch tests were removed in Phase 5; the hosted `retroarch-e2e` job carries the screenshot evidence, and `policy.no-skip` fails any CI job whose expected test reports itself skipped.
 - **Known debt after v1.** Closed in Phase 5. The audit that listed it is `.planning/milestones/v1-MILESTONE-AUDIT.md`.
 - **Known debt after v2.** Listed in `.planning/milestones/v2-MILESTONE-AUDIT.md` and the v2 entry of `.planning/MILESTONES.md`; Phase 11 and Phase 15 closed G2, G6, 08 IN-02 and Backlog 999.1.
 - **Known debt after v3.** Listed in `.planning/milestones/v3-MILESTONE-AUDIT.md` and the v3 entry of `.planning/MILESTONES.md`. None of it changes released behaviour; the most substantive items are the three Phase 13 RetroArch test-robustness warnings.
-- **Known debt after v4.** Listed in `.planning/milestones/v4-MILESTONE-AUDIT.md`, the v4 entry of `.planning/MILESTONES.md` and PRODUCT-ROADMAP's carried-debt section. None of it changes released behaviour; the most substantive items are AccuracyCoin's generic JAM attribution and the missing run-ahead-under-JAM test.
+- **Known debt after v4.** Listed in `.planning/milestones/v4-MILESTONE-AUDIT.md`, the v4 entry of `.planning/MILESTONES.md` and PRODUCT-ROADMAP's carried-debt section. The two JAM gaps shipped in v5; remaining campaign-minimization and platform debt stays in the current product ledger.
+- **Known debt after v5.** The [v5 audit](milestones/v5-MILESTONE-AUDIT.md) and [closeout](milestones/v5-CLOSEOUT.md) retain recurring collector defects, attribution and revision advisories, platform limitations and acknowledged planning records. The ledger representation repair changes no historical verdict.
+- **Known debt after v6.** The [v6 audit](milestones/v6-MILESTONE-AUDIT.md) retains Phase 22 summary traceability gaps, unresolved document-test timing anomalies and heuristic edges, unverified platform/save-recovery behavior, and the interrupted full-CI/campaign outcome. Judgment-tier prohibitions remain flagged, not accepted as verified. The audit also carries forward prior collector, measurement, documentation and platform debt.
+- **Known debt after v7.** The [v7 audit](milestones/v7-MILESTONE-AUDIT.md) records stale README acceptance-status wording and inherited branch-wide whitespace diagnostics. Exact-candidate protected-main, hosted, six-platform and performance evidence passed; the older interrupted campaign remains unknown and stopped.
 - **CI cost.** The asan job skips or shortens the long hash tests (`NESTURBATOR_SHORT_RUNS`), whose full-length hashes the build jobs and hash-equality still check. Every `timeout-minutes` is twice a measured hosted run whose ID sits beside it, and `hygiene.timeout_comments` enforces that.
 - **Reference material.** Each file below states facts with their sources. Open the one that matches the work before designing or building.
   - `.planning/preparation/README.md` — index of the files below
@@ -160,14 +269,34 @@ and milestone audit/closeout remain separate lifecycle steps.
 - **Privacy**: no personal paths, addresses or names in tracked files or release artifacts — the repository is public.
 - **Verification**: every machine-verifiable behaviour is shown by a command: `cmake --workflow --preset ci` for the main suite, with other presets and hosted workflows covering the rest. Before surfacing a pending UAT item, verify-work audits it for existing command evidence or a recurring regression test; automated items are run and recorded without an owner prompt. Owner input is reserved for consent or irreducible judgment, such as source provenance.
 - **Hand-offs**: integration, end-to-end and smoke checks run as commands locally or on CI (on CI when they keep paying off there); identity, consent and irreducible judgments are the only owner hand-offs, so product behavior closes without manual UAT.
-- **Delivery**: the owner creates each phase's branch; it merges by pull request into a green `main` and is released automatically — each phase ends in something to download and run.
+- **Delivery**: the owner creates each phase's branch; it merges by pull request into a green `main`. Required release checks must be green before automatic publication. Documentation-only planning work may not produce a package release.
 
 ## Key Decisions
 
+Phase 22 keeps the player route in README and canonical API, runner, release,
+testing and progress guides in the repository, with unchanged archive layouts.
+Exact loaded identity requires module path/digest plus matching provenance;
+exact-build/content snapshot support is separate from native loader checks.
+Newest battery backup remains independent of snapshots, and uncertain cross-build
+or host recovery stays unknown. Existing measured native CI evidence repaired
+registration-driven input provenance; historical measurements, assertions and
+runtime stops remain intact. See the Phase 22 verification and execution evidence.
+
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
+| v9 publishes a traceable current package/profile and one licensed NROM gameplay scenario for LibFuturo; LibFuturo owns native-host and actual game-session acceptance | A real, version-bound game scenario gives the rapidly evolving consumer a useful integration target without freezing its API or transferring host ownership to Nesturbator | — Pending — package lineage, installed-consumer acceptance, and gameplay scenario are v9 scope; no current LibFuturo game session is claimed. Recheck the consumer at milestone boundaries. |
+| One resolved region profile drives PAL timing, audio, DMA behavior, state identity and host rates across the library, runner and adapter | Shared loading and per-instance state keep region handling deterministic and prevent host-specific interpretations | ✓ Good — Phases 25–27.1 pass current verification; NTSC behavior remains guarded. The PAL palette is a software model, not hardware calibration. |
+| PAL DMC halt eligibility follows the reported 2A07 trace's SYNC interpretation, and regional state mismatch is rejected before apply | A wrong-model control makes the selected rule distinguishable; same-region continuation and atomic refusal preserve the existing format-6 state contract | ✓ Good — Phase 26 passes 11/11 truths; Phase 27.1 closes the PAL five-step cursor and regional frame-counter validation gaps. Behavior revision 17, ABI 1 and state format 6 remain unchanged. Direct hardware proof and later no-op-cycle effects remain unresolved. |
+| Single-region NES 2.0 metadata is authoritative; host preference applies only to ambiguous or legacy images, and Dendy is refused | One shared loader policy preserves the existing Auto API while keeping runner and libretro behavior aligned | ✓ Good — REG-01 passed; the old loader and info-structure prefix remain compatible. |
+| PAL clocks and sample accounting use exact integer rational rates and per-instance remainder, while NTSC clocks and output stay protected | Rounded 50 Hz timing would drift and shared remainder would break deterministic instance isolation | ✓ Good — PAL cadence and pitch pass the six-mapper acceptance; NTSC output remains unchanged. |
+| PAL display colors use the named 2C07 table while raw output remains separate from analog picture and color-calibration claims | A modeled RGB mapping can serve hosts without claiming a hardware-calibrated picture | ✓ Good — all 512 PAL entries and host conversions are checked; physical calibration remains unverified. |
+| v6 closes player documentation, progress-safety and reproducible-feedback gaps before another accuracy cluster | Ordinary play across six mapper IDs supplied enough discovery evidence; additional generic gameplay has diminishing value | ✓ Good — Phases 22–23 passed verification; all ten requirements are satisfied. No new broad sweep, host framework, overscan or actual Playstead integration. |
+| IRQ eligibility is accepted at the legal instruction poll and BRK/IRQ/NMI share resumable entry with coherent vector selection | Old-I timing and takeover require retained history, not a new independent IRQ queue | ✓ Good — Phase 21 latency/overlap targets, native every-stage replay and actual adapter run-ahead; format 3/revision 9 |
+| Entry-inhibited NMI candidates qualify only if held until recognition; recognized requests remain separate | Raw sampled pulses must not become sticky recognized requests prematurely | ✓ Good — Phase 21 causal revert/mutant controls and held/released native/adapter histories; physical exact ties remain unmeasured |
+| Protected raw-key results, six-platform inventories and original performance thresholds remain unchanged acceptance gates | Aggregate score improvement cannot conceal lost passes or source mismatch | ✓ Good — all eleven targets and all 114 Phase 21 starting PASS keys on six lanes; collector recurrence remains debt |
 | Captured NMI request and polled NMI work are separate serialized latches; a falling live line does not revoke capture | One source-grounded model covers status reads, control writes and resumable races | ✓ Good — Phase 20, six target rows, exact state cutpoints and hosted replay verified |
 | Hosted evidence binds candidate, tested merge, protected base and complete effective inputs separately from evidence-only commits | Local dirty provenance and synthetic fixtures cannot stand in for real source-bound acceptance | ✓ Good — Phase 20, accepted six-platform/performance/Nightly/RetroArch bundle; future collector mode enforcement and source-scan cleanup remain debt |
+| v7 addresses only the five remaining pinned NTSC DMA failures and retains every existing protected pass | Aggregate score gains cannot justify unrelated changes or a dropped pass; cycle-level evidence is needed to identify causes | ✓ Good — Phase 24 passed 9/9; all four requirements and five flows are satisfied with source-backed fixtures, native continuation, exact-candidate acceptance and unchanged thresholds. The prior interrupted-run stop remains in force. |
 | Time in half-master-clock ticks; the CPU drives the bus; the PPU catches up at both M2 edges | The coarsest unit where every clock edge is an integer; the shape of designs that score 136 or more of 140 | ✓ Good — Phases 3–4 exercise shared CPU/PPU/APU timing with frame, channel and DMA edge tests |
 | Per-dot PPU with literal shift registers, address latch and OAM counters | The hardest public tests probe that state | ✓ Good — Phase 3 render and AccuracyCoin checks pass |
 | Integer-only core; `cmake --workflow --preset nofp` shows it | Bit-identical hashes on every platform | ✓ Good — fixed-point synthesis and integer spectral analysis pass the Phase 4 CI gate |
@@ -214,7 +343,18 @@ and milestone audit/closeout remain separate lifecycle steps.
 | Execution fuzz budgets come from a hosted Linux pilot, with separate fuzzer, replay, memory-sampling and outer-process limits, and a zero-finding campaign is reported only as finite evidence | Guessed limits cancel healthy jobs; a clean campaign proves bounded work, not absence of bugs | ✓ Phase 18 `tests/fuzz/execution-budgets.txt`; Nightly 40148240864 campaign artifact retained with controls |
 | The libretro JAM cache is tagged with the frame number and a state-CRC timeline generation; a load keeps it only when the loaded state is the cached frame's state or its jammed successor, otherwise JAM shows black | Run-ahead must never show a picture from a diverged timeline under JAM | ✓ Phase 19 `libretro.runahead` (depths 1-3, five JAM-image controls) and `libretro.host` diverged-timeline case |
 
+| Keep one sanitized report guide with separate cold-movie and neutral native-checkpoint routes | Existing runner facilities reject movie plus load-state; reuse independent input and continuation controls | Phase 23 fixture checks and exact fresh-scratch POSIX route pass; no runtime source changed |
+| Preflight checks supplied runner/content/state digests and a declared origin, while only fixture creation establishes same-invocation provenance | Digest matching cannot authenticate an imported checkpoint or enforce native-loader build compatibility | Phase 23 supported fixture and independent refusal controls pass |
+| Keep native repeatability, adapter callbacks, host presentation and independent hardware correctness as separate claims | Matching hashes and qualitative captures cannot diagnose an original-game scene | Phase 23 triage/source review passes; commercial reports remain unclassified and local timeout limits remain disclosed |
+
 The full list with sources is `.planning/preparation/DECISIONS.md`.
+
+The Phase 22 refresh also established that published scratch recipes must stop
+before backup on scratch/configure/test failure, and each shell example must
+independently retain the required build and CTest contract. Fresh rejection
+controls cover these cases. The six judgment-tier prohibitions remain flagged;
+project instructions keep them from becoming new owner-signoff prerequisites.
+See the refreshed Phase 22 report and refresh evidence for limits and outcomes.
 
 ## Evolution
 
@@ -234,4 +374,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-30 after Phase 20 review-record verification refresh*
+*Last updated: 2026-11-03 after v9 milestone opening*

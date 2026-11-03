@@ -1,4 +1,4 @@
-/* Test definitions of the CPU's two bus functions: flat RAM and a cycle log. */
+/* Test definitions of the CPU bus functions: flat RAM and a cycle log. */
 #include "vector_bus.h"
 
 /* A pointer to a structure, suitably converted, points to its first member,
@@ -73,6 +73,11 @@ uint8_t nesturbator__bus_read(struct nesturbator *nes, uint16_t addr)
     }
     close_irq_cycle(m, index);
     return v;
+}
+
+uint8_t nesturbator__bus_read_sync(struct nesturbator *nes, uint16_t addr)
+{
+    return nesturbator__bus_read(nes, addr);
 }
 
 void nesturbator__bus_write(struct nesturbator *nes, uint16_t addr, uint8_t value)

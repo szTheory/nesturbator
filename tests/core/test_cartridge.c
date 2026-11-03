@@ -42,6 +42,209 @@ static void make_image(uint8_t *p, size_t size, int nes2, int chr_ram)
     p[16u + 0x3ffcu] = 0u;
     p[16u + 0x3ffdu] = 0x80u;
 }
+
+static nesturbator *new_instance(void)
+{
+    nesturbator_config cfg;
+    nesturbator *inst = NULL;
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+    return inst;
+}
+
+static void make_loop_image(uint8_t *image, size_t size, uint8_t timing)
+{
+    make_image(image, size, 1, 0);
+    image[12] = timing;
+    image[16] = 0x4cu; /* JMP $8000 */
+    image[17] = 0x00u;
+    image[18] = 0x80u;
+}
+
+static void test_region_selection_matrix(void)
+{
+    static const enum nesturbator_region_preference preferences[] = {
+        NESTURBATOR_REGION_PREFERENCE_AUTO,
+        NESTURBATOR_REGION_PREFERENCE_NTSC,
+        NESTURBATOR_REGION_PREFERENCE_PAL,
+    };
+    const size_t size = 16u + 16384u + 8192u;
+    nesturbator *inst = new_instance();
+    nesturbator *other = new_instance();
+    uint8_t *image = (uint8_t *)malloc(size);
+    CHECK_EQ_U64(nesturbator_get_region(NULL), NESTURBATOR_REGION_NTSC);
+    CHECK_EQ_U64(nesturbator_get_region(inst), NESTURBATOR_REGION_NTSC);
+
+    for (uint8_t timing = 0u; timing < 4u; ++timing) {
+        for (size_t p = 0u; p < sizeof preferences / sizeof preferences[0]; ++p) {
+            make_image(image, size, 1, 0);
+            image[12] = timing;
+            const enum nesturbator_region before = nesturbator_get_region(inst);
+            const nesturbator_status status =
+                nesturbator_load_cartridge_region(inst, image, size, preferences[p]);
+            if (timing == 3u) {
+                CHECK_EQ_U64(status, NESTURBATOR_ERR_CARTRIDGE);
+                CHECK_EQ_U64(nesturbator_get_region(inst), before);
+                continue;
+            }
+            CHECK_EQ_U64(status, NESTURBATOR_OK);
+            const enum nesturbator_region expected =
+                timing == 1u ||
+                        (timing == 2u && preferences[p] == NESTURBATOR_REGION_PREFERENCE_PAL)
+                    ? NESTURBATOR_REGION_PAL
+                    : NESTURBATOR_REGION_NTSC;
+            CHECK_EQ_U64(nesturbator_get_region(inst), expected);
+        }
+    }
+
+    /* Legacy iNES has no authoritative region metadata; only an explicit PAL
+       preference changes its Auto-compatible NTSC default. */
+    for (size_t p = 0u; p < sizeof preferences / sizeof preferences[0]; ++p) {
+        make_image(image, size, 0, 0);
+        CHECK_EQ_U64(nesturbator_load_cartridge_region(inst, image, size, preferences[p]),
+                     NESTURBATOR_OK);
+        CHECK_EQ_U64(nesturbator_get_region(inst),
+                     preferences[p] == NESTURBATOR_REGION_PREFERENCE_PAL ? NESTURBATOR_REGION_PAL
+                                                                         : NESTURBATOR_REGION_NTSC);
+    }
+
+    make_image(image, size, 1, 0);
+    image[12] = 2u;
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(inst, image, size, NESTURBATOR_REGION_PREFERENCE_PAL),
+        NESTURBATOR_OK);
+    make_image(image, size, 1, 0);
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(other, image, size, NESTURBATOR_REGION_PREFERENCE_NTSC),
+        NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_get_region(inst), NESTURBATOR_REGION_PAL);
+    CHECK_EQ_U64(nesturbator_get_region(other), NESTURBATOR_REGION_NTSC);
+    nesturbator_reset(inst);
+    CHECK_EQ_U64(nesturbator_get_region(inst), NESTURBATOR_REGION_PAL);
+    nesturbator_unload_cartridge(inst);
+    CHECK_EQ_U64(nesturbator_get_region(inst), NESTURBATOR_REGION_NTSC);
+
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(inst, NULL, size, NESTURBATOR_REGION_PREFERENCE_AUTO),
+        NESTURBATOR_ERR_ARGUMENT);
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(inst, image, size, (enum nesturbator_region_preference)3),
+        NESTURBATOR_ERR_ARGUMENT);
+    make_image(image, size, 1, 0);
+    image[12] = 0x40u;
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(inst, image, size, NESTURBATOR_REGION_PREFERENCE_AUTO),
+        NESTURBATOR_ERR_CARTRIDGE);
+    make_image(image, size, 1, 0);
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(inst, image, size - 1u,
+                                                   NESTURBATOR_REGION_PREFERENCE_AUTO),
+                 NESTURBATOR_ERR_CARTRIDGE);
+
+    nesturbator_destroy(other);
+    nesturbator_destroy(inst);
+    free(image);
+}
+
+static void test_region_ntsc_tracer_and_failed_replacement(void)
+{
+    static uint16_t video[256u * 240u], control_video[256u * 240u];
+    static int16_t audio[1024], control_audio[1024];
+    const size_t size = 16u + 16384u + 8192u;
+    nesturbator_config cfg;
+    nesturbator *inst = NULL;
+    nesturbator *control = new_instance();
+    counts c = {0, 0, 0};
+    uint8_t *image = (uint8_t *)malloc(size);
+    memset(&cfg, 0, sizeof cfg);
+    cfg.size = (uint32_t)sizeof cfg;
+    cfg.abi = NESTURBATOR_ABI_VERSION;
+    cfg.allocator.alloc = count_alloc;
+    cfg.allocator.free = count_free;
+    cfg.allocator.user = &c;
+    CHECK_EQ_U64(nesturbator_create(&cfg, &inst), NESTURBATOR_OK);
+
+    make_loop_image(image, size, 0u); /* explicit NTSC, despite PAL preference */
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(inst, image, size, NESTURBATOR_REGION_PREFERENCE_PAL),
+        NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_get_region(inst), NESTURBATOR_REGION_NTSC);
+    CHECK_EQ_U64(nesturbator_load_cartridge(control, image, size), NESTURBATOR_OK);
+    nesturbator_frame io, control_io;
+    memset(&io, 0, sizeof io);
+    io.size = (uint32_t)sizeof io;
+    io.video = video;
+    io.video_pitch = 256u;
+    io.audio = audio;
+    io.audio_capacity = 1024u;
+    memset(&control_io, 0, sizeof control_io);
+    control_io.size = (uint32_t)sizeof control_io;
+    control_io.video = control_video;
+    control_io.video_pitch = 256u;
+    control_io.audio = control_audio;
+    control_io.audio_capacity = 1024u;
+    CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_run_frame(control, &control_io), NESTURBATOR_OK);
+    /* The guest's three-cycle JMP crosses the nominal frame boundary by
+       12 ticks, the established instruction-boundary carry behavior. */
+    CHECK_EQ_U64(io.ticks, 714744u);
+    CHECK_EQ_U64(io.audio_count, 798u);
+    CHECK_EQ_U64(io.ticks, control_io.ticks);
+    CHECK_EQ_U64(io.audio_count, control_io.audio_count);
+    CHECK(memcmp(video, control_video, sizeof video) == 0);
+    CHECK(memcmp(audio, control_audio, io.audio_count * sizeof audio[0]) == 0);
+
+    make_image(image, size, 1, 0);
+    image[12] = 2u;
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(inst, image, size, (enum nesturbator_region_preference)3),
+        NESTURBATOR_ERR_ARGUMENT);
+    make_image(image, size, 1, 0);
+    image[12] = 3u;
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(inst, image, size, NESTURBATOR_REGION_PREFERENCE_NTSC),
+        NESTURBATOR_ERR_CARTRIDGE);
+    make_image(image, size, 1, 0);
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(inst, image, size - 1u,
+                                                   NESTURBATOR_REGION_PREFERENCE_AUTO),
+                 NESTURBATOR_ERR_CARTRIDGE);
+    make_image(image, size, 1, 0);
+    image[12] = 0x80u;
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(inst, image, size, NESTURBATOR_REGION_PREFERENCE_AUTO),
+        NESTURBATOR_ERR_CARTRIDGE);
+    make_image(image, size, 1, 0);
+    c.fail_alloc = 1;
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(inst, image, size, NESTURBATOR_REGION_PREFERENCE_PAL),
+        NESTURBATOR_ERR_NO_MEMORY);
+    CHECK_EQ_U64(nesturbator_get_region(inst), NESTURBATOR_REGION_NTSC);
+
+    memset(&io, 0, sizeof io);
+    io.size = (uint32_t)sizeof io;
+    io.video = video;
+    io.video_pitch = 256u;
+    io.audio = audio;
+    io.audio_capacity = 1024u;
+    memset(&control_io, 0, sizeof control_io);
+    control_io.size = (uint32_t)sizeof control_io;
+    control_io.video = control_video;
+    control_io.video_pitch = 256u;
+    control_io.audio = control_audio;
+    control_io.audio_capacity = 1024u;
+    CHECK_EQ_U64(nesturbator_run_frame(inst, &io), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_run_frame(control, &control_io), NESTURBATOR_OK);
+    CHECK_EQ_U64(io.ticks, control_io.ticks);
+    CHECK_EQ_U64(io.audio_count, control_io.audio_count);
+    CHECK_EQ_U64(io.frame_number, control_io.frame_number);
+    CHECK(memcmp(video, control_video, sizeof video) == 0);
+    CHECK(memcmp(audio, control_audio, io.audio_count * sizeof audio[0]) == 0);
+
+    nesturbator_destroy(control);
+    nesturbator_destroy(inst);
+    free(image);
+}
 static void make_trainer_image(uint8_t *p, size_t prg_size, int nes2)
 {
     const size_t prg_offset = 16u + 512u;
@@ -89,6 +292,11 @@ static void test_formats_and_lifetime(void)
     CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, 16u + 16384u + 8192u), NESTURBATOR_OK);
     make_image(rom, 16u + 16384u, 1, 1);
     CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, 16u + 16384u), NESTURBATOR_OK);
+    /* NES 2.0 timing metadata is valid input; the legacy entry point means
+       Auto and must honor an explicit PAL declaration. */
+    make_image(rom, 16u + 16384u + 8192u, 1, 0);
+    rom[12] = 1u;
+    CHECK_EQ_U64(nesturbator_load_cartridge(inst, rom, 16u + 16384u + 8192u), NESTURBATOR_OK);
     uint8_t *large = malloc(16u + 32768u + 8192u + 512u);
     make_image(large, 16u + 32768u + 8192u + 512u, 1, 0);
     large[4] = 2u;
@@ -887,6 +1095,8 @@ static void test_unload_equals_fresh(void)
 int main(void)
 {
     test_formats_and_lifetime();
+    test_region_selection_matrix();
+    test_region_ntsc_tracer_and_failed_replacement();
     test_reject_before_allocation();
     test_32k_reset_vector_comes_from_upper_prg_bank();
     test_trainer_is_visible_through_cpu_bus();

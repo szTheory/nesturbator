@@ -29,7 +29,7 @@ set(NESTURBATOR_INFO_PINNED_KEYS supports_no_game libretro_saves memory_descript
 set(NESTURBATOR_INFO_PINNED_supports_no_game true)
 set(NESTURBATOR_INFO_PINNED_libretro_saves true)
 set(NESTURBATOR_INFO_PINNED_memory_descriptors false)
-set(NESTURBATOR_INFO_PINNED_core_options false)
+set(NESTURBATOR_INFO_PINNED_core_options true)
 set(NESTURBATOR_INFO_PINNED_disk_control false)
 set(NESTURBATOR_INFO_PINNED_is_experimental true)
 
@@ -366,7 +366,7 @@ file(REMOVE_RECURSE "${WORK}")
 file(MAKE_DIRECTORY "${WORK}")
 
 set(meta "display_name = \"x\"\ncorename = \"x\"\n")
-set(caps "supports_no_game = \"true\"\nlibretro_saves = \"true\"\nmemory_descriptors = \"false\"\ncore_options = \"false\"\ndisk_control = \"false\"\nis_experimental = \"true\"\n")
+set(caps "supports_no_game = \"true\"\nlibretro_saves = \"true\"\nmemory_descriptors = \"false\"\ncore_options = \"true\"\ndisk_control = \"false\"\nis_experimental = \"true\"\n")
 
 # Writes the file and requires nesturbator_info_level (or _check) to report an error that
 # contains wanted.
@@ -428,10 +428,10 @@ expect_level_error(missing_file_content_stub "x" "cannot parse")
 expect_check_error(unknown_key "${meta}${caps}cheats = \"true\"\nsavestate = \"false\"\n"
   "unknown capability key cheats")
 expect_check_error(changed_pin
-  "${meta}supports_no_game = \"true\"\nlibretro_saves = \"true\"\nmemory_descriptors = \"false\"\ncore_options = \"true\"\ndisk_control = \"false\"\nis_experimental = \"true\"\nsavestate = \"false\"\n"
-  "core_options is \"true\"")
+  "${meta}supports_no_game = \"true\"\nlibretro_saves = \"true\"\nmemory_descriptors = \"false\"\ncore_options = \"false\"\ndisk_control = \"false\"\nis_experimental = \"true\"\nsavestate = \"false\"\n"
+  "core_options is \"false\"")
 expect_check_error(missing_pin
-  "${meta}supports_no_game = \"true\"\nlibretro_saves = \"true\"\nmemory_descriptors = \"false\"\ncore_options = \"false\"\nis_experimental = \"true\"\nsavestate = \"false\"\n"
+  "${meta}supports_no_game = \"true\"\nlibretro_saves = \"true\"\nmemory_descriptors = \"false\"\ncore_options = \"true\"\nis_experimental = \"true\"\nsavestate = \"false\"\n"
   "missing capability key disk_control")
 
 # Accepted files, and the same lines in another order reach the same level (LR-02 ordering).
@@ -441,7 +441,7 @@ expect_level(serialized "${meta}${caps}savestate = \"true\"\nsavestate_features 
 expect_level(deterministic
   "${meta}${caps}savestate = \"true\"\nsavestate_features = \"deterministic\"\n" deterministic)
 expect_level(reordered
-  "savestate_features = \"deterministic\"\nis_experimental = \"true\"\ndisk_control = \"false\"\ncore_options = \"false\"\nmemory_descriptors = \"false\"\nlibretro_saves = \"true\"\nsavestate = \"true\"\nsupports_no_game = \"true\"\ncorename = \"x\"\ndisplay_name = \"x\"\n"
+  "savestate_features = \"deterministic\"\nis_experimental = \"true\"\ndisk_control = \"false\"\ncore_options = \"true\"\nmemory_descriptors = \"false\"\nlibretro_saves = \"true\"\nsavestate = \"true\"\nsupports_no_game = \"true\"\ncorename = \"x\"\ndisplay_name = \"x\"\n"
   deterministic)
 
 # D-15: every control begins with the complete current metadata and documentation inputs.

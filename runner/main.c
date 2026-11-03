@@ -1,7 +1,7 @@
 /* nesturbator-run: the headless runner.
  *
- *   nesturbator-run --frames N [--rom FILE] [--hash-frame N]... [--hash-audio] [--dump-frame
- * N:FILE]... nesturbator-run --movie FILE [--rom FILE] [--hash-audio] [--dump-frame N:FILE]...
+ *   nesturbator-run --frames N [--rom FILE] [--region auto|ntsc|pal] [--hash-frame N]...
+ *   nesturbator-run --movie FILE [--rom FILE] [--region auto|ntsc|pal] [--hash-audio]
  *   nesturbator-run --accuracycoin-page N --rom FILE --scoreboard FILE
  *   nesturbator-run --accuracycoin-inventory --rom FILE
  *   nesturbator-run --accuracycoin-observe PAGE --rom FILE --frames N --accuracycoin-output DIR
@@ -79,7 +79,8 @@ static void print_usage(FILE *out)
 {
     fprintf(
         out,
-        "usage: nesturbator-run (--frames N | --movie FILE | --bench N) [--rom FILE] [--hash-frame "
+        "usage: nesturbator-run (--frames N | --movie FILE | --bench N) [--rom FILE] "
+        "[--region auto|ntsc|pal] [--info] [--hash-frame "
         "N]... "
         "[--hash-audio] [--dump-frame N:FILE]... [--save-dir DIR [--save-interval N]]\n"
         "                      [--state-at-frame N:FILE]... [--hash-state N]... "
@@ -99,6 +100,8 @@ static void print_usage(FILE *out)
         "  --bench-state        with --bench, also save and load the state after every frame and "
         "time each\n"
         "  --rom FILE           load an iNES image (mapper 0, 1, 2, 3, 4 or 7)\n"
+        "  --region MODE        select auto, ntsc or pal for content loads (default auto)\n"
+        "  --info               print the loaded region and exact frame/audio rate fractions\n"
         "  --hash-frame N       print the SHA-256 of frame N (1 <= N <= --frames)\n"
         "  --hash-audio         print SHA-256 of canonical transitions and signed PCM\n"
         "  --dump-frame N:FILE  write frame N to FILE as a binary PPM (P6)\n"
@@ -242,6 +245,23 @@ static void print_audio_hash(nesturbator_run_audio_hash *hash)
     printf("audio pcm sha256 %s\n", pcm_hex);
 }
 
+static int print_profile_info(const nesturbator *inst)
+{
+    nesturbator_info info;
+    enum nesturbator_region region;
+
+    memset(&info, 0, sizeof info);
+    info.size = (uint32_t)sizeof info;
+    region = nesturbator_get_region(inst);
+    nesturbator_get_info(inst, &info);
+    return printf("info region=%s fps=%u/%u sample_rate=%u/%u\n",
+                  region == NESTURBATOR_REGION_PAL ? "pal" : "ntsc", (unsigned)info.fps_num,
+                  (unsigned)info.fps_den, (unsigned)info.sample_rate_num,
+                  (unsigned)info.sample_rate_den) < 0
+               ? -1
+               : 0;
+}
+
 /* The runner's options. Each list has room for one entry per argument. */
 typedef struct options {
     uint32_t frames;
@@ -254,6 +274,9 @@ typedef struct options {
     const char *movie_path;
     const char *rom_path;
     const char *scoreboard_path;
+    enum nesturbator_region_preference region_preference;
+    int region_preference_set;
+    int info;
     uint32_t accuracy_page;
     uint32_t accuracy_observe_page;
     const char *accuracy_output_dir;
@@ -365,7 +388,7 @@ static int parse_options(int argc, char **argv, options *o)
         fprintf(stderr, "nesturbator-run: out of memory\n");
         return RUNNER_EXIT_FAILURE;
     }
-    /* Most options take a value; --hash-audio is a standalone switch. */
+    /* Most options take a value; --hash-audio and --info are standalone switches. */
     for (int i = 1; i < argc;) {
         const char *arg = argv[i++];
         const char *value;
@@ -385,6 +408,12 @@ static int parse_options(int argc, char **argv, options *o)
             o->hash_audio_argi = i - 1;
             continue;
         }
+        if (strcmp(arg, "--info") == 0) {
+            if (o->info != 0)
+                return usage("--info may be specified once");
+            o->info = 1;
+            continue;
+        }
         if (strcmp(arg, "--accuracycoin-inventory") == 0) {
             if (o->accuracy_inventory != 0)
                 return usage("--accuracycoin-inventory may be specified once");
@@ -402,6 +431,19 @@ static int parse_options(int argc, char **argv, options *o)
             if (value == NULL || value[0] == '\0')
                 return usage("--rom needs a file path");
             o->rom_path = value;
+        } else if (strcmp(arg, "--region") == 0) {
+            if (value == NULL || value[0] == '\0' || o->region_preference_set != 0)
+                return usage("--region needs one value: auto, ntsc or pal");
+            if (strcmp(value, "auto") == 0) {
+                o->region_preference = NESTURBATOR_REGION_PREFERENCE_AUTO;
+            } else if (strcmp(value, "ntsc") == 0) {
+                o->region_preference = NESTURBATOR_REGION_PREFERENCE_NTSC;
+            } else if (strcmp(value, "pal") == 0) {
+                o->region_preference = NESTURBATOR_REGION_PREFERENCE_PAL;
+            } else {
+                return usage("--region must be auto, ntsc or pal");
+            }
+            o->region_preference_set = 1;
         } else if (strcmp(arg, "--scoreboard") == 0) {
             if (value == NULL || value[0] == '\0' || o->scoreboard_path != NULL)
                 return usage("--scoreboard needs one file path");
@@ -534,6 +576,9 @@ static int parse_options(int argc, char **argv, options *o)
             return usage("--bench cannot be combined with --load-state");
         o->frames = o->bench_frames;
     }
+    if (o->info != 0 && (o->accuracy_page != 0u || o->accuracy_observe_page != 0u ||
+                         o->accuracy_inventory != 0 || o->accuracy_collect_dir != NULL))
+        return usage("--info cannot be combined with AccuracyCoin modes");
     if (o->accuracy_page != 0u) {
         if (o->accuracy_page != 2u && o->accuracy_page != 14u && o->accuracy_page != 17u)
             return usage("AccuracyCoin supports pages 2, 14 and 17");
@@ -1071,7 +1116,7 @@ int main(int argc, char **argv)
                 return RUNNER_EXIT_FAILURE;
             }
         }
-        st = nesturbator_load_cartridge(inst, bytes, size);
+        st = nesturbator_load_cartridge_region(inst, bytes, size, opt.region_preference);
         if (st != NESTURBATOR_OK) {
             describe_rejection(bytes, size, (int)st);
             free(bytes);
@@ -1184,12 +1229,6 @@ int main(int argc, char **argv)
 
     /* A 64-bit count, so the loop ends when --frames is 4294967295. */
     done_frame = start_frame;
-    if (print_state_hashes(inst, &opt, start_frame, cur_ticks) != 0 ||
-        write_states(inst, &opt, start_frame) != 0)
-        status = RUNNER_EXIT_FAILURE;
-    if (status == RUNNER_EXIT_DONE && opt.raise_after_set != 0 &&
-        opt.raise_after_frame == start_frame)
-        nesturbator_run_stop_raise(opt.raise_after_kind, opt.raise_after_count);
     uint32_t bench_timed = 0u;
     if (opt.bench_frames != 0u) {
         opt.bench_frame_ns = (uint64_t *)malloc((size_t)opt.bench_frames * sizeof(uint64_t));
@@ -1209,6 +1248,17 @@ int main(int argc, char **argv)
             status = RUNNER_EXIT_FAILURE;
         }
     }
+    if (status == RUNNER_EXIT_DONE && opt.info != 0 && print_profile_info(inst) != 0) {
+        fprintf(stderr, "nesturbator-run: cannot write output\n");
+        status = RUNNER_EXIT_FAILURE;
+    }
+    if (status == RUNNER_EXIT_DONE &&
+        (print_state_hashes(inst, &opt, start_frame, cur_ticks) != 0 ||
+         write_states(inst, &opt, start_frame) != 0))
+        status = RUNNER_EXIT_FAILURE;
+    if (status == RUNNER_EXIT_DONE && opt.raise_after_set != 0 &&
+        opt.raise_after_frame == start_frame)
+        nesturbator_run_stop_raise(opt.raise_after_kind, opt.raise_after_count);
     for (uint64_t n = start_frame + 1u; n <= opt.frames && status == 0; n++) {
         uint32_t f = (uint32_t)n;
         if (nesturbator_run_stop_requested()) {

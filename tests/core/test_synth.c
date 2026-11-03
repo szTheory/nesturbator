@@ -158,6 +158,7 @@ static void check_transition_observer_order(void)
     capture.nes = nes;
     nesturbator__apu_set_transition_sink(nes, capture_transition, &capture);
     nes->ticks = 50u * 24u;
+    nes->cpu_cycle = 50u;
     nes->apu.pulse[0].reg[0] = 0x1fu;
     nes->apu.pulse[0].timer = 8u;
     nes->apu.pulse[0].phase = 7u;

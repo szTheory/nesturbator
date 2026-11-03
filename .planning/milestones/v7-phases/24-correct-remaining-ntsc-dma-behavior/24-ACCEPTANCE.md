@@ -1,0 +1,404 @@
+# Phase 24 acceptance — hosted evidence validated; formal verification pending
+
+## Current status — 2026-11-01T18:51:21Z
+
+The exact PR #63 candidate `d54e21898fbf7bb3984fd2d33aa563932b464581` passed local full CI (707 tests; library,
+runner and libretro packages), hosted CI run
+[41336227793](https://github.com/szTheory/nesturbator/actions/runs/41336227793),
+and Nightly run
+[41336227847](https://github.com/szTheory/nesturbator/actions/runs/41336227847).
+The validated receipt is `build/phase24-gap-v16/phase24-verdict.txt` with
+checksum `ecf99e0feae27c6e8320ea66a3e62e276747b11c751d6d6b2d42d670cd5e2312`.
+It establishes the required cold protected-main observations, current-candidate
+campaign/CI, six-platform output equality, and unchanged Cachegrind gate.
+
+Formal re-verification is still pending. Keep the prior verification report
+unchanged until `$gsd-verify-work 24` runs. PR #63 remains open; no merge or
+release occurred.
+
+
+## Prior actual outcome
+
+The owner explicitly authorized one local `cmake --workflow --preset ci`
+invocation with a39-minute overall ceiling and unchanged inner limits. It
+completed normally in444.60seconds with exit8. Its full22-page campaign
+retained every119 previous current-pin PASS key, but bus-conflict, explicit-
+abort and implicit-abort still failed. The other selected landing/OAM rows
+passed. Two historical-baseline checks and one stale sprite fixture also
+failed. Packaging did not run. [Actual attributed result](24-CI-RUN.md).
+
+The sprite fixture is repaired. The three remaining core divergences now
+have source-shaped owned regressions and repairs, including full64-entry
+abort keys, focused byte/bus/audio checks, distinct wrong models and native
+continuation. Current candidate is behavior14 / native format6 / ABI1.
+[Correction record](24-04-CORRECTIONS.md).
+
+## Earlier local-only result — superseded by current status above
+
+The owner granted standing authority for local CMake commands, including full
+CI and its configured campaign. The final `cmake --workflow --preset ci` run
+completed with exit0: all707 CTest entries passed in517.82 seconds, and the
+library, runner, and libretro macOS arm64 packages were generated. The
+complete22-page campaign observed all146 scored rows terminal (126 PASS,
+20 FAIL, no skip/not-run/timeout, five inventory-only DRAW rows).
+
+All five selected Phase24 rows passed at the unchanged ROM pin and classifier:
+Landing `0x01`/frame128, DMC+OAM `0x01`/frame46, Bus Conflicts `0x01`/frame46,
+Explicit Abort `0x01`/frame46, and Implicit Abort `0x09`/frame46 (the accepted
+source-defined pass variant). DMA + `$4015` Read, Misaligned OAM DMA, and INC
+`$4014` passed too. Every119 previous current-pin protected PASS key remains
+passing. This is local compatibility evidence, not universal silicon proof.
+The detailed [dated run record](24-CI-RUN-20261101.md) and
+[measurements](../../../tests/accuracy/measurements.md#phase-24-behavior14-local-acceptance-2026-11-01)
+identify the exact artifacts and hashes.
+
+Local protected-observation tests used the checkout `scoreboard-main` fallback;
+they do not establish independently prepared cold-main authority. The
+campaign report is complete and trustworthy, but current-head hosted lanes,
+six-platform frame/PCM/transition equality, and unchanged Cachegrind `+1%`
+evidence remain missing. The phase and its four requirements therefore remain
+incomplete. No hosted workflow, push, PR, merge, or release ran.
+
+## Earlier authority notes — superseded by current status above
+
+The owner has standing authority for local CMake configure, build, test and
+workflow commands, including full CI and configured acceptance campaigns; no
+per-run approval is needed. Preserve the existing39-minute overall ceiling,
+all inner caps and complete selection. Do not automatically retry a real
+interruption or timeout; retain evidence and resolve its cause first. Hosted
+workflow triggers, pushes, PRs, merges and releases remain separate actions
+and were not authorized by the local CMake instruction. [Applied lesson](24-APPROVAL-LESSONS.md).
+
+The efficiency review found no safe change that would materially shorten this
+acceptance while retaining its evidence. Keep the four-worker policy and full
+`ci` selection. Use the existing `dev-check` workflow for routine iteration;
+it is not an acceptance substitute.
+
+## Earlier local-CI authority decision
+
+On 2026-10-31 the owner explicitly granted standing local CMake authority,
+including repeated full local CI workflows as needed, without per-run
+approval. This supersedes the earlier keep-stop decision for local CMake only.
+The completed run used the existing selection,39-minute overall ceiling and
+unchanged inner caps. A real interruption or timeout is not automatically
+retried; hosted and publication actions are still excluded.
+
+The current emulation source is behavior14 at
+`324a769e413003cce3aa30d6a5a78a441ce558d8`; the final campaign ran at
+`0c8cc53b1672` with `source_dirty=1`, because measured metadata and local
+planning/instruction notes were present. The protected-baseline handoff
+variables were unset, so local protected checks used the checkout's
+`scoreboard-main` snapshot; this is not independently prepared cold-main
+authority. Final artifacts are archived under
+`build/phase24-acceptance/20261101T010016Z/`.
+
+```sh
+cmake --workflow --preset ci
+```
+
+Before execution, record the candidate identity and read-only test/fixture
+selection. Preserve prior logs/reports separately.
+Existing attributable results, including the completed report, are copied
+under ignored `build/phase24-acceptance/20261031T223038Z/observed`; its report
+digest was verified against24-CI-RUN.md. Never overwrite that history with
+a later source identity. Stop on real interruption or overall expiry, target
+cleanup to this invocation's own processes and preserve partial evidence;
+no automatic campaign retry. Expected simulated-timeout controls do not
+relax a real stop.
+
+After a complete qualifying observation, evidence-derived canonical
+scoreboard/measurements/provenance updates and bounded validator-only retests
+are routine follow-through. Do not relaunch a campaign implicitly through
+a CTest fixture closure to make activation green. Do not update expected
+statuses or claim qualification before the actual observations exist.
+
+## Selection and unchanged limits
+
+The checked-in [selection inventory](24-CI-SELECTION.tsv) is a historical
+read-only `FULL=ON` CTest inventory for source7f31579. The existing
+`build/ci` tree is Release with `NESTURBATOR_ACCURACYCOIN_FULL=ON`; its
+read-only `ctest --show-only=json-v1` inventory contains707 tests. Test
+registration files have not changed since the historical inventory, and the
+workflow reconfigures this tree before running. The separate
+`build/phase24-owned` tree is Debug with `FULL=OFF` and `VECTORS_FULL=OFF`.
+The exact bounded selection resolves to `bus.unit`, `core.apu`,
+`core.controller` and `core.state_fork.entry`, with no setup/required fixture
+dependencies; `accuracycoin.campaign` is absent there. This proves only the
+bounded owned closure. The generated `FULL=ON` inventory confirms
+`accuracycoin.campaign` sets up `accuracycoin_full_report`, required by
+activation, NMI targets and v5 targets. The protected observation and report
+scratch fixtures are also registered. Inventory inspection is not test
+execution; the full workflow will run this unchanged selection.
+
+| Consumer | Required fixture | Setup in FULL=ON CTest selection |
+|---|---|---|
+| accuracycoin.activation / nmi_targets / v5_targets | accuracycoin_full_report | accuracycoin.campaign |
+| accuracycoin.protected / accuracy.scoreboard.no_lost_pass / regression_controls | accuracycoin_protected_observations | accuracycoin.protected_observation |
+| accuracycoin.report_fresh | accuracycoin_report_fresh | accuracycoin.report_scratch |
+
+Campaign pin6bee919529289c555803b612b8c9e4f7eaaeeabb and ROM digest remain
+unchanged. Existing bounds:32 boot frames;5 navigation frames per page;1800
+execution frames;15-second page and10-second collection caps;370-second
+outer CTest limit. Complete evidence has22 launched/completed pages,146
+terminal scored rows and5 DRAW rows, with raw/attempt provenance. Protected
+setup keeps its30-second page /760-second outer caps. Full CI uses four CTest
+workers. Local session source-root/controls/readiness caps remain120/900/60
+seconds. Do not disable suites, widen limits or switch FULL=OFF.
+
+Local authority environment variables are unset, so protected observations
+use the checkout scoreboard-main fallback. This does not establish an
+independently prepared cold protected-main authority. Hosted preparation
+derives necessary old/new-pin pages from that baseline; local catalog counts
+are not a substitute. [Historical key catalog](24-PROTECTED-PASS-KEYS.tsv).
+
+## Evidence validated; formal re-verification pending
+
+| Requirement | Current evidence |
+|---|---|
+| Independent protected-main baseline and fresh exact-key observations | Validated in receipt v16 from the cold-main workflow preparation and candidate observations |
+| Current-candidate hosted CI and full campaign | CI and Nightly passed on PR head d54e218; the receipt binds the campaign artifacts |
+| Six-platform determinism | Complete Linux/macOS/Windows x64/arm64 frame, PCM, transition and native inventories match |
+| Existing performance gate | Raw base_a/base_b/head Cachegrind measurements pass the unchanged +1% rule |
+
+These results are available to the formal phase verifier. They do not themselves
+edit the prior 8/9 verification report or mark Phase 24 requirements complete.
+
+## Bounded Plan24-04 review
+
+The current correction source is `324a769e413003cce3aa30d6a5a78a441ce558d8`
+(behavior14 / format6 / ABI1). Only the plan's bounded command ran:
+
+```sh
+cmake --build build/phase24-owned --target bus.unit core.apu core.controller core.state_fork && ctest --test-dir build/phase24-owned -R '^(bus\.unit|core\.apu|core\.controller|core\.state_fork\.entry)$' --no-tests=error --timeout 30 --output-on-failure && build/phase24-owned/tests/core.state_fork --dma && git diff --check main...HEAD
+```
+
+All four targets built, the four selected CTest entries passed in0.82s, and
+`core.state_fork --dma` exited successfully. The final whitespace command
+returned2 with159 diagnostics already recorded for the inherited branch-wide
+planning diff; no broad cleanup was made. Detailed row identities and current
+binary SHA256 values are in [24-DMA-EVIDENCE.md](24-DMA-EVIDENCE.md).
+The bounded checks do not execute the stopped campaign fixture and do not
+establish behavior14 ROM acceptance.
+The Task1 evidence/state edits were committed as `661a45a` after the default
+sandbox denied Git metadata writes. The scoped commit includes only this
+acceptance record, the DMA evidence ledger and STATE; no unrelated path was
+staged.
+
+The fresh local report establishes the five selected rows and complete
+campaign described above. Remaining requirements are independent cold
+protected-main authority, actual Linux/macOS/Windows x64/arm64 frame/PCM/
+transition equality, unchanged Cachegrind `+1%` performance evidence, and
+current-head hosted lanes. The inherited branch-wide whitespace findings also
+remain; most are in archived phases outside this plan, so no bulk rewrite was
+made.
+
+## Historical Plan24-04 handoff (superseded by Plan24-05 below)
+
+At the Plan24-04 boundary, all four then-existing plans had completed and the
+local outcome was recorded. The later Plan24-05 gap closure below supersedes
+this historical next-command note; use the current checkpoint recorded there
+and in STATE.
+
+## Plan24-05 local gap closure
+
+The focused trace repair preserves the original Test9 guest execution and its
+checked 30,012-cycle synchronization wait. Trace capture is disabled during
+the intentionally discarded prelude, then reset at the checked `$8008`
+boundary. The retained window contains 24,741 events through the actual
+`$FFC0` sample GET on GET and the resumed `$4000` CPU read at cycle 38,166.
+Normal and observed machines remain equal.
+
+The forced-overflow child exits nonzero and prints exactly one
+`DMA trace overflow: retained window exceeded capacity of 32768 events`
+diagnostic. Reset and trace consumers now report any prior retained-window
+overflow before clearing, reading, asserting, or printing; the included abort
+trace uses the same completeness guard.
+
+Local Plan24-05 verification:
+
+```sh
+cmake --build build/phase24-owned --target bus.unit
+ctest --test-dir build/phase24-owned -R '^bus\.unit$' --no-tests=error --timeout 30 --output-on-failure
+build/phase24-owned/tests/bus.unit --dma-trace landing
+cmake -DMODE=controls -DSOURCE_REF=. -DROOT=build/phase24-gap-controls -DBUS=build/phase24-owned/tests/bus.unit -P tests/cmake/phase24_dma_gap_evidence.cmake
+```
+
+The focused build and `bus.unit` CTest passed; the landing path retained the
+final sample GET and resumed read; and all evidence controls passed. Those
+controls use synthetic fixtures only, including a ZIP-member-to-normalized-
+file digest mismatch rejection, and are not hosted acceptance. The
+2026-11-01 full local workflow and ROM campaign were not repeated. The new
+offline receipt validator still requires a prepared request and real hosted
+receipts; it cannot produce a pass from controls data.
+
+The README now reports the actual local selected-row result and keeps cold
+protected-main, current-hosted, six-platform and performance evidence
+outstanding. The inherited `main...HEAD` whitespace findings remain recorded
+above; the explicit scoped check for this plan is run against the pre-gap
+commit `d04c66ecfda4465446b4eadde492c967584ab41f`. No archived records or
+historical fixtures were bulk-edited.
+
+## Historical Plan24-05 remote decision checkpoint
+
+Task 1 is committed as `9680ee8830ce95275d58158248c5f02f1da6b9fc` on
+`gsd/phase-24-correct-remaining-ntsc-dma-behavior`. The candidate tree is
+`1f8d0b89a784d29598e072aaad1c36b950717119`. Read-only preparation found main
+at `b25146c6efaac41c58f60555f59f0fe79a90ca68`, no existing PR for the branch,
+and no remote branch with that name. `MODE=request` rechecked the candidate,
+current main, PR list, branch ref, workflow and baseline script successfully.
+The request JSON digest is
+`c772cfb2a8e0d46dbdbc58fb54623fc06be15b5724060fa2b93da0b03a77fe2e`; the
+exact [request](../../../build/phase24-gap/request.md) and [PR body](../../../build/phase24-gap/pr-body.md)
+are retained under ignored build output. The PR body SHA-256 is
+`410fe8a9db0380245a509990dfec03e1d95b3900600eaa163256b83dbeddab40`.
+
+The proposed remote action is exactly:
+
+```text
+git push origin HEAD:refs/heads/gsd/phase-24-correct-remaining-ntsc-dma-behavior
+gh pr create --repo szTheory/nesturbator --base main --head gsd/phase-24-correct-remaining-ntsc-dma-behavior --title "fix(dma): correct remaining NTSC DMA behavior" --body-file build/phase24-gap/pr-body.md
+```
+
+The new PR's `opened` event would start the repository's existing required CI
+selection: hygiene, title, six build lanes, vector inventory, session controls,
+ASan, nofp, hash equality, RetroArch E2E, perf and CI required. Linux x64 runs
+the configured FULL=ON AccuracyCoin campaign; Linux/macOS use `ci` with
+`ci-build`, and Windows uses `ci-msvc`. The PR `edited` trigger also exists,
+and a title/body edit can cancel an in-progress run, so the candidate title
+and body must stay fixed during that run.
+
+Existing limits remain unchanged: build and session controls 39 minutes,
+ASan 26, nofp 2, hash equality 5, RetroArch E2E 40, perf 15, CI required 5,
+and the current 5-minute network-job caps. The campaign keeps 22 pages, five
+navigation frames per page, 1,800 execution frames per row, 41,503 total
+frames, 15-second page and 10-second collection caps, a 370-second campaign
+CTest timeout, four CTest workers, and the existing 30/760-second protected
+observation limits. There is no workflow dispatch, force push, merge, release,
+expanded limit, or automatic retry in the request.
+
+At the time this request was prepared, no remote action had been authorized or
+performed. DMA-03 still lacks (1)
+independent cold protected-main authority and fresh passing observations for
+every protected PASS key; (2) successful current-candidate hosted jobs and the
+full hosted campaign; (3) equal complete frame/PCM/transition/native hashes
+from all six platform lanes; and (4) real base_a/base_b/head Cachegrind
+measurements at 60/360 frames passing the unchanged `+1%` gate. The three
+Plan24-04 prohibition flags remain `human_judgment` / `unresolved`.
+
+## Historical Plan24-05 remote authorization
+
+On 2026-11-01T10:31:33Z, the owner replied: “Yes. And then by the way, after
+CI runs, look at the results and see if there's low-hanging fruit opportunities
+for improvement.” This authorizes only the prepared candidate
+`e2e24a6709aab6332267f414101fb7c2c05bb8bc` (its pre-rewrite identity), request SHA-256
+`c772cfb2a8e0d46dbdbc58fb54623fc06be15b5724060fa2b93da0b03a77fe2e`, the
+normal push to `origin/gsd/phase-24-correct-remaining-ntsc-dma-behavior`, and
+creation of the new PR using the prepared title/body. The resulting PR
+`opened` event may run the exact existing required job selection and one
+Linux x64 FULL=ON campaign under the workflow, campaign, CTest, page and
+collection limits recorded above. It does not authorize force push, manual
+dispatch, merge, release, a retry, or another candidate. After that CI run,
+the owner also authorized a read-only review of results for low-effort
+improvement opportunities; any new code change or rerun remains outside this
+grant.
+
+Before mutation, `MODE=request` must still validate the same candidate and
+current main/PR/branch metadata. A stale request or failed preflight preserves
+the stop and requires a newly reviewed request. The exact commands, request
+digest, event side effect and selected limits remain in the linked request
+above.
+
+## Historical Plan24-05 push attempt and local diagnostics
+
+The authorized candidate's push command returned without a final status after
+30 seconds. After its process ended, read-only checks found no requested remote
+branch or matching PR, so no PR `opened` CI run or CI results exist.
+Independent local diagnostics show the pre-push history hygiene scan passes.
+The format check exits 1 with 317 diagnostic lines and identifies two
+unformatted source blobs in outgoing pre-rewrite commit
+`7348a10c68e592b71ec1899121003bf62d6bc813`: `src/bus.c` and
+`tests/cpu/test_bus.c`. The complete local output is retained in ignored
+`build/phase24-gap/push-format-diagnostic.log`.
+
+No push retry, hook bypass, history rewrite, replacement candidate, PR, or CI
+run was attempted at the original stop. The original authorization was bound
+to pre-rewrite candidate `e2e24a6709aab6332267f414101fb7c2c05bb8bc` and
+excluded retries and a second candidate. No CI result exists for the
+owner-requested low-effort improvement review.
+
+## Historical replacement-candidate checkpoint
+
+On 2026-11-01T11:17:43Z, the owner authorized local repair of the outgoing
+formatting history and preparation of a replacement candidate/request. This
+authorization does not cover a push, PR, CI run, retry, merge, or release.
+
+The branch contained 120 outgoing commits from common ancestor
+`45a078d2de1f08e39caf1c5942fcdb57f493d8af`, with no merge commits. Replaying
+from that ancestor preserved the candidate's final code/data tree. The
+unformatted commit `7348a10c68e592b71ec1899121003bf62d6bc813` was rewritten as
+`6503f3551899a5d607d283a41a00451a7090f4de`; clang-format 18 changed only
+whitespace in `src/bus.c` and `tests/cpu/test_bus.c` (their whitespace-stripped
+token streams matched). Two replay conflicts in later source changes were
+resolved with the exact original commit snapshots, each already formatted.
+Twenty-nine commit identities changed; 91 earlier identities stayed the
+same. The outgoing history format check now passes.
+
+A local documentation commit refreshed 21 references across eight committed
+files. The first replacement request at
+`build/phase24-gap-replacement/request.md` was bound to candidate
+`bb2d404d24527765c5a32cfabc9b53bf1ec400c9` (tree
+`a64cb31a8a025b79cfa57208b9f1d43f1e2ae0e1`) and had request digest
+`fe82e88748c5ba91ab0990ac3b14391ec1aa07d347c62548b98ad42ece614a0a`. Its
+`MODE=request` validation rejected the proposed action because it still
+pointed `gh pr create` at the old default body path
+`build/phase24-gap/pr-body.md`, while the actual body was under the replacement
+root. No remote action occurred; that failed request root is preserved.
+
+The generator fix is committed as
+`f76d4492c45048a8541e14a4fda6fefe669ea82a`: the proposed command now uses
+the selected request root's `pr_body_relative` path. Preparation at
+`build/phase24-gap-replacement-v2/` then stopped before generating request
+files because the sandbox denied Git's temporary `.git/index.lock`; that root
+is preserved. The request at `build/phase24-gap-replacement-v3/` then passed
+local `MODE=request` validation for candidate `f76d4492c45048a8541e14a4fda6fefe669ea82a`
+and tree `7a039910a2c0fe696da2fd0d2807eeeb7d63d5ef`; its JSON kept
+`remote_action_authorized=false`. Final state/evidence bookkeeping changed
+after that validation, so the final request is under
+`build/phase24-gap-replacement-v4/`, prepared from the synchronized worktree;
+its JSON keeps remote authorization false. No behavior change, tests, workflow, or
+hosted CI run occurred as part of this tooling repair. The v4 `request.sha256`
+records the exact digest after validation. The next actor is the owner, who
+decides whether to authorize this candidate's push, new PR, and one configured
+CI run. If CI runs, review its results read-only for the requested low-effort
+improvements before any new code change or rerun.
+
+## Historical Plan24-05 review follow-up
+
+The first standard-depth code review found three issues in the evidence
+adapter and trace diagnostics: a symlinked `ROOT` could escape ignored build
+output, the Test 9 printer could dereference a missing CPU-read event, and the
+optional `ROM_ABORT_TRACE_CPU_PC` trace path referenced a field that did not
+exist. Commit `dfd0bfc` fixed all three. The adapter now rejects symlinked
+components and verifies the resolved path remains within the physical `build/`
+directory; its synthetic control confirms a marker outside that root remains
+untouched. The trace printer handles the missing event, and the optional CPU-PC
+mode captures the current CPU PC.
+
+Local verification passed with `bus.unit` built under
+`ROM_ABORT_TRACE_CPU_PC`, the `bus.unit` CTest entry, all Phase 24 synthetic
+evidence controls, and clang-format 18. The final standard-depth re-review in
+`24-REVIEW.md` is clean. No emulator core, public API, saved-state format,
+accuracy baseline, or hardware claim changed.
+
+This source commit invalidated prepared request v4, which was bound to
+`f76d4492c45048a8541e14a4fda6fefe669ea82a`. The replacement request must be
+prepared against the final candidate after the review and state artifacts are
+committed. It grants no remote authority; the older push authorization remains
+bound to its earlier candidate.
+
+## Prior goal verification
+
+The preserved `24-VERIFICATION.md` still records the earlier 8/9 result. Receipt
+v16 now supplies the evidence that was missing at that checkpoint. Run
+`$gsd-verify-work 24` to formally recheck the phase; that step owns any change
+to the verdict or requirement status.

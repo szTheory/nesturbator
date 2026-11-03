@@ -3,11 +3,11 @@
    the JAM sequence follows the NESdev Wiki "CPU unofficial opcodes",
    revision 23975.
 
-   The only functions called from here are nesturbator__bus_read and
-   nesturbator__bus_write (D-08). No expression holds two bus calls whose
-   order C leaves unspecified: a helper that returns an address finishes its
-   cycles before the call it is an argument of starts, so the order of bus
-   cycles is the order of the source. */
+   The only functions called from here are nesturbator__bus_read,
+   nesturbator__bus_read_sync and nesturbator__bus_write (D-08). No expression
+   holds two bus calls whose order C leaves unspecified: a helper that returns
+   an address finishes its cycles before the call it is an argument of starts,
+   so the order of bus cycles is the order of the source. */
 #include "internal.h"
 
 /* Flag bits of P. Bits 4 (B) and 5 exist only on the stack: PHP and BRK push
@@ -26,6 +26,15 @@
 static uint8_t fetch(struct nesturbator *nes)
 {
     uint8_t v = nesturbator__bus_read(nes, nes->cpu.pc);
+    nes->cpu.pc = (uint16_t)(nes->cpu.pc + 1u);
+    return v;
+}
+
+/* Reads the opcode-dispatch byte and steps PC. Operand fetches stay generic
+   reads; PAL DMC eligibility uses this transient SYNC distinction. */
+static uint8_t fetch_opcode(struct nesturbator *nes)
+{
+    uint8_t v = nesturbator__bus_read_sync(nes, nes->cpu.pc);
     nes->cpu.pc = (uint16_t)(nes->cpu.pc + 1u);
     return v;
 }
@@ -487,7 +496,7 @@ uint8_t nesturbator__cpu_entry_action(struct nesturbator *nes)
     case 1u: /* IRQ/NMI C1: first discarded read. */
         if (cpu->entry_origin == NESTURBATOR_ENTRY_BRK)
             return 0u;
-        (void)nesturbator__bus_read(nes, cpu->pc);
+        (void)nesturbator__bus_read_sync(nes, cpu->pc);
         break;
     case 2u: /* BRK padding read, or IRQ/NMI C2 discarded read. */
         if (cpu->entry_origin == NESTURBATOR_ENTRY_BRK)
@@ -646,7 +655,7 @@ void nesturbator__cpu_step(struct nesturbator *nes)
         return;
     }
 
-    opcode = fetch(nes);
+    opcode = fetch_opcode(nes);
     switch (opcode) {
     /* Loads. */
     case 0xA9: /* LDA immediate */

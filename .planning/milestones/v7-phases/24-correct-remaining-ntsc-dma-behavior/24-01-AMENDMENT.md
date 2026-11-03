@@ -1,0 +1,9 @@
+# Phase 24-01 execution amendment
+
+The owner approved the concrete format-4 / behavior-10 correction, native continuation/refusal tests and documentation in chat before implementation. Tasks 1 and 3 land together because the execution contract requires behavior, visitor, native continuation and documentation in one coherent change. Task 2 retains separate evidence closeout; nothing marks full acceptance.
+
+Review found existing consumers whose old 3/9 pins now reject this approved change. Necessary ownership expands to: `tests/header/header_c.c`, `tests/header/header_cxx.cpp`, `tests/core/test_api.c`, `tests/core/test_state_reject.c`, `tests/runner/hashes.txt`, `tests/cmake/vector_api_policy.cmake`, `tests/cmake/reproduction_contract.cmake`, `tests/cmake/phase21_hosted_evidence_controls.cmake`, `docs/api.md`, `docs/progress.md`, and `docs/reproduction.md`. These are version-consumer/test/doc updates within the approved native-state change, not a new behavior scope or public API. The new silence field is also added to the existing rejection table.
+
+Only the six native-state board rows and their +1-byte sizes may be repinned from bounded runner output. Existing frame/PCM/transition expectations and raw-key inventory stay unchanged. API declaration hash changes are limited to the approved format/revision macros, proven by normalizing against the baseline. Historic AccuracyCoin baseline metadata, its measured revision-9 expectation, scoreboard and prior measurements remain unchanged; relabeling them revision 10 would fabricate campaign evidence. No full CI/campaign, push or PR is authorized.
+
+Bounded validation expands to the coupled version/header/doc policy and state rejection checks, after read-only fixture-closure inspection. It must not select any campaign. This is necessary follow-through under the already approved tests/docs change, with no new irreversible choice. No gate is disabled or weakened.

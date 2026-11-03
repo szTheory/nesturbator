@@ -1,7 +1,8 @@
 /* STATE-04 (D-03, D-04, D-16): a hostile or damaged state is refused with the right status and
    changes nothing. For each ROM a state is made after 20 frames, then:
      1. cross-ROM matrix and no-cartridge: ERR_STATE_CARTRIDGE
-     2. format_version 0, 1, 2 and 4: FORMAT; header_size 63 and 65: CHECKSUM, then INVALID with the
+     2. all older format versions and the next version: FORMAT; header_size 63 and 65:
+   CHECKSUM, then INVALID with the
    CRC recomputed
      3. truncation to every length below S, S + 1 bytes, NULL arguments, S itself loads
      4. flip every header byte and body byte: the D-04 class per offset (RAM bytes with a stride
@@ -31,6 +32,7 @@
 #define H_VERSION 8u
 #define H_HEADER_SIZE 10u
 #define H_ROM_CRC 24u
+#define H_FRAME 32u
 #define H_TICKS 40u
 #define H_RESERVED 48u
 #define HEADER 64u
@@ -179,11 +181,11 @@ static void case_header(struct rom *r)
     struct guard g;
     uint8_t *b = copy_state(r);
     guard_open(&g, r->inst);
-    for (unsigned v = 0u; v <= 2u; ++v) {
+    for (unsigned v = 0u; v < NESTURBATOR_STATE_FORMAT_VERSION; ++v) {
         put_raw(b + H_VERSION, v, 2u);
         refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "format_version", r->path);
     }
-    put_raw(b + H_VERSION, 4u, 2u);
+    put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION + 1u, 2u);
     refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "format_version", r->path);
     put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION, 2u);
     for (unsigned hs = 63u; hs <= 65u; hs += 2u) {
@@ -275,7 +277,7 @@ static void case_two_faults(struct rom *r)
         b[H_ROM_CRC] ^= 0xffu;
         put_raw(b + H_HEADER_SIZE, 64u, 2u);
     }
-    put_raw(b + H_VERSION, 4u, 2u);
+    put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION + 1u, 2u);
     st_recrc(b, r->state_size);
     refuse(&g, b, r->state_size, NESTURBATOR_ERR_STATE_FORMAT, "future version", r->path);
     put_raw(b + H_VERSION, NESTURBATOR_STATE_FORMAT_VERSION, 2u);
@@ -404,12 +406,14 @@ static const struct row ROWS[] = {
     ROW(apu.dmc.remaining, 4081),
     ROW(apu.dmc.output, 127),
     ROW(apu.dmc.bits, 8),
+    ROW(apu.dmc.silence, 1),
     ROW(apu.dmc.buffer_empty, 1),
     ROW(apu.dmc.irq, 1),
     ROW(apu.dmc.dma_pending, 1),
     ROW(apu.dmc.dma_halt_phase, 1),
     ROW(apu.dmc.dma_load_waiting, 1),
     ROW(apu.dmc.enable_delay, 4),
+    ROW(apu.dmc.abort_delay, 3),
     ROW(apu.enabled, 0x1f),
     ROW(apu.pulse_clock_phase, 1),
     ROW(apu.frame_mode, 1),
@@ -1068,12 +1072,685 @@ static void case_ppu_gap(struct rom *r)
     free(b);
 }
 
+struct regional_capture {
+    uint16_t pixels[256u * 240u];
+    int16_t pcm[1024];
+    nesturbator_frame frame;
+};
+
+static void regional_frame(nesturbator *inst, uint16_t buttons, struct regional_capture *out)
+{
+    nesturbator_input input;
+    memset(&input, 0, sizeof input);
+    input.size = (uint32_t)sizeof input;
+    input.buttons[0] = (uint8_t)buttons;
+    input.buttons[1] = (uint8_t)(buttons >> 8);
+    memset(out->pixels, 0, sizeof out->pixels);
+    memset(out->pcm, 0, sizeof out->pcm);
+    CHECK_EQ_U64(nesturbator_set_input(inst, &input), NESTURBATOR_OK);
+    memset(&out->frame, 0, sizeof out->frame);
+    out->frame.size = (uint32_t)sizeof out->frame;
+    out->frame.video = out->pixels;
+    out->frame.video_pitch = 256u;
+    out->frame.audio = out->pcm;
+    out->frame.audio_capacity = 1024u;
+    CHECK_EQ_U64(nesturbator_run_frame(inst, &out->frame), NESTURBATOR_OK);
+}
+
+static int regional_capture_equal(const struct regional_capture *a,
+                                  const struct regional_capture *b)
+{
+    return memcmp(a->pixels, b->pixels, sizeof a->pixels) == 0 &&
+           a->frame.audio_count == b->frame.audio_count &&
+           memcmp(a->pcm, b->pcm, (size_t)a->frame.audio_count * sizeof a->pcm[0]) == 0 &&
+           a->frame.ticks == b->frame.ticks && a->frame.frame_number == b->frame.frame_number;
+}
+
+static enum nesturbator_region_preference regional_preference(enum nesturbator_region region)
+{
+    return region == NESTURBATOR_REGION_PAL ? NESTURBATOR_REGION_PREFERENCE_PAL
+                                            : NESTURBATOR_REGION_PREFERENCE_NTSC;
+}
+
+static void regional_mismatch(const uint8_t *image, size_t image_size,
+                              enum nesturbator_region source_region,
+                              enum nesturbator_region dest_region)
+{
+    nesturbator *source = st_make_instance();
+    nesturbator *dest = st_make_instance();
+    nesturbator *twin = st_make_instance();
+    uint8_t *state = NULL, *bad = NULL, *dest_state = NULL, *twin_state = NULL;
+    struct regional_capture expected, actual;
+    size_t size = 0u;
+    CHECK(source != NULL && dest != NULL && twin != NULL);
+    if (source == NULL || dest == NULL || twin == NULL)
+        goto done;
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(source, image, image_size,
+                                                   regional_preference(source_region)),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(dest, image, image_size,
+                                                   regional_preference(dest_region)),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(twin, image, image_size,
+                                                   regional_preference(dest_region)),
+                 NESTURBATOR_OK);
+    CHECK_EQ_HEX(source->cart.rom_crc32, dest->cart.rom_crc32);
+    size = nesturbator_state_size(source);
+    CHECK_EQ_U64(nesturbator_state_size(dest), size);
+    state = (uint8_t *)malloc(size + 1u);
+    bad = (uint8_t *)malloc(size + 1u);
+    dest_state = (uint8_t *)malloc(size);
+    twin_state = (uint8_t *)malloc(size);
+    CHECK(size > HEADER && state != NULL && bad != NULL && dest_state != NULL &&
+          twin_state != NULL);
+    if (size <= HEADER || state == NULL || bad == NULL || dest_state == NULL || twin_state == NULL)
+        goto done;
+
+    for (uint32_t frame = 1u; frame <= 2u; ++frame) {
+        CHECK_EQ_U64(st_frame(source, st_buttons(frame), NULL, NULL, NULL, NULL), NESTURBATOR_OK);
+        CHECK_EQ_U64(st_frame(dest, st_buttons(frame), NULL, NULL, NULL, NULL), NESTURBATOR_OK);
+        CHECK_EQ_U64(st_frame(twin, st_buttons(frame), NULL, NULL, NULL, NULL), NESTURBATOR_OK);
+    }
+    CHECK_EQ_U64(nesturbator_save_state(source, state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(state[23], source_region == NESTURBATOR_REGION_PAL ? 1u : 0u);
+    CHECK_EQ_U64(nesturbator_save_state(dest, dest_state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(twin, twin_state, size), NESTURBATOR_OK);
+    CHECK(memcmp(dest_state, twin_state, size) == 0);
+
+    CHECK(st_refused(dest, state, size, NESTURBATOR_ERR_STATE_CARTRIDGE));
+    CHECK(st_refused(dest, state, size - 1u, NESTURBATOR_ERR_STATE_CARTRIDGE));
+    /* The regional identity check wins over size, checksum and body failures. */
+    memcpy(bad, state, size);
+    bad[12] ^= 1u;
+    bad[64] ^= 1u;
+    bad[28] ^= 1u;
+    CHECK(st_refused(dest, bad, size, NESTURBATOR_ERR_STATE_CARTRIDGE));
+    {
+        static const uint8_t unknown_regions[] = {2u, 255u};
+        for (size_t index = 0u; index < sizeof unknown_regions / sizeof unknown_regions[0];
+             ++index) {
+            uint8_t unknown = unknown_regions[index];
+            memcpy(bad, state, size);
+            bad[23] = unknown;
+            st_recrc(bad, size);
+            CHECK(st_refused(dest, bad, size, NESTURBATOR_ERR_STATE_CARTRIDGE));
+            bad[12] ^= 1u;
+            bad[64] ^= 1u;
+            bad[28] ^= 1u;
+            CHECK(st_refused(dest, bad, size, NESTURBATOR_ERR_STATE_CARTRIDGE));
+        }
+    }
+
+    for (uint32_t frame = 3u; frame <= 5u; ++frame) {
+        regional_frame(dest, st_buttons(frame), &expected);
+        regional_frame(twin, st_buttons(frame), &actual);
+        if (!regional_capture_equal(&expected, &actual)) {
+            size_t pixel = 0u, sample = 0u;
+            while (pixel < 256u * 240u && expected.pixels[pixel] == actual.pixels[pixel])
+                pixel++;
+            while (sample < expected.frame.audio_count && sample < actual.frame.audio_count &&
+                   expected.pcm[sample] == actual.pcm[sample])
+                sample++;
+            fprintf(
+                stderr,
+                "regional future mismatch %s -> %s frame=%u pixels=%lu/%04x/%04x "
+                "audio-count=%u/%u sample=%lu/%d/%d ticks=%llu/%llu frame-number=%llu/%llu\n",
+                source_region == NESTURBATOR_REGION_PAL ? "PAL" : "NTSC",
+                dest_region == NESTURBATOR_REGION_PAL ? "PAL" : "NTSC", frame, (unsigned long)pixel,
+                (unsigned)(pixel < 256u * 240u ? expected.pixels[pixel] : 0u),
+                (unsigned)(pixel < 256u * 240u ? actual.pixels[pixel] : 0u),
+                expected.frame.audio_count, actual.frame.audio_count, (unsigned long)sample,
+                (int)(sample < 1024u ? expected.pcm[sample] : 0),
+                (int)(sample < 1024u ? actual.pcm[sample] : 0),
+                (unsigned long long)expected.frame.ticks, (unsigned long long)actual.frame.ticks,
+                (unsigned long long)expected.frame.frame_number,
+                (unsigned long long)actual.frame.frame_number);
+            check_failures++;
+        }
+    }
+    CHECK_EQ_U64(nesturbator_save_state(dest, dest_state, size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(twin, twin_state, size), NESTURBATOR_OK);
+    CHECK(memcmp(dest_state, twin_state, size) == 0);
+    printf("regional state refusal: %s -> %s, identity precedes length/checksum/body; future frame "
+           "and state unchanged\n",
+           source_region == NESTURBATOR_REGION_PAL ? "PAL" : "NTSC",
+           dest_region == NESTURBATOR_REGION_PAL ? "PAL" : "NTSC");
+
+done:
+    free(state);
+    free(bad);
+    free(dest_state);
+    free(twin_state);
+    nesturbator_destroy(source);
+    nesturbator_destroy(dest);
+    nesturbator_destroy(twin);
+}
+
+static const struct nesturbator__state_bound *
+regional_bound(const struct nesturbator__state_bound *bounds, size_t count, size_t offset)
+{
+    for (size_t i = 0u; i < count; ++i)
+        if (bounds[i].offset == offset)
+            return &bounds[i];
+    return NULL;
+}
+
+static void regional_continue_loaded(struct rom *r, const char *label)
+{
+    uint64_t before_ticks = r->inst->ticks, before_frame = r->inst->frame_number;
+    uint64_t frame_ticks = nesturbator__frame_ticks(r->inst);
+    uint64_t target_ticks = nesturbator__is_pal(r->inst) != 0 ? (before_frame + 1u) * frame_ticks
+                                                              : before_ticks + frame_ticks;
+    uint64_t after_ticks = 0u, after_frame = 0u;
+    nesturbator_status status =
+        st_frame(r->inst, st_buttons(3u), NULL, NULL, &after_ticks, &after_frame);
+    if (status != NESTURBATOR_OK) {
+        fprintf(stderr, "regional bound %s: next frame status %d\n", label, (int)status);
+        check_failures++;
+        return;
+    }
+    CHECK_EQ_U64(after_frame, before_frame + 1u);
+    CHECK(after_ticks >= before_ticks);
+    CHECK(after_ticks >= target_ticks);
+    printf("regional bound continuation: %s frame=%llu ticks=%llu (before=%llu target=%llu)\n",
+           label, (unsigned long long)after_frame, (unsigned long long)after_ticks,
+           (unsigned long long)before_ticks, (unsigned long long)target_ticks);
+}
+
+static void regional_bound_value(struct rom *r, const uint8_t *baseline, uint8_t *mutated,
+                                 size_t offset, size_t width, uint64_t value,
+                                 nesturbator_status expected, const char *label)
+{
+    memcpy(mutated, baseline, r->state_size);
+    put_raw(mutated + offset, value, (unsigned)width);
+    st_recrc(mutated, r->state_size);
+    if (expected == NESTURBATOR_OK) {
+        nesturbator_status status = nesturbator_load_state(r->inst, mutated, r->state_size);
+        if (status != NESTURBATOR_OK) {
+            fprintf(stderr, "regional bound %s: load status %d\n", label, (int)status);
+            check_failures++;
+        } else {
+            regional_continue_loaded(r, label);
+        }
+    } else {
+        CHECK(st_refused(r->inst, mutated, r->state_size, expected));
+    }
+}
+
+static void regional_apu_value(struct rom *r, const uint8_t *baseline, uint8_t *mutated,
+                               size_t frame_mode_off, size_t frame_cycle_off, uint8_t frame_mode,
+                               uint32_t frame_cycle, nesturbator_status expected, const char *label)
+{
+    memcpy(mutated, baseline, r->state_size);
+    put_raw(mutated + frame_mode_off, frame_mode, 1u);
+    put_raw(mutated + frame_cycle_off, frame_cycle, 4u);
+    st_recrc(mutated, r->state_size);
+    if (expected == NESTURBATOR_OK) {
+        nesturbator_status status = nesturbator_load_state(r->inst, mutated, r->state_size);
+        if (status != NESTURBATOR_OK) {
+            fprintf(stderr, "regional APU %s: load status %d\n", label, (int)status);
+            check_failures++;
+        } else {
+            regional_continue_loaded(r, label);
+        }
+    } else {
+        CHECK(st_refused(r->inst, mutated, r->state_size, expected));
+    }
+}
+
+static void regional_frame_value(struct rom *r, const uint8_t *baseline, uint8_t *mutated,
+                                 uint64_t frame_number, nesturbator_status expected,
+                                 const char *label)
+{
+    memcpy(mutated, baseline, r->state_size);
+    put_raw(mutated + H_FRAME, frame_number, 8u);
+    st_recrc(mutated, r->state_size);
+    if (expected == NESTURBATOR_OK) {
+        nesturbator_status status = nesturbator_load_state(r->inst, mutated, r->state_size);
+        if (status != NESTURBATOR_OK) {
+            fprintf(stderr, "regional frame %s: load status %d\n", label, (int)status);
+            check_failures++;
+        } else {
+            regional_continue_loaded(r, label);
+        }
+    } else {
+        CHECK(st_refused(r->inst, mutated, r->state_size, expected));
+    }
+}
+
+static void regional_frame_counter_cases(struct rom *r, const uint8_t *baseline, uint8_t *mutated,
+                                         uint64_t frame_ticks, int pal)
+{
+    const uint64_t ticks = le64(baseline + H_TICKS);
+    const uint64_t quotient = ticks / frame_ticks;
+    const uint64_t frame_number = le64(baseline + H_FRAME);
+
+    CHECK_EQ_U64(quotient, 2u);
+    CHECK_EQ_U64(frame_number, quotient);
+    regional_frame_value(r, baseline, mutated, UINT64_MAX, NESTURBATOR_ERR_STATE_INVALID,
+                         "frame counter UINT64_MAX");
+    regional_frame_value(r, baseline, mutated, quotient + 1u, NESTURBATOR_ERR_STATE_INVALID,
+                         "frame counter ahead of ticks");
+    regional_frame_value(r, baseline, mutated, quotient, NESTURBATOR_OK,
+                         "frame counter equals tick quotient");
+    if (pal != 0) {
+        regional_frame_value(r, baseline, mutated, quotient - 1u, NESTURBATOR_OK,
+                             "PAL frame counter lags one frame");
+        regional_frame_value(r, baseline, mutated, quotient - 2u, NESTURBATOR_ERR_STATE_INVALID,
+                             "PAL frame counter lags two frames");
+    } else {
+        regional_frame_value(r, baseline, mutated, quotient - 2u, NESTURBATOR_OK,
+                             "NTSC frame counter lags over one frame");
+    }
+}
+
+static void regional_pal_five_step_endpoint(struct rom *r, const uint8_t *baseline,
+                                            uint8_t *mutated, size_t frame_mode_off,
+                                            size_t frame_cycle_off)
+{
+    struct nesturbator__state_bound bounds[MAX_BOUNDS];
+    uint8_t *roundtrip = (uint8_t *)malloc(r->state_size);
+    size_t count;
+    const struct nesturbator__state_bound *frame_cycle_bound;
+    nesturbator_status status;
+
+    CHECK(roundtrip != NULL);
+    if (roundtrip == NULL)
+        return;
+
+    CHECK_EQ_U64(r->inst->apu.frame_mode, 0u);
+    count = nesturbator__state_bounds(r->inst, bounds, MAX_BOUNDS);
+    frame_cycle_bound = regional_bound(bounds, count, frame_cycle_off);
+    CHECK(frame_cycle_bound != NULL);
+    if (frame_cycle_bound != NULL)
+        CHECK_EQ_U64(frame_cycle_bound->hi, 37281u);
+
+    memcpy(mutated, baseline, r->state_size);
+    put_raw(mutated + frame_mode_off, 1u, 1u);
+    put_raw(mutated + frame_cycle_off, 41565u, 4u);
+    st_recrc(mutated, r->state_size);
+    status = nesturbator_load_state(r->inst, mutated, r->state_size);
+    CHECK_EQ_U64(status, NESTURBATOR_OK);
+    if (status == NESTURBATOR_OK) {
+        CHECK_EQ_U64(r->inst->apu.frame_mode, 1u);
+        CHECK_EQ_U64(r->inst->apu.frame_cycle, 41565u);
+        CHECK_EQ_U64(nesturbator_save_state(r->inst, roundtrip, r->state_size), NESTURBATOR_OK);
+        CHECK(memcmp(roundtrip, mutated, r->state_size) == 0);
+        count = nesturbator__state_bounds(r->inst, bounds, MAX_BOUNDS);
+        frame_cycle_bound = regional_bound(bounds, count, frame_cycle_off);
+        CHECK(frame_cycle_bound != NULL);
+        if (frame_cycle_bound != NULL)
+            CHECK_EQ_U64(frame_cycle_bound->hi, 41565u);
+        regional_continue_loaded(r, "PAL five-step endpoint");
+    }
+
+    memcpy(mutated, baseline, r->state_size);
+    put_raw(mutated + frame_mode_off, 1u, 1u);
+    put_raw(mutated + frame_cycle_off, 41566u, 4u);
+    st_recrc(mutated, r->state_size);
+    CHECK(st_refused(r->inst, mutated, r->state_size, NESTURBATOR_ERR_STATE_INVALID));
+    regional_apu_value(r, baseline, mutated, frame_mode_off, frame_cycle_off, 1u, 37281u,
+                       NESTURBATOR_OK, "PAL five-step cursor 37281");
+    regional_apu_value(r, baseline, mutated, frame_mode_off, frame_cycle_off, 1u, 37282u,
+                       NESTURBATOR_OK, "PAL five-step cursor 37282");
+    free(roundtrip);
+}
+
+static size_t regional_pal_loop_image(uint8_t *image, size_t image_size)
+{
+    static const uint8_t code[] = {0x4cu, 0x00u, 0x80u}; /* JMP $8000 */
+    struct ines_spec spec;
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.prg_code = code;
+    spec.prg_code_len = sizeof code;
+    spec.nmi_vector = 0x8000u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    return ines_build(image, image_size, &spec);
+}
+
+static size_t regional_pal_gated_jam_image(uint8_t *image, size_t image_size)
+{
+    static const uint8_t code[] = {
+        0xa9u, 0x00u,                     /* LDA #$00: two cycles */
+        0xeau,                            /* NOP: two cycles */
+        0x4cu, 0x06u, 0x80u,              /* JMP $8006: three cycles */
+        0xa5u, 0x10u, 0xf0u, 0xfcu, 0x02u /* LDA $10; BEQ $8006; JAM */
+    };
+    struct ines_spec spec;
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.prg_code = code;
+    spec.prg_code_len = sizeof code;
+    spec.nmi_vector = 0x8000u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    return ines_build(image, image_size, &spec);
+}
+
+static void regional_pal_instruction_overrun(void)
+{
+    static uint8_t image[16u + INES_PRG_BANK + INES_CHR_BANK];
+    const uint64_t frame_ticks = UINT64_C(1063920);
+    const size_t image_size = regional_pal_loop_image(image, sizeof image);
+    nesturbator *source = st_make_instance();
+    nesturbator *loaded = st_make_instance();
+    uint8_t *state = NULL, *roundtrip = NULL, *source_final = NULL, *loaded_final = NULL;
+    size_t state_size;
+    uint64_t first_ticks = 0u, first_frame = 0u;
+    uint32_t source_video = 0u, source_audio = 0u, loaded_video = 0u, loaded_audio = 0u;
+    uint64_t source_ticks = 0u, source_frame = 0u, loaded_ticks = 0u, loaded_frame = 0u;
+
+    CHECK(image_size != 0u);
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(source, image, image_size,
+                                                   NESTURBATOR_REGION_PREFERENCE_PAL),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(loaded, image, image_size,
+                                                   NESTURBATOR_REGION_PREFERENCE_PAL),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(st_frame(source, 0u, NULL, NULL, &first_ticks, &first_frame), NESTURBATOR_OK);
+    CHECK_EQ_U64(first_frame, 1u);
+    CHECK(first_ticks > frame_ticks);
+    CHECK(first_ticks - frame_ticks < 96u);
+    CHECK_EQ_U64(first_ticks / frame_ticks, 1u);
+
+    state_size = nesturbator_state_size(source);
+    state = (uint8_t *)malloc(state_size);
+    roundtrip = (uint8_t *)malloc(state_size);
+    source_final = (uint8_t *)malloc(state_size);
+    loaded_final = (uint8_t *)malloc(state_size);
+    CHECK(state != NULL && roundtrip != NULL && source_final != NULL && loaded_final != NULL);
+    if (state == NULL || roundtrip == NULL || source_final == NULL || loaded_final == NULL)
+        goto done;
+    CHECK_EQ_U64(nesturbator_save_state(source, state, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_state(loaded, state, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(loaded, roundtrip, state_size), NESTURBATOR_OK);
+    CHECK(memcmp(state, roundtrip, state_size) == 0);
+
+    CHECK_EQ_U64(st_frame(source, 1u, &source_video, &source_audio, &source_ticks, &source_frame),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(st_frame(loaded, 1u, &loaded_video, &loaded_audio, &loaded_ticks, &loaded_frame),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(source_frame, 2u);
+    CHECK(source_ticks >= UINT64_C(2) * frame_ticks);
+    CHECK(source_ticks - UINT64_C(2) * frame_ticks < 96u);
+    CHECK_EQ_U64(loaded_frame, source_frame);
+    CHECK_EQ_U64(loaded_ticks, source_ticks);
+    CHECK_EQ_HEX(loaded_video, source_video);
+    CHECK_EQ_HEX(loaded_audio, source_audio);
+    CHECK_EQ_U64(nesturbator_save_state(source, source_final, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(loaded, loaded_final, state_size), NESTURBATOR_OK);
+    CHECK(memcmp(source_final, loaded_final, state_size) == 0);
+    printf("regional PAL instruction overrun: first=%llu second=%llu target=%llu\n",
+           (unsigned long long)first_ticks, (unsigned long long)source_ticks,
+           (unsigned long long)(UINT64_C(2) * frame_ticks));
+
+done:
+    free(state);
+    free(roundtrip);
+    free(source_final);
+    free(loaded_final);
+    nesturbator_destroy(source);
+    nesturbator_destroy(loaded);
+}
+
+static void regional_pal_jam_lag(void)
+{
+    static uint8_t image[16u + INES_PRG_BANK + INES_CHR_BANK];
+    const uint64_t frame_ticks = UINT64_C(1063920);
+    const size_t image_size = regional_pal_gated_jam_image(image, sizeof image);
+    nesturbator *jammed = st_make_instance();
+    nesturbator *loaded = st_make_instance();
+    struct nesturbator *nes = (struct nesturbator *)jammed;
+    uint8_t *jam_state = NULL, *again = NULL, *reset_state = NULL, *peer_state = NULL;
+    uint8_t *jam_final = NULL, *loaded_final = NULL;
+    size_t state_size;
+    uint64_t target = frame_ticks;
+    size_t steps = 0u;
+
+    CHECK(image_size != 0u);
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(jammed, image, image_size,
+                                                   NESTURBATOR_REGION_PREFERENCE_PAL),
+                 NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_load_cartridge_region(loaded, image, image_size,
+                                                   NESTURBATOR_REGION_PREFERENCE_PAL),
+                 NESTURBATOR_OK);
+    while (steps < 100000u) {
+        if (nes->cpu.pc == 0x8008u && nes->ticks < target && target - nes->ticks <= 575u)
+            break;
+        if (nes->ticks >= target) {
+            CHECK(0 && "gated PAL guest did not reach its JAM window before the frame target");
+            goto done;
+        }
+        nesturbator__cpu_step(nes);
+        steps++;
+    }
+    CHECK(steps < 100000u);
+    CHECK_EQ_U64(nes->cpu.pc, 0x8008u);
+    CHECK(nes->ticks < target && target - nes->ticks <= 575u);
+    nes->bus.ram[0x10] = 1u;
+    CHECK_EQ_U64(st_frame(jammed, 0u, NULL, NULL, NULL, NULL), NESTURBATOR_STOP_JAM);
+    CHECK_EQ_U64(nes->cpu.jammed, 1u);
+    CHECK_EQ_U64(nes->frame_number, 0u);
+    CHECK(nes->ticks >= target);
+    CHECK_EQ_U64(nes->ticks / frame_ticks - nes->frame_number, 1u);
+
+    state_size = nesturbator_state_size(jammed);
+    jam_state = (uint8_t *)malloc(state_size);
+    again = (uint8_t *)malloc(state_size);
+    reset_state = (uint8_t *)malloc(state_size);
+    peer_state = (uint8_t *)malloc(state_size);
+    jam_final = (uint8_t *)malloc(state_size);
+    loaded_final = (uint8_t *)malloc(state_size);
+    CHECK(jam_state != NULL && again != NULL && reset_state != NULL && peer_state != NULL &&
+          jam_final != NULL && loaded_final != NULL);
+    if (jam_state == NULL || again == NULL || reset_state == NULL || peer_state == NULL ||
+        jam_final == NULL || loaded_final == NULL)
+        goto done;
+    CHECK_EQ_U64(nesturbator_save_state(jammed, jam_state, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(le64(jam_state + H_FRAME), 0u);
+    CHECK_EQ_U64(le64(jam_state + H_TICKS) / frame_ticks, 1u);
+    CHECK_EQ_U64(nesturbator_load_state(loaded, jam_state, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(st_frame(loaded, 0u, NULL, NULL, NULL, NULL), NESTURBATOR_STOP_JAM);
+    CHECK_EQ_U64(nesturbator_save_state(loaded, again, state_size), NESTURBATOR_OK);
+    CHECK(memcmp(jam_state, again, state_size) == 0);
+
+    jammed->bus.ram[0x10] = 0u;
+    loaded->bus.ram[0x10] = 0u;
+    CHECK_EQ_U64(nesturbator_reset(jammed), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_reset(loaded), NESTURBATOR_OK);
+    CHECK_EQ_U64(jammed->frame_number, 0u);
+    CHECK_EQ_U64(loaded->frame_number, 0u);
+    CHECK_EQ_U64(jammed->ticks / frame_ticks - jammed->frame_number, 1u);
+    CHECK_EQ_U64(loaded->ticks / frame_ticks - loaded->frame_number, 1u);
+    CHECK_EQ_U64(nesturbator_save_state(jammed, reset_state, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(loaded, peer_state, state_size), NESTURBATOR_OK);
+    CHECK(memcmp(reset_state, peer_state, state_size) == 0);
+    CHECK_EQ_U64(nesturbator_load_state(loaded, reset_state, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(loaded, again, state_size), NESTURBATOR_OK);
+    CHECK(memcmp(reset_state, again, state_size) == 0);
+
+    for (uint32_t frame = 1u; frame <= 2u; ++frame) {
+        uint32_t jam_video = 0u, jam_audio = 0u, loaded_video = 0u, loaded_audio = 0u;
+        uint64_t jam_ticks = 0u, jam_frame = 0u, loaded_ticks = 0u, loaded_frame = 0u;
+        CHECK_EQ_U64(
+            st_frame(jammed, st_buttons(frame), &jam_video, &jam_audio, &jam_ticks, &jam_frame),
+            NESTURBATOR_OK);
+        CHECK_EQ_U64(st_frame(loaded, st_buttons(frame), &loaded_video, &loaded_audio,
+                              &loaded_ticks, &loaded_frame),
+                     NESTURBATOR_OK);
+        CHECK_EQ_U64(jam_frame, frame);
+        CHECK_EQ_U64(loaded_frame, jam_frame);
+        CHECK_EQ_U64(loaded_ticks, jam_ticks);
+        CHECK_EQ_HEX(loaded_video, jam_video);
+        CHECK_EQ_HEX(loaded_audio, jam_audio);
+        if (frame == 2u)
+            CHECK(jam_ticks >= UINT64_C(2) * frame_ticks);
+    }
+    CHECK_EQ_U64(nesturbator_save_state(jammed, jam_final, state_size), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_save_state(loaded, loaded_final, state_size), NESTURBATOR_OK);
+    CHECK(memcmp(jam_final, loaded_final, state_size) == 0);
+    printf("regional PAL JAM/reset lag: ticks=%llu frame=%llu\n", (unsigned long long)jammed->ticks,
+           (unsigned long long)jammed->frame_number);
+
+done:
+    free(jam_state);
+    free(again);
+    free(reset_state);
+    free(peer_state);
+    free(jam_final);
+    free(loaded_final);
+    nesturbator_destroy(jammed);
+    nesturbator_destroy(loaded);
+}
+
+static void regional_bounds(const uint8_t *image, size_t image_size, enum nesturbator_region region)
+{
+    const int pal = region == NESTURBATOR_REGION_PAL;
+    const uint32_t denominator = pal ? 709379u : 315000u;
+    const uint16_t max_scanline = pal ? 311u : 261u;
+    const uint64_t frame_ticks = pal ? UINT64_C(1063920) : UINT64_C(714732);
+    nesturbator *inst = st_make_instance();
+    struct rom r;
+    struct nesturbator__state_bound bounds[MAX_BOUNDS];
+    uint8_t *baseline = NULL, *mutated = NULL;
+    size_t count, audio_off, sample_off, scanline_off, ppu_ticks_off;
+    size_t frame_mode_off, frame_cycle_off;
+    const struct nesturbator__state_bound *audio_bound, *sample_bound, *scanline_bound;
+    const struct nesturbator__state_bound *ppu_ticks_bound;
+    uint64_t ticks, ppu_ticks;
+
+    memset(&r, 0, sizeof r);
+    if (inst == NULL)
+        goto done;
+    CHECK_EQ_U64(
+        nesturbator_load_cartridge_region(inst, image, image_size, regional_preference(region)),
+        NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_get_region(inst), region);
+    for (uint32_t frame = 1u; frame <= 2u; ++frame)
+        CHECK_EQ_U64(st_frame(inst, st_buttons(frame), NULL, NULL, NULL, NULL), NESTURBATOR_OK);
+    r.inst = inst;
+    r.state_size = nesturbator_state_size(inst);
+    baseline = (uint8_t *)malloc(r.state_size);
+    mutated = (uint8_t *)malloc(r.state_size);
+    CHECK(r.state_size > HEADER && baseline != NULL && mutated != NULL);
+    if (baseline == NULL || mutated == NULL || r.state_size <= HEADER)
+        goto done;
+    CHECK_EQ_U64(nesturbator_save_state(inst, baseline, r.state_size), NESTURBATOR_OK);
+
+    audio_off = locate(&r, offsetof(struct nesturbator, audio_rem), 4u);
+    sample_off = locate(&r, offsetof(struct nesturbator, apu.sample_phase), 4u);
+    frame_mode_off = locate(&r, offsetof(struct nesturbator, apu.frame_mode), 1u);
+    frame_cycle_off = locate(&r, offsetof(struct nesturbator, apu.frame_cycle), 4u);
+    scanline_off = locate(&r, offsetof(struct nesturbator, ppu.scanline), 2u);
+    ppu_ticks_off = special_off(&r, "ppu.ppu_ticks");
+    count = nesturbator__state_bounds(inst, bounds, MAX_BOUNDS);
+    audio_bound = regional_bound(bounds, count, audio_off);
+    sample_bound = regional_bound(bounds, count, sample_off);
+    scanline_bound = regional_bound(bounds, count, scanline_off);
+    ppu_ticks_bound = regional_bound(bounds, count, ppu_ticks_off);
+    CHECK(audio_bound != NULL && sample_bound != NULL && scanline_bound != NULL &&
+          ppu_ticks_bound != NULL && frame_mode_off != 0u && frame_cycle_off != 0u);
+    if (audio_bound == NULL || sample_bound == NULL || scanline_bound == NULL ||
+        ppu_ticks_bound == NULL || frame_mode_off == 0u || frame_cycle_off == 0u)
+        goto done;
+    CHECK_EQ_U64(audio_bound->hi, denominator - 1u);
+    CHECK_EQ_U64(sample_bound->hi, denominator - 1u);
+    CHECK_EQ_U64(scanline_bound->hi, max_scanline);
+    CHECK_EQ_U64(audio_bound->width, 4u);
+    CHECK_EQ_U64(sample_bound->width, 4u);
+    CHECK_EQ_U64(scanline_bound->width, 2u);
+    CHECK_EQ_U64(ppu_ticks_bound->width, 8u);
+    CHECK_EQ_U64(ppu_ticks_bound->cross, 1u);
+    regional_bound_value(&r, baseline, mutated, audio_off, 4u, denominator - 1u, NESTURBATOR_OK,
+                         "audio remainder max");
+    regional_bound_value(&r, baseline, mutated, audio_off, 4u, denominator,
+                         NESTURBATOR_ERR_STATE_INVALID, "audio remainder max+1");
+    regional_bound_value(&r, baseline, mutated, sample_off, 4u, denominator - 1u, NESTURBATOR_OK,
+                         "sample phase max");
+    regional_bound_value(&r, baseline, mutated, sample_off, 4u, denominator,
+                         NESTURBATOR_ERR_STATE_INVALID, "sample phase max+1");
+    regional_bound_value(&r, baseline, mutated, scanline_off, 2u, max_scanline, NESTURBATOR_OK,
+                         "scanline max");
+    regional_bound_value(&r, baseline, mutated, scanline_off, 2u, max_scanline + 1u,
+                         NESTURBATOR_ERR_STATE_INVALID, "scanline max+1");
+    if (pal != 0)
+        regional_pal_five_step_endpoint(&r, baseline, mutated, frame_mode_off, frame_cycle_off);
+    if (pal != 0) {
+        CHECK_EQ_U64(r.inst->apu.frame_mode, 1u);
+        regional_apu_value(&r, baseline, mutated, frame_mode_off, frame_cycle_off, 0u, 37282u,
+                           NESTURBATOR_ERR_STATE_INVALID,
+                           "PAL four-step cursor with five-step destination");
+    } else {
+        CHECK_EQ_U64(r.inst->apu.frame_mode, 0u);
+        regional_apu_value(&r, baseline, mutated, frame_mode_off, frame_cycle_off, 1u, 37282u,
+                           NESTURBATOR_ERR_STATE_INVALID,
+                           "NTSC five-step cursor with four-step destination");
+    }
+    regional_frame_counter_cases(&r, baseline, mutated, frame_ticks, pal);
+
+    ticks = le64(baseline + H_TICKS);
+    ppu_ticks = le64(baseline + ppu_ticks_off);
+    CHECK(ppu_ticks <= ticks && ticks > frame_ticks);
+    CHECK(regional_bound(bounds, count, ppu_ticks_off) != NULL);
+    if (ticks > frame_ticks) {
+        memcpy(mutated, baseline, r.state_size);
+        put_raw(mutated + H_TICKS, ppu_ticks + frame_ticks - 1u, 8u);
+        st_recrc(mutated, r.state_size);
+        {
+            nesturbator_status status = nesturbator_load_state(inst, mutated, r.state_size);
+            CHECK_EQ_U64(status, NESTURBATOR_OK);
+            if (status == NESTURBATOR_OK)
+                regional_continue_loaded(&r, "PPU gap frame_ticks-1");
+        }
+        memcpy(mutated, baseline, r.state_size);
+        put_raw(mutated + H_TICKS, ppu_ticks + frame_ticks, 8u);
+        st_recrc(mutated, r.state_size);
+        CHECK(st_refused(inst, mutated, r.state_size, NESTURBATOR_ERR_STATE_INVALID));
+        memcpy(mutated, baseline, r.state_size);
+        put_raw(mutated + ppu_ticks_off, ticks + 1u, 8u);
+        st_recrc(mutated, r.state_size);
+        CHECK(st_refused(inst, mutated, r.state_size, NESTURBATOR_ERR_STATE_INVALID));
+    }
+    printf("regional state bounds: %s denominator=%u scanline=%u PPU gap<%llu\n",
+           pal ? "PAL" : "NTSC", denominator, max_scanline, (unsigned long long)frame_ticks);
+
+done:
+    free(baseline);
+    free(mutated);
+    nesturbator_destroy(inst);
+}
+
+static void case_regional_state(void)
+{
+    static uint8_t image[16u + 2u * INES_PRG_BANK + INES_CHR_BANK];
+    const size_t image_size = st_stress_image(image, sizeof image, 0u);
+    CHECK(image_size != 0u);
+    if (image_size == 0u)
+        return;
+    for (size_t byte = 0u; byte < 17u; ++byte)
+        image[16u + 0x4000u + byte] = 0x77u;
+    regional_mismatch(image, image_size, NESTURBATOR_REGION_PAL, NESTURBATOR_REGION_NTSC);
+    regional_mismatch(image, image_size, NESTURBATOR_REGION_NTSC, NESTURBATOR_REGION_PAL);
+    regional_bounds(image, image_size, NESTURBATOR_REGION_NTSC);
+    regional_bounds(image, image_size, NESTURBATOR_REGION_PAL);
+    regional_pal_instruction_overrun();
+    regional_pal_jam_lag();
+}
+
 /* ---- Driver ---- */
 
 int main(int argc, char **argv)
 {
     struct rom *roms;
     size_t n, first = 1u;
+    if (argc == 2 && strcmp(argv[1], "--regional") == 0) {
+        case_regional_state();
+        CHECK_DONE();
+    }
     if (argc > 1 && strcmp(argv[1], "--short") == 0) {
         g_short = 1;
         g_flip_ram_stride = 97u;

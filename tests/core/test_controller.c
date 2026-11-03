@@ -3,6 +3,13 @@
 
 #include "internal.h"
 #include "../check.h"
+#include "../ines.h"
+
+#define FRAME_VIDEO_SIZE (NESTURBATOR_WIDTH * NESTURBATOR_HEIGHT)
+#define FRAME_AUDIO_CAPACITY 1024u
+
+static uint16_t frame_video[FRAME_VIDEO_SIZE];
+static int16_t frame_audio[FRAME_AUDIO_CAPACITY];
 
 static nesturbator *make(void)
 {
@@ -111,10 +118,71 @@ static void test_upper_three_bits_retain_cpu_open_bus(void)
     nesturbator_destroy(nes);
 }
 
+static void test_public_frames_snapshot_inputs_across_instruction_overrun(void)
+{
+    /* The 10-cycle loop reads live A, stores it, then jumps back. The first
+       29,780 cycles end at a loop boundary; LDA $4016 starts 12 master ticks
+       before the frame target and completes after that target. */
+    static const uint8_t loop_code[] = {
+        0xadu, 0x16u, 0x40u, /* LDA $4016 (4 cycles) */
+        0x85u, 0x00u,        /* STA $00 (3 cycles) */
+        0x4cu, 0x00u, 0x80u  /* JMP $8000 (3 cycles) */
+    };
+    static const uint64_t ntsc_frame_ticks = UINT64_C(714732);
+    static uint8_t image[16u + INES_PRG_BANK + INES_CHR_BANK];
+    struct ines_spec spec;
+    nesturbator_input input;
+    nesturbator_frame io;
+    nesturbator *nes = make();
+
+    memset(&spec, 0, sizeof spec);
+    spec.prg_16k = 1u;
+    spec.chr_8k = 1u;
+    spec.prg_code = loop_code;
+    spec.prg_code_len = sizeof loop_code;
+    spec.nmi_vector = 0x8000u;
+    spec.reset_vector = 0x8000u;
+    spec.irq_vector = 0x8000u;
+    CHECK_EQ_U64(ines_build(image, sizeof image, &spec), sizeof image);
+    CHECK_EQ_U64(nesturbator_load_cartridge(nes, image, sizeof image), NESTURBATOR_OK);
+
+    /* The guest keeps the controller strobe high so each LDA observes the A
+       bit from the snapshot installed at the start of its public frame call. */
+    nes->bus.controller_strobe = 1u;
+    memset(&input, 0, sizeof input);
+    input.size = (uint32_t)sizeof input;
+    input.buttons[0] = NESTURBATOR_BUTTON_A;
+    CHECK_EQ_U64(nesturbator_set_input(nes, &input), NESTURBATOR_OK);
+    memset(&io, 0, sizeof io);
+    io.size = (uint32_t)sizeof io;
+    io.video = frame_video;
+    io.video_pitch = NESTURBATOR_WIDTH;
+    io.audio = frame_audio;
+    io.audio_capacity = FRAME_AUDIO_CAPACITY;
+    CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+
+    /* 29,781 nominal cycles are required; the crossing LDA completes at
+       cycle 29,784 and is the instruction active when run_frame returns. */
+    CHECK_EQ_U64(io.frame_number, 1u);
+    CHECK_EQ_U64(io.ticks, ntsc_frame_ticks + 84u);
+    CHECK_EQ_U64(nes->cpu_cycle, 29784u);
+    CHECK_EQ_HEX(nes->cpu.pc, 0x8003u);
+    CHECK_EQ_HEX(nes->cpu.a & 1u, 1u);
+
+    input.buttons[0] = 0u;
+    CHECK_EQ_U64(nesturbator_set_input(nes, &input), NESTURBATOR_OK);
+    CHECK_EQ_U64(nesturbator_run_frame(nes, &io), NESTURBATOR_OK);
+    CHECK_EQ_U64(io.frame_number, 2u);
+    CHECK_EQ_HEX(nes->cpu.a & 1u, 0u);
+    CHECK_EQ_HEX(nes->bus.ram[0] & 1u, 0u);
+    nesturbator_destroy(nes);
+}
+
 int main(void)
 {
     test_two_ports_shift_independently();
     test_high_strobe_tracks_a_and_invalid_input_is_unchanged();
     test_upper_three_bits_retain_cpu_open_bus();
+    test_public_frames_snapshot_inputs_across_instruction_overrun();
     CHECK_DONE();
 }
